@@ -1,6 +1,6 @@
 
 Prog8 compiler v12.2-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit c784fd03 in branch master
+Prerelease version from git commit 12590f3c in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-cx16.p8
@@ -585,6 +585,16 @@ graphics  {
     plot  (uword plotx @R0, uword ploty @R1) clobbers (A,X,Y)
     rect  (uword xx, uword yy, uword width, uword height)
     vertical_line  (uword xx, uword yy, uword height)
+}
+
+
+LIBRARY MODULE NAME: lineclip
+-----------------------------
+
+lineclip  {
+    clip  (word x1, word y1, word x2, word y2) -> bool, word, word, word, word
+    inside  (word x, word y) -> bool
+    set_cliprect  (word x1, word y1, word x2, word y2)
 }
 
 

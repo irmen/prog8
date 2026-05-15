@@ -7,6 +7,7 @@
 %import diskio
 %import emudbg
 %import floats
+%import lineclip
 %import math
 %import monogfx
 %import prog8_lib

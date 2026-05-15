@@ -4,9 +4,9 @@ lineclip {
 
     ; Based on Mark Moxon's Elite deep dive: https://elite.bbcelite.com/deep_dives/line-clipping.html
 
-    word cx1, cy1, cx2, cy2
+    private word cx1, cy1, cx2, cy2
 
-    ; Set the clipping rectangle coordinates
+    ; Set the clipping rectangle coordinates (all inclusive)
     sub set_cliprect(word x1, word y1, word x2, word y2) {
         cx1 = x1
         cy1 = y1
@@ -14,7 +14,12 @@ lineclip {
         cy2 = y2
     }
 
-    ; Clip line segment (x1,y1)-(x2,y2) against the current clipping rectangle, set with set_cliprect().
+    ; returns true if (x,y) is inside the clipping rectangle set by set_cliprect()
+    sub inside(word x, word y) -> bool {
+        return x >= cx1 and x <= cx2 and y >= cy1 and y <= cy2
+    }
+
+    ; Clip line segment (x1,y1)-(x2,y2) against the current clipping rectangle, set by set_cliprect().
     ; Returns (visible, clipped_x1, clipped_y1, clipped_x2, clipped_y2).
     sub clip(word x1, word y1, word x2, word y2) -> bool, word, word, word, word {
         bool a_inside = inside(x1, y1)
@@ -139,10 +144,6 @@ lineclip {
 
                 */
             }
-        }
-
-        sub inside(word x, word y) -> bool {
-            return x >= cx1 and x <= cx2 and y >= cy1 and y <= cy2
         }
     }
 }

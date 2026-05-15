@@ -493,7 +493,7 @@ class Prog8TextDocumentService: TextDocumentService {
                     // The compiler resolves these to target-specific versions automatically
                     val builtinModules = setOf(
                         // Core libraries (available on all targets)
-                        "bcd", "buffers", "compression", "conv", "coroutines",
+                        "bcd", "buffers", "compression", "conv", "coroutines", "lineclip",
                         "math", "prog8_lib", "prog8_math", "sorting", "strings",
                         "test_stack", "wavfile",
                         
@@ -720,7 +720,7 @@ class Prog8TextDocumentService: TextDocumentService {
         WorkspaceEdit()
     }
 
-    private fun getWordAtPosition(document: Prog8Document, position: org.eclipse.lsp4j.Position): String {
+    private fun getWordAtPosition(document: Prog8Document, position: Position): String {
         // Extract the word at the given position from the document text
         val lines = document.text.lines()
         if (position.line < lines.size) {

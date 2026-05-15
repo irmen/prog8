@@ -12,13 +12,14 @@ Dead Code Elimination BUG in 64tass with nested subroutines
 
 Weird Heisenbug
 ^^^^^^^^^^^^^^^
-- BUG: examples/cube3d-float crashes with div by zero error on C64 (works on cx16. ALready broken in v11, v10 still worked)
+- BUG: examples/cube3d-float crashes with div by zero error on C64 (works on cx16. Already broken in v11, v10 still worked)
   caused by the RTS after JMP removal in optimizeJsrRtsAndOtherCombinations (replacing it with a NOP makes the problem disappear !??!?).
   Also observed in the boingball example for the C64 when some code was removed from the start and end.
 
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
+- implement 6502 long division routine
 - symboldump: some sort of javadocs generated from the p8 source files (instead of just the function signatures). Use markdown for formatting.
 - why are (interned) strings stored as initialization value in the SymbolTable AND as string nodes in the interned string block? Something seems redundant here?
 - when implementing unsigned longs: remove the (multiple?) "TODO "hack" to allow unsigned long constants to be used as values for signed longs, without needing a cast
@@ -53,7 +54,7 @@ Future Things and Ideas
 
 
 IR/VM
------
+^^^^^
 - getting it in shape for code generation: the IR file should be able to encode every detail about a prog8 program (the VM doesn't have to actually be able to run all of it though!)
 - maybe change all branch instructions to have 2 exits (label if branch condition ture, and label if false) instead of 1, and get rid of the implicit "next code chunk" link between chunks.
 - implement more TODOs in AssignmentGen?
@@ -69,15 +70,16 @@ IR/VM
 - ``IRInlineBinaryChunk`` and ``IRInlineAsmChunk`` - inline chunks cannot be loaded by the VM (VmProgramLoader.kt). Limitation of the current VM design: program is not loaded into memory as data
 - VM label address loading - ``VmProgramLoader.kt`` throws when it cannot resolve a label address as a value (``"vm cannot yet load a label address as a value"``).
 
+
 Libraries
----------
+^^^^^^^^^
 - add a serialio library to interface with the serial/wifi card, see https://github.com/safiire/cx16_wget/blob/master/uart.s 
 - Add split-word array sorting routines to sorting module?
 - make a list of all floats.* routines that the compiler expects for full float support? 
 
 
 Optimizations
--------------
+^^^^^^^^^^^^^
 
 - inliner: extend multi-value return inlining to support parameterized subroutines. Currently only works for parameterless subroutines. (Void calls with parameters already work if the parameters are unused in the body.)
 - Port more benchmarks from https://thred.github.io/c-bench-64/  to prog8 and see how it stacks up. (see benchmark-c/ directory)

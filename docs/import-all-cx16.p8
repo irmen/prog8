@@ -14,6 +14,7 @@
 %import gfx_hires
 %import gfx_lores
 %import graphics
+%import lineclip
 %import math
 %import monogfx
 %import palette

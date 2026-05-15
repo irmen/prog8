@@ -9,6 +9,7 @@
 %import diskio
 %import floats
 %import graphics
+%import lineclip
 %import math
 %import petgfx
 %import prog8_lib
