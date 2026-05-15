@@ -73,14 +73,12 @@ Libraries
 ---------
 - add a serialio library to interface with the serial/wifi card, see https://github.com/safiire/cx16_wget/blob/master/uart.s 
 - Add split-word array sorting routines to sorting module?
-- make a list of all floats.* routines that the compiler expects for full float support?
-- pet32 list_filenames() doesn't check filenames buffer size 
+- make a list of all floats.* routines that the compiler expects for full float support? 
 
 
 Optimizations
 -------------
 
-- Sometimes explicit const pointers are better off being a variable (because they can be put into zero page like that etc) So find a way to identify such pointers to turn back into regular variables (silently)
 - inliner: extend multi-value return inlining to support parameterized subroutines. Currently only works for parameterless subroutines. (Void calls with parameters already work if the parameters are unused in the body.)
 - Port more benchmarks from https://thred.github.io/c-bench-64/  to prog8 and see how it stacks up. (see benchmark-c/ directory)
 - Compilation speed: try to join multiple modifications in 1 result in the AST processors instead of returning it straight away every time

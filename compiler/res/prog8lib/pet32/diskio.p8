@@ -90,9 +90,9 @@ io_error:
         if filenames_buf_size<=20
             return 0
 
+        uword filenames_buffer_start = filenames_buffer
         ubyte files_found = 0
-        uword buf_ptr = filenames_buffer
-        @(buf_ptr) = 0
+        @(filenames_buffer) = 0
         cbm.SETNAM(1, "$")
         cbm.SETLFS(READ_IO_CHANNEL, drivenumber, 0)
         ubyte status = 1
@@ -138,8 +138,12 @@ io_error:
             @(name_ptr) = 0
 
             if pattern_ptr==0 or strings.pattern_match(list_filename, pattern_ptr) {
-                buf_ptr += strings.copy(list_filename, buf_ptr) + 1
+                filenames_buffer += strings.copy(list_filename, filenames_buffer) as uword + 1
                 files_found++
+                if filenames_buffer - filenames_buffer_start > filenames_buf_size-20 {
+                    @(filenames_buffer)=0
+                    goto end_listing_more
+                }
             }
 
             while cbm.CHRIN()!=0 {
@@ -155,8 +159,13 @@ io_error:
         }
 
 end_listing:
-        @(buf_ptr) = 0
+        @(filenames_buffer) = 0
         status = cbm.READST()
+        sys.clear_carry()
+        goto io_error
+
+end_listing_more:
+        sys.set_carry()
 
 io_error:
         cbm.CLRCHN()        ; restore default i/o devices

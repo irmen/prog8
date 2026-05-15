@@ -13,16 +13,28 @@ import prog8tests.helpers.compileText
 class TestPointerConstPromotion : FunSpec({
     val outputDir = tempdir().toPath()
 
-    test("pointer variable with 2 dereferences is promoted to const") {
+    test("zp pointer variable with a dereference is NOT promoted to const") {
         val src = """
-            %import textio
             main {
                 sub start() {
-                    ^^ubyte ptr = 9999
-                    ubyte a = ptr^^
-                    ubyte b = ptr^^
-                    txt.print_ub(a)
-                    txt.print_ub(b)
+                    ^^ubyte @zp ptr = 9999
+                    ubyte @shared a = ptr^^
+                }
+            }
+        """.trimIndent()
+        val result = compileText(VMTarget(), true, src, outputDir)
+        val mainBlock = result!!.compilerAst.allBlocks.first { it.name == "main" }
+        val startSub = mainBlock.subScope("start")!!
+        val ptrVar = startSub.lookup(listOf("ptr"))!!
+        (ptrVar as VarDecl).type shouldBe VarDeclType.VAR
+    }
+
+    test("nonzp pointer variable with a dereference is promoted to const") {
+        val src = """
+            main {
+                sub start() {
+                    ^^ubyte @nozp ptr = 9999
+                    ubyte @shared a = ptr^^
                 }
             }
         """.trimIndent()
@@ -33,14 +45,12 @@ class TestPointerConstPromotion : FunSpec({
         (ptrVar as VarDecl).type shouldBe VarDeclType.CONST
     }
 
-    test("pointer variable with memory is notpromoted to const") {
+    test("pointer variable with memory is not promoted to const") {
         val src = """
-            %import textio
             main {
                 sub start() {
                     ^^ubyte ptr = memory("slab", 10, 1)
-                    ubyte a = ptr^^
-                    txt.print_ub(a)
+                    ubyte @shared a = ptr^^
                 }
             }
         """.trimIndent()
@@ -53,16 +63,12 @@ class TestPointerConstPromotion : FunSpec({
 
     test("pointer variable with 3 dereferences is NOT promoted to const") {
         val src = """
-            %import textio
             main {
                 sub start() {
                     ^^ubyte ptr = 9999
-                    ubyte a = ptr^^
-                    ubyte b = ptr^^
-                    ubyte c = ptr^^
-                    txt.print_ub(a)
-                    txt.print_ub(b)
-                    txt.print_ub(c)
+                    ubyte @shared a = ptr^^
+                    ubyte @shared b = ptr^^
+                    ubyte @shared c = ptr^^
                 }
             }
         """.trimIndent()
