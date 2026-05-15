@@ -5,7 +5,7 @@ import prog8.code.target.IVirtualMachineRunner
 import prog8.code.target.VMTarget
 import prog8.intermediate.*
 import java.awt.Color
-import java.awt.Toolkit
+import java.awt.GraphicsEnvironment
 import java.io.IOException
 import kotlin.math.*
 import kotlin.random.Random
@@ -3149,7 +3149,18 @@ class VirtualMachine(irProgram: IRProgram) {
     }
 
     fun waitvsync() {
-        Toolkit.getDefaultToolkit().sync()      // not really the same as wait on vsync, but there's noting else
+        // note: not a real vsync, but a sleep for approx. the duration of a frame
+        val ms = try {
+            val mode = GraphicsEnvironment.getLocalGraphicsEnvironment().defaultScreenDevice.displayMode
+            if(mode!=null && mode.refreshRate>0) 1000L / mode.refreshRate else 16L
+        } catch(_: Exception) {
+            16L
+        }
+        try {
+            Thread.sleep(ms)
+        } catch(_: InterruptedException) {
+            Thread.currentThread().interrupt()
+        }
     }
 
     fun randomSeed(seed1: UShort, seed2: UShort) {
