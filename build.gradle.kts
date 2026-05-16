@@ -3,7 +3,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 
 plugins {
-    kotlin("jvm") version "2.3.20"
+    kotlin("jvm") version "2.3.21"
 }
 
 allprojects {
@@ -53,7 +53,7 @@ subprojects {
     // This manages all Kotest module versions centrally
     dependencies {
         testImplementation(platform("io.kotest:kotest-bom:5.9.1"))
-        // implementation("com.github.irmen:ksim65:v2.0")
+        // implementation("com.github.irmen:ksim65:v2.1")
     }
 
     // Common sourceSets configuration

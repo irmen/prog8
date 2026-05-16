@@ -1,11 +1,11 @@
 <component name="libraryTable">
   <library name="github.irmen.ksim65" type="repository">
-    <properties maven-id="com.github.irmen:ksim65:v2.0" />
+    <properties maven-id="com.github.irmen:ksim65:v2.1" />
     <CLASSES>
-      <root url="jar://$MAVEN_REPOSITORY$/com/github/irmen/ksim65/v2.0/ksim65-v2.0.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/com/github/irmen/ksim65/v2.1/ksim65-v2.1.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlin/kotlin-stdlib-jdk8/2.3.20/kotlin-stdlib-jdk8-2.3.20.jar!/" />
       <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlin/kotlin-stdlib/2.3.20/kotlin-stdlib-2.3.20.jar!/" />
       <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/annotations/13.0/annotations-13.0.jar!/" />
-      <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlin/kotlin-stdlib-jdk8/2.3.20/kotlin-stdlib-jdk8-2.3.20.jar!/" />
       <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlin/kotlin-stdlib-jdk7/2.3.20/kotlin-stdlib-jdk7-2.3.20.jar!/" />
     </CLASSES>
     <JAVADOC />

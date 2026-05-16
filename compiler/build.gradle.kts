@@ -23,7 +23,7 @@ dependencies {
     testImplementation(project(":intermediate"))
     testImplementation("io.kotest:kotest-runner-junit5")
     testImplementation("io.kotest:kotest-framework-datatest")
-    testImplementation("com.github.irmen:ksim65:v2.0")
+    testImplementation("com.github.irmen:ksim65:v2.1")
 }
 
 // Exclude transitive antlr4 dependency (we only need it in parser module)

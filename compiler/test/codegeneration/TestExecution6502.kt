@@ -115,9 +115,25 @@ class TestExecution6502 : FunSpec({
             }
         """.trimIndent()
         val compileResult = compileText(Cx16Target(), false, src, outputDir)
-        val machine = compileResult!!.simulate()
+        val machine = compileResult!!.simulate(1000)
         machine.cpu.totalCycles shouldBeLessThan 200
     }
+
+    test("top level RTS exits simulator") {
+        val src = $$"""
+            %option no_sysinit
+            %launcher none
+            %address $1000
+            main {
+                sub start() {
+                    ; do nothing just RTS
+                }
+            }
+        """.trimIndent()
+        val compileResult = compileText(Cx16Target(), false, src, outputDir)
+        val machine = compileResult!!.simulate(1000)
+        machine.cpu.totalCycles shouldBeLessThan 250
+    }    
 
     test("reset register") {
         val src = $$"""
