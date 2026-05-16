@@ -1216,3 +1216,173 @@ _nosqadd:
 	rts
 
 		.pend
+
+
+
+
+div_longs  .proc
+            ; 32-bit SIGNED division.
+            ; long1 in cx16.r12/r13, long2 in cx16.r14/r15, result in cx16.r14/r15
+            ; clobbers A,X, cx16.r0, cx16.r1, cx16.r2, P8ZP_SCRATCH_W1, P8ZP_SCRATCH_W2
+
+dividend_lo = cx16.r12       ; low word of dividend (also receives quotient bits)
+dividend_hi = cx16.r13       ; high word of dividend
+divisor_lo  = cx16.r14       ; low word of divisor (also output quotient)
+divisor_hi  = cx16.r15       ; high word of divisor
+saved_div_lo = cx16.r0       ; absolute divisor saved copy (low word)
+saved_div_hi = cx16.r1       ; absolute divisor saved copy (high word)
+remainder_lo = P8ZP_SCRATCH_W1     ; remainder low word (zeropage)
+remainder_hi = P8ZP_SCRATCH_W2     ; remainder high word (zeropage)
+sign        = P8ZP_SCRATCH_B1      ; result sign
+temp        = P8ZP_SCRATCH_REG     ; temporary byte storage
+
+            ; Check for division by zero
+            lda  divisor_lo
+            ora  divisor_lo+1
+            ora  divisor_hi
+            ora  divisor_hi+1
+            bne  _non_zero
+            lda  #0
+            sta  divisor_lo
+            sta  divisor_lo+1
+            sta  divisor_hi
+            sta  divisor_hi+1
+            rts
+
+_non_zero
+            ; Determine result sign: XOR MSBs of dividend and divisor
+            lda  dividend_hi+1
+            eor  divisor_hi+1
+            sta  sign
+
+            ; Take absolute value of dividend if negative
+            lda  dividend_hi+1
+            bpl  _abs_divisor
+            jsr  _neg_dividend
+
+_abs_divisor
+            ; Take absolute value of divisor if negative
+            lda  divisor_hi+1
+            bpl  _save_div
+            jsr  _neg_divisor
+
+_save_div
+            ; Save absolute divisor into saved_div
+            lda  divisor_lo
+            sta  saved_div_lo
+            lda  divisor_lo+1
+            sta  saved_div_lo+1
+            lda  divisor_hi
+            sta  saved_div_hi
+            lda  divisor_hi+1
+            sta  saved_div_hi+1
+
+            ; Clear remainder
+            lda  #0
+            sta  remainder_lo
+            sta  remainder_lo+1
+            sta  remainder_hi
+            sta  remainder_hi+1
+
+            ; 32-bit restoring division loop (32 iterations)
+            ldx  #32
+
+_loop
+            ; Shift (remainder : dividend) left 1 bit
+            asl  dividend_lo
+            rol  dividend_lo+1
+            rol  dividend_hi
+            rol  dividend_hi+1
+            rol  remainder_lo
+            rol  remainder_lo+1
+            rol  remainder_hi
+            rol  remainder_hi+1
+
+            ; Subtract saved_div from remainder, check for borrow
+            sec
+            lda  remainder_lo
+            sbc  saved_div_lo
+            sta  cx16.r2L           ; byte 0 result -> r2L (NOT tax! X is loop counter)
+
+            lda  remainder_lo+1
+            sbc  saved_div_lo+1
+            sta  cx16.r2H           ; byte 1 result -> r2H
+
+            lda  remainder_hi
+            sbc  saved_div_hi
+            sta  temp               ; byte 2 result -> temp
+
+            lda  remainder_hi+1
+            sbc  saved_div_hi+1
+            bcc  _next              ; borrow means divisor didn't fit
+
+            ; Divisor fits - store subtraction result as new remainder
+            sta  remainder_hi+1     ; byte 3 result from A
+            lda  temp
+            sta  remainder_hi       ; byte 2
+            lda  cx16.r2H
+            sta  remainder_lo+1     ; byte 1
+            lda  cx16.r2L
+            sta  remainder_lo       ; byte 0
+            inc  dividend_lo        ; set quotient bit
+
+_next
+            dex
+            bne  _loop
+
+            ; Copy quotient from dividend (r12/r13) to divisor (r14/r15)
+            lda  dividend_lo
+            sta  divisor_lo
+            lda  dividend_lo+1
+            sta  divisor_lo+1
+            lda  dividend_hi
+            sta  divisor_hi
+            lda  dividend_hi+1
+            sta  divisor_hi+1
+
+            ; Apply sign if needed
+            lda  sign
+            bpl  _done
+            jsr  _neg_result
+
+_done
+            rts
+
+            ; Helper: negate dividend (R12R13) in place
+_neg_dividend
+            sec
+            lda  #0
+            sbc  dividend_lo
+            sta  dividend_lo
+            lda  #0
+            sbc  dividend_lo+1
+            sta  dividend_lo+1
+            lda  #0
+            sbc  dividend_hi
+            sta  dividend_hi
+            lda  #0
+            sbc  dividend_hi+1
+            sta  dividend_hi+1
+            rts
+
+            ; Helper: negate divisor (R14R15) in place
+_neg_divisor
+            sec
+            lda  #0
+            sbc  divisor_lo
+            sta  divisor_lo
+            lda  #0
+            sbc  divisor_lo+1
+            sta  divisor_lo+1
+            lda  #0
+            sbc  divisor_hi
+            sta  divisor_hi
+            lda  #0
+            sbc  divisor_hi+1
+            sta  divisor_hi+1
+            rts
+
+            ; Helper: negate result (R14R15) — same as negating divisor
+_neg_result = _neg_divisor
+
+	.pend

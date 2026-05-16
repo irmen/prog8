@@ -867,12 +867,8 @@ internal class AssignmentAsmGen(
 
         return if(translatedOk)
             true
-        else {
-            if(expr.type.isLong && expr.operator in "/%")
-                TODO("long division - use floats for now ${expr.position} ")
-
+        else
             anyExprGen.assignAnyExpressionUsingStack(expr, assign)
-        }
     }
 
     private fun optimizedComparison(expr: PtBinaryExpression, assign: AsmAssignment): Boolean {
@@ -1161,6 +1157,11 @@ internal class AssignmentAsmGen(
 //                assignVariableWord(target, "cx16.r15", DataType.WORD)
 //                return true
             }
+            expr.type.isLong -> {
+                asmgen.errors.err("remainder can only be used on unsigned integer operands on 6502 target for now", expr.right.position)
+                return true
+                // TODO implement the signed long remainder asm routine
+            }
             else -> return false
         }
     }
@@ -1196,6 +1197,13 @@ internal class AssignmentAsmGen(
                 asmgen.assignWordOperandsToAYAndVar(expr.right, expr.left, "P8ZP_SCRATCH_W1")
                 asmgen.out("  jsr  prog8_math.divmod_w_asm")
                 assignRegisterpairWord(target, RegisterOrPair.AY)
+                return true
+            }
+            expr.type.isLong -> {
+                asmgen.assignExpressionToRegister(expr.left, RegisterOrPair.R12R13, true)
+                asmgen.assignExpressionToRegister(expr.right, RegisterOrPair.R14R15, true)
+                asmgen.out("  jsr  prog8_math.div_longs")
+                assignRegisterLong(target, RegisterOrPair.R14R15)
                 return true
             }
             else -> return false

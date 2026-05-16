@@ -125,7 +125,7 @@ lineclip {
                 return Q_lo as word
 
                 /*
-                here is the implementation IF an efficient long division was available:
+                here is the implementation using a 32/32 long division (shorter but less efficient than 32/16):
 
                 uword adist = abs(dist) as uword
                 uword anum = abs(num) as uword

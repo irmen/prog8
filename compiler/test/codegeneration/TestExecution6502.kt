@@ -287,4 +287,42 @@ class TestExecution6502 : FunSpec({
             compileResult!!.simulate(maxCycles = 100)
         }
     }
+
+    test("div_longs positive 1234567890 / 88888 = 13889") {
+        val src = $$"""
+            %option no_sysinit
+            %launcher none
+            %address $1000
+            
+            main {
+                &ubyte poweroff = $f203
+                sub start() {
+                    long @shared v = 1234567890
+                    v /= 88888
+                    %asm {{
+                        lda p8v_v
+                        sta $2000
+                        lda p8v_v+1
+                        sta $2001
+                        lda p8v_v+2
+                        sta $2002
+                        lda p8v_v+3
+                        sta $2003
+                    }}
+                    poweroff = 1
+                }
+            }
+        """.trimIndent()
+        val compileResult = compileText(Cx16Target(), false, src, outputDir)
+        val machine = compileResult!!.simulate(maxCycles = 30000)
+        val b0 = machine.ram[0x2000].toInt() and 0xff
+        val b1 = machine.ram[0x2001].toInt() and 0xff
+        val b2 = machine.ram[0x2002].toInt() and 0xff
+        val b3 = machine.ram[0x2003].toInt() and 0xff
+        println("div_longs result bytes: $b0 $b1 $b2 $b3 (hex: ${b0.toString(16)} ${b1.toString(16)} ${b2.toString(16)} ${b3.toString(16)})")
+        machine.assertMemory(0x2000, 0x41)
+        machine.assertMemory(0x2001, 0x36)
+        machine.assertMemory(0x2002, 0x00)
+        machine.assertMemory(0x2003, 0x00)
+    }
 })
