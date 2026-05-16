@@ -26,14 +26,14 @@ internal class CodeDesugarer(val program: Program, private val target: ICompilat
     // - replace ptr^^ by @(ptr) if ptr is just an uword.
     // - replace p1^^ = p2^^  by memcopy.
 
-    private val globalReservedSlabs = mutableSetOf<String>()
+    private val globalReservedSlabs = mutableMapOf<String, MemorySlabReservation>()
 
     override fun before(program: Program): Iterable<AstModification> {
         globalReservedSlabs.clear()
         // Pre-collect existing reservations from the entire program to avoid duplicates in multiple passes
         val collector = object : IAstVisitor {
             override fun visit(reservation: MemorySlabReservation) {
-                globalReservedSlabs.add(reservation.slabName)
+                globalReservedSlabs[reservation.slabName] = reservation
             }
         }
         program.modules.forEach { module ->
@@ -297,9 +297,10 @@ _after:
             val container = containingStmt.parent as IStatementContainer
             
             val mods = mutableListOf<AstModification>(AstReplaceNode(functionCallExpr, ref, parent))
-            if (slabName !in globalReservedSlabs) {
+            val existing = globalReservedSlabs[slabName]
+            if (existing == null || existing.size != size || existing.align != align) {
                 mods.add(AstInsert.before(containingStmt, reservation, container))
-                globalReservedSlabs.add(slabName)
+                globalReservedSlabs[slabName] = reservation
             }
             return mods
         }
@@ -336,11 +337,12 @@ _after:
             val align = alignNum.toUInt()
 
             val container = parent as IStatementContainer
-            return if (slabName in globalReservedSlabs) {
+            val existing = globalReservedSlabs[slabName]
+            return if (existing != null && existing.size == size && existing.align == align) {
                 listOf(AstRemove(functionCallStatement, container))
             } else {
-                globalReservedSlabs.add(slabName)
                 val reservation = MemorySlabReservation(slabName, size, align, functionCallStatement.position)
+                globalReservedSlabs[slabName] = reservation
                 listOf(AstReplaceNode(functionCallStatement, reservation, parent))
             }
         }

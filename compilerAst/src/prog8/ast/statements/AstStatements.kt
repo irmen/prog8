@@ -235,7 +235,7 @@ class Continue(override val position: Position) : Statement() {
 }
 
 
-class MemorySlabReservation(
+data class MemorySlabReservation(
     val slabName: String,
     val size: UInt,
     val align: UInt,
