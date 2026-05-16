@@ -20,7 +20,7 @@ internal class LiteralsToAutoVarsAndRecombineIdentifiers(private val program: Pr
             val parentFunc = (string.parent as? IFunctionCall)?.target
             if(parentFunc!=null) {
                 val parentCall = string.parent as? IFunctionCall
-                if(parentCall!=null && parentCall.isMemoryCall) {
+                if(parentCall!=null && (parentCall.isMemoryCall || parentCall.isMemoryRefCall)) {
                     // memory() builtin function just uses the string as a label name
                     return noModifications
                 }

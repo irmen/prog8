@@ -36,6 +36,9 @@ interface IFunctionCall {
 val IFunctionCall.isMemoryCall: Boolean
     get() = target.nameInSource == listOf("memory")
 
+val IFunctionCall.isMemoryRefCall: Boolean
+    get() = target.nameInSource == listOf("memory__ref")
+
 interface IStatementContainer {
     val statements: MutableList<Statement>
 

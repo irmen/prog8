@@ -1862,7 +1862,7 @@ internal class AstChecker(private val program: Program,
                 checkPointer(binexpr.left as IdentifierReference)
         }
 
-        if(builtinFunctionName=="memory") {
+        if(builtinFunctionName=="memory" || builtinFunctionName=="memory__ref") {
             errors.err("memory() function call should have been desugared into dedicated AST nodes", functionCallExpr.position)
         }
 
@@ -1870,7 +1870,7 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(functionCallStatement: FunctionCallStatement) {
-        if(functionCallStatement.isMemoryCall) {
+        if(functionCallStatement.isMemoryCall || functionCallStatement.isMemoryRefCall) {
             errors.err("memory() function call should have been desugared into dedicated AST nodes", functionCallStatement.position)
         }
 

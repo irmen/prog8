@@ -280,9 +280,14 @@ sizeof (name)  ;  sizeof(datatype)  ;  sizeof(&name)  ;  sizeof(&&name)  ;  size
     Note that complicated expressions that you want to swap, may not be implemented yet. To avoid such errors you'll have to just swap them
     in the old fashioned way, until an optimized code path gets implemented in a future Prog8 version.
 
-:index:`memory` (name, size, alignment)
-    Returns the address of the first location of a statically "reserved" block of memory of the given size in bytes,
-    with the given name. The name must be a string literal, it cannot be empty or be a variable.
+:index:`memory` (name, size, alignment)  ;  memory(name)
+    Returns the address of the first location of a statically "reserved" block of memory with the given name.
+    The 3-argument version reserves a block of the given size in bytes and optional alignment, and returns the adress of it.
+    The 1-argument version acts only as a reference to a block that must be reserved elsewhere in the program.
+    The name must be a string literal, it cannot be empty or be a variable.
+    This routine can be used to "reserve" parts of the memory where a normal byte array variable would
+    not suffice; for instance if you need more than 256 consecutive bytes.
+    The return value is an uword address, and you can use that like a pointer to the memory buffer.
     The block is *uninitialized memory*; unlike other variables in Prog8 it is *not* set to zero at the start of the program!
     (if that is required, you can do so yourself using ``memset``).
     No *dynamic* allocation is done; the block with this name is placed in memory only once!
@@ -291,11 +296,8 @@ sizeof (name)  ;  sizeof(datatype)  ;  sizeof(&name)  ;  sizeof(&&name)  ;  size
     memory block is aligned on a page boundary, and $2 means word aligned (even addresses).
     Requesting the address of such a named memory block again later with
     the same name, will result in the same address as before.
-    When reusing blocks in that way, it is required that the size argument is the same,
-    otherwise you'll get a compilation error.
-    This routine can be used to "reserve" parts of the memory where a normal byte array variable would
-    not suffice; for instance if you need more than 256 consecutive bytes.
-    The return value is an uword address, and you can use that like a pointer to the memory buffer.
+    When reusing blocks in that way (using the 3-argument version), it is required that the size and alignment arguments are identical,
+    otherwise you'll get a compilation error.  To avoid duplicating these details it's easier to use the 1-argument version and just refer to the name only.
 
 :index:`call` (address) -> uword
     Calls a subroutine given by its memory address. You cannot pass arguments directly,

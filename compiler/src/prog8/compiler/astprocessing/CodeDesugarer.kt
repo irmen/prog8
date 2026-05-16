@@ -37,7 +37,7 @@ internal class CodeDesugarer(val program: Program, private val target: ICompilat
             }
         }
         program.modules.forEach { module ->
-            module.statements.forEach { it.accept(collector) }
+            module.accept(collector)
         }
         return super.before(program)
     }
@@ -262,6 +262,20 @@ _after:
     }
 
     override fun after(functionCallExpr: FunctionCallExpression, parent: Node): Iterable<AstModification> {
+        if (functionCallExpr.isMemoryRefCall) {
+            val str = functionCallExpr.args[0] as? StringLiteral
+            if (str == null) {
+                errors.err("memory name argument must be a string literal", functionCallExpr.args[0].position)
+                return noModifications
+            } else if (str.value.isEmpty()) {
+                errors.err("memory name argument cannot be empty string", functionCallExpr.args[0].position)
+                return noModifications
+            }
+            val slabName = sanitizeSlabName(str.value)
+            val ref = MemorySlabRef(slabName, functionCallExpr.position)
+            return listOf(AstReplaceNode(functionCallExpr, ref, parent))
+        }
+
         if (functionCallExpr.isMemoryCall) {
             val str = functionCallExpr.args[0] as? StringLiteral
             if (str == null) {
@@ -308,6 +322,11 @@ _after:
     }
 
     override fun after(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<AstModification> {
+        if (functionCallStatement.isMemoryRefCall) {
+            val container = parent as IStatementContainer
+            return listOf(AstRemove(functionCallStatement, container))
+        }
+
         if (functionCallStatement.isMemoryCall) {
             val str = functionCallStatement.args[0] as? StringLiteral
             if (str == null) {

@@ -356,6 +356,10 @@ class AstPreprocessor(val program: Program,
 
         checkStringParam(functionCallExpr as IFunctionCall, stmtOfExpression)
 
+        if (functionCallExpr.isMemoryCall && functionCallExpr.args.size == 1) {
+            functionCallExpr.target = IdentifierReference(listOf("memory__ref"), functionCallExpr.target.position).apply { linkParents(functionCallExpr) }
+        }
+
         if(functionCallExpr.target.nameInSource==listOf("sizeof")) {
             val arg = functionCallExpr.args.firstOrNull()
             if (arg is PtrDereference) {
@@ -373,6 +377,11 @@ class AstPreprocessor(val program: Program,
 
     override fun after(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<AstModification> {
         checkStringParam(functionCallStatement as IFunctionCall, functionCallStatement)
+
+        if (functionCallStatement.isMemoryCall && functionCallStatement.args.size == 1) {
+            functionCallStatement.target = IdentifierReference(listOf("memory__ref"), functionCallStatement.target.position).apply { linkParents(functionCallStatement) }
+        }
+
         return noModifications
     }
 
