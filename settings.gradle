@@ -11,5 +11,6 @@ include(
     ':codeGenExperimental',
     ':compiler',
     ':languageServer',
-    ':new6502gen'
+    ':new6502gen',
+    ':m68kCodegen'
 )

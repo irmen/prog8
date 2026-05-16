@@ -7,8 +7,8 @@ plugins {
 val debugPort = 8000
 val debugArgs = "-agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=n,quiet=y"
 
-val serverMainClassName = "newgen.MainKt"
-val applicationName = "prog8-newgen"
+val serverMainClassName = "m68kcodegen.MainKt"
+val applicationName = "prog8-m68kgen"
 
 application {
     mainClass.set(serverMainClassName)
@@ -53,7 +53,7 @@ sourceSets {
 }
 
 tasks.startScripts {
-    applicationName = "prog8-newgen"
+    applicationName = "prog8-m68kgen"
 }
 
 tasks.register<Exec>("fixFilePermissions") {
@@ -61,7 +61,7 @@ tasks.register<Exec>("fixFilePermissions") {
     // needs executable permissions to run.
 
     onlyIf { !System.getProperty("os.name").lowercase().contains("windows") }
-    commandLine("chmod", "+x", "${tasks.installDist.get().destinationDir}/bin/prog8-newgen")
+    commandLine("chmod", "+x", "${tasks.installDist.get().destinationDir}/bin/prog8-m68kgen")
 }
 
 tasks.register<JavaExec>("debugRun") {
@@ -76,7 +76,7 @@ tasks.register<JavaExec>("debugRun") {
 }
 
 tasks.register<CreateStartScripts>("debugStartScripts") {
-    applicationName = "prog8-newgen"
+    applicationName = "prog8-m68kgen"
     mainClass.set(serverMainClassName)
     outputDir = tasks.installDist.get().destinationDir.toPath().resolve("bin").toFile()
     classpath = tasks.startScripts.get().classpath

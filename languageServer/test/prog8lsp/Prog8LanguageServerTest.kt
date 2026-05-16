@@ -106,7 +106,7 @@ main {
         locations.size shouldNotBe 0  // At least some references found
     }
 
-    xtest("find references - should find all references to a subroutine") {
+    test("find references - should find all references to a subroutine") {
         // DISABLED: Find references returns 0 results for subroutine calls.
         // The implementation exists but doesn't resolve call sites correctly.
         val code = """
@@ -198,7 +198,7 @@ main {
         completionLabels.contains("while") shouldBe true
     }
 
-    xtest("completions - should provide symbol completions") {
+    test("completions - should provide symbol completions") {
         // DISABLED: Symbol completions not scope-aware and don't include user symbols.
         // Currently only provides keyword and builtin function completions.
         val code = """

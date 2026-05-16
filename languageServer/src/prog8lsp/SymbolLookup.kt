@@ -235,7 +235,9 @@ object SymbolLookup {
 
     private fun findSymbolInSubroutine(sub: Subroutine, targetLine: Int, targetCol: Int, wordAtCursor: String): SymbolAtPosition? {
         // Check if position is on the subroutine name (declaration)
-        if (isPositionOnName(sub.position, targetLine, targetCol, sub.name, wordAtCursor)) {
+        // Use line+name match instead of isPositionOnName because subroutine positions
+        // span multiple lines (from 'sub' keyword to closing '}'), so column bounds are unreliable.
+        if (sub.position.line == targetLine && sub.name == wordAtCursor) {
             val params = sub.parameters.joinToString(", ") { "${it.name}: ${it.type}" }
             val returnType = sub.returntypes.joinToString(", ") { it.toString() }
             val signature = if (returnType.isNotEmpty()) {
@@ -255,7 +257,7 @@ object SymbolLookup {
 
         // Check parameters
         for (param in sub.parameters) {
-            if (isPositionOnName(sub.position, targetLine, targetCol, param.name, wordAtCursor)) {
+            if (sub.position.line == targetLine && param.name == wordAtCursor) {
                 return SymbolAtPosition(
                     name = param.name,
                     kind = SymbolKind.PARAMETER,
@@ -488,6 +490,10 @@ object SymbolLookup {
                     detail = "sub ${stmt.name}($params)",
                     insertText = stmt.name
                 ))
+                // Also collect symbols from inside the subroutine body
+                for (innerStmt in stmt.statements) {
+                    collectSymbolsFromStatement(innerStmt, symbols)
+                }
             }
             is VarDecl -> {
                 if(stmt.isPrivate)

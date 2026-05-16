@@ -18,6 +18,8 @@
             <option value="$PROJECT_DIR$/compilerAst" />
             <option value="$PROJECT_DIR$/intermediate" />
             <option value="$PROJECT_DIR$/languageServer" />
+            <option value="$PROJECT_DIR$/m68kCodegen" />
+            <option value="$PROJECT_DIR$/new6502gen" />
             <option value="$PROJECT_DIR$/parser" />
             <option value="$PROJECT_DIR$/simpleAst" />
             <option value="$PROJECT_DIR$/virtualmachine" />

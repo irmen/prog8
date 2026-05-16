@@ -1,6 +1,5 @@
-package newgen
+package m68kcodegen
 
-import codegen.CodeGenerator
 import kotlinx.cli.*
 import prog8.code.core.CpuType
 import prog8.intermediate.IRFileReader
@@ -9,7 +8,7 @@ import kotlin.io.path.readText
 import kotlin.system.exitProcess
 
 fun main(args: Array<String>) {
-    val cli = ArgParser("prog8-newgen", prefixStyle = ArgParser.OptionPrefixStyle.JVM)
+    val cli = ArgParser("prog8-m68kgen", prefixStyle = ArgParser.OptionPrefixStyle.JVM)
     val inputFile by cli.argument(ArgType.String, fullName = "input", description = "path to .p8ir file")
     try {
         cli.parse(args)
@@ -28,7 +27,7 @@ fun main(args: Array<String>) {
     val gen = when(target.cpu) {
         CpuType.CPU6502, CpuType.CPU65C02 -> CodeGenerator(program, target.cpu)
         CpuType.VIRTUAL -> {
-            println("This code generator only works for 6502 and 65C02 CPUs.")
+            println("This code generator only works for m68000 CPUs.")
             exitProcess(1)
         }
     }

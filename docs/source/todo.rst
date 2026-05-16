@@ -25,6 +25,7 @@ Future Things and Ideas
 - implement the signed divmod byte and word routines on 6502 (virtual target already has them working)
 - make a form of "manual generics" possible like: varsub routine(T arg)->T  where T is expanded to a specific type
   (this is already done hardcoded for several of the builtin functions)
+- migrate CLI argument parsing from the obsolete kotlinx-cli library to Clikt (com.github.ajalt:clikt)
 - add new directives ``%bssaddress`` and ``%slabsaddress`` to set the memory address for the BSS area and memory slabs (analogous to ``%address`` for program load address).
   Note: these should be mutually exclusive with the existing CLI options (``-varsgolden``, ``-varshigh``, ``-slabsgolden``, ``-slabshigh``)
   because the CLI options are target-aware shorthands (set bank symbols, do bounds checking against predefined ranges)
@@ -61,13 +62,6 @@ IR/VM
 - ``IRInlineBinaryChunk`` and ``IRInlineAsmChunk`` - inline chunks cannot be loaded by the VM (VmProgramLoader.kt). Limitation of the current VM design: program is not loaded into memory as data
 - VM label address loading - ``VmProgramLoader.kt`` throws when it cannot resolve a label address as a value (``"vm cannot yet load a label address as a value"``).
 - ``prefixScopedName`` (``codeGenIntermediate/src/prog8/codegen/intermediate/SymbolPrefixer.kt:206``) hardcodes ``p8s_`` for all middle path parts of a dotted scoped name. This is wrong for structs in the path: ``main.MyStruct.field`` produces ``p8s_MyStruct`` (subroutine prefix) instead of ``p8t_MyStruct`` (struct prefix). Fix: look up each middle part in the symbol table and apply ``typePrefixChar()`` per part. Pre-existing bug carried over from the 6502 codegen (``AsmGen.kt``).
-
-
-Language Server
-^^^^^^^^^^^^^^^
-- Fix the 2 remaining disabled (xtest) LSP tests in Prog8LanguageServerTest.kt:
-  - find references for subroutines (returns 0 results)
-  - completions: symbol completions (not scope-aware, no user symbols)
 
 
 Libraries

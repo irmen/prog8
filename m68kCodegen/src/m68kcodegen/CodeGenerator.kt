@@ -1,0 +1,11 @@
+package m68kcodegen
+
+import prog8.code.core.CpuType
+import prog8.intermediate.IRProgram
+
+class CodeGenerator(program: IRProgram, cpu: CpuType): ICodeGenerator {
+    override fun generate() {
+        TODO("Not yet implemented")
+    }
+}
+    
