@@ -18,6 +18,9 @@ internal class AssignmentAsmGen(
 ) {
     lateinit var augmentableAsmGen: AugmentableAssignmentAsmGen
 
+    internal fun isRightTrivial(expr: PtExpression): Boolean =
+        expr is PtNumber || expr is PtBool || expr is PtIdentifier
+
     fun translate(assignment: PtAssignment) {
         val target = AsmAssignTarget.fromAstAssignment(assignment.target, assignment.definingISub(), asmgen)
         val source = AsmAssignSource.fromAstSource(assignment.value, program, asmgen).adjustSignedUnsigned(target)
@@ -1201,7 +1204,11 @@ internal class AssignmentAsmGen(
             }
             expr.type.isLong -> {
                 asmgen.assignExpressionToRegister(expr.left, RegisterOrPair.R12R13, true)
+                if(!isRightTrivial(expr.right))
+                    asmgen.pushLongRegisters(RegisterOrPair.R12R13, 1)
                 asmgen.assignExpressionToRegister(expr.right, RegisterOrPair.R14R15, true)
+                if(!isRightTrivial(expr.right))
+                    asmgen.popLongRegisters(RegisterOrPair.R12R13, 1)
                 asmgen.out("  jsr  prog8_math.div_longs")
                 assignRegisterLong(target, RegisterOrPair.R14R15)
                 return true
@@ -1250,7 +1257,11 @@ internal class AssignmentAsmGen(
                 }
                 expr.type.isLong -> {
                     asmgen.assignExpressionToRegister(expr.left, RegisterOrPair.R12R13, true)
+                    if(!isRightTrivial(expr.right))
+                        asmgen.pushLongRegisters(RegisterOrPair.R12R13, 1)
                     asmgen.assignExpressionToRegister(expr.right, RegisterOrPair.R14R15, true)
+                    if(!isRightTrivial(expr.right))
+                        asmgen.popLongRegisters(RegisterOrPair.R12R13, 1)
                     asmgen.out("  jsr  prog8_math.multiply_longs")
                     assignRegisterLong(target, RegisterOrPair.R14R15)
                     return true
@@ -2187,13 +2198,17 @@ internal class AssignmentAsmGen(
                 else
                     asmgen.pushLongRegisters(RegisterOrPair.R12R13, 2)
                 assignExpressionToRegister(expr.left, RegisterOrPair.R14R15, expr.left.type.isSigned)
+                // save left operand because right eval may clobber R14R15
+                asmgen.pushLongRegisters(RegisterOrPair.R14R15, 1)
                 assignExpressionToRegister(expr.right, RegisterOrPair.R12R13, expr.right.type.isSigned)
+                // restore left operand
+                asmgen.popLongRegisters(RegisterOrPair.R14R15, 1)
                 augmentableAsmGen.inplacemodificationLongWithVariable("cx16.r14", expr.operator, "cx16.r12")
                 assignRegisterLong(target, RegisterOrPair.R14R15)
                 if(targetreg==RegisterOrPair.R14R15)
                     asmgen.popLongRegisters(RegisterOrPair.R12R13, 1)
                 else
-                    asmgen.popLongRegisters(RegisterOrPair.R14R15, 2)
+                    asmgen.popLongRegisters(RegisterOrPair.R12R13, 2)
                 return true
             }
         }
@@ -2371,8 +2386,12 @@ internal class AssignmentAsmGen(
             else if(varname!=null)
                 augmentableAsmGen.inplacemodificationLongWithVariable("cx16.r14", expr.operator, varname)
             else {
-                // TODO: preserve R14:R15 on stack here?  (the function does't do it for us)
-                augmentableAsmGen.inplacemodificationLongWithExpression("cx16.r14", expr.operator, expr.right)
+                if(!isRightTrivial(expr.right))
+                    asmgen.pushLongRegisters(RegisterOrPair.R14R15, 1)
+                assignExpressionToRegister(expr.right, RegisterOrPair.R12R13, expr.right.type.isSigned)
+                if(!isRightTrivial(expr.right))
+                    asmgen.popLongRegisters(RegisterOrPair.R14R15, 1)
+                augmentableAsmGen.inplacemodificationLongWithVariable("cx16.r14", expr.operator, "cx16.r12")
             }
             assignRegisterLong(target, RegisterOrPair.R14R15)
             if(targetreg!=RegisterOrPair.R14R15) {

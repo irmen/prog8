@@ -1580,7 +1580,13 @@ internal class IfElseAsmGen(private val program: PtProgram,
                 lda  $opL+3
                 sbc  $varR+3""")
         } else {
+            if (varL == null && !assignmentAsmGen.isRightTrivial(r)) {
+                asmgen.pushLongRegisters(RegisterOrPair.R12R13, 1)
+            }
             asmgen.assignExpressionToRegister(r, RegisterOrPair.R14R15, true)
+            if (varL == null && !assignmentAsmGen.isRightTrivial(r)) {
+                asmgen.popLongRegisters(RegisterOrPair.R12R13, 1)
+            }
             asmgen.out("""
                 sec
                 lda  $opL

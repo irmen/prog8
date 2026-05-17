@@ -613,9 +613,12 @@ import prog8.codegen.cpu6502.assignment.*
                         lda  $var1+3
                         sbc  $var2+3""")
                 } else {
-                    // cmp() doesn't return a value and as such can't be used in an expression, so no need to save the temp registers' original values
                     assignAsmGen.assignExpressionToRegister(arg2, RegisterOrPair.R14R15, true)
+                    if(!assignAsmGen.isRightTrivial(arg1))
+                        asmgen.pushLongRegisters(RegisterOrPair.R14R15, 1)
                     assignAsmGen.assignExpressionToRegister(arg1, RegisterOrPair.R12R13, true)
+                    if(!assignAsmGen.isRightTrivial(arg1))
+                        asmgen.popLongRegisters(RegisterOrPair.R14R15, 1)
                     asmgen.out("""
                         sec
                         lda  cx16.r12
@@ -1996,7 +1999,11 @@ import prog8.codegen.cpu6502.assignment.*
             }
             fcall.type.isLong -> {
                 asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.R12R13, true)       // left
+                if(!assignAsmGen.isRightTrivial(fcall.args[1]))
+                    asmgen.pushLongRegisters(RegisterOrPair.R12R13, 1)
                 asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.R14R15, true)       // right
+                if(!assignAsmGen.isRightTrivial(fcall.args[1]))
+                    asmgen.popLongRegisters(RegisterOrPair.R12R13, 1)
                 asmgen.out("""
                         lda  cx16.r12
                         cmp  cx16.r14
@@ -2095,7 +2102,11 @@ import prog8.codegen.cpu6502.assignment.*
             }
             fcall.type.isLong -> {
                 asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.R12R13, true)       // left
+                if(!assignAsmGen.isRightTrivial(fcall.args[1]))
+                    asmgen.pushLongRegisters(RegisterOrPair.R12R13, 1)
                 asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.R14R15, true)       // right
+                if(!assignAsmGen.isRightTrivial(fcall.args[1]))
+                    asmgen.popLongRegisters(RegisterOrPair.R12R13, 1)
                 asmgen.out("""
                         lda  cx16.r12
                         cmp  cx16.r14

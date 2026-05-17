@@ -2,13 +2,19 @@
 %zeropage basicsafe
 
 main {
-    sub start() {
-        cx16.r0 = memory("buffer", 100, 0)
-        cx16.r1 = memory("buffer")
+    long one
+    long two
+    long three
 
-        txt.print_uwhex(cx16.r0, true)
+    sub start() {
+        one = 1432
+        two = 23        ; 1432/60 integer
+        three = 1380    ; 23*60
+        txt.print_l((1432 - three) * 1)
         txt.nl()
-        txt.print_uwhex(cx16.r1, true)
+        txt.print_l((1432 - (two * 60)) * 1)
         txt.nl()
+
+        ;sys.poweroff_system()
     }
 }
