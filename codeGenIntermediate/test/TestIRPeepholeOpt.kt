@@ -1,6 +1,9 @@
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
-import prog8.code.core.*
+import prog8.code.core.CompilationOptions
+import prog8.code.core.OutputType
+import prog8.code.core.Position
+import prog8.code.core.ZeropageType
 import prog8.code.target.VMTarget
 import prog8.codegen.intermediate.IRPeepholeOptimizer
 import prog8.intermediate.*
@@ -288,5 +291,72 @@ class TestIRPeepholeOpt: FunSpec({
         modInstr.size shouldBe 1
         modInstr[0].opcode shouldBe Opcode.MOD
         modInstr[0].immediate shouldBe 7
+    }
+
+    test("remove self identity operations") {
+        // LOADR with same fp register is allowed (constructor only blocks integer reg1==reg2)
+        val irProg = makeIRProgram(listOf(
+            IRInstruction(Opcode.LOADR, IRDataType.FLOAT, fpReg1=RegisterNum(10), fpReg2=RegisterNum(10)),
+            IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=99, immediate=42)       // keep chunk non-empty
+        ))
+        irProg.chunks().single().instructions.size shouldBe 2
+        val opt = IRPeepholeOptimizer(irProg, false)
+        opt.optimize(true, ErrorReporterForTests())
+        val instr = irProg.chunks().single().instructions
+        instr.size shouldBe 1
+        instr[0].opcode shouldBe Opcode.LOAD
+        instr[0].reg1 shouldBe 99
+        instr[0].immediate shouldBe 42
+    }
+
+    test("remove shift by zero") {
+        val irProg = makeIRProgram(listOf(
+            IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=10, immediate=0),
+            IRInstruction(Opcode.LSLN, IRDataType.BYTE, reg1=1, reg2=10),
+            IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=11, immediate=0),
+            IRInstruction(Opcode.LSRN, IRDataType.BYTE, reg1=2, reg2=11),
+            IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=12, immediate=0),
+            IRInstruction(Opcode.ASRN, IRDataType.BYTE, reg1=3, reg2=12),
+            IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=99, immediate=42)       // keep chunk non-empty
+        ))
+        irProg.chunks().single().instructions.size shouldBe 7
+        val opt = IRPeepholeOptimizer(irProg, false)
+        opt.optimize(true, ErrorReporterForTests())
+        val instr = irProg.chunks().single().instructions
+        instr.size shouldBe 1
+        instr[0].opcode shouldBe Opcode.LOAD
+        instr[0].reg1 shouldBe 99
+        instr[0].immediate shouldBe 42
+    }
+
+    test("cancel adjacent ops") {
+        val irProg = makeIRProgram(listOf(
+            IRInstruction(Opcode.INV, IRDataType.BYTE, reg1=1),
+            IRInstruction(Opcode.INV, IRDataType.BYTE, reg1=1),
+            IRInstruction(Opcode.NEG, IRDataType.BYTE, reg1=2),
+            IRInstruction(Opcode.NEG, IRDataType.BYTE, reg1=2),
+            IRInstruction(Opcode.EXT, IRDataType.BYTE, reg1=3, reg2=33),
+            IRInstruction(Opcode.EXT, IRDataType.BYTE, reg1=3, reg2=33),
+            IRInstruction(Opcode.EXTS, IRDataType.WORD, reg1=4, reg2=44),
+            IRInstruction(Opcode.EXTS, IRDataType.WORD, reg1=4, reg2=44),
+            IRInstruction(Opcode.INC, IRDataType.BYTE, reg1=5),
+            IRInstruction(Opcode.DEC, IRDataType.BYTE, reg1=5),
+            IRInstruction(Opcode.DEC, IRDataType.BYTE, reg1=6),
+            IRInstruction(Opcode.INC, IRDataType.BYTE, reg1=6),
+            IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=99, immediate=42)       // keep chunk non-empty
+        ))
+        irProg.chunks().single().instructions.size shouldBe 13
+        val opt = IRPeepholeOptimizer(irProg, false)
+        opt.optimize(true, ErrorReporterForTests())
+        val instr = irProg.chunks().single().instructions
+        instr.size shouldBe 3
+        instr[0].opcode shouldBe Opcode.EXT
+        instr[0].reg1 shouldBe 3
+        instr[0].reg2 shouldBe 33
+        instr[1].opcode shouldBe Opcode.EXTS
+        instr[1].reg1 shouldBe 4
+        instr[1].reg2 shouldBe 44
+        instr[2].opcode shouldBe Opcode.LOAD
+        instr[2].immediate shouldBe 42
     }
 })

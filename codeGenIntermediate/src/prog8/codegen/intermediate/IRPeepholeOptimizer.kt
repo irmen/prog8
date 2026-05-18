@@ -3,14 +3,6 @@ package prog8.codegen.intermediate
 import prog8.code.core.IErrorReporter
 import prog8.intermediate.*
 
-/**
- * Represents what value a register currently holds for LOADR forwarding optimization.
- */
-private sealed class RegisterContent {
-    data class Constant(val value: Any) : RegisterContent()  // Int or Double
-    data class Register(val originalReg: Int) : RegisterContent()
-}
-
 class IRPeepholeOptimizer(private val irprog: IRProgram, private val retainSSA: Boolean) {
     fun optimize(optimizationsEnabled: Boolean, errors: IErrorReporter) {
         if(!optimizationsEnabled)
@@ -65,6 +57,9 @@ class IRPeepholeOptimizer(private val irprog: IRProgram, private val retainSSA: 
                                 || removeNeedlessLoads(chunk1, indexedInstructions)
                                 || removeDeadStores(chunk1, indexedInstructions)
                                 // || removeLoadrForwarding(chunk1, indexedInstructions)  // DISABLED - needs debugging
+                                || removeSelfIdentityOps(chunk1, indexedInstructions)
+                                || simplifyShiftByZero(chunk1, indexedInstructions)
+                                || cancelAdjacentOps(chunk1, indexedInstructions)
                                 || removeNops(chunk1, indexedInstructions)   // last time, in case one of the optimizers replaced something with a nop
                     } while (changed)
                 }
@@ -544,6 +539,98 @@ jump p8_label_gen_2
         return changed
     }
 
+    private fun removeSelfIdentityOps(chunk: IRCodeChunk, indexedInstructions: List<IndexedValue<IRInstruction>>): Boolean {
+        var changed = false
+        indexedInstructions.reversed().forEach { (idx, ins) ->
+            when(ins.opcode) {
+                Opcode.LOADR -> {
+                    if((ins.reg1 != null && ins.reg1 == ins.reg2) || (ins.fpReg1 != null && ins.fpReg1 == ins.fpReg2)) {
+                        chunk.instructions[idx] = IRInstruction(Opcode.NOP)
+                        changed = true
+                    }
+                }
+                Opcode.ANDR, Opcode.ORR -> {
+                    if(ins.reg1 == ins.reg2) {
+                        chunk.instructions[idx] = IRInstruction(Opcode.NOP)
+                        changed = true
+                    }
+                }
+                Opcode.XORR -> {
+                    if(ins.reg1 == ins.reg2) {
+                        chunk.instructions[idx] = IRInstruction(Opcode.LOAD, ins.type, reg1 = ins.reg1, immediate = 0)
+                        changed = true
+                    }
+                }
+                else -> {}
+            }
+        }
+        return changed
+    }
+
+    private fun simplifyShiftByZero(chunk: IRCodeChunk, indexedInstructions: List<IndexedValue<IRInstruction>>): Boolean {
+        var changed = false
+        indexedInstructions.reversed().forEach { (idx, ins) ->
+            if(idx>0 && ins.opcode in setOf(Opcode.LSLN, Opcode.LSRN, Opcode.ASRN) && ins.reg2 != null) {
+                val prev = indexedInstructions[idx-1].value
+                if(prev.opcode == Opcode.LOAD && prev.reg1 == ins.reg2 && prev.immediate == 0) {
+                    chunk.instructions[idx] = IRInstruction(Opcode.NOP)
+                    chunk.instructions.removeAt(idx-1)
+                    changed = true
+                }
+            }
+        }
+        return changed
+    }
+
+    private fun cancelAdjacentOps(chunk: IRCodeChunk, indexedInstructions: List<IndexedValue<IRInstruction>>): Boolean {
+        var changed = false
+        indexedInstructions.reversed().forEach { (idx, ins) ->
+            if(idx >= chunk.instructions.size - 1)
+                return@forEach
+            val insAfter = chunk.instructions[idx+1]
+
+            when(ins.opcode) {
+                Opcode.INV -> {
+                    if(insAfter.opcode == Opcode.INV && insAfter.reg1 == ins.reg1) {
+                        chunk.instructions[idx] = IRInstruction(Opcode.NOP)
+                        chunk.instructions[idx+1] = IRInstruction(Opcode.NOP)
+                        changed = true
+                    }
+                }
+                Opcode.NEG -> {
+                    val sameReg = (ins.reg1 != null && ins.reg1 == insAfter.reg1) || (ins.fpReg1 != null && ins.fpReg1 == insAfter.fpReg1)
+                    if(insAfter.opcode == Opcode.NEG && sameReg) {
+                        chunk.instructions[idx] = IRInstruction(Opcode.NOP)
+                        chunk.instructions[idx+1] = IRInstruction(Opcode.NOP)
+                        changed = true
+                    }
+                }
+                Opcode.EXT, Opcode.EXTS -> {
+                    if(insAfter.opcode == ins.opcode && insAfter.reg1 == ins.reg1 && insAfter.type == ins.type) {
+                        chunk.instructions[idx+1] = IRInstruction(Opcode.NOP)
+                        changed = true
+                    }
+                }
+                Opcode.INC -> {
+                    if(insAfter.opcode == Opcode.DEC && insAfter.reg1 == ins.reg1) {
+                        chunk.instructions[idx] = IRInstruction(Opcode.NOP)
+                        chunk.instructions[idx+1] = IRInstruction(Opcode.NOP)
+                        changed = true
+                    }
+                }
+                Opcode.DEC -> {
+                    if(insAfter.opcode == Opcode.INC && insAfter.reg1 == ins.reg1) {
+                        chunk.instructions[idx] = IRInstruction(Opcode.NOP)
+                        chunk.instructions[idx+1] = IRInstruction(Opcode.NOP)
+                        changed = true
+                    }
+                }
+                else -> {}
+            }
+        }
+        return changed
+    }
+
     private fun removeNops(chunk: IRCodeChunk, indexedInstructions: List<IndexedValue<IRInstruction>>): Boolean {
         var changed = false
         indexedInstructions.reversed().forEach { (idx, ins) ->
@@ -684,18 +771,6 @@ jump p8_label_gen_2
             }
         }
         return changed
-    }
-
-    private fun isRegisterRead(ins: IRInstruction, reg: Int): Boolean {
-        // Check if the instruction reads from the given register
-        val formats = instructionFormats.getValue(ins.opcode)
-        val format = formats[ins.type] ?: formats[null]
-        
-        val reg1Read = (format?.reg1 == OperandDirection.READ || format?.reg1 == OperandDirection.READWRITE) && (ins.reg1 == reg || ins.fpReg1?.value == reg)
-        val reg2Read = (format?.reg2 == OperandDirection.READ || format?.reg2 == OperandDirection.READWRITE) && (ins.reg2 == reg || ins.fpReg2?.value == reg)
-        val reg3Read = (format?.reg3 == OperandDirection.READ || format?.reg3 == OperandDirection.READWRITE) && (ins.reg3 == reg)
-        
-        return reg1Read || reg2Read || reg3Read
     }
 
     //private fun removeLoadrForwarding(chunk: IRCodeChunk, indexedInstructions: List<IndexedValue<IRInstruction>>): Boolean {

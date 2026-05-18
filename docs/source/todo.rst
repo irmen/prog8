@@ -1,7 +1,7 @@
 TODO
 ====
 
-Dead Code Elimination BUG in 64tass with nested subroutines
+Dead Code Elimination bug in 64tass, for nested subroutines
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 - When a subroutine contains a nested ``asmsub`` (or possibly a nested ``sub()``), 64tass cannot properly eliminate
   the outer subroutine if ANY symbol from within it is referenced elsewhere (even if the outer subroutine itself is never called).
@@ -19,7 +19,7 @@ Weird Heisenbug
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
-- symboldump: some sort of javadocs generated from the p8 source files (instead of just the function signatures). Use markdown for formatting.
+- symboldump: some sort of javadocs generated from the p8 source files (instead of just the function signatures). Use markdown for formatting, not html.
 - why are (interned) strings stored as initialization value in the SymbolTable AND as string nodes in the interned string block? Something seems redundant here?
 - when implementing unsigned longs: remove the (multiple?) "TODO "hack" to allow unsigned long constants to be used as values for signed longs, without needing a cast
 - struct/ptr: implement the remaining TODOs in PointerAssignmentsGen.
@@ -27,14 +27,11 @@ Future Things and Ideas
 - struct/ptr: support for typed function pointers, so that we can call them via functptr^^(args) maybe even without the ^^ operator?  (&routine could be typed by default as well then)
 - struct/ptr: really fixing the pointer dereferencing issues (cursed hybrid beween IdentifierReference, PtrDereferece and PtrIndexedDereference) may require getting rid of scoped identifiers altogether and treat '.' as a "scope or pointer following operator"
 - struct/ptr: (later, nasty parser problem:) support chaining pointer dereference on function calls that return a pointer.  (type checking now fails on stuff like func().field and func().next.field)
-- allow the value of a memory mapped variable to be address-of another variable, not just a constant number, and maybe even even more complicated constant expressions such as:  &uword  MyHigh = &mylong+2
 - Make all constants long by default? or not? (remove type name altogether), reduce to target type implictly if the actual value fits.  -> long-consts branch
   This will break some existing programs that depend on value wrap arounds, but gives more intuitive constant number handling.
   Can give descriptive error message for old syntax that still includes the type name?
 - add documentation for more library modules instead of just linking to the source code
 - sizeof(pointer) is now always 2 (an uword), make this a variable in the ICompilationTarget so that it could be 4 at the time we might ad a 32-bits 68000 target for example. Much code assumes word size addresses though.
-- romable: should we have a way to explicitly set the memory address for the BSS area (add a -varsaddress and -slabsaddress options?)
-- romable: fix remaining codegens (some for loops, see ForLoopsAsmGen)
 - add float support to the configurable compiler targets. Restrictions: just have "cbm-style floats" as an option (to that it can slot into the current float codegen), where all you have to specify is the addresses of AYINT and GIVAYF and FADDT and all their friends.
 - Change scoping rules for qualified symbols so that they don't always start from the root but behave like other programming languages (look in local scope first), maybe only when qualified symbol starts with '.' such as: .local.value = 33
 - something to reduce the need to use fully qualified names all the time. 'with' ?  Or 'using <prefix>'?
@@ -52,6 +49,21 @@ Future Things and Ideas
 - BUG: fix the c64 multiplexer example
 
 
+Romable (%option romable)
+^^^^^^^^^^^^^^^^^^^^^^^^^
+- add a way to explicitly set the memory address for the BSS area (``-varsaddress`` and ``-slabsaddress`` options)
+- ForLoopsAsmGen: fix remaining codegens. Three methods use self-modifying code (patching ``cmp #0`` immediates) with no romable-safe alternative:
+  - ``forOverBytesRangeStepGreaterOne`` (byte, abs(step)>=2)
+  - ``forOverWordsRangeStepGreaterOne`` (word, step>=2)
+  - ``forOverWordsRangeStepGreaterOneDescending`` (word, step<=-2)
+  Fix pattern (already used by step-1 methods): add ``if(romable)`` branch that allocates a temp var via ``createTempVarReused``, stores the loop end value into it, and compares against it. Existing self-modifying code stays in ``else`` branch for RAM programs.
+- BuiltinFunctionsAsmGen: ``callfar`` / ``callfar2`` with non-const bank/addr. Uses self-modifying ``sta +0`` / ``sty +1`` to patch JSRFAR operands. Needs a RAM trampoline approach (copy stub with variable args into RAM, JSR to that).
+- FunctionCallAsmGen: ``extsub`` with variable bank. Same JSRFAR operand patching issue. Needs RAM trampoline.
+- ProgramAndVarsGen: initialized strings/arrays in ROM emit warnings but don't block assembly. Consider whether these should emit ``.error`` for consistency (currently some do, some don't).
+- IR/VM backends have no romable awareness at all so no warnings about incompatible constructs.
+- Add more test coverage for the romable option.
+
+
 IR/VM
 ^^^^^
 - getting it in shape for code generation: the IR file should be able to encode every detail about a prog8 program (the VM doesn't have to actually be able to run all of it though!)
@@ -59,11 +71,12 @@ IR/VM
 - implement more TODOs in AssignmentGen?
 - add more optimizations in IRPeepholeOptimizer?
 - **Multi-Level IR Design**: Consider introducing a High-Level IR (HLIR) layer before the current low-level IR to preserve semantics like loop bounds, array indexing, and structure field access.
-  The current IR is effectively "assembly with infinite registers," losing high-level info needed for optimal 6502 instruction selection (e.g., choosing ``LDA addr,X`` vs ``LDA (zp),Y``).
-  Recommendation: Implement a custom HLIR using Kotlin sealed classes (inspired by MLIR dialects but lighter weight).
-  Flow: HLIR (Loops/Arrays) -> Lowering -> Current IR (Ops/Regs) -> Codegen.
-  Don't adopt LLVM (too low-level) or QBE (too simple). Custom HLIR fits Kotlin best and preserves semantic intent for better 6502 codegen.
-  **Split word arrays** are a prime example: currently represented as two separate ``_lsb``/``_msb`` ubyte arrays in the IR, so a single ``words[i] += 50`` expands to 8 byte-level IR instructions (two LOADM, CONCAT, ADD, LSIGB, MSIGB, two STOREM). At the HLIR level this should remain a single word-array augmented assignment; the lowering pass can split it into ``_lsb``/``_msb`` ops (or emit direct word ops for a backend that supports them).
+  The current IR is effectively "assembly with infinite registers."
+  Recommendation when adding non-6502 targets: Implement a custom HLIR using Kotlin sealed classes (inspired by MLIR dialects but lighter weight).
+  Flow: SimpleAst -> HLIR (Loops/Arrays) -> Lowering -> Current IR (Ops/Regs) -> Codegen.
+  Don't adopt LLVM (too low-level) or QBE (too simple). Custom HLIR fits Kotlin best and preserves semantic intent.
+  **Important**: HLIR's value for 6502 is minimal if the backend consumes only the lowered IR. For 6502 to benefit from HLIR, the backend would need to target HLIR directly (bypassing the lowering pass for applicable constructs), adding complexity. HLIR is primarily useful for non-6502 backends (68000) and the VM interpreter.
+  **Split word arrays** are a prime example: currently represented as two separate ``_lsb``/``_msb`` ubyte arrays in the IR, so a single ``words[i] += 50`` expands to 8 byte-level IR instructions (two LOADM, CONCAT, ADD, LSIGB, MSIGB, two STOREM). At the HLIR level this should remain a single word-array augmented assignment; the lowering pass can split it into ``_lsb``/``_msb`` ops (for 6502) or keep it as a word op (for 68000).
 
 **Missing VM Implementations (VirtualMachine.kt)**
 - ``IRInlineBinaryChunk`` and ``IRInlineAsmChunk`` - inline chunks cannot be loaded by the VM (VmProgramLoader.kt). Limitation of the current VM design: program is not loaded into memory as data

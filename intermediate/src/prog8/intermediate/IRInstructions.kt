@@ -927,9 +927,12 @@ data class IRInstruction(
         require(reg2==null || reg2 in 0..99999) {"reg2 out of bounds"}
         require(reg3==null || reg3 in 0..99999) {"reg3 out of bounds"}
         // fpReg1/fpReg2 ranges are validated by RegisterNum init block
-        if(reg1!=null && reg2!=null) require(reg1!=reg2 || opcode==Opcode.LOADI) {"reg1 must not be same as reg2"}  // note: this is ok for fpRegs as these are always the same type.  LOADI is also an exception, hopefully this can work, because it saves a lot of intermediary registers when dereferencing a pointer chain
-        if(reg1!=null && reg3!=null) require(reg1!=reg3) {"reg1 must not be same as reg3"}  // note: this is ok for fpRegs as these are always the same type
-        if(reg2!=null && reg3!=null) require(reg2!=reg3) {"reg2 must not be same as reg3"}  // note: this is ok for fpRegs as these are always the same type
+        // enforce SSA discipline: output register must differ from input registers
+        // (fpRegs are exempt because float ops always use the same register type and there's no aliasing concern;
+        //  LOADI is also exempt because it saves intermediary registers in pointer chain dereferencing)
+        if(reg1!=null && reg2!=null) require(reg1!=reg2 || opcode==Opcode.LOADI) {"reg1 must not be same as reg2"}
+        if(reg1!=null && reg3!=null) require(reg1!=reg3) {"reg1 must not be same as reg3"}
+        if(reg2!=null && reg3!=null) require(reg2!=reg3) {"reg2 must not be same as reg3"}
 
         val formats = instructionFormats.getValue(opcode)
         require (type != null || formats.containsKey(null)) { "missing type" }
