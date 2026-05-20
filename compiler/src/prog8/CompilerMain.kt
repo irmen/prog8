@@ -2,6 +2,7 @@ package prog8
 
 import kotlinx.cli.*
 import prog8.ast.AstException
+import prog8.code.source.ImportFileSystem
 import prog8.code.source.ImportFileSystem.expandTilde
 import prog8.code.target.CompilationTargets
 import prog8.code.target.Cx16Target
@@ -188,6 +189,7 @@ private fun compileMain(args: Array<String>): Boolean {
         val results = mutableListOf<CompilationResult>()
         while(true) {
             println("Continuous watch mode active. Modules: $moduleFiles")
+            ImportFileSystem.clearCaches()
             results.clear()
             for(filepathRaw in moduleFiles) {
                 val filepath = pathFrom(filepathRaw).normalize()
@@ -223,9 +225,6 @@ private fun compileMain(args: Array<String>): Boolean {
                     errors = ErrorReporter(txtcolors)
                 )
                 val compilationResult = compileProgram(compilerArgs)
-                // Note: ImportFileSystem.clearCaches() removed - it caused race conditions with parallel tests
-                // where one test's cache clearing would break another test's source line lookups.
-                // The cache is bounded by unique source files and doesn't need manual clearing.
 
                 if(checkSource==true)
                     println("No output produced.")

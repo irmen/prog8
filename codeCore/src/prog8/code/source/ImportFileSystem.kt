@@ -35,6 +35,11 @@ object ImportFileSystem {
         }
     }
 
+    fun clearCaches() {
+        cache.clear()
+        lineSpanCache.clear()
+    }
+
     fun retrieveSourceLine(position: Position): String {
         if(SourceCode.isLibraryResource(position.file)) {
             val key = SourceCode.withoutPrefix(position.file)
