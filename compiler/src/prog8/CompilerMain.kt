@@ -8,14 +8,16 @@ import prog8.code.target.CompilationTargets
 import prog8.code.target.Cx16Target
 import prog8.code.target.VMTarget
 import prog8.code.target.getCompilationTargetByName
-import prog8.compiler.CompilationResult
-import prog8.compiler.CompilerArguments
-import prog8.compiler.ErrorReporter
-import prog8.compiler.compileProgram
+import prog8.compiler.*
 import prog8.intermediate.IRFileReader
 import prog8.intermediate.Opcode
-import java.io.File
+import java.io.*
+import java.net.ConnectException
+import java.net.StandardProtocolFamily
 import java.net.URI
+import java.net.UnixDomainSocketAddress
+import java.nio.channels.Channels
+import java.nio.channels.SocketChannel
 import java.nio.file.*
 import java.time.LocalDateTime
 import kotlin.io.path.*
@@ -23,6 +25,11 @@ import kotlin.system.exitProcess
 
 
 fun main(args: Array<String>) {
+    if (args.contains("--daemon-server")) {
+        val socketPath = CompilerDaemon.getDefaultSocketPath()
+        CompilerDaemon(socketPath).run()
+        return
+    }
 
     // NOTE: if your compiler/IDE complains here about "Unresolved reference: buildversion",
     //       it means that you have to run the gradle task once to generate this file.
@@ -78,6 +85,7 @@ private fun compileMain(args: Array<String>): Boolean {
     val watchMode by cli.option(ArgType.Boolean, fullName = "watch", description = "continuous compilation mode (watch for file changes)")
     val version by cli.option(ArgType.Boolean, fullName = "version", description = "print compiler version and exit")
     val compareIR by cli.option(ArgType.String, fullName = "compareir", description = "compare generated .p8ir file with existing .p8ir file")
+    val daemonMode by cli.option(ArgType.Boolean, fullName = "daemon", description = "use the prog8c compilation daemon (auto-starts it if not running)")
     val moduleFiles by cli.argument(ArgType.String, fullName = "modules", description = "main module file(s) to compile").optional().multiple(999)
 
     try {
@@ -271,6 +279,44 @@ private fun compileMain(args: Array<String>): Boolean {
             println("\u001b[H\u001b[2J")      // clear the screen
         }
 
+    } else if (daemonMode == true) {
+        for(filepathRaw in moduleFiles) {
+            val filepath = pathFrom(filepathRaw).normalize()
+            val txtcolors = if(plainText==true) ErrorReporter.PlainText else ErrorReporter.AnsiColors
+            val compilerArgs = CompilerArguments(
+                filepath,
+                if(checkSource==true) false else dontOptimize != true,
+                if(checkSource==true) false else dontWriteAssembly != true,
+                warnSymbolShadowing == true,
+                warnImplicitTypeCasts == true,
+                quietAll == true,
+                quietAll == true || quietAssembler == true,
+                showTimings == true,
+                asmListfile == true,
+                dontIncludeSourcelines != true,
+                experimentalCodegen == true,
+                dumpVariables == true,
+                dumpSymbols == true,
+                varsHighBank,
+                varsGolden == true,
+                slabsHighBank,
+                slabsGolden == true,
+                compilationTarget!!,
+                breakpointCpuInstruction,
+                printAst1 == true,
+                printAst2 == true,
+                ignoreFootguns == true,
+                profilingInstrumentation == true,
+                nostdlib == true,
+                processedSymbols,
+                srcdirs,
+                outputPath,
+                errors = ErrorReporter(txtcolors)
+            )
+            if (!compileViaDaemon(compilerArgs))
+                return false
+        }
+        return true
     } else {
         if((startEmulator1==true || startEmulator2==true) && moduleFiles.size>1) {
             System.err.println("can't start emulator when multiple module files are specified")
@@ -592,5 +638,152 @@ private fun scanLibraryFiles(dump: String?, searchPattern: String?) {
                     dump(path)
             }
         }
+    }
+}
+
+
+// ---- daemon client ----
+
+private fun compileViaDaemon(compilerArgs: CompilerArguments): Boolean {
+    val socketPath = CompilerDaemon.getDefaultSocketPath()
+    var channel = connectToDaemon(socketPath)
+
+    if (channel == null) {
+        println("Starting prog8c daemon...")
+        if (!startDaemonProcess()) {
+            System.err.println("Failed to start prog8c daemon")
+            return false
+        }
+        channel = connectToDaemon(socketPath, 4_000)
+        if (channel == null) {
+            System.err.println("prog8c daemon did not start in time")
+            return false
+        }
+        println("prog8c daemon started.")
+    }
+
+    val ok = communicateWithDaemon(channel, compilerArgs)
+    try { channel.close() } catch (_: Exception) {}
+    return ok
+}
+
+private fun startDaemonProcess(): Boolean {
+    return try {
+        val javaHome = System.getProperty("java.home")
+        val javaCmd = "$javaHome/bin/java"
+        val classpath = System.getProperty("java.class.path")
+
+        // Shadow JAR (fat JAR with Main-Class manifest) takes priority
+        val shadowJar = classpath.split(File.pathSeparatorChar)
+            .firstOrNull { it.contains("prog8c") && it.endsWith("-all.jar") }
+
+        val cmd = mutableListOf<String>()
+        cmd.add(javaCmd)
+        if (shadowJar != null) {
+            cmd.addAll(listOf("-jar", shadowJar))
+        } else {
+            cmd.addAll(listOf("-cp", classpath, "prog8.CompilerMainKt"))
+        }
+        cmd.add("--daemon-server")
+
+        val pb = ProcessBuilder(cmd)
+        pb.inheritIO()
+        pb.start()
+        true
+    } catch (e: Exception) {
+        System.err.println("Cannot start daemon: ${e.message}")
+        false
+    }
+}
+
+private fun connectToDaemon(socketPath: Path): SocketChannel? {
+    return try {
+        val address = UnixDomainSocketAddress.of(socketPath)
+        val channel = SocketChannel.open(StandardProtocolFamily.UNIX)
+        channel.connect(address)
+        channel
+    } catch (_: ConnectException) {
+        null
+    } catch (_: Exception) {
+        null
+    }
+}
+
+private fun connectToDaemon(socketPath: Path, timeoutMs: Long): SocketChannel? {
+    val deadline = System.currentTimeMillis() + timeoutMs
+    while (System.currentTimeMillis() < deadline) {
+        connectToDaemon(socketPath)?.let { return it }
+        Thread.sleep(100)
+    }
+    return null
+}
+
+private fun communicateWithDaemon(channel: SocketChannel, compilerArgs: CompilerArguments): Boolean {
+    try {
+        val writer = BufferedWriter(OutputStreamWriter(Channels.newOutputStream(channel), Charsets.UTF_8))
+        val reader = BufferedReader(InputStreamReader(Channels.newInputStream(channel), Charsets.UTF_8))
+
+        val request = DaemonRequest(
+            version = prog8.buildversion.GIT_SHA,
+            filepath = compilerArgs.filepath.toString(),
+            optimize = compilerArgs.optimize,
+            writeAssembly = compilerArgs.writeAssembly,
+            warnSymbolShadowing = compilerArgs.warnSymbolShadowing,
+            warnImplicitTypeCasts = compilerArgs.warnImplicitTypeCasts,
+            quietAll = compilerArgs.quietAll,
+            quietAssembler = compilerArgs.quietAssembler,
+            showTimings = compilerArgs.showTimings,
+            asmListfile = compilerArgs.asmListfile,
+            includeSourcelines = compilerArgs.includeSourcelines,
+            experimentalCodegen = compilerArgs.experimentalCodegen,
+            dumpVariables = compilerArgs.dumpVariables,
+            dumpSymbols = compilerArgs.dumpSymbols,
+            varsHighBank = compilerArgs.varsHighBank,
+            varsGolden = compilerArgs.varsGolden,
+            slabsHighBank = compilerArgs.slabsHighBank,
+            slabsGolden = compilerArgs.slabsGolden,
+            compilationTarget = compilerArgs.compilationTarget,
+            breakpointCpuInstruction = compilerArgs.breakpointCpuInstruction,
+            printAst1 = compilerArgs.printAst1,
+            printAst2 = compilerArgs.printAst2,
+            ignoreFootguns = compilerArgs.ignoreFootguns,
+            profilingInstrumentation = compilerArgs.profilingInstrumentation,
+            nostdlib = compilerArgs.nostdlib,
+            symbolDefs = compilerArgs.symbolDefs,
+            sourceDirs = compilerArgs.sourceDirs,
+            outputDir = compilerArgs.outputDir.toString()
+        )
+
+        val requestJson = DaemonProtocol.encodeRequest(request)
+        writer.write(requestJson)
+        writer.newLine()
+        writer.flush()
+
+        val responseJson = reader.readLine()
+        if (responseJson == null) {
+            System.err.println("daemon connection lost")
+            return false
+        }
+
+        val response = DaemonProtocol.decodeResponse(responseJson)
+
+        if (response.versionError != null) {
+            System.err.println(response.versionError)
+            return false
+        }
+
+        System.out.print(response.output)
+        System.out.flush()
+
+        for (error in response.errors) {
+            val stream = if (error.severity == "ERROR") System.err else System.out
+            stream.println("${error.file?.let { "$it:" } ?: ""}${error.line}:${error.col} ${error.severity} ${error.message}")
+        }
+        System.out.flush()
+        System.err.flush()
+
+        return response.ok
+    } finally {
+        try { channel.close() } catch (_: Exception) {}
     }
 }

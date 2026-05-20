@@ -183,6 +183,16 @@ One or more .p8 module files
     Add this user-defined symbol directly to the beginning of the generated assembly file.
     Can be repeated to define multiple symbols.
 
+``-daemon``
+    Use the prog8c compilation daemon (auto-starts it if not running).
+    This keeps the compiler running as a background server process, which greatly speeds up
+    subsequent compilations by eliminating JVM startup overhead and allowing reuse of cached data.
+    The daemon listens on a Unix domain socket and automatically shuts down after a period of inactivity.
+    Unlike ``-watch``, the daemon does not monitor files for changes: you still invoke ``prog8c -daemon``
+    each time you want to compile. The speedup comes from the warm JVM, not from automatic recompilation.
+    Because each invocation is an individual compiler run, you can compile different source files or
+    pass different options on each call — the daemon does not lock you into a single project or set of flags.
+
 ``-dumpsymbols``
     print a dump of the variable declarations and subroutine signatures
 
@@ -338,6 +348,9 @@ One or more .p8 module files
     edit prog8 source files with an editor on the X16 itself (such as XVI, XEdit). When saving the source file,
     the compiler can sit in the background in watch mode, and recompile it for you immediately on save.
     Then you can directly run the new resulting PRG file in the X16!
+    Unlike ``-daemon``, the watch mode keeps the process in the foreground and automatically
+    recompiles on file changes, whereas ``-daemon`` is a background server that you invoke explicitly
+    each time you want to compile.
 
 
 Module source code files
