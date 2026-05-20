@@ -310,12 +310,16 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
             emitLine(buildString {
                 append("ubyte[${variable.length}] ${variable.name}_lsb zp=${variable.zpwish} split=true")
                 if(variable.align!=0u) append(" align=${variable.align}")
+                if(variable.inBss) append(" inBss=true")
+                if(variable.readonly) append(" readonly=true")
             })
             emitLine("ubyte[${variable.length}] ${variable.name}_msb zp=${variable.zpwish} split=true")
         } else {
             emitLine(buildString {
                 append("${variable.typeString} ${variable.name} zp=${variable.zpwish}")
                 if(variable.align!=0u) append(" align=${variable.align}")
+                if(variable.inBss) append(" inBss=true")
+                if(variable.readonly) append(" readonly=true")
             })
         }
     }
@@ -381,6 +385,8 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
         emitLine(buildString {
             append("ubyte[${variable.length}] ${variable.name}_lsb=$lsbValue zp=${variable.zpwish} split=true")
             if(variable.align!=0u) append(" align=${variable.align}")
+            if(variable.inBss) append(" inBss=true")
+            if(variable.readonly) append(" readonly=true")
         })
         emitLine("ubyte[${variable.length}] ${variable.name}_msb=$msbValue zp=${variable.zpwish} split=true")
     }
@@ -427,6 +433,8 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
         emitLine(buildString {
             append("${variable.typeString} ${variable.name}=$value zp=${variable.zpwish}")
             if(variable.align!=0u) append(" align=${variable.align}")
+            if(variable.inBss) append(" inBss=true")
+            if(variable.readonly) append(" readonly=true")
         })
     }
 
@@ -500,7 +508,11 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
         xml.writeStartElement("MEMORYMAPPED")
         xml.writeCharacters("\n")
         for (variable in irProgram.st.allMemMappedVariables()) {
-            emitLine("@${variable.typeString} ${variable.name}=${variable.address.toHex()}")
+            val line = buildString {
+                append("@${variable.typeString} ${variable.name}=${variable.address.toHex()}")
+                if(variable.readonly) append(" readonly=true")
+            }
+            emitLine(line)
         }
         xml.writeEndElement()
         xml.writeCharacters("\n")

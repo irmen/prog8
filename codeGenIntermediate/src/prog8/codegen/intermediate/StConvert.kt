@@ -8,7 +8,7 @@ import prog8.intermediate.*
  * Converter object for transforming SymbolTable nodes to IR symbol table nodes.
  * Groups all conversion functions together for better organization.
  */
-private object StToIrConverter {
+private class StToIrConverter(val romable: Boolean) {
     fun convert(struct: StStruct): IRStStructDef =
         IRStStructDef(struct.scopedNameString, struct.fields, struct.size)
 
@@ -72,16 +72,21 @@ private object StToIrConverter {
         }
 
         val name = if('.' in variable.name) variable.name else variable.scopedNameString
-        return IRStStaticVariable(name, variable.dt, initValue, variable.length, variable.zpwish, variable.align, variable.dirty)
+        val hasInit = initValue != null
+        val inBss = romable && hasInit
+        val readonly = romable && hasInit
+        return IRStStaticVariable(name, variable.dt, initValue, variable.length, variable.zpwish, variable.align, variable.dirty, inBss, readonly)
     }
 
     fun convert(variable: StMemVar): IRStMemVar {
+        val readonly = romable && variable.address > 255u
         if('.' in variable.name) {
             return IRStMemVar(
                 variable.name,
                 variable.dt,
                 variable.address,
-                variable.length
+                variable.length,
+                readonly
             )
         } else {
             val scopedName = try {
@@ -89,7 +94,7 @@ private object StToIrConverter {
             } catch (_: UninitializedPropertyAccessException) {
                 variable.name
             }
-            return IRStMemVar(scopedName, variable.dt, variable.address, variable.length)
+            return IRStMemVar(scopedName, variable.dt, variable.address, variable.length, readonly)
         }
     }
 
@@ -134,33 +139,34 @@ private object StToIrConverter {
     }
 }
 
-fun convertStToIRSt(sourceSt: SymbolTable?): IRSymbolTable {
+fun convertStToIRSt(sourceSt: SymbolTable?, romable: Boolean = false): IRSymbolTable {
     val st = IRSymbolTable()
+    val converter = StToIrConverter(romable)
     if (sourceSt != null) {
         sourceSt.flat.forEach {
             when(it.value.type) {
-                StNodeType.STATICVAR -> st.add(StToIrConverter.convert(it.value as StStaticVariable))
-                StNodeType.MEMVAR -> st.add(StToIrConverter.convert(it.value as StMemVar))
+                StNodeType.STATICVAR -> st.add(converter.convert(it.value as StStaticVariable))
+                StNodeType.MEMVAR -> st.add(converter.convert(it.value as StMemVar))
                 StNodeType.CONSTANT -> {
                     val constant = it.value as StConstant
                     // If the constant has a memory() slab, add the slab to the IR symbol table first
                     constant.memorySlab?.let { slab ->
-                        val converted = StToIrConverter.convert(slab)
+                        val converted = converter.convert(slab)
                         st.add(converted)
                     }
-                    st.add(StToIrConverter.convert(constant))
+                    st.add(converter.convert(constant))
                 }
                 StNodeType.MEMORYSLAB -> {
                     val slab = it.value as StMemorySlab
-                    val converted = StToIrConverter.convert(slab)
+                    val converted = converter.convert(slab)
                     st.add(converted)
                 }
                 StNodeType.STRUCTINSTANCE -> {
                     val instance = it.value as StStructInstance
                     val struct = sourceSt.lookup(instance.structName) as StStruct
-                    st.add(StToIrConverter.convert(instance, struct.fields))
+                    st.add(converter.convert(instance, struct.fields))
                 }
-                StNodeType.STRUCT -> st.add(StToIrConverter.convert(it.value as StStruct))
+                StNodeType.STRUCT -> st.add(converter.convert(it.value as StStruct))
                 else -> { }
             }
         }

@@ -46,12 +46,12 @@ Future Things and Ideas
   (this is already done hardcoded for several of the builtin functions)
 - more support for (64tass) SEGMENTS in the prog8 syntax itself? maybe %segment blah  in blocks?
 - ability to use a sub instead of only a var for @bank ? what for though? dynamic bank/overlay loading?
+- add a way to explicitly set the memory address for the BSS area (``-varsaddress`` and ``-slabsaddress`` options)
 - BUG: fix the c64 multiplexer example
 
 
 Romable (%option romable)
 ^^^^^^^^^^^^^^^^^^^^^^^^^
-- add a way to explicitly set the memory address for the BSS area (``-varsaddress`` and ``-slabsaddress`` options)
 - ForLoopsAsmGen: fix remaining codegens. Three methods use self-modifying code (patching ``cmp #0`` immediates) with no romable-safe alternative:
   - ``forOverBytesRangeStepGreaterOne`` (byte, abs(step)>=2)
   - ``forOverWordsRangeStepGreaterOne`` (word, step>=2)
@@ -59,8 +59,6 @@ Romable (%option romable)
   Fix pattern (already used by step-1 methods): add ``if(romable)`` branch that allocates a temp var via ``createTempVarReused``, stores the loop end value into it, and compares against it. Existing self-modifying code stays in ``else`` branch for RAM programs.
 - BuiltinFunctionsAsmGen: ``callfar`` / ``callfar2`` with non-const bank/addr. Uses self-modifying ``sta +0`` / ``sty +1`` to patch JSRFAR operands. Needs a RAM trampoline approach (copy stub with variable args into RAM, JSR to that).
 - FunctionCallAsmGen: ``extsub`` with variable bank. Same JSRFAR operand patching issue. Needs RAM trampoline.
-- ProgramAndVarsGen: initialized strings/arrays in ROM emit warnings but don't block assembly. Consider whether these should emit ``.error`` for consistency (currently some do, some don't).
-- IR/VM backends have no romable awareness at all so no warnings about incompatible constructs.
 - Add more test coverage for the romable option.
 
 

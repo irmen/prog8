@@ -6,8 +6,8 @@ package prog8.intermediate
  */
 object IRFormat {
     // Regex patterns for parsing IR text lines
-    val VAR_NO_INIT = Regex("(?<type>.+?)(?<arrayspec>\\[.+?\\])? (?<name>.+) zp=(?<zp>.+?)\\s?(split=(?<split>.+?))?\\s?(align=(?<align>.+?))?")
-    val VAR_INIT = Regex("(?<type>.+?)(?<arrayspec>\\[.+?\\])? (?<name>.+)=(?<value>.*?) zp=(?<zp>.+?)\\s?(split=(?<split>.+?))?\\s?(align=(?<align>.+?))?")
+    val VAR_NO_INIT = Regex("(?<type>.+?)(?<arrayspec>\\[.+?\\])? (?<name>.+) zp=(?<zp>.+?)\\s?(split=(?<split>.+?))?\\s?(align=(?<align>.+?))?\\s?(inBss=(?<inBss>.+?))?\\s?(readonly=(?<readonly>.+?))?")
+    val VAR_INIT = Regex("(?<type>.+?)(?<arrayspec>\\[.+?\\])? (?<name>.+)=(?<value>.*?) zp=(?<zp>.+?)\\s?(split=(?<split>.+?))?\\s?(align=(?<align>.+?))?\\s?(inBss=(?<inBss>.+?))?\\s?(readonly=(?<readonly>.+?))?")
     val CONSTANT = Regex("(.+?) (.+)=(.*?)")
     val MEMORY_MAPPED = Regex("@(.+?)(\\[.+?\\])? (.+)=(.+)")
     val MEMORY_SLAB = Regex("(.+) (.+) (.+)")

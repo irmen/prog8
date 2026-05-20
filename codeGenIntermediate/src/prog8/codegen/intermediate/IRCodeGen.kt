@@ -26,7 +26,7 @@ class IRCodeGen(
         verifyNameScoping(program, symbolTable)
         changeGlobalVarInits(symbolTable)
 
-        val irSymbolTable = convertStToIRSt(symbolTable)
+        val irSymbolTable = convertStToIRSt(symbolTable, options.romable)
         val irProg = IRProgram(program.name, irSymbolTable, options, program.encoding)
 
         // collect global variables initializers
@@ -37,6 +37,12 @@ class IRCodeGen(
                 if (chunk is IRCodeChunk) irProg.addGlobalInits(chunk)
                 else throw AssemblyError("only expect code chunk for global inits")
             }
+        }
+
+        // in romable mode, generate global init code for declaration-initialized variables
+        // and clear their init value so they go into the BSS section
+        if(options.romable) {
+            generateRomableInits(irProg)
         }
 
         irProg.addAsmSymbols(options.symbolDefs)
@@ -63,6 +69,11 @@ class IRCodeGen(
     fun registerTypes(): Map<RegisterNum, IRDataType> = registers.getTypes()
 
     private fun changeGlobalVarInits(symbolTable: SymbolTable) {
+        // In romable mode, don't pull initializers into the symbol table;
+        // they stay as assignments in the AST and become global init code naturally.
+        if(options.romable)
+            return
+
         // Normally, block level (global) variables that have a numeric initialization value
         // are initialized via an assignment statement.
         val initsToRemove = mutableListOf<Pair<PtBlock, PtAssignment>>()
@@ -93,6 +104,39 @@ class IRCodeGen(
         for((block, assign) in initsToRemove) {
             block.removeChild(assign)
         }
+    }
+
+    private fun generateRomableInits(irProg: IRProgram) {
+        // For romable mode, declaration-initialized variables marked inBss need
+        // runtime init code in the globalInits chunk, and their initializationValue
+        // must be cleared so they appear in the NOINIT (BSS) section of the IR file.
+        val replacements = mutableListOf<IRStStaticVariable>()
+        for(variable in irProg.st.allVariables()) {
+            if(variable.inBss && variable.initializationValue != null) {
+                when(val initValue = variable.initializationValue) {
+                    is IRVariableInitializer.Numeric -> {
+                        val dt = irType(variable.dt)
+                        val tempReg = registers.next(dt)
+                        val chunk = IRCodeChunk(null, null)
+                        chunk += IRInstruction(Opcode.LOAD, dt, reg1 = tempReg, immediate = initValue.value.toInt())
+                        chunk += IRInstruction(Opcode.STOREM, dt, reg1 = tempReg, labelSymbol = variable.name)
+                        irProg.addGlobalInits(chunk)
+                        // replace with uninitialized version so it goes to NOINIT section
+                        replacements += IRStStaticVariable(
+                            variable.name, variable.dt, null, variable.length,
+                            variable.zpwish, variable.align, variable.dirty,
+                            variable.inBss, variable.readonly
+                        )
+                    }
+                    is IRVariableInitializer.Str, is IRVariableInitializer.Array -> {
+                        // Strings and arrays: keep inline data but now marked readonly.
+                        // They can serve as ROM-based read-only data.
+                    }
+                    null -> {}  // uninitialized, skip
+                }
+            }
+        }
+        replacements.forEach { irProg.st.add(it) }
     }
 
     private fun verifyNameScoping(program: PtProgram, symbolTable: SymbolTable) {

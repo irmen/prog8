@@ -194,6 +194,8 @@ class IRFileReader {
         val name = match.groups["name"]!!.value
         val zpwish = match.groups["zp"]!!.value
         val alignment = match.groups["align"]?.value ?: ""
+        val inBssStr = match.groups["inBss"]?.value ?: ""
+        val readonlyStr = match.groups["readonly"]?.value ?: ""
         
         if('.' !in name)
             throw IRParseException("unscoped name: $name")
@@ -202,7 +204,9 @@ class IRFileReader {
         val dt = parseDatatype(type, arraysize!=null)
         val zp = if(zpwish.isBlank()) ZeropageWish.DONTCARE else ZeropageWish.valueOf(zpwish)
         val align = if(alignment.isBlank()) 0u else alignment.toUInt()
-        return IRStStaticVariable(name, dt, null, arraysize, zp, align, dirty)
+        val inBss = inBssStr == "true"
+        val readonly = readonlyStr == "true"
+        return IRStStaticVariable(name, dt, null, arraysize, zp, align, dirty, inBss, readonly)
     }
 
     private fun parseConstants(reader: XMLEventReader): List<IRStConstant> =
@@ -240,6 +244,8 @@ class IRFileReader {
         val value = match.groups["value"]!!.value
         val zpwish = match.groups["zp"]!!.value
         val alignment = match.groups["align"]?.value ?: ""
+        val inBssStr = match.groups["inBss"]?.value ?: ""
+        val readonlyStr = match.groups["readonly"]?.value ?: ""
         
         if('.' !in name)
             throw IRParseException("unscoped varname: $name")
@@ -248,9 +254,11 @@ class IRFileReader {
         val dt = parseDatatype(type, arraysize!=null)
         val zp = if(zpwish.isBlank()) ZeropageWish.DONTCARE else ZeropageWish.valueOf(zpwish)
         val align = if(alignment.isBlank()) 0u else alignment.toUInt()
+        val inBss = inBssStr == "true"
+        val readonly = readonlyStr == "true"
         val dirty = false
         val initValue = parseInitValue(dt, value, arraysize)
-        return IRStStaticVariable(name, dt, initValue, arraysize, zp, align, dirty)
+        return IRStStaticVariable(name, dt, initValue, arraysize, zp, align, dirty, inBss, readonly)
     }
 
     private fun parseInitValue(dt: DataType, value: String, arraysize: UInt?): IRVariableInitializer? {
@@ -327,10 +335,12 @@ class IRFileReader {
     private fun parseMemoryMapped(line: String): IRStMemVar {
         val match = IRFormat.MEMORY_MAPPED.matchEntire(line) 
             ?: throw IRParseException("invalid MEMORYMAPPED: $line")
-        val (type, arrayspec, name, address) = match.destructured
+        val (type, arrayspec, name, addressAndRest) = match.destructured
+        val readonly = "readonly=true" in addressAndRest
+        val addressStr = addressAndRest.split(" ").first()
         val arraysize = if(arrayspec.isNotBlank()) arrayspec.substring(1, arrayspec.length-1).toUInt() else null
         val dt = parseDatatype(type, arraysize!=null)
-        return IRStMemVar(name, dt, parseIRValue(address).toUInt(), arraysize)
+        return IRStMemVar(name, dt, parseIRValue(addressStr).toUInt(), arraysize, readonly)
     }
 
     private fun parseSlabs(reader: XMLEventReader): List<IRStMemorySlab> =

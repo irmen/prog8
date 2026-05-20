@@ -79,7 +79,8 @@ open class IRStNode(val name: String, val type: IRStNodeType)
 class IRStMemVar(name: String,
                  val dt: DataType,
                  val address: UInt,
-                 val length: UInt?             // for arrays: the number of elements, for strings: number of characters *including* the terminating 0-byte
+                 val length: UInt?,             // for arrays: the number of elements, for strings: number of characters *including* the terminating 0-byte
+                 val readonly: Boolean = false
                ) :  IRStNode(name, IRStNodeType.MEMVAR) {
     init {
         require(!dt.isString)
@@ -117,7 +118,9 @@ class IRStStaticVariable(name: String,
                        val length: UInt?,            // for arrays: the number of elements, for strings: number of characters *including* the terminating 0-byte
                        val zpwish: ZeropageWish,    // used in the variable allocator
                        val align: UInt,
-                       val dirty: Boolean
+                       val dirty: Boolean,
+                       val inBss: Boolean = false,   // variable should be placed in BSS (RAM), not inline with code
+                       val readonly: Boolean = false // variable should be treated as read-only
 ) : IRStNode(name, IRStNodeType.STATICVAR) {
     init {
         if(align > 0u) {
