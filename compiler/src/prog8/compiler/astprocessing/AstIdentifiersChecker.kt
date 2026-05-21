@@ -179,6 +179,13 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
         super.visit(subroutine)
     }
 
+    override fun visit(alias: Alias) {
+        val existing = alias.definingScope.lookup(listOf(alias.alias))
+        if(existing != null && existing !== alias)
+            nameError(alias.alias, alias.position, existing)
+        super.visit(alias)
+    }
+
     override fun visit(label: Label) {
         if(label.name in BuiltinFunctions) {
             errors.err("builtin function cannot be redefined", label.position)

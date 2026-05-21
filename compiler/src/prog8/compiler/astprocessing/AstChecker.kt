@@ -38,6 +38,8 @@ internal class AstChecker(private val program: Program,
             } else {
                 if (startSub.parameters.isNotEmpty() || startSub.returntypes.isNotEmpty())
                     errors.err("program entrypoint subroutine can't have parameters and/or return values", startSub.position)
+                if (startSub.isPrivate)
+                    errors.err("program entrypoint subroutine 'start' cannot be private", startSub.position)
             }
         }
 
@@ -100,26 +102,6 @@ internal class AstChecker(private val program: Program,
             errors.undefined(identifier.nameInSource, identifier.firstTarget(program.builtinFunctions)==null, identifier.position)
         }
         else {
-            // Check for private symbol access
-            val privateError = when (stmt) {
-                is VarDecl -> {
-                    if (stmt.isPrivate && !isAccessWithinSameBlock(identifier, stmt.definingBlock))
-                        "private variable '${stmt.scopedName.joinToString(".")}'"
-                    else
-                        null
-                }
-                is Subroutine -> {
-                    if (stmt.isPrivate && !isAccessWithinSameBlock(identifier, stmt.definingBlock))
-                        "private subroutine '${stmt.scopedName.joinToString(".")}'"
-                    else
-                        null
-                }
-                else -> null
-            }
-            if (privateError != null) {
-                errors.err("cannot access $privateError from outside its block", identifier.position)
-            }
-
             val target = stmt as? VarDecl
             if (target != null && target.origin == VarDeclOrigin.SUBROUTINEPARAM) {
                 if (target.definingSubroutine!!.isAsmSubroutine) {
@@ -137,15 +119,13 @@ internal class AstChecker(private val program: Program,
         }
     }
 
-    private fun isAccessWithinSameBlock(identifier: IdentifierReference, targetBlock: Block): Boolean {
-        var current: Node? = identifier.parent
-        while (current != null) {
-            if (current is Block) {
-                return current === targetBlock
-            }
-            current = current.parent
+    private fun checkPrivateTypeAccess(type: DataType, position: Position, currentBlock: Block) {
+        val struct = type.subType
+        if(struct is StructDecl && struct.isPrivate) {
+            val structBlock = struct.definingBlock
+            if(currentBlock !== structBlock)
+                errors.err("cannot access private struct '${struct.scopedName.joinToString(".")}' from outside its block", position)
         }
-        return false
     }
 
     override fun visit(unrollLoop: UnrollLoop) {
@@ -506,6 +486,16 @@ internal class AstChecker(private val program: Program,
         val address = subroutine.asmAddress?.address
         if(address != null && address !is NumericLiteral)
             err("address must be a constant")
+
+        val currentBlock = subroutine.definingBlock
+        subroutine.parameters.forEach { param ->
+            if(param.type.isPointer || param.type.isStructInstance)
+                checkPrivateTypeAccess(param.type, subroutine.position, currentBlock)
+        }
+        subroutine.returntypes.forEach { rt ->
+            if(rt.isPointer || rt.isStructInstance)
+                checkPrivateTypeAccess(rt, subroutine.position, currentBlock)
+        }
 
         super.visit(subroutine)
 
@@ -959,8 +949,12 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(decl: VarDecl) {
+
         if(decl.names.size>1)
             throw InternalCompilerException("vardecls with multiple names should have been converted into individual vardecls")
+
+        if(decl.datatype.isPointer || decl.datatype.isStructInstance)
+            checkPrivateTypeAccess(decl.datatype, decl.position, decl.definingBlock)
 
         if(decl.type!=VarDeclType.CONST && "::" in decl.name)
             errors.err("only enum members can be accessed with '::' syntax", decl.position)
@@ -1758,6 +1752,12 @@ internal class AstChecker(private val program: Program,
 
         if(!typecast.expression.inferType(program).isKnown)
             errors.err("this expression doesn't return a value", typecast.expression.position)
+
+        if(typecast.type.isPointer || typecast.type.isStructInstance) {
+            val currentBlock = findParentNode<Block>(typecast)
+            if(currentBlock!=null)
+                checkPrivateTypeAccess(typecast.type, typecast.position, currentBlock)
+        }
 
         val cv = typecast.expression.constValue(program)
         if(cv != null) {

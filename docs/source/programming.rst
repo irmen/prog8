@@ -1225,11 +1225,16 @@ external subroutines. These last two are described in detail below.
 
 .. _private-symbols:
 
-Private subroutines
-^^^^^^^^^^^^^^^^^^^
-.. index:: pair: Subroutines; Private
+Private symbols
+^^^^^^^^^^^^^^^
+.. index:: pair: Symbols; Private
 
-You can use the ``private`` keyword (must come before ``inline`` if used) to make a subroutine invisible from outside its block::
+You can use the ``private`` keyword to hide a symbol from outside its block.
+Accessing a private symbol from another block results in a compilation error.
+
+The ``private`` keyword can be applied to the following declarations:
+
+- **subroutines** (the keyword must come before ``inline`` if used)::
 
     private sub helper() {
         ; only callable from within this block
@@ -1243,7 +1248,24 @@ You can use the ``private`` keyword (must come before ``inline`` if used) to mak
         ; private asmsub
     }
 
-Accessing a private subroutine from another block will result in a compilation error.
+- **external subroutines** (``extsub``)::
+
+    private extsub $FFD2 = CHROUT(ubyte char @A)
+
+- **structs**::
+
+    private struct Node {
+        byte x
+        byte y
+    }
+
+- **enums**::
+
+    private enum Color { red, green, blue }
+
+- **aliases**::
+
+    private alias MyReg = cx16.r0
 
 
 .. _reusevirtualregs_params:

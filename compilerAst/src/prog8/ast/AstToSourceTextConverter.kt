@@ -127,6 +127,9 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
         if(decl.origin==VarDeclOrigin.SUBROUTINEPARAM)
             return
 
+        if(decl.isPrivate)
+            output("private ")
+
         when(decl.type) {
             VarDeclType.VAR -> {}
             VarDeclType.CONST -> output("const ")
@@ -187,6 +190,8 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
     }
 
     override fun visit(struct: StructDecl) {
+        if(struct.isPrivate)
+            output("private ")
         outputln("struct ${struct.name} {")
         for(member in struct.fields) {
             outputlni(  "    ${member.first} ${member.second}")
@@ -194,9 +199,25 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
         outputlni("}")
     }
 
+    override fun visit(enum: Enumeration) {
+        if(enum.isPrivate)
+            output("private ")
+        output("enum ${enum.name} { ")
+        for(member in enum.members) {
+            output(member.first)
+            if(member.second!=null)
+                output(" = ${member.second}")
+            if(member !== enum.members.last())
+                output(", ")
+        }
+        outputln(" }")
+    }
+
     override fun visit(subroutine: Subroutine) {
         output("\n")
         outputi("")
+        if(subroutine.isPrivate)
+            output("private ")
         if(subroutine.inline)
             output("inline ")
         if(subroutine.isAsmSubroutine) {
@@ -569,6 +590,8 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
     }
 
     override fun visit(alias: Alias) {
+        if(alias.isPrivate)
+            output("private ")
         output("alias ${alias.alias} = ${alias.target.nameInSource.joinToString(".")}")
     }
 

@@ -153,7 +153,7 @@ data class DirectiveArg(val string: String?, val int: UInt?, override val positi
     override fun referencesIdentifier(nameInSource: List<String>): Boolean = false
 }
 
-data class Alias(val alias: String, val target: IdentifierReference, override val position: Position) : Statement() {
+data class Alias(val alias: String, val target: IdentifierReference, val isPrivate: Boolean = false, override val position: Position) : Statement() {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -161,7 +161,7 @@ data class Alias(val alias: String, val target: IdentifierReference, override va
         target.parent = this
     }
 
-    override fun copy(): Statement = Alias(alias, target.copy(), position)
+    override fun copy(): Statement = Alias(alias, target.copy(), isPrivate, position)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
     override fun replaceChildNode(node: Node, replacement: Node) = throw FatalAstException("can't replace here")
@@ -512,7 +512,7 @@ class VarDecl(
     }
 }
 
-class StructDecl(override val name: String, val fields: Array<Pair<DataType, String>>, override val position: Position) : Statement(), INamedStatement, ISubType {
+class StructDecl(override val name: String, val fields: Array<Pair<DataType, String>>, val isPrivate: Boolean, override val position: Position) : Statement(), INamedStatement, ISubType {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -521,7 +521,7 @@ class StructDecl(override val name: String, val fields: Array<Pair<DataType, Str
 
     override fun replaceChildNode(node: Node, replacement: Node) = throw FatalAstException("can't replace here")
     override fun referencesIdentifier(nameInSource: List<String>) = false
-    override fun copy() = StructDecl(name, fields.clone(), position)
+    override fun copy() = StructDecl(name, fields.clone(), isPrivate, position)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
     override fun memsize(sizer: IMemSizer): Int = fields.sumOf { sizer.memorySize(it.first, 1) }
@@ -562,7 +562,7 @@ class StructFieldRef(val pointer: IdentifierReference, val struct: StructDecl, v
 
 }
 
-class Enumeration(override val name: String, val type: BaseDataType, val members: Array<Pair<String, Int?>>, override val position: Position) : Statement(), INamedStatement {
+class Enumeration(override val name: String, val type: BaseDataType, val members: Array<Pair<String, Int?>>, val isPrivate: Boolean, override val position: Position) : Statement(), INamedStatement {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -571,7 +571,7 @@ class Enumeration(override val name: String, val type: BaseDataType, val members
 
     override fun replaceChildNode(node: Node, replacement: Node) = throw FatalAstException("can't replace here")
     override fun referencesIdentifier(nameInSource: List<String>) = false
-    override fun copy(): Enumeration = Enumeration(name, type, members.toList().toTypedArray(), position)
+    override fun copy(): Enumeration = Enumeration(name, type, members.toList().toTypedArray(), isPrivate, position)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 }

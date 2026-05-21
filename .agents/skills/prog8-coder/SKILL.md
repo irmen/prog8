@@ -169,30 +169,57 @@ unroll 80 {
 - Nested subroutines access parent scope variables directly
 
 ## Assembly Subroutines (asmsub)
-For kernel (ROM) routines or low-level assembly that gets arguments via registers.
-- Parameter passing via registers: `@A` (accu), `@X`, `@Y`, `@AX`/`@AY` (16-bit), `@R0`-`@R15` (virtual regs), `@FAC1`/`@FAC2` (float), `@Pc` (carry), `@Pz` (zero)
-- Return value: `-> type @register` (e.g., `-> ubyte @A`, `-> bool @Pz` for immediate branch use)
-- Clobbers: `clobbers (A, X, Y)` — list all modified registers
-- Parameter names are documentation only — use registers in assembly, not parameter names
-- Create symbolic aliases at assembly start: `x1 = cx16.r0`, `x1_lo = cx16.r0L`
-- Example:
+For low-level assembly that gets arguments via registers and returns values in registers.
+- **Syntax**: `[private] [inline] asmsub subname(params) [clobbers(regs)] [-> returns] { %asm {{ ... }} }`
+- **Body Restriction**: The body of an `asmsub` **must only contain** a single `%asm {{ ... }}` node. Regular Prog8 statements or nested blocks are NOT allowed.
+- **Parameters**: `type name @register` (e.g., `ubyte val @A`, `uword addr @AX`, `float f @FAC1`).
+- **Return Values**: `-> type @register` (e.g., `-> ubyte @A`, `-> bool @Pz` for immediate branch use).
+- **Registers**:
+    - **8-bit**: `@A`, `@X`, `@Y`
+    - **16-bit**: `@AX`, `@AY`, `@XY` (register pairs)
+    - **Float**: `@FAC1`, `@FAC2` (Floating Point Accumulators)
+    - **Virtual**: `@R0`–`@R15` (16-bit), `@R0R1`–`@R14R15` (32-bit combined)
+    - **Status Flags (for returns)**: `@Pc` (Carry), `@Pz` (Zero), `@Pv` (Overflow), `@Pn` (Negative)
+- **Clobbers**: `clobbers (A, X, Y)` — list all hardware registers modified by the routine.
+- **Parameter names** are for documentation and type checking only. Use the registers in your assembly code.
+- **Inlining**: `inline asmsub` will paste the assembly code directly at the call site, avoiding `jsr`/`rts` overhead.
+- **Symbol prefixes** in assembly: `p8v_` (vars), `p8s_` (subs), `p8b_` (blocks), etc.
+
+## External Subroutines (extsub)
+Used to call routines at fixed memory addresses (like ROM KERNAL routines or third-party drivers).
+- **Syntax**: `[private] extsub [@bank <value>] address = subname(params) [clobbers(regs)] [-> returns]`
+- **Address**: Can be a hex literal (`$C000`) or a constant expression.
+- **Bank (optional)**: `@bank <integer>` (constant bank) or `@bank <identifier>` (variable bank).
+- **No Body**: Unlike `asmsub`, `extsub` has no `{ }` body; it just maps a signature to an address.
+- **Example**:
   ```prog8
-  asmsub line(uword x1 @R0, ubyte y1 @A, uword x2 @R1, ubyte y2 @Y) clobbers (A, X, Y) {
+  ; CX16 KERNAL CHROUT
+  extsub $FFD2 = chrout(ubyte char @A) clobbers(A, X, Y)
+
+  ; Routine in a specific RAM bank
+  extsub @bank 10 $C09F = audio_init() clobbers(A, X, Y) -> bool @Pc
+  ```
+
+## Assembly Programming Details
+- **Symbol prefixes**: `p8v_` (variables), `p8s_` (subroutines), `p8b_` (blocks), `p8c_` (constants), `p8l_` (labels), `p8t_` (structs), `p8_` (other)
+- **Fully qualified names**: `p8b_blockname.p8v_varname`, `p8b_blockname.p8s_subname.p8v_localvar`
+- **Within a `.proc`**, short names often work. `%option no_symbol_prefixing` disables prefixes (used by `cbm`, `cx16`, `txt`)
+- **Split word arrays**: append `_lsb` / `_msb` to variable name (e.g., `p8v_myarray_lsb`)
+- **CX16 target**: use 65C02 instructions (STZ, PHX, etc). Others: 6502 only
+- **Assembly syntax**: 64tass. `.proc`/`.pend`, `_label` for locals, `.byte`/`.word`/`.dword` for data, `=` for equates
+- **Instructions** like `rol`, `ror`, `asl`, `lsr` require explicit operand: `rol a`
+- **Anonymous labels**: `+` (forward), `-` (backward), branch with `+`, `++`, `+++` or `-`, `--`, `---`
+- **Register Aliases**: It's common to define aliases at the start of an `asmsub`:
+  ```prog8
+  asmsub my_routine(uword ptr @AX) {
       %asm {{
-          x1 = cx16.r0
-          x2 = cx16.r1
-          lda  x1
+          ptr_lo = p8zp_scratch_w1
+          ptr_hi = p8zp_scratch_w1+1
+          sta ptr_lo
+          stx ptr_hi
       }}
   }
   ```
-- Symbol prefixes in assembly: `p8v_` (variables), `p8s_` (subroutines), `p8b_` (blocks), `p8c_` (constants), `p8l_` (labels), `p8t_` (structs), `p8_` (other)
-- Fully qualified: `p8b_blockname.p8v_varname`, `p8b_blockname.p8s_subname.p8v_localvar`
-- Within a `.proc`, short names often work. `%option no_symbol_prefixing` disables prefixes (used by `cbm`, `cx16`, `txt`)
-- Split word arrays: append `_lsb` / `_msb` to variable name (e.g., `p8v_myarray_lsb`)
-- CX16 target only: use 65C02 instructions (STZ etc). Others: 6502 only
-- Assembly syntax: 64tass assembler. `.proc`/`.pend`, `_label` for locals, `.byte`/`.word`/`.dword` for data, `=` for equates
-- Instructions like `rol`, `ror`, `asl`, `lsr` require explicit operand: `rol a`, not just `rol`
-- Anonymous labels: `+` (forward), `-` (backward), branch with `+`, `++`, `+++` or `-`, `--`, `---`
 
 ## Standard Library
 - Find routines, functions, variables, modules and signatures in the symbol dump file for the given compilation target. 

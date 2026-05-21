@@ -539,6 +539,8 @@ private fun processAst(program: Program, errors: IErrorReporter, compilerOptions
         exitProcess(0)
     }
 
+    program.checkPrivateAccess(errors)
+    errors.report()
     program.checkIdentifiers(errors, compilerOptions)
     errors.report()
     program.charLiteralsToUByteLiterals(compilerOptions.compTarget, errors)

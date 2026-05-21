@@ -14,6 +14,7 @@ import prog8.code.core.DataType
 import prog8.code.source.SourceCode
 import prog8.code.target.C64Target
 import prog8.code.target.Cx16Target
+import prog8.code.target.VMTarget
 import prog8.parser.Prog8Parser.parseModule
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
@@ -278,5 +279,25 @@ main {
         compileText(Cx16Target(), false, src, outputDir, errors, false) shouldBe null
         errors.errors.size shouldBe 1
         errors.errors[0] shouldContain "doesn't end with a return"
+    }
+
+    test("asmsub body restriction") {
+        val src="""
+main {
+    asmsub foo() {
+        ubyte x = 1
+    }
+    asmsub ok1() {
+        %asm {{ nop }}
+    }
+    asmsub ok2() {
+        %asm {{ nop }}
+        %asm {{ nop }}
+    }
+}"""
+        val errors = ErrorReporterForTests()
+        compileText(VMTarget(), false, src, outputDir, errors, false)
+        errors.errors.size shouldBe 1
+        errors.errors[0] shouldContain "asmsub can only contain inline assembly (%asm)"
     }
 })

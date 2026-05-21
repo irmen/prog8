@@ -152,7 +152,7 @@ statement :
     ;
 
 
-enum :  ENUM identifier '{' EOL? enum_member? (',' EOL? enum_member)* ','? EOL? '}' ;       // you can split the values over several lines, trailing comma allowed
+enum :  PRIVATE? ENUM identifier '{' EOL? enum_member? (',' EOL? enum_member)* ','? EOL? '}' ;       // you can split the values over several lines, trailing comma allowed
 
 enum_member :  identifier ('=' integerliteral)?  ;
 
@@ -168,7 +168,7 @@ variabledeclaration :
 
 
 structdeclaration:
-    STRUCT identifier '{' EOL? (structfielddecl | EOL)+ '}'
+    PRIVATE? STRUCT identifier '{' EOL? (structfielddecl | EOL)+ '}'
     ;
 
 structfielddecl: datatype identifierlist;
@@ -180,7 +180,7 @@ subroutinedeclaration :
     | extsubroutine
     ;
 
-alias: 'alias' identifier '=' scoped_identifier ;
+alias: PRIVATE? 'alias' identifier '=' scoped_identifier ;
 
 defer: 'defer' (statement | statement_block) ;
 
@@ -358,7 +358,7 @@ asmsubroutine :
     ;
 
 extsubroutine :
-    'extsub' (TAG (constbank=integerliteral | varbank=scoped_identifier))? address=expression '=' asmsub_decl
+    PRIVATE? 'extsub' (TAG (constbank=integerliteral | varbank=scoped_identifier))? address=expression '=' asmsub_decl
     ;
 
 asmsub_signature : '(' asmsub_params? ')' asmsub_clobbers? asmsub_returns? ;

@@ -409,15 +409,15 @@ class AstPreprocessor(val program: Program,
                         val replacement = if(tgt2!=null) {
                             if(tgt2 is BuiltinFunctionPlaceholder) {
                                 val unscopedTarget = IdentifierReference(listOf(tgt2.name), alias.position)
-                                Alias(alias.alias, unscopedTarget, alias.position)
+                                Alias(alias.alias, unscopedTarget, alias.isPrivate, alias.position)
                             } else if(tgt2.scopedName != chainedTargetName.nameInSource) {
                                 val scopedTarget = IdentifierReference(tgt2.scopedName, alias.position)
-                                Alias(alias.alias, scopedTarget, alias.position)
+                                Alias(alias.alias, scopedTarget, alias.isPrivate, alias.position)
                             } else {
-                                Alias(alias.alias, chainedTargetName, alias.position)
+                                Alias(alias.alias, chainedTargetName, alias.isPrivate, alias.position)
                             }
                         } else {
-                            Alias(alias.alias, chainedTargetName, alias.position)
+                            Alias(alias.alias, chainedTargetName, alias.isPrivate, alias.position)
                         }
                         return listOf(AstReplaceNode(alias, replacement, parent))
                     }
@@ -519,6 +519,7 @@ class AstPreprocessor(val program: Program,
                 .names(membername)
                 .type(VarDeclType.CONST)
                 .value(membervalue)
+                .isPrivate(enum.isPrivate)
                 .build()
         }
 

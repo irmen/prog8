@@ -85,10 +85,11 @@ Tag         Effect
 .. _private-variables:
 .. index:: pair: Variables; Private
 
-You can use the ``private`` keyword (must come first, before the datatype and any tags) to make a variable invisible from outside its block::
+You can use the ``private`` keyword (must come first, before the datatype and any tags) to make a variable or constant invisible from outside its block::
 
     private ubyte secret = 42
     private ubyte @shared hiddenvar = 10
+    private const ubyte fixed_value = 99
 
 This makes the variable only accessible within the block where it's declared. Accessing it from another block will result in a compilation error.
 

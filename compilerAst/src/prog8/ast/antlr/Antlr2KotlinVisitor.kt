@@ -128,7 +128,7 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
     override fun visitAlias(ctx: AliasContext): Alias {
         val identifier = getname(ctx.identifier())
         val target = ctx.scoped_identifier().accept(this) as IdentifierReference
-        return Alias(identifier, target, ctx.toPosition())
+        return Alias(identifier, target, ctx.PRIVATE() != null, ctx.toPosition())
     }
 
     override fun visitDefer(ctx: DeferContext): Defer {
@@ -652,7 +652,7 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
         val address = Subroutine.Address(constbank, varbank, addr)
         return Subroutine(subdecl.name, subdecl.parameters, subdecl.returntypes,
             subdecl.asmParameterRegisters, subdecl.asmReturnvaluesRegisters,
-            subdecl.asmClobbers, address, true, inline = false, isPrivate = false, statements = mutableListOf(), position = ctx.toPosition()
+            subdecl.asmClobbers, address, true, inline = false, isPrivate = ctx.PRIVATE() != null, statements = mutableListOf(), position = ctx.toPosition()
         )
     }
 
@@ -795,7 +795,7 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
         val name = getname(ctx.identifier())
         val fields: List<Pair<DataType, List<String>>> = ctx.structfielddecl().map { getStructField(it) }
         val flattened = fields.flatMap { (dt, names) -> names.map { dt to it}}
-        return StructDecl(name, flattened.toTypedArray(), ctx.toPosition())
+        return StructDecl(name, flattened.toTypedArray(), ctx.PRIVATE() != null, ctx.toPosition())
     }
 
     private fun getStructField(ctx: StructfielddeclContext): Pair<DataType, List<String>> {
@@ -819,7 +819,7 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
         val members = members1.map {
             it.first to it.second?.number?.toInt()
         }.toTypedArray()
-        return Enumeration(name, largestType, members, ctx.toPosition())
+        return Enumeration(name, largestType, members, ctx.PRIVATE() != null, ctx.toPosition())
     }
 
 
@@ -985,7 +985,7 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
         val pointer = pointerDatatypeFor(dtctx.pointertype())
         if(pointer!=null)
             return pointer
-        val struct = dtctx.structtype.identifier().map { dtctx.text }
+        val struct = dtctx.structtype.identifier().map { it.text }
         return DataType.structInstanceFromAntlr(struct)
     }
 

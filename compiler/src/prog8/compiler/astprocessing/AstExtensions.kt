@@ -123,6 +123,12 @@ internal fun Program.verifyFunctionArgTypes(errors: IErrorReporter, options: Com
     fixer.visit(this)
 }
 
+internal fun Program.checkPrivateAccess(errors: IErrorReporter) {
+    val checker = PrivateAccessChecker(this, errors)
+    checker.visit(this)
+}
+
+
 internal fun Program.preprocessAst(errors: IErrorReporter, options: CompilationOptions) {
     val mergeBlocks = BlockMerger(errors)
     mergeBlocks.visit(this)
