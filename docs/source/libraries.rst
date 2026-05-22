@@ -1161,12 +1161,61 @@ See the examples/cx16/bdmusic.p8  program for ideas how to use it.
 Read the :source:`psg source code <compiler/res/prog8lib/cx16/psg2.p8>` to see what's in there.
 
 
-sorting (experimental)
-^^^^^^^^^^^^^^^^^^^^^^
+serial  (cx16 only)
+^^^^^^^^^^^^^^^^^^^
+.. index:: pair: Libraries; serial
+
+Routines for the  serial/wifi card of the Commander X16.
+Supports up to 2 UART chips. The wifi functionality is handled via the
+ZiModem (ESP32) command set.
+
+Generic UART routines:
+
+``sub detect_uarts() -> uword, uword``
+    Scans the I/O address range for UART chips and returns the addresses
+    of up to two discovered UARTs (or 0 if none found).
+
+``sub initialize_uart(uword uart_addr)``
+    Initializes the given UART to 921600 baud, 8,N,1 with auto flow control and FIFOs enabled. 
+
+``sub write(uword uart_addr, str data)``
+    Writes the string data to the UART (terminated by 0 byte)
+
+``sub read_until(uword uart_addr, str match, ^^ubyte buffer, uword max_size) -> uword``
+    Reads bytes from the UART into buffer until the match string is
+    found or max_size bytes have been read. Returns the number of bytes read.
+
+ZiModem wifi routines:
+
+``sub zi_initialize(uword uart_addr)``
+    Initializes the ZiModem on the given UART address.
+
+``sub zi_reset()``
+    Resets the ZiModem connection (``atz``).
+
+``sub zi_write_cmd(str command)``
+    Writes the given command to the ZiModem followed by CR/LF.
+
+``sub zi_start_get_file(str filename) -> long``
+    Starts a file download from the given URL and returns the file
+    size. Use ``zi_get_file_chunk()`` repeatedly to download the data.
+
+``sub zi_get_file_chunk(^^ubyte buffer, uword buffer_size, long remaining_file_size) -> uword``
+    Reads the next chunk of data (up to buffer_size bytes) from an
+    active file download started with ``zi_start_get_file()``.
+    Returns the number of bytes read, or 0 when done.
+
+``sub zi_get_ip_address() -> str``
+    Returns the IP address of the ZiModem wifi connection.
+
+Read the :source:`serial source code <compiler/res/prog8lib/cx16/serial.p8>` to see what's in there.
+
+
+sorting
+^^^^^^^
 .. index:: pair: Libraries; sorting
 
 Various sorting routines (gnome sort and shell sort variants) for byte, word and string arrays.
-API is experimental and may change or disappear in a future version.
 **NOTE:** all word and str arrays have to be @nosplit! Words and pointers need to be consecutive in memory for now.
 **NOTE:** sorting is done in ascending order.
 Read the :source:`sorting source code <compiler/res/prog8lib/sorting.p8>`

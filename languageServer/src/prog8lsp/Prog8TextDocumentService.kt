@@ -503,7 +503,7 @@ class Prog8TextDocumentService: TextDocumentService {
                         
                         // CX16 specific modules
                         "adpcm", "bmx", "emudbg", "gfx_hires", "gfx_lores",
-                        "monogfx", "palette", "psg", "psg2", "sprites", "verafx",
+                        "monogfx", "palette", "psg", "psg2", "serial", "sprites", "verafx",
                         
                         // Common aliases
                         "cbm", "memory", "txt"

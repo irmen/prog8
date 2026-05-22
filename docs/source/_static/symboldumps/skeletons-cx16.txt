@@ -1,6 +1,6 @@
 
-Prog8 compiler v12.2-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit 12590f3c in branch master
+Prog8 compiler v12.2-BETA2 by Irmen de Jong (irmen@razorvine.net)
+Prerelease version from git commit 1dbaa6e0 in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-cx16.p8
@@ -781,6 +781,42 @@ psg2  {
     update  () -> bool
     voice  (ubyte voice_num, ubyte channels, ubyte volume, ubyte waveform, ubyte pulsewidth)
     volume  (ubyte voice_num, ubyte vol)
+}
+
+
+LIBRARY MODULE NAME: serial
+---------------------------
+
+serial  {
+    const ubyte  LSR::BI
+    const ubyte  LSR::DR
+    const ubyte  LSR::FE
+    const ubyte  LSR::OE
+    const ubyte  LSR::PE
+    const ubyte  LSR::RCVR
+    const ubyte  LSR::TEMT
+    const ubyte  LSR::THRE
+    const ubyte  REG_DIVISOR_LATCH_HI
+    const ubyte  REG_DIVISOR_LATCH_LOW
+    const ubyte  REG_FIFO_CONTROL
+    const ubyte  REG_INTERRUPT_ENABLE
+    const ubyte  REG_INTERRUPT_IDENT
+    const ubyte  REG_LINE_CONTROL
+    const ubyte  REG_LINE_STATUS
+    const ubyte  REG_MODEM_CONTROL
+    const ubyte  REG_MODEM_STATUS
+    const ubyte  REG_SCRATCH
+    const ubyte  REG_TXRX_BUFFER
+    detect_uarts  () -> uword, uword
+    initialize_uart  (uword uart_addr)
+    read_until  (uword uart_addr, str match, ^^ubyte buffer, uword max_size) -> uword
+    write  (uword uart_addr, str data)
+    zi_get_file_chunk  (^^ubyte buffer, uword buffer_size, long remaining_file_size) -> uword
+    zi_get_ip_address  () -> str
+    zi_initialize  (uword uart_addr)
+    zi_reset  ()
+    zi_start_get_file  (str filename) -> long
+    zi_write_cmd  (str command)
 }
 
 

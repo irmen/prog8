@@ -1,0 +1,250 @@
+; serial routines for the serial/wifi card of the X16.
+; assumes the wifi part is supported via zimodem.
+
+serial {
+
+    %option ignore_unused
+
+    const ubyte REG_TXRX_BUFFER         = 0
+    const ubyte REG_INTERRUPT_ENABLE    = 1
+    const ubyte REG_INTERRUPT_IDENT     = 2
+    const ubyte REG_FIFO_CONTROL        = 2
+    const ubyte REG_LINE_CONTROL        = 3
+    const ubyte REG_MODEM_CONTROL       = 4
+    const ubyte REG_LINE_STATUS         = 5
+    const ubyte REG_MODEM_STATUS        = 6
+    const ubyte REG_SCRATCH	            = 7
+    const ubyte REG_DIVISOR_LATCH_LOW	= 0	;same as TXRX, but when bit-7 of line control high
+    const ubyte REG_DIVISOR_LATCH_HI	= 1	;same as IRQE, but when bit-7 of line control high
+
+    ; Bitfield masks for TL16C2550's Line Status Register
+    enum LSR {
+        DR   = %00000001,   ; Data Ready
+        OE   = %00000010,   ; Overrun Error
+        PE   = %00000100,   ; Parity Error
+        FE   = %00001000,   ; Framing Error
+        BI   = %00010000,   ; Break Interrupt
+        THRE = %00100000,   ; Transmit Holding Register Empty
+        TEMT = %01000000,   ; Transmitter Empty
+        RCVR = %10000000,   ; Error in RCVR FIFO
+    }
+
+    ; generic UART routines (not ZiModem specific):
+
+    sub detect_uarts() -> uword, uword {
+        ; Detects the presence of UART chips (up to 2) on the system.
+        ; Returns the discovered UART chip addresses, or 0 if none found.
+
+        const uword FIRST_UART_ADDRESS = $9F60
+        const uword LAST_UART_ADDRESS = $9FF8
+
+        alias uart1 = cx16.r1
+        alias uart2 = cx16.r2
+        uart1 = uart2 = 0
+
+        for cx16.r0 in FIRST_UART_ADDRESS to LAST_UART_ADDRESS step 8 {
+            if probe(cx16.r0) {
+                if uart1 == 0
+                    uart1 = cx16.r0
+                else if uart2 == 0 {
+                    uart2 = cx16.r0
+                    break
+                }
+            }
+        }
+
+        return uart1, uart2
+
+        private sub probe(uword address) -> bool {
+            sys.set_irqd()
+            address[REG_INTERRUPT_ENABLE] = $ff
+            bool found = address[REG_INTERRUPT_ENABLE] == $0f       ; The high nybble of IER is always clear
+            address[REG_INTERRUPT_ENABLE] = 0
+            if found {
+                address[REG_MODEM_CONTROL] = $ff
+                found = address[REG_MODEM_CONTROL] == $3f           ; Bits 7 and 6 of MCR are always clear
+                address[REG_MODEM_CONTROL] = 0
+            }
+            sys.clear_irqd()
+            return found
+        }
+    }
+
+    sub initialize_uart(uword uart_addr) {
+        ; TODO baud rate is currently fixed at 921600, make this configurable
+        ;   921600 baud, 8,N,1, AutoFlow Control, FIFOS, no interrupts
+        uart_addr[REG_INTERRUPT_ENABLE] = $00      ; No Interrupts
+        uart_addr[REG_LINE_CONTROL] = $80          ; Set DLAB
+        uart_addr[REG_DIVISOR_LATCH_HI] = $00
+        uart_addr[REG_DIVISOR_LATCH_LOW] = $01     ; $0001 = 921600
+        uart_addr[REG_LINE_CONTROL] = $03          ; 8,N,1
+        uart_addr[REG_FIFO_CONTROL] = $C7          ; FIFO enable & reset
+        uart_addr[REG_MODEM_CONTROL] = $23         ; DTR/RTS & AutoFlow Control
+    }
+
+    sub write(uword @zp uart_addr, str data) {
+        ; Writes the string data to the uart.
+        alias data_ptr = cx16.r0
+        data_ptr = data
+        while @(data_ptr) != 0 {
+            while uart_addr[REG_LINE_STATUS] & LSR::THRE == 0  {
+                ; wait until data can be written
+            }
+            @(uart_addr) = @(data_ptr)
+            data_ptr++
+        }
+    }
+
+    sub read_until(uword @zp uart_addr, str match, ^^ubyte buffer, uword max_size) -> uword {
+        ; Reads up to and including the match string from the uart, into buffer.
+        ; Stops when the match string is found or max_size bytes have been read.
+        ; Returns the number of bytes read.
+
+        alias buffer_ptr = cx16.r0
+        alias match_ptr = cx16.r1
+        alias data = cx16.r2L
+        alias read_size = cx16.r3
+        alias max_read_size = cx16.r4
+
+        match_ptr = match
+        buffer_ptr = buffer
+        max_read_size = max_size
+        read_size = 0
+
+        while read_size < max_read_size {
+            while uart_addr[REG_LINE_STATUS] & LSR::DR == 0  {
+                ; wait until data is present
+            }
+            @(buffer_ptr) = data = @(uart_addr)
+            buffer_ptr++
+            if data == @(match_ptr) {
+                match_ptr++
+                if @(match_ptr)==0
+                    break
+            }
+            else
+                match_ptr = match
+        }
+
+        return read_size
+    }
+
+    ; zimodem routines:
+
+    sub zi_initialize(uword uart_addr) {
+        ; initializes the ZiModem on the given uart address
+        zi_uart = uart_addr
+        if zi_uart == 0
+            return      ; no uart present
+
+        initialize_uart(zi_uart)
+        ; ZiModem sends a version banner of the `ati` command when the ESP32 boots up.
+        ; Read it off if present. It is not always ready immediately so wait a tiny bit
+        sys.wait(10)
+        zi_write_cmd(iso:"\x03ate0")      ; first send CTRL-C to abort any previous file streams
+        sys.wait(5)
+        if zi_uart[REG_LINE_STATUS] & LSR::DR != 0
+            discard_until(zi_uart, iso:"OK\x0d\x0a")
+        zi_write_cmd("atq0v1x1f0r1s45=0s40=4096&p0b921600")
+        discard_until(zi_uart, iso:"OK\x0d\x0a")
+    }
+
+    sub zi_reset() {
+        ; reset all zimodem connections
+        serial.zi_write_cmd(iso:"atz")
+        discard_until(zi_uart, iso:"OK\x0d\x0a")
+    }
+
+    sub zi_write_cmd(str command) {
+        ; writes the zimodem command (followed by a proper line ending)
+        write(zi_uart, command)
+        write_eol(zi_uart)
+    }
+
+    sub zi_start_get_file(str filename) -> long {
+        ; starts a file download from the given url, returns the size of the file to download.
+        ; you can download chunks of the file by repeatedly calling zi_get_file_chunk() until that returns 0
+        write(zi_uart, iso:"at&g\"")
+        write(zi_uart, filename)
+        write(zi_uart, "\"")
+        write_eol(zi_uart)
+
+        if read_one(zi_uart)=='[' {
+            ;  parse header  [ 0 <filesize> <sum> ]
+            ubyte[25] header_buf
+            void read_until(zi_uart, iso:"]\x0d\x0a", &header_buf, sizeof(header_buf))
+            return conv.str2long(&header_buf + 3)
+        } else {
+            discard_until(zi_uart, iso:"RROR\x0d\x0a")
+            return 0
+        }
+    }
+
+    sub zi_get_file_chunk(^^ubyte @zp buffer, uword buffer_size, long remaining_file_size) -> uword {
+        ; read the next chunk of data from the file, into buffer, up to buffer_size bytes.
+        ; returns the number of bytes read.  0 if no more data was available.
+
+        uword bytes_to_read = min(remaining_file_size, buffer_size) as uword
+        if bytes_to_read == 0
+            return 0
+
+        repeat bytes_to_read {
+            while zi_uart[REG_LINE_STATUS] & LSR::DR == 0 {
+                ; wait until data is present
+            }
+            @(buffer) = @(zi_uart)
+            buffer++
+        }
+
+        return bytes_to_read
+    }
+
+    sub zi_get_ip_address() -> str {
+        ; returns the ip address of the zimodem wifi connection
+        ubyte[30] ip_buffer
+        zi_write_cmd(iso:"ati2")
+        void read_until(zi_uart, iso:"OK\x0d\x0a", &ip_buffer, len(ip_buffer))
+        cx16.r0 = &ip_buffer
+        while not strings.isspace(@(cx16.r0)) {
+            cx16.r0++
+        }
+        @(cx16.r0) = 0
+        return &ip_buffer
+    }
+
+
+    ; private stuff
+
+    private uword @zp zi_uart          ; the uart address to use for ZiModem
+
+    private sub discard_until(uword @zp uart_addr, str match) {
+        ; Reads up to and including the match string from the uart, discards all data.
+
+        alias match_ptr = cx16.r0
+        match_ptr = match
+
+        repeat {
+            while uart_addr[REG_LINE_STATUS] & LSR::DR == 0  {
+                ; wait until data is present
+            }
+            if @(uart_addr) == @(match_ptr) {
+                match_ptr++
+                if @(match_ptr)==0
+                    break
+            }
+            else
+                match_ptr = match
+        }
+    }
+
+    private sub read_one(uword @zp uart_addr) -> ubyte {
+        while uart_addr[REG_LINE_STATUS] & LSR::DR == 0  {
+            ; wait until data is present
+        }
+        return @(uart_addr)
+    }
+
+    private sub write_eol(uword uart_addr) {
+        write(uart_addr, "\x0d\x0a")
+    }
+}
