@@ -570,4 +570,32 @@ main {
 }"""
         compileText(C64Target(), optimize=false, src, outputDir) shouldNotBe null
     }
+
+    test("empty enum declaration should give error") {
+        val src="""
+            main {
+                enum Color {
+                }
+                sub start() { }
+            }
+        """.trimIndent()
+        val errors = ErrorReporterForTests()
+        compileText(VMTarget(), false, src, outputDir, errors, false)
+        errors.errors.size shouldBe 1
+        errors.errors[0] shouldContain "enumeration must contain at least one member"
+    }
+
+    test("empty struct declaration should give error") {
+        val src="""
+            main {
+                struct Node {
+                }
+                sub start() { }
+            }
+        """.trimIndent()
+        val errors = ErrorReporterForTests()
+        compileText(VMTarget(), false, src, outputDir, errors, false)
+        errors.errors.size shouldBe 1
+        errors.errors[0] shouldContain "struct must contain at least one field"
+    }
 })

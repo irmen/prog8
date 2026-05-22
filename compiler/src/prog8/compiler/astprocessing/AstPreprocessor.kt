@@ -478,6 +478,10 @@ class AstPreprocessor(val program: Program,
     }
 
     override fun after(enum: Enumeration, parent: Node): Iterable<AstModification> {
+        if (enum.members.isEmpty()) {
+            errors.err("enumeration must contain at least one member", enum.position)
+        }
+
         // first check that there is no name conflict
         (parent as? IStatementContainer)?.let {
             val allNamed = it.statements.asSequence()
