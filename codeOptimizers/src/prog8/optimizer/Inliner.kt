@@ -371,6 +371,19 @@ class Inliner(private val program: Program, private val options: CompilationOpti
         return noModifications
     }
 
+
+    private fun isSimpleReturnExpression(expr: Expression): Boolean {
+        return when (expr) {
+            is NumericLiteral -> true
+            is IdentifierReference -> true
+            is PrefixExpression -> isSimpleReturnExpression(expr.expression)
+            is BinaryExpression ->
+                (expr.left is NumericLiteral || expr.left is IdentifierReference) &&
+                        (expr.right is NumericLiteral || expr.right is IdentifierReference)
+            else -> false
+        }
+    }
+
     /**
      * Substitutes parameter references in a statement with argument values.
      */
@@ -392,8 +405,8 @@ class Inliner(private val program: Program, private val options: CompilationOpti
         if (toInline.values.size != multiTargets.size)
             return noModifications
 
-        // Only allow simple return values (literals or identifiers, no function calls)
-        if (!toInline.values.all { it is NumericLiteral || it is IdentifierReference })
+        // Only allow simple return values to prevent code bloat on 6502
+        if (!toInline.values.all { isSimpleReturnExpression(it) })
             return noModifications
 
         // Create multiple single assignments, skipping void targets (they discard the value)
