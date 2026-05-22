@@ -245,6 +245,7 @@ class TestCompilerOnExamplesCx16: FunSpec({
             ExampleSizes("multi-irq-old", cx16SizeOptimized=962, cx16SizeUnoptimized=1410),
             ExampleSizes("plasma", cx16SizeOptimized=1739, cx16SizeUnoptimized=2066),
             ExampleSizes("rasterbars", cx16SizeOptimized=1268, cx16SizeUnoptimized=1685),
+            ExampleSizes("serialdownload", cx16SizeOptimized=2471, cx16SizeUnoptimized=3649),
             ExampleSizes("showbmx", cx16SizeOptimized=2745, cx16SizeUnoptimized=5269),
             ExampleSizes("snow", cx16SizeOptimized=3120, cx16SizeUnoptimized=5295),
             ExampleSizes("sortingbench", cx16SizeOptimized=2928, cx16SizeUnoptimized=3847),

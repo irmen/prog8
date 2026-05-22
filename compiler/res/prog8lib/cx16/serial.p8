@@ -1,6 +1,8 @@
 ; serial routines for the serial/wifi card of the X16.
 ; assumes the wifi part is supported via zimodem.
 
+%import strings
+
 serial {
 
     %option ignore_unused
