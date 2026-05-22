@@ -76,6 +76,26 @@ main {
         compileText(C64Target(), true, src, outputDir) shouldNotBe null
     }
 
+    test("do not inline asmsub with parameters") {
+        // Parameterized asmsubs cannot be inlined by the AST Inliner because it doesn't understand
+        // the low-level register mapping (like @A) and cannot generate the necessary code to load
+        // the arguments into those registers.
+        val src="""
+main {
+    inline asmsub foo(ubyte a @A) {
+        %asm {{
+            inx
+        }}
+    }
+    sub start() {
+        foo(10)
+    }
+}"""
+        val result = compileText(C64Target(), true, src, outputDir)!!
+        val startSub = result.compilerAst.entrypoint
+        startSub.statements.any { it is FunctionCallStatement && it.target.nameInSource.last() == "foo" } shouldBe true
+    }
+
     test("don't remove empty subroutine if it's referenced") {
         val sourcecode = """
             main {
@@ -1693,8 +1713,7 @@ main {
         hasVoidCall shouldBe false
     }
 
-    xtest("inline call with one return value and one parameter") {
-        // DISABLED: Requires parameter substitution in expression context (not yet implemented)
+    test("inline call with one return value and one parameter") {
         // Tests that function calls returning one value with one parameter are inlined
         // and that the parameter is correctly substituted with the argument
         val src = """
@@ -1724,8 +1743,7 @@ main {
         binExpr.right shouldBe instanceOf<NumericLiteral>()
     }
 
-    xtest("inline call with two return values and two parameters") {
-        // DISABLED: Requires parameter substitution for multi-return calls (not yet implemented)
+    test("inline call with two return values and two parameters") {
         // Tests that function calls returning two values with two parameters are inlined
         // and that both parameters are correctly substituted
         val src = """

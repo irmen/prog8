@@ -16,10 +16,10 @@ main {
         txt.print_ub(v2)
         txt.nl()
 
-        v1 = inline_single(99)          ; TODO not inlined, why?
+        v1 = inline_single( cx16.r0L)
         txt.print_ub(v1)
         txt.nl()
-        v1, v2 = inline_multi(99)       ; TODO not inlined, why?
+        v1, v2 = inline_multi( cx16.r0L)
         txt.print_ub(v1)
         txt.spc()
         txt.print_ub(v2)
