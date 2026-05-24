@@ -12,13 +12,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v5
 
-      - name: build and install recent 64tass
+      - name: install 64tass
         run: |
-          sudo apt-get install -y make build-essential
-          git clone --depth=1 https://github.com/irmen/64tass
-          cd 64tass
-          make -j4
-          sudo make install          
+          sudo apt update
+          sudo apt install 64tass
+          64tass --version
 
       - name: Set up JDK 17
         uses: actions/setup-java@v5
