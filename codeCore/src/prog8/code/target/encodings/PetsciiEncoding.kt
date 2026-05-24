@@ -8,7 +8,7 @@ import java.io.CharConversionException
 object PetsciiEncoding {
 
     // decoding:  from Petscii/Screencodes (0-255) to Unicode
-    // character tables used from https://github.com/irmen/cbmcodecs2
+    // character tables used from https://codeberg.org/irmen/cbmcodecs2.git
 
     private val decodingPetsciiLowercase = charArrayOf(
         '\u0000',    //       0x00 -> \u0000
