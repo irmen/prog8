@@ -1,6 +1,6 @@
 
 Prog8 compiler v12.2-BETA2 by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit 1dbaa6e0 in branch master
+Prerelease version from git commit 6ab74fd5 in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-cx16.p8
@@ -788,6 +788,21 @@ LIBRARY MODULE NAME: serial
 ---------------------------
 
 serial  {
+    const uword  BAUD::B115200
+    const uword  BAUD::B1200
+    const uword  BAUD::B14400
+    const uword  BAUD::B19200
+    const uword  BAUD::B230400
+    const uword  BAUD::B2400
+    const uword  BAUD::B28800
+    const uword  BAUD::B300
+    const uword  BAUD::B38400
+    const uword  BAUD::B460800
+    const uword  BAUD::B4800
+    const uword  BAUD::B57600
+    const uword  BAUD::B600
+    const uword  BAUD::B921600
+    const uword  BAUD::B9600
     const ubyte  LSR::BI
     const ubyte  LSR::DR
     const ubyte  LSR::FE
@@ -811,6 +826,7 @@ serial  {
     initialize_uart  (uword uart_addr)
     read_until  (uword uart_addr, str match, ^^ubyte buffer, uword max_size) -> uword
     write  (uword uart_addr, str data)
+    zi_end_get_file  ()
     zi_get_file_chunk  (^^ubyte buffer, uword buffer_size, long remaining_file_size) -> uword
     zi_get_ip_address  () -> str
     zi_initialize  (uword uart_addr)

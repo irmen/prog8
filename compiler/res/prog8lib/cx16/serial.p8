@@ -19,6 +19,26 @@ serial {
     const ubyte REG_DIVISOR_LATCH_LOW	= 0	;same as TXRX, but when bit-7 of line control high
     const ubyte REG_DIVISOR_LATCH_HI	= 1	;same as IRQE, but when bit-7 of line control high
 
+    ; Baud rate divisor values for TL16C2550 with 14.7456 MHz clock
+    ; Formula: divisor = 14745600 / (16 * baudrate)
+    enum BAUD {
+        B921600 = $0001,
+        B460800 = $0002,
+        B230400 = $0004,
+        B115200 = $0008,
+        B57600  = $0010,
+        B38400  = $0018,
+        B28800  = $0020,
+        B19200  = $0030,
+        B14400  = $0040,
+        B9600   = $0060,
+        B4800   = $00C0,
+        B2400   = $0180,
+        B1200   = $0300,
+        B600    = $0600,
+        B300    = $0C00,
+    }
+
     ; Bitfield masks for TL16C2550's Line Status Register
     enum LSR {
         DR   = %00000001,   ; Data Ready
@@ -73,12 +93,13 @@ serial {
     }
 
     sub initialize_uart(uword uart_addr) {
-        ; TODO baud rate is currently fixed at 921600, make this configurable
-        ;   921600 baud, 8,N,1, AutoFlow Control, FIFOS, no interrupts
+        ; 921600 baud, 8,N,1, AutoFlow Control, FIFOS, no interrupts
         uart_addr[REG_INTERRUPT_ENABLE] = $00      ; No Interrupts
+        uart_addr[REG_MODEM_CONTROL] = $00         ; Reset Modem Control (RTS/DTR low)
+        uart_addr[REG_FIFO_CONTROL] = $06          ; Reset FIFOs
         uart_addr[REG_LINE_CONTROL] = $80          ; Set DLAB
-        uart_addr[REG_DIVISOR_LATCH_HI] = $00
-        uart_addr[REG_DIVISOR_LATCH_LOW] = $01     ; $0001 = 921600
+        uart_addr[REG_DIVISOR_LATCH_HI] = msb(BAUD::B921600)
+        uart_addr[REG_DIVISOR_LATCH_LOW] = lsb(BAUD::B921600)
         uart_addr[REG_LINE_CONTROL] = $03          ; 8,N,1
         uart_addr[REG_FIFO_CONTROL] = $C7          ; FIFO enable & reset
         uart_addr[REG_MODEM_CONTROL] = $23         ; DTR/RTS & AutoFlow Control
@@ -140,6 +161,9 @@ serial {
             return      ; no uart present
 
         initialize_uart(zi_uart)
+        ; temporarily disable AFE to ensure we can send initialization commands
+        ; even if the modem's CTS is not asserted yet
+        zi_uart[REG_MODEM_CONTROL] = $03
         ; ZiModem sends a version banner of the `ati` command when the ESP32 boots up.
         ; Read it off if present. It is not always ready immediately so wait a tiny bit
         sys.wait(10)
@@ -147,8 +171,9 @@ serial {
         sys.wait(5)
         if zi_uart[REG_LINE_STATUS] & LSR::DR != 0
             discard_until(zi_uart, iso:"OK\x0d\x0a")
-        zi_write_cmd("atq0v1x1f0r1s45=0s40=4096&p0b921600")
+        zi_write_cmd("atq0v1x1f0r1s45=3&p0&k3b921600")
         discard_until(zi_uart, iso:"OK\x0d\x0a")
+        zi_uart[REG_MODEM_CONTROL] = $23    ; Enable AFE now
     }
 
     sub zi_reset() {
@@ -186,19 +211,34 @@ serial {
         ; read the next chunk of data from the file, into buffer, up to buffer_size bytes.
         ; returns the number of bytes read.  0 if no more data was available.
 
-        uword bytes_to_read = min(remaining_file_size, buffer_size) as uword
+        uword bytes_to_read = if msw(remaining_file_size)!=0 then buffer_size else min(lsw(remaining_file_size), buffer_size)
+
         if bytes_to_read == 0
             return 0
 
         repeat bytes_to_read {
-            while zi_uart[REG_LINE_STATUS] & LSR::DR == 0 {
+            %asm {{
                 ; wait until data is present
-            }
+                ldy  #p8c_REG_LINE_STATUS
+-               lda  (p8v_zi_uart),y
+                and  #p8c_LSR_DR
+                beq  -
+            }}
+
+;            while zi_uart[REG_LINE_STATUS] & LSR::DR == 0 {
+;                ; wait until data is present
+;            }
+
             @(buffer) = @(zi_uart)
             buffer++
         }
 
         return bytes_to_read
+    }
+
+    sub zi_end_get_file() {
+        ; makes sure the 'OK' response after the actual file data is also read away
+        discard_until(zi_uart, iso:"OK\x0d\x0a")
     }
 
     sub zi_get_ip_address() -> str {

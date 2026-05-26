@@ -2,7 +2,6 @@ package prog8tests.compiler
 
 import io.kotest.common.ExperimentalKotest
 import io.kotest.core.spec.style.FunSpec
-import io.kotest.datatest.withData
 import io.kotest.engine.spec.tempdir
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
@@ -146,10 +145,8 @@ private fun verifyIrRegisterCount(result: CompilationResult, expectedCount: Int)
 class TestCompilerOnExamplesC64: FunSpec({
 
     @OptIn(ExperimentalKotest::class)
-    //testExecutionMode = TestExecutionMode.LimitedConcurrency(6)
     this.concurrency = 4
-
-    val outputDir = tempdir().toPath()
+    this.threads = 4
 
     val onlyC64 = cartesianProduct(
         listOf(
@@ -176,17 +173,17 @@ class TestCompilerOnExamplesC64: FunSpec({
     )
 
     val target = C64Target()
-    withData(
-        nameFn = { "${it.first.first.name}: ${target.name}, optimize=${it.first.second}" },
-        onlyC64.map { it to prepareTestFiles(it.first.name, it.second, target) }
-    ) { (params, prep) ->
-        val filepath = prep.second
-        val optimize = params.second
-        val expectedSize = if (optimize) params.first.c64SizeOptimized else params.first.c64SizeUnoptimized
-        val result = compileTheThing(filepath, optimize, target, outputDir)
-        result shouldNotBe null
-        if (expectedSize > 0) {
-            verifyOutputFileSize(result!!, expectedSize)
+    onlyC64.forEach { (params, optimize) ->
+        val prep = prepareTestFiles(params.name, optimize, target)
+        test(prep.first) {
+            val testOutputDir = tempdir().toPath()
+            val filepath = prep.second
+            val expectedSize = if (optimize) params.c64SizeOptimized else params.c64SizeUnoptimized
+            val result = compileTheThing(filepath, optimize, target, testOutputDir)
+            result shouldNotBe null
+            if (expectedSize > 0) {
+                verifyOutputFileSize(result!!, expectedSize)
+            }
         }
     }
 })
@@ -194,10 +191,8 @@ class TestCompilerOnExamplesC64: FunSpec({
 class TestCompilerOnExamplesCx16: FunSpec({
 
     @OptIn(ExperimentalKotest::class)
-    //testExecutionMode = TestExecutionMode.LimitedConcurrency(6)
     this.concurrency = 4
-
-    val outputDir = tempdir().toPath()
+    this.threads = 4
 
     val onlyCx16 = cartesianProduct(
         listOf(
@@ -245,7 +240,7 @@ class TestCompilerOnExamplesCx16: FunSpec({
             ExampleSizes("multi-irq-old", cx16SizeOptimized=962, cx16SizeUnoptimized=1410),
             ExampleSizes("plasma", cx16SizeOptimized=1739, cx16SizeUnoptimized=2066),
             ExampleSizes("rasterbars", cx16SizeOptimized=1268, cx16SizeUnoptimized=1685),
-            ExampleSizes("serialdownload", cx16SizeOptimized=2488, cx16SizeUnoptimized=3673),
+            ExampleSizes("serialdownload", cx16SizeOptimized=2516, cx16SizeUnoptimized=3724),
             ExampleSizes("showbmx", cx16SizeOptimized=2745, cx16SizeUnoptimized=5269),
             ExampleSizes("snow", cx16SizeOptimized=3120, cx16SizeUnoptimized=5295),
             ExampleSizes("sortingbench", cx16SizeOptimized=2928, cx16SizeUnoptimized=3847),
@@ -260,17 +255,17 @@ class TestCompilerOnExamplesCx16: FunSpec({
     )
 
     val target = Cx16Target()
-    withData(
-        nameFn = { "${it.first.first.name}: ${target.name}, optimize=${it.first.second}" },
-        onlyCx16.map { it to prepareTestFiles(it.first.name, it.second, target) }
-    ) { (params, prep) ->
-        val filepath = prep.second
-        val optimize = params.second
-        val expectedSize = if (optimize) params.first.cx16SizeOptimized else params.first.cx16SizeUnoptimized
-        val result = compileTheThing(filepath, optimize, target, outputDir)
-        result shouldNotBe null
-        if (expectedSize > 0) {
-            verifyOutputFileSize(result!!, expectedSize)
+    onlyCx16.forEach { (params, optimize) ->
+        val prep = prepareTestFiles(params.name, optimize, target)
+        test(prep.first) {
+            val testOutputDir = tempdir().toPath()
+            val filepath = prep.second
+            val expectedSize = if (optimize) params.cx16SizeOptimized else params.cx16SizeUnoptimized
+            val result = compileTheThing(filepath, optimize, target, testOutputDir)
+            result shouldNotBe null
+            if (expectedSize > 0) {
+                verifyOutputFileSize(result!!, expectedSize)
+            }
         }
     }
 })
@@ -278,10 +273,8 @@ class TestCompilerOnExamplesCx16: FunSpec({
 class TestCompilerOnExamplesBothC64andCx16: FunSpec({
 
     @OptIn(ExperimentalKotest::class)
-    //testExecutionMode = TestExecutionMode.LimitedConcurrency(6)
     this.concurrency = 4
-
-    val outputDir = tempdir().toPath()
+    this.threads = 4
 
     val bothCx16AndC64 = cartesianProduct(
         listOf(
@@ -315,33 +308,30 @@ class TestCompilerOnExamplesBothC64andCx16: FunSpec({
         listOf(C64Target(), Cx16Target())
     )
 
-    withData(
-        nameFn = { "${it.first.name}: ${it.third.first.name}, optimize=${it.second}" },
-        bothCx16AndC64.map {
-            val prep = prepareTestFiles(it.first.name, it.second, it.third)
-            Triple(it.first, it.second, Triple(it.third, prep.first, prep.second))
-        }
-    ) { params ->
-        val filepath = params.third.third
-        val optimize = params.second
-        val target = params.third.first
-        val exampleSizes = params.first
-        val expectedSize = when (target) {
-            is C64Target -> if (optimize) exampleSizes.c64SizeOptimized else exampleSizes.c64SizeUnoptimized
-            is Cx16Target -> if (optimize) exampleSizes.cx16SizeOptimized else exampleSizes.cx16SizeUnoptimized
-            else -> 0
-        }
-        val result = compileTheThing(filepath, optimize, target, outputDir)
-        result shouldNotBe null
-        if (expectedSize > 0) {
-            verifyOutputFileSize(result!!, expectedSize)
+    bothCx16AndC64.forEach { (exampleSizes, optimize, target) ->
+        val prep = prepareTestFiles(exampleSizes.name, optimize, target)
+        test(prep.first) {
+            val testOutputDir = tempdir().toPath()
+            val filepath = prep.second
+            val expectedSize = when (target) {
+                is C64Target -> if (optimize) exampleSizes.c64SizeOptimized else exampleSizes.c64SizeUnoptimized
+                is Cx16Target -> if (optimize) exampleSizes.cx16SizeOptimized else exampleSizes.cx16SizeUnoptimized
+                else -> 0
+            }
+            val result = compileTheThing(filepath, optimize, target, testOutputDir)
+            result shouldNotBe null
+            if (expectedSize > 0) {
+                verifyOutputFileSize(result!!, expectedSize)
+            }
         }
     }
 })
 
 class TestCompilerOnExamplesVirtual: FunSpec({
 
-    val outputDir = tempdir().toPath()
+    @OptIn(ExperimentalKotest::class)
+    this.concurrency = 4
+    this.threads = 4
 
     val onlyVirtual = cartesianProduct(
         listOf(
@@ -361,19 +351,19 @@ class TestCompilerOnExamplesVirtual: FunSpec({
     )
 
     val target = VMTarget()
-    withData(
-        nameFn = { "${it.first.first.name}: ${target.name}, optimize=${it.first.second}" },
-        onlyVirtual.map { it to prepareTestFiles(it.first.name, it.second, target) }
-    ) { (params, prep) ->
-        val filepath = prep.second
-        val optimize = params.second
-        val expectedInstrCount = if (optimize) params.first.virtualInstrCountOptimized else params.first.virtualInstrCountUnoptimized
-        val expectedRegCount = if (optimize) params.first.virtualRegCountOptimized else params.first.virtualRegCountUnoptimized
-        val result = compileTheThing(filepath, optimize, target, outputDir)
-        result shouldNotBe null
-        if (expectedInstrCount > 0) {
-            verifyIrInstructionCount(result!!, expectedInstrCount)
-            verifyIrRegisterCount(result, expectedRegCount)
+    onlyVirtual.forEach { (params, optimize) ->
+        val prep = prepareTestFiles(params.name, optimize, target)
+        test(prep.first) {
+            val testOutputDir = tempdir().toPath()
+            val filepath = prep.second
+            val expectedInstrCount = if (optimize) params.virtualInstrCountOptimized else params.virtualInstrCountUnoptimized
+            val expectedRegCount = if (optimize) params.virtualRegCountOptimized else params.virtualRegCountUnoptimized
+            val result = compileTheThing(filepath, optimize, target, testOutputDir)
+            result shouldNotBe null
+            if (expectedInstrCount > 0) {
+                verifyIrInstructionCount(result!!, expectedInstrCount)
+                verifyIrRegisterCount(result, expectedRegCount)
+            }
         }
     }
 })
@@ -381,10 +371,8 @@ class TestCompilerOnExamplesVirtual: FunSpec({
 class TestCompilerOnExamplesPET32: FunSpec({
 
     @OptIn(ExperimentalKotest::class)
-    //testExecutionMode = TestExecutionMode.LimitedConcurrency(6)
     this.concurrency = 4
-
-    val outputDir = tempdir().toPath()
+    this.threads = 4
 
     val onlyPET32 = cartesianProduct(
         listOf(
@@ -395,17 +383,17 @@ class TestCompilerOnExamplesPET32: FunSpec({
     )
 
     val target = PETTarget()
-    withData(
-        nameFn = { "${it.first.first.name}: ${target.name}, optimize=${it.first.second}" },
-        onlyPET32.map { it to prepareTestFiles(it.first.name, it.second, target) }
-    ) { (params, prep) ->
-        val filepath = prep.second
-        val optimize = params.second
-        val expectedSize = if (optimize) params.first.pet32SizeOptimized else params.first.pet32SizeUnoptimized
-        val result = compileTheThing(filepath, optimize, target, outputDir)
-        result shouldNotBe null
-        if (expectedSize > 0) {
-            verifyOutputFileSize(result!!, expectedSize)
+    onlyPET32.forEach { (params, optimize) ->
+        val prep = prepareTestFiles(params.name, optimize, target)
+        test(prep.first) {
+            val testOutputDir = tempdir().toPath()
+            val filepath = prep.second
+            val expectedSize = if (optimize) params.pet32SizeOptimized else params.pet32SizeUnoptimized
+            val result = compileTheThing(filepath, optimize, target, testOutputDir)
+            result shouldNotBe null
+            if (expectedSize > 0) {
+                verifyOutputFileSize(result!!, expectedSize)
+            }
         }
     }
 })

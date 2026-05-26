@@ -23,9 +23,12 @@ main {
             txt.nl()
             txt.nl()
 
-            long size = serial.zi_start_get_file("http://mockhttp.org/get?arg=hello-from-prog8-serial")
+            str url = "http://mockhttp.org/get?arg=hello-from-prog8-serial"
+            long size = serial.zi_start_get_file(url)
             if size>0 {
-                txt.print("downloading file of size: ")
+                txt.print("downloading: ")
+                txt.print(url)
+                txt.print("\nfile size: ")
                 txt.print_l(size)
                 txt.nl()
 
@@ -43,6 +46,10 @@ main {
             } else {
                 txt.print("file not found\n")
             }
+
+            serial.zi_end_get_file()
+
+            txt.print("\ndownload complete")
             serial.zi_reset()
 
         } else {
