@@ -347,6 +347,12 @@ internal class ConstantIdentifierReplacer(
     override fun before(addressOf: AddressOf, parent: Node): Iterable<AstModification> {
         val constValue = addressOf.constValue(program)
         if(constValue!=null) {
+            // don't replace &constVar (without array index); leave it for AstChecker to reject as invalid address-of.
+            // But still allow &constArray[idx] (those are valid address-of operations).
+            val target = addressOf.identifier?.targetVarDecl()
+            if(target?.type==VarDeclType.CONST && addressOf.arrayIndex==null) {
+                return noModifications
+            }
             return listOf(AstReplaceNode(addressOf, constValue, parent))
         }
         return noModifications
@@ -355,7 +361,7 @@ internal class ConstantIdentifierReplacer(
     override fun after(identifier: IdentifierReference, parent: Node): Iterable<AstModification> {
         // replace identifiers that refer to const value, with the value itself
         // if it's a simple type and if it's not a left hand side variable
-        if (identifier.parent is AssignTarget || identifier.parent is Alias)
+        if (identifier.parent is AssignTarget || identifier.parent is Alias || identifier.parent is AddressOf)
             return noModifications
         var forloop = identifier.parent as? ForLoop
         if (forloop == null)

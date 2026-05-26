@@ -654,7 +654,7 @@ data class AddressOf(var identifier: IdentifierReference?, var arrayIndex: Array
         val target = this.identifier?.targetStatement()
         val targetVar = target as? VarDecl
         if(targetVar!=null) {
-            if (targetVar.type == VarDeclType.MEMORY || targetVar.type == VarDeclType.CONST) {
+            if (targetVar.type == VarDeclType.MEMORY || (targetVar.type == VarDeclType.CONST && arrayIndex != null)) {
                 var address = targetVar.value?.constValue(program)?.number
                 if (address != null) {
                     if (arrayIndex != null) {

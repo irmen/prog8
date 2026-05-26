@@ -907,7 +907,7 @@ internal class AstChecker(private val program: Program,
         val variable=addressOf.identifier?.targetVarDecl()
         if (variable!=null) {
             if (variable.type == VarDeclType.CONST && addressOf.arrayIndex == null)
-                errors.err("invalid pointer-of operand type", addressOf.position)
+                errors.err("invalid address-of operand type", addressOf.position)
         }
 
         if(addressOf.msb) {
