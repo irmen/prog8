@@ -83,7 +83,7 @@ internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, privat
                 asmgen.out(endLabel)
                 assignmentAsmGen.assignRegisterByte(target, CpuRegister.A, false, false)
             }
-            expr.type.isWord || expr.type.isString -> {
+            expr.type.isWord || expr.type.isString || expr.type.isPointer -> {
                 asmgen.assignExpressionToRegister(expr.falsevalue, RegisterOrPair.AY)
                 asmgen.jmp(endLabel)
                 asmgen.out(trueLabel)

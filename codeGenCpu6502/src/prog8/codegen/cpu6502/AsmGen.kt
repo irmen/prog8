@@ -1024,7 +1024,7 @@ class AsmGen6502Internal (
                     assignExpressionToRegister(value, target.register!!)
                 } else {
                     assignExpressionToRegister(value, RegisterOrPair.AX)
-                    pointerGen.assignWordReg(PtrTarget(target), RegisterOrPair.AX)
+                    assignmentAsmGen.assignRegisterpairWord(target, RegisterOrPair.AX)
                 }
             }
             target.datatype.isWord || target.datatype.isPassByRef -> {

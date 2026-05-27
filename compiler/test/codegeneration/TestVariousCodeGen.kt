@@ -18,6 +18,7 @@ import prog8.code.target.*
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
 import prog8tests.helpers.shouldContainInOrder
+import prog8tests.helpers.simulate
 import kotlin.io.path.readText
 
 class TestVariousCodeGen: FunSpec({
@@ -903,5 +904,94 @@ main {
         withClue("Should use efficient sta (zp),y instruction") {
             asm shouldContain "sta  (p8v_s),y"
         }
+    }
+
+    test("IfExpression string to pointer typecast") {
+        val src = """
+            %option no_sysinit
+            %launcher none
+            %address $1000
+            
+            main {
+                sub start() {
+                    str a = "hello"
+                    str b = "world"
+                    bool flag = true
+                    ^^ubyte p = if flag then a else b
+                }
+            }
+        """.trimIndent()
+
+        // This should not crash during compilation
+        val compileResult = compileText(Cx16Target(), false, src, outputDir)
+        compileResult shouldNotBe null
+
+        // Also test with virtual target
+        val compileResultVM = compileText(VMTarget(), false, src, outputDir)
+        compileResultVM shouldNotBe null
+    }
+
+    test("BranchConditionExpression string to pointer typecast") {
+        val src = """
+            %option no_sysinit
+            %launcher none
+            %address $1000
+            
+            main {
+                sub start() {
+                    str a = "hello"
+                    str b = "world"
+                    ^^ubyte p = if_z then a else b
+                }
+            }
+        """.trimIndent()
+
+        // This should not crash during compilation
+        val compileResult = compileText(Cx16Target(), false, src, outputDir)
+        compileResult shouldNotBe null
+    }
+
+    test("pointer assignment to variable in 6502 backend") {
+        val src = """
+            %option no_sysinit
+            %launcher none
+            %address $1000
+            
+            main {
+                ubyte value = 42
+                ^^ubyte @shared ptr = 0
+                
+                sub start() {
+                    ptr = &value
+                }
+            }
+        """.trimIndent()
+
+        // This should not crash during compilation
+        val compileResult = compileText(Cx16Target(), false, src, outputDir)
+        compileResult shouldNotBe null
+
+        // Verify it actually works by simulating
+        compileResult!!.simulate()
+    }
+
+    test("pointer assignment to array element in 6502 backend") {
+        val src = """
+            %option no_sysinit
+            %launcher none
+            %address $1000
+            
+            main {
+                ubyte value = 42
+                ^^ubyte[2] ptrs
+                
+                sub start() {
+                    ptrs[1] = &value
+                }
+            }
+        """.trimIndent()
+
+        val compileResult = compileText(Cx16Target(), false, src, outputDir)
+        compileResult shouldNotBe null
     }
 })

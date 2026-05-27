@@ -47,8 +47,36 @@ internal class BeforeAsmTypecastCleaner(val program: Program,
                 }
             } else if(sourceDt.isString && typecast.type.isPointer && typecast.type.sub==BaseDataType.UBYTE) {
                 // casting a string to a ^^ubyte is just taking the address of the string.
-                val addr = AddressOf(typecast.expression as IdentifierReference, null, null, false, true, typecast.position)
-                return listOf(AstReplaceNode(typecast, addr, parent))
+                when (typecast.expression) {
+                    is IfExpression -> {
+                        val ifExpr = typecast.expression as IfExpression
+                        val trueCast = TypecastExpression(ifExpr.truevalue, typecast.type, typecast.implicit, typecast.position)
+                        val falseCast = TypecastExpression(ifExpr.falsevalue, typecast.type, typecast.implicit, typecast.position)
+                        trueCast.linkParents(ifExpr)
+                        falseCast.linkParents(ifExpr)
+                        ifExpr.truevalue = trueCast
+                        ifExpr.falsevalue = falseCast
+                        return listOf(AstReplaceNode(typecast, ifExpr, parent))
+                    }
+                    is BranchConditionExpression -> {
+                        val branchExpr = typecast.expression as BranchConditionExpression
+                        val trueCast = TypecastExpression(branchExpr.truevalue, typecast.type, typecast.implicit, typecast.position)
+                        val falseCast = TypecastExpression(branchExpr.falsevalue, typecast.type, typecast.implicit, typecast.position)
+                        trueCast.linkParents(branchExpr)
+                        falseCast.linkParents(branchExpr)
+                        branchExpr.truevalue = trueCast
+                        branchExpr.falsevalue = falseCast
+                        return listOf(AstReplaceNode(typecast, branchExpr, parent))
+                    }
+                    else -> {
+                        val identifier = typecast.expression as? IdentifierReference
+                        if (identifier != null) {
+                            val addr = AddressOf(identifier, null, null, false, true, typecast.position)
+                            return listOf(AstReplaceNode(typecast, addr, parent))
+                        }
+                        errors.err("cannot take address of this expression", typecast.position)
+                    }
+                }
             } else {
                 errors.err("cannot cast pass-by-reference value to type ${typecast.type} (only to UWORD)", typecast.position)
             }

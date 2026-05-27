@@ -93,15 +93,13 @@ serial {
 
     sub initialize_uart(uword uart_addr) {
         ; 921600 baud, 8,N,1, AutoFlow Control, FIFOS, no interrupts
-        uart_addr[REG_INTERRUPT_ENABLE] = $00      ; No Interrupts
-        uart_addr[REG_MODEM_CONTROL] = $00         ; Reset Modem Control (RTS/DTR low)
-        uart_addr[REG_FIFO_CONTROL] = $06          ; Reset FIFOs
         uart_addr[REG_LINE_CONTROL] = $80          ; Set DLAB
         uart_addr[REG_DIVISOR_LATCH_HI] = msb(BAUD::B921600)
         uart_addr[REG_DIVISOR_LATCH_LOW] = lsb(BAUD::B921600)
-        uart_addr[REG_LINE_CONTROL] = $03          ; 8,N,1
-        uart_addr[REG_FIFO_CONTROL] = $CB          ; FIFO enable & reset, trigger 14, DMA1
+        uart_addr[REG_LINE_CONTROL] = $03          ; 8,N,1, DLAB off
+        uart_addr[REG_FIFO_CONTROL] = $C3          ; FIFO enable & reset, trigger 14
         uart_addr[REG_MODEM_CONTROL] = $23         ; DTR/RTS + AutoFlow Control
+        uart_addr[REG_INTERRUPT_ENABLE] = $00      ; No interrupts
     }
 
     sub write(uword @zp uart_addr, str data) {
@@ -163,11 +161,11 @@ serial {
         ; ZiModem sends a version banner of the `ati` command when the ESP32 boots up.
         ; Read it off if present. It is not always ready immediately so wait a tiny bit
         sys.wait(10)
-        zi_write_cmd(iso:"\x03ate0")      ; first send CTRL-C to abort any previous file streams
+        zi_write_cmd(iso:"\x03ate0")      ; first send CTRL-C (+ no echo) to abort any previous file streams
         sys.wait(5)
         if zi_uart[REG_LINE_STATUS] & LSR::DR != 0
             discard_until(zi_uart, iso:"OK\x0d\x0a")
-        zi_write_cmd("atq0v1x1f0r1s45=3&p0&k3b921600")
+        zi_write_cmd("atq0v1x1f0r1s45=3&p0&k3b921600")  ; most important setting s45 to no caching
         discard_until(zi_uart, iso:"OK\x0d\x0a")
     }
 
