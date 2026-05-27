@@ -74,7 +74,6 @@ serial {
                 }
             }
         }
-
         return uart1, uart2
 
         private sub probe(uword address) -> bool {
@@ -101,8 +100,8 @@ serial {
         uart_addr[REG_DIVISOR_LATCH_HI] = msb(BAUD::B921600)
         uart_addr[REG_DIVISOR_LATCH_LOW] = lsb(BAUD::B921600)
         uart_addr[REG_LINE_CONTROL] = $03          ; 8,N,1
-        uart_addr[REG_FIFO_CONTROL] = $C7          ; FIFO enable & reset
-        uart_addr[REG_MODEM_CONTROL] = $23         ; DTR/RTS & AutoFlow Control
+        uart_addr[REG_FIFO_CONTROL] = $CB          ; FIFO enable & reset, trigger 14, DMA1
+        uart_addr[REG_MODEM_CONTROL] = $23         ; DTR/RTS + AutoFlow Control
     }
 
     sub write(uword @zp uart_addr, str data) {
@@ -161,9 +160,6 @@ serial {
             return      ; no uart present
 
         initialize_uart(zi_uart)
-        ; temporarily disable AFE to ensure we can send initialization commands
-        ; even if the modem's CTS is not asserted yet
-        zi_uart[REG_MODEM_CONTROL] = $03
         ; ZiModem sends a version banner of the `ati` command when the ESP32 boots up.
         ; Read it off if present. It is not always ready immediately so wait a tiny bit
         sys.wait(10)
@@ -173,7 +169,6 @@ serial {
             discard_until(zi_uart, iso:"OK\x0d\x0a")
         zi_write_cmd("atq0v1x1f0r1s45=3&p0&k3b921600")
         discard_until(zi_uart, iso:"OK\x0d\x0a")
-        zi_uart[REG_MODEM_CONTROL] = $23    ; Enable AFE now
     }
 
     sub zi_reset() {

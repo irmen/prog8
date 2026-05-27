@@ -1205,6 +1205,10 @@ ZiModem wifi routines:
     active file download started with ``zi_start_get_file()``.
     Returns the number of bytes read, or 0 when done.
 
+``sub zi_end_get_file()``
+    Consumes the trailing ``OK`` response after downloading a file
+    with ``zi_start_get_file()`` / ``zi_get_file_chunk()``.
+
 ``sub zi_get_ip_address() -> str``
     Returns the IP address of the ZiModem wifi connection.
 
