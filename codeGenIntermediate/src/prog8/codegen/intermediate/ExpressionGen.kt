@@ -100,7 +100,6 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             is PtContainmentCheck -> translate(expr)
             is PtPointerDeref -> translate(expr)
             is PtConstant -> {
-                val name = expr.name
                 val slab = expr.memorySlab
                 // Check if the constant has a numeric value or is a memory slab reference
                 if(slab != null) {
@@ -1176,8 +1175,22 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                         address = address.address.toAddress(),
                         fcallArgs = FunctionCallArgs(argRegisters, returnRegisters)
                     )
+                } else if(address.constbank!=null) {
+                    IRInstruction(
+                        Opcode.CALLFAR,
+                        address = address.address.toAddress(),
+                        immediate = address.constbank!!.toInt()
+                    )
+                } else {
+                    val tr = translateExpression(address.varbank!!)
+                    require(tr.dt==IRDataType.BYTE)
+                    result += tr.chunks
+                    IRInstruction(
+                        Opcode.CALLFARVB,
+                        address = address.address.toAddress(),
+                        reg1 = tr.resultReg
+                    )
                 }
-                else TODO("extsub with banked address got called ${callTarget.name}  ${fcall.position}")
             }
         addInstr(result, call, null)
         val resultRegs = returnRegisters.filter{it.dt!=IRDataType.FLOAT}.map{it.registerNum.value}

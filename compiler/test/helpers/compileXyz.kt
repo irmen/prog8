@@ -18,7 +18,8 @@ internal fun compileFile(
     errors: IErrorReporter? = null,
     writeAssembly: Boolean = true,
     varshigh: Int? = null,
-    slabshigh: Int? = null
+    slabshigh: Int? = null,
+    experimentalCodegen: Boolean = false
 ) : CompilationResult? {
     val filepath = fileDir.resolve(fileName)
     assumeReadableFile(filepath)
@@ -33,7 +34,7 @@ internal fun compileFile(
         showTimings = false,
         asmListfile = false,
         includeSourcelines = false,
-        experimentalCodegen = false,
+        experimentalCodegen = experimentalCodegen,
         dumpVariables = false,
         dumpSymbols = false,
         varsHighBank = varshigh,
@@ -67,11 +68,13 @@ internal fun compileText(
     errors: IErrorReporter? = null,
     writeAssembly: Boolean = true,
     varshigh: Int? = null,
-    slabshigh: Int? = null
+    slabshigh: Int? = null,
+    experimentalCodegen: Boolean = false
 ) : CompilationResult? {
     val filePath = outputDir.resolve("on_the_fly_test_${sourceText.hashCode().toUInt().toString(16)}.p8")
     // we don't assumeNotExists(filePath) - should be ok to just overwrite it
     filePath.toFile().writeText(sourceText)
     return compileFile(platform, optimize, filePath.parent, filePath.name, outputDir,
-        errors=errors, writeAssembly=writeAssembly, varshigh=varshigh, slabshigh=slabshigh)
+        errors=errors, writeAssembly=writeAssembly, varshigh=varshigh, slabshigh=slabshigh,
+        experimentalCodegen = experimentalCodegen)
 }
