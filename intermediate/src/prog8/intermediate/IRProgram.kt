@@ -122,11 +122,16 @@ class IRProgram(val name: String,
             blocks.forEach { block ->
                 block.children.forEach { child ->
                     when(child) {
-                        is IRAsmSubroutine -> result[child.asmChunk.label] = child.asmChunk
+                        is IRAsmSubroutine -> result[child.label] = child.asmChunk
                         is IRCodeChunk -> result[child.label] = child
                         is IRInlineAsmChunk -> result[child.label] = child
                         is IRInlineBinaryChunk -> result[child.label] = child
-                        is IRSubroutine -> result.putAll(child.chunks.associateBy { it.label })
+                        is IRSubroutine -> {
+                            result.putAll(child.chunks.associateBy { it.label })
+                            if (child.chunks.isNotEmpty()) {
+                                result[child.label] = child.chunks.first()
+                            }
+                        }
                     }
                 }
             }
@@ -160,17 +165,12 @@ class IRProgram(val name: String,
 
         fun linkCodeChunk(chunk: IRCodeChunk, next: IRCodeChunkBase?) {
             // link sequential chunks
-            val jump = chunk.instructions.lastOrNull()?.opcode
-            if (jump == null || jump !in OpcodesThatBranchUnconditionally) {
+            val lastInstr = chunk.instructions.lastOrNull()
+            if (lastInstr == null || lastInstr.opcode !in OpcodesThatBranchUnconditionally) {
                 // no jump at the end, so link to next chunk (if it exists)
-                if(next!=null) {
-                    when (next) {
-                        is IRCodeChunk if chunk.instructions.lastOrNull()?.opcode !in OpcodesThatBranchUnconditionally -> chunk.next = next
-                        is IRInlineAsmChunk -> chunk.next = next
-                        is IRInlineBinaryChunk -> chunk.next =next
-                        else -> throw AssemblyError("code chunk followed by invalid chunk type $next")
-                    }
-                }
+                chunk.next = next
+            } else {
+                chunk.next = null
             }
 
             // link all jump and branching instructions to their target
@@ -180,46 +180,48 @@ class IRProgram(val name: String,
                         // it's a call to an address (extsub most likely)
                         requireNotNull(it.address)
                     } else {
-                        it.branchTarget = labeledChunks.getValue(it.labelSymbol)
+                        it.branchTarget = labeledChunks[it.labelSymbol] ?: throw AssemblyError("Missing jump/call target: ${it.labelSymbol}")
                     }
+                }
+            }
+        }
+
+        fun linkBaseChunk(chunk: IRCodeChunkBase, next: IRCodeChunkBase?) {
+            when (chunk) {
+                is IRCodeChunk -> linkCodeChunk(chunk, next)
+                is IRInlineAsmChunk -> {
+                    val lastInstr = chunk.instructions.lastOrNull()
+                    if (lastInstr == null || lastInstr.opcode !in OpcodesThatBranchUnconditionally)
+                        chunk.next = next
+                    else
+                        chunk.next = null
+                }
+                is IRInlineBinaryChunk -> {
+                    chunk.next = next
                 }
             }
         }
 
         fun linkSubroutineChunks(sub: IRSubroutine) {
             sub.chunks.withIndex().forEach { (index, chunk) ->
-
-                val next = if(index<sub.chunks.size-1) sub.chunks[index + 1] else null
-
-                when (chunk) {
-                    is IRCodeChunk -> {
-                        linkCodeChunk(chunk, next)
-                    }
-                    is IRInlineAsmChunk -> {
-                        if(next!=null) {
-                            val lastInstr = chunk.instructions.lastOrNull()
-                            if(lastInstr==null || lastInstr.opcode !in OpcodesThatBranchUnconditionally)
-                                chunk.next = next
-                        }
-                    }
-                    is IRInlineBinaryChunk -> { }
-                }
+                val next = if(index < sub.chunks.size - 1) sub.chunks[index + 1] else null
+                linkBaseChunk(chunk, next)
             }
         }
 
         blocks.forEach { block ->
             block.children.forEachIndexed { index, child ->
-                val next = if(index<block.children.lastIndex) block.children[index+1] as? IRCodeChunkBase else null
+                val next = if(index < block.children.lastIndex) block.children[index+1] as? IRCodeChunkBase else null
                 when (child) {
-                    is IRAsmSubroutine -> child.asmChunk.next = next
-                    is IRCodeChunk -> child.next = next
-                    is IRInlineAsmChunk -> child.next = next
-                    is IRInlineBinaryChunk -> child.next = next
+                    is IRAsmSubroutine -> linkBaseChunk(child.asmChunk, next)
+                    is IRCodeChunk -> linkBaseChunk(child, next)
+                    is IRInlineAsmChunk -> linkBaseChunk(child, next)
+                    is IRInlineBinaryChunk -> linkBaseChunk(child, next)
                     is IRSubroutine -> linkSubroutineChunks(child)
                 }
             }
         }
-        linkCodeChunk(globalInits, globalInits.next)
+        linkBaseChunk(globalInits, globalInits.next)
     }
 
     fun validate() {
@@ -243,10 +245,11 @@ class IRProgram(val name: String,
             chunk.instructions.forEach { instr ->
                 if(instr.labelSymbol!=null && instr.opcode in OpcodesThatBranch) {
                     if(instr.opcode==Opcode.JUMPI) {
-                        when(val pointervar = st.lookup(instr.labelSymbol)!!) {
-                            is IRStStaticVariable -> require(pointervar.dt.isUnsignedWord)
-                            is IRStMemVar -> require(pointervar.dt.isUnsignedWord)
-                            else -> throw AssemblyError("weird pointervar type")
+                        val symbol = st.lookup(instr.labelSymbol) ?: throw AssemblyError("Missing jump target symbol: ${instr.labelSymbol}")
+                        when(symbol) {
+                            is IRStStaticVariable -> require(symbol.dt.isUnsignedWord)
+                            is IRStMemVar -> require(symbol.dt.isUnsignedWord)
+                            else -> throw AssemblyError("Invalid jump target symbol type: ${instr.labelSymbol}")
                         }
                     }
                     else if(!instr.labelSymbol.startsWith('$') && !instr.labelSymbol.first().isDigit())

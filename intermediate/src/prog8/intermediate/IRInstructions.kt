@@ -57,7 +57,7 @@ NOTE: status flags are only affected by the CMP instruction or explicit CLC/SEC,
 Instruction set is mostly a load/store architecture, there are few instructions operating on memory directly.
 
 Value types: integers (.b=byte=8 bits, .w=word=16 bits, .l=long=32 bits) and float (.f=64 bits). Omitting it defaults to b if the instruction requires a type.
-There is no distinction between signed and unsigned. Instead, a different instruction is used if a distinction should be made (for example div and divs).
+There is no distinction between signed and unsigned for many instructions. Instead, a different instruction is used if a distinction should be made (for example div and divs).
 Floating point operations are just 'f' typed regular instructions, however there are a few unique fp conversion instructions.
 
 NOTE: Labels in source text should always start with an underscore.
@@ -65,7 +65,7 @@ NOTE: Labels in source text should always start with an underscore.
 
 LOAD/STORE
 ----------
-All have type b or w or f.
+All have type b or w or l or f.
 
 load        reg1,         value       - load immediate value into register. If you supply a symbol, loads the *address* of the symbol! (variable values are loaded from memory via the loadm instruction)
 loadm       reg1,         address     - load reg1 with value at memory address
@@ -124,7 +124,7 @@ returni            number             - like return, but also returns the immedi
 
 BRANCHING and CONDITIONALS
 --------------------------
-All have type b or w except the branches that only check status bits.
+All have type b or w or l except the branches that only check status bits.
 
 bstcc                         address   - branch to location if Status bit Carry is clear
 bstcs                         address   - branch to location if Status bit Carry is set
@@ -158,7 +158,7 @@ bgesr       reg1, reg2,       address   - jump to location in program given by l
 
 ARITHMETIC
 ----------
-All have type b or w or f. Note: result types are the same as operand types! E.g. byte*byte->byte.
+All have type b or w or l or f. Note: result types are the same as operand types! E.g. byte*byte->byte.
 
 exts        reg1, reg2                      - reg1 = signed extension of reg2 (byte to word, or word to long)  (note: unlike M68k, exts.b -> word and exts.w -> long.)
 ext         reg1, reg2                      - reg1 = unsigned extension of reg2 (which in practice just means clearing the MSB / MSW) (note: unlike M68k, ext.b -> word and ext.w -> long. )
@@ -174,18 +174,18 @@ addm        reg1,              address      - memory at address += reg1
 subr        reg1, reg2                      - reg1 -= reg2 
 sub         reg1,              value        - reg1 -= value 
 subm        reg1,              address      - memory at address -= reg1 
-mulr        reg1, reg2                      - unsigned multiply reg1 *= reg2  note: byte*byte->byte, no type extension to word!
-mulsr       reg1, reg2                      - signed multiply reg1 *= reg2  note: byte*byte->byte, no type extension to word!
-mul         reg1,              value        - unsigned multiply reg1 *= value  note: byte*byte->byte, no type extension to word!
-muls        reg1,              value        - signed multiply reg1 *= value  note: byte*byte->byte, no type extension to word!
-mulm        reg1,              address      - unsigned memory at address  *= reg2  note: byte*byte->byte, no type extension to word!
-mulsm       reg1,              address      - signed memory at address  *= reg2  note: byte*byte->byte, no type extension to word!
+mulr        reg1, reg2                      - unsigned multiply reg1 *= reg2  note: byte*byte->byte, no type extension!
+mulsr       reg1, reg2                      - signed multiply reg1 *= reg2  note: byte*byte->byte, no type extension!
+mul         reg1,              value        - unsigned multiply reg1 *= value  note: byte*byte->byte, no type extension!
+muls        reg1,              value        - signed multiply reg1 *= value  note: byte*byte->byte, no type extension!
+mulm        reg1,              address      - unsigned memory at address  *= reg2  note: byte*byte->byte, no type extension!
+mulsm       reg1,              address      - signed memory at address  *= reg2  note: byte*byte->byte, no type extension!
 divr        reg1, reg2                      - unsigned division reg1 /= reg2  note: division by zero yields max int $ff/$ffff
-divsr       reg1, reg2                      - signed division reg1 /= reg2  note: division by zero yields max signed int 127 / 32767
+divsr       reg1, reg2                      - signed division reg1 /= reg2  note: division by zero yields max signed int 127 / 32767 / 2147483647
 div         reg1,              value        - unsigned division reg1 /= value  note: division by zero yields max int $ff/$ffff
-divs        reg1,              value        - signed division reg1 /= value  note: division by zero yields max signed int 127 / 32767
+divs        reg1,              value        - signed division reg1 /= value  note: division by zero yields max signed int 127 / 32767 / 2147483647
 divm        reg1,              address      - memory at address /= reg2  note: division by zero yields max int $ff/$ffff
-divsm       reg1,              address      - signed memory at address /= reg2  note: division by zero yields max signed int 127 / 32767
+divsm       reg1,              address      - signed memory at address /= reg2  note: division by zero yields max signed int 127 / 32767 / 2147483647
 modr        reg1, reg2                      - remainder (modulo) of unsigned division reg1 %= reg2  note: division by zero yields max signed int $ff/$ffff
 mod         reg1,              value        - remainder (modulo) of unsigned division reg1 %= value  note: division by zero yields max signed int $ff/$ffff
 modsr       reg1, reg2                      - remainder (modulo) of signed division reg1 %= reg2  note: division by zero yields max signed long
@@ -205,7 +205,7 @@ NOTE: because mul/div are constrained (truncated) to remain in 8 or 16 or 32 bit
 
 LOGICAL/BITWISE
 ---------------
-All have type b or w.
+All have type b or w or l.
 
 andr        reg1, reg2                       - reg1 = reg1 bitwise and reg2
 and         reg1,          value             - reg1 = reg1 bitwise and value
@@ -709,7 +709,6 @@ val instructionFormats = mutableMapOf(
     Opcode.LOADX      to InstructionFormat.from("BWL,>r1,<r2,<a | F,>fr1,<r1,<a"),
     Opcode.LOADR      to InstructionFormat.from("BWL,>r1,<r2    | F,>fr1,<fr2"),
     Opcode.LOADHA     to InstructionFormat.from("B,>r1"),
-    Opcode.LOADHA     to InstructionFormat.from("B,>r1"),
     Opcode.LOADHX     to InstructionFormat.from("B,>r1"),
     Opcode.LOADHY     to InstructionFormat.from("B,>r1"),
     Opcode.LOADHAX    to InstructionFormat.from("W,>r1"),
@@ -723,7 +722,6 @@ val instructionFormats = mutableMapOf(
     Opcode.STOREZM    to InstructionFormat.from("BWL,>a         | F,>a"),
     Opcode.STOREZI    to InstructionFormat.from("BWL,<r1,<i     | F,<r1,<i"),
     Opcode.STOREZX    to InstructionFormat.from("BWL,<r1,>a     | F,<r1,>a"),
-    Opcode.STOREHA    to InstructionFormat.from("B,<r1"),
     Opcode.STOREHA    to InstructionFormat.from("B,<r1"),
     Opcode.STOREHX    to InstructionFormat.from("B,<r1"),
     Opcode.STOREHY    to InstructionFormat.from("B,<r1"),
@@ -893,12 +891,12 @@ class FunctionCallArgs(
 data class IRInstruction(
     val opcode: Opcode,
     val type: IRDataType?=null,
-    val reg1: Int?=null,        // 0-$ffff
-    val reg2: Int?=null,        // 0-$ffff
-    val reg3: Int?=null,        // 0-$ffff
-    val fpReg1: RegisterNum?=null,      // 0-$ffff
-    val fpReg2: RegisterNum?=null,      // 0-$ffff
-    val immediate: Int?=null,   // 0-$ff or $ffff if word
+    val reg1: Int?=null,        // 0-99999
+    val reg2: Int?=null,        // 0-99999
+    val reg3: Int?=null,        // 0-99999
+    val fpReg1: RegisterNum?=null,      // 0-99999
+    val fpReg2: RegisterNum?=null,      // 0-99999
+    val immediate: Int?=null,   // 0-$ff or $ffff or $ffffffff
     val immediateFp: Double?=null,
     val address: MemoryAddress? = null,    // 0-$ffff
     val labelSymbol: String?=null,          // symbolic label name as alternative to address (so only for Branch/jump/call Instructions!)
@@ -1223,7 +1221,7 @@ data class IRInstruction(
                             IRDataType.BYTE -> append("r${returnspec.registerNum.value}.b@$cpuReg")
                             IRDataType.WORD -> append("r${returnspec.registerNum.value}.w@$cpuReg")
                             IRDataType.LONG -> append("r${returnspec.registerNum.value}.l@$cpuReg")
-                            IRDataType.FLOAT -> append("r${returnspec.registerNum.value}.f@$cpuReg")
+                            IRDataType.FLOAT -> append("fr${returnspec.registerNum.value}.f@$cpuReg")
                         }
                     }
                 }

@@ -98,8 +98,8 @@ class IRFileReader {
         program.addGlobalInits(initGlobals)
         blocks.forEach{ program.addBlock(it) }
 
-        program.linkChunks()
         program.convertAsmChunks()
+        program.linkChunks()
         program.validate()
 
         return program

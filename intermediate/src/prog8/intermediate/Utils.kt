@@ -130,7 +130,7 @@ fun parseIRCodeLine(line: String): Either<IRInstruction, String> {
     }
     if(format.sysCall) {
         val call = parseCall(rest)
-        val syscallNum = call.address?.toInt() ?: parseIRValue(call.target ?: "").toInt()
+        val syscallNum = call.address?.toInt() ?: (call.target?.let { parseIRValue(it).toInt() } ?: throw IRParseException("Missing syscall number"))
         return left(IRInstruction(Opcode.SYSCALL, immediate = syscallNum, fcallArgs = FunctionCallArgs(call.args, call.returns)))
     } else if (format.funcCall) {
         val call = parseCall(rest)
