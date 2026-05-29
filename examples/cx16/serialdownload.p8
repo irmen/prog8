@@ -34,11 +34,10 @@ main {
 
                 ubyte[256] buffer
                 while size>0 {
-                    uword readsize = serial.zi_get_file_chunk(&buffer, sizeof(buffer), size)
+                    uword readsize = serial.zi_get_file_chunk(&buffer, sizeof(buffer)-1, size)
                     size -= readsize
-                    for cx16.r0L in 0 to lsb(readsize-1) {
-                        txt.chrout(buffer[cx16.r0L])
-                    }
+                    @(&buffer+readsize) = 0
+                    txt.print(buffer)
                 }
 
                 txt.nl()

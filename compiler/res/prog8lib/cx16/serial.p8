@@ -78,8 +78,8 @@ serial {
 
         private sub probe(uword address) -> bool {
             sys.set_irqd()
-            address[REG_INTERRUPT_ENABLE] = $ff
-            bool found = address[REG_INTERRUPT_ENABLE] == $0f       ; The high nybble of IER is always clear
+            address[REG_INTERRUPT_ENABLE] = $f0
+            bool found = address[REG_INTERRUPT_ENABLE] & $f0 == 0       ; The high nybble of IER is always clear
             address[REG_INTERRUPT_ENABLE] = 0
             if found {
                 address[REG_MODEM_CONTROL] = $ff
@@ -137,6 +137,7 @@ serial {
             }
             @(buffer_ptr) = data = @(uart_addr)
             buffer_ptr++
+            read_size++
             if data == @(match_ptr) {
                 match_ptr++
                 if @(match_ptr)==0
@@ -149,110 +150,7 @@ serial {
         return read_size
     }
 
-    ; zimodem routines:
-
-    sub zi_initialize(uword uart_addr) {
-        ; initializes the ZiModem on the given uart address
-        zi_uart = uart_addr
-        if zi_uart == 0
-            return      ; no uart present
-
-        initialize_uart(zi_uart)
-        ; ZiModem sends a version banner of the `ati` command when the ESP32 boots up.
-        ; Read it off if present. It is not always ready immediately so wait a tiny bit
-        sys.wait(10)
-        zi_write_cmd(iso:"\x03ate0")      ; first send CTRL-C (+ no echo) to abort any previous file streams
-        sys.wait(5)
-        if zi_uart[REG_LINE_STATUS] & LSR::DR != 0
-            discard_until(zi_uart, iso:"OK\x0d\x0a")
-        zi_write_cmd("atq0v1x1f0r1s45=3&p0&k3b921600")  ; most important setting s45 to no caching
-        discard_until(zi_uart, iso:"OK\x0d\x0a")
-    }
-
-    sub zi_reset() {
-        ; reset all zimodem connections
-        serial.zi_write_cmd(iso:"atz")
-        discard_until(zi_uart, iso:"OK\x0d\x0a")
-    }
-
-    sub zi_write_cmd(str command) {
-        ; writes the zimodem command (followed by a proper line ending)
-        write(zi_uart, command)
-        write_eol(zi_uart)
-    }
-
-    sub zi_start_get_file(str filename) -> long {
-        ; starts a file download from the given url, returns the size of the file to download.
-        ; you can download chunks of the file by repeatedly calling zi_get_file_chunk() until that returns 0
-        write(zi_uart, iso:"at&g\"")
-        write(zi_uart, filename)
-        write(zi_uart, "\"")
-        write_eol(zi_uart)
-
-        if read_one(zi_uart)=='[' {
-            ;  parse header  [ 0 <filesize> <sum> ]
-            ubyte[25] header_buf
-            void read_until(zi_uart, iso:"]\x0d\x0a", &header_buf, sizeof(header_buf))
-            return conv.str2long(&header_buf + 3)
-        } else {
-            discard_until(zi_uart, iso:"RROR\x0d\x0a")
-            return 0
-        }
-    }
-
-    sub zi_get_file_chunk(^^ubyte @zp buffer, uword buffer_size, long remaining_file_size) -> uword {
-        ; read the next chunk of data from the file, into buffer, up to buffer_size bytes.
-        ; returns the number of bytes read.  0 if no more data was available.
-
-        uword bytes_to_read = if msw(remaining_file_size)!=0 then buffer_size else min(lsw(remaining_file_size), buffer_size)
-
-        if bytes_to_read == 0
-            return 0
-
-        repeat bytes_to_read {
-            %asm {{
-                ; wait until data is present
-                ldy  #p8c_REG_LINE_STATUS
--               lda  (p8v_zi_uart),y
-                and  #p8c_LSR_DR
-                beq  -
-            }}
-
-;            while zi_uart[REG_LINE_STATUS] & LSR::DR == 0 {
-;                ; wait until data is present
-;            }
-
-            @(buffer) = @(zi_uart)
-            buffer++
-        }
-
-        return bytes_to_read
-    }
-
-    sub zi_end_get_file() {
-        ; makes sure the 'OK' response after the actual file data is also read away
-        discard_until(zi_uart, iso:"OK\x0d\x0a")
-    }
-
-    sub zi_get_ip_address() -> str {
-        ; returns the ip address of the zimodem wifi connection
-        ubyte[30] ip_buffer
-        zi_write_cmd(iso:"ati2")
-        void read_until(zi_uart, iso:"OK\x0d\x0a", &ip_buffer, len(ip_buffer))
-        cx16.r0 = &ip_buffer
-        while not strings.isspace(@(cx16.r0)) {
-            cx16.r0++
-        }
-        @(cx16.r0) = 0
-        return &ip_buffer
-    }
-
-
-    ; private stuff
-
-    private uword @zp zi_uart          ; the uart address to use for ZiModem
-
-    private sub discard_until(uword @zp uart_addr, str match) {
+    sub discard_until(uword @zp uart_addr, str match) {
         ; Reads up to and including the match string from the uart, discards all data.
 
         alias match_ptr = cx16.r0
@@ -271,6 +169,161 @@ serial {
                 match_ptr = match
         }
     }
+
+    ; zimodem routines:
+
+    sub zi_initialize(uword uart_addr) {
+        ; initializes the ZiModem on the given uart address
+        zi_uart = uart_addr
+        if zi_uart == 0
+            return      ; no uart present
+
+        initialize_uart(zi_uart)
+        ; ZiModem sends a version banner of the `ati` command when the ESP32 boots up.
+        ; Read it off if present. It is not always ready immediately so wait a tiny bit
+        sys.wait(10)
+        zi_write_cmd(iso:"\x03ate0")      ; first send CTRL-C (+ no echo) to abort any previous file streams
+        discard_until(zi_uart, iso:"OK\x0d\x0a")
+        zi_write_cmd(iso:"atq0v1x1f0r1s45=3&p0&k3b921600")  ; most important setting s45 to no caching
+        discard_until(zi_uart, iso:"OK\x0d\x0a")
+    }
+
+    sub zi_reset() {
+        ; reset all zimodem connections
+        serial.zi_write_cmd(iso:"atz")
+        discard_until(zi_uart, iso:"OK\x0d\x0a")
+    }
+
+    sub zi_write_cmd(str command) {
+        ; writes the zimodem command (followed by a proper line ending)
+        write(zi_uart, command)
+        write_eol(zi_uart)
+    }
+
+    sub zi_start_get_file_hexmode(str filename) -> bool {
+        ; starts a file download from the given url. Returns true if ok, false if file could not be found
+        ; you can download chunks of the file by repeatedly calling zi_get_file_chunk_hexmode() until that returns 0.
+        ; Note: this uses zimodem hex mode transfer for now because binary mode transfer is broken at the moment.
+        zi_write_cmd(iso:"ats45=1")  ; enable hex mode transfer
+        discard_until(zi_uart, iso:"OK\x0d\x0a")
+        write(zi_uart, iso:"at&g\"")
+        write(zi_uart, filename)
+        write(zi_uart, "\"\x0d\x0a")
+
+        if read_one(zi_uart)=='[' {
+            ; note: zimodem file size in hex mode is bogus (only can go up to $FFFF), just skip the whole header line.
+            discard_until(zi_uart, "\x0d\x0a")
+            return true
+        } else {
+            discard_until(zi_uart, iso:"RROR\x0d\x0a")
+            return false
+        }
+    }
+
+    sub zi_start_get_file(str filename) -> long {
+        ; TODO binary file transfer is broken at the moment, use hex mode transfer
+        ; starts a file download from the given url, returns the size of the file to download.
+        ; you can download chunks of the file by repeatedly calling zi_get_file_chunk() until that returns 0
+        write(zi_uart, iso:"at&g\"")
+        write(zi_uart, filename)
+        write(zi_uart, "\"\x0d\x0a")
+
+        if read_one(zi_uart)=='[' {
+            ;  parse header  [ 0 <filesize> <sum> ]
+            ubyte[25] header_buf
+            void read_until(zi_uart, iso:"]\x0d\x0a", &header_buf, sizeof(header_buf))
+            return conv.str2long(&header_buf + 3)
+        } else {
+            discard_until(zi_uart, iso:"RROR\x0d\x0a")
+            return 0
+        }
+    }
+
+    sub zi_get_file_chunk_hexmode(^^ubyte @zp buffer, uword buffer_size) -> uword {
+        ; read the next chunk of data from the file (opened in hex mode), into buffer, up to buffer_size bytes (minimum 40 bytes!!)
+        ; returns the number of bytes read.  0 if no more data was available.
+        ubyte[90] linebuffer
+        cx16.r0 = read_until(zi_uart, "\x0d\x0a", linebuffer, sizeof(linebuffer))
+        if cx16.r0 == 4 and linebuffer[0] == iso:'O'        ; OK\r\n  was received -- end of transmission
+            return 0
+
+        ubyte digits = lsb(cx16.r0)-2
+        decode(digits)
+        return digits/2
+
+        private sub decode(ubyte numdigits) {
+            cx16.r1L = 0
+            for cx16.r0L in 0 to numdigits-1 step 2 {
+                buffer[cx16.r1L] = decodehex(cx16.r0L)
+                cx16.r1L++
+            }
+
+            asmsub decodehex(ubyte digitindex @Y) -> ubyte @A {
+                %asm {{
+                    lda  p8v_linebuffer,y
+                    sec
+                    sbc #$30
+                    cmp #$0a
+                    bmi +
+                    sbc #$07
+            +       asl a
+                    asl a
+                    asl a
+                    asl a
+                    sta P8ZP_SCRATCH_REG
+                    lda  p8v_linebuffer+1,y
+                    sec
+                    sbc #$30
+                    cmp #$0a
+                    bmi +
+                    sbc #$07
+            +       ora P8ZP_SCRATCH_REG
+                    rts
+                }}
+            }
+        }
+    }
+
+    sub zi_get_file_chunk(^^ubyte @zp buffer, uword buffer_size, long remaining_file_size) -> uword {
+        ; TODO binary file transfer is broken at the moment, use hex mode transfer
+        ; read the next chunk of data from the file, into buffer, up to buffer_size bytes.
+        ; returns the number of bytes read.  0 if no more data was available.
+
+        uword bytes_to_read = if msw(remaining_file_size)!=0 then buffer_size else min(lsw(remaining_file_size), buffer_size)
+
+        repeat bytes_to_read {
+            while zi_uart[REG_LINE_STATUS] & LSR::DR == 0 {
+                ; wait until data is present
+            }
+            @(buffer) = @(zi_uart)
+            buffer++
+        }
+
+        return bytes_to_read
+    }
+
+    sub zi_end_get_file() {
+        ; makes sure the 'OK' response after the actual file data is also read away
+        discard_until(zi_uart, iso:"OK\x0d\x0a")
+    }
+
+    sub zi_get_ip_address() -> str {
+        ; returns the ip address of the zimodem wifi connection. Assumes IPV4 only.
+        ubyte[25] ip_buffer
+        zi_write_cmd(iso:"ati2")
+        void read_until(zi_uart, iso:"OK\x0d\x0a", &ip_buffer, len(ip_buffer))
+        cx16.r0 = &ip_buffer
+        while not strings.isspace(@(cx16.r0)) {
+            cx16.r0++
+        }
+        @(cx16.r0) = 0
+        return &ip_buffer
+    }
+
+
+    ; private stuff
+
+    private uword @zp zi_uart          ; the uart address to use for ZiModem
 
     private sub read_one(uword @zp uart_addr) -> ubyte {
         while uart_addr[REG_LINE_STATUS] & LSR::DR == 0  {
