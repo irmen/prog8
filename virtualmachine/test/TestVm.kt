@@ -2,7 +2,10 @@ import io.kotest.assertions.throwables.shouldThrowWithMessage
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.shouldBe
-import prog8.code.core.*
+import prog8.code.core.CompilationOptions
+import prog8.code.core.OutputType
+import prog8.code.core.Position
+import prog8.code.core.ZeropageType
 import prog8.code.target.C64Target
 import prog8.code.target.Cx16Target
 import prog8.code.target.VMTarget
@@ -223,5 +226,129 @@ class TestVm: FunSpec( {
         vm.registers.setSL(4, 0)
         vm.run(false)
         vm.registers.getSL(1) shouldBe Int.MAX_VALUE
+    }
+
+    test("vm register usage: LOADI") {
+        val program = IRProgram("test", IRSymbolTable(), getTestOptions(), VMTarget())
+        val block = IRBlock("main", false, IRBlock.Options(), Position.DUMMY)
+        val startSub = IRSubroutine("main.test", emptyList(), emptyList(), Position.DUMMY)
+        val code = IRCodeChunk(startSub.label, null)
+
+        // BWL: memory[registers[reg2] + offset] -> registers[reg1]
+        code += IRInstruction(Opcode.LOADI, IRDataType.WORD, reg1=1, reg2=2, immediate=10)
+        // FLOAT: memory[registers[reg1] + offset] -> registers[fpReg1]
+        code += IRInstruction(Opcode.LOADI, IRDataType.FLOAT, fpReg1=RegisterNum(3), reg1=2, immediate=20)
+        code += IRInstruction(Opcode.RETURN)
+
+        startSub += code
+        block += startSub
+        program.addBlock(block)
+
+        val vm = VirtualMachine(program)
+        vm.registers.setUW(2, 1000u)
+        vm.memory.setUW(1010u, 1234u)
+        vm.memory.setFloat(1020u, 3.14)
+        vm.run(false)
+
+        vm.registers.getUW(1) shouldBe 1234u
+        vm.registers.getFloat(RegisterNum(3)) shouldBe 3.14
+    }
+
+    test("vm register usage: LOADX") {
+        val program = IRProgram("test", IRSymbolTable(), getTestOptions(), VMTarget())
+        val block = IRBlock("main", false, IRBlock.Options(), Position.DUMMY)
+        val startSub = IRSubroutine("main.test", emptyList(), emptyList(), Position.DUMMY)
+        val code = IRCodeChunk(startSub.label, null)
+
+        // BWL: memory[address + registers[reg2]] -> registers[reg1]
+        code += IRInstruction(Opcode.LOADX, IRDataType.WORD, reg1=1, reg2=2, address=1000u.toAddress())
+        // FLOAT: memory[address + registers[reg1]] -> registers[fpReg1]
+        code += IRInstruction(Opcode.LOADX, IRDataType.FLOAT, fpReg1=RegisterNum(3), reg1=2, address=2000u.toAddress())
+        code += IRInstruction(Opcode.RETURN)
+
+        startSub += code
+        block += startSub
+        program.addBlock(block)
+
+        val vm = VirtualMachine(program)
+        vm.registers.setUB(2, 10u)
+        vm.memory.setUW(1010u, 5678u)
+        vm.memory.setFloat(2010u, 2.718)
+        vm.run(false)
+
+        vm.registers.getUW(1) shouldBe 5678u
+        vm.registers.getFloat(RegisterNum(3)) shouldBe 2.718
+    }
+
+    test("vm register usage: STOREI") {
+        val program = IRProgram("test", IRSymbolTable(), getTestOptions(), VMTarget())
+        val block = IRBlock("main", false, IRBlock.Options(), Position.DUMMY)
+        val startSub = IRSubroutine("main.test", emptyList(), emptyList(), Position.DUMMY)
+        val code = IRCodeChunk(startSub.label, null)
+
+        // BWL: registers[reg1] -> memory[registers[reg2] + offset]
+        code += IRInstruction(Opcode.STOREI, IRDataType.WORD, reg1=1, reg2=2, immediate=10)
+        // FLOAT: registers[fpReg1] -> memory[registers[reg1] + offset]
+        code += IRInstruction(Opcode.STOREI, IRDataType.FLOAT, fpReg1=RegisterNum(3), reg1=2, immediate=20)
+        code += IRInstruction(Opcode.RETURN)
+
+        startSub += code
+        block += startSub
+        program.addBlock(block)
+
+        val vm = VirtualMachine(program)
+        vm.registers.setUW(1, 9999u)
+        vm.registers.setFloat(RegisterNum(3), 1.23)
+        vm.registers.setUW(2, 1000u)
+        vm.run(false)
+
+        vm.memory.getUW(1010u) shouldBe 9999u
+        vm.memory.getFloat(1020u) shouldBe 1.23
+    }
+
+    test("vm register usage: STOREX") {
+        val program = IRProgram("test", IRSymbolTable(), getTestOptions(), VMTarget())
+        val block = IRBlock("main", false, IRBlock.Options(), Position.DUMMY)
+        val startSub = IRSubroutine("main.test", emptyList(), emptyList(), Position.DUMMY)
+        val code = IRCodeChunk(startSub.label, null)
+
+        // BWL: registers[reg1] -> memory[address + registers[reg2]]
+        code += IRInstruction(Opcode.STOREX, IRDataType.WORD, reg1=1, reg2=2, address=1000u.toAddress())
+        // FLOAT: registers[fpReg1] -> memory[address + registers[reg1]]
+        code += IRInstruction(Opcode.STOREX, IRDataType.FLOAT, fpReg1=RegisterNum(3), reg1=2, address=2000u.toAddress())
+        code += IRInstruction(Opcode.RETURN)
+
+        startSub += code
+        block += startSub
+        program.addBlock(block)
+
+        val vm = VirtualMachine(program)
+        vm.registers.setUW(1, 8888u)
+        vm.registers.setFloat(RegisterNum(3), 4.56)
+        vm.registers.setUB(2, 10u)
+        vm.run(false)
+
+        vm.memory.getUW(1010u) shouldBe 8888u
+        vm.memory.getFloat(2010u) shouldBe 4.56
+    }
+
+    test("vm register usage: LSR.l") {
+        val program = IRProgram("test", IRSymbolTable(), getTestOptions(), VMTarget())
+        val block = IRBlock("main", false, IRBlock.Options(), Position.DUMMY)
+        val startSub = IRSubroutine("main.test", emptyList(), emptyList(), Position.DUMMY)
+        val code = IRCodeChunk(startSub.label, null)
+
+        code += IRInstruction(Opcode.LSR, IRDataType.LONG, reg1=1)
+        code += IRInstruction(Opcode.RETURN)
+
+        startSub += code
+        block += startSub
+        program.addBlock(block)
+
+        val vm = VirtualMachine(program)
+        vm.registers.setSL(1, -1) // 0xFFFFFFFF
+        vm.run(false)
+        // Logical shift right of 0xFFFFFFFF should be 0x7FFFFFFF (2147483647)
+        vm.registers.getSL(1) shouldBe 2147483647
     }
 })

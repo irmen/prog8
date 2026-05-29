@@ -948,7 +948,7 @@ data class IRInstruction(
         if(format.fpReg2==OperandDirection.UNUSED) require(fpReg2==null) { "invalid fpReg2" }
         if(format.immediate) {
             if(type==IRDataType.FLOAT) {
-                if(opcode !in setOf(Opcode.LOADI, Opcode.STOREI, Opcode.STOREZI))
+                if(opcode !in setOf(Opcode.LOAD, Opcode.LOADI, Opcode.STOREI, Opcode.STOREZI))
                     requireNotNull(immediateFp) { "missing immediate fp value" }
             }
             else
