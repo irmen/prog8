@@ -128,7 +128,7 @@ The ``alias`` statement makes it easier to refer to symbols from other places, a
 you from having to type the fully scoped name everytime you need to access that symbol.
 Aliases can be created in any scope except at the module level.
 An alias is created with ``alias <name> = <target>`` and then you can use ``<name>`` as if it were ``<target>``.
-It is possible to alias variables, labels and subroutines, and even whole blocks.words
+It is possible to alias variables, labels and subroutines, and even whole blocks and words
 The name has to be an unscoped identifier name, the target can be any scoped or unscoped symbol.
 Please consider using aliases sparingly because it may lead to confusing code if you alias
 well-known block names for example.
@@ -153,7 +153,7 @@ They can only contain *directives*, *variable declarations*, *subroutines* and *
     }
 
 The <blockname> must be a valid identifier, and must be unique in the entire program (there's
-a directive to merge multiple occurences).
+a directive to merge multiple occurrences).
 The <address> is optional. If specified it must be a valid memory address such as ``$c000``.
 It's used to tell the compiler to put the block at a certain position in memory.
 
@@ -164,7 +164,7 @@ It's used to tell the compiler to put the block at a certain position in memory.
     You can use the ``private`` keyword to hide symbols from other blocks - see :ref:`private-symbols`.
     So, accessing a variable ``counter`` defined in subroutine ``worker`` in block ``main``,
     can be done from anywhere by using ``main.worker.counter``.
-    Unlike most other programming langues, as soon as a name is scoped,
+    Unlike most other programming languages, as soon as a name is scoped,
     Prog8 treats it as a name starting in the *global* namespace.
     Relative name lookup is only performed for *non-scoped* names.
 
@@ -372,7 +372,7 @@ Directives
 
     Level: not at module scope.
     Defines a debugging breakpoint at this location. See :ref:`debugging`
-    The version with the explamation point '!' at the end can be used even
+    The version with the exclamation point '!' at the end can be used even
     if the breakpoint follows an expression. If you don't use the '!' version in this case
     the compiler may think it is just a term in the expression (modulo operator and breakpoint operand value),
     instead of a breakpoint directive::
@@ -888,7 +888,7 @@ using qualified "dotted names"::
 
     uword address = $4000
     goto  address         ; jump via address variable
-    goto  address + idx   ; jump to an adress that is the result of an expression
+    goto  address + idx   ; jump to an address that is the result of an expression
 
 Notice that this is a valid way to end a subroutine (you can either ``return`` from it, or jump
 to another piece of code that eventually returns).
@@ -910,7 +910,7 @@ for the three individual assignments with the same value 42.
 
 It is also possible to do a multi-value assignment: ``x, y, z = 11, 22, 33``. This is
 just a shorter way to write the three separate assignments ``x=11`` followed by ``y=22`` followed by ``z=33``.
-For subroutines that return multiple values, you have to write sucha multi-value assigment statement
+For subroutines that return multiple values, you have to write such a multi-value assignment statement
 as well, to assigns those multiple values. Details can be found here: :ref:`multiassign`.
 
 
@@ -1285,7 +1285,7 @@ You *can* tell the compiler to not allocate a new variable, but instead to reuse
 (accessible in the code as ``cx16.r0`` - ``cx16.r15``)  for the parameter. This is done by adding a ``@Rx`` tag
 to the parameter. This can only be done for booleans, byte, and word types.
 Note: the R0-R15 *virtual registers* are described in more detail below for the Assembly subroutines.
-Here's an example that reuses the R0 and the R1L (lower byte of R1) virtual registers for the paremeters::
+Here's an example that reuses the R0 and the R1L (lower byte of R1) virtual registers for the parameters::
 
     sub  get_indexed_byte(uword pointer @R0, ubyte index @R1) -> ubyte {
         return @(cx16.r0 + cx16.r1L)
@@ -1357,7 +1357,7 @@ External subroutines
 ^^^^^^^^^^^^^^^^^^^^
 .. index:: pair: Subroutines; External
 
-Thse define an external subroutine that's implemented outside of the program
+These define an external subroutine that's implemented outside of the program
 (for instance, a ROM routine, or a routine in a library loaded elsewhere in RAM).
 External subroutines are usually defined by compiler library files, with the following syntax::
 
@@ -1445,13 +1445,13 @@ Remember that you can use ``void`` to skip a value. So for instance::
 .. sidebar:: register usage
 
     Subroutines with multiple return values use cpu registers A, Y, and the R0-R15 "virtual registers" to return those,
-    depending on the number of values returend.  A floating point value is passed via the FAC 'register'.
+    depending on the number of values returned.  A floating point value is passed via the FAC 'register'.
     Multiple float return values are supported on the virtual target, but limited to a single float on 6502 targets
     (because the ROM float routines use FAC1/FAC2 as operand registers which would clobber earlier return values).
 
 
 **Using just one of the values:**
-Sometimes it is easier to just have a single return value in a subroutine's signagure (even though it
+Sometimes it is easier to just have a single return value in a subroutine's signature (even though it
 actually may return multiple values): this avoids having to put ``void`` for all other values if you aren't really interested in those.
 It also allows it to be called in expressions such as if-statements again.
 Examples of these second 'convenience' definition are library routines such as ``cbm.STOP2`` and ``cbm.GETIN2``,

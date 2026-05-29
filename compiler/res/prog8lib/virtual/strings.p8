@@ -147,7 +147,7 @@ strings {
     sub compare(str st1, str st2) -> byte {
         ; Compares two strings for sorting (case sensitive).
         ; Returns -1 (255), 0 or 1, meaning: string1 sorts before, equal or after string2.
-        ; Note that you can also directly compare strings and string values with eachother using
+        ; Note that you can also directly compare strings and string values with each other using
         ; comparison operators ==, < etcetera (this will use strcmp automatically).
         %ir {{
             loadm.w r99000,strings.compare.st1
@@ -160,7 +160,7 @@ strings {
     sub compare_nocase(str st1, str st2) -> byte {
         ; Compares two strings for sorting (case insensitive).
         ; Returns -1 (255), 0 or 1, meaning: string1 sorts before, equal or after string2.
-        ; Note that you can also directly compare strings and string values with eachother using
+        ; Note that you can also directly compare strings and string values with each other using
         ; comparison operators ==, < etcetera (this will use strcmp automatically).
         %ir {{
             loadm.w r99000,strings.compare_nocase.st1

@@ -282,7 +282,7 @@ sizeof (name)  ;  sizeof(datatype)  ;  sizeof(&name)  ;  sizeof(&&name)  ;  size
 
 :index:`memory` (name, size, alignment)  ;  memory(name)
     Returns the address of the first location of a statically "reserved" block of memory with the given name.
-    The 3-argument version reserves a block of the given size in bytes and optional alignment, and returns the adress of it.
+    The 3-argument version reserves a block of the given size in bytes and optional alignment, and returns the address of it.
     The 1-argument version acts only as a reference to a block that must be reserved elsewhere in the program.
     The name must be a string literal, it cannot be empty or be a variable.
     This routine can be used to "reserve" parts of the memory where a normal byte array variable would
@@ -301,7 +301,7 @@ sizeof (name)  ;  sizeof(datatype)  ;  sizeof(&name)  ;  sizeof(&&name)  ;  size
 
 :index:`call` (address) -> uword
     Calls a subroutine given by its memory address. You cannot pass arguments directly,
-    although it is ofcourse possible to do this via the global ``cx16.r0...`` registers for example.
+    although it is of course possible to do this via the global ``cx16.r0...`` registers for example.
     It is *not* possible to use cpu registers to pass arguments, because these are clobbered while performing the call!
     It is assumed the subroutine returns a word value (in AY), if it does not, just add void to the call to ignore the result value.
     This function effectively creates an "indirect JSR" if you use it on a ``uword`` pointer variable.
@@ -382,7 +382,7 @@ bcd
 Decimal addition and subtraction routines, so for example $0987 + $1111 =  $2098 (rather than the usual hex outcome $1a98)
 Utilizes the BCD mode of the CPU (note: not all 6502 variants support this mode).
 This mode is useful for example for counting decimal score in a game, to avoid costly conversion to a decimal display string:
-just print the hexadecimal score representation. (This gets especially noticable with long integers)
+just print the hexadecimal score representation. (This gets especially noticeable with long integers)
 Available routines:
 
 - ``sub addb(byte a, byte b) -> byte``
@@ -491,7 +491,7 @@ Decompressors are available for RLE, TSCrunch and ZX0 (Salvador).
 ``decode_tscrunch (uword compressed, uword target)``
     Decompress a block of data compressed in the TSCrunch format.
     It has extremely fast decompression (approaching RLE speeds),
-    better compression as RLE, but slightly worse compression ration than LZSA.
+    better compression as RLE, but slightly worse compression ratio than LZSA.
     See https://github.com/tonysavon/TSCrunch for the compression format and compressor tool.
     **NOTE:** for speed reasons this decompressor is *not* bank-aware and *not* I/O register aware;
     it only outputs to a memory buffer somewhere in the active 64 Kb address range.
@@ -607,7 +607,7 @@ and allows you to print it anywhere on the screen.
 ``logo ()``
     prints the logo at the current cursor position
 ``logo_at (column, row)``
-    printss the logo at the given position
+    prints the logo at the given position
 
 
 diskio
@@ -637,7 +637,7 @@ On the Commander X16 it tries to use that machine's fast Kernal loading routines
 Routines to directly load data into video ram are also present (vload and vload_raw).
 Also contains a helper function to calculate the file size of a loaded file (although that is truncated
 to 16 bits, 64Kb)
-Als contains routines for operating on subdirectories (chdir, mkdir, rmdir), to relabel the disk,
+Also contains routines for operating on subdirectories (chdir, mkdir, rmdir), to relabel the disk,
 and to seek in open files.
 
 Read the :source:`diskio source code <compiler/res/prog8lib/cx16/diskio.p8>`
@@ -692,7 +692,7 @@ floats
 
 .. note::
     Floating point support is available on most cbm-compatible targets (except the C128 for now), and the virtual target.
-    On the X16, make sure rom bank 4 is still active before doing floationg point operations (it's the bank that contains the fp routines).
+    On the X16, make sure rom bank 4 is still active before doing floating point operations (it's the bank that contains the fp routines).
     On the C64, you have to make sure the Basic ROM is still banked in (same reason).
 
 Provides definitions for the ROM/Kernal subroutines and utility routines dealing with floating point variables.
@@ -740,7 +740,7 @@ Provides definitions for the ROM/Kernal subroutines and utility routines dealing
 
 ``lerp_fast(v0, v1, t)``
     Linear interpolation (LERP). Imprecise (but faster) method, which does not guarantee v = v1 when t = 1
-    Teturns an interpolation between two inputs (v0, v1) for a parameter t in the closed unit interval [0.0, 1.0]
+    Returns an interpolation between two inputs (v0, v1) for a parameter t in the closed unit interval [0.0, 1.0]
 
 ``ln (x)``
     Natural logarithm (base e).
@@ -866,7 +866,7 @@ checksumming
 .. index:: pair: Libraries; checksumming
 
 ``crc16 (uword data, uword length, uword initvalue, uword xorout) -> uword``
-    Returns a CRC-16 checksum over the given data buffer, with configuarable initialization value and final result xor value.
+    Returns a CRC-16 checksum over the given data buffer, with configurable initialization value and final result xor value.
     For XMODEM type checksum, use initvalue=0 and xorout=0.
     For IBM-3740 type checksum, use initvalue=$ffff and xorout=0. (this is then equivalent to the cx16.memory_crc routine).
     Many other types are possible with different values...
@@ -909,7 +909,7 @@ large multiplications
 '''''''''''''''''''''
 .. index:: pair: Libraries; large multiplications
 
-``mul32 (woord w1, word w2) -> long``
+``mul32 (word w1, word w2) -> long``
    Returns the 32 bits signed long result of w1 * w2
 
 ``mul16_last_upper () -> uword``
@@ -1141,7 +1141,7 @@ psg  (cx16 only)
 .. index:: pair: Libraries; psg
 
 Available for the Cx16 target.
-**Note: New code should probaly use the psg2 module instead!**
+**Note: New code should probably use the psg2 module instead!**
 Contains a simple abstraction for the Vera's PSG (programmable sound generator) to play simple waveforms.
 It includes an interrupt handler routine for handling automatic ASR volume envelopes as well.
 
@@ -1223,7 +1223,7 @@ Various sorting routines (gnome sort and shell sort variants) for byte, word and
 **NOTE:** all word and str arrays have to be @nosplit! Words and pointers need to be consecutive in memory for now.
 **NOTE:** sorting is done in ascending order.
 Read the :source:`sorting source code <compiler/res/prog8lib/sorting.p8>`
-to see what's in there.   Also check out the `sortingbech` example.
+to see what's in there.   Also check out the `sortingbench` example.
 
 
 sprites  (cx16 only)
@@ -1590,7 +1590,7 @@ There is a very specialized function in the sys module here as well:
 
 ``push_returnaddress (address)``
     pushes a 16 bit memory address on the CPU hardware stack in the same byte order as a JSR instruction would,
-    which means the next RTS instruction will jump to that address instead.you
+    which means the next RTS instruction will jump to that address instead.
     You cannot use pushw() for this because the bytes pushed by JSR are different
 
 

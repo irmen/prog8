@@ -147,7 +147,7 @@ main {
         }
     }
 
-    ; Dark starfield so it doesnt distract from bullets and text
+    ; Dark starfield so it doesn't distract from bullets and text
     ubyte[20] starfieldCols = [
         14,10,12,15,14,13,12,11,10,14,
         14,10,14,15,14,13,12,11,10,12

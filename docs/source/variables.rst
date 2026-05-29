@@ -75,7 +75,7 @@ Tag         Effect
 @requirezp  force the variable into Zero page. If ZP is full, compilation will fail.
 @nozp       force the variable to normal system ram, never place it into zeropage.
 @shared     means the variable is shared with some assembly code and that it cannot be optimized away if not used elsewhere.
-@nosplit    (only valid on (u)word arrays) Store the array as a single inear array instead of a separate array for lsb and msb values
+@nosplit    (only valid on (u)word arrays) Store the array as a single linear array instead of a separate array for lsb and msb values
 @alignword  aligns string or array variable on an even memory address
 @align64    aligns string or array variable on a 64 byte address interval (example: for C64 sprite data)
 @alignpage  aligns string or array variable on a 256 byte address interval (example: to avoid page boundaries)
@@ -177,13 +177,13 @@ Initializing a variable
 You can specify an initialization value in the variable declaration.
 This will then be used to initialize the variable with at the start of the subroutine, instead of the default value 0.
 The provided value doesn't have to be a constant; it can be any expression.
-It is a shorter notation for declaring the variables and then assigning the values to them in separate assignment statment(s).
+It is a shorter notation for declaring the variables and then assigning the values to them in separate assignment statement(s).
 
 There are a few special situations:
 
 initializing an array: ``ubyte[3] array = [11,22,33]``
-    The initiazation value has to be a range value or an array literal (remember you can use '[4] * 3' and such).
-    Ofcourse the size of the range or the number of values in the array has to match the declared array size.
+    The initialization value has to be a range value or an array literal (remember you can use '[4] * 3' and such).
+    Of course the size of the range or the number of values in the array has to match the declared array size.
 
 initializing a multi variable declaration with different values: ``ubyte a,b,c = 11,22,33``
     Here we have separate initialization values for each of the declared variables in that order.
@@ -194,7 +194,7 @@ initializing a multi variable declaration with the same value for all: ``ubyte a
 
 initializing from a subroutine returning multiple result values: ``ubyte a,b,c = multi()``
     Here the initialization value can also be a subroutine call to a subroutine returning multiple result values, which will then be put
-    into the declared variables in order.  Ofcourse the number of values has to match the number of variables.
+    into the declared variables in order.  Of course the number of values has to match the number of variables.
 
 
 Constants
@@ -214,7 +214,7 @@ Enums
 -----
 .. index:: single: Enums
 
-There is a more convenient way to define a bunch of constants that belong togther: a "enum".
+There is a more convenient way to define a bunch of constants that belong together: a "enum".
 That is a grouped list of constants that get autonumbered for you (unless you override the numeric value yourself).
 It starts numbering from zero by default. Here's an example::
 
@@ -244,7 +244,7 @@ type identifier  type                     storage size       example var declara
 ===============  =======================  =================  =========================================
 ``byte``         signed byte              1 byte = 8 bits    ``byte myvar = -22``
 ``ubyte``        unsigned byte            1 byte = 8 bits    ``ubyte myvar = $8f``,   ``ubyte c = 'a'``
-``bool``         boolean                  1 byte = 8 bits    ``bool myvar = true`` or ``bool myvar == false``
+``bool``         boolean                  1 byte = 8 bits    ``bool myvar = true`` or ``bool myvar = false``
 ``word``         signed word              2 bytes = 16 bits  ``word myvar = -12345``
 ``uword``        unsigned word            2 bytes = 16 bits  ``uword myvar = $8fee``
 ``long``         signed 32 bits integer   4 bytes            ``long large = $12345678``
@@ -366,7 +366,7 @@ any underscores in the number are ignored by the compiler.
 For instance ``30_000.999_999`` is a valid floating point number 30000.999999.
 
 .. attention::
-    On the X16, make sure rom bank 4 is still active before doing floationg point operations (it's the bank that contains the fp routines).
+    On the X16, make sure rom bank 4 is still active before doing floating point operations (it's the bank that contains the fp routines).
     On the C64, you have to make sure the Basic ROM is still banked in (same reason).
 
 
@@ -401,7 +401,7 @@ or when adding more stuff to the array later. Here are some examples of arrays::
     To allow the 6502 CPU to efficiently access values in an array, the array should be small enough to be
     indexable by a single byte index.
     This means byte arrays should be <= 256 elements, word arrays <= 256 elements as well (if split, which
-    is the default. When not split, the maximum length is 128. See below for details about this disctinction).t
+    is the default. When not split, the maximum length is 128. See below for details about this distinction).
     Float arrays should be <= 51 elements.
 
 Arrays can be initialized with a range expression or an array literal value.
@@ -499,9 +499,9 @@ As an optimization, (u)word arrays, pointer arrays, and str arrays are split by 
 one with the LSBs and one with the MSBs of the word values. This is more efficient to access by the 6502 cpu.
 It also allows a maximum length of 256 for word arrays, where normally it would have been 128.
 
-For normal prog8 array indexing, the compiler takes care of the distiction for you under water.
+For normal prog8 array indexing, the compiler takes care of the distinction for you under water.
 *But for assembly code, or code that otherwise accesses the array elements directly, you have to be aware of the distinction from 'normal' arrays.*
-In the assembly code, the array is generated as two byte arrays namely ``name_lsb`` and ``name_msb``, immediately following eachother in memory.
+In the assembly code, the array is generated as two byte arrays namely ``name_lsb`` and ``name_msb``, immediately following each other in memory.
 
 The ``@nosplit`` tag can be added to the variable declaration to *not* split the array. This is useful for compatibility with
 code that expects the words to be sequentially in memory (such as the cx16.FB_set_palette routine).
@@ -515,7 +515,7 @@ code that expects the words to be sequentially in memory (such as the cx16.FB_se
 .. note::
     Array literals are stored as split arrays if they're initializing a split word array, otherwise,
     they are stored as sequential words!  So if you pass one directly to a subroutine (like ``func([1111,2222,3333])``),
-    the array values are sequential in memory.  If this is undesiarable (i.e. the subroutine expects a split word array),
+    the array values are sequential in memory.  If this is undesirable (i.e. the subroutine expects a split word array),
     you have to create a normal array variable first and then pass that to the subroutine.
 
 .. caution::

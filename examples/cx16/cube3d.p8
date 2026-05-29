@@ -55,7 +55,7 @@ main {
 }
 
 matrix_math {
-    %option verafxmuls      ; accellerate all word-multiplications in this block using Vera FX hardware muls
+    %option verafxmuls      ; accelerate all word-multiplications in this block using Vera FX hardware muls
 
     ; vertices
     word[] xcoor = [ -40, -40, -40, -40,  40,  40,  40, 40 ]

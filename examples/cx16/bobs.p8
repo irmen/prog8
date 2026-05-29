@@ -27,7 +27,7 @@ main {
         cx16.VERA_L1_MAPBASE = 0
         cx16.VERA_L1_TILEBASE = 0
 
-        ; limit display heigth to 200 pixels to have enough vram for 14 backbuffers
+        ; limit display height to 200 pixels to have enough vram for 14 backbuffers
         const ubyte vstart = 20
         const ubyte vheight = 200
         cx16.VERA_CTRL = %00000010

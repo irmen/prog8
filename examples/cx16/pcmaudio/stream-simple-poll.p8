@@ -3,7 +3,7 @@
 ; It is hardwired to play a 16 bit stereo PCM file,
 ; but you can type in the sample rate you want to play it in.
 ;
-; It uses simple polling on the AFLOW flag rather than actually using a IRQ hander,
+; It uses simple polling on the AFLOW flag rather than actually using a IRQ handler,
 ; to see when to refill the FIFO buffer.
 ;
 ; The sample data is simply read using diskio.f_read() routine, but that uses MACPTR internally for fast loads.

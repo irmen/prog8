@@ -53,7 +53,7 @@ The path you need to provide for the ``library`` variable can be relative (to th
 and you can use a tilde ``~`` in it like in a shell path, to refer to a user's home directory.
 Note that library modules not unique to a specific compilation target (for example, `buffers`, `sorting` or `strings`) will
 be picked up from the internal library files just fine as was always the case. You can still provide custom versions of them
-in your own library folder ofcourse, like you already could with using the ``-srcdirs`` compiler flag.
+in your own library folder of course, like you already could with using the ``-srcdirs`` compiler flag.
 
 Most of the things discussed in the :ref:`portingguide` can and must be configured properly in the target configuration file.
 You also need to create some essential ``syslib`` library module for the configured target if its name does not match
@@ -307,7 +307,7 @@ Here they are, all available in ``cx16``:
     The order in which the handlers are invoked if multiple interrupts occur simultaneously is: LINE, TIMER1(VIA1), VSYNC, SPRCOL, AFLOW.
 
 ``set_vsync_irq_handler (uword address)``
-    Sets the verical sync interrupt handler routine.  Also enables VSYNC interrupts.
+    Sets the vertical sync interrupt handler routine.  Also enables VSYNC interrupts.
 
 ``set_line_irq_handler (uword rasterline, uword address)``
     Sets the rasterline interrupt handler routine to trigger on the specified raster line.

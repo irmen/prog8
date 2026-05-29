@@ -726,7 +726,7 @@ planet {
     str[] @nosplit words92 = ["wasp", "moth", "grub", "ant", "\xB2"]
     str[] @nosplit words93 = ["poet", "arts graduate", "yak", "snail", "slug"]
     str[] @nosplit words94 = ["tropical", "dense", "rain", "impenetrable", "exuberant"]
-    str[] @nosplit words95 = ["funny", "wierd", "unusual", "strange", "peculiar"]
+    str[] @nosplit words95 = ["funny", "weird", "unusual", "strange", "peculiar"]
     str[] @nosplit words96 = ["frequent", "occasional", "unpredictable", "dreadful", "deadly"]
     str[] @nosplit words97 = ["\x82 \x81 for \x8A", "\x82 \x81 for \x8A and \x8A", "\x88 by \x89", "\x82 \x81 for \x8A but \x88 by \x89", "a\x90 \x91"]
     str[] @nosplit words98 = ["\x9B", "mountain", "edible", "tree", "spotted"]

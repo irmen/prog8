@@ -23,7 +23,7 @@ Then you can choose a few ways to get a compiler:
 
 Arch Linux:
     Currently, it's available on `AUR <https://wiki.archlinux.org/title/Arch_User_Repository>`_ for Arch Linux and derivative systems.
-    The package is called `"prog8" <https://aur.archlinux.org/packages/prog8>`_. There should be no need to install aything else as
+    The package is called `"prog8" <https://aur.archlinux.org/packages/prog8>`_. There should be no need to install anything else as
     it can automatically pull in the required dependencies.
 
     This package, alongside the compiler itself, also globally installs syntax highlighting for ``vim`` and ``nano``.
@@ -65,12 +65,12 @@ The most interesting gradle commands to run are probably the ones listed below.
     ``./gradlew installShadowDist``
         Creates a 'fat-jar' that contains the compiler and all dependencies, in a single
         executable .jar file, and includes few start scripts to run it.
-        The output can be found in ``.compiler/build/install/prog8c-shadow/``
+        The output can be found in ``./compiler/build/install/prog8c-shadow/``
     ``./gradlew shadowDistZip``
         Creates a zipfile with the above in it, for easy distribution.
         This file can be found in ``./compiler/build/distributions/``
 
-For normal use, the ``installDist`` task should suffice and after succesful completion, you can start the compiler with:
+For normal use, the ``installDist`` task should suffice and after successful completion, you can start the compiler with:
 
     ``./compiler/build/install/prog8c/bin/prog8c <options> <sourcefile>``
 
@@ -163,7 +163,7 @@ One or more .p8 module files
     This can be useful on emulators/systems that don't parse the breakpoint information in the list file,
     such as the X16Emu emulator for the Commander X16.
     Useful instructions to consider are ``brk`` and ``stp``.
-    For example for the Commander X16 emulator, ``stp`` is useful because it can actually tyrigger
+    For example for the Commander X16 emulator, ``stp`` is useful because it can actually trigger
     a breakpoint halt in the debugger when this is enabled by running the emulator with -debug.
 
 ``-bytes2float <bytes>``
@@ -219,7 +219,7 @@ One or more .p8 module files
     With this option you're basically saying: "Yes, I know I am treading on mighty thin ice here, but I don't want to be reminded about that".
 
 ``-libsearch pattern``
-    Search in the embedded library files for occurences of the given regex pattern.
+    Search in the embedded library files for occurrences of the given regex pattern.
 
 ``-libdump path``
     Extract all embedded library files into the given output directory.
@@ -269,7 +269,7 @@ One or more .p8 module files
 
 ``-nosourcelines``
     Do not include the original prog8 source code lines as comments in the generated assembly code file,
-    mixed in between the actual generated assembly code. The default behavior is to include the sourcel lines.
+    mixed in between the actual generated assembly code. The default behavior is to include the source lines.
 
 ``-srcdirs <pathlist>``
     Specify a list of extra paths (separated with ':'), to search in for imported modules.
@@ -280,7 +280,7 @@ One or more .p8 module files
     Sets the target output of the compiler. This option is required.
     ``c64`` = Commodore 64, ``c128`` = Commodore 128, ``cx16`` = Commander X16, ``pet32`` - Commodore PET model 4032,
     ``virtual`` = builtin virtual machine.
-    You can also specify a file name as target, prog8 will when try to read the target
+    You can also specify a file name as target, prog8 will then try to read the target
     machine's configuration and properties from that configuration file instead of using one of the built-in targets.
     See :ref:`customizable_target` for details about this.
 
@@ -303,7 +303,7 @@ One or more .p8 module files
     cx16: $A000 - $BFFF  ; 8 kB in the specified HIRAM bank (note: no auto bank switching is done, you must make sure yourself that this HIRAM bank is active when accessing these variables!)
 
     If you use this option, you can no longer use the part of the above memory area that is
-    alotted to the variables, for your own purposes. The output of the 64tass assembler step at the
+    allotted to the variables, for your own purposes. The output of the 64tass assembler step at the
     end of compilation shows precise details of where and how much memory is used by the variables
     (it's called 'BSS' section or Gap at the address mentioned above).
     Assembling the program will fail if there are too many variables to fit in a single high ram bank.
@@ -435,7 +435,7 @@ WARNING
     a compiled program is still produced,  but it is a good idea to investigate the warnings that are printed.
 
 ERROR
-    unrecoverable problem that prevented succesful compilation
+    unrecoverable problem that prevented successful compilation
 
 
 Compiler doesn't run, complains about "UnsupportedClassVersionError"
@@ -486,7 +486,7 @@ you don't use symbols named just a single letter (especially 'a', 'x' and 'y').
 Sometimes these are interpreted as the CPU register of that name. To avoid such confusions,
 always use 2 or more letters for symbols in your assembly code.
 
-'shadowing' warnings form the assembler
+'shadowing' warnings from the assembler
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Avoid using 'a', 'x' or 'y' as symbols in your inlined assembly code.
 Also avoid using 64tass' built-in function or type names as symbols in your inlined assembly code.

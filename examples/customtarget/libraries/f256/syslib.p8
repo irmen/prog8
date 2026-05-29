@@ -2,7 +2,7 @@
 
 %option no_symbol_prefixing, ignore_unused
 
-; compatiblity layer
+; compatibility layer
 cbm {
 %option no_symbol_prefixing, ignore_unused
 

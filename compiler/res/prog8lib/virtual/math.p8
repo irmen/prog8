@@ -277,7 +277,7 @@ math {
 
     sub atan2(ubyte x1, ubyte y1, ubyte x2, ubyte y2) -> ubyte {
         ;; Calculate the angle, in a 256-degree circle, between two points into A.
-        ;; The points (x1, y1) and (x2, y2) have to use *unsigned coordinates only* from the positive quadrant in the carthesian plane!
+        ;; The points (x1, y1) and (x2, y2) have to use *unsigned coordinates only* from the positive quadrant in the cartesian plane!
         %ir {{
             loadm.b r99100,math.atan2.x1
             loadm.b r99101,math.atan2.y1

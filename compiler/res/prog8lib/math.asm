@@ -439,7 +439,7 @@ divmod_uw_asm	.proc
 
 dividend = P8ZP_SCRATCH_W1
 remainder = P8ZP_SCRATCH_W2
-result = dividend ;save memory by reusing divident to store the result
+result = dividend ;save memory by reusing dividend to store the result
 
 		cpy  #0
 		bne  _nonzero

@@ -16,7 +16,7 @@ The language
 - It is meant to sit well above low level assembly code, but still allows that low level access to the system it runs on.
   Via language features, or even simply by using inline hand-written assembly code.
 - Prog8 is targeting very CPU and memory constrained 8-bit systems, this reflects many design choices to work within those limitations
-  (single digit Megaherz cpu clock speeds, and memory capacity counted in Kilobytes)
+   (single digit Megahertz cpu clock speeds, and memory capacity counted in Kilobytes)
 - Identifiers and string literals can contain non-ASCII characters so for example ``knäckebröd`` and ``見せしめ`` are valid identifiers.
 - There's usually a single statement per line. There is no statement separator.
 - Semicolon ``;`` is used to start a line comment.  Multi-line comments are also possible by enclosing it all in ``/*`` and ``*/``.
@@ -43,7 +43,7 @@ Data types
 - **There is no automatic type enlargement:** all calculations remain within the data type of the operands. Any overflow silently wraps or truncates.
   You'll have to add explicit casts to increase the size of the value if required.
   For example when adding two byte variables having values 100 and 200, the result won't be 300, because that doesn't fit in a byte. It will be 44.
-  You'll have to cast one or both of the *operands* to a word type first if you want to accomodate the actual result value of 300.
+  You'll have to cast one or both of the *operands* to a word type first if you want to accommodate the actual result value of 300.
   Similarly, ``long v = w1 * w2`` doesn't automatically give you the full 32 bits multiplication result, instead it is still constrained in the word range.
   If you need the full 32 bits result you'll have to call a specialized routine such as ``math.mul32`` or ``math.mul16_last_upper()``.
 - strings and arrays are allocated once, statically, and never resized.
@@ -66,7 +66,7 @@ Variables
   are moved to the top of the subroutine. A for loop, or if/else blocks do not introduce a new scope.
   A subroutine (also nested ones) *do* introduce a new scope.
 - All variables are initialized at the start of the program. There is no random garbage in them: they are zero or any other initialization value you provide.
-- This als means you can run a Prog8 program multiple times without having to reload it from disk, unlike programs produced by most other compilers targeting these 8 bit platforms.
+- This also means you can run a Prog8 program multiple times without having to reload it from disk, unlike programs produced by most other compilers targeting these 8 bit platforms.
 
 
 Subroutines
@@ -102,7 +102,7 @@ Pointers and Structs
   Variables of the ``uword`` datatype can be used as a pointer to one of the possible 65536 memory locations,
   so the value it points to is always a single byte. This is similar to ``uint8_t*`` from C.
   You have to deal with the uword manually if the object it points to is something different.
-- Note that there is the ``peekw`` builtin function that *does* allow you to directy obtain the *word* value at the given memory location.
+- Note that there is the ``peekw`` builtin function that *does* allow you to directly obtain the *word* value at the given memory location.
   So if you use this, you can use uword pointers as pointers to word values without much hassle.
 - "dereferencing" a uword pointer is done via array indexing ``ptr[index]`` (where index value can be 0-65535!) or via the memory read operator ``@(ptr)``, or ``peek/peekw(ptr)``.
 - Pointers don't have to be a variable, you can immediately access the value of a given memory location using ``@($d020)`` for instance.
@@ -125,14 +125,14 @@ Foreign function interface (external/ROM calls)
 
 - You can use the ``extsub`` keyword to define the call signature of foreign functions (ROM routines or external routines elsewhere in RAM) in a natural way.
   Calling those generates code that is as efficient or even more efficient as calling regular subroutines.
-  No additional stubs are needed.  Y
+   No additional stubs are needed.
 - High level support of memory banking: an ``extsub`` can be defined with the memory bank number (constant or variable) where the routine is located in,
   and then when you call it as usual, the compiler takes care of the required bank switching.
 
 Optimizations
 -------------
 - Prog8 contains many compiler optimizations to generate efficient code, but also lacks many optimizations that modern compilers do have.
-  While empirical evidence shows that Prog8 generates more efficent code than some C compilers that also target the same 8 bit systems,
+  While empirical evidence shows that Prog8 generates more efficient code than some C compilers that also target the same 8 bit systems,
   the optimizations it makes on your code aren't super sophisticated.
 - For time critical code, it may be worth it to inspect the generated assembly code to see if you can write things differently
   to help the compiler generate more efficient code (or even replace it with hand written inline assembly altogether).

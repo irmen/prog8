@@ -10,10 +10,10 @@ while still being low level enough to create high performance programs.
 The targeted CPUs are the `6502 <https://en.wikipedia.org/wiki/MOS_Technology_6502>`_ /
 `6510 <https://en.wikipedia.org/wiki/MOS_Technology_6510>`_ /
 `65c02 <https://en.wikipedia.org/wiki/MOS_Technology_65C02>`_ microprocessors.
-They are from the late 1970's and early 1980's and was used in many home computers from that era,
+They are from the late 1970's and early 1980's and were used in many home computers from that era,
 such as the `Commodore 64 <https://en.wikipedia.org/wiki/Commodore_64>`_.
 
-You can compile programs for various machines that are built in into the compiler:
+You can compile programs for various machines that are built into the compiler:
 
 * Commander X16  (with 65c02 cpu, 65816 cpu specifics are currently not supported by prog8 itself)
 * Commodore 64
@@ -227,7 +227,7 @@ To use it, configure your editor to launch ``prog8-language-server`` as the LSP 
 
 .. index:: pair: Tools; CTags
 
-**CTags:** for editors that support them, such as Vim, there is an effort by a member of the cummunity to provide "ctags" files for Prog8.
+**CTags:** for editors that support them, such as Vim, there is an effort by a member of the community to provide "ctags" files for Prog8.
 The basic purpose of ctags is to index the definitions from your source code and let you find them easily.
 It is not really to find each use of print for example, but to find where print is defined.
 Visit `the Github repository <https://github.com/gillham/prog8ctags>`_ for the files and detailed usage information.

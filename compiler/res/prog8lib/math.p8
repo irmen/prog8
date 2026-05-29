@@ -212,7 +212,7 @@ _sinecosR8	.char  trunc(127.0 * sin(range(180+45) * rad(360.0/180.0)))
         ;     some simpler multiplications will be optimized away into faster routines. These will not set the upper 16 bits at all!
         ;   - THE RESULT IS ONLY VALID IF THE MULTIPLICATION WAS DONE WITH UWORD ARGUMENTS (or two positive WORD arguments)
         ;     as soon as a negative word value (or 2) was used in the multiplication, these upper 16 bits are not valid!!
-        ;     Suggestion (if you are on the Commander X16): use verafx.muls() to get a hardware accelerated 32 bit signed multplication.
+        ;     Suggestion (if you are on the Commander X16): use verafx.muls() to get a hardware accelerated 32 bit signed multiplication.
         %asm {{
             lda  prog8_math.multiply_words.result+2
             ldy  prog8_math.multiply_words.result+3
@@ -385,7 +385,7 @@ _quadrant_region_to_direction:
 
 asmsub atan2(ubyte x1 @R0, ubyte y1 @R1, ubyte x2 @R2, ubyte y2 @R3) -> ubyte @A {
     ;; Calculate the angle, in a 256-degree circle, between two points into A.
-    ;; The points (x1, y1) and (x2, y2) have to use *unsigned coordinates only* from the positive quadrant in the carthesian plane!
+    ;; The points (x1, y1) and (x2, y2) have to use *unsigned coordinates only* from the positive quadrant in the cartesian plane!
     ;; http://codebase64.net/doku.php?id=base:8bit_atan2_8-bit_angle
     ;; This uses 2 large lookup tables so uses a lot of memory but is super fast.
 

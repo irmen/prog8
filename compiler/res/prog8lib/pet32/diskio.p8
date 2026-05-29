@@ -416,7 +416,7 @@ exit:
     }
 
     sub get_loadaddress(str filename) -> uword {
-        ; get the load adress from a PRG file (usually $0801 but it can be different)
+        ; get the load address from a PRG file (usually $0801 but it can be different)
 
         cbm.SETNAM(strings.length(filename), filename)
         cbm.SETLFS(READ_IO_CHANNEL, drivenumber, 0)

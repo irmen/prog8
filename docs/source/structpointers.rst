@@ -21,7 +21,7 @@ Structs and Pointers
 .. note::
     Due to a few limitations in the language parser, some pointer related syntax is currently unsupported.
     The compiler tries its best to give a descriptive error message but sometimes there is still a
-    parser limitation that has to be worked around at the moment. For example, this assigment syntax doesn't parse correctly::
+    parser limitation that has to be worked around at the moment. For example, this assignment syntax doesn't parse correctly::
 
         ^^Node  np
         np[2].field = 9999          ; cannot use this syntax as assignment target right now
@@ -152,7 +152,7 @@ You can copy the whole contents of a struct to another one by assigning the dere
     e1^^ = e2^^     ; copies all fields of e2 into e1
 
 
-The struct type creates a new name scape, so accessing the fields of a struct is done as usual with the dotted notation.
+The struct type creates a new name scope, so accessing the fields of a struct is done as usual with the dotted notation.
 Because it implies pointer dereferencing you can usually omit the explicit `^^`, prog8 will know what it means::
 
     if e1.ypos > 300
@@ -179,7 +179,7 @@ Because it implies pointer dereferencing you can usually omit the explicit `^^`,
     In the future more cases may be supported.
 
 .. note::
-    Using structs instead of plain arrays usually results in more and less efficent code being generated.
+    Using structs instead of plain arrays usually results in more and less efficient code being generated.
     This is because the 6502 CPU is not particularly well equipped to dealing with pointers and accessing struct fields via offsets,
     as compared to direct variable access or array indexing. The prog8 program code may be easier to work with though!
 

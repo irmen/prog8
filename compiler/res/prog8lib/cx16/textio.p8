@@ -14,7 +14,7 @@ const ubyte DEFAULT_WIDTH = 80
 const ubyte DEFAULT_HEIGHT = 60
 const long VERA_TEXTMATRIX = $1b000
 
-extsub $FFD2 = chrout(ubyte character @ A)    ; for consistency. You can also use cbm.CHROUT directly ofcourse. Note: takes a PETSCII encoded character.
+extsub $FFD2 = chrout(ubyte character @ A)    ; for consistency. You can also use cbm.CHROUT directly of course. Note: takes a PETSCII encoded character.
 
 
 sub bell() {

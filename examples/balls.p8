@@ -65,7 +65,7 @@ main {
                     }
                 }
 
-                ; Put the new ball possition
+                ; Put the new ball position
                 txt.setcc(BX[lp], BY[lp], sc:'●', BC[lp])
             }
 

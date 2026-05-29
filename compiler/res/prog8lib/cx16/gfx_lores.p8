@@ -1,5 +1,5 @@
 ; optimized graphics routines for just the single screen mode: lores 320*240, 256c  (8bpp)
-; bitmap image needs to start at VRAM addres $00000.
+; bitmap image needs to start at VRAM address $00000.
 ; This is compatible with the CX16's screen mode 128.
 
 
@@ -33,7 +33,7 @@ gfx_lores {
 
     sub clear_screen(ubyte color) {
         if verafx.available() {
-            ; use verafx cache writes to quicly clear the screen
+            ; use verafx cache writes to quickly clear the screen
             const ubyte vbank = 0
             const uword vaddr = 0
             cx16.VERA_CTRL = 0

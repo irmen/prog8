@@ -89,7 +89,7 @@ carve_restart_after_repath:
                 stackptr--
                 if stackptr==255 {
                     ; stack empty.
-                    ; repath if we are not done yet. (this is a workaround for the prog8 256 array lenght limit)
+                    ; repath if we are not done yet. (this is a workaround for the prog8 256 array length limit)
                     if cells_to_carve!=0 {
                         if repath()
                             goto carve_restart_after_repath
@@ -104,7 +104,7 @@ carve_restart_after_repath:
                 stackptr++
                 if stackptr==0 {
                     ; stack overflow, we can't track our path any longer.
-                    ; repath if we are not done yet. (this is a workaround for the prog8 256 array lenght limit)
+                    ; repath if we are not done yet. (this is a workaround for the prog8 256 array length limit)
                     if cells_to_carve!=0 {
                         if repath()
                             goto carve_restart_after_repath
@@ -138,7 +138,7 @@ carve_restart_after_repath:
 
         sub repath() -> bool {
             ; repath: try to find a new start cell with possible directions.
-            ; we limit our number of searches so that the algorith doesn't get stuck
+            ; we limit our number of searches so that the algorithm doesn't get stuck
             ; for too long on bad rng... just accept a few unused cells in that case.
             repeat 255 {
                 do {

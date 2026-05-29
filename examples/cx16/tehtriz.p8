@@ -533,7 +533,7 @@ blocklogic {
                       0,0,0,0,
                       0,0,0,0]
 
-    ubyte[16] edgecolors = [11, 1, 10, 0, 10, 13, 14, 1, 7, 7, 11, 12, 15, 1, 1, 1]      ; highlighed colors for the edges
+    ubyte[16] edgecolors = [11, 1, 10, 0, 10, 13, 14, 1, 7, 7, 11, 12, 15, 1, 1, 1]      ; highlighted colors for the edges
 
     uword[] blocks = [&blockI, &blockJ, &blockL, &blockO, &blockS, &blockT, &blockZ]
 

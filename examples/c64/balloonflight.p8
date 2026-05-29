@@ -118,7 +118,7 @@ main {
 	    ; Scroll the bottom half (approx.) of the character screen 1 character to the left
 	    ; contents of the rightmost column are unchanged, you should clear/refill this yourself
 	    ; Without clever split-screen tricks, the C64 is not fast enough to scroll the whole
-	    ; screen smootly without tearing. So for simplicity it's constrained to less rows
+	    ; screen smoothly without tearing. So for simplicity it's constrained to less rows
 	    ; such that what is scrolled, *does* scrolls smoothly.
 	    ; For maximum performance the scrolling is done in unrolled assembly code.
 

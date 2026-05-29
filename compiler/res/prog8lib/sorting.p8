@@ -44,7 +44,7 @@ _done
     }
 
     sub gnomesort_by_ub(^^ubyte @requirezp ub_keys, ^^uword wordvalues, ubyte num_elements) {
-        ; sorts the 'wordvalues' array (no-split array of words) according to the 'ub_keys' array (which also gets sorted ofcourse).
+        ; sorts the 'wordvalues' array (no-split array of words) according to the 'ub_keys' array (which also gets sorted of course).
         ubyte @zp pos=1
         while pos != num_elements {
             if ub_keys[pos]>=ub_keys[pos-1]
@@ -88,7 +88,7 @@ _done
     }
 
     sub gnomesort_by_uw(uword @requirezp uw_keys, uword wordvalues, ubyte num_elements) {
-        ; Sorts the 'wordvalues' array according to the 'uw_keys' array (which also gets sorted ofcourse).
+        ; Sorts the 'wordvalues' array according to the 'uw_keys' array (which also gets sorted of course).
         ; both arrays should be no-split array of words. uw_keys are unsigned.
         ; Max number of elements is 128 to keep indexing code size small and fast. Clobbers R0 and R1.
         ubyte @zp pos=2
@@ -161,7 +161,7 @@ _done
     }
 
     sub shellsort_by_ub(^^ubyte @requirezp ub_keys, ^^uword @requirezp wordvalues, ubyte num_elements) {
-        ; sorts the 'wordvalues' array (no-split array of words) according to the 'ub_keys' array (which also gets sorted ofcourse).
+        ; sorts the 'wordvalues' array (no-split array of words) according to the 'ub_keys' array (which also gets sorted of course).
         num_elements--
         ubyte @zp gap
         for gap in [132, 57, 23, 10, 4, 1] {
@@ -187,7 +187,7 @@ _done
     }
 
     sub shellsort_by_uw(^^uword @requirezp uw_keys, ^^uword @requirezp wordvalues, ubyte num_elements) {
-        ; sorts the 'wordvalues' array according to the 'uw_keys' array (which also gets sorted ofcourse).
+        ; sorts the 'wordvalues' array according to the 'uw_keys' array (which also gets sorted of course).
         ; both arrays should be no-split array of words. uw_keys are unsigned.
         num_elements--
         ubyte gap

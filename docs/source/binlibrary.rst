@@ -42,7 +42,7 @@ No system initialization and startup code
 Variable initialization
     The library still has to initialize any variables it might use and clear
     uninitialized "BSS" variables! Otherwise the code will not run predictably as prog8 code.
-    So, the library must still have a "start" entrypoint subroutine like any outher prog8 program,
+    So, the library must still have a "start" entrypoint subroutine like any other prog8 program,
     that must be called before any other library routine can be called.
 
 Binary output and loaded into a fixed memory address
@@ -79,7 +79,7 @@ Jump table
 For ease of use, libraries should probably have a fixed "jump table" where the offsets of the
 library routines stay the same across different versions of the library. Without needing new syntax,
 there's a trick in Prog8 that you can use to build such a jumptable:
-add a non-splitted word array at the top of the library main block that contains JMP instructions
+add a non-split word array at the top of the library main block that contains JMP instructions
 and the addresses of the individual library subroutines. Do NOT change the order of the subroutines
 in this table!
 Also note that the Prog8 compiler will insert a single JMP instruction at the very start of the library,

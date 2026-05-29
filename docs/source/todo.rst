@@ -26,10 +26,10 @@ Future Things and Ideas
 - struct/ptr: implement the remaining TODOs in PointerAssignmentsGen.
 - struct/ptr: support pointer to pointer?
 - struct/ptr: support for typed function pointers, so that we can call them via functptr^^(args) maybe even without the ^^ operator?  (&routine could be typed by default as well then)
-- struct/ptr: really fixing the pointer dereferencing issues (cursed hybrid beween IdentifierReference, PtrDereferece and PtrIndexedDereference) may require getting rid of scoped identifiers altogether and treat '.' as a "scope or pointer following operator"
+- struct/ptr: really fixing the pointer dereferencing issues (cursed hybrid between IdentifierReference, PtrDereferece and PtrIndexedDereference) may require getting rid of scoped identifiers altogether and treat '.' as a "scope or pointer following operator"
 - struct/ptr: (later, nasty parser problem:) support chaining pointer dereference on function calls that return a pointer.  (type checking now fails on stuff like func().field and func().next.field)
-- Make all constants long by default? or not? (remove type name altogether), reduce to target type implictly if the actual value fits.  -> long-consts branch
-  This will break some existing programs that depend on value wrap arounds, but gives more intuitive constant number handling.
+- Make all constants long by default? or not? (remove type name altogether), reduce to target type implicitly if the actual value fits.  -> long-consts branch
+  This will break some existing programs that depend on value wraparound, but gives more intuitive constant number handling.
   Can give descriptive error message for old syntax that still includes the type name?
 - add documentation for more library modules instead of just linking to the source code
 - sizeof(pointer) is now always 2 (an uword), make this a variable in the ICompilationTarget so that it could be 4 at the time we might ad a 32-bits 68000 target for example. Much code assumes word size addresses though.
@@ -66,7 +66,7 @@ Romable (%option romable)
 IR/VM
 ^^^^^
 - getting it in shape for code generation: the IR file should be able to encode every detail about a prog8 program (the VM doesn't have to actually be able to run all of it though!)
-- maybe change all branch instructions to have 2 exits (label if branch condition ture, and label if false) instead of 1, and get rid of the implicit "next code chunk" link between chunks.
+- maybe change all branch instructions to have 2 exits (label if branch condition true, and label if false) instead of 1, and get rid of the implicit "next code chunk" link between chunks.
 - implement more TODOs in AssignmentGen?
 - add more optimizations in IRPeepholeOptimizer?
 - **Multi-Level IR Design**: Consider introducing a High-Level IR (HLIR) layer before the current low-level IR to preserve semantics like loop bounds, array indexing, and structure field access.

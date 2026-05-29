@@ -7,7 +7,7 @@ strings {
 
     asmsub length(str string @AY) clobbers(A) -> ubyte @Y {
         ; Returns the number of bytes in the string.
-        ; This value is determined during runtime and counts upto the first terminating 0 byte in the string,
+        ; This value is determined during runtime and counts up to the first terminating 0 byte in the string,
         ; regardless of the size of the string during compilation time. Don’t confuse this with len and sizeof!
 
         ; uses P8ZP_SCRATCH_W1 to store the string address, do not change this, other routines here may depend on it (as optimization implementation detail)
@@ -29,7 +29,7 @@ strings {
         ; Also, you have to make sure yourself that length is smaller or equal to the length of the source string.
         ; Modifies in-place, doesn’t return a value (so can’t be used in an expression).
         %asm {{
-		; need to copy the the cx16 virtual registers to zeropage to be compatible with C64...
+		; need to copy the cx16 virtual registers to zeropage to be compatible with C64...
 		sta  P8ZP_SCRATCH_W1
 		stx  P8ZP_SCRATCH_W1+1
 		lda  cx16.r1
@@ -56,7 +56,7 @@ _loop		dey
         ; Also, you have to make sure yourself that length is smaller or equal to the length of the source string.
         ; Modifies in-place, doesn’t return a value (so can’t be used in an expression).
         %asm {{
-		; need to copy the the cx16 virtual registers to zeropage to be compatible with C64...
+		; need to copy the cx16 virtual registers to zeropage to be compatible with C64...
 		stx  P8ZP_SCRATCH_B1
 		sta  cx16.r0
 		sty  cx16.r0+1
@@ -96,7 +96,7 @@ _loop		dey
         ; Also, you have to make sure yourself that start and length are within bounds of the strings.
         ; Modifies in-place, doesn’t return a value (so can’t be used in an expression).
         %asm {{
-		; need to copy the the cx16 virtual registers to zeropage to be compatible with C64...
+		; need to copy the cx16 virtual registers to zeropage to be compatible with C64...
 		; substr(source, target, start, length)
 		sta  P8ZP_SCRATCH_B1
 		lda  cx16.r0
@@ -131,7 +131,7 @@ _startloop	dey
         ; Locates the first position of the given character in the string,
         ; returns Carry set if found + index in A, or Carry clear if not found (and A will be 255, an invalid index).
         %asm {{
-		; need to copy the the cx16 virtual registers to zeropage to make this run on C64...
+		; need to copy the cx16 virtual registers to zeropage to make this run on C64...
 		sta  P8ZP_SCRATCH_W1
 		sty  P8ZP_SCRATCH_W1+1
 		stx  P8ZP_SCRATCH_B1
@@ -157,7 +157,7 @@ _found	tya
         ; This is a convenience function that looks for both a CR or LF (byte 13 or byte 10) as being a possible Line Ending.
         ; returns Carry set if found + index in A, or Carry clear if not found (and A will be 255, an invalid index).
         %asm {{
-		; need to copy the the cx16 virtual registers to zeropage to make this run on C64...
+		; need to copy the cx16 virtual registers to zeropage to make this run on C64...
 		sta  P8ZP_SCRATCH_W1
 		sty  P8ZP_SCRATCH_W1+1
 		ldy  #0
@@ -297,7 +297,7 @@ _max_too_small
     asmsub compare(str string1 @R0, str string2 @AY) clobbers(Y) -> byte @A {
         ; Compares two strings for sorting, case-sensitively.
         ; Returns -1 (255), 0 or 1, meaning: string1 sorts before, equal or after string2.
-        ; Note that you can also directly compare strings and string values with eachother using
+        ; Note that you can also directly compare strings and string values with each other using
         ; comparison operators ==, < etcetera (this will use strcmp automatically).
         %asm {{
 		sta  P8ZP_SCRATCH_W2
@@ -311,7 +311,7 @@ _max_too_small
     asmsub compare_nocase(str string1 @R0, str string2 @AY) clobbers(Y) -> byte @A {
         ; Compares two strings for sorting, case-insensitively for PETSCII strings.
         ; Returns -1 (255), 0 or 1, meaning: string1 sorts before, equal or after string2.
-        ; Note that you can also directly compare strings and string values with eachother using
+        ; Note that you can also directly compare strings and string values with each other using
         ; comparison operators ==, < etcetera (this will use strcmp automatically).
         %asm {{
 		sta  P8ZP_SCRATCH_W2
@@ -350,7 +350,7 @@ _c1_zero
     asmsub compare_nocase_iso(str string1 @R0, str string2 @AY) clobbers(Y) -> byte @A {
         ; Compares two strings for sorting, case-insensitively for ISO strings.
         ; Returns -1 (255), 0 or 1, meaning: string1 sorts before, equal or after string2.
-        ; Note that you can also directly compare strings and string values with eachother using
+        ; Note that you can also directly compare strings and string values with each other using
         ; comparison operators ==, < etcetera (this will use strcmp automatically).
         %asm {{
 		sta  P8ZP_SCRATCH_W2
@@ -525,7 +525,7 @@ _done       rts
         ; ? matches any one character. For example, F?? matches FOO but not FU, and ?? matches all two-character strings.
         ; * matches any string, including the empty string.
         ; For example, F* matches all strings starting with F. *O*O* matches all strings with at least two Os. Finally, ?* matches all non-empty strings.
-        ; Both the pattern and the string must be NUL-terminated (that it, followed with a 00 byte) and at most 255 characters long (excluding the NUL).
+        ; Both the pattern and the string must be NUL-terminated (that is, followed with a 00 byte) and at most 255 characters long (excluding the NUL).
         ; Code taken from http://6502.org/source/strings/patmatch.htm
         ;
         ; Input:  cx16.r0:  A NUL-terminated, <255-length pattern
@@ -562,7 +562,7 @@ next    lda $ffff,x   ; look at next pattern character    MODIFIED
 	cmp #'*'     ; is it a star?
 	beq star        ; yes, do the complicated stuff
 	iny             ; no, let's look at the string
-	cmp #'?'     ; is the pattern caracter a ques?
+	cmp #'?'     ; is the pattern character a ques?
 	bne reg         ; no, it's a regular character
 	lda (strptr),y     ; yes, so it will match anything
 	beq fail        ;  except the end of string
@@ -602,7 +602,7 @@ fail    clc             ; yes, no match found, return with c=0
         ; ? matches any one character. For example, F?? matches FOO but not FU, and ?? matches all two-character strings.
         ; * matches any string, including the empty string.
         ; For example, F* matches all strings starting with F. *O*O* matches all strings with at least two Os. Finally, ?* matches all non-empty strings.
-        ; Both the pattern and the string must be NUL-terminated (that it, followed with a 00 byte) and at most 255 characters long (excluding the NUL).
+        ; Both the pattern and the string must be NUL-terminated (that is, followed with a 00 byte) and at most 255 characters long (excluding the NUL).
         ; Code taken from http://6502.org/source/strings/patmatch.htm
         ;
         ; Input:  cx16.r0:  A NUL-terminated, <255-length pattern
@@ -651,7 +651,7 @@ next    lda $ffff,x   ; look at next pattern character    MODIFIED
 	cmp #'*'     ; is it a star?
 	beq star        ; yes, do the complicated stuff
 	iny             ; no, let's look at the string
-	cmp #'?'     ; is the pattern caracter a ques?
+	cmp #'?'     ; is the pattern character a ques?
 	bne reg         ; no, it's a regular character
 	lda (strptr),y     ; yes, so it will match anything
 	beq fail        ;  except the end of string

@@ -50,7 +50,7 @@ sorting {
 
 
     sub shellsort_by_ub(^^ubyte @requirezp ub_keys, ^^uword @requirezp wordvalues, ubyte num_elements) {
-        ; sorts the 'wordvalues' array (no-split array of words) according to the 'ub_keys' array (which also gets sorted ofcourse).
+        ; sorts the 'wordvalues' array (no-split array of words) according to the 'ub_keys' array (which also gets sorted of course).
         num_elements--
         ubyte @zp gap
         for gap in [132, 57, 23, 10, 4, 1] {
@@ -76,7 +76,7 @@ sorting {
     }
 
     sub shellsort_by_uw(^^uword @requirezp uw_keys, ^^uword @requirezp wordvalues, ubyte num_elements) {
-        ; sorts the 'wordvalues' array according to the 'uw_keys' array (which also gets sorted ofcourse).
+        ; sorts the 'wordvalues' array according to the 'uw_keys' array (which also gets sorted of course).
         ; both arrays should be no-split array of words. uw_keys are unsigned.
         num_elements--
         ubyte gap

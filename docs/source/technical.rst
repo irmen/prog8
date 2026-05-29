@@ -168,7 +168,7 @@ Regular subroutines
 For *single* byte, word, and pointer arguments (not long or float), the values are simply loaded in cpu registers by the caller before calling the subroutine.
 *The subroutine itself will take care of putting the values into the parameter variables.* This saves on code size because
 otherwise all callers would have to store the values in those variables themselves.
-Note that his convention is also still used for subroutines that specify parameters to be put into
+Note that this convention is also still used for subroutines that specify parameters to be put into
 one of the *virtual registers* R0-R15, as those are in the end just variables too (see :ref:`reusevirtualregs_params`)
 The rules are as follows:
 
@@ -224,7 +224,7 @@ Float values can be put in the FAC1 or FAC2 floating point 'registers'.
 The return values also get returned via designated registers, or via processor status flags again.
 This means that after calling such a routine you can immediately act on the status
 via a special branch instruction such as ``if_z`` or ``if_cs`` etc.
-The register/status flag usage is fully specified in the asmsub or extsub signature defintion
+The register/status flag usage is fully specified in the asmsub or extsub signature definition
 for both the parameters and the return values::
 
     extsub $2000 = extfunction(ubyte arg1 @A, uword arg2 @XY, uword arg3 @R0,
@@ -261,7 +261,7 @@ Some notes and references into the compiler's source code modules:
    (``intermediate`` and ``codeGenIntermediate`` modules, and ``virtualmachine`` module for the VM related stuff)
    Note that this IR is still *targeted to one specific compilation target only*; various properties and all library
    code for the selected target machine is encoded into the IR. It is *not possible* to eventually create a C64 program
-   from an IR file crated for the CommanderX16 target.
+   from an IR file created for the CommanderX16 target.
 #. The code generator backends all implement a common interface ``ICodeGeneratorBackend`` defined in the ``codeCore`` module.
    Currently they get handed the program Ast, Symboltable and several other things.
    If the code generator wants it can use the ``IRCodeGen`` class from the ``codeGenIntermediate`` module

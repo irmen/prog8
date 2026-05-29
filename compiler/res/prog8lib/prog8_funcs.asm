@@ -482,7 +482,7 @@ from_scratchW1
 	.pend
 
 func_peekl   .proc
-	; -- read the ;pmg value on the address in AY, into R14:R15
+	; -- read the long value on the address in AY, into R14:R15
 	sta  P8ZP_SCRATCH_W1
 	sty  P8ZP_SCRATCH_W1+1
 from_scratchW1

@@ -185,7 +185,7 @@ gfx_hires {
 
     sub vertical_line(uword xx, uword yy, uword lheight, ubyte color) {
         ; highres 4c
-        ; use TWO vera adress pointers simultaneously one for reading, one for writing, so auto-increment is possible
+        ; use TWO vera address pointers simultaneously one for reading, one for writing, so auto-increment is possible
         if lheight==0
             return
         position2(xx,yy,true)
