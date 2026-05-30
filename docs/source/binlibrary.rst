@@ -105,8 +105,8 @@ Assuming the load address of the library is $A000:
 
     BLOAD "LIBRARY.BIN",8,1,$A000
     SYS $A000 : REM TO INITIALIZE VARIABLES, REQUIRED!
-    SYS $A004 : REM CALL FIRST ROUTINE
-    SYS $A008 : REM CALL SECOND ROUTINE, ETC.
+    SYS $A003 : REM CALL FIRST ROUTINE
+    SYS $A006 : REM CALL SECOND ROUTINE, ETC.
 
 
 .. index:: single: Examples; Library from Prog8
@@ -123,8 +123,8 @@ differences if you want to write portable code)::
     main {
 
         extsub $A000 = lib_init() clobbers(A)
-        extsub $A004 = lib_func1() clobbers(A,X,Y)
-        extsub $A008 = lib_func2() clobbers(A,X,Y)
+        extsub $A003 = lib_func1() clobbers(A,X,Y)
+        extsub $A006 = lib_func2() clobbers(A,X,Y)
 
         sub start() {
             if diskio.loadlib("library.bin", $a000) != 0 {
@@ -145,8 +145,8 @@ differences if you want to write portable code)::
 
     int main() {
         void (*lib_init)(void) = (void (*)()) 0xa000;
-        void (*lib_func1)(void) = (void (*)()) 0xa004;
-        void (*lib_func2)(void) = (void (*)()) 0xa008;
+        void (*lib_func1)(void) = (void (*)()) 0xa003;
+        void (*lib_func2)(void) = (void (*)()) 0xa006;
 
         cbm_k_setlfs(0, 8, 2);
         cbm_k_setnam("library.bin");
@@ -179,8 +179,8 @@ differences if you want to write portable code)::
         jsr  $ffd2      ; CHROUT
 
         jsr  $A000      ; library init
-        jsr  $A004      ; lib func 1
-        jsr  $A008      ; lib func 2
+        jsr  $A003      ; lib func 1
+        jsr  $A006      ; lib func 2
 
         rts
 

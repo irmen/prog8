@@ -1374,8 +1374,8 @@ make it easier to define jump tables for example, like this::
 
     const uword APIBASE = $8000
     extsub APIBASE+0 = firstroutine()
-    extsub APIBASE+10 = secondroutine()
-    extsub APIBASE+20 = thirdroutine()
+    extsub APIBASE+3 = secondroutine()
+    extsub APIBASE+6 = thirdroutine()
 
 **Banks:** it is possible to declare a non-standard ROM or RAM bank that the routine is living in, with ``@bank`` like this:
 ``extsub @bank 10  $C09F = audio_init()`` to define a routine at $C09F in bank 10. You can also specify a variable for the bank.
