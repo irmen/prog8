@@ -119,6 +119,43 @@ class TestExecution6502 : FunSpec({
         machine.cpu.totalCycles shouldBeLessThan 200
     }
 
+    test("long repeat loops") {
+        val src = $$"""
+            %option no_sysinit
+            %launcher none
+            %address $1000
+            
+            main {
+                &ubyte poweroff = $f203
+                &long result = $02    ; result is stored in memory at $02
+                
+                sub start() {
+                    long @shared qq = 0
+                    repeat 70000 {
+                        qq++
+                    }
+                    result = qq
+                    
+                    long @shared iters = 70000
+                    repeat iters {
+                        qq++
+                    }
+                    result = qq
+                    
+                    poweroff = 1
+                }
+            }
+        """.trimIndent()
+
+        val compileResult = compileText(Cx16Target(), false, src, outputDir)
+        // 140000 iterations * ~40 cycles = 5.6 million. Let's use 10 million to be safe.
+        val machine = compileResult!!.simulate(maxCycles = 10000000L)
+        machine.assertMemory(0x02, (140000L and 0xff).toInt())
+        machine.assertMemory(0x03, ((140000L shr 8) and 0xff).toInt())
+        machine.assertMemory(0x04, ((140000L shr 16) and 0xff).toInt())
+        machine.assertMemory(0x05, ((140000L shr 24) and 0xff).toInt())
+    }
+
     test("top level RTS exits simulator") {
         val src = $$"""
             %option no_sysinit

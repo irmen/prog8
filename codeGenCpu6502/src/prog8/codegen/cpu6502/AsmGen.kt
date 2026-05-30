@@ -1175,6 +1175,7 @@ class AsmGen6502Internal (
                 when {
                     iterations == 0 -> {}
                     iterations == 1 -> translate(stmt.statements)
+                    iterations > 65536 -> repeatLongCount(iterations.toLong(), stmt)
                     iterations !in 0..65536 -> throw AssemblyError("invalid number of iterations")
                     iterations <= 256 -> repeatByteCount(iterations, stmt)
                     else -> repeatWordCount(iterations, stmt)
@@ -1186,12 +1187,17 @@ class AsmGen6502Internal (
                 val name = asmVariableName(stmt.count as PtIdentifier)
                 when {
                     vardecl.type.isByte -> {
-                        assignVariableToRegister(name, RegisterOrPair.Y, stmt.definingISub(), stmt.count.position)
+                        assignVariableToRegister(name, RegisterOrPair.Y, stmt.definingISub(), stmt.count.position, vardecl.type.isSigned)
                         repeatCountInY(stmt, endLabel)
                     }
                     vardecl.type.isWord -> {
-                        assignVariableToRegister(name, RegisterOrPair.AY, stmt.definingISub(), stmt.count.position)
+                        assignVariableToRegister(name, RegisterOrPair.AY, stmt.definingISub(), stmt.count.position, vardecl.type.isSigned)
                         repeatWordCountInAY(endLabel, stmt)
+                    }
+                    vardecl.type.isLong -> {
+                        val reg = CombinedLongRegisters.last()
+                        assignVariableToRegister(name, reg, stmt.definingISub(), (stmt.count as PtIdentifier).position, vardecl.type.isSigned)
+                        repeatLongCountInReg(reg, endLabel, stmt)
                     }
                     else -> throw AssemblyError("invalid loop variable datatype ${vardecl.type}")
                 }
@@ -1199,12 +1205,17 @@ class AsmGen6502Internal (
             else -> {
                 when {
                     stmt.count.type.isByte -> {
-                        assignExpressionToRegister(stmt.count, RegisterOrPair.Y)
+                        assignExpressionToRegister(stmt.count, RegisterOrPair.Y, stmt.count.type.isSigned)
                         repeatCountInY(stmt, endLabel)
                     }
                     stmt.count.type.isWord -> {
-                        assignExpressionToRegister(stmt.count, RegisterOrPair.AY)
+                        assignExpressionToRegister(stmt.count, RegisterOrPair.AY, stmt.count.type.isSigned)
                         repeatWordCountInAY(endLabel, stmt)
+                    }
+                    stmt.count.type.isLong -> {
+                        val reg = CombinedLongRegisters.last()
+                        assignExpressionToRegister(stmt.count, reg, stmt.count.type.isSigned)
+                        repeatLongCountInReg(reg, endLabel, stmt)
                     }
                     else -> throw AssemblyError("invalid loop expression datatype ${stmt.count.type}")
                 }
@@ -1212,6 +1223,75 @@ class AsmGen6502Internal (
         }
 
         loopEndLabels.removeLast()
+    }
+    
+    private fun repeatLongCount(iterations: Long, stmt: PtRepeatLoop) {
+        require(iterations > 65536) { "invalid repeat count ${stmt.position}" }
+        val repeatLabel = makeLabel("repeat")
+        val counterVar = createTempVarReused(BaseDataType.LONG, true, stmt)
+
+        val bytes = mutableListOf<Int>()
+        var currentN = iterations
+        while (currentN > 0) {
+            val b = (currentN % 256).toInt()
+            bytes.add(b)
+            currentN = if (b == 0) currentN / 256 else currentN / 256 + 1
+            if (currentN == 1L) break
+        }
+
+        for (i in bytes.indices) {
+            val v = bytes[i]
+            val suffix = if (i > 0) "+$i" else ""
+            if (v == 0 && isTargetCpu(CpuType.CPU65C02)) {
+                out("  stz  $counterVar$suffix")
+            } else {
+                out("  lda  #$v")
+                out("  sta  $counterVar$suffix")
+            }
+        }
+
+        out(repeatLabel)
+        translate(stmt.statements)
+
+        for (i in bytes.indices) {
+            val suffix = if (i > 0) "+$i" else ""
+            out("  dec  $counterVar$suffix")
+            out("  bne  $repeatLabel")
+        }
+    }
+
+    private fun repeatLongCountInReg(reg: RegisterOrPair, endLabel: String, stmt: PtRepeatLoop) {
+        require(reg in CombinedLongRegisters)
+        val repeatLabel = makeLabel("repeat")
+        val regName = "cx16." + reg.startregname()
+        val d1 = makeLabel("skip_dec1")
+        val d2 = makeLabel("skip_dec2")
+        val d3 = makeLabel("skip_dec3")
+        out("""
+            lda  $regName
+            ora  $regName+1
+            ora  $regName+2
+            ora  $regName+3
+            beq  $endLabel
+$repeatLabel""")
+        translate(stmt.statements)
+        out("""
+            lda  $regName
+            bne  $d3
+            lda  $regName+1
+            bne  $d2
+            lda  $regName+2
+            bne  $d1
+            dec  $regName+3
+$d1         dec  $regName+2
+$d2         dec  $regName+1
+$d3         dec  $regName
+            lda  $regName
+            ora  $regName+1
+            ora  $regName+2
+            ora  $regName+3
+            bne  $repeatLabel""")
+        out(endLabel)
     }
 
     private fun repeatWordCount(iterations: Int, stmt: PtRepeatLoop) {

@@ -109,8 +109,9 @@ Assuming the load address of the library is $A000:
     SYS $A008 : REM CALL SECOND ROUTINE, ETC.
 
 
-**From Prog8**
 .. index:: single: Examples; Library from Prog8
+
+**From Prog8:**
 
 The ``diskio`` module actually provides a convenience routine called ``loadlib`` that loads a Prog8-compiled
 library blob into memory. It internally automatically uses either regular load() or load_raw(),
@@ -147,9 +148,9 @@ differences if you want to write portable code)::
         void (*lib_func1)(void) = (void (*)()) 0xa004;
         void (*lib_func2)(void) = (void (*)()) 0xa008;
 
-	    cbm_k_setlfs(0, 8, 2);
-	    cbm_k_setnam("library.bin");
-	    cbm_k_load(0, 0xa000);
+        cbm_k_setlfs(0, 8, 2);
+        cbm_k_setnam("library.bin");
+        cbm_k_load(0, 0xa000);
 
         lib_init();
         lib_func1();

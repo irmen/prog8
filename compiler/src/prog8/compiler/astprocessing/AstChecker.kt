@@ -698,7 +698,12 @@ internal class AstChecker(private val program: Program,
         val iterations = repeatLoop.iterations?.constValue(program)
         if (iterations != null) {
             require(floor(iterations.number)==iterations.number)
-            if (iterations.number.toInt() > 65536) errors.err("repeat cannot exceed 65536 iterations", iterations.position)
+            if (iterations.number.toInt() > 65536) 
+                errors.warn("repeat using a long counter could be very slow", iterations.position)
+        }
+        
+        if(repeatLoop.iterations?.inferType(program)?.isLong==true) {
+            errors.warn("repeat using a long counter could be very slow", repeatLoop.iterations!!.position)
         }
 
         val ident = repeatLoop.iterations as? IdentifierReference

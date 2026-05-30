@@ -1,9 +1,30 @@
+%import textio
 %zeropage basicsafe
 
 main {
     sub start() {
-        const uword buffer = 2222
+        long qq
+        long @shared iters = 77777
 
-        cx16.r0 = &buffer           ; TODO: should give an error that you cannot take the address of a constant
+        repeat 77777 {
+            qq++
+        }
+        txt.print_l(qq)
+        txt.nl()
+
+        repeat iters {
+            qq++
+        }
+        txt.print_l(qq)
+        txt.nl()
+
+        iters++
+        repeat iters-10 {
+            qq--
+        }
+        txt.print_l(qq)
+        txt.nl()
+        txt.print_bool(qq==77786)
+        txt.nl()
     }
 }
