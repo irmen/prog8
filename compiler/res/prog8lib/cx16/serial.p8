@@ -181,15 +181,17 @@ serial {
         initialize_uart(zi_uart)
         ; ZiModem sends a version banner of the `ati` command when the ESP32 boots up.
         ; Read it off if present. It is not always ready immediately so wait a tiny bit
+        sys.wait(5)
+        write(zi_uart, "\x03")      ; first send CTRL-C (+ no echo) to abort any previous file streams
         sys.wait(10)
-        zi_write_cmd(iso:"\x03ate0")      ; first send CTRL-C (+ no echo) to abort any previous file streams
-        discard_until(zi_uart, iso:"OK\x0d\x0a")
-        zi_write_cmd(iso:"atq0v1x1f0r1s45=3&p0&k3b921600")  ; most important setting s45 to no caching
+        zi_write_cmd(iso:"ate0q0v1x1f0r1s45=3&p0&k3")
         discard_until(zi_uart, iso:"OK\x0d\x0a")
     }
 
     sub zi_reset() {
         ; reset all zimodem connections
+        write(zi_uart, "\x03")      ; first send CTRL-C (+ no echo) to abort any previous file streams
+        sys.wait(10)
         serial.zi_write_cmd(iso:"atz")
         discard_until(zi_uart, iso:"OK\x0d\x0a")
     }
