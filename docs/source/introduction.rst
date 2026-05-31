@@ -79,6 +79,7 @@ Language :index:`Features`
   the compiled program in an emulator and provide debugging information to this emulator.
 - the language looks like a mix of Python and C so should be quite easy to learn
 - Modular programming, scoping via module source files, code blocks, and subroutines. No need for forward declarations.
+- Can make vars and routines private, as a simple way to restrict access and hide implementation details
 - Provides high level programming constructs but at the same time stay close to the metal;
   still able to directly use memory addresses and ROM subroutines,
   and inline assembly to have full control when every register, cycle or byte matters

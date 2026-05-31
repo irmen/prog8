@@ -244,7 +244,7 @@ Used to call routines at fixed memory addresses (like ROM KERNAL routines or thi
 - Indentation: 4 spaces for .p8 and .asm files (no tabs)
 - Character encoding: 6502 targets use PETSCII by default (call `txt.lowercase()` at start for lowercase). Virtual target uses ISO (`%encoding iso` + `txt.iso()`)
 - Array size inferred from initializer: `str[] types = ["a", "b", "c"]`
-- Enums: `Enum::Value` syntax (double colon), declared inside a block. Use enums for related values, `const` for standalone
+- Enums: `Enum::Value` syntax (double colon), declared inside a block. They are syntactic sugar for a list of `const` declarations, not a type. Use enums for related values, `const` for standalone
 - Avoid `globals.XXXX` — move constants closer to where they're used
 - Member access through pointers: use `.` for both direct and pointer access. The compiler infers the type. For complex assignment targets, `^^` may be needed: `ptr^^.field = value`
 - Qualified names: must use full path from top level (e.g., `cx16.r0`, not relative)

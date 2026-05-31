@@ -110,6 +110,7 @@ Footnotes for the Commander X16
     $00 and $01 are hardwired as Rom and Ram banking registers.
 
     $02 - $21 are the 16 virtual cx16 registers R0-R15.
+    Note: these virtual registers are not automatically initialized to zero at program startup.
 
     $22 - $7F are used by Prog8 to put variables in.
 

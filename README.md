@@ -63,6 +63,7 @@ What does Prog8 provide?
 - programs run very fast because it's compiled to native machine code
 - compiled code is very small; much smaller than equivalent C code compiled with CC65, and usually runs faster as well
 - modularity, symbol scoping, subroutines. No need for forward declarations.
+- Can make vars and routines private, as a simple way to restrict access and hide implementation details
 - various data types other than just bytes (16-bit words, long integers, floats, strings)
 - Structs and typed pointers
 - 2D arrays (`matrix[row][col]` syntax)

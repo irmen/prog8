@@ -216,7 +216,7 @@ Enums
 
 There is a more convenient way to define a bunch of constants that belong together: a "enum".
 That is a grouped list of constants that get autonumbered for you (unless you override the numeric value yourself).
-It starts numbering from zero by default. Here's an example::
+It starts numbering from zero by default. Right now the enum declaration does not define a new type, only a list of constants. Here's an example::
 
     enum Priority {
         LOW = 1,
@@ -231,7 +231,6 @@ This will define a bunch of constants like so (the "Enum::Field" syntax is speci
     const ubyte Priority::NORMAL= 2
     const ubyte Priority::HIGH = 3
     const ubyte Priority::EXTREME = 255
-
 
 Data Types
 ----------
