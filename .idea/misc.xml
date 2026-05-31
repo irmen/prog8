@@ -20,6 +20,7 @@
   <component name="Black">
     <option name="sdkName" value="Python 3.11" />
   </component>
+  <component name="ExternalStorageConfigurationManager" enabled="true" />
   <component name="FrameworkDetectionExcludesConfiguration">
     <type id="Python" />
   </component>
