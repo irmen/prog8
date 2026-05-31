@@ -116,7 +116,8 @@ serial {
     }
 
     sub read_until(uword @zp uart_addr, str match, ^^ubyte buffer, uword max_size) -> uword {
-        ; Reads up to and including the match string from the uart, into buffer.
+        ; Reads bytes from the uart into buffer until the match string is found.
+        ; The match string itself is also included in the buffer.
         ; Stops when the match string is found or max_size bytes have been read.
         ; Returns the number of bytes read.
 
@@ -151,7 +152,8 @@ serial {
     }
 
     sub discard_until(uword @zp uart_addr, str match) {
-        ; Reads up to and including the match string from the uart, discards all data.
+        ; Reads bytes from the uart until the match string is found, discards all data.
+        ; The match string itself is also discarded.
 
         alias match_ptr = cx16.r0
         match_ptr = match
@@ -206,7 +208,7 @@ serial {
         ; starts a file download from the given url. Returns true if ok, false if file could not be found
         ; you can download chunks of the file by repeatedly calling zi_get_file_chunk_hexmode() until that returns 0.
         ; Note: this uses zimodem hex mode transfer for now because binary mode transfer is broken at the moment.
-        zi_write_cmd(iso:"ats45=1")  ; enable hex mode transfer
+        zi_write_cmd(iso:"ats45=1")  ; enable hex mode transfer (unfortunately this also forces caching mode on the esp32)
         discard_until(zi_uart, iso:"OK\x0d\x0a")
         write(zi_uart, iso:"at&g\"")
         write(zi_uart, filename)
@@ -223,7 +225,7 @@ serial {
     }
 
     sub zi_start_get_file(str filename) -> long {
-        ; TODO binary file transfer is broken at the moment, use hex mode transfer
+        ; TODO: binary file transfer seems unreliable at the moment (text files are still ok, but often freezes on binary files. Could be a problem with my particular X16 serial card or zimodem firmware though), use hex mode transfer for reliable results.
         ; starts a file download from the given url, returns the size of the file to download.
         ; you can download chunks of the file by repeatedly calling zi_get_file_chunk() until that returns 0
         write(zi_uart, iso:"at&g\"")
@@ -287,7 +289,7 @@ serial {
     }
 
     sub zi_get_file_chunk(^^ubyte @zp buffer, uword buffer_size, long remaining_file_size) -> uword {
-        ; TODO binary file transfer is broken at the moment, use hex mode transfer
+        ; TODO: binary file transfer seems unreliable at the moment (text files are still ok, but often freezes on binary files. Could be a problem with my particular X16 serial card or zimodem firmware though), use hex mode transfer for reliable results.
         ; read the next chunk of data from the file, into buffer, up to buffer_size bytes.
         ; returns the number of bytes read.  0 if no more data was available.
 

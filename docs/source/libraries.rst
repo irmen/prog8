@@ -1183,7 +1183,12 @@ Generic UART routines:
 
 ``sub read_until(uword uart_addr, str match, ^^ubyte buffer, uword max_size) -> uword``
     Reads bytes from the UART into buffer until the match string is
-    found or max_size bytes have been read. Returns the number of bytes read.
+    found (the match string itself is also included in the buffer)
+    or max_size bytes have been read. Returns the number of bytes read.
+
+``sub discard_until(uword uart_addr, str match)``
+    Reads and discards bytes from the UART until the match string is
+    found (the match string itself is also discarded).
 
 ZiModem wifi routines:
 
@@ -1199,11 +1204,23 @@ ZiModem wifi routines:
 ``sub zi_start_get_file(str filename) -> long``
     Starts a file download from the given URL and returns the file
     size. Use ``zi_get_file_chunk()`` repeatedly to download the data.
+    Note: binary mode transfer can be unreliable; prefer hex mode.
+
+``sub zi_start_get_file_hexmode(str filename) -> bool``
+    Starts a file download in hex mode from the given URL.
+    Returns true if the file was found, false otherwise.
+    Use ``zi_get_file_chunk_hexmode()`` repeatedly to download chunks.
+    Hex mode is more reliable than binary mode for file transfers.
 
 ``sub zi_get_file_chunk(^^ubyte buffer, uword buffer_size, long remaining_file_size) -> uword``
     Reads the next chunk of data (up to buffer_size bytes) from an
     active file download started with ``zi_start_get_file()``.
     Returns the number of bytes read, or 0 when done.
+
+``sub zi_get_file_chunk_hexmode(^^ubyte buffer, uword buffer_size) -> uword``
+    Reads the next chunk of hex-encoded data (up to buffer_size bytes)
+    from an active file download started with ``zi_start_get_file_hexmode()``.
+    Buffer must be at least 40 bytes. Returns the number of bytes decoded, or 0 when done.
 
 ``sub zi_end_get_file()``
     Consumes the trailing ``OK`` response after downloading a file
