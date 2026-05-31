@@ -274,8 +274,7 @@ internal class AstChecker(private val program: Program,
                     }
 
                     BaseDataType.LONG -> {
-                        if(!iterableDt.elementType().isInteger)
-                            errors.err("long loop variable can only loop over integers", forLoop.position)
+                        errors.warn("for loop using a long counter could be very slow", forLoop.position)
                     }
 
                     BaseDataType.FLOAT -> {
