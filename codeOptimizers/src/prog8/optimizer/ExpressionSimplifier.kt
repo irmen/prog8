@@ -463,12 +463,12 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                 when {
                     leftVal?.number==0.0 -> expr.right
                     rightVal?.number==0.0 -> expr.left
-                    rightIDt.isBytes && rightVal?.number==255.0 -> NumericLiteral(BaseDataType.UBYTE, 255.0, rightVal.position)
-                    rightIDt.isWords && rightVal?.number==65535.0 -> NumericLiteral(BaseDataType.UWORD, 65535.0, rightVal.position)
-                    rightIDt.isLong && rightVal?.number==-1.0 -> NumericLiteral(BaseDataType.LONG, -1.0, rightVal.position)
-                    leftIDt.isBytes && leftVal?.number==255.0 -> NumericLiteral(BaseDataType.UBYTE, 255.0, leftVal.position)
-                    leftIDt.isWords && leftVal?.number==65535.0 -> NumericLiteral(BaseDataType.UWORD, 65535.0, leftVal.position)
-                    leftIDt.isLong && leftVal?.number==-1.0 -> NumericLiteral(BaseDataType.LONG, -1.0, leftVal.position)
+                    leftIDt.isBytes && rightIDt.isBytes && rightVal?.number==255.0 -> NumericLiteral(BaseDataType.UBYTE, 255.0, rightVal.position)
+                    leftIDt.isWords && rightIDt.isWords && rightVal?.number==65535.0 -> NumericLiteral(BaseDataType.UWORD, 65535.0, rightVal.position)
+                    leftIDt.isLong && rightIDt.isLong && rightVal?.number==-1.0 -> NumericLiteral(BaseDataType.LONG, -1.0, rightVal.position)
+                    leftIDt.isBytes && rightIDt.isBytes && leftVal?.number==255.0 -> NumericLiteral(BaseDataType.UBYTE, 255.0, leftVal.position)
+                    leftIDt.isWords && rightIDt.isWords && leftVal?.number==65535.0 -> NumericLiteral(BaseDataType.UWORD, 65535.0, leftVal.position)
+                    leftIDt.isLong && rightIDt.isLong && leftVal?.number==-1.0 -> NumericLiteral(BaseDataType.LONG, -1.0, leftVal.position)
                     else -> null
                 }
             }
@@ -476,12 +476,12 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                 when {
                     leftVal?.number==0.0 -> expr.right
                     rightVal?.number==0.0 -> expr.left
-                    rightIDt.isBytes && rightVal?.number==255.0 -> PrefixExpression("~", expr.left, expr.left.position)
-                    rightIDt.isWords && rightVal?.number==65535.0 -> PrefixExpression("~", expr.left, expr.left.position)
-                    rightIDt.isLong && rightVal?.number==-1.0 -> PrefixExpression("~", expr.left, expr.left.position)
-                    leftIDt.isBytes && leftVal?.number==255.0 -> PrefixExpression("~", expr.right, expr.right.position)
-                    leftIDt.isWords && leftVal?.number==65535.0 -> PrefixExpression("~", expr.right, expr.right.position)
-                    leftIDt.isLong && leftVal?.number==-1.0 -> PrefixExpression("~", expr.right, expr.right.position)
+                    leftIDt.isBytes && rightIDt.isBytes && rightVal?.number==255.0 -> PrefixExpression("~", expr.left, expr.left.position)
+                    leftIDt.isWords && rightIDt.isWords && rightVal?.number==65535.0 -> PrefixExpression("~", expr.left, expr.left.position)
+                    leftIDt.isLong && rightIDt.isLong && rightVal?.number==-1.0 -> PrefixExpression("~", expr.left, expr.left.position)
+                    leftIDt.isBytes && rightIDt.isBytes && leftVal?.number==255.0 -> PrefixExpression("~", expr.right, expr.right.position)
+                    leftIDt.isWords && rightIDt.isWords && leftVal?.number==65535.0 -> PrefixExpression("~", expr.right, expr.right.position)
+                    leftIDt.isLong && rightIDt.isLong && leftVal?.number==-1.0 -> PrefixExpression("~", expr.right, expr.right.position)
                     else -> null
                 }
             }
@@ -489,12 +489,12 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                 when {
                     leftVal?.number==0.0  -> constFalse
                     rightVal?.number==0.0 -> constFalse
-                    rightIDt.isBytes && rightVal?.number==255.0 -> expr.left
-                    rightIDt.isWords && rightVal?.number==65535.0 -> expr.left
-                    rightIDt.isLong && rightVal?.number==-1.0 -> expr.left
-                    leftIDt.isBytes && leftVal?.number==255.0 -> expr.right
-                    leftIDt.isWords && leftVal?.number==65535.0 -> expr.right
-                    leftIDt.isLong && leftVal?.number==-1.0 -> expr.right
+                    leftIDt.isBytes && rightIDt.isBytes && rightVal?.number==255.0 -> expr.left
+                    leftIDt.isWords && rightIDt.isWords && rightVal?.number==65535.0 -> expr.left
+                    leftIDt.isLong && rightIDt.isLong && rightVal?.number==-1.0 -> expr.left
+                    leftIDt.isBytes && rightIDt.isBytes && leftVal?.number==255.0 -> expr.right
+                    leftIDt.isWords && rightIDt.isWords && leftVal?.number==65535.0 -> expr.right
+                    leftIDt.isLong && rightIDt.isLong && leftVal?.number==-1.0 -> expr.right
                     else -> null
                 }
             }

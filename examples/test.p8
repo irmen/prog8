@@ -1,30 +1,18 @@
 %import textio
 %zeropage basicsafe
+%option no_sysinit
+%encoding iso
 
 main {
     sub start() {
-        long qq
-        long @shared iters = 77777
-
-        repeat 77777 {
-            qq++
+        long @shared @nozp size = 147320
+        while size>0 {
+            size--
+            if size & $ff == 0 {
+                txt.chrout('.')
+            }
         }
-        txt.print_l(qq)
         txt.nl()
-
-        repeat iters {
-            qq++
-        }
-        txt.print_l(qq)
-        txt.nl()
-
-        iters++
-        repeat iters-10 {
-            qq--
-        }
-        txt.print_l(qq)
-        txt.nl()
-        txt.print_bool(qq==77786)
-        txt.nl()
+        ;;sys.poweroff_system()
     }
 }
