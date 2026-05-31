@@ -40,7 +40,6 @@ dependencies {
 
     // Test dependencies - Kotest BOM is provided by root build.gradle.kts
     testImplementation("io.kotest:kotest-runner-junit5")
-    testImplementation("io.kotest:kotest-framework-datatest")
 }
 
 configurations.forEach { config ->

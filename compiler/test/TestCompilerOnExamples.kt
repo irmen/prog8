@@ -1,7 +1,7 @@
 package prog8tests.compiler
 
-import io.kotest.common.ExperimentalKotest
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.engine.concurrency.TestExecutionMode
 import io.kotest.engine.spec.tempdir
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
@@ -144,9 +144,8 @@ private fun verifyIrRegisterCount(result: CompilationResult, expectedCount: Int)
 
 class TestCompilerOnExamplesC64: FunSpec({
 
-    @OptIn(ExperimentalKotest::class)
-    this.concurrency = 4
-    this.threads = 4
+    this.blockingTest = true
+    this.testExecutionMode = TestExecutionMode.LimitedConcurrency(kotlin.math.max(1, Runtime.getRuntime().availableProcessors()/2))
 
     val onlyC64 = cartesianProduct(
         listOf(
@@ -190,9 +189,8 @@ class TestCompilerOnExamplesC64: FunSpec({
 
 class TestCompilerOnExamplesCx16: FunSpec({
 
-    @OptIn(ExperimentalKotest::class)
-    this.concurrency = 4
-    this.threads = 4
+    this.blockingTest = true
+    this.testExecutionMode = TestExecutionMode.LimitedConcurrency(kotlin.math.max(1, Runtime.getRuntime().availableProcessors()/2))
 
     val onlyCx16 = cartesianProduct(
         listOf(
@@ -272,9 +270,8 @@ class TestCompilerOnExamplesCx16: FunSpec({
 
 class TestCompilerOnExamplesBothC64andCx16: FunSpec({
 
-    @OptIn(ExperimentalKotest::class)
-    this.concurrency = 4
-    this.threads = 4
+    this.blockingTest = true
+    this.testExecutionMode = TestExecutionMode.LimitedConcurrency(kotlin.math.max(1, Runtime.getRuntime().availableProcessors()/2))
 
     val bothCx16AndC64 = cartesianProduct(
         listOf(
@@ -329,9 +326,8 @@ class TestCompilerOnExamplesBothC64andCx16: FunSpec({
 
 class TestCompilerOnExamplesVirtual: FunSpec({
 
-    @OptIn(ExperimentalKotest::class)
-    this.concurrency = 4
-    this.threads = 4
+    this.blockingTest = true
+    this.testExecutionMode = TestExecutionMode.LimitedConcurrency(kotlin.math.max(1, Runtime.getRuntime().availableProcessors()/2))
 
     val onlyVirtual = cartesianProduct(
         listOf(
@@ -370,9 +366,8 @@ class TestCompilerOnExamplesVirtual: FunSpec({
 
 class TestCompilerOnExamplesPET32: FunSpec({
 
-    @OptIn(ExperimentalKotest::class)
-    this.concurrency = 4
-    this.threads = 4
+    this.blockingTest = true
+    this.testExecutionMode = TestExecutionMode.LimitedConcurrency(kotlin.math.max(1, Runtime.getRuntime().availableProcessors()/2))
 
     val onlyPET32 = cartesianProduct(
         listOf(

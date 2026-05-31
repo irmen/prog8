@@ -11,5 +11,4 @@ dependencies {
 
     testImplementation(testFixtures(project(":codeCore")))
     testImplementation("io.kotest:kotest-runner-junit5")
-    testImplementation("io.kotest:kotest-framework-datatest")
 }
