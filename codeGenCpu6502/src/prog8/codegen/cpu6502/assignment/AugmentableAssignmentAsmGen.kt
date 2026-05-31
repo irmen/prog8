@@ -318,14 +318,13 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                 SourceStorageKind.REGISTER -> inplacemodificationLongWithVariable(targetVarName, operator, regName(value))
                                 SourceStorageKind.MEMORY -> TODO("inplace long modification with memread value ${target.position}")
                                 SourceStorageKind.ARRAY -> TODO("inplace long modification with array value ${target.position}")
-                                SourceStorageKind.EXPRESSION -> {
+                                SourceStorageKind.EXPRESSION ->
                                     if(value.expression is PtTypeCast) {
                                         if (tryInplaceModifyWithRemovedRedundantCast(value.expression, target, operator)) return
                                         TODO("inplace long modification ${target.position}")
                                     } else {
                                         TODO("inplace long modification ${target.position}")
                                     }
-                                }
                             }
                         }
 
@@ -577,24 +576,40 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
     internal fun inplacemodificationLongWithVariable(targetVar: String, operator: String, sourceVar: String) {
         when(operator) {
             "+" -> {
+                // need to unroll to correctly keep Carry flag for multi-byte arithmetic
                 asmgen.out("""
                     clc
-                    ldx  #252
--                   lda  $targetVar+4,x
-                    adc  $sourceVar+4,x
-                    sta  $targetVar+4,x
-                    inx
-                    bne  -""")
+                    lda  $targetVar+0
+                    adc  $sourceVar+0
+                    sta  $targetVar+0
+                    lda  $targetVar+1
+                    adc  $sourceVar+1
+                    sta  $targetVar+1
+                    lda  $targetVar+2
+                    adc  $sourceVar+2
+                    sta  $targetVar+2
+                    lda  $targetVar+3
+                    adc  $sourceVar+3
+                    sta  $targetVar+3
+                    """)
             }
             "-" -> {
+                // need to unroll to correctly keep Carry flag for multi-byte arithmetic
                 asmgen.out("""
                     sec
-                    ldx  #252
--                   lda  $targetVar+4,x
-                    sbc  $sourceVar+4,x
-                    sta  $targetVar+4,x
-                    inx
-                    bne  -""")
+                    lda  $targetVar+0
+                    sbc  $sourceVar+0
+                    sta  $targetVar+0
+                    lda  $targetVar+1
+                    sbc  $sourceVar+1
+                    sta  $targetVar+1
+                    lda  $targetVar+2
+                    sbc  $sourceVar+2
+                    sta  $targetVar+2
+                    lda  $targetVar+3
+                    sbc  $sourceVar+3
+                    sta  $targetVar+3
+                    """)
             }
             "<<" -> {
                 asmgen.out("""

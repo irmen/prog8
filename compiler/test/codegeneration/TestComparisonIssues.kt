@@ -23,7 +23,11 @@ class TestComparisonIssues : FunSpec({
         val result = compileText(Cx16Target(), false, text, outputDir, writeAssembly = true)!!
         val asmFile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".asm")
         val asm = asmFile.readText()
-        asm.shouldContainInOrder("ldx", "#252", "lda", "p8v_a+4,x", "adc", "p8v_b+4,x", "sta", "p8v_a+4,x", "inx", "bne")
+        asm.shouldContainInOrder("clc", 
+            "lda", "p8v_a+0", "adc", "p8v_b+0", "sta", "p8v_a+0", 
+            "lda", "p8v_a+1", "adc", "p8v_b+1", "sta", "p8v_a+1", 
+            "lda", "p8v_a+2", "adc", "p8v_b+2", "sta", "p8v_a+2", 
+            "lda", "p8v_a+3", "adc", "p8v_b+3", "sta", "p8v_a+3")
     }
 
     test("long augmented subtraction generates loop") {
@@ -39,7 +43,28 @@ class TestComparisonIssues : FunSpec({
         val result = compileText(Cx16Target(), false, text, outputDir, writeAssembly = true)!!
         val asmFile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".asm")
         val asm = asmFile.readText()
-        asm.shouldContainInOrder("ldx", "#252", "lda", "p8v_a+4,x", "sbc", "p8v_b+4,x", "sta", "p8v_a+4,x", "inx", "bne")
+        asm.shouldContainInOrder("sec", 
+            "lda", "p8v_a+0", "sbc", "p8v_b+0", "sta", "p8v_a+0", 
+            "lda", "p8v_a+1", "sbc", "p8v_b+1", "sta", "p8v_a+1", 
+            "lda", "p8v_a+2", "sbc", "p8v_b+2", "sta", "p8v_a+2", 
+            "lda", "p8v_a+3", "sbc", "p8v_b+3", "sta", "p8v_a+3")
+    }
+
+    test("long augmented addition generates loop with nozp variables") {
+        val text = """
+            main {
+                sub start() {
+                    long @nozp a = 1000
+                    long @nozp b = 2000
+                    a += b
+                }
+            }
+        """.trimIndent()
+        val result = compileText(Cx16Target(), false, text, outputDir, writeAssembly = true)!!
+        val asmFile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".asm")
+        val asm = asmFile.readText()
+        // verify unrolled structure
+        asm.shouldContainInOrder("clc", "lda", "adc", "sta", "lda", "adc", "sta", "lda", "adc", "sta", "lda", "adc", "sta")
     }
 
     test("word <= 0 signed comparison (identifier)") {

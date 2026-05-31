@@ -198,7 +198,7 @@ class TestCompilerOnExamplesCx16: FunSpec({
         listOf(
             ExampleSizes("vtui/testvtui", cx16SizeOptimized=3041, cx16SizeUnoptimized=3041),
             ExampleSizes("pcmaudio/play-adpcm", cx16SizeOptimized=36147, cx16SizeUnoptimized=36645),
-            ExampleSizes("pcmaudio/stream-wav", cx16SizeOptimized=5627, cx16SizeUnoptimized=7863),
+            ExampleSizes("pcmaudio/stream-wav", cx16SizeOptimized=5636, cx16SizeUnoptimized=7878),
             ExampleSizes("pcmaudio/stream-simple-aflow", cx16SizeOptimized=1850, cx16SizeUnoptimized=3753),
             ExampleSizes("pcmaudio/stream-simple-poll", cx16SizeOptimized=1564, cx16SizeUnoptimized=3462),
             ExampleSizes("pcmaudio/vumeter", cx16SizeOptimized=3888, cx16SizeUnoptimized=6381),
@@ -240,7 +240,7 @@ class TestCompilerOnExamplesCx16: FunSpec({
             ExampleSizes("multi-irq-old", cx16SizeOptimized=962, cx16SizeUnoptimized=1410),
             ExampleSizes("plasma", cx16SizeOptimized=1739, cx16SizeUnoptimized=2066),
             ExampleSizes("rasterbars", cx16SizeOptimized=1268, cx16SizeUnoptimized=1685),
-            ExampleSizes("serialdownload", cx16SizeOptimized=2481, cx16SizeUnoptimized=3893),
+            ExampleSizes("serialdownload", cx16SizeOptimized=2516, cx16SizeUnoptimized=3945),
             ExampleSizes("showbmx", cx16SizeOptimized=2745, cx16SizeUnoptimized=5269),
             ExampleSizes("snow", cx16SizeOptimized=3120, cx16SizeUnoptimized=5295),
             ExampleSizes("sortingbench", cx16SizeOptimized=2928, cx16SizeUnoptimized=3847),
