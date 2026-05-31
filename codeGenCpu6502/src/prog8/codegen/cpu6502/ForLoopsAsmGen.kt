@@ -42,10 +42,127 @@ internal class ForLoopsAsmGen(
         when {
             iterableDt.isByteArray -> forOverNonconstByteRange(stmt, iterableDt, range)
             iterableDt.isWordArray && !iterableDt.isSplitWordArray -> forOverNonconstWordRange(stmt, iterableDt, range)
-            else -> throw AssemblyError("range expression can only be byte or word")
+            iterableDt.isLongArray -> forOverNonconstLongRange(stmt, iterableDt, range)
+            else -> throw AssemblyError("range expression can only be byte, word or long")
         }
 
         asmgen.loopEndLabels.removeLast()
+    }
+
+    private fun forOverNonconstLongRange(stmt: PtForLoop, iterableDt: DataType, range: PtRange) {
+        val stepsize = range.step.asConstInteger()!!
+        val loopLabel = asmgen.makeLabel("for_loop")
+        val endLabel = asmgen.makeLabel("for_end")
+        asmgen.loopEndLabels.add(endLabel)
+        val varname = asmgen.asmVariableName(stmt.variable)
+        
+        asmgen.assignExpressionToVariable(range.from, varname, iterableDt.elementType())
+
+        if (stepsize == 1 || stepsize == -1)
+            forOverLongsRangeStepOne(range, varname, iterableDt, loopLabel, endLabel, stmt)
+        else
+            forOverLongsRangeStepGreaterOne(range, varname, iterableDt, loopLabel, endLabel, stmt)
+    }
+
+    private fun forOverLongsRangeStepOne(range: PtRange, varname: String, iterableDt: DataType, loopLabel: String, endLabel: String, forloop: PtForLoop) {
+        val stepsize = range.step.asConstInteger()!!
+        
+        // Use temporary variable to store the limit
+        val toValueVar = asmgen.createTempVarReused(iterableDt.elementType().base, false, range)
+        asmgen.assignExpressionToVariable(range.to, toValueVar, iterableDt.elementType())
+
+        if (stepsize == 1) {
+            // Increment toValueVar to make the loop inclusive (0 to N runs N+1 times)
+            asmgen.out("""
+                inc  $toValueVar
+                bne  +
+                inc  $toValueVar+1
+                bne  +
+                inc  $toValueVar+2
+                bne  +
+                inc  $toValueVar+3
+    +
+            """)
+        } else {
+            // Decrement toValueVar to make the loop inclusive (N downto 0 runs N+1 times)
+            val label1 = asmgen.makeLabel("dec_1")
+            val label2 = asmgen.makeLabel("dec_2")
+            val label3 = asmgen.makeLabel("dec_3")
+            asmgen.out("""
+                lda  $toValueVar
+                bne  $label1
+                lda  $toValueVar+1
+                bne  $label2
+                lda  $toValueVar+2
+                bne  $label3
+                dec  $toValueVar+3
+    $label3:    dec  $toValueVar+2
+    $label2:    dec  $toValueVar+1
+    $label1:    dec  $toValueVar
+            """)
+        }
+
+        asmgen.out(loopLabel)
+        asmgen.translate(forloop.statements)
+
+        if (stepsize == 1) {
+            asmgen.out("""
+                inc  $varname
+                bne  +
+                inc  $varname+1
+                bne  +
+                inc  $varname+2
+                bne  +
+                inc  $varname+3
++               lda  $varname
+                cmp  $toValueVar
+                bne  $loopLabel
+                lda  $varname+1
+                cmp  $toValueVar+1
+                bne  $loopLabel
+                lda  $varname+2
+                cmp  $toValueVar+2
+                bne  $loopLabel
+                lda  $varname+3
+                cmp  $toValueVar+3
+                bne  $loopLabel
+            """)
+        } else {
+            asmgen.out("""
+                lda  $varname
+                bne  +++
+                lda  $varname+1
+                bne  ++
+                lda  $varname+2
+                bne  +
+                dec  $varname+3
++               dec  $varname+2
++               dec  $varname+1
++               dec  $varname
+                lda  $varname
+                cmp  $toValueVar
+                bne  $loopLabel
+                lda  $varname+1
+                cmp  $toValueVar+1
+                bne  $loopLabel
+                lda  $varname+2
+                cmp  $toValueVar+2
+                bne  $loopLabel
+                lda  $varname+3
+                cmp  $toValueVar+3
+                bne  $loopLabel
+            """)
+        }
+        asmgen.out(endLabel)
+    }
+
+    private fun forOverLongsRangeStepGreaterOne(range: PtRange, varname: String, iterableDt: DataType, loopLabel: String, endLabel: String, forloop: PtForLoop) {
+        // TODO: implement 32-bit loop
+        asmgen.romableError("for loops over long ranges with step != 1 not yet fully implemented", forloop.position)
+        asmgen.out(loopLabel)
+        asmgen.translate(forloop.statements)
+        asmgen.jmp(loopLabel)
+        asmgen.out(endLabel)
     }
 
     private fun forOverNonconstByteRange(stmt: PtForLoop, iterableDt: DataType, range: PtRange) {
