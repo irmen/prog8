@@ -54,6 +54,12 @@ Summary of Major Language Milestones
 | 12.0      | **``long`` datatype**, **structs reintroduced**,            |
 |           | **typed pointers**                                          |
 +-----------+-------------------------------------------------------------+
+| 12.1      | ``swap()`` builtin, ``psg2`` module, PET32 floats/gfx/snd,  |
+|           | ``strings.split()``/``next_token()``, C128 2MHz mode        |
++-----------+-------------------------------------------------------------+
+| 12.2      | Long loop support, ``private``, enum syntax, 2D arrays,     |
+|           | const pointers, new modules (serial, lineclip, adpcm)       |
++-----------+-------------------------------------------------------------+
 
 
 Breaking Changes Summary
@@ -72,6 +78,7 @@ Major breaking changes that require code modifications when upgrading:
 - **v10.2**: Stricter boolean types
 - **v10.4**: Namespace reorganization (``cx16`` to ``cbm``)
 - **v12.0**: Structs reintroduced (different from v1.11), typed pointers
+- **v12.1**: Combined virtual register renames (``R0R1_32`` → ``R0R1``, etc.)
 
 
 2019–2022 — Early Development (Python to Kotlin Transition)
@@ -216,7 +223,7 @@ Major breaking changes that require code modifications when upgrading:
     - **Float to int casts** (truncating)
     - **Double buffering** in monogfx module
 
-**v12.0–v12.2** — November 2024–Latest
+**v12.0–v12.1** — November 2024–current
     - **``long`` datatype** — native 32-bit signed integers
     - **Structs reintroduced** — grouping multiple fields together
     - **Typed pointers** — can point to structs and specific types (not just ``uword`` addresses)
@@ -225,6 +232,18 @@ Major breaking changes that require code modifications when upgrading:
     - **C128 enhancements**: ``fast()``/``slow()`` for 2MHz mode
     - **String operations**: case-insensitive comparison, ``strings.split()``, ``strings.next_token()``
     - **Virtual target improvements**: ``f_seek()``, ``f_tell()``, ``diskname()``, ``loadlib()``
+    - **Long loop support** — for-loops with long counters on 6502, long math (division, sqrt, min/max/clamp/abs)
+    - **``private`` keyword** — for structs, enums, aliases, variables, and subroutines
+    - **Const pointers** — compile-time constant-folding for const pointers
+    - **``lmh(long)`` builtin** — extract low/mid/high bytes from a long
+    - **Multi-value returns from builtin functions** — ``divmod()`` et al.
+    - **``swap()`` is now a statement** — more efficient
+    - **``enum`` syntax** — concise constant list declarations
+    - **2D array support** — ``ubyte[3][4] matrix``
+    - **Optimized ``if``-expressions** — tighter branch code generation
+    - **New compiler options**: ``-daemon`` (IDE integration), ``-nostdlib``
+    - **New modules**: ``serial`` (CX16 UART+ZiModem), ``lineclip``, ``wavfile``, ``adpcm``
+    - **IR/VM improvements**: peephole optimizations, signed operations, banked extsub support
 
 
 *This document summarizes major and minor releases. Bugfix releases (e.g., v12.0.1, v12.1.1) are omitted for brevity.*
