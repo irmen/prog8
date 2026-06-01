@@ -1,6 +1,6 @@
 
-Prog8 compiler v12.2-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit 8bf744cc in branch master
+Prog8 compiler v12.2-BETA3 by Irmen de Jong (irmen@razorvine.net)
+Prerelease version from git commit 91fa056f in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-cx16.p8
@@ -765,14 +765,7 @@ psg2  {
     const ubyte  SAWTOOTH
     const ubyte  SQUARE
     const ubyte  TRIANGLE
-    ubyte[]  envelope_attacks
-    ubyte[]  envelope_maxvolumes
-    ubyte[]  envelope_releases
-    ubyte[]  envelope_states
-    ubyte[]  envelope_sustains
-    uword[]  envelope_volumes
     ^^psg2.Voice  voices
-    ^^psg2.Voice  vptr
     envelope  (ubyte voice_num, ubyte attack, ubyte sustain, ubyte release)
     frequency  (ubyte voice_num, uword freq)
     getvoice  (ubyte voice_num) -> ^^psg2.Voice

@@ -4,6 +4,23 @@
 ; and then calling the update() routine periodically to apply the changes.
 ; You can read and write all parameters in the Voice structure as desired.
 ; For efficiency reasons, the volume envelope state is not kept in there though.
+;
+; Envelope timing (ASR - Attack, Sustain, Release):
+;   The envelope advances by one tick each time update() is called.
+;   The actual real-time duration depends on how often you call update().
+;   If you call it every vsync (60Hz), 1 tick = ~16.7ms.
+;   Attack and Release produce linear volume ramps.
+;   Higher speed = faster ramp (shorter duration).
+;   Timing formula:  duration_ticks = ceil(256 / speed)
+;     speed=1   -> 256 ticks  (at 60Hz: ~4.3s)
+;     speed=4   -> 64 ticks   (at 60Hz: ~1.07s)
+;     speed=64  -> 4 ticks    (at 60Hz: ~67ms)
+;     speed=255 -> 1 tick     (instant envelope change on next update() call)
+;   Even speed=255 applies on the *next* call to ``update()`` — there is always at least ~1 frame of delay if you depend on the normal update cycle.
+;   For truly immediate changes (0ms), set the voice struct fields and call ``update()`` directly.
+;   Sustain holds for speed ticks (0-255) then transitions to release.
+;   If speed=0 the envelope stalls at that phase (no progression - useful for infinite sustain).
+;   The envelope volume is tracked internally as 8.8 fixed point.
 
 ; Vera PSG registers:
 ; $1F9C0 - $1F9FF 	16 blocks of 4 PSG registers (16 voices)
@@ -43,21 +60,21 @@ psg2 {
         ubyte volume            ; 0-63, use setvolume() to adjust this if you are also using ADSR envelope
         ubyte waveform          ; PULSE/SQUARE,SAWTOOTH,TRIANGLE,NOISE
         ubyte pulsewidth        ; 0-63
-        uword frequency
+        uword frequency         ; direct VERA PSG register value (no scaling): freqword = HERZ(Hz) / 0.3725290298461914
     }
 
 
     ; envelope parameters are kept in arrays for maximum efficiency
-    ubyte[16] envelope_states
-    ubyte[16] envelope_attacks
-    ubyte[16] envelope_sustains
-    ubyte[16] envelope_releases
-    ubyte[16] envelope_maxvolumes
-    uword[16] envelope_volumes         ; 8.8 fixed point (scaled by 256)
+    private ubyte[16] envelope_states
+    private ubyte[16] envelope_attacks
+    private ubyte[16] envelope_sustains
+    private ubyte[16] envelope_releases
+    private ubyte[16] envelope_maxvolumes
+    private uword[16] envelope_volumes         ; 8.8 fixed point (scaled by 256)
 
 
     ^^Voice voices = memory("psg2voices", 16*sizeof(Voice), 0)      ; can't use array of structs so use mem block
-    ^^Voice vptr
+    private ^^Voice vptr
 
     sub init() {
         ; -- required before using this module; initializes all registers to default (off) values
@@ -155,11 +172,16 @@ psg2 {
             when envelope_states[voice] {
                 EnvelopeState::ATTACK -> {
                     ; while current volume is less than max volume, increase volume by maxvolume * (attackspeed /256.0)
+                    ; special case: speed=255 jumps directly to max volume (instant)
                     maxvolume = mkword(envelope_maxvolumes[voice], 0)
                     currentvolume = envelope_volumes[voice]
                     if currentvolume < maxvolume {
-                        newvolume = currentvolume + (maxvolume >> 8)*envelope_attacks[voice]
-                        newvolume = min(newvolume, maxvolume)
+                        if envelope_attacks[voice] == 255
+                            newvolume = maxvolume
+                        else {
+                            newvolume = currentvolume + (maxvolume >> 8)*envelope_attacks[voice]
+                            newvolume = min(newvolume, maxvolume)
+                        }
                         envelope_volumes[voice] = newvolume
                         vptr.volume = msb(newvolume)
                     } else
@@ -173,13 +195,18 @@ psg2 {
                 }
                 EnvelopeState::RELEASE -> {
                     ; while current volume is not zero, decrease volume by maxvolume * (releasespeed /256.0)
+                    ; special case: speed=255 jumps directly to zero (instant)
                     currentvolume = envelope_volumes[voice]
                     if currentvolume > 0 {
-                        uword subtraction = (currentvolume>>8)*envelope_releases[voice]
-                        if subtraction > currentvolume
+                        if envelope_releases[voice] == 255
                             newvolume = 0
-                        else
-                            newvolume = currentvolume - subtraction
+                        else {
+                            uword subtraction = (envelope_maxvolumes[voice] as uword) * envelope_releases[voice]
+                            if subtraction > currentvolume
+                                newvolume = 0
+                            else
+                                newvolume = currentvolume - subtraction
+                        }
                         envelope_volumes[voice] = newvolume
                         vptr.volume = msb(newvolume)
                     } else

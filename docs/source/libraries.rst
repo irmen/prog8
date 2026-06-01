@@ -1156,9 +1156,52 @@ Available for the Cx16 target.
 Contains an abstraction for the Vera's PSG (programmable sound generator) to play simple waveforms.
 It has better consistent envelope timings than the older ``psg`` module, and easier access to all voice parameters if desired.
 It includes an interrupt handler routine for handling automatic ASR volume envelopes as well.
+
+Envelope timing (one tick = one call to ``update()``):
+
+- Attack and Release are linear volume ramps: ``duration_ticks = ceil(256 / speed)``
+- Higher speed = faster ramp (shorter duration)
+- speed=1 -> 256 ticks; speed=4 -> 64 ticks; speed=255 -> 1 tick
+- Even speed=255 applies on the *next* call to ``update()`` — there is always at least ~1 frame of delay if you depend on the normal update cycle.
+- For truly immediate changes (0ms), set the voice struct fields and call ``update()`` directly.
+- Sustain holds for ``speed`` ticks then transitions to Release
+- speed=0 stalls at that phase (useful for infinite sustain)
+- Actual real-time duration depends on how often ``update()`` is called.
+  If called every vsync at 60Hz, each tick is ~16.7ms.
+
+Available routines:
+
+``init ()``
+    Initialize the module, set all voices to default off state.
+
+``off ()``
+    Turn off all voices immediately, then call ``update`` automatically.
+
+``voice (voice_num, channels, volume, waveform, pulsewidth)``
+    Set all parameters for a voice (frequency unchanged). Disables any active envelope.
+
+``frequency (voice_num, freq)``
+    Set frequency word for the voice. This is the raw VERA PSG register value (no scaling, written directly to the hardware): ``freq = HERZ(Hz) / 0.3725290298461914``.
+
+``volume (voice_num, vol)``
+    Set volume directly (0-63). Disables any active envelope. Also sets the max volume for subsequent envelope use.
+
+``envelope (voice_num, attack, sustain, release)``
+    Start ASR envelope on the voice (volume starts from 0). ``attack`` and ``release`` are speeds 0-255, ``sustain`` is duration in ticks.
+    Speed 255 means "instant".
+
+``getvoice (voice_num) -> ^Voice``
+    Return pointer to a voice's parameter struct (for direct field access).
+
+``update () -> bool``
+    Advance all active envelopes by one tick, then write all 16 voices to the VERA PSG registers.
+
+Waveform constants: ``PULSE``, ``SAWTOOTH``, ``TRIANGLE``, ``NOISE``
+Channel constants: ``LEFT``, ``RIGHT``, ``BOTH``, ``DISABLED``
+
 See the examples/cx16/bdmusic.p8  program for ideas how to use it.
 
-Read the :source:`psg source code <compiler/res/prog8lib/cx16/psg2.p8>` to see what's in there.
+Read the :source:`psg2 source code <compiler/res/prog8lib/cx16/psg2.p8>` to see what's in there.
 
 
 serial  (cx16 only)
