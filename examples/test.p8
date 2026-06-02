@@ -4,15 +4,15 @@
 %encoding iso
 
 main {
+    ubyte @shared v1 = 10
+    ubyte @shared v2 = 20
+
     sub start() {
-        long @shared @nozp size = 147320
-        while size>0 {
-            size--
-            if size & $ff == 0 {
-                txt.chrout('.')
-            }
-        }
-        txt.nl()
-        ;;sys.poweroff_system()
+        ubyte a
+        a = get_two(1, 2)
+        cx16.r0 = a
+    }
+    sub get_two(ubyte x, ubyte y @R0) -> ubyte {
+        return v1
     }
 }

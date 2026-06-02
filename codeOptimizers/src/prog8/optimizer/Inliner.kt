@@ -109,8 +109,10 @@ class Inliner(private val program: Program, private val options: CompilationOpti
                     stmt.target is NumericLiteral
             }
 
-            if (!subroutine.isAsmSubroutine) {
-                // NOTE: We allow subroutines with ANY number of parameters to be considered for inlining.
+            val hasRegisterAliasedParams = subroutine.parameters.any { it.registerOrPair != null }
+            if (!subroutine.isAsmSubroutine && (subroutine.parameters.isEmpty() || !hasRegisterAliasedParams)) {
+                // NOTE: We allow subroutines with parameters to be considered for inlining,
+                // unless they are assembly subroutines or have register-aliased parameters (which cannot be inlined as they depend on specific CPU registers to be set).
                 // For void calls where the body doesn't use the parameters, inlining is trivial -
                 // we just remove the call entirely (no parameter substitution needed).
                 // For calls that return values or use parameters in the body, we need simple arguments
@@ -227,15 +229,12 @@ class Inliner(private val program: Program, private val options: CompilationOpti
         if (!sub.inline)
             return false to "subroutine not marked as inlineable"
 
-        // Check parameter argument complexity
         if (sub.parameters.isNotEmpty()) {
             if (sub.isAsmSubroutine) {
                 return false to "parameterized asmsub cannot be inlined"
             }
-            // Only inline if all arguments are simple (literals or identifiers)
-            if (!fcall.args.all { it is NumericLiteral || it is IdentifierReference }) {
-                val complexArgs = fcall.args.filterNot { it is NumericLiteral || it is IdentifierReference }
-                return false to "complex arguments (${complexArgs.size}x): ${complexArgs.map { it::class.simpleName }.joinToString(", ")}"
+            if (sub.parameters.any { it.registerOrPair != null }) {
+                return false to "parameterized subroutine with register aliased parameters cannot be inlined"
             }
         }
         
@@ -336,7 +335,7 @@ class Inliner(private val program: Program, private val options: CompilationOpti
         fun possiblyInlineFunctionBody(toInline: Statement): Iterable<AstModification> {
             val inlinedStatement = substituteParameters(sub, origNode as IFunctionCall, toInline) as Statement
 
-            // println(">>> INLINER: INLINED '${sub.name}' at ${functionCallStatement.position} (body inserted, ${sub.parameters.size} param(s))")
+            // println(">>> INLINER: INLINED '${sub.name}' at ${functionCallStatement.position} (body inserted)")
             return if (origNode !== toInline) {
                 sub.hasBeenInlined = true
                 listOf(AstReplaceNode(origNode, inlinedStatement, parent))
@@ -344,7 +343,7 @@ class Inliner(private val program: Program, private val options: CompilationOpti
                 noModifications
         }
 
-        if(sub.inline && sub.parameters.size >= 0) {
+        if(sub.inline) {
             // Get the first non-parameter statement (skip VarDecl with SUBROUTINEPARAM origin)
             val bodyStmt = sub.statements.firstOrNull { it !is VarDecl || it.origin != VarDeclOrigin.SUBROUTINEPARAM }
             val hasOnlyBodyAndReturn = bodyStmt != null && (
