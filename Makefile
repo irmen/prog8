@@ -12,9 +12,9 @@ endif
 
 all:
 	$(GRADLE) installdist installshadowdist
-	@echo "compiler launch script can be found here: compiler/build/install/compiler-shadow/bin/prog8c"
+	@echo "compiler launch script can be found here: compiler/build/install/prog8c-shadow/bin/prog8c"
 
 test:
 	$(GRADLE) build
-	@echo "compiler launch script can be found here: compiler/build/install/compiler-shadow/bin/prog8c"
+	@echo "compiler launch script can be found here: compiler/build/install/prog8c-shadow/bin/prog8c"
 
