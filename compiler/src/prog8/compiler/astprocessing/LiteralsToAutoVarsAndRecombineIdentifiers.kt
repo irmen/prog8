@@ -25,7 +25,8 @@ internal class LiteralsToAutoVarsAndRecombineIdentifiers(private val program: Pr
                     return noModifications
                 }
             }
-            val scopedName = program.internString(string)
+            val isInStruct = findParentNode<StaticStructInitializer>(string) != null
+            val scopedName = program.internString(string, deduplicate = !isInStruct)
             val identifier = IdentifierReference(scopedName, string.position)
             return listOf(AstReplaceNode(string, identifier, parent))
         }

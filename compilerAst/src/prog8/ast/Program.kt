@@ -74,7 +74,7 @@ class Program(val name: String,
 
     private val internedStringsReferenceCounts = mutableMapOf<VarDecl, Int>()
 
-    fun internString(string: StringLiteral): List<String> {
+    fun internString(string: StringLiteral, deduplicate: Boolean = true): List<String> {
         // Move a string literal into the internal, deduplicated, string pool
         // replace it with a variable declaration that points to the entry in the pool.
 
@@ -100,19 +100,20 @@ class Program(val name: String,
             return Pair(listOf(INTERNED_STRINGS_MODULENAME, decl.name), decl)
         }
 
-        val existingDecl = internedStringsBlock.statements.filterIsInstance<VarDecl>().singleOrNull {
-            val declString = it.value as StringLiteral
-            declString.encoding == string.encoding && declString.value == string.value
+        if (deduplicate) {
+            val existingDecl = internedStringsBlock.statements.filterIsInstance<VarDecl>().singleOrNull {
+                val declString = it.value as StringLiteral
+                declString.encoding == string.encoding && declString.value == string.value
+            }
+            if (existingDecl != null) {
+                internedStringsReferenceCounts[existingDecl] = internedStringsReferenceCounts.getValue(existingDecl)+1
+                return existingDecl.scopedName
+            }
         }
-        return if (existingDecl != null) {
-            internedStringsReferenceCounts[existingDecl] = internedStringsReferenceCounts.getValue(existingDecl)+1
-            existingDecl.scopedName
-        }
-        else {
-            val (newName, newDecl) = addNewInternedStringvar(string)
-            internedStringsReferenceCounts[newDecl] = 1
-            newName
-        }
+        
+        val (newName, newDecl) = addNewInternedStringvar(string)
+        internedStringsReferenceCounts[newDecl] = 1
+        return newName
     }
 
     fun removeInternedStringsFromRemovedSubroutine(sub: Subroutine) {

@@ -1,5 +1,6 @@
 package prog8tests.compiler
 
+import io.kotest.assertions.fail
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.engine.spec.tempdir
@@ -14,6 +15,7 @@ import prog8.ast.ParentSentinel
 import prog8.ast.Program
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
+import prog8.ast.walk.IAstVisitor
 import prog8.code.ast.*
 import prog8.code.core.BaseDataType
 import prog8.code.core.DataType
@@ -2029,5 +2031,58 @@ main {
         y3.operator shouldBe "<<"
         (y3.left as PtPrefix).operator shouldBe "-"
         (y3.right as PtNumber).number shouldBe 3.0
+    }
+    
+    test("string literals in struct instances are not deduplicated") {
+        val src = """
+            main {
+                struct Node {
+                    str name
+                }
+                
+                ^^Node n1 = ^^Node:["test"]
+                ^^Node n2 = ^^Node:["test"]
+                
+                sub start() {
+                    cx16.r0 = n1^^.name
+                    cx16.r1 = n2^^.name
+                }
+            }
+        """
+        val errors = ErrorReporterForTests()
+        val result = compileText(VMTarget(), true, src, outputDir, errors = errors)
+        if (result == null) {
+            println(errors.errors)
+            fail("Compilation failed: " + errors.errors)
+        }
+        
+        class InitializerCollector : IAstVisitor {
+            val initializers = mutableListOf<StaticStructInitializer>()
+            override fun visit(initializer: StaticStructInitializer) {
+                initializers.add(initializer)
+                // Default traversal
+                initializer.structname.accept(this)
+                initializer.args.forEach { it.accept(this) }
+            }
+        }
+        
+        val collector = InitializerCollector()
+        result.compilerAst.modules.forEach { it.accept(collector) }
+        
+        collector.initializers.size shouldBe 2
+        
+        // The first argument is the string (the "name" field)
+        fun getIdentifier(expr: Expression): IdentifierReference {
+            return when (expr) {
+                is IdentifierReference -> expr
+                is AddressOf -> expr.identifier!!
+                else -> fail("Expected IdentifierReference or AddressOf, got " + expr::class.simpleName)
+            }
+        }
+        val name1 = getIdentifier(collector.initializers[0].args[0])
+        val name2 = getIdentifier(collector.initializers[1].args[0])
+        
+        // They should point to different interned strings
+        name1.nameInSource shouldNotBe name2.nameInSource
     }
 })

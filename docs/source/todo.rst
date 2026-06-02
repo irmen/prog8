@@ -36,7 +36,7 @@ Future Things and Ideas
 - sizeof(pointer) is now always 2 (an uword), make this a variable in the ICompilationTarget so that it could be 4 at the time we might ad a 32-bits 68000 target for example. Much code assumes word size addresses though.
 - add float support to the configurable compiler targets. Restrictions: just have "cbm-style floats" as an option (to that it can slot into the current float codegen), where all you have to specify is the addresses of AYINT and GIVAYF and FADDT and all their friends.
 - Change scoping rules for qualified symbols so that they don't always start from the root but behave like other programming languages (look in local scope first), maybe only when qualified symbol starts with '.' such as: .local.value = 33
-- something to reduce the need to use fully qualified names all the time. 'with' ?  Or 'using <prefix>'?
+- something to reduce the need to use fully qualified names all the time. 'with <prefix>' or 'using <prefix>'?
 - Improve register load order in subroutine call args assignments:
   in certain situations (need examples!), the "wrong" order of evaluation of function call arguments is done which results
   in overwriting registers that already got their value, which requires a lot of stack juggling (especially on plain 6502 cpu!)
@@ -66,7 +66,6 @@ Romable (%option romable)
 
 IR/VM
 ^^^^^
-- getting it in shape for code generation: the IR file should be able to encode every detail about a prog8 program (the VM doesn't have to actually be able to run all of it though!)
 - maybe change all branch instructions to have 2 exits (label if branch condition true, and label if false) instead of 1, and get rid of the implicit "next code chunk" link between chunks.
 - implement more TODOs in AssignmentGen?
 - add more optimizations in IRPeepholeOptimizer?
