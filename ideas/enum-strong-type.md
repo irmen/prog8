@@ -41,6 +41,21 @@ Currently, `Enumeration` nodes in the `compilerAst` are lowered into standard co
 # Testing
 
 ### Validation Approach
+Primary testing uses the **virtual target** and prog8c's IR debugging features. This allows fast iteration without needing 6502 emulators.
+
+**Debugging workflow for each change:**
+1. **Syntax check**: `prog8c -check input.p8` -- quick semantic validation
+2. **AST inspection**: `prog8c -target virtual -printast1 input.p8` -- inspect compiler AST (verify enum nodes are preserved)
+3. **Simple AST inspection**: `prog8c -target virtual -printast2 input.p8` -- inspect Simple AST (verify enum erasure to integers)
+4. **IR inspection**: `prog8c -target virtual -out /tmp/out input.p8` then examine the generated `.p8ir` file
+5. **IR comparison**: `prog8c -target virtual -compareir baseline.p8ir new.p8ir` -- compare IR instruction changes when optimizing
+6. **VM execution**: `prog8c -target virtual -emu input.p8` -- run and see stdout output
+7. **VM trace**: `prog8c -vm input.p8ir -vmtrace` -- step through IR instructions with location tracking
+8. **Disable optimizations**: `prog8c -target virtual -noopt -emu input.p8` -- isolate optimizer issues
+9. **Full regression**: `gradle build --console=plain` -- run all unit tests
+
+**Important**: Always test with `-noopt` first to isolate optimizer issues from code generation bugs. Use `-compareir` to see what instructions change when optimizations are applied.
+
 - **Type Checking Tests**: Add test cases that explicitly verify:
     - Implicit assignment/comparison of incompatible types (expect failure).
     - Explicit cast (Enum ↔ Int) (expect success).
@@ -49,3 +64,25 @@ Currently, `Enumeration` nodes in the `compilerAst` are lowered into standard co
     - Use an enum member without proper type qualification.
 - **AST Printing Verification**: Use `-printast1` and `-printast2` to verify that strongly typed enum nodes are correctly displayed in the AST output.
 - **Runtime Verification**: Ensure that the code generation produces correct code for enums (e.g., correct values, proper size) using the `virtual` target and `vmtrace`.
+
+Final verification against the existing test suite via `gradle build --console=plain`.
+
+### Delivery Plan
+
+### Stage 1: Add Enum Type Support and Erasure Logic
+Enum types are introduced and correctly preserved in the compiler AST.
+
+- Implement `EnumSubType` class in `codeCore` and add `BaseDataType.ENUM`.
+- Update `CompilerAST` and `SimplifiedAstMaker` to preserve and later erase enum declarations.
+
+### Stage 2: Implement Strict Type Checking and Casting
+Strong typing for enums is enforced by the compiler.
+
+- Update `TypeChecker` and `SymbolTable` to enforce strict type checking for enums.
+- Implement explicit casting rules for enums and disallow implicit/cross-enum conversions.
+
+### Stage 3: Verification and Testing
+Enum type implementation is verified with unit and integration tests.
+
+- Update AST printing for enums.
+- Add unit tests for type safety, casting, and AST representation verification.

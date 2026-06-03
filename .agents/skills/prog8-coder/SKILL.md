@@ -32,7 +32,9 @@ Follow ALL the rules below carefully.
 - **float requires `%import floats`** at top of file, else compiler errors
 - Arrays: max 256 bytes (512 for split word arrays). For larger data, use `memory()` + pointers
 - `memory(name, size)` returns a `uword` address to a statically reserved block of memory
-- Struct initialization: `^^StructType ptr = ^^StructType:[val1,val2,...]` (the `^^StructType:` can be omitted if inferable)
+- To point a typed pointer at a `memory()` block, assign the uword directly: `^^MyStruct ptr = memory("name", size)`. The `^^Type:expression` syntax (below) only works with array literals, not general uword expressions.
+- Struct initialization: `^^StructType ptr = ^^StructType:[val1,val2,...]` (the `^^StructType:` can be omitted if inferable). This `^^Type:[...]` syntax does NOT work with variables or `memory()` — only literal arrays.
+- Struct definitions must be inside a block, not at file level.
 - Struct fields: only simple types + `str` allowed. NO arrays as fields. `str` in struct = `^^ubyte`
 - Word/pointer arrays split into LSB/MSB by default. Override with `@nosplit`
 - **No call stack**: all variables statically allocated. No recursion without manual stack management
@@ -62,6 +64,7 @@ No call stack for variable storage — recursion overwrites locals. To handle it
 - String concat is expensive on 6502. Prefer separate prints over concatenation
 - **Efficient buffer iteration**: prefer `ptr++` + `@(ptr)` over `@(buffer + offset)`. Exception: if offset is a `ubyte` (≤ 255), `buffer[offset]` works fine
 - `@(ptr)` = peek/poke byte. For words: `peekw`/`pokew`, longs: `peekl`/`pokel`, floats: `peekf`/`pokef`, bools: `peekbool`/`pokebool`
+- Assigning a uword address to a `str` field of a struct is done by direct assignment. Compute the address in a uword variable first, then assign: `cx16.r0 = &namebufs + offset; entry.name = cx16.r0`. The `^^ubyte:(expr)` cast syntax does not parse — use a temp uword instead.
 - Use `len(array)` instead of hardcoded sizes
 - Array indexing is 0-based: `arr[0]` is first element
 - Static memory only — real dynamic allocation impossible, but can emulate with a simple arena allocator over a `memory()` slab
@@ -81,7 +84,7 @@ No call stack for variable storage — recursion overwrites locals. To handle it
   if x < 5
       txt.print("small")
   ```
-- `defer` defers statement execution until scope exit
+- `defer` defers statement execution until scope exit. Multiple defers fire in **reverse registration order** (LIFO / stack order — last deferred runs first). A defer is only registered if execution reaches that statement — conditional paths that skip the `defer` line will not register it.
 - `goto`, labels, jump lists allowed
 - **Common mistake**: `and`/`or` for bitmasking — use `&`/`|` instead!
 

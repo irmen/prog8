@@ -19,7 +19,8 @@ Weird Heisenbug
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
-- make enums strongly typed instead of just syntactic sugar for ints (see enum-strong-type.md for the plan)
+- make enums strongly typed instead of just syntactic sugar for ints (see ideas/enum-strong-type.md for the plan)
+- arrays inline in structs (see ideas/arrays-in-structs.md)
 - add %option private_symbols to make access mode private by default; need (new) 'public' keyword to explicitly mark symbols public.
 - symboldump: some sort of javadocs generated from the p8 source files (instead of just the function signatures). Use markdown for formatting, not html.
 - why are (interned) strings stored as initialization value in the SymbolTable AND as string nodes in the interned string block? Something seems redundant here?

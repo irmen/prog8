@@ -5,6 +5,7 @@
 .idea/shelf/
 .junie/
 .junie/memory/
+.serena
 build/
 dist/
 output/
@@ -38,7 +39,6 @@ parsetab.py
 .pytest_cache/
 .attach_pid*
 compiler/lib/
-
 .gradle
 sd*.img
 *.d64
