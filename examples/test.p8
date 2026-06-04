@@ -1,26 +1,32 @@
-; Example of using a banking subroutine with extsub @bank.
-; This example uses the 'virtual' target to demonstrate the concept.
-; On the virtual target, banks are simulated but for the purpose of
-; this example, we just show how the banking routine is called.
-
 %import textio
 %zeropage basicsafe
+%option no_sysinit
 
 main {
-    ; We define a banking subroutine that will be called before the extsub.
-    ; It must be parameterless and return a ubyte.
-    sub get_bank() -> ubyte {
-        txt.print(" (banking routine called) ")
-        return 4        ; x16 ram bank 4 = BASIC
+    struct NodeStr {
+        ubyte a
+        bool flag
+        str name
     }
 
-    ; Define an external subroutine that uses our banking routine.
-    ; In this example, we point it to a dummy address on the virtual machine.
-    extsub @bank get_bank $ffd2 = banked_routine(ubyte char @A)
+    struct NodeNostr {
+        ubyte a
+        bool flag
+        ubyte[5] array
+        word number
+    }
 
     sub start() {
-        txt.print("calling banked_routine...\n")
-        banked_routine('*')
-        txt.print("\ndone.\n")
+        ^^NodeNostr k3 = [1, false, [65,66,67,68,0], 9999]
+
+        ; the following must print:  1 false ABCD 9999
+        txt.print_ub(k3.a)
+        txt.spc()
+        txt.print_bool(k3.flag)
+        txt.spc()
+        txt.print(k3.array)
+        txt.spc()
+        txt.print_w(k3.number)
+        txt.nl()
     }
 }

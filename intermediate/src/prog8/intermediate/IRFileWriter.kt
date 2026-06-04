@@ -1,6 +1,7 @@
 package prog8.intermediate
 
 import prog8.code.core.BaseDataType
+import prog8.code.core.DataType
 import prog8.code.core.InternalCompilerException
 import prog8.code.core.Position
 import prog8.code.core.toHex
@@ -458,12 +459,20 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
         for (instance in instances) {
             val struct = irProgram.st.lookup(instance.structName) as IRStStructDef
             require(struct.size == instance.size)
-            require(struct.fields.size == instance.values.size)
+            val expectedValues = struct.fields.sumOf { it.arraySize ?: 1 }
+            require(expectedValues == instance.values.size)
             emitLine(buildString {
                 append("${instance.structName} ${instance.name} size=${instance.size} values=")
-                val values = struct.fields.zip(instance.values).map {(field, value) ->
+                val expandedTypes = struct.fields.flatMap { field ->
+                    val arraySz = field.arraySize
+                    if(arraySz!=null)
+                        List(arraySz) { DataType.forDt(field.type.sub!!) }
+                    else
+                        listOf(field.type)
+                }
+                val values = expandedTypes.zip(instance.values).map {(dt, value) ->
                     val valuestr = IRStSymbolicReferenceXml.formatForStructField(value.value)
-                    field.first to valuestr
+                    dt to valuestr
                 }
                 append(values.joinToString(",") { "${it.first}:${it.second}" })
             })

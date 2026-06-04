@@ -110,8 +110,6 @@ sealed class IRVariableInitializer {
     data class Array(val elements: IRStArray) : IRVariableInitializer()
 }
 
-typealias IRStString = Pair<String, Encoding>
-
 class IRStStaticVariable(name: String,
                        val dt: DataType,
                        val initializationValue: IRVariableInitializer?,
@@ -149,7 +147,9 @@ sealed class IRStSymbolicReference {
     }
 }
 
-class IRStStructDef(name: String, val fields: List<Pair<DataType, String>>, val size: UInt): IRStNode(name, IRStNodeType.STRUCT)
+class IRStStructDef(name: String, val fields: List<IRStStructField>, val size: UInt): IRStNode(name, IRStNodeType.STRUCT)
+
+data class IRStStructField(val type: DataType, val name: String, val arraySize: Int? = null) 
 
 class IRStStructInstance(name: String, val structName: String, val values: List<IRStructInitValue>, val size: UInt): IRStNode(name, IRStNodeType.STRUCTINSTANCE) {
     init {

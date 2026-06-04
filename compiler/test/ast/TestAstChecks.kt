@@ -611,4 +611,46 @@ main {
         compileText(VMTarget(), false, src, outputDir, errors) shouldBe null
         errors.printedErrors.any { it.contains("[rows][cols]") } shouldBe true
     }
+
+    test("struct initializer with array literals") {
+        val src = """
+            main {
+                struct Node {
+                    ubyte a
+                    bool flag
+                    str name
+                }
+                
+                sub start() {
+                    Node n = ^^Node:[1, [1], [42,43,44]]
+                }
+            }
+        """.trimIndent()
+        val errors = ErrorReporterForTests()
+        compileText(VMTarget(), false, src, outputDir, errors, false)
+        errors.errors.size shouldNotBe 0
+        errors.errors.any { it.contains("Array literal passed to scalar field 'flag'") } shouldBe true
+        errors.errors.any { it.contains("invalid number of arguments; make sure str fields are initialized with a string literal and nothing else") } shouldBe true
+    }
+
+    test("struct initializer with array literals for str field") {
+        val src = """
+            main {
+                struct Node {
+                    str name
+                }
+                
+                sub start() {
+                    Node n = ^^Node:[ [1,2,3] ]
+                }
+            }
+        """.trimIndent()
+        val errors = ErrorReporterForTests()
+        compileText(VMTarget(), false, src, outputDir, errors, false)
+        
+        val expectedMessage = "invalid number of arguments; make sure str fields are initialized with a string literal"
+        val found = errors.errors.any { it.contains(expectedMessage) }
+        
+        found shouldBe true
+    }
 })

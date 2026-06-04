@@ -745,8 +745,19 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
             throw SyntaxError("struct initializer requires '^^' before struct name", ctx.toPosition())
         val struct = ctx.scoped_identifier().accept(this) as IdentifierReference
         val array = ctx.arrayliteral()
-        val args = if(array==null) mutableListOf() else (array.accept(this) as ArrayLiteral).value.toMutableList()
+        val args = if(array==null) mutableListOf<Expression>() else {
+            val arrayLiteral = array.accept(this) as ArrayLiteral
+            arrayLiteral.value.toMutableList()
+        }
         return StaticStructInitializer(struct, args, ctx.toPosition())
+    }
+
+    private fun flattenArrayLiteral(expr: Expression): List<Expression> {
+        return if (expr is ArrayLiteral) {
+            expr.value.flatMap { flattenArrayLiteral(it) }
+        } else {
+            listOf(expr)
+        }
     }
 
     override fun visitPointerDereferenceTarget(ctx: PointerDereferenceTargetContext): AssignTarget {
@@ -797,15 +808,35 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
 
     override fun visitStructdeclaration(ctx: StructdeclarationContext): StructDecl {
         val name = getname(ctx.identifier())
-        val fields: List<Pair<DataType, List<String>>> = ctx.structfielddecl().map { getStructField(it) }
-        val flattened = fields.flatMap { (dt, names) -> names.map { dt to it}}
+        val fieldDefs = ctx.structfielddecl().map { getStructField(it) }
+        val flattened = fieldDefs.flatMap { (dt, names, arrSize) -> names.map { StructField(dt, it, arrSize) }}
         return StructDecl(name, flattened.toTypedArray(), ctx.PRIVATE() != null, ctx.toPosition())
     }
 
-    private fun getStructField(ctx: StructfielddeclContext): Pair<DataType, List<String>> {
+    private data class StructFieldDef(val type: DataType, val names: List<String>, val arraySize: Int?)
+
+    private fun getStructField(ctx: StructfielddeclContext): StructFieldDef {
         val identifiers = ctx.identifierlist()?.identifier() ?: emptyList()
-        val dt = dataTypeFor(ctx.datatype())!!
-        return dt to identifiers.map { getname(it) }
+        val baseDt = dataTypeFor(ctx.datatype())!!
+        val arrayIndices = ctx.arrayindex()
+        val isEmptyArray = ctx.EMPTYARRAYSIG() != null
+
+        val (dt, arraySize) = if(arrayIndices.isNotEmpty() || isEmptyArray) {
+            if(arrayIndices.size > 1)
+                throw SyntaxError("2D arrays are not allowed as struct fields", ctx.toPosition())
+            val dt = baseDt.elementToArray()
+            val arrayIndexExpr = if(arrayIndices.isNotEmpty())
+                arrayIndices[0].accept(this) as ArrayIndex
+            else
+                null
+            val size = (arrayIndexExpr?.indexExpr as? NumericLiteral)?.number?.toInt()
+                ?: if(arrayIndexExpr==null) null
+                   else throw SyntaxError("array field size must be a constant integer expression", ctx.toPosition())
+            dt to size
+        } else {
+            baseDt to null
+        }
+        return StructFieldDef(dt, identifiers.map { getname(it) }, arraySize)
     }
 
     override fun visitSwap(ctx: SwapContext): Swap {

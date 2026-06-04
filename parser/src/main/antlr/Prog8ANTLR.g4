@@ -171,7 +171,7 @@ structdeclaration:
     PRIVATE? STRUCT identifier '{' EOL? (structfielddecl | EOL)+ '}'
     ;
 
-structfielddecl: datatype identifierlist;
+structfielddecl: datatype (arrayindex arrayindex? | EMPTYARRAYSIG)? identifierlist;
 
 
 subroutinedeclaration :

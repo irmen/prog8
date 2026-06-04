@@ -257,15 +257,16 @@ interface INameScope: IStatementContainer, INamedStatement {
             }
             if(struct!=null) {
                 for ((idx, field) in scopedName.withIndex()) {
-                    val fieldDt = struct!!.getFieldType(field)  ?:
-                    return null
+                    val fieldDef = (struct as? StructDecl)?.getField(field) ?:
+                        return null
                     if (idx == scopedName.size - 1) {
                         // was last path element
                         val pointer = IdentifierReference(scopedName, localSymbol.position)
-                        val ref = StructFieldRef(pointer, struct as StructDecl, fieldDt, field, localSymbol.position)
+                        val ref = StructFieldRef(pointer, struct, fieldDef, localSymbol.position)
                         ref.linkParents(this as Node)
                         return ref
                     }
+                    val fieldDt = fieldDef.type
                     struct = fieldDt.subType
                     if(struct==null && fieldDt.subTypeFromAntlr!=null) {
                         // the antlr-injected type ref wasn't yet translated, do the lookup here

@@ -88,7 +88,7 @@ class TestPtBuilders : FunSpec({
 
         struct.name shouldBe "Point"
         struct.fields shouldHaveSize 2
-        struct.fields[0] shouldBe (DataType.UBYTE to "x")
-        struct.fields[1] shouldBe (DataType.UBYTE to "y")
+        struct.fields[0] shouldBe PtStructField(DataType.UBYTE, "x", null)
+        struct.fields[1] shouldBe PtStructField(DataType.UBYTE, "y", null)
     }
 })

@@ -6,7 +6,6 @@ Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 - fully remove -nostdlib compiler option?  It has become redundant now that the import search path order has been changed?
 - make enums strongly typed instead of just syntactic sugar for ints (see ideas/enum-strong-type.md for the plan)
-- arrays inline in structs (see ideas/arrays-in-structs.md)
 - add %option private_symbols to make access mode private by default; need (new) 'public' keyword to explicitly mark symbols public.
 - symboldump: some sort of javadocs generated from the p8 source files (instead of just the function signatures). Use markdown for formatting, not html.
 - when implementing unsigned longs: remove the (multiple?) "TODO "hack" to allow unsigned long constants to be used as values for signed longs, without needing a cast

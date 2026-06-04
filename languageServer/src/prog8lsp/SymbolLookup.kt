@@ -428,7 +428,7 @@ object SymbolLookup {
                 kind = SymbolKind.STRUCT,
                 definitionPosition = struct.position,
                 type = "struct",
-                signature = "struct ${struct.name} { ${struct.fields.joinToString(", ") { "${it.second}: ${it.first}" }} }"
+                signature = "struct ${struct.name} { ${struct.fields.joinToString(", ") { "${it.name}: ${it.type}" }} }"
             )
         }
 

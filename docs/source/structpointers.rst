@@ -141,7 +141,7 @@ dealing with all of them separately.  You first define the struct type like so::
     }
 
 You can use boolean fields, numeric fields (byte, word, long, float), and pointer fields (including str, which is translated into ^^ubyte).
-You cannot nest struct types nor put arrays in them as a field.
+You cannot nest struct types, but inline arrays are supported as fields.
 Fields in a struct are 'packed' (meaning the values are placed back-to-back in memory), and placed in memory in order of declaration. This guarantees exact size and place of the fields.
 ``sizeof()`` knows how to calculate the combined size of a struct, and ``offsetof()`` can be used to get the byte offset of a given field in the struct.
 The size of a struct cannot exceed 1 memory page (256 bytes).
@@ -204,6 +204,11 @@ You write a static struct initialization expression like this:
 ``^^Node : [1,"one", 1000, true, 1.111]``
     statically places an instance of struct 'Node' in memory, with its fields set to 1, "one", 1000 etcetera and returns the address of this struct.
     The values in the initialization array must correspond exactly with the first to last declared fields in the struct type.
+
+If the struct contains inline arrays, you can initialize them by nesting another list inside the initialization list:
+
+``^^Node : [1, [10, 20, 30, 40], 1000]``
+    Initializes a struct Node where the second field is an inline array (e.g., ``ubyte[4] data``). The nested array ``[10, 20, 30, 40]`` initializes that array field.
 ``^^Node : []``
     (without values) Places a 'Node' instance in BSS variable space instead, which gets zeroed out at program startup.
     Returns the address of this empty struct.

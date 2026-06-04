@@ -245,13 +245,217 @@ internal class AssignmentAsmGen(
                 val elementDt = assign.source.datatype
                 val valueVar = value.variable
                 if(valueVar==null) {
-                    TODO("translate assignment of indexed ${elementDt} pointer ${value.position}")
+                    val pointerDeref = value.pointerderef!!
+                    val constIndex = value.index.asConstInteger()
+                    val eltSize = program.memsizer.memorySize(elementDt, null)
+
+                    if(constIndex != null) {
+                        val (zpPtrVar, structOffset) = pointergen.deref(pointerDeref, false)
+                        val totalOffset = eltSize * constIndex + structOffset.toInt()
+
+                        when {
+                            elementDt.isByteOrBool -> {
+                                if(totalOffset > 255) {
+                                    if(zpPtrVar.startsWith("P8ZP_SCRATCH_")) {
+                                        asmgen.out("  lda  $zpPtrVar+1 |  clc  |  adc  #>($totalOffset) |  sta  $zpPtrVar+1 |  ldy  #<($totalOffset) |  lda  ($zpPtrVar),y")
+                                    } else {
+                                        asmgen.out("  lda  $zpPtrVar |  sta  P8ZP_SCRATCH_PTR |  lda  $zpPtrVar+1 |  clc  |  adc  #>($totalOffset) |  sta  P8ZP_SCRATCH_PTR+1 |  ldy  #<($totalOffset) |  lda  (P8ZP_SCRATCH_PTR),y")
+                                    }
+                                } else {
+                                    asmgen.loadIndirectByte(zpPtrVar, totalOffset.toUByte())
+                                }
+                                assignRegisterByte(assign.target, CpuRegister.A, elementDt.isSigned, false)
+                            }
+                            elementDt.isWord -> {
+                                if(totalOffset > 255) {
+                                    val yOffset = totalOffset and 0xff
+                                    if(zpPtrVar.startsWith("P8ZP_SCRATCH_")) {
+                                        asmgen.out("""
+                                            lda  $zpPtrVar+1
+                                            clc
+                                            adc  #>($totalOffset)
+                                            sta  $zpPtrVar+1
+                                            ldy  #$yOffset
+                                            lda  ($zpPtrVar),y
+                                            tax
+                                            iny
+                                            lda  ($zpPtrVar),y
+                                            tay
+                                            txa""")
+                                    } else {
+                                        asmgen.out("""
+                                            lda  $zpPtrVar
+                                            sta  P8ZP_SCRATCH_PTR
+                                            lda  $zpPtrVar+1
+                                            clc
+                                            adc  #>($totalOffset)
+                                            sta  P8ZP_SCRATCH_PTR+1
+                                            ldy  #$yOffset
+                                            lda  (P8ZP_SCRATCH_PTR),y
+                                            tax
+                                            iny
+                                            lda  (P8ZP_SCRATCH_PTR),y
+                                            tay
+                                            txa""")
+                                    }
+                                } else {
+                                    asmgen.loadIndirectWordAY(zpPtrVar, totalOffset.toUByte())
+                                }
+                                assignRegisterpairWord(assign.target, RegisterOrPair.AY)
+                            }
+                            elementDt.isLong -> {
+                                if(totalOffset > 255) {
+                                    val yOffset = totalOffset and 0xff
+                                    if(zpPtrVar.startsWith("P8ZP_SCRATCH_")) {
+                                        asmgen.out("""
+                                            lda  $zpPtrVar+1
+                                            clc
+                                            adc  #>($totalOffset)
+                                            sta  $zpPtrVar+1
+                                            ldy  #$yOffset
+                                            lda  ($zpPtrVar),y
+                                            sta  P8ZP_SCRATCH_W1
+                                            iny
+                                            lda  ($zpPtrVar),y
+                                            sta  P8ZP_SCRATCH_W1+1
+                                            iny
+                                            lda  ($zpPtrVar),y
+                                            sta  P8ZP_SCRATCH_W1+2
+                                            iny
+                                            lda  ($zpPtrVar),y
+                                            sta  P8ZP_SCRATCH_W1+3""")
+                                    } else {
+                                        asmgen.out("""
+                                            lda  $zpPtrVar
+                                            sta  P8ZP_SCRATCH_PTR
+                                            lda  $zpPtrVar+1
+                                            clc
+                                            adc  #>($totalOffset)
+                                            sta  P8ZP_SCRATCH_PTR+1
+                                            ldy  #$yOffset
+                                            lda  (P8ZP_SCRATCH_PTR),y
+                                            sta  P8ZP_SCRATCH_W1
+                                            iny
+                                            lda  (P8ZP_SCRATCH_PTR),y
+                                            sta  P8ZP_SCRATCH_W1+1
+                                            iny
+                                            lda  (P8ZP_SCRATCH_PTR),y
+                                            sta  P8ZP_SCRATCH_W1+2
+                                            iny
+                                            lda  (P8ZP_SCRATCH_PTR),y
+                                            sta  P8ZP_SCRATCH_W1+3""")
+                                    }
+                                } else {
+                                    asmgen.out("""
+                                        ldy  #$totalOffset
+                                        lda  ($zpPtrVar),y
+                                        sta  P8ZP_SCRATCH_W1
+                                        iny
+                                        lda  ($zpPtrVar),y
+                                        sta  P8ZP_SCRATCH_W1+1
+                                        iny
+                                        lda  ($zpPtrVar),y
+                                        sta  P8ZP_SCRATCH_W1+2
+                                        iny
+                                        lda  ($zpPtrVar),y
+                                        sta  P8ZP_SCRATCH_W1+3""")
+                                }
+                                assignVariableLong(assign.target, "P8ZP_SCRATCH_W1", DataType.LONG)
+                            }
+                            elementDt.isFloat -> {
+                                asmgen.out("""
+                                    lda  $zpPtrVar
+                                    clc
+                                    adc  #<($totalOffset)
+                                    pha
+                                    lda  $zpPtrVar+1
+                                    adc  #>($totalOffset)
+                                    tay
+                                    pla""")
+                                assignFloatFromAY(assign.target)
+                            }
+                            else ->
+                                throw AssemblyError("weird array element type for pointer indexed read $elementDt")
+                        }
+                    } else {
+                        val (zpPtrVar, _) = pointergen.deref(pointerDeref, addOffsetToPointer = true)
+
+                        when {
+                            elementDt.isByteOrBool -> {
+                                val idx = value.index
+                                if(idx is PtIdentifier) {
+                                    if(eltSize > 1) {
+                                        TODO("non-byte element size $eltSize for pointer array index read with variable index ${value.position}")
+                                    }
+                                    val indexVarName = asmgen.asmVariableName(idx)
+                                    asmgen.out("  ldy  $indexVarName |  lda  ($zpPtrVar),y")
+                                } else if(idx.type.isByte) {
+                                    asmgen.pushCpuStack(BaseDataType.UBYTE, idx)
+                                    asmgen.restoreRegisterStack(CpuRegister.Y, false)
+                                    asmgen.out("  lda  ($zpPtrVar),y")
+                                } else {
+                                    asmgen.pushCpuStack(BaseDataType.UWORD, idx)
+                                    asmgen.out("  pla |  clc  |  adc  $zpPtrVar+1 |  sta  $zpPtrVar+1")
+                                    if(asmgen.isTargetCpu(CpuType.CPU65C02)) asmgen.out("  ply") else asmgen.out("  pla |  tay")
+                                    asmgen.out("  lda  ($zpPtrVar),y")
+                                }
+                                assignRegisterByte(assign.target, CpuRegister.A, elementDt.isSigned, true)
+                            }
+                            elementDt.isWord -> {
+                                val idx = value.index
+                                if(idx is PtIdentifier) {
+                                    if(eltSize > 1) {
+                                        TODO("non-byte element size $eltSize for pointer array index read with variable index ${value.position}")
+                                    }
+                                    val indexVarName = asmgen.asmVariableName(idx)
+                                    asmgen.out("""
+                                        ldy  $indexVarName
+                                        lda  ($zpPtrVar),y
+                                        tax
+                                        iny
+                                        lda  ($zpPtrVar),y
+                                        tay
+                                        txa""")
+                                } else if(idx.type.isByte) {
+                                    asmgen.pushCpuStack(BaseDataType.UBYTE, idx)
+                                    asmgen.restoreRegisterStack(CpuRegister.Y, false)
+                                    asmgen.out("""
+                                        lda  ($zpPtrVar),y
+                                        tax
+                                        iny
+                                        lda  ($zpPtrVar),y
+                                        tay
+                                        txa""")
+                                } else {
+                                    asmgen.pushCpuStack(BaseDataType.UWORD, idx)
+                                    asmgen.out("  pla |  clc  |  adc  $zpPtrVar+1 |  sta  $zpPtrVar+1")
+                                    if(asmgen.isTargetCpu(CpuType.CPU65C02)) asmgen.out("  ply") else asmgen.out("  pla |  tay")
+                                    asmgen.out("""
+                                        lda  ($zpPtrVar),y
+                                        tax
+                                        iny
+                                        lda  ($zpPtrVar),y
+                                        tay
+                                        txa""")
+                                }
+                                assignRegisterpairWord(assign.target, RegisterOrPair.AY)
+                            }
+                            elementDt.isLong -> {
+                                TODO("variable index pointer array read of long ${value.position}")
+                            }
+                            elementDt.isFloat -> {
+                                TODO("variable index pointer array read of float ${value.position}")
+                            }
+                            else ->
+                                throw AssemblyError("weird array element type for pointer indexed read $elementDt")
+                        }
+                    }
                     return
                 }
                 val arrayVarName = asmgen.asmVariableName(valueVar)
 
                 if(valueVar.type.isPointer) {
-                    pointergen.assignIndexedPointer(assign.target, arrayVarName, value, valueVar.type)
+                    pointergen.assignIndexedPointer(assign.target, arrayVarName, value)
                     return
                 }
 
@@ -3969,7 +4173,7 @@ $endLabel""")
                     lda  $arrayVarName+3,y
                     sta  ${target.asmVarname}+3,x""")
             }
-            TargetStorageKind.POINTER -> pointergen.assignIndexedPointer(target, arrayVarName, index, DataType.arrayFor(BaseDataType.LONG))
+            TargetStorageKind.POINTER -> pointergen.assignIndexedPointer(target, arrayVarName, index)
             TargetStorageKind.MEMORY -> throw AssemblyError("memory is bytes not long ${target.position}")
             TargetStorageKind.VOID -> { /* do nothing */ }
         }

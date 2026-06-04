@@ -211,6 +211,13 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         val (instructions, offset) = traverseRestOfDerefChainToCalculateFinalAddress(deref, pointerReg)
         result += instructions
 
+        // For inline array fields (not pointer fields), return the address (ptr+offset) instead of loading from it
+        if(deref.type.isArray && !deref.derefLast) {
+            if(offset > 0u)
+                addInstr(result, IRInstruction(Opcode.ADD, IRDataType.WORD, reg1 = pointerReg, immediate = offset.toInt()), null)
+            return ExpressionCodeResult(result, IRDataType.WORD, pointerReg, -1)
+        }
+
         return if(deref.type.isFloat) {
             val resultReg = codeGen.registers.next(IRDataType.FLOAT)
             addInstr(result, IRInstruction(Opcode.LOADI, IRDataType.FLOAT, fpReg1 = RegisterNum(resultReg), reg1 = pointerReg, immediate = offset.toInt()), null)

@@ -527,7 +527,14 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
     private fun transform(initializer: StaticStructInitializer): PtFunctionCall {
         val targetStruct = initializer.structname.targetStructDecl()!!
         val call = PtFunctionCall("prog8_lib_structalloc", true, true, arrayOf(DataType.pointer(targetStruct)), initializer.position)
-        for (arg in initializer.args)
+        
+        val flattenedArgs = initializer.args.flattenArgs()
+        val expectedTotalElements = targetStruct.fields.sumOf { it.arraySize ?: 1 }
+        if (flattenedArgs.isNotEmpty() && flattenedArgs.size != expectedTotalElements) {
+            errors.err("invalid number of field values: expected $expectedTotalElements flattened elements for struct '${targetStruct.name}' but got ${flattenedArgs.size}", initializer.position)
+        }
+        
+        for (arg in flattenedArgs)
             call.add(transformExpression(arg))
         return call
     }
@@ -798,7 +805,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
     }
 
     private fun transform(struct: StructDecl): PtStructDecl {
-        return PtStructDecl(struct.name, struct.fields.toList(), struct.position)
+        return PtStructDecl(struct.name, struct.fields.map { PtStructField(it.type, it.name, it.arraySize) }, struct.position)
     }
 
     private fun transform(srcWhen: When): PtWhen {
@@ -857,6 +864,12 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
                 return array
             } else if(dt.isPointer) {
                 val eltType = dt.getOrUndef().dereference()
+                val array = PtArrayIndexer(eltType, srcArr.position)
+                array.add(transform(srcArr.pointerderef!!))
+                array.add(transformExpression(srcArr.indexer.indexExpr))
+                return array
+            } else if(dt.isArray) {
+                val eltType = dt.getOrUndef().elementType()
                 val array = PtArrayIndexer(eltType, srcArr.position)
                 array.add(transform(srcArr.pointerderef!!))
                 array.add(transformExpression(srcArr.indexer.indexExpr))

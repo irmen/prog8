@@ -198,7 +198,10 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
             is PtJmpTable -> "<jmptable>"
             is PtMemorySlabReservation -> "mem_slab ${node.slabName} (size=${node.size}, align=${node.align})"
             is PtStructDecl -> {
-                "struct ${node.name} { " + node.fields.joinToString("  ") { "${it.first} ${it.second}" } + " }"
+                "struct ${node.name} { " + node.fields.joinToString("  ") { field ->
+                    val arraySuffix = if(field.isArray) "[${field.arraySize}]" else ""
+                    "${field.type}$arraySuffix ${field.name}"
+                } + " }"
             }
             is PtPointerDeref -> {
                 val chain = if(node.chain.isEmpty()) "" else "${node.chain}"

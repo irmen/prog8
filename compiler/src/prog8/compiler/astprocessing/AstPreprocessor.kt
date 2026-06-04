@@ -455,20 +455,20 @@ class AstPreprocessor(val program: Program,
 
     override fun after(struct: StructDecl, parent: Node): Iterable<AstModification> {
         // convert all antlr names to structs
-        struct.fields.forEach {
-            if(it.first.subTypeFromAntlr!=null) {
-                val struct = struct.definingScope.lookup(it.first.subTypeFromAntlr!!) as? ISubType
-                if(struct!=null)
-                    it.first.setActualSubType(struct)
+        struct.fields.forEach { field ->
+            if(field.type.subTypeFromAntlr!=null) {
+                val st = struct.definingScope.lookup(field.type.subTypeFromAntlr!!) as? ISubType
+                if(st!=null)
+                    field.type.setActualSubType(st)
             }
         }
 
         // convert str fields to ^^ubyte
-        val convertedFields = struct.fields.map {
-            if(it.first.isString)
-                DataType.pointer(BaseDataType.UBYTE) to it.second       // replace str field with ^^ubyte field
+        val convertedFields = struct.fields.map { field ->
+            if(field.type.isString)
+                StructField(DataType.pointer(BaseDataType.UBYTE), field.name, field.arraySize)
             else
-                it.first to it.second
+                field
         }.toTypedArray()
 
         if(!convertedFields.contentEquals(struct.fields))

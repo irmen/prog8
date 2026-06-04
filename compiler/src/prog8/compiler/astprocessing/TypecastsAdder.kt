@@ -659,7 +659,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
         else {
             val struct = initializer.structname.targetStructDecl()
             if(struct!=null) {
-                val paramsPossibleDatatypes = struct.fields.map { listOf(it.first) }
+                val paramsPossibleDatatypes = struct.fields.map { listOf(it.type) }
                 fixupArgumentList(paramsPossibleDatatypes, initializer.args, initializer)
             }
             else noModifications
@@ -667,7 +667,10 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
     }
 
     private fun fixupArgumentList(possibleDatatypes: List<List<DataType>>, args: List<Expression>, parent: Node): List<AstModification> {
-        require(possibleDatatypes.size==args.size) { "argument count mismatch at ${parent.position}"}
+        if (possibleDatatypes.size != args.size) {
+            // This is a symptom of a previous validation failure. We can't fix it here.
+            return noModifications
+        }
         val modifications = mutableListOf<AstModification>()
         possibleDatatypes.zip(args).forEach {
             val possibleTargetDt = it.first.first()
@@ -678,7 +681,10 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                 if (argDt !in it.first) {
                     val identifier = it.second as? IdentifierReference
                     val number = it.second as? NumericLiteral
+                    val array = it.second as? ArrayLiteral
                     if(number!=null) {
+                        addTypecastOrCastedValueModification(modifications, it.second, targetDt, parent)
+                    } else if (array != null) {
                         addTypecastOrCastedValueModification(modifications, it.second, targetDt, parent)
                     } else if(identifier!=null && targetDt.isUnsignedWord && argDt.isPassByRef) {
                         if(!identifier.isSubroutineParameter()) {
@@ -732,6 +738,14 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
         requiredType: DataType,
         parent: Node
     ) {
+        if (expressionToCast is ArrayLiteral && requiredType.isArray) {
+            val castedArray = expressionToCast.cast(requiredType)
+            if (castedArray != null && castedArray !== expressionToCast) {
+                modifications += AstReplaceNode(expressionToCast, castedArray, parent)
+            }
+            return
+        }
+
         val sourceDt = expressionToCast.inferType(program).getOrUndef()
         if(sourceDt.base == requiredType.base)
             return

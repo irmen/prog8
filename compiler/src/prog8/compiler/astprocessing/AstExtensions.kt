@@ -14,6 +14,17 @@ import prog8.code.target.VMTarget
 import java.io.CharConversionException
 
 
+internal fun invalidNumberOfArgsError(errors: IErrorReporter, pos: Position, numArgs: Int, params: List<String>, zeroAllowed: Boolean=false) {
+    if (zeroAllowed && numArgs == 0) return
+    val expected = if(zeroAllowed) "${params.size} or 0" else "${params.size}"
+    if(numArgs<params.size) {
+        val missing = params.drop(numArgs).joinToString(", ")
+        errors.err("invalid number of arguments: expected $expected but got $numArgs, missing: $missing", pos)
+    }
+    else
+        errors.err("invalid number of arguments: expected $expected but got $numArgs", pos)
+}
+
 internal fun Program.checkValid(errors: IErrorReporter, compilerOptions: CompilationOptions) {
     // semantic analysis to see if the program is valid.
     val parentChecker = ParentNodeChecker()
@@ -102,6 +113,14 @@ internal fun Program.addTypecasts(errors: IErrorReporter, options: CompilationOp
     val caster = TypecastsAdder(this, options, errors)
     caster.visit(this)
     caster.applyModifications()
+}
+
+internal fun Expression.flatten(): List<Expression> {
+    return if (this is ArrayLiteral) this.value.flatMap { it.flatten() } else listOf(this)
+}
+
+internal fun List<Expression>.flattenArgs(): List<Expression> {
+    return this.flatMap { it.flatten() }
 }
 
 fun Program.desugaring(errors: IErrorReporter, options: CompilationOptions) {

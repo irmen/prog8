@@ -1,8 +1,9 @@
 package prog8.codegen.intermediate
 
 import prog8.code.*
-import prog8.code.core.DataType
+import prog8.code.ast.PtStructField
 import prog8.intermediate.*
+import kotlin.collections.flatMap
 
 /**
  * Converter object for transforming SymbolTable nodes to IR symbol table nodes.
@@ -10,7 +11,10 @@ import prog8.intermediate.*
  */
 private class StToIrConverter(val romable: Boolean) {
     fun convert(struct: StStruct): IRStStructDef =
-        IRStStructDef(struct.scopedNameString, struct.fields, struct.size)
+        IRStStructDef(struct.scopedNameString, makeIrStructFieldsFrom(struct.fields), struct.size)
+
+    private fun makeIrStructFieldsFrom(fields: List<PtStructField>): List<IRStStructField> =
+        fields.map { IRStStructField(it.type, it.name, it.arraySize) }
 
     private fun convertArrayElt(elt: StArrayElement): IRStSymbolicReference {
         return when(elt) {
@@ -127,10 +131,17 @@ private class StToIrConverter(val romable: Boolean) {
             IRStMemorySlab("$StMemorySlabBlockName.${mem.name}", mem.size, mem.align)
     }
 
-    fun convert(instance: StStructInstance, fields: Iterable<Pair<DataType, String>>): IRStStructInstance {
-        val values = fields.zip(instance.initialValues).map { (field, value) ->
+    fun convert(instance: StStructInstance, fields: Iterable<PtStructField>): IRStStructInstance {
+        val expanded = fields.flatMap { field ->
+            val arraySz = field.arraySize
+            if(arraySz!=null)
+                List(arraySz) { field.type.sub!! }
+            else
+                listOf(field.type.base)
+        }
+        val values = expanded.zip(instance.initialValues).map { (baseType, value) ->
             val elt = convertArrayElt(value)
-            IRStructInitValue(field.first.base, elt)
+            IRStructInitValue(baseType, elt)
         }
         return if('.' in instance.name)
             IRStStructInstance(instance.name, instance.structName, values, instance.size)

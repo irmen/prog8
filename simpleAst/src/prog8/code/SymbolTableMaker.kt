@@ -88,7 +88,10 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                 StSub(node.name, params, node.signature.returns, node)
             }
             is PtStructDecl -> {
-                val size = node.fields.sumOf { program.memsizer.memorySize(it.first, 1) }
+                val size = node.fields.sumOf { field ->
+                    if(field.isArray) program.memsizer.memorySize(field.type, field.arraySize!!)
+                    else program.memsizer.memorySize(field.type, 1)
+                }
                 StStruct(node.name, node.fields, size.toUInt(), node)
             }
             is PtMemorySlabReservation -> {

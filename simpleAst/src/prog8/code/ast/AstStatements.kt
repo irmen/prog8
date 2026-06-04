@@ -434,21 +434,23 @@ class PtMemorySlabReservation(val slabName: String, val size: UInt, val align: U
 }
 
 
-class PtStructDecl(name: String, val fields: List<Pair<DataType, String>>, position: Position) : PtNamedNode(name, position) {
+class PtStructDecl(name: String, val fields: List<PtStructField>, position: Position) : PtNamedNode(name, position) {
 
     companion object {
         fun builder(name: String, position: Position) = Builder(name, position)
     }
 
     class Builder(val name: String, val position: Position) {
-        private var fields: MutableList<Pair<DataType, String>> = mutableListOf()
-
-        fun fields(f: Iterable<Pair<DataType, String>>) = apply { fields = f.toMutableList() }
-        fun fields(vararg f: Pair<DataType, String>) = apply { fields = f.toMutableList() }
-        fun addField(type: DataType, name: String) = apply { fields.add(type to name) }
-
+        private var fields: MutableList<PtStructField> = mutableListOf()
+        fun fields(f: Iterable<PtStructField>) = apply { fields = f.toMutableList() }
+        fun fields(vararg f: PtStructField) = apply { fields = f.toMutableList() }
+        fun addField(type: DataType, name: String, arraySize: Int? = null) = apply { fields.add(PtStructField(type, name, arraySize)) }
         fun build() = PtStructDecl(name, fields, position)
     }
+}
+
+data class PtStructField(val type: DataType, val name: String, val arraySize: Int?) {
+    val isArray: Boolean get() = arraySize != null
 }
 
 

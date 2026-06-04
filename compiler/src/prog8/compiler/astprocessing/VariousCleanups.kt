@@ -592,6 +592,11 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
         }
 
         if(parent is ArrayIndexedExpression && parent.parent !is AssignTarget && !partOfAugmentedAssignment(deref)) {
+            val derefDt = deref.inferType(program).getOrUndef()
+            if(derefDt.isArray) {
+                // Skip peek optimization for inline array fields (struct fields that are arrays in-place)
+                return noModifications
+            }
             val constIndex = parent.indexer.constIndex()
             if(constIndex==0) {
                 // ptr1.field[0]  -->  peek(ptr.field)

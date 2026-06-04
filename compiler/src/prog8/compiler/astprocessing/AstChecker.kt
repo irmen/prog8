@@ -1589,24 +1589,22 @@ internal class AstChecker(private val program: Program,
                 val leftDt = expr.left.inferType(program)
                 if(leftDt.isStructInstance) {
                     TODO("pointer[x].field[y] ??  ${expr.left.position}")
-//                    //  pointer[x].field[y] --> type is the dt of 'field'
-//                    var struct = leftDt.getOrUndef().subType
-//                    if (struct==null) {
-//                        errors.err("cannot find struct type", expr.position)
-//                    } else {
-//                        var fieldDt = struct.getFieldType(rightIndexer.arrayvar.nameInSource.single())
-//                        if (fieldDt == null)
-//                            errors.err("no such field '${rightIndexer.arrayvar.nameInSource.single()}' in struct '${leftDt.getOrUndef().subType?.name}'", expr.position)
-//                        else {
-//                            struct = fieldDt.subType!!
-//                            fieldDt = struct.getFieldType(rightIndexer.arrayvar.nameInSource.single())
-//                            if(fieldDt==null)
-//                                errors.err("no such field '${rightIndexer.arrayvar.nameInSource.single()}' in struct '${struct.name}'", expr.position)
-//                        }
-//                    }
+                } else if(leftDt.isPointer) {
+                    val struct = leftDt.getOrUndef().subType as? StructDecl
+                    if(struct!=null) {
+                        val fieldName = rightIndexer.plainarrayvar?.nameInSource?.singleOrNull()
+                        if(fieldName!=null) {
+                            val fieldDt = struct.getFieldType(fieldName)
+                            if(fieldDt==null)
+                                errors.err("no such field '$fieldName' in struct '${struct.scopedNameString}'", rightIndexer.position)
+                            else if(!fieldDt.isArray)
+                                errors.err("field '$fieldName' is not an array field, cannot index it", rightIndexer.position)
+                        }
+                    } else {
+                        errors.err("cannot find struct type", expr.left.position)
+                    }
                 } else {
-                    errors.err("at the moment it is not possible to chain array syntax on pointers like  ...p1[x].p2[y]... use separate expressions for the time being", expr.right.position)  // TODO add support for chained array syntax on pointers (rewrite ast?)
-                    // TODO I don't think we can evaluate this because it could end up in as a struct instance, which we don't support yet... rewrite or just give an error?
+                    errors.err("at the moment it is not possible to chain array syntax on pointers like  ...p1[x].p2[y]... use separate expressions for the time being", expr.right.position)
                 }
             } else
                 throw FatalAstException("expected identifier or arrayindexer after dereference operator at ${expr.position})")
@@ -2302,7 +2300,7 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(struct: StructDecl) {
-        val uniqueFields = struct.fields.mapTo(mutableSetOf()) { it.second }
+        val uniqueFields = struct.fields.mapTo(mutableSetOf()) { it.name }
         if(uniqueFields.size!=struct.fields.size)
             errors.err("duplicate field names in struct", struct.position)
         val memsize = struct.memsize(program.memsizer)
@@ -2312,9 +2310,14 @@ internal class AstChecker(private val program: Program,
         if(uniqueFields.isEmpty())
             errors.err("struct must contain at least one field", struct.position)
 
-        struct.fields.forEach {
-            if(!it.first.isBasic && !it.first.base.isNumericOrBool && !it.first.isPointer)
-                errors.err("only booleans, numeric and pointer fields allowed in a struct: '${it.second}'", struct.position)
+        struct.fields.forEach { field ->
+            val dt = field.type
+            val allowed = dt.isBasic
+                    || dt.base.isNumericOrBool
+                    || dt.isPointer
+                    || (dt.isArray && dt.sub!!.isNumericOrBool)
+            if(!allowed)
+                errors.err("only booleans, numeric and pointer fields allowed in a struct: '${field.name}'", struct.position)
         }
     }
 
@@ -2703,18 +2706,34 @@ internal class AstChecker(private val program: Program,
                     }
                 }
             }
-            if (!args.all { 
-                it is NumericLiteral || it is AddressOf || (it is TypecastExpression && it.expression is NumericLiteral) || it is MemorySlabRef 
-            })
+            fun isConstant(expr: Expression): Boolean = when(expr) {
+                is NumericLiteral, is AddressOf, is MemorySlabRef, is StringLiteral -> true
+                is TypecastExpression -> isConstant(expr.expression)
+                is ArrayLiteral -> expr.value.all { isConstant(it) }
+                is StaticStructInitializer -> expr.args.all { isConstant(it) }
+                is PrefixExpression -> expr.operator == "-" && isConstant(expr.expression)
+                else -> false
+            }
+            if (!args.all { isConstant(it) })
                 errors.err("initialization value contains non-constant elements", args[0].position)
             val struct = initializer.structname.targetStructDecl()
             if(struct!=null) {
-                require(args.size==struct.fields.size)
-                struct.fields.zip(args).withIndex().forEach { (index, fv) ->
-                    val (field, value) = fv
-                    val valueDt = value.inferType(program)
-                    if(valueDt isNotAssignableTo field.first)
-                        errors.err("value #${index+1} has incompatible type $valueDt for field '${field.second}' (${field.first})", value.position)
+                val expectedFieldCount = struct.fields.size
+                val expectedFlattenedElements = struct.fields.sumOf { it.arraySize ?: 1 }
+                val flattenedArgs = args.flattenArgs()
+                
+                if (args.size != expectedFieldCount) {
+                    invalidNumberOfArgsError(errors, initializer.position, args.size, struct.fields.map { it.name }, true)
+                } else if (flattenedArgs.size != expectedFlattenedElements) {
+                    invalidNumberOfArgsError(errors, initializer.position, flattenedArgs.size, List(expectedFlattenedElements) { "field_value" }, true)
+                } else {
+                    struct.fields.zip(args).forEachIndexed { index, (field, arg) ->
+                        val expectedDt = field.type
+                        val argDt = arg.inferType(program)
+                        if (argDt isNotAssignableTo expectedDt) {
+                            errors.err("value #${index + 1} has incompatible type $argDt for field '${field.name}' (expected $expectedDt)", arg.position)
+                        }
+                    }
                 }
             }
         }

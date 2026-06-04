@@ -41,7 +41,7 @@ internal class CodeDesugarer(val program: Program, private val target: ICompilat
         }
         return super.before(program)
     }
-    
+
     override fun before(breakStmt: Break, parent: Node): Iterable<AstModification> {
         fun jumpAfter(stmt: Statement): Iterable<AstModification> {
             val label = program.makeLabel("after", breakStmt.position)
@@ -592,8 +592,18 @@ _after:
                 require(expr.right !is IdentifierReference)
                 val ri = expr.right as? ArrayIndexedExpression
                 if(ri!=null && ri.plainarrayvar!=null) {
+                    val leftIdent = expr.left as IdentifierReference
+                    val leftVar = leftIdent.targetVarDecl()
+                    if(leftVar != null && leftVar.datatype.isPointer && leftVar.datatype.subType != null) {
+                        // ptr.field[idx] -> convert to (^^field)[idx] for struct field array access
+                        val fieldName = ri.plainarrayvar!!.nameInSource
+                        val chain = leftIdent.nameInSource + fieldName
+                        val ptrDeref = PtrDereference(chain, false, expr.position)
+                        val ai = ArrayIndexedExpression(null, null, ptrDeref, ri.indexer, expr.position)
+                        return listOf(AstReplaceNode(expr, ai, parent))
+                    }
                     // a.b   .  c.d[i]  ->  a.b.c.d[i]
-                    val joined = (expr.left as IdentifierReference).nameInSource + ri.plainarrayvar!!.nameInSource
+                    val joined = leftIdent.nameInSource + ri.plainarrayvar!!.nameInSource
                     val ai = ArrayIndexedExpression(IdentifierReference(joined, expr.position), null, null, ri.indexer, expr.position)
                     return listOf(AstReplaceNode(expr, ai, parent))
                 }
@@ -1317,44 +1327,24 @@ _after:
             return StaticStructInitializer(structname, array.value.toMutableList(), array.position)
         }
 
-        fun checkNumberOfElements(struct: StructDecl, array: ArrayLiteral): Boolean {
-            val numValues = array.value.size
-            if (numValues>0 && struct.fields.size != numValues) {
-                if (numValues < struct.fields.size) {
-                    val missing = struct.fields.drop(numValues).joinToString(", ") { it.second }
-                    errors.err("invalid number of field values: expected ${struct.fields.size} or 0 but got $numValues, missing: $missing", array.position)
-                } else
-                    errors.err("invalid number of field values: expected ${struct.fields.size} or 0 but got $numValues", array.position)
-                return false
-            }
-            return true
-        }
-
         if(parent is VarDecl) {
             if (parent.datatype.isPointerArray && parent.datatype.elementType().subType!=null) {
                 val struct = parent.datatype.elementType().subType as StructDecl
                 val allremovals = mutableListOf<VarDecl>()
-                var noErrors = true
                 var changes = false
                 array.value.withIndex().forEach { (index, elt) ->
                     if(elt is ArrayLiteral) {
-                        noErrors = noErrors and checkNumberOfElements(struct, elt)
-                        if(noErrors) {
-                            array.value[index] = convertArrayIntoStructInitializer(elt, struct)
-                            changes = true
-                        }
+                        array.value[index] = convertArrayIntoStructInitializer(elt, struct)
+                        changes = true
                     } else if(elt is IdentifierReference) {
                         val arrayvar = elt.targetVarDecl()!!.value as ArrayLiteral
-                        noErrors = noErrors and checkNumberOfElements(struct, arrayvar)
-                        if(noErrors) {
-                            array.value[index] = convertArrayIntoStructInitializer(arrayvar, struct)
-                            allremovals += elt.targetVarDecl()!!
-                            changes = true
-                        }
+                        array.value[index] = convertArrayIntoStructInitializer(arrayvar, struct)
+                        allremovals += elt.targetVarDecl()!!
+                        changes = true
                     }
                 }
 
-                if(changes && noErrors) {
+                if(changes) {
                     array.linkParents(parent)
                     return allremovals.map { AstRemove(it, it.parent as IStatementContainer) }
                 }
@@ -1364,10 +1354,8 @@ _after:
             val targetDt = parent.target.inferType(program).getOrUndef()
             if(targetDt.isPointer && targetDt.subType!=null) {
                 val struct = targetDt.subType as StructDecl
-                if(checkNumberOfElements(struct, array)) {
-                    val initializser = convertArrayIntoStructInitializer(array, struct)
-                    return listOf(AstReplaceNode(array, initializser, parent))
-                }
+                val initializser = convertArrayIntoStructInitializer(array, struct)
+                return listOf(AstReplaceNode(array, initializser, parent))
             }
         }
 

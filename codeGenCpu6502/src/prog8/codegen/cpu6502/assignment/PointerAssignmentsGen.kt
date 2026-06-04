@@ -490,15 +490,275 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
     }
 
     internal fun assignWord(target: IndexedPtrTarget, word: Int) {
-        TODO("array ptr assign const word ${target.position}")
+        val eltSize = asmgen.program.memsizer.memorySize(target.elementDt, null)
+        val constIndex = target.index.asConstInteger()
+        if(constIndex!=null) {
+            val (zpPtrVar, offset2) = deref(target.pointer)
+            val offset = eltSize*constIndex + offset2.toInt()
+            if(offset>255) {
+                if(zpPtrVar.startsWith("P8ZP_SCRATCH_")) {
+                    asmgen.out("""
+                        lda  $zpPtrVar+1
+                        clc
+                        adc  #>$offset
+                        sta  $zpPtrVar+1
+                        ldy  #<$offset
+                        lda  #<$word
+                        sta  ($zpPtrVar),y
+                        lda  #>$word
+                        iny
+                        sta  ($zpPtrVar),y""")
+                } else {
+                    asmgen.out("""
+                        lda  $zpPtrVar
+                        sta  P8ZP_SCRATCH_PTR
+                        lda  $zpPtrVar+1
+                        clc
+                        adc  #>$offset
+                        sta  P8ZP_SCRATCH_PTR+1
+                        ldy  #<$offset
+                        lda  #<$word
+                        sta  (P8ZP_SCRATCH_PTR),y
+                        lda  #>$word
+                        iny
+                        sta  (P8ZP_SCRATCH_PTR),y""")
+                }
+            } else {
+                asmgen.out("""
+                    ldy  #<$offset
+                    lda  #<$word
+                    sta  ($zpPtrVar),y
+                    lda  #>$word
+                    iny
+                    sta  ($zpPtrVar),y""")
+            }
+        } else if(target.index is PtIdentifier) {
+            val (zpPtrVar, _) = deref(target.pointer, addOffsetToPointer=true)
+            val indexVarName = asmgen.asmVariableName(target.index)
+            if(eltSize!=1) {
+                TODO("multiply index by element size $eltSize ${target.position}")
+            }
+            if(target.index.type.isWord) {
+                asmgen.out("""
+                    clc
+                    lda  $zpPtrVar+1
+                    adc  $indexVarName+1
+                    sta  $zpPtrVar+1""")
+            }
+            asmgen.out("""
+                ldy  $indexVarName
+                lda  #<$word
+                sta  ($zpPtrVar),y
+                lda  #>$word
+                iny
+                sta  ($zpPtrVar),y""")
+        } else {
+            if(eltSize!=1) {
+                TODO("multiply index by element size $eltSize ${target.position}")
+            }
+            if(target.index.type.isByte) {
+                asmgen.pushCpuStack(BaseDataType.UBYTE, target.index)
+                val (zpPtrVar, offset) = deref(target.pointer, addOffsetToPointer = true)
+                require(offset==0.toUByte())
+                asmgen.restoreRegisterStack(CpuRegister.Y, false)
+                asmgen.out("""
+                    lda  #<$word
+                    sta  ($zpPtrVar),y
+                    lda  #>$word
+                    iny
+                    sta  ($zpPtrVar),y""")
+            } else {
+                asmgen.pushCpuStack(BaseDataType.UWORD, target.index)
+                val (zpPtrVar, offset) = deref(target.pointer, addOffsetToPointer = true)
+                require(offset==0.toUByte())
+                asmgen.out("""
+                    pla
+                    clc
+                    adc  $zpPtrVar+1
+                    sta  $zpPtrVar+1""")
+                if(asmgen.isTargetCpu(CpuType.CPU65C02)) asmgen.out("  ply") else asmgen.out("  pla |  tay")
+                asmgen.out("""
+                    lda  #<$word
+                    sta  ($zpPtrVar),y
+                    lda  #>$word
+                    iny
+                    sta  ($zpPtrVar),y""")
+            }
+        }
     }
 
     internal fun assignLong(target: IndexedPtrTarget, long: Int) {
-        TODO("array ptr assign const long ${target.position}")
+        val eltSize = asmgen.program.memsizer.memorySize(target.elementDt, null)
+        val constIndex = target.index.asConstInteger()
+        if(constIndex!=null) {
+            val (zpPtrVar, offset2) = deref(target.pointer)
+            val offset = eltSize*constIndex + offset2.toInt()
+            val hex = long.toLongHex()
+            if(offset>255) {
+                if(zpPtrVar.startsWith("P8ZP_SCRATCH_")) {
+                    asmgen.out("""
+                        lda  $zpPtrVar+1
+                        clc
+                        adc  #>$offset
+                        sta  $zpPtrVar+1
+                        ldy  #<$offset
+                        lda  #$${hex.substring(6,8)}
+                        sta  ($zpPtrVar),y
+                        iny
+                        lda  #$${hex.substring(4,6)}
+                        sta  ($zpPtrVar),y
+                        iny
+                        lda  #$${hex.substring(2,4)}
+                        sta  ($zpPtrVar),y
+                        iny
+                        lda  #$${hex.take(2)}
+                        sta  ($zpPtrVar),y""")
+                } else {
+                    asmgen.out("""
+                        lda  $zpPtrVar
+                        sta  P8ZP_SCRATCH_PTR
+                        lda  $zpPtrVar+1
+                        clc
+                        adc  #>$offset
+                        sta  P8ZP_SCRATCH_PTR+1
+                        ldy  #<$offset
+                        lda  #$${hex.substring(6,8)}
+                        sta  (P8ZP_SCRATCH_PTR),y
+                        iny
+                        lda  #$${hex.substring(4,6)}
+                        sta  (P8ZP_SCRATCH_PTR),y
+                        iny
+                        lda  #$${hex.substring(2,4)}
+                        sta  (P8ZP_SCRATCH_PTR),y
+                        iny
+                        lda  #$${hex.take(2)}
+                        sta  (P8ZP_SCRATCH_PTR),y""")
+                }
+            } else {
+                asmgen.out("""
+                    ldy  #<$offset
+                    lda  #$${hex.substring(6,8)}
+                    sta  ($zpPtrVar),y
+                    iny
+                    lda  #$${hex.substring(4,6)}
+                    sta  ($zpPtrVar),y
+                    iny
+                    lda  #$${hex.substring(2,4)}
+                    sta  ($zpPtrVar),y
+                    iny
+                    lda  #$${hex.take(2)}
+                    sta  ($zpPtrVar),y""")
+            }
+        } else if(target.index is PtIdentifier) {
+            val (zpPtrVar, _) = deref(target.pointer, addOffsetToPointer=true)
+            val indexVarName = asmgen.asmVariableName(target.index)
+            if(eltSize!=1) {
+                TODO("multiply index by element size $eltSize ${target.position}")
+            }
+            if(target.index.type.isWord) {
+                asmgen.out("""
+                    clc
+                    lda  $zpPtrVar+1
+                    adc  $indexVarName+1
+                    sta  $zpPtrVar+1""")
+            }
+            val hex = long.toLongHex()
+            asmgen.out("""
+                ldy  $indexVarName
+                lda  #$${hex.substring(6,8)}
+                sta  ($zpPtrVar),y
+                iny
+                lda  #$${hex.substring(4,6)}
+                sta  ($zpPtrVar),y
+                iny
+                lda  #$${hex.substring(2,4)}
+                sta  ($zpPtrVar),y
+                iny
+                lda  #$${hex.take(2)}
+                sta  ($zpPtrVar),y""")
+        } else {
+            if(eltSize!=1) {
+                TODO("multiply index by element size $eltSize ${target.position}")
+            }
+            val hex = long.toLongHex()
+            if(target.index.type.isByte) {
+                asmgen.pushCpuStack(BaseDataType.UBYTE, target.index)
+                val (zpPtrVar, offset) = deref(target.pointer, addOffsetToPointer = true)
+                require(offset==0.toUByte())
+                asmgen.restoreRegisterStack(CpuRegister.Y, false)
+                asmgen.out("""
+                    lda  #$${hex.substring(6,8)}
+                    sta  ($zpPtrVar),y
+                    iny
+                    lda  #$${hex.substring(4,6)}
+                    sta  ($zpPtrVar),y
+                    iny
+                    lda  #$${hex.substring(2,4)}
+                    sta  ($zpPtrVar),y
+                    iny
+                    lda  #$${hex.take(2)}
+                    sta  ($zpPtrVar),y""")
+            } else {
+                asmgen.pushCpuStack(BaseDataType.UWORD, target.index)
+                val (zpPtrVar, offset) = deref(target.pointer, addOffsetToPointer = true)
+                require(offset==0.toUByte())
+                asmgen.out("""
+                    pla
+                    clc
+                    adc  $zpPtrVar+1
+                    sta  $zpPtrVar+1""")
+                if(asmgen.isTargetCpu(CpuType.CPU65C02)) asmgen.out("  ply") else asmgen.out("  pla |  tay")
+                asmgen.out("""
+                    lda  #$${hex.substring(6,8)}
+                    sta  ($zpPtrVar),y
+                    iny
+                    lda  #$${hex.substring(4,6)}
+                    sta  ($zpPtrVar),y
+                    iny
+                    lda  #$${hex.substring(2,4)}
+                    sta  ($zpPtrVar),y
+                    iny
+                    lda  #$${hex.take(2)}
+                    sta  ($zpPtrVar),y""")
+            }
+        }
     }
 
     internal fun assignFloat(target: IndexedPtrTarget, float: Double) {
-        TODO("array ptr assign const float ${target.position}")
+        // For now, only the constant-index case is supported
+        val constIndex = target.index.asConstInteger()
+        if(constIndex!=null) {
+            val eltSize = asmgen.program.memsizer.memorySize(target.elementDt, null)
+            val (zpPtrVar, offset2) = deref(target.pointer)
+            val offset = eltSize*constIndex + offset2.toInt()
+            if(offset>255) {
+                if(zpPtrVar.startsWith("P8ZP_SCRATCH_")) {
+                    asmgen.out("""
+                        lda  $zpPtrVar
+                        clc
+                        adc  #<$offset
+                        sta  $zpPtrVar
+                        lda  $zpPtrVar+1
+                        adc  #>$offset
+                        sta  $zpPtrVar+1""")
+                    asmgen.storeIndirectFloat(float, zpPtrVar, 0.toUByte())
+                } else {
+                    asmgen.out("""
+                        lda  $zpPtrVar
+                        clc
+                        adc  #<$offset
+                        sta  P8ZP_SCRATCH_PTR
+                        lda  $zpPtrVar+1
+                        adc  #>$offset
+                        sta  P8ZP_SCRATCH_PTR+1""")
+                    asmgen.storeIndirectFloat(float, "P8ZP_SCRATCH_PTR", 0.toUByte())
+                }
+            } else {
+                asmgen.storeIndirectFloat(float, zpPtrVar, offset.toUByte())
+            }
+        } else {
+            TODO("array ptr assign const float with variable index not yet supported ${target.position}")
+        }
     }
 
     internal fun assignFAC1(target: IndexedPtrTarget) {
@@ -2560,7 +2820,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
         }
     }
 
-    internal fun assignIndexedPointer(target: AsmAssignTarget, arrayVarName: String, arrayIndexer: PtArrayIndexer, arrayDt: DataType) {
+    internal fun assignIndexedPointer(target: AsmAssignTarget, arrayVarName: String, arrayIndexer: PtArrayIndexer) {
         // Load value from array[index] and store to pointer target
         if(target.datatype.isLong) {
             // Get address of array[index] into AY, then 4-byte copy loop to target pointer

@@ -512,7 +512,7 @@ class VarDecl(
     }
 }
 
-class StructDecl(override val name: String, val fields: Array<Pair<DataType, String>>, val isPrivate: Boolean, override val position: Position) : Statement(), INamedStatement, ISubType {
+class StructDecl(override val name: String, val fields: Array<StructField>, val isPrivate: Boolean, override val position: Position) : Statement(), INamedStatement, ISubType {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -524,29 +524,45 @@ class StructDecl(override val name: String, val fields: Array<Pair<DataType, Str
     override fun copy() = StructDecl(name, fields.clone(), isPrivate, position)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
-    override fun memsize(sizer: IMemSizer): Int = fields.sumOf { sizer.memorySize(it.first, 1) }
+    override fun memsize(sizer: IMemSizer): Int = fields.sumOf { field ->
+        if(field.isArray)
+            sizer.memorySize(field.type, field.arraySize!!)
+        else
+            sizer.memorySize(field.type, 1)
+    }
     override fun sameas(other: ISubType): Boolean = other is StructDecl && other.name==name && other.fields.contentEquals(fields)
 
-    override fun getFieldType(name: String): DataType? = fields.firstOrNull { it.second==name }?.first
+    override fun getFieldType(name: String): DataType? = fields.firstOrNull { it.name==name }?.type
+    fun getField(name: String): StructField? = fields.firstOrNull { it.name==name }
     override val scopedNameString by lazy { scopedName.joinToString(".") }
 
     fun offsetof(fieldname: String, sizer: IMemSizer): UByte? {
         fields.fold(0) { offset, field ->
-            if (field.second == fieldname)
+            if (field.name == fieldname)
                 return offset.toUByte()
-            offset + sizer.memorySize(field.first, 1)
+            val numElements = if(field.isArray) field.arraySize!! else 1
+            offset + sizer.memorySize(field.type, numElements)
         }
         return null
     }
 }
 
-class StructFieldRef(val pointer: IdentifierReference, val struct: StructDecl, val type: DataType, override val name: String, override val position: Position): Statement(), INamedStatement {
+
+data class StructField(val type: DataType, val name: String, val arraySize: Int? = null) {
+    val isArray: Boolean get() = arraySize != null
+}
+
+
+class StructFieldRef(val pointer: IdentifierReference, val struct: StructDecl, val field: StructField, override val position: Position): Statement(), INamedStatement {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
         this.parent = parent
         pointer.linkParents(this)
     }
+
+    override val name: String = field.name
+    val type: DataType = field.type
 
     override val scopedName: List<String>
         get() = pointer.nameInSource
@@ -555,7 +571,7 @@ class StructFieldRef(val pointer: IdentifierReference, val struct: StructDecl, v
 
     override fun referencesIdentifier(nameInSource: List<String>) = pointer.referencesIdentifier(nameInSource) || struct.referencesIdentifier(nameInSource)
 
-    override fun copy(): StructFieldRef = StructFieldRef(pointer.copy(), struct.copy(), type, name, position)
+    override fun copy(): StructFieldRef = StructFieldRef(pointer.copy(), struct.copy(), field, position)
 
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)

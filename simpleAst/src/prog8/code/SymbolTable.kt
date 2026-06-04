@@ -270,7 +270,7 @@ class StMemVar(name: String,
 
 class StStruct(
     name: String,
-    val fields: List<Pair<DataType, String>>,
+    val fields: List<PtStructField>,
     val size: UInt,
     astNode: PtStructDecl?
 ) : StNode(name, StNodeType.STRUCT, astNode), ISubType {
@@ -278,17 +278,18 @@ class StStruct(
     fun getField(name: String, sizer: IMemSizer): Pair<DataType, UByte> {
         // returns type and byte offset of the given field
         var offset = 0
-        for((dt, definedname) in fields) {
-            if(name==definedname) {
+        for(field in fields) {
+            if(name==field.name) {
                 require(offset<=255)
-                return dt to offset.toUByte()
+                return field.type to offset.toUByte()
             }
-            offset += sizer.memorySize(dt, null)
+            val numElements = if(field.isArray) field.arraySize!! else 1
+            offset += sizer.memorySize(field.type, numElements)
         }
         throw NoSuchElementException("field $name not found in struct ${this.name}")
     }
 
-    override fun getFieldType(name: String): DataType? = fields.firstOrNull { it.second == name }?.first
+    override fun getFieldType(name: String): DataType? = fields.firstOrNull { it.name == name }?.type
 
     override fun memsize(sizer: IMemSizer): Int = size.toInt()
     override fun sameas(other: ISubType): Boolean {

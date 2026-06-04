@@ -3,15 +3,13 @@ package prog8.compiler.astprocessing
 import prog8.ast.IFunctionCall
 import prog8.ast.Node
 import prog8.ast.Program
+import prog8.ast.expressions.ArrayLiteral
 import prog8.ast.expressions.FunctionCallExpression
 import prog8.ast.expressions.StaticStructInitializer
 import prog8.ast.expressions.StringLiteral
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
-import prog8.code.core.BuiltinFunctions
-import prog8.code.core.ICompilationTarget
-import prog8.code.core.IErrorReporter
-import prog8.code.core.Position
+import prog8.code.core.*
 import prog8.code.target.VMTarget
 
 /**
@@ -29,16 +27,6 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
 
     private fun nameShadowWarning(name: String, position: Position, existing: Statement) {
         errors.warn("name '$name' shadows the definition at ${existing.position.file} line ${existing.position.line}", position)
-    }
-
-    private fun invalidNumberOfArgsError(pos: Position, numArgs: Int, params: List<String>, zeroAllowed: Boolean=false) {
-        val expected = if(zeroAllowed) "${params.size} or 0" else "${params.size}"
-        if(numArgs<params.size) {
-            val missing = params.drop(numArgs).joinToString(", ")
-            errors.err("invalid number of arguments: expected $expected but got $numArgs, missing: $missing", pos)
-        }
-        else
-            errors.err("invalid number of arguments: expected $expected but got $numArgs", pos)
     }
 
     override fun visit(block: Block) {
@@ -132,6 +120,13 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
             errors.err("builtin function cannot be redefined", struct.position)
         else if(struct.name in keywords)
             errors.err("struct name cannot be a keyword", struct.position)
+        
+        for (field in struct.fields) {
+            if ((field.type.base == BaseDataType.ARRAY || field.type.base == BaseDataType.ARRAY_SPLITW || field.type.base == BaseDataType.ARRAY_POINTER) && field.arraySize == null) {
+                errors.err("array field must have a specified size", struct.position)
+            }
+        }
+        
         super.visit(struct)
     }
 
@@ -223,10 +218,30 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
 
     override fun visit(initializer: StaticStructInitializer) {
         val struct = initializer.structname.targetStructDecl()
-        if(struct!=null) {
-            if (initializer.args.isNotEmpty() && initializer.args.size != struct.fields.size) {
-                val pos = (if (initializer.args.any()) initializer.args[0] else initializer).position
-                invalidNumberOfArgsError(pos, initializer.args.size, struct.fields.map { it.second }, true)
+        if (struct != null) {
+            // Strict field-by-field type/structure check
+            for ((idx, field) in struct.fields.withIndex()) {
+                if (idx >= initializer.args.size) break
+                val arg = initializer.args[idx]
+                
+                if (field.type.isString || field.type.isPointerToByte) {
+                    if (arg is ArrayLiteral) {
+                        errors.err("invalid number of arguments; make sure str fields are initialized with a string literal and nothing else", arg.position)
+                    }
+                    continue
+                }
+                
+                if (field.isArray) {
+                    // Expecting array for array field
+                    if (arg !is ArrayLiteral) {
+                         errors.err("Array field '${field.name}' must be initialized with an array literal", arg.position)
+                    }
+                } else {
+                    // Expecting scalar for scalar field
+                    if (arg is ArrayLiteral) {
+                        errors.err("Array literal passed to scalar field '${field.name}'", arg.position)
+                    }
+                }
             }
         }
     }
@@ -238,7 +253,7 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
                     val expectedNumberOfArgs: Int = target.parameters.size
                     if(call.args.size != expectedNumberOfArgs) {
                         val pos = (if(call.args.any()) call.args[0] else (call as Node)).position
-                        invalidNumberOfArgsError(pos, call.args.size, target.parameters.map { it.name })
+                        invalidNumberOfArgsError(errors, pos, call.args.size, target.parameters.map { it.name })
                     }
                 }
                 is BuiltinFunctionPlaceholder -> {
@@ -246,7 +261,7 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
                     val expectedNumberOfArgs: Int = func.parameters.size
                     if(call.args.size != expectedNumberOfArgs) {
                         val pos = (if(call.args.any()) call.args[0] else (call as Node)).position
-                        invalidNumberOfArgsError(pos, call.args.size, func.parameters.map {it.name })
+                        invalidNumberOfArgsError(errors, pos, call.args.size, func.parameters.map {it.name })
                     }
                 }
                 is Label -> {

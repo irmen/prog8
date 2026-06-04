@@ -50,21 +50,15 @@ class SymbolExtractor {
             when (stmt) {
                 is Subroutine -> {
                     val subSymbol = visitSubroutineInternal(stmt)
-                    if (subSymbol != null) {
-                        blockSymbol.children.add(subSymbol)
-                    }
+                    blockSymbol.children.add(subSymbol)
                 }
                 is VarDecl -> {
                     val varSymbol = visitVariableInternal(stmt)
-                    if (varSymbol != null) {
-                        blockSymbol.children.add(varSymbol)
-                    }
+                    blockSymbol.children.add(varSymbol)
                 }
                 is StructDecl -> {
                     val structSymbol = visitStructInternal(stmt)
-                    if (structSymbol != null) {
-                        blockSymbol.children.add(structSymbol)
-                    }
+                    blockSymbol.children.add(structSymbol)
                 }
                 else -> {} // Ignore other statement types
             }
@@ -75,12 +69,10 @@ class SymbolExtractor {
 
     private fun visitSubroutine(sub: Subroutine) {
         val symbol = visitSubroutineInternal(sub)
-        if (symbol != null) {
-            symbols.add(symbol)
-        }
+        symbols.add(symbol)
     }
 
-    private fun visitSubroutineInternal(sub: Subroutine): DocumentSymbol? {
+    private fun visitSubroutineInternal(sub: Subroutine): DocumentSymbol {
         val range = sub.position.toLspRange()
         val selectionRange = range // Could be just the name
         
@@ -94,12 +86,10 @@ class SymbolExtractor {
 
     private fun visitVariable(varDecl: VarDecl) {
         val symbol = visitVariableInternal(varDecl)
-        if (symbol != null) {
-            symbols.add(symbol)
-        }
+        symbols.add(symbol)
     }
 
-    private fun visitVariableInternal(varDecl: VarDecl): DocumentSymbol? {
+    private fun visitVariableInternal(varDecl: VarDecl): DocumentSymbol {
         val range = varDecl.position.toLspRange()
         val selectionRange = range
         
@@ -120,12 +110,10 @@ class SymbolExtractor {
 
     private fun visitStruct(struct: StructDecl) {
         val symbol = visitStructInternal(struct)
-        if (symbol != null) {
-            symbols.add(symbol)
-        }
+        symbols.add(symbol)
     }
 
-    private fun visitStructInternal(struct: StructDecl): DocumentSymbol? {
+    private fun visitStructInternal(struct: StructDecl): DocumentSymbol {
         val range = struct.position.toLspRange()
         val selectionRange = range
 
@@ -139,10 +127,10 @@ class SymbolExtractor {
 
         // Add struct fields as children
         // Note: struct fields are just (DataType, String) pairs without individual positions
-        struct.fields.forEachIndexed { index, field ->
+        struct.fields.forEachIndexed { _, field ->
             // Use the struct's range for all fields (not ideal but works for now)
             val fieldSymbol = DocumentSymbol(
-                field.second,  // field name
+                field.name,  // field name
                 SymbolKind.Field,
                 range,  // Use struct's range since fields don't have individual positions
                 range

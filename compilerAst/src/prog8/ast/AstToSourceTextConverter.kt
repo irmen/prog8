@@ -194,7 +194,8 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
             output("private ")
         outputln("struct ${struct.name} {")
         for(member in struct.fields) {
-            outputlni(  "    ${member.first} ${member.second}")
+            val arraySuffix = if(member.isArray) "[${member.arraySize}]" else ""
+            outputlni(  "    ${member.type}$arraySuffix ${member.name}")
         }
         outputlni("}")
     }

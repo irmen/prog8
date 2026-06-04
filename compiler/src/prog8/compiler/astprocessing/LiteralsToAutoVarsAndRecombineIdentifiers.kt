@@ -34,6 +34,9 @@ internal class LiteralsToAutoVarsAndRecombineIdentifiers(private val program: Pr
     }
 
     override fun after(array: ArrayLiteral, parent: Node): Iterable<AstModification> {
+        if (findParentNode<StaticStructInitializer>(array) != null) return noModifications
+        if (findParentNode<ArrayLiteral>(array) != null) return noModifications
+
         val vardecl = array.parent as? VarDecl
         if(vardecl!=null) {
             // adjust the datatype of the array (to an educated guess from the vardecl type)

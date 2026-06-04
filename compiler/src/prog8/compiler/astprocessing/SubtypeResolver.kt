@@ -90,7 +90,7 @@ internal object SubtypeResolver {
                 }
             }
             is PtPointerDeref -> fixSubtypeIntoStType(node.type, st)
-            is PtStructDecl -> node.fields.forEach { fixSubtypeIntoStType(it.first, st) }
+            is PtStructDecl -> node.fields.forEach { fixSubtypeIntoStType(it.type, st) }
             is PtAsmSub -> node.returns.forEach { fixSubtypeIntoStType(it.second, st) }
             is PtExpression -> {
                 fixSubtypeIntoStType(node.type, st)

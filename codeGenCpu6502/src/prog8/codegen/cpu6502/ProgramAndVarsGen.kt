@@ -372,13 +372,14 @@ internal class ProgramAndVarsGen(
     }
 
     private fun asmTypeString(dt: DataType): String {
+        val effectiveDt = if(dt.isArray) dt.elementType() else dt
         return when {
-            dt.isBool || dt.isUnsignedByte -> ".byte"
-            dt.isSignedByte -> ".char"
-            dt.isUnsignedWord || dt.isPointer -> ".word"
-            dt.isSignedWord -> ".sint"
-            dt.isLong -> ".dint"
-            dt.isFloat -> ".byte"
+            effectiveDt.isBool || effectiveDt.isUnsignedByte -> ".byte"
+            effectiveDt.isSignedByte -> ".char"
+            effectiveDt.isUnsignedWord || effectiveDt.isPointer -> ".word"
+            effectiveDt.isSignedWord -> ".sint"
+            effectiveDt.isLong -> ".dint"
+            effectiveDt.isFloat -> ".byte"
             else -> {
                 throw AssemblyError("weird dt")
             }
@@ -387,42 +388,56 @@ internal class ProgramAndVarsGen(
 
     private fun structInstances2asm() {
 
-        fun initValues(instance: StStructInstance): List<String> {
-            val structtype: StStruct = symboltable.lookup(instance.structName) as StStruct
-            return structtype.fields.zip(instance.initialValues).map { (field, value) ->
-                if(field.first.isFloat) {
-                    val numValue = (value as? StArrayElement.Number)?.value 
-                        ?: throw AssemblyError("expected number for float field")
-                    "["+compTarget.getFloatAsmBytes(numValue)+"]"
-                } else {
-                    when (value) {
-                        is StArrayElement.Number -> {
-                            if(field.first.isPointer)
-                                "$"+value.value.toInt().toString(16)
-                            else if(field.first.isInteger)
-                                value.value.toInt().toString()
-                            else
-                                value.value.toString()
-                        }
-                        is StArrayElement.AddressOf -> value.symbol
-                        is StArrayElement.MemorySlab -> "$StMemorySlabBlockName.${value.name}"
-                        is StArrayElement.BoolValue -> if(value.value) "1" else "0"
-                        is StArrayElement.StructInstance -> throw AssemblyError("struct instance in struct initializer")
-                    }
+        fun formatValue(value: StArrayElement, dt: DataType): String {
+            if(dt.isFloat) {
+                val numValue = (value as? StArrayElement.Number)?.value
+                    ?: throw AssemblyError("expected number for float field")
+                return "["+compTarget.getFloatAsmBytes(numValue)+"]"
+            }
+            return when (value) {
+                is StArrayElement.Number -> {
+                    if(dt.isPointer)
+                        "$"+value.value.toInt().toString(16)
+                    else if(dt.isInteger)
+                        value.value.toInt().toString()
+                    else
+                        value.value.toString()
+                }
+                is StArrayElement.AddressOf -> value.symbol
+                is StArrayElement.MemorySlab -> "$StMemorySlabBlockName.${value.name}"
+                is StArrayElement.BoolValue -> if(value.value) "1" else "0"
+                is StArrayElement.StructInstance -> throw AssemblyError("struct instance in struct initializer")
+            }
+        }
+
+        fun flatInitValues(instance: StStructInstance, structtype: StStruct): List<String> {
+            var valueIndex = 0
+            return structtype.fields.flatMap { field ->
+                val arraySz = field.arraySize
+                val count = arraySz ?: 1
+                val elemDt = if(arraySz!=null) field.type.elementType() else field.type
+                (0 until count).map {
+                    val value = instance.initialValues[valueIndex++]
+                    formatValue(value, elemDt)
                 }
             }
         }
 
-
         asmgen.out("; struct types")
         symboltable.allStructTypes().distinctBy { it.name }.forEach { structtype ->
-            val structargs = structtype.fields.withIndex().joinToString(",") { field -> "f${field.index}" }
+            val paramFields = structtype.fields.filter { !it.isArray }
+            val structargs = paramFields.indices.joinToString(",") { "f$it" }
             asmgen.out("${structtype.scopedNameString}    .struct $structargs\n")
-            structtype.fields.withIndex().forEach { (index, field) ->
-                val dt = field.first
-                val varname = "f${index}"
-                val type = asmTypeString(dt)
-                asmgen.out("p8v_${field.second}  $type  \\$varname")        // note: struct field symbol prefixing done here because that is a lot simpler than fixing up all expressions in the AST
+            var paramIdx = 0
+            for(field in structtype.fields) {
+                val type = asmTypeString(field.type)
+                if(field.isArray) {
+                    val anonymous = List(field.arraySize!!) { "?" }.joinToString(",")
+                    asmgen.out("p8v_${field.name}  $type  $anonymous")
+                } else {
+                    asmgen.out("p8v_${field.name}  $type  \\f$paramIdx")
+                    paramIdx++
+                }
             }
             asmgen.out("    .endstruct\n")
         }
@@ -433,14 +448,7 @@ internal class ProgramAndVarsGen(
         asmgen.out("${StStructInstanceBlockName}_bss  .block\n")
         instancesNoInit.forEach {
             val structtype: StStruct = symboltable.lookup(it.structName) as StStruct
-            val zerovalues = structtype.fields.map { field ->
-                if(field.first.isFloat) {
-                    val floatbytes = List(compTarget.memorySize(BaseDataType.FLOAT)) { "?" }
-                    "[${floatbytes.joinToString(",")}]"
-                }
-                else "?"
-            }
-            asmgen.out("${it.name}    .dstruct  ${it.structName}, ${zerovalues.joinToString(",")}\n")
+            asmgen.out("${it.name}    .fill  ${structtype.size}\n")
         }
         asmgen.out("    .endblock\n")
         asmgen.out("    .send BSS\n")
@@ -448,9 +456,28 @@ internal class ProgramAndVarsGen(
         asmgen.out("; struct instances with initialization values\n")
         asmgen.out("    .section STRUCTINSTANCES\n")
         asmgen.out("$StStructInstanceBlockName  .block\n")
-        instances.forEach {
-            val instancename = it.name.substringAfter('.')
-            asmgen.out("$instancename    .dstruct  ${it.structName}, ${initValues(it).joinToString(",")}\n")
+        instances.forEach { instance ->
+            val instancename = instance.name.substringAfter('.')
+            val structtype: StStruct = symboltable.lookup(instance.structName) as StStruct
+            val values = flatInitValues(instance, structtype)
+            val hasArrays = structtype.fields.any { fld -> fld.isArray }
+            if(hasArrays) {
+                asmgen.out(instancename)
+                var valueIndex = 0
+                for(field in structtype.fields) {
+                    val arraySz = field.arraySize
+                    val count = arraySz ?: 1
+                    val elemDt = if(arraySz!=null) field.type.elementType() else field.type
+                    val type = asmTypeString(elemDt)
+                    val fieldValues = (0 until count).joinToString(",") {
+                        formatValue(instance.initialValues[valueIndex++], elemDt)
+                    }
+                    asmgen.out("  $type  $fieldValues")
+                }
+                asmgen.out("\n")
+            } else {
+                asmgen.out("$instancename    .dstruct  ${instance.structName}, ${values.joinToString(",")}\n")
+            }
         }
         asmgen.out("    .endblock\n")
         asmgen.out("    .send STRUCTINSTANCES\n")
