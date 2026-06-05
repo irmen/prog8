@@ -1,6 +1,7 @@
 package prog8tests.codegeneration
 
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.shouldBe
 import prog8.code.target.VMTarget
 import prog8.vm.VmRunner
 import prog8tests.helpers.ErrorReporterForTests
@@ -71,5 +72,40 @@ class TestStructsWithArrays : FunSpec({
         }
         val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         VmRunner().runProgram(virtfile.toFile().readText(), false)
+    }
+
+    test("struct with inlined array memory layout") {
+        val src = $$"""
+            main {
+                struct Node {
+                    ubyte a
+                    bool flag
+                    ubyte[5] array
+                    word number
+                }
+
+                sub start() {
+                    ^^Node k2 = [1, false, [65,66,67,68,0], 9999]
+                    ^^Node k3 = $4000
+                    k3^^=k2^^
+                }
+            }
+        """.trimIndent()
+        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        val result = compileText(VMTarget(), true, src, outputDir, errors = errors)
+        if (result == null) {
+            throw Exception("Compilation failed: ${errors.errors}")
+        }
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
+        VmRunner().runAndTestProgram(virtfile.toFile().readText(), true) { vm ->
+            vm.memory.getUB(0x4000u).toInt() shouldBe 1
+            vm.memory.getUB(0x4001u).toInt() shouldBe 0
+            vm.memory.getUB(0x4002u).toInt() shouldBe 65
+            vm.memory.getUB(0x4003u).toInt() shouldBe 66
+            vm.memory.getUB(0x4004u).toInt() shouldBe 67
+            vm.memory.getUB(0x4005u).toInt() shouldBe 68
+            vm.memory.getUB(0x4006u).toInt() shouldBe 0
+            vm.memory.getUW(0x4007u).toInt() shouldBe 9999
+        }
     }
 })

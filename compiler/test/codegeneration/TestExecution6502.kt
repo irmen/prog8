@@ -378,4 +378,40 @@ class TestExecution6502 : FunSpec({
         machine.assertMemory(0x2002, 0x00)
         machine.assertMemory(0x2003, 0x00)
     }
+
+    test("struct with inlined array memory layout (6502)") {
+        val src = $$"""
+            %option no_sysinit
+            %launcher none
+            %address $1000
+            
+            main {
+                &ubyte poweroff = $f203
+                struct Node {
+                    ubyte a
+                    bool flag
+                    ubyte[5] array
+                    word number
+                }
+
+                sub start() {
+                    ^^Node k2 = [1, false, [65,66,67,68,0], 9999]
+                    ^^Node k3 = $4000
+                    k3^^=k2^^
+                    poweroff = 1
+                }
+            }
+        """.trimIndent()
+        val compileResult = compileText(Cx16Target(), false, src, outputDir)
+        val machine = compileResult!!.simulate()
+        machine.assertMemory(0x4000, 1)
+        machine.assertMemory(0x4001, 0)
+        machine.assertMemory(0x4002, 65)
+        machine.assertMemory(0x4003, 66)
+        machine.assertMemory(0x4004, 67)
+        machine.assertMemory(0x4005, 68)
+        machine.assertMemory(0x4006, 0)
+        machine.assertMemory(0x4007, 9999 and 0xff)
+        machine.assertMemory(0x4008, (9999 shr 8) and 0xff)
+    }
 })

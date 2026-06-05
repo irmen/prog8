@@ -653,4 +653,32 @@ main {
         
         found shouldBe true
     }
+
+    test("struct field with empty array size should give error") {
+        val src = """
+            main {
+                struct Node {
+                    ubyte[] data
+                }
+                sub start() { }
+            }
+        """.trimIndent()
+        val errors = ErrorReporterForTests()
+        compileText(VMTarget(), false, src, outputDir, errors) shouldBe null
+        errors.printedErrors.any { it.contains("array field must have a specified size") } shouldBe true
+    }
+
+    test("struct field with 2D array should give error") {
+        val src = """
+            main {
+                struct Node {
+                    ubyte[4][2] data
+                }
+                sub start() { }
+            }
+        """.trimIndent()
+        val errors = ErrorReporterForTests()
+        compileText(VMTarget(), false, src, outputDir, errors) shouldBe null
+        errors.printedErrors.any { it.contains("2D arrays are not allowed as struct fields") } shouldBe true
+    }
 })

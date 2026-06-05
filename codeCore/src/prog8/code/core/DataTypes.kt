@@ -32,8 +32,8 @@ enum class BaseDataType {
             this == LONG -> other.isByteOrBool || other.isWord
             this == STR && other == UWORD || this == UWORD && other == STR -> false
             this.isArray && other.isArray -> false
-            this.isArray -> other != FLOAT
-            this == STR -> other != FLOAT
+            this.isArray -> other.isByteOrBool
+            this == STR -> other.isByteOrBool
             this.isPointer -> other.isByteOrBool
             else -> true
         }

@@ -822,16 +822,14 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
         val isEmptyArray = ctx.EMPTYARRAYSIG() != null
 
         val (dt, arraySize) = if(arrayIndices.isNotEmpty() || isEmptyArray) {
+            if(isEmptyArray)
+                throw SyntaxError("array field must have a specified size", ctx.toPosition())
             if(arrayIndices.size > 1)
                 throw SyntaxError("2D arrays are not allowed as struct fields", ctx.toPosition())
             val dt = baseDt.elementToArray()
-            val arrayIndexExpr = if(arrayIndices.isNotEmpty())
-                arrayIndices[0].accept(this) as ArrayIndex
-            else
-                null
-            val size = (arrayIndexExpr?.indexExpr as? NumericLiteral)?.number?.toInt()
-                ?: if(arrayIndexExpr==null) null
-                   else throw SyntaxError("array field size must be a constant integer expression", ctx.toPosition())
+            val arrayIndexExpr = arrayIndices[0].accept(this) as ArrayIndex
+            val size = (arrayIndexExpr.indexExpr as? NumericLiteral)?.number?.toInt()
+                ?: throw SyntaxError("array field size must be a constant integer expression", ctx.toPosition())
             dt to size
         } else {
             baseDt to null

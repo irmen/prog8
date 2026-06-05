@@ -141,7 +141,7 @@ dealing with all of them separately.  You first define the struct type like so::
     }
 
 You can use boolean fields, numeric fields (byte, word, long, float), and pointer fields (including str, which is translated into ^^ubyte).
-You cannot nest struct types, but inline arrays are supported as fields.
+You cannot nest struct types, but inline arrays are supported as fields. 2D arrays are not allowed as struct fields.
 Fields in a struct are 'packed' (meaning the values are placed back-to-back in memory), and placed in memory in order of declaration. This guarantees exact size and place of the fields.
 ``sizeof()`` knows how to calculate the combined size of a struct, and ``offsetof()`` can be used to get the byte offset of a given field in the struct.
 The size of a struct cannot exceed 1 memory page (256 bytes).

@@ -172,6 +172,7 @@ structdeclaration:
     ;
 
 structfielddecl: datatype (arrayindex arrayindex? | EMPTYARRAYSIG)? identifierlist;
+// grammar allows [] and [][] so the visitor can give user-friendly error messages instead of cryptic parse errors
 
 
 subroutinedeclaration :
@@ -197,6 +198,7 @@ directivenamelist: '(' EOL? scoped_identifier (',' EOL? scoped_identifier)* ','?
 directivearg : stringliteral | identifier | integerliteral ;
 
 vardecl: PRIVATE? datatype (arrayindex arrayindex? | EMPTYARRAYSIG)? TAG* identifierlist ;
+// grammar allows [] and [][] so the visitor can give user-friendly error messages for invalid combinations
 
 identifierlist: identifier (',' identifier)* ;
 
@@ -206,6 +208,7 @@ varinitializer :
     ;
 
 constdecl: PRIVATE? 'const' datatype? identifierlist '=' expression ;
+// datatype is optional in the grammar so the visitor can give "datatype missing" instead of a cryptic parse error
 
 memoryvardecl: ADDRESS_OF varinitializer;
 

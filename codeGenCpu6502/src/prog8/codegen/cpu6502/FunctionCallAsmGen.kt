@@ -357,7 +357,7 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
                         AsmAssignTarget.fromRegisters(register, parameter.value.type.isSigned, value.position, scope, asmgen)
                     }
                 val src = if(value.type.isPassByRef) {
-                    if(value is PtIdentifier) {
+                    if(value is PtIdentifier || value is PtPointerDeref) {
                         val addr = PtAddressOf(value.type.typeForAddressOf(false), false, value.position)
                         addr.add(value)
                         addr.parent = scope as PtNode
@@ -394,6 +394,9 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
         if(argType.isString && paramType.isUnsignedWord)
             return true
         if(argType.isUnsignedWord && paramType.isString)
+            return true
+
+        if (argType.isArray && (paramType.isString || paramType.isPointerToByte))
             return true
 
         return false

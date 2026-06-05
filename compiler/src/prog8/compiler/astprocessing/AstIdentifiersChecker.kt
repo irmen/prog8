@@ -121,11 +121,6 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
         else if(struct.name in keywords)
             errors.err("struct name cannot be a keyword", struct.position)
         
-        for (field in struct.fields) {
-            if ((field.type.base == BaseDataType.ARRAY || field.type.base == BaseDataType.ARRAY_SPLITW || field.type.base == BaseDataType.ARRAY_POINTER) && field.arraySize == null) {
-                errors.err("array field must have a specified size", struct.position)
-            }
-        }
         
         super.visit(struct)
     }
