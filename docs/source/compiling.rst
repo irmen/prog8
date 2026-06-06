@@ -220,6 +220,8 @@ One or more .p8 module files
 
 ``-libsearch pattern``
     Search in the embedded library files for occurrences of the given regex pattern.
+    If no exact matches are found, the compiler automatically attempts a "fuzzy" search
+    by inserting wildcards between the characters of the search pattern.
 
 ``-libdump path``
     Extract all embedded library files into the given output directory.

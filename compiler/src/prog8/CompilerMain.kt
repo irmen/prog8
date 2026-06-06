@@ -591,7 +591,7 @@ private fun scanLibraryFiles(dump: String?, searchPattern: String?) {
     if(pattern!=null) {
         println("You can also have a look in the documentation for the libraries at https://prog8.readthedocs.io/en/latest/libraries.html")
         println("The library source files are available in the Github repository at https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib")
-        println("Searching for pattern '$pattern' in embedded library files.\n")
+        println("Searching for pattern '$searchPattern' in embedded library files.\n")
     }
     if(dumpPath!=null) {
         println("Dumping embedded library files into $dumpPath\n")
@@ -603,20 +603,22 @@ private fun scanLibraryFiles(dump: String?, searchPattern: String?) {
         println("Note: the exported library source files have the same software license as the compiler itself.\n")
     }
 
-    fun search(path: Path) {
+    fun search(path: Path, currentPattern: Regex, maxHits: Int = Int.MAX_VALUE): Int {
         val hits = mutableListOf<String>()
         path.useLines { lines ->
             lines.forEachIndexed { index, line ->
-                if (pattern!!.containsMatchIn(line)) {
+                if (currentPattern.containsMatchIn(line)) {
                     hits.add("${(index + 1).toString().padStart(6)}:  ${line.trimStart()}")
+                    if (hits.size >= maxHits) return@useLines
                 }
             }
         }
-        if(hits.isNotEmpty()) {
+        if (hits.isNotEmpty()) {
             println("Found in Library file '${path.absolutePathString().drop(libraryPrefix.length+1)}':")
             hits.forEach(::println)
             println()
         }
+        return hits.size
     }
 
     fun dump(path: Path) {
@@ -630,13 +632,27 @@ private fun scanLibraryFiles(dump: String?, searchPattern: String?) {
     val jarUrl = object {}.javaClass.protectionDomain.codeSource.location
     FileSystems.newFileSystem(URI.create("jar:$jarUrl"), emptyMap<String, String>()).use { fs ->
         val dir = fs.getPath(libraryPrefix)
-        Files.walk(dir).use { paths ->
-            paths.filter { Files.isRegularFile(it) }.forEach { path ->
-                if(pattern!=null)
-                    search(path)
-                else
-                    dump(path)
+        val allFiles = Files.walk(dir).use { paths -> paths.filter { Files.isRegularFile(it) }.toList() }
+        if (searchPattern != null) {
+            val p = pattern!!
+            var totalHits = 0
+            allFiles.forEach { totalHits += search(it, p) }
+            if (totalHits == 0 && searchPattern.length >= 2 && searchPattern.none { it in "\\.[]{}()^$|?*+" }) {
+                val fuzzyPatternString = searchPattern.map { Regex.escape(it.toString()) }.joinToString(".{0,3}?")
+                val fuzzyPattern = fuzzyPatternString.toRegex(RegexOption.IGNORE_CASE)
+                println("No exact matches found. Trying fuzzy search...\n")
+                var totalFuzzyHits = 0
+                for (file in allFiles) {
+                    val remaining = 100 - totalFuzzyHits
+                    if (remaining <= 0) break
+                    totalFuzzyHits += search(file, fuzzyPattern, remaining)
+                }
+                if (totalFuzzyHits >= 100) {
+                    println("... (stopped after 100 hits)")
+                }
             }
+        } else if (dumpPath != null) {
+            allFiles.forEach { dump(it) }
         }
     }
 }
