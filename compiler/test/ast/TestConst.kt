@@ -498,6 +498,21 @@ main {
         compileText(Cx16Target(), true, src, outputDir, writeAssembly = false) shouldNotBe null
     }
 
+    test("const string to pointer type compiles") {
+        val src = """
+main {
+    sub start() {
+        const ^^ubyte name = "irmen"
+        thing(name)
+    }
+    
+    sub thing(str x) {
+        cx16.r0L++
+    }
+}"""
+        compileText(VMTarget(), true, src, outputDir, writeAssembly = false) shouldNotBe null
+    }
+
     test("const long with large unsigned long values should be converted to signed longs") {
         val src = $$"""
 main {

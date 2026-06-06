@@ -46,7 +46,17 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                     VarDeclType.CONST -> {
                         // change the vardecl type itself as well, but only if new type is smaller
                         if(valueDt.largerSizeThan(decl.datatype)) {
-                            val constValue = decl.value!!.constValue(program)!!
+                            val constValue = decl.value!!.constValue(program)
+                            if(constValue==null) {
+                                // non-numeric const value, such as a string literal assigned to a pointer type
+                                // convert it to a regular variable instead
+                                if(decl.value is StringLiteral && decl.datatype.isPointer) {
+                                    val vardecl = decl.copy(DataType.STR)
+                                    vardecl.type = VarDeclType.VAR
+                                    return listOf(AstReplaceNode(decl, vardecl, parent))
+                                }
+                                return noModifications
+                            }
                             errors.err("value '${constValue.number}' out of range for ${decl.datatype}", constValue.position)
                         } else if(decl.datatype.largerSizeThan(valueDt)) {
                             // don't make it signed if it was unsigned and vice versa, except when it is a long const declaration
@@ -54,7 +64,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                                 (valueDt.isSigned && decl.datatype.isUnsigned ||
                                 valueDt.isUnsigned && decl.datatype.isSigned))
                             {
-                                val constValue = decl.value!!.constValue(program)!!
+                                val constValue = decl.value!!.constValue(program) ?: return noModifications
                                 errors.err("value '${constValue.number}' out of range for ${decl.datatype}", constValue.position)
                             } else {
                                 val changed = decl.copy(valueDt)

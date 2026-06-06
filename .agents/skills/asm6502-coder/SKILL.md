@@ -168,3 +168,8 @@ loop    ; do work here
         lda p8v_myword          ; loads LSB
         ldy p8v_myword+1        ; loads MSB (word variables are stored LSB-first)
 ```
+
+## IRQ Handler Best Practices
+- Keep handlers extremely short and fast — they run with interrupts disabled and steal cycles from the main program
+- Do NOT do lengthy processing, I/O, or complex subroutine calls inside the handler
+- Instead, set a boolean flag or semaphore that the main loop checks periodically, and do the actual work there

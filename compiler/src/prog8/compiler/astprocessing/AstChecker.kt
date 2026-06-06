@@ -979,7 +979,9 @@ internal class AstChecker(private val program: Program,
 
         // CONST can only occur on simple types (byte, word, float) and pointers
         if(decl.type==VarDeclType.CONST) {
-            if (!decl.datatype.isNumericOrBool && !decl.datatype.isPointer)
+            if(decl.datatype.isString)
+                err("strings cannot be made const they are always potentially mutable")
+            else if (!decl.datatype.isNumericOrBool && !decl.datatype.isPointer)
                 err("const can only be used on numbers, booleans and pointers")
         }
 

@@ -47,7 +47,11 @@ Follow ALL the rules below carefully.
 - Pointer-like typed pointers (`^^type`) support C-style scaled arithmetic; `uword` pointers always treat element as 1 byte
 - `&` = untyped address (uword); `&&` = typed pointer
 - Available zeropage scratch: `P8ZP_SCRATCH_B1`, `P8ZP_SCRATCH_REG`, `P8ZP_SCRATCH_W1`, `P8ZP_SCRATCH_W2`, `P8ZP_SCRATCH_PTR` — and cx16 virtual registers R0-R15 on all targets
-- Virtual registers (`cx16.r0`–`cx16.r15`): global 16-bit, NOT preserved across calls. R12-R15 may be clobbered by long ops. Save/restore in IRQs with `cx16.save_virtual_registers()`/`cx16.restore_virtual_registers()`
+- Virtual registers (`cx16.r0`–`cx16.r15`): global 16-bit, NOT preserved across calls.
+- **WARNING: Virtual registers in ISR/IRQ handlers**: The virtual registers R0-R15 are *not preserved* across the IRQ handler call. If your handler uses them, it will corrupt the interrupted program's state. Either avoid using them in the handler, or save/restore with `cx16.save_virtual_registers()` / `cx16.restore_virtual_registers()`. This applies to all targets, not just CX16.
+- **WARNING: Long operations clobber R12-R15**: Some operations on `long` values use R12-R15 as temporary storage and will silently overwrite them. Do not rely on R12-R15 values when working with longs, and avoid using R12-R15 explicitly if your code uses long arithmetic.
+- **WARNING: VERA registers in ISR handlers (CX16)**: If your IRQ handler reads or writes VERA control registers (e.g., `cx16.VERA_DATA0`, `cx16.VERA_ADDR_L`, etc.), you must save and restore the VERA context around the handler's work using `cx16.save_vera_context()` / `cx16.restore_vera_context()`. Without this, the handler will corrupt any VERA operations (tilemap updates, sprite positioning, etc.) happening in the interrupted main program.
+- **IRQ handler best practices**: Keep handlers extremely short and fast — they run with interrupts disabled and steal cycles from the main program. Do NOT do lengthy processing, I/O, or complex subroutine calls inside the handler. Instead, set a boolean flag or semaphore that the main loop checks periodically, and do the actual work there.
 - Math performance: integer trig (`math.sin8`, `math.cos8`) uses fast LUTs; float trig (`floats.sin`/`cos`) is much slower
 
 ## Recursion & Stack Management
