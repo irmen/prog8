@@ -1,6 +1,5 @@
 
-Prog8 compiler v12.2-BETA2 by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit 1dbaa6e0 in branch master
+Prog8 compiler v12.2 by Irmen de Jong (irmen@razorvine.net)
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-virtual.p8
@@ -612,7 +611,12 @@ cx16  {
     &word  r9s
     &byte  r9sH
     &byte  r9sL
+    getrambank  () -> ubyte
+    getrombank  () -> ubyte
+    numbanks  () -> uword
+    rambank  (ubyte bank)
     restore_virtual_registers  ()
+    rombank  (ubyte bank)
     save_virtual_registers  ()
 }
 

@@ -440,4 +440,40 @@ cx16 {
         r14 = cx16.save_virtual_registers.storage[14]
         r15 = cx16.save_virtual_registers.storage[15]
     }
+
+
+    private sub print_error (str message) {
+        %ir {{
+            loadm.w r99000,cx16.print_error.message
+            syscall 3 (r99000.w)
+        }}
+    }
+
+    sub rombank(ubyte bank) {
+        if bank==0
+            return
+
+        print_error("\nerror: rombank() only accepts 0 - aborting")
+        sys.exit(1)
+    }
+
+    sub rambank(ubyte bank) {
+        if bank==0
+            return
+
+        print_error("\nerror: rambank() only accepts 0 - aborting")
+        sys.exit(1)
+    }
+
+    inline sub getrombank() -> ubyte {
+        return 0
+    }
+
+    inline sub getrambank() -> ubyte {
+        return 0
+    }
+
+    sub numbanks() -> uword  {
+        return 1
+    }
 }

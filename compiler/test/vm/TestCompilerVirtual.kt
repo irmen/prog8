@@ -1090,5 +1090,19 @@ main {
             result shouldNotBe null
         }
     }
-    
+
+    test("some dummy support for rombank() rambank() in virtual target") {
+        val src = """
+            main {
+                sub start() {
+                    cx16.r0 = cx16.numbanks()
+                    cx16.rambank(0)
+                    cx16.rombank(0)
+                }
+            }
+        """.trimIndent()
+        val result = compileText(VMTarget(), false, src, outputDir)
+        result shouldNotBe null
+    }
+
 })
