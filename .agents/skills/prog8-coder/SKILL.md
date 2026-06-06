@@ -42,7 +42,15 @@ Follow ALL the rules below carefully.
 - Word/pointer arrays split into LSB/MSB by default. Override with `@nosplit`
 - **No call stack**: all variables statically allocated. No recursion without manual stack management
 - Variables zero-initialized (globals at start, locals on subroutine entry)
-- `@shared` marks variables as "used by external code" (assembly), prevents optimization
+- `@shared`, `@zp`, `@requirezp`, `@dirty`, `@nosplit` are **tags** that go on variable declarations. **Place them after the datatype (and array specifiers), before the variable name(s):**
+  ```
+  private ubyte[8] @shared vera_storage     ; single var with tag
+  ubyte @zp @shared varname                 ; multiple tags allowed
+  ubyte @requirezp var1                     ; require zeropage
+  ubyte[] @shared names                     ; array with tag
+  ```
+  The grammar is: `[private] datatype [arraydims] [tags...] identifierlist`
+- `@shared` marks variables as "used by external code" (assembly), prevents the optimizer from removing them
 - `@zp`/`@requirezp`: use sparingly — only for pointers (limited zeropage space)
 - Pointer-like typed pointers (`^^type`) support C-style scaled arithmetic; `uword` pointers always treat element as 1 byte
 - `&` = untyped address (uword); `&&` = typed pointer

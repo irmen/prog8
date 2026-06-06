@@ -72,6 +72,10 @@ psg2 {
     private ubyte[16] envelope_maxvolumes
     private uword[16] envelope_volumes         ; 8.8 fixed point (scaled by 256)
 
+    ; private VERA context save buffer, so we don't clobber the global _vera_storage in syslib
+    ; (which is shared with the cx16 module's save_vera_context and would cause a race
+    ;  condition if update() is interrupted by a VSYNC IRQ handler that also saves VERA context)
+    private ubyte[8] @shared vera_storage
 
     ^^Voice voices = memory("psg2voices", 16*sizeof(Voice), 0)      ; can't use array of structs so use mem block
     private ^^Voice vptr
@@ -150,7 +154,7 @@ psg2 {
     }
 
     sub update() -> bool {
-        ; -- update adsr envelopes, then write all 16 voices to Vera PSG
+        ; -- update adsr envelopes, then write all 16 voices to Vera PSG. This call is IRQ-safe!
         ; This has to be called every time you want to apply changed psg voice parameters.
         ; If you want to use real-time volume envelopes (Attack-Sustain-Release),
         ; you have to call this routine every 1/60th second, for example from your vsync irq handler.
@@ -217,7 +221,7 @@ psg2 {
             vptr++
         }
 
-        cx16.save_vera_context()
+        psg2_save_vera_context()
         cx16.VERA_CTRL = 0
         cx16.VERA_ADDR = lsw(cx16.VERA_PSG_BASE)
         cx16.VERA_ADDR_H = %00010000 | msw(cx16.VERA_PSG_BASE)
@@ -234,12 +238,58 @@ psg2 {
             }
             vptr++
         }
-        cx16.restore_vera_context()
+        psg2_restore_vera_context()
         cx16.r3 = popw()
         cx16.r2 = popw()
         cx16.r1 = popw()
         cx16.r0L = pop()
 
         return true
+    }
+
+    private asmsub psg2_save_vera_context() clobbers(A) {
+        %asm {{
+            ; save VERA registers to our own private storage (not clobbering syslib's global _vera_storage)
+            lda  cx16.VERA_ADDR_L
+            sta  p8b_psg2.p8v_vera_storage
+            lda  cx16.VERA_ADDR_M
+            sta  p8b_psg2.p8v_vera_storage+1
+            lda  cx16.VERA_ADDR_H
+            sta  p8b_psg2.p8v_vera_storage+2
+            lda  cx16.VERA_CTRL
+            sta  p8b_psg2.p8v_vera_storage+3
+            eor  #1
+            sta  p8b_psg2.p8v_vera_storage+7
+            sta  cx16.VERA_CTRL
+            lda  cx16.VERA_ADDR_L
+            sta  p8b_psg2.p8v_vera_storage+4
+            lda  cx16.VERA_ADDR_M
+            sta  p8b_psg2.p8v_vera_storage+5
+            lda  cx16.VERA_ADDR_H
+            sta  p8b_psg2.p8v_vera_storage+6
+            rts
+        }}
+    }
+
+    private asmsub psg2_restore_vera_context() clobbers(A) {
+        %asm {{
+            lda  p8b_psg2.p8v_vera_storage+7
+            sta  cx16.VERA_CTRL
+            lda  p8b_psg2.p8v_vera_storage+6
+            sta  cx16.VERA_ADDR_H
+            lda  p8b_psg2.p8v_vera_storage+5
+            sta  cx16.VERA_ADDR_M
+            lda  p8b_psg2.p8v_vera_storage+4
+            sta  cx16.VERA_ADDR_L
+            lda  p8b_psg2.p8v_vera_storage+3
+            sta  cx16.VERA_CTRL
+            lda  p8b_psg2.p8v_vera_storage+2
+            sta  cx16.VERA_ADDR_H
+            lda  p8b_psg2.p8v_vera_storage+1
+            sta  cx16.VERA_ADDR_M
+            lda  p8b_psg2.p8v_vera_storage+0
+            sta  cx16.VERA_ADDR_L
+            rts
+        }}
     }
 }

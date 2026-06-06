@@ -1194,14 +1194,14 @@ Available routines:
     Return pointer to a voice's parameter struct (for direct field access).
 
 ``update () -> bool``
-    Advance all active envelopes by one tick, then write all 16 voices to the VERA PSG registers.
+    Advance all active envelopes by one tick, then write all 16 voices to the VERA PSG registers. This call is IRQ-safe!
 
 Waveform constants: ``PULSE``, ``SAWTOOTH``, ``TRIANGLE``, ``NOISE``
 Channel constants: ``LEFT``, ``RIGHT``, ``BOTH``, ``DISABLED``
 
 See the examples/cx16/bdmusic.p8  program for ideas how to use it.
 
-Read the :source:`psg2 source code <compiler/res/prog8lib/cx16/psg2.p8>` to see what's in there.
+Read the :source:`psg2 source code <compiler/res/prog8lib/cx16/psg2.p8>` to see everything that's in there.
 
 
 serial  (cx16 only)
