@@ -29,14 +29,16 @@ internal data class DaemonRequest(
     val nostdlib: Boolean,
     val symbolDefs: Map<String, String>,
     val sourceDirs: List<String>,
-    val outputDir: String
+    val outputDir: String,
+    val cwd: String
 )
 
 internal data class DaemonResponse(
     val ok: Boolean,
     val versionError: String?,
     val errors: List<DaemonError>,
-    val output: String,
+    val stdout: String,
+    val stderr: String,
     val t_ms: Long,
     val outputFiles: List<String>,
     val importedFiles: List<String>
@@ -47,7 +49,8 @@ internal data class DaemonError(
     val message: String,
     val file: String?,
     val line: Int,
-    val col: Int
+    val startCol: Int,
+    val endCol: Int
 )
 
 
@@ -84,6 +87,7 @@ internal object DaemonProtocol {
         append(prop("symbolDefs", req.symbolDefs))
         append(prop("sourceDirs", req.sourceDirs))
         append(prop("outputDir", req.outputDir))
+        append(prop("cwd", req.cwd))
         append("null")  // placeholder, gets overwritten by trimEnd
         setLength(length - 5)
         append('}')
@@ -101,13 +105,15 @@ internal object DaemonProtocol {
             append(prop("message", e.message))
             append(propOpt("file", e.file))
             append(prop("line", e.line))
-            append(prop("col", e.col))
+            append(prop("startCol", e.startCol))
+            append(prop("endCol", e.endCol))
             append("null")
             setLength(length - 4)
             append('}')
         }
         append("],")
-        append(prop("output", resp.output))
+        append(prop("stdout", resp.stdout))
+        append(prop("stderr", resp.stderr))
         append(prop("t_ms", resp.t_ms))
         append(prop("outputFiles", resp.outputFiles))
         append(prop("importedFiles", resp.importedFiles))
@@ -126,7 +132,8 @@ internal object DaemonProtocol {
                 message = em["message"] as String,
                 file = em["file"] as? String,
                 line = (em["line"] as Number).toInt(),
-                col = (em["col"] as Number).toInt()
+                startCol = (em["startCol"] as Number).toInt(),
+                endCol = (em["endCol"] as Number).toInt()
             )
         }
         val outputFiles = (map["outputFiles"] as? List<*>)?.map { it as String } ?: emptyList()
@@ -135,7 +142,8 @@ internal object DaemonProtocol {
             ok = map["ok"] as Boolean,
             versionError = map["versionError"] as? String,
             errors = errors,
-            output = map["output"] as String,
+            stdout = map["stdout"] as String,
+            stderr = map["stderr"] as String,
             t_ms = (map["t_ms"] as Number).toLong(),
             outputFiles = outputFiles,
             importedFiles = importedFiles
@@ -172,7 +180,8 @@ internal object DaemonProtocol {
             nostdlib = map["nostdlib"] as Boolean,
             symbolDefs = (map["symbolDefs"] as? Map<*, *>)?.mapKeys { it.key as String }?.mapValues { it.value as String } ?: emptyMap(),
             sourceDirs = (map["sourceDirs"] as? List<*>)?.map { it as String } ?: emptyList(),
-            outputDir = map["outputDir"] as String
+            outputDir = map["outputDir"] as String,
+            cwd = map["cwd"] as String
         )
     }
 

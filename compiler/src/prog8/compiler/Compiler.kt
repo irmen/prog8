@@ -26,6 +26,7 @@ import prog8.parser.MultipleParseErrors
 import prog8.parser.ParseError
 import java.nio.file.Path
 import kotlin.io.path.Path
+import kotlin.io.path.absolute
 import kotlin.io.path.isRegularFile
 import kotlin.io.path.nameWithoutExtension
 import kotlin.system.exitProcess
@@ -73,6 +74,7 @@ class CompilerArguments(val filepath: Path,
                         val symbolDefs: Map<String, String>,
                         val sourceDirs: List<String> = emptyList(),
                         val outputDir: Path = Path(""),
+                        val cwd: Path = Path("").absolute(),
                         val errors: IErrorReporter = ErrorReporter(ErrorReporter.AnsiColors))
 
 
@@ -111,6 +113,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                     compTarget,
                     args.sourceDirs,
                     libraryDirs,
+                    args.cwd,
                     args.quietAll,
                     args.nostdlib
                 )
@@ -408,13 +411,14 @@ fun parseMainModule(filepath: Path,
                     compTarget: ICompilationTarget,
                     sourceDirs: List<String>,
                     libraryDirs: List<String>,
+                    cwd: Path,
                     quiet: Boolean,
                     nostdlib: Boolean): Triple<Program, CompilationOptions, List<Path>> {
     val bf = BuiltinFunctionsFacade(BuiltinFunctions)
     val program = Program(filepath.nameWithoutExtension, bf, compTarget, compTarget)
     bf.program = program
 
-    val importer = ModuleImporter(program, compTarget.name, errors, sourceDirs, libraryDirs, quiet, nostdlib)
+    val importer = ModuleImporter(program, compTarget.name, errors, sourceDirs, libraryDirs, cwd, quiet, nostdlib)
     val importedModuleResult = importer.importMainModule(filepath)
     importedModuleResult.onErr { throw it }
     errors.report()

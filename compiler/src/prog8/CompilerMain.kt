@@ -2,6 +2,7 @@ package prog8
 
 import kotlinx.cli.*
 import prog8.ast.AstException
+import prog8.code.core.Position
 import prog8.code.source.ImportFileSystem
 import prog8.code.source.ImportFileSystem.expandTilde
 import prog8.code.target.CompilationTargets
@@ -285,8 +286,9 @@ private fun compileMain(args: Array<String>): Boolean {
             return false
         }
         for(filepathRaw in moduleFiles) {
-            val filepath = pathFrom(filepathRaw).normalize()
+            val filepath = pathFrom(filepathRaw).normalize().toAbsolutePath()
             val txtcolors = if(plainText==true) ErrorReporter.PlainText else ErrorReporter.AnsiColors
+            val absoluteSrcDirs = srcdirs.map { Path.of(it).toAbsolutePath().toString() }
             val compilerArgs = CompilerArguments(
                 filepath,
                 if(checkSource==true) false else dontOptimize != true,
@@ -313,11 +315,12 @@ private fun compileMain(args: Array<String>): Boolean {
                 profilingInstrumentation == true,
                 nostdlib == true,
                 processedSymbols,
-                srcdirs,
+                absoluteSrcDirs,
                 outputPath,
+                cwd = Path.of(System.getProperty("user.dir")),
                 errors = ErrorReporter(txtcolors)
             )
-            val response = compileViaDaemon(compilerArgs)
+            val response = compileViaDaemon(compilerArgs, plainText == true)
             if (response == null || !response.ok)
                 return false
             
@@ -686,7 +689,7 @@ private fun scanLibraryFiles(dump: String?, searchPattern: String?) {
 
 // ---- daemon client ----
 
-private fun compileViaDaemon(compilerArgs: CompilerArguments): DaemonResponse? {
+private fun compileViaDaemon(compilerArgs: CompilerArguments, plainText: Boolean): DaemonResponse? {
     val socketPath = CompilerDaemon.getDefaultSocketPath()
     var channel = connectToDaemon(socketPath)
     var wasExisting = true
@@ -708,8 +711,8 @@ private fun compileViaDaemon(compilerArgs: CompilerArguments): DaemonResponse? {
         println("Using existing prog8c daemon at $socketPath")
     }
 
-    val response = communicateWithDaemon(channel, compilerArgs)
-    if (response != null && (response.ok || !wasExisting)) return response
+    val response = communicateWithDaemon(channel, compilerArgs, plainText)
+    if (response != null && (response.ok || !wasExisting || response.versionError == null)) return response
 
     // Existing daemon rejected us (version mismatch) and has self-terminated.
     // Start a fresh daemon.
@@ -725,7 +728,7 @@ private fun compileViaDaemon(compilerArgs: CompilerArguments): DaemonResponse? {
     }
     println("prog8c daemon (new) started.")
 
-    return communicateWithDaemon(channel, compilerArgs)
+    return communicateWithDaemon(channel, compilerArgs, plainText)
 }
 
 private fun startDaemonProcess(): Boolean {
@@ -748,6 +751,7 @@ private fun startDaemonProcess(): Boolean {
         cmd.add("--daemon-server")
 
         val pb = ProcessBuilder(cmd)
+        pb.directory(ImportFileSystem.userHome.toFile())
         pb.inheritIO()
         pb.start()
         true
@@ -779,7 +783,7 @@ private fun connectToDaemon(socketPath: Path, timeoutMs: Long): SocketChannel? {
     return null
 }
 
-private fun communicateWithDaemon(channel: SocketChannel, compilerArgs: CompilerArguments): DaemonResponse? {
+private fun communicateWithDaemon(channel: SocketChannel, compilerArgs: CompilerArguments, plainText: Boolean): DaemonResponse? {
     try {
         val writer = BufferedWriter(OutputStreamWriter(Channels.newOutputStream(channel), Charsets.UTF_8))
         val reader = BufferedReader(InputStreamReader(Channels.newInputStream(channel), Charsets.UTF_8))
@@ -812,7 +816,8 @@ private fun communicateWithDaemon(channel: SocketChannel, compilerArgs: Compiler
             nostdlib = compilerArgs.nostdlib,
             symbolDefs = compilerArgs.symbolDefs,
             sourceDirs = compilerArgs.sourceDirs,
-            outputDir = compilerArgs.outputDir.toString()
+            outputDir = compilerArgs.outputDir.toString(),
+            cwd = compilerArgs.cwd.toString()
         )
 
         val requestJson = DaemonProtocol.encodeRequest(request)
@@ -838,13 +843,21 @@ private fun communicateWithDaemon(channel: SocketChannel, compilerArgs: Compiler
             return response
         }
 
-        System.out.print(response.output)
-        System.out.flush()
-
+        val txtcolors = if(plainText) ErrorReporter.PlainText else ErrorReporter.AnsiColors
+        val reporter = ErrorReporter(txtcolors)
         for (error in response.errors) {
-            val stream = if (error.severity == "ERROR") System.err else System.out
-            stream.println("${error.file?.let { "$it:" } ?: ""}${error.line}:${error.col} ${error.severity} ${error.message}")
+            val pos = Position(error.file ?: "", error.line, error.startCol, error.endCol)
+            when (error.severity) {
+                "ERROR" -> reporter.err(error.message, pos)
+                "WARNING" -> reporter.warn(error.message, pos)
+                "INFO" -> reporter.info(error.message, pos)
+            }
         }
+        reporter.report()
+
+        System.out.print(response.stdout)
+        System.out.flush()
+        System.err.print(response.stderr)
         System.out.flush()
         System.err.flush()
 

@@ -2,6 +2,8 @@ package prog8.compiler
 
 import prog8.buildversion.BUILD_UNIX_TIME
 import prog8.code.core.Position
+import prog8.code.source.ImportFileSystem
+import prog8.code.source.SourceCode
 import java.io.*
 import java.net.StandardProtocolFamily
 import java.net.UnixDomainSocketAddress
@@ -20,7 +22,7 @@ internal class CompilerDaemon(private val socketPath: Path) {
         fun getDefaultSocketPath(): Path {
             val baseDir = System.getenv("XDG_RUNTIME_DIR")
                 ?.let { Path.of(it) }
-                ?: Path.of(System.getProperty("user.home"), ".cache")
+                ?: ImportFileSystem.userHome.resolve(".cache")
             return baseDir.resolve("prog8c-daemon.sock")
         }
 
@@ -103,7 +105,8 @@ internal class CompilerDaemon(private val socketPath: Path) {
                     ok = false,
                     versionError = "daemon version mismatch: build time differs",
                     errors = emptyList(),
-                    output = "",
+                    stdout = "",
+                    stderr = "",
                     t_ms = 0,
                     outputFiles = emptyList(),
                     importedFiles = emptyList()
@@ -117,15 +120,16 @@ internal class CompilerDaemon(private val socketPath: Path) {
             }
 
             // Capture stdout/stderr
-            val outBytes = ByteArrayOutputStream()
-            val errBytes = ByteArrayOutputStream()
+            val combinedBytes = ByteArrayOutputStream()
+            val combinedStream = PrintStream(combinedBytes, true, Charsets.UTF_8.name())
             val oldOut = System.out
             val oldErr = System.err
-            System.setOut(PrintStream(outBytes, true, Charsets.UTF_8.name()))
-            System.setErr(PrintStream(errBytes, true, Charsets.UTF_8.name()))
+            System.setOut(combinedStream)
+            System.setErr(combinedStream)
 
             val daemonErr = DaemonErrorReporter()
             var result: CompilationResult? = null
+            ImportFileSystem.clearCaches()
             val t_ms = try {
                 measureTime {
                     val compilerArgs = request.toCompilerArguments(daemonErr)
@@ -159,21 +163,43 @@ internal class CompilerDaemon(private val socketPath: Path) {
 
             val importedFiles = result?.importedFiles?.map { it.toString() } ?: emptyList()
 
-            val combinedOutput = outBytes.toString(Charsets.UTF_8.name()) + errBytes.toString(Charsets.UTF_8.name())
+            val stdout = combinedBytes.toString(Charsets.UTF_8.name())
+            val stderr = ""
 
             val resp = DaemonResponse(
                 ok = result != null,
                 versionError = null,
                 errors = daemonErr.getMessages().map { msg ->
+                    // Strip "ERROR ", "WARNING ", "INFO " prefixes
+                    var message = if (msg.message.startsWith("${msg.severity} ")) {
+                        msg.message.substring(msg.severity.length + 1)
+                    } else {
+                        msg.message
+                    }
+                    
+                    // Strip path prefix if it exists (e.g. file:///...:line:col: )
+                    // The path prefix usually ends with a colon followed by a space
+                    val pathRegex = Regex("^file:///[^:]+:[0-9]+:[0-9]+: ")
+                    message = message.replace(pathRegex, "")
+
                     DaemonError(
                         severity = msg.severity,
-                        message = msg.message,
-                        file = msg.position?.file,
+                        message = message,
+                        file = msg.position?.let {
+                            val origin = it.file
+                            if (SourceCode.isLibraryResource(origin)) {
+                                origin
+                            } else {
+                                ImportFileSystem.userHome.resolve(origin).normalize().toString()
+                            }
+                        },
                         line = msg.position?.line ?: 1,
-                        col = msg.position?.startCol ?: 1
+                        startCol = msg.position?.startCol ?: 1,
+                        endCol = msg.position?.endCol ?: 1
                     )
                 },
-                output = combinedOutput,
+                stdout = stdout,
+                stderr = stderr,
                 t_ms = t_ms,
                 outputFiles = outputFiles,
                 importedFiles = importedFiles
@@ -217,6 +243,7 @@ internal class CompilerDaemon(private val socketPath: Path) {
             symbolDefs = symbolDefs,
             sourceDirs = sourceDirs,
             outputDir = Path.of(outputDir),
+            cwd = Path.of(cwd),
             errors = daemonErr
         )
     }

@@ -7,6 +7,7 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldStartWith
+import java.nio.file.Path
 import prog8.code.INTERNED_STRINGS_MODULENAME
 import prog8.code.core.ZeropageType
 import prog8.code.target.C64Target
@@ -96,7 +97,7 @@ main {
 
         val filepath = outputDir.resolve("$filenameBase.p8")
         filepath.toFile().writeText(sourceText)
-        val (program, options, importedfiles) = parseMainModule(filepath, errors, C64Target(), emptyList(), emptyList(), false, false)
+        val (program, options, importedfiles) = parseMainModule(filepath, errors, C64Target(), emptyList(), emptyList(), Path.of("."), false, false)
 
         program.toplevelModule.name shouldBe filenameBase
         withClue("all imports other than the test source must have been internal resources library files") {

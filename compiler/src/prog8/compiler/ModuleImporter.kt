@@ -24,6 +24,7 @@ class ModuleImporter(private val program: Program,
                      val errors: IErrorReporter,
                      sourceDirs: List<String>,
                      libraryDirs: List<String>,
+                     val cwd: Path,
                      val quiet: Boolean,
                      val nostdlib: Boolean = false) {
 
@@ -31,13 +32,18 @@ class ModuleImporter(private val program: Program,
     private val libraryPaths: List<Path> = libraryDirs.map { Path(it).sanitize() }.toSortedSet().toList()
 
     fun importMainModule(filePath: Path): Result<Module, NoSuchFileException> {
-        val searchIn = (listOf(Path("").absolute()) + sourcePaths).toSortedSet()
+        val searchIn = sourcePaths.toSortedSet()
         val normalizedFilePath = filePath.normalize()
+        
+        if (normalizedFilePath.exists()) {
+            return Ok(importModule(ImportFileSystem.getFile(normalizedFilePath)))
+        }
+
         for(path in searchIn) {
             val programPath = path.resolve(normalizedFilePath)
             if(programPath.exists()) {
                 if(!quiet) {
-                    println("Compiling program ${Path("").absolute().relativize(programPath)}")
+                    println("Compiling program ${cwd.relativize(programPath)}")
                     println("Compiler target: $compilationTargetName")
                 }
                 val source = ImportFileSystem.getFile(programPath)

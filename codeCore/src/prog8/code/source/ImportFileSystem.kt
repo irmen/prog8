@@ -13,9 +13,10 @@ import kotlin.io.path.Path
 
 object ImportFileSystem {
 
+    val userHome: Path get() = Path.of(System.getProperty("user.home"))
+
     fun expandTilde(path: String): String = if (path.startsWith("~")) {
-        val userHome = System.getProperty("user.home")
-        userHome + path.drop(1)
+        userHome.toString() + path.drop(1)
     } else {
         path
     }
