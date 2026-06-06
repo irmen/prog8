@@ -325,7 +325,9 @@ private fun compileMain(args: Array<String>): Boolean {
                 if (response.outputFiles.isEmpty()) {
                     println("\nCan't start emulator because no program was assembled.")
                 } else {
-                    val programPath = Path.of(response.outputFiles.first())
+                    val programPathRaw = response.outputFiles.first()
+                    val programPath = Path.of(programPathRaw.removeSuffix(".prg"))
+                    
                     val target = getCompilationTargetByName(compilationTarget!!)
                     if (startEmulator1 == true) {
                         if (target is VMTarget) {
@@ -401,6 +403,7 @@ private fun compileMain(args: Array<String>): Boolean {
             }
 
             val programNameInPath = outputPath.resolve(compilationResult.compilerAst.name)
+            val programPath = Path.of(programNameInPath.toString().removeSuffix(".prg"))
 
             if (compareIR != null) {
                 compareIrFiles(outputPath.resolve("${compilationResult.compilerAst.name}.p8ir"), Path(compareIR!!))
@@ -409,12 +412,12 @@ private fun compileMain(args: Array<String>): Boolean {
             if (startEmulator1 == true) {
                 if (compilationResult.compilationOptions.compTarget is VMTarget) {
                     (compilationResult.compilationOptions.compTarget as VMTarget).launchEmulatorWithTrace(
-                        programNameInPath, quietAll==true, vmTrace==true)
+                        programPath, quietAll==true, vmTrace==true)
                 } else {
-                    compilationResult.compilationOptions.compTarget.launchEmulator(1, programNameInPath, quietAll==true)
+                    compilationResult.compilationOptions.compTarget.launchEmulator(1, programPath, quietAll==true)
                 }
             } else if (startEmulator2 == true)
-                compilationResult.compilationOptions.compTarget.launchEmulator(2, programNameInPath, quietAll==true)
+                compilationResult.compilationOptions.compTarget.launchEmulator(2, programPath, quietAll==true)
         }
     }
 

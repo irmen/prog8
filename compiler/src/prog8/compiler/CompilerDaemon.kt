@@ -145,7 +145,7 @@ internal class CompilerDaemon(private val socketPath: Path) {
             val outputFiles = if (result != null)
                 listOfNotNull(
                     request.outputDir.let { d ->
-                        val name = request.filepath.substringBeforeLast('.').substringAfterLast('/').substringAfterLast('\\')
+                        val name = Path.of(request.filepath).fileName.toString().substringBeforeLast('.')
                         val dir = if (d == ".") "" else "$d/"
                         listOf(
                             "${dir}${name}.prg".takeIf { request.writeAssembly && request.compilationTarget != "virtual" },
