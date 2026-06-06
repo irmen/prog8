@@ -240,6 +240,7 @@ internal class CompilerDaemon(private val socketPath: Path) {
             ignoreFootguns = ignoreFootguns,
             profilingInstrumentation = profilingInstrumentation,
             nostdlib = nostdlib,
+            traceImports = traceImports,
             symbolDefs = symbolDefs,
             sourceDirs = sourceDirs,
             outputDir = Path.of(outputDir),

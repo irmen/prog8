@@ -276,8 +276,10 @@ One or more .p8 module files
 
 ``-srcdirs <pathlist>``
     Specify a list of extra paths (separated with the system path separator, ':' on Linux/macOS, ';' on Windows), to search in for imported modules.
+    These directories are prepended to the module search path, meaning they have the highest priority and will be searched
+    before the neighboring directory, the current directory, and the standard library.
     Useful if you have library modules somewhere that you want to re-use,
-    or to switch implementations of certain routines via a command line switch.
+    or to switch implementations of certain routines (performing a "complete overlay") via a command line switch.
 
 ``-target <compilation target>``
     Sets the target output of the compiler. This option is required.
@@ -321,6 +323,12 @@ One or more .p8 module files
     Enable instruction-by-instruction tracing when running the virtual machine (use with ``-vm`` or ``-emu`` on the virtual target).
     Prints each executed IR instruction with its location (chunk name and instruction index).
     Useful for debugging program behavior and understanding control flow in the IR code.
+
+``-traceimports``
+    Prints a detailed trace of every module that the compiler is importing and loading.
+    It shows if the module is loaded from a file or from an internal resource, the exact path,
+    and which import caused the module to be loaded. It also shows the search location type
+    (current directory, neighboring directory, configured in ``-srcdirs``, etc).
 
 ``-warnimplicitcasts``
     Give warnings for lines where a silent (implicit) type cast is done from a smaller to a larger type.
@@ -388,9 +396,9 @@ By importing those module files, you can use them in other modules.
 When the compiler encounters an ``%import mymodule`` directive, it searches for a file named
 ``mymodule.p8`` in the following locations (in this exact order):
 
-* **Current Working Directory**: The directory where the compiler was started from (``.``).
 * **User Source Directories**: Any directories specified with the ``-srcdirs`` command-line option, in the order they were provided.
 * **Neighboring Directory**: The folder containing the source file that contains the ``%import`` directive.
+* **Current Working Directory**: The directory where the compiler was started from (``.``).
 * **Target Library Directories**: Target-specific library paths on the filesystem (only used by some targets or custom target configurations).
 * **Internal Standard Library**: Built-in modules bundled with the compiler (embedded as internal resources).
 

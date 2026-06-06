@@ -252,16 +252,22 @@ Major breaking changes that require code modifications when upgrading:
 
 **v12.3** — June 2026
     - **Deterministic module search order** — replaced alphabetical search with prioritized list.
+    - **``-srcdirs`` priority** — user-specified source directories now have the highest priority.
+    - **Neighboring directory priority** — the directory of the importing file is searched before the current directory.
+    - **Standard library overrides** — the filesystem is now searched before internal resources.
+    - **Improved error messages** — missing module errors now list all searched filesystem paths and the requester.
+    - **Fuzzy library search** — ``-libsearch`` now automatically attempts a fuzzy search if no exact matches are found.
+    - **Trace imports** — new ``-traceimports`` option to see exactly how modules are being resolved.
     - **Search Path Comparison**:
 
     +------+-----------------------------------------------+-----------------------------------------------+
     | Step | Old Behavior (Approximate)                    | New Behavior (Strict)                         |
     +======+===============================================+===============================================+
-    | 1    | Internal Standard Library                     | **Current Working Directory (.)**             |
+    | 1    | Internal Standard Library                     | **User Source Directories (-srcdirs)**        |
     +------+-----------------------------------------------+-----------------------------------------------+
-    | 2    | Target Library Directories                    | **User Source Directories (-srcdirs)**        |
+    | 2    | Target Library Directories                    | **Neighboring Directory**                     |
     +------+-----------------------------------------------+-----------------------------------------------+
-    | 3    | Neighboring Directory                         | **Neighboring Directory**                     |
+    | 3    | Neighboring Directory                         | **Current Working Directory (.)**             |
     +------+-----------------------------------------------+-----------------------------------------------+
     | 4    | User Source Directories (alphabetical)        | **Target Library Directories**                |
     +------+-----------------------------------------------+-----------------------------------------------+
