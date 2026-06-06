@@ -280,6 +280,10 @@ private fun compileMain(args: Array<String>): Boolean {
         }
 
     } else if (daemonMode == true) {
+        if((startEmulator1==true || startEmulator2==true) && moduleFiles.size>1) {
+            System.err.println("can't start emulator when multiple module files are specified")
+            return false
+        }
         for(filepathRaw in moduleFiles) {
             val filepath = pathFrom(filepathRaw).normalize()
             val txtcolors = if(plainText==true) ErrorReporter.PlainText else ErrorReporter.AnsiColors
@@ -313,8 +317,27 @@ private fun compileMain(args: Array<String>): Boolean {
                 outputPath,
                 errors = ErrorReporter(txtcolors)
             )
-            if (!compileViaDaemon(compilerArgs))
+            val response = compileViaDaemon(compilerArgs)
+            if (response == null || !response.ok)
                 return false
+            
+            if (startEmulator1 == true || startEmulator2 == true) {
+                if (response.outputFiles.isEmpty()) {
+                    println("\nCan't start emulator because no program was assembled.")
+                } else {
+                    val programPath = Path.of(response.outputFiles.first())
+                    val target = getCompilationTargetByName(compilationTarget!!)
+                    if (startEmulator1 == true) {
+                        if (target is VMTarget) {
+                            target.launchEmulatorWithTrace(programPath, quietAll==true, vmTrace==true)
+                        } else {
+                            target.launchEmulator(1, programPath, quietAll==true)
+                        }
+                    } else {
+                        target.launchEmulator(2, programPath, quietAll==true)
+                    }
+                }
+            }
         }
         return true
     } else {
@@ -660,7 +683,7 @@ private fun scanLibraryFiles(dump: String?, searchPattern: String?) {
 
 // ---- daemon client ----
 
-private fun compileViaDaemon(compilerArgs: CompilerArguments): Boolean {
+private fun compileViaDaemon(compilerArgs: CompilerArguments): DaemonResponse? {
     val socketPath = CompilerDaemon.getDefaultSocketPath()
     var channel = connectToDaemon(socketPath)
     var wasExisting = true
@@ -670,39 +693,36 @@ private fun compileViaDaemon(compilerArgs: CompilerArguments): Boolean {
         println("Starting prog8c daemon...")
         if (!startDaemonProcess()) {
             System.err.println("Failed to start prog8c daemon")
-            return false
+            return null
         }
         channel = connectToDaemon(socketPath, 4_000)
         if (channel == null) {
             System.err.println("prog8c daemon did not start in time")
-            return false
+            return null
         }
         println("prog8c daemon started.")
     } else {
         println("Using existing prog8c daemon at $socketPath")
     }
 
-    val ok = communicateWithDaemon(channel, compilerArgs)
-    try { channel.close() } catch (_: Exception) {}
-    if (ok || !wasExisting) return ok
+    val response = communicateWithDaemon(channel, compilerArgs)
+    if (response != null && (response.ok || !wasExisting)) return response
 
     // Existing daemon rejected us (version mismatch) and has self-terminated.
     // Start a fresh daemon.
     println("Starting new prog8c daemon (previous was stale)...")
     if (!startDaemonProcess()) {
         System.err.println("Failed to start prog8c daemon")
-        return false
+        return null
     }
     channel = connectToDaemon(socketPath, 4_000)
     if (channel == null) {
         System.err.println("prog8c daemon did not start in time")
-        return false
+        return null
     }
     println("prog8c daemon (new) started.")
 
-    val ok2 = communicateWithDaemon(channel, compilerArgs)
-    try { channel.close() } catch (_: Exception) {}
-    return ok2
+    return communicateWithDaemon(channel, compilerArgs)
 }
 
 private fun startDaemonProcess(): Boolean {
@@ -756,7 +776,7 @@ private fun connectToDaemon(socketPath: Path, timeoutMs: Long): SocketChannel? {
     return null
 }
 
-private fun communicateWithDaemon(channel: SocketChannel, compilerArgs: CompilerArguments): Boolean {
+private fun communicateWithDaemon(channel: SocketChannel, compilerArgs: CompilerArguments): DaemonResponse? {
     try {
         val writer = BufferedWriter(OutputStreamWriter(Channels.newOutputStream(channel), Charsets.UTF_8))
         val reader = BufferedReader(InputStreamReader(Channels.newInputStream(channel), Charsets.UTF_8))
@@ -801,18 +821,18 @@ private fun communicateWithDaemon(channel: SocketChannel, compilerArgs: Compiler
             reader.readLine()
         } catch (e: IOException) {
             System.err.println("daemon connection lost: ${e.message}")
-            return false
+            return null
         }
         if (responseJson == null) {
             System.err.println("daemon connection lost")
-            return false
+            return null
         }
 
         val response = DaemonProtocol.decodeResponse(responseJson)
 
         if (response.versionError != null) {
             System.err.println(response.versionError)
-            return false
+            return response
         }
 
         System.out.print(response.output)
@@ -825,7 +845,7 @@ private fun communicateWithDaemon(channel: SocketChannel, compilerArgs: Compiler
         System.out.flush()
         System.err.flush()
 
-        return response.ok
+        return response
     } finally {
         try { channel.close() } catch (_: Exception) {}
     }

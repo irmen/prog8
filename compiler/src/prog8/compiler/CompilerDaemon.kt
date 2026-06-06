@@ -148,9 +148,9 @@ internal class CompilerDaemon(private val socketPath: Path) {
                         val name = request.filepath.substringBeforeLast('.').substringAfterLast('/').substringAfterLast('\\')
                         val dir = if (d == ".") "" else "$d/"
                         listOf(
-                            "${dir}${name}.prg".takeIf { request.writeAssembly },
-                            "${dir}${name}.asm".takeIf { request.writeAssembly },
-                            "${dir}${name}.p8ir".takeIf { !request.writeAssembly }
+                            "${dir}${name}.prg".takeIf { request.writeAssembly && request.compilationTarget != "virtual" },
+                            "${dir}${name}.asm".takeIf { request.writeAssembly && request.compilationTarget != "virtual" },
+                            "${dir}${name}.p8ir".takeIf { !request.writeAssembly || request.compilationTarget == "virtual" }
                         ).filterNotNull()
                     }
                 ).flatten()
