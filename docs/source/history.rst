@@ -60,6 +60,8 @@ Summary of Major Language Milestones
 | 12.2      | Long loop support, ``private``, enum syntax, 2D arrays,     |
 |           | new modules (serial, wavfile, adpcm, lineclip)              |
 +-----------+-------------------------------------------------------------+
+| 12.3      | Deterministic module search order, -srcdirs priority        |
++-----------+-------------------------------------------------------------+
 
 
 Breaking Changes Summary
@@ -80,6 +82,7 @@ Major breaking changes that require code modifications when upgrading:
 - **v12.0**: Structs reintroduced (different from v1.11), typed pointers
 - **v12.1**: Combined virtual register renames (``R0R1_32`` → ``R0R1``, etc.)
 - **v12.2**: ``swap()`` is now a statement (not a function), ``math.crc16()`` and ``math.crc16_start()`` require new parameters, ``private`` is now a reserved keyword
+- **v12.3**: Deterministic module search order, filesystem priority over internal resources
 
 
 2019–2022 — Early Development (Python to Kotlin Transition)
@@ -193,7 +196,7 @@ Major breaking changes that require code modifications when upgrading:
     - **Range containment**: ``if x in 10 to 100``
 
 
-2024–2025 — Modern Prog8
+2024–2026 — Modern Prog8
 ------------------------
 
 **v10.0–v10.5** — January–November 2024
@@ -245,6 +248,25 @@ Major breaking changes that require code modifications when upgrading:
     - **New compiler options**: ``-daemon`` (IDE integration), ``-nostdlib``
     - **New modules**: ``serial`` (CX16 UART+ZiModem), ``lineclip``, ``wavfile``, ``adpcm``
     - **``-libsearch`` fuzzy search fallback** — finds libraries even with partial names
+
+
+**v12.3** — June 2026
+    - **Deterministic module search order** — replaced alphabetical search with prioritized list.
+    - **Search Path Comparison**:
+
+    +------+-----------------------------------------------+-----------------------------------------------+
+    | Step | Old Behavior (Approximate)                    | New Behavior (Strict)                         |
+    +======+===============================================+===============================================+
+    | 1    | Internal Standard Library                     | **Current Working Directory (.)**             |
+    +------+-----------------------------------------------+-----------------------------------------------+
+    | 2    | Target Library Directories                    | **User Source Directories (-srcdirs)**        |
+    +------+-----------------------------------------------+-----------------------------------------------+
+    | 3    | Neighboring Directory                         | **Neighboring Directory**                     |
+    +------+-----------------------------------------------+-----------------------------------------------+
+    | 4    | User Source Directories (alphabetical)        | **Target Library Directories**                |
+    +------+-----------------------------------------------+-----------------------------------------------+
+    | 5    | (not applicable)                              | **Internal Standard Library**                 |
+    +------+-----------------------------------------------+-----------------------------------------------+
 
 
 *This document summarizes major and minor releases. Bugfix releases (e.g., v12.0.1, v12.1.1) are omitted for brevity.*

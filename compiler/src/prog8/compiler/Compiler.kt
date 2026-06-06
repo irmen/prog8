@@ -105,7 +105,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
         var symbolTable: SymbolTable? = null
 
         val totalTime = measureTime {
-            val libraryDirs =  if(compTarget.libraryPath!=null) listOf(compTarget.libraryPath.toString()) else emptyList()
+            val libraryDirs = if(!args.nostdlib && compTarget.libraryPath!=null) listOf(compTarget.libraryPath.toString()) else emptyList()
             val (parseresult, parseDuration) = measureTimedValue {
                  parseMainModule(
                     args.filepath,

@@ -236,11 +236,12 @@ One or more .p8 module files
     Useful for debugging or faster compilation cycles.
 
 ``-nostdlib``
-    Disable loading of builtin standard library files from internal resources.
-    This prevents the compiler from searching its embedded library files when resolving ``%import`` directives.
-    Only user-specified library paths (via ``-srcdirs``) and the target's library path will be searched.
-    The core library modules (``syslib``, ``prog8_math``, ``prog8_lib``) are always loaded regardless of this option.
-    So you have to make sure these are provided somewhere in the alternate source path.
+    Disable loading of the standard library.
+    Specifically, this disables searching in the **Target Library Directories** and the **Internal Standard Library** in the :ref:`module search path <import-search-path>`.
+    The regular filesystem search in the current directory, ``-srcdirs``, and the neighboring directory
+    of the importing file still occurs.
+    Note that core library modules (``syslib``, ``prog8_math``, ``prog8_lib``) are always loaded regardless of this option,
+    so you must provide these in your own source paths if you use this flag.
 
 ``-out <directory>``
     Sets directory location for output files instead of current directory. Creates it if it doesn't exist yet.
@@ -274,7 +275,7 @@ One or more .p8 module files
     mixed in between the actual generated assembly code. The default behavior is to include the source lines.
 
 ``-srcdirs <pathlist>``
-    Specify a list of extra paths (separated with ':'), to search in for imported modules.
+    Specify a list of extra paths (separated with the system path separator, ':' on Linux/macOS, ';' on Windows), to search in for imported modules.
     Useful if you have library modules somewhere that you want to re-use,
     or to switch implementations of certain routines via a command line switch.
 
@@ -365,22 +366,43 @@ It consists of compilation options and other directives, imports of other module
 and source code for one or more code blocks.
 
 Prog8 has various *LIBRARY* modules that are defined in special internal files provided by the compiler.
-You should not overwrite these or reuse their names.
-They are embedded into the packaged release version of the compiler so you don't have to worry about
-where they are, but their names are still reserved.
+They are embedded into the compiler so you don't have to worry about where they are,
+but their names are generally reserved for the standard library (although you can
+override them if necessary, see below).
 
+
+.. _import-search-path:
 
 Importing other source files and specifying search location(s)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-.. index:: single: Usage; Importing Modules
+.. index::
+   single: Usage; Importing Modules
+   single: Import; Search path
+   single: Modules; Search path
+   single: Search path; Modules
 
-You can create multiple source files yourself to modularize your large programs into
-multiple module files. You can also create "library" modules this way with handy routines,
-that can be shared among programs. By importing those module files, you can use them in other modules.
-It is possible to tell the compiler where it should look for these files, by using
-the ``srcdirs`` command line option. This can also be a lo-fi way to use different source files
-for different compilation targets if you wish. Which is useful as currently the compiler
-doesn't have conditional compilation like #ifdef/#endif in C.
+You can create multiple source files yourself to modularize your programs.
+You can also create "library" modules with handy routines that can be shared among programs.
+By importing those module files, you can use them in other modules.
+
+When the compiler encounters an ``%import mymodule`` directive, it searches for a file named
+``mymodule.p8`` in the following locations (in this exact order):
+
+* **Current Working Directory**: The directory where the compiler was started from (``.``).
+* **User Source Directories**: Any directories specified with the ``-srcdirs`` command-line option, in the order they were provided.
+* **Neighboring Directory**: The folder containing the source file that contains the ``%import`` directive.
+* **Target Library Directories**: Target-specific library paths on the filesystem (only used by some targets or custom target configurations).
+* **Internal Standard Library**: Built-in modules bundled with the compiler (embedded as internal resources).
+
+.. note::
+   The ``-nostdlib`` command-line option disables searching in both the **Target Library Directories** and the **Internal Standard Library**, allowing for a complete
+   replacement of the standard library while still allowing imports from the filesystem.
+
+This search order allows you to override standard library modules or neighbor modules
+by placing a version with the same name in a higher priority location.
+This can also be used as a "lo-fi" way to provide different source files for different
+compilation targets, which is useful because the compiler currently lacks conditional
+compilation like ``#ifdef``/``#endif`` in C.
 
 
 .. _debugging:
