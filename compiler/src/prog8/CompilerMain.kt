@@ -647,8 +647,10 @@ private fun scanLibraryFiles(dump: String?, searchPattern: String?) {
 private fun compileViaDaemon(compilerArgs: CompilerArguments): Boolean {
     val socketPath = CompilerDaemon.getDefaultSocketPath()
     var channel = connectToDaemon(socketPath)
+    var wasExisting = true
 
     if (channel == null) {
+        wasExisting = false
         println("Starting prog8c daemon...")
         if (!startDaemonProcess()) {
             System.err.println("Failed to start prog8c daemon")
@@ -660,11 +662,31 @@ private fun compileViaDaemon(compilerArgs: CompilerArguments): Boolean {
             return false
         }
         println("prog8c daemon started.")
+    } else {
+        println("Using existing prog8c daemon at $socketPath")
     }
 
     val ok = communicateWithDaemon(channel, compilerArgs)
     try { channel.close() } catch (_: Exception) {}
-    return ok
+    if (ok || !wasExisting) return ok
+
+    // Existing daemon rejected us (version mismatch) and has self-terminated.
+    // Start a fresh daemon.
+    println("Starting new prog8c daemon (previous was stale)...")
+    if (!startDaemonProcess()) {
+        System.err.println("Failed to start prog8c daemon")
+        return false
+    }
+    channel = connectToDaemon(socketPath, 4_000)
+    if (channel == null) {
+        System.err.println("prog8c daemon did not start in time")
+        return false
+    }
+    println("prog8c daemon (new) started.")
+
+    val ok2 = communicateWithDaemon(channel, compilerArgs)
+    try { channel.close() } catch (_: Exception) {}
+    return ok2
 }
 
 private fun startDaemonProcess(): Boolean {
@@ -724,7 +746,7 @@ private fun communicateWithDaemon(channel: SocketChannel, compilerArgs: Compiler
         val reader = BufferedReader(InputStreamReader(Channels.newInputStream(channel), Charsets.UTF_8))
 
         val request = DaemonRequest(
-            version = prog8.buildversion.GIT_SHA,
+            version = prog8.buildversion.BUILD_UNIX_TIME.toString(),
             filepath = compilerArgs.filepath.toString(),
             optimize = compilerArgs.optimize,
             writeAssembly = compilerArgs.writeAssembly,
@@ -759,7 +781,12 @@ private fun communicateWithDaemon(channel: SocketChannel, compilerArgs: Compiler
         writer.newLine()
         writer.flush()
 
-        val responseJson = reader.readLine()
+        val responseJson = try {
+            reader.readLine()
+        } catch (e: IOException) {
+            System.err.println("daemon connection lost: ${e.message}")
+            return false
+        }
         if (responseJson == null) {
             System.err.println("daemon connection lost")
             return false

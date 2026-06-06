@@ -9,6 +9,9 @@ compatibility: opencode
 
 You are writing **6502/65C02 assembly** using **64tass syntax**, in separate `*.asm` files or embedded in a Prog8 program (inside `%asm {{ }}` blocks or `asmsub` routines). Follow all rules below.
 
+## Git Operations
+- When moving, renaming, or deleting git-tracked files, **always use `git mv` or `git rm`** instead of plain `mv`/`rm`. This preserves history and properly stages the change. Plain `mv`/`rm` causes git to see them as delete+add (losing history).
+
 ## Debugging Generated Assembly
 - The prog8 compiler outputs `*.asm` (assembly source) and (with -asmlist option) also `*.list` (full listing with address/symbols) when compiling. Inspect these to debug generated code, verify optimizations, and trace instruction sequences.
 

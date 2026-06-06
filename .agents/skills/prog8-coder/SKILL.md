@@ -12,6 +12,7 @@ You are working with **Prog8** source code (`.p8` files) or its Intermediate Rep
 Follow ALL the rules below carefully.
 
 ## General & Setup
+- **Git operations**: When moving, renaming, or deleting git-tracked files, **always use `git mv` or `git rm`** instead of plain `mv`/`rm`. This preserves history and properly stages the change. Plain `mv`/`rm` causes git to see them as delete+add (losing history).
 - A program = a `main` block containing a `start` subroutine entry point, plus optional other subroutines/blocks
 - Add `%zeropage basicsafe` at the top of your program to allow clean return on exit (instead of resetting the machine/emulator)
 - Module imports: `%import modulename` — no `as` aliasing. Use the module's defined prefix (e.g., `%import textio` → `txt.xxx`)
@@ -20,8 +21,10 @@ Follow ALL the rules below carefully.
 - **Output directory**: `prog8c -out outdir input.p8` (default: same dir as source)
 - **Compilation outputs**: `*.prg` (program binary), `*.asm` (assembly listing), `*.list` (full listing), `*.p8ir` (IR for VM), `*.vice-mon-list` (Vice debug symbols)
   - `.p8ir` files contain the **Intermediate Representation** — a sequence of named chunks, each containing typed instructions and virtual registers. This is a target-independent representation of the program, executable by the built-in Virtual Machine via `prog8c -vm file.p8ir`. Useful for debugging the compiler's code generation path without involving 6502 assembly.
-- **Debugging switches**: `-noopt` (disable optimizations), `-printast1` (parsed AST), `-printast2` (optimized simple AST), `-compareir` (compare IR outputs)
-- **TODO list**: Check `docs/source/todo.rst` to see what features are NOT yet implemented
+- **Debugging switches**: `-noopt` (disable optimizations), `-printast1` (parsed AST), `-printast2` (optimized simple AST), `-compareir` (compare IR outputs), `-dumpsymbols` (print all symbols), `-dumpvars` (print all variables)
+- **Library search (preferred)**: `prog8c -libsearch <regex>` — search for a regex pattern in the embedded library files. Extremely useful to quickly find library routines, variables, strings, or signatures (e.g., `prog8c -libsearch "txt\."` lists all textio routines; `prog8c -libsearch "sin"` finds math functions)
+- **Library dump**: `prog8c -libdump <dir>` — extract all embedded library source files into a directory for direct inspection (less common, use `-libsearch` first)
+- **Other useful flags**: `-quiet` (suppress messages), `-warnimplicitcasts` (warn on implicit type widening), `-daemon` (keep a background compiler process alive to speed up multiple successive compilations — must be passed on every `prog8c` invocation)
 - **Test programs**: add `%zeropage basicsafe` and `%option no_sysinit` at top
 - **`sys` module**: always available, no import needed
 - **CX16 debugging**: Add `%encoding iso`, call `txt.iso()` in `start()`, end with `sys.poweroff_system()`. For emulator: `x16emu -echo iso -run -prg input.prg 2>&1 | grep ...`
@@ -186,7 +189,6 @@ For low-level assembly that gets arguments via registers and returns values in r
 - **Clobbers**: `clobbers (A, X, Y)` — list all hardware registers modified by the routine.
 - **Parameter names** are for documentation and type checking only. Use the registers in your assembly code.
 - **Inlining**: `inline asmsub` will paste the assembly code directly at the call site, avoiding `jsr`/`rts` overhead.
-- **Symbol prefixes** in assembly: `p8v_` (vars), `p8s_` (subs), `p8b_` (blocks), etc.
 
 ## External Subroutines (extsub)
 Used to call routines at fixed memory addresses (like ROM KERNAL routines or third-party drivers).
@@ -242,7 +244,6 @@ Used to call routines at fixed memory addresses (like ROM KERNAL routines or thi
 - **No `elif`**: use nested `else { if ... }`
 - Type casting: `expression as type` (e.g., `bytevar as word`). `as` has very low precedence (lower than arithmetic)
 - **No automatic type widening**: `byte*byte=byte` (overflow possible!). Cast explicitly
-- **No block scope**: `for`/`if` don't introduce scope. Only subroutines do. Variables in blocks are hoisted to subroutine level
 - **No bare `{ }` blocks** like C/Java
 - Indentation: 4 spaces for .p8 and .asm files (no tabs)
 - Character encoding: 6502 targets use PETSCII by default (call `txt.lowercase()` at start for lowercase). Virtual target uses ISO (`%encoding iso` + `txt.iso()`)
@@ -251,6 +252,3 @@ Used to call routines at fixed memory addresses (like ROM KERNAL routines or thi
 - Avoid `globals.XXXX` — move constants closer to where they're used
 - Member access through pointers: use `.` for both direct and pointer access. The compiler infers the type. For complex assignment targets, `^^` may be needed: `ptr^^.field = value`
 - Qualified names: must use full path from top level (e.g., `cx16.r0`, not relative)
-- **No block scope** — variables in `if`/`for`/`repeat` blocks are hoisted to subroutine level
-- **No reassigning strings** after declaration — use `strings.copy()`/`strings.ncopy()`
-- **Pre-allocate string buffers** — `""` allocates nothing

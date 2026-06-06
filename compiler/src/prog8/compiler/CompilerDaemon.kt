@@ -1,6 +1,6 @@
 package prog8.compiler
 
-import prog8.buildversion.GIT_SHA
+import prog8.buildversion.BUILD_UNIX_TIME
 import prog8.code.core.Position
 import java.io.*
 import java.net.StandardProtocolFamily
@@ -30,6 +30,8 @@ internal class CompilerDaemon(private val socketPath: Path) {
             null
         }
     }
+
+    private var shutdownRequested = false
 
     fun run() {
         socketPath.deleteIfExists()
@@ -71,6 +73,7 @@ internal class CompilerDaemon(private val socketPath: Path) {
                         handleClient(client)
                         client.close()
                         lastRequestTime = System.currentTimeMillis()
+                        if (shutdownRequested) break
                     }
                 }
             }
@@ -94,11 +97,11 @@ internal class CompilerDaemon(private val socketPath: Path) {
                 return
             }
 
-            // Version check
-            if (request.version != GIT_SHA) {
+            // Version check (build timestamp must match)
+            if (request.version != BUILD_UNIX_TIME.toString()) {
                 val resp = DaemonResponse(
                     ok = false,
-                    versionError = "daemon version mismatch: client=${request.version.take(8)}, daemon=${GIT_SHA.take(8)}",
+                    versionError = "daemon version mismatch: build time differs",
                     errors = emptyList(),
                     output = "",
                     t_ms = 0,
@@ -108,6 +111,8 @@ internal class CompilerDaemon(private val socketPath: Path) {
                 writer.write(DaemonProtocol.encodeResponse(resp))
                 writer.newLine()
                 writer.flush()
+                System.err.println("daemon: version mismatch, shutting down")
+                shutdownRequested = true
                 return
             }
 
