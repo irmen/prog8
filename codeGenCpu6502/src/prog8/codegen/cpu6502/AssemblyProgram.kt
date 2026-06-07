@@ -136,9 +136,27 @@ internal class AssemblyProgram(
         }
 
         val proc = ProcessBuilder(assemblerCommand)
-        if(!options.quiet)
-            proc.inheritIO()
-        val process = proc.start()
+            .redirectErrorStream(true)
+
+        if (options.quiet) {
+            proc.redirectOutput(ProcessBuilder.Redirect.DISCARD)
+        }
+
+        val process = try {
+            proc.start()
+        } catch (e: Exception) {
+            System.err.println("daemon: assembler failed to start: ${e.message}")
+            return false
+        }
+
+        if (!options.quiet) {
+            process.inputStream.bufferedReader().use { reader ->
+                reader.forEachLine {
+                    println(it)
+                }
+            }
+        }
+
         val result = process.waitFor()
         if (result == 0) {
             removeGeneratedLabelsFromMonlist()
