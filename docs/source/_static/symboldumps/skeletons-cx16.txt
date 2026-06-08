@@ -1,5 +1,6 @@
 
-Prog8 compiler v12.2 by Irmen de Jong (irmen@razorvine.net)
+Prog8 compiler v12.3-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
+Prerelease version from git commit a0b1ca5d in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-cx16.p8
@@ -816,14 +817,15 @@ serial  {
     const ubyte  REG_TXRX_BUFFER
     detect_uarts  () -> uword, uword
     discard_until  (uword uart_addr, str match)
-    initialize_uart  (uword uart_addr)
+    get_baud_string  (uword baud) -> str
+    initialize_uart  (uword uart_addr, uword baud_divisor)
     read_until  (uword uart_addr, str match, ^^ubyte buffer, uword max_size) -> uword
     write  (uword uart_addr, str data)
     zi_end_get_file  ()
     zi_get_file_chunk  (^^ubyte buffer, uword buffer_size, long remaining_file_size) -> uword
     zi_get_file_chunk_hexmode  (^^ubyte buffer, uword buffer_size) -> uword
     zi_get_ip_address  () -> str
-    zi_initialize  (uword uart_addr)
+    zi_initialize  (uword uart_addr, uword baud_divisor)
     zi_reset  ()
     zi_start_get_file  (str filename) -> long
     zi_start_get_file_hexmode  (str filename) -> bool

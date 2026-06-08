@@ -19,6 +19,13 @@ serial {
     const ubyte REG_DIVISOR_LATCH_LOW	= 0	;same as TXRX, but when bit-7 of line control high
     const ubyte REG_DIVISOR_LATCH_HI	= 1	;same as IRQE, but when bit-7 of line control high
 
+    ; Note on 6502/65C02 indexed writes and UART registers:
+    ; 6502 indexed writes (STA (zp),Y) perform a dummy read before writing.
+    ; This can be problematic for hardware registers with read side effects.
+    ; However, Prog8 uses STA (zp) for offset 0 (TXRX buffer) which has NO dummy read.
+    ; For registers 1-7, the dummy reads hit harmless registers (LCR, MCR, IER, FCR, etc.)
+    ; that have no side effects on read, so indexed writes are safe here.
+
     ; Baud rate divisor values for TL16C2550 with 14.7456 MHz clock
     ; Formula: divisor = 14745600 / (16 * baudrate)
     enum BAUD {
@@ -37,6 +44,27 @@ serial {
         B1200   = $0300,
         B600    = $0600,
         B300    = $0C00,
+    }
+
+    sub get_baud_string(uword baud) -> str {
+        when baud {
+            BAUD::B921600 -> return "921600"
+            BAUD::B460800 -> return "460800"
+            BAUD::B230400 -> return "230400"
+            BAUD::B115200 -> return "115200"
+            BAUD::B57600  -> return "57600"
+            BAUD::B38400  -> return "38400"
+            BAUD::B28800  -> return "28800"
+            BAUD::B19200  -> return "19200"
+            BAUD::B14400  -> return "14400"
+            BAUD::B9600   -> return "9600"
+            BAUD::B4800   -> return "4800"
+            BAUD::B2400   -> return "2400"
+            BAUD::B1200   -> return "1200"
+            BAUD::B600    -> return "600"
+            BAUD::B300    -> return "300"
+            else          -> return "unknown"
+        }
     }
 
     ; Bitfield masks for TL16C2550's Line Status Register
@@ -91,14 +119,14 @@ serial {
         }
     }
 
-    sub initialize_uart(uword uart_addr) {
-        ; 921600 baud, 8,N,1, AutoFlow Control, FIFOS, no interrupts
+    sub initialize_uart(uword uart_addr, uword baud_divisor) {
+        ; 8,N,1, AutoFlow Control, FIFO, no interrupts, specified baudrate (based on BAUD enum)
         uart_addr[REG_LINE_CONTROL] = $80          ; Set DLAB
-        uart_addr[REG_DIVISOR_LATCH_HI] = msb(BAUD::B921600)
-        uart_addr[REG_DIVISOR_LATCH_LOW] = lsb(BAUD::B921600)
+        uart_addr[REG_DIVISOR_LATCH_HI] = msb(baud_divisor)
+        uart_addr[REG_DIVISOR_LATCH_LOW] = lsb(baud_divisor)
         uart_addr[REG_LINE_CONTROL] = $03          ; 8,N,1, DLAB off
-        uart_addr[REG_FIFO_CONTROL] = $C3          ; FIFO enable & reset, trigger 14
-        uart_addr[REG_MODEM_CONTROL] = $23         ; DTR/RTS + AutoFlow Control
+        uart_addr[REG_FIFO_CONTROL] = $87          ; FIFO enable & reset both, RX trigger 8 bytes
+        uart_addr[REG_MODEM_CONTROL] = $27         ; DTR/RTS + AutoFlow Control + OPA high (keep zimodem in stream mode)
         uart_addr[REG_INTERRUPT_ENABLE] = $00      ; No interrupts
     }
 
@@ -174,13 +202,13 @@ serial {
 
     ; zimodem routines:
 
-    sub zi_initialize(uword uart_addr) {
-        ; initializes the ZiModem on the given uart address
+    sub zi_initialize(uword uart_addr, uword baud_divisor) {
+        ; initializes the ZiModem on the given uart address, with the specified baud rate (use the BAUD enum)
         zi_uart = uart_addr
         if zi_uart == 0
             return      ; no uart present
 
-        initialize_uart(zi_uart)
+        initialize_uart(zi_uart, baud_divisor)
         ; ZiModem sends a version banner of the `ati` command when the ESP32 boots up.
         ; Read it off if present. It is not always ready immediately so wait a tiny bit
         sys.wait(5)
@@ -225,7 +253,6 @@ serial {
     }
 
     sub zi_start_get_file(str filename) -> long {
-        ; TODO: binary file transfer seems unreliable at the moment (text files are still ok, but often freezes on binary files. Could be a problem with my particular X16 serial card or zimodem firmware though), use hex mode transfer for reliable results.
         ; starts a file download from the given url, returns the size of the file to download.
         ; you can download chunks of the file by repeatedly calling zi_get_file_chunk() until that returns 0
         write(zi_uart, iso:"at&g\"")
@@ -289,7 +316,6 @@ serial {
     }
 
     sub zi_get_file_chunk(^^ubyte @zp buffer, uword buffer_size, long remaining_file_size) -> uword {
-        ; TODO: binary file transfer seems unreliable at the moment (text files are still ok, but often freezes on binary files. Could be a problem with my particular X16 serial card or zimodem firmware though), use hex mode transfer for reliable results.
         ; read the next chunk of data from the file, into buffer, up to buffer_size bytes.
         ; returns the number of bytes read.  0 if no more data was available.
 

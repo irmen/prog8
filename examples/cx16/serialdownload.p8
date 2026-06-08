@@ -17,7 +17,11 @@ main {
             txt.print_uwhex(uart2, true)
             txt.nl()
 
-            serial.zi_initialize(uart1)     ; init ZiModem on uart1   (this is how it is configured on the Wifi/serial expansion card)
+            uword baud = serial.BAUD::B921600
+            serial.zi_initialize(uart1, baud)     ; init ZiModem on uart1 at specified baud
+            ; NOTE: Zimodem must also be preconfigured to 921600 baud to match! Send: ATB921600  then AT&W  then power-cycle the serial card
+            txt.print("\nBaud rate: ")
+            txt.print(serial.get_baud_string(baud))
             txt.print("\nYour ip address is: ")
             txt.print(serial.zi_get_ip_address())
             txt.nl()
@@ -34,10 +38,15 @@ main {
 
                 ubyte[256] buffer
                 while size>0 {
-                    uword readsize = serial.zi_get_file_chunk(&buffer, sizeof(buffer)-1, size)
+                    uword readsize = serial.zi_get_file_chunk(&buffer, sizeof(buffer), size)
+                    if readsize == 0 {
+                        txt.print("download error\n")
+                        break
+                    }
                     size -= readsize
-                    @(&buffer+readsize) = 0
-                    txt.print(buffer)
+                    for cx16.r0L in 0 to lsb(readsize-1) {
+                        txt.chrout(buffer[cx16.r0L])
+                    }
                 }
 
                 txt.nl()

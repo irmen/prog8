@@ -92,7 +92,6 @@ No call stack for variable storage — recursion overwrites locals. To handle it
 - Bitwise operators: `&`, `|`, `^`, `~`, `<<`, `>>`
 - Bit rotation: `rol()`/`ror()` (through carry), `rol2()`/`ror2()` (no carry)
 - CPU status flag branches: `if_cs`, `if_cc`, `if_z`, `if_nz` (compile to single 6502 branch instructions)
-- Use `when` with choice blocks instead of multiple `if`
 - If-expressions for simple value assignments based on a choice
 - **Optional braces in if/else**: when the `if` or `else` body is a single statement, the `{ }` can be omitted. Place the statement on the next line, indented. Example:
   ```
@@ -102,6 +101,14 @@ No call stack for variable storage — recursion overwrites locals. To handle it
 - `defer` defers statement execution until scope exit. Multiple defers fire in **reverse registration order** (LIFO / stack order — last deferred runs first). A defer is only registered if execution reaches that statement — conditional paths that skip the `defer` line will not register it.
 - `goto`, labels, jump lists allowed
 - **Common mistake**: `and`/`or` for bitmasking — use `&`/`|` instead!
+
+### The when Statement
+The `when` statement is a control flow construct that enables you to execute a specific action based on the value of an expression. It is generally more readable and often more efficient than a sequence of `if-else if` statements, as the compiler can optimize it into more efficient branching structures, such as a jump table.
+- **Expression**: Evaluates an expression and compares it against case values.
+- **Cases**: Defined by a value followed by the `->` operator.
+- **Blocks**: Use `{ }` to enclose multiple statements for a case.
+- **Else Clause**: Serves as a default handler; mandatory unless the expression type is fully covered.
+- **Efficiency**: Recommended for handling sets of fixed choices as it typically results in better assembly code.
 
 ## Loop Constructs
 Prog8 supports these loop types. All support `break` and `continue` (except `unroll`).

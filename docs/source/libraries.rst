@@ -1218,8 +1218,12 @@ Generic UART routines:
     Scans the I/O address range for UART chips and returns the addresses
     of up to two discovered UARTs (or 0 if none found).
 
-``sub initialize_uart(uword uart_addr)``
-    Initializes the given UART to 921600 baud, 8,N,1 with auto flow control and FIFOs enabled. 
+``sub get_baud_string(uword baud) -> str``
+    Returns a readable string representation of the given baud rate (use values from the BAUD enum).
+
+``sub initialize_uart(uword uart_addr, uword baud_divisor)``
+    Initializes the given UART with auto flow control and FIFOs enabled.
+    'baud_divisor' is the divisor calculated based on the desired baud rate (use values from the BAUD enum).
 
 ``sub write(uword uart_addr, str data)``
     Writes the string data to the UART (terminated by 0 byte)
