@@ -27,9 +27,15 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v6
 
-      - name: Build and test with Gradle
+      - name: Compile
+        run: ./gradlew compileKotlin compileTestKotlin --console=plain
+
+      - name: Test
+        run: ./gradlew test --continue --console=plain
+
+      - name: Package
         run: |
-          ./gradlew build shadowJar --no-daemon --console=plain
+          ./gradlew shadowJar --console=plain
           sha256sum -b compiler/build/libs/*-all.jar > compiler/build/libs/hash.txt
         
       - name: Create compiler shadowJar artifact
@@ -39,4 +45,11 @@ jobs:
           path: |
             compiler/build/libs/*-all.jar
             compiler/build/libs/hash.txt
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: test-results
+          path: compiler/build/test-results/test/
 
