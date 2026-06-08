@@ -393,6 +393,9 @@ Directives
 
 
 .. index:: pair: Directives; %import
+.. index::
+   single: Import; %import directive
+   single: Modules; %import directive
 .. data:: %import <name>
 
 	Level: module.
@@ -400,6 +403,7 @@ Directives
 	Symbols from the imported module become available in your code,
 	without a module or filename prefix.
 	You can import modules one at a time, and importing a module more than once has no effect.
+	For more details on where the compiler searches for imported files, see :ref:`import-search-path`.
 
 
 .. index:: pair: Directives; %jmptable

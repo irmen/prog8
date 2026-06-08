@@ -4,7 +4,7 @@
 
 main {
     sub start() {
-        const ^^ubyte name = "irmen"
+        str name = "irmen"
         txt.print(name)
     }
 }

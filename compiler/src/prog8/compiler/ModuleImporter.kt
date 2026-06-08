@@ -16,6 +16,7 @@ import java.io.File
 import java.nio.file.Path
 import kotlin.io.path.Path
 import kotlin.io.path.exists
+import kotlin.io.path.absolute
 
 
 class ModuleImporter(private val program: Program,
@@ -25,13 +26,20 @@ class ModuleImporter(private val program: Program,
                      libraryDirs: List<String>,
                      val cwd: Path,
                      val quiet: Boolean,
-                     val nostdlib: Boolean = false) {
+                     val nostdlib: Boolean = false,
+                     val traceImports: Boolean = false) {
 
-    private val sourcePaths: List<Path> = sourceDirs.map { Path(it).sanitize() }.toSortedSet().toList()
-    private val libraryPaths: List<Path> = libraryDirs.map { Path(it).sanitize() }.toSortedSet().toList()
+    private val sourcePaths: List<Path> = sourceDirs.map { Path(it).sanitize() }.distinct()
+    private val libraryPaths: List<Path> = libraryDirs.map { Path(it).sanitize() }.distinct()
+
+    private fun trace(message: String) {
+        if (traceImports) {
+            println("[import-trace] $message")
+        }
+    }
 
     fun importMainModule(filePath: Path): Result<Module, NoSuchFileException> {
-        val searchIn = sourcePaths.toSortedSet()
+        val searchIn = (sourcePaths + listOf(Path("").absolute())).distinct()
         val normalizedFilePath = filePath.normalize()
         
         if (normalizedFilePath.exists()) {
@@ -43,6 +51,7 @@ class ModuleImporter(private val program: Program,
             val programPath = path.resolve(normalizedFilePath)
             if(programPath.exists()) {
                 printCompileInfo(programPath)
+                trace("Importing main module '$normalizedFilePath' from file: $programPath")
                 val source = ImportFileSystem.getFile(programPath)
                 return Ok(importModule(source))
             }
@@ -109,31 +118,36 @@ class ModuleImporter(private val program: Program,
             return existing
         }
 
-        // try internal library first (unless --nostdlib is active)
-        val importedModule =
-            if(!nostdlib) {
-                val moduleResourceSrc = getModuleFromResource("$moduleName.p8", compilationTargetName)
-                moduleResourceSrc.fold(
-                    success = { importModule(it) },
-                    failure = { getModuleFromFilesystem(moduleName, importingModule, import.position) }
-                )
-            } else {
-                // skip internal libraries, go directly to filesystem
-                getModuleFromFilesystem(moduleName, importingModule, import.position)
+        // try filesystem first
+        var importedModule = getModuleFromFilesystem(moduleName, importingModule, import.position, true)
+
+        // try internal library (unless --nostdlib is active)
+        if(importedModule == null && !nostdlib) {
+            val moduleResourceSrc = getModuleFromResource("$moduleName.p8", compilationTargetName, importingModule?.name ?: "~implicit~")
+            moduleResourceSrc.onOk {
+                importedModule = importModule(it)
             }
+        }
+
+        // if still not found, report error
+        if (importedModule == null)
+            getModuleFromFilesystem(moduleName, importingModule, import.position, false)
 
         if(importedModule != null)
             removeDirectivesFromImportedModule(importedModule)
         return importedModule
     }
 
-    private fun getModuleFromFilesystem(moduleName: String, importingModule: Module?, errorPosition: Position): Module? {
-        val moduleSrc = getModuleFromFile(moduleName, importingModule)
+    private fun getModuleFromFilesystem(moduleName: String, importingModule: Module?, errorPosition: Position, suppressError: Boolean): Module? {
+        val (moduleSrc, searchedPaths) = getModuleFromFile(moduleName, importingModule)
         return moduleSrc.fold(
             success = { importModule(it) },
             failure = {
-                val searchPaths = if(nostdlib) "$sourcePaths (internal libraries disabled)" else "$sourcePaths (and internal libraries)"
-                errors.err("no module found with name $moduleName. Searched in: $searchPaths", errorPosition)
+                if (!suppressError) {
+                    val requestedBy = importingModule?.name ?: "~implicit~"
+                    val searchPaths = if(nostdlib) "$searchedPaths (internal libraries disabled)" else "$searchedPaths (and internal libraries)"
+                    errors.err("no module found with name $moduleName (imported by '$requestedBy'). Searched in: $searchPaths", errorPosition)
+                }
                 null
             }
         )
@@ -148,39 +162,61 @@ class ModuleImporter(private val program: Program,
         importedModule.statements.addAll(0, directives)
     }
 
-    private fun getModuleFromResource(name: String, compilationTargetName: String): Result<SourceCode, NoSuchFileException> {
-        val result =
-            runCatching { ImportFileSystem.getResource("/prog8lib/$compilationTargetName/$name") }
-            .orElse { runCatching { ImportFileSystem.getResource("/prog8lib/$name") }  }
+    private fun getModuleFromResource(name: String, compilationTargetName: String, requestedBy: String): Result<SourceCode, NoSuchFileException> {
+        val targetPath = "/prog8lib/$compilationTargetName/$name"
+        val generalPath = "/prog8lib/$name"
+
+        val result = runCatching { ImportFileSystem.getResource(targetPath) }
+            .onOk { trace("Importing module '${name.removeSuffix(".p8")}' from resource: $targetPath (target-specific library) - imported by '$requestedBy'") }
+            .orElse {
+                runCatching { ImportFileSystem.getResource(generalPath) }
+                .onOk { trace("Importing module '${name.removeSuffix(".p8")}' from resource: $generalPath (general library) - imported by '$requestedBy'") }
+            }
 
         return result.mapError { NoSuchFileException(File(name)) }
     }
 
-    private fun getModuleFromFile(name: String, importingModule: Module?): Result<SourceCode, NoSuchFileException> {
+    private fun getModuleFromFile(name: String, importingModule: Module?): Pair<Result<SourceCode, NoSuchFileException>, List<Path>> {
         val fileName = "$name.p8"
+        val requestedBy = importingModule?.name ?: "~implicit~"
 
         val normalLocations =
             if (importingModule == null) {
-                sourcePaths
+                (sourcePaths + listOf(Path("").absolute())).distinct()
             } else {
                 val pathFromImportingModule = (Path(importingModule.position.file).parent ?: Path("")).sanitize()
-                listOf(pathFromImportingModule) + sourcePaths
+                val cwd = Path("").absolute()
+                (sourcePaths + listOf(pathFromImportingModule, cwd)).distinct()
             }
+
+        val searched = mutableListOf<Path>()
+        normalLocations.forEach {
+            searched.add(it)
+            try {
+                val file = it.resolve(fileName)
+                val source = ImportFileSystem.getFile(file)
+                val origin = when {
+                    it == Path("").absolute() -> "CWD"
+                    it in sourcePaths -> "srcdirs"
+                    else -> "neighboring directory"
+                }
+                trace("Importing module '$name' from file: $file (found in $origin) - imported by '$requestedBy'")
+                return Ok(source) to searched
+            } catch (_: NoSuchFileException) {
+            }
+        }
 
         libraryPaths.forEach {
+            searched.add(it)
             try {
-                return Ok(ImportFileSystem.getFile(it.resolve(fileName), true))
+                val file = it.resolve(fileName)
+                val source = ImportFileSystem.getFile(file, true)
+                trace("Importing module '$name' from file: $file (found in libdirs) - imported by '$requestedBy'")
+                return Ok(source) to searched
             } catch (_: NoSuchFileException) {
             }
         }
 
-        normalLocations.forEach {
-            try {
-                return Ok(ImportFileSystem.getFile(it.resolve(fileName)))
-            } catch (_: NoSuchFileException) {
-            }
-        }
-
-        return Err(NoSuchFileException(File("name")))
+        return Err(NoSuchFileException(File(name))) to searched
     }
 }

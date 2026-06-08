@@ -73,14 +73,15 @@ private fun compileMain(args: Array<String>): Boolean {
     val slabsGolden by cli.option(ArgType.Boolean, fullName = "slabsgolden", description = "put memory() slabs in 'golden ram' memory area instead of at the end of the program. On the cx16 target this is $0400-07ff. This is unavailable on other systems.")
     val slabsHighBank by cli.option(ArgType.Int, fullName = "slabshigh", description = "put memory() slabs in high memory area instead of at the end of the program. On the cx16 target the value specifies the HIRAM bank to use, on other systems this value is ignored.")
     val dontIncludeSourcelines by cli.option(ArgType.Boolean, fullName = "nosourcelines", description = "do not include original Prog8 source lines in generated asm code")
-    val nostdlib by cli.option(ArgType.Boolean, fullName = "nostdlib", description = "disable loading of builtin standard library files from internal resources")
-    val sourceDirs by cli.option(ArgType.String, fullName="srcdirs", description = "list of extra paths, separated with ${File.pathSeparator}, to search in for imported modules").multiple().delimiter(File.pathSeparator)
+    val nostdlib by cli.option(ArgType.Boolean, fullName = "nostdlib", description = "disable loading of the standard library (both internal resources and target-specific paths)")
+    val sourceDirs by cli.option(ArgType.String, fullName="srcdirs", description = "list of extra paths, separated with ${File.pathSeparator}, to search in for imported modules. These are prepended to the module search path and have the highest priority.").multiple().delimiter(File.pathSeparator)
     val compilationTarget by cli.option(ArgType.String, fullName = "target", description = "target output of the compiler (one of ${CompilationTargets.joinToString(",")} or a custom target properties file) (required)")
     val showTimings by cli.option(ArgType.Boolean, fullName = "timings", description = "show internal compiler timings (for performance analysis)")
     val varsGolden by cli.option(ArgType.Boolean, fullName = "varsgolden", description = "put uninitialized variables in 'golden ram' memory area instead of at the end of the program. On the cx16 target this is $0400-07ff. This is unavailable on other systems.")
     val varsHighBank by cli.option(ArgType.Int, fullName = "varshigh", description = "put uninitialized variables in high memory area instead of at the end of the program. On the cx16 target the value specifies the HIRAM bank to use, on other systems this value is ignored.")
     val startVm by cli.option(ArgType.Boolean, fullName = "vm", description = "run a .p8ir IR source file in the embedded VM")
     val vmTrace by cli.option(ArgType.Boolean, fullName = "vmtrace", description = "trace VM execution instruction by instruction (use with -vm or -emu)")
+    val traceImports by cli.option(ArgType.Boolean, fullName = "traceimports", description = "trace all module imports and loads")
     val warnSymbolShadowing by cli.option(ArgType.Boolean, fullName = "warnshadow", description="show assembler warnings about symbol shadowing")
     val warnImplicitTypeCasts by cli.option(ArgType.Boolean, fullName = "warnimplicitcasts", description="show compiler warnings about implicit casts from a smaller to a larger type")
     val watchMode by cli.option(ArgType.Boolean, fullName = "watch", description = "continuous compilation mode (watch for file changes)")
@@ -129,9 +130,7 @@ private fun compileMain(args: Array<String>): Boolean {
         return false
     }
 
-    val srcdirs = sourceDirs.map { expandTilde(it) }.toMutableList()
-    if(sourceDirs.firstOrNull()!=".")
-        srcdirs.add(0, ".")
+    val srcdirs = sourceDirs.map { expandTilde(it) }
 
     if(startVm==null) {
         if(compilationTarget==null) {
@@ -228,6 +227,7 @@ private fun compileMain(args: Array<String>): Boolean {
                     ignoreFootguns == true,
                     profilingInstrumentation == true,
                     nostdlib == true,
+                    traceImports == true,
                     processedSymbols,
                     srcdirs,
                     outputPath,
@@ -314,6 +314,7 @@ private fun compileMain(args: Array<String>): Boolean {
                 ignoreFootguns == true,
                 profilingInstrumentation == true,
                 nostdlib == true,
+                traceImports == true,
                 processedSymbols,
                 absoluteSrcDirs,
                 outputPath,
@@ -380,6 +381,7 @@ private fun compileMain(args: Array<String>): Boolean {
                     ignoreFootguns == true,
                     profilingInstrumentation == true,
                     nostdlib == true,
+                    traceImports == true,
                     processedSymbols,
                     srcdirs,
                     outputPath,
@@ -814,6 +816,7 @@ private fun communicateWithDaemon(channel: SocketChannel, compilerArgs: Compiler
             ignoreFootguns = compilerArgs.ignoreFootguns,
             profilingInstrumentation = compilerArgs.profilingInstrumentation,
             nostdlib = compilerArgs.nostdlib,
+            traceImports = compilerArgs.traceImports,
             symbolDefs = compilerArgs.symbolDefs,
             sourceDirs = compilerArgs.sourceDirs,
             outputDir = compilerArgs.outputDir.toString(),
