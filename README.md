@@ -15,10 +15,12 @@ which aims to provide many conveniences over raw assembly code (even when using 
 
 **Want to buy me a coffee or a pizza perhaps?**
 
-This project was created over the last couple of years by dedicating thousands of hours of my free time to it, to make it the best I possibly can.
+This project was created over the last couple of years by dedicating a huge amoung of my free time to it, to make it the best I possibly can.
 If you like Prog8, and think it's worth a nice cup of hot coffee or a delicious pizza, 
 you can help me out a little bit over at [ko-fi.com/irmen](https://ko-fi.com/irmen) or [PayPal](https://paypal.me/irmendejong)
 
+[![JetBrains logo.](https://resources.jetbrains.com/storage/products/company/brand/logos/jetbrains.svg)](https://jb.gg/OpenSource)
+ I am using JetBrains products to develop the Prog8 compiler.
 
 Documentation
 -------------

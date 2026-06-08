@@ -15,7 +15,6 @@ import prog8.parser.Prog8Parser
 import java.io.File
 import java.nio.file.Path
 import kotlin.io.path.Path
-import kotlin.io.path.absolute
 import kotlin.io.path.exists
 
 
@@ -36,16 +35,14 @@ class ModuleImporter(private val program: Program,
         val normalizedFilePath = filePath.normalize()
         
         if (normalizedFilePath.exists()) {
+            printCompileInfo(normalizedFilePath.toAbsolutePath())
             return Ok(importModule(ImportFileSystem.getFile(normalizedFilePath)))
         }
 
         for(path in searchIn) {
             val programPath = path.resolve(normalizedFilePath)
             if(programPath.exists()) {
-                if(!quiet) {
-                    println("Compiling program ${cwd.relativize(programPath)}")
-                    println("Compiler target: $compilationTargetName")
-                }
+                printCompileInfo(programPath)
                 val source = ImportFileSystem.getFile(programPath)
                 return Ok(importModule(source))
             }
@@ -53,6 +50,13 @@ class ModuleImporter(private val program: Program,
         return Err(NoSuchFileException(
             file = normalizedFilePath.toFile(),
             reason = "Searched in $searchIn"))
+    }
+
+    private fun printCompileInfo(programPath: Path) {
+        if(!quiet) {
+            println("Compiling program ${cwd.toAbsolutePath().relativize(programPath)}")
+            println("Compiler target: $compilationTargetName")
+        }
     }
 
     fun importImplicitLibraryModule(name: String): Module? {
