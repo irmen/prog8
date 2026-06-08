@@ -1,9 +1,6 @@
 TODO
 ====
 
-BUG: daemon always writes output to ~  (because that is its working directory)  A compilation command should include the working dir and it should temporarily CD into that working dir to compile everything
-
-
 Dead Code Elimination bug in 64tass, for nested subroutines
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 - When a subroutine contains a nested ``asmsub`` (or possibly a nested ``sub()``), 64tass cannot properly eliminate

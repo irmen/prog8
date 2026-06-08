@@ -215,6 +215,14 @@ internal class CompilerDaemon(private val socketPath: Path) {
     }
 
     private fun DaemonRequest.toCompilerArguments(daemonErr: DaemonErrorReporter): CompilerArguments {
+        // Resolve the output directory path: if relative, make it absolute by resolving against
+        // the client's working directory (cwd) to avoid writing files in the daemon's CWD.
+        val clientCwd = Path.of(cwd)
+        val resolvedOutputDir = if (Path.of(outputDir).isAbsolute) {
+            Path.of(outputDir)
+        } else {
+            clientCwd.resolve(outputDir)
+        }
         return CompilerArguments(
             filepath = Path.of(filepath),
             optimize = optimize,
@@ -243,8 +251,8 @@ internal class CompilerDaemon(private val socketPath: Path) {
             traceImports = traceImports,
             symbolDefs = symbolDefs,
             sourceDirs = sourceDirs,
-            outputDir = Path.of(outputDir),
-            cwd = Path.of(cwd),
+            outputDir = resolvedOutputDir,
+            cwd = clientCwd,
             errors = daemonErr
         )
     }
