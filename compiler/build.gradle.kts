@@ -1,7 +1,7 @@
 plugins {
     id("application")
     kotlin("jvm")
-    id("com.gradleup.shadow") version "9.3.2"
+    id("com.gradleup.shadow") version "9.4.2"
     id("com.peterabeles.gversion") version "1.10.3"
 }
 
