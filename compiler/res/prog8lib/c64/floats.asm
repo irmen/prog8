@@ -539,3 +539,42 @@ swap_floats      .proc
 	bpl  -
 	rts
 	.pend
+
+
+; Wrappers for the ROM's bare T-variant math routines (FADDT, FMULTT, FDIVT, FPWRT).
+; These ROM entries skip CONUPK which normally sets the Z flag and arisgn byte.
+; Callers that have not just come through CONUPK must set these up themselves
+; or the result can be wrong (heisenbug with some values).
+; The corresponding entries on the X16 (via its KERNAL jump table) do this correctly,
+; so these wrappers are only needed on C64 and PET32.
+FADDT_NZ .proc
+        lda  FAC_ADDR+5    ; facsgn
+        eor  FAC_ADDR+$0D  ; argsgn
+        sta  FAC_ADDR+$0E  ; arisgn
+        lda  FAC_ADDR+0    ; facexp to set Z flag
+        jmp  FADDT
+.pend
+
+FMULTT_NZ .proc
+        lda  FAC_ADDR+5    ; facsgn
+        eor  FAC_ADDR+$0D  ; argsgn
+        sta  FAC_ADDR+$0E  ; arisgn
+        lda  FAC_ADDR+0    ; facexp to set Z flag
+        jmp  FMULTT
+.pend
+
+FDIVT_NZ .proc
+        lda  FAC_ADDR+5    ; facsgn
+        eor  FAC_ADDR+$0D  ; argsgn
+        sta  FAC_ADDR+$0E  ; arisgn
+        lda  FAC_ADDR+0    ; facexp to set Z flag
+        jmp  FDIVT
+.pend
+
+FPWRT_NZ .proc
+        lda  FAC_ADDR+5    ; facsgn
+        eor  FAC_ADDR+$0D  ; argsgn
+        sta  FAC_ADDR+$0E  ; arisgn
+        lda  FAC_ADDR+0    ; facexp to set Z flag
+        jmp  FPWRT
+.pend

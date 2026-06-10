@@ -10,13 +10,6 @@ Dead Code Elimination bug in 64tass, for nested subroutines
   that only used other gfx_lores functions (like ``circle()``). Fixed by moving it to a separate ``internal_line_plot()``.
 
 
-Weird Heisenbug
-^^^^^^^^^^^^^^^
-- BUG: examples/cube3d-float crashes with div by zero error on C64 (works on cx16. Already broken in v11, v10 still worked)
-  caused by the RTS after JMP removal in optimizeJsrRtsAndOtherCombinations (replacing it with a NOP makes the problem disappear !??!?).
-  Also observed in the boingball example for the C64 when some code was removed from the start and end.
-
-
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 - make enums strongly typed instead of just syntactic sugar for ints (see ideas/enum-strong-type.md for the plan)
