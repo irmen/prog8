@@ -84,19 +84,29 @@ sub processFile(str filename) -> bool {
 
 ## How `try` Interacts with Existing `defer`
 
-`try` desugars to invoke defers before returning false:
+`try` desugars to invoke defers before returning:
 
 ```prog8
 try diskio.f_open(filename)
 ```
 
-Becomes:
+In a `bool` sub, becomes:
 
 ```prog8
 if not diskio.f_open(filename) {
     prog8_invoke_defers()     ; run all defers (LIFO)
     prog8_invoke_errdefers()  ; run all errdefers
     return false              ; propagate error
+}
+```
+
+In a void sub, becomes an early-exit without value propagation:
+
+```prog8
+if not diskio.f_open(filename) {
+    prog8_invoke_defers()
+    prog8_invoke_errdefers()
+    return                    ; early return, no value
 }
 ```
 
@@ -172,7 +182,9 @@ sub f_open(str filename) -> bool {
 | Question | Recommended |
 |----------|-------------|
 | Max defers per sub | 16 (UWORD shared mask: 8 defer + 8 errdefer) |
-| `try` in void subs | Compile error - can't propagate |
+| `try` in void subs | Desugars to `if not expr { run_defers; run_errdefers; return }` — early-exit without value propagation |
+| `try` scope (`return false` target) | `try` returns from the **immediately enclosing subroutine**, same as any `return` statement. `try` inside a nested sub returns from that nested sub, not the outer one |
+| `try` desugaring order | Must happen **after** `DeferProcessor` generates `prog8_invoke_defers`/`prog8_invoke_errdefers`. `TryStatement` nodes survive all earlier AST phases (parser → AstChecker → DeferProcessor) and desugar last. Every intermediate AST walker needs a no-op `visit(TryStatement)` override to avoid crashing on the new node type |
 | Error propagation | Always `return false` initially |
 | `catch` expression | Post-MVP (blocked on richer error types) |
 | Future: custom error types | Could add later if needed |

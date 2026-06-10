@@ -598,4 +598,17 @@ main {
         errors.errors.size shouldBe 1
         errors.errors[0] shouldContain "struct must contain at least one field"
     }
+
+    test("comma in array index should give friendly error") {
+        val src = """
+            main {
+                sub start() {
+                    ubyte[5,20] matrix
+                }
+            }
+        """.trimIndent()
+        val errors = ErrorReporterForTests()
+        compileText(VMTarget(), false, src, outputDir, errors) shouldBe null
+        errors.printedErrors.any { it.contains("[rows][cols]") } shouldBe true
+    }
 })

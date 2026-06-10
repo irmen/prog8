@@ -215,7 +215,11 @@ datatype: pointertype | basedatatype | structtype=scoped_identifier;
 
 pointertype: POINTER (scoped_identifier | basedatatype);
 
-arrayindex:  '[' expression ']' ;
+arrayindex:
+    '[' expression ']' #ArrayIndexNormal
+    | '[' expression ',' expression ']' #ArrayIndexComma
+    ;
+// ArrayIndexComma exists in the grammar so the visitor can give a friendly error for the wrong 2D array syntax
 
 assignment :
     assign_target '=' expression

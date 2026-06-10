@@ -18,6 +18,7 @@ class ErrorReporterForTests(
     val errors = mutableListOf<String>()
     val warnings = mutableListOf<String>()
     val infos = mutableListOf<String>()
+    val printedErrors = mutableListOf<String>()
 
     override fun err(msg: String, position: Position) {
         val text = "${position.toClickableStr()} $msg"
@@ -47,7 +48,7 @@ class ErrorReporterForTests(
         !errors.any { ":${position.line}:" in it }
     
     override fun printSingleError(errormessage: String) {
-        // prints nothing in tests
+        printedErrors.add(errormessage)
     }
 
     override fun report() {

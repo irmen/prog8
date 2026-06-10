@@ -4,6 +4,8 @@
 
 main {
     sub start() {
+        ubyte[5,3] multiarray
+
         str name = "irmen"
         txt.print(name)
     }

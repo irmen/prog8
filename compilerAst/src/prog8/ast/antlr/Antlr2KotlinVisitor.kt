@@ -272,8 +272,12 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
         return vardecl
     }
 
-    override fun visitArrayindex(ctx: ArrayindexContext): ArrayIndex {
+    override fun visitArrayIndexNormal(ctx: ArrayIndexNormalContext): ArrayIndex {
         return ArrayIndex(ctx.expression().accept(this) as Expression, ctx.toPosition())
+    }
+
+    override fun visitArrayIndexComma(ctx: ArrayIndexCommaContext): ArrayIndex {
+        throw SyntaxError("use [rows][cols] instead of [rows,cols] for 2D array syntax", ctx.toPosition())
     }
 
     override fun visitAssignment(ctx: AssignmentContext): Statement {

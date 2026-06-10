@@ -16,6 +16,11 @@ Weird Heisenbug
   caused by the RTS after JMP removal in optimizeJsrRtsAndOtherCombinations (replacing it with a NOP makes the problem disappear !??!?).
   Also observed in the boingball example for the C64 when some code was removed from the start and end.
 
+  **Theory:** The ``rts + jmp/bra`` removal pattern at AsmOptimizer.kt:677 assumes code after ``rts`` is unreachable.
+  But a branch before the 4-line sliding window can jump to the ``jmp``, where the label sits on its own preceding line
+  (bypassing the ``haslabel(lines[1].value)`` guard at line 667). The NOP shifts instruction alignment so the 4-line
+  window captures different groupings, accidentally avoiding the pattern match. See AsmOptimizer.kt:677-682.
+
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -52,7 +57,7 @@ Future Things and Ideas
 - more support for (64tass) SEGMENTS in the prog8 syntax itself? maybe %segment blah  in blocks?
 - ability to use a sub instead of only a var for @bank ? what for though? dynamic bank/overlay loading?
 - add a way to explicitly set the memory address for the BSS area (``-varsaddress`` and ``-slabsaddress`` options)
-- BUG: fix the c64 multiplexer example
+- the c64 sprite multiplexer example may need timing adjustments after compiler changes (not a compiler bug — cycle-exact C64 code is inherently fragile)
 
 
 Romable (%option romable)
