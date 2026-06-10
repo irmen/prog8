@@ -1,12 +1,11 @@
 %import textio
+%import floats
 %zeropage basicsafe
 %option no_sysinit
 
 main {
     sub start() {
-        ubyte[5,3] multiarray
-
-        str name = "irmen"
-        txt.print(name)
+        float @shared fv = 3.1415927
+        txt.print_f(floats.log2(fv))
     }
 }

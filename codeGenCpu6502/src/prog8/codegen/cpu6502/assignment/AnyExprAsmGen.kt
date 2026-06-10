@@ -125,10 +125,13 @@ internal class AnyExprAsmGen(
     }
 
     private fun assignFloatBinExpr(expr: PtBinaryExpression, assign: AsmAssignment): Boolean {
+        // C64/PET32 ROM T-variant entries skip CONUPK and need arisgn+Z flag set up beforehand.
+        // CX16 ROM entries are already fixed and handle this internally.
+        val tSuffix = if(asmgen.options.compTarget.name in listOf(C64Target.NAME, PETTarget.NAME)) "_NZ" else ""
         when(expr.operator) {
             "+" -> {
                 assignFloatOperandsToFACandARG(expr.left, expr.right)
-                asmgen.out("  jsr  floats.FADDT")
+                asmgen.out("  jsr  floats.FADDT$tSuffix")
                 asmgen.assignRegister(RegisterOrPair.FAC1, assign.target)
                 return true
             }
@@ -140,13 +143,13 @@ internal class AnyExprAsmGen(
             }
             "*" -> {
                 assignFloatOperandsToFACandARG(expr.left, expr.right)
-                asmgen.out("  jsr  floats.FMULTT")
+                asmgen.out("  jsr  floats.FMULTT$tSuffix")
                 asmgen.assignRegister(RegisterOrPair.FAC1, assign.target)
                 return true
             }
             "/" -> {
                 assignFloatOperandsToFACandARG(expr.right, expr.left)
-                asmgen.out("  jsr  floats.FDIVT")
+                asmgen.out("  jsr  floats.FDIVT$tSuffix")
                 asmgen.assignRegister(RegisterOrPair.FAC1, assign.target)
                 return true
             }

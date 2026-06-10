@@ -164,7 +164,7 @@ class TestCompilerOnExamplesC64: FunSpec({
             ExampleSizes("simplemultiplexer", c64SizeOptimized=843, c64SizeUnoptimized=914),
             ExampleSizes("sprites", c64SizeOptimized=963, c64SizeUnoptimized=1052),
             ExampleSizes("starfield", c64SizeOptimized=743, c64SizeUnoptimized=758),
-            ExampleSizes("turtle-gfx", c64SizeOptimized=2745, c64SizeUnoptimized=2861),
+            ExampleSizes("turtle-gfx", c64SizeOptimized=2758, c64SizeUnoptimized=2874),
             ExampleSizes("wizzine", c64SizeOptimized=1124, c64SizeUnoptimized=1236),
             // boingball, cube3d, tehtriz are in BothC64andCx16
         ),
@@ -276,23 +276,23 @@ class TestCompilerOnExamplesBothC64andCx16: FunSpec({
     val bothCx16AndC64 = cartesianProduct(
         listOf(
             ExampleSizes("balls", c64SizeOptimized=885, c64SizeUnoptimized=919, cx16SizeOptimized=874, cx16SizeUnoptimized=1188),
-            ExampleSizes("boingball", c64SizeOptimized=1478, c64SizeUnoptimized=1544, cx16SizeOptimized=1486, cx16SizeUnoptimized=1957),
+            ExampleSizes("boingball", c64SizeOptimized=1513, c64SizeUnoptimized=1579, cx16SizeOptimized=1486, cx16SizeUnoptimized=1957),
             ExampleSizes("cube3d", c64SizeOptimized=2444, c64SizeUnoptimized=2509, cx16SizeOptimized=2381, cx16SizeUnoptimized=2712),
-            ExampleSizes("cube3d-float", c64SizeOptimized=2619, c64SizeUnoptimized=2668, cx16SizeOptimized=2511, cx16SizeUnoptimized=2835),
+            ExampleSizes("cube3d-float", c64SizeOptimized=2654, c64SizeUnoptimized=2703, cx16SizeOptimized=2511, cx16SizeUnoptimized=2835),
             ExampleSizes("cube3d-gfx", c64SizeOptimized=3536, c64SizeUnoptimized=3589, cx16SizeOptimized=2206, cx16SizeUnoptimized=2522),
             ExampleSizes("dirlist", c64SizeOptimized=1543, c64SizeUnoptimized=2405, cx16SizeOptimized=1525, cx16SizeUnoptimized=3372),
             ExampleSizes("fibonacci", c64SizeOptimized=570, c64SizeUnoptimized=585, cx16SizeOptimized=626, cx16SizeUnoptimized=925),
-            ExampleSizes("fractal-tree", c64SizeOptimized=2808, c64SizeUnoptimized=2845, cx16SizeOptimized=1220, cx16SizeUnoptimized=1511),
+            ExampleSizes("fractal-tree", c64SizeOptimized=2832, c64SizeUnoptimized=2869, cx16SizeOptimized=1220, cx16SizeUnoptimized=1511),
             ExampleSizes("maze", c64SizeOptimized=3088, c64SizeUnoptimized=3189, cx16SizeOptimized=2873, cx16SizeUnoptimized=3251),
-            ExampleSizes("mandelbrot", c64SizeOptimized=1138, c64SizeUnoptimized=1172, cx16SizeOptimized=1120, cx16SizeUnoptimized=1434),
-            ExampleSizes("mandelbrot-gfx", c64SizeOptimized=1457, c64SizeUnoptimized=1479, cx16SizeOptimized=957, cx16SizeUnoptimized=1250),
+            ExampleSizes("mandelbrot", c64SizeOptimized=1173, c64SizeUnoptimized=1207, cx16SizeOptimized=1120, cx16SizeUnoptimized=1434),
+            ExampleSizes("mandelbrot-gfx", c64SizeOptimized=1492, c64SizeUnoptimized=1514, cx16SizeOptimized=957, cx16SizeUnoptimized=1250),
             ExampleSizes("multitasking", c64SizeOptimized=1956, c64SizeUnoptimized=2029, cx16SizeOptimized=1826, cx16SizeUnoptimized=2159),
             ExampleSizes("numbergame", c64SizeOptimized=1034, c64SizeUnoptimized=1050, cx16SizeOptimized=1079, cx16SizeUnoptimized=1382),
             ExampleSizes("primes", c64SizeOptimized=520, c64SizeUnoptimized=541, cx16SizeOptimized=565, cx16SizeUnoptimized=870),
             ExampleSizes("queens", c64SizeOptimized=1061, c64SizeUnoptimized=1093, cx16SizeOptimized=1111, cx16SizeUnoptimized=1427),
             ExampleSizes("screencodes", c64SizeOptimized=667, c64SizeUnoptimized=687, cx16SizeOptimized=655, cx16SizeUnoptimized=959),
             ExampleSizes("swirl", c64SizeOptimized=828, c64SizeUnoptimized=831, cx16SizeOptimized=923, cx16SizeUnoptimized=1208),
-            ExampleSizes("swirl-float", c64SizeOptimized=708, c64SizeUnoptimized=735, cx16SizeOptimized=595, cx16SizeUnoptimized=906),
+            ExampleSizes("swirl-float", c64SizeOptimized=732, c64SizeUnoptimized=759, cx16SizeOptimized=595, cx16SizeUnoptimized=906),
             ExampleSizes("tehtriz", c64SizeOptimized=4333, c64SizeUnoptimized=4504, cx16SizeOptimized=6252, cx16SizeUnoptimized=6773),
             ExampleSizes("textelite", c64SizeOptimized=11440, c64SizeUnoptimized=12423, cx16SizeOptimized=10778, cx16SizeUnoptimized=13046),
             ExampleSizes("pointers/animalgame", c64SizeOptimized=1570, c64SizeUnoptimized=2126, cx16SizeOptimized=1605, cx16SizeUnoptimized=2412),
@@ -371,7 +371,7 @@ class TestCompilerOnExamplesPET32: FunSpec({
 
     val onlyPET32 = cartesianProduct(
         listOf(
-            ExampleSizes("boingball", pet32SizeOptimized=1497, pet32SizeUnoptimized=1586),
+            ExampleSizes("boingball", pet32SizeOptimized=1532, pet32SizeUnoptimized=1621),
             ExampleSizes("petswirl", pet32SizeOptimized=915, pet32SizeUnoptimized=985),
         ),
         listOf(false, true)

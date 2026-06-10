@@ -10,18 +10,6 @@ Dead Code Elimination bug in 64tass, for nested subroutines
   that only used other gfx_lores functions (like ``circle()``). Fixed by moving it to a separate ``internal_line_plot()``.
 
 
-Weird Heisenbug
-^^^^^^^^^^^^^^^
-- BUG: examples/cube3d-float crashes with div by zero error on C64 (works on cx16. Already broken in v11, v10 still worked)
-  caused by the RTS after JMP removal in optimizeJsrRtsAndOtherCombinations (replacing it with a NOP makes the problem disappear !??!?).
-  Also observed in the boingball example for the C64 when some code was removed from the start and end.
-
-  **Theory:** The ``rts + jmp/bra`` removal pattern at AsmOptimizer.kt:677 assumes code after ``rts`` is unreachable.
-  But a branch before the 4-line sliding window can jump to the ``jmp``, where the label sits on its own preceding line
-  (bypassing the ``haslabel(lines[1].value)`` guard at line 667). The NOP shifts instruction alignment so the 4-line
-  window captures different groupings, accidentally avoiding the pattern match. See AsmOptimizer.kt:677-682.
-
-
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 - fully remove -nostdlib compiler option?  It has become redundant now that the import search path order has been changed?
