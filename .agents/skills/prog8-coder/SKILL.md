@@ -26,6 +26,12 @@ Follow ALL the rules below carefully.
 - **Library dump**: `prog8c -libdump <dir>` — extract all embedded library source files into a directory for direct inspection (less common, use `-libsearch` first)
 - **Other useful flags**: `-quiet` (suppress messages), `-warnimplicitcasts` (warn on implicit type widening), `-daemon` (keep a background compiler process alive to speed up multiple successive compilations — must be passed on every `prog8c` invocation)
 - **Test programs**: add `%zeropage basicsafe` and `%option no_sysinit` at top
+- **Compiler unit test snippets**: These are **prog8 code snippets embedded in the Prog8 compiler's own Kotlin unit tests** (e.g., in `TestAstChecks.kt`, `TestOptimization.kt`, etc.). They are NOT standalone Prog8 programs:
+  - Keep them self-contained — avoid `%import` directives so they don't depend on library files (the test setup may not have the library search path configured)
+  - Use the `cx16` target (not `virtual`, unless specifically testing the VM)
+  - Consider setting `writeAssembly=false` if the test only needs to check the generated AST (much faster)
+  - Use `optimize=false` by default for these snippets
+  - Do NOT use the `%encoding iso` / `txt.iso()` / `sys.poweroff_system()` pattern in these snippets — that's only for real CX16 emulator runs
 - **`sys` module**: always available, no import needed
 - **CX16 debugging**: Add `%encoding iso`, call `txt.iso()` in `start()`, end with `sys.poweroff_system()`. For emulator: `x16emu -echo iso -run -prg input.prg 2>&1 | grep ...`
 
