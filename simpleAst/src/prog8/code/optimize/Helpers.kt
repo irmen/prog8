@@ -120,7 +120,7 @@ fun referencesIdentifier(node: PtNode, identifier: PtIdentifier): Boolean {
         is PtIfExpression -> expr.children.any { referencesIdentifier(it, identifier) }
         is PtFunctionCall -> true
         is PtMemoryByte -> expr.children.any { referencesIdentifier(it, identifier) }
-        is PtPointerDeref -> false
+        is PtPointerDeref -> expr.children.any { referencesIdentifier(it, identifier) }
         is PtPrefix -> expr.children.any { referencesIdentifier(it, identifier) }
         is PtRange -> expr.children.any { referencesIdentifier(it, identifier) }
         is PtTypeCast -> expr.children.any { referencesIdentifier(it, identifier) }
