@@ -88,8 +88,12 @@ internal object VariableOptimizers {
             if (assignIndex>initializerIndex) {
                 val inbetween = parent.children.subList(initializerIndex+1, assignIndex)
                 if(!inbetween.any { stmt -> referencesIdentifier(stmt, identifier) }) {
-                    // var initializer is redundant, it will be overwritten by an assignment later. remove the initializer
-                    removeInitializations.add(parent to parent.children[initializerIndex] as PtAssignment)
+                    // also check that the overwriting assignment's value doesn't reference the variable
+                    val assignment = parent.children[assignIndex] as PtAssignment
+                    if(!referencesIdentifier(assignment.value, identifier)) {
+                        // var initializer is redundant, it will be overwritten by an assignment later. remove the initializer
+                        removeInitializations.add(parent to parent.children[initializerIndex] as PtAssignment)
+                    }
                 }
             }
         }

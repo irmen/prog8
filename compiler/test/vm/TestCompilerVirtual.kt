@@ -1105,4 +1105,35 @@ main {
         result shouldNotBe null
     }
 
+    test("typed pointer var init not removed by optimizer when immediately dereferenced") {
+        val src = """
+            %zeropage basicsafe
+            %option no_sysinit
+            main {
+                uword data = $1234
+                uword @shared result
+
+                sub start() {
+                    result = read_data()
+                }
+
+                sub read_data() -> uword {
+                    ^^uword ptr = &main.data
+                    ptr = ptr^^
+                    return ptr
+                }
+            }
+        """.trimIndent()
+
+        val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = true)!!
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
+        val irContent = virtfile.readText()
+
+        val irProgram = IRFileReader().read(irContent)
+        val allocations = VmVariableAllocator(irProgram.st, irProgram.encoding, irProgram.options.compTarget).allocations
+
+        VmRunner().runAndTestProgram(irContent) { vm ->
+            vm.memory.getUW(allocations["main.result"]!!) shouldBe 0x1234u
+        }
+    }
 })
