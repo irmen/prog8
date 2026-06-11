@@ -54,19 +54,19 @@ extsub $cd42 = MOVAF() clobbers(A,X)                        ; copy fac1 to fac2 
 extsub $cd45 = MOVEF() clobbers(A,X)                        ; copy fac1 to fac2
 
 extsub $cb20 = LOG() clobbers(A,X,Y)                        ; fac1 = LN(fac1)  (natural log)
-extsub $cb61 = FMULTT() clobbers(A,X,Y)                     ; fac1 *= fac2
+extsub $cb61 = FMULTT() clobbers(A,X,Y)                     ; fac1 *= fac2   ; WARNING: bare entry, needs Z flag=facexp + arisgn; use FMULTT_NZ wrapper
 extsub $cb5e = FMULT(uword mflpt @ AY) clobbers(A,X,Y)      ; fac1 *= mflpt value from A/Y
-extsub $cc48 = FDIVT() clobbers(A,X,Y)                      ; fac1 = fac2/fac1  mind the order of the operands
+extsub $cc48 = FDIVT() clobbers(A,X,Y)                      ; fac1 = fac2/fac1  mind the order of the operands   ; WARNING: bare entry, needs Z flag=facexp + arisgn; use FDIVT_NZ wrapper
 extsub $cc45 = FDIV(uword mflpt @ AY) clobbers(A,X,Y)       ; fac1 = mflpt in A/Y / fac1
 extsub $cc18 = MUL10() clobbers(A,X,Y)                      ; fac1 *= 10
 extsub $cc34 = DIV10() clobbers(A,X,Y)                      ; fac1 /= 10 , CAUTION: result is always positive! You have to fix sign manually!
-extsub $c9a0 = FADDT() clobbers(A,X,Y)                      ; fac1 += fac2
+extsub $c9a0 = FADDT() clobbers(A,X,Y)                      ; fac1 += fac2   ; WARNING: bare entry, needs Z flag=facexp + arisgn; use FADDT_NZ wrapper
 extsub $c99d = FADD(uword mflpt @ AY) clobbers(A,X,Y)       ; fac1 += mflpt value from A/Y
 extsub $c97f = FADDH() clobbers(A,X,Y)                      ; fac1 += 0.5, for integer rounding- call this before INT
-extsub $c989 = FSUBT() clobbers(A,X,Y)                      ; fac1 = fac2-fac1   mind the order of the operands
+extsub $c989 = FSUBT() clobbers(A,X,Y)                      ; fac1 = fac2-fac1   mind the order of the operands   ; (FSUBT does NOT need the Z flag hack, it already does the setup internally)
 extsub $c986 = FSUB(uword mflpt @ AY) clobbers(A,X,Y)       ; fac1 = mflpt from A/Y - fac1
 extsub $cd91 = FCOMP(uword mflpt @ AY) clobbers(X,Y) -> ubyte @ A   ; A = compare fac1 to mflpt in A/Y, 0=equal 1=fac1 is greater, 255=fac1 is less than
-extsub $d112 = FPWRT() clobbers(A,X,Y)                      ; fac1 = fac2 ** fac1
+extsub $d112 = FPWRT() clobbers(A,X,Y)                      ; fac1 = fac2 ** fac1   ; WARNING: bare entry, needs Z flag=facexp + arisgn; use FPWRT_NZ wrapper
 
 
 extsub $ca0d = NORMAL() clobbers(A)                         ; normalize FAC1

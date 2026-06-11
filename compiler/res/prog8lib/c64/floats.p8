@@ -51,15 +51,15 @@ extsub $bae2 = MUL10() clobbers(A,X,Y)                      ; fac1 *= 10
 extsub $bafe = DIV10() clobbers(A,X,Y)                      ; fac1 /= 10 , CAUTION: result is always positive! You have to fix sign manually!
 extsub $bc5b = FCOMP(uword mflpt @ AY) clobbers(X,Y) -> ubyte @ A   ; A = compare fac1 to mflpt in A/Y, 0=equal 1=fac1 is greater, 255=fac1 is less than
 
-extsub $b86a = FADDT() clobbers(A,X,Y)                      ; fac1 += fac2
+extsub $b86a = FADDT() clobbers(A,X,Y)                      ; fac1 += fac2   ; WARNING: bare entry, needs Z flag=facexp + arisgn; use FADDT_NZ wrapper
 extsub $b867 = FADD(uword mflpt @ AY) clobbers(A,X,Y)       ; fac1 += mflpt value from A/Y
-extsub $b853 = FSUBT() clobbers(A,X,Y)                      ; fac1 = fac2-fac1   mind the order of the operands
+extsub $b853 = FSUBT() clobbers(A,X,Y)                      ; fac1 = fac2-fac1   mind the order of the operands   ; (FSUBT does NOT need the Z flag hack, it already does the setup internally)
 extsub $b850 = FSUB(uword mflpt @ AY) clobbers(A,X,Y)       ; fac1 = mflpt from A/Y - fac1
-extsub $ba2b = FMULTT() clobbers(A,X,Y)                     ; fac1 *= fac2
+extsub $ba2b = FMULTT() clobbers(A,X,Y)                     ; fac1 *= fac2   ; WARNING: bare entry, needs Z flag=facexp + arisgn; use FMULTT_NZ wrapper
 extsub $ba28 = FMULT(uword mflpt @ AY) clobbers(A,X,Y)      ; fac1 *= mflpt value from A/Y
-extsub $bb12 = FDIVT() clobbers(A,X,Y)                      ; fac1 = fac2/fac1  mind the order of the operands
+extsub $bb12 = FDIVT() clobbers(A,X,Y)                      ; fac1 = fac2/fac1  mind the order of the operands   ; WARNING: bare entry, needs Z flag=facexp + arisgn; use FDIVT_NZ wrapper
 extsub $bb0f = FDIV(uword mflpt @ AY) clobbers(A,X,Y)       ; fac1 = mflpt in A/Y / fac1
-extsub $bf7b = FPWRT() clobbers(A,X,Y)                      ; fac1 = fac2 ** fac1
+extsub $bf7b = FPWRT() clobbers(A,X,Y)                      ; fac1 = fac2 ** fac1   ; WARNING: bare entry, needs Z flag=facexp + arisgn; use FPWRT_NZ wrapper
 extsub $bf78 = FPWR(uword mflpt @ AY) clobbers(A,X,Y)       ; fac1 = fac2 ** mflpt from A/Y
 extsub $bd7e = FINLOG(byte value @A) clobbers (A, X, Y)     ; fac1 += signed byte in A
 

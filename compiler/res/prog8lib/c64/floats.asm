@@ -578,3 +578,4 @@ FPWRT_NZ .proc
         lda  FAC_ADDR+0    ; facexp to set Z flag
         jmp  FPWRT
 .pend
+
