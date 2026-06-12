@@ -142,9 +142,15 @@ internal object DeferProcessor {
             }
 
             // complex return value, need to store it before calling the defer block
-            val pushAndPopCalls = ret.children.map { makePushPopFunctionCalls(it as PtExpression) }
+            val pushAndPopCalls = ret.children.map {
+                val expr = it as PtExpression
+                if (expr.type == DataType.UNDEFINED)
+                    Pair(expr, null)
+                else
+                    makePushPopFunctionCalls(expr)
+            }
             val pushCalls = pushAndPopCalls.map { it.first }.reversed()     // push in reverse order
-            val popCalls = pushAndPopCalls.map { it.second }
+            val popCalls = pushAndPopCalls.mapNotNull { it.second }
             val newRet = PtReturn(ret.position)
             val group = PtNodeGroup()
             pushCalls.forEach { group.add(it) }

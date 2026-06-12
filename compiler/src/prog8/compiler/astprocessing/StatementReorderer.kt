@@ -454,9 +454,13 @@ internal class StatementReorderer(
             val targetSub = funcValue.target.targetSubroutine()
             if(targetSub!=null && !targetSub.isAsmSubroutine) {
                 if(targetSub.parameters.isEmpty()) {
-                    // replace  return func()  -->  goto func
-                    val goto = Jump(funcValue.target, returnStmt.position)
-                    return listOf(AstReplaceNode(returnStmt, goto, parent))
+                    val currentSub = returnStmt.definingSubroutine
+                    if (currentSub == null || !currentSub.hasDeferStatement()) {
+                        // replace  return func()  -->  goto func
+                        // but only if current sub has no defers that must be executed!
+                        val goto = Jump(funcValue.target, returnStmt.position)
+                        return listOf(AstReplaceNode(returnStmt, goto, parent))
+                    }
                 }
             }
         }
