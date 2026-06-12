@@ -1034,33 +1034,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 }
                 // create the call
                 val returnRegs = if(returnRegSpec==null) emptyList() else listOf(returnRegSpec)
-                val call =
-                    if(callTarget.address==null)
-                        IRInstruction(Opcode.CALL, labelSymbol = fcall.name, fcallArgs = FunctionCallArgs(argRegisters, returnRegs))
-                    else {
-                        val address = callTarget.address!!
-                        if(address.constbank==null && address.varbank==null) {
-                            IRInstruction(
-                                Opcode.CALL,
-                                address = address.address.toAddress(),
-                                fcallArgs = FunctionCallArgs(argRegisters, returnRegs))
-                        } else if(address.constbank!=null) {
-                            IRInstruction(
-                                Opcode.CALLFAR,
-                                address = address.address.toAddress(),
-                                immediate = address.constbank!!.toInt()
-                            )
-                        } else {
-                            val tr = translateExpression(address.varbank!!)
-                            require(tr.dt==IRDataType.BYTE)
-                            result += tr.chunks
-                            IRInstruction(
-                                Opcode.CALLFARVB,
-                                address = address.address.toAddress(),
-                                reg1 = tr.resultReg
-                            )
-                        }
-                    }
+                val call = emitExtSubCall(callTarget, fcall, FunctionCallArgs(argRegisters, returnRegs), result)
                 addInstr(result, call, null)
                 var finalReturnRegister = returnRegSpec?.registerNum?.value ?: -1
 
@@ -1164,38 +1138,55 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             FunctionCallArgs.RegSpec(irType(it.type), RegisterNum(regnum), it.register)
         }
         // create the call
-        val call =
-            if(callTarget.address==null)
-                IRInstruction(Opcode.CALL, labelSymbol = fcall.name, fcallArgs = FunctionCallArgs(argRegisters, returnRegisters))
-            else {
-                val address = callTarget.address!!
-                if(address.constbank==null && address.varbank==null) {
-                    IRInstruction(
-                        Opcode.CALL,
-                        address = address.address.toAddress(),
-                        fcallArgs = FunctionCallArgs(argRegisters, returnRegisters)
-                    )
-                } else if(address.constbank!=null) {
-                    IRInstruction(
-                        Opcode.CALLFAR,
-                        address = address.address.toAddress(),
-                        immediate = address.constbank!!.toInt()
-                    )
-                } else {
-                    val tr = translateExpression(address.varbank!!)
-                    require(tr.dt==IRDataType.BYTE)
-                    result += tr.chunks
-                    IRInstruction(
-                        Opcode.CALLFARVB,
-                        address = address.address.toAddress(),
-                        reg1 = tr.resultReg
-                    )
-                }
-            }
+        val call = emitExtSubCall(callTarget, fcall, FunctionCallArgs(argRegisters, returnRegisters), result)
         addInstr(result, call, null)
         val resultRegs = returnRegisters.filter{it.dt!=IRDataType.FLOAT}.map{it.registerNum.value}
         val resultFpRegs = returnRegisters.filter{it.dt==IRDataType.FLOAT}.map{it.registerNum.value}
         return ExpressionCodeResult(result, IRDataType.BYTE, -1, -1, resultRegs, resultFpRegs)
+    }
+
+    private fun emitExtSubCall(
+        callTarget: StExtSub,
+        fcall: PtFunctionCall,
+        fcallArgs: FunctionCallArgs,
+        result: MutableList<IRCodeChunkBase>
+    ): IRInstruction {
+        val address = callTarget.address
+        return if (address == null) {
+            IRInstruction(Opcode.CALL, labelSymbol = fcall.name, fcallArgs = fcallArgs)
+        } else if (address.constbank == null && address.varbank == null) {
+            IRInstruction(
+                Opcode.CALL,
+                address = address.address.toAddress(),
+                fcallArgs = fcallArgs
+            )
+        } else if (address.constbank != null) {
+            IRInstruction(
+                Opcode.CALLFAR,
+                address = address.address.toAddress(),
+                immediate = address.constbank!!.toInt()
+            )
+        } else {
+            val varBank = address.varbank!!
+            val target = codeGen.symbolTable.lookup(varBank.name) ?: codeGen.symbolTable.lookupUnscoped(varBank.name)
+            val bankReg = if (target?.type == StNodeType.SUBROUTINE) {
+                // generate a call to the bank subroutine
+                val bankFcall = PtFunctionCall(varBank.name, false, false, arrayOf(DataType.UBYTE), varBank.position)
+                val tr = translate(bankFcall)
+                result += tr.chunks
+                tr.resultReg
+            } else {
+                val tr = translateExpression(varBank)
+                require(tr.dt == IRDataType.BYTE)
+                result += tr.chunks
+                tr.resultReg
+            }
+            IRInstruction(
+                Opcode.CALLFARVB,
+                address = address.address.toAddress(),
+                reg1 = bankReg
+            )
+        }
     }
 
     private fun operatorGreaterThan(

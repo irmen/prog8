@@ -48,8 +48,9 @@ class AsmGen6502(val prefixSymbols: Boolean, private val lastGeneratedLabelSeque
                 is PtAsmSub -> {
                     prefixNamedNode(node)
                     node.parameters.forEach { (_, param) -> prefixNamedNode(param) }
-                    if(node.address?.varbank!=null) {
-                        node.address!!.varbank = node.address!!.varbank!!.prefix(node, st)
+                    val address = node.address
+                    if (address?.varbank != null) {
+                        address.varbank = address.varbank!!.prefix(node, st)
                     }
                 }
                 is PtSub -> prefixNamedNode(node)

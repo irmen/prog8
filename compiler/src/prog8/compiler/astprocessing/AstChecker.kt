@@ -476,8 +476,17 @@ internal class AstChecker(private val program: Program,
                 err("variable bank extsub has no romable code-generation for the required jsrfar call, stick to constant bank, or create a system-ram trampoline")
             }
 
-            if(varbank.targetVarDecl()?.datatype?.isUnsignedByte!=true)
-                err("bank variable must be ubyte")
+            val targetSub = varbank.targetSubroutine()
+            if (targetSub != null) {
+                if (targetSub.parameters.isNotEmpty())
+                    err("bank subroutine must be parameterless")
+                if (targetSub.returntypes.singleOrNull()?.isUnsignedByte != true)
+                    err("bank subroutine must return a single ubyte")
+                if (targetSub.asmAddress?.constbank != null || targetSub.asmAddress?.varbank != null)
+                    err("bank subroutine cannot itself be a banked routine")
+            } else if (varbank.targetVarDecl()?.datatype?.isUnsignedByte != true) {
+                err("@bank must be a ubyte variable or a parameterless subroutine returning ubyte")
+            }
         }
         if(subroutine.inline && subroutine.asmAddress!=null)
             throw FatalAstException("extsub can never be inline")

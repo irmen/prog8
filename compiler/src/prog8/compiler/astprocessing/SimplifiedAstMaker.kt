@@ -689,9 +689,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
 
     private fun transformAsmSub(srcSub: Subroutine): PtAsmSub {
         val params = srcSub.asmParameterRegisters.zip(srcSub.parameters.map { PtSubroutineParameter(it.name, it.type, it.registerOrPair, it.position) })
-        val varbank = if(srcSub.asmAddress?.varbank==null) null else transform(srcSub.asmAddress!!.varbank!!)
-        if(varbank!=null && varbank !is PtIdentifier)
-            throw FatalAstException("varbank must be a regular variable")
+        val varbank = if(srcSub.asmAddress?.varbank==null) null else transform(srcSub.asmAddress!!.varbank!!) as PtIdentifier
         val asmAddr = if(srcSub.asmAddress==null) null else {
             val constAddr = srcSub.asmAddress!!.address.constValue(program)
                 ?: throw FatalAstException("extsub address should be a constant")

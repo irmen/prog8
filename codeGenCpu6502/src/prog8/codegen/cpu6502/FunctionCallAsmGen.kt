@@ -33,7 +33,7 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
         // NOTE: does NOT output code to save/restore the X register for this call! Every caller should deal with this in their own way!!
         //       (you can use subroutine.shouldSaveX() and saveX()/restoreX() routines as a help for this)
 
-        val symbol = asmgen.symbolTable.lookup(call.name)!!
+        val symbol = asmgen.symbolTable.lookup(call.name) ?: asmgen.symbolTable.lookupUnscoped(call.name) ?: throw IllegalStateException("Symbol not found: ${call.name}")
         if(symbol.type == StNodeType.LABEL) {
             require(call.void)
             asmgen.out("  jsr  ${asmgen.asmSymbolName(symbol.scopedNameString)}")
@@ -44,6 +44,20 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
         val subAsmName = asmgen.asmSymbolName(call.name)
 
         if(sub is PtAsmSub) {
+            val varBank = sub.address?.varbank
+            var varbank: String? = null
+            if (varBank != null) {
+                // the bank variable can also be the name of a subroutine that should be called to return the bank byte dynamically
+                val bankSymbol = asmgen.symbolTable.lookup(varBank.name) ?: asmgen.symbolTable.lookupUnscoped(varBank.name)
+                if (bankSymbol?.type == StNodeType.SUBROUTINE) {
+                    asmgen.out("  jsr  ${asmgen.asmSymbolName(varBank.name)}")
+                    varbank = asmgen.createTempVarReused(BaseDataType.UBYTE, false, call)
+                    asmgen.out("  sta  $varbank")
+                } else {
+                    varbank = asmgen.asmVariableName(varBank)
+                }
+            }
+
             argumentsViaRegisters(sub, call)
             if (sub.inline) {
                 // inline the subroutine. (regardless of optimization settings!)
@@ -56,7 +70,6 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
             } else {
                 val bank = sub.address?.constbank?.toString()
                 if(bank==null) {
-                    val varbank = if(sub.address?.varbank==null) null else asmgen.asmVariableName(sub.address!!.varbank!!)
                     if(varbank!=null) {
                         if(asmgen.options.romable)
                             TODO("no codegen yet for non-const bank in subroutine call that's usable in ROM  ${call.position}")

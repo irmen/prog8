@@ -1166,14 +1166,17 @@ data class IRInstruction(
         }
 
         if(this@IRInstruction.fcallArgs!=null) {
-            immediate?.let { append(it.toHex()) }       // syscall
-            if(labelSymbol!=null) {
-                // regular subroutine call
-                append(labelSymbol)
-                if(labelSymbolOffset!=null)
-                    append("+$labelSymbolOffset")
+            when (opcode) {
+                Opcode.SYSCALL -> append(immediate!!.toHex())
+                else -> {
+                    if (labelSymbol != null) {
+                        append(labelSymbol)
+                        if (labelSymbolOffset != null)
+                            append("+$labelSymbolOffset")
+                    }
+                    address?.let { append(it.toHex()) }    // romcall
+                }
             }
-            address?.let { append(it.toHex()) }    // romcall
             append("(")
             fcallArgs.arguments.forEach {
                 val location = if(it.address==null) {

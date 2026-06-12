@@ -1,6 +1,7 @@
 TODO
 ====
 
+
 Dead Code Elimination bug in 64tass, for nested subroutines
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 - When a subroutine contains a nested ``asmsub`` (or possibly a nested ``sub()``), 64tass cannot properly eliminate
@@ -43,7 +44,6 @@ Future Things and Ideas
 - make a form of "manual generics" possible like: varsub routine(T arg)->T  where T is expanded to a specific type
   (this is already done hardcoded for several of the builtin functions)
 - more support for (64tass) SEGMENTS in the prog8 syntax itself? maybe %segment blah  in blocks?
-- ability to use a sub instead of only a var for @bank ? what for though? dynamic bank/overlay loading?
 - add a way to explicitly set the memory address for the BSS area (``-varsaddress`` and ``-slabsaddress`` options)
 - the c64 sprite multiplexer example may need timing adjustments after compiler changes (not a compiler bug — cycle-exact C64 code is inherently fragile)
 

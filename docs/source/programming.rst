@@ -1382,7 +1382,8 @@ make it easier to define jump tables for example, like this::
     extsub APIBASE+6 = thirdroutine()
 
 **Banks:** it is possible to declare a non-standard ROM or RAM bank that the routine is living in, with ``@bank`` like this:
-``extsub @bank 10  $C09F = audio_init()`` to define a routine at $C09F in bank 10. You can also specify a variable for the bank.
+``extsub @bank 10  $C09F = audio_init()`` to define a routine at $C09F in bank 10.
+You can also specify a variable or even the name of a subroutine (must be parameterless, returning a ubyte) for the bank.
 See :ref:`banking` for more information.
 
 

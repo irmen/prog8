@@ -55,10 +55,19 @@ automatically before the normal jump to the subroutine (and switched back on ret
 have to bother anymore with setting/resetting the banks manually, or having the program crash because
 the routine is called in the wrong bank!  You define such a routine by adding ``@bank <bank>``
 to the extsub subroutine definition. This specifies the bank number where the subroutine is located in.
-You can use a constant bank number 0-255, or a ubyte variable to make it dynamic::
+You can use a constant bank number 0-255, a ubyte variable, or even the name of a subroutine
+(must be parameterless, and returning a ubyte) to make it dynamic::
 
     extsub @bank 10  $C09F = audio_init()
     extsub @bank banknr  $A000 = first_hiram_routine()
+    extsub @bank get_bank  $A000 = second_hiram_routine()
+
+When a subroutine is used as a banking routine, the compiler will call it just before
+the actual banked subroutine is invoked. The return value of the banking routine (in register A)
+is then used as the bank number for the subsequent call.
+This might be useful for implementing **dynamic overlay loading**, where a
+banking routine can check if the required code is already loaded in a certain bank,
+load it from disk if necessary, and then return the bank number to the banked subroutine call.
 
 When you then call this routine in your program as usual, the compiler will no longer generate a simple JSR instruction to the
 routine. Instead it will generate a piece of code that automatically switches the ROM or RAM bank to the

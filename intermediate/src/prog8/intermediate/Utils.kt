@@ -331,11 +331,12 @@ private fun parseCall(rest: String): ParsedCall {
     val arguments = parseArgs(args)
     val returns = match.groups["returns"]?.value
     var address: UInt? = null
-    var actualTarget: String? = target
+    var actualTarget: String? = null
 
     if(target.startsWith('$') || target[0].isDigit()) {
         address = parseIRValue(target).toUInt()
-        actualTarget = null
+    } else {
+        actualTarget = target
     }
 
     return ParsedCall(
