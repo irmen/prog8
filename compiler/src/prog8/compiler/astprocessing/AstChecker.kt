@@ -470,12 +470,6 @@ internal class AstChecker(private val program: Program,
         }
         val varbank = subroutine.asmAddress?.varbank
         if(varbank!=null) {
-            if(compilerOptions.romable) {
-                // the jsrfar bank argument byte needs to be set via self-modifying code, which is non-romable
-                // maybe one day a jsrfar copy/trampoline could be placed in system ram somwhere in the future.
-                err("variable bank extsub has no romable code-generation for the required jsrfar call, stick to constant bank, or create a system-ram trampoline")
-            }
-
             val targetSub = varbank.targetSubroutine()
             if (targetSub != null) {
                 if (targetSub.parameters.isNotEmpty())
@@ -2001,6 +1995,15 @@ internal class AstChecker(private val program: Program,
         }
 
         if(target is Subroutine) {
+            val bank = target.asmAddress?.constbank
+            val varbank = target.asmAddress?.varbank
+            if ((bank != null || varbank != null) && !compilerOptions.compTarget.supportsBankedCalls) {
+                errors.err("banked subroutine call is not supported on the selected compilation target", position)
+            }
+            if (varbank != null && compilerOptions.romable) {
+                errors.err("variable bank extsub has no romable code-generation for the required jsrfar call, stick to constant bank, or create a system-ram trampoline", position)
+            }
+
             if(target.isAsmSubroutine) {
                 for (arg in args.zip(target.parameters)) {
                     val argIDt = arg.first.inferType(program)

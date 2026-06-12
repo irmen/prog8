@@ -15,6 +15,7 @@ import kotlin.io.path.nameWithoutExtension
 
 class ConfigFileTarget(
     override val name: String,
+    override val supportsBankedCalls: Boolean,
     override val defaultEncoding: Encoding,
     override val cpu: CpuType,
     override val PROGRAM_LOAD_ADDRESS: UInt,
@@ -115,6 +116,7 @@ class ConfigFileTarget(
 
             return ConfigFileTarget(
                 configfile.nameWithoutExtension,
+                props.getProperty("supports_banked_calls", "false").toBoolean(),
                 Encoding.entries.first { it.prefix==props.getString("encoding") },
                 cpuType,
                 props.getInteger("load_address"),

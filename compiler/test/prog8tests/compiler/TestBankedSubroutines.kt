@@ -4,8 +4,8 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.engine.spec.tempdir
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
-import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
+import prog8.code.target.PETTarget
 import prog8.code.target.VMTarget
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
@@ -102,5 +102,51 @@ class TestBankedSubroutines : FunSpec({
         compileText(VMTarget(), false, text, outputDir, writeAssembly = false, errors = errors) shouldBe null
         errors.errors.size shouldBe 1
         errors.errors[0] shouldContain "@bank must be a ubyte variable or a parameterless subroutine returning ubyte"
+    }
+
+    test("banked subroutine not supported on pet32") {
+        val text = $$"""
+            main {
+                extsub @bank 1 $ffd2 = chrout(ubyte char @A)
+                sub start() {
+                    chrout('A')
+                }
+            }
+        """.trimIndent()
+        val errors = ErrorReporterForTests()
+        compileText(PETTarget(), false, text, outputDir, writeAssembly = false, errors = errors) shouldBe null
+        errors.errors.size shouldBe 1
+        errors.errors[0] shouldContain "banked subroutine call is not supported on the selected compilation target"
+    }
+
+    test("banked subroutine definition (not called) supported on pet32") {
+        val text = $$"""
+            main {
+                extsub @bank 1 $ffd2 = chrout(ubyte char @A)
+                sub start() {
+                    ; no call to chrout
+                }
+            }
+        """.trimIndent()
+        val errors = ErrorReporterForTests()
+        compileText(PETTarget(), false, text, outputDir, writeAssembly = false, errors = errors).shouldNotBeNull()
+        errors.errors.size shouldBe 0
+    }
+
+    test("banked subroutine variable bank romable check at call site") {
+        val text = $$"""
+            %option romable
+            main {
+                ubyte bank = 1
+                extsub @bank bank $ffd2 = chrout_romable(ubyte char @A)
+                sub start() {
+                    bank = 2
+                    chrout_romable('A')
+                }
+            }
+        """.trimIndent()
+        val errors = ErrorReporterForTests()
+        compileText(VMTarget(), false, text, outputDir, errors = errors, writeAssembly = false, varshigh = 1, slabshigh = 1) shouldBe null
+        errors.errors.any { it.contains("variable bank extsub has no romable code-generation") } shouldBe true
     }
 })

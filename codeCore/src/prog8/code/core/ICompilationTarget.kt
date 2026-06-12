@@ -28,6 +28,7 @@ interface ICompilationTarget: IStringEncoding, IMemSizer {
     val customLauncher: List<String>
     val additionalAssemblerOptions: List<String>
     val defaultOutputType: OutputType
+    val supportsBankedCalls: Boolean
 
     fun initializeMemoryAreas(compilerOptions: CompilationOptions)
     fun getFloatAsmBytes(num: Number): String

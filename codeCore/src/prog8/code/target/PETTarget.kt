@@ -11,6 +11,7 @@ class PETTarget: ICompilationTarget,
     IMemSizer by NormalMemSizer(Mflpt5.FLOAT_MEM_SIZE) {
 
     override val name = NAME
+    override val supportsBankedCalls = false
     override val defaultEncoding = Encoding.PETSCII
     override val libraryPath = null
     override val customLauncher = emptyList<String>()
