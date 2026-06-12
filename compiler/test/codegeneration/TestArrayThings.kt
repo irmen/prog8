@@ -12,6 +12,7 @@ import prog8.code.target.Cx16Target
 import prog8.code.target.VMTarget
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
+import prog8tests.helpers.shouldContainInOrder
 import kotlin.io.path.readText
 
 class TestArrayThings: FunSpec({
@@ -144,9 +145,9 @@ main {
         val result = compileText(C64Target(), false, text, outputDir, writeAssembly = true)!!
         val assemblyFile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".asm")
         val assembly = assemblyFile.readText()
-        assembly shouldContain "thearray_lsb"
-        assembly shouldContain "thearray_msb"
-        assembly shouldContain "thearray2"
+        assembly.shouldContainInOrder("thearray_lsb")
+        assembly.shouldContainInOrder("thearray_msb")
+        assembly.shouldContainInOrder("thearray2")
     }
 
     test("indexing str or pointervar with expression") {
@@ -497,12 +498,12 @@ main {
         val assembly = assemblyFile.readText()
 
         // Verify reads use _lsb symbol (variable offset indexed access)
-        assembly shouldContain "wordarray_lsb,x"
-        assembly shouldContain "points_lsb,x"
+        assembly.shouldContainInOrder("wordarray_lsb,x")
+        assembly.shouldContainInOrder("points_lsb,x")
 
         // Verify writes use _lsb symbol (variable offset indexed access)
-        assembly shouldContain "sta  p8b_main.p8v_wordarray_lsb,x"
-        assembly shouldContain "sta  p8b_main.p8v_points_lsb,x"
+        assembly.shouldContainInOrder("sta  p8b_main.p8v_wordarray_lsb,x")
+        assembly.shouldContainInOrder("sta  p8b_main.p8v_points_lsb,x")
 
         // Verify that base array symbols (without _lsb/_msb suffix) are NOT used in indexed access
         // This ensures the bug fix is working - the old buggy code used "p8v_wordarray,x" instead
@@ -527,7 +528,7 @@ main {
         val assembly = assemblyFile.readText()
 
         // Verify poke uses _lsb symbol (direct store without offset)
-        assembly shouldContain "sta  p8b_main.p8v_wordarray_lsb"
+        assembly.shouldContainInOrder("sta  p8b_main.p8v_wordarray_lsb")
 
         // Verify that base array symbol (without _lsb suffix) is NOT used
         ("p8v_wordarray" in assembly && "p8v_wordarray_lsb" !in assembly) shouldBe false
@@ -549,7 +550,7 @@ main {
         val assembly = assemblyFile.readText()
 
         // Verify pokew uses _lsb symbol for the address calculation
-        assembly shouldContain "p8b_main.p8v_wordarray_lsb"
+        assembly.shouldContainInOrder("p8b_main.p8v_wordarray_lsb")
 
         // Verify that base array symbol (without _lsb suffix) is NOT used in address calculation
         // (allowing it in variable declarations like .fill)
@@ -573,7 +574,7 @@ main {
         val assembly = assemblyFile.readText()
 
         // Verify peekw uses _lsb symbol for the address calculation
-        assembly shouldContain "p8b_main.p8v_wordarray_lsb"
+        assembly.shouldContainInOrder("p8b_main.p8v_wordarray_lsb")
 
         // Verify that base array symbol (without _lsb suffix) is NOT used in address calculation
         val addressLines = assembly.lines().filter { it.contains("adc") || it.contains("sta") || it.contains("lda") }
@@ -595,7 +596,7 @@ main {
         val assembly = assemblyFile.readText()
 
         // Verify peekw uses _lsb symbol for the address calculation
-        assembly shouldContain "p8b_main.p8v_wordarray_lsb"
+        assembly.shouldContainInOrder("p8b_main.p8v_wordarray_lsb")
 
         // Verify that base array symbol (without _lsb suffix) is NOT used in address calculation
         val addressLines = assembly.lines().filter { it.contains("adc") || it.contains("sta") || it.contains("lda") }

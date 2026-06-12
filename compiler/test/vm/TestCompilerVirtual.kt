@@ -11,6 +11,7 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldNotContain
+import prog8tests.helpers.shouldContainInOrder
 import prog8.ast.expressions.MemorySlabRef
 import prog8.ast.statements.Assignment
 import prog8.code.target.C64Target
@@ -292,7 +293,7 @@ main {
         val result = compileText(target, false, src, outputDir, writeAssembly = true)!!
         val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         val irSrc = virtfile.readText()
-        irSrc.shouldContain("incm.b $2000")
+        irSrc.shouldContainInOrder("incm.b $2000")
         irSrc.shouldNotContain("</ASM>")
         VmRunner().runProgram(irSrc, false)
     }
@@ -829,8 +830,8 @@ main {
         val irContent = virtfile.readText()
         
         // Verify the IR file contains both sections
-        irContent.shouldContain("<STRUCTINSTANCESNOINIT>")
-        irContent.shouldContain("<STRUCTINSTANCES>")
+        irContent.shouldContainInOrder("<STRUCTINSTANCESNOINIT>")
+        irContent.shouldContainInOrder("<STRUCTINSTANCES>")
         
         // Parse the IR to get variable allocations
         val irProgram = IRFileReader().read(irContent)
@@ -874,8 +875,8 @@ main {
         val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = true)!!
         val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         val irContent = virtfile.readText()
-
-        irContent.shouldContain("^^main.State")
+        irContent.shouldContainInOrder("<STRUCTINSTANCESNOINIT>")
+        irContent.shouldContainInOrder("^^main.State")
         VmRunner().runProgram(irContent, false)
     }
 

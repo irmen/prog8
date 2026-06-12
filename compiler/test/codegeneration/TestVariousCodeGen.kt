@@ -902,7 +902,7 @@ main {
         val asm = asmFile.readText()
 
         withClue("Should use efficient sta (zp),y instruction") {
-            asm shouldContain "sta  (p8v_s),y"
+            asm.shouldContainInOrder("sta  (p8v_s),y")
         }
     }
 

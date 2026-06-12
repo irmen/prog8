@@ -10,6 +10,7 @@ import prog8.code.target.C64Target
 import prog8.code.target.VMTarget
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
+import prog8tests.helpers.shouldContainInOrder
 import kotlin.io.path.readText
 
 class Test2DArrays: FunSpec({
@@ -134,7 +135,7 @@ class Test2DArrays: FunSpec({
         val result1 = compileText(C64Target(), false, src1, outputDir, writeAssembly = true)!!
         val asmFile1 = result1.compilationOptions.outputDir.resolve(result1.compilerAst.name + ".asm")
         val asm1 = asmFile1.readText()
-        asm1 shouldContain "m"  // Should reference the array
+        asm1.shouldContainInOrder("m")  // Should reference the array
         
         // Verify IR after constant folding
         val src2 = """
@@ -147,7 +148,7 @@ class Test2DArrays: FunSpec({
         val result2 = compileText(VMTarget(), true, src2, outputDir, writeAssembly = true)!!
         val virtfile = result2.compilationOptions.outputDir.resolve(result2.compilerAst.name + ".p8ir")
         val ir = virtfile.readText()
-        ir shouldContain "m"  // Should contain the array reference
+        ir.shouldContainInOrder("m")  // Should contain the array reference
     }
 
     test("invalid 2D array usage produces compile errors") {
