@@ -155,10 +155,10 @@ class TestCompilerOnExamplesC64: FunSpec({
             ExampleSizes("bdmusic", c64SizeOptimized=938, c64SizeUnoptimized=1011),
             ExampleSizes("charset", c64SizeOptimized=835, c64SizeUnoptimized=860),
             ExampleSizes("cube3d-sprites", c64SizeOptimized=2712, c64SizeUnoptimized=2764),
-            ExampleSizes("fileselector", c64SizeOptimized=3568, c64SizeUnoptimized=4758),
+            ExampleSizes("fileselector", c64SizeOptimized=3546, c64SizeUnoptimized=4726),
             ExampleSizes("library/main", c64SizeOptimized=321, c64SizeUnoptimized=1237),
             ExampleSizes("multiplexer", c64SizeOptimized=1356, c64SizeUnoptimized=1507),
-            ExampleSizes("petswirl", c64SizeOptimized=959, c64SizeUnoptimized=1029),
+            ExampleSizes("petswirl", c64SizeOptimized=947, c64SizeUnoptimized=1013),
             ExampleSizes("plasma", c64SizeOptimized=1690, c64SizeUnoptimized=1731),
             ExampleSizes("rasterbars", c64SizeOptimized=845, c64SizeUnoptimized=892),
             ExampleSizes("simplemultiplexer", c64SizeOptimized=843, c64SizeUnoptimized=914),
@@ -199,7 +199,7 @@ class TestCompilerOnExamplesCx16: FunSpec({
             ExampleSizes("pcmaudio/stream-wav", cx16SizeOptimized=5636, cx16SizeUnoptimized=7878),
             ExampleSizes("pcmaudio/stream-simple-aflow", cx16SizeOptimized=1850, cx16SizeUnoptimized=3753),
             ExampleSizes("pcmaudio/stream-simple-poll", cx16SizeOptimized=1564, cx16SizeUnoptimized=3462),
-            ExampleSizes("pcmaudio/vumeter", cx16SizeOptimized=3888, cx16SizeUnoptimized=6381),
+            ExampleSizes("pcmaudio/vumeter", cx16SizeOptimized=3880, cx16SizeUnoptimized=6373),
             ExampleSizes("sprites/dragon", cx16SizeOptimized=1858, cx16SizeUnoptimized=4374),
             ExampleSizes("sprites/dragons", cx16SizeOptimized=1511, cx16SizeUnoptimized=3686),
             ExampleSizes("zsmkit_v1/demo1", cx16SizeOptimized=7546, cx16SizeUnoptimized=7984),
@@ -208,7 +208,7 @@ class TestCompilerOnExamplesCx16: FunSpec({
             ExampleSizes("zsmkit_v2/demo", cx16SizeOptimized=790, cx16SizeUnoptimized=2924),
             // zsmkit_v2/zsmkit doesn't compile (empty source file)
             ExampleSizes("banking/program", cx16SizeOptimized=665, cx16SizeUnoptimized=2553),
-            ExampleSizes("fileselector/standalone", cx16SizeOptimized=4194, cx16SizeUnoptimized=6452),
+            ExampleSizes("fileselector/standalone", cx16SizeOptimized=4184, cx16SizeUnoptimized=6442),
             ExampleSizes("fileselector/main", cx16SizeOptimized=480, cx16SizeUnoptimized=2355),
             // fileselector/fselector and fileselector/namesorting don't compile (empty source files)
             ExampleSizes("pointers/fountain-cx16", cx16SizeOptimized=1179, cx16SizeUnoptimized=1520),
@@ -286,15 +286,15 @@ class TestCompilerOnExamplesBothC64andCx16: FunSpec({
             ExampleSizes("maze", c64SizeOptimized=3088, c64SizeUnoptimized=3189, cx16SizeOptimized=2873, cx16SizeUnoptimized=3251),
             ExampleSizes("mandelbrot", c64SizeOptimized=1173, c64SizeUnoptimized=1207, cx16SizeOptimized=1120, cx16SizeUnoptimized=1434),
             ExampleSizes("mandelbrot-gfx", c64SizeOptimized=1492, c64SizeUnoptimized=1514, cx16SizeOptimized=957, cx16SizeUnoptimized=1250),
-            ExampleSizes("multitasking", c64SizeOptimized=1956, c64SizeUnoptimized=2029, cx16SizeOptimized=1826, cx16SizeUnoptimized=2159),
+            ExampleSizes("multitasking", c64SizeOptimized=1900, c64SizeUnoptimized=1973, cx16SizeOptimized=1812, cx16SizeUnoptimized=2145),
             ExampleSizes("numbergame", c64SizeOptimized=1034, c64SizeUnoptimized=1050, cx16SizeOptimized=1079, cx16SizeUnoptimized=1382),
             ExampleSizes("primes", c64SizeOptimized=520, c64SizeUnoptimized=541, cx16SizeOptimized=565, cx16SizeUnoptimized=870),
             ExampleSizes("queens", c64SizeOptimized=1061, c64SizeUnoptimized=1093, cx16SizeOptimized=1111, cx16SizeUnoptimized=1427),
-            ExampleSizes("screencodes", c64SizeOptimized=667, c64SizeUnoptimized=687, cx16SizeOptimized=655, cx16SizeUnoptimized=959),
+            ExampleSizes("screencodes", c64SizeOptimized=639, c64SizeUnoptimized=655, cx16SizeOptimized=647, cx16SizeUnoptimized=951),
             ExampleSizes("swirl", c64SizeOptimized=828, c64SizeUnoptimized=831, cx16SizeOptimized=923, cx16SizeUnoptimized=1208),
             ExampleSizes("swirl-float", c64SizeOptimized=732, c64SizeUnoptimized=759, cx16SizeOptimized=595, cx16SizeUnoptimized=906),
             ExampleSizes("tehtriz", c64SizeOptimized=4333, c64SizeUnoptimized=4504, cx16SizeOptimized=6252, cx16SizeUnoptimized=6773),
-            ExampleSizes("textelite", c64SizeOptimized=11440, c64SizeUnoptimized=12423, cx16SizeOptimized=10778, cx16SizeUnoptimized=13046),
+            ExampleSizes("textelite", c64SizeOptimized=11408, c64SizeUnoptimized=12407, cx16SizeOptimized=10770, cx16SizeUnoptimized=13046),
             ExampleSizes("pointers/animalgame", c64SizeOptimized=1570, c64SizeUnoptimized=2126, cx16SizeOptimized=1605, cx16SizeUnoptimized=2412),
             ExampleSizes("pointers/binarytree", c64SizeOptimized=2562, c64SizeUnoptimized=2640, cx16SizeOptimized=2085, cx16SizeUnoptimized=2389),
             ExampleSizes("pointers/hashtable", c64SizeOptimized=3294, c64SizeUnoptimized=4140, cx16SizeOptimized=2832, cx16SizeUnoptimized=3786),
@@ -371,8 +371,8 @@ class TestCompilerOnExamplesPET32: FunSpec({
 
     val onlyPET32 = cartesianProduct(
         listOf(
-            ExampleSizes("boingball", pet32SizeOptimized=1532, pet32SizeUnoptimized=1621),
-            ExampleSizes("petswirl", pet32SizeOptimized=915, pet32SizeUnoptimized=985),
+            ExampleSizes("boingball", pet32SizeOptimized=1514, pet32SizeUnoptimized=1603),
+            ExampleSizes("petswirl", pet32SizeOptimized=903, pet32SizeUnoptimized=969),
         ),
         listOf(false, true)
     )

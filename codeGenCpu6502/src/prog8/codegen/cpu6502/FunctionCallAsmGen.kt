@@ -247,7 +247,8 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
         if(sub.parameters.size==1) {
             argumentViaRegister(sub, IndexedValue(0, sub.parameters.single().second), call.args[0])
         } else {
-            val optimalEvalOrder = asmsub6502ArgsEvalOrder(sub)
+            val argComplexity = call.args.map { usesOtherRegistersWhileEvaluating(it) }
+            val optimalEvalOrder = asmsub6502ArgsEvalOrder(sub, argComplexity)
             optimalEvalOrder.forEach {
                 val param = sub.parameters[it]
                 val arg = call.args[it]

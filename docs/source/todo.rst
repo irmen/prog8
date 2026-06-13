@@ -32,16 +32,10 @@ Future Things and Ideas
 - sizeof(pointer) is now always 2 (an uword), make this a variable in the ICompilationTarget so that it could be 4 at the time we might ad a 32-bits 68000 target for example. Much code assumes word size addresses though.
 - add float support to the configurable compiler targets. Restrictions: just have "cbm-style floats" as an option (to that it can slot into the current float codegen), where all you have to specify is the addresses of AYINT and GIVAYF and FADDT and all their friends.
 - Change scoping rules for qualified symbols so that they don't always start from the root but behave like other programming languages (look in local scope first), maybe only when qualified symbol starts with '.' such as: .local.value = 33
-- something to reduce the need to use fully qualified names all the time. 'with <prefix>' or 'using <prefix>'?
-- Improve register load order in subroutine call args assignments:
-  in certain situations (need examples!), the "wrong" order of evaluation of function call arguments is done which results
-  in overwriting registers that already got their value, which requires a lot of stack juggling (especially on plain 6502 cpu!)
-  Maybe this routine can be made more intelligent.  See usesOtherRegistersWhileEvaluating() and argumentsViaRegisters().
 - implement the signed remainder byte and word routines on 6502 (virtual target already has them working)
 - implement the signed divmod byte and word routines on 6502 (virtual target already has them working)
 - make a form of "manual generics" possible like: varsub routine(T arg)->T  where T is expanded to a specific type
   (this is already done hardcoded for several of the builtin functions)
-- more support for (64tass) SEGMENTS in the prog8 syntax itself? maybe %segment blah  in blocks?
 - add a way to explicitly set the memory address for the BSS area (``-varsaddress`` and ``-slabsaddress`` options)
 - the c64 sprite multiplexer example may need timing adjustments after compiler changes (not a compiler bug — cycle-exact C64 code is inherently fragile)
 
