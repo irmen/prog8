@@ -1,11 +1,11 @@
 package prog8lsp
 
+import prog8.ast.IFunctionCall
 import prog8.ast.Module
 import prog8.ast.Node
-import prog8.ast.IFunctionCall
-import prog8.ast.walk.IAstVisitor
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
+import prog8.ast.walk.IAstVisitor
 import prog8.code.core.BaseDataType
 import prog8.code.core.Position
 
@@ -479,6 +479,8 @@ object SymbolLookup {
                 }
             }
             is Subroutine -> {
+                if(stmt.isPrivate)
+                    return
                 val params = stmt.parameters.joinToString(", ") { "${it.name}: ${it.type}" }
                 symbols.add(CompletionSymbol(
                     name = stmt.name,
@@ -488,6 +490,8 @@ object SymbolLookup {
                 ))
             }
             is VarDecl -> {
+                if(stmt.isPrivate)
+                    return
                 val kind = if (stmt.type == VarDeclType.CONST) {
                     org.eclipse.lsp4j.CompletionItemKind.Constant
                 } else {
@@ -501,6 +505,8 @@ object SymbolLookup {
                 ))
             }
             is StructDecl -> {
+                if(stmt.isPrivate)
+                    return
                 symbols.add(CompletionSymbol(
                     name = stmt.name,
                     kind = org.eclipse.lsp4j.CompletionItemKind.Struct,
