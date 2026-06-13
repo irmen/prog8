@@ -336,7 +336,7 @@ class AsmGen6502Internal (
     internal val optimizedWordMultiplications = setOf(3,5,6,7,9,10,12,15,20,25,40,50,80,100,320,640)
     internal val loopEndLabels = ArrayDeque<String>()
     private val zeropage = options.compTarget.zeropage
-    private val allocator = VariableAllocator(symbolTable, options, errors)
+    private val allocator = VariableAllocator(symbolTable, options, errors, program)
     private val assembly = mutableListOf<String>()
     private val breakpointLabels = mutableListOf<String>()
     private val forloopsAsmGen = ForLoopsAsmGen(this, zeropage)

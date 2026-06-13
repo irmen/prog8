@@ -170,7 +170,7 @@ class TestCodegen: FunSpec({
         val st = SymbolTable(program)
         st.add(StMemVar("zpmemvar", DataType.WORD, 0x20u, null, null))
         st.add(StMemVar("normalmemvar", DataType.WORD, 0x9000u, null, null))
-        val allocator = VariableAllocator(st, getTestOptions(), ErrorReporterForTests())
+        val allocator = VariableAllocator(st, getTestOptions(), ErrorReporterForTests(), program)
         allocator.isZpVar("zpmemvar") shouldBe true
         allocator.isZpVar("normalmemvar") shouldBe false
     }

@@ -3,17 +3,20 @@ package prog8.codegen.cpu6502
 import com.github.michaelbull.result.fold
 import com.github.michaelbull.result.onOk
 import prog8.code.*
+import prog8.code.ast.*
 import prog8.code.core.*
 
 
 internal class VariableAllocator(private val symboltable: SymbolTable,
                                  private val options: CompilationOptions,
-                                 private val errors: IErrorReporter
+                                 private val errors: IErrorReporter,
+                                 private val program: PtProgram
 ) {
 
     private val zeropage = options.compTarget.zeropage
     internal val globalFloatConsts = mutableMapOf<Double, String>()     // all float values in the entire program (value -> varname)
     internal val zeropageVars: Map<String, MemoryAllocator.VarAllocation>
+    private val usageScores by lazy { computeUsageScores(collectAllVariables(symboltable)) }
 
     init {
         allocateZeropageVariables()
@@ -90,9 +93,9 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
             }
 
             // try to allocate the "don't care" interger variables into the zeropage until it is full.
-            // TODO some form of intelligent priorization? most often used variables first? loopcounter vars first? ...?  Simply sorting by size (bytes prioritized) has BAD results
+            // Prioritize by usage frequency: sort by computed hotness score (access frequency × type weight × loop depth)
             if(errors.noErrors()) {
-                val sortedList = varsDontCareWithoutAlignment.sortedByDescending { it.scopedNameString }
+                val sortedList = varsDontCareWithoutAlignment.sortedByDescending { usageScores[it.scopedNameString] ?: 0 }
                 for (variable in sortedList) {
                     if(variable.dt.isIntegerOrBool || variable.dt.isPointer) {
                         if(zeropage.free.isEmpty()) {
@@ -128,5 +131,34 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
         }
         collect(st)
         return vars.sortedBy { it.dt.base }
+    }
+
+    private fun computeUsageScores(vars: Collection<StStaticVariable>): Map<String, Int> {
+        val scores = mutableMapOf<String, Int>()
+        val varInfo = vars.associateBy { it.scopedNameString }
+        var loopDepth = 0
+
+        fun walk(node: PtNode) {
+            val isLoopEnter = node is PtForLoop || node is PtRepeatLoop
+            if(isLoopEnter) loopDepth++
+
+            if(node is PtIdentifier) {
+                val v = varInfo[node.name]
+                if(v != null) {
+                    val weight = when {
+                        v.dt.isPointer || v.dt.isWord -> 2
+                        else -> 1
+                    }
+                    scores[node.name] = (scores[node.name] ?: 0) + weight * (loopDepth + 1)
+                }
+            }
+
+            node.children.forEach { walk(it) }
+
+            if(isLoopEnter) loopDepth--
+        }
+
+        walk(program)
+        return scores
     }
 }

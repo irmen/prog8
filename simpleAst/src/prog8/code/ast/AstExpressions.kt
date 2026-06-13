@@ -426,6 +426,10 @@ class PtRange(type: DataType, position: Position) : PtExpression(type, position)
 
 
 class PtString(val value: String, val encoding: Encoding, position: Position) : PtExpression(DataType.STR, position) {
+    // Note: PtString values in interned string PtVariables are redundant after SymbolTable construction.
+    // Codegen backends read string data from StStaticVariable.initializationStringValue, not from the AST.
+    // The AST node exists only for structural purposes (scoped naming, position tracking, parent hierarchy).
+    // See SymbolTableMaker.kt:99-143 and ProgramAndVarsGen.kt:968-975.
     override fun hashCode(): Int = Objects.hash(value, encoding)
     override fun equals(other: Any?): Boolean {
         if(other==null || other !is PtString)

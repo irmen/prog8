@@ -2,15 +2,6 @@ TODO
 ====
 
 
-Dead Code Elimination bug in 64tass, for nested subroutines
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-- When a subroutine contains a nested ``asmsub`` (or possibly a nested ``sub()``), 64tass cannot properly eliminate
-  the outer subroutine if ANY symbol from within it is referenced elsewhere (even if the outer subroutine itself is never called).
-- Workaround: move nested subroutines to be top-level (block-level) subroutines instead.
-- Example: in gfx_lores.p8, the nested ``plot()`` inside ``line()`` caused unused ``line()`` to be included in programs
-  that only used other gfx_lores functions (like ``circle()``). Fixed by moving it to a separate ``internal_line_plot()``.
-
-
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 - fully remove -nostdlib compiler option?  It has become redundant now that the import search path order has been changed?
@@ -18,7 +9,6 @@ Future Things and Ideas
 - arrays inline in structs (see ideas/arrays-in-structs.md)
 - add %option private_symbols to make access mode private by default; need (new) 'public' keyword to explicitly mark symbols public.
 - symboldump: some sort of javadocs generated from the p8 source files (instead of just the function signatures). Use markdown for formatting, not html.
-- why are (interned) strings stored as initialization value in the SymbolTable AND as string nodes in the interned string block? Something seems redundant here?
 - when implementing unsigned longs: remove the (multiple?) "TODO "hack" to allow unsigned long constants to be used as values for signed longs, without needing a cast
 - struct/ptr: implement the remaining TODOs in PointerAssignmentsGen.
 - struct/ptr: support pointer to pointer?
@@ -36,7 +26,10 @@ Future Things and Ideas
 - implement the signed divmod byte and word routines on 6502 (virtual target already has them working)
 - make a form of "manual generics" possible like: varsub routine(T arg)->T  where T is expanded to a specific type
   (this is already done hardcoded for several of the builtin functions)
-- add a way to explicitly set the memory address for the BSS area (``-varsaddress`` and ``-slabsaddress`` options)
+- add new directives ``%bssaddress`` and ``%slabsaddress`` to set the memory address for the BSS area and memory slabs (analogous to ``%address`` for program load address).
+  Note: these should be mutually exclusive with the existing CLI options (``-varsgolden``, ``-varshigh``, ``-slabsgolden``, ``-slabshigh``)
+  because the CLI options are target-aware shorthands (set bank symbols, do bounds checking against predefined ranges)
+  while the directives are raw addresses — they'd conflict if both specified for the same area.
 - the c64 sprite multiplexer example may need timing adjustments after compiler changes (not a compiler bug — cycle-exact C64 code is inherently fragile)
 
 
@@ -81,8 +74,13 @@ Optimizations
 
 - Port more benchmarks from https://thred.github.io/c-bench-64/  to prog8 and see how it stacks up. (see benchmark-c/ directory)
 - Compilation speed: try to join multiple modifications in 1 result in the AST processors instead of returning it straight away every time
-- VariableAllocator: can we think of a smarter strategy for allocating variables into zeropage, rather than first-come-first-served?
-  for instance, vars used inside loops first, then loopvars, then uwords used as pointers (or these first??), then the rest
-  This will probably need the register categorization from the IR explained there, for the old 6502 codegen there is not enough information to act on
-  Note that simple prioritization based on size (bytes first) yields WORSE results for many programs.
 - various optimizers skip stuff if compTarget.name==VMTarget.NAME.  Once 6502-codegen is done from IR code, those 6502 only optimizations should probably be removed
+
+
+Dead Code Elimination bug in 64tass, for nested subroutines
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+- When a subroutine contains a nested ``asmsub`` (or possibly a nested ``sub()``), 64tass cannot properly eliminate
+  the outer subroutine if ANY symbol from within it is referenced elsewhere (even if the outer subroutine itself is never called).
+- Workaround: move nested subroutines to be top-level (block-level) subroutines instead.
+- Example: in gfx_lores.p8, the nested ``plot()`` inside ``line()`` caused unused ``line()`` to be included in programs
+  that only used other gfx_lores functions (like ``circle()``). Fixed by moving it to a separate ``internal_line_plot()``.
