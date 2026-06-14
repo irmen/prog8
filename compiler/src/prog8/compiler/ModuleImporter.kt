@@ -15,8 +15,8 @@ import prog8.parser.Prog8Parser
 import java.io.File
 import java.nio.file.Path
 import kotlin.io.path.Path
-import kotlin.io.path.exists
 import kotlin.io.path.absolute
+import kotlin.io.path.exists
 
 
 class ModuleImporter(private val program: Program,
@@ -189,12 +189,14 @@ class ModuleImporter(private val program: Program,
                 (sourcePaths + listOf(pathFromImportingModule, cwd)).distinct()
             }
 
+        val libraryPathsSet = libraryPaths.toSet()
         val searched = mutableListOf<Path>()
         normalLocations.forEach {
             searched.add(it)
             try {
                 val file = it.resolve(fileName)
-                val source = ImportFileSystem.getFile(file)
+                val isLib = file.parent in libraryPathsSet   // a file may be found here before reaching the libraryPaths loop, but still resides in a library dir (customtargets)
+                val source = ImportFileSystem.getFile(file, isLib)
                 val origin = when {
                     it == Path("").absolute() -> "CWD"
                     it in sourcePaths -> "srcdirs"
