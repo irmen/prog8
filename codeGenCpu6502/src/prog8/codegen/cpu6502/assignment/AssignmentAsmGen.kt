@@ -227,7 +227,7 @@ internal class AssignmentAsmGen(
                     }
                     targetDt.isByte -> assignVariableByte(assign.target, variable)
                     targetDt.isSignedWord -> assignVariableWord(assign.target, variable, assign.source.datatype)
-                    targetDt.isUnsignedWord -> {
+                    targetDt.isUnsignedWord || targetDt.isPointer -> {
                         if(assign.source.datatype.isPassByRef)
                             assignAddressOf(assign.target, variable, false, assign.source.datatype, assign.source.array ?: PtNumber(BaseDataType.UBYTE, 0.0, assign.position))
                         else
@@ -236,7 +236,6 @@ internal class AssignmentAsmGen(
                     targetDt.isLong -> assignVariableLong(assign.target, variable, assign.source.datatype)
                     targetDt.isFloat -> assignVariableFloat(assign.target, variable)
                     targetDt.isString -> assignVariableString(assign.target, variable)
-                    targetDt.isPointer -> assignVariableWord(assign.target, variable, assign.source.datatype)
                     else -> throw AssemblyError("unsupported assignment target type ${assign.target.datatype} ${assign.position}")
                 }
             }
@@ -697,13 +696,7 @@ internal class AssignmentAsmGen(
                     val identifier = value.identifier!!
                     val source = asmgen.symbolTable.lookup(identifier.name)
                     require(source !is StConstant) { "addressOf of a constant should have been rewritten to a simple addition expression" }
-                    val sourceName =
-                        if (value.isMsbForSplitArray)
-                            asmgen.asmSymbolName(identifier) + "_msb"
-                        else if (identifier.type.isSplitWordArray)
-                            asmgen.asmSymbolName(identifier) + "_lsb"  // the _lsb split array comes first in memory
-                        else
-                            asmgen.asmSymbolName(identifier)
+                    val sourceName = asmgen.asmSymbolName(identifier)
                     assignAddressOf(assign.target, sourceName, value.isMsbForSplitArray, identifier.type, value.arrayIndexExpr)
                 } else {
                     val ptrderef = value.dereference!!
@@ -3865,17 +3858,26 @@ $endLabel""")
     }
 
     private fun assignAddressOf(target: AsmAssignTarget, sourceName: String, msb: Boolean, arrayDt: DataType?, arrayIndexExpr: PtExpression?) {
+        var actualSourceName = sourceName
+        var actualMsb = msb
+        if (arrayDt?.isSplitWordArray == true) {
+            if (!sourceName.endsWith("_lsb") && !sourceName.endsWith("_msb")) {
+                actualSourceName = if (msb) sourceName + "_msb" else sourceName + "_lsb"
+            }
+            actualMsb = false
+        }
+
         if(arrayIndexExpr!=null) {
             if(arrayDt?.isPointer==true) {
-                require(!msb)
-                return pointergen.assignAddressOfIndexedPointer(target, sourceName, arrayDt, arrayIndexExpr)
+                require(!actualMsb)
+                return pointergen.assignAddressOfIndexedPointer(target, actualSourceName, arrayDt, arrayIndexExpr)
             }
             val constIndex = arrayIndexExpr.asConstInteger()
             if(constIndex!=null) {
                 if (arrayDt!!.isUnsignedWord) {
                     // using a UWORD pointer with array indexing, always bytes
-                    require(!msb)
-                    assignVariableToRegister(sourceName, RegisterOrPair.AY, false, arrayIndexExpr.definingISub(), arrayIndexExpr.position)
+                    require(!actualMsb)
+                    assignVariableToRegister(actualSourceName, RegisterOrPair.AY, false, arrayIndexExpr.definingISub(), arrayIndexExpr.position)
                     if(constIndex in 1..255)
                         asmgen.out("""
                             clc
@@ -3897,9 +3899,9 @@ $endLabel""")
                 else {
                     if(constIndex>0) {
                         val offset = if(arrayDt.isSplitWordArray) constIndex else program.memsizer.memorySize(arrayDt, constIndex)  // add arrayIndexExpr * elementsize  to the address of the array variable.
-                        asmgen.out("  lda  #<($sourceName + $offset) |  ldy  #>($sourceName + $offset)")
+                        asmgen.out("  lda  #<($actualSourceName + $offset) |  ldy  #>($actualSourceName + $offset)")
                     } else {
-                        asmgen.out("  lda  #<$sourceName |  ldy  #>$sourceName")
+                        asmgen.out("  lda  #<$actualSourceName |  ldy  #>$actualSourceName")
                     }
                 }
                 assignRegisterpairWord(target, RegisterOrPair.AY)
@@ -3907,8 +3909,8 @@ $endLabel""")
             } else {
                 if (arrayDt!!.isUnsignedWord) {
                     // using a UWORD pointer with array indexing, always bytes
-                    require(!msb)
-                    assignVariableToRegister(sourceName, RegisterOrPair.AY, false, arrayIndexExpr.definingISub(), arrayIndexExpr.position)
+                    require(!actualMsb)
+                    assignVariableToRegister(actualSourceName, RegisterOrPair.AY, false, arrayIndexExpr.definingISub(), arrayIndexExpr.position)
                     asmgen.saveRegisterStack(CpuRegister.A, false)
                     asmgen.saveRegisterStack(CpuRegister.Y, false)
                     if(arrayIndexExpr.type.isWord) {
@@ -3961,9 +3963,9 @@ $endLabel""")
                         )
                     } else throw AssemblyError("weird type $subtype")
                     asmgen.out("""
-                        ldy  #>$sourceName
+                        ldy  #>$actualSourceName
                         clc
-                        adc  #<$sourceName
+                        adc  #<$actualSourceName
                         bcc  +
                         iny
 +""")
@@ -3974,12 +3976,12 @@ $endLabel""")
         }
 
         // address of a normal variable
-        require(!msb)
+        require(!actualMsb)
         when(target.kind) {
             TargetStorageKind.VARIABLE -> {
                 asmgen.out("""
-                        lda  #<$sourceName
-                        ldy  #>$sourceName
+                        lda  #<$actualSourceName
+                        ldy  #>$actualSourceName
                         sta  ${target.asmVarname}
                         sty  ${target.asmVarname}+1""")
             }
@@ -3987,25 +3989,25 @@ $endLabel""")
                 throw AssemblyError("can't store word into memory byte")
             }
             TargetStorageKind.ARRAY -> {
-                asmgen.out("  lda  #<$sourceName |  ldy  #>$sourceName")
+                asmgen.out("  lda  #<$actualSourceName |  ldy  #>$actualSourceName")
                 assignRegisterpairWord(target, RegisterOrPair.AY)
             }
             TargetStorageKind.REGISTER -> {
                 when(target.register!!) {
-                    RegisterOrPair.AX -> asmgen.out("  ldx  #>$sourceName |  lda  #<$sourceName")
-                    RegisterOrPair.AY -> asmgen.out("  ldy  #>$sourceName |  lda  #<$sourceName")
-                    RegisterOrPair.XY -> asmgen.out("  ldy  #>$sourceName |  ldx  #<$sourceName")
+                    RegisterOrPair.AX -> asmgen.out("  ldx  #>$actualSourceName |  lda  #<$actualSourceName")
+                    RegisterOrPair.AY -> asmgen.out("  ldy  #>$actualSourceName |  lda  #<$actualSourceName")
+                    RegisterOrPair.XY -> asmgen.out("  ldy  #>$actualSourceName |  ldx  #<$actualSourceName")
                     in Cx16VirtualRegisters -> {
                         asmgen.out("""
-                            lda  #<$sourceName
-                            ldy  #>$sourceName
+                            lda  #<$actualSourceName
+                            ldy  #>$actualSourceName
                             sta  cx16.${target.register.toString().lowercase()}
                             sty  cx16.${target.register.toString().lowercase()}+1""")
                     }
                     else -> throw AssemblyError("can only load address into 16 bit register")
                 }
             }
-            TargetStorageKind.POINTER -> pointergen.assignAddressOf(PtrTarget(target), sourceName)
+            TargetStorageKind.POINTER -> pointergen.assignAddressOf(PtrTarget(target), actualSourceName)
             TargetStorageKind.VOID -> { /* do nothing */ }
         }
     }

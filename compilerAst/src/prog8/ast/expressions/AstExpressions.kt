@@ -1222,6 +1222,7 @@ class ArrayLiteral(val type: InferredTypes.InferredType,     // inferred because
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
 
+    @Suppress("KotlinArrayToString")
     override fun toString(): String = "$value"
     override fun inferType(program: Program): InferredTypes.InferredType = if(type.isKnown) type else guessDatatype(program)
 
@@ -1472,28 +1473,34 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
         }
         else
             definingScope.lookup(nameInSource)
-    fun targetVarDecl(): VarDecl? {
+    fun targetVarDecl(visitedAliases: MutableSet<Alias> = mutableSetOf()): VarDecl? {
         // follows aliases
         val t = targetStatement()
-        return if(t is Alias)
-            t.target.targetVarDecl()
-        else
+        return if (t is Alias) {
+            if (t in visitedAliases) return null
+            visitedAliases.add(t)
+            t.target.targetVarDecl(visitedAliases)
+        } else
             t as? VarDecl
     }
-    fun targetSubroutine(): Subroutine? {
+    fun targetSubroutine(visitedAliases: MutableSet<Alias> = mutableSetOf()): Subroutine? {
         // follows aliases
         val t = targetStatement()
-        return if(t is Alias)
-            t.target.targetSubroutine()
-        else
+        return if (t is Alias) {
+            if (t in visitedAliases) return null
+            visitedAliases.add(t)
+            t.target.targetSubroutine(visitedAliases)
+        } else
             t as? Subroutine
     }
-    fun targetStructDecl(): StructDecl? {
+    fun targetStructDecl(visitedAliases: MutableSet<Alias> = mutableSetOf()): StructDecl? {
         // follows aliases
         val t = targetStatement()
-        return if(t is Alias)
-            t.target.targetStructDecl()
-        else
+        return if (t is Alias) {
+            if (t in visitedAliases) return null
+            visitedAliases.add(t)
+            t.target.targetStructDecl(visitedAliases)
+        } else
             t as? StructDecl
     }
 
