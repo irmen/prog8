@@ -5,6 +5,7 @@ import io.kotest.engine.spec.tempdir
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
+import io.kotest.matchers.string.shouldNotContain
 import io.kotest.matchers.types.instanceOf
 import prog8.code.ast.*
 import prog8.code.target.C64Target
@@ -12,6 +13,7 @@ import prog8.code.target.Cx16Target
 import prog8.code.target.VMTarget
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
+import prog8tests.helpers.simulate
 import kotlin.io.path.readText
 
 class TestArrayThings: FunSpec({
@@ -147,6 +149,72 @@ main {
         assembly shouldContain "thearray_lsb"
         assembly shouldContain "thearray_msb"
         assembly shouldContain "thearray2"
+    }
+
+    test("split word array return and address-of uses lsb symbol") {
+        val src = """
+            main {
+                uword[3] myarray = [1000, 2000, 3000]
+
+                sub start() {
+                    uword addr1 = get_addr()
+                    uword addr2 = &myarray
+                }
+
+                sub get_addr() -> uword {
+                    return myarray
+                }
+            }
+        """.trimIndent()
+        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        val result = compileText(Cx16Target(), false, src, outputDir, writeAssembly = true, errors = errors)
+        errors.report()
+        result shouldNotBe null
+        val assemblyFile = result!!.compilationOptions.outputDir.resolve(result.compilerAst.name + ".asm")
+        val assembly = assemblyFile.readText()
+
+        // it should use _lsb suffix for both the return and the direct assignment
+        // because both are treating the array as a pointer/address
+
+        assembly shouldContain "_lsb"
+        // Ensure it DOES NOT contain p8v_myarray followed by space, tab or newline (which would mean no suffix)
+        // or used in lda #< / ldy #> without the suffix
+        assembly shouldNotContain Regex("""#<.*p8v_myarray(?![_a-zA-Z0-9])""")
+        assembly shouldNotContain Regex("""#>.*p8v_myarray(?![_a-zA-Z0-9])""")
+    }
+
+    test("functional test: split word array return address") {
+        val src = $$"""
+            %option no_sysinit
+            %launcher none
+            %address $1000
+            
+            main {
+                &ubyte poweroff = $f203
+                &ubyte result = $02
+                uword[2] myarray = [1234, 5678]
+
+                sub start() {
+                    uword addr = get_addr()
+                    ; addr points to the LSB array.
+                    ; result should get the LSB of the first element (1234 & 0xff = 210? No, 1234 = 4 * 256 + 210? 1234 / 256 = 4, 1234 % 256 = 210. 1234 = 0x04D2, so LSB is 0xD2 = 210)
+                    ^^ubyte ptr = addr
+                    result = ptr[0]
+                    poweroff = 1
+                }
+
+                sub get_addr() -> uword {
+                    return myarray
+                }
+            }
+        """.trimIndent()
+
+        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        val compileResult = compileText(Cx16Target(), false, src, outputDir, errors = errors)
+        errors.report()
+        compileResult shouldNotBe null
+        val machine = compileResult!!.simulate()
+        machine.assertMemory(0x02, 1234 and 0xff)
     }
 
     test("indexing str or pointervar with expression") {

@@ -1222,6 +1222,7 @@ class ArrayLiteral(val type: InferredTypes.InferredType,     // inferred because
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
 
+    @Suppress("KotlinArrayToString")
     override fun toString(): String = "$value"
     override fun inferType(program: Program): InferredTypes.InferredType = if(type.isKnown) type else guessDatatype(program)
 

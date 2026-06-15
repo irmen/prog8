@@ -1,10 +1,14 @@
-%import textio
 %zeropage basicsafe
 %option no_sysinit
 
 main {
     sub start() {
-        const ^^ubyte name = "irmen"
-        txt.print(name)
+        uword[2]  wordarray
+        cx16.r0 = func()
+
+        sub func() -> uword {
+            cx16.r0++
+            return wordarray
+        }
     }
 }
