@@ -574,8 +574,14 @@ private fun optimizeAst(program: Program, compilerOptions: CompilationOptions, e
     fun removeUnusedCode(program: Program, errors: IErrorReporter, compilerOptions: CompilationOptions) {
         val remover = UnusedCodeRemover(program, errors, compilerOptions)
         remover.visit(program)
-        while (errors.noErrors() && remover.applyModifications() > 0) {
-            remover.visit(program)
+        for(numCycles in 0..2000) {
+            if (errors.noErrors() && remover.applyModifications() > 0)
+                remover.visit(program)
+            else
+                break
+
+            if(numCycles==2000)
+                throw InternalCompilerException("removeUnusedCode() is looping endlessly")
         }
     }
 
@@ -633,8 +639,14 @@ private fun postprocessAst(program: Program, errors: IErrorReporter, compilerOpt
 
     val fixer = BeforeAsmAstChanger(program, compilerOptions, errors)
     fixer.visit(program)
-    while (errors.noErrors() && fixer.applyModifications() > 0) {
-        fixer.visit(program)
+    for(numCycles in 0..2000) {
+        if (errors.noErrors() && fixer.applyModifications() > 0)
+            fixer.visit(program)
+        else
+            break
+
+        if(numCycles==2000)
+            throw InternalCompilerException("BeforeAsmAstChanger() is looping endlessly")
     }
 
     program.checkValid(errors, compilerOptions)          // check if final tree is still valid
@@ -642,8 +654,14 @@ private fun postprocessAst(program: Program, errors: IErrorReporter, compilerOpt
 
     val cleaner = BeforeAsmTypecastCleaner(program, errors)
     cleaner.visit(program)
-    while (errors.noErrors() && cleaner.applyModifications() > 0) {
-        cleaner.visit(program)
+    for(numCycles in 0..2000) {
+        if (errors.noErrors() && cleaner.applyModifications() > 0)
+            cleaner.visit(program)
+        else
+            break
+
+        if(numCycles==2000)
+            throw InternalCompilerException("BeforeAsmTypecastCleaner() is looping endlessly")
     }
 }
 

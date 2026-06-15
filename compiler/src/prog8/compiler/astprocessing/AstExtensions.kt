@@ -154,8 +154,15 @@ internal fun Program.preprocessAst(errors: IErrorReporter, options: CompilationO
     if(errors.noErrors()) {
         val transforms = AstPreprocessor(this, errors, options)
         transforms.visit(this)
-        while (errors.noErrors() && transforms.applyModifications() > 0)
-            transforms.visit(this)
+        for(numCycles in 0..2000) {
+            if (errors.noErrors() && transforms.applyModifications() > 0)
+                transforms.visit(this)
+            else
+                break
+
+            if(numCycles==2000)
+                throw InternalCompilerException("preprocessAst() is looping endlessly")
+        }
     }
 }
 
