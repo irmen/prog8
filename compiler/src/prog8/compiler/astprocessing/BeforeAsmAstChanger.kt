@@ -3,7 +3,6 @@ package prog8.compiler.astprocessing
 import prog8.ast.IStatementContainer
 import prog8.ast.Node
 import prog8.ast.Program
-import prog8.ast.defaultZero
 import prog8.ast.expressions.BinaryExpression
 import prog8.ast.expressions.NumericLiteral
 import prog8.ast.expressions.TypecastExpression
@@ -70,34 +69,6 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
                             val returnStmt = Return(arrayOf(), lastStatement?.position ?: subroutine.position)
                             mods += AstInsert.last(subroutine, returnStmt)
                         }
-                    }
-                }
-            }
-        }
-
-        // precede a subroutine with a return to avoid falling through into the subroutine from code above it
-        val outerScope = subroutine.definingScope
-        val outerStatements = outerScope.statements
-        val subroutineStmtIdx = outerStatements.indexOf(subroutine)
-        if (subroutineStmtIdx > 0) {
-            val prevStmt = outerStatements[subroutineStmtIdx-1]
-            if(outerScope !is Block
-                && (prevStmt !is Jump)
-                && prevStmt !is Subroutine
-                && prevStmt !is Return
-            ) {
-                if(!subroutine.inline) {
-                    if(outerScope is Subroutine && outerScope.returntypes.isNotEmpty()) {
-                        if(outerScope.returntypes.size>1 || !(outerScope.returntypes[0].isNumericOrBool || outerScope.returntypes[0].isPointer)) {
-                            errors.err("subroutine is missing a return statement to avoid falling through into nested subroutine", outerStatements[subroutineStmtIdx-1].position)
-                        } else {
-                            val zero = defaultZero(outerScope.returntypes[0].base, outerStatements[subroutineStmtIdx-1].position)
-                            val returnStmt = Return(arrayOf(zero), outerStatements[subroutineStmtIdx - 1].position)
-                            mods += AstInsert.after(outerStatements[subroutineStmtIdx - 1], returnStmt, outerScope)
-                        }
-                    } else {
-                        val returnStmt = Return(arrayOf(), outerStatements[subroutineStmtIdx - 1].position)
-                        mods += AstInsert.after(outerStatements[subroutineStmtIdx - 1], returnStmt, outerScope)
                     }
                 }
             }

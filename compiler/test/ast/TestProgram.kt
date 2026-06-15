@@ -160,29 +160,26 @@ datablock2 $8000 {
         val result = compileText(C64Target(), optimize=false, src, outputDir, writeAssembly=true)!!
         result.compilerAst.allBlocks.size shouldBeGreaterThan 5
         result.compilerAst.modules.drop(PROG8_CONTAINER_MODULES.size+1).all { it.isLibrary } shouldBe true
-        val mainMod = result.compilerAst.modules[0]
+        val mainMod = result.compilerAst.modules[PROG8_CONTAINER_MODULES.size]
         mainMod.name shouldStartWith "on_the_fly"
-        result.compilerAst.modules[1].name shouldBe "prog8_interned_strings"
+        result.compilerAst.modules[0].name shouldBe "prog8_interned_strings"
         val mainBlocks = mainMod.statements.filterIsInstance<Block>()
-        mainBlocks.size shouldBe 6
+        mainBlocks.size shouldBe 5
         mainBlocks[0].name shouldBe "main"
-        mainBlocks[1].name shouldBe "p8_sys_startup"
-        mainBlocks[2].name shouldBe "otherblock1"
-        mainBlocks[3].name shouldBe "otherblock2"
+        mainBlocks[1].name shouldBe "otherblock1"
+        mainBlocks[2].name shouldBe "otherblock2"
+        mainBlocks[3].name shouldBe "datablock1"
         mainBlocks[4].name shouldBe "datablock2"
-        mainBlocks[5].name shouldBe "datablock1"
 
         result.codegenAst!!.children.size shouldBeGreaterThan 5
         val blocks = result.codegenAst.children.filterIsInstance<PtBlock>()
         blocks.size shouldBe 16
         blocks[0].name shouldBe "p8b_main"
         blocks[1].name shouldBe "p8_sys_startup"
-        blocks[2].name shouldBe "p8b_otherblock1"
-        blocks[3].name shouldBe "p8b_otherblock2"
-        blocks[4].name shouldBe INTERNED_STRINGS_MODULENAME
-        blocks[5].name shouldBe "txt"
-        blocks[5].library shouldBe true
-        blocks[14].name shouldBe "p8b_datablock2"
-        blocks[15].name shouldBe "p8b_datablock1"
+        blocks.drop(2).first { !it.library && it.name.startsWith("p8b_") }.name shouldBe "p8b_otherblock1"
+        blocks.any { it.name==INTERNED_STRINGS_MODULENAME } shouldBe true
+        blocks.any { it.name=="txt" && it.library } shouldBe true
+        blocks[blocks.size-2].name shouldBe "p8b_datablock2"
+        blocks[blocks.size-1].name shouldBe "p8b_datablock1"
     }
 })

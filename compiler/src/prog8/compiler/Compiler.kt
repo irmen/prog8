@@ -640,7 +640,6 @@ private fun postprocessAst(program: Program, errors: IErrorReporter, compilerOpt
     callGraph.checkRecursiveCalls(errors)
     program.verifyFunctionArgTypes(errors, compilerOptions)
     errors.report()
-    program.moveMainBlockAsFirst(compilerOptions.compTarget)
 
     val fixer = BeforeAsmAstChanger(program, compilerOptions, errors)
     fixer.visit(program)

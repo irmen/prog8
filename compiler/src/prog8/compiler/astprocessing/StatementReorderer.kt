@@ -26,17 +26,6 @@ internal class StatementReorderer(
     private val directivesToMove = setOf("%output", "%launcher", "%zeropage", "%zpreserved", "%zpallowed", "%address", "%memtop", "%option", "%encoding")
 
     override fun after(module: Module, parent: Node): Iterable<AstModification> {
-        val (blocks, other) = module.statements.partition { it is Block }
-        module.statements.clear()
-        module.statements.addAll(other.asSequence().plus(blocks.sortedBy { (it as Block).address ?: UInt.MIN_VALUE }))
-        // note: the block sort order is finalized in the second Ast, see IntermediateAstMaker
-
-        val mainBlock = module.statements.asSequence().filterIsInstance<Block>().firstOrNull { it.name=="main" }
-        if(mainBlock!=null) {
-            module.statements.remove(mainBlock)
-            module.statements.add(0, mainBlock)
-        }
-
         directivesToTheTop(module.statements)
         return noModifications
     }
@@ -213,15 +202,6 @@ internal class StatementReorderer(
 
     override fun before(subroutine: Subroutine, parent: Node): Iterable<AstModification> {
         val modifications = mutableListOf<AstModification>()
-
-        val subs = subroutine.statements.filterIsInstance<Subroutine>()
-        if(subs.isNotEmpty()) {
-            // all subroutines defined within this subroutine are moved to the end
-            // NOTE: this doesn't check if this has already been done!!!
-            modifications +=
-                subs.map { AstRemove(it, subroutine) } +
-                subs.map { AstInsert.last(subroutine, it) }
-        }
 
         // change 'str' and 'ubyte[]' parameters or return types into ^^ubyte
         val stringParams = subroutine.parameters.filter { it.type.isString || it.type.isUnsignedByteArray }

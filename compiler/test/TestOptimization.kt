@@ -299,14 +299,23 @@ other {
                     }
                 }
             }"""
-        val result = compileText(C64Target(), optimize=true, src, outputDir, writeAssembly=false)!!
-        result.compilerAst.entrypoint.statements.size shouldBe 4
-        val ifstmt = result.compilerAst.entrypoint.statements[0] as IfElse
-        ifstmt.truepart.statements.size shouldBe 1
-        (ifstmt.truepart.statements[0] as Assignment).target.identifier!!.nameInSource shouldBe listOf("cx16", "r0")
-        val func2 = result.compilerAst.entrypoint.statements.last() as Subroutine
-        func2.statements.size shouldBe 3
-        (func2.statements[0] as Assignment).target.identifier!!.nameInSource shouldBe listOf("cx16", "r0")
+        val result = compileText(C64Target(), optimize=true, src, outputDir, writeAssembly=true)!!
+        // In Simple AST, nested subs are reordered to end with fallthrough return
+        val startSub = result.codegenAst!!.children
+            .filterIsInstance<PtBlock>()
+            .flatMap { it.children.filterIsInstance<PtSub>() }
+            .single { it.name.endsWith("start") }
+        val subStmts = startSub.children.drop(1)  // skip signature
+        subStmts.size shouldBe 4
+        subStmts[0] shouldBe instanceOf<PtIfElse>()
+        subStmts[1] shouldBe instanceOf<PtFunctionCall>()   // func2()
+        subStmts[2] shouldBe instanceOf<PtReturn>()          // fallthrough prevention
+        val func2 = subStmts[3] as PtSub
+        func2.children.size shouldBe 4   // signature + var decl + assignment + rol call
+        val seekAssign = func2.children.find { it is PtAssignment }
+        seekAssign shouldNotBe null
+        val assignTarget = (seekAssign as PtAssignment).target.identifier
+        assignTarget!!.name shouldContain "cx16"
     }
 
     test("redundant variable initialization warning and removal") {

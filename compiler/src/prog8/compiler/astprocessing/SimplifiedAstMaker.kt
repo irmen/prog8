@@ -46,10 +46,11 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
 
         // note: modules are not represented any longer in this Ast. All blocks have been moved into the top scope.
 
-        // (re)sort the blocks: "main" first, then all blocks without addresses, then all blocks with addresses (sorted by ascending address)
+        // (re)sort the blocks: "main" first, then startup machinery, then all blocks without addresses, then all blocks with addresses (sorted by ascending address)
         val sortedBlocks = program.allBlocks.sortedBy {
             if(it.name=="main") UInt.MIN_VALUE
-            else if(it.address==null) UInt.MIN_VALUE+1u
+            else if(it.name=="p8_sys_startup") UInt.MIN_VALUE+1u
+            else if(it.address==null) UInt.MIN_VALUE+2u
             else it.address
         }
         for (block in sortedBlocks)
@@ -750,9 +751,20 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
         val signature = PtSubSignature( returnTypes, srcSub.position)
         srcSub.parameters.forEach { signature.add(PtSubroutineParameter(it.name, it.type, it.registerOrPair, it.position)) }
         sub.add(signature)
+
+        // move nested subroutines to the end and insert a return before them to prevent 6502 fall-through
+        val (regular, nestedSubs) = statements.partition { it !is Subroutine }
         makeScopeVarsDecls(vardecls).forEach { sub.add(it) }
-        for (statement in statements)
-            sub.add(transformStatement(statement))
+        for (stmt in regular)
+            sub.add(transformStatement(stmt))
+        if (nestedSubs.isNotEmpty() && !srcSub.isAsmSubroutine) {
+            val lastRegular = sub.children.lastOrNull()
+            if (lastRegular !is PtReturn && lastRegular !is PtJump)
+                sub.add(PtInlineAssembly("  brk   ; fallthrough guard, should never be reached", false, srcSub.position))
+        }
+        for (subroutine in nestedSubs)
+            sub.add(transformStatement(subroutine))
+
         recombineMemorySlabAssignments(sub)
         return sub
     }

@@ -1661,16 +1661,19 @@ main {
     sub stuff() {
     }
 }"""
-        compileText(C64Target(), false, src, outputDir) shouldNotBe null
-        val result = compileText(VMTarget(), false, src, outputDir)!!
-        val st = result.compilerAst.entrypoint.statements
+        val result = compileText(C64Target(), false, src, outputDir, writeAssembly=true)!!
+        val startSub = result.codegenAst!!.children
+            .filterIsInstance<PtBlock>()
+            .flatMap { it.children.filterIsInstance<PtSub>() }
+            .single { it.name.endsWith("start") }
+        val st = startSub.children.drop(1)  // skip signature
         st.size shouldBe 6
-        st[0] shouldBe instanceOf<VarDecl>()
-        (st[1] as FunctionCallStatement).target.nameInSource shouldBe listOf("stuff")
-        st[2] shouldBe instanceOf<IfElse>()
-        (st[3] as FunctionCallStatement).target.nameInSource shouldBe listOf("stuff")
-        st[4] shouldBe instanceOf<Return>()
-        st[5] shouldBe instanceOf<Subroutine>()
+        st[0] shouldBe instanceOf<PtVariable>()
+        (st[1] as PtFunctionCall).name shouldContain "stuff"
+        st[2] shouldBe instanceOf<PtIfElse>()
+        (st[3] as PtFunctionCall).name shouldContain "stuff"
+        st[4] shouldBe instanceOf<PtReturn>()
+        st[5] shouldBe instanceOf<PtSub>()
     }
 
     test("initialize struct with string fields") {

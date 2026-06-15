@@ -10,7 +10,6 @@ import prog8.ast.walk.AstRemove
 import prog8.ast.walk.AstReplaceNode
 import prog8.ast.walk.AstWalker
 import prog8.code.core.*
-import prog8.code.target.VMTarget
 import java.io.CharConversionException
 
 
@@ -198,40 +197,6 @@ internal fun Program.variousCleanups(errors: IErrorReporter, options: Compilatio
 
         if(numCycles==2000)
             throw InternalCompilerException("variousCleanups() is looping endlessly")
-    }
-}
-
-internal fun Program.moveMainBlockAsFirst(target: ICompilationTarget) {
-    // The module containing the program entrypoint is moved to the first in the sequence.
-    // The "main" block containing the entrypoint is moved to the top in there.
-    // The startup and cleanup machinery is moved to the front as well.
-
-    val module = this.entrypoint.definingModule
-    val block = this.entrypoint.definingBlock
-    moveModuleToFront(module)
-    module.remove(block)
-    val afterDirective = module.statements.indexOfFirst { it !is Directive }
-    if(afterDirective<0)
-        module.statements.add(block)
-    else
-        module.statements.add(afterDirective, block)
-
-
-    if(target.name != VMTarget.NAME) {
-        // the program startup and cleanup machinery needs to be located in system ram
-        // so in an attempt to not be pushed into ROM space at the end of the program,
-        // this moves that block to the beginning of the program as much as possible.
-        val startupBlock = this.allBlocks.singleOrNull { it.name == "p8_sys_startup" }
-        if(startupBlock!=null) {
-            val mainBlockIdx = module.statements.indexOf(block)
-            (startupBlock.parent as IStatementContainer).remove(startupBlock)
-            if (block.address == null) {
-                module.statements.add(mainBlockIdx, startupBlock)
-            } else {
-                module.statements.add(mainBlockIdx + 1, startupBlock)
-            }
-            startupBlock.parent = module
-        }
     }
 }
 

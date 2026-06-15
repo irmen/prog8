@@ -7,9 +7,12 @@ import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.types.instanceOf
-import prog8.ast.IFunctionCall
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.statements.*
+import prog8.code.ast.PtBlock
+import prog8.code.ast.PtFunctionCall
+import prog8.code.ast.PtReturn
+import prog8.code.ast.PtSub
 import prog8.code.core.BaseDataType
 import prog8.code.core.DataType
 import prog8.code.target.C64Target
@@ -350,11 +353,15 @@ main {
             }
         """
         val result = compileText(C64Target(), false, text, outputDir, writeAssembly = true)!!
-        val stmts = result.compilerAst.entrypoint.statements
+        val startSub = result.codegenAst!!.children
+            .filterIsInstance<PtBlock>()
+            .flatMap { it.children.filterIsInstance<PtSub>() }
+            .single { it.name == "p8s_start" }
+        val subStmts = startSub.children.drop(1)  // skip signature
 
-        stmts.last() shouldBe instanceOf<Subroutine>()
-        stmts.dropLast(1).last() shouldBe instanceOf<Return>()  // this prevents the fallthrough
-        stmts.dropLast(2).last() shouldBe instanceOf<IFunctionCall>()
+        subStmts.last() shouldBe instanceOf<PtSub>()  // nested func is last
+        subStmts.dropLast(1).last() shouldBe instanceOf<PtReturn>()  // this prevents the fallthrough
+        subStmts.dropLast(2).last() shouldBe instanceOf<PtFunctionCall>()
     }
 
     test("multi-value returns from regular (non-asmsub) subroutines") {

@@ -7,7 +7,6 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldStartWith
-import java.nio.file.Path
 import prog8.code.INTERNED_STRINGS_MODULENAME
 import prog8.code.core.ZeropageType
 import prog8.code.target.C64Target
@@ -17,6 +16,7 @@ import prog8.compiler.determineCompilationOptions
 import prog8.compiler.parseMainModule
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
+import java.nio.file.Path
 
 
 class TestImportedModulesOrderAndOptions: FunSpec({
@@ -38,12 +38,11 @@ main {
         result.compilerAst.toplevelModule.name shouldStartWith "on_the_fly_test"
 
         val moduleNames = result.compilerAst.modules.map { it.name }
-        withClue("main module must be first") {
-            moduleNames[0] shouldStartWith "on_the_fly_test"
+        withClue("main module must be second (after container modules)") {
+            moduleNames[1] shouldStartWith "on_the_fly_test"
         }
         withClue("module order in parse tree") {
-            moduleNames.drop(1) shouldBe listOf(
-                INTERNED_STRINGS_MODULENAME,
+            moduleNames.drop(2) shouldBe listOf(
                 "textio",
                 "syslib",
                 "shared_sys_functions",
