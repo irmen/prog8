@@ -797,7 +797,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
                         return PtConstant(srcVar.name, srcVar.datatype, null, slab, srcVar.position)
                     }
                     else ->
-                        throw FatalAstException("const value must be a number, address-of, or memory reference")
+                        throw FatalAstException("const value must be a number, address-of, or memory reference, not $constVal at ${srcVar.position}")
                 }
             }
             VarDeclType.MEMORY -> return PtMemMapped(srcVar.name, srcVar.datatype, (srcVar.value as NumericLiteral).number.toUInt(), srcVar.arraysize?.constIndex()?.toUInt(), srcVar.position)

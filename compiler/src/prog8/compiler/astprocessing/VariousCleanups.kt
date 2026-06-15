@@ -45,16 +45,16 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                     }
                     VarDeclType.CONST -> {
                         // change the vardecl type itself as well, but only if new type is smaller
+                        // note: check for string→pointer conversion first, regardless of size comparison,
+                        // because e.g. STR and POINTER may not have a clear larger/smaller relationship
+                        if(decl.value is StringLiteral && decl.datatype.isPointer) {
+                            val vardecl = decl.copy(DataType.STR)
+                            vardecl.type = VarDeclType.VAR
+                            return listOf(AstReplaceNode(decl, vardecl, parent))
+                        }
                         if(valueDt.largerSizeThan(decl.datatype)) {
                             val constValue = decl.value!!.constValue(program)
                             if(constValue==null) {
-                                // non-numeric const value, such as a string literal assigned to a pointer type
-                                // convert it to a regular variable instead
-                                if(decl.value is StringLiteral && decl.datatype.isPointer) {
-                                    val vardecl = decl.copy(DataType.STR)
-                                    vardecl.type = VarDeclType.VAR
-                                    return listOf(AstReplaceNode(decl, vardecl, parent))
-                                }
                                 return noModifications
                             }
                             errors.err("value '${constValue.number}' out of range for ${decl.datatype}", constValue.position)

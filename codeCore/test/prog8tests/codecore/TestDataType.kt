@@ -229,6 +229,16 @@ class TestDataType: FunSpec({
         BaseDataType.WORD.largerSizeThan(BaseDataType.UBYTE).shouldBeTrue()
         BaseDataType.LONG.largerSizeThan(BaseDataType.WORD).shouldBeTrue()
         BaseDataType.UBYTE.largerSizeThan(BaseDataType.WORD).shouldBeFalse()
+        BaseDataType.STR.largerSizeThan(BaseDataType.UBYTE).shouldBeTrue()
+        BaseDataType.STR.largerSizeThan(BaseDataType.BOOL).shouldBeTrue()
+        BaseDataType.STR.largerSizeThan(BaseDataType.UWORD).shouldBeFalse()
+        BaseDataType.STR.largerSizeThan(BaseDataType.WORD).shouldBeFalse()
+        BaseDataType.STR.largerSizeThan(BaseDataType.POINTER).shouldBeFalse()
+        BaseDataType.STR.largerSizeThan(BaseDataType.LONG).shouldBeFalse()
+        BaseDataType.POINTER.largerSizeThan(BaseDataType.UBYTE).shouldBeTrue()
+        BaseDataType.POINTER.largerSizeThan(BaseDataType.BOOL).shouldBeTrue()
+        BaseDataType.POINTER.largerSizeThan(BaseDataType.UWORD).shouldBeFalse()
+        BaseDataType.POINTER.largerSizeThan(BaseDataType.STR).shouldBeFalse()
     }
 
     test("BaseDataType.equalsSize") {
@@ -236,6 +246,11 @@ class TestDataType: FunSpec({
         BaseDataType.UBYTE.equalsSize(BaseDataType.BYTE).shouldBeTrue()
         BaseDataType.WORD.equalsSize(BaseDataType.UWORD).shouldBeTrue()
         BaseDataType.UBYTE.equalsSize(BaseDataType.WORD).shouldBeFalse()
+        BaseDataType.STR.equalsSize(BaseDataType.STR).shouldBeTrue()
+        BaseDataType.STR.equalsSize(BaseDataType.UWORD).shouldBeTrue()
+        BaseDataType.STR.equalsSize(BaseDataType.BYTE).shouldBeFalse()
+        BaseDataType.POINTER.equalsSize(BaseDataType.UWORD).shouldBeTrue()
+        BaseDataType.POINTER.equalsSize(BaseDataType.STR).shouldBeFalse()
     }
 
     // ============================================================================
