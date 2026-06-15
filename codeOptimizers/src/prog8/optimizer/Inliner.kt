@@ -14,10 +14,26 @@ import prog8.code.target.VMTarget
 
 private  fun isEmptyReturn(stmt: Statement): Boolean = stmt is Return && stmt.values.isEmpty()
 
+/**
+ * The Inliner performs subroutine inlining on the AST.
+ *
+ * It supports both manual inlining (subroutines marked with the 'inline' keyword)
+ * and automatic inlining for very simple subroutines.
+ *
+ * Current restrictions and considerations:
+ * - Automatic inlining is currently restricted to subroutines with ZERO parameters.
+ * - Inlining subroutines with parameters is complicated because it requires careful
+ *   parameter substitution to avoid side effects and name collisions.
+ * - Handling parameterized inlining can easily lead to infinite loops or recursion
+ *   in the optimizer if not done VERY CAREFULLY (e.g. self-referential subroutines).
+ * - Subroutines must have a single functional statement in their body to be auto-inlined.
+ * - Multi-return value subroutines are not yet supported for auto-inlining.
+ */
 class Inliner(private val program: Program, private val options: CompilationOptions): AstWalker() {
 
     inner class DetermineInlineSubs(val program: Program): IAstVisitor {
         private val modifications = mutableListOf<AstModification>()
+        private val visitedSubroutines = java.util.Collections.newSetFromMap(java.util.IdentityHashMap<Subroutine, Boolean>())
 
         init {
             visit(program)
@@ -25,7 +41,24 @@ class Inliner(private val program: Program, private val options: CompilationOpti
             modifications.clear()
         }
 
+        private fun isRecursive(sub: Subroutine): Boolean {
+            var recursive = false
+            val visitor = object : IAstVisitor {
+                override fun visit(functionCallExpr: FunctionCallExpression) {
+                    if (!recursive && functionCallExpr.target.targetSubroutine() == sub) recursive = true
+                    if (!recursive) super.visit(functionCallExpr)
+                }
+                override fun visit(functionCallStatement: FunctionCallStatement) {
+                    if (!recursive && functionCallStatement.target.targetSubroutine() == sub) recursive = true
+                    if (!recursive) super.visit(functionCallStatement)
+                }
+            }
+            sub.statements.forEach { if (!recursive) it.accept(visitor) }
+            return recursive
+        }
+
         override fun visit(subroutine: Subroutine) {
+            if (!visitedSubroutines.add(subroutine)) return
 
             fun isBodyInlineable(stmt: Return): Boolean {
                 if (stmt.values.isEmpty())
@@ -109,30 +142,15 @@ class Inliner(private val program: Program, private val options: CompilationOpti
                     stmt.target is NumericLiteral
             }
 
-            val hasRegisterAliasedParams = subroutine.parameters.any { it.registerOrPair != null }
-            if (!subroutine.isAsmSubroutine && (subroutine.parameters.isEmpty() || !hasRegisterAliasedParams)) {
-                // NOTE: We allow subroutines with parameters to be considered for inlining,
-                // unless they are assembly subroutines or have register-aliased parameters (which cannot be inlined as they depend on specific CPU registers to be set).
-                // For void calls where the body doesn't use the parameters, inlining is trivial -
-                // we just remove the call entirely (no parameter substitution needed).
-                // For calls that return values or use parameters in the body, we need simple arguments
-                // (NumericLiteral or IdentifierReference) for parameter substitution to work.
-                // See canInlineAtCallSite() for the argument simplicity check.
-
-                val containsSubsOrVariables = subroutine.statements.any {
-                    it is Subroutine || (it is VarDecl && it.origin != VarDeclOrigin.SUBROUTINEPARAM)
-                }
+            if (!subroutine.isAsmSubroutine && subroutine.parameters.isEmpty()) {
+                val containsSubsOrVariables = subroutine.statements.any { it is Subroutine || it is VarDecl }
                 if (!containsSubsOrVariables) {
-                    // For subroutines with parameters, there will be a VarDecl(SUBROUTINEPARAM) per parameter
-                    // plus the body statement(s)
-                    val expectedMaxStmts = subroutine.parameters.size + 1  // param VarDecls + 1 body statement
-                    val hasOnlyBodyStatements = subroutine.statements.size == expectedMaxStmts ||
-                        (subroutine.statements.size == expectedMaxStmts + 1 && subroutine.statements.lastOrNull()?.let(::isEmptyReturn) == true)
+                    val hasOnlyBodyStatements = subroutine.statements.size == 1 ||
+                        (subroutine.statements.size == 2 && subroutine.statements.lastOrNull()?.let(::isEmptyReturn) == true)
 
                     if (hasOnlyBodyStatements) {
                         if (subroutine !== program.entrypoint) {
-                            // Find the first non-parameter statement (the actual body)
-                            val bodyStmt = subroutine.statements.firstOrNull { it !is VarDecl || it.origin != VarDeclOrigin.SUBROUTINEPARAM }
+                            val bodyStmt = subroutine.statements.firstOrNull()
                             val isAutoInlineable =
                                 when (val stmt = bodyStmt) {
                                     is Return -> isBodyInlineable(stmt)
@@ -141,15 +159,14 @@ class Inliner(private val program: Program, private val options: CompilationOpti
                                     is Jump -> isBodyInlineable(stmt)
                                     else -> false
                                 }
-                            if (isAutoInlineable)
+                            if (isAutoInlineable && !isRecursive(subroutine))
                                 subroutine.inline = true
                         }
                     }
 
                     if (subroutine.inline && subroutine.statements.size > 1) {
                         // Remove trailing return if it's empty and there's another body statement
-                        val bodyStmts = subroutine.statements.filter { it !is VarDecl || it.origin != VarDeclOrigin.SUBROUTINEPARAM }
-                        if (bodyStmts.size > 1 && subroutine.statements.lastOrNull()?.let(::isEmptyReturn) == true) {
+                        if (subroutine.statements.lastOrNull()?.let(::isEmptyReturn) == true) {
                             subroutine.statements.removeLast()
                         }
                     }
@@ -230,12 +247,7 @@ class Inliner(private val program: Program, private val options: CompilationOpti
             return false to "subroutine not marked as inlineable"
 
         if (sub.parameters.isNotEmpty()) {
-            if (sub.isAsmSubroutine) {
-                return false to "parameterized asmsub cannot be inlined"
-            }
-            if (sub.parameters.any { it.registerOrPair != null }) {
-                return false to "parameterized subroutine with register aliased parameters cannot be inlined"
-            }
+            return false to "subroutines with parameters cannot be inlined in this compiler version"
         }
         
         if (options.compTarget.name != VMTarget.NAME) {

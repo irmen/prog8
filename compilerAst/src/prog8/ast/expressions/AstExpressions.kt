@@ -1472,28 +1472,34 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
         }
         else
             definingScope.lookup(nameInSource)
-    fun targetVarDecl(): VarDecl? {
+    fun targetVarDecl(visitedAliases: MutableSet<Alias> = mutableSetOf()): VarDecl? {
         // follows aliases
         val t = targetStatement()
-        return if(t is Alias)
-            t.target.targetVarDecl()
-        else
+        return if (t is Alias) {
+            if (t in visitedAliases) return null
+            visitedAliases.add(t)
+            t.target.targetVarDecl(visitedAliases)
+        } else
             t as? VarDecl
     }
-    fun targetSubroutine(): Subroutine? {
+    fun targetSubroutine(visitedAliases: MutableSet<Alias> = mutableSetOf()): Subroutine? {
         // follows aliases
         val t = targetStatement()
-        return if(t is Alias)
-            t.target.targetSubroutine()
-        else
+        return if (t is Alias) {
+            if (t in visitedAliases) return null
+            visitedAliases.add(t)
+            t.target.targetSubroutine(visitedAliases)
+        } else
             t as? Subroutine
     }
-    fun targetStructDecl(): StructDecl? {
+    fun targetStructDecl(visitedAliases: MutableSet<Alias> = mutableSetOf()): StructDecl? {
         // follows aliases
         val t = targetStatement()
-        return if(t is Alias)
-            t.target.targetStructDecl()
-        else
+        return if (t is Alias) {
+            if (t in visitedAliases) return null
+            visitedAliases.add(t)
+            t.target.targetStructDecl(visitedAliases)
+        } else
             t as? StructDecl
     }
 

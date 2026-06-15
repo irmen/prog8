@@ -1675,7 +1675,7 @@ main {
         idAssigns.size shouldBe 3
     }
 
-    test("inline void call with one parameter") {
+    xtest("inline void call with one parameter") {
         // Tests that void calls with one parameter are inlined when args are simple
         val src = """
 main {
@@ -1699,7 +1699,7 @@ main {
         hasVoidCall shouldBe false
     }
 
-    test("inline void call with two parameters") {
+    xtest("inline void call with two parameters") {
         // Tests that void calls with two parameters are inlined when args are simple
         val src = """
 main {
@@ -1723,7 +1723,7 @@ main {
         hasVoidCall shouldBe false
     }
 
-    test("inline call with one return value and one parameter") {
+    xtest("inline call with one return value and one parameter") {
         // Tests that function calls returning one value with one parameter are inlined
         // and that the parameter is correctly substituted with the argument
         val src = """
@@ -1753,7 +1753,7 @@ main {
         binExpr.right shouldBe instanceOf<NumericLiteral>()
     }
 
-    test("inline call with two return values and two parameters") {
+    xtest("inline call with two return values and two parameters") {
         // Tests that function calls returning two values with two parameters are inlined
         // and that both parameters are correctly substituted
         val src = """
@@ -1826,7 +1826,7 @@ main {
         callNodes.size shouldBe 1
     }
 
-    test("inline void call with six parameters") {
+    xtest("inline void call with six parameters") {
         // Tests that void calls with six parameters are inlined when args are simple
         val src = """
 main {
@@ -1843,11 +1843,53 @@ main {
 
         // Void call should be removed entirely
         val hasVoidCall = startSub.statements.any { stmt ->
-            stmt is FunctionCallStatement &&
+            stmt is FunctionCallStatement && 
             stmt.target.nameInSource.last() == "take_six" &&
             stmt.void
         }
         hasVoidCall shouldBe false
+    }
+
+    test("parameterized subroutine with 'inline' is NOT inlined") {
+        val src = """
+main {
+    sub start() {
+        foo(1)
+    }
+    inline sub foo(ubyte x) {
+        cx16.r0 = x
+    }
+}"""
+        val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = false)!!
+        val startSub = result.compilerAst.entrypoint
+
+        // Should still contain a function call to foo
+        val hasFooCall = startSub.statements.any { stmt ->
+            stmt is FunctionCallStatement && 
+            stmt.target.nameInSource.last() == "foo"
+        }
+        hasFooCall shouldBe true
+    }
+
+    test("parameterized subroutine WITHOUT 'inline' is NOT auto-inlined") {
+        val src = """
+main {
+    sub start() {
+        foo(1)
+    }
+    sub foo(ubyte x) {
+        cx16.r0 = x
+    }
+}"""
+        val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = false)!!
+        val startSub = result.compilerAst.entrypoint
+
+        // Should still contain a function call to foo
+        val hasFooCall = startSub.statements.any { stmt ->
+            stmt is FunctionCallStatement && 
+            stmt.target.nameInSource.last() == "foo"
+        }
+        hasFooCall shouldBe true
     }
 
 
@@ -2033,6 +2075,28 @@ main {
         (y3.right as PtNumber).number shouldBe 3.0
     }
     
+    test("self-referential subroutine is not inlined (would cause infinite loop)") {
+        val src = """
+            main {
+                sub start() {
+                    void self_ref()
+                    cx16.r0++
+                }
+                sub self_ref() {
+                    self_ref()
+                }
+            }
+        """
+        val result = compileText(VMTarget(), true, src, outputDir)!!
+        val startSub = result.compilerAst.entrypoint
+
+        // The self-referential call should NOT be inlined - verify the function call still exists
+        val hasSelfRefCall = startSub.statements.any { stmt ->
+            stmt is FunctionCallStatement && stmt.target.nameInSource.lastOrNull() == "self_ref"
+        }
+        hasSelfRefCall shouldBe true
+    }
+
     test("string literals in struct instances are not deduplicated") {
         val src = """
             main {

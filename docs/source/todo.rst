@@ -85,6 +85,7 @@ Libraries
 Optimizations
 ^^^^^^^^^^^^^
 
+- Inline subroutines with 1 (or even more) simple argument, BE VERY CAREFUL though because this is a complicated inlining action that could cause endless loops. Currently inlining is limited to subroutines with 0 params. 
 - Port more benchmarks from https://thred.github.io/c-bench-64/  to prog8 and see how it stacks up. (see benchmark-c/ directory)
 - Compilation speed: try to join multiple modifications in 1 result in the AST processors instead of returning it straight away every time
 - VariableAllocator: can we think of a smarter strategy for allocating variables into zeropage, rather than first-come-first-served?
