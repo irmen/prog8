@@ -12,7 +12,7 @@ import kotlin.math.floor
 import kotlin.math.log2
 
 
-class ExpressionSimplifier(private val program: Program, private val errors: IErrorReporter) : AstWalker() {
+class ExpressionSimplifier(private val program: Program, private val errors: IErrorReporter, private val options: CompilationOptions) : AstWalker() {
     override fun after(typecast: TypecastExpression, parent: Node): Iterable<AstModification> {
         val mods = mutableListOf<AstModification>()
 
@@ -177,7 +177,8 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
         }
 
         // X <= Y-1 ---> X<Y  ,  X >= Y+1 ---> X>Y
-        if(leftDt.isInteger && rightDt.isInteger) {
+        // Only for signed integers to avoid unsigned wraparound issues.
+        if(leftDt.isSignedInteger && rightDt.isSignedInteger) {
             val rightExpr = expr.right as? BinaryExpression
             if(rightExpr!=null && rightExpr.right.constValue(program)?.number==1.0) {
                 if (expr.operator == "<=" && rightExpr.operator == "-") {
@@ -679,23 +680,23 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                 return null
             // absorption laws:  a or (a and b) --> a,  a and (a or b) --> a
             if(expr.operator=="or" && rightB.operator=="and") {
-                if(expr.left isSameAs rightB.left || expr.left isSameAs rightB.right) {
+                if((expr.left isSameAs rightB.left || expr.left isSameAs rightB.right) && !expr.right.hasSideEffects(options.compTarget)) {
                     return expr.left
                 }
             }
             else if(expr.operator=="and" && rightB.operator=="or") {
-                if(expr.left isSameAs rightB.left || expr.left isSameAs rightB.right) {
+                if((expr.left isSameAs rightB.left || expr.left isSameAs rightB.right) && !expr.right.hasSideEffects(options.compTarget)) {
                     return expr.left
                 }
             }
             else if(expr.operator=="or" && rightB.operator=="or") {
-                if(expr.left isSameAs rightB.left || expr.left isSameAs rightB.right) {
+                if((expr.left isSameAs rightB.left || expr.left isSameAs rightB.right) && !expr.left.hasSideEffects(options.compTarget)) {
                     // a or (a or b) -> a or b
                     return expr.right
                 }
             }
             else if(expr.operator=="and" && rightB.operator=="and") {
-                if(expr.left isSameAs rightB.left || expr.left isSameAs rightB.right) {
+                if((expr.left isSameAs rightB.left || expr.left isSameAs rightB.right) && !expr.left.hasSideEffects(options.compTarget)) {
                     // a and (a and b) -> a and b
                     return expr.right
                 }
@@ -707,23 +708,23 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                 return null
             // absorption laws:  (a and b) or a --> a,  (a or b) and a --> a
             if(expr.operator=="or" && leftB.operator=="and") {
-                if(expr.right isSameAs leftB.left || expr.right isSameAs leftB.right) {
+                if((expr.right isSameAs leftB.left || expr.right isSameAs leftB.right) && !expr.left.hasSideEffects(options.compTarget)) {
                     return expr.right
                 }
             }
             else if(expr.operator=="and" && leftB.operator=="or") {
-                if(expr.right isSameAs leftB.left || expr.right isSameAs leftB.right) {
+                if((expr.right isSameAs leftB.left || expr.right isSameAs leftB.right) && !expr.left.hasSideEffects(options.compTarget)) {
                     return expr.right
                 }
             }
             else if(expr.operator=="or" && leftB.operator=="or") {
-                if(expr.right isSameAs leftB.left || expr.right isSameAs leftB.right) {
+                if((expr.right isSameAs leftB.left || expr.right isSameAs leftB.right) && !expr.right.hasSideEffects(options.compTarget)) {
                     // (a or b) or a -> a or b
                     return expr.left
                 }
             }
             else if(expr.operator=="and" && leftB.operator=="and") {
-                if(expr.right isSameAs leftB.left || expr.right isSameAs leftB.right) {
+                if((expr.right isSameAs leftB.left || expr.right isSameAs leftB.right) && !expr.right.hasSideEffects(options.compTarget)) {
                     // (a and b) or a -> a and b
                     return expr.left
                 }
@@ -844,7 +845,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
     }
 
     private fun optimizeAdd(expr: BinaryExpression, leftVal: NumericLiteral?, rightVal: NumericLiteral?): Expression? {
-        if(expr.left.isSameAs(expr.right)) {
+        if(expr.left.isSameAs(expr.right) && !expr.left.hasSideEffects(options.compTarget)) {
             // optimize X+X into X *2
             expr.operator = "*"
             expr.right = NumericLiteral.optimalInteger(2, expr.right.position)
@@ -879,7 +880,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
     }
 
     private fun optimizeSub(expr: BinaryExpression, leftVal: NumericLiteral?, rightVal: NumericLiteral?): Expression? {
-        if(expr.left.isSameAs(expr.right)) {
+        if(expr.left.isSameAs(expr.right) && !expr.left.hasSideEffects(options.compTarget)) {
             // optimize X-X into 0
             return NumericLiteral.optimalInteger(0, expr.position)
         }
@@ -924,12 +925,12 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
         val cv = rightVal?.number?.toInt()?.toDouble()
         when (expr.operator) {
             "%" -> {
-                if (cv == 1.0) {
+                if (cv == 1.0 && !expr.left.hasSideEffects(options.compTarget)) {
                     val idt = expr.inferType(program)
                     if(!idt.isKnown)
                         throw FatalAstException("unknown dt")
                     return NumericLiteral(idt.getOrUndef().base, 0.0, expr.position)
-                } else if (cv in powersOfTwoFloat) {
+                } else if (cv in powersOfTwoFloat && leftVal?.type?.isUnsignedInteger == true) {
                     expr.operator = "&"
                     expr.right = NumericLiteral.optimalInteger(cv!!.toInt()-1, expr.position)
                     return null
@@ -969,7 +970,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                 }
                 256.0 -> {
                     when(leftDt.base) {
-                        BaseDataType.UBYTE -> return NumericLiteral(BaseDataType.UBYTE, 0.0, expr.position)
+                        BaseDataType.UBYTE -> if (!expr.left.hasSideEffects(options.compTarget)) return NumericLiteral(BaseDataType.UBYTE, 0.0, expr.position) else return null
                         BaseDataType.BYTE -> return null        // is either 0 or -1 we cannot tell here
                         BaseDataType.UWORD, BaseDataType.WORD -> {
                             // just use:  msb(value) as type
@@ -992,11 +993,11 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
             }
 
             if (leftDt.isUnsignedByte) {
-                if (abs(rightConst.number) >= 256.0) {
+                if (abs(rightConst.number) >= 256.0 && !expr.left.hasSideEffects(options.compTarget)) {
                     return NumericLiteral(BaseDataType.UBYTE, 0.0, expr.position)
                 }
             } else if (leftDt.isUnsignedWord) {
-                if (abs(rightConst.number) >= 65536.0) {
+                if (abs(rightConst.number) >= 65536.0 && !expr.left.hasSideEffects(options.compTarget)) {
                     return NumericLiteral(BaseDataType.UBYTE, 0.0, expr.position)
                 }
             }
@@ -1006,8 +1007,9 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
             // left value is a constant, see if we can optimize
             when (leftVal.number) {
                 0.0 -> {
-                    // 0
-                    return NumericLiteral(leftVal.type, 0.0, expr.position)
+                    // 0 (only if not float and no side effects)
+                    if (!expr.inferType(program).isFloat && !expr.right.hasSideEffects(options.compTarget))
+                        return NumericLiteral(leftVal.type, 0.0, expr.position)
                 }
             }
         }
@@ -1030,8 +1032,11 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                     return PrefixExpression("-", leftValue, expr.position)
                 }
                 0.0 -> {
-                    // 0
-                    return NumericLiteral(rightConst.type, 0.0, expr.position)
+                    // 0 (only if not float and no side effects)
+                    if (!expr.inferType(program).isFloat && !leftValue.hasSideEffects(options.compTarget))
+                        return NumericLiteral(rightConst.type, 0.0, expr.position)
+                    else
+                        return null
                 }
                 1.0 -> {
                     // left

@@ -2149,4 +2149,123 @@ main {
         // They should point to different interned strings
         name1.nameInSource shouldNotBe name2.nameInSource
     }
+
+    test("signed modulo strength reduction") {
+        val src = """
+            main {
+                sub start() {
+                    byte @shared x = -5
+                    byte @shared res = x % 8
+                }
+            }
+        """.trimIndent()
+        val result = compileText(VMTarget(), true, src, outputDir)!!
+        val sub = result.codegenAst!!.entrypoint()!!
+        val assignments = sub.children.filterIsInstance<IPtAssignment>()
+        val resAssign = assignments.find { it.target.identifier?.name?.contains("res") == true }
+            ?: fail("Could not find assignment to 'res'")
+        val resMod = resAssign.value
+        resMod shouldBe instanceOf<PtBinaryExpression>()
+        (resMod as PtBinaryExpression).operator shouldBe "%"
+    }
+
+    test("unsigned comparison wraparound") {
+        val src = """
+            main {
+                sub start() {
+                    ubyte @shared x = 10
+                    ubyte @shared y = 0
+                    bool @shared b1 = x <= (y - 1)
+                    ubyte @shared y2 = 255
+                    bool @shared b2 = x >= (y2 + 1)
+                }
+            }
+        """.trimIndent()
+        val result = compileText(VMTarget(), true, src, outputDir)!!
+        val sub = result.codegenAst!!.entrypoint()!!
+        val assignments = sub.children.filterIsInstance<IPtAssignment>()
+
+        val b1Assign = assignments.find { it.target.identifier?.name?.contains("b1") == true }
+            ?: fail("Could not find assignment to 'b1'")
+        val b1 = b1Assign.value as PtBinaryExpression
+        // Might be swapped to (y-1) >= x
+        if (b1.operator == "<=") {
+            (b1.left as PtIdentifier).name shouldContain "x"
+        } else {
+            b1.operator shouldBe ">="
+            (b1.right as PtIdentifier).name shouldContain "x"
+        }
+
+        val b2Assign = assignments.find { it.target.identifier?.name?.contains("b2") == true }
+            ?: fail("Could not find assignment to 'b2'")
+        val b2 = b2Assign.value as PtBinaryExpression
+        // Might be swapped to (y2+1) <= x
+        if (b2.operator == ">=") {
+            (b2.left as PtIdentifier).name shouldContain "x"
+        } else {
+            b2.operator shouldBe "<="
+            (b2.right as PtIdentifier).name shouldContain "x"
+        }
+    }
+
+    test("identity folding with side effects (volatility)") {
+        val src = """
+            main {
+                sub start() {
+                    bool @shared b = peek(${'$'}d012) == peek(${'$'}d012)
+                }
+            }
+        """.trimIndent()
+        val errors = ErrorReporterForTests()
+        val result = compileText(C64Target(), true, src, outputDir, errors = errors)
+        if (result == null) {
+            println(errors.errors)
+            fail("Compilation failed: " + errors.errors)
+        }
+        val sub = result.codegenAst!!.entrypoint()!!
+        val assignments = sub.children.filterIsInstance<IPtAssignment>()
+        val bAssign = assignments.find { it.target.identifier?.name?.contains("b") == true }
+            ?: fail("Could not find assignment to 'b'")
+        val b = bAssign.value
+
+        // Should not be folded to 'true'
+        b shouldBe instanceOf<PtBinaryExpression>()
+        (b as PtBinaryExpression).operator shouldBe "=="
+        b.left shouldBe instanceOf<PtMemoryByte>()
+        b.right shouldBe instanceOf<PtMemoryByte>()
+    }
+
+    test("floating-point algebraic identities") {
+        val src = """
+            %option enable_floats
+            main {
+                sub start() {
+                    float @shared f = 0.0
+                    float @shared res1 = f * 0.0
+                    float @shared res2 = 0.0 * f
+                    float @shared res3 = 0.0 / f
+                }
+            }
+        """.trimIndent()
+        val errors = ErrorReporterForTests()
+        val result = compileText(VMTarget(), true, src, outputDir, errors = errors)
+        if (result == null) {
+            println(errors.errors)
+            fail("Compilation failed: " + errors.errors)
+        }
+        val sub = result.codegenAst!!.entrypoint()!!
+        val assignments = sub.children.filterIsInstance<IPtAssignment>()
+
+        val res1Assign = assignments.find { it.target.identifier?.name?.contains("res1") == true }!!
+        res1Assign.value shouldBe instanceOf<PtBinaryExpression>()
+        (res1Assign.value as PtBinaryExpression).operator shouldBe "*"
+
+        val res2Assign = assignments.find { it.target.identifier?.name?.contains("res2") == true }!!
+        res2Assign.value shouldBe instanceOf<PtBinaryExpression>()
+        (res2Assign.value as PtBinaryExpression).operator shouldBe "*"
+
+        val res3Assign = assignments.find { it.target.identifier?.name?.contains("res3") == true }!!
+        res3Assign.value shouldBe instanceOf<PtBinaryExpression>()
+        (res3Assign.value as PtBinaryExpression).operator shouldBe "/"
+    }
 })

@@ -1,10 +1,7 @@
 package prog8.code.optimize
 
 import prog8.code.ast.*
-import prog8.code.core.BaseDataType
-import prog8.code.core.ComparisonOperators
-import prog8.code.core.DataType
-import prog8.code.core.invertedComparisonOperator
+import prog8.code.core.*
 
 /**
  * Boolean and bitwise expression optimizations.
@@ -15,7 +12,7 @@ internal object BooleanOptimizers {
     /**
      * Optimizes boolean expression patterns (and/or/xor with constants, double negation, etc.).
      */
-    fun optimizeBooleanExpressions(program: PtProgram): Int {
+    fun optimizeBooleanExpressions(program: PtProgram, options: CompilationOptions): Int {
         var changes = 0
         walkAst(program) { node: PtNode, depth: Int ->
             // Handle PtPrefix (not, -, ~)
@@ -67,28 +64,28 @@ internal object BooleanOptimizers {
                             node.parent.setChild(index, right)
                             changes++
                         }
-                        // x and false -> false
-                        else if (right is PtBool && !right.value) {
+                        // x and false -> false (without side effects)
+                        else if (right is PtBool && !right.value && !left.hasSideEffects(options.compTarget)) {
                             val replacement = PtBool(false, node.position)
                             val index = node.parent.children.indexOf(node)
                             node.parent.setChild(index, replacement)
                             changes++
                         }
-                        // false and x -> false
-                        else if (left is PtBool && !left.value) {
+                        // false and x -> false (without side effects)
+                        else if (left is PtBool && !left.value && !right.hasSideEffects(options.compTarget)) {
                             val replacement = PtBool(false, node.position)
                             val index = node.parent.children.indexOf(node)
                             node.parent.setChild(index, replacement)
                             changes++
                         }
-                        // x and x -> x (idempotent)
-                        else if (left isSameAs right) {
+                        // x and x -> x (idempotent, without side effects)
+                        else if (left isSameAs right && !left.hasSideEffects(options.compTarget)) {
                             val index = node.parent.children.indexOf(node)
                             node.parent.setChild(index, left)
                             changes++
                         }
-                        // x and not(x) -> false (complement)
-                        else if (Helpers.isNegationOf(left, right) || Helpers.isNegationOf(right, left)) {
+                        // x and not(x) -> false (complement, without side effects)
+                        else if ((Helpers.isNegationOf(left, right) || Helpers.isNegationOf(right, left)) && !left.hasSideEffects(options.compTarget) && !right.hasSideEffects(options.compTarget)) {
                             val replacement = PtBool(false, node.position)
                             val index = node.parent.children.indexOf(node)
                             node.parent.setChild(index, replacement)
@@ -96,15 +93,15 @@ internal object BooleanOptimizers {
                         }
                     }
                     "or" -> {
-                        // x or true -> true
-                        if (right is PtBool && right.value) {
+                        // x or true -> true (without side effects)
+                        if (right is PtBool && right.value && !left.hasSideEffects(options.compTarget)) {
                             val replacement = PtBool(true, node.position)
                             val index = node.parent.children.indexOf(node)
                             node.parent.setChild(index, replacement)
                             changes++
                         }
-                        // true or x -> true
-                        else if (left is PtBool && left.value) {
+                        // true or x -> true (without side effects)
+                        else if (left is PtBool && left.value && !right.hasSideEffects(options.compTarget)) {
                             val replacement = PtBool(true, node.position)
                             val index = node.parent.children.indexOf(node)
                             node.parent.setChild(index, replacement)
@@ -122,14 +119,14 @@ internal object BooleanOptimizers {
                             node.parent.setChild(index, right)
                             changes++
                         }
-                        // x or x -> x (idempotent)
-                        else if (left isSameAs right) {
+                        // x or x -> x (idempotent, without side effects)
+                        else if (left isSameAs right && !left.hasSideEffects(options.compTarget)) {
                             val index = node.parent.children.indexOf(node)
                             node.parent.setChild(index, left)
                             changes++
                         }
-                        // x or not(x) -> true (complement)
-                        else if (Helpers.isNegationOf(left, right) || Helpers.isNegationOf(right, left)) {
+                        // x or not(x) -> true (complement, without side effects)
+                        else if ((Helpers.isNegationOf(left, right) || Helpers.isNegationOf(right, left)) && !left.hasSideEffects(options.compTarget) && !right.hasSideEffects(options.compTarget)) {
                             val replacement = PtBool(true, node.position)
                             val index = node.parent.children.indexOf(node)
                             node.parent.setChild(index, replacement)
@@ -167,8 +164,8 @@ internal object BooleanOptimizers {
                             node.parent.setChild(index, right)
                             changes++
                         }
-                        // x xor x -> false (idempotent)
-                        else if (left isSameAs right) {
+                        // x xor x -> false (idempotent, without side effects)
+                        else if (left isSameAs right && !left.hasSideEffects(options.compTarget)) {
                             val replacement = PtBool(false, node.position)
                             val index = node.parent.children.indexOf(node)
                             node.parent.setChild(index, replacement)
@@ -206,7 +203,7 @@ internal object BooleanOptimizers {
     /**
      * Optimizes bitwise complement patterns: x & ~x -> 0, x | ~x -> -1
      */
-    fun optimizeBitwiseComplementBinary(program: PtProgram): Int {
+    fun optimizeBitwiseComplementBinary(program: PtProgram, options: CompilationOptions): Int {
         var changes = 0
         walkAst(program) { node: PtNode, depth: Int ->
             // Handle x & ~x -> 0 and x | ~x -> -1
@@ -215,16 +212,16 @@ internal object BooleanOptimizers {
                 val right = node.right
 
                 if (node.operator == "&") {
-                    // x & ~x -> 0
-                    if (Helpers.isBitwiseNegationOf(left, right) || Helpers.isBitwiseNegationOf(right, left)) {
+                    // x & ~x -> 0 (without side effects)
+                    if ((Helpers.isBitwiseNegationOf(left, right) || Helpers.isBitwiseNegationOf(right, left)) && !left.hasSideEffects(options.compTarget) && !right.hasSideEffects(options.compTarget)) {
                         val zero = PtNumber(node.type.base, 0.0, node.position)
                         val index = node.parent.children.indexOf(node)
                         node.parent.setChild(index, zero)
                         changes++
                     }
                 } else if (node.operator == "|") {
-                    // x | ~x -> -1 (all bits set)
-                    if (Helpers.isBitwiseNegationOf(left, right) || Helpers.isBitwiseNegationOf(right, left)) {
+                    // x | ~x -> -1 (all bits set, without side effects)
+                    if ((Helpers.isBitwiseNegationOf(left, right) || Helpers.isBitwiseNegationOf(right, left)) && !left.hasSideEffects(options.compTarget) && !right.hasSideEffects(options.compTarget)) {
                         val allOnesValue = when (node.type.base) {
                             BaseDataType.BYTE -> -1.0
                             BaseDataType.UBYTE -> 255.0

@@ -27,6 +27,8 @@ sealed class Expression: Node {
     abstract fun isIORead(target: ICompilationTarget): Boolean
     abstract val isSimple: Boolean
 
+    open fun hasSideEffects(target: ICompilationTarget): Boolean = isIORead(target)
+
     infix fun isSameAs(assigntarget: AssignTarget) = assigntarget.isSameAs(this)
 
     infix fun isSameAs(other: Expression): Boolean {
@@ -104,6 +106,7 @@ class PrefixExpression(val operator: String, var expression: Expression, overrid
     }
 
     override fun copy() = PrefixExpression(operator, expression.copy(), position)
+    override fun hasSideEffects(target: ICompilationTarget): Boolean = expression.hasSideEffects(target)
     override fun constValue(program: Program): NumericLiteral? {
         val constval = expression.constValue(program) ?: return null
         val converted = when(operator) {
@@ -186,6 +189,7 @@ class BinaryExpression(
     }
 
     override fun copy() = BinaryExpression(left.copy(), operator, right.copy(), position)
+    override fun hasSideEffects(target: ICompilationTarget): Boolean = left.hasSideEffects(target) || right.hasSideEffects(target)
     override fun toString() = "[$left $operator $right]"
 
     override val isSimple = false
@@ -539,6 +543,8 @@ class ArrayIndexedExpression(var plainarrayvar: IdentifierReference?,
         return ArrayIndexedExpression(plainarrayvar?.copy(), copyNested, pointerderef?.copy(), indexer.copy(), position)
     }
 
+    override fun hasSideEffects(target: ICompilationTarget): Boolean = true
+
     fun isSameArrayIndexedAs(other: Expression): Boolean {
         if(other !is ArrayIndexedExpression || !(other.indexer.indexExpr isSameAs indexer.indexExpr))
             return false
@@ -574,6 +580,7 @@ class TypecastExpression(var expression: Expression, var type: DataType, val imp
     }
 
     override fun copy() = TypecastExpression(expression.copy(), type, implicit, position)
+    override fun hasSideEffects(target: ICompilationTarget): Boolean = expression.hasSideEffects(target)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
 
@@ -719,13 +726,19 @@ class DirectMemoryRead(var addressExpression: Expression, override val position:
     }
 
     override fun copy() = DirectMemoryRead(addressExpression.copy(), position)
+    override fun hasSideEffects(target: ICompilationTarget): Boolean = isIORead(target)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
 
     override fun referencesIdentifier(nameInSource: List<String>) = addressExpression.referencesIdentifier(nameInSource)
     override fun inferType(program: Program) = InferredTypes.knownFor(BaseDataType.UBYTE)
     override fun constValue(program: Program): NumericLiteral? = null
-    override fun isIORead(target: ICompilationTarget) = addressExpression.isIORead(target)
+    override fun isIORead(target: ICompilationTarget): Boolean {
+        if (addressExpression is NumericLiteral) {
+            return target.isIOAddress((addressExpression as NumericLiteral).number.toUInt())
+        }
+        return true // assume worst case if address is not constant
+    }
     override fun toString(): String {
         return "DirectMemoryRead($addressExpression)"
     }
@@ -1207,6 +1220,7 @@ class ArrayLiteral(val type: InferredTypes.InferredType,     // inferred because
     }
 
     override fun copy(): ArrayLiteral = ArrayLiteral(type, value.map { it.copy() }.toTypedArray(), position)
+    override fun hasSideEffects(target: ICompilationTarget): Boolean = value.any { it.hasSideEffects(target) }
     override val isSimple = true
     override fun isIORead(target: ICompilationTarget) = false
     
@@ -1666,6 +1680,7 @@ class FunctionCallExpression(override var target: IdentifierReference,
     }
 
     override fun copy() = FunctionCallExpression(target.copy(), args.map { it.copy() }.toMutableList(), position)
+    override fun hasSideEffects(target: ICompilationTarget): Boolean = true
     override val isSimple = if (target.nameInSource.singleOrNull() in SimpleBuiltinFunctions) this.args.all { it.isSimple } else false
     override fun replaceChildNode(node: Node, replacement: Node) {
         if(node===target)
@@ -1854,6 +1869,8 @@ class IfExpression(var condition: Expression, var truevalue: Expression, var fal
 
     override fun copy(): Expression = IfExpression(condition.copy(), truevalue.copy(), falsevalue.copy(), position)
 
+    override fun hasSideEffects(target: ICompilationTarget): Boolean = condition.hasSideEffects(target) || truevalue.hasSideEffects(target) || falsevalue.hasSideEffects(target)
+
     override fun constValue(program: Program): NumericLiteral? {
         val cond = condition.constValue(program)
         if(cond!=null) {
@@ -1962,6 +1979,7 @@ class PtrDereference(
     }
 
     override val isSimple = false
+    override fun hasSideEffects(target: ICompilationTarget): Boolean = true
     override fun isIORead(target: ICompilationTarget) = false
     override fun copy(): PtrDereference = PtrDereference(chain.toList(), derefLast, position)
     override fun constValue(program: Program): NumericLiteral? {
@@ -2077,6 +2095,7 @@ class ArrayIndexedPtrDereference(
     }
 
     override val isSimple = false
+    override fun hasSideEffects(target: ICompilationTarget): Boolean = true
     override fun isIORead(target: ICompilationTarget) = false
     override fun replaceChildNode(node: Node, replacement: Node) = throw FatalAstException("can't replace here")
     override fun referencesIdentifier(nameInSource: List<String>) = chain.size==1 && chain==nameInSource

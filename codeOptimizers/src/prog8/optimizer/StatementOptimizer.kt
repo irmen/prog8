@@ -366,7 +366,7 @@ class StatementOptimizer(private val program: Program,
     }
 
     override fun after(assignment: Assignment, parent: Node): Iterable<AstModification> {
-        if(assignment.target isSameAs assignment.value) {
+        if(assignment.target isSameAs assignment.value && !assignment.target.hasSideEffects(options.compTarget) && !assignment.value.hasSideEffects(options.compTarget)) {
             // remove assignment to self
             return listOf(AstRemove(assignment, parent as IStatementContainer))
         }
@@ -380,7 +380,7 @@ class StatementOptimizer(private val program: Program,
         if(bexpr!=null) {
             val rightCv = bexpr.right.constValue(program)?.number
 
-            if (rightCv != null && assignment.target isSameAs bexpr.left) {
+            if (rightCv != null && assignment.target isSameAs bexpr.left && !assignment.target.hasSideEffects(options.compTarget) && !bexpr.left.hasSideEffects(options.compTarget)) {
                 // assignments of the form:  X = X <operator> <expr>
                 // remove assignments that have no effect (such as X=X+0)
                 // optimize/rewrite some other expressions

@@ -54,7 +54,7 @@ internal object ExpressionOptimizers {
     /**
      * Optimizes algebraic identity patterns (x+0, x*1, x*0, etc.).
      */
-    fun optimizeAlgebraicIdentities(program: PtProgram): Int {
+    fun optimizeAlgebraicIdentities(program: PtProgram, options: CompilationOptions): Int {
         var changes = 0
         walkAst(program) { node: PtNode, _: Int ->
             if (node is PtBinaryExpression) {
@@ -96,15 +96,15 @@ internal object ExpressionOptimizers {
                         }
                     }
                     "*" -> {
-                        // x * 0 -> 0
-                        if (rightConst == 0.0) {
+                        // x * 0 -> 0 (for non-floats and without side effects)
+                        if (rightConst == 0.0 && !node.type.isFloat && !node.left.hasSideEffects(options.compTarget)) {
                             val zero = PtNumber(node.type.base, 0.0, node.position)
                             val index = node.parent.children.indexOf(node)
                             node.parent.setChild(index, zero)
                             changes++
                         }
-                        // 0 * x -> 0
-                        else if (leftConst == 0.0) {
+                        // 0 * x -> 0 (for non-floats and without side effects)
+                        else if (leftConst == 0.0 && !node.type.isFloat && !node.right.hasSideEffects(options.compTarget)) {
                             val zero = PtNumber(node.type.base, 0.0, node.position)
                             val index = node.parent.children.indexOf(node)
                             node.parent.setChild(index, zero)
@@ -164,8 +164,8 @@ internal object ExpressionOptimizers {
                         }
                     }
                     "xor" -> {
-                        // x xor x -> 0
-                        if (left isSameAs right) {
+                        // x xor x -> 0 (without side effects)
+                        if (left isSameAs right && !left.hasSideEffects(options.compTarget)) {
                             val zero = PtNumber(node.type.base, 0.0, node.position)
                             val index = node.parent.children.indexOf(node)
                             node.parent.setChild(index, zero)
@@ -199,8 +199,8 @@ internal object ExpressionOptimizers {
                             node.parent.setChild(index, right)
                             changes++
                         }
-                        // x & x -> x (idempotent)
-                        else if (left isSameAs right) {
+                        // x & x -> x (idempotent, without side effects)
+                        else if (left isSameAs right && !left.hasSideEffects(options.compTarget)) {
                             val index = node.parent.children.indexOf(node)
                             node.parent.setChild(index, left)
                             changes++
@@ -233,8 +233,8 @@ internal object ExpressionOptimizers {
                             node.parent.setChild(index, allOnes)
                             changes++
                         }
-                        // x | x -> x (idempotent)
-                        else if (left isSameAs right) {
+                        // x | x -> x (idempotent, without side effects)
+                        else if (left isSameAs right && !left.hasSideEffects(options.compTarget)) {
                             val index = node.parent.children.indexOf(node)
                             node.parent.setChild(index, left)
                             changes++
@@ -271,8 +271,8 @@ internal object ExpressionOptimizers {
                             negation.parent = node.parent
                             changes++
                         }
-                        // x ^ x -> 0 (idempotent)
-                        else if (left isSameAs right) {
+                        // x ^ x -> 0 (idempotent, without side effects)
+                        else if (left isSameAs right && !left.hasSideEffects(options.compTarget)) {
                             val zero = PtNumber(node.type.base, 0.0, node.position)
                             val index = node.parent.children.indexOf(node)
                             node.parent.setChild(index, zero)
@@ -376,7 +376,7 @@ internal object ExpressionOptimizers {
      * Strength reduction: replaces expensive operations with cheaper equivalents.
      * Division/modulo by powers of two become shifts/masks.
      */
-    fun optimizeStrengthReduction(program: PtProgram): Int {
+    fun optimizeStrengthReduction(program: PtProgram, options: CompilationOptions): Int {
         var changes = 0
         walkAst(program) { node: PtNode, _: Int ->
             if (node is PtBinaryExpression && node.type.isInteger) {
@@ -396,8 +396,8 @@ internal object ExpressionOptimizers {
                     }
                 }
 
-                // Modulo by power of two: x % 2^n -> x & (2^n - 1) (for all integers)
-                if (node.operator == "%" && rightConst != null) {
+                // Modulo by power of two: x % 2^n -> x & (2^n - 1) (for unsigned integers only)
+                if (node.operator == "%" && rightConst != null && node.type.isUnsignedInteger) {
                     if (rightConst in powersOfTwoFloat) {
                         val mask = rightConst - 1.0
                         val andExpr = PtBinaryExpression("&", node.type, node.position)
@@ -408,8 +408,8 @@ internal object ExpressionOptimizers {
                         andExpr.parent = node.parent
                         changes++
                     }
-                    // x % 1 -> 0
-                    else if (rightConst == 1.0) {
+                    // x % 1 -> 0 (without side effects)
+                    else if (rightConst == 1.0 && !node.left.hasSideEffects(options.compTarget)) {
                         val zero = PtNumber(node.type.base, 0.0, node.position)
                         val index = node.parent.children.indexOf(node)
                         node.parent.setChild(index, zero)
