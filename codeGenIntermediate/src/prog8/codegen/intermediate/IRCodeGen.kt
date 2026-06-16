@@ -1704,10 +1704,10 @@ class IRCodeGen(
     internal fun makeSyscall(syscall: IMSyscall, params: List<Pair<IRDataType, Int>>, returns: Pair<IRDataType, Int>?, label: String?=null): IRCodeChunk {
         return IRCodeChunk(label, null).also {
             val args = params.map { (dt, reg)->
-                FunctionCallArgs.ArgumentSpec("", null, FunctionCallArgs.RegSpec(dt, RegisterNum(reg), null))
+                FunctionCallArgs.ArgumentSpec("", null, FunctionCallArgs.RegSpec(dt, RegisterNum(reg), null, null))
             }
             // for now, syscalls have 0 or 1 return value
-            val returnSpec = if(returns==null) emptyList() else listOf(FunctionCallArgs.RegSpec(returns.first, RegisterNum(returns.second), null))
+            val returnSpec = if(returns==null) emptyList() else listOf(FunctionCallArgs.RegSpec(returns.first, RegisterNum(returns.second), null, null))
             it += IRInstruction(Opcode.SYSCALL, immediate = syscall.number, fcallArgs = FunctionCallArgs(args, returnSpec))
         }
     }
@@ -1715,12 +1715,12 @@ class IRCodeGen(
     internal fun setCpuRegister(registerOrFlag: RegisterOrStatusflag, paramDt: IRDataType, resultReg: Int, resultFpReg: Int): IRCodeChunk {
         val chunk = IRCodeChunk(null, null)
         when(registerOrFlag.registerOrPair) {
-            RegisterOrPair.A -> chunk += IRInstruction(Opcode.STOREHA, IRDataType.BYTE, reg1=resultReg)
-            RegisterOrPair.X -> chunk += IRInstruction(Opcode.STOREHX, IRDataType.BYTE, reg1=resultReg)
-            RegisterOrPair.Y -> chunk += IRInstruction(Opcode.STOREHY, IRDataType.BYTE, reg1=resultReg)
-            RegisterOrPair.AX -> chunk += IRInstruction(Opcode.STOREHAX, IRDataType.WORD, reg1=resultReg)
-            RegisterOrPair.AY -> chunk += IRInstruction(Opcode.STOREHAY, IRDataType.WORD, reg1=resultReg)
-            RegisterOrPair.XY -> chunk += IRInstruction(Opcode.STOREHXY, IRDataType.WORD, reg1=resultReg)
+            RegisterOrPair.A -> chunk += IRInstruction(Opcode.STOREHR, IRDataType.BYTE, reg1=resultReg, immediate=0)
+            RegisterOrPair.X -> chunk += IRInstruction(Opcode.STOREHR, IRDataType.BYTE, reg1=resultReg, immediate=1)
+            RegisterOrPair.Y -> chunk += IRInstruction(Opcode.STOREHR, IRDataType.BYTE, reg1=resultReg, immediate=2)
+            RegisterOrPair.AX -> chunk += IRInstruction(Opcode.STOREHR, IRDataType.WORD, reg1=resultReg, immediate=3)
+            RegisterOrPair.AY -> chunk += IRInstruction(Opcode.STOREHR, IRDataType.WORD, reg1=resultReg, immediate=4)
+            RegisterOrPair.XY -> chunk += IRInstruction(Opcode.STOREHR, IRDataType.WORD, reg1=resultReg, immediate=5)
             RegisterOrPair.FAC1 -> chunk += IRInstruction(Opcode.STOREHFACZERO, IRDataType.FLOAT, fpReg1 = RegisterNum(resultFpReg))
             RegisterOrPair.FAC2 -> chunk += IRInstruction(Opcode.STOREHFACONE, IRDataType.FLOAT, fpReg1 = RegisterNum(resultFpReg))
             in Cx16VirtualRegisters -> {
@@ -1745,12 +1745,12 @@ class IRCodeGen(
         val chunk = IRCodeChunk(null, null)
         val irType = irType(fromType)
         when(registerOrFlag.registerOrPair) {
-            RegisterOrPair.A -> chunk += IRInstruction(Opcode.LOADHA, IRDataType.BYTE, reg1=tempReg)
-            RegisterOrPair.X -> chunk += IRInstruction(Opcode.LOADHX, IRDataType.BYTE, reg1=tempReg)
-            RegisterOrPair.Y -> chunk += IRInstruction(Opcode.LOADHY, IRDataType.BYTE, reg1=tempReg)
-            RegisterOrPair.AX -> chunk += IRInstruction(Opcode.LOADHAX, IRDataType.WORD, reg1=tempReg)
-            RegisterOrPair.AY -> chunk += IRInstruction(Opcode.LOADHAY, IRDataType.WORD, reg1=tempReg)
-            RegisterOrPair.XY -> chunk += IRInstruction(Opcode.LOADHXY, IRDataType.WORD, reg1=tempReg)
+            RegisterOrPair.A -> chunk += IRInstruction(Opcode.LOADHR, IRDataType.BYTE, reg1=tempReg, immediate=0)
+            RegisterOrPair.X -> chunk += IRInstruction(Opcode.LOADHR, IRDataType.BYTE, reg1=tempReg, immediate=1)
+            RegisterOrPair.Y -> chunk += IRInstruction(Opcode.LOADHR, IRDataType.BYTE, reg1=tempReg, immediate=2)
+            RegisterOrPair.AX -> chunk += IRInstruction(Opcode.LOADHR, IRDataType.WORD, reg1=tempReg, immediate=3)
+            RegisterOrPair.AY -> chunk += IRInstruction(Opcode.LOADHR, IRDataType.WORD, reg1=tempReg, immediate=4)
+            RegisterOrPair.XY -> chunk += IRInstruction(Opcode.LOADHR, IRDataType.WORD, reg1=tempReg, immediate=5)
             RegisterOrPair.FAC1 -> chunk += IRInstruction(Opcode.LOADHFACZERO, IRDataType.FLOAT, fpReg1 = RegisterNum(tempReg))
             RegisterOrPair.FAC2 -> chunk += IRInstruction(Opcode.LOADHFACONE, IRDataType.FLOAT, fpReg1 = RegisterNum(tempReg))
             in Cx16VirtualRegisters -> {

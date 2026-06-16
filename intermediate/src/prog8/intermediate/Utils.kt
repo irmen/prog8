@@ -282,7 +282,7 @@ private val callPattern = Regex("(?<target>.+?)\\((?<arglist>.*?)\\)(:(?<returns
 private fun parseCall(rest: String): ParsedCall {
 
     fun parseRegspec(reg: String): FunctionCallArgs.RegSpec {
-        val pattern = Regex("f?r([0-9]+)\\.(.)(@.{1,4})?$")
+        val pattern = Regex("f?r([0-9]+)\\.(.)(@.{1,5})?$")
         val match = pattern.matchEntire(reg) ?: throw IRParseException("invalid regspec $reg")
         val num =  match.groups[1]!!.value.toInt()
         val type = when(match.groups[2]!!.value) {
@@ -292,12 +292,17 @@ private fun parseCall(rest: String): ParsedCall {
             "f" -> IRDataType.FLOAT
             else -> throw IRParseException("invalid type spec in $reg")
         }
-        val cpuRegister: RegisterOrStatusflag? =
+        val (callingConventionSlot, statusflag) =
             if(match.groups[3]!=null) {
                 val cpuRegStr = match.groups[3]!!.value.drop(1)
-                parseRegisterOrStatusflag(cpuRegStr)
-            } else null
-        return FunctionCallArgs.RegSpec(type, RegisterNum(num), cpuRegister)
+                if (cpuRegStr.startsWith('s') && cpuRegStr.length > 1) {
+                    val slotNum = cpuRegStr.substring(1).toIntOrNull() ?: throw IRParseException("invalid slot $cpuRegStr")
+                    CallingConventionSlot(slotNum) to null
+                } else {
+                    null to Statusflag.valueOf(cpuRegStr)
+                }
+            } else null to null
+        return FunctionCallArgs.RegSpec(type, RegisterNum(num), callingConventionSlot, statusflag)
     }
 
     fun parseReturnRegspec(regs: String?): List<FunctionCallArgs.RegSpec> {
@@ -305,7 +310,13 @@ private fun parseCall(rest: String): ParsedCall {
             return emptyList()
         return regs.split(',').map { reg->
             if (reg.startsWith('@')) {
-                FunctionCallArgs.RegSpec(IRDataType.BYTE, RegisterNum(-1), parseRegisterOrStatusflag(reg.drop(1)))
+                val rest = reg.drop(1)
+                if (rest.startsWith('s') && rest.length > 1) {
+                    val slotNum = rest.substring(1).toIntOrNull() ?: throw IRParseException("invalid slot $rest")
+                    FunctionCallArgs.RegSpec(IRDataType.BYTE, RegisterNum(-1), CallingConventionSlot(slotNum), null)
+                } else {
+                    FunctionCallArgs.RegSpec(IRDataType.BYTE, RegisterNum(-1), null, Statusflag.valueOf(rest))
+                }
             } else {
                 parseRegspec(reg)
             }

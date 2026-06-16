@@ -188,7 +188,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             ExpressionCodeResult(result, IRDataType.BYTE, -1, -1)
         else {
             val resultvalueReg = codeGen.registers.next(IRDataType.WORD)
-            addInstr(result, IRInstruction(Opcode.LOADHAY, IRDataType.WORD, reg1=resultvalueReg), null)
+            addInstr(result, IRInstruction(Opcode.LOADHR, IRDataType.WORD, reg1=resultvalueReg, immediate=4), null)
             ExpressionCodeResult(result, IRDataType.WORD, resultvalueReg, -1)
         }
     }
@@ -256,12 +256,12 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         // return the 2 result values: division and remainder  division in AY, remainder in R15
         if(type==IRDataType.BYTE) {
             result += IRCodeChunk(null, null).also {
-                it += IRInstruction(Opcode.STOREHA, IRDataType.BYTE, reg1=divisionReg)
+                it += IRInstruction(Opcode.STOREHR, IRDataType.BYTE, reg1=divisionReg, immediate=0)
                 it += IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1=remainderReg, labelSymbol = "cx16.r15")
             }
         } else if(type==IRDataType.WORD) {
             result += IRCodeChunk(null, null).also {
-                it += IRInstruction(Opcode.STOREHAY, IRDataType.WORD, reg1=divisionReg)
+                it += IRInstruction(Opcode.STOREHR, IRDataType.WORD, reg1=divisionReg, immediate=4)
                 it += IRInstruction(Opcode.STOREM, IRDataType.WORD, reg1=remainderReg, labelSymbol = "cx16.r15")
             }
         } else throw AssemblyError("invalid type for DIVMOD")
@@ -701,7 +701,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         addInstr(result, IRInstruction(Opcode.MIDB, IRDataType.LONG, reg1 = byteReg, reg2 = tr.resultReg), null)
         addInstr(result, IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1 = byteReg, labelSymbol = "cx16.r15"), null)
         addInstr(result, IRInstruction(Opcode.LSIGB, IRDataType.LONG, reg1 = byteReg, reg2 = tr.resultReg), null)
-        addInstr(result, IRInstruction(Opcode.STOREHA, IRDataType.BYTE, reg1 = byteReg), null)
+        addInstr(result, IRInstruction(Opcode.STOREHR, IRDataType.BYTE, reg1 = byteReg, immediate = 0), null)
         return ExpressionCodeResult(result, IRDataType.BYTE, -1, -1)
     }
 

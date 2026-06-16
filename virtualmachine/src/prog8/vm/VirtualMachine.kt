@@ -192,12 +192,7 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.LOADM -> InsLOADM(ins)
             Opcode.LOADX -> InsLOADX(ins)
             Opcode.LOADR -> InsLOADR(ins)
-            Opcode.LOADHA -> InsLOADHA(ins)
-            Opcode.LOADHX -> InsLOADHX(ins)
-            Opcode.LOADHY -> InsLOADHY(ins)
-            Opcode.LOADHAX -> InsLOADHAX(ins)
-            Opcode.LOADHAY -> InsLOADHAY(ins)
-            Opcode.LOADHXY -> InsLOADHXY(ins)
+            Opcode.LOADHR -> InsLOADHR(ins)
             Opcode.LOADHFACZERO -> InsLOADHFACZERO(ins)
             Opcode.LOADHFACONE -> InsLOADHFACONE(ins)
             Opcode.LOADI -> InsLOADI(ins)
@@ -207,12 +202,7 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.STOREZM -> InsSTOREZM(ins)
             Opcode.STOREZX -> InsSTOREZX(ins)
             Opcode.STOREZI -> InsSTOREZI(ins)
-            Opcode.STOREHA -> InsSTOREHA(ins)
-            Opcode.STOREHX -> InsSTOREHX(ins)
-            Opcode.STOREHY -> InsSTOREHY(ins)
-            Opcode.STOREHAX -> InsSTOREHAX(ins)
-            Opcode.STOREHAY -> InsSTOREHAY(ins)
-            Opcode.STOREHXY -> InsSTOREHXY(ins)
+            Opcode.STOREHR -> InsSTOREHR(ins)
             Opcode.STOREHFACZERO -> InsSTOREHFACZERO(ins)
             Opcode.STOREHFACONE-> InsSTOREHFACONE(ins)
             Opcode.JUMP -> InsJUMP(ins)
@@ -2414,69 +2404,41 @@ class VirtualMachine(irProgram: IRProgram) {
         nextPc()
     }
 
-    private fun InsLOADHA(i: IRInstruction) {
-        registers.setUB(i.reg1!!, hardwareRegisterA)
+    private fun InsLOADHR(i: IRInstruction) {
+        when(i.immediate) {
+            0 -> registers.setUB(i.reg1!!, hardwareRegisterA)
+            1 -> registers.setUB(i.reg1!!, hardwareRegisterX)
+            2 -> registers.setUB(i.reg1!!, hardwareRegisterY)
+            3 -> registers.setUW(i.reg1!!, ((hardwareRegisterX.toUInt() shl 8) + hardwareRegisterA).toUShort())
+            4 -> registers.setUW(i.reg1!!, ((hardwareRegisterY.toUInt() shl 8) + hardwareRegisterA).toUShort())
+            5 -> registers.setUW(i.reg1!!, ((hardwareRegisterY.toUInt() shl 8) + hardwareRegisterX).toUShort())
+            else -> throw IllegalArgumentException("unknown hardware register slot: ${i.immediate}")
+        }
         nextPc()
     }
 
-    private fun InsLOADHX(i: IRInstruction) {
-        registers.setUB(i.reg1!!, hardwareRegisterX)
-        nextPc()
-    }
-
-    private fun InsLOADHY(i: IRInstruction) {
-        registers.setUB(i.reg1!!, hardwareRegisterY)
-        nextPc()
-    }
-
-    private fun InsLOADHAX(i: IRInstruction) {
-        registers.setUW(i.reg1!!, ((hardwareRegisterX.toUInt() shl 8) + hardwareRegisterA).toUShort())
-        nextPc()
-    }
-
-    private fun InsLOADHAY(i: IRInstruction) {
-        registers.setUW(i.reg1!!, ((hardwareRegisterY.toUInt() shl 8) + hardwareRegisterA).toUShort())
-        nextPc()
-    }
-
-    private fun InsLOADHXY(i: IRInstruction) {
-        registers.setUW(i.reg1!!, ((hardwareRegisterY.toUInt() shl 8) + hardwareRegisterX).toUShort())
-        nextPc()
-    }
-
-    private fun InsSTOREHA(i: IRInstruction) {
-        hardwareRegisterA = registers.getUB(i.reg1!!)
-        nextPc()
-    }
-
-    private fun InsSTOREHX(i: IRInstruction) {
-        hardwareRegisterX = registers.getUB(i.reg1!!)
-        nextPc()
-    }
-
-    private fun InsSTOREHY(i: IRInstruction) {
-        hardwareRegisterY = registers.getUB(i.reg1!!)
-        nextPc()
-    }
-
-    private fun InsSTOREHAX(i: IRInstruction) {
-        val word = registers.getUW(i.reg1!!).toUInt()
-        hardwareRegisterA = (word and 255u).toUByte()
-        hardwareRegisterX = (word shr 8).toUByte()
-        nextPc()
-    }
-
-    private fun InsSTOREHAY(i: IRInstruction) {
-        val word = registers.getUW(i.reg1!!).toUInt()
-        hardwareRegisterA = (word and 255u).toUByte()
-        hardwareRegisterY = (word shr 8).toUByte()
-        nextPc()
-    }
-
-    private fun InsSTOREHXY(i: IRInstruction) {
-        val word = registers.getUW(i.reg1!!).toUInt()
-        hardwareRegisterX = (word and 255u).toUByte()
-        hardwareRegisterY = (word shr 8).toUByte()
+    private fun InsSTOREHR(i: IRInstruction) {
+        when(i.immediate) {
+            0 -> hardwareRegisterA = registers.getUB(i.reg1!!)
+            1 -> hardwareRegisterX = registers.getUB(i.reg1!!)
+            2 -> hardwareRegisterY = registers.getUB(i.reg1!!)
+            3 -> {
+                val word = registers.getUW(i.reg1!!).toUInt()
+                hardwareRegisterA = (word and 255u).toUByte()
+                hardwareRegisterX = (word shr 8).toUByte()
+            }
+            4 -> {
+                val word = registers.getUW(i.reg1!!).toUInt()
+                hardwareRegisterA = (word and 255u).toUByte()
+                hardwareRegisterY = (word shr 8).toUByte()
+            }
+            5 -> {
+                val word = registers.getUW(i.reg1!!).toUInt()
+                hardwareRegisterX = (word and 255u).toUByte()
+                hardwareRegisterY = (word shr 8).toUByte()
+            }
+            else -> throw IllegalArgumentException("unknown hardware register slot: ${i.immediate}")
+        }
         nextPc()
     }
 

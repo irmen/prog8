@@ -970,9 +970,9 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                         val tr = translateExpression(arg)
                         result += tr.chunks
                         if(paramDt==IRDataType.FLOAT)
-                            argRegisters.add(FunctionCallArgs.ArgumentSpec(parameter.name, null, FunctionCallArgs.RegSpec(IRDataType.FLOAT, RegisterNum(tr.resultFpReg), null)))
+                            argRegisters.add(FunctionCallArgs.ArgumentSpec(parameter.name, null, FunctionCallArgs.RegSpec(IRDataType.FLOAT, RegisterNum(tr.resultFpReg), null, null)))
                         else
-                            argRegisters.add(FunctionCallArgs.ArgumentSpec(parameter.name, null, FunctionCallArgs.RegSpec(paramDt, RegisterNum(tr.resultReg), null)))
+                            argRegisters.add(FunctionCallArgs.ArgumentSpec(parameter.name, null, FunctionCallArgs.RegSpec(paramDt, RegisterNum(tr.resultReg), null, null)))
                     } else {
                         require(parameter.register in Cx16VirtualRegisters || parameter.register in CombinedLongRegisters) { "can only use R0-R15 'registers' here" }
                         val regname = parameter.register!!.asScopedNameVirtualReg(parameter.type).joinToString(".")
@@ -991,7 +991,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 val returnRegSpecs = if(fcall.void || callTarget.returns.size>1) emptyList() else {
                     callTarget.returns.map {
                         val returnIrType = irType(it)
-                        FunctionCallArgs.RegSpec(returnIrType, RegisterNum(codeGen.registers.next(returnIrType)), null)
+                        FunctionCallArgs.RegSpec(returnIrType, RegisterNum(codeGen.registers.next(returnIrType)), null, null)
                     }
                 }
                 // create the call
@@ -1018,10 +1018,11 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 for ((arg, parameter) in fcall.args.zip(callTarget.parameters)) {
                     val paramDt = irType(parameter.type)
                     val tr = translateExpression(arg)
+                    val (slot, flag) = registerOrStatusflagToSlotAndFlag(parameter.register)
                     if(paramDt==IRDataType.FLOAT)
-                        argRegisters.add(FunctionCallArgs.ArgumentSpec("", null, FunctionCallArgs.RegSpec(IRDataType.FLOAT, RegisterNum(tr.resultFpReg), parameter.register)))
+                        argRegisters.add(FunctionCallArgs.ArgumentSpec("", null, FunctionCallArgs.RegSpec(IRDataType.FLOAT, RegisterNum(tr.resultFpReg), slot, flag)))
                     else
-                        argRegisters.add(FunctionCallArgs.ArgumentSpec("", null, FunctionCallArgs.RegSpec(paramDt, RegisterNum(tr.resultReg), parameter.register)))
+                        argRegisters.add(FunctionCallArgs.ArgumentSpec("", null, FunctionCallArgs.RegSpec(paramDt, RegisterNum(tr.resultReg), slot, flag)))
                     result += tr.chunks
                     result += codeGen.setCpuRegister(parameter.register, paramDt, tr.resultReg, tr.resultFpReg)
                 }
@@ -1036,7 +1037,8 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     else {
                         val returns = callTarget.returns[0]
                         val returnIrType = irType(returns.type)
-                        FunctionCallArgs.RegSpec(returnIrType, RegisterNum(codeGen.registers.next(returnIrType)), returns.register)
+                        val (retSlot, retFlag) = registerOrStatusflagToSlotAndFlag(returns.register)
+                        FunctionCallArgs.RegSpec(returnIrType, RegisterNum(codeGen.registers.next(returnIrType)), retSlot, retFlag)
                     }
                 }
                 // create the call
@@ -1047,7 +1049,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
 
                 if(fcall.parent is PtAssignment || fcall.parent is PtTypeCast) {
                     // look if the status flag bit should actually be returned as a 0/1 byte value in a result register (so it can be assigned)
-                    val statusFlagResult = returnRegSpec?.cpuRegister?.statusflag
+                    val statusFlagResult = returnRegSpec?.statusflag
                     if(statusFlagResult!=null) {
                         // assign status flag bit to the return value register
                         finalReturnRegister = returnRegSpec.registerNum.value
@@ -1142,7 +1144,8 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         // return multiple values
         val returnRegisters = callTarget.returns.map {
             val regnum = codeGen.registers.next(irType(it.type))
-            FunctionCallArgs.RegSpec(irType(it.type), RegisterNum(regnum), it.register)
+            val (slot, flag) = registerOrStatusflagToSlotAndFlag(it.register)
+            FunctionCallArgs.RegSpec(irType(it.type), RegisterNum(regnum), slot, flag)
         }
         // create the call
         val call = emitExtSubCall(callTarget, fcall, FunctionCallArgs(argRegisters, returnRegisters), result)
@@ -1829,6 +1832,23 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         return IRCodeChunk(null, null).also {
             // LOADI has an exception to allow reg1 and reg2 to be the same, so we can avoid using extra temporary registers and LOADs
             it += IRInstruction(Opcode.LOADI, IRDataType.WORD, reg1 = pointerReg, reg2 = pointerReg, immediate = fieldinfo.second.toInt())
+        }
+    }
+
+    private fun registerOrStatusflagToSlotAndFlag(reg: RegisterOrStatusflag): Pair<CallingConventionSlot?, Statusflag?> {
+        if (reg.statusflag != null) return null to reg.statusflag
+        if (reg.registerOrPair == null) return null to null
+        if (reg.registerOrPair in Cx16VirtualRegisters || reg.registerOrPair in CombinedLongRegisters) return null to null
+        return when (reg.registerOrPair) {
+            RegisterOrPair.A -> CallingConventionSlot(0) to null
+            RegisterOrPair.X -> CallingConventionSlot(1) to null
+            RegisterOrPair.Y -> CallingConventionSlot(2) to null
+            RegisterOrPair.AX -> CallingConventionSlot(3) to null
+            RegisterOrPair.AY -> CallingConventionSlot(4) to null
+            RegisterOrPair.XY -> CallingConventionSlot(5) to null
+            RegisterOrPair.FAC1 -> CallingConventionSlot(6) to null
+            RegisterOrPair.FAC2 -> CallingConventionSlot(7) to null
+            else -> throw AssemblyError("unsupported register $reg")
         }
     }
 }

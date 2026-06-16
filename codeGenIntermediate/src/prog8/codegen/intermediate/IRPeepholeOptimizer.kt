@@ -349,7 +349,8 @@ class IRPeepholeOptimizer(private val irprog: IRProgram, private val retainSSA: 
                     if (previous.opcode in OpcodesThatSetStatusbitsIncludingCarry) {
                         chunk.instructions.removeAt(idx)
                         changed = true
-                    } else if (previous.opcode in OpcodesThatSetStatusbitsButNotCarry) {
+                    } else if (previous.opcode in OpcodesThatSetStatusbitsButNotCarry
+                               || (previous.opcode == Opcode.LOADHR && previous.immediate != null && previous.immediate in 0..5)) {
                         val next = indexedInstructions[idx + 1].value
                         if (next.opcode !in OpcodesThatDependOnCarry) {
                             chunk.instructions.removeAt(idx)

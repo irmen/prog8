@@ -91,12 +91,12 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
     private fun assignCpuRegister(returns: StExtSubParameter, regNum: Int, target: PtAssignTarget): IRCodeChunks {
         val result = mutableListOf<IRCodeChunkBase>()
         when(returns.register.registerOrPair) {
-            RegisterOrPair.A -> addInstr(result, IRInstruction(Opcode.LOADHA, IRDataType.BYTE, reg1=regNum), null)
-            RegisterOrPair.X -> addInstr(result, IRInstruction(Opcode.LOADHX, IRDataType.BYTE, reg1=regNum), null)
-            RegisterOrPair.Y -> addInstr(result, IRInstruction(Opcode.LOADHY, IRDataType.BYTE, reg1=regNum), null)
-            RegisterOrPair.AX -> addInstr(result, IRInstruction(Opcode.LOADHAX, IRDataType.WORD, reg1=regNum), null)
-            RegisterOrPair.AY -> addInstr(result, IRInstruction(Opcode.LOADHAY, IRDataType.WORD, reg1=regNum), null)
-            RegisterOrPair.XY -> addInstr(result, IRInstruction(Opcode.LOADHXY, IRDataType.WORD, reg1=regNum), null)
+            RegisterOrPair.A -> addInstr(result, IRInstruction(Opcode.LOADHR, IRDataType.BYTE, reg1=regNum, immediate=0), null)
+            RegisterOrPair.X -> addInstr(result, IRInstruction(Opcode.LOADHR, IRDataType.BYTE, reg1=regNum, immediate=1), null)
+            RegisterOrPair.Y -> addInstr(result, IRInstruction(Opcode.LOADHR, IRDataType.BYTE, reg1=regNum, immediate=2), null)
+            RegisterOrPair.AX -> addInstr(result, IRInstruction(Opcode.LOADHR, IRDataType.WORD, reg1=regNum, immediate=3), null)
+            RegisterOrPair.AY -> addInstr(result, IRInstruction(Opcode.LOADHR, IRDataType.WORD, reg1=regNum, immediate=4), null)
+            RegisterOrPair.XY -> addInstr(result, IRInstruction(Opcode.LOADHR, IRDataType.WORD, reg1=regNum, immediate=5), null)
             in Cx16VirtualRegisters -> addInstr(result, IRInstruction(Opcode.LOADM, irType(returns.type), reg1=regNum, labelSymbol = "cx16.${returns.register.registerOrPair.toString().lowercase()}"), null)
             in CombinedLongRegisters -> {
                 require(returns.type.isLong)

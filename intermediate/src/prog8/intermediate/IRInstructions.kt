@@ -1,7 +1,7 @@
 package prog8.intermediate
 
 import prog8.code.core.AssemblyError
-import prog8.code.core.RegisterOrStatusflag
+import prog8.code.core.Statusflag
 import prog8.code.core.toHex
 
 /**
@@ -72,12 +72,7 @@ loadm       reg1,         address     - load reg1 with value at memory address
 loadi       reg1, reg2,   value       - load reg1 with value in memory indirect, pointed to by reg2 + offsetvalue 0-65535 (often used to read a field from a pointer to a struct, or with offset=0 just straight from the pointer)
 loadx       reg1, reg2,   address     - load reg1 with value at memory address indexed by value in reg2 (0-255, a byte)
 loadr       reg1, reg2                - load reg1 with value in register reg2,  "reg1 = reg2"
-loadha      reg1                      - load cpu hardware register A into reg1.b
-loadhx      reg1                      - load cpu hardware register X into reg1.b
-loadhy      reg1                      - load cpu hardware register Y into reg1.b
-loadhax     reg1                      - load cpu hardware register pair AX into reg1.w
-loadhay     reg1                      - load cpu hardware register pair AY into reg1.w
-loadhxy     reg1                      - load cpu hardware register pair XY into reg1.w
+loadhr      reg1, slot                - load cpu hardware register from calling convention slot (s0=A, s1=X, s2=Y, s3=AX, s4=AY, s5=XY, s6=FAC1, s7=FAC2) into reg1
 loadhfaczero       fpreg1             - load "cpu hardware register" fac0 into freg1.f
 loadhfacone        fpreg1             - load "cpu hardware register" fac1 into freg1.f
 storem      reg1,         address     - store reg1 at memory address
@@ -86,12 +81,7 @@ storezi     reg1,         value       - store zero at memory pointed to by reg1 
 storex      reg1, reg2,   address     - store reg1 at memory address, indexed by value in reg2 (0-255, a byte)
 storezm                   address     - store zero at memory address
 storezx     reg1,         address     - store zero at memory address, indexed by value in reg1 (0-255, a byte)
-storeha     reg1                      - store reg1.b into cpu hardware register A
-storehx     reg1                      - store reg1.b into cpu hardware register X
-storehy     reg1                      - store reg1.b into cpu hardware register Y
-storehax    reg1                      - store reg1.w into cpu hardware register pair AX
-storehay    reg1                      - store reg1.w into cpu hardware register pair AY
-storehxy    reg1                      - store reg1.w into cpu hardware register pair XY
+storehr     reg1, slot                - store reg1 into cpu hardware register for calling convention slot (s0=A, s1=X, s2=Y, s3=AX, s4=AY, s5=XY, s6=FAC1, s7=FAC2)
 storehfaczero        fpreg1           - store fpreg1.f into "cpu register" fac0
 storehfacone         fpreg1           - store fpreg1.f into "cpu register" fac1
 
@@ -296,12 +286,7 @@ enum class Opcode {
     LOADM,
     LOADX,
     LOADR,
-    LOADHA,
-    LOADHX,
-    LOADHY,
-    LOADHAX,
-    LOADHAY,
-    LOADHXY,
+    LOADHR,
     LOADI,
     LOADHFACZERO,
     LOADHFACONE,
@@ -310,12 +295,7 @@ enum class Opcode {
     STOREZM,
     STOREZI,
     STOREZX,
-    STOREHA,
-    STOREHX,
-    STOREHY,
-    STOREHAX,
-    STOREHAY,
-    STOREHXY,
+    STOREHR,
     STOREI,
     STOREHFACZERO,
     STOREHFACONE,
@@ -539,12 +519,6 @@ val OpcodesThatSetStatusbitsButNotCarry = setOf(
     Opcode.LOADM,
     Opcode.LOADX,
     Opcode.LOADR,
-    Opcode.LOADHA,
-    Opcode.LOADHX,
-    Opcode.LOADHY,
-    Opcode.LOADHAX,
-    Opcode.LOADHAY,
-    Opcode.LOADHXY,
     Opcode.LOADI,
     Opcode.NEG,
     Opcode.NEGM,
@@ -585,12 +559,7 @@ val OpcodesThatLoad = setOf(
     Opcode.LOADM,
     Opcode.LOADX,
     Opcode.LOADR,
-    Opcode.LOADHA,
-    Opcode.LOADHX,
-    Opcode.LOADHY,
-    Opcode.LOADHAX,
-    Opcode.LOADHAY,
-    Opcode.LOADHXY,
+    Opcode.LOADHR,
     Opcode.LOADI,
     Opcode.LOADHFACZERO,
     Opcode.LOADHFACONE
@@ -708,12 +677,7 @@ val instructionFormats = mutableMapOf(
     Opcode.LOADM      to InstructionFormat.from("BWL,>r1,<a     | F,>fr1,<a"),
     Opcode.LOADX      to InstructionFormat.from("BWL,>r1,<r2,<a | F,>fr1,<r1,<a"),
     Opcode.LOADR      to InstructionFormat.from("BWL,>r1,<r2    | F,>fr1,<fr2"),
-    Opcode.LOADHA     to InstructionFormat.from("B,>r1"),
-    Opcode.LOADHX     to InstructionFormat.from("B,>r1"),
-    Opcode.LOADHY     to InstructionFormat.from("B,>r1"),
-    Opcode.LOADHAX    to InstructionFormat.from("W,>r1"),
-    Opcode.LOADHAY    to InstructionFormat.from("W,>r1"),
-    Opcode.LOADHXY    to InstructionFormat.from("W,>r1"),
+    Opcode.LOADHR     to InstructionFormat.from("BWL,>r1,<i | F,>fr1,<i"),
     Opcode.LOADI  to InstructionFormat.from("BWL,>r1,<r2,<i | F,>fr1,<r1,<i"),
     Opcode.LOADHFACZERO to InstructionFormat.from("F,>fr1"),
     Opcode.LOADHFACONE  to InstructionFormat.from("F,>fr1"),
@@ -722,12 +686,7 @@ val instructionFormats = mutableMapOf(
     Opcode.STOREZM    to InstructionFormat.from("BWL,>a         | F,>a"),
     Opcode.STOREZI    to InstructionFormat.from("BWL,<r1,<i     | F,<r1,<i"),
     Opcode.STOREZX    to InstructionFormat.from("BWL,<r1,>a     | F,<r1,>a"),
-    Opcode.STOREHA    to InstructionFormat.from("B,<r1"),
-    Opcode.STOREHX    to InstructionFormat.from("B,<r1"),
-    Opcode.STOREHY    to InstructionFormat.from("B,<r1"),
-    Opcode.STOREHAX   to InstructionFormat.from("W,<r1"),
-    Opcode.STOREHAY   to InstructionFormat.from("W,<r1"),
-    Opcode.STOREHXY   to InstructionFormat.from("W,<r1"),
+    Opcode.STOREHR    to InstructionFormat.from("BWL,<r1,<i | F,<fr1,<i"),
     Opcode.STOREI to InstructionFormat.from("BWL,<r1,<r2,<i | F,<fr1,<r1,<i"),
     Opcode.STOREHFACZERO  to InstructionFormat.from("F,<fr1"),
     Opcode.STOREHFACONE  to InstructionFormat.from("F,<fr1"),
@@ -880,7 +839,11 @@ class FunctionCallArgs(
     var arguments: List<ArgumentSpec>,
     val returns: List<RegSpec>
 ) {
-    class RegSpec(val dt: IRDataType, val registerNum: RegisterNum, val cpuRegister: RegisterOrStatusflag?)
+    class RegSpec(val dt: IRDataType, val registerNum: RegisterNum, val callingConventionSlot: CallingConventionSlot?, val statusflag: Statusflag?) {
+        init {
+            require(callingConventionSlot==null || statusflag==null) { "at most one of callingConventionSlot and statusflag can be non-null" }
+        }
+    }
     class ArgumentSpec(val name: String, val address: UInt?, val reg: RegSpec) {
         init {
             // UInt is always non-negative
@@ -948,7 +911,7 @@ data class IRInstruction(
         if(format.fpReg2==OperandDirection.UNUSED) require(fpReg2==null) { "invalid fpReg2" }
         if(format.immediate) {
             if(type==IRDataType.FLOAT) {
-                if(opcode !in setOf(Opcode.LOAD, Opcode.LOADI, Opcode.STOREI, Opcode.STOREZI))
+                if(opcode !in setOf(Opcode.LOAD, Opcode.LOADI, Opcode.STOREI, Opcode.STOREZI, Opcode.LOADHR, Opcode.STOREHR))
                     requireNotNull(immediateFp) { "missing immediate fp value" }
             }
             else
@@ -1183,11 +1146,10 @@ data class IRInstruction(
                     if(it.name.isBlank()) "" else it.name+"="
                 } else "${it.address}="
 
-                val cpuReg = if(it.reg.cpuRegister==null) "" else {
-                    if(it.reg.cpuRegister.registerOrPair!=null)
-                        "@"+it.reg.cpuRegister.registerOrPair.toString()
-                    else
-                        "@"+it.reg.cpuRegister.statusflag.toString()
+                val cpuReg = when {
+                    it.reg.callingConventionSlot != null -> "@s${it.reg.callingConventionSlot.value}"
+                    it.reg.statusflag != null -> "@"+it.reg.statusflag.toString()
+                    else -> ""
                 }
 
                 when(it.reg.dt) {
@@ -1206,11 +1168,10 @@ data class IRInstruction(
                 append(":")
                 returns.forEachIndexed { index, returnspec ->
                     if (index > 0) append(",")
-                    val cpuReg = if (returnspec.cpuRegister == null) "" else {
-                        if (returnspec.cpuRegister.registerOrPair != null)
-                            returnspec.cpuRegister.registerOrPair.toString()
-                        else
-                            returnspec.cpuRegister.statusflag.toString()
+                    val cpuReg = when {
+                        returnspec.callingConventionSlot != null -> "s${returnspec.callingConventionSlot.value}"
+                        returnspec.statusflag != null -> returnspec.statusflag.toString()
+                        else -> ""
                     }
                     if (cpuReg.isEmpty()) {
                         when (returnspec.dt) {
@@ -1256,7 +1217,10 @@ data class IRInstruction(
             if (format.reg3 == OperandDirection.READ) reg3?.let { append("r$it,") }
 
             immediate?.let {
-                append("#${it.toHex()},")
+                if (opcode in setOf(Opcode.LOADHR, Opcode.STOREHR))
+                    append("s$it,")
+                else
+                    append("#${it.toHex()},")
             }
             immediateFp?.let {
                 append("#${it},")
