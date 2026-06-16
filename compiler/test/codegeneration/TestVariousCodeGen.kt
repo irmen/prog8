@@ -693,15 +693,15 @@ main {
         )
 
         val resultIR = compileText(VMTarget(), true, text, outputDir, writeAssembly = true)!!
-        val irFile = resultIR.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
+        val irFile = resultIR.compilationOptions.outputDir.resolve(resultIR.compilerAst.name + ".p8ir")
         val ir = irFile.readText()
         ir.shouldContainInOrder(
-            "bit.b ${'$'}ff02",     // r0
-            "bit.b ${'$'}ff04",     // r1
-            "bit.b ${'$'}ff06",     // f2
-            "bit.b ${'$'}ff08",     // r3
-            "bit.b ${'$'}ff0a",     // r4
-            "bit.b ${'$'}ff0c"      // r5
+            "bittst.b",     // bit 7 test (r0)
+            "bittst.b",     // bit 7 test (r1)
+            "bittst.b",     // bit 6 test (r2)
+            "bittst.b",     // bit 6 test (r3)
+            "bittst.b",     // bit 7 test (r4)
+            "bittst.b"      // bit 6 test (r5)
         )
     } 
 

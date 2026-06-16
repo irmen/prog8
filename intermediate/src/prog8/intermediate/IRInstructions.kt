@@ -228,7 +228,15 @@ rorm                     address             - rotate memory right by 1 bits, no
 roxrm                    address             - rotate memory right by 1 bits, using carry  + set Carry to shifted bit    (maps to 6502 CPU instruction ror)
 rolm                     address             - rotate memory left by 1 bits, not using carry  + set Carry to shifted bit
 roxlm                    address             - rotate memory left by 1 bits, using carry,  + set Carry to shifted bit    (maps to 6502 CPU instruction rol)
-bit                      address             - test bits in byte value at address, this is a special instruction available on other systems to optimize testing and branching on bits 7 and 6
+
+SINGLE-BIT MANIPULATIONS
+-------------------------
+All have type b or w or l for the register forms, byte only for memory form.
+
+bittst      reg1, bitpos            - test bit at position bitpos in register reg1 (Z=1 if bit clear, Z=0 if bit set)
+bitset      reg1, bitpos            - set bit at position bitpos in register reg1 to 1
+bitclr      reg1, bitpos            - clear bit at position bitpos in register reg1 to 0
+bittog      reg1, bitpos            - toggle (complement) bit at position bitpos in register reg1
 
 
 FLOATING POINT CONVERSIONS AND FUNCTIONS
@@ -403,7 +411,10 @@ enum class Opcode {
     ROLM,
     ROXL,
     ROXLM,
-    BIT,
+    BITTST,
+    BITSET,
+    BITCLR,
+    BITTOG,
 
     FFROMUB,
     FFROMSB,
@@ -507,7 +518,7 @@ val OpcodesThatEndSSAblock = OpcodesThatBranchUnconditionally + setOf(
 )
 
 val OpcodesThatSetStatusbitsIncludingCarry = setOf(
-    Opcode.BIT,
+    Opcode.BITTST,
     Opcode.CMP,
     Opcode.CMPI,
     Opcode.SGN
@@ -540,7 +551,10 @@ val OpcodesThatSetStatusbitsButNotCarry = setOf(
     Opcode.MSIGB,
     Opcode.MSIGW,
     Opcode.BSIGB,
-    Opcode.MIDB
+    Opcode.MIDB,
+    Opcode.BITSET,
+    Opcode.BITCLR,
+    Opcode.BITTOG
 )
 
 val OpcodesThatDependOnCarry = setOf(
@@ -790,7 +804,10 @@ val instructionFormats = mutableMapOf(
     Opcode.ROLM       to InstructionFormat.from("BWL,<>a"),
     Opcode.ROXL       to InstructionFormat.from("BWL,<>r1"),
     Opcode.ROXLM      to InstructionFormat.from("BWL,<>a"),
-    Opcode.BIT        to InstructionFormat.from("B,<a"),
+    Opcode.BITTST     to InstructionFormat.from("BWL,<r1,<i"),
+    Opcode.BITSET     to InstructionFormat.from("BWL,<>r1,<i"),
+    Opcode.BITCLR     to InstructionFormat.from("BWL,<>r1,<i"),
+    Opcode.BITTOG     to InstructionFormat.from("BWL,<>r1,<i"),
 
     Opcode.FFROMUB    to InstructionFormat.from("F,>fr1,<r1"),
     Opcode.FFROMSB    to InstructionFormat.from("F,>fr1,<r1"),
@@ -1217,10 +1234,11 @@ data class IRInstruction(
             if (format.reg3 == OperandDirection.READ) reg3?.let { append("r$it,") }
 
             immediate?.let {
-                if (opcode in setOf(Opcode.LOADHR, Opcode.STOREHR))
-                    append("s$it,")
-                else
-                    append("#${it.toHex()},")
+                when (opcode) {
+                    Opcode.LOADHR, Opcode.STOREHR -> append("s$it,")
+                    Opcode.BITTST, Opcode.BITSET, Opcode.BITCLR, Opcode.BITTOG -> append("$it,")
+                    else -> append("#${it.toHex()},")
+                }
             }
             immediateFp?.let {
                 append("#${it},")

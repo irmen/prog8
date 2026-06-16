@@ -1179,14 +1179,17 @@ class IRCodeGen(
     private fun translateIntegerComparison(condition: PtBinaryExpression, onTrueLabel: String?, onTrueAddress: MemoryAddress?, onFalseLabel: String?, onFalseAddress: MemoryAddress?, result: MutableList<IRCodeChunkBase>) {
         val useBIT = expressionEval.checkIfConditionCanUseBIT(condition)
         if (useBIT != null) {
-            val (testBitSet, variable, bitmask) = useBIT
-            addInstr(result, IRInstruction(Opcode.BIT, IRDataType.BYTE, labelSymbol = variable.name), null)
+            val (testBitSet, expr, bitmask) = useBIT
+            val bitPos = Integer.numberOfTrailingZeros(bitmask)
+            val leftTr = expressionEval.translateExpression(expr)
+            addToResult(result, leftTr, leftTr.resultReg, -1)
+            addInstr(result, IRInstruction(Opcode.BITTST, leftTr.dt, reg1 = leftTr.resultReg, immediate = bitPos), null)
             if ((onTrueLabel != null || onTrueAddress != null) && (onFalseLabel == null && onFalseAddress == null)) {
-                addInstr(result, IRInstruction(getBitBranchOpcode(bitmask, testBitSet), labelSymbol = onTrueLabel, address = onTrueAddress), null)
+                addInstr(result, IRInstruction(getBitBranchOpcode(testBitSet), labelSymbol = onTrueLabel, address = onTrueAddress), null)
             } else if ((onFalseLabel != null || onFalseAddress != null) && (onTrueLabel == null && onTrueAddress == null)) {
-                addInstr(result, IRInstruction(getBitBranchOpcode(bitmask, !testBitSet), labelSymbol = onFalseLabel, address = onFalseAddress), null)
+                addInstr(result, IRInstruction(getBitBranchOpcode(!testBitSet), labelSymbol = onFalseLabel, address = onFalseAddress), null)
             } else if ((onTrueLabel != null || onTrueAddress != null) && (onFalseLabel != null || onFalseAddress != null)) {
-                addInstr(result, IRInstruction(getBitBranchOpcode(bitmask, testBitSet), labelSymbol = onTrueLabel, address = onTrueAddress), null)
+                addInstr(result, IRInstruction(getBitBranchOpcode(testBitSet), labelSymbol = onTrueLabel, address = onTrueAddress), null)
                 addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol = onFalseLabel, address = onFalseAddress), null)
             }
             return
@@ -1255,12 +1258,8 @@ class IRCodeGen(
         }
     }
 
-    private fun getBitBranchOpcode(bitmask: Int, wantSet: Boolean): Opcode {
-        return if (wantSet) {
-            if (bitmask == 64) Opcode.BSTVS else Opcode.BSTNEG
-        } else {
-            if (bitmask == 64) Opcode.BSTVC else Opcode.BSTPOS
-        }
+    private fun getBitBranchOpcode(wantSet: Boolean): Opcode {
+        return if (wantSet) Opcode.BSTNE else Opcode.BSTEQ
     }
 
     private fun invertOperator(operator: String) = when (operator) {

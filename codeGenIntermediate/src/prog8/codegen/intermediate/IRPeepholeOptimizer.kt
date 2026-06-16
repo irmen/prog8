@@ -448,7 +448,7 @@ jump p8_label_gen_2
                     }
                 }
                 Opcode.AND -> {
-                    when (ins.immediate) {
+                    when (val imm = ins.immediate) {
                         0 -> {
                             chunk.instructions[idx] = IRInstruction(Opcode.LOAD, ins.type, reg1 = ins.reg1, immediate = 0)
                             changed = true
@@ -466,21 +466,52 @@ jump p8_label_gen_2
                             changed = true
                         }
                     }
+                    // convert AND with all-ones-except-one-bit into BITCLR
+                    if(!changed) {
+                        val imm = ins.immediate ?: return@forEach
+                        val clearedBits = when(ins.type) {
+                            IRDataType.BYTE -> imm xor 0xFF
+                            IRDataType.WORD -> imm xor 0xFFFF
+                            IRDataType.LONG -> imm xor -1
+                            else -> 0
+                        }
+                        if(clearedBits > 0 && clearedBits and (clearedBits - 1) == 0) {
+                            val bitPos = Integer.numberOfTrailingZeros(clearedBits)
+                            chunk.instructions[idx] = IRInstruction(Opcode.BITCLR, ins.type, reg1 = ins.reg1, immediate = bitPos)
+                            changed = true
+                        }
+                    }
                 }
                 Opcode.OR -> {
-                    if (ins.immediate == 0) {
+                    val imm = ins.immediate
+                    if (imm == null) return@forEach
+                    if (imm == 0) {
                         chunk.instructions.removeAt(idx)
                         changed = true
-                    } else if ((ins.immediate == 255 && ins.type == IRDataType.BYTE) ||
-                               (ins.immediate == 65535 && ins.type == IRDataType.WORD) ||
-                               (ins.immediate == -1 && ins.type == IRDataType.LONG)) {
-                        chunk.instructions[idx] = IRInstruction(Opcode.LOAD, ins.type, reg1 = ins.reg1, immediate = ins.immediate)
+                    } else if ((imm == 255 && ins.type == IRDataType.BYTE) ||
+                               (imm == 65535 && ins.type == IRDataType.WORD) ||
+                               (imm == -1 && ins.type == IRDataType.LONG)) {
+                        chunk.instructions[idx] = IRInstruction(Opcode.LOAD, ins.type, reg1 = ins.reg1, immediate = imm)
+                        changed = true
+                    }
+                    // convert OR with power-of-2 into BITSET
+                    if(!changed && imm > 0 && imm and (imm - 1) == 0) {
+                        val bitPos = Integer.numberOfTrailingZeros(imm)
+                        chunk.instructions[idx] = IRInstruction(Opcode.BITSET, ins.type, reg1 = ins.reg1, immediate = bitPos)
                         changed = true
                     }
                 }
                 Opcode.XOR -> {
-                    if (ins.immediate == 0) {
+                    val imm = ins.immediate
+                    if (imm == null) return@forEach
+                    if (imm == 0) {
                         chunk.instructions.removeAt(idx)
+                        changed = true
+                    }
+                    // convert XOR with power-of-2 into BITTOG
+                    if(!changed && imm > 0 && imm and (imm - 1) == 0) {
+                        val bitPos = Integer.numberOfTrailingZeros(imm)
+                        chunk.instructions[idx] = IRInstruction(Opcode.BITTOG, ins.type, reg1 = ins.reg1, immediate = bitPos)
                         changed = true
                     }
                 }

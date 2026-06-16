@@ -319,7 +319,10 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.CLC -> { statusCarry = false; nextPc() }
             Opcode.SEC -> { statusCarry = true; nextPc() }
             Opcode.CLI, Opcode.SEI -> throw IllegalArgumentException("VM doesn't support interrupt status bit")
-            Opcode.BIT -> InsBIT(ins)
+            Opcode.BITTST -> InsBITTST(ins)
+            Opcode.BITSET -> InsBITSET(ins)
+            Opcode.BITCLR -> InsBITCLR(ins)
+            Opcode.BITTOG -> InsBITTOG(ins)
 
             Opcode.FFROMUB -> InsFFROMUB(ins)
             Opcode.FFROMSB -> InsFFROMSB(ins)
@@ -1537,14 +1540,79 @@ class VirtualMachine(irProgram: IRProgram) {
     }
 
 
-    private fun InsBIT(i: IRInstruction) {
-        if (i.type!! == IRDataType.BYTE) {
-            val value = memory.getUB(i.address!!.value)
-            statusNegative = value.toInt() and 0x80 != 0
-            statusOverflow = value.toInt() and 0x40 != 0
-            // NOTE: the 'AND' part of the BIT instruction as it does on the 6502 CPU, is not utilized in prog8 so we don't implement it here
+    private fun InsBITTST(i: IRInstruction) {
+        if (i.reg1 == null) throw IllegalArgumentException("bittst needs a register")
+        val mask = 1 shl i.immediate!!
+        val value: Int = when(i.type!!) {
+            IRDataType.BYTE -> registers.getUB(i.reg1!!).toInt()
+            IRDataType.WORD -> registers.getUW(i.reg1!!).toInt()
+            IRDataType.LONG -> registers.getSL(i.reg1!!)
+            IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
-        else throw IllegalArgumentException("bit needs byte")
+        statusZero = value and mask == 0
+        nextPc()
+    }
+
+    private fun InsBITSET(i: IRInstruction) {
+        val mask = 1 shl i.immediate!!
+        when(i.type!!) {
+            IRDataType.BYTE -> {
+                val value = registers.getUB(i.reg1!!).toInt() or mask
+                registers.setUB(i.reg1!!, value.toUByte())
+            }
+            IRDataType.WORD -> {
+                val value = registers.getUW(i.reg1!!).toInt() or mask
+                registers.setUW(i.reg1!!, value.toUShort())
+            }
+            IRDataType.LONG -> {
+                val value = registers.getSL(i.reg1!!) or mask
+                registers.setSL(i.reg1!!, value)
+            }
+            IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
+        }
+        statusbitsNZ(registers.getSL(i.reg1!!), i.type!!)
+        nextPc()
+    }
+
+    private fun InsBITCLR(i: IRInstruction) {
+        val mask = 1 shl i.immediate!!
+        when(i.type!!) {
+            IRDataType.BYTE -> {
+                val value = registers.getUB(i.reg1!!).toInt() and mask.inv()
+                registers.setUB(i.reg1!!, value.toUByte())
+            }
+            IRDataType.WORD -> {
+                val value = registers.getUW(i.reg1!!).toInt() and mask.inv()
+                registers.setUW(i.reg1!!, value.toUShort())
+            }
+            IRDataType.LONG -> {
+                val value = registers.getSL(i.reg1!!) and mask.inv()
+                registers.setSL(i.reg1!!, value)
+            }
+            IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
+        }
+        statusbitsNZ(registers.getSL(i.reg1!!), i.type!!)
+        nextPc()
+    }
+
+    private fun InsBITTOG(i: IRInstruction) {
+        val mask = 1 shl i.immediate!!
+        when(i.type!!) {
+            IRDataType.BYTE -> {
+                val value = registers.getUB(i.reg1!!).toInt() xor mask
+                registers.setUB(i.reg1!!, value.toUByte())
+            }
+            IRDataType.WORD -> {
+                val value = registers.getUW(i.reg1!!).toInt() xor mask
+                registers.setUW(i.reg1!!, value.toUShort())
+            }
+            IRDataType.LONG -> {
+                val value = registers.getSL(i.reg1!!) xor mask
+                registers.setSL(i.reg1!!, value)
+            }
+            IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
+        }
+        statusbitsNZ(registers.getSL(i.reg1!!), i.type!!)
         nextPc()
     }
 

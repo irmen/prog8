@@ -245,24 +245,16 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         if(ifExpr.condition is PtBinaryExpression) {
             val useBIT = checkIfConditionCanUseBIT(ifExpr.condition as PtBinaryExpression)
             if(useBIT!=null) {
-                // use a BIT instruction to test for bit 7 or 6 set/clear
-                val (testBitSet, variable, bitmask) = useBIT
-                val bitBranchOpcode = when(testBitSet) {
-                    true -> when(bitmask) {
-                        64 -> Opcode.BSTVC
-                        128 -> Opcode.BSTPOS
-                        else -> throw AssemblyError("need bit 6 or 7")
-                    }
-                    false -> when(bitmask) {
-                        64 -> Opcode.BSTVS
-                        128 -> Opcode.BSTNEG
-                        else -> throw AssemblyError("need bit 6 or 7")
-                    }
-                }
-                result += IRCodeChunk(null, null).also {
-                    it += IRInstruction(Opcode.BIT, IRDataType.BYTE, labelSymbol = variable.name)
-                    it += IRInstruction(bitBranchOpcode, labelSymbol = falseLabel)
-                }
+                // use a BITTST instruction to test any single bit
+                val (testBitSet, expr, bitmask) = useBIT
+                val bitPos = Integer.numberOfTrailingZeros(bitmask)
+                val tr = translateExpression(expr)
+                addToResult(result, tr, tr.resultReg, -1)
+                addInstr(result, IRInstruction(Opcode.BITTST, tr.dt, reg1 = tr.resultReg, immediate = bitPos), null)
+                if(testBitSet)
+                    addInstr(result, IRInstruction(Opcode.BSTEQ, labelSymbol = falseLabel), null)
+                else
+                    addInstr(result, IRInstruction(Opcode.BSTNE, labelSymbol = falseLabel), null)
                 addToResult(result, trueTr, trueTr.resultReg, -1)
                 addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol = endLabel), null)
                 result += IRCodeChunk(falseLabel, null)
@@ -1110,24 +1102,19 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         }
     }
 
-    internal fun checkIfConditionCanUseBIT(condition: PtBinaryExpression): Triple<Boolean, PtIdentifier, Int>? {
-        // test for occurrence of:  x & 64 != 0    (or 128) , this can be performed with a BIT instruction
+    data class BitTestResult(val testBitSet: Boolean, val expression: PtExpression, val bitmask: Int)
+
+    internal fun checkIfConditionCanUseBIT(condition: PtBinaryExpression): BitTestResult? {
+        // test for occurrence of:  x & power_of_2 != 0    (or == 0) , this can be performed with a BITTST instruction
         if(condition.operator == "==" || condition.operator == "!=") {
             if (condition.right.asConstInteger() == 0) {
                 val and = condition.left as? PtBinaryExpression
-                if (and != null && and.operator == "&" && and.type.isUnsignedByte) {
-                    val bitmask = and.right.asConstInteger()
-                    if(bitmask==128 || bitmask==64) {
-                        val variable = and.left as? PtIdentifier
-                        if (variable != null && variable.type.isByte) {
-                            return Triple(condition.operator=="!=", variable, bitmask)
-                        }
-                        val typecast = and.left as? PtTypeCast
-                        if (typecast != null && typecast.type.isUnsignedByte) {
-                            val castedVariable = typecast.value as? PtIdentifier
-                            if(castedVariable!=null && castedVariable.type.isByte)
-                                return Triple(condition.operator=="!=", castedVariable, bitmask)
-                        }
+                if (and != null && and.operator == "&") {
+                    val bitmask = and.right.asConstInteger() ?: return null
+                    if(bitmask > 0 && bitmask and (bitmask - 1) == 0) {   // power of two
+                        val expr = and.left
+                        if(expr is PtIdentifier || expr is PtTypeCast || expr is PtArrayIndexer)
+                            return BitTestResult(condition.operator=="!=", expr, bitmask)
                     }
                 }
             }
