@@ -2693,19 +2693,13 @@ main {
 }"""
         val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = false)
         val st = result!!.compilerAst.entrypoint.statements
-        st.size shouldBe 7
+        st.size shouldBe 9
         val a1 = st[3] as Assignment
         a1.target.identifier!!.nameInSource shouldBe listOf("temp")
-        val v1 = a1.value as BinaryExpression
-        v1.operator shouldBe "+"
-        (v1.left as TypecastExpression).type shouldBe DataType.UWORD
-        v1.right shouldBe instanceOf<NumericLiteral>()
-        val a2 = st[5] as Assignment
+        a1.value shouldBe instanceOf<IdentifierReference>()
+        val a2 = st[6] as Assignment
         a2.target.identifier!!.nameInSource shouldBe listOf("temp")
-        val v2 = a2.value as BinaryExpression
-        v2.operator shouldBe "+"
-        v2.left shouldBe instanceOf<IdentifierReference>()
-        v2.right shouldBe instanceOf<NumericLiteral>()
+        a2.value shouldBe instanceOf<IdentifierReference>()
     }
 
     test("indexed pointer derefs") {

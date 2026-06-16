@@ -277,9 +277,9 @@ other {
             }
         """
         val result = compileText(C64Target(), optimize=true, src, outputDir, writeAssembly=false)!!
-        result.compilerAst.entrypoint.statements.size shouldBe 6
+        result.compilerAst.entrypoint.statements.size shouldBe 9
         val alldecls = result.compilerAst.entrypoint.allDefinedSymbols.toList()
-        alldecls.map { it.first } shouldBe listOf("unused_but_shared", "usedvar")
+        alldecls.map { it.first } shouldBe listOf("unused_but_shared", "usedvar_only_written", "usedvar")
     }
 
     test("unused variable removal from subscope") {

@@ -682,6 +682,53 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     dey
                     bpl  -""")
             }
+            "/" -> {
+                asmgen.out("""
+                    ; Copy target to R12R13 (dividend)
+                    ldy  #3
+-                   lda  $targetVar,y
+                    sta  cx16.r12,y
+                    dey
+                    bpl  -
+                    ; Copy source to R14R15 (divisor)
+                    ldy  #3
+-                   lda  $sourceVar,y
+                    sta  cx16.r14,y
+                    dey
+                    bpl  -
+                    jsr  prog8_math.div_longs
+                    ; Copy result from R14R15 back to target
+                    ldy  #3
+-                   lda  cx16.r14,y
+                    sta  $targetVar,y
+                    dey
+                    bpl  -""")
+            }
+            "%" -> {
+                asmgen.out("""
+                    ; Copy target to R12R13 (dividend)
+                    ldy  #3
+-                   lda  $targetVar,y
+                    sta  cx16.r12,y
+                    dey
+                    bpl  -
+                    ; Copy source to R14R15 (divisor)
+                    ldy  #3
+-                   lda  $sourceVar,y
+                    sta  cx16.r14,y
+                    dey
+                    bpl  -
+                    jsr  prog8_math.div_longs
+                    ; Copy remainder from P8ZP_SCRATCH_W1/W2 back to target
+                    lda  P8ZP_SCRATCH_W1
+                    sta  $targetVar
+                    lda  P8ZP_SCRATCH_W1+1
+                    sta  $targetVar+1
+                    lda  P8ZP_SCRATCH_W2
+                    sta  $targetVar+2
+                    lda  P8ZP_SCRATCH_W2+1
+                    sta  $targetVar+3""")
+            }
             else -> {
                 TODO("in-place modify LONG with variable, operator=$operator")
             }
@@ -1035,6 +1082,65 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     sta  $variable,y
                     dey
                     bpl  -""")
+            }
+            "/" -> {
+                // long /= constant - use division routine
+                val lo = value and 0xFFFF
+                val hi = (value ushr 16) and 0xFFFF
+                asmgen.out("""
+                    ; Copy variable to R12R13 (dividend)
+                    ldy  #3
+-                   lda  $variable,y
+                    sta  cx16.r12,y
+                    dey
+                    bpl  -
+                    ; Load constant into R14R15 (divisor)
+                    lda  #<${lo}
+                    sta  cx16.r14
+                    lda  #>${lo}
+                    sta  cx16.r14+1
+                    lda  #<${hi}
+                    sta  cx16.r15
+                    lda  #>${hi}
+                    sta  cx16.r15+1
+                    jsr  prog8_math.div_longs
+                    ; Copy result from R14R15 back to variable
+                    ldy  #3
+-                   lda  cx16.r14,y
+                    sta  $variable,y
+                    dey
+                    bpl  -""")
+            }
+            "%" -> {
+                // long %= constant - use division routine, remainder is in P8ZP_SCRATCH_W1/W2
+                val lo = value and 0xFFFF
+                val hi = (value ushr 16) and 0xFFFF
+                asmgen.out("""
+                    ; Copy variable to R12R13 (dividend)
+                    ldy  #3
+-                   lda  $variable,y
+                    sta  cx16.r12,y
+                    dey
+                    bpl  -
+                    ; Load constant into R14R15 (divisor)
+                    lda  #<${lo}
+                    sta  cx16.r14
+                    lda  #>${lo}
+                    sta  cx16.r14+1
+                    lda  #<${hi}
+                    sta  cx16.r15
+                    lda  #>${hi}
+                    sta  cx16.r15+1
+                    jsr  prog8_math.div_longs
+                    ; Copy remainder from P8ZP_SCRATCH_W1/W2 back to variable
+                    lda  P8ZP_SCRATCH_W1
+                    sta  $variable
+                    lda  P8ZP_SCRATCH_W1+1
+                    sta  $variable+1
+                    lda  P8ZP_SCRATCH_W2
+                    sta  $variable+2
+                    lda  P8ZP_SCRATCH_W2+1
+                    sta  $variable+3""")
             }
             "<<" -> if (value > 0) inplaceLongShiftLeft()
             ">>" -> if (value > 0) inplaceLongShiftRight()
