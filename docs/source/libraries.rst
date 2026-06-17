@@ -67,10 +67,13 @@ Math
     Returns quotient and remainder of the division as two ubyte or uword values.
     Performs the division only once. Using '/' and '%' separately
     would perform the division twice, so using divmod is much more efficient for this.
+    **Note:** Clobbers ``cx16.r15`` (the remainder is stored there for the word variant).
+    This also applies when using the ``%`` operator on its own (it calls divmod internally).
 
 :index:`gcd` (a, b)
     Returns the GCD (greatest common divisor) of uwords a and b
     The routine is efficient and uses bit shifts instead of divisions.
+    **Clobbers:** ``cx16.r0`` and ``cx16.r1``.
 
 :index:`max` (x, y)
     Returns the largest of x and y. Supported for integer types only, for floats use ``floats.maxf()`` instead.
@@ -938,6 +941,7 @@ miscellaneous
 ``direction_qd (ubyte quadrant, ubyte xdelta, ubyte ydelta)``
     If you already know the quadrant and x/y deltas, calculate discrete direction between 0 and 23.
     This is a heavily optimized routine (small and fast).
+    **Clobbers:** ``cx16.r0`` through ``cx16.r5`` (used as temporary variables).
 
 ``diff (ubyte b1, ubyte b2) -> ubyte``
     Returns the absolute difference, or distance, between the two byte values.
@@ -946,6 +950,7 @@ miscellaneous
 ``diffw (uword w1, uword w2) -> uword``
     Returns the absolute difference, or distance, between the two word values.
     (This routine is more efficient than doing a compare and a subtract separately, or using abs)
+    **Clobbers:** ``cx16.r0``
 
 
 random numbers
@@ -998,6 +1003,7 @@ random numbers
 
 ``log2w (uword v)``
     Returns the 2-Log of the word value v.
+    **Clobbers:** ``cx16.r0``
 
 trigonometry
 ''''''''''''
@@ -1014,6 +1020,7 @@ trigonometry
 ``atan2 (ubyte x1, ubyte y1, ubyte x2, ubyte y2)``
     Fast arctan routine that uses more memory because of large lookup tables.
     Calculate the angle, in a 256-degree circle, between two points in the positive quadrant.
+    **Clobbers:** ``cx16.r0`` through ``cx16.r4`` (used as temporary variables).
 
 ``sin8u (x)``
     Fast 8-bit ubyte sine using a lookup table.

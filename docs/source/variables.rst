@@ -327,7 +327,7 @@ to be done on word values, and don't want to explicitly have to cast everything 
     **longs and cx16.R12,R13,R14,R15**:
     **Some operations on long values require the use of the R12-R15 virtual register as temporary storage**
     So if you are working with long values, you should assume that the contents of R12-R15 could be destroyed.
-    ()Many operations preserve the values, but not all because of reasons)
+    (Many operations preserve the values, but not all, because of reasons)
     **Using R12,R13,R14,R15 in expressions that work with longs, will sometimes give a corrupted result, without
     a warning of the compiler!** It is strongly advised to *not* use R12-R15 at all when dealing with longs.
 

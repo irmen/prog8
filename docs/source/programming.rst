@@ -1352,6 +1352,28 @@ flag such as Carry (Pc).
     For example, you can use R0+R1, R2+R3, R4+R5 and so on to take a long value instead.
     The syntax to use as a 'register' name for those pairs is ``R0R1``, ``R2R3``, ``R4R5`` and so on.
 
+.. caution::
+    **Virtual register clobbering by compiler operations:**
+
+    Various compiler operations and builtin routines use the virtual registers R0-R15 as
+    temporary storage or for placing return values. If you are using the virtual registers
+    directly in your program (or via ``@R0..@R15`` parameter annotations), be aware of the following:
+
+    ========================== ================================================
+    Register(s)                When clobbered
+    ========================== ================================================
+    ``R0-R3``                  Many library routines use these as scratch
+    ``R0-R5``                  ``direction_qd()``
+    ``R12-R15``                Long value operations
+    ``R14-R15``                Long value operations / ``crc16`` / ``crc32`` 
+    ``R15``                    ``%`` / ``divmod()`` / ``lerpw()`` / ``interpolate()``
+    ``R15..R0``                Multi-value subroutine return values if specified
+    ``R0-R15``                 ``@R0..@R15`` parameter reuse if specified
+    ========================== ================================================
+
+    Additionally, on all targets, the virtual registers R0-R15 are **not preserved** across IRQ
+    handler calls. Use ``cx16.save_virtual_registers()`` / ``cx16.restore_virtual_registers()``
+    if your IRQ handler needs to use them.
 
 External subroutines
 ^^^^^^^^^^^^^^^^^^^^
