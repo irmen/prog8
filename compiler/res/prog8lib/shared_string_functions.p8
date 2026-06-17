@@ -124,14 +124,13 @@ strings {
 
     sub startswith(str st, str prefix) -> bool {
         ubyte prefix_len = length(prefix)
-        ubyte str_len = length(st)
-        if prefix_len > str_len
+        if prefix_len > length(st)
             return false
-        cx16.r9L = st[prefix_len]
+        push(st[prefix_len])
         st[prefix_len] = 0
-        cx16.r9H = compare(st, prefix) as ubyte
-        st[prefix_len] = cx16.r9L
-        return cx16.r9H==0
+        bool result = compare(st, prefix) == 0
+        st[prefix_len] = pop()
+        return result
     }
 
     sub endswith(str st, str suffix) -> bool {

@@ -88,7 +88,7 @@ fun optimizeSimplifiedAst(program: PtProgram, options: CompilationOptions, st: S
     runFixpointOptimizations(program, ctx)
 
     // Run single-pass optimizations (only need to run once)
-    runSinglePassOptimizations(program)
+    runSinglePassOptimizations(program, options)
 }
 
 /**
@@ -105,7 +105,7 @@ private fun runFixpointOptimizations(program: PtProgram, ctx: OptimizerContext) 
     
     while (ctx.errors.noErrors() &&
         VariableOptimizers.optimizeAssignTargets(program, ctx.st)
-        + ExpressionOptimizers.optimizeAlgebraicIdentities(program)
+        + ExpressionOptimizers.optimizeAlgebraicIdentities(program, ctx.options)
         + ExpressionOptimizers.optimizeExpressionRearrangement(program)
         + BooleanOptimizers.optimizeBitwisePrefix(program)
         + MemoryOptimizers.optimizeAddressOfDereference(program)
@@ -113,9 +113,9 @@ private fun runFixpointOptimizations(program: PtProgram, ctx: OptimizerContext) 
         + ComparisonOptimizers.optimizeFloatComparesToZero(program)
         + ComparisonOptimizers.optimizeSgnComparisons(program, ctx.errors)
         + ComparisonOptimizers.optimizeComparisonSimplifications(program)
-        + ComparisonOptimizers.optimizeComparisonIdentities(program)
-        + BooleanOptimizers.optimizeBooleanExpressions(program)
-        + BooleanOptimizers.optimizeBitwiseComplementBinary(program)
+        + ComparisonOptimizers.optimizeComparisonIdentities(program, ctx.options)
+        + BooleanOptimizers.optimizeBooleanExpressions(program, ctx.options)
+        + BooleanOptimizers.optimizeBitwiseComplementBinary(program, ctx.options)
         + ExpressionOptimizers.optimizeBinaryExpressions(program, ctx.options)
         + ExpressionOptimizers.optimizeOperandOrder(program)
         + ControlFlowOptimizers.optimizeSingleWhens(program, ctx.errors)
@@ -133,10 +133,10 @@ private fun runFixpointOptimizations(program: PtProgram, ctx: OptimizerContext) 
  * Runs optimizations that only need to execute once.
  * These don't create opportunities for other optimizations, so no fixpoint loop needed.
  */
-private fun runSinglePassOptimizations(program: PtProgram) {
+private fun runSinglePassOptimizations(program: PtProgram, options: CompilationOptions) {
     // Variable optimizations
     VariableOptimizers.optimizeRedundantVarInits(program)
 
     // Strength reduction (x/2^n→x>>n, x%2^n→x&(2^n-1)) doesn't create opportunities for other opts
-    ExpressionOptimizers.optimizeStrengthReduction(program)
+    ExpressionOptimizers.optimizeStrengthReduction(program, options)
 }

@@ -255,7 +255,7 @@ class UnusedCodeRemover(private val program: Program,
     }
 
     override fun after(assignment: Assignment, parent: Node): Iterable<AstModification> {
-        if(assignment.target isSameAs assignment.value)
+        if(assignment.target isSameAs assignment.value && !assignment.target.hasSideEffects(options.compTarget) && !assignment.value.hasSideEffects(options.compTarget))
             return listOf(AstRemove(assignment, parent as IStatementContainer))
         return noModifications
     }

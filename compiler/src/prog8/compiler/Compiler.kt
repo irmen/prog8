@@ -590,7 +590,7 @@ private fun optimizeAst(program: Program, compilerOptions: CompilationOptions, e
 
     for(numCycles in 0..10000) {
         // keep optimizing expressions and statements until no more steps remain
-        val optsDone1 = program.simplifyExpressions(errors)
+        val optsDone1 = program.simplifyExpressions(errors, compilerOptions)
         val optsDone2 = program.optimizeStatements(errors, functions, compilerOptions)
         program.constantFold(errors, compilerOptions) // because simplified statements and expressions can result in more constants that can be folded away
         val optsDone3 = program.inlineSubroutines(compilerOptions)  // inlining can expose new calls to inline
@@ -610,7 +610,7 @@ private fun optimizeAst(program: Program, compilerOptions: CompilationOptions, e
     removeUnusedCode(program, errors, compilerOptions)
     if(errors.noErrors()) {
         // last round of optimizations because inlining may have enabled more...
-        program.simplifyExpressions(errors)
+        program.simplifyExpressions(errors, compilerOptions)
         program.optimizeStatements(errors, functions, compilerOptions)
         program.constantFold(errors, compilerOptions) // because simplified statements and expressions can result in more constants that can be folded away
     }

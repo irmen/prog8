@@ -856,6 +856,19 @@ data class AssignTarget(
 
     fun accept(visitor: IAstVisitor) = visitor.visit(this)
     fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
+
+    fun hasSideEffects(target: ICompilationTarget): Boolean {
+        if (void) return false
+        if (identifier != null) {
+            val symbol = definingScope.lookup(identifier!!.nameInSource)
+            if (symbol is VarDecl && symbol.type == VarDeclType.MEMORY && symbol.value is NumericLiteral) {
+                return target.isIOAddress((symbol.value as NumericLiteral).number.toUInt())
+            }
+            return false
+        }
+        return true // memoryAddress, arrayindexed, pointerDereference, arrayIndexedDereference
+    }
+
     override fun copy() = AssignTarget(
         identifier?.copy(),
         arrayindexed?.copy(),

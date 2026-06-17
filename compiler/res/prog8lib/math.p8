@@ -105,6 +105,7 @@ _sinecosR8	.char  trunc(127.0 * sin(range(180+45) * rad(360.0/180.0)))
         ; -- return random number uniformly distributed from 0 to n-1
         ;    NOTE: does not work for code in ROM, use randrange_rom instead for that
         ; why this works: https://www.youtube.com/watch?v=3DvlLUWTNMY&t=347s
+        ; Uses cx16.r0 as temporary
         cx16.r0 = math.rnd() * (n as uword)
         return cx16.r0H
     }
@@ -113,6 +114,7 @@ _sinecosR8	.char  trunc(127.0 * sin(range(180+45) * rad(360.0/180.0)))
         ; -- return random number uniformly distributed from 0 to n-1
         ;    NOTE: works for code in ROM, make sure you have initialized the seed using rndseed_rom
         ; why this works: https://www.youtube.com/watch?v=3DvlLUWTNMY&t=347s
+        ; Uses cx16.r0 as temporary
         cx16.r0 = math.rnd_rom() * (n as uword)
         return cx16.r0H
     }
@@ -177,6 +179,7 @@ _sinecosR8	.char  trunc(127.0 * sin(range(180+45) * rad(360.0/180.0)))
     }
 
     asmsub log2w(uword value @AY) -> ubyte @Y {
+        ; Clobbers cx16.r0
         %asm {{
             sta  P8ZP_SCRATCH_W1
             sty  P8ZP_SCRATCH_W1+1
@@ -267,6 +270,7 @@ asmsub direction_qd(ubyte quadrant @A, ubyte xdelta @X, ubyte ydelta @Y) -> ubyt
     ;  .reg:x @in  x_delta Delta for x direction.
     ;  .reg:y @in  y_delta Delta for y direction.
     ; Returns A as the direction (0-23).
+    ; Clobbers cx16.r0 through cx16.r5 (used as temporary variables).
 
     %asm {{
 x_delta = cx16.r0L
@@ -388,6 +392,7 @@ asmsub atan2(ubyte x1 @R0, ubyte y1 @R1, ubyte x2 @R2, ubyte y2 @R3) -> ubyte @A
     ;; The points (x1, y1) and (x2, y2) have to use *unsigned coordinates only* from the positive quadrant in the cartesian plane!
     ;; http://codebase64.net/doku.php?id=base:8bit_atan2_8-bit_angle
     ;; This uses 2 large lookup tables so uses a lot of memory but is super fast.
+    ;; Clobbers cx16.r0 through cx16.r4 (r0-r3 are input params, r4 is temporary).
 
     %asm {{
 
@@ -531,6 +536,7 @@ log2_tab
 
     asmsub diffw(uword w1 @R0, uword w2 @AY) -> uword @AY {
         ; -- returns the (absolute) difference, or distance, between the two words
+        ;    clobbers cx16.r0 (used as input and temporary)
         %asm {{
             sec
             sbc  cx16.r0L

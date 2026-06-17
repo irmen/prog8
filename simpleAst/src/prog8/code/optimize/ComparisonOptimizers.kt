@@ -1,10 +1,7 @@
 package prog8.code.optimize
 
 import prog8.code.ast.*
-import prog8.code.core.BaseDataType
-import prog8.code.core.ComparisonOperators
-import prog8.code.core.DataType
-import prog8.code.core.IErrorReporter
+import prog8.code.core.*
 
 /**
  * Comparison pattern optimizations.
@@ -104,7 +101,8 @@ internal object ComparisonOptimizers {
                 }
 
                 // Comparison with arithmetic: x <= y-1 -> x < y, x >= y+1 -> x > y
-                if (leftType.isInteger && rightType.isInteger) {
+                // Only for signed integers to avoid unsigned wraparound issues.
+                if (leftType.isSignedInteger && rightType.isSignedInteger) {
                     val rightExpr = right as? PtBinaryExpression
                     if (rightExpr != null) {
                         val rightRightConst = rightExpr.right.asConstValue()
@@ -136,7 +134,7 @@ internal object ComparisonOptimizers {
     /**
      * Optimizes comparison identities (x==x, x<x, etc.).
      */
-    fun optimizeComparisonIdentities(program: PtProgram): Int {
+    fun optimizeComparisonIdentities(program: PtProgram, options: CompilationOptions): Int {
         var changes = 0
         walkAst(program) { node: PtNode, depth: Int ->
             if (node is PtBinaryExpression && node.operator in ComparisonOperators) {
@@ -147,7 +145,8 @@ internal object ComparisonOptimizers {
                 // (constant-vs-constant is already folded in compilerAST phase)
                 // NOTE: do NOT apply to floats - NaN comparisons don't follow these rules
                 // (e.g. NaN == NaN is false, NaN <= NaN is false)
-                if (left isSameAs right && !left.type.isFloat) {
+                // NOTE: do NOT apply if expressions have side effects (e.g. peek(1000) == peek(1000))
+                if (left isSameAs right && !left.type.isFloat && !left.hasSideEffects(options.compTarget)) {
                     val result = when (node.operator) {
                         "==" -> true
                         "!=" -> false

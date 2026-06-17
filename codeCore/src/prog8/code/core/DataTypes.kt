@@ -73,6 +73,9 @@ val BaseDataType.isWordOrByteOrBool get() = this in setOf(BaseDataType.UBYTE, Ba
 val BaseDataType.isNumeric get() = this == BaseDataType.FLOAT || this.isInteger
 val BaseDataType.isNumericOrBool get() = this == BaseDataType.BOOL || this.isNumeric
 val BaseDataType.isSigned get() = this in setOf(BaseDataType.BYTE, BaseDataType.WORD, BaseDataType.LONG, BaseDataType.FLOAT)
+val BaseDataType.isUnsigned get() = !this.isSigned
+val BaseDataType.isSignedInteger get() = this.isSigned && this.isInteger
+val BaseDataType.isUnsignedInteger get() = this.isUnsigned && this.isInteger
 val BaseDataType.isArray get() = this == BaseDataType.ARRAY || this == BaseDataType.ARRAY_SPLITW || this == BaseDataType.ARRAY_POINTER
 val BaseDataType.isPointer get() = this == BaseDataType.POINTER
 val BaseDataType.isStructInstance get() = this == BaseDataType.STRUCT_INSTANCE

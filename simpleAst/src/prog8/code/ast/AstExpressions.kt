@@ -112,6 +112,37 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
 
     fun asConstValue(): Double? = (this as? PtNumber)?.number ?: (this as? PtBool)?.asInt()?.toDouble() ?: (this as? PtTypeCast)?.value?.asConstValue()
 
+    fun hasSideEffects(target: ICompilationTarget? = null): Boolean {
+        return when(this) {
+            is PtAddressOf -> arrayIndexExpr?.hasSideEffects(target) == true
+            is PtArray -> children.any { (it as PtExpression).hasSideEffects(target) }
+            is PtArrayIndexer -> true
+            is PtBinaryExpression -> left.hasSideEffects(target) || right.hasSideEffects(target)
+            is PtContainmentCheck -> children.any { it is PtExpression && it.hasSideEffects(target) }
+            is PtFunctionCall -> !hasNoSideEffects || args.any { it.hasSideEffects(target) }
+            is PtIdentifier -> false
+            is PtIrRegister -> false
+            is PtMemoryByte -> {
+                val addr = address.asConstInteger()
+                if (addr != null && target != null) {
+                    target.isIOAddress(addr.toUInt())
+                } else {
+                    true
+                }
+            }
+            is PtBool -> false
+            is PtNumber -> false
+            is PtPrefix -> value.hasSideEffects(target)
+            is PtRange -> from.hasSideEffects(target) || to.hasSideEffects(target)
+            is PtString -> false
+            is PtPointerDeref -> true
+            is PtTypeCast -> value.hasSideEffects(target)
+            is PtIfExpression -> condition.hasSideEffects(target) || truevalue.hasSideEffects(target) || falsevalue.hasSideEffects(target)
+            is PtBranchCondExpression -> truevalue.hasSideEffects(target) || falsevalue.hasSideEffects(target)
+            is PtConstant -> false
+        }
+    }
+
     fun isSimple(): Boolean {
         return when(this) {
             is PtAddressOf -> this.arrayIndexExpr==null || this.arrayIndexExpr?.isSimple()==true
