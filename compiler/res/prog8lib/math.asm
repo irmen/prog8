@@ -490,6 +490,23 @@ _divisor	.word ?
 		.send BSS
 		.pend
 
+divmod_uw_preserve_r15	.proc
+	; wrapper around divmod_uw_asm that preserves cx16.r15
+	; same input/output as divmod_uw_asm,
+	; except cx16.r15 is restored to its original value on return
+	; (remainder is still available via P8ZP_SCRATCH_W2)
+		lda  cx16.r15L
+		pha
+		lda  cx16.r15H
+		pha
+		jsr  divmod_uw_asm
+		pla
+		sta  cx16.r15H
+		pla
+		sta  cx16.r15L
+		rts
+		.pend
+
 randword	.proc
 	; -- 16 bit pseudo random number generator into AY
 	;    default seed = $00c2 $1137.  NOTE:  uses self-modifying code so won't work in ROM (use randword_rom instead)

@@ -1357,18 +1357,17 @@ flag such as Carry (Pc).
 
     Various compiler operations and builtin routines use the virtual registers R0-R15 as
     temporary storage or for placing return values. If you are using the virtual registers
-    directly in your program (or via ``@R0..@R15`` parameter annotations), be aware of the following:
+    directly in your program (or via ``@R0..@R15`` parameter annotations), be aware of the
+    fact that they will not always preserve their value!
 
     ========================== ================================================
     Register(s)                When clobbered
     ========================== ================================================
     ``R0-R3``                  Many library routines use these as scratch
-    ``R0-R5``                  ``direction_qd()``
-    ``R12-R15``                Long value operations
-    ``R14-R15``                Long value operations / ``crc16`` / ``crc32`` 
-    ``R15``                    ``%`` / ``divmod()`` / ``lerpw()`` / ``interpolate()``
-    ``R15..R0``                Multi-value subroutine return values if specified
-    ``R0-R15``                 ``@R0..@R15`` parameter reuse if specified
+    ``R12-R15``                Several long value operations and arithmetic expressions
+    ``R14-R15``                Several long value operations / word '%', '/', divmod 
+    ``R0..R15``                if specified: multi-value subroutine return values, parameter reuse.
+                               several library routines may clobber one or more of these registers too.
     ========================== ================================================
 
     Additionally, on all targets, the virtual registers R0-R15 are **not preserved** across IRQ

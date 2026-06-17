@@ -68,7 +68,7 @@ Math
     Performs the division only once. Using '/' and '%' separately
     would perform the division twice, so using divmod is much more efficient for this.
     **Note:** Clobbers ``cx16.r15`` (the remainder is stored there for the word variant).
-    This also applies when using the ``%`` operator on its own (it calls divmod internally).
+    The ``%`` operator on its own used to also clobber ``cx16.r15`` but now preserves it.
 
 :index:`gcd` (a, b)
     Returns the GCD (greatest common divisor) of uwords a and b

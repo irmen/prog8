@@ -1125,7 +1125,7 @@ internal class AssignmentAsmGen(
             }
             expr.type.isUnsignedWord -> {
                 asmgen.assignWordOperandsToAYAndVar(expr.right, expr.left, "P8ZP_SCRATCH_W1")
-                asmgen.out("  jsr  prog8_math.divmod_uw_asm")
+                asmgen.out("  jsr  prog8_math.divmod_uw_preserve_r15")
                 assignVariableWord(target, "P8ZP_SCRATCH_W2", DataType.UWORD)
                 return true
             }
