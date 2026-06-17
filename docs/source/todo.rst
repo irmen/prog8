@@ -62,6 +62,13 @@ IR/VM
 - VM label address loading - ``VmProgramLoader.kt`` throws when it cannot resolve a label address as a value (``"vm cannot yet load a label address as a value"``).
 
 
+Language Server
+^^^^^^^^^^^^^^^
+- Fix the 2 remaining disabled (xtest) LSP tests in Prog8LanguageServerTest.kt:
+  - find references for subroutines (returns 0 results)
+  - completions: symbol completions (not scope-aware, no user symbols)
+
+
 Libraries
 ^^^^^^^^^
 - Add split-word array sorting routines to sorting module?

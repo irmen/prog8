@@ -49,9 +49,7 @@ data {
         dataBlock shouldNotBe null
     }
 
-    xtest("go to definition - should find variable declaration from use site") {
-        // DISABLED: Goto definition currently only works from declaration sites, not from use sites.
-        // Need to implement proper reference resolution that tracks variable usage in expressions.
+    test("go to definition - should find variable declaration from use site") {
         val code = """
 main {
     sub start() {
@@ -61,17 +59,15 @@ main {
 }
 """
         harness.openDocument(testUri, code)
-        
-        // Cursor on 'val1' at line 4 (0-indexed: 3), character 18 (in the assignment)
-        val locations = harness.definition(testUri, 3, 18)
-        
+
+        // Cursor on 'val1' at line 4 (0-indexed), character 21 (in the assignment)
+        val locations = harness.definition(testUri, 4, 21)
+
         locations.size shouldBe 1
-        locations[0].range.start.line shouldBe 2 // Declaration at line 2 (0-indexed)
+        locations[0].range.start.line shouldBe 3 // Declaration at line 3 (0-indexed)
     }
 
-    xtest("go to definition - should find subroutine from call site") {
-        // DISABLED: Goto definition from subroutine call sites needs proper function call detection
-        // and resolution. Currently only works when cursor is on the declaration itself.
+    test("go to definition - should find subroutine from call site") {
         val code = """
 main {
     sub start() {
@@ -83,17 +79,15 @@ main {
 }
 """
         harness.openDocument(testUri, code)
-        
-        // Cursor on 'local_get' at line 3 (0-indexed: 3)
-        val locations = harness.definition(testUri, 3, 12)
-        
+
+        // Cursor on 'local_get' at line 3 (0-indexed), character 8
+        val locations = harness.definition(testUri, 3, 8)
+
         locations.size shouldBe 1
-        locations[0].range.start.line shouldBe 4 // Declaration at line 4 (0-indexed)
+        locations[0].range.start.line shouldBe 5 // Declaration at line 5 (0-indexed, after leading empty line)
     }
 
-    xtest("find references - should find all references to a variable") {
-        // DISABLED: Find references needs to scan entire document for identifier usage,
-        // not just declarations. Requires proper AST walking for expression references.
+    test("find references - should find all references to a variable") {
         val code = """
 main {
     sub start() {
@@ -104,17 +98,17 @@ main {
 }
 """
         harness.openDocument(testUri, code)
-        
-        // Find references from declaration (line 3, character 12 - on 'val1')
-        val locations = harness.references(testUri, 3, 12, includeDeclaration = true)
-        
+
+        // Find references from declaration (line 3, character 15 - on 'val1')
+        val locations = harness.references(testUri, 3, 15, includeDeclaration = true)
+
         // Should find: declaration + uses
         locations.size shouldNotBe 0  // At least some references found
     }
 
     xtest("find references - should find all references to a subroutine") {
-        // DISABLED: Find references for subroutines needs proper call site detection
-        // and resolution across the entire document.
+        // DISABLED: Find references returns 0 results for subroutine calls.
+        // The implementation exists but doesn't resolve call sites correctly.
         val code = """
 main {
     sub start() {
@@ -127,15 +121,15 @@ main {
 }
 """
         harness.openDocument(testUri, code)
-        
-        // Find references from declaration (line 5, character 8 - on 'local_get')
-        val locations = harness.references(testUri, 5, 8, includeDeclaration = true)
-        
+
+        // Find references from declaration (line 6, character 8 - on 'local_get')
+        val locations = harness.references(testUri, 6, 8, includeDeclaration = true)
+
         // Should find: declaration + 2 uses
         locations.size shouldBe 3
     }
 
-    xtest("signature help - should show signature for subroutine call") {
+    test("signature help - should show signature for subroutine call") {
         // DISABLED: Signature help needs proper function call detection at cursor position
         // and parameter index calculation. Currently returns null or incorrect data.
         val code = """
@@ -161,7 +155,7 @@ main {
         sig.parameters.size shouldBe 2
     }
 
-    xtest("signature help - should show signature with return type") {
+    test("signature help - should show signature with return type") {
         // DISABLED: Signature help implementation incomplete - needs to detect function calls
         // in progress and show parameter hints with proper active parameter tracking.
         val code = """
@@ -205,7 +199,7 @@ main {
     }
 
     xtest("completions - should provide symbol completions") {
-        // DISABLED: Symbol completions need proper scope-aware symbol collection.
+        // DISABLED: Symbol completions not scope-aware and don't include user symbols.
         // Currently only provides keyword and builtin function completions.
         val code = """
 main {
