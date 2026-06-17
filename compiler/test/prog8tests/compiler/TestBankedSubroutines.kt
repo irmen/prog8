@@ -5,8 +5,8 @@ import io.kotest.engine.spec.tempdir
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
+import prog8.code.target.Cx16Target
 import prog8.code.target.PETTarget
-import prog8.code.target.VMTarget
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
 
@@ -27,7 +27,7 @@ class TestBankedSubroutines : FunSpec({
             }
         """
         val errors = ErrorReporterForTests()
-        compileText(VMTarget(), false, text, outputDir, writeAssembly = false, errors = errors).shouldNotBeNull()
+        compileText(Cx16Target(), false, text, outputDir, writeAssembly = false, errors = errors).shouldNotBeNull()
         errors.errors.size shouldBe 0
     }
 
@@ -45,7 +45,7 @@ class TestBankedSubroutines : FunSpec({
             }
         """
         val errors = ErrorReporterForTests()
-        compileText(VMTarget(), false, text, outputDir, writeAssembly = false, errors = errors) shouldBe null
+        compileText(Cx16Target(), false, text, outputDir, writeAssembly = false, errors = errors) shouldBe null
         errors.errors.size shouldBe 1
         errors.errors[0] shouldContain "bank subroutine must be parameterless"
     }
@@ -64,7 +64,7 @@ class TestBankedSubroutines : FunSpec({
             }
         """
         val errors = ErrorReporterForTests()
-        compileText(VMTarget(), false, text, outputDir, writeAssembly = false, errors = errors) shouldBe null
+        compileText(Cx16Target(), false, text, outputDir, writeAssembly = false, errors = errors) shouldBe null
         errors.errors.size shouldBe 1
         errors.errors[0] shouldContain "bank subroutine must return a single ubyte"
     }
@@ -81,7 +81,7 @@ class TestBankedSubroutines : FunSpec({
             }
         """
         val errors = ErrorReporterForTests()
-        compileText(VMTarget(), false, text, outputDir, writeAssembly = false, errors = errors) shouldBe null
+        compileText(Cx16Target(), false, text, outputDir, writeAssembly = false, errors = errors) shouldBe null
         errors.errors.size shouldBe 1
         errors.errors[0] shouldContain "bank subroutine cannot itself be a banked routine"
     }
@@ -99,7 +99,7 @@ class TestBankedSubroutines : FunSpec({
             }
         """
         val errors = ErrorReporterForTests()
-        compileText(VMTarget(), false, text, outputDir, writeAssembly = false, errors = errors) shouldBe null
+        compileText(Cx16Target(), false, text, outputDir, writeAssembly = false, errors = errors) shouldBe null
         errors.errors.size shouldBe 1
         errors.errors[0] shouldContain "@bank must be a ubyte variable or a parameterless subroutine returning ubyte"
     }
@@ -146,7 +146,7 @@ class TestBankedSubroutines : FunSpec({
             }
         """.trimIndent()
         val errors = ErrorReporterForTests()
-        compileText(VMTarget(), false, text, outputDir, errors = errors, writeAssembly = false, varshigh = 1, slabshigh = 1) shouldBe null
+        compileText(Cx16Target(), false, text, outputDir, errors = errors, writeAssembly = false, varshigh = 1, slabshigh = 1) shouldBe null
         errors.errors.any { it.contains("variable bank extsub has no romable code-generation") } shouldBe true
     }
 })

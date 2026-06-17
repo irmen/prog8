@@ -1984,6 +1984,12 @@ internal class AstChecker(private val program: Program,
                 if (target.name == "peekf" || target.name == "pokef")
                     errors.err("floating point used, but that is not enabled via options", position)
             }
+
+            if(target.name=="callfar" || target.name=="callfar2") {
+                if(!compilerOptions.compTarget.supportsBankedCalls) {
+                    errors.err("banked subroutine call is not supported on the selected compilation target", position)
+                }
+            }
         }
 
         if (target is Label) {

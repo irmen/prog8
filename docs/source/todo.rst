@@ -1,6 +1,11 @@
 TODO
 ====
 
+throw AssemblyError("callfar is not supported on the selected compilation target")  ->  needs an escape hatch see discord
+
+in examples/test.p8 compile it for virtual target, you get an error on the for loop.  The error is a bit weird though, can it be made so that it prints a regular "undefined symbol: xxxx" error in this case too?
+
+
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^

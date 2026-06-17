@@ -13,7 +13,7 @@ class VMTarget: ICompilationTarget,
     IMemSizer by NormalMemSizer(FLOAT_MEM_SIZE) {
 
     override val name = NAME
-    override val supportsBankedCalls = true
+    override val supportsBankedCalls = false
     override val defaultEncoding = Encoding.ISO
     override val libraryPath = null
     override val customLauncher = emptyList<String>()
