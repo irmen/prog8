@@ -1733,6 +1733,8 @@ class FunctionCallExpression(override var target: IdentifierReference,
         val constVal = constValue(program ,false)
         if(constVal!=null)
             return InferredTypes.knownFor(constVal.type)
+        if (args.any { it.inferType(program).isUnknown })
+            return InferredTypes.unknown()
         val stmt = target.targetStatement(program.builtinFunctions) ?: return InferredTypes.unknown()
         when (stmt) {
             is BuiltinFunctionPlaceholder -> {

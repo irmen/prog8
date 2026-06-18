@@ -19,6 +19,7 @@ You are writing **6502/65C02 assembly** using **64tass syntax**, in separate `*.
 - **NOT ca65/cc65** or other assemblers. Key differences:
 - `.proc` / `.pend` for procedures (scoping)
 - `_label` for local labels (prefixed with underscore, scoped to `.proc`)
+- **Symbol aliases**: inside a `.proc`, use `_name = P8ZP_SCRATCH_B1` to give a scratch variable a descriptive name.
 - **Anonymous labels**: defined as `+` (forward) or `-` (backward) at the start of a line. Reference them in branches using `+`, `++`, `+++` etc. (first/second/third *upcoming* anonymous forward label) and `-`, `--`, `---` etc. (first/second/third *preceding* anonymous backward label).
   - Crucial: `+` refers to the NEXT upcoming `+` label, `++` refers to the ONE AFTER that, etc.
   - `-` refers to the MOST RECENT `-` label, `--` to the one before that, etc.
@@ -36,23 +37,35 @@ You are writing **6502/65C02 assembly** using **64tass syntax**, in separate `*.
         rts
     ++  inc $d020   ; third forward label
     ```
-- Data directives: `.byte`, `.word`, `.dword`
+- Data directives: `.byte`, `.word`, `.dword`, `.fill` (allocate space)
 - Equates: `label = value` (not `label .equ value` or `#define`)
+- **Number Literals**: Hex `$1234`, Binary `%10101010`, Decimal `123`.
 - Zero-page variables defined with `=`
 - `.text` for inline string data
+- **Conditional assembly**: `.if`, `.elsif`, `.else`, `.endif`
+- **Memory Sections**: `.section <name>`, `.send <name>` (common sections: `CODE`, `DATA`, `BSS`, `BSS_NOCLEAR`)
 
 ## Instructions
-- **Instructions like `rol`, `ror`, `asl`, `lsr`, `php`, `pla` require an explicit operand for accumulator**: write `rol a`, `ror a`, not just `rol`/`ror`
+- **Instructions like `rol`, `ror`, `asl`, `lsr` (and `inc`, `dec` on 65C02) require an explicit operand for accumulator**: write `rol a`, `inc a`, etc., not just `rol` or `inc`.
 - Standard 6502 addressing modes: implied, immediate (`#`), zero-page (`zp`), zero-page,X (`zp,x`), absolute (`abs`), absolute,X (`abs,x`), absolute,Y (`abs,y`), indirect (`(abs)`), indirect,X (`(zp,x)`), indirect,Y (`(zp),y`), relative (branches), accumulator
 - Branches: `bne`, `beq`, `bmi`, `bpl`, `bcs`, `bcc`, `bvs`, `bvc` (relative, max +127/-128 bytes)
 - Jumps: `jmp` (absolute or indirect), `jsr`/`rts` (subroutine call/return)
 - No `push`/`pop` mnemonics — use `pha`/`pla` (byte) and `txa`/`phx`/`plx`/`tay`/`phy`/`ply` for registers
 
+### Instruction Side Effects (Flags)
+- **`Z` (Zero)**: Set if the result of an operation is 0.
+- **`N` (Negative)**: Set if bit 7 of the result is 1.
+- **`C` (Carry)**: Used for unsigned overflow and shifts. `cmp` sets `C` if `Register >= Operand`.
+- **`V` (Overflow)**: Set if a signed arithmetic operation overflowed.
+- **Commonly affected by**: `lda`, `ldx`, `ldy`, `inx`, `dex`, `tax`, `tay`, `txa`, `tya`, `and`, `ora`, `eor`, `asl`, `lsr`, `rol`, `ror`, `adc`, `sbc`, `cmp`, `cpx`, `cpy`, `bit`.
+- **Note**: `lda`, `ldx`, `ldy` do NOT affect the Carry flag. Only `adc`, `sbc`, `cmp`, and shift/rotate instructions affect Carry.
+
 ## 6502 vs 65C02
-- **CX16 target only**: can use 65C02 instructions — `stz`, `phx`, `plx`, `phy`, `ply`, `bra`, `trb`, `tsb`, `stp`, `wai`, `clr`, `ina`, `dea`, `cmp (zp)`, `dec`/`inc abs,x` etc.
-- **C64, C128, PET32 targets**: original 6502 only — no `stz`, no `phx`/`plx`/`phy`/`ply`, no `bra`
+- **CX16 target only**: can use WDC 65C02 instructions — `stz`, `phx`, `plx`, `phy`, `ply`, `bra`, `trb`, `tsb`, `stp`, `wai`, `inc a`, `dec a`, `bit #imm`, `bit zp,x`, `bit abs,x`, `jmp (abs,x)`, and `(zp)` indirect addressing mode (e.g., `lda (zp)`).
+- **C64, C128, PET32 targets**: original 6502 only — no `stz`, no `phx`/`plx`/`phy`/`ply`, no `bra` etc.
+- **Note**: The Rockwell/bit-manipulation instructions (`rmb`, `smb`, `bbr`, `bbs`) are **NOT** available.
 - Check the target before using 65C02-specific instructions
-- **6502 / 65C02 instruction reference**: https://www.pagetable.com/c64ref/6502/?cpu=65c02&tab=2
+- **6502 / 65C02 instruction reference table**: https://www.pagetable.com/c64ref/6502/?cpu=65c02&tab=4 (provides exact instruction details for all opcodes: operation, addressing modes, byte length, and cycle count).
 
 ## Calling Convention / Register Conventions
 - **Accumulator (A)**: 8-bit, used for most arithmetic, data movement, return values
@@ -74,8 +87,9 @@ You are writing **6502/65C02 assembly** using **64tass syntax**, in separate `*.
 - Parameters passed via registers: `@A`, `@X`, `@Y`, `@AX` (A low, X high), `@AY` (A low, Y high), `@R0`-`@R15`, `@FAC1`/`@FAC2` (float), `@Pc` (carry), `@Pz` (zero)
 - Return value: `-> type @register` — also via `@Pz`/`@Pc` for flags
 - Clobbers: `clobbers (A, X, Y)` — MUST list all modified registers
-- **Parameter names are documentation only** — use the actual registers in assembly, NOT parameter names
+- **CRITICAL**: Parameter names in `asmsub` are **documentation only**. You MUST use the actual registers in your assembly code, NOT the parameter names (unless you create aliases yourself).
 - Create symbolic aliases at assembly top for clarity: `x1 = cx16.r0`, `y1 = cx16.r0L`
+- Accessing Prog8 parameters if they were NOT mapped to registers: use `p8v_paramname`. (Mapping to registers is preferred for speed).
 
 Example:
 ```prog8
@@ -133,12 +147,31 @@ All Prog8 symbols are prefixed when accessed from assembly:
 
 ## Common 6502 Patterns
 
+### Common Branch Logic (Comparisons)
+| Logic | Unsigned | Signed |
+|-------|----------|--------|
+| `A == imm` | `cmp #imm`, `beq label` | (Same) |
+| `A != imm` | `cmp #imm`, `bne label` | (Same) |
+| `A < imm` | `cmp #imm`, `bcc label` | `sec`, `sbc #imm`, `bvc *+4`, `eor #$80`, `bmi label` |
+| `A >= imm` | `cmp #imm`, `bcs label` | `sec`, `sbc #imm`, `bvc *+4`, `eor #$80`, `bpl label` |
+| `A <= imm` | `beq label`, `bcc label` | (Use complex signed logic or reorder) |
+| `A > imm` | `beq +`, `bcs label`, `+` | (Use complex signed logic or reorder) |
+
 ### Looping (downto with BNE)
 ```asm
         ldx #count
 loop    ; do work here
         dex
-        bne loop        ; loop while X != 0
+        bne loop        ; loop while X != 0 (runs 'count' times)
+```
+
+### Self-Modifying Code (SMC) Detection
+Look for `sta`, `stx`, or `sty` pointing into code labels:
+```asm
+        lda #$42
+        sta _target+1   ; Modifies the immediate operand of the LDA at _target
+        ...
+_target lda #$00        ; This #$00 will be replaced by #$42 at runtime
 ```
 
 ### Indirect indexed read (table of data)
@@ -169,7 +202,76 @@ loop    ; do work here
         ldy p8v_myword+1        ; loads MSB (word variables are stored LSB-first)
 ```
 
+## CPU Quirks and Pitfalls
+
+### JMP ($xxFF) Page Wrap Bug (NMOS 6502)
+- **Problem**: On original 6502 CPUs, `jmp ($caff)` will fetch the LSB from `$caff` but the MSB from `$ca00` (instead of `$cb00`).
+- **Target**: Affects C64, C128, PET32.
+- **Solution**: Avoid placing indirect jump vectors on a page boundary, or use the CX16 (65C02) which fixed this bug.
+
+### BRK Instruction and the "Signature Byte"
+- **Behavior**: After a `BRK` instruction, the return address on the stack is incremented by **2**. This means the CPU skips the byte immediately following the `BRK` opcode.
+- **Usage**: This skipped byte is often used as a "signature" or parameter byte for the BRK handler.
+
+### BIT Instruction Flags
+- **Absolute/Zero-page**: `bit $1234` copies bit 7 of the memory value to the **N** flag and bit 6 to the **V** flag. The **Z** flag is set based on `A AND memory`.
+- **Immediate (65C02 only)**: `bit #$01` only affects the **Z** flag; it does **NOT** modify N or V.
+- **NMOS 6502**: Does **not** support `bit #imm`.
+
+### The "B" (Break) Flag
+- **Quirk**: The B flag (bit 4 of the status register) doesn't actually exist in the hardware status register. It only exists on the stack after a `PHP` or `BRK` instruction (set to 1) or a hardware IRQ/NMI (set to 0).
+- **Detection**: To tell if an interrupt was caused by `BRK` or a hardware IRQ, your handler must `pla`, `and #$10`, and check the result.
+
+### Decimal Mode Flag (D) Persistence
+- **Pitfall**: On NMOS 6502, the `D` flag is **not** cleared on interrupt. Always use `cld` in IRQ handlers. On 65C02, it is cleared automatically, but `cld` is still good practice.
+- **ADC/SBC**: Be extremely careful with arithmetic if you haven't explicitly set or cleared the `D` flag, as its state might be unknown.
+
+## Optimization Tips
+- **`stz` (65C02 only)**: Saves cycles and bytes compared to `lda #0`, `sta ...`.
+- **`bra` (65C02 only)**: Shorter and usually faster than `jmp`.
+- **Avoid `clc` before `bcc`**: `cmp` already sets the carry flag correctly for `bcc`/`bcs`.
+- **`inx` / `dex` vs `clc`+`adc #1`**: Incrementing/decrementing is faster and doesn't affect the carry flag.
+- **Zero-page usage**: Accessing variables in zeropage is 1 cycle faster and 1 byte shorter than absolute addressing.
+- **Cycle Counting**: Most instructions take 2-4 cycles. `jsr` takes 6, `rts` takes 6. Branches take 2 (no branch), 3 (branch taken), or 4 (branch taken across page boundary).
+
+## 64tass Macros
+Define macros for common tasks:
+```asm
+pushax  .macro
+        pha
+        txa
+        pha
+        .endm
+
+popax   .macro
+        pla
+        tax
+        pla
+        .endm
+```
+Call them with `#pushax` and `#popax`.
+
 ## IRQ Handler Best Practices
-- Keep handlers extremely short and fast — they run with interrupts disabled and steal cycles from the main program
-- Do NOT do lengthy processing, I/O, or complex subroutine calls inside the handler
-- Instead, set a boolean flag or semaphore that the main loop checks periodically, and do the actual work there
+- **Clear the Decimal Flag (`cld`)**: On the original 6502, the decimal flag (`D`) is **not** automatically cleared when an interrupt occurs. If the interrupted code was in decimal mode, your handler will also run in decimal mode, causing arithmetic errors. Always call `cld` at the beginning of your handler. The 65C02 clears it automatically, but `cld` is still recommended for portability.
+- Keep handlers extremely short and fast — they run with interrupts disabled and steal cycles from the main program.
+- Do NOT do lengthy processing, I/O, or complex subroutine calls inside the handler.
+- Instead, set a boolean flag or semaphore that the main loop checks periodically, and do the actual work there.
+
+## Invoking the Assembler (64tass)
+If you need to manually invoke `64tass` to assemble a generated `.asm` file, you should be aware of the default arguments that `prog8c` supplies to ensure compatibility with the generated code:
+
+- `--ascii`: **CRITICAL.** Prog8 generates character and string data in ASCII. Without this flag, `64tass` defaults to PETSCII, which will garble your strings.
+- `--case-sensitive`: Prog8 is case-sensitive and expects the assembler to be as well.
+- `--long-branch`: Enables automatic conversion of relative branches (`beq`, `bne`, etc.) to absolute jumps if the target is out of range. Prog8 relies on this.
+- `-Wno-implied-reg`: Suppresses warnings when the accumulator `a` is omitted from instructions like `rol`, `lsr`, etc. (though the skill recommends always using `rol a` for clarity).
+- `-Wall`: Enables all warnings.
+- `--cbm-prg` (or `--atari-xex` / `--nostart`): Sets the output format and adds the appropriate load address header.
+
+### Optional but Recommended for Debugging:
+- `--vice-labels --labels=labels.txt`: Generates a label file that can be loaded into the VICE monitor (`load_labels "labels.txt"`) to see your Prog8 symbol names while debugging.
+- `--list=listing.txt`: Generates a full assembly listing file with addresses and opcodes.
+
+### Example manual invocation:
+```bash
+64tass --ascii --case-sensitive --long-branch -Wall --cbm-prg -o myprogram.prg myprogram.asm
+```
