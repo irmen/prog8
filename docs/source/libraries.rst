@@ -1115,7 +1115,32 @@ Make sound on the Pet, without locking up the program in a busy loop: it uses th
 ``sub note(ubyte note)``
     play the given note. Note constants are available in the module as well, such as A_4, A_5, F_SHARP_5 etc etc
 
+For non-blocking sequenced playback (driven by an IRQ handler):
 
+``sub song(^^ubyte notes, ^^ubyte durations, ubyte length)``
+    Prepare a note/duration array pair for non-blocking sequenced playback.
+    Call this to set up the sequencer, then call ``update()`` periodically
+    (e.g. from a vsync IRQ handler) to advance through the notes.
+
+``sub update() -> bool``
+    Advance the sequencer by one tick. Returns ``false`` when the song has ended.
+    The sequencer calls ``note()`` and ``off()`` internally as needed.
+    See ``examples/pet/music.p8`` for a complete IRQ-driven example using a bare
+    ``cbm.CINV`` handler.
+
+``sub is_playing() -> bool``
+    Returns true if a song is currently being played back via the sequencer.
+
+Blocking convenience helpers:
+
+``sub play_note(ubyte note, ubyte ticks)``
+    Play a single note for a given duration in jiffy ticks (blocking).
+    Requires ``on()`` to have been called before.
+
+``sub play_song(^^ubyte notes, ^^ubyte durations, ubyte length)``
+    Play a sequence of notes with given durations (blocking).
+    Uses ``song()`` + ``update()`` internally with vsync timing.
+    Requires ``on()`` to have been called before.
 
 petgfx  (PET, C64, C128)
 ^^^^^^^^^^^^^^^^^^^^^^^^

@@ -216,8 +216,12 @@ IRQ Handling (general)
 
 Normally, the system's default IRQ handling is not interfered with.
 You can however install your own IRQ handler (for clean separation, it is advised to define it inside its own block).
-There are a few library routines available to make setting up 60hz/vsync IRQs and raster/line IRQs a lot easier (no assembly code required).
 
+High-level convenience routines
+-------------------------------
+
+On the C64, C128 and CommanderX16 targets there are a few library routines available to make setting up
+60hz/vsync IRQs and raster/line IRQs a lot easier (no assembly code required).
 These routines are::
 
     sys.set_irq(uword handler_address)
@@ -228,6 +232,53 @@ These routines are::
 
 The IRQ handler routine must return a boolean value (0 or 1) in the A register:
 0 means do *not* run the system IRQ handler routine afterwards, 1 means run the system IRQ handler routine afterwards.
+
+.. note::
+    The PET32 target does **not** provide these convenience routines.
+    On PET32 you need to install a bare CINV handler using ``cbm.CINV`` (see below).
+
+
+Low-level bare IRQ handler
+--------------------------
+
+Some targets allow you to install a "bare" IRQ handler directly into the system's interrupt vector,
+bypassing the high-level ``sys.set_irq()`` convenience routines. A bare handler is just a subroutine
+that is called directly by the CPU on each interrupt -- there is no register-saving wrapper around it.
+
+On Commodore targets (C64, C128, PET32, Commander X16) you install such a handler by writing to the
+``cbm.CINV`` RAM vector::
+
+    uword saved_irq = cbm.CINV    ; save old handler address (may be $0000 if none)
+
+    sys.set_irqd()
+    cbm.CINV = &my_handler        ; install our handler
+    sys.clear_irqd()
+
+Other targets may use a different vector or may not support bare handlers at all.
+
+.. caution::
+    On Commodore targets, the KERNAL saves A, X, Y before dispatching through the CINV vector,
+    so a bare handler does not need to save/restore them. However, the handler **must** save
+    and restore the compiler's internal zero-page scratch registers via
+    ``sys.save_prog8_internals()`` / ``sys.restore_prog8_internals()`` — the KERNAL does not know
+    about those, and the handler's own Prog8 code may corrupt them.
+
+    The handler must also chain to the previous handler to preserve system services
+    (jiffy clock, keyboard scan, cursor blink). A correct bare handler on Commodore looks like this::
+
+        uword saved_irq
+
+        sub my_handler() {
+            sys.save_prog8_internals()
+
+            ; ... your IRQ handler code here ...
+
+            sys.restore_prog8_internals()
+            goto saved_irq      ; chain to previous handler
+        }
+
+    Make sure to declare ``saved_irq`` as a ``uword`` variable in the same scope, and save the
+    current value of the interrupt vector into it before overwriting it.
 
 .. caution::
     Be cautious about calling ROM routines within an interrupt handler. Some kernal routines are fine to call,

@@ -1,10 +1,14 @@
 ; Play sounds from your PET speaker
-; Uses the VIA timer to be able to play them without blocking the program in a delay loop.
+; The VIA timer acts as an oscillator to generate tones without CPU involvement for the tone itself.
 ; Notes lower than A3 cannot be played with this mechanism and need a custom CPU delay loop.
+;
+; This module provides both blocking and non-blocking sequenced playback.
+; Use play_note() or play_song() for simple blocking playback where the program waits for the duration.
+; Use song(), update() and is_playing() for non-blocking playback driven by a periodic timer (e.g. IRQ handler).
 ;
 ; inspiration: http://blog.tynemouthsoftware.co.uk/2022/05/pet-sounds.html
 ;
-; Example:
+; Example of the simplest way to play some notes:
 ;       petsnd.on()
 ;       petsnd.note(petsnd.C_4)
 ;       sys.wait(30)
@@ -52,12 +56,22 @@ petsnd {
     const ubyte  B_5          = $3D    ; B5   = 987.77 Hz
     const ubyte  C_6          = $39    ; C6   = 1046.50 Hz
 
+    ; sequencer state for non-blocking playback
+    private ^^ubyte seq_notes
+    private ^^ubyte seq_durations
+    private ubyte seq_length
+    private ubyte seq_position
+    private ubyte seq_tick_counter
+    private ubyte seq_playing
+
     sub on() {
+        ; enable sound output via the VIA shift register
         pet.via1acr = $10       ; "shift out free running at T2 rate"
         octaves(petsnd.OCTAVES_456)
     }
 
     sub off() {
+        ; disable sound output and clear any playing note
         pet.via1t2 = 0          ; clear note
         pet.via1acr = 0         ; stop sound.
     }
@@ -74,6 +88,62 @@ petsnd {
     }
 
     sub note(ubyte n) {
+        ; set the note frequency. value 0 is silent, higher values produce higher pitches.
         pet.via1t2 = n        ; timer 2 rate (L)
+    }
+
+    sub song(^^ubyte notes, ^^ubyte durations, ubyte length) {
+        ; prepare for non-blocking sequenced playback.
+        ; call on() before starting, and update() periodically to advance the sequencer.
+        seq_notes = notes
+        seq_durations = durations
+        seq_length = length
+        seq_position = 0
+        seq_tick_counter = 1
+        seq_playing = 1
+    }
+
+    sub update() -> bool {
+        ; advance the sequencer by one tick. returns false when the song has ended.
+        ; call this periodically (e.g. from a vsync IRQ handler).
+        ; the sequencer calls note() and off() internally as needed.
+        if seq_playing == 0
+            return false
+
+        seq_tick_counter--
+        if seq_tick_counter == 0 {
+            if seq_position >= seq_length {
+                off()
+                seq_playing = 0
+                return false
+            } else {
+                note(seq_notes[seq_position])
+                seq_tick_counter = seq_durations[seq_position]
+                seq_position++
+            }
+        }
+        return true
+    }
+
+    sub play_note(ubyte n, ubyte ticks) {
+        ; play a single note for a given duration in jiffy ticks (blocking).
+        ; requires on() to have been called before.
+        note(n)
+        sys.wait(ticks)
+    }
+
+    sub play_song(^^ubyte notes, ^^ubyte durations, ubyte length) {
+        ; play a sequence of notes with given durations (blocking).
+        ; uses song()+update() internally with vsync timing.
+        ; requires on() to have been called before.
+        song(notes, durations, length)
+        do {
+            sys.waitvsync()
+        } until not update()
+    }
+
+    sub is_playing() -> bool {
+        ; returns true if the non-blocking sequencer is currently playing a song
+        return seq_playing != 0
     }
 }
