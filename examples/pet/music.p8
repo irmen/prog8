@@ -47,31 +47,31 @@ main {
 song {
     ubyte[] notes = [
         ; ---- A section ----
-        petsnd.E_4, petsnd.E_4, petsnd.F_4, petsnd.G_4,
-        petsnd.G_4, petsnd.F_4, petsnd.E_4, petsnd.D_4,
-        petsnd.C_4, petsnd.C_4, petsnd.D_4, petsnd.E_4,
-        petsnd.E_4, petsnd.D_4, petsnd.D_4,
+        petsnd.E_5, petsnd.E_5, petsnd.F_5, petsnd.G_5,
+        petsnd.G_5, petsnd.F_5, petsnd.E_5, petsnd.D_5,
+        petsnd.C_5, petsnd.C_5, petsnd.D_5, petsnd.E_5,
+        petsnd.E_5, petsnd.D_5, petsnd.D_5,
         petsnd.REST,
 
         ; ---- A section repeat ----
-        petsnd.E_4, petsnd.E_4, petsnd.F_4, petsnd.G_4,
-        petsnd.G_4, petsnd.F_4, petsnd.E_4, petsnd.D_4,
-        petsnd.C_4, petsnd.C_4, petsnd.D_4, petsnd.E_4,
-        petsnd.D_4, petsnd.C_4, petsnd.C_4,
+        petsnd.E_5, petsnd.E_5, petsnd.F_5, petsnd.G_5,
+        petsnd.G_5, petsnd.F_5, petsnd.E_5, petsnd.D_5,
+        petsnd.C_5, petsnd.C_5, petsnd.D_5, petsnd.E_5,
+        petsnd.D_5, petsnd.C_5, petsnd.C_5,
         petsnd.REST,
 
         ; ---- B section (bridge) ----
-        petsnd.D_4, petsnd.D_4, petsnd.E_4, petsnd.C_4,
-        petsnd.D_4, petsnd.E_4, petsnd.F_4, petsnd.E_4,
-        petsnd.C_4, petsnd.D_4, petsnd.E_4, petsnd.F_4,
-        petsnd.E_4, petsnd.D_4, petsnd.C_4, petsnd.D_4,
-        petsnd.E_4,
+        petsnd.D_5, petsnd.D_5, petsnd.E_5, petsnd.C_5,
+        petsnd.D_5, petsnd.E_5, petsnd.F_5, petsnd.E_5,
+        petsnd.C_5, petsnd.D_5, petsnd.E_5, petsnd.F_5,
+        petsnd.E_5, petsnd.D_5, petsnd.C_5, petsnd.D_5,
+        petsnd.G_4,
 
         ; ---- A section final ----
-        petsnd.E_4, petsnd.E_4, petsnd.F_4, petsnd.G_4,
-        petsnd.G_4, petsnd.F_4, petsnd.E_4, petsnd.D_4,
-        petsnd.C_4, petsnd.C_4, petsnd.D_4, petsnd.E_4,
-        petsnd.D_4, petsnd.C_4, petsnd.C_4
+        petsnd.E_5, petsnd.E_5, petsnd.F_5, petsnd.G_5,
+        petsnd.G_5, petsnd.F_5, petsnd.E_5, petsnd.D_5,
+        petsnd.C_5, petsnd.C_5, petsnd.D_5, petsnd.E_5,
+        petsnd.D_5, petsnd.C_5, petsnd.C_5
     ]
 
     ; durations are total ticks per note slot (note-on + silence gap).
