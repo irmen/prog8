@@ -30,30 +30,41 @@ petsnd {
     ; notes:
     const ubyte  REST         = $00    ; silence (subsonic, timer wraps around)
     const ubyte  A_SHARP_3    = $FF    ; A#3  = 233.08 Hz
+    const ubyte  B_FLAT_3     = $FF    ; A#3  = 233.08 Hz
     const ubyte  B_3          = $FA    ; B3   = 246.94 Hz
     const ubyte  C_4          = $EE    ; C4   = 261.63 Hz
     const ubyte  C_SHARP_4    = $E0    ; C#4  = 277.18 Hz
+    const ubyte  D_FLAT_4     = $E0    ; C#4  = 277.18 Hz
     const ubyte  D_4          = $D2    ; D4   = 293.66 Hz
     const ubyte  D_SHARP_4    = $C7    ; D#4  = 311.13 Hz
+    const ubyte  E_FLAT_4     = $C7    ; D#4  = 311.13 Hz
     const ubyte  E_4          = $BC    ; E4   = 329.63 Hz
     const ubyte  F_4          = $B1    ; F4   = 349.23 Hz
     const ubyte  F_SHARP_4    = $A8    ; F#4  = 369.99 Hz
+    const ubyte  G_FLAT_4     = $A8    ; F#4  = 369.99 Hz
     const ubyte  G_4          = $9E    ; G4   = 392.00 Hz
     const ubyte  G_SHARP_4    = $95    ; G#4  = 415.30 Hz
+    const ubyte  A_FLAT_4     = $95    ; G#4  = 415.30 Hz
     const ubyte  A_4          = $8C    ; A4   = 440.00 Hz
     const ubyte  A_SHARP_4    = $85    ; A#4  = 466.16 Hz
+    const ubyte  B_FLAT_4     = $85    ; A#4  = 466.16 Hz
     const ubyte  B_4          = $7D    ; B4   = 493.78 Hz
     const ubyte  C_5          = $76    ; C5   = 523.25 Hz
     const ubyte  C_SHARP_5    = $6E    ; C#5  = 554.37 Hz
+    const ubyte  D_FLAT_5     = $6E    ; C#5  = 554.37 Hz
     const ubyte  D_5          = $68    ; D5   = 587.33 Hz
     const ubyte  D_SHARP_5    = $63    ; D#5  = 622.25 Hz
+    const ubyte  E_FLAT_5     = $63    ; D#5  = 622.25 Hz
     const ubyte  E_5          = $5D    ; E5   = 659.26 Hz
     const ubyte  F_5          = $58    ; F5   = 698.46 Hz
     const ubyte  F_SHARP_5    = $53    ; F#5  = 739.99 Hz
+    const ubyte  G_FLAT_5     = $53    ; F#5  = 739.99 Hz
     const ubyte  G_5          = $4E    ; G5   = 783.99 Hz
     const ubyte  G_SHARP_5    = $4A    ; G#5  = 830.61 Hz
+    const ubyte  A_FLAT_5     = $4A    ; G#5  = 830.61 Hz
     const ubyte  A_5          = $45    ; A5   = 880.00 Hz
     const ubyte  A_SHARP_5    = $41    ; A#5  = 932.33 Hz
+    const ubyte  B_FLAT_5     = $41    ; A#5  = 932.33 Hz
     const ubyte  B_5          = $3D    ; B5   = 987.77 Hz
     const ubyte  C_6          = $39    ; C6   = 1046.50 Hz
 
