@@ -193,7 +193,7 @@ unroll 80 {
 ```
 
 ## Subroutines & Return Values
-- Symbols public by default; use `private` to restrict to block
+- **Don't use `private` on subroutines and variables** (including nested ones) unless the user asks for it. Everything is public by default in Prog8 — follow that convention.
 - `inline` keyword for subroutines to suggest inlining
 - No function overloading (except builtins). Cannot use builtin names (msw, lsw, msb, lsb, mkword, mklong, peek, peekw, peekl, etc.) as variable/sub names
 - Can return 0, 1, or multiple values: `a, b, c = routine()`. Use `void` to skip: `void routine()`, `a, void, c = routine()`

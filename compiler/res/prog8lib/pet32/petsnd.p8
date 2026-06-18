@@ -28,6 +28,7 @@ petsnd {
     const ubyte OCTAVES_678 = 3
 
     ; notes:
+    const ubyte  REST         = $00    ; silence (subsonic, timer wraps around)
     const ubyte  A_SHARP_3    = $FF    ; A#3  = 233.08 Hz
     const ubyte  B_3          = $FA    ; B3   = 246.94 Hz
     const ubyte  C_4          = $EE    ; C4   = 261.63 Hz
@@ -63,6 +64,8 @@ petsnd {
     private ubyte seq_position
     private ubyte seq_tick_counter
     private ubyte seq_playing
+    private ubyte seq_gap = 1
+
 
     sub on() {
         ; enable sound output via the VIA shift register
@@ -88,41 +91,78 @@ petsnd {
     }
 
     sub note(ubyte n) {
-        ; set the note frequency. value 0 is silent, higher values produce higher pitches.
+        ; set the note frequency. use REST constant (0) for a silence rest.
+        ; higher values produce higher pitches.
         pet.via1t2 = n        ; timer 2 rate (L)
+    }
+
+    sub set_gap(ubyte ticks) {
+        ; set the number of silence ticks between notes in sequenced playback (default 1).
+        ; the note-on time is automatically adjusted: note = duration - gap, minimum 1 tick.
+        ; call this before song() to change the gap duration.
+        seq_gap = ticks
     }
 
     sub song(^^ubyte notes, ^^ubyte durations, ubyte length) {
         ; prepare for non-blocking sequenced playback.
+        ; the durations array holds the total ticks per note slot (note-on + gap).
+        ; the gap is configurable via set_gap() (default 1 tick).
         ; call on() before starting, and update() periodically to advance the sequencer.
         seq_notes = notes
         seq_durations = durations
         seq_length = length
         seq_position = 0
         seq_tick_counter = 1
-        seq_playing = 1
+        seq_playing = 2          ; start in "gap finished" phase so first note plays immediately
     }
 
     sub update() -> bool {
         ; advance the sequencer by one tick. returns false when the song has ended.
         ; call this periodically (e.g. from a vsync IRQ handler).
         ; the sequencer calls note() and off() internally as needed.
+        ; the durations array holds total ticks per note slot (note-on + gap).
+        ; the note-on time is adjusted automatically when a different gap is set via set_gap().
+
         if seq_playing == 0
             return false
 
         seq_tick_counter--
         if seq_tick_counter == 0 {
-            if seq_position >= seq_length {
+            if seq_playing == 2 {
+                ; gap finished, play the actual note
+                advance()
+            } else if seq_position >= seq_length {
                 off()
                 seq_playing = 0
                 return false
             } else {
-                note(seq_notes[seq_position])
-                seq_tick_counter = seq_durations[seq_position]
-                seq_position++
+                ; note duration expired
+                if seq_gap > 0 {
+                    note(0)
+                    seq_tick_counter = seq_gap
+                    seq_playing = 2
+                } else {
+                    ; gap=0: seamless advance to next note, no silence
+                    if seq_position >= seq_length {
+                        off()
+                        seq_playing = 0
+                        return false
+                    }
+                    advance()
+                }
             }
         }
         return true
+
+        private sub advance() {
+            note(seq_notes[seq_position])
+            ubyte nt = seq_durations[seq_position] - seq_gap
+            if nt == 0
+                nt = 1
+            seq_tick_counter = nt
+            seq_position++
+            seq_playing = 1
+        }
     }
 
     sub play_note(ubyte n, ubyte ticks) {

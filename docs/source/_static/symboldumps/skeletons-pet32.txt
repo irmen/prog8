@@ -438,6 +438,7 @@ petsnd  {
     const ubyte  OCTAVES_456
     const ubyte  OCTAVES_567
     const ubyte  OCTAVES_678
+    const ubyte  REST
     is_playing  () -> bool
     note  (ubyte n)
     octaves  (ubyte oct)
@@ -445,6 +446,7 @@ petsnd  {
     on  ()
     play_note  (ubyte n, ubyte ticks)
     play_song  (^^ubyte notes, ^^ubyte durations, ubyte length)
+    set_gap  (ubyte ticks)
     song  (^^ubyte notes, ^^ubyte durations, ubyte length)
     update  () -> bool
 }

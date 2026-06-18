@@ -1113,14 +1113,23 @@ Make sound on the Pet, without locking up the program in a busy loop: it uses th
     set octave(s), choice from range 1 to 3.   (1=octaves 4,5,6,  2=octaves 5,6,7, 3=octaves 6,7,8)
 
 ``sub note(ubyte note)``
-    play the given note. Note constants are available in the module as well, such as A_4, A_5, F_SHARP_5 etc etc
+    play the given note. Use ``REST`` (value 0) for a silence rest.
+    Note constants are available in the module as well, such as A_4, A_5, F_SHARP_5 etc etc
 
 For non-blocking sequenced playback (driven by an IRQ handler):
 
 ``sub song(^^ubyte notes, ^^ubyte durations, ubyte length)``
     Prepare a note/duration array pair for non-blocking sequenced playback.
+    The ``durations`` array holds the total ticks per note slot (note-on + gap).
     Call this to set up the sequencer, then call ``update()`` periodically
     (e.g. from a vsync IRQ handler) to advance through the notes.
+
+``sub set_gap(ubyte ticks)``
+    Set the number of silence ticks between notes (default 1).
+    ``0`` means no silence gap at all — notes flow into each other seamlessly.
+    The note-on time is automatically adjusted: ``note = duration - gap``,
+    minimum 1 tick. This means changing the gap does **not** affect the
+    overall tempo. Call this before ``song()``.
 
 ``sub update() -> bool``
     Advance the sequencer by one tick. Returns ``false`` when the song has ended.

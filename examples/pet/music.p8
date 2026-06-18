@@ -13,6 +13,7 @@ main {
         txt.print("\node an die freude - beethoven\n(playing using irq)\n")
 
         petsnd.on()
+        petsnd.set_gap(1)       ; default intra note gap is 1 tick
         petsnd.song(&song.notes, &song.durations, len(song.notes))
 
         sys.set_irqd()
@@ -50,19 +51,21 @@ song {
         petsnd.G_4, petsnd.F_4, petsnd.E_4, petsnd.D_4,
         petsnd.C_4, petsnd.C_4, petsnd.D_4, petsnd.E_4,
         petsnd.E_4, petsnd.D_4, petsnd.D_4,
+        petsnd.REST,
 
         ; ---- A section repeat ----
         petsnd.E_4, petsnd.E_4, petsnd.F_4, petsnd.G_4,
         petsnd.G_4, petsnd.F_4, petsnd.E_4, petsnd.D_4,
         petsnd.C_4, petsnd.C_4, petsnd.D_4, petsnd.E_4,
         petsnd.D_4, petsnd.C_4, petsnd.C_4,
+        petsnd.REST,
 
         ; ---- B section (bridge) ----
         petsnd.D_4, petsnd.D_4, petsnd.E_4, petsnd.C_4,
         petsnd.D_4, petsnd.E_4, petsnd.F_4, petsnd.E_4,
         petsnd.C_4, petsnd.D_4, petsnd.E_4, petsnd.F_4,
         petsnd.E_4, petsnd.D_4, petsnd.C_4, petsnd.D_4,
-        petsnd.G_4,
+        petsnd.E_4,
 
         ; ---- A section final ----
         petsnd.E_4, petsnd.E_4, petsnd.F_4, petsnd.G_4,
@@ -71,7 +74,9 @@ song {
         petsnd.D_4, petsnd.C_4, petsnd.C_4
     ]
 
-    ; durations (in jiffy ticks at 60Hz = 1/60 second per tick)
+    ; durations are total ticks per note slot (note-on + silence gap).
+    ; the gap is configured via set_gap() (here 1 tick).
+    ; note-on time = duration - gap, computed automatically.
     const ubyte w = 64      ; whole note (~1.07s)
     const ubyte h = 32      ; half note (~0.53s)
     const ubyte d = 24      ; dotted quarter (~0.40s)
@@ -84,19 +89,21 @@ song {
         q, q, q, q,
         q, q, q, q,
         d, e, h,
+        e,
 
         ; ---- A section repeat ----
         q, q, q, q,
         q, q, q, q,
         q, q, q, q,
-        d, e, w,
+        d, e, h,
+        e,
 
         ; ---- B section (bridge) ----
-        q, q, q, q,
-        e, e, e, e,
-        q, e, e, e,
-        e, q, q, q,
-        q,
+        q, q, q, q,         ; bar 1: D D E C - straight quarters
+        q, e, e, q,         ; bar 2: D E F E
+        q, q, e, e,         ; bar 3: C D E F
+        q, q, q, q,         ; bar 4: E D C D
+        h,                  ; bar 5: G - half note resolution
 
         ; ---- A section final ----
         q, q, q, q,
