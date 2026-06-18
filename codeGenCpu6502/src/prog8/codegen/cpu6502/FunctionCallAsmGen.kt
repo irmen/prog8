@@ -116,7 +116,23 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
 +                               .byte  0    ; modified"""
                                 )
                             }
-                            else -> throw AssemblyError("callfar is not supported on the selected compilation target")
+                            else -> {
+                                if(asmgen.options.compTarget.supportsBankedCalls) {
+                                    val targetName = asmgen.options.compTarget.name
+                                    asmgen.out("""
+                                        php
+                                        pha
+                                        lda  $varbank
+                                        sta  +
+                                        pla
+                                        plp
+                                        jsr  $targetName.x16jsrfar
+                                        .word  $subAsmName    ; ${sub.address!!.address.toHex()}
++                                       .byte  0    ; modified"""
+                                    )
+                                } else
+                                    throw AssemblyError("callfar is not supported on the selected compilation target")
+                            }
                         }
                     } else {
                         asmgen.out("  jsr  $subAsmName")
@@ -146,7 +162,17 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
                                 .byte  $bank"""
                             )
                         }
-                        else -> throw AssemblyError("callfar is not supported on the selected compilation target")
+                        else -> {
+                            if(asmgen.options.compTarget.supportsBankedCalls) {
+                                val targetName = asmgen.options.compTarget.name
+                                asmgen.out("""
+                                    jsr  $targetName.x16jsrfar
+                                    .word  $subAsmName    ; ${sub.address!!.address.toHex()}
+                                    .byte  $bank"""
+                                )                                
+                            } else
+                                throw AssemblyError("callfar is not supported on the selected compilation target")
+                        }
                     }
                 }
             }

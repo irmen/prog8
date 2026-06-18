@@ -396,14 +396,11 @@ import prog8.codegen.cpu6502.assignment.*
 
     private fun funcCallFar(fcall: PtFunctionCall): Array<RegisterOrPair> {
         val targetName = asmgen.options.compTarget.name
-        if(targetName !in arrayOf("cx16", "c64", "c128"))
-            throw AssemblyError("callfar only works on cx16, c64 and c128 targets at this time")
-
         val jsrfar = when(targetName) {
             "cx16" -> "cx16.JSRFAR"
             "c64" -> "c64.x16jsrfar"
             "c128" -> "c128.x16jsrfar"
-            else -> TODO("jsrfar routine")
+            else -> "$targetName.x16jsrfar"
         }
         val constBank = fcall.args[0].asConstInteger()
         val constAddress = fcall.args[1].asConstInteger()
