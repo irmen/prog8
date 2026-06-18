@@ -234,6 +234,77 @@ sys {
         }}
     }
 
+asmsub  set_irq(uword handler @AY) clobbers(A)  {
+    ; Install a custom IRQ handler to run on every system IRQ (60Hz).
+    ; The handler routine should return a boolean:
+    ; true (non-zero) to continue with the default system IRQ handler,
+    ; false (zero) to acknowledge the IRQ and return from interrupt immediately.
+    ; To restore the original IRQ handler, call restore_irq() afterwards.
+    %asm {{
+        php
+        sei
+        sta  _vector
+        sty  _vector+1
+
+        lda  cbm.CINV
+        ldy  cbm.CINV+1
+        sta  _old_irq
+        sty  _old_irq+1
+
+        lda  #<_irq_handler
+        sta  cbm.CINV
+        lda  #>_irq_handler
+        sta  cbm.CINV+1
+        plp
+        rts
+
+_irq_handler
+        jsr  sys.save_prog8_internals
+        cld
+        jsr  _run_custom
+        pha
+        jsr  sys.restore_prog8_internals
+        pla
+        beq  _finish_irq
+        jmp  (_old_irq)
+
+_finish_irq
+        lda  pet.via1t1l    ; acknowledge VIA1 timer 1 interrupt
+        pla
+        tay
+        pla
+        tax
+        pla
+        rti
+
+_run_custom
+        jmp  (_vector)
+
+        .section BSS
+_vector .word ?
+_old_irq .word ?
+        .send BSS
+        ; !notreached!
+    }}
+}
+
+asmsub  restore_irq() clobbers(A) {
+    ; Restore the original system IRQ handler that was saved by a prior set_irq() call.
+    %asm {{
+        php
+        sei
+        lda  sys.set_irq._old_irq
+        ora  sys.set_irq._old_irq+1
+        beq  +           ; check if it was actually set
+        lda  sys.set_irq._old_irq
+        ldy  sys.set_irq._old_irq+1
+        sta  cbm.CINV
+        sty  cbm.CINV+1
++       plp
+        rts
+    }}
+}
+
     asmsub waitvsync() clobbers(A) {
         ; --- busy wait till the next vsync has occurred (approximately), without depending on custom irq handling.
         ;     Note: on PET this simply waits until the next jiffy clock update, I don't know if a true vsync is possible there

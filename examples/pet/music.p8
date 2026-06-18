@@ -7,8 +7,6 @@
 ; Uses petsnd.song() + petsnd.update() driven by an interrupt handler routine.
 
 main {
-    uword old_irq_vector
-
     sub start() {
         txt.print("\node an die freude - beethoven\n(playing using irq)\n")
 
@@ -16,10 +14,7 @@ main {
         petsnd.set_gap(1)       ; default intra note gap is 1 tick
         petsnd.song(&song.notes, &song.durations, len(song.notes))
 
-        sys.set_irqd()
-        old_irq_vector = cbm.CINV
-        cbm.CINV = &irq_handler
-        sys.clear_irqd()
+        sys.set_irq(&petsnd.update)
 
         do {
             sys.waitvsync()
@@ -27,20 +22,8 @@ main {
         } until not petsnd.is_playing()
 
         petsnd.off()
-
-        sys.set_irqd()
-        cbm.CINV = old_irq_vector
-        sys.clear_irqd()
+        sys.restore_irq()
         txt.print("\ndone\n")
-    }
-
-    ; Bare CINV IRQ handler - called on each vsync tick.
-    ; Drives petsnd sequencer, then chains to the system's default IRQ handler.
-    sub irq_handler() {
-        sys.save_prog8_internals()
-        void petsnd.update()
-        sys.restore_prog8_internals()
-        goto old_irq_vector
     }
 }
 

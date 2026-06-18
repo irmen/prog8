@@ -220,22 +220,22 @@ You can however install your own IRQ handler (for clean separation, it is advise
 High-level convenience routines
 -------------------------------
 
-On the C64, C128 and CommanderX16 targets there are a few library routines available to make setting up
-60hz/vsync IRQs and raster/line IRQs a lot easier (no assembly code required).
+On the C64, C128, PET32 and CommanderX16 targets there are a few library routines available to make setting up
+60hz/vsync IRQs a lot easier (no assembly code required).
 These routines are::
 
     sys.set_irq(uword handler_address)
-    sys.set_rasterirq(uword handler_address, uword rasterline)
-    sys.update_rasterirq(uword handler_address, uword rasterline)
-    sys.set_rasterline(uword rasterline)
-    sys.restore_irq()     ; set everything back to the systems default irq handler
+    sys.restore_irq()          ; set everything back to the systems default irq handler
+    sys.set_rasterirq(uword handler_address, uword rasterline)    (not on PET32)
+    sys.update_rasterirq(uword handler_address, uword rasterline) (not on PET32)
+    sys.set_rasterline(uword rasterline)                          (not on PET32)
 
 The IRQ handler routine must return a boolean value (0 or 1) in the A register:
 0 means do *not* run the system IRQ handler routine afterwards, 1 means run the system IRQ handler routine afterwards.
 
 .. note::
-    The PET32 target does **not** provide these convenience routines.
-    On PET32 you need to install a bare CINV handler using ``cbm.CINV`` (see below).
+    The PET32 target only supports ``sys.set_irq()`` and ``sys.restore_irq()``.
+    The raster-related routines are not available on PET32.
 
 
 Low-level bare IRQ handler

@@ -373,7 +373,7 @@ class TestCompilerOnExamplesPET32: FunSpec({
         listOf(
             ExampleSizes("boingball", pet32SizeOptimized=1514, pet32SizeUnoptimized=1570),
             ExampleSizes("petswirl", pet32SizeOptimized=903, pet32SizeUnoptimized=969),
-            ExampleSizes("music", pet32SizeOptimized=839, pet32SizeUnoptimized=881),
+            ExampleSizes("music", pet32SizeOptimized=888, pet32SizeUnoptimized=925),
         ),
         listOf(false, true)
     )

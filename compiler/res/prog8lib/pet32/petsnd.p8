@@ -117,14 +117,14 @@ petsnd {
     }
 
     sub update() -> bool {
-        ; advance the sequencer by one tick. returns false when the song has ended.
-        ; call this periodically (e.g. from a vsync IRQ handler).
+        ; Advance the sequencer by one tick.
+        ; always returns true to facilitate immediate chaining to the system IRQ handler.
         ; the sequencer calls note() and off() internally as needed.
         ; the durations array holds total ticks per note slot (note-on + gap).
         ; the note-on time is adjusted automatically when a different gap is set via set_gap().
 
         if seq_playing == 0
-            return false
+            return true
 
         seq_tick_counter--
         if seq_tick_counter == 0 {
@@ -134,7 +134,7 @@ petsnd {
             } else if seq_position >= seq_length {
                 off()
                 seq_playing = 0
-                return false
+                return true
             } else {
                 ; note duration expired
                 if seq_gap > 0 {
@@ -146,7 +146,7 @@ petsnd {
                     if seq_position >= seq_length {
                         off()
                         seq_playing = 0
-                        return false
+                        return true
                     }
                     advance()
                 }
@@ -179,7 +179,8 @@ petsnd {
         song(notes, durations, length)
         do {
             sys.waitvsync()
-        } until not update()
+            void update()
+        } until not is_playing()
     }
 
     sub is_playing() -> bool {

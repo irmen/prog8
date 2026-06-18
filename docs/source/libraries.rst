@@ -1132,10 +1132,10 @@ For non-blocking sequenced playback (driven by an IRQ handler):
     overall tempo. Call this before ``song()``.
 
 ``sub update() -> bool``
-    Advance the sequencer by one tick. Returns ``false`` when the song has ended.
+    Advance the sequencer by one tick. Always returns ``true`` to facilitate
+    chaining to the system IRQ handler.
     The sequencer calls ``note()`` and ``off()`` internally as needed.
-    See ``examples/pet/music.p8`` for a complete IRQ-driven example using a bare
-    ``cbm.CINV`` handler.
+    See ``examples/pet/music.p8`` for a complete IRQ-driven example.
 
 ``sub is_playing() -> bool``
     Returns true if a song is currently being played back via the sequencer.
@@ -1632,6 +1632,7 @@ miscellaneous
     - 8 = Atari 8 bits
     - 16 = Commander X16
     - 25 = Foenix F256 family
+    - 32 = Commodore PET
     - 64 = Commodore 64
     - 128 = Commodore 128
     - 255 = Virtual machine
