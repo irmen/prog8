@@ -275,8 +275,14 @@ import prog8.codegen.cpu6502.assignment.*
         asmgen.assignWordOperandsToAYAndVar(fcall.args[1], fcall.args[0], "P8ZP_SCRATCH_W1")
         // math.divmod_uw_asm: -- divide two unsigned words (16 bit each) into 16 bit results
         //    input:  P8ZP_SCRATCH_W1 in ZP: 16-bit number, A/Y: 16 bit divisor
-        //    output: cx16.r15: 16-bit remainder, A/Y: 16 bit division result
+        //    output: P8ZP_SCRATCH_W2: 16-bit remainder, A/Y: 16 bit division result
         asmgen.out("  jsr  prog8_math.divmod_uw_asm")
+        // copy remainder from P8ZP_SCRATCH_W2 to R15 (needed as second return value)
+        asmgen.out("""
+            ldx  P8ZP_SCRATCH_W2
+            stx  cx16.r15L
+            ldx  P8ZP_SCRATCH_W2+1
+            stx  cx16.r15H""".trimIndent())
         return arrayOf(RegisterOrPair.AY, RegisterOrPair.R15)
     }
 

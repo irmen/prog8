@@ -2442,7 +2442,7 @@ $shortcutLabel:""")
                     sty  P8ZP_SCRATCH_W1+1
                     lda  #<$value
                     ldy  #>$value
-                    jsr  prog8_math.divmod_uw_preserve_r15
+                    jsr  prog8_math.divmod_uw_asm
                     lda  P8ZP_SCRATCH_W2
                     ldy  P8ZP_SCRATCH_W2+1
                     sta  $lsb
@@ -2929,7 +2929,7 @@ $shortcutLabel:""")
                             sty  P8ZP_SCRATCH_W1+1
                             lda  $otherName
                             ldy  #0
-                            jsr  prog8_math.divmod_uw_preserve_r15
+                            jsr  prog8_math.divmod_uw_asm
                             lda  P8ZP_SCRATCH_W2
                             sta  $name
                             lda  P8ZP_SCRATCH_W2+1
@@ -3271,7 +3271,7 @@ $shortcutLabel:""")
                 sta  P8ZP_SCRATCH_W1+1
                 txa
 oweroff
-                jsr  prog8_math.divmod_uw_preserve_r15
+                jsr  prog8_math.divmod_uw_asm
                 lda  P8ZP_SCRATCH_W2
                 ldy  P8ZP_SCRATCH_W2+1
                 sta  $name

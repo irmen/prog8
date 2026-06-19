@@ -2129,7 +2129,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
         fun modulus() {
             // on entry here: number placed in P8ZP_SCRATCH_W1, divisor placed in AY
             asmgen.out("""
-                jsr  prog8_math.divmod_uw_preserve_r15
+                jsr  prog8_math.divmod_uw_asm
                 lda  P8ZP_SCRATCH_W2
                 ldy  #0
                 sta  ($zpPtrVar),y
