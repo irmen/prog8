@@ -249,6 +249,7 @@ floats  {
     log2  (float value) -> float
     maxf  (float f1, float f2) -> float
     minf  (float f1, float f2) -> float
+    mod  (float value, float divisor) -> float
     normalize  (float value) -> float
     parse  (str value) -> float
     pow  (float value, float power) -> float

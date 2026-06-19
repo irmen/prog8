@@ -270,6 +270,35 @@ sub clampf(float value, float minimum, float maximum) -> float {
     return minimum
 }
 
+sub mod(float value, float divisor) -> float {
+    %asm {{
+        ; FAC = divisor
+        lda  #<divisor
+        ldy  #>divisor
+        jsr  MOVFM
+
+        ; FDIV mem: FAC = mem / FAC = value / divisor
+        lda  #<value
+        ldy  #>value
+        jsr  FDIV
+
+        ; INT: FAC = floor(value / divisor)
+        jsr  INT
+
+        ; FMULT mem: FAC *= divisor
+        lda  #<divisor
+        ldy  #>divisor
+        jsr  FMULT
+
+        ; FSUB mem: FAC = mem - FAC = value - product
+        lda  #<value
+        ldy  #>value
+        jsr  FSUB
+
+        rts
+    }}
+}
+
 sub lerp(float v0, float v1, float t) -> float {
     ; Linear interpolation (LERP)
     ; Precise method, which guarantees v = v1 when t = 1.

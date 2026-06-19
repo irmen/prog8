@@ -1,20 +1,14 @@
 %import textio
+%import floats
 %zeropage basicsafe
 %option no_sysinit
 
 main {
     sub start() {
-        ubyte @shared a = 10
-        ubyte @shared b = add_one(a)
-        ubyte @shared c = add_one(20)
-        say_hello()
-    }
-
-    sub say_hello() {
-        txt.print("hello")
-    }
-
-    sub add_one(ubyte x) -> ubyte {
-        return x + 1
+        float @shared f1 = 333.666
+        float @shared f2 = 123.456
+        float a = floats.mod(f1, f2)
+        txt.print_f(a)
+        txt.nl()
     }
 }

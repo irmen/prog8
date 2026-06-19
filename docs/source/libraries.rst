@@ -757,6 +757,9 @@ Provides definitions for the ROM/Kernal subroutines and utility routines dealing
 ``maxf (x, y)``
     returns the largest of x and y.
 
+``mod (value, divisor)``
+    Returns the modulo (remainder after division) of the two floating point numbers.
+
 ``parse (stringvalue)``
     Parses the string value as floating point number.
     Warning: this routine may stop working on the Commander X16 when a new ROM version is released,

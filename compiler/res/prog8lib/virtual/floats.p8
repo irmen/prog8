@@ -206,6 +206,10 @@ sub clampf(float value, float minimum, float maximum) -> float {
     return maximum
 }
 
+sub mod(float value, float divisor) -> float {
+    return value - floor(value / divisor) * divisor
+}
+
 sub normalize(float value) -> float {
     return value
 }
