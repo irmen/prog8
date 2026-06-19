@@ -434,8 +434,9 @@ divmod_w_asm	.proc
 divmod_uw_asm	.proc
 	; -- divide two unsigned words (16 bit each) into 16 bit results
 	;    input:  P8ZP_SCRATCH_W1 in ZP: 16 bit number, A/Y: 16 bit divisor
-	;    output: cx16.r15: 16 bit remainder, A/Y: 16 bit division result
+	;    output: P8ZP_SCRATCH_W2: 16 bit remainder, A/Y: 16 bit division result
 	;    division by zero will result in quotient = 65535 and remainder = 0
+	;    NOTE: does not clobber any cx16.rX registers.
 
 dividend = P8ZP_SCRATCH_W1
 remainder = P8ZP_SCRATCH_W2
@@ -446,8 +447,8 @@ result = dividend ;save memory by reusing dividend to store the result
 		ora  #0
 		bne  _nonzero
 		lda  #0		; remainder = 0
-		sta  cx16.r15L
-		sta  cx16.r15H
+		sta  remainder
+		sta  remainder+1
 		lda  #$ff		; quotient = 65535 (A/Y)
 		tay
 		rts
@@ -478,33 +479,12 @@ _nonzero
 +		dex
 		bne  -
 
-		lda  P8ZP_SCRATCH_W2
-		ldy  P8ZP_SCRATCH_W2+1
-		sta  cx16.r15L
-		sty  cx16.r15H
 		lda  result
 		ldy  result+1
 		rts
 		.section BSS
 _divisor	.word ?
 		.send BSS
-		.pend
-
-divmod_uw_preserve_r15	.proc
-	; wrapper around divmod_uw_asm that preserves cx16.r15
-	; same input/output as divmod_uw_asm,
-	; except cx16.r15 is restored to its original value on return
-	; (remainder is still available via P8ZP_SCRATCH_W2)
-		lda  cx16.r15L
-		pha
-		lda  cx16.r15H
-		pha
-		jsr  divmod_uw_asm
-		pla
-		sta  cx16.r15H
-		pla
-		sta  cx16.r15L
-		rts
 		.pend
 
 randword	.proc
