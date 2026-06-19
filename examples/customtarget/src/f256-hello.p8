@@ -2,7 +2,6 @@
 ; Simplistic example of some text output and
 ; reading keys.
 ;
-%launcher none
 %import textio
 
 main {

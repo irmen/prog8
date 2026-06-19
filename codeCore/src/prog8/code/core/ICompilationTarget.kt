@@ -28,6 +28,7 @@ interface ICompilationTarget: IStringEncoding, IMemSizer {
     val customLauncher: List<String>
     val additionalAssemblerOptions: List<String>
     val defaultOutputType: OutputType
+    val defaultLauncherType: CbmPrgLauncherType
     val supportsBankedCalls: Boolean
 
     fun initializeMemoryAreas(compilerOptions: CompilationOptions)

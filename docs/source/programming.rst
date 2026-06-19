@@ -436,7 +436,8 @@ Directives
 
 	Level: module.
 	Global setting, selects the program launcher stub to use.
-	Only relevant when using the ``prg`` output type. Defaults to ``basic``.
+	Only relevant when using the ``prg`` output type. The default is ``basic``,
+	or whatever the compilation target's configuration specifies (custom targets can set a different default via the ``launcher`` property).
 
 	- type ``basic`` : add a tiny C64 BASIC program, with a SYS statement calling into the machine code
 	- type ``none`` : no launcher logic is added at all

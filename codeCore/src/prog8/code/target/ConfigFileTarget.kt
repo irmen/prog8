@@ -26,6 +26,7 @@ class ConfigFileTarget(
     override val BSSGOLDENRAM_START: UInt,
     override val BSSGOLDENRAM_END: UInt,
     override val defaultOutputType: OutputType,
+    override val defaultLauncherType: CbmPrgLauncherType,
     override val libraryPath: Path,
     override val customLauncher: List<String>,
     override val additionalAssemblerOptions: List<String>,
@@ -113,6 +114,12 @@ class ConfigFileTarget(
             val assemblerOptionsStr = props.getProperty("assembler_options", "").trim()
             val outputTypeString = props.getProperty("output_type", "PRG")
             val defaultOutputType = OutputType.valueOf(outputTypeString.uppercase())
+            val launcherString = props.getProperty("launcher", "BASIC")
+            val defaultLauncherType = try {
+                CbmPrgLauncherType.valueOf(launcherString.uppercase())
+            } catch (_: IllegalArgumentException) {
+                CbmPrgLauncherType.BASIC
+            }
 
             return ConfigFileTarget(
                 configfile.nameWithoutExtension,
@@ -127,6 +134,7 @@ class ConfigFileTarget(
                 props.getInteger("bss_goldenram_start"),
                 props.getInteger("bss_goldenram_end"),
                 defaultOutputType,
+                defaultLauncherType,
                 libraryPath,
                 customLauncher,
                 if(assemblerOptionsStr=="") emptyList() else assemblerOptionsStr.split(" "),

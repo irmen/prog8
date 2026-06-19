@@ -341,7 +341,7 @@ class TestCompilerOnExamplesVirtual: FunSpec({
             ExampleSizes("pointers/hashtable", virtualInstrCountOptimized=578, virtualInstrCountUnoptimized=2277, virtualRegCountOptimized=293, virtualRegCountUnoptimized=1051),
             ExampleSizes("pointers/sortedlist", virtualInstrCountOptimized=267, virtualInstrCountUnoptimized=2428, virtualRegCountOptimized=118, virtualRegCountUnoptimized=1092),
             ExampleSizes("pointers/fountain-virtual", virtualInstrCountOptimized=145, virtualInstrCountUnoptimized=807, virtualRegCountOptimized=70, virtualRegCountUnoptimized=363),
-            ExampleSizes("pointers/sorting", virtualInstrCountOptimized=369, virtualInstrCountUnoptimized=2273, virtualRegCountOptimized=173, virtualRegCountUnoptimized=1016)
+            ExampleSizes("pointers/sorting", virtualInstrCountOptimized=369, virtualInstrCountUnoptimized=2281, virtualRegCountOptimized=173, virtualRegCountUnoptimized=1016)
         ),
         listOf(false, true)
     )

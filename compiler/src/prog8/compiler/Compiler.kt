@@ -510,13 +510,13 @@ internal fun determineCompilationOptions(program: Program, compTarget: ICompilat
         }
     }
     var launcherType = if (launcherTypeStr == null)
-        CbmPrgLauncherType.BASIC
+        compTarget.defaultLauncherType
     else {
         try {
             CbmPrgLauncherType.valueOf(launcherTypeStr)
         } catch (_: IllegalArgumentException) {
             // set default value; actual check and error handling of invalid option is handled in the AstChecker later
-            CbmPrgLauncherType.BASIC
+            compTarget.defaultLauncherType
         }
     }
 

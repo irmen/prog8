@@ -1,6 +1,3 @@
-%output raw
-%launcher none
-
 main {
     sub start() {
         extsub $fff1 = WriteCharacter(ubyte character @A)

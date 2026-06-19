@@ -17,6 +17,7 @@ class Cx16Target: ICompilationTarget,
     override val customLauncher = emptyList<String>()
     override val additionalAssemblerOptions = emptyList<String>()
     override val defaultOutputType = OutputType.PRG
+    override val defaultLauncherType = CbmPrgLauncherType.BASIC
 
     companion object {
         const val NAME = "cx16"
