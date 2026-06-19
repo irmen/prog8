@@ -60,11 +60,14 @@ song {
     ; durations are total ticks per note slot (note-on + silence gap).
     ; the gap is configured via set_gap() (here 1 tick).
     ; note-on time = duration - gap, computed automatically.
-    const ubyte w = 64      ; whole note (~1.07s)
-    const ubyte h = 32      ; half note (~0.53s)
-    const ubyte d = 24      ; dotted quarter (~0.40s)
-    const ubyte q = 16      ; quarter note (~0.27s)
-    const ubyte e = 8       ; eighth note (~0.13s)
+    const ubyte tempo = 180     ; beats per minute
+    const ubyte beat = 3600 / tempo as uword
+
+    const ubyte q = beat         ; quarter note gets the beat (♩ = 120)
+    const ubyte w = 4 * beat     ; whole note
+    const ubyte h = 2 * beat     ; half note
+    const ubyte d = 3 * beat / 2 ; dotted quarter note
+    const ubyte e = beat / 2     ; eighth note
 
     ubyte[] durations = [
         ; ---- A section ----

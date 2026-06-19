@@ -969,8 +969,14 @@ internal class AstChecker(private val program: Program,
         if(decl.type==VarDeclType.MEMORY) {
             if (decl.datatype.isString)
                 errors.err("strings cannot be memory-mapped", decl.position)
-            if (decl.datatype.isPointer || decl.datatype.isPointerArray)
-                errors.err("pointers cannot be memory-mapped", decl.position)
+
+            // TODO: this restriction may not be needed anymore, maybe codegen issue has been solved already:
+            if (decl.datatype.isPointer || decl.datatype.isPointerArray) {
+                if (decl.origin == VarDeclOrigin.SUBROUTINEPARAM)
+                    errors.err("pointer parameters cannot be register-mapped", decl.position)
+                else                 
+                    errors.err("pointers cannot be memory-mapped", decl.position)
+            }
         }
 
         fun err(msg: String) = errors.err(msg, decl.position)

@@ -1,14 +1,37 @@
 %import textio
-%import floats
 %zeropage basicsafe
 %option no_sysinit
 
 main {
+    struct Node {
+        ubyte x
+        ubyte y
+    }
+
+;    ^^Node @requirezp ptr
+;
+;    sub start() {
+;        txt.print_uwhex(&ptr, true)
+;    }
+
     sub start() {
-        float @shared f1 = 333.666
-        float @shared f2 = 123.456
-        float a = floats.mod(f1, f2)
-        txt.print_f(a)
+        ^^Node p1 = [22,33]
+        txt.print_ub(p1.x)
+        txt.spc()
+        txt.print_ub(p1.y)
+        txt.nl()
+
+        clear(p1)
+
+        txt.print_ub(p1.x)
+        txt.spc()
+        txt.print_ub(p1.y)
         txt.nl()
     }
+
+    sub clear(^^Node ptr @R11) {
+        ptr.x=0
+        ptr.y=0
+    }
+
 }
