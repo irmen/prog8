@@ -26,6 +26,12 @@ Follow ALL the rules below carefully.
 - **Library dump**: `prog8c -libdump <dir>` — extract all embedded library source files into a directory for direct inspection (less common, use `-libsearch` first)
 - **Other useful flags**: `-quiet` (suppress messages), `-warnimplicitcasts` (warn on implicit type widening), `-daemon` (keep a background compiler process alive to speed up multiple successive compilations — must be passed on every `prog8c` invocation)
 - **Test programs**: add `%zeropage basicsafe` and `%option no_sysinit` at top
+- **Compiler unit test snippets**: These are **prog8 code snippets embedded in the Prog8 compiler's own Kotlin unit tests** (e.g., in `TestAstChecks.kt`, `TestOptimization.kt`, etc.). They are NOT standalone Prog8 programs:
+  - Keep them self-contained — avoid `%import` directives so they don't depend on library files (the test setup may not have the library search path configured)
+  - Use the `cx16` target (not `virtual`, unless specifically testing the VM)
+  - Consider setting `writeAssembly=false` if the test only needs to check the generated AST (much faster)
+  - Use `optimize=false` by default for these snippets
+  - Do NOT use the `%encoding iso` / `txt.iso()` / `sys.poweroff_system()` pattern in these snippets — that's only for real CX16 emulator runs
 - **`sys` module**: always available, no import needed
 - **CX16 debugging**: Add `%encoding iso`, call `txt.iso()` in `start()`, end with `sys.poweroff_system()`. For emulator: `x16emu -echo iso -run -prg input.prg 2>&1 | grep ...`
 
@@ -92,7 +98,6 @@ No call stack for variable storage — recursion overwrites locals. To handle it
 - Bitwise operators: `&`, `|`, `^`, `~`, `<<`, `>>`
 - Bit rotation: `rol()`/`ror()` (through carry), `rol2()`/`ror2()` (no carry)
 - CPU status flag branches: `if_cs`, `if_cc`, `if_z`, `if_nz` (compile to single 6502 branch instructions)
-- Use `when` with choice blocks instead of multiple `if`
 - If-expressions for simple value assignments based on a choice
 - **Optional braces in if/else**: when the `if` or `else` body is a single statement, the `{ }` can be omitted. Place the statement on the next line, indented. Example:
   ```
@@ -102,6 +107,14 @@ No call stack for variable storage — recursion overwrites locals. To handle it
 - `defer` defers statement execution until scope exit. Multiple defers fire in **reverse registration order** (LIFO / stack order — last deferred runs first). A defer is only registered if execution reaches that statement — conditional paths that skip the `defer` line will not register it.
 - `goto`, labels, jump lists allowed
 - **Common mistake**: `and`/`or` for bitmasking — use `&`/`|` instead!
+
+### The when Statement
+The `when` statement is a control flow construct that enables you to execute a specific action based on the value of an expression. It is generally more readable and often more efficient than a sequence of `if-else if` statements, as the compiler can optimize it into more efficient branching structures, such as a jump table.
+- **Expression**: Evaluates an expression and compares it against case values.
+- **Cases**: Defined by a value followed by the `->` operator.
+- **Blocks**: Use `{ }` to enclose multiple statements for a case.
+- **Else Clause**: Serves as a default handler; mandatory unless the expression type is fully covered.
+- **Efficiency**: Recommended for handling sets of fixed choices as it typically results in better assembly code.
 
 ## Loop Constructs
 Prog8 supports these loop types. All support `break` and `continue` (except `unroll`).
@@ -180,7 +193,7 @@ unroll 80 {
 ```
 
 ## Subroutines & Return Values
-- Symbols public by default; use `private` to restrict to block
+- **Don't use `private` on subroutines and variables** (including nested ones) unless the user asks for it. Everything is public by default in Prog8 — follow that convention.
 - `inline` keyword for subroutines to suggest inlining
 - No function overloading (except builtins). Cannot use builtin names (msw, lsw, msb, lsb, mkword, mklong, peek, peekw, peekl, etc.) as variable/sub names
 - Can return 0, 1, or multiple values: `a, b, c = routine()`. Use `void` to skip: `void routine()`, `a, void, c = routine()`
