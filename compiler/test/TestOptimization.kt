@@ -11,8 +11,7 @@ import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldStartWith
 import io.kotest.matchers.types.instanceOf
 import io.kotest.matchers.types.shouldBeSameInstanceAs
-import prog8.ast.ParentSentinel
-import prog8.ast.Program
+import prog8.ast.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
@@ -1223,6 +1222,9 @@ main {
     }
 
     sub f_open(str name) -> bool {
+        repeat 2 {
+            cx16.r0++
+        }
         return cx16.r0==99
     }
 
@@ -1245,8 +1247,8 @@ main {
             }
             val calls = findFunctionCalls(cond)
             if (calls.isNotEmpty()) {
-                calls.any { it.target.nameInSource == listOf("f_open") } shouldBe true
-                calls.any { it.target.nameInSource == listOf("f_read") } shouldBe true
+                calls.any { it.target.nameInSource.last() == "f_open" } shouldBe true
+                calls.any { it.target.nameInSource.last() == "f_read" } shouldBe true
             }
         }
 
@@ -1675,7 +1677,7 @@ main {
         idAssigns.size shouldBe 3
     }
 
-    xtest("inline void call with one parameter") {
+    test("inline void call with one parameter") {
         // Tests that void calls with one parameter are inlined when args are simple
         val src = """
 main {
@@ -1723,7 +1725,7 @@ main {
         hasVoidCall shouldBe false
     }
 
-    xtest("inline call with one return value and one parameter") {
+    test("inline call with one return value and one parameter") {
         // Tests that function calls returning one value with one parameter are inlined
         // and that the parameter is correctly substituted with the argument
         val src = """
@@ -1850,7 +1852,7 @@ main {
         hasVoidCall shouldBe false
     }
 
-    test("parameterized subroutine with 'inline' is NOT inlined") {
+    test("parameterized subroutine with 'inline' is inlined (1 parameter)") {
         val src = """
 main {
     sub start() {
@@ -1863,15 +1865,15 @@ main {
         val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = false)!!
         val startSub = result.compilerAst.entrypoint
 
-        // Should still contain a function call to foo
+        // Should no longer contain a function call to foo
         val hasFooCall = startSub.statements.any { stmt ->
             stmt is FunctionCallStatement && 
             stmt.target.nameInSource.last() == "foo"
         }
-        hasFooCall shouldBe true
+        hasFooCall shouldBe false
     }
 
-    test("parameterized subroutine WITHOUT 'inline' is NOT auto-inlined") {
+    test("parameterized subroutine WITHOUT 'inline' is auto-inlined (1 parameter)") {
         val src = """
 main {
     sub start() {
@@ -1884,12 +1886,88 @@ main {
         val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = false)!!
         val startSub = result.compilerAst.entrypoint
 
-        // Should still contain a function call to foo
+        // Should no longer contain a function call to foo
         val hasFooCall = startSub.statements.any { stmt ->
             stmt is FunctionCallStatement && 
             stmt.target.nameInSource.last() == "foo"
         }
-        hasFooCall shouldBe true
+        hasFooCall shouldBe false
+    }
+
+    test("parameterized subroutine with 1 simple argument is inlined (auto-inlining)") {
+        val src = """
+        main {
+            sub start() {
+                ubyte @shared a = 10
+                ubyte @shared b = add_one(a)
+                ubyte @shared c = add_one(20)
+            }
+            sub add_one(ubyte x) -> ubyte {
+                return x + 1
+            }
+        }"""
+        val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = false)!!
+        val startSub = result.compilerAst.entrypoint
+        
+        // Should no longer contain a function call to add_one
+        val hasAddOneCall = startSub.statements.any { stmt ->
+            stmt is FunctionCallStatement && 
+            stmt.target.nameInSource.last() == "add_one"
+        }
+        val hasAddOneCallExpr = startSub.statements.any { stmt ->
+            (stmt as? Assignment)?.value.let { it is FunctionCallExpression && it.target.nameInSource.last() == "add_one" }
+        }
+        hasAddOneCall shouldBe false
+        hasAddOneCallExpr shouldBe false
+        
+        // Should have assignments with incremented values or binary expressions
+        val assigns = startSub.statements.filterIsInstance<Assignment>()
+        assigns.any { (it.value as? BinaryExpression)?.right is NumericLiteral && (it.value as BinaryExpression).operator == "+" } shouldBe true
+    }
+
+    test("parameterized subroutine with 1 simple argument is inlined (manual 'inline')") {
+        val src = """
+        main {
+            sub start() {
+                ubyte @shared a = 10
+                ubyte @shared b = square(a)
+            }
+            inline sub square(ubyte x) -> ubyte {
+                return x * x
+            }
+        }"""
+        val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = false)!!
+        val startSub = result.compilerAst.entrypoint
+        
+        // Should no longer contain a function call to square
+        val hasSquareCall = startSub.statements.any { stmt ->
+            (stmt as? Assignment)?.value.let { it is FunctionCallExpression && it.target.nameInSource.last() == "square" }
+        }
+        hasSquareCall shouldBe false
+    }
+
+    test("parameterized subroutine with complex argument is NOT inlined") {
+        val src = """
+        main {
+            sub start() {
+                ubyte @shared b = add_one(get_val())
+            }
+            sub get_val() -> ubyte {
+                cx16.r0++
+                return 10
+            }
+            inline sub add_one(ubyte x) -> ubyte {
+                return x + 1
+            }
+        }"""
+        val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = false)!!
+        val startSub = result.compilerAst.entrypoint
+        
+        // Should STILL contain a function call to add_one because get_val() has side effects
+        val hasAddOneCall = startSub.statements.any { stmt ->
+            (stmt as? Assignment)?.value.let { it is FunctionCallExpression && it.target.nameInSource.last() == "add_one" }
+        }
+        hasAddOneCall shouldBe true
     }
 
 
@@ -2267,5 +2345,85 @@ main {
         val res3Assign = assignments.find { it.target.identifier?.name?.contains("res3") == true }!!
         res3Assign.value shouldBe instanceOf<PtBinaryExpression>()
         (res3Assign.value as PtBinaryExpression).operator shouldBe "/"
+    }
+    test("asmsub arguments correctly handled when inlined (assembly check)") {
+        val src = """
+            main {
+                sub start() {
+                    ubyte @shared a = 10
+                    call_asm(a)
+                }
+                inline sub call_asm(ubyte x) {
+                    my_asmsub(x + 1)
+                }
+                asmsub my_asmsub(ubyte val @A) {
+                    %asm {{
+                        sta $02
+                        rts
+                    }}
+                }
+            }
+        """.trimIndent()
+
+        val result = compileText(Cx16Target(), true, src, outputDir, writeAssembly = true)!!
+        val asmFile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".asm")
+        val asm = asmFile.readText()
+        // verify that the argument passing code (inc a for x+1) is present
+        asm shouldContain "inc  a"
+        asm shouldContain "p8s_my_asmsub"
+    }
+
+    test("inliner relinks parent pointers (static check)") {
+        val src = """
+            main {
+                sub start() {
+                    call_asm(10)
+                }
+                inline sub call_asm(ubyte x) {
+                    foo(x)
+                }
+                sub foo(ubyte x) {}
+            }
+        """.trimIndent()
+        val result = compileText(Cx16Target(), true, src, outputDir)!!
+        val program = result.compilerAst
+        val root = program.namespace
+        
+        fun checkParents(node: Node, expectedParent: Node) {
+            if (node !== root as Node && node.parent !== expectedParent && expectedParent !== ParentSentinel) {
+                fail("Parent mismatch at ${node::class.simpleName} ($node): expected $expectedParent but got ${node.parent}")
+            }
+            when (node) {
+                is IStatementContainer -> node.statements.forEach { checkParents(it, node) }
+                is Subroutine -> {
+                    node.parameters.forEach { checkParents(it, node) }
+                    node.statements.forEach { checkParents(it, node) }
+                }
+                is FunctionCallStatement -> {
+                    checkParents(node.target, node)
+                    node.args.forEach { checkParents(it, node) }
+                }
+                is FunctionCallExpression -> {
+                    checkParents(node.target, node)
+                    node.args.forEach { checkParents(it, node) }
+                }
+                is BinaryExpression -> {
+                    checkParents(node.left, node)
+                    checkParents(node.right, node)
+                }
+                is PrefixExpression -> checkParents(node.expression, node)
+                is Return -> node.values.forEach { checkParents(it, node) }
+                is Assignment -> {
+                    checkParents(node.target, node)
+                    checkParents(node.value, node)
+                }
+                is VarDecl -> node.value?.let { checkParents(it, node) }
+                is Module -> node.statements.forEach { checkParents(it, node) }
+                is GlobalNamespace -> node.modules.forEach { checkParents(it, node) }
+                is Block -> node.statements.forEach { checkParents(it, node) }
+            }
+        }
+        
+        checkParents(root, ParentSentinel)
     }
 })

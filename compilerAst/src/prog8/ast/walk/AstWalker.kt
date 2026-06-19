@@ -275,8 +275,16 @@ abstract class AstWalker {
     open fun after(ref: MemorySlabRef, parent: Node): Iterable<AstModification> = noModifications
 
     protected val modifications = mutableListOf<Triple<AstModification, Node, Node>>()
+    protected val affectedModules = mutableSetOf<Module>()
 
     private fun track(mods: Iterable<AstModification>, node: Node, parent: Node) {
+        if (mods.any()) {
+            try {
+                affectedModules.add(parent.definingModule)
+            } catch (_: Exception) {
+                //
+            }
+        }
         for (it in mods) {
 //            if(it is AstModification.ReplaceNode) {
 //                val replaceKey = Pair(it.node, it.node.position)
@@ -317,6 +325,11 @@ abstract class AstWalker {
         val amount = modifications.size
         modifications.clear()
         return amount
+    }
+
+    fun linkAffectedParents(namespace: Node) {
+        affectedModules.forEach { it.linkParents(namespace) }
+        affectedModules.clear()
     }
 
     fun visit(program: Program) {

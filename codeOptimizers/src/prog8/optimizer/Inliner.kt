@@ -1,9 +1,6 @@
 package prog8.optimizer
 
-import prog8.ast.IFunctionCall
-import prog8.ast.IStatementContainer
-import prog8.ast.Node
-import prog8.ast.Program
+import prog8.ast.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.*
@@ -142,15 +139,16 @@ class Inliner(private val program: Program, private val options: CompilationOpti
                     stmt.target is NumericLiteral
             }
 
-            if (!subroutine.isAsmSubroutine && subroutine.parameters.isEmpty()) {
-                val containsSubsOrVariables = subroutine.statements.any { it is Subroutine || it is VarDecl }
+            if (!subroutine.isAsmSubroutine && subroutine.parameters.size <= 1) {
+                val containsSubsOrVariables = subroutine.statements.any { it is Subroutine || (it is VarDecl && it.origin != VarDeclOrigin.SUBROUTINEPARAM) }
                 if (!containsSubsOrVariables) {
-                    val hasOnlyBodyStatements = subroutine.statements.size == 1 ||
-                        (subroutine.statements.size == 2 && subroutine.statements.lastOrNull()?.let(::isEmptyReturn) == true)
+                    val functionalStatements = subroutine.statements.filter { it !is VarDecl || it.origin != VarDeclOrigin.SUBROUTINEPARAM }
+                    val hasOnlyBodyStatements = functionalStatements.size == 1 ||
+                        (functionalStatements.size == 2 && functionalStatements.lastOrNull()?.let(::isEmptyReturn) == true)
 
                     if (hasOnlyBodyStatements) {
                         if (subroutine !== program.entrypoint) {
-                            val bodyStmt = subroutine.statements.firstOrNull()
+                            val bodyStmt = functionalStatements.firstOrNull()
                             val isAutoInlineable =
                                 when (val stmt = bodyStmt) {
                                     is Return -> isBodyInlineable(stmt)
@@ -164,10 +162,10 @@ class Inliner(private val program: Program, private val options: CompilationOpti
                         }
                     }
 
-                    if (subroutine.inline && subroutine.statements.size > 1) {
+                    if (subroutine.inline && functionalStatements.size > 1) {
                         // Remove trailing return if it's empty and there's another body statement
-                        if (subroutine.statements.lastOrNull()?.let(::isEmptyReturn) == true) {
-                            subroutine.statements.removeLast()
+                        if (functionalStatements.lastOrNull()?.let(::isEmptyReturn) == true) {
+                            subroutine.statements.remove(functionalStatements.last())
                         }
                     }
                 }
@@ -176,7 +174,9 @@ class Inliner(private val program: Program, private val options: CompilationOpti
         }
 
         private fun makeFullyScoped(identifier: IdentifierReference) {
+            if (identifier.nameInSource.singleOrNull() in program.builtinFunctions.names) return
             identifier.targetStatement()?.let { target ->
+                if (target is VarDecl && target.origin == VarDeclOrigin.SUBROUTINEPARAM) return@let
                 val scoped = (target as INamedStatement).scopedName
                 val scopedIdent = IdentifierReference(scoped, identifier.position)
                 modifications += AstReplaceNode(identifier, scopedIdent, identifier.parent)
@@ -246,8 +246,19 @@ class Inliner(private val program: Program, private val options: CompilationOpti
         if (!sub.inline)
             return false to "subroutine not marked as inlineable"
 
-        if (sub.parameters.isNotEmpty()) {
-            return false to "subroutines with parameters cannot be inlined in this compiler version"
+        if (sub.isAsmSubroutine && sub.parameters.isNotEmpty()) {
+            return false to "asmsub with parameters cannot be inlined"
+        }
+
+        if (sub.parameters.size > 1) {
+            return false to "subroutines with more than 1 parameter cannot be inlined in this compiler version"
+        }
+
+        if (sub.parameters.size == 1) {
+            val arg = fcall.args.first()
+            if (!arg.isSimple) {
+                return false to "argument is too complex to inline (might have side effects)"
+            }
         }
         
         if (options.compTarget.name != VMTarget.NAME) {
@@ -293,7 +304,7 @@ class Inliner(private val program: Program, private val options: CompilationOpti
         fun inlineFunctionBody(toInline: Return): Iterable<AstModification> {
             // call site is an expression, so we have to have a Return here in the inlined sub to provide the values
             return if (toInline.values.size == 1 && functionCallExpr !== toInline.values[0]) {
-                // println(">>> INLINER: INLINED expression '${sub.name}' at ${functionCallExpr.position} (return value substituted)")
+                logInlining(sub, functionCallExpr)
                 sub.hasBeenInlined = true
                 val substitutedReturn = substituteParameters(sub, functionCallExpr, toInline.values[0]) as Expression
                 listOf(AstReplaceNode(functionCallExpr, substitutedReturn, parent))
@@ -321,13 +332,13 @@ class Inliner(private val program: Program, private val options: CompilationOpti
 
             if (functionCalls.isEmpty()) {
                 // No function calls in the return values - the void call has no side effects and can be removed.
-                // println(">>> INLINER: INLINED void call to '${sub.name}' at ${functionCallStatement.position} (removed, no side effects)")
+                logInlining(sub, origNode)
                 sub.hasBeenInlined = true
                 return listOf(AstRemove(origNode as Statement, parent as IStatementContainer))
             }
 
             // There are function calls in the return values - convert each to a void statement.
-            // println(">>> INLINER: INLINED void call to '${sub.name}' at ${functionCallStatement.position} (converted ${functionCalls.size} inner call(s) to void)")
+            logInlining(sub, origNode)
             sub.hasBeenInlined = true
 
             val voidStatements: MutableList<Statement> = functionCalls.map { fcall ->
@@ -347,8 +358,8 @@ class Inliner(private val program: Program, private val options: CompilationOpti
         fun possiblyInlineFunctionBody(toInline: Statement): Iterable<AstModification> {
             val inlinedStatement = substituteParameters(sub, origNode as IFunctionCall, toInline) as Statement
 
-            // println(">>> INLINER: INLINED '${sub.name}' at ${functionCallStatement.position} (body inserted)")
             return if (origNode !== toInline) {
+                logInlining(sub, origNode)
                 sub.hasBeenInlined = true
                 listOf(AstReplaceNode(origNode, inlinedStatement, parent))
             } else
@@ -379,6 +390,13 @@ class Inliner(private val program: Program, private val options: CompilationOpti
         return noModifications
     }
 
+
+    private fun logInlining(sub: Subroutine, call: Node) {
+        // TODO remove this logging once we are sure everything works good
+        if (sub.parameters.isNotEmpty() && !options.quiet) {
+            println(">>> INLINER: inlining '${sub.name}' at ${call.position} (subroutine at ${sub.position})")
+        }
+    }
 
     private fun isSimpleReturnExpression(expr: Expression): Boolean {
         return when (expr) {
@@ -446,30 +464,56 @@ class Inliner(private val program: Program, private val options: CompilationOpti
     }
 
     private fun substituteParameters(sub: Subroutine, fcall: IFunctionCall, node: Node): Node {
-        val paramVarDecls = sub.statements.filterIsInstance<VarDecl>().filter { it.origin == VarDeclOrigin.SUBROUTINEPARAM }
+        val paramVarDecls = sub.parameters.map { param ->
+            sub.statements.filterIsInstance<VarDecl>().find { it.origin == VarDeclOrigin.SUBROUTINEPARAM && it.name == param.name }
+                ?: throw FatalAstException("parameter ${param.name} not found in subroutine ${sub.name}")
+        }
         val paramMap: Map<VarDecl, Expression> = paramVarDecls.zip(fcall.args).associate { it.first to it.second }
 
         fun substitute(n: Node): Node {
             if (n is IdentifierReference) {
                 val target = n.targetStatement(program.builtinFunctions)
-                val arg = if (target is VarDecl) paramMap[target] else null
-                if (arg != null) return arg.copy()
+                if (target is VarDecl) {
+                    val arg = paramMap[target]
+                    if (arg != null) return arg.copy()
+                }
             }
 
             return when (n) {
                 is BinaryExpression -> BinaryExpression(substitute(n.left) as Expression, n.operator, substitute(n.right) as Expression, n.position)
                 is PrefixExpression -> PrefixExpression(n.operator, substitute(n.expression) as Expression, n.position)
+                is DirectMemoryRead -> DirectMemoryRead(substitute(n.addressExpression) as Expression, n.position)
+                is ArrayIndexedExpression -> ArrayIndexedExpression(
+                    n.plainarrayvar?.let {
+                        val subId = substitute(it)
+                        if (subId !is IdentifierReference) throw FatalAstException("parameter substituted by ${subId::class.simpleName} but an identifier reference was expected")
+                        subId
+                    },
+                    n.nestedArray?.let { substitute(it) as ArrayIndexedExpression },
+                    n.pointerderef?.let { substitute(it) as PtrDereference },
+                    substitute(n.indexer) as ArrayIndex,
+                    n.position
+                )
+                is ArrayIndex -> ArrayIndex(substitute(n.indexExpr) as Expression, n.position)
                 is Return -> Return(n.values.map { substitute(it) as Expression }.toTypedArray(), n.position)
                 is Assignment -> {
                     val newTarget = n.target.copy()
-                    if (n.target.identifier != null) {
-                        val substituted = substitute(n.target.identifier!!)
-                        if (substituted is IdentifierReference) {
-                            newTarget.identifier = substituted
-                        }
-                        // if substituted is not an identifier, we leave the original (copied) identifier
-                        // in the target. This is not ideal but avoids the ClassCastException.
+                    newTarget.identifier = n.target.identifier?.let {
+                        val subId = substitute(it)
+                        if (subId !is IdentifierReference) throw FatalAstException("parameter substituted by ${subId::class.simpleName} but an identifier reference was expected")
+                        subId
                     }
+                    newTarget.memoryAddress = n.target.memoryAddress?.let { DirectMemoryWrite(substitute(it.addressExpression) as Expression, it.position) }
+                    newTarget.arrayindexed = n.target.arrayindexed?.let { substitute(it) as ArrayIndexedExpression }
+                    newTarget.pointerDereference = n.target.pointerDereference?.let { substitute(it) as PtrDereference }
+                    newTarget.arrayIndexedDereference = n.target.arrayIndexedDereference?.let {
+                        ArrayIndexedPtrDereference(
+                            it.chain.map { (name, index) -> name to index?.let { substitute(it) as ArrayIndex } },
+                            it.derefLast,
+                            it.position
+                        )
+                    }
+
                     Assignment(
                         newTarget,
                         substitute(n.value) as Expression,
@@ -478,12 +522,18 @@ class Inliner(private val program: Program, private val options: CompilationOpti
                     )
                 }
                 is FunctionCallExpression -> FunctionCallExpression(
-                    substitute(n.target) as IdentifierReference,
+                    substitute(n.target).let {
+                        if (it !is IdentifierReference) throw FatalAstException("parameter substituted by ${it::class.simpleName} but an identifier reference was expected")
+                        it
+                    },
                     n.args.map { substitute(it) as Expression }.toMutableList(),
                     n.position
                 )
                 is FunctionCallStatement -> FunctionCallStatement(
-                    substitute(n.target) as IdentifierReference,
+                    substitute(n.target).let {
+                        if (it !is IdentifierReference) throw FatalAstException("parameter substituted by ${it::class.simpleName} but an identifier reference was expected")
+                        it
+                    },
                     n.args.map { substitute(it) as Expression }.toMutableList(),
                     n.void,
                     n.position
@@ -493,6 +543,19 @@ class Inliner(private val program: Program, private val options: CompilationOpti
                     n.position
                 )
                 is Jump -> Jump(substitute(n.target) as Expression, n.position)
+                is TypecastExpression -> TypecastExpression(substitute(n.expression) as Expression, n.type, n.implicit, n.position)
+                is AddressOf -> AddressOf(
+                    n.identifier?.let {
+                        val subId = substitute(it)
+                        if (subId !is IdentifierReference) throw FatalAstException("parameter substituted by ${subId::class.simpleName} but an identifier reference was expected")
+                        subId
+                    },
+                    n.arrayIndex?.let { substitute(it) as ArrayIndex },
+                    n.dereference?.let { substitute(it) as PtrDereference },
+                    n.msb,
+                    n.typed,
+                    n.position
+                )
                 else -> n.copy()
             }
         }

@@ -19,7 +19,7 @@ interface INamedStatement {
         get() = scopedNameCache.getOrPut(this) {
             val scopedName = mutableListOf(name)
             var node: Node = this as Node
-            while (node !is Block) {
+            while (node !is Block && node !is GlobalNamespace && node.parent !is ParentSentinel) {
                 node = node.parent
                 if (node is INameScope) {
                     scopedName.add(0, node.name)
