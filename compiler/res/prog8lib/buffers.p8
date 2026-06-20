@@ -25,15 +25,16 @@ smallringbuffer {
     }
 
     sub free() -> ubyte {
-        return 255-fill
+        return 255 - fill
     }
 
     sub isfull() -> bool {
-        return fill>=254
+        ; returns true if less than 2 bytes of space remaining (to allow putw)
+        return fill >= 254
     }
 
     sub isempty() -> bool {
-        return fill<=1
+        return fill == 0
     }
 
     sub put(ubyte value) {
@@ -92,11 +93,12 @@ smallstack {
     }
 
     sub isfull() -> bool {
-        return sp==0
+        ; returns true if less than 2 bytes of space remaining (to allow push_w)
+        return sp <= 1
     }
 
     sub isempty() -> bool {
-        return sp==255
+        return sp == 255
     }
 
     sub push_b(ubyte value) {
@@ -150,11 +152,12 @@ stack {
     }
 
     sub isfull() -> bool {
-        return sp==0
+        ; returns true if less than 2 bytes of space remaining (to allow push_w)
+        return sp == 0 or sp > 8191
     }
 
     sub isempty() -> bool {
-        return sp==8191
+        return sp == 8191
     }
 
     sub push_b(ubyte value) {
@@ -207,15 +210,16 @@ ringbuffer {
     }
 
     sub free() -> uword {
-        return 8191-fill
+        return 8192-fill
     }
 
     sub isempty() -> bool {
-        return fill==0
+        return fill == 0
     }
 
     sub isfull() -> bool {
-        return fill>=8191
+        ; returns true if less than 2 bytes of space remaining (to allow putw)
+        return fill >= 8191
     }
 
     sub put(ubyte value) {
