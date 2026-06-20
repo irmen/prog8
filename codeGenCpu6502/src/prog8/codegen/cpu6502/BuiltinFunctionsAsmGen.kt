@@ -500,83 +500,115 @@ import prog8.codegen.cpu6502.assignment.*
         val arg2 = fcall.args[1]
         if(arg1.type.isByte) {
             if(arg2.type.isByte) {
+                val op = if (arg1.type.isSigned || arg2.type.isSigned) "sec | sbc" else "cmp"
                 when (arg2) {
                     is PtIdentifier -> {
                         asmgen.assignExpressionToRegister(arg1, RegisterOrPair.A)
-                        asmgen.out("  cmp  ${asmgen.asmVariableName(arg2)}")
+                        asmgen.out("  $op  ${asmgen.asmVariableName(arg2)}")
                     }
                     is PtNumber -> {
                         asmgen.assignExpressionToRegister(arg1, RegisterOrPair.A)
-                        asmgen.out("  cmp  #${arg2.number.toInt()}")
+                        asmgen.out("  $op  #${arg2.number.toInt()}")
                     }
                     is PtBool -> {
                         asmgen.assignExpressionToRegister(arg1, RegisterOrPair.A)
-                        asmgen.out("  cmp  #${arg2.asInt()}")
+                        asmgen.out("  $op  #${arg2.asInt()}")
                     }
                     is PtMemoryByte -> {
                         if(arg2.address is PtNumber) {
                             asmgen.assignExpressionToRegister(arg1, RegisterOrPair.A)
-                            asmgen.out("  cmp  ${arg2.address.asConstInteger()!!.toHex()}")
+                            asmgen.out("  $op  ${arg2.address.asConstInteger()!!.toHex()}")
                         } else {
                             asmgen.assignByteOperandsToAAndVar(arg1, arg2, "P8ZP_SCRATCH_B1")
-                            asmgen.out("  cmp  P8ZP_SCRATCH_B1")
+                            asmgen.out("  $op  P8ZP_SCRATCH_B1")
                         }
                     }
                     else -> {
                         asmgen.assignByteOperandsToAAndVar(arg1, arg2, "P8ZP_SCRATCH_B1")
-                        asmgen.out("  cmp  P8ZP_SCRATCH_B1")
+                        asmgen.out("  $op  P8ZP_SCRATCH_B1")
                     }
                 }
             } else
                 throw AssemblyError("args for cmp() should have same dt")
         } else if(arg1.type.isWord) {
             if(arg2.type.isWord) {
-                if(arg1.type.isSigned) {
+                if(arg1.type.isSigned || arg2.type.isSigned) {
                     when (arg2) {
                         is PtIdentifier -> {
                             asmgen.assignExpressionToRegister(arg1, RegisterOrPair.AY)
+                            val var2 = asmgen.asmVariableName(arg2)
                             asmgen.out("""
                                 sec
-                                sbc  ${asmgen.asmVariableName(arg2)}
+                                sbc  $var2
+                                sta  P8ZP_SCRATCH_B1
                                 tya
-                                sbc  ${asmgen.asmVariableName(arg2)}+1""")
+                                sbc  $var2+1
+                                php
+                                bne  +
+                                lda  P8ZP_SCRATCH_B1
+                                beq  +
+                                pla
+                                and  #%11111101
+                                pha
+                            +   plp""")
                         }
                         is PtBool -> TODO("word compare against bool  ${arg2.position}")
                         is PtNumber -> {
                             asmgen.assignExpressionToRegister(arg1, RegisterOrPair.AY)
+                            val num = arg2.number.toInt()
                             asmgen.out("""
                                 sec
-                                sbc  #<${arg2.number.toInt()}
+                                sbc  #<($num)
+                                sta  P8ZP_SCRATCH_B1
                                 tya
-                                sbc  #>${arg2.number.toInt()}""")
+                                sbc  #>($num)
+                                php
+                                bne  +
+                                lda  P8ZP_SCRATCH_B1
+                                beq  +
+                                pla
+                                and  #%11111101
+                                pha
+                            +   plp""")
                         }
                         else -> {
                             asmgen.assignWordOperandsToAYAndVar(arg1, arg2, "P8ZP_SCRATCH_W1")
                             asmgen.out("""
                                 sec
                                 sbc  P8ZP_SCRATCH_W1
+                                sta  P8ZP_SCRATCH_B1
                                 tya
-                                sbc  P8ZP_SCRATCH_W1+1""")
+                                sbc  P8ZP_SCRATCH_W1+1
+                                php
+                                bne  +
+                                lda  P8ZP_SCRATCH_B1
+                                beq  +
+                                pla
+                                and  #%11111101
+                                pha
+                            +   plp""")
                         }
                     }
                 } else {
                     when (arg2) {
                         is PtIdentifier -> {
                             asmgen.assignExpressionToRegister(arg1, RegisterOrPair.AY)
+                            val var2 = asmgen.asmVariableName(arg2)
                             asmgen.out("""
-                                cpy  ${asmgen.asmVariableName(arg2)}+1
+                                cpy  $var2+1
                                 bne  +
-                                cmp  ${asmgen.asmVariableName(arg2)}
-+""")
+                                cmp  $var2
+                            +""")
                         }
                         is PtBool -> TODO("word compare against bool  ${arg2.position}")
                         is PtNumber -> {
                             asmgen.assignExpressionToRegister(arg1, RegisterOrPair.AY)
+                            val num = arg2.number.toInt()
                             asmgen.out("""
-                                cpy  #>${arg2.number.toInt()}
+                                cpy  #>($num)
                                 bne  +
-                                cmp  #<${arg2.number.toInt()}
-+""")
+                                cmp  #<($num)
+                            +""")
                         }
                         else -> {
                             asmgen.assignWordOperandsToAYAndVar(arg1, arg2, "P8ZP_SCRATCH_W1")
@@ -584,7 +616,7 @@ import prog8.codegen.cpu6502.assignment.*
                                 cpy  P8ZP_SCRATCH_W1+1
                                 bne  +
                                 cmp  P8ZP_SCRATCH_W1
-+""")
+                            +""")
                         }
                     }
                 }
@@ -599,12 +631,25 @@ import prog8.codegen.cpu6502.assignment.*
                         sec
                         lda  $var1
                         sbc  #$${hex.substring(6, 8)}
+                        sta  P8ZP_SCRATCH_B1
                         lda  $var1+1
                         sbc  #$${hex.substring(4, 6)}
+                        ora  P8ZP_SCRATCH_B1
+                        sta  P8ZP_SCRATCH_B1
                         lda  $var1+2
                         sbc  #$${hex.substring(2, 4)}
+                        ora  P8ZP_SCRATCH_B1
+                        sta  P8ZP_SCRATCH_B1
                         lda  $var1+3
-                        sbc  #$${hex.take(2)}""")
+                        sbc  #$${hex.take(2)}
+                        php
+                        bne  +
+                        lda  P8ZP_SCRATCH_B1
+                        beq  +
+                        pla
+                        and  #%11111101
+                        pha
+                    +   plp""")
                 } else if(arg1 is PtIdentifier && arg2 is PtIdentifier) {
                     val var1 = asmgen.asmVariableName(arg1)
                     val var2 = asmgen.asmVariableName(arg2)
@@ -612,12 +657,25 @@ import prog8.codegen.cpu6502.assignment.*
                         sec
                         lda  $var1
                         sbc  $var2
+                        sta  P8ZP_SCRATCH_B1
                         lda  $var1+1
                         sbc  $var2+1
+                        ora  P8ZP_SCRATCH_B1
+                        sta  P8ZP_SCRATCH_B1
                         lda  $var1+2
                         sbc  $var2+2
+                        ora  P8ZP_SCRATCH_B1
+                        sta  P8ZP_SCRATCH_B1
                         lda  $var1+3
-                        sbc  $var2+3""")
+                        sbc  $var2+3
+                        php
+                        bne  +
+                        lda  P8ZP_SCRATCH_B1
+                        beq  +
+                        pla
+                        and  #%11111101
+                        pha
+                    +   plp""")
                 } else {
                     assignAsmGen.assignExpressionToRegister(arg2, RegisterOrPair.R14R15, true)
                     if(!assignAsmGen.isRightTrivial(arg1))
@@ -629,12 +687,25 @@ import prog8.codegen.cpu6502.assignment.*
                         sec
                         lda  cx16.r12
                         sbc  cx16.r14
+                        sta  P8ZP_SCRATCH_B1
                         lda  cx16.r12+1
                         sbc  cx16.r14+1
+                        ora  P8ZP_SCRATCH_B1
+                        sta  P8ZP_SCRATCH_B1
                         lda  cx16.r12+2
                         sbc  cx16.r14+2
+                        ora  P8ZP_SCRATCH_B1
+                        sta  P8ZP_SCRATCH_B1
                         lda  cx16.r12+3
-                        sbc  cx16.r14+3""")
+                        sbc  cx16.r14+3
+                        php
+                        bne  +
+                        lda  P8ZP_SCRATCH_B1
+                        beq  +
+                        pla
+                        and  #%11111101
+                        pha
+                    +   plp""")
                 }
             } else
                 throw AssemblyError("args for cmp() should have same dt")
@@ -1127,19 +1198,16 @@ import prog8.codegen.cpu6502.assignment.*
         if(arg is PtIdentifier) {
             val varname = asmgen.asmVariableName(arg)
             when(val dt = arg.type.base) {
-                BaseDataType.UBYTE -> asmgen.out("  lda  $varname |  jsr  prog8_lib.func_sign_ub_into_A")
-                BaseDataType.BYTE -> asmgen.out("  lda  $varname |  jsr  prog8_lib.func_sign_b_into_A")
-                BaseDataType.UWORD -> asmgen.out("  lda  $varname+1 |  jsr  prog8_lib.func_sign_ub_into_A")
-                BaseDataType.WORD -> asmgen.out("  lda  $varname+1 |  jsr  prog8_lib.func_sign_b_into_A")
-                BaseDataType.LONG -> asmgen.out("  lda  $varname+3 |  jsr  prog8_lib.func_sign_b_into_A")
-                BaseDataType.FLOAT -> {
-                    translateArguments(fcall, null, scope)
-                    asmgen.out("  jsr  floats.func_sign_f_into_A")
+                BaseDataType.UBYTE -> {
+                    asmgen.out("  lda  $varname |  jsr  prog8_lib.func_sign_ub_into_A")
+                    return arrayOf(RegisterOrPair.A)
                 }
-                else -> throw AssemblyError("weird type $dt")
+                BaseDataType.BYTE -> {
+                    asmgen.out("  lda  $varname |  jsr  prog8_lib.func_sign_b_into_A")
+                    return arrayOf(RegisterOrPair.A)
+                }
+                else -> {}
             }
-            // result in A
-            return arrayOf(RegisterOrPair.A)
         }
 
         when (val dt = arg.type.base) {

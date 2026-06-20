@@ -13,43 +13,45 @@ internal fun VirtualMachine.statusbitsNZ(value: Int, type: IRDataType) {
     }
 }
 
-internal fun VirtualMachine.statusbitsComparison(comparison: Int, type: IRDataType) {
-    if(comparison==0) {
-        statusZero = true
-        statusCarry = true
-    } else if(comparison>0) {
-        statusZero = false
-        statusCarry = true
-    } else {
-        statusZero = false
-        statusCarry = false
-    }
-    when(type) {
-        IRDataType.BYTE -> statusNegative = (comparison and 0x80)!=0
-        IRDataType.WORD -> statusNegative = (comparison and 0x8000)!=0
-        IRDataType.LONG -> statusNegative = comparison<0
+internal fun VirtualMachine.statusbitsComparison(left: Int, right: Int, type: IRDataType) {
+    val comparison = left - right
+    statusZero = comparison == 0
+    when (type) {
+        IRDataType.BYTE -> {
+            statusNegative = (comparison and 0x80) != 0
+            statusCarry = (left and 0xff) >= (right and 0xff)
+        }
+        IRDataType.WORD -> {
+            statusNegative = (comparison and 0x8000) != 0
+            statusCarry = (left and 0xffff) >= (right and 0xffff)
+        }
+        IRDataType.LONG -> {
+            statusNegative = comparison < 0
+            statusCarry = Integer.compareUnsigned(left, right) >= 0
+        }
         IRDataType.FLOAT -> { /* floats don't change the status bits */ }
     }
 }
 
-internal fun VirtualMachine.statusbitsComparisonWithOverflow(comparison: Int, leftOrig: Int, type: IRDataType) {
-    statusbitsComparison(comparison, type)
-    when(type) {
+internal fun VirtualMachine.statusbitsComparisonWithOverflow(left: Int, right: Int, type: IRDataType) {
+    statusbitsComparison(left, right, type)
+    val comparison = left - right
+    when (type) {
         IRDataType.BYTE -> {
             val signBit = 0x80
-            val leftSign = leftOrig and signBit
-            val rightSign = (leftOrig - comparison) and signBit
+            val leftSign = left and signBit
+            val rightSign = right and signBit
             statusOverflow = ((leftSign xor rightSign) and (leftSign xor (comparison and signBit))) != 0
         }
         IRDataType.WORD -> {
             val signBit = 0x8000
-            val leftSign = leftOrig and signBit
-            val rightSign = (leftOrig - comparison) and signBit
+            val leftSign = left and signBit
+            val rightSign = right and signBit
             statusOverflow = ((leftSign xor rightSign) and (leftSign xor (comparison and signBit))) != 0
         }
         IRDataType.LONG -> {
-            val leftSign = leftOrig < 0
-            val rightSign = (leftOrig - comparison) < 0
+            val leftSign = left < 0
+            val rightSign = right < 0
             val resultSign = comparison < 0
             statusOverflow = leftSign != rightSign && leftSign != resultSign
         }
