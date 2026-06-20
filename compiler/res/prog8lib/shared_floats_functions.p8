@@ -249,25 +249,64 @@ sub rndseed(float seed) {
 
 
 sub minf(float f1, float f2) -> float {
-    if f1<f2
-        return f1
-    return f2
+    %asm {{
+        lda  #<f1
+        ldy  #>f1
+        jsr  MOVFM
+        lda  #<f2
+        ldy  #>f2
+        jsr  FCOMP
+        bmi  +
+        lda  #<f2
+        ldy  #>f2
+        jmp  MOVFM
++       rts
+    }}
 }
 
 
 sub maxf(float f1, float f2) -> float {
-    if f1>f2
-        return f1
-    return f2
+    %asm {{
+        lda  #<f1
+        ldy  #>f1
+        jsr  MOVFM
+        lda  #<f2
+        ldy  #>f2
+        jsr  FCOMP
+        bpl  +
+        lda  #<f2
+        ldy  #>f2
+        jmp  MOVFM
++       rts
+    }}
 }
 
 
 sub clampf(float value, float minimum, float maximum) -> float {
-    if value>maximum
-      value=maximum
-    if value>minimum
-      return value
-    return minimum
+    %asm {{
+        lda  #<value
+        ldy  #>value
+        jsr  MOVFM
+        lda  #<maximum
+        ldy  #>maximum
+        jsr  FCOMP
+        cmp  #1
+        beq  _return_max
+        lda  #<minimum
+        ldy  #>minimum
+        jsr  FCOMP
+        cmp  #255
+        beq  _return_min
+        rts
+_return_max
+        lda  #<maximum
+        ldy  #>maximum
+        jmp  MOVFM
+_return_min
+        lda  #<minimum
+        ldy  #>minimum
+        jmp  MOVFM
+    }}
 }
 
 sub mod(float value, float divisor) -> float {
