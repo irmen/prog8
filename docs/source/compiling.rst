@@ -545,7 +545,7 @@ Examples
 
 .. index:: single: Examples; Examples in source tree
 
-A bunch of example programs can be found in the 'examples' directory of the source tree on Github.
+A bunch of example programs can be found in the :source:`examples` directory of the source tree on Github.
 (Or download the source archive from there to get all the files at once).
 
 There are cross-platform examples that can be compiled for various systems unaltered,

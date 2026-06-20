@@ -1243,7 +1243,7 @@ Available routines:
 Waveform constants: ``PULSE``, ``SAWTOOTH``, ``TRIANGLE``, ``NOISE``
 Channel constants: ``LEFT``, ``RIGHT``, ``BOTH``, ``DISABLED``
 
-See the examples/cx16/bdmusic.p8  program for ideas how to use it.
+See the :source:`examples/cx16/bdmusic.p8` program for ideas how to use it.
 
 Read the :source:`psg2 source code <compiler/res/prog8lib/cx16/psg2.p8>` to see everything that's in there.
 
@@ -1331,7 +1331,7 @@ Various sorting routines (gnome sort and shell sort variants) for byte, word and
 **NOTE:** all word and str arrays have to be @nosplit! Words and pointers need to be consecutive in memory for now.
 **NOTE:** sorting is done in ascending order.
 Read the :source:`sorting source code <compiler/res/prog8lib/sorting.p8>`
-to see what's in there.   Also check out the `sortingbench` example.
+to see what's in there.   Also check out the :source:`sortingbench <examples/cx16/sortingbench.p8>` example.
 
 
 sprites  (cx16 only)
@@ -1342,7 +1342,7 @@ Available for the Cx16 target. Simple routines to manipulate sprites.
 They're not written for high performance, but for simplicity.
 That's why they control one sprite at a time. The exception is the ``pos_batch`` routine,
 which is quite efficient to update sprite positions of multiple sprites in one go.
-See the examples/cx16/sprites/dragon.p8 and dragons.p8 programs for ideas how to use it.
+See the :source:`examples/cx16/sprites/dragon.p8` and :source:`dragons.p8 <examples/cx16/sprites/dragons.p8>` programs for ideas how to use it.
 
 Read the :source:`sprites source code <compiler/res/prog8lib/cx16/sprites.p8>`
 to see what's in there.

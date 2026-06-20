@@ -20,7 +20,7 @@ You can compile programs for various machines that are built into the compiler:
 * Commodore 128 (limited support)
 * Commodore PET (limited support)
 * any other 65(C)02 target machine or setup can be configured to a great extent in a user written configuration file.
-  There are some examples included for the Atari 800 XL, NEO6502, Foenix F256, and such.
+  There are some for the Atari 800 XL, NEO6502, Foenix F256, and such.
 * some users have been experimenting with a NES and a C64 OS target as well.
 
 Some language features are mentioned below, and you can also read :ref:`comparingprog8` if you
