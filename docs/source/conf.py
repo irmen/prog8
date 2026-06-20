@@ -39,11 +39,29 @@ version = read_properties("gradle.properties")["version"].strip()
 release = version
 
 if release.endswith("SNAPSHOT"):
-    commit_id = subprocess.run(
-        ["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=True
-    ).stdout.strip()
+    try:
+        commit_id = subprocess.run(
+            ["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=True
+        ).stdout.strip()
+    except Exception:
+        commit_id = "master"
 else:
     commit_id = f"v{release}"
+    try:
+        # If a tag v{version} exists, we use that.
+        # Otherwise, we try to use the current branch name.
+        subprocess.run(["git", "rev-parse", "--verify", commit_id], capture_output=True, check=True)
+    except Exception:
+        # Tag doesn't exist, try to get the branch name
+        try:
+            branch = subprocess.run(
+                ["git", "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True, text=True, check=True
+            ).stdout.strip()
+            if branch != "HEAD":
+                commit_id = branch
+        except Exception:
+            # Git failed or detached HEAD, stay with v{release}
+            pass
 
 
 # -- extensions
