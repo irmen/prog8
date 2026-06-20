@@ -1404,26 +1404,14 @@ class VirtualMachine(irProgram: IRProgram) {
     }
 
     private fun InsSGN(i: IRInstruction) {
-        var sign: Int
-        when(i.type!!) {
-            IRDataType.BYTE -> {
-                sign = registers.getSB(i.reg2!!).toInt().sign
-                registers.setSB(i.reg1!!, sign.toByte())
-            }
-            IRDataType.WORD -> {
-                sign = registers.getSW(i.reg2!!).toInt().sign
-                registers.setSB(i.reg1!!, sign.toByte())
-            }
-            IRDataType.LONG -> {
-                sign = registers.getSL(i.reg2!!).sign
-                registers.setSB(i.reg1!!, sign.toByte())
-            }
-            IRDataType.FLOAT -> {
-                sign = registers.getFloat(i.fpReg1!!).sign.toInt()
-                registers.setSB(i.reg1!!, sign.toByte())
-            }
+        val sign: Int = when (i.type!!) {
+            IRDataType.BYTE -> registers.getSB(i.reg2!!).toInt().sign
+            IRDataType.WORD -> registers.getSW(i.reg2!!).toInt().sign
+            IRDataType.LONG -> registers.getSL(i.reg2!!).sign
+            IRDataType.FLOAT -> registers.getFloat(i.fpReg1!!).sign.toInt()
         }
-        statusbitsComparison(sign, i.type!!)
+        registers.setSB(i.reg1!!, sign.toByte())
+        statusbitsComparisonWithOverflow(sign, 0, IRDataType.BYTE)
         nextPc()
     }
 
@@ -1465,57 +1453,38 @@ class VirtualMachine(irProgram: IRProgram) {
     }
 
     private fun InsCMP(i: IRInstruction) {
-        val leftOrig = when(i.type!!) {
+        val type = i.type!!
+        val left = when(type) {
             IRDataType.BYTE -> registers.getUB(i.reg1!!).toInt()
             IRDataType.WORD -> registers.getUW(i.reg1!!).toInt()
             IRDataType.LONG -> registers.getSL(i.reg1!!)
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
-        val comparison = when(i.type!!) {
-            IRDataType.BYTE -> {
-                val reg1 = registers.getUB(i.reg1!!)
-                val reg2 = registers.getUB(i.reg2!!)
-                reg1.toInt() - reg2.toInt()
-            }
-            IRDataType.WORD -> {
-                val reg1 = registers.getUW(i.reg1!!)
-                val reg2 = registers.getUW(i.reg2!!)
-                reg1.toInt() - reg2.toInt()
-            }
-            IRDataType.LONG -> {
-                val reg1 = registers.getSL(i.reg1!!)
-                val reg2 = registers.getSL(i.reg2!!)
-                reg1 - reg2
-            }
+        val right = when(type) {
+            IRDataType.BYTE -> registers.getUB(i.reg2!!).toInt()
+            IRDataType.WORD -> registers.getUW(i.reg2!!).toInt()
+            IRDataType.LONG -> registers.getSL(i.reg2!!)
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
-        statusbitsComparisonWithOverflow(comparison, leftOrig, i.type!!)
+        statusbitsComparisonWithOverflow(left, right, type)
         nextPc()
     }
 
     private fun InsCMPI(i: IRInstruction) {
-        val leftOrig = when(i.type!!) {
+        val type = i.type!!
+        val left = when(type) {
             IRDataType.BYTE -> registers.getUB(i.reg1!!).toInt()
             IRDataType.WORD -> registers.getUW(i.reg1!!).toInt()
             IRDataType.LONG -> registers.getSL(i.reg1!!)
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
-        val comparison = when(i.type!!) {
-            IRDataType.BYTE -> {
-                val reg1 = registers.getUB(i.reg1!!)
-                reg1.toInt() - (i.immediate!! and 255)
-            }
-            IRDataType.WORD -> {
-                val reg1 = registers.getUW(i.reg1!!)
-                reg1.toInt() - (i.immediate!! and 65535)
-            }
-            IRDataType.LONG -> {
-                val reg1 = registers.getSL(i.reg1!!)
-                reg1 - i.immediate!!
-            }
+        val right = when(type) {
+            IRDataType.BYTE -> i.immediate!! and 0xff
+            IRDataType.WORD -> i.immediate!! and 0xffff
+            IRDataType.LONG -> i.immediate!!
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
-        statusbitsComparisonWithOverflow(comparison, leftOrig, i.type!!)
+        statusbitsComparisonWithOverflow(left, right, type)
         nextPc()
     }
 

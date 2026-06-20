@@ -195,7 +195,7 @@ unroll 80 {
 ## Subroutines & Return Values
 - **Don't use `private` on subroutines and variables** (including nested ones) unless the user asks for it. Everything is public by default in Prog8 — follow that convention.
 - `inline` keyword for subroutines to suggest inlining
-- No function overloading (except builtins). Cannot use builtin names (msw, lsw, msb, lsb, mkword, mklong, peek, peekw, peekl, etc.) as variable/sub names
+- No **function overloading** (except builtins) and no **polymorphism** in general. This means you must call specific routines for different types (e.g., `txt.print_ub(val)` vs `txt.print_w(val)` instead of a generic `print(val)`). Cannot use builtin names (msw, lsw, msb, lsb, mkword, mklong, peek, peekw, peekl, etc.) as variable/sub names
 - Can return 0, 1, or multiple values: `a, b, c = routine()`. Use `void` to skip: `void routine()`, `a, void, c = routine()`
 - Nested subroutines access parent scope variables directly
 
@@ -255,7 +255,7 @@ Used to call routines at fixed memory addresses (like ROM KERNAL routines or thi
 - Find routines, functions, variables, modules and signatures in the symbol dump file for the given compilation target. 
   - Online location: https://prog8.readthedocs.io/en/latest/libraries.html#low-fi-variable-and-subroutine-definitions-in-all-available-library-modules  they are linked there 1 for each compilation target
   - Structure: builtin functions, then module sections with variables/constants (`type name`) and subroutines (`name (params) -> returntype`)
-- Text output: `textio` module (`txt.print`, `txt.chrout`, `txt.print_b`/`_ub`/`_w`/`_uw`/`_l`/`_bool`, `txt.print_f` for floats, `txt.spc()`, `txt.nl()`)
+- Text output: `textio` module (`txt.print`, `txt.chrout`, `txt.print_b`/`_ub`/`_w`/`_uw`/`_l`/`_bool`, `txt.print_f` for floats, `txt.spc()`, `txt.nl()`). **Note: Prog8 has no function overloading**, so you cannot use `txt.print(number)` — you must call the specific routine for the type (e.g., `txt.print_ub(val)` for an unsigned byte).
 - Math: `math` module — integer trig (`sin8`, `cos8`) via fast LUTs; `math.rnd()` for random numbers
 - String conversion: `conv` module (`str_uword`, `str2word`, etc.) — for printing numbers use txt routines instead
 - Char operations: `strings` module (`isdigit`, `isxdigit`, `isupper`, `islower`, `isletter`, `isspace`, `isprint`) — use these instead of manual ASCII/PETSCII arithmetic
