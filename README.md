@@ -113,8 +113,8 @@ Additional required tools
 -------------------------
 
 [64tass](https://sourceforge.net/projects/tass64/) - cross assembler. Install this on your shell path.
-A recent .exe version of this tool for Windows can be obtained from my [clone](https://github.com/irmen/64tass/releases) of this project.
-For other platforms it is very easy to compile it yourself (make ; make install).
+If you're on Windows, download a recent .exe from the official repository's file section <https://sourceforge.net/projects/tass64/files/binaries/>.
+For other systems (Mac, Linux) it is very easy to get it via your package manager or to compile it yourself.
 
 A **Java runtime (jre or jdk), version 11 or newer**  is required to run a prepackaged version of the compiler.
 If you want to build it from source, you'll need a Java SDK + Kotlin 1.3.x SDK (or for instance,
