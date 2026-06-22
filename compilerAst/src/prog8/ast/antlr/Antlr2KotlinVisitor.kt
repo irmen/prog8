@@ -581,6 +581,7 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
         val parameters = ctx.sub_params()?.sub_param()?.mapTo(mutableListOf()) { it.accept(this) as SubroutineParameter } ?: mutableListOf()
         val returntypes = ctx.sub_return_part()?.datatype()?.mapTo(mutableListOf()) { dataTypeFor(it)!! } ?: mutableListOf()
         val statements = ctx.statement_block().accept(this) as AnonymousScope
+
         return Subroutine(
             name,
             parameters,

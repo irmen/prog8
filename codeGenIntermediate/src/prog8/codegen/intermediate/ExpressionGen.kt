@@ -96,7 +96,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             is PtBinaryExpression -> translate(expr)
             is PtIfExpression -> translate(expr)
             is PtBranchCondExpression -> translate(expr)
-            is PtFunctionCall -> translate(expr)
+            is PtFunctionCall -> translate(expr, true)
             is PtContainmentCheck -> translate(expr)
             is PtPointerDeref -> translate(expr)
             is PtConstant -> {
@@ -922,7 +922,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         }
     }
 
-    internal fun translate(fcall: PtFunctionCall): ExpressionCodeResult {
+    internal fun translate(fcall: PtFunctionCall, resultUsedAsExpression: Boolean = false): ExpressionCodeResult {
         if(fcall.builtin)
             return codeGen.translateBuiltinFunc(fcall)
 
@@ -1039,7 +1039,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 addInstr(result, call, null)
                 var finalReturnRegister = returnRegSpec?.registerNum?.value ?: -1
 
-                if(fcall.parent is PtAssignment || fcall.parent is PtTypeCast) {
+                if(resultUsedAsExpression) {
                     // look if the status flag bit should actually be returned as a 0/1 byte value in a result register (so it can be assigned)
                     val statusFlagResult = returnRegSpec?.statusflag
                     if(statusFlagResult!=null) {
@@ -1166,10 +1166,14 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         } else {
             val varBank = address.varbank!!
             val target = codeGen.symbolTable.lookup(varBank.name) ?: codeGen.symbolTable.lookupUnscoped(varBank.name)
-            val bankReg = if (target?.type == StNodeType.SUBROUTINE) {
-                // generate a call to the bank subroutine
+            val bankReg = if (target?.type == StNodeType.SUBROUTINE || target?.type == StNodeType.EXTSUB) {
+                // generate a call to the bank subroutine with the call ID as argument
                 val bankFcall = PtFunctionCall(varBank.name, false, false, arrayOf(DataType.UBYTE), varBank.position)
-                val tr = translate(bankFcall)
+                val callId = codeGen.extsubCallSiteIds[fcall.name]
+                if (callId != null) {
+                    bankFcall.add(PtNumber(BaseDataType.UBYTE, callId.toDouble(), varBank.position))
+                }
+                val tr = translate(bankFcall, true)
                 result += tr.chunks
                 tr.resultReg
             } else {

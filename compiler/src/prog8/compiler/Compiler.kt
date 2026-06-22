@@ -8,9 +8,12 @@ import prog8.ast.statements.Directive
 import prog8.buildversion.VERSION
 import prog8.code.SymbolTable
 import prog8.code.SymbolTableMaker
+import prog8.code.ast.PtAsmSub
 import prog8.code.ast.PtProgram
+import prog8.code.ast.findBankManagerExtsubs
 import prog8.code.ast.printAst
 import prog8.code.ast.verifyFinalAstBeforeAsmGen
+import prog8.code.ast.writeBankedCallsFile
 import prog8.code.core.*
 import prog8.code.optimize.optimizeSimplifiedAst
 import prog8.code.source.ImportFileSystem.expandTilde
@@ -254,6 +257,8 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                     intermediateAst
                 }
                 simplifiedAstDuration = simplifiedAstDuration2
+
+                writeBankedCallsFile(intermediateAst, symbolTable!!, compilationOptions, args.errors)
 
                 createAssemblyDuration = measureTime {
                     val result = createAssemblyAndAssemble(
@@ -674,14 +679,25 @@ private fun createAssemblyAndAssemble(program: PtProgram,
 
     val retainSSAforIR = true
 
-    val asmgen = if(compilerOptions.experimentalCodegen)
-        prog8.codegen.experimental.ExperiCodeGen(retainSSAforIR)
-    else if (compilerOptions.compTarget.cpu in arrayOf(CpuType.CPU6502, CpuType.CPU65C02))
-        prog8.codegen.cpu6502.AsmGen6502(prefixSymbols = true, lastGeneratedLabelSequenceNr+1)
-    else if (compilerOptions.compTarget.name == VMTarget.NAME)
-        VmCodeGen(retainSSAforIR)
-    else
-        throw NotImplementedError("no code generator for cpu ${compilerOptions.compTarget.cpu}")
+    // single pass to assign call site IDs for all backends
+    val bankedExtsubs = findBankManagerExtsubs(program, symbolTable)
+    val asm6502CallIds = mutableMapOf<PtAsmSub, UByte>()
+    val irCallIds = mutableMapOf<String, UByte>()
+    bankedExtsubs.forEachIndexed { index, node ->
+        if (index > 255) {
+            errors.err("too many extsub banking call sites (max 255)", node.position)
+        }
+        asm6502CallIds[node] = index.toUByte()
+        irCallIds[node.scopedName] = index.toUByte()
+    }
+    errors.report()
+
+    val asmgen = when {
+        compilerOptions.experimentalCodegen -> prog8.codegen.experimental.ExperiCodeGen(retainSSAforIR, irCallIds)
+        compilerOptions.compTarget.cpu in arrayOf(CpuType.CPU6502, CpuType.CPU65C02) -> prog8.codegen.cpu6502.AsmGen6502(prefixSymbols = true, lastGeneratedLabelSequenceNr+1, asm6502CallIds)
+        compilerOptions.compTarget.name == VMTarget.NAME -> VmCodeGen(retainSSAforIR, irCallIds)
+        else -> throw NotImplementedError("no code generator for cpu ${compilerOptions.compTarget.cpu}")
+    }
 
     val assembly = asmgen.generate(program, symbolTable, compilerOptions, errors)
     errors.report()

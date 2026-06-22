@@ -49,7 +49,11 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
             if (varBank != null) {
                 // the bank variable can also be the name of a subroutine that should be called to return the bank byte dynamically
                 val bankSymbol = asmgen.symbolTable.lookup(varBank.name) ?: asmgen.symbolTable.lookupUnscoped(varBank.name)
-                if (bankSymbol?.type == StNodeType.SUBROUTINE) {
+                if (bankSymbol?.type == StNodeType.SUBROUTINE || bankSymbol?.type == StNodeType.EXTSUB) {
+                    val extsubId = asmgen.extsubCallSiteIds[sub]
+                    if (extsubId != null) {
+                        asmgen.out("  lda  #${extsubId.toInt()}")
+                    }
                     asmgen.out("  jsr  ${asmgen.asmSymbolName(varBank.name)}")
                     varbank = asmgen.createTempVarReused(BaseDataType.UBYTE, false, call)
                     asmgen.out("  sta  $varbank")

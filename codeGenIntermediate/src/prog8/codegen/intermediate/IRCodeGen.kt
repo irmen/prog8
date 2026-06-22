@@ -12,15 +12,19 @@ class IRCodeGen(
     internal val symbolTable: SymbolTable,
     internal val options: CompilationOptions,
     internal val errors: IErrorReporter,
-    internal val retainSSA: Boolean
+    internal val retainSSA: Boolean,
+    private val preassignedCallSiteIds: Map<String, UByte>? = null
 ) {
 
     private val expressionEval = ExpressionGen(this)
     private val builtinFuncGen = BuiltinFuncGen(this, expressionEval)
     private val assignmentGen = AssignmentGen(this, expressionEval)
     internal val registers = RegisterPool()
+    internal val extsubCallSiteIds: MutableMap<String, UByte> = preassignedCallSiteIds?.toMutableMap() ?: mutableMapOf()
 
     fun generate(): IRProgram {
+        if (preassignedCallSiteIds == null)
+            assignExtsubCallSiteIds()
         makeAllNodenamesScoped(program)
         moveAllNestedSubroutinesToBlockScope(program)
         verifyNameScoping(program, symbolTable)
@@ -64,6 +68,16 @@ class IRCodeGen(
         irProg.validate()
 
         return irProg
+    }
+
+    private fun assignExtsubCallSiteIds() {
+        findBankManagerExtsubs(program, symbolTable).forEachIndexed { index, node ->
+            if (index > 255) {
+                errors.err("too many extsub banking call sites (max 255)", node.position)
+            }
+            else 
+                extsubCallSiteIds[node.scopedName] = index.toUByte()
+        }
     }
 
     fun registerTypes(): Map<RegisterNum, IRDataType> = registers.getTypes()
@@ -274,7 +288,7 @@ class IRCodeGen(
             is PtAssignment -> assignmentGen.translate(node)
             is PtAugmentedAssign -> assignmentGen.translate(node)
             is PtNodeGroup -> translateGroup(node.children)
-            is PtFunctionCall -> expressionEval.translate(node).chunks   // it's not an expression so no result value
+            is PtFunctionCall -> expressionEval.translate(node, false).chunks   // it's not an expression so no result value
             is PtNop -> emptyList()
             is PtReturn -> translate(node)
             is PtJump -> translate(node)
@@ -1452,7 +1466,7 @@ class IRCodeGen(
                     ?: throw AssemblyError("expected function call for multi-value return ${ret.position}")
                 
                 // Translate the function call (this generates the CALL instruction)
-                val callResult = expressionEval.translate(fcall)
+                val callResult = expressionEval.translate(fcall, false)
                 result += callResult.chunks
                 
                 // Get the return register specs for the called function

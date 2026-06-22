@@ -9,7 +9,9 @@ import prog8.code.core.IErrorReporter
 import prog8.codegen.intermediate.IRCodeGen
 import prog8.intermediate.IRFileWriter
 
-class ExperiCodeGen(val retainSSA: Boolean): ICodeGeneratorBackend {
+class ExperiCodeGen(val retainSSA: Boolean,
+                    private val preassignedCallSiteIds: Map<String, UByte>? = null
+): ICodeGeneratorBackend {
     override fun generate(
         program: PtProgram,
         symbolTable: SymbolTable,
@@ -19,7 +21,7 @@ class ExperiCodeGen(val retainSSA: Boolean): ICodeGeneratorBackend {
 
         // you could write a code generator directly on the PtProgram AST,
         // but you can also use the Intermediate Representation to build a codegen on:
-        val irCodeGen = IRCodeGen(program, symbolTable, options, errors, retainSSA)
+        val irCodeGen = IRCodeGen(program, symbolTable, options, errors, retainSSA, preassignedCallSiteIds)
         val irProgram = irCodeGen.generate()
         irProgram.verifyRegisterTypes(irCodeGen.registerTypes())
 

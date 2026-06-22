@@ -77,10 +77,26 @@ Libraries
 
 Optimizations
 ^^^^^^^^^^^^^
-
 - Port more benchmarks from https://thred.github.io/c-bench-64/  to prog8 and see how it stacks up. (see benchmark-c/ directory)
 - Compilation speed: try to join multiple modifications in 1 result in the AST processors instead of returning it straight away every time
 - various optimizers skip stuff if compTarget.name==VMTarget.NAME.  Once 6502-codegen is done from IR code, those 6502 only optimizations should probably be removed
+- banked calls with bankmanager subroutine: inefficient asm is generated, why is the bank number stored in a named temporary and then loaded again to be stored in the JSRFAR bank byte?
+  It looks okay (it does need to make sure the original subroutine's arguments that could be in A,X,Y and even Carry, are preserved before eventuall calling JSRFAR)
+  But: can't the bank byte for JSRFAR not be given a unique (but still local) label name, and directly store the bank byte there? That would remove the need for a temporary, and maybe some of the extra instructions.
+	; source: examples/banking-demo.p8:19   chrout('?')   ...  where chrout defined as:   extsub @bank bank_selector $ffd2 = chrout(ubyte char @A)
+	lda  #1
+	jsr  p8b_main.p8s_bank_selector
+	sta  p8_label_gen_9_tempv
+	lda  #$3f
+	php
+	pha
+	lda  p8_label_gen_9_tempv
+	sta  +
+	pla
+	plp
+	jsr  cx16.JSRFAR
+	.word  p8b_main.p8s_chrout    ; $ffd2
+  +   .byte  0    ; modified
 
 
 Dead Code Elimination bug in 64tass, for nested subroutines

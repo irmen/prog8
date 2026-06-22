@@ -10,14 +10,16 @@ import prog8.codegen.intermediate.IRCodeGen
 import prog8.intermediate.IRFileWriter
 import prog8.intermediate.IRProgram
 
-class VmCodeGen(val retainSSA: Boolean): ICodeGeneratorBackend {
+class VmCodeGen(val retainSSA: Boolean,
+                private val preassignedCallSiteIds: Map<String, UByte>? = null
+): ICodeGeneratorBackend {
     override fun generate(
         program: PtProgram,
         symbolTable: SymbolTable,
         options: CompilationOptions,
         errors: IErrorReporter
     ): IAssemblyProgram {
-        val irCodeGen = IRCodeGen(program, symbolTable, options, errors, retainSSA)
+        val irCodeGen = IRCodeGen(program, symbolTable, options, errors, retainSSA, preassignedCallSiteIds)
         val irProgram = irCodeGen.generate()
 
         irProgram.verifyRegisterTypes(irCodeGen.registerTypes())

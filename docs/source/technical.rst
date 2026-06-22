@@ -56,15 +56,69 @@ have to bother anymore with setting/resetting the banks manually, or having the 
 the routine is called in the wrong bank!  You define such a routine by adding ``@bank <bank>``
 to the extsub subroutine definition. This specifies the bank number where the subroutine is located in.
 You can use a constant bank number 0-255, a ubyte variable, or even the name of a subroutine
-(must be parameterless, and returning a ubyte) to make it dynamic::
+(must have a single ubyte parameter, and returning a ubyte) to make it dynamic::
 
     extsub @bank 10  $C09F = audio_init()
     extsub @bank banknr  $A000 = first_hiram_routine()
     extsub @bank get_bank  $A000 = second_hiram_routine()
 
 When a subroutine is used as a banking routine, the compiler will call it just before
-the actual banked subroutine is invoked. The return value of the banking routine (in register A)
+the actual banked subroutine is invoked. The compiler passes a unique "call-site ID" (0-255)
+as a single ubyte parameter in register A to the banking routine.
+The return value of the banking routine (in register A)
 is then used as the bank number for the subsequent call.
+
+.. _callsite-ids:
+
+Call-site IDs
+^^^^^^^^^^^^^
+To support advanced scenarios like dynamic overlay loading, the compiler assigns a unique **call-site ID** 
+to every banked external subroutine that uses a subroutine for its bank selection.
+
+What they are
+    A call-site ID is a unique ``ubyte`` value (0-255) assigned by the compiler to each unique
+    banked ``extsub`` declaration that specifies a banking manager routine.
+
+How they work
+    When your program calls a banked subroutine, and that subroutine has a banking manager routine
+    (instead of a constant bank number), the compiler:
+    
+    1. Loads the unique ID associated with that subroutine into the **accumulator (register A)**.
+    2. Calls your banking manager routine.
+    3. Your routine uses the ID in A to decide which bank to activate (and potentially load code into it).
+    4. Your routine returns the bank number in A.
+    5. The compiler then performs the far call to the target subroutine in the returned bank.
+
+What they are intended for
+    These IDs are primarily intended for implementing **Overlay Managers**. 
+    An overlay manager can use the ID as an index into a table to discover:
+    
+    - Which bank the required code should be in.
+    - Which file or offset on disk contains the code for this routine.
+    - Whether the code is already loaded or needs to be fetched.
+
+    Without these IDs, the banking manager would only know that *some* routine is being called, 
+    but it wouldn't know which one unless you had a separate manager routine for every single banked subroutine.
+
+Note that the same banked subroutine called from multiple different places in your code will currently
+result in the *same* ID being passed to the banking routine, as the ID is unique per ``extsub`` declaration.
+
+Viewing assigned IDs
+    During compilation, the compiler outputs a list of all assigned call-site IDs
+    into a file named ``<programname>.bankedcalls`` in the output directory.
+    This information is useful for synchronizing your overlay manager with the 
+    subroutines it needs to handle. The file contains a table like this:
+
+    .. code-block:: text
+
+        ID  Name                Address   Manager
+        --------------------------------------------------
+        0   chrout              $ffd2     selektor
+        1   other_sub           $a000     selektor
+
+    The compiler will also print an informational message to the console
+    stating that this file has been created.
+
 This might be useful for implementing **dynamic overlay loading**, where a
 banking routine can check if the required code is already loaded in a certain bank,
 load it from disk if necessary, and then return the bank number to the banked subroutine call.

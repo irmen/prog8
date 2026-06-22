@@ -15,7 +15,10 @@ import kotlin.io.path.writeLines
 internal const val subroutineFloatEvalResultVar1 = "prog8_float_eval_result1"
 internal const val subroutineFloatEvalResultVar2 = "prog8_float_eval_result2"
 
-class AsmGen6502(val prefixSymbols: Boolean, private val lastGeneratedLabelSequenceNr: Int): ICodeGeneratorBackend {
+class AsmGen6502(val prefixSymbols: Boolean,
+                 private val lastGeneratedLabelSequenceNr: Int,
+                 private val preassignedCallSiteIds: Map<PtAsmSub, UByte>? = null
+): ICodeGeneratorBackend {
     override fun generate(
         program: PtProgram,
         symbolTable: SymbolTable,
@@ -23,7 +26,7 @@ class AsmGen6502(val prefixSymbols: Boolean, private val lastGeneratedLabelSeque
         errors: IErrorReporter,
     ): IAssemblyProgram? {
         val st = if(prefixSymbols) prefixSymbols(program, options, symbolTable) else symbolTable
-        val asmgen = AsmGen6502Internal(program, st, options, errors, lastGeneratedLabelSequenceNr)
+        val asmgen = AsmGen6502Internal(program, st, options, errors, lastGeneratedLabelSequenceNr, preassignedCallSiteIds)
         return asmgen.compileToAssembly()
     }
 
@@ -329,7 +332,8 @@ class AsmGen6502Internal (
     internal val symbolTable: SymbolTable,
     internal val options: CompilationOptions,
     internal val errors: IErrorReporter,
-    private var generatedLabelSequenceNumber: Int
+    private var generatedLabelSequenceNumber: Int,
+    private val preassignedCallSiteIds: Map<PtAsmSub, UByte>? = null
 ) {
 
     internal val optimizedByteMultiplications = setOf(3,5,6,7,9,10,11,12,13,14,15,20,25,40,50,80,100)
@@ -349,6 +353,7 @@ class AsmGen6502Internal (
     private val ifElseAsmgen = IfElseAsmGen(program, symbolTable, this, pointerGen, assignmentAsmGen, errors)
     private val ifExpressionAsmgen = IfExpressionAsmGen(this, pointerGen, assignmentAsmGen, errors)
     private val augmentableAsmGen = AugmentableAssignmentAsmGen(program, assignmentAsmGen, this, pointerGen, allocator)
+    internal val extsubCallSiteIds: MutableMap<PtAsmSub, UByte> = preassignedCallSiteIds?.toMutableMap() ?: mutableMapOf()
 
     init {
         assignmentAsmGen.augmentableAsmGen = augmentableAsmGen
@@ -363,6 +368,8 @@ class AsmGen6502Internal (
         if(!options.quiet)
             println("Generating assembly code... ")
 
+        if (preassignedCallSiteIds == null)
+            assignExtsubCallSiteIds()
         programGen.generate()
 
         if(errors.noErrors()) {
@@ -392,6 +399,15 @@ class AsmGen6502Internal (
         } else {
             errors.report()
             return null
+        }
+    }
+
+    private fun assignExtsubCallSiteIds() {
+        findBankManagerExtsubs(program, symbolTable).forEachIndexed { index, node ->
+            if (index > 255) {
+                errors.err("too many extsub banking call sites (max 255)", node.position)
+            }
+            extsubCallSiteIds[node] = index.toUByte()
         }
     }
 

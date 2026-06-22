@@ -1405,7 +1405,9 @@ make it easier to define jump tables for example, like this::
 
 **Banks:** it is possible to declare a non-standard ROM or RAM bank that the routine is living in, with ``@bank`` like this:
 ``extsub @bank 10  $C09F = audio_init()`` to define a routine at $C09F in bank 10.
-You can also specify a variable or even the name of a subroutine (must be parameterless, returning a ubyte) for the bank.
+You can also specify a variable or even the name of a subroutine (must have a single ubyte parameter, returning a ubyte) for the bank.
+When a subroutine is used, the compiler will pass a unique **call-site ID** in register A to it, so it can distinguish between different calls.
+The compiler will write the assigned IDs for all call-sites into a ``.bankedcalls`` output file during compilation.
 See :ref:`banking` for more information.
 
 
