@@ -46,6 +46,7 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
         if(sub is PtAsmSub) {
             val varBank = sub.address?.varbank
             var varbank: String? = null
+            var bankFixLabel: String? = null
             if (varBank != null) {
                 // the bank variable can also be the name of a subroutine that should be called to return the bank byte dynamically
                 val bankSymbol = asmgen.symbolTable.lookup(varBank.name) ?: asmgen.symbolTable.lookupUnscoped(varBank.name)
@@ -55,8 +56,9 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
                         asmgen.out("  lda  #${extsubId.toInt()}")
                     }
                     asmgen.out("  jsr  ${asmgen.asmSymbolName(varBank.name)}")
-                    varbank = asmgen.createTempVarReused(BaseDataType.UBYTE, false, call)
-                    asmgen.out("  sta  $varbank")
+                    // store bank byte directly into the JSRFAR instruction data (forward label reference)
+                    bankFixLabel = asmgen.makeLabel("bank")
+                    asmgen.out("  sta  $bankFixLabel")
                 } else {
                     varbank = asmgen.asmVariableName(varBank)
                 }
@@ -74,65 +76,53 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
             } else {
                 val bank = sub.address?.constbank?.toString()
                 if(bank==null) {
-                    if(varbank!=null) {
+                    if(varbank!=null || bankFixLabel!=null) {
                         if(asmgen.options.romable)
                             TODO("no codegen yet for non-const bank in subroutine call that's usable in ROM  ${call.position}")
+
+                        // variable bank case: save/restore registers around the self-modifying sta
+                        if(varbank!=null) {
+                            asmgen.out("""
+                                php
+                                pha
+                                lda  $varbank
+                                sta  +
+                                pla
+                                plp""")
+                        }
+                        val label = bankFixLabel ?: "+"
 
                         // self-modifying code: set jsrfar bank argument
                         when(asmgen.options.compTarget.name) {
                             "cx16" -> {
                                 // JSRFAR can jump to a banked RAM address as well!
                                 asmgen.out("""
-                                php
-                                pha
-                                lda  $varbank
-                                sta  +
-                                pla
-                                plp
                                 jsr  cx16.JSRFAR
                                 .word  $subAsmName    ; ${sub.address!!.address.toHex()}
-+                               .byte  0    ; modified"""
+$label .byte  0    ; modified"""
                                 )
                             }
                             "c64" -> {
                                 asmgen.out("""
-                                php
-                                pha
-                                lda  $varbank
-                                sta  +
-                                pla
-                                plp
                                 jsr  c64.x16jsrfar
                                 .word  $subAsmName    ; ${sub.address!!.address.toHex()}
-+                               .byte  0    ; modified"""
+$label .byte  0    ; modified"""
                                 )
                             }
                             "c128" -> {
                                 asmgen.out("""
-                                php
-                                pha
-                                lda  $varbank
-                                sta  +
-                                pla
-                                plp
                                 jsr  c128.x16jsrfar
                                 .word  $subAsmName    ; ${sub.address!!.address.toHex()}
-+                               .byte  0    ; modified"""
+$label .byte  0    ; modified"""
                                 )
                             }
                             else -> {
                                 if(asmgen.options.compTarget.supportsBankedCalls) {
                                     val targetName = asmgen.options.compTarget.name
                                     asmgen.out("""
-                                        php
-                                        pha
-                                        lda  $varbank
-                                        sta  +
-                                        pla
-                                        plp
                                         jsr  $targetName.x16jsrfar
                                         .word  $subAsmName    ; ${sub.address!!.address.toHex()}
-+                                       .byte  0    ; modified"""
+$label .byte  0    ; modified"""
                                     )
                                 } else
                                     throw AssemblyError("callfar is not supported on the selected compilation target")

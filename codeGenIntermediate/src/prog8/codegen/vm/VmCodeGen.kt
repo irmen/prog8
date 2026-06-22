@@ -11,7 +11,7 @@ import prog8.intermediate.IRFileWriter
 import prog8.intermediate.IRProgram
 
 class VmCodeGen(val retainSSA: Boolean,
-                private val preassignedCallSiteIds: Map<String, UByte>? = null
+                private val preassignedCallSiteIds: Map<String, UByte> = emptyMap()
 ): ICodeGeneratorBackend {
     override fun generate(
         program: PtProgram,

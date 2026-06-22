@@ -13,18 +13,16 @@ class IRCodeGen(
     internal val options: CompilationOptions,
     internal val errors: IErrorReporter,
     internal val retainSSA: Boolean,
-    private val preassignedCallSiteIds: Map<String, UByte>? = null
+    private val preassignedCallSiteIds: Map<String, UByte> = emptyMap()
 ) {
 
     private val expressionEval = ExpressionGen(this)
     private val builtinFuncGen = BuiltinFuncGen(this, expressionEval)
     private val assignmentGen = AssignmentGen(this, expressionEval)
     internal val registers = RegisterPool()
-    internal val extsubCallSiteIds: MutableMap<String, UByte> = preassignedCallSiteIds?.toMutableMap() ?: mutableMapOf()
+    internal val extsubCallSiteIds: MutableMap<String, UByte> = preassignedCallSiteIds.toMutableMap()
 
     fun generate(): IRProgram {
-        if (preassignedCallSiteIds == null)
-            assignExtsubCallSiteIds()
         makeAllNodenamesScoped(program)
         moveAllNestedSubroutinesToBlockScope(program)
         verifyNameScoping(program, symbolTable)
@@ -68,16 +66,6 @@ class IRCodeGen(
         irProg.validate()
 
         return irProg
-    }
-
-    private fun assignExtsubCallSiteIds() {
-        findBankManagerExtsubs(program, symbolTable).forEachIndexed { index, node ->
-            if (index > 255) {
-                errors.err("too many extsub banking call sites (max 255)", node.position)
-            }
-            else 
-                extsubCallSiteIds[node.scopedName] = index.toUByte()
-        }
     }
 
     fun registerTypes(): Map<RegisterNum, IRDataType> = registers.getTypes()

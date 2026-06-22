@@ -686,9 +686,10 @@ private fun createAssemblyAndAssemble(program: PtProgram,
     bankedExtsubs.forEachIndexed { index, node ->
         if (index > 255) {
             errors.err("too many extsub banking call sites (max 255)", node.position)
+        } else {
+            asm6502CallIds[node] = index.toUByte()
+            irCallIds[node.scopedName] = index.toUByte()
         }
-        asm6502CallIds[node] = index.toUByte()
-        irCallIds[node.scopedName] = index.toUByte()
     }
     errors.report()
 

@@ -10,7 +10,7 @@ import prog8.codegen.intermediate.IRCodeGen
 import prog8.intermediate.IRFileWriter
 
 class ExperiCodeGen(val retainSSA: Boolean,
-                    private val preassignedCallSiteIds: Map<String, UByte>? = null
+                    private val preassignedCallSiteIds: Map<String, UByte> = emptyMap()
 ): ICodeGeneratorBackend {
     override fun generate(
         program: PtProgram,

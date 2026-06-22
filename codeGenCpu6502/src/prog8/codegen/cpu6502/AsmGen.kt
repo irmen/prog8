@@ -17,7 +17,7 @@ internal const val subroutineFloatEvalResultVar2 = "prog8_float_eval_result2"
 
 class AsmGen6502(val prefixSymbols: Boolean,
                  private val lastGeneratedLabelSequenceNr: Int,
-                 private val preassignedCallSiteIds: Map<PtAsmSub, UByte>? = null
+                 private val preassignedCallSiteIds: Map<PtAsmSub, UByte> = emptyMap()
 ): ICodeGeneratorBackend {
     override fun generate(
         program: PtProgram,
@@ -333,7 +333,7 @@ class AsmGen6502Internal (
     internal val options: CompilationOptions,
     internal val errors: IErrorReporter,
     private var generatedLabelSequenceNumber: Int,
-    private val preassignedCallSiteIds: Map<PtAsmSub, UByte>? = null
+    private val preassignedCallSiteIds: Map<PtAsmSub, UByte> = emptyMap()
 ) {
 
     internal val optimizedByteMultiplications = setOf(3,5,6,7,9,10,11,12,13,14,15,20,25,40,50,80,100)
@@ -353,7 +353,7 @@ class AsmGen6502Internal (
     private val ifElseAsmgen = IfElseAsmGen(program, symbolTable, this, pointerGen, assignmentAsmGen, errors)
     private val ifExpressionAsmgen = IfExpressionAsmGen(this, pointerGen, assignmentAsmGen, errors)
     private val augmentableAsmGen = AugmentableAssignmentAsmGen(program, assignmentAsmGen, this, pointerGen, allocator)
-    internal val extsubCallSiteIds: MutableMap<PtAsmSub, UByte> = preassignedCallSiteIds?.toMutableMap() ?: mutableMapOf()
+    internal val extsubCallSiteIds: MutableMap<PtAsmSub, UByte> = preassignedCallSiteIds.toMutableMap()
 
     init {
         assignmentAsmGen.augmentableAsmGen = augmentableAsmGen
@@ -368,8 +368,6 @@ class AsmGen6502Internal (
         if(!options.quiet)
             println("Generating assembly code... ")
 
-        if (preassignedCallSiteIds == null)
-            assignExtsubCallSiteIds()
         programGen.generate()
 
         if(errors.noErrors()) {
@@ -399,15 +397,6 @@ class AsmGen6502Internal (
         } else {
             errors.report()
             return null
-        }
-    }
-
-    private fun assignExtsubCallSiteIds() {
-        findBankManagerExtsubs(program, symbolTable).forEachIndexed { index, node ->
-            if (index > 255) {
-                errors.err("too many extsub banking call sites (max 255)", node.position)
-            }
-            extsubCallSiteIds[node] = index.toUByte()
         }
     }
 
