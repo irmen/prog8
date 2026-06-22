@@ -133,9 +133,15 @@ Miscellaneous
 .. index:: single: Standard Libraries; Miscellaneous built-ins
 
 :index:`cmp` (x,y)
-    Compare the integer value x to integer value y. Doesn't return a value or boolean result, only sets the processor's status bits!
-    You can use a conditional jumps (``if_cc`` etcetera) to act on this.
-    Normally you should just use a comparison expression (``x < y``)
+    Compare the integer value x to integer value y. Does not return a value; instead the result is conveyed via the CPU status flags (N, V, Z, C).
+    This is a low-level operation: you must use conditional branches (``if_cs``, ``if_cc``, ``if_z``, ``if_nz``, etc.) to read the result.
+
+    On the 6502 target, unsigned types use the ``CMP`` instruction (sets N, Z, C), while signed types use ``SEC | SBC`` (sets N, V, Z, C).
+    The carry flag convention follows the 6502: C=1 means no borrow (x >= y unsigned), C=0 means borrow (x < y unsigned).
+    Other CPU targets (e.g. 68000) may invert the carry flag meaning, so ``cmp()`` results are not portable across architectures.
+
+    For most purposes, ``sgn(x - y)`` is easier to use: it returns -1 (x < y), 0 (x == y), or 1 (x > y) as a proper byte value
+    that can be stored, passed to routines, or used in expressions.
 
 :index:`lsb` (x)
     Get the least significant (lower) byte of the value x. Equivalent to ``x & 255`` or even ``x as ubyte``.
