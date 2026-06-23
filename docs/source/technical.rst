@@ -77,14 +77,14 @@ to every banked external subroutine that uses a subroutine for its bank selectio
 
 What they are
     A call-site ID is a unique ``ubyte`` value (0-255) assigned by the compiler to each unique
-    banked ``extsub`` declaration that specifies a banking manager routine.
+    banked ``extsub`` declaration that specifies a bank selector routine.
 
 How they work
-    When your program calls a banked subroutine, and that subroutine has a banking manager routine
+    When your program calls a banked subroutine, and that subroutine has a bank selector routine
     (instead of a constant bank number), the compiler:
     
     1. Loads the unique ID associated with that subroutine into the **accumulator (register A)**.
-    2. Calls your banking manager routine.
+    2. Calls your bank selector routine.
     3. Your routine uses the ID in A to decide which bank to activate (and potentially load code into it).
     4. Your routine returns the bank number in A.
     5. The compiler then performs the far call to the target subroutine in the returned bank.
@@ -97,7 +97,7 @@ What they are intended for
     - Which file or offset on disk contains the code for this routine.
     - Whether the code is already loaded or needs to be fetched.
 
-    Without these IDs, the banking manager would only know that *some* routine is being called, 
+    Without these IDs, the bank selector would only know that *some* routine is being called, 
     but it wouldn't know which one unless you had a separate manager routine for every single banked subroutine.
 
 Note that the same banked subroutine called from multiple different places in your code will currently
@@ -107,17 +107,22 @@ Viewing assigned IDs
     During compilation, the compiler outputs a list of all assigned call-site IDs
     into a file named ``<programname>.bankedcalls`` in the output directory.
     This information is useful for synchronizing your overlay manager with the 
-    subroutines it needs to handle. The file contains a table like this:
+    subroutines it needs to handle.
+
+    The IDs are determined once before code generation begins, by collecting all
+    ``extsub`` declarations that have a bank selector and a bank number assigned,
+    scanning the program in declaration order, and then assigning sequential IDs
+    starting from 0. This means the first banked ``extsub`` in your source code
+    gets ID 0, the second gets ID 1, and so on. The IDs are deterministic and
+    stable across compilations — adding a new banked subroutine at the end of
+    the source will not change the IDs of existing declarations.
 
     .. code-block:: text
 
-        ID  Name                Address   Manager
+        ID  Address   Name                BankSelector
         --------------------------------------------------
-        0   chrout              $ffd2     selektor
-        1   other_sub           $a000     selektor
-
-    The compiler will also print an informational message to the console
-    stating that this file has been created.
+        0   $ffd2     main.chrout         main.selector
+        1   $a000     main.other_sub      main.selector
 
 This might be useful for implementing **dynamic overlay loading**, where a
 banking routine can check if the required code is already loaded in a certain bank,

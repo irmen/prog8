@@ -10,7 +10,7 @@ import prog8.code.SymbolTable
 import prog8.code.SymbolTableMaker
 import prog8.code.ast.PtAsmSub
 import prog8.code.ast.PtProgram
-import prog8.code.ast.findBankManagerExtsubs
+import prog8.code.ast.findBankSelectorExtsubs
 import prog8.code.ast.printAst
 import prog8.code.ast.verifyFinalAstBeforeAsmGen
 import prog8.code.ast.writeBankedCallsFile
@@ -263,7 +263,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                 createAssemblyDuration = measureTime {
                     val result = createAssemblyAndAssemble(
                             intermediateAst,
-                            symbolTable!!,
+                            symbolTable,
                             args.errors,
                             compilationOptions,
                             program.generatedLabelSequenceNumber
@@ -680,7 +680,7 @@ private fun createAssemblyAndAssemble(program: PtProgram,
     val retainSSAforIR = true
 
     // single pass to assign call site IDs for all backends
-    val bankedExtsubs = findBankManagerExtsubs(program, symbolTable)
+    val bankedExtsubs = findBankSelectorExtsubs(program, symbolTable)
     val asm6502CallIds = mutableMapOf<PtAsmSub, UByte>()
     val irCallIds = mutableMapOf<String, UByte>()
     bankedExtsubs.forEachIndexed { index, node ->

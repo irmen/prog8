@@ -34,6 +34,16 @@ Follow ALL the rules below carefully.
   - Do NOT use the `%encoding iso` / `txt.iso()` / `sys.poweroff_system()` pattern in these snippets — that's only for real CX16 emulator runs
 - **`sys` module**: always available, no import needed
 - **CX16 debugging**: Add `%encoding iso`, call `txt.iso()` in `start()`, end with `sys.poweroff_system()`. For emulator: `x16emu -echo iso -run -prg input.prg 2>&1 | grep ...`
+- **CX16 memory map**:
+  ```
+  Bank    Offset      Content
+          $0000-$9EFF Fixed/System RAM
+          $9F00-$9FFF I/O Area (VIA, VERA, YM2151)
+  $00-$FF:$A000-$BFFF Banked RAM (max 2 MiB, often 512 KiB) (256x8K banks)
+  $00-$1F:$C000-$FFFF System ROM (512 KiB) (32x16K banks)
+  ```
+  Bank registers (in zeropage): `$00` selects the current RAM bank (0-255), `$01` selects the current ROM bank (0-31). For JSRFAR/banked calls from Prog8, use `extsub @bank ...` instead of manipulating these directly. The `cx16` module provides `cx16.get_ram_bank()` / `cx16.set_ram_bank()` and `cx16.get_rom_bank()` / `cx16.set_rom_bank()` — prefer these over directly poking `$00`/`$01`.
+  Full hardware specs at https://ayce.dev/emptyx16.html#emptyx16---x16-hardware-specs
 
 ## Datatypes & Variables
 - Primitives: `bool`, `byte`, `ubyte`, `word`, `uword`, `long`, `float`, `str`

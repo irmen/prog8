@@ -182,9 +182,9 @@ class TestBankedSubroutines : FunSpec({
     test(".bankedcalls file creation and content (6502)") {
         val text = $$"""
             main {
-                sub selektor(ubyte id) -> ubyte { return 0 }
-                extsub @bank selektor $ffd2 = chrout(ubyte char @A)
-                extsub @bank selektor $a000 = other_sub()
+                sub selector(ubyte id) -> ubyte { return 0 }
+                extsub @bank selector $ffd2 = chrout(ubyte char @A)
+                extsub @bank selector $a000 = other_sub()
                 sub start() {
                     chrout('A')
                     other_sub()
@@ -201,12 +201,12 @@ class TestBankedSubroutines : FunSpec({
         bankedcallsFile.exists() shouldBe true
         val content = bankedcallsFile.readText()
         content shouldContain "ID  Address Name"
-        content shouldContain "BankManager"
+        content shouldContain "BankSelector"
         content shouldContain "0"
         content shouldContain "main.chrout"
         content shouldContain $$"$ffd2"
         content shouldNotContain $$$"$$ffd2"
-        content shouldContain "main.selektor"
+        content shouldContain "main.selector"
         content shouldContain "1"
         content shouldContain "main.other_sub"
         content shouldContain $$"$a000"
@@ -218,8 +218,8 @@ class TestBankedSubroutines : FunSpec({
     test("experimental codegen crash regression") {
         val text = $$"""
             main {
-                sub selektor(ubyte id) -> ubyte { return 0 }
-                extsub @bank selektor $ffd2 = chrout(ubyte char @A)
+                sub selector(ubyte id) -> ubyte { return 0 }
+                extsub @bank selector $ffd2 = chrout(ubyte char @A)
                 sub start() {
                     chrout('A')
                 }

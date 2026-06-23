@@ -67,6 +67,17 @@ You are writing **6502/65C02 assembly** using **64tass syntax**, in separate `*.
 - Check the target before using 65C02-specific instructions
 - **6502 / 65C02 instruction reference table**: https://www.pagetable.com/c64ref/6502/?cpu=65c02&tab=4 (provides exact instruction details for all opcodes: operation, addressing modes, byte length, and cycle count).
 
+## Commander X16 Memory Map
+```
+Bank    Offset      Content
+        $0000-$9EFF Fixed/System RAM
+        $9F00-$9FFF I/O Area (VIA, VERA, YM2151)
+$00-$FF:$A000-$BFFF Banked RAM (max 2 MiB, often 512 KiB) (256x8K banks)
+$00-$1F:$C000-$FFFF System ROM (512 KiB) (32x16K banks)
+```
+- Bank registers (in zeropage): `$00` selects the current RAM bank (0-255), `$01` selects the current ROM bank (0-31). For JSRFAR/banked calls from Prog8, use `extsub @bank ...` instead of manipulating these directly.
+- Full hardware specs at https://ayce.dev/emptyx16.html#emptyx16---x16-hardware-specs
+
 ## Calling Convention / Register Conventions
 - **Accumulator (A)**: 8-bit, used for most arithmetic, data movement, return values
 - **X register**: 8-bit, often used for indexing, loop counters
