@@ -140,6 +140,11 @@ Other compilation targets don't have banking or prog8 doesn't yet support automa
 There's a "banking" example for the Commander X16 that shows a possible application
 of the extsub with bank support, check out the :source:`bank example code <examples/cx16/banking>` .
 
+There's also a "dynamicbanking" example for the Commander X16 that demonstrates the use of a
+**bank selector subroutine** with call-site IDs to manage multiple subroutines across different
+HiRAM banks, using library blobs loaded from disk:
+:source:`dynamic banking example code <examples/cx16/dynamicbanking>` .
+
 
 Notice that the symbol for this routine in the assembly source code will still be defined as usual.
 The bank number is not translated into assembly (only as a comment)::
