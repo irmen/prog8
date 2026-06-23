@@ -90,7 +90,10 @@ How they work
     5. The compiler then performs the far call to the target subroutine in the returned bank.
 
 What they are intended for
-    These IDs are primarily intended for implementing **Overlay Managers**. 
+    These IDs are primarily intended for implementing **Overlay Managers**,
+    **dynamic library loading**, or any scenario where the bank number isn't
+    known at compile time (e.g. a library loaded into the first available HiRAM
+    bank, or language-specific versions selected via a global setting).
     An overlay manager can use the ID as an index into a table to discover:
     
     - Which bank the required code should be in.
