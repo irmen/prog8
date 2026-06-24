@@ -17,6 +17,7 @@ out-old/
 *.prg
 *.bin
 *.p8ir
+*.bankedcalls
 *.labels.txt
 *.vm.txt
 *.vice-mon-list

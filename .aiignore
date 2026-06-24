@@ -13,5 +13,7 @@ dist/
 build/
 out/
 output/
+gradle/
 .gradle/
 .kotlin/
+.git/
