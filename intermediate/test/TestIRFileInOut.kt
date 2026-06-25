@@ -187,4 +187,69 @@ load.b r1,#0
         struct.name shouldBe "testinst"
         struct.structName shouldBe "re.State"
     }
+
+    test("test IR reader parses loadhr/storehr sN immediate encoding") {
+        val source="""<?xml version="1.0" encoding="utf-8"?>
+<PROGRAM NAME="test-sn-immediate" COMPILERVERSION="99.99">
+<OPTIONS>
+compTarget=virtual
+output=PRG
+launcher=BASIC
+zeropage=KERNALSAFE
+loadAddress=$0000
+</OPTIONS>
+
+<ASMSYMBOLS>
+</ASMSYMBOLS>
+
+<VARS>
+<NOINITCLEAN>
+</NOINITCLEAN>
+<NOINITDIRTY>
+</NOINITDIRTY>
+<INIT>
+</INIT>
+<STRUCTINSTANCESNOINIT>
+</STRUCTINSTANCESNOINIT>
+<STRUCTINSTANCES>
+</STRUCTINSTANCES>
+<CONSTANTS>
+</CONSTANTS>
+<MEMORYMAPPED>
+</MEMORYMAPPED>
+<MEMORYSLABS>
+</MEMORYSLABS>
+</VARS>
+
+<INITGLOBALS>
+</INITGLOBALS>
+
+<BLOCK NAME="main" ADDRESS="" LIBRARY="false" FORCEOUTPUT="false" NOPREFIXING="false" VERAFXMULS="false" ALIGN="NONE" POS="[test.p8: line 1 col 1-2]">
+<SUB NAME="main.start" RETURNS="" POS="[test.p8: line 1 col 1-2]">
+<PARAMS>
+</PARAMS>
+<CHUNK LABEL="main.start"><REGS>dummy</REGS><CODE>
+loadhr.b r1,s0
+storehr.b r1,s2
+</CODE></CHUNK>
+</SUB>
+</BLOCK>
+</PROGRAM>
+"""
+        val tempfile = createTempFile(suffix = ".p8ir")
+        tempfile.writeText(source)
+        val program = IRFileReader().read(tempfile)
+        tempfile.deleteExisting()
+        val sub = program.blocks.single().children.single() as IRSubroutine
+        val instructions = sub.chunks.flatMap { it.instructions }
+        instructions.size shouldBe 2
+        instructions[0].opcode shouldBe Opcode.LOADHR
+        instructions[0].type shouldBe IRDataType.BYTE
+        instructions[0].reg1 shouldBe 1
+        instructions[0].immediate shouldBe 0
+        instructions[1].opcode shouldBe Opcode.STOREHR
+        instructions[1].type shouldBe IRDataType.BYTE
+        instructions[1].reg1 shouldBe 1
+        instructions[1].immediate shouldBe 2
+    }
 })

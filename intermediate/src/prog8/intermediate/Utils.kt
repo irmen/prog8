@@ -148,6 +148,8 @@ fun parseIRCodeLine(line: String): Either<IRInstruction, String> {
                 if (fpReg1 == null) fpReg1 = RegisterNum(oper.substring(2).toInt())
                 else if (fpReg2 == null) fpReg2 = RegisterNum(oper.substring(2).toInt())
                 else throw IRParseException("too many fp register operands")
+            } else if (opcode in setOf(Opcode.LOADHR, Opcode.STOREHR) && oper[0] == 's' && oper.length > 1 && oper[1].isDigit()) {
+                immediateInt = oper.drop(1).toInt()
             } else if (oper[0] in "0123456789$%-#" || oper.startsWith("0x")) {
                 val value = if(oper[0]=='#') parseIRValue(oper.drop(1)) else parseIRValue(oper)
                 if (format.immediate) {

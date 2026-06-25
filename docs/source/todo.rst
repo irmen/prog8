@@ -11,7 +11,7 @@ Future Things and Ideas
 - when implementing unsigned longs: remove the (multiple?) "TODO "hack" to allow unsigned long constants to be used as values for signed longs, without needing a cast
 - struct/ptr: implement the remaining TODOs in PointerAssignmentsGen.
 - struct/ptr: support pointer to pointer?
-- struct/ptr: support for typed function pointers, so that we can call them via functptr^^(args) maybe even without the ^^ operator?  (&routine could be typed by default as well then)
+- struct/ptr: typed function pointers (simplified): ``&&subroutine`` returns opaque typed pointer (no ``funcptr`` keyword), assignment allowed where target type is inferred, calling via ``ptr(args)``. No explicit signature syntax. Useful mostly for 68000 targets.
 - struct/ptr: really fixing the pointer dereferencing issues (cursed hybrid between IdentifierReference, PtrDereferece and PtrIndexedDereference) may require getting rid of scoped identifiers altogether and treat '.' as a "scope or pointer following operator"
 - struct/ptr: (later, nasty parser problem:) support chaining pointer dereference on function calls that return a pointer.  (type checking now fails on stuff like func().field and func().next.field)
 - Make all constants long by default? or not? (remove type name altogether), reduce to target type implicitly if the actual value fits.  -> long-consts branch
