@@ -1,6 +1,7 @@
 package prog8.parser
 
 import org.antlr.v4.runtime.*
+import org.antlr.v4.runtime.atn.PredictionMode
 import prog8.ast.Module
 import prog8.ast.antlr.Antlr2KotlinVisitor
 import prog8.code.core.Position
@@ -16,24 +17,44 @@ class MultipleParseErrors(val errors: List<ParseError>) : Exception(
 object Prog8Parser {
 
     fun parseModule(src: SourceCode): Module {
-        val errorListener = CollectingErrorListener(src)
         val lexer = Prog8ANTLRLexer(CharStreams.fromString(src.text, src.origin))
         lexer.removeErrorListeners()
-        lexer.addErrorListener(errorListener)
         val tokens = CommonTokenStream(lexer)
+
+        // Fast path: try SLL prediction mode first (faster on correct input)
+        val sllErrorListener = CollectingErrorListener(src)
+        lexer.addErrorListener(sllErrorListener)
         val parser = Prog8ANTLRParser(tokens)
+        parser.interpreter.predictionMode = PredictionMode.SLL
         parser.errorHandler = DefaultErrorStrategy()
         parser.removeErrorListeners()
-        parser.addErrorListener(errorListener)
+        parser.addErrorListener(sllErrorListener)
 
         val parseTree = parser.module()
 
-        if(errorListener.hasErrors()) {
-            throw MultipleParseErrors(errorListener.getErrors())
+        if(!sllErrorListener.hasErrors()) {
+            // SLL succeeded cleanly — use this tree
+            val visitor = Antlr2KotlinVisitor(src)
+            val visitorResult = visitor.visit(parseTree)
+            return visitorResult as Module
+        }
+
+        // SLL found errors — fall back to LL for full context parsing
+        val llErrorListener = CollectingErrorListener(src)
+        lexer.reset()
+        parser.reset()
+        parser.interpreter.predictionMode = PredictionMode.LL
+        parser.removeErrorListeners()
+        parser.addErrorListener(llErrorListener)
+
+        val llParseTree = parser.module()
+
+        if(llErrorListener.hasErrors()) {
+            throw MultipleParseErrors(llErrorListener.getErrors())
         }
 
         val visitor = Antlr2KotlinVisitor(src)
-        val visitorResult = visitor.visit(parseTree)
+        val visitorResult = visitor.visit(llParseTree)
         return visitorResult as Module
     }
 
