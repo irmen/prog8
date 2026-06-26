@@ -22,16 +22,20 @@ fun main(args: Array<String>) {
     val source = Path(inputFile).readText()
     val program = reader.read(source)
     val target = program.options.compTarget
-    println("Loaded IR program: ${program.name}")
-    println("Target system and CPU: ${target.name} / ${target.cpu}")
+    System.err.println("Loaded IR program: ${program.name}")
+    System.err.println("Target system and CPU: ${target.name} / ${target.cpu}")
     
     val gen = when(target.cpu) {
-        CpuType.CPU6502, CpuType.CPU65C02 -> CodeGenerator(program, target.cpu)
+        CpuType.CPU6502, CpuType.CPU65C02 -> CodeGenerator(program, target)
         CpuType.VIRTUAL -> {
             println("This code generator only works for 6502 and 65C02 CPUs.")
             exitProcess(1)
         }
     }
     
-    gen.generate()
+    val ok = gen.generate()
+    if(!ok) {
+        System.err.println("Assembly failed.")
+        exitProcess(1)
+    }
 }

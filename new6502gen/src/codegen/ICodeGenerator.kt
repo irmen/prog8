@@ -1,5 +1,5 @@
 package codegen
 
 interface ICodeGenerator {
-    fun generate()
+    fun generate(): Boolean
 }

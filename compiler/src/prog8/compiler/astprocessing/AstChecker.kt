@@ -362,11 +362,6 @@ internal class AstChecker(private val program: Program,
         if (addr!=null) {
             if (addr > 65535u)
                 errors.err($$"block address must be valid integer 0..$ffff", block.position)
-            if(compilerOptions.loadAddress!=0u) {
-                val gapsize = compilerOptions.compTarget.STARTUP_CODE_RESERVED_SIZE
-                if (addr < compilerOptions.loadAddress + gapsize)
-                    errors.err("block address must be at least program load address + $gapsize (to allow for startup logic)", block.position)
-            }
         }
 
         for (statement in block.statements) {

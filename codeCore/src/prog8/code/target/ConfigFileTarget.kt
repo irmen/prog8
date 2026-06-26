@@ -20,7 +20,6 @@ class ConfigFileTarget(
     override val cpu: CpuType,
     override val PROGRAM_LOAD_ADDRESS: UInt,
     override val PROGRAM_MEMTOP_ADDRESS: UInt,
-    override val STARTUP_CODE_RESERVED_SIZE: UInt,
     override val BSSHIGHRAM_START: UInt,
     override val BSSHIGHRAM_END: UInt,
     override val BSSGOLDENRAM_START: UInt,
@@ -128,7 +127,6 @@ class ConfigFileTarget(
                 cpuType,
                 props.getInteger("load_address"),
                 props.getInteger("memtop"),
-                0u,         // used only in a very specific error condition check in a certain scenario...
                 props.getInteger("bss_highram_start"),
                 props.getInteger("bss_highram_end"),
                 props.getInteger("bss_goldenram_start"),
