@@ -372,7 +372,7 @@ class AsmGen6502Internal (
 
         if(errors.noErrors()) {
             val output = options.outputDir.resolve("${program.name}.asm")
-            val asmLines = assembly.flatMapTo(mutableListOf()) { it.split('\n') }
+            val asmLines = assembly.toMutableList()
             if(options.compTarget.name==Cx16Target.NAME) {
                 scanInvalid65816instructions(asmLines)
                 if(!errors.noErrors()) {
@@ -381,9 +381,7 @@ class AsmGen6502Internal (
                 }
             }
             if(options.optimize) {
-                while(optimizeAssembly(asmLines, options.compTarget, symbolTable)>0) {
-                    // optimize the assembly source code
-                }
+                optimizeAssembly(asmLines, options.compTarget, symbolTable)
                 output.writeLines(asmLines)
             } else {
                 // write the unmodified code
@@ -477,14 +475,21 @@ class AsmGen6502Internal (
     }
 
     internal fun out(str: String, splitlines: Boolean = true) {
-        val fragment = (if(splitlines && " | " in str) str.replace("|", "\n") else str).trim('\r', '\n')
         if (splitlines) {
-            for (line in fragment.splitToSequence('\n')) {
-                val trimmed = if (line.startsWith(' ')) "\t" + line.trim() else line
-                // trimmed = trimmed.replace(Regex("^\\+\\s+"), "+\t")  // sanitize local label indentation
-                assembly.add(trimmed)
+            if ('\n' in str || '|' in str) {
+                val fragment = if (" | " in str) str.replace("|", "\n").trim('\r', '\n') else str.trim('\r', '\n')
+                val lines = fragment.split('\n')
+                for (i in lines.indices) {
+                    val line = lines[i]
+                    assembly.add(if (line.startsWith(' ')) "\t${line.trim()}" else line)
+                }
+            } else {
+                val trimmed = str.trim()
+                assembly.add(if (str.startsWith(' ')) "\t$trimmed" else trimmed)
             }
-        } else assembly.add(fragment)
+        } else {
+            assembly.add(str.trim('\r', '\n'))
+        }
     }
 
     fun asmSymbolName(regs: RegisterOrPair): String =

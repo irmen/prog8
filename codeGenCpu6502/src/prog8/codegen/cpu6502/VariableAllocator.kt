@@ -16,7 +16,8 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
     private val zeropage = options.compTarget.zeropage
     internal val globalFloatConsts = mutableMapOf<Double, String>()     // all float values in the entire program (value -> varname)
     internal val zeropageVars: Map<String, MemoryAllocator.VarAllocation>
-    private val usageScores by lazy { computeUsageScores(collectAllVariables(symboltable)) }
+    private val allStaticVariables by lazy { collectAllVariables(symboltable) }
+    private val usageScores by lazy { computeUsageScores(allStaticVariables) }
 
     init {
         allocateZeropageVariables()
@@ -49,7 +50,7 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
         if(options.zeropage== ZeropageType.DONTUSE)
             return
 
-        val allVariables = collectAllVariables(symboltable)
+        val allVariables = allStaticVariables
 
         val numberOfAllocatableVariables = allVariables.size
         val varsRequiringZp = allVariables.filter { it.zpwish == ZeropageWish.REQUIRE_ZEROPAGE }

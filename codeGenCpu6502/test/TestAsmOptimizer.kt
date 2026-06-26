@@ -30,45 +30,45 @@ class TestAsmOptimizer: FunSpec({
     symbolTable.add(StMemVar("A1", DataType.UWORD, 0x0310u, null, null))
     symbolTable.add(StMemVar("A2", DataType.UWORD, 0x0312u, null, null))
 
-    fun optimize(lines: MutableList<String>): Int {
-        return optimizeAssembly(lines, machine, symbolTable)
+    fun optimize(lines: MutableList<String>) {
+        optimizeAssembly(lines, machine, symbolTable)
     }
 
     // --- optimizeIncDec ---
 
     test("optimizeIncDec: removes iny+dey sequence") {
         val lines = mutableListOf("  iny", "  dey", "  rts", "  nop")
-        optimize(lines) shouldBe 1
+        optimize(lines)
         lines shouldBe listOf("  rts", "  nop")
     }
 
     test("optimizeIncDec: removes iny+dey sequence with comments") {
         val lines = mutableListOf("  iny  ; increment Y", "  dey  ; decrement Y", "  rts", "  nop")
-        optimize(lines) shouldBe 1
+        optimize(lines)
         lines shouldBe listOf("  rts", "  nop")
     }
 
     test("optimizeIncDec: removes inx+dex sequence") {
         val lines = mutableListOf("  inx", "  dex", "  rts", "  nop")
-        optimize(lines) shouldBe 1
+        optimize(lines)
         lines shouldBe listOf("  rts", "  nop")
     }
 
     test("optimizeIncDec: removes dey+iny sequence") {
         val lines = mutableListOf("  dey", "  iny", "  rts", "  nop")
-        optimize(lines) shouldBe 1
+        optimize(lines)
         lines shouldBe listOf("  rts", "  nop")
     }
 
     test("optimizeIncDec: removes dex+inx sequence") {
         val lines = mutableListOf("  dex", "  inx", "  rts", "  nop")
-        optimize(lines) shouldBe 1
+        optimize(lines)
         lines shouldBe listOf("  rts", "  nop")
     }
 
     test("optimizeIncDec: preserves non-canceling sequences") {
         val lines = mutableListOf("  iny", "  inx", "  rts", "  nop")
-        optimize(lines) shouldBe 0
+        optimize(lines)
         lines shouldBe listOf("  iny", "  inx", "  rts", "  nop")
     }
 
@@ -76,42 +76,37 @@ class TestAsmOptimizer: FunSpec({
 
     test("optimizeStoreLoadSame: removes sta X + lda X") {
         val lines = mutableListOf("  lda  #42", "  sta  myvar", "  lda  myvar", "  rts")
-        optimize(lines) shouldBe 1
+        optimize(lines)
         lines shouldBe listOf("  lda  #42", "  sta  myvar", "  rts")
     }
 
     test("optimizeStoreLoadSame: removes sta X + lda X with comments") {
-        // Note: comments don't affect the optimization, but the optimizer checks lines[1] and lines[2]
-        // and the comment is part of the line, so "sta  myvar  ; store it" doesn't match "sta  myvar"
-        // The optimizer uses substring(4) which includes the comment
         val lines = mutableListOf("  nop", "  sta  myvar", "  lda  myvar", "  rts  ; return")
-        optimize(lines) shouldBe 1
+        optimize(lines)
         lines shouldBe listOf("  nop", "  sta  myvar", "  rts  ; return")
     }
 
     test("optimizeStoreLoadSame: removes pha + pla") {
-        // Note: optimizer checks lines[1] and lines[2] of the 4-line window
         val lines = mutableListOf("  nop", "  pha", "  pla", "  rts")
-        optimize(lines) shouldBe 1
+        optimize(lines)
         lines shouldBe listOf("  nop", "  rts")
     }
 
     test("optimizeStoreLoadSame: removes phx + plx") {
         val lines = mutableListOf("  nop", "  phx", "  plx", "  rts")
-        optimize(lines) shouldBe 1
+        optimize(lines)
         lines shouldBe listOf("  nop", "  rts")
     }
 
     test("optimizeStoreLoadSame: removes phy + ply") {
         val lines = mutableListOf("  nop", "  phy", "  ply", "  rts")
-        optimize(lines) shouldBe 1
+        optimize(lines)
         lines shouldBe listOf("  nop", "  rts")
     }
 
     test("optimizeStoreLoadSame: removes lda X + sta X") {
-        // Note: optimizer checks lines[1] and lines[2] of the 4-line window
         val lines = mutableListOf("  nop", "  lda  myvar", "  sta  myvar", "  rts")
-        optimize(lines) shouldBe 1
+        optimize(lines)
         lines shouldBe listOf("  nop", "  lda  myvar", "  rts")
     }
 
@@ -119,50 +114,49 @@ class TestAsmOptimizer: FunSpec({
 
     test("optimizeJsrRts: converts jsr+rts to jmp") {
         val lines = mutableListOf("  jsr  mysub", "  rts", "  nop", "  nop")
-        optimize(lines) shouldBe 1
+        optimize(lines)
         lines shouldBe listOf("  jmp  mysub", "  nop", "  nop")
     }
 
     test("optimizeJsrRts: converts jsr+rts to jmp with comments") {
-        // Note: comments don't affect the optimization
         val lines = mutableListOf("  jsr  mysub  ; call subroutine", "  rts  ; return", "  nop", "  nop")
-        optimize(lines) shouldBe 1
+        optimize(lines)
         lines shouldBe listOf("  jmp  mysub  ; call subroutine", "  nop", "  nop")
     }
 
     test("optimizeJsrRts: removes rts+jmp") {
         val lines = mutableListOf("  rts", "  jmp  somewhere", "  nop", "  nop")
-        optimize(lines) shouldBe 1
+        optimize(lines)
         lines shouldBe listOf("  rts", "  nop", "  nop")
     }
 
     test("optimizeJsrRts: removes rts+bra") {
         val lines = mutableListOf("  rts", "  bra  somewhere", "  nop", "  nop")
-        optimize(lines) shouldBe 1
+        optimize(lines)
         lines shouldBe listOf("  rts", "  nop", "  nop")
     }
 
     test("optimizeJsrRts: removes lda+cmp #0") {
         val lines = mutableListOf("  lda  myvar", "  cmp  #0", "  beq  skip", "  nop")
-        optimize(lines) shouldBe 1
+        optimize(lines)
         lines shouldBe listOf("  lda  myvar", "  beq  skip", "  nop")
     }
 
     test("optimizeJsrRts: removes lda+cmp #0 with comments") {
         val lines = mutableListOf("  lda  myvar  ; load variable", "  cmp  #0  ; compare to zero", "  beq  skip  ; branch if equal", "  nop")
-        optimize(lines) shouldBe 1
+        optimize(lines)
         lines shouldBe listOf("  lda  myvar  ; load variable", "  beq  skip  ; branch if equal", "  nop")
     }
 
     test("optimizeJsrRts: removes bra+jmp") {
         val lines = mutableListOf("  bra  somewhere", "  jmp  elsewhere", "  nop", "  nop")
-        optimize(lines) shouldBe 1
+        optimize(lines)
         lines shouldBe listOf("  bra  somewhere", "  nop", "  nop")
     }
 
     test("optimizeJsrRts: preserves jsr+rts for floats.pushFAC") {
         val lines = mutableListOf("  jsr  floats.pushFAC", "  rts", "  nop", "  nop")
-        optimize(lines) shouldBe 0
+        optimize(lines)
         lines shouldBe listOf("  jsr  floats.pushFAC", "  rts", "  nop", "  nop")
     }
 
@@ -170,26 +164,26 @@ class TestAsmOptimizer: FunSpec({
 
     test("optimizeUselessPushPop: removes phy+ldy+pla") {
         val lines = mutableListOf("  phy", "  ldy  #5", "  pla", "  rts")
-        optimize(lines) shouldBe 1
+        optimize(lines)
         lines shouldBe listOf("  tya", "  ldy  #5", "  rts")
     }
 
     test("optimizeUselessPushPop: removes phx+ldx+pla") {
         val lines = mutableListOf("  phx", "  ldx  #5", "  pla", "  rts")
-        optimize(lines) shouldBe 1
+        optimize(lines)
         lines shouldBe listOf("  txa", "  ldx  #5", "  rts")
     }
 
     test("optimizeUselessPushPop: removes pha+lda+pla") {
         // Note: optimizer removes all three: pha, lda, and pla
         val lines = mutableListOf("  pha", "  lda  #5", "  pla", "  rts")
-        optimize(lines) shouldBe 1
+        optimize(lines)
         lines shouldBe listOf("  rts")
     }
 
     test("optimizeUselessPushPop: removes pha+tya+tay+pla") {
         val lines = mutableListOf("  pha", "  tya", "  tay", "  pla", "  rts")
-        optimize(lines) shouldBe 1
+        optimize(lines)
         lines shouldBe listOf("  rts")
     }
 
@@ -197,14 +191,14 @@ class TestAsmOptimizer: FunSpec({
 
     test("optimizeUnneededTempvarInAdd: removes scratch variable in add") {
         val lines = mutableListOf("  sta  P8ZP_SCRATCH_W1", "  lda  #5", "  clc", "  adc  P8ZP_SCRATCH_W1", "  rts")
-        optimize(lines) shouldBe 1
+        optimize(lines)
         lines shouldBe listOf("  clc", "  adc  #5", "  rts")
     }
 
     test("optimizeUnneededTempvarInAdd: removes scratch variable in add with comments") {
         // Note: comments don't affect the optimization
         val lines = mutableListOf("  sta  P8ZP_SCRATCH_W1", "  lda  #5", "  clc", "  adc  P8ZP_SCRATCH_W1", "  rts  ; return")
-        optimize(lines) shouldBe 1
+        optimize(lines)
         lines shouldBe listOf("  clc", "  adc  #5", "  rts  ; return")
     }
 
@@ -212,14 +206,14 @@ class TestAsmOptimizer: FunSpec({
 
     test("optimizeTSBtoRegularOr: converts lda/tsb/lda to lda/ora/sta") {
         val lines = mutableListOf("  lda  var2", "  tsb  var1", "  lda  var1", "  rts")
-        optimize(lines) shouldBe 1
+        optimize(lines)
         lines shouldBe listOf("  lda  var1", "  ora  var2", "  sta  var1", "  rts")
     }
 
     test("optimizeTSBtoRegularOr: converts lda/tsb/lda to lda/ora/sta with comments") {
         // Note: comments don't affect the optimization
         val lines = mutableListOf("  lda  var2", "  tsb  var1", "  lda  var1", "  rts  ; return")
-        optimize(lines) shouldBe 1
+        optimize(lines)
         lines shouldBe listOf("  lda  var1", "  ora  var2", "  sta  var1", "  rts  ; return")
     }
 
@@ -231,7 +225,7 @@ class TestAsmOptimizer: FunSpec({
             "  lda  #1", "  ldy  #0", "  sta  var2", "  sty  var2+1",
             "  rts", "  nop", "  nop", "  nop", "  nop", "  nop"
         )
-        optimize(lines) shouldBe 1
+        optimize(lines)
         lines shouldBe listOf(
             "  lda  #1", "  ldy  #0", "  sta  var1", "  sty  var1+1",
             "  sta  var2", "  sty  var2+1",
@@ -246,7 +240,7 @@ class TestAsmOptimizer: FunSpec({
             "  ldy  #0", "  lda  (ptr),y", "  ora  #3", "  ldy  #0", "  sta  (ptr),y", "  rts",
             "  nop", "  nop", "  nop", "  nop", "  nop", "  nop", "  nop", "  nop"
         )
-        optimize(lines) shouldBe 1
+        optimize(lines)
         lines shouldBe listOf("  ldy  #0", "  lda  (ptr),y", "  ora  #3", "  sta  (ptr),y", "  rts",
             "  nop", "  nop", "  nop", "  nop", "  nop", "  nop", "  nop", "  nop")
     }
@@ -260,7 +254,7 @@ class TestAsmOptimizer: FunSpec({
             "  sta  P8ZP_SCRATCH_PTR", "  sty  P8ZP_SCRATCH_PTR+1", "  rts",
             "  nop", "  nop", "  nop", "  nop"
         )
-        optimize(lines) shouldBe 1
+        optimize(lines)
         lines shouldBe listOf(
             "  clc", "  adc  P8ZP_SCRATCH_PTR", "  sta  P8ZP_SCRATCH_PTR",
             "  tya", "  adc  P8ZP_SCRATCH_PTR+1", "  sta  P8ZP_SCRATCH_PTR+1", "  rts",
@@ -271,7 +265,7 @@ class TestAsmOptimizer: FunSpec({
     test("optimizeExtraRegisterLoadInWordStore: removes ldx+sta+txa+ldy+sta") {
         val lines = mutableListOf("  ldx  #42", "  sta  myvar", "  txa", "  ldy  #1", "  sta  myvar+1", "  rts",
             "  nop", "  nop", "  nop", "  nop", "  nop", "  nop", "  nop", "  nop")
-        optimize(lines) shouldBe 1
+        optimize(lines)
         lines shouldBe listOf("  sta  myvar", "  lda  #42", "  ldy  #1", "  sta  myvar+1", "  rts",
             "  nop", "  nop", "  nop", "  nop", "  nop", "  nop", "  nop", "  nop")
     }
@@ -280,19 +274,19 @@ class TestAsmOptimizer: FunSpec({
 
     test("handles empty input") {
         val lines = mutableListOf<String>()
-        optimize(lines) shouldBe 0
+        optimize(lines)
         lines shouldBe emptyList()
     }
 
     test("handles single line input") {
         val lines = mutableListOf("  rts")
-        optimize(lines) shouldBe 0
+        optimize(lines)
         lines shouldBe listOf("  rts")
     }
 
     test("multiple optimizations in one pass") {
         val lines = mutableListOf("  iny", "  dey", "  lda  #1", "  sta  var", "  lda  var", "  rts")
-        optimize(lines) shouldBe 2
+        optimize(lines)
         lines shouldBe listOf("  lda  #1", "  sta  var", "  rts")
     }
 
@@ -547,7 +541,9 @@ class TestAsmOptimizer: FunSpec({
             "  nop", "  nop", "  nop", "  nop", "  nop", "  nop", "  nop", "  nop"
         )
         // The second ldy should be removed since "ora" doesn't modify Y
-        optimize(lines) shouldBe 1
+        optimize(lines)
+        lines shouldBe listOf("  ldy  #0", "  lda  (ptr),y", "  ora  myvar", "  sta  (ptr),y", "  rts",
+            "  nop", "  nop", "  nop", "  nop", "  nop", "  nop", "  nop", "  nop")
     }
 
     test("actual Y-modifying instructions should still be detected") {
@@ -557,7 +553,11 @@ class TestAsmOptimizer: FunSpec({
             "  nop", "  nop", "  nop", "  nop", "  nop", "  nop", "  nop", "  nop"
         )
         // The second ldy should NOT be removed since "tay" modifies Y
-        optimize(lines) shouldBe 0
+        optimize(lines)
+        lines shouldBe listOf(
+            "  ldy  #0", "  lda  (ptr),y", "  tay",
+            "  ldy  #0", "  sta  (ptr),y", "  rts",
+            "  nop", "  nop", "  nop", "  nop", "  nop", "  nop", "  nop", "  nop")
     }
 
     test("modifiesYRegister: correctly identifies Y-modifying instructions") {
@@ -584,8 +584,13 @@ class TestAsmOptimizer: FunSpec({
             "  lda  p8b_main.p8v_io_data", "  sta  p8b_main.p8v_result",
             "  rts", "  nop"
         )
-        val count = optimize(lines)
-        count shouldBe 0
+        optimize(lines)
         lines.size shouldBe 8  // all instructions preserved
+        lines shouldBe listOf(
+            "  lda  p8b_main.p8v_io_data", "  sta  p8b_main.p8v_result",
+            "  lda  p8b_main.p8v_io_data", "  sta  p8b_main.p8v_result",
+            "  lda  p8b_main.p8v_io_data", "  sta  p8b_main.p8v_result",
+            "  rts", "  nop"
+        )
     }
 })

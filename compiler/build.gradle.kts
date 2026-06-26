@@ -1,8 +1,8 @@
 plugins {
     id("application")
     kotlin("jvm")
-    id("com.gradleup.shadow") version "9.4.2"
-    id("com.peterabeles.gversion") version "1.10.3"
+    id("com.gradleup.shadow") version "9.4.3"
+    id("com.peterabeles.gversion") version "1.11.0"
 }
 
 dependencies {
@@ -51,7 +51,7 @@ gversion {
     className = "Version"
     language = "kotlin"
     debug = false
-    annotate = true
+    annotate = ""
 }
 
 tasks.build {

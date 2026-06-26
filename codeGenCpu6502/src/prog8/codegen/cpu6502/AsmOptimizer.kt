@@ -13,39 +13,42 @@ import prog8.code.core.ICompilationTarget
 // TrimmedLine has .value (original), .trimmed (trimStart), and .instruction (instructionPart).
 
 
-internal fun optimizeAssembly(lines: MutableList<String>, machine: ICompilationTarget, symbolTable: SymbolTable): Int {
-    var numberOfOptimizations = 0
-
+internal fun optimizeAssembly(lines: MutableList<String>, machine: ICompilationTarget, symbolTable: SymbolTable) {
     val pretrimmed = lines.map { it.trimStart() }.toMutableList()
 
-    /** Runs an optimization pass, applies modifications if any, and recomputes line windows. */
-    fun runPass(
-        mods: List<Modification>,
-        windowSize: Int,
-        currentLines: Sequence<List<TrimmedLine>>
-    ): Sequence<List<TrimmedLine>> {
-        if (mods.isNotEmpty()) {
-            apply(mods, lines, pretrimmed)
-            numberOfOptimizations++
-            return getLinesBy(pretrimmed, lines, windowSize)
+    while(true) {
+        var modified = false
+
+        /** Runs a single optimization pass, applies modifications if any, and recomputes line windows. */
+        fun runPass(
+            mods: List<Modification>,
+            windowSize: Int,
+            currentLines: Sequence<List<TrimmedLine>>
+        ): Sequence<List<TrimmedLine>> {
+            if (mods.isNotEmpty()) {
+                apply(mods, lines, pretrimmed)
+                modified = true
+                return getLinesBy(pretrimmed, lines, windowSize)
+            }
+            return currentLines
         }
-        return currentLines
+
+        var linesByFour = getLinesBy(pretrimmed, lines, 4)
+        linesByFour = runPass(optimizeIncDec(linesByFour), 4, linesByFour)
+        linesByFour = runPass(optimizeStoreLoadSame(linesByFour, machine, symbolTable), 4, linesByFour)
+        linesByFour = runPass(optimizeJsrRtsAndOtherCombinations(linesByFour), 4, linesByFour)
+        linesByFour = runPass(optimizeUselessPushPopStack(linesByFour), 4, linesByFour)
+        linesByFour = runPass(optimizeUnneededTempvarInAdd(linesByFour), 4, linesByFour)
+        linesByFour = runPass(optimizeTSBtoRegularOr(linesByFour), 4, linesByFour)
+
+        var linesByFourteen = getLinesBy(pretrimmed, lines, 14)
+        linesByFourteen = runPass(optimizeSameAssignments(linesByFourteen, machine, symbolTable), 14, linesByFourteen)
+        linesByFourteen = runPass(optimizeSamePointerIndexingAndUselessBeq(linesByFourteen), 14, linesByFourteen)
+        linesByFourteen = runPass(optimizeAddWordToSameVariableOrExtraRegisterLoadInWordStore(linesByFourteen), 14, linesByFourteen)
+
+        if(!modified)
+            break
     }
-
-    var linesByFour = getLinesBy(pretrimmed, lines, 4)
-    linesByFour = runPass(optimizeIncDec(linesByFour), 4, linesByFour)
-    linesByFour = runPass(optimizeStoreLoadSame(linesByFour, machine, symbolTable), 4, linesByFour)
-    linesByFour = runPass(optimizeJsrRtsAndOtherCombinations(linesByFour), 4, linesByFour)
-    linesByFour = runPass(optimizeUselessPushPopStack(linesByFour), 4, linesByFour)
-    linesByFour = runPass(optimizeUnneededTempvarInAdd(linesByFour), 4, linesByFour)
-    linesByFour = runPass(optimizeTSBtoRegularOr(linesByFour), 4, linesByFour)
-
-    var linesByFourteen = getLinesBy(pretrimmed, lines, 14)
-    linesByFourteen = runPass(optimizeSameAssignments(linesByFourteen, machine, symbolTable), 14, linesByFourteen)
-    linesByFourteen = runPass(optimizeSamePointerIndexingAndUselessBeq(linesByFourteen), 14, linesByFourteen)
-    linesByFourteen = runPass(optimizeAddWordToSameVariableOrExtraRegisterLoadInWordStore(linesByFourteen), 14, linesByFourteen)
-
-    return numberOfOptimizations
 }
 
 internal fun String.isBranch() = this.startsWith("b")
