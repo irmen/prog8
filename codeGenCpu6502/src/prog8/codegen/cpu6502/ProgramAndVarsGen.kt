@@ -644,18 +644,26 @@ internal class ProgramAndVarsGen(
             arrayVarsWithInitInZp.forEach {
                 val size = it.alloc.size
                 val name = asmgen.asmVariableName(it.name)
-                asmgen.out("""
-                    lda  #<${name}_init_value
-                    ldy  #>${name}_init_value
-                    sta  cx16.r0
-                    sty  cx16.r0+1
-                    lda  #<${name}
-                    ldy  #>${name}
-                    sta  cx16.r1
-                    sty  cx16.r1+1
-                    lda  #<$size
-                    ldy  #>$size
-                    jsr  sys.memcopy""")
+                if(it.alloc.dt.isSplitWordArray) {
+                    val halfSize = size / 2
+                    if(halfSize>0) {
+                        asmgen.out("""
+                            ldx  #${halfSize-1}
+                    -       lda  ${name}_init_value_lsb,x
+                            sta  ${name}_lsb,x
+                            lda  ${name}_init_value_msb,x
+                            sta  ${name}_msb,x
+                            dex
+                            bpl  -""")
+                    }
+                } else {
+                    asmgen.out("""
+                        ldx  #${size-1}
+                -       lda  ${name}_init_value,x
+                        sta  ${name},x
+                        dex
+                        bpl  -""")
+                }
             }
             asmgen.out("  jmp  +")
         }
@@ -901,14 +909,14 @@ internal class ProgramAndVarsGen(
             dt.isSplitWordArray -> {
                 if(dt.elementType().isUnsignedWord || dt.elementType().isPointer) {
                     val data = makeArrayFillDataUnsigned(dt, value, orNumberOfZeros)
-                    asmgen.out("_array_$varname := ${data.joinToString()}")
-                    asmgen.out("${varname}_lsb\t.byte <_array_$varname")
-                    asmgen.out("${varname}_msb\t.byte >_array_$varname")
+                    asmgen.out("${varname}_words := ${data.joinToString()}")
+                    asmgen.out("${varname}_lsb\t.byte <${varname}_words")
+                    asmgen.out("${varname}_msb\t.byte >${varname}_words")
                 } else {
                     val data = makeArrayFillDataSigned(dt, value, orNumberOfZeros)
-                    asmgen.out("_array_$varname := ${data.joinToString()}")
-                    asmgen.out("${varname}_lsb\t.byte <_array_$varname")
-                    asmgen.out("${varname}_msb\t.byte >_array_$varname")
+                    asmgen.out("${varname}_words := ${data.joinToString()}")
+                    asmgen.out("${varname}_lsb\t.byte <${varname}_words")
+                    asmgen.out("${varname}_msb\t.byte >${varname}_words")
                 }
             }
             dt.isUnsignedWordArray -> {
