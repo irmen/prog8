@@ -26,3 +26,9 @@ p {
 .rst-content pre.literal-block {
     font-size: 11pt;
 }
+
+/* dark mode: fix unreadable ..data:: header text (black on near-black) */
+html[data-theme="dark"].writer-html5 .rst-content dl[class]:not(.option-list):not(.field-list):not(.footnote):not(.citation):not(.glossary):not(.simple) .descname,
+html[data-theme="dark"].writer-html5 .rst-content dl[class]:not(.option-list):not(.field-list):not(.footnote):not(.citation):not(.glossary):not(.simple) .sig-name {
+    color: var(--dark-text-color, #c1c1c1);
+}
