@@ -63,6 +63,7 @@ execute the feature is irrelevant to this list.
 
 | Feature | IR / .p8ir representation | Notes |
 |---|---|---|
+| `-D SYMBOL=VALUE` command-line flag | `<ASMSYMBOLS>` element with `NAME=VALUE` lines | Round-trips; a 6502 backend can emit these as `NAME = VALUE` directives in the .asm file header. The VM ignores them, but they are useful for passing build-time values to the generated assembly. |
 | `%asmbinary` | `<BYTES>` element with raw hex bytes | Round-trips cleanly; a 6502 backend can emit `.binary` for 64tass. The VM cannot load these chunks - that limitation is in the VM, not the IR. |
 | `%asm` (inline assembly) | `<ASM>` element with `IR="true"` or `IR="false"` | Assembly text is preserved verbatim. The VM refuses to execute these chunks; a 6502 backend emits the assembly as-is. |
 | `inline asmsub` | `<ASMSUB>` with name, clobbers, params, returns, asm | Including statusflag returns/params (`@Pz`, `@Pc`, etc.) |
@@ -102,82 +103,19 @@ them - not because the VM cannot run them, but because the compiler fails
 before any `.p8ir` file is written.
 
 None of these gaps are due to VM limitations; they are gaps in the
-AST-to-IR translation.
+AST-to-IR translation. Note that language features blocked at the AST level
+(struct parameters, struct values in arrays, non-`@Pc` status flag
+parameters, etc.) are documented in `docs/source/todo.rst` and not repeated
+here, because they never reach the IR generator.
 
-### 1. `%align` inside a block -- FIXED
+Item 2 below is a borderline case: the same pattern also crashes the
+existing 6502 codegen, and the 6502 codegen actually crashes on *more*
+patterns than the IR codegen (no fallthrough to the runtime path for
+non-const indexes). It is listed here because the IR codegen is part
+of the bug and because a new 6502-from-IR backend would inherit the
+same problem.
 
-A `%align` directive at the top level of a block (between subroutine
-declarations) used to throw during IR generation:
-
-```
-NotImplementedError: An operation is not implemented: ir support for inline %align
-  at prog8.codegen.intermediate.IRCodeGen.translate(IRCodeGen.kt:1687)
-```
-
-The statement-level form (`%align 256; ubyte x`) was already fine: `PtAlign`
-is translated to the `ALIGN` opcode at `IRCodeGen.kt:412-416`. The block-level
-form fell through to the `else` branch in `translate(block: PtBlock)` at
-`IRCodeGen.kt:1687` and hit the `TODO(...)`.
-
-**Fix:** the block-level case in `IRCodeGen.kt:1687` now builds the same
-`IRCodeChunk` containing an `ALIGN` instruction that the statement-level
-case uses, and adds it to the block. The change is a direct copy of the
-statement-level code.
-
-A related bug had to be fixed at the same time: `IRFileReader.parseBlock`
-only accepted `<CB>` elements at block level, but `IRFileWriter` emits
-`<CHUNK>` (it never produces `<CB>`). This meant that *any* program with a
-block-level label produced a `.p8ir` that could not be re-read. The reader
-now accepts `<CHUNK>` as well. The `<CB>` branch is kept for backwards
-compatibility with already-saved `.p8ir` files that might contain it.
-
-**Why this matters even though the VM can't use it:** the Virtual Machine
-doesn't put program code in actual memory, so block-level alignment is
-meaningless to the VM. But a 6502 backend does emit code at real addresses
-and must honour `%align 256` between subroutine definitions (for example, to
-align a code entry point to a page boundary).
-
-**Verified:** compiling a program with `%align 256` inside a block now
-produces a valid `.p8ir` containing a block-level `<CHUNK>` with an
-`align #$0100` instruction, and the file round-trips correctly through
-`IRFileReader` and the VM. Round-trip coverage is in
-`intermediate/test/TestIRFileInOut.kt` (test "test IR reader parses
-block-level CHUNK (label and align)").
-
-### 2. `&blockname` (address of a whole block)
-
-Taking the address of a block label, e.g. `uword ptr = &main`, throws during
-IR generation with an internal scoping error:
-
-```
-java.lang.IllegalArgumentException: node [PtIdentifier:main undefined [...]] name is not scoped: main
-  at prog8.codegen.intermediate.IRCodeGen.verifyNameScoping$verifyPtNode(IRCodeGen.kt:287)
-```
-
-The IR code generator's `verifyNameScoping` function walks the AST and
-requires every identifier to be fully scoped. Block names apparently are
-not being looked up correctly in this context. The 6502 backend handles
-`&blockname` (it has its own address-of logic); the IR backend does not.
-
-`&subroutinename`, `&label`, and `&variable` all work correctly and are
-preserved in the IR.
-
-### 3. Pointer dereference chain producing a struct instance
-
-Throws `AssemblyError` at `ExpressionGen.kt:562`:
-
-```
-cannot translate POINTER[x] resulting in a struct instance; this is likely
-part of a larger expression POINTER[x].field and that has to be translated
-earlier as a whole
-```
-
-This is a real semantic gap: an expression like `ptr[i].field` (where `ptr`
-is a `^^Struct` typed pointer) cannot be translated. The expression translator
-hits this path and refuses to proceed. The 6502 codegen has equivalent logic
-that handles this case.
-
-### 4. Various `TODO(...)` in `ExpressionGen.kt`
+### 1. Various `TODO(...)` in `ExpressionGen.kt`
 
 These show up when a particular code path is taken during expression
 translation. The comment for each explains the gap:
@@ -194,17 +132,51 @@ translation. The comment for each explains the gap:
 None of these are VM concerns; the VM doesn't even get to see the program
 because the IR translator throws first.
 
-### 5. Pointer indexing in `BuiltinFuncGen.kt`
+### 2. Pointer-deref array indexing in built-in functions (both backends)
 
-Three TODOs in the built-in function code generator all flag the same issue:
-how to translate a `ptr[i]` argument when the index needs runtime scaling
-(pointer arithmetic with element-size scaling):
+Calling `rol`, `ror`, `rol2`, `ror2`, `setlsb`, or `setmsb` on an array
+field reached through a typed pointer (e.g. `rol(ptr.arr[2])` or
+`setlsb(ptr.arr[i], v)` where `ptr` is `^^Data.Node` and `Data.Node`
+has a `uword[5] arr` field) crashes both backends. This is a
+compiler-wide limitation, not an IR-specific gap — but the two
+backends differ in *which* patterns they crash on.
 
-- `BuiltinFuncGen.kt:767`
-- `BuiltinFuncGen.kt:835`
-- `BuiltinFuncGen.kt:870`
+| Pattern | IR codegen | 6502 codegen |
+|---|---|---|
+| `rol(plain[const])` | works | works |
+| `rol(ptr.arr[const])` | crash (line 767) | crash (line 1024) |
+| `rol(ptr.arr[idx])` | **works** (falls through to line 794) | crash (line 1024) |
+| `setlsb(ptr.arr[i], v)` | crash (line 835, any index) | crash (line 1139, any index) |
 
-### 6. Generic fallback `TODO("missing codegen for $node")`
+**IR codegen** (`codeGenIntermediate/.../BuiltinFuncGen.kt`):
+
+- Line 767 — `funcRolRor` TODO; fires for `rol`, `ror`, `rol2`, `ror2`
+  with a *const* index. Non-const index falls through to the general
+  code path at line 794.
+- Line 835 — `funcSetLsbMsb` TODO; fires for `setlsb` / `setmsb` with
+  *any* index (const or not). The non-const path at line 861 is
+  unreachable because the `target.variable==null` guard is checked
+  first.
+- Line 870 — `funcSetLsbMsb` TODO; unreachable. The non-split-words
+  branch is only reachable via a `PtIdentifier` base, in which case
+  `target.variable` is non-null. The AST check at
+  `AstChecker.kt:1945-1946` rejects `setlsb(ptr.val, v)`-style calls
+  first.
+
+**6502 codegen** (`codeGenCpu6502/.../BuiltinFunctionsAsmGen.kt`): no
+fallthrough for any of the affected patterns. TODOs at `funcRor2:763`,
+`funcRor:841`, `funcRol2:950`, `funcRol:1024` (all fire for any
+pointer-deref-base indexer, const or not). TODO at `funcSetLsbMsb:1139`
+and `funcMsb:2398` for the same reason.
+
+The fix in both backends is to fall through to the existing non-const
+code path (using `translateExpression(arg)` in the IR codegen, the
+`asmgen.loadScaledArrayIndexIntoRegister` helper in the 6502 codegen)
+instead of throwing. The cost is a small loss of optimization for the
+affected patterns. See `examples/test.p8` for the working and crashing
+patterns on each target.
+
+### 3. Generic fallback `TODO("missing codegen for $node")`
 
 `IRCodeGen.kt:443` has a catch-all `else -> TODO("missing codegen for $node
 ${node.position}")` in the `translateNode` function. If a future Prog8 feature
@@ -212,18 +184,6 @@ introduces a new Pt node type that isn't handled, this is where it will
 land. Currently no known production code path hits this, but it is a
 fragile spot: a new IR backend cannot assume every program compiles to
 the IR cleanly.
-
-### 7. Status flag as a normal `sub` parameter (not `asmsub`)
-
-`IRCodeGen.kt:1857`:
-
-```
-throw AssemblyError("unsupported statusflag as param")
-```
-
-`asmsub` returns via status flag (`-> ubyte @Pz`) are preserved in the IR
-through `IRAsmParam`. A normal Prog8 `sub` returning a status flag value is
-much rarer (and possibly not used in practice) but is technically rejected.
 
 ## Features with Suboptimal / Degraded Translation
 
@@ -295,30 +255,36 @@ design choices in the IR that a new backend must deal with, and they are
 already documented in `docs/source/design/`. They are listed here for
 completeness.
 
-### 1. Zero-page allocation is not in the IR
+### 1. Zero-page allocation is up to each backend
 
-The IR's `IRStStaticVariable` has `zpwish: ZeropageWish` (the programmer's
-intent: REQUIRE, PREFER, DONTCARE, NOT_IN_ZEROPAGE) but no field for the
-actual ZP allocation result (which address was assigned). The 6502 codegen
-runs `VariableAllocator` after the IR is generated to make the final ZP
-allocation decisions; this allocator is currently part of the 6502 backend,
-not the IR pipeline.
+The IR's `IRStStaticVariable` carries the programmer's intent
+(`zpwish: ZeropageWish`: REQUIRE, PREFER, DONTCARE, NOT_IN_ZEROPAGE)
+but no allocation result. This is intentional: zero-page allocation
+is target-specific (m68000 has no ZP, 6502 has 256 bytes of which
+~100 are free, 65C02 may have a different layout), and targets with
+a ZP need to know about scratch register conventions, free ranges,
+and type-size scoring to do a good job.
 
-See `docs/source/design/zp-ir-issue.md` for the full discussion and four
-proposed solutions. The current "new6502gen" code generator does NOT handle
-ZP string/array init at all.
+**Design choice:** each IR-based backend that has a ZP (or equivalent
+fast-access region) runs its own allocator after reading the .p8ir
+file. The IR remains simple and target-agnostic. There is no
+`zpAddress` field in `IRStStaticVariable`, and no `zpaddr=` attribute
+in the variable line format.
 
-### 2. ASMSYMBOLS section is empty
+The programmer's `zpwish` is the only signal a backend has to start
+from: REQUIRE_ZEROPAGE vars must end up in ZP or the program fails
+to compile; PREFER_ZEROPAGE vars should if there is room; DONTCARE
+vars compete for remaining space; NOT_IN_ZEROPAGE vars are excluded.
 
-`IRFileWriter.writeAsmSymbols()` at `IRFileWriter.kt:106-112` emits an
-`<ASMSYMBOLS>` element, but the source map (`irProgram.asmSymbols`) is
-typically empty for most programs. The 6502 codegen relies on cross-module
-symbol addresses (e.g. a `const uword` defined in one module and used in
-another) that the IR currently doesn't track separately. A new backend
-will need to either populate this or recompute these values from the symbol
-table.
+The init-copy pattern (ZP string/array → ROM at startup) is also a
+backend responsibility. A backend that allocates a ZP variable with
+an init value must emit the appropriate startup copy code itself
+(see `ProgramAndVarsGen.kt:617-682` for the existing 6502 implementation).
 
-### 3. Library .p8ir files are not linked externally
+The current `new6502gen` module is not in the source tree; when it
+is added, it will need to implement its own ZP allocator.
+
+### 2. Library .p8ir files are not linked externally
 
 A new backend that wants to consume a `.p8ir` file produced by the IR
 codegen will get the full program in one file, including all imported
@@ -354,25 +320,28 @@ optimizations in `codeOptimizers/` and instead rely on the IR's own
    implement it.
 
 2. Before claiming "full language support", test the new backend against:
-   - Programs using `%align` inside a block (broken in IR generation)
-   - Programs using `&blockname` (broken in IR generation)
-   - Programs using struct field access through a typed pointer chain
-     like `ptr[i].field` (broken in IR generation)
    - Programs using `cast(array of pointers)` (broken in IR generation)
    - Programs using `cast(<typecast to pointer>)` followed by indexing
      (broken in IR generation)
+   - Programs using `&memory()` to get the address of a memory slab
+     (broken in IR generation)
+   - Programs using `setlsb()` or `setmsb()` on a typed pointer's
+     array field (`setlsb(ptr.arr[i], v)`) — crashes regardless of
+     whether the index is const
+   - Programs using `rol()` / `ror()` / `rol2()` / `ror2()` with a
+     *const* index on a typed pointer's array field
+     (`rol(ptr.arr[2])`) — non-const index works
 
-3. Implement your own ZP allocation pass; the IR does not record which
-   variable was placed at which ZP address.
+3. If your backend has a ZP (or equivalent fast-access region), run
+   your own ZP allocator over the IR symbol table, honouring the
+   `zpwish` field. Emit the init-copy pattern (ZP string/array init)
+   yourself; the IR does not carry that information.
 
-4. Implement your own assembly-symbol tracking; the IR's `<ASMSYMBOLS>`
-   section is currently empty.
-
-5. Consider running both the IR's `IRPeepholeOptimizer` and your own
+4. Consider running both the IR's `IRPeepholeOptimizer` and your own
    backend-specific peephole optimizer, until the redundant 6502-only
    optimizations in `codeOptimizers/` are removed.
 
-6. Watch for the catch-all `TODO("missing codegen for $node")` at
+5. Watch for the catch-all `TODO("missing codegen for $node")` at
    `IRCodeGen.kt:443` - if a new Pt node type is added to the language
    and isn't handled in the IR, it will fail here and your backend will
    never see the program.

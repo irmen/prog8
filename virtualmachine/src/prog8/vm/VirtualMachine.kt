@@ -73,7 +73,6 @@ class VirtualMachine(irProgram: IRProgram) {
         labelAddr.forEach { (labelname, artificialAddress) ->
             artificialLabelAddresses[artificialAddress] = program.single { it.label==labelname }
         }
-        require(irProgram.st.getAsmSymbols().isEmpty()) { "virtual machine can't yet process asmsymbols defined on command line" }
         reset(false)
     }
 

@@ -281,9 +281,16 @@ class IRCodeGen(
                 is PtPointerDeref -> require('.' in node.startpointer.name) { "node $node name is not scoped: ${node.startpointer.name}" }
                 is PtIdentifier -> {
                     if('.' !in node.name) {
-                        // there is 1 case where the identifier is not scoped: if it's the value field name after a pointer array indexing.
+                        // there are 2 cases where the identifier is not scoped:
+                        // 1) it is the value field name after a pointer array indexing.
+                        // 2) it is the operand of a PtAddressOf referring to a block name.
                         val expr = node.parent as? PtBinaryExpression
-                        if (expr?.operator != "." || expr.right !== node || expr.left !is PtArrayIndexer || (!expr.left.type.isPointer && !expr.left.type.isStructInstance))
+                        val isFieldOfPointerArrayElement = expr?.operator == "." && expr.right === node
+                                && expr.left is PtArrayIndexer
+                                && (expr.left.type.isPointer || expr.left.type.isStructInstance)
+                        val isAddressOfBlock = node.parent is PtAddressOf
+                                && symbolTable.lookup(node.name)?.type == StNodeType.BLOCK
+                        if(!isFieldOfPointerArrayElement && !isAddressOfBlock)
                             require('.' in node.name) { "node $node name is not scoped: ${node.name}" }
                     }
                 }

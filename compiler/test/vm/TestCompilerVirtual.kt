@@ -322,6 +322,33 @@ mylabel:
         exc.message shouldContain("cannot yet load a label address as a value")
     }
 
+    test("address of a block produces LOAD with block label in IR") {
+        val src = $$"""
+main $1000 {
+    sub start() {
+        other.start()
+    }
+}
+other {
+    sub start() {
+        uword @shared ptr = &main
+    }
+}
+"""
+        val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = true)!!
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
+        val irSrc = virtfile.readText()
+        // the &main must be encoded as a LOAD with the block name as label symbol
+        irSrc.shouldContain("load.w r1,main")
+        // and the block must have an address that a 6502 backend can resolve
+        irSrc.shouldContain($$"""<BLOCK NAME="main" ADDRESS="$1000"""")
+        // the other block's subroutine must contain the LOAD
+        val irProgram = IRFileReader().read(virtfile)
+        val otherSub = irProgram.blocks.single { it.label == "other" }.children.single() as IRSubroutine
+        val loadInstr = otherSub.chunks.flatMap { it.instructions }.single { it.opcode == Opcode.LOAD }
+        loadInstr.labelSymbol shouldBe "main"
+    }
+
     test("nesting with overlapping names is ok (doesn't work for 64tass)") {
         val src="""
 main {

@@ -760,7 +760,7 @@ import prog8.codegen.cpu6502.assignment.*
                 when (what) {
                     is PtArrayIndexer -> {
                         if(what.variable==null)
-                            TODO("ptr indexing ${what.position}")
+                            TODO("ror2 byte ptr indexing ${what.position}")
 
                         asmgen.loadScaledArrayIndexIntoRegister(what, CpuRegister.X)
                         val varname = asmgen.asmVariableName(what.variable!!)
@@ -786,7 +786,7 @@ import prog8.codegen.cpu6502.assignment.*
                 when (what) {
                     is PtArrayIndexer -> {
                         if(what.variable==null)
-                            TODO("ptr indexing ${what.position}")
+                            TODO("ror2 word ptr indexing ${what.position}")
                         asmgen.loadScaledArrayIndexIntoRegister(what, CpuRegister.X)
                         val varname = asmgen.asmVariableName(what.variable!!)
                         if(what.splitWords)
@@ -838,7 +838,7 @@ import prog8.codegen.cpu6502.assignment.*
                         if(!what.index.isSimple()) asmgen.out("  plp")
 
                         if(what.variable==null)
-                            TODO("ptr indexing ${what.position}")
+                            TODO("ror byte ptr indexing ${what.position}")
                         val varname = asmgen.asmVariableName(what.variable!!)
                         asmgen.out("  ror  ${varname},x")
                     }
@@ -880,7 +880,7 @@ import prog8.codegen.cpu6502.assignment.*
                         asmgen.loadScaledArrayIndexIntoRegister(what, CpuRegister.X)
                         if(!what.index.isSimple()) asmgen.out("  plp")
                         if(what.variable==null)
-                            TODO("ptr indexing ${what.position}")
+                            TODO("ror word ptr indexing ${what.position}")
                         val varname = asmgen.asmVariableName(what.variable!!)
                         if(what.splitWords)
                             asmgen.out("  ror  ${varname}_msb,x |  ror  ${varname}_lsb,x")
@@ -947,7 +947,7 @@ import prog8.codegen.cpu6502.assignment.*
                 when (what) {
                     is PtArrayIndexer -> {
                         if(what.variable==null)
-                            TODO("ptr indexing ${what.position}")
+                            TODO("rol2 byte ptr indexing ${what.position}")
                         asmgen.loadScaledArrayIndexIntoRegister(what, CpuRegister.X)
                         val varname = asmgen.asmVariableName(what.variable!!)
                         asmgen.out("  lda  ${varname},x |  cmp  #$80 |  rol  a |  sta  ${varname},x")
@@ -973,7 +973,7 @@ import prog8.codegen.cpu6502.assignment.*
                     is PtArrayIndexer -> {
                         asmgen.loadScaledArrayIndexIntoRegister(what, CpuRegister.X)
                         if(what.variable==null)
-                            TODO("ptr indexing ${what.position}")
+                            TODO("rol2 word ptr indexing ${what.position}")
                         val varname = asmgen.asmVariableName(what.variable!!)
                         if(what.splitWords)
                             asmgen.out("  asl  ${varname}_lsb,x |  rol  ${varname}_msb,x |  bcc  + |  inc  ${varname}_lsb,x |+")
@@ -1021,7 +1021,7 @@ import prog8.codegen.cpu6502.assignment.*
                         asmgen.loadScaledArrayIndexIntoRegister(what, CpuRegister.X)
                         if(!what.index.isSimple()) asmgen.out("  plp")
                         if(what.variable==null)
-                            TODO("ptr indexing ${what.position}")
+                            TODO("rol byte ptr indexing ${what.position}")
                         val varname = asmgen.asmVariableName(what.variable!!)
                         asmgen.out("  rol  ${varname},x")
                     }
@@ -1063,7 +1063,7 @@ import prog8.codegen.cpu6502.assignment.*
                         asmgen.loadScaledArrayIndexIntoRegister(what, CpuRegister.X)
                         if(!what.index.isSimple()) asmgen.out("  plp")
                         if(what.variable==null)
-                            TODO("ptr indexing ${what.position}")
+                            TODO("rol word ptr indexing ${what.position}")
                         val varname = asmgen.asmVariableName(what.variable!!)
                         if(what.splitWords)
                             asmgen.out("  rol  ${varname}_lsb,x |  rol  ${varname}_msb,x")

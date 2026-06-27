@@ -176,6 +176,9 @@ loop    ; do work here
         bne loop        ; loop while X != 0 (runs 'count' times)
 ```
 
+### Self-Modifying Code (SMC) — Avoid When Possible
+**Do NOT use self-modifying code unless absolutely necessary** — self-modifying code writes to the code segment at runtime, which means it **cannot run from ROM** and is generally fragile, hard to debug, and violates the expected behavior of modern tooling (emulators, debuggers, etc.). Prefer lookup tables, indirect jumps via a vector in RAM, or alternative algorithms that keep code in place.
+
 ### Self-Modifying Code (SMC) Detection
 Look for `sta`, `stx`, or `sty` pointing into code labels:
 ```asm
