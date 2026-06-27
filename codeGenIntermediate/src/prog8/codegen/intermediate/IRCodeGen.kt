@@ -1712,11 +1712,15 @@ class IRCodeGen(
                     irBlock += sub
                 }
                 is PtAsmSub -> {
-                    if(child.address!=null) {
-                        // extmsub. No codegen needed: calls to this are jumping straight to the address.
+                    val addr = child.address
+                    if(addr!=null) {
+                        // extsub: emit as inline assembly equate so the codegen can reference it
                         require(child.children.isEmpty()) {
                             "extsub should be empty at ${child.position}"
                         }
+                        val bank = if(addr.constbank!=null) " ; @bank ${addr.constbank}" else ""
+                        val asm = "${child.name} = ${addr.address.toHex()}$bank"
+                        irBlock += IRInlineAsmChunk(null, asm, false, null)
                     } else {
                         // regular asmsub
                         if(child.children.mapTo(mutableSetOf()) { (it as PtInlineAssembly).isIR }.size>1)
