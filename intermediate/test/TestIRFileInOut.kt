@@ -252,4 +252,72 @@ storehr.b r1,s2
         instructions[1].reg1 shouldBe 1
         instructions[1].immediate shouldBe 2
     }
+
+    test("test IR reader parses block-level CHUNK (label and align)") {
+        val source="""<?xml version="1.0" encoding="utf-8"?>
+<PROGRAM NAME="test-block-level-chunk" COMPILERVERSION="99.99">
+<OPTIONS>
+compTarget=virtual
+output=PRG
+launcher=BASIC
+zeropage=KERNALSAFE
+loadAddress=$0000
+</OPTIONS>
+
+<ASMSYMBOLS>
+</ASMSYMBOLS>
+
+<VARS>
+<NOINITCLEAN>
+</NOINITCLEAN>
+<NOINITDIRTY>
+</NOINITDIRTY>
+<INIT>
+</INIT>
+<STRUCTINSTANCESNOINIT>
+</STRUCTINSTANCESNOINIT>
+<STRUCTINSTANCES>
+</STRUCTINSTANCES>
+<CONSTANTS>
+</CONSTANTS>
+<MEMORYMAPPED>
+</MEMORYMAPPED>
+<MEMORYSLABS>
+</MEMORYSLABS>
+</VARS>
+
+<INITGLOBALS>
+</INITGLOBALS>
+
+<BLOCK NAME="main" ADDRESS="" LIBRARY="false" POS="[test.p8: line 1 col 1-2]">
+<CHUNK><REGS><![CDATA[]]></REGS><CODE>
+align #$100
+</CODE></CHUNK>
+<CHUNK LABEL="main.mylabel"><REGS><![CDATA[]]></REGS><CODE>
+</CODE></CHUNK>
+<SUB NAME="main.start" RETURNS="" POS="[test.p8: line 2 col 2-4]">
+<PARAMS>
+</PARAMS>
+<CHUNK LABEL="main.start"><REGS><![CDATA[]]></REGS><CODE>
+return
+</CODE></CHUNK>
+</SUB>
+</BLOCK>
+</PROGRAM>
+"""
+        val tempfile = createTempFile(suffix = ".p8ir")
+        tempfile.writeText(source)
+        val program = IRFileReader().read(tempfile)
+        tempfile.deleteExisting()
+        val block = program.blocks.single()
+        // 1 align chunk + 1 label chunk + 1 sub
+        block.children.size shouldBe 3
+        val alignChunk = block.children[0] as IRCodeChunk
+        alignChunk.label shouldBe null
+        alignChunk.instructions.size shouldBe 1
+        alignChunk.instructions[0].opcode shouldBe Opcode.ALIGN
+        alignChunk.instructions[0].immediate shouldBe 256
+        val labelChunk = block.children[1] as IRCodeChunk
+        labelChunk.label shouldBe "main.mylabel"
+    }
 })

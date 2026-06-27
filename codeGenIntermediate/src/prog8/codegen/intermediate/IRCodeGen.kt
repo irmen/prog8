@@ -1684,7 +1684,11 @@ class IRCodeGen(
                 is PtNop -> { /* nothing */ }
                 is PtAssignment, is PtAugmentedAssign -> { /* global variable initialization is done elsewhere */ }
                 is PtVariable, is PtConstant, is PtMemMapped, is PtMemorySlabReservation -> { /* vars should be looked up via symbol table */ }
-                is PtAlign -> TODO("ir support for inline %align  ${child.position}")
+                is PtAlign -> {
+                    val chunk = IRCodeChunk(null, null)
+                    chunk += IRInstruction(Opcode.ALIGN, immediate = child.align.toInt())
+                    irBlock += chunk
+                }
                 is PtSub -> {
                     val sub = IRSubroutine(child.name, translateParameters(child.signature.children), child.signature.returns, child.position)
                     for (subchild in child.children) {

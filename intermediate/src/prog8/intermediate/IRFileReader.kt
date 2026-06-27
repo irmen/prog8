@@ -451,6 +451,7 @@ class IRFileReader {
                         throw IRParseException("code chunk in block should only contain a label name")
                     block += chunk
                 }
+                "CHUNK" -> block += parseCodeBlock(reader)
                 else -> throw IRParseException("invalid line in BLOCK: ${reader.peek()}")
             }
             skipText(reader)
