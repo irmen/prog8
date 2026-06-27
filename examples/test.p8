@@ -60,25 +60,25 @@ main {
 
         ; --- working on IR only: non-const index on a typed pointer ---
         ; (crashes 6502 codegen at BuiltinFunctionsAsmGen.kt:763,841,950,1024)
-        ; rol(ptr.arr[idx])
-        ; ror(ptr.arr[idx])
+        rol(ptr.arr[idx])
+        ror(ptr.arr[idx])
 
         ; --- broken on both: const index on a typed pointer ---
         ; Uncomment to trigger:
         ;   BuiltinFuncGen.kt:767 (IR)
         ;   BuiltinFunctionsAsmGen.kt:763,841,950,1024 (6502)
-        ; rol(ptr.arr[2])
-        ; ror(ptr.arr[2])
-        ; rol2(ptr.arr[2])
-        ; ror2(ptr.arr[2])
+        rol(ptr.arr[2])
+        ror(ptr.arr[2])
+        rol2(ptr.arr[2])
+        ror2(ptr.arr[2])
 
         ; --- broken on both: any index on a typed pointer (setlsb/setmsb) ---
         ; Uncomment to trigger:
         ;   BuiltinFuncGen.kt:835 (IR)
         ;   BuiltinFunctionsAsmGen.kt:1139 (6502)
-        ; setlsb(ptr.arr[idx], value)
-        ; setmsb(ptr.arr[idx], value)
-        ; setlsb(ptr.arr[2], value)
-        ; setmsb(ptr.arr[2], value)
+        setlsb(ptr.arr[idx], value)
+        setmsb(ptr.arr[idx], value)
+        setlsb(ptr.arr[2], value)
+        setmsb(ptr.arr[2], value)
     }
 }

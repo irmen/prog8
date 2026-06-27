@@ -762,9 +762,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
 
         val arr = (arg as? PtArrayIndexer)
         val index = arr?.index?.asConstInteger()
-        if(arr!=null && index!=null) {
-            if(arr.variable==null)
-                TODO("support for ptr indexing ${arr.position}")
+        if(arr!=null && index!=null && arr.variable!=null) {
             val variable = arr.variable!!.name
             if(arr.splitWords) {
                 result += IRCodeChunk(null, null).also {
@@ -828,11 +826,34 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                 }
             }
             is PtArrayIndexer -> {
-                if(target.splitWords) {
+                if(target.variable==null) {
+                    // pointer-based array indexing: compute memory address and store byte
+                    val eltSize = codeGen.program.memsizer.memorySize(target.type, null)
+                    val pointerTr = exprGen.translateExpression(target.pointerderef!!)
+                    addToResult(result, pointerTr, pointerTr.resultReg, -1)
+                    val constIndex = target.index.asConstInteger()
+                    if(constIndex != null) {
+                        val offset = eltSize * constIndex + if(msb) eltSize - 1 else 0
+                        if(offset > 0)
+                            addInstr(result, IRInstruction(Opcode.ADD, IRDataType.WORD, reg1 = pointerTr.resultReg, immediate = offset), null)
+                    } else {
+                        val (code, indexWordReg) = codeGen.loadIndexReg(target.index, eltSize, true, false)
+                        result += code
+                        addInstr(result, IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1 = pointerTr.resultReg, reg2 = indexWordReg), null)
+                        if(msb)
+                            addInstr(result, IRInstruction(Opcode.ADD, IRDataType.WORD, reg1 = pointerTr.resultReg, immediate = eltSize - 1), null)
+                    }
+                    if(isConstZeroValue) {
+                        addInstr(result, IRInstruction(Opcode.STOREZI, IRDataType.BYTE, reg1 = pointerTr.resultReg, immediate = 0), null)
+                    } else {
+                        val valueTr = exprGen.translateExpression(call.args[1])
+                        addToResult(result, valueTr, valueTr.resultReg, -1)
+                        addInstr(result, IRInstruction(Opcode.STOREI, IRDataType.BYTE, reg1 = valueTr.resultReg, reg2 = pointerTr.resultReg, immediate = 0), null)
+                    }
+                }
+                else if(target.splitWords) {
                     // lsb/msb in split arrays, element index 'size' is always 1
                     val constIndex = target.index.asConstInteger()
-                    if(target.variable==null)
-                        TODO("support for ptr indexing ${target.position}")
                     val varName = target.variable!!.name + if(msb) "_msb" else "_lsb"
                     if(isConstZeroValue) {
                         if(constIndex!=null) {
