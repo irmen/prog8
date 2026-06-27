@@ -47,6 +47,11 @@ class IRCodeGen(
             generateRomableInits(irProg)
         }
 
+        // generate global init code for string/array-initialized variables
+        // (the existing mechanisms only handle numeric inits; string/array data stays
+        //  in the INIT section declarations but no runtime copy instructions are emitted)
+        generateStringArrayInits(irProg)
+
         irProg.addAsmSymbols(options.symbolDefs)
 
         for (block in program.allBlocks())
@@ -139,6 +144,120 @@ class IRCodeGen(
             }
         }
         replacements.forEach { irProg.st.add(it) }
+    }
+
+    private fun generateStringArrayInits(irProg: IRProgram) {
+        // ZP variables with string/array init values need runtime copy code.
+        // The VM's varsToMemory already initializes them from the INIT section,
+        // but a 6502 backend needs explicit init instructions.
+        //
+        // Create a non-ZP shadow variable holding the init bytes, clear the
+        // original variable's init value so it becomes uninitialized/BSS, then
+        // emit a single MEMCOPY from the shadow to the ZP variable at startup.
+        val chunk = IRCodeChunk(null, null)
+        for(variable in irProg.st.allVariables().toList()) {
+            if(variable.initializationValue == null)
+                continue
+            if(variable.inBss)
+                continue
+            if(variable.zpwish == ZeropageWish.DONTCARE || variable.zpwish == ZeropageWish.NOT_IN_ZEROPAGE)
+                continue
+            if(variable.dt.isSplitWordArray)
+                continue
+            if(variable.initializationValue is IRVariableInitializer.Numeric)
+                continue
+
+            val initBytes = when(val initVal = variable.initializationValue) {
+                is IRVariableInitializer.Str -> {
+                    irProg.encoding.encodeString(initVal.text, initVal.encoding) + 0u
+                }
+                is IRVariableInitializer.Array -> {
+                    val elemDt = variable.dt.elementType()
+                    val elemByteSize = when {
+                        elemDt.isByte || elemDt.isBool -> 1
+                        elemDt.isWord || elemDt.isPointer -> 2
+                        else -> -1
+                    }
+                    if(elemByteSize < 0)
+                        continue
+                    val bytes = mutableListOf<UByte>()
+                    for(element in initVal.elements) {
+                        when(element) {
+                            is IRStSymbolicReference.Numeric -> {
+                                val value = element.value.toInt()
+                                when(elemByteSize) {
+                                    1 -> bytes += value.toUByte()
+                                    2 -> {
+                                        bytes += (value and 0xFF).toUByte()
+                                        bytes += ((value shr 8) and 0xFF).toUByte()
+                                    }
+                                }
+                            }
+                            is IRStSymbolicReference.BoolValue -> {
+                                bytes += (if(element.value) 1u else 0u).toUByte()
+                            }
+                            is IRStSymbolicReference.Symbol -> {
+                                bytes.clear()
+                                break
+                            }
+                        }
+                    }
+                    if(bytes.isEmpty())
+                        continue
+                    bytes
+                }
+                else -> continue
+            }
+
+            if(initBytes.isEmpty())
+                continue
+
+            val shadowName = variable.name + "_init_value"
+            val shadowInit = IRVariableInitializer.Array(initBytes.map { IRStSymbolicReference.Numeric(it.toDouble()) })
+            val shadowVar = IRStStaticVariable(
+                shadowName,
+                DataType.arrayFor(BaseDataType.UBYTE, false),
+                shadowInit,
+                initBytes.size.toUInt(),
+                ZeropageWish.NOT_IN_ZEROPAGE,
+                0u,
+                false,
+                inBss = false,
+                readonly = false
+            )
+            irProg.st.add(shadowVar)
+
+            // Clear the original variable's init value so it becomes uninitialized (BSS/NOINIT).
+            // The runtime copy from the shadow variable will provide the actual initial bytes.
+            val clearedVar = IRStStaticVariable(
+                variable.name,
+                variable.dt,
+                null,
+                variable.length,
+                variable.zpwish,
+                variable.align,
+                variable.dirty,
+                variable.inBss,
+                variable.readonly
+            )
+            irProg.st.add(clearedVar)
+
+            val sourceReg = registers.next(IRDataType.WORD)
+            val destReg = registers.next(IRDataType.WORD)
+            val countReg = registers.next(IRDataType.WORD)
+            chunk += IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1 = sourceReg, labelSymbol = shadowName)
+            chunk += IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1 = destReg, labelSymbol = variable.name)
+            chunk += IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1 = countReg, immediate = initBytes.size)
+            val args = listOf(
+                FunctionCallArgs.ArgumentSpec("", null, FunctionCallArgs.RegSpec(IRDataType.WORD, RegisterNum(sourceReg), null, null)),
+                FunctionCallArgs.ArgumentSpec("", null, FunctionCallArgs.RegSpec(IRDataType.WORD, RegisterNum(destReg), null, null)),
+                FunctionCallArgs.ArgumentSpec("", null, FunctionCallArgs.RegSpec(IRDataType.WORD, RegisterNum(countReg), null, null))
+            )
+            chunk += IRInstruction(Opcode.SYSCALL, immediate = IMSyscall.MEMCOPY.number, fcallArgs = FunctionCallArgs(args, emptyList()))
+        }
+
+        if(chunk.isNotEmpty())
+            irProg.addGlobalInits(chunk)
     }
 
     private fun verifyNameScoping(program: PtProgram, symbolTable: SymbolTable) {

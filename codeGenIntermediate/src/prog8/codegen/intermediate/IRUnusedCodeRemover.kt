@@ -76,17 +76,31 @@ class IRUnusedCodeRemover(
         }
 
         // remove stray loads
+        val readRegs = mutableSetOf<Int>()
+        val readFpRegs = mutableSetOf<Int>()
+        instructions.forEach { ins ->
+            val readRegsCounts = mutableMapOf<RegisterNum, Int>()
+            val readFpRegsCounts = mutableMapOf<RegisterNum, Int>()
+            val writeRegsCounts = mutableMapOf<RegisterNum, Int>()
+            val writeFpRegsCounts = mutableMapOf<RegisterNum, Int>()
+            val regsTypes = mutableMapOf<RegisterNum, IRDataType>()
+            ins.addUsedRegistersCounts(readRegsCounts, writeRegsCounts, readFpRegsCounts, writeFpRegsCounts, regsTypes, null)
+            readRegs.addAll(readRegsCounts.keys.map { it.value })
+            readFpRegs.addAll(readFpRegsCounts.keys.map { it.value })
+        }
         instructions.toTypedArray().forEach { ins ->
             if(ins.opcode in arrayOf(Opcode.LOAD, Opcode.LOADR, Opcode.LOADM)) {
-                if(ins.reg1!=0) {
-                    if(instructions.count { it.reg1==ins.reg1 || it.reg2==ins.reg1 } <2) {
+                val reg1 = ins.reg1
+                val fpReg1 = ins.fpReg1
+                if(reg1!=null) {
+                    if(reg1 !in readRegs) {
                         if(ins.labelSymbol!=null)
                             code.st.removeIfExists(ins.labelSymbol!!)
                         instructions.remove(ins)
                     }
                 }
-                else if(ins.fpReg1!=null) {
-                    if (instructions.count { it.fpReg1 == ins.fpReg1 || it.fpReg2 == ins.fpReg1 } < 2) {
+                else if(fpReg1!=null) {
+                    if(fpReg1.value !in readFpRegs) {
                         if(ins.labelSymbol!=null)
                             code.st.removeIfExists(ins.labelSymbol!!)
                         instructions.remove(ins)

@@ -1137,4 +1137,51 @@ main {
             vm.memory.getUW(allocations["main.result"]!!) shouldBe 0x1234u
         }
     }
+
+    test("ZP string and array initializers use MEMCOPY shadow variables") {
+        val src = """
+%zeropage basicsafe
+%option no_sysinit
+main {
+    str @zp msg = "hello"
+    ubyte[5] @zp counts = [10, 20, 30, 40, 50]
+    uword[3] @zp @nosplit values = [1000, 2000, 3000]
+
+    sub start() {
+        cx16.r0 = values[0]
+        cx16.r1 = values[1]
+        cx16.r2 = values[2]
+        cx16.r3 = counts[0]
+        cx16.r4 = counts[4]
+        cx16.r5L = msg[0]
+    }
+}""".trimIndent()
+
+        val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = true)!!
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
+        val irContent = virtfile.readText()
+
+        irContent shouldContain "main.msg_init_value"
+        irContent shouldContain "main.counts_init_value"
+        irContent shouldContain "main.values_init_value"
+        irContent shouldContain "syscall \$1019"
+
+        val irProgram = IRFileReader().read(irContent)
+        val allocations = VmVariableAllocator(irProgram.st, irProgram.encoding, irProgram.options.compTarget).allocations
+
+        VmRunner().runAndTestProgram(irContent) { vm ->
+            val msgAddr = allocations["main.msg"]!!
+            vm.memory.getString(msgAddr) shouldBe "hello"
+            val countsAddr = allocations["main.counts"]!!
+            vm.memory.getUB(countsAddr) shouldBe 10u
+            vm.memory.getUB(countsAddr + 1u) shouldBe 20u
+            vm.memory.getUB(countsAddr + 2u) shouldBe 30u
+            vm.memory.getUB(countsAddr + 3u) shouldBe 40u
+            vm.memory.getUB(countsAddr + 4u) shouldBe 50u
+            val valuesAddr = allocations["main.values"]!!
+            vm.memory.getUW(valuesAddr) shouldBe 1000u
+            vm.memory.getUW(valuesAddr + 2u) shouldBe 2000u
+            vm.memory.getUW(valuesAddr + 4u) shouldBe 3000u
+        }
+    }
 })
