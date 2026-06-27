@@ -11,6 +11,7 @@ import kotlin.system.exitProcess
 fun main(args: Array<String>) {
     val cli = ArgParser("prog8-newgen", prefixStyle = ArgParser.OptionPrefixStyle.JVM)
     val inputFile by cli.argument(ArgType.String, fullName = "input", description = "path to .p8ir file")
+    val asmListfile by cli.option(ArgType.Boolean, fullName = "list", shortName = "l", description = "produce assembler listing file (.list)")
     try {
         cli.parse(args)
     } catch (e: IllegalStateException) {
@@ -21,6 +22,8 @@ fun main(args: Array<String>) {
     val reader = IRFileReader()
     val source = Path(inputFile).readText()
     val program = reader.read(source)
+    if(asmListfile == true)
+        program.options.asmListfile = true
     val target = program.options.compTarget
     System.err.println("Loaded IR program: ${program.name}")
     System.err.println("Target system and CPU: ${target.name} / ${target.cpu}")

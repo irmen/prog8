@@ -1,8 +1,5 @@
 package prog8.intermediate
 
-// IR symbol names are fully scoped with type prefixes: p8b_, p8s_, p8v_, etc.
-// Backends reading IR files get these already applied.
-
 import prog8.code.core.BaseDataType
 import prog8.code.core.DataType
 import prog8.code.core.InternalCompilerException
@@ -23,37 +20,24 @@ private const val StMemorySlabBlockName = "prog8_slabs"
  * Used for serializing array initializers and struct field values.
  */
 private object IRStSymbolicReferenceXml {
-    /**
-     * Formats a symbolic reference for use in a generic array initializer.
-     * @param floats if true, numeric values are formatted as floats; otherwise as hex integers
-     */
-    fun formatForArray(ref: IRStSymbolicReference, floats: Boolean = false): String = when(ref) {
+    fun formatForArray(ref: IRStSymbolicReference, floats: Boolean): String = when(ref) {
         is IRStSymbolicReference.BoolValue -> if(ref.value) "1" else "0"
         is IRStSymbolicReference.Numeric -> if(floats) ref.value.toString() else ref.value.toInt().toHex()
         is IRStSymbolicReference.Symbol -> "@${ref.name}"
     }
 
-    /**
-     * Formats a symbolic reference for use in the LSB byte of a split word array.
-     */
     fun formatLsb(ref: IRStSymbolicReference): String = when(ref) {
         is IRStSymbolicReference.Numeric -> (ref.value.toInt() and 255).toHex()
         is IRStSymbolicReference.Symbol -> "@<${ref.name}"
         is IRStSymbolicReference.BoolValue -> throw InternalCompilerException("bool in word array")
     }
 
-    /**
-     * Formats a symbolic reference for use in the MSB byte of a split word array.
-     */
     fun formatMsb(ref: IRStSymbolicReference): String = when(ref) {
         is IRStSymbolicReference.Numeric -> (ref.value.toInt() shr 8).toHex()
         is IRStSymbolicReference.Symbol -> "@>${ref.name}"
         is IRStSymbolicReference.BoolValue -> throw InternalCompilerException("bool in word array")
     }
 
-    /**
-     * Formats a symbolic reference for use as a struct field value.
-     */
     fun formatForStructField(ref: IRStSymbolicReference): String = when(ref) {
         is IRStSymbolicReference.BoolValue -> if(ref.value) "1" else "0"
         is IRStSymbolicReference.Numeric -> ref.value.toInt().toHex()
@@ -209,7 +193,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
         }
 
         xml.writeStartElement("CHUNK")
-        chunk.label?.let { xml.writeAttribute("LABEL", chunk.label) }
+        chunk.label?.let { xml.writeAttribute("LABEL", it) }
 
         // xml.writeAttribute("used-registers", chunk.usedRegisters().toString())
         xml.writeStartElement("REGS")
@@ -249,7 +233,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
 
     private fun writeInlineBytes(chunk: IRInlineBinaryChunk) {
         xml.writeStartElement("BYTES")
-        chunk.label?.let { xml.writeAttribute("LABEL", chunk.label) }
+        chunk.label?.let { xml.writeAttribute("LABEL", it) }
         chunk.data.withIndex().forEach {(index, byte) ->
             xml.writeCharacters(byte.toString(16).padStart(2,'0'))
             if(index and 63 == 63 && index < chunk.data.size-1)
@@ -261,7 +245,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
 
     private fun writeInlineAsm(chunk: IRInlineAsmChunk) {
         xml.writeStartElement("ASM")
-        xml.writeAttribute("LABEL", chunk.label ?: "")
+        chunk.label?.let { xml.writeAttribute("LABEL", it) }
         xml.writeAttribute("IR", chunk.isIR.toString())
         xml.writeCharacters("\n")
         xml.writeCharacters(chunk.assembly)
@@ -287,7 +271,6 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
         emitLine("optimize=${irProgram.options.optimize}")
         emitLine("romable=${irProgram.options.romable}")
         emitLine("outputDir=${irProgram.options.outputDir.absolute()}")
-        // other options not yet useful here?
         xml.writeEndElement()
         xml.writeCharacters("\n\n")
     }
@@ -310,17 +293,18 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
     }
 
     private fun writeNoInitVar(variable: IRStStaticVariable) {
+        val pname = variable.name
         if(variable.dt.isSplitWordArray) {
             emitLine(buildString {
-                append("ubyte[${variable.length}] ${variable.name}_lsb zp=${variable.zpwish} split=true")
+                append("ubyte[${variable.length}] ${pname}_lsb zp=${variable.zpwish} split=true")
                 if(variable.align!=0u) append(" align=${variable.align}")
                 if(variable.inBss) append(" inBss=true")
                 if(variable.readonly) append(" readonly=true")
             })
-            emitLine("ubyte[${variable.length}] ${variable.name}_msb zp=${variable.zpwish} split=true")
+            emitLine("ubyte[${variable.length}] ${pname}_msb zp=${variable.zpwish} split=true")
         } else {
             emitLine(buildString {
-                append("${variable.typeString} ${variable.name} zp=${variable.zpwish}")
+                append("${variable.typeString} $pname zp=${variable.zpwish}")
                 if(variable.align!=0u) append(" align=${variable.align}")
                 if(variable.inBss) append(" inBss=true")
                 if(variable.readonly) append(" readonly=true")

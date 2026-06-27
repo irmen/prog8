@@ -98,3 +98,24 @@ fun String.unescape(): String {
     }
     return result.joinToString("")
 }
+
+// === Symbol name prefixing ===
+// These are used by code generators to add p8b_/p8s_/p8v_/etc. prefixes to symbol names.
+// The prefix character depends on the symbol type (block='b', sub='s', variable='v', etc.)
+// Scoped names (containing dots) have each part prefixed according to its role.
+
+fun prefixScopedName(name: String, type: Char): String {
+    val generatedPrefix = "p8_label_gen_"
+    if('.' !in name) {
+        if(name.startsWith(generatedPrefix))
+            return name
+        return "p8${type}_$name"
+    }
+    val parts = name.split('.')
+    val firstPrefixed = "p8b_${parts[0]}"
+    val lastPart = parts.last()
+    val lastPrefixed = if(lastPart.startsWith(generatedPrefix)) lastPart else "p8${type}_$lastPart"
+    val inbetweenPrefixed = parts.drop(1).dropLast(1).map{ "p8s_$it" }
+    val prefixed = listOf(firstPrefixed) + inbetweenPrefixed + listOf(lastPrefixed)
+    return prefixed.joinToString(".")
+}

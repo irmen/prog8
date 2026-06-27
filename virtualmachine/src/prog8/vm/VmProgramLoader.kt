@@ -42,6 +42,7 @@ class VmProgramLoader {
             programChunks += irProgram.globalInits
 
         // make sure that if there is a "main.start" entrypoint, we jump to it
+        // Note that the VM only ever executes IR code written for the 'virtual' target - and that has no symbol name prefixing applied.
         irProgram.blocks.firstOrNull()?.let {
             if(it.children.any { sub -> sub is IRSubroutine && SymbolNames.stripPrefixes(sub.label)=="main.start" }) {
                 val previous = programChunks.lastOrNull()

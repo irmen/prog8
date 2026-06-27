@@ -629,7 +629,8 @@ class TestVmCodeGen: FunSpec({
         val st = SymbolTableMaker(program, options).make()
         val errors = ErrorReporterForTests()
         val result = codegen.generate(program, st, options, errors) as VmAssemblyProgram
-        val irChunks = (result.irProgram.blocks.first().children.single() as IRSubroutine).chunks
+        val irSub = result.irProgram.blocks.first().children.filterIsInstance<IRSubroutine>().single()
+        val irChunks = irSub.chunks
         irChunks.size shouldBe 1
         irChunks[0].instructions.size shouldBe 1
         val callInstr = irChunks[0].instructions[0]

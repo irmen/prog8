@@ -1203,7 +1203,7 @@ main {
         irContent shouldContain "main.msg_init_value"
         irContent shouldContain "main.counts_init_value"
         irContent shouldContain "main.values_init_value"
-        irContent shouldContain "syscall \$1019"
+        irContent shouldContain "syscall $1019"
 
         val irProgram = IRFileReader().read(irContent)
         irProgram.st.stripAllPrefixes()

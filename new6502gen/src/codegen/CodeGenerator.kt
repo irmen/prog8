@@ -58,7 +58,6 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
 
     override fun generate(): Boolean {
         emitHeader()
-        emitWeakDeclarations()
         emitConstants()
         emitCode()
         emitDataSection()
@@ -302,7 +301,10 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
     }
 
     /** Zero-page temporary pointer address for address computation (2 bytes). */
-    val ZP_TEMP: String get() = "\$${target.zeropage.SCRATCH_PTR.toString(16)}"
+    val ZP_TEMP: String get() = target.zeropage.SCRATCH_PTR.toHex()
+
+    /** Format a byte value as `$xx` hex for .byte directives (always hex, even for 0-15). */
+    private fun asmHexByte(v: Int): String = "\$${v.toUByte().toString(16).padStart(2,'0')}"
 
     // === CPU-aware instruction helpers ===
     // 65C02 supports stz; plain 6502 needs lda #0 / sta instead
@@ -339,11 +341,11 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
         emitRaw("")
         val zp = target.zeropage
         emitRaw("; zero-page scratch registers (used for address computation and temp values)")
-        emitRaw("P8ZP_SCRATCH_B1  = \$${zp.SCRATCH_B1.toString(16)}    ; byte")
-        emitRaw("P8ZP_SCRATCH_REG = \$${zp.SCRATCH_REG.toString(16)}    ; byte  (must be B1+1)")
-        emitRaw("P8ZP_SCRATCH_W1  = \$${zp.SCRATCH_W1.toString(16)}    ; word  (2 bytes)")
-        emitRaw("P8ZP_SCRATCH_W2  = \$${zp.SCRATCH_W2.toString(16)}    ; word  (2 bytes)")
-        emitRaw("P8ZP_SCRATCH_PTR = \$${zp.SCRATCH_PTR.toString(16)}    ; word  (pointer)")
+        emitRaw("P8ZP_SCRATCH_B1  = ${zp.SCRATCH_B1}    ; byte")
+        emitRaw("P8ZP_SCRATCH_REG = ${zp.SCRATCH_REG}    ; byte  (must be B1+1)")
+        emitRaw("P8ZP_SCRATCH_W1  = ${zp.SCRATCH_W1}    ; word  (2 bytes)")
+        emitRaw("P8ZP_SCRATCH_W2  = ${zp.SCRATCH_W2}    ; word  (2 bytes)")
+        emitRaw("P8ZP_SCRATCH_PTR = ${zp.SCRATCH_PTR}    ; word  (pointer)")
         emitRaw("")
 
         // user-supplied symbol definitions
@@ -366,15 +368,15 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
         when (options.output) {
             OutputType.LIBRARY -> {
                 emitRaw("; ---- library assembler program ----")
-                emitRaw("* = ${"$"}${loadAddr.toString(16)}")
+                emitRaw("* = ${loadAddr.toHex()}")
                 emitLabel("prog8_program_start")
-                emitLine("jmp main.start")
+                emitLine("jmp p8b_main.p8s_start")
                 emitRaw("")
             }
 
             OutputType.RAW -> {
                 emitRaw("; ---- raw assembler program ----")
-                emitRaw("* = ${"$"}${loadAddr.toString(16)}")
+                emitRaw("* = ${loadAddr.toHex()}")
                 emitLabel("prog8_program_start")
                 emitStartupSequence()
             }
@@ -383,7 +385,7 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
                 when (options.launcher) {
                     CbmPrgLauncherType.BASIC -> {
                         emitRaw("; ---- basic program with sys call ----")
-                        emitRaw("* = ${"$"}${loadAddr.toString(16)}")
+                        emitRaw("* = ${loadAddr.toHex()}")
                         emitLabel("prog8_program_start")
                         emitRaw("  .word  (+), ${java.time.LocalDate.now().year}")
                         val entryAddr = "prog8_entrypoint"
@@ -395,7 +397,7 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
                     }
                     CbmPrgLauncherType.NONE -> {
                         emitRaw("; ---- program without basic sys call ----")
-                        emitRaw("* = ${"$"}${loadAddr.toString(16)}")
+                        emitRaw("* = ${loadAddr.toHex()}")
                         emitLabel("prog8_program_start")
                         emitStartupSequence()
                     }
@@ -404,7 +406,7 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
 
             OutputType.XEX -> {
                 emitRaw("; ---- atari xex program ----")
-                emitRaw("* = ${"$"}${loadAddr.toString(16)}")
+                emitRaw("* = ${loadAddr.toHex()}")
                 emitLabel("prog8_program_start")
                 emitStartupSequence()
             }
@@ -421,85 +423,11 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
         }
         emitLine("jsr prog8_lib.program_startup_clear_bss", "clear BSS section")
         emitLine("jsr run_global_inits", "run block-level variable initializers")
-        emitLine("jsr main.start")
+        emitLine("jsr p8b_main.p8s_start")
         emitLine("jmp cleanup_at_exit")
         emitRaw("")
         emitLabel("cleanup_at_exit")
         emitLine("jsr sys.poweroff_system")
-        emitRaw("")
-    }
-
-    private fun emitWeakDeclarations() {
-        emitRaw("; External library symbol declarations")
-        emitRaw(".weak")
-        emitRaw("  p8_sys_startup.init_system = 0")
-        emitRaw("  p8_sys_startup.init_system_phase2 = 0")
-        emitRaw("  math_tmp = 0")
-        emitRaw("  math_mul8 = 0")
-        emitRaw("  math_mul16 = 0")
-        emitRaw("  math_div8 = 0")
-        emitRaw("  math_div16 = 0")
-        emitRaw("  math_mod8 = 0")
-        emitRaw("  math_mod16 = 0")
-        emitRaw("  math_divmod8 = 0")
-        emitRaw("  math_divmod16 = 0")
-        emitRaw("  sys .block")
-        emitRaw("    poweroff_system:")
-        emitRaw("    memset:")
-        emitRaw("    memcopy:")
-        emitRaw("    wait:")
-        emitRaw("  .bend")
-        emitRaw("  txt .block")
-        emitRaw("    color:")
-        emitRaw("    color2:")
-        emitRaw("    getchr:")
-        emitRaw("    getclr:")
-        emitRaw("    plot:")
-        emitRaw("    print:")
-        emitRaw("    print_ub:")
-        emitRaw("    print_uw:")
-        emitRaw("    setcc:")
-        emitRaw("    setcc2:")
-        emitRaw("  .bend")
-        emitRaw("  cx16 .block")
-        emitRaw("    set_screen_mode:")
-        emitRaw("    vpoke:")
-        emitRaw("    set_vsync_irq_handler:")
-        emitRaw("    enable_irq_handlers:")
-        emitRaw("  .bend")
-        emitRaw("  cbm .block")
-        emitRaw("    RDTIM16:")
-        emitRaw("  .bend")
-        emitRaw("  math .block")
-        emitRaw("    rnd:")
-        emitRaw("  .bend")
-        emitRaw("  psg2 .block")
-        emitRaw("    init:")
-        emitRaw("    update:")
-        emitRaw("    voice:")
-        emitRaw("    frequency:")
-        emitRaw("    envelope:")
-        emitRaw("  .bend")
-        emitRaw("  prog8_slabs .block")
-        emitRaw("  .bend")
-        emitRaw("  prog8_interned_strings .block")
-        emitRaw("  .bend")
-        emitRaw("  conv .block")
-        emitRaw("  .bend")
-        emitRaw("  prog8 .block")
-        emitRaw("    clear_bss:")
-        emitRaw("  .bend")
-        emitRaw("  prog8_lib .block")
-        emitRaw("    orig_stackpointer:")
-        emitRaw("    program_startup_clear_bss:")
-        emitRaw("    sqrt_long .block")
-        emitRaw("      num:")
-        emitRaw("      resultword:")
-        emitRaw("    .bend")
-        emitRaw("  .bend")
-        emitRaw("  prog8_bss_section_start:")
-        emitRaw("  prog8_bss_section_size:")
-        emitRaw(".endweak")
         emitRaw("")
     }
 
@@ -537,24 +465,12 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
         if (memMapped.isNotEmpty()) {
             emitRaw("; Memory-mapped variables")
             for (mm in memMapped) {
-                emitRaw("${mm.name} = ${"$"}${mm.address.toString(16)}")
+                emitRaw("${mm.name} = ${mm.address.toHex()}")
             }
             emitRaw("")
         }
 
-        // External KERNAL entry points and other symbols used by inline assembly
-        // These should come from %asminclude in library source but aren't in the IR yet.
-        if (target.name == "cx16") {
-            emitRaw("; External KERNAL entry points (cx16)")
-            emitRaw("cx16.mouse_config = \$ff68")
-            emitRaw("cx16.audio_init = \$c09f")
-            emitRaw("cx16.screen_mode = \$ff5f")
-            emitRaw("cbm.CINT = \$ff81")
-            emitRaw("cbm.IOINIT = \$ff84")
-            emitRaw("cbm.RESTOR = \$ff8a")
-            emitRaw("cbm.CHROUT = \$ffd2")
-            emitRaw("")
-        }
+
     }
 
     // === main code emission ===
@@ -568,7 +484,7 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
         for (block in program.blocks) {
             val addr = block.options.address
             if (addr != null) {
-                emitRaw("* = ${"$"}${addr.toString(16)}")
+                emitRaw("* = ${addr.toHex()}")
             }
             val scopeDirective = if (block.options.forceOutput) ".block" else ".proc"
             emitRaw("${block.label}  $scopeDirective")
@@ -586,7 +502,7 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
                     is IRInlineBinaryChunk -> {
                         val cl = element.label
                         if (cl != null && cl != block.label) emitLabel(cl)
-                        emitRaw("  .byte ${element.data.joinToString(",") { "${it.toInt() and 0xff}" }}")
+                        emitRaw("  .byte ${element.data.joinToString(",") { asmHexByte(it.toInt()) }}")
                     }
                     else -> {}
                 }
@@ -620,7 +536,7 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
                 is IRInlineBinaryChunk -> {
                     val cl = chunk.label
                     if (cl != null) emitLabel(cl)
-                    emitRaw("  .byte ${chunk.data.joinToString(",") { "${it.toInt() and 0xff}" }}")
+                    emitRaw("  .byte ${chunk.data.joinToString(",") { asmHexByte(it.toInt()) }}")
                 }
             }
         }
@@ -754,10 +670,26 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
         val initdVars = program.st.allVariables().filter { !it.inBss }.toList()
         if (initdVars.isNotEmpty()) {
             emitRaw("; static variables with initial values")
+            // Group by scope prefix and wrap non-block scopes in .block/.bend
+            // (so dots in labels are properly resolvable from inside .proc blocks)
+            val blockLabels = program.blocks.map { it.label }.toSet()
+            var currentScope: String? = null
             for (v in initdVars) {
+                val scope = v.name.substringBefore('.', "")
+                if (scope.isNotEmpty() && scope != v.name) {
+                    val scopeBlock = blockLabels.firstOrNull { it == scope || it.endsWith(".$scope") }
+                    if (scopeBlock == null) {
+                        if (currentScope != scope) {
+                            if (currentScope != null) emitRaw("  .bend")
+                            emitRaw("$scope .block")
+                            currentScope = scope
+                        }
+                    }
+                }
                 emitAlign(v.align)
                 emitInitializedVariable(v)
             }
+            if (currentScope != null) emitRaw("  .bend")
             emitRaw("")
         }
 
@@ -828,7 +760,7 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
 
     private fun emitAlign(align: UInt) {
         if (align > 1u) {
-            emitLine(".align  ${"$"}${align.toString(16)}")
+            emitLine(".align  ${align.toHex()}")
         }
     }
 
@@ -871,7 +803,13 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
                 val values = when (init) {
                     is IRVariableInitializer.Array -> init.elements.map {
                         when (it) {
-                            is IRStSymbolicReference.Numeric -> "${it.value.toInt()}"
+                            is IRStSymbolicReference.Numeric -> {
+                                val v = it.value.toInt()
+                                if(dt.elementType().isByteOrBool)
+                                    asmHexByte(v)
+                                else
+                                    "${v}"
+                            }
                             is IRStSymbolicReference.BoolValue -> if (it.value) "1" else "0"
                             is IRStSymbolicReference.Symbol -> asmSymbolRef(it.name)
                         }
@@ -940,7 +878,7 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
             emitLabel("prog8_program_end")
             val relocatedStart = if (options.varsGolden) options.compTarget.BSSGOLDENRAM_START
                                  else options.compTarget.BSSHIGHRAM_START
-            emitRaw("  * = ${"$"}${relocatedStart.toString(16)}")
+            emitRaw("  * = ${relocatedStart.toHex()}")
         }
 
         emitLabel("prog8_bss_section_start")
@@ -949,7 +887,7 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
         if (relocateVars) {
             val relocatedEnd = if (options.varsGolden) options.compTarget.BSSGOLDENRAM_END
                                else options.compTarget.BSSHIGHRAM_END
-            emitLine("  .cerror * > ${"$"}${relocatedEnd.toString(16)}",
+                emitLine("  .cerror * > ${relocatedEnd.toHex()}",
                 "too many variables/data for BSS section")
         }
 
@@ -964,7 +902,7 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
         }
         // memtop overflow check
         if (options.memtopAddress > 0u) {
-            val memtopHex = "${"$"}${options.memtopAddress.toString(16)}"
+            val memtopHex = "${options.memtopAddress.toHex()}"
             emitLine("  .cerror * >= $memtopHex",
                 "Program too long, memtop=$memtopHex")
         }

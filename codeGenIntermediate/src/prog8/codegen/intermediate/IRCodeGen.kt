@@ -29,6 +29,10 @@ class IRCodeGen(
     internal val extsubCallSiteIds: MutableMap<String, UByte> = preassignedCallSiteIds.toMutableMap()
 
     fun generate(): IRProgram {
+        // The pure "virtual" (VM) target doesn't need symbol prefixing because the VM
+        // doesn't emit assembly and has no risk of symbol clashes.  Any other target
+        // (that goes through assembly code generation) MUST prefix symbols to avoid
+        // clashes with 64tass reserved names, BASIC tokens, and other toolchain symbols.
         if(options.compTarget.name!=VMTarget.NAME) 
             symbolTable = prefixSymbols(program, options, symbolTable)
         makeAllNodenamesScoped(program)
@@ -1714,7 +1718,7 @@ class IRCodeGen(
                 is PtAsmSub -> {
                     val addr = child.address
                     if(addr!=null) {
-                        // extsub: emit as inline assembly equate so the codegen can reference it
+                        // extsub: emit as inline assembly equate so that other tools (vm, 6502 codegen) can reference the symbol as an address label
                         require(child.children.isEmpty()) {
                             "extsub should be empty at ${child.position}"
                         }
@@ -1983,5 +1987,4 @@ class IRCodeGen(
         result += multiplyByConst(DataType.UBYTE, byteIndexTr.resultReg, itemsize)
         return Pair(result, byteIndexTr.resultReg)
     }
-
 }
