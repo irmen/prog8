@@ -3,17 +3,23 @@ package prog8.codegen.intermediate
 import prog8.code.*
 import prog8.code.ast.*
 import prog8.code.core.*
+import prog8.code.target.VMTarget
 import prog8.intermediate.*
 import kotlin.io.path.readBytes
+
+// NOTE: All symbol names in the generated IR are fully scoped (entire dotted path)
+// and carry type prefixes: p8b_ (block), p8s_ (sub), p8v_ (variable), p8c_ (const),
+// p8l_ (label), p8t_ (struct), p8i_ (instance). Any backend consuming the IR
+// can rely on these already being present and does not need to add them itself.
 
 
 class IRCodeGen(
     internal val program: PtProgram,
-    internal val symbolTable: SymbolTable,
+    internal var symbolTable: SymbolTable,
     internal val options: CompilationOptions,
     internal val errors: IErrorReporter,
     internal val retainSSA: Boolean,
-    private val preassignedCallSiteIds: Map<String, UByte> = emptyMap()
+    preassignedCallSiteIds: Map<String, UByte> = emptyMap()
 ) {
 
     private val expressionEval = ExpressionGen(this)
@@ -23,6 +29,8 @@ class IRCodeGen(
     internal val extsubCallSiteIds: MutableMap<String, UByte> = preassignedCallSiteIds.toMutableMap()
 
     fun generate(): IRProgram {
+        if(options.compTarget.name!=VMTarget.NAME) 
+            symbolTable = prefixSymbols(program, options, symbolTable)
         makeAllNodenamesScoped(program)
         moveAllNestedSubroutinesToBlockScope(program)
         verifyNameScoping(program, symbolTable)
@@ -1810,9 +1818,10 @@ class IRCodeGen(
             } else {
                 val reg = it.register
                 require(reg in Cx16VirtualRegisters || reg in CombinedLongRegisters) { "can only use R0-R15 'registers' here" }
-                val regname = it.register!!.asScopedNameVirtualReg(it.type).joinToString(".")
-                val targetVar = symbolTable.lookup(regname) as StMemVar
-                result += IRSubroutine.IRParam(regname, targetVar.dt)
+                //val regname = it.register!!.asScopedNameVirtualReg(it.type).joinToString(".")
+                require('.' in it.name) { "even parameter names should have been made fully scoped by now" }
+                val targetVar = symbolTable.lookup(it.name) as StMemVar
+                result += IRSubroutine.IRParam(it.name, targetVar.dt)
             }
         }
         return result

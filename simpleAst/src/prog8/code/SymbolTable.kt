@@ -102,12 +102,7 @@ class SymbolTable(
     companion object {
         fun labelnameForStructInstance(call: PtFunctionCall): String {
             require(call.name == "prog8_lib_structalloc")
-            var structname = call.type.subType!!.scopedNameString
-            val parts = structname.split('.')
-            val prefixed = parts.all { it.length>5 && it.startsWith("p8") && it[3]=='_' }
-            if(prefixed) {
-                structname = parts.joinToString(".") { it.substring(4) }
-            }
+            val structname = SymbolNames.stripPrefixes(call.type.subType!!.scopedNameString)
             val scopehash = call.parent.hashCode().toUInt().toString(16)
             val pos = "${call.position.line}_${call.position.startCol}"
             val hash = call.position.file.hashCode().toUInt().toString(16)

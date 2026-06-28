@@ -1,6 +1,7 @@
 package prog8.intermediate
 
 import prog8.code.PROG8_CONTAINER_MODULES
+import prog8.code.SymbolNames
 import prog8.code.core.BaseDataType
 import prog8.code.core.DataType
 import prog8.code.core.Encoding
@@ -55,6 +56,18 @@ class IRSymbolTable {
         }
     }
 
+    fun stripAllPrefixes() {
+        val entries = table.entries.toList()
+        for((name, node) in entries) {
+            val stripped = SymbolNames.stripPrefixes(name)
+            if(stripped != name) {
+                table.remove(name)
+                node.name = stripped
+                table[stripped] = node
+            }
+        }
+    }
+
     fun validate() {
         require(table.all { it.key == it.value.name })
     }
@@ -74,7 +87,7 @@ enum class IRStNodeType {
     STRUCTINSTANCE
 }
 
-open class IRStNode(val name: String, val type: IRStNodeType)
+open class IRStNode(var name: String, val type: IRStNodeType)
 
 class IRStMemVar(name: String,
                  val dt: DataType,

@@ -207,10 +207,15 @@ class IRUnusedCodeRemover(
         }
         return numRemoved
     }
+    
+
+    private val entrypointNames = setOf("p8b_main.p8s_start", "main.start")
+    private val mainBlockNames = setOf("p8b_main", "main")
+        
 
     private fun removeUnreachable(allLabeledChunks: MutableMap<String, IRCodeChunkBase>): Int {
-        val entrypointSub = irprog.blocks.single { it.label=="main" }
-            .children.single { it is IRSubroutine && it.label=="main.start" }
+        val entrypointSub = irprog.blocks.single { it.label in mainBlockNames }
+            .children.single { it is IRSubroutine && it.label in entrypointNames }
         val reachable = mutableSetOf((entrypointSub as IRSubroutine).chunks.first())
         reachable.add(irprog.globalInits)
 
@@ -283,7 +288,7 @@ class IRUnusedCodeRemover(
                     linkedChunks += it.branchTarget!!
                 }
             }
-            if (chunk.label == "main.start")
+            if (chunk.label in entrypointNames)
                 linkedChunks += chunk
         }
 

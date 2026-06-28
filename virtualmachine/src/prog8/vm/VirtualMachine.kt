@@ -1,5 +1,6 @@
 package prog8.vm
 
+import prog8.code.SymbolNames
 import prog8.code.core.toHex
 import prog8.code.target.IVirtualMachineRunner
 import prog8.code.target.VMTarget
@@ -71,7 +72,7 @@ class VirtualMachine(irProgram: IRProgram) {
         program = prg
         artificialLabelAddresses = mutableMapOf()
         labelAddr.forEach { (labelname, artificialAddress) ->
-            artificialLabelAddresses[artificialAddress] = program.single { it.label==labelname }
+            artificialLabelAddresses[artificialAddress] = program.single { SymbolNames.stripPrefixes(it.label ?: "")==labelname }
         }
         reset(false)
     }

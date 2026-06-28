@@ -1,5 +1,8 @@
 package prog8.intermediate
 
+// IR symbol names are fully scoped with type prefixes: p8b_, p8s_, p8v_, etc.
+// Backends reading IR files get these already applied.
+
 import prog8.code.core.*
 import prog8.code.target.VMTarget
 import prog8.code.target.getCompilationTargetByName

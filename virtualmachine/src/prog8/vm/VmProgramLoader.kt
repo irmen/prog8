@@ -1,6 +1,7 @@
 package prog8.vm
 
 import prog8.Either
+import prog8.code.SymbolNames
 import prog8.code.core.*
 import prog8.intermediate.*
 import prog8.left
@@ -15,6 +16,7 @@ class VmProgramLoader {
 
     fun load(irProgram: IRProgram, memory: Memory): Pair<List<IRCodeChunk>, Map<String, UInt>> {
         irProgram.validate()
+        irProgram.st.stripAllPrefixes()
         placeholders.clear()
         subroutines.clear()
         val allocations = VmVariableAllocator(irProgram.st, irProgram.encoding, irProgram.options.compTarget)
@@ -41,11 +43,12 @@ class VmProgramLoader {
 
         // make sure that if there is a "main.start" entrypoint, we jump to it
         irProgram.blocks.firstOrNull()?.let {
-            if(it.children.any { sub -> sub is IRSubroutine && sub.label=="main.start" }) {
+            if(it.children.any { sub -> sub is IRSubroutine && SymbolNames.stripPrefixes(sub.label)=="main.start" }) {
                 val previous = programChunks.lastOrNull()
                 val chunk = IRCodeChunk(null, previous)
                 placeholders[Pair(chunk, 0)] = "main.start"
                 chunk += IRInstruction(Opcode.JUMP, labelSymbol = "main.start")
+                // note: labelSymbol "main.start" doesn't need stripping since it's not prefixed
                 previous?.let { p -> p.next = chunk }
                 programChunks += chunk
             }
@@ -64,7 +67,7 @@ class VmProgramLoader {
                     is IRInlineAsmChunk -> throw IRParseException("encountered unconverted inline assembly chunk")
                     is IRInlineBinaryChunk -> throw IRParseException("inline binary data not yet supported in the VM")
                     is IRSubroutine -> {
-                        subroutines[child.label] = child
+                        subroutines[SymbolNames.stripPrefixes(child.label)] = child
                         child.chunks.forEach { chunk ->
                             when (chunk) {
                                 is IRInlineAsmChunk -> throw IRParseException("encountered unconverted inline assembly chunk")
@@ -140,7 +143,7 @@ class VmProgramLoader {
 
                 val label = ins.labelSymbol
                 if (label != null && (ins.opcode !in OpcodesThatBranch)) {
-                    placeholders[Pair(chunk, index)] = label
+                    placeholders[Pair(chunk, index)] = SymbolNames.stripPrefixes(label)
                 }
             }
         }
@@ -163,7 +166,7 @@ class VmProgramLoader {
                     chunk.instructions[line] = instr.copy(address = address.toAddress())
                 } else {
                     // placeholder is not a variable, so it must be a label of a code chunk instead
-                    val target: IRCodeChunk? = chunks.firstOrNull { it.label==label }
+                    val target: IRCodeChunk? = chunks.firstOrNull { SymbolNames.stripPrefixes(it.label ?: "")==label }
                     if(target==null)
                         throw IRParseException("label '$label' not found in variables nor labels. VM cannot reference other things such as blocks, and constants should have been replaced by their value")
                     else if(instr.opcode in OpcodesThatBranch)
@@ -192,7 +195,7 @@ class VmProgramLoader {
                             if(arg.address!=null)
                                 arg
                             else {
-                                val address = ins.address?.value ?: variableAddresses.getValue(ins.labelSymbol + "." + arg.name)
+                                val address = ins.address?.value ?: variableAddresses.getValue(SymbolNames.stripPrefixes(ins.labelSymbol!!) + "." + SymbolNames.stripPrefixes(arg.name))
                                 FunctionCallArgs.ArgumentSpec(arg.name, address, arg.reg)
                             }
                         }
@@ -302,7 +305,8 @@ class VmProgramLoader {
                         is IRStSymbolicReference.BoolValue -> if(ref.value) 1.0 else 0.0
                         is IRStSymbolicReference.Numeric -> ref.value
                         is IRStSymbolicReference.Symbol -> {
-                            val symbolAddress = symbolAddresses[ref.name]
+                            val stripped = SymbolNames.stripPrefixes(ref.name)
+                            val symbolAddress = symbolAddresses[stripped]
                                 ?: throw IRParseException("vm cannot yet load a label address as a value: ${ref.name}")
                             symbolAddress.toDouble()
                         }
@@ -445,21 +449,22 @@ class VmProgramLoader {
             is IRStSymbolicReference.Symbol -> {
                 when {
                     arrayDt.isString || arrayDt.isByteArray || arrayDt.isBoolArray -> {
-                        val name = elt.name
-                        val sym = symbolAddresses[name.drop(1)]
-                            ?: throw IRParseException("vm cannot yet load a label address as a value: $name")
-                        val symbolAddress: UInt = if(name.startsWith('<')) {
+                        val prefix = elt.name[0]
+                        val stripped = SymbolNames.stripPrefixes(elt.name.drop(1))
+                        val sym = symbolAddresses[stripped]
+                            ?: throw IRParseException("vm cannot yet load a label address as a value: <$stripped")
+                        val symbolAddress: UInt = if(prefix=='<') {
                             sym.and(255u)
-                        } else if(name.startsWith('>')) {
+                        } else if(prefix=='>') {
                             sym.shr(8)
                         } else
                             throw IRParseException("for byte-array address-of, expected < or > (lsb/msb)")
                         left(symbolAddress.toDouble())
                     }
                     else -> {
-                        val name = elt.name
-                        val symbolAddress = symbolAddresses[name]
-                            ?: throw IRParseException("vm cannot yet load a label address as a value: $name")
+                        val stripped = SymbolNames.stripPrefixes(elt.name)
+                        val symbolAddress = symbolAddresses[stripped]
+                            ?: throw IRParseException("vm cannot yet load a label address as a value: $stripped")
                         left(symbolAddress.toInt().toDouble())
                     }
                 }

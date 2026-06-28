@@ -338,6 +338,22 @@ Some notes and references into the compiler's source code modules:
    Note that this IR is still *targeted to one specific compilation target only*; various properties and all library
    code for the selected target machine is encoded into the IR. It is *not possible* to eventually create a C64 program
    from an IR file created for the CommanderX16 target.
+
+   All symbol names in the IR are fully scoped (they include the entire dotted path from the
+   outermost block down to the symbol itself).  Additionally, each part of the scoped name carries
+   a type prefix that identifies what kind of symbol it is.  Any backend consuming IR files can
+   rely on these already being present and does not need to add them itself:
+
+   - ``p8b_`` prefix for block names (e.g. ``p8b_main`` - simple, no dots)
+   - ``p8s_`` prefix for subroutine names (e.g. ``p8b_main.p8s_start``)
+   - ``p8v_`` prefix for variables (e.g. ``p8b_main.p8s_start.p8v_x``)
+   - ``p8c_`` prefix for constants (e.g. ``p8b_main.p8c_SIZE``)
+   - ``p8l_`` prefix for labels (e.g. ``p8b_main.p8s_start.p8l_loop``)
+   - ``p8t_`` prefix for struct type names (e.g. ``p8b_main.p8t_Point``)
+   - ``p8i_`` prefix for struct instance names
+
+   Library code that uses ``%option no_symbol_prefixing`` keeps its names without these prefixes.
+   The built-in Virtual Machine strips these prefixes automatically when loading an IR program.
 #. The code generator backends all implement a common interface ``ICodeGeneratorBackend`` defined in the ``codeCore`` module.
    Currently they get handed the program Ast, Symboltable and several other things.
    If the code generator wants it can use the ``IRCodeGen`` class from the ``codeGenIntermediate`` module

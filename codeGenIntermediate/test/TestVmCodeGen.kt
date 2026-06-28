@@ -5,6 +5,7 @@ import prog8.code.SymbolTableMaker
 import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.code.source.SourceCode
+import prog8.code.target.Cx16Target
 import prog8.code.target.VMTarget
 import prog8.codegen.vm.VmAssemblyProgram
 import prog8.codegen.vm.VmCodeGen
@@ -635,4 +636,67 @@ class TestVmCodeGen: FunSpec({
         callInstr.opcode shouldBe Opcode.CALL
         callInstr.address shouldBe 0x5000u.toAddress()
     }
+
+    test("ir codegen for target 'virtual' produces no prefixed names") {
+        val codegen = VmCodeGen(false)
+        val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
+        val block = PtBlock("main", false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
+        val sub = PtSub("start", emptyList(), emptyList(), Position.DUMMY)
+        sub.add(PtVariable("x", DataType.UBYTE, ZeropageWish.DONTCARE, 0u, false, null, null, Position.DUMMY))
+        block.add(sub)
+        program.add(block)
+
+        val options = getTestOptions()
+        val st = SymbolTableMaker(program, options).make()
+        val errors = ErrorReporterForTests()
+        val result = codegen.generate(program, st, options, errors) as VmAssemblyProgram
+        val irProg = result.irProgram
+
+        // Block label should not be prefixed
+        val irBlock = irProg.blocks.first()
+        irBlock.label shouldBe "main"
+
+        // Subroutine label should be scoped but not prefixed
+        val irSub = irBlock.children.single() as IRSubroutine
+        irSub.label shouldBe "main.start"
+
+        // Variable in IR symbol table should not have prefixed scoped name
+        val irVar = irProg.st.allVariables().single()
+        irVar.name shouldBe "main.start.x"
+    }
+
+    test("ir codegen for target 'cx16' via expericodegen produces prefixed names") {
+        val codegen = VmCodeGen(false)
+        val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
+        val block = PtBlock("main", false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
+        val sub = PtSub("start", emptyList(), emptyList(), Position.DUMMY)
+        sub.add(PtVariable("x", DataType.UBYTE, ZeropageWish.DONTCARE, 0u, false, null, null, Position.DUMMY))
+        block.add(sub)
+        program.add(block)
+
+        val target = Cx16Target()
+        val options = CompilationOptions.builder(target)
+            .output(OutputType.RAW)
+            .zeropage(ZeropageType.DONTUSE)
+            .floats(true)
+            .compilerVersion("99.99")
+            .experimentalCodegen(true)
+            .build()
+        val st = SymbolTableMaker(program, options).make()
+        val errors = ErrorReporterForTests()
+        val result = codegen.generate(program, st, options, errors) as VmAssemblyProgram
+        val irProg = result.irProgram
+
+        // Block label should be prefixed
+        val irBlock = irProg.blocks.first()
+        irBlock.label shouldBe "p8b_main"
+
+        // Subroutine label should be fully scoped and prefixed
+        val irSub = irBlock.children.single() as IRSubroutine
+        irSub.label shouldBe "p8b_main.p8s_start"
+
+        // Variable in IR symbol table should be fully scoped and prefixed
+        val irVar = irProg.st.allVariables().single()
+        irVar.name shouldBe "p8b_main.p8s_start.p8v_x"
+    }    
 })

@@ -224,9 +224,14 @@ main {
         start.statements.size shouldBe 10
         (start.statements[2] as Assignment).value as MemorySlabRef
         val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
-        VmRunner().runAndTestProgram(virtfile.readText()) { vm ->
-            vm.memory.getUB(2u) shouldBe 42u
-            vm.memory.getUB(3u) shouldBe 43u
+        val irSrc = virtfile.readText()
+        val irProgram = IRFileReader().read(irSrc)
+        irProgram.st.stripAllPrefixes()
+        val allocations = VmVariableAllocator(irProgram.st, irProgram.encoding, irProgram.options.compTarget).allocations
+        VmRunner().runAndTestProgram(irSrc) { vm ->
+            val slabAddr = allocations["prog8_slabs.memory_slab1"]!!
+            vm.memory.getUB(slabAddr + 10u) shouldBe 42u
+            vm.memory.getUB(slabAddr + 11u) shouldBe 43u
         }
     }
 
@@ -738,6 +743,7 @@ main {
         
         // Parse the IR to get variable allocations and verify memory
         val irProgram = IRFileReader().read(irContent)
+        irProgram.st.stripAllPrefixes()
         val allocations = VmVariableAllocator(irProgram.st, irProgram.encoding, irProgram.options.compTarget).allocations
         
         VmRunner().runAndTestProgram(irContent) { vm ->
@@ -797,6 +803,7 @@ main {
         
         // Parse the IR to get variable allocations and verify memory
         val irProgram = IRFileReader().read(irContent)
+        irProgram.st.stripAllPrefixes()
         val allocations = VmVariableAllocator(irProgram.st, irProgram.encoding, irProgram.options.compTarget).allocations
         
         // Run the program and verify all struct fields were zeroed
@@ -862,6 +869,7 @@ main {
         
         // Parse the IR to get variable allocations
         val irProgram = IRFileReader().read(irContent)
+        irProgram.st.stripAllPrefixes()
         val allocations = VmVariableAllocator(irProgram.st, irProgram.encoding, irProgram.options.compTarget).allocations
         
         // Run the program and verify both initialized and uninitialized values
@@ -973,6 +981,7 @@ main {
 
         // Parse and run
         val irProgram = IRFileReader().read(irContent)
+        irProgram.st.stripAllPrefixes()
         val allocations = VmVariableAllocator(irProgram.st, irProgram.encoding, irProgram.options.compTarget).allocations
 
         VmRunner().runAndTestProgram(irContent) { vm ->
@@ -1040,6 +1049,7 @@ main {
         val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         val irSource = virtfile.readText()
         val irProgram = IRFileReader().read(irSource)
+        irProgram.st.stripAllPrefixes()
         val allocations = VmVariableAllocator(irProgram.st, irProgram.encoding, irProgram.options.compTarget).allocations
 
         VmRunner().runAndTestProgram(irSource) { vm ->
@@ -1070,6 +1080,7 @@ main {
         val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         val irSource = virtfile.readText()
         val irProgram = IRFileReader().read(irSource)
+        irProgram.st.stripAllPrefixes()
         val allocations = VmVariableAllocator(irProgram.st, irProgram.encoding, irProgram.options.compTarget).allocations
 
         VmRunner().runAndTestProgram(irSource) { vm ->
@@ -1158,6 +1169,7 @@ main {
         val irContent = virtfile.readText()
 
         val irProgram = IRFileReader().read(irContent)
+        irProgram.st.stripAllPrefixes()
         val allocations = VmVariableAllocator(irProgram.st, irProgram.encoding, irProgram.options.compTarget).allocations
 
         VmRunner().runAndTestProgram(irContent) { vm ->
@@ -1194,6 +1206,7 @@ main {
         irContent shouldContain "syscall \$1019"
 
         val irProgram = IRFileReader().read(irContent)
+        irProgram.st.stripAllPrefixes()
         val allocations = VmVariableAllocator(irProgram.st, irProgram.encoding, irProgram.options.compTarget).allocations
 
         VmRunner().runAndTestProgram(irContent) { vm ->

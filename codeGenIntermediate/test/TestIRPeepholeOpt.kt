@@ -11,9 +11,9 @@ import prog8tests.helpers.ErrorReporterForTests
 
 class TestIRPeepholeOpt: FunSpec({
     fun makeIRProgram(chunks: List<IRCodeChunkBase>): IRProgram {
-        require(chunks.first().label=="main.start")
-        val block = IRBlock("main", false, IRBlock.Options(), Position.DUMMY)
-        val sub = IRSubroutine("main.start", emptyList(), emptyList(), Position.DUMMY)
+        require(chunks.first().label=="p8b_main.p8s_start")
+        val block = IRBlock("p8b_main", false, IRBlock.Options(), Position.DUMMY)
+        val sub = IRSubroutine("p8b_main.p8s_start", emptyList(), emptyList(), Position.DUMMY)
         chunks.forEach { sub += it }
         block += sub
         val target = VMTarget()
@@ -31,7 +31,7 @@ class TestIRPeepholeOpt: FunSpec({
     }
 
     fun makeIRProgram(instructions: List<IRInstruction>): IRProgram {
-        val chunk = IRCodeChunk("main.start", null)
+        val chunk = IRCodeChunk("p8b_main.p8s_start", null)
         instructions.forEach { chunk += it }
         return makeIRProgram(listOf(chunk))
     }
@@ -51,7 +51,7 @@ class TestIRPeepholeOpt: FunSpec({
     }
 
     test("remove jmp to label below but keep labels") {
-        val c1 = IRCodeChunk("main.start", null)
+        val c1 = IRCodeChunk("p8b_main.p8s_start", null)
         c1 += IRInstruction(Opcode.JUMP, labelSymbol = "label")
         val c2 = IRCodeChunk("label", null)
         c2 += IRInstruction(Opcode.JUMP, labelSymbol = "label2")
@@ -68,7 +68,7 @@ class TestIRPeepholeOpt: FunSpec({
         opt.optimize(true, ErrorReporterForTests())
         val chunks = irProg.chunks()
         chunks.size shouldBe 4
-        chunks[0].label shouldBe "main.start"
+        chunks[0].label shouldBe "p8b_main.p8s_start"
         chunks[1].label shouldBe "label"
         chunks[2].label shouldBe "label2"
         chunks[3].label shouldBe "label3"
