@@ -16,6 +16,14 @@ You are writing **6502/65C02 assembly** using **64tass syntax**, in separate `*.
 - The prog8 compiler outputs `*.asm` (assembly source) and (with -asmlist option) also `*.list` (full listing with address/symbols) when compiling. Inspect these to debug generated code, verify optimizations, and trace instruction sequences.
 
 ## Assembler: 64tass Syntax
+### Formatting Rules
+- Labels start in the first column of the line.
+- Instructions are indented at least 4 spaces.
+- Two spaces between the instruction opcode and its operand (e.g., `lda  #1`, `sta  $d020`).
+- End-of-line comments are preceded by two spaces before the `;` (e.g., `sta  $d020  ; border color`).
+- If a comment is the only thing on a line, it starts in the first column (no indentation).
+- Opcodes and operands are written in lowercase (e.g., `lda`, not `LDA`; `$d020`, not `$D020`).
+
 - **NOT ca65/cc65** or other assemblers. Key differences:
 - `.proc` / `.pend` for procedures (scoping)
 - `_label` for local labels (prefixed with underscore, scoped to `.proc`)
