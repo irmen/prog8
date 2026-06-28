@@ -226,18 +226,23 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
     // === emit helpers ===
 
     fun emitLine(code: String, comment: String = "") {
-        if (comment.isNotEmpty())
-            output.appendLine("  $code        ; $comment")
-        else
-            output.appendLine("  $code")
+        output.append("    ")
+        output.append(code)
+        if (comment.isNotEmpty()) {
+            output.append("        ; ")
+            output.append(comment)
+        }
+        output.appendLine()
     }
 
     fun emitLabel(label: String) {
         // Anonymous labels (+, ++, -) should not have a trailing colon in 64tass
         if (label.all { it == '+' || it == '-' })
             output.appendLine(label)
-        else
+        else {
+            output.appendLine()
             output.appendLine("$label:")
+        }
     }
 
     fun emitRaw(code: String) {
@@ -311,10 +316,10 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
 
     fun emitStoreZero(target: String, comment: String = "") {
         if (cpu == CpuType.CPU65C02)
-            emitLine("stz $target", comment)
+            emitLine("stz  $target")
         else {
-            emitLine("lda #0", comment)
-            emitLine("sta $target")
+            emitLine("lda  #0")
+            emitLine("sta  $target")
         }
     }
 
@@ -370,7 +375,7 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
                 emitRaw("; ---- library assembler program ----")
                 emitRaw("* = ${loadAddr.toHex()}")
                 emitLabel("prog8_program_start")
-                emitLine("jmp p8b_main.p8s_start")
+                emitLine("jmp  p8b_main.p8s_start")
                 emitRaw("")
             }
 
@@ -387,11 +392,11 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
                         emitRaw("; ---- basic program with sys call ----")
                         emitRaw("* = ${loadAddr.toHex()}")
                         emitLabel("prog8_program_start")
-                        emitRaw("  .word  (+), ${java.time.LocalDate.now().year}")
+                        emitRaw("    .word  (+), ${java.time.LocalDate.now().year}")
                         val entryAddr = "prog8_entrypoint"
-                        emitRaw("  .null  \$9e, format(' %d ', prog8_entrypoint), \$3a, \$8f, ' prog8'")
+                        emitRaw("    .null  \$9e, format(' %d ', prog8_entrypoint), \$3a, \$8f, ' prog8'")
                         emitLabel("+")
-                        emitRaw("  .word  0")
+                        emitRaw("    .word  0")
                         emitLabel("prog8_entrypoint")
                         emitStartupSequence()
                     }
@@ -415,20 +420,15 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
 
     private fun emitStartupSequence() {
         emitLine("cld")
-        emitLine("tsx", "save stackpointer for sys.exit()")
-        emitLine("stx prog8_lib.orig_stackpointer")
+        emitLine("tsx")
+        emitLine("stx  prog8_lib.orig_stackpointer")
         if (!program.options.noSysInit) {
-            emitLine("jsr p8_sys_startup.init_system")
-            emitLine("jsr p8_sys_startup.init_system_phase2")
+            emitLine("jsr  p8_sys_startup.init_system")
+            emitLine("jsr  p8_sys_startup.init_system_phase2")
         }
-        emitLine("jsr prog8_lib.program_startup_clear_bss", "clear BSS section")
-        emitLine("jsr run_global_inits", "run block-level variable initializers")
-        emitLine("jsr p8b_main.p8s_start")
-        emitLine("jmp cleanup_at_exit")
-        emitRaw("")
-        emitLabel("cleanup_at_exit")
-        emitLine("jsr sys.poweroff_system")
-        emitRaw("")
+            emitLine("jsr  run_global_inits")
+        emitLine("jsr  p8b_main.p8s_start")
+        emitLine("jmp  p8_sys_startup.cleanup_at_exit")
     }
 
     private fun emitConstants() {
@@ -494,15 +494,10 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
                     is IRSubroutine -> emitSubroutine(element)
                     is IRAsmSubroutine -> emitAsmSubroutine(element)
                     is IRInlineAsmChunk -> {
-                        // skip label if it matches the block label (already defined by .proc/.block)
-                        val cl = element.label
-                        if (cl != null && cl != block.label) emitLabel(cl)
                         emitRaw(element.assembly)
                     }
                     is IRInlineBinaryChunk -> {
-                        val cl = element.label
-                        if (cl != null && cl != block.label) emitLabel(cl)
-                        emitRaw("  .byte ${element.data.joinToString(",") { asmHexByte(it.toInt()) }}")
+                        emitRaw("    .byte  ${element.data.joinToString(",") { asmHexByte(it.toInt()) }}")
                     }
                     else -> {}
                 }
@@ -513,16 +508,26 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
         }
     }
 
+    private fun unscopedName(scopedName: String): String =
+        scopedName.substringAfterLast('.')
+
     private fun emitSubroutine(sub: IRSubroutine) {
         emitRaw("; Subroutine: ${sub.label}")
         val firstChunk = sub.chunks.filterIsInstance<IRCodeChunk>().firstOrNull()
-        if (firstChunk != null) emitSourceComment(firstChunk.sourceLinesPositions)
-        emitRaw("${sub.label} .proc")
+        if (firstChunk != null)
+            emitSourceComment(firstChunk.sourceLinesPositions)
+        emitRaw("")
+        emitRaw("${unscopedName(sub.label)}  .proc")
+        if (sub.label == "p8b_main.p8s_start") {
+            // BSS clearing needs to happen even if something calls main.start directly (without startup logic - for example if this is a library)
+            emitLine("jsr  prog8_lib.program_startup_clear_bss")
+        }
         for (chunk in sub.chunks) {
             when (chunk) {
                 is IRCodeChunk -> {
                     // skip chunk label if it matches the subroutine name (already defined by .proc)
-                    if (chunk.label != sub.label) {
+                    val uname = unscopedName(sub.label)
+                    if (chunk.label != sub.label && chunk.label != uname) {
                         val cl = chunk.label
                         if (cl != null) emitLabel(cl)
                     }
@@ -536,7 +541,7 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
                 is IRInlineBinaryChunk -> {
                     val cl = chunk.label
                     if (cl != null) emitLabel(cl)
-                    emitRaw("  .byte ${chunk.data.joinToString(",") { asmHexByte(it.toInt()) }}")
+                    emitRaw("    .byte  ${chunk.data.joinToString(",") { asmHexByte(it.toInt()) }}")
                 }
             }
         }
@@ -547,10 +552,18 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
     private fun emitAsmSubroutine(sub: IRAsmSubroutine) {
         val addr = sub.address
         if (addr != null) {
-            emitLine("* = $addr", "origin for asm subroutine ${sub.label}")
+            emitLine("* = $addr")
         }
-        emitRaw("${sub.label} .proc")
-        emitRaw(sub.asmChunk.assembly)
+        emitRaw("")
+        emitRaw("${unscopedName(sub.label)}  .proc")
+        // 64tass 1.60 rejects `.section BSS` inside deeply nested .proc scopes.
+        // Strip the directives; the variables they contain will just be placed
+        // in the current (code) section, costing a few bytes but working correctly.
+        val cleaned = sub.asmChunk.assembly
+            .lineSequence()
+            .filterNot { it.trimStart().startsWith(".section ") || it.trimStart().startsWith(".send ") }
+            .joinToString("\n")
+        emitRaw(cleaned)
         emitRaw(".pend")
         emitRaw("")
     }
@@ -565,6 +578,12 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
     // === instruction dispatch ===
 
     private fun translateInstruction(insn: IRInstruction) {
+        emitRaw("        ; $insn")
+        if (insn.opcode == Opcode.LOADHR || insn.opcode == Opcode.STOREHR) {
+            val slotNames = mapOf(0 to "A", 1 to "X", 2 to "Y", 3 to "AX", 4 to "AY", 5 to "XY")
+            val slot = insn.immediate
+            slot?.let { slotNames[it]?.let { name -> emitRaw("        ; slot s$it == $name") } }
+        }
         when (insn.opcode) {
             Opcode.NOP -> {}
             Opcode.BREAKPOINT -> emitLine("brk")
@@ -654,7 +673,7 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
                     paramIdx++
                 }
             }
-            emitRaw("  .endstruct")
+            emitRaw("    .endstruct")
             emitRaw("")
         }
         emitRaw("")
@@ -680,7 +699,7 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
                     val scopeBlock = blockLabels.firstOrNull { it == scope || it.endsWith(".$scope") }
                     if (scopeBlock == null) {
                         if (currentScope != scope) {
-                            if (currentScope != null) emitRaw("  .bend")
+                            if (currentScope != null) emitRaw("    .bend")
                             emitRaw("$scope .block")
                             currentScope = scope
                         }
@@ -689,21 +708,21 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
                 emitAlign(v.align)
                 emitInitializedVariable(v)
             }
-            if (currentScope != null) emitRaw("  .bend")
+            if (currentScope != null) emitRaw("    .bend")
             emitRaw("")
         }
 
         // memory slabs in BSS_SLABS section
         val slabs = program.st.allMemorySlabs().toList()
         if (slabs.isNotEmpty()) {
-            emitRaw("  .section BSS_SLABS")
+            emitRaw("    .section BSS_SLABS")
             emitLabel("${REGFILE_LABEL}_slabs")
             for (slab in slabs) {
                 emitAlign(slab.align)
                 val label = fixNameSymbols(slab.name)
-                emitLine("$label  .fill ${slab.size}", "memory slab ${slab.name}")
+                emitLine("$label  .fill  ${slab.size}")
             }
-            emitRaw("  .send BSS_SLABS")
+            emitRaw("    .send BSS_SLABS")
             emitRaw("")
         }
 
@@ -711,20 +730,20 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
         val allInstances = program.st.allStructInstances().toList()
         val (instancesNoInit, instancesWithInit) = allInstances.partition { it.values.isEmpty() }
         if (instancesNoInit.isNotEmpty()) {
-            emitRaw("  .section BSS")
+            emitRaw("    .section BSS")
             emitRaw("${REGFILE_LABEL}_structinst_bss  .block")
             for (si in instancesNoInit) {
                 val label = fixNameSymbols(si.name)
-                emitLine("$label  .fill ${si.size}", "struct instance ${si.name}")
+                emitLine("$label  .fill  ${si.size}")
             }
-            emitRaw("  .bend")
-            emitRaw("  .send BSS")
+            emitRaw("    .bend")
+            emitRaw("    .send BSS")
             emitRaw("")
         }
 
         // struct instances with init values -> STRUCTINSTANCES section
         if (instancesWithInit.isNotEmpty()) {
-            emitRaw("  .section STRUCTINSTANCES")
+            emitRaw("    .section STRUCTINSTANCES")
             emitRaw("${REGFILE_LABEL}_structinst  .block")
             for (si in instancesWithInit) {
                 val label = fixNameSymbols(si.name)
@@ -743,17 +762,17 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
                             emitLine("  $size $v")
                         }
                         is IRStSymbolicReference.Symbol -> {
-                            emitLine("  .word ${fixNameSymbols(fv.name)}")
+                            emitLine("    .word  ${fixNameSymbols(fv.name)}")
                         }
                         is IRStSymbolicReference.BoolValue -> {
                             val v = if (fv.value) 1 else 0
-                            emitLine("  .byte $v")
+                            emitLine("    .byte  $v")
                         }
                     }
                 }
             }
-            emitRaw("  .bend")
-            emitRaw("  .send STRUCTINSTANCES")
+            emitRaw("    .bend")
+            emitRaw("    .send STRUCTINSTANCES")
             emitRaw("")
         }
     }
@@ -793,7 +812,7 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
             dt.isString -> {
                 when (init) {
                     is IRVariableInitializer.Str -> {
-                        emitLine("$label  .null \"${init.text}\"")
+                        emitLine("$label  .null  \"${init.text}\"")
                     }
                     else -> emitLine("$label  .byte  ?")
                 }
@@ -839,7 +858,7 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
                     is IRVariableInitializer.Numeric -> target.getFloatAsmBytes(init.value)
                     else -> List(target.FLOAT_MEM_SIZE.toInt()) { 0 }.joinToString(",") { "\$00" }
                 }
-                emitLine("$label  .byte $bytes")
+                emitLine("$label  .byte  $bytes")
             }
 
             else -> {
@@ -887,8 +906,7 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
         if (relocateVars) {
             val relocatedEnd = if (options.varsGolden) options.compTarget.BSSGOLDENRAM_END
                                else options.compTarget.BSSHIGHRAM_END
-                emitLine("  .cerror * > ${relocatedEnd.toHex()}",
-                "too many variables/data for BSS section")
+                emitLine("    .cerror * > ${relocatedEnd.toHex()}")
         }
 
         emitLabel("prog8_bss_section_end")
@@ -903,17 +921,16 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
         // memtop overflow check
         if (options.memtopAddress > 0u) {
             val memtopHex = "${options.memtopAddress.toHex()}"
-            emitLine("  .cerror * >= $memtopHex",
-                "Program too long, memtop=$memtopHex")
+            emitLine("    .cerror * >= $memtopHex")
         }
         emitRaw("")
     }
 
     private fun emitNonrelocatableSections(alsoSlabs: Boolean) {
         // emit BSS_NOCLEAR and optionally BSS_SLABS before relocation
-        emitRaw("  .dsection BSS_NOCLEAR")
+        emitRaw("    .dsection BSS_NOCLEAR")
         if (!alsoSlabs) {
-            emitRaw("  .dsection BSS_SLABS")
+            emitRaw("    .dsection BSS_SLABS")
         }
     }
 
@@ -921,35 +938,36 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
         // BSS_NOCLEAR for dirty variables and float eval temporaries
         val (dirty, clean) = vars.partition { it.dirty }
         if (dirty.isNotEmpty()) {
-            emitRaw("  .section BSS_NOCLEAR")
+            emitRaw("    .section BSS_NOCLEAR")
             emitRaw("; dirty variables (not cleared at subroutine entry)")
             for (v in dirty) {
                 emitAlign(v.align)
                 emitUninitializedVariable(v)
             }
-            emitRaw("  .send BSS_NOCLEAR")
+            emitRaw("    .send BSS_NOCLEAR")
             emitRaw("")
         }
 
-        // Main BSS section (cleared at startup)
-        val regfileSize = NUM_REGISTERS * 2
+        // Virtual register file — allocated but NOT zeroed at startup
         emitLabel(REGFILE_LABEL)
-        emitLine(".fill $regfileSize", "virtual register file (${NUM_REGISTERS} words)")
+        emitRaw("    .section BSS_NOCLEAR")
+        emitLine(".fill  ${NUM_REGISTERS * 2}")
+        emitRaw("    .send BSS_NOCLEAR")
         emitRaw("")
 
         if (clean.isNotEmpty()) {
-            emitRaw("  .section BSS")
+            emitRaw("    .section BSS")
             for (v in clean) {
                 emitAlign(v.align)
                 emitUninitializedVariable(v)
             }
-            emitRaw("  .send BSS")
+            emitRaw("    .send BSS")
             emitRaw("")
         }
 
         // emit BSS_NOCLEAR remainder (for library subroutines that may add vars)
-        emitRaw("  .dsection BSS_NOCLEAR")
-        emitRaw("  .dsection BSS_SLABS")
+        emitRaw("    .dsection BSS_NOCLEAR")
+        emitRaw("    .dsection BSS_SLABS")
     }
 
     private fun emitUninitializedVariable(v: IRStStaticVariable) {
@@ -960,8 +978,8 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
             dt.isSplitWordArray -> {
                 // two separate byte arrays: _lsb and _msb
                 val numElements = v.length?.toInt() ?: 1
-                emitLine("${label}_lsb  .fill $numElements")
-                emitLine("${label}_msb  .fill $numElements")
+                emitLine("${label}_lsb  .fill  $numElements")
+                emitLine("${label}_msb  .fill  $numElements")
                 return
             }
             dt.isBool || dt.isUnsignedByte -> ".byte" to 1
@@ -978,7 +996,7 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
         }
 
         if (directive == ".fill") {
-            emitLine("$label  .fill $count")
+            emitLine("$label  .fill  $count")
         } else {
             emitLine("$label  $directive  ?")
         }

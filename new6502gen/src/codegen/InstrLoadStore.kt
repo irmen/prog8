@@ -26,6 +26,7 @@
 
 package codegen
 
+import prog8.code.core.*
 import prog8.intermediate.*
 
 fun CodeGenerator.translateLoadStore(insn: IRInstruction) {
@@ -109,10 +110,10 @@ fun CodeGenerator.translateLoadStore(insn: IRInstruction) {
             indirectStore(r1 ?: error("STOREI needs reg1"), baseReg, offset, type)
         }
 
-        Opcode.LOADHFACZERO -> emitLine("; LOADHFACZERO (float, not implemented)")
-        Opcode.LOADHFACONE -> emitLine("; LOADHFACONE (float, not implemented)")
-        Opcode.STOREHFACZERO -> emitLine("; STOREHFACZERO (float, not implemented)")
-        Opcode.STOREHFACONE -> emitLine("; STOREHFACONE (float, not implemented)")
+        Opcode.LOADHFACZERO -> TODO("LOADHFACZERO (float)")
+        Opcode.LOADHFACONE -> TODO("LOADHFACONE (float)")
+        Opcode.STOREHFACZERO -> TODO("STOREHFACZERO (float)")
+        Opcode.STOREHFACONE -> TODO("STOREHFACONE (float)")
 
         else -> error("Unknown load/store opcode: ${insn.opcode}")
     }
@@ -125,33 +126,33 @@ private fun CodeGenerator.loadFromHardwareReg(virtualReg: Int, slot: Int, type: 
     when (slot) {
         0 -> {
             // slot s0 = A (byte)
-            emitLine("sta ${regAddrLo(virtualReg)}", "LOADHR: A -> r$virtualReg")
+            emitLine("sta  ${regAddrLo(virtualReg)}")
             if (type == IRDataType.WORD) {
-                emitLine("stx ${regAddrHi(virtualReg)}", "should not happen: AX pair through s0")
+                emitLine("stx  ${regAddrHi(virtualReg)}")
             }
         }
         1 -> {
             // slot s1 = X (byte)
-            emitLine("stx ${regAddrLo(virtualReg)}", "LOADHR: X -> r$virtualReg")
+            emitLine("stx  ${regAddrLo(virtualReg)}")
         }
         2 -> {
             // slot s2 = Y (byte)
-            emitLine("sty ${regAddrLo(virtualReg)}", "LOADHR: Y -> r$virtualReg")
+            emitLine("sty  ${regAddrLo(virtualReg)}")
         }
         3 -> {
             // slot s3 = AX (word)
-            emitLine("sta ${regAddrLo(virtualReg)}", "LOADHR: AX -> r$virtualReg")
-            emitLine("stx ${regAddrHi(virtualReg)}")
+            emitLine("sta  ${regAddrLo(virtualReg)}")
+            emitLine("stx  ${regAddrHi(virtualReg)}")
         }
         4 -> {
             // slot s4 = AY (word)
-            emitLine("sta ${regAddrLo(virtualReg)}", "LOADHR: AY -> r$virtualReg")
-            emitLine("sty ${regAddrHi(virtualReg)}")
+            emitLine("sta  ${regAddrLo(virtualReg)}")
+            emitLine("sty  ${regAddrHi(virtualReg)}")
         }
         5 -> {
             // slot s5 = XY (word)
-            emitLine("stx ${regAddrLo(virtualReg)}", "LOADHR: XY -> r$virtualReg")
-            emitLine("sty ${regAddrHi(virtualReg)}")
+            emitLine("stx  ${regAddrLo(virtualReg)}")
+            emitLine("sty  ${regAddrHi(virtualReg)}")
         }
         else -> emitLine("; LOADHR: unknown slot $slot")
     }
@@ -162,30 +163,30 @@ private fun CodeGenerator.storeToHardwareReg(virtualReg: Int, slot: Int, type: I
     when (slot) {
         0 -> {
             // slot s0 = A (byte)
-            emitLine("lda ${regAddrLo(virtualReg)}", "STOREHR: r$virtualReg -> A")
+            emitLine("lda  ${regAddrLo(virtualReg)}")
         }
         1 -> {
             // slot s1 = X (byte)
-            emitLine("ldx ${regAddrLo(virtualReg)}", "STOREHR: r$virtualReg -> X")
+            emitLine("ldx  ${regAddrLo(virtualReg)}")
         }
         2 -> {
             // slot s2 = Y (byte)
-            emitLine("ldy ${regAddrLo(virtualReg)}", "STOREHR: r$virtualReg -> Y")
+            emitLine("ldy  ${regAddrLo(virtualReg)}")
         }
         3 -> {
             // slot s3 = AX (word)
-            emitLine("lda ${regAddrLo(virtualReg)}", "STOREHR: r$virtualReg -> AX")
-            emitLine("ldx ${regAddrHi(virtualReg)}")
+            emitLine("lda  ${regAddrLo(virtualReg)}")
+            emitLine("ldx  ${regAddrHi(virtualReg)}")
         }
         4 -> {
             // slot s4 = AY (word)
-            emitLine("lda ${regAddrLo(virtualReg)}", "STOREHR: r$virtualReg -> AY")
-            emitLine("ldy ${regAddrHi(virtualReg)}")
+            emitLine("lda  ${regAddrLo(virtualReg)}")
+            emitLine("ldy  ${regAddrHi(virtualReg)}")
         }
         5 -> {
             // slot s5 = XY (word)
-            emitLine("ldx ${regAddrLo(virtualReg)}", "STOREHR: r$virtualReg -> XY")
-            emitLine("ldy ${regAddrHi(virtualReg)}")
+            emitLine("ldx  ${regAddrLo(virtualReg)}")
+            emitLine("ldy  ${regAddrHi(virtualReg)}")
         }
         else -> emitLine("; STOREHR: unknown slot $slot")
     }
@@ -198,52 +199,52 @@ private fun CodeGenerator.loadSymbolAddress(reg: Int, sym: String, offset: Int?,
     val symWithOffset = if (offset != null) "$resolved+$offset" else resolved
     when (type) {
         IRDataType.BYTE -> {
-            emitLine("lda #<${symWithOffset}")
-            emitLine("sta ${regAddrLo(reg)}")
+            emitLine("lda  #<${symWithOffset}")
+            emitLine("sta  ${regAddrLo(reg)}")
         }
         IRDataType.WORD -> {
-            emitLine("lda #<${symWithOffset}")
-            emitLine("sta ${regAddrLo(reg)}")
-            emitLine("lda #>${symWithOffset}")
-            emitLine("sta ${regAddrHi(reg)}")
+            emitLine("lda  #<${symWithOffset}")
+            emitLine("sta  ${regAddrLo(reg)}")
+            emitLine("lda  #>${symWithOffset}")
+            emitLine("sta  ${regAddrHi(reg)}")
         }
         IRDataType.LONG -> {
-            emitLine("lda #<${symWithOffset}")
-            emitLine("sta ${regAddrLo(reg)}")
-            emitLine("lda #>${symWithOffset}")
-            emitLine("sta ${regAddrHi(reg)}")
-            emitLine("lda #0")
-            emitLine("sta ${regAddrLo(reg) + 2}")
-            emitLine("sta ${regAddrLo(reg) + 3}")
+            emitLine("lda  #<${symWithOffset}")
+            emitLine("sta  ${regAddrLo(reg)}")
+            emitLine("lda  #>${symWithOffset}")
+            emitLine("sta  ${regAddrHi(reg)}")
+            emitLine("lda  #0")
+            emitLine("sta  ${regAddrLo(reg) + 2}")
+            emitLine("sta  ${regAddrLo(reg) + 3}")
         }
-        else -> emitLine("; SYMLOAD r$reg, $symWithOffset ${type.name} (not implemented)")
+        else -> TODO("SYMLOAD r$reg, $symWithOffset ${type.name}")
     }
 }
 
 private fun CodeGenerator.loadImmediate(reg: Int, value: Int, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
-            emitLine("lda #${value and 0xff}")
-            emitLine("sta ${regAddrLo(reg)}")
+            emitLine("lda  #${value and 0xff}")
+            emitLine("sta  ${regAddrLo(reg)}")
         }
         IRDataType.WORD -> {
-            emitLine("lda #<${value and 0xffff}")
-            emitLine("sta ${regAddrLo(reg)}")
-            emitLine("lda #>${value and 0xffff}")
-            emitLine("sta ${regAddrHi(reg)}")
+            emitLine("lda  #<${value and 0xffff}")
+            emitLine("sta  ${regAddrLo(reg)}")
+            emitLine("lda  #>${value and 0xffff}")
+            emitLine("sta  ${regAddrHi(reg)}")
         }
         IRDataType.LONG -> {
-            emitLine("lda #<${value and 0xffff}")
-            emitLine("sta ${regAddrLo(reg)}")
-            emitLine("lda #>${value and 0xffff}")
-            emitLine("sta ${regAddrHi(reg)}")
-            emitLine("lda #${(value ushr 16) and 0xff}")
-            emitLine("sta ${regAddrLo(reg) + 2}")
-            emitLine("lda #${(value ushr 24) and 0xff}")
-            emitLine("sta ${regAddrLo(reg) + 3}")
+            emitLine("lda  #<${value and 0xffff}")
+            emitLine("sta  ${regAddrLo(reg)}")
+            emitLine("lda  #>${value and 0xffff}")
+            emitLine("sta  ${regAddrHi(reg)}")
+            emitLine("lda  #${(value ushr 16) and 0xff}")
+            emitLine("sta  ${regAddrLo(reg) + 2}")
+            emitLine("lda  #${(value ushr 24) and 0xff}")
+            emitLine("sta  ${regAddrLo(reg) + 3}")
         }
         IRDataType.FLOAT -> {
-            emitLine("; FLOAT LOAD immediate r$reg = $value (not implemented)")
+            TODO("FLOAT LOAD immediate r$reg = $value")
         }
     }
 }
@@ -251,27 +252,27 @@ private fun CodeGenerator.loadImmediate(reg: Int, value: Int, type: IRDataType) 
 private fun CodeGenerator.loadFromMemory(reg: Int, source: String, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
-            emitLine("lda $source")
-            emitLine("sta ${regAddrLo(reg)}")
+            emitLine("lda  $source")
+            emitLine("sta  ${regAddrLo(reg)}")
         }
         IRDataType.WORD -> {
-            emitLine("lda $source")
-            emitLine("sta ${regAddrLo(reg)}")
-            emitLine("lda $source+1")
-            emitLine("sta ${regAddrHi(reg)}")
+            emitLine("lda  $source")
+            emitLine("sta  ${regAddrLo(reg)}")
+            emitLine("lda  $source+1")
+            emitLine("sta  ${regAddrHi(reg)}")
         }
         IRDataType.LONG -> {
-            emitLine("lda $source")
-            emitLine("sta ${regAddrLo(reg)}")
-            emitLine("lda $source+1")
-            emitLine("sta ${regAddrHi(reg)}")
-            emitLine("lda $source+2")
-            emitLine("sta ${regAddrLo(reg) + 2}")
-            emitLine("lda $source+3")
-            emitLine("sta ${regAddrLo(reg) + 3}")
+            emitLine("lda  $source")
+            emitLine("sta  ${regAddrLo(reg)}")
+            emitLine("lda  $source+1")
+            emitLine("sta  ${regAddrHi(reg)}")
+            emitLine("lda  $source+2")
+            emitLine("sta  ${regAddrLo(reg) + 2}")
+            emitLine("lda  $source+3")
+            emitLine("sta  ${regAddrLo(reg) + 3}")
         }
         IRDataType.FLOAT -> {
-            emitLine("; FLOAT LOADM r$reg from $source (not implemented)")
+            TODO("FLOAT LOADM r$reg from $source")
         }
     }
 }
@@ -279,27 +280,27 @@ private fun CodeGenerator.loadFromMemory(reg: Int, source: String, type: IRDataT
 private fun CodeGenerator.copyRegister(dst: Int, src: Int, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
-            emitLine("lda ${regAddrLo(src)}")
-            emitLine("sta ${regAddrLo(dst)}")
+            emitLine("lda  ${regAddrLo(src)}")
+            emitLine("sta  ${regAddrLo(dst)}")
         }
         IRDataType.WORD -> {
-            emitLine("lda ${regAddrLo(src)}")
-            emitLine("sta ${regAddrLo(dst)}")
-            emitLine("lda ${regAddrHi(src)}")
-            emitLine("sta ${regAddrHi(dst)}")
+            emitLine("lda  ${regAddrLo(src)}")
+            emitLine("sta  ${regAddrLo(dst)}")
+            emitLine("lda  ${regAddrHi(src)}")
+            emitLine("sta  ${regAddrHi(dst)}")
         }
         IRDataType.LONG -> {
-            emitLine("lda ${regAddrLo(src)}")
-            emitLine("sta ${regAddrLo(dst)}")
-            emitLine("lda ${regAddrHi(src)}")
-            emitLine("sta ${regAddrHi(dst)}")
-            emitLine("lda ${regAddrLo(src) + 2}")
-            emitLine("sta ${regAddrLo(dst) + 2}")
-            emitLine("lda ${regAddrHi(src) + 2}")
-            emitLine("sta ${regAddrLo(dst) + 3}")
+            emitLine("lda  ${regAddrLo(src)}")
+            emitLine("sta  ${regAddrLo(dst)}")
+            emitLine("lda  ${regAddrHi(src)}")
+            emitLine("sta  ${regAddrHi(dst)}")
+            emitLine("lda  ${regAddrLo(src) + 2}")
+            emitLine("sta  ${regAddrLo(dst) + 2}")
+            emitLine("lda  ${regAddrHi(src) + 2}")
+            emitLine("sta  ${regAddrLo(dst) + 3}")
         }
         IRDataType.FLOAT -> {
-            emitLine("; FLOAT LOADR r$dst = r$src (not implemented)")
+            TODO("FLOAT LOADR r$dst = r$src")
         }
     }
 }
@@ -307,117 +308,117 @@ private fun CodeGenerator.copyRegister(dst: Int, src: Int, type: IRDataType) {
 private fun CodeGenerator.storeToMemory(reg: Int, target: String, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
-            emitLine("lda ${regAddrLo(reg)}")
-            emitLine("sta $target")
+            emitLine("lda  ${regAddrLo(reg)}")
+            emitLine("sta  $target")
         }
         IRDataType.WORD -> {
-            emitLine("lda ${regAddrLo(reg)}")
-            emitLine("sta $target")
-            emitLine("lda ${regAddrHi(reg)}")
-            emitLine("sta $target+1")
+            emitLine("lda  ${regAddrLo(reg)}")
+            emitLine("sta  $target")
+            emitLine("lda  ${regAddrHi(reg)}")
+            emitLine("sta  $target+1")
         }
         IRDataType.LONG -> {
-            emitLine("lda ${regAddrLo(reg)}")
-            emitLine("sta $target")
-            emitLine("lda ${regAddrHi(reg)}")
-            emitLine("sta $target+1")
-            emitLine("lda ${regAddrLo(reg) + 2}")
-            emitLine("sta $target+2")
-            emitLine("lda ${regAddrLo(reg) + 3}")
-            emitLine("sta $target+3")
+            emitLine("lda  ${regAddrLo(reg)}")
+            emitLine("sta  $target")
+            emitLine("lda  ${regAddrHi(reg)}")
+            emitLine("sta  $target+1")
+            emitLine("lda  ${regAddrLo(reg) + 2}")
+            emitLine("sta  $target+2")
+            emitLine("lda  ${regAddrLo(reg) + 3}")
+            emitLine("sta  $target+3")
         }
         IRDataType.FLOAT -> {
-            emitLine("; FLOAT STOREM r$reg -> $target (not implemented)")
+            TODO("FLOAT STOREM r$reg -> $target")
         }
     }
 }
 
 private fun CodeGenerator.indexedLoad(dst: Int, idxReg: Int, base: String, type: IRDataType) {
     val ptr = ZP_TEMP
-    emitLine("lda #<$base")
-    emitLine("sta $ptr")
-    emitLine("lda #>$base")
-    emitLine("sta ${ptr}+1")
-    emitLine("lda ${regAddrLo(idxReg)}")
+    emitLine("lda  #<$base")
+    emitLine("sta  $ptr")
+    emitLine("lda  #>$base")
+    emitLine("sta  ${ptr}+1")
+    emitLine("lda  ${regAddrLo(idxReg)}")
     emitLine("clc")
-    emitLine("adc $ptr")
-    emitLine("sta $ptr")
-    emitLine("lda ${regAddrHi(idxReg)}")
-    emitLine("adc ${ptr}+1")
-    emitLine("sta ${ptr}+1")
+    emitLine("adc  $ptr")
+    emitLine("sta  $ptr")
+    emitLine("lda  ${regAddrHi(idxReg)}")
+    emitLine("adc  ${ptr}+1")
+    emitLine("sta  ${ptr}+1")
     when (type) {
         IRDataType.BYTE -> {
-            emitLine("ldy #0")
-            emitLine("lda ($ptr),y")
-            emitLine("sta ${regAddrLo(dst)}")
+            emitLine("ldy  #0")
+            emitLine("lda  ($ptr),y")
+            emitLine("sta  ${regAddrLo(dst)}")
         }
         IRDataType.WORD -> {
-            emitLine("ldy #0")
-            emitLine("lda ($ptr),y")
-            emitLine("sta ${regAddrLo(dst)}")
-            emitLine("ldy #1")
-            emitLine("lda ($ptr),y")
-            emitLine("sta ${regAddrHi(dst)}")
+            emitLine("ldy  #0")
+            emitLine("lda  ($ptr),y")
+            emitLine("sta  ${regAddrLo(dst)}")
+            emitLine("ldy  #1")
+            emitLine("lda  ($ptr),y")
+            emitLine("sta  ${regAddrHi(dst)}")
         }
         IRDataType.LONG -> {
-            emitLine("ldy #0")
-            emitLine("lda ($ptr),y")
-            emitLine("sta ${regAddrLo(dst)}")
-            emitLine("ldy #1")
-            emitLine("lda ($ptr),y")
-            emitLine("sta ${regAddrHi(dst)}")
-            emitLine("ldy #2")
-            emitLine("lda ($ptr),y")
-            emitLine("sta ${regAddrLo(dst) + 2}")
-            emitLine("ldy #3")
-            emitLine("lda ($ptr),y")
-            emitLine("sta ${regAddrLo(dst) + 3}")
+            emitLine("ldy  #0")
+            emitLine("lda  ($ptr),y")
+            emitLine("sta  ${regAddrLo(dst)}")
+            emitLine("ldy  #1")
+            emitLine("lda  ($ptr),y")
+            emitLine("sta  ${regAddrHi(dst)}")
+            emitLine("ldy  #2")
+            emitLine("lda  ($ptr),y")
+            emitLine("sta  ${regAddrLo(dst) + 2}")
+            emitLine("ldy  #3")
+            emitLine("lda  ($ptr),y")
+            emitLine("sta  ${regAddrLo(dst) + 3}")
         }
         IRDataType.FLOAT -> {
-            emitLine("; FLOAT LOADX r$dst (not implemented)")
+            TODO("FLOAT LOADX r$dst")
         }
     }
 }
 
 private fun CodeGenerator.indirectLoad(dst: Int, baseReg: Int, offset: Int, type: IRDataType) {
     val ptr = ZP_TEMP
-    emitLine("lda ${regAddrLo(baseReg)}")
+    emitLine("lda  ${regAddrLo(baseReg)}")
     emitLine("clc")
-    emitLine("adc #<${offset and 0xffff}")
-    emitLine("sta $ptr")
-    emitLine("lda ${regAddrHi(baseReg)}")
-    emitLine("adc #>${offset and 0xffff}")
-    emitLine("sta ${ptr}+1")
+    emitLine("adc  #<${offset and 0xffff}")
+    emitLine("sta  $ptr")
+    emitLine("lda  ${regAddrHi(baseReg)}")
+    emitLine("adc  #>${offset and 0xffff}")
+    emitLine("sta  ${ptr}+1")
     when (type) {
         IRDataType.BYTE -> {
-            emitLine("ldy #0")
-            emitLine("lda ($ptr),y")
-            emitLine("sta ${regAddrLo(dst)}")
+            emitLine("ldy  #0")
+            emitLine("lda  ($ptr),y")
+            emitLine("sta  ${regAddrLo(dst)}")
         }
         IRDataType.WORD -> {
-            emitLine("ldy #0")
-            emitLine("lda ($ptr),y")
-            emitLine("sta ${regAddrLo(dst)}")
-            emitLine("ldy #1")
-            emitLine("lda ($ptr),y")
-            emitLine("sta ${regAddrHi(dst)}")
+            emitLine("ldy  #0")
+            emitLine("lda  ($ptr),y")
+            emitLine("sta  ${regAddrLo(dst)}")
+            emitLine("ldy  #1")
+            emitLine("lda  ($ptr),y")
+            emitLine("sta  ${regAddrHi(dst)}")
         }
         IRDataType.LONG -> {
-            emitLine("ldy #0")
-            emitLine("lda ($ptr),y")
-            emitLine("sta ${regAddrLo(dst)}")
-            emitLine("ldy #1")
-            emitLine("lda ($ptr),y")
-            emitLine("sta ${regAddrHi(dst)}")
-            emitLine("ldy #2")
-            emitLine("lda ($ptr),y")
-            emitLine("sta ${regAddrLo(dst) + 2}")
-            emitLine("ldy #3")
-            emitLine("lda ($ptr),y")
-            emitLine("sta ${regAddrLo(dst) + 3}")
+            emitLine("ldy  #0")
+            emitLine("lda  ($ptr),y")
+            emitLine("sta  ${regAddrLo(dst)}")
+            emitLine("ldy  #1")
+            emitLine("lda  ($ptr),y")
+            emitLine("sta  ${regAddrHi(dst)}")
+            emitLine("ldy  #2")
+            emitLine("lda  ($ptr),y")
+            emitLine("sta  ${regAddrLo(dst) + 2}")
+            emitLine("ldy  #3")
+            emitLine("lda  ($ptr),y")
+            emitLine("sta  ${regAddrLo(dst) + 3}")
         }
         IRDataType.FLOAT -> {
-            emitLine("; FLOAT LOADI r$dst (not implemented)")
+            TODO("FLOAT LOADI r$dst")
         }
     }
 }
@@ -425,41 +426,41 @@ private fun CodeGenerator.indirectLoad(dst: Int, baseReg: Int, offset: Int, type
 private fun CodeGenerator.storeExchange(reg: Int, reg2: Int, target: String, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
-            emitLine("lda $target")
-            emitLine("sta ${regAddrLo(reg2)}")
-            emitLine("lda ${regAddrLo(reg)}")
-            emitLine("sta $target")
+            emitLine("lda  $target")
+            emitLine("sta  ${regAddrLo(reg2)}")
+            emitLine("lda  ${regAddrLo(reg)}")
+            emitLine("sta  $target")
         }
         IRDataType.WORD -> {
-            emitLine("lda $target")
-            emitLine("sta ${regAddrLo(reg2)}")
-            emitLine("lda ${regAddrLo(reg)}")
-            emitLine("sta $target")
-            emitLine("lda $target+1")
-            emitLine("sta ${regAddrHi(reg2)}")
-            emitLine("lda ${regAddrHi(reg)}")
-            emitLine("sta $target+1")
+            emitLine("lda  $target")
+            emitLine("sta  ${regAddrLo(reg2)}")
+            emitLine("lda  ${regAddrLo(reg)}")
+            emitLine("sta  $target")
+            emitLine("lda  $target+1")
+            emitLine("sta  ${regAddrHi(reg2)}")
+            emitLine("lda  ${regAddrHi(reg)}")
+            emitLine("sta  $target+1")
         }
         IRDataType.LONG -> {
-            emitLine("lda $target")
-            emitLine("sta ${regAddrLo(reg2)}")
-            emitLine("lda ${regAddrLo(reg)}")
-            emitLine("sta $target")
-            emitLine("lda $target+1")
-            emitLine("sta ${regAddrHi(reg2)}")
-            emitLine("lda ${regAddrHi(reg)}")
-            emitLine("sta $target+1")
-            emitLine("lda $target+2")
-            emitLine("sta ${regAddrLo(reg2) + 2}")
-            emitLine("lda ${regAddrLo(reg) + 2}")
-            emitLine("sta $target+2")
-            emitLine("lda $target+3")
-            emitLine("sta ${regAddrLo(reg2) + 3}")
-            emitLine("lda ${regAddrLo(reg) + 3}")
-            emitLine("sta $target+3")
+            emitLine("lda  $target")
+            emitLine("sta  ${regAddrLo(reg2)}")
+            emitLine("lda  ${regAddrLo(reg)}")
+            emitLine("sta  $target")
+            emitLine("lda  $target+1")
+            emitLine("sta  ${regAddrHi(reg2)}")
+            emitLine("lda  ${regAddrHi(reg)}")
+            emitLine("sta  $target+1")
+            emitLine("lda  $target+2")
+            emitLine("sta  ${regAddrLo(reg2) + 2}")
+            emitLine("lda  ${regAddrLo(reg) + 2}")
+            emitLine("sta  $target+2")
+            emitLine("lda  $target+3")
+            emitLine("sta  ${regAddrLo(reg2) + 3}")
+            emitLine("lda  ${regAddrLo(reg) + 3}")
+            emitLine("sta  $target+3")
         }
         else -> {
-            emitLine("; STOREX r$reg, r$reg2, $target ${type.name} (not implemented)")
+            TODO("STOREX r$reg, r$reg2, $target ${type.name}")
         }
     }
 }
@@ -480,162 +481,162 @@ private fun CodeGenerator.zeroMemory(target: String, type: IRDataType) {
             emitStoreZero("$target+3")
         }
         IRDataType.FLOAT -> {
-            emitLine("; FLOAT STOREZM $target (not implemented)")
+            TODO("FLOAT STOREZM $target")
         }
     }
 }
 
 private fun CodeGenerator.zeroIndexed(baseReg: Int, offset: Int, type: IRDataType) {
     val ptr = ZP_TEMP
-    emitLine("lda ${regAddrLo(baseReg)}")
+    emitLine("lda  ${regAddrLo(baseReg)}")
     emitLine("clc")
-    emitLine("adc #<${offset and 0xffff}")
-    emitLine("sta $ptr")
-    emitLine("lda ${regAddrHi(baseReg)}")
-    emitLine("adc #>${offset and 0xffff}")
-    emitLine("sta ${ptr}+1")
+    emitLine("adc  #<${offset and 0xffff}")
+    emitLine("sta  $ptr")
+    emitLine("lda  ${regAddrHi(baseReg)}")
+    emitLine("adc  #>${offset and 0xffff}")
+    emitLine("sta  ${ptr}+1")
     when (type) {
         IRDataType.BYTE -> {
-            emitLine("ldy #0")
+            emitLine("ldy  #0")
             if (is65C02())
-                emitLine("stz ($ptr),y")
+                emitLine("stz  ($ptr),y")
             else {
-                emitLine("lda #0")
-                emitLine("sta ($ptr),y")
+                emitLine("lda  #0")
+                emitLine("sta  ($ptr),y")
             }
         }
         IRDataType.WORD -> {
-            emitLine("ldy #0")
+            emitLine("ldy  #0")
             if (is65C02())
-                emitLine("stz ($ptr),y")
+                emitLine("stz  ($ptr),y")
             else {
-                emitLine("lda #0")
-                emitLine("sta ($ptr),y")
+                emitLine("lda  #0")
+                emitLine("sta  ($ptr),y")
             }
-            emitLine("ldy #1")
+            emitLine("ldy  #1")
             if (is65C02())
-                emitLine("stz ($ptr),y")
+                emitLine("stz  ($ptr),y")
             else {
-                emitLine("lda #0")
-                emitLine("sta ($ptr),y")
+                emitLine("lda  #0")
+                emitLine("sta  ($ptr),y")
             }
         }
         IRDataType.LONG -> {
-            emitLine("ldy #0")
+            emitLine("ldy  #0")
             if (is65C02())
-                emitLine("stz ($ptr),y")
+                emitLine("stz  ($ptr),y")
             else {
-                emitLine("lda #0")
-                emitLine("sta ($ptr),y")
+                emitLine("lda  #0")
+                emitLine("sta  ($ptr),y")
             }
-            emitLine("ldy #1")
+            emitLine("ldy  #1")
             if (is65C02())
-                emitLine("stz ($ptr),y")
+                emitLine("stz  ($ptr),y")
             else {
-                emitLine("lda #0")
-                emitLine("sta ($ptr),y")
+                emitLine("lda  #0")
+                emitLine("sta  ($ptr),y")
             }
-            emitLine("ldy #2")
+            emitLine("ldy  #2")
             if (is65C02())
-                emitLine("stz ($ptr),y")
+                emitLine("stz  ($ptr),y")
             else {
-                emitLine("lda #0")
-                emitLine("sta ($ptr),y")
+                emitLine("lda  #0")
+                emitLine("sta  ($ptr),y")
             }
-            emitLine("ldy #3")
+            emitLine("ldy  #3")
             if (is65C02())
-                emitLine("stz ($ptr),y")
+                emitLine("stz  ($ptr),y")
             else {
-                emitLine("lda #0")
-                emitLine("sta ($ptr),y")
+                emitLine("lda  #0")
+                emitLine("sta  ($ptr),y")
             }
         }
         IRDataType.FLOAT -> {
-            emitLine("; FLOAT STOREZI r$baseReg + $offset (not implemented)")
+            TODO("FLOAT STOREZI r$baseReg + $offset")
         }
     }
 }
 
 private fun CodeGenerator.zeroMemoryIndexed(reg: Int, base: String, type: IRDataType) {
-    emitLine("ldx ${regAddrLo(reg)}")
+    emitLine("ldx  ${regAddrLo(reg)}")
     when (type) {
         IRDataType.BYTE -> {
             if (is65C02())
-                emitLine("stz $base,x")
+                emitLine("stz  $base,x")
             else {
-                emitLine("lda #0")
-                emitLine("sta $base,x")
+                emitLine("lda  #0")
+                emitLine("sta  $base,x")
             }
         }
         IRDataType.WORD -> {
             if (is65C02())
-                emitLine("stz $base,x")
+                emitLine("stz  $base,x")
             else {
-                emitLine("lda #0")
-                emitLine("sta $base,x")
+                emitLine("lda  #0")
+                emitLine("sta  $base,x")
             }
-            emitLine("ldx ${regAddrHi(reg)}")
+            emitLine("ldx  ${regAddrHi(reg)}")
             if (is65C02())
-                emitLine("stz ${base}+1,x")
+                emitLine("stz  ${base}+1,x")
             else {
-                emitLine("lda #0")
-                emitLine("sta ${base}+1,x")
+                emitLine("lda  #0")
+                emitLine("sta  ${base}+1,x")
             }
         }
         IRDataType.LONG -> {
             emitLine("; STOREZX LONG not fully implemented")
             if (is65C02())
-                emitLine("stz $base,x")
+                emitLine("stz  $base,x")
             else {
-                emitLine("lda #0")
-                emitLine("sta $base,x")
+                emitLine("lda  #0")
+                emitLine("sta  $base,x")
             }
         }
         IRDataType.FLOAT -> {
-            emitLine("; FLOAT STOREZX (not implemented)")
+            TODO("FLOAT STOREZX")
         }
     }
 }
 
 private fun CodeGenerator.indirectStore(reg: Int, baseReg: Int, offset: Int, type: IRDataType) {
     val ptr = ZP_TEMP
-    emitLine("lda ${regAddrLo(baseReg)}")
+    emitLine("lda  ${regAddrLo(baseReg)}")
     emitLine("clc")
-    emitLine("adc #<${offset and 0xffff}")
-    emitLine("sta $ptr")
-    emitLine("lda ${regAddrHi(baseReg)}")
-    emitLine("adc #>${offset and 0xffff}")
-    emitLine("sta ${ptr}+1")
+    emitLine("adc  #<${offset and 0xffff}")
+    emitLine("sta  $ptr")
+    emitLine("lda  ${regAddrHi(baseReg)}")
+    emitLine("adc  #>${offset and 0xffff}")
+    emitLine("sta  ${ptr}+1")
     when (type) {
         IRDataType.BYTE -> {
-            emitLine("lda ${regAddrLo(reg)}")
-            emitLine("ldy #0")
-            emitLine("sta ($ptr),y")
+            emitLine("lda  ${regAddrLo(reg)}")
+            emitLine("ldy  #0")
+            emitLine("sta  ($ptr),y")
         }
         IRDataType.WORD -> {
-            emitLine("lda ${regAddrLo(reg)}")
-            emitLine("ldy #0")
-            emitLine("sta ($ptr),y")
-            emitLine("lda ${regAddrHi(reg)}")
-            emitLine("ldy #1")
-            emitLine("sta ($ptr),y")
+            emitLine("lda  ${regAddrLo(reg)}")
+            emitLine("ldy  #0")
+            emitLine("sta  ($ptr),y")
+            emitLine("lda  ${regAddrHi(reg)}")
+            emitLine("ldy  #1")
+            emitLine("sta  ($ptr),y")
         }
         IRDataType.LONG -> {
-            emitLine("lda ${regAddrLo(reg)}")
-            emitLine("ldy #0")
-            emitLine("sta ($ptr),y")
-            emitLine("lda ${regAddrHi(reg)}")
-            emitLine("ldy #1")
-            emitLine("sta ($ptr),y")
-            emitLine("lda ${regAddrLo(reg) + 2}")
-            emitLine("ldy #2")
-            emitLine("sta ($ptr),y")
-            emitLine("lda ${regAddrLo(reg) + 3}")
-            emitLine("ldy #3")
-            emitLine("sta ($ptr),y")
+            emitLine("lda  ${regAddrLo(reg)}")
+            emitLine("ldy  #0")
+            emitLine("sta  ($ptr),y")
+            emitLine("lda  ${regAddrHi(reg)}")
+            emitLine("ldy  #1")
+            emitLine("sta  ($ptr),y")
+            emitLine("lda  ${regAddrLo(reg) + 2}")
+            emitLine("ldy  #2")
+            emitLine("sta  ($ptr),y")
+            emitLine("lda  ${regAddrLo(reg) + 3}")
+            emitLine("ldy  #3")
+            emitLine("sta  ($ptr),y")
         }
         IRDataType.FLOAT -> {
-            emitLine("; FLOAT STOREI r$reg (not implemented)")
+            TODO("FLOAT STOREI r$reg")
         }
     }
 }
@@ -643,7 +644,7 @@ private fun CodeGenerator.indirectStore(reg: Int, baseReg: Int, offset: Int, typ
 internal fun CodeGenerator.resolveAddress(addr: MemoryAddress?, label: String?): String {
     return when {
         label != null -> resolveSymbolRef(label)
-        addr != null -> "${addr.value}"
+        addr != null -> addr.value.toHex()
         else -> "0"
     }
 }

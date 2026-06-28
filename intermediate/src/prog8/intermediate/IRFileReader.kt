@@ -125,6 +125,7 @@ class IRFileReader {
         var memtop = target.PROGRAM_MEMTOP_ADDRESS
         var optimize = true
         var romable = false
+        var noSysInit = false
         var outputDir = Path("")
 
         if(text.isNotBlank()) {
@@ -148,6 +149,7 @@ class IRFileReader {
                     "outputDir" -> outputDir = Path(value)
                     "optimize" -> optimize = value.toBoolean()
                     "romable" -> romable = value.toBoolean()
+                    "noSysInit" -> noSysInit = value.toBoolean()
                     else -> throw IRParseException("illegal OPTION $name")
                 }
             }
@@ -165,6 +167,7 @@ class IRFileReader {
             .memtopAddress(memtop)
             .outputDir(outputDir)
             .optimize(optimize)
+            .noSysInit(noSysInit)
             .build()
     }
 
@@ -383,10 +386,21 @@ class IRFileReader {
         require(reader.nextEvent().isCharacters)
         require(reader.nextEvent().isEndElement)
 
+        val positions = mutableListOf<Position>()
         val next = reader.peek()
         if(next.isStartElement && next.asStartElement().name.localPart=="P8SRC") {
-            reader.nextEvent()  // skip the P8SRC node
-            while(!reader.nextEvent().isEndElement) { /* skip until end of P8SRC node */ }
+            reader.nextEvent()  // enter P8SRC
+            val srcText = reader.nextEvent().asCharacters().data.trim()
+            require(reader.nextEvent().isEndElement)   // close P8SRC
+            // Parse each line: "[file: line N col start-end]  source code text"
+            val linePattern = Regex("""^\[(.+): line (\d+) col (\d+)-(\d+)\]""")
+            for (srcLine in srcText.lineSequence()) {
+                val m = linePattern.find(srcLine)
+                if (m != null) {
+                    val (file, line, startCol, endCol) = m.destructured
+                    positions.add(Position(file, line.toInt(), startCol.toInt(), endCol.toInt()))
+                }
+            }
         }
         val label = chunkStart.attributes.asSequence().singleOrNull { it.name.localPart == "LABEL" }?.value?.ifBlank { null }
 
@@ -394,6 +408,7 @@ class IRFileReader {
         require(codeStart.name.localPart=="CODE") { "missing CODE" }
         val text = readText(reader).trim()
         val chunk = IRCodeChunk(label, null)
+        chunk.sourceLinesPositions.addAll(positions)
         if(text.isNotBlank()) {
             text.lineSequence().forEach { line ->
                 if (line.isNotBlank() && !line.startsWith(';')) {

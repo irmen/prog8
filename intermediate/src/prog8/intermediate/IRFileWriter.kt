@@ -270,6 +270,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
         emitLine("memtop=${irProgram.options.memtopAddress.toHex()}")
         emitLine("optimize=${irProgram.options.optimize}")
         emitLine("romable=${irProgram.options.romable}")
+        emitLine("noSysInit=${irProgram.options.noSysInit}")
         emitLine("outputDir=${irProgram.options.outputDir.absolute()}")
         xml.writeEndElement()
         xml.writeCharacters("\n\n")

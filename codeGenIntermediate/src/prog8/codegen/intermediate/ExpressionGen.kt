@@ -960,7 +960,10 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     val paramDt = irType(parameter.type)
                     if(parameter.register==null) {
                         val tr = translateExpression(arg)
-                        result += tr.chunks
+                    // Note: explicit setCpuRegister is not needed here because the CALL instruction
+                    // carries the same slot information in its argument specs, and the code generator
+                    // backend uses those to load the CPU registers directly.
+                    result += tr.chunks
                         if(paramDt==IRDataType.FLOAT)
                             argRegisters.add(FunctionCallArgs.ArgumentSpec(parameter.name, null, FunctionCallArgs.RegSpec(IRDataType.FLOAT, RegisterNum(tr.resultFpReg), null, null)))
                         else
@@ -1016,7 +1019,6 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     else
                         argRegisters.add(FunctionCallArgs.ArgumentSpec("", null, FunctionCallArgs.RegSpec(paramDt, RegisterNum(tr.resultReg), slot, flag)))
                     result += tr.chunks
-                    result += codeGen.setCpuRegister(parameter.register, paramDt, tr.resultReg, tr.resultFpReg)
                 }
 
                 if(callTarget.returns.size>1)

@@ -37,25 +37,25 @@ fun CodeGenerator.translateBranch(insn: IRInstruction) {
     }
 
     when (insn.opcode) {
-        Opcode.BSTCC -> emitLine("bcc $label")
-        Opcode.BSTCS -> emitLine("bcs $label")
-        Opcode.BSTEQ -> emitLine("beq $label")
-        Opcode.BSTNE -> emitLine("bne $label")
-        Opcode.BSTNEG -> emitLine("bmi $label")
-        Opcode.BSTPOS -> emitLine("bpl $label")
-        Opcode.BSTVC -> emitLine("bvc $label")
-        Opcode.BSTVS -> emitLine("bvs $label")
+        Opcode.BSTCC -> emitLine("bcc  $label")
+        Opcode.BSTCS -> emitLine("bcs  $label")
+        Opcode.BSTEQ -> emitLine("beq  $label")
+        Opcode.BSTNE -> emitLine("bne  $label")
+        Opcode.BSTNEG -> emitLine("bmi  $label")
+        Opcode.BSTPOS -> emitLine("bpl  $label")
+        Opcode.BSTVC -> emitLine("bvc  $label")
+        Opcode.BSTVS -> emitLine("bvs  $label")
 
         Opcode.BGTR -> {
-            emitLine("beq +")           // equal → skip
-            emitLine("bcs $label")      // unsigned above → branch
+            emitLine("beq  +")           // equal → skip
+            emitLine("bcs  $label")      // unsigned above → branch
             emitLabel("+")
         }
-        Opcode.BGE -> emitLine("bcs $label")
-        Opcode.BLT -> emitLine("bcc $label")
+        Opcode.BGE -> emitLine("bcs  $label")
+        Opcode.BLT -> emitLine("bcc  $label")
         Opcode.BLE -> {
-            emitLine("beq $label")
-            emitLine("bcc $label")
+            emitLine("beq  $label")
+            emitLine("bcc  $label")
         }
 
         Opcode.BGTSR -> emitSignedBranch("gt", label)
@@ -77,37 +77,37 @@ private fun CodeGenerator.emitSignedBranch(cond: String, label: String) {
     // 64tass local labels: + = forward, - = backward, ++ = next-forward, etc.
     when (cond) {
         "gt" -> {
-            emitLine("beq ++")          // equal → skip (NOT gt)
-            emitLine("bvc +")           // V=0: N is sign
-            emitLine("bmi $label")      // V=1,N=1: inverted → positive (gt)
-            emitLine("jmp ++")          // V=1,N=0: not gt
+            emitLine("beq  ++")          // equal → skip (NOT gt)
+            emitLine("bvc  +")           // V=0: N is sign
+            emitLine("bmi  $label")      // V=1,N=1: inverted → positive (gt)
+            emitLine("jmp  ++")          // V=1,N=0: not gt
             emitLabel("+")              // V=0 landing: check N flag
-            emitLine("bpl $label")      // V=0,N=0: positive → gt
+            emitLine("bpl  $label")      // V=0,N=0: positive → gt
             emitLabel("+")              // skip point
         }
         "ge" -> {
-            emitLine("bvc +")           // V=0: N is sign
-            emitLine("bmi $label")      // V=1,N=1: inverted → positive
-            emitLine("jmp ++")          // V=1,N=0: not ge
+            emitLine("bvc  +")           // V=0: N is sign
+            emitLine("bmi  $label")      // V=1,N=1: inverted → positive
+            emitLine("jmp  ++")          // V=1,N=0: not ge
             emitLabel("+")              // first + label
-            emitLine("bpl $label")      // V=0,N=0: positive → ge
+            emitLine("bpl  $label")      // V=0,N=0: positive → ge
             emitLabel("+")              // second + label
         }
         "lt" -> {
-            emitLine("bvc +")           // V=0: N is sign
-            emitLine("bpl $label")      // V=1,N=0: inverted → negative
-            emitLine("jmp ++")          // V=1,N=1: not lt
+            emitLine("bvc  +")           // V=0: N is sign
+            emitLine("bpl  $label")      // V=1,N=0: inverted → negative
+            emitLine("jmp  ++")          // V=1,N=1: not lt
             emitLabel("+")              // first + label
-            emitLine("bmi $label")      // V=0,N=1: negative → lt
+            emitLine("bmi  $label")      // V=0,N=1: negative → lt
             emitLabel("+")              // second + label
         }
         "le" -> {
-            emitLine("beq $label")      // equal → branch
-            emitLine("bvc +")           // V=0: N is sign
-            emitLine("bpl $label")      // V=1,N=0: inverted → negative
-            emitLine("jmp ++")          // V=1,N=1: not lt
+            emitLine("beq  $label")      // equal → branch
+            emitLine("bvc  +")           // V=0: N is sign
+            emitLine("bpl  $label")      // V=1,N=0: inverted → negative
+            emitLine("jmp  ++")          // V=1,N=1: not lt
             emitLabel("+")              // first + label
-            emitLine("bmi $label")      // V=0,N=1: negative → lt
+            emitLine("bmi  $label")      // V=0,N=1: negative → lt
             emitLabel("+")              // second + label
         }
     }

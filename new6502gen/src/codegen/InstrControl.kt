@@ -22,7 +22,7 @@
 
 package codegen
 
-import prog8.code.core.Statusflag
+import prog8.code.core.*
 import prog8.intermediate.*
 
 fun CodeGenerator.translateControl(insn: IRInstruction) {
@@ -34,36 +34,36 @@ fun CodeGenerator.translateControl(insn: IRInstruction) {
 
     when (insn.opcode) {
         Opcode.JUMP -> {
-            val target = label ?: addr?.let { "${it.value}" } ?: error("JUMP needs target")
-            emitLine("jmp $target")
+            val target = label ?: addr?.let { it.value.toHex() } ?: error("JUMP needs target")
+            emitLine("jmp  $target")
         }
 
         Opcode.JUMPI -> {
             val reg = r1 ?: error("JUMPI needs reg1")
-            emitLine("jmp (${regAddr(reg)})", "indirect jump via r$reg")
+            emitLine("jmp  (${regAddr(reg)})")
         }
 
         Opcode.CALL -> {
-            val fnLabel = label ?: addr?.let { "${it.value}" } ?: error("CALL needs label or address")
+            val fnLabel = label ?: addr?.let { it.value.toHex() } ?: error("CALL needs label or address")
             val args = insn.fcallArgs
             translateCall(fnLabel, args)
         }
 
         Opcode.CALLI -> {
             val reg = r1 ?: error("CALLI needs reg1")
-            emitLine("; CALLI via r$reg (not implemented)")
+            TODO("CALLI via r$reg")
         }
 
         Opcode.CALLFAR -> {
-            val target = label ?: "${addr?.value ?: 0}"
+            val target = label ?: (addr?.value ?: 0u).toHex()
             val bank = imm ?: 0
-            emitLine("; CALLFAR $target, bank=$bank (not implemented)")
+            TODO("CALLFAR $target, bank=$bank")
         }
 
         Opcode.CALLFARVB -> {
-            val target = label ?: "${addr?.value ?: 0}"
+            val target = label ?: (addr?.value ?: 0u).toHex()
             val bankReg = r1 ?: error("CALLFARVB needs reg1")
-            emitLine("; CALLFARVB $target, bank in r$bankReg (not implemented)")
+            TODO("CALLFARVB $target, bank in r$bankReg")
         }
 
         Opcode.SYSCALL -> {
@@ -80,13 +80,13 @@ fun CodeGenerator.translateControl(insn: IRInstruction) {
             val type = insn.type ?: IRDataType.BYTE
             when (type) {
                 IRDataType.BYTE -> {
-                    emitLine("lda ${regAddrLo(reg)}")
+                    emitLine("lda  ${regAddrLo(reg)}")
                 }
                 IRDataType.WORD -> {
-                    emitLine("lda ${regAddrLo(reg)}")
-                    emitLine("ldx ${regAddrHi(reg)}")
+                    emitLine("lda  ${regAddrLo(reg)}")
+                    emitLine("ldx  ${regAddrHi(reg)}")
                 }
-                else -> emitLine("; RETURNR r$reg ${type.name} (not implemented)")
+                else -> TODO("RETURNR r$reg ${type.name}")
             }
             emitLine("rts")
         }
@@ -96,13 +96,13 @@ fun CodeGenerator.translateControl(insn: IRInstruction) {
             val type = insn.type ?: IRDataType.BYTE
             when (type) {
                 IRDataType.BYTE -> {
-                    emitLine("lda #${value and 0xff}")
+                    emitLine("lda  #${value and 0xff}")
                 }
                 IRDataType.WORD -> {
-                    emitLine("lda #<${value and 0xffff}")
-                    emitLine("ldx #>${value and 0xffff}")
+                    emitLine("lda  #<${value and 0xffff}")
+                    emitLine("ldx  #>${value and 0xffff}")
                 }
-                else -> emitLine("; RETURNI #$value ${type.name} (not implemented)")
+                else -> TODO("RETURNI #$value ${type.name}")
             }
             emitLine("rts")
         }
@@ -112,16 +112,16 @@ fun CodeGenerator.translateControl(insn: IRInstruction) {
             val type = insn.type ?: IRDataType.BYTE
             when (type) {
                 IRDataType.BYTE -> {
-                    emitLine("lda ${regAddrLo(reg)}")
+                    emitLine("lda  ${regAddrLo(reg)}")
                     emitLine("pha")
                 }
                 IRDataType.WORD -> {
-                    emitLine("lda ${regAddrHi(reg)}")
+                    emitLine("lda  ${regAddrHi(reg)}")
                     emitLine("pha")
-                    emitLine("lda ${regAddrLo(reg)}")
+                    emitLine("lda  ${regAddrLo(reg)}")
                     emitLine("pha")
                 }
-                else -> emitLine("; PUSH r$reg ${type.name} (not implemented)")
+                else -> TODO("PUSH r$reg ${type.name}")
             }
         }
 
@@ -131,15 +131,15 @@ fun CodeGenerator.translateControl(insn: IRInstruction) {
             when (type) {
                 IRDataType.BYTE -> {
                     emitLine("pla")
-                    emitLine("sta ${regAddrLo(reg)}")
+                    emitLine("sta  ${regAddrLo(reg)}")
                 }
                 IRDataType.WORD -> {
                     emitLine("pla")
-                    emitLine("sta ${regAddrLo(reg)}")
+                    emitLine("sta  ${regAddrLo(reg)}")
                     emitLine("pla")
-                    emitLine("sta ${regAddrHi(reg)}")
+                    emitLine("sta  ${regAddrHi(reg)}")
                 }
-                else -> emitLine("; POP r$reg ${type.name} (not implemented)")
+                else -> TODO("POP r$reg ${type.name}")
             }
         }
 
@@ -163,48 +163,40 @@ fun CodeGenerator.translateControl(insn: IRInstruction) {
 
         Opcode.LSIGB -> {
             val reg = r1 ?: error("LSIGB needs reg1")
-            emitLine("lda ${regAddrLo(reg)}")
-            emitLine("and #128")
-            emitLine("beq +")
-            emitLine("lda #255")
-            emitLine("jmp ++")
+            emitLine("lda  ${regAddrLo(reg)}")
+            emitLine("and  #128")
+            emitLine("beq  +")
+            emitLine("lda  #255")
+            emitLine("jmp  ++")
             emitLabel("+")              // first + label
-            emitLine("lda #0")
+            emitLine("lda  #0")
             emitLabel("+")              // second + label
-            emitLine("sta ${regAddrHi(reg)}")
+            emitLine("sta  ${regAddrHi(reg)}")
             emitStoreZero("${regAddrLo(reg) + 2}")
             emitStoreZero("${regAddrLo(reg) + 3}")
         }
 
         Opcode.LSIGW -> {
             val reg = r1 ?: error("LSIGW needs reg1")
-            emitLine("lda ${regAddrHi(reg)}")
-            emitLine("and #128")
-            emitLine("beq +")
-            emitLine("lda #255")
-            emitLine("jmp ++")
+            emitLine("lda  ${regAddrHi(reg)}")
+            emitLine("and  #128")
+            emitLine("beq  +")
+            emitLine("lda  #255")
+            emitLine("jmp  ++")
             emitLabel("+")              // first + label
-            emitLine("lda #0")
+            emitLine("lda  #0")
             emitLabel("+")              // second + label
             emitStoreZero("${regAddrLo(reg) + 2}")
             emitStoreZero("${regAddrLo(reg) + 3}")
         }
 
-        Opcode.MSIGB, Opcode.MSIGW -> {
-            emitLine("; ${insn.opcode} (not implemented)")
-        }
+        Opcode.MSIGB, Opcode.MSIGW -> TODO("${insn.opcode}")
 
-        Opcode.BSIGB -> {
-            emitLine("; BSIGB (not implemented)")
-        }
+        Opcode.BSIGB -> TODO("BSIGB")
 
-        Opcode.MIDB -> {
-            emitLine("; MIDB (not implemented)")
-        }
+        Opcode.MIDB -> TODO("MIDB")
 
-        Opcode.CONCAT -> {
-            emitLine("; CONCAT (not implemented)")
-        }
+        Opcode.CONCAT -> TODO("CONCAT")
 
         Opcode.EXT -> {
             val reg = r1 ?: error("EXT needs reg1")
@@ -213,41 +205,37 @@ fun CodeGenerator.translateControl(insn: IRInstruction) {
 
         Opcode.EXTS -> {
             val reg = r1 ?: error("EXTS needs reg1")
-            emitLine("lda ${regAddrLo(reg)}")
-            emitLine("and #128")
-            emitLine("beq +")
-            emitLine("lda #255")
-            emitLine("sta ${regAddrHi(reg)}")
-            emitLine("jmp ++")
+            emitLine("lda  ${regAddrLo(reg)}")
+            emitLine("and  #128")
+            emitLine("beq  +")
+            emitLine("lda  #255")
+            emitLine("sta  ${regAddrHi(reg)}")
+            emitLine("jmp  ++")
             emitLabel("+")
             emitStoreZero("${regAddrHi(reg)}")
             emitLabel("+")
         }
 
-        Opcode.SQRT -> emitLine("; SQRT (not implemented)")
-        Opcode.SQUARE -> emitLine("; SQUARE (not implemented)")
-        Opcode.SGN -> emitLine("; SGN (not implemented)")
+        Opcode.SQRT -> TODO("SQRT")
+        Opcode.SQUARE -> TODO("SQUARE")
+        Opcode.SGN -> TODO("SGN")
 
-        Opcode.FFROMUB, Opcode.FFROMSB, Opcode.FFROMUW, Opcode.FFROMSW, Opcode.FFROMSL -> {
-            emitLine("; ${insn.opcode} (float conversion, not implemented)")
-        }
+        Opcode.FFROMUB, Opcode.FFROMSB, Opcode.FFROMUW, Opcode.FFROMSW, Opcode.FFROMSL -> TODO("${insn.opcode} (float conversion)")
 
-        Opcode.FTOUB, Opcode.FTOSB, Opcode.FTOUW, Opcode.FTOSW, Opcode.FTOSL -> {
-            emitLine("; ${insn.opcode} (float conversion, not implemented)")
-        }
+        Opcode.FTOUB, Opcode.FTOSB, Opcode.FTOUW, Opcode.FTOSW, Opcode.FTOSL -> TODO("${insn.opcode} (float conversion)")
 
-        Opcode.FABS -> emitLine("; FABS (not implemented)")
-        Opcode.FSIN -> emitLine("; FSIN (not implemented)")
-        Opcode.FCOS -> emitLine("; FCOS (not implemented)")
-        Opcode.FTAN -> emitLine("; FTAN (not implemented)")
-        Opcode.FATAN -> emitLine("; FATAN (not implemented)")
-        Opcode.FPOW -> emitLine("; FPOW (not implemented)")
-        Opcode.FLN -> emitLine("; FLN (not implemented)")
-        Opcode.FLOG -> emitLine("; FLOG (not implemented)")
-        Opcode.FROUND -> emitLine("; FROUND (not implemented)")
-        Opcode.FFLOOR -> emitLine("; FFLOOR (not implemented)")
-        Opcode.FCEIL -> emitLine("; FCEIL (not implemented)")
-        Opcode.FCOMP -> emitLine("; FCOMP (not implemented)")
+        Opcode.FABS -> TODO("FABS")
+        Opcode.FSIN -> TODO("FSIN")
+        Opcode.FCOS -> TODO("FCOS")
+        Opcode.FTAN -> TODO("FTAN")
+        Opcode.FATAN -> TODO("FATAN")
+        Opcode.FPOW -> TODO("FPOW")
+        Opcode.FLN -> TODO("FLN")
+        Opcode.FLOG -> TODO("FLOG")
+        Opcode.FROUND -> TODO("FROUND")
+        Opcode.FFLOOR -> TODO("FFLOOR")
+        Opcode.FCEIL -> TODO("FCEIL")
+        Opcode.FCOMP -> TODO("FCOMP")
 
         else -> error("Unknown control opcode: ${insn.opcode}")
     }
@@ -258,11 +246,11 @@ fun CodeGenerator.translateControl(insn: IRInstruction) {
 private fun CodeGenerator.translateCall(fnLabel: String, args: FunctionCallArgs?) {
     if (args != null) {
         for (arg in args.arguments) {
-            translateArgument(arg)
+            translateArgument(arg, fnLabel)
         }
     }
 
-    emitLine("jsr $fnLabel")
+    emitLine("jsr  $fnLabel")
 
     if (args != null) {
         for (ret in args.returns) {
@@ -271,39 +259,94 @@ private fun CodeGenerator.translateCall(fnLabel: String, args: FunctionCallArgs?
     }
 }
 
-private fun CodeGenerator.translateArgument(arg: FunctionCallArgs.ArgumentSpec) {
+private fun CodeGenerator.translateArgument(arg: FunctionCallArgs.ArgumentSpec, fnLabel: String? = null) {
     val regSpec = arg.reg
     val slot = regSpec.callingConventionSlot
     val regNum = regSpec.registerNum.value
 
     when (slot?.value) {
         0 -> {
-            emitLine("lda ${regAddrLo(regNum)}", "arg to s0 (A)")
+            emitLine("lda  ${regAddrLo(regNum)}")
         }
         1 -> {
-            emitLine("ldx ${regAddrLo(regNum)}", "arg to s1 (X)")
+            emitLine("ldx  ${regAddrLo(regNum)}")
         }
         2 -> {
-            emitLine("ldy ${regAddrLo(regNum)}", "arg to s2 (Y)")
+            emitLine("ldy  ${regAddrLo(regNum)}")
         }
         3 -> {
-            emitLine("lda ${regAddrLo(regNum)}", "arg to s3 (AX)")
-            emitLine("ldx ${regAddrHi(regNum)}")
+            emitLine("lda  ${regAddrLo(regNum)}")
+            emitLine("ldx  ${regAddrHi(regNum)}")
         }
         4 -> {
-            emitLine("lda ${regAddrLo(regNum)}", "arg to s4 (AY)")
-            emitLine("ldy ${regAddrHi(regNum)}")
+            emitLine("lda  ${regAddrLo(regNum)}")
+            emitLine("ldy  ${regAddrHi(regNum)}")
         }
         5 -> {
-            emitLine("ldx ${regAddrLo(regNum)}", "arg to s5 (XY)")
-            emitLine("ldy ${regAddrHi(regNum)}")
+            emitLine("ldx  ${regAddrLo(regNum)}")
+            emitLine("ldy  ${regAddrHi(regNum)}")
         }
         null -> {
             val address = arg.address
             if (address != null) {
-                emitLine("; arg passed via address $address")
+                when (regSpec.dt) {
+                    IRDataType.BYTE -> {
+                        emitLine("lda  ${regAddrLo(regNum)}")
+                        emitLine("sta  ${address.toHex()}")
+                    }
+                    IRDataType.WORD -> {
+                        emitLine("lda  ${regAddrLo(regNum)}")
+                        emitLine("sta  ${address.toHex()}")
+                        emitLine("lda  ${regAddrHi(regNum)}")
+                        emitLine("sta  ${address.toHex()}+1")
+                    }
+                    IRDataType.LONG -> {
+                        emitLine("lda  ${regAddrLo(regNum)}")
+                        emitLine("sta  ${address.toHex()}")
+                        emitLine("lda  ${regAddrHi(regNum)}")
+                        emitLine("sta  ${address.toHex()}+1")
+                        emitLine("lda  ${regAddrLo(regNum) + 2}")
+                        emitLine("sta  ${address.toHex()}+2")
+                        emitLine("lda  ${regAddrLo(regNum) + 3}")
+                        emitLine("sta  ${address.toHex()}+3")
+                    }
+                    IRDataType.FLOAT -> {
+                        TODO("FLOAT arg to address $address")
+                    }
+                }
             } else {
-                emitLine("; arg passed via register $regNum (slot not set)")
+                val name = arg.name
+                if (name.isNotEmpty()) {
+                    val fullName = if (fnLabel != null) "$fnLabel.$name" else name
+                    val label = resolveSymbolRef(fullName)
+                    when (regSpec.dt) {
+                        IRDataType.BYTE -> {
+                            emitLine("lda  ${regAddrLo(regNum)}")
+                            emitLine("sta  $label")
+                        }
+                        IRDataType.WORD -> {
+                            emitLine("lda  ${regAddrLo(regNum)}")
+                            emitLine("sta  $label")
+                            emitLine("lda  ${regAddrHi(regNum)}")
+                            emitLine("sta  ${label}+1")
+                        }
+                        IRDataType.LONG -> {
+                            emitLine("lda  ${regAddrLo(regNum)}")
+                            emitLine("sta  $label")
+                            emitLine("lda  ${regAddrHi(regNum)}")
+                            emitLine("sta  ${label}+1")
+                            emitLine("lda  ${regAddrLo(regNum) + 2}")
+                            emitLine("sta  ${label}+2")
+                            emitLine("lda  ${regAddrLo(regNum) + 3}")
+                            emitLine("sta  ${label}+3")
+                        }
+                        IRDataType.FLOAT -> {
+                            TODO("FLOAT arg to $label")
+                        }
+                    }
+                } else {
+                    TODO("arg r$regNum - no slot, address, or name")
+                }
             }
         }
     }
@@ -315,56 +358,56 @@ private fun CodeGenerator.translateReturnValue(ret: FunctionCallArgs.RegSpec) {
 
     when (slot?.value) {
         0 -> {
-            emitLine("sta ${regAddrLo(regNum)}", "return from s0 (A) -> r$regNum")
+            emitLine("sta  ${regAddrLo(regNum)}")
         }
         1 -> {
-            emitLine("stx ${regAddrLo(regNum)}", "return from s1 (X) -> r$regNum")
+            emitLine("stx  ${regAddrLo(regNum)}")
         }
         2 -> {
-            emitLine("sty ${regAddrLo(regNum)}", "return from s2 (Y) -> r$regNum")
+            emitLine("sty  ${regAddrLo(regNum)}")
         }
         3 -> {
-            emitLine("sta ${regAddrLo(regNum)}", "return from s3 (AX) -> r$regNum")
-            emitLine("stx ${regAddrHi(regNum)}")
+            emitLine("sta  ${regAddrLo(regNum)}")
+            emitLine("stx  ${regAddrHi(regNum)}")
         }
         4 -> {
-            emitLine("sta ${regAddrLo(regNum)}", "return from s4 (AY) -> r$regNum")
-            emitLine("sty ${regAddrHi(regNum)}")
+            emitLine("sta  ${regAddrLo(regNum)}")
+            emitLine("sty  ${regAddrHi(regNum)}")
         }
         5 -> {
-            emitLine("stx ${regAddrLo(regNum)}", "return from s5 (XY) -> r$regNum")
-            emitLine("sty ${regAddrHi(regNum)}")
+            emitLine("stx  ${regAddrLo(regNum)}")
+            emitLine("sty  ${regAddrHi(regNum)}")
         }
         null -> {
             val flag = ret.statusflag
             if (flag != null) {
                 when (flag) {
                     Statusflag.Pc -> {
-                        emitLine("lda #0")
-                        emitLine("rol a", "carry flag -> bit 0")
-                        emitLine("and #1")
-                        emitLine("sta ${regAddrLo(regNum)}")
+                        emitLine("lda  #0")
+                        emitLine("rol  a")
+                        emitLine("and  #1")
+                        emitLine("sta  ${regAddrLo(regNum)}")
                         emitStoreZero("${regAddrHi(regNum)}")
                     }
                     Statusflag.Pz -> {
-                        emitLine("lda #0")
-                        emitLine("rol a", "zero flag -> bit 0")
-                        emitLine("and #1")
-                        emitLine("sta ${regAddrLo(regNum)}")
+                        emitLine("lda  #0")
+                        emitLine("rol  a")
+                        emitLine("and  #1")
+                        emitLine("sta  ${regAddrLo(regNum)}")
                         emitStoreZero("${regAddrHi(regNum)}")
                     }
                     Statusflag.Pv -> {
-                        emitLine("lda #0")
-                        emitLine("rol a", "overflow flag -> bit 0")
-                        emitLine("and #1")
-                        emitLine("sta ${regAddrLo(regNum)}")
+                        emitLine("lda  #0")
+                        emitLine("rol  a")
+                        emitLine("and  #1")
+                        emitLine("sta  ${regAddrLo(regNum)}")
                         emitStoreZero("${regAddrHi(regNum)}")
                     }
                     Statusflag.Pn -> {
-                        emitLine("lda #0")
-                        emitLine("rol a", "negative flag -> bit 0")
-                        emitLine("and #1")
-                        emitLine("sta ${regAddrLo(regNum)}")
+                        emitLine("lda  #0")
+                        emitLine("rol  a")
+                        emitLine("and  #1")
+                        emitLine("sta  ${regAddrLo(regNum)}")
                         emitStoreZero("${regAddrHi(regNum)}")
                     }
                 }
@@ -384,7 +427,7 @@ private fun CodeGenerator.translateSyscall(args: FunctionCallArgs?) {
             translateArgument(arg)
         }
     }
-    emitLine("jsr p8_syscall_handler")
+    emitLine("jsr  p8_syscall_handler")
     if (args != null) {
         for (ret in args.returns) {
             translateReturnValue(ret)
