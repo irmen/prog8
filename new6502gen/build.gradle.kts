@@ -33,6 +33,7 @@ repositories {
 dependencies {
     implementation(project(":codeCore"))
     implementation(project(":intermediate"))
+    implementation("com.michael-bull.kotlin-result:kotlin-result-jvm:2.3.1")
     implementation("org.jetbrains.kotlinx:kotlinx-cli:0.3.6")
 
     // Test dependencies - Kotest BOM is provided by root build.gradle.kts

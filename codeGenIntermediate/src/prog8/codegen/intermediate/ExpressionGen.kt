@@ -1014,7 +1014,16 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     val paramDt = irType(parameter.type)
                     val tr = translateExpression(arg)
                     val (slot, flag) = registerOrStatusflagToSlotAndFlag(parameter.register)
-                    val argName = if(slot==null && flag==null) parameter.name else ""
+                    val argName = if(slot==null && flag==null) {
+                        val reg = parameter.register.registerOrPair
+                        if(reg != null && reg in Cx16VirtualRegisters) {
+                            // CX16 virtual register parameter - use the cx16 symbol name
+                            // so the codegen can resolve it to the correct address
+                            "cx16.${reg.toString().lowercase()}"
+                        } else {
+                            parameter.name
+                        }
+                    } else ""
                     if(paramDt==IRDataType.FLOAT)
                         argRegisters.add(FunctionCallArgs.ArgumentSpec(argName, null, FunctionCallArgs.RegSpec(IRDataType.FLOAT, RegisterNum(tr.resultFpReg), slot, flag)))
                     else

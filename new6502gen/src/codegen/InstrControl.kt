@@ -4,7 +4,8 @@
  * Handles: JUMP, JUMPI, CALL, CALLI, CALLFAR, CALLFARVB, SYSCALL,
  * RETURN, RETURNR, RETURNI, PUSH, POP, PUSHST, POPST,
  * CLC, SEC, CLI, SEI, ALIGN,
- * sign extension (LSIGB, LSIGW, EXT, EXTS),
+ * byte/word extraction (LSIGB, LSIGW, MSIGB, MSIGW, BSIGB, MIDB),
+ * sign extension (EXT, EXTS),
  * and stubs for float math and conversions.
  *
  * CALL instruction translation:
@@ -202,57 +203,118 @@ fun CodeGenerator.translateControl(insn: IRInstruction) {
         }
 
         Opcode.LSIGB -> {
-            val reg = r1 ?: error("LSIGB needs reg1")
-            emitLine("lda  ${regAddrLo(reg)}")
-            emitLine("and  #128")
-            emitLine("beq  +")
-            emitLine("lda  #255")
-            emitLine("jmp  ++")
-            emitLabel("+")              // first + label
-            emitLine("lda  #0")
-            emitLabel("+")              // second + label
-            emitLine("sta  ${regAddrHi(reg)}")
-            emitStoreZero("${regAddrByte(reg, 2)}")
-            emitStoreZero("${regAddrByte(reg, 3)}")
+            val dest = r1 ?: error("LSIGB needs reg1")
+            val src = r2 ?: error("LSIGB needs reg2")
+            emitLine("lda  ${regAddrLo(src)}")
+            emitLine("sta  ${regAddrLo(dest)}")
         }
 
         Opcode.LSIGW -> {
-            val reg = r1 ?: error("LSIGW needs reg1")
-            emitLine("lda  ${regAddrHi(reg)}")
-            emitLine("and  #128")
-            emitLine("beq  +")
-            emitLine("lda  #255")
-            emitLine("jmp  ++")
-            emitLabel("+")              // first + label
-            emitLine("lda  #0")
-            emitLabel("+")              // second + label
-            emitStoreZero("${regAddrByte(reg, 2)}")
-            emitStoreZero("${regAddrByte(reg, 3)}")
+            val dest = r1 ?: error("LSIGW needs reg1")
+            val src = r2 ?: error("LSIGW needs reg2")
+            emitLine("lda  ${regAddrLo(src)}")
+            emitLine("sta  ${regAddrLo(dest)}")
+            emitLine("lda  ${regAddrHi(src)}")
+            emitLine("sta  ${regAddrHi(dest)}")
         }
 
-        Opcode.MSIGB, Opcode.MSIGW -> TODO("${insn.opcode}")
+        Opcode.MSIGB -> {
+            val dest = r1 ?: error("MSIGB needs reg1")
+            val src = r2 ?: error("MSIGB needs reg2")
+            val type = insn.type ?: IRDataType.WORD
+            when (type) {
+                IRDataType.WORD -> {
+                    emitLine("lda  ${regAddrHi(src)}")
+                    emitLine("sta  ${regAddrLo(dest)}")
+                }
+                IRDataType.LONG -> {
+                    emitLine("lda  ${regAddrByte(src, 3)}")
+                    emitLine("sta  ${regAddrLo(dest)}")
+                }
+                else -> TODO("MSIGB ${type.name}")
+            }
+        }
 
-        Opcode.BSIGB -> TODO("BSIGB")
+        Opcode.MSIGW -> {
+            val dest = r1 ?: error("MSIGW needs reg1")
+            val src = r2 ?: error("MSIGW needs reg2")
+            emitLine("lda  ${regAddrByte(src, 2)}")
+            emitLine("sta  ${regAddrLo(dest)}")
+            emitLine("lda  ${regAddrByte(src, 3)}")
+            emitLine("sta  ${regAddrHi(dest)}")
+        }
 
-        Opcode.MIDB -> TODO("MIDB")
+        Opcode.BSIGB -> {
+            val dest = r1 ?: error("BSIGB needs reg1")
+            val src = r2 ?: error("BSIGB needs reg2")
+            emitLine("lda  ${regAddrByte(src, 2)}")
+            emitLine("sta  ${regAddrLo(dest)}")
+        }
 
-        Opcode.CONCAT -> TODO("CONCAT")
+        Opcode.MIDB -> {
+            val dest = r1 ?: error("MIDB needs reg1")
+            val src = r2 ?: error("MIDB needs reg2")
+            emitLine("lda  ${regAddrHi(src)}")
+            emitLine("sta  ${regAddrLo(dest)}")
+        }
+
+        Opcode.CONCAT -> {
+            val type = insn.type ?: IRDataType.BYTE
+            val r1 = r1 ?: error("CONCAT needs reg1")
+            val r2 = r2 ?: error("CONCAT needs reg2")
+            val r3 = insn.reg3 ?: error("CONCAT needs reg3")
+            when (type) {
+                IRDataType.BYTE -> {
+                    // r1 = WORD(r2 as MSB, r3 as LSB)
+                    emitLine("lda  ${regAddrLo(r2)}")
+                    emitLine("sta  ${regAddrHi(r1)}")
+                    emitLine("lda  ${regAddrLo(r3)}")
+                    emitLine("sta  ${regAddrLo(r1)}")
+                }
+                IRDataType.WORD -> {
+                    // r1 = LONG(r2 as MSW, r3 as LSW)
+                    // Save r2 (msw) first in case r1 overlaps with r2 or r2==r3
+                    emitLine("lda  ${regAddrLo(r2)}")
+                    emitLine("sta  $ZP_TEMP")
+                    emitLine("lda  ${regAddrHi(r2)}")
+                    emitLine("sta  ${ZP_TEMP}+1")
+                    // Copy r3 (lsw) to r1+0, r1+1
+                    emitLine("lda  ${regAddrLo(r3)}")
+                    emitLine("sta  ${regAddrLo(r1)}")
+                    emitLine("lda  ${regAddrHi(r3)}")
+                    emitLine("sta  ${regAddrHi(r1)}")
+                    // Copy saved msw to r1+2, r1+3
+                    emitLine("lda  $ZP_TEMP")
+                    emitLine("sta  ${regAddrByte(r1, 2)}")
+                    emitLine("lda  ${ZP_TEMP}+1")
+                    emitLine("sta  ${regAddrByte(r1, 3)}")
+                }
+                else -> TODO("CONCAT ${type.name}")
+            }
+        }
 
         Opcode.EXT -> {
             val reg = r1 ?: error("EXT needs reg1")
+            val srcReg = r2 ?: error("EXT needs reg2")
+            if (reg != srcReg) {
+                emitLine("lda  ${regAddrLo(srcReg)}")
+                emitLine("sta  ${regAddrLo(reg)}")
+            }
             emitStoreZero("${regAddrHi(reg)}", "zero extend r$reg")
         }
 
         Opcode.EXTS -> {
-            val reg = r1 ?: error("EXTS needs reg1")
-            emitLine("lda  ${regAddrLo(reg)}")
+            val dest = r1 ?: error("EXTS needs reg1")
+            val src = r2 ?: error("EXTS needs reg2")
+            emitLine("lda  ${regAddrLo(src)}")
+            emitLine("sta  ${regAddrLo(dest)}")
             emitLine("and  #128")
             emitLine("beq  +")
             emitLine("lda  #255")
-            emitLine("sta  ${regAddrHi(reg)}")
+            emitLine("sta  ${regAddrHi(dest)}")
             emitLine("jmp  ++")
             emitLabel("+")
-            emitStoreZero("${regAddrHi(reg)}")
+            emitStoreZero("${regAddrHi(dest)}")
             emitLabel("+")
         }
 
@@ -285,8 +347,15 @@ fun CodeGenerator.translateControl(insn: IRInstruction) {
 
 private fun CodeGenerator.translateCall(fnLabel: String, args: FunctionCallArgs?) {
     if (args != null) {
-        for (arg in args.arguments) {
-            translateArgument(arg, fnLabel)
+        // Process non-slot arguments first (they use A as temp to store to memory/registers)
+        for ((index, arg) in args.arguments.withIndex()) {
+            if (arg.reg.callingConventionSlot == null)
+                translateArgument(arg, index, fnLabel)
+        }
+        // Process slot arguments last (so A/X/Y values survive to the JSR)
+        for ((index, arg) in args.arguments.withIndex()) {
+            if (arg.reg.callingConventionSlot != null)
+                translateArgument(arg, index, fnLabel)
         }
     }
 
@@ -299,7 +368,7 @@ private fun CodeGenerator.translateCall(fnLabel: String, args: FunctionCallArgs?
     }
 }
 
-private fun CodeGenerator.translateArgument(arg: FunctionCallArgs.ArgumentSpec, fnLabel: String? = null) {
+private fun CodeGenerator.translateArgument(arg: FunctionCallArgs.ArgumentSpec, argIndex: Int = -1, fnLabel: String? = null) {
     val regSpec = arg.reg
     val slot = regSpec.callingConventionSlot
     val regNum = regSpec.registerNum.value
@@ -327,6 +396,22 @@ private fun CodeGenerator.translateArgument(arg: FunctionCallArgs.ArgumentSpec, 
             emitLine("ldy  ${regAddrHi(regNum)}")
         }
         null -> {
+            val flag = regSpec.statusflag
+            if (flag != null) {
+                // Status flag argument - load value and set the appropriate flag
+                when (flag) {
+                    Statusflag.Pc -> {
+                        emitLine("lda  ${regAddrLo(regNum)}")
+                        emitLine("cmp  #0")
+                        emitLine("beq  +")
+                        emitLine("sec")
+                        emitLabel("+")
+                    }
+                    Statusflag.Pv -> TODO("status flag Pv for argument")
+                    else -> TODO("status flag $flag")
+                }
+                return
+            }
             val address = arg.address
             if (address != null) {
                 when (regSpec.dt) {
@@ -357,31 +442,101 @@ private fun CodeGenerator.translateArgument(arg: FunctionCallArgs.ArgumentSpec, 
             } else {
                 val name = arg.name
                 if (name.isNotEmpty()) {
-                    val fullName = if (fnLabel != null) "$fnLabel.$name" else name
-                    val label = resolveSymbolRef(fullName)
-                    when (regSpec.dt) {
-                        IRDataType.BYTE -> {
-                            emitLine("lda  ${regAddrLo(regNum)}")
-                            emitLine("sta  $label")
+                    // Check if this argument maps to an asmsub's cx16 virtual register parameter
+                    val asmTarget = if (fnLabel != null && argIndex >= 0)
+                        this.asmSubParamTarget(fnLabel, argIndex) else null
+                    if (asmTarget != null) {
+                        when (regSpec.dt) {
+                            IRDataType.BYTE -> {
+                                emitLine("lda  ${regAddrLo(regNum)}")
+                                emitLine("sta  $asmTarget")
+                            }
+                            IRDataType.WORD -> {
+                                emitLine("lda  ${regAddrLo(regNum)}")
+                                emitLine("sta  $asmTarget")
+                                emitLine("lda  ${regAddrHi(regNum)}")
+                                emitLine("sta  ${asmTarget}+1")
+                            }
+                            IRDataType.LONG -> {
+                                emitLine("lda  ${regAddrLo(regNum)}")
+                                emitLine("sta  $asmTarget")
+                                emitLine("lda  ${regAddrHi(regNum)}")
+                                emitLine("sta  ${asmTarget}+1")
+                                emitLine("lda  ${regAddrByte(regNum, 2)}")
+                                emitLine("sta  ${asmTarget}+2")
+                                emitLine("lda  ${regAddrByte(regNum, 3)}")
+                                emitLine("sta  ${asmTarget}+3")
+                            }
+                            IRDataType.FLOAT -> {
+                                TODO("FLOAT arg to $asmTarget")
+                            }
                         }
-                        IRDataType.WORD -> {
-                            emitLine("lda  ${regAddrLo(regNum)}")
-                            emitLine("sta  $label")
-                            emitLine("lda  ${regAddrHi(regNum)}")
-                            emitLine("sta  ${label}+1")
+                    } else if (name == "x") {
+                        // X register parameter for extsub calls
+                        when (regSpec.dt) {
+                            IRDataType.BYTE -> {
+                                emitLine("ldx  ${regAddrLo(regNum)}")
+                            }
+                            IRDataType.WORD -> {
+                                emitLine("ldx  ${regAddrLo(regNum)}")
+                                // high byte ignored for single register
+                            }
+                            else -> TODO("LONG/FLOAT X register arg")
                         }
-                        IRDataType.LONG -> {
-                            emitLine("lda  ${regAddrLo(regNum)}")
-                            emitLine("sta  $label")
-                            emitLine("lda  ${regAddrHi(regNum)}")
-                            emitLine("sta  ${label}+1")
-                        emitLine("lda  ${regAddrByte(regNum, 2)}")
-                        emitLine("sta  ${label}+2")
-                        emitLine("lda  ${regAddrByte(regNum, 3)}")
-                        emitLine("sta  ${label}+3")
+                    } else if (name == "y") {
+                        // Y register parameter for extsub calls
+                        when (regSpec.dt) {
+                            IRDataType.BYTE -> {
+                                emitLine("ldy  ${regAddrLo(regNum)}")
+                            }
+                            IRDataType.WORD -> {
+                                emitLine("ldy  ${regAddrLo(regNum)}")
+                            }
+                            else -> TODO("LONG/FLOAT Y register arg")
                         }
-                        IRDataType.FLOAT -> {
-                            TODO("FLOAT arg to $label")
+                    } else if (name == "a") {
+                        // A register parameter for extsub calls
+                        when (regSpec.dt) {
+                            IRDataType.BYTE -> {
+                                emitLine("lda  ${regAddrLo(regNum)}")
+                            }
+                            IRDataType.WORD -> {
+                                emitLine("lda  ${regAddrLo(regNum)}")
+                            }
+                            else -> TODO("LONG/FLOAT A register arg")
+                        }
+                    } else {
+                        // Named parameter - store to the resolved symbol
+                        // CX16 virtual register names (cx16.r0, etc.) are used directly
+                        // as the target; other named params are resolved relative to the function label.
+                        val target = if (name.startsWith("cx16."))
+                            resolveSymbolRef(name)
+                        else
+                            resolveSymbolRef(if (fnLabel != null) "$fnLabel.$name" else name)
+                        when (regSpec.dt) {
+                            IRDataType.BYTE -> {
+                                emitLine("lda  ${regAddrLo(regNum)}")
+                                emitLine("sta  $target")
+                            }
+                            IRDataType.WORD -> {
+                                emitLine("lda  ${regAddrLo(regNum)}")
+                                emitLine("sta  $target")
+                                emitLine("lda  ${regAddrHi(regNum)}")
+                                emitLine("sta  ${target}+1")
+                            }
+                            IRDataType.LONG -> {
+                                emitLine("lda  ${regAddrLo(regNum)}")
+                                emitLine("sta  $target")
+                                emitLine("lda  ${regAddrHi(regNum)}")
+                                emitLine("sta  ${target}+1")
+                                emitLine("lda  ${regAddrByte(regNum, 2)}")
+                                emitLine("sta  ${target}+2")
+                                emitLine("lda  ${regAddrByte(regNum, 3)}")
+                                emitLine("sta  ${target}+3")
+                            }
+                            IRDataType.FLOAT -> {
+                                TODO("FLOAT arg to $target")
+                            }
                         }
                     }
                 } else {
@@ -421,36 +576,20 @@ private fun CodeGenerator.translateReturnValue(ret: FunctionCallArgs.RegSpec) {
         null -> {
             val flag = ret.statusflag
             if (flag != null) {
-                when (flag) {
-                    Statusflag.Pc -> {
-                        emitLine("lda  #0")
-                        emitLine("rol  a")
-                        emitLine("and  #1")
-                        emitLine("sta  ${regAddrLo(regNum)}")
-                        emitStoreZero("${regAddrHi(regNum)}")
-                    }
-                    Statusflag.Pz -> {
-                        emitLine("lda  #0")
-                        emitLine("rol  a")
-                        emitLine("and  #1")
-                        emitLine("sta  ${regAddrLo(regNum)}")
-                        emitStoreZero("${regAddrHi(regNum)}")
-                    }
-                    Statusflag.Pv -> {
-                        emitLine("lda  #0")
-                        emitLine("rol  a")
-                        emitLine("and  #1")
-                        emitLine("sta  ${regAddrLo(regNum)}")
-                        emitStoreZero("${regAddrHi(regNum)}")
-                    }
-                    Statusflag.Pn -> {
-                        emitLine("lda  #0")
-                        emitLine("rol  a")
-                        emitLine("and  #1")
-                        emitLine("sta  ${regAddrLo(regNum)}")
-                        emitStoreZero("${regAddrHi(regNum)}")
-                    }
+                val mask = when (flag) {
+                    Statusflag.Pc -> 1
+                    Statusflag.Pz -> 2
+                    Statusflag.Pv -> 64
+                    Statusflag.Pn -> 128
                 }
+                emitLine("php")
+                emitLine("pla")
+                emitLine("and  #$mask")
+                emitLine("beq  +")
+                emitLine("lda  #1")
+                emitLabel("+")
+                emitLine("sta  ${regAddrLo(regNum)}")
+                emitStoreZero("${regAddrHi(regNum)}")
             } else if (regNum >= 0) {
                 when (ret.dt) {
                     IRDataType.BYTE -> {

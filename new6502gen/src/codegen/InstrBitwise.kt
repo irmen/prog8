@@ -90,11 +90,11 @@ fun CodeGenerator.translateBitwise(insn: IRInstruction) {
 
         // Shift by 1 (ASR/LSR/LSL: single-bit shift, no count operand)
         Opcode.ASR -> arithmeticShiftRight(r1 ?: error("ASR needs reg1"), 1, type)
-        Opcode.ASRM -> TODO("ASRM")
+        Opcode.ASRM -> arithmeticShiftRightMemory(resolveAddress(addr, label, offset), 1, type)
         Opcode.LSR -> logicalShiftRight(r1 ?: error("LSR needs reg1"), 1, type)
-        Opcode.LSRM -> TODO("LSRM")
+        Opcode.LSRM -> logicalShiftRightMemory(resolveAddress(addr, label, offset), 1, type)
         Opcode.LSL -> logicalShiftLeft(r1 ?: error("LSL needs reg1"), 1, type)
-        Opcode.LSLM -> TODO("LSLM")
+        Opcode.LSLM -> logicalShiftLeftMemory(resolveAddress(addr, label, offset), 1, type)
 
         Opcode.ROR -> rotateRight(r1 ?: error("ROR needs reg1"), type)
         Opcode.RORM -> rotateRightMemory(resolveAddress(addr, label, offset), type)
@@ -157,7 +157,7 @@ private fun CodeGenerator.andRegisters(dst: Int, src: Int, type: IRDataType) {
             emitLine("and  ${regAddrByte(src, 3)}")
             emitLine("sta  ${regAddrByte(dst, 3)}")
         }
-        IRDataType.FLOAT -> TODO("FLOAT ANDR r$dst, r$src")
+        IRDataType.FLOAT -> error("bitwise operations are not supported on floats")
     }
 }
 
@@ -177,37 +177,37 @@ private fun CodeGenerator.andImmediate(dst: Int, value: Int, type: IRDataType) {
             emitLine("sta  ${regAddrHi(dst)}")
         }
         IRDataType.LONG -> {
-            emitLine("lda  ${regAddrLo(dst)}")
-            emitLine("and  #<${value and 0xffff}")
-            emitLine("sta  ${regAddrLo(dst)}")
-            emitLine("lda  ${regAddrHi(dst)}")
-            emitLine("and  #>${value and 0xffff}")
-            emitLine("sta  ${regAddrHi(dst)}")
+            emitLine("lda  ${regAddrByte(dst, 0)}")
+            emitLine("and  #${value and 0xff}")
+            emitLine("sta  ${regAddrByte(dst, 0)}")
+            emitLine("lda  ${regAddrByte(dst, 1)}")
+            emitLine("and  #${(value shr 8) and 0xff}")
+            emitLine("sta  ${regAddrByte(dst, 1)}")
             emitLine("lda  ${regAddrByte(dst, 2)}")
-            emitLine("and  #${(value ushr 16) and 0xff}")
+            emitLine("and  #${(value shr 16) and 0xff}")
             emitLine("sta  ${regAddrByte(dst, 2)}")
             emitLine("lda  ${regAddrByte(dst, 3)}")
-            emitLine("and  #${(value ushr 24) and 0xff}")
+            emitLine("and  #${(value shr 24) and 0xff}")
             emitLine("sta  ${regAddrByte(dst, 3)}")
         }
-        IRDataType.FLOAT -> TODO("FLOAT AND r$dst #$value")
+        IRDataType.FLOAT -> error("bitwise operations are not supported on floats")
     }
 }
 
 private fun CodeGenerator.andMemory(dst: Int, source: String, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
-            emitLine("lda  ${regAddrLo(dst)}")
-            emitLine("and  $source")
-            emitLine("sta  ${regAddrLo(dst)}")
+            emitLine("lda  $source")
+            emitLine("and  ${regAddrLo(dst)}")
+            emitLine("sta  $source")
         }
         IRDataType.WORD -> {
-            emitLine("lda  ${regAddrLo(dst)}")
-            emitLine("and  $source")
-            emitLine("sta  ${regAddrLo(dst)}")
-            emitLine("lda  ${regAddrHi(dst)}")
-            emitLine("and  $source+1")
-            emitLine("sta  ${regAddrHi(dst)}")
+            emitLine("lda  $source")
+            emitLine("and  ${regAddrLo(dst)}")
+            emitLine("sta  $source")
+            emitLine("lda  $source+1")
+            emitLine("and  ${regAddrHi(dst)}")
+            emitLine("sta  $source+1")
         }
         else -> TODO("ANDM r$dst, $source ${type.name}")
     }
@@ -256,17 +256,17 @@ private fun CodeGenerator.orImmediate(dst: Int, value: Int, type: IRDataType) {
 private fun CodeGenerator.orMemory(dst: Int, source: String, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
-            emitLine("lda  ${regAddrLo(dst)}")
-            emitLine("ora  $source")
-            emitLine("sta  ${regAddrLo(dst)}")
+            emitLine("lda  $source")
+            emitLine("ora  ${regAddrLo(dst)}")
+            emitLine("sta  $source")
         }
         IRDataType.WORD -> {
-            emitLine("lda  ${regAddrLo(dst)}")
-            emitLine("ora  $source")
-            emitLine("sta  ${regAddrLo(dst)}")
-            emitLine("lda  ${regAddrHi(dst)}")
-            emitLine("ora  $source+1")
-            emitLine("sta  ${regAddrHi(dst)}")
+            emitLine("lda  $source")
+            emitLine("ora  ${regAddrLo(dst)}")
+            emitLine("sta  $source")
+            emitLine("lda  $source+1")
+            emitLine("ora  ${regAddrHi(dst)}")
+            emitLine("sta  $source+1")
         }
         else -> TODO("ORM r$dst, $source ${type.name}")
     }
@@ -315,17 +315,17 @@ private fun CodeGenerator.xorImmediate(dst: Int, value: Int, type: IRDataType) {
 private fun CodeGenerator.xorMemory(dst: Int, source: String, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
-            emitLine("lda  ${regAddrLo(dst)}")
-            emitLine("eor  $source")
-            emitLine("sta  ${regAddrLo(dst)}")
+            emitLine("lda  $source")
+            emitLine("eor  ${regAddrLo(dst)}")
+            emitLine("sta  $source")
         }
         IRDataType.WORD -> {
-            emitLine("lda  ${regAddrLo(dst)}")
-            emitLine("eor  $source")
-            emitLine("sta  ${regAddrLo(dst)}")
-            emitLine("lda  ${regAddrHi(dst)}")
-            emitLine("eor  $source+1")
-            emitLine("sta  ${regAddrHi(dst)}")
+            emitLine("lda  $source")
+            emitLine("eor  ${regAddrLo(dst)}")
+            emitLine("sta  $source")
+            emitLine("lda  $source+1")
+            emitLine("eor  ${regAddrHi(dst)}")
+            emitLine("sta  $source+1")
         }
         else -> TODO("XORM r$dst, $source ${type.name}")
     }
@@ -389,7 +389,7 @@ private fun CodeGenerator.logicalShiftLeft(reg: Int, count: Int, type: IRDataTyp
                 emitLine("rol  ${regAddrByte(reg, 2)}")
                 emitLine("rol  ${regAddrByte(reg, 3)}")
             }
-            IRDataType.FLOAT -> TODO("FLOAT LSLN r$reg, $count")
+            IRDataType.FLOAT -> error("bitwise operations are not supported on floats")
         }
     }
 }
@@ -423,7 +423,7 @@ private fun CodeGenerator.logicalShiftRight(reg: Int, count: Int, type: IRDataTy
                 emitLine("ror  ${regAddrHi(reg)}")
                 emitLine("ror  ${regAddrLo(reg)}")
             }
-            IRDataType.FLOAT -> TODO("FLOAT LSRN r$reg, $count")
+            IRDataType.FLOAT -> error("bitwise operations are not supported on floats")
         }
     }
 }
@@ -461,7 +461,22 @@ private fun CodeGenerator.arithmeticShiftRight(reg: Int, count: Int, type: IRDat
 }
 
 private fun CodeGenerator.arithmeticShiftRightMemory(target: String, count: Int, type: IRDataType) {
-    TODO("ASRNM $target, $count")
+    for (i in 1..count) {
+        when (type) {
+            IRDataType.BYTE -> {
+                emitLine("lda  $target")
+                emitLine("cmp  #128")
+                emitLine("ror  $target")
+            }
+            IRDataType.WORD -> {
+                emitLine("lda  $target+1")
+                emitLine("cmp  #128")
+                emitLine("ror  $target+1")
+                emitLine("ror  $target")
+            }
+            else -> TODO("ASRNM $target, $count ${type.name}")
+        }
+    }
 }
 
 private fun CodeGenerator.logicalShiftLeftVar(reg: Int, countReg: Int, type: IRDataType) {

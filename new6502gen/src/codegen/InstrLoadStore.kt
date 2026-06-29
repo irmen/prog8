@@ -493,58 +493,30 @@ private fun CodeGenerator.zeroIndexed(baseReg: Int, offset: Int, type: IRDataTyp
     when (type) {
         IRDataType.BYTE -> {
             emitLine("ldy  #0")
-            if (is65C02())
-                emitLine("stz  ($ptr),y")
-            else {
-                emitLine("lda  #0")
-                emitLine("sta  ($ptr),y")
-            }
+            emitLine("lda  #0")
+            emitLine("sta  ($ptr),y")
         }
         IRDataType.WORD -> {
             emitLine("ldy  #0")
-            if (is65C02())
-                emitLine("stz  ($ptr),y")
-            else {
-                emitLine("lda  #0")
-                emitLine("sta  ($ptr),y")
-            }
+            emitLine("lda  #0")
+            emitLine("sta  ($ptr),y")
             emitLine("ldy  #1")
-            if (is65C02())
-                emitLine("stz  ($ptr),y")
-            else {
-                emitLine("lda  #0")
-                emitLine("sta  ($ptr),y")
-            }
+            emitLine("lda  #0")
+            emitLine("sta  ($ptr),y")
         }
         IRDataType.LONG -> {
             emitLine("ldy  #0")
-            if (is65C02())
-                emitLine("stz  ($ptr),y")
-            else {
-                emitLine("lda  #0")
-                emitLine("sta  ($ptr),y")
-            }
+            emitLine("lda  #0")
+            emitLine("sta  ($ptr),y")
             emitLine("ldy  #1")
-            if (is65C02())
-                emitLine("stz  ($ptr),y")
-            else {
-                emitLine("lda  #0")
-                emitLine("sta  ($ptr),y")
-            }
+            emitLine("lda  #0")
+            emitLine("sta  ($ptr),y")
             emitLine("ldy  #2")
-            if (is65C02())
-                emitLine("stz  ($ptr),y")
-            else {
-                emitLine("lda  #0")
-                emitLine("sta  ($ptr),y")
-            }
+            emitLine("lda  #0")
+            emitLine("sta  ($ptr),y")
             emitLine("ldy  #3")
-            if (is65C02())
-                emitLine("stz  ($ptr),y")
-            else {
-                emitLine("lda  #0")
-                emitLine("sta  ($ptr),y")
-            }
+            emitLine("lda  #0")
+            emitLine("sta  ($ptr),y")
         }
         IRDataType.FLOAT -> {
             TODO("FLOAT STOREZI r$baseReg + $offset")

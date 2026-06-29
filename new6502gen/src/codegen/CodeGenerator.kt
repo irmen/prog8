@@ -56,9 +56,32 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
         emitRaw("\t; source: $fileOnly:${pos.line}")
     }
 
+    private val zpAllocator by lazy { ZeropageAllocator(program, target) }
+    private val zpAllocations by lazy { zpAllocator.allocate() }
+    private fun isZpVar(name: String) = zpAllocator.isZpVar(name)
+
+    // === variable-size virtual register file layout ===
+    // Each virtual register (r0-r199) has exactly one datatype throughout the entire program.
+    // The regfile layout is computed by scanning all instructions for their register types.
+    // Note: fp registers (fr0-fr?) use the FAC accumulator mechanism, not the regfile.
+    private data class RegFileLayout(val offsets: Map<Int, Int>, val totalSize: Int)
+
+    private val regFileLayout: RegFileLayout by lazy {
+        val allRegs = program.registersUsed().regsTypes
+        val offsets = mutableMapOf<Int, Int>()
+        var currentOffset = 0
+        for ((regNum, type) in allRegs.entries.sortedBy { it.key.value }) {
+            if (regNum.value !in 0 until NUM_REGISTERS) continue
+            offsets[regNum.value] = currentOffset
+            currentOffset += dataTypeSize(type)
+        }
+        RegFileLayout(offsets, currentOffset)
+    }
+
     override fun generate(): Boolean {
         emitHeader()
         emitConstants()
+        emitZeropageVariables()
         emitCode()
         emitDataSection()
         emitBssSection()
@@ -253,12 +276,24 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
     }
 
     // === register helpers ===
-    // Virtual register file layout: each register is 2 bytes (low, high) at p8_regfile + reg*2
+    // Virtual register file layout: variable-size registers at p8_regfile + offset[reg]
 
-    fun regAddrLo(reg: Int): String = "$REGFILE_LABEL+${reg * 2}"
-    fun regAddrHi(reg: Int): String = "$REGFILE_LABEL+${reg * 2 + 1}"
-    fun regAddr(reg: Int): String = "$REGFILE_LABEL+${reg * 2}"
-    fun regAddrByte(reg: Int, byteOffset: Int): String = "$REGFILE_LABEL+${reg * 2 + byteOffset}"
+    fun regAddrLo(reg: Int): String {
+        val offset = regFileLayout.offsets[reg] ?: error("register r$reg has no layout info")
+        return "$REGFILE_LABEL+$offset"
+    }
+    fun regAddrHi(reg: Int): String {
+        val offset = regFileLayout.offsets[reg] ?: error("register r$reg has no layout info")
+        return "$REGFILE_LABEL+${offset + 1}"
+    }
+    fun regAddr(reg: Int): String {
+        val offset = regFileLayout.offsets[reg] ?: error("register r$reg has no layout info")
+        return "$REGFILE_LABEL+$offset"
+    }
+    fun regAddrByte(reg: Int, byteOffset: Int): String {
+        val offset = regFileLayout.offsets[reg] ?: error("register r$reg has no layout info")
+        return "$REGFILE_LABEL+${offset + byteOffset}"
+    }
 
     // === label helpers ===
     // Convert Prog8 scoped names to 64tass-compatible assembly symbols.
@@ -329,6 +364,24 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
 
     fun is65C02() = cpu == CpuType.CPU65C02
 
+    /** Look up an asmsub parameter that maps to a CX16 virtual register. */
+    fun asmSubParamTarget(fnLabel: String, argIndex: Int): String? {
+        for (block in program.blocks) {
+            for (element in block.children) {
+                if (element is IRAsmSubroutine && element.label == fnLabel) {
+                    if (argIndex < element.parameters.size) {
+                        val reg = element.parameters[argIndex].reg.registerOrPair
+                        if (reg != null && reg in Cx16VirtualRegisters) {
+                            return "cx16.${reg.name.lowercase()}"
+                        }
+                    }
+                    return null
+                }
+            }
+        }
+        return null
+    }
+
     // === header and startup ===
 
     // track external (library) symbols referenced during code generation
@@ -342,9 +395,9 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
         emitRaw("; Output: ${options.output.name}  Launcher: ${options.launcher.name}")
         emitRaw("")
         when (cpu) {
-            CpuType.CPU65C02 -> emitRaw(".cpu \"65c02\"")
-            CpuType.CPU6502 -> emitRaw(".cpu \"6502\"")
-            CpuType.VIRTUAL -> emitRaw(".cpu \"6502\"")
+            CpuType.CPU65C02 -> emitRaw(".cpu  'w65c02'")
+            CpuType.CPU6502 -> emitRaw(".cpu  '6502'")
+            CpuType.VIRTUAL -> emitRaw(".cpu  '6502'")
         }
         emitRaw(".enc 'none'")
         emitRaw("")
@@ -447,7 +500,7 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
                 if (!emitted.add(label)) continue
                 emitRaw("$label = ${cv.toLong()}")
                 // also emit with original scoped name (for inline assembly references)
-                emitRaw("${c.name} = ${cv.toLong()}")
+                emitRaw("${fixNameSymbols(c.name)} = ${cv.toLong()}")
             } else if (csn != null) {
                 val slab = program.st.lookup(csn) as? IRStMemorySlab
                 if (slab != null) {
@@ -455,7 +508,7 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
                     val slabRef = fixNameSymbols(slab.name)
                     if (!emitted.add(label)) continue
                     emitRaw("$label = $slabRef")
-                    emitRaw("${c.name} = $slabRef")
+                    emitRaw("${fixNameSymbols(c.name)} = $slabRef")
                 }
             }
         }
@@ -497,14 +550,8 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
                 when (element) {
                     is IRSubroutine -> emitSubroutine(element)
                     is IRAsmSubroutine -> emitAsmSubroutine(element)
-                    is IRInlineAsmChunk -> {
-                        emitRaw(element.assembly.lineSequence()
-                            .filterNot { it.trimStart().startsWith(".section ") || it.trimStart().startsWith(".send ") }
-                            .joinToString("\n"))
-                    }
-                    is IRInlineBinaryChunk -> {
-                        emitRaw("    .byte  ${element.data.joinToString(",") { asmHexByte(it.toInt()) }}")
-                    }
+                    is IRInlineAsmChunk -> emitRaw(element.assembly)
+                    is IRInlineBinaryChunk -> emitRaw("    .byte  ${element.data.joinToString(",") { asmHexByte(it.toInt()) }}")
                     else -> {}
                 }
             }
@@ -541,10 +588,10 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
                 }
                 is IRInlineAsmChunk -> {
                     val cl = chunk.label
-                    if (cl != null) emitLabel(cl)
-                    emitRaw(chunk.assembly.lineSequence()
-                        .filterNot { it.trimStart().startsWith(".section ") || it.trimStart().startsWith(".send ") }
-                        .joinToString("\n"))
+                    // skip label if it matches the subroutine name (already defined by .proc)
+                    val uname = unscopedName(sub.label)
+                    if (cl != null && cl != sub.label && cl != uname) emitLabel(cl)
+                    emitRaw(chunk.assembly)
                 }
                 is IRInlineBinaryChunk -> {
                     val cl = chunk.label
@@ -564,14 +611,7 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
         }
         emitRaw("")
         emitRaw("${unscopedName(sub.label)}  .proc")
-        // 64tass 1.60 rejects `.section BSS` inside deeply nested .proc scopes.
-        // Strip the directives; the variables they contain will just be placed
-        // in the current (code) section, costing a few bytes but working correctly.
-        val cleaned = sub.asmChunk.assembly
-            .lineSequence()
-            .filterNot { it.trimStart().startsWith(".section ") || it.trimStart().startsWith(".send ") }
-            .joinToString("\n")
-        emitRaw(cleaned)
+        emitRaw(sub.asmChunk.assembly)
         emitRaw(".pend")
         emitRaw("")
     }
@@ -694,7 +734,7 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
         emitRaw("")
 
         // static variables with initialized values (non-BSS, inline with code)
-        val initdVars = program.st.allVariables().filter { !it.inBss }.toList()
+        val initdVars = program.st.allVariables().filter { !it.inBss && !isZpVar(it.name) }.toList()
         if (initdVars.isNotEmpty()) {
             emitRaw("; static variables with initial values")
             // Group by scope prefix and wrap non-block scopes in .block/.bend
@@ -724,12 +764,14 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
         val slabs = program.st.allMemorySlabs().toList()
         if (slabs.isNotEmpty()) {
             emitRaw("    .section BSS_SLABS")
-            emitLabel("${REGFILE_LABEL}_slabs")
+            emitRaw("prog8_slabs  .block")
             for (slab in slabs) {
                 emitAlign(slab.align)
                 val label = fixNameSymbols(slab.name)
-                emitLine("$label  .fill  ${slab.size}")
+                val localLabel = label.substringAfter('.')
+                emitLine("$localLabel  .fill  ${slab.size}")
             }
+            emitRaw("    .bend")
             emitRaw("    .send BSS_SLABS")
             emitRaw("")
         }
@@ -891,80 +933,115 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
 
     // === BSS sections ===
 
+    private fun emitZeropageVariables() {
+        val currentVarNames = program.st.allVariables().map { it.name }.toSet()
+        val zpVars = zpAllocations
+            .filter { it.key in currentVarNames }
+            .toList()
+            .sortedBy { it.second.address }
+
+        if (zpVars.isEmpty()) return
+
+        emitRaw("; zeropage variables")
+        for ((scopedName, alloc) in zpVars) {
+            if (scopedName.startsWith("cx16.r")) continue
+            val label = fixNameSymbols(scopedName)
+            if (alloc.dt.isSplitWordArray) {
+                val lsbAddr = alloc.address
+                val msbAddr = alloc.address + (alloc.size.toUInt() / 2u)
+                emitLine("${label}_lsb  = $lsbAddr")
+                emitLine("${label}_msb  = $msbAddr")
+            } else {
+                emitLine("$label  = ${alloc.address.toHex()}")
+            }
+        }
+        emitRaw("")
+    }
+
     private fun emitBssSection() {
         val options = program.options
-        val bssVars = program.st.allVariables().filter { it.inBss }.toList()
 
+        // define section contents (collected by .dsection in the footer)
+        val bssVars = program.st.allVariables().filter { it.inBss && !isZpVar(it.name) }.toList()
+        emitBssVars(bssVars)
+
+        emitRaw("")
+        emitRaw("  .dsection STRUCTINSTANCES")
         emitRaw("")
         emitRaw("; bss sections")
         emitRaw("PROG8_VARSHIGH_RAMBANK = ${options.varsHighBank ?: 1}")
 
-        // Determine if BSS needs relocation
         val relocateVars = options.varsGolden || options.varsHighBank != null
         val relocateSlabs = options.slabsGolden || options.slabsHighBank != null
 
         if (relocateVars) {
-            emitNonrelocatableSections(relocateSlabs)
+            if (!relocateSlabs)
+                emitRaw("  .dsection BSS_SLABS")
             emitLabel("prog8_program_end")
             val relocatedStart = if (options.varsGolden) options.compTarget.BSSGOLDENRAM_START
                                  else options.compTarget.BSSHIGHRAM_START
             emitRaw("  * = ${relocatedStart.toHex()}")
-        }
-
-        emitLabel("prog8_bss_section_start")
-        emitBssVars(bssVars)
-
-        if (relocateVars) {
+            emitRaw("  .dsection BSS_NOCLEAR")
+            emitLabel("prog8_bss_section_start")
+            emitRaw("  .dsection BSS")
+            if (relocateSlabs)
+                emitRaw("  .dsection BSS_SLABS")
             val relocatedEnd = if (options.varsGolden) options.compTarget.BSSGOLDENRAM_END
                                else options.compTarget.BSSHIGHRAM_END
-                emitLine("    .cerror * > ${relocatedEnd.toHex()}")
+            emitLine("    .cerror * > ${relocatedEnd.toHex()}, \"too many variables/data for BSS section\"")
+            emitRaw("prog8_bss_section_size = * - prog8_bss_section_start")
+        } else {
+            emitRaw("  .dsection BSS_NOCLEAR")
+            emitLabel("prog8_bss_section_start")
+            emitRaw("  .dsection BSS")
+            emitRaw("prog8_bss_section_size = * - prog8_bss_section_start")
+            if (!relocateSlabs)
+                emitRaw("  .dsection BSS_SLABS")
+            emitLabel("prog8_program_end")
+            if (relocateSlabs) {
+                val relocatedStart = if (options.slabsGolden) options.compTarget.BSSGOLDENRAM_START
+                                     else options.compTarget.BSSHIGHRAM_START
+                val relocatedEnd = if (options.slabsGolden) options.compTarget.BSSGOLDENRAM_END
+                                   else options.compTarget.BSSHIGHRAM_END
+                emitRaw("  * = ${relocatedStart.toHex()}")
+                emitRaw("  .dsection BSS_SLABS")
+                emitLine("    .cerror * > ${relocatedEnd.toHex()}, \"too many data for BSS_SLABS section\"")
+            }
         }
-
-        emitLabel("prog8_bss_section_end")
-        emitRaw("prog8_bss_section_size = prog8_bss_section_end - prog8_bss_section_start")
 
         emitRaw("")
         emitAsmSymbols()
         emitRaw("")
-        if (!relocateVars) {
-            emitLabel("prog8_program_end")
-        }
-        // memtop overflow check
         if (options.memtopAddress > 0u) {
             val memtopHex = "${options.memtopAddress.toHex()}"
-            emitLine("    .cerror * >= $memtopHex")
+            emitLine("    .cerror * >= $memtopHex, \"Program too long by \", * - ${(options.memtopAddress - 1u).toHex()}, \" bytes, memtop=${options.memtopAddress.toHex()}\"")
         }
         emitRaw("")
-    }
-
-    private fun emitNonrelocatableSections(alsoSlabs: Boolean) {
-        // emit BSS_NOCLEAR and optionally BSS_SLABS before relocation
-        emitRaw("    .dsection BSS_NOCLEAR")
-        if (!alsoSlabs) {
-            emitRaw("    .dsection BSS_SLABS")
-        }
     }
 
     private fun emitBssVars(vars: List<IRStStaticVariable>) {
-        // BSS_NOCLEAR for dirty variables and float eval temporaries
+        // BSS_NOCLEAR: dirty variables first, then the register file.
+        // Both go into the same .section/.send block so the regfile label
+        // sits AFTER the dirty vars and the regfile data starts cleanly.
         val (dirty, clean) = vars.partition { it.dirty }
-        if (dirty.isNotEmpty()) {
+        if (dirty.isNotEmpty() || regFileLayout.totalSize > 0) {
             emitRaw("    .section BSS_NOCLEAR")
-            emitRaw("; dirty variables (not cleared at subroutine entry)")
-            for (v in dirty) {
-                emitAlign(v.align)
-                emitUninitializedVariable(v)
+            if (dirty.isNotEmpty()) {
+                emitRaw("; dirty variables (not cleared at subroutine entry)")
+                for (v in dirty) {
+                    emitAlign(v.align)
+                    emitUninitializedVariable(v)
+                }
             }
+            // Virtual register file label and data must be inside the same
+            // section so the label resolves to the start of the regfile data,
+            // not to the start of the section (which would overlap with the
+            // dirty variables above and corrupt them).
+            emitLabel(REGFILE_LABEL)
+            emitLine(".fill  ${regFileLayout.totalSize}")
             emitRaw("    .send BSS_NOCLEAR")
             emitRaw("")
         }
-
-        // Virtual register file — allocated but NOT zeroed at startup
-        emitLabel(REGFILE_LABEL)
-        emitRaw("    .section BSS_NOCLEAR")
-        emitLine(".fill  ${NUM_REGISTERS * 2}")
-        emitRaw("    .send BSS_NOCLEAR")
-        emitRaw("")
 
         if (clean.isNotEmpty()) {
             emitRaw("    .section BSS")
@@ -975,10 +1052,6 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
             emitRaw("    .send BSS")
             emitRaw("")
         }
-
-        // emit BSS_NOCLEAR remainder (for library subroutines that may add vars)
-        emitRaw("    .dsection BSS_NOCLEAR")
-        emitRaw("    .dsection BSS_SLABS")
     }
 
     private fun emitUninitializedVariable(v: IRStStaticVariable) {
