@@ -299,7 +299,6 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
             emitLine(buildString {
                 append("ubyte[${variable.length}] ${pname}_lsb zp=${variable.zpwish} split=true")
                 if(variable.align!=0u) append(" align=${variable.align}")
-                if(variable.inBss) append(" inBss=true")
                 if(variable.readonly) append(" readonly=true")
             })
             emitLine("ubyte[${variable.length}] ${pname}_msb zp=${variable.zpwish} split=true")
@@ -307,7 +306,6 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
             emitLine(buildString {
                 append("${variable.typeString} $pname zp=${variable.zpwish}")
                 if(variable.align!=0u) append(" align=${variable.align}")
-                if(variable.inBss) append(" inBss=true")
                 if(variable.readonly) append(" readonly=true")
             })
         }

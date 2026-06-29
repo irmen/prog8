@@ -869,6 +869,7 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
             }
 
             dt.isArray -> {
+                val hasExplicitInit = init is IRVariableInitializer.Array
                 val values = when (init) {
                     is IRVariableInitializer.Array -> init.elements.map {
                         when (it) {
@@ -896,7 +897,10 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
                     dt.elementType().isLong -> ".dint"
                     else -> ".byte"
                 }
-                if (values.size <= 16) {
+                // Use .fill for zero-initialized arrays (no explicit init values)
+                if (!hasExplicitInit && values.all { it == "0" || it == "\$00" }) {
+                    emitLine("$label  .fill  ${values.size}")
+                } else if (values.size <= 16) {
                     emitLine("$label  $directive ${values.joinToString(",")}")
                 } else {
                     emitLabel(label)

@@ -77,7 +77,7 @@ private class StToIrConverter(val romable: Boolean) {
 
         val name = if('.' in variable.name) variable.name else variable.scopedNameString
         val hasInit = initValue != null
-        val inBss = romable && hasInit
+        val inBss = !hasInit || (romable && hasInit)
         val readonly = romable && hasInit
         return IRStStaticVariable(name, variable.dt, initValue, variable.length, variable.zpwish, variable.align, variable.dirty, inBss, readonly)
     }

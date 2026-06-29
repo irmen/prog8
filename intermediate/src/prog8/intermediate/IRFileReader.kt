@@ -193,24 +193,23 @@ class IRFileReader {
         }
 
     private fun parseNoInitVar(line: String, dirty: Boolean): IRStStaticVariable {
-        val match = IRFormat.VAR_NO_INIT.matchEntire(line) 
+        val match = IRFormat.VAR_NO_INIT.matchEntire(line)
             ?: throw IRParseException("invalid variable: $line")
         val type = match.groups["type"]!!.value
         val arrayspec = match.groups["arrayspec"]?.value ?: ""
         val name = match.groups["name"]!!.value
         val zpwish = match.groups["zp"]!!.value
         val alignment = match.groups["align"]?.value ?: ""
-        val inBssStr = match.groups["inBss"]?.value ?: ""
         val readonlyStr = match.groups["readonly"]?.value ?: ""
-        
+
         if('.' !in name)
             throw IRParseException("unscoped name: $name")
-        
+
         val arraysize = if(arrayspec.isNotBlank()) arrayspec.substring(1, arrayspec.length-1).toUInt() else null
         val dt = parseDatatype(type, arraysize!=null)
         val zp = if(zpwish.isBlank()) ZeropageWish.DONTCARE else ZeropageWish.valueOf(zpwish)
         val align = if(alignment.isBlank()) 0u else alignment.toUInt()
-        val inBss = inBssStr == "true"
+        val inBss = true  // NOINIT vars are always in BSS by definition
         val readonly = readonlyStr == "true"
         return IRStStaticVariable(name, dt, null, arraysize, zp, align, dirty, inBss, readonly)
     }
