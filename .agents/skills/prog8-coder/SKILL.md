@@ -240,35 +240,8 @@ Used to call routines at fixed memory addresses (like ROM KERNAL routines or thi
   extsub @bank 10 $C09F = audio_init() clobbers(A, X, Y) -> bool @Pc
   ```
 
-## Assembly Programming Details
-### Inline Assembly Formatting Rules
-When writing assembly inside `%asm {{ }}` blocks or `asmsub` routines:
-- Labels start in the first column of the line.
-- Instructions are indented at least 4 spaces.
-- Two spaces between the instruction opcode and its operand (e.g., `lda  #1`, `sta  $d020`).
-- End-of-line comments are preceded by two spaces before the `;` (e.g., `sta  $d020  ; border color`).
-- If a comment is the only thing on a line, it starts in the first column (no indentation).
-- Opcodes and operands are written in lowercase (e.g., `lda`, not `LDA`; `$d020`, not `$D020`).
-
-- **Symbol prefixes**: `p8v_` (variables), `p8s_` (subroutines), `p8b_` (blocks), `p8c_` (constants), `p8l_` (labels), `p8t_` (structs), `p8_` (other)
-- **Fully qualified names**: `p8b_blockname.p8v_varname`, `p8b_blockname.p8s_subname.p8v_localvar`
-- **Within a `.proc`**, short names often work. `%option no_symbol_prefixing` disables prefixes (used by `cbm`, `cx16`, `txt`)
-- **Split word arrays**: append `_lsb` / `_msb` to variable name (e.g., `p8v_myarray_lsb`)
-- **CX16 target**: use 65C02 instructions (STZ, PHX, etc). Others: 6502 only
-- **Assembly syntax**: 64tass. `.proc`/`.pend`, `_label` for locals, `.byte`/`.word`/`.dword` for data, `=` for equates
-- **Instructions** like `rol`, `ror`, `asl`, `lsr` require explicit operand: `rol a`
-- **Anonymous labels**: `+` (forward), `-` (backward), branch with `+`, `++`, `+++` or `-`, `--`, `---`
-- **Register Aliases**: It's common to define aliases at the start of an `asmsub`:
-  ```prog8
-  asmsub my_routine(uword ptr @AX) {
-      %asm {{
-          ptr_lo = p8zp_scratch_w1
-          ptr_hi = p8zp_scratch_w1+1
-          sta ptr_lo
-          stx ptr_hi
-      }}
-  }
-  ```
+## Inline Assembly
+When writing inline assembly (`%asm {{ }}` blocks or `asmsub` routines), load the **asm6502-coder** skill for formatting rules, symbol references, anonymous labels, and 64tass syntax details.
 
 ## Standard Library
 - Find routines, functions, variables, modules and signatures in the symbol dump file for the given compilation target. 

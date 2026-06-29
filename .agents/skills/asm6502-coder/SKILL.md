@@ -163,6 +163,7 @@ All Prog8 symbols are prefixed when accessed from assembly:
 - Virtual registers `cx16.r0`-`cx16.r15` are available on ALL targets, but only on CX16 in zeropage
 - Assume the scratch variables are not consecutive in zeropage. The CX16 virtual registers ARE consecutive in memory though.
 - For additional temporary storage, allocate regular variables in BSS
+- **CRITICAL: NEVER use hardcoded zeropage addresses** (like `$1e`, `$22`, `$7c`, etc.) to reference P8ZP_SCRATCH registers or cx16 virtual registers. Their addresses differ per compilation target. **ALWAYS** use the symbolic names (`P8ZP_SCRATCH_W1`, `cx16.r14`, `cx16.r14+1`, etc.) so the assembler resolves the correct address for the target.
 
 ## Common 6502 Patterns
 
