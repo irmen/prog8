@@ -494,7 +494,9 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
                     is IRSubroutine -> emitSubroutine(element)
                     is IRAsmSubroutine -> emitAsmSubroutine(element)
                     is IRInlineAsmChunk -> {
-                        emitRaw(element.assembly)
+                        emitRaw(element.assembly.lineSequence()
+                            .filterNot { it.trimStart().startsWith(".section ") || it.trimStart().startsWith(".send ") }
+                            .joinToString("\n"))
                     }
                     is IRInlineBinaryChunk -> {
                         emitRaw("    .byte  ${element.data.joinToString(",") { asmHexByte(it.toInt()) }}")
@@ -536,7 +538,9 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
                 is IRInlineAsmChunk -> {
                     val cl = chunk.label
                     if (cl != null) emitLabel(cl)
-                    emitRaw(chunk.assembly)
+                    emitRaw(chunk.assembly.lineSequence()
+                        .filterNot { it.trimStart().startsWith(".section ") || it.trimStart().startsWith(".send ") }
+                        .joinToString("\n"))
                 }
                 is IRInlineBinaryChunk -> {
                     val cl = chunk.label
@@ -833,7 +837,10 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
                             is IRStSymbolicReference.Symbol -> asmSymbolRef(it.name)
                         }
                     }
-                    else -> listOf("0")
+                    else -> {
+                        val numElements = v.length?.toInt() ?: 0
+                        List(numElements.coerceAtLeast(1)) { "0" }
+                    }
                 }
                 val directive = when {
                     dt.elementType().isUnsignedByte || dt.elementType().isBool -> ".byte"

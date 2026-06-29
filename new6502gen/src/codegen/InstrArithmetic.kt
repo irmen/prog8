@@ -7,8 +7,10 @@
  * All operations work on virtual registers (r0-r199 in the register file).
  * BYTE and WORD types are fully implemented; LONG and FLOAT are partial/TODO.
  *
- * Multiply/divide/modulo operations use helper subroutines (math_mul8, math_div16, etc.)
- * that must be provided externally (e.g. in the standard library or runtime).
+ *  Multiply/divide/modulo operations use helper subroutines provided by
+ *  the prog8 standard library (prog8_math module), such as
+ *  prog8_math.multiply_bytes, prog8_math.multiply_words,
+ *  prog8_math.divmod_ub_asm, prog8_math.divmod_uw_asm, etc.
  *
  * Important notes:
  *   - 6502 flag discipline: ADC needs CLC before, SBC needs SEC before
@@ -27,14 +29,15 @@ fun CodeGenerator.translateArithmetic(insn: IRInstruction) {
     val imm = insn.immediate
     val addr = insn.address
     val label = insn.labelSymbol
+    val offset = insn.labelSymbolOffset
 
     when (insn.opcode) {
         Opcode.INC -> incrementRegister(r1 ?: error("INC needs reg1"), type)
-        Opcode.INCM -> incrementMemory(resolveAddress(addr, label), type)
+        Opcode.INCM -> incrementMemory(resolveAddress(addr, label, offset), type)
         Opcode.DEC -> decrementRegister(r1 ?: error("DEC needs reg1"), type)
-        Opcode.DECM -> decrementMemory(resolveAddress(addr, label), type)
+        Opcode.DECM -> decrementMemory(resolveAddress(addr, label, offset), type)
         Opcode.NEG -> negateRegister(r1 ?: error("NEG needs reg1"), type)
-        Opcode.NEGM -> negateMemory(resolveAddress(addr, label), type)
+        Opcode.NEGM -> negateMemory(resolveAddress(addr, label, offset), type)
 
         Opcode.ADDR -> {
             val r2val = r2 ?: error("ADDR needs reg2")
@@ -45,7 +48,7 @@ fun CodeGenerator.translateArithmetic(insn: IRInstruction) {
             addImmediate(r1 ?: error("ADD needs reg1"), value, type)
         }
         Opcode.ADDM -> {
-            val target = resolveAddress(addr, label)
+            val target = resolveAddress(addr, label, offset)
             addMemory(r1 ?: error("ADDM needs reg1"), target, type)
         }
 
@@ -58,7 +61,7 @@ fun CodeGenerator.translateArithmetic(insn: IRInstruction) {
             subImmediate(r1 ?: error("SUB needs reg1"), value, type)
         }
         Opcode.SUBM -> {
-            val target = resolveAddress(addr, label)
+            val target = resolveAddress(addr, label, offset)
             subMemory(r1 ?: error("SUBM needs reg1"), target, type)
         }
 
@@ -71,7 +74,7 @@ fun CodeGenerator.translateArithmetic(insn: IRInstruction) {
             mulImmediate(r1 ?: error("MUL needs reg1"), value, type)
         }
         Opcode.MULM -> {
-            val target = resolveAddress(addr, label)
+            val target = resolveAddress(addr, label, offset)
             mulMemory(r1 ?: error("MULM needs reg1"), target, type)
         }
         Opcode.MULSR -> {
@@ -83,7 +86,7 @@ fun CodeGenerator.translateArithmetic(insn: IRInstruction) {
             mulSignedImmediate(r1 ?: error("MULS needs reg1"), value, type)
         }
         Opcode.MULSM -> {
-            val target = resolveAddress(addr, label)
+            val target = resolveAddress(addr, label, offset)
             mulSignedMemory(r1 ?: error("MULSM needs reg1"), target, type)
         }
 
@@ -96,7 +99,7 @@ fun CodeGenerator.translateArithmetic(insn: IRInstruction) {
             divImmediate(r1 ?: error("DIV needs reg1"), value, type)
         }
         Opcode.DIVM -> {
-            val target = resolveAddress(addr, label)
+            val target = resolveAddress(addr, label, offset)
             divMemory(r1 ?: error("DIVM needs reg1"), target, type)
         }
         Opcode.DIVSR -> {
@@ -108,7 +111,7 @@ fun CodeGenerator.translateArithmetic(insn: IRInstruction) {
             divSignedImmediate(r1 ?: error("DIVS needs reg1"), value, type)
         }
         Opcode.DIVSM -> {
-            val target = resolveAddress(addr, label)
+            val target = resolveAddress(addr, label, offset)
             divSignedMemory(r1 ?: error("DIVSM needs reg1"), target, type)
         }
 
@@ -453,25 +456,20 @@ private fun CodeGenerator.mulRegisters(dst: Int, src: Int, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
             emitLine("lda  ${regAddrLo(dst)}")
-            emitLine("sta  math_tmp")
-            emitLine("lda  ${regAddrLo(src)}")
-            emitLine("jsr  math_mul8")
+            emitLine("ldy  ${regAddrLo(src)}")
+            emitLine("jsr  prog8_math.multiply_bytes")
             emitLine("sta  ${regAddrLo(dst)}")
         }
         IRDataType.WORD -> {
-            emitLine("lda  ${regAddrLo(dst)}")
-            emitLine("sta  math_tmp")
-            emitLine("lda  ${regAddrHi(dst)}")
-            emitLine("sta  math_tmp+1")
             emitLine("lda  ${regAddrLo(src)}")
-            emitLine("sta  math_tmp+2")
+            emitLine("sta  prog8_math.multiply_words.multiplier")
             emitLine("lda  ${regAddrHi(src)}")
-            emitLine("sta  math_tmp+3")
-            emitLine("jsr  math_mul16")
-            emitLine("lda  math_tmp")
+            emitLine("sta  prog8_math.multiply_words.multiplier+1")
+            emitLine("lda  ${regAddrLo(dst)}")
+            emitLine("ldy  ${regAddrHi(dst)}")
+            emitLine("jsr  prog8_math.multiply_words")
             emitLine("sta  ${regAddrLo(dst)}")
-            emitLine("lda  math_tmp+1")
-            emitLine("sta  ${regAddrHi(dst)}")
+            emitLine("sty  ${regAddrHi(dst)}")
         }
         IRDataType.LONG -> TODO("MULR LONG r$dst, r$src")
         IRDataType.FLOAT -> TODO("MULR FLOAT r$dst, r$src")
@@ -482,25 +480,20 @@ private fun CodeGenerator.mulImmediate(dst: Int, value: Int, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
             emitLine("lda  ${regAddrLo(dst)}")
-            emitLine("sta  math_tmp")
-            emitLine("lda  #${value and 0xff}")
-            emitLine("jsr  math_mul8")
+            emitLine("ldy  #${value and 0xff}")
+            emitLine("jsr  prog8_math.multiply_bytes")
             emitLine("sta  ${regAddrLo(dst)}")
         }
         IRDataType.WORD -> {
-            emitLine("lda  ${regAddrLo(dst)}")
-            emitLine("sta  math_tmp")
-            emitLine("lda  ${regAddrHi(dst)}")
-            emitLine("sta  math_tmp+1")
             emitLine("lda  #<${value and 0xffff}")
-            emitLine("sta  math_tmp+2")
+            emitLine("sta  prog8_math.multiply_words.multiplier")
             emitLine("lda  #>${value and 0xffff}")
-            emitLine("sta  math_tmp+3")
-            emitLine("jsr  math_mul16")
-            emitLine("lda  math_tmp")
+            emitLine("sta  prog8_math.multiply_words.multiplier+1")
+            emitLine("lda  ${regAddrLo(dst)}")
+            emitLine("ldy  ${regAddrHi(dst)}")
+            emitLine("jsr  prog8_math.multiply_words")
             emitLine("sta  ${regAddrLo(dst)}")
-            emitLine("lda  math_tmp+1")
-            emitLine("sta  ${regAddrHi(dst)}")
+            emitLine("sty  ${regAddrHi(dst)}")
         }
         else -> TODO("MUL r$dst, #$value ${type.name}")
     }
@@ -510,25 +503,20 @@ private fun CodeGenerator.mulMemory(dst: Int, source: String, type: IRDataType) 
     when (type) {
         IRDataType.BYTE -> {
             emitLine("lda  ${regAddrLo(dst)}")
-            emitLine("sta  math_tmp")
-            emitLine("lda  $source")
-            emitLine("jsr  math_mul8")
+            emitLine("ldy  $source")
+            emitLine("jsr  prog8_math.multiply_bytes")
             emitLine("sta  ${regAddrLo(dst)}")
         }
         IRDataType.WORD -> {
-            emitLine("lda  ${regAddrLo(dst)}")
-            emitLine("sta  math_tmp")
-            emitLine("lda  ${regAddrHi(dst)}")
-            emitLine("sta  math_tmp+1")
             emitLine("lda  $source")
-            emitLine("sta  math_tmp+2")
+            emitLine("sta  prog8_math.multiply_words.multiplier")
             emitLine("lda  $source+1")
-            emitLine("sta  math_tmp+3")
-            emitLine("jsr  math_mul16")
-            emitLine("lda  math_tmp")
+            emitLine("sta  prog8_math.multiply_words.multiplier+1")
+            emitLine("lda  ${regAddrLo(dst)}")
+            emitLine("ldy  ${regAddrHi(dst)}")
+            emitLine("jsr  prog8_math.multiply_words")
             emitLine("sta  ${regAddrLo(dst)}")
-            emitLine("lda  math_tmp+1")
-            emitLine("sta  ${regAddrHi(dst)}")
+            emitLine("sty  ${regAddrHi(dst)}")
         }
         else -> TODO("MULM r$dst, $source ${type.name}")
     }
@@ -555,27 +543,20 @@ private fun CodeGenerator.divRegisters(dst: Int, src: Int, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
             emitLine("lda  ${regAddrLo(dst)}")
-            emitLine("sta  math_tmp")
-            emitLine("lda  ${regAddrLo(src)}")
-            emitLine("sta  math_tmp+1")
-            emitLine("jsr  math_div8")
-            emitLine("lda  math_tmp")
-            emitLine("sta  ${regAddrLo(dst)}")
+            emitLine("ldy  ${regAddrLo(src)}")
+            emitLine("jsr  prog8_math.divmod_ub_asm")
+            emitLine("sty  ${regAddrLo(dst)}")
         }
         IRDataType.WORD -> {
             emitLine("lda  ${regAddrLo(dst)}")
-            emitLine("sta  math_tmp")
+            emitLine("sta  P8ZP_SCRATCH_W1")
             emitLine("lda  ${regAddrHi(dst)}")
-            emitLine("sta  math_tmp+1")
+            emitLine("sta  P8ZP_SCRATCH_W1+1")
             emitLine("lda  ${regAddrLo(src)}")
-            emitLine("sta  math_tmp+2")
-            emitLine("lda  ${regAddrHi(src)}")
-            emitLine("sta  math_tmp+3")
-            emitLine("jsr  math_div16")
-            emitLine("lda  math_tmp")
+            emitLine("ldy  ${regAddrHi(src)}")
+            emitLine("jsr  prog8_math.divmod_uw_asm")
             emitLine("sta  ${regAddrLo(dst)}")
-            emitLine("lda  math_tmp+1")
-            emitLine("sta  ${regAddrHi(dst)}")
+            emitLine("sty  ${regAddrHi(dst)}")
         }
         else -> TODO("DIVR r$dst, r$src ${type.name}")
     }
@@ -585,27 +566,20 @@ private fun CodeGenerator.divImmediate(dst: Int, value: Int, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
             emitLine("lda  ${regAddrLo(dst)}")
-            emitLine("sta  math_tmp")
-            emitLine("lda  #${value and 0xff}")
-            emitLine("sta  math_tmp+1")
-            emitLine("jsr  math_div8")
-            emitLine("lda  math_tmp")
-            emitLine("sta  ${regAddrLo(dst)}")
+            emitLine("ldy  #${value and 0xff}")
+            emitLine("jsr  prog8_math.divmod_ub_asm")
+            emitLine("sty  ${regAddrLo(dst)}")
         }
         IRDataType.WORD -> {
             emitLine("lda  ${regAddrLo(dst)}")
-            emitLine("sta  math_tmp")
+            emitLine("sta  P8ZP_SCRATCH_W1")
             emitLine("lda  ${regAddrHi(dst)}")
-            emitLine("sta  math_tmp+1")
+            emitLine("sta  P8ZP_SCRATCH_W1+1")
             emitLine("lda  #<${value and 0xffff}")
-            emitLine("sta  math_tmp+2")
-            emitLine("lda  #>${value and 0xffff}")
-            emitLine("sta  math_tmp+3")
-            emitLine("jsr  math_div16")
-            emitLine("lda  math_tmp")
+            emitLine("ldy  #>${value and 0xffff}")
+            emitLine("jsr  prog8_math.divmod_uw_asm")
             emitLine("sta  ${regAddrLo(dst)}")
-            emitLine("lda  math_tmp+1")
-            emitLine("sta  ${regAddrHi(dst)}")
+            emitLine("sty  ${regAddrHi(dst)}")
         }
         else -> TODO("DIV r$dst, $value ${type.name}")
     }
@@ -615,40 +589,69 @@ private fun CodeGenerator.divMemory(dst: Int, source: String, type: IRDataType) 
     when (type) {
         IRDataType.BYTE -> {
             emitLine("lda  ${regAddrLo(dst)}")
-            emitLine("sta  math_tmp")
-            emitLine("lda  $source")
-            emitLine("sta  math_tmp+1")
-            emitLine("jsr  math_div8")
-            emitLine("lda  math_tmp")
-            emitLine("sta  ${regAddrLo(dst)}")
+            emitLine("ldy  $source")
+            emitLine("jsr  prog8_math.divmod_ub_asm")
+            emitLine("sty  ${regAddrLo(dst)}")
         }
         IRDataType.WORD -> {
             emitLine("lda  ${regAddrLo(dst)}")
-            emitLine("sta  math_tmp")
+            emitLine("sta  P8ZP_SCRATCH_W1")
             emitLine("lda  ${regAddrHi(dst)}")
-            emitLine("sta  math_tmp+1")
+            emitLine("sta  P8ZP_SCRATCH_W1+1")
             emitLine("lda  $source")
-            emitLine("sta  math_tmp+2")
-            emitLine("lda  $source+1")
-            emitLine("sta  math_tmp+3")
-            emitLine("jsr  math_div16")
-            emitLine("lda  math_tmp")
+            emitLine("ldy  $source+1")
+            emitLine("jsr  prog8_math.divmod_uw_asm")
             emitLine("sta  ${regAddrLo(dst)}")
-            emitLine("lda  math_tmp+1")
-            emitLine("sta  ${regAddrHi(dst)}")
+            emitLine("sty  ${regAddrHi(dst)}")
         }
         else -> TODO("DIVM r$dst, $source ${type.name}")
     }
 }
 
 private fun CodeGenerator.divSignedRegisters(dst: Int, src: Int, type: IRDataType) {
-    emitLine("; DIVSR r$dst, r$src (signed) - using unsigned for now")
-    divRegisters(dst, src, type)
+    when (type) {
+        IRDataType.BYTE -> {
+            emitLine("lda  ${regAddrLo(dst)}")
+            emitLine("ldy  ${regAddrLo(src)}")
+            emitLine("jsr  prog8_math.divmod_b_asm")
+            emitLine("sty  ${regAddrLo(dst)}")
+        }
+        IRDataType.WORD -> {
+            emitLine("lda  ${regAddrLo(dst)}")
+            emitLine("sta  P8ZP_SCRATCH_W1")
+            emitLine("lda  ${regAddrHi(dst)}")
+            emitLine("sta  P8ZP_SCRATCH_W1+1")
+            emitLine("lda  ${regAddrLo(src)}")
+            emitLine("ldy  ${regAddrHi(src)}")
+            emitLine("jsr  prog8_math.divmod_w_asm")
+            emitLine("sta  ${regAddrLo(dst)}")
+            emitLine("sty  ${regAddrHi(dst)}")
+        }
+        else -> TODO("DIVSR r$dst, r$src ${type.name}")
+    }
 }
 
 private fun CodeGenerator.divSignedImmediate(dst: Int, value: Int, type: IRDataType) {
-    emitLine("; DIVS r$dst, $value (signed, using unsigned)")
-    divImmediate(dst, value, type)
+    when (type) {
+        IRDataType.BYTE -> {
+            emitLine("lda  ${regAddrLo(dst)}")
+            emitLine("ldy  #${value and 0xff}")
+            emitLine("jsr  prog8_math.divmod_b_asm")
+            emitLine("sty  ${regAddrLo(dst)}")
+        }
+        IRDataType.WORD -> {
+            emitLine("lda  ${regAddrLo(dst)}")
+            emitLine("sta  P8ZP_SCRATCH_W1")
+            emitLine("lda  ${regAddrHi(dst)}")
+            emitLine("sta  P8ZP_SCRATCH_W1+1")
+            emitLine("lda  #<${value and 0xffff}")
+            emitLine("ldy  #>${value and 0xffff}")
+            emitLine("jsr  prog8_math.divmod_w_asm")
+            emitLine("sta  ${regAddrLo(dst)}")
+            emitLine("sty  ${regAddrHi(dst)}")
+        }
+        else -> TODO("DIVS r$dst, $value ${type.name}")
+    }
 }
 
 private fun CodeGenerator.divSignedMemory(dst: Int, source: String, type: IRDataType) {
@@ -661,26 +664,21 @@ private fun CodeGenerator.modRegisters(dst: Int, src: Int, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
             emitLine("lda  ${regAddrLo(dst)}")
-            emitLine("sta  math_tmp")
-            emitLine("lda  ${regAddrLo(src)}")
-            emitLine("sta  math_tmp+1")
-            emitLine("jsr  math_mod8")
-            emitLine("lda  math_tmp")
+            emitLine("ldy  ${regAddrLo(src)}")
+            emitLine("jsr  prog8_math.remainder_ub_asm")
             emitLine("sta  ${regAddrLo(dst)}")
         }
         IRDataType.WORD -> {
             emitLine("lda  ${regAddrLo(dst)}")
-            emitLine("sta  math_tmp")
+            emitLine("sta  P8ZP_SCRATCH_W1")
             emitLine("lda  ${regAddrHi(dst)}")
-            emitLine("sta  math_tmp+1")
+            emitLine("sta  P8ZP_SCRATCH_W1+1")
             emitLine("lda  ${regAddrLo(src)}")
-            emitLine("sta  math_tmp+2")
-            emitLine("lda  ${regAddrHi(src)}")
-            emitLine("sta  math_tmp+3")
-            emitLine("jsr  math_mod16")
-            emitLine("lda  math_tmp")
+            emitLine("ldy  ${regAddrHi(src)}")
+            emitLine("jsr  prog8_math.divmod_uw_asm")
+            emitLine("lda  P8ZP_SCRATCH_W2")
             emitLine("sta  ${regAddrLo(dst)}")
-            emitLine("lda  math_tmp+1")
+            emitLine("lda  P8ZP_SCRATCH_W2+1")
             emitLine("sta  ${regAddrHi(dst)}")
         }
         else -> TODO("MODR r$dst, r$src ${type.name}")
@@ -691,26 +689,21 @@ private fun CodeGenerator.modImmediate(dst: Int, value: Int, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
             emitLine("lda  ${regAddrLo(dst)}")
-            emitLine("sta  math_tmp")
-            emitLine("lda  #${value and 0xff}")
-            emitLine("sta  math_tmp+1")
-            emitLine("jsr  math_mod8")
-            emitLine("lda  math_tmp")
+            emitLine("ldy  #${value and 0xff}")
+            emitLine("jsr  prog8_math.remainder_ub_asm")
             emitLine("sta  ${regAddrLo(dst)}")
         }
         IRDataType.WORD -> {
             emitLine("lda  ${regAddrLo(dst)}")
-            emitLine("sta  math_tmp")
+            emitLine("sta  P8ZP_SCRATCH_W1")
             emitLine("lda  ${regAddrHi(dst)}")
-            emitLine("sta  math_tmp+1")
+            emitLine("sta  P8ZP_SCRATCH_W1+1")
             emitLine("lda  #<${value and 0xffff}")
-            emitLine("sta  math_tmp+2")
-            emitLine("lda  #>${value and 0xffff}")
-            emitLine("sta  math_tmp+3")
-            emitLine("jsr  math_mod16")
-            emitLine("lda  math_tmp")
+            emitLine("ldy  #>${value and 0xffff}")
+            emitLine("jsr  prog8_math.divmod_uw_asm")
+            emitLine("lda  P8ZP_SCRATCH_W2")
             emitLine("sta  ${regAddrLo(dst)}")
-            emitLine("lda  math_tmp+1")
+            emitLine("lda  P8ZP_SCRATCH_W2+1")
             emitLine("sta  ${regAddrHi(dst)}")
         }
         else -> TODO("MOD r$dst, $value ${type.name}")
@@ -719,7 +712,6 @@ private fun CodeGenerator.modImmediate(dst: Int, value: Int, type: IRDataType) {
 
 private fun CodeGenerator.modSignedRegisters(dst: Int, src: Int, type: IRDataType) {
     TODO("MODSR r$dst, r$src (signed)")
-    modRegisters(dst, src, type)
 }
 
 private fun CodeGenerator.modSignedImmediate(dst: Int, value: Int, type: IRDataType) {
@@ -734,32 +726,24 @@ private fun CodeGenerator.divModRegisters(dst: Int, src: Int, type: IRDataType) 
     when (type) {
         IRDataType.BYTE -> {
             emitLine("lda  ${regAddrLo(dst)}")
-            emitLine("sta  math_tmp")
-            emitLine("lda  ${regAddrLo(src)}")
-            emitLine("sta  math_tmp+1")
-            emitLine("jsr  math_divmod8")
-            emitLine("lda  math_tmp")
-            emitLine("sta  ${regAddrLo(dst)}")
-            emitLine("lda  math_tmp+1")
+            emitLine("ldy  ${regAddrLo(src)}")
+            emitLine("jsr  prog8_math.divmod_ub_asm")
+            emitLine("sty  ${regAddrLo(dst)}")
             emitLine("sta  ${regAddrLo(dst) + 1}")
         }
         IRDataType.WORD -> {
             emitLine("lda  ${regAddrLo(dst)}")
-            emitLine("sta  math_tmp")
+            emitLine("sta  P8ZP_SCRATCH_W1")
             emitLine("lda  ${regAddrHi(dst)}")
-            emitLine("sta  math_tmp+1")
+            emitLine("sta  P8ZP_SCRATCH_W1+1")
             emitLine("lda  ${regAddrLo(src)}")
-            emitLine("sta  math_tmp+2")
-            emitLine("lda  ${regAddrHi(src)}")
-            emitLine("sta  math_tmp+3")
-            emitLine("jsr  math_divmod16")
-            emitLine("lda  math_tmp")
+            emitLine("ldy  ${regAddrHi(src)}")
+            emitLine("jsr  prog8_math.divmod_uw_asm")
             emitLine("sta  ${regAddrLo(dst)}")
-            emitLine("lda  math_tmp+1")
-            emitLine("sta  ${regAddrHi(dst)}")
-            emitLine("lda  math_tmp+2")
+            emitLine("sty  ${regAddrHi(dst)}")
+            emitLine("lda  P8ZP_SCRATCH_W2")
             emitLine("sta  ${regAddrLo(dst) + 2}")
-            emitLine("lda  math_tmp+3")
+            emitLine("lda  P8ZP_SCRATCH_W2+1")
             emitLine("sta  ${regAddrLo(dst) + 3}")
         }
         else -> TODO("DIVMODR r$dst, r$src ${type.name}")
@@ -768,39 +752,30 @@ private fun CodeGenerator.divModRegisters(dst: Int, src: Int, type: IRDataType) 
 
 private fun CodeGenerator.sdivModRegisters(dst: Int, src: Int, type: IRDataType) {
     TODO("SDIVMODR r$dst, r$src (signed)")
-    divModRegisters(dst, src, type)
 }
 
 private fun CodeGenerator.divModImmediate(dst: Int, value: Int, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
             emitLine("lda  ${regAddrLo(dst)}")
-            emitLine("sta  math_tmp")
-            emitLine("lda  #${value and 0xff}")
-            emitLine("sta  math_tmp+1")
-            emitLine("jsr  math_divmod8")
-            emitLine("lda  math_tmp")
-            emitLine("sta  ${regAddrLo(dst)}")
-            emitLine("lda  math_tmp+1")
+            emitLine("ldy  #${value and 0xff}")
+            emitLine("jsr  prog8_math.divmod_ub_asm")
+            emitLine("sty  ${regAddrLo(dst)}")
             emitLine("sta  ${regAddrLo(dst) + 1}")
         }
         IRDataType.WORD -> {
             emitLine("lda  ${regAddrLo(dst)}")
-            emitLine("sta  math_tmp")
+            emitLine("sta  P8ZP_SCRATCH_W1")
             emitLine("lda  ${regAddrHi(dst)}")
-            emitLine("sta  math_tmp+1")
+            emitLine("sta  P8ZP_SCRATCH_W1+1")
             emitLine("lda  #<${value and 0xffff}")
-            emitLine("sta  math_tmp+2")
-            emitLine("lda  #>${value and 0xffff}")
-            emitLine("sta  math_tmp+3")
-            emitLine("jsr  math_divmod16")
-            emitLine("lda  math_tmp")
+            emitLine("ldy  #>${value and 0xffff}")
+            emitLine("jsr  prog8_math.divmod_uw_asm")
             emitLine("sta  ${regAddrLo(dst)}")
-            emitLine("lda  math_tmp+1")
-            emitLine("sta  ${regAddrHi(dst)}")
-            emitLine("lda  math_tmp+2")
+            emitLine("sty  ${regAddrHi(dst)}")
+            emitLine("lda  P8ZP_SCRATCH_W2")
             emitLine("sta  ${regAddrLo(dst) + 2}")
-            emitLine("lda  math_tmp+3")
+            emitLine("lda  P8ZP_SCRATCH_W2+1")
             emitLine("sta  ${regAddrLo(dst) + 3}")
         }
         else -> TODO("DIVMOD r$dst, $value ${type.name}")

@@ -36,6 +36,7 @@ fun CodeGenerator.translateLoadStore(insn: IRInstruction) {
     val imm = insn.immediate
     val addr = insn.address
     val label = insn.labelSymbol
+    val offset = insn.labelSymbolOffset
 
     when (insn.opcode) {
         Opcode.LOAD -> {
@@ -49,7 +50,7 @@ fun CodeGenerator.translateLoadStore(insn: IRInstruction) {
         }
 
         Opcode.LOADM -> {
-            val target = resolveAddress(addr, label)
+            val target = resolveAddress(addr, label, offset)
             loadFromMemory(r1 ?: error("LOADM needs reg1"), target, type)
         }
 
@@ -60,7 +61,7 @@ fun CodeGenerator.translateLoadStore(insn: IRInstruction) {
 
         Opcode.LOADX -> {
             val idxReg = r2 ?: error("LOADX needs reg2")
-            val base = resolveAddress(addr, label)
+            val base = resolveAddress(addr, label, offset)
             indexedLoad(r1 ?: error("LOADX needs reg1"), idxReg, base, type)
         }
 
@@ -75,18 +76,18 @@ fun CodeGenerator.translateLoadStore(insn: IRInstruction) {
         }
 
         Opcode.STOREM -> {
-            val target = resolveAddress(addr, label)
+            val target = resolveAddress(addr, label, offset)
             storeToMemory(r1 ?: error("STOREM needs reg1"), target, type)
         }
 
         Opcode.STOREX -> {
             val r2val = r2 ?: error("STOREX needs reg2")
-            val target = resolveAddress(addr, label)
+            val target = resolveAddress(addr, label, offset)
             storeExchange(r1 ?: error("STOREX needs reg1"), r2val, target, type)
         }
 
         Opcode.STOREZM -> {
-            val target = resolveAddress(addr, label)
+            val target = resolveAddress(addr, label, offset)
             zeroMemory(target, type)
         }
 
@@ -96,7 +97,7 @@ fun CodeGenerator.translateLoadStore(insn: IRInstruction) {
         }
 
         Opcode.STOREZX -> {
-            val target = resolveAddress(addr, label)
+            val target = resolveAddress(addr, label, offset)
             zeroMemoryIndexed(r1 ?: error("STOREZX needs reg1"), target, type)
         }
 
@@ -343,7 +344,7 @@ private fun CodeGenerator.indexedLoad(dst: Int, idxReg: Int, base: String, type:
     emitLine("clc")
     emitLine("adc  $ptr")
     emitLine("sta  $ptr")
-    emitLine("lda  ${regAddrHi(idxReg)}")
+    emitLine("lda  #0")
     emitLine("adc  ${ptr}+1")
     emitLine("sta  ${ptr}+1")
     when (type) {
@@ -424,40 +425,34 @@ private fun CodeGenerator.indirectLoad(dst: Int, baseReg: Int, offset: Int, type
 }
 
 private fun CodeGenerator.storeExchange(reg: Int, reg2: Int, target: String, type: IRDataType) {
+    // STOREX: indexed store -- mem[target + reg2] = reg1
     when (type) {
         IRDataType.BYTE -> {
-            emitLine("lda  $target")
-            emitLine("sta  ${regAddrLo(reg2)}")
+            emitLine("ldx  ${regAddrLo(reg2)}")
             emitLine("lda  ${regAddrLo(reg)}")
-            emitLine("sta  $target")
+            emitLine("sta  $target,x")
         }
         IRDataType.WORD -> {
-            emitLine("lda  $target")
-            emitLine("sta  ${regAddrLo(reg2)}")
+            emitLine("ldx  ${regAddrLo(reg2)}")
             emitLine("lda  ${regAddrLo(reg)}")
-            emitLine("sta  $target")
-            emitLine("lda  $target+1")
-            emitLine("sta  ${regAddrHi(reg2)}")
+            emitLine("sta  $target,x")
+            emitLine("ldx  ${regAddrHi(reg2)}")
             emitLine("lda  ${regAddrHi(reg)}")
-            emitLine("sta  $target+1")
+            emitLine("sta  ${target}+1,x")
         }
         IRDataType.LONG -> {
-            emitLine("lda  $target")
-            emitLine("sta  ${regAddrLo(reg2)}")
+            emitLine("ldx  ${regAddrLo(reg2)}")
             emitLine("lda  ${regAddrLo(reg)}")
-            emitLine("sta  $target")
-            emitLine("lda  $target+1")
-            emitLine("sta  ${regAddrHi(reg2)}")
+            emitLine("sta  $target,x")
+            emitLine("ldx  ${regAddrHi(reg2)}")
             emitLine("lda  ${regAddrHi(reg)}")
-            emitLine("sta  $target+1")
-            emitLine("lda  $target+2")
-            emitLine("sta  ${regAddrLo(reg2) + 2}")
+            emitLine("sta  ${target}+1,x")
+            emitLine("ldx  ${regAddrLo(reg2) + 2}")
             emitLine("lda  ${regAddrLo(reg) + 2}")
-            emitLine("sta  $target+2")
-            emitLine("lda  $target+3")
-            emitLine("sta  ${regAddrLo(reg2) + 3}")
+            emitLine("sta  ${target}+2,x")
+            emitLine("ldx  ${regAddrLo(reg2) + 3}")
             emitLine("lda  ${regAddrLo(reg) + 3}")
-            emitLine("sta  $target+3")
+            emitLine("sta  ${target}+3,x")
         }
         else -> {
             TODO("STOREX r$reg, r$reg2, $target ${type.name}")
@@ -641,9 +636,12 @@ private fun CodeGenerator.indirectStore(reg: Int, baseReg: Int, offset: Int, typ
     }
 }
 
-internal fun CodeGenerator.resolveAddress(addr: MemoryAddress?, label: String?): String {
+internal fun CodeGenerator.resolveAddress(addr: MemoryAddress?, label: String?, offset: Int? = null): String {
     return when {
-        label != null -> resolveSymbolRef(label)
+        label != null -> {
+            val resolved = resolveSymbolRef(label)
+            if (offset != null && offset != 0) "$resolved+$offset" else resolved
+        }
         addr != null -> addr.value.toHex()
         else -> "0"
     }

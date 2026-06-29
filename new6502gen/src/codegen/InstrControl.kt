@@ -411,6 +411,22 @@ private fun CodeGenerator.translateReturnValue(ret: FunctionCallArgs.RegSpec) {
                         emitStoreZero("${regAddrHi(regNum)}")
                     }
                 }
+            } else if (regNum >= 0) {
+                when (ret.dt) {
+                    IRDataType.BYTE -> {
+                        emitLine("sta  ${regAddrLo(regNum)}")
+                    }
+                    IRDataType.WORD -> {
+                        emitLine("sta  ${regAddrLo(regNum)}")
+                        emitLine("sty  ${regAddrHi(regNum)}")
+                    }
+                    IRDataType.LONG -> {
+                        TODO("LONG return to r$regNum (slot/flag not set)")
+                    }
+                    IRDataType.FLOAT -> {
+                        TODO("FLOAT return to r$regNum (slot/flag not set)")
+                    }
+                }
             } else {
                 emitLine("; return value to r$regNum (slot/flag not set)")
             }

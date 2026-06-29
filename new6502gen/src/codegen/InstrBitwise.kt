@@ -24,6 +24,7 @@ fun CodeGenerator.translateBitwise(insn: IRInstruction) {
     val imm = insn.immediate
     val addr = insn.address
     val label = insn.labelSymbol
+    val offset = insn.labelSymbolOffset
 
     when (insn.opcode) {
         Opcode.ANDR -> {
@@ -35,7 +36,7 @@ fun CodeGenerator.translateBitwise(insn: IRInstruction) {
             andImmediate(r1 ?: error("AND needs reg1"), value, type)
         }
         Opcode.ANDM -> {
-            val source = resolveAddress(addr, label)
+            val source = resolveAddress(addr, label, offset)
             andMemory(r1 ?: error("ANDM needs reg1"), source, type)
         }
 
@@ -48,7 +49,7 @@ fun CodeGenerator.translateBitwise(insn: IRInstruction) {
             orImmediate(r1 ?: error("OR needs reg1"), value, type)
         }
         Opcode.ORM -> {
-            val source = resolveAddress(addr, label)
+            val source = resolveAddress(addr, label, offset)
             orMemory(r1 ?: error("ORM needs reg1"), source, type)
         }
 
@@ -61,12 +62,12 @@ fun CodeGenerator.translateBitwise(insn: IRInstruction) {
             xorImmediate(r1 ?: error("XOR needs reg1"), value, type)
         }
         Opcode.XORM -> {
-            val source = resolveAddress(addr, label)
+            val source = resolveAddress(addr, label, offset)
             xorMemory(r1 ?: error("XORM needs reg1"), source, type)
         }
 
         Opcode.INV -> invertRegister(r1 ?: error("INV needs reg1"), type)
-        Opcode.INVM -> invertMemory(resolveAddress(addr, label), type)
+        Opcode.INVM -> invertMemory(resolveAddress(addr, label, offset), type)
 
         // Shift by register count (ASRN/LSRN/LSLN: r2 = shift count register)
         Opcode.ASRN -> {
@@ -96,13 +97,13 @@ fun CodeGenerator.translateBitwise(insn: IRInstruction) {
         Opcode.LSLM -> TODO("LSLM")
 
         Opcode.ROR -> rotateRight(r1 ?: error("ROR needs reg1"), type)
-        Opcode.RORM -> rotateRightMemory(resolveAddress(addr, label), type)
+        Opcode.RORM -> rotateRightMemory(resolveAddress(addr, label, offset), type)
         Opcode.ROL -> rotateLeft(r1 ?: error("ROL needs reg1"), type)
-        Opcode.ROLM -> rotateLeftMemory(resolveAddress(addr, label), type)
+        Opcode.ROLM -> rotateLeftMemory(resolveAddress(addr, label, offset), type)
         Opcode.ROXR -> rotateRightThroughCarry(r1 ?: error("ROXR needs reg1"), type)
-        Opcode.ROXRM -> TODO("ROXRM")
+        Opcode.ROXRM -> rotateRightThroughCarryMemory(resolveAddress(addr, label, offset), type)
         Opcode.ROXL -> rotateLeftThroughCarry(r1 ?: error("ROXL needs reg1"), type)
-        Opcode.ROXLM -> TODO("ROXLM")
+        Opcode.ROXLM -> rotateLeftThroughCarryMemory(resolveAddress(addr, label, offset), type)
 
         Opcode.BITTST -> {
             val bit = imm ?: error("BITTST needs bit number")
@@ -611,6 +612,32 @@ private fun CodeGenerator.rotateRightThroughCarry(reg: Int, type: IRDataType) {
             emitLine("ror  ${regAddrLo(reg)}")
         }
         else -> TODO("ROXR r$reg ${type.name}")
+    }
+}
+
+private fun CodeGenerator.rotateLeftThroughCarryMemory(target: String, type: IRDataType) {
+    when (type) {
+        IRDataType.BYTE -> {
+            emitLine("rol  $target")
+        }
+        IRDataType.WORD -> {
+            emitLine("rol  $target")
+            emitLine("rol  $target+1")
+        }
+        else -> TODO("ROXLM $target ${type.name}")
+    }
+}
+
+private fun CodeGenerator.rotateRightThroughCarryMemory(target: String, type: IRDataType) {
+    when (type) {
+        IRDataType.BYTE -> {
+            emitLine("ror  $target")
+        }
+        IRDataType.WORD -> {
+            emitLine("ror  $target+1")
+            emitLine("ror  $target")
+        }
+        else -> TODO("ROXRM $target ${type.name}")
     }
 }
 
