@@ -180,9 +180,9 @@ private fun CodeGenerator.incrementRegister(reg: Int, type: IRDataType) {
             emitLine("bne  +")
             emitLine("inc  ${regAddrHi(reg)}")
             emitLine("bne  +")
-            emitLine("inc  ${regAddrLo(reg) + 2}")
+            emitLine("inc  ${regAddrByte(reg, 2)}")
             emitLine("bne  +")
-            emitLine("inc  ${regAddrLo(reg) + 3}")
+            emitLine("inc  ${regAddrByte(reg, 3)}")
             emitLabel("+")
         }
         IRDataType.FLOAT -> TODO("FLOAT INC r$reg")
@@ -206,11 +206,11 @@ private fun CodeGenerator.decrementRegister(reg: Int, type: IRDataType) {
             emitLine("bne  +")
             emitLine("lda  ${regAddrHi(reg)}")
             emitLine("bne  +")
-            emitLine("lda  ${regAddrLo(reg) + 2}")
+            emitLine("lda  ${regAddrByte(reg, 2)}")
             emitLine("bne  +")
-            emitLine("dec  ${regAddrLo(reg) + 3}")
+            emitLine("dec  ${regAddrByte(reg, 3)}")
             emitLabel("+")
-            emitLine("dec  ${regAddrLo(reg) + 2}")
+            emitLine("dec  ${regAddrByte(reg, 2)}")
             emitLine("bne  +")
             emitLine("dec  ${regAddrHi(reg)}")
             emitLabel("+")
@@ -230,7 +230,17 @@ private fun CodeGenerator.incrementMemory(target: String, type: IRDataType) {
             emitLine("inc  $target+1")
             emitLabel("+")
         }
-        else -> TODO("INCM $target ${type.name}")
+        IRDataType.LONG -> {
+            emitLine("inc  $target")
+            emitLine("bne  +")
+            emitLine("inc  $target+1")
+            emitLine("bne  +")
+            emitLine("inc  $target+2")
+            emitLine("bne  +")
+            emitLine("inc  $target+3")
+            emitLabel("+")
+        }
+        IRDataType.FLOAT -> TODO("FLOAT INCM $target")
     }
 }
 
@@ -244,7 +254,22 @@ private fun CodeGenerator.decrementMemory(target: String, type: IRDataType) {
             emitLabel("+")
             emitLine("dec  $target")
         }
-        else -> TODO("DECM $target ${type.name}")
+        IRDataType.LONG -> {
+            emitLine("sec")
+            emitLine("lda  $target")
+            emitLine("sbc  #1")
+            emitLine("sta  $target")
+            emitLine("lda  $target+1")
+            emitLine("sbc  #0")
+            emitLine("sta  $target+1")
+            emitLine("lda  $target+2")
+            emitLine("sbc  #0")
+            emitLine("sta  $target+2")
+            emitLine("lda  $target+3")
+            emitLine("sbc  #0")
+            emitLine("sta  $target+3")
+        }
+        IRDataType.FLOAT -> TODO("FLOAT DECM $target")
     }
 }
 
@@ -265,7 +290,22 @@ private fun CodeGenerator.negateRegister(reg: Int, type: IRDataType) {
             emitLine("sbc  ${regAddrHi(reg)}")
             emitLine("sta  ${regAddrHi(reg)}")
         }
-        else -> TODO("NEG r$reg ${type.name}")
+        IRDataType.LONG -> {
+            emitLine("sec")
+            emitLine("lda  #0")
+            emitLine("sbc  ${regAddrLo(reg)}")
+            emitLine("sta  ${regAddrLo(reg)}")
+            emitLine("lda  #0")
+            emitLine("sbc  ${regAddrLo(reg) + 1}")
+            emitLine("sta  ${regAddrLo(reg) + 1}")
+            emitLine("lda  #0")
+            emitLine("sbc  ${regAddrByte(reg, 2)}")
+            emitLine("sta  ${regAddrByte(reg, 2)}")
+            emitLine("lda  #0")
+            emitLine("sbc  ${regAddrByte(reg, 3)}")
+            emitLine("sta  ${regAddrByte(reg, 3)}")
+        }
+        IRDataType.FLOAT -> TODO("FLOAT NEG r$reg")
     }
 }
 
@@ -286,7 +326,22 @@ private fun CodeGenerator.negateMemory(target: String, type: IRDataType) {
             emitLine("sbc  $target+1")
             emitLine("sta  $target+1")
         }
-        else -> TODO("NEGM $target ${type.name}")
+        IRDataType.LONG -> {
+            emitLine("sec")
+            emitLine("lda  #0")
+            emitLine("sbc  $target")
+            emitLine("sta  $target")
+            emitLine("lda  #0")
+            emitLine("sbc  $target+1")
+            emitLine("sta  $target+1")
+            emitLine("lda  #0")
+            emitLine("sbc  $target+2")
+            emitLine("sta  $target+2")
+            emitLine("lda  #0")
+            emitLine("sbc  $target+3")
+            emitLine("sta  $target+3")
+        }
+        IRDataType.FLOAT -> TODO("FLOAT NEGM $target")
     }
 }
 
@@ -317,12 +372,12 @@ private fun CodeGenerator.addRegisters(dst: Int, src: Int, type: IRDataType) {
             emitLine("lda  ${regAddrHi(dst)}")
             emitLine("adc  ${regAddrHi(src)}")
             emitLine("sta  ${regAddrHi(dst)}")
-            emitLine("lda  ${regAddrLo(dst) + 2}")
-            emitLine("adc  ${regAddrLo(src) + 2}")
-            emitLine("sta  ${regAddrLo(dst) + 2}")
-            emitLine("lda  ${regAddrLo(dst) + 3}")
-            emitLine("adc  ${regAddrLo(src) + 3}")
-            emitLine("sta  ${regAddrLo(dst) + 3}")
+            emitLine("lda  ${regAddrByte(dst, 2)}")
+            emitLine("adc  ${regAddrByte(src, 2)}")
+            emitLine("sta  ${regAddrByte(dst, 2)}")
+            emitLine("lda  ${regAddrByte(dst, 3)}")
+            emitLine("adc  ${regAddrByte(src, 3)}")
+            emitLine("sta  ${regAddrByte(dst, 3)}")
         }
         IRDataType.FLOAT -> TODO("FLOAT ADDR r$dst, r$src")
     }
@@ -345,7 +400,22 @@ private fun CodeGenerator.addImmediate(dst: Int, value: Int, type: IRDataType) {
             emitLine("adc  #>${value and 0xffff}")
             emitLine("sta  ${regAddrHi(dst)}")
         }
-        else -> TODO("ADD r$dst, #$value ${type.name}")
+        IRDataType.LONG -> {
+            emitLine("clc")
+            emitLine("lda  ${regAddrLo(dst)}")
+            emitLine("adc  #${value and 0xff}")
+            emitLine("sta  ${regAddrLo(dst)}")
+            emitLine("lda  ${regAddrLo(dst) + 1}")
+            emitLine("adc  #${(value shr 8) and 0xff}")
+            emitLine("sta  ${regAddrLo(dst) + 1}")
+            emitLine("lda  ${regAddrByte(dst, 2)}")
+            emitLine("adc  #${(value shr 16) and 0xff}")
+            emitLine("sta  ${regAddrByte(dst, 2)}")
+            emitLine("lda  ${regAddrByte(dst, 3)}")
+            emitLine("adc  #${(value shr 24) and 0xff}")
+            emitLine("sta  ${regAddrByte(dst, 3)}")
+        }
+        IRDataType.FLOAT -> TODO("FLOAT ADD r$dst, #$value")
     }
 }
 
@@ -366,7 +436,22 @@ private fun CodeGenerator.addMemory(dst: Int, source: String, type: IRDataType) 
             emitLine("adc  $source+1")
             emitLine("sta  ${regAddrHi(dst)}")
         }
-        else -> TODO("ADDM r$dst, $source ${type.name}")
+        IRDataType.LONG -> {
+            emitLine("clc")
+            emitLine("lda  ${regAddrLo(dst)}")
+            emitLine("adc  $source")
+            emitLine("sta  ${regAddrLo(dst)}")
+            emitLine("lda  ${regAddrLo(dst) + 1}")
+            emitLine("adc  $source+1")
+            emitLine("sta  ${regAddrLo(dst) + 1}")
+            emitLine("lda  ${regAddrByte(dst, 2)}")
+            emitLine("adc  $source+2")
+            emitLine("sta  ${regAddrByte(dst, 2)}")
+            emitLine("lda  ${regAddrByte(dst, 3)}")
+            emitLine("adc  $source+3")
+            emitLine("sta  ${regAddrByte(dst, 3)}")
+        }
+        IRDataType.FLOAT -> TODO("FLOAT ADDM r$dst, $source")
     }
 }
 
@@ -397,12 +482,12 @@ private fun CodeGenerator.subRegisters(dst: Int, src: Int, type: IRDataType) {
             emitLine("lda  ${regAddrHi(dst)}")
             emitLine("sbc  ${regAddrHi(src)}")
             emitLine("sta  ${regAddrHi(dst)}")
-            emitLine("lda  ${regAddrLo(dst) + 2}")
-            emitLine("sbc  ${regAddrLo(src) + 2}")
-            emitLine("sta  ${regAddrLo(dst) + 2}")
-            emitLine("lda  ${regAddrLo(dst) + 3}")
-            emitLine("sbc  ${regAddrLo(src) + 3}")
-            emitLine("sta  ${regAddrLo(dst) + 3}")
+            emitLine("lda  ${regAddrByte(dst, 2)}")
+            emitLine("sbc  ${regAddrByte(src, 2)}")
+            emitLine("sta  ${regAddrByte(dst, 2)}")
+            emitLine("lda  ${regAddrByte(dst, 3)}")
+            emitLine("sbc  ${regAddrByte(src, 3)}")
+            emitLine("sta  ${regAddrByte(dst, 3)}")
         }
         IRDataType.FLOAT -> TODO("FLOAT SUBR r$dst, r$src")
     }
@@ -425,7 +510,22 @@ private fun CodeGenerator.subImmediate(dst: Int, value: Int, type: IRDataType) {
             emitLine("sbc  #>${value and 0xffff}")
             emitLine("sta  ${regAddrHi(dst)}")
         }
-        else -> TODO("SUB r$dst, #$value ${type.name}")
+        IRDataType.LONG -> {
+            emitLine("sec")
+            emitLine("lda  ${regAddrLo(dst)}")
+            emitLine("sbc  #${value and 0xff}")
+            emitLine("sta  ${regAddrLo(dst)}")
+            emitLine("lda  ${regAddrLo(dst) + 1}")
+            emitLine("sbc  #${(value shr 8) and 0xff}")
+            emitLine("sta  ${regAddrLo(dst) + 1}")
+            emitLine("lda  ${regAddrByte(dst, 2)}")
+            emitLine("sbc  #${(value shr 16) and 0xff}")
+            emitLine("sta  ${regAddrByte(dst, 2)}")
+            emitLine("lda  ${regAddrByte(dst, 3)}")
+            emitLine("sbc  #${(value shr 24) and 0xff}")
+            emitLine("sta  ${regAddrByte(dst, 3)}")
+        }
+        IRDataType.FLOAT -> TODO("FLOAT SUB r$dst, #$value")
     }
 }
 
@@ -446,7 +546,22 @@ private fun CodeGenerator.subMemory(dst: Int, source: String, type: IRDataType) 
             emitLine("sbc  $source+1")
             emitLine("sta  ${regAddrHi(dst)}")
         }
-        else -> TODO("SUBM r$dst, $source ${type.name}")
+        IRDataType.LONG -> {
+            emitLine("sec")
+            emitLine("lda  ${regAddrLo(dst)}")
+            emitLine("sbc  $source")
+            emitLine("sta  ${regAddrLo(dst)}")
+            emitLine("lda  ${regAddrLo(dst) + 1}")
+            emitLine("sbc  $source+1")
+            emitLine("sta  ${regAddrLo(dst) + 1}")
+            emitLine("lda  ${regAddrByte(dst, 2)}")
+            emitLine("sbc  $source+2")
+            emitLine("sta  ${regAddrByte(dst, 2)}")
+            emitLine("lda  ${regAddrByte(dst, 3)}")
+            emitLine("sbc  $source+3")
+            emitLine("sta  ${regAddrByte(dst, 3)}")
+        }
+        IRDataType.FLOAT -> TODO("FLOAT SUBM r$dst, $source")
     }
 }
 
@@ -742,9 +857,9 @@ private fun CodeGenerator.divModRegisters(dst: Int, src: Int, type: IRDataType) 
             emitLine("sta  ${regAddrLo(dst)}")
             emitLine("sty  ${regAddrHi(dst)}")
             emitLine("lda  P8ZP_SCRATCH_W2")
-            emitLine("sta  ${regAddrLo(dst) + 2}")
+            emitLine("sta  ${regAddrByte(dst, 2)}")
             emitLine("lda  P8ZP_SCRATCH_W2+1")
-            emitLine("sta  ${regAddrLo(dst) + 3}")
+            emitLine("sta  ${regAddrByte(dst, 3)}")
         }
         else -> TODO("DIVMODR r$dst, r$src ${type.name}")
     }
@@ -774,9 +889,9 @@ private fun CodeGenerator.divModImmediate(dst: Int, value: Int, type: IRDataType
             emitLine("sta  ${regAddrLo(dst)}")
             emitLine("sty  ${regAddrHi(dst)}")
             emitLine("lda  P8ZP_SCRATCH_W2")
-            emitLine("sta  ${regAddrLo(dst) + 2}")
+            emitLine("sta  ${regAddrByte(dst, 2)}")
             emitLine("lda  P8ZP_SCRATCH_W2+1")
-            emitLine("sta  ${regAddrLo(dst) + 3}")
+            emitLine("sta  ${regAddrByte(dst, 3)}")
         }
         else -> TODO("DIVMOD r$dst, $value ${type.name}")
     }
@@ -806,10 +921,10 @@ private fun CodeGenerator.compareRegisters(r1: Int, r2: Int, type: IRDataType) {
             emitLine("cmp  ${regAddrLo(r2)}")
             emitLine("lda  ${regAddrHi(r1)}")
             emitLine("sbc  ${regAddrHi(r2)}")
-            emitLine("lda  ${regAddrLo(r1) + 2}")
-            emitLine("sbc  ${regAddrLo(r2) + 2}")
-            emitLine("lda  ${regAddrLo(r1) + 3}")
-            emitLine("sbc  ${regAddrLo(r2) + 3}")
+            emitLine("lda  ${regAddrByte(r1, 2)}")
+            emitLine("sbc  ${regAddrByte(r2, 2)}")
+            emitLine("lda  ${regAddrByte(r1, 3)}")
+            emitLine("sbc  ${regAddrByte(r2, 3)}")
         }
         IRDataType.FLOAT -> TODO("FLOAT CMP r$r1, r$r2")
     }

@@ -215,8 +215,8 @@ private fun CodeGenerator.loadSymbolAddress(reg: Int, sym: String, offset: Int?,
             emitLine("lda  #>${symWithOffset}")
             emitLine("sta  ${regAddrHi(reg)}")
             emitLine("lda  #0")
-            emitLine("sta  ${regAddrLo(reg) + 2}")
-            emitLine("sta  ${regAddrLo(reg) + 3}")
+            emitLine("sta  ${regAddrByte(reg, 2)}")
+            emitLine("sta  ${regAddrByte(reg, 3)}")
         }
         else -> TODO("SYMLOAD r$reg, $symWithOffset ${type.name}")
     }
@@ -240,9 +240,9 @@ private fun CodeGenerator.loadImmediate(reg: Int, value: Int, type: IRDataType) 
             emitLine("lda  #>${value and 0xffff}")
             emitLine("sta  ${regAddrHi(reg)}")
             emitLine("lda  #${(value ushr 16) and 0xff}")
-            emitLine("sta  ${regAddrLo(reg) + 2}")
+            emitLine("sta  ${regAddrByte(reg, 2)}")
             emitLine("lda  #${(value ushr 24) and 0xff}")
-            emitLine("sta  ${regAddrLo(reg) + 3}")
+            emitLine("sta  ${regAddrByte(reg, 3)}")
         }
         IRDataType.FLOAT -> {
             TODO("FLOAT LOAD immediate r$reg = $value")
@@ -268,9 +268,9 @@ private fun CodeGenerator.loadFromMemory(reg: Int, source: String, type: IRDataT
             emitLine("lda  $source+1")
             emitLine("sta  ${regAddrHi(reg)}")
             emitLine("lda  $source+2")
-            emitLine("sta  ${regAddrLo(reg) + 2}")
+            emitLine("sta  ${regAddrByte(reg, 2)}")
             emitLine("lda  $source+3")
-            emitLine("sta  ${regAddrLo(reg) + 3}")
+            emitLine("sta  ${regAddrByte(reg, 3)}")
         }
         IRDataType.FLOAT -> {
             TODO("FLOAT LOADM r$reg from $source")
@@ -295,7 +295,7 @@ private fun CodeGenerator.copyRegister(dst: Int, src: Int, type: IRDataType) {
             emitLine("sta  ${regAddrLo(dst)}")
             emitLine("lda  ${regAddrHi(src)}")
             emitLine("sta  ${regAddrHi(dst)}")
-            emitLine("lda  ${regAddrLo(src) + 2}")
+            emitLine("lda  ${regAddrByte(src, 2)}")
             emitLine("sta  ${regAddrLo(dst) + 2}")
             emitLine("lda  ${regAddrHi(src) + 2}")
             emitLine("sta  ${regAddrLo(dst) + 3}")
@@ -323,9 +323,9 @@ private fun CodeGenerator.storeToMemory(reg: Int, target: String, type: IRDataTy
             emitLine("sta  $target")
             emitLine("lda  ${regAddrHi(reg)}")
             emitLine("sta  $target+1")
-            emitLine("lda  ${regAddrLo(reg) + 2}")
+            emitLine("lda  ${regAddrByte(reg, 2)}")
             emitLine("sta  $target+2")
-            emitLine("lda  ${regAddrLo(reg) + 3}")
+            emitLine("lda  ${regAddrByte(reg, 3)}")
             emitLine("sta  $target+3")
         }
         IRDataType.FLOAT -> {
@@ -448,10 +448,10 @@ private fun CodeGenerator.storeExchange(reg: Int, reg2: Int, target: String, typ
             emitLine("lda  ${regAddrHi(reg)}")
             emitLine("sta  ${target}+1,x")
             emitLine("ldx  ${regAddrLo(reg2) + 2}")
-            emitLine("lda  ${regAddrLo(reg) + 2}")
+            emitLine("lda  ${regAddrByte(reg, 2)}")
             emitLine("sta  ${target}+2,x")
             emitLine("ldx  ${regAddrLo(reg2) + 3}")
-            emitLine("lda  ${regAddrLo(reg) + 3}")
+            emitLine("lda  ${regAddrByte(reg, 3)}")
             emitLine("sta  ${target}+3,x")
         }
         else -> {
@@ -623,10 +623,10 @@ private fun CodeGenerator.indirectStore(reg: Int, baseReg: Int, offset: Int, typ
             emitLine("lda  ${regAddrHi(reg)}")
             emitLine("ldy  #1")
             emitLine("sta  ($ptr),y")
-            emitLine("lda  ${regAddrLo(reg) + 2}")
+            emitLine("lda  ${regAddrByte(reg, 2)}")
             emitLine("ldy  #2")
             emitLine("sta  ($ptr),y")
-            emitLine("lda  ${regAddrLo(reg) + 3}")
+            emitLine("lda  ${regAddrByte(reg, 3)}")
             emitLine("ldy  #3")
             emitLine("sta  ($ptr),y")
         }

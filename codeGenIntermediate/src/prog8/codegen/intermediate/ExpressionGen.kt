@@ -1014,10 +1014,11 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     val paramDt = irType(parameter.type)
                     val tr = translateExpression(arg)
                     val (slot, flag) = registerOrStatusflagToSlotAndFlag(parameter.register)
+                    val argName = if(slot==null && flag==null) parameter.name else ""
                     if(paramDt==IRDataType.FLOAT)
-                        argRegisters.add(FunctionCallArgs.ArgumentSpec("", null, FunctionCallArgs.RegSpec(IRDataType.FLOAT, RegisterNum(tr.resultFpReg), slot, flag)))
+                        argRegisters.add(FunctionCallArgs.ArgumentSpec(argName, null, FunctionCallArgs.RegSpec(IRDataType.FLOAT, RegisterNum(tr.resultFpReg), slot, flag)))
                     else
-                        argRegisters.add(FunctionCallArgs.ArgumentSpec("", null, FunctionCallArgs.RegSpec(paramDt, RegisterNum(tr.resultReg), slot, flag)))
+                        argRegisters.add(FunctionCallArgs.ArgumentSpec(argName, null, FunctionCallArgs.RegSpec(paramDt, RegisterNum(tr.resultReg), slot, flag)))
                     result += tr.chunks
                 }
 

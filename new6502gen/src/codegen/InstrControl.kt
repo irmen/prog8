@@ -86,6 +86,16 @@ fun CodeGenerator.translateControl(insn: IRInstruction) {
                     emitLine("lda  ${regAddrLo(reg)}")
                     emitLine("ldx  ${regAddrHi(reg)}")
                 }
+                IRDataType.LONG -> {
+                    emitLine("lda  ${regAddrLo(reg)}")
+                    emitLine("sta  cx16.r14")
+                    emitLine("lda  ${regAddrHi(reg)}")
+                    emitLine("sta  cx16.r14+1")
+                    emitLine("lda  ${regAddrLo(reg + 1)}")
+                    emitLine("sta  cx16.r15")
+                    emitLine("lda  ${regAddrHi(reg + 1)}")
+                    emitLine("sta  cx16.r15+1")
+                }
                 else -> TODO("RETURNR r$reg ${type.name}")
             }
             emitLine("rts")
@@ -102,7 +112,17 @@ fun CodeGenerator.translateControl(insn: IRInstruction) {
                     emitLine("lda  #<${value and 0xffff}")
                     emitLine("ldx  #>${value and 0xffff}")
                 }
-                else -> TODO("RETURNI #$value ${type.name}")
+                IRDataType.LONG -> {
+                    emitLine("lda  #${value and 0xff}")
+                    emitLine("sta  cx16.r14")
+                    emitLine("lda  #${(value ushr 8) and 0xff}")
+                    emitLine("sta  cx16.r14+1")
+                    emitLine("lda  #${(value ushr 16) and 0xff}")
+                    emitLine("sta  cx16.r15")
+                    emitLine("lda  #${(value ushr 24) and 0xff}")
+                    emitLine("sta  cx16.r15+1")
+                }
+                IRDataType.FLOAT -> TODO("RETURNI FLOAT")
             }
             emitLine("rts")
         }
@@ -116,6 +136,16 @@ fun CodeGenerator.translateControl(insn: IRInstruction) {
                     emitLine("pha")
                 }
                 IRDataType.WORD -> {
+                    emitLine("lda  ${regAddrHi(reg)}")
+                    emitLine("pha")
+                    emitLine("lda  ${regAddrLo(reg)}")
+                    emitLine("pha")
+                }
+                IRDataType.LONG -> {
+                    emitLine("lda  ${regAddrHi(reg + 1)}")
+                    emitLine("pha")
+                    emitLine("lda  ${regAddrLo(reg + 1)}")
+                    emitLine("pha")
                     emitLine("lda  ${regAddrHi(reg)}")
                     emitLine("pha")
                     emitLine("lda  ${regAddrLo(reg)}")
@@ -138,6 +168,16 @@ fun CodeGenerator.translateControl(insn: IRInstruction) {
                     emitLine("sta  ${regAddrLo(reg)}")
                     emitLine("pla")
                     emitLine("sta  ${regAddrHi(reg)}")
+                }
+                IRDataType.LONG -> {
+                    emitLine("pla")
+                    emitLine("sta  ${regAddrLo(reg)}")
+                    emitLine("pla")
+                    emitLine("sta  ${regAddrHi(reg)}")
+                    emitLine("pla")
+                    emitLine("sta  ${regAddrLo(reg + 1)}")
+                    emitLine("pla")
+                    emitLine("sta  ${regAddrHi(reg + 1)}")
                 }
                 else -> TODO("POP r$reg ${type.name}")
             }
@@ -172,8 +212,8 @@ fun CodeGenerator.translateControl(insn: IRInstruction) {
             emitLine("lda  #0")
             emitLabel("+")              // second + label
             emitLine("sta  ${regAddrHi(reg)}")
-            emitStoreZero("${regAddrLo(reg) + 2}")
-            emitStoreZero("${regAddrLo(reg) + 3}")
+            emitStoreZero("${regAddrByte(reg, 2)}")
+            emitStoreZero("${regAddrByte(reg, 3)}")
         }
 
         Opcode.LSIGW -> {
@@ -186,8 +226,8 @@ fun CodeGenerator.translateControl(insn: IRInstruction) {
             emitLabel("+")              // first + label
             emitLine("lda  #0")
             emitLabel("+")              // second + label
-            emitStoreZero("${regAddrLo(reg) + 2}")
-            emitStoreZero("${regAddrLo(reg) + 3}")
+            emitStoreZero("${regAddrByte(reg, 2)}")
+            emitStoreZero("${regAddrByte(reg, 3)}")
         }
 
         Opcode.MSIGB, Opcode.MSIGW -> TODO("${insn.opcode}")
@@ -305,9 +345,9 @@ private fun CodeGenerator.translateArgument(arg: FunctionCallArgs.ArgumentSpec, 
                         emitLine("sta  ${address.toHex()}")
                         emitLine("lda  ${regAddrHi(regNum)}")
                         emitLine("sta  ${address.toHex()}+1")
-                        emitLine("lda  ${regAddrLo(regNum) + 2}")
+                        emitLine("lda  ${regAddrByte(regNum, 2)}")
                         emitLine("sta  ${address.toHex()}+2")
-                        emitLine("lda  ${regAddrLo(regNum) + 3}")
+                        emitLine("lda  ${regAddrByte(regNum, 3)}")
                         emitLine("sta  ${address.toHex()}+3")
                     }
                     IRDataType.FLOAT -> {
@@ -335,10 +375,10 @@ private fun CodeGenerator.translateArgument(arg: FunctionCallArgs.ArgumentSpec, 
                             emitLine("sta  $label")
                             emitLine("lda  ${regAddrHi(regNum)}")
                             emitLine("sta  ${label}+1")
-                            emitLine("lda  ${regAddrLo(regNum) + 2}")
-                            emitLine("sta  ${label}+2")
-                            emitLine("lda  ${regAddrLo(regNum) + 3}")
-                            emitLine("sta  ${label}+3")
+                        emitLine("lda  ${regAddrByte(regNum, 2)}")
+                        emitLine("sta  ${label}+2")
+                        emitLine("lda  ${regAddrByte(regNum, 3)}")
+                        emitLine("sta  ${label}+3")
                         }
                         IRDataType.FLOAT -> {
                             TODO("FLOAT arg to $label")
@@ -421,7 +461,14 @@ private fun CodeGenerator.translateReturnValue(ret: FunctionCallArgs.RegSpec) {
                         emitLine("sty  ${regAddrHi(regNum)}")
                     }
                     IRDataType.LONG -> {
-                        TODO("LONG return to r$regNum (slot/flag not set)")
+                        emitLine("lda  cx16.r14")
+                        emitLine("sta  ${regAddrLo(regNum)}")
+                        emitLine("lda  cx16.r14+1")
+                        emitLine("sta  ${regAddrHi(regNum)}")
+                        emitLine("lda  cx16.r15")
+                        emitLine("sta  ${regAddrLo(regNum + 1)}")
+                        emitLine("lda  cx16.r15+1")
+                        emitLine("sta  ${regAddrHi(regNum + 1)}")
                     }
                     IRDataType.FLOAT -> {
                         TODO("FLOAT return to r$regNum (slot/flag not set)")

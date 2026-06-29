@@ -236,8 +236,11 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
     }
 
     fun emitLabel(label: String) {
-        // Anonymous labels (+, ++, -) should not have a trailing colon in 64tass
-        if (label.all { it == '+' || it == '-' })
+        // 64tass only allows single + or - as anonymous forward/backward labels
+        require(label.length == 1 || label.any { it != '+' && it != '-' }) {
+            "Invalid anonymous label '$label': only single '+' or '-' are allowed in 64tass"
+        }
+        if (label == "+" || label == "-")
             output.appendLine(label)
         else {
             output.appendLine()
@@ -255,6 +258,7 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
     fun regAddrLo(reg: Int): String = "$REGFILE_LABEL+${reg * 2}"
     fun regAddrHi(reg: Int): String = "$REGFILE_LABEL+${reg * 2 + 1}"
     fun regAddr(reg: Int): String = "$REGFILE_LABEL+${reg * 2}"
+    fun regAddrByte(reg: Int, byteOffset: Int): String = "$REGFILE_LABEL+${reg * 2 + byteOffset}"
 
     // === label helpers ===
     // Convert Prog8 scoped names to 64tass-compatible assembly symbols.

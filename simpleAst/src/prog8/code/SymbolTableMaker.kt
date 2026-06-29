@@ -52,8 +52,8 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
     private fun addToSt(node: PtNode, scope: ArrayDeque<StNode>) {
         val stNode = when(node) {
             is PtAsmSub -> {
-                val parameters = node.parameters.map { StExtSubParameter(it.first, it.second.type) }
-                val returns = node.returns.map { StExtSubParameter(it.first, it.second) }
+                val parameters = node.parameters.map { StExtSubParameter(it.second.name, it.second.type, it.first) }
+                val returns = node.returns.map { StExtSubParameter("", it.second, it.first) }
                 StExtSub(node.name, node.address, parameters, returns, node)
             }
             is PtBlock -> {

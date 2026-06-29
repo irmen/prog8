@@ -322,7 +322,7 @@ class StExtSub(name: String,
 
 
 class StSubroutineParameter(val name: String, val type: DataType, val register: RegisterOrPair?)
-class StExtSubParameter(val register: RegisterOrStatusflag, val type: DataType)
+class StExtSubParameter(val name: String, val type: DataType, val register: RegisterOrStatusflag)
 
 sealed class StArrayElement {
     data class Number(val value: Double) : StArrayElement()

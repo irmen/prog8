@@ -84,9 +84,9 @@ fun CodeGenerator.translateBitwise(insn: IRInstruction) {
         }
 
         // Shift memory by register count (ASRNM/LSRNM/LSLNM: r1 = count reg, addr = target)
-        Opcode.ASRNM -> TODO("ASRNM")
-        Opcode.LSRNM -> TODO("LSRNM")
-        Opcode.LSLNM -> TODO("LSLNM")
+        Opcode.ASRNM -> shiftMemoryVar(resolveAddress(addr, label, offset), r1 ?: error("ASRNM needs reg1"), type, isArithmetic = true)
+        Opcode.LSRNM -> shiftMemoryVar(resolveAddress(addr, label, offset), r1 ?: error("LSRNM needs reg1"), type, isArithmetic = false)
+        Opcode.LSLNM -> shiftMemoryLeftVar(resolveAddress(addr, label, offset), r1 ?: error("LSLNM needs reg1"), type)
 
         // Shift by 1 (ASR/LSR/LSL: single-bit shift, no count operand)
         Opcode.ASR -> arithmeticShiftRight(r1 ?: error("ASR needs reg1"), 1, type)
@@ -150,12 +150,12 @@ private fun CodeGenerator.andRegisters(dst: Int, src: Int, type: IRDataType) {
             emitLine("lda  ${regAddrHi(dst)}")
             emitLine("and  ${regAddrHi(src)}")
             emitLine("sta  ${regAddrHi(dst)}")
-            emitLine("lda  ${regAddrLo(dst) + 2}")
-            emitLine("and  ${regAddrLo(src) + 2}")
-            emitLine("sta  ${regAddrLo(dst) + 2}")
-            emitLine("lda  ${regAddrLo(dst) + 3}")
-            emitLine("and  ${regAddrLo(src) + 3}")
-            emitLine("sta  ${regAddrLo(dst) + 3}")
+            emitLine("lda  ${regAddrByte(dst, 2)}")
+            emitLine("and  ${regAddrByte(src, 2)}")
+            emitLine("sta  ${regAddrByte(dst, 2)}")
+            emitLine("lda  ${regAddrByte(dst, 3)}")
+            emitLine("and  ${regAddrByte(src, 3)}")
+            emitLine("sta  ${regAddrByte(dst, 3)}")
         }
         IRDataType.FLOAT -> TODO("FLOAT ANDR r$dst, r$src")
     }
@@ -183,12 +183,12 @@ private fun CodeGenerator.andImmediate(dst: Int, value: Int, type: IRDataType) {
             emitLine("lda  ${regAddrHi(dst)}")
             emitLine("and  #>${value and 0xffff}")
             emitLine("sta  ${regAddrHi(dst)}")
-            emitLine("lda  ${regAddrLo(dst) + 2}")
+            emitLine("lda  ${regAddrByte(dst, 2)}")
             emitLine("and  #${(value ushr 16) and 0xff}")
-            emitLine("sta  ${regAddrLo(dst) + 2}")
-            emitLine("lda  ${regAddrLo(dst) + 3}")
+            emitLine("sta  ${regAddrByte(dst, 2)}")
+            emitLine("lda  ${regAddrByte(dst, 3)}")
             emitLine("and  #${(value ushr 24) and 0xff}")
-            emitLine("sta  ${regAddrLo(dst) + 3}")
+            emitLine("sta  ${regAddrByte(dst, 3)}")
         }
         IRDataType.FLOAT -> TODO("FLOAT AND r$dst #$value")
     }
@@ -386,8 +386,8 @@ private fun CodeGenerator.logicalShiftLeft(reg: Int, count: Int, type: IRDataTyp
             IRDataType.LONG -> {
                 emitLine("asl  ${regAddrLo(reg)}")
                 emitLine("rol  ${regAddrHi(reg)}")
-                emitLine("rol  ${regAddrLo(reg) + 2}")
-                emitLine("rol  ${regAddrLo(reg) + 3}")
+                emitLine("rol  ${regAddrByte(reg, 2)}")
+                emitLine("rol  ${regAddrByte(reg, 3)}")
             }
             IRDataType.FLOAT -> TODO("FLOAT LSLN r$reg, $count")
         }
@@ -418,8 +418,8 @@ private fun CodeGenerator.logicalShiftRight(reg: Int, count: Int, type: IRDataTy
                 emitLine("ror  ${regAddrLo(reg)}")
             }
             IRDataType.LONG -> {
-                emitLine("lsr  ${regAddrLo(reg) + 3}")
-                emitLine("ror  ${regAddrLo(reg) + 2}")
+                emitLine("lsr  ${regAddrByte(reg, 3)}")
+                emitLine("ror  ${regAddrByte(reg, 2)}")
                 emitLine("ror  ${regAddrHi(reg)}")
                 emitLine("ror  ${regAddrLo(reg)}")
             }
@@ -476,6 +476,12 @@ private fun CodeGenerator.logicalShiftLeftVar(reg: Int, countReg: Int, type: IRD
             emitLine("asl  ${regAddrLo(reg)}")
             emitLine("rol  ${regAddrHi(reg)}")
         }
+        IRDataType.LONG -> {
+            emitLine("asl  ${regAddrLo(reg)}")
+            emitLine("rol  ${regAddrLo(reg) + 1}")
+            emitLine("rol  ${regAddrByte(reg, 2)}")
+            emitLine("rol  ${regAddrByte(reg, 3)}")
+        }
         else -> TODO("LSL r$reg, r$countReg ${type.name}")
     }
     emitLine("dex")
@@ -493,6 +499,12 @@ private fun CodeGenerator.logicalShiftRightVar(reg: Int, countReg: Int, type: IR
         }
         IRDataType.WORD -> {
             emitLine("lsr  ${regAddrHi(reg)}")
+            emitLine("ror  ${regAddrLo(reg)}")
+        }
+        IRDataType.LONG -> {
+            emitLine("lsr  ${regAddrByte(reg, 3)}")
+            emitLine("ror  ${regAddrByte(reg, 2)}")
+            emitLine("ror  ${regAddrLo(reg) + 1}")
             emitLine("ror  ${regAddrLo(reg)}")
         }
         else -> TODO("LSR r$reg, r$countReg ${type.name}")
@@ -518,10 +530,92 @@ private fun CodeGenerator.arithmeticShiftRightVar(reg: Int, countReg: Int, type:
             emitLine("ror  ${regAddrHi(reg)}")
             emitLine("ror  ${regAddrLo(reg)}")
         }
+        IRDataType.LONG -> {
+            emitLine("lda  ${regAddrByte(reg, 3)}")
+            emitLine("cmp  #128")
+            emitLine("ror  ${regAddrByte(reg, 3)}")
+            emitLine("ror  ${regAddrByte(reg, 2)}")
+            emitLine("ror  ${regAddrLo(reg) + 1}")
+            emitLine("ror  ${regAddrLo(reg)}")
+        }
         else -> TODO("ASR r$reg, r$countReg ${type.name}")
     }
     emitLine("dex")
     emitLine("bne  loop")
+    emitLabel("+")
+}
+
+// === Memory variable-count shifts ===
+
+private fun CodeGenerator.shiftMemoryVar(target: String, countReg: Int, type: IRDataType, isArithmetic: Boolean) {
+    emitLine("ldx  ${regAddrLo(countReg)}")
+    emitLine("beq  +")
+    emitLabel("shiftmem_loop")
+    when (type) {
+        IRDataType.BYTE -> {
+            if (isArithmetic) {
+                emitLine("lda  $target")
+                emitLine("cmp  #128")
+                emitLine("ror  $target")
+            } else {
+                emitLine("lsr  $target")
+            }
+        }
+        IRDataType.WORD -> {
+            if (isArithmetic) {
+                emitLine("lda  $target+1")
+                emitLine("cmp  #128")
+                emitLine("ror  $target+1")
+                emitLine("ror  $target")
+            } else {
+                emitLine("lsr  $target+1")
+                emitLine("ror  $target")
+            }
+        }
+        IRDataType.LONG -> {
+            if (isArithmetic) {
+                emitLine("lda  $target+3")
+                emitLine("cmp  #128")
+                emitLine("ror  $target+3")
+                emitLine("ror  $target+2")
+                emitLine("ror  $target+1")
+                emitLine("ror  $target")
+            } else {
+                emitLine("lsr  $target+3")
+                emitLine("ror  $target+2")
+                emitLine("ror  $target+1")
+                emitLine("ror  $target")
+            }
+        }
+        else -> TODO("shiftmem ${if(isArithmetic) "ASR" else "LSR"} $target ${type.name}")
+    }
+    emitLine("dex")
+    emitLine("bne  shiftmem_loop")
+    emitLabel("+")
+}
+
+private fun CodeGenerator.shiftMemoryLeftVar(target: String, countReg: Int, type: IRDataType) {
+    emitLine("ldx  ${regAddrLo(countReg)}")
+    emitLine("beq  +")
+    emitLabel("shiftmeml_loop")
+    when (type) {
+        IRDataType.BYTE -> {
+            emitLine("asl  $target")
+        }
+        IRDataType.WORD -> {
+            emitLine("asl  $target")
+            emitLine("rol  $target+1")
+        }
+        IRDataType.LONG -> {
+            emitLine("asl  $target")
+            emitLine("rol  $target+1")
+            emitLine("rol  $target+2")
+            emitLine("rol  $target+3")
+        }
+        else -> TODO("LSLNM $target ${type.name}")
+    }
+    emitLine("dex")
+    emitLine("bne  shiftmeml_loop")
     emitLabel("+")
 }
 

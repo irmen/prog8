@@ -138,9 +138,9 @@ private fun CodeGenerator.emitCmpForBranch(insn: IRInstruction) {
                 emitLine("cmp  #${immediate and 0xff}")
                 emitLine("lda  ${regAddrHi(r1)}")
                 emitLine("cmp  #${(immediate shr 8) and 0xff}")
-                emitLine("lda  ${regAddrLo(r1) + 2}")
+                emitLine("lda  ${regAddrByte(r1, 2)}")
                 emitLine("cmp  #${(immediate shr 16) and 0xff}")
-                emitLine("lda  ${regAddrLo(r1) + 3}")
+                emitLine("lda  ${regAddrByte(r1, 3)}")
                 emitLine("cmp  #${(immediate shr 24) and 0xff}")
             }
             IRDataType.FLOAT -> TODO("FLOAT branch cmp")
@@ -164,10 +164,10 @@ private fun CodeGenerator.emitCmpForBranch(insn: IRInstruction) {
                 emitLine("cmp  ${regAddrLo(r2)}")
                 emitLine("lda  ${regAddrHi(r1)}")
                 emitLine("cmp  ${regAddrHi(r2)}")
-                emitLine("lda  ${regAddrLo(r1) + 2}")
-                emitLine("cmp  ${regAddrLo(r2) + 2}")
-                emitLine("lda  ${regAddrLo(r1) + 3}")
-                emitLine("cmp  ${regAddrLo(r2) + 3}")
+                emitLine("lda  ${regAddrByte(r1, 2)}")
+                emitLine("cmp  ${regAddrByte(r2, 2)}")
+                emitLine("lda  ${regAddrByte(r1, 3)}")
+                emitLine("cmp  ${regAddrByte(r2, 3)}")
             }
             IRDataType.FLOAT -> TODO("FLOAT branch cmp")
         }

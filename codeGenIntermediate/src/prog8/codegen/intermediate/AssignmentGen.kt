@@ -55,7 +55,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                         if(!target.void) {
                             val reg = it.second.first
                             val regnum = codeGen.registers.next(irType(it.second.second))
-                            val p = StExtSubParameter(reg, it.second.second)
+                            val p = StExtSubParameter("", it.second.second, reg)
                             result += assignCpuRegister(p, regnum, target)
                         }
                     }
@@ -71,7 +71,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                         if(!target.void) {
                             val reg = it.second.first
                             val regnum = codeGen.registers.next(irType(it.second.second))
-                            val p = StExtSubParameter(reg, it.second.second)
+                            val p = StExtSubParameter("", it.second.second, reg)
                             result += assignCpuRegister(p, regnum, target)
                         }
                     }
