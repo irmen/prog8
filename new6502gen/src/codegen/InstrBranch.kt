@@ -145,7 +145,7 @@ private fun CodeGenerator.emitCmpForBranch(insn: IRInstruction) {
                 emitLine("lda  ${regAddrByte(r1, 3)}")
                 emitLine("sbc  #${(immediate shr 24) and 0xff}")
             }
-            IRDataType.FLOAT -> TODO("FLOAT branch cmp")
+            else -> throw IllegalArgumentException("no cmp on type $type") 
         }
     } else {
         // Register vs register comparison
@@ -171,7 +171,7 @@ private fun CodeGenerator.emitCmpForBranch(insn: IRInstruction) {
                 emitLine("lda  ${regAddrByte(r1, 3)}")
                 emitLine("sbc  ${regAddrByte(r2, 3)}")
             }
-            IRDataType.FLOAT -> TODO("FLOAT branch cmp")
+            else -> throw IllegalArgumentException("no cmp on type $type")
         }
     }
 }

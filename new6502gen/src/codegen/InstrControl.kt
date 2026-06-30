@@ -64,13 +64,23 @@ fun CodeGenerator.translateControl(insn: IRInstruction) {
         Opcode.CALLFAR -> {
             val target = label ?: (addr?.value ?: 0u).toHex()
             val bank = imm ?: 0
-            TODO("CALLFAR $target, bank=$bank")
+            val jsrfar = jsrfarRoutine()
+            emitLine("jsr  $jsrfar")
+            emitLine(".word  $target")
+            emitLine(".byte  $$bank")
         }
 
         Opcode.CALLFARVB -> {
             val target = label ?: (addr?.value ?: 0u).toHex()
             val bankReg = r1 ?: error("CALLFARVB needs reg1")
-            TODO("CALLFARVB $target, bank in r$bankReg")
+            val jsrfar = jsrfarRoutine()
+            val patchLabel = makeLabel("callfarvb_patch")
+            emitLine("lda  ${regAddrLo(bankReg)}")
+            emitLine("sta  ${patchLabel}+2")
+            emitLine("jsr  $jsrfar")
+            emitLabel(patchLabel)
+            emitLine(".word  $target")
+            emitLine(".byte  0")
         }
 
         Opcode.SYSCALL -> {
@@ -104,9 +114,9 @@ fun CodeGenerator.translateControl(insn: IRInstruction) {
                         emitLine("sta  cx16.r14")
                         emitLine("lda  ${regAddrHi(reg)}")
                         emitLine("sta  cx16.r14+1")
-                        emitLine("lda  ${regAddrLo(reg + 1)}")
+                        emitLine("lda  ${regAddrByte(reg, 2)}")
                         emitLine("sta  cx16.r15")
-                        emitLine("lda  ${regAddrHi(reg + 1)}")
+                        emitLine("lda  ${regAddrByte(reg, 3)}")
                         emitLine("sta  cx16.r15+1")
                     }
                 }
@@ -169,9 +179,9 @@ fun CodeGenerator.translateControl(insn: IRInstruction) {
                         emitLine("pha")
                     }
                     IRDataType.LONG -> {
-                        emitLine("lda  ${regAddrHi(reg + 1)}")
+                        emitLine("lda  ${regAddrByte(reg, 3)}")
                         emitLine("pha")
-                        emitLine("lda  ${regAddrLo(reg + 1)}")
+                        emitLine("lda  ${regAddrByte(reg, 2)}")
                         emitLine("pha")
                         emitLine("lda  ${regAddrHi(reg)}")
                         emitLine("pha")
@@ -210,9 +220,9 @@ fun CodeGenerator.translateControl(insn: IRInstruction) {
                         emitLine("pla")
                         emitLine("sta  ${regAddrHi(reg)}")
                         emitLine("pla")
-                        emitLine("sta  ${regAddrLo(reg + 1)}")
+                        emitLine("sta  ${regAddrByte(reg, 2)}")
                         emitLine("pla")
-                        emitLine("sta  ${regAddrHi(reg + 1)}")
+                        emitLine("sta  ${regAddrByte(reg, 3)}")
                     }
                 }
             }
@@ -371,9 +381,11 @@ fun CodeGenerator.translateControl(insn: IRInstruction) {
                 TODO("SGN (integer)")
         }
 
-        Opcode.FFROMUB, Opcode.FFROMSB, Opcode.FFROMUW, Opcode.FFROMSW, Opcode.FFROMSL -> translateFloatFromInt(insn)
+        Opcode.FFROMUB, Opcode.FFROMSB, Opcode.FFROMUW, Opcode.FFROMSW -> translateFloatFromInt(insn)
+        Opcode.FFROMSL -> translateFloatFromSignedLong(insn)
 
-        Opcode.FTOUB, Opcode.FTOSB, Opcode.FTOUW, Opcode.FTOSW, Opcode.FTOSL -> translateFloatToInt(insn)
+        Opcode.FTOUB, Opcode.FTOSB, Opcode.FTOUW, Opcode.FTOSW -> translateFloatToInt(insn)
+        Opcode.FTOSL -> translateFloatToSignedLong(insn)
 
         Opcode.FABS -> translateFloatUnary(insn, "floats.ABS")
         Opcode.FSIN -> translateFloatUnary(insn, "floats.SIN")
@@ -1188,16 +1200,26 @@ private fun CodeGenerator.translateFloatToInt(insn: IRInstruction) {
     val fpReg = insn.fpReg1 ?: error("${insn.opcode} needs fpReg1 (float input)")
     emitLine("lda  #<${fpRegAddr(fpReg.value)}")
     emitLine("ldy  #>${fpRegAddr(fpReg.value)}")
-    emitLine("jsr  floats.MOVFM")
     when (insn.opcode) {
-        Opcode.FTOUB, Opcode.FTOSB -> {
-            emitLine("jsr  floats.INT")
-            emitLine("jsr  floats.GETADRAY")
-            emitLine("sta  ${regAddrLo(r1)}")
+        Opcode.FTOUB -> {
+            // unsigned byte: use cast_as_uw_into_ya (GETADR), result in Y/A
+            emitLine("jsr  floats.cast_as_uw_into_ya")
+            emitLine("sty  ${regAddrLo(r1)}")   // Y has lo byte
         }
-        Opcode.FTOUW, Opcode.FTOSW -> {
-            emitLine("jsr  floats.INT")
-            emitLine("jsr  floats.GETADRAY")
+        Opcode.FTOSB -> {
+            // signed byte: use cast_as_w_into_ay (AYINT2), result in A/Y
+            emitLine("jsr  floats.cast_as_w_into_ay")
+            emitLine("sta  ${regAddrLo(r1)}")   // A has lo byte
+        }
+        Opcode.FTOUW -> {
+            // unsigned word: use cast_as_uw_into_ya (GETADR), result in Y/A
+            emitLine("jsr  floats.cast_as_uw_into_ya")
+            emitLine("sty  ${regAddrLo(r1)}")
+            emitLine("sta  ${regAddrHi(r1)}")
+        }
+        Opcode.FTOSW -> {
+            // signed word: use cast_as_w_into_ay (AYINT2), result in A/Y
+            emitLine("jsr  floats.cast_as_w_into_ay")
             emitLine("sta  ${regAddrLo(r1)}")
             emitLine("sty  ${regAddrHi(r1)}")
         }
@@ -1250,6 +1272,101 @@ private fun CodeGenerator.translateFloatCeil(insn: IRInstruction) {
     emitLine("ldx  #<${fpRegAddr(dst.value)}")
     emitLine("ldy  #>${fpRegAddr(dst.value)}")
     emitLine("jsr  floats.MOVMF")
+}
+
+private fun CodeGenerator.translateFloatFromSignedLong(insn: IRInstruction) {
+    val r1 = insn.reg1 ?: error("FFROMSL needs reg1 (long input)")
+    val fpReg = insn.fpReg1 ?: error("FFROMSL needs fpReg1 (float output)")
+    val regAddr = regAddr(r1)
+    // Convert 4-byte signed long to float by splitting into high and low words.
+    // float = (float)(signed high_word) * 65536.0 + (float)(unsigned low_word)
+    // Convert low word (bytes 0-1, unsigned) to float and save as temp
+    val float65536 = getFloatConstLabel(65536.0)
+    emitLine("lda  $regAddr")
+    emitLine("ldy  ${regAddr}+1")
+    emitLine("jsr  floats.GIVUAYFAY")
+    emitLine("ldx  #<prog8_fp_temp")
+    emitLine("ldy  #>prog8_fp_temp")
+    emitLine("jsr  floats.MOVMF")
+    // Convert high word (bytes 2-3, signed) to float and multiply by 65536.0
+    emitLine("lda  ${regAddr}+2")
+    emitLine("ldy  ${regAddr}+3")
+    emitLine("jsr  floats.GIVAYFAY")
+    emitLine("lda  #<$float65536")
+    emitLine("ldy  #>$float65536")
+    emitLine("jsr  floats.FMULT")
+    // Add the low word float back
+    emitLine("lda  #<prog8_fp_temp")
+    emitLine("ldy  #>prog8_fp_temp")
+    emitLine("jsr  floats.FADD")
+    // Store to FP register
+    emitLine("ldx  #<${fpRegAddr(fpReg.value)}")
+    emitLine("ldy  #>${fpRegAddr(fpReg.value)}")
+    emitLine("jsr  floats.MOVMF")
+}
+
+private fun CodeGenerator.translateFloatToSignedLong(insn: IRInstruction) {
+    val r1 = insn.reg1 ?: error("FTOSL needs reg1 (long output)")
+    val fpReg = insn.fpReg1 ?: error("FTOSL needs fpReg1 (float input)")
+    val regAddr = regAddr(r1)
+    val facho = "floats.FAC_ADDR+1"    // first mantissa byte after exponent
+    // Load float from FP register into FAC1
+    emitLine("lda  #<${fpRegAddr(fpReg.value)}")
+    emitLine("ldy  #>${fpRegAddr(fpReg.value)}")
+    emitLine("jsr  floats.MOVFM")
+    val fpr = fpReg.value
+    val doneLabel = "ftosl_done_${fpr}_${r1}"
+    val posLabel = "ftosl_pos_${fpr}_${r1}"
+    // Check if FAC1 is zero (exponent = 0)
+    emitLine("lda  floats.FAC_ADDR")
+    emitLine("bne  +")
+    // Zero: store 4 zero bytes and return
+    emitLine("stz  $regAddr")
+    emitLine("stz  ${regAddr}+1")
+    emitLine("stz  ${regAddr}+2")
+    emitLine("stz  ${regAddr}+3")
+    emitLine("bra  $doneLabel")
+    // Non-zero: check sign (bit 7 of FAC_ADDR+1)
+    emitLine("+   lda  floats.FAC_ADDR+1")
+    emitLine("bpl  $posLabel")
+    // Negative: negate, QINT, copy mantissa, then negate the 4-byte result
+    emitLine("jsr  floats.NEGOP")
+    emitLine("jsr  floats.QINT")
+    emitLine("lda  $facho+3")
+    emitLine("sta  $regAddr")
+    emitLine("lda  $facho+2")
+    emitLine("sta  ${regAddr}+1")
+    emitLine("lda  $facho+1")
+    emitLine("sta  ${regAddr}+2")
+    emitLine("lda  $facho")
+    emitLine("sta  ${regAddr}+3")
+    // Negate the 32-bit result (two's complement)
+    emitLine("sec")
+    emitLine("lda  #0")
+    emitLine("sbc  $regAddr")
+    emitLine("sta  $regAddr")
+    emitLine("lda  #0")
+    emitLine("sbc  ${regAddr}+1")
+    emitLine("sta  ${regAddr}+1")
+    emitLine("lda  #0")
+    emitLine("sbc  ${regAddr}+2")
+    emitLine("sta  ${regAddr}+2")
+    emitLine("lda  #0")
+    emitLine("sbc  ${regAddr}+3")
+    emitLine("sta  ${regAddr}+3")
+    emitLine("bra  $doneLabel")
+    // Positive: QINT and copy mantissa bytes to target
+    emitLine("$posLabel:")
+    emitLine("jsr  floats.QINT")
+    emitLine("lda  $facho+3")
+    emitLine("sta  $regAddr")
+    emitLine("lda  $facho+2")
+    emitLine("sta  ${regAddr}+1")
+    emitLine("lda  $facho+1")
+    emitLine("sta  ${regAddr}+2")
+    emitLine("lda  $facho")
+    emitLine("sta  ${regAddr}+3")
+    emitLine("$doneLabel:")
 }
 
 private fun CodeGenerator.translateFloatCompare(insn: IRInstruction) {

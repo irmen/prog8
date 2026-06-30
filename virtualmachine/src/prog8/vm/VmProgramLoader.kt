@@ -65,15 +65,29 @@ class VmProgramLoader {
                 when(child) {
                     is IRAsmSubroutine -> throw IRParseException("vm does not support asmsubs (use normal sub): ${child.label}")
                     is IRCodeChunk -> programChunks += child
-                    is IRInlineAsmChunk -> throw IRParseException("encountered unconverted inline assembly chunk")
+                    is IRInlineAsmChunk -> {
+                        val asmText = child.assembly.trim()
+                        when (asmText) {
+                            "clc" -> programChunks.lastOrNull()?.instructions?.add(IRInstruction(Opcode.CLC))
+                            "sec" -> programChunks.lastOrNull()?.instructions?.add(IRInstruction(Opcode.SEC))
+                            else -> throw IRParseException("encountered unconverted inline assembly chunk")
+                        }
+                    }
                     is IRInlineBinaryChunk -> throw IRParseException("inline binary data not yet supported in the VM")
                     is IRSubroutine -> {
                         subroutines[SymbolNames.stripPrefixes(child.label)] = child
-                        child.chunks.forEach { chunk ->
-                            when (chunk) {
-                                is IRInlineAsmChunk -> throw IRParseException("encountered unconverted inline assembly chunk")
+                        child.chunks.forEach { subChunk ->
+                            when (subChunk) {
+                                is IRInlineAsmChunk -> {
+                                    val asmText = subChunk.assembly.trim()
+                                    when (asmText) {
+                                        "clc" -> programChunks.lastOrNull()?.instructions?.add(IRInstruction(Opcode.CLC))
+                                        "sec" -> programChunks.lastOrNull()?.instructions?.add(IRInstruction(Opcode.SEC))
+                                        else -> throw IRParseException("encountered unconverted inline assembly chunk")
+                                    }
+                                }
                                 is IRInlineBinaryChunk -> throw IRParseException("inline binary data not yet supported in the VM")
-                                is IRCodeChunk -> programChunks += chunk
+                                is IRCodeChunk -> programChunks += subChunk
                             }
                         }
                     }

@@ -20,12 +20,6 @@
  *
  * Instruction translation is dispatched to extension functions in separate files:
  *   InstrLoadStore.kt, InstrArithmetic.kt, InstrBitwise.kt, InstrBranch.kt, InstrControl.kt
- *
- * Not yet implemented:
- *   - CALLFAR, CALLFARVB (banked calls to extsubs with ROM bank)
- *   - FFROMSL (signed 32-bit integer to float conversion)
- *   - FTOSL (float to signed 32-bit integer conversion)
- *   - Some bitwise operations (ASRM, LSRM, LSLM, ROXRM, ROXLM)
  */
 
 package codegen
@@ -1210,6 +1204,11 @@ class CodeGenerator(val program: IRProgram, private val target: ICompilationTarg
             emitRaw("    .send BSS")
             emitRaw("")
         }
+
+        // Emit temporary float storage (5 bytes in BSS) for FFROMSL/FTOSL
+        emitRaw("    .section BSS")
+        emitRaw("prog8_fp_temp  .byte  0,0,0,0,0")
+        emitRaw("    .send BSS")
     }
 
     private fun emitUninitializedVariable(v: IRStStaticVariable) {

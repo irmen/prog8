@@ -756,6 +756,12 @@ private fun CodeGenerator.rotateLeftThroughCarryMemory(target: String, type: IRD
             emitLine("rol  $target")
             emitLine("rol  $target+1")
         }
+        IRDataType.LONG -> {
+            emitLine("rol  $target")
+            emitLine("rol  $target+1")
+            emitLine("rol  $target+2")
+            emitLine("rol  $target+3")
+        }
         else -> TODO("ROXLM $target ${type.name}")
     }
 }
@@ -766,6 +772,12 @@ private fun CodeGenerator.rotateRightThroughCarryMemory(target: String, type: IR
             emitLine("ror  $target")
         }
         IRDataType.WORD -> {
+            emitLine("ror  $target+1")
+            emitLine("ror  $target")
+        }
+        IRDataType.LONG -> {
+            emitLine("ror  $target+3")
+            emitLine("ror  $target+2")
             emitLine("ror  $target+1")
             emitLine("ror  $target")
         }
