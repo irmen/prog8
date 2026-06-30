@@ -8,6 +8,13 @@
  *   - LOADHR/STOREHR transfer between virtual regs and physical CPU registers via slot number
  *   - Math routines (mul/div/mod) are emitted as jsr calls to external helpers
  *
+ * TEMPORARY: All virtual registers are spilled to memory in the register file.
+ * This is extremely wasteful - every operation on a LONG value requires
+ * 4 separate load/op/store sequences from/to memory. A proper register
+ * allocator should assign frequently-used virtual registers to real CPU
+ * registers (zeropage or A/X/Y) to eliminate this spilling overhead.
+ * The current approach is a placeholder until register allocation is implemented.
+ *
  * IMPORTANT: inline asmsubs must be inlined at the call site, NOT emitted as subroutines.
  * An `inline asmsub` in Prog8 source has its assembly body inserted directly at the call
  * location - no jsr, no .proc/.pend, no rts. The old codegen (FunctionCallAsmGen.kt)
@@ -1170,6 +1177,9 @@ class CodeGenerator(val program: IRProgram, private val target: ICompilationTarg
         // BSS_NOCLEAR: dirty variables first, then the register file.
         // Both go into the same .section/.send block so the regfile label
         // sits AFTER the dirty vars and the regfile data starts cleanly.
+        // TODO: replace the register file with proper register allocation
+        // so that frequently-used virtual registers are mapped to real CPU
+        // registers instead of always spilling to memory.
         val (dirty, clean) = vars.partition { it.dirty }
         if (dirty.isNotEmpty() || regFileLayout.totalSize > 0) {
             emitRaw("    .section BSS_NOCLEAR")

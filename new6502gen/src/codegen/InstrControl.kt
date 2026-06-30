@@ -572,14 +572,13 @@ private fun CodeGenerator.translateArgument(arg: FunctionCallArgs.ArgumentSpec, 
                                 emitLine("sta  ${address.toHex()}+1")
                             }
                             IRDataType.LONG -> {
-                                emitLine("lda  ${regAddrLo(regNum)}")
-                                emitLine("sta  ${address.toHex()}")
-                                emitLine("lda  ${regAddrHi(regNum)}")
-                                emitLine("sta  ${address.toHex()}+1")
-                                emitLine("lda  ${regAddrByte(regNum, 2)}")
-                                emitLine("sta  ${address.toHex()}+2")
-                                emitLine("lda  ${regAddrByte(regNum, 3)}")
-                                emitLine("sta  ${address.toHex()}+3")
+                                val a = address.toHex()
+                                val base = regAddrByte(regNum, 0)
+                                emitLine("ldy  #3")
+                                emitLine("-  lda  $base,y")
+                                emitLine("sta  $a,y")
+                                emitLine("dey")
+                                emitLine("bpl  -")
                             }
                             IRDataType.FLOAT -> {
                                 emitLine("lda  #<${fpRegAddr(regNum)}")
@@ -609,14 +608,12 @@ private fun CodeGenerator.translateArgument(arg: FunctionCallArgs.ArgumentSpec, 
                                 emitLine("sta  ${asmTarget}+1")
                             }
                             IRDataType.LONG -> {
-                                emitLine("lda  ${regAddrLo(regNum)}")
-                                emitLine("sta  $asmTarget")
-                                emitLine("lda  ${regAddrHi(regNum)}")
-                                emitLine("sta  ${asmTarget}+1")
-                                emitLine("lda  ${regAddrByte(regNum, 2)}")
-                                emitLine("sta  ${asmTarget}+2")
-                                emitLine("lda  ${regAddrByte(regNum, 3)}")
-                                emitLine("sta  ${asmTarget}+3")
+                                val base = regAddrByte(regNum, 0)
+                                emitLine("ldy  #3")
+                                emitLine("-  lda  $base,y")
+                                emitLine("sta  $asmTarget,y")
+                                emitLine("dey")
+                                emitLine("bpl  -")
                             }
                             IRDataType.FLOAT -> {
                                 emitLine("lda  #<${fpRegAddr(regNum)}")
@@ -681,14 +678,12 @@ private fun CodeGenerator.translateArgument(arg: FunctionCallArgs.ArgumentSpec, 
                                 emitLine("sta  ${target}+1")
                             }
                             IRDataType.LONG -> {
-                                emitLine("lda  ${regAddrLo(regNum)}")
-                                emitLine("sta  $target")
-                                emitLine("lda  ${regAddrHi(regNum)}")
-                                emitLine("sta  ${target}+1")
-                                emitLine("lda  ${regAddrByte(regNum, 2)}")
-                                emitLine("sta  ${target}+2")
-                                emitLine("lda  ${regAddrByte(regNum, 3)}")
-                                emitLine("sta  ${target}+3")
+                                val base = regAddrByte(regNum, 0)
+                                emitLine("ldy  #3")
+                                emitLine("-  lda  $base,y")
+                                emitLine("sta  $target,y")
+                                emitLine("dey")
+                                emitLine("bpl  -")
                             }
                             IRDataType.FLOAT -> {
                                 emitLine("lda  #<${fpRegAddr(regNum)}")

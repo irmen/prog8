@@ -145,20 +145,7 @@ private fun CodeGenerator.andRegisters(dst: Int, src: Int, type: IRDataType) {
             emitLine("and  ${regAddrHi(src)}")
             emitLine("sta  ${regAddrHi(dst)}")
         }
-        IRDataType.LONG -> {
-            emitLine("lda  ${regAddrLo(dst)}")
-            emitLine("and  ${regAddrLo(src)}")
-            emitLine("sta  ${regAddrLo(dst)}")
-            emitLine("lda  ${regAddrHi(dst)}")
-            emitLine("and  ${regAddrHi(src)}")
-            emitLine("sta  ${regAddrHi(dst)}")
-            emitLine("lda  ${regAddrByte(dst, 2)}")
-            emitLine("and  ${regAddrByte(src, 2)}")
-            emitLine("sta  ${regAddrByte(dst, 2)}")
-            emitLine("lda  ${regAddrByte(dst, 3)}")
-            emitLine("and  ${regAddrByte(src, 3)}")
-            emitLine("sta  ${regAddrByte(dst, 3)}")
-        }
+        IRDataType.LONG -> byteLoop4(regAddrByte(dst, 0), regAddrByte(src, 0), "and")
         IRDataType.FLOAT -> error("bitwise operations are not supported on floats")
     }
 }
@@ -211,7 +198,8 @@ private fun CodeGenerator.andMemory(dst: Int, source: String, type: IRDataType) 
             emitLine("and  ${regAddrHi(dst)}")
             emitLine("sta  $source+1")
         }
-        else -> TODO("ANDM r$dst, $source ${type.name}")
+        IRDataType.LONG -> byteLoop4(source, regAddrByte(dst, 0), "and")
+        else -> error("ANDM not supported on ${type.name}")
     }
 }
 
@@ -232,7 +220,8 @@ private fun CodeGenerator.orRegisters(dst: Int, src: Int, type: IRDataType) {
             emitLine("ora  ${regAddrHi(src)}")
             emitLine("sta  ${regAddrHi(dst)}")
         }
-        else -> TODO("ORR r$dst, r$src ${type.name}")
+        IRDataType.LONG -> byteLoop4(regAddrByte(dst, 0), regAddrByte(src, 0), "ora")
+        else -> error("ORR not supported on ${type.name}")
     }
 }
 
@@ -251,7 +240,21 @@ private fun CodeGenerator.orImmediate(dst: Int, value: Int, type: IRDataType) {
             emitLine("ora  #>${value and 0xffff}")
             emitLine("sta  ${regAddrHi(dst)}")
         }
-        else -> TODO("OR r$dst, #$value ${type.name}")
+        IRDataType.LONG -> {
+            emitLine("lda  ${regAddrByte(dst, 0)}")
+            emitLine("ora  #${value and 0xff}")
+            emitLine("sta  ${regAddrByte(dst, 0)}")
+            emitLine("lda  ${regAddrByte(dst, 1)}")
+            emitLine("ora  #${(value shr 8) and 0xff}")
+            emitLine("sta  ${regAddrByte(dst, 1)}")
+            emitLine("lda  ${regAddrByte(dst, 2)}")
+            emitLine("ora  #${(value shr 16) and 0xff}")
+            emitLine("sta  ${regAddrByte(dst, 2)}")
+            emitLine("lda  ${regAddrByte(dst, 3)}")
+            emitLine("ora  #${(value shr 24) and 0xff}")
+            emitLine("sta  ${regAddrByte(dst, 3)}")
+        }
+        else -> error("OR not supported on ${type.name}")
     }
 }
 
@@ -270,7 +273,8 @@ private fun CodeGenerator.orMemory(dst: Int, source: String, type: IRDataType) {
             emitLine("ora  ${regAddrHi(dst)}")
             emitLine("sta  $source+1")
         }
-        else -> TODO("ORM r$dst, $source ${type.name}")
+        IRDataType.LONG -> byteLoop4(source, regAddrByte(dst, 0), "ora")
+        else -> error("ORM not supported on ${type.name}")
     }
 }
 
@@ -291,7 +295,8 @@ private fun CodeGenerator.xorRegisters(dst: Int, src: Int, type: IRDataType) {
             emitLine("eor  ${regAddrHi(src)}")
             emitLine("sta  ${regAddrHi(dst)}")
         }
-        else -> TODO("XORR r$dst, r$src ${type.name}")
+        IRDataType.LONG -> byteLoop4(regAddrByte(dst, 0), regAddrByte(src, 0), "eor")
+        else -> error("XORR not supported on ${type.name}")
     }
 }
 
@@ -310,7 +315,21 @@ private fun CodeGenerator.xorImmediate(dst: Int, value: Int, type: IRDataType) {
             emitLine("eor  #>${value and 0xffff}")
             emitLine("sta  ${regAddrHi(dst)}")
         }
-        else -> TODO("XOR r$dst, #$value ${type.name}")
+        IRDataType.LONG -> {
+            emitLine("lda  ${regAddrByte(dst, 0)}")
+            emitLine("eor  #${value and 0xff}")
+            emitLine("sta  ${regAddrByte(dst, 0)}")
+            emitLine("lda  ${regAddrByte(dst, 1)}")
+            emitLine("eor  #${(value shr 8) and 0xff}")
+            emitLine("sta  ${regAddrByte(dst, 1)}")
+            emitLine("lda  ${regAddrByte(dst, 2)}")
+            emitLine("eor  #${(value shr 16) and 0xff}")
+            emitLine("sta  ${regAddrByte(dst, 2)}")
+            emitLine("lda  ${regAddrByte(dst, 3)}")
+            emitLine("eor  #${(value shr 24) and 0xff}")
+            emitLine("sta  ${regAddrByte(dst, 3)}")
+        }
+        else -> error("XOR not supported on ${type.name}")
     }
 }
 
@@ -329,7 +348,8 @@ private fun CodeGenerator.xorMemory(dst: Int, source: String, type: IRDataType) 
             emitLine("eor  ${regAddrHi(dst)}")
             emitLine("sta  $source+1")
         }
-        else -> TODO("XORM r$dst, $source ${type.name}")
+        IRDataType.LONG -> byteLoop4(source, regAddrByte(dst, 0), "eor")
+        else -> error("XORM not supported on ${type.name}")
     }
 }
 
@@ -350,7 +370,8 @@ private fun CodeGenerator.invertRegister(reg: Int, type: IRDataType) {
             emitLine("eor  #255")
             emitLine("sta  ${regAddrHi(reg)}")
         }
-        else -> TODO("INV r$reg ${type.name}")
+        IRDataType.LONG -> byteLoop4Unary(regAddrByte(reg, 0), "eor  #255")
+        else -> error("INV not supported on ${type.name}")
     }
 }
 
@@ -369,7 +390,8 @@ private fun CodeGenerator.invertMemory(target: String, type: IRDataType) {
             emitLine("eor  #255")
             emitLine("sta  $target+1")
         }
-        else -> TODO("INVM $target ${type.name}")
+        IRDataType.LONG -> byteLoop4Unary(target, "eor  #255")
+        else -> error("INVM not supported on ${type.name}")
     }
 }
 
@@ -404,7 +426,13 @@ private fun CodeGenerator.logicalShiftLeftMemory(target: String, count: Int, typ
                 emitLine("asl  $target")
                 emitLine("rol  $target+1")
             }
-            else -> TODO("LSLNM $target, $count ${type.name}")
+            IRDataType.LONG -> {
+                emitLine("asl  $target")
+                emitLine("rol  $target+1")
+                emitLine("rol  $target+2")
+                emitLine("rol  $target+3")
+            }
+            else -> error("LSLM not supported on ${type.name}")
         }
     }
 }
@@ -438,7 +466,13 @@ private fun CodeGenerator.logicalShiftRightMemory(target: String, count: Int, ty
                 emitLine("lsr  $target+1")
                 emitLine("ror  $target")
             }
-            else -> TODO("LSRNM $target, $count ${type.name}")
+            IRDataType.LONG -> {
+                emitLine("lsr  $target+3")
+                emitLine("ror  $target+2")
+                emitLine("ror  $target+1")
+                emitLine("ror  $target")
+            }
+            else -> error("LSRM not supported on ${type.name}")
         }
     }
 }
@@ -670,7 +704,14 @@ private fun CodeGenerator.rotateLeft(reg: Int, type: IRDataType) {
             emitLine("rol  ${regAddrLo(reg)}")
             emitLine("rol  ${regAddrHi(reg)}")
         }
-        else -> TODO("ROL r$reg ${type.name}")
+        IRDataType.LONG -> {
+            emitLine("clc")
+            emitLine("rol  ${regAddrLo(reg)}")
+            emitLine("rol  ${regAddrHi(reg)}")
+            emitLine("rol  ${regAddrByte(reg, 2)}")
+            emitLine("rol  ${regAddrByte(reg, 3)}")
+        }
+        else -> error("ROL not supported on ${type.name}")
     }
 }
 
@@ -685,7 +726,14 @@ private fun CodeGenerator.rotateLeftMemory(target: String, type: IRDataType) {
             emitLine("rol  $target")
             emitLine("rol  $target+1")
         }
-        else -> TODO("ROLM $target ${type.name}")
+        IRDataType.LONG -> {
+            emitLine("clc")
+            emitLine("rol  $target")
+            emitLine("rol  $target+1")
+            emitLine("rol  $target+2")
+            emitLine("rol  $target+3")
+        }
+        else -> error("ROLM not supported on ${type.name}")
     }
 }
 
@@ -700,7 +748,14 @@ private fun CodeGenerator.rotateRight(reg: Int, type: IRDataType) {
             emitLine("ror  ${regAddrHi(reg)}")
             emitLine("ror  ${regAddrLo(reg)}")
         }
-        else -> TODO("ROR r$reg ${type.name}")
+        IRDataType.LONG -> {
+            emitLine("clc")
+            emitLine("ror  ${regAddrByte(reg, 3)}")
+            emitLine("ror  ${regAddrByte(reg, 2)}")
+            emitLine("ror  ${regAddrHi(reg)}")
+            emitLine("ror  ${regAddrLo(reg)}")
+        }
+        else -> error("ROR not supported on ${type.name}")
     }
 }
 
@@ -715,7 +770,14 @@ private fun CodeGenerator.rotateRightMemory(target: String, type: IRDataType) {
             emitLine("ror  $target+1")
             emitLine("ror  $target")
         }
-        else -> TODO("RORM $target ${type.name}")
+        IRDataType.LONG -> {
+            emitLine("clc")
+            emitLine("ror  $target+3")
+            emitLine("ror  $target+2")
+            emitLine("ror  $target+1")
+            emitLine("ror  $target")
+        }
+        else -> error("RORM not supported on ${type.name}")
     }
 }
 
@@ -729,7 +791,13 @@ private fun CodeGenerator.rotateLeftThroughCarry(reg: Int, type: IRDataType) {
             emitLine("rol  ${regAddrLo(reg)}")
             emitLine("rol  ${regAddrHi(reg)}")
         }
-        else -> TODO("ROXL r$reg ${type.name}")
+        IRDataType.LONG -> {
+            emitLine("rol  ${regAddrLo(reg)}")
+            emitLine("rol  ${regAddrHi(reg)}")
+            emitLine("rol  ${regAddrByte(reg, 2)}")
+            emitLine("rol  ${regAddrByte(reg, 3)}")
+        }
+        else -> error("ROXL not supported on ${type.name}")
     }
 }
 
@@ -743,7 +811,13 @@ private fun CodeGenerator.rotateRightThroughCarry(reg: Int, type: IRDataType) {
             emitLine("ror  ${regAddrHi(reg)}")
             emitLine("ror  ${regAddrLo(reg)}")
         }
-        else -> TODO("ROXR r$reg ${type.name}")
+        IRDataType.LONG -> {
+            emitLine("ror  ${regAddrByte(reg, 3)}")
+            emitLine("ror  ${regAddrByte(reg, 2)}")
+            emitLine("ror  ${regAddrHi(reg)}")
+            emitLine("ror  ${regAddrLo(reg)}")
+        }
+        else -> error("ROXR not supported on ${type.name}")
     }
 }
 
@@ -840,4 +914,26 @@ private fun CodeGenerator.bitToggle(reg: Int, bit: Int) {
         emitLine("eor  #${1 shl hbit}")
         emitLine("sta  ${regAddrHi(reg)}")
     }
+}
+
+// === LONG byte loop helpers ===
+// These operations have no carry dependency, so a simple Y-loop works.
+// Keep carry-dependent ops (shifts, rotates) unrolled.
+
+private fun CodeGenerator.byteLoop4(targetBase: String, srcBase: String, op: String) {
+    emitLine("ldy  #3")
+    emitLine("-  lda  $targetBase,y")
+    emitLine("$op  $srcBase,y")
+    emitLine("sta  $targetBase,y")
+    emitLine("dey")
+    emitLine("bpl  -")
+}
+
+private fun CodeGenerator.byteLoop4Unary(targetBase: String, op: String) {
+    emitLine("ldy  #3")
+    emitLine("-  lda  $targetBase,y")
+    emitLine(op)
+    emitLine("sta  $targetBase,y")
+    emitLine("dey")
+    emitLine("bpl  -")
 }
