@@ -65,9 +65,36 @@ fun CodeGenerator.translateControl(insn: IRInstruction) {
             val target = label ?: (addr?.value ?: 0u).toHex()
             val bank = imm ?: 0
             val jsrfar = jsrfarRoutine()
+            val args = insn.fcallArgs
+            if (args != null) {
+                for ((index, arg) in args.arguments.withIndex()) {
+                    if (arg.reg.callingConventionSlot == null)
+                        translateArgument(arg, index, null)
+                }
+                val slotArgs = args.arguments.withIndex().filter { it.value.reg.callingConventionSlot != null }
+                val orderedSlotArgs = slotArgs.sortedWith(compareBy<IndexedValue<FunctionCallArgs.ArgumentSpec>> {
+                    val slot = it.value.reg.callingConventionSlot!!.value
+                    when (slot) {
+                        3, 4, 5 -> 0
+                        2 -> 1
+                        1 -> 2
+                        0 -> 3
+                        6, 7 -> 4
+                        else -> 5
+                    }
+                }.thenByDescending { -it.index })
+                for ((index, arg) in orderedSlotArgs) {
+                    translateArgument(arg, index, null)
+                }
+            }
             emitLine("jsr  $jsrfar")
             emitLine(".word  $target")
-            emitLine(".byte  $$bank")
+            emitLine(".byte  $bank")
+            if (args != null) {
+                for (ret in args.returns) {
+                    translateReturnValue(ret)
+                }
+            }
         }
 
         Opcode.CALLFARVB -> {
@@ -75,12 +102,39 @@ fun CodeGenerator.translateControl(insn: IRInstruction) {
             val bankReg = r1 ?: error("CALLFARVB needs reg1")
             val jsrfar = jsrfarRoutine()
             val patchLabel = makeLabel("callfarvb_patch")
+            val args = insn.fcallArgs
+            if (args != null) {
+                for ((index, arg) in args.arguments.withIndex()) {
+                    if (arg.reg.callingConventionSlot == null)
+                        translateArgument(arg, index, null)
+                }
+                val slotArgs = args.arguments.withIndex().filter { it.value.reg.callingConventionSlot != null }
+                val orderedSlotArgs = slotArgs.sortedWith(compareBy<IndexedValue<FunctionCallArgs.ArgumentSpec>> {
+                    val slot = it.value.reg.callingConventionSlot!!.value
+                    when (slot) {
+                        3, 4, 5 -> 0
+                        2 -> 1
+                        1 -> 2
+                        0 -> 3
+                        6, 7 -> 4
+                        else -> 5
+                    }
+                }.thenByDescending { -it.index })
+                for ((index, arg) in orderedSlotArgs) {
+                    translateArgument(arg, index, null)
+                }
+            }
             emitLine("lda  ${regAddrLo(bankReg)}")
             emitLine("sta  ${patchLabel}+2")
             emitLine("jsr  $jsrfar")
             emitLabel(patchLabel)
             emitLine(".word  $target")
             emitLine(".byte  0")
+            if (args != null) {
+                for (ret in args.returns) {
+                    translateReturnValue(ret)
+                }
+            }
         }
 
         Opcode.SYSCALL -> {

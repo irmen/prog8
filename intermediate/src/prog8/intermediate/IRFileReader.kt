@@ -590,7 +590,7 @@ class IRFileReader {
         require(start.name.localPart=="ASM") { "missing ASM" }
         val label = start.attributes.asSequence().firstOrNull { it.name.localPart == "LABEL" }?.value?.ifBlank { null }
         val isIr = start.attributes.asSequence().single { it.name.localPart == "IR" }.value.toBoolean()
-        val text = readText(reader).trim()
+        val text = readText(reader).trimStart('\n', '\r').trimEnd()
         require(reader.nextEvent().isEndElement)
         return IRInlineAsmChunk(label, text, isIr, null)
     }

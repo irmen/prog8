@@ -1187,7 +1187,8 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             IRInstruction(
                 Opcode.CALLFAR,
                 address = address.address.toAddress(),
-                immediate = address.constbank!!.toInt()
+                immediate = address.constbank!!.toInt(),
+                fcallArgs = fcallArgs
             )
         } else {
             val varBank = address.varbank!!
@@ -1211,7 +1212,8 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             IRInstruction(
                 Opcode.CALLFARVB,
                 address = address.address.toAddress(),
-                reg1 = bankReg
+                reg1 = bankReg,
+                fcallArgs = fcallArgs
             )
         }
     }

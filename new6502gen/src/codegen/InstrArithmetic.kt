@@ -208,22 +208,28 @@ private fun CodeGenerator.decrementRegister(reg: Int, type: IRDataType) {
             emitLine("dec  ${regAddrHi(reg)}")
             emitLabel("+")
             emitLine("dec  ${regAddrLo(reg)}")
+            emitLine("ora  ${regAddrHi(reg)}")
         }
         IRDataType.LONG -> {
+            val label1 = makeLabel("p8_decl_skip_lo")
+            val label2 = makeLabel("p8_decl_skip_hi")
+            val label3 = makeLabel("p8_decl_skip_b2")
             emitLine("lda  ${regAddrLo(reg)}")
-            emitLine("bne  +")
+            emitLine("bne  $label1")
             emitLine("lda  ${regAddrHi(reg)}")
-            emitLine("bne  +")
+            emitLine("bne  $label2")
             emitLine("lda  ${regAddrByte(reg, 2)}")
-            emitLine("bne  +")
+            emitLine("bne  $label3")
             emitLine("dec  ${regAddrByte(reg, 3)}")
-            emitLabel("+")
+            emitLabel(label3)
             emitLine("dec  ${regAddrByte(reg, 2)}")
-            emitLine("bne  +")
+            emitLabel(label2)
             emitLine("dec  ${regAddrHi(reg)}")
-            emitLabel("+")
+            emitLabel(label1)
             emitLine("dec  ${regAddrLo(reg)}")
-            // Note: this decrement logic is simplified and may not handle all cases correctly
+            emitLine("ora  ${regAddrHi(reg)}")
+            emitLine("ora  ${regAddrByte(reg, 2)}")
+            emitLine("ora  ${regAddrByte(reg, 3)}")
         }
         IRDataType.FLOAT -> TODO("FLOAT DEC r$reg")
     }
@@ -261,6 +267,7 @@ private fun CodeGenerator.decrementMemory(target: String, type: IRDataType) {
             emitLine("dec  $target+1")
             emitLabel("+")
             emitLine("dec  $target")
+            emitLine("ora  $target+1")
         }
         IRDataType.LONG -> {
             emitLine("sec")

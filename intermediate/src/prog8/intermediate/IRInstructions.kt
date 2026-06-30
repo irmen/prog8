@@ -1148,6 +1148,12 @@ data class IRInstruction(
         if(this@IRInstruction.fcallArgs!=null) {
             when (opcode) {
                 Opcode.SYSCALL -> append(immediate!!.toHex())
+                Opcode.CALLFAR -> {
+                    if (immediate != null) {
+                        append("#${immediate.toHex()},")
+                    }
+                    address?.let { append(it.toHex()) }
+                }
                 else -> {
                     if (labelSymbol != null) {
                         append(labelSymbol)

@@ -132,9 +132,15 @@ fun parseIRCodeLine(line: String): Either<IRInstruction, String> {
         val call = parseCall(rest)
         val syscallNum = call.address?.toInt() ?: (call.target?.let { parseIRValue(it).toInt() } ?: throw IRParseException("Missing syscall number"))
         return left(IRInstruction(Opcode.SYSCALL, immediate = syscallNum, fcallArgs = FunctionCallArgs(call.args, call.returns)))
-    } else if (format.funcCall) {
+    } else if (format.funcCall || opcode in setOf(Opcode.CALLFAR, Opcode.CALLFARVB)) {
         val call = parseCall(rest)
-        return left(IRInstruction(Opcode.CALL, address = call.address?.toAddress(), labelSymbol = call.target, fcallArgs = FunctionCallArgs(call.args, call.returns)))
+        val ir = when(opcode) {
+            Opcode.CALLFAR, Opcode.CALLFARVB ->
+                IRInstruction(opcode, address = call.address?.toAddress(), immediate = call.immediate?.toInt(), fcallArgs = FunctionCallArgs(call.args, call.returns))
+            else ->
+                IRInstruction(Opcode.CALL, address = call.address?.toAddress(), labelSymbol = call.target, fcallArgs = FunctionCallArgs(call.args, call.returns))
+        }
+        return left(ir)
     } else {
         operands.forEach { oper ->
             if (oper[0] == '&')
@@ -276,7 +282,8 @@ private class ParsedCall(
     val target: String?,
     val address: UInt?,
     val args: List<FunctionCallArgs.ArgumentSpec>,
-    val returns: List<FunctionCallArgs.RegSpec>
+    val returns: List<FunctionCallArgs.RegSpec>,
+    val immediate: UInt? = null
 )
 
 private val callPattern = Regex("(?<target>.+?)\\((?<arglist>.*?)\\)(:(?<returns>.+?))?")
@@ -345,8 +352,18 @@ private fun parseCall(rest: String): ParsedCall {
     val returns = match.groups["returns"]?.value
     var address: UInt? = null
     var actualTarget: String? = null
+    var immediate: UInt? = null
 
-    if(target.startsWith('$') || target[0].isDigit()) {
+    if(target.startsWith('#')) {
+        val parts = target.split(",", limit=2)
+        immediate = parseIRValue(parts.first().drop(1)).toUInt()
+        val restTarget = parts.getOrElse(1) { "" }
+        if(restTarget.startsWith('$') || restTarget[0].isDigit()) {
+            address = parseIRValue(restTarget).toUInt()
+        } else {
+            actualTarget = restTarget
+        }
+    } else if(target.startsWith('$') || target[0].isDigit()) {
         address = parseIRValue(target).toUInt()
     } else {
         actualTarget = target
@@ -356,7 +373,8 @@ private fun parseCall(rest: String): ParsedCall {
         actualTarget,
         address,
         arguments,
-        parseReturnRegspec(returns)
+        parseReturnRegspec(returns),
+        immediate
     )
 }
 

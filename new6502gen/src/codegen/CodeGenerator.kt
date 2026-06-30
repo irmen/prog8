@@ -610,6 +610,10 @@ class CodeGenerator(val program: IRProgram, private val target: ICompilationTarg
                         val isNested = topLevelSubLabels.any { subLabel -> element.label.startsWith(subLabel + ".") }
                         if (!isNested) emitAsmSubroutine(element)
                     }
+                    is IRCodeChunk -> {
+                        if (element.label != null) emitLabel(element.label!!)
+                        translateChunk(element)
+                    }
                     is IRInlineAsmChunk -> emitRaw(element.assembly)
                     is IRInlineBinaryChunk -> emitRaw("    .byte  ${element.data.joinToString(",") { asmHexByte(it.toInt()) }}")
                     else -> {}
