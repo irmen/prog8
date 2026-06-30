@@ -352,10 +352,27 @@ private fun CodeGenerator.translateCall(fnLabel: String, args: FunctionCallArgs?
             if (arg.reg.callingConventionSlot == null)
                 translateArgument(arg, index, fnLabel)
         }
-        // Process slot arguments last (so A/X/Y values survive to the JSR)
-        for ((index, arg) in args.arguments.withIndex()) {
-            if (arg.reg.callingConventionSlot != null)
-                translateArgument(arg, index, fnLabel)
+        // Process slot arguments in optimal order to avoid register clobbering.
+        // Order matches old 6502 codegen: paired regs first (AX/AY/XY), then single regs (Y, X, A),
+        // then float regs, then status flags. This ensures that loading a paired register
+        // (which clobbers two hardware regs) doesn't overwrite a value needed for a later argument.
+        val slotArgs = args.arguments.withIndex().filter { it.value.reg.callingConventionSlot != null }
+        val orderedSlotArgs = slotArgs.sortedWith(compareBy<IndexedValue<FunctionCallArgs.ArgumentSpec>> {
+            val slot = it.value.reg.callingConventionSlot!!.value
+            when (slot) {
+                3, 4, 5 -> 0  // paired CPU regs (AX, AY, XY) - load first
+                2 -> 1        // Y - load before X and A
+                1 -> 2        // X - load before A
+                0 -> 3        // A - load last (most commonly clobbered)
+                6, 7 -> 4     // float regs (FAC1, FAC2)
+                else -> 5     // status flags
+            }
+        }.thenByDescending {
+            // Within each group, process in original index order (stable sort)
+            -it.index
+        })
+        for ((index, arg) in orderedSlotArgs) {
+            translateArgument(arg, index, fnLabel)
         }
     }
 

@@ -8,6 +8,16 @@
  *   - LOADHR/STOREHR transfer between virtual regs and physical CPU registers via slot number
  *   - Math routines (mul/div/mod) are emitted as jsr calls to external helpers
  *
+ * IMPORTANT: inline asmsubs must be inlined at the call site, NOT emitted as subroutines.
+ * An `inline asmsub` in Prog8 source has its assembly body inserted directly at the call
+ * location - no jsr, no .proc/.pend, no rts. The old codegen (FunctionCallAsmGen.kt)
+ * checks `sub.inline` and handles this. The IR does NOT preserve the `inline` flag, so
+ * the new codegen must either:
+ *   a) Add an INLINE attribute to ASMSUB in the IR format, or
+ *   b) Rely on the optimizer to inline these before IR generation.
+ * Currently inline asmsubs are emitted as regular subroutines which is WRONG - they lack
+ * an rts and their return values in A/X/Y are not captured correctly.
+ *
  * Instruction translation is dispatched to extension functions in separate files:
  *   InstrLoadStore.kt, InstrArithmetic.kt, InstrBitwise.kt, InstrBranch.kt, InstrControl.kt
  *
@@ -30,7 +40,6 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
     private val cpu get() = target.cpu
 
     companion object {
-        const val NUM_REGISTERS = 200
         const val REGFILE_LABEL = "p8_regfile"
     }
     
@@ -71,7 +80,7 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
         val offsets = mutableMapOf<Int, Int>()
         var currentOffset = 0
         for ((regNum, type) in allRegs.entries.sortedBy { it.key.value }) {
-            if (regNum.value !in 0 until NUM_REGISTERS) continue
+            if (regNum.value < 0) continue
             offsets[regNum.value] = currentOffset
             currentOffset += dataTypeSize(type)
         }
@@ -546,10 +555,22 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
             val scopeDirective = if (block.options.forceOutput) ".block" else ".proc"
             emitRaw("${block.label}  $scopeDirective")
             emitRaw("; Block: ${block.label}")
+            // Collect all top-level subroutine labels to check for nesting
+            val topLevelSubLabels = block.children.filterIsInstance<IRSubroutine>().map { it.label }.toSet()
             for (element in block.children) {
                 when (element) {
-                    is IRSubroutine -> emitSubroutine(element)
-                    is IRAsmSubroutine -> emitAsmSubroutine(element)
+                    is IRSubroutine -> {
+                        // Skip subroutines that are nested inside another top-level subroutine
+                        val isNested = topLevelSubLabels.any { subLabel ->
+                            subLabel != element.label && element.label.startsWith(subLabel + ".")
+                        }
+                        if (!isNested) emitSubroutine(element)
+                    }
+                    is IRAsmSubroutine -> {
+                        // Skip ASMSUBs that are nested inside a top-level subroutine
+                        val isNested = topLevelSubLabels.any { subLabel -> element.label.startsWith(subLabel + ".") }
+                        if (!isNested) emitAsmSubroutine(element)
+                    }
                     is IRInlineAsmChunk -> emitRaw(element.assembly)
                     is IRInlineBinaryChunk -> emitRaw("    .byte  ${element.data.joinToString(",") { asmHexByte(it.toInt()) }}")
                     else -> {}
@@ -564,13 +585,17 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
     private fun unscopedName(scopedName: String): String =
         scopedName.substringAfterLast('.')
 
+    /** Check if a child element (SUB or ASMSUB) is nested inside a parent subroutine */
+    private fun isNestedChild(childLabel: String, parentSub: IRSubroutine): Boolean =
+        childLabel.startsWith(parentSub.label + ".")
+
     private fun emitSubroutine(sub: IRSubroutine) {
         emitRaw("; Subroutine: ${sub.label}")
         val firstChunk = sub.chunks.filterIsInstance<IRCodeChunk>().firstOrNull()
         if (firstChunk != null)
             emitSourceComment(firstChunk.sourceLinesPositions)
         emitRaw("")
-        emitRaw("${unscopedName(sub.label)}  .proc")
+        emitRaw("${sub.label}  .proc")
         if (sub.label == "p8b_main.p8s_start") {
             // BSS clearing needs to happen even if something calls main.start directly (without startup logic - for example if this is a library)
             emitLine("jsr  prog8_lib.program_startup_clear_bss")
@@ -600,17 +625,70 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
                 }
             }
         }
+        // Emit nested SUBs and ASMSUBs (those whose name starts with this subroutine's label + ".")
+        for (block in program.blocks) {
+            for (element in block.children) {
+                if (element is IRSubroutine && isNestedChild(element.label, sub)) {
+                    emitNestedSubroutine(element)
+                } else if (element is IRAsmSubroutine && isNestedChild(element.label, sub)) {
+                    emitRaw("")
+                    emitRaw("    ; source: ${element.position}")
+                    emitRaw("    ${unscopedName(element.label)}  .proc")
+                    emitRaw(element.asmChunk.assembly)
+                    emitRaw("    .pend")
+                }
+            }
+        }
         emitRaw(".pend")
         emitRaw("")
     }
 
+    /** Emit a nested subroutine (uses unscoped name since it's inside parent scope) */
+    private fun emitNestedSubroutine(sub: IRSubroutine) {
+        emitRaw("")
+        emitRaw("    ; source: ${sub.position}")
+        emitRaw("    ${unscopedName(sub.label)}  .proc")
+        for (chunk in sub.chunks) {
+            when (chunk) {
+                is IRCodeChunk -> {
+                    val cl = chunk.label
+                    if (cl != null && cl != sub.label) emitRaw("    $cl:")
+                    for (insn in chunk.instructions) {
+                        emitRaw("        ; $insn")
+                        translateInstruction(insn)
+                    }
+                }
+                is IRInlineAsmChunk -> {
+                    val cl = chunk.label
+                    if (cl != null && cl != sub.label) emitRaw("    $cl:")
+                    chunk.assembly.lineSequence().forEach { line ->
+                        if (line.isNotBlank()) emitRaw("    $line")
+                    }
+                }
+                is IRInlineBinaryChunk -> {
+                    val cl = chunk.label
+                    if (cl != null) emitRaw("    $cl:")
+                    emitRaw("    .byte  ${chunk.data.joinToString(",") { asmHexByte(it.toInt()) }}")
+                }
+            }
+        }
+        emitRaw("    .pend")
+    }
+
     private fun emitAsmSubroutine(sub: IRAsmSubroutine) {
+        // Skip ASMSUBs that are nested inside a subroutine - they are emitted by emitSubroutine
+        for (block in program.blocks) {
+            for (element in block.children) {
+                if (element is IRSubroutine && isNestedChild(sub.label, element))
+                    return
+            }
+        }
         val addr = sub.address
         if (addr != null) {
             emitLine("* = $addr")
         }
         emitRaw("")
-        emitRaw("${unscopedName(sub.label)}  .proc")
+        emitRaw("${sub.label}  .proc")
         emitRaw(sub.asmChunk.assembly)
         emitRaw(".pend")
         emitRaw("")

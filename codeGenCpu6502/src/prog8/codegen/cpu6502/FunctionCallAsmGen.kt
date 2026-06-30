@@ -9,6 +9,16 @@ import prog8.codegen.cpu6502.assignment.AsmAssignment
 import prog8.codegen.cpu6502.assignment.TargetStorageKind
 
 
+/*
+ * CRITICAL: `inline asmsub` subroutines MUST be inlined at the call site.
+ * They are NOT called with jsr - their assembly body is copied directly into the caller.
+ * This means: no .proc/.pend, no rts, no jsr. The return value is left in the appropriate
+ * CPU register (A/X/Y) and the caller picks it up.
+ *
+ * This is handled at line 68: `if (sub.inline) { ... }`.
+ * Any new codegen backend MUST replicate this behavior.
+ */
+
 internal class FunctionCallAsmGen(private val program: PtProgram, private val asmgen: AsmGen6502Internal) {
 
     internal fun translateFunctionCallStatement(stmt: PtFunctionCall) {

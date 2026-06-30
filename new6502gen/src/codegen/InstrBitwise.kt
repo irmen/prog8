@@ -455,6 +455,14 @@ private fun CodeGenerator.arithmeticShiftRight(reg: Int, count: Int, type: IRDat
                 emitLine("ror  ${regAddrHi(reg)}")
                 emitLine("ror  ${regAddrLo(reg)}")
             }
+            IRDataType.LONG -> {
+                emitLine("lda  ${regAddrByte(reg, 3)}")
+                emitLine("cmp  #128")
+                emitLine("ror  ${regAddrByte(reg, 3)}")
+                emitLine("ror  ${regAddrByte(reg, 2)}")
+                emitLine("ror  ${regAddrHi(reg)}")
+                emitLine("ror  ${regAddrLo(reg)}")
+            }
             else -> TODO("ASRN r$reg, $count ${type.name}")
         }
     }
@@ -474,15 +482,24 @@ private fun CodeGenerator.arithmeticShiftRightMemory(target: String, count: Int,
                 emitLine("ror  $target+1")
                 emitLine("ror  $target")
             }
+            IRDataType.LONG -> {
+                emitLine("lda  $target+3")
+                emitLine("cmp  #128")
+                emitLine("ror  $target+3")
+                emitLine("ror  $target+2")
+                emitLine("ror  $target+1")
+                emitLine("ror  $target")
+            }
             else -> TODO("ASRNM $target, $count ${type.name}")
         }
     }
 }
 
 private fun CodeGenerator.logicalShiftLeftVar(reg: Int, countReg: Int, type: IRDataType) {
+    val loopLabel = makeLabel("lsl_var_loop")
     emitLine("ldx  ${regAddrLo(countReg)}")
     emitLine("beq  +")
-    emitLabel("loop")
+    emitLabel(loopLabel)
     when (type) {
         IRDataType.BYTE -> {
             emitLine("asl  ${regAddrLo(reg)}")
@@ -500,14 +517,15 @@ private fun CodeGenerator.logicalShiftLeftVar(reg: Int, countReg: Int, type: IRD
         else -> TODO("LSL r$reg, r$countReg ${type.name}")
     }
     emitLine("dex")
-    emitLine("bne  loop")
+    emitLine("bne  $loopLabel")
     emitLabel("+")
 }
 
 private fun CodeGenerator.logicalShiftRightVar(reg: Int, countReg: Int, type: IRDataType) {
+    val loopLabel = makeLabel("lsr_var_loop")
     emitLine("ldx  ${regAddrLo(countReg)}")
     emitLine("beq  +")
-    emitLabel("loop")
+    emitLabel(loopLabel)
     when (type) {
         IRDataType.BYTE -> {
             emitLine("lsr  ${regAddrLo(reg)}")
@@ -525,14 +543,15 @@ private fun CodeGenerator.logicalShiftRightVar(reg: Int, countReg: Int, type: IR
         else -> TODO("LSR r$reg, r$countReg ${type.name}")
     }
     emitLine("dex")
-    emitLine("bne  loop")
+    emitLine("bne  $loopLabel")
     emitLabel("+")
 }
 
 private fun CodeGenerator.arithmeticShiftRightVar(reg: Int, countReg: Int, type: IRDataType) {
+    val loopLabel = makeLabel("asr_var_loop")
     emitLine("ldx  ${regAddrLo(countReg)}")
     emitLine("beq  +")
-    emitLabel("loop")
+    emitLabel(loopLabel)
     when (type) {
         IRDataType.BYTE -> {
             emitLine("lda  ${regAddrLo(reg)}")
@@ -563,9 +582,10 @@ private fun CodeGenerator.arithmeticShiftRightVar(reg: Int, countReg: Int, type:
 // === Memory variable-count shifts ===
 
 private fun CodeGenerator.shiftMemoryVar(target: String, countReg: Int, type: IRDataType, isArithmetic: Boolean) {
+    val loopLabel = makeLabel("shiftmem_loop")
     emitLine("ldx  ${regAddrLo(countReg)}")
     emitLine("beq  +")
-    emitLabel("shiftmem_loop")
+    emitLabel(loopLabel)
     when (type) {
         IRDataType.BYTE -> {
             if (isArithmetic) {
@@ -605,14 +625,15 @@ private fun CodeGenerator.shiftMemoryVar(target: String, countReg: Int, type: IR
         else -> TODO("shiftmem ${if(isArithmetic) "ASR" else "LSR"} $target ${type.name}")
     }
     emitLine("dex")
-    emitLine("bne  shiftmem_loop")
+    emitLine("bne  $loopLabel")
     emitLabel("+")
 }
 
 private fun CodeGenerator.shiftMemoryLeftVar(target: String, countReg: Int, type: IRDataType) {
+    val loopLabel = makeLabel("shiftmeml_loop")
     emitLine("ldx  ${regAddrLo(countReg)}")
     emitLine("beq  +")
-    emitLabel("shiftmeml_loop")
+    emitLabel(loopLabel)
     when (type) {
         IRDataType.BYTE -> {
             emitLine("asl  $target")
@@ -630,7 +651,7 @@ private fun CodeGenerator.shiftMemoryLeftVar(target: String, countReg: Int, type
         else -> TODO("LSLNM $target ${type.name}")
     }
     emitLine("dex")
-    emitLine("bne  shiftmeml_loop")
+    emitLine("bne  $loopLabel")
     emitLabel("+")
 }
 
