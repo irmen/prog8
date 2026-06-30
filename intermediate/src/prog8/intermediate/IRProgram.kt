@@ -538,7 +538,8 @@ class IRAsmSubroutine(
     val parameters: List<IRAsmParam>,
     val returns: List<IRAsmParam>,
     val asmChunk: IRInlineAsmChunk,
-    val position: Position
+    val position: Position,
+    val isInline: Boolean = false   // if true, the codegen MUST inline the assembly body at the call site (no jsr, no rts)
 ): IIRBlockElement {
 
     class IRAsmParam(val reg: RegisterOrStatusflag, val dt: DataType)

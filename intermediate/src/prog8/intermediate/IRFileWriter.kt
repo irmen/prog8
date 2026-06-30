@@ -124,6 +124,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
                         xml.writeAttribute("CLOBBERS", clobbers)
                         xml.writeAttribute("RETURNS", returns)
                         xml.writeAttribute("POS", child.position.toString())
+                        xml.writeAttribute("INLINE", child.isInline.toString())
                         xml.writeCharacters("\n")
                         xml.writeStartElement("ASMPARAMS")
                         xml.writeCharacters("\n")

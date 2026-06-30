@@ -592,6 +592,57 @@ main {
         compileText(C64Target(), false, src, outputDir, writeAssembly = true) shouldNotBe null
     }
 
+    test("inline asmsub is inlined at call site, not called via jsr") {
+        val src="""
+%zeropage basicsafe
+%option no_sysinit
+main {
+    sub start() {
+        test2()
+    }
+
+    inline asmsub test2() {
+        %asm {{
+            lda #42
+        }}
+    }
+}"""
+        val result = compileText(C64Target(), false, src, outputDir, writeAssembly = true)!!
+        val asm = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".asm").readText()
+        val lines = asm.lines().map { it.trim() }
+        // inline asmsub body should appear directly in the caller
+        lines.any { it == "lda #42" } shouldBe true
+        // should NOT have a separate subroutine definition for the inline asmsub
+        lines.count { it.contains("p8s_test2") && it.contains(".proc") } shouldBe 0
+        // should NOT have a jsr to the inline asmsub
+        lines.count { it.startsWith("jsr") && it.contains("p8s_test2") } shouldBe 0
+    }
+
+    test("regular asmsub is called via jsr, not inlined") {
+        val src="""
+%zeropage basicsafe
+%option no_sysinit
+main {
+    sub start() {
+        test()
+    }
+
+    asmsub test() {
+        %asm {{
+            lda #99
+            rts
+        }}
+    }
+}"""
+        val result = compileText(C64Target(), false, src, outputDir, writeAssembly = true)!!
+        val asm = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".asm").readText()
+        val lines = asm.lines().map { it.trim() }
+        // regular asmsub should have its own .proc block
+        lines.any { it.contains("p8s_test") && it.contains(".proc") } shouldBe true
+        // should have a jsr to the asmsub
+        lines.any { it.startsWith("jsr") && it.contains("p8s_test") } shouldBe true
+    }
+
     test("if not without else is not swapped") {
         val src="""
 main {

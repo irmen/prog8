@@ -243,6 +243,20 @@ Used to call routines at fixed memory addresses (like ROM KERNAL routines or thi
 ## Inline Assembly
 When writing inline assembly (`%asm {{ }}` blocks or `asmsub` routines), load the **asm6502-coder** skill for formatting rules, symbol references, anonymous labels, and 64tass syntax details.
 
+## Testing Assembly Output
+- **NEVER dump raw assembly in test assertions** (e.g., `asm shouldContain "jsr label"`). On failure, this dumps the ENTIRE assembly listing into test logs, making them huge and unreadable.
+- **Instead, parse the assembly into lines and check specific properties:**
+  ```kotlin
+  val lines = asm.lines().map { it.trim() }
+  // Check for presence/absence of patterns
+  lines.any { it == "lda #42" } shouldBe true
+  lines.count { it.startsWith("jsr") && it.contains("label") } shouldBe 0
+  lines.count { it.contains("label") && it.contains(".proc") } shouldBe 0
+  ```
+- **Count occurrences** rather than using `shouldContain`/`shouldNotContain` on the full string.
+- **Use `lines.any { ... }` for existence checks** and `lines.count { ... } shouldBe 0` for absence checks.
+- This keeps test failure output small and focused on what actually failed.
+
 ## Standard Library
 - Find routines, functions, variables, modules and signatures in the symbol dump file for the given compilation target. 
   - Online location: https://prog8.readthedocs.io/en/latest/libraries.html#low-fi-variable-and-subroutine-definitions-in-all-available-library-modules  they are linked there 1 for each compilation target

@@ -560,7 +560,8 @@ class IRFileReader {
             params,
             returns,
             assembly,
-            parsePosition(attrs.getValue("POS"))
+            parsePosition(attrs.getValue("POS")),
+            attrs.getOrDefault("INLINE", "false").toBoolean()
         )
     }
 

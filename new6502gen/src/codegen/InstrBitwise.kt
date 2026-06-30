@@ -15,7 +15,9 @@
 
 package codegen
 
-import prog8.intermediate.*
+import prog8.intermediate.IRDataType
+import prog8.intermediate.IRInstruction
+import prog8.intermediate.Opcode
 
 fun CodeGenerator.translateBitwise(insn: IRInstruction) {
     val type = insn.type ?: IRDataType.BYTE
@@ -107,19 +109,19 @@ fun CodeGenerator.translateBitwise(insn: IRInstruction) {
 
         Opcode.BITTST -> {
             val bit = imm ?: error("BITTST needs bit number")
-            bitTest(r1 ?: error("BITTST needs reg1"), bit, type)
+            bitTest(r1 ?: error("BITTST needs reg1"), bit)
         }
         Opcode.BITSET -> {
             val bit = imm ?: error("BITSET needs bit number")
-            bitSet(r1 ?: error("BITSET needs reg1"), bit, type)
+            bitSet(r1 ?: error("BITSET needs reg1"), bit)
         }
         Opcode.BITCLR -> {
             val bit = imm ?: error("BITCLR needs bit number")
-            bitClear(r1 ?: error("BITCLR needs reg1"), bit, type)
+            bitClear(r1 ?: error("BITCLR needs reg1"), bit)
         }
         Opcode.BITTOG -> {
             val bit = imm ?: error("BITTOG needs bit number")
-            bitToggle(r1 ?: error("BITTOG needs reg1"), bit, type)
+            bitToggle(r1 ?: error("BITTOG needs reg1"), bit)
         }
 
         else -> error("Unknown bitwise opcode: ${insn.opcode}")
@@ -374,7 +376,7 @@ private fun CodeGenerator.invertMemory(target: String, type: IRDataType) {
 // === Shifts ===
 
 private fun CodeGenerator.logicalShiftLeft(reg: Int, count: Int, type: IRDataType) {
-    for (i in 1..count) {
+    repeat(count) {
         when (type) {
             IRDataType.BYTE -> {
                 emitLine("asl  ${regAddrLo(reg)}")
@@ -395,7 +397,7 @@ private fun CodeGenerator.logicalShiftLeft(reg: Int, count: Int, type: IRDataTyp
 }
 
 private fun CodeGenerator.logicalShiftLeftMemory(target: String, count: Int, type: IRDataType) {
-    for (i in 1..count) {
+    repeat(count) {
         when (type) {
             IRDataType.BYTE -> emitLine("asl  $target")
             IRDataType.WORD -> {
@@ -408,7 +410,7 @@ private fun CodeGenerator.logicalShiftLeftMemory(target: String, count: Int, typ
 }
 
 private fun CodeGenerator.logicalShiftRight(reg: Int, count: Int, type: IRDataType) {
-    for (i in 1..count) {
+    repeat(count) {
         when (type) {
             IRDataType.BYTE -> {
                 emitLine("lsr  ${regAddrLo(reg)}")
@@ -429,7 +431,7 @@ private fun CodeGenerator.logicalShiftRight(reg: Int, count: Int, type: IRDataTy
 }
 
 private fun CodeGenerator.logicalShiftRightMemory(target: String, count: Int, type: IRDataType) {
-    for (i in 1..count) {
+    repeat(count) {
         when (type) {
             IRDataType.BYTE -> emitLine("lsr  $target")
             IRDataType.WORD -> {
@@ -442,7 +444,7 @@ private fun CodeGenerator.logicalShiftRightMemory(target: String, count: Int, ty
 }
 
 private fun CodeGenerator.arithmeticShiftRight(reg: Int, count: Int, type: IRDataType) {
-    for (i in 1..count) {
+    repeat(count) {
         when (type) {
             IRDataType.BYTE -> {
                 emitLine("lda  ${regAddrLo(reg)}")
@@ -469,7 +471,7 @@ private fun CodeGenerator.arithmeticShiftRight(reg: Int, count: Int, type: IRDat
 }
 
 private fun CodeGenerator.arithmeticShiftRightMemory(target: String, count: Int, type: IRDataType) {
-    for (i in 1..count) {
+    repeat(count) {
         when (type) {
             IRDataType.BYTE -> {
                 emitLine("lda  $target")
@@ -773,7 +775,7 @@ private fun CodeGenerator.rotateRightThroughCarryMemory(target: String, type: IR
 
 // === Bit manipulation ===
 
-private fun CodeGenerator.bitTest(reg: Int, bit: Int, type: IRDataType) {
+private fun CodeGenerator.bitTest(reg: Int, bit: Int) {
     val mask = 1 shl bit
     emitLine("lda  ${regAddrLo(reg)}")
     if (is65C02()) {
@@ -785,7 +787,7 @@ private fun CodeGenerator.bitTest(reg: Int, bit: Int, type: IRDataType) {
     }
 }
 
-private fun CodeGenerator.bitSet(reg: Int, bit: Int, type: IRDataType) {
+private fun CodeGenerator.bitSet(reg: Int, bit: Int) {
     val mask = 1 shl bit
     if (mask <= 0xff) {
         emitLine("lda  ${regAddrLo(reg)}")
@@ -800,7 +802,7 @@ private fun CodeGenerator.bitSet(reg: Int, bit: Int, type: IRDataType) {
     }
 }
 
-private fun CodeGenerator.bitClear(reg: Int, bit: Int, type: IRDataType) {
+private fun CodeGenerator.bitClear(reg: Int, bit: Int) {
     val mask = 1 shl bit
     if (mask <= 0xff) {
         emitLine("lda  ${regAddrLo(reg)}")
@@ -814,7 +816,7 @@ private fun CodeGenerator.bitClear(reg: Int, bit: Int, type: IRDataType) {
     }
 }
 
-private fun CodeGenerator.bitToggle(reg: Int, bit: Int, type: IRDataType) {
+private fun CodeGenerator.bitToggle(reg: Int, bit: Int) {
     val mask = 1 shl bit
     if (mask <= 0xff) {
         emitLine("lda  ${regAddrLo(reg)}")

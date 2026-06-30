@@ -35,7 +35,7 @@ import prog8.code.core.*
 import prog8.intermediate.*
 import java.nio.file.Path
 
-class CodeGenerator(private val program: IRProgram, private val target: ICompilationTarget) : ICodeGenerator {
+class CodeGenerator(val program: IRProgram, private val target: ICompilationTarget) : ICodeGenerator {
     private val output = StringBuilder()
     private val cpu get() = target.cpu
 
@@ -362,7 +362,7 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
     // === CPU-aware instruction helpers ===
     // 65C02 supports stz; plain 6502 needs lda #0 / sta instead
 
-    fun emitStoreZero(target: String, comment: String = "") {
+    fun emitStoreZero(target: String) {
         if (cpu == CpuType.CPU65C02)
             emitLine("stz  $target")
         else {
@@ -392,9 +392,6 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
     }
 
     // === header and startup ===
-
-    // track external (library) symbols referenced during code generation
-    private val externalRefs = mutableSetOf<String>()
 
     private fun emitHeader() {
         val options = program.options
@@ -459,7 +456,6 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
                         emitRaw("* = ${loadAddr.toHex()}")
                         emitLabel("prog8_program_start")
                         emitRaw("    .word  (+), ${java.time.LocalDate.now().year}")
-                        val entryAddr = "prog8_entrypoint"
                         emitRaw("    .null  \$9e, format(' %d ', prog8_entrypoint), \$3a, \$8f, ' prog8'")
                         emitLabel("+")
                         emitRaw("    .word  0")
@@ -567,6 +563,8 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
                         if (!isNested) emitSubroutine(element)
                     }
                     is IRAsmSubroutine -> {
+                        // Skip inline ASMSUBs - they are inlined at the call site, not emitted as subroutines
+                        if (element.isInline) continue
                         // Skip ASMSUBs that are nested inside a top-level subroutine
                         val isNested = topLevelSubLabels.any { subLabel -> element.label.startsWith(subLabel + ".") }
                         if (!isNested) emitAsmSubroutine(element)
@@ -1095,7 +1093,7 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
         emitAsmSymbols()
         emitRaw("")
         if (options.memtopAddress > 0u) {
-            val memtopHex = "${options.memtopAddress.toHex()}"
+            val memtopHex = options.memtopAddress.toHex()
             emitLine("    .cerror * >= $memtopHex, \"Program too long by \", * - ${(options.memtopAddress - 1u).toHex()}, \" bytes, memtop=${options.memtopAddress.toHex()}\"")
         }
         emitRaw("")
@@ -1182,6 +1180,4 @@ class CodeGenerator(private val program: IRProgram, private val target: ICompila
             }
         }
     }
-
-    private val compTarget: ICompilationTarget get() = target
 }

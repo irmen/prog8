@@ -1741,7 +1741,8 @@ class IRCodeGen(
                             child.parameters.map { IRAsmSubroutine.IRAsmParam(it.first, it.second.type) },        // note: the name of the asmsub param is not used here anymore
                             child.returns.map { IRAsmSubroutine.IRAsmParam(it.first, it.second)},
                             asmChunk,
-                            child.position
+                            child.position,
+                            child.inline
                         )
                     }
                 }

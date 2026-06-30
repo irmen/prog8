@@ -23,7 +23,8 @@
 
 package codegen
 
-import prog8.code.core.*
+import prog8.code.core.Statusflag
+import prog8.code.core.toHex
 import prog8.intermediate.*
 
 fun CodeGenerator.translateControl(insn: IRInstruction) {
@@ -35,7 +36,7 @@ fun CodeGenerator.translateControl(insn: IRInstruction) {
 
     when (insn.opcode) {
         Opcode.JUMP -> {
-            val target = label ?: addr?.let { it.value.toHex() } ?: error("JUMP needs target")
+            val target = label ?: addr?.value?.toHex() ?: error("JUMP needs target")
             emitLine("jmp  $target")
         }
 
@@ -45,7 +46,7 @@ fun CodeGenerator.translateControl(insn: IRInstruction) {
         }
 
         Opcode.CALL -> {
-            val fnLabel = label ?: addr?.let { it.value.toHex() } ?: error("CALL needs label or address")
+            val fnLabel = label ?: addr?.value?.toHex() ?: error("CALL needs label or address")
             val args = insn.fcallArgs
             translateCall(fnLabel, args)
         }
@@ -300,7 +301,7 @@ fun CodeGenerator.translateControl(insn: IRInstruction) {
                 emitLine("lda  ${regAddrLo(srcReg)}")
                 emitLine("sta  ${regAddrLo(reg)}")
             }
-            emitStoreZero("${regAddrHi(reg)}", "zero extend r$reg")
+            emitStoreZero(regAddrHi(reg))
         }
 
         Opcode.EXTS -> {
@@ -314,7 +315,7 @@ fun CodeGenerator.translateControl(insn: IRInstruction) {
             emitLine("sta  ${regAddrHi(dest)}")
             emitLine("jmp  ++")
             emitLabel("+")
-            emitStoreZero("${regAddrHi(dest)}")
+            emitStoreZero(regAddrHi(dest))
             emitLabel("+")
         }
 
@@ -346,6 +347,46 @@ fun CodeGenerator.translateControl(insn: IRInstruction) {
 // === Call handling ===
 
 private fun CodeGenerator.translateCall(fnLabel: String, args: FunctionCallArgs?) {
+    // Check if this is an inline ASMSUB - must be inlined at call site, not called with jsr
+    val inlineAsmSub = findInlineAsmSub(fnLabel)
+    if (inlineAsmSub != null) {
+        // Inline the assembly body directly at the call site (no jsr, no rts)
+        if (args != null) {
+            // Process non-slot arguments first
+            for ((index, arg) in args.arguments.withIndex()) {
+                if (arg.reg.callingConventionSlot == null)
+                    translateArgument(arg, index, fnLabel)
+            }
+            // Process slot arguments
+            val slotArgs = args.arguments.withIndex().filter { it.value.reg.callingConventionSlot != null }
+            val orderedSlotArgs = slotArgs.sortedWith(compareBy<IndexedValue<FunctionCallArgs.ArgumentSpec>> {
+                val slot = it.value.reg.callingConventionSlot!!.value
+                when (slot) {
+                    3, 4, 5 -> 0
+                    2 -> 1
+                    1 -> 2
+                    0 -> 3
+                    6, 7 -> 4
+                    else -> 5
+                }
+            }.thenByDescending { -it.index })
+            for ((index, arg) in orderedSlotArgs) {
+                translateArgument(arg, index, fnLabel)
+            }
+        }
+        emitRaw("    ; inlined: $fnLabel")
+        inlineAsmSub.asmChunk.assembly.lineSequence().forEach { line ->
+            if (line.isNotBlank()) emitRaw("    $line")
+        }
+        emitRaw("    ; end inlined: $fnLabel")
+        if (args != null) {
+            for (ret in args.returns) {
+                translateReturnValue(ret)
+            }
+        }
+        return
+    }
+
     if (args != null) {
         // Process non-slot arguments first (they use A as temp to store to memory/registers)
         for ((index, arg) in args.arguments.withIndex()) {
@@ -383,6 +424,21 @@ private fun CodeGenerator.translateCall(fnLabel: String, args: FunctionCallArgs?
             translateReturnValue(ret)
         }
     }
+}
+
+/** Find an inline ASMSUB by its full scoped label. Returns null if not found or not inline. */
+private fun CodeGenerator.findInlineAsmSub(label: String): IRAsmSubroutine? =
+    program.findInlineAsmSub(label)
+
+/** Find an inline ASMSUB by its full scoped label in the program. */
+fun IRProgram.findInlineAsmSub(label: String): IRAsmSubroutine? {
+    for (block in blocks) {
+        for (element in block.children) {
+            if (element is IRAsmSubroutine && element.label == label && element.isInline)
+                return element
+        }
+    }
+    return null
 }
 
 private fun CodeGenerator.translateArgument(arg: FunctionCallArgs.ArgumentSpec, argIndex: Int = -1, fnLabel: String? = null) {
@@ -606,7 +662,7 @@ private fun CodeGenerator.translateReturnValue(ret: FunctionCallArgs.RegSpec) {
                 emitLine("lda  #1")
                 emitLabel("+")
                 emitLine("sta  ${regAddrLo(regNum)}")
-                emitStoreZero("${regAddrHi(regNum)}")
+                emitStoreZero(regAddrHi(regNum))
             } else if (regNum >= 0) {
                 when (ret.dt) {
                     IRDataType.BYTE -> {
