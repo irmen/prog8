@@ -11,7 +11,6 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldNotContain
-import prog8tests.helpers.shouldContainInOrder
 import prog8.ast.expressions.MemorySlabRef
 import prog8.ast.statements.Assignment
 import prog8.code.target.C64Target
@@ -22,6 +21,7 @@ import prog8.vm.VmRunner
 import prog8.vm.VmVariableAllocator
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
+import prog8tests.helpers.shouldContainInOrder
 import kotlin.io.path.readText
 
 class TestCompilerVirtual: FunSpec({
@@ -400,11 +400,18 @@ main {
         val irProgram = IRFileReader().read(virtfile)
         val start = irProgram.blocks[0].children[0] as IRSubroutine
         val instructions = start.chunks.flatMap { c->c.instructions }
-        instructions.size shouldBe 11
+        // Was 11 before the strict status-bits contract change; now 13 because the
+        // VIRTUAL target has statusBitsOnMultiByteOps=false, so explicit CMPI #0
+        // instructions are emitted before the "compare with zero" branches instead
+        // of relying on the previous instruction's Z flag. The 2 extra CMPIs come
+        // from the unsigned compare-with-zero branches (== 0 and != 0). The signed
+        // compares (> 0 and < 0) already use a CMP instruction that sets Z.
+        // See CpuType.statusBitsOnMultiByteOps for the rationale.
+        instructions.size shouldBe 13
         instructions.last().opcode shouldBe Opcode.RETURN
     }
 
-    test("if-expression skips redundant CMPI when condition sets flags") {
+    test("if-expression always emits explicit CMPI when condition sets flags (strict status-bits contract)") {
         val src = """
 main {
     sub start() {
@@ -422,12 +429,16 @@ main {
         val loadmIdx = instructions.indexOfFirst { it.opcode == Opcode.LOADM && it.labelSymbol?.contains("flag") == true }
         loadmIdx shouldBeGreaterThan -1
 
-        // After LOADM, there should be a BSTEQ/BSTNE branch, not CMPI #0
+        // The VIRTUAL target has statusBitsOnMultiByteOps=false, so the IR generator
+        // always emits an explicit CMPI #0 before the BSTEQ/BSTNE branch, even though
+        // the previous LOADM is documented to set Z. The strict contract requires an
+        // explicit compare so the result is correct for any register width (BYTE/WORD/LONG).
         val nextInstr = instructions[loadmIdx + 1]
-        nextInstr.opcode shouldBeIn setOf(Opcode.BSTEQ, Opcode.BSTNE)
+        nextInstr.opcode shouldBe Opcode.CMPI
+        nextInstr.immediate shouldBe 0
     }
 
-    test("if-statement skips redundant CMPI when condition sets flags") {
+    test("if-statement always emits explicit CMPI when condition sets flags (strict status-bits contract)") {
         val src = """
 main {
     sub start() {
@@ -449,9 +460,11 @@ main {
         val loadmIdx = instructions.indexOfFirst { it.opcode == Opcode.LOADM && it.labelSymbol?.contains("flag") == true }
         loadmIdx shouldBeGreaterThan -1
 
-        // After LOADM, there should be a BSTEQ/BSTNE branch, not CMPI #0
+        // Strict contract: the CMPI is always present, never optimized away.
+        // See CpuType.statusBitsOnMultiByteOps for the rationale.
         val nextInstr = instructions[loadmIdx + 1]
-        nextInstr.opcode shouldBeIn setOf(Opcode.BSTEQ, Opcode.BSTNE)
+        nextInstr.opcode shouldBe Opcode.CMPI
+        nextInstr.immediate shouldBe 0
     }
 
     test("if-expression omits CMPI since CALL now sets flags") {

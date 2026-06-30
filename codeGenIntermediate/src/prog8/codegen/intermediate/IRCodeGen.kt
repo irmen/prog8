@@ -692,6 +692,12 @@ class IRCodeGen(
                         addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = indexReg, immediate = 0), null)
                         result += IRCodeChunk(loopLabel, null).also {
                             it += IRInstruction(Opcode.LOADX, elementDt, reg1 = tmpReg, reg2 = indexReg, labelSymbol = iterable.name)
+                            // Emit explicit CMPI #0 before the BSTEQ branch on 8-bit targets
+                            // (where LOADX doesn't reliably set Z for multi-byte results).
+                            // See CpuType.statusBitsOnMultiByteOps.
+                            if(!options.compTarget.cpu.statusBitsOnMultiByteOps) {
+                                it += IRInstruction(Opcode.CMPI, elementDt, reg1 = tmpReg, immediate = 0)
+                            }
                             it += IRInstruction(Opcode.BSTEQ, labelSymbol = endLabel)
                             it += IRInstruction(Opcode.STOREM, elementDt, reg1 = tmpReg, labelSymbol = loopvarSymbol)
                         }
@@ -791,6 +797,12 @@ class IRCodeGen(
             result += addConstMem(loopvarDtIr, null, loopvarSymbol, -1)
             result += IRCodeChunk(null, null).also {
                 it += IRInstruction(Opcode.LOADM, loopvarDtIr, reg1 = fromTr.resultReg, labelSymbol = loopvarSymbol)
+                // Emit explicit CMPI #0 before the BSTNE branch on 8-bit targets where
+                // LOADM doesn't reliably set Z for multi-byte results. Skip on targets
+                // that honor the contract (e.g. M68000). See CpuType.statusBitsOnMultiByteOps.
+                if(!options.compTarget.cpu.statusBitsOnMultiByteOps) {
+                    it += IRInstruction(Opcode.CMPI, loopvarDtIr, reg1 = fromTr.resultReg, immediate = 0)
+                }
                 it += IRInstruction(Opcode.BSTNE, labelSymbol = loopLabel)
             }
         }
@@ -884,6 +896,14 @@ class IRCodeGen(
         }
         else if(iterable.step==-1 && iterable.last==1) {
             // downto 1 optimization (byte and word)
+            // On 8-bit targets the preceding addConstMem emitted a DECM which doesn't
+            // reliably set Z; we must explicitly test the loop var. Skip the explicit
+            // CMPI on targets that honor the contract (e.g. M68000).
+            // See CpuType.statusBitsOnMultiByteOps.
+            chunk2 += IRInstruction(Opcode.LOADM, loopvarDtIr, reg1 = indexReg, labelSymbol = loopvarSymbol)
+            if(!options.compTarget.cpu.statusBitsOnMultiByteOps) {
+                chunk2 += IRInstruction(Opcode.CMPI, loopvarDtIr, reg1 = indexReg, immediate = 0)
+            }
             chunk2 += IRInstruction(Opcode.BSTNE, labelSymbol = loopLabel)
         } else {
             // downto some other value
@@ -1299,9 +1319,17 @@ class IRCodeGen(
         // Fallback: materialize expression and branch on result
         val tr = expressionEval.translateExpression(condition)
         result += tr.chunks
-        // Check if the last instruction already sets status flags - if so, skip the CMPI #0
+        // Only skip the CMPI #0 if BOTH:
+        //   1) The previous instruction is documented to set status bits (Z/N), AND
+        //   2) The target CPU honors the "multi-byte ops set Z based on full value" contract
+        //      (see CpuType.statusBitsOnMultiByteOps). For 8-bit targets this contract
+        //      is false: e.g. a 16-bit DEC only sets Z from the low byte's dec, not the
+        //      full 16-bit value, so we MUST emit an explicit CMPI here.
         val lastInstr = tr.chunks.lastOrNull()?.instructions?.lastOrNull()
-        val skipCmpi = lastInstr != null && lastInstr.opcode in OpcodesThatSetStatusbits
+        val targetHonorsContract = options.compTarget.cpu.statusBitsOnMultiByteOps
+        val skipCmpi = targetHonorsContract
+                && lastInstr != null
+                && lastInstr.opcode in OpcodesThatSetStatusbits
         if (!skipCmpi) {
             addInstr(result, IRInstruction(Opcode.CMPI, tr.dt, reg1 = tr.resultReg, immediate = 0), null)
         }
@@ -1344,7 +1372,15 @@ class IRCodeGen(
         if (number != null) {
             val isComparingWithZero = number == 0
             val lastInstr = leftTr.chunks.lastOrNull()?.instructions?.lastOrNull()
-            val canSkipCmpi = isComparingWithZero && lastInstr != null && lastInstr.opcode in OpcodesThatSetStatusbits
+            // Skip the CMPI only if the target honors the "multi-byte ops set Z correctly"
+            // contract. On 8-bit targets a 16/32-bit op like DEC only sets Z from the last
+            // byte, so we cannot rely on the previous instruction's status bits - the
+            // CMPI is required to test the full multi-byte value.
+            // See CpuType.statusBitsOnMultiByteOps for details.
+            val canSkipCmpi = isComparingWithZero
+                    && options.compTarget.cpu.statusBitsOnMultiByteOps
+                    && lastInstr != null
+                    && lastInstr.opcode in OpcodesThatSetStatusbits
 
             if ((onTrueLabel != null || onTrueAddress != null) && (onFalseLabel == null && onFalseAddress == null)) {
                 var (opcode, useCmpi) = getIntegerComparisonBranch(condition.operator, false, signed)
@@ -1510,13 +1546,22 @@ class IRCodeGen(
         val skipRepeatLabel = createLabelName()
         val constRepeats = repeat.count.asConstInteger()
         val result = mutableListOf<IRCodeChunkBase>()
+        // The DEC instruction only sets Z correctly for BYTE (or for the full multi-byte
+        // value if the target honors the multi-byte status-bits contract, e.g. M68000).
+        // On 8-bit targets we must emit an explicit CMPI #0 before the BSTNE branch
+        // because DEC only sets Z based on the last byte.
+        // See CpuType.statusBitsOnMultiByteOps for the rationale.
+        val needsExplicitCmpi = !options.compTarget.cpu.statusBitsOnMultiByteOps
         if(constRepeats==65536) {
             // make use of the word wrap around to count to 65536
             val resultRegister = registers.next(IRDataType.WORD)
             addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1=resultRegister, immediate = 0), null)
             result += labelFirstChunk(translateNode(repeat.statements), repeatLabel)
             result += IRCodeChunk(null, null).also {
-                it += IRInstruction(Opcode.DEC, IRDataType.WORD, reg1 = resultRegister)  // sets status bits
+                it += IRInstruction(Opcode.DEC, IRDataType.WORD, reg1 = resultRegister)
+                if (needsExplicitCmpi) {
+                    it += IRInstruction(Opcode.CMPI, IRDataType.WORD, reg1 = resultRegister, immediate = 0)
+                }
                 it += IRInstruction(Opcode.BSTNE, labelSymbol = repeatLabel)
             }
         } else {
@@ -1524,12 +1569,20 @@ class IRCodeGen(
             val countTr = expressionEval.translateExpression(repeat.count)
             addToResult(result, countTr, countTr.resultReg, -1)
             if (repeat.count.asConstValue() == null) {
-                // check if the counter is already zero
+                // check if the counter is already zero. On 8-bit targets we need an
+                // explicit CMPI #0 because the previous load (from expressionEval) does
+                // not reliably set Z for multi-byte values.
+                if (needsExplicitCmpi) {
+                    addInstr(result, IRInstruction(Opcode.CMPI, irDt, reg1 = countTr.resultReg, immediate = 0), null)
+                }
                 addInstr(result, IRInstruction(Opcode.BSTEQ, labelSymbol = skipRepeatLabel), null)
             }
             result += labelFirstChunk(translateNode(repeat.statements), repeatLabel)
             result += IRCodeChunk(null, null).also {
-                it += IRInstruction(Opcode.DEC, irDt, reg1 = countTr.resultReg)  // sets status bits
+                it += IRInstruction(Opcode.DEC, irDt, reg1 = countTr.resultReg)
+                if (needsExplicitCmpi) {
+                    it += IRInstruction(Opcode.CMPI, irDt, reg1 = countTr.resultReg, immediate = 0)
+                }
                 it += IRInstruction(Opcode.BSTNE, labelSymbol = repeatLabel)
             }
         }

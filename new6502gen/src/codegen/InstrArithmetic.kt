@@ -198,6 +198,11 @@ private fun CodeGenerator.incrementRegister(reg: Int, type: IRDataType) {
 }
 
 private fun CodeGenerator.decrementRegister(reg: Int, type: IRDataType) {
+    // Note: under the strict status-bits contract (CpuType.statusBitsOnMultiByteOps=false),
+    // the IR generator always emits an explicit CMPI before any branch that depends on the
+    // result, so the multi-byte op doesn't need to set Z correctly. We still emit the
+    // `ora` postamble as a defensive measure (it sets Z=1 iff the full value is 0), but
+    // it's wasted work. The explicit CMPI that follows is what the branch actually uses.
     when (type) {
         IRDataType.BYTE -> {
             emitLine("dec  ${regAddrLo(reg)}")
@@ -952,20 +957,37 @@ private fun CodeGenerator.compareImmediate(r1: Int, value: Int, type: IRDataType
             emitLine("cmp  #${value and 0xff}")
         }
         IRDataType.WORD -> {
-            emitLine("lda  ${regAddrLo(r1)}")
-            emitLine("cmp  #<${value and 0xffff}")
-            emitLine("lda  ${regAddrHi(r1)}")
-            emitLine("sbc  #>${value and 0xffff}")
+            // Special case: comparing with 0 must use a different pattern than the
+            // standard CMP/SBC cascade, because the cascade's final Z flag only
+            // reflects the high byte (the low byte's Z is clobbered by the LDA hi).
+            // The ORA pattern correctly sets Z=1 iff BOTH bytes are zero.
+            if (value == 0) {
+                emitLine("lda  ${regAddrLo(r1)}")
+                emitLine("ora  ${regAddrHi(r1)}")
+            } else {
+                emitLine("lda  ${regAddrLo(r1)}")
+                emitLine("cmp  #<${value and 0xffff}")
+                emitLine("lda  ${regAddrHi(r1)}")
+                emitLine("sbc  #>${value and 0xffff}")
+            }
         }
         IRDataType.LONG -> {
-            emitLine("lda  ${regAddrLo(r1)}")
-            emitLine("cmp  #${value and 0xff}")
-            emitLine("lda  ${regAddrHi(r1)}")
-            emitLine("sbc  #${(value shr 8) and 0xff}")
-            emitLine("lda  ${regAddrByte(r1, 2)}")
-            emitLine("sbc  #${(value shr 16) and 0xff}")
-            emitLine("lda  ${regAddrByte(r1, 3)}")
-            emitLine("sbc  #${(value shr 24) and 0xff}")
+            // Same special case for LONG: the cascade only reflects the highest byte.
+            if (value == 0) {
+                emitLine("lda  ${regAddrLo(r1)}")
+                emitLine("ora  ${regAddrHi(r1)}")
+                emitLine("ora  ${regAddrByte(r1, 2)}")
+                emitLine("ora  ${regAddrByte(r1, 3)}")
+            } else {
+                emitLine("lda  ${regAddrLo(r1)}")
+                emitLine("cmp  #${value and 0xff}")
+                emitLine("lda  ${regAddrHi(r1)}")
+                emitLine("sbc  #${(value shr 8) and 0xff}")
+                emitLine("lda  ${regAddrByte(r1, 2)}")
+                emitLine("sbc  #${(value shr 16) and 0xff}")
+                emitLine("lda  ${regAddrByte(r1, 3)}")
+                emitLine("sbc  #${(value shr 24) and 0xff}")
+            }
         }
         else -> TODO("CMPI r$r1, #$value ${type.name}")
     }

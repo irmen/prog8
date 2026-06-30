@@ -607,43 +607,44 @@ private fun CodeGenerator.translateArgument(arg: FunctionCallArgs.ArgumentSpec, 
                         emitLine("sec")
                         emitLabel("+")
                     }
+
                     Statusflag.Pv -> TODO("status flag Pv for argument")
                     else -> TODO("status flag $flag")
                 }
                 return
             }
-                    val address = arg.address
-                    if (address != null) {
-                        when (regSpec.dt) {
-                            IRDataType.BYTE -> {
-                                emitLine("lda  ${regAddrLo(regNum)}")
-                                emitLine("sta  ${address.toHex()}")
-                            }
-                            IRDataType.WORD -> {
-                                emitLine("lda  ${regAddrLo(regNum)}")
-                                emitLine("sta  ${address.toHex()}")
-                                emitLine("lda  ${regAddrHi(regNum)}")
-                                emitLine("sta  ${address.toHex()}+1")
-                            }
-                            IRDataType.LONG -> {
-                                val a = address.toHex()
-                                val base = regAddrByte(regNum, 0)
-                                emitLine("ldy  #3")
-                                emitLine("-  lda  $base,y")
-                                emitLine("sta  $a,y")
-                                emitLine("dey")
-                                emitLine("bpl  -")
-                            }
-                            IRDataType.FLOAT -> {
-                                emitLine("lda  #<${fpRegAddr(regNum)}")
-                                emitLine("ldy  #>${fpRegAddr(regNum)}")
-                                emitLine("jsr  floats.MOVFM")
-                                emitLine("ldx  #<${address.toHex()}")
-                                emitLine("ldy  #>${address.toHex()}")
-                                emitLine("jsr  floats.MOVMF")
-                            }
-                        }
-                    } else {
+            val address = arg.address
+            if (address != null) {
+                when (regSpec.dt) {
+                    IRDataType.BYTE -> {
+                        emitLine("lda  ${regAddrLo(regNum)}")
+                        emitLine("sta  ${address.toHex()}")
+                    }
+                    IRDataType.WORD -> {
+                        emitLine("lda  ${regAddrLo(regNum)}")
+                        emitLine("sta  ${address.toHex()}")
+                        emitLine("lda  ${regAddrHi(regNum)}")
+                        emitLine("sta  ${address.toHex()}+1")
+                    }
+                    IRDataType.LONG -> {
+                        val a = address.toHex()
+                        val base = regAddrByte(regNum, 0)
+                        emitLine("ldy  #3")
+                        emitLine("-  lda  $base,y")
+                        emitLine("sta  $a,y")
+                        emitLine("dey")
+                        emitLine("bpl  -")
+                    }
+                    IRDataType.FLOAT -> {
+                        emitLine("lda  #<${fpRegAddr(regNum)}")
+                        emitLine("ldy  #>${fpRegAddr(regNum)}")
+                        emitLine("jsr  floats.MOVFM")
+                        emitLine("ldx  #<${address.toHex()}")
+                        emitLine("ldy  #>${address.toHex()}")
+                        emitLine("jsr  floats.MOVMF")
+                    }
+                }
+            } else {
                 val name = arg.name
                 if (name.isNotEmpty()) {
                     // Check if this argument maps to an asmsub's cx16 virtual register parameter
@@ -678,41 +679,22 @@ private fun CodeGenerator.translateArgument(arg: FunctionCallArgs.ArgumentSpec, 
                                 emitLine("jsr  floats.MOVMF")
                             }
                         }
-                    } else if (name == "x") {
-                        // X register parameter for extsub calls
-                        when (regSpec.dt) {
-                            IRDataType.BYTE -> {
-                                emitLine("ldx  ${regAddrLo(regNum)}")
-                            }
-                            IRDataType.WORD -> {
-                                emitLine("ldx  ${regAddrLo(regNum)}")
-                                // high byte ignored for single register
-                            }
-                            else -> TODO("LONG/FLOAT X register arg")
-                        }
-                    } else if (name == "y") {
-                        // Y register parameter for extsub calls
-                        when (regSpec.dt) {
-                            IRDataType.BYTE -> {
-                                emitLine("ldy  ${regAddrLo(regNum)}")
-                            }
-                            IRDataType.WORD -> {
-                                emitLine("ldy  ${regAddrLo(regNum)}")
-                            }
-                            else -> TODO("LONG/FLOAT Y register arg")
-                        }
-                    } else if (name == "a") {
-                        // A register parameter for extsub calls
-                        when (regSpec.dt) {
-                            IRDataType.BYTE -> {
-                                emitLine("lda  ${regAddrLo(regNum)}")
-                            }
-                            IRDataType.WORD -> {
-                                emitLine("lda  ${regAddrLo(regNum)}")
-                            }
-                            else -> TODO("LONG/FLOAT A register arg")
-                        }
                     } else {
+                        // The slot is null, so this is NOT an extsub parameter (extsub
+                        // parameters have a non-null callingConventionSlot for A/X/Y register
+                        // passing). The parameter is accessed by name in the inline asm
+                        // (e.g. `lda #<value` inside a regular sub's %asm body), and the
+                        // parameter has been pre-allocated a fixed memory address by
+                        // SubParamAllocator. We store the argument to that address here.
+                        // For an asmsub cx16 virtual register parameter the name would be
+                        // like "cx16.r0" and is resolved to that register's address.
+                        //
+                        // Note: the previous code had separate branches for parameter
+                        // names "x", "y", "a" that tried to put the value in the X/Y/A
+                        // register. Those branches were dead code (for extsub the slot IS
+                        // set so we never reach this null branch) and harmful (any regular
+                        // sub with a parameter literally named "x", "y" or "a" hit the
+                        // TODO). They've been removed.
                         // Named parameter - store to the resolved symbol
                         // CX16 virtual register names (cx16.r0, etc.) are used directly
                         // as the target; other named params are resolved relative to the function label.

@@ -338,18 +338,15 @@ private fun CodeGenerator.translateFloatLoadStore(insn: IRInstruction) {
         Opcode.STOREZM -> {
             val memTarget = resolveAddress(addr, label, offset)
             val n = floatMemSize - 1
-            if (is65C02()) {
-                emitLine("ldy  #$n")
-                emitLine("-  stz  $memTarget,y")
-                emitLine("dey")
-                emitLine("bpl  -")
-            } else {
-                emitLine("ldy  #$n")
-                emitLine("lda  #0")
-                emitLine("-  sta  $memTarget,y")
-                emitLine("dey")
-                emitLine("bpl  -")
-            }
+            // Note: the 65C02 STZ instruction does NOT support Y-indexed addressing
+            // (only zp, zp,X, abs, abs,X). We use lda #0 / sta for both 6502 and 65C02
+            // here because the target size (floatMemSize) is small (5) and the
+            // code size is the same.
+            emitLine("ldy  #$n")
+            emitLine("lda  #0")
+            emitLine("-  sta  $memTarget,y")
+            emitLine("dey")
+            emitLine("bpl  -")
         }
 
         Opcode.STOREZI -> {

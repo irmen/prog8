@@ -339,24 +339,28 @@ class IRPeepholeOptimizer(private val irprog: IRProgram, private val retainSSA: 
     }
 
     private fun removeNeedlessCompares(chunk: IRCodeChunk, indexedInstructions: List<IndexedValue<IRInstruction>>): Boolean {
-        // a CMPI with 0, after an instruction like LOAD that already sets the status bits, can be removed.
-        // but only if the instruction after it is not using the Carry bit because that won't be set by a LOAD instruction etc.
+        // A CMPI #0 after an instruction that already sets the status bits can be removed.
+        // The optimization is ONLY safe if the target CPU honors the "multi-byte ops set
+        // status bits based on the full value" contract (CpuType.statusBitsOnMultiByteOps).
+        // On 8-bit targets like 6502/65C02 a 16/32-bit DEC/INC/AND/OR/XOR/LOAD only sets
+        // Z from the last byte, so a following CMPI #0 is NOT redundant - it tests the
+        // full multi-byte value. In that case we keep the explicit CMPI.
+        // See CpuType.statusBitsOnMultiByteOps for the rationale.
+        val targetHonorsContract = irprog.options.compTarget.cpu.statusBitsOnMultiByteOps
+        if (!targetHonorsContract) return false
         var changed = false
         indexedInstructions.reversed().forEach { (idx, ins) ->
             if(idx>0 && idx<(indexedInstructions.size-1) && ins.opcode==Opcode.CMPI && ins.immediate==0) {
                 val previous = indexedInstructions[idx-1].value
                 if(previous.reg1==ins.reg1) {
-                    if (previous.opcode in OpcodesThatSetStatusbitsIncludingCarry) {
+                    if (previous.opcode in OpcodesThatSetStatusbits) {
                         chunk.instructions.removeAt(idx)
                         changed = true
-                    } else if (previous.opcode in OpcodesThatSetStatusbitsButNotCarry
-                               || (previous.opcode == Opcode.LOADHR && previous.immediate != null && previous.immediate in 0..5)) {
-                        val next = indexedInstructions[idx + 1].value
-                        if (next.opcode !in OpcodesThatDependOnCarry) {
-                            chunk.instructions.removeAt(idx)
-                            changed = true
-                        }
                     }
+                    // Note: the OpcodesThatSetStatusbitsButNotCarry set is empty under
+                    // the strict contract (see IRInstructions.kt) so we don't need a
+                    // second branch here. Only CMP/CMPI/SGN/BITTST are recognized as
+                    // setting flags.
                 }
             }
         }

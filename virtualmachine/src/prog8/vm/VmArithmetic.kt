@@ -3,15 +3,13 @@ package prog8.vm
 import prog8.intermediate.IRDataType
 import prog8.intermediate.IRInstruction
 
-internal fun VirtualMachine.statusbitsNZ(value: Int, type: IRDataType) {
-    statusZero = value == 0
-    when(type) {
-        IRDataType.BYTE -> statusNegative = (value and 0x80) == 0x80
-        IRDataType.WORD -> statusNegative = (value and 0x8000) == 0x8000
-        IRDataType.LONG -> statusNegative = value < 0
-        IRDataType.FLOAT -> { /* floats don't change the status bits */ }
-    }
-}
+// Note: statusbitsNZ() was removed as part of the strict status-bits contract cleanup.
+// The VM no longer sets Z/N on arithmetic or load operations; only CMP, CMPI, SGN,
+// BITTST and the carry-out of shift/rotate operations modify the status flags. The
+// IR generator always emits an explicit CMPI before any branch that depends on the
+// result, so the VM doesn't need to track Z/N as a side effect of other operations.
+// See VirtualMachine.kt (the init require() and the class-level contract comment)
+// and CpuType.statusBitsOnMultiByteOps for the rationale.
 
 internal fun VirtualMachine.statusbitsComparison(left: Int, right: Int, type: IRDataType) {
     val comparison = left - right

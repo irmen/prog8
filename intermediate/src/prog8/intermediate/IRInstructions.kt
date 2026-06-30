@@ -47,12 +47,42 @@ Program to execute is not stored in the system memory, it's just a separate list
 100K virtual floating point registers (64 bits double precision)  fr0-fr99999
 65536 bytes of memory. Thus memory pointers (addresses) are limited to 16 bits.
 Value stack, max 128 entries of 1 byte each.
+
 Status flags: Carry, Zero, Negative, Overflow.
-NOTE: status flags are only affected by the CMP instruction or explicit CLC/SEC,
-      LOAD instructions also DO affect the Z and N flags.
-      INC/DEC/NEG instructions also DO affect the Z and N flags,
-      other instructions also only affect Z an N flags if the value in a result register is written.
-      See OpcodesThatSetStatusbits.
+
+Status bit contract (see CpuType.statusBitsOnMultiByteOps for the rationale):
+  The contract is enforced by the IR generator and the backends. It is NOT a property
+  of individual instructions (other than the explicit ones listed below) but of the
+  IR stream as a whole.
+
+  - Only the following instructions are GUARANTEED to set status flags:
+      CMP, CMPI        - set Z, N, C (and V via the comparison cascade)
+      SEC, CLC         - set/clear C
+      SGN              - sets Z, N, C based on sign of operand
+      BITTST           - sets Z based on tested bit
+      PUSHST, POPST    - read/restore the full status byte (not a normal consumer)
+
+  - The shift/rotate operations (ASR, LSR, LSL, ROL, ROR) and their memory variants
+    set the CARRY flag (the bit shifted out becomes the new carry) for use by
+    ROXL/ROXR (rotate through carry). They do NOT set Z or N.
+
+  - ALL other instructions (LOAD, LOADM, LOADX, LOADR, LOADI, INC, INCM, DEC, DECM,
+    NEG, NEGM, ADD, SUB, MUL, DIV, AND, OR, XOR, INV, BITSET, BITCLR, BITTOG,
+    LSIGB/W, MSIGB/W, BSIGB, MIDB, CONCAT, PUSH, POP, ...) DO NOT modify the
+    status flags. Their effect on the carry, zero, negative, and overflow flags
+    is UNDEFINED and must not be relied upon by any subsequent branch.
+
+  - This means the IR generator MUST emit an explicit CMP/CMPI before any branch
+    (BSTEQ, BSTNE, BSTCC, BSTCS, BSTPOS, BSTNEG, BGT, BGE, BLT, BLE, and their
+    signed/register variants) that depends on the result of an operation.
+
+  - For backends that target CPUs where multi-byte ops naturally set Z based on
+    the full value (e.g. M68000's `move.w #imm, d0`), the CpuType contract
+    (statusBitsOnMultiByteOps = true) can be honored to skip the explicit CMP/CMPI.
+    For 8-bit targets (6502, 65C02), this contract is false, and explicit
+    CMP/CMPI is required for every branch that depends on a multi-byte result.
+
+See CpuType.statusBitsOnMultiByteOps for the per-CPU configuration.
 
 Instruction set is mostly a load/store architecture, there are few instructions operating on memory directly.
 
@@ -61,6 +91,7 @@ There is no distinction between signed and unsigned for many instructions. Inste
 Floating point operations are just 'f' typed regular instructions, however there are a few unique fp conversion instructions.
 
 NOTE: Labels in source text should always start with an underscore.
+
 
 
 LOAD/STORE
@@ -517,44 +548,17 @@ val OpcodesThatEndSSAblock = OpcodesThatBranchUnconditionally + setOf(
     Opcode.BLES
 )
 
-val OpcodesThatSetStatusbitsIncludingCarry = setOf(
-    Opcode.BITTST,
-    Opcode.CMP,
-    Opcode.CMPI,
-    Opcode.SGN
-)
-
-// Note: never include CALL, SYSCALL and CONCAT here because they should never be assumed to have set sensible status bits.
-val OpcodesThatSetStatusbitsButNotCarry = setOf(
-    Opcode.LOAD,
-    Opcode.LOADM,
-    Opcode.LOADX,
-    Opcode.LOADR,
-    Opcode.LOADI,
-    Opcode.NEG,
-    Opcode.NEGM,
-    Opcode.INC,
-    Opcode.INCM,
-    Opcode.DEC,
-    Opcode.DECM,
-    Opcode.ANDM,
-    Opcode.ANDR,
-    Opcode.AND,
-    Opcode.ORM,
-    Opcode.ORR,
-    Opcode.OR,
-    Opcode.XORM,
-    Opcode.XORR,
-    Opcode.XOR,
-    Opcode.LSIGB,
-    Opcode.LSIGW,
-    Opcode.MSIGB,
-    Opcode.MSIGW,
-    Opcode.BSIGB,
-    Opcode.MIDB,
-    Opcode.BITSET,
-    Opcode.BITCLR,
-    Opcode.BITTOG
+// Opcodes that DO set the status flags (Z, N, C, V where applicable).
+// These are the ONLY instructions the IR generator can rely on for branch
+// conditions without emitting an explicit CMP/CMPI first. See the class-level
+// contract comment at the top of this file for the full specification and
+// CpuType.statusBitsOnMultiByteOps for how the contract interacts with
+// multi-byte types on 8-bit vs 16/32-bit targets.
+val OpcodesThatSetStatusbits = setOf(
+    Opcode.BITTST,    // sets Z based on the tested bit
+    Opcode.CMP,       // sets Z, N, C (and V via the comparison cascade)
+    Opcode.CMPI,      // sets Z, N, C (and V via the comparison cascade)
+    Opcode.SGN        // sets Z, N, C based on sign of operand
 )
 
 val OpcodesThatDependOnCarry = setOf(
@@ -578,8 +582,6 @@ val OpcodesThatLoad = setOf(
     Opcode.LOADHFACZERO,
     Opcode.LOADHFACONE
 )
-
-val OpcodesThatSetStatusbits = OpcodesThatSetStatusbitsButNotCarry + OpcodesThatSetStatusbitsIncludingCarry
 
 val OpcodesWithSideEffects = OpcodesThatBranch + setOf(
     Opcode.PUSH,

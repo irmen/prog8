@@ -268,9 +268,14 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         // Use status flags from condition expression when possible, avoiding redundant CMPI #0
         val condTr = translateExpression(ifExpr.condition)
         addToResult(result, condTr, condTr.resultReg, -1)
-        // Check if the last instruction already sets status flags - if so, skip the CMPI #0
+        // Only skip the CMPI if the target honors the "multi-byte ops set Z based on full
+        // value" contract. On 8-bit targets (6502/65C02) this is false, so we always emit
+        // an explicit CMPI - a multi-byte op may have set Z based on only the last byte.
+        // See CpuType.statusBitsOnMultiByteOps for the rationale.
         val lastInstr = condTr.chunks.lastOrNull()?.instructions?.lastOrNull()
-        val skipCmpi = lastInstr != null && lastInstr.opcode in OpcodesThatSetStatusbits
+        val skipCmpi = codeGen.options.compTarget.cpu.statusBitsOnMultiByteOps
+                && lastInstr != null
+                && lastInstr.opcode in OpcodesThatSetStatusbits
         if (!skipCmpi) {
             addInstr(result, IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1=condTr.resultReg, immediate = 0), null)
         }
@@ -1311,7 +1316,14 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     val leftTr = translateExpression(binExpr.left)
                     addToResult(result, leftTr, leftTr.resultReg, -1)
                     val lastInstr = leftTr.chunks.lastOrNull()?.instructions?.lastOrNull()
-                    val skipCmpi = rightConst.toInt() == 0 && lastInstr != null && lastInstr.opcode in OpcodesThatSetStatusbits
+                    // Only skip the CMPI if the target honors the "multi-byte ops set Z
+                    // based on full value" contract. On 8-bit targets a previous op like
+                    // DEC only set Z from the last byte, so the explicit CMPI is required.
+                    // See CpuType.statusBitsOnMultiByteOps for the rationale.
+                    val skipCmpi = rightConst.toInt() == 0
+                            && codeGen.options.compTarget.cpu.statusBitsOnMultiByteOps
+                            && lastInstr != null
+                            && lastInstr.opcode in OpcodesThatSetStatusbits
                     if (!skipCmpi) {
                         addInstr(result, IRInstruction(Opcode.CMPI, leftTr.dt, reg1 = leftTr.resultReg, immediate = rightConst.toInt()), null)
                     }
