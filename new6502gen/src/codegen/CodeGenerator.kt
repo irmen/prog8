@@ -22,14 +22,15 @@
  *   InstrLoadStore.kt, InstrArithmetic.kt, InstrBitwise.kt, InstrBranch.kt, InstrControl.kt
  *
  * Not yet implemented:
- *   - Floating point operations
- *   - CALLI, CALLFAR, CALLFARVB
- *   - Some advanced math (SQRT, trig, etc.)
+ *   - CALLFAR, CALLFARVB (banked calls to extsubs with ROM bank)
+ *   - FFROMSL (signed 32-bit integer to float conversion)
+ *   - FTOSL (float to signed 32-bit integer conversion)
  *   - Some bitwise operations (ASRM, LSRM, LSLM, ROXRM, ROXLM)
  */
 
 package codegen
 
+import optimization.PeepholeOptimizer
 import prog8.code.GENERATED_LABEL_PREFIX
 import prog8.code.core.*
 import prog8.intermediate.*
@@ -38,9 +39,11 @@ import java.nio.file.Path
 class CodeGenerator(val program: IRProgram, private val target: ICompilationTarget) : ICodeGenerator {
     private val output = StringBuilder()
     private val cpu get() = target.cpu
+    val floatMemSize: Int get() = target.FLOAT_MEM_SIZE.toInt()
 
     companion object {
         const val REGFILE_LABEL = "p8_regfile"
+        const val FP_REGFILE_LABEL = "p8_fpregfile"
     }
     
     init {
@@ -88,6 +91,7 @@ class CodeGenerator(val program: IRProgram, private val target: ICompilationTarg
     }
 
     override fun generate(): Boolean {
+        PeepholeOptimizer(program).optimize()
         emitHeader()
         emitConstants()
         emitZeropageVariables()
@@ -353,6 +357,41 @@ class CodeGenerator(val program: IRProgram, private val target: ICompilationTarg
         IRDataType.LONG -> 4
         IRDataType.FLOAT -> target.FLOAT_MEM_SIZE.toInt()
     }
+
+    // === float constant emission ===
+
+    private val floatConsts = mutableMapOf<Double, String>()
+
+    fun getFloatConstLabel(value: Double): String {
+        val existing = floatConsts[value]
+        if (existing != null) return existing
+        val label = "prog8_float_const_${floatConsts.size}"
+        floatConsts[value] = label
+        return label
+    }
+
+    // === FP register file layout ===
+
+    private val fpRegFileLayout: RegFileLayout by lazy {
+        val regs = program.registersUsed()
+        val allFpNums = (regs.readFpRegs.keys + regs.writeFpRegs.keys).map { it.value }.distinct().sorted()
+        val offsets = mutableMapOf<Int, Int>()
+        var currentOffset = 0
+        val floatSize = target.FLOAT_MEM_SIZE.toInt()
+        for (regNum in allFpNums) {
+            offsets[regNum] = currentOffset
+            currentOffset += floatSize
+        }
+        RegFileLayout(offsets, currentOffset)
+    }
+
+    fun fpRegAddr(reg: Int): String {
+        val offset = fpRegFileLayout.offsets[reg]
+            ?: error("fp register fr$reg has no layout info")
+        return "$FP_REGFILE_LABEL+$offset"
+    }
+
+    private val fpRegFileTotalSize: Int get() = fpRegFileLayout.totalSize
 
     /** Zero-page temporary pointer address for address computation (2 bytes). */
     val ZP_TEMP: String get() = target.zeropage.SCRATCH_PTR.toHex()
@@ -804,11 +843,22 @@ class CodeGenerator(val program: IRProgram, private val target: ICompilationTarg
         emitRaw("")
     }
 
+    private fun emitFloatConstants() {
+        if (floatConsts.isEmpty()) return
+        emitRaw("; float constants")
+        for ((value, label) in floatConsts) {
+            val bytes = target.getFloatAsmBytes(value)
+            emitLine("$label  .byte  $bytes")
+        }
+        emitRaw("")
+    }
+
     // === data section ===
 
     private fun emitDataSection() {
         emitStructDefs()
         emitRaw("")
+        emitFloatConstants()
 
         // static variables with initialized values (non-BSS, inline with code)
         val initdVars = program.st.allVariables().filter { !it.inBss && !isZpVar(it.name) }.toList()
@@ -947,42 +997,64 @@ class CodeGenerator(val program: IRProgram, private val target: ICompilationTarg
 
             dt.isArray -> {
                 val hasExplicitInit = init is IRVariableInitializer.Array
-                val values = when (init) {
-                    is IRVariableInitializer.Array -> init.elements.map {
-                        when (it) {
-                            is IRStSymbolicReference.Numeric -> {
-                                val v = it.value.toInt()
-                                if(dt.elementType().isByteOrBool)
-                                    asmHexByte(v)
-                                else
-                                    "${v}"
+                if (dt.elementType().isFloat) {
+                    val bytes = when (init) {
+                        is IRVariableInitializer.Array -> init.elements.map {
+                            when (it) {
+                                is IRStSymbolicReference.Numeric -> target.getFloatAsmBytes(it.value)
+                                else -> List(target.FLOAT_MEM_SIZE.toInt()) { 0 }.joinToString(",") { "\$00" }
                             }
-                            is IRStSymbolicReference.BoolValue -> if (it.value) "1" else "0"
-                            is IRStSymbolicReference.Symbol -> asmSymbolRef(it.name)
+                        }.flatMap { it.split(",").map { s -> s.trim() } }
+                        else -> {
+                            val numElements = v.length?.toInt() ?: 0
+                            (0 until numElements).flatMap {
+                                target.getFloatAsmBytes(0.0).split(",").map { s -> s.trim() }
+                            }
                         }
                     }
-                    else -> {
-                        val numElements = v.length?.toInt() ?: 0
-                        List(numElements.coerceAtLeast(1)) { "0" }
-                    }
-                }
-                val directive = when {
-                    dt.elementType().isUnsignedByte || dt.elementType().isBool -> ".byte"
-                    dt.elementType().isSignedByte -> ".char"
-                    dt.elementType().isUnsignedWord || dt.elementType().isPointer -> ".word"
-                    dt.elementType().isSignedWord -> ".sint"
-                    dt.elementType().isLong -> ".dint"
-                    else -> ".byte"
-                }
-                // Use .fill for zero-initialized arrays (no explicit init values)
-                if (!hasExplicitInit && values.all { it == "0" || it == "\$00" }) {
-                    emitLine("$label  .fill  ${values.size}")
-                } else if (values.size <= 16) {
-                    emitLine("$label  $directive ${values.joinToString(",")}")
-                } else {
+                    val floatSize = target.FLOAT_MEM_SIZE.toInt()
                     emitLabel(label)
-                    for (chunk in values.chunked(16)) {
-                        emitLine("  $directive ${chunk.joinToString(",")}")
+                    for (chunk in bytes.chunked(floatSize)) {
+                        emitLine("  .byte  ${chunk.joinToString(", ")}")
+                    }
+                } else {
+                    val values = when (init) {
+                        is IRVariableInitializer.Array -> init.elements.map {
+                            when (it) {
+                                is IRStSymbolicReference.Numeric -> {
+                                    val v = it.value.toInt()
+                                    if(dt.elementType().isByteOrBool)
+                                        asmHexByte(v)
+                                    else
+                                        "${v}"
+                                }
+                                is IRStSymbolicReference.BoolValue -> if (it.value) "1" else "0"
+                                is IRStSymbolicReference.Symbol -> asmSymbolRef(it.name)
+                            }
+                        }
+                        else -> {
+                            val numElements = v.length?.toInt() ?: 0
+                            List(numElements.coerceAtLeast(1)) { "0" }
+                        }
+                    }
+                    val directive = when {
+                        dt.elementType().isUnsignedByte || dt.elementType().isBool -> ".byte"
+                        dt.elementType().isSignedByte -> ".char"
+                        dt.elementType().isUnsignedWord || dt.elementType().isPointer -> ".word"
+                        dt.elementType().isSignedWord -> ".sint"
+                        dt.elementType().isLong -> ".dint"
+                        else -> ".byte"
+                    }
+                    // Use .fill for zero-initialized arrays (no explicit init values)
+                    if (!hasExplicitInit && values.all { it == "0" || it == "\$00" }) {
+                        emitLine("$label  .fill  ${values.size}")
+                    } else if (values.size <= 16) {
+                        emitLine("$label  $directive ${values.joinToString(",")}")
+                    } else {
+                        emitLabel(label)
+                        for (chunk in values.chunked(16)) {
+                            emitLine("  $directive ${chunk.joinToString(",")}")
+                        }
                     }
                 }
             }
@@ -1120,6 +1192,11 @@ class CodeGenerator(val program: IRProgram, private val target: ICompilationTarg
             // dirty variables above and corrupt them).
             emitLabel(REGFILE_LABEL)
             emitLine(".fill  ${regFileLayout.totalSize}")
+            // FP register file (separate from integer regs, same size per register)
+            if (fpRegFileTotalSize > 0) {
+                emitLabel(FP_REGFILE_LABEL)
+                emitLine(".fill  $fpRegFileTotalSize")
+            }
             emitRaw("    .send BSS_NOCLEAR")
             emitRaw("")
         }
@@ -1154,7 +1231,8 @@ class CodeGenerator(val program: IRProgram, private val target: ICompilationTarg
             dt.isLong -> ".dint" to 1
             dt.isFloat -> ".fill" to target.FLOAT_MEM_SIZE.toInt()
             dt.isArray || dt.isString -> {
-                val sz = (v.length ?: 1u).toInt()
+                val elementSize = if (dt.elementType().isFloat) target.FLOAT_MEM_SIZE.toInt() else 1
+                val sz = (v.length ?: 1u).toInt() * elementSize
                 ".fill" to sz
             }
             else -> ".byte" to 1

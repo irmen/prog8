@@ -76,9 +76,16 @@ SYSCALLS:     DO NOT RENUMBER THESE OR YOU WILL BREAK EXISTING CODE
 64 = tell file pos ; get current read position (returns long)
 65 = tell file size ; get file size (returns long)
 66 = gfx_text ; draw text in graphics window
+67 = SPLIT_WORDARRAY_CONTAINS
+68 = LONGARRAY_CONTAINS
 */
 
 enum class Syscall {
+    // WARNING: the ORDER of these entries defines their ordinal numbers,
+    // which are hardcoded as integer literals in %ir{{...}} blocks
+    // throughout the virtual target's standard library (e.g. "syscall 36(...)").
+    // Do NOT insert or reorder entries without updating those hardcoded
+    // ordinals. Always append new entries at the END (before the ;).
     RESET,
     EXIT,
     PRINT_C,
@@ -105,8 +112,6 @@ enum class Syscall {
     STRING_CONTAINS,
     BYTEARRAY_CONTAINS,
     WORDARRAY_CONTAINS,
-    SPLIT_WORDARRAY_CONTAINS,
-    LONGARRAY_CONTAINS,
     CLAMP_BYTE,
     CLAMP_UBYTE,
     CLAMP_WORD,
@@ -148,6 +153,8 @@ enum class Syscall {
     TELL_FILE_POS,
     TELL_FILE_SIZE,
     GFX_TEXT,
+    SPLIT_WORDARRAY_CONTAINS,
+    LONGARRAY_CONTAINS,
     ;
 
     companion object {

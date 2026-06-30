@@ -33,6 +33,12 @@ fun CodeGenerator.translateArithmetic(insn: IRInstruction) {
     val label = insn.labelSymbol
     val offset = insn.labelSymbolOffset
 
+    // FLOAT operations use fpReg1/fpReg2 instead of reg1/reg2
+    if (type == IRDataType.FLOAT) {
+        translateFloatArithmetic(insn)
+        return
+    }
+
     when (insn.opcode) {
         Opcode.INC -> incrementRegister(r1 ?: error("INC needs reg1"), type)
         Opcode.INCM -> incrementMemory(resolveAddress(addr, label, offset), type)
@@ -955,5 +961,293 @@ private fun CodeGenerator.compareImmediate(r1: Int, value: Int, type: IRDataType
             emitLine("sbc  #${(value shr 24) and 0xff}")
         }
         else -> TODO("CMPI r$r1, #$value ${type.name}")
+    }
+}
+
+// === Float arithmetic ===
+
+private fun CodeGenerator.translateFloatArithmetic(insn: IRInstruction) {
+    val fr1 = insn.fpReg1
+    val fr2 = insn.fpReg2
+    val immFp = insn.immediateFp
+    val addr = insn.address
+    val label = insn.labelSymbol
+    val offset = insn.labelSymbolOffset
+
+    when (insn.opcode) {
+        Opcode.INC -> {
+            // fr1 += 1.0
+            val fpReg = fr1 ?: error("INC.f needs fpReg1")
+            emitLine("lda  #<${fpRegAddr(fpReg.value)}")
+            emitLine("ldy  #>${fpRegAddr(fpReg.value)}")
+            emitLine("jsr  floats.MOVFM")
+            val oneConst = getFloatConstLabel(1.0)
+            emitLine("lda  #<$oneConst")
+            emitLine("ldy  #>$oneConst")
+            emitLine("jsr  floats.FADD")
+            emitLine("ldx  #<${fpRegAddr(fpReg.value)}")
+            emitLine("ldy  #>${fpRegAddr(fpReg.value)}")
+            emitLine("jsr  floats.MOVMF")
+        }
+
+        Opcode.DEC -> {
+            // fr1 -= 1.0
+            val fpReg = fr1 ?: error("DEC.f needs fpReg1")
+            emitLine("lda  #<${fpRegAddr(fpReg.value)}")
+            emitLine("ldy  #>${fpRegAddr(fpReg.value)}")
+            emitLine("jsr  floats.MOVFM")
+            val oneConst = getFloatConstLabel(1.0)
+            emitLine("lda  #<$oneConst")
+            emitLine("ldy  #>$oneConst")
+            emitLine("jsr  floats.FSUB")
+            emitLine("ldx  #<${fpRegAddr(fpReg.value)}")
+            emitLine("ldy  #>${fpRegAddr(fpReg.value)}")
+            emitLine("jsr  floats.MOVMF")
+        }
+
+        Opcode.NEG -> {
+            // fr1 = -fr1
+            val fpReg = fr1 ?: error("NEG.f needs fpReg1")
+            emitLine("lda  #<${fpRegAddr(fpReg.value)}")
+            emitLine("ldy  #>${fpRegAddr(fpReg.value)}")
+            emitLine("jsr  floats.MOVFM")
+            emitLine("jsr  floats.NEGOP")
+            emitLine("ldx  #<${fpRegAddr(fpReg.value)}")
+            emitLine("ldy  #>${fpRegAddr(fpReg.value)}")
+            emitLine("jsr  floats.MOVMF")
+        }
+
+        Opcode.ADDR -> {
+            // fr1 += fr2
+            // Safe order: MOVFM src→FAC1, MOVAF→FAC2, MOVFM dst→FAC1, FADDT
+            val dst = fr1 ?: error("ADDR.f needs fpReg1")
+            val src = fr2 ?: error("ADDR.f needs fpReg2")
+            emitLine("lda  #<${fpRegAddr(src.value)}")
+            emitLine("ldy  #>${fpRegAddr(src.value)}")
+            emitLine("jsr  floats.MOVFM")
+            emitLine("jsr  floats.MOVAF")
+            emitLine("lda  #<${fpRegAddr(dst.value)}")
+            emitLine("ldy  #>${fpRegAddr(dst.value)}")
+            emitLine("jsr  floats.MOVFM")
+            emitLine("jsr  floats.FADDT")
+            emitLine("ldx  #<${fpRegAddr(dst.value)}")
+            emitLine("ldy  #>${fpRegAddr(dst.value)}")
+            emitLine("jsr  floats.MOVMF")
+        }
+
+        Opcode.SUBR -> {
+            // fr1 -= fr2  =>  FSUBT = FAC2 - FAC1
+            // Need FAC2=fr1, FAC1=fr2 for result=fr1-fr2
+            val dst = fr1 ?: error("SUBR.f needs fpReg1")
+            val src = fr2 ?: error("SUBR.f needs fpReg2")
+            emitLine("lda  #<${fpRegAddr(dst.value)}")
+            emitLine("ldy  #>${fpRegAddr(dst.value)}")
+            emitLine("jsr  floats.MOVFM")
+            emitLine("jsr  floats.MOVAF")
+            emitLine("lda  #<${fpRegAddr(src.value)}")
+            emitLine("ldy  #>${fpRegAddr(src.value)}")
+            emitLine("jsr  floats.MOVFM")
+            emitLine("jsr  floats.FSUBT")
+            emitLine("ldx  #<${fpRegAddr(dst.value)}")
+            emitLine("ldy  #>${fpRegAddr(dst.value)}")
+            emitLine("jsr  floats.MOVMF")
+        }
+
+        Opcode.MULR -> {
+            // fr1 *= fr2
+            val dst = fr1 ?: error("MULR.f needs fpReg1")
+            val src = fr2 ?: error("MULR.f needs fpReg2")
+            emitLine("lda  #<${fpRegAddr(src.value)}")
+            emitLine("ldy  #>${fpRegAddr(src.value)}")
+            emitLine("jsr  floats.MOVFM")
+            emitLine("jsr  floats.MOVAF")
+            emitLine("lda  #<${fpRegAddr(dst.value)}")
+            emitLine("ldy  #>${fpRegAddr(dst.value)}")
+            emitLine("jsr  floats.MOVFM")
+            emitLine("jsr  floats.FMULTT")
+            emitLine("ldx  #<${fpRegAddr(dst.value)}")
+            emitLine("ldy  #>${fpRegAddr(dst.value)}")
+            emitLine("jsr  floats.MOVMF")
+        }
+
+        Opcode.DIVR, Opcode.DIVSR -> {
+            // fr1 /= fr2  =>  FDIVT = FAC2 / FAC1
+            // Need FAC2=fr1, FAC1=fr2 for result=fr1/fr2
+            val dst = fr1 ?: error("DIVR.f needs fpReg1")
+            val src = fr2 ?: error("DIVR.f needs fpReg2")
+            emitLine("lda  #<${fpRegAddr(dst.value)}")
+            emitLine("ldy  #>${fpRegAddr(dst.value)}")
+            emitLine("jsr  floats.MOVFM")
+            emitLine("jsr  floats.MOVAF")
+            emitLine("lda  #<${fpRegAddr(src.value)}")
+            emitLine("ldy  #>${fpRegAddr(src.value)}")
+            emitLine("jsr  floats.MOVFM")
+            emitLine("jsr  floats.FDIVT")
+            emitLine("ldx  #<${fpRegAddr(dst.value)}")
+            emitLine("ldy  #>${fpRegAddr(dst.value)}")
+            emitLine("jsr  floats.MOVMF")
+        }
+
+        Opcode.ADD, Opcode.MUL, Opcode.MULS -> {
+            val dst = fr1 ?: error("${insn.opcode}.f needs fpReg1")
+            val value = immFp ?: error("${insn.opcode}.f needs immediateFp")
+            val constLabel = getFloatConstLabel(value)
+            emitLine("lda  #<${fpRegAddr(dst.value)}")
+            emitLine("ldy  #>${fpRegAddr(dst.value)}")
+            emitLine("jsr  floats.MOVFM")
+            emitLine("lda  #<$constLabel")
+            emitLine("ldy  #>$constLabel")
+            val mathRoutine = when (insn.opcode) {
+                Opcode.ADD -> "floats.FADD"
+                Opcode.MUL, Opcode.MULS -> "floats.FMULT"
+                else -> error("unreachable")
+            }
+            emitLine("jsr  $mathRoutine")
+            emitLine("ldx  #<${fpRegAddr(dst.value)}")
+            emitLine("ldy  #>${fpRegAddr(dst.value)}")
+            emitLine("jsr  floats.MOVMF")
+        }
+
+        Opcode.SUB, Opcode.DIV, Opcode.DIVS -> {
+            val dst = fr1 ?: error("${insn.opcode}.f needs fpReg1")
+            val value = immFp ?: error("${insn.opcode}.f needs immediateFp")
+            val constLabel = getFloatConstLabel(value)
+            emitLine("lda  #<${fpRegAddr(dst.value)}")
+            emitLine("ldy  #>${fpRegAddr(dst.value)}")
+            emitLine("jsr  floats.MOVFM")
+            emitLine("lda  #<$constLabel")
+            emitLine("ldy  #>$constLabel")
+            val mathRoutine = when (insn.opcode) {
+                Opcode.SUB -> "floats.FSUB"
+                Opcode.DIV, Opcode.DIVS -> "floats.FDIV"
+                else -> error("unreachable")
+            }
+            emitLine("jsr  $mathRoutine")
+            emitLine("ldx  #<${fpRegAddr(dst.value)}")
+            emitLine("ldy  #>${fpRegAddr(dst.value)}")
+            emitLine("jsr  floats.MOVMF")
+        }
+
+        Opcode.ADDM -> {
+            val src = fr1 ?: error("ADDM.f needs fpReg1")
+            val target = resolveAddress(addr, label, offset)
+            emitLine("lda  #<$target")
+            emitLine("ldy  #>$target")
+            emitLine("jsr  floats.MOVFM")
+            emitLine("jsr  floats.MOVAF")
+            emitLine("lda  #<${fpRegAddr(src.value)}")
+            emitLine("ldy  #>${fpRegAddr(src.value)}")
+            emitLine("jsr  floats.MOVFM")
+            emitLine("jsr  floats.FADDT")
+            emitLine("ldx  #<$target")
+            emitLine("ldy  #>$target")
+            emitLine("jsr  floats.MOVMF")
+        }
+
+        Opcode.SUBM -> {
+            val src = fr1 ?: error("SUBM.f needs fpReg1")
+            val target = resolveAddress(addr, label, offset)
+            emitLine("lda  #<$target")
+            emitLine("ldy  #>$target")
+            emitLine("jsr  floats.MOVFM")
+            emitLine("jsr  floats.MOVAF")
+            emitLine("lda  #<${fpRegAddr(src.value)}")
+            emitLine("ldy  #>${fpRegAddr(src.value)}")
+            emitLine("jsr  floats.MOVFM")
+            emitLine("jsr  floats.FSUBT")
+            emitLine("ldx  #<$target")
+            emitLine("ldy  #>$target")
+            emitLine("jsr  floats.MOVMF")
+        }
+
+        Opcode.INCM -> {
+            val target = resolveAddress(addr, label, offset)
+            emitLine("lda  #<$target")
+            emitLine("ldy  #>$target")
+            emitLine("jsr  floats.MOVFM")
+            val oneConst = getFloatConstLabel(1.0)
+            emitLine("lda  #<$oneConst")
+            emitLine("ldy  #>$oneConst")
+            emitLine("jsr  floats.FADD")
+            emitLine("ldx  #<$target")
+            emitLine("ldy  #>$target")
+            emitLine("jsr  floats.MOVMF")
+        }
+
+        Opcode.DECM -> {
+            val target = resolveAddress(addr, label, offset)
+            emitLine("lda  #<$target")
+            emitLine("ldy  #>$target")
+            emitLine("jsr  floats.MOVFM")
+            val oneConst = getFloatConstLabel(1.0)
+            emitLine("lda  #<$oneConst")
+            emitLine("ldy  #>$oneConst")
+            emitLine("jsr  floats.FSUB")
+            emitLine("ldx  #<$target")
+            emitLine("ldy  #>$target")
+            emitLine("jsr  floats.MOVMF")
+        }
+
+        Opcode.NEGM -> {
+            val target = resolveAddress(addr, label, offset)
+            emitLine("lda  #<$target")
+            emitLine("ldy  #>$target")
+            emitLine("jsr  floats.MOVFM")
+            emitLine("jsr  floats.NEGOP")
+            emitLine("ldx  #<$target")
+            emitLine("ldy  #>$target")
+            emitLine("jsr  floats.MOVMF")
+        }
+
+        Opcode.MULM, Opcode.MULSM -> {
+            val src = fr1 ?: error("${insn.opcode}.f needs fpReg1")
+            val target = resolveAddress(addr, label, offset)
+            emitLine("lda  #<${fpRegAddr(src.value)}")
+            emitLine("ldy  #>${fpRegAddr(src.value)}")
+            emitLine("jsr  floats.MOVFM")
+            emitLine("jsr  floats.MOVAF")
+            emitLine("lda  #<$target")
+            emitLine("ldy  #>$target")
+            emitLine("jsr  floats.MOVFM")
+            emitLine("jsr  floats.FMULTT")
+            emitLine("ldx  #<$target")
+            emitLine("ldy  #>$target")
+            emitLine("jsr  floats.MOVMF")
+        }
+
+        Opcode.DIVM, Opcode.DIVSM -> {
+            val src = fr1 ?: error("${insn.opcode}.f needs fpReg1")
+            val target = resolveAddress(addr, label, offset)
+            emitLine("lda  #<$target")
+            emitLine("ldy  #>$target")
+            emitLine("jsr  floats.MOVFM")
+            emitLine("jsr  floats.MOVAF")
+            emitLine("lda  #<${fpRegAddr(src.value)}")
+            emitLine("ldy  #>${fpRegAddr(src.value)}")
+            emitLine("jsr  floats.MOVFM")
+            emitLine("jsr  floats.FDIVT")
+            emitLine("ldx  #<$target")
+            emitLine("ldy  #>$target")
+            emitLine("jsr  floats.MOVMF")
+        }
+
+        Opcode.MULSR -> {
+            // fr1 *= fr2  (signed - same as unsigned for floats)
+            val dst = fr1 ?: error("MULSR.f needs fpReg1")
+            val src = fr2 ?: error("MULSR.f needs fpReg2")
+            emitLine("lda  #<${fpRegAddr(src.value)}")
+            emitLine("ldy  #>${fpRegAddr(src.value)}")
+            emitLine("jsr  floats.MOVFM")
+            emitLine("jsr  floats.MOVAF")
+            emitLine("lda  #<${fpRegAddr(dst.value)}")
+            emitLine("ldy  #>${fpRegAddr(dst.value)}")
+            emitLine("jsr  floats.MOVFM")
+            emitLine("jsr  floats.FMULTT")
+            emitLine("ldx  #<${fpRegAddr(dst.value)}")
+            emitLine("ldy  #>${fpRegAddr(dst.value)}")
+            emitLine("jsr  floats.MOVMF")
+        }
+
+        else -> TODO("Unsupported float arithmetic opcode: ${insn.opcode}")
     }
 }

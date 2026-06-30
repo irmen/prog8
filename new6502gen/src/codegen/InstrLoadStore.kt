@@ -26,8 +26,11 @@
 
 package codegen
 
-import prog8.code.core.*
-import prog8.intermediate.*
+import prog8.code.core.toHex
+import prog8.intermediate.IRDataType
+import prog8.intermediate.IRInstruction
+import prog8.intermediate.MemoryAddress
+import prog8.intermediate.Opcode
 
 fun CodeGenerator.translateLoadStore(insn: IRInstruction) {
     val type = insn.type ?: IRDataType.BYTE
@@ -37,6 +40,12 @@ fun CodeGenerator.translateLoadStore(insn: IRInstruction) {
     val addr = insn.address
     val label = insn.labelSymbol
     val offset = insn.labelSymbolOffset
+
+    // FLOAT operations use fpReg1/fpReg2 instead of reg1/reg2
+    if (type == IRDataType.FLOAT) {
+        translateFloatLoadStore(insn)
+        return
+    }
 
     when (insn.opcode) {
         Opcode.LOAD -> {
@@ -102,7 +111,7 @@ fun CodeGenerator.translateLoadStore(insn: IRInstruction) {
         }
 
         Opcode.STOREHR -> {
-            storeToHardwareReg(r1 ?: error("STOREHR needs reg1"), imm ?: error("STOREHR needs slot"), type)
+            storeToHardwareReg(r1 ?: error("STOREHR needs reg1"), imm ?: error("STOREHR needs slot"))
         }
 
         Opcode.STOREI -> {
@@ -117,6 +126,301 @@ fun CodeGenerator.translateLoadStore(insn: IRInstruction) {
         Opcode.STOREHFACONE -> TODO("STOREHFACONE (float)")
 
         else -> error("Unknown load/store opcode: ${insn.opcode}")
+    }
+}
+
+private fun CodeGenerator.translateFloatLoadStore(insn: IRInstruction) {
+    val fpReg1 = insn.fpReg1
+    val fpReg2 = insn.fpReg2
+    val imm = insn.immediate
+    val addr = insn.address
+    val label = insn.labelSymbol
+    val offset = insn.labelSymbolOffset
+    val r1 = insn.reg1          // index register for LOADX/LOADI
+
+    when (insn.opcode) {
+        Opcode.LOAD -> {
+            val value = insn.immediateFp
+            val sym = insn.labelSymbol
+            when {
+                value != null -> {
+                    val fpReg = fpReg1 ?: error("FLOAT LOAD needs fpReg1")
+                    val constLabel = getFloatConstLabel(value)
+                    emitLine("lda  #<$constLabel")
+                    emitLine("ldy  #>$constLabel")
+                    emitLine("jsr  floats.MOVFM")
+                    emitLine("ldx  #<${fpRegAddr(fpReg.value)}")
+                    emitLine("ldy  #>${fpRegAddr(fpReg.value)}")
+                    emitLine("jsr  floats.MOVMF")
+                }
+                sym != null -> {
+                    val fpReg = fpReg1 ?: error("FLOAT LOAD needs fpReg1")
+                    val resolved = resolveSymbolRef(sym)
+                    val symWithOffset = if (offset != null) "$resolved+$offset" else resolved
+                    emitLine("lda  #<$symWithOffset")
+                    emitLine("ldy  #>$symWithOffset")
+                    emitLine("jsr  floats.MOVFM")
+                    emitLine("ldx  #<${fpRegAddr(fpReg.value)}")
+                    emitLine("ldy  #>${fpRegAddr(fpReg.value)}")
+                    emitLine("jsr  floats.MOVMF")
+                }
+                else -> error("FLOAT LOAD needs immediate or labelSymbol")
+            }
+        }
+
+        Opcode.LOADM -> {
+            val target = resolveAddress(addr, label, offset)
+            val fpReg = fpReg1 ?: error("LOADM.f needs fpReg1")
+            emitLine("lda  #<$target")
+            emitLine("ldy  #>$target")
+            emitLine("jsr  floats.MOVFM")
+            emitLine("ldx  #<${fpRegAddr(fpReg.value)}")
+            emitLine("ldy  #>${fpRegAddr(fpReg.value)}")
+            emitLine("jsr  floats.MOVMF")
+        }
+
+        Opcode.LOADR -> {
+            val src = fpReg2 ?: error("LOADR.f needs fpReg2")
+            val dst = fpReg1 ?: error("LOADR.f needs fpReg1")
+            emitLine("lda  #<${fpRegAddr(src.value)}")
+            emitLine("ldy  #>${fpRegAddr(src.value)}")
+            emitLine("jsr  floats.MOVFM")
+            emitLine("ldx  #<${fpRegAddr(dst.value)}")
+            emitLine("ldy  #>${fpRegAddr(dst.value)}")
+            emitLine("jsr  floats.MOVMF")
+        }
+
+        Opcode.STOREM -> {
+            val target = resolveAddress(addr, label, offset)
+            val fpReg = fpReg1 ?: error("STOREM.f needs fpReg1")
+            emitLine("lda  #<${fpRegAddr(fpReg.value)}")
+            emitLine("ldy  #>${fpRegAddr(fpReg.value)}")
+            emitLine("jsr  floats.MOVFM")
+            emitLine("ldx  #<$target")
+            emitLine("ldy  #>$target")
+            emitLine("jsr  floats.MOVMF")
+        }
+
+        Opcode.LOADHR -> {
+            val slot = imm ?: error("LOADHR.f needs slot")
+            val fpReg = fpReg1 ?: error("LOADHR.f needs fpReg1")
+            when (slot) {
+                6 -> {
+                    emitLine("ldx  #<${fpRegAddr(fpReg.value)}")
+                    emitLine("ldy  #>${fpRegAddr(fpReg.value)}")
+                    emitLine("jsr  floats.MOVMF")
+                }
+                7 -> {
+                    emitLine("jsr  floats.MOVFA")
+                    emitLine("ldx  #<${fpRegAddr(fpReg.value)}")
+                    emitLine("ldy  #>${fpRegAddr(fpReg.value)}")
+                    emitLine("jsr  floats.MOVMF")
+                }
+                else -> emitLine("; LOADHR.f: unknown slot $slot")
+            }
+        }
+
+        Opcode.STOREHR -> {
+            val slot = imm ?: error("STOREHR.f needs slot")
+            val fpReg = fpReg1 ?: error("STOREHR.f needs fpReg1")
+            when (slot) {
+                6 -> {
+                    emitLine("lda  #<${fpRegAddr(fpReg.value)}")
+                    emitLine("ldy  #>${fpRegAddr(fpReg.value)}")
+                    emitLine("jsr  floats.MOVFM")
+                }
+                7 -> {
+                    emitLine("lda  #<${fpRegAddr(fpReg.value)}")
+                    emitLine("ldy  #>${fpRegAddr(fpReg.value)}")
+                    emitLine("jsr  floats.MOVFM")
+                    emitLine("jsr  floats.MOVAF")
+                }
+                else -> emitLine("; STOREHR.f: unknown slot $slot")
+            }
+        }
+
+        Opcode.LOADX -> {
+            val idxReg = r1 ?: error("LOADX.f needs reg1 (index)")
+            val base = resolveAddress(addr, label, offset)
+            val fpReg = fpReg1 ?: error("LOADX.f needs fpReg1")
+            val ptr = ZP_TEMP
+            emitLine("lda  #<$base")
+            emitLine("sta  $ptr")
+            emitLine("lda  #>$base")
+            emitLine("sta  ${ptr}+1")
+            emitLine("lda  ${regAddrLo(idxReg)}")
+            emitLine("asl  a")
+            emitLine("asl  a")
+            emitLine("clc")
+            emitLine("adc  ${regAddrLo(idxReg)}")
+            emitLine("clc")
+            emitLine("adc  $ptr")
+            emitLine("sta  $ptr")
+            emitLine("bcc  +")
+            emitLine("inc  ${ptr}+1")
+            emitLabel("+")
+            emitLine("lda  $ptr")
+            emitLine("ldy  ${ptr}+1")
+            emitLine("jsr  floats.MOVFM")
+            emitLine("ldx  #<${fpRegAddr(fpReg.value)}")
+            emitLine("ldy  #>${fpRegAddr(fpReg.value)}")
+            emitLine("jsr  floats.MOVMF")
+        }
+
+        Opcode.LOADI -> {
+            val baseReg = r1 ?: error("LOADI.f needs reg1 (base ptr)")
+            val offsetVal = insn.immediate ?: 0
+            val fpReg = fpReg1 ?: error("LOADI.f needs fpReg1")
+            val ptr = ZP_TEMP
+            emitLine("lda  ${regAddrLo(baseReg)}")
+            emitLine("clc")
+            emitLine("adc  #<${offsetVal and 0xffff}")
+            emitLine("sta  $ptr")
+            emitLine("lda  ${regAddrHi(baseReg)}")
+            emitLine("adc  #>${offsetVal and 0xffff}")
+            emitLine("sta  ${ptr}+1")
+            emitLine("lda  $ptr")
+            emitLine("ldy  ${ptr}+1")
+            emitLine("jsr  floats.MOVFM")
+            emitLine("ldx  #<${fpRegAddr(fpReg.value)}")
+            emitLine("ldy  #>${fpRegAddr(fpReg.value)}")
+            emitLine("jsr  floats.MOVMF")
+        }
+
+        Opcode.STOREI -> {
+            val baseReg = r1 ?: error("STOREI.f needs reg1 (base ptr)")
+            val offsetVal = insn.immediate ?: 0
+            val fpReg = fpReg1 ?: error("STOREI.f needs fpReg1")
+            val ptr = ZP_TEMP
+            emitLine("lda  ${regAddrLo(baseReg)}")
+            emitLine("clc")
+            emitLine("adc  #<${offsetVal and 0xffff}")
+            emitLine("sta  $ptr")
+            emitLine("lda  ${regAddrHi(baseReg)}")
+            emitLine("adc  #>${offsetVal and 0xffff}")
+            emitLine("sta  ${ptr}+1")
+            emitLine("lda  #<${fpRegAddr(fpReg.value)}")
+            emitLine("ldy  #>${fpRegAddr(fpReg.value)}")
+            emitLine("jsr  floats.MOVFM")
+            emitLine("lda  $ptr")
+            emitLine("ldy  ${ptr}+1")
+            emitLine("jsr  floats.MOVMF")
+        }
+
+        Opcode.STOREX -> {
+            val idxReg = r1 ?: error("STOREX.f needs reg1 (index)")
+            val base = resolveAddress(addr, label, offset)
+            val fpReg = fpReg1 ?: error("STOREX.f needs fpReg1")
+            val ptr = ZP_TEMP
+            emitLine("lda  #<$base")
+            emitLine("sta  $ptr")
+            emitLine("lda  #>$base")
+            emitLine("sta  ${ptr}+1")
+            emitLine("lda  ${regAddrLo(idxReg)}")
+            emitLine("asl  a")
+            emitLine("asl  a")
+            emitLine("clc")
+            emitLine("adc  ${regAddrLo(idxReg)}")
+            emitLine("clc")
+            emitLine("adc  $ptr")
+            emitLine("sta  $ptr")
+            emitLine("bcc  +")
+            emitLine("inc  ${ptr}+1")
+            emitLabel("+")
+            emitLine("lda  #<${fpRegAddr(fpReg.value)}")
+            emitLine("ldy  #>${fpRegAddr(fpReg.value)}")
+            emitLine("jsr  floats.MOVFM")
+            emitLine("lda  $ptr")
+            emitLine("ldy  ${ptr}+1")
+            emitLine("jsr  floats.MOVMF")
+        }
+
+        Opcode.STOREZM -> {
+            val memTarget = resolveAddress(addr, label, offset)
+            for (i in 0 until floatMemSize)
+                emitStoreZero("$memTarget+$i")
+        }
+
+        Opcode.STOREZI -> {
+            val baseReg = r1 ?: error("STOREZI.f needs reg1 (base ptr)")
+            val offsetVal = insn.immediate ?: 0
+            val ptr = ZP_TEMP
+            emitLine("lda  ${regAddrLo(baseReg)}")
+            emitLine("clc")
+            emitLine("adc  #<${offsetVal and 0xffff}")
+            emitLine("sta  $ptr")
+            emitLine("lda  ${regAddrHi(baseReg)}")
+            emitLine("adc  #>${offsetVal and 0xffff}")
+            emitLine("sta  ${ptr}+1")
+            for (i in 0 until floatMemSize) {
+                emitLine("ldy  #$i")
+                emitLine("lda  #0")
+                emitLine("sta  ($ptr),y")
+            }
+        }
+
+        Opcode.STOREZX -> {
+            val idxReg = r1 ?: error("STOREZX.f needs reg1 (index)")
+            val base = resolveAddress(addr, label, offset)
+            val ptr = ZP_TEMP
+            emitLine("lda  #<$base")
+            emitLine("sta  $ptr")
+            emitLine("lda  #>$base")
+            emitLine("sta  ${ptr}+1")
+            emitLine("lda  ${regAddrLo(idxReg)}")
+            emitLine("asl  a")
+            emitLine("asl  a")
+            emitLine("clc")
+            emitLine("adc  ${regAddrLo(idxReg)}")
+            emitLine("clc")
+            emitLine("adc  $ptr")
+            emitLine("sta  $ptr")
+            emitLine("bcc  +")
+            emitLine("inc  ${ptr}+1")
+            emitLabel("+")
+            for (i in 0 until floatMemSize) {
+                emitLine("ldy  #$i")
+                emitLine("lda  #0")
+                emitLine("sta  ($ptr),y")
+            }
+        }
+
+        Opcode.LOADHFACZERO -> {
+            // Load hardware FAC1 (main accumulator) into fp reg
+            val fpReg = fpReg1 ?: error("LOADHFACZERO needs fpReg1")
+            emitLine("ldx  #<${fpRegAddr(fpReg.value)}")
+            emitLine("ldy  #>${fpRegAddr(fpReg.value)}")
+            emitLine("jsr  floats.MOVMF")
+        }
+
+        Opcode.LOADHFACONE -> {
+            // Load hardware FAC2 (argument register) into fp reg
+            // First copy FAC2 to FAC1, then store
+            val fpReg = fpReg1 ?: error("LOADHFACONE needs fpReg1")
+            emitLine("jsr  floats.MOVFA")
+            emitLine("ldx  #<${fpRegAddr(fpReg.value)}")
+            emitLine("ldy  #>${fpRegAddr(fpReg.value)}")
+            emitLine("jsr  floats.MOVMF")
+        }
+
+        Opcode.STOREHFACZERO -> {
+            // Store fp reg into hardware FAC1 (main accumulator)
+            val fpReg = fpReg1 ?: error("STOREHFACZERO needs fpReg1")
+            emitLine("lda  #<${fpRegAddr(fpReg.value)}")
+            emitLine("ldy  #>${fpRegAddr(fpReg.value)}")
+            emitLine("jsr  floats.MOVFM")
+        }
+
+        Opcode.STOREHFACONE -> {
+            // Store fp reg into hardware FAC2 (argument register)
+            val fpReg = fpReg1 ?: error("STOREHFACONE needs fpReg1")
+            emitLine("lda  #<${fpRegAddr(fpReg.value)}")
+            emitLine("ldy  #>${fpRegAddr(fpReg.value)}")
+            emitLine("jsr  floats.MOVFM")
+            emitLine("jsr  floats.MOVAF")
+        }
+
+        else -> error("Unknown float load/store opcode: ${insn.opcode}")
     }
 }
 
@@ -159,7 +463,7 @@ private fun CodeGenerator.loadFromHardwareReg(virtualReg: Int, slot: Int, type: 
     }
 }
 
-private fun CodeGenerator.storeToHardwareReg(virtualReg: Int, slot: Int, type: IRDataType) {
+private fun CodeGenerator.storeToHardwareReg(virtualReg: Int, slot: Int) {
     // STOREHR: move value FROM virtual register file INTO physical CPU register (slot)
     when (slot) {
         0 -> {

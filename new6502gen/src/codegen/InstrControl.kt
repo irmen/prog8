@@ -53,7 +53,12 @@ fun CodeGenerator.translateControl(insn: IRInstruction) {
 
         Opcode.CALLI -> {
             val reg = r1 ?: error("CALLI needs reg1")
-            TODO("CALLI via r$reg")
+            emitLine("lda  #>((+)-1)")
+            emitLine("pha")
+            emitLine("lda  #<((+)-1)")
+            emitLine("pha")
+            emitLine("jmp  (${regAddr(reg)})")
+            emitLabel("+")
         }
 
         Opcode.CALLFAR -> {
@@ -78,110 +83,138 @@ fun CodeGenerator.translateControl(insn: IRInstruction) {
         }
 
         Opcode.RETURNR -> {
-            val reg = r1 ?: error("RETURNR needs reg1")
             val type = insn.type ?: IRDataType.BYTE
-            when (type) {
-                IRDataType.BYTE -> {
-                    emitLine("lda  ${regAddrLo(reg)}")
-                }
+            if (type == IRDataType.FLOAT) {
+                val fpReg = insn.fpReg1 ?: error("RETURNR.f needs fpReg1")
+                emitLine("lda  #<${fpRegAddr(fpReg.value)}")
+                emitLine("ldy  #>${fpRegAddr(fpReg.value)}")
+                emitLine("jsr  floats.MOVFM")
+            } else {
+                val reg = r1 ?: error("RETURNR needs reg1")
+                when (type) {
+                    IRDataType.BYTE -> {
+                        emitLine("lda  ${regAddrLo(reg)}")
+                    }
                 IRDataType.WORD -> {
                     emitLine("lda  ${regAddrLo(reg)}")
-                    emitLine("ldx  ${regAddrHi(reg)}")
+                    emitLine("ldy  ${regAddrHi(reg)}")
                 }
-                IRDataType.LONG -> {
-                    emitLine("lda  ${regAddrLo(reg)}")
-                    emitLine("sta  cx16.r14")
-                    emitLine("lda  ${regAddrHi(reg)}")
-                    emitLine("sta  cx16.r14+1")
-                    emitLine("lda  ${regAddrLo(reg + 1)}")
-                    emitLine("sta  cx16.r15")
-                    emitLine("lda  ${regAddrHi(reg + 1)}")
-                    emitLine("sta  cx16.r15+1")
+                    IRDataType.LONG -> {
+                        emitLine("lda  ${regAddrLo(reg)}")
+                        emitLine("sta  cx16.r14")
+                        emitLine("lda  ${regAddrHi(reg)}")
+                        emitLine("sta  cx16.r14+1")
+                        emitLine("lda  ${regAddrLo(reg + 1)}")
+                        emitLine("sta  cx16.r15")
+                        emitLine("lda  ${regAddrHi(reg + 1)}")
+                        emitLine("sta  cx16.r15+1")
+                    }
                 }
-                else -> TODO("RETURNR r$reg ${type.name}")
             }
             emitLine("rts")
         }
 
         Opcode.RETURNI -> {
-            val value = imm ?: error("RETURNI needs immediate")
             val type = insn.type ?: IRDataType.BYTE
-            when (type) {
-                IRDataType.BYTE -> {
-                    emitLine("lda  #${value and 0xff}")
+            if (type == IRDataType.FLOAT) {
+                val value = insn.immediateFp ?: error("RETURNI.f needs immediateFp")
+                val constLabel = getFloatConstLabel(value)
+                emitLine("lda  #<$constLabel")
+                emitLine("ldy  #>$constLabel")
+                emitLine("jsr  floats.MOVFM")
+            } else {
+                val value = imm ?: error("RETURNI needs immediate")
+                when (type) {
+                    IRDataType.BYTE -> {
+                        emitLine("lda  #${value and 0xff}")
+                    }
+                    IRDataType.WORD -> {
+                        emitLine("lda  #<${value and 0xffff}")
+                        emitLine("ldy  #>${value and 0xffff}")
+                    }
+                    IRDataType.LONG -> {
+                        emitLine("lda  #${value and 0xff}")
+                        emitLine("sta  cx16.r14")
+                        emitLine("lda  #${(value ushr 8) and 0xff}")
+                        emitLine("sta  cx16.r14+1")
+                        emitLine("lda  #${(value ushr 16) and 0xff}")
+                        emitLine("sta  cx16.r15")
+                        emitLine("lda  #${(value ushr 24) and 0xff}")
+                        emitLine("sta  cx16.r15+1")
+                    }
                 }
-                IRDataType.WORD -> {
-                    emitLine("lda  #<${value and 0xffff}")
-                    emitLine("ldx  #>${value and 0xffff}")
-                }
-                IRDataType.LONG -> {
-                    emitLine("lda  #${value and 0xff}")
-                    emitLine("sta  cx16.r14")
-                    emitLine("lda  #${(value ushr 8) and 0xff}")
-                    emitLine("sta  cx16.r14+1")
-                    emitLine("lda  #${(value ushr 16) and 0xff}")
-                    emitLine("sta  cx16.r15")
-                    emitLine("lda  #${(value ushr 24) and 0xff}")
-                    emitLine("sta  cx16.r15+1")
-                }
-                IRDataType.FLOAT -> TODO("RETURNI FLOAT")
             }
             emitLine("rts")
         }
 
         Opcode.PUSH -> {
-            val reg = r1 ?: error("PUSH needs reg1")
             val type = insn.type ?: IRDataType.BYTE
-            when (type) {
-                IRDataType.BYTE -> {
-                    emitLine("lda  ${regAddrLo(reg)}")
-                    emitLine("pha")
+            if (type == IRDataType.FLOAT) {
+                val fpReg = insn.fpReg1 ?: error("PUSH.f needs fpReg1")
+                emitLine("lda  #<${fpRegAddr(fpReg.value)}")
+                emitLine("ldy  #>${fpRegAddr(fpReg.value)}")
+                emitLine("jsr  floats.MOVFM")
+                emitLine("jsr  floats.pushFAC1")
+            } else {
+                val reg = r1 ?: error("PUSH needs reg1")
+                when (type) {
+                    IRDataType.BYTE -> {
+                        emitLine("lda  ${regAddrLo(reg)}")
+                        emitLine("pha")
+                    }
+                    IRDataType.WORD -> {
+                        emitLine("lda  ${regAddrHi(reg)}")
+                        emitLine("pha")
+                        emitLine("lda  ${regAddrLo(reg)}")
+                        emitLine("pha")
+                    }
+                    IRDataType.LONG -> {
+                        emitLine("lda  ${regAddrHi(reg + 1)}")
+                        emitLine("pha")
+                        emitLine("lda  ${regAddrLo(reg + 1)}")
+                        emitLine("pha")
+                        emitLine("lda  ${regAddrHi(reg)}")
+                        emitLine("pha")
+                        emitLine("lda  ${regAddrLo(reg)}")
+                        emitLine("pha")
+                    }
                 }
-                IRDataType.WORD -> {
-                    emitLine("lda  ${regAddrHi(reg)}")
-                    emitLine("pha")
-                    emitLine("lda  ${regAddrLo(reg)}")
-                    emitLine("pha")
-                }
-                IRDataType.LONG -> {
-                    emitLine("lda  ${regAddrHi(reg + 1)}")
-                    emitLine("pha")
-                    emitLine("lda  ${regAddrLo(reg + 1)}")
-                    emitLine("pha")
-                    emitLine("lda  ${regAddrHi(reg)}")
-                    emitLine("pha")
-                    emitLine("lda  ${regAddrLo(reg)}")
-                    emitLine("pha")
-                }
-                else -> TODO("PUSH r$reg ${type.name}")
             }
         }
 
         Opcode.POP -> {
-            val reg = r1 ?: error("POP needs reg1")
             val type = insn.type ?: IRDataType.BYTE
-            when (type) {
-                IRDataType.BYTE -> {
-                    emitLine("pla")
-                    emitLine("sta  ${regAddrLo(reg)}")
+            if (type == IRDataType.FLOAT) {
+                val fpReg = insn.fpReg1 ?: error("POP.f needs fpReg1")
+                emitLine("clc")
+                emitLine("jsr  floats.popFAC")
+                emitLine("ldx  #<${fpRegAddr(fpReg.value)}")
+                emitLine("ldy  #>${fpRegAddr(fpReg.value)}")
+                emitLine("jsr  floats.MOVMF")
+            } else {
+                val reg = r1 ?: error("POP needs reg1")
+                when (type) {
+                    IRDataType.BYTE -> {
+                        emitLine("pla")
+                        emitLine("sta  ${regAddrLo(reg)}")
+                    }
+                    IRDataType.WORD -> {
+                        emitLine("pla")
+                        emitLine("sta  ${regAddrLo(reg)}")
+                        emitLine("pla")
+                        emitLine("sta  ${regAddrHi(reg)}")
+                    }
+                    IRDataType.LONG -> {
+                        emitLine("pla")
+                        emitLine("sta  ${regAddrLo(reg)}")
+                        emitLine("pla")
+                        emitLine("sta  ${regAddrHi(reg)}")
+                        emitLine("pla")
+                        emitLine("sta  ${regAddrLo(reg + 1)}")
+                        emitLine("pla")
+                        emitLine("sta  ${regAddrHi(reg + 1)}")
+                    }
                 }
-                IRDataType.WORD -> {
-                    emitLine("pla")
-                    emitLine("sta  ${regAddrLo(reg)}")
-                    emitLine("pla")
-                    emitLine("sta  ${regAddrHi(reg)}")
-                }
-                IRDataType.LONG -> {
-                    emitLine("pla")
-                    emitLine("sta  ${regAddrLo(reg)}")
-                    emitLine("pla")
-                    emitLine("sta  ${regAddrHi(reg)}")
-                    emitLine("pla")
-                    emitLine("sta  ${regAddrLo(reg + 1)}")
-                    emitLine("pla")
-                    emitLine("sta  ${regAddrHi(reg + 1)}")
-                }
-                else -> TODO("POP r$reg ${type.name}")
             }
         }
 
@@ -319,26 +352,41 @@ fun CodeGenerator.translateControl(insn: IRInstruction) {
             emitLabel("+")
         }
 
-        Opcode.SQRT -> TODO("SQRT")
-        Opcode.SQUARE -> TODO("SQUARE")
-        Opcode.SGN -> TODO("SGN")
+        Opcode.SQRT -> {
+            if (insn.type == IRDataType.FLOAT)
+                translateFloatUnary(insn, "floats.SQR")
+            else
+                TODO("SQRT (integer)")
+        }
+        Opcode.SQUARE -> {
+            if (insn.type == IRDataType.FLOAT)
+                translateFloatSquare(insn)
+            else
+                TODO("SQUARE (integer)")
+        }
+        Opcode.SGN -> {
+            if (insn.type == IRDataType.FLOAT)
+                translateFloatSign(insn)
+            else
+                TODO("SGN (integer)")
+        }
 
-        Opcode.FFROMUB, Opcode.FFROMSB, Opcode.FFROMUW, Opcode.FFROMSW, Opcode.FFROMSL -> TODO("${insn.opcode} (float conversion)")
+        Opcode.FFROMUB, Opcode.FFROMSB, Opcode.FFROMUW, Opcode.FFROMSW, Opcode.FFROMSL -> translateFloatFromInt(insn)
 
-        Opcode.FTOUB, Opcode.FTOSB, Opcode.FTOUW, Opcode.FTOSW, Opcode.FTOSL -> TODO("${insn.opcode} (float conversion)")
+        Opcode.FTOUB, Opcode.FTOSB, Opcode.FTOUW, Opcode.FTOSW, Opcode.FTOSL -> translateFloatToInt(insn)
 
-        Opcode.FABS -> TODO("FABS")
-        Opcode.FSIN -> TODO("FSIN")
-        Opcode.FCOS -> TODO("FCOS")
-        Opcode.FTAN -> TODO("FTAN")
-        Opcode.FATAN -> TODO("FATAN")
-        Opcode.FPOW -> TODO("FPOW")
-        Opcode.FLN -> TODO("FLN")
-        Opcode.FLOG -> TODO("FLOG")
-        Opcode.FROUND -> TODO("FROUND")
-        Opcode.FFLOOR -> TODO("FFLOOR")
-        Opcode.FCEIL -> TODO("FCEIL")
-        Opcode.FCOMP -> TODO("FCOMP")
+        Opcode.FABS -> translateFloatUnary(insn, "floats.ABS")
+        Opcode.FSIN -> translateFloatUnary(insn, "floats.SIN")
+        Opcode.FCOS -> translateFloatUnary(insn, "floats.COS")
+        Opcode.FTAN -> translateFloatUnary(insn, "floats.TAN")
+        Opcode.FATAN -> translateFloatUnary(insn, "floats.ATN")
+        Opcode.FPOW -> translateFloatPower(insn)
+        Opcode.FLN -> translateFloatUnary(insn, "floats.LOG")
+        Opcode.FLOG -> translateFloatUnary(insn, "floats.LOG")
+        Opcode.FROUND -> translateFloatUnary(insn, "floats.ROUND")
+        Opcode.FFLOOR -> translateFloatUnary(insn, "floats.INT")
+        Opcode.FCEIL -> translateFloatCeil(insn)
+        Opcode.FCOMP -> translateFloatCompare(insn)
 
         else -> error("Unknown control opcode: ${insn.opcode}")
     }
@@ -468,6 +516,19 @@ private fun CodeGenerator.translateArgument(arg: FunctionCallArgs.ArgumentSpec, 
             emitLine("ldx  ${regAddrLo(regNum)}")
             emitLine("ldy  ${regAddrHi(regNum)}")
         }
+        6 -> {
+            // slot s6 = FAC1: load fp register into FAC1
+            emitLine("lda  #<${fpRegAddr(regNum)}")
+            emitLine("ldy  #>${fpRegAddr(regNum)}")
+            emitLine("jsr  floats.MOVFM")
+        }
+        7 -> {
+            // slot s7 = FAC2: load fp register into FAC2 via MOVFM + MOVAF
+            emitLine("lda  #<${fpRegAddr(regNum)}")
+            emitLine("ldy  #>${fpRegAddr(regNum)}")
+            emitLine("jsr  floats.MOVFM")
+            emitLine("jsr  floats.MOVAF")
+        }
         null -> {
             val flag = regSpec.statusflag
             if (flag != null) {
@@ -485,34 +546,39 @@ private fun CodeGenerator.translateArgument(arg: FunctionCallArgs.ArgumentSpec, 
                 }
                 return
             }
-            val address = arg.address
-            if (address != null) {
-                when (regSpec.dt) {
-                    IRDataType.BYTE -> {
-                        emitLine("lda  ${regAddrLo(regNum)}")
-                        emitLine("sta  ${address.toHex()}")
-                    }
-                    IRDataType.WORD -> {
-                        emitLine("lda  ${regAddrLo(regNum)}")
-                        emitLine("sta  ${address.toHex()}")
-                        emitLine("lda  ${regAddrHi(regNum)}")
-                        emitLine("sta  ${address.toHex()}+1")
-                    }
-                    IRDataType.LONG -> {
-                        emitLine("lda  ${regAddrLo(regNum)}")
-                        emitLine("sta  ${address.toHex()}")
-                        emitLine("lda  ${regAddrHi(regNum)}")
-                        emitLine("sta  ${address.toHex()}+1")
-                        emitLine("lda  ${regAddrByte(regNum, 2)}")
-                        emitLine("sta  ${address.toHex()}+2")
-                        emitLine("lda  ${regAddrByte(regNum, 3)}")
-                        emitLine("sta  ${address.toHex()}+3")
-                    }
-                    IRDataType.FLOAT -> {
-                        TODO("FLOAT arg to address $address")
-                    }
-                }
-            } else {
+                    val address = arg.address
+                    if (address != null) {
+                        when (regSpec.dt) {
+                            IRDataType.BYTE -> {
+                                emitLine("lda  ${regAddrLo(regNum)}")
+                                emitLine("sta  ${address.toHex()}")
+                            }
+                            IRDataType.WORD -> {
+                                emitLine("lda  ${regAddrLo(regNum)}")
+                                emitLine("sta  ${address.toHex()}")
+                                emitLine("lda  ${regAddrHi(regNum)}")
+                                emitLine("sta  ${address.toHex()}+1")
+                            }
+                            IRDataType.LONG -> {
+                                emitLine("lda  ${regAddrLo(regNum)}")
+                                emitLine("sta  ${address.toHex()}")
+                                emitLine("lda  ${regAddrHi(regNum)}")
+                                emitLine("sta  ${address.toHex()}+1")
+                                emitLine("lda  ${regAddrByte(regNum, 2)}")
+                                emitLine("sta  ${address.toHex()}+2")
+                                emitLine("lda  ${regAddrByte(regNum, 3)}")
+                                emitLine("sta  ${address.toHex()}+3")
+                            }
+                            IRDataType.FLOAT -> {
+                                emitLine("lda  #<${fpRegAddr(regNum)}")
+                                emitLine("ldy  #>${fpRegAddr(regNum)}")
+                                emitLine("jsr  floats.MOVFM")
+                                emitLine("ldx  #<${address.toHex()}")
+                                emitLine("ldy  #>${address.toHex()}")
+                                emitLine("jsr  floats.MOVMF")
+                            }
+                        }
+                    } else {
                 val name = arg.name
                 if (name.isNotEmpty()) {
                     // Check if this argument maps to an asmsub's cx16 virtual register parameter
@@ -541,7 +607,12 @@ private fun CodeGenerator.translateArgument(arg: FunctionCallArgs.ArgumentSpec, 
                                 emitLine("sta  ${asmTarget}+3")
                             }
                             IRDataType.FLOAT -> {
-                                TODO("FLOAT arg to $asmTarget")
+                                emitLine("lda  #<${fpRegAddr(regNum)}")
+                                emitLine("ldy  #>${fpRegAddr(regNum)}")
+                                emitLine("jsr  floats.MOVFM")
+                                emitLine("ldx  #<$asmTarget")
+                                emitLine("ldy  #>$asmTarget")
+                                emitLine("jsr  floats.MOVMF")
                             }
                         }
                     } else if (name == "x") {
@@ -608,7 +679,12 @@ private fun CodeGenerator.translateArgument(arg: FunctionCallArgs.ArgumentSpec, 
                                 emitLine("sta  ${target}+3")
                             }
                             IRDataType.FLOAT -> {
-                                TODO("FLOAT arg to $target")
+                                emitLine("lda  #<${fpRegAddr(regNum)}")
+                                emitLine("ldy  #>${fpRegAddr(regNum)}")
+                                emitLine("jsr  floats.MOVFM")
+                                emitLine("ldx  #<$target")
+                                emitLine("ldy  #>$target")
+                                emitLine("jsr  floats.MOVMF")
                             }
                         }
                     }
@@ -647,6 +723,19 @@ private fun CodeGenerator.translateReturnValue(ret: FunctionCallArgs.RegSpec) {
             emitLine("stx  ${regAddrLo(regNum)}")
             emitLine("sty  ${regAddrHi(regNum)}")
         }
+        6 -> {
+            // slot s6 = FAC1: store FAC1 to fp register
+            emitLine("ldx  #<${fpRegAddr(regNum)}")
+            emitLine("ldy  #>${fpRegAddr(regNum)}")
+            emitLine("jsr  floats.MOVMF")
+        }
+        7 -> {
+            // slot s7 = FAC2: copy FAC2 to FAC1 first, then store
+            emitLine("jsr  floats.MOVFA")
+            emitLine("ldx  #<${fpRegAddr(regNum)}")
+            emitLine("ldy  #>${fpRegAddr(regNum)}")
+            emitLine("jsr  floats.MOVMF")
+        }
         null -> {
             val flag = ret.statusflag
             if (flag != null) {
@@ -684,7 +773,9 @@ private fun CodeGenerator.translateReturnValue(ret: FunctionCallArgs.RegSpec) {
                         emitLine("sta  ${regAddrHi(regNum + 1)}")
                     }
                     IRDataType.FLOAT -> {
-                        TODO("FLOAT return to r$regNum (slot/flag not set)")
+                        emitLine("ldx  #<${fpRegAddr(regNum)}")
+                        emitLine("ldy  #>${fpRegAddr(regNum)}")
+                        emitLine("jsr  floats.MOVMF")
                     }
                 }
             } else {
@@ -711,7 +802,7 @@ private fun CodeGenerator.translateSyscall(insn: IRInstruction, args: FunctionCa
         IMSyscall.WORDARRAY_CONTAINS.number -> translateSyscallWordarrayContains(argsNonNull)
         IMSyscall.SPLIT_WORDARRAY_CONTAINS.number -> translateSyscallSplitWordarrayContains(argsNonNull)
         IMSyscall.LONGARRAY_CONTAINS.number -> translateSyscallLongarrayContains(argsNonNull)
-        IMSyscall.FLOATARRAY_CONTAINS.number -> TODO("SYSCALL FLOATARRAY_CONTAINS")
+        IMSyscall.FLOATARRAY_CONTAINS.number -> translateSyscallFloatarrayContains(argsNonNull)
         IMSyscall.CALLFAR.number -> translateSyscallCallfar(argsNonNull)
         IMSyscall.CALLFAR2.number -> translateSyscallCallfar2(argsNonNull)
         IMSyscall.MEMCOPY.number -> translateSyscallMemcopy(argsNonNull)
@@ -1027,19 +1118,184 @@ private fun CodeGenerator.translateSyscallStringContains(args: FunctionCallArgs)
     emitLine("sta  P8ZP_SCRATCH_W1")
     emitLine("sty  P8ZP_SCRATCH_W1+1")
     emitLine("ldy  #0")
-    emitLabel("+")
+    emitLabel("-")
     emitLine("lda  (P8ZP_SCRATCH_W1),y")
     emitLine("beq  $labelNotFound")
     emitLine("cmp  P8ZP_SCRATCH_W2")
     emitLine("beq  $labelFound")
     emitLine("iny")
-    emitLine("bne  +")
+    emitLine("bne  -")
     emitLabel(labelFound)
     emitLine("lda  #1")
     emitLine("jmp  $labelDone")
     emitLabel(labelNotFound)
     emitLine("lda  #0")
     emitLabel(labelDone)
+}
+
+private fun CodeGenerator.translateSyscallFloatarrayContains(args: FunctionCallArgs) {
+    val regNeedleFp = args.arguments.getOrNull(0)?.reg?.registerNum?.value ?: error("need needle fp reg")
+    val regArr = args.arguments.getOrNull(1)?.reg?.registerNum?.value ?: error("need array reg")
+    val regLen = args.arguments.getOrNull(2)?.reg?.registerNum?.value ?: error("need length reg")
+    // Load needle value from fp register into FAC1
+    emitLine("lda  #<${fpRegAddr(regNeedleFp)}")
+    emitLine("ldy  #>${fpRegAddr(regNeedleFp)}")
+    emitLine("jsr  floats.MOVFM")
+    // Set up array pointer in P8ZP_SCRATCH_W1
+    emitLine("lda  ${regAddrLo(regArr)}")
+    emitLine("sta  P8ZP_SCRATCH_W1")
+    emitLine("lda  ${regAddrHi(regArr)}")
+    emitLine("sta  P8ZP_SCRATCH_W1+1")
+    // Set length in Y
+    emitLine("ldy  ${regAddrLo(regLen)}")
+    emitLine("jsr  floats.containment_floatarray")
+}
+
+// === Float operations ===
+
+private fun CodeGenerator.translateFloatFromInt(insn: IRInstruction) {
+    val r1 = insn.reg1 ?: error("${insn.opcode} needs reg1 (int input)")
+    val fpReg = insn.fpReg1 ?: error("${insn.opcode} needs fpReg1 (float output)")
+    when (insn.opcode) {
+        Opcode.FFROMUB -> {
+            emitLine("ldy  ${regAddrLo(r1)}")
+            emitLine("jsr  floats.FREADUY")
+        }
+        Opcode.FFROMSB -> {
+            emitLine("lda  ${regAddrLo(r1)}")
+            emitLine("jsr  floats.FREADSA")
+        }
+        Opcode.FFROMUW -> {
+            emitLine("lda  ${regAddrLo(r1)}")
+            emitLine("ldy  ${regAddrHi(r1)}")
+            emitLine("jsr  floats.GIVUAYFAY")
+        }
+        Opcode.FFROMSW -> {
+            emitLine("lda  ${regAddrLo(r1)}")
+            emitLine("ldy  ${regAddrHi(r1)}")
+            emitLine("jsr  floats.GIVAYFAY")
+        }
+        Opcode.FFROMSL -> TODO("FFROMSL (signed long to float)")
+        else -> error("Unknown int-to-float conversion")
+    }
+    emitLine("ldx  #<${fpRegAddr(fpReg.value)}")
+    emitLine("ldy  #>${fpRegAddr(fpReg.value)}")
+    emitLine("jsr  floats.MOVMF")
+}
+
+private fun CodeGenerator.translateFloatToInt(insn: IRInstruction) {
+    val r1 = insn.reg1 ?: error("${insn.opcode} needs reg1 (int output)")
+    val fpReg = insn.fpReg1 ?: error("${insn.opcode} needs fpReg1 (float input)")
+    emitLine("lda  #<${fpRegAddr(fpReg.value)}")
+    emitLine("ldy  #>${fpRegAddr(fpReg.value)}")
+    emitLine("jsr  floats.MOVFM")
+    when (insn.opcode) {
+        Opcode.FTOUB, Opcode.FTOSB -> {
+            emitLine("jsr  floats.INT")
+            emitLine("jsr  floats.GETADRAY")
+            emitLine("sta  ${regAddrLo(r1)}")
+        }
+        Opcode.FTOUW, Opcode.FTOSW -> {
+            emitLine("jsr  floats.INT")
+            emitLine("jsr  floats.GETADRAY")
+            emitLine("sta  ${regAddrLo(r1)}")
+            emitLine("sty  ${regAddrHi(r1)}")
+        }
+        Opcode.FTOSL -> TODO("FTOSL (float to signed long)")
+        else -> error("Unknown float-to-int conversion")
+    }
+}
+
+private fun CodeGenerator.translateFloatUnary(insn: IRInstruction, routine: String) {
+    val src = insn.fpReg2 ?: error("${insn.opcode} needs fpReg2 (float input)")
+    val dst = insn.fpReg1 ?: error("${insn.opcode} needs fpReg1 (float output)")
+    emitLine("lda  #<${fpRegAddr(src.value)}")
+    emitLine("ldy  #>${fpRegAddr(src.value)}")
+    emitLine("jsr  floats.MOVFM")
+    emitLine("jsr  $routine")
+    emitLine("ldx  #<${fpRegAddr(dst.value)}")
+    emitLine("ldy  #>${fpRegAddr(dst.value)}")
+    emitLine("jsr  floats.MOVMF")
+}
+
+private fun CodeGenerator.translateFloatPower(insn: IRInstruction) {
+    val src = insn.fpReg2 ?: error("FPOW needs fpReg2")
+    val dst = insn.fpReg1 ?: error("FPOW needs fpReg1")
+    // FPOW: fr1 = fr1 ^ fr2
+    // KERNAL FPWRT: FAC1 = FAC2 ^ FAC1
+    // Need FAC2=fr1, FAC1=fr2
+    emitLine("lda  #<${fpRegAddr(dst.value)}")
+    emitLine("ldy  #>${fpRegAddr(dst.value)}")
+    emitLine("jsr  floats.MOVFM")
+    emitLine("jsr  floats.MOVAF")
+    emitLine("lda  #<${fpRegAddr(src.value)}")
+    emitLine("ldy  #>${fpRegAddr(src.value)}")
+    emitLine("jsr  floats.MOVFM")
+    emitLine("jsr  floats.FPWRT")
+    emitLine("ldx  #<${fpRegAddr(dst.value)}")
+    emitLine("ldy  #>${fpRegAddr(dst.value)}")
+    emitLine("jsr  floats.MOVMF")
+}
+
+private fun CodeGenerator.translateFloatCeil(insn: IRInstruction) {
+    val src = insn.fpReg2 ?: error("FCEIL needs fpReg2")
+    val dst = insn.fpReg1 ?: error("FCEIL needs fpReg1")
+    // ceil(x) = -floor(-x)
+    emitLine("lda  #<${fpRegAddr(src.value)}")
+    emitLine("ldy  #>${fpRegAddr(src.value)}")
+    emitLine("jsr  floats.MOVFM")
+    emitLine("jsr  floats.NEGOP")
+    emitLine("jsr  floats.INT")
+    emitLine("jsr  floats.NEGOP")
+    emitLine("ldx  #<${fpRegAddr(dst.value)}")
+    emitLine("ldy  #>${fpRegAddr(dst.value)}")
+    emitLine("jsr  floats.MOVMF")
+}
+
+private fun CodeGenerator.translateFloatCompare(insn: IRInstruction) {
+    val r1 = insn.reg1 ?: error("FCOMP needs reg1 (int output)")
+    val fr1 = insn.fpReg1 ?: error("FCOMP needs fpReg1")
+    val fr2 = insn.fpReg2 ?: error("FCOMP needs fpReg2")
+    // Compare fr1 with fr2.
+    // KERNAL FCOMP: A = compare(FAC1, memory[AY])  - 0=equal, 1=greater, 255=less
+    // Load fr1 into FAC1, then compare with fr2
+    emitLine("lda  #<${fpRegAddr(fr1.value)}")
+    emitLine("ldy  #>${fpRegAddr(fr1.value)}")
+    emitLine("jsr  floats.MOVFM")
+    emitLine("lda  #<${fpRegAddr(fr2.value)}")
+    emitLine("ldy  #>${fpRegAddr(fr2.value)}")
+    emitLine("jsr  floats.FCOMP")
+    // FCOMP returns -1, 0, or 1 in A (as signed byte)
+    emitLine("sta  ${regAddrLo(r1)}")
+    // Sign-extend to word if needed (irrelevant for comparison since only byte used)
+}
+
+private fun CodeGenerator.translateFloatSquare(insn: IRInstruction) {
+    val src = insn.fpReg2 ?: error("SQUARE.f needs fpReg2")
+    val dst = insn.fpReg1 ?: error("SQUARE.f needs fpReg1")
+    // fr1 = fr2^2 = fr2 * fr2
+    emitLine("lda  #<${fpRegAddr(src.value)}")
+    emitLine("ldy  #>${fpRegAddr(src.value)}")
+    emitLine("jsr  floats.MOVFM")
+    emitLine("jsr  floats.MOVAF")
+    emitLine("lda  #<${fpRegAddr(src.value)}")
+    emitLine("ldy  #>${fpRegAddr(src.value)}")
+    emitLine("jsr  floats.MOVFM")
+    emitLine("jsr  floats.FMULTT")
+    emitLine("ldx  #<${fpRegAddr(dst.value)}")
+    emitLine("ldy  #>${fpRegAddr(dst.value)}")
+    emitLine("jsr  floats.MOVMF")
+}
+
+private fun CodeGenerator.translateFloatSign(insn: IRInstruction) {
+    val r1 = insn.reg1 ?: error("SGN.f needs reg1 (int output)")
+    val fpReg = insn.fpReg1 ?: error("SGN.f needs fpReg1 (float input)")
+    // SGN: reg1 = sign(fr1) as integer (-1, 0, 1)
+    emitLine("lda  #<${fpRegAddr(fpReg.value)}")
+    emitLine("ldy  #>${fpRegAddr(fpReg.value)}")
+    emitLine("jsr  floats.MOVFM")
+    emitLine("jsr  floats.SIGN")
+    emitLine("sta  ${regAddrLo(r1)}")
 }
 
 private fun CodeGenerator.jsrfarRoutine(): String {
