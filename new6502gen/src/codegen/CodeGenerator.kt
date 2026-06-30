@@ -268,9 +268,10 @@ class CodeGenerator(val program: IRProgram, private val target: ICompilationTarg
     }
 
     fun emitLabel(label: String) {
-        // 64tass only allows single + or - as anonymous forward/backward labels
+        // 64tass anonymous labels are single + (forward) or - (backward) only in label definitions.
+        // In references you can use ++, +++, --, --- to refer to subsequent ones.
         require(label.length == 1 || label.any { it != '+' && it != '-' }) {
-            "Invalid anonymous label '$label': only single '+' or '-' are allowed in 64tass"
+            "Invalid anonymous label '$label': only single '+' or '-' are allowed as label definitions"
         }
         if (label == "+" || label == "-")
             output.appendLine(label)

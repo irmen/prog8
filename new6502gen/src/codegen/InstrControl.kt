@@ -70,7 +70,7 @@ fun CodeGenerator.translateControl(insn: IRInstruction) {
 
         Opcode.SYSCALL -> {
             val args = insn.fcallArgs
-            translateSyscall(args)
+            translateSyscall(insn, args)
         }
 
         Opcode.RETURN -> {
@@ -613,7 +613,8 @@ private fun CodeGenerator.translateArgument(arg: FunctionCallArgs.ArgumentSpec, 
                         }
                     }
                 } else {
-                    TODO("arg r$regNum - no slot, address, or name")
+                    // Syscall argument - value is already in the register file,
+                    // the syscall handler reads it from there.
                 }
             }
         }
@@ -695,17 +696,358 @@ private fun CodeGenerator.translateReturnValue(ret: FunctionCallArgs.RegSpec) {
 
 // === Syscall handling ===
 
-private fun CodeGenerator.translateSyscall(args: FunctionCallArgs?) {
-    emitLine("; SYSCALL")
-    if (args != null) {
-        for (arg in args.arguments) {
-            translateArgument(arg)
-        }
+private fun CodeGenerator.translateSyscall(insn: IRInstruction, args: FunctionCallArgs?) {
+    val syscallNum = insn.immediate ?: error("SYSCALL must have immediate(syscall number)")
+    val argsNonNull = args ?: error("SYSCALL $syscallNum requires arguments")
+    when (syscallNum) {
+        IMSyscall.CLAMP_UBYTE.number -> translateSyscallClampUbyte(argsNonNull)
+        IMSyscall.CLAMP_BYTE.number -> translateSyscallClampByte(argsNonNull)
+        IMSyscall.CLAMP_UWORD.number -> translateSyscallClampUword(argsNonNull)
+        IMSyscall.CLAMP_WORD.number -> translateSyscallClampWord(argsNonNull)
+        IMSyscall.CLAMP_LONG.number -> translateSyscallClampLong(argsNonNull)
+        IMSyscall.COMPARE_STRINGS.number -> translateSyscallStringCompare(argsNonNull)
+        IMSyscall.STRING_CONTAINS.number -> translateSyscallStringContains(argsNonNull)
+        IMSyscall.BYTEARRAY_CONTAINS.number -> translateSyscallBytearrayContains(argsNonNull)
+        IMSyscall.WORDARRAY_CONTAINS.number -> translateSyscallWordarrayContains(argsNonNull)
+        IMSyscall.SPLIT_WORDARRAY_CONTAINS.number -> translateSyscallSplitWordarrayContains(argsNonNull)
+        IMSyscall.LONGARRAY_CONTAINS.number -> translateSyscallLongarrayContains(argsNonNull)
+        IMSyscall.FLOATARRAY_CONTAINS.number -> TODO("SYSCALL FLOATARRAY_CONTAINS")
+        IMSyscall.CALLFAR.number -> translateSyscallCallfar(argsNonNull)
+        IMSyscall.CALLFAR2.number -> translateSyscallCallfar2(argsNonNull)
+        IMSyscall.MEMCOPY.number -> translateSyscallMemcopy(argsNonNull)
+        else -> TODO("unknown SYSCALL number $syscallNum")
     }
-    emitLine("jsr  p8_syscall_handler")
-    if (args != null) {
-        for (ret in args.returns) {
-            translateReturnValue(ret)
-        }
+    for (ret in argsNonNull.returns) {
+        translateReturnValue(ret)
+    }
+}
+
+private fun CodeGenerator.translateSyscallClampUbyte(args: FunctionCallArgs) {
+    val regValue = args.arguments.getOrNull(0)?.reg?.registerNum?.value ?: error("need value reg")
+    val regMin = args.arguments.getOrNull(1)?.reg?.registerNum?.value ?: error("need min reg")
+    val regMax = args.arguments.getOrNull(2)?.reg?.registerNum?.value ?: error("need max reg")
+    emitLine("lda  ${regAddrLo(regMin)}")
+    emitLine("sta  P8ZP_SCRATCH_W1")
+    emitLine("lda  ${regAddrLo(regMax)}")
+    emitLine("sta  P8ZP_SCRATCH_W1+1")
+    emitLine("lda  ${regAddrLo(regValue)}")
+    emitLine("jsr  prog8_lib.func_clamp_ubyte")
+    emitLine("sta  ${regAddrLo(regValue)}")
+}
+
+private fun CodeGenerator.translateSyscallClampByte(args: FunctionCallArgs) {
+    val regValue = args.arguments.getOrNull(0)?.reg?.registerNum?.value ?: error("need value reg")
+    val regMin = args.arguments.getOrNull(1)?.reg?.registerNum?.value ?: error("need min reg")
+    val regMax = args.arguments.getOrNull(2)?.reg?.registerNum?.value ?: error("need max reg")
+    emitLine("lda  ${regAddrLo(regMin)}")
+    emitLine("sta  P8ZP_SCRATCH_W1")
+    emitLine("lda  ${regAddrLo(regMax)}")
+    emitLine("sta  P8ZP_SCRATCH_W1+1")
+    emitLine("lda  ${regAddrLo(regValue)}")
+    emitLine("jsr  prog8_lib.func_clamp_byte")
+    emitLine("sta  ${regAddrLo(regValue)}")
+}
+
+private fun CodeGenerator.translateSyscallClampUword(args: FunctionCallArgs) {
+    val regValue = args.arguments.getOrNull(0)?.reg?.registerNum?.value ?: error("need value reg")
+    val regMin = args.arguments.getOrNull(1)?.reg?.registerNum?.value ?: error("need min reg")
+    val regMax = args.arguments.getOrNull(2)?.reg?.registerNum?.value ?: error("need max reg")
+    // min in P8ZP_SCRATCH_W1, max in P8ZP_SCRATCH_W2, value in AY, result in AY
+    emitLine("lda  ${regAddrLo(regMin)}")
+    emitLine("sta  P8ZP_SCRATCH_W1")
+    emitLine("lda  ${regAddrHi(regMin)}")
+    emitLine("sta  P8ZP_SCRATCH_W1+1")
+    emitLine("lda  ${regAddrLo(regMax)}")
+    emitLine("sta  P8ZP_SCRATCH_W2")
+    emitLine("lda  ${regAddrHi(regMax)}")
+    emitLine("sta  P8ZP_SCRATCH_W2+1")
+    emitLine("lda  ${regAddrLo(regValue)}")
+    emitLine("ldy  ${regAddrHi(regValue)}")
+    emitLine("jsr  prog8_lib.func_clamp_uword")
+    emitLine("sta  ${regAddrLo(regValue)}")
+    emitLine("sty  ${regAddrHi(regValue)}")
+}
+
+private fun CodeGenerator.translateSyscallClampWord(args: FunctionCallArgs) {
+    val regValue = args.arguments.getOrNull(0)?.reg?.registerNum?.value ?: error("need value reg")
+    val regMin = args.arguments.getOrNull(1)?.reg?.registerNum?.value ?: error("need min reg")
+    val regMax = args.arguments.getOrNull(2)?.reg?.registerNum?.value ?: error("need max reg")
+    emitLine("lda  ${regAddrLo(regMin)}")
+    emitLine("sta  P8ZP_SCRATCH_W1")
+    emitLine("lda  ${regAddrHi(regMin)}")
+    emitLine("sta  P8ZP_SCRATCH_W1+1")
+    emitLine("lda  ${regAddrLo(regMax)}")
+    emitLine("sta  P8ZP_SCRATCH_W2")
+    emitLine("lda  ${regAddrHi(regMax)}")
+    emitLine("sta  P8ZP_SCRATCH_W2+1")
+    emitLine("lda  ${regAddrLo(regValue)}")
+    emitLine("ldy  ${regAddrHi(regValue)}")
+    emitLine("jsr  prog8_lib.func_clamp_word")
+    emitLine("sta  ${regAddrLo(regValue)}")
+    emitLine("sty  ${regAddrHi(regValue)}")
+}
+
+private fun CodeGenerator.translateSyscallClampLong(args: FunctionCallArgs) {
+    val regValue = args.arguments.getOrNull(0)?.reg?.registerNum?.value ?: error("need value reg")
+    val regMin = args.arguments.getOrNull(1)?.reg?.registerNum?.value ?: error("need min reg")
+    val regMax = args.arguments.getOrNull(2)?.reg?.registerNum?.value ?: error("need max reg")
+    // value in R14:R15, min in R10:R11, max in R12:R13, result in R14:R15
+    emitLine("lda  ${regAddrLo(regMin)}")
+    emitLine("sta  cx16.r10L")
+    emitLine("lda  ${regAddrHi(regMin)}")
+    emitLine("sta  cx16.r10H")
+    emitLine("lda  ${regAddrByte(regMin, 2)}")
+    emitLine("sta  cx16.r11L")
+    emitLine("lda  ${regAddrByte(regMin, 3)}")
+    emitLine("sta  cx16.r11H")
+    emitLine("lda  ${regAddrLo(regMax)}")
+    emitLine("sta  cx16.r12L")
+    emitLine("lda  ${regAddrHi(regMax)}")
+    emitLine("sta  cx16.r12H")
+    emitLine("lda  ${regAddrByte(regMax, 2)}")
+    emitLine("sta  cx16.r13L")
+    emitLine("lda  ${regAddrByte(regMax, 3)}")
+    emitLine("sta  cx16.r13H")
+    emitLine("lda  ${regAddrLo(regValue)}")
+    emitLine("sta  cx16.r14L")
+    emitLine("lda  ${regAddrHi(regValue)}")
+    emitLine("sta  cx16.r14H")
+    emitLine("lda  ${regAddrByte(regValue, 2)}")
+    emitLine("sta  cx16.r15L")
+    emitLine("lda  ${regAddrByte(regValue, 3)}")
+    emitLine("sta  cx16.r15H")
+    emitLine("jsr  prog8_lib.func_clamp_long")
+}
+
+private fun CodeGenerator.translateSyscallMemcopy(args: FunctionCallArgs) {
+    val regSrc = args.arguments.getOrNull(0)?.reg?.registerNum?.value ?: error("need src reg")
+    val regDst = args.arguments.getOrNull(1)?.reg?.registerNum?.value ?: error("need dst reg")
+    val regCount = args.arguments.getOrNull(2)?.reg?.registerNum?.value ?: error("need count reg")
+    // use existing library routine: memcopy_small
+    // P8ZP_SCRATCH_W1 = source, P8ZP_SCRATCH_W2 = dest, Y = count (0 = 256)
+    emitLine("lda  ${regAddrLo(regSrc)}")
+    emitLine("sta  P8ZP_SCRATCH_W1")
+    emitLine("lda  ${regAddrHi(regSrc)}")
+    emitLine("sta  P8ZP_SCRATCH_W1+1")
+    emitLine("lda  ${regAddrLo(regDst)}")
+    emitLine("sta  P8ZP_SCRATCH_W2")
+    emitLine("lda  ${regAddrHi(regDst)}")
+    emitLine("sta  P8ZP_SCRATCH_W2+1")
+    // check if count == 0
+    emitLine("lda  ${regAddrLo(regCount)}")
+    emitLine("ora  ${regAddrHi(regCount)}")
+    emitLine("beq  +")
+    emitLine("ldy  ${regAddrLo(regCount)}")
+    emitLine("jsr  prog8_lib.memcopy_small")
+    emitLabel("+")
+}
+
+private fun CodeGenerator.translateSyscallCallfar(args: FunctionCallArgs) {
+    val regBank = args.arguments[0].reg.registerNum.value
+    val regAddress = args.arguments[1].reg.registerNum.value
+    val regArg = args.arguments[2].reg.registerNum.value
+    val jsrfar = jsrfarRoutine()
+    val label = makeLabel("callfar_patch")
+    emitLine("lda  ${regAddrLo(regBank)}")
+    emitLine("sta  ${label}+2")
+    emitLine("lda  ${regAddrLo(regAddress)}")
+    emitLine("sta  ${label}+0")
+    emitLine("lda  ${regAddrHi(regAddress)}")
+    emitLine("sta  ${label}+1")
+    emitLine("lda  ${regAddrLo(regArg)}")
+    emitLine("ldy  ${regAddrHi(regArg)}")
+    emitLine("jsr  $jsrfar")
+    emitLabel(label)
+    emitLine(".word  0")
+    emitLine(".byte  0")
+}
+
+private fun CodeGenerator.translateSyscallCallfar2(args: FunctionCallArgs) {
+    val regBank = args.arguments[0].reg.registerNum.value
+    val regAddress = args.arguments[1].reg.registerNum.value
+    val regA = args.arguments[2].reg.registerNum.value
+    val regX = args.arguments[3].reg.registerNum.value
+    val regY = args.arguments[4].reg.registerNum.value
+    val regCarry = args.arguments[5].reg.registerNum.value
+    val jsrfar = jsrfarRoutine()
+    val label = makeLabel("callfar2_patch")
+    emitLine("lda  ${regAddrLo(regBank)}")
+    emitLine("sta  ${label}+2")
+    emitLine("lda  ${regAddrLo(regAddress)}")
+    emitLine("sta  ${label}+0")
+    emitLine("lda  ${regAddrHi(regAddress)}")
+    emitLine("sta  ${label}+1")
+    emitLine("ldx  ${regAddrLo(regX)}")
+    emitLine("ldy  ${regAddrLo(regY)}")
+    emitLine("lda  ${regAddrLo(regA)}")
+    emitLine("pha")
+    emitLine("lda  ${regAddrLo(regCarry)}")
+    emitLine("beq  +")
+    emitLine("pla")
+    emitLine("sec")
+    emitLine("jmp  ++")
+    emitLabel("+")
+    emitLine("pla")
+    emitLine("clc")
+    emitLabel("+")
+    emitLine("jsr  $jsrfar")
+    emitLabel(label)
+    emitLine(".word  0")
+    emitLine(".byte  0")
+}
+
+private fun CodeGenerator.translateSyscallStringCompare(args: FunctionCallArgs) {
+    val regStr1 = args.arguments[0].reg.registerNum.value
+    val regStr2 = args.arguments[1].reg.registerNum.value
+    emitLine("lda  ${regAddrLo(regStr2)}")
+    emitLine("sta  P8ZP_SCRATCH_W2")
+    emitLine("lda  ${regAddrHi(regStr2)}")
+    emitLine("sta  P8ZP_SCRATCH_W2+1")
+    emitLine("lda  ${regAddrLo(regStr1)}")
+    emitLine("ldy  ${regAddrHi(regStr1)}")
+    emitLine("jsr  prog8_lib.strcmp_mem")
+}
+
+private fun CodeGenerator.translateSyscallBytearrayContains(args: FunctionCallArgs) {
+    val regElem = args.arguments[0].reg.registerNum.value
+    val regArr = args.arguments[1].reg.registerNum.value
+    val regLen = args.arguments[2].reg.registerNum.value
+    emitLine("lda  ${regAddrLo(regLen)}")
+    emitLine("sta  P8ZP_SCRATCH_W2")
+    emitLine("lda  ${regAddrLo(regArr)}")
+    emitLine("ldy  ${regAddrHi(regArr)}")
+    emitLine("sta  P8ZP_SCRATCH_W1")
+    emitLine("sty  P8ZP_SCRATCH_W1+1")
+    emitLine("lda  ${regAddrLo(regElem)}")
+    emitLine("ldy  P8ZP_SCRATCH_W2")
+    emitLine("jsr  prog8_lib.containment_bytearray")
+}
+
+private fun CodeGenerator.translateSyscallWordarrayContains(args: FunctionCallArgs) {
+    val regElem = args.arguments[0].reg.registerNum.value
+    val regArr = args.arguments[1].reg.registerNum.value
+    val regLen = args.arguments[2].reg.registerNum.value
+    emitLine("lda  ${regAddrLo(regArr)}")
+    emitLine("ldy  ${regAddrHi(regArr)}")
+    emitLine("sta  P8ZP_SCRATCH_W2")
+    emitLine("sty  P8ZP_SCRATCH_W2+1")
+    emitLine("lda  ${regAddrLo(regElem)}")
+    emitLine("sta  P8ZP_SCRATCH_W1")
+    emitLine("lda  ${regAddrHi(regElem)}")
+    emitLine("sta  P8ZP_SCRATCH_W1+1")
+    emitLine("ldy  ${regAddrLo(regLen)}")
+    emitLine("jsr  prog8_lib.containment_linearwordarray")
+}
+
+private fun CodeGenerator.translateSyscallSplitWordarrayContains(args: FunctionCallArgs) {
+    val regElem = args.arguments[0].reg.registerNum.value
+    val regArr = args.arguments[1].reg.registerNum.value
+    val regLen = args.arguments[2].reg.registerNum.value
+    emitLine("lda  ${regAddrLo(regArr)}")
+    emitLine("ldy  ${regAddrHi(regArr)}")
+    emitLine("sta  P8ZP_SCRATCH_W2")
+    emitLine("sty  P8ZP_SCRATCH_W2+1")
+    emitLine("lda  ${regAddrLo(regElem)}")
+    emitLine("sta  P8ZP_SCRATCH_W1")
+    emitLine("lda  ${regAddrHi(regElem)}")
+    emitLine("sta  P8ZP_SCRATCH_W1+1")
+    emitLine("ldy  ${regAddrLo(regLen)}")
+    emitLine("jsr  prog8_lib.containment_splitwordarray")
+}
+
+private fun CodeGenerator.translateSyscallLongarrayContains(args: FunctionCallArgs) {
+    val regVal = args.arguments[0].reg.registerNum.value
+    val regArr = args.arguments[1].reg.registerNum.value
+    val regLen = args.arguments[2].reg.registerNum.value
+    val labelFound = makeLabel("lac_found")
+    val labelNotFound = makeLabel("lac_notfound")
+    val labelLoop = makeLabel("lac_loop")
+    val labelNextElement = makeLabel("lac_next")
+    val labelSkipCarry = makeLabel("lac_nocarry")
+    val labelDone = makeLabel("lac_done")
+    emitLine("ldy  ${regAddrLo(regLen)}")
+    emitLine("sty  P8ZP_SCRATCH_B1")
+    emitLine("lda  ${regAddrLo(regArr)}")
+    emitLine("ldy  ${regAddrHi(regArr)}")
+    emitLine("sta  P8ZP_SCRATCH_PTR")
+    emitLine("sty  P8ZP_SCRATCH_PTR+1")
+    emitLine("lda  ${regAddrLo(regVal)}")
+    emitLine("sta  P8ZP_SCRATCH_W1")
+    emitLine("lda  ${regAddrHi(regVal)}")
+    emitLine("sta  P8ZP_SCRATCH_W1+1")
+    emitLine("lda  ${regAddrByte(regVal, 2)}")
+    emitLine("sta  P8ZP_SCRATCH_W2")
+    emitLine("lda  ${regAddrByte(regVal, 3)}")
+    emitLine("sta  P8ZP_SCRATCH_W2+1")
+    emitLabel(labelLoop)
+    emitLine("ldy  #0")
+    emitLine("lda  (P8ZP_SCRATCH_PTR),y")
+    emitLine("cmp  P8ZP_SCRATCH_W1")
+    emitLine("bne  $labelNextElement")
+    emitLine("iny")
+    emitLine("lda  (P8ZP_SCRATCH_PTR),y")
+    emitLine("cmp  P8ZP_SCRATCH_W1+1")
+    emitLine("bne  $labelNextElement")
+    emitLine("iny")
+    emitLine("lda  (P8ZP_SCRATCH_PTR),y")
+    emitLine("cmp  P8ZP_SCRATCH_W2")
+    emitLine("bne  $labelNextElement")
+    emitLine("iny")
+    emitLine("lda  (P8ZP_SCRATCH_PTR),y")
+    emitLine("cmp  P8ZP_SCRATCH_W2+1")
+    emitLine("beq  $labelFound")
+    emitLabel(labelNextElement)
+    emitLine("clc")
+    emitLine("lda  P8ZP_SCRATCH_PTR")
+    emitLine("adc  #4")
+    emitLine("sta  P8ZP_SCRATCH_PTR")
+    emitLine("bcc  $labelSkipCarry")
+    emitLine("inc  P8ZP_SCRATCH_PTR+1")
+    emitLabel(labelSkipCarry)
+    emitLine("dec  P8ZP_SCRATCH_B1")
+    emitLine("bne  $labelLoop")
+    emitLabel(labelNotFound)
+    emitLine("lda  #0")
+    emitLine("jmp  $labelDone")
+    emitLabel(labelFound)
+    emitLine("lda  #1")
+    emitLabel(labelDone)
+}
+
+private fun CodeGenerator.translateSyscallStringContains(args: FunctionCallArgs) {
+    val regChar = args.arguments[0].reg.registerNum.value
+    val regStr = args.arguments[1].reg.registerNum.value
+    val labelFound = makeLabel("sc_found")
+    val labelNotFound = makeLabel("sc_notfound")
+    val labelDone = makeLabel("sc_done")
+    emitLine("lda  ${regAddrLo(regChar)}")
+    emitLine("sta  P8ZP_SCRATCH_W2")
+    emitLine("lda  ${regAddrLo(regStr)}")
+    emitLine("ldy  ${regAddrHi(regStr)}")
+    emitLine("sta  P8ZP_SCRATCH_W1")
+    emitLine("sty  P8ZP_SCRATCH_W1+1")
+    emitLine("ldy  #0")
+    emitLabel("+")
+    emitLine("lda  (P8ZP_SCRATCH_W1),y")
+    emitLine("beq  $labelNotFound")
+    emitLine("cmp  P8ZP_SCRATCH_W2")
+    emitLine("beq  $labelFound")
+    emitLine("iny")
+    emitLine("bne  +")
+    emitLabel(labelFound)
+    emitLine("lda  #1")
+    emitLine("jmp  $labelDone")
+    emitLabel(labelNotFound)
+    emitLine("lda  #0")
+    emitLabel(labelDone)
+}
+
+private fun CodeGenerator.jsrfarRoutine(): String {
+    val targetName = program.options.compTarget.name
+    return when (targetName) {
+        "cx16" -> "cx16.JSRFAR"
+        "c64" -> "c64.x16jsrfar"
+        "c128" -> "c128.x16jsrfar"
+        else -> "$targetName.x16jsrfar"
     }
 }

@@ -1,80 +1,113 @@
-; Wolfram's Cellular Automatons.
-
+%import graphics
 %import math
-%import conv
-%import textio
-%option no_sysinit
 %zeropage basicsafe
-%encoding iso
+%option no_sysinit
 
 main {
-
-    ubyte rulenumber
-
-    bool[256] cells_previous
-    bool[256] cells
+    uword terrain = memory("terrain", 320, 0)
 
     sub start() {
-        setup()
-        txt.clear_screen()
-        init_automaton(rulenumber)
+        graphics.enable_bitmap_mode()
 
-        ubyte y
-        for y in 32 to 199+32 {
-            txt.print_ub(y)
-            txt.chrout(' ')
-            for cx16.r0bL in cells {
-                txt.chrout('0' + cx16.r0L)
-            }
-            txt.nl()
+        ; sky
+        graphics.clear_screen(7,6)
 
-            sys.memcopy(cells, cells_previous, sizeof(cells))
-            ubyte @zp x
-            for x in 0 to len(cells)-1 {
-                cells[x] = generate(x)         ; next generation
+        ; sun and clouds
+        graphics.disc(240, 50, 34)
+        graphics.colors(15,1)
+        graphics.filled_oval(60, 50, 40, 16)
+        graphics.colors(14,14)
+        graphics.filled_oval(100, 60, 55, 22)
+        graphics.colors(1,1)
+        graphics.filled_oval(140, 40, 50, 20)
+        graphics.filled_oval(180, 55, 60, 12)
+
+        ; cliffs
+        start_terrain((math.rnd() % 100) + 50, (math.rnd() % 100) + 50)
+        ubyte smoothness = 8
+        ubyte extremes = 56
+        recursive_midpoint(0, 319, extremes)
+        draw(15)
+
+        ; mountains
+        start_terrain((math.rnd() % 60) + 100, (math.rnd() % 60) + 100)
+        smoothness = 6
+        extremes = 50
+        recursive_midpoint(0, 319, extremes)
+        draw(12)
+
+        ; woods
+        start_terrain((math.rnd() % 40) + 160, (math.rnd() % 40) + 160)
+        smoothness = 5
+        extremes = 35
+        recursive_midpoint(0, 319, extremes)
+        draw(9)
+
+        ; grasslands
+        start_terrain((math.rnd() % 30) + 200, (math.rnd() % 30) + 200)
+        smoothness = 4
+        extremes = 21
+        recursive_midpoint(0, 319, extremes)
+        draw(5)
+        ; end.
+
+        sub start_terrain(ubyte startheight, ubyte endheight) {
+            terrain[0] = startheight
+            terrain[319] = endheight
+            interpolate(0, 319)
+        }
+
+        sub recursive_midpoint(uword s, uword e, ubyte displacement) {
+            if displacement==0 or displacement>extremes
+                return
+            uword @zp half = s + (e-s) / 2
+            if half!=s and half!=e {
+                ; displace the terrain
+                uword t = terrain[half]
+                ubyte d = math.rnd() % displacement
+                if math.rnd() & 1 == 1
+                    t += d
+                else
+                    t -= d
+                terrain[half] = clamp(lsb(t), 10, 230)
+                interpolate(s, half)
+                interpolate(half, e)
+
+                ; recurse
+                pushw(e)
+                pushw(half)
+                push(displacement)
+                recursive_midpoint(s, half, displacement-smoothness)
+                displacement = pop()
+                half = popw()
+                e = popw()
+                recursive_midpoint(half, e, displacement-smoothness)
             }
         }
-        sys.poweroff_system()
+
     }
 
-    sub setup() {
-        txt.iso()
-        str userinput = "?"*10
-        txt.print("\n\nwolfram's cellular automatons.\n\n")
-        txt.print("suggestions for interesting rules:\n 30, 45, 90, 110, 117, 184.\n\n")
-        txt.print("enter rule number, 0-255: ")
-        void txt.input_chars(userinput)
-        rulenumber = conv.str2ubyte(userinput)
-        txt.print("parsed rule number=")
-        txt.print_ub(rulenumber)
-        txt.nl()
-        for cx16.r0L in 0 to len(cells)-1
-            cells[cx16.r0L] = math.rnd() >= 128
-    }
+    sub interpolate(uword start, uword end) {
+        ; linear interpolate the terrain heights between positions start and end.
+        word ts = terrain[start]
+        word te = terrain[end]
+        alias istep = cx16.r0s
+        alias ivalue = cx16.r1s
+        istep = (te-ts) * 128 / (end-start)
+        ivalue = ts * 128
 
-    bool[8] states
-
-    sub init_automaton(ubyte number) {
-        ubyte state
-        for state in 0 to 7 {
-            number >>=1
-            if_cs
-                states[state] = true
-            else
-                states[state] = false
+        while start<=end {
+            terrain[start] = msb(ivalue<<1)
+            start++
+            ivalue += istep
         }
     }
 
-    sub generate(ubyte x) -> bool {
-        ubyte pattern = 0
-        if cells_previous[x-1]
-            pattern |= %100
-        if cells_previous[x]
-            pattern |= %010
-        if cells_previous[x+1]
-            pattern |= %001
-
-        return states[pattern]
+    sub draw(ubyte color) {
+        ; draw the terrain in the given color.
+        graphics.colors(color, color)
+        for cx16.r0 in 0 to 319 {
+            graphics.line(cx16.r0, terrain[cx16.r0], cx16.r0, 239)
+        }
     }
 }
-

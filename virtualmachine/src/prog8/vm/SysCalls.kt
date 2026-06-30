@@ -39,7 +39,7 @@ SYSCALLS:     DO NOT RENUMBER THESE OR YOU WILL BREAK EXISTING CODE
 27 = CLAMP_UBYTE
 28 = CLAMP_WORD
 29 = CLAMP_UWORD
-30 = CLAMP_FLOAT
+30 = *unused1*
 31 = ATAN
 32 = str to float
 33 = MUL16_LAST_UPPER
@@ -105,11 +105,13 @@ enum class Syscall {
     STRING_CONTAINS,
     BYTEARRAY_CONTAINS,
     WORDARRAY_CONTAINS,
+    SPLIT_WORDARRAY_CONTAINS,
+    LONGARRAY_CONTAINS,
     CLAMP_BYTE,
     CLAMP_UBYTE,
     CLAMP_WORD,
     CLAMP_UWORD,
-    CLAMP_FLOAT,
+    UNUSED1,
     ATAN,
     STR_TO_FLOAT,
     MUL16_LAST_UPPER,
@@ -409,6 +411,33 @@ object SysCalls {
                 }
                 returnValue(callspec.returns.single(), 0u, vm)
             }
+            Syscall.SPLIT_WORDARRAY_CONTAINS -> {
+                val (value, arrayV, lengthV) = getArgValues(callspec.arguments, vm)
+                var length = lengthV as UByte
+                val array: UInt = (arrayV as UShort).toUInt()
+                val msbOffset = length.toUInt()
+                while(length > 0u) {
+                    length--
+                    val lo = vm.memory.getUB(array + length)
+                    val hi = vm.memory.getUB(array + msbOffset + length)
+                    val word = (hi.toUInt() shl 8 or lo.toUInt()).toUShort()
+                    if(word == value)
+                        return returnValue(callspec.returns.single(), 1u, vm)
+                }
+                returnValue(callspec.returns.single(), 0u, vm)
+            }
+            Syscall.LONGARRAY_CONTAINS -> {
+                val (value, arrayV, lengthV) = getArgValues(callspec.arguments, vm)
+                var length = lengthV as UByte
+                val array: UInt = (arrayV as UShort).toUInt()
+                while(length > 0u) {
+                    length--
+                    val el = vm.memory.getSL(array + length.toUInt() * 4u)
+                    if(el == value)
+                        return returnValue(callspec.returns.single(), 1u, vm)
+                }
+                returnValue(callspec.returns.single(), 0u, vm)
+            }
             Syscall.FLOATARRAY_CONTAINS -> {
                 val (value, arrayV, lengthV) = getArgValues(callspec.arguments, vm)
                 var length = lengthV as UByte
@@ -461,14 +490,7 @@ object SysCalls {
                 val result = min(max(value, minimum), maximum)
                 returnValue(callspec.returns.single(), result, vm)
             }
-            Syscall.CLAMP_FLOAT -> {
-                val (valueU, minimumU, maximumU) = getArgValues(callspec.arguments, vm)
-                val value = valueU as Double
-                val minimum = minimumU as Double
-                val maximum = maximumU as Double
-                val result = min(max(value, minimum), maximum)
-                returnValue(callspec.returns.single(), result, vm)
-            }
+            Syscall.UNUSED1 -> throw NotImplementedError("unused1 syscall")
             Syscall.ATAN -> {
                 val (x1, y1, x2, y2) = getArgValues(callspec.arguments, vm)
                 val x1f = (x1 as UByte).toDouble()

@@ -468,40 +468,30 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
     }
 
     private fun funcClamp(call: PtFunctionCall): ExpressionCodeResult {
-        val result = mutableListOf<IRCodeChunkBase>()
         val type = irType(call.type)
+        require(type != IRDataType.FLOAT)
+        val result = mutableListOf<IRCodeChunkBase>()
         val valueTr = exprGen.translateExpression(call.args[0])
         val minimumTr = exprGen.translateExpression(call.args[1])
         val maximumTr = exprGen.translateExpression(call.args[2])
         result += valueTr.chunks
         result += minimumTr.chunks
         result += maximumTr.chunks
-        if(type==IRDataType.FLOAT) {
-            result += codeGen.makeSyscall(
-                IMSyscall.CLAMP_FLOAT, listOf(
-                    valueTr.dt to valueTr.resultFpReg,
-                    minimumTr.dt to minimumTr.resultFpReg,
-                    maximumTr.dt to maximumTr.resultFpReg,
-                ), type to valueTr.resultFpReg
-            )
-            return ExpressionCodeResult(result, type, -1, valueTr.resultFpReg)
-        } else {
-            val syscall = when(call.type.base) {
-                BaseDataType.UBYTE -> IMSyscall.CLAMP_UBYTE
-                BaseDataType.BYTE -> IMSyscall.CLAMP_BYTE
-                BaseDataType.UWORD -> IMSyscall.CLAMP_UWORD
-                BaseDataType.WORD -> IMSyscall.CLAMP_WORD
-                BaseDataType.LONG -> IMSyscall.CLAMP_LONG
-                else -> throw AssemblyError("invalid dt")
-            }
-            result += codeGen.makeSyscall(syscall, listOf(
-                    valueTr.dt to valueTr.resultReg,
-                    minimumTr.dt to minimumTr.resultReg,
-                    maximumTr.dt to maximumTr.resultReg,
-                ), type to valueTr.resultReg
-            )
-            return ExpressionCodeResult(result, type, valueTr.resultReg, -1)
+        val syscall = when(call.type.base) {
+            BaseDataType.UBYTE -> IMSyscall.CLAMP_UBYTE
+            BaseDataType.BYTE -> IMSyscall.CLAMP_BYTE
+            BaseDataType.UWORD -> IMSyscall.CLAMP_UWORD
+            BaseDataType.WORD -> IMSyscall.CLAMP_WORD
+            BaseDataType.LONG -> IMSyscall.CLAMP_LONG
+            else -> throw AssemblyError("invalid dt")
         }
+        result += codeGen.makeSyscall(syscall, listOf(
+                valueTr.dt to valueTr.resultReg,
+                minimumTr.dt to minimumTr.resultReg,
+                maximumTr.dt to maximumTr.resultReg,
+            ), type to valueTr.resultReg
+        )
+        return ExpressionCodeResult(result, type, valueTr.resultReg, -1)
     }
 
     private fun funcMin(call: PtFunctionCall): ExpressionCodeResult {

@@ -28,8 +28,9 @@ You are writing **6502/65C02 assembly** using **64tass syntax**, in separate `*.
 - `.proc` / `.pend` for procedures (scoping)
 - `_label` for local labels (prefixed with underscore, scoped to `.proc`)
 - **Symbol aliases**: inside a `.proc`, use `_name = P8ZP_SCRATCH_B1` to give a scratch variable a descriptive name.
-- **Anonymous labels**: defined as `+` (forward) or `-` (backward) at the start of a line. Reference them in branches using `+`, `++`, `+++` etc. (first/second/third *upcoming* anonymous forward label) and `-`, `--`, `---` etc. (first/second/third *preceding* anonymous backward label).
-  - Crucial: `+` refers to the NEXT upcoming `+` label, `++` refers to the ONE AFTER that, etc.
+- **Anonymous labels**: defined as `+` (forward) or `-` (backward) at the start of a line.
+  - **CRITICAL DISTINCTION**: Label **definitions** are always just a single `+` or `-`. Label **references** use `+`, `++`, `+++` to refer to the 1st, 2nd, 3rd upcoming forward label, and `-`, `--`, `---` for the 1st, 2nd, 3rd preceding backward label.
+  - `+` refers to the NEXT upcoming `+` label, `++` refers to the ONE AFTER that, etc.
   - `-` refers to the MOST RECENT `-` label, `--` to the one before that, etc.
   - When a `+` label is passed, the forward-reference count resets (so `++` then refers to the next one after that new label)
   - Example:
@@ -40,10 +41,10 @@ You are writing **6502/65C02 assembly** using **64tass syntax**, in separate `*.
     +   dex         ; forward label '+'
         bne +       ; branch to this same '+' (forward)
         sta $400
-    +   lda #0      ; second '+'
-        bne ++      ; branch to the '++' below
+    +   lda #0      ; second '+' label definition (just '+')
+        bne ++      ; branch to the '++' below (third forward '+')
         rts
-    ++  inc $d020   ; third forward label
+    +   inc $d020   ; third forward label definition (just '+', referred to as '++')
     ```
 - Data directives: `.byte`, `.word`, `.dword`, `.fill` (allocate space)
 - Equates: `label = value` (not `label .equ value` or `#define`)

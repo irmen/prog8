@@ -30,7 +30,9 @@
 
 package codegen
 
-import prog8.intermediate.*
+import prog8.intermediate.IRDataType
+import prog8.intermediate.IRInstruction
+import prog8.intermediate.Opcode
 
 fun CodeGenerator.translateBranch(insn: IRInstruction) {
     val target = insn.branchTarget
@@ -131,17 +133,17 @@ private fun CodeGenerator.emitCmpForBranch(insn: IRInstruction) {
                 emitLine("lda  ${regAddrLo(r1)}")
                 emitLine("cmp  #${immediate and 0xff}")
                 emitLine("lda  ${regAddrHi(r1)}")
-                emitLine("cmp  #${(immediate shr 8) and 0xff}")
+                emitLine("sbc  #${(immediate shr 8) and 0xff}")
             }
             IRDataType.LONG -> {
                 emitLine("lda  ${regAddrLo(r1)}")
                 emitLine("cmp  #${immediate and 0xff}")
                 emitLine("lda  ${regAddrHi(r1)}")
-                emitLine("cmp  #${(immediate shr 8) and 0xff}")
+                emitLine("sbc  #${(immediate shr 8) and 0xff}")
                 emitLine("lda  ${regAddrByte(r1, 2)}")
-                emitLine("cmp  #${(immediate shr 16) and 0xff}")
+                emitLine("sbc  #${(immediate shr 16) and 0xff}")
                 emitLine("lda  ${regAddrByte(r1, 3)}")
-                emitLine("cmp  #${(immediate shr 24) and 0xff}")
+                emitLine("sbc  #${(immediate shr 24) and 0xff}")
             }
             IRDataType.FLOAT -> TODO("FLOAT branch cmp")
         }
@@ -157,17 +159,17 @@ private fun CodeGenerator.emitCmpForBranch(insn: IRInstruction) {
                 emitLine("lda  ${regAddrLo(r1)}")
                 emitLine("cmp  ${regAddrLo(r2)}")
                 emitLine("lda  ${regAddrHi(r1)}")
-                emitLine("cmp  ${regAddrHi(r2)}")
+                emitLine("sbc  ${regAddrHi(r2)}")
             }
             IRDataType.LONG -> {
                 emitLine("lda  ${regAddrLo(r1)}")
                 emitLine("cmp  ${regAddrLo(r2)}")
                 emitLine("lda  ${regAddrHi(r1)}")
-                emitLine("cmp  ${regAddrHi(r2)}")
+                emitLine("sbc  ${regAddrHi(r2)}")
                 emitLine("lda  ${regAddrByte(r1, 2)}")
-                emitLine("cmp  ${regAddrByte(r2, 2)}")
+                emitLine("sbc  ${regAddrByte(r2, 2)}")
                 emitLine("lda  ${regAddrByte(r1, 3)}")
-                emitLine("cmp  ${regAddrByte(r2, 3)}")
+                emitLine("sbc  ${regAddrByte(r2, 3)}")
             }
             IRDataType.FLOAT -> TODO("FLOAT branch cmp")
         }

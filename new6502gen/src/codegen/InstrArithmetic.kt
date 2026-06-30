@@ -20,7 +20,9 @@
 
 package codegen
 
-import prog8.intermediate.*
+import prog8.intermediate.IRDataType
+import prog8.intermediate.IRInstruction
+import prog8.intermediate.Opcode
 
 fun CodeGenerator.translateArithmetic(insn: IRInstruction) {
     val type = insn.type ?: IRDataType.BYTE
@@ -941,6 +943,16 @@ private fun CodeGenerator.compareImmediate(r1: Int, value: Int, type: IRDataType
             emitLine("cmp  #<${value and 0xffff}")
             emitLine("lda  ${regAddrHi(r1)}")
             emitLine("sbc  #>${value and 0xffff}")
+        }
+        IRDataType.LONG -> {
+            emitLine("lda  ${regAddrLo(r1)}")
+            emitLine("cmp  #${value and 0xff}")
+            emitLine("lda  ${regAddrHi(r1)}")
+            emitLine("sbc  #${(value shr 8) and 0xff}")
+            emitLine("lda  ${regAddrByte(r1, 2)}")
+            emitLine("sbc  #${(value shr 16) and 0xff}")
+            emitLine("lda  ${regAddrByte(r1, 3)}")
+            emitLine("sbc  #${(value shr 24) and 0xff}")
         }
         else -> TODO("CMPI r$r1, #$value ${type.name}")
     }

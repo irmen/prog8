@@ -536,7 +536,21 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 val iterableLength = codeGen.symbolTable.getLength(haystackVar.name)
                 addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=lengthReg, immediate = iterableLength!!), null)
                 val resultReg = codeGen.registers.next(IRDataType.BYTE)
-                result += codeGen.makeSyscall(IMSyscall.WORDARRAY_CONTAINS, listOf(IRDataType.WORD to elementTr.resultReg, IRDataType.WORD to iterableTr.resultReg, IRDataType.BYTE to lengthReg), IRDataType.BYTE to resultReg)
+                val syscall = if(haystackVar.type.isSplitWordArray) IMSyscall.SPLIT_WORDARRAY_CONTAINS else IMSyscall.WORDARRAY_CONTAINS
+                result += codeGen.makeSyscall(syscall, listOf(IRDataType.WORD to elementTr.resultReg, IRDataType.WORD to iterableTr.resultReg, IRDataType.BYTE to lengthReg), IRDataType.BYTE to resultReg)
+                addInstr(result, IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1=resultReg, immediate = 0), null)
+                return ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
+            }
+            haystackVar.type.isLongArray -> {
+                val elementTr = translateExpression(check.needle)
+                addToResult(result, elementTr, elementTr.resultReg, -1)
+                val iterableTr = translateExpression(haystackVar)
+                addToResult(result, iterableTr, iterableTr.resultReg, -1)
+                val lengthReg = codeGen.registers.next(IRDataType.BYTE)
+                val resultReg = codeGen.registers.next(IRDataType.BYTE)
+                val iterableLength = codeGen.symbolTable.getLength(haystackVar.name)
+                addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=lengthReg, immediate = iterableLength!!), null)
+                result += codeGen.makeSyscall(IMSyscall.LONGARRAY_CONTAINS, listOf(IRDataType.LONG to elementTr.resultReg, IRDataType.WORD to iterableTr.resultReg, IRDataType.BYTE to lengthReg), IRDataType.BYTE to resultReg)
                 addInstr(result, IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1=resultReg, immediate = 0), null)
                 return ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
             }

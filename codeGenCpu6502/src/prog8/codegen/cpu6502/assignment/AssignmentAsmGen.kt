@@ -2998,6 +2998,21 @@ $endLabel""")
                     asmgen.out("  jsr  prog8_lib.containment_linearwordarray")
                 }
             }
+            dt.isLongArray -> {
+                asmgen.assignExpressionToRegister(containment.needle, RegisterOrPair.R14R15, true)
+                asmgen.out("""
+                    lda  cx16.r14
+                    sta  P8ZP_SCRATCH_W1
+                    lda  cx16.r14+1
+                    sta  P8ZP_SCRATCH_W1+1
+                    lda  cx16.r15
+                    sta  P8ZP_SCRATCH_W2
+                    lda  cx16.r15+1
+                    sta  P8ZP_SCRATCH_W2+1""")
+                assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, containment.definingISub(), containment.position, "P8ZP_SCRATCH_PTR"), symbolName, false, null, null)
+                asmgen.out("  ldy  #$numElements")
+                asmgen.out("  jsr  prog8_lib.containment_longarray")
+            }
             else -> throw AssemblyError("invalid dt")
         }
     }

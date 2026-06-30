@@ -388,6 +388,45 @@ _found          lda  #1
 		rts
 	.pend
 
+containment_longarray	.proc
+	; -- check if a value exists in a long array (4 bytes per element).
+	;    parameters: P8ZP_SCRATCH_W1: lower word of the value,
+	;                P8ZP_SCRATCH_W2: upper word of the value,
+	;                P8ZP_SCRATCH_PTR: address of the long array,
+	;                Y = number of elements in the array (>=1).
+	;    returns boolean 0/1 in A.
+		sty  P8ZP_SCRATCH_B1
+_loop		lda  P8ZP_SCRATCH_B1
+		beq  _notfound
+		lda  (P8ZP_SCRATCH_PTR)
+		cmp  P8ZP_SCRATCH_W1
+		bne  _next
+		ldy  #1
+		lda  (P8ZP_SCRATCH_PTR),y
+		cmp  P8ZP_SCRATCH_W1+1
+		bne  _next
+		ldy  #2
+		lda  (P8ZP_SCRATCH_PTR),y
+		cmp  P8ZP_SCRATCH_W2
+		bne  _next
+		ldy  #3
+		lda  (P8ZP_SCRATCH_PTR),y
+		cmp  P8ZP_SCRATCH_W2+1
+		bne  _next
+		lda  #1
+		rts
+_next		clc
+		lda  P8ZP_SCRATCH_PTR
+		adc  #4
+		sta  P8ZP_SCRATCH_PTR
+		bcc  +
+		inc  P8ZP_SCRATCH_PTR+1
++		dec  P8ZP_SCRATCH_B1
+		jmp  _loop
+_notfound	lda  #0
+		rts
+	.pend
+
 
 memcopy_small   .proc
 		; copy up to a single page (256 bytes) of memory.

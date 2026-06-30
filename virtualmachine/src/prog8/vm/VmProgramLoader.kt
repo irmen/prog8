@@ -125,12 +125,13 @@ class VmProgramLoader {
                         IMSyscall.STRING_CONTAINS.number -> Syscall.STRING_CONTAINS
                         IMSyscall.BYTEARRAY_CONTAINS.number -> Syscall.BYTEARRAY_CONTAINS
                         IMSyscall.WORDARRAY_CONTAINS.number -> Syscall.WORDARRAY_CONTAINS
+                        IMSyscall.SPLIT_WORDARRAY_CONTAINS.number -> Syscall.SPLIT_WORDARRAY_CONTAINS
+                        IMSyscall.LONGARRAY_CONTAINS.number -> Syscall.LONGARRAY_CONTAINS
                         IMSyscall.FLOATARRAY_CONTAINS.number -> Syscall.FLOATARRAY_CONTAINS
                         IMSyscall.CLAMP_BYTE.number -> Syscall.CLAMP_BYTE
                         IMSyscall.CLAMP_UBYTE.number -> Syscall.CLAMP_UBYTE
                         IMSyscall.CLAMP_WORD.number -> Syscall.CLAMP_WORD
                         IMSyscall.CLAMP_UWORD.number -> Syscall.CLAMP_UWORD
-                        IMSyscall.CLAMP_FLOAT.number -> Syscall.CLAMP_FLOAT
                         IMSyscall.CLAMP_LONG.number -> Syscall.CLAMP_LONG
                         IMSyscall.CALLFAR.number -> throw IRParseException("vm doesn't support the callfar() syscall")
                         IMSyscall.CALLFAR2.number -> throw IRParseException("vm doesn't support the callfar2() syscall")
