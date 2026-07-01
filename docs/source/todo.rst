@@ -1,9 +1,6 @@
 TODO
 ====
 
-remove Expericodegen module
-
-
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 - maybe the "pointers cannot be memory-mapped" error message can be removed?
