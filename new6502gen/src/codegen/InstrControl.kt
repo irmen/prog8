@@ -159,10 +159,10 @@ fun CodeGenerator.translateControl(insn: IRInstruction) {
                     IRDataType.BYTE -> {
                         emitLine("lda  ${regAddrLo(reg)}")
                     }
-                IRDataType.WORD -> {
-                    emitLine("lda  ${regAddrLo(reg)}")
-                    emitLine("ldy  ${regAddrHi(reg)}")
-                }
+                    IRDataType.WORD -> {
+                        emitLine("lda  ${regAddrLo(reg)}")
+                        emitLine("ldy  ${regAddrHi(reg)}")
+                    }
                     IRDataType.LONG -> {
                         emitLine("lda  ${regAddrLo(reg)}")
                         emitLine("sta  cx16.r14")
@@ -420,13 +420,13 @@ fun CodeGenerator.translateControl(insn: IRInstruction) {
             if (insn.type == IRDataType.FLOAT)
                 translateFloatUnary(insn, "floats.SQR")
             else
-                TODO("SQRT (integer)")
+                translateIntSqrt(insn)
         }
         Opcode.SQUARE -> {
             if (insn.type == IRDataType.FLOAT)
                 translateFloatSquare(insn)
             else
-                TODO("SQUARE (integer)")
+                translateIntSquare(insn)
         }
         Opcode.SGN -> {
             if (insn.type == IRDataType.FLOAT)
@@ -1416,6 +1416,60 @@ private fun CodeGenerator.translateFloatCompare(insn: IRInstruction) {
     // FCOMP returns -1, 0, or 1 in A (as signed byte)
     emitLine("sta  ${regAddrLo(r1)}")
     // Sign-extend to word if needed (irrelevant for comparison since only byte used)
+}
+
+private fun CodeGenerator.translateIntSqrt(insn: IRInstruction) {
+    val src = insn.reg2 ?: error("SQRT needs reg2")
+    val dst = insn.reg1 ?: error("SQRT needs reg1")
+    when (insn.type) {
+        IRDataType.BYTE -> {
+            emitLine("lda  ${regAddr(src)}")
+            emitLine("ldy  #0")
+            emitLine("jsr  prog8_lib.func_sqrt16_into_A")
+            emitLine("sta  ${regAddr(dst)}")
+        }
+        IRDataType.WORD -> {
+            emitLine("lda  ${regAddrLo(src)}")
+            emitLine("ldy  ${regAddrHi(src)}")
+            emitLine("jsr  prog8_lib.func_sqrt16_into_A")
+            emitLine("ldy  #0")
+            emitLine("sta  ${regAddrLo(dst)}")
+            emitLine("sty  ${regAddrHi(dst)}")
+        }
+        IRDataType.LONG -> {
+            this.storeToMemory(src, "prog8_lib.sqrt_long.num", IRDataType.LONG)
+            emitLine("jsr  prog8_lib.sqrt_long")
+            emitLine("sta  ${regAddrLo(dst)}")
+            emitLine("sty  ${regAddrHi(dst)}")
+        }
+        else -> throw IllegalArgumentException("need only int type here")
+    }
+}
+
+private fun CodeGenerator.translateIntSquare(insn: IRInstruction) {
+    val src = insn.reg2 ?: error("SQUARE needs reg2")
+    val dst = insn.reg1 ?: error("SQUARE needs reg1")
+    when (insn.type) {
+        IRDataType.BYTE -> {
+            emitLine("lda  ${regAddr(src)}")
+            emitLine("tay")
+            emitLine("jsr  prog8_math.multiply_bytes")
+            emitLine("sta  ${regAddr(dst)}")
+        }
+        IRDataType.WORD -> {
+            emitLine("lda  ${regAddrLo(src)}")
+            emitLine("ldy  ${regAddrHi(src)}")
+            emitLine("jsr  prog8_math.square")
+            emitLine("sta  ${regAddrLo(dst)}")
+            emitLine("sty  ${regAddrHi(dst)}")
+        }
+        IRDataType.LONG -> {
+            this.storeToMemory(src, "cx16.r14", IRDataType.LONG)
+            emitLine("jsr  prog8_math.square_long")
+            this.loadFromMemory(dst, "cx16.r14", IRDataType.LONG)
+        }
+        else -> throw IllegalArgumentException("need only int type here")
+    }
 }
 
 private fun CodeGenerator.translateFloatSquare(insn: IRInstruction) {

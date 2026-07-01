@@ -12,38 +12,14 @@ You are working with **Prog8** source code (`.p8` files) or its Intermediate Rep
 Follow ALL the rules below carefully.
 
 ## General & Setup
-- **Git operations**: When moving, renaming, or deleting git-tracked files, **always use `git mv` or `git rm`** instead of plain `mv`/`rm`. This preserves history and properly stages the change. Plain `mv`/`rm` causes git to see them as delete+add (losing history).
 - A program = a `main` block containing a `start` subroutine entry point, plus optional other subroutines/blocks
 - Add `%zeropage basicsafe` at the top of your program to allow clean return on exit (instead of resetting the machine/emulator)
 - Module imports: `%import modulename` — no `as` aliasing. Use the module's defined prefix (e.g., `%import textio` → `txt.xxx`)
-- **Virtual target for testing**: Use `prog8c -target virtual -emu input.p8` or `prog8c -vm input.p8ir` for fast testing
-- **Fast syntax check**: `prog8c -check input.p8` — does NOT produce output files (.prg, .asm, etc.), just errors
-- **Output directory**: `prog8c -out outdir input.p8` (default: same dir as source)
-- **Compilation outputs**: `*.prg` (program binary), `*.asm` (assembly listing), `*.list` (full listing), `*.p8ir` (IR for VM), `*.vice-mon-list` (Vice debug symbols)
-  - `.p8ir` files contain the **Intermediate Representation** — a sequence of named chunks, each containing typed instructions and virtual registers. This is a target-independent representation of the program, executable by the built-in Virtual Machine via `prog8c -vm file.p8ir`. Useful for debugging the compiler's code generation path without involving 6502 assembly.
-- **Debugging switches**: `-noopt` (disable optimizations), `-printast1` (parsed AST), `-printast2` (optimized simple AST), `-compareir` (compare IR outputs), `-dumpsymbols` (print all symbols), `-dumpvars` (print all variables)
-- **Library search (preferred)**: `prog8c -libsearch <regex>` — search for a regex pattern in the embedded library files. Extremely useful to quickly find library routines, variables, strings, or signatures (e.g., `prog8c -libsearch "txt\."` lists all textio routines; `prog8c -libsearch "sin"` finds math functions)
-- **Library dump**: `prog8c -libdump <dir>` — extract all embedded library source files into a directory for direct inspection (less common, use `-libsearch` first)
-- **Other useful flags**: `-quiet` (suppress messages), `-warnimplicitcasts` (warn on implicit type widening), `-daemon` (keep a background compiler process alive to speed up multiple successive compilations — must be passed on every `prog8c` invocation)
-- **Test programs**: add `%zeropage basicsafe` and `%option no_sysinit` at top
-- **Compiler unit test snippets**: These are **prog8 code snippets embedded in the Prog8 compiler's own Kotlin unit tests** (e.g., in `TestAstChecks.kt`, `TestOptimization.kt`, etc.). They are NOT standalone Prog8 programs:
-  - Keep them self-contained — avoid `%import` directives so they don't depend on library files (the test setup may not have the library search path configured)
-  - Use the `cx16` target (not `virtual`, unless specifically testing the VM)
-  - Consider setting `writeAssembly=false` if the test only needs to check the generated AST (much faster)
-  - Use `optimize=false` by default for these snippets
-  - Do NOT use the `%encoding iso` / `txt.iso()` / `sys.poweroff_system()` pattern in these snippets — that's only for real CX16 emulator runs
+- `.p8ir` files are the **Intermediate Representation** — target-independent, executable via `prog8c -vm file.p8ir`
+- **Library search**: `prog8c -libsearch <regex>` to find routines in the embedded stdlib (e.g., `prog8c -libsearch "txt\."`)
+- **Library dump**: `prog8c -libdump <dir>` to extract all embedded library source files
 - **`sys` module**: always available, no import needed
-- **CX16 debugging**: Add `%encoding iso`, call `txt.iso()` in `start()`, end with `sys.poweroff_system()`. For emulator: `x16emu -echo iso -run -prg input.prg 2>&1 | grep ...`
-- **CX16 memory map**:
-  ```
-  Bank    Offset      Content
-          $0000-$9EFF Fixed/System RAM
-          $9F00-$9FFF I/O Area (VIA, VERA, YM2151)
-  $00-$FF:$A000-$BFFF Banked RAM (max 2 MiB, often 512 KiB) (256x8K banks)
-  $00-$1F:$C000-$FFFF System ROM (512 KiB) (32x16K banks)
-  ```
-  Bank registers (in zeropage): `$00` selects the current RAM bank (0-255), `$01` selects the current ROM bank (0-31). For JSRFAR/banked calls from Prog8, use `extsub @bank ...` instead of manipulating these directly. The `cx16` module provides `cx16.get_ram_bank()` / `cx16.set_ram_bank()` and `cx16.get_rom_bank()` / `cx16.set_rom_bank()` — prefer these over directly poking `$00`/`$01`.
-  Full hardware specs at https://ayce.dev/emptyx16.html#emptyx16---x16-hardware-specs
+- **CX16 programs**: add `%encoding iso`, call `txt.iso()` in `start()`, end with `sys.poweroff_system()`
 
 ## Datatypes & Variables
 - Primitives: `bool`, `byte`, `ubyte`, `word`, `uword`, `long`, `float`, `str`
@@ -243,19 +219,7 @@ Used to call routines at fixed memory addresses (like ROM KERNAL routines or thi
 ## Inline Assembly
 When writing inline assembly (`%asm {{ }}` blocks or `asmsub` routines), load the **asm6502-coder** skill for formatting rules, symbol references, anonymous labels, and 64tass syntax details.
 
-## Testing Assembly Output
-- **NEVER dump raw assembly in test assertions** (e.g., `asm shouldContain "jsr label"`). On failure, this dumps the ENTIRE assembly listing into test logs, making them huge and unreadable.
-- **Instead, parse the assembly into lines and check specific properties:**
-  ```kotlin
-  val lines = asm.lines().map { it.trim() }
-  // Check for presence/absence of patterns
-  lines.any { it == "lda #42" } shouldBe true
-  lines.count { it.startsWith("jsr") && it.contains("label") } shouldBe 0
-  lines.count { it.contains("label") && it.contains(".proc") } shouldBe 0
-  ```
-- **Count occurrences** rather than using `shouldContain`/`shouldNotContain` on the full string.
-- **Use `lines.any { ... }` for existence checks** and `lines.count { ... } shouldBe 0` for absence checks.
-- This keeps test failure output small and focused on what actually failed.
+
 
 ## Standard Library
 - Find routines, functions, variables, modules and signatures in the symbol dump file for the given compilation target. 

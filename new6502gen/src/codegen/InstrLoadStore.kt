@@ -436,7 +436,7 @@ private fun CodeGenerator.translateFloatLoadStore(insn: IRInstruction) {
 
 // === Hardware register (slot) operations ===
 
-private fun CodeGenerator.loadFromHardwareReg(virtualReg: Int, slot: Int, type: IRDataType) {
+internal fun CodeGenerator.loadFromHardwareReg(virtualReg: Int, slot: Int, type: IRDataType) {
     // LOADHR: move value FROM physical CPU register (slot) INTO virtual register file
     when (slot) {
         0 -> {
@@ -473,7 +473,7 @@ private fun CodeGenerator.loadFromHardwareReg(virtualReg: Int, slot: Int, type: 
     }
 }
 
-private fun CodeGenerator.storeToHardwareReg(virtualReg: Int, slot: Int) {
+internal fun CodeGenerator.storeToHardwareReg(virtualReg: Int, slot: Int) {
     // STOREHR: move value FROM virtual register file INTO physical CPU register (slot)
     when (slot) {
         0 -> {
@@ -509,7 +509,7 @@ private fun CodeGenerator.storeToHardwareReg(virtualReg: Int, slot: Int) {
 
 // === helper implementations ===
 
-private fun CodeGenerator.loadSymbolAddress(reg: Int, sym: String, offset: Int?, type: IRDataType) {
+internal fun CodeGenerator.loadSymbolAddress(reg: Int, sym: String, offset: Int?, type: IRDataType) {
     val resolved = resolveSymbolRef(sym)
     val symWithOffset = if (offset != null) "$resolved+$offset" else resolved
     when (type) {
@@ -536,7 +536,7 @@ private fun CodeGenerator.loadSymbolAddress(reg: Int, sym: String, offset: Int?,
     }
 }
 
-private fun CodeGenerator.loadImmediate(reg: Int, value: Int, type: IRDataType) {
+internal fun CodeGenerator.loadImmediate(reg: Int, value: Int, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
             emitLine("lda  #${value and 0xff}")
@@ -564,7 +564,7 @@ private fun CodeGenerator.loadImmediate(reg: Int, value: Int, type: IRDataType) 
     }
 }
 
-private fun CodeGenerator.loadFromMemory(reg: Int, source: String, type: IRDataType) {
+internal fun CodeGenerator.loadFromMemory(reg: Int, source: String, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
             emitLine("lda  $source")
@@ -576,14 +576,21 @@ private fun CodeGenerator.loadFromMemory(reg: Int, source: String, type: IRDataT
             emitLine("lda  $source+1")
             emitLine("sta  ${regAddrHi(reg)}")
         }
-        IRDataType.LONG -> loadFromMemoryLong(reg, source)
+        IRDataType.LONG -> {
+            val base = regAddrByte(reg, 0)
+            emitLine("ldy  #3")
+            emitLine("-  lda  $source,y")
+            emitLine("sta  $base,y")
+            emitLine("dey")
+            emitLine("bpl  -")
+        }
         IRDataType.FLOAT -> {
             TODO("FLOAT LOADM r$reg from $source")
         }
     }
 }
 
-private fun CodeGenerator.copyRegister(dst: Int, src: Int, type: IRDataType) {
+internal fun CodeGenerator.copyRegister(dst: Int, src: Int, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
             emitLine("lda  ${regAddrLo(src)}")
@@ -602,7 +609,7 @@ private fun CodeGenerator.copyRegister(dst: Int, src: Int, type: IRDataType) {
     }
 }
 
-private fun CodeGenerator.storeToMemory(reg: Int, target: String, type: IRDataType) {
+internal fun CodeGenerator.storeToMemory(reg: Int, target: String, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
             emitLine("lda  ${regAddrLo(reg)}")
@@ -614,14 +621,21 @@ private fun CodeGenerator.storeToMemory(reg: Int, target: String, type: IRDataTy
             emitLine("lda  ${regAddrHi(reg)}")
             emitLine("sta  $target+1")
         }
-        IRDataType.LONG -> storeToMemoryLong(reg, target)
+        IRDataType.LONG -> {
+            val base = regAddrByte(reg, 0)
+            emitLine("ldy  #3")
+            emitLine("-  lda  $base,y")
+            emitLine("sta  $target,y")
+            emitLine("dey")
+            emitLine("bpl  -")
+        }
         IRDataType.FLOAT -> {
             TODO("FLOAT STOREM r$reg -> $target")
         }
     }
 }
 
-private fun CodeGenerator.indexedLoad(dst: Int, idxReg: Int, base: String, type: IRDataType) {
+internal fun CodeGenerator.indexedLoad(dst: Int, idxReg: Int, base: String, type: IRDataType) {
     val ptr = ZP_TEMP
     emitLine("lda  #<$base")
     emitLine("sta  $ptr")
@@ -662,7 +676,7 @@ private fun CodeGenerator.indexedLoad(dst: Int, idxReg: Int, base: String, type:
     }
 }
 
-private fun CodeGenerator.indirectLoad(dst: Int, baseReg: Int, offset: Int, type: IRDataType) {
+internal fun CodeGenerator.indirectLoad(dst: Int, baseReg: Int, offset: Int, type: IRDataType) {
     val ptr = ZP_TEMP
     emitLine("lda  ${regAddrLo(baseReg)}")
     emitLine("clc")
@@ -699,7 +713,7 @@ private fun CodeGenerator.indirectLoad(dst: Int, baseReg: Int, offset: Int, type
     }
 }
 
-private fun CodeGenerator.storeExchange(reg: Int, reg2: Int, target: String, type: IRDataType) {
+internal fun CodeGenerator.storeExchange(reg: Int, reg2: Int, target: String, type: IRDataType) {
     // STOREX: indexed store -- mem[target + reg2] = reg1
     when (type) {
         IRDataType.BYTE -> {
@@ -735,7 +749,7 @@ private fun CodeGenerator.storeExchange(reg: Int, reg2: Int, target: String, typ
     }
 }
 
-private fun CodeGenerator.zeroMemory(target: String, type: IRDataType) {
+internal fun CodeGenerator.zeroMemory(target: String, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
             emitStoreZero(target)
@@ -757,7 +771,7 @@ private fun CodeGenerator.zeroMemory(target: String, type: IRDataType) {
     }
 }
 
-private fun CodeGenerator.zeroIndexed(baseReg: Int, offset: Int, type: IRDataType) {
+internal fun CodeGenerator.zeroIndexed(baseReg: Int, offset: Int, type: IRDataType) {
     val ptr = ZP_TEMP
     emitLine("lda  ${regAddrLo(baseReg)}")
     emitLine("clc")
@@ -793,7 +807,7 @@ private fun CodeGenerator.zeroIndexed(baseReg: Int, offset: Int, type: IRDataTyp
     }
 }
 
-private fun CodeGenerator.zeroMemoryIndexed(reg: Int, base: String, type: IRDataType) {
+internal fun CodeGenerator.zeroMemoryIndexed(reg: Int, base: String, type: IRDataType) {
     emitLine("ldx  ${regAddrLo(reg)}")
     when (type) {
         IRDataType.BYTE -> {
@@ -834,7 +848,7 @@ private fun CodeGenerator.zeroMemoryIndexed(reg: Int, base: String, type: IRData
     }
 }
 
-private fun CodeGenerator.indirectStore(reg: Int, baseReg: Int, offset: Int, type: IRDataType) {
+internal fun CodeGenerator.indirectStore(reg: Int, baseReg: Int, offset: Int, type: IRDataType) {
     val ptr = ZP_TEMP
     emitLine("lda  ${regAddrLo(baseReg)}")
     emitLine("clc")
@@ -873,25 +887,7 @@ private fun CodeGenerator.indirectStore(reg: Int, baseReg: Int, offset: Int, typ
 
 // === LONG byte loop for non-carry-dependent operations ===
 
-private fun CodeGenerator.loadFromMemoryLong(reg: Int, source: String) {
-    val base = regAddrByte(reg, 0)
-    emitLine("ldy  #3")
-    emitLine("-  lda  $source,y")
-    emitLine("sta  $base,y")
-    emitLine("dey")
-    emitLine("bpl  -")
-}
-
-private fun CodeGenerator.storeToMemoryLong(reg: Int, target: String) {
-    val base = regAddrByte(reg, 0)
-    emitLine("ldy  #3")
-    emitLine("-  lda  $base,y")
-    emitLine("sta  $target,y")
-    emitLine("dey")
-    emitLine("bpl  -")
-}
-
-private fun CodeGenerator.copyRegisterLong(dst: Int, src: Int) {
+internal fun CodeGenerator.copyRegisterLong(dst: Int, src: Int) {
     val srcBase = regAddrByte(src, 0)
     val dstBase = regAddrByte(dst, 0)
     emitLine("ldy  #3")

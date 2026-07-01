@@ -226,6 +226,7 @@ These instructions apply specifically to the Junie agent:
 - **the `-printast1` switch prints out the internal Compiler AST** after parsing and semantic analysis.
 - **the `-printast2` switch prints out the optimized Simple AST** just before it goes to the code generator. This is useful for debugging optimizer issues.
 - **the `-out outdir` switch sets an alternative output directory** for compiled files (.prg, .asm, .list, etc.). **By default, output files are written to the same directory as the source file**.
+- **Other useful flags**: `-quiet` (suppress messages), `-warnimplicitcasts` (warn on implicit type widening), `-daemon` (keep a background compiler process alive — must be passed on every invocation)
 
 ### Compilation Output Files
 - `*.prg` - The final compiled program file for the target system (e.g., Commander X16)
@@ -238,6 +239,10 @@ These instructions apply specifically to the Junie agent:
 - `prog8c -target targetname input.p8` - Compile a Prog8 source file "input.p8" for the given target (cx16, c64, pet32, c128, virtual)
 - `prog8c -target targetname -emu input.p8` - Compile and execute a prog8 file in the emulator for the given target (cx16, c64, pet32, c128, virtual)
 - `prog8c -vm input.p8ir` - Execute an existing prog8 program, compiled in IR form, in the Virtual Machine
+
+### Library Tools
+- **Library search**: `prog8c -libsearch <regex>` — search for a regex pattern in the embedded stdlib files. Extremely useful to quickly find library routines, variables, or signatures (e.g., `prog8c -libsearch "txt\."` lists all textio routines)
+- **Library dump**: `prog8c -libdump <dir>` — extract all embedded library source files into a directory for direct inspection
 
 ## Testing and Verification
 
@@ -284,6 +289,25 @@ gradle :compiler:compileTestKotlin --info 2>&1 | grep "^e:"
 - Test config is in root `build.gradle.kts`; tests run in parallel
 - **When writing test programs**, add at the top: `%zeropage basicsafe` and `%option no_sysinit`
 - When a test fails, the output shows "There were failing tests. See the report at:" - **read that HTML report**
+
+### Compiler Unit Test Snippets
+Prog8 code snippets embedded in the compiler's own Kotlin unit tests (e.g., in `TestAstChecks.kt`, `TestOptimization.kt`) follow different rules from standalone programs:
+- **Keep self-contained** — avoid `%import` directives (test setup may not have library search path configured)
+- **Use `cx16` target** (not `virtual`, unless specifically testing the VM)
+- **Set `writeAssembly=false`** if the test only checks generated AST (much faster)
+- **Set `optimize=false`** by default for these snippets
+- **Do NOT use** the `%encoding iso` / `txt.iso()` / `sys.poweroff_system()` pattern — that's only for real CX16 emulator runs
+
+### Testing Assembly Output
+When testing generated assembly in Kotlin tests:
+- **NEVER dump raw assembly in string assertions** (e.g., `asm shouldContain "jsr label"`). On failure, this dumps the ENTIRE assembly listing into test logs.
+- **Instead, parse into lines and check specific properties:**
+  ```kotlin
+  val lines = asm.lines().map { it.trim() }
+  lines.any { it == "lda #42" } shouldBe true
+  lines.count { it.startsWith("jsr") } shouldBe 0
+  ```
+- Prefer `lines.any { ... }` for existence checks and `lines.count { ... } shouldBe 0` for absence checks.
 
 ### Manual Verification & Emulators
 

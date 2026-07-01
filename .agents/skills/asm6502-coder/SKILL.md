@@ -9,12 +9,6 @@ compatibility: opencode
 
 You are writing **6502/65C02 assembly** using **64tass syntax**, in separate `*.asm` files or embedded in a Prog8 program (inside `%asm {{ }}` blocks or `asmsub` routines). Follow all rules below.
 
-## Git Operations
-- When moving, renaming, or deleting git-tracked files, **always use `git mv` or `git rm`** instead of plain `mv`/`rm`. This preserves history and properly stages the change. Plain `mv`/`rm` causes git to see them as delete+add (losing history).
-
-## Debugging Generated Assembly
-- The prog8 compiler outputs `*.asm` (assembly source) and (with -asmlist option) also `*.list` (full listing with address/symbols) when compiling. Inspect these to debug generated code, verify optimizations, and trace instruction sequences.
-
 ## Assembler: 64tass Syntax
 ### Formatting Rules
 - Labels start in the first column of the line.
@@ -277,9 +271,6 @@ Call them with `#pushax` and `#popax`.
 
 ## IRQ Handler Best Practices
 - **Clear the Decimal Flag (`cld`)**: On the original 6502, the decimal flag (`D`) is **not** automatically cleared when an interrupt occurs. If the interrupted code was in decimal mode, your handler will also run in decimal mode, causing arithmetic errors. Always call `cld` at the beginning of your handler. The 65C02 clears it automatically, but `cld` is still recommended for portability.
-- Keep handlers extremely short and fast — they run with interrupts disabled and steal cycles from the main program.
-- Do NOT do lengthy processing, I/O, or complex subroutine calls inside the handler.
-- Instead, set a boolean flag or semaphore that the main loop checks periodically, and do the actual work there.
 
 ## Invoking the Assembler (64tass)
 If you need to manually invoke `64tass` to assemble a generated `.asm` file, you should be aware of the default arguments that `prog8c` supplies to ensure compatibility with the generated code:
