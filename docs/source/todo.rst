@@ -87,19 +87,6 @@ Affected variables (``_exitcarry``, ``_exitcode``, ``_exitcodeX``, ``_exitcodeY`
 instead of cleared BSS — 4 bytes unzeroed.  Fine for ``sys.exit(n)`` (values written before read).
 
 
-Floating point support in the new6502 codegen
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-The new 6502 code generator backend (``new6502gen``) completely lacks floating point support.
-This includes:
-- All floating point arithmetic operations (add, sub, mul, div)
-- Floating point comparison and type conversions
-- The ``FLOATARRAY_CONTAINS`` SYSCALL handler (required for ``float_val in float_array``)
-- Any use of the ``floats`` module functions
-
-The old 6502 codegen uses the CX16's (or C64's) IEEE-754 floating point library routines for these
-operations, which are embedded as assembly code.  The ``new6502gen`` will need similar incorporation
-of the target-specific float library routines (FAC1/FAC2 accumulator based).
-
 Dead Code Elimination bug in 64tass, for nested subroutines
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 - When a subroutine contains a nested ``asmsub`` (or possibly a nested ``sub()``), 64tass cannot properly eliminate
