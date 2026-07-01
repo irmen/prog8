@@ -1,4 +1,4 @@
-package prog8.codegen.experimental
+package prog8.codegen.new6502
 
 import prog8.code.IAssemblyProgram
 import prog8.code.ICodeGeneratorBackend
@@ -9,7 +9,7 @@ import prog8.code.core.IErrorReporter
 import prog8.codegen.intermediate.IRCodeGen
 import prog8.intermediate.IRFileWriter
 
-class ExperiCodeGenXXX(val retainSSA: Boolean,
+class New6502CodeGenerator(val retainSSA: Boolean,
                     private val preassignedCallSiteIds: Map<String, UByte> = emptyMap()
 ): ICodeGeneratorBackend {
     override fun generate(
@@ -17,7 +17,7 @@ class ExperiCodeGenXXX(val retainSSA: Boolean,
         symbolTable: SymbolTable,
         options: CompilationOptions,
         errors: IErrorReporter
-    ): IAssemblyProgram {
+    ): IAssemblyProgram? {
 
         // you could write a code generator directly on the PtProgram AST,
         // but you can also use the Intermediate Representation to build a codegen on:
@@ -25,24 +25,14 @@ class ExperiCodeGenXXX(val retainSSA: Boolean,
         val irProgram = irCodeGen.generate()
         irProgram.verifyRegisterTypes(irCodeGen.registerTypes())
 
-        // this stub only writes the IR program to disk but doesn't generate anything else.
+        // TODO remove this later: also write the IR program to disk for now for debugging purposes
         IRFileWriter(irProgram, null).write()
 
-        if(!options.quiet)
-            println("** experimental codegen stub: no assembly generated **")
-        return EmptyProgram
-    }
-}
+        val gen = AsmGen(irProgram, irProgram.options.compTarget)
+        val success = gen.generate()
+        if(!success)
+            return null
 
-private object EmptyProgram : IAssemblyProgram {
-    override val name = "<Empty Program>"
-    override val irInstructionCount: Int = 0
-    override val irChunkCount: Int = 0
-    override val irRegisterCount: Int = 0
-    override fun assemble(options: CompilationOptions, errors: IErrorReporter): Boolean {
-        if(!options.quiet)
-            println("** nothing assembled **")
-        return true
+        TODO("construct valid assembly program result")             // TODO reuse AssemblyProgram from regular 6502 code generator 
     }
-
 }

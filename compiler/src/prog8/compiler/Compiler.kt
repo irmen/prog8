@@ -19,6 +19,7 @@ import prog8.code.optimize.optimizeSimplifiedAst
 import prog8.code.source.ImportFileSystem.expandTilde
 import prog8.code.target.ConfigFileTarget
 import prog8.code.target.Cx16Target
+import prog8.code.target.Qemu68kTarget
 import prog8.code.target.VMTarget
 import prog8.code.target.getCompilationTargetByName
 import prog8.codegen.vm.VmCodeGen
@@ -60,7 +61,7 @@ class CompilerArguments(val filepath: Path,
                         val showTimings: Boolean,
                         val asmListfile: Boolean,
                         val includeSourcelines: Boolean,
-                        val experimentalCodegen: Boolean,
+                        val newCodegen: Boolean,
                         val dumpVariables: Boolean,
                         val dumpSymbols: Boolean,
                         val varsHighBank: Int?,
@@ -136,7 +137,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                 profilingInstrumentation = args.profilingInstrumentation
                 asmListfile = args.asmListfile
                 includeSourcelines = args.includeSourcelines
-                experimentalCodegen = args.experimentalCodegen
+                newCodegen = args.newCodegen
                 dumpVariables = args.dumpVariables
                 dumpSymbols = args.dumpSymbols
                 breakpointCpuInstruction = args.breakpointCpuInstruction
@@ -693,8 +694,13 @@ private fun createAssemblyAndAssemble(program: PtProgram,
     errors.report()
 
     val asmgen = when {
-        compilerOptions.experimentalCodegen -> prog8.codegen.experimental.ExperiCodeGen(retainSSAforIR, irCallIds)
-        compilerOptions.compTarget.cpu in arrayOf(CpuType.CPU6502, CpuType.CPU65C02) -> prog8.codegen.cpu6502.AsmGen6502(prefixSymbols = true, lastGeneratedLabelSequenceNr+1, asm6502CallIds)
+        compilerOptions.compTarget.cpu in arrayOf(CpuType.CPU6502, CpuType.CPU65C02) -> {
+            if(compilerOptions.newCodegen)
+                prog8.codegen.new6502.New6502CodeGenerator(retainSSAforIR, irCallIds)
+            else
+                prog8.codegen.cpu6502.AsmGen6502(lastGeneratedLabelSequenceNr+1, asm6502CallIds)
+        }
+        compilerOptions.compTarget.name == Qemu68kTarget.NAME -> prog8.codegen.m68k.M68kCodeGenerator(retainSSAforIR)
         compilerOptions.compTarget.name == VMTarget.NAME -> VmCodeGen(retainSSAforIR, irCallIds)
         else -> throw NotImplementedError("no code generator for cpu ${compilerOptions.compTarget.cpu}")
     }

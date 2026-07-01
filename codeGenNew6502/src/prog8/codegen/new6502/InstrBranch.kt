@@ -34,7 +34,7 @@ import prog8.intermediate.IRDataType
 import prog8.intermediate.IRInstruction
 import prog8.intermediate.Opcode
 
-fun CodeGenerator.translateBranch(insn: IRInstruction) {
+internal fun AsmGen.translateBranch(insn: IRInstruction) {
     val target = insn.branchTarget
     val ls = insn.labelSymbol
 
@@ -153,7 +153,7 @@ fun CodeGenerator.translateBranch(insn: IRInstruction) {
     }
 }
 
-private fun CodeGenerator.emitCmpForBranch(insn: IRInstruction) {
+private fun AsmGen.emitCmpForBranch(insn: IRInstruction) {
     // Emit a CMP between the branch's two operands.
     // The IR branch instructions are self-contained: they carry the operands to compare.
     val r1 = insn.reg1 ?: error("Branch ${insn.opcode} needs reg1")
@@ -214,7 +214,7 @@ private fun CodeGenerator.emitCmpForBranch(insn: IRInstruction) {
     }
 }
 
-private fun CodeGenerator.emitSignedBranch(cond: String, label: String, type: IRDataType? = null, reg1: Int? = null, reg2: Int? = null, immediate: Int? = null) {
+private fun AsmGen.emitSignedBranch(cond: String, label: String, type: IRDataType? = null, reg1: Int? = null, reg2: Int? = null, immediate: Int? = null) {
     // Standard 6502 signed comparison patterns after CMP.
     // Flags: N = sign of result, V = overflow, Z = zero.
     // Branch on (N == V) for signed >= and >, (N != V) for < and <=.
@@ -308,7 +308,7 @@ private fun CodeGenerator.emitSignedBranch(cond: String, label: String, type: IR
     }
 }
 
-private fun CodeGenerator.emitEqualityCheck(reg1: Int, reg2: Int?, immediate: Int?, type: IRDataType) {
+private fun AsmGen.emitEqualityCheck(reg1: Int, reg2: Int?, immediate: Int?, type: IRDataType) {
     // Byte-by-byte equality check for reliable Z flag.
     // Each byte mismatch branches to the first forward anonymous label (+).
     // Every byte comparison must have a bne + to detect mismatch of ANY byte.

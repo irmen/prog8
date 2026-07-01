@@ -19,7 +19,7 @@ import prog8.intermediate.IRDataType
 import prog8.intermediate.IRInstruction
 import prog8.intermediate.Opcode
 
-fun CodeGenerator.translateBitwise(insn: IRInstruction) {
+internal fun AsmGen.translateBitwise(insn: IRInstruction) {
     val type = insn.type ?: IRDataType.BYTE
     val r1 = insn.reg1          // nullable - memory-only ops (INVM, ASRM, etc.) have no reg1
     val r2 = insn.reg2
@@ -130,7 +130,7 @@ fun CodeGenerator.translateBitwise(insn: IRInstruction) {
 
 // === AND ===
 
-private fun CodeGenerator.andRegisters(dst: Int, src: Int, type: IRDataType) {
+private fun AsmGen.andRegisters(dst: Int, src: Int, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
             emitLine("lda  ${regAddrLo(dst)}")
@@ -150,7 +150,7 @@ private fun CodeGenerator.andRegisters(dst: Int, src: Int, type: IRDataType) {
     }
 }
 
-private fun CodeGenerator.andImmediate(dst: Int, value: Int, type: IRDataType) {
+private fun AsmGen.andImmediate(dst: Int, value: Int, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
             emitLine("lda  ${regAddrLo(dst)}")
@@ -183,7 +183,7 @@ private fun CodeGenerator.andImmediate(dst: Int, value: Int, type: IRDataType) {
     }
 }
 
-private fun CodeGenerator.andMemory(dst: Int, source: String, type: IRDataType) {
+private fun AsmGen.andMemory(dst: Int, source: String, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
             emitLine("lda  $source")
@@ -205,7 +205,7 @@ private fun CodeGenerator.andMemory(dst: Int, source: String, type: IRDataType) 
 
 // === OR ===
 
-private fun CodeGenerator.orRegisters(dst: Int, src: Int, type: IRDataType) {
+private fun AsmGen.orRegisters(dst: Int, src: Int, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
             emitLine("lda  ${regAddrLo(dst)}")
@@ -225,7 +225,7 @@ private fun CodeGenerator.orRegisters(dst: Int, src: Int, type: IRDataType) {
     }
 }
 
-private fun CodeGenerator.orImmediate(dst: Int, value: Int, type: IRDataType) {
+private fun AsmGen.orImmediate(dst: Int, value: Int, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
             emitLine("lda  ${regAddrLo(dst)}")
@@ -258,7 +258,7 @@ private fun CodeGenerator.orImmediate(dst: Int, value: Int, type: IRDataType) {
     }
 }
 
-private fun CodeGenerator.orMemory(dst: Int, source: String, type: IRDataType) {
+private fun AsmGen.orMemory(dst: Int, source: String, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
             emitLine("lda  $source")
@@ -280,7 +280,7 @@ private fun CodeGenerator.orMemory(dst: Int, source: String, type: IRDataType) {
 
 // === XOR ===
 
-private fun CodeGenerator.xorRegisters(dst: Int, src: Int, type: IRDataType) {
+private fun AsmGen.xorRegisters(dst: Int, src: Int, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
             emitLine("lda  ${regAddrLo(dst)}")
@@ -300,7 +300,7 @@ private fun CodeGenerator.xorRegisters(dst: Int, src: Int, type: IRDataType) {
     }
 }
 
-private fun CodeGenerator.xorImmediate(dst: Int, value: Int, type: IRDataType) {
+private fun AsmGen.xorImmediate(dst: Int, value: Int, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
             emitLine("lda  ${regAddrLo(dst)}")
@@ -333,7 +333,7 @@ private fun CodeGenerator.xorImmediate(dst: Int, value: Int, type: IRDataType) {
     }
 }
 
-private fun CodeGenerator.xorMemory(dst: Int, source: String, type: IRDataType) {
+private fun AsmGen.xorMemory(dst: Int, source: String, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
             emitLine("lda  $source")
@@ -355,7 +355,7 @@ private fun CodeGenerator.xorMemory(dst: Int, source: String, type: IRDataType) 
 
 // === Invert ===
 
-private fun CodeGenerator.invertRegister(reg: Int, type: IRDataType) {
+private fun AsmGen.invertRegister(reg: Int, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
             emitLine("lda  ${regAddrLo(reg)}")
@@ -375,7 +375,7 @@ private fun CodeGenerator.invertRegister(reg: Int, type: IRDataType) {
     }
 }
 
-private fun CodeGenerator.invertMemory(target: String, type: IRDataType) {
+private fun AsmGen.invertMemory(target: String, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
             emitLine("lda  $target")
@@ -397,7 +397,7 @@ private fun CodeGenerator.invertMemory(target: String, type: IRDataType) {
 
 // === Shifts ===
 
-private fun CodeGenerator.logicalShiftLeft(reg: Int, count: Int, type: IRDataType) {
+private fun AsmGen.logicalShiftLeft(reg: Int, count: Int, type: IRDataType) {
     repeat(count) {
         when (type) {
             IRDataType.BYTE -> {
@@ -418,7 +418,7 @@ private fun CodeGenerator.logicalShiftLeft(reg: Int, count: Int, type: IRDataTyp
     }
 }
 
-private fun CodeGenerator.logicalShiftLeftMemory(target: String, count: Int, type: IRDataType) {
+private fun AsmGen.logicalShiftLeftMemory(target: String, count: Int, type: IRDataType) {
     repeat(count) {
         when (type) {
             IRDataType.BYTE -> emitLine("asl  $target")
@@ -437,7 +437,7 @@ private fun CodeGenerator.logicalShiftLeftMemory(target: String, count: Int, typ
     }
 }
 
-private fun CodeGenerator.logicalShiftRight(reg: Int, count: Int, type: IRDataType) {
+private fun AsmGen.logicalShiftRight(reg: Int, count: Int, type: IRDataType) {
     repeat(count) {
         when (type) {
             IRDataType.BYTE -> {
@@ -458,7 +458,7 @@ private fun CodeGenerator.logicalShiftRight(reg: Int, count: Int, type: IRDataTy
     }
 }
 
-private fun CodeGenerator.logicalShiftRightMemory(target: String, count: Int, type: IRDataType) {
+private fun AsmGen.logicalShiftRightMemory(target: String, count: Int, type: IRDataType) {
     repeat(count) {
         when (type) {
             IRDataType.BYTE -> emitLine("lsr  $target")
@@ -477,7 +477,7 @@ private fun CodeGenerator.logicalShiftRightMemory(target: String, count: Int, ty
     }
 }
 
-private fun CodeGenerator.arithmeticShiftRight(reg: Int, count: Int, type: IRDataType) {
+private fun AsmGen.arithmeticShiftRight(reg: Int, count: Int, type: IRDataType) {
     repeat(count) {
         when (type) {
             IRDataType.BYTE -> {
@@ -504,7 +504,7 @@ private fun CodeGenerator.arithmeticShiftRight(reg: Int, count: Int, type: IRDat
     }
 }
 
-private fun CodeGenerator.arithmeticShiftRightMemory(target: String, count: Int, type: IRDataType) {
+private fun AsmGen.arithmeticShiftRightMemory(target: String, count: Int, type: IRDataType) {
     repeat(count) {
         when (type) {
             IRDataType.BYTE -> {
@@ -531,7 +531,7 @@ private fun CodeGenerator.arithmeticShiftRightMemory(target: String, count: Int,
     }
 }
 
-private fun CodeGenerator.logicalShiftLeftVar(reg: Int, countReg: Int, type: IRDataType) {
+private fun AsmGen.logicalShiftLeftVar(reg: Int, countReg: Int, type: IRDataType) {
     val loopLabel = makeLabel("lsl_var_loop")
     emitLine("ldx  ${regAddrLo(countReg)}")
     emitLine("beq  +")
@@ -557,7 +557,7 @@ private fun CodeGenerator.logicalShiftLeftVar(reg: Int, countReg: Int, type: IRD
     emitLabel("+")
 }
 
-private fun CodeGenerator.logicalShiftRightVar(reg: Int, countReg: Int, type: IRDataType) {
+private fun AsmGen.logicalShiftRightVar(reg: Int, countReg: Int, type: IRDataType) {
     val loopLabel = makeLabel("lsr_var_loop")
     emitLine("ldx  ${regAddrLo(countReg)}")
     emitLine("beq  +")
@@ -583,7 +583,7 @@ private fun CodeGenerator.logicalShiftRightVar(reg: Int, countReg: Int, type: IR
     emitLabel("+")
 }
 
-private fun CodeGenerator.arithmeticShiftRightVar(reg: Int, countReg: Int, type: IRDataType) {
+private fun AsmGen.arithmeticShiftRightVar(reg: Int, countReg: Int, type: IRDataType) {
     val loopLabel = makeLabel("asr_var_loop")
     emitLine("ldx  ${regAddrLo(countReg)}")
     emitLine("beq  +")
@@ -617,7 +617,7 @@ private fun CodeGenerator.arithmeticShiftRightVar(reg: Int, countReg: Int, type:
 
 // === Memory variable-count shifts ===
 
-private fun CodeGenerator.shiftMemoryVar(target: String, countReg: Int, type: IRDataType, isArithmetic: Boolean) {
+private fun AsmGen.shiftMemoryVar(target: String, countReg: Int, type: IRDataType, isArithmetic: Boolean) {
     val loopLabel = makeLabel("shiftmem_loop")
     emitLine("ldx  ${regAddrLo(countReg)}")
     emitLine("beq  +")
@@ -665,7 +665,7 @@ private fun CodeGenerator.shiftMemoryVar(target: String, countReg: Int, type: IR
     emitLabel("+")
 }
 
-private fun CodeGenerator.shiftMemoryLeftVar(target: String, countReg: Int, type: IRDataType) {
+private fun AsmGen.shiftMemoryLeftVar(target: String, countReg: Int, type: IRDataType) {
     val loopLabel = makeLabel("shiftmeml_loop")
     emitLine("ldx  ${regAddrLo(countReg)}")
     emitLine("beq  +")
@@ -693,7 +693,7 @@ private fun CodeGenerator.shiftMemoryLeftVar(target: String, countReg: Int, type
 
 // === Rotates ===
 
-private fun CodeGenerator.rotateLeft(reg: Int, type: IRDataType) {
+private fun AsmGen.rotateLeft(reg: Int, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
             emitLine("clc")
@@ -715,7 +715,7 @@ private fun CodeGenerator.rotateLeft(reg: Int, type: IRDataType) {
     }
 }
 
-private fun CodeGenerator.rotateLeftMemory(target: String, type: IRDataType) {
+private fun AsmGen.rotateLeftMemory(target: String, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
             emitLine("clc")
@@ -737,7 +737,7 @@ private fun CodeGenerator.rotateLeftMemory(target: String, type: IRDataType) {
     }
 }
 
-private fun CodeGenerator.rotateRight(reg: Int, type: IRDataType) {
+private fun AsmGen.rotateRight(reg: Int, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
             emitLine("clc")
@@ -759,7 +759,7 @@ private fun CodeGenerator.rotateRight(reg: Int, type: IRDataType) {
     }
 }
 
-private fun CodeGenerator.rotateRightMemory(target: String, type: IRDataType) {
+private fun AsmGen.rotateRightMemory(target: String, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
             emitLine("clc")
@@ -781,7 +781,7 @@ private fun CodeGenerator.rotateRightMemory(target: String, type: IRDataType) {
     }
 }
 
-private fun CodeGenerator.rotateLeftThroughCarry(reg: Int, type: IRDataType) {
+private fun AsmGen.rotateLeftThroughCarry(reg: Int, type: IRDataType) {
     // rotate through carry (like the 6502 ROL instruction does)
     when (type) {
         IRDataType.BYTE -> {
@@ -801,7 +801,7 @@ private fun CodeGenerator.rotateLeftThroughCarry(reg: Int, type: IRDataType) {
     }
 }
 
-private fun CodeGenerator.rotateRightThroughCarry(reg: Int, type: IRDataType) {
+private fun AsmGen.rotateRightThroughCarry(reg: Int, type: IRDataType) {
     // rotate through carry (like the 6502 ROR instruction does)
     when (type) {
         IRDataType.BYTE -> {
@@ -821,7 +821,7 @@ private fun CodeGenerator.rotateRightThroughCarry(reg: Int, type: IRDataType) {
     }
 }
 
-private fun CodeGenerator.rotateLeftThroughCarryMemory(target: String, type: IRDataType) {
+private fun AsmGen.rotateLeftThroughCarryMemory(target: String, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
             emitLine("rol  $target")
@@ -840,7 +840,7 @@ private fun CodeGenerator.rotateLeftThroughCarryMemory(target: String, type: IRD
     }
 }
 
-private fun CodeGenerator.rotateRightThroughCarryMemory(target: String, type: IRDataType) {
+private fun AsmGen.rotateRightThroughCarryMemory(target: String, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
             emitLine("ror  $target")
@@ -861,7 +861,7 @@ private fun CodeGenerator.rotateRightThroughCarryMemory(target: String, type: IR
 
 // === Bit manipulation ===
 
-private fun CodeGenerator.bitTest(reg: Int, bit: Int) {
+private fun AsmGen.bitTest(reg: Int, bit: Int) {
     val mask = 1 shl bit
     emitLine("lda  ${regAddrLo(reg)}")
     if (is65C02()) {
@@ -873,7 +873,7 @@ private fun CodeGenerator.bitTest(reg: Int, bit: Int) {
     }
 }
 
-private fun CodeGenerator.bitSet(reg: Int, bit: Int) {
+private fun AsmGen.bitSet(reg: Int, bit: Int) {
     val mask = 1 shl bit
     if (mask <= 0xff) {
         emitLine("lda  ${regAddrLo(reg)}")
@@ -888,7 +888,7 @@ private fun CodeGenerator.bitSet(reg: Int, bit: Int) {
     }
 }
 
-private fun CodeGenerator.bitClear(reg: Int, bit: Int) {
+private fun AsmGen.bitClear(reg: Int, bit: Int) {
     val mask = 1 shl bit
     if (mask <= 0xff) {
         emitLine("lda  ${regAddrLo(reg)}")
@@ -902,7 +902,7 @@ private fun CodeGenerator.bitClear(reg: Int, bit: Int) {
     }
 }
 
-private fun CodeGenerator.bitToggle(reg: Int, bit: Int) {
+private fun AsmGen.bitToggle(reg: Int, bit: Int) {
     val mask = 1 shl bit
     if (mask <= 0xff) {
         emitLine("lda  ${regAddrLo(reg)}")
@@ -920,7 +920,7 @@ private fun CodeGenerator.bitToggle(reg: Int, bit: Int) {
 // These operations have no carry dependency, so a simple Y-loop works.
 // Keep carry-dependent ops (shifts, rotates) unrolled.
 
-private fun CodeGenerator.byteLoop4(targetBase: String, srcBase: String, op: String) {
+private fun AsmGen.byteLoop4(targetBase: String, srcBase: String, op: String) {
     emitLine("ldy  #3")
     emitLine("-  lda  $targetBase,y")
     emitLine("$op  $srcBase,y")
@@ -929,7 +929,7 @@ private fun CodeGenerator.byteLoop4(targetBase: String, srcBase: String, op: Str
     emitLine("bpl  -")
 }
 
-private fun CodeGenerator.byteLoop4Unary(targetBase: String, op: String) {
+private fun AsmGen.byteLoop4Unary(targetBase: String, op: String) {
     emitLine("ldy  #3")
     emitLine("-  lda  $targetBase,y")
     emitLine(op)

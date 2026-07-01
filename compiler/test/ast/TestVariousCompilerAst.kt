@@ -1175,7 +1175,7 @@ main {
         val result2 = compileText(Cx16Target(), optimize=true, src, outputDir, writeAssembly=true)!!
         val st2 = result2.codegenAst!!.entrypoint()!!.children
         // Note: cx16 is a 6502 target and the current 6502 codegen does its own symbol prefixing.
-        // This is not done by default on the Virtual/IR target (unless it's being created using -expericodegen for a 6502 target)
+        // This is not done by default on the Virtual/IR target (unless it's being created using -newcodegen for a 6502 target)
         // After inlining, the multi-value assignment is split into 3 separate assignments with literal values
         st2.size shouldBe 8
         (st2[1] as PtVariable).name shouldBe "p8v_x"

@@ -4,6 +4,18 @@ plugins {
     id("com.peterabeles.gversion") version "1.10.3"
 }
 
+dependencies {
+    implementation(project(":codeCore"))
+    implementation(project(":simpleAst"))
+    implementation(project(":intermediate"))
+    implementation(project(":codeGenIntermediate"))
+    implementation("com.michael-bull.kotlin-result:kotlin-result-jvm:2.3.1")
+
+    testImplementation(testFixtures(project(":codeCore")))
+    testImplementation("io.kotest:kotest-runner-junit5")
+}
+
+
 val debugPort = 8000
 val debugArgs = "-agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=n,quiet=y"
 

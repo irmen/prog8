@@ -666,7 +666,7 @@ class TestVmCodeGen: FunSpec({
         irVar.name shouldBe "main.start.x"
     }
 
-    test("ir codegen for target 'cx16' via expericodegen produces prefixed names") {
+    test("ir codegen for target 'cx16' via newcodegen produces prefixed names") {
         val codegen = VmCodeGen(false)
         val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
         val block = PtBlock("main", false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)

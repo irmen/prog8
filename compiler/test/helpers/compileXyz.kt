@@ -34,7 +34,7 @@ internal fun compileFile(
         showTimings = false,
         asmListfile = false,
         includeSourcelines = false,
-        experimentalCodegen = experimentalCodegen,
+        newCodegen = experimentalCodegen,
         dumpVariables = false,
         dumpSymbols = false,
         varsHighBank = varshigh,

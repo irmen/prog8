@@ -24,7 +24,7 @@ import prog8.intermediate.IRDataType
 import prog8.intermediate.IRInstruction
 import prog8.intermediate.Opcode
 
-fun CodeGenerator.translateArithmetic(insn: IRInstruction) {
+internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
     val type = insn.type ?: IRDataType.BYTE
     val r1 = insn.reg1          // nullable - INCM/DECM/NEGM have no reg1
     val r2 = insn.reg2
@@ -172,7 +172,7 @@ fun CodeGenerator.translateArithmetic(insn: IRInstruction) {
 
 // === Increment/Decrement ===
 
-private fun CodeGenerator.incrementRegister(reg: Int, type: IRDataType) {
+private fun AsmGen.incrementRegister(reg: Int, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
             emitLine("inc  ${regAddrLo(reg)}")
@@ -197,7 +197,7 @@ private fun CodeGenerator.incrementRegister(reg: Int, type: IRDataType) {
     }
 }
 
-private fun CodeGenerator.decrementRegister(reg: Int, type: IRDataType) {
+private fun AsmGen.decrementRegister(reg: Int, type: IRDataType) {
     // Note: under the strict status-bits contract (CpuType.statusBitsOnMultiByteOps=false),
     // the IR generator always emits an explicit CMPI before any branch that depends on the
     // result, so the multi-byte op doesn't need to set Z correctly. We still emit the
@@ -240,7 +240,7 @@ private fun CodeGenerator.decrementRegister(reg: Int, type: IRDataType) {
     }
 }
 
-private fun CodeGenerator.incrementMemory(target: String, type: IRDataType) {
+private fun AsmGen.incrementMemory(target: String, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> emitLine("inc  $target")
         IRDataType.WORD -> {
@@ -263,7 +263,7 @@ private fun CodeGenerator.incrementMemory(target: String, type: IRDataType) {
     }
 }
 
-private fun CodeGenerator.decrementMemory(target: String, type: IRDataType) {
+internal fun AsmGen.decrementMemory(target: String, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> emitLine("dec  $target")
         IRDataType.WORD -> {
@@ -293,7 +293,7 @@ private fun CodeGenerator.decrementMemory(target: String, type: IRDataType) {
     }
 }
 
-private fun CodeGenerator.negateRegister(reg: Int, type: IRDataType) {
+internal fun AsmGen.negateRegister(reg: Int, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
             emitLine("sec")
@@ -329,7 +329,7 @@ private fun CodeGenerator.negateRegister(reg: Int, type: IRDataType) {
     }
 }
 
-private fun CodeGenerator.negateMemory(target: String, type: IRDataType) {
+internal fun AsmGen.negateMemory(target: String, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
             emitLine("sec")
@@ -367,7 +367,7 @@ private fun CodeGenerator.negateMemory(target: String, type: IRDataType) {
 
 // === Addition ===
 
-private fun CodeGenerator.addRegisters(dst: Int, src: Int, type: IRDataType) {
+internal fun AsmGen.addRegisters(dst: Int, src: Int, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
             emitLine("clc")
@@ -403,7 +403,7 @@ private fun CodeGenerator.addRegisters(dst: Int, src: Int, type: IRDataType) {
     }
 }
 
-private fun CodeGenerator.addImmediate(dst: Int, value: Int, type: IRDataType) {
+internal fun AsmGen.addImmediate(dst: Int, value: Int, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
             emitLine("clc")
@@ -439,7 +439,7 @@ private fun CodeGenerator.addImmediate(dst: Int, value: Int, type: IRDataType) {
     }
 }
 
-private fun CodeGenerator.addMemory(dst: Int, source: String, type: IRDataType) {
+internal fun AsmGen.addMemory(dst: Int, source: String, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
             emitLine("clc")
@@ -477,7 +477,7 @@ private fun CodeGenerator.addMemory(dst: Int, source: String, type: IRDataType) 
 
 // === Subtraction ===
 
-private fun CodeGenerator.subRegisters(dst: Int, src: Int, type: IRDataType) {
+internal fun AsmGen.subRegisters(dst: Int, src: Int, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
             emitLine("sec")
@@ -513,7 +513,7 @@ private fun CodeGenerator.subRegisters(dst: Int, src: Int, type: IRDataType) {
     }
 }
 
-private fun CodeGenerator.subImmediate(dst: Int, value: Int, type: IRDataType) {
+internal fun AsmGen.subImmediate(dst: Int, value: Int, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
             emitLine("sec")
@@ -549,7 +549,7 @@ private fun CodeGenerator.subImmediate(dst: Int, value: Int, type: IRDataType) {
     }
 }
 
-private fun CodeGenerator.subMemory(dst: Int, source: String, type: IRDataType) {
+internal fun AsmGen.subMemory(dst: Int, source: String, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
             emitLine("sec")
@@ -587,7 +587,7 @@ private fun CodeGenerator.subMemory(dst: Int, source: String, type: IRDataType) 
 
 // === Multiplication ===
 
-private fun CodeGenerator.mulRegisters(dst: Int, src: Int, type: IRDataType) {
+internal fun AsmGen.mulRegisters(dst: Int, src: Int, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
             emitLine("lda  ${regAddrLo(dst)}")
@@ -611,7 +611,7 @@ private fun CodeGenerator.mulRegisters(dst: Int, src: Int, type: IRDataType) {
     }
 }
 
-private fun CodeGenerator.mulImmediate(dst: Int, value: Int, type: IRDataType) {
+internal fun AsmGen.mulImmediate(dst: Int, value: Int, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
             emitLine("lda  ${regAddrLo(dst)}")
@@ -634,7 +634,7 @@ private fun CodeGenerator.mulImmediate(dst: Int, value: Int, type: IRDataType) {
     }
 }
 
-private fun CodeGenerator.mulMemory(dst: Int, source: String, type: IRDataType) {
+internal fun AsmGen.mulMemory(dst: Int, source: String, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
             emitLine("lda  ${regAddrLo(dst)}")
@@ -657,24 +657,24 @@ private fun CodeGenerator.mulMemory(dst: Int, source: String, type: IRDataType) 
     }
 }
 
-private fun CodeGenerator.mulSignedRegisters(dst: Int, src: Int, type: IRDataType) {
+internal fun AsmGen.mulSignedRegisters(dst: Int, src: Int, type: IRDataType) {
     emitLine("; MULSR r$dst, r$src (signed) - using unsigned for now")
     mulRegisters(dst, src, type)
 }
 
-private fun CodeGenerator.mulSignedImmediate(dst: Int, value: Int, type: IRDataType) {
+internal fun AsmGen.mulSignedImmediate(dst: Int, value: Int, type: IRDataType) {
     emitLine("; MULS r$dst, #$value (signed) - using unsigned for now")
     mulImmediate(dst, value, type)
 }
 
-private fun CodeGenerator.mulSignedMemory(dst: Int, source: String, type: IRDataType) {
+internal fun AsmGen.mulSignedMemory(dst: Int, source: String, type: IRDataType) {
     emitLine("; MULSM r$dst, $source (signed) - using unsigned for now")
     mulMemory(dst, source, type)
 }
 
 // === Division ===
 
-private fun CodeGenerator.divRegisters(dst: Int, src: Int, type: IRDataType) {
+internal fun AsmGen.divRegisters(dst: Int, src: Int, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
             emitLine("lda  ${regAddrLo(dst)}")
@@ -697,7 +697,7 @@ private fun CodeGenerator.divRegisters(dst: Int, src: Int, type: IRDataType) {
     }
 }
 
-private fun CodeGenerator.divImmediate(dst: Int, value: Int, type: IRDataType) {
+internal fun AsmGen.divImmediate(dst: Int, value: Int, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
             emitLine("lda  ${regAddrLo(dst)}")
@@ -720,7 +720,7 @@ private fun CodeGenerator.divImmediate(dst: Int, value: Int, type: IRDataType) {
     }
 }
 
-private fun CodeGenerator.divMemory(dst: Int, source: String, type: IRDataType) {
+internal fun AsmGen.divMemory(dst: Int, source: String, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
             emitLine("lda  ${regAddrLo(dst)}")
@@ -743,7 +743,7 @@ private fun CodeGenerator.divMemory(dst: Int, source: String, type: IRDataType) 
     }
 }
 
-private fun CodeGenerator.divSignedRegisters(dst: Int, src: Int, type: IRDataType) {
+internal fun AsmGen.divSignedRegisters(dst: Int, src: Int, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
             emitLine("lda  ${regAddrLo(dst)}")
@@ -766,7 +766,7 @@ private fun CodeGenerator.divSignedRegisters(dst: Int, src: Int, type: IRDataTyp
     }
 }
 
-private fun CodeGenerator.divSignedImmediate(dst: Int, value: Int, type: IRDataType) {
+internal fun AsmGen.divSignedImmediate(dst: Int, value: Int, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
             emitLine("lda  ${regAddrLo(dst)}")
@@ -789,13 +789,13 @@ private fun CodeGenerator.divSignedImmediate(dst: Int, value: Int, type: IRDataT
     }
 }
 
-private fun CodeGenerator.divSignedMemory(dst: Int, source: String, type: IRDataType) {
+internal fun AsmGen.divSignedMemory(dst: Int, source: String, type: IRDataType) {
     TODO("DIVSM r$dst, $source (signed)")
 }
 
 // === Modulo ===
 
-private fun CodeGenerator.modRegisters(dst: Int, src: Int, type: IRDataType) {
+internal fun AsmGen.modRegisters(dst: Int, src: Int, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
             emitLine("lda  ${regAddrLo(dst)}")
@@ -820,7 +820,7 @@ private fun CodeGenerator.modRegisters(dst: Int, src: Int, type: IRDataType) {
     }
 }
 
-private fun CodeGenerator.modImmediate(dst: Int, value: Int, type: IRDataType) {
+internal fun AsmGen.modImmediate(dst: Int, value: Int, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
             emitLine("lda  ${regAddrLo(dst)}")
@@ -845,18 +845,18 @@ private fun CodeGenerator.modImmediate(dst: Int, value: Int, type: IRDataType) {
     }
 }
 
-private fun CodeGenerator.modSignedRegisters(dst: Int, src: Int, type: IRDataType) {
+internal fun AsmGen.modSignedRegisters(dst: Int, src: Int, type: IRDataType) {
     TODO("MODSR r$dst, r$src (signed)")
 }
 
-private fun CodeGenerator.modSignedImmediate(dst: Int, value: Int, type: IRDataType) {
+internal fun AsmGen.modSignedImmediate(dst: Int, value: Int, type: IRDataType) {
     emitLine("; MODS r$dst, $value (signed, using unsigned)")
     modImmediate(dst, value, type)
 }
 
 // === DivMod ===
 
-private fun CodeGenerator.divModRegisters(dst: Int, src: Int, type: IRDataType) {
+internal fun AsmGen.divModRegisters(dst: Int, src: Int, type: IRDataType) {
     // division and modulo combined: dst = dst/src, dst+1 = dst%src
     when (type) {
         IRDataType.BYTE -> {
@@ -885,11 +885,11 @@ private fun CodeGenerator.divModRegisters(dst: Int, src: Int, type: IRDataType) 
     }
 }
 
-private fun CodeGenerator.sdivModRegisters(dst: Int, src: Int, type: IRDataType) {
+internal fun AsmGen.sdivModRegisters(dst: Int, src: Int, type: IRDataType) {
     TODO("SDIVMODR r$dst, r$src (signed)")
 }
 
-private fun CodeGenerator.divModImmediate(dst: Int, value: Int, type: IRDataType) {
+internal fun AsmGen.divModImmediate(dst: Int, value: Int, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
             emitLine("lda  ${regAddrLo(dst)}")
@@ -917,14 +917,14 @@ private fun CodeGenerator.divModImmediate(dst: Int, value: Int, type: IRDataType
     }
 }
 
-private fun CodeGenerator.sdivModImmediate(dst: Int, value: Int, type: IRDataType) {
+internal fun AsmGen.sdivModImmediate(dst: Int, value: Int, type: IRDataType) {
     emitLine("; SDIVMOD r$dst, $value (signed, using unsigned)")
     divModImmediate(dst, value, type)
 }
 
 // === Compare ===
 
-private fun CodeGenerator.compareRegisters(r1: Int, r2: Int, type: IRDataType) {
+internal fun AsmGen.compareRegisters(r1: Int, r2: Int, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
             emitLine("lda  ${regAddrLo(r1)}")
@@ -950,7 +950,7 @@ private fun CodeGenerator.compareRegisters(r1: Int, r2: Int, type: IRDataType) {
     }
 }
 
-private fun CodeGenerator.compareImmediate(r1: Int, value: Int, type: IRDataType) {
+internal fun AsmGen.compareImmediate(r1: Int, value: Int, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
             emitLine("lda  ${regAddrLo(r1)}")
@@ -995,7 +995,7 @@ private fun CodeGenerator.compareImmediate(r1: Int, value: Int, type: IRDataType
 
 // === Float arithmetic ===
 
-private fun CodeGenerator.translateFloatArithmetic(insn: IRInstruction) {
+internal fun AsmGen.translateFloatArithmetic(insn: IRInstruction) {
     val fr1 = insn.fpReg1
     val fr2 = insn.fpReg2
     val immFp = insn.immediateFp

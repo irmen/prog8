@@ -2,7 +2,7 @@ package prog8.codegen.new6502.optimization
 
 import prog8.intermediate.*
 
-class PeepholeOptimizer(private val program: IRProgram) {
+internal class PeepholeOptimizer(private val program: IRProgram) {
 
     fun optimize() {
         optimizeCalliToCall()

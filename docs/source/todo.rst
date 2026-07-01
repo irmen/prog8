@@ -1,7 +1,6 @@
 TODO
 ====
 
-rename -expericodegen into -newcodegen that should switch all existing 6502 codegens to using the new one based on IR
 remove Expericodegen module
 
 

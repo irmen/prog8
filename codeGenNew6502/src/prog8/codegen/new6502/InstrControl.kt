@@ -27,7 +27,7 @@ import prog8.code.core.Statusflag
 import prog8.code.core.toHex
 import prog8.intermediate.*
 
-fun CodeGenerator.translateControl(insn: IRInstruction) {
+internal fun AsmGen.translateControl(insn: IRInstruction) {
     val r1 = insn.reg1
     val r2 = insn.reg2
     val imm = insn.immediate
@@ -460,7 +460,7 @@ fun CodeGenerator.translateControl(insn: IRInstruction) {
 
 // === Call handling ===
 
-private fun CodeGenerator.translateCall(fnLabel: String, args: FunctionCallArgs?) {
+private fun AsmGen.translateCall(fnLabel: String, args: FunctionCallArgs?) {
     // Check if this is an inline ASMSUB - must be inlined at call site, not called with jsr
     val inlineAsmSub = findInlineAsmSub(fnLabel)
     if (inlineAsmSub != null) {
@@ -541,7 +541,7 @@ private fun CodeGenerator.translateCall(fnLabel: String, args: FunctionCallArgs?
 }
 
 /** Find an inline ASMSUB by its full scoped label. Returns null if not found or not inline. */
-private fun CodeGenerator.findInlineAsmSub(label: String): IRAsmSubroutine? =
+private fun AsmGen.findInlineAsmSub(label: String): IRAsmSubroutine? =
     program.findInlineAsmSub(label)
 
 /** Find an inline ASMSUB by its full scoped label in the program. */
@@ -555,7 +555,7 @@ fun IRProgram.findInlineAsmSub(label: String): IRAsmSubroutine? {
     return null
 }
 
-private fun CodeGenerator.translateArgument(arg: FunctionCallArgs.ArgumentSpec, argIndex: Int = -1, fnLabel: String? = null) {
+private fun AsmGen.translateArgument(arg: FunctionCallArgs.ArgumentSpec, argIndex: Int = -1, fnLabel: String? = null) {
     val regSpec = arg.reg
     val slot = regSpec.callingConventionSlot
     val regNum = regSpec.registerNum.value
@@ -740,7 +740,7 @@ private fun CodeGenerator.translateArgument(arg: FunctionCallArgs.ArgumentSpec, 
     }
 }
 
-private fun CodeGenerator.translateReturnValue(ret: FunctionCallArgs.RegSpec) {
+private fun AsmGen.translateReturnValue(ret: FunctionCallArgs.RegSpec) {
     val slot = ret.callingConventionSlot
     val regNum = ret.registerNum.value
 
@@ -830,7 +830,7 @@ private fun CodeGenerator.translateReturnValue(ret: FunctionCallArgs.RegSpec) {
 
 // === Syscall handling ===
 
-private fun CodeGenerator.translateSyscall(insn: IRInstruction, args: FunctionCallArgs?) {
+private fun AsmGen.translateSyscall(insn: IRInstruction, args: FunctionCallArgs?) {
     val syscallNum = insn.immediate ?: error("SYSCALL must have immediate(syscall number)")
     val argsNonNull = args ?: error("SYSCALL $syscallNum requires arguments")
     when (syscallNum) {
@@ -856,7 +856,7 @@ private fun CodeGenerator.translateSyscall(insn: IRInstruction, args: FunctionCa
     }
 }
 
-private fun CodeGenerator.translateSyscallClampUbyte(args: FunctionCallArgs) {
+private fun AsmGen.translateSyscallClampUbyte(args: FunctionCallArgs) {
     val regValue = args.arguments.getOrNull(0)?.reg?.registerNum?.value ?: error("need value reg")
     val regMin = args.arguments.getOrNull(1)?.reg?.registerNum?.value ?: error("need min reg")
     val regMax = args.arguments.getOrNull(2)?.reg?.registerNum?.value ?: error("need max reg")
@@ -869,7 +869,7 @@ private fun CodeGenerator.translateSyscallClampUbyte(args: FunctionCallArgs) {
     emitLine("sta  ${regAddrLo(regValue)}")
 }
 
-private fun CodeGenerator.translateSyscallClampByte(args: FunctionCallArgs) {
+private fun AsmGen.translateSyscallClampByte(args: FunctionCallArgs) {
     val regValue = args.arguments.getOrNull(0)?.reg?.registerNum?.value ?: error("need value reg")
     val regMin = args.arguments.getOrNull(1)?.reg?.registerNum?.value ?: error("need min reg")
     val regMax = args.arguments.getOrNull(2)?.reg?.registerNum?.value ?: error("need max reg")
@@ -882,7 +882,7 @@ private fun CodeGenerator.translateSyscallClampByte(args: FunctionCallArgs) {
     emitLine("sta  ${regAddrLo(regValue)}")
 }
 
-private fun CodeGenerator.translateSyscallClampUword(args: FunctionCallArgs) {
+private fun AsmGen.translateSyscallClampUword(args: FunctionCallArgs) {
     val regValue = args.arguments.getOrNull(0)?.reg?.registerNum?.value ?: error("need value reg")
     val regMin = args.arguments.getOrNull(1)?.reg?.registerNum?.value ?: error("need min reg")
     val regMax = args.arguments.getOrNull(2)?.reg?.registerNum?.value ?: error("need max reg")
@@ -902,7 +902,7 @@ private fun CodeGenerator.translateSyscallClampUword(args: FunctionCallArgs) {
     emitLine("sty  ${regAddrHi(regValue)}")
 }
 
-private fun CodeGenerator.translateSyscallClampWord(args: FunctionCallArgs) {
+private fun AsmGen.translateSyscallClampWord(args: FunctionCallArgs) {
     val regValue = args.arguments.getOrNull(0)?.reg?.registerNum?.value ?: error("need value reg")
     val regMin = args.arguments.getOrNull(1)?.reg?.registerNum?.value ?: error("need min reg")
     val regMax = args.arguments.getOrNull(2)?.reg?.registerNum?.value ?: error("need max reg")
@@ -921,7 +921,7 @@ private fun CodeGenerator.translateSyscallClampWord(args: FunctionCallArgs) {
     emitLine("sty  ${regAddrHi(regValue)}")
 }
 
-private fun CodeGenerator.translateSyscallClampLong(args: FunctionCallArgs) {
+private fun AsmGen.translateSyscallClampLong(args: FunctionCallArgs) {
     val regValue = args.arguments.getOrNull(0)?.reg?.registerNum?.value ?: error("need value reg")
     val regMin = args.arguments.getOrNull(1)?.reg?.registerNum?.value ?: error("need min reg")
     val regMax = args.arguments.getOrNull(2)?.reg?.registerNum?.value ?: error("need max reg")
@@ -953,7 +953,7 @@ private fun CodeGenerator.translateSyscallClampLong(args: FunctionCallArgs) {
     emitLine("jsr  prog8_lib.func_clamp_long")
 }
 
-private fun CodeGenerator.translateSyscallMemcopy(args: FunctionCallArgs) {
+private fun AsmGen.translateSyscallMemcopy(args: FunctionCallArgs) {
     val regSrc = args.arguments.getOrNull(0)?.reg?.registerNum?.value ?: error("need src reg")
     val regDst = args.arguments.getOrNull(1)?.reg?.registerNum?.value ?: error("need dst reg")
     val regCount = args.arguments.getOrNull(2)?.reg?.registerNum?.value ?: error("need count reg")
@@ -976,7 +976,7 @@ private fun CodeGenerator.translateSyscallMemcopy(args: FunctionCallArgs) {
     emitLabel("+")
 }
 
-private fun CodeGenerator.translateSyscallCallfar(args: FunctionCallArgs) {
+private fun AsmGen.translateSyscallCallfar(args: FunctionCallArgs) {
     val regBank = args.arguments[0].reg.registerNum.value
     val regAddress = args.arguments[1].reg.registerNum.value
     val regArg = args.arguments[2].reg.registerNum.value
@@ -996,7 +996,7 @@ private fun CodeGenerator.translateSyscallCallfar(args: FunctionCallArgs) {
     emitLine(".byte  0")
 }
 
-private fun CodeGenerator.translateSyscallCallfar2(args: FunctionCallArgs) {
+private fun AsmGen.translateSyscallCallfar2(args: FunctionCallArgs) {
     val regBank = args.arguments[0].reg.registerNum.value
     val regAddress = args.arguments[1].reg.registerNum.value
     val regA = args.arguments[2].reg.registerNum.value
@@ -1030,7 +1030,7 @@ private fun CodeGenerator.translateSyscallCallfar2(args: FunctionCallArgs) {
     emitLine(".byte  0")
 }
 
-private fun CodeGenerator.translateSyscallStringCompare(args: FunctionCallArgs) {
+private fun AsmGen.translateSyscallStringCompare(args: FunctionCallArgs) {
     val regStr1 = args.arguments[0].reg.registerNum.value
     val regStr2 = args.arguments[1].reg.registerNum.value
     emitLine("lda  ${regAddrLo(regStr2)}")
@@ -1042,7 +1042,7 @@ private fun CodeGenerator.translateSyscallStringCompare(args: FunctionCallArgs) 
     emitLine("jsr  prog8_lib.strcmp_mem")
 }
 
-private fun CodeGenerator.translateSyscallBytearrayContains(args: FunctionCallArgs) {
+private fun AsmGen.translateSyscallBytearrayContains(args: FunctionCallArgs) {
     val regElem = args.arguments[0].reg.registerNum.value
     val regArr = args.arguments[1].reg.registerNum.value
     val regLen = args.arguments[2].reg.registerNum.value
@@ -1057,7 +1057,7 @@ private fun CodeGenerator.translateSyscallBytearrayContains(args: FunctionCallAr
     emitLine("jsr  prog8_lib.containment_bytearray")
 }
 
-private fun CodeGenerator.translateSyscallWordarrayContains(args: FunctionCallArgs) {
+private fun AsmGen.translateSyscallWordarrayContains(args: FunctionCallArgs) {
     val regElem = args.arguments[0].reg.registerNum.value
     val regArr = args.arguments[1].reg.registerNum.value
     val regLen = args.arguments[2].reg.registerNum.value
@@ -1073,7 +1073,7 @@ private fun CodeGenerator.translateSyscallWordarrayContains(args: FunctionCallAr
     emitLine("jsr  prog8_lib.containment_linearwordarray")
 }
 
-private fun CodeGenerator.translateSyscallSplitWordarrayContains(args: FunctionCallArgs) {
+private fun AsmGen.translateSyscallSplitWordarrayContains(args: FunctionCallArgs) {
     val regElem = args.arguments[0].reg.registerNum.value
     val regArr = args.arguments[1].reg.registerNum.value
     val regLen = args.arguments[2].reg.registerNum.value
@@ -1089,7 +1089,7 @@ private fun CodeGenerator.translateSyscallSplitWordarrayContains(args: FunctionC
     emitLine("jsr  prog8_lib.containment_splitwordarray")
 }
 
-private fun CodeGenerator.translateSyscallLongarrayContains(args: FunctionCallArgs) {
+private fun AsmGen.translateSyscallLongarrayContains(args: FunctionCallArgs) {
     val regVal = args.arguments[0].reg.registerNum.value
     val regArr = args.arguments[1].reg.registerNum.value
     val regLen = args.arguments[2].reg.registerNum.value
@@ -1148,7 +1148,7 @@ private fun CodeGenerator.translateSyscallLongarrayContains(args: FunctionCallAr
     emitLabel(labelDone)
 }
 
-private fun CodeGenerator.translateSyscallStringContains(args: FunctionCallArgs) {
+private fun AsmGen.translateSyscallStringContains(args: FunctionCallArgs) {
     val regChar = args.arguments[0].reg.registerNum.value
     val regStr = args.arguments[1].reg.registerNum.value
     val labelFound = makeLabel("sc_found")
@@ -1176,7 +1176,7 @@ private fun CodeGenerator.translateSyscallStringContains(args: FunctionCallArgs)
     emitLabel(labelDone)
 }
 
-private fun CodeGenerator.translateSyscallFloatarrayContains(args: FunctionCallArgs) {
+private fun AsmGen.translateSyscallFloatarrayContains(args: FunctionCallArgs) {
     val regNeedleFp = args.arguments.getOrNull(0)?.reg?.registerNum?.value ?: error("need needle fp reg")
     val regArr = args.arguments.getOrNull(1)?.reg?.registerNum?.value ?: error("need array reg")
     val regLen = args.arguments.getOrNull(2)?.reg?.registerNum?.value ?: error("need length reg")
@@ -1196,7 +1196,7 @@ private fun CodeGenerator.translateSyscallFloatarrayContains(args: FunctionCallA
 
 // === Float operations ===
 
-private fun CodeGenerator.translateFloatFromInt(insn: IRInstruction) {
+private fun AsmGen.translateFloatFromInt(insn: IRInstruction) {
     val r1 = insn.reg1 ?: error("${insn.opcode} needs reg1 (int input)")
     val fpReg = insn.fpReg1 ?: error("${insn.opcode} needs fpReg1 (float output)")
     when (insn.opcode) {
@@ -1226,7 +1226,7 @@ private fun CodeGenerator.translateFloatFromInt(insn: IRInstruction) {
     emitLine("jsr  floats.MOVMF")
 }
 
-private fun CodeGenerator.translateFloatToInt(insn: IRInstruction) {
+private fun AsmGen.translateFloatToInt(insn: IRInstruction) {
     val r1 = insn.reg1 ?: error("${insn.opcode} needs reg1 (int output)")
     val fpReg = insn.fpReg1 ?: error("${insn.opcode} needs fpReg1 (float input)")
     emitLine("lda  #<${fpRegAddr(fpReg.value)}")
@@ -1259,7 +1259,7 @@ private fun CodeGenerator.translateFloatToInt(insn: IRInstruction) {
     }
 }
 
-private fun CodeGenerator.translateFloatUnary(insn: IRInstruction, routine: String) {
+private fun AsmGen.translateFloatUnary(insn: IRInstruction, routine: String) {
     val src = insn.fpReg2 ?: error("${insn.opcode} needs fpReg2 (float input)")
     val dst = insn.fpReg1 ?: error("${insn.opcode} needs fpReg1 (float output)")
     emitLine("lda  #<${fpRegAddr(src.value)}")
@@ -1271,7 +1271,7 @@ private fun CodeGenerator.translateFloatUnary(insn: IRInstruction, routine: Stri
     emitLine("jsr  floats.MOVMF")
 }
 
-private fun CodeGenerator.translateFloatPower(insn: IRInstruction) {
+private fun AsmGen.translateFloatPower(insn: IRInstruction) {
     val src = insn.fpReg2 ?: error("FPOW needs fpReg2")
     val dst = insn.fpReg1 ?: error("FPOW needs fpReg1")
     // FPOW: fr1 = fr1 ^ fr2
@@ -1290,7 +1290,7 @@ private fun CodeGenerator.translateFloatPower(insn: IRInstruction) {
     emitLine("jsr  floats.MOVMF")
 }
 
-private fun CodeGenerator.translateFloatCeil(insn: IRInstruction) {
+private fun AsmGen.translateFloatCeil(insn: IRInstruction) {
     val src = insn.fpReg2 ?: error("FCEIL needs fpReg2")
     val dst = insn.fpReg1 ?: error("FCEIL needs fpReg1")
     // ceil(x) = -floor(-x)
@@ -1305,7 +1305,7 @@ private fun CodeGenerator.translateFloatCeil(insn: IRInstruction) {
     emitLine("jsr  floats.MOVMF")
 }
 
-private fun CodeGenerator.translateFloatFromSignedLong(insn: IRInstruction) {
+private fun AsmGen.translateFloatFromSignedLong(insn: IRInstruction) {
     val r1 = insn.reg1 ?: error("FFROMSL needs reg1 (long input)")
     val fpReg = insn.fpReg1 ?: error("FFROMSL needs fpReg1 (float output)")
     val regAddr = regAddr(r1)
@@ -1336,7 +1336,7 @@ private fun CodeGenerator.translateFloatFromSignedLong(insn: IRInstruction) {
     emitLine("jsr  floats.MOVMF")
 }
 
-private fun CodeGenerator.translateFloatToSignedLong(insn: IRInstruction) {
+private fun AsmGen.translateFloatToSignedLong(insn: IRInstruction) {
     val r1 = insn.reg1 ?: error("FTOSL needs reg1 (long output)")
     val fpReg = insn.fpReg1 ?: error("FTOSL needs fpReg1 (float input)")
     val regAddr = regAddr(r1)
@@ -1400,7 +1400,7 @@ private fun CodeGenerator.translateFloatToSignedLong(insn: IRInstruction) {
     emitLine("$doneLabel:")
 }
 
-private fun CodeGenerator.translateFloatCompare(insn: IRInstruction) {
+private fun AsmGen.translateFloatCompare(insn: IRInstruction) {
     val r1 = insn.reg1 ?: error("FCOMP needs reg1 (int output)")
     val fr1 = insn.fpReg1 ?: error("FCOMP needs fpReg1")
     val fr2 = insn.fpReg2 ?: error("FCOMP needs fpReg2")
@@ -1418,7 +1418,7 @@ private fun CodeGenerator.translateFloatCompare(insn: IRInstruction) {
     // Sign-extend to word if needed (irrelevant for comparison since only byte used)
 }
 
-private fun CodeGenerator.translateIntSqrt(insn: IRInstruction) {
+private fun AsmGen.translateIntSqrt(insn: IRInstruction) {
     val src = insn.reg2 ?: error("SQRT needs reg2")
     val dst = insn.reg1 ?: error("SQRT needs reg1")
     when (insn.type) {
@@ -1446,7 +1446,7 @@ private fun CodeGenerator.translateIntSqrt(insn: IRInstruction) {
     }
 }
 
-private fun CodeGenerator.translateIntSquare(insn: IRInstruction) {
+private fun AsmGen.translateIntSquare(insn: IRInstruction) {
     val src = insn.reg2 ?: error("SQUARE needs reg2")
     val dst = insn.reg1 ?: error("SQUARE needs reg1")
     when (insn.type) {
@@ -1472,7 +1472,7 @@ private fun CodeGenerator.translateIntSquare(insn: IRInstruction) {
     }
 }
 
-private fun CodeGenerator.translateFloatSquare(insn: IRInstruction) {
+private fun AsmGen.translateFloatSquare(insn: IRInstruction) {
     val src = insn.fpReg2 ?: error("SQUARE.f needs fpReg2")
     val dst = insn.fpReg1 ?: error("SQUARE.f needs fpReg1")
     // fr1 = fr2^2 = fr2 * fr2
@@ -1489,7 +1489,7 @@ private fun CodeGenerator.translateFloatSquare(insn: IRInstruction) {
     emitLine("jsr  floats.MOVMF")
 }
 
-private fun CodeGenerator.translateFloatSign(insn: IRInstruction) {
+private fun AsmGen.translateFloatSign(insn: IRInstruction) {
     val r1 = insn.reg1 ?: error("SGN.f needs reg1 (int output)")
     val fpReg = insn.fpReg1 ?: error("SGN.f needs fpReg1 (float input)")
     // SGN: reg1 = sign(fr1) as integer (-1, 0, 1)
@@ -1500,7 +1500,7 @@ private fun CodeGenerator.translateFloatSign(insn: IRInstruction) {
     emitLine("sta  ${regAddrLo(r1)}")
 }
 
-private fun CodeGenerator.jsrfarRoutine(): String {
+private fun AsmGen.jsrfarRoutine(): String {
     val targetName = program.options.compTarget.name
     return when (targetName) {
         "cx16" -> "cx16.JSRFAR"

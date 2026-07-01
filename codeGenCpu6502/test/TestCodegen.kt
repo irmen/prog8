@@ -46,7 +46,7 @@ class TestCodegen: FunSpec({
 //        xx += cx16.r0
 //    }
 //}
-        val codegen = AsmGen6502(prefixSymbols = false, 0)
+        val codegen = AsmGen6502(0)
         val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
         val block = PtBlock("main",false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
         val sub = PtSub("start", emptyList(), emptyList(), Position.DUMMY)

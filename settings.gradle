@@ -8,7 +8,6 @@ include(
     ':virtualmachine',
     ':codeGenIntermediate',
     ':codeGenCpu6502',
-    ':codeGenExperimental',
     ':codeGenM68k',
     ':codeGenNew6502',
     ':compiler',

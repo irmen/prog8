@@ -15,8 +15,7 @@ import kotlin.io.path.writeLines
 internal const val subroutineFloatEvalResultVar1 = "prog8_float_eval_result1"
 internal const val subroutineFloatEvalResultVar2 = "prog8_float_eval_result2"
 
-class AsmGen6502(val prefixSymbols: Boolean,
-                 private val lastGeneratedLabelSequenceNr: Int,
+class AsmGen6502(private val lastGeneratedLabelSequenceNr: Int,
                  private val preassignedCallSiteIds: Map<PtAsmSub, UByte> = emptyMap()
 ): ICodeGeneratorBackend {
     override fun generate(
@@ -25,7 +24,7 @@ class AsmGen6502(val prefixSymbols: Boolean,
         options: CompilationOptions,
         errors: IErrorReporter,
     ): IAssemblyProgram? {
-        val st = if(prefixSymbols) prefixSymbols(program, options, symbolTable) else symbolTable
+        val st = prefixSymbols(program, options, symbolTable)
         val asmgen = AsmGen6502Internal(program, st, options, errors, lastGeneratedLabelSequenceNr, preassignedCallSiteIds)
         return asmgen.compileToAssembly()
     }
@@ -41,7 +40,7 @@ class AsmGen6502Internal (
     internal val options: CompilationOptions,
     internal val errors: IErrorReporter,
     private var generatedLabelSequenceNumber: Int,
-    private val preassignedCallSiteIds: Map<PtAsmSub, UByte> = emptyMap()
+    preassignedCallSiteIds: Map<PtAsmSub, UByte> = emptyMap()
 ) {
 
     internal val optimizedByteMultiplications = setOf(3,5,6,7,9,10,11,12,13,14,15,20,25,40,50,80,100)

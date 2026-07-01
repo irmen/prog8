@@ -205,8 +205,8 @@ One or more .p8 module files
     The compiled program and the symbol and breakpoint lists
     (for the machine code monitor) are immediately loaded into the emulator (if it supports them)
 
-``-expericodegen``
-    Use experimental code generation backend (*incomplete*).
+``-newcodegen``
+    Use new 6502 code generation backend (*incomplete/experimental*). This generates 6502 assembly code based on IR instead of the AST.
 
 ``-float2bytes <number>``
     convert floating point number to a list of bytes for the specified target system.

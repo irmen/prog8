@@ -58,7 +58,7 @@ private fun compileMain(args: Array<String>): Boolean {
     val libDump by cli.option(ArgType.String, fullName = "libdump", description = "dump all the embedded library files into the specified output directory")
     val startEmulator1 by cli.option(ArgType.Boolean, fullName = "emu", description = "auto-start emulator after successful compilation")
     val startEmulator2 by cli.option(ArgType.Boolean, fullName = "emu2", description = "auto-start alternative emulator after successful compilation")
-    val experimentalCodegen by cli.option(ArgType.Boolean, fullName = "expericodegen", description = "use experimental/alternative codegen")
+    val newCodegen by cli.option(ArgType.Boolean, fullName = "newcodegen", description = "use experimental/alternative 6502 codegen based on IR instead of AST")
     val float2bytes by cli.option(ArgType.String, fullName = "float2bytes", description = "convert floating point number to a list of bytes for the target system. NOTE: you need to supply a target option too, and also still have to supply a dummy module file name as well!")
     val ignoreFootguns by cli.option(ArgType.Boolean, fullName = "ignorefootguns", description = "don't print warnings for 'footgun' issues:  'Yes I know I'm treading on mighty thin ice here'.")
     val profilingInstrumentation by cli.option(ArgType.Boolean, fullName = "profiling", description = "add subroutine profiling instrumentation (cx16 only).")
@@ -213,7 +213,7 @@ private fun compileMain(args: Array<String>): Boolean {
                     showTimings == true,
                     asmListfile == true,
                     dontIncludeSourcelines != true,
-                    experimentalCodegen == true,
+                    newCodegen == true,
                     dumpVariables == true,
                     dumpSymbols == true,
                     varsHighBank,
@@ -300,7 +300,7 @@ private fun compileMain(args: Array<String>): Boolean {
                 showTimings == true,
                 asmListfile == true,
                 dontIncludeSourcelines != true,
-                experimentalCodegen == true,
+                newCodegen == true,
                 dumpVariables == true,
                 dumpSymbols == true,
                 varsHighBank,
@@ -367,7 +367,7 @@ private fun compileMain(args: Array<String>): Boolean {
                     showTimings == true,
                     asmListfile == true,
                     dontIncludeSourcelines != true,
-                    experimentalCodegen == true,
+                    newCodegen == true,
                     dumpVariables == true,
                     dumpSymbols==true,
                     varsHighBank,
@@ -802,7 +802,7 @@ private fun communicateWithDaemon(channel: SocketChannel, compilerArgs: Compiler
             showTimings = compilerArgs.showTimings,
             asmListfile = compilerArgs.asmListfile,
             includeSourcelines = compilerArgs.includeSourcelines,
-            experimentalCodegen = compilerArgs.experimentalCodegen,
+            experimentalCodegen = compilerArgs.newCodegen,
             dumpVariables = compilerArgs.dumpVariables,
             dumpSymbols = compilerArgs.dumpSymbols,
             varsHighBank = compilerArgs.varsHighBank,

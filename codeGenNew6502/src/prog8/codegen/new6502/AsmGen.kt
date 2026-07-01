@@ -37,7 +37,7 @@ import prog8.intermediate.*
 import prog8.codegen.new6502.optimization.PeepholeOptimizer
 import java.nio.file.Path
 
-class CodeGenerator(val program: IRProgram, private val target: ICompilationTarget) : ICodeGenerator {
+internal class AsmGen(val program: IRProgram, private val target: ICompilationTarget) {
     private val output = StringBuilder()
     private val cpu get() = target.cpu
     val floatMemSize: Int get() = target.FLOAT_MEM_SIZE.toInt()
@@ -91,7 +91,7 @@ class CodeGenerator(val program: IRProgram, private val target: ICompilationTarg
         RegFileLayout(offsets, currentOffset)
     }
 
-    override fun generate(): Boolean {
+    fun generate(): Boolean {
         PeepholeOptimizer(program).optimize()
         emitHeader()
         emitConstants()

@@ -25,13 +25,14 @@ fun main(args: Array<String>) {
     println("Loaded IR program: ${program.name}")
     println("Target system and CPU: ${target.name} / ${target.cpu}")
     
-    val gen = when(target.cpu) {
-        CpuType.M68000 -> CodeGenerator(program, target.cpu)
+    when(target.cpu) {
+        CpuType.M68000 -> {
+            val gen = AsmGen()
+            val assembly = gen.generate(program)
+            println("Generated assembly program: ${assembly.name}")
+        }
         else -> {
-            println("This code generator only works for m68000 CPUs.")
-            exitProcess(1)
+            error("This code generator only works for m68000 CPUs.")
         }
     }
-    
-    gen.generate()
 }

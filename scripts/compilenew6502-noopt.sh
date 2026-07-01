@@ -4,7 +4,7 @@
 
 set -e
 
-prog8c -target cx16 -expericodegen -noopt examples/test.p8
+prog8c -target cx16 -newcodegen -noopt examples/test.p8
 codeGenNew6502/build/install/codeGenNew6502/bin/prog8-newgen test.p8ir
 x16emu -run -prg test.prg -echo iso
 
