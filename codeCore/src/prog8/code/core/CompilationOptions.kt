@@ -75,6 +75,7 @@ class CompilationOptions(val output: OutputType,
             private var outputDir: Path = Path("")
             private var quiet: Boolean = false
             private var profilingInstrumentation: Boolean = false
+            private var newCodegen: Boolean = false
             private var symbolDefs: Map<String, String> = emptyMap()
 
             fun output(output: OutputType) = apply { this.output = output }
@@ -106,12 +107,13 @@ class CompilationOptions(val output: OutputType,
             fun quiet(quiet: Boolean) = apply { this.quiet = quiet }
             fun profilingInstrumentation(profilingInstrumentation: Boolean) = apply { this.profilingInstrumentation = profilingInstrumentation }
             fun symbolDefs(symbolDefs: Map<String, String>) = apply { this.symbolDefs = symbolDefs }
+            fun newCodegen(newCodegen: Boolean) = apply { this.newCodegen = newCodegen }
 
             fun build(): CompilationOptions {
                 return CompilationOptions(
                     output, launcher, zeropage, zpReserved, zpAllowed, floats, noSysInit, romable, compTarget, compilerVersion,
                     loadAddress, memtopAddress, warnSymbolShadowing, warnImplicitTypeCast, optimize, asmQuiet, asmListfile,
-                    includeSourcelines, dumpVariables, dumpSymbols, varsHighBank, varsGolden,
+                    includeSourcelines, dumpVariables, dumpSymbols, newCodegen, varsHighBank, varsGolden,
                     slabsHighBank, slabsGolden, breakpointCpuInstruction, ignoreFootguns, outputDir, quiet,
                     profilingInstrumentation, symbolDefs
                 )

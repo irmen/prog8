@@ -802,7 +802,7 @@ private fun communicateWithDaemon(channel: SocketChannel, compilerArgs: Compiler
             showTimings = compilerArgs.showTimings,
             asmListfile = compilerArgs.asmListfile,
             includeSourcelines = compilerArgs.includeSourcelines,
-            experimentalCodegen = compilerArgs.newCodegen,
+            newCodegen = compilerArgs.newCodegen,
             dumpVariables = compilerArgs.dumpVariables,
             dumpSymbols = compilerArgs.dumpSymbols,
             varsHighBank = compilerArgs.varsHighBank,

@@ -5,6 +5,7 @@ import prog8.code.SymbolTableMaker
 import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.code.source.SourceCode
+import prog8.code.target.Cx16Target
 import prog8.code.target.VMTarget
 import prog8.codegen.vm.VmAssemblyProgram
 import prog8.codegen.vm.VmCodeGen
@@ -680,7 +681,7 @@ class TestVmCodeGen: FunSpec({
             .zeropage(ZeropageType.DONTUSE)
             .floats(true)
             .compilerVersion("99.99")
-            .experimentalCodegen(true)
+            .newCodegen(true)
             .build()
         val st = SymbolTableMaker(program, options).make()
         val errors = ErrorReporterForTests()

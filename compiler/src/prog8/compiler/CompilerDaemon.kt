@@ -234,7 +234,7 @@ internal class CompilerDaemon(private val socketPath: Path) {
             showTimings = showTimings,
             asmListfile = asmListfile,
             includeSourcelines = includeSourcelines,
-            newCodegen = experimentalCodegen,
+            newCodegen = newCodegen,
             dumpVariables = dumpVariables,
             dumpSymbols = dumpSymbols,
             varsHighBank = varsHighBank,

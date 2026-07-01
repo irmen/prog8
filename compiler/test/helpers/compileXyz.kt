@@ -33,7 +33,7 @@ internal fun compileFile(
         showTimings = false,
         asmListfile = false,
         includeSourcelines = false,
-        newCodegen = experimentalCodegen,
+        newCodegen = false,
         dumpVariables = false,
         dumpSymbols = false,
         varsHighBank = varshigh,
