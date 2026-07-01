@@ -214,19 +214,4 @@ class TestBankedSubroutines : FunSpec({
         
         errors.infos.any { it.contains("extsub banking call-site IDs written to") } shouldBe true
     }
-
-    test("experimental codegen crash regression") {
-        val text = $$"""
-            main {
-                sub selector(ubyte id) -> ubyte { return 0 }
-                extsub @bank selector $ffd2 = chrout(ubyte char @A)
-                sub start() {
-                    chrout('A')
-                }
-            }
-        """
-        val errors = ErrorReporterForTests()
-        compileText(Cx16Target(), false, text, outputDir, errors = errors, writeAssembly = false, experimentalCodegen = true).shouldNotBeNull()
-        errors.errors.size shouldBe 0
-    }
 })

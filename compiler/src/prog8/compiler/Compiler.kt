@@ -8,12 +8,7 @@ import prog8.ast.statements.Directive
 import prog8.buildversion.VERSION
 import prog8.code.SymbolTable
 import prog8.code.SymbolTableMaker
-import prog8.code.ast.PtAsmSub
-import prog8.code.ast.PtProgram
-import prog8.code.ast.findBankSelectorExtsubs
-import prog8.code.ast.printAst
-import prog8.code.ast.verifyFinalAstBeforeAsmGen
-import prog8.code.ast.writeBankedCallsFile
+import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.code.optimize.optimizeSimplifiedAst
 import prog8.code.source.ImportFileSystem.expandTilde
@@ -60,7 +55,6 @@ class CompilerArguments(val filepath: Path,
                         val showTimings: Boolean,
                         val asmListfile: Boolean,
                         val includeSourcelines: Boolean,
-                        val experimentalCodegen: Boolean,
                         val dumpVariables: Boolean,
                         val dumpSymbols: Boolean,
                         val varsHighBank: Int?,
@@ -136,7 +130,6 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                 profilingInstrumentation = args.profilingInstrumentation
                 asmListfile = args.asmListfile
                 includeSourcelines = args.includeSourcelines
-                experimentalCodegen = args.experimentalCodegen
                 dumpVariables = args.dumpVariables
                 dumpSymbols = args.dumpSymbols
                 breakpointCpuInstruction = args.breakpointCpuInstruction
@@ -693,7 +686,6 @@ private fun createAssemblyAndAssemble(program: PtProgram,
     errors.report()
 
     val asmgen = when {
-        compilerOptions.experimentalCodegen -> prog8.codegen.experimental.ExperiCodeGen(retainSSAforIR, irCallIds)
         compilerOptions.compTarget.cpu in arrayOf(CpuType.CPU6502, CpuType.CPU65C02) -> prog8.codegen.cpu6502.AsmGen6502(prefixSymbols = true, lastGeneratedLabelSequenceNr+1, asm6502CallIds)
         compilerOptions.compTarget.name == VMTarget.NAME -> VmCodeGen(retainSSAforIR, irCallIds)
         else -> throw NotImplementedError("no code generator for cpu ${compilerOptions.compTarget.cpu}")

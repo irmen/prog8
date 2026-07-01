@@ -12,7 +12,6 @@ dependencies {
     implementation(project(":compilerAst"))
     implementation(project(":codeGenCpu6502"))
     implementation(project(":codeGenIntermediate"))
-    implementation(project(":codeGenExperimental"))
     implementation(project(":intermediate"))
     implementation(project(":virtualmachine"))
     implementation("org.jetbrains.kotlinx:kotlinx-cli:0.3.6")

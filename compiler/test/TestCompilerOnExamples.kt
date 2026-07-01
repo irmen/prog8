@@ -64,7 +64,6 @@ private fun compileTheThing(filepath: Path, optimize: Boolean, target: ICompilat
         showTimings = false,
         asmListfile = false,
         includeSourcelines = true,
-        experimentalCodegen = false,
         dumpVariables = false,
         dumpSymbols = false,
         varsHighBank = null,
