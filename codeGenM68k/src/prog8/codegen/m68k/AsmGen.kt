@@ -1,6 +1,6 @@
 package prog8.codegen.m68k
 
-import prog8.code.IAssemblyProgram
+import prog8.code.assembly.IAssemblyProgram
 import prog8.intermediate.IRProgram
 
 internal class AsmGen {

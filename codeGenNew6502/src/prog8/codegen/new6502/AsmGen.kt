@@ -31,11 +31,9 @@
 
 package prog8.codegen.new6502
 
-import prog8.code.GENERATED_LABEL_PREFIX
 import prog8.code.core.*
-import prog8.intermediate.*
 import prog8.codegen.new6502.optimization.PeepholeOptimizer
-import java.nio.file.Path
+import prog8.intermediate.*
 
 internal class AsmGen(val program: IRProgram, private val target: ICompilationTarget) {
     private val output = StringBuilder()
@@ -112,153 +110,9 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
         if (!options.quiet)
             println("Assembly written to $asmFile")
 
-        return assemble()
+        return true
     }
 
-    private fun assemble(): Boolean {
-        val options = program.options
-        val name = program.name
-        val outputDir = options.outputDir
-        val asmFile = outputDir.resolve("$name.asm")
-        val viceMonListFile = outputDir.resolve("$name.vice-mon-list")
-        val listFile = outputDir.resolve("$name.list")
-
-        val assemblerCommand: List<String>
-
-        fun addRemainingOptions(command: MutableList<String>, programFile: Path, assembly: Path): List<String> {
-            if(options.compTarget.additionalAssemblerOptions.isNotEmpty())
-                command.addAll(options.compTarget.additionalAssemblerOptions)
-            command.addAll(listOf("--output", programFile.toString(), assembly.toString()))
-            return command
-        }
-
-        when(options.output) {
-            OutputType.PRG -> {
-                val prgFile = outputDir.resolve("$name.prg")
-                val command = mutableListOf("64tass", "--cbm-prg", "--ascii", "--case-sensitive", "--long-branch",
-                    "-Wall", "-Wno-implied-reg", "--no-monitor", "--dump-labels", "--vice-labels", "--labels=$viceMonListFile")
-                if(options.warnSymbolShadowing)
-                    command.add("-Wshadow")
-                else
-                    command.add("-Wno-shadow")
-                if(options.asmQuiet)
-                    command.add("--quiet")
-                if(options.asmListfile)
-                    command.add("--list=$listFile")
-                assemblerCommand = addRemainingOptions(command, prgFile, asmFile)
-                if(!options.quiet)
-                    println("\nCreating prg for target ${options.compTarget.name}.")
-            }
-            OutputType.XEX -> {
-                val xexFile = outputDir.resolve("$name.xex")
-                val command = mutableListOf("64tass", "--atari-xex", "--case-sensitive", "--long-branch",
-                    "-Wall", "-Wno-implied-reg", "--no-monitor", "--dump-labels", "--vice-labels", "--labels=$viceMonListFile")
-                if(options.warnSymbolShadowing)
-                    command.add("-Wshadow")
-                else
-                    command.add("-Wno-shadow")
-                if(options.asmQuiet)
-                    command.add("--quiet")
-                if(options.asmListfile)
-                    command.add("--list=$listFile")
-                assemblerCommand = addRemainingOptions(command, xexFile, asmFile)
-                if(!options.quiet)
-                    println("\nCreating xex for target ${options.compTarget.name}.")
-            }
-            OutputType.RAW -> {
-                val binFile = outputDir.resolve("$name.bin")
-                val command = mutableListOf("64tass", "--nostart", "--case-sensitive", "--long-branch",
-                    "-Wall", "-Wno-implied-reg", "--no-monitor", "--dump-labels", "--vice-labels", "--labels=$viceMonListFile")
-                if(options.warnSymbolShadowing)
-                    command.add("-Wshadow")
-                else
-                    command.add("-Wno-shadow")
-                if(options.asmQuiet)
-                    command.add("--quiet")
-                if(options.asmListfile)
-                    command.add("--list=$listFile")
-                assemblerCommand = addRemainingOptions(command, binFile, asmFile)
-                if(!options.quiet)
-                    println("\nCreating raw binary for target ${options.compTarget.name}.")
-            }
-            OutputType.LIBRARY -> {
-                val binFile = outputDir.resolve("$name.bin")
-                val command = mutableListOf("64tass", "--ascii", "--case-sensitive", "--long-branch",
-                    "-Wall", "-Wno-implied-reg", "--no-monitor", "--dump-labels", "--vice-labels", "--labels=$viceMonListFile")
-                if(options.warnSymbolShadowing)
-                    command.add("-Wshadow")
-                else
-                    command.add("-Wno-shadow")
-                if(options.asmQuiet)
-                    command.add("--quiet")
-                if(options.asmListfile)
-                    command.add("--list=$listFile")
-                if(options.compTarget.name in listOf("c64", "c128", "pet32")) {
-                    if(!options.quiet)
-                        println("\nCreating binary library file with header for target ${options.compTarget.name}.")
-                    command.add("--cbm-prg")
-                } else {
-                    if(!options.quiet)
-                        println("\nCreating binary library file without header for target ${options.compTarget.name}.")
-                    command.add("--nostart")
-                }
-                assemblerCommand = addRemainingOptions(command, binFile, asmFile)
-            }
-        }
-
-        val proc = ProcessBuilder(assemblerCommand)
-            .redirectErrorStream(true)
-
-        if(options.quiet) {
-            proc.redirectOutput(ProcessBuilder.Redirect.DISCARD)
-        }
-
-        val process = try {
-            proc.start()
-        } catch (e: Exception) {
-            System.err.println("assembler failed to start: ${e.message}")
-            return false
-        }
-
-        if(!options.quiet) {
-            process.inputStream.bufferedReader().use { reader ->
-                reader.forEachLine { println(it) }
-            }
-        }
-
-        val result = process.waitFor()
-        if(result == 0) {
-            removeGeneratedLabelsFromMonlist(viceMonListFile)
-            generateBreakpointList(viceMonListFile)
-        }
-        return result == 0
-    }
-
-    private fun removeGeneratedLabelsFromMonlist(viceMonListFile: Path) {
-        val pattern = Regex("""al (\w+) \S+$GENERATED_LABEL_PREFIX.+?""")
-        val lines = viceMonListFile.toFile().readLines()
-        viceMonListFile.toFile().outputStream().bufferedWriter().use {
-            for(line in lines) {
-                if(pattern.matchEntire(line)==null)
-                    it.write(line+"\n")
-            }
-        }
-    }
-
-    private fun generateBreakpointList(viceMonListFile: Path) {
-        val breakpoints = mutableListOf<String>()
-        val pattern = Regex("""al (\w+) \S+_prog8_breakpoint_\d+.?""")
-        for(line in viceMonListFile.toFile().readLines()) {
-            val match = pattern.matchEntire(line)
-            if(match != null)
-                breakpoints.add("break $" + match.groupValues[1])
-        }
-        val num = breakpoints.size
-        breakpoints.add(0, "; breakpoint list now follows")
-        breakpoints.add(1, "; $num breakpoints have been defined")
-        breakpoints.add(2, "del")
-        viceMonListFile.toFile().appendText(breakpoints.joinToString("\n") + "\n")
-    }
 
     // === emit helpers ===
 

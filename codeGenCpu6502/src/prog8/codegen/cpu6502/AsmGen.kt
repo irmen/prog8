@@ -2,6 +2,8 @@ package prog8.codegen.cpu6502
 
 import com.github.michaelbull.result.fold
 import prog8.code.*
+import prog8.code.assembly.AssemblyProgram6502
+import prog8.code.assembly.IAssemblyProgram
 import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.code.source.ImportFileSystem
@@ -98,7 +100,7 @@ class AsmGen6502Internal (
             if(options.dumpVariables)
                 dumpVariables()
 
-            return AssemblyProgram(program.name, options.outputDir, options.compTarget)
+            return AssemblyProgram6502(program.name, options.outputDir, options.compTarget)
         } else {
             errors.report()
             return null

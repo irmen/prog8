@@ -1,7 +1,6 @@
-package prog8.codegen.cpu6502
+package prog8.code.assembly
 
 import prog8.code.GENERATED_LABEL_PREFIX
-import prog8.code.IAssemblyProgram
 import prog8.code.core.CompilationOptions
 import prog8.code.core.ICompilationTarget
 import prog8.code.core.IErrorReporter
@@ -12,10 +11,10 @@ import prog8.code.target.PETTarget
 import java.nio.file.Path
 
 
-internal class AssemblyProgram(
-        override val name: String,
-        outputDir: Path,
-        private val compTarget: ICompilationTarget) : IAssemblyProgram {
+class AssemblyProgram6502(
+    override val name: String,
+    outputDir: Path,
+    private val compTarget: ICompilationTarget) : IAssemblyProgram {
 
     override val irInstructionCount: Int = 0
     override val irChunkCount: Int = 0
@@ -192,3 +191,4 @@ internal class AssemblyProgram(
         viceMonListFile.toFile().appendText(breakpoints.joinToString("\n") + "\n")
     }
 }
+

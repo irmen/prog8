@@ -1,8 +1,9 @@
 package prog8.codegen.new6502
 
-import prog8.code.IAssemblyProgram
 import prog8.code.ICodeGeneratorBackend
 import prog8.code.SymbolTable
+import prog8.code.assembly.AssemblyProgram6502
+import prog8.code.assembly.IAssemblyProgram
 import prog8.code.ast.PtProgram
 import prog8.code.core.CompilationOptions
 import prog8.code.core.IErrorReporter
@@ -33,6 +34,6 @@ class New6502CodeGenerator(val retainSSA: Boolean,
         if(!success)
             return null
 
-        TODO("construct valid assembly program result")             // TODO reuse AssemblyProgram from regular 6502 code generator 
+        return AssemblyProgram6502(irProgram.name, irProgram.options.outputDir, irProgram.options.compTarget)
     }
 }
