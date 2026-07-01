@@ -71,7 +71,7 @@ class Cpu6502SimulatorHelper(val result: CompilationResult) {
         val actualCpuType: CpuType = when(cpuType) {
             prog8.code.core.CpuType.CPU6502 -> CpuType.CPU6502
             prog8.code.core.CpuType.CPU65C02 -> CpuType.CPU65C02
-            prog8.code.core.CpuType.VIRTUAL -> throw IllegalStateException("Virtual CPU cannot be simulated here")
+            else -> throw IllegalStateException("non-6502 cpus cannot be simulated here")
         }
 
         val ioHandler = serialAndPower ?: CapturingSerialIO()

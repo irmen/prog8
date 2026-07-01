@@ -26,8 +26,8 @@ fun main(args: Array<String>) {
     println("Target system and CPU: ${target.name} / ${target.cpu}")
     
     val gen = when(target.cpu) {
-        CpuType.CPU6502, CpuType.CPU65C02 -> CodeGenerator(program, target.cpu)
-        CpuType.VIRTUAL -> {
+        CpuType.M68000 -> CodeGenerator(program, target.cpu)
+        else -> {
             println("This code generator only works for m68000 CPUs.")
             exitProcess(1)
         }

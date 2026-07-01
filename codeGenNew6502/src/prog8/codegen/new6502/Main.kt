@@ -57,7 +57,7 @@ fun main(args: Array<String>) {
 
     val gen = when(target.cpu) {
         CpuType.CPU6502, CpuType.CPU65C02 -> CodeGenerator(program, target)
-        CpuType.VIRTUAL -> {
+        else -> {
             println("This code generator only works for 6502 and 65C02 CPUs.")
             exitProcess(1)
         }

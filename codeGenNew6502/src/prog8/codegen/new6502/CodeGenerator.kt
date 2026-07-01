@@ -444,7 +444,7 @@ class CodeGenerator(val program: IRProgram, private val target: ICompilationTarg
         when (cpu) {
             CpuType.CPU65C02 -> emitRaw(".cpu  'w65c02'")
             CpuType.CPU6502 -> emitRaw(".cpu  '6502'")
-            CpuType.VIRTUAL -> emitRaw(".cpu  '6502'")
+            else -> throw IllegalArgumentException("invalid cpu type for this code generator: $cpu")
         }
         emitRaw(".enc 'none'")
         emitRaw("")
