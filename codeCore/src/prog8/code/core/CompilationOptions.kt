@@ -66,7 +66,6 @@ class CompilationOptions(val output: OutputType,
             private var includeSourcelines: Boolean = false
             private var dumpVariables: Boolean = false
             private var dumpSymbols: Boolean = false
-            private var experimentalCodegen: Boolean = false
             private var varsHighBank: Int? = null
             private var varsGolden: Boolean = false
             private var slabsHighBank: Int? = null
@@ -97,7 +96,6 @@ class CompilationOptions(val output: OutputType,
             fun includeSourcelines(includeSourcelines: Boolean) = apply { this.includeSourcelines = includeSourcelines }
             fun dumpVariables(dumpVariables: Boolean) = apply { this.dumpVariables = dumpVariables }
             fun dumpSymbols(dumpSymbols: Boolean) = apply { this.dumpSymbols = dumpSymbols }
-            fun experimentalCodegen(experimentalCodegen: Boolean) = apply { this.experimentalCodegen = experimentalCodegen }
             fun varsHighBank(varsHighBank: Int?) = apply { this.varsHighBank = varsHighBank }
             fun varsGolden(varsGolden: Boolean) = apply { this.varsGolden = varsGolden }
             fun slabsHighBank(slabsHighBank: Int?) = apply { this.slabsHighBank = slabsHighBank }
@@ -113,7 +111,7 @@ class CompilationOptions(val output: OutputType,
                 return CompilationOptions(
                     output, launcher, zeropage, zpReserved, zpAllowed, floats, noSysInit, romable, compTarget, compilerVersion,
                     loadAddress, memtopAddress, warnSymbolShadowing, warnImplicitTypeCast, optimize, asmQuiet, asmListfile,
-                    includeSourcelines, dumpVariables, dumpSymbols, experimentalCodegen, varsHighBank, varsGolden,
+                    includeSourcelines, dumpVariables, dumpSymbols, varsHighBank, varsGolden,
                     slabsHighBank, slabsGolden, breakpointCpuInstruction, ignoreFootguns, outputDir, quiet,
                     profilingInstrumentation, symbolDefs
                 )

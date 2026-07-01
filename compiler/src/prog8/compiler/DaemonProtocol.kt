@@ -13,7 +13,6 @@ internal data class DaemonRequest(
     val showTimings: Boolean,
     val asmListfile: Boolean,
     val includeSourcelines: Boolean,
-    val experimentalCodegen: Boolean,
     val dumpVariables: Boolean,
     val dumpSymbols: Boolean,
     val varsHighBank: Int?,
@@ -71,7 +70,6 @@ internal object DaemonProtocol {
         append(prop("showTimings", req.showTimings))
         append(prop("asmListfile", req.asmListfile))
         append(prop("includeSourcelines", req.includeSourcelines))
-        append(prop("experimentalCodegen", req.experimentalCodegen))
         append(prop("dumpVariables", req.dumpVariables))
         append(prop("dumpSymbols", req.dumpSymbols))
         append(prop("varsHighBank", req.varsHighBank))
@@ -166,7 +164,6 @@ internal object DaemonProtocol {
             showTimings = map["showTimings"] as Boolean,
             asmListfile = map["asmListfile"] as Boolean,
             includeSourcelines = map["includeSourcelines"] as Boolean,
-            experimentalCodegen = map["experimentalCodegen"] as Boolean,
             dumpVariables = map["dumpVariables"] as Boolean,
             dumpSymbols = map["dumpSymbols"] as Boolean,
             varsHighBank = map["varsHighBank"] as? Int,

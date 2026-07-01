@@ -11,7 +11,6 @@
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/codeCore" />
             <option value="$PROJECT_DIR$/codeGenCpu6502" />
-            <option value="$PROJECT_DIR$/codeGenExperimental" />
             <option value="$PROJECT_DIR$/codeGenIntermediate" />
             <option value="$PROJECT_DIR$/codeGenM68k" />
             <option value="$PROJECT_DIR$/codeGenNew6502" />

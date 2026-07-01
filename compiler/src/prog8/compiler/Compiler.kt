@@ -8,12 +8,7 @@ import prog8.ast.statements.Directive
 import prog8.buildversion.VERSION
 import prog8.code.SymbolTable
 import prog8.code.SymbolTableMaker
-import prog8.code.ast.PtAsmSub
-import prog8.code.ast.PtProgram
-import prog8.code.ast.findBankSelectorExtsubs
-import prog8.code.ast.printAst
-import prog8.code.ast.verifyFinalAstBeforeAsmGen
-import prog8.code.ast.writeBankedCallsFile
+import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.code.optimize.optimizeSimplifiedAst
 import prog8.code.source.ImportFileSystem.expandTilde
