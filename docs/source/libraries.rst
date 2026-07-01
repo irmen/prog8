@@ -87,8 +87,10 @@ Math
 
 :index:`sqrt` (x)
     Returns the square root of the number.
-    Accepts unsigned integer (result is ubyte), long (result is uword), and floating point numbers.
-    To do the reverse - squaring a number - just write ``x*x``.
+    (to do the reverse - squaring a number - just write ``x*x``).
+    Accepts ubyte or uword value (result is ubyte). 
+    Also accepts long (result is uword), but when the value is <0 the result is undefined and the program will crash or halt.
+    Also accepts floating point numbers, but when the value is <0 the result is undefined and the program will likely terminate with an "illegal quantity" error.
 
 CPU Stack
 ^^^^^^^^^

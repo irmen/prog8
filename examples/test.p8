@@ -1,4 +1,5 @@
 %import textio
+%import floats
 %zeropage basicsafe
 
 main {
@@ -6,12 +7,22 @@ main {
         ubyte @shared ubb = 122
         uword @shared uww = 1222
         long @shared uwl  = 12222
+        float @shared fl = 12222
 
         txt.print_uw(sqrt(ubb))
         txt.spc()
         txt.print_uw(sqrt(uww))
         txt.spc()
         txt.print_uw(sqrt(uwl))
+        txt.nl()
+        txt.print("floats: ")
+        ; TODO: none of these floats are being printed when compiled with expericodegen! Work fine in cx16 and virtual targets.
+        txt.print_f(1.23456789)
+        txt.spc()
+        txt.print_f(fl)
+        txt.spc()
+        txt.print_f(sqrt(fl))
+        txt.chrout('!')
         txt.nl()
     }
 }

@@ -12,7 +12,7 @@ prog8_lib {
         ; NOTE: this is not in prog8_math because all the other sqrt routines are in prog8_funcs.asm here too
 
         if num <= 0
-            return 0
+            sys.exit(99)
 
         alias bit_pos = cx16.r0r1sl
         alias temp = cx16.r2r3sl
