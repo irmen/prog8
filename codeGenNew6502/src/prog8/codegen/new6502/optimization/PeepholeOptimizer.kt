@@ -1,4 +1,4 @@
-package optimization
+package prog8.codegen.new6502.optimization
 
 import prog8.intermediate.*
 

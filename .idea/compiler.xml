@@ -3,9 +3,6 @@
   <component name="CompilerConfiguration">
     <option name="BUILD_PROCESS_HEAP_SIZE" value="3000" />
     <bytecodeTargetLevel target="11">
-      <module name="prog8.new6502gen" target="17" />
-      <module name="prog8.new6502gen.main" target="17" />
-      <module name="prog8.new6502gen.test" target="17" />
     </bytecodeTargetLevel>
   </component>
 </project>

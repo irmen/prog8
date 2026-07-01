@@ -1,4 +1,4 @@
-package codegen
+package prog8tests.codegen.new6502
 
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.ints.shouldBeGreaterThanOrEqual
@@ -8,6 +8,7 @@ import io.kotest.matchers.shouldNotBe
 import prog8.code.core.*
 import prog8.code.target.Cx16Target
 import prog8.intermediate.*
+import prog8.codegen.new6502.ZeropageAllocator
 
 class TestZeropageAllocator : FunSpec({
 

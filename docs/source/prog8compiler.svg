@@ -333,7 +333,7 @@
         <rect class="BoundingBox" stroke="none" fill="none" x="13411" y="3125" width="5611" height="1555"/>
         <path fill="rgb(129,172,166)" stroke="none" d="M 16216,4652 L 13438,4652 13438,3152 18994,3152 18994,4652 16216,4652 Z"/>
         <path fill="none" stroke="rgb(52,101,164)" stroke-width="53" stroke-linejoin="round" d="M 16216,4652 L 13438,4652 13438,3152 18994,3152 18994,4652 16216,4652 Z"/>
-        <text class="SVGTextShape"><tspan class="TextParagraph" font-family="Droid Serif, serif" font-size="494px" font-weight="400"><tspan class="TextPosition" x="14106" y="3783"><tspan fill="rgb(0,0,0)" stroke="none" style="white-space: pre">Build simpler AST </tspan></tspan><tspan class="TextPosition" x="14823" y="4363"><tspan fill="rgb(0,0,0)" stroke="none" style="white-space: pre">for codegen</tspan></tspan></tspan></text>
+        <text class="SVGTextShape"><tspan class="TextParagraph" font-family="Droid Serif, serif" font-size="494px" font-weight="400"><tspan class="TextPosition" x="14106" y="3783"><tspan fill="rgb(0,0,0)" stroke="none" style="white-space: pre">Build simpler AST </tspan></tspan><tspan class="TextPosition" x="14823" y="4363"><tspan fill="rgb(0,0,0)" stroke="none" style="white-space: pre">for new6502codegen</tspan></tspan></tspan></text>
        </g>
       </g>
       <g class="com.sun.star.drawing.ConnectorShape">

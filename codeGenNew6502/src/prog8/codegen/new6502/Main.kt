@@ -1,6 +1,5 @@
-package newgen
+package prog8.codegen.new6502
 
-import codegen.CodeGenerator
 import kotlinx.cli.ArgParser
 import kotlinx.cli.ArgType
 import prog8.code.core.CpuType

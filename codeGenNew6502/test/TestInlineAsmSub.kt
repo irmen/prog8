@@ -1,10 +1,11 @@
-package codegen
+package prog8tests.codegen.new6502
 
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import prog8.code.core.*
 import prog8.code.target.Cx16Target
 import prog8.intermediate.*
+import prog8.codegen.new6502.CodeGenerator
 import java.nio.file.Path
 import kotlin.io.path.Path
 import kotlin.io.path.exists

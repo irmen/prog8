@@ -7,7 +7,7 @@ plugins {
 val debugPort = 8000
 val debugArgs = "-agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=n,quiet=y"
 
-val serverMainClassName = "newgen.MainKt"
+val serverMainClassName = "prog8.codegen.new6502.MainKt"
 val applicationName = "prog8-newgen"
 
 application {

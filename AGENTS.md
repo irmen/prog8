@@ -205,7 +205,7 @@ These instructions apply specifically to the Junie agent:
 - **Before final verification**: Always run `gradle build` to ensure all tests pass
 - **After major refactoring**: Run `gradle build` to catch regressions
 - **When debugging test failures**: Use `gradle test --tests "*TestName*"` for specific tests
-- **When working on a standalone codegen module** (one that reads `.p8ir` files): Run `gradle :<module>:test --console=plain` instead of full `gradle build`. Compiler unit tests are irrelevant for IR-level changes. Do run full `gradle build` before final verification.
+- **When working on a standalone code gen module** (one that reads `.p8ir` files): Run `gradle :<module>:test --console=plain` instead of full `gradle build`. Compiler unit tests are irrelevant for IR-level changes. Do run full `gradle build` before final verification.
 
 ### Build command summary
 

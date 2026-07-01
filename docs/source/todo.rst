@@ -1,6 +1,11 @@
 TODO
 ====
 
+make a qemu68k target that triggers the (new) 68k codegen based on IR
+rename -expericodegen into -newcodegen that should switch all existing 6502 codegens to using the new one based on IR
+remove Expericodegen module
+
+
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 - maybe the "pointers cannot be memory-mapped" error message can be removed?
@@ -61,7 +66,7 @@ IR/VM
 **Missing VM Implementations (VirtualMachine.kt)**
 - ``IRInlineBinaryChunk`` and ``IRInlineAsmChunk`` - inline chunks cannot be loaded by the VM (VmProgramLoader.kt). Limitation of the current VM design: program is not loaded into memory as data
 - VM label address loading - ``VmProgramLoader.kt`` throws when it cannot resolve a label address as a value (``"vm cannot yet load a label address as a value"``).
-- ``prefixScopedName`` (``codeGenIntermediate/src/prog8/codegen/intermediate/SymbolPrefixer.kt:206``) hardcodes ``p8s_`` for all middle path parts of a dotted scoped name. This is wrong for structs in the path: ``main.MyStruct.field`` produces ``p8s_MyStruct`` (subroutine prefix) instead of ``p8t_MyStruct`` (struct prefix). Fix: look up each middle part in the symbol table and apply ``typePrefixChar()`` per part. Pre-existing bug carried over from the 6502 codegen (``AsmGen.kt``).
+- ``prefixScopedName`` (``codeGenIntermediate/src/prog8/codegen/intermediate/SymbolPrefixer.kt:206``) hardcodes ``p8s_`` for all middle path parts of a dotted scoped name. This is wrong for structs in the path: ``main.MyStruct.field`` produces ``p8s_MyStruct`` (subroutine prefix) instead of ``p8t_MyStruct`` (struct prefix). Fix: look up each middle part in the symbol table and apply ``typePrefixChar()`` per part. Pre-existing bug carried over from the 6502 new6502codegen (``AsmGen.kt``).
 
 
 Libraries
@@ -74,7 +79,7 @@ Optimizations
 ^^^^^^^^^^^^^
 - Port more benchmarks from https://thred.github.io/c-bench-64/  to prog8 and see how it stacks up. (see benchmark-c/ directory)
 - Compilation speed: try to join multiple modifications in 1 result in the AST processors instead of returning it straight away every time
-- various optimizers skip stuff if compTarget.name==VMTarget.NAME.  Once 6502-codegen is done from IR code, those 6502 only optimizations should probably be removed
+- various optimizers skip stuff if compTarget.name==VMTarget.NAME.  Once new 6502 codegen is done from IR code, those 6502 only optimizations should probably be removed
 
 
 BSS section bug in 64tass (v1.60)

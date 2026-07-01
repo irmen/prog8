@@ -11,7 +11,7 @@
  * weighted by data type (word/pointer = 2, byte = 1).
  */
 
-package codegen
+package prog8.codegen.new6502
 
 import prog8.code.core.*
 import prog8.intermediate.*

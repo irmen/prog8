@@ -1,4 +1,4 @@
-package codegen
+package prog8tests.codegen.new6502
 
 import prog8.code.core.Encoding
 import prog8.code.core.IStringEncoding

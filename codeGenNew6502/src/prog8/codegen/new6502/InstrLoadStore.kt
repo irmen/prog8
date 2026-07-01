@@ -24,7 +24,7 @@
  * Zero page temporary location $22-$23 is used for address computation.
  */
 
-package codegen
+package prog8.codegen.new6502
 
 import prog8.code.core.toHex
 import prog8.intermediate.IRDataType

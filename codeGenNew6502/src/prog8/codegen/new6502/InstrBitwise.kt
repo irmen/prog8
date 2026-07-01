@@ -13,7 +13,7 @@
  * while ROXL/ROXR explicitly use carry for multi-byte rotates.
  */
 
-package codegen
+package prog8.codegen.new6502
 
 import prog8.intermediate.IRDataType
 import prog8.intermediate.IRInstruction

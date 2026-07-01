@@ -5,6 +5,6 @@
 set -e
 
 prog8c -target cx16 -expericodegen examples/test.p8
-new6502Codegen/build/install/new6502Codegen/bin/prog8-newgen test.p8ir
+codeGenNew6502/build/install/codeGenNew6502/bin/prog8-newgen test.p8ir
 x16emu -run -prg test.prg -echo iso
 

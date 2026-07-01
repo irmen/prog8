@@ -1,4 +1,4 @@
-package m68kcodegen
+package prog8.codegen.m68k
 
 import prog8.code.core.CpuType
 import prog8.intermediate.IRProgram

@@ -21,7 +21,7 @@
  * Not yet implemented: CALLI, CALLFAR, CALLFARVB, all floating point ops.
  */
 
-package codegen
+package prog8.codegen.new6502
 
 import prog8.code.core.Statusflag
 import prog8.code.core.toHex

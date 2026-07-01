@@ -18,7 +18,7 @@
  *   - Signed multiply/divide currently fall through to unsigned versions
  */
 
-package codegen
+package prog8.codegen.new6502
 
 import prog8.intermediate.IRDataType
 import prog8.intermediate.IRInstruction

@@ -161,7 +161,7 @@ Major breaking changes that require code modifications when upgrading:
     - **``peekw()``, ``pokew()``** — word memory access
     - **IRQ handling routines** for CX16
     - **Improved RNG** with seeded variants (``rndseed``, ``rndseedf``)
-    - **Assembly codegen completed** — all expression types supported
+    - **Assembly new6502codegen completed** — all expression types supported
 
 **v7.0–v7.8** — June 2024–February 2025
     - **Struct feature removed** — rewrite as separate variables
@@ -180,7 +180,7 @@ Major breaking changes that require code modifications when upgrading:
     - **``bool`` datatype introduced** — optimized true/false (0/1)
     - **BSS section** — uninitialized variables, reduced PRG size
     - **``divmod()``, ``divmodw()`` builtins**
-    - **Major codegen optimizations** — significantly smaller and faster code
+    - **Major new6502codegen optimizations** — significantly smaller and faster code
 
 **v9.0–v9.7** — June–December 2024
     - **``-target`` now required** (c64 no longer default)

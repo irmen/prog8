@@ -9,8 +9,8 @@ include(
     ':codeGenIntermediate',
     ':codeGenCpu6502',
     ':codeGenExperimental',
+    ':codeGenM68k',
+    ':codeGenNew6502',
     ':compiler',
-    ':languageServer',
-    ':new6502Codegen',
-    ':m68kCodegen'
+    ':languageServer'
 )

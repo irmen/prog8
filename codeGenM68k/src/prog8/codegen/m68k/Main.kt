@@ -1,4 +1,4 @@
-package m68kcodegen
+package prog8.codegen.m68k
 
 import kotlinx.cli.ArgParser
 import kotlinx.cli.ArgType

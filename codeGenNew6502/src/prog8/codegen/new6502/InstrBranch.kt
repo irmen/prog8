@@ -28,7 +28,7 @@
  *   - le:  Z=1 or (N!=V)
  */
 
-package codegen
+package prog8.codegen.new6502
 
 import prog8.intermediate.IRDataType
 import prog8.intermediate.IRInstruction

@@ -29,12 +29,12 @@
  *   InstrLoadStore.kt, InstrArithmetic.kt, InstrBitwise.kt, InstrBranch.kt, InstrControl.kt
  */
 
-package codegen
+package prog8.codegen.new6502
 
-import optimization.PeepholeOptimizer
 import prog8.code.GENERATED_LABEL_PREFIX
 import prog8.code.core.*
 import prog8.intermediate.*
+import prog8.codegen.new6502.optimization.PeepholeOptimizer
 import java.nio.file.Path
 
 class CodeGenerator(val program: IRProgram, private val target: ICompilationTarget) : ICodeGenerator {

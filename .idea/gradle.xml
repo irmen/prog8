@@ -13,13 +13,13 @@
             <option value="$PROJECT_DIR$/codeGenCpu6502" />
             <option value="$PROJECT_DIR$/codeGenExperimental" />
             <option value="$PROJECT_DIR$/codeGenIntermediate" />
+            <option value="$PROJECT_DIR$/codeGenM68k" />
+            <option value="$PROJECT_DIR$/codeGenNew6502" />
             <option value="$PROJECT_DIR$/codeOptimizers" />
             <option value="$PROJECT_DIR$/compiler" />
             <option value="$PROJECT_DIR$/compilerAst" />
             <option value="$PROJECT_DIR$/intermediate" />
             <option value="$PROJECT_DIR$/languageServer" />
-            <option value="$PROJECT_DIR$/m68kCodegen" />
-            <option value="$PROJECT_DIR$/new6502Codegen" />
             <option value="$PROJECT_DIR$/parser" />
             <option value="$PROJECT_DIR$/simpleAst" />
             <option value="$PROJECT_DIR$/virtualmachine" />
