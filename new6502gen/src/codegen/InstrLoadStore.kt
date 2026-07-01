@@ -715,6 +715,7 @@ internal fun CodeGenerator.indirectLoad(dst: Int, baseReg: Int, offset: Int, typ
 
 internal fun CodeGenerator.storeExchange(reg: Int, reg2: Int, target: String, type: IRDataType) {
     // STOREX: indexed store -- mem[target + reg2] = reg1
+    // TODO can this be simplified?
     when (type) {
         IRDataType.BYTE -> {
             emitLine("ldx  ${regAddrLo(reg2)}")
@@ -736,10 +737,10 @@ internal fun CodeGenerator.storeExchange(reg: Int, reg2: Int, target: String, ty
             emitLine("ldx  ${regAddrHi(reg2)}")
             emitLine("lda  ${regAddrHi(reg)}")
             emitLine("sta  ${target}+1,x")
-            emitLine("ldx  ${regAddrLo(reg2) + 2}")
+            emitLine("ldx  ${regAddrByte(reg2, 2)}")
             emitLine("lda  ${regAddrByte(reg, 2)}")
             emitLine("sta  ${target}+2,x")
-            emitLine("ldx  ${regAddrLo(reg2) + 3}")
+            emitLine("ldx  ${regAddrByte(reg2, 3)}")
             emitLine("lda  ${regAddrByte(reg, 3)}")
             emitLine("sta  ${target}+3,x")
         }

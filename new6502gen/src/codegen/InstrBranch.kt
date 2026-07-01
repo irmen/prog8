@@ -54,18 +54,44 @@ fun CodeGenerator.translateBranch(insn: IRInstruction) {
         Opcode.BSTVC -> emitLine("bvc  $label")
         Opcode.BSTVS -> emitLine("bvs  $label")
 
-        // Unsigned comparison branches: emit CMP then check flags
+        // Unsigned comparison branches: emit CMP then check flags.
+        // For WORD/LONG, Z after cmp+sbc cascade is unreliable for multi-byte,
+        // so BGT and BLE need a byte-by-byte equality check.
         Opcode.BGT -> {
             emitCmpForBranch(insn)
-            emitLine("beq  +")           // equal -> skip (NOT gt)
-            emitLine("bcs  $label")      // unsigned above -> branch
-            emitLabel("+")
+            if (insn.type != null && insn.type != IRDataType.BYTE) {
+                // TODO what the heck is going on here, looks like a buch of redundant/dead instructions hapopening
+                emitLine("php")                    // save C from cascade
+                emitEqualityCheck(insn.reg1!!, insn.reg2, insn.immediate, insn.type!!)
+                emitLine("plp")                    // all equal: restore C
+                emitLine("jmp  ++")                // skip (NOT gt)
+                emitLabel("+")                     // not-equal landing
+                emitLine("plp")                    // restore C from cascade
+                emitLine("bcs  $label")            // unsigned above -> branch
+                emitLabel("+")                     // skip point
+            } else {
+                emitLine("beq  +")
+                emitLine("bcs  $label")
+                emitLabel("+")
+            }
         }
         Opcode.BGTR -> {
             emitCmpForBranch(insn)
-            emitLine("beq  +")           // equal -> skip (NOT gt)
-            emitLine("bcs  $label")      // unsigned above -> branch
-            emitLabel("+")
+            if (insn.type != null && insn.type != IRDataType.BYTE) {
+                // TODO what the heck is going on here, looks like a buch of redundant/dead instructions hapopening
+                emitLine("php")
+                emitEqualityCheck(insn.reg1!!, insn.reg2, insn.immediate, insn.type!!)
+                emitLine("plp")
+                emitLine("jmp  ++")
+                emitLabel("+")
+                emitLine("plp")
+                emitLine("bcs  $label")
+                emitLabel("+")
+            } else {
+                emitLine("beq  +")
+                emitLine("bcs  $label")
+                emitLabel("+")
+            }
         }
         Opcode.BGE -> {
             emitCmpForBranch(insn)
@@ -81,18 +107,30 @@ fun CodeGenerator.translateBranch(insn: IRInstruction) {
         }
         Opcode.BLE -> {
             emitCmpForBranch(insn)
-            emitLine("beq  $label")
-            emitLine("bcc  $label")
+            if (insn.type != null && insn.type != IRDataType.BYTE) {
+                // TODO what the heck is going on here, looks like a buch of redundant/dead instructions hapopening
+                emitLine("php")
+                emitEqualityCheck(insn.reg1!!, insn.reg2, insn.immediate, insn.type!!)
+                emitLine("plp")
+                emitLine("jmp  $label")            // all equal -> branch (le)
+                emitLabel("+")                     // not-equal landing
+                emitLine("plp")
+                emitLine("bcc  $label")            // unsigned below -> branch
+                emitLabel("+")                     // skip point
+            } else {
+                emitLine("beq  $label")
+                emitLine("bcc  $label")
+            }
         }
 
         // Signed comparison branches: emit CMP then check N/V flags
         Opcode.BGTSR -> {
             emitCmpForBranch(insn)
-            emitSignedBranch("gt", label)
+            emitSignedBranch("gt", label, insn.type, insn.reg1, insn.reg2, insn.immediate)
         }
         Opcode.BGTS -> {
             emitCmpForBranch(insn)
-            emitSignedBranch("gt", label)
+            emitSignedBranch("gt", label, insn.type, insn.reg1, insn.reg2, insn.immediate)
         }
         Opcode.BGESR -> {
             emitCmpForBranch(insn)
@@ -108,7 +146,7 @@ fun CodeGenerator.translateBranch(insn: IRInstruction) {
         }
         Opcode.BLES -> {
             emitCmpForBranch(insn)
-            emitSignedBranch("le", label)
+            emitSignedBranch("le", label, insn.type, insn.reg1, insn.reg2, insn.immediate)
         }
 
         else -> error("Unknown branch opcode: ${insn.opcode}")
@@ -176,20 +214,52 @@ private fun CodeGenerator.emitCmpForBranch(insn: IRInstruction) {
     }
 }
 
-private fun CodeGenerator.emitSignedBranch(cond: String, label: String) {
+private fun CodeGenerator.emitSignedBranch(cond: String, label: String, type: IRDataType? = null, reg1: Int? = null, reg2: Int? = null, immediate: Int? = null) {
     // Standard 6502 signed comparison patterns after CMP.
     // Flags: N = sign of result, V = overflow, Z = zero.
     // Branch on (N == V) for signed >= and >, (N != V) for < and <=.
     // 64tass local labels: + = forward, - = backward, ++ = next-forward, etc.
+    //
+    // IMPORTANT: For multi-byte comparisons (WORD, LONG), the Z flag from
+    // the cmp+sbc cascade is UNRELIABLE: it only reflects the last byte
+    // comparison, not the full value. The "gt" and "le" patterns use Z to
+    // distinguish equality from greater-than/less-than, so they need a
+    // separate byte-by-byte equality check with reliable Z.
+    // "ge" and "lt" don't use Z (they only check N/V), so they're safe.
+
+    val multiByte = type != null && type != IRDataType.BYTE && reg1 != null
+    val eqLabel = label + ".eq"       // unique label for equality check pass-through
+
     when (cond) {
         "gt" -> {
-            emitLine("beq  ++")          // equal -> skip (NOT gt)
-            emitLine("bvc  +")           // V=0: N is sign
-            emitLine("bmi  $label")      // V=1,N=1: inverted -> positive (gt)
-            emitLine("jmp  ++")          // V=1,N=0: not gt
-            emitLabel("+")              // V=0 landing: check N flag
-            emitLine("bpl  $label")      // V=0,N=0: positive -> gt
-            emitLabel("+")              // skip point
+            if (multiByte) {
+                emitLine("php")          // save N,V,C,Z from cmp+sbc cascade
+                // Reliable byte-by-byte equality check
+                emitEqualityCheck(reg1!!, reg2, immediate, type!!)
+                // All bytes equal: pop saved flags and skip gt
+                emitLine("plp")
+                emitLine("jmp  $eqLabel")
+                // Not equal: restore N,V from cascade and do signed gt check
+                // TODO what the heck is going on here, looks like a buch of redundant/dead instructions hapopening
+                emitLabel("+")           // not-equal landing (future + for bne +, PAST for code below)
+                emitLine("plp")
+                emitLine("bvc  +")       // 1st future + from here: V=0 landing
+                emitLine("bmi  $label")  // V=1,N=1: inverted -> positive (gt)
+                emitLine("jmp  ++")      // 2nd future + from here: not-gt skip
+                emitLabel("+")           // V=0 landing
+                emitLine("bpl  $label")  // V=0,N=0: positive -> gt
+                emitLabel("+")           // not-gt skip
+                emitLabel(eqLabel)       // equal skip
+            } else {
+                // TODO what the heck is going on here?
+                emitLine("beq  ++")      // equal -> skip (NOT gt)
+                emitLine("bvc  +")       // V=0: N is sign
+                emitLine("bmi  $label")  // V=1,N=1: inverted -> positive (gt)
+                emitLine("jmp  ++")      // V=1,N=0: not gt
+                emitLabel("+")           // V=0 landing: check N flag
+                emitLine("bpl  $label")  // V=0,N=0: positive -> gt
+                emitLabel("+")           // skip point
+            }
         }
         "ge" -> {
             emitLine("bvc  +")           // V=0: N is sign
@@ -208,13 +278,70 @@ private fun CodeGenerator.emitSignedBranch(cond: String, label: String) {
             emitLabel("+")              // second + label
         }
         "le" -> {
-            emitLine("beq  $label")      // equal -> branch
-            emitLine("bvc  +")           // V=0: N is sign
-            emitLine("bpl  $label")      // V=1,N=0: inverted -> negative
-            emitLine("jmp  ++")          // V=1,N=1: not lt
-            emitLabel("+")              // first + label
-            emitLine("bmi  $label")      // V=0,N=1: negative -> lt
-            emitLabel("+")              // second + label
+            if (multiByte) {
+                emitLine("php")          // save N,V,C,Z from cmp+sbc cascade
+                // Reliable byte-by-byte equality check
+                emitEqualityCheck(reg1!!, reg2, immediate, type!!)
+                // All bytes equal: pop saved flags and branch to label (le)
+                emitLine("plp")
+                emitLine("jmp  $label")
+                // Not equal: restore N,V from cascade and do signed lt check
+                // TODO what the heck is going on here, looks like a buch of redundant/dead instructions hapopening
+                emitLabel("+")           // not-equal landing (future + for bne +, PAST for code below)
+                emitLine("plp")
+                emitLine("bvc  +")       // 1st future + from here: V=0 landing
+                emitLine("bpl  $label")  // V=1,N=0: inverted -> negative
+                emitLine("jmp  ++")      // 2nd future + from here: not-lt skip
+                emitLabel("+")           // V=0 landing
+                emitLine("bmi  $label")  // V=0,N=1: negative -> lt
+                emitLabel("+")           // not-lt skip
+            } else {
+                emitLine("beq  $label")  // equal -> branch
+                emitLine("bvc  +")       // V=0: N is sign
+                emitLine("bpl  $label")  // V=1,N=0: inverted -> negative
+                emitLine("jmp  ++")      // V=1,N=1: not lt
+                emitLabel("+")           // first + label
+                emitLine("bmi  $label")  // V=0,N=1: negative -> lt
+                emitLabel("+")           // second + label
+            }
+        }
+    }
+}
+
+private fun CodeGenerator.emitEqualityCheck(reg1: Int, reg2: Int?, immediate: Int?, type: IRDataType) {
+    // Byte-by-byte equality check for reliable Z flag.
+    // Each byte mismatch branches to the first forward anonymous label (+).
+    // Every byte comparison must have a bne + to detect mismatch of ANY byte.
+    if (immediate != null) {
+        emitLine("lda  ${regAddrLo(reg1)}")
+        emitLine("cmp  #${immediate and 0xff}")
+        emitLine("bne  +")
+        emitLine("lda  ${regAddrHi(reg1)}")
+        emitLine("cmp  #${(immediate shr 8) and 0xff}")
+        emitLine("bne  +")
+        if (type == IRDataType.LONG) {
+            emitLine("lda  ${regAddrByte(reg1, 2)}")
+            emitLine("cmp  #${(immediate shr 16) and 0xff}")
+            emitLine("bne  +")
+            emitLine("lda  ${regAddrByte(reg1, 3)}")
+            emitLine("cmp  #${(immediate shr 24) and 0xff}")
+            emitLine("bne  +")
+        }
+    } else {
+        val r2 = reg2 ?: error("Need reg2 for register-register equality check")
+        emitLine("lda  ${regAddrLo(reg1)}")
+        emitLine("cmp  ${regAddrLo(r2)}")
+        emitLine("bne  +")
+        emitLine("lda  ${regAddrHi(reg1)}")
+        emitLine("cmp  ${regAddrHi(r2)}")
+        emitLine("bne  +")
+        if (type == IRDataType.LONG) {
+            emitLine("lda  ${regAddrByte(reg1, 2)}")
+            emitLine("cmp  ${regAddrByte(r2, 2)}")
+            emitLine("bne  +")
+            emitLine("lda  ${regAddrByte(reg1, 3)}")
+            emitLine("cmp  ${regAddrByte(r2, 3)}")
+            emitLine("bne  +")
         }
     }
 }

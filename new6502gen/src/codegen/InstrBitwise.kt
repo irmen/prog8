@@ -546,7 +546,7 @@ private fun CodeGenerator.logicalShiftLeftVar(reg: Int, countReg: Int, type: IRD
         }
         IRDataType.LONG -> {
             emitLine("asl  ${regAddrLo(reg)}")
-            emitLine("rol  ${regAddrLo(reg) + 1}")
+            emitLine("rol  ${regAddrByte(reg, 1)}")
             emitLine("rol  ${regAddrByte(reg, 2)}")
             emitLine("rol  ${regAddrByte(reg, 3)}")
         }
@@ -573,7 +573,7 @@ private fun CodeGenerator.logicalShiftRightVar(reg: Int, countReg: Int, type: IR
         IRDataType.LONG -> {
             emitLine("lsr  ${regAddrByte(reg, 3)}")
             emitLine("ror  ${regAddrByte(reg, 2)}")
-            emitLine("ror  ${regAddrLo(reg) + 1}")
+            emitLine("ror  ${regAddrByte(reg, 1)}")
             emitLine("ror  ${regAddrLo(reg)}")
         }
         else -> TODO("LSR r$reg, r$countReg ${type.name}")
@@ -605,7 +605,7 @@ private fun CodeGenerator.arithmeticShiftRightVar(reg: Int, countReg: Int, type:
             emitLine("cmp  #128")
             emitLine("ror  ${regAddrByte(reg, 3)}")
             emitLine("ror  ${regAddrByte(reg, 2)}")
-            emitLine("ror  ${regAddrLo(reg) + 1}")
+            emitLine("ror  ${regAddrByte(reg, 1)}")
             emitLine("ror  ${regAddrLo(reg)}")
         }
         else -> TODO("ASR r$reg, r$countReg ${type.name}")

@@ -769,9 +769,8 @@ main {
             vm.memory.getUW(yvalAddr) shouldBe 0u
             
             // Also verify the struct instance itself is zeroed
-            val structAddr = allocations.values.first { addr -> 
-                addr > xvalAddr && addr > yvalAddr 
-            }
+            val structName = irProgram.st.allStructInstances().first().name
+            val structAddr = allocations[structName]!!
             vm.memory.getUW(structAddr) shouldBe 0u      // x field
             vm.memory.getUW(structAddr + 2u) shouldBe 0u  // y field
         }
