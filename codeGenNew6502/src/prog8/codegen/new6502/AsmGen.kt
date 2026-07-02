@@ -847,7 +847,12 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
             dt.isString -> {
                 when (init) {
                     is IRVariableInitializer.Str -> {
-                        emitLine("$label  .null  \"${init.text}\"")
+                        val bytes = program.encoding.encodeString(init.text, init.encoding) + 0.toUByte()
+                        val hexBytes = bytes.map { "$${it.toString(16).padStart(2, '0')}" }
+                        emitRaw("$label\t; ${init.encoding.name}:\"${init.text.escape()}\"")
+                        for (chunk in hexBytes.chunked(16)) {
+                            emitLine(".byte  ${chunk.joinToString(", ")}")
+                        }
                     }
                     else -> emitLine("$label  .byte  ?")
                 }
