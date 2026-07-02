@@ -71,6 +71,21 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
     private val zpAllocations by lazy { zpAllocator.allocate() }
     private fun isZpVar(name: String) = zpAllocator.isZpVar(name)
 
+    // On C64/PET32 the ROM float math routines that use both accumulators (FADDT, FMULTT, FDIVT)
+    // skip CONUPK and need the NZ wrapper to set up arisgn and Z flag beforehand.
+    // CX16 ROM entries are already fixed and handle this internally.
+    val floatTMathSuffix: String get() =
+        if(target.name in listOf("c64", "pet32")) "_NZ" else ""
+
+    // On C64/PET32, FAC2 must be loaded last via CONUPK for correct math results
+    // and bare T-variant entries need arisgn+Z flag set up (NZ wrapper).
+    // On CX16, MOVAF rounds the LSB ("rounded the least significant bit"), so we don't use MOVAF.
+    // CONUPK directly loads into FAC2 and is safe on all targets.
+    // We use pushFAC1/popFAC (via CONUPK) on C64/PET32 for correct operand ordering (CONUPK quirk),
+    // and direct CONUPK loading into FAC2 on other targets.
+    val useC64PushPopOperands: Boolean get() =
+        target.name in listOf("c64", "pet32")
+
     // === variable-size virtual register file layout ===
     // Each virtual register (r0-r199) has exactly one datatype throughout the entire program.
     // The regfile layout is computed by scanning all instructions for their register types.
@@ -162,6 +177,13 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
     fun regAddrByte(reg: Int, byteOffset: Int): String {
         val offset = regFileLayout.offsets[reg] ?: error("register r$reg has no layout info")
         return "$REGFILE_LABEL+${offset + byteOffset}"
+    }
+
+    /** Emit CONUPK to load a float from an fp register directly into FAC2. */
+    fun emitLoadFAC2FromFpReg(fpReg: Int) {
+        emitLine("lda  #<${fpRegAddr(fpReg)}")
+        emitLine("ldy  #>${fpRegAddr(fpReg)}")
+        emitLine("jsr  floats.CONUPK")
     }
 
     // === label helpers ===
@@ -802,7 +824,7 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
         emitRaw("; float constants")
         for ((value, label) in floatConsts) {
             val bytes = target.getFloatAsmBytes(value)
-            emitLine("$label  .byte  $bytes")
+            emitLine("$label  .byte  $bytes", "float $value")
         }
         emitRaw("")
     }
@@ -1020,11 +1042,16 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
             }
 
             dt.isFloat -> {
-                val bytes = when (init) {
-                    is IRVariableInitializer.Numeric -> target.getFloatAsmBytes(init.value)
-                    else -> List(target.FLOAT_MEM_SIZE.toInt()) { 0 }.joinToString(",") { "\$00" }
+                when (init) {
+                    is IRVariableInitializer.Numeric -> {
+                        val bytes = target.getFloatAsmBytes(init.value)
+                        emitLine("$label  .byte  $bytes  ; float ${init.value}")
+                    }
+                    else -> {
+                        val bytes = List(target.FLOAT_MEM_SIZE.toInt()) { 0 }.joinToString(",") { "\$00" }
+                        emitLine("$label  .byte  $bytes  ; float 0")
+                    }
                 }
-                emitLine("$label  .byte  $bytes")
             }
 
             else -> {

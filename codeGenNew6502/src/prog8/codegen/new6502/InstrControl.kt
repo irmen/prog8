@@ -1408,18 +1408,18 @@ private fun AsmGen.translateFloatCompare(insn: IRInstruction) {
     val r1 = insn.reg1 ?: error("FCOMP needs reg1 (int output)")
     val fr1 = insn.fpReg1 ?: error("FCOMP needs fpReg1")
     val fr2 = insn.fpReg2 ?: error("FCOMP needs fpReg2")
-    // Compare fr1 with fr2.
-    // KERNAL FCOMP: A = compare(FAC1, memory[AY])  - 0=equal, 1=greater, 255=less
-    // Load fr1 into FAC1, then compare with fr2
-    emitLine("lda  #<${fpRegAddr(fr1.value)}")
-    emitLine("ldy  #>${fpRegAddr(fr1.value)}")
-    emitLine("jsr  floats.MOVFM")
+    // Compare fr1 with fr2 using subtraction instead of KERNAL FCOMP.
+    // KERNAL FCOMP on some CX16 ROM versions gives wrong results for certain value pairs.
+    // Using FSUBT + SIGN is more reliable: compute fr1 - fr2, then check SIGN.
+    // SIGN returns: $ff (-1) for negative, $00 for zero, $01 for positive.
+    // This matches the FCOMP return convention (-1, 0, 1).
     emitLine("lda  #<${fpRegAddr(fr2.value)}")
     emitLine("ldy  #>${fpRegAddr(fr2.value)}")
-    emitLine("jsr  floats.FCOMP")
-    // FCOMP returns -1, 0, or 1 in A (as signed byte)
+    emitLine("jsr  floats.MOVFM")           // FAC1 = fr2
+    emitLoadFAC2FromFpReg(fr1.value)         // FAC2 = fr1 (via CONUPK)
+    emitLine("jsr  floats.FSUBT")           // FAC1 = FAC2 - FAC1 = fr1 - fr2
+    emitLine("jsr  floats.SIGN")            // A = -1, 0, or 1
     emitLine("sta  ${regAddrLo(r1)}")
-    // Sign-extend to word if needed (irrelevant for comparison since only byte used)
 }
 
 private fun AsmGen.translateIntSqrt(insn: IRInstruction) {

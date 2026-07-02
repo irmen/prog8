@@ -249,10 +249,7 @@ private fun AsmGen.translateFloatLoadStore(insn: IRInstruction) {
             emitLine("lda  #>$base")
             emitLine("sta  ${ptr}+1")
             emitLine("lda  ${regAddrLo(idxReg)}")
-            emitLine("asl  a")
-            emitLine("asl  a")
-            emitLine("clc")
-            emitLine("adc  ${regAddrLo(idxReg)}")
+            // Note: index is already pre-multiplied by 5 (element size) in the IR codegen.
             emitLine("clc")
             emitLine("adc  $ptr")
             emitLine("sta  $ptr")
@@ -302,7 +299,7 @@ private fun AsmGen.translateFloatLoadStore(insn: IRInstruction) {
             emitLine("lda  #<${fpRegAddr(fpReg.value)}")
             emitLine("ldy  #>${fpRegAddr(fpReg.value)}")
             emitLine("jsr  floats.MOVFM")
-            emitLine("lda  $ptr")
+            emitLine("ldx  $ptr")
             emitLine("ldy  ${ptr}+1")
             emitLine("jsr  floats.MOVMF")
         }
@@ -317,10 +314,7 @@ private fun AsmGen.translateFloatLoadStore(insn: IRInstruction) {
             emitLine("lda  #>$base")
             emitLine("sta  ${ptr}+1")
             emitLine("lda  ${regAddrLo(idxReg)}")
-            emitLine("asl  a")
-            emitLine("asl  a")
-            emitLine("clc")
-            emitLine("adc  ${regAddrLo(idxReg)}")
+            // Note: index is already pre-multiplied by 5 (element size) in the IR codegen.
             emitLine("clc")
             emitLine("adc  $ptr")
             emitLine("sta  $ptr")
@@ -330,7 +324,7 @@ private fun AsmGen.translateFloatLoadStore(insn: IRInstruction) {
             emitLine("lda  #<${fpRegAddr(fpReg.value)}")
             emitLine("ldy  #>${fpRegAddr(fpReg.value)}")
             emitLine("jsr  floats.MOVFM")
-            emitLine("lda  $ptr")
+            emitLine("ldx  $ptr")
             emitLine("ldy  ${ptr}+1")
             emitLine("jsr  floats.MOVMF")
         }
@@ -377,10 +371,7 @@ private fun AsmGen.translateFloatLoadStore(insn: IRInstruction) {
             emitLine("lda  #>$base")
             emitLine("sta  ${ptr}+1")
             emitLine("lda  ${regAddrLo(idxReg)}")
-            emitLine("asl  a")
-            emitLine("asl  a")
-            emitLine("clc")
-            emitLine("adc  ${regAddrLo(idxReg)}")
+            // Note: index is already pre-multiplied by 5 (element size) in the IR codegen.
             emitLine("clc")
             emitLine("adc  $ptr")
             emitLine("sta  $ptr")
@@ -722,24 +713,22 @@ internal fun AsmGen.storeExchange(reg: Int, reg2: Int, target: String, type: IRD
             emitLine("sta  $target,x")
         }
         IRDataType.WORD -> {
+            // Index register is a BYTE (pre-multiplied by 2). Keep X once for both bytes.
             emitLine("ldx  ${regAddrLo(reg2)}")
             emitLine("lda  ${regAddrLo(reg)}")
             emitLine("sta  $target,x")
-            emitLine("ldx  ${regAddrHi(reg2)}")
             emitLine("lda  ${regAddrHi(reg)}")
             emitLine("sta  ${target}+1,x")
         }
         IRDataType.LONG -> {
+            // Index register is a BYTE (pre-multiplied by 4). Keep X once for all 4 bytes.
             emitLine("ldx  ${regAddrLo(reg2)}")
             emitLine("lda  ${regAddrLo(reg)}")
             emitLine("sta  $target,x")
-            emitLine("ldx  ${regAddrHi(reg2)}")
             emitLine("lda  ${regAddrHi(reg)}")
             emitLine("sta  ${target}+1,x")
-            emitLine("ldx  ${regAddrByte(reg2, 2)}")
             emitLine("lda  ${regAddrByte(reg, 2)}")
             emitLine("sta  ${target}+2,x")
-            emitLine("ldx  ${regAddrByte(reg2, 3)}")
             emitLine("lda  ${regAddrByte(reg, 3)}")
             emitLine("sta  ${target}+3,x")
         }

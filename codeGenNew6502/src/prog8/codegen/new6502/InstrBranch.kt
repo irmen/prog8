@@ -251,31 +251,21 @@ private fun AsmGen.emitSignedBranch(cond: String, label: String, type: IRDataTyp
                 emitLabel("+")           // not-gt skip
                 emitLabel(eqLabel)       // equal skip
             } else {
-                // TODO what the heck is going on here?
-                emitLine("beq  ++")      // equal -> skip (NOT gt)
-                emitLine("bvc  +")       // V=0: N is sign
-                emitLine("bmi  $label")  // V=1,N=1: inverted -> positive (gt)
-                emitLine("jmp  ++")      // V=1,N=0: not gt
-                emitLabel("+")           // V=0 landing: check N flag
-                emitLine("bpl  $label")  // V=0,N=0: positive -> gt
-                emitLabel("+")           // skip point
+                // For signed > comparison with 0, check N=0 and Z=0
+                emitLine("beq  +")         // if Z=1 (equal to 0), skip (NOT gt)
+                emitLine("bpl  $label")    // if N=0 (positive), branch to label (gt)
+                emitLabel("+")             // skip point (not gt)
             }
         }
         "ge" -> {
-            emitLine("bvc  +")           // V=0: N is sign
-            emitLine("bmi  $label")      // V=1,N=1: inverted -> positive
-            emitLine("jmp  ++")          // V=1,N=0: not ge
-            emitLabel("+")              // first + label
-            emitLine("bpl  $label")      // V=0,N=0: positive -> ge
-            emitLabel("+")              // second + label
+            // For signed >= comparison with 0, just check N flag
+            // N=0 means positive or zero (>= 0), N=1 means negative (< 0)
+            emitLine("bpl  $label")      // branch if N=0 (positive or zero)
         }
         "lt" -> {
-            emitLine("bvc  +")           // V=0: N is sign
-            emitLine("bpl  $label")      // V=1,N=0: inverted -> negative
-            emitLine("jmp  ++")          // V=1,N=1: not lt
-            emitLabel("+")              // first + label
-            emitLine("bmi  $label")      // V=0,N=1: negative -> lt
-            emitLabel("+")              // second + label
+            // For signed < comparison with 0, just check N flag
+            // N=1 means negative (< 0), N=0 means positive or zero (>= 0)
+            emitLine("bmi  $label")      // branch if N=1 (negative)
         }
         "le" -> {
             if (multiByte) {
@@ -296,13 +286,9 @@ private fun AsmGen.emitSignedBranch(cond: String, label: String, type: IRDataTyp
                 emitLine("bmi  $label")  // V=0,N=1: negative -> lt
                 emitLabel("+")           // not-lt skip
             } else {
-                emitLine("beq  $label")  // equal -> branch
-                emitLine("bvc  +")       // V=0: N is sign
-                emitLine("bpl  $label")  // V=1,N=0: inverted -> negative
-                emitLine("jmp  ++")      // V=1,N=1: not lt
-                emitLabel("+")           // first + label
-                emitLine("bmi  $label")  // V=0,N=1: negative -> lt
-                emitLabel("+")           // second + label
+                // For signed <= comparison with 0, check N=1 or Z=1
+                emitLine("beq  $label")  // if Z=1 (equal to 0), branch to label (le)
+                emitLine("bmi  $label")  // if N=1 (negative), branch to label (le)
             }
         }
     }
