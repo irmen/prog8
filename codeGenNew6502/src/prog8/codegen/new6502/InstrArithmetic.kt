@@ -296,10 +296,17 @@ internal fun AsmGen.decrementMemory(target: String, type: IRDataType) {
 internal fun AsmGen.negateRegister(reg: Int, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
-            emitLine("sec")
-            emitLine("lda  #0")
-            emitLine("sbc  ${regAddrLo(reg)}")
-            emitLine("sta  ${regAddrLo(reg)}")
+            if (is65C02()) {
+                emitLine("lda  ${regAddrLo(reg)}")
+                emitLine("eor  #255")
+                emitIncrementA()
+                emitLine("sta  ${regAddrLo(reg)}")
+            } else {
+                emitLine("sec")
+                emitLine("lda  #0")
+                emitLine("sbc  ${regAddrLo(reg)}")
+                emitLine("sta  ${regAddrLo(reg)}")
+            }
         }
         IRDataType.WORD -> {
             emitLine("sec")
@@ -332,10 +339,17 @@ internal fun AsmGen.negateRegister(reg: Int, type: IRDataType) {
 internal fun AsmGen.negateMemory(target: String, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
-            emitLine("sec")
-            emitLine("lda  #0")
-            emitLine("sbc  $target")
-            emitLine("sta  $target")
+            if (is65C02()) {
+                emitLine("lda  $target")
+                emitLine("eor  #255")
+                emitIncrementA()
+                emitLine("sta  $target")
+            } else {
+                emitLine("sec")
+                emitLine("lda  #0")
+                emitLine("sbc  $target")
+                emitLine("sta  $target")
+            }
         }
         IRDataType.WORD -> {
             emitLine("sec")
@@ -406,9 +420,13 @@ internal fun AsmGen.addRegisters(dst: Int, src: Int, type: IRDataType) {
 internal fun AsmGen.addImmediate(dst: Int, value: Int, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
-            emitLine("clc")
             emitLine("lda  ${regAddrLo(dst)}")
-            emitLine("adc  #${value and 0xff}")
+            if (is65C02() && value == 1) {
+                emitIncrementA()
+            } else {
+                emitLine("clc")
+                emitLine("adc  #${value and 0xff}")
+            }
             emitLine("sta  ${regAddrLo(dst)}")
         }
         IRDataType.WORD -> {
@@ -516,9 +534,13 @@ internal fun AsmGen.subRegisters(dst: Int, src: Int, type: IRDataType) {
 internal fun AsmGen.subImmediate(dst: Int, value: Int, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
-            emitLine("sec")
             emitLine("lda  ${regAddrLo(dst)}")
-            emitLine("sbc  #${value and 0xff}")
+            if (is65C02() && value == 1) {
+                emitDecrementA()
+            } else {
+                emitLine("sec")
+                emitLine("sbc  #${value and 0xff}")
+            }
             emitLine("sta  ${regAddrLo(dst)}")
         }
         IRDataType.WORD -> {

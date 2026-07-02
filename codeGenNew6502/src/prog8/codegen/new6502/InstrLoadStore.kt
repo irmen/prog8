@@ -528,9 +528,8 @@ internal fun AsmGen.loadSymbolAddress(reg: Int, sym: String, offset: Int?, type:
             emitLine("sta  ${regAddrLo(reg)}")
             emitLine("lda  #>${symWithOffset}")
             emitLine("sta  ${regAddrHi(reg)}")
-            emitLine("lda  #0")
-            emitLine("sta  ${regAddrByte(reg, 2)}")
-            emitLine("sta  ${regAddrByte(reg, 3)}")
+            emitStoreZero("${regAddrByte(reg, 2)}")
+            emitStoreZero("${regAddrByte(reg, 3)}")
         }
         else -> TODO("SYMLOAD r$reg, $symWithOffset ${type.name}")
     }
@@ -760,11 +759,10 @@ internal fun AsmGen.zeroMemory(target: String, type: IRDataType) {
             emitStoreZero("$target+1")
         }
         IRDataType.LONG -> {
-            emitLine("ldy  #3")
-            emitLine("lda  #0")
-            emitLine("-  sta  $target,y")
-            emitLine("dey")
-            emitLine("bpl  -")
+            emitStoreZero(target)
+            emitStoreZero("$target+1")
+            emitStoreZero("$target+2")
+            emitStoreZero("$target+3")
         }
         IRDataType.FLOAT -> {
             TODO("FLOAT STOREZM $target")
@@ -812,36 +810,16 @@ internal fun AsmGen.zeroMemoryIndexed(reg: Int, base: String, type: IRDataType) 
     emitLine("ldx  ${regAddrLo(reg)}")
     when (type) {
         IRDataType.BYTE -> {
-            if (is65C02())
-                emitLine("stz  $base,x")
-            else {
-                emitLine("lda  #0")
-                emitLine("sta  $base,x")
-            }
+            emitStoreZero("$base,x")
         }
         IRDataType.WORD -> {
-            if (is65C02())
-                emitLine("stz  $base,x")
-            else {
-                emitLine("lda  #0")
-                emitLine("sta  $base,x")
-            }
+            emitStoreZero("$base,x")
             emitLine("ldx  ${regAddrHi(reg)}")
-            if (is65C02())
-                emitLine("stz  ${base}+1,x")
-            else {
-                emitLine("lda  #0")
-                emitLine("sta  ${base}+1,x")
-            }
+            emitStoreZero("${base}+1,x")
         }
         IRDataType.LONG -> {
             emitLine("; STOREZX LONG not fully implemented")
-            if (is65C02())
-                emitLine("stz  $base,x")
-            else {
-                emitLine("lda  #0")
-                emitLine("sta  $base,x")
-            }
+            emitStoreZero("$base,x")
         }
         IRDataType.FLOAT -> {
             TODO("FLOAT STOREZX")

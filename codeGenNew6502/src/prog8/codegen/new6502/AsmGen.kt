@@ -255,7 +255,7 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
     private fun asmHexByte(v: Int): String = "\$${v.toUByte().toString(16).padStart(2,'0')}"
 
     // === CPU-aware instruction helpers ===
-    // 65C02 supports stz; plain 6502 needs lda #0 / sta instead
+    // 65C02 supports stz, ina, dea; plain 6502 needs longer sequences
 
     fun emitStoreZero(target: String) {
         if (cpu == CpuType.CPU65C02)
@@ -263,6 +263,24 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
         else {
             emitLine("lda  #0")
             emitLine("sta  $target")
+        }
+    }
+
+    fun emitIncrementA() {
+        if (cpu == CpuType.CPU65C02)
+            emitLine("ina")
+        else {
+            emitLine("clc")
+            emitLine("adc  #1")
+        }
+    }
+
+    fun emitDecrementA() {
+        if (cpu == CpuType.CPU65C02)
+            emitLine("dea")
+        else {
+            emitLine("sec")
+            emitLine("sbc  #1")
         }
     }
 
@@ -309,6 +327,12 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
         emitRaw("P8ZP_SCRATCH_W1  = ${zp.SCRATCH_W1}    ; word  (2 bytes)")
         emitRaw("P8ZP_SCRATCH_W2  = ${zp.SCRATCH_W2}    ; word  (2 bytes)")
         emitRaw("P8ZP_SCRATCH_PTR = ${zp.SCRATCH_PTR}    ; word  (pointer)")
+        if(target.name=="c64") {
+            if(options.floats)
+                emitRaw("PROG8_C64_BANK_CONFIG=31  ; basic+IO+kernal")
+            else
+                emitRaw("PROG8_C64_BANK_CONFIG=30  ; IO+kernal, no basic")
+        }
         emitRaw("")
 
         // user-supplied symbol definitions
@@ -381,9 +405,19 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
         emitLine("stx  prog8_lib.orig_stackpointer")
         if (!program.options.noSysInit) {
             emitLine("jsr  p8_sys_startup.init_system")
-            emitLine("jsr  p8_sys_startup.init_system_phase2")
         }
-            emitLine("jsr  run_global_inits")
+        emitLine("jsr  p8_sys_startup.init_system_phase2")
+        emitLine("jsr  run_global_inits")
+        if (program.options.zeropage !in arrayOf(ZeropageType.BASICSAFE, ZeropageType.DONTUSE)) {
+            emitLine("lda  #>sys.reset_system")
+            emitLine("pha")
+            emitLine("lda  #<sys.reset_system")
+            emitLine("pha")
+        }
+        if (target.name=="cx16" && program.options.floats) {
+            emitLine("lda  #4")
+            emitLine("sta  $01")    // to use floats, make sure Basic rom is banked in
+        }
         emitLine("jsr  p8b_main.p8s_start")
         emitLine("jmp  p8_sys_startup.cleanup_at_exit")
     }
@@ -432,9 +466,71 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
 
     // === main code emission ===
 
+    private fun emitZpVariableInits() {
+        val zpInitVars = program.st.allVariables().filter { v ->
+            isZpVar(v.name) && v.initializationValue != null
+        }.toList()
+        if (zpInitVars.isEmpty()) return
+
+        emitRaw("; initialize zeropage variables with initial values")
+        for (v in zpInitVars.sortedBy { it.name }) {
+            val label = fixNameSymbols(v.name)
+            val init = v.initializationValue ?: continue
+            when (init) {
+                is IRVariableInitializer.Numeric -> {
+                    val value = init.value.toInt()
+                    when {
+                        v.dt.isByte || v.dt.isBool -> {
+                            emitZeroOrValue(value, label)
+                        }
+                        v.dt.isWord || v.dt.isPointer -> {
+                            if (value == 0) {
+                                emitStoreZero(label)
+                                emitStoreZero("${label}+1")
+                            } else {
+                                emitLine("lda  #<${value.toHex()}")
+                                emitLine("sta  $label")
+                                emitLine("lda  #>${value.toHex()}")
+                                emitLine("sta  ${label}+1")
+                            }
+                        }
+                        v.dt.isLong -> {
+                            for (i in 0 until 4) {
+                                val byteVal = (value shr (i * 8)) and 0xFF
+                                emitZeroOrValue(byteVal, "${label}+$i")
+                            }
+                        }
+                        v.dt.isFloat -> {
+                            val bytes = target.getFloatAsmBytes(init.value)
+                            for ((i, b) in bytes.split(",").withIndex()) {
+                                emitLine("lda  #$b")
+                                emitLine("sta  ${label}+$i")
+                            }
+                        }
+                        else -> {}
+                    }
+                }
+                is IRVariableInitializer.Str, is IRVariableInitializer.Array -> {
+                    // String/array ZP inits are handled by generateStringArrayInits in IRCodeGen
+                    // which creates shadow variables and MEMCOPY instructions.
+                }
+            }
+        }
+    }
+
+    private fun emitZeroOrValue(value: Int, label: String) {
+        if (value == 0)
+            emitStoreZero(label)
+        else {
+            emitLine("lda  #${value.toHex()}")
+            emitLine("sta  $label")
+        }
+    }
+
     private fun emitCode() {
         emitLabel("run_global_inits")
         translateChunk(program.globalInits)
+        emitZpVariableInits()
         emitLine("rts")
         emitRaw("")
 
@@ -839,9 +935,10 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
                     else -> List(halfBytes) { 0 }
                 }
                 val parts = values.joinToString(",")
-                emitRaw("_array_$label := $parts")
-                emitLine("${label}_lsb  .byte  <_array_$label")
-                emitLine("${label}_msb  .byte  >_array_$label")
+                val arrLabel = label.replace(".", "_") + "_init_words"
+                emitRaw("$arrLabel := $parts")
+                emitLine("${label}_lsb  .byte  <$arrLabel")
+                emitLine("${label}_msb  .byte  >$arrLabel")
             }
 
             dt.isString -> {
