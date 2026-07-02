@@ -227,19 +227,21 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
                         emitLine("pha")
                     }
                     IRDataType.WORD -> {
-                        emitLine("lda  ${regAddrHi(reg)}")
-                        emitLine("pha")
+                        // byte order must match old codegen: push low byte first, then high byte -> stack top = high byte
                         emitLine("lda  ${regAddrLo(reg)}")
+                        emitLine("pha")
+                        emitLine("lda  ${regAddrHi(reg)}")
                         emitLine("pha")
                     }
                     IRDataType.LONG -> {
-                        emitLine("lda  ${regAddrByte(reg, 3)}")
-                        emitLine("pha")
-                        emitLine("lda  ${regAddrByte(reg, 2)}")
+                        // byte order must match old codegen: push low byte first, then ascending -> stack top = highest byte
+                        emitLine("lda  ${regAddrLo(reg)}")
                         emitLine("pha")
                         emitLine("lda  ${regAddrHi(reg)}")
                         emitLine("pha")
-                        emitLine("lda  ${regAddrLo(reg)}")
+                        emitLine("lda  ${regAddrByte(reg, 2)}")
+                        emitLine("pha")
+                        emitLine("lda  ${regAddrByte(reg, 3)}")
                         emitLine("pha")
                     }
                 }
@@ -263,20 +265,22 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
                         emitLine("sta  ${regAddrLo(reg)}")
                     }
                     IRDataType.WORD -> {
-                        emitLine("pla")
-                        emitLine("sta  ${regAddrLo(reg)}")
+                        // byte order must match old codegen: pop high byte first (stack top), then low byte
                         emitLine("pla")
                         emitLine("sta  ${regAddrHi(reg)}")
+                        emitLine("pla")
+                        emitLine("sta  ${regAddrLo(reg)}")
                     }
                     IRDataType.LONG -> {
+                        // byte order must match old codegen: pop highest byte first (stack top), then descending
                         emitLine("pla")
-                        emitLine("sta  ${regAddrLo(reg)}")
-                        emitLine("pla")
-                        emitLine("sta  ${regAddrHi(reg)}")
+                        emitLine("sta  ${regAddrByte(reg, 3)}")
                         emitLine("pla")
                         emitLine("sta  ${regAddrByte(reg, 2)}")
                         emitLine("pla")
-                        emitLine("sta  ${regAddrByte(reg, 3)}")
+                        emitLine("sta  ${regAddrHi(reg)}")
+                        emitLine("pla")
+                        emitLine("sta  ${regAddrLo(reg)}")
                     }
                 }
             }
