@@ -286,11 +286,6 @@ sizeof (name)  ;  sizeof(datatype)  ;  sizeof(&name)  ;  sizeof(&&name)  ;  size
     For pointer types like ``^^float`` or ``^^MyStruct``, it returns the size of a pointer (2 bytes).
     Note: usually you will be interested in the number of elements in an array, or the number of characters in the string; use ``len()`` for that.
 
-:index:`swap` (var1, var2)
-    Swaps the values in var1 and var2 without the need of a temporary variable. Supports booleans and all other numeric datatypes including pointers.
-    Note that complicated expressions that you want to swap, may not be implemented yet. To avoid such errors you'll have to just swap them
-    in the old fashioned way, until an optimized code path gets implemented in a future Prog8 version.
-
 :index:`memory` (name, size, alignment)  ;  memory(name)
     Returns the address of the first location of a statically "reserved" block of memory with the given name.
     The 3-argument version reserves a block of the given size in bytes and optional alignment, and returns the address of it.
