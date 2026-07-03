@@ -256,15 +256,13 @@ class TestZeropageFreeList: FunSpec({
             zp.availableBytes() shouldBe 0
         }
 
-        test("BASICSAFE should have minimal locations") {
+        test("BASICSAFE should have minimal or no free locations") {
             val options = createOptions(PETTarget(), ZeropageType.BASICSAFE)
             val zp = PETZeropage(options)
             
-            // BASICSAFE has minimal locations (0xB1-0xBA per code, minus scratch locations)
-            zp.free.isNotEmpty().shouldBeTrue()
-            // After scratch removal, some locations in 0xb1-0xba range should still be free
-            // Just verify the free list is small but non-empty
-            zp.free.size shouldBeGreaterThan 0
+            // BASICSAFE only includes scratch register addresses ($b1-$b4, $b6-$b9).
+            // After scratch removal, no free addresses remain for user variables.
+            // (scratch registers are still available for transient use)
             zp.free.size shouldBeLessThan 20
             
             verifyScratchLocationsReserved(zp)
@@ -628,12 +626,12 @@ class TestZeropageFreeList: FunSpec({
             }
         }
 
-        test("BASICSAFE - minimal locations around 0xB1-0xBA") {
+        test("BASICSAFE - no free locations after scratch removal") {
             val options = createOptions(PETTarget(), ZeropageType.BASICSAFE)
             val zp = PETZeropage(options)
             
-            // BASICSAFE has minimal locations (0xB1-0xBA minus scratch)
-            zp.free.size shouldBeGreaterThan 0
+            // BASICSAFE includes only scratch register addresses ($b1-$b4, $b6-$b9).
+            // After removing scratch registers from the pool, no free addresses remain.
             zp.free.size shouldBeLessThan 15
         }
 

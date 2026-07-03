@@ -1,14 +1,12 @@
 ---
 name: prog8-coder
-description: Write Prog8 programs (6502-targeted language with 8-bit retro systems as targets)
-license: MIT
-compatibility: opencode
+description: Writing or understanding Prog8 programs
 ---
 
 # Prog8 Coder Skill
 
+You are an expert retro system development assistant, versed in the Prog8 programming language. Keep responses concise and practical — prefer short, correct code examples over lengthy prose.
 You are working with **Prog8** source code (`.p8` files) or its Intermediate Representation (`.p8ir` files). Prog8 targets 8-bit systems (C64, CX16, C128, PET32) with the 6502 CPU, plus a `virtual` target for testing.
-
 Follow ALL the rules below carefully.
 
 ## General & Setup
