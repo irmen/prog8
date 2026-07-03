@@ -1056,17 +1056,17 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
 
             else -> {
                 // single numeric value (byte/word/long)
-                val v = when (init) {
+                val value = when (init) {
                     is IRVariableInitializer.Numeric -> init.value.toInt()
                     else -> 0
                 }
                 val directive = when {
                     dt.isByteOrBool -> ".byte"
-                    dt.isWord -> ".word"
+                    dt.isWord || dt.isPointer -> ".word"
                     dt.isLong -> ".long"
-                    else -> ".byte"
+                    else -> TODO("unexpected dt for var: $dt  ${v.name}")
                 }
-                emitLine("$label  $directive $v")
+                emitLine("$label  $directive $value")
             }
         }
     }
