@@ -538,7 +538,33 @@ private fun AsmGen.translateCall(fnLabel: String, args: FunctionCallArgs?) {
     emitLine("jsr  $fnLabel")
 
     if (args != null) {
-        for (ret in args.returns) {
+        // Check if we need to save A before processing returns.
+        // Status flag extraction (php/pla/and/beq/lda) clobbers A,
+        // so if there's both a statusflag return AND an A register return (slot 0),
+        // we must save A first and restore it after status flag extraction.
+        val hasStatusFlagReturn = args.returns.any { it.statusflag != null }
+        val hasARegisterReturn = args.returns.any {
+            val slot = it.callingConventionSlot
+            slot != null && slot.value == 0
+        }
+        if (hasStatusFlagReturn && hasARegisterReturn) {
+            emitLine("pha")
+        }
+
+        // Process status flag returns first (they clobber A)
+        val statusFlagReturns = args.returns.filter { it.statusflag != null }
+        val otherReturns = args.returns.filter { it.statusflag == null }
+        for (ret in statusFlagReturns) {
+            translateReturnValue(ret)
+        }
+
+        // Restore A if we saved it
+        if (hasStatusFlagReturn && hasARegisterReturn) {
+            emitLine("pla")
+        }
+
+        // Now process the remaining returns (including slot 0 = A)
+        for (ret in otherReturns) {
             translateReturnValue(ret)
         }
     }

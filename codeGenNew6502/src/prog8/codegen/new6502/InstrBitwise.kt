@@ -584,7 +584,7 @@ private fun AsmGen.logicalShiftRightVar(reg: Int, countReg: Int, type: IRDataTyp
 }
 
 private fun AsmGen.arithmeticShiftRightVar(reg: Int, countReg: Int, type: IRDataType) {
-    val loopLabel = makeLabel("asr_var_loop")
+    val loopLabel = makeLabel("asr_var_loop")       // TODO can be anonymous label ?  (also at other places?)
     emitLine("ldx  ${regAddrLo(countReg)}")
     emitLine("beq  +")
     emitLabel(loopLabel)
@@ -611,7 +611,7 @@ private fun AsmGen.arithmeticShiftRightVar(reg: Int, countReg: Int, type: IRData
         else -> TODO("ASR r$reg, r$countReg ${type.name}")
     }
     emitLine("dex")
-    emitLine("bne  loop")
+    emitLine("bne  $loopLabel")
     emitLabel("+")
 }
 

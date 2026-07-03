@@ -274,7 +274,7 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
     val ZP_TEMP: String get() = target.zeropage.SCRATCH_PTR.toHex()
 
     /** Format a byte value as `$xx` hex for .byte directives (always hex, even for 0-15). */
-    private fun asmHexByte(v: Int): String = "\$${v.toUByte().toString(16).padStart(2,'0')}"
+    private fun asmHexByte(v: Int): String = $$"$$${v.toUByte().toString(16).padStart(2, '0')}"
 
     // === CPU-aware instruction helpers ===
     // 65C02 supports stz, ina, dea; plain 6502 needs longer sequences
@@ -397,7 +397,7 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
                         emitRaw("* = ${loadAddr.toHex()}")
                         emitLabel("prog8_program_start")
                         emitRaw("    .word  (+), ${java.time.LocalDate.now().year}")
-                        emitRaw("    .null  \$9e, format(' %d ', prog8_entrypoint), \$3a, \$8f, ' prog8'")
+                        emitRaw($$"    .null  $9e, format(' %d ', prog8_entrypoint), $3a, $8f, ' prog8'")
                         emitLabel("+")
                         emitRaw("    .word  0")
                         emitLabel("prog8_entrypoint")
@@ -571,7 +571,7 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
                     is IRSubroutine -> {
                         // Skip subroutines that are nested inside another top-level subroutine
                         val isNested = topLevelSubLabels.any { subLabel ->
-                            subLabel != element.label && element.label.startsWith(subLabel + ".")
+                            subLabel != element.label && element.label.startsWith("$subLabel.")
                         }
                         if (!isNested) emitSubroutine(element)
                     }
@@ -579,7 +579,7 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
                         // Skip inline ASMSUBs - they are inlined at the call site, not emitted as subroutines
                         if (element.isInline) continue
                         // Skip ASMSUBs that are nested inside a top-level subroutine
-                        val isNested = topLevelSubLabels.any { subLabel -> element.label.startsWith(subLabel + ".") }
+                        val isNested = topLevelSubLabels.any { subLabel -> element.label.startsWith("$subLabel.") }
                         if (!isNested) emitAsmSubroutine(element)
                     }
                     is IRCodeChunk -> {
@@ -884,10 +884,11 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
         val (instancesNoInit, instancesWithInit) = allInstances.partition { it.values.isEmpty() }
         if (instancesNoInit.isNotEmpty()) {
             emitRaw("    .section BSS")
-            emitRaw("${REGFILE_LABEL}_structinst_bss  .block")
+            emitRaw("prog8_struct_instances_bss  .block")
             for (si in instancesNoInit) {
                 val label = fixNameSymbols(si.name)
-                emitLine("$label  .fill  ${si.size}")
+                val instName = label.substringAfter('.')
+                emitLine("$instName  .fill  ${si.size}")
             }
             emitRaw("    .bend")
             emitRaw("    .send BSS")
@@ -897,14 +898,13 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
         // struct instances with init values -> STRUCTINSTANCES section
         if (instancesWithInit.isNotEmpty()) {
             emitRaw("    .section STRUCTINSTANCES")
-            emitRaw("${REGFILE_LABEL}_structinst  .block")
+            emitRaw("prog8_struct_instances  .block")
             for (si in instancesWithInit) {
                 val label = fixNameSymbols(si.name)
                 val instName = label.substringAfter('.')
                 emitLabel(instName)
                 for (fieldValue in si.values) {
-                    val fv = fieldValue.value
-                    when (fv) {
+                    when (val fv = fieldValue.value) {
                         is IRStSymbolicReference.Numeric -> {
                             val v = fv.value.toInt()
                             val size = when (fieldValue.dt) {
@@ -946,15 +946,15 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
                 // _lsb / _msb halves via helper array
                 val numElements = v.length?.toInt() ?: 0
                 val halfBytes = numElements   // each element is 1 byte per half
-                val values = when (init) {
+                val values: List<String> = when (init) {
                     is IRVariableInitializer.Array -> init.elements.map {
                         when (it) {
-                            is IRStSymbolicReference.Numeric -> it.value.toInt()
-                            is IRStSymbolicReference.BoolValue -> if (it.value) 1 else 0
-                            else -> 0
+                            is IRStSymbolicReference.Numeric -> it.value.toInt().toString()
+                            is IRStSymbolicReference.BoolValue -> if (it.value) "1" else "0"
+                            is IRStSymbolicReference.Symbol -> fixNameSymbols(it.name)
                         }
                     }
-                    else -> List(halfBytes) { 0 }
+                    else -> List(halfBytes) { "0" }
                 }
                 val parts = values.joinToString(",")
                 val arrLabel = label.replace(".", "_") + "_init_words"
@@ -984,7 +984,7 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
                         is IRVariableInitializer.Array -> init.elements.map {
                             when (it) {
                                 is IRStSymbolicReference.Numeric -> target.getFloatAsmBytes(it.value)
-                                else -> List(target.FLOAT_MEM_SIZE.toInt()) { 0 }.joinToString(",") { "\$00" }
+                                else -> List(target.FLOAT_MEM_SIZE.toInt()) { 0 }.joinToString(",") { $$"$00" }
                             }
                         }.flatMap { it.split(",").map { s -> s.trim() } }
                         else -> {
@@ -1008,7 +1008,7 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
                                     if(dt.elementType().isByteOrBool)
                                         asmHexByte(v)
                                     else
-                                        "${v}"
+                                        "$v"
                                 }
                                 is IRStSymbolicReference.BoolValue -> if (it.value) "1" else "0"
                                 is IRStSymbolicReference.Symbol -> asmSymbolRef(it.name)
@@ -1028,7 +1028,7 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
                         else -> ".byte"
                     }
                     // Use .fill for zero-initialized arrays (no explicit init values)
-                    if (!hasExplicitInit && values.all { it == "0" || it == "\$00" }) {
+                    if (!hasExplicitInit && values.all { it == "0" || it == $$"$00" }) {
                         emitLine("$label  .fill  ${values.size}")
                     } else if (values.size <= 16) {
                         emitLine("$label  $directive ${values.joinToString(",")}")
@@ -1048,7 +1048,7 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
                         emitLine("$label  .byte  $bytes  ; float ${init.value}")
                     }
                     else -> {
-                        val bytes = List(target.FLOAT_MEM_SIZE.toInt()) { 0 }.joinToString(",") { "\$00" }
+                        val bytes = List(target.FLOAT_MEM_SIZE.toInt()) { 0 }.joinToString(",") { $$"$00" }
                         emitLine("$label  .byte  $bytes  ; float 0")
                     }
                 }

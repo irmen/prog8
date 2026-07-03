@@ -1,7 +1,7 @@
 /*
  * Branch/compare IR instruction translations for the new6502gen code generator.
  *
- * The comparison branch instructions in the IR (BGTR, BGT, BGER, BGE, BLT, BLE,
+ * The comparison branch instructions in the IR (BGTR, BGER, BGE, BLT,
  * and their signed variants) are self-contained - they carry the operands to compare
  * (either two registers, or a register and an immediate). The codegen must emit a CMP
  * between these operands before the flag-checking branch pattern.
@@ -12,11 +12,13 @@
  *    These map directly to 6502 branch instructions (bcc/bcs/beq/bne/bmi/bpl/bvc/bvs)
  *    and branch based on flags set by the most recent comparison or arithmetic operation.
  *
- * 2. Comparison branches (BGTR/BGT/BGER/BGE/BLT/BLE, BGTSR/BGTS/BGESR/BGES/BLTS/BLES):
+ * 2. Comparison branches (BGTR/BGER/BGE/BLT, BGTSR/BGTS/BGESR/BGES/BLTS/BLES):
  *    These carry their own operands. The codegen emits a CMP between the operands first,
  *    then checks the resulting flags.
  *    Unsigned variants use simple bcc/bcs patterns.
  *    Signed variants need to check both N and V flags.
+ *    Note: BGT and BLE (unsigned immediate) are unused - the AST normalizes
+ *    <= to < (value+1) and > to >= (value+1) before IR codegen.
  *
  * BGT, BLE need two branches (e.g. bne skip + bcs target) because the 6502
  * doesn't have a single "branch if greater than" instruction.
@@ -59,20 +61,20 @@ internal fun AsmGen.translateBranch(insn: IRInstruction) {
         Opcode.BSTVS -> emitLine("bvs  $label")
 
         // Unsigned integer comparison branches: emit CMP then check flags.
-//        never emitted here: Opcode.BGT -> translateCmpBranchUnsigned(insn, label, greaterThan = true)
-//        never emitted here> Opcode.BGTR -> translateCmpBranchRegUnsigned(insn, label, greaterThan = true)
+        Opcode.BGT -> translateCmpBranchUnsigned(insn, label, greaterThan = true)
+        Opcode.BGTR -> translateCmpBranchRegUnsigned(insn, label, greaterThan = true)
         Opcode.BGE -> translateCmpBranchUnsigned(insn, label, greaterOrEqual = true)
         Opcode.BGER -> translateCmpBranchRegUnsigned(insn, label, greaterOrEqual = true)
         Opcode.BLT -> translateCmpBranchUnsigned(insn, label, lessThan = true)
-//        never emitted here: Opcode.BLE -> translateCmpBranchUnsigned(insn, label, lessOrEqual = true)
-//
-//        // Signed integer comparison branches: emit CMP then check N/V flags with overflow correction.
+        Opcode.BLE -> translateCmpBranchUnsigned(insn, label, lessOrEqual = true)
+
+        // Signed integer comparison branches: emit CMP then check N/V flags with overflow correction.
         Opcode.BGTS -> translateCmpBranchSigned(insn, label, greaterThan = true)
         Opcode.BGTSR -> translateCmpBranchRegSigned(insn, label, greaterThan = true)
         Opcode.BGES -> translateCmpBranchSigned(insn, label, greaterOrEqual = true)
         Opcode.BGESR -> translateCmpBranchRegSigned(insn, label, greaterOrEqual = true)
         Opcode.BLTS -> translateCmpBranchSigned(insn, label, lessThan = true)
-//        never emitted here> Opcode.BLES -> translateCmpBranchSigned(insn, label, lessOrEqual = true)
+        Opcode.BLES -> translateCmpBranchSigned(insn, label, lessOrEqual = true)
 
         else -> TODO("Unknown branch opcode: ${insn.opcode}")
     }
@@ -378,7 +380,9 @@ private fun AsmGen.translateCmpBranchSigned(insn: IRInstruction, label: String,
  */
 private fun AsmGen.translateCmpBranchRegSigned(insn: IRInstruction, label: String,
                                                greaterThan: Boolean = false,
-                                               greaterOrEqual: Boolean = false) {
+                                               greaterOrEqual: Boolean = false,
+                                               lessThan: Boolean = false,
+                                               lessOrEqual: Boolean = false) {
     val type = insn.type ?: IRDataType.BYTE
     val reg1 = insn.reg1 ?: error("branch needs reg1")
     val reg2 = insn.reg2 ?: error("reg branch needs reg2")
@@ -399,6 +403,11 @@ private fun AsmGen.translateCmpBranchRegSigned(insn: IRInstruction, label: Strin
                 emitLabel(skip)
             } else if (greaterOrEqual) {
                 emitLine("bpl  $label")
+            } else if (lessThan) {
+                emitLine("bmi  $label")
+            } else if (lessOrEqual) {
+                emitLine("beq  $label")
+                emitLine("bmi  $label")
             }
         }
         IRDataType.WORD -> {
@@ -416,6 +425,11 @@ private fun AsmGen.translateCmpBranchRegSigned(insn: IRInstruction, label: Strin
                 emitLabel(skip)
             } else if (greaterOrEqual) {
                 emitLine("bpl  $label")
+            } else if (lessThan) {
+                emitLine("bmi  $label")
+            } else if (lessOrEqual) {
+                emitLine("beq  $label")
+                emitLine("bmi  $label")
             }
         }
         IRDataType.LONG -> {
@@ -441,6 +455,11 @@ private fun AsmGen.translateCmpBranchRegSigned(insn: IRInstruction, label: Strin
                 emitLabel(skip)
             } else if (greaterOrEqual) {
                 emitLine("bpl  $label")
+            } else if (lessThan) {
+                emitLine("bmi  $label")
+            } else if (lessOrEqual) {
+                emitLine("beq  $label")
+                emitLine("bmi  $label")
             }
         }
         IRDataType.FLOAT -> error("float branch not supported")
