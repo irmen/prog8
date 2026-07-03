@@ -930,20 +930,6 @@ as well, to assigns those multiple values. Details can be found here: :ref:`mult
     to a smaller datatype, or revert to integer arithmetic.
 
 
-swap statement
-^^^^^^^^^^^^^^
-.. index:: single: Swapping variables; swap
-
-The ``swap`` keyword swaps the values in two variables without the need of a temporary variable::
-
-    swap(var1, var2)
-
-Supports booleans and all other numeric datatypes including pointers. Note that complicated expressions
-that you want to swap may not be implemented yet. To avoid such errors you'll have to swap them
-in the old fashioned way (using a temporary variable), until an optimized code path gets implemented
-in a future Prog8 version.
-
-
 Expressions
 -----------
 .. index:: single: Expressions
@@ -1033,6 +1019,20 @@ and ``(true or false) and false`` is false instead of true.
         w = (b as word)*55
         w = b*(55 as word)
         w = b * $0037
+
+
+swap statement
+^^^^^^^^^^^^^^
+.. index:: single: Swapping variables; swap
+
+The ``swap`` keyword swaps the values in two variables without the need of a temporary variable::
+
+    swap(var1, var2)
+
+Supports booleans and all other numeric datatypes including pointers. Note that complicated expressions
+that you want to swap may not be implemented yet. To avoid such errors you'll have to swap them
+in the old fashioned way (using a temporary variable), until an optimized code path gets implemented
+in a future Prog8 version.
 
 
 Operators
