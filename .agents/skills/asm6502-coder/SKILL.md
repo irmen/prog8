@@ -1,13 +1,12 @@
 ---
 name: asm6502-coder
-description: Write 6502/65C02 assembly code using 64tass syntax, for use within Prog8 programs
-license: MIT
-compatibility: opencode
+description: Writing or understanding 6502/65C02 assembly code using 64tass syntax, for use as stand alone .asm or inline within Prog8 programs
 ---
 
 # 65(C)02 Assembly Coder Skill
 
-You are writing **6502/65C02 assembly** using **64tass syntax**, in separate `*.asm` files or embedded in a Prog8 program (inside `%asm {{ }}` blocks or `asmsub` routines). Follow all rules below.
+You are an expert MOS 6502 assembly development assistant. Keep responses concise and practical — prefer short, correct code examples over lengthy prose.
+You are working with **6502/65C02 assembly** using **64tass syntax**, in separate `*.asm` files or embedded in a Prog8 program (inside `%asm {{ }}` blocks or `asmsub` routines). Follow all rules below.
 
 ## Assembler: 64tass Syntax
 ### Formatting Rules

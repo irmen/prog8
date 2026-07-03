@@ -118,27 +118,36 @@ private fun AsmGen.translateCmpBranchUnsigned(insn: IRInstruction, label: String
             }
         }
         IRDataType.WORD -> {
-            emitLine("lda  ${regAddrLo(reg)}")
-            emitLine("cmp  #${imm and 0xff}")
-            emitLine("lda  ${regAddrHi(reg)}")
-            emitLine("sbc  #${(imm shr 8) and 0xff}")
             when {
                 greaterThan -> {
-                    val skip = makeLabel("bskip")
-                    emitLine("bcc  $skip")
-                    emitLine("beq  $skip")
-                    emitLine("jmp  $label")
-                    emitLabel(skip)
+                    // a > imm (unsigned) -> imm < a: swap operands
+                    emitLine("lda  #${imm and 0xff}")
+                    emitLine("cmp  ${regAddrLo(reg)}")
+                    emitLine("lda  #${(imm shr 8) and 0xff}")
+                    emitLine("sbc  ${regAddrHi(reg)}")
+                    emitLine("bcc  $label")
                 }
                 greaterOrEqual -> {
+                    emitLine("lda  ${regAddrLo(reg)}")
+                    emitLine("cmp  #${imm and 0xff}")
+                    emitLine("lda  ${regAddrHi(reg)}")
+                    emitLine("sbc  #${(imm shr 8) and 0xff}")
                     emitLine("bcs  $label")
                 }
                 lessThan -> {
+                    emitLine("lda  ${regAddrLo(reg)}")
+                    emitLine("cmp  #${imm and 0xff}")
+                    emitLine("lda  ${regAddrHi(reg)}")
+                    emitLine("sbc  #${(imm shr 8) and 0xff}")
                     emitLine("bcc  $label")
                 }
                 lessOrEqual -> {
-                    emitLine("bcc  $label")
-                    emitLine("beq  $label")
+                    // a <= imm (unsigned) -> imm >= a: swap operands
+                    emitLine("lda  #${imm and 0xff}")
+                    emitLine("cmp  ${regAddrLo(reg)}")
+                    emitLine("lda  #${(imm shr 8) and 0xff}")
+                    emitLine("sbc  ${regAddrHi(reg)}")
+                    emitLine("bcs  $label")
                 }
             }
         }
@@ -154,30 +163,60 @@ private fun AsmGen.translateCmpBranchLongUnsigned(insn: IRInstruction, label: St
                                                   lessOrEqual: Boolean) {
     val reg = insn.reg1 ?: error("branch needs reg1")
     val imm = insn.immediate ?: error("branch needs immediate")
-    for (byteIdx in 0..3) {
-        val regPart = if (byteIdx < 2) regAddrByte(reg, byteIdx) else regAddrByte(reg, byteIdx)
-        val immPart = (imm shr (byteIdx * 8)) and 0xff
-        if (byteIdx == 0) {
-            emitLine("lda  $regPart")
-            emitLine("cmp  #$immPart")
-        } else {
-            emitLine("lda  $regPart")
-            emitLine("sbc  #$immPart")
-        }
-    }
     when {
         greaterThan -> {
-            val skip = makeLabel("bskip")
-            emitLine("bcc  $skip")
-            emitLine("beq  $skip")
-            emitLine("jmp  $label")
-            emitLabel(skip)
-        }
-        greaterOrEqual -> emitLine("bcs  $label")
-        lessThan -> emitLine("bcc  $label")
-        lessOrEqual -> {
+            // a > imm -> imm < a: swap operands
+            for (byteIdx in 0..3) {
+                val immPart = (imm shr (byteIdx * 8)) and 0xff
+                if (byteIdx == 0)
+                    emitLine("lda  #$immPart")
+                else {
+                    emitLine("lda  #$immPart")
+                    emitLine("sbc  ${regAddrByte(reg, byteIdx)}")
+                }
+            }
             emitLine("bcc  $label")
-            emitLine("beq  $label")
+        }
+        greaterOrEqual -> {
+            for (byteIdx in 0..3) {
+                val regPart = regAddrByte(reg, byteIdx)
+                val immPart = (imm shr (byteIdx * 8)) and 0xff
+                if (byteIdx == 0) {
+                    emitLine("lda  $regPart")
+                    emitLine("cmp  #$immPart")
+                } else {
+                    emitLine("lda  $regPart")
+                    emitLine("sbc  #$immPart")
+                }
+            }
+            emitLine("bcs  $label")
+        }
+        lessThan -> {
+            for (byteIdx in 0..3) {
+                val regPart = regAddrByte(reg, byteIdx)
+                val immPart = (imm shr (byteIdx * 8)) and 0xff
+                if (byteIdx == 0) {
+                    emitLine("lda  $regPart")
+                    emitLine("cmp  #$immPart")
+                } else {
+                    emitLine("lda  $regPart")
+                    emitLine("sbc  #$immPart")
+                }
+            }
+            emitLine("bcc  $label")
+        }
+        lessOrEqual -> {
+            // a <= imm -> imm >= a: swap operands
+            for (byteIdx in 0..3) {
+                val immPart = (imm shr (byteIdx * 8)) and 0xff
+                if (byteIdx == 0)
+                    emitLine("lda  #$immPart")
+                else {
+                    emitLine("lda  #$immPart")
+                    emitLine("sbc  ${regAddrByte(reg, byteIdx)}")
+                }
+            }
+            emitLine("bcs  $label")
         }
     }
 }
@@ -204,37 +243,43 @@ private fun AsmGen.translateCmpBranchRegUnsigned(insn: IRInstruction, label: Str
             }
         }
         IRDataType.WORD -> {
-            emitLine("lda  ${regAddrLo(reg1)}")
-            emitLine("cmp  ${regAddrLo(reg2)}")
-            emitLine("lda  ${regAddrHi(reg1)}")
-            emitLine("sbc  ${regAddrHi(reg2)}")
             if (greaterThan) {
-                val skip = makeLabel("bskip")
-                emitLine("bcc  $skip")
-                emitLine("beq  $skip")
-                emitLine("jmp  $label")
-                emitLabel(skip)
+                // a > b -> b < a: swap operands
+                emitLine("lda  ${regAddrLo(reg2)}")
+                emitLine("cmp  ${regAddrLo(reg1)}")
+                emitLine("lda  ${regAddrHi(reg2)}")
+                emitLine("sbc  ${regAddrHi(reg1)}")
+                emitLine("bcc  $label")
             } else if (greaterOrEqual) {
+                emitLine("lda  ${regAddrLo(reg1)}")
+                emitLine("cmp  ${regAddrLo(reg2)}")
+                emitLine("lda  ${regAddrHi(reg1)}")
+                emitLine("sbc  ${regAddrHi(reg2)}")
                 emitLine("bcs  $label")
             }
         }
         IRDataType.LONG -> {
-            for (byteIdx in 0..3) {
-                if (byteIdx == 0) {
-                    emitLine("lda  ${regAddrByte(reg1, byteIdx)}")
-                    emitLine("cmp  ${regAddrByte(reg2, byteIdx)}")
-                } else {
-                    emitLine("lda  ${regAddrByte(reg1, byteIdx)}")
-                    emitLine("sbc  ${regAddrByte(reg2, byteIdx)}")
-                }
-            }
             if (greaterThan) {
-                val skip = makeLabel("bskip")
-                emitLine("bcc  $skip")
-                emitLine("beq  $skip")
-                emitLine("jmp  $label")
-                emitLabel(skip)
+                // a > b -> b < a: swap operands
+                for (byteIdx in 0..3) {
+                    if (byteIdx == 0)
+                        emitLine("lda  ${regAddrByte(reg2, byteIdx)}")
+                    else {
+                        emitLine("lda  ${regAddrByte(reg2, byteIdx)}")
+                        emitLine("sbc  ${regAddrByte(reg1, byteIdx)}")
+                    }
+                }
+                emitLine("bcc  $label")
             } else if (greaterOrEqual) {
+                for (byteIdx in 0..3) {
+                    if (byteIdx == 0) {
+                        emitLine("lda  ${regAddrByte(reg1, byteIdx)}")
+                        emitLine("cmp  ${regAddrByte(reg2, byteIdx)}")
+                    } else {
+                        emitLine("lda  ${regAddrByte(reg1, byteIdx)}")
+                        emitLine("sbc  ${regAddrByte(reg2, byteIdx)}")
+                    }
+                }
                 emitLine("bcs  $label")
             }
         }
@@ -299,74 +344,126 @@ private fun AsmGen.translateCmpBranchSigned(insn: IRInstruction, label: String,
             }
         }
         IRDataType.WORD -> {
-            emitLine("lda  ${regAddrLo(reg)}")
-            emitLine("cmp  #${imm and 0xff}")
-            emitLine("lda  ${regAddrHi(reg)}")
-            emitLine("sbc  #${(imm shr 8) and 0xff}")
             when {
                 greaterThan -> {
-                    val skip = makeLabel("bskip")
-                    emitLine("beq  $skip")
+                    // a > imm -> imm < a: swap operands (subtract reg FROM imm)
+                    emitLine("lda  #${imm and 0xff}")
+                    emitLine("cmp  ${regAddrLo(reg)}")
+                    emitLine("lda  #${(imm shr 8) and 0xff}")
+                    emitLine("sbc  ${regAddrHi(reg)}")
                     emitLine("bvc  +")
                     emitLine("eor  #${0x80}")
                     emitLine("+")
-                    emitLine("bpl  $label")
-                    emitLabel(skip)
+                    emitLine("bmi  $label")
                 }
                 greaterOrEqual -> {
+                    emitLine("lda  ${regAddrLo(reg)}")
+                    emitLine("cmp  #${imm and 0xff}")
+                    emitLine("lda  ${regAddrHi(reg)}")
+                    emitLine("sbc  #${(imm shr 8) and 0xff}")
                     emitLine("bvc  +")
                     emitLine("eor  #${0x80}")
                     emitLine("+")
                     emitLine("bpl  $label")
                 }
                 lessThan -> {
+                    emitLine("lda  ${regAddrLo(reg)}")
+                    emitLine("cmp  #${imm and 0xff}")
+                    emitLine("lda  ${regAddrHi(reg)}")
+                    emitLine("sbc  #${(imm shr 8) and 0xff}")
                     emitLine("bvc  +")
                     emitLine("eor  #${0x80}")
                     emitLine("+")
                     emitLine("bmi  $label")
                 }
                 lessOrEqual -> {
-                    val skip = makeLabel("bskip")
-                    emitLine("beq  $label")
+                    // a <= imm -> imm >= a: swap operands
+                    emitLine("lda  #${imm and 0xff}")
+                    emitLine("cmp  ${regAddrLo(reg)}")
+                    emitLine("lda  #${(imm shr 8) and 0xff}")
+                    emitLine("sbc  ${regAddrHi(reg)}")
                     emitLine("bvc  +")
                     emitLine("eor  #${0x80}")
                     emitLine("+")
-                    emitLine("bmi  $label")
-                    emitLabel(skip)
+                    emitLine("bpl  $label")
                 }
             }
         }
         IRDataType.LONG -> {
-            val skipLabel = makeLabel("bskip")
-            // Multi-byte subtraction with overflow correction on MSB only
-            for (byteIdx in 0..3) {
-                val regPart = regAddrByte(reg, byteIdx)
-                val immPart = (imm shr (byteIdx * 8)) and 0xff
-                if (byteIdx == 0) {
-                    emitLine("lda  $regPart")
-                    emitLine("cmp  #$immPart")
-                } else if (byteIdx < 3) {
-                    emitLine("lda  $regPart")
-                    emitLine("sbc  #$immPart")
-                } else {
-                    emitLine("lda  $regPart")
-                    emitLine("sbc  #$immPart")
-                    emitLine("bvc  +")
-                    emitLine("eor  #${0x80}")
-                    emitLine("+")
-                }
-            }
             when {
                 greaterThan -> {
-                    emitLine("beq  $skipLabel")
-                    emitLine("bpl  $label")
-                    emitLabel(skipLabel)
-                }
-                greaterOrEqual -> emitLine("bpl  $label")
-                lessThan -> emitLine("bmi  $label")
-                lessOrEqual -> {
-                    emitLine("beq  $label")
+                    // a > imm -> imm < a: swap operands (subtract reg FROM imm)
+                    for (byteIdx in 0..3) {
+                        val immPart = (imm shr (byteIdx * 8)) and 0xff
+                        if (byteIdx == 0)
+                            emitLine("lda  #$immPart")
+                        else if (byteIdx < 3) {
+                            emitLine("lda  #$immPart")
+                            emitLine("sbc  ${regAddrByte(reg, byteIdx)}")
+                        } else {
+                            emitLine("lda  #$immPart")
+                            emitLine("sbc  ${regAddrByte(reg, byteIdx)}")
+                            emitLine("bvc  +")
+                            emitLine("eor  #${0x80}")
+                            emitLine("+")
+                        }
+                    }
                     emitLine("bmi  $label")
+                }
+                greaterOrEqual -> {
+                    for (byteIdx in 0..3) {
+                        val immPart = (imm shr (byteIdx * 8)) and 0xff
+                        if (byteIdx == 0)
+                            emitLine("lda  ${regAddrByte(reg, byteIdx)}")
+                        else if (byteIdx < 3) {
+                            emitLine("lda  ${regAddrByte(reg, byteIdx)}")
+                            emitLine("sbc  #$immPart")
+                        } else {
+                            emitLine("lda  ${regAddrByte(reg, byteIdx)}")
+                            emitLine("sbc  #$immPart")
+                            emitLine("bvc  +")
+                            emitLine("eor  #${0x80}")
+                            emitLine("+")
+                        }
+                    }
+                    emitLine("bpl  $label")
+                }
+                lessThan -> {
+                    for (byteIdx in 0..3) {
+                        val immPart = (imm shr (byteIdx * 8)) and 0xff
+                        if (byteIdx == 0)
+                            emitLine("lda  ${regAddrByte(reg, byteIdx)}")
+                        else if (byteIdx < 3) {
+                            emitLine("lda  ${regAddrByte(reg, byteIdx)}")
+                            emitLine("sbc  #$immPart")
+                        } else {
+                            emitLine("lda  ${regAddrByte(reg, byteIdx)}")
+                            emitLine("sbc  #$immPart")
+                            emitLine("bvc  +")
+                            emitLine("eor  #${0x80}")
+                            emitLine("+")
+                        }
+                    }
+                    emitLine("bmi  $label")
+                }
+                lessOrEqual -> {
+                    // a <= imm -> imm >= a: swap operands
+                    for (byteIdx in 0..3) {
+                        val immPart = (imm shr (byteIdx * 8)) and 0xff
+                        if (byteIdx == 0)
+                            emitLine("lda  #$immPart")
+                        else if (byteIdx < 3) {
+                            emitLine("lda  #$immPart")
+                            emitLine("sbc  ${regAddrByte(reg, byteIdx)}")
+                        } else {
+                            emitLine("lda  #$immPart")
+                            emitLine("sbc  ${regAddrByte(reg, byteIdx)}")
+                            emitLine("bvc  +")
+                            emitLine("eor  #${0x80}")
+                            emitLine("+")
+                        }
+                    }
+                    emitLine("bpl  $label")
                 }
             }
         }
@@ -411,55 +508,115 @@ private fun AsmGen.translateCmpBranchRegSigned(insn: IRInstruction, label: Strin
             }
         }
         IRDataType.WORD -> {
-            emitLine("lda  ${regAddrLo(reg1)}")
-            emitLine("cmp  ${regAddrLo(reg2)}")
-            emitLine("lda  ${regAddrHi(reg1)}")
-            emitLine("sbc  ${regAddrHi(reg2)}")
-            emitLine("bvc  +")
-            emitLine("eor  #${0x80}")
-            emitLine("+")
             if (greaterThan) {
-                val skip = makeLabel("bskip")
-                emitLine("beq  $skip")
-                emitLine("bpl  $label")
-                emitLabel(skip)
+                // a > b -> b < a: swap operands, check N=1 after correction
+                emitLine("lda  ${regAddrLo(reg2)}")
+                emitLine("cmp  ${regAddrLo(reg1)}")
+                emitLine("lda  ${regAddrHi(reg2)}")
+                emitLine("sbc  ${regAddrHi(reg1)}")
+                emitLine("bvc  +")
+                emitLine("eor  #${0x80}")
+                emitLine("+")
+                emitLine("bmi  $label")
             } else if (greaterOrEqual) {
+                emitLine("lda  ${regAddrLo(reg1)}")
+                emitLine("cmp  ${regAddrLo(reg2)}")
+                emitLine("lda  ${regAddrHi(reg1)}")
+                emitLine("sbc  ${regAddrHi(reg2)}")
+                emitLine("bvc  +")
+                emitLine("eor  #${0x80}")
+                emitLine("+")
                 emitLine("bpl  $label")
             } else if (lessThan) {
+                emitLine("lda  ${regAddrLo(reg1)}")
+                emitLine("cmp  ${regAddrLo(reg2)}")
+                emitLine("lda  ${regAddrHi(reg1)}")
+                emitLine("sbc  ${regAddrHi(reg2)}")
+                emitLine("bvc  +")
+                emitLine("eor  #${0x80}")
+                emitLine("+")
                 emitLine("bmi  $label")
             } else if (lessOrEqual) {
-                emitLine("beq  $label")
-                emitLine("bmi  $label")
+                // a <= b -> b >= a: swap operands, check N=0 after correction
+                emitLine("lda  ${regAddrLo(reg2)}")
+                emitLine("cmp  ${regAddrLo(reg1)}")
+                emitLine("lda  ${regAddrHi(reg2)}")
+                emitLine("sbc  ${regAddrHi(reg1)}")
+                emitLine("bvc  +")
+                emitLine("eor  #${0x80}")
+                emitLine("+")
+                emitLine("bpl  $label")
             }
         }
         IRDataType.LONG -> {
-            for (byteIdx in 0..3) {
-                if (byteIdx == 0) {
-                    emitLine("lda  ${regAddrByte(reg1, byteIdx)}")
-                    emitLine("cmp  ${regAddrByte(reg2, byteIdx)}")
-                } else if (byteIdx < 3) {
-                    emitLine("lda  ${regAddrByte(reg1, byteIdx)}")
-                    emitLine("sbc  ${regAddrByte(reg2, byteIdx)}")
-                } else {
-                    emitLine("lda  ${regAddrByte(reg1, byteIdx)}")
-                    emitLine("sbc  ${regAddrByte(reg2, byteIdx)}")
-                    emitLine("bvc  +")
-                    emitLine("eor  #${0x80}")
-                    emitLine("+")
-                }
-            }
             if (greaterThan) {
-                val skip = makeLabel("bskip")
-                emitLine("beq  $skip")
-                emitLine("bpl  $label")
-                emitLabel(skip)
+                // a > b -> b < a: swap operands
+                for (byteIdx in 0..3) {
+                    if (byteIdx == 0)
+                        emitLine("lda  ${regAddrByte(reg2, byteIdx)}")
+                    else if (byteIdx < 3) {
+                        emitLine("lda  ${regAddrByte(reg2, byteIdx)}")
+                        emitLine("sbc  ${regAddrByte(reg1, byteIdx)}")
+                    } else {
+                        emitLine("lda  ${regAddrByte(reg2, byteIdx)}")
+                        emitLine("sbc  ${regAddrByte(reg1, byteIdx)}")
+                        emitLine("bvc  +")
+                        emitLine("eor  #${0x80}")
+                        emitLine("+")
+                    }
+                }
+                emitLine("bmi  $label")
             } else if (greaterOrEqual) {
+                for (byteIdx in 0..3) {
+                    if (byteIdx == 0) {
+                        emitLine("lda  ${regAddrByte(reg1, byteIdx)}")
+                        emitLine("cmp  ${regAddrByte(reg2, byteIdx)}")
+                    } else if (byteIdx < 3) {
+                        emitLine("lda  ${regAddrByte(reg1, byteIdx)}")
+                        emitLine("sbc  ${regAddrByte(reg2, byteIdx)}")
+                    } else {
+                        emitLine("lda  ${regAddrByte(reg1, byteIdx)}")
+                        emitLine("sbc  ${regAddrByte(reg2, byteIdx)}")
+                        emitLine("bvc  +")
+                        emitLine("eor  #${0x80}")
+                        emitLine("+")
+                    }
+                }
                 emitLine("bpl  $label")
             } else if (lessThan) {
+                for (byteIdx in 0..3) {
+                    if (byteIdx == 0) {
+                        emitLine("lda  ${regAddrByte(reg1, byteIdx)}")
+                        emitLine("cmp  ${regAddrByte(reg2, byteIdx)}")
+                    } else if (byteIdx < 3) {
+                        emitLine("lda  ${regAddrByte(reg1, byteIdx)}")
+                        emitLine("sbc  ${regAddrByte(reg2, byteIdx)}")
+                    } else {
+                        emitLine("lda  ${regAddrByte(reg1, byteIdx)}")
+                        emitLine("sbc  ${regAddrByte(reg2, byteIdx)}")
+                        emitLine("bvc  +")
+                        emitLine("eor  #${0x80}")
+                        emitLine("+")
+                    }
+                }
                 emitLine("bmi  $label")
             } else if (lessOrEqual) {
-                emitLine("beq  $label")
-                emitLine("bmi  $label")
+                // a <= b -> b >= a: swap operands
+                for (byteIdx in 0..3) {
+                    if (byteIdx == 0)
+                        emitLine("lda  ${regAddrByte(reg2, byteIdx)}")
+                    else if (byteIdx < 3) {
+                        emitLine("lda  ${regAddrByte(reg2, byteIdx)}")
+                        emitLine("sbc  ${regAddrByte(reg1, byteIdx)}")
+                    } else {
+                        emitLine("lda  ${regAddrByte(reg2, byteIdx)}")
+                        emitLine("sbc  ${regAddrByte(reg1, byteIdx)}")
+                        emitLine("bvc  +")
+                        emitLine("eor  #${0x80}")
+                        emitLine("+")
+                    }
+                }
+                emitLine("bpl  $label")
             }
         }
         IRDataType.FLOAT -> error("float branch not supported")

@@ -953,20 +953,28 @@ internal fun AsmGen.compareRegisters(r1: Int, r2: Int, type: IRDataType) {
             emitLine("cmp  ${regAddrLo(r2)}")
         }
         IRDataType.WORD -> {
+            val skip = makeLabel("cmpskip")
             emitLine("lda  ${regAddrLo(r1)}")
             emitLine("cmp  ${regAddrLo(r2)}")
+            emitLine("bne  $skip")
             emitLine("lda  ${regAddrHi(r1)}")
-            emitLine("sbc  ${regAddrHi(r2)}")
+            emitLine("cmp  ${regAddrHi(r2)}")
+            emitLabel(skip)
         }
         IRDataType.LONG -> {
+            val skip = makeLabel("cmpskip")
             emitLine("lda  ${regAddrLo(r1)}")
             emitLine("cmp  ${regAddrLo(r2)}")
+            emitLine("bne  $skip")
             emitLine("lda  ${regAddrHi(r1)}")
-            emitLine("sbc  ${regAddrHi(r2)}")
+            emitLine("cmp  ${regAddrHi(r2)}")
+            emitLine("bne  $skip")
             emitLine("lda  ${regAddrByte(r1, 2)}")
-            emitLine("sbc  ${regAddrByte(r2, 2)}")
+            emitLine("cmp  ${regAddrByte(r2, 2)}")
+            emitLine("bne  $skip")
             emitLine("lda  ${regAddrByte(r1, 3)}")
-            emitLine("sbc  ${regAddrByte(r2, 3)}")
+            emitLine("cmp  ${regAddrByte(r2, 3)}")
+            emitLabel(skip)
         }
         IRDataType.FLOAT -> TODO("FLOAT CMP r$r1, r$r2")
     }
@@ -987,10 +995,13 @@ internal fun AsmGen.compareImmediate(r1: Int, value: Int, type: IRDataType) {
                 emitLine("lda  ${regAddrLo(r1)}")
                 emitLine("ora  ${regAddrHi(r1)}")
             } else {
+                val skip = makeLabel("cmpskip")
                 emitLine("lda  ${regAddrLo(r1)}")
                 emitLine("cmp  #<${value and 0xffff}")
+                emitLine("bne  $skip")
                 emitLine("lda  ${regAddrHi(r1)}")
-                emitLine("sbc  #>${value and 0xffff}")
+                emitLine("cmp  #>${value and 0xffff}")
+                emitLabel(skip)
             }
         }
         IRDataType.LONG -> {
@@ -1001,14 +1012,19 @@ internal fun AsmGen.compareImmediate(r1: Int, value: Int, type: IRDataType) {
                 emitLine("ora  ${regAddrByte(r1, 2)}")
                 emitLine("ora  ${regAddrByte(r1, 3)}")
             } else {
+                val skip = makeLabel("cmpskip")
                 emitLine("lda  ${regAddrLo(r1)}")
                 emitLine("cmp  #${value and 0xff}")
+                emitLine("bne  $skip")
                 emitLine("lda  ${regAddrHi(r1)}")
-                emitLine("sbc  #${(value shr 8) and 0xff}")
+                emitLine("cmp  #${(value shr 8) and 0xff}")
+                emitLine("bne  $skip")
                 emitLine("lda  ${regAddrByte(r1, 2)}")
-                emitLine("sbc  #${(value shr 16) and 0xff}")
+                emitLine("cmp  #${(value shr 16) and 0xff}")
+                emitLine("bne  $skip")
                 emitLine("lda  ${regAddrByte(r1, 3)}")
-                emitLine("sbc  #${(value shr 24) and 0xff}")
+                emitLine("cmp  #${(value shr 24) and 0xff}")
+                emitLabel(skip)
             }
         }
         else -> TODO("CMPI r$r1, #$value ${type.name}")
