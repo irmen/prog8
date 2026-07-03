@@ -26,6 +26,10 @@
  *   - ge:  N==V
  *   - lt:  N!=V
  *   - le:  Z=1 or (N!=V)
+ *
+ * The signed comparison technique uses overflow correction:
+ *   sec / sbc value / bvc + / eor #$80 / +
+ * After this, N=0 means the result is >= 0 (left >= right for subtraction left-right).
  */
 
 package prog8.codegen.new6502
@@ -54,280 +58,391 @@ internal fun AsmGen.translateBranch(insn: IRInstruction) {
         Opcode.BSTVC -> emitLine("bvc  $label")
         Opcode.BSTVS -> emitLine("bvs  $label")
 
-        // Unsigned comparison branches: emit CMP then check flags.
-        // For WORD/LONG, Z after cmp+sbc cascade is unreliable for multi-byte,
-        // so BGT and BLE need a byte-by-byte equality check.
-        Opcode.BGT -> {
-            emitCmpForBranch(insn)
-            if (insn.type != null && insn.type != IRDataType.BYTE) {
-                // TODO what the heck is going on here, looks like a buch of redundant/dead instructions hapopening
-                emitLine("php")                    // save C from cascade
-                emitEqualityCheck(insn.reg1!!, insn.reg2, insn.immediate, insn.type!!)
-                emitLine("plp")                    // all equal: restore C
-                emitLine("jmp  ++")                // skip (NOT gt)
-                emitLabel("+")                     // not-equal landing
-                emitLine("plp")                    // restore C from cascade
-                emitLine("bcs  $label")            // unsigned above -> branch
-                emitLabel("+")                     // skip point
-            } else {
-                emitLine("beq  +")
-                emitLine("bcs  $label")
-                emitLabel("+")
-            }
-        }
-        Opcode.BGTR -> {
-            emitCmpForBranch(insn)
-            if (insn.type != null && insn.type != IRDataType.BYTE) {
-                // TODO what the heck is going on here, looks like a buch of redundant/dead instructions hapopening
-                emitLine("php")
-                emitEqualityCheck(insn.reg1!!, insn.reg2, insn.immediate, insn.type!!)
-                emitLine("plp")
-                emitLine("jmp  ++")
-                emitLabel("+")
-                emitLine("plp")
-                emitLine("bcs  $label")
-                emitLabel("+")
-            } else {
-                emitLine("beq  +")
-                emitLine("bcs  $label")
-                emitLabel("+")
-            }
-        }
-        Opcode.BGE -> {
-            emitCmpForBranch(insn)
-            emitLine("bcs  $label")
-        }
-        Opcode.BGER -> {
-            emitCmpForBranch(insn)
-            emitLine("bcs  $label")
-        }
-        Opcode.BLT -> {
-            emitCmpForBranch(insn)
-            emitLine("bcc  $label")
-        }
-        Opcode.BLE -> {
-            emitCmpForBranch(insn)
-            if (insn.type != null && insn.type != IRDataType.BYTE) {
-                // TODO what the heck is going on here, looks like a buch of redundant/dead instructions hapopening
-                emitLine("php")
-                emitEqualityCheck(insn.reg1!!, insn.reg2, insn.immediate, insn.type!!)
-                emitLine("plp")
-                emitLine("jmp  $label")            // all equal -> branch (le)
-                emitLabel("+")                     // not-equal landing
-                emitLine("plp")
-                emitLine("bcc  $label")            // unsigned below -> branch
-                emitLabel("+")                     // skip point
-            } else {
-                emitLine("beq  $label")
-                emitLine("bcc  $label")
-            }
-        }
+        // Unsigned integer comparison branches: emit CMP then check flags.
+//        never emitted here: Opcode.BGT -> translateCmpBranchUnsigned(insn, label, greaterThan = true)
+//        never emitted here> Opcode.BGTR -> translateCmpBranchRegUnsigned(insn, label, greaterThan = true)
+        Opcode.BGE -> translateCmpBranchUnsigned(insn, label, greaterOrEqual = true)
+        Opcode.BGER -> translateCmpBranchRegUnsigned(insn, label, greaterOrEqual = true)
+        Opcode.BLT -> translateCmpBranchUnsigned(insn, label, lessThan = true)
+//        never emitted here: Opcode.BLE -> translateCmpBranchUnsigned(insn, label, lessOrEqual = true)
+//
+//        // Signed integer comparison branches: emit CMP then check N/V flags with overflow correction.
+        Opcode.BGTS -> translateCmpBranchSigned(insn, label, greaterThan = true)
+        Opcode.BGTSR -> translateCmpBranchRegSigned(insn, label, greaterThan = true)
+        Opcode.BGES -> translateCmpBranchSigned(insn, label, greaterOrEqual = true)
+        Opcode.BGESR -> translateCmpBranchRegSigned(insn, label, greaterOrEqual = true)
+        Opcode.BLTS -> translateCmpBranchSigned(insn, label, lessThan = true)
+//        never emitted here> Opcode.BLES -> translateCmpBranchSigned(insn, label, lessOrEqual = true)
 
-        // Signed comparison branches: emit CMP then check N/V flags
-        Opcode.BGTSR -> {
-            emitCmpForBranch(insn)
-            emitSignedBranch("gt", label, insn.type, insn.reg1, insn.reg2, insn.immediate)
-        }
-        Opcode.BGTS -> {
-            emitCmpForBranch(insn)
-            emitSignedBranch("gt", label, insn.type, insn.reg1, insn.reg2, insn.immediate)
-        }
-        Opcode.BGESR -> {
-            emitCmpForBranch(insn)
-            emitSignedBranch("ge", label)
-        }
-        Opcode.BGES -> {
-            emitCmpForBranch(insn)
-            emitSignedBranch("ge", label)
-        }
-        Opcode.BLTS -> {
-            emitCmpForBranch(insn)
-            emitSignedBranch("lt", label)
-        }
-        Opcode.BLES -> {
-            emitCmpForBranch(insn)
-            emitSignedBranch("le", label, insn.type, insn.reg1, insn.reg2, insn.immediate)
-        }
-
-        else -> error("Unknown branch opcode: ${insn.opcode}")
+        else -> TODO("Unknown branch opcode: ${insn.opcode}")
     }
 }
 
-private fun AsmGen.emitCmpForBranch(insn: IRInstruction) {
-    // Emit a CMP between the branch's two operands.
-    // The IR branch instructions are self-contained: they carry the operands to compare.
-    val r1 = insn.reg1 ?: error("Branch ${insn.opcode} needs reg1")
+private fun AsmGen.translateCmpBranchUnsigned(insn: IRInstruction, label: String,
+                                              greaterThan: Boolean = false,
+                                              greaterOrEqual: Boolean = false,
+                                              lessThan: Boolean = false,
+                                              lessOrEqual: Boolean = false) {
     val type = insn.type ?: IRDataType.BYTE
-    val immediate = insn.immediate
+    val reg = insn.reg1 ?: error("branch needs reg1")
+    val imm = insn.immediate ?: error("unsigned branch needs immediate")
 
-    if(immediate != null) {
-        // Register vs immediate comparison
-        when (type) {
-            IRDataType.BYTE -> {
-                emitLine("lda  ${regAddrLo(r1)}")
-                emitLine("cmp  #${immediate and 0xff}")
+    when (type) {
+        IRDataType.BYTE -> {
+            emitLine("lda  ${regAddrLo(reg)}")
+            emitLine("cmp  #${imm and 0xff}")
+            when {
+                greaterThan -> {
+                    // A > imm: use bcc (A < imm) + beq (A == imm) to skip
+                    val skip = makeLabel("bskip")
+                    emitLine("bcc  $skip")
+                    emitLine("beq  $skip")
+                    emitLine("jmp  $label")
+                    emitLabel(skip)
+                }
+                greaterOrEqual -> {
+                    // A >= imm: bcs label (branch if carry set, i.e., A >= imm unsigned)
+                    emitLine("bcs  $label")
+                }
+                lessThan -> {
+                    // A < imm: bcc label (branch if C=0, i.e., A < imm)
+                    emitLine("bcc  $label")
+                }
+                lessOrEqual -> {
+                    // A <= imm: bcc (A < imm) or beq (A == imm)
+                    emitLine("bcc  $label")
+                    emitLine("beq  $label")
+                }
             }
-            IRDataType.WORD -> {
-                emitLine("lda  ${regAddrLo(r1)}")
-                emitLine("cmp  #${immediate and 0xff}")
-                emitLine("lda  ${regAddrHi(r1)}")
-                emitLine("sbc  #${(immediate shr 8) and 0xff}")
-            }
-            IRDataType.LONG -> {
-                emitLine("lda  ${regAddrLo(r1)}")
-                emitLine("cmp  #${immediate and 0xff}")
-                emitLine("lda  ${regAddrHi(r1)}")
-                emitLine("sbc  #${(immediate shr 8) and 0xff}")
-                emitLine("lda  ${regAddrByte(r1, 2)}")
-                emitLine("sbc  #${(immediate shr 16) and 0xff}")
-                emitLine("lda  ${regAddrByte(r1, 3)}")
-                emitLine("sbc  #${(immediate shr 24) and 0xff}")
-            }
-            else -> throw IllegalArgumentException("no cmp on type $type") 
         }
-    } else {
-        // Register vs register comparison
-        val r2 = insn.reg2 ?: error("Branch ${insn.opcode} needs reg2")
-        when (type) {
-            IRDataType.BYTE -> {
-                emitLine("lda  ${regAddrLo(r1)}")
-                emitLine("cmp  ${regAddrLo(r2)}")
+        IRDataType.WORD -> {
+            emitLine("lda  ${regAddrLo(reg)}")
+            emitLine("cmp  #${imm and 0xff}")
+            emitLine("lda  ${regAddrHi(reg)}")
+            emitLine("sbc  #${(imm shr 8) and 0xff}")
+            when {
+                greaterThan -> {
+                    val skip = makeLabel("bskip")
+                    emitLine("bcc  $skip")
+                    emitLine("beq  $skip")
+                    emitLine("jmp  $label")
+                    emitLabel(skip)
+                }
+                greaterOrEqual -> {
+                    emitLine("bcs  $label")
+                }
+                lessThan -> {
+                    emitLine("bcc  $label")
+                }
+                lessOrEqual -> {
+                    emitLine("bcc  $label")
+                    emitLine("beq  $label")
+                }
             }
-            IRDataType.WORD -> {
-                emitLine("lda  ${regAddrLo(r1)}")
-                emitLine("cmp  ${regAddrLo(r2)}")
-                emitLine("lda  ${regAddrHi(r1)}")
-                emitLine("sbc  ${regAddrHi(r2)}")
-            }
-            IRDataType.LONG -> {
-                emitLine("lda  ${regAddrLo(r1)}")
-                emitLine("cmp  ${regAddrLo(r2)}")
-                emitLine("lda  ${regAddrHi(r1)}")
-                emitLine("sbc  ${regAddrHi(r2)}")
-                emitLine("lda  ${regAddrByte(r1, 2)}")
-                emitLine("sbc  ${regAddrByte(r2, 2)}")
-                emitLine("lda  ${regAddrByte(r1, 3)}")
-                emitLine("sbc  ${regAddrByte(r2, 3)}")
-            }
-            else -> throw IllegalArgumentException("no cmp on type $type")
+        }
+        IRDataType.LONG -> translateCmpBranchLongUnsigned(insn, label, greaterThan, greaterOrEqual, lessThan, lessOrEqual)
+        IRDataType.FLOAT -> error("float branch not supported")
+    }
+}
+
+private fun AsmGen.translateCmpBranchLongUnsigned(insn: IRInstruction, label: String,
+                                                  greaterThan: Boolean,
+                                                  greaterOrEqual: Boolean,
+                                                  lessThan: Boolean,
+                                                  lessOrEqual: Boolean) {
+    val reg = insn.reg1 ?: error("branch needs reg1")
+    val imm = insn.immediate ?: error("branch needs immediate")
+    for (byteIdx in 0..3) {
+        val regPart = if (byteIdx < 2) regAddrByte(reg, byteIdx) else regAddrByte(reg, byteIdx)
+        val immPart = (imm shr (byteIdx * 8)) and 0xff
+        if (byteIdx == 0) {
+            emitLine("lda  $regPart")
+            emitLine("cmp  #$immPart")
+        } else {
+            emitLine("lda  $regPart")
+            emitLine("sbc  #$immPart")
+        }
+    }
+    when {
+        greaterThan -> {
+            val skip = makeLabel("bskip")
+            emitLine("bcc  $skip")
+            emitLine("beq  $skip")
+            emitLine("jmp  $label")
+            emitLabel(skip)
+        }
+        greaterOrEqual -> emitLine("bcs  $label")
+        lessThan -> emitLine("bcc  $label")
+        lessOrEqual -> {
+            emitLine("bcc  $label")
+            emitLine("beq  $label")
         }
     }
 }
 
-private fun AsmGen.emitSignedBranch(cond: String, label: String, type: IRDataType? = null, reg1: Int? = null, reg2: Int? = null, immediate: Int? = null) {
-    // Standard 6502 signed comparison patterns after CMP.
-    // Flags: N = sign of result, V = overflow, Z = zero.
-    // Branch on (N == V) for signed >= and >, (N != V) for < and <=.
-    // 64tass local labels: + = forward, - = backward, ++ = next-forward, etc.
-    //
-    // IMPORTANT: For multi-byte comparisons (WORD, LONG), the Z flag from
-    // the cmp+sbc cascade is UNRELIABLE: it only reflects the last byte
-    // comparison, not the full value. The "gt" and "le" patterns use Z to
-    // distinguish equality from greater-than/less-than, so they need a
-    // separate byte-by-byte equality check with reliable Z.
-    // "ge" and "lt" don't use Z (they only check N/V), so they're safe.
+private fun AsmGen.translateCmpBranchRegUnsigned(insn: IRInstruction, label: String,
+                                                 greaterThan: Boolean = false,
+                                                 greaterOrEqual: Boolean = false) {
+    val type = insn.type ?: IRDataType.BYTE
+    val reg1 = insn.reg1 ?: error("branch needs reg1")
+    val reg2 = insn.reg2 ?: error("reg branch needs reg2")
 
-    val multiByte = type != null && type != IRDataType.BYTE && reg1 != null
-    val eqLabel = label + ".eq"       // unique label for equality check pass-through
-
-    when (cond) {
-        "gt" -> {
-            if (multiByte) {
-                emitLine("php")          // save N,V,C,Z from cmp+sbc cascade
-                // Reliable byte-by-byte equality check
-                emitEqualityCheck(reg1, reg2, immediate, type)
-                // All bytes equal: pop saved flags and skip gt
-                emitLine("plp")
-                emitLine("jmp  $eqLabel")
-                // Not equal: restore N,V from cascade and do signed gt check
-                // TODO what the heck is going on here, looks like a buch of redundant/dead instructions hapopening
-                emitLabel("+")           // not-equal landing (future + for bne +, PAST for code below)
-                emitLine("plp")
-                emitLine("bvc  +")       // 1st future + from here: V=0 landing
-                emitLine("bmi  $label")  // V=1,N=1: inverted -> positive (gt)
-                emitLine("jmp  ++")      // 2nd future + from here: not-gt skip
-                emitLabel("+")           // V=0 landing
-                emitLine("bpl  $label")  // V=0,N=0: positive -> gt
-                emitLabel("+")           // not-gt skip
-                emitLabel(eqLabel)       // equal skip
-            } else {
-                // For signed > comparison with 0, check N=0 and Z=0
-                emitLine("beq  +")         // if Z=1 (equal to 0), skip (NOT gt)
-                emitLine("bpl  $label")    // if N=0 (positive), branch to label (gt)
-                emitLabel("+")             // skip point (not gt)
-            }
-        }
-        "ge" -> {
-            // For signed >= comparison with 0, just check N flag
-            // N=0 means positive or zero (>= 0), N=1 means negative (< 0)
-            emitLine("bpl  $label")      // branch if N=0 (positive or zero)
-        }
-        "lt" -> {
-            // For signed < comparison with 0, just check N flag
-            // N=1 means negative (< 0), N=0 means positive or zero (>= 0)
-            emitLine("bmi  $label")      // branch if N=1 (negative)
-        }
-        "le" -> {
-            if (multiByte) {
-                emitLine("php")          // save N,V,C,Z from cmp+sbc cascade
-                // Reliable byte-by-byte equality check
-                emitEqualityCheck(reg1, reg2, immediate, type)
-                // All bytes equal: pop saved flags and branch to label (le)
-                emitLine("plp")
+    when (type) {
+        IRDataType.BYTE -> {
+            emitLine("lda  ${regAddrLo(reg1)}")
+            emitLine("cmp  ${regAddrLo(reg2)}")
+            if (greaterThan) {
+                val skip = makeLabel("bskip")
+                emitLine("bcc  $skip")
+                emitLine("beq  $skip")
                 emitLine("jmp  $label")
-                // Not equal: restore N,V from cascade and do signed lt check
-                // TODO what the heck is going on here, looks like a buch of redundant/dead instructions hapopening
-                emitLabel("+")           // not-equal landing (future + for bne +, PAST for code below)
-                emitLine("plp")
-                emitLine("bvc  +")       // 1st future + from here: V=0 landing
-                emitLine("bpl  $label")  // V=1,N=0: inverted -> negative
-                emitLine("jmp  ++")      // 2nd future + from here: not-lt skip
-                emitLabel("+")           // V=0 landing
-                emitLine("bmi  $label")  // V=0,N=1: negative -> lt
-                emitLabel("+")           // not-lt skip
-            } else {
-                // For signed <= comparison with 0, check N=1 or Z=1
-                emitLine("beq  $label")  // if Z=1 (equal to 0), branch to label (le)
-                emitLine("bmi  $label")  // if N=1 (negative), branch to label (le)
+                emitLabel(skip)
+            } else if (greaterOrEqual) {
+                emitLine("bcs  $label")
             }
         }
+        IRDataType.WORD -> {
+            emitLine("lda  ${regAddrLo(reg1)}")
+            emitLine("cmp  ${regAddrLo(reg2)}")
+            emitLine("lda  ${regAddrHi(reg1)}")
+            emitLine("sbc  ${regAddrHi(reg2)}")
+            if (greaterThan) {
+                val skip = makeLabel("bskip")
+                emitLine("bcc  $skip")
+                emitLine("beq  $skip")
+                emitLine("jmp  $label")
+                emitLabel(skip)
+            } else if (greaterOrEqual) {
+                emitLine("bcs  $label")
+            }
+        }
+        IRDataType.LONG -> {
+            for (byteIdx in 0..3) {
+                if (byteIdx == 0) {
+                    emitLine("lda  ${regAddrByte(reg1, byteIdx)}")
+                    emitLine("cmp  ${regAddrByte(reg2, byteIdx)}")
+                } else {
+                    emitLine("lda  ${regAddrByte(reg1, byteIdx)}")
+                    emitLine("sbc  ${regAddrByte(reg2, byteIdx)}")
+                }
+            }
+            if (greaterThan) {
+                val skip = makeLabel("bskip")
+                emitLine("bcc  $skip")
+                emitLine("beq  $skip")
+                emitLine("jmp  $label")
+                emitLabel(skip)
+            } else if (greaterOrEqual) {
+                emitLine("bcs  $label")
+            }
+        }
+        IRDataType.FLOAT -> error("float branch not supported")
     }
 }
 
-private fun AsmGen.emitEqualityCheck(reg1: Int, reg2: Int?, immediate: Int?, type: IRDataType) {
-    // Byte-by-byte equality check for reliable Z flag.
-    // Each byte mismatch branches to the first forward anonymous label (+).
-    // Every byte comparison must have a bne + to detect mismatch of ANY byte.
-    if (immediate != null) {
-        emitLine("lda  ${regAddrLo(reg1)}")
-        emitLine("cmp  #${immediate and 0xff}")
-        emitLine("bne  +")
-        emitLine("lda  ${regAddrHi(reg1)}")
-        emitLine("cmp  #${(immediate shr 8) and 0xff}")
-        emitLine("bne  +")
-        if (type == IRDataType.LONG) {
-            emitLine("lda  ${regAddrByte(reg1, 2)}")
-            emitLine("cmp  #${(immediate shr 16) and 0xff}")
-            emitLine("bne  +")
-            emitLine("lda  ${regAddrByte(reg1, 3)}")
-            emitLine("cmp  #${(immediate shr 24) and 0xff}")
-            emitLine("bne  +")
+/**
+ * Signed comparison branch with immediate value.
+ * Uses the overflow correction technique: sec / sbc / bvc+ / eor #$80 /
+ * After correction, N=0 means left >= right (for subtraction left-right).
+ */
+private fun AsmGen.translateCmpBranchSigned(insn: IRInstruction, label: String,
+                                            greaterThan: Boolean = false,
+                                            greaterOrEqual: Boolean = false,
+                                            lessThan: Boolean = false,
+                                            lessOrEqual: Boolean = false) {
+    val type = insn.type ?: IRDataType.BYTE
+    val reg = insn.reg1 ?: error("branch needs reg1")
+    val imm = insn.immediate ?: error("signed branch needs immediate")
+
+    when (type) {
+        IRDataType.BYTE -> {
+            emitLine("lda  ${regAddrLo(reg)}")
+            emitLine("sec")
+            emitLine("sbc  #${imm and 0xff}")
+            when {
+                greaterThan -> {
+                    // left > right (signed): Z=0 after subtraction, then N=0 after correction
+                    val skip = makeLabel("bskip")
+                    emitLine("beq  $skip")       // equal: not greater
+                    emitLine("bvc  +")
+                    emitLine("eor  #${0x80}")    // overflow: correct N flag
+                    emitLine("+")
+                    emitLine("bpl  $label")      // N=0 after correction: left > right
+                    emitLabel(skip)
+                }
+                greaterOrEqual -> {
+                    // left >= right (signed): N=0 after correction
+                    emitLine("bvc  +")
+                    emitLine("eor  #${0x80}")
+                    emitLine("+")
+                    emitLine("bpl  $label")
+                }
+                lessThan -> {
+                    // left < right (signed): N=1 after correction
+                    emitLine("bvc  +")
+                    emitLine("eor  #${0x80}")
+                    emitLine("+")
+                    emitLine("bmi  $label")
+                }
+                lessOrEqual -> {
+                    // left <= right (signed): Z=1 or N=1 after correction
+                    val skip = makeLabel("bskip")
+                    emitLine("beq  $label")      // equal: is less-or-equal
+                    emitLine("bvc  +")
+                    emitLine("eor  #${0x80}")
+                    emitLine("+")
+                    emitLine("bmi  $label")      // negative: left < right
+                    emitLabel(skip)
+                }
+            }
         }
-    } else {
-        val r2 = reg2 ?: error("Need reg2 for register-register equality check")
-        emitLine("lda  ${regAddrLo(reg1)}")
-        emitLine("cmp  ${regAddrLo(r2)}")
-        emitLine("bne  +")
-        emitLine("lda  ${regAddrHi(reg1)}")
-        emitLine("cmp  ${regAddrHi(r2)}")
-        emitLine("bne  +")
-        if (type == IRDataType.LONG) {
-            emitLine("lda  ${regAddrByte(reg1, 2)}")
-            emitLine("cmp  ${regAddrByte(r2, 2)}")
-            emitLine("bne  +")
-            emitLine("lda  ${regAddrByte(reg1, 3)}")
-            emitLine("cmp  ${regAddrByte(r2, 3)}")
-            emitLine("bne  +")
+        IRDataType.WORD -> {
+            emitLine("lda  ${regAddrLo(reg)}")
+            emitLine("cmp  #${imm and 0xff}")
+            emitLine("lda  ${regAddrHi(reg)}")
+            emitLine("sbc  #${(imm shr 8) and 0xff}")
+            when {
+                greaterThan -> {
+                    val skip = makeLabel("bskip")
+                    emitLine("beq  $skip")
+                    emitLine("bvc  +")
+                    emitLine("eor  #${0x80}")
+                    emitLine("+")
+                    emitLine("bpl  $label")
+                    emitLabel(skip)
+                }
+                greaterOrEqual -> {
+                    emitLine("bvc  +")
+                    emitLine("eor  #${0x80}")
+                    emitLine("+")
+                    emitLine("bpl  $label")
+                }
+                lessThan -> {
+                    emitLine("bvc  +")
+                    emitLine("eor  #${0x80}")
+                    emitLine("+")
+                    emitLine("bmi  $label")
+                }
+                lessOrEqual -> {
+                    val skip = makeLabel("bskip")
+                    emitLine("beq  $label")
+                    emitLine("bvc  +")
+                    emitLine("eor  #${0x80}")
+                    emitLine("+")
+                    emitLine("bmi  $label")
+                    emitLabel(skip)
+                }
+            }
         }
+        IRDataType.LONG -> {
+            val skipLabel = makeLabel("bskip")
+            // Multi-byte subtraction with overflow correction on MSB only
+            for (byteIdx in 0..3) {
+                val regPart = regAddrByte(reg, byteIdx)
+                val immPart = (imm shr (byteIdx * 8)) and 0xff
+                if (byteIdx == 0) {
+                    emitLine("lda  $regPart")
+                    emitLine("cmp  #$immPart")
+                } else if (byteIdx < 3) {
+                    emitLine("lda  $regPart")
+                    emitLine("sbc  #$immPart")
+                } else {
+                    emitLine("lda  $regPart")
+                    emitLine("sbc  #$immPart")
+                    emitLine("bvc  +")
+                    emitLine("eor  #${0x80}")
+                    emitLine("+")
+                }
+            }
+            when {
+                greaterThan -> {
+                    emitLine("beq  $skipLabel")
+                    emitLine("bpl  $label")
+                    emitLabel(skipLabel)
+                }
+                greaterOrEqual -> emitLine("bpl  $label")
+                lessThan -> emitLine("bmi  $label")
+                lessOrEqual -> {
+                    emitLine("beq  $label")
+                    emitLine("bmi  $label")
+                }
+            }
+        }
+        IRDataType.FLOAT -> error("float branch not supported")
+    }
+}
+
+/**
+ * Signed comparison branch with register operand.
+ * Uses the overflow correction technique on the subtracted result.
+ */
+private fun AsmGen.translateCmpBranchRegSigned(insn: IRInstruction, label: String,
+                                               greaterThan: Boolean = false,
+                                               greaterOrEqual: Boolean = false) {
+    val type = insn.type ?: IRDataType.BYTE
+    val reg1 = insn.reg1 ?: error("branch needs reg1")
+    val reg2 = insn.reg2 ?: error("reg branch needs reg2")
+
+    when (type) {
+        IRDataType.BYTE -> {
+            emitLine("lda  ${regAddrLo(reg1)}")
+            emitLine("sec")
+            emitLine("sbc  ${regAddrLo(reg2)}")
+            emitLine("bvc  +")
+            emitLine("eor  #${0x80}")
+            emitLine("+")
+            if (greaterThan) {
+                // left > right: Z=0 AND N=0 after correction
+                val skip = makeLabel("bskip")
+                emitLine("beq  $skip")
+                emitLine("bpl  $label")
+                emitLabel(skip)
+            } else if (greaterOrEqual) {
+                emitLine("bpl  $label")
+            }
+        }
+        IRDataType.WORD -> {
+            emitLine("lda  ${regAddrLo(reg1)}")
+            emitLine("cmp  ${regAddrLo(reg2)}")
+            emitLine("lda  ${regAddrHi(reg1)}")
+            emitLine("sbc  ${regAddrHi(reg2)}")
+            emitLine("bvc  +")
+            emitLine("eor  #${0x80}")
+            emitLine("+")
+            if (greaterThan) {
+                val skip = makeLabel("bskip")
+                emitLine("beq  $skip")
+                emitLine("bpl  $label")
+                emitLabel(skip)
+            } else if (greaterOrEqual) {
+                emitLine("bpl  $label")
+            }
+        }
+        IRDataType.LONG -> {
+            for (byteIdx in 0..3) {
+                if (byteIdx == 0) {
+                    emitLine("lda  ${regAddrByte(reg1, byteIdx)}")
+                    emitLine("cmp  ${regAddrByte(reg2, byteIdx)}")
+                } else if (byteIdx < 3) {
+                    emitLine("lda  ${regAddrByte(reg1, byteIdx)}")
+                    emitLine("sbc  ${regAddrByte(reg2, byteIdx)}")
+                } else {
+                    emitLine("lda  ${regAddrByte(reg1, byteIdx)}")
+                    emitLine("sbc  ${regAddrByte(reg2, byteIdx)}")
+                    emitLine("bvc  +")
+                    emitLine("eor  #${0x80}")
+                    emitLine("+")
+                }
+            }
+            if (greaterThan) {
+                val skip = makeLabel("bskip")
+                emitLine("beq  $skip")
+                emitLine("bpl  $label")
+                emitLabel(skip)
+            } else if (greaterOrEqual) {
+                emitLine("bpl  $label")
+            }
+        }
+        IRDataType.FLOAT -> error("float branch not supported")
     }
 }
