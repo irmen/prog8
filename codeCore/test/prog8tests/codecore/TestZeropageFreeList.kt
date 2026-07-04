@@ -256,14 +256,17 @@ class TestZeropageFreeList: FunSpec({
             zp.availableBytes() shouldBe 0
         }
 
-        test("BASICSAFE should have minimal or no free locations") {
+        test("BASICSAFE should have minimal free locations") {
             val options = createOptions(PETTarget(), ZeropageType.BASICSAFE)
             val zp = PETZeropage(options)
             
-            // BASICSAFE only includes scratch register addresses ($b1-$b4, $b6-$b9).
-            // After scratch removal, no free addresses remain for user variables.
-            // (scratch registers are still available for transient use)
+            // BASICSAFE includes scratch register addresses ($b1-$b4, $b6-$b9)
+            // and $fb-$fe. After scratch removal, $fb-$fe remain usable.
             zp.free.size shouldBeLessThan 20
+            zp.free.contains(0xfbu) shouldBe true
+            zp.free.contains(0xfcu) shouldBe true
+            zp.free.contains(0xfdu) shouldBe true
+            zp.free.contains(0xfeu) shouldBe true
             
             verifyScratchLocationsReserved(zp)
         }
@@ -277,6 +280,9 @@ class TestZeropageFreeList: FunSpec({
             
             // FLOATSAFE and BASICSAFE should have same free locations for PET
             floatZp.free.size shouldBe basicZp.free.size
+            setOf(0xfbu, 0xfcu, 0xfdu, 0xfeu).forEach { addr ->
+                floatZp.free.contains(addr) shouldBe true
+            }
         }
 
         test("KERNALSAFE should exclude IRQ locations") {
@@ -626,13 +632,17 @@ class TestZeropageFreeList: FunSpec({
             }
         }
 
-        test("BASICSAFE - no free locations after scratch removal") {
+        test("BASICSAFE - extra fb-fe free after scratch removal") {
             val options = createOptions(PETTarget(), ZeropageType.BASICSAFE)
             val zp = PETZeropage(options)
             
-            // BASICSAFE includes only scratch register addresses ($b1-$b4, $b6-$b9).
-            // After removing scratch registers from the pool, no free addresses remain.
+            // BASICSAFE includes scratch register addresses ($b1-$b4, $b6-$b9)
+            // and $fb-$fe. After removing scratch registers from the pool,
+            // only $fb-$fe remain free.
             zp.free.size shouldBeLessThan 15
+            setOf(0xfbu, 0xfcu, 0xfdu, 0xfeu).forEach { addr ->
+                zp.free.contains(addr) shouldBe true
+            }
         }
 
         test("KERNALSAFE - excludes IRQ locations") {
