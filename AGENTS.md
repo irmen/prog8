@@ -127,6 +127,12 @@ Steps when encountering a compiler crash:
 ### Code Style Guidelines
 **Minimal comments when making changes**: When modifying existing code, add only essential comments that explain *why* a change was made or document non-obvious behavior. **Do not add verbose comments** that restate what the code does; let the code speak for itself. Existing extensive comments should be preserved, but new changes should have minimal commentary.
 
+**Kotlin string `$` handling**: The `$` character is special in Kotlin string literals (string interpolation). If you need a literal `$` character, use Kotlin's `$$"..."` interpolation prefix instead of backslash escaping (`\$`) or `${'$'}`. The `$$"..."` syntax is a fairly recent Kotlin feature that avoids nasty escaping. For example:
+```kotlin
+val bill = $$"The value is $3.99"
+```
+
+
 ## Prog8 language information
 
 When the task involves writing or understanding `.p8` (Prog8 source) or `.p8ir` (Prog8 intermediate representation) files, **load the `prog8-coder` skill** — it contains the full language reference, syntax rules, and standard library guidance.

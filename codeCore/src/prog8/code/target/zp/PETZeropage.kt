@@ -35,7 +35,7 @@ class PETZeropage(options: CompilationOptions) : Zeropage(options) {
                 // Only scratch register area is safe for transient use.
                 // $b5 and $ba are clobbered by PET BASIC/Kernal calls like CHROUT ($ffd2).
                 // User variables requiring persistent storage must NOT be placed here.
-                free.addAll(listOf(0xb1u, 0xb2u, 0xb3u, 0xb4u, 0xb6u, 0xb7u, 0xb8u, 0xb9u))
+                free.addAll(listOf(0xb1u, 0xb2u, 0xb3u, 0xb4u, 0xb6u, 0xb7u, 0xb8u, 0xb9u, 0xfbu, 0xfcu, 0xfdu, 0xfeu))
             }
             ZeropageType.DONTUSE -> {
                 free.clear()  // don't use zeropage at all
