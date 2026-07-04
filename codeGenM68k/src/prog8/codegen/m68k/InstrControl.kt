@@ -11,7 +11,7 @@
  * RETURN, RETURNR, RETURNI, PUSH, POP, PUSHST, POPST,
  * CLC, SEC, CLI, SEI, ALIGN,
  * byte/word extraction (LSIGB, LSIGW, MSIGB, MSIGW, BSIGB, MIDB),
- * sign extension (EXT, EXTS), and math ops (SQRT, SQUARE, SGN).
+ * sign extension (EXT, EXTS), and sign (SGN).
  */
 
 package prog8.codegen.m68k
@@ -45,19 +45,7 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
         Opcode.CALL -> {
             val fnLabel = label?.let { fixNameSymbols(it) } ?: addr?.value?.toHex() ?: error("CALL needs label or address")
             val args = insn.fcallArgs
-            if (fnLabel.endsWith("p8s_chrout") && !fnLabel.contains("getchar")) {
-                if (args != null) {
-                    for ((index, arg) in args.arguments.withIndex())
-                        translateArgument(arg)
-                }
-                emitLine($$"move.l  d0, $ff008000")
-                if (args != null) {
-                    for (ret in args.returns)
-                        translateReturnValue(ret)
-                }
-            } else {
-                translateCall(fnLabel, args)
-            }
+            translateCall(fnLabel, args)
         }
 
         Opcode.CALLI -> {
@@ -283,9 +271,6 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
 
         // === Math ===
 
-        Opcode.SQRT -> TODO("SQRT")
-        Opcode.SQUARE -> TODO("SQUARE")
-
         Opcode.SGN -> {
             val dstReg = r1 ?: error("SGN needs reg1")
             val srcReg = r2 ?: error("SGN needs reg2")
@@ -492,15 +477,38 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
 // === CALL translation with argument handling ===
 
 private fun AsmGen.translateCall(fnLabel: String, args: FunctionCallArgs?) {
-    // TODO: proper argument ordering and slot assignment
+    // Track stack cleanup needed for non-slot arguments
+    var stackCleanup = 0
+
     if (args != null) {
-        // Move arguments into hardware registers (slots)
-        for ((index, arg) in args.arguments.withIndex()) {
-            translateArgument(arg)
+        for (arg in args.arguments) {
+            val slot = arg.reg.callingConventionSlot
+            if (slot != null) {
+                // Slot argument goes into a hardware register
+                translateArgument(arg)
+            } else {
+                // Non-slot argument: push on stack, track cleanup
+                translateArgument(arg)
+                stackCleanup += when (arg.reg.dt) {
+                    IRDataType.BYTE -> 2        // because m68k keeps stack on even words aligned
+                    IRDataType.WORD -> 2
+                    IRDataType.LONG -> 4
+                    IRDataType.FLOAT -> 8
+                }
+            }
         }
     }
 
     emitLine("jsr  $fnLabel")
+
+    // Clean up stack arguments (caller pops)
+    if (stackCleanup > 0) {
+        if (stackCleanup <= 8) {
+            emitLine("addq.l  #$stackCleanup,sp")
+        } else {
+            emitLine("add.l  #$stackCleanup,sp")
+        }
+    }
 
     // Move return values back to virtual registers
     if (args != null) {

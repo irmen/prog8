@@ -47,6 +47,7 @@ class AssemblyProgramM68k(
             "vasmm68k_mot",
             "-Felf",
             "-no-opt",
+            "-ldots",
             "-o", objFile.toString(),
             assemblyFile.toString()
         )

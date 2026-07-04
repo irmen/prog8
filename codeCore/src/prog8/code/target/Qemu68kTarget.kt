@@ -28,7 +28,7 @@ class Qemu68kTarget: ICompilationTarget,
     override val FLOAT_MAX_NEGATIVE = -Float.MAX_VALUE.toDouble()
     override val FLOAT_MEM_SIZE = Qemu68kTarget.FLOAT_MEM_SIZE.toUInt()
     override val PROGRAM_LOAD_ADDRESS = 0x10000u      
-    override val PROGRAM_MEMTOP_ADDRESS = 0xfffffffeu 
+    override val PROGRAM_MEMTOP_ADDRESS = 0x00100000u 
 
     override val BSSHIGHRAM_START = 0u          // not actually used
     override val BSSHIGHRAM_END = 0u            // not actually used
@@ -59,10 +59,11 @@ class Qemu68kTarget: ICompilationTarget,
             "qemu-system-m68k",
             "-M", "virt",
             "-cpu", "m68030",
-            "-m", "128M",
+            "-m", "1M",
             "-kernel", elfFile.toString(),
             "-nographic"
         )
+        println("Launching QEMU (press Ctrl-A X to exit)...")
         val pb = ProcessBuilder(cmd).inheritIO()
         if (quiet)
             pb.redirectOutput(ProcessBuilder.Redirect.DISCARD)

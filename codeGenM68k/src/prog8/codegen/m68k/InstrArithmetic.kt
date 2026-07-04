@@ -223,7 +223,24 @@ internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
         Opcode.SQUARE -> {
             val dstReg = r1 ?: error("SQUARE needs reg1")
             val srcReg = r2 ?: error("SQUARE needs reg2")
-            emitMulOp(dstReg, srcReg, type, unsigned=true, imm=null, target=null)
+            when (type) {
+                IRDataType.BYTE -> {
+                    emitLine("move.b  ${regAddr(srcReg)}, d0")
+                    emitLine($$"and.l  #\$ff, d0", "zero extend")
+                    emitLine("mulu.w  d0, d0")
+                    emitLine("move.b  d0, ${regAddr(dstReg)}")
+                }
+                IRDataType.WORD -> {
+                    emitLine("move.w  ${regAddr(srcReg)}, d0")
+                    emitLine("mulu.w  d0, d0")
+                    emitLine("move.w  d0, ${regAddr(dstReg)}")
+                }
+                IRDataType.LONG -> {
+                    emitLine("move.l  ${regAddr(srcReg)}, d0")
+                    emitLine("mulu.l  d0, d0")
+                    emitLine("move.l  d0, ${regAddr(dstReg)}")
+                }
+            }
         }
 
         Opcode.CMP -> {

@@ -3,6 +3,12 @@ package prog8.codegen.m68k
 import prog8.code.core.*
 import prog8.intermediate.*
 
+/**
+ * M68k codegen.
+ * Targeting the QEMU M68k 'virt' system simulator.
+ * For more info and a fully working example kernal assembly source as reference, see the documentation in the 'docs' directory of this module!
+ */
+
 internal class AsmGen(val program: IRProgram, private val target: ICompilationTarget) {
     private val output = StringBuilder()
     private val cpu get() = target.cpu
@@ -89,16 +95,29 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
         IRDataType.FLOAT -> target.FLOAT_MEM_SIZE.toInt()
     }
 
-    // === label/symbol helpers ===
-
-    fun fixNameSymbols(name: String): String {
-        var n = name
-        n = n.replace("::", "_")
-        n = n.replace(".", "_")
-        n = n.replace("-", "_")
-        return n
+    fun loadPointerToA0(reg: Int) {
+        // load a 16-bit pointer from the register file into a0, zero-extended
+        emitLine("moveq  #0, d0")
+        emitLine("move.w  ${regAddr(reg)}, d0")
+        emitLine("move.l  d0, a0")
     }
 
+    fun loadIndexToD0(idx: Int) {
+        // load an index register into d0.w, zero-extending byte indices
+        val idxType = program.registersUsed().regsTypes[RegisterNum(idx)]
+        if (idxType == IRDataType.BYTE) {
+            emitLine("clr.w  d0")
+            emitLine("move.b  ${regAddr(idx)}, d0")
+        } else {
+            emitLine("move.w  ${regAddr(idx)}, d0")
+        }
+    }
+
+    // === label/symbol helpers ===
+
+    internal fun fixNameSymbols(name: String): String = name   // for now, no mangling needed {
+
+    
     fun resolveSymbolRef(name: String): String {
         val node = program.st.lookup(name)
         return when (node) {
@@ -185,7 +204,15 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
         emitRaw("; Target CPU: ${cpu.name}")
         emitRaw("; Output: ${options.output.name}")
         emitRaw("")
-        emitRaw("; vasm syntax: Motorola")
+        emitRaw("; Assembler: vasm with Motorola syntax (http://sun.hasenbraten.de/vasm/release/vasm.html)")
+        emitRaw("; NOTE: M68k is BIG-ENDIAN — bytes within words/longs are MSB-first")
+        emitRaw("; Motorola syntax rules:")
+        emitRaw(";   - Operations:  mnemonic  src,dst  (src is first operand, dst is second)")
+        emitRaw(";   - NOTE: vasm requires NO space after the comma between operands")
+        emitRaw(";   - Addressing:  Dn=datareg, An=addrreg, (An)=indirect, imm=#value")
+        emitRaw(";   - Labels: global = alphanumeric+underscore (add -ldots for dots in labels)")
+        emitRaw(";     local = prefix '.' or suffix '$', valid between two global labels")
+        emitRaw(";   - Directives:  ORG, DC.B, DC.W, DC.L, EQU, '=' for constants, etc.")
         emitRaw("")
 
         val loadAddr = options.loadAddress
@@ -200,6 +227,9 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
             }
             emitRaw("")
         }
+
+        // emit all Prog8 constants as vasm symbols for inline asm use
+        emitConstants()
 
         // Set up stack pointer and jump to program start
         emitLabel("prog8_program_start")
@@ -346,7 +376,8 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
             Opcode.DIVSR, Opcode.DIVS, Opcode.DIVSM,
             Opcode.MODR, Opcode.MOD, Opcode.MODSR, Opcode.MODS,
             Opcode.DIVMODR, Opcode.DIVMOD, Opcode.SDIVMODR, Opcode.SDIVMOD,
-            Opcode.CMP, Opcode.CMPI -> translateArithmetic(insn)
+            Opcode.CMP, Opcode.CMPI,
+            Opcode.SQRT, Opcode.SQUARE -> translateArithmetic(insn)
 
             Opcode.ANDR, Opcode.AND, Opcode.ANDM,
             Opcode.ORR, Opcode.OR, Opcode.ORM,
@@ -375,7 +406,7 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
             Opcode.LSIGB, Opcode.LSIGW, Opcode.MSIGB, Opcode.MSIGW, Opcode.BSIGB,
             Opcode.MIDB, Opcode.CONCAT,
             Opcode.EXT, Opcode.EXTS,
-            Opcode.SQRT, Opcode.SQUARE, Opcode.SGN,
+            Opcode.SGN,
             Opcode.FFROMUB, Opcode.FFROMSB, Opcode.FFROMUW, Opcode.FFROMSW, Opcode.FFROMSL,
             Opcode.FTOUB, Opcode.FTOSB, Opcode.FTOUW, Opcode.FTOSW, Opcode.FTOSL,
             Opcode.FABS, Opcode.FSIN, Opcode.FCOS, Opcode.FTAN, Opcode.FATAN,
@@ -390,6 +421,7 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
     private fun emitDataSection() {
         val initdVars = program.st.allVariables().filter { !it.inBss }.toList()
         if (initdVars.isNotEmpty()) {
+            emitRaw("    ALIGN  4")
             emitRaw("; static variables with initial values")
             for (v in initdVars) {
                 emitInitializedVariable(v)
@@ -398,6 +430,8 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
         }
 
         if (dataFloatConstants.isNotEmpty()) {
+            if (initdVars.isEmpty())
+                emitRaw("    ALIGN  4")
             emitRaw("; float constants (double precision, 8 bytes each)")
             for ((label, value) in dataFloatConstants) {
                 val bits = value.toRawBits()
@@ -471,7 +505,33 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
 
     // === BSS section ===
 
+    private fun emitConstants() {
+        val emitted = mutableSetOf<String>()
+        emitRaw("; Constants")
+        for (c in program.st.allConstants()) {
+            val cv = c.value
+            val csn = c.memorySlabName
+            if (cv != null) {
+                val label = constLabel(c.name)
+                if (!emitted.add(label)) continue
+                emitRaw("$label = ${cv.toLong()}")
+                emitRaw("${fixNameSymbols(c.name)} = ${cv.toLong()}")
+            } else if (csn != null) {
+                val slab = program.st.lookup(csn) as? IRStMemorySlab
+                if (slab != null) {
+                    val label = constLabel(c.name)
+                    val slabRef = fixNameSymbols(slab.name)
+                    if (!emitted.add(label)) continue
+                    emitRaw("$label = $slabRef")
+                    emitRaw("${fixNameSymbols(c.name)} = $slabRef")
+                }
+            }
+        }
+        emitRaw("")
+    }
+
     private fun emitBssSection() {
+        emitRaw("    ALIGN  4")
         emitRaw("; bss section")
         emitLabel("prog8_bss_section_start")
         // uninitialized variables

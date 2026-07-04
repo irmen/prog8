@@ -12,11 +12,7 @@ import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.code.optimize.optimizeSimplifiedAst
 import prog8.code.source.ImportFileSystem.expandTilde
-import prog8.code.target.ConfigFileTarget
-import prog8.code.target.Cx16Target
-import prog8.code.target.Qemu68kTarget
-import prog8.code.target.VMTarget
-import prog8.code.target.getCompilationTargetByName
+import prog8.code.target.*
 import prog8.codegen.vm.VmCodeGen
 import prog8.compiler.astprocessing.*
 import prog8.compiler.simpleastprocessing.profilingInstrumentation
@@ -545,6 +541,11 @@ private fun processAst(program: Program, errors: IErrorReporter, compilerOptions
     if(errors.noErrors() && compilerOptions.dumpSymbols) {
         printSymbols(program)
         exitProcess(0)
+    }
+
+    if(compilerOptions.compTarget.name == Qemu68kTarget.NAME) {
+        program.checkM68kSyntax(errors)
+        errors.report()
     }
 
     program.checkPrivateAccess(errors)

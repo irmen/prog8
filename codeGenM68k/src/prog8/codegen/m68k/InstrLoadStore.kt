@@ -30,7 +30,7 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction) {
                     val resolved = resolveSymbolRef(sym)
                     val symOff = if (offset != null) "$resolved+$offset" else resolved
                     emitLine("lea  $symOff, a0")
-                    emitLine("move$s  (a0), ${regAddr(dst)}")
+                    emitLine("move.w  a0, ${regAddr(dst)}")
                 }
                 else -> error("LOAD needs immediate or labelSymbol")
             }
@@ -50,9 +50,9 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction) {
         Opcode.LOADX -> {
             val dst = r1 ?: error("LOADX needs reg1")
             val idx = r2 ?: error("LOADX needs reg2")
-            emitLine("move.l  ${regAddr(idx)}, d0")
+            loadIndexToD0(idx)
             emitLine("lea  $target, a0")
-            emitLine("move$s  (0, a0, d0.l), d1", "index is pre-scaled by IR codegen")
+            emitLine("move$s  (a0,d0.w), d1")
             emitLine("move$s  d1, ${regAddr(dst)}")
         }
 
@@ -67,7 +67,7 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction) {
             val dst = r1 ?: error("LOADI needs reg1")
             val base = r2 ?: error("LOADI needs reg2")
             val off = imm ?: 0
-            emitLine("move.l  ${regAddr(base)}, a0")
+            loadPointerToA0(base)
             if (off != 0) emitLine("adda.l  #$off, a0")
             emitLine("move$s  (a0), d0")
             emitLine("move$s  d0, ${regAddr(dst)}")
@@ -81,10 +81,10 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction) {
         Opcode.STOREX -> {
             val value = r1 ?: error("STOREX needs reg1")
             val idx = r2 ?: error("STOREX needs reg2")
-            emitLine("move.l  ${regAddr(idx)}, d0")
+            loadIndexToD0(idx)
             emitLine("lea  $target, a0")
             emitLine("move$s  ${regAddr(value)}, d1")
-            emitLine("move$s  d1, (0, a0, d0.l)", "index is pre-scaled by IR codegen")
+            emitLine("move$s  d1, (a0,d0.w)")
         }
 
         Opcode.STOREZM -> {
@@ -94,16 +94,16 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction) {
         Opcode.STOREZI -> {
             val base = r1 ?: error("STOREZI needs reg1")
             val off = imm ?: 0
-            emitLine("move.l  ${regAddr(base)}, a0")
+            loadPointerToA0(base)
             if (off != 0) emitLine("adda.l  #$off, a0")
             emitLine("clr$s  (a0)")
         }
 
         Opcode.STOREZX -> {
             val idx = r1 ?: error("STOREZX needs reg1")
-            emitLine("move.l  ${regAddr(idx)}, d0")
+            loadIndexToD0(idx)
             emitLine("lea  $target, a0")
-            emitLine("clr$s  (0, a0, d0.l)", "index is pre-scaled by IR codegen")
+            emitLine("clr$s  (a0,d0.w)")
         }
 
         Opcode.STOREHR -> {
@@ -117,7 +117,7 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction) {
             val value = r1 ?: error("STOREI needs reg1")
             val base = r2 ?: error("STOREI needs reg2")
             val off = imm ?: 0
-            emitLine("move.l  ${regAddr(base)}, a0")
+            loadPointerToA0(base)
             if (off != 0) emitLine("adda.l  #$off, a0")
             emitLine("move$s  ${regAddr(value)}, (a0)")
         }
@@ -176,7 +176,7 @@ private fun AsmGen.translateFloatLoadStore(insn: IRInstruction, target: String) 
         Opcode.LOADI -> {
             val base = r1 ?: error("LOADI.f needs reg1 (base)")
             val off = imm ?: 0
-            emitLine("move.l  ${regAddr(base)}, a0")
+            loadPointerToA0(base)
             if (off != 0) emitLine("adda.l  #$off, a0")
             emitLine("fmove.d  (a0), ${fpuRegName(fpReg1)}")
         }
@@ -200,7 +200,7 @@ private fun AsmGen.translateFloatLoadStore(insn: IRInstruction, target: String) 
         Opcode.STOREZI -> {
             val base = r1 ?: error("STOREZI.f needs reg1 (base)")
             val off = imm ?: 0
-            emitLine("move.l  ${regAddr(base)}, a0")
+            loadPointerToA0(base)
             if (off != 0) emitLine("adda.l  #$off, a0")
             emitFloatZero(fpReg1)
             emitLine("fmove.d  ${fpuRegName(fpReg1)}, (a0)")
@@ -224,7 +224,7 @@ private fun AsmGen.translateFloatLoadStore(insn: IRInstruction, target: String) 
             val valueReg = fpReg1
             val base = r1 ?: error("STOREI.f needs reg1 (base)")
             val off = imm ?: 0
-            emitLine("move.l  ${regAddr(base)}, a0")
+            loadPointerToA0(base)
             if (off != 0) emitLine("adda.l  #$off, a0")
             emitLine("fmove.d  ${fpuRegName(valueReg)}, (a0)")
         }

@@ -4,7 +4,8 @@
 txt {
     sub chrout(ubyte char) {
         %asm {{
-            rts
+            move.b  4(sp),d0
+            move.l  d0,qemu.TTY_PUT_CHAR
         }}
     }
 

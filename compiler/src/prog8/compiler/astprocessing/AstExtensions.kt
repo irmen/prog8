@@ -146,6 +146,11 @@ internal fun Program.checkPrivateAccess(errors: IErrorReporter) {
     checker.visit(this)
 }
 
+internal fun Program.checkM68kSyntax(errors: IErrorReporter) {
+    val checker = M68kAstChecker(errors)
+    checker.visit(this)
+}
+
 
 internal fun Program.preprocessAst(errors: IErrorReporter, options: CompilationOptions) {
     val mergeBlocks = BlockMerger(errors)
