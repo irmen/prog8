@@ -73,13 +73,15 @@ sys {
 
     sub set_carry() {
         %asm {{
-            sec
+            moveq  #1,d0
+            move.w  d0,ccr
         }}
     }
 
     sub clear_carry() {
         %asm {{
-            clc
+            moveq  #0,d0
+            move.w  d0,ccr
         }}
     }
 

@@ -381,567 +381,567 @@ internal fun AsmGen.negateMemory(target: String, type: IRDataType) {
 
 // === Addition ===
 
-internal fun AsmGen.addRegisters(dst: Int, src: Int, type: IRDataType) {
+internal fun AsmGen.addRegisters(dstReg: Int, srcReg: Int, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
             emitLine("clc")
-            emitLine("lda  ${regAddrLo(dst)}")
-            emitLine("adc  ${regAddrLo(src)}")
-            emitLine("sta  ${regAddrLo(dst)}")
+            emitLine("lda  ${regAddrLo(dstReg)}")
+            emitLine("adc  ${regAddrLo(srcReg)}")
+            emitLine("sta  ${regAddrLo(dstReg)}")
         }
         IRDataType.WORD -> {
             emitLine("clc")
-            emitLine("lda  ${regAddrLo(dst)}")
-            emitLine("adc  ${regAddrLo(src)}")
-            emitLine("sta  ${regAddrLo(dst)}")
-            emitLine("lda  ${regAddrHi(dst)}")
-            emitLine("adc  ${regAddrHi(src)}")
-            emitLine("sta  ${regAddrHi(dst)}")
+            emitLine("lda  ${regAddrLo(dstReg)}")
+            emitLine("adc  ${regAddrLo(srcReg)}")
+            emitLine("sta  ${regAddrLo(dstReg)}")
+            emitLine("lda  ${regAddrHi(dstReg)}")
+            emitLine("adc  ${regAddrHi(srcReg)}")
+            emitLine("sta  ${regAddrHi(dstReg)}")
         }
         IRDataType.LONG -> {
             emitLine("clc")
-            emitLine("lda  ${regAddrLo(dst)}")
-            emitLine("adc  ${regAddrLo(src)}")
-            emitLine("sta  ${regAddrLo(dst)}")
-            emitLine("lda  ${regAddrHi(dst)}")
-            emitLine("adc  ${regAddrHi(src)}")
-            emitLine("sta  ${regAddrHi(dst)}")
-            emitLine("lda  ${regAddrByte(dst, 2)}")
-            emitLine("adc  ${regAddrByte(src, 2)}")
-            emitLine("sta  ${regAddrByte(dst, 2)}")
-            emitLine("lda  ${regAddrByte(dst, 3)}")
-            emitLine("adc  ${regAddrByte(src, 3)}")
-            emitLine("sta  ${regAddrByte(dst, 3)}")
+            emitLine("lda  ${regAddrLo(dstReg)}")
+            emitLine("adc  ${regAddrLo(srcReg)}")
+            emitLine("sta  ${regAddrLo(dstReg)}")
+            emitLine("lda  ${regAddrHi(dstReg)}")
+            emitLine("adc  ${regAddrHi(srcReg)}")
+            emitLine("sta  ${regAddrHi(dstReg)}")
+            emitLine("lda  ${regAddrByte(dstReg, 2)}")
+            emitLine("adc  ${regAddrByte(srcReg, 2)}")
+            emitLine("sta  ${regAddrByte(dstReg, 2)}")
+            emitLine("lda  ${regAddrByte(dstReg, 3)}")
+            emitLine("adc  ${regAddrByte(srcReg, 3)}")
+            emitLine("sta  ${regAddrByte(dstReg, 3)}")
         }
-        IRDataType.FLOAT -> TODO("FLOAT ADDR r$dst, r$src")
+        IRDataType.FLOAT -> TODO("FLOAT ADDR r$dstReg, r$srcReg")
     }
 }
 
-internal fun AsmGen.addImmediate(dst: Int, value: Int, type: IRDataType) {
+internal fun AsmGen.addImmediate(dstReg: Int, value: Int, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
-            emitLine("lda  ${regAddrLo(dst)}")
+            emitLine("lda  ${regAddrLo(dstReg)}")
             if (is65C02() && value == 1) {
                 emitIncrementA()
             } else {
                 emitLine("clc")
                 emitLine("adc  #${value and 0xff}")
             }
-            emitLine("sta  ${regAddrLo(dst)}")
+            emitLine("sta  ${regAddrLo(dstReg)}")
         }
         IRDataType.WORD -> {
             emitLine("clc")
-            emitLine("lda  ${regAddrLo(dst)}")
+            emitLine("lda  ${regAddrLo(dstReg)}")
             emitLine("adc  #<${value and 0xffff}")
-            emitLine("sta  ${regAddrLo(dst)}")
-            emitLine("lda  ${regAddrHi(dst)}")
+            emitLine("sta  ${regAddrLo(dstReg)}")
+            emitLine("lda  ${regAddrHi(dstReg)}")
             emitLine("adc  #>${value and 0xffff}")
-            emitLine("sta  ${regAddrHi(dst)}")
+            emitLine("sta  ${regAddrHi(dstReg)}")
         }
         IRDataType.LONG -> {
             emitLine("clc")
-            emitLine("lda  ${regAddrLo(dst)}")
+            emitLine("lda  ${regAddrLo(dstReg)}")
             emitLine("adc  #${value and 0xff}")
-            emitLine("sta  ${regAddrLo(dst)}")
-            emitLine("lda  ${regAddrByte(dst, 1)}")
+            emitLine("sta  ${regAddrLo(dstReg)}")
+            emitLine("lda  ${regAddrByte(dstReg, 1)}")
             emitLine("adc  #${(value shr 8) and 0xff}")
-            emitLine("sta  ${regAddrByte(dst, 1)}")
-            emitLine("lda  ${regAddrByte(dst, 2)}")
+            emitLine("sta  ${regAddrByte(dstReg, 1)}")
+            emitLine("lda  ${regAddrByte(dstReg, 2)}")
             emitLine("adc  #${(value shr 16) and 0xff}")
-            emitLine("sta  ${regAddrByte(dst, 2)}")
-            emitLine("lda  ${regAddrByte(dst, 3)}")
+            emitLine("sta  ${regAddrByte(dstReg, 2)}")
+            emitLine("lda  ${regAddrByte(dstReg, 3)}")
             emitLine("adc  #${(value shr 24) and 0xff}")
-            emitLine("sta  ${regAddrByte(dst, 3)}")
+            emitLine("sta  ${regAddrByte(dstReg, 3)}")
         }
-        IRDataType.FLOAT -> TODO("FLOAT ADD r$dst, #$value")
+        IRDataType.FLOAT -> TODO("FLOAT ADD r$dstReg, #$value")
     }
 }
 
-internal fun AsmGen.addMemory(dst: Int, source: String, type: IRDataType) {
+internal fun AsmGen.addMemory(dstReg: Int, sourceAddress: String, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
             emitLine("clc")
-            emitLine("lda  $source")
-            emitLine("adc  ${regAddrLo(dst)}")
-            emitLine("sta  $source")
+            emitLine("lda  $sourceAddress")
+            emitLine("adc  ${regAddrLo(dstReg)}")
+            emitLine("sta  $sourceAddress")
         }
         IRDataType.WORD -> {
             emitLine("clc")
-            emitLine("lda  $source")
-            emitLine("adc  ${regAddrLo(dst)}")
-            emitLine("sta  $source")
-            emitLine("lda  $source+1")
-            emitLine("adc  ${regAddrHi(dst)}")
-            emitLine("sta  $source+1")
+            emitLine("lda  $sourceAddress")
+            emitLine("adc  ${regAddrLo(dstReg)}")
+            emitLine("sta  $sourceAddress")
+            emitLine("lda  $sourceAddress+1")
+            emitLine("adc  ${regAddrHi(dstReg)}")
+            emitLine("sta  $sourceAddress+1")
         }
         IRDataType.LONG -> {
             emitLine("clc")
-            emitLine("lda  $source")
-            emitLine("adc  ${regAddrLo(dst)}")
-            emitLine("sta  $source")
-            emitLine("lda  $source+1")
-            emitLine("adc  ${regAddrByte(dst, 1)}")
-            emitLine("sta  $source+1")
-            emitLine("lda  $source+2")
-            emitLine("adc  ${regAddrByte(dst, 2)}")
-            emitLine("sta  $source+2")
-            emitLine("lda  $source+3")
-            emitLine("adc  ${regAddrByte(dst, 3)}")
-            emitLine("sta  $source+3")
+            emitLine("lda  $sourceAddress")
+            emitLine("adc  ${regAddrLo(dstReg)}")
+            emitLine("sta  $sourceAddress")
+            emitLine("lda  $sourceAddress+1")
+            emitLine("adc  ${regAddrByte(dstReg, 1)}")
+            emitLine("sta  $sourceAddress+1")
+            emitLine("lda  $sourceAddress+2")
+            emitLine("adc  ${regAddrByte(dstReg, 2)}")
+            emitLine("sta  $sourceAddress+2")
+            emitLine("lda  $sourceAddress+3")
+            emitLine("adc  ${regAddrByte(dstReg, 3)}")
+            emitLine("sta  $sourceAddress+3")
         }
-        IRDataType.FLOAT -> TODO("FLOAT ADDM r$dst, $source")
+        IRDataType.FLOAT -> TODO("FLOAT ADDM r$dstReg, $sourceAddress")
     }
 }
 
 // === Subtraction ===
 
-internal fun AsmGen.subRegisters(dst: Int, src: Int, type: IRDataType) {
+internal fun AsmGen.subRegisters(dstReg: Int, srcReg: Int, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
             emitLine("sec")
-            emitLine("lda  ${regAddrLo(dst)}")
-            emitLine("sbc  ${regAddrLo(src)}")
-            emitLine("sta  ${regAddrLo(dst)}")
+            emitLine("lda  ${regAddrLo(dstReg)}")
+            emitLine("sbc  ${regAddrLo(srcReg)}")
+            emitLine("sta  ${regAddrLo(dstReg)}")
         }
         IRDataType.WORD -> {
             emitLine("sec")
-            emitLine("lda  ${regAddrLo(dst)}")
-            emitLine("sbc  ${regAddrLo(src)}")
-            emitLine("sta  ${regAddrLo(dst)}")
-            emitLine("lda  ${regAddrHi(dst)}")
-            emitLine("sbc  ${regAddrHi(src)}")
-            emitLine("sta  ${regAddrHi(dst)}")
+            emitLine("lda  ${regAddrLo(dstReg)}")
+            emitLine("sbc  ${regAddrLo(srcReg)}")
+            emitLine("sta  ${regAddrLo(dstReg)}")
+            emitLine("lda  ${regAddrHi(dstReg)}")
+            emitLine("sbc  ${regAddrHi(srcReg)}")
+            emitLine("sta  ${regAddrHi(dstReg)}")
         }
         IRDataType.LONG -> {
             emitLine("sec")
-            emitLine("lda  ${regAddrLo(dst)}")
-            emitLine("sbc  ${regAddrLo(src)}")
-            emitLine("sta  ${regAddrLo(dst)}")
-            emitLine("lda  ${regAddrHi(dst)}")
-            emitLine("sbc  ${regAddrHi(src)}")
-            emitLine("sta  ${regAddrHi(dst)}")
-            emitLine("lda  ${regAddrByte(dst, 2)}")
-            emitLine("sbc  ${regAddrByte(src, 2)}")
-            emitLine("sta  ${regAddrByte(dst, 2)}")
-            emitLine("lda  ${regAddrByte(dst, 3)}")
-            emitLine("sbc  ${regAddrByte(src, 3)}")
-            emitLine("sta  ${regAddrByte(dst, 3)}")
+            emitLine("lda  ${regAddrLo(dstReg)}")
+            emitLine("sbc  ${regAddrLo(srcReg)}")
+            emitLine("sta  ${regAddrLo(dstReg)}")
+            emitLine("lda  ${regAddrHi(dstReg)}")
+            emitLine("sbc  ${regAddrHi(srcReg)}")
+            emitLine("sta  ${regAddrHi(dstReg)}")
+            emitLine("lda  ${regAddrByte(dstReg, 2)}")
+            emitLine("sbc  ${regAddrByte(srcReg, 2)}")
+            emitLine("sta  ${regAddrByte(dstReg, 2)}")
+            emitLine("lda  ${regAddrByte(dstReg, 3)}")
+            emitLine("sbc  ${regAddrByte(srcReg, 3)}")
+            emitLine("sta  ${regAddrByte(dstReg, 3)}")
         }
-        IRDataType.FLOAT -> TODO("FLOAT SUBR r$dst, r$src")
+        IRDataType.FLOAT -> TODO("FLOAT SUBR r$dstReg, r$srcReg")
     }
 }
 
-internal fun AsmGen.subImmediate(dst: Int, value: Int, type: IRDataType) {
+internal fun AsmGen.subImmediate(dstReg: Int, value: Int, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
-            emitLine("lda  ${regAddrLo(dst)}")
+            emitLine("lda  ${regAddrLo(dstReg)}")
             if (is65C02() && value == 1) {
                 emitDecrementA()
             } else {
                 emitLine("sec")
                 emitLine("sbc  #${value and 0xff}")
             }
-            emitLine("sta  ${regAddrLo(dst)}")
+            emitLine("sta  ${regAddrLo(dstReg)}")
         }
         IRDataType.WORD -> {
             emitLine("sec")
-            emitLine("lda  ${regAddrLo(dst)}")
+            emitLine("lda  ${regAddrLo(dstReg)}")
             emitLine("sbc  #<${value and 0xffff}")
-            emitLine("sta  ${regAddrLo(dst)}")
-            emitLine("lda  ${regAddrHi(dst)}")
+            emitLine("sta  ${regAddrLo(dstReg)}")
+            emitLine("lda  ${regAddrHi(dstReg)}")
             emitLine("sbc  #>${value and 0xffff}")
-            emitLine("sta  ${regAddrHi(dst)}")
+            emitLine("sta  ${regAddrHi(dstReg)}")
         }
         IRDataType.LONG -> {
             emitLine("sec")
-            emitLine("lda  ${regAddrLo(dst)}")
+            emitLine("lda  ${regAddrLo(dstReg)}")
             emitLine("sbc  #${value and 0xff}")
-            emitLine("sta  ${regAddrLo(dst)}")
-            emitLine("lda  ${regAddrByte(dst, 1)}")
+            emitLine("sta  ${regAddrLo(dstReg)}")
+            emitLine("lda  ${regAddrByte(dstReg, 1)}")
             emitLine("sbc  #${(value shr 8) and 0xff}")
-            emitLine("sta  ${regAddrByte(dst, 1)}")
-            emitLine("lda  ${regAddrByte(dst, 2)}")
+            emitLine("sta  ${regAddrByte(dstReg, 1)}")
+            emitLine("lda  ${regAddrByte(dstReg, 2)}")
             emitLine("sbc  #${(value shr 16) and 0xff}")
-            emitLine("sta  ${regAddrByte(dst, 2)}")
-            emitLine("lda  ${regAddrByte(dst, 3)}")
+            emitLine("sta  ${regAddrByte(dstReg, 2)}")
+            emitLine("lda  ${regAddrByte(dstReg, 3)}")
             emitLine("sbc  #${(value shr 24) and 0xff}")
-            emitLine("sta  ${regAddrByte(dst, 3)}")
+            emitLine("sta  ${regAddrByte(dstReg, 3)}")
         }
-        IRDataType.FLOAT -> TODO("FLOAT SUB r$dst, #$value")
+        IRDataType.FLOAT -> TODO("FLOAT SUB r$dstReg, #$value")
     }
 }
 
-internal fun AsmGen.subMemory(dst: Int, source: String, type: IRDataType) {
+internal fun AsmGen.subMemory(dstReg: Int, sourceAddress: String, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
             emitLine("sec")
-            emitLine("lda  $source")
-            emitLine("sbc  ${regAddrLo(dst)}")
-            emitLine("sta  $source")
+            emitLine("lda  $sourceAddress")
+            emitLine("sbc  ${regAddrLo(dstReg)}")
+            emitLine("sta  $sourceAddress")
         }
         IRDataType.WORD -> {
             emitLine("sec")
-            emitLine("lda  $source")
-            emitLine("sbc  ${regAddrLo(dst)}")
-            emitLine("sta  $source")
-            emitLine("lda  $source+1")
-            emitLine("sbc  ${regAddrHi(dst)}")
-            emitLine("sta  $source+1")
+            emitLine("lda  $sourceAddress")
+            emitLine("sbc  ${regAddrLo(dstReg)}")
+            emitLine("sta  $sourceAddress")
+            emitLine("lda  $sourceAddress+1")
+            emitLine("sbc  ${regAddrHi(dstReg)}")
+            emitLine("sta  $sourceAddress+1")
         }
         IRDataType.LONG -> {
             emitLine("sec")
-            emitLine("lda  $source")
-            emitLine("sbc  ${regAddrLo(dst)}")
-            emitLine("sta  $source")
-            emitLine("lda  $source+1")
-            emitLine("sbc  ${regAddrByte(dst, 1)}")
-            emitLine("sta  $source+1")
-            emitLine("lda  $source+2")
-            emitLine("sbc  ${regAddrByte(dst, 2)}")
-            emitLine("sta  $source+2")
-            emitLine("lda  $source+3")
-            emitLine("sbc  ${regAddrByte(dst, 3)}")
-            emitLine("sta  $source+3")
+            emitLine("lda  $sourceAddress")
+            emitLine("sbc  ${regAddrLo(dstReg)}")
+            emitLine("sta  $sourceAddress")
+            emitLine("lda  $sourceAddress+1")
+            emitLine("sbc  ${regAddrByte(dstReg, 1)}")
+            emitLine("sta  $sourceAddress+1")
+            emitLine("lda  $sourceAddress+2")
+            emitLine("sbc  ${regAddrByte(dstReg, 2)}")
+            emitLine("sta  $sourceAddress+2")
+            emitLine("lda  $sourceAddress+3")
+            emitLine("sbc  ${regAddrByte(dstReg, 3)}")
+            emitLine("sta  $sourceAddress+3")
         }
-        IRDataType.FLOAT -> TODO("FLOAT SUBM r$dst, $source")
+        IRDataType.FLOAT -> TODO("FLOAT SUBM r$dstReg, $sourceAddress")
     }
 }
 
 // === Multiplication ===
 
-internal fun AsmGen.mulRegisters(dst: Int, src: Int, type: IRDataType) {
+internal fun AsmGen.mulRegisters(dstReg: Int, srcReg: Int, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
-            emitLine("lda  ${regAddrLo(dst)}")
-            emitLine("ldy  ${regAddrLo(src)}")
+            emitLine("lda  ${regAddrLo(dstReg)}")
+            emitLine("ldy  ${regAddrLo(srcReg)}")
             emitLine("jsr  prog8_math.multiply_bytes")
-            emitLine("sta  ${regAddrLo(dst)}")
+            emitLine("sta  ${regAddrLo(dstReg)}")
         }
         IRDataType.WORD -> {
-            emitLine("lda  ${regAddrLo(src)}")
+            emitLine("lda  ${regAddrLo(srcReg)}")
             emitLine("sta  prog8_math.multiply_words.multiplier")
-            emitLine("lda  ${regAddrHi(src)}")
+            emitLine("lda  ${regAddrHi(srcReg)}")
             emitLine("sta  prog8_math.multiply_words.multiplier+1")
-            emitLine("lda  ${regAddrLo(dst)}")
-            emitLine("ldy  ${regAddrHi(dst)}")
+            emitLine("lda  ${regAddrLo(dstReg)}")
+            emitLine("ldy  ${regAddrHi(dstReg)}")
             emitLine("jsr  prog8_math.multiply_words")
-            emitLine("sta  ${regAddrLo(dst)}")
-            emitLine("sty  ${regAddrHi(dst)}")
+            emitLine("sta  ${regAddrLo(dstReg)}")
+            emitLine("sty  ${regAddrHi(dstReg)}")
         }
-        IRDataType.LONG -> TODO("MULR LONG r$dst, r$src")
-        IRDataType.FLOAT -> TODO("MULR FLOAT r$dst, r$src")
+        IRDataType.LONG -> TODO("MULR LONG r$dstReg, r$srcReg")
+        IRDataType.FLOAT -> TODO("MULR FLOAT r$dstReg, r$srcReg")
     }
 }
 
-internal fun AsmGen.mulImmediate(dst: Int, value: Int, type: IRDataType) {
+internal fun AsmGen.mulImmediate(dstReg: Int, value: Int, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
-            emitLine("lda  ${regAddrLo(dst)}")
+            emitLine("lda  ${regAddrLo(dstReg)}")
             emitLine("ldy  #${value and 0xff}")
             emitLine("jsr  prog8_math.multiply_bytes")
-            emitLine("sta  ${regAddrLo(dst)}")
+            emitLine("sta  ${regAddrLo(dstReg)}")
         }
         IRDataType.WORD -> {
             emitLine("lda  #<${value and 0xffff}")
             emitLine("sta  prog8_math.multiply_words.multiplier")
             emitLine("lda  #>${value and 0xffff}")
             emitLine("sta  prog8_math.multiply_words.multiplier+1")
-            emitLine("lda  ${regAddrLo(dst)}")
-            emitLine("ldy  ${regAddrHi(dst)}")
+            emitLine("lda  ${regAddrLo(dstReg)}")
+            emitLine("ldy  ${regAddrHi(dstReg)}")
             emitLine("jsr  prog8_math.multiply_words")
-            emitLine("sta  ${regAddrLo(dst)}")
-            emitLine("sty  ${regAddrHi(dst)}")
+            emitLine("sta  ${regAddrLo(dstReg)}")
+            emitLine("sty  ${regAddrHi(dstReg)}")
         }
-        else -> TODO("MUL r$dst, #$value ${type.name}")
+        else -> TODO("MUL r$dstReg, #$value ${type.name}")
     }
 }
 
-internal fun AsmGen.mulMemory(dst: Int, source: String, type: IRDataType) {
+internal fun AsmGen.mulMemory(dstReg: Int, sourceAddress: String, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
-            emitLine("lda  ${regAddrLo(dst)}")
-            emitLine("ldy  $source")
+            emitLine("lda  $sourceAddress")
+            emitLine("ldy  ${regAddrLo(dstReg)}")
             emitLine("jsr  prog8_math.multiply_bytes")
-            emitLine("sta  ${regAddrLo(dst)}")
+            emitLine("sta  $sourceAddress")
         }
         IRDataType.WORD -> {
-            emitLine("lda  $source")
+            emitLine("lda  ${regAddrLo(dstReg)}")
             emitLine("sta  prog8_math.multiply_words.multiplier")
-            emitLine("lda  $source+1")
+            emitLine("lda  ${regAddrHi(dstReg)}")
             emitLine("sta  prog8_math.multiply_words.multiplier+1")
-            emitLine("lda  ${regAddrLo(dst)}")
-            emitLine("ldy  ${regAddrHi(dst)}")
+            emitLine("lda  $sourceAddress")
+            emitLine("ldy  $sourceAddress+1")
             emitLine("jsr  prog8_math.multiply_words")
-            emitLine("sta  ${regAddrLo(dst)}")
-            emitLine("sty  ${regAddrHi(dst)}")
+            emitLine("sta  $sourceAddress")
+            emitLine("sty  $sourceAddress+1")
         }
-        else -> TODO("MULM r$dst, $source ${type.name}")
+        else -> TODO("MULM r$dstReg, $sourceAddress ${type.name}")
     }
 }
 
-internal fun AsmGen.mulSignedRegisters(dst: Int, src: Int, type: IRDataType) {
-    emitLine("; MULSR r$dst, r$src (signed) - using unsigned for now")
-    mulRegisters(dst, src, type)
+internal fun AsmGen.mulSignedRegisters(dstReg: Int, srcReg: Int, type: IRDataType) {
+    emitLine("; MULSR r$dstReg, r$srcReg (signed) - using unsigned for now")
+    mulRegisters(dstReg, srcReg, type)
 }
 
-internal fun AsmGen.mulSignedImmediate(dst: Int, value: Int, type: IRDataType) {
-    emitLine("; MULS r$dst, #$value (signed) - using unsigned for now")
-    mulImmediate(dst, value, type)
+internal fun AsmGen.mulSignedImmediate(dstReg: Int, value: Int, type: IRDataType) {
+    emitLine("; MULS r$dstReg, #$value (signed) - using unsigned for now")
+    mulImmediate(dstReg, value, type)
 }
 
-internal fun AsmGen.mulSignedMemory(dst: Int, source: String, type: IRDataType) {
-    emitLine("; MULSM r$dst, $source (signed) - using unsigned for now")
-    mulMemory(dst, source, type)
+internal fun AsmGen.mulSignedMemory(dstReg: Int, sourceAddress: String, type: IRDataType) {
+    emitLine("; MULSM r$dstReg, $sourceAddress (signed) - using unsigned for now")
+    mulMemory(dstReg, sourceAddress, type)
 }
 
 // === Division ===
 
-internal fun AsmGen.divRegisters(dst: Int, src: Int, type: IRDataType) {
+internal fun AsmGen.divRegisters(dstReg: Int, srcReg: Int, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
-            emitLine("lda  ${regAddrLo(dst)}")
-            emitLine("ldy  ${regAddrLo(src)}")
+            emitLine("lda  ${regAddrLo(dstReg)}")
+            emitLine("ldy  ${regAddrLo(srcReg)}")
             emitLine("jsr  prog8_math.divmod_ub_asm")
-            emitLine("sty  ${regAddrLo(dst)}")
+            emitLine("sty  ${regAddrLo(dstReg)}")
         }
         IRDataType.WORD -> {
-            emitLine("lda  ${regAddrLo(dst)}")
+            emitLine("lda  ${regAddrLo(dstReg)}")
             emitLine("sta  P8ZP_SCRATCH_W1")
-            emitLine("lda  ${regAddrHi(dst)}")
+            emitLine("lda  ${regAddrHi(dstReg)}")
             emitLine("sta  P8ZP_SCRATCH_W1+1")
-            emitLine("lda  ${regAddrLo(src)}")
-            emitLine("ldy  ${regAddrHi(src)}")
+            emitLine("lda  ${regAddrLo(srcReg)}")
+            emitLine("ldy  ${regAddrHi(srcReg)}")
             emitLine("jsr  prog8_math.divmod_uw_asm")
-            emitLine("sta  ${regAddrLo(dst)}")
-            emitLine("sty  ${regAddrHi(dst)}")
+            emitLine("sta  ${regAddrLo(dstReg)}")
+            emitLine("sty  ${regAddrHi(dstReg)}")
         }
-        else -> TODO("DIVR r$dst, r$src ${type.name}")
+        else -> TODO("DIVR r$dstReg, r$srcReg ${type.name}")
     }
 }
 
-internal fun AsmGen.divImmediate(dst: Int, value: Int, type: IRDataType) {
+internal fun AsmGen.divImmediate(dstReg: Int, value: Int, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
-            emitLine("lda  ${regAddrLo(dst)}")
+            emitLine("lda  ${regAddrLo(dstReg)}")
             emitLine("ldy  #${value and 0xff}")
             emitLine("jsr  prog8_math.divmod_ub_asm")
-            emitLine("sty  ${regAddrLo(dst)}")
+            emitLine("sty  ${regAddrLo(dstReg)}")
         }
         IRDataType.WORD -> {
-            emitLine("lda  ${regAddrLo(dst)}")
+            emitLine("lda  ${regAddrLo(dstReg)}")
             emitLine("sta  P8ZP_SCRATCH_W1")
-            emitLine("lda  ${regAddrHi(dst)}")
+            emitLine("lda  ${regAddrHi(dstReg)}")
             emitLine("sta  P8ZP_SCRATCH_W1+1")
             emitLine("lda  #<${value and 0xffff}")
             emitLine("ldy  #>${value and 0xffff}")
             emitLine("jsr  prog8_math.divmod_uw_asm")
-            emitLine("sta  ${regAddrLo(dst)}")
-            emitLine("sty  ${regAddrHi(dst)}")
+            emitLine("sta  ${regAddrLo(dstReg)}")
+            emitLine("sty  ${regAddrHi(dstReg)}")
         }
-        else -> TODO("DIV r$dst, $value ${type.name}")
+        else -> TODO("DIV r$dstReg, $value ${type.name}")
     }
 }
 
-internal fun AsmGen.divMemory(dst: Int, source: String, type: IRDataType) {
+internal fun AsmGen.divMemory(dstReg: Int, sourceAddress: String, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
-            emitLine("lda  ${regAddrLo(dst)}")
-            emitLine("ldy  $source")
+            emitLine("lda  $sourceAddress")
+            emitLine("ldy  ${regAddrLo(dstReg)}")
             emitLine("jsr  prog8_math.divmod_ub_asm")
-            emitLine("sty  ${regAddrLo(dst)}")
+            emitLine("sty  $sourceAddress")
         }
         IRDataType.WORD -> {
-            emitLine("lda  ${regAddrLo(dst)}")
+            emitLine("lda  ${regAddrLo(dstReg)}")
             emitLine("sta  P8ZP_SCRATCH_W1")
-            emitLine("lda  ${regAddrHi(dst)}")
+            emitLine("lda  ${regAddrHi(dstReg)}")
             emitLine("sta  P8ZP_SCRATCH_W1+1")
-            emitLine("lda  $source")
-            emitLine("ldy  $source+1")
+            emitLine("lda  $sourceAddress")
+            emitLine("ldy  $sourceAddress+1")
             emitLine("jsr  prog8_math.divmod_uw_asm")
-            emitLine("sta  ${regAddrLo(dst)}")
-            emitLine("sty  ${regAddrHi(dst)}")
+            emitLine("sta  $sourceAddress")
+            emitLine("sty  $sourceAddress+1")
         }
-        else -> TODO("DIVM r$dst, $source ${type.name}")
+        else -> TODO("DIVM r$dstReg, $sourceAddress ${type.name}")
     }
 }
 
-internal fun AsmGen.divSignedRegisters(dst: Int, src: Int, type: IRDataType) {
+internal fun AsmGen.divSignedRegisters(dstReg: Int, srcReg: Int, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
-            emitLine("lda  ${regAddrLo(dst)}")
-            emitLine("ldy  ${regAddrLo(src)}")
+            emitLine("lda  ${regAddrLo(dstReg)}")
+            emitLine("ldy  ${regAddrLo(srcReg)}")
             emitLine("jsr  prog8_math.divmod_b_asm")
-            emitLine("sty  ${regAddrLo(dst)}")
+            emitLine("sty  ${regAddrLo(dstReg)}")
         }
         IRDataType.WORD -> {
-            emitLine("lda  ${regAddrLo(dst)}")
+            emitLine("lda  ${regAddrLo(dstReg)}")
             emitLine("sta  P8ZP_SCRATCH_W1")
-            emitLine("lda  ${regAddrHi(dst)}")
+            emitLine("lda  ${regAddrHi(dstReg)}")
             emitLine("sta  P8ZP_SCRATCH_W1+1")
-            emitLine("lda  ${regAddrLo(src)}")
-            emitLine("ldy  ${regAddrHi(src)}")
+            emitLine("lda  ${regAddrLo(srcReg)}")
+            emitLine("ldy  ${regAddrHi(srcReg)}")
             emitLine("jsr  prog8_math.divmod_w_asm")
-            emitLine("sta  ${regAddrLo(dst)}")
-            emitLine("sty  ${regAddrHi(dst)}")
+            emitLine("sta  ${regAddrLo(dstReg)}")
+            emitLine("sty  ${regAddrHi(dstReg)}")
         }
-        else -> TODO("DIVSR r$dst, r$src ${type.name}")
+        else -> TODO("DIVSR r$dstReg, r$srcReg ${type.name}")
     }
 }
 
-internal fun AsmGen.divSignedImmediate(dst: Int, value: Int, type: IRDataType) {
+internal fun AsmGen.divSignedImmediate(dstReg: Int, value: Int, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
-            emitLine("lda  ${regAddrLo(dst)}")
+            emitLine("lda  ${regAddrLo(dstReg)}")
             emitLine("ldy  #${value and 0xff}")
             emitLine("jsr  prog8_math.divmod_b_asm")
-            emitLine("sty  ${regAddrLo(dst)}")
+            emitLine("sty  ${regAddrLo(dstReg)}")
         }
         IRDataType.WORD -> {
-            emitLine("lda  ${regAddrLo(dst)}")
+            emitLine("lda  ${regAddrLo(dstReg)}")
             emitLine("sta  P8ZP_SCRATCH_W1")
-            emitLine("lda  ${regAddrHi(dst)}")
+            emitLine("lda  ${regAddrHi(dstReg)}")
             emitLine("sta  P8ZP_SCRATCH_W1+1")
             emitLine("lda  #<${value and 0xffff}")
             emitLine("ldy  #>${value and 0xffff}")
             emitLine("jsr  prog8_math.divmod_w_asm")
-            emitLine("sta  ${regAddrLo(dst)}")
-            emitLine("sty  ${regAddrHi(dst)}")
+            emitLine("sta  ${regAddrLo(dstReg)}")
+            emitLine("sty  ${regAddrHi(dstReg)}")
         }
-        else -> TODO("DIVS r$dst, $value ${type.name}")
+        else -> TODO("DIVS r$dstReg, $value ${type.name}")
     }
 }
 
-internal fun AsmGen.divSignedMemory(dst: Int, source: String, type: IRDataType) {
-    TODO("DIVSM r$dst, $source (signed)")
+internal fun AsmGen.divSignedMemory(dstReg: Int, sourceAddress: String, type: IRDataType) {
+    TODO("DIVSM r$dstReg, $sourceAddress (signed)")
 }
 
 // === Modulo ===
 
-internal fun AsmGen.modRegisters(dst: Int, src: Int, type: IRDataType) {
+internal fun AsmGen.modRegisters(dstReg: Int, srcReg: Int, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
-            emitLine("lda  ${regAddrLo(dst)}")
-            emitLine("ldy  ${regAddrLo(src)}")
+            emitLine("lda  ${regAddrLo(dstReg)}")
+            emitLine("ldy  ${regAddrLo(srcReg)}")
             emitLine("jsr  prog8_math.remainder_ub_asm")
-            emitLine("sta  ${regAddrLo(dst)}")
+            emitLine("sta  ${regAddrLo(dstReg)}")
         }
         IRDataType.WORD -> {
-            emitLine("lda  ${regAddrLo(dst)}")
+            emitLine("lda  ${regAddrLo(dstReg)}")
             emitLine("sta  P8ZP_SCRATCH_W1")
-            emitLine("lda  ${regAddrHi(dst)}")
+            emitLine("lda  ${regAddrHi(dstReg)}")
             emitLine("sta  P8ZP_SCRATCH_W1+1")
-            emitLine("lda  ${regAddrLo(src)}")
-            emitLine("ldy  ${regAddrHi(src)}")
+            emitLine("lda  ${regAddrLo(srcReg)}")
+            emitLine("ldy  ${regAddrHi(srcReg)}")
             emitLine("jsr  prog8_math.divmod_uw_asm")
             emitLine("lda  P8ZP_SCRATCH_W2")
-            emitLine("sta  ${regAddrLo(dst)}")
+            emitLine("sta  ${regAddrLo(dstReg)}")
             emitLine("lda  P8ZP_SCRATCH_W2+1")
-            emitLine("sta  ${regAddrHi(dst)}")
+            emitLine("sta  ${regAddrHi(dstReg)}")
         }
-        else -> TODO("MODR r$dst, r$src ${type.name}")
+        else -> TODO("MODR r$dstReg, r$srcReg ${type.name}")
     }
 }
 
-internal fun AsmGen.modImmediate(dst: Int, value: Int, type: IRDataType) {
+internal fun AsmGen.modImmediate(dstReg: Int, value: Int, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
-            emitLine("lda  ${regAddrLo(dst)}")
+            emitLine("lda  ${regAddrLo(dstReg)}")
             emitLine("ldy  #${value and 0xff}")
             emitLine("jsr  prog8_math.remainder_ub_asm")
-            emitLine("sta  ${regAddrLo(dst)}")
+            emitLine("sta  ${regAddrLo(dstReg)}")
         }
         IRDataType.WORD -> {
-            emitLine("lda  ${regAddrLo(dst)}")
+            emitLine("lda  ${regAddrLo(dstReg)}")
             emitLine("sta  P8ZP_SCRATCH_W1")
-            emitLine("lda  ${regAddrHi(dst)}")
+            emitLine("lda  ${regAddrHi(dstReg)}")
             emitLine("sta  P8ZP_SCRATCH_W1+1")
             emitLine("lda  #<${value and 0xffff}")
             emitLine("ldy  #>${value and 0xffff}")
             emitLine("jsr  prog8_math.divmod_uw_asm")
             emitLine("lda  P8ZP_SCRATCH_W2")
-            emitLine("sta  ${regAddrLo(dst)}")
+            emitLine("sta  ${regAddrLo(dstReg)}")
             emitLine("lda  P8ZP_SCRATCH_W2+1")
-            emitLine("sta  ${regAddrHi(dst)}")
+            emitLine("sta  ${regAddrHi(dstReg)}")
         }
-        else -> TODO("MOD r$dst, $value ${type.name}")
+        else -> TODO("MOD r$dstReg, $value ${type.name}")
     }
 }
 
-internal fun AsmGen.modSignedRegisters(dst: Int, src: Int, type: IRDataType) {
-    TODO("MODSR r$dst, r$src (signed)")
+internal fun AsmGen.modSignedRegisters(dstReg: Int, srcReg: Int, type: IRDataType) {
+    TODO("MODSR r$dstReg, r$srcReg (signed)")
 }
 
-internal fun AsmGen.modSignedImmediate(dst: Int, value: Int, type: IRDataType) {
-    emitLine("; MODS r$dst, $value (signed, using unsigned)")
-    modImmediate(dst, value, type)
+internal fun AsmGen.modSignedImmediate(dstReg: Int, value: Int, type: IRDataType) {
+    emitLine("; MODS r$dstReg, $value (signed, using unsigned)")
+    modImmediate(dstReg, value, type)
 }
 
 // === DivMod ===
 
-internal fun AsmGen.divModRegisters(dst: Int, src: Int, type: IRDataType) {
-    // division and modulo combined: dst = dst/src, dst+1 = dst%src
+internal fun AsmGen.divModRegisters(dstReg: Int, srcReg: Int, type: IRDataType) {
+    // division and modulo combined: dstReg = dstReg/srcReg, dstReg+1 = dstReg%srcReg
     when (type) {
         IRDataType.BYTE -> {
-            emitLine("lda  ${regAddrLo(dst)}")
-            emitLine("ldy  ${regAddrLo(src)}")
+            emitLine("lda  ${regAddrLo(dstReg)}")
+            emitLine("ldy  ${regAddrLo(srcReg)}")
             emitLine("jsr  prog8_math.divmod_ub_asm")
-            emitLine("sty  ${regAddrLo(dst)}")
-            emitLine("sta  ${regAddrByte(dst, 1)}")
+            emitLine("sty  ${regAddrLo(dstReg)}")
+            emitLine("sta  ${regAddrByte(dstReg, 1)}")
         }
         IRDataType.WORD -> {
-            emitLine("lda  ${regAddrLo(dst)}")
+            emitLine("lda  ${regAddrLo(dstReg)}")
             emitLine("sta  P8ZP_SCRATCH_W1")
-            emitLine("lda  ${regAddrHi(dst)}")
+            emitLine("lda  ${regAddrHi(dstReg)}")
             emitLine("sta  P8ZP_SCRATCH_W1+1")
-            emitLine("lda  ${regAddrLo(src)}")
-            emitLine("ldy  ${regAddrHi(src)}")
+            emitLine("lda  ${regAddrLo(srcReg)}")
+            emitLine("ldy  ${regAddrHi(srcReg)}")
             emitLine("jsr  prog8_math.divmod_uw_asm")
-            emitLine("sta  ${regAddrLo(dst)}")
-            emitLine("sty  ${regAddrHi(dst)}")
+            emitLine("sta  ${regAddrLo(dstReg)}")
+            emitLine("sty  ${regAddrHi(dstReg)}")
             emitLine("lda  P8ZP_SCRATCH_W2")
-            emitLine("sta  ${regAddrByte(dst, 2)}")
+            emitLine("sta  ${regAddrByte(dstReg, 2)}")
             emitLine("lda  P8ZP_SCRATCH_W2+1")
-            emitLine("sta  ${regAddrByte(dst, 3)}")
+            emitLine("sta  ${regAddrByte(dstReg, 3)}")
         }
-        else -> TODO("DIVMODR r$dst, r$src ${type.name}")
+        else -> TODO("DIVMODR r$dstReg, r$srcReg ${type.name}")
     }
 }
 
-internal fun AsmGen.sdivModRegisters(dst: Int, src: Int, type: IRDataType) {
-    TODO("SDIVMODR r$dst, r$src (signed)")
+internal fun AsmGen.sdivModRegisters(dstReg: Int, srcReg: Int, type: IRDataType) {
+    TODO("SDIVMODR r$dstReg, r$srcReg (signed)")
 }
 
-internal fun AsmGen.divModImmediate(dst: Int, value: Int, type: IRDataType) {
+internal fun AsmGen.divModImmediate(dstReg: Int, value: Int, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
-            emitLine("lda  ${regAddrLo(dst)}")
+            emitLine("lda  ${regAddrLo(dstReg)}")
             emitLine("ldy  #${value and 0xff}")
             emitLine("jsr  prog8_math.divmod_ub_asm")
-            emitLine("sty  ${regAddrLo(dst)}")
-            emitLine("sta  ${regAddrByte(dst, 1)}")
+            emitLine("sty  ${regAddrLo(dstReg)}")
+            emitLine("sta  ${regAddrByte(dstReg, 1)}")
         }
         IRDataType.WORD -> {
-            emitLine("lda  ${regAddrLo(dst)}")
+            emitLine("lda  ${regAddrLo(dstReg)}")
             emitLine("sta  P8ZP_SCRATCH_W1")
-            emitLine("lda  ${regAddrHi(dst)}")
+            emitLine("lda  ${regAddrHi(dstReg)}")
             emitLine("sta  P8ZP_SCRATCH_W1+1")
             emitLine("lda  #<${value and 0xffff}")
             emitLine("ldy  #>${value and 0xffff}")
             emitLine("jsr  prog8_math.divmod_uw_asm")
-            emitLine("sta  ${regAddrLo(dst)}")
-            emitLine("sty  ${regAddrHi(dst)}")
+            emitLine("sta  ${regAddrLo(dstReg)}")
+            emitLine("sty  ${regAddrHi(dstReg)}")
             emitLine("lda  P8ZP_SCRATCH_W2")
-            emitLine("sta  ${regAddrByte(dst, 2)}")
+            emitLine("sta  ${regAddrByte(dstReg, 2)}")
             emitLine("lda  P8ZP_SCRATCH_W2+1")
-            emitLine("sta  ${regAddrByte(dst, 3)}")
+            emitLine("sta  ${regAddrByte(dstReg, 3)}")
         }
-        else -> TODO("DIVMOD r$dst, $value ${type.name}")
+        else -> TODO("DIVMOD r$dstReg, $value ${type.name}")
     }
 }
 
-internal fun AsmGen.sdivModImmediate(dst: Int, value: Int, type: IRDataType) {
-    emitLine("; SDIVMOD r$dst, $value (signed, using unsigned)")
-    divModImmediate(dst, value, type)
+internal fun AsmGen.sdivModImmediate(dstReg: Int, value: Int, type: IRDataType) {
+    emitLine("; SDIVMOD r$dstReg, $value (signed, using unsigned)")
+    divModImmediate(dstReg, value, type)
 }
 
 // === Compare ===
@@ -1091,115 +1091,115 @@ internal fun AsmGen.translateFloatArithmetic(insn: IRInstruction) {
 
         Opcode.ADDR -> {
             // fr1 += fr2
-            val dst = fr1 ?: error("ADDR.f needs fpReg1")
-            val src = fr2 ?: error("ADDR.f needs fpReg2")
+            val dstReg = fr1 ?: error("ADDR.f needs fpReg1")
+            val srcReg = fr2 ?: error("ADDR.f needs fpReg2")
             if (useC64PushPopOperands) {
                 // On C64/PET32, FAC2 must be loaded last via CONUPK for correct arisgn setup
-                emitLine("lda  #<${fpRegAddr(src.value)}")
-                emitLine("ldy  #>${fpRegAddr(src.value)}")
+                emitLine("lda  #<${fpRegAddr(srcReg.value)}")
+                emitLine("ldy  #>${fpRegAddr(srcReg.value)}")
                 emitLine("jsr  floats.MOVFM")
                 emitLine("jsr  floats.pushFAC1")
-                emitLine("lda  #<${fpRegAddr(dst.value)}")
-                emitLine("ldy  #>${fpRegAddr(dst.value)}")
+                emitLine("lda  #<${fpRegAddr(dstReg.value)}")
+                emitLine("ldy  #>${fpRegAddr(dstReg.value)}")
                 emitLine("jsr  floats.MOVFM")
                 emitLine("sec")
                 emitLine("jsr  floats.popFAC")
             } else {
-                emitLoadFAC2FromFpReg(src.value)
-                emitLine("lda  #<${fpRegAddr(dst.value)}")
-                emitLine("ldy  #>${fpRegAddr(dst.value)}")
+                emitLoadFAC2FromFpReg(srcReg.value)
+                emitLine("lda  #<${fpRegAddr(dstReg.value)}")
+                emitLine("ldy  #>${fpRegAddr(dstReg.value)}")
                 emitLine("jsr  floats.MOVFM")
             }
             emitLine("jsr  floats.FADDT${floatTMathSuffix}")
-            emitLine("ldx  #<${fpRegAddr(dst.value)}")
-            emitLine("ldy  #>${fpRegAddr(dst.value)}")
+            emitLine("ldx  #<${fpRegAddr(dstReg.value)}")
+            emitLine("ldy  #>${fpRegAddr(dstReg.value)}")
             emitLine("jsr  floats.MOVMF")
         }
 
         Opcode.SUBR -> {
             // fr1 -= fr2  =>  FSUBT = FAC2 - FAC1, need FAC2=fr1, FAC1=fr2
-            val dst = fr1 ?: error("SUBR.f needs fpReg1")
-            val src = fr2 ?: error("SUBR.f needs fpReg2")
+            val dstReg = fr1 ?: error("SUBR.f needs fpReg1")
+            val srcReg = fr2 ?: error("SUBR.f needs fpReg2")
             if (useC64PushPopOperands) {
-                emitLine("lda  #<${fpRegAddr(dst.value)}")
-                emitLine("ldy  #>${fpRegAddr(dst.value)}")
+                emitLine("lda  #<${fpRegAddr(dstReg.value)}")
+                emitLine("ldy  #>${fpRegAddr(dstReg.value)}")
                 emitLine("jsr  floats.MOVFM")
                 emitLine("jsr  floats.pushFAC1")
-                emitLine("lda  #<${fpRegAddr(src.value)}")
-                emitLine("ldy  #>${fpRegAddr(src.value)}")
+                emitLine("lda  #<${fpRegAddr(srcReg.value)}")
+                emitLine("ldy  #>${fpRegAddr(srcReg.value)}")
                 emitLine("jsr  floats.MOVFM")
                 emitLine("sec")
                 emitLine("jsr  floats.popFAC")
             } else {
-                emitLoadFAC2FromFpReg(dst.value)
-                emitLine("lda  #<${fpRegAddr(src.value)}")
-                emitLine("ldy  #>${fpRegAddr(src.value)}")
+                emitLoadFAC2FromFpReg(dstReg.value)
+                emitLine("lda  #<${fpRegAddr(srcReg.value)}")
+                emitLine("ldy  #>${fpRegAddr(srcReg.value)}")
                 emitLine("jsr  floats.MOVFM")
             }
             emitLine("jsr  floats.FSUBT")
-            emitLine("ldx  #<${fpRegAddr(dst.value)}")
-            emitLine("ldy  #>${fpRegAddr(dst.value)}")
+            emitLine("ldx  #<${fpRegAddr(dstReg.value)}")
+            emitLine("ldy  #>${fpRegAddr(dstReg.value)}")
             emitLine("jsr  floats.MOVMF")
         }
 
         Opcode.MULR -> {
             // fr1 *= fr2
-            val dst = fr1 ?: error("MULR.f needs fpReg1")
-            val src = fr2 ?: error("MULR.f needs fpReg2")
+            val dstReg = fr1 ?: error("MULR.f needs fpReg1")
+            val srcReg = fr2 ?: error("MULR.f needs fpReg2")
             if (useC64PushPopOperands) {
-                emitLine("lda  #<${fpRegAddr(src.value)}")
-                emitLine("ldy  #>${fpRegAddr(src.value)}")
+                emitLine("lda  #<${fpRegAddr(srcReg.value)}")
+                emitLine("ldy  #>${fpRegAddr(srcReg.value)}")
                 emitLine("jsr  floats.MOVFM")
                 emitLine("jsr  floats.pushFAC1")
-                emitLine("lda  #<${fpRegAddr(dst.value)}")
-                emitLine("ldy  #>${fpRegAddr(dst.value)}")
+                emitLine("lda  #<${fpRegAddr(dstReg.value)}")
+                emitLine("ldy  #>${fpRegAddr(dstReg.value)}")
                 emitLine("jsr  floats.MOVFM")
                 emitLine("sec")
                 emitLine("jsr  floats.popFAC")
             } else {
-                emitLoadFAC2FromFpReg(src.value)
-                emitLine("lda  #<${fpRegAddr(dst.value)}")
-                emitLine("ldy  #>${fpRegAddr(dst.value)}")
+                emitLoadFAC2FromFpReg(srcReg.value)
+                emitLine("lda  #<${fpRegAddr(dstReg.value)}")
+                emitLine("ldy  #>${fpRegAddr(dstReg.value)}")
                 emitLine("jsr  floats.MOVFM")
             }
             emitLine("jsr  floats.FMULTT${floatTMathSuffix}")
-            emitLine("ldx  #<${fpRegAddr(dst.value)}")
-            emitLine("ldy  #>${fpRegAddr(dst.value)}")
+            emitLine("ldx  #<${fpRegAddr(dstReg.value)}")
+            emitLine("ldy  #>${fpRegAddr(dstReg.value)}")
             emitLine("jsr  floats.MOVMF")
         }
 
         Opcode.DIVR, Opcode.DIVSR -> {
             // fr1 /= fr2  =>  FDIVT = FAC2 / FAC1, need FAC2=fr1, FAC1=fr2
-            val dst = fr1 ?: error("DIVR.f needs fpReg1")
-            val src = fr2 ?: error("DIVR.f needs fpReg2")
+            val dstReg = fr1 ?: error("DIVR.f needs fpReg1")
+            val srcReg = fr2 ?: error("DIVR.f needs fpReg2")
             if (useC64PushPopOperands) {
-                emitLine("lda  #<${fpRegAddr(dst.value)}")
-                emitLine("ldy  #>${fpRegAddr(dst.value)}")
+                emitLine("lda  #<${fpRegAddr(dstReg.value)}")
+                emitLine("ldy  #>${fpRegAddr(dstReg.value)}")
                 emitLine("jsr  floats.MOVFM")
                 emitLine("jsr  floats.pushFAC1")
-                emitLine("lda  #<${fpRegAddr(src.value)}")
-                emitLine("ldy  #>${fpRegAddr(src.value)}")
+                emitLine("lda  #<${fpRegAddr(srcReg.value)}")
+                emitLine("ldy  #>${fpRegAddr(srcReg.value)}")
                 emitLine("jsr  floats.MOVFM")
                 emitLine("sec")
                 emitLine("jsr  floats.popFAC")
             } else {
-                emitLoadFAC2FromFpReg(dst.value)
-                emitLine("lda  #<${fpRegAddr(src.value)}")
-                emitLine("ldy  #>${fpRegAddr(src.value)}")
+                emitLoadFAC2FromFpReg(dstReg.value)
+                emitLine("lda  #<${fpRegAddr(srcReg.value)}")
+                emitLine("ldy  #>${fpRegAddr(srcReg.value)}")
                 emitLine("jsr  floats.MOVFM")
             }
             emitLine("jsr  floats.FDIVT${floatTMathSuffix}")
-            emitLine("ldx  #<${fpRegAddr(dst.value)}")
-            emitLine("ldy  #>${fpRegAddr(dst.value)}")
+            emitLine("ldx  #<${fpRegAddr(dstReg.value)}")
+            emitLine("ldy  #>${fpRegAddr(dstReg.value)}")
             emitLine("jsr  floats.MOVMF")
         }
 
         Opcode.ADD, Opcode.MUL, Opcode.MULS -> {
-            val dst = fr1 ?: error("${insn.opcode}.f needs fpReg1")
+            val dstReg = fr1 ?: error("${insn.opcode}.f needs fpReg1")
             val value = immFp ?: error("${insn.opcode}.f needs immediateFp")
             val constLabel = getFloatConstLabel(value)
-            emitLine("lda  #<${fpRegAddr(dst.value)}")
-            emitLine("ldy  #>${fpRegAddr(dst.value)}")
+            emitLine("lda  #<${fpRegAddr(dstReg.value)}")
+            emitLine("ldy  #>${fpRegAddr(dstReg.value)}")
             emitLine("jsr  floats.MOVFM")
             emitLine("lda  #<$constLabel")
             emitLine("ldy  #>$constLabel")
@@ -1209,18 +1209,18 @@ internal fun AsmGen.translateFloatArithmetic(insn: IRInstruction) {
                 else -> error("unreachable")
             }
             emitLine("jsr  $mathRoutine")
-            emitLine("ldx  #<${fpRegAddr(dst.value)}")
-            emitLine("ldy  #>${fpRegAddr(dst.value)}")
+            emitLine("ldx  #<${fpRegAddr(dstReg.value)}")
+            emitLine("ldy  #>${fpRegAddr(dstReg.value)}")
             emitLine("jsr  floats.MOVMF")
         }
 
         Opcode.SUB -> {
             // NOTE: FSUB does FAC1 = memory - FAC1, so we must use push/pop + FSUBT instead
-            val dst = fr1 ?: error("SUB.f needs fpReg1")
+            val dstReg = fr1 ?: error("SUB.f needs fpReg1")
             val value = immFp ?: error("SUB.f needs immediateFp")
             val constLabel = getFloatConstLabel(value)
-            emitLine("lda  #<${fpRegAddr(dst.value)}")
-            emitLine("ldy  #>${fpRegAddr(dst.value)}")
+            emitLine("lda  #<${fpRegAddr(dstReg.value)}")
+            emitLine("ldy  #>${fpRegAddr(dstReg.value)}")
             emitLine("jsr  floats.MOVFM")
             emitLine("jsr  floats.pushFAC1")
             emitLine("lda  #<$constLabel")
@@ -1229,18 +1229,18 @@ internal fun AsmGen.translateFloatArithmetic(insn: IRInstruction) {
             emitLine("sec")
             emitLine("jsr  floats.popFAC")
             emitLine("jsr  floats.FSUBT")
-            emitLine("ldx  #<${fpRegAddr(dst.value)}")
-            emitLine("ldy  #>${fpRegAddr(dst.value)}")
+            emitLine("ldx  #<${fpRegAddr(dstReg.value)}")
+            emitLine("ldy  #>${fpRegAddr(dstReg.value)}")
             emitLine("jsr  floats.MOVMF")
         }
 
         Opcode.DIV, Opcode.DIVS -> {
             // NOTE: FDIV does FAC1 = memory / FAC1, so we must use push/pop + FDIVT instead
-            val dst = fr1 ?: error("${insn.opcode}.f needs fpReg1")
+            val dstReg = fr1 ?: error("${insn.opcode}.f needs fpReg1")
             val value = immFp ?: error("${insn.opcode}.f needs immediateFp")
             val constLabel = getFloatConstLabel(value)
-            emitLine("lda  #<${fpRegAddr(dst.value)}")
-            emitLine("ldy  #>${fpRegAddr(dst.value)}")
+            emitLine("lda  #<${fpRegAddr(dstReg.value)}")
+            emitLine("ldy  #>${fpRegAddr(dstReg.value)}")
             emitLine("jsr  floats.MOVFM")
             emitLine("jsr  floats.pushFAC1")
             emitLine("lda  #<$constLabel")
@@ -1249,26 +1249,26 @@ internal fun AsmGen.translateFloatArithmetic(insn: IRInstruction) {
             emitLine("sec")
             emitLine("jsr  floats.popFAC")
             emitLine("jsr  floats.FDIVT${floatTMathSuffix}")
-            emitLine("ldx  #<${fpRegAddr(dst.value)}")
-            emitLine("ldy  #>${fpRegAddr(dst.value)}")
+            emitLine("ldx  #<${fpRegAddr(dstReg.value)}")
+            emitLine("ldy  #>${fpRegAddr(dstReg.value)}")
             emitLine("jsr  floats.MOVMF")
         }
 
         Opcode.ADDM -> {
-            val src = fr1 ?: error("ADDM.f needs fpReg1")
+            val srcReg = fr1 ?: error("ADDM.f needs fpReg1")
             val target = resolveAddress(addr, label, offset)
             if (useC64PushPopOperands) {
                 emitLine("lda  #<$target")
                 emitLine("ldy  #>$target")
                 emitLine("jsr  floats.MOVFM")
                 emitLine("jsr  floats.pushFAC1")
-                emitLine("lda  #<${fpRegAddr(src.value)}")
-                emitLine("ldy  #>${fpRegAddr(src.value)}")
+                emitLine("lda  #<${fpRegAddr(srcReg.value)}")
+                emitLine("ldy  #>${fpRegAddr(srcReg.value)}")
                 emitLine("jsr  floats.MOVFM")
                 emitLine("sec")
                 emitLine("jsr  floats.popFAC")
             } else {
-                emitLoadFAC2FromFpReg(src.value)
+                emitLoadFAC2FromFpReg(srcReg.value)
                 emitLine("lda  #<$target")
                 emitLine("ldy  #>$target")
                 emitLine("jsr  floats.MOVFM")
@@ -1280,20 +1280,20 @@ internal fun AsmGen.translateFloatArithmetic(insn: IRInstruction) {
         }
 
         Opcode.SUBM -> {
-            val src = fr1 ?: error("SUBM.f needs fpReg1")
+            val srcReg = fr1 ?: error("SUBM.f needs fpReg1")
             val target = resolveAddress(addr, label, offset)
             if (useC64PushPopOperands) {
                 emitLine("lda  #<$target")
                 emitLine("ldy  #>$target")
                 emitLine("jsr  floats.MOVFM")
                 emitLine("jsr  floats.pushFAC1")
-                emitLine("lda  #<${fpRegAddr(src.value)}")
-                emitLine("ldy  #>${fpRegAddr(src.value)}")
+                emitLine("lda  #<${fpRegAddr(srcReg.value)}")
+                emitLine("ldy  #>${fpRegAddr(srcReg.value)}")
                 emitLine("jsr  floats.MOVFM")
                 emitLine("sec")
                 emitLine("jsr  floats.popFAC")
             } else {
-                emitLoadFAC2FromFpReg(src.value)
+                emitLoadFAC2FromFpReg(srcReg.value)
                 emitLine("lda  #<$target")
                 emitLine("ldy  #>$target")
                 emitLine("jsr  floats.MOVFM")
@@ -1348,20 +1348,20 @@ internal fun AsmGen.translateFloatArithmetic(insn: IRInstruction) {
         }
 
         Opcode.MULM, Opcode.MULSM -> {
-            val src = fr1 ?: error("${insn.opcode}.f needs fpReg1")
+            val srcReg = fr1 ?: error("${insn.opcode}.f needs fpReg1")
             val target = resolveAddress(addr, label, offset)
             if (useC64PushPopOperands) {
                 emitLine("lda  #<$target")
                 emitLine("ldy  #>$target")
                 emitLine("jsr  floats.MOVFM")
                 emitLine("jsr  floats.pushFAC1")
-                emitLine("lda  #<${fpRegAddr(src.value)}")
-                emitLine("ldy  #>${fpRegAddr(src.value)}")
+                emitLine("lda  #<${fpRegAddr(srcReg.value)}")
+                emitLine("ldy  #>${fpRegAddr(srcReg.value)}")
                 emitLine("jsr  floats.MOVFM")
                 emitLine("sec")
                 emitLine("jsr  floats.popFAC")
             } else {
-                emitLoadFAC2FromFpReg(src.value)
+                emitLoadFAC2FromFpReg(srcReg.value)
                 emitLine("lda  #<$target")
                 emitLine("ldy  #>$target")
                 emitLine("jsr  floats.MOVFM")
@@ -1373,15 +1373,15 @@ internal fun AsmGen.translateFloatArithmetic(insn: IRInstruction) {
         }
 
         Opcode.DIVM, Opcode.DIVSM -> {
-            val src = fr1 ?: error("${insn.opcode}.f needs fpReg1")
+            val srcReg = fr1 ?: error("${insn.opcode}.f needs fpReg1")
             val target = resolveAddress(addr, label, offset)
             if (useC64PushPopOperands) {
                 emitLine("lda  #<$target")
                 emitLine("ldy  #>$target")
                 emitLine("jsr  floats.MOVFM")
                 emitLine("jsr  floats.pushFAC1")
-                emitLine("lda  #<${fpRegAddr(src.value)}")
-                emitLine("ldy  #>${fpRegAddr(src.value)}")
+                emitLine("lda  #<${fpRegAddr(srcReg.value)}")
+                emitLine("ldy  #>${fpRegAddr(srcReg.value)}")
                 emitLine("jsr  floats.MOVFM")
                 emitLine("sec")
                 emitLine("jsr  floats.popFAC")
@@ -1390,8 +1390,8 @@ internal fun AsmGen.translateFloatArithmetic(insn: IRInstruction) {
                 emitLine("ldy  #>$target")
                 emitLine("jsr  floats.MOVFM")
                 emitLine("jsr  floats.MOVAF")
-                emitLine("lda  #<${fpRegAddr(src.value)}")
-                emitLine("ldy  #>${fpRegAddr(src.value)}")
+                emitLine("lda  #<${fpRegAddr(srcReg.value)}")
+                emitLine("ldy  #>${fpRegAddr(srcReg.value)}")
                 emitLine("jsr  floats.MOVFM")
             }
             emitLine("jsr  floats.FDIVT${floatTMathSuffix}")
@@ -1402,27 +1402,27 @@ internal fun AsmGen.translateFloatArithmetic(insn: IRInstruction) {
 
         Opcode.MULSR -> {
             // fr1 *= fr2  (signed - same as unsigned for floats)
-            val dst = fr1 ?: error("MULSR.f needs fpReg1")
-            val src = fr2 ?: error("MULSR.f needs fpReg2")
+            val dstReg = fr1 ?: error("MULSR.f needs fpReg1")
+            val srcReg = fr2 ?: error("MULSR.f needs fpReg2")
             if (useC64PushPopOperands) {
-                emitLine("lda  #<${fpRegAddr(src.value)}")
-                emitLine("ldy  #>${fpRegAddr(src.value)}")
+                emitLine("lda  #<${fpRegAddr(srcReg.value)}")
+                emitLine("ldy  #>${fpRegAddr(srcReg.value)}")
                 emitLine("jsr  floats.MOVFM")
                 emitLine("jsr  floats.pushFAC1")
-                emitLine("lda  #<${fpRegAddr(dst.value)}")
-                emitLine("ldy  #>${fpRegAddr(dst.value)}")
+                emitLine("lda  #<${fpRegAddr(dstReg.value)}")
+                emitLine("ldy  #>${fpRegAddr(dstReg.value)}")
                 emitLine("jsr  floats.MOVFM")
                 emitLine("sec")
                 emitLine("jsr  floats.popFAC")
             } else {
-                emitLoadFAC2FromFpReg(src.value)
-                emitLine("lda  #<${fpRegAddr(dst.value)}")
-                emitLine("ldy  #>${fpRegAddr(dst.value)}")
+                emitLoadFAC2FromFpReg(srcReg.value)
+                emitLine("lda  #<${fpRegAddr(dstReg.value)}")
+                emitLine("ldy  #>${fpRegAddr(dstReg.value)}")
                 emitLine("jsr  floats.MOVFM")
             }
             emitLine("jsr  floats.FMULTT${floatTMathSuffix}")
-            emitLine("ldx  #<${fpRegAddr(dst.value)}")
-            emitLine("ldy  #>${fpRegAddr(dst.value)}")
+            emitLine("ldx  #<${fpRegAddr(dstReg.value)}")
+            emitLine("ldy  #>${fpRegAddr(dstReg.value)}")
             emitLine("jsr  floats.MOVMF")
         }
 

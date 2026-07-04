@@ -37,7 +37,7 @@ enum class CpuType(val statusBitsOnMultiByteOps: Boolean) {
     CPU65C02(false),
     
     /** 16/32 bit Motorola 68000. has single instructions that set status bits when dealing with multi byte operands */
-    M68000(true),
+    M68030(true),
 
     /**
      * Virtual machine target. We use `false` here so the IR generator always

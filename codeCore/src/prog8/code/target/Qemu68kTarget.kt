@@ -22,7 +22,7 @@ class Qemu68kTarget: ICompilationTarget,
         const val FLOAT_MEM_SIZE = 4             // 32-bits double
     }
 
-    override val cpu = CpuType.M68000
+    override val cpu = CpuType.M68030
 
     override val FLOAT_MAX_POSITIVE = Float.MAX_VALUE.toDouble()
     override val FLOAT_MAX_NEGATIVE = -Float.MAX_VALUE.toDouble()
@@ -54,7 +54,19 @@ class Qemu68kTarget: ICompilationTarget,
             System.err.println("The qemu68k target only supports the main emulator (Qemu).")
             return
         }
-        TODO("launch qemu on $programNameWithPath")
+        val elfFile = programNameWithPath.resolveSibling("${programNameWithPath.fileName}.elf")
+        val cmd = listOf(
+            "qemu-system-m68k",
+            "-M", "virt",
+            "-cpu", "m68030",
+            "-m", "128M",
+            "-kernel", elfFile.toString(),
+            "-nographic"
+        )
+        val pb = ProcessBuilder(cmd).inheritIO()
+        if (quiet)
+            pb.redirectOutput(ProcessBuilder.Redirect.DISCARD)
+        pb.start().waitFor()
     }
 
     override fun isIOAddress(address: UInt): Boolean = address>=0xff000000u

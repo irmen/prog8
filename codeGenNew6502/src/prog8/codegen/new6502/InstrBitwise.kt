@@ -38,8 +38,8 @@ internal fun AsmGen.translateBitwise(insn: IRInstruction) {
             andImmediate(r1 ?: error("AND needs reg1"), value, type)
         }
         Opcode.ANDM -> {
-            val source = resolveAddress(addr, label, offset)
-            andMemory(r1 ?: error("ANDM needs reg1"), source, type)
+            val sourceAddress = resolveAddress(addr, label, offset)
+            andMemory(r1 ?: error("ANDM needs reg1"), sourceAddress, type)
         }
 
         Opcode.ORR -> {
@@ -51,8 +51,8 @@ internal fun AsmGen.translateBitwise(insn: IRInstruction) {
             orImmediate(r1 ?: error("OR needs reg1"), value, type)
         }
         Opcode.ORM -> {
-            val source = resolveAddress(addr, label, offset)
-            orMemory(r1 ?: error("ORM needs reg1"), source, type)
+            val sourceAddress = resolveAddress(addr, label, offset)
+            orMemory(r1 ?: error("ORM needs reg1"), sourceAddress, type)
         }
 
         Opcode.XORR -> {
@@ -64,8 +64,8 @@ internal fun AsmGen.translateBitwise(insn: IRInstruction) {
             xorImmediate(r1 ?: error("XOR needs reg1"), value, type)
         }
         Opcode.XORM -> {
-            val source = resolveAddress(addr, label, offset)
-            xorMemory(r1 ?: error("XORM needs reg1"), source, type)
+            val sourceAddress = resolveAddress(addr, label, offset)
+            xorMemory(r1 ?: error("XORM needs reg1"), sourceAddress, type)
         }
 
         Opcode.INV -> invertRegister(r1 ?: error("INV needs reg1"), type)
@@ -130,225 +130,225 @@ internal fun AsmGen.translateBitwise(insn: IRInstruction) {
 
 // === AND ===
 
-private fun AsmGen.andRegisters(dst: Int, src: Int, type: IRDataType) {
+private fun AsmGen.andRegisters(dstReg: Int, srcReg: Int, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
-            emitLine("lda  ${regAddrLo(dst)}")
-            emitLine("and  ${regAddrLo(src)}")
-            emitLine("sta  ${regAddrLo(dst)}")
+            emitLine("lda  ${regAddrLo(dstReg)}")
+            emitLine("and  ${regAddrLo(srcReg)}")
+            emitLine("sta  ${regAddrLo(dstReg)}")
         }
         IRDataType.WORD -> {
-            emitLine("lda  ${regAddrLo(dst)}")
-            emitLine("and  ${regAddrLo(src)}")
-            emitLine("sta  ${regAddrLo(dst)}")
-            emitLine("lda  ${regAddrHi(dst)}")
-            emitLine("and  ${regAddrHi(src)}")
-            emitLine("sta  ${regAddrHi(dst)}")
+            emitLine("lda  ${regAddrLo(dstReg)}")
+            emitLine("and  ${regAddrLo(srcReg)}")
+            emitLine("sta  ${regAddrLo(dstReg)}")
+            emitLine("lda  ${regAddrHi(dstReg)}")
+            emitLine("and  ${regAddrHi(srcReg)}")
+            emitLine("sta  ${regAddrHi(dstReg)}")
         }
-        IRDataType.LONG -> byteLoop4(regAddrByte(dst, 0), regAddrByte(src, 0), "and")
+        IRDataType.LONG -> byteLoop4(regAddrByte(dstReg, 0), regAddrByte(srcReg, 0), "and")
         IRDataType.FLOAT -> error("bitwise operations are not supported on floats")
     }
 }
 
-private fun AsmGen.andImmediate(dst: Int, value: Int, type: IRDataType) {
+private fun AsmGen.andImmediate(dstReg: Int, value: Int, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
-            emitLine("lda  ${regAddrLo(dst)}")
+            emitLine("lda  ${regAddrLo(dstReg)}")
             emitLine("and  #${value and 0xff}")
-            emitLine("sta  ${regAddrLo(dst)}")
+            emitLine("sta  ${regAddrLo(dstReg)}")
         }
         IRDataType.WORD -> {
-            emitLine("lda  ${regAddrLo(dst)}")
+            emitLine("lda  ${regAddrLo(dstReg)}")
             emitLine("and  #<${value and 0xffff}")
-            emitLine("sta  ${regAddrLo(dst)}")
-            emitLine("lda  ${regAddrHi(dst)}")
+            emitLine("sta  ${regAddrLo(dstReg)}")
+            emitLine("lda  ${regAddrHi(dstReg)}")
             emitLine("and  #>${value and 0xffff}")
-            emitLine("sta  ${regAddrHi(dst)}")
+            emitLine("sta  ${regAddrHi(dstReg)}")
         }
         IRDataType.LONG -> {
-            emitLine("lda  ${regAddrByte(dst, 0)}")
+            emitLine("lda  ${regAddrByte(dstReg, 0)}")
             emitLine("and  #${value and 0xff}")
-            emitLine("sta  ${regAddrByte(dst, 0)}")
-            emitLine("lda  ${regAddrByte(dst, 1)}")
+            emitLine("sta  ${regAddrByte(dstReg, 0)}")
+            emitLine("lda  ${regAddrByte(dstReg, 1)}")
             emitLine("and  #${(value shr 8) and 0xff}")
-            emitLine("sta  ${regAddrByte(dst, 1)}")
-            emitLine("lda  ${regAddrByte(dst, 2)}")
+            emitLine("sta  ${regAddrByte(dstReg, 1)}")
+            emitLine("lda  ${regAddrByte(dstReg, 2)}")
             emitLine("and  #${(value shr 16) and 0xff}")
-            emitLine("sta  ${regAddrByte(dst, 2)}")
-            emitLine("lda  ${regAddrByte(dst, 3)}")
+            emitLine("sta  ${regAddrByte(dstReg, 2)}")
+            emitLine("lda  ${regAddrByte(dstReg, 3)}")
             emitLine("and  #${(value shr 24) and 0xff}")
-            emitLine("sta  ${regAddrByte(dst, 3)}")
+            emitLine("sta  ${regAddrByte(dstReg, 3)}")
         }
         IRDataType.FLOAT -> error("bitwise operations are not supported on floats")
     }
 }
 
-private fun AsmGen.andMemory(dst: Int, source: String, type: IRDataType) {
+private fun AsmGen.andMemory(dstReg: Int, sourceAddress: String, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
-            emitLine("lda  $source")
-            emitLine("and  ${regAddrLo(dst)}")
-            emitLine("sta  $source")
+            emitLine("lda  $sourceAddress")
+            emitLine("and  ${regAddrLo(dstReg)}")
+            emitLine("sta  $sourceAddress")
         }
         IRDataType.WORD -> {
-            emitLine("lda  $source")
-            emitLine("and  ${regAddrLo(dst)}")
-            emitLine("sta  $source")
-            emitLine("lda  $source+1")
-            emitLine("and  ${regAddrHi(dst)}")
-            emitLine("sta  $source+1")
+            emitLine("lda  $sourceAddress")
+            emitLine("and  ${regAddrLo(dstReg)}")
+            emitLine("sta  $sourceAddress")
+            emitLine("lda  $sourceAddress+1")
+            emitLine("and  ${regAddrHi(dstReg)}")
+            emitLine("sta  $sourceAddress+1")
         }
-        IRDataType.LONG -> byteLoop4(source, regAddrByte(dst, 0), "and")
+        IRDataType.LONG -> byteLoop4(sourceAddress, regAddrByte(dstReg, 0), "and")
         else -> error("ANDM not supported on ${type.name}")
     }
 }
 
 // === OR ===
 
-private fun AsmGen.orRegisters(dst: Int, src: Int, type: IRDataType) {
+private fun AsmGen.orRegisters(dstReg: Int, srcReg: Int, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
-            emitLine("lda  ${regAddrLo(dst)}")
-            emitLine("ora  ${regAddrLo(src)}")
-            emitLine("sta  ${regAddrLo(dst)}")
+            emitLine("lda  ${regAddrLo(dstReg)}")
+            emitLine("ora  ${regAddrLo(srcReg)}")
+            emitLine("sta  ${regAddrLo(dstReg)}")
         }
         IRDataType.WORD -> {
-            emitLine("lda  ${regAddrLo(dst)}")
-            emitLine("ora  ${regAddrLo(src)}")
-            emitLine("sta  ${regAddrLo(dst)}")
-            emitLine("lda  ${regAddrHi(dst)}")
-            emitLine("ora  ${regAddrHi(src)}")
-            emitLine("sta  ${regAddrHi(dst)}")
+            emitLine("lda  ${regAddrLo(dstReg)}")
+            emitLine("ora  ${regAddrLo(srcReg)}")
+            emitLine("sta  ${regAddrLo(dstReg)}")
+            emitLine("lda  ${regAddrHi(dstReg)}")
+            emitLine("ora  ${regAddrHi(srcReg)}")
+            emitLine("sta  ${regAddrHi(dstReg)}")
         }
-        IRDataType.LONG -> byteLoop4(regAddrByte(dst, 0), regAddrByte(src, 0), "ora")
+        IRDataType.LONG -> byteLoop4(regAddrByte(dstReg, 0), regAddrByte(srcReg, 0), "ora")
         else -> error("ORR not supported on ${type.name}")
     }
 }
 
-private fun AsmGen.orImmediate(dst: Int, value: Int, type: IRDataType) {
+private fun AsmGen.orImmediate(dstReg: Int, value: Int, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
-            emitLine("lda  ${regAddrLo(dst)}")
+            emitLine("lda  ${regAddrLo(dstReg)}")
             emitLine("ora  #${value and 0xff}")
-            emitLine("sta  ${regAddrLo(dst)}")
+            emitLine("sta  ${regAddrLo(dstReg)}")
         }
         IRDataType.WORD -> {
-            emitLine("lda  ${regAddrLo(dst)}")
+            emitLine("lda  ${regAddrLo(dstReg)}")
             emitLine("ora  #<${value and 0xffff}")
-            emitLine("sta  ${regAddrLo(dst)}")
-            emitLine("lda  ${regAddrHi(dst)}")
+            emitLine("sta  ${regAddrLo(dstReg)}")
+            emitLine("lda  ${regAddrHi(dstReg)}")
             emitLine("ora  #>${value and 0xffff}")
-            emitLine("sta  ${regAddrHi(dst)}")
+            emitLine("sta  ${regAddrHi(dstReg)}")
         }
         IRDataType.LONG -> {
-            emitLine("lda  ${regAddrByte(dst, 0)}")
+            emitLine("lda  ${regAddrByte(dstReg, 0)}")
             emitLine("ora  #${value and 0xff}")
-            emitLine("sta  ${regAddrByte(dst, 0)}")
-            emitLine("lda  ${regAddrByte(dst, 1)}")
+            emitLine("sta  ${regAddrByte(dstReg, 0)}")
+            emitLine("lda  ${regAddrByte(dstReg, 1)}")
             emitLine("ora  #${(value shr 8) and 0xff}")
-            emitLine("sta  ${regAddrByte(dst, 1)}")
-            emitLine("lda  ${regAddrByte(dst, 2)}")
+            emitLine("sta  ${regAddrByte(dstReg, 1)}")
+            emitLine("lda  ${regAddrByte(dstReg, 2)}")
             emitLine("ora  #${(value shr 16) and 0xff}")
-            emitLine("sta  ${regAddrByte(dst, 2)}")
-            emitLine("lda  ${regAddrByte(dst, 3)}")
+            emitLine("sta  ${regAddrByte(dstReg, 2)}")
+            emitLine("lda  ${regAddrByte(dstReg, 3)}")
             emitLine("ora  #${(value shr 24) and 0xff}")
-            emitLine("sta  ${regAddrByte(dst, 3)}")
+            emitLine("sta  ${regAddrByte(dstReg, 3)}")
         }
         else -> error("OR not supported on ${type.name}")
     }
 }
 
-private fun AsmGen.orMemory(dst: Int, source: String, type: IRDataType) {
+private fun AsmGen.orMemory(dstReg: Int, sourceAddress: String, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
-            emitLine("lda  $source")
-            emitLine("ora  ${regAddrLo(dst)}")
-            emitLine("sta  $source")
+            emitLine("lda  $sourceAddress")
+            emitLine("ora  ${regAddrLo(dstReg)}")
+            emitLine("sta  $sourceAddress")
         }
         IRDataType.WORD -> {
-            emitLine("lda  $source")
-            emitLine("ora  ${regAddrLo(dst)}")
-            emitLine("sta  $source")
-            emitLine("lda  $source+1")
-            emitLine("ora  ${regAddrHi(dst)}")
-            emitLine("sta  $source+1")
+            emitLine("lda  $sourceAddress")
+            emitLine("ora  ${regAddrLo(dstReg)}")
+            emitLine("sta  $sourceAddress")
+            emitLine("lda  $sourceAddress+1")
+            emitLine("ora  ${regAddrHi(dstReg)}")
+            emitLine("sta  $sourceAddress+1")
         }
-        IRDataType.LONG -> byteLoop4(source, regAddrByte(dst, 0), "ora")
+        IRDataType.LONG -> byteLoop4(sourceAddress, regAddrByte(dstReg, 0), "ora")
         else -> error("ORM not supported on ${type.name}")
     }
 }
 
 // === XOR ===
 
-private fun AsmGen.xorRegisters(dst: Int, src: Int, type: IRDataType) {
+private fun AsmGen.xorRegisters(dstReg: Int, srcReg: Int, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
-            emitLine("lda  ${regAddrLo(dst)}")
-            emitLine("eor  ${regAddrLo(src)}")
-            emitLine("sta  ${regAddrLo(dst)}")
+            emitLine("lda  ${regAddrLo(dstReg)}")
+            emitLine("eor  ${regAddrLo(srcReg)}")
+            emitLine("sta  ${regAddrLo(dstReg)}")
         }
         IRDataType.WORD -> {
-            emitLine("lda  ${regAddrLo(dst)}")
-            emitLine("eor  ${regAddrLo(src)}")
-            emitLine("sta  ${regAddrLo(dst)}")
-            emitLine("lda  ${regAddrHi(dst)}")
-            emitLine("eor  ${regAddrHi(src)}")
-            emitLine("sta  ${regAddrHi(dst)}")
+            emitLine("lda  ${regAddrLo(dstReg)}")
+            emitLine("eor  ${regAddrLo(srcReg)}")
+            emitLine("sta  ${regAddrLo(dstReg)}")
+            emitLine("lda  ${regAddrHi(dstReg)}")
+            emitLine("eor  ${regAddrHi(srcReg)}")
+            emitLine("sta  ${regAddrHi(dstReg)}")
         }
-        IRDataType.LONG -> byteLoop4(regAddrByte(dst, 0), regAddrByte(src, 0), "eor")
+        IRDataType.LONG -> byteLoop4(regAddrByte(dstReg, 0), regAddrByte(srcReg, 0), "eor")
         else -> error("XORR not supported on ${type.name}")
     }
 }
 
-private fun AsmGen.xorImmediate(dst: Int, value: Int, type: IRDataType) {
+private fun AsmGen.xorImmediate(dstReg: Int, value: Int, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
-            emitLine("lda  ${regAddrLo(dst)}")
+            emitLine("lda  ${regAddrLo(dstReg)}")
             emitLine("eor  #${value and 0xff}")
-            emitLine("sta  ${regAddrLo(dst)}")
+            emitLine("sta  ${regAddrLo(dstReg)}")
         }
         IRDataType.WORD -> {
-            emitLine("lda  ${regAddrLo(dst)}")
+            emitLine("lda  ${regAddrLo(dstReg)}")
             emitLine("eor  #<${value and 0xffff}")
-            emitLine("sta  ${regAddrLo(dst)}")
-            emitLine("lda  ${regAddrHi(dst)}")
+            emitLine("sta  ${regAddrLo(dstReg)}")
+            emitLine("lda  ${regAddrHi(dstReg)}")
             emitLine("eor  #>${value and 0xffff}")
-            emitLine("sta  ${regAddrHi(dst)}")
+            emitLine("sta  ${regAddrHi(dstReg)}")
         }
         IRDataType.LONG -> {
-            emitLine("lda  ${regAddrByte(dst, 0)}")
+            emitLine("lda  ${regAddrByte(dstReg, 0)}")
             emitLine("eor  #${value and 0xff}")
-            emitLine("sta  ${regAddrByte(dst, 0)}")
-            emitLine("lda  ${regAddrByte(dst, 1)}")
+            emitLine("sta  ${regAddrByte(dstReg, 0)}")
+            emitLine("lda  ${regAddrByte(dstReg, 1)}")
             emitLine("eor  #${(value shr 8) and 0xff}")
-            emitLine("sta  ${regAddrByte(dst, 1)}")
-            emitLine("lda  ${regAddrByte(dst, 2)}")
+            emitLine("sta  ${regAddrByte(dstReg, 1)}")
+            emitLine("lda  ${regAddrByte(dstReg, 2)}")
             emitLine("eor  #${(value shr 16) and 0xff}")
-            emitLine("sta  ${regAddrByte(dst, 2)}")
-            emitLine("lda  ${regAddrByte(dst, 3)}")
+            emitLine("sta  ${regAddrByte(dstReg, 2)}")
+            emitLine("lda  ${regAddrByte(dstReg, 3)}")
             emitLine("eor  #${(value shr 24) and 0xff}")
-            emitLine("sta  ${regAddrByte(dst, 3)}")
+            emitLine("sta  ${regAddrByte(dstReg, 3)}")
         }
         else -> error("XOR not supported on ${type.name}")
     }
 }
 
-private fun AsmGen.xorMemory(dst: Int, source: String, type: IRDataType) {
+private fun AsmGen.xorMemory(dstReg: Int, sourceAddress: String, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
-            emitLine("lda  $source")
-            emitLine("eor  ${regAddrLo(dst)}")
-            emitLine("sta  $source")
+            emitLine("lda  $sourceAddress")
+            emitLine("eor  ${regAddrLo(dstReg)}")
+            emitLine("sta  $sourceAddress")
         }
         IRDataType.WORD -> {
-            emitLine("lda  $source")
-            emitLine("eor  ${regAddrLo(dst)}")
-            emitLine("sta  $source")
-            emitLine("lda  $source+1")
-            emitLine("eor  ${regAddrHi(dst)}")
-            emitLine("sta  $source+1")
+            emitLine("lda  $sourceAddress")
+            emitLine("eor  ${regAddrLo(dstReg)}")
+            emitLine("sta  $sourceAddress")
+            emitLine("lda  $sourceAddress+1")
+            emitLine("eor  ${regAddrHi(dstReg)}")
+            emitLine("sta  $sourceAddress+1")
         }
-        IRDataType.LONG -> byteLoop4(source, regAddrByte(dst, 0), "eor")
+        IRDataType.LONG -> byteLoop4(sourceAddress, regAddrByte(dstReg, 0), "eor")
         else -> error("XORM not supported on ${type.name}")
     }
 }

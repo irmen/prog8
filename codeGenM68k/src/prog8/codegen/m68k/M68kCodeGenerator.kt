@@ -17,15 +17,16 @@ class M68kCodeGenerator(val retainSSA: Boolean): ICodeGeneratorBackend {
         errors: IErrorReporter
     ): IAssemblyProgram {
 
-        // The M68K code generator works from the Intermediate Representation
         val irCodeGen = IRCodeGen(program, symbolTable, options, errors, retainSSA)
         val irProgram = irCodeGen.generate()
         irProgram.verifyRegisterTypes(irCodeGen.registerTypes())
 
-        // TODO remove this later: also write the IR program to disk for now for debugging purposes
         IRFileWriter(irProgram, null).write()
-        
-        val gen = AsmGen()
-        return gen.generate(irProgram)
+
+        val gen = AsmGen(irProgram, irProgram.options.compTarget)
+        if (!gen.generate())
+            throw RuntimeException("M68k assembly generation failed")
+
+        return AssemblyProgramM68k(irProgram.name, irProgram.options.outputDir, irProgram.options.compTarget)
     }
 }

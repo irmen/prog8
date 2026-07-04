@@ -64,14 +64,14 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction) {
         }
 
         Opcode.LOADR -> {
-            val src = r2 ?: error("LOADR needs reg2")
-            copyRegister(r1 ?: error("LOADR needs reg1"), src, type)
+            val srcReg = r2 ?: error("LOADR needs reg2")
+            copyRegister(r1 ?: error("LOADR needs reg1"), srcReg, type)
         }
 
         Opcode.LOADX -> {
             val idxReg = r2 ?: error("LOADX needs reg2")
-            val base = resolveAddress(addr, label, offset)
-            indexedLoad(r1 ?: error("LOADX needs reg1"), idxReg, base, type)
+            val baseAddress = resolveAddress(addr, label, offset)
+            indexedLoad(r1 ?: error("LOADX needs reg1"), idxReg, baseAddress, type)
         }
 
         Opcode.LOADHR -> {
@@ -180,13 +180,13 @@ private fun AsmGen.translateFloatLoadStore(insn: IRInstruction) {
         }
 
         Opcode.LOADR -> {
-            val src = fpReg2 ?: error("LOADR.f needs fpReg2")
-            val dst = fpReg1 ?: error("LOADR.f needs fpReg1")
-            emitLine("lda  #<${fpRegAddr(src.value)}")
-            emitLine("ldy  #>${fpRegAddr(src.value)}")
+            val srcReg = fpReg2 ?: error("LOADR.f needs fpReg2")
+            val dstReg = fpReg1 ?: error("LOADR.f needs fpReg1")
+            emitLine("lda  #<${fpRegAddr(srcReg.value)}")
+            emitLine("ldy  #>${fpRegAddr(srcReg.value)}")
             emitLine("jsr  floats.MOVFM")
-            emitLine("ldx  #<${fpRegAddr(dst.value)}")
-            emitLine("ldy  #>${fpRegAddr(dst.value)}")
+            emitLine("ldx  #<${fpRegAddr(dstReg.value)}")
+            emitLine("ldy  #>${fpRegAddr(dstReg.value)}")
             emitLine("jsr  floats.MOVMF")
         }
 
@@ -241,12 +241,12 @@ private fun AsmGen.translateFloatLoadStore(insn: IRInstruction) {
 
         Opcode.LOADX -> {
             val idxReg = r1 ?: error("LOADX.f needs reg1 (index)")
-            val base = resolveAddress(addr, label, offset)
+            val baseAddress = resolveAddress(addr, label, offset)
             val fpReg = fpReg1 ?: error("LOADX.f needs fpReg1")
             val ptr = ZP_TEMP
-            emitLine("lda  #<$base")
+            emitLine("lda  #<$baseAddress")
             emitLine("sta  $ptr")
-            emitLine("lda  #>$base")
+            emitLine("lda  #>$baseAddress")
             emitLine("sta  ${ptr}+1")
             emitLine("lda  ${regAddrLo(idxReg)}")
             // Note: index is already pre-multiplied by 5 (element size) in the IR codegen.
@@ -265,7 +265,7 @@ private fun AsmGen.translateFloatLoadStore(insn: IRInstruction) {
         }
 
         Opcode.LOADI -> {
-            val baseReg = r1 ?: error("LOADI.f needs reg1 (base ptr)")
+            val baseReg = r1 ?: error("LOADI.f needs reg1 (baseAddress ptr)")
             val offsetVal = insn.immediate ?: 0
             val fpReg = fpReg1 ?: error("LOADI.f needs fpReg1")
             val ptr = ZP_TEMP
@@ -285,7 +285,7 @@ private fun AsmGen.translateFloatLoadStore(insn: IRInstruction) {
         }
 
         Opcode.STOREI -> {
-            val baseReg = r1 ?: error("STOREI.f needs reg1 (base ptr)")
+            val baseReg = r1 ?: error("STOREI.f needs reg1 (baseAddress ptr)")
             val offsetVal = insn.immediate ?: 0
             val fpReg = fpReg1 ?: error("STOREI.f needs fpReg1")
             val ptr = ZP_TEMP
@@ -306,12 +306,12 @@ private fun AsmGen.translateFloatLoadStore(insn: IRInstruction) {
 
         Opcode.STOREX -> {
             val idxReg = r1 ?: error("STOREX.f needs reg1 (index)")
-            val base = resolveAddress(addr, label, offset)
+            val baseAddress = resolveAddress(addr, label, offset)
             val fpReg = fpReg1 ?: error("STOREX.f needs fpReg1")
             val ptr = ZP_TEMP
-            emitLine("lda  #<$base")
+            emitLine("lda  #<$baseAddress")
             emitLine("sta  $ptr")
-            emitLine("lda  #>$base")
+            emitLine("lda  #>$baseAddress")
             emitLine("sta  ${ptr}+1")
             emitLine("lda  ${regAddrLo(idxReg)}")
             // Note: index is already pre-multiplied by 5 (element size) in the IR codegen.
@@ -344,7 +344,7 @@ private fun AsmGen.translateFloatLoadStore(insn: IRInstruction) {
         }
 
         Opcode.STOREZI -> {
-            val baseReg = r1 ?: error("STOREZI.f needs reg1 (base ptr)")
+            val baseReg = r1 ?: error("STOREZI.f needs reg1 (baseAddress ptr)")
             val offsetVal = insn.immediate ?: 0
             val ptr = ZP_TEMP
             emitLine("lda  ${regAddrLo(baseReg)}")
@@ -364,11 +364,11 @@ private fun AsmGen.translateFloatLoadStore(insn: IRInstruction) {
 
         Opcode.STOREZX -> {
             val idxReg = r1 ?: error("STOREZX.f needs reg1 (index)")
-            val base = resolveAddress(addr, label, offset)
+            val baseAddress = resolveAddress(addr, label, offset)
             val ptr = ZP_TEMP
-            emitLine("lda  #<$base")
+            emitLine("lda  #<$baseAddress")
             emitLine("sta  $ptr")
-            emitLine("lda  #>$base")
+            emitLine("lda  #>$baseAddress")
             emitLine("sta  ${ptr}+1")
             emitLine("lda  ${regAddrLo(idxReg)}")
             // Note: index is already pre-multiplied by 5 (element size) in the IR codegen.
@@ -519,8 +519,8 @@ internal fun AsmGen.loadSymbolAddress(reg: Int, sym: String, offset: Int?, type:
             emitLine("sta  ${regAddrLo(reg)}")
             emitLine("lda  #>${symWithOffset}")
             emitLine("sta  ${regAddrHi(reg)}")
-            emitStoreZero("${regAddrByte(reg, 2)}")
-            emitStoreZero("${regAddrByte(reg, 3)}")
+            emitStoreZero(regAddrByte(reg, 2))
+            emitStoreZero(regAddrByte(reg, 3))
         }
         else -> TODO("SYMLOAD r$reg, $symWithOffset ${type.name}")
     }
@@ -554,47 +554,47 @@ internal fun AsmGen.loadImmediate(reg: Int, value: Int, type: IRDataType) {
     }
 }
 
-internal fun AsmGen.loadFromMemory(reg: Int, source: String, type: IRDataType) {
+internal fun AsmGen.loadFromMemory(reg: Int, sourceAddress: String, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
-            emitLine("lda  $source")
+            emitLine("lda  $sourceAddress")
             emitLine("sta  ${regAddrLo(reg)}")
         }
         IRDataType.WORD -> {
-            emitLine("lda  $source")
+            emitLine("lda  $sourceAddress")
             emitLine("sta  ${regAddrLo(reg)}")
-            emitLine("lda  $source+1")
+            emitLine("lda  $sourceAddress+1")
             emitLine("sta  ${regAddrHi(reg)}")
         }
         IRDataType.LONG -> {
-            val base = regAddrByte(reg, 0)
+            val baseAddress = regAddrByte(reg, 0)
             emitLine("ldy  #3")
-            emitLine("-  lda  $source,y")
-            emitLine("sta  $base,y")
+            emitLine("-  lda  $sourceAddress,y")
+            emitLine("sta  $baseAddress,y")
             emitLine("dey")
             emitLine("bpl  -")
         }
         IRDataType.FLOAT -> {
-            TODO("FLOAT LOADM r$reg from $source")
+            TODO("FLOAT LOADM r$reg from $sourceAddress")
         }
     }
 }
 
-internal fun AsmGen.copyRegister(dst: Int, src: Int, type: IRDataType) {
+internal fun AsmGen.copyRegister(dstReg: Int, srcReg: Int, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
-            emitLine("lda  ${regAddrLo(src)}")
-            emitLine("sta  ${regAddrLo(dst)}")
+            emitLine("lda  ${regAddrLo(srcReg)}")
+            emitLine("sta  ${regAddrLo(dstReg)}")
         }
         IRDataType.WORD -> {
-            emitLine("lda  ${regAddrLo(src)}")
-            emitLine("sta  ${regAddrLo(dst)}")
-            emitLine("lda  ${regAddrHi(src)}")
-            emitLine("sta  ${regAddrHi(dst)}")
+            emitLine("lda  ${regAddrLo(srcReg)}")
+            emitLine("sta  ${regAddrLo(dstReg)}")
+            emitLine("lda  ${regAddrHi(srcReg)}")
+            emitLine("sta  ${regAddrHi(dstReg)}")
         }
-        IRDataType.LONG -> copyRegisterLong(dst, src)
+        IRDataType.LONG -> copyRegisterLong(dstReg, srcReg)
         IRDataType.FLOAT -> {
-            TODO("FLOAT LOADR r$dst = r$src")
+            TODO("FLOAT LOADR r$dstReg = r$srcReg")
         }
     }
 }
@@ -612,9 +612,9 @@ internal fun AsmGen.storeToMemory(reg: Int, target: String, type: IRDataType) {
             emitLine("sta  $target+1")
         }
         IRDataType.LONG -> {
-            val base = regAddrByte(reg, 0)
+            val baseAddress = regAddrByte(reg, 0)
             emitLine("ldy  #3")
-            emitLine("-  lda  $base,y")
+            emitLine("-  lda  $baseAddress,y")
             emitLine("sta  $target,y")
             emitLine("dey")
             emitLine("bpl  -")
@@ -625,11 +625,11 @@ internal fun AsmGen.storeToMemory(reg: Int, target: String, type: IRDataType) {
     }
 }
 
-internal fun AsmGen.indexedLoad(dst: Int, idxReg: Int, base: String, type: IRDataType) {
+internal fun AsmGen.indexedLoad(dstReg: Int, idxReg: Int, baseAddress: String, type: IRDataType) {
     val ptr = ZP_TEMP
-    emitLine("lda  #<$base")
+    emitLine("lda  #<$baseAddress")
     emitLine("sta  $ptr")
-    emitLine("lda  #>$base")
+    emitLine("lda  #>$baseAddress")
     emitLine("sta  ${ptr}+1")
     emitLine("lda  ${regAddrLo(idxReg)}")
     emitLine("clc")
@@ -642,31 +642,31 @@ internal fun AsmGen.indexedLoad(dst: Int, idxReg: Int, base: String, type: IRDat
         IRDataType.BYTE -> {
             emitLine("ldy  #0")
             emitLine("lda  ($ptr),y")
-            emitLine("sta  ${regAddrLo(dst)}")
+            emitLine("sta  ${regAddrLo(dstReg)}")
         }
         IRDataType.WORD -> {
             emitLine("ldy  #0")
             emitLine("lda  ($ptr),y")
-            emitLine("sta  ${regAddrLo(dst)}")
+            emitLine("sta  ${regAddrLo(dstReg)}")
             emitLine("ldy  #1")
             emitLine("lda  ($ptr),y")
-            emitLine("sta  ${regAddrHi(dst)}")
+            emitLine("sta  ${regAddrHi(dstReg)}")
         }
         IRDataType.LONG -> {
-            val base = regAddrByte(dst, 0)
+            val baseAddress = regAddrByte(dstReg, 0)
             emitLine("ldy  #3")
             emitLine("-  lda  ($ptr),y")
-            emitLine("sta  $base,y")
+            emitLine("sta  $baseAddress,y")
             emitLine("dey")
             emitLine("bpl  -")
         }
         IRDataType.FLOAT -> {
-            TODO("FLOAT LOADX r$dst")
+            TODO("FLOAT LOADX r$dstReg")
         }
     }
 }
 
-internal fun AsmGen.indirectLoad(dst: Int, baseReg: Int, offset: Int, type: IRDataType) {
+internal fun AsmGen.indirectLoad(dstReg: Int, baseReg: Int, offset: Int, type: IRDataType) {
     val ptr = ZP_TEMP
     emitLine("lda  ${regAddrLo(baseReg)}")
     emitLine("clc")
@@ -679,26 +679,26 @@ internal fun AsmGen.indirectLoad(dst: Int, baseReg: Int, offset: Int, type: IRDa
         IRDataType.BYTE -> {
             emitLine("ldy  #0")
             emitLine("lda  ($ptr),y")
-            emitLine("sta  ${regAddrLo(dst)}")
+            emitLine("sta  ${regAddrLo(dstReg)}")
         }
         IRDataType.WORD -> {
             emitLine("ldy  #0")
             emitLine("lda  ($ptr),y")
-            emitLine("sta  ${regAddrLo(dst)}")
+            emitLine("sta  ${regAddrLo(dstReg)}")
             emitLine("ldy  #1")
             emitLine("lda  ($ptr),y")
-            emitLine("sta  ${regAddrHi(dst)}")
+            emitLine("sta  ${regAddrHi(dstReg)}")
         }
         IRDataType.LONG -> {
-            val base = regAddrByte(dst, 0)
+            val baseAddress = regAddrByte(dstReg, 0)
             emitLine("ldy  #3")
             emitLine("-  lda  ($ptr),y")
-            emitLine("sta  $base,y")
+            emitLine("sta  $baseAddress,y")
             emitLine("dey")
             emitLine("bpl  -")
         }
         IRDataType.FLOAT -> {
-            TODO("FLOAT LOADI r$dst")
+            TODO("FLOAT LOADI r$dstReg")
         }
     }
 }
@@ -795,20 +795,20 @@ internal fun AsmGen.zeroIndexed(baseReg: Int, offset: Int, type: IRDataType) {
     }
 }
 
-internal fun AsmGen.zeroMemoryIndexed(reg: Int, base: String, type: IRDataType) {
+internal fun AsmGen.zeroMemoryIndexed(reg: Int, baseAddress: String, type: IRDataType) {
     emitLine("ldx  ${regAddrLo(reg)}")
     when (type) {
         IRDataType.BYTE -> {
-            emitStoreZero("$base,x")
+            emitStoreZero("$baseAddress,x")
         }
         IRDataType.WORD -> {
-            emitStoreZero("$base,x")
+            emitStoreZero("$baseAddress,x")
             emitLine("ldx  ${regAddrHi(reg)}")
-            emitStoreZero("${base}+1,x")
+            emitStoreZero("${baseAddress}+1,x")
         }
         IRDataType.LONG -> {
             emitLine("; STOREZX LONG not fully implemented")
-            emitStoreZero("$base,x")
+            emitStoreZero("$baseAddress,x")
         }
         IRDataType.FLOAT -> {
             TODO("FLOAT STOREZX")
@@ -840,9 +840,9 @@ internal fun AsmGen.indirectStore(reg: Int, baseReg: Int, offset: Int, type: IRD
             emitLine("sta  ($ptr),y")
         }
         IRDataType.LONG -> {
-            val base = regAddrByte(reg, 0)
+            val baseAddress = regAddrByte(reg, 0)
             emitLine("ldy  #3")
-            emitLine("-  lda  $base,y")
+            emitLine("-  lda  $baseAddress,y")
             emitLine("sta  ($ptr),y")
             emitLine("dey")
             emitLine("bpl  -")
@@ -855,9 +855,9 @@ internal fun AsmGen.indirectStore(reg: Int, baseReg: Int, offset: Int, type: IRD
 
 // === LONG byte loop for non-carry-dependent operations ===
 
-internal fun AsmGen.copyRegisterLong(dst: Int, src: Int) {
-    val srcBase = regAddrByte(src, 0)
-    val dstBase = regAddrByte(dst, 0)
+internal fun AsmGen.copyRegisterLong(dstReg: Int, srcReg: Int) {
+    val srcBase = regAddrByte(srcReg, 0)
+    val dstBase = regAddrByte(dstReg, 0)
     emitLine("ldy  #3")
     emitLine("-  lda  $srcBase,y")
     emitLine("sta  $dstBase,y")
