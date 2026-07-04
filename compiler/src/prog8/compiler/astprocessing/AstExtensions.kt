@@ -152,6 +152,12 @@ internal fun Program.checkM68kSyntax(errors: IErrorReporter) {
 }
 
 
+internal fun Program.checkAsmSubRegisters(errors: IErrorReporter, target: ICompilationTarget) {
+    val checker = AsmSubRegisterChecker(errors, target)
+    checker.visit(this)
+}
+
+
 internal fun Program.preprocessAst(errors: IErrorReporter, options: CompilationOptions) {
     val mergeBlocks = BlockMerger(errors)
     mergeBlocks.visit(this)

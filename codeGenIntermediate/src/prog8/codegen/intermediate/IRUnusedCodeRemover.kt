@@ -11,9 +11,9 @@ class IRUnusedCodeRemover(
     fun optimize(): Int {
         var numRemoved = removeUnusedSubroutines() + removeUnusedAsmSubroutines()
 
-        // remove empty blocks
+        // remove empty blocks (but keep blocks with %option force_output)
         irprog.blocks.reversed().forEach { block ->
-            if(block.isEmpty()) {
+            if(block.isEmpty() && !block.options.forceOutput) {
                 irprog.blocks.remove(block)
                 pruneSymboltable(block.label)
                 numRemoved++
@@ -63,13 +63,7 @@ class IRUnusedCodeRemover(
             }
         }
 
-        // preserve constants - they are pure values that don't generate code
-        val savedConstants = irprog.st.allConstants()
-            .filter { it.name.startsWith(prefix) }
-            .map { it.name to it }
-            .toMap()
         irprog.st.removeTree(blockLabel)
-        savedConstants.values.forEach { irprog.st.add(it) }
         removeBlockInits(irprog, blockLabel)
     }
 

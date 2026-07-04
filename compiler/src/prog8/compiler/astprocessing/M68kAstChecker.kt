@@ -9,11 +9,21 @@ import prog8.ast.statements.Subroutine
 import prog8.ast.statements.VarDecl
 import prog8.ast.walk.IAstVisitor
 import prog8.code.core.IErrorReporter
+import prog8.code.core.RegisterOrPair
 import prog8.code.core.SplitWish
 import prog8.code.core.ZeropageWish
 
 
 internal class M68kAstChecker(private val errors: IErrorReporter) : IAstVisitor {
+
+    private val m68kRegisters = setOf(
+        RegisterOrPair.D0, RegisterOrPair.D1, RegisterOrPair.D2, RegisterOrPair.D3,
+        RegisterOrPair.D4, RegisterOrPair.D5, RegisterOrPair.D6, RegisterOrPair.D7,
+        RegisterOrPair.A0, RegisterOrPair.A1, RegisterOrPair.A2, RegisterOrPair.A3,
+        RegisterOrPair.A4, RegisterOrPair.A5, RegisterOrPair.A6,
+        RegisterOrPair.FP0, RegisterOrPair.FP1, RegisterOrPair.FP2, RegisterOrPair.FP3,
+        RegisterOrPair.FP4, RegisterOrPair.FP5, RegisterOrPair.FP6, RegisterOrPair.FP7
+    )
 
     override fun visit(program: Program) {
         for (module in program.modules) {
@@ -87,13 +97,15 @@ internal class M68kAstChecker(private val errors: IErrorReporter) : IAstVisitor 
             if (subroutine.asmAddress != null) {
                 errors.err("extsub is not available on the m68k target", subroutine.position)
             } else {
-                errors.err("asmsub is not available YET on the m68k target", subroutine.position)
+                errors.err("asmsub is not implemented yet on the m68k target (register names D0-D7, A0-A6, FP0-FP7 are recognized by the parser though)", subroutine.position)
             }
             return
         }
         for (param in subroutine.parameters) {
             if (param.registerOrPair != null) {
-                errors.err("subroutine parameter register annotations (@${param.registerOrPair}) are not available on the m68k target", param.position)
+                if (param.registerOrPair in m68kRegisters) {
+                    errors.err("register annotations on normal subroutine parameters are not available on the m68k target (only used in asmsub)", param.position)
+                }
             }
         }
         for (statement in subroutine.statements) {

@@ -1879,11 +1879,18 @@ class IRCodeGen(
                 result += IRSubroutine.IRParam(it.name, orig.dt)
             } else {
                 val reg = it.register
-                require(reg in Cx16VirtualRegisters || reg in CombinedLongRegisters) { "can only use R0-R15 'registers' here" }
-                //val regname = it.register!!.asScopedNameVirtualReg(it.type).joinToString(".")
-                require('.' in it.name) { "even parameter names should have been made fully scoped by now" }
-                val targetVar = symbolTable.lookup(it.name) as StMemVar
-                result += IRSubroutine.IRParam(it.name, targetVar.dt)
+                require(reg in Cx16VirtualRegisters || reg in CombinedLongRegisters || reg in M68kRegisters) { "can only use R0-R15, D0-D7, A0-A6, or FP0-FP7 'registers' here" }
+                if (reg in Cx16VirtualRegisters || reg in CombinedLongRegisters) {
+                    require('.' in it.name) { "even parameter names should have been made fully scoped by now" }
+                    val targetVar = symbolTable.lookup(it.name) as StMemVar
+                    result += IRSubroutine.IRParam(it.name, targetVar.dt)
+                } else {
+                    // M68k registers: pass as regular parameter
+                    require('.' in it.name) { "even parameter names should have been made fully scoped by now" }
+                    val orig = symbolTable.lookup(it.name) as? StStaticVariable
+                        ?: TODO("fix missing lookup for: ${it.name}   parameter")
+                    result += IRSubroutine.IRParam(it.name, orig.dt)
+                }
             }
         }
         return result

@@ -548,6 +548,9 @@ private fun processAst(program: Program, errors: IErrorReporter, compilerOptions
         errors.report()
     }
 
+    program.checkAsmSubRegisters(errors, compilerOptions.compTarget)
+    errors.report()
+
     program.checkPrivateAccess(errors)
     errors.report()
     program.checkIdentifiers(errors, compilerOptions)

@@ -4670,6 +4670,7 @@ $endLabel""")
                 CpuRegister.A -> { }
                 CpuRegister.X -> asmgen.out("  txa")
                 CpuRegister.Y -> asmgen.out("  tya")
+                else -> throw AssemblyError("register not available on this target")
             }
             asmgen.out("""
                 ora  #$7f
@@ -4762,6 +4763,7 @@ $endLabel""")
                     CpuRegister.A -> {}
                     CpuRegister.X -> asmgen.out(" txa")
                     CpuRegister.Y -> asmgen.out(" tya")
+                    else -> throw AssemblyError("register not available on this target")
                 }
                 storeRegisterAInMemoryAddress(target.memory!!)
             }
@@ -4771,6 +4773,7 @@ $endLabel""")
                         CpuRegister.A -> {}
                         CpuRegister.X -> asmgen.out("  txa")
                         CpuRegister.Y -> asmgen.out("  tya")
+                        else -> throw AssemblyError("register not available on this target")
                     }
                     if(extendSignedBits) {
                         asmgen.signExtendAYlsb(if(target.datatype.isSigned) BaseDataType.BYTE else BaseDataType.UBYTE)
@@ -4949,6 +4952,7 @@ $endLabel""")
                         in CombinedLongRegisters -> TODO("assign byte to long reg ${target.position}")
                         else -> throw AssemblyError("weird register")
                     }
+                    else -> throw AssemblyError("register not available on this target")
                 }
             }
             TargetStorageKind.POINTER -> pointergen.assignByteReg(PtrTarget(target), register, signed, extendSignedBits)
@@ -4971,6 +4975,7 @@ $endLabel""")
                 CpuRegister.A -> {}
                 CpuRegister.X -> asmgen.out(" txa")
                 CpuRegister.Y -> asmgen.out(" tya")
+                else -> throw AssemblyError("register not available on this target")
             }
             asmgen.out("  sta  ${target.asmVarname}+${target.constArrayIndexValue}")
         }
@@ -4979,6 +4984,7 @@ $endLabel""")
                 CpuRegister.A -> {}
                 CpuRegister.X -> asmgen.out(" txa")
                 CpuRegister.Y -> asmgen.out(" tya")
+                else -> throw AssemblyError("register not available on this target")
             }
             val indexVar = target.array.index as? PtIdentifier
             if(indexVar!=null) {

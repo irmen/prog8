@@ -988,14 +988,24 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                         else
                             argRegisters.add(FunctionCallArgs.ArgumentSpec(parameter.name, null, FunctionCallArgs.RegSpec(paramDt, RegisterNum(tr.resultReg), null, null)))
                     } else {
-                        require(parameter.register in Cx16VirtualRegisters || parameter.register in CombinedLongRegisters) { "can only use R0-R15 'registers' here" }
-                        val regname = parameter.register!!.asScopedNameVirtualReg(parameter.type).joinToString(".")
-                        val assign = PtAssignment(fcall.position)
-                        val target = PtAssignTarget(false, fcall.position)
-                        target.add(PtIdentifier(regname, parameter.type, fcall.position))
-                        assign.add(target)
-                        assign.add(arg)
-                        result += codeGen.translateNode(assign)
+                        require(parameter.register in Cx16VirtualRegisters || parameter.register in CombinedLongRegisters || parameter.register in M68kRegisters) { "can only use R0-R15, D0-D7, A0-A6, or FP0-FP7 'registers' here" }
+                        if(parameter.register in Cx16VirtualRegisters || parameter.register in CombinedLongRegisters) {
+                            val regname = parameter.register!!.asScopedNameVirtualReg(parameter.type).joinToString(".")
+                            val assign = PtAssignment(fcall.position)
+                            val target = PtAssignTarget(false, fcall.position)
+                            target.add(PtIdentifier(regname, parameter.type, fcall.position))
+                            assign.add(target)
+                            assign.add(arg)
+                            result += codeGen.translateNode(assign)
+                        } else {
+                            // M68k registers: pass as regular argument, the backend handles the register mapping
+                            val tr = translateExpression(arg)
+                            result += tr.chunks
+                            if(paramDt==IRDataType.FLOAT)
+                                argRegisters.add(FunctionCallArgs.ArgumentSpec(parameter.name, null, FunctionCallArgs.RegSpec(IRDataType.FLOAT, RegisterNum(tr.resultFpReg), null, null)))
+                            else
+                                argRegisters.add(FunctionCallArgs.ArgumentSpec(parameter.name, null, FunctionCallArgs.RegSpec(paramDt, RegisterNum(tr.resultReg), null, null)))
+                        }
                     }
                 }
                 // return value(s)
@@ -1869,7 +1879,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
     private fun registerOrStatusflagToSlotAndFlag(reg: RegisterOrStatusflag): Pair<CallingConventionSlot?, Statusflag?> {
         if (reg.statusflag != null) return null to reg.statusflag
         if (reg.registerOrPair == null) return null to null
-        if (reg.registerOrPair in Cx16VirtualRegisters || reg.registerOrPair in CombinedLongRegisters) return null to null
+        if (reg.registerOrPair in Cx16VirtualRegisters || reg.registerOrPair in CombinedLongRegisters || reg.registerOrPair in M68kRegisters) return null to null
         return when (reg.registerOrPair) {
             RegisterOrPair.A -> CallingConventionSlot(0) to null
             RegisterOrPair.X -> CallingConventionSlot(1) to null

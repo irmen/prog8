@@ -429,7 +429,6 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
             emitLine("jsr  p8_sys_startup.init_system")
         }
         emitLine("jsr  p8_sys_startup.init_system_phase2")
-        emitLine("jsr  run_global_inits")
         if (program.options.zeropage !in arrayOf(ZeropageType.BASICSAFE, ZeropageType.DONTUSE)) {
             emitLine("lda  #>sys.reset_system")
             emitLine("pha")
@@ -611,8 +610,9 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
         emitRaw("")
         emitRaw("${sub.label}  .proc")
         if (sub.label == "p8b_main.p8s_start") {
-            // BSS clearing needs to happen even if something calls main.start directly (without startup logic - for example if this is a library)
+            // these need to happen even if something calls main.start directly (without startup logic - for example if this is a library)
             emitLine("jsr  prog8_lib.program_startup_clear_bss")
+            emitLine("jsr  run_global_inits")
         }
         for (chunk in sub.chunks) {
             when (chunk) {

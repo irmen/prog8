@@ -3,6 +3,8 @@
 %option no_symbol_prefixing, ignore_unused
 
 qemu {
+    %option force_output
+
     ; MMIO base addresses (from QEMU hw/m68k/virt.c)
     const long GF_PIC_BASE     = $ff000000   ; 6 PICs, 0x1000 apart
     const long GF_RTC_BASE     = $ff006000   ; 2 RTCs, 0x1000 apart

@@ -22,72 +22,72 @@ internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
     when (insn.opcode) {
         Opcode.INC -> {
             val reg = r1 ?: error("INC needs reg1")
-            emitLine("addq.${byteWarn(type)}  #1, ${regAddr(reg)}")
+            emitLine("addq${dtSuffix(type)}  #1, ${regAddr(reg)}")
         }
 
         Opcode.INCM -> {
             val target = resolveAddress(addr, label, offset)
-            emitLine("addq.${byteWarn(type)}  #1, $target")
+            emitLine("addq${dtSuffix(type)}  #1, $target")
         }
 
         Opcode.DEC -> {
             val reg = r1 ?: error("DEC needs reg1")
-            emitLine("subq.${byteWarn(type)}  #1, ${regAddr(reg)}")
+            emitLine("subq${dtSuffix(type)}  #1, ${regAddr(reg)}")
         }
 
         Opcode.DECM -> {
             val target = resolveAddress(addr, label, offset)
-            emitLine("subq.${byteWarn(type)}  #1, $target")
+            emitLine("subq${dtSuffix(type)}  #1, $target")
         }
 
         Opcode.NEG -> {
             val reg = r1 ?: error("NEG needs reg1")
-            emitLine("neg.${byteWarn(type)}  ${regAddr(reg)}")
+            emitLine("neg${dtSuffix(type)}  ${regAddr(reg)}")
         }
 
         Opcode.NEGM -> {
             val target = resolveAddress(addr, label, offset)
-            emitLine("neg.${byteWarn(type)}  $target")
+            emitLine("neg${dtSuffix(type)}  $target")
         }
 
         Opcode.ADDR -> {
             val dstReg = r1 ?: error("ADDR needs reg1")
             val srcReg = r2 ?: error("ADDR needs reg2")
-            emitLine("move.${byteWarn(type)}  ${regAddr(srcReg)}, d0")
-            emitLine("add.${byteWarn(type)}  d0, ${regAddr(dstReg)}")
+            emitLine("move${dtSuffix(type)}  ${regAddr(srcReg)}, d0")
+            emitLine("add${dtSuffix(type)}  d0, ${regAddr(dstReg)}")
         }
 
         Opcode.ADD -> {
             val reg = r1 ?: error("ADD needs reg1")
             val value = imm ?: error("ADD needs immediate")
-            emitLine("add.${byteWarn(type)}  #${value.and(0xffff)}, ${regAddr(reg)}")
+            emitLine("add${dtSuffix(type)}  #${value.and(0xffff)}, ${regAddr(reg)}")
         }
 
         Opcode.ADDM -> {
             val reg = r1 ?: error("ADDM needs reg1")
             val target = resolveAddress(addr, label, offset)
-            emitLine("move.${byteWarn(type)}  $target, d0")
-            emitLine("add.${byteWarn(type)}  d0, ${regAddr(reg)}")
+            emitLine("move${dtSuffix(type)}  $target, d0")
+            emitLine("add${dtSuffix(type)}  d0, ${regAddr(reg)}")
         }
 
         Opcode.SUBR -> {
             val dstReg = r1 ?: error("SUBR needs reg1")
             val srcReg = r2 ?: error("SUBR needs reg2")
-            emitLine("move.${byteWarn(type)}  ${regAddr(srcReg)}, d0")
-            emitLine("sub.${byteWarn(type)}  d0, ${regAddr(dstReg)}")
+            emitLine("move${dtSuffix(type)}  ${regAddr(srcReg)}, d0")
+            emitLine("sub${dtSuffix(type)}  d0, ${regAddr(dstReg)}")
         }
 
         Opcode.SUB -> {
             val reg = r1 ?: error("SUB needs reg1")
             val value = imm ?: error("SUB needs immediate")
-            emitLine("sub.${byteWarn(type)}  #${value.and(0xffff)}, ${regAddr(reg)}")
+            emitLine("sub${dtSuffix(type)}  #${value.and(0xffff)}, ${regAddr(reg)}")
         }
 
         Opcode.SUBM -> {
             val reg = r1 ?: error("SUBM needs reg1")
             val target = resolveAddress(addr, label, offset)
-            emitLine("move.${byteWarn(type)}  $target, d0")
-            emitLine("sub.${byteWarn(type)}  d0, ${regAddr(reg)}")
+            emitLine("move${dtSuffix(type)}  $target, d0")
+            emitLine("sub${dtSuffix(type)}  d0, ${regAddr(reg)}")
         }
 
         // --- Multiply (unsigned) ---
@@ -246,26 +246,17 @@ internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
         Opcode.CMP -> {
             val leftReg = insn.reg1 ?: error("CMP needs reg1")
             val rightReg = insn.reg2 ?: error("CMP needs reg2")
-            emitLine("cmp.${byteWarn(type)}  ${regAddr(rightReg)}, ${regAddr(leftReg)}")
+            emitLine("cmp${dtSuffix(type)}  ${regAddr(rightReg)}, ${regAddr(leftReg)}")
         }
 
         Opcode.CMPI -> {
             val reg = insn.reg1 ?: error("CMPI needs reg1")
             val value = insn.immediate ?: error("CMPI needs immediate")
-            emitLine("cmpi.${byteWarn(type)}  #${value.and(0xffff)}, ${regAddr(reg)}")
+            emitLine("cmpi${dtSuffix(type)}  #${value.and(0xffff)}, ${regAddr(reg)}")
         }
 
         else -> error("Unknown arithmetic opcode: ${insn.opcode}")
     }
-}
-
-// === helpers ===
-
-private fun AsmGen.byteWarn(type: IRDataType): String = when (type) {
-    IRDataType.BYTE -> "b"
-    IRDataType.WORD -> "w"
-    IRDataType.LONG -> "l"
-    IRDataType.FLOAT -> "l"
 }
 
 // === Multiply / Divide / Modulus / DIVMOD for all int sizes (68030-aware) ===

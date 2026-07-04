@@ -374,15 +374,15 @@ asmsub_decl : identifier asmsub_signature ;
 
 asmsub_params :  asmsub_param (',' EOL? asmsub_param)* ;
 
-asmsub_param :  vardecl '@' register=UNICODEDNAME ;      // A,X,Y,AX,AY,XY,Pc,Pz,Pn,Pv allowed
+asmsub_param :  vardecl '@' register=UNICODEDNAME ;      // 6502: A,X,Y,AX,AY,XY,Pc,Pz,Pn,Pv | m68k: D0-D7,A0-A6,FP0-FP7 | cx16: R0-R15,R0R1-R14R15
 
 asmsub_clobbers : 'clobbers' '(' clobber? ')' ;
 
-clobber :  UNICODEDNAME (',' UNICODEDNAME)* ;       // A,X,Y allowed
+clobber :  UNICODEDNAME (',' UNICODEDNAME)* ;       // 6502: A,X,Y | m68k: D0-D7,A0-A6,FP0-FP7
 
 asmsub_returns :  '->' asmsub_return (',' EOL? asmsub_return)* ;
 
-asmsub_return :  datatype '@' register=UNICODEDNAME ;     // A,X,Y,AX,AY,XY,Pc,Pz,Pn,Pv allowed
+asmsub_return :  datatype '@' register=UNICODEDNAME ;     // 6502: A,X,Y,AX,AY,XY,Pc,Pz,Pn,Pv | m68k: D0-D7,A0-A6,FP0-FP7 | cx16: R0-R15,R0R1-R14R15
 
 
 if_stmt :  'if' expression EOL? (statement | statement_block) EOL? else_part?  ; // statement is constrained later

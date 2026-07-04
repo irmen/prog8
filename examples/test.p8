@@ -7,6 +7,9 @@ main {
         txt.chrout('c')
         txt.chrout('d')
         txt.chrout('\n')
-        txt.print("Hello from Prog8 on a m68000 system!\n")
+
+        ubyte cc
+        for cc in "Hello from Prog8 on a m68000 system!\n"
+            txt.chrout(cc)
     }
 }

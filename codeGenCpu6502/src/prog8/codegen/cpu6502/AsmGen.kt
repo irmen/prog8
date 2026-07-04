@@ -419,6 +419,7 @@ class AsmGen6502Internal (
                         out("  tya |  pha")
                 }
             }
+            else -> throw AssemblyError("register not available on this target")
         }
     }
 
@@ -447,6 +448,7 @@ class AsmGen6502Internal (
                         out("  pla |  tay")
                 }
             }
+            else -> throw AssemblyError("register not available on this target")
         }
     }
 
@@ -527,6 +529,7 @@ class AsmGen6502Internal (
                     CpuRegister.A -> {}
                     CpuRegister.X -> out(" tax")
                     CpuRegister.Y -> out(" tay")
+                    else -> throw AssemblyError("register not available on this target")
                 }
             }
             expr.type.isLong -> {
@@ -536,6 +539,7 @@ class AsmGen6502Internal (
                     CpuRegister.A -> {}
                     CpuRegister.X -> out(" tax")
                     CpuRegister.Y -> out(" tay")
+                    else -> throw AssemblyError("register not available on this target")
                 }
             }
             expr.type.isFloat -> {
@@ -553,6 +557,7 @@ class AsmGen6502Internal (
                     CpuRegister.A -> {}
                     CpuRegister.X -> out(" tax")
                     CpuRegister.Y -> out(" tay")
+                    else -> throw AssemblyError("register not available on this target")
                 }
             }
             else -> throw AssemblyError("weird dt")
@@ -2785,6 +2790,7 @@ $repeatLabel""")
                 CpuRegister.A -> {}
                 CpuRegister.X -> out("  txa")
                 CpuRegister.Y -> out("  tya")
+                else -> throw AssemblyError("register not available on this target")
             }
             signExtendAXlsb(if(signed) BaseDataType.BYTE else BaseDataType.UBYTE)
             out("""
@@ -2801,6 +2807,7 @@ $repeatLabel""")
                 CpuRegister.A -> out("  ldy  #$offset |  sta  ($zpPtrVar),y")
                 CpuRegister.X -> out("  txa |  ldy  #$offset |  sta  ($zpPtrVar),y")
                 CpuRegister.Y -> out("  tya |  ldy  #$offset |  sta  ($zpPtrVar),y")
+                else -> throw AssemblyError("register not available on this target")
             }
             return
         }
@@ -2817,6 +2824,7 @@ $repeatLabel""")
                 out("  tya")
                 if(isTargetCpu(CpuType.CPU65C02)) out("  sta  ($zpPtrVar)") else out("  ldy  #0 |  sta  ($zpPtrVar),y")
             }
+            else -> throw AssemblyError("register not available on this target")
         }
     }
 

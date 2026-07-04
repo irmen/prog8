@@ -4,6 +4,7 @@ import prog8.buildversion.BUILD_UNIX_TIME
 import prog8.code.core.Position
 import prog8.code.source.ImportFileSystem
 import prog8.code.source.SourceCode
+import prog8.code.target.VMTarget
 import java.io.*
 import java.net.StandardProtocolFamily
 import java.net.UnixDomainSocketAddress
@@ -152,9 +153,9 @@ internal class CompilerDaemon(private val socketPath: Path) {
                         val name = Path.of(request.filepath).fileName.toString().substringBeforeLast('.')
                         val dir = if (d == ".") "" else "$d/"
                         listOf(
-                            "${dir}${name}.prg".takeIf { request.writeAssembly && request.compilationTarget != "virtual" },
-                            "${dir}${name}.asm".takeIf { request.writeAssembly && request.compilationTarget != "virtual" },
-                            "${dir}${name}.p8ir".takeIf { !request.writeAssembly || request.compilationTarget == "virtual" }
+                            "${dir}${name}.prg".takeIf { request.writeAssembly && request.compilationTarget != VMTarget.NAME },
+                            "${dir}${name}.asm".takeIf { request.writeAssembly && request.compilationTarget != VMTarget.NAME },
+                            "${dir}${name}.p8ir".takeIf { !request.writeAssembly || request.compilationTarget == VMTarget.NAME }
                         ).filterNotNull()
                     }
                 ).flatten()

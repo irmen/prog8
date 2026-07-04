@@ -154,22 +154,13 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
 
     fun fpuRegName(regNum: RegisterNum): String = "fp${regNum.value}"
 
-    fun fpuRegAddr(regNum: RegisterNum): String {
-        return fpuRegName(regNum)
-    }
-
     // === size suffix helpers ===
 
     fun dtSuffix(type: IRDataType): String = when (type) {
         IRDataType.BYTE -> ".b"
         IRDataType.WORD -> ".w"
         IRDataType.LONG -> ".l"
-        IRDataType.FLOAT -> ".d"     // double precision (64-bit) for FPU
-    }
-
-    fun floatLoadSuffix(type: IRDataType): String = when (type) {
-        IRDataType.FLOAT -> ".d"
-        else -> dtSuffix(type)
+        IRDataType.FLOAT -> ".f"     // single precision (64-bit) for FPU 
     }
 
     // === main entry point ===
@@ -245,9 +236,9 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
         emitLine("subq.l  #1, a1")
         emitLine("bne  .bss_loop")
         emitLabel(".bss_done")
-        emitLine("jsr  ${fixNameSymbols("p8_sys_startup.init_system")}")
+        if (!options.noSysInit)
+            emitLine("jsr  ${fixNameSymbols("p8_sys_startup.init_system")}")
         emitLine("jsr  ${fixNameSymbols("p8_sys_startup.init_system_phase2")}")
-        emitLine("jsr  run_global_inits")
         emitLine("jsr  ${fixNameSymbols("p8b_main.p8s_start")}")
         emitLine("jmp  ${fixNameSymbols("p8_sys_startup.cleanup_at_exit")}")
     }
@@ -308,6 +299,9 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
             emitSourceComment(firstChunk.sourceLinesPositions)
         emitRaw("")
         emitLabel(subLabel)
+        val entrypointNames = setOf("p8b_main.p8s_start", "main.start")
+        if(sub.label in entrypointNames)
+            emitLine("jsr  run_global_inits")
         for (chunk in sub.chunks) {
             when (chunk) {
                 is IRCodeChunk -> {
