@@ -3,10 +3,7 @@ package prog8.ast
 import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
-import prog8.code.core.BuiltinFunctions
-import prog8.code.core.Position
-import prog8.code.core.ZeropageWish
-import prog8.code.core.toHex
+import prog8.code.core.*
 import prog8.code.source.SourceCode
 import java.io.PrintStream
 
@@ -37,7 +34,10 @@ private class SymbolDumper(val skipLibraries: Boolean): IAstVisitor {
     fun write(out: PrintStream) {
         out.println("\nBUILTIN FUNCTIONS")
         out.println("-----------------")
-        BuiltinFunctions.keys.filter { "__" !in it && "prog8_lib" !in it }.forEach { out.println(it) }
+        BuiltinFunctions
+            .filter { (key, _) -> "prog8_lib" !in key && "__" !in key }
+            .toSortedMap()
+            .forEach { (name, sig) -> out.println("$name${formatSignature(sig)}") }
         out.println()
 
         for((module, lines) in moduleOutputs.toSortedMap(compareBy { it.name })) {
@@ -213,5 +213,16 @@ private class SymbolDumper(val skipLibraries: Boolean): IAstVisitor {
 
     override fun visit(alias: Alias) {
         output("${alias.alias}   alias for: ${alias.target.nameInSource.joinToString(".")}\n")
+    }
+
+    private fun formatSignature(sig: FSignature): String {
+        val params = sig.parameters.joinToString(", ") { param: FParam ->
+            val types = param.possibleDatatypes.joinToString("|") { it.name.lowercase() }
+            "$types ${param.name}"
+        }
+        val returns = if(sig.returnTypes.isNotEmpty()) {
+            " -> " + sig.returnTypes.joinToString(", ") { it.name.lowercase() }
+        } else ""
+        return "  ($params)$returns"
     }
 }
