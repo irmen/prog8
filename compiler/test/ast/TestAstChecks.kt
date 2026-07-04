@@ -165,7 +165,7 @@ main {
         compileText(VMTarget(), false, text, outputDir, writeAssembly = true)  shouldNotBe null
     }
 
-    test("memory-mapped pointers are disallowed") {
+    test("memory-mapped single pointer is allowed") {
         val text = """
             main {
                 &^^ubyte p1 = 4000
@@ -175,9 +175,22 @@ main {
             }
         """
         val errors = ErrorReporterForTests()
+        compileText(VMTarget(), true, text, outputDir, writeAssembly = false, errors=errors) shouldNotBe null
+    }
+
+    test("memory-mapped pointer arrays are disallowed") {
+        val text = """
+            main {
+                &^^ubyte[2] arr = $1000
+                sub start() {
+                    arr[0]^^ = 10
+                }
+            }
+        """
+        val errors = ErrorReporterForTests()
         compileText(VMTarget(), true, text, outputDir, writeAssembly = false, errors=errors) shouldBe null
-        errors.errors.size shouldBe 1
-        errors.errors[0] shouldContain "pointers cannot be memory-mapped"
+        errors.errors.size shouldBe 2
+        errors.errors[0] shouldContain "pointer arrays cannot be memory-mapped"
     }
 
     test("return with a statement instead of a value is a syntax error") {

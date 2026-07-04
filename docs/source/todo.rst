@@ -3,7 +3,6 @@ TODO
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
-- maybe the "pointers cannot be memory-mapped" error message can be removed?
 - fully remove -nostdlib compiler option?  It has become redundant now that the import search path order has been changed?
 - make enums strongly typed instead of just syntactic sugar for ints (see ideas/enum-strong-type.md for the plan)
 - add %option private_symbols to make access mode private by default; need (new) 'public' keyword to explicitly mark symbols public.
