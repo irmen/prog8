@@ -228,7 +228,7 @@ class TestCompilerOnExamplesCx16: FunSpec({
             ExampleSizes("cxlogo", cx16SizeOptimized=599, cx16SizeUnoptimized=895),
             ExampleSizes("diskspeed", cx16SizeOptimized=6134, cx16SizeUnoptimized=8105),
             ExampleSizes("fileseek", cx16SizeOptimized=2468, cx16SizeUnoptimized=4297),
-            ExampleSizes("floatparse", cx16SizeOptimized=8317, cx16SizeUnoptimized=9186),
+            ExampleSizes("floatparse", cx16SizeOptimized=8303, cx16SizeUnoptimized=9171),
             ExampleSizes("interpolation", cx16SizeOptimized=3783, cx16SizeUnoptimized=4719),
             ExampleSizes("kefrenbars", cx16SizeOptimized=2386, cx16SizeUnoptimized=4625),
             ExampleSizes("keyboardhandler", cx16SizeOptimized=412, cx16SizeUnoptimized=717),

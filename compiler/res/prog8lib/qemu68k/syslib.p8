@@ -156,7 +156,11 @@ sys {
         return $10000          ; fixed for now  TODO should be a linker symbol?
     }
 
-    sub progend() -> long {
-        return $000ffffe        ; just a dummy value TODO should be a linker symbol
+    asmsub progend() -> long @D0 {
+        %asm {{
+            lea  prog8_program_end,a0
+            move.l  a0,d0
+            rts
+        }}
     }
 }

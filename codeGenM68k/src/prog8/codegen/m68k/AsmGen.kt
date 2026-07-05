@@ -69,17 +69,26 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
         output.appendLine(code)
     }
 
-    // === fixed-size virtual register file layout (4 bytes per slot for 32-bit M68k) ===
+    // === virtual register file layout (2 or 4 bytes per slot depending on type, word-aligned) ===
     private data class RegFileLayout(val offsets: Map<Int, Int>, val totalSize: Int)
+
+    private fun slotSizeForType(type: IRDataType): Int = when(type) {
+        IRDataType.BYTE -> 2
+        IRDataType.WORD -> 2
+        IRDataType.LONG -> 4
+        IRDataType.FLOAT -> target.FLOAT_MEM_SIZE.toInt()
+    }
 
     private val regFileLayout: RegFileLayout by lazy {
         val allRegs = program.registersUsed().regsTypes
         val offsets = mutableMapOf<Int, Int>()
         var currentOffset = 0
-        for ((regNum, _) in allRegs.entries.sortedBy { it.key.value }) {
+        for ((regNum, regType) in allRegs.entries.sortedBy { it.key.value }) {
             if (regNum.value < 0) continue
+            // word-align each slot
+            currentOffset = (currentOffset + 1) / 2 * 2
             offsets[regNum.value] = currentOffset
-            currentOffset += 4      // 4 bytes per register slot for full 32-bit pointers
+            currentOffset += slotSizeForType(regType)
         }
         RegFileLayout(offsets, currentOffset)
     }
@@ -121,10 +130,10 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
         if(type==IRDataType.WORD && varLabel!=null && isPointerVar(varLabel)) ".l" else dtSuffix(type)
 
     fun loadIndexToD0(idx: Int) {
-        // load an index register into d0.w, zero-extending byte indices
+        // load an index register into d0, zero-extending to 32 bits
         val idxType = program.registersUsed().regsTypes[RegisterNum(idx)]
+        emitLine("moveq.l  #0,d0")      // clear everything for any caller that uses (a0,d0.l) addressing
         if (idxType == IRDataType.BYTE) {
-            emitLine("clr.w  d0")
             emitLine("move.b  ${regAddr(idx)}, d0")
         } else {
             emitLine("move.w  ${regAddr(idx)}, d0")
@@ -378,7 +387,6 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
             Opcode.NEG, Opcode.NEGM,
             Opcode.PTRADD,
             Opcode.ADDR, Opcode.ADD, Opcode.ADDM,
-            Opcode.PTRSUB,
             Opcode.SUBR, Opcode.SUB, Opcode.SUBM,
             Opcode.MULR, Opcode.MUL, Opcode.MULM,
             Opcode.MULSR, Opcode.MULS, Opcode.MULSM,

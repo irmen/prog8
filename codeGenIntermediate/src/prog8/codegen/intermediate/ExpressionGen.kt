@@ -1876,10 +1876,10 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         }
     }
 
-    private fun registerOrStatusflagToSlotAndFlag(reg: RegisterOrStatusflag): Pair<CallingConventionSlot?, Statusflag?> {
+    internal fun registerOrStatusflagToSlotAndFlag(reg: RegisterOrStatusflag): Pair<CallingConventionSlot?, Statusflag?> {
         if (reg.statusflag != null) return null to reg.statusflag
         if (reg.registerOrPair == null) return null to null
-        if (reg.registerOrPair in Cx16VirtualRegisters || reg.registerOrPair in CombinedLongRegisters || reg.registerOrPair in M68kRegisters) return null to null
+        if (reg.registerOrPair in Cx16VirtualRegisters || reg.registerOrPair in CombinedLongRegisters) return null to null
         return when (reg.registerOrPair) {
             RegisterOrPair.A -> CallingConventionSlot(0) to null
             RegisterOrPair.X -> CallingConventionSlot(1) to null
@@ -1889,6 +1889,29 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             RegisterOrPair.XY -> CallingConventionSlot(5) to null
             RegisterOrPair.FAC1 -> CallingConventionSlot(6) to null
             RegisterOrPair.FAC2 -> CallingConventionSlot(7) to null
+            RegisterOrPair.D0 -> CallingConventionSlot(10) to null
+            RegisterOrPair.D1 -> CallingConventionSlot(11) to null
+            RegisterOrPair.D2 -> CallingConventionSlot(12) to null
+            RegisterOrPair.D3 -> CallingConventionSlot(13) to null
+            RegisterOrPair.D4 -> CallingConventionSlot(14) to null
+            RegisterOrPair.D5 -> CallingConventionSlot(15) to null
+            RegisterOrPair.D6 -> CallingConventionSlot(16) to null
+            RegisterOrPair.D7 -> CallingConventionSlot(17) to null
+            RegisterOrPair.A0 -> CallingConventionSlot(18) to null
+            RegisterOrPair.A1 -> CallingConventionSlot(19) to null
+            RegisterOrPair.A2 -> CallingConventionSlot(20) to null
+            RegisterOrPair.A3 -> CallingConventionSlot(21) to null
+            RegisterOrPair.A4 -> CallingConventionSlot(22) to null
+            RegisterOrPair.A5 -> CallingConventionSlot(23) to null
+            RegisterOrPair.A6 -> CallingConventionSlot(24) to null
+            RegisterOrPair.FP0 -> CallingConventionSlot(25) to null
+            RegisterOrPair.FP1 -> CallingConventionSlot(26) to null
+            RegisterOrPair.FP2 -> CallingConventionSlot(27) to null
+            RegisterOrPair.FP3 -> CallingConventionSlot(28) to null
+            RegisterOrPair.FP4 -> CallingConventionSlot(29) to null
+            RegisterOrPair.FP5 -> CallingConventionSlot(30) to null
+            RegisterOrPair.FP6 -> CallingConventionSlot(31) to null
+            RegisterOrPair.FP7 -> CallingConventionSlot(32) to null
             else -> throw AssemblyError("unsupported register $reg")
         }
     }

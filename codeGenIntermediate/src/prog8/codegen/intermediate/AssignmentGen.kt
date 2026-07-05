@@ -49,7 +49,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                 if (normalsub!=null) {
                     // note: multi-value returns are passed throug A or AY (for the first value) then cx16.R15 down to R0
                     // (this allows unencumbered use of many Rx registers if you don't return that many values)
-                    val returnregs = (normalsub.astNode!! as IPtSubroutine).returnsWhatWhere()
+                    val returnregs = (normalsub.astNode!! as IPtSubroutine).returnsWhatWhere(codeGen.options.compTarget)
                     assignmentTargets.zip(returnregs).forEach {
                         val target = it.first as PtAssignTarget
                         if(!target.void) {
@@ -65,7 +65,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                     // (this allows unencumbered use of many Rx registers if you don't return that many values)
                     val returntypes = BuiltinFunctions.getValue(thing.name).returnTypes
                     val signature = PtSubSignature(returntypes.map { DataType.forDt(it) }, values.position)
-                    val returnregs = signature.returnsWhatWhere()
+                    val returnregs = signature.returnsWhatWhere(codeGen.options.compTarget)
                     assignmentTargets.zip(returnregs).forEach {
                         val target = it.first as PtAssignTarget
                         if(!target.void) {
@@ -90,7 +90,14 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
 
     private fun assignCpuRegister(returns: StExtSubParameter, regNum: Int, target: PtAssignTarget): IRCodeChunks {
         val result = mutableListOf<IRCodeChunkBase>()
-        when(returns.register.registerOrPair) {
+        val reg3 = returns.register.registerOrPair
+        val (slot3, _) = if (reg3 != null && reg3 !in setOf(RegisterOrPair.FAC1, RegisterOrPair.FAC2))
+            exprGen.registerOrStatusflagToSlotAndFlag(RegisterOrStatusflag(reg3, null))
+        else null to null
+        val m68kSlot3 = slot3?.takeIf { it.value >= 10 }
+        if (m68kSlot3 != null) {
+            addInstr(result, IRInstruction(Opcode.LOADHR, irType(returns.type), reg1=regNum, immediate=m68kSlot3.value), null)
+        } else when(returns.register.registerOrPair) {
             RegisterOrPair.A -> addInstr(result, IRInstruction(Opcode.LOADHR, IRDataType.BYTE, reg1=regNum, immediate=0), null)
             RegisterOrPair.X -> addInstr(result, IRInstruction(Opcode.LOADHR, IRDataType.BYTE, reg1=regNum, immediate=1), null)
             RegisterOrPair.Y -> addInstr(result, IRInstruction(Opcode.LOADHR, IRDataType.BYTE, reg1=regNum, immediate=2), null)

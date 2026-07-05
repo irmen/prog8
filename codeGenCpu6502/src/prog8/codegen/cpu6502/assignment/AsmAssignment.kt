@@ -3,7 +3,6 @@ package prog8.codegen.cpu6502.assignment
 import prog8.code.StConstant
 import prog8.code.ast.*
 import prog8.code.core.*
-import prog8.code.core.BaseDataType
 import prog8.codegen.cpu6502.AsmGen6502Internal
 
 
@@ -237,7 +236,7 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
                             if(sub is PtSub && sub.signature.returns.size>1)
                                 DataType.UNDEFINED      // TODO list of types instead?
                             else
-                                sub.returnsWhatWhere().firstOrNull { rr -> rr.first.registerOrPair != null || rr.first.statusflag!=null }?.second
+                                sub.returnsWhatWhere(asmgen.options.compTarget).firstOrNull { rr -> rr.first.registerOrPair != null || rr.first.statusflag!=null }?.second
                                 ?: throw AssemblyError("can't translate zero return values in assignment")
                         AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, returnType, expression = value)
                     }

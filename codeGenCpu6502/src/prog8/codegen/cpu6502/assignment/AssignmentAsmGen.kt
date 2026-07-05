@@ -948,7 +948,7 @@ internal class AssignmentAsmGen(
 
         // regular subroutine call
         val sub = symbol.astNode as IPtSubroutine
-        val returns = sub.returnsWhatWhere()
+        val returns = sub.returnsWhatWhere(asmgen.options.compTarget)
         asmgen.translateFunctionCall(value)
         if(sub is PtSub && sub.signature.returns.size>1) {
             // note: multi-value returns are passed throug A or AY (for the first value) then cx16.R15 down to R0

@@ -60,9 +60,9 @@ internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
             addMemory(r1 ?: error("ADDM needs reg1"), target, type)
         }
 
-        Opcode.SUBR, Opcode.PTRSUB -> {
-            val r2val = r2 ?: error("SUBR/PTRSUB needs reg2")
-            subRegisters(r1 ?: error("SUBR/PTRSUB needs reg1"), r2val, type)
+        Opcode.SUBR -> {
+            val r2val = r2 ?: error("SUBR needs reg2")
+            subRegisters(r1 ?: error("SUBR needs reg1"), r2val, type)
         }
         Opcode.SUB -> {
             val value = imm ?: error("SUB needs immediate")

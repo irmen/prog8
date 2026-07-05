@@ -190,8 +190,7 @@ decm                           address      - memory at address -= 1
 neg         reg1                            - reg1 = sign negation of reg1
 negm                           address      - sign negate memory at address
 addr        reg1, reg2                      - reg1 += reg2 
-ptradd      reg1, reg2                      - reg1 += reg2  (pointer arithmetic; pointer width is target-specific)
-ptrsub      reg1, reg2                      - reg1 -= reg2  (pointer arithmetic; pointer width is target-specific)
+ptradd      reg1, reg2                      - reg1 += reg2  (pointer arithmetic; pointer width is target-specific)  reg2 can be B,W,L
 add         reg1,              value        - reg1 += value 
 addm        reg1,              address      - memory at address += reg1 
 subr        reg1, reg2                      - reg1 -= reg2 
@@ -384,7 +383,6 @@ enum class Opcode {
     ADD,
     ADDM,
     SUBR,
-    PTRSUB,
     SUB,
     SUBM,
     MULR,
@@ -747,8 +745,7 @@ val instructionFormats = mutableMapOf(
     Opcode.NEG        to InstructionFormat.from("BWL,<>r1      | F,<>fr1"),
     Opcode.NEGM       to InstructionFormat.from("BWL,<>a       | F,<>a"),
     Opcode.ADDR       to InstructionFormat.from("BWL,<>r1,<r2  | F,<>fr1,<fr2"),
-    Opcode.PTRADD     to InstructionFormat.from("W,<>r1,<r2"),      // TODO should allow B as well?
-    Opcode.PTRSUB     to InstructionFormat.from("W,<>r1,<r2"),      // TODO should allow B as well?
+    Opcode.PTRADD     to InstructionFormat.from("BWL,<>r1,<r2"),
     Opcode.ADD        to InstructionFormat.from("BWL,<>r1,<i   | F,<>fr1,<i"),
     Opcode.ADDM       to InstructionFormat.from("BWL,<r1,<>a   | F,<fr1,<>a"),
     Opcode.SUBR       to InstructionFormat.from("BWL,<>r1,<r2  | F,<>fr1,<fr2"),

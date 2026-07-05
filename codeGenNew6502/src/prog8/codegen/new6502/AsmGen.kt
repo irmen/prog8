@@ -736,7 +736,7 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
             Opcode.INC, Opcode.INCM, Opcode.DEC, Opcode.DECM,
             Opcode.NEG, Opcode.NEGM,
             Opcode.ADDR, Opcode.PTRADD, Opcode.ADD, Opcode.ADDM,
-            Opcode.SUBR, Opcode.PTRSUB, Opcode.SUB, Opcode.SUBM,
+            Opcode.SUBR, Opcode.SUB, Opcode.SUBM,
             Opcode.MULR, Opcode.MUL, Opcode.MULM,
             Opcode.MULSR, Opcode.MULS, Opcode.MULSM,
             Opcode.DIVR, Opcode.DIV, Opcode.DIVM,

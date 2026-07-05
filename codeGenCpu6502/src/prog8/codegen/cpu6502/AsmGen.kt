@@ -1742,7 +1742,7 @@ $repeatLabel""")
     private fun translate(ret: PtReturn) {
         val returnvalue = ret.children.singleOrNull() as? PtExpression      // could be a multi-value returning functioncall
         val sub = ret.definingSub()!!
-        val returnRegs = sub.returnsWhatWhere()
+        val returnRegs = sub.returnsWhatWhere(options.compTarget)
 
         if(returnvalue!=null) {
 
@@ -1755,7 +1755,7 @@ $repeatLabel""")
                 // Get the return register specs for the called function
                 val calledSub = symbolTable.lookup(fcall.name)
                 val calledReturnRegs = when(calledSub) {
-                    is StSub -> (calledSub.astNode!! as IPtSubroutine).returnsWhatWhere()
+                    is StSub -> (calledSub.astNode!! as IPtSubroutine).returnsWhatWhere(options.compTarget)
                     is StExtSub -> calledSub.returns.map { it.register to it.type }
                     else -> throw AssemblyError("unexpected subroutine type for multi-value return ${ret.position}")
                 }

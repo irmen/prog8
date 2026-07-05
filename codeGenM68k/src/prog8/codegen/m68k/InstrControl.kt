@@ -499,7 +499,7 @@ private fun AsmGen.translateArgument(arg: FunctionCallArgs.ArgumentSpec, fnLabel
     // If the argument has a calling convention slot, load it into that hardware register
     val slot = argReg.callingConventionSlot
     if (slot != null) {
-        val hwReg = m68kSlotRegister(slot, argReg.dt)
+        val hwReg = m68kSlotRegister(slot)
         if (argReg.dt == IRDataType.FLOAT) {
             emitLine("fmove.d  ${regAddr(argReg.registerNum.value)}, $hwReg")
         } else {
@@ -545,7 +545,7 @@ private fun AsmGen.translateReturnValue(ret: FunctionCallArgs.RegSpec) {
     // Otherwise, return value is in a hardware register
     val slot = ret.callingConventionSlot
     if (slot != null) {
-        val hwReg = m68kSlotRegister(slot, ret.dt)
+        val hwReg = m68kSlotRegister(slot)
         if (ret.dt == IRDataType.FLOAT) {
             emitLine("fmove.d  $hwReg, ${regAddr(retReg.value)}")
         } else {
@@ -565,11 +565,9 @@ private fun AsmGen.translateReturnValue(ret: FunctionCallArgs.RegSpec) {
 
 // === Slot to M68k hardware register mapping ===
 
-fun m68kSlotRegister(slot: prog8.intermediate.CallingConventionSlot, dt: IRDataType): String = when (slot.value) {
-    0, 3, 4 -> "d0"       // slots 0,3,4 all map to D0 (byte/word/32-bit pair)
-    1, 5 -> "d1"          // slots 1,5 map to D1
-    2 -> "d2"
-    6 -> if (dt == IRDataType.FLOAT) "fp0" else "d6"
-    7 -> if (dt == IRDataType.FLOAT) "fp1" else "d7"
+fun m68kSlotRegister(slot: prog8.intermediate.CallingConventionSlot): String = when (slot.value) {
+    in 10..17 -> "d${slot.value - 10}"     // M68k slots: D0-D7
+    in 18..24 -> "a${slot.value - 18}"     // M68k slots: A0-A6
+    in 25..32 -> "fp${slot.value - 25}"    // M68k slots: FP0-FP7
     else -> error("unknown calling convention slot: $slot")
 }

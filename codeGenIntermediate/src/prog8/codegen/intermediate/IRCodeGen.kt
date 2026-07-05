@@ -1636,7 +1636,7 @@ class IRCodeGen(
             // (this allows unencumbered use of many Rx registers if you don't return that many values)
             // a floating point value is passed via FAC   (just one fp value is possible)
 
-            val returnRegs = ret.definingISub()!!.returnsWhatWhere()
+            val returnRegs = ret.definingISub()!!.returnsWhatWhere(options.compTarget)
 
             if(ret.children.size < ret.numReturnValues()) {
                 // Return values come from a multi-value function call (e.g., "return multi2(99)")
@@ -1651,7 +1651,7 @@ class IRCodeGen(
                 // Get the return register specs for the called function
                 val calledSub = symbolTable.lookup(fcall.name)
                 val calledReturnRegs = when(calledSub) {
-                    is StSub -> (calledSub.astNode!! as IPtSubroutine).returnsWhatWhere()
+                    is StSub -> (calledSub.astNode!! as IPtSubroutine).returnsWhatWhere(options.compTarget)
                     is StExtSub -> calledSub.returns.map { it.register to it.type }
                     else -> throw AssemblyError("unexpected subroutine type for multi-value return ${ret.position}")
                 }
@@ -1923,7 +1923,14 @@ class IRCodeGen(
 
     internal fun setCpuRegister(registerOrFlag: RegisterOrStatusflag, paramDt: IRDataType, resultReg: Int, resultFpReg: Int): IRCodeChunk {
         val chunk = IRCodeChunk(null, null)
-        when(registerOrFlag.registerOrPair) {
+        val reg = registerOrFlag.registerOrPair
+        val (slot, _) = if (reg != null && reg !in setOf(RegisterOrPair.FAC1, RegisterOrPair.FAC2))
+            expressionEval.registerOrStatusflagToSlotAndFlag(RegisterOrStatusflag(reg, null))
+        else null to null
+        val m68kSlot = slot?.takeIf { it.value >= 10 }
+        if (m68kSlot != null) {
+            chunk += IRInstruction(Opcode.STOREHR, paramDt, reg1=resultReg, immediate=m68kSlot.value)
+        } else when(registerOrFlag.registerOrPair) {
             RegisterOrPair.A -> chunk += IRInstruction(Opcode.STOREHR, IRDataType.BYTE, reg1=resultReg, immediate=0)
             RegisterOrPair.X -> chunk += IRInstruction(Opcode.STOREHR, IRDataType.BYTE, reg1=resultReg, immediate=1)
             RegisterOrPair.Y -> chunk += IRInstruction(Opcode.STOREHR, IRDataType.BYTE, reg1=resultReg, immediate=2)
@@ -1953,7 +1960,14 @@ class IRCodeGen(
     internal fun loadFromCpuRegister(registerOrFlag: RegisterOrStatusflag, fromType: DataType, tempReg: Int): IRCodeChunk {
         val chunk = IRCodeChunk(null, null)
         val irType = irType(fromType)
-        when(registerOrFlag.registerOrPair) {
+        val reg2 = registerOrFlag.registerOrPair
+        val (slot2, _) = if (reg2 != null && reg2 !in setOf(RegisterOrPair.FAC1, RegisterOrPair.FAC2))
+            expressionEval.registerOrStatusflagToSlotAndFlag(RegisterOrStatusflag(reg2, null))
+        else null to null
+        val m68kSlot2 = slot2?.takeIf { it.value >= 10 }
+        if (m68kSlot2 != null) {
+            chunk += IRInstruction(Opcode.LOADHR, irType, reg1=tempReg, immediate=m68kSlot2.value)
+        } else when(registerOrFlag.registerOrPair) {
             RegisterOrPair.A -> chunk += IRInstruction(Opcode.LOADHR, IRDataType.BYTE, reg1=tempReg, immediate=0)
             RegisterOrPair.X -> chunk += IRInstruction(Opcode.LOADHR, IRDataType.BYTE, reg1=tempReg, immediate=1)
             RegisterOrPair.Y -> chunk += IRInstruction(Opcode.LOADHR, IRDataType.BYTE, reg1=tempReg, immediate=2)

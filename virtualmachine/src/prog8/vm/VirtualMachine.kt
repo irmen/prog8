@@ -273,7 +273,7 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.ADDR, Opcode.PTRADD -> InsADDR(ins)
             Opcode.ADD -> InsADD(ins)
             Opcode.ADDM -> InsADDM(ins)
-            Opcode.SUBR, Opcode.PTRSUB -> InsSUBR(ins)
+            Opcode.SUBR -> InsSUBR(ins)
             Opcode.SUB -> InsSUB(ins)
             Opcode.SUBM -> InsSUBM(ins)
             Opcode.MULR -> InsMULR(ins)

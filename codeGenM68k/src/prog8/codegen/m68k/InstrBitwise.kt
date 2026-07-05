@@ -104,7 +104,7 @@ internal fun AsmGen.translateBitwise(insn: IRInstruction) {
 
         Opcode.BITTST -> {
             val bit = imm ?: error("BITTST needs bit number")
-            bitTest(r1 ?: error("BITTST needs reg1"), bit)
+            bitTest(r1 ?: error("BITTST needs reg1"), bit, type)
         }
         Opcode.BITSET -> {
             val bit = imm ?: error("BITSET needs bit number")
@@ -365,28 +365,29 @@ private fun AsmGen.rotateRightThroughCarryMemory(target: String, type: IRDataTyp
 
 // === Bit manipulation ===
 
-private fun AsmGen.bitTest(reg: Int, bit: Int) {
-    emitLine("move.l  ${regAddr(reg)}, d0")
-    emitLine("btst.l  #$bit, d0")
+private fun AsmGen.bitTest(reg: Int, bit: Int, type: IRDataType) {
+    val s = dtSuffix(type)
+    emitLine("move$s  ${regAddr(reg)}, d0")
+    emitLine("btst$s  #$bit, d0")
 }
 
 private fun AsmGen.bitSet(reg: Int, bit: Int, type: IRDataType) {
     val s = dtSuffix(type)
     emitLine("move$s  ${regAddr(reg)}, d0")
-    emitLine("bset.l  #$bit, d0")
+    emitLine("bset$s  #$bit, d0")
     emitLine("move$s  d0, ${regAddr(reg)}")
 }
 
 private fun AsmGen.bitClear(reg: Int, bit: Int, type: IRDataType) {
     val s = dtSuffix(type)
     emitLine("move$s  ${regAddr(reg)}, d0")
-    emitLine("bclr.l  #$bit, d0")
+    emitLine("bclr$s  #$bit, d0")
     emitLine("move$s  d0, ${regAddr(reg)}")
 }
 
 private fun AsmGen.bitToggle(reg: Int, bit: Int, type: IRDataType) {
     val s = dtSuffix(type)
     emitLine("move$s  ${regAddr(reg)}, d0")
-    emitLine("bchg.l  #$bit, d0")
+    emitLine("bchg$s  #$bit, d0")
     emitLine("move$s  d0, ${regAddr(reg)}")
 }

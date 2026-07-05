@@ -60,7 +60,7 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction) {
         Opcode.LOADHR -> {
             val dst = r1 ?: error("LOADHR needs reg1")
             val slot = imm ?: error("LOADHR needs slot immediate")
-            val hwReg = m68kSlotRegister(CallingConventionSlot(slot), type)
+            val hwReg = m68kSlotRegister(CallingConventionSlot(slot))
             emitLine("move$s  $hwReg, ${regAddr(dst)}")
         }
 
@@ -111,7 +111,7 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction) {
         Opcode.STOREHR -> {
             val src = r1 ?: error("STOREHR needs reg1")
             val slot = imm ?: error("STOREHR needs slot immediate")
-            val hwReg = m68kSlotRegister(CallingConventionSlot(slot), type)
+            val hwReg = m68kSlotRegister(CallingConventionSlot(slot))
             emitLine("move$s  ${regAddr(src)}, $hwReg")
         }
 
@@ -164,14 +164,14 @@ private fun AsmGen.translateFloatLoadStore(insn: IRInstruction, target: String) 
 
         Opcode.LOADX -> {
             val idx = r1 ?: error("LOADX.f needs reg1 (index)")
-            emitLine("move.l  ${regAddr(idx)}, d0")
+            loadIndexToD0(idx)
             emitLine("lea  $target, a0")
             emitLine("fmove.d  (0, a0, d0.l), ${fpuRegName(fpReg1)}", "index pre-scaled")
         }
 
         Opcode.LOADHR -> {
             val slot = imm ?: error("LOADHR.f needs slot immediate")
-            val hwReg = m68kSlotRegister(CallingConventionSlot(slot), IRDataType.FLOAT)
+            val hwReg = m68kSlotRegister(CallingConventionSlot(slot))
             emitLine("fmove.d  $hwReg, ${fpuRegName(fpReg1)}")
         }
 
@@ -189,7 +189,7 @@ private fun AsmGen.translateFloatLoadStore(insn: IRInstruction, target: String) 
 
         Opcode.STOREX -> {
             val idx = r1 ?: error("STOREX.f needs reg1 (index)")
-            emitLine("move.l  ${regAddr(idx)}, d0")
+            loadIndexToD0(idx)
             emitLine("lea  $target, a0")
             emitLine("fmove.d  ${fpuRegName(fpReg1)}, (0, a0, d0.l)", "index pre-scaled")
         }
@@ -210,7 +210,7 @@ private fun AsmGen.translateFloatLoadStore(insn: IRInstruction, target: String) 
 
         Opcode.STOREZX -> {
             val idx = r1 ?: error("STOREZX.f needs reg1 (index)")
-            emitLine("move.l  ${regAddr(idx)}, d0")
+            loadIndexToD0(idx)
             emitLine("lea  $target, a0")
             emitFloatZero(fpReg1)
             emitLine("fmove.d  ${fpuRegName(fpReg1)}, (0, a0, d0.l)", "index pre-scaled")
@@ -218,7 +218,7 @@ private fun AsmGen.translateFloatLoadStore(insn: IRInstruction, target: String) 
 
         Opcode.STOREHR -> {
             val slot = imm ?: error("STOREHR.f needs slot immediate")
-            val hwReg = m68kSlotRegister(CallingConventionSlot(slot), IRDataType.FLOAT)
+            val hwReg = m68kSlotRegister(CallingConventionSlot(slot))
             emitLine("fmove.d  ${fpuRegName(fpReg1)}, $hwReg")
         }
 
