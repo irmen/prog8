@@ -69,11 +69,11 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
         output.appendLine(code)
     }
 
-    // === virtual register file layout (2 or 4 bytes per slot depending on type, word-aligned) ===
+    // === virtual register file layout (1, 2 or 4 bytes per slot depending on type, word-aligned) ===
     private data class RegFileLayout(val offsets: Map<Int, Int>, val totalSize: Int)
 
     private fun slotSizeForType(type: IRDataType): Int = when(type) {
-        IRDataType.BYTE -> 2
+        IRDataType.BYTE -> 1
         IRDataType.WORD -> 2
         IRDataType.LONG -> 4
         IRDataType.FLOAT -> target.FLOAT_MEM_SIZE.toInt()

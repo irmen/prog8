@@ -15,7 +15,6 @@ import prog8.code.ast.PtBool
 import prog8.code.ast.PtNumber
 import prog8.code.target.C64Target
 import prog8.code.target.Cx16Target
-import prog8.code.target.VMTarget
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
 
@@ -275,9 +274,6 @@ main {
         zeroassigns[0].target.identifier!!.name shouldBe "p8b_main.p8s_start.p8v_zpvar2"
         (zeroassigns[1].value as PtBool).value shouldBe false
         zeroassigns[1].target.identifier!!.name shouldBe "p8b_main.p8s_start.p8v_zpbool2"
-
-
-        compileText(VMTarget(), false, src, outputDir, writeAssembly = true) shouldNotBe null
     }
 
     test("nondirty non zp variables in block scope should not be explicitly initialized to 0 (bss clear takes care of it)") {

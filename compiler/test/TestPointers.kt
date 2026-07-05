@@ -357,7 +357,7 @@ main {
         readbyte(&thing.array[1])   
     }
 
-    sub readbyte(uword @requirezp ptr) {
+    sub readbyte(uword ptr) {
         ptr=0
     }
 }

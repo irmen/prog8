@@ -221,12 +221,20 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
 
 
                 // pointer arithmetic
+                val pointerSize = options.compTarget.memorySize(BaseDataType.POINTER)
+                val indexDt = if(pointerSize > 2) DataType.LONG else DataType.UWORD
                 if(leftDt.isPointer) {
-                    val cast = TypecastExpression(expr.right, DataType.UWORD, true, expr.right.position)
-                    return listOf(AstReplaceNode(expr.right, cast, expr))
+                    val rightDt = expr.right.inferType(program).getOrUndef()
+                    if(rightDt.base != indexDt.base) {
+                        val cast = TypecastExpression(expr.right, indexDt, true, expr.right.position)
+                        return listOf(AstReplaceNode(expr.right, cast, expr))
+                    }
                 } else if(rightDt.isPointer) {
-                    val cast = TypecastExpression(expr.left, DataType.UWORD, true, expr.left.position)
-                    return listOf(AstReplaceNode(expr.left, cast, expr))
+                    val leftDtType = expr.left.inferType(program).getOrUndef()
+                    if(leftDtType.base != indexDt.base) {
+                        val cast = TypecastExpression(expr.left, indexDt, true, expr.left.position)
+                        return listOf(AstReplaceNode(expr.left, cast, expr))
+                    }
                 }
             }
 

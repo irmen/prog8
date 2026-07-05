@@ -283,9 +283,12 @@ class AstPreprocessor(val program: Program,
 
         // prefer to put pointer variables into zeropage if no other preference is given (to avoid having to copy the pointer var to zp every time)
         // NOT for library pointers and NOT for subroutine parameters (otherwise ZP is eaten up way too fast)
+        // ONLY for 6502/65C02 targets that actually have a zeropage concept
         if(decl.datatype.isPointer && decl.zeropage==ZeropageWish.DONTCARE) {
             if(decl.origin!= VarDeclOrigin.SUBROUTINEPARAM && !decl.definingModule.isLibrary) {
-                decl.zeropage = ZeropageWish.PREFER_ZEROPAGE
+                if(options.compTarget.cpu==CpuType.CPU6502 || options.compTarget.cpu==CpuType.CPU65C02) {
+                    decl.zeropage = ZeropageWish.PREFER_ZEROPAGE
+                }
             }
         }
 

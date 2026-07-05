@@ -480,6 +480,10 @@ internal fun determineCompilationOptions(program: Program, compTarget: ICompilat
                 // error will be printed by the astchecker
             }
 
+    // On the non-6502 targets there's no zero page concept, so disable it
+    if(compTarget.cpu !in setOf(CpuType.CPU6502, CpuType.CPU65C02))
+        zpType = ZeropageType.DONTUSE
+
     val zpReserved = toplevelModule.statements
         .asSequence()
         .filter { it is Directive && it.directive == "%zpreserved" }

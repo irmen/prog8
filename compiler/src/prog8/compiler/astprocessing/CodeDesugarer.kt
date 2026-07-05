@@ -452,7 +452,9 @@ _after:
         val indexExpr = arrayIndexedExpression.indexer.indexExpr
         val arrayVar = arrayIndexedExpression.plainarrayvar!!.targetVarDecl()
         if(arrayVar!=null && (arrayVar.datatype.isUnsignedWord || arrayVar.datatype.isPointer)) {
-            val wordIndex = TypecastExpression(indexExpr, DataType.UWORD, true, indexExpr.position)
+            val pointerSize = target.memorySize(BaseDataType.POINTER)
+            val indexType = if(pointerSize > 2) DataType.LONG else DataType.UWORD
+            val wordIndex = TypecastExpression(indexExpr, indexType, true, indexExpr.position)
             val address = BinaryExpression(
                 arrayIndexedExpression.plainarrayvar!!.copy(),
                 "+",

@@ -1673,13 +1673,13 @@ internal class AstChecker(private val program: Program,
             errors.err("invalid right operand type", expr.right.position)
         if(leftDt!=rightDt) {
             if(leftDt.isPointer) {
-                if(!rightDt.isUnsignedWord) {
-                    errors.err("pointer arithmetic requires unsigned word operand", expr.right.position)
+                if(!rightDt.isUnsignedWord && !rightDt.isLong) {
+                    errors.err("pointer arithmetic requires unsigned word or long operand", expr.right.position)
                 }
             }
             else if(rightDt.isPointer) {
-                if(!leftDt.isUnsignedWord) {
-                    errors.err("pointer arithmetic requires unsigned word operand", expr.left.position)
+                if(!leftDt.isUnsignedWord && !leftDt.isLong) {
+                    errors.err("pointer arithmetic requires unsigned word or long operand", expr.left.position)
                 }
             }
             else if(leftDt.isString && rightDt.isInteger && expr.operator=="*") {
