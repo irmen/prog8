@@ -194,6 +194,8 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
         emitDataSection()
         emitBssSection()
 
+        // label prog8_program_end is defined by the linker script
+
         val options = program.options
         val asmFile = options.outputDir.resolve("${program.name}.asm")
         try {
@@ -205,7 +207,7 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
 
         if (!options.quiet)
             println("Assembly written to $asmFile")
-
+        
         return true
     }
 
@@ -538,21 +540,56 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
         emitRaw("")
     }
 
+
     private fun emitBssSection() {
-        emitRaw("    ALIGN  4")
-        emitRaw("    section .bss,bss    ; bss section")
+        emitRaw("    SECTION .bss,bss    ; bss section")
+        emitRaw("    ALIGN   4")
         emitLabel("prog8_bss_section_start")
-        // uninitialized variables
-        val bssVars = program.st.allVariables().filter { it.inBss }.toList()
-        for (v in bssVars) {
+
+        // 1. Map variables to their sizes and actual M68k alignment requirements
+        val bssVars = program.st.allVariables()
+            .filter { it.inBss }
+            .map { v ->
+                val size = target.memorySize(v.dt, v.length?.toInt())
+                // M68K alignment rules: 
+                // - Objects containing 32-bit types need 4-byte alignment
+                // - Objects containing 16-bit types need 2-byte alignment
+                // - Pure byte arrays/scalars only need 1-byte alignment
+                val alignment = when {
+                    v.dt.isPointer || v.dt.isLong || v.dt.isFloat -> 4
+                    v.dt.isWord -> 2
+                    else -> 1
+                }
+                Triple(v, size, alignment)
+            }
+            // 2. Sort primary by alignment descending, secondary by size descending
+            .sortedWith(compareByDescending<Triple<IRStStaticVariable, Int, Int>> { it.third }.thenByDescending { it.second })
+
+        // Keep track of the current alignment block we are emitting to avoid redundant lines
+        var currentBlockAlignment = 4
+
+        // 3. Emit sorted variables
+        for ((v, size, alignment) in bssVars) {
+            // Only emit an ALIGN directive if the variable requires alignment 
+            // AND we haven't already established that alignment boundary for this group.
+            if (alignment < currentBlockAlignment) {
+                if (alignment == 2) {
+                    emitRaw("    ALIGN   2")
+                }
+                // Update our tracked alignment group state
+                currentBlockAlignment = alignment
+            }
+
             emitLabel(fixNameSymbols(v.name))
-            emitLine("ds.b  ${target.memorySize(v.dt, v.length?.toInt())}")
+            emitLine("ds.b  $size")
         }
+
         // register file (always at the end of BSS variables)
+        emitRaw("    ALIGN   4")
         emitLabel(REGFILE_LABEL)
         emitLine("ds.b  ${regFileLayout.totalSize}")
-        emitLabel("prog8_program_end")
-        emitRaw("    section .text,code")
+
+        emitRaw("    SECTION .text,code  ; end of bss section")
         emitRaw("")
     }
 }
