@@ -47,9 +47,9 @@ internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
         Opcode.NEG -> negateRegister(r1 ?: error("NEG needs reg1"), type)
         Opcode.NEGM -> negateMemory(resolveAddress(addr, label, offset), type)
 
-        Opcode.ADDR -> {
-            val r2val = r2 ?: error("ADDR needs reg2")
-            addRegisters(r1 ?: error("ADDR needs reg1"), r2val, type)
+        Opcode.ADDR, Opcode.PTRADD -> {
+            val r2val = r2 ?: error("ADDR/PTRADD needs reg2")
+            addRegisters(r1 ?: error("ADDR/PTRADD needs reg1"), r2val, type)
         }
         Opcode.ADD -> {
             val value = imm ?: error("ADD needs immediate")
@@ -60,9 +60,9 @@ internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
             addMemory(r1 ?: error("ADDM needs reg1"), target, type)
         }
 
-        Opcode.SUBR -> {
-            val r2val = r2 ?: error("SUBR needs reg2")
-            subRegisters(r1 ?: error("SUBR needs reg1"), r2val, type)
+        Opcode.SUBR, Opcode.PTRSUB -> {
+            val r2val = r2 ?: error("SUBR/PTRSUB needs reg2")
+            subRegisters(r1 ?: error("SUBR/PTRSUB needs reg1"), r2val, type)
         }
         Opcode.SUB -> {
             val value = imm ?: error("SUB needs immediate")

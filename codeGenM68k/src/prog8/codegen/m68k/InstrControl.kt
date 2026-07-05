@@ -477,38 +477,13 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
 // === CALL translation with argument handling ===
 
 private fun AsmGen.translateCall(fnLabel: String, args: FunctionCallArgs?) {
-    // Track stack cleanup needed for non-slot arguments
-    var stackCleanup = 0
-
     if (args != null) {
         for (arg in args.arguments) {
-            val slot = arg.reg.callingConventionSlot
-            if (slot != null) {
-                // Slot argument goes into a hardware register
-                translateArgument(arg)
-            } else {
-                // Non-slot argument: push on stack, track cleanup
-                translateArgument(arg)
-                stackCleanup += when (arg.reg.dt) {
-                    IRDataType.BYTE -> 2        // because m68k keeps stack on even words aligned
-                    IRDataType.WORD -> 2
-                    IRDataType.LONG -> 4
-                    IRDataType.FLOAT -> 8
-                }
-            }
+            translateArgument(arg, fnLabel)
         }
     }
 
     emitLine("jsr  $fnLabel")
-
-    // Clean up stack arguments (caller pops)
-    if (stackCleanup > 0) {
-        if (stackCleanup <= 8) {
-            emitLine("addq.l  #$stackCleanup,sp")
-        } else {
-            emitLine("add.l  #$stackCleanup,sp")
-        }
-    }
 
     // Move return values back to virtual registers
     if (args != null) {
@@ -518,7 +493,7 @@ private fun AsmGen.translateCall(fnLabel: String, args: FunctionCallArgs?) {
     }
 }
 
-private fun AsmGen.translateArgument(arg: FunctionCallArgs.ArgumentSpec) {
+private fun AsmGen.translateArgument(arg: FunctionCallArgs.ArgumentSpec, fnLabel: String? = null) {
     val argReg = arg.reg
 
     // If the argument has a calling convention slot, load it into that hardware register
@@ -532,12 +507,20 @@ private fun AsmGen.translateArgument(arg: FunctionCallArgs.ArgumentSpec) {
             emitLine("move$s  ${regAddr(argReg.registerNum.value)}, $hwReg")
         }
     } else {
-        // Non-slot argument: pass via the value stack
-        if (argReg.dt == IRDataType.FLOAT) {
-            emitLine("fmove.d  ${regAddr(argReg.registerNum.value)}, -(sp)")
-        } else {
-            val s = dtSuffix(argReg.dt)
-            emitLine("move$s  ${regAddr(argReg.registerNum.value)}, -(sp)")
+        // Store to the callee's parameter variable (if this is a named param)
+        if (arg.name.isNotEmpty() && fnLabel != null) {
+            val paramVarName = "$fnLabel.${arg.name}"
+            val target = fixNameSymbols(paramVarName)
+            val regVal = regAddr(argReg.registerNum.value)
+            when (argReg.dt) {
+                IRDataType.BYTE -> emitLine("move.b  $regVal, $target")
+                IRDataType.WORD -> {
+                    val sv = suffixForVar(IRDataType.WORD, paramVarName)
+                    emitLine("move$sv  $regVal, $target")
+                }
+                IRDataType.LONG -> emitLine("move.l  $regVal, $target")
+                IRDataType.FLOAT -> emitLine("fmove.d  $regVal, $target")
+            }
         }
     }
 }

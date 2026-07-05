@@ -452,7 +452,7 @@ jump p8_label_gen_2
                     }
                 }
                 Opcode.AND -> {
-                    when (val imm = ins.immediate) {
+                    when (ins.immediate) {
                         0 -> {
                             chunk.instructions[idx] = IRInstruction(Opcode.LOAD, ins.type, reg1 = ins.reg1, immediate = 0)
                             changed = true
@@ -561,7 +561,7 @@ jump p8_label_gen_2
 
             // try to use immediate arithmetic instruction if possible
             when(ins.opcode) {
-                Opcode.ADDR -> optimizeImmediateLoad(Opcode.ADD, true)
+                Opcode.ADDR, Opcode.PTRADD -> optimizeImmediateLoad(Opcode.ADD, true)
                 Opcode.MULR -> optimizeImmediateLoad(Opcode.MUL, true)
                 Opcode.MULSR -> optimizeImmediateLoad(Opcode.MULS, true)
                 Opcode.SUBR -> optimizeImmediateLoad(Opcode.SUB, false)

@@ -180,7 +180,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                         indexReg = indexTr.resultReg
                     }
                     it += codeGen.multiplyByConst(DataType.UWORD, indexReg, struct.size.toInt())
-                    it += IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1 = pointerReg, reg2 = indexReg)
+                    it += IRInstruction(Opcode.PTRADD, IRDataType.WORD, reg1 = pointerReg, reg2 = indexReg)
                 }
             }
 
@@ -398,7 +398,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     }
                     else
                         IRInstruction(Opcode.LOADM, vmDt, reg1 = resultRegister, labelSymbol = identifier.name)
-                    it += IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1=resultRegister, reg2=indexWordReg)
+                    it += IRInstruction(Opcode.PTRADD, IRDataType.WORD, reg1=resultRegister, reg2=indexWordReg)
                 }
             } else if(identifier.type.isPointer) {
                 // apply pointer arithmetic for the array indexing
@@ -411,7 +411,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     if (eltSize > 1) {
                         it += codeGen.multiplyByConst(DataType.UWORD, indexWordReg, eltSize)
                     }
-                    it += IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1 = resultRegister, reg2 = indexWordReg)
+                    it += IRInstruction(Opcode.PTRADD, IRDataType.WORD, reg1 = resultRegister, reg2 = indexWordReg)
                 }
             } else {
                 // regular array indexing
@@ -421,7 +421,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     if (eltSize > 1 && !identifier.type.isSplitWordArray) {
                         it += codeGen.multiplyByConst(DataType.UWORD, indexWordReg, eltSize)
                     }
-                    it += IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1 = resultRegister, reg2 = indexWordReg)
+                    it += IRInstruction(Opcode.PTRADD, IRDataType.WORD, reg1 = resultRegister, reg2 = indexWordReg)
                 }
             }
             return ExpressionCodeResult(result, vmDt, resultRegister, -1)
@@ -677,7 +677,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         else {
             val (code, indexWordReg) = codeGen.loadIndexReg(index, eltSize, true, false)
             result += code
-            addInstr(result, IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1=pointerReg, reg2=indexWordReg), null)
+            addInstr(result, IRInstruction(Opcode.PTRADD, IRDataType.WORD, reg1=pointerReg, reg2=indexWordReg), null)
         }
 
         if(resultDt==IRDataType.FLOAT) {
@@ -1796,7 +1796,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             } else {
                 val (chunks, indexReg) = codeGen.loadIndexReg(left.index, struct.size.toInt(), true, false)
                 result += chunks
-                addInstr(result, IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1 = pointerReg, reg2 = indexReg), null)
+                addInstr(result, IRInstruction(Opcode.PTRADD, IRDataType.WORD, reg1 = pointerReg, reg2 = indexReg), null)
             }
             field = struct.getField(right.name, codeGen.program.memsizer)
 

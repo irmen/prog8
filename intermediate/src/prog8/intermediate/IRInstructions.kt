@@ -34,18 +34,18 @@ value class RegisterNum(val value: Int): Comparable<RegisterNum> {
 }
 
 /*
-
+ 
 Intermediate Representation instructions for the IR Virtual machine.
 --------------------------------------------------------------------
 
 Specs of the virtual machine this will run on:
 Program to execute is not stored in the system memory, it's just a separate list of instructions.
-100K virtual registers, 16 bits wide, can also be used as 8 bits. r0-r99999
+100K virtual registers, can be used as 8, 16 or 32 bits. r0-r99999
     reserved 99000 - 99099 : WORD registers for syscall arguments and response value(s)
     reserved 99100 - 99199 : BYTE registers for syscall arguments and response value(s)
     reseverd 99200 - 99299 : LONG registers for syscall arguments and response value(s)
 100K virtual floating point registers (64 bits double precision)  fr0-fr99999
-65536 bytes of memory. Thus memory pointers (addresses) are limited to 16 bits.
+65536 bytes of memory (in the reference VM). On other targets, memory size and pointer width are target-specific.
 Value stack, max 128 entries of 1 byte each.
 
 Status flags: Carry, Zero, Negative, Overflow.
@@ -190,6 +190,8 @@ decm                           address      - memory at address -= 1
 neg         reg1                            - reg1 = sign negation of reg1
 negm                           address      - sign negate memory at address
 addr        reg1, reg2                      - reg1 += reg2 
+ptradd      reg1, reg2                      - reg1 += reg2  (pointer arithmetic; pointer width is target-specific)
+ptrsub      reg1, reg2                      - reg1 -= reg2  (pointer arithmetic; pointer width is target-specific)
 add         reg1,              value        - reg1 += value 
 addm        reg1,              address      - memory at address += reg1 
 subr        reg1, reg2                      - reg1 -= reg2 
@@ -378,9 +380,11 @@ enum class Opcode {
     NEG,
     NEGM,
     ADDR,
+    PTRADD,
     ADD,
     ADDM,
     SUBR,
+    PTRSUB,
     SUB,
     SUBM,
     MULR,
@@ -743,6 +747,8 @@ val instructionFormats = mutableMapOf(
     Opcode.NEG        to InstructionFormat.from("BWL,<>r1      | F,<>fr1"),
     Opcode.NEGM       to InstructionFormat.from("BWL,<>a       | F,<>a"),
     Opcode.ADDR       to InstructionFormat.from("BWL,<>r1,<r2  | F,<>fr1,<fr2"),
+    Opcode.PTRADD     to InstructionFormat.from("W,<>r1,<r2"),      // TODO should allow B as well?
+    Opcode.PTRSUB     to InstructionFormat.from("W,<>r1,<r2"),      // TODO should allow B as well?
     Opcode.ADD        to InstructionFormat.from("BWL,<>r1,<i   | F,<>fr1,<i"),
     Opcode.ADDM       to InstructionFormat.from("BWL,<r1,<>a   | F,<fr1,<>a"),
     Opcode.SUBR       to InstructionFormat.from("BWL,<>r1,<r2  | F,<>fr1,<fr2"),

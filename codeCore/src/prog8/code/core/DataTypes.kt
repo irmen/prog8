@@ -174,6 +174,7 @@ class DataType private constructor(
             BaseDataType.FLOAT to DataType(BaseDataType.FLOAT, null, null),
             BaseDataType.BOOL to DataType(BaseDataType.BOOL, null, null),
             BaseDataType.STR to DataType(BaseDataType.STR, BaseDataType.UBYTE, null),
+            BaseDataType.POINTER to DataType(BaseDataType.POINTER, null, null),
             BaseDataType.UNDEFINED to DataType(BaseDataType.UNDEFINED, null, null)
         )
 

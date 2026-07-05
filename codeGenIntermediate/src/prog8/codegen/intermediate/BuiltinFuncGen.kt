@@ -829,7 +829,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                     } else {
                         val (code, indexWordReg) = codeGen.loadIndexReg(target.index, eltSize, true, false)
                         result += code
-                        addInstr(result, IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1 = pointerTr.resultReg, reg2 = indexWordReg), null)
+                        addInstr(result, IRInstruction(Opcode.PTRADD, IRDataType.WORD, reg1 = pointerTr.resultReg, reg2 = indexWordReg), null)
                         if(msb)
                             addInstr(result, IRInstruction(Opcode.ADD, IRDataType.WORD, reg1 = pointerTr.resultReg, immediate = eltSize - 1), null)
                     }

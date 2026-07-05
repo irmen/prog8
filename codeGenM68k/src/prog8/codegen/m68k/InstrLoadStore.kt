@@ -25,12 +25,12 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction) {
             val value = insn.immediate
             val sym = insn.labelSymbol
             when {
-                value != null -> emitLine("move$s  #${value.and(0xffff)}, ${regAddr(dst)}")
+                value != null -> emitLine("move$s  #${value}, ${regAddr(dst)}")
                 sym != null -> {
                     val resolved = resolveSymbolRef(sym)
                     val symOff = if (offset != null) "$resolved+$offset" else resolved
                     emitLine("lea  $symOff, a0")
-                    emitLine("move.w  a0, ${regAddr(dst)}")
+                    storeA0ToPointer(dst)
                 }
                 else -> error("LOAD needs immediate or labelSymbol")
             }
@@ -38,7 +38,7 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction) {
 
         Opcode.LOADM -> {
             val dst = r1 ?: error("LOADM needs reg1")
-            emitLine("move$s  $target, ${regAddr(dst)}")
+            emitLine("move${suffixForVar(type, label)}  $target, ${regAddr(dst)}")
         }
 
         Opcode.LOADR -> {
@@ -52,8 +52,9 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction) {
             val idx = r2 ?: error("LOADX needs reg2")
             loadIndexToD0(idx)
             emitLine("lea  $target, a0")
-            emitLine("move$s  (a0,d0.w), d1")
-            emitLine("move$s  d1, ${regAddr(dst)}")
+            val sx = suffixForVar(type, label)
+            emitLine("move$sx  (a0,d0.w), d1")
+            emitLine("move$sx  d1, ${regAddr(dst)}")
         }
 
         Opcode.LOADHR -> {
@@ -75,7 +76,7 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction) {
 
         Opcode.STOREM -> {
             val src = r1 ?: error("STOREM needs reg1")
-            emitLine("move$s  ${regAddr(src)}, $target")
+            emitLine("move${suffixForVar(type, label)}  ${regAddr(src)}, $target")
         }
 
         Opcode.STOREX -> {
@@ -83,12 +84,13 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction) {
             val idx = r2 ?: error("STOREX needs reg2")
             loadIndexToD0(idx)
             emitLine("lea  $target, a0")
-            emitLine("move$s  ${regAddr(value)}, d1")
-            emitLine("move$s  d1, (a0,d0.w)")
+            val sx = suffixForVar(type, label)
+            emitLine("move$sx  ${regAddr(value)}, d1")
+            emitLine("move$sx  d1, (a0,d0.w)")
         }
 
         Opcode.STOREZM -> {
-            emitLine("clr$s  $target")
+            emitLine("clr${suffixForVar(type, label)}  $target")
         }
 
         Opcode.STOREZI -> {

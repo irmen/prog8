@@ -7,6 +7,12 @@ import prog8.intermediate.*
  * M68k codegen.
  * Targeting the QEMU M68k 'virt' system simulator.
  * For more info and a fully working example kernal assembly source as reference, see the documentation in the 'docs' directory of this module!
+ *
+ * Calling convention: follows the Prog8 calling convention as described in the docs.
+ * There is NO stack handling involved in the calling convention (the CPU stack holds only return addresses from jsr/rts).
+ * Arguments are put into the subroutine's parameter variables (BSS) by the caller before the jsr.
+ * For asmsub/extsub calls with hardware register slots, the argument is loaded into the mapped register (D0-D2, FP0-FP1)
+ * instead. Return values are passed via virtual registers mapped back to the caller's result register.
  */
 
 internal class AsmGen(val program: IRProgram, private val target: ICompilationTarget) {
@@ -63,17 +69,17 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
         output.appendLine(code)
     }
 
-    // === variable-size virtual register file layout ===
+    // === fixed-size virtual register file layout (4 bytes per slot for 32-bit M68k) ===
     private data class RegFileLayout(val offsets: Map<Int, Int>, val totalSize: Int)
 
     private val regFileLayout: RegFileLayout by lazy {
         val allRegs = program.registersUsed().regsTypes
         val offsets = mutableMapOf<Int, Int>()
         var currentOffset = 0
-        for ((regNum, type) in allRegs.entries.sortedBy { it.key.value }) {
+        for ((regNum, _) in allRegs.entries.sortedBy { it.key.value }) {
             if (regNum.value < 0) continue
             offsets[regNum.value] = currentOffset
-            currentOffset += dataTypeSize(type)
+            currentOffset += 4      // 4 bytes per register slot for full 32-bit pointers
         }
         RegFileLayout(offsets, currentOffset)
     }
@@ -96,11 +102,23 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
     }
 
     fun loadPointerToA0(reg: Int) {
-        // load a 16-bit pointer from the register file into a0, zero-extended
-        emitLine("moveq  #0, d0")
-        emitLine("move.w  ${regAddr(reg)}, d0")
-        emitLine("move.l  d0, a0")
+        // load a 32-bit pointer from the register file into a0
+        emitLine("move.l  ${regAddr(reg)}, a0")
     }
+
+    fun storeA0ToPointer(reg: Int) {
+        // store a0 (a 32-bit pointer) to the register file
+        emitLine("move.l  a0, ${regAddr(reg)}")
+    }
+
+    fun isPointerVar(name: String): Boolean {
+        // check whether an IR variable is a pointer type (needs 32-bit access on M68k)
+        val stVar = program.st.lookup(name) as? IRStStaticVariable ?: return false
+        return stVar.dt.isPointer
+    }
+
+    fun suffixForVar(type: IRDataType, varLabel: String?): String =
+        if(type==IRDataType.WORD && varLabel!=null && isPointerVar(varLabel)) ".l" else dtSuffix(type)
 
     fun loadIndexToD0(idx: Int) {
         // load an index register into d0.w, zero-extending byte indices
@@ -163,6 +181,11 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
         IRDataType.FLOAT -> ".f"     // single precision (64-bit) for FPU 
     }
 
+    fun memSuffix(type: IRDataType): String = when (type) {
+        IRDataType.WORD -> ".l"      // 32-bit for pointers/addresses on M68k
+        else -> dtSuffix(type)
+    }
+
     // === main entry point ===
 
     fun generate(): Boolean {
@@ -203,12 +226,9 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
         emitRaw(";   - Addressing:  Dn=datareg, An=addrreg, (An)=indirect, imm=#value")
         emitRaw(";   - Labels: global = alphanumeric+underscore (add -ldots for dots in labels)")
         emitRaw(";     local = prefix '.' or suffix '$', valid between two global labels")
-        emitRaw(";   - Directives:  ORG, DC.B, DC.W, DC.L, EQU, '=' for constants, etc.")
+        emitRaw(";   - Directives:  DC.B, DC.W, DC.L, EQU, '=' for constants, etc.")
         emitRaw("")
-
-        val loadAddr = options.loadAddress
-        emitRaw("    ORG  ${loadAddr.toHex()}")
-        emitRaw("")
+        emitRaw("    section .text,code")
 
         // user-supplied symbol definitions
         if (options.symbolDefs.isNotEmpty()) {
@@ -252,10 +272,6 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
         emitRaw("")
 
         for (block in program.blocks) {
-            val addr = block.options.address
-            if (addr != null) {
-                emitRaw("    ORG  ${addr.toHex()}")
-            }
             val blockLabel = fixNameSymbols(block.label)
             emitRaw("; Block: $blockLabel")
             val topLevelSubLabels = block.children.filterIsInstance<IRSubroutine>().map { fixNameSymbols(it.label) }.toSet()
@@ -327,10 +343,6 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
     }
 
     private fun emitAsmSubroutine(sub: IRAsmSubroutine) {
-        val addr = sub.address
-        if (addr != null) {
-            emitLine("ORG  $addr")
-        }
         emitRaw("")
         emitLabel(fixNameSymbols(sub.label))
         emitRaw(sub.asmChunk.assembly)
@@ -362,7 +374,9 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
 
             Opcode.INC, Opcode.INCM, Opcode.DEC, Opcode.DECM,
             Opcode.NEG, Opcode.NEGM,
+            Opcode.PTRADD,
             Opcode.ADDR, Opcode.ADD, Opcode.ADDM,
+            Opcode.PTRSUB,
             Opcode.SUBR, Opcode.SUB, Opcode.SUBM,
             Opcode.MULR, Opcode.MUL, Opcode.MULM,
             Opcode.MULSR, Opcode.MULS, Opcode.MULSM,
@@ -526,32 +540,19 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
 
     private fun emitBssSection() {
         emitRaw("    ALIGN  4")
-        emitRaw("; bss section")
+        emitRaw("    section .bss,bss    ; bss section")
         emitLabel("prog8_bss_section_start")
         // uninitialized variables
         val bssVars = program.st.allVariables().filter { it.inBss }.toList()
         for (v in bssVars) {
             emitLabel(fixNameSymbols(v.name))
-            emitLine("ds.b  ${dataTypeSizeForVar(v)}")
+            emitLine("ds.b  ${target.memorySize(v.dt, v.length?.toInt())}")
         }
         // register file (always at the end of BSS variables)
         emitLabel(REGFILE_LABEL)
         emitLine("ds.b  ${regFileLayout.totalSize}")
         emitLabel("prog8_program_end")
+        emitRaw("    section .text,code")
         emitRaw("")
     }
-
-    private fun dataTypeSizeForVar(v: IRStStaticVariable): Int {
-        val len = v.length
-        return when {
-            v.dt.isString && len != null -> len.toInt()
-            v.dt.isArray && len != null -> len.toInt() * if(v.dt.elementType().isByte) 1 else 2
-            v.dt.isWord || v.dt.isPointer -> 2
-            v.dt.isLong -> 4
-            v.dt.isFloat -> 8
-            else -> 1  // byte/bool
-        }
-    }
-
-
 }

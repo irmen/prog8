@@ -27,7 +27,7 @@ internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
 
         Opcode.INCM -> {
             val target = resolveAddress(addr, label, offset)
-            emitLine("addq${dtSuffix(type)}  #1, $target")
+            emitLine("addq${suffixForVar(type, label)}  #1, $target")
         }
 
         Opcode.DEC -> {
@@ -37,7 +37,7 @@ internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
 
         Opcode.DECM -> {
             val target = resolveAddress(addr, label, offset)
-            emitLine("subq${dtSuffix(type)}  #1, $target")
+            emitLine("subq${suffixForVar(type, label)}  #1, $target")
         }
 
         Opcode.NEG -> {
@@ -47,14 +47,21 @@ internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
 
         Opcode.NEGM -> {
             val target = resolveAddress(addr, label, offset)
-            emitLine("neg${dtSuffix(type)}  $target")
+            emitLine("neg${suffixForVar(type, label)}  $target")
         }
 
         Opcode.ADDR -> {
             val dstReg = r1 ?: error("ADDR needs reg1")
             val srcReg = r2 ?: error("ADDR needs reg2")
-            emitLine("move${dtSuffix(type)}  ${regAddr(srcReg)}, d0")
-            emitLine("add${dtSuffix(type)}  d0, ${regAddr(dstReg)}")
+            emitLine("move${memSuffix(type)}  ${regAddr(srcReg)}, d0")
+            emitLine("add${memSuffix(type)}  d0, ${regAddr(dstReg)}")
+        }
+
+        Opcode.PTRADD -> {
+            val dstReg = r1 ?: error("PTRADD needs reg1")
+            val srcReg = r2 ?: error("PTRADD needs reg2")
+            emitLine("move.l  ${regAddr(srcReg)}, d0")
+            emitLine("add.l  d0, ${regAddr(dstReg)}")
         }
 
         Opcode.ADD -> {
@@ -66,8 +73,9 @@ internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
         Opcode.ADDM -> {
             val reg = r1 ?: error("ADDM needs reg1")
             val target = resolveAddress(addr, label, offset)
-            emitLine("move${dtSuffix(type)}  $target, d0")
-            emitLine("add${dtSuffix(type)}  d0, ${regAddr(reg)}")
+            val sv = suffixForVar(type, label)
+            emitLine("move$sv  $target, d0")
+            emitLine("add$sv  d0, ${regAddr(reg)}")
         }
 
         Opcode.SUBR -> {
@@ -75,6 +83,13 @@ internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
             val srcReg = r2 ?: error("SUBR needs reg2")
             emitLine("move${dtSuffix(type)}  ${regAddr(srcReg)}, d0")
             emitLine("sub${dtSuffix(type)}  d0, ${regAddr(dstReg)}")
+        }
+
+        Opcode.PTRSUB -> {
+            val dstReg = r1 ?: error("PTRSUB needs reg1")
+            val srcReg = r2 ?: error("PTRSUB needs reg2")
+            emitLine("move.l  ${regAddr(srcReg)}, d0")
+            emitLine("sub.l  d0, ${regAddr(dstReg)}")
         }
 
         Opcode.SUB -> {
@@ -86,8 +101,9 @@ internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
         Opcode.SUBM -> {
             val reg = r1 ?: error("SUBM needs reg1")
             val target = resolveAddress(addr, label, offset)
-            emitLine("move${dtSuffix(type)}  $target, d0")
-            emitLine("sub${dtSuffix(type)}  d0, ${regAddr(reg)}")
+            val sv = suffixForVar(type, label)
+            emitLine("move$sv  $target, d0")
+            emitLine("sub$sv  d0, ${regAddr(reg)}")
         }
 
         // --- Multiply (unsigned) ---

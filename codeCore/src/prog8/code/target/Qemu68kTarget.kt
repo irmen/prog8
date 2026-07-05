@@ -6,7 +6,7 @@ import java.nio.file.Path
 
 class Qemu68kTarget: ICompilationTarget,
     IStringEncoding by Encoder(false),
-    IMemSizer by NormalMemSizer(FLOAT_MEM_SIZE) {
+    IMemSizer by NormalMemSizer(FLOAT_MEM_SIZE, pointerSize = 4) {
 
     override val name = NAME
     override val supportsBankedCalls = false

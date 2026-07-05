@@ -44,7 +44,6 @@ class BreakpointException(val pcChunk: IRCodeChunk, val pcIndex: Int): Exception
 
 @Suppress("FunctionName")
 class VirtualMachine(irProgram: IRProgram) {
-    private val irProgram = irProgram
 
     init {
         // The VM implements the STRICT status-bits contract: only CMP, CMPI, SEC, CLC,
@@ -271,10 +270,10 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.DECM -> InsDECM(ins)
             Opcode.NEG -> InsNEG(ins)
             Opcode.NEGM -> InsNEGM(ins)
-            Opcode.ADDR -> InsADDR(ins)
+            Opcode.ADDR, Opcode.PTRADD -> InsADDR(ins)
             Opcode.ADD -> InsADD(ins)
             Opcode.ADDM -> InsADDM(ins)
-            Opcode.SUBR -> InsSUBR(ins)
+            Opcode.SUBR, Opcode.PTRSUB -> InsSUBR(ins)
             Opcode.SUB -> InsSUB(ins)
             Opcode.SUBM -> InsSUBM(ins)
             Opcode.MULR -> InsMULR(ins)
