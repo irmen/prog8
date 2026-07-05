@@ -3,8 +3,10 @@
 main {
     sub start() {
         ^^ubyte @shared message
-        long @shared index
-        ubyte char = @(message+index)
+        ubyte @shared index
+        message += index       ; TODO fix register double type error (m68k target)
+
+        void print1("done.\n")
 
        ;; long @shared zz = sys.progend()
 ;        txt.print("progend: ")
@@ -16,13 +18,15 @@ main {
 ;        print2("second: Hello from Prog8 on a m68000 system!\n")
     }
 
-;    sub print1(str msg) {
-;        while @(msg)!=0 {
-;            txt.chrout(@(msg))
-;            msg++
-;        }
-;    }
-;
+    sub print1(str msg) -> str {
+        while @(msg)!=0 {
+            txt.chrout(@(msg))
+            msg++
+        }
+
+        return 9999
+    }
+
 ;    sub print1b(str msg) {
 ;        long ii
 ;        while msg[ii] != 0 {

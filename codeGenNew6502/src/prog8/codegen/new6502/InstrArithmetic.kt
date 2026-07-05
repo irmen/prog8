@@ -47,9 +47,9 @@ internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
         Opcode.NEG -> negateRegister(r1 ?: error("NEG needs reg1"), type)
         Opcode.NEGM -> negateMemory(resolveAddress(addr, label, offset), type)
 
-        Opcode.ADDR, Opcode.PTRADD -> {
-            val r2val = r2 ?: error("ADDR/PTRADD needs reg2")
-            addRegisters(r1 ?: error("ADDR/PTRADD needs reg1"), r2val, type)
+        Opcode.ADDR -> {
+            val r2val = r2 ?: error("ADDR needs reg2")
+            addRegisters(r1 ?: error("ADDR needs reg1"), r2val, type)
         }
         Opcode.ADD -> {
             val value = imm ?: error("ADD needs immediate")

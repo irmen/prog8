@@ -285,7 +285,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         addToResult(result, leftTr, leftTr.resultReg, -1)
         val rightTr = exprGen.translateExpression(call.args[1])
         addToResult(result, rightTr, rightTr.resultReg, -1)
-        val dt = irType(call.args[0].type)
+        val dt = codeGen.irType(call.args[0].type)
         result += IRCodeChunk(null, null).also {
             it += IRInstruction(Opcode.CMP, dt, reg1=leftTr.resultReg, reg2=rightTr.resultReg)
         }
@@ -468,7 +468,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
     }
 
     private fun funcClamp(call: PtFunctionCall): ExpressionCodeResult {
-        val type = irType(call.type)
+        val type = codeGen.irType(call.type)
         require(type != IRDataType.FLOAT)
         val result = mutableListOf<IRCodeChunkBase>()
         val valueTr = exprGen.translateExpression(call.args[0])
@@ -495,7 +495,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
     }
 
     private fun funcMin(call: PtFunctionCall): ExpressionCodeResult {
-        val type = irType(call.type)
+        val type = codeGen.irType(call.type)
         val result = mutableListOf<IRCodeChunkBase>()
         val leftTr = exprGen.translateExpression(call.args[0])
         addToResult(result, leftTr, leftTr.resultReg, -1)
@@ -514,7 +514,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
     }
 
     private fun funcMax(call: PtFunctionCall): ExpressionCodeResult {
-        val type = irType(call.type)
+        val type = codeGen.irType(call.type)
         val result = mutableListOf<IRCodeChunkBase>()
         val leftTr = exprGen.translateExpression(call.args[0])
         addToResult(result, leftTr, leftTr.resultReg, -1)
@@ -729,7 +729,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
     private fun funcRolRor(call: PtFunctionCall): ExpressionCodeResult {
         val result = mutableListOf<IRCodeChunkBase>()
         val arg = call.args[0]
-        val vmDt = irType(arg.type)
+        val vmDt = codeGen.irType(arg.type)
         val opcodeMemAndReg = when(call.name) {
             "rol" -> Opcode.ROXLM to Opcode.ROXL
             "ror" -> Opcode.ROXRM to Opcode.ROXR
@@ -829,7 +829,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                     } else {
                         val (code, indexWordReg) = codeGen.loadIndexReg(target.index, eltSize, true, false)
                         result += code
-                        addInstr(result, IRInstruction(Opcode.PTRADD, IRDataType.WORD, reg1 = pointerTr.resultReg, reg2 = indexWordReg), null)
+                        addInstr(result, IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1 = pointerTr.resultReg, reg2 = indexWordReg), null)
                         if(msb)
                             addInstr(result, IRInstruction(Opcode.ADD, IRDataType.WORD, reg1 = pointerTr.resultReg, immediate = eltSize - 1), null)
                     }

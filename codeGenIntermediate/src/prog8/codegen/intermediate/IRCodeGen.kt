@@ -2062,4 +2062,25 @@ class IRCodeGen(
         result += multiplyByConst(DataType.UBYTE, byteIndexTr.resultReg, itemsize)
         return Pair(result, byteIndexTr.resultReg)
     }
+
+    internal fun irType(type: DataType): IRDataType {
+        val cpu = options.compTarget.cpu
+        val pointerType = if(cpu==CpuType.M68030) IRDataType.LONG else IRDataType.WORD
+
+        if(type.base.isPassByRef)
+            return pointerType
+
+        return when(type.base) {
+            BaseDataType.BOOL,
+            BaseDataType.UBYTE,
+            BaseDataType.BYTE -> IRDataType.BYTE
+            BaseDataType.UWORD, BaseDataType.WORD -> IRDataType.WORD
+            BaseDataType.POINTER -> pointerType
+            BaseDataType.LONG -> IRDataType.LONG
+            BaseDataType.FLOAT -> IRDataType.FLOAT
+            BaseDataType.STRUCT_INSTANCE -> throw AssemblyError("no support for struct instances yet so no IR datatype for $type")
+            else -> throw AssemblyError("no IR datatype for $type")
+        }
+    }
+
 }

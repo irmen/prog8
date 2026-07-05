@@ -976,6 +976,9 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
     }
 
     private fun transformWithPointerArithmetic(expr: BinaryExpression): PtExpression {
+        
+        // TODO this pointer arithmethic is using the wrong expression datatype on non-6502 targets
+        
         val operator = expr.operator
         require(operator=="+" || operator=="-")
         // below where '+' is used, you can substitute '-'.
@@ -1041,7 +1044,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
             } else {
                 if(structSize==1) {
                     // ptr +/- left, just keep it as it is
-                    val plus = PtBinaryExpression(operator, DataType.UWORD, expr.position)
+                    val plus = PtBinaryExpression(operator, rightDt, expr.position)
                     plus.add(transformExpression(expr.left))
                     plus.add(transformExpression(expr.right))
                     return plus

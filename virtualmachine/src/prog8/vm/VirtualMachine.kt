@@ -270,7 +270,7 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.DECM -> InsDECM(ins)
             Opcode.NEG -> InsNEG(ins)
             Opcode.NEGM -> InsNEGM(ins)
-            Opcode.ADDR, Opcode.PTRADD -> InsADDR(ins)
+            Opcode.ADDR -> InsADDR(ins)
             Opcode.ADD -> InsADD(ins)
             Opcode.ADDM -> InsADDM(ins)
             Opcode.SUBR -> InsSUBR(ins)

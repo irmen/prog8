@@ -561,7 +561,7 @@ jump p8_label_gen_2
 
             // try to use immediate arithmetic instruction if possible
             when(ins.opcode) {
-                Opcode.ADDR, Opcode.PTRADD -> optimizeImmediateLoad(Opcode.ADD, true)
+                Opcode.ADDR -> optimizeImmediateLoad(Opcode.ADD, true)
                 Opcode.MULR -> optimizeImmediateLoad(Opcode.MUL, true)
                 Opcode.MULSR -> optimizeImmediateLoad(Opcode.MULS, true)
                 Opcode.SUBR -> optimizeImmediateLoad(Opcode.SUB, false)

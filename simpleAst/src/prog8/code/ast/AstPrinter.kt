@@ -184,7 +184,7 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
                 val reg = if(node.register!=null) "@${node.register}" else ""
                 "${node.type} ${node.name} $reg"
             }
-            is PtSubSignature -> "(signature)"
+            is PtSubSignature -> "(signature) -> ${node.returns}"
             is PtWhen -> "when"
             is PtWhenChoice -> {
                 if(node.isElse)

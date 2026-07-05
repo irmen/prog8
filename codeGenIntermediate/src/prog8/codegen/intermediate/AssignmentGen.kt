@@ -54,7 +54,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                         val target = it.first as PtAssignTarget
                         if(!target.void) {
                             val reg = it.second.first
-                            val regnum = codeGen.registers.next(irType(it.second.second))
+                            val regnum = codeGen.registers.next(codeGen.irType(it.second.second))
                             val p = StExtSubParameter("", it.second.second, reg)
                             result += assignCpuRegister(p, regnum, target)
                         }
@@ -70,7 +70,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                         val target = it.first as PtAssignTarget
                         if(!target.void) {
                             val reg = it.second.first
-                            val regnum = codeGen.registers.next(irType(it.second.second))
+                            val regnum = codeGen.registers.next(codeGen.irType(it.second.second))
                             val p = StExtSubParameter("", it.second.second, reg)
                             result += assignCpuRegister(p, regnum, target)
                         }
@@ -96,7 +96,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
         else null to null
         val m68kSlot3 = slot3?.takeIf { it.value >= 10 }
         if (m68kSlot3 != null) {
-            addInstr(result, IRInstruction(Opcode.LOADHR, irType(returns.type), reg1=regNum, immediate=m68kSlot3.value), null)
+            addInstr(result, IRInstruction(Opcode.LOADHR, codeGen.irType(returns.type), reg1=regNum, immediate=m68kSlot3.value), null)
         } else when(returns.register.registerOrPair) {
             RegisterOrPair.A -> addInstr(result, IRInstruction(Opcode.LOADHR, IRDataType.BYTE, reg1=regNum, immediate=0), null)
             RegisterOrPair.X -> addInstr(result, IRInstruction(Opcode.LOADHR, IRDataType.BYTE, reg1=regNum, immediate=1), null)
@@ -104,7 +104,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
             RegisterOrPair.AX -> addInstr(result, IRInstruction(Opcode.LOADHR, IRDataType.WORD, reg1=regNum, immediate=3), null)
             RegisterOrPair.AY -> addInstr(result, IRInstruction(Opcode.LOADHR, IRDataType.WORD, reg1=regNum, immediate=4), null)
             RegisterOrPair.XY -> addInstr(result, IRInstruction(Opcode.LOADHR, IRDataType.WORD, reg1=regNum, immediate=5), null)
-            in Cx16VirtualRegisters -> addInstr(result, IRInstruction(Opcode.LOADM, irType(returns.type), reg1=regNum, labelSymbol = "cx16.${returns.register.registerOrPair.toString().lowercase()}"), null)
+            in Cx16VirtualRegisters -> addInstr(result, IRInstruction(Opcode.LOADM, codeGen.irType(returns.type), reg1=regNum, labelSymbol = "cx16.${returns.register.registerOrPair.toString().lowercase()}"), null)
             in CombinedLongRegisters -> {
                 require(returns.type.isLong)
                 val startreg = returns.register.registerOrPair!!.startregname()
@@ -162,7 +162,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
             throw AssemblyError("assigning to a register should be done by just evaluating the expression into resultregister")
 
         val target = augAssign.target
-        val targetDt = irType(target.type)
+        val targetDt = codeGen.irType(target.type)
         val value = augAssign.value
         val memTarget = target.memory
         val constAddress: UInt? = (memTarget?.address as? PtNumber)?.number?.toUInt()
@@ -373,7 +373,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
     private fun inplacePrefixArray(operator: String, array: PtArrayIndexer): IRCodeChunks {
         val eltSize = codeGen.program.memsizer.memorySize(array.type, null)
         val result = mutableListOf<IRCodeChunkBase>()
-        val vmDt = irType(array.type)
+        val vmDt = codeGen.irType(array.type)
         val constIndex = array.index.asConstInteger()
 
         fun loadIndex(): Int {
@@ -498,8 +498,8 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
             throw AssemblyError("cannot assign to str type ${assignment.position}")
         }
 
-        val valueDt = irType(assignment.value.type)
-        val targetDt = irType(assignment.target.type)
+        val valueDt = codeGen.irType(assignment.value.type)
+        val targetDt = codeGen.irType(assignment.target.type)
         val result = mutableListOf<IRCodeChunkBase>()
 
         var valueRegister = -1
@@ -652,7 +652,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
             } else {
                 val (code, indexReg) = codeGen.loadIndexReg(targetArray.index, eltSize, true, targetArray.splitWords)
                 result += code
-                addInstr(result, IRInstruction(Opcode.PTRADD, IRDataType.WORD, reg1=pointerReg, reg2=indexReg), null)
+                addInstr(result, IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1=pointerReg, reg2=indexReg), null)
             }
             codeGen.storeValueAtPointersLocation(result, pointerReg, 0u, targetIdent.type.dereference(), true, -1)
         } else {
@@ -662,7 +662,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
             } else {
                 val (code, indexReg) = codeGen.loadIndexReg(targetArray.index, eltSize, true, targetArray.splitWords)
                 result += code
-                addInstr(result, IRInstruction(Opcode.PTRADD, IRDataType.WORD, reg1=pointerReg, reg2=indexReg), null)
+                addInstr(result, IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1=pointerReg, reg2=indexReg), null)
             }
             val realValueReg = if(targetDt == IRDataType.FLOAT) valueFpRegister else valueRegister
             codeGen.storeValueAtPointersLocation(result, pointerReg, 0u, targetIdent.type.dereference(), false, realValueReg)
@@ -784,7 +784,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
             // index is an expression
             val (code, indexReg) = codeGen.loadIndexReg(targetArray.index, eltSize, true, targetArray.splitWords)
             result += code
-            addInstr(result, IRInstruction(Opcode.PTRADD, IRDataType.WORD, reg1 = pointerReg, reg2 = indexReg), null)
+            addInstr(result, IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1 = pointerReg, reg2 = indexReg), null)
             if(zero) {
                 addInstr(result, IRInstruction(Opcode.STOREZI, targetDt, reg1 = pointerReg, immediate = 0), null)
             } else {
@@ -1376,7 +1376,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
             val result = mutableListOf<IRCodeChunkBase>()
             if(array.splitWords)
                 return operatorMultiplyInplaceSplitArray(array, operand)
-            val eltDt = irType(array.type)
+            val eltDt = codeGen.irType(array.type)
             val constIndex = array.index.asConstInteger()
             val constValue = operand.asConstInteger()
             if(constIndex!=null && constValue!=null) {
@@ -1475,7 +1475,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
             val result = mutableListOf<IRCodeChunkBase>()
             if(array.splitWords)
                 return operatorMinusInplaceSplitArray(array, operand)
-            val eltDt = irType(array.type)
+            val eltDt = codeGen.irType(array.type)
             val constIndex = array.index.asConstInteger()
             val constValue = operand.asConstInteger()
             if(constIndex!=null && constValue!=null) {
@@ -1791,7 +1791,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
             if(array.splitWords)
                 return operatorPlusInplaceSplitArray(array, operand)
             val eltSize = codeGen.program.memsizer.memorySize(array.type, null)
-            val elementDt = irType(array.type)
+            val elementDt = codeGen.irType(array.type)
             val constIndex = array.index.asConstInteger()
             val constValue = operand.asConstInteger()
             if(constIndex!=null && constValue!=null) {
@@ -1833,7 +1833,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                     it += IRInstruction(Opcode.LOADX, elementDt, reg1=loadReg, reg2=indexReg, labelSymbol = arrayVariableName)
                     val constReg = codeGen.registers.next(elementDt)
                     it += IRInstruction(Opcode.LOAD, elementDt, reg1=constReg, immediate = constValue)
-                    it += IRInstruction(Opcode.PTRADD, elementDt, reg1=loadReg, reg2=constReg)
+                    it += IRInstruction(Opcode.ADDR, elementDt, reg1=loadReg, reg2=constReg)
                     it += IRInstruction(Opcode.STOREX, elementDt, reg1=loadReg, reg2=indexReg, labelSymbol = arrayVariableName)
                 }
             } else {
@@ -1843,7 +1843,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                 val loadReg = codeGen.registers.next(elementDt)
                 result += IRCodeChunk(null, null).also {
                     it += IRInstruction(Opcode.LOADX, elementDt, reg1=loadReg, reg2=indexReg, labelSymbol = arrayVariableName)
-                    it += IRInstruction(Opcode.PTRADD, elementDt, reg1=loadReg, reg2=valueTr.resultReg)
+                    it += IRInstruction(Opcode.ADDR, elementDt, reg1=loadReg, reg2=valueTr.resultReg)
                     it += IRInstruction(Opcode.STOREX, elementDt, reg1=loadReg, reg2=indexReg, labelSymbol = arrayVariableName)
                 }
             }

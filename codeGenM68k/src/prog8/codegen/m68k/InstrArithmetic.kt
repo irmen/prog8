@@ -57,28 +57,6 @@ internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
             emitLine("add${memSuffix(type)}  d0, ${regAddr(dstReg)}")
         }
 
-        Opcode.PTRADD -> {
-            val dstReg = r1 ?: error("PTRADD needs reg1")
-            val srcReg = r2 ?: error("PTRADD needs reg2")
-            when(type) {
-                IRDataType.BYTE -> {
-                    emitLine("moveq.l #0,d0")
-                    emitLine("move.b  ${regAddr(srcReg)},d0")
-                    emitLine("add.l  d0,${regAddr(dstReg)}")
-                }
-                IRDataType.WORD -> {
-                    emitLine("moveq.l #0,d0")
-                    emitLine("move.w  ${regAddr(srcReg)},d0")
-                    emitLine("add.l  d0,${regAddr(dstReg)}")
-                }
-                IRDataType.LONG -> {
-                    emitLine("move.l  ${regAddr(srcReg)}, d0")
-                    emitLine("add.l  d0, ${regAddr(dstReg)}")
-                }
-                IRDataType.FLOAT -> TODO("PTRADD on float operand")
-            }
-        }
-
         Opcode.ADD -> {
             val reg = r1 ?: error("ADD needs reg1")
             val value = imm ?: error("ADD needs immediate")
