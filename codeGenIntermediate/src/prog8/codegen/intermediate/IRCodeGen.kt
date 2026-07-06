@@ -710,8 +710,8 @@ class IRCodeGen(
                     }
                     iterable.type.isSplitWordArray || iterable.type.isPointerArray -> {
                         // iterate over lsb/msb split word array
-                        if(elementDt!=IRDataType.WORD)
-                            throw AssemblyError("weird dt")
+                        if(elementDt!=IRDataType.WORD && elementDt!=IRDataType.POINTER)
+                            throw AssemblyError("weird dt $elementDt")
                         addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=indexReg, immediate = 0), null)
                         result += IRCodeChunk(loopLabel, null).also {
                             val tmpRegLsb = registers.next(IRDataType.BYTE)
@@ -2064,18 +2064,15 @@ class IRCodeGen(
     }
 
     internal fun irType(type: DataType): IRDataType {
-        val cpu = options.compTarget.cpu
-        val pointerType = if(cpu==CpuType.M68030) IRDataType.LONG else IRDataType.WORD
-
         if(type.base.isPassByRef)
-            return pointerType
+            return IRDataType.POINTER
 
         return when(type.base) {
             BaseDataType.BOOL,
             BaseDataType.UBYTE,
             BaseDataType.BYTE -> IRDataType.BYTE
             BaseDataType.UWORD, BaseDataType.WORD -> IRDataType.WORD
-            BaseDataType.POINTER -> pointerType
+            BaseDataType.POINTER -> IRDataType.POINTER
             BaseDataType.LONG -> IRDataType.LONG
             BaseDataType.FLOAT -> IRDataType.FLOAT
             BaseDataType.STRUCT_INSTANCE -> throw AssemblyError("no support for struct instances yet so no IR datatype for $type")

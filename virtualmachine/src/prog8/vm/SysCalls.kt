@@ -168,6 +168,7 @@ object SysCalls {
             when(it.reg.dt) {
                 IRDataType.BYTE -> vm.registers.getUB(it.reg.registerNum)
                 IRDataType.WORD -> vm.registers.getUW(it.reg.registerNum)
+                IRDataType.POINTER -> vm.registers.getUW(it.reg.registerNum)
                 IRDataType.LONG -> vm.registers.getSL(it.reg.registerNum)
                 IRDataType.FLOAT -> vm.registers.getFloat(it.reg.registerNum)
             }
@@ -192,6 +193,7 @@ object SysCalls {
         when(returns.dt) {
             IRDataType.BYTE -> vm.registers.setUB(returns.registerNum, vv.toInt().toUByte())
             IRDataType.WORD -> vm.registers.setUW(returns.registerNum, vv.toInt().toUShort())
+            IRDataType.POINTER -> vm.registers.setUW(returns.registerNum, vv.toInt().toUShort())
             IRDataType.LONG -> vm.registers.setSL(returns.registerNum, vv.toInt())
             IRDataType.FLOAT -> vm.registers.setFloat(returns.registerNum, vv)
         }

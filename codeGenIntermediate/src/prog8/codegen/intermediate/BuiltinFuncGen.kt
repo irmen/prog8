@@ -339,6 +339,10 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                 addInstr(result, IRInstruction(Opcode.FABS, IRDataType.FLOAT, fpReg1 = RegisterNum(resultFpReg), fpReg2 = RegisterNum(tr.resultFpReg)), null)
                 return ExpressionCodeResult(result, IRDataType.FLOAT, -1, resultFpReg)
             }
+            BaseDataType.POINTER -> {
+                // pointer is unsigned, abs has no effect
+                return ExpressionCodeResult(result, IRDataType.POINTER, tr.resultReg, -1)
+            }
             else -> throw AssemblyError("weird dt")
         }
     }

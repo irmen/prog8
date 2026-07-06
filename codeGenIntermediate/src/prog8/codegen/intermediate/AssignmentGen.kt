@@ -516,6 +516,12 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                     // usually an error EXCEPT when a byte is assigned to a word.
                     if(targetDt==IRDataType.WORD && valueDt==IRDataType.BYTE)
                         true
+                    else if(targetDt==IRDataType.POINTER && valueDt==IRDataType.BYTE)
+                        true
+                    else if(targetDt==IRDataType.POINTER && valueDt in setOf(IRDataType.WORD, IRDataType.LONG))
+                        false
+                    else if(valueDt==IRDataType.POINTER && targetDt in setOf(IRDataType.WORD, IRDataType.LONG))
+                        false
                     else
                         throw AssemblyError("assignment value and target dt mismatch")
                 } else false

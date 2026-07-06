@@ -237,7 +237,7 @@ internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
                     emitLine("mulu.w  d0, d0")
                     emitLine("move.w  d0, ${regAddr(dstReg)}")
                 }
-                IRDataType.LONG -> {
+                IRDataType.LONG, IRDataType.POINTER -> {
                     emitLine("move.l  ${regAddr(srcReg)}, d0")
                     emitLine("mulu.l  d0, d0")
                     emitLine("move.l  d0, ${regAddr(dstReg)}")

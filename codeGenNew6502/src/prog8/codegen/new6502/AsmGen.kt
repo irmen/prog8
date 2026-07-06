@@ -231,6 +231,7 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
     fun dataTypeSize(dt: IRDataType): Int = when (dt) {
         IRDataType.BYTE -> 1
         IRDataType.WORD -> 2
+        IRDataType.POINTER -> target.POINTER_MEM_SIZE.toInt()
         IRDataType.LONG -> 4
         IRDataType.FLOAT -> target.FLOAT_MEM_SIZE.toInt()
     }

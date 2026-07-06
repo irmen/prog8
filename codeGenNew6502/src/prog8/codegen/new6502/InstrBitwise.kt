@@ -145,6 +145,14 @@ private fun AsmGen.andRegisters(dstReg: Int, srcReg: Int, type: IRDataType) {
             emitLine("and  ${regAddrHi(srcReg)}")
             emitLine("sta  ${regAddrHi(dstReg)}")
         }
+        IRDataType.POINTER -> {
+            emitLine("lda  ${regAddrLo(dstReg)}")
+            emitLine("and  ${regAddrLo(srcReg)}")
+            emitLine("sta  ${regAddrLo(dstReg)}")
+            emitLine("lda  ${regAddrHi(dstReg)}")
+            emitLine("and  ${regAddrHi(srcReg)}")
+            emitLine("sta  ${regAddrHi(dstReg)}")
+        }
         IRDataType.LONG -> byteLoop4(regAddrByte(dstReg, 0), regAddrByte(srcReg, 0), "and")
         IRDataType.FLOAT -> error("bitwise operations are not supported on floats")
     }
@@ -158,6 +166,14 @@ private fun AsmGen.andImmediate(dstReg: Int, value: Int, type: IRDataType) {
             emitLine("sta  ${regAddrLo(dstReg)}")
         }
         IRDataType.WORD -> {
+            emitLine("lda  ${regAddrLo(dstReg)}")
+            emitLine("and  #<${value and 0xffff}")
+            emitLine("sta  ${regAddrLo(dstReg)}")
+            emitLine("lda  ${regAddrHi(dstReg)}")
+            emitLine("and  #>${value and 0xffff}")
+            emitLine("sta  ${regAddrHi(dstReg)}")
+        }
+        IRDataType.POINTER -> {
             emitLine("lda  ${regAddrLo(dstReg)}")
             emitLine("and  #<${value and 0xffff}")
             emitLine("sta  ${regAddrLo(dstReg)}")
@@ -407,6 +423,10 @@ private fun AsmGen.logicalShiftLeft(reg: Int, count: Int, type: IRDataType) {
                 emitLine("asl  ${regAddrLo(reg)}")
                 emitLine("rol  ${regAddrHi(reg)}")
             }
+            IRDataType.POINTER -> {
+                emitLine("asl  ${regAddrLo(reg)}")
+                emitLine("rol  ${regAddrHi(reg)}")
+            }
             IRDataType.LONG -> {
                 emitLine("asl  ${regAddrLo(reg)}")
                 emitLine("rol  ${regAddrHi(reg)}")
@@ -444,6 +464,10 @@ private fun AsmGen.logicalShiftRight(reg: Int, count: Int, type: IRDataType) {
                 emitLine("lsr  ${regAddrLo(reg)}")
             }
             IRDataType.WORD -> {
+                emitLine("lsr  ${regAddrHi(reg)}")
+                emitLine("ror  ${regAddrLo(reg)}")
+            }
+            IRDataType.POINTER -> {
                 emitLine("lsr  ${regAddrHi(reg)}")
                 emitLine("ror  ${regAddrLo(reg)}")
             }

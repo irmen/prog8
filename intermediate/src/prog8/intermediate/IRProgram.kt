@@ -290,8 +290,13 @@ class IRProgram(val name: String,
             usedRegisters.regsTypes.forEach{ (reg, type) ->
                 val existingType = regsTypes[reg]
                 if (existingType!=null) {
-                    if (existingType != type)
-                        throw IllegalArgumentException("register $reg given multiple types! $existingType and $type  ${this.name}<--${child.label ?: child}")
+                    if (existingType != type) {
+                        // POINTER is compatible with WORD or LONG (size depends on target)
+                        val compatible = (existingType==IRDataType.POINTER && type in setOf(IRDataType.WORD, IRDataType.LONG)) ||
+                                (type==IRDataType.POINTER && existingType in setOf(IRDataType.WORD, IRDataType.LONG))
+                        if(!compatible)
+                            throw IllegalArgumentException("register $reg given multiple types! $existingType and $type  ${this.name}<--${child.label ?: child}")
+                    }
                 } else
                     regsTypes[reg] = type
             }
@@ -663,8 +668,13 @@ class RegistersUsed(
 // can't do this check because %ir {{ .. }} segments may contain registers that the compiler doesn't know about yet.
 //            if(allowedType==null)
 //                throw IllegalArgumentException("Reg type mismatch for register $reg type $type: no type known.  CodeChunk=$chunk label ${chunk?.label}")
-            if(allowedType!=null && allowedType!=type)
-                throw IllegalArgumentException("Reg type mismatch for register $reg type $type: expected ${allowed[reg]}. CodeChunk=$chunk label ${chunk?.label}")
+            if(allowedType!=null && allowedType!=type) {
+                // POINTER is compatible with WORD or LONG (size depends on target)
+                val compatible = (allowedType==IRDataType.POINTER && type in setOf(IRDataType.WORD, IRDataType.LONG)) ||
+                        (type==IRDataType.POINTER && allowedType in setOf(IRDataType.WORD, IRDataType.LONG))
+                if(!compatible)
+                    throw IllegalArgumentException("Reg type mismatch for register $reg type $type: expected ${allowed[reg]}. CodeChunk=$chunk label ${chunk?.label}")
+            }
         }
     }
 }

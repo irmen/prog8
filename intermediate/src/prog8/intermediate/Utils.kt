@@ -56,6 +56,7 @@ fun convertIRType(typestr: String): IRDataType? {
         ".w" -> IRDataType.WORD
         ".l" -> IRDataType.LONG
         ".f" -> IRDataType.FLOAT
+        ".p" -> IRDataType.POINTER
         else -> throw IRParseException("invalid type $typestr")
     }
 }
@@ -80,7 +81,7 @@ fun parseIRValue(value: String): Double {
 }
 
 
-private val instructionPattern = Regex("""([a-z]+)(\.b|\.w|\.l|\.f)?(.*)""", RegexOption.IGNORE_CASE)
+private val instructionPattern = Regex("""([a-z]+)(\.b|\.w|\.l|\.f|\.p)?(.*)""", RegexOption.IGNORE_CASE)
 private val labelPattern = Regex("""_([a-zA-Z\d\._]+):""")
 
 fun parseIRCodeLine(line: String): Either<IRInstruction, String> {
@@ -225,7 +226,7 @@ fun parseIRCodeLine(line: String): Either<IRInstruction, String> {
                     if (immediateInt!=null && (immediateInt < -32768 || immediateInt > 65535))
                         throw IRParseException("immediate value out of range for word: $immediateInt")
                 }
-                IRDataType.LONG -> {
+                IRDataType.POINTER, IRDataType.LONG -> {
                     if (immediateInt!=null && (immediateInt.toLong() < -2147483648L || immediateInt.toLong() > 0x7fffffffL))
                         throw IRParseException("immediate value out of range for long: $immediateInt")
                 }
@@ -299,6 +300,7 @@ private fun parseCall(rest: String): ParsedCall {
             "w" -> IRDataType.WORD
             "l" -> IRDataType.LONG
             "f" -> IRDataType.FLOAT
+            "p" -> IRDataType.POINTER
             else -> throw IRParseException("invalid type spec in $reg")
         }
         val (callingConventionSlot, statusflag) =

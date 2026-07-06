@@ -77,6 +77,7 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
         IRDataType.WORD -> 2
         IRDataType.LONG -> 4
         IRDataType.FLOAT -> target.FLOAT_MEM_SIZE.toInt()
+        IRDataType.POINTER -> target.POINTER_MEM_SIZE.toInt()
     }
 
     private val regFileLayout: RegFileLayout by lazy {
@@ -103,13 +104,6 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
         return "$REGFILE_LABEL+${offset + byteOffset}"
     }
 
-    fun dataTypeSize(dt: IRDataType): Int = when (dt) {
-        IRDataType.BYTE -> 1
-        IRDataType.WORD -> 2
-        IRDataType.LONG -> 4
-        IRDataType.FLOAT -> target.FLOAT_MEM_SIZE.toInt()
-    }
-
     fun loadPointerToA0(reg: Int) {
         // load a 32-bit pointer from the register file into a0
         emitLine("move.l  ${regAddr(reg)}, a0")
@@ -127,16 +121,18 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
     }
 
     fun suffixForVar(type: IRDataType, varLabel: String?): String =
-        if(type==IRDataType.WORD && varLabel!=null && isPointerVar(varLabel)) ".l" else dtSuffix(type)
+        if(type==IRDataType.POINTER) ".l"
+        else if(type==IRDataType.WORD && varLabel!=null && isPointerVar(varLabel)) ".l"
+        else dtSuffix(type)
 
     fun loadIndexToD0(idx: Int) {
         // load an index register into d0, zero-extending to 32 bits
         val idxType = program.registersUsed().regsTypes[RegisterNum(idx)]
         emitLine("moveq.l  #0,d0")      // clear everything for any caller that uses (a0,d0.l) addressing
-        if (idxType == IRDataType.BYTE) {
-            emitLine("move.b  ${regAddr(idx)}, d0")
-        } else {
-            emitLine("move.w  ${regAddr(idx)}, d0")
+        when (idxType) {
+            IRDataType.BYTE -> emitLine("move.b  ${regAddr(idx)}, d0")
+            IRDataType.POINTER, IRDataType.LONG -> emitLine("move.l  ${regAddr(idx)}, d0")
+            else -> emitLine("move.w  ${regAddr(idx)}, d0")
         }
     }
 
@@ -188,10 +184,12 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
         IRDataType.WORD -> ".w"
         IRDataType.LONG -> ".l"
         IRDataType.FLOAT -> ".f"     // single precision (64-bit) for FPU 
+        IRDataType.POINTER -> ".l"
     }
 
     fun memSuffix(type: IRDataType): String = when (type) {
         IRDataType.WORD -> ".l"      // 32-bit for pointers/addresses on M68k
+        IRDataType.POINTER -> ".l"
         else -> dtSuffix(type)
     }
 

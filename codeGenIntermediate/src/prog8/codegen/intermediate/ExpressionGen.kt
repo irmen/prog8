@@ -164,7 +164,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             val constIndex = arrayIndexer.index.asConstInteger()
             if(constIndex!=null) {
                 val offset = constIndex * struct.size.toInt()
-                addInstr(result, IRInstruction(Opcode.ADD, IRDataType.WORD, reg1 = pointerReg, immediate = offset), null)
+                addInstr(result, IRInstruction(Opcode.ADD, IRDataType.POINTER, reg1 = pointerReg, immediate = offset), null)
             } else {
                 val indexTr = translateExpression(arrayIndexer.index)
                 result += indexTr.chunks
@@ -180,16 +180,16 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                         indexReg = indexTr.resultReg
                     }
                     it += codeGen.multiplyByConst(DataType.UWORD, indexReg, struct.size.toInt())
-                    it += IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1 = pointerReg, reg2 = indexReg)
+                    it += IRInstruction(Opcode.ADDR, IRDataType.POINTER, reg1 = pointerReg, reg2 = indexReg)
                 }
             }
 
             result += IRCodeChunk(null, null).also {
-                it += IRInstruction(Opcode.ADD, IRDataType.WORD, reg1 = pointerReg, immediate = firstField.second.toInt())
+                it += IRInstruction(Opcode.ADD, IRDataType.POINTER, reg1 = pointerReg, immediate = firstField.second.toInt())
                 if (firstField.first.isPointer) {
                     // get the address stored in the pointer and use that for the rest of the chain
                     // LOADI has an exception to allo reg1 and reg2 to be the same, so we can avoid using extra temporary registers and LOADs
-                    it += IRInstruction(Opcode.LOADI, IRDataType.WORD, reg1 = pointerReg, reg2 = pointerReg)
+                    it += IRInstruction(Opcode.LOADI, IRDataType.POINTER, reg1 = pointerReg, reg2 = pointerReg)
                 } else {
                     require(chain.isEmpty())
                     // it's a pointer to a simple value, so keep the pointer as-is
@@ -214,8 +214,8 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         // For inline array fields (not pointer fields), return the address (ptr+offset) instead of loading from it
         if(deref.type.isArray && !deref.derefLast) {
             if(offset > 0u)
-                addInstr(result, IRInstruction(Opcode.ADD, IRDataType.WORD, reg1 = pointerReg, immediate = offset.toInt()), null)
-            return ExpressionCodeResult(result, IRDataType.WORD, pointerReg, -1)
+                addInstr(result, IRInstruction(Opcode.ADD, IRDataType.POINTER, reg1 = pointerReg, immediate = offset.toInt()), null)
+            return ExpressionCodeResult(result, IRDataType.POINTER, pointerReg, -1)
         }
 
         return if(deref.type.isFloat) {
@@ -398,7 +398,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     }
                     else
                         IRInstruction(Opcode.LOADM, vmDt, reg1 = resultRegister, labelSymbol = identifier.name)
-                    it += IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1=resultRegister, reg2=indexWordReg)
+                    it += IRInstruction(Opcode.ADDR, IRDataType.POINTER, reg1=resultRegister, reg2=indexWordReg)
                 }
             } else if(identifier.type.isPointer) {
                 // apply pointer arithmetic for the array indexing
@@ -411,7 +411,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     if (eltSize > 1) {
                         it += codeGen.multiplyByConst(DataType.UWORD, indexWordReg, eltSize)
                     }
-                    it += IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1 = resultRegister, reg2 = indexWordReg)
+                    it += IRInstruction(Opcode.ADDR, IRDataType.POINTER, reg1 = resultRegister, reg2 = indexWordReg)
                 }
             } else {
                 // regular array indexing
@@ -421,7 +421,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     if (eltSize > 1 && !identifier.type.isSplitWordArray) {
                         it += codeGen.multiplyByConst(DataType.UWORD, indexWordReg, eltSize)
                     }
-                    it += IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1 = resultRegister, reg2 = indexWordReg)
+                    it += IRInstruction(Opcode.ADDR, IRDataType.POINTER, reg1 = resultRegister, reg2 = indexWordReg)
                 }
             }
             return ExpressionCodeResult(result, vmDt, resultRegister, -1)
@@ -430,12 +430,12 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             loadAddressOfArrayLabel(resultRegister)
             return ExpressionCodeResult(result, vmDt, resultRegister, -1)
         } else {
-            require(vmDt==IRDataType.WORD)
+            require(vmDt in setOf(IRDataType.WORD, IRDataType.POINTER))
             val pointerTr = translateExpression(expr.dereference!!.startpointer)
             result += pointerTr.chunks
             val (instructions, offset) = traverseRestOfDerefChainToCalculateFinalAddress(expr.dereference!!, pointerTr.resultReg)
             result += instructions
-            addInstr(result, IRInstruction(Opcode.ADD, IRDataType.WORD, reg1 = pointerTr.resultReg, immediate = offset.toInt()), null)
+            addInstr(result, IRInstruction(Opcode.ADD, IRDataType.POINTER, reg1 = pointerTr.resultReg, immediate = offset.toInt()), null)
             return ExpressionCodeResult(result, vmDt, pointerTr.resultReg, -1)
         }
     }
@@ -482,7 +482,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 else (it as PtNumber).number.toInt()
             }
             when {
-                elementDt.isWordOrByteOrBool -> {
+                elementDt.isWordOrByteOrBool || elementDt.isPointer -> {
                     if (elementDt.isByteOrBool) require(haystack.size in 0..PtContainmentCheck.MAX_SIZE_FOR_INLINE_CHECKS_BYTE)
                     if (elementDt.isWord) require(haystack.size in 0..PtContainmentCheck.MAX_SIZE_FOR_INLINE_CHECKS_WORD)
                     val gottemLabel = codeGen.createLabelName()
@@ -603,7 +603,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         val arrayVarSymbol = arrayVar.name
 
         if(arrayIx.splitWords) {
-            require(vmDt==IRDataType.WORD)
+            require(vmDt in setOf(IRDataType.WORD, IRDataType.POINTER))
             resultRegister = codeGen.registers.next(IRDataType.BYTE)
             val finalResultReg = codeGen.registers.next(IRDataType.WORD)
             if(arrayIx.index is PtNumber) {
@@ -668,17 +668,16 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
     ): ExpressionCodeResult {
         var resultRegister = -1
         var resultFpRegister = -1
-        val ptrDt = if(codeGen.options.compTarget.cpu==CpuType.M68030) IRDataType.LONG else IRDataType.WORD
 
         if(index is PtNumber) {
             val memOffset = eltSize * index.number.toInt()
             if(memOffset>0)
-                addInstr(result, IRInstruction(Opcode.ADD, ptrDt, reg1=pointerReg, immediate = memOffset), null)
+                addInstr(result, IRInstruction(Opcode.ADD, IRDataType.POINTER, reg1=pointerReg, immediate = memOffset), null)
         }
         else {
             val (code, indexWordReg) = codeGen.loadIndexReg(index, eltSize, true, false)
             result += code
-            addInstr(result, IRInstruction(Opcode.ADDR, ptrDt, reg1=pointerReg, reg2=indexWordReg), null)
+            addInstr(result, IRInstruction(Opcode.ADDR, IRDataType.POINTER, reg1=pointerReg, reg2=indexWordReg), null)
         }
 
         if(resultDt==IRDataType.FLOAT) {
@@ -917,11 +916,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         if(binExpr.operator==".") {
             return operatorDereference(binExpr)       // eww, nasty, would rather not have any such expressions anymore
         } else {
-            var vmDt = codeGen.irType(binExpr.left.type)
-            // On M68k, pointers are 32-bit (LONG), not 16-bit (WORD)
-            if(vmDt==IRDataType.WORD && binExpr.left.type.isPointer && codeGen.options.compTarget.cpu==CpuType.M68030) {
-                vmDt = IRDataType.LONG
-            }
+            val vmDt = codeGen.irType(binExpr.left.type)
             return when (binExpr.operator) {
                 "+" -> operatorPlus(binExpr, vmDt)
                 "-" -> operatorMinus(binExpr, vmDt)
@@ -1801,7 +1796,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             } else {
                 val (chunks, indexReg) = codeGen.loadIndexReg(left.index, struct.size.toInt(), true, false)
                 result += chunks
-                addInstr(result, IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1 = pointerReg, reg2 = indexReg), null)
+                addInstr(result, IRInstruction(Opcode.ADDR, IRDataType.POINTER, reg1 = pointerReg, reg2 = indexReg), null)
             }
             field = struct.getField(right.name, codeGen.program.memsizer)
 
@@ -1813,7 +1808,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             result += indexedTr.chunks
             pointerReg = indexedTr.resultReg
             val struct = left.type.dereference().subType as? StStruct
-            require(indexedTr.dt == IRDataType.WORD && struct != null)
+            require(indexedTr.dt in setOf(IRDataType.WORD, IRDataType.POINTER) && struct != null)
             field = struct.getField(right.name, codeGen.program.memsizer)
         }
 
@@ -1869,7 +1864,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         if(targetPointerDeref.derefLast) {
             require(fieldinfo.first.isPointer)
             // LOADI has an exception to allow reg1 and reg2 to be the same, so we can avoid using extra temporary registers and LOADs
-            addInstr(result, IRInstruction(Opcode.LOADI, IRDataType.WORD, reg1 = pointerReg, reg2 = pointerReg, immediate = 0), null)
+            addInstr(result, IRInstruction(Opcode.LOADI, IRDataType.POINTER, reg1 = pointerReg, reg2 = pointerReg, immediate = 0), null)
         }
         return result to 0u
     }
@@ -1877,7 +1872,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
     private fun updatePointerFromField(fieldinfo: Pair<DataType, UByte>, pointerReg: Int): IRCodeChunk {
         return IRCodeChunk(null, null).also {
             // LOADI has an exception to allow reg1 and reg2 to be the same, so we can avoid using extra temporary registers and LOADs
-            it += IRInstruction(Opcode.LOADI, IRDataType.WORD, reg1 = pointerReg, reg2 = pointerReg, immediate = fieldinfo.second.toInt())
+            it += IRInstruction(Opcode.LOADI, IRDataType.POINTER, reg1 = pointerReg, reg2 = pointerReg, immediate = fieldinfo.second.toInt())
         }
     }
 

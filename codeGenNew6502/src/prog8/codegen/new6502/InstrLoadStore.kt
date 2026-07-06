@@ -538,6 +538,12 @@ internal fun AsmGen.loadImmediate(reg: Int, value: Int, type: IRDataType) {
             emitLine("lda  #>${value and 0xffff}")
             emitLine("sta  ${regAddrHi(reg)}")
         }
+        IRDataType.POINTER -> {
+            emitLine("lda  #<${value and 0xffff}")
+            emitLine("sta  ${regAddrLo(reg)}")
+            emitLine("lda  #>${value and 0xffff}")
+            emitLine("sta  ${regAddrHi(reg)}")
+        }
         IRDataType.LONG -> {
             emitLine("lda  #<${value and 0xffff}")
             emitLine("sta  ${regAddrLo(reg)}")
@@ -561,6 +567,12 @@ internal fun AsmGen.loadFromMemory(reg: Int, sourceAddress: String, type: IRData
             emitLine("sta  ${regAddrLo(reg)}")
         }
         IRDataType.WORD -> {
+            emitLine("lda  $sourceAddress")
+            emitLine("sta  ${regAddrLo(reg)}")
+            emitLine("lda  $sourceAddress+1")
+            emitLine("sta  ${regAddrHi(reg)}")
+        }
+        IRDataType.POINTER -> {
             emitLine("lda  $sourceAddress")
             emitLine("sta  ${regAddrLo(reg)}")
             emitLine("lda  $sourceAddress+1")
@@ -592,6 +604,12 @@ internal fun AsmGen.copyRegister(dstReg: Int, srcReg: Int, type: IRDataType) {
             emitLine("lda  ${regAddrHi(srcReg)}")
             emitLine("sta  ${regAddrHi(dstReg)}")
         }
+        IRDataType.POINTER -> {
+            emitLine("lda  ${regAddrLo(srcReg)}")
+            emitLine("sta  ${regAddrLo(dstReg)}")
+            emitLine("lda  ${regAddrHi(srcReg)}")
+            emitLine("sta  ${regAddrHi(dstReg)}")
+        }
         IRDataType.LONG -> copyRegisterLong(dstReg, srcReg)
         IRDataType.FLOAT -> {
             TODO("FLOAT LOADR r$dstReg = r$srcReg")
@@ -606,6 +624,12 @@ internal fun AsmGen.storeToMemory(reg: Int, target: String, type: IRDataType) {
             emitLine("sta  $target")
         }
         IRDataType.WORD -> {
+            emitLine("lda  ${regAddrLo(reg)}")
+            emitLine("sta  $target")
+            emitLine("lda  ${regAddrHi(reg)}")
+            emitLine("sta  $target+1")
+        }
+        IRDataType.POINTER -> {
             emitLine("lda  ${regAddrLo(reg)}")
             emitLine("sta  $target")
             emitLine("lda  ${regAddrHi(reg)}")
@@ -652,6 +676,14 @@ internal fun AsmGen.indexedLoad(dstReg: Int, idxReg: Int, baseAddress: String, t
             emitLine("lda  ($ptr),y")
             emitLine("sta  ${regAddrHi(dstReg)}")
         }
+        IRDataType.POINTER -> {
+            emitLine("ldy  #0")
+            emitLine("lda  ($ptr),y")
+            emitLine("sta  ${regAddrLo(dstReg)}")
+            emitLine("ldy  #1")
+            emitLine("lda  ($ptr),y")
+            emitLine("sta  ${regAddrHi(dstReg)}")
+        }
         IRDataType.LONG -> {
             val baseAddress = regAddrByte(dstReg, 0)
             emitLine("ldy  #3")
@@ -682,6 +714,14 @@ internal fun AsmGen.indirectLoad(dstReg: Int, baseReg: Int, offset: Int, type: I
             emitLine("sta  ${regAddrLo(dstReg)}")
         }
         IRDataType.WORD -> {
+            emitLine("ldy  #0")
+            emitLine("lda  ($ptr),y")
+            emitLine("sta  ${regAddrLo(dstReg)}")
+            emitLine("ldy  #1")
+            emitLine("lda  ($ptr),y")
+            emitLine("sta  ${regAddrHi(dstReg)}")
+        }
+        IRDataType.POINTER -> {
             emitLine("ldy  #0")
             emitLine("lda  ($ptr),y")
             emitLine("sta  ${regAddrLo(dstReg)}")
@@ -747,6 +787,10 @@ internal fun AsmGen.zeroMemory(target: String, type: IRDataType) {
             emitStoreZero(target)
             emitStoreZero("$target+1")
         }
+        IRDataType.POINTER -> {
+            emitStoreZero(target)
+            emitStoreZero("$target+1")
+        }
         IRDataType.LONG -> {
             emitStoreZero(target)
             emitStoreZero("$target+1")
@@ -782,6 +826,14 @@ internal fun AsmGen.zeroIndexed(baseReg: Int, offset: Int, type: IRDataType) {
             emitLine("lda  #0")
             emitLine("sta  ($ptr),y")
         }
+        IRDataType.POINTER -> {
+            emitLine("ldy  #0")
+            emitLine("lda  #0")
+            emitLine("sta  ($ptr),y")
+            emitLine("ldy  #1")
+            emitLine("lda  #0")
+            emitLine("sta  ($ptr),y")
+        }
         IRDataType.LONG -> {
             emitLine("ldy  #3")
             emitLine("lda  #0")
@@ -802,6 +854,11 @@ internal fun AsmGen.zeroMemoryIndexed(reg: Int, baseAddress: String, type: IRDat
             emitStoreZero("$baseAddress,x")
         }
         IRDataType.WORD -> {
+            emitStoreZero("$baseAddress,x")
+            emitLine("ldx  ${regAddrHi(reg)}")
+            emitStoreZero("${baseAddress}+1,x")
+        }
+        IRDataType.POINTER -> {
             emitStoreZero("$baseAddress,x")
             emitLine("ldx  ${regAddrHi(reg)}")
             emitStoreZero("${baseAddress}+1,x")
@@ -832,6 +889,14 @@ internal fun AsmGen.indirectStore(reg: Int, baseReg: Int, offset: Int, type: IRD
             emitLine("sta  ($ptr),y")
         }
         IRDataType.WORD -> {
+            emitLine("lda  ${regAddrLo(reg)}")
+            emitLine("ldy  #0")
+            emitLine("sta  ($ptr),y")
+            emitLine("lda  ${regAddrHi(reg)}")
+            emitLine("ldy  #1")
+            emitLine("sta  ($ptr),y")
+        }
+        IRDataType.POINTER -> {
             emitLine("lda  ${regAddrLo(reg)}")
             emitLine("ldy  #0")
             emitLine("sta  ($ptr),y")

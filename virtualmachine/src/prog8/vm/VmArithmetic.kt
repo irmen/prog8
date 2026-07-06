@@ -23,6 +23,10 @@ internal fun VirtualMachine.statusbitsComparison(left: Int, right: Int, type: IR
             statusNegative = (comparison and 0x8000) != 0
             statusCarry = (left and 0xffff) >= (right and 0xffff)
         }
+        IRDataType.POINTER -> {
+            statusNegative = (comparison and 0x8000) != 0
+            statusCarry = (left and 0xffff) >= (right and 0xffff)
+        }
         IRDataType.LONG -> {
             statusNegative = comparison < 0
             statusCarry = Integer.compareUnsigned(left, right) >= 0
@@ -42,6 +46,12 @@ internal fun VirtualMachine.statusbitsComparisonWithOverflow(left: Int, right: I
             statusOverflow = ((leftSign xor rightSign) and (leftSign xor (comparison and signBit))) != 0
         }
         IRDataType.WORD -> {
+            val signBit = 0x8000
+            val leftSign = left and signBit
+            val rightSign = right and signBit
+            statusOverflow = ((leftSign xor rightSign) and (leftSign xor (comparison and signBit))) != 0
+        }
+        IRDataType.POINTER -> {
             val signBit = 0x8000
             val leftSign = left and signBit
             val rightSign = right and signBit
@@ -450,7 +460,7 @@ internal fun VirtualMachine.divModWordSignedInplace(operator: String, reg1: Int,
     memory.setSW(address, result.toShort())
 }
 
-internal fun VirtualMachine.arithFloat(left: Double, operator: String, right: Double): Double = when(operator) {
+internal fun arithFloat(left: Double, operator: String, right: Double): Double = when(operator) {
     "+" -> left + right
     "-" -> left - right
     "*" -> left * right
@@ -469,6 +479,7 @@ internal fun VirtualMachine.getBranchOperands(i: IRInstruction): Pair<Int, Int> 
     return when(i.type) {
         IRDataType.BYTE -> Pair(registers.getSB(i.reg1!!).toInt(), registers.getSB(i.reg2!!).toInt())
         IRDataType.WORD -> Pair(registers.getSW(i.reg1!!).toInt(), registers.getSW(i.reg2!!).toInt())
+        IRDataType.POINTER -> Pair(registers.getSW(i.reg1!!).toInt(), registers.getSW(i.reg2!!).toInt())
         IRDataType.LONG -> Pair(registers.getSL(i.reg1!!), registers.getSL(i.reg2!!))
         IRDataType.FLOAT -> {
             throw IllegalArgumentException("can't use float here")
@@ -481,6 +492,7 @@ internal fun VirtualMachine.getBranchOperandsImm(i: IRInstruction): Pair<Int, In
     return when(i.type) {
         IRDataType.BYTE -> Pair(registers.getSB(i.reg1!!).toInt(), i.immediate!!)
         IRDataType.WORD -> Pair(registers.getSW(i.reg1!!).toInt(), i.immediate!!)
+        IRDataType.POINTER -> Pair(registers.getSW(i.reg1!!).toInt(), i.immediate!!)
         IRDataType.LONG -> Pair(registers.getSL(i.reg1!!), i.immediate!!)
         IRDataType.FLOAT -> {
             throw IllegalArgumentException("can't use float here")
@@ -493,6 +505,7 @@ internal fun VirtualMachine.getBranchOperandsU(i: IRInstruction): Pair<UInt, UIn
     return when(i.type) {
         IRDataType.BYTE -> Pair(registers.getUB(i.reg1!!).toUInt(), registers.getUB(i.reg2!!).toUInt())
         IRDataType.WORD -> Pair(registers.getUW(i.reg1!!).toUInt(), registers.getUW(i.reg2!!).toUInt())
+        IRDataType.POINTER -> Pair(registers.getUW(i.reg1!!).toUInt(), registers.getUW(i.reg2!!).toUInt())
         IRDataType.LONG -> Pair(registers.getSL(i.reg1!!).toUInt(), registers.getSL(i.reg2!!).toUInt())
         IRDataType.FLOAT -> {
             throw IllegalArgumentException("can't use float here")
@@ -505,6 +518,7 @@ internal fun VirtualMachine.getBranchOperandsImmU(i: IRInstruction): Pair<UInt, 
     return when(i.type) {
         IRDataType.BYTE -> Pair(registers.getUB(i.reg1!!).toUInt(), i.immediate!!.toUInt())
         IRDataType.WORD -> Pair(registers.getUW(i.reg1!!).toUInt(), i.immediate!!.toUInt())
+        IRDataType.POINTER -> Pair(registers.getUW(i.reg1!!).toUInt(), i.immediate!!.toUInt())
         IRDataType.LONG -> Pair(registers.getSL(i.reg1!!).toUInt(), i.immediate!!.toUInt())
         IRDataType.FLOAT -> {
             throw IllegalArgumentException("can't use float here")
@@ -517,6 +531,7 @@ internal fun VirtualMachine.getLogicalOperandsU(i: IRInstruction): Pair<UInt, UI
     return when(i.type) {
         IRDataType.BYTE -> Pair(registers.getUB(i.reg1!!).toUInt(), registers.getUB(i.reg2!!).toUInt())
         IRDataType.WORD -> Pair(registers.getUW(i.reg1!!).toUInt(), registers.getUW(i.reg2!!).toUInt())
+        IRDataType.POINTER -> Pair(registers.getUW(i.reg1!!).toUInt(), registers.getUW(i.reg2!!).toUInt())
         IRDataType.LONG -> Pair(registers.getSL(i.reg1!!).toUInt(), registers.getSL(i.reg2!!).toUInt())
         IRDataType.FLOAT -> {
             throw IllegalArgumentException("can't use float here")
@@ -529,6 +544,7 @@ internal fun VirtualMachine.getLogicalOperandsS(i: IRInstruction): Pair<Int, Int
     return when(i.type) {
         IRDataType.BYTE -> Pair(registers.getSB(i.reg1!!).toInt(), registers.getSB(i.reg2!!).toInt())
         IRDataType.WORD -> Pair(registers.getSW(i.reg1!!).toInt(), registers.getSW(i.reg2!!).toInt())
+        IRDataType.POINTER -> Pair(registers.getSW(i.reg1!!).toInt(), registers.getSW(i.reg2!!).toInt())
         IRDataType.LONG -> Pair(registers.getSL(i.reg1!!), registers.getSL(i.reg2!!))
         IRDataType.FLOAT -> {
             throw IllegalArgumentException("can't use float here")

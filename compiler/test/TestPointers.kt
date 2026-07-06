@@ -791,7 +791,7 @@ main {
         (r0v.right as PtNumber).number shouldBe 1.0
         r1v.left shouldBe instanceOf<PtAddressOf>()
         r1v.right shouldBe instanceOf<PtNumber>()
-        (r1v.right as PtNumber).number shouldBe VMTarget.FLOAT_MEM_SIZE
+        (r1v.right as PtNumber).number shouldBe 8
     }
 
     test("untyped and typed address-of subroutines") {

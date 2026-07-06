@@ -518,7 +518,7 @@ private fun AsmGen.translateArgument(arg: FunctionCallArgs.ArgumentSpec, fnLabel
                     val sv = suffixForVar(IRDataType.WORD, paramVarName)
                     emitLine("move$sv  $regVal, $target")
                 }
-                IRDataType.LONG -> emitLine("move.l  $regVal, $target")
+                IRDataType.LONG, IRDataType.POINTER -> emitLine("move.l  $regVal, $target")
                 IRDataType.FLOAT -> emitLine("fmove.d  $regVal, $target")
             }
         }

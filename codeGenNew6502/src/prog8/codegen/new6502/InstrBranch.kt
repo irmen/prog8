@@ -151,6 +151,40 @@ private fun AsmGen.translateCmpBranchUnsigned(insn: IRInstruction, label: String
                 }
             }
         }
+        IRDataType.POINTER -> {
+            when {
+                greaterThan -> {
+                    // a > imm (unsigned) -> imm < a: swap operands
+                    emitLine("lda  #${imm and 0xff}")
+                    emitLine("cmp  ${regAddrLo(reg)}")
+                    emitLine("lda  #${(imm shr 8) and 0xff}")
+                    emitLine("sbc  ${regAddrHi(reg)}")
+                    emitLine("bcc  $label")
+                }
+                greaterOrEqual -> {
+                    emitLine("lda  ${regAddrLo(reg)}")
+                    emitLine("cmp  #${imm and 0xff}")
+                    emitLine("lda  ${regAddrHi(reg)}")
+                    emitLine("sbc  #${(imm shr 8) and 0xff}")
+                    emitLine("bcs  $label")
+                }
+                lessThan -> {
+                    emitLine("lda  ${regAddrLo(reg)}")
+                    emitLine("cmp  #${imm and 0xff}")
+                    emitLine("lda  ${regAddrHi(reg)}")
+                    emitLine("sbc  #${(imm shr 8) and 0xff}")
+                    emitLine("bcc  $label")
+                }
+                lessOrEqual -> {
+                    // a <= imm (unsigned) -> imm >= a: swap operands
+                    emitLine("lda  #${imm and 0xff}")
+                    emitLine("cmp  ${regAddrLo(reg)}")
+                    emitLine("lda  #${(imm shr 8) and 0xff}")
+                    emitLine("sbc  ${regAddrHi(reg)}")
+                    emitLine("bcs  $label")
+                }
+            }
+        }
         IRDataType.LONG -> translateCmpBranchLongUnsigned(insn, label, greaterThan, greaterOrEqual, lessThan, lessOrEqual)
         IRDataType.FLOAT -> error("float branch not supported")
     }
@@ -258,6 +292,22 @@ private fun AsmGen.translateCmpBranchRegUnsigned(insn: IRInstruction, label: Str
                 emitLine("bcs  $label")
             }
         }
+        IRDataType.POINTER -> {
+            if (greaterThan) {
+                // a > b -> b < a: swap operands
+                emitLine("lda  ${regAddrLo(reg2)}")
+                emitLine("cmp  ${regAddrLo(reg1)}")
+                emitLine("lda  ${regAddrHi(reg2)}")
+                emitLine("sbc  ${regAddrHi(reg1)}")
+                emitLine("bcc  $label")
+            } else if (greaterOrEqual) {
+                emitLine("lda  ${regAddrLo(reg1)}")
+                emitLine("cmp  ${regAddrLo(reg2)}")
+                emitLine("lda  ${regAddrHi(reg1)}")
+                emitLine("sbc  ${regAddrHi(reg2)}")
+                emitLine("bcs  $label")
+            }
+        }
         IRDataType.LONG -> {
             if (greaterThan) {
                 // a > b -> b < a: swap operands
@@ -344,6 +394,52 @@ private fun AsmGen.translateCmpBranchSigned(insn: IRInstruction, label: String,
             }
         }
         IRDataType.WORD -> {
+            when {
+                greaterThan -> {
+                    // a > imm -> imm < a: swap operands (subtract reg FROM imm)
+                    emitLine("lda  #${imm and 0xff}")
+                    emitLine("cmp  ${regAddrLo(reg)}")
+                    emitLine("lda  #${(imm shr 8) and 0xff}")
+                    emitLine("sbc  ${regAddrHi(reg)}")
+                    emitLine("bvc  +")
+                    emitLine("eor  #${0x80}")
+                    emitLine("+")
+                    emitLine("bmi  $label")
+                }
+                greaterOrEqual -> {
+                    emitLine("lda  ${regAddrLo(reg)}")
+                    emitLine("cmp  #${imm and 0xff}")
+                    emitLine("lda  ${regAddrHi(reg)}")
+                    emitLine("sbc  #${(imm shr 8) and 0xff}")
+                    emitLine("bvc  +")
+                    emitLine("eor  #${0x80}")
+                    emitLine("+")
+                    emitLine("bpl  $label")
+                }
+                lessThan -> {
+                    emitLine("lda  ${regAddrLo(reg)}")
+                    emitLine("cmp  #${imm and 0xff}")
+                    emitLine("lda  ${regAddrHi(reg)}")
+                    emitLine("sbc  #${(imm shr 8) and 0xff}")
+                    emitLine("bvc  +")
+                    emitLine("eor  #${0x80}")
+                    emitLine("+")
+                    emitLine("bmi  $label")
+                }
+                lessOrEqual -> {
+                    // a <= imm -> imm >= a: swap operands
+                    emitLine("lda  #${imm and 0xff}")
+                    emitLine("cmp  ${regAddrLo(reg)}")
+                    emitLine("lda  #${(imm shr 8) and 0xff}")
+                    emitLine("sbc  ${regAddrHi(reg)}")
+                    emitLine("bvc  +")
+                    emitLine("eor  #${0x80}")
+                    emitLine("+")
+                    emitLine("bpl  $label")
+                }
+            }
+        }
+        IRDataType.POINTER -> {
             when {
                 greaterThan -> {
                     // a > imm -> imm < a: swap operands (subtract reg FROM imm)
@@ -508,6 +604,47 @@ private fun AsmGen.translateCmpBranchRegSigned(insn: IRInstruction, label: Strin
             }
         }
         IRDataType.WORD -> {
+            if (greaterThan) {
+                // a > b -> b < a: swap operands, check N=1 after correction
+                emitLine("lda  ${regAddrLo(reg2)}")
+                emitLine("cmp  ${regAddrLo(reg1)}")
+                emitLine("lda  ${regAddrHi(reg2)}")
+                emitLine("sbc  ${regAddrHi(reg1)}")
+                emitLine("bvc  +")
+                emitLine("eor  #${0x80}")
+                emitLine("+")
+                emitLine("bmi  $label")
+            } else if (greaterOrEqual) {
+                emitLine("lda  ${regAddrLo(reg1)}")
+                emitLine("cmp  ${regAddrLo(reg2)}")
+                emitLine("lda  ${regAddrHi(reg1)}")
+                emitLine("sbc  ${regAddrHi(reg2)}")
+                emitLine("bvc  +")
+                emitLine("eor  #${0x80}")
+                emitLine("+")
+                emitLine("bpl  $label")
+            } else if (lessThan) {
+                emitLine("lda  ${regAddrLo(reg1)}")
+                emitLine("cmp  ${regAddrLo(reg2)}")
+                emitLine("lda  ${regAddrHi(reg1)}")
+                emitLine("sbc  ${regAddrHi(reg2)}")
+                emitLine("bvc  +")
+                emitLine("eor  #${0x80}")
+                emitLine("+")
+                emitLine("bmi  $label")
+            } else if (lessOrEqual) {
+                // a <= b -> b >= a: swap operands, check N=0 after correction
+                emitLine("lda  ${regAddrLo(reg2)}")
+                emitLine("cmp  ${regAddrLo(reg1)}")
+                emitLine("lda  ${regAddrHi(reg2)}")
+                emitLine("sbc  ${regAddrHi(reg1)}")
+                emitLine("bvc  +")
+                emitLine("eor  #${0x80}")
+                emitLine("+")
+                emitLine("bpl  $label")
+            }
+        }
+        IRDataType.POINTER -> {
             if (greaterThan) {
                 // a > b -> b < a: swap operands, check N=1 after correction
                 emitLine("lda  ${regAddrLo(reg2)}")

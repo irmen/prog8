@@ -6,7 +6,7 @@ import java.nio.file.Path
 
 class Qemu68kTarget: ICompilationTarget,
     IStringEncoding by Encoder(false),
-    IMemSizer by NormalMemSizer(FLOAT_MEM_SIZE, pointerSize = 4) {
+    IMemSizer by NormalMemSizer(4, pointerSize = 4) {
 
     override val name = NAME
     override val supportsBankedCalls = false
@@ -19,14 +19,14 @@ class Qemu68kTarget: ICompilationTarget,
 
     companion object {
         const val NAME = "qemu68k"
-        const val FLOAT_MEM_SIZE = 4             // 32-bits double
     }
 
     override val cpu = CpuType.M68030
 
     override val FLOAT_MAX_POSITIVE = Float.MAX_VALUE.toDouble()
     override val FLOAT_MAX_NEGATIVE = -Float.MAX_VALUE.toDouble()
-    override val FLOAT_MEM_SIZE = Qemu68kTarget.FLOAT_MEM_SIZE.toUInt()
+    override val FLOAT_MEM_SIZE = 4u
+    override val POINTER_MEM_SIZE = 4u
     override val PROGRAM_LOAD_ADDRESS = 0x10000u      
     override val PROGRAM_MEMTOP_ADDRESS = 0x00100000u 
 

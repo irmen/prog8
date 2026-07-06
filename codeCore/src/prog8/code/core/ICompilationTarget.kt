@@ -55,6 +55,7 @@ interface ICompilationTarget: IStringEncoding, IMemSizer {
     val FLOAT_MAX_NEGATIVE: Double
     val FLOAT_MAX_POSITIVE: Double
     val FLOAT_MEM_SIZE: UInt
+    val POINTER_MEM_SIZE: UInt
     val PROGRAM_LOAD_ADDRESS : UInt
     val PROGRAM_MEMTOP_ADDRESS: UInt
     val BSSHIGHRAM_START: UInt

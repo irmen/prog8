@@ -183,6 +183,12 @@ private fun AsmGen.incrementRegister(reg: Int, type: IRDataType) {
             emitLine("inc  ${regAddrHi(reg)}")
             emitLabel("+")
         }
+        IRDataType.POINTER -> {
+            emitLine("inc  ${regAddrLo(reg)}")
+            emitLine("bne  +")
+            emitLine("inc  ${regAddrHi(reg)}")
+            emitLabel("+")
+        }
         IRDataType.LONG -> {
             emitLine("inc  ${regAddrLo(reg)}")
             emitLine("bne  +")
@@ -208,6 +214,14 @@ private fun AsmGen.decrementRegister(reg: Int, type: IRDataType) {
             emitLine("dec  ${regAddrLo(reg)}")
         }
         IRDataType.WORD -> {
+            emitLine("lda  ${regAddrLo(reg)}")
+            emitLine("bne  +")
+            emitLine("dec  ${regAddrHi(reg)}")
+            emitLabel("+")
+            emitLine("dec  ${regAddrLo(reg)}")
+            emitLine("ora  ${regAddrHi(reg)}")
+        }
+        IRDataType.POINTER -> {
             emitLine("lda  ${regAddrLo(reg)}")
             emitLine("bne  +")
             emitLine("dec  ${regAddrHi(reg)}")
@@ -249,6 +263,12 @@ private fun AsmGen.incrementMemory(target: String, type: IRDataType) {
             emitLine("inc  $target+1")
             emitLabel("+")
         }
+        IRDataType.POINTER -> {
+            emitLine("inc  $target")
+            emitLine("bne  +")
+            emitLine("inc  $target+1")
+            emitLabel("+")
+        }
         IRDataType.LONG -> {
             emitLine("inc  $target")
             emitLine("bne  +")
@@ -267,6 +287,14 @@ internal fun AsmGen.decrementMemory(target: String, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> emitLine("dec  $target")
         IRDataType.WORD -> {
+            emitLine("lda  $target")
+            emitLine("bne  +")
+            emitLine("dec  $target+1")
+            emitLabel("+")
+            emitLine("dec  $target")
+            emitLine("ora  $target+1")
+        }
+        IRDataType.POINTER -> {
             emitLine("lda  $target")
             emitLine("bne  +")
             emitLine("dec  $target+1")
@@ -309,6 +337,15 @@ internal fun AsmGen.negateRegister(reg: Int, type: IRDataType) {
             }
         }
         IRDataType.WORD -> {
+            emitLine("sec")
+            emitLine("lda  #0")
+            emitLine("sbc  ${regAddrLo(reg)}")
+            emitLine("sta  ${regAddrLo(reg)}")
+            emitLine("lda  #0")
+            emitLine("sbc  ${regAddrHi(reg)}")
+            emitLine("sta  ${regAddrHi(reg)}")
+        }
+        IRDataType.POINTER -> {
             emitLine("sec")
             emitLine("lda  #0")
             emitLine("sbc  ${regAddrLo(reg)}")
@@ -360,6 +397,15 @@ internal fun AsmGen.negateMemory(target: String, type: IRDataType) {
             emitLine("sbc  $target+1")
             emitLine("sta  $target+1")
         }
+        IRDataType.POINTER -> {
+            emitLine("sec")
+            emitLine("lda  #0")
+            emitLine("sbc  $target")
+            emitLine("sta  $target")
+            emitLine("lda  #0")
+            emitLine("sbc  $target+1")
+            emitLine("sta  $target+1")
+        }
         IRDataType.LONG -> {
             emitLine("sec")
             emitLine("lda  #0")
@@ -390,6 +436,15 @@ internal fun AsmGen.addRegisters(dstReg: Int, srcReg: Int, type: IRDataType) {
             emitLine("sta  ${regAddrLo(dstReg)}")
         }
         IRDataType.WORD -> {
+            emitLine("clc")
+            emitLine("lda  ${regAddrLo(dstReg)}")
+            emitLine("adc  ${regAddrLo(srcReg)}")
+            emitLine("sta  ${regAddrLo(dstReg)}")
+            emitLine("lda  ${regAddrHi(dstReg)}")
+            emitLine("adc  ${regAddrHi(srcReg)}")
+            emitLine("sta  ${regAddrHi(dstReg)}")
+        }
+        IRDataType.POINTER -> {
             emitLine("clc")
             emitLine("lda  ${regAddrLo(dstReg)}")
             emitLine("adc  ${regAddrLo(srcReg)}")
@@ -438,6 +493,15 @@ internal fun AsmGen.addImmediate(dstReg: Int, value: Int, type: IRDataType) {
             emitLine("adc  #>${value and 0xffff}")
             emitLine("sta  ${regAddrHi(dstReg)}")
         }
+        IRDataType.POINTER -> {
+            emitLine("clc")
+            emitLine("lda  ${regAddrLo(dstReg)}")
+            emitLine("adc  #<${value and 0xffff}")
+            emitLine("sta  ${regAddrLo(dstReg)}")
+            emitLine("lda  ${regAddrHi(dstReg)}")
+            emitLine("adc  #>${value and 0xffff}")
+            emitLine("sta  ${regAddrHi(dstReg)}")
+        }
         IRDataType.LONG -> {
             emitLine("clc")
             emitLine("lda  ${regAddrLo(dstReg)}")
@@ -466,6 +530,15 @@ internal fun AsmGen.addMemory(dstReg: Int, sourceAddress: String, type: IRDataTy
             emitLine("sta  $sourceAddress")
         }
         IRDataType.WORD -> {
+            emitLine("clc")
+            emitLine("lda  $sourceAddress")
+            emitLine("adc  ${regAddrLo(dstReg)}")
+            emitLine("sta  $sourceAddress")
+            emitLine("lda  $sourceAddress+1")
+            emitLine("adc  ${regAddrHi(dstReg)}")
+            emitLine("sta  $sourceAddress+1")
+        }
+        IRDataType.POINTER -> {
             emitLine("clc")
             emitLine("lda  $sourceAddress")
             emitLine("adc  ${regAddrLo(dstReg)}")
@@ -504,6 +577,15 @@ internal fun AsmGen.subRegisters(dstReg: Int, srcReg: Int, type: IRDataType) {
             emitLine("sta  ${regAddrLo(dstReg)}")
         }
         IRDataType.WORD -> {
+            emitLine("sec")
+            emitLine("lda  ${regAddrLo(dstReg)}")
+            emitLine("sbc  ${regAddrLo(srcReg)}")
+            emitLine("sta  ${regAddrLo(dstReg)}")
+            emitLine("lda  ${regAddrHi(dstReg)}")
+            emitLine("sbc  ${regAddrHi(srcReg)}")
+            emitLine("sta  ${regAddrHi(dstReg)}")
+        }
+        IRDataType.POINTER -> {
             emitLine("sec")
             emitLine("lda  ${regAddrLo(dstReg)}")
             emitLine("sbc  ${regAddrLo(srcReg)}")
@@ -552,6 +634,15 @@ internal fun AsmGen.subImmediate(dstReg: Int, value: Int, type: IRDataType) {
             emitLine("sbc  #>${value and 0xffff}")
             emitLine("sta  ${regAddrHi(dstReg)}")
         }
+        IRDataType.POINTER -> {
+            emitLine("sec")
+            emitLine("lda  ${regAddrLo(dstReg)}")
+            emitLine("sbc  #<${value and 0xffff}")
+            emitLine("sta  ${regAddrLo(dstReg)}")
+            emitLine("lda  ${regAddrHi(dstReg)}")
+            emitLine("sbc  #>${value and 0xffff}")
+            emitLine("sta  ${regAddrHi(dstReg)}")
+        }
         IRDataType.LONG -> {
             emitLine("sec")
             emitLine("lda  ${regAddrLo(dstReg)}")
@@ -580,6 +671,15 @@ internal fun AsmGen.subMemory(dstReg: Int, sourceAddress: String, type: IRDataTy
             emitLine("sta  $sourceAddress")
         }
         IRDataType.WORD -> {
+            emitLine("sec")
+            emitLine("lda  $sourceAddress")
+            emitLine("sbc  ${regAddrLo(dstReg)}")
+            emitLine("sta  $sourceAddress")
+            emitLine("lda  $sourceAddress+1")
+            emitLine("sbc  ${regAddrHi(dstReg)}")
+            emitLine("sta  $sourceAddress+1")
+        }
+        IRDataType.POINTER -> {
             emitLine("sec")
             emitLine("lda  $sourceAddress")
             emitLine("sbc  ${regAddrLo(dstReg)}")
@@ -618,6 +718,17 @@ internal fun AsmGen.mulRegisters(dstReg: Int, srcReg: Int, type: IRDataType) {
             emitLine("sta  ${regAddrLo(dstReg)}")
         }
         IRDataType.WORD -> {
+            emitLine("lda  ${regAddrLo(srcReg)}")
+            emitLine("sta  prog8_math.multiply_words.multiplier")
+            emitLine("lda  ${regAddrHi(srcReg)}")
+            emitLine("sta  prog8_math.multiply_words.multiplier+1")
+            emitLine("lda  ${regAddrLo(dstReg)}")
+            emitLine("ldy  ${regAddrHi(dstReg)}")
+            emitLine("jsr  prog8_math.multiply_words")
+            emitLine("sta  ${regAddrLo(dstReg)}")
+            emitLine("sty  ${regAddrHi(dstReg)}")
+        }
+        IRDataType.POINTER -> {
             emitLine("lda  ${regAddrLo(srcReg)}")
             emitLine("sta  prog8_math.multiply_words.multiplier")
             emitLine("lda  ${regAddrHi(srcReg)}")
@@ -811,7 +922,7 @@ internal fun AsmGen.divSignedImmediate(dstReg: Int, value: Int, type: IRDataType
     }
 }
 
-internal fun AsmGen.divSignedMemory(dstReg: Int, sourceAddress: String, type: IRDataType) {
+internal fun divSignedMemory(dstReg: Int, sourceAddress: String, type: IRDataType) {
     TODO("DIVSM r$dstReg, $sourceAddress (signed)")
 }
 
@@ -867,7 +978,7 @@ internal fun AsmGen.modImmediate(dstReg: Int, value: Int, type: IRDataType) {
     }
 }
 
-internal fun AsmGen.modSignedRegisters(dstReg: Int, srcReg: Int, type: IRDataType) {
+internal fun modSignedRegisters(dstReg: Int, srcReg: Int, type: IRDataType) {
     TODO("MODSR r$dstReg, r$srcReg (signed)")
 }
 
@@ -907,7 +1018,7 @@ internal fun AsmGen.divModRegisters(dstReg: Int, srcReg: Int, type: IRDataType) 
     }
 }
 
-internal fun AsmGen.sdivModRegisters(dstReg: Int, srcReg: Int, type: IRDataType) {
+internal fun sdivModRegisters(dstReg: Int, srcReg: Int, type: IRDataType) {
     TODO("SDIVMODR r$dstReg, r$srcReg (signed)")
 }
 
@@ -953,6 +1064,15 @@ internal fun AsmGen.compareRegisters(r1: Int, r2: Int, type: IRDataType) {
             emitLine("cmp  ${regAddrLo(r2)}")
         }
         IRDataType.WORD -> {
+            val skip = makeLabel("cmpskip")
+            emitLine("lda  ${regAddrLo(r1)}")
+            emitLine("cmp  ${regAddrLo(r2)}")
+            emitLine("bne  $skip")
+            emitLine("lda  ${regAddrHi(r1)}")
+            emitLine("cmp  ${regAddrHi(r2)}")
+            emitLabel(skip)
+        }
+        IRDataType.POINTER -> {
             val skip = makeLabel("cmpskip")
             emitLine("lda  ${regAddrLo(r1)}")
             emitLine("cmp  ${regAddrLo(r2)}")

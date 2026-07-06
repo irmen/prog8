@@ -10,7 +10,7 @@ import kotlin.io.path.readText
 
 class VMTarget: ICompilationTarget,
     IStringEncoding by Encoder(false),
-    IMemSizer by NormalMemSizer(FLOAT_MEM_SIZE) {
+    IMemSizer by NormalMemSizer(8) {
 
     override val name = NAME
     override val supportsBankedCalls = false
@@ -23,14 +23,14 @@ class VMTarget: ICompilationTarget,
 
     companion object {
         const val NAME = "virtual"
-        const val FLOAT_MEM_SIZE = 8             // 64-bits double
     }
 
     override val cpu = CpuType.VIRTUAL
 
     override val FLOAT_MAX_POSITIVE = Double.MAX_VALUE
     override val FLOAT_MAX_NEGATIVE = -Double.MAX_VALUE
-    override val FLOAT_MEM_SIZE = VMTarget.FLOAT_MEM_SIZE.toUInt()
+    override val FLOAT_MEM_SIZE = 8u
+    override val POINTER_MEM_SIZE = 2u      // TODO do we want to support 32 bits pointers in the VM one day?:
     override val PROGRAM_LOAD_ADDRESS = 0u      // not actually used
     override val PROGRAM_MEMTOP_ADDRESS = 0xffffu  // not actually used
 

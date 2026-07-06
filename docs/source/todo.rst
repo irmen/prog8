@@ -25,6 +25,7 @@ Future Things and Ideas
 - add documentation for more library modules instead of just linking to the source code
 - sizeof(pointer) is now always 2 (an uword), make this a variable in the ICompilationTarget so that it could be 4 at the time we might ad a 32-bits 68000 target for example. Much code assumes word size addresses though.
 - add float support to the configurable compiler targets. Restrictions: just have "cbm-style floats" as an option (to that it can slot into the current float codegen), where all you have to specify is the addresses of AYINT and GIVAYF and FADDT and all their friends.
+- add support for pointer size >2  to configurable compiler targets.
 - Change scoping rules for qualified symbols so that they don't always start from the root but behave like other programming languages (look in local scope first), maybe only when qualified symbol starts with '.' such as: .local.value = 33
 - implement the signed remainder byte and word routines on 6502 (virtual target already has them working)
 - implement the signed divmod byte and word routines on 6502 (virtual target already has them working)

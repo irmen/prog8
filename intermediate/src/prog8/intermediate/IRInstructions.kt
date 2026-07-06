@@ -86,7 +86,7 @@ See CpuType.statusBitsOnMultiByteOps for the per-CPU configuration.
 
 Instruction set is mostly a load/store architecture, there are few instructions operating on memory directly.
 
-Value types: integers (.b=byte=8 bits, .w=word=16 bits, .l=long=32 bits) and float (.f=64 bits). Omitting it defaults to b if the instruction requires a type.
+Value types: integers (.b=byte=8 bits, .w=word=16 bits, .l=long=32 bits), float (.f=64 bits), and pointer (.p=target specific pointer width: 2 bytes on 6502, 4 bytes on m68k). Omitting it defaults to b if the instruction requires a type.
 There is no distinction between signed and unsigned for many instructions. Instead, a different instruction is used if a distinction should be made (for example div and divs).
 Floating point operations are just 'f' typed regular instructions, however there are a few unique fp conversion instructions.
 
@@ -600,7 +600,8 @@ enum class IRDataType {
     BYTE,
     WORD,
     FLOAT,
-    LONG        // 32 bits integer
+    LONG,        // 32 bits integer
+    POINTER      // pointer (size depends on target)
 }
 
 enum class OperandDirection {
@@ -665,8 +666,10 @@ data class InstructionFormat(val datatype: IRDataType?,
                     result[null] = InstructionFormat(null, reg1, reg2, reg3, fpreg1, fpreg2, address, immediate, funcCall, sysCall)
                 if('B' in typespec)
                     result[IRDataType.BYTE] = InstructionFormat(IRDataType.BYTE, reg1, reg2, reg3, fpreg1, fpreg2, address, immediate, funcCall, sysCall)
-                if('W' in typespec)
+                if('W' in typespec) {
                     result[IRDataType.WORD] = InstructionFormat(IRDataType.WORD, reg1, reg2, reg3, fpreg1, fpreg2, address, immediate, funcCall, sysCall)
+                    result[IRDataType.POINTER] = InstructionFormat(IRDataType.POINTER, reg1, reg2, reg3, fpreg1, fpreg2, address, immediate, funcCall, sysCall)
+                }
                 if('L' in typespec)
                     result[IRDataType.LONG] = InstructionFormat(IRDataType.LONG, reg1, reg2, reg3, fpreg1, fpreg2, address, immediate, funcCall, sysCall)
                 if('F' in typespec)
@@ -693,8 +696,8 @@ val instructionFormats = mutableMapOf(
     Opcode.LOADM      to InstructionFormat.from("BWL,>r1,<a     | F,>fr1,<a"),
     Opcode.LOADX      to InstructionFormat.from("BWL,>r1,<r2,<a | F,>fr1,<r1,<a"),
     Opcode.LOADR      to InstructionFormat.from("BWL,>r1,<r2    | F,>fr1,<fr2"),
-    Opcode.LOADHR     to InstructionFormat.from("BWL,>r1,<i | F,>fr1,<i"),
-    Opcode.LOADI  to InstructionFormat.from("BWL,>r1,<r2,<i | F,>fr1,<r1,<i"),
+    Opcode.LOADHR     to InstructionFormat.from("BWL,>r1,<i     | F,>fr1,<i"),
+    Opcode.LOADI  to InstructionFormat.from("BWL,>r1,<r2,<i     | F,>fr1,<r1,<i"),
     Opcode.LOADHFACZERO to InstructionFormat.from("F,>fr1"),
     Opcode.LOADHFACONE  to InstructionFormat.from("F,>fr1"),
     Opcode.STOREM     to InstructionFormat.from("BWL,<r1,>a     | F,<fr1,>a"),
@@ -702,8 +705,8 @@ val instructionFormats = mutableMapOf(
     Opcode.STOREZM    to InstructionFormat.from("BWL,>a         | F,>a"),
     Opcode.STOREZI    to InstructionFormat.from("BWL,<r1,<i     | F,<r1,<i"),
     Opcode.STOREZX    to InstructionFormat.from("BWL,<r1,>a     | F,<r1,>a"),
-    Opcode.STOREHR    to InstructionFormat.from("BWL,<r1,<i | F,<fr1,<i"),
-    Opcode.STOREI to InstructionFormat.from("BWL,<r1,<r2,<i | F,<fr1,<r1,<i"),
+    Opcode.STOREHR    to InstructionFormat.from("BWL,<r1,<i     | F,<fr1,<i"),
+    Opcode.STOREI to InstructionFormat.from("BWL,<r1,<r2,<i     | F,<fr1,<r1,<i"),
     Opcode.STOREHFACZERO  to InstructionFormat.from("F,<fr1"),
     Opcode.STOREHFACONE  to InstructionFormat.from("F,<fr1"),
     Opcode.JUMP       to InstructionFormat.from("N,<a"),
@@ -748,15 +751,15 @@ val instructionFormats = mutableMapOf(
     Opcode.SUBR       to InstructionFormat.from("BWL,<>r1,<r2  | F,<>fr1,<fr2"),
     Opcode.SUB        to InstructionFormat.from("BWL,<>r1,<i   | F,<>fr1,<i"),
     Opcode.SUBM       to InstructionFormat.from("BWL,<r1,<>a   | F,<fr1,<>a"),
-    Opcode.MULR       to InstructionFormat.from("BW,<>r1,<r2  | F,<>fr1,<fr2"),
-    Opcode.MUL        to InstructionFormat.from("BW,<>r1,<i   | F,<>fr1,<i"),
-    Opcode.MULM       to InstructionFormat.from("BW,<r1,<>a   | F,<fr1,<>a"),
+    Opcode.MULR       to InstructionFormat.from("BW,<>r1,<r2   | F,<>fr1,<fr2"),
+    Opcode.MUL        to InstructionFormat.from("BW,<>r1,<i    | F,<>fr1,<i"),
+    Opcode.MULM       to InstructionFormat.from("BW,<r1,<>a    | F,<fr1,<>a"),
     Opcode.MULSR      to InstructionFormat.from("BWL,<>r1,<r2  | F,<>fr1,<fr2"),
     Opcode.MULS       to InstructionFormat.from("BWL,<>r1,<i   | F,<>fr1,<i"),
     Opcode.MULSM      to InstructionFormat.from("BWL,<r1,<>a   | F,<fr1,<>a"),
-    Opcode.DIVR       to InstructionFormat.from("BW,<>r1,<r2  | F,<>fr1,<fr2"),
-    Opcode.DIV        to InstructionFormat.from("BW,<>r1,<i   | F,<>fr1,<i"),
-    Opcode.DIVM       to InstructionFormat.from("BW,<r1,<>a   | F,<fr1,<>a"),
+    Opcode.DIVR       to InstructionFormat.from("BW,<>r1,<r2   | F,<>fr1,<fr2"),
+    Opcode.DIV        to InstructionFormat.from("BW,<>r1,<i    | F,<>fr1,<i"),
+    Opcode.DIVM       to InstructionFormat.from("BW,<r1,<>a    | F,<fr1,<>a"),
     Opcode.DIVSR      to InstructionFormat.from("BWL,<>r1,<r2  | F,<>fr1,<fr2"),
     Opcode.DIVS       to InstructionFormat.from("BWL,<>r1,<i   | F,<>fr1,<i"),
     Opcode.DIVSM      to InstructionFormat.from("BWL,<r1,<>a   | F,<fr1,<>a"),
@@ -952,7 +955,7 @@ data class IRInstruction(
                 when (type) {
                     IRDataType.BYTE -> require(immediate in -128..255) { "immediate value out of range for byte: $immediate" }
                     IRDataType.WORD -> require(immediate in -32768..65535) { "immediate value out of range for word: $immediate" }
-                    IRDataType.LONG -> require(immediate in -2147483648..2147483647) { "immediate value out of range for long: $immediate" }
+                    IRDataType.LONG, IRDataType.POINTER -> require(immediate in -2147483648..2147483647) { "immediate value out of range for long: $immediate" }
                     IRDataType.FLOAT, null -> {}
                 }
             }
@@ -1004,9 +1007,13 @@ data class IRInstruction(
         fun incWriteFp(reg: RegisterNum) = writeFpRegsCounts.merge(reg, 1, Int::plus)
         fun setRegType(reg: RegisterNum, type: IRDataType) {
             val existingType = regsTypes[reg]
-            if (existingType != null && existingType != type)
-                throw IllegalArgumentException("register $reg given multiple types! $existingType and $type in $chunk")
-            else
+            if (existingType != null && existingType != type) {
+                // POINTER is compatible with WORD or LONG (size depends on target)
+                val compatible = (existingType==IRDataType.POINTER && type in setOf(IRDataType.WORD, IRDataType.LONG)) ||
+                        (type==IRDataType.POINTER && existingType in setOf(IRDataType.WORD, IRDataType.LONG))
+                if(!compatible)
+                    throw IllegalArgumentException("register $reg given multiple types! $existingType and $type in $chunk")
+            } else
                 regsTypes[reg] = type
         }
 
@@ -1082,7 +1089,7 @@ data class IRInstruction(
 
     private fun determineReg1Type(): IRDataType? {
         if(type==IRDataType.FLOAT) {
-            // some float instructions have an integer (byte or word) register as well in reg1
+            // some float instructions have an integer (byte, word, or pointer) register as well in reg1
             return when (opcode) {
                 Opcode.FFROMUB,
                 Opcode.FFROMSB,
@@ -1094,6 +1101,8 @@ data class IRInstruction(
                 Opcode.STOREZX,
                 Opcode.SGN -> IRDataType.BYTE
                 Opcode.FFROMSL, Opcode.FTOSL -> IRDataType.LONG
+                // LOADI/STOREI with float type: reg1 holds the memory address (pointer)
+                Opcode.LOADI, Opcode.STOREI -> IRDataType.POINTER
                 else -> IRDataType.WORD
             }
         }
@@ -1111,7 +1120,9 @@ data class IRInstruction(
             if(opcode==Opcode.SQRT)
                 return IRDataType.WORD
         }
-        if(opcode in setOf(Opcode.JUMPI, Opcode.CALLI, Opcode.STOREZI, Opcode.LSIGW, Opcode.MSIGW))
+        if(opcode in setOf(Opcode.JUMPI, Opcode.CALLI, Opcode.STOREZI))
+            return IRDataType.POINTER
+        if(opcode in setOf(Opcode.LSIGW, Opcode.MSIGW))
             return IRDataType.WORD
         if(opcode==Opcode.EXT || opcode==Opcode.EXTS)
             return if (type == IRDataType.BYTE) IRDataType.WORD else null
@@ -1126,7 +1137,7 @@ data class IRInstruction(
         if(opcode==Opcode.LOADX || opcode==Opcode.STOREX)
             return IRDataType.BYTE
         if(opcode==Opcode.LOADI || opcode==Opcode.STOREI)
-            return IRDataType.WORD
+            return IRDataType.POINTER
         if(opcode==Opcode.ASRN || opcode==Opcode.LSRN || opcode==Opcode.LSLN)
             return IRDataType.BYTE
         return this.type
@@ -1144,6 +1155,7 @@ data class IRInstruction(
             IRDataType.WORD -> append(".w ")
             IRDataType.LONG -> append(".l ")
             IRDataType.FLOAT -> append(".f ")
+            IRDataType.POINTER -> append(".p ")
             else -> append(" ")
         }
 
@@ -1182,6 +1194,7 @@ data class IRInstruction(
                     IRDataType.WORD -> append("${location}r${it.reg.registerNum.value}.w$cpuReg,")
                     IRDataType.LONG -> append("${location}r${it.reg.registerNum.value}.l$cpuReg,")
                     IRDataType.FLOAT -> append("${location}fr${it.reg.registerNum.value}.f$cpuReg,")
+                    IRDataType.POINTER -> append("${location}r${it.reg.registerNum.value}.p$cpuReg,")
                 }
             }
             if(last() == ',') {
@@ -1204,6 +1217,7 @@ data class IRInstruction(
                             IRDataType.WORD -> append("r${returnspec.registerNum.value}.w")
                             IRDataType.LONG -> append("r${returnspec.registerNum.value}.l")
                             IRDataType.FLOAT -> append("fr${returnspec.registerNum.value}.f")
+                            IRDataType.POINTER -> append("r${returnspec.registerNum.value}.p")
                         }
                     } else {
                         when (returnspec.dt) {
@@ -1211,6 +1225,7 @@ data class IRInstruction(
                             IRDataType.WORD -> append("r${returnspec.registerNum.value}.w@$cpuReg")
                             IRDataType.LONG -> append("r${returnspec.registerNum.value}.l@$cpuReg")
                             IRDataType.FLOAT -> append("fr${returnspec.registerNum.value}.f@$cpuReg")
+                            IRDataType.POINTER -> append("r${returnspec.registerNum.value}.p@$cpuReg")
                         }
                     }
                 }
