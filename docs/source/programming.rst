@@ -1022,7 +1022,7 @@ and ``(true or false) and false`` is false instead of true.
 
 
 swap statement
-^^^^^^^^^^^^^^
+--------------
 .. index:: single: Swapping variables; swap
 
 The ``swap`` keyword swaps the values in two variables without the need of a temporary variable::
