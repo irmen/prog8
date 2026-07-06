@@ -1,10 +1,6 @@
 package prog8.intermediate
 
-import prog8.code.core.BaseDataType
-import prog8.code.core.DataType
-import prog8.code.core.InternalCompilerException
-import prog8.code.core.Position
-import prog8.code.core.toHex
+import prog8.code.core.*
 import prog8.code.source.ImportFileSystem
 import java.nio.file.Path
 import javax.xml.stream.XMLOutputFactory
@@ -497,7 +493,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
             }
             else -> throw InternalCompilerException("weird dt $dt")
         }
-        emitLine("${constant.typeString} ${constant.name}=$value")
+        emitLine("${constant.typeString} ${constant.name}=$value" + if(constant.noPrefix) " noprefix" else "")
     }
 
     private fun writeMemoryMappedVariables() {

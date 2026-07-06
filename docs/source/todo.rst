@@ -3,8 +3,6 @@ TODO
 
 Pointer size is often still a WORD on 68k target instead of long. See transformWithPointerArithmetic() etc.
 
-determineRegXType in IRInstruction class doesn't take the compilation target into account and returns UWORD for pointers on m68k
-
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^

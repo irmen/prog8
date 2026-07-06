@@ -527,17 +527,21 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
             val cv = c.value
             val csn = c.memorySlabName
             if (cv != null) {
-                val label = constLabel(c.name)
-                if (!emitted.add(label)) continue
-                emitRaw("$label = ${cv.toLong()}")
+                if (!c.noPrefix) {
+                    val label = constLabel(c.name)
+                    if (!emitted.add(label)) continue
+                    emitRaw("$label = ${cv.toLong()}")
+                }
                 emitRaw("${fixNameSymbols(c.name)} = ${cv.toLong()}")
             } else if (csn != null) {
                 val slab = program.st.lookup(csn) as? IRStMemorySlab
                 if (slab != null) {
-                    val label = constLabel(c.name)
                     val slabRef = fixNameSymbols(slab.name)
-                    if (!emitted.add(label)) continue
-                    emitRaw("$label = $slabRef")
+                    if (!c.noPrefix) {
+                        val label = constLabel(c.name)
+                        if (!emitted.add(label)) continue
+                        emitRaw("$label = $slabRef")
+                    }
                     emitRaw("${fixNameSymbols(c.name)} = $slabRef")
                 }
             }

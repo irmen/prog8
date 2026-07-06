@@ -222,17 +222,19 @@ class IRFileReader {
     private fun parseConstant(line: String): IRStConstant {
         val match = IRFormat.CONSTANT.matchEntire(line) 
             ?: throw IRParseException("invalid CONSTANT: $line")
-        val (type, name, valueStr) = match.destructured
+        val (type, name, rawValue) = match.destructured
         if('.' !in name)
             throw IRParseException("unscoped name: $name")
         val dt = parseDatatype(type, false)
+        val noPrefix = rawValue.endsWith(" noprefix")
+        val valueStr = if(noPrefix) rawValue.removeSuffix(" noprefix") else rawValue
         val memorySlabName: String? = if(valueStr.startsWith("@$StMemorySlabBlockName.")) {
             valueStr.drop("$StMemorySlabBlockName.".length + 1)
         } else {
             null
         }
         val value: Double? = if(memorySlabName != null) null else parseIRValue(valueStr)
-        return IRStConstant(name, dt, value, memorySlabName)
+        return IRStConstant(name, dt, value, memorySlabName, noPrefix)
     }
 
     private fun parseVariables(reader: XMLEventReader): List<IRStStaticVariable> =

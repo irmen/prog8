@@ -1003,7 +1003,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
             } else {
                 if(structSize==1) {
                     // ptr +/- right, just keep it as it is
-                    val plus = PtBinaryExpression(operator, DataType.UWORD, expr.position)
+                    val plus = PtBinaryExpression(operator, leftDt, expr.position)
                     plus.add(transformExpression(expr.left))
                     plus.add(transformExpression(expr.right))
                     return plus
