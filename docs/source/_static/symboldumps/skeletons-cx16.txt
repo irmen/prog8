@@ -1,6 +1,6 @@
 
 Prog8 compiler v12.3-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit a0b1ca5d in branch master
+Prerelease version from git commit 2c10e2b1 in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-cx16.p8
@@ -9,57 +9,57 @@ Compiler target: cx16
 
 BUILTIN FUNCTIONS
 -----------------
-setlsb
-setmsb
-rol
-ror
-rol2
-ror2
-cmp
-abs
-len
-sizeof
-offsetof
-sgn
-sqrt
-divmod
-lmh
-lsb
-msb
-lsw
-msw
-mkword
-mklong
-mklong2
-clamp
-min
-max
-peek
-peekbool
-peekw
-peekl
-peekf
-poke
-pokebool
-pokebowl
-pokew
-pokel
-pokef
-pokemon
-rsave
-rrestore
-memory
-callfar
-callfar2
-call
-push
-pushw
-pushl
-pushf
-pop
-popw
-popl
-popf
+abs  (ubyte|byte|uword|word|long|float value) -> undefined
+call  (uword address) -> uword
+callfar  (ubyte bank, uword address, uword arg) -> uword
+callfar2  (ubyte bank, uword address, ubyte argA, ubyte argX, ubyte argY, bool argC) -> uword
+clamp  (byte value, byte minimum, byte maximum) -> undefined
+cmp  (ubyte|byte|uword|word|long value1, ubyte|byte|uword|word|long|float value2)
+divmod  (ubyte|uword dividend, ubyte|uword divisor) -> undefined, undefined
+len  (str|array|array_splitw values) -> uword
+lmh  (long value) -> ubyte, ubyte, ubyte
+lsb  (uword|word|long value) -> ubyte
+lsw  (uword|word|long value) -> uword
+max  (byte val1, byte val2) -> undefined
+memory  (str name, uword size, uword alignment) -> uword
+min  (byte val1, byte val2) -> undefined
+mklong  (ubyte msb, ubyte b2, ubyte b1, ubyte lsb) -> long
+mklong2  (uword msw, uword lsw) -> long
+mkword  (ubyte msb, ubyte lsb) -> uword
+msb  (uword|word|long value) -> ubyte
+msw  (uword|word|long value) -> uword
+offsetof  (ubyte field) -> ubyte
+peek  (uword address) -> ubyte
+peekbool  (uword address) -> bool
+peekf  (uword address) -> float
+peekl  (uword address) -> long
+peekw  (uword address) -> uword
+poke  (uword address, ubyte|byte value)
+pokebool  (uword address, bool value)
+pokebowl  (uword address, bool value)
+pokef  (uword address, float value)
+pokel  (uword address, long value)
+pokemon  (uword address, ubyte value) -> ubyte
+pokew  (uword address, uword|word value)
+pop  () -> ubyte
+popf  () -> float
+popl  () -> long
+popw  () -> uword
+push  (ubyte|byte|bool value)
+pushf  (float value)
+pushl  (long value)
+pushw  (uword|word|pointer value)
+rol  (ubyte|uword|long item)
+rol2  (ubyte|uword|long item)
+ror  (ubyte|uword|long item)
+ror2  (ubyte|uword|long item)
+rrestore  ()
+rsave  ()
+setlsb  (word|uword|long variable, byte|ubyte value)
+setmsb  (word|uword|long variable, byte|ubyte value)
+sgn  (ubyte|byte|uword|word|long|float value) -> byte
+sizeof  (ubyte|byte|uword|word|long|float|bool|str|array|array_splitw|pointer|array_pointer|undefined object) -> ubyte
+sqrt  (ubyte|byte|uword|word|long|float value) -> undefined
 
 
 LIBRARY MODULE NAME: adpcm
