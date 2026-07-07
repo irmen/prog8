@@ -1,28 +1,32 @@
 %import textio
 
+; Minimal reproduction of a QEMU m68k divu.w emulation bug.
+;
+; Expected output:
+;   392
+;   100
+;
+; Actual (buggy) output:
+;   41384
+;   100
+
 main {
     sub start() {
-
-            txt.print_l(sys.MAX_LONG)
-            txt.spc()
-            txt.print_ulhex(sys.MAX_LONG, true)
-            txt.nl()
-            txt.print_l(sys.MIN_LONG)
-            txt.spc()
-            txt.print_ulhex(sys.MIN_LONG, true)
-            txt.nl()
-
-
-        txt.print("progstart: ")
-        txt.print_ulhex(sys.progstart(), true)
-        txt.nl()
-        txt.print("progend: ")
-        txt.print_ulhex(sys.progend(), true)
-        txt.nl()
-        txt.print("sizeof pointer: ")
-        txt.print_ub(sys.SIZEOF_POINTER)
+        ; --- Test 1: v=392, q=v/10 ---
+        uword v = 392
+        uword q = v / 10
+        txt.nl()            ;  CRITICAL: if this line is removed, the bug appears. If it is present, bug is gone.
+        txt.print_uw(v)
         txt.nl()
 
-        txt.print("Hello from Prog8 on a m68000 system!\n")
+        ; --- Test 2: v=100, q=v/10 ---
+        v = 100
+        q = v / 10
+        txt.print_uw(v)
+        txt.nl()
+        txt.nl()
+        txt.nl()
+
+        sys.poweroff_system()
     }
 }

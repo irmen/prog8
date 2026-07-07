@@ -982,14 +982,13 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
 
     private fun transformWithPointerArithmetic(expr: BinaryExpression): PtExpression {
         
-        // TODO this pointer arithmethic is using the wrong expression datatype on non-6502 targets
-        
         val operator = expr.operator
         require(operator=="+" || operator=="-")
         // below where '+' is used, you can substitute '-'.
         // pointer arithmetic:  ptr + value
         val leftDt = expr.left.inferType(program).getOrUndef()
         val rightDt = expr.right.inferType(program).getOrUndef()
+        val offsType = addrType.base   // use the target-appropriate offset type (UWORD on 6502, LONG on m68k)
 
         if(leftDt.isPointer && !rightDt.isPointer) {
             val structSize = leftDt.size(program.memsizer)
@@ -1002,7 +1001,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
                 else {
                     val plusorminus = PtBinaryExpression(operator, leftDt, expr.position)
                     plusorminus.add(transformExpression(expr.left))
-                    plusorminus.add(PtNumber(BaseDataType.UWORD, total, expr.position))
+                    plusorminus.add(PtNumber(offsType, total, expr.position))
                     return plusorminus
                 }
             } else {
@@ -1017,14 +1016,14 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
                     val offset: PtExpression
                     if(structSize in powersOfTwoInt) {
                         // don't multiply simply shift
-                        offset = PtBinaryExpression("<<", DataType.UWORD, expr.position)
+                        offset = PtBinaryExpression("<<", addrType, expr.position)
                         offset.add(transformExpression(expr.right))
                         offset.add(PtNumber(BaseDataType.UBYTE, log2(structSize.toDouble()), expr.position))
                     }
                     else {
-                        offset = PtBinaryExpression("*", DataType.UWORD, expr.position)
+                        offset = PtBinaryExpression("*", addrType, expr.position)
                         offset.add(transformExpression(expr.right))
-                        offset.add(PtNumber(BaseDataType.UWORD, structSize.toDouble(), expr.position))
+                        offset.add(PtNumber(offsType, structSize.toDouble(), expr.position))
                     }
                     val plusorminus = PtBinaryExpression(operator, leftDt, expr.position)
                     plusorminus.add(transformExpression(expr.left))
@@ -1043,7 +1042,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
                 else {
                     val plusorminus = PtBinaryExpression(operator, rightDt, expr.position)
                     plusorminus.add(transformExpression(expr.right))
-                    plusorminus.add(PtNumber(BaseDataType.UWORD, total, expr.position))
+                    plusorminus.add(PtNumber(offsType, total, expr.position))
                     return plusorminus
                 }
             } else {
@@ -1058,14 +1057,14 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
                     val offset: PtExpression
                     if(structSize in powersOfTwoInt) {
                         // don't multiply simply shift
-                        offset = PtBinaryExpression("<<", DataType.UWORD, expr.position)
+                        offset = PtBinaryExpression("<<", addrType, expr.position)
                         offset.add(transformExpression(expr.left))
-                        offset.add(PtNumber(BaseDataType.UWORD, log2(structSize.toDouble()), expr.position))
+                        offset.add(PtNumber(BaseDataType.UBYTE, log2(structSize.toDouble()), expr.position))
                     }
                     else {
-                        offset = PtBinaryExpression("*", DataType.UWORD, expr.position)
+                        offset = PtBinaryExpression("*", addrType, expr.position)
                         offset.add(transformExpression(expr.left))
-                        offset.add(PtNumber(BaseDataType.UWORD, structSize.toDouble(), expr.position))
+                        offset.add(PtNumber(offsType, structSize.toDouble(), expr.position))
                     }
                     val plusorminus = PtBinaryExpression(operator, rightDt, expr.position)
                     plusorminus.add(offset)

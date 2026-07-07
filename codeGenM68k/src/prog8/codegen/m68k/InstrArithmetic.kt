@@ -27,7 +27,7 @@ internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
 
         Opcode.INCM -> {
             val target = resolveAddress(addr, label, offset)
-            emitLine("addq${suffixForVar(type, label)}  #1, $target")
+            emitLine("addq${dtSuffix(type)}  #1, $target")
         }
 
         Opcode.DEC -> {
@@ -37,7 +37,7 @@ internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
 
         Opcode.DECM -> {
             val target = resolveAddress(addr, label, offset)
-            emitLine("subq${suffixForVar(type, label)}  #1, $target")
+            emitLine("subq${dtSuffix(type)}  #1, $target")
         }
 
         Opcode.NEG -> {
@@ -47,7 +47,7 @@ internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
 
         Opcode.NEGM -> {
             val target = resolveAddress(addr, label, offset)
-            emitLine("neg${suffixForVar(type, label)}  $target")
+            emitLine("neg${dtSuffix(type)}  $target")
         }
 
         Opcode.ADDR -> {
@@ -66,7 +66,7 @@ internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
         Opcode.ADDM -> {
             val reg = r1 ?: error("ADDM needs reg1")
             val target = resolveAddress(addr, label, offset)
-            val sv = suffixForVar(type, label)
+            val sv = dtSuffix(type)
             emitLine("move$sv  ${regAddr(reg)}, d0")
             emitLine("add$sv  d0, $target")
         }
@@ -87,7 +87,7 @@ internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
         Opcode.SUBM -> {
             val reg = r1 ?: error("SUBM needs reg1")
             val target = resolveAddress(addr, label, offset)
-            val sv = suffixForVar(type, label)
+            val sv = dtSuffix(type)
             emitLine("move$sv  ${regAddr(reg)}, d0")
             emitLine("sub$sv  d0, $target")
         }

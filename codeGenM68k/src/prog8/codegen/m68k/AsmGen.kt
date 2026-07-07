@@ -114,16 +114,6 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
         emitLine("move.l  a0, ${regAddr(reg)}")
     }
 
-    fun isPointerVar(name: String): Boolean {
-        // check whether an IR variable is a pointer type (needs 32-bit access on M68k)
-        val stVar = program.st.lookup(name) as? IRStStaticVariable ?: return false
-        return stVar.dt.isPointer
-    }
-
-    fun suffixForVar(type: IRDataType, varLabel: String?): String =
-        if(type==IRDataType.POINTER) ".l"
-        else if(type==IRDataType.WORD && varLabel!=null && isPointerVar(varLabel)) ".l"
-        else dtSuffix(type)
 
     fun loadIndexToD0(idx: Int) {
         // load an index register into d0, zero-extending to 32 bits

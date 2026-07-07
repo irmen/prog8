@@ -1,7 +1,42 @@
 TODO
 ====
 
-Pointer size is often still a WORD on 68k target instead of long. See transformWithPointerArithmetic() etc.
+possible qemu-m68k TCG emulation bug with divu.w:
+
+%import textio
+
+; Minimal reproduction of a QEMU m68k divu.w TCG emulation bug.
+;
+; Expected output:
+;   392
+;   100
+;
+; Actual (buggy) output on QEMU:
+;   41384
+;   100
+;
+; The bug: after `divu.w #10, d0`, the first subsequent memory-to-memory
+; `move.w abs,abs` reads from BSS return a stale value (41384 instead of 392).
+; This is a QEMU TCG m68k emulation bug where the divuw helper function
+; leaves the memory write buffer in a stale state.
+
+main {
+    sub start() {
+        ; --- Test 1: v=392, q=v/10 ---
+        uword v = 392
+        uword q = v / 10
+        txt.print_uw(v)
+        txt.nl()
+
+        ; --- Test 2: v=100, q=v/10 ---
+        v = 100
+        q = v / 10
+        txt.print_uw(v)
+        txt.nl()
+    }
+}
+
+
 
 
 Future Things and Ideas
