@@ -132,6 +132,7 @@ class AssemblyProgram6502(
 
                 assemblerCommand = addRemainingOptions(command, binFile, assemblyFile)
             }
+            else -> error("Unsupported output type: ${compTarget.defaultOutputType}")
         }
 
         val proc = ProcessBuilder(assemblerCommand)

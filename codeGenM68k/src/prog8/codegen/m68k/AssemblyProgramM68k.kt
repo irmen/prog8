@@ -4,6 +4,7 @@ import prog8.code.assembly.IAssemblyProgram
 import prog8.code.core.CompilationOptions
 import prog8.code.core.ICompilationTarget
 import prog8.code.core.IErrorReporter
+import prog8.code.core.OutputType
 import java.nio.file.Files
 import java.nio.file.Path
 
@@ -40,39 +41,65 @@ class AssemblyProgramM68k(
     }
 
     override fun assemble(options: CompilationOptions, errors: IErrorReporter): Boolean {
-        val objFile = outputDir.resolve("$name.o")
 
-        // Step 1: assemble to ELF object file
-        val assembleCmd = mutableListOf(
-            "vasmm68k_mot",
-            "-Felf",
-            "-no-opt",
-            "-ldots",
-            "-o", objFile.toString(),
-            assemblyFile.toString()
-        )
-        if (options.asmQuiet)
-            assembleCmd.add("-quiet")
-        if (!runProcess(assembleCmd, options.quiet))
-            return false
+        when(options.output) {
+            OutputType.RAW -> {
+                val rawFile = outputDir.resolve("$name.bin")
+                val loadAddr = compTarget.PROGRAM_LOAD_ADDRESS.toInt()
+                val assembleCmd = mutableListOf(
+                    "vasmm68k_mot",
+                    "-Fbin",
+                    "-opt-speed",
+                    "-ldots",
+                    "-join=0x${loadAddr.toString(16)}",
+                    "-o", rawFile.toString(),
+                    assemblyFile.toString()
+                )
+                if (options.asmQuiet)
+                    assembleCmd.add("-quiet")
+                // clean up any leftover ELF/obj files from previous builds
+                Files.deleteIfExists(outputDir.resolve("$name.elf"))
+                Files.deleteIfExists(outputDir.resolve("$name.o"))
+                return runProcess(assembleCmd, options.quiet)
+            }
+            OutputType.ELF -> {
+                // Step 1: assemble to ELF object file
+                val objFile = outputDir.resolve("$name.o")
+                val assembleCmd = mutableListOf(
+                    "vasmm68k_mot",
+                    "-Felf",
+                    "-opt-speed",
+                    "-ldots",
+                    "-o", objFile.toString(),
+                    assemblyFile.toString()
+                )
+                if (options.asmQuiet)
+                    assembleCmd.add("-quiet")
+                if (!runProcess(assembleCmd, options.quiet))
+                    return false
+                // clean up any leftover ELF/obj files from previous builds
+                Files.deleteIfExists(outputDir.resolve("$name.bin"))
 
-        // Step 2: write linker script and link to ELF executable
-        val linkScript = outputDir.resolve("$name.link.ld")
-        val elfFile = elfFile()
-        val resourceUrl = AssemblyProgramM68k::class.java.getResource("/prog8lib/qemu68k/link.ld")
-            ?: error("cannot find /prog8lib/qemu68k/link.ld resource")
-        Files.writeString(linkScript, resourceUrl.readText())
+                // Step 2: write linker script and link to ELF executable
+                val linkScript = outputDir.resolve("$name.link.ld")
+                val elfFile = elfFile()
+                val resourceUrl = AssemblyProgramM68k::class.java.getResource("/prog8lib/qemu68k/link.ld")
+                    ?: error("cannot find /prog8lib/qemu68k/link.ld resource")
+                Files.writeString(linkScript, resourceUrl.readText())
 
-        val linkCmd = listOf(
-            "vlink",
-            "-b", "elf32m68k",
-            "-n",
-            "-T", linkScript.toString(),
-            "-o", elfFile.toString(),
-            objFile.toString()
-        )
-        val linkOk = runProcess(linkCmd, options.quiet)
-        Files.deleteIfExists(linkScript)
-        return linkOk
+                val linkCmd = listOf(
+                    "vlink",
+                    "-b", "elf32m68k",
+                    "-n",
+                    "-T", linkScript.toString(),
+                    "-o", elfFile.toString(),
+                    objFile.toString()
+                )
+                val linkOk = runProcess(linkCmd, options.quiet)
+                Files.deleteIfExists(linkScript)
+                return linkOk
+            }
+            else -> error("Unsupported output type: ${options.output}")
+        }
     }
 }

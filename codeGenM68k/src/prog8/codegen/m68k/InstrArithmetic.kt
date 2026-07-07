@@ -254,7 +254,11 @@ internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
         Opcode.CMPI -> {
             val reg = insn.reg1 ?: error("CMPI needs reg1")
             val value = insn.immediate ?: error("CMPI needs immediate")
-            emitLine("cmpi${dtSuffix(type)}  #${value.and(0xffff)}, ${regAddr(reg)}")
+            // cmpi.x #0, operand can be replaced by the faster tst.x operand
+            if(value.and(0xffff)==0)
+                emitLine("tst${dtSuffix(type)}  ${regAddr(reg)}")
+            else
+                emitLine("cmpi${dtSuffix(type)}  #${value.and(0xffff)}, ${regAddr(reg)}")
         }
 
         else -> error("Unknown arithmetic opcode: ${insn.opcode}")
@@ -386,16 +390,19 @@ private fun AsmGen.emitDivOp(dstReg: Int, srcReg: Int?, type: IRDataType, unsign
         IRDataType.WORD -> {
             when {
                 srcReg != null -> {
+                    emitLine("moveq  #0, d0", "clear upper word for divu.w")
                     emitLine("move.w  ${regAddr(dstReg)}, d0")
                     emitLine("$op.w  ${regAddr(srcReg)}, d0")
                     emitLine("move.w  d0, ${regAddr(dstReg)}", "quotient in low word")
                 }
                 imm != null -> {
+                    emitLine("moveq  #0, d0", "clear upper word for divu.w")
                     emitLine("move.w  ${regAddr(dstReg)}, d0")
                     emitLine("$op.w  #${imm.and(0xffff)}, d0")
                     emitLine("move.w  d0, ${regAddr(dstReg)}", "quotient")
                 }
                 target != null -> {
+                    emitLine("moveq  #0, d0", "clear upper word for divu.w")
                     emitLine("move.w  ${regAddr(dstReg)}, d0")
                     emitLine("$op.w  $target, d0")
                     emitLine("move.w  d0, ${regAddr(dstReg)}", "quotient")
@@ -459,12 +466,15 @@ private fun AsmGen.emitModOp(dstReg: Int, srcReg: Int?, type: IRDataType, unsign
 
         IRDataType.WORD -> {
             // divu.w: remainder in upper 16 bits, swap to get it
+            // note: clear d0 first because move.w preserves upper word on 68030
             when {
                 srcReg != null -> {
+                    emitLine("moveq  #0, d0", "clear upper word for divu.w")
                     emitLine("move.w  ${regAddr(dstReg)}, d0")
                     emitLine("$opDiv.w  ${regAddr(srcReg)}, d0")
                 }
                 imm != null -> {
+                    emitLine("moveq  #0, d0", "clear upper word for divu.w")
                     emitLine("move.w  ${regAddr(dstReg)}, d0")
                     emitLine("$opDiv.w  #${imm.and(0xffff)}, d0")
                 }
@@ -522,13 +532,16 @@ private fun AsmGen.emitDivModOp(dstReg: Int, srcReg: Int?, type: IRDataType, uns
 
         IRDataType.WORD -> {
             // divu.w packs quotient in low word, remainder in high word natively
+            // note: clear d0 first because move.w preserves upper word on 68030
             val opDiv = if (unsigned) "divu.w" else "divs.w"
             when {
                 srcReg != null -> {
+                    emitLine("moveq  #0, d0", "clear upper word for divu.w")
                     emitLine("move.w  ${regAddr(dstReg)}, d0")
                     emitLine("$opDiv  ${regAddr(srcReg)}, d0")
                 }
                 imm != null -> {
+                    emitLine("moveq  #0, d0", "clear upper word for divu.w")
                     emitLine("move.w  ${regAddr(dstReg)}, d0")
                     emitLine("$opDiv  #${imm.and(0xffff)}, d0")
                 }

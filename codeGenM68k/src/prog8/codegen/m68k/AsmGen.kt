@@ -242,7 +242,9 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
         emitConstants()
 
         // Set up stack pointer and jump to program start
-        emitLabel("prog8_program_start")
+        // only needed for RAW (no linker script); ELF uses the linker file's ENTRY directive instead
+        if(options.output == OutputType.RAW)
+            emitLabel("prog8_program_start")
         emitLine("move.l  #${options.memtopAddress.toHex()}, sp", "initialize stack pointer")
         // clear BSS section
         emitLine("lea  prog8_bss_section_start, a0")
@@ -594,6 +596,11 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
         emitRaw("    ALIGN   4")
         emitLabel(REGFILE_LABEL)
         emitLine("ds.b  ${regFileLayout.totalSize}")
+
+        // define the end of the program (used by startup code for BSS clearing)
+        // only needed for RAW (no linker script); ELF uses the linker file instead
+        if(program.options.output == OutputType.RAW)
+            emitLabel("prog8_program_end")
 
         emitRaw("    SECTION .text,code  ; end of bss section")
         emitRaw("")

@@ -3,39 +3,25 @@ TODO
 
 possible qemu-m68k TCG emulation bug with divu.w:
 
+%output elf
 %import textio
 
-; Minimal reproduction of a QEMU m68k divu.w TCG emulation bug.
-;
-; Expected output:
-;   392
-;   100
-;
-; Actual (buggy) output on QEMU:
-;   41384
-;   100
-;
-; The bug: after `divu.w #10, d0`, the first subsequent memory-to-memory
-; `move.w abs,abs` reads from BSS return a stale value (41384 instead of 392).
-; This is a QEMU TCG m68k emulation bug where the divuw helper function
-; leaves the memory write buffer in a stale state.
+; Minimal reproduction of a QEMU m68k divu.w emulation bug.
 
 main {
     sub start() {
         ; --- Test 1: v=392, q=v/10 ---
+        ; Expected output: 392
+        ; Actual (buggy) output: 41384
         uword v = 392
         uword q = v / 10
+        ;txt.nl()            ;  CRITICAL: if this line is removed, the bug appears. If it is present, bug is gone.
         txt.print_uw(v)
         txt.nl()
-
-        ; --- Test 2: v=100, q=v/10 ---
-        v = 100
-        q = v / 10
-        txt.print_uw(v)
-        txt.nl()
+        v = 100             ; CRITICAL: if this line is removed, the bug DISAPPEARS
+        sys.poweroff_system()
     }
 }
-
 
 
 

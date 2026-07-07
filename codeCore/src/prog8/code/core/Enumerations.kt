@@ -169,6 +169,7 @@ enum class OutputType {
     RAW,
     PRG,
     XEX,
+    ELF,
     LIBRARY
 }
 

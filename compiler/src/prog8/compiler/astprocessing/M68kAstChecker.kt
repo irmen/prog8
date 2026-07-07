@@ -58,8 +58,8 @@ internal class M68kAstChecker(private val errors: IErrorReporter) : IAstVisitor 
             }
             "%output" -> {
                 val arg = directive.args.singleOrNull()?.string?.uppercase()
-                if (arg != null && arg != "RAW") {
-                    errors.err("output types other than 'raw' are not available on the m68k target", directive.position)
+                if (arg != null && arg != "RAW" && arg != "ELF") {
+                    errors.err("output types other than 'raw' and 'elf' are not available on the m68k target", directive.position)
                 }
             }
             "%option" -> {

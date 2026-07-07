@@ -496,6 +496,7 @@ Directives
 	- type ``prg`` : C64 program (with load address header)
 	- type ``xex`` : Atari xex program
 	- type ``library`` : loadable library file. See :ref:`loadable_library`.
+	- type ``elf`` : Linux/BSD program (used by select targets to run in a simulator like QEMU)
 
 
 .. index:: pair: Directives; %zeropage

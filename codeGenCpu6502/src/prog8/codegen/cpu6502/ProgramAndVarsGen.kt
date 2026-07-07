@@ -173,6 +173,7 @@ internal class ProgramAndVarsGen(
                         asmgen.out("  jsr  p8_sys_startup.init_system")
                     asmgen.out("  jsr  p8_sys_startup.init_system_phase2")
                 }
+                else -> error("Unsupported output type: ${compTarget.defaultOutputType}")
             }
 
             if (options.zeropage !in arrayOf(ZeropageType.BASICSAFE, ZeropageType.DONTUSE)) {

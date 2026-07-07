@@ -14,7 +14,7 @@ class Qemu68kTarget: ICompilationTarget,
     override val libraryPath = null
     override val customLauncher = emptyList<String>()
     override val additionalAssemblerOptions = emptyList<String>()
-    override val defaultOutputType = OutputType.RAW
+    override val defaultOutputType = OutputType.ELF
     override val defaultLauncherType = CbmPrgLauncherType.NONE
 
     companion object {
@@ -55,19 +55,44 @@ class Qemu68kTarget: ICompilationTarget,
             return
         }
         val elfFile = programNameWithPath.resolveSibling("${programNameWithPath.fileName}.elf")
-        val cmd = listOf(
-            "qemu-system-m68k",
-            "-M", "virt",
-            "-cpu", "m68030",
-            "-m", "1M",
-            "-kernel", elfFile.toString(),
-            "-nographic"
-        )
-        println("Launching QEMU (press Ctrl-A X to exit)...")
+        val binFile = programNameWithPath.resolveSibling("${programNameWithPath.fileName}.bin")
+        val isElf = elfFile.toFile().exists()
+        val cmd = if (isElf) {
+            listOf(
+                "qemu-system-m68k",
+                "-M", "virt",
+                "-cpu", "m68030",
+                "-m", "1M",
+                "-kernel", elfFile.toString(),
+                "-nographic"
+            )
+        } else if (binFile.toFile().exists()) {
+            val loadAddr = PROGRAM_LOAD_ADDRESS.toInt()
+            listOf(
+                "qemu-system-m68k",
+                "-M", "virt",
+                "-cpu", "m68030",
+                "-m", "1M",
+                "-device", "loader,file=${binFile},addr=0x${loadAddr.toString(16)},cpu-num=0",
+                "-nographic"
+            )
+        } else {
+            System.err.println("No .elf or .bin file found for ${programNameWithPath.fileName}")
+            return
+        }
+        val launchMsg = if (isElf) "ELF" else "raw binary"
+        println("Launching QEMU (press Ctrl-A X to exit)... (from $launchMsg)")
         val pb = ProcessBuilder(cmd).inheritIO()
         if (quiet)
             pb.redirectOutput(ProcessBuilder.Redirect.DISCARD)
-        pb.start().waitFor()
+        try {
+            pb.start().waitFor()
+        } catch (_: java.io.IOException) {
+            System.err.println("Cannot launch qemu-system-m68k. Install it via your package manager, e.g.:")
+            System.err.println("  sudo apt install qemu-system-m68k       # Debian/Ubuntu")
+            System.err.println("  sudo pacman -S qemu-system-m68k         # Arch Linux")
+            System.err.println("or build it from source: https://www.qemu.org/download/")
+        }
     }
 
     override fun isIOAddress(address: UInt): Boolean = address>=0xff000000u

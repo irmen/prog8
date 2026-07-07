@@ -419,6 +419,8 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
                 emitLabel("prog8_program_start")
                 emitStartupSequence()
             }
+
+            else -> error("Unsupported output type: ${options.output}")
         }
     }
 
