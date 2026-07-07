@@ -3,6 +3,16 @@
 main {
     sub start() {
 
+            txt.print_l(sys.MAX_LONG)
+            txt.spc()
+            txt.print_ulhex(sys.MAX_LONG, true)
+            txt.nl()
+            txt.print_l(sys.MIN_LONG)
+            txt.spc()
+            txt.print_ulhex(sys.MIN_LONG, true)
+            txt.nl()
+
+
         txt.print("progstart: ")
         txt.print_ulhex(sys.progstart(), true)
         txt.nl()

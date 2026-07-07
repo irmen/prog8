@@ -5,6 +5,7 @@ p8_sys_startup {
 
     sub init_system() {
     }
+
     sub init_system_phase2() {
         %asm {{
             moveq   #0,d0
@@ -15,6 +16,7 @@ p8_sys_startup {
             moveq   #0,d5
             moveq   #0,d6
             moveq   #0,d7
+            move.w  d0,ccr
             suba.l  a0,a0
             suba.l  a1,a1
             suba.l  a2,a2
@@ -24,6 +26,7 @@ p8_sys_startup {
             suba.l  a6,a6
         }}
     }
+
     sub cleanup_at_exit() {
         %asm {{
             movea.l  #qemu.CTRL_REG_CMD,a1

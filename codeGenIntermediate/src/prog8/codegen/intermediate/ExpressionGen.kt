@@ -861,7 +861,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                         addInstr(result, IRInstruction(Opcode.EXTS, type = IRDataType.BYTE, reg1 = wordreg, reg2=tr.resultReg), null)
                         addInstr(result, IRInstruction(Opcode.EXTS, type = IRDataType.WORD, reg1 = actualResultReg2, reg2=wordreg), null)
                     }
-                    BaseDataType.UWORD, BaseDataType.POINTER -> {
+                    BaseDataType.UWORD -> {
                         actualResultReg2 = codeGen.registers.next(IRDataType.LONG)
                         addInstr(result, IRInstruction(Opcode.EXT, type = IRDataType.WORD, reg1 = actualResultReg2, reg2=tr.resultReg), null)
                     }
@@ -872,6 +872,9 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     BaseDataType.FLOAT -> {
                         actualResultReg2 = codeGen.registers.next(IRDataType.LONG)
                         addInstr(result, IRInstruction(Opcode.FTOSL, IRDataType.FLOAT, reg1=actualResultReg2, fpReg1 = RegisterNum(tr.resultFpReg)), null)
+                    }
+                    BaseDataType.POINTER -> {
+                        actualResultReg2 = tr.resultReg
                     }
                     else -> throw AssemblyError("weird cast $valueDt to long ${cast.position}")
                 }
@@ -898,9 +901,9 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 }
             }
             BaseDataType.POINTER -> {
-                require(valueDt.isUnsignedWord || valueDt.isPointer)
+                require(valueDt.isUnsignedWord || valueDt.isPointer || valueDt.isLong)
                 actualResultReg2 = tr.resultReg
-                // no further conversion required, pointers are all just uwords
+                // no further conversion required, pointers are all just uword or long
             }
             BaseDataType.ARRAY_POINTER -> {
                 TODO("typecast to array of pointers $valueDt -> ${cast.type}  ${cast.position}")

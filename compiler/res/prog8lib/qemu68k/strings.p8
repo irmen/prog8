@@ -14,4 +14,7 @@ strings {
             return char + 32
         return char
     }
+
+
+    ; TODO missing routines
 }
