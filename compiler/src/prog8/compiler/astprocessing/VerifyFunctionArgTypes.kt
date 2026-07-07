@@ -108,6 +108,10 @@ internal class VerifyFunctionArgTypes(val program: Program, val options: Compila
             if(paramDt.isUnsignedWord && argDt.isPointer)
                 return true
 
+            // if expected is any pointer and actual is long, we allow it (long is untyped 32-bit pointer)
+            if(paramDt.isPointer && argDt.base==BaseDataType.LONG)
+                return true
+
             if(paramDt.isString && (argDt.isPointer && argDt.sub==BaseDataType.UBYTE))
                 return true
 

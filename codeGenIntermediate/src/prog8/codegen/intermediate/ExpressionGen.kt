@@ -362,7 +362,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
     }
 
     private fun translate(expr: PtAddressOf): ExpressionCodeResult {
-        val vmDt = codeGen.irType(expr.type)
+        val vmDt = IRDataType.POINTER
         // note: LOAD <symbol>  gets you the address of the symbol, whereas LOADM <symbol> would get you the value stored at that location
         val result = mutableListOf<IRCodeChunkBase>()
         val identifier = expr.identifier
@@ -430,7 +430,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             loadAddressOfArrayLabel(resultRegister)
             return ExpressionCodeResult(result, vmDt, resultRegister, -1)
         } else {
-            require(vmDt in setOf(IRDataType.WORD, IRDataType.POINTER))
+            require(vmDt == IRDataType.POINTER)
             val pointerTr = translateExpression(expr.dereference!!.startpointer)
             result += pointerTr.chunks
             val (instructions, offset) = traverseRestOfDerefChainToCalculateFinalAddress(expr.dereference!!, pointerTr.resultReg)

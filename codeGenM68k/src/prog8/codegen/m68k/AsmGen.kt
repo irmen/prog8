@@ -283,6 +283,7 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
         for (block in program.blocks) {
             val blockLabel = fixNameSymbols(block.label)
             emitRaw("; Block: $blockLabel")
+            emitLabel(blockLabel)
             val topLevelSubLabels = block.children.filterIsInstance<IRSubroutine>().map { fixNameSymbols(it.label) }.toSet()
             for (element in block.children) {
                 when (element) {

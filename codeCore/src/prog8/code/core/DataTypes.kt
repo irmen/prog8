@@ -230,16 +230,17 @@ class DataType private constructor(
             else -> throw IllegalArgumentException("not an array")
         }
 
-    fun typeForAddressOf(msb: Boolean): DataType {
+    fun typeForUntypedAddressOf(msb: Boolean, mem: IMemSizer): DataType {
+        val untypedPointerType = if(mem.memorySize(BaseDataType.POINTER)>2) LONG else UWORD
         if (isUndefined)
-            return if(msb) pointer(BaseDataType.UBYTE) else UWORD
+            return if(msb) pointer(BaseDataType.UBYTE) else untypedPointerType
         else {
             if (isBasic)
                 return pointer(base)
             if (isString)
                 return pointer(BaseDataType.UBYTE)
             if (isPointer)
-                return UWORD
+                return untypedPointerType
             if (isArray) {
                 if (msb || isSplitWordArray)
                     return pointer(BaseDataType.UBYTE)
@@ -249,7 +250,7 @@ class DataType private constructor(
             }
             if (subType != null)
                 return pointer(this)
-            return UWORD
+            return untypedPointerType
         }
     }
 
@@ -362,7 +363,7 @@ class DataType private constructor(
             BaseDataType.BYTE -> targetType.base in setOf(BaseDataType.BYTE, BaseDataType.WORD, BaseDataType.LONG, BaseDataType.FLOAT)
             BaseDataType.UWORD -> targetType.base in setOf(BaseDataType.UWORD, BaseDataType.LONG, BaseDataType.FLOAT, BaseDataType.POINTER, BaseDataType.ARRAY_POINTER)
             BaseDataType.WORD -> targetType.base in setOf(BaseDataType.WORD, BaseDataType.LONG, BaseDataType.FLOAT)
-            BaseDataType.LONG -> targetType.base in setOf(BaseDataType.LONG, BaseDataType.FLOAT)
+            BaseDataType.LONG -> targetType.base in setOf(BaseDataType.LONG, BaseDataType.FLOAT, BaseDataType.POINTER, BaseDataType.ARRAY_POINTER)
             BaseDataType.FLOAT -> targetType.base in arrayOf(BaseDataType.FLOAT)
             BaseDataType.STR -> targetType.base in setOf(BaseDataType.STR, BaseDataType.UWORD) || (targetType.isPointer && targetType.sub==BaseDataType.UBYTE)
             BaseDataType.ARRAY, BaseDataType.ARRAY_SPLITW -> targetType.base in setOf(BaseDataType.ARRAY, BaseDataType.ARRAY_SPLITW) && targetType.sub == sub

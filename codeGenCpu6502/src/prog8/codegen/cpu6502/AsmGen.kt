@@ -1787,7 +1787,7 @@ $repeatLabel""")
             }
             else {
                 // all else take its address and assign that also to AY register pair
-                val addrOfDt = returnvalue.type.typeForAddressOf(false)
+                val addrOfDt = returnvalue.type.typeForUntypedAddressOf(false, program.memsizer)
                 val addrofValue = PtAddressOf(addrOfDt, false, returnvalue.position)
                 addrofValue.add(returnvalue)
                 addrofValue.parent = ret.parent

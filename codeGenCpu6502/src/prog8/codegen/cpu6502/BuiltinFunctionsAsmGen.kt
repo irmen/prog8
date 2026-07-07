@@ -2650,7 +2650,7 @@ import prog8.codegen.cpu6502.assignment.*
                         conv.dt==BaseDataType.LONG -> getSourceForLong(value)
                         conv.dt.isPassByRef -> {
                             // put the address of the argument in AY
-                            val addr = PtAddressOf(DataType.forDt(conv.dt).typeForAddressOf(false), false, value.position)
+                            val addr = PtAddressOf(DataType.forDt(conv.dt).typeForUntypedAddressOf(false, program.memsizer), false, value.position)
                             addr.add(value)
                             addr.parent = call
                             AsmAssignSource.fromAstSource(addr, program, asmgen)
@@ -2669,7 +2669,7 @@ import prog8.codegen.cpu6502.assignment.*
                         conv.dt==BaseDataType.LONG -> AsmAssignSource.fromAstSource(value, program, asmgen)
                         conv.dt.isPassByRef -> {
                             // put the address of the argument in AY
-                            val addr = PtAddressOf(DataType.forDt(conv.dt).typeForAddressOf(false), false,value.position)
+                            val addr = PtAddressOf(DataType.forDt(conv.dt).typeForUntypedAddressOf(false, program.memsizer), false,value.position)
                             addr.add(value)
                             addr.parent = call
                             AsmAssignSource.fromAstSource(addr, program, asmgen)

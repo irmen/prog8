@@ -344,7 +344,7 @@ other {
         val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         val irSrc = virtfile.readText()
         // the &main must be encoded as a LOAD with the block name as label symbol
-        irSrc.shouldContain("load.w r1,main")
+        irSrc.shouldContain("load.p r1,main")
         // and the block must have an address that a 6502 backend can resolve
         irSrc.shouldContain($$"""<BLOCK NAME="main" ADDRESS="$1000"""")
         // the other block's subroutine must contain the LOAD

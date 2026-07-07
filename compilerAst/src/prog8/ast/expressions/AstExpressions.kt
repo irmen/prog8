@@ -690,15 +690,17 @@ data class AddressOf(var identifier: IdentifierReference?, var arrayIndex: Array
     }
     override fun referencesIdentifier(nameInSource: List<String>) = identifier?.nameInSource==nameInSource || arrayIndex?.referencesIdentifier(nameInSource)==true || dereference?.referencesIdentifier(nameInSource)==true
     override fun inferType(program: Program): InferredTypes.InferredType {
-        if(!typed)
-            return InferredTypes.knownFor(BaseDataType.UWORD)   // orignal pre-v12 untyped AddressOf
+        if(!typed) {
+            val untypedPointerType = if(program.memsizer.memorySize(BaseDataType.POINTER)>2) BaseDataType.LONG else BaseDataType.UWORD
+            return InferredTypes.knownFor(untypedPointerType)
+        }
         if(identifier!=null) {
             val type = identifier!!.inferType(program).getOrUndef()
-            val addrofDt = type.typeForAddressOf(msb)
+            val addrofDt = type.typeForUntypedAddressOf(msb, program.memsizer)
             return if(addrofDt.isUndefined) InferredTypes.unknown() else InferredTypes.knownFor(addrofDt)
         } else if(dereference!=null) {
             val type = dereference!!.inferType(program).getOrUndef()
-            val addrofDt = type.typeForAddressOf(msb)
+            val addrofDt = type.typeForUntypedAddressOf(msb, program.memsizer)
             return if(addrofDt.isUndefined) InferredTypes.unknown() else InferredTypes.knownFor(addrofDt)
         } else
             throw FatalAstException("invalid addressof")

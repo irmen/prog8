@@ -512,33 +512,32 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                 valueFpRegister = tr.resultFpReg
                 addToResult(result, tr, -1, valueFpRegister)
             } else {
-                val extendByteToWord = if(targetDt != valueDt) {
-                    // usually an error EXCEPT when a byte is assigned to a word.
-                    if(targetDt==IRDataType.WORD && valueDt==IRDataType.BYTE)
-                        true
-                    else if(targetDt==IRDataType.POINTER && valueDt==IRDataType.BYTE)
-                        true
-                    else if(targetDt==IRDataType.POINTER && valueDt in setOf(IRDataType.WORD, IRDataType.LONG))
-                        false
-                    else if(valueDt==IRDataType.POINTER && targetDt in setOf(IRDataType.WORD, IRDataType.LONG))
-                        false
-                    else
-                        throw AssemblyError("assignment value and target dt mismatch")
-                } else false
+                // determine if value needs extension or truncation to match target type
+                // extension happens for byte→word, byte→pointer, or word→long
+                val extendSourceDt = when {
+                    targetDt == valueDt -> null
+                    targetDt==IRDataType.WORD && valueDt==IRDataType.BYTE -> IRDataType.BYTE
+                    targetDt==IRDataType.POINTER && valueDt==IRDataType.BYTE -> IRDataType.BYTE
+                    targetDt==IRDataType.LONG && valueDt==IRDataType.WORD -> IRDataType.WORD
+                    targetDt==IRDataType.POINTER && valueDt in setOf(IRDataType.WORD, IRDataType.LONG) -> null
+                    valueDt==IRDataType.POINTER && targetDt in setOf(IRDataType.WORD, IRDataType.LONG) -> null
+                    valueDt==IRDataType.LONG && targetDt in setOf(IRDataType.WORD, IRDataType.POINTER) -> null
+                    else -> throw AssemblyError("assignment value and target dt mismatch")
+                }
                 if (assignment.value is PtIrRegister) {
                     valueRegister = (assignment.value as PtIrRegister).register
-                    if(extendByteToWord) {
+                    if(extendSourceDt != null) {
                         valueRegister = codeGen.registers.next(IRDataType.WORD)
-                        addInstr(result, IRInstruction(Opcode.EXT, IRDataType.BYTE, reg1=valueRegister, reg2=(assignment.value as PtIrRegister).register), null)
+                        addInstr(result, IRInstruction(Opcode.EXT, extendSourceDt, reg1=valueRegister, reg2=(assignment.value as PtIrRegister).register), null)
                     }
                 } else {
                     val tr = exprGen.translateExpression(assignment.value)
                     valueRegister = tr.resultReg
                     addToResult(result, tr, valueRegister, -1)
-                    if(extendByteToWord) {
+                    if(extendSourceDt != null) {
                         valueRegister = codeGen.registers.next(IRDataType.WORD)
                         val opcode = if(assignment.value.type.isSigned) Opcode.EXTS else Opcode.EXT
-                        addInstr(result, IRInstruction(opcode, IRDataType.BYTE, reg1=valueRegister, reg2=tr.resultReg), null)
+                        addInstr(result, IRInstruction(opcode, extendSourceDt, reg1=valueRegister, reg2=tr.resultReg), null)
                     }
                 }
             }

@@ -2639,7 +2639,7 @@ internal class AstChecker(private val program: Program,
             targetDatatype.isUnsignedByte -> sourceDatatype.isUnsignedByte
             targetDatatype.isSignedWord -> sourceDatatype.isSignedWord || sourceDatatype.isByte
             targetDatatype.isUnsignedWord -> sourceDatatype.isUnsignedWord || sourceDatatype.isUnsignedByte
-            targetDatatype.isLong -> sourceDatatype.isLong
+            targetDatatype.isLong -> sourceDatatype.isLong || sourceDatatype.isWord || sourceDatatype.isByte
             targetDatatype.isFloat -> sourceDatatype.isNumeric
             targetDatatype.isString -> sourceDatatype.isString
             else -> false

@@ -91,10 +91,27 @@ sys {
     }
 
     sub die(ubyte code, str message) {
-        ; -- kill the program by jumping into the debugger/monitor (if available). Status code is in register A, a pointer to the death message is in X,Y.
+        ; -- kill the program: print death message to goldfish TTY, then exit.
         str @shared warning = iso:"\n\nPROGRAM DIED: "
-        ; TODO print die message and exit qemu
-        poweroff_system()
+        %asm {{
+            lea  sys.die.warning,a0
+.loop1:
+            move.b  (a0)+,d0
+            beq  .done1
+            move.l  d0,qemu.TTY_PUT_CHAR
+            bra  .loop1
+.done1:
+            move.l  sys.die.message,a0
+.loop2:
+            move.b  (a0)+,d0
+            beq  .done2
+            move.l  d0,qemu.TTY_PUT_CHAR
+            bra  .loop2
+.done2:
+            moveq  #10,d0
+            move.l  d0,qemu.TTY_PUT_CHAR
+        }}
+        exit(code)
     }
 
     sub wait(uword jiffies) {
@@ -102,33 +119,80 @@ sys {
         ; TODO implement the wait
     }
 
-    sub memcopy(uword source, uword tgt, uword count)  {
-        ; TODO implement memcopy
+; ------- memory routines --------
+
+    sub memcopy(^^ubyte source, ^^ubyte tgt, uword count)  {
+        %asm {{
+            movea.l  sys.memcopy.source,a0
+            movea.l  sys.memcopy.tgt,a1
+            moveq  #0,d2
+            move.w  sys.memcopy.count,d2
+            beq  .done
+            subq.w  #1,d2
+.loop:
+            move.b  (a0)+,(a1)+
+            dbra  d2,.loop
+.done:
+        }}
     }
 
-    sub memset(uword mem, uword numbytes, ubyte value)  {
-        ; TODO implement memset
-    }
+    sub memset(^^ubyte mem, uword numbytes, ubyte value)  {
+        %asm {{
+            movea.l  sys.memset.mem,a0
+            moveq  #0,d1
+            move.w  sys.memset.numbytes,d1
+            beq  .done
+            moveq  #0,d2
+            move.b  sys.memset.value,d2
 
-    sub memsetw(uword mem, uword numwords, uword value)  {
-        ; TODO implement memsetw
-    }
+            ; align address to even for word/longword transfers
+            move.l  a0,d3
+            btst  #0,d3
+            beq  .aligned
+            move.b  d2,(a0)+
+            subq.l  #1,d1
+            beq  .done
 
-    sub memcmp(uword address1, uword address2, uword size) -> byte {
-        ; Compares two blocks of memory of up to 65535 bytes in size
-        ; Returns -1 (255), 0 or 1, meaning: block 1 sorts before, equal or after block 2.
-        ; TODO implement memcmp
-        return 0
+.aligned:
+            ; expand fill byte to all byte positions in d2
+            move.l  d2,d3
+            lsl.l   #8,d3
+            or.l   d3,d2
+            move.l  d2,d3
+            swap   d3
+            or.l   d3,d2
+
+            ; longword fill (4 bytes per iteration)
+            move.l  d1,d0
+            lsr.l   #2,d0
+            beq  .bytes
+            subq.w  #1,d0
+.loop_l:
+            move.l  d2,(a0)+
+            dbra  d0,.loop_l
+
+            ; remaining bytes (0-3)
+.bytes:
+            and.w  #3,d1
+            beq  .done
+            subq.w  #1,d1
+.loop_b:
+            move.b  d2,(a0)+
+            dbra  d1,.loop_b
+.done:
+        }}
     }
 
     sub exit(ubyte returnvalue) {
         ; -- immediately exit the program with a return code in the D0 register
-        ; TODO implement exit
+        %asm {{
+            moveq.l  #0,d0
+            move.b   sys.exit.returnvalue,d0
+        }}
         poweroff_system()
     }
 
     sub set_carry() {
-        ; TODO is this 68000-68030 compatible?
         %asm {{
             moveq  #1,d0
             move.w  d0,ccr
@@ -136,7 +200,6 @@ sys {
     }
 
     sub clear_carry() {
-        ; TODO is this 68000-68030 compatible?
         %asm {{
             moveq  #0,d0
             move.w  d0,ccr

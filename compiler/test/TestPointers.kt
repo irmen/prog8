@@ -18,6 +18,7 @@ import prog8.code.target.C64Target
 import prog8.code.target.Cx16Target
 import prog8.code.target.VMTarget
 import prog8.vm.VmRunner
+import prog8tests.helpers.DummyMemsizer
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
 import kotlin.io.path.readText
@@ -749,23 +750,24 @@ main {
     }
 
     test("internal type for address-of") {
-        DataType.BYTE.typeForAddressOf(false) shouldBe DataType.pointer(BaseDataType.BYTE)
-        DataType.WORD.typeForAddressOf(false) shouldBe DataType.pointer(BaseDataType.WORD)
-        DataType.FLOAT.typeForAddressOf(false) shouldBe DataType.pointer(BaseDataType.FLOAT)
-        DataType.UNDEFINED.typeForAddressOf(false) shouldBe DataType.UWORD
-        DataType.UNDEFINED.typeForAddressOf(true) shouldBe DataType.pointer(BaseDataType.UBYTE)
-        DataType.STR.typeForAddressOf(false) shouldBe DataType.pointer(BaseDataType.UBYTE)
-        DataType.arrayFor(BaseDataType.FLOAT, false).typeForAddressOf(false) shouldBe DataType.pointer(BaseDataType.FLOAT)
-        DataType.arrayFor(BaseDataType.FLOAT, false).typeForAddressOf(true) shouldBe DataType.pointer(BaseDataType.UBYTE)
-        DataType.arrayFor(BaseDataType.UWORD, false).typeForAddressOf(false) shouldBe DataType.pointer(BaseDataType.UWORD)
-        DataType.arrayFor(BaseDataType.UWORD, true).typeForAddressOf(false) shouldBe DataType.pointer(BaseDataType.UBYTE)
-        DataType.arrayFor(BaseDataType.UWORD, false).typeForAddressOf(true) shouldBe DataType.pointer(BaseDataType.UBYTE)
-        DataType.arrayFor(BaseDataType.UWORD, true).typeForAddressOf(true) shouldBe DataType.pointer(BaseDataType.UBYTE)
+        val memsizer = DummyMemsizer
+        DataType.BYTE.typeForUntypedAddressOf(false, memsizer) shouldBe DataType.pointer(BaseDataType.BYTE)
+        DataType.WORD.typeForUntypedAddressOf(false, memsizer) shouldBe DataType.pointer(BaseDataType.WORD)
+        DataType.FLOAT.typeForUntypedAddressOf(false, memsizer) shouldBe DataType.pointer(BaseDataType.FLOAT)
+        DataType.UNDEFINED.typeForUntypedAddressOf(false, memsizer) shouldBe DataType.UWORD
+        DataType.UNDEFINED.typeForUntypedAddressOf(true, memsizer) shouldBe DataType.pointer(BaseDataType.UBYTE)
+        DataType.STR.typeForUntypedAddressOf(false, memsizer) shouldBe DataType.pointer(BaseDataType.UBYTE)
+        DataType.arrayFor(BaseDataType.FLOAT, false).typeForUntypedAddressOf(false, memsizer) shouldBe DataType.pointer(BaseDataType.FLOAT)
+        DataType.arrayFor(BaseDataType.FLOAT, false).typeForUntypedAddressOf(true, memsizer) shouldBe DataType.pointer(BaseDataType.UBYTE)
+        DataType.arrayFor(BaseDataType.UWORD, false).typeForUntypedAddressOf(false, memsizer) shouldBe DataType.pointer(BaseDataType.UWORD)
+        DataType.arrayFor(BaseDataType.UWORD, true).typeForUntypedAddressOf(false, memsizer) shouldBe DataType.pointer(BaseDataType.UBYTE)
+        DataType.arrayFor(BaseDataType.UWORD, false).typeForUntypedAddressOf(true, memsizer) shouldBe DataType.pointer(BaseDataType.UBYTE)
+        DataType.arrayFor(BaseDataType.UWORD, true).typeForUntypedAddressOf(true, memsizer) shouldBe DataType.pointer(BaseDataType.UBYTE)
 
-        DataType.pointer(Struct("struct")).typeForAddressOf(false) shouldBe DataType.UWORD
-        DataType.pointerFromAntlr(listOf("struct")).typeForAddressOf(false) shouldBe DataType.UWORD
+        DataType.pointer(Struct("struct")).typeForUntypedAddressOf(false, memsizer) shouldBe DataType.UWORD
+        DataType.pointerFromAntlr(listOf("struct")).typeForUntypedAddressOf(false, memsizer) shouldBe DataType.UWORD
 
-        DataType.pointer(BaseDataType.BOOL).typeForAddressOf(false) shouldBe DataType.UWORD
+        DataType.pointer(BaseDataType.BOOL).typeForUntypedAddressOf(false, memsizer) shouldBe DataType.UWORD
     }
 
     test("untyped and typed address-of operators") {

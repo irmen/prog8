@@ -848,7 +848,10 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
     }
 
     private fun transform(src: AddressOf): PtAddressOf {
-        val addr = PtAddressOf(src.inferType(program).getOrUndef(), src.typed, src.position, src.msb)
+        var inferredType = src.inferType(program).getOrUndef()
+        if(inferredType.base == BaseDataType.UWORD)
+            inferredType = addrType
+        val addr = PtAddressOf(inferredType, src.typed, src.position, src.msb)
         if(src.identifier!=null)
             addr.add(transform(src.identifier!!))
         if (src.arrayIndex != null)
