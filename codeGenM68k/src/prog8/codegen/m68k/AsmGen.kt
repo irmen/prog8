@@ -436,6 +436,9 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
 
     private fun emitDataSection() {
         val initdVars = program.st.allVariables().filter { !it.inBss }.toList()
+        if (initdVars.isNotEmpty() || dataFloatConstants.isNotEmpty()) {
+            emitRaw("    SECTION .data,data  ; initialized variables (writable)")
+        }
         if (initdVars.isNotEmpty()) {
             emitRaw("    ALIGN  4")
             emitRaw("; static variables with initial values")
@@ -462,6 +465,9 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
                 emitRaw("    dc.b  ${bits.toUByte().toString(10)}")
             }
             emitRaw("")
+        }
+        if (initdVars.isNotEmpty() || dataFloatConstants.isNotEmpty()) {
+            emitRaw("    SECTION .text,code  ; back to code section")
         }
     }
 
