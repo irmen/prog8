@@ -13,7 +13,7 @@ main {
         ;txt.nl()            ;  CRITICAL: if this line is removed, the bug appears. If it is present, bug is gone.
         txt.print_uw(v)
         txt.nl()
-        v = 100             ; CRITICAL: if this line is removed, the bug DISAPPEARS
+        ;v = 100             ; CRITICAL: if this line is removed, the bug DISAPPEARS
         sys.poweroff_system()
     }
 }

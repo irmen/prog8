@@ -42,13 +42,10 @@ internal class M68kAstChecker(private val errors: IErrorReporter) : IAstVisitor 
     override fun visit(directive: Directive) {
         when (directive.directive) {
             "%zeropage", "%zpreserved", "%zpallowed" -> {
-                errors.err("the ${directive.directive} directive is not available on the m68k target (no zero page)", directive.position)
+                errors.warn("the ${directive.directive} directive is not available on the m68k target (no zero page), ignoring", directive.position)
             }
             "%launcher" -> {
                 errors.err("the %launcher directive is not available on the m68k target", directive.position)
-            }
-            "%align" -> {
-                errors.err("the %align directive is not available on the m68k target", directive.position)
             }
             "%address" -> {
                 errors.err("the %address directive is not available on the m68k target", directive.position)
@@ -66,7 +63,7 @@ internal class M68kAstChecker(private val errors: IErrorReporter) : IAstVisitor 
                 for (arg in directive.args) {
                     when (arg.string) {
                         "verafxmuls" -> errors.err("%option verafxmuls is not available on the m68k target", arg.position)
-                        "enable_floats" -> errors.err("%option enable_floats is not available on the m68k target (floats are always enabled)", arg.position)
+                        "enable_floats" -> errors.warn("%option enable_floats is not available on the m68k target (floats are always enabled)", arg.position)
                     }
                 }
             }

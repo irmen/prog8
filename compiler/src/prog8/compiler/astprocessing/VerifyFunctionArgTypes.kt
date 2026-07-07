@@ -98,10 +98,20 @@ internal class VerifyFunctionArgTypes(val program: Program, val options: Compila
                     return true
             }
 
-            // if uword is passed, check if the parameter type is pointer to array element type
+            // if array is passed, check if the parameter type is pointer to array element type
             if(argDt.isArray && paramDt.isPointer) {
                 if(argDt.sub==paramDt.sub)
                     return true
+                // allow if element types have the same memory size (e.g. bool[] ↔ ^^ubyte, byte[] ↔ ^^ubyte, etc.)
+                val aSub = argDt.sub
+                val pSub = paramDt.sub
+                if(aSub!=null && pSub!=null) {
+                    val sameSize = (aSub.isByteOrBool && pSub.isByteOrBool) ||
+                                   (aSub.isWord && pSub.isWord) ||
+                                   (aSub.isLong && pSub.isLong)
+                    if(sameSize)
+                        return true
+                }
             }
 
             // if expected is UWORD and actual is any pointer, we allow it (uword is untyped pointer, for backwards compatibility)
