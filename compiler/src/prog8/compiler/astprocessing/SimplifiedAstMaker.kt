@@ -25,8 +25,10 @@ import kotlin.math.log2
 /**
  *  Convert 'old' compiler-AST into the 'new' simplified AST with baked types.
  */
-class SimplifiedAstMaker(private val program: Program, private val errors: IErrorReporter) {
+class SimplifiedAstMaker(private val program: Program, private val errors: IErrorReporter, private val compilationOptions: CompilationOptions) {
     private val slabDefs = mutableMapOf<String, StMemorySlab>()
+    private val addrType: DataType
+        get() = if(compilationOptions.compTarget.POINTER_MEM_SIZE > 2u) DataType.LONG else DataType.UWORD
     fun transform(): PtProgram {
         // Pre-collect all memory slab reservations from the entire program
         val collector = object : IAstVisitor {
@@ -742,9 +744,9 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
 
     private fun transformSub(srcSub: Subroutine): PtSub {
         val (vardecls, statements) = srcSub.statements.partition { it is VarDecl || it is MemorySlabReservation }
-        // if a sub returns 'str', replace with uword.  Simplified AST and I.R. don't contain 'str' datatype anymore.
+        // if a sub returns 'str', replace with uword/long.  Simplified AST and I.R. don't contain 'str' datatype anymore.
         val returnTypes = srcSub.returntypes.map {
-            if(it.isString) DataType.UWORD else it
+            if(it.isString) addrType else it
         }
         // do not bother about the 'inline' hint of the source subroutine.
         val sub = PtSub(srcSub.name,srcSub.position)
@@ -912,7 +914,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
 
     private fun transform(ref: MemorySlabRef): PtConstant {
         val slab = slabDefs[ref.slabName] ?: throw FatalAstException("referenced memory slab '${ref.slabName}' not defined at ${ref.position}")
-        return PtConstant(ref.slabName, DataType.UWORD, null, slab, ref.position)
+        return PtConstant(ref.slabName, addrType, null, slab, ref.position)
     }
 
     private fun transform(srcExpr: BinaryExpression): PtExpression {

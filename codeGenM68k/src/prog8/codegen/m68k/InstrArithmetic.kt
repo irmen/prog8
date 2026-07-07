@@ -67,8 +67,8 @@ internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
             val reg = r1 ?: error("ADDM needs reg1")
             val target = resolveAddress(addr, label, offset)
             val sv = suffixForVar(type, label)
-            emitLine("move$sv  $target, d0")
-            emitLine("add$sv  d0, ${regAddr(reg)}")
+            emitLine("move$sv  ${regAddr(reg)}, d0")
+            emitLine("add$sv  d0, $target")
         }
 
         Opcode.SUBR -> {
@@ -88,8 +88,8 @@ internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
             val reg = r1 ?: error("SUBM needs reg1")
             val target = resolveAddress(addr, label, offset)
             val sv = suffixForVar(type, label)
-            emitLine("move$sv  $target, d0")
-            emitLine("sub$sv  d0, ${regAddr(reg)}")
+            emitLine("move$sv  ${regAddr(reg)}, d0")
+            emitLine("sub$sv  d0, $target")
         }
 
         // --- Multiply (unsigned) ---

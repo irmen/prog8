@@ -221,8 +221,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
 
 
                 // pointer arithmetic
-                val pointerSize = options.compTarget.memorySize(BaseDataType.POINTER)
-                val indexDt = if(pointerSize > 2) DataType.LONG else DataType.UWORD
+                val indexDt = if(options.compTarget.POINTER_MEM_SIZE > 2u) DataType.LONG else DataType.UWORD
                 if(leftDt.isPointer) {
                     val rightDt = expr.right.inferType(program).getOrUndef()
                     if(rightDt.base != indexDt.base) {
@@ -682,7 +681,9 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
         val modifications = mutableListOf<AstModification>()
         possibleDatatypes.zip(args).forEach {
             val possibleTargetDt = it.first.first()
-            val targetDt = if(possibleTargetDt.isPointer) DataType.UWORD else possibleTargetDt      // use UWORD instead of a pointer type (using words for pointers is allowed without further casting)
+            val targetDt = if(possibleTargetDt.isPointer) {
+                if(options.compTarget.POINTER_MEM_SIZE > 2u) DataType.LONG else DataType.UWORD
+            } else possibleTargetDt
             val argIdt = it.second.inferType(program)
             if (argIdt.isKnown && !targetDt.isStructInstance) {
                 val argDt = argIdt.getOrUndef()

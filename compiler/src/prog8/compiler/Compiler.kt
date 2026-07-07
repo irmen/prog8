@@ -195,7 +195,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                 }
 
                 val (intermediateAst, simplifiedAstDuration2) = measureTimedValue {
-                    val intermediateAst = SimplifiedAstMaker(program, args.errors).transform()
+                    val intermediateAst = SimplifiedAstMaker(program, args.errors, compilationOptions).transform()
                     val stMaker = SymbolTableMaker(intermediateAst, compilationOptions)
                     symbolTable = stMaker.make()
 

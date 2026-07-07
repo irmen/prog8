@@ -153,7 +153,11 @@ sys {
     }
 
     sub progstart() -> long {
-        return $10000          ; fixed for now  TODO should be a linker symbol?
+        %asm {{
+            lea  prog8_program_start,a0
+            move.l  a0,d0
+            rts
+        }}
     }
 
     asmsub progend() -> long @D0 {

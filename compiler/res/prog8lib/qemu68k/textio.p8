@@ -4,6 +4,7 @@
 txt {
     sub chrout(ubyte char) {
         %asm {{
+            moveq.l  #0,d0
             move.b  p8b_txt.p8s_chrout.p8v_char,d0
             move.l  d0,qemu.TTY_PUT_CHAR
         }}
@@ -11,6 +12,10 @@ txt {
 
     sub nl() {
         chrout('\n')
+    }
+
+    sub spc() {
+        chrout(' ')
     }
 
     sub print(str text) {

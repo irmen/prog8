@@ -452,8 +452,7 @@ _after:
         val indexExpr = arrayIndexedExpression.indexer.indexExpr
         val arrayVar = arrayIndexedExpression.plainarrayvar!!.targetVarDecl()
         if(arrayVar!=null && (arrayVar.datatype.isUnsignedWord || arrayVar.datatype.isPointer)) {
-            val pointerSize = target.memorySize(BaseDataType.POINTER)
-            val indexType = if(pointerSize > 2) DataType.LONG else DataType.UWORD
+            val indexType = if(target.POINTER_MEM_SIZE > 2u) DataType.LONG else DataType.UWORD
             val wordIndex = TypecastExpression(indexExpr, indexType, true, indexExpr.position)
             val address = BinaryExpression(
                 arrayIndexedExpression.plainarrayvar!!.copy(),
@@ -981,21 +980,22 @@ _after:
                         val struct = ptrVar.datatype.subType!! as StructDecl
                         val offsetNumber = NumericLiteral.optimalInteger(struct.offsetof(field.first, program.memsizer)!!.toInt(), deref.position)
                         val pointerIdentifier = IdentifierReference(ptrName, deref.position)
+                        val addrType = if(target.POINTER_MEM_SIZE > 2u) DataType.LONG else DataType.UWORD
                         val address: Expression
                         if(ptrVar.datatype.isPointer) {
-                            // pointer[idx].field = value       -->  pokeXXX(pointer as uword + idx*sizeof(Struct) + offsetof(Struct.field), value)
+                            // pointer[idx].field = value       -->  pokeXXX(pointer as uword/long + idx*sizeof(Struct) + offsetof(Struct.field), value)
                             val structSize = ptrVar.datatype.dereference().size(program.memsizer)
-                            val pointerAsUword = TypecastExpression(pointerIdentifier, DataType.UWORD, true, deref.position)
+                            val pointerAsAddr = TypecastExpression(pointerIdentifier, addrType, true, deref.position)
                             val idx = ptr.last().second!!.indexExpr
                             val scaledIndex = BinaryExpression(idx, "*", NumericLiteral(BaseDataType.UWORD, structSize.toDouble(), deref.position), deref.position)
-                            val structAddr = BinaryExpression(pointerAsUword, "+", scaledIndex, deref.position)
+                            val structAddr = BinaryExpression(pointerAsAddr, "+", scaledIndex, deref.position)
                             address = BinaryExpression(structAddr, "+", offsetNumber, deref.position)
                         }
                         else {
-                            // pointerarray[idx].field = value  -->  pokeXXX(pointerarray[idx] as uword + offsetof(Struct.field), value)
+                            // pointerarray[idx].field = value  -->  pokeXXX(pointerarray[idx] as uword/long + offsetof(Struct.field), value)
                             val index = ArrayIndexedExpression(pointerIdentifier, null, null, ptr.last().second!!, deref.position)
-                            val pointerAsUword = TypecastExpression(index, DataType.UWORD, true, deref.position)
-                            address = BinaryExpression(pointerAsUword, "+", offsetNumber, deref.position)
+                            val pointerAsAddr = TypecastExpression(index, addrType, true, deref.position)
+                            address = BinaryExpression(pointerAsAddr, "+", offsetNumber, deref.position)
                         }
 
                         // For augmented assignments, keep as DirectMemoryWrite so the IR codegen can optimize in-place.

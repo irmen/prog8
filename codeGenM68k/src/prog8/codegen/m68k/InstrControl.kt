@@ -197,20 +197,20 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
             val type = insn.type ?: IRDataType.WORD
             when (type) {
                 IRDataType.BYTE -> {
-                    // EXT -> byte: just copy
-                    emitLine("move.b  ${regAddr(srcReg)}, d0")
-                    emitLine("move.b  d0, ${regAddr(dstReg)}")
-                }
-                IRDataType.WORD -> {
-                    // EXT.b -> word: zero-extend byte to word
+                    // zero-extend byte to word
                     emitLine("move.b  ${regAddr(srcReg)}, d0")
                     emitLine($$"and.w  #$ff, d0")
                     emitLine("move.w  d0, ${regAddr(dstReg)}")
                 }
-                IRDataType.LONG -> {
-                    // EXT.w -> long: zero-extend word to long
+                IRDataType.WORD -> {
+                    // zero-extend word to long
                     emitLine("move.w  ${regAddr(srcReg)}, d0")
                     emitLine($$"and.l  #$ffff, d0")
+                    emitLine("move.l  d0, ${regAddr(dstReg)}")
+                }
+                IRDataType.LONG -> {
+                    // no extension needed
+                    emitLine("move.l  ${regAddr(srcReg)}, d0")
                     emitLine("move.l  d0, ${regAddr(dstReg)}")
                 }
                 else -> TODO("EXT for ${type.name}")
@@ -223,18 +223,20 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
             val type = insn.type ?: IRDataType.WORD
             when (type) {
                 IRDataType.BYTE -> {
-                    // sign-extend byte to byte is just a copy
-                    emitLine("move.b  ${regAddr(srcReg)}, d0")
-                    emitLine("move.b  d0, ${regAddr(dstReg)}")
-                }
-                IRDataType.WORD -> {
+                    // sign-extend byte to word
                     emitLine("move.b  ${regAddr(srcReg)}, d0")
                     emitLine("ext.w  d0")
                     emitLine("move.w  d0, ${regAddr(dstReg)}")
                 }
-                IRDataType.LONG -> {
+                IRDataType.WORD -> {
+                    // sign-extend word to long
                     emitLine("move.w  ${regAddr(srcReg)}, d0")
                     emitLine("ext.l  d0")
+                    emitLine("move.l  d0, ${regAddr(dstReg)}")
+                }
+                IRDataType.LONG -> {
+                    // no extension needed
+                    emitLine("move.l  ${regAddr(srcReg)}, d0")
                     emitLine("move.l  d0, ${regAddr(dstReg)}")
                 }
                 else -> TODO("EXTS for ${type.name}")
@@ -553,12 +555,12 @@ private fun AsmGen.translateReturnValue(ret: FunctionCallArgs.RegSpec) {
             emitLine("move$s  $hwReg, ${regAddr(retReg.value)}")
         }
     } else {
-        // Return value via stack
+        // Default: return value in d0 (standard m68k calling convention)
         if (ret.dt == IRDataType.FLOAT) {
-            emitLine("fmove.d  (sp)+, ${regAddr(retReg.value)}")
+            emitLine("fmove.d  d0, ${regAddr(retReg.value)}")
         } else {
             val s = dtSuffix(ret.dt)
-            emitLine("move$s  (sp)+, ${regAddr(retReg.value)}")
+            emitLine("move$s  d0, ${regAddr(retReg.value)}")
         }
     }
 }
