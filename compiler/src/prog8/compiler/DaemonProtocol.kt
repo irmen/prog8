@@ -25,7 +25,6 @@ internal data class DaemonRequest(
     val printAst2: Boolean,
     val ignoreFootguns: Boolean,
     val profilingInstrumentation: Boolean,
-    val nostdlib: Boolean,
     val traceImports: Boolean,
     val symbolDefs: Map<String, String>,
     val sourceDirs: List<String>,
@@ -82,7 +81,6 @@ internal object DaemonProtocol {
         append(prop("printAst2", req.printAst2))
         append(prop("ignoreFootguns", req.ignoreFootguns))
         append(prop("profilingInstrumentation", req.profilingInstrumentation))
-        append(prop("nostdlib", req.nostdlib))
         append(prop("traceImports", req.traceImports))
         append(prop("symbolDefs", req.symbolDefs))
         append(prop("sourceDirs", req.sourceDirs))
@@ -176,7 +174,6 @@ internal object DaemonProtocol {
             printAst2 = map["printAst2"] as Boolean,
             ignoreFootguns = map["ignoreFootguns"] as Boolean,
             profilingInstrumentation = map["profilingInstrumentation"] as Boolean,
-            nostdlib = map["nostdlib"] as Boolean,
             traceImports = map["traceImports"] as Boolean,
             symbolDefs = (map["symbolDefs"] as? Map<*, *>)?.mapKeys { it.key as String }?.mapValues { it.value as String } ?: emptyMap(),
             sourceDirs = (map["sourceDirs"] as? List<*>)?.map { it as String } ?: emptyList(),

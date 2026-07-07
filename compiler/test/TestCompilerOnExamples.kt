@@ -76,7 +76,6 @@ private fun compileTheThing(filepath: Path, optimize: Boolean, target: ICompilat
         printAst2 = false,
         ignoreFootguns = false,
         profilingInstrumentation = false,
-        nostdlib = false,
         symbolDefs = emptyMap(),
         outputDir = outputDir
     )

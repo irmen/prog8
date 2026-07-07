@@ -246,7 +246,6 @@ internal class CompilerDaemon(private val socketPath: Path) {
             printAst2 = printAst2,
             ignoreFootguns = ignoreFootguns,
             profilingInstrumentation = profilingInstrumentation,
-            nostdlib = nostdlib,
             traceImports = traceImports,
             symbolDefs = symbolDefs,
             sourceDirs = sourceDirs,

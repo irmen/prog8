@@ -26,7 +26,6 @@ class ModuleImporter(private val program: Program,
                      libraryDirs: List<String>,
                      val cwd: Path,
                      val quiet: Boolean,
-                     val nostdlib: Boolean = false,
                      val traceImports: Boolean = false) {
 
     private val sourcePaths: List<Path> = sourceDirs.map { Path(it).sanitize() }.distinct()
@@ -121,8 +120,8 @@ class ModuleImporter(private val program: Program,
         // try filesystem first
         var importedModule = getModuleFromFilesystem(moduleName, importingModule, import.position, true)
 
-        // try internal library (unless --nostdlib is active)
-        if(importedModule == null && !nostdlib) {
+        // try internal library
+        if(importedModule == null) {
             val moduleResourceSrc = getModuleFromResource("$moduleName.p8", compilationTargetName, importingModule?.name ?: "~implicit~")
             moduleResourceSrc.onOk {
                 importedModule = importModule(it)
@@ -145,7 +144,7 @@ class ModuleImporter(private val program: Program,
             failure = {
                 if (!suppressError) {
                     val requestedBy = importingModule?.name ?: "~implicit~"
-                    val searchPaths = if(nostdlib) "$searchedPaths (internal libraries disabled)" else "$searchedPaths (and internal libraries)"
+                    val searchPaths = "$searchedPaths (and internal libraries)"
                     errors.err("no module found with name $moduleName (imported by '$requestedBy'). Searched in: $searchPaths", errorPosition)
                 }
                 null
