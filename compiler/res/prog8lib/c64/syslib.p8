@@ -509,6 +509,8 @@ sys {
     const word  MAX_WORD     = 32767
     const uword MIN_UWORD    = 0
     const uword MAX_UWORD    = 65535
+    const long  MIN_LONG     = -2147483648
+    const long  MAX_LONG     = 2147483647
     ; MIN_FLOAT and MAX_FLOAT are defined in the floats module if imported
 
 

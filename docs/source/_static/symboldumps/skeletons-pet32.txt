@@ -1,6 +1,6 @@
 
 Prog8 compiler v12.3-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit 2c10e2b1 in branch master
+Prerelease version from git commit 34eedd1f in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-pet32.p8
@@ -628,11 +628,13 @@ pet  {
 sys  {
     const byte  MAX_BYTE
     const float  MAX_FLOAT
+    const long  MAX_LONG
     const ubyte  MAX_UBYTE
     const uword  MAX_UWORD
     const word  MAX_WORD
     const byte  MIN_BYTE
     const float  MIN_FLOAT
+    const long  MIN_LONG
     const ubyte  MIN_UBYTE
     const uword  MIN_UWORD
     const word  MIN_WORD
