@@ -65,7 +65,6 @@ class CompilerArguments(val filepath: Path,
                         val printAst2: Boolean,
                         val ignoreFootguns: Boolean,
                         val profilingInstrumentation: Boolean,
-                        val nostdlib: Boolean,
                         val traceImports: Boolean = false,
                         val symbolDefs: Map<String, String>,
                         val sourceDirs: List<String> = emptyList(),
@@ -101,7 +100,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
         var symbolTable: SymbolTable? = null
 
         val totalTime = measureTime {
-            val libraryDirs = if(!args.nostdlib && compTarget.libraryPath!=null) listOf(compTarget.libraryPath.toString()) else emptyList()
+            val libraryDirs = if(compTarget.libraryPath!=null) listOf(compTarget.libraryPath.toString()) else emptyList()
             val (parseresult, parseDuration) = measureTimedValue {
                  parseMainModule(
                     args.filepath,
@@ -111,7 +110,6 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                     libraryDirs,
                     args.cwd,
                     args.quietAll,
-                    args.nostdlib,
                     args.traceImports
                 )
             }
@@ -412,13 +410,12 @@ fun parseMainModule(filepath: Path,
                     libraryDirs: List<String>,
                     cwd: Path,
                     quiet: Boolean,
-                    nostdlib: Boolean,
                     traceImports: Boolean): Triple<Program, CompilationOptions, List<Path>> {
     val bf = BuiltinFunctionsFacade(BuiltinFunctions)
     val program = Program(filepath.nameWithoutExtension, bf, compTarget, compTarget)
     bf.program = program
 
-    val importer = ModuleImporter(program, compTarget.name, errors, sourceDirs, libraryDirs, cwd, quiet, nostdlib, traceImports)
+    val importer = ModuleImporter(program, compTarget.name, errors, sourceDirs, libraryDirs, cwd, quiet, traceImports)
     val importedModuleResult = importer.importMainModule(filepath)
     importedModuleResult.onErr { throw it }
     errors.report()

@@ -719,6 +719,12 @@ Provides definitions for the ROM/Kernal subroutines and utility routines dealing
 ``TWOPI``
     float const for the number 2 times Pi
 
+``E``
+    float const for Euler's number, 2.718281828459045...
+
+``EPSILON``
+    float const for the smallest representable floating point value (about 2.94e-39 on CBM machines, 4.9e-324 on the virtual target)
+
 ``atan (x)``
     Arctangent.
 
@@ -777,6 +783,9 @@ Provides definitions for the ROM/Kernal subroutines and utility routines dealing
     Parses the string value as floating point number.
     Warning: this routine may stop working on the Commander X16 when a new ROM version is released,
     because it uses an internal BASIC routine. Then it will require a fix.
+
+``pow (base, power)``
+    Raises the base to the given power.
 
 ``print (x)``
     Prints the floating point number x as a string.

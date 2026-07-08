@@ -47,7 +47,6 @@ internal fun compileFile(
         printAst2 = false,
         ignoreFootguns = false,
         profilingInstrumentation = false,
-        nostdlib = false,
         symbolDefs = emptyMap(),
         outputDir = outputDir,
         errors = errors ?: ErrorReporterForTests(),

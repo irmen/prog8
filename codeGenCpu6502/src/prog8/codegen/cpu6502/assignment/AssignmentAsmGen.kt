@@ -3448,7 +3448,19 @@ $endLabel""")
             BaseDataType.BYTE -> asmgen.out("  jsr  floats.cast_FAC1_as_w_into_ay |  sta  $targetAsmVarName")
             BaseDataType.UWORD -> asmgen.out("  jsr  floats.cast_FAC1_as_uw_into_ya |  sty  $targetAsmVarName |  sta  $targetAsmVarName+1")
             BaseDataType.WORD -> asmgen.out("  jsr  floats.cast_FAC1_as_w_into_ay |  sta  $targetAsmVarName |  sty  $targetAsmVarName+1")
-            BaseDataType.LONG -> TODO("cast float to long")
+            BaseDataType.LONG -> {
+                asmgen.out("""
+                    jsr  floats.QINT
+                    lda  floats.FAC_ADDR+4
+                    sta  $targetAsmVarName
+                    lda  floats.FAC_ADDR+3
+                    sta  $targetAsmVarName+1
+                    lda  floats.FAC_ADDR+2
+                    sta  $targetAsmVarName+2
+                    lda  floats.FAC_ADDR+1
+                    sta  $targetAsmVarName+3
+                """.trimIndent())
+            }
             else -> throw AssemblyError("weird type $targetDt")
         }
     }

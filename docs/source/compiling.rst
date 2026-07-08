@@ -235,14 +235,6 @@ One or more .p8 module files
     Don't perform any code optimizations.
     Useful for debugging or faster compilation cycles.
 
-``-nostdlib``
-    Disable loading of the standard library.
-    Specifically, this disables searching in the **Target Library Directories** and the **Internal Standard Library** in the :ref:`module search path <import-search-path>`.
-    The regular filesystem search in the current directory, ``-srcdirs``, and the neighboring directory
-    of the importing file still occurs.
-    Note that core library modules (``syslib``, ``prog8_math``, ``prog8_lib``) are always loaded regardless of this option,
-    so you must provide these in your own source paths if you use this flag.
-
 ``-out <directory>``
     Sets directory location for output files instead of current directory. Creates it if it doesn't exist yet.
 
@@ -401,10 +393,6 @@ When the compiler encounters an ``%import mymodule`` directive, it searches for 
 * **Current Working Directory**: The directory where the compiler was started from (``.``).
 * **Target Library Directories**: Target-specific library paths on the filesystem (only used by some targets or custom target configurations).
 * **Internal Standard Library**: Built-in modules bundled with the compiler (embedded as internal resources).
-
-.. note::
-   The ``-nostdlib`` command-line option disables searching in both the **Target Library Directories** and the **Internal Standard Library**, allowing for a complete
-   replacement of the standard library while still allowing imports from the filesystem.
 
 This search order allows you to override standard library modules or neighbor modules
 by placing a version with the same name in a higher priority location.
