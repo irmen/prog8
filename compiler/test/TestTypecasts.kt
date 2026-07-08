@@ -1045,6 +1045,8 @@ main {
         float @shared n = 5.0
         float @shared f = sqrt(n)
         long @shared diff = (f as long) - r
+
+        floatcast2()
     }
 
     sub floatcast2() {
