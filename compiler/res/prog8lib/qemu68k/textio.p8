@@ -2,11 +2,10 @@
 %option ignore_unused
 
 txt {
-    sub chrout(ubyte char) {
+    asmsub chrout(ubyte char @D0) {
         %asm {{
-            moveq.l  #0,d0
-            move.b  p8b_txt.p8s_chrout.p8v_char,d0
             move.l  d0,qemu.TTY_PUT_CHAR
+            rts
         }}
     }
 
@@ -92,29 +91,36 @@ txt {
     }
 
     sub iso() {
-    }
-
-    sub iso_off() {
-    }
-
-    sub lowercase() {
-    }
-
-    sub uppercase() {
+        ; is the default
     }
 
     sub cls() {
+        clear_screen()
     }
 
     sub clear_screen() {
+        print("\x1b[2J\x1B[H")
     }
 
     sub home() {
+        print("\x1b[H")
     }
 
     sub rvs_on() {
+        print("\x1b[7m")
     }
 
     sub rvs_off() {
+        print("\x1b[0m")
+    }
+
+    sub color (ubyte txtcol) {
+        print("\x1b[3")
+        chrout('0' + txtcol)
+        chrout('m')
+    }
+
+    sub bell() {
+        chrout(7)
     }
 }

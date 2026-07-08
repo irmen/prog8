@@ -268,7 +268,8 @@ internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
         Opcode.CMP -> {
             val leftReg = insn.reg1 ?: error("CMP needs reg1")
             val rightReg = insn.reg2 ?: error("CMP needs reg2")
-            emitLine("cmp${dtSuffix(type)}  ${regAddr(rightReg)}, ${regAddr(leftReg)}")
+            emitLine("move${dtSuffix(type)}  ${regAddr(leftReg)}, d0")
+            emitLine("cmp${dtSuffix(type)}  ${regAddr(rightReg)}, d0")
         }
 
         Opcode.CMPI -> {
