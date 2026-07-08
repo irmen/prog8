@@ -72,25 +72,25 @@ inline asmsub pow(float base @FAC2, float power @FAC1) -> float @FAC1 {
 
 inline asmsub sin(float angle @FAC1) -> float @FAC1 {
     %asm {{
-        jsr  SIN
+        jsr  floats.SIN
     }}
 }
 
 inline asmsub cos(float angle @FAC1) -> float @FAC1 {
     %asm {{
-        jsr  COS
+        jsr  floats.COS
     }}
 }
 
 inline asmsub tan(float value @FAC1) -> float @FAC1 {
     %asm {{
-        jsr  TAN
+        jsr  floats.TAN
     }}
 }
 
 inline asmsub atan(float value @FAC1) -> float @FAC1 {
     %asm {{
-        jsr  ATN
+        jsr  floats.ATN
     }}
 }
 
@@ -119,7 +119,7 @@ sub cot(float value)    -> float { return 1.0 / tan(value) }
 
 inline asmsub ln(float value @FAC1) -> float @FAC1 {
     %asm {{
-        jsr  LOG
+        jsr  floats.LOG
     }}
 }
 
@@ -161,14 +161,14 @@ _one_over_pi_div_180	.byte 134, 101, 46, 224, 211		; 180 / pi
 
 inline asmsub round(float value @FAC1) -> float @FAC1 {
     %asm {{
-        jsr  FADDH
-        jsr  INT
+        jsr  floats.FADDH
+        jsr  floats.INT
     }}
 }
 
 inline asmsub floor(float value @FAC1) -> float @FAC1 {
     %asm {{
-        jsr  INT
+        jsr  floats.INT
     }}
 }
 
