@@ -690,7 +690,7 @@ fail    clc             ; yes, no match found, return with c=0
 	}
 
     asmsub hash(str string @AY) -> ubyte @A {
-        ; experimental 8 bit hashing function.
+        ; 8 bit hashing function.
         ; hash(-1)=179;  clear carry;  hash(i) = ROL hash(i-1)  XOR  string[i]
         ; On the English word list in /usr/share/dict/words it seems to have a pretty even distribution
         %asm {{

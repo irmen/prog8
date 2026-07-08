@@ -85,6 +85,9 @@ internal class M68kAstChecker(private val errors: IErrorReporter) : IAstVisitor 
         if (decl.splitwordarray == SplitWish.NOSPLIT) {
             errors.err("@nosplit is not available on the m68k target (there are no split word arrays)", decl.position)
         }
+        if (decl.datatype.isSplitWordArray) {
+            errors.err("split word arrays are not supported on the m68k target", decl.position)
+        }
         decl.value?.accept(this)
         decl.arraysize?.accept(this)
     }

@@ -217,7 +217,7 @@ strings {
     alias compare_nocase_iso = strings.compare_nocase
 
     sub hash(str st) -> ubyte {
-        ; experimental 8 bit hashing function.
+        ; 8 bit hashing function.
         ; hash(-1)=179;  hash(i) = ROL hash(i-1)  XOR  string[i]
         ; On the English word list in /usr/share/dict/words it seems to have a pretty even distribution
         ubyte hashcode = 179

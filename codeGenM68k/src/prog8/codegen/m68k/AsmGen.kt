@@ -457,9 +457,9 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
         when {
             dt.isString && init is IRVariableInitializer.Str -> {
                 val bytes = program.encoding.encodeString(init.text, init.encoding)
-                val bytesStr = bytes.joinToString(",") { it.toString(10) }
+                val bytesStr = if(bytes.isNotEmpty()) bytes.joinToString(",") { it.toString(10) } + "," else ""
                 emitLine("$label:")
-                emitLine("dc.b  $bytesStr,0", v.name)
+                emitLine("dc.b  ${bytesStr}0", v.name)
             }
             dt.isArray && init is IRVariableInitializer.Array -> {
                 val elemDt = dt.elementType()
@@ -577,6 +577,20 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
 
             emitLabel(fixNameSymbols(v.name))
             emitLine("ds.b  $size")
+        }
+
+        // memory slabs
+        val slabs = program.st.allMemorySlabs().toList()
+        if(slabs.isNotEmpty()) {
+            emitRaw("")
+            emitRaw("; memory slabs")
+            for(slab in slabs) {
+                val alignment = slab.align.toInt()
+                if(alignment>1)
+                    emitRaw("    ALIGN   $alignment")
+                emitLabel(fixNameSymbols(slab.name))
+                emitLine("ds.b  ${slab.size}")
+            }
         }
 
         // register file (always at the end of BSS variables)

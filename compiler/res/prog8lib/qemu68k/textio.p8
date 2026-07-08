@@ -2,10 +2,9 @@
 %option ignore_unused
 
 txt {
-    asmsub chrout(ubyte char @D0) {
+    inline asmsub chrout(ubyte char @D0) {
         %asm {{
             move.l  d0,qemu.TTY_PUT_CHAR
-            rts
         }}
     }
 

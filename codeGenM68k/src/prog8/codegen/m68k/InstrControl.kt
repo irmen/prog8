@@ -485,7 +485,13 @@ private fun AsmGen.translateCall(fnLabel: String, args: FunctionCallArgs?) {
         }
     }
 
-    emitLine("jsr  $fnLabel")
+    // Check if this call targets an inline asmsub — emit its body directly instead of jsr
+    val inlineTarget = program.allAsmSubs().find { it.label == fnLabel && it.isInline }
+    if (inlineTarget != null) {
+        emitRaw(inlineTarget.asmChunk.assembly)
+    } else {
+        emitLine("jsr  $fnLabel")
+    }
 
     // Move return values back to virtual registers
     if (args != null) {

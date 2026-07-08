@@ -60,7 +60,7 @@ internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
         Opcode.ADD -> {
             val reg = r1 ?: error("ADD needs reg1")
             val value = imm ?: error("ADD needs immediate")
-            emitLine("add${dtSuffix(type)}  #${value.and(0xffff)}, ${regAddr(reg)}")
+            emitLine("add${dtSuffix(type)}  #${immVal(value, type)}, ${regAddr(reg)}")
         }
 
         Opcode.ADDM -> {
@@ -81,7 +81,7 @@ internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
         Opcode.SUB -> {
             val reg = r1 ?: error("SUB needs reg1")
             val value = imm ?: error("SUB needs immediate")
-            emitLine("sub${dtSuffix(type)}  #${value.and(0xffff)}, ${regAddr(reg)}")
+            emitLine("sub${dtSuffix(type)}  #${immVal(value, type)}, ${regAddr(reg)}")
         }
 
         Opcode.SUBM -> {
@@ -275,11 +275,12 @@ internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
         Opcode.CMPI -> {
             val reg = insn.reg1 ?: error("CMPI needs reg1")
             val value = insn.immediate ?: error("CMPI needs immediate")
+            val masked = immVal(value, type)
             // cmpi.x #0, operand can be replaced by the faster tst.x operand
-            if(value.and(0xffff)==0)
+            if(masked==0)
                 emitLine("tst${dtSuffix(type)}  ${regAddr(reg)}")
             else
-                emitLine("cmpi${dtSuffix(type)}  #${value.and(0xffff)}, ${regAddr(reg)}")
+                emitLine("cmpi${dtSuffix(type)}  #$masked, ${regAddr(reg)}")
         }
 
         else -> error("Unknown arithmetic opcode: ${insn.opcode}")
@@ -712,4 +713,11 @@ private fun AsmGen.emitFdivConstant(fpReg: RegisterNum, value: Double) {
     val label = makeFloatConstLabel(value)
     emitLine("lea  $label, a0")
     emitLine("fdiv.s  (a0), ${fpuRegName(fpReg)}")
+}
+
+private fun immVal(value: Int, type: IRDataType): Int = when(type) {
+    IRDataType.BYTE -> value.toInt() and 0xff
+    IRDataType.WORD -> value.toInt() and 0xffff
+    IRDataType.LONG, IRDataType.POINTER -> value.toInt()
+    else -> value.toInt() and 0xffff
 }

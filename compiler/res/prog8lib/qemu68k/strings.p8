@@ -16,6 +16,65 @@ strings {
     }
 
 
+    asmsub length(str string @D0) -> ubyte @D0 {
+        ; Returns the number of bytes in the string up to the first 0-terminator.
+        %asm {{
+            movea.l  d0,a0
+            moveq    #-1,d0
+            bra.s    .enter
+.loop:
+            addq.l   #1,d0
+.enter:
+            tst.b    (a0)+
+            bne      .loop
+            rts
+        }}
+    }
+
+    asmsub compare(str st1 @D0, str st2 @D1) -> byte @D0 {
+        ; Compares two strings for sorting, case-sensitively.
+        ; Returns -1 (255 as byte), 0 or 1.
+        %asm {{
+            movea.l  d0,a0
+            movea.l  d1,a1
+.loop:
+            move.b   (a0)+,d0
+            move.b   (a1)+,d1
+            cmp.b    d1,d0
+            bne      .diff
+            tst.b    d0
+            bne      .loop
+            moveq    #0,d0
+            rts
+.diff:
+            blo      .less
+            moveq    #1,d0
+            rts
+.less:
+            moveq    #-1,d0
+            rts
+        }}
+    }
+
+    asmsub hash(str string @D0) -> ubyte @D0 {
+        ; 8-bit hashing function.
+        ; hashcode = 179;  for each byte: ROL(hashcode) XOR byte
+        %asm {{
+            movea.l  d0,a0
+            moveq    #179,d0
+            moveq    #0,d1
+            move.w   d1,ccr          ; clear flags (X=0 for roxl)
+            bra      .enter
+.loop:
+            roxl.b   #1,d0
+            eor.b    d1,d0
+.enter:
+            move.b   (a0)+,d1
+            bne      .loop
+            rts
+        }}
+    }
+
     asmsub copy(str source @D0, str target @D1) -> ubyte @D0 {
         ; Copy a string to another, overwriting that one.
         ; Returns the length of the string that was copied.
@@ -28,7 +87,7 @@ strings {
             move.b   d2,(a1)+
             beq      .done
             addq.l   #1,d0
-            bra      .loop
+            bra.s    .loop
 .done:
             rts
         }}
