@@ -1,10 +1,7 @@
 package prog8.codegen.m68k
 
 import prog8.code.assembly.IAssemblyProgram
-import prog8.code.core.CompilationOptions
-import prog8.code.core.ICompilationTarget
-import prog8.code.core.IErrorReporter
-import prog8.code.core.OutputType
+import prog8.code.core.*
 import java.nio.file.Files
 import java.nio.file.Path
 
@@ -22,14 +19,30 @@ class AssemblyProgramM68k(
 
     fun elfFile(): Path = outputDir.resolve("$name.elf")
 
-    private fun runProcess(command: List<String>, quiet: Boolean): Boolean {
+    private fun runProcess(command: List<String>, quiet: Boolean, tool: String? = null): Boolean {
         val proc = ProcessBuilder(command).redirectErrorStream(true)
         if (quiet)
             proc.redirectOutput(ProcessBuilder.Redirect.DISCARD)
         val process = try {
             proc.start()
         } catch (e: Exception) {
-            System.err.println("process failed to start: ${e.message}")
+            when {
+                tool=="vasm" -> {
+                    System.err.println("Cannot find '${command[0]}' (vasm assembler for m68k). Install it via your package manager, e.g.:")
+                    System.err.println("  sudo apt install vasm         # Debian/Ubuntu")
+                    System.err.println("  sudo pacman -S vasm           # Arch Linux")
+                    System.err.println("or build it from source: http://sun.hasenbraten.de/vasm/")
+                }
+                tool=="vlink" -> {
+                    System.err.println("Cannot find 'vlink' (linker). Install it via your package manager, e.g.:")
+                    System.err.println("  sudo apt install vlink         # Debian/Ubuntu")
+                    System.err.println("  sudo pacman -S vlink           # Arch Linux")
+                    System.err.println("or build it from source: http://sun.hasenbraten.de/vlink/")
+                }
+                else -> {
+                    System.err.println("process failed to start: ${e.message}")
+                }
+            }
             return false
         }
         if (!quiet) {
@@ -41,13 +54,16 @@ class AssemblyProgramM68k(
     }
 
     override fun assemble(options: CompilationOptions, errors: IErrorReporter): Boolean {
+        val cpu = if (options.compTarget.cpu == CpuType.M68030) "68030"
+            else error("invalid cpu type for m68k codegen ${options.compTarget.cpu}")
 
+        val loadAddr = compTarget.PROGRAM_LOAD_ADDRESS.toInt()
         when(options.output) {
             OutputType.RAW -> {
                 val rawFile = outputDir.resolve("$name.bin")
-                val loadAddr = compTarget.PROGRAM_LOAD_ADDRESS.toInt()
                 val assembleCmd = mutableListOf(
                     "vasmm68k_mot",
+                    "-m$cpu",
                     "-Fbin",
                     "-opt-speed",
                     "-ldots",
@@ -60,13 +76,14 @@ class AssemblyProgramM68k(
                 // clean up any leftover ELF/obj files from previous builds
                 Files.deleteIfExists(outputDir.resolve("$name.elf"))
                 Files.deleteIfExists(outputDir.resolve("$name.o"))
-                return runProcess(assembleCmd, options.quiet)
+                return runProcess(assembleCmd, options.quiet, "vasm")
             }
             OutputType.ELF -> {
                 // Step 1: assemble to ELF object file
                 val objFile = outputDir.resolve("$name.o")
                 val assembleCmd = mutableListOf(
                     "vasmm68k_mot",
+                    "-m$cpu",
                     "-Felf",
                     "-opt-speed",
                     "-ldots",
@@ -75,7 +92,7 @@ class AssemblyProgramM68k(
                 )
                 if (options.asmQuiet)
                     assembleCmd.add("-quiet")
-                if (!runProcess(assembleCmd, options.quiet))
+                if (!runProcess(assembleCmd, options.quiet, "vasm"))
                     return false
                 // clean up any leftover ELF/obj files from previous builds
                 Files.deleteIfExists(outputDir.resolve("$name.bin"))
@@ -95,7 +112,7 @@ class AssemblyProgramM68k(
                     "-o", elfFile.toString(),
                     objFile.toString()
                 )
-                val linkOk = runProcess(linkCmd, options.quiet)
+                val linkOk = runProcess(linkCmd, options.quiet, "vlink")
                 Files.deleteIfExists(linkScript)
                 return linkOk
             }

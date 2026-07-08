@@ -221,7 +221,27 @@ internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
 
         // --- Integer sqrt/square ---
 
-        Opcode.SQRT -> TODO("SQRT (integer)")
+        Opcode.SQRT -> {
+            val dstReg = r1 ?: error("SQRT needs reg1 (output)")
+            val srcReg = r2 ?: error("SQRT needs reg2 (input)")
+            when (type) {
+                IRDataType.BYTE -> {
+                    emitLine("move.b  ${regAddr(srcReg)}, math._sqrt_ub.value", "sqrt byte")
+                    emitLine("jsr  math._sqrt_ub")
+                    emitLine("move.b  d0, ${regAddr(dstReg)}")
+                }
+                IRDataType.WORD -> {
+                    emitLine("move.w  ${regAddr(srcReg)}, math._sqrt_uw.value", "sqrt word")
+                    emitLine("jsr  math._sqrt_uw")
+                    emitLine("move.b  d0, ${regAddr(dstReg)}")
+                }
+                IRDataType.LONG, IRDataType.POINTER -> {
+                    emitLine("move.l  ${regAddr(srcReg)}, math._sqrt_l.value", "sqrt long")
+                    emitLine("jsr  math._sqrt_l")
+                    emitLine("move.w  d0, ${regAddr(dstReg)}")
+                }
+            }
+        }
         Opcode.SQUARE -> {
             val dstReg = r1 ?: error("SQUARE needs reg1")
             val srcReg = r2 ?: error("SQUARE needs reg2")

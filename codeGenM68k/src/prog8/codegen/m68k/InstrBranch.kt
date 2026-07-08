@@ -61,7 +61,7 @@ internal fun AsmGen.translateBranch(insn: IRInstruction) {
         Opcode.BGESR -> cmpBranchSignedReg(insn, label, "bge")
         // BLTSR doesn't exist in IR — uses BGTSR with swapped operands
 
-        else -> TODO("Unknown branch opcode: ${insn.opcode}")
+        else -> error("Unknown branch opcode: ${insn.opcode}")
     }
 }
 

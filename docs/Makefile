@@ -22,6 +22,7 @@ symboldumps:
 	prog8c -target cx16 import-all-cx16.p8 -dumpsymbols > source/_static/symboldumps/skeletons-cx16.txt
 	prog8c -target pet32 import-all-pet32.p8 -dumpsymbols > source/_static/symboldumps/skeletons-pet32.txt
 	prog8c -target virtual import-all-virtual.p8 -dumpsymbols > source/_static/symboldumps/skeletons-virtual.txt
+	prog8c -target qemu68k import-all-qemu68k.p8 -dumpsymbols > source/_static/symboldumps/skeletons-qemu68k.txt
 
 
 # Catch-all target: route all unknown targets to Sphinx using the new

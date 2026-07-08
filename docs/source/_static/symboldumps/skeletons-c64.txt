@@ -1,6 +1,6 @@
 
 Prog8 compiler v12.3-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit 34eedd1f in branch master
+Prerelease version from git commit cb240f6a in branch new-codegens
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-c64.p8
@@ -340,35 +340,35 @@ floats  {
     SQR  () clobbers (A,X,Y) = $bf71
     SQRA  () clobbers (A,X,Y) = $bf74
     TAN  () clobbers (A,X,Y) = $e2b4
-    atan  (float value) -> float
+    atan  (float value @FAC1) -> float @FAC1
     atan2  (float y, float x) -> float
-    ceil  (float value) -> float
+    ceil  (float value @FAC1) -> float @FAC1
     clampf  (float value, float minimum, float maximum) -> float
-    cos  (float angle) -> float
+    cos  (float angle @FAC1) -> float @FAC1
     cot  (float value) -> float
     csc  (float value) -> float
-    deg  (float angle) -> float
-    floor  (float value) -> float
+    deg  (float angle @FAC1) -> float @FAC1
+    floor  (float value @FAC1) -> float @FAC1
     internal_long_AY_to_FAC  ()
     interpolate  (float v, float inputMin, float inputMax, float outputMin, float outputMax) -> float
     lerp  (float v0, float v1, float t) -> float
     lerp_fast  (float v0, float v1, float t) -> float
-    ln  (float value) -> float
-    log2  (float value) -> float
+    ln  (float value @FAC1) -> float @FAC1
+    log2  (float value @FAC1) -> float @FAC1
     maxf  (float f1, float f2) -> float
     minf  (float f1, float f2) -> float
     mod  (float value, float divisor) -> float
     normalize  (float value @FAC1) -> float @FAC1
     parse  (str value @AY) -> float @FAC1
-    pow  (float value, float power) -> float
+    pow  (float base @FAC2, float power @FAC1) -> float @FAC1
     print  (float value @FAC1) clobbers (A,X,Y)
-    rad  (float angle) -> float
+    rad  (float angle @FAC1) -> float @FAC1
     rnd  () -> float
-    rndseed  (float seed)
-    round  (float value) -> float
+    rndseed  (float seed @FAC1)
+    round  (float value @FAC1) -> float @FAC1
     secant  (float value) -> float
-    sin  (float angle) -> float
-    tan  (float value) -> float
+    sin  (float angle @FAC1) -> float @FAC1
+    tan  (float value @FAC1) -> float @FAC1
     time  () -> float @FAC1
     tostr  (float value @FAC1) clobbers (X) -> str @AY
 }

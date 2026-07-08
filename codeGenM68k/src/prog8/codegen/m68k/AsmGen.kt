@@ -276,21 +276,12 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
             val blockLabel = fixNameSymbols(block.label)
             emitRaw("; Block: $blockLabel")
             emitLabel(blockLabel)
-            val topLevelSubLabels = block.children.filterIsInstance<IRSubroutine>().map { fixNameSymbols(it.label) }.toSet()
             for (element in block.children) {
                 when (element) {
-                    is IRSubroutine -> {
-                        val elLabel = fixNameSymbols(element.label)
-                        val isNested = topLevelSubLabels.any { subLabel ->
-                            subLabel != elLabel && elLabel.startsWith("$subLabel.")
-                        }
-                        if (!isNested) emitSubroutine(element)
-                    }
+                    is IRSubroutine -> emitSubroutine(element)
                     is IRAsmSubroutine -> {
                         if (element.isInline) continue
-                        val elLabel = fixNameSymbols(element.label)
-                        val isNested = topLevelSubLabels.any { subLabel -> elLabel.startsWith("$subLabel.") }
-                        if (!isNested) emitAsmSubroutine(element)
+                        emitAsmSubroutine(element)
                     }
                     is IRCodeChunk -> {
                         val cl = element.label?.let { fixNameSymbols(it) }

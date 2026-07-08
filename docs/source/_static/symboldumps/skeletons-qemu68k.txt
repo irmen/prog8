@@ -1,0 +1,373 @@
+
+Prog8 compiler v12.3-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
+Prerelease version from git commit cb240f6a in branch new-codegens
+This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
+
+Compiling program import-all-qemu68k.p8
+Compiler target: qemu68k
+
+
+BUILTIN FUNCTIONS
+-----------------
+abs  (ubyte|byte|uword|word|long|float value) -> undefined
+call  (uword address) -> uword
+callfar  (ubyte bank, uword address, uword arg) -> uword
+callfar2  (ubyte bank, uword address, ubyte argA, ubyte argX, ubyte argY, bool argC) -> uword
+clamp  (byte value, byte minimum, byte maximum) -> undefined
+cmp  (ubyte|byte|uword|word|long value1, ubyte|byte|uword|word|long|float value2)
+divmod  (ubyte|uword dividend, ubyte|uword divisor) -> undefined, undefined
+len  (str|array|array_splitw values) -> uword
+lmh  (long value) -> ubyte, ubyte, ubyte
+lsb  (uword|word|long value) -> ubyte
+lsw  (uword|word|long value) -> uword
+max  (byte val1, byte val2) -> undefined
+memory  (str name, uword size, uword alignment) -> uword
+min  (byte val1, byte val2) -> undefined
+mklong  (ubyte msb, ubyte b2, ubyte b1, ubyte lsb) -> long
+mklong2  (uword msw, uword lsw) -> long
+mkword  (ubyte msb, ubyte lsb) -> uword
+msb  (uword|word|long value) -> ubyte
+msw  (uword|word|long value) -> uword
+offsetof  (ubyte field) -> ubyte
+peek  (uword address) -> ubyte
+peekbool  (uword address) -> bool
+peekf  (uword address) -> float
+peekl  (uword address) -> long
+peekw  (uword address) -> uword
+poke  (uword address, ubyte|byte value)
+pokebool  (uword address, bool value)
+pokebowl  (uword address, bool value)
+pokef  (uword address, float value)
+pokel  (uword address, long value)
+pokemon  (uword address, ubyte value) -> ubyte
+pokew  (uword address, uword|word value)
+pop  () -> ubyte
+popf  () -> float
+popl  () -> long
+popw  () -> uword
+push  (ubyte|byte|bool value)
+pushf  (float value)
+pushl  (long value)
+pushw  (uword|word|pointer value)
+rol  (ubyte|uword|long item)
+rol2  (ubyte|uword|long item)
+ror  (ubyte|uword|long item)
+ror2  (ubyte|uword|long item)
+rrestore  ()
+rsave  ()
+setlsb  (word|uword|long variable, byte|ubyte value)
+setmsb  (word|uword|long variable, byte|ubyte value)
+sgn  (ubyte|byte|uword|word|long|float value) -> byte
+sizeof  (ubyte|byte|uword|word|long|float|bool|str|array|array_splitw|pointer|array_pointer|undefined object) -> ubyte
+sqrt  (ubyte|byte|uword|word|long|float value) -> undefined
+
+
+LIBRARY MODULE NAME: buffers
+----------------------------
+
+smallringbuffer  {
+    ubyte[]  buffer
+    ubyte  fill
+    ubyte  head
+    ubyte  tail
+    free  () -> ubyte
+    get  () -> ubyte
+    getw  () -> uword
+    init  ()
+    isempty  () -> bool
+    isfull  () -> bool
+    put  (ubyte value)
+    putw  (uword value)
+    size  () -> ubyte
+}
+
+smallstack  {
+    ubyte[]  buffer
+    ubyte  sp
+    free  () -> ubyte
+    init  ()
+    isempty  () -> bool
+    isfull  () -> bool
+    pop_b  () -> ubyte
+    pop_w  () -> uword
+    push_b  (ubyte value)
+    push_w  (uword value)
+    size  () -> ubyte
+}
+
+stack  {
+    uword  buffer_ptr
+    uword  sp
+    free  () -> uword
+    init  ()
+    isempty  () -> bool
+    isfull  () -> bool
+    pop_b  () -> ubyte
+    pop_w  () -> uword
+    push_b  (ubyte value)
+    push_w  (uword value)
+    size  () -> uword
+}
+
+ringbuffer  {
+    uword  buffer_ptr
+    uword  fill
+    uword  head
+    uword  tail
+    free  () -> uword
+    get  () -> ubyte
+    getw  () -> uword
+    inc_head  ()
+    inc_tail  ()
+    init  ()
+    isempty  () -> bool
+    isfull  () -> bool
+    put  (ubyte value)
+    putw  (uword value)
+    size  () -> uword
+}
+
+
+LIBRARY MODULE NAME: compression
+--------------------------------
+
+compression  {
+    decode_rle  (^^ubyte compressed, ^^ubyte target, uword maxsize) -> uword
+    encode_rle  (^^ubyte data, uword size, ^^ubyte target, bool is_last_block) -> uword
+}
+
+
+LIBRARY MODULE NAME: conv
+-------------------------
+
+conv  {
+    str  hex_digits
+    str  string_out
+    any2uword  (str string) -> uword, ubyte
+    bin2uword  (str string) -> uword
+    hex2long  (str string) -> long
+    hex2uword  (str string) -> uword
+    str2byte  (str string) -> byte
+    str2long  (str string) -> long
+    str2ubyte  (str string) -> ubyte
+    str2uword  (str string) -> uword
+    str2word  (str string) -> word
+    str_b  (byte value) -> str
+    str_l  (long value) -> str
+    str_ub  (ubyte value) -> str
+    str_ub0  (ubyte value) -> str
+    str_ubbin  (ubyte value) -> str
+    str_ubhex  (ubyte value) -> str
+    str_ulhex  (long value) -> str
+    str_uw  (uword value) -> str
+    str_uw0  (uword value) -> str
+    str_uwbin  (uword value) -> str
+    str_uwhex  (uword value) -> str
+    str_w  (word value) -> str
+}
+
+
+LIBRARY MODULE NAME: floats
+---------------------------
+
+floats  {
+    const float  E
+    const float  EPSILON
+    const float  PI
+    const float  TWOPI
+    const float  π
+}
+
+
+LIBRARY MODULE NAME: lineclip
+-----------------------------
+
+lineclip  {
+    clip  (word x1, word y1, word x2, word y2) -> bool, word, word, word, word
+    inside  (word x, word y) -> bool
+    set_cliprect  (word x1, word y1, word x2, word y2)
+}
+
+
+LIBRARY MODULE NAME: math
+-------------------------
+
+math  {
+    ubyte  a1
+    ubyte  b1
+    ubyte  c1
+    ubyte  x1
+    cos8  (ubyte angle) -> byte
+    cos8u  (ubyte angle) -> ubyte
+    cosr8  (ubyte radians) -> byte
+    cosr8u  (ubyte radians) -> ubyte
+    randrange  (ubyte n) -> ubyte
+    randrangew  (uword n) -> uword
+    rnd  () -> ubyte
+    rndseed  (uword seed1, uword seed2)
+    rndw  () -> uword
+    sin8  (ubyte angle) -> byte
+    sin8u  (ubyte angle) -> ubyte
+    sinr8  (ubyte radians) -> byte
+    sinr8u  (ubyte radians) -> ubyte
+}
+
+
+LIBRARY MODULE NAME: sorting
+----------------------------
+
+sorting  {
+    gnomesort_by_ub  (^^ubyte ub_keys, ^^uword wordvalues, ubyte num_elements)
+    gnomesort_by_uw  (uword uw_keys, uword wordvalues, ubyte num_elements)
+    gnomesort_ub  (^^ubyte bytearray @AY, ubyte num_elements @X)
+    gnomesort_uw  (uword wordvalues, ubyte num_elements)
+    shellsort_by_ub  (^^ubyte ub_keys, ^^uword wordvalues, ubyte num_elements)
+    shellsort_by_uw  (^^uword uw_keys, ^^uword wordvalues, ubyte num_elements)
+    shellsort_pointers  (uword pointers, ubyte num_elements, uword comparefunc)
+    shellsort_ub  (^^ubyte values, ubyte num_elements)
+    shellsort_uw  (^^uword values, ubyte num_elements)
+    string_comparator  (str string1 @R0, str string2 @R1) -> bool @Pc
+}
+
+
+LIBRARY MODULE NAME: strings
+----------------------------
+
+strings  {
+    isdigit  (ubyte char) -> bool
+    isxdigit  (ubyte char) -> bool
+    lowerchar  (ubyte char) -> ubyte
+}
+
+
+LIBRARY MODULE NAME: syslib
+---------------------------
+
+qemu  {
+    const ubyte  CTRL_CMD_HALT
+    const ubyte  CTRL_CMD_NOOP
+    const ubyte  CTRL_CMD_PANIC
+    const ubyte  CTRL_CMD_RESET
+    const long  CTRL_REG_CMD
+    const long  CTRL_REG_FEATURES
+    const long  GF_PIC_BASE
+    const long  GF_RTC_BASE
+    const long  GF_TTY_BASE
+    const ubyte  PIC_REG_DISABLE
+    const ubyte  PIC_REG_ENABLE
+    const ubyte  PIC_REG_IRQ_DISABLE_ALL
+    const ubyte  PIC_REG_IRQ_PENDING
+    const ubyte  PIC_REG_STATUS
+    const ubyte  RTC_ALARM_HIGH
+    const ubyte  RTC_ALARM_LOW
+    const ubyte  RTC_ALARM_STATUS
+    const ubyte  RTC_CLEAR_ALARM
+    const ubyte  RTC_CLEAR_INTERRUPT
+    const ubyte  RTC_IRQ_ENABLED
+    const ubyte  RTC_TIME_HIGH
+    const ubyte  RTC_TIME_LOW
+    const long  TTY_BYTES_READY
+    const long  TTY_CMD
+    const ubyte  TTY_CMD_INT_DISABLE
+    const ubyte  TTY_CMD_INT_ENABLE
+    const ubyte  TTY_CMD_READ_BUFFER
+    const ubyte  TTY_CMD_WRITE_BUFFER
+    const long  TTY_DATA_LEN
+    const long  TTY_DATA_PTR
+    const long  TTY_DATA_PTR_HIGH
+    const long  TTY_PUT_CHAR
+    const long  TTY_VERSION
+    const long  VIRTIO_BASE
+    const long  VIRT_CTRL_BASE
+}
+
+sys  {
+    const byte  MAX_BYTE
+    const long  MAX_LONG
+    const ubyte  MAX_UBYTE
+    const uword  MAX_UWORD
+    const word  MAX_WORD
+    const byte  MIN_BYTE
+    const long  MIN_LONG
+    const ubyte  MIN_UBYTE
+    const uword  MIN_UWORD
+    const word  MIN_WORD
+    const ubyte  SIZEOF_BOOL
+    const ubyte  SIZEOF_BYTE
+    const ubyte  SIZEOF_FLOAT
+    const ubyte  SIZEOF_LONG
+    const ubyte  SIZEOF_POINTER
+    const ubyte  SIZEOF_UBYTE
+    const ubyte  SIZEOF_UWORD
+    const ubyte  SIZEOF_WORD
+    const ubyte  target
+    clear_carry  ()
+    clear_irqd  ()
+    die  (ubyte code, str message)
+    exit  (ubyte returnvalue)
+    memcopy  (^^ubyte source, ^^ubyte tgt, uword count)
+    memset  (^^ubyte mem, uword numbytes, ubyte value)
+    poweroff_system  ()
+    progend  () -> long @D0
+    progstart  () -> long
+    reset_system  ()
+    set_carry  ()
+    set_irqd  ()
+    wait  (uword jiffies)
+}
+
+
+LIBRARY MODULE NAME: textio
+---------------------------
+
+txt  {
+    chrout  (ubyte char)
+    clear_screen  ()
+    cls  ()
+    home  ()
+    iso  ()
+    iso_off  ()
+    lowercase  ()
+    nl  ()
+    print  (str text)
+    print_b  (byte value)
+    print_bool  (bool value)
+    print_l  (long value)
+    print_ub  (ubyte value)
+    print_ub0  (ubyte value)
+    print_ubbin  (ubyte value, bool prefix)
+    print_ubhex  (ubyte value, bool prefix)
+    print_ulhex  (long value, bool prefix)
+    print_uw  (uword value)
+    print_uw0  (uword value)
+    print_uwbin  (uword value, bool prefix)
+    print_uwhex  (uword value, bool prefix)
+    print_w  (word value)
+    rvs_off  ()
+    rvs_on  ()
+    spc  ()
+    uppercase  ()
+}
+
+
+LIBRARY MODULE NAME: wavfile
+----------------------------
+
+wavfile  {
+    const ubyte  Format::ADPCM
+    const ubyte  Format::ALAW
+    const ubyte  Format::DVI_ADPCM
+    const ubyte  Format::IEEE_FLOAT
+    const ubyte  Format::MULAW
+    const ubyte  Format::PCM
+    ubyte  bits_per_sample
+    uword  block_align
+    uword  data_offset
+    long  data_size
+    ubyte  nchannels
+    uword  sample_rate
+    ubyte  wavefmt
+    parse_header  (^^ubyte wav_data) -> bool
+}
+
+
