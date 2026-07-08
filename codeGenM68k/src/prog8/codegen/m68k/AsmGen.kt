@@ -24,7 +24,7 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
     }
 
     init {
-        require(target.cpu == CpuType.M68030) { "M68k codegen requires M68030 CPU" }
+        require(target.cpu == CpuType.M68020) { "M68k codegen requires M68020 cpu" }
     }
 
     private var labelSeqCounter = 0
@@ -163,7 +163,7 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
         }
     }
 
-    // === FPU helpers (M68030 with 68881/68882) ===
+    // === FPU helpers (M680x0 with 68881/68882) ===
 
     fun fpuRegName(regNum: RegisterNum): String = "fp${regNum.value}"
 
@@ -434,14 +434,10 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
         if (dataFloatConstants.isNotEmpty()) {
             if (initdVars.isEmpty())
                 emitRaw("    ALIGN  4")
-            emitRaw("; float constants (double precision, 8 bytes each)")
+            emitRaw("; float constants (single precision, 4 bytes each)")
             for ((label, value) in dataFloatConstants) {
-                val bits = value.toRawBits()
+                val bits = value.toFloat().toRawBits()
                 emitRaw("$label:")
-                emitRaw("    dc.b  ${(bits ushr 56).toUByte().toString(10)}")
-                emitRaw("    dc.b  ${(bits ushr 48).toUByte().toString(10)}")
-                emitRaw("    dc.b  ${(bits ushr 40).toUByte().toString(10)}")
-                emitRaw("    dc.b  ${(bits ushr 32).toUByte().toString(10)}")
                 emitRaw("    dc.b  ${(bits ushr 24).toUByte().toString(10)}")
                 emitRaw("    dc.b  ${(bits ushr 16).toUByte().toString(10)}")
                 emitRaw("    dc.b  ${(bits ushr 8).toUByte().toString(10)}")

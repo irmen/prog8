@@ -54,8 +54,10 @@ class AssemblyProgramM68k(
     }
 
     override fun assemble(options: CompilationOptions, errors: IErrorReporter): Boolean {
-        val cpu = if (options.compTarget.cpu == CpuType.M68030) "68030"
-            else error("invalid cpu type for m68k codegen ${options.compTarget.cpu}")
+        val cpu = when(options.compTarget.cpu) {
+            CpuType.M68020 -> "68020"
+            else -> error("invalid cpu type for m68k codegen ${options.compTarget.cpu}")
+        }
 
         val loadAddr = compTarget.PROGRAM_LOAD_ADDRESS.toInt()
         when(options.output) {
@@ -64,6 +66,7 @@ class AssemblyProgramM68k(
                 val assembleCmd = mutableListOf(
                     "vasmm68k_mot",
                     "-m$cpu",
+                    "-m68881",  // enable FPU
                     "-Fbin",
                     "-opt-speed",
                     "-ldots",
@@ -84,6 +87,7 @@ class AssemblyProgramM68k(
                 val assembleCmd = mutableListOf(
                     "vasmm68k_mot",
                     "-m$cpu",
+                    "-m68881",  // enable FPU
                     "-Felf",
                     "-opt-speed",
                     "-ldots",

@@ -26,13 +26,13 @@ fun main(args: Array<String>) {
     println("Target system and CPU: ${target.name} / ${target.cpu}")
 
     when(target.cpu) {
-        CpuType.M68030 -> {
+        CpuType.M68020 -> {
             val gen = AsmGen(program, target)
             gen.generate()
             println("Generated assembly: ${program.name}.asm")
         }
         else -> {
-            error("This code generator only works for m68030 CPUs.")
+            error("This code generator only works for M68020 CPU.")
         }
     }
 }

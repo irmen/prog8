@@ -604,14 +604,14 @@ private fun AsmGen.translateFloatArithmetic(insn: IRInstruction) {
     val fpReg2 = insn.fpReg2
 
     when (insn.opcode) {
-        Opcode.INC -> emitLine("fadd.d  #1.0, ${fpuRegName(fpReg1)}")
-        Opcode.DEC -> emitLine("fsub.d  #1.0, ${fpuRegName(fpReg1)}")
+        Opcode.INC -> emitLine("fadd.s  #1.0, ${fpuRegName(fpReg1)}")
+        Opcode.DEC -> emitLine("fsub.s  #1.0, ${fpuRegName(fpReg1)}")
 
-        Opcode.NEG -> emitLine("fneg.d  ${fpuRegName(fpReg1)}, ${fpuRegName(fpReg1)}")
+        Opcode.NEG -> emitLine("fneg  ${fpuRegName(fpReg1)}, ${fpuRegName(fpReg1)}")
 
         Opcode.ADDR -> {
             val src = fpReg2 ?: error("ADDR.f needs fpReg2")
-            emitLine("fadd.d  ${fpuRegName(src)}, ${fpuRegName(fpReg1)}")
+            emitLine("fadd  ${fpuRegName(src)}, ${fpuRegName(fpReg1)}")
         }
 
         Opcode.ADD -> when {
@@ -621,7 +621,7 @@ private fun AsmGen.translateFloatArithmetic(insn: IRInstruction) {
 
         Opcode.SUBR -> {
             val src = fpReg2 ?: error("SUBR.f needs fpReg2")
-            emitLine("fsub.d  ${fpuRegName(src)}, ${fpuRegName(fpReg1)}")
+            emitLine("fsub  ${fpuRegName(src)}, ${fpuRegName(fpReg1)}")
         }
 
         Opcode.SUB -> when {
@@ -631,7 +631,7 @@ private fun AsmGen.translateFloatArithmetic(insn: IRInstruction) {
 
         Opcode.MULR -> {
             val src = fpReg2 ?: error("MULR.f needs fpReg2")
-            emitLine("fmul.d  ${fpuRegName(src)}, ${fpuRegName(fpReg1)}")
+            emitLine("fmul  ${fpuRegName(src)}, ${fpuRegName(fpReg1)}")
         }
 
         Opcode.MUL -> when {
@@ -641,7 +641,7 @@ private fun AsmGen.translateFloatArithmetic(insn: IRInstruction) {
 
         Opcode.DIVR -> {
             val src = fpReg2 ?: error("DIVR.f needs fpReg2")
-            emitLine("fdiv.d  ${fpuRegName(src)}, ${fpuRegName(fpReg1)}")
+            emitLine("fdiv  ${fpuRegName(src)}, ${fpuRegName(fpReg1)}")
         }
 
         Opcode.DIV -> when {
@@ -652,7 +652,7 @@ private fun AsmGen.translateFloatArithmetic(insn: IRInstruction) {
         // signed float multiply/divide are the same as unsigned for floats
         Opcode.MULSR -> {
             val src = fpReg2 ?: error("MULSR.f needs fpReg2")
-            emitLine("fmul.d  ${fpuRegName(src)}, ${fpuRegName(fpReg1)}")
+            emitLine("fmul  ${fpuRegName(src)}, ${fpuRegName(fpReg1)}")
         }
 
         Opcode.MULS -> when {
@@ -662,7 +662,7 @@ private fun AsmGen.translateFloatArithmetic(insn: IRInstruction) {
 
         Opcode.DIVSR -> {
             val src = fpReg2 ?: error("DIVSR.f needs fpReg2")
-            emitLine("fdiv.d  ${fpuRegName(src)}, ${fpuRegName(fpReg1)}")
+            emitLine("fdiv  ${fpuRegName(src)}, ${fpuRegName(fpReg1)}")
         }
 
         Opcode.DIVS -> when {
@@ -672,12 +672,12 @@ private fun AsmGen.translateFloatArithmetic(insn: IRInstruction) {
 
         Opcode.SQRT -> {
             val src = fpReg2 ?: error("SQRT.f needs fpReg2")
-            emitLine("fsqrt.d  ${fpuRegName(src)}, ${fpuRegName(fpReg1)}")
+            emitLine("fsqrt  ${fpuRegName(src)}, ${fpuRegName(fpReg1)}")
         }
 
         Opcode.SQUARE -> {
             val src = fpReg2 ?: error("SQUARE.f needs fpReg2")
-            emitLine("fmul.d  ${fpuRegName(src)}, ${fpuRegName(fpReg1)}")
+            emitLine("fmul  ${fpuRegName(src)}, ${fpuRegName(fpReg1)}")
         }
 
         else -> TODO("FLOAT arithmetic: ${insn.opcode}")
@@ -686,11 +686,11 @@ private fun AsmGen.translateFloatArithmetic(insn: IRInstruction) {
 
 private fun AsmGen.emitFaddConstant(fpReg: RegisterNum, value: Double) {
     when {
-        value == 1.0 -> emitLine("fadd.d  #1.0, ${fpuRegName(fpReg)}")
+        value == 1.0 -> emitLine("fadd.s  #1.0, ${fpuRegName(fpReg)}")
         else -> {
             val label = makeFloatConstLabel(value)
             emitLine("lea  $label, a0")
-            emitLine("fadd.d  (a0), ${fpuRegName(fpReg)}")
+            emitLine("fadd.s  (a0), ${fpuRegName(fpReg)}")
         }
     }
 }
@@ -698,17 +698,17 @@ private fun AsmGen.emitFaddConstant(fpReg: RegisterNum, value: Double) {
 private fun AsmGen.emitFsubConstant(fpReg: RegisterNum, value: Double) {
     val label = makeFloatConstLabel(value)
     emitLine("lea  $label, a0")
-    emitLine("fsub.d  (a0), ${fpuRegName(fpReg)}")
+    emitLine("fsub.s  (a0), ${fpuRegName(fpReg)}")
 }
 
 private fun AsmGen.emitFmulConstant(fpReg: RegisterNum, value: Double) {
     val label = makeFloatConstLabel(value)
     emitLine("lea  $label, a0")
-    emitLine("fmul.d  (a0), ${fpuRegName(fpReg)}")
+    emitLine("fmul.s  (a0), ${fpuRegName(fpReg)}")
 }
 
 private fun AsmGen.emitFdivConstant(fpReg: RegisterNum, value: Double) {
     val label = makeFloatConstLabel(value)
     emitLine("lea  $label, a0")
-    emitLine("fdiv.d  (a0), ${fpuRegName(fpReg)}")
+    emitLine("fdiv.s  (a0), ${fpuRegName(fpReg)}")
 }

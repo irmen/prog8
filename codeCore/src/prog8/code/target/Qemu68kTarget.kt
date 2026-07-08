@@ -4,6 +4,11 @@ import prog8.code.core.*
 import prog8.code.target.encodings.Encoder
 import java.nio.file.Path
 
+/**
+ * For now target a m68020 cpu
+ * Eventually the goal is to be able to create programs for the Amiga A1200 (68020 cpu) or A500 (68000 cpu)
+ */
+
 class Qemu68kTarget: ICompilationTarget,
     IStringEncoding by Encoder(false),
     IMemSizer by NormalMemSizer(4, pointerSize = 4) {
@@ -21,7 +26,7 @@ class Qemu68kTarget: ICompilationTarget,
         const val NAME = "qemu68k"
     }
 
-    override val cpu = CpuType.M68030
+    override val cpu = CpuType.M68020
 
     override val FLOAT_MAX_POSITIVE = Float.MAX_VALUE.toDouble()
     override val FLOAT_MAX_NEGATIVE = -Float.MAX_VALUE.toDouble()
@@ -61,7 +66,7 @@ class Qemu68kTarget: ICompilationTarget,
             listOf(
                 "qemu-system-m68k",
                 "-M", "virt",
-                "-cpu", "m68030",
+                "-cpu", "m68020",       // TODO how to dynamically switch this to 68000 if required?
                 "-m", "1M",
                 "-kernel", elfFile.toString(),
                 "-nographic"
@@ -71,7 +76,7 @@ class Qemu68kTarget: ICompilationTarget,
             listOf(
                 "qemu-system-m68k",
                 "-M", "virt",
-                "-cpu", "m68030",
+                "-cpu", "m68020",       // TODO how to dynamically switch this to 68000 if required?
                 "-m", "1M",
                 "-device", "loader,file=${binFile},addr=0x${loadAddr.toString(16)},cpu-num=0",
                 "-nographic"

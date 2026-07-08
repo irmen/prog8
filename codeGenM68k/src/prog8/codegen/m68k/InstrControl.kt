@@ -371,61 +371,61 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
         Opcode.FABS -> {
             val dst = insn.fpReg1 ?: error("FABS needs fpReg1")
             val src = insn.fpReg2 ?: error("FABS needs fpReg2")
-            emitLine("fabs.d  ${fpuRegName(src)}, ${fpuRegName(dst)}")
+            emitLine("fabs  ${fpuRegName(src)}, ${fpuRegName(dst)}")
         }
 
         Opcode.FSIN -> {
             val dst = insn.fpReg1 ?: error("FSIN needs fpReg1")
             val src = insn.fpReg2 ?: error("FSIN needs fpReg2")
-            emitLine("fsin.d  ${fpuRegName(src)}, ${fpuRegName(dst)}")
+            emitLine("fsin  ${fpuRegName(src)}, ${fpuRegName(dst)}")
         }
 
         Opcode.FCOS -> {
             val dst = insn.fpReg1 ?: error("FCOS needs fpReg1")
             val src = insn.fpReg2 ?: error("FCOS needs fpReg2")
-            emitLine("fcos.d  ${fpuRegName(src)}, ${fpuRegName(dst)}")
+            emitLine("fcos  ${fpuRegName(src)}, ${fpuRegName(dst)}")
         }
 
         Opcode.FTAN -> {
             val dst = insn.fpReg1 ?: error("FTAN needs fpReg1")
             val src = insn.fpReg2 ?: error("FTAN needs fpReg2")
-            emitLine("ftan.d  ${fpuRegName(src)}, ${fpuRegName(dst)}")
+            emitLine("ftan  ${fpuRegName(src)}, ${fpuRegName(dst)}")
         }
 
         Opcode.FATAN -> {
             val dst = insn.fpReg1 ?: error("FATAN needs fpReg1")
             val src = insn.fpReg2 ?: error("FATAN needs fpReg2")
-            emitLine("fatan.d  ${fpuRegName(src)}, ${fpuRegName(dst)}")
+            emitLine("fatan  ${fpuRegName(src)}, ${fpuRegName(dst)}")
         }
 
         Opcode.FPOW -> {
             val dst = insn.fpReg1 ?: error("FPOW needs fpReg1")
             val src = insn.fpReg2 ?: error("FPOW needs fpReg2")
-            emitLine("fpow.d  ${fpuRegName(src)}, ${fpuRegName(dst)}")
+            emitLine("fpow  ${fpuRegName(src)}, ${fpuRegName(dst)}")
         }
 
         Opcode.FLN -> {
             val dst = insn.fpReg1 ?: error("FLN needs fpReg1")
             val src = insn.fpReg2 ?: error("FLN needs fpReg2")
-            emitLine("flogn.d  ${fpuRegName(src)}, ${fpuRegName(dst)}")
+            emitLine("flogn  ${fpuRegName(src)}, ${fpuRegName(dst)}")
         }
 
         Opcode.FLOG -> {
             val dst = insn.fpReg1 ?: error("FLOG needs fpReg1")
             val src = insn.fpReg2 ?: error("FLOG needs fpReg2")
-            emitLine("flog2.d  ${fpuRegName(src)}, ${fpuRegName(dst)}")
+            emitLine("flog2  ${fpuRegName(src)}, ${fpuRegName(dst)}")
         }
 
         Opcode.FROUND -> {
             val dst = insn.fpReg1 ?: error("FROUND needs fpReg1")
             val src = insn.fpReg2 ?: error("FROUND needs fpReg2")
-            emitLine("fround.d  ${fpuRegName(src)}, ${fpuRegName(dst)}")
+            emitLine("fround  ${fpuRegName(src)}, ${fpuRegName(dst)}")
         }
 
         Opcode.FFLOOR -> {
             val dst = insn.fpReg1 ?: error("FFLOOR needs fpReg1")
             val src = insn.fpReg2 ?: error("FFLOOR needs fpReg2")
-            emitLine("ffloor.d  ${fpuRegName(src)}, ${fpuRegName(dst)}")
+            emitLine("ffloor  ${fpuRegName(src)}, ${fpuRegName(dst)}")
         }
 
         Opcode.FCEIL -> {
@@ -434,14 +434,14 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
             val src = insn.fpReg2 ?: error("FCEIL needs fpReg2")
             val isIntLabel = makeLabel("fceil_is_int")
             val doneLabel = makeLabel("fceil_done")
-            emitLine("fmove.d  ${fpuRegName(src)}, ${fpuRegName(dst)}")
-            emitLine("fintrz.d  ${fpuRegName(dst)}, ${fpuRegName(dst)}")  // truncate toward zero
-            emitLine("fcmp.d  ${fpuRegName(src)}, ${fpuRegName(dst)}")
+            emitLine("fmove  ${fpuRegName(src)}, ${fpuRegName(dst)}")
+            emitLine("fintrz  ${fpuRegName(dst)}, ${fpuRegName(dst)}")  // truncate toward zero
+            emitLine("fcmp  ${fpuRegName(src)}, ${fpuRegName(dst)}")
             emitLine("fbeq  $isIntLabel")              // if equal, already integer
-            emitLine("ftst.d  ${fpuRegName(src)}")
+            emitLine("ftst  ${fpuRegName(src)}")
             emitLine("fbgt  +")                         // if >0, need to add 1
             emitLine("bra  $doneLabel")
-            emitLine("+  fadd.d  #1.0, ${fpuRegName(dst)}")
+            emitLine("+  fadd.s  #1.0, ${fpuRegName(dst)}")
             emitLine("bra  $doneLabel")
             emitLabel(isIntLabel)
             // dst already holds the integer (from fintrz)
@@ -455,7 +455,7 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
             val eqLabel = makeLabel("fcomp_eq")
             val doneLabel = makeLabel("fcomp_done")
             val gtLabel = makeLabel("fcomp_gt")
-            emitLine("fcmp.d  ${fpuRegName(fr2)}, ${fpuRegName(fr1)}")
+            emitLine("fcmp  ${fpuRegName(fr2)}, ${fpuRegName(fr1)}")
             emitLine("fbeq  $eqLabel")
             emitLine("fbgt  $gtLabel")
             emitLine("moveq  #-1, d0")
@@ -503,7 +503,7 @@ private fun AsmGen.translateArgument(arg: FunctionCallArgs.ArgumentSpec, fnLabel
     if (slot != null) {
         val hwReg = m68kSlotRegister(slot)
         if (argReg.dt == IRDataType.FLOAT) {
-            emitLine("fmove.d  ${regAddr(argReg.registerNum.value)}, $hwReg")
+            emitLine("fmove.s  ${regAddr(argReg.registerNum.value)}, $hwReg")
         } else {
             val s = dtSuffix(argReg.dt)
             emitLine("move$s  ${regAddr(argReg.registerNum.value)}, $hwReg")
@@ -521,7 +521,7 @@ private fun AsmGen.translateArgument(arg: FunctionCallArgs.ArgumentSpec, fnLabel
                     emitLine("move$sv  $regVal, $target")
                 }
                 IRDataType.LONG, IRDataType.POINTER -> emitLine("move.l  $regVal, $target")
-                IRDataType.FLOAT -> emitLine("fmove.d  $regVal, $target")
+                IRDataType.FLOAT -> emitLine("fmove.s  $regVal, $target")
             }
         }
     }
@@ -549,7 +549,7 @@ private fun AsmGen.translateReturnValue(ret: FunctionCallArgs.RegSpec) {
     if (slot != null) {
         val hwReg = m68kSlotRegister(slot)
         if (ret.dt == IRDataType.FLOAT) {
-            emitLine("fmove.d  $hwReg, ${regAddr(retReg.value)}")
+            emitLine("fmove.s  $hwReg, ${regAddr(retReg.value)}")
         } else {
             val s = dtSuffix(ret.dt)
             emitLine("move$s  $hwReg, ${regAddr(retReg.value)}")
@@ -557,7 +557,7 @@ private fun AsmGen.translateReturnValue(ret: FunctionCallArgs.RegSpec) {
     } else {
         // Default: return value in d0 (standard m68k calling convention)
         if (ret.dt == IRDataType.FLOAT) {
-            emitLine("fmove.d  d0, ${regAddr(retReg.value)}")
+            emitLine("fmove.s  d0, ${regAddr(retReg.value)}")
         } else {
             val s = dtSuffix(ret.dt)
             emitLine("move$s  d0, ${regAddr(retReg.value)}")

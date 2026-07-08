@@ -86,7 +86,7 @@ emitted) but:
 Several aspects are hardcoded for QEMU `-M virt`:
 - MMIO addresses (Goldfish TTY at 0xFF008000, virt controller at 0xFF009000).
 - RAM size assumed to be 1MB (matches `-m 1M` flag).
-- CPU is assumed to be M68030.
+- CPU is assumed to be M68020.
 - ELF format with NMAGIC linking (`vlink -n`).
 - No bootinfo parsing (hardcoded addresses instead).
 

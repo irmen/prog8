@@ -113,7 +113,7 @@ class PtSubSignature(val returns: List<DataType>, position: Position): PtNode(po
         return when(target.cpu) {
             CpuType.CPU6502 -> returnsWhatWhere6502()
             CpuType.CPU65C02 -> returnsWhatWhere6502()
-            CpuType.M68030 -> returnsWhatWhereM68k()
+            CpuType.M68020 -> returnsWhatWhereM68k()
             CpuType.VIRTUAL -> returnsWhatWhere6502()   // TODO also use M68k?  has more registers
         }
     }
