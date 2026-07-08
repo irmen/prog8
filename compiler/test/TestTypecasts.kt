@@ -1034,4 +1034,31 @@ main {
 }"""
         compileText(C64Target(), false, src, outputDir, writeAssembly = true) shouldNotBe null
     }
+
+    test("float to long cast in long expression") {
+        val src = """
+%import floats
+
+main {
+    sub start() {
+        long @shared r = 2
+        float @shared n = 5.0
+        float @shared f = sqrt(n)
+        long @shared diff = (f as long) - r
+    }
+
+    sub floatcast2() {
+        float[] n = [ 4, 5 ]
+        long[]  r = [ 2, 2 ]
+        ubyte i
+        for i in 0 to 1 {
+            float f = sqrt(n[i])
+            long l = f as long
+            long @shared diff = l - r[i]
+        }
+    }
+}"""
+        compileText(C64Target(), false, src, outputDir, writeAssembly = true) shouldNotBe null
+        compileText(VMTarget(), false, src, outputDir, writeAssembly = true) shouldNotBe null
+    }
 })

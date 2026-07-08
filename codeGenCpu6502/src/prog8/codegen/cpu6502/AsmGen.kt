@@ -839,7 +839,43 @@ class AsmGen6502Internal (
                                 TargetStorageKind.POINTER -> TODO("assign typecasted long into pointer  ${target.position}")
                                 TargetStorageKind.VOID -> { /* do nothing */ }
                             }
-                        } else throw AssemblyError("weird casted type")
+                        } else if(value.value.type.isFloat) {
+                            // first evaluate the float expression into FAC1
+                            assignExpressionToRegister(value.value, RegisterOrPair.FAC1)
+                            // then convert float in FAC1 to long and store to target
+                            when (target.kind) {
+                                TargetStorageKind.VARIABLE -> {
+                                    out("""
+                                        jsr  floats.QINT
+                                        lda  floats.FAC_ADDR+4
+                                        sta  ${target.asmVarname}
+                                        lda  floats.FAC_ADDR+3
+                                        sta  ${target.asmVarname}+1
+                                        lda  floats.FAC_ADDR+2
+                                        sta  ${target.asmVarname}+2
+                                        lda  floats.FAC_ADDR+1
+                                        sta  ${target.asmVarname}+3""")
+                                }
+                                TargetStorageKind.REGISTER -> {
+                                    require(target.register in CombinedLongRegisters)
+                                    val startreg = target.register!!.startregname()
+                                    out("""
+                                        jsr  floats.QINT
+                                        lda  floats.FAC_ADDR+4
+                                        sta  cx16.$startreg
+                                        lda  floats.FAC_ADDR+3
+                                        sta  cx16.$startreg+1
+                                        lda  floats.FAC_ADDR+2
+                                        sta  cx16.$startreg+2
+                                        lda  floats.FAC_ADDR+1
+                                        sta  cx16.$startreg+3""")
+                                }
+                                TargetStorageKind.ARRAY -> TODO("assign typecasted float to long array  ${target.position}")
+                                TargetStorageKind.MEMORY -> throw AssemblyError("memory is bytes not long ${target.position}")
+                                TargetStorageKind.POINTER -> TODO("assign typecasted float to long pointer  ${target.position}")
+                                TargetStorageKind.VOID -> { /* do nothing */ }
+                            }
+                        } else throw AssemblyError("weird casted type ${value.value.type} as ${value.type} at $value")
                     } else {
                         TODO("assign typecasted expression $value to a long target ${target.kind} at  ${target.position}  - please report this issue. Use simple expressions and temporary variables for now")
                     }
