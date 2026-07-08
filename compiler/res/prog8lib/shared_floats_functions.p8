@@ -64,56 +64,33 @@ asmsub tostr(float value @FAC1) clobbers(X) -> str @AY {
     }}
 }
 
-sub pow(float value, float power) -> float {
-    %asm {{
-        stx  P8ZP_SCRATCH_W1
-        sty  P8ZP_SCRATCH_W1+1
-        lda  #<value
-        ldy  #>value
-        jsr  floats.CONUPK
-        lda  #<power
-        ldy  #>power
-        jsr  floats.FPWR
-        ldx  P8ZP_SCRATCH_W1
-        ldy  P8ZP_SCRATCH_W1+1
-        rts
+inline asmsub pow(float base @FAC2, float power @FAC1) -> float @FAC1 {
+    %asm{{
+        jsr floats.FPWRT
     }}
 }
 
-sub sin(float angle) -> float {
+inline asmsub sin(float angle @FAC1) -> float @FAC1 {
     %asm {{
-        lda  #<angle
-        ldy  #>angle
-        jsr  MOVFM
-        jmp  SIN
+        jsr  SIN
     }}
 }
 
-sub cos(float angle) -> float {
+inline asmsub cos(float angle @FAC1) -> float @FAC1 {
     %asm {{
-        lda  #<angle
-        ldy  #>angle
-        jsr  MOVFM
-        jmp  COS
-        rts
+        jsr  COS
     }}
 }
 
-sub tan(float value) -> float {
+inline asmsub tan(float value @FAC1) -> float @FAC1 {
     %asm {{
-        lda  #<value
-        ldy  #>value
-        jsr  MOVFM
-        jmp  TAN
+        jsr  TAN
     }}
 }
 
-sub atan(float value) -> float {
+inline asmsub atan(float value @FAC1) -> float @FAC1 {
     %asm {{
-        lda  #<value
-        ldy  #>value
-        jsr  MOVFM
-        jmp  ATN
+        jsr  ATN
     }}
 }
 
@@ -140,20 +117,14 @@ sub secant(float value) -> float { return 1.0 / cos(value) }
 sub csc(float value)    -> float { return 1.0 / sin(value) }
 sub cot(float value)    -> float { return 1.0 / tan(value) }
 
-sub ln(float value) -> float {
+inline asmsub ln(float value @FAC1) -> float @FAC1 {
     %asm {{
-        lda  #<value
-        ldy  #>value
-        jsr  MOVFM
-        jmp  LOG
+        jsr  LOG
     }}
 }
 
-sub log2(float value) -> float {
+asmsub log2(float value @FAC1) -> float @FAC1 {
     %asm {{
-        lda  #<value
-        ldy  #>value
-        jsr  MOVFM
         jsr  LOG
         jsr  MOVEF
         lda  #<FL_LOG2_const
@@ -166,58 +137,44 @@ FL_LOG2_const	.byte  $80, $31, $72, $17, $f8	; log(2)
     }}
 }
 
-sub rad(float angle) -> float {
+asmsub rad(float angle @FAC1) -> float @FAC1 {
     ; -- convert degrees to radians (d * pi / 180)
     %asm {{
-        lda  #<angle
-        ldy  #>angle
-        jsr  MOVFM
         lda  #<_pi_div_180
         ldy  #>_pi_div_180
         jmp  FMULT
 _pi_div_180	.byte 123, 14, 250, 53, 18		; pi / 180
+        ; !notreached!
     }}
 }
 
-sub deg(float angle) -> float {
-    ; -- convert radians to degrees (d * (1/ pi * 180))
+asmsub deg(float angle @FAC1) -> float @FAC1 {
+    ; -- convert radians to degrees (d * 180 / pi)
     %asm {{
-        lda  #<angle
-        ldy  #>angle
-        jsr  MOVFM
         lda  #<_one_over_pi_div_180
         ldy  #>_one_over_pi_div_180
         jmp  FMULT
-        rts
-_one_over_pi_div_180	.byte 134, 101, 46, 224, 211		; 1 / (pi * 180)
+_one_over_pi_div_180	.byte 134, 101, 46, 224, 211		; 180 / pi
+        ; !notreached!
     }}
 }
 
-sub round(float value) -> float {
+inline asmsub round(float value @FAC1) -> float @FAC1 {
     %asm {{
-        lda  #<value
-        ldy  #>value
-        jsr  MOVFM
         jsr  FADDH
-        jmp  INT
+        jsr  INT
     }}
 }
 
-sub floor(float value) -> float {
+inline asmsub floor(float value @FAC1) -> float @FAC1 {
     %asm {{
-        lda  #<value
-        ldy  #>value
-        jsr  MOVFM
-        jmp  INT
+        jsr  INT
     }}
 }
 
-sub ceil(float value) -> float {
+asmsub ceil(float value @FAC1) -> float @FAC1 {
     ; -- ceil: tr = int(f); if tr==f -> return  else return tr+1
     %asm {{
-        lda  #<value
-        ldy  #>value
-        jsr  MOVFM
         ldx  #<fmath_float1
         ldy  #>fmath_float1
         jsr  MOVMF
@@ -234,15 +191,15 @@ sub ceil(float value) -> float {
     }}
 }
 
-sub rndseed(float seed) {
-    if seed>0
-        seed = -seed    ; make sure fp seed is always negative
-
+asmsub rndseed(float seed @FAC1) {
+    ; make sure fp seed is always negative (or zero)
     %asm {{
-        lda  #<seed
-        ldy  #>seed
-        jsr  MOVFM		; load float into fac1
-        lda  #-1
+        jsr  SIGN
+        cmp  #0
+        beq  +
+        bmi  +
+        jsr  NEGOP
++       lda  #-1
         jmp  floats.RND
     }}
 }
