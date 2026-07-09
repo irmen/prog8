@@ -196,23 +196,27 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                     }
                 }
 
-                // comparison of a pointer with a number will simply treat the pointer as the uword that it is
-                // this may require casting the other operand to uword as well
+                // comparison of a pointer with a number treats the pointer as its numeric type
+                // (uword on 6502, long on m68k); the other operand gets cast to match.
                 if(expr.operator in ComparisonOperators) {
+                    val pointerNumericType =
+                        if(options.compTarget.POINTER_MEM_SIZE>2u) DataType.LONG else DataType.UWORD
+                    val pointerNumericBasetype =
+                        if(options.compTarget.POINTER_MEM_SIZE>2u) BaseDataType.LONG else BaseDataType.UWORD
                     val modifications = mutableListOf<AstModification>()
                     if(leftDt.isNumeric && rightDt.isPointer) {
-                        val cast = TypecastExpression(expr.right, DataType.UWORD, true, expr.right.position)
+                        val cast = TypecastExpression(expr.right, pointerNumericType, true, expr.right.position)
                         modifications += AstReplaceNode(expr.right, cast, expr)
-                        if(!leftDt.isUnsignedWord && leftDt isAssignableTo InferredTypes.knownFor(BaseDataType.UWORD)) {
-                            val cast2 = TypecastExpression(expr.left, DataType.UWORD, true, expr.left.position)
+                        if(!leftDt.isUnsignedWord && leftDt isAssignableTo InferredTypes.knownFor(pointerNumericBasetype)) {
+                            val cast2 = TypecastExpression(expr.left, pointerNumericType, true, expr.left.position)
                             modifications += AstReplaceNode(expr.left, cast2, expr)
                         }
                     }
                     else if(leftDt.isPointer && rightDt.isNumeric) {
-                        val cast = TypecastExpression(expr.left, DataType.UWORD, true, expr.left.position)
+                        val cast = TypecastExpression(expr.left, pointerNumericType, true, expr.left.position)
                         modifications += AstReplaceNode(expr.left, cast, expr)
-                        if(!rightDt.isUnsignedWord && rightDt isAssignableTo InferredTypes.knownFor(BaseDataType.UWORD)) {
-                            val cast2 = TypecastExpression(expr.right, DataType.UWORD, true, expr.right.position)
+                        if(!rightDt.isUnsignedWord && rightDt isAssignableTo InferredTypes.knownFor(pointerNumericBasetype)) {
+                            val cast2 = TypecastExpression(expr.right, pointerNumericType, true, expr.right.position)
                             modifications += AstReplaceNode(expr.right, cast2, expr)
                         }
                     }

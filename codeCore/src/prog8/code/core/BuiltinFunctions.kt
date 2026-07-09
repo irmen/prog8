@@ -24,7 +24,7 @@ class CallConvention(val params: List<ParamConvention>, val returns: ReturnConve
 class FParam(val name: String, vararg val possibleDatatypes: BaseDataType)
 
 
-private val IterableDatatypes = arrayOf(BaseDataType.STR, BaseDataType.ARRAY, BaseDataType.ARRAY_SPLITW)
+private val IterableDatatypes = arrayOf(BaseDataType.STR, BaseDataType.ARRAY, BaseDataType.ARRAY_SPLITW, BaseDataType.ARRAY_POINTER)
 private val IntegerDatatypes = arrayOf(BaseDataType.UBYTE, BaseDataType.BYTE, BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.LONG)
 private val NumericDatatypes = arrayOf(BaseDataType.UBYTE, BaseDataType.BYTE, BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.LONG, BaseDataType.FLOAT)
 

@@ -1694,8 +1694,10 @@ internal class AstChecker(private val program: Program,
                 // exception allowed: shifting a word by a byte, long by a word or byte
             } else if((expr.operator in BitwiseOperators) && (leftDt.isInteger && rightDt.isInteger)) {
                 // exception allowed: bitwise operations with any integers
-            } else if((leftDt.isUnsignedWord && rightDt.isString) || (leftDt.isString && rightDt.isUnsignedWord)) {
-                // exception allowed: comparing uword (pointer) with string
+            } else if(compilerOptions.compTarget.POINTER_MEM_SIZE==2u && (leftDt.isUnsignedWord && rightDt.isString) || (leftDt.isString && rightDt.isUnsignedWord)) {
+                // exception allowed on 16 bits pointers: comparing uword (pointer) with string
+            } else if(compilerOptions.compTarget.POINTER_MEM_SIZE>2u && leftDt.isPointer && rightDt.isString) {
+                // exception allowed on 32 bits pointers: comparing pointer with string
             } else {
                 errors.err("left and right operands aren't the same type: $leftDt vs $rightDt", expr.position)
             }
@@ -1779,7 +1781,8 @@ internal class AstChecker(private val program: Program,
         }
 
         if(typecast.implicit && typecast.type.isLong && typecast.expression.inferType(program).isPointer) {
-            errors.err("cannot use a pointer as a long, a pointer is an unsigned word", typecast.position)
+            if(compilerOptions.compTarget.POINTER_MEM_SIZE<=2u)
+                errors.err("cannot use a pointer as a long, a pointer is an unsigned word", typecast.position)
         }
 
         super.visit(typecast)

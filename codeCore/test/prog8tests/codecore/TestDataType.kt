@@ -98,7 +98,7 @@ class TestDataType: FunSpec({
 
     test("isSplitWordArray extension") {
         BaseDataType.ARRAY_SPLITW.isSplitWordArray.shouldBeTrue()
-        BaseDataType.ARRAY_POINTER.isSplitWordArray.shouldBeTrue()
+        BaseDataType.ARRAY_POINTER.isSplitWordArray.shouldBeFalse()
         BaseDataType.ARRAY.isSplitWordArray.shouldBeFalse()
     }
 

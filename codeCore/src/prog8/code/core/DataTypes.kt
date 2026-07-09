@@ -80,10 +80,16 @@ val BaseDataType.isArray get() = this == BaseDataType.ARRAY || this == BaseDataT
 val BaseDataType.isPointer get() = this == BaseDataType.POINTER
 val BaseDataType.isStructInstance get() = this == BaseDataType.STRUCT_INSTANCE
 val BaseDataType.isPointerArray get() = this == BaseDataType.ARRAY_POINTER
-val BaseDataType.isSplitWordArray get() = this == BaseDataType.ARRAY_SPLITW || this == BaseDataType.ARRAY_POINTER       // pointer arrays are also always stored as split uwords
+val BaseDataType.isSplitWordArray get() = this == BaseDataType.ARRAY_SPLITW || this == BaseDataType.ARRAY_POINTER
 val BaseDataType.isIterable get() =  this in setOf(BaseDataType.STR, BaseDataType.ARRAY, BaseDataType.ARRAY_SPLITW, BaseDataType.ARRAY_POINTER)
 val BaseDataType.isPassByRef get() = this.isIterable && !this.isPointer
 val BaseDataType.isPassByValue get() = !this.isIterable || this.isPointer
+
+fun DataType.isSplitWordArrayOnTarget(target: ICompilationTarget): Boolean = when(base) {
+    BaseDataType.ARRAY_SPLITW -> true
+    BaseDataType.ARRAY_POINTER -> target.POINTER_MEM_SIZE <= 2u
+    else -> false
+}
 
 
 /**
@@ -123,7 +129,7 @@ class DataType private constructor(
             }
             base.isArray -> {
                 require(sub != null && subType==null && subTypeFromAntlr==null)
-                if(base.isSplitWordArray)
+                if(base == BaseDataType.ARRAY_SPLITW)
                     require(sub == BaseDataType.UWORD || sub == BaseDataType.WORD)
             }
             base==BaseDataType.STR -> require(sub==BaseDataType.UBYTE) { "string subtype should be ubyte" }
@@ -242,7 +248,7 @@ class DataType private constructor(
             if (isPointer)
                 return untypedPointerType
             if (isArray) {
-                if (msb || isSplitWordArray)
+                if (msb || base == BaseDataType.ARRAY_SPLITW)
                     return pointer(BaseDataType.UBYTE)
                 val elementDt = elementType()
                 require(elementDt.isBasic)
@@ -374,8 +380,8 @@ class DataType private constructor(
                     else -> false
                 }
             }
+            BaseDataType.ARRAY_POINTER -> targetType.base in setOf(BaseDataType.ARRAY_POINTER, targetType.base == BaseDataType.ARRAY) && targetType.sub == sub
             BaseDataType.STRUCT_INSTANCE -> false        // we cannot deal with actual struct instances yet in any shape or form (only getting fields from it)
-            BaseDataType.ARRAY_POINTER -> false
             BaseDataType.UNDEFINED -> false
         }
 
@@ -438,8 +444,8 @@ class DataType private constructor(
     val isLong = base == BaseDataType.LONG
     val isStringly = base == BaseDataType.STR || base == BaseDataType.UWORD || (base == BaseDataType.ARRAY && (sub == BaseDataType.UBYTE || sub == BaseDataType.BYTE))
     val isSplitWordArray = base.isSplitWordArray
-    val isSplitUnsignedWordArray = base.isSplitWordArray && !base.isPointerArray && sub == BaseDataType.UWORD
-    val isSplitSignedWordArray = base.isSplitWordArray && !base.isPointerArray && sub == BaseDataType.WORD
+    val isSplitUnsignedWordArray = base == BaseDataType.ARRAY_SPLITW && sub == BaseDataType.UWORD
+    val isSplitSignedWordArray = base == BaseDataType.ARRAY_SPLITW && sub == BaseDataType.WORD
     val isIterable =  base.isIterable
     val isPassByRef = base.isPassByRef
     val isPassByValue = base.isPassByValue
