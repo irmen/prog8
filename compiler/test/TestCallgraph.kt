@@ -19,7 +19,9 @@ import prog8.code.target.VMTarget
 import prog8.compiler.CallGraph
 import prog8.parser.Prog8Parser.parseModule
 import prog8.vm.VmRunner
-import prog8tests.helpers.*
+import prog8tests.helpers.DummyFunctions
+import prog8tests.helpers.ErrorReporterForTests
+import prog8tests.helpers.compileText
 import kotlin.io.path.readText
 
 class TestCallgraph: FunSpec({
@@ -166,7 +168,7 @@ class TestCallgraph: FunSpec({
                 }
             }"""
         val module = parseModule(SourceCode.Text(source))
-        val program = Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
+        val program = Program("test", DummyFunctions, VMTarget())
         program.addModule(module)
         val callgraph = CallGraph(program)
         val blockMain = program.allBlocks.single { it.name=="main" }
@@ -201,7 +203,7 @@ class TestCallgraph: FunSpec({
                 }
             }"""
         val module = parseModule(SourceCode.Text(source))
-        val program = Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
+        val program = Program("test", DummyFunctions, VMTarget())
         program.addModule(module)
         val callgraph = CallGraph(program)
         val errors = ErrorReporterForTests()
@@ -225,7 +227,7 @@ class TestCallgraph: FunSpec({
                 }
             }"""
         val module = parseModule(SourceCode.Text(source))
-        val program = Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
+        val program = Program("test", DummyFunctions, VMTarget())
         program.addModule(module)
         val callgraph = CallGraph(program)
         val errors = ErrorReporterForTests()

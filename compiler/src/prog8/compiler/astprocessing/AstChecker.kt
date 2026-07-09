@@ -1698,6 +1698,8 @@ internal class AstChecker(private val program: Program,
                 // exception allowed on 16 bits pointers: comparing uword (pointer) with string
             } else if(compilerOptions.compTarget.POINTER_MEM_SIZE>2u && leftDt.isPointer && rightDt.isString) {
                 // exception allowed on 32 bits pointers: comparing pointer with string
+            } else if(compilerOptions.compTarget.POINTER_MEM_SIZE>2u && ((leftDt.isLong && rightDt.isPointer) || (leftDt.isPointer && rightDt.isLong))) {
+                // exception allowed on 32 bits pointers: comparing long (untyped pointer) with pointer
             } else {
                 errors.err("left and right operands aren't the same type: $leftDt vs $rightDt", expr.position)
             }
@@ -2310,7 +2312,7 @@ internal class AstChecker(private val program: Program,
         val uniqueFields = struct.fields.mapTo(mutableSetOf()) { it.name }
         if(uniqueFields.size!=struct.fields.size)
             errors.err("duplicate field names in struct", struct.position)
-        val memsize = struct.memsize(program.memsizer)
+        val memsize = struct.memsize(program.target)
         if(memsize>256)
             errors.err("struct contains too many fields, max struct size is 256 bytes (actual: $memsize)", struct.position)
 
@@ -2642,7 +2644,7 @@ internal class AstChecker(private val program: Program,
             targetDatatype.isUnsignedByte -> sourceDatatype.isUnsignedByte
             targetDatatype.isSignedWord -> sourceDatatype.isSignedWord || sourceDatatype.isByte
             targetDatatype.isUnsignedWord -> sourceDatatype.isUnsignedWord || sourceDatatype.isUnsignedByte
-            targetDatatype.isLong -> sourceDatatype.isLong || sourceDatatype.isWord || sourceDatatype.isByte
+            targetDatatype.isLong -> sourceDatatype.isLong || sourceDatatype.isPointer || sourceDatatype.isWord || sourceDatatype.isByte
             targetDatatype.isFloat -> sourceDatatype.isNumeric
             targetDatatype.isString -> sourceDatatype.isString
             else -> false
@@ -2668,9 +2670,9 @@ internal class AstChecker(private val program: Program,
                     errors.err("cannot assign different pointer type, expected $targetDatatype or uword but got $sourceDatatype", position)
             } else if(sourceDatatype.isString && targetDatatype.sub?.isByte==true) {
                 // assigning a string to a byte pointer is allowed.
-            } else if(!sourceDatatype.isUnsignedWord && !sourceDatatype.isStructInstance)
+            } else if(!sourceDatatype.isUnsignedWord && !sourceDatatype.isLong && !sourceDatatype.isStructInstance)
                 if(!(sourceDatatype isAssignableTo targetDatatype))
-                    errors.err("incompatible value type, can only assign uword or correct pointer type", position)
+                    errors.err("incompatible value type, can only assign uword, long, or correct pointer type", position)
         }
         else if(targetDatatype.isString && sourceDatatype.isUnsignedWord)
             errors.err("can't assign uword to str. If the source is a string pointer and you actually want to overwrite the target string, use an explicit strings.copy(src,tgt) instead.", position)

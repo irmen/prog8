@@ -123,7 +123,7 @@ sys {
 
 ; ------- memory routines --------
 
-    asmsub memcopy(^^ubyte source @D0, ^^ubyte tgt @D1, uword count @D2) {
+    asmsub memcopy(long source @D0, long tgt @D1, uword count @D2) {
         ; Copy bytes from source to target.
         ; Bulk of the work uses long-aligned longword copies;
         ; pre-alignment and remainder bytes use individual byte copies.
@@ -186,7 +186,7 @@ sys {
         }}
     }
 
-    asmsub memset(^^ubyte mem @D0, uword numbytes @D1, ubyte value @D2) {
+    asmsub memset(long mem @D0, uword numbytes @D1, ubyte value @D2) {
         %asm {{
             movea.l  d0,a0
             tst.w    d1
@@ -237,7 +237,7 @@ sys {
         }}
     }
 
-    asmsub memclear(^^ubyte mem @D0, uword numbytes @D1) {
+    asmsub memclear(long mem @D0, uword numbytes @D1) {
         ; Clear memory (fill with zero).  Uses movem.l d0-d7,-(a0)
         ; for the bulk clear (32 bytes per instruction, decrementing from
         ; the end address).  Handles misaligned start and remaining bytes.
@@ -314,7 +314,7 @@ sys {
         }}
     }
 
-    asmsub memsetw(^^ubyte mem @D0, uword numwords @D1, uword value @D2) {
+    asmsub memsetw(long mem @D0, uword numwords @D1, uword value @D2) {
         ; Fill memory with the given 16-bit word value, for the given number of words.
         ; Word-aligned start: fast path with longword stores (2 words at a time).
         ; Odd start: first byte written individually to realign, then same fast path

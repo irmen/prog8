@@ -669,7 +669,7 @@ data class AddressOf(var identifier: IdentifierReference?, var arrayIndex: Array
                         if (index != null) {
                             address += when {
                                 target.datatype.isInteger -> index
-                                target.datatype.isPointer || target.datatype.isArray -> index * targetVar.datatype.size(program.memsizer)
+                                target.datatype.isPointer || target.datatype.isArray -> index * targetVar.datatype.size(program.target)
                                 else -> throw FatalAstException("need array or ptr")
                             }
                         } else
@@ -691,16 +691,16 @@ data class AddressOf(var identifier: IdentifierReference?, var arrayIndex: Array
     override fun referencesIdentifier(nameInSource: List<String>) = identifier?.nameInSource==nameInSource || arrayIndex?.referencesIdentifier(nameInSource)==true || dereference?.referencesIdentifier(nameInSource)==true
     override fun inferType(program: Program): InferredTypes.InferredType {
         if(!typed) {
-            val untypedPointerType = if(program.memsizer.memorySize(BaseDataType.POINTER)>2) BaseDataType.LONG else BaseDataType.UWORD
+            val untypedPointerType = if(program.target.memorySize(BaseDataType.POINTER)>2) BaseDataType.LONG else BaseDataType.UWORD
             return InferredTypes.knownFor(untypedPointerType)
         }
         if(identifier!=null) {
             val type = identifier!!.inferType(program).getOrUndef()
-            val addrofDt = type.typeForUntypedAddressOf(msb, program.memsizer)
+            val addrofDt = type.typeForUntypedAddressOf(msb, program.target)
             return if(addrofDt.isUndefined) InferredTypes.unknown() else InferredTypes.knownFor(addrofDt)
         } else if(dereference!=null) {
             val type = dereference!!.inferType(program).getOrUndef()
-            val addrofDt = type.typeForUntypedAddressOf(msb, program.memsizer)
+            val addrofDt = type.typeForUntypedAddressOf(msb, program.target)
             return if(addrofDt.isUndefined) InferredTypes.unknown() else InferredTypes.knownFor(addrofDt)
         } else
             throw FatalAstException("invalid addressof")
@@ -1149,7 +1149,7 @@ class CharLiteral private constructor(val value: Char,
     override fun constValue(program: Program): NumericLiteral? {
         if(encoding== Encoding.DEFAULT) // will be determined at a later stage, hopefully
             return null
-        val bytevalue = program.encoding.encodeString(value.toString(), encoding).single()
+        val bytevalue = program.target.encodeString(value.toString(), encoding).single()
         return NumericLiteral(BaseDataType.UBYTE, bytevalue.toDouble(), position)
     }
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
@@ -1794,7 +1794,7 @@ class ContainmentCheck(var element: Expression,
                         val stringval = iterable as StringLiteral
                         if(stringval.encoding== Encoding.DEFAULT)   // will be set at a later stage, hopefully
                             return null
-                        val exists = program.encoding.encodeString(stringval.value, stringval.encoding).contains(elementConst.number.toInt().toUByte() )
+                        val exists = program.target.encodeString(stringval.value, stringval.encoding).contains(elementConst.number.toInt().toUByte() )
                         return NumericLiteral.fromBoolean(exists, position)
                     }
                 }

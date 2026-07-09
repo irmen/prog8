@@ -7,15 +7,14 @@ import prog8.code.SymbolTable
 import prog8.code.ast.PtProgram
 import prog8.code.core.DataType
 import prog8.code.target.C64Target
+import prog8.code.target.VMTarget
 import prog8.codegen.cpu6502.*
-import prog8tests.helpers.DummyMemsizer
-import prog8tests.helpers.DummyStringEncoder
 
 
 class TestAsmOptimizer: FunSpec({
 
     val machine = C64Target()
-    val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
+    val program = PtProgram("test", VMTarget())
     val symbolTable = SymbolTable(program)
 
     // Add test variables with known non-IO addresses so the optimizer can resolve them

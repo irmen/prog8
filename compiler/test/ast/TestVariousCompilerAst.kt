@@ -1070,13 +1070,12 @@ main {
         DataType.forDt(BaseDataType.STR).isString shouldBe true
         DataType.forDt(BaseDataType.FLOAT).isFloat shouldBe true
 
-        DataType.arrayFor(BaseDataType.UBYTE, true).isUnsignedByteArray shouldBe true
         DataType.arrayFor(BaseDataType.LONG).isLongArray shouldBe true
         DataType.arrayFor(BaseDataType.FLOAT).isFloatArray shouldBe true
         DataType.arrayFor(BaseDataType.UWORD).isUnsignedWordArray shouldBe true
         DataType.arrayFor(BaseDataType.UWORD).isArray shouldBe true
-        DataType.arrayFor(BaseDataType.UWORD).isSplitWordArray shouldBe true
-        DataType.arrayFor(BaseDataType.UWORD, false).isSplitWordArray shouldBe false
+        DataType.splitWordArrayFor(BaseDataType.UWORD).isSplitWordArray shouldBe true
+        DataType.arrayFor(BaseDataType.UWORD).isSplitWordArray shouldBe false
 
         shouldThrow<NoSuchElementException> {
             DataType.forDt(BaseDataType.ARRAY)
@@ -1112,7 +1111,7 @@ main {
         (st1[1] as VarDecl).name shouldBe "names"
         val array1 = (st1[1] as VarDecl).value as ArrayLiteral
         array1.type.isArray shouldBe true
-        array1.type.getOrUndef() shouldBe DataType.arrayFor(BaseDataType.UWORD, true)
+        array1.type.getOrUndef() shouldBe DataType.splitWordArrayFor(BaseDataType.UWORD)
 
         val ast2 = result.codegenAst!!
         val st2 = ast2.entrypoint()!!.children
@@ -1120,7 +1119,7 @@ main {
         (st2[1] as PtVariable).name shouldBe "p8v_variable"
         (st2[2] as PtVariable).name shouldBe "p8v_names"
         val array2 = (st2[2] as PtVariable).value as PtArray
-        array2.type shouldBe DataType.arrayFor(BaseDataType.UWORD, true)
+        array2.type shouldBe DataType.splitWordArrayFor(BaseDataType.UWORD)
     }
 
 

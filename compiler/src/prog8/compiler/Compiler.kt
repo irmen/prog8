@@ -412,7 +412,7 @@ fun parseMainModule(filepath: Path,
                     quiet: Boolean,
                     traceImports: Boolean): Triple<Program, CompilationOptions, List<Path>> {
     val bf = BuiltinFunctionsFacade(BuiltinFunctions)
-    val program = Program(filepath.nameWithoutExtension, bf, compTarget, compTarget)
+    val program = Program(filepath.nameWithoutExtension, bf, compTarget)
     bf.program = program
 
     val importer = ModuleImporter(program, compTarget.name, errors, sourceDirs, libraryDirs, cwd, quiet, traceImports)

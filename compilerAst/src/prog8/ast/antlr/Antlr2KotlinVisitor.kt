@@ -12,6 +12,7 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.code.core.*
 import prog8.code.source.SourceCode
+
 import prog8.parser.Prog8ANTLRParser.*
 import prog8.parser.Prog8ANTLRVisitor
 import kotlin.io.path.Path
@@ -218,7 +219,7 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
             else if(baseDt.isStructInstance)
                 throw SyntaxError("array of structures not allowed (use array of pointers)", ctx.toPosition())
             else
-                DataType.arrayFor(baseDt.base, split!=SplitWish.NOSPLIT)
+                DataType.arrayFor(baseDt.base)
         }
 
         return VarDecl.builder(dt, ctx.toPosition())

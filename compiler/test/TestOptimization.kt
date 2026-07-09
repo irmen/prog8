@@ -23,7 +23,9 @@ import prog8.code.target.C64Target
 import prog8.code.target.Cx16Target
 import prog8.code.target.VMTarget
 import prog8.vm.VmRunner
-import prog8tests.helpers.*
+import prog8tests.helpers.DummyFunctions
+import prog8tests.helpers.ErrorReporterForTests
+import prog8tests.helpers.compileText
 import kotlin.io.path.readText
 
 
@@ -141,9 +143,10 @@ other {
     }
 
     test("generated constvalue from typecast inherits proper parent linkage") {
+        val target = VMTarget()
         val number = NumericLiteral(BaseDataType.UBYTE, 11.0, Position.DUMMY)
         val tc = TypecastExpression(number, DataType.BYTE, false, Position.DUMMY)
-        val program = Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
+        val program = Program("test", DummyFunctions, target)
         tc.linkParents(ParentSentinel)
         tc.parent shouldNotBe null
         number.parent shouldNotBe null
@@ -156,9 +159,10 @@ other {
     }
 
     test("generated constvalue from prefixexpr inherits proper parent linkage") {
+        val target = VMTarget()
         val number = NumericLiteral(BaseDataType.UBYTE, 11.0, Position.DUMMY)
         val pfx = PrefixExpression("-", number, Position.DUMMY)
-        val program = Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
+        val program = Program("test", DummyFunctions, target)
         pfx.linkParents(ParentSentinel)
         pfx.parent shouldNotBe null
         number.parent shouldNotBe null

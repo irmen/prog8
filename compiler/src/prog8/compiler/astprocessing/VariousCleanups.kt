@@ -31,7 +31,9 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                     VarDeclType.VAR -> {
                         if(decl.isArray) {
                             // using a array of words as initializer to a pointer array is fine
-                            if (!valueDt.isSplitWordArray || !decl.datatype.isPointerArray)
+                            val ok = valueDt.isSplitWordArray && decl.datatype.isPointerArray ||
+                                    valueDt.isWordArray && decl.datatype.isPointerArray && decl.splitwordarray == SplitWish.DONTCARE && options.compTarget.POINTER_MEM_SIZE == 2u
+                            if (!ok)
                                 errors.err("value has incompatible type ($valueType) for the variable (${decl.datatype})", decl.value!!.position)
                         } else if(!decl.datatype.isString) {
                             if (valueDt.largerSizeThan(decl.datatype)) {
@@ -87,17 +89,24 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
             var changeDataType: DataType?
             when(decl.splitwordarray) {
                 SplitWish.DONTCARE -> {
-                    changeDataType = if(decl.datatype.isSplitWordArray) null else {
+                    changeDataType = if(decl.datatype.isSplitWordArray) {
+                        if(options.compTarget.POINTER_MEM_SIZE > 2u)
+                            DataType.arrayFor(decl.datatype.elementType().base)
+                        else
+                            null
+                    } else {
                         val eltDt = decl.datatype.elementType()
                         if(eltDt.isPointer)
                             TODO("convert array of pointers to split words array type  ${decl.position}")
+                        else if(options.compTarget.POINTER_MEM_SIZE == 2u)
+                            DataType.splitWordArrayFor(eltDt.base)
                         else
-                            DataType.arrayFor(eltDt.base)
+                            null
                     }
                 }
                 SplitWish.NOSPLIT -> {
                     changeDataType = if(decl.datatype.isSplitWordArray && !decl.datatype.elementType().isPointer)
-                        DataType.arrayFor(decl.datatype.elementType().base, false)
+                        DataType.arrayFor(decl.datatype.elementType().base)
                     else null
                 }
             }
@@ -116,7 +125,21 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
 
         // handle @nosplit on pointer arrays: convert to regular non-split word array
         if(decl.datatype.isPointerArray && decl.splitwordarray == SplitWish.NOSPLIT) {
-            val newDt = DataType.arrayFor(BaseDataType.UWORD, false)  // false = not split (sequential)
+            val newDt = DataType.arrayFor(BaseDataType.UWORD)  // non-split
+            var value = decl.value
+            if(value is ArrayLiteral && !(value.type istype newDt)) {
+                value = ArrayLiteral(InferredTypes.knownFor(newDt), value.value, value.position)
+            }
+            val newDecl = VarDecl.builder(newDt, decl.position)
+                .copyFrom(decl)
+                .value(value)
+                .build()
+            return listOf(AstReplaceNode(decl, newDecl, parent))
+        }
+
+        // handle DONTCARE pointer arrays on non-6502 targets: convert back to regular array with long elements
+        if(decl.datatype.isPointerArray && decl.splitwordarray == SplitWish.DONTCARE && options.compTarget.POINTER_MEM_SIZE > 2u) {
+            val newDt = DataType.arrayFor(BaseDataType.LONG)
             var value = decl.value
             if(value is ArrayLiteral && !(value.type istype newDt)) {
                 value = ArrayLiteral(InferredTypes.knownFor(newDt), value.value, value.position)
@@ -438,7 +461,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
             if(stringVal.value.isEmpty())
                 return replaceWithFalse()
             if(stringVal.value.length==1) {
-                val string = program.encoding.encodeString(stringVal.value, stringVal.encoding)
+                val string = program.target.encodeString(stringVal.value, stringVal.encoding)
                 return replaceWithEquals(NumericLiteral(BaseDataType.UBYTE, string[0].toDouble(), stringVal.position))
             }
             return noModifications

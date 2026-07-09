@@ -8,8 +8,7 @@ import prog8.code.core.DataType
 import prog8.code.core.Position
 import prog8.code.optimize.ComparisonOptimizers
 import prog8.code.target.VMTarget
-import prog8tests.helpers.DummyMemsizer
-import prog8tests.helpers.DummyStringEncoder
+
 
 /**
  * Tests for ComparisonOptimizers, particularly the optimizeComparisonIdentities function.
@@ -21,7 +20,7 @@ class TestComparisonOptimizers: FunSpec({
 
     // Helper to create a simple program with a binary expression in a sub
     fun createProgramWithComparison(operator: String, leftType: DataType): PtProgram {
-        val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
+        val program = PtProgram("test", VMTarget())
         val block = PtBlock("main", false, prog8.code.source.SourceCode.Generated("main"), PtBlock.Options(), Position.DUMMY)
         program.add(block)
         

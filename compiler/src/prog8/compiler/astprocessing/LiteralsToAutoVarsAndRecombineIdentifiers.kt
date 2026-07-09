@@ -67,7 +67,7 @@ internal class LiteralsToAutoVarsAndRecombineIdentifiers(private val program: Pr
                     // turn the array literal it into an identifier reference
                     val litval2 = array.cast(targetDt.getOrUndef())
                     if (litval2 != null) {
-                        val vardecl2 = VarDecl.createAuto(litval2)
+                        val vardecl2 = VarDecl.createAuto(litval2, program.target)
                         val identifier = IdentifierReference(listOf(vardecl2.name), vardecl2.position)
                         return listOf(
                             AstReplaceNode(array, identifier, parent),

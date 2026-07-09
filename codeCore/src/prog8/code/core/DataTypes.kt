@@ -20,7 +20,7 @@ enum class BaseDataType {
     ARRAY_SPLITW,       // pass by reference, split word layout, subtype is the element type (restricted to word types)
     POINTER,            // typed pointer, subtype is whatever type is pointed to
     STRUCT_INSTANCE,    // the actual instance of a struct (not directly supported in the language yet, but we need its type)
-    ARRAY_POINTER,      // array of pointers (uwords), subtype is whatever type each element points to
+    ARRAY_POINTER,      // array of pointers (uwords or longs), subtype is whatever type each element points to
     UNDEFINED;
 
 
@@ -84,12 +84,6 @@ val BaseDataType.isSplitWordArray get() = this == BaseDataType.ARRAY_SPLITW || t
 val BaseDataType.isIterable get() =  this in setOf(BaseDataType.STR, BaseDataType.ARRAY, BaseDataType.ARRAY_SPLITW, BaseDataType.ARRAY_POINTER)
 val BaseDataType.isPassByRef get() = this.isIterable && !this.isPointer
 val BaseDataType.isPassByValue get() = !this.isIterable || this.isPointer
-
-fun DataType.isSplitWordArrayOnTarget(target: ICompilationTarget): Boolean = when(base) {
-    BaseDataType.ARRAY_SPLITW -> true
-    BaseDataType.ARRAY_POINTER -> target.POINTER_MEM_SIZE <= 2u
-    else -> false
-}
 
 
 /**
@@ -190,17 +184,19 @@ class DataType private constructor(
             return simpletypes.getValue(dt)
         }
 
-        fun arrayFor(elementDt: BaseDataType, splitwordarray: Boolean=true): DataType {
+        fun arrayFor(elementDt: BaseDataType): DataType {
+            // wether or not a word-array should be split-words, is determined later
             require(!elementDt.isPointer) { "use other array constructor for arrays of pointers" }
             val actualElementDt = if(elementDt==BaseDataType.STR) BaseDataType.UWORD else elementDt      // array of strings is actually just an array of UWORD pointers
-            return if(splitwordarray && actualElementDt.isWord)
-                DataType(BaseDataType.ARRAY_SPLITW, actualElementDt, null)
-            else {
-                if(actualElementDt.isNumericOrBool)
-                    DataType(BaseDataType.ARRAY, actualElementDt, null)
-                else
-                    throw NoSuchElementException("invalid basic element dt $elementDt")
-            }
+            if(actualElementDt.isNumericOrBool)
+                return DataType(BaseDataType.ARRAY, actualElementDt, null)
+            else
+                throw NoSuchElementException("invalid basic element dt $elementDt")
+        }
+
+        fun splitWordArrayFor(elementDt: BaseDataType): DataType {
+            require(elementDt.isWord) { "split word array element type must be word" }
+            return DataType(BaseDataType.ARRAY_SPLITW, elementDt, null)
         }
 
         fun arrayOfPointersTo(sub: BaseDataType): DataType = DataType(BaseDataType.ARRAY_POINTER, sub, null)
@@ -225,8 +221,10 @@ class DataType private constructor(
     // ============================================================================
 
     fun elementToArray(splitwords: Boolean = true): DataType {
-        return if (base == BaseDataType.UWORD || base == BaseDataType.WORD || base == BaseDataType.STR) arrayFor(base, splitwords)
-        else arrayFor(base, false)
+        if (splitwords && (base == BaseDataType.UWORD || base == BaseDataType.WORD || base == BaseDataType.STR))
+            return splitWordArrayFor(base)
+        else 
+            return arrayFor(base)
     }
 
     fun elementType(): DataType =
@@ -248,11 +246,14 @@ class DataType private constructor(
             if (isPointer)
                 return untypedPointerType
             if (isArray) {
-                if (msb || base == BaseDataType.ARRAY_SPLITW)
+                val isSplit = base == BaseDataType.ARRAY_SPLITW ||
+                    (base == BaseDataType.ARRAY_POINTER && mem.memorySize(BaseDataType.POINTER) <= 2)
+                if (msb || isSplit)
                     return pointer(BaseDataType.UBYTE)
                 val elementDt = elementType()
-                require(elementDt.isBasic)
-                return pointer(elementDt)
+                if (elementDt.isBasic)
+                    return pointer(elementDt)
+                return untypedPointerType
             }
             if (subType != null)
                 return pointer(this)

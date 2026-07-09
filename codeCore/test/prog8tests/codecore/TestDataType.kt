@@ -8,6 +8,7 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import prog8.code.core.*
 
+
 /**
  * Unit tests for DataType and BaseDataType classes in codeCore.
  * Focus on type predicates, relationships, and key operations.
@@ -98,7 +99,7 @@ class TestDataType: FunSpec({
 
     test("isSplitWordArray extension") {
         BaseDataType.ARRAY_SPLITW.isSplitWordArray.shouldBeTrue()
-        BaseDataType.ARRAY_POINTER.isSplitWordArray.shouldBeFalse()
+        BaseDataType.ARRAY_POINTER.isSplitWordArray.shouldBeTrue()
         BaseDataType.ARRAY.isSplitWordArray.shouldBeFalse()
     }
 
@@ -124,9 +125,9 @@ class TestDataType: FunSpec({
         ubyteArray.base shouldBe BaseDataType.ARRAY
         ubyteArray.sub shouldBe BaseDataType.UBYTE
 
-        val wordArraySplit = DataType.arrayFor(BaseDataType.WORD)
-        wordArraySplit.base shouldBe BaseDataType.ARRAY_SPLITW
-        wordArraySplit.sub shouldBe BaseDataType.WORD
+        val wordArray = DataType.arrayFor(BaseDataType.WORD)
+        wordArray.base shouldBe BaseDataType.ARRAY
+        wordArray.sub shouldBe BaseDataType.WORD
     }
 
     test("DataType.pointer creates pointer types") {
@@ -306,6 +307,6 @@ class TestDataType: FunSpec({
 
     test("DataType.toString for arrays") {
         DataType.arrayFor(BaseDataType.UBYTE).toString() shouldBe "ubyte[]"
-        DataType.arrayFor(BaseDataType.WORD).toString() shouldBe "word[] (split)"
+        DataType.arrayFor(BaseDataType.WORD).toString() shouldBe "word[]"
     }
 })

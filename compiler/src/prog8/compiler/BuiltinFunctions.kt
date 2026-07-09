@@ -123,7 +123,7 @@ private fun builtinOffsetof(args: List<Expression>, position: Position, program:
     val structname = identifier.dropLast(1)
     val fieldname = identifier.last()
     val struct = args[0].definingScope.lookup(structname) as? StructDecl ?: throw SyntaxError("cannot find struct '$structname'", args[0].position)
-    val offset = struct.offsetof(fieldname, program.memsizer) ?: throw SyntaxError("no such field '${identifier.joinToString(".")}'", args[0].position)
+    val offset = struct.offsetof(fieldname, program.target) ?: throw SyntaxError("no such field '${identifier.joinToString(".")}'", args[0].position)
     return NumericLiteral.optimalInteger(offset.toInt(), position)
 }
 
@@ -137,7 +137,7 @@ private fun builtinSizeof(args: List<Expression>, position: Position, program: P
     val dt = args[0].inferType(program)
     if(dt.isKnown) {
         if(args[0] is NumericLiteral || args[0] is AddressOf || args[0] is MemorySlabRef)
-            return NumericLiteral.optimalInteger(program.memsizer.memorySize(dt.getOrUndef(), null), position)
+            return NumericLiteral.optimalInteger(program.target.memorySize(dt.getOrUndef(), null), position)
 
         val target = (args[0] as? IdentifierReference)?.targetStatement()
             ?: throw SyntaxError("wrong argument type", position)
@@ -146,7 +146,7 @@ private fun builtinSizeof(args: List<Expression>, position: Position, program: P
             dt.isArray -> {
                 val length = (target as VarDecl).arraysize?.constIndex() ?: throw CannotEvaluateException("sizeof", "unknown array size")
                 val elementDt = dt.getOrUndef().elementType()
-                NumericLiteral.optimalInteger(program.memsizer.memorySize(elementDt, length), position)
+                NumericLiteral.optimalInteger(program.target.memorySize(elementDt, length), position)
             }
             dt.isString -> {
                 if(target is VarDecl) {
@@ -156,26 +156,26 @@ private fun builtinSizeof(args: List<Expression>, position: Position, program: P
                 else
                     throw SyntaxError("sizeof(str) is undefined here. Perhaps use len, or strings.length?", position)
             }
-            else -> NumericLiteral.optimalInteger( program.memsizer.memorySize(dt.getOrUndef(), null), position)
+            else -> NumericLiteral.optimalInteger( program.target.memorySize(dt.getOrUndef(), null), position)
         }
     } else {
         val identifier = args[0] as? IdentifierReference
         if(identifier?.nameInSource?.size==1) {
             when(identifier.nameInSource[0]) {
-                "ubyte" -> return NumericLiteral.optimalInteger(program.memsizer.memorySize(BaseDataType.UBYTE), position)
-                "byte" -> return NumericLiteral.optimalInteger(program.memsizer.memorySize(BaseDataType.BYTE), position)
-                "uword" -> return NumericLiteral.optimalInteger(program.memsizer.memorySize(BaseDataType.UWORD), position)
-                "word" -> return NumericLiteral.optimalInteger(program.memsizer.memorySize(BaseDataType.WORD), position)
-                "long" -> return NumericLiteral.optimalInteger(program.memsizer.memorySize(BaseDataType.LONG), position)
-                "float" -> return NumericLiteral.optimalInteger(program.memsizer.memorySize(BaseDataType.FLOAT), position)
-                "bool" -> return NumericLiteral.optimalInteger(program.memsizer.memorySize(BaseDataType.BOOL), position)
+                "ubyte" -> return NumericLiteral.optimalInteger(program.target.memorySize(BaseDataType.UBYTE), position)
+                "byte" -> return NumericLiteral.optimalInteger(program.target.memorySize(BaseDataType.BYTE), position)
+                "uword" -> return NumericLiteral.optimalInteger(program.target.memorySize(BaseDataType.UWORD), position)
+                "word" -> return NumericLiteral.optimalInteger(program.target.memorySize(BaseDataType.WORD), position)
+                "long" -> return NumericLiteral.optimalInteger(program.target.memorySize(BaseDataType.LONG), position)
+                "float" -> return NumericLiteral.optimalInteger(program.target.memorySize(BaseDataType.FLOAT), position)
+                "bool" -> return NumericLiteral.optimalInteger(program.target.memorySize(BaseDataType.BOOL), position)
             }
         }
 
         // the argument could refer to a struct declaration
         val struct = (args[0] as? IdentifierReference)?.targetStructDecl()
         if(struct!=null) {
-            val size = struct.memsize(program.memsizer)
+            val size = struct.memsize(program.target)
             return NumericLiteral(BaseDataType.UBYTE, size.toDouble(), position)
         }
 

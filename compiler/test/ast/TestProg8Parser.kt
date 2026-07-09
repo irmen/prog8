@@ -677,9 +677,10 @@ class TestProg8Parser: FunSpec( {
         val char3 = CharLiteral.create('_', Encoding.ISO, Position.DUMMY)
         val char4 = CharLiteral.create('_', Encoding.DEFAULT, Position.DUMMY)
 
-        val program = Program("test", DummyFunctions, DummyMemsizer, AsciiStringEncoder)
-        char1.constValue(program)?.number?.toInt() shouldBe 65
-        char2.constValue(program)?.number?.toInt() shouldBe 122
+        val target = VMTarget()
+        val program = Program("test", DummyFunctions, target)
+        char1.constValue(program)?.number?.toInt() shouldBe 193
+        char2.constValue(program)?.number?.toInt() shouldBe 26
         char3.constValue(program)?.number?.toInt() shouldBe 95
         char4.constValue(program) shouldBe null
     }
@@ -810,7 +811,8 @@ class TestProg8Parser: FunSpec( {
             }
         """)
         val module = parseModule(src)
-        val program = Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
+        val target = VMTarget()
+        val program = Program("test", DummyFunctions, target)
         program.addModule(module)
         val bb2 = (module.statements.single() as Block).statements[2] as VarDecl
         val expr = bb2.value as BinaryExpression
@@ -833,7 +835,8 @@ class TestProg8Parser: FunSpec( {
             }
         """)
         val module = parseModule(src)
-        val program = Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
+        val target = VMTarget()
+        val program = Program("test", DummyFunctions, target)
         program.addModule(module)
         val stmts = (module.statements.single() as Block).statements
         stmts.size shouldBe 6
@@ -860,7 +863,8 @@ class TestProg8Parser: FunSpec( {
                 ubyte ub = (cos8(r)/2 + 100) as ubyte
             }""")
         val module = parseModule(src)
-        val program = Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
+        val target = VMTarget()
+        val program = Program("test", DummyFunctions, target)
         program.addModule(module)
         val stmts = (module.statements.single() as Block).statements
         stmts.size shouldBe 2
@@ -891,7 +895,8 @@ class TestProg8Parser: FunSpec( {
             }""")
 
         val module = parseModule(src)
-        val program = Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
+        val target = VMTarget()
+        val program = Program("test", DummyFunctions, target)
         program.addModule(module)
         val stmts = program.entrypoint.statements
         val expectedResults = listOf(

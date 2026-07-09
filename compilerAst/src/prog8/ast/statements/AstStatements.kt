@@ -389,14 +389,14 @@ class VarDecl(
                 .build()
         }
 
-        fun createAuto(array: ArrayLiteral): VarDecl {
+        fun createAuto(array: ArrayLiteral, target: ICompilationTarget): VarDecl {
             val autoVarName = "auto_heap_value_${++autoHeapValueSequenceNumber}"
             var arrayDt = array.type.getOrElse { throw FatalAstException("unknown dt") }
             if(arrayDt.isSplitWordArray) {
                 // autovars for array literals are NEVER stored as a split word array!
                 when(arrayDt.sub) {
-                    BaseDataType.WORD -> arrayDt = DataType.arrayFor(BaseDataType.WORD, false)
-                    BaseDataType.UWORD -> arrayDt = DataType.arrayFor(BaseDataType.UWORD, false)
+                    BaseDataType.WORD -> arrayDt = DataType.arrayFor(BaseDataType.WORD)
+                    BaseDataType.UWORD -> arrayDt = DataType.arrayFor(BaseDataType.UWORD)
                     else -> { }
                 }
             }

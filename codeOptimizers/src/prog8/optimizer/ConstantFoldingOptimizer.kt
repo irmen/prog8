@@ -110,7 +110,7 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
             if (leftPtrConst != null && rightOffsetConst != null) {
                 val ptrDt = leftDt.getOrUndef()
                 val subDt = ptrDt.sub
-                val scale = if(subDt is BaseDataType) program.memsizer.memorySize(subDt) else ptrDt.size(program.memsizer)
+                val scale = if(subDt is BaseDataType) program.target.memorySize(subDt) else ptrDt.size(program.target)
                 val offset = rightOffsetConst.number.toInt() * scale
                 val result = if (expr.operator == "+") leftPtrConst.number + offset else leftPtrConst.number - offset
                 return listOf(AstReplaceNode(expr, NumericLiteral(BaseDataType.UWORD, result, expr.position), parent))
@@ -123,7 +123,7 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
             if (rightPtrConst != null && leftOffsetConst != null) {
                 val ptrDt = rightDt.getOrUndef()
                 val subDt = ptrDt.sub
-                val scale = if(subDt is BaseDataType) program.memsizer.memorySize(subDt) else ptrDt.size(program.memsizer)
+                val scale = if(subDt is BaseDataType) program.target.memorySize(subDt) else ptrDt.size(program.target)
                 val offset = leftOffsetConst.number.toInt() * scale
                 val result = rightPtrConst.number + offset
                 return listOf(AstReplaceNode(expr, NumericLiteral(BaseDataType.UWORD, result, expr.position), parent))
@@ -142,8 +142,8 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
                 val concatenated = if(leftString.encoding==rightString.encoding) {
                     leftString.value + rightString.value
                 } else {
-                    program.encoding.decodeString(
-                        program.encoding.encodeString(leftString.value, leftString.encoding) + program.encoding.encodeString(rightString.value, rightString.encoding),
+                    program.target.decodeString(
+                        program.target.encodeString(leftString.value, leftString.encoding) + program.target.encodeString(rightString.value, rightString.encoding),
                         leftString.encoding)
                 }
                 val concatStr = StringLiteral.create(concatenated, leftString.encoding, expr.position)
@@ -535,7 +535,7 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
 
     override fun after(decl: VarDecl, parent: Node): Iterable<AstModification> {
         if (decl.type == VarDeclType.CONST && decl.datatype.isPointer) {
-            val sizer = program.memsizer
+            val sizer = program.target
             if (decl.datatype.size(sizer) > 1) {
                 errors.err("due to internal compiler complexity, currently pointer variables with data type size > 1 cannot be const", decl.position)
             }

@@ -12,10 +12,9 @@ import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.code.source.SourceCode
 import prog8.code.target.C64Target
+import prog8.code.target.VMTarget
 import prog8.codegen.cpu6502.AsmGen6502
 import prog8.codegen.cpu6502.VariableAllocator
-import prog8tests.helpers.DummyMemsizer
-import prog8tests.helpers.DummyStringEncoder
 import prog8tests.helpers.ErrorReporterForTests
 import java.nio.file.Files
 import kotlin.io.path.Path
@@ -46,8 +45,9 @@ class TestCodegen: FunSpec({
 //        xx += cx16.r0
 //    }
 //}
+        val compTarget = C64Target()
         val codegen = AsmGen6502(0)
-        val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
+        val program = PtProgram("test", VMTarget())
         val block = PtBlock("main",false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
         val sub = PtSub("start", emptyList(), emptyList(), Position.DUMMY)
         sub.add(PtVariable(
@@ -166,7 +166,7 @@ class TestCodegen: FunSpec({
     }
 
     test("memory mapped zp var is correctly considered to be zp var") {
-        val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
+        val program = PtProgram("test", VMTarget())
         val st = SymbolTable(program)
         st.add(StMemVar("zpmemvar", DataType.WORD, 0x20u, null, null))
         st.add(StMemVar("normalmemvar", DataType.WORD, 0x9000u, null, null))

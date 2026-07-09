@@ -318,7 +318,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                 paramsPossibleDatatypes = BuiltinFunctions.getValue(sub.name).parameters.map {
                     it.possibleDatatypes.map { dt ->
                         if(dt.isArray)
-                            DataType.arrayFor(BaseDataType.BOOL, false)     // the builtin function signature doesn't tell us the element type....
+                            DataType.arrayFor(BaseDataType.BOOL)     // the builtin function signature doesn't tell us the element type....
                         else if(dt.isPointer)
                             DataType.pointer(BaseDataType.UBYTE)
                         else

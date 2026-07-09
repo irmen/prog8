@@ -132,14 +132,13 @@ sealed class PtNamedNode(initialName: String, position: Position): PtNode(positi
 
 class PtProgram(
     val name: String,
-    val memsizer: IMemSizer,
-    val encoding: IStringEncoding
+    val target: ICompilationTarget
 ) : PtNode(Position.DUMMY) {
+    val memsizer: IMemSizer get() = target
+    val encoding: IStringEncoding get() = target
+
     // Root node is never transformed - return self
     override fun copy(): PtNode = this
-
-//    fun allModuleDirectives(): Sequence<PtDirective> =
-//        children.asSequence().flatMap { it.children }.filterIsInstance<PtDirective>().distinct()
 
     fun allBlocks(): Sequence<PtBlock> =
         children.asSequence().filterIsInstance<PtBlock>()

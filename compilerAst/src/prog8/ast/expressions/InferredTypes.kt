@@ -107,21 +107,6 @@ object InferredTypes {
         if(instance!=null)
             return instance
         else
-            return when {
-                type.isPointerArray -> InferredType.known(type)
-                type.isSplitWordArray -> {
-                    when (type.sub) {
-                        BaseDataType.UWORD -> InferredType.known(DataType.arrayFor(BaseDataType.UWORD))
-                        BaseDataType.WORD -> InferredType.known(DataType.arrayFor(BaseDataType.WORD))
-                        BaseDataType.STR -> InferredType.known(DataType.arrayFor(BaseDataType.STR))
-                        else -> throw IllegalArgumentException("invalid sub type")
-                    }
-                }
-
-                type.isArray -> InferredType.known(type)
-                type.isPointer -> InferredType.known(type)
-                type.isStructInstance -> InferredType.known(type)
-                else -> throw IllegalArgumentException("invalid type $type")
-            }
+            return InferredType.known(type)
     }
 }

@@ -13,6 +13,7 @@ import prog8.code.INTERNED_STRINGS_MODULENAME
 import prog8.code.PROG8_CONTAINER_MODULES
 import prog8.code.core.IErrorReporter
 import prog8.code.source.SourceCode
+import prog8.code.target.VMTarget
 import prog8.compiler.ModuleImporter
 import prog8.parser.MultipleParseErrors
 import prog8tests.helpers.*
@@ -25,7 +26,7 @@ class TestModuleImporter: FunSpec({
     lateinit var program: Program
 
     beforeTest {
-        program = Program("foo", DummyFunctions, DummyMemsizer, DummyStringEncoder)
+        program = Program("foo", DummyFunctions, VMTarget())
     }
 
     fun makeImporter(errors: IErrorReporter? = null, searchIn: Iterable<String>) =

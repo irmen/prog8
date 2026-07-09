@@ -228,7 +228,7 @@ class IRCodeGen(
             val shadowInit = IRVariableInitializer.Array(initBytes.map { IRStSymbolicReference.Numeric(it.toDouble()) })
             val shadowVar = IRStStaticVariable(
                 shadowName,
-                DataType.arrayFor(BaseDataType.UBYTE, false),
+                DataType.arrayFor(BaseDataType.UBYTE),
                 shadowInit,
                 initBytes.size.toUInt(),
                 ZeropageWish.NOT_IN_ZEROPAGE,

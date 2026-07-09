@@ -61,7 +61,7 @@ library {
         main.name shouldBe "p8b_main"
         val jumptable = main.children[0] as PtVariable
         jumptable.name shouldBe "p8v_jumptable"
-        jumptable.type shouldBe DataType.arrayFor(BaseDataType.UWORD, false)
+        jumptable.type shouldBe DataType.arrayFor(BaseDataType.UWORD)
         jumptable.arraySize shouldBe 4u
         val bin = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".bin").readBytes().map { it.toUByte() }
 
@@ -144,7 +144,7 @@ library {
         main.name shouldBe "p8b_main"
         val jumptable = main.children[0] as PtVariable
         jumptable.name shouldBe "p8v_jumptable"
-        jumptable.type shouldBe DataType.arrayFor(BaseDataType.UWORD, false)
+        jumptable.type shouldBe DataType.arrayFor(BaseDataType.UWORD)
         jumptable.arraySize shouldBe 4u
         val asm = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".asm").readText()
         println(asm)

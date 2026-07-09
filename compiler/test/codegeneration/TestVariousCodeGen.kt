@@ -67,7 +67,7 @@ main {
         val text="""
 main {
     sub start() {
-        uword[3] seed
+        uword[3] @nosplit seed
         cx16.r0 = seed[0] + seed[1] + seed[2]
     }
 }"""

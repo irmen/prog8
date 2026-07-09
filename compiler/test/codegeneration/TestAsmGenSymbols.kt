@@ -21,10 +21,13 @@ import prog8.code.target.VMTarget
 import prog8.codegen.cpu6502.AsmGen6502Internal
 import prog8.compiler.astprocessing.AstChecker
 import prog8.compiler.astprocessing.SimplifiedAstMaker
-import prog8tests.helpers.*
+import prog8tests.helpers.DummyFunctions
+import prog8tests.helpers.ErrorReporterForTests
+import prog8tests.helpers.compileText
 
 class TestAsmGenSymbols: StringSpec({
     val outputDir = tempdir().toPath()
+    val target = VMTarget()
     
     fun createTestProgram(): Program {
         /*
@@ -78,7 +81,7 @@ class TestAsmGenSymbols: StringSpec({
         val block = Block("main", null, mutableListOf(labelInBlock, varInBlock, subroutine), false, Position.DUMMY)
 
         val module = Module(mutableListOf(block), Position.DUMMY, SourceCode.Generated("test"))
-        val program = Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder).addModule(module)
+        val program = Program("test", DummyFunctions, target).addModule(module)
 
         return program
     }
@@ -171,8 +174,8 @@ main {
         asmgen.asmSymbolName(listOf("prog8_lib","P8ZP_SCRATCH_W2")) shouldBe "P8ZP_SCRATCH_W2"
         val id1 = PtIdentifier("prog8_lib.P8ZP_SCRATCH_REG", DataType.UBYTE, Position.DUMMY)
         val id2 = PtIdentifier("prog8_lib.P8ZP_SCRATCH_W2", DataType.UWORD, Position.DUMMY)
-        id1.parent = PtProgram("test", DummyMemsizer, DummyStringEncoder)
-        id2.parent = PtProgram("test", DummyMemsizer, DummyStringEncoder)
+        id1.parent = PtProgram("test", VMTarget())
+        id2.parent = PtProgram("test", VMTarget())
         asmgen.asmSymbolName(id1) shouldBe "P8ZP_SCRATCH_REG"
         asmgen.asmSymbolName(id2) shouldBe "P8ZP_SCRATCH_W2"
     }

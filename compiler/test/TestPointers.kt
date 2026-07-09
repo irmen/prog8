@@ -662,7 +662,7 @@ main {
         compileText(VMTarget(), false, src, outputDir, errors=errors)
         val err = errors.errors
         err.size shouldBe 1
-        err[0] shouldContain("15:16: incompatible value type, can only assign uword or correct pointer")
+        err[0] shouldContain("15:16: incompatible value type, can only assign uword")
     }
 
     test("pointer uword assignments with cast") {
@@ -757,12 +757,12 @@ main {
         DataType.UNDEFINED.typeForUntypedAddressOf(false, memsizer) shouldBe DataType.UWORD
         DataType.UNDEFINED.typeForUntypedAddressOf(true, memsizer) shouldBe DataType.pointer(BaseDataType.UBYTE)
         DataType.STR.typeForUntypedAddressOf(false, memsizer) shouldBe DataType.pointer(BaseDataType.UBYTE)
-        DataType.arrayFor(BaseDataType.FLOAT, false).typeForUntypedAddressOf(false, memsizer) shouldBe DataType.pointer(BaseDataType.FLOAT)
-        DataType.arrayFor(BaseDataType.FLOAT, false).typeForUntypedAddressOf(true, memsizer) shouldBe DataType.pointer(BaseDataType.UBYTE)
-        DataType.arrayFor(BaseDataType.UWORD, false).typeForUntypedAddressOf(false, memsizer) shouldBe DataType.pointer(BaseDataType.UWORD)
-        DataType.arrayFor(BaseDataType.UWORD, true).typeForUntypedAddressOf(false, memsizer) shouldBe DataType.pointer(BaseDataType.UBYTE)
-        DataType.arrayFor(BaseDataType.UWORD, false).typeForUntypedAddressOf(true, memsizer) shouldBe DataType.pointer(BaseDataType.UBYTE)
-        DataType.arrayFor(BaseDataType.UWORD, true).typeForUntypedAddressOf(true, memsizer) shouldBe DataType.pointer(BaseDataType.UBYTE)
+        DataType.arrayFor(BaseDataType.FLOAT).typeForUntypedAddressOf(false, memsizer) shouldBe DataType.pointer(BaseDataType.FLOAT)
+        DataType.arrayFor(BaseDataType.FLOAT).typeForUntypedAddressOf(true, memsizer) shouldBe DataType.pointer(BaseDataType.UBYTE)
+        DataType.arrayFor(BaseDataType.UWORD).typeForUntypedAddressOf(false, memsizer) shouldBe DataType.pointer(BaseDataType.UWORD)
+        DataType.splitWordArrayFor(BaseDataType.UWORD).typeForUntypedAddressOf(false, memsizer) shouldBe DataType.pointer(BaseDataType.UBYTE)
+        DataType.arrayFor(BaseDataType.UWORD).typeForUntypedAddressOf(true, memsizer) shouldBe DataType.pointer(BaseDataType.UBYTE)
+        DataType.splitWordArrayFor(BaseDataType.UWORD).typeForUntypedAddressOf(true, memsizer) shouldBe DataType.pointer(BaseDataType.UBYTE)
 
         DataType.pointer(Struct("struct")).typeForUntypedAddressOf(false, memsizer) shouldBe DataType.UWORD
         DataType.pointerFromAntlr(listOf("struct")).typeForUntypedAddressOf(false, memsizer) shouldBe DataType.UWORD

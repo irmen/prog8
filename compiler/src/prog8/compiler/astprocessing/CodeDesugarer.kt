@@ -789,7 +789,7 @@ _after:
             true    // for calls (indirect JSR), split array is always the optimal choice
         else
             target.cpu==CpuType.CPU6502    // for goto (indirect JMP), split array is optimal for 6502, but NOT for the 65C02 (it has a different JMP addressing mode available)
-        val arrayDt = DataType.arrayFor(BaseDataType.UWORD, split)
+        val arrayDt = DataType.arrayFor(BaseDataType.UWORD)
         val labelArray = ArrayLiteral(InferredTypes.knownFor(arrayDt), ongoto.labels.toTypedArray(), ongoto.position)
         val jumplistArray = VarDecl.createAutoOptionalSplit(labelArray)
 
@@ -978,13 +978,13 @@ _after:
                     val ptrVar = deref.definingScope.lookup(ptrName) as? VarDecl
                     if(ptrVar!=null && (ptrVar.datatype.isPointer || ptrVar.datatype.isPointerArray)) {
                         val struct = ptrVar.datatype.subType!! as StructDecl
-                        val offsetNumber = NumericLiteral.optimalInteger(struct.offsetof(field.first, program.memsizer)!!.toInt(), deref.position)
+                        val offsetNumber = NumericLiteral.optimalInteger(struct.offsetof(field.first, program.target)!!.toInt(), deref.position)
                         val pointerIdentifier = IdentifierReference(ptrName, deref.position)
                         val addrType = if(target.POINTER_MEM_SIZE > 2u) DataType.LONG else DataType.UWORD
                         val address: Expression
                         if(ptrVar.datatype.isPointer) {
                             // pointer[idx].field = value       -->  pokeXXX(pointer as uword/long + idx*sizeof(Struct) + offsetof(Struct.field), value)
-                            val structSize = ptrVar.datatype.dereference().size(program.memsizer)
+                            val structSize = ptrVar.datatype.dereference().size(program.target)
                             val pointerAsAddr = TypecastExpression(pointerIdentifier, addrType, true, deref.position)
                             val idx = ptr.last().second!!.indexExpr
                             val scaledIndex = BinaryExpression(idx, "*", NumericLiteral(BaseDataType.UWORD, structSize.toDouble(), deref.position), deref.position)
@@ -1162,7 +1162,7 @@ _after:
         if(targetDt.isStructInstance && sourceDt.isStructInstance) {
             if(targetDt == sourceDt) {
                 // special case simple struct instance assignment via memory copy
-                val size = program.memsizer.memorySize(sourceDt.getOrUndef(), null)
+                val size = program.target.memorySize(sourceDt.getOrUndef(), null)
                 val structSizeNum = NumericLiteral.optimalInteger(size, assignment.position)
                 val deref = assignment.value as? PtrDereference
                 if(deref!=null) {

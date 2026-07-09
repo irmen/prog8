@@ -7,18 +7,18 @@ import prog8.ast.Module
 import prog8.ast.Program
 import prog8.code.PROG8_CONTAINER_MODULES
 import prog8.code.source.SourceCode
+import prog8.code.target.VMTarget
 import prog8.parser.ParseError
 import prog8.parser.Prog8Parser.parseModule
 import prog8tests.helpers.DummyFunctions
-import prog8tests.helpers.DummyMemsizer
-import prog8tests.helpers.DummyStringEncoder
 
 
 class TestAstToSourceText: FunSpec({
 
     // Helper function to generate Prog8 source from AST
     fun generateP8(module: Module): String {
-        val program = Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
+        val target = VMTarget()
+        val program = Program("test", DummyFunctions, target)
             .addModule(module)
 
         var generatedText = ""

@@ -57,6 +57,8 @@ class IRFileReader {
             }
         }
     }
+    
+    private lateinit var options: CompilationOptions
 
     private fun parseProgram(reader: XMLEventReader): IRProgram {
         require(reader.nextEvent().isStartDocument)
@@ -64,7 +66,7 @@ class IRFileReader {
         require(start.name.localPart=="PROGRAM") { "missing PROGRAM" }
         val programName = start.attributes.asSequence().single { it.name.localPart == "NAME" }.value
         val compilerVersion = start.attributes.asSequence().single { it.name.localPart == "COMPILERVERSION" }.value
-        val options = parseOptions(reader, compilerVersion)
+        options = parseOptions(reader, compilerVersion)
         val asmsymbols = parseAsmSymbols(reader)
 
         skipText(reader)
@@ -612,13 +614,13 @@ class IRFileReader {
                 }
             }
             return when(type) {
-                "bool" -> DataType.arrayFor(BaseDataType.BOOL, false)
-                "byte" -> DataType.arrayFor(BaseDataType.BYTE, false)
-                "ubyte", "str" -> DataType.arrayFor(BaseDataType.UBYTE, false)
-                "word" -> DataType.arrayFor(BaseDataType.WORD, false)
-                "uword" -> DataType.arrayFor(BaseDataType.UWORD, false)
-                "float" -> DataType.arrayFor(BaseDataType.FLOAT, false)
-                "long" -> DataType.arrayFor(BaseDataType.LONG, false)
+                "bool" -> DataType.arrayFor(BaseDataType.BOOL)
+                "byte" -> DataType.arrayFor(BaseDataType.BYTE)
+                "ubyte", "str" -> DataType.arrayFor(BaseDataType.UBYTE)
+                "word" -> DataType.arrayFor(BaseDataType.WORD)
+                "uword" -> DataType.arrayFor(BaseDataType.UWORD)
+                "float" -> DataType.arrayFor(BaseDataType.FLOAT)
+                "long" -> DataType.arrayFor(BaseDataType.LONG)
                 else -> {
                     throw IRParseException("invalid dt  $type")
                 }

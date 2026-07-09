@@ -42,8 +42,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
 
         val ptProgram = PtProgram(
             program.name,
-            program.memsizer,
-            program.encoding
+            program.target
         )
 
         // note: modules are not represented any longer in this Ast. All blocks have been moved into the top scope.
@@ -272,7 +271,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
                         // pointer arithmetic: add or subract the size of the struct times the argument
                         val leftDt = expr.left.inferType(program).getOrUndef()
                         require(leftDt.isPointer && !expr.right.inferType(program).isPointer)
-                        val structSize = leftDt.size(program.memsizer)
+                        val structSize = leftDt.size(program.target)
                         val constValue = augmentedValue.constValue(program)
                         if(constValue!=null) {
                             val total = constValue.number*structSize
@@ -991,7 +990,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
         val offsType = addrType.base   // use the target-appropriate offset type (UWORD on 6502, LONG on m68k)
 
         if(leftDt.isPointer && !rightDt.isPointer) {
-            val structSize = leftDt.size(program.memsizer)
+            val structSize = leftDt.size(program.target)
             val constValue = expr.right.constValue(program)
             if(constValue!=null) {
                 // ptr + constvalue * structsize
@@ -1032,7 +1031,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
                 }
             }
         } else if(!leftDt.isPointer && rightDt.isPointer) {
-            val structSize = rightDt.size(program.memsizer)
+            val structSize = rightDt.size(program.target)
             val constValue = expr.left.constValue(program)
             if(constValue!=null) {
                 // ptr + constvalue * structsize
@@ -1176,8 +1175,8 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
         if(type.isSplitWordArray) {
             // ranges are never a split word array!
             when(type.sub) {
-                BaseDataType.WORD -> type = DataType.arrayFor(BaseDataType.WORD, false)
-                BaseDataType.UWORD -> type = DataType.arrayFor(BaseDataType.UWORD, false)
+                BaseDataType.WORD -> type = DataType.arrayFor(BaseDataType.WORD)
+                BaseDataType.UWORD -> type = DataType.arrayFor(BaseDataType.UWORD)
                 else -> { }
             }
         }

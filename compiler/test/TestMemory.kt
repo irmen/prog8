@@ -14,10 +14,14 @@ import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteral
 import prog8.ast.expressions.PrefixExpression
 import prog8.ast.statements.*
-import prog8.code.core.*
+import prog8.code.core.BaseDataType
+import prog8.code.core.DataType
+import prog8.code.core.Position
 import prog8.code.source.SourceCode
 import prog8.code.target.*
-import prog8tests.helpers.*
+import prog8tests.helpers.DummyFunctions
+import prog8tests.helpers.ErrorReporterForTests
+import prog8tests.helpers.compileText
 
 
 class TestMemory: FunSpec({
@@ -26,7 +30,7 @@ class TestMemory: FunSpec({
     val outputDir = tempdir().toPath()
 
     fun wrapWithProgram(statements: List<Statement>): Program {
-        val program = Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
+        val program = Program("test", DummyFunctions, c64target)
         val subroutine = Subroutine("test", mutableListOf(), mutableListOf(), emptyList(), emptyList(), emptySet(), null, false, false, false, false, statements.toMutableList(), Position.DUMMY)
         val module = Module(mutableListOf(subroutine), Position.DUMMY, SourceCode.Generated("test"))
         program.addModule(module)
@@ -271,7 +275,7 @@ class TestMemory: FunSpec({
         val assignment = Assignment(target, NumericLiteral.optimalInteger(0, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
         val subroutine = Subroutine("test", mutableListOf(), mutableListOf(), emptyList(), emptyList(), emptySet(), null, false, false, false, false, mutableListOf(decl, assignment), Position.DUMMY)
         val module = Module(mutableListOf(subroutine), Position.DUMMY, SourceCode.Generated("test"))
-        Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
+        Program("test", DummyFunctions, c64target)
             .addModule(module)
         target.isIOAddress(c64target) shouldBe false
     }
@@ -294,7 +298,7 @@ class TestMemory: FunSpec({
         val assignment = Assignment(target, NumericLiteral.optimalInteger(0, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
         val subroutine = Subroutine("test", mutableListOf(), mutableListOf(), emptyList(), emptyList(), emptySet(), null, false, false, false, false, mutableListOf(decl, assignment), Position.DUMMY)
         val module = Module(mutableListOf(subroutine), Position.DUMMY, SourceCode.Generated("test"))
-        Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
+        Program("test", DummyFunctions, c64target)
             .addModule(module)
         target.isIOAddress(c64target) shouldBe false
     }
@@ -317,7 +321,7 @@ class TestMemory: FunSpec({
         val assignment = Assignment(target, NumericLiteral.optimalInteger(0, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
         val subroutine = Subroutine("test", mutableListOf(), mutableListOf(), emptyList(), emptyList(), emptySet(), null, false, false, false, false, mutableListOf(decl, assignment), Position.DUMMY)
         val module = Module(mutableListOf(subroutine), Position.DUMMY, SourceCode.Generated("test"))
-        Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
+        Program("test", DummyFunctions, c64target)
             .addModule(module)
         target.isIOAddress(c64target) shouldBe true
     }
@@ -331,7 +335,7 @@ class TestMemory: FunSpec({
         val assignment = Assignment(target, NumericLiteral.optimalInteger(0, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
         val subroutine = Subroutine("test", mutableListOf(), mutableListOf(), emptyList(), emptyList(), emptySet(), null, false, false, false, false, mutableListOf(decl, assignment), Position.DUMMY)
         val module = Module(mutableListOf(subroutine), Position.DUMMY, SourceCode.Generated("test"))
-        Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
+        Program("test", DummyFunctions, c64target)
             .addModule(module)
         target.isIOAddress(c64target) shouldBe false
     }
@@ -348,7 +352,7 @@ class TestMemory: FunSpec({
         val assignment = Assignment(target, NumericLiteral.optimalInteger(0, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
         val subroutine = Subroutine("test", mutableListOf(), mutableListOf(), emptyList(), emptyList(), emptySet(), null, false, false, false, false, mutableListOf(decl, assignment), Position.DUMMY)
         val module = Module(mutableListOf(subroutine), Position.DUMMY, SourceCode.Generated("test"))
-        Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
+        Program("test", DummyFunctions, c64target)
             .addModule(module)
         target.isIOAddress(c64target) shouldBe false
     }
@@ -365,7 +369,7 @@ class TestMemory: FunSpec({
         val assignment = Assignment(target, NumericLiteral.optimalInteger(0, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
         val subroutine = Subroutine("test", mutableListOf(), mutableListOf(), emptyList(), emptyList(), emptySet(), null, false, false, false, false, mutableListOf(decl, assignment), Position.DUMMY)
         val module = Module(mutableListOf(subroutine), Position.DUMMY, SourceCode.Generated("test"))
-        Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
+        Program("test", DummyFunctions, c64target)
             .addModule(module)
         target.isIOAddress(c64target) shouldBe true
     }
@@ -421,8 +425,8 @@ class TestMemory: FunSpec({
             target.memorySize(DataType.arrayFor(BaseDataType.UWORD), 10) shouldBe 20
             target.memorySize(DataType.arrayFor(BaseDataType.LONG), 10) shouldBe 40
             target.memorySize(DataType.arrayFor(BaseDataType.FLOAT), 10) shouldBe 10*target.FLOAT_MEM_SIZE.toInt()
-            target.memorySize(DataType.arrayFor(BaseDataType.WORD, true), 10) shouldBe 20
-            target.memorySize(DataType.arrayFor(BaseDataType.UWORD, true), 10) shouldBe 20
+            target.memorySize(DataType.splitWordArrayFor(BaseDataType.WORD), 10) shouldBe 20
+            target.memorySize(DataType.splitWordArrayFor(BaseDataType.UWORD), 10) shouldBe 20
 
             target.memorySize(DataType.BOOL, 10) shouldBe 10
             target.memorySize(DataType.UWORD, 10) shouldBe 20

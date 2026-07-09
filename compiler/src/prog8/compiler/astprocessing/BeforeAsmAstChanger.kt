@@ -161,7 +161,7 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
             if(options.compTarget.name != VMTarget.NAME && expr.left.inferType(program).isPointer) {
                 val cast = expr.right as? TypecastExpression
                 if(cast!=null && cast.type.isWord && cast.expression.inferType(program).isBytes) {
-                    val structsize = expr.left.inferType(program).getOrUndef().size(program.memsizer)
+                    val structsize = expr.left.inferType(program).getOrUndef().size(program.target)
                     // pointer + byte  ->  (pointer as uword) + (byte as uword * structsize)   (yields better code on 6502 than the plain pointer arithmetic)
                     // but only if the struct/value size is >1
                     if(structsize>1) {

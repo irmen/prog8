@@ -149,7 +149,7 @@ class VarConstantValueTypeAdjuster(
 
     private fun canBeMadeConst(decl: VarDecl, usages: List<Node>): Boolean {
         if (decl.datatype.isPointer) {
-            if (decl.datatype.size(program.memsizer) > 1) return false
+            if (decl.datatype.size(program.target) > 1) return false
             val derefCount = usages.count {
                 val p = it.parent
                 val gp = p.parent
@@ -599,7 +599,7 @@ internal class ConstantIdentifierReplacer(
                 if(declArraySize!=null && declArraySize!=rangeExpr.size())
                     errors.err("range expression size (${rangeExpr.size()}) doesn't match declared array size ($declArraySize)", decl.value?.position!!)
                 if(constRange!=null) {
-                    return ArrayLiteral(InferredTypes.InferredType.known(DataType.arrayFor(BaseDataType.FLOAT, false)),
+                    return ArrayLiteral(InferredTypes.InferredType.known(DataType.arrayFor(BaseDataType.FLOAT)),
                         constRange.map { NumericLiteral(BaseDataType.FLOAT, it.toDouble(), decl.value!!.position) }.toTypedArray(),
                         position = decl.value!!.position)
                 }

@@ -2,15 +2,15 @@ import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
-import prog8.code.*
+import prog8.code.StNodeType
+import prog8.code.SymbolTableMaker
 import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.code.source.SourceCode
+import prog8.code.target.VMTarget
 import prog8.codegen.intermediate.prefixScopedName
 import prog8.codegen.intermediate.prefixSymbols
 import prog8.codegen.intermediate.typePrefixChar
-import prog8tests.helpers.DummyMemsizer
-import prog8tests.helpers.DummyStringEncoder
 
 
 class TestSymbolPrefixer : FunSpec({
@@ -59,7 +59,7 @@ class TestSymbolPrefixer : FunSpec({
     // --- full program prefixing tests ---
 
     test("prefixSymbols prefixes a simple program") {
-        val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
+        val program = PtProgram("test", VMTarget())
         val block = PtBlock("main", false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
         val sub = PtSub("start", emptyList(), emptyList(), Position.DUMMY)
         val varX = PtVariable("x", DataType.UBYTE, ZeropageWish.DONTCARE, 0u, false, null, null, Position.DUMMY)
@@ -84,7 +84,7 @@ class TestSymbolPrefixer : FunSpec({
     }
 
     test("prefixSymbols handles subroutine parameters") {
-        val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
+        val program = PtProgram("test", VMTarget())
         val block = PtBlock("main", false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
         val sub = PtSub("start", emptyList(), emptyList(), Position.DUMMY)
         val param = PtSubroutineParameter("arg", DataType.UBYTE, null, Position.DUMMY)
@@ -100,7 +100,7 @@ class TestSymbolPrefixer : FunSpec({
     }
 
     test("prefixSymbols handles constants") {
-        val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
+        val program = PtProgram("test", VMTarget())
         val block = PtBlock("main", false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
         val constant = PtConstant("SIZE", DataType.UWORD, 100.0, null, Position.DUMMY)
         block.add(constant)
@@ -114,7 +114,7 @@ class TestSymbolPrefixer : FunSpec({
     }
 
     test("prefixSymbols handles labels") {
-        val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
+        val program = PtProgram("test", VMTarget())
         val block = PtBlock("main", false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
         val sub = PtSub("start", emptyList(), emptyList(), Position.DUMMY)
         val label = PtLabel("mylabel", Position.DUMMY)
@@ -130,7 +130,7 @@ class TestSymbolPrefixer : FunSpec({
     }
 
     test("prefixSymbols handles generated labels without prefixing them") {
-        val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
+        val program = PtProgram("test", VMTarget())
         val block = PtBlock("main", false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
         val sub = PtSub("start", emptyList(), emptyList(), Position.DUMMY)
         val genLabel = PtLabel("p8_label_gen_42", Position.DUMMY)
@@ -146,7 +146,7 @@ class TestSymbolPrefixer : FunSpec({
     }
 
     test("prefixSymbols handles struct declarations") {
-        val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
+        val program = PtProgram("test", VMTarget())
         val block = PtBlock("main", false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
         val struct = PtStructDecl("Point", listOf(
             PtStructField(DataType.UBYTE, "x", null),
@@ -163,7 +163,7 @@ class TestSymbolPrefixer : FunSpec({
     }
 
     test("prefixSymbols handles asmsub") {
-        val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
+        val program = PtProgram("test", VMTarget())
         val block = PtBlock("main", false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
         val asmsub = PtAsmSub("routine", PtAsmSub.Address(null, null, 0x5000u), setOf(CpuRegister.Y), emptyList(), emptyList(), false, Position.DUMMY)
         block.add(asmsub)
@@ -177,7 +177,7 @@ class TestSymbolPrefixer : FunSpec({
     }
 
     test("prefixSymbols handles memmapped variables") {
-        val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
+        val program = PtProgram("test", VMTarget())
         val block = PtBlock("main", false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
         val memvar = PtMemMapped("reg", DataType.UBYTE, 0xd020u, null, Position.DUMMY)
         block.add(memvar)
@@ -193,7 +193,7 @@ class TestSymbolPrefixer : FunSpec({
     // --- noSymbolPrefixing tests ---
 
     test("noSymbolPrefixing blocks keep their names intact") {
-        val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
+        val program = PtProgram("test", VMTarget())
         val libOptions = PtBlock.Options(noSymbolPrefixing = true)
         val libBlock = PtBlock("lib", false, SourceCode.Generated("test"), libOptions, Position.DUMMY)
         val libSub = PtSub("func", emptyList(), emptyList(), Position.DUMMY)
@@ -209,7 +209,7 @@ class TestSymbolPrefixer : FunSpec({
     }
 
     test("references from user block to noSymbolPrefixing block are not prefixed") {
-        val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
+        val program = PtProgram("test", VMTarget())
 
         // Library block with no symbol prefixing
         val libOptions = PtBlock.Options(noSymbolPrefixing = true)
@@ -240,7 +240,7 @@ class TestSymbolPrefixer : FunSpec({
     }
 
     test("references from noSymbolPrefixing block to regular block get prefixed") {
-        val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
+        val program = PtProgram("test", VMTarget())
 
         // Regular user block
         val userBlock = PtBlock("main", false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
@@ -267,7 +267,7 @@ class TestSymbolPrefixer : FunSpec({
     }
 
     test("identifier references are prefixed according to their target type") {
-        val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
+        val program = PtProgram("test", VMTarget())
         val block = PtBlock("main", false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
         val sub = PtSub("start", emptyList(), emptyList(), Position.DUMMY)
         val varX = PtVariable("x", DataType.UBYTE, ZeropageWish.DONTCARE, 0u, false, null, null, Position.DUMMY)
@@ -290,7 +290,7 @@ class TestSymbolPrefixer : FunSpec({
     }
 
     test("prefixSymbols exception for unknown identifier") {
-        val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
+        val program = PtProgram("test", VMTarget())
         val block = PtBlock("main", false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
         val sub = PtSub("start", emptyList(), emptyList(), Position.DUMMY)
         val idRef = PtIdentifier("nonexistent", DataType.UBYTE, Position.DUMMY)

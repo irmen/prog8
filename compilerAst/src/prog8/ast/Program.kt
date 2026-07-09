@@ -14,8 +14,7 @@ import prog8.code.source.SourceCode
 
 class Program(val name: String,
               val builtinFunctions: IBuiltinFunctions,
-              val memsizer: IMemSizer,
-              val encoding: IStringEncoding
+              val target: ICompilationTarget
 ) {
     private val _modules = mutableListOf<Module>()
 
