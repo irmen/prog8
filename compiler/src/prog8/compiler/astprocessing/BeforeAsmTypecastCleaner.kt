@@ -33,7 +33,7 @@ internal class BeforeAsmTypecastCleaner(val program: Program,
             return listOf(AstReplaceNode(typecast, typecast.expression, parent))
 
         if(sourceDt.isPassByRef) {
-            if(typecast.type.isUnsignedWord) {
+            if(typecast.type.isUnsignedWord || program.target.POINTER_MEM_SIZE > 2u && typecast.type.isLong) {
                 val identifier = typecast.expression as? IdentifierReference
                 if (identifier != null) {
                     return if (identifier.isSubroutineParameter()) {
@@ -78,7 +78,8 @@ internal class BeforeAsmTypecastCleaner(val program: Program,
                     }
                 }
             } else {
-                errors.err("cannot cast pass-by-reference value to type ${typecast.type} (only to UWORD)", typecast.position)
+                val allowed = if(program.target.POINTER_MEM_SIZE > 2u) "LONG" else "UWORD"
+                errors.err("cannot cast pass-by-reference value to type ${typecast.type} (only to $allowed)", typecast.position)
             }
         }
 

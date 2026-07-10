@@ -1792,7 +1792,7 @@ internal class AstChecker(private val program: Program,
                 errors.err("cannot use a pointer as a long, a pointer is an unsigned word", typecast.position)
         }
 
-        if(typecast.implicit && typecast.type.isPointer && !typecast.expression.inferType(program).isLong && options.compTarget.POINTER_MEM_SIZE>2u)
+        if(typecast.implicit && typecast.type.isPointer && !typecast.expression.inferType(program).isLong && !typecast.expression.inferType(program).getOrUndef().isPassByRef && options.compTarget.POINTER_MEM_SIZE>2u)
             errors.err("explicit typecast is needed to convert a non-long value to a pointer", typecast.position)
 
         super.visit(typecast)
