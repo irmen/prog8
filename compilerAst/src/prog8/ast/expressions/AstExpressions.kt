@@ -969,7 +969,7 @@ class NumericLiteral(val type: BaseDataType,    // only numerical types allowed 
                     return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
                 if(targettype==BaseDataType.LONG)
                     return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
-                // note: do not reduce a number casted to a pointer, back to a number...
+                // note: DO NOT reduce a number casted to a pointer, back to a number... that will introduce casting loops
             }
             BaseDataType.WORD -> {
                 if(targettype==BaseDataType.BYTE && number >= -128 && number <=127)

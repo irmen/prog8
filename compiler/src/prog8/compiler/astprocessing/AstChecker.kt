@@ -180,9 +180,9 @@ internal class AstChecker(private val program: Program,
                         // you can return a string or array or pointer when an uword (pointer) is returned
                     } else if(valueDt issimpletype BaseDataType.UWORD && expectedDt.isString) {
                         // you can return an uword pointer when the return type is a string
-                    } else if((valueDataType.isUnsignedWord || valueDataType.isByte) && expectedDt.isPointer) {
-                        // you can return an uword/ubyte/byte value when a pointer is required
-                        if(options.compTarget.POINTER_MEM_SIZE>2u)
+                    } else if((valueDataType.isUnsignedWord || valueDataType.isByte || valueDataType.isLong) && expectedDt.isPointer) {
+                        // you can return an uword/ubyte/byte/long value when a pointer is required
+                        if(options.compTarget.POINTER_MEM_SIZE>2u && !valueDataType.isLong)
                             errors.err("incompatible return value type $valueDt for $expectedDt (use explicit typecast?)", actual.position)
                     } else {
                         errors.err("return value type $valueDt doesn't match subroutine return type $expectedDt", actual.position)
@@ -1792,8 +1792,8 @@ internal class AstChecker(private val program: Program,
                 errors.err("cannot use a pointer as a long, a pointer is an unsigned word", typecast.position)
         }
 
-        if(typecast.implicit && typecast.type.isPointer && (typecast.expression.inferType(program).isWords || typecast.expression.inferType(program).isBytes) && options.compTarget.POINTER_MEM_SIZE>2u)
-            errors.err("implicit typecast from numeric value to pointer not allowed on 32-bit targets, use an explicit typecast", typecast.position)
+        if(typecast.implicit && typecast.type.isPointer && !typecast.expression.inferType(program).isLong && options.compTarget.POINTER_MEM_SIZE>2u)
+            errors.err("explicit typecast is needed to convert a non-long value to a pointer", typecast.position)
 
         super.visit(typecast)
     }

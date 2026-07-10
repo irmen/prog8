@@ -16,6 +16,7 @@ import prog8.code.core.IMemSizer
 import prog8.code.core.ISubType
 import prog8.code.target.C64Target
 import prog8.code.target.Cx16Target
+import prog8.code.target.Qemu68kTarget
 import prog8.code.target.VMTarget
 import prog8.vm.VmRunner
 import prog8tests.helpers.DummyMemsizer
@@ -2824,5 +2825,26 @@ main {
         withClue(errors.errors.joinToString("\n")) {
             result shouldNotBe null
         }
+    }
+
+    test("return 0 as pointer type without optimization") {
+        // Regression test: 'return 0' in a function returning ^^ubyte should NOT
+        // cause a TypecastExpression wrapping a NumericLiteral to reach the SimplifiedAstMaker.
+        // Without optimization, the optimizer doesn't fold such typecasts away,
+        // so the TypecastExpression survives to the simplified AST where it triggers an assertion.
+        val src = """
+            %option no_sysinit
+            main {
+                sub start() {
+                    ^^ubyte ptr = getptr()
+                }
+                sub getptr() -> ^^ubyte {
+                    return 0
+                }
+            }"""
+        val result = compileText(VMTarget(), false, src, outputDir)
+        result shouldNotBe null
+        val result2 = compileText(Qemu68kTarget(), false, src, outputDir)
+        result2 shouldNotBe null
     }
 })

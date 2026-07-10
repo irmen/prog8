@@ -1191,8 +1191,12 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
         PtString(srcString.value, srcString.encoding, srcString.position)
 
     private fun transform(srcCast: TypecastExpression): PtTypeCast {
+        val inner = transformExpression(srcCast.expression)
+        require(inner !is PtNumber) {
+            "numeric literal typecast should have been resolved at the compiler Ast level, not at simplified Ast: ${srcCast}"
+        }
         val cast = PtTypeCast(srcCast.type, srcCast.implicit, srcCast.position)
-        cast.add(transformExpression(srcCast.expression))
+        cast.add(inner)
         require(cast.type!=cast.value.type) {
             "bogus typecast shouldn't occur at ${srcCast.position}" }
         return cast

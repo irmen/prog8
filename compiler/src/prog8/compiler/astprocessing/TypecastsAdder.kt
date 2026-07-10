@@ -421,6 +421,12 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                     modifications += listOf(AstReplaceNode(returnValue, castedValue.valueOrZero(), returnStmt))
                     continue
                 }
+                // If the numeric literal is already the pointer's equivalent numeric type, no cast needed
+                if(subReturnType.isPointer) {
+                    val ptrNumericType = if(options.compTarget.POINTER_MEM_SIZE > 2u) BaseDataType.LONG else BaseDataType.UWORD
+                    if(returnValue.type == ptrNumericType)
+                        continue
+                }
             }
             if (returnDt istype subReturnType or returnDt.isNotAssignableTo(subReturnType))
                 continue
@@ -787,6 +793,17 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                 return
             }
         }
+        // If source type is already the pointer's numeric equivalent type (LONG on m68k, UWORD on 6502), no cast is needed
+        if(requiredType.isPointer) {
+            val pointerNumericType = if(options.compTarget.POINTER_MEM_SIZE > 2u) BaseDataType.LONG else BaseDataType.UWORD
+            if(sourceDt.base == pointerNumericType)
+                return
+        }
+
+        // Don't wrap NumericLiterals in TypecastExpressions — the SimplifiedAstMaker rejects them.
+        // Instead, let the AstChecker report any type mismatch.
+        if(expressionToCast is NumericLiteral && !requiredType.isNumericOrBool)
+            return
         if (requiredType.isUnsignedWord) {
             // & (address-of) is allowed to be assigned to an uword without a cast
             if (expressionToCast is AddressOf) return

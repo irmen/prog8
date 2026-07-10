@@ -69,8 +69,15 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction) {
             val base = r2 ?: error("LOADI needs reg2")
             val off = imm ?: 0
             loadPointerToA0(base)
-            if (off != 0) emitLine("adda.l  #$off, a0")
-            emitLine("move$s  (a0), d0")
+            if(off<-32768 || off>32767) {
+                if (off != 0) emitLine("adda.l  #$off, a0")
+                emitLine("move$s  (a0), d0")
+            } else {
+                if(off==0)
+                    emitLine("move$s  (a0), d0")
+                else
+                    emitLine("move$s  ($off,a0), d0")
+            }
             emitLine("move$s  d0, ${regAddr(dst)}")
         }
 
@@ -97,8 +104,15 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction) {
             val base = r1 ?: error("STOREZI needs reg1")
             val off = imm ?: 0
             loadPointerToA0(base)
-            if (off != 0) emitLine("adda.l  #$off, a0")
-            emitLine("clr$s  (a0)")
+            if(off<-32768 || off>32767) {
+                if (off != 0) emitLine("adda.l  #$off, a0")
+                emitLine("clr$s  (a0)")
+            } else {
+                if(off==0)
+                    emitLine("clr$s  (a0)")
+                else
+                    emitLine("clr$s  ($off,a0)")
+            }
         }
 
         Opcode.STOREZX -> {
@@ -120,8 +134,15 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction) {
             val base = r2 ?: error("STOREI needs reg2")
             val off = imm ?: 0
             loadPointerToA0(base)
-            if (off != 0) emitLine("adda.l  #$off, a0")
-            emitLine("move$s  ${regAddr(value)}, (a0)")
+            if(off<-32768 || off>32767) {
+                if (off != 0) emitLine("adda.l  #$off, a0")
+                emitLine("move$s  ${regAddr(value)}, (a0)")
+            } else {
+                if(off==0)
+                    emitLine("move$s  ${regAddr(value)}, (a0)")
+                else
+                    emitLine("move$s  ${regAddr(value)}, ($off,a0)")
+            }
         }
 
         else -> error("Unknown load/store opcode: ${insn.opcode}")
