@@ -16,6 +16,6 @@ internal fun postprocessSimplifiedAst(
     option: CompilationOptions,
     errors: IErrorReporter
 ) {
-    DeferProcessor.process(program, st, errors)
+    DeferProcessor.process(program, st, option.compTarget, errors)
     SubtypeResolver.resolve(program, st)
 }

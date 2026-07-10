@@ -87,20 +87,20 @@ internal fun AsmGen.translateBitwise(insn: IRInstruction) {
         Opcode.LSLNM -> shiftMemoryLeftVar(resolveAddress(addr, label, offset), r1 ?: error("LSLNM needs reg1"), type)
 
         Opcode.ASR -> shiftRegister(r1 ?: error("ASR needs reg1"), 1, type, isArithmetic = true, isLeft = false)
-        Opcode.ASRM -> shiftMemory(resolveAddress(addr, label, offset), 1, type, isArithmetic = true, isLeft = false)
+        Opcode.ASRM -> memoryShiftRotate(resolveAddress(addr, label, offset), 1, type, isArithmetic = true, isLeft = false, isRotate = false, throughCarry = false)
         Opcode.LSR -> shiftRegister(r1 ?: error("LSR needs reg1"), 1, type, isArithmetic = false, isLeft = false)
-        Opcode.LSRM -> shiftMemory(resolveAddress(addr, label, offset), 1, type, isArithmetic = false, isLeft = false)
+        Opcode.LSRM -> memoryShiftRotate(resolveAddress(addr, label, offset), 1, type, isArithmetic = false, isLeft = false, isRotate = false, throughCarry = false)
         Opcode.LSL -> shiftRegister(r1 ?: error("LSL needs reg1"), 1, type, isArithmetic = false, isLeft = true)
-        Opcode.LSLM -> shiftMemory(resolveAddress(addr, label, offset), 1, type, isArithmetic = false, isLeft = true)
+        Opcode.LSLM -> memoryShiftRotate(resolveAddress(addr, label, offset), 1, type, isArithmetic = false, isLeft = true, isRotate = false, throughCarry = false)
 
         Opcode.ROR -> rotateRight(r1 ?: error("ROR needs reg1"), type)
-        Opcode.RORM -> rotateRightMemory(resolveAddress(addr, label, offset), type)
+        Opcode.RORM -> memoryShiftRotate(resolveAddress(addr, label, offset), 1, type, isArithmetic = false, isLeft = false, isRotate = true, throughCarry = false)
         Opcode.ROL -> rotateLeft(r1 ?: error("ROL needs reg1"), type)
-        Opcode.ROLM -> rotateLeftMemory(resolveAddress(addr, label, offset), type)
+        Opcode.ROLM -> memoryShiftRotate(resolveAddress(addr, label, offset), 1, type, isArithmetic = false, isLeft = true, isRotate = true, throughCarry = false)
         Opcode.ROXR -> rotateRightThroughCarry(r1 ?: error("ROXR needs reg1"), type)
-        Opcode.ROXRM -> rotateRightThroughCarryMemory(resolveAddress(addr, label, offset), type)
+        Opcode.ROXRM -> memoryShiftRotate(resolveAddress(addr, label, offset), 1, type, isArithmetic = false, isLeft = false, isRotate = true, throughCarry = true)
         Opcode.ROXL -> rotateLeftThroughCarry(r1 ?: error("ROXL needs reg1"), type)
-        Opcode.ROXLM -> rotateLeftThroughCarryMemory(resolveAddress(addr, label, offset), type)
+        Opcode.ROXLM -> memoryShiftRotate(resolveAddress(addr, label, offset), 1, type, isArithmetic = false, isLeft = true, isRotate = true, throughCarry = true)
 
         Opcode.BITTST -> {
             val bit = imm ?: error("BITTST needs bit number")
@@ -250,9 +250,16 @@ private fun AsmGen.shiftRegister(reg: Int, count: Int, type: IRDataType, isArith
     emitLine("move$s  d0, ${regAddr(reg)}")
 }
 
-private fun AsmGen.shiftMemory(target: String, count: Int, type: IRDataType, isArithmetic: Boolean, isLeft: Boolean) {
+private fun AsmGen.memoryShiftRotate(target: String, count: Int, type: IRDataType, isArithmetic: Boolean, isLeft: Boolean, isRotate: Boolean, throughCarry: Boolean) {
+    // On 68k, shift/rotate instructions can operate directly on memory operands
+    // (only for .w size, and shift/rotate count must be 1)
+    if (type == IRDataType.WORD && count == 1) {
+        val op = shiftOpcode(isLeft, isArithmetic, isRotate, throughCarry)
+        emitLine("$op.w  $target")
+        return
+    }
     val s = dtSuffix(type)
-    val op = shiftOpcode(isLeft, isArithmetic)
+    val op = shiftOpcode(isLeft, isArithmetic, isRotate, throughCarry)
     emitLine("move$s  $target, d0")
     emitLine("$op$s  #$count, d0")
     emitLine("move$s  d0, $target")
@@ -312,25 +319,11 @@ private fun AsmGen.rotateLeft(reg: Int, type: IRDataType) {
     emitLine("move$s  d0, ${regAddr(reg)}")
 }
 
-private fun AsmGen.rotateLeftMemory(target: String, type: IRDataType) {
-    val s = dtSuffix(type)
-    emitLine("move$s  $target, d0")
-    emitLine("rol$s  #1, d0")
-    emitLine("move$s  d0, $target")
-}
-
 private fun AsmGen.rotateRight(reg: Int, type: IRDataType) {
     val s = dtSuffix(type)
     emitLine("move$s  ${regAddr(reg)}, d0")
     emitLine("ror$s  #1, d0")
     emitLine("move$s  d0, ${regAddr(reg)}")
-}
-
-private fun AsmGen.rotateRightMemory(target: String, type: IRDataType) {
-    val s = dtSuffix(type)
-    emitLine("move$s  $target, d0")
-    emitLine("ror$s  #1, d0")
-    emitLine("move$s  d0, $target")
 }
 
 // === Rotates through carry (extend) ===
@@ -342,25 +335,11 @@ private fun AsmGen.rotateLeftThroughCarry(reg: Int, type: IRDataType) {
     emitLine("move$s  d0, ${regAddr(reg)}")
 }
 
-private fun AsmGen.rotateLeftThroughCarryMemory(target: String, type: IRDataType) {
-    val s = dtSuffix(type)
-    emitLine("move$s  $target, d0")
-    emitLine("roxl$s  #1, d0")
-    emitLine("move$s  d0, $target")
-}
-
 private fun AsmGen.rotateRightThroughCarry(reg: Int, type: IRDataType) {
     val s = dtSuffix(type)
     emitLine("move$s  ${regAddr(reg)}, d0")
     emitLine("roxr$s  #1, d0")
     emitLine("move$s  d0, ${regAddr(reg)}")
-}
-
-private fun AsmGen.rotateRightThroughCarryMemory(target: String, type: IRDataType) {
-    val s = dtSuffix(type)
-    emitLine("move$s  $target, d0")
-    emitLine("roxr$s  #1, d0")
-    emitLine("move$s  d0, $target")
 }
 
 // === Bit manipulation ===

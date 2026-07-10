@@ -1,9 +1,6 @@
 TODO
 ====
 
-'defer' is not working on m68k
-
-
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 - make enums strongly typed instead of just syntactic sugar for ints (see ideas/enum-strong-type.md for the plan)

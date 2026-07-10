@@ -25,16 +25,19 @@ internal object DeferProcessor {
     /**
      * Process all defer statements in the program.
      */
-    fun process(program: PtProgram, st: SymbolTable, errors: IErrorReporter) {
-        val defers = setDeferMasks(program, errors)
+    fun process(program: PtProgram, st: SymbolTable, target: ICompilationTarget, errors: IErrorReporter) {
+        // On 68k targets, use UWORD mask so shift/rotate can operate directly on memory
+        // (68k only supports .w size for memory operand shifts/rotates)
+        val maskType = if (target.cpu == CpuType.M68020) DataType.UWORD else DataType.UBYTE
+        val defers = setDeferMasks(program, maskType, errors)
         if(errors.noErrors())
-            integrateDefers(defers, program, st, errors)
+            integrateDefers(defers, program, st, maskType, target, errors)
     }
 
     /**
      * First pass: collect defers per subroutine and create mask variables.
      */
-    private fun setDeferMasks(program: PtProgram, errors: IErrorReporter): Map<PtSub, List<PtDefer>> {
+    private fun setDeferMasks(program: PtProgram, maskType: DataType, errors: IErrorReporter): Map<PtSub, List<PtDefer>> {
         val defersPerSub = mutableMapOf<PtSub, MutableList<PtDefer>>().withDefault { mutableListOf() }
 
         walkAst(program) { node, _ ->
@@ -59,7 +62,7 @@ internal object DeferProcessor {
             // define the bitmask variable and set it to zero
             val deferVariable = PtVariable(
                 maskVarName,
-                DataType.UBYTE,
+                maskType,
                 ZeropageWish.NOT_IN_ZEROPAGE,
                 0u,
                 true,
@@ -69,9 +72,10 @@ internal object DeferProcessor {
             )
             val assignZero = PtAssignment(sub.position)
             assignZero.add(PtAssignTarget(false, sub.position).also {
-                it.add(PtIdentifier(sub.scopedName+"."+maskVarName, DataType.UBYTE, sub.position))
+                it.add(PtIdentifier(sub.scopedName+"."+maskVarName, maskType, sub.position))
             })
-            assignZero.add(PtNumber(BaseDataType.UBYTE, 0.0, sub.position))
+            val baseType = if (maskType == DataType.UWORD) BaseDataType.UWORD else BaseDataType.UBYTE
+            assignZero.add(PtNumber(baseType, 0.0, sub.position))
             val firstIndex = sub.children.indexOfFirst { it !is PtSubSignature }   // first child node is the sub's signature so add below that one
             sub.add(firstIndex, assignZero)
             sub.add(firstIndex, deferVariable)
@@ -82,10 +86,11 @@ internal object DeferProcessor {
                 val idx = scope.children.indexOf(defer)
                 val enableDefer = PtAugmentedAssign("|=", defer.position)
                 val target = PtAssignTarget(false, defer.position)
-                target.add(PtIdentifier(sub.scopedName+"."+maskVarName, DataType.UBYTE, defer.position))
+                target.add(PtIdentifier(sub.scopedName+"."+maskVarName, maskType, defer.position))
                 enableDefer.add(target)
                 // enable the bit for this defer (beginning with high bits so the handler can simply shift right to check them in reverse order)
-                enableDefer.add(PtNumber(BaseDataType.UBYTE, (1 shl (defers.size-1 - deferIndex)).toDouble(), defer.position))
+                val baseType = if (maskType == DataType.UWORD) BaseDataType.UWORD else BaseDataType.UBYTE
+                enableDefer.add(PtNumber(baseType, (1 shl (defers.size-1 - deferIndex)).toDouble(), defer.position))
                 scope.setChild(idx, enableDefer)
             }
         }
@@ -96,7 +101,7 @@ internal object DeferProcessor {
     /**
      * Second pass: integrate defer calls at exit points and generate handler routines.
      */
-    private fun integrateDefers(subdefers: Map<PtSub, List<PtDefer>>, program: PtProgram, st: SymbolTable, errors: IErrorReporter) {
+    private fun integrateDefers(subdefers: Map<PtSub, List<PtDefer>>, program: PtProgram, st: SymbolTable, maskType: DataType, target: ICompilationTarget, errors: IErrorReporter) {
         val jumpsAndCallsToAugment = mutableListOf<PtNode>()
         val returnsToAugment = mutableListOf<PtReturn>()
         val subEndsToAugment = mutableListOf<PtSub>()
@@ -147,7 +152,7 @@ internal object DeferProcessor {
                 if (expr.type == DataType.UNDEFINED)
                     Pair(expr, null)
                 else
-                    makePushPopFunctionCalls(expr)
+                    makePushPopFunctionCalls(expr, target)
             }
             val pushCalls = pushAndPopCalls.map { it.first }.reversed()     // push in reverse order
             val popCalls = pushAndPopCalls.mapNotNull { it.second }
@@ -180,9 +185,10 @@ internal object DeferProcessor {
             for((idx, defer) in defers.reversed().withIndex()) {
                 val shift = PtAugmentedAssign(">>=", defer.position)
                 shift.add(PtAssignTarget(false, defer.position).also {
-                    it.add(PtIdentifier(sub.scopedName+"."+maskVarName, DataType.UBYTE, defer.position))
+                    it.add(PtIdentifier(sub.scopedName+"."+maskVarName, maskType, defer.position))
                 })
-                shift.add(PtNumber(BaseDataType.UBYTE, 1.0, defer.position))
+                val baseType = if (maskType == DataType.UWORD) BaseDataType.UWORD else BaseDataType.UBYTE
+                shift.add(PtNumber(baseType, 1.0, defer.position))
                 defersRoutine.add(shift)
                 val skiplabel = "prog8_defer_skip_${idx+1}"
                 val branchcc = PtConditionalBranch(BranchCondition.CC, defer.position)
