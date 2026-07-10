@@ -1,6 +1,9 @@
 TODO
 ====
 
+- need a bunch of type casting/conversion checks that test the handling of the 4-byte/long pointer datatype on the qemu68k target.
+
+
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 - make enums strongly typed instead of just syntactic sugar for ints (see ideas/enum-strong-type.md for the plan)

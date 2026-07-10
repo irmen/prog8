@@ -68,8 +68,17 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                     return noModifications
 
                 // uwords are allowed to be assigned to pointers as initialization value without a cast
-                if(decl.datatype.isPointer && valueDt.isUnsignedWord)
+                if(decl.datatype.isPointer && valueDt.isUnsignedWord) {
+                    if(options.compTarget.POINTER_MEM_SIZE > 2u) {
+                        // On 32-bit targets, widen the word value to long for the pointer assignment
+                        if(declValue is NumericLiteral) {
+                            val widened = NumericLiteral(BaseDataType.LONG, declValue.number, declValue.position)
+                            widened.parent = decl
+                            decl.value = widened
+                        }
+                    }
                     return noModifications
+                }
 
                 val modifications = mutableListOf<AstModification>()
                 addTypecastOrCastedValueModification(modifications, declValue, decl.datatype, decl)
@@ -766,8 +775,18 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
             return // don't allow any implicit cast to bool
 
         // uwords are allowed to be assigned to pointers without a cast
-        if(requiredType.isPointer && sourceDt.isUnsignedWord)
-            return
+        if(requiredType.isPointer && sourceDt.isUnsignedWord) {
+            if(options.compTarget.POINTER_MEM_SIZE > 2u) {
+                // On 32-bit targets, widen the word value to long for the pointer assignment
+                if(expressionToCast is NumericLiteral) {
+                    val widened = NumericLiteral(BaseDataType.LONG, expressionToCast.number, expressionToCast.position)
+                    modifications += AstReplaceNode(expressionToCast, widened, parent)
+                    return
+                }
+            } else {
+                return
+            }
+        }
         if (requiredType.isUnsignedWord) {
             // & (address-of) is allowed to be assigned to an uword without a cast
             if (expressionToCast is AddressOf) return

@@ -1,16 +1,18 @@
-;%output elf
-%import textio
 
 main {
+    struct Node {
+        ubyte num
+        bool flag
+        ^^Node next
+    }
+
+
     sub start() {
-        uword @shared uw = 55555
-        uword @shared ub =222
-        long @shared ll = 8888888
-        txt.print_ub(sqrt(ub))
-        txt.nl()
-        txt.print_ub(sqrt(uw))
-        txt.nl()
-        txt.print_uw(sqrt(ll))
-        txt.nl()
+        ^^Node @shared ptr1 = 0   ; OK!
+        ^^Node @shared ptr3 = 99999 ; OK!
+        ^^Node @shared ptr2 = $2000  ; OK!
+        ptr1.next = 0       ; OK !
+        ptr1.flag = true
+        ptr1.next = $1000    ; OK!
     }
 }

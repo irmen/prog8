@@ -2556,7 +2556,8 @@ internal class AstChecker(private val program: Program,
                 return checkValueTypeAndRange(targetDt.elementType(), value)
             }
             targetDt.isPointer -> {
-                return value.type==BaseDataType.UWORD
+                return (value.type==BaseDataType.UWORD && options.compTarget.POINTER_MEM_SIZE==2u)
+                    || (value.type==BaseDataType.LONG && options.compTarget.POINTER_MEM_SIZE==4u)
             }
             targetDt.isStructInstance -> {
                 return err("assigning this value to struct instance not supported")
