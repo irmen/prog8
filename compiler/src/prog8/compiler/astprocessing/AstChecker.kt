@@ -182,6 +182,8 @@ internal class AstChecker(private val program: Program,
                         // you can return an uword pointer when the return type is a string
                     } else if((valueDataType.isUnsignedWord || valueDataType.isByte) && expectedDt.isPointer) {
                         // you can return an uword/ubyte/byte value when a pointer is required
+                        if(compilerOptions.compTarget.POINTER_MEM_SIZE>2u)
+                            errors.err("incompatible return value type $valueDt for $expectedDt (use explicit typecast?)", actual.position)
                     } else {
                         errors.err("return value type $valueDt doesn't match subroutine return type $expectedDt", actual.position)
                     }
@@ -1112,7 +1114,9 @@ internal class AstChecker(private val program: Program,
                     if(!(iDt.isBool && decl.datatype.isUnsignedByte || iDt issimpletype BaseDataType.UBYTE && decl.datatype.isBool)) {
                         // pointer variables can be initialized with a compatible pointer or with a uword
                         if(decl.datatype.isPointer) {
-                            if (!iDt.isAssignableTo(decl.datatype))
+                            if(compilerOptions.compTarget.POINTER_MEM_SIZE>2u && iDt.getOrUndef().isWord)
+                                valueerr("incompatible value type for pointer: $iDt (use explicit typecast?)")
+                            else if (!iDt.isAssignableTo(decl.datatype))
                                 valueerr("initialization value has incompatible type ($iDt) for the variable (${decl.datatype})")
                         }
                         else
@@ -1776,8 +1780,9 @@ internal class AstChecker(private val program: Program,
                     throw FatalAstException("cast should have been performed in const eval already")
                 errors.err(castResult.whyFailed!!, typecast.expression.position)
             } else if (typecast.type.isPointer) {
-                if(!(typecast.expression.inferType(program).isUnsignedWord))
-                    errors.err("can only cast uword to pointer", typecast.position)
+                val irtype = typecast.expression.inferType(program)
+                if(!(irtype.isUnsignedWord || irtype.isLong))
+                    errors.err("can only cast uword or long to pointer", typecast.position)
             } else
                 errors.err("invalid type cast", typecast.position)
         }
@@ -1786,6 +1791,9 @@ internal class AstChecker(private val program: Program,
             if(compilerOptions.compTarget.POINTER_MEM_SIZE<=2u)
                 errors.err("cannot use a pointer as a long, a pointer is an unsigned word", typecast.position)
         }
+
+        if(typecast.implicit && typecast.type.isPointer && (typecast.expression.inferType(program).isWords || typecast.expression.inferType(program).isBytes) && compilerOptions.compTarget.POINTER_MEM_SIZE>2u)
+            errors.err("implicit typecast from numeric value to pointer not allowed on 32-bit targets, use an explicit typecast", typecast.position)
 
         super.visit(typecast)
     }
@@ -2670,6 +2678,10 @@ internal class AstChecker(private val program: Program,
                     errors.err("cannot assign different pointer type, expected $targetDatatype or uword but got $sourceDatatype", position)
             } else if(sourceDatatype.isString && targetDatatype.sub?.isByte==true) {
                 // assigning a string to a byte pointer is allowed.
+            } else if(compilerOptions.compTarget.POINTER_MEM_SIZE>2u) {
+                // On 32-bit targets, only long or identical pointer types can be assigned to pointers
+                if(!sourceDatatype.isLong && !sourceDatatype.isStructInstance)
+                    errors.err("incompatible value type, can only assign long or identical pointer type (use explicit typecast?)", position)
             } else if(!sourceDatatype.isUnsignedWord && !sourceDatatype.isLong && !sourceDatatype.isStructInstance)
                 if(!(sourceDatatype isAssignableTo targetDatatype))
                     errors.err("incompatible value type, can only assign uword, long, or correct pointer type", position)

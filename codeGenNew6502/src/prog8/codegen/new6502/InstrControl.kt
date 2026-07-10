@@ -159,11 +159,7 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
                     IRDataType.BYTE -> {
                         emitLine("lda  ${regAddrLo(reg)}")
                     }
-                    IRDataType.WORD -> {
-                        emitLine("lda  ${regAddrLo(reg)}")
-                        emitLine("ldy  ${regAddrHi(reg)}")
-                    }
-                    IRDataType.POINTER -> {
+                    IRDataType.WORD, IRDataType.POINTER -> {
                         emitLine("lda  ${regAddrLo(reg)}")
                         emitLine("ldy  ${regAddrHi(reg)}")
                     }
@@ -196,11 +192,7 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
                     IRDataType.BYTE -> {
                         emitLine("lda  #${value and 0xff}")
                     }
-                    IRDataType.WORD -> {
-                        emitLine("lda  #<${value and 0xffff}")
-                        emitLine("ldy  #>${value and 0xffff}")
-                    }
-                    IRDataType.POINTER -> {
+                    IRDataType.WORD, IRDataType.POINTER -> {
                         emitLine("lda  #<${value and 0xffff}")
                         emitLine("ldy  #>${value and 0xffff}")
                     }
@@ -234,14 +226,7 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
                         emitLine("lda  ${regAddrLo(reg)}")
                         emitLine("pha")
                     }
-                    IRDataType.WORD -> {
-                        // byte order must match old codegen: push low byte first, then high byte -> stack top = high byte
-                        emitLine("lda  ${regAddrLo(reg)}")
-                        emitLine("pha")
-                        emitLine("lda  ${regAddrHi(reg)}")
-                        emitLine("pha")
-                    }
-                    IRDataType.POINTER -> {
+                    IRDataType.WORD, IRDataType.POINTER -> {
                         // byte order must match old codegen: push low byte first, then high byte -> stack top = high byte
                         emitLine("lda  ${regAddrLo(reg)}")
                         emitLine("pha")
@@ -279,14 +264,7 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
                         emitLine("pla")
                         emitLine("sta  ${regAddrLo(reg)}")
                     }
-                    IRDataType.WORD -> {
-                        // byte order must match old codegen: pop high byte first (stack top), then low byte
-                        emitLine("pla")
-                        emitLine("sta  ${regAddrHi(reg)}")
-                        emitLine("pla")
-                        emitLine("sta  ${regAddrLo(reg)}")
-                    }
-                    IRDataType.POINTER -> {
+                    IRDataType.WORD, IRDataType.POINTER -> {
                         // byte order must match old codegen: pop high byte first (stack top), then low byte
                         emitLine("pla")
                         emitLine("sta  ${regAddrHi(reg)}")
@@ -672,13 +650,7 @@ private fun AsmGen.translateArgument(arg: FunctionCallArgs.ArgumentSpec, argInde
                         emitLine("lda  ${regAddrLo(regNum)}")
                         emitLine("sta  ${address.toHex()}")
                     }
-                    IRDataType.WORD -> {
-                        emitLine("lda  ${regAddrLo(regNum)}")
-                        emitLine("sta  ${address.toHex()}")
-                        emitLine("lda  ${regAddrHi(regNum)}")
-                        emitLine("sta  ${address.toHex()}+1")
-                    }
-                    IRDataType.POINTER -> {
+                    IRDataType.WORD, IRDataType.POINTER -> {
                         emitLine("lda  ${regAddrLo(regNum)}")
                         emitLine("sta  ${address.toHex()}")
                         emitLine("lda  ${regAddrHi(regNum)}")
@@ -714,13 +686,7 @@ private fun AsmGen.translateArgument(arg: FunctionCallArgs.ArgumentSpec, argInde
                                 emitLine("lda  ${regAddrLo(regNum)}")
                                 emitLine("sta  $asmTarget")
                             }
-                            IRDataType.WORD -> {
-                                emitLine("lda  ${regAddrLo(regNum)}")
-                                emitLine("sta  $asmTarget")
-                                emitLine("lda  ${regAddrHi(regNum)}")
-                                emitLine("sta  ${asmTarget}+1")
-                            }
-                            IRDataType.POINTER -> {
+                            IRDataType.WORD, IRDataType.POINTER -> {
                                 emitLine("lda  ${regAddrLo(regNum)}")
                                 emitLine("sta  $asmTarget")
                                 emitLine("lda  ${regAddrHi(regNum)}")
@@ -771,13 +737,7 @@ private fun AsmGen.translateArgument(arg: FunctionCallArgs.ArgumentSpec, argInde
                                 emitLine("lda  ${regAddrLo(regNum)}")
                                 emitLine("sta  $target")
                             }
-                            IRDataType.WORD -> {
-                                emitLine("lda  ${regAddrLo(regNum)}")
-                                emitLine("sta  $target")
-                                emitLine("lda  ${regAddrHi(regNum)}")
-                                emitLine("sta  ${target}+1")
-                            }
-                            IRDataType.POINTER -> {
+                            IRDataType.WORD, IRDataType.POINTER -> {
                                 emitLine("lda  ${regAddrLo(regNum)}")
                                 emitLine("sta  $target")
                                 emitLine("lda  ${regAddrHi(regNum)}")
@@ -871,11 +831,7 @@ private fun AsmGen.translateReturnValue(ret: FunctionCallArgs.RegSpec) {
                     IRDataType.BYTE -> {
                         emitLine("sta  ${regAddrLo(regNum)}")
                     }
-                    IRDataType.WORD -> {
-                        emitLine("sta  ${regAddrLo(regNum)}")
-                        emitLine("sty  ${regAddrHi(regNum)}")
-                    }
-                    IRDataType.POINTER -> {
+                    IRDataType.WORD, IRDataType.POINTER -> {
                         emitLine("sta  ${regAddrLo(regNum)}")
                         emitLine("sty  ${regAddrHi(regNum)}")
                     }

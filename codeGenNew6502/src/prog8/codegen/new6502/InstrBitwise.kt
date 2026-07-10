@@ -137,15 +137,7 @@ private fun AsmGen.andRegisters(dstReg: Int, srcReg: Int, type: IRDataType) {
             emitLine("and  ${regAddrLo(srcReg)}")
             emitLine("sta  ${regAddrLo(dstReg)}")
         }
-        IRDataType.WORD -> {
-            emitLine("lda  ${regAddrLo(dstReg)}")
-            emitLine("and  ${regAddrLo(srcReg)}")
-            emitLine("sta  ${regAddrLo(dstReg)}")
-            emitLine("lda  ${regAddrHi(dstReg)}")
-            emitLine("and  ${regAddrHi(srcReg)}")
-            emitLine("sta  ${regAddrHi(dstReg)}")
-        }
-        IRDataType.POINTER -> {
+        IRDataType.WORD, IRDataType.POINTER -> {
             emitLine("lda  ${regAddrLo(dstReg)}")
             emitLine("and  ${regAddrLo(srcReg)}")
             emitLine("sta  ${regAddrLo(dstReg)}")
@@ -165,15 +157,7 @@ private fun AsmGen.andImmediate(dstReg: Int, value: Int, type: IRDataType) {
             emitLine("and  #${value and 0xff}")
             emitLine("sta  ${regAddrLo(dstReg)}")
         }
-        IRDataType.WORD -> {
-            emitLine("lda  ${regAddrLo(dstReg)}")
-            emitLine("and  #<${value and 0xffff}")
-            emitLine("sta  ${regAddrLo(dstReg)}")
-            emitLine("lda  ${regAddrHi(dstReg)}")
-            emitLine("and  #>${value and 0xffff}")
-            emitLine("sta  ${regAddrHi(dstReg)}")
-        }
-        IRDataType.POINTER -> {
+        IRDataType.WORD, IRDataType.POINTER -> {
             emitLine("lda  ${regAddrLo(dstReg)}")
             emitLine("and  #<${value and 0xffff}")
             emitLine("sta  ${regAddrLo(dstReg)}")
@@ -419,11 +403,7 @@ private fun AsmGen.logicalShiftLeft(reg: Int, count: Int, type: IRDataType) {
             IRDataType.BYTE -> {
                 emitLine("asl  ${regAddrLo(reg)}")
             }
-            IRDataType.WORD -> {
-                emitLine("asl  ${regAddrLo(reg)}")
-                emitLine("rol  ${regAddrHi(reg)}")
-            }
-            IRDataType.POINTER -> {
+            IRDataType.WORD, IRDataType.POINTER -> {
                 emitLine("asl  ${regAddrLo(reg)}")
                 emitLine("rol  ${regAddrHi(reg)}")
             }
@@ -463,11 +443,7 @@ private fun AsmGen.logicalShiftRight(reg: Int, count: Int, type: IRDataType) {
             IRDataType.BYTE -> {
                 emitLine("lsr  ${regAddrLo(reg)}")
             }
-            IRDataType.WORD -> {
-                emitLine("lsr  ${regAddrHi(reg)}")
-                emitLine("ror  ${regAddrLo(reg)}")
-            }
-            IRDataType.POINTER -> {
+            IRDataType.WORD, IRDataType.POINTER -> {
                 emitLine("lsr  ${regAddrHi(reg)}")
                 emitLine("ror  ${regAddrLo(reg)}")
             }

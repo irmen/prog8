@@ -3053,7 +3053,7 @@ $endLabel""")
     private fun assignTypeCastedValue(target: AsmAssignTarget, targetDt: DataType, value: PtExpression, origTypeCastExpression: PtTypeCast) {
         val valueDt = value.type
         if(valueDt==targetDt)
-            throw AssemblyError("type cast to identical dt should have been removed")
+            throw AssemblyError("type cast to identical dt should have been removed: $valueDt at ${value.position}")
 
         when(value) {
             is PtIdentifier -> {
@@ -3667,7 +3667,7 @@ $endLabel""")
 
     private fun assignTypeCastedRegisters(targetAsmVarName: String, targetDt: BaseDataType,
                                           regs: RegisterOrPair, sourceDt: BaseDataType, position: Position) {
-        if(sourceDt == targetDt)
+        if(sourceDt == targetDt && sourceDt != BaseDataType.POINTER)
             throw AssemblyError("typecast to identical type")
 
         // also see: PtExpressionAsmGen,   fun translateExpression(typecast: PtTypeCast)

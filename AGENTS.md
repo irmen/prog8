@@ -254,6 +254,7 @@ These instructions apply specifically to the Junie agent:
 
 - Never assume your changes simply work, always test!
 - If the project does not have any testing tools, scripts, MCP tools, skills, etc. available for testing, ask the user whether testing should be skipped.
+- in prog8 code being tested, use '@shared' variables to avoid const-folding
 
 ### Automated Tests (gradle)
 Always use the `--console=plain` flag with these commands to avoid messing up the agent's text interface.

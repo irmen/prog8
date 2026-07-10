@@ -40,7 +40,7 @@ Follow ALL the rules below carefully.
   ubyte[] @shared names                     ; array with tag
   ```
   The grammar is: `[private] datatype [arraydims] [tags...] identifierlist`
-- `@shared` marks variables as "used by external code" (assembly), prevents the optimizer from removing them
+- `@shared` marks variables as "used by external code" (assembly), prevents the optimizer from removing them due to const folding
 - `@zp`/`@requirezp`: use sparingly — only for pointers (limited zeropage space)
 - Pointer-like typed pointers (`^^type`) support C-style scaled arithmetic; `uword` pointers always treat element as 1 byte
 - `&` = untyped address (uword); `&&` = typed pointer
