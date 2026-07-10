@@ -1456,7 +1456,14 @@ class MemorySlabRef(val slabName: String, override val position: Position) : Exp
     override val isSimple = true
     override fun copy() = MemorySlabRef(slabName, position)
     override fun constValue(program: Program): NumericLiteral? = null
-    override fun inferType(program: Program): InferredTypes.InferredType = InferredTypes.knownFor(BaseDataType.UWORD)
+    override fun inferType(program: Program): InferredTypes.InferredType {
+        // The address type depends on the target's pointer size.
+        // On 32-bit targets like m68k, this is LONG; on 8-bit targets (6502), it's UWORD.
+        return if(program.target.POINTER_MEM_SIZE > 2u)
+            InferredTypes.knownFor(BaseDataType.LONG)
+        else
+            InferredTypes.knownFor(BaseDataType.UWORD)
+    }
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
     override fun linkParents(parent: Node) { this.parent = parent }

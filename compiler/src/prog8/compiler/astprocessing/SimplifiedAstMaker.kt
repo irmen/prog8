@@ -807,7 +807,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
                     }
                     is MemorySlabRef -> {
                         val slab = slabDefs[constVal.slabName] ?: throw FatalAstException("referenced memory slab '${constVal.slabName}' not defined at ${constVal.position}")
-                        return PtConstant(srcVar.name, srcVar.datatype, null, slab, srcVar.position)
+                        return PtConstant(srcVar.name, addrType, null, slab, srcVar.position)
                     }
                     else ->
                         throw FatalAstException("const value must be a number, address-of, or memory reference, not $constVal at ${srcVar.position}")

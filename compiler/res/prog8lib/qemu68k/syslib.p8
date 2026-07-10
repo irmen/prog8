@@ -82,6 +82,7 @@ sys {
         %asm {{
             movea.l  #qemu.CTRL_REG_CMD,a1
             move.l   #qemu.CTRL_CMD_RESET,(a1)
+            stop #$2000
         }}
     }
 
@@ -89,6 +90,7 @@ sys {
         %asm {{
             movea.l  #qemu.CTRL_REG_CMD,a1
             move.l   #qemu.CTRL_CMD_HALT,(a1)
+            stop #0
         }}
     }
 

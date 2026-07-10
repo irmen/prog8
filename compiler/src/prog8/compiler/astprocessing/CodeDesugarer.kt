@@ -785,10 +785,6 @@ _after:
             return noModifications
 
         val numlabels = ongoto.labels.size
-        val split = if(ongoto.isCall)
-            true    // for calls (indirect JSR), split array is always the optimal choice
-        else
-            target.cpu==CpuType.CPU6502    // for goto (indirect JMP), split array is optimal for 6502, but NOT for the 65C02 (it has a different JMP addressing mode available)
         val arrayDt = DataType.arrayFor(BaseDataType.UWORD)
         val labelArray = ArrayLiteral(InferredTypes.knownFor(arrayDt), ongoto.labels.toTypedArray(), ongoto.position)
         val jumplistArray = VarDecl.createAutoOptionalSplit(labelArray)

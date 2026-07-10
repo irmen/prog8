@@ -20,10 +20,10 @@ strings {
         ; Returns the number of bytes in the string up to the first 0-terminator.
         %asm {{
             movea.l  d0,a0
-            moveq    #-1,d0
+            moveq    #0,d0
             bra.s    .enter
 .loop:
-            addq.l   #1,d0
+            addq.w   #1,d0
 .enter:
             tst.b    (a0)+
             bne      .loop
@@ -61,7 +61,7 @@ strings {
         ; hashcode = 179;  for each byte: ROL(hashcode) XOR byte
         %asm {{
             movea.l  d0,a0
-            moveq    #179,d0
+            move.b   #179,d0
             moveq    #0,d1
             move.w   d1,ccr          ; clear flags (X=0 for roxl)
             bra      .enter

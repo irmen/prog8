@@ -242,9 +242,7 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
         emitConstants()
 
         // Set up stack pointer and jump to program start
-        // only needed for RAW (no linker script); ELF uses the linker file's ENTRY directive instead
-        if(options.output == OutputType.RAW)
-            emitLabel("prog8_program_start")
+        emitLabel("prog8_program_start")
         emitLine("move.l  #${options.memtopAddress.toHex()}, sp", "initialize stack pointer")
         // clear BSS section
         emitLine("lea  prog8_bss_section_start, a0")

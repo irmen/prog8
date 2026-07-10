@@ -11,7 +11,7 @@ main {
     sub start() {
         txt.lowercase()
         txt.print("Doubly Linked List with Hash Table Cache Demo\n")
-        txt.print("============================================\n\n")
+        txt.print("=============================================\n\n")
 
         ; Initialize the data structure
         cache.init()

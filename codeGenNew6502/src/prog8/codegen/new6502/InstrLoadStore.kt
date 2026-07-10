@@ -508,7 +508,7 @@ internal fun AsmGen.loadSymbolAddress(reg: Int, sym: String, offset: Int?, type:
             emitLine("lda  #<${symWithOffset}")
             emitLine("sta  ${regAddrLo(reg)}")
         }
-        IRDataType.WORD -> {
+        IRDataType.WORD, IRDataType.POINTER -> {
             emitLine("lda  #<${symWithOffset}")
             emitLine("sta  ${regAddrLo(reg)}")
             emitLine("lda  #>${symWithOffset}")

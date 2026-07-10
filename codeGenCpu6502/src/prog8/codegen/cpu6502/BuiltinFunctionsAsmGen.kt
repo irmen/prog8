@@ -1194,7 +1194,7 @@ import prog8.codegen.cpu6502.assignment.*
         val arg = fcall.args.single()
         if(arg is PtIdentifier) {
             val varname = asmgen.asmVariableName(arg)
-            when(val dt = arg.type.base) {
+            when(arg.type.base) {
                 BaseDataType.UBYTE -> {
                     asmgen.out("  lda  $varname |  jsr  prog8_lib.func_sign_ub_into_A")
                     return arrayOf(RegisterOrPair.A)

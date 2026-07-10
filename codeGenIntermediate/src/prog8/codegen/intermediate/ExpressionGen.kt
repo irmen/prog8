@@ -103,10 +103,11 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 val slab = expr.memorySlab
                 // Check if the constant has a numeric value or is a memory slab reference
                 if(slab != null) {
+                    val slabDt = codeGen.irType(expr.type)
                     val code = IRCodeChunk(null, null)
-                    val resultReg = codeGen.registers.next(IRDataType.WORD)
-                    code += IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1=resultReg, labelSymbol = "${StMemorySlabBlockName}.${slab.name}")
-                    ExpressionCodeResult(code, IRDataType.WORD, resultReg, -1)
+                    val resultReg = codeGen.registers.next(slabDt)
+                    code += IRInstruction(Opcode.LOAD, slabDt, reg1=resultReg, labelSymbol = "${StMemorySlabBlockName}.${slab.name}")
+                    ExpressionCodeResult(code, slabDt, resultReg, -1)
                 } else if(expr.value != null) {
                     TODO("didn't expect PtConstant to appear here ${expr.position}")
 //                    val vmDt = irType(expr.type)
