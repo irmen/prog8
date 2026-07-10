@@ -297,7 +297,7 @@ abstract class AstWalker {
         }
     }
 
-    open fun applyModifications(): Int {
+    fun applyModifications(): Int {
         // Build conflict map for debugging - detect nodes affected by multiple modifications
         val nodeToModifications = mutableMapOf<Node, MutableList<AstModification>>()
         modifications.forEach { (mod: AstModification, _, _) ->

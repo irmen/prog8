@@ -728,7 +728,7 @@ _after:
                     val newValues = intRange.map {
                         val num = NumericLiteral(BaseDataType.LONG, it.toDouble(), values[0].position)
                         num.linkParents(whenChoice)
-                        val cast = num.cast(dt, true)
+                        val cast = num.cast(dt, true, target)
                         if (cast.isValid) cast.valueOrZero() else null
                     }
                     if(null !in newValues) {

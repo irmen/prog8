@@ -275,7 +275,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                     //errors.err("can't assign $valuetype to $targettype", assignment.position)
                 } else {
                     fun castLiteral(cvalue2: NumericLiteral): List<AstReplaceNode> {
-                        val cast = cvalue2.cast(targettype.base, true)
+                        val cast = cvalue2.cast(targettype.base, true, options.compTarget)
                         return if(cast.isValid)
                             listOf(AstReplaceNode(assignment.value, cast.valueOrZero(), assignment))
                         else
@@ -364,7 +364,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
             return noModifications
 
         val modifications = mutableListOf<AstModification>()
-        val castedValue = (memread.addressExpression as? NumericLiteral)?.cast(BaseDataType.UWORD, true)?.valueOrZero()
+        val castedValue = (memread.addressExpression as? NumericLiteral)?.cast(BaseDataType.UWORD, true, options.compTarget)?.valueOrZero()
         if(castedValue!=null)
             modifications += AstReplaceNode(memread.addressExpression, castedValue, memread)
         else
@@ -384,7 +384,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
             return noModifications
 
         val modifications = mutableListOf<AstModification>()
-        val castedValue = (memwrite.addressExpression as? NumericLiteral)?.cast(BaseDataType.UWORD, true)?.valueOrZero()
+        val castedValue = (memwrite.addressExpression as? NumericLiteral)?.cast(BaseDataType.UWORD, true, options.compTarget)?.valueOrZero()
         if(castedValue!=null)
             modifications += AstReplaceNode(memwrite.addressExpression, castedValue, memwrite)
         else
@@ -407,7 +407,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
             val returnDt = returnValue.inferType(program)
             if(!(returnDt istype subReturnType) && returnValue is NumericLiteral) {
                 // see if we might change the returnvalue into the expected type
-                val castedValue = returnValue.convertTypeKeepValue(subReturnType.base)
+                val castedValue = returnValue.castTypeKeepValue(subReturnType.base, options.compTarget)
                 if(castedValue.isValid) {
                     modifications += listOf(AstReplaceNode(returnValue, castedValue.valueOrZero(), returnStmt))
                     continue
@@ -421,7 +421,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                     val cast = TypecastExpression(returnValue, subReturnType, true, returnValue.position)
                     modifications += AstReplaceNode(returnValue, cast, returnStmt)
                 } else {
-                    val cast = returnValue.cast(subReturnType.base, true)
+                    val cast = returnValue.cast(subReturnType.base, true, options.compTarget)
                     if (cast.isValid) {
                         returnStmt.values[index] = cast.valueOrZero()
                     }
@@ -609,7 +609,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
             if (fromDt!=varDt) {
                 if (!fromDt.isUndefined && !fromDt.isAssignableTo(varDt)) {
                     if(fromConst!=null) {
-                        val cast = fromConst.cast(varDt.base, true)
+                        val cast = fromConst.cast(varDt.base, true, options.compTarget)
                         if(cast.isValid)
                             modifications += AstReplaceNode(range.from, cast.valueOrZero(), range)
                         else
@@ -626,7 +626,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
             if (toDt!=varDt) {
                 if (!toDt.isUndefined && !toDt.isAssignableTo(varDt)) {
                     if(toConst!=null) {
-                        val cast = toConst.cast(varDt.base, true)
+                        val cast = toConst.cast(varDt.base, true, options.compTarget)
                         if(cast.isValid)
                             modifications += AstReplaceNode(range.to, cast.valueOrZero(), range)
                         else
@@ -752,7 +752,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
         parent: Node
     ) {
         if (expressionToCast is ArrayLiteral && requiredType.isArray) {
-            val castedArray = expressionToCast.cast(requiredType)
+            val castedArray = expressionToCast.cast(requiredType, options.compTarget)
             if (castedArray != null && castedArray !== expressionToCast) {
                 modifications += AstReplaceNode(expressionToCast, castedArray, parent)
             }
@@ -776,7 +776,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
         }
 
         if(expressionToCast is NumericLiteral && expressionToCast.type!=BaseDataType.FLOAT && requiredType.isNumericOrBool) { // refuse to automatically truncate floats
-            val castedValue = expressionToCast.cast(requiredType.base, true)
+            val castedValue = expressionToCast.cast(requiredType.base, true, options.compTarget)
             if (castedValue.isValid) {
                 val signOriginal = sign(expressionToCast.number)
                 val signCasted = sign(castedValue.valueOrZero().number)

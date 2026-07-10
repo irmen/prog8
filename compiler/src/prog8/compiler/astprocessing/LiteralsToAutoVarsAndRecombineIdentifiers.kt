@@ -42,7 +42,7 @@ internal class LiteralsToAutoVarsAndRecombineIdentifiers(private val program: Pr
             // adjust the datatype of the array (to an educated guess from the vardecl type)
             val arrayDt = array.type
             if(!(arrayDt istype vardecl.datatype)) {
-                val cast = array.cast(vardecl.datatype)
+                val cast = array.cast(vardecl.datatype, program.target)
                 if(cast!=null && cast !== array)
                     return listOf(AstReplaceNode(vardecl.value!!, cast, vardecl))
             }
@@ -65,7 +65,7 @@ internal class LiteralsToAutoVarsAndRecombineIdentifiers(private val program: Pr
                     val parentAssign = parent as? Assignment
                     val targetDt = parentAssign?.target?.inferType(program) ?: arrayDt
                     // turn the array literal it into an identifier reference
-                    val litval2 = array.cast(targetDt.getOrUndef())
+                    val litval2 = array.cast(targetDt.getOrUndef(), program.target)
                     if (litval2 != null) {
                         val vardecl2 = VarDecl.createAuto(litval2, program.target)
                         val identifier = IdentifierReference(listOf(vardecl2.name), vardecl2.position)

@@ -15,6 +15,7 @@ import prog8.code.core.BaseDataType
 import prog8.code.core.DataType
 import prog8.code.core.Encoding
 import prog8.code.core.Position
+import prog8.code.target.Cx16Target
 
 
 class TestNumericLiteral: FunSpec({
@@ -214,34 +215,36 @@ class TestNumericLiteral: FunSpec({
             n.linkParents(AnonymousScope.empty())
             return n
         }
-        val cast1 = num(BaseDataType.UBYTE, 200.0).cast(BaseDataType.BYTE, false)
+        val target = Cx16Target()
+        val cast1 = num(BaseDataType.UBYTE, 200.0).cast(BaseDataType.BYTE, false, target)
         cast1.isValid shouldBe true
         cast1.valueOrZero().number shouldBe -56.0
-        val cast2 = num(BaseDataType.BYTE, -50.0).cast(BaseDataType.UBYTE, false)
+        val cast2 = num(BaseDataType.BYTE, -50.0).cast(BaseDataType.UBYTE, false, target)
         cast2.isValid shouldBe true
         cast2.valueOrZero().number shouldBe 206.0
-        val cast3 = num(BaseDataType.UWORD, 55555.0).cast(BaseDataType.WORD, false)
+        val cast3 = num(BaseDataType.UWORD, 55555.0).cast(BaseDataType.WORD, false, target)
         cast3.isValid shouldBe true
         cast3.valueOrZero().number shouldBe -9981.0
-        val cast4 = num(BaseDataType.WORD, -3333.0).cast(BaseDataType.UWORD, false)
+        val cast4 = num(BaseDataType.WORD, -3333.0).cast(BaseDataType.UWORD, false, target)
         cast4.isValid shouldBe true
         cast4.valueOrZero().number shouldBe 62203.0
     }
 
-    test("convert cannot change value") {
+    test("cat without changing value at all") {
         fun num(dt: BaseDataType, num: Double): NumericLiteral {
             val n = NumericLiteral(dt, num, Position.DUMMY)
             n.linkParents(AnonymousScope.empty())
             return n
         }
-        num(BaseDataType.UBYTE, 200.0).convertTypeKeepValue(BaseDataType.BYTE).isValid shouldBe false
-        num(BaseDataType.BYTE, -50.0).convertTypeKeepValue(BaseDataType.UBYTE).isValid shouldBe false
-        num(BaseDataType.UWORD, 55555.0).convertTypeKeepValue(BaseDataType.WORD).isValid shouldBe false
-        num(BaseDataType.WORD, -3333.0).convertTypeKeepValue(BaseDataType.UWORD).isValid shouldBe false
+        val target = Cx16Target()
+        num(BaseDataType.UBYTE, 200.0).castTypeKeepValue(BaseDataType.BYTE, target).isValid shouldBe false
+        num(BaseDataType.BYTE, -50.0).castTypeKeepValue(BaseDataType.UBYTE, target).isValid shouldBe false
+        num(BaseDataType.UWORD, 55555.0).castTypeKeepValue(BaseDataType.WORD, target).isValid shouldBe false
+        num(BaseDataType.WORD, -3333.0).castTypeKeepValue(BaseDataType.UWORD, target).isValid shouldBe false
 
-        num(BaseDataType.UBYTE, 42.0).convertTypeKeepValue(BaseDataType.BYTE).isValid shouldBe true
-        num(BaseDataType.BYTE, 42.0).convertTypeKeepValue(BaseDataType.UBYTE).isValid shouldBe true
-        num(BaseDataType.UWORD, 12345.0).convertTypeKeepValue(BaseDataType.WORD).isValid shouldBe true
-        num(BaseDataType.WORD, 12345.0).convertTypeKeepValue(BaseDataType.UWORD).isValid shouldBe true
+        num(BaseDataType.UBYTE, 42.0).castTypeKeepValue(BaseDataType.BYTE, target).isValid shouldBe true
+        num(BaseDataType.BYTE, 42.0).castTypeKeepValue(BaseDataType.UBYTE, target).isValid shouldBe true
+        num(BaseDataType.UWORD, 12345.0).castTypeKeepValue(BaseDataType.WORD, target).isValid shouldBe true
+        num(BaseDataType.WORD, 12345.0).castTypeKeepValue(BaseDataType.UWORD, target).isValid shouldBe true
     }
 })

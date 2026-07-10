@@ -36,8 +36,12 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
             // see if LONG values may be reduced to something smaller
             val smaller = NumericLiteral.optimalInteger(numLiteral.number.toInt(), numLiteral.position)
             if(smaller.type!=BaseDataType.LONG) {
-                if(parent !is Assignment || !parent.target.inferType(program).isLong) {
-                    // do NOT reduce the type if the target of the assignment is a long
+                if (parent !is Assignment) {
+                    return listOf(AstReplaceNode(numLiteral, smaller, parent))
+                }
+                // do NOT reduce the type if the target of the assignment is a long, or a pointer on a 32 bit target
+                val targetType = parent.target.inferType(program)
+                if (!targetType.isLong && program.target.POINTER_MEM_SIZE==2u && !targetType.isPointer) {
                     return listOf(AstReplaceNode(numLiteral, smaller, parent))
                 }
             }
@@ -46,7 +50,7 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
         if(parent is Assignment) {
             val iDt = parent.target.inferType(program)
             if(iDt.isKnown && !iDt.isBool && !(iDt issimpletype numLiteral.type)) {
-                val casted = numLiteral.cast(iDt.getOrUndef().base, true)
+                val casted = numLiteral.cast(iDt.getOrUndef().base, true, program.target)
                 if(casted.isValid) {
                     return listOf(AstReplaceNode(numLiteral, casted.valueOrZero(), parent))
                 }
@@ -372,13 +376,13 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
         // otherwise infer it from the elements of the array
         val vardeclType = (array.parent as? VarDecl)?.datatype
         if(vardeclType!=null) {
-            val newArray = array.cast(vardeclType)
+            val newArray = array.cast(vardeclType, program.target)
             if (newArray != null && newArray != array)
                 return listOf(AstReplaceNode(array, newArray, parent))
         } else {
             val arrayDt = array.guessDatatype(program)
             if (arrayDt.isKnown) {
-                val newArray = array.cast(arrayDt.getOrUndef())
+                val newArray = array.cast(arrayDt.getOrUndef(), program.target)
                 if (newArray != null && newArray != array)
                     return listOf(AstReplaceNode(array, newArray, parent))
             }
@@ -465,14 +469,14 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
 
     override fun after(forLoop: ForLoop, parent: Node): Iterable<AstModification> {
         fun adjustRangeDt(rangeFrom: NumericLiteral, targetDt: BaseDataType, rangeTo: NumericLiteral, stepLiteral: NumericLiteral?, range: RangeExpression): RangeExpression? {
-            val fromCast = rangeFrom.cast(targetDt, true)
-            val toCast = rangeTo.cast(targetDt, true)
+            val fromCast = rangeFrom.cast(targetDt, true, program.target)
+            val toCast = rangeTo.cast(targetDt, true, program.target)
             if(!fromCast.isValid || !toCast.isValid)
                 return null
 
             val newStep =
                 if(stepLiteral!=null) {
-                    val stepCast = stepLiteral.cast(targetDt, true)
+                    val stepCast = stepLiteral.cast(targetDt, true, program.target)
                     if(stepCast.isValid)
                         stepCast.valueOrZero()
                     else
@@ -548,7 +552,7 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
                 return noModifications  // this is handled in the numericalvalue case
             }
             if(!(valueDt istype decl.datatype)) {
-                val cast = numval.cast(decl.datatype.base, true)
+                val cast = numval.cast(decl.datatype.base, true, program.target)
                 if (cast.isValid) {
                     return listOf(AstReplaceNode(numval, cast.valueOrZero(), decl))
                 }

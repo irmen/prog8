@@ -591,7 +591,7 @@ class TypecastExpression(var expression: Expression, var type: DataType, val imp
             return null
         val cv = expression.constValue(program) ?: return null
         cv.linkParents(parent)
-        val cast = cv.cast(type.base, implicit)
+        val cast = cv.cast(type.base, implicit, program.target)
         return if(cast.isValid) {
             val newval = cast.valueOrZero()
             newval.linkParents(parent)
@@ -896,13 +896,13 @@ class NumericLiteral(val type: BaseDataType,    // only numerical types allowed 
         }
     }
 
-    fun cast(targettype: BaseDataType, implicit: Boolean): ValueAfterCast {
-        val result = internalCast(targettype, implicit)
+    fun cast(targettype: BaseDataType, implicit: Boolean, target: ICompilationTarget): ValueAfterCast {
+        val result = internalCast(targettype, implicit, target)
         result.linkParent(this.parent)
         return result
     }
 
-    private fun internalCast(targettype: BaseDataType, implicit: Boolean): ValueAfterCast {
+    private fun internalCast(targettype: BaseDataType, implicit: Boolean, target: ICompilationTarget): ValueAfterCast {
         // NOTE: do not add targettype.isPointer checks to the other numeric types in the 'when' block below,
         // like in the UBYTE case. It causes an endless loop in the compiler.
 
@@ -933,8 +933,10 @@ class NumericLiteral(val type: BaseDataType,    // only numerical types allowed 
                     return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
                 if(targettype==BaseDataType.LONG)
                     return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
-                if(targettype.isPointer)
-                    return ValueAfterCast(true, null, NumericLiteral(BaseDataType.UWORD, number, position))
+                if(targettype.isPointer) {
+                    val ptrType = if(target.POINTER_MEM_SIZE > 2u) BaseDataType.LONG else BaseDataType.UWORD
+                    return ValueAfterCast(true, null, NumericLiteral(ptrType, number, position))
+                }
             }
             BaseDataType.BYTE -> {
                 if(targettype==BaseDataType.UBYTE) {
@@ -1063,46 +1065,46 @@ class NumericLiteral(val type: BaseDataType,    // only numerical types allowed 
         return ValueAfterCast(false, "no ${implicit}cast available from $type to $targettype for value $number", null)
     }
 
-    fun convertTypeKeepValue(targetDt: BaseDataType): ValueAfterCast {
+    fun castTypeKeepValue(targetDt: BaseDataType, target: ICompilationTarget): ValueAfterCast {
         if(type==targetDt)
             return ValueAfterCast(true, null, this)
 
         when(type) {
             BaseDataType.UBYTE -> {
                 when(targetDt) {
-                    BaseDataType.BYTE -> if(number<=127.0) return cast(targetDt, false)
-                    BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.LONG, BaseDataType.FLOAT -> return cast(targetDt, false)
-                    BaseDataType.POINTER -> return cast(targetDt, false)
+                    BaseDataType.BYTE -> if(number<=127.0) return cast(targetDt, false, target)
+                    BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.LONG, BaseDataType.FLOAT -> return cast(targetDt, false, target)
+                    BaseDataType.POINTER -> return cast(targetDt, false, target)
                     else -> {}
                 }
             }
             BaseDataType.BYTE -> {
                 when(targetDt) {
-                    BaseDataType.UBYTE, BaseDataType.UWORD -> if(number>=0.0) return cast(targetDt, false)
-                    BaseDataType.WORD, BaseDataType.LONG, BaseDataType.FLOAT -> return cast(targetDt, false)
+                    BaseDataType.UBYTE, BaseDataType.UWORD -> if(number>=0.0) return cast(targetDt, false, target)
+                    BaseDataType.WORD, BaseDataType.LONG, BaseDataType.FLOAT -> return cast(targetDt, false, target)
                     else -> {}
                 }
             }
             BaseDataType.UWORD -> {
                 when(targetDt) {
-                    BaseDataType.UBYTE -> if(number<=255.0) return cast(targetDt, false)
-                    BaseDataType.BYTE -> if(number<=127.0) return cast(targetDt, false)
-                    BaseDataType.WORD -> if(number<=32767.0) return cast(targetDt, false)
-                    BaseDataType.LONG, BaseDataType.FLOAT -> return cast(targetDt, false)
-                    BaseDataType.POINTER -> return cast(targetDt, false)
+                    BaseDataType.UBYTE -> if(number<=255.0) return cast(targetDt, false, target)
+                    BaseDataType.BYTE -> if(number<=127.0) return cast(targetDt, false, target)
+                    BaseDataType.WORD -> if(number<=32767.0) return cast(targetDt, false, target)
+                    BaseDataType.LONG, BaseDataType.FLOAT -> return cast(targetDt, false, target)
+                    BaseDataType.POINTER -> return cast(targetDt, false, target)
                     else -> {}
                 }
             }
             BaseDataType.WORD -> {
                 when(targetDt) {
-                    BaseDataType.UBYTE -> if(number in 0.0..255.0) return cast(targetDt, false)
-                    BaseDataType.BYTE -> if(number in -128.0..127.0) return cast(targetDt, false)
-                    BaseDataType.UWORD -> if(number in 0.0..32767.0) return cast(targetDt, false)
-                    BaseDataType.LONG, BaseDataType.FLOAT -> return cast(targetDt, false)
+                    BaseDataType.UBYTE -> if(number in 0.0..255.0) return cast(targetDt, false, target)
+                    BaseDataType.BYTE -> if(number in -128.0..127.0) return cast(targetDt, false, target)
+                    BaseDataType.UWORD -> if(number in 0.0..32767.0) return cast(targetDt, false, target)
+                    BaseDataType.LONG, BaseDataType.FLOAT -> return cast(targetDt, false, target)
                     else -> {}
                 }
             }
-            BaseDataType.LONG, BaseDataType.FLOAT -> return cast(targetDt, false)
+            BaseDataType.LONG, BaseDataType.FLOAT -> return cast(targetDt, false, target)
             else -> {}
         }
         return ValueAfterCast(false, "no type conversion possible from $type to $targetDt", null)
@@ -1298,7 +1300,7 @@ class ArrayLiteral(val type: InferredTypes.InferredType,     // inferred because
         }
     }
 
-    fun cast(targettype: DataType): ArrayLiteral? {
+    fun cast(targettype: DataType, target: ICompilationTarget): ArrayLiteral? {
         if(type istype targettype)
             return this
         if(targettype.isArray) {
@@ -1322,7 +1324,7 @@ class ArrayLiteral(val type: InferredTypes.InferredType,     // inferred because
                     if(!elementType.isNumericOrBool)
                         return null     // only a numeric or boolean array can be casted to another value
                     value.map {
-                        val cast = (it as NumericLiteral).cast(elementType.base, true)
+                        val cast = (it as NumericLiteral).cast(elementType.base, true, target)
                         if(cast.isValid)
                             cast.valueOrZero()
                         else
@@ -1337,7 +1339,7 @@ class ArrayLiteral(val type: InferredTypes.InferredType,     // inferred because
                         is AddressOf -> it
                         is IdentifierReference -> it
                         is NumericLiteral -> {
-                            val numcast = it.cast(elementType.base, true)
+                            val numcast = it.cast(elementType.base, true, target)
                             if(numcast.isValid)
                                 numcast.valueOrZero()
                             else
@@ -1587,7 +1589,7 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
         val value = vardecl.value?.constValue(program)
         if(value==null || value.type==vardecl.datatype.base)
             return value
-        val casted = value.cast(vardecl.datatype.base, true)
+        val casted = value.cast(vardecl.datatype.base, true, program.target)
         return if(casted.isValid)
             casted.valueOrZero()
         else

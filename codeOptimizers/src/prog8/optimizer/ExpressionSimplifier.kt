@@ -19,7 +19,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
         // try to statically convert a literal value into one of the desired type
         val literal = typecast.expression as? NumericLiteral
         if (literal != null && typecast.type.isBasic) {
-            val newLiteral = literal.cast(typecast.type.base, typecast.implicit)
+            val newLiteral = literal.cast(typecast.type.base, typecast.implicit, options.compTarget)
             if (newLiteral.isValid && newLiteral.valueOrZero() !== literal) {
                 mods += AstReplaceNode(typecast, newLiteral.valueOrZero(), parent)
             }

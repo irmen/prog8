@@ -172,7 +172,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
         val number = typecast.expression as? NumericLiteral
         if(number!=null) {
             if(typecast.type.isBasic) {
-                val value = number.cast(typecast.type.base, typecast.implicit)
+                val value = number.cast(typecast.type.base, typecast.implicit, options.compTarget)
                 if (value.isValid)
                     return listOf(AstReplaceNode(typecast, value.valueOrZero(), parent))
             }
@@ -263,7 +263,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
             if(rightConst != null && rightConst.number.toInt() in -128..255 && expr.right.inferType(program).isWords) {
                 val cast = expr.left as? TypecastExpression
                 if(cast != null && cast.type.isWord && cast.expression.inferType(program).isBytes) {
-                    val small = rightConst.cast(cast.expression.inferType(program).getOrUndef().base, true)
+                    val small = rightConst.cast(cast.expression.inferType(program).getOrUndef().base, true, options.compTarget)
                     if(small.isValid) {
                         return listOf(
                             AstReplaceNode(expr.left, cast.expression, expr),
@@ -277,7 +277,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                 if(leftConst != null && leftConst.number.toInt() in -128..255 && expr.left.inferType(program).isWords) {
                     val cast = expr.right as? TypecastExpression
                     if(cast != null && cast.type.isWord && cast.expression.inferType(program).isBytes) {
-                        val small = leftConst.cast(cast.expression.inferType(program).getOrUndef().base, true)
+                        val small = leftConst.cast(cast.expression.inferType(program).getOrUndef().base, true, options.compTarget)
                         if(small.isValid) {
                             return listOf(
                                 AstReplaceNode(expr.right, cast.expression, expr),

@@ -19,7 +19,7 @@ import kotlin.math.floor
  */
 internal class AstChecker(private val program: Program,
                           private val errors: IErrorReporter,
-                          private val compilerOptions: CompilationOptions
+                          private val options: CompilationOptions
 ) : IAstVisitor {
 
     override fun visit(program: Program) {
@@ -43,8 +43,8 @@ internal class AstChecker(private val program: Program,
             }
         }
 
-        if(compilerOptions.floats) {
-            if (compilerOptions.zeropage !in arrayOf(ZeropageType.FLOATSAFE, ZeropageType.BASICSAFE, ZeropageType.DONTUSE ))
+        if(options.floats) {
+            if (options.zeropage !in arrayOf(ZeropageType.FLOATSAFE, ZeropageType.BASICSAFE, ZeropageType.DONTUSE ))
                 errors.err("when floats are enabled, zero page type should be 'floatsafe' or 'basicsafe' or 'dontuse'", program.toplevelModule.position)
         }
 
@@ -182,7 +182,7 @@ internal class AstChecker(private val program: Program,
                         // you can return an uword pointer when the return type is a string
                     } else if((valueDataType.isUnsignedWord || valueDataType.isByte) && expectedDt.isPointer) {
                         // you can return an uword/ubyte/byte value when a pointer is required
-                        if(compilerOptions.compTarget.POINTER_MEM_SIZE>2u)
+                        if(options.compTarget.POINTER_MEM_SIZE>2u)
                             errors.err("incompatible return value type $valueDt for $expectedDt (use explicit typecast?)", actual.position)
                     } else {
                         errors.err("return value type $valueDt doesn't match subroutine return type $expectedDt", actual.position)
@@ -643,7 +643,7 @@ internal class AstChecker(private val program: Program,
                 if (p.registerOrPair !in Cx16VirtualRegisters && p.registerOrPair !in CombinedLongRegisters)
                     errors.err("can only use R0-R15 as register param for normal subroutines", p.position)
                 else {
-                    if(!compilerOptions.ignoreFootguns)
+                    if(!options.ignoreFootguns)
                         errors.warn("\uD83D\uDCA3 footgun: reusing R0-R15 as parameters risks overwriting due to clobbering or no callstack", subroutine.position)
                     if(!p.type.isInteger && !p.type.isBool && !p.type.isPointer) {
                         errors.err("can only use register param when type is boolean, integer or pointer", p.position)
@@ -899,7 +899,7 @@ internal class AstChecker(private val program: Program,
             }
         }
 
-        if(compilerOptions.romable) {
+        if(options.romable) {
             if (assignTarget.multi != null)
                 assignTarget.multi?.forEach { checkRomTarget(it) }
             else
@@ -989,10 +989,10 @@ internal class AstChecker(private val program: Program,
         }
 
         // FLOATS enabled?
-        if(!compilerOptions.floats && decl.type != VarDeclType.CONST && decl.type != VarDeclType.MEMORY && (decl.datatype.isFloat || decl.datatype.isFloatArray)) {
+        if(!options.floats && decl.type != VarDeclType.CONST && decl.type != VarDeclType.MEMORY && (decl.datatype.isFloat || decl.datatype.isFloatArray)) {
             err("floating point used, but that is not enabled via options")
         }
-        else if(compilerOptions.compTarget.name == C128Target.NAME && decl.type != VarDeclType.CONST && (decl.datatype.isFloat || decl.datatype.isFloatArray)) {
+        else if(options.compTarget.name == C128Target.NAME && decl.type != VarDeclType.CONST && (decl.datatype.isFloat || decl.datatype.isFloatArray)) {
             err("c128 target does not support floating point numbers yet")
         }
 
@@ -1114,7 +1114,7 @@ internal class AstChecker(private val program: Program,
                     if(!(iDt.isBool && decl.datatype.isUnsignedByte || iDt issimpletype BaseDataType.UBYTE && decl.datatype.isBool)) {
                         // pointer variables can be initialized with a compatible pointer or with a uword
                         if(decl.datatype.isPointer) {
-                            if(compilerOptions.compTarget.POINTER_MEM_SIZE>2u && iDt.getOrUndef().isWord)
+                            if(options.compTarget.POINTER_MEM_SIZE>2u && iDt.getOrUndef().isWord)
                                 valueerr("incompatible value type for pointer: $iDt (use explicit typecast?)")
                             else if (!iDt.isAssignableTo(decl.datatype))
                                 valueerr("initialization value has incompatible type ($iDt) for the variable (${decl.datatype})")
@@ -1235,7 +1235,7 @@ internal class AstChecker(private val program: Program,
                 errors.err("string variables cannot be @dirty", decl.position)
             else {
                 if(decl.value==null) {
-                    if(!compilerOptions.ignoreFootguns)
+                    if(!options.ignoreFootguns)
                         errors.warn("\uD83D\uDCA3 footgun: dirty variable, initial value will be undefined", decl.position)
                 }
                 else
@@ -1352,7 +1352,7 @@ internal class AstChecker(private val program: Program,
                     if(directive.args.any {it.string !in setOf("enable_floats", "no_sysinit", "no_symbol_prefixing", "ignore_unused", "romable")})
                         err("using an option that is not valid for modules")
                 }
-                if(directive.args.any { it.string=="verafxmuls" } && compilerOptions.compTarget.name != Cx16Target.NAME)
+                if(directive.args.any { it.string=="verafxmuls" } && options.compTarget.name != Cx16Target.NAME)
                     err("verafx option is only valid on cx16 target")
             }
             "%encoding" -> {
@@ -1396,7 +1396,7 @@ internal class AstChecker(private val program: Program,
 
     override fun visit(array: ArrayLiteral) {
         if(array.type.isKnown) {
-            if (!compilerOptions.floats && (array.type issimpletype BaseDataType.FLOAT || array.type.isFloatArray)) {
+            if (!options.floats && (array.type issimpletype BaseDataType.FLOAT || array.type.isFloatArray)) {
                 errors.err("floating point used, but that is not enabled via options", array.position)
             }
             val arrayspec = ArrayIndex.forArray(array)
@@ -1433,7 +1433,7 @@ internal class AstChecker(private val program: Program,
 
     override fun visit(char: CharLiteral) {
         try {  // just *try* if it can be encoded, don't actually do it
-            compilerOptions.compTarget.encodeString(char.value.toString(), char.encoding)
+            options.compTarget.encodeString(char.value.toString(), char.encoding)
         } catch (cx: CharConversionException) {
             errors.err(cx.message ?: "can't encode character", char.position)
         }
@@ -1445,7 +1445,7 @@ internal class AstChecker(private val program: Program,
         checkValueTypeAndRangeString(DataType.STR, string)
 
         try {  // just *try* if it can be encoded, don't actually do it
-            val bytes = compilerOptions.compTarget.encodeString(string.value, string.encoding)
+            val bytes = options.compTarget.encodeString(string.value, string.encoding)
             if(0u in bytes)
                 errors.info("a character in the string encodes as 0-byte, which will terminate the string prematurely", string.position)
         } catch (cx: CharConversionException) {
@@ -1698,11 +1698,11 @@ internal class AstChecker(private val program: Program,
                 // exception allowed: shifting a word by a byte, long by a word or byte
             } else if((expr.operator in BitwiseOperators) && (leftDt.isInteger && rightDt.isInteger)) {
                 // exception allowed: bitwise operations with any integers
-            } else if(compilerOptions.compTarget.POINTER_MEM_SIZE==2u && (leftDt.isUnsignedWord && rightDt.isString) || (leftDt.isString && rightDt.isUnsignedWord)) {
+            } else if(options.compTarget.POINTER_MEM_SIZE==2u && (leftDt.isUnsignedWord && rightDt.isString) || (leftDt.isString && rightDt.isUnsignedWord)) {
                 // exception allowed on 16 bits pointers: comparing uword (pointer) with string
-            } else if(compilerOptions.compTarget.POINTER_MEM_SIZE>2u && leftDt.isPointer && rightDt.isString) {
+            } else if(options.compTarget.POINTER_MEM_SIZE>2u && leftDt.isPointer && rightDt.isString) {
                 // exception allowed on 32 bits pointers: comparing pointer with string
-            } else if(compilerOptions.compTarget.POINTER_MEM_SIZE>2u && ((leftDt.isLong && rightDt.isPointer) || (leftDt.isPointer && rightDt.isLong))) {
+            } else if(options.compTarget.POINTER_MEM_SIZE>2u && ((leftDt.isLong && rightDt.isPointer) || (leftDt.isPointer && rightDt.isLong))) {
                 // exception allowed on 32 bits pointers: comparing long (untyped pointer) with pointer
             } else {
                 errors.err("left and right operands aren't the same type: $leftDt vs $rightDt", expr.position)
@@ -1775,7 +1775,7 @@ internal class AstChecker(private val program: Program,
         val cv = typecast.expression.constValue(program)
         if(cv != null) {
             if(typecast.type.isBasic) {
-                val castResult = cv.cast(typecast.type.base, typecast.implicit)
+                val castResult = cv.cast(typecast.type.base, typecast.implicit, options.compTarget)
                 if (castResult.isValid)
                     throw FatalAstException("cast should have been performed in const eval already")
                 errors.err(castResult.whyFailed!!, typecast.expression.position)
@@ -1788,11 +1788,11 @@ internal class AstChecker(private val program: Program,
         }
 
         if(typecast.implicit && typecast.type.isLong && typecast.expression.inferType(program).isPointer) {
-            if(compilerOptions.compTarget.POINTER_MEM_SIZE<=2u)
+            if(options.compTarget.POINTER_MEM_SIZE<=2u)
                 errors.err("cannot use a pointer as a long, a pointer is an unsigned word", typecast.position)
         }
 
-        if(typecast.implicit && typecast.type.isPointer && (typecast.expression.inferType(program).isWords || typecast.expression.inferType(program).isBytes) && compilerOptions.compTarget.POINTER_MEM_SIZE>2u)
+        if(typecast.implicit && typecast.type.isPointer && (typecast.expression.inferType(program).isWords || typecast.expression.inferType(program).isBytes) && options.compTarget.POINTER_MEM_SIZE>2u)
             errors.err("implicit typecast from numeric value to pointer not allowed on 32-bit targets, use an explicit typecast", typecast.position)
 
         super.visit(typecast)
@@ -1991,13 +1991,13 @@ internal class AstChecker(private val program: Program,
                         errors.err("can't call this indirectly, just use normal function call syntax", args[0].position)
                 }
             }
-            if(!compilerOptions.floats) {
+            if(!options.floats) {
                 if (target.name == "peekf" || target.name == "pokef")
                     errors.err("floating point used, but that is not enabled via options", position)
             }
 
             if(target.name=="callfar" || target.name=="callfar2") {
-                if(!compilerOptions.compTarget.supportsBankedCalls) {
+                if(!options.compTarget.supportsBankedCalls) {
                     errors.err("banked subroutine call is not supported on the selected compilation target", position)
                 }
             }
@@ -2012,10 +2012,10 @@ internal class AstChecker(private val program: Program,
         if(target is Subroutine) {
             val bank = target.asmAddress?.constbank
             val varbank = target.asmAddress?.varbank
-            if ((bank != null || varbank != null) && !compilerOptions.compTarget.supportsBankedCalls) {
+            if ((bank != null || varbank != null) && !options.compTarget.supportsBankedCalls) {
                 errors.err("banked subroutine call is not supported on the selected compilation target", position)
             }
-            if (varbank != null && compilerOptions.romable) {
+            if (varbank != null && options.romable) {
                 errors.err("variable bank extsub has no romable code-generation for the required jsrfar call, stick to constant bank, or create a system-ram trampoline", position)
             }
 
@@ -2061,7 +2061,7 @@ internal class AstChecker(private val program: Program,
                 // Multiple float return values are not supported on 6502 targets because the ROM
                 // float routines use FAC1/FAC2 as operand registers which would clobber earlier return values.
                 // The virtual target has no such limitation.
-                if(compilerOptions.compTarget !is VMTarget) {
+                if(options.compTarget !is VMTarget) {
                     if(target.returntypes.count { it.isFloat }>1) {
                         errors.err("can only have a single float value in a multi-value result on 6502 targets", target.position)
                     }
@@ -2200,7 +2200,7 @@ internal class AstChecker(private val program: Program,
         if(whenStmt.condition.constValue(program)!=null)
             errors.warn("when-value is a constant and will always result in the same choice", whenStmt.condition.position)
 
-        if(whenStmt.betterAsOnGoto(program, compilerOptions))
+        if(whenStmt.betterAsOnGoto(program, options))
             errors.info("when statement can be replaced with on..goto", whenStmt.position)
 
         super.visit(whenStmt)
@@ -2312,7 +2312,7 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(inlineAssembly: InlineAssembly) {
-        if(inlineAssembly.isIR && compilerOptions.compTarget.name != VMTarget.NAME)
+        if(inlineAssembly.isIR && options.compTarget.name != VMTarget.NAME)
             errors.err("%asm containing IR code cannot be translated to 6502 assembly", inlineAssembly.position)
     }
 
@@ -2490,7 +2490,7 @@ internal class AstChecker(private val program: Program,
 
                     // check if the floating point values are all within range
                     val doubles = value.value.map { it.constValue(program)?.number!! }.toDoubleArray()
-                    if(doubles.any { it < compilerOptions.compTarget.FLOAT_MAX_NEGATIVE || it > compilerOptions.compTarget.FLOAT_MAX_POSITIVE })
+                    if(doubles.any { it < options.compTarget.FLOAT_MAX_NEGATIVE || it > options.compTarget.FLOAT_MAX_POSITIVE })
                         return err("floating point value overflow")
                     return true
                 }
@@ -2542,7 +2542,7 @@ internal class AstChecker(private val program: Program,
             }
             targetDt.isFloat -> {
                 val number=value.number
-                if (number > compilerOptions.compTarget.FLOAT_MAX_POSITIVE || number < compilerOptions.compTarget.FLOAT_MAX_NEGATIVE)
+                if (number > options.compTarget.FLOAT_MAX_POSITIVE || number < options.compTarget.FLOAT_MAX_NEGATIVE)
                     return err("value '$number' out of range")
             }
             targetDt.isLong -> {
@@ -2580,7 +2580,7 @@ internal class AstChecker(private val program: Program,
                 is IdentifierReference -> it.nameInSource.hashCode() and 0xffff
                 is TypecastExpression if it.type.isBasic -> {
                     val constVal = it.expression.constValue(program)
-                    val cast = constVal?.cast(it.type.base, true)
+                    val cast = constVal?.cast(it.type.base, true, options.compTarget)
                     if(cast==null || !cast.isValid)
                         -9999999
                     else
@@ -2678,7 +2678,7 @@ internal class AstChecker(private val program: Program,
                     errors.err("cannot assign different pointer type, expected $targetDatatype or uword but got $sourceDatatype", position)
             } else if(sourceDatatype.isString && targetDatatype.sub?.isByte==true) {
                 // assigning a string to a byte pointer is allowed.
-            } else if(compilerOptions.compTarget.POINTER_MEM_SIZE>2u) {
+            } else if(options.compTarget.POINTER_MEM_SIZE>2u) {
                 // On 32-bit targets, only long or identical pointer types can be assigned to pointers
                 if(!sourceDatatype.isLong && !sourceDatatype.isStructInstance)
                     errors.err("incompatible value type, can only assign long or identical pointer type (use explicit typecast?)", position)
