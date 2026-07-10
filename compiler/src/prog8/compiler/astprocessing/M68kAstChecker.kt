@@ -63,7 +63,6 @@ internal class M68kAstChecker(private val errors: IErrorReporter) : IAstVisitor 
                 for (arg in directive.args) {
                     when (arg.string) {
                         "verafxmuls" -> errors.err("%option verafxmuls is not available on the m68k target", arg.position)
-                        "enable_floats" -> errors.warn("%option enable_floats is not available on the m68k target (floats are always enabled)", arg.position)
                     }
                 }
             }

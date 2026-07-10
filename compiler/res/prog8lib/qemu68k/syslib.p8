@@ -50,6 +50,14 @@ qemu {
     const ubyte RTC_CLEAR_ALARM     = $14
     const ubyte RTC_ALARM_STATUS    = $18
     const ubyte RTC_CLEAR_INTERRUPT = $1c
+
+
+     asmsub chrout(ubyte char @D0) {
+        %asm {{
+            move.l  d0,qemu.TTY_PUT_CHAR
+            rts
+        }}
+    }
 }
 
 sys {
@@ -410,19 +418,15 @@ sys {
         }}
     }
 
-    sub progstart() -> long {
+    inline asmsub progstart() -> long @A0 {
         %asm {{
             lea  prog8_program_start,a0
-            move.l  a0,d0
-            rts
         }}
     }
 
-    asmsub progend() -> long @D0 {
+    inline asmsub progend() -> long @A0 {
         %asm {{
             lea  prog8_program_end,a0
-            move.l  a0,d0
-            rts
         }}
     }
 }

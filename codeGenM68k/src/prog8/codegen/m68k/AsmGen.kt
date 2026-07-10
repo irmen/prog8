@@ -511,8 +511,9 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
             val cv = c.value
             val csn = c.memorySlabName
             if (cv != null) {
+                if(c.dt.isFloat) continue     // float constants are emitted as data, not as integer = values
                 if (!c.noPrefix) {
-                    val label = constLabel(c.name)
+                    val label = fixNameSymbols(constLabel(c.name))
                     if (!emitted.add(label)) continue
                     emitRaw("$label = ${cv.toLong()}")
                 }
@@ -522,7 +523,7 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
                 if (slab != null) {
                     val slabRef = fixNameSymbols(slab.name)
                     if (!c.noPrefix) {
-                        val label = constLabel(c.name)
+                        val label = fixNameSymbols(constLabel(c.name))
                         if (!emitted.add(label)) continue
                         emitRaw("$label = $slabRef")
                     }

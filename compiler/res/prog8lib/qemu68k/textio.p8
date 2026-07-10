@@ -2,11 +2,7 @@
 %option ignore_unused
 
 txt {
-    inline asmsub chrout(ubyte char @D0) {
-        %asm {{
-            move.l  d0,qemu.TTY_PUT_CHAR
-        }}
-    }
+    alias chrout = qemu.chrout
 
     sub nl() {
         chrout('\n')
@@ -93,6 +89,10 @@ txt {
         ; is the default
     }
 
+    sub lowercase() {
+        ; is the default
+    }
+
     sub cls() {
         clear_screen()
     }
@@ -103,6 +103,14 @@ txt {
 
     sub home() {
         print("\x1b[H")
+    }
+
+    sub column(ubyte col) {
+        txt.chrout(27)
+        txt.chrout('[')
+        txt.print_ub(col+1)
+        txt.chrout(';')
+        txt.chrout('G')
     }
 
     sub rvs_on() {

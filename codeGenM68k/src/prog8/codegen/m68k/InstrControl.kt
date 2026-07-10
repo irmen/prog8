@@ -275,22 +275,32 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
 
         Opcode.SGN -> {
             val dstReg = r1 ?: error("SGN needs reg1")
-            val srcReg = r2 ?: error("SGN needs reg2")
-            val type = insn.type ?: IRDataType.BYTE
-            val s = dtSuffix(type)
-            val zeroLabel = makeLabel("sgn_zero")
-            val doneLabel = makeLabel("sgn_done")
-            emitLine("move$s  ${regAddr(srcReg)}, d0")
-            emitLine("tst$s  d0")
-            emitLine("beq  $zeroLabel")
-            emitLine("smi  d1")
-            emitLine("bmi  $doneLabel")
-            emitLine("moveq  #1, d1")
-            emitLine("bra  $doneLabel")
-            emitLabel(zeroLabel)
-            emitLine("moveq  #0, d1")
-            emitLabel(doneLabel)
-            emitLine("move.b  d1, ${regAddr(dstReg)}")
+            if (insn.type == IRDataType.FLOAT) {
+                val srcFp = insn.fpReg1 ?: error("SGN.f needs fpReg1")
+                emitLine("ftst  ${fpuRegName(srcFp)}")
+                emitLine("fslt  d0")
+                emitLine("fsgt  d1")
+                emitLine("neg.b  d1")
+                emitLine("or.b  d1, d0")
+                emitLine("move.b  d0, ${regAddr(dstReg)}")
+            } else {
+                val srcReg = r2 ?: error("SGN needs reg2")
+                val type = insn.type ?: IRDataType.BYTE
+                val s = dtSuffix(type)
+                val zeroLabel = makeLabel("sgn_zero")
+                val doneLabel = makeLabel("sgn_done")
+                emitLine("move$s  ${regAddr(srcReg)}, d0")
+                emitLine("tst$s  d0")
+                emitLine("beq  $zeroLabel")
+                emitLine("smi  d1")
+                emitLine("bmi  $doneLabel")
+                emitLine("moveq  #1, d1")
+                emitLine("bra  $doneLabel")
+                emitLabel(zeroLabel)
+                emitLine("moveq  #0, d1")
+                emitLabel(doneLabel)
+                emitLine("move.b  d1, ${regAddr(dstReg)}")
+            }
         }
 
         // === Floating point operations via 68881/68882 FPU ===
@@ -509,7 +519,7 @@ private fun AsmGen.translateArgument(arg: FunctionCallArgs.ArgumentSpec, fnLabel
     if (slot != null) {
         val hwReg = m68kSlotRegister(slot)
         if (argReg.dt == IRDataType.FLOAT) {
-            emitLine("fmove.s  ${regAddr(argReg.registerNum.value)}, $hwReg")
+            emitLine("fmove  ${fpuRegName(argReg.registerNum)}, $hwReg")
         } else {
             val s = dtSuffix(argReg.dt)
             emitLine("move$s  ${regAddr(argReg.registerNum.value)}, $hwReg")
@@ -562,6 +572,11 @@ private fun AsmGen.translateReturnValue(ret: FunctionCallArgs.RegSpec) {
         }
     } else {
         // Default: return value in d0 (standard m68k calling convention)
+        // All non-float returns go through d0-d7 (not a0-a6) because the calling convention
+        // expects values in data registers. Using A0 for pointers would be inconsistent:
+        // callers read return values from data regs unless the slot annotation says otherwise.
+        // Slightly inefficient: m68k pointers ideally live in address registers, but returning
+        // them in d0 is simpler and avoids ambiguity. Explicit @A0 can be used for hot paths.
         if (ret.dt == IRDataType.FLOAT) {
             emitLine("fmove.s  d0, ${regAddr(retReg.value)}")
         } else {

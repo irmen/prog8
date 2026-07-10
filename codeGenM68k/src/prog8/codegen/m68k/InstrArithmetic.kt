@@ -1,9 +1,6 @@
 package prog8.codegen.m68k
 
-import prog8.intermediate.IRDataType
-import prog8.intermediate.IRInstruction
-import prog8.intermediate.Opcode
-import prog8.intermediate.RegisterNum
+import prog8.intermediate.*
 
 internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
     val type = insn.type ?: IRDataType.BYTE
@@ -602,85 +599,97 @@ private fun AsmGen.emitDivModOp(dstReg: Int, srcReg: Int?, type: IRDataType, uns
 
 private fun AsmGen.translateFloatArithmetic(insn: IRInstruction) {
     val immFp = insn.immediateFp
-    val fpReg1 = insn.fpReg1 ?: error("float arithmetic needs fpReg1")
+    val fpReg1 = insn.fpReg1
     val fpReg2 = insn.fpReg2
+    val addr = insn.address
+    val label = insn.labelSymbol
+    val offset = insn.labelSymbolOffset
 
     when (insn.opcode) {
-        Opcode.INC -> emitLine("fadd.s  #1.0, ${fpuRegName(fpReg1)}")
-        Opcode.DEC -> emitLine("fsub.s  #1.0, ${fpuRegName(fpReg1)}")
+        Opcode.INCM -> emitFloatMemUnary("fadd.s", addr, label, offset, immediateStr = "#1.0")
+        Opcode.DECM -> emitFloatMemUnary("fsub.s", addr, label, offset, immediateStr = "#1.0")
+        Opcode.NEGM -> emitFloatMemUnary("fneg", addr, label, offset)
 
-        Opcode.NEG -> emitLine("fneg  ${fpuRegName(fpReg1)}, ${fpuRegName(fpReg1)}")
+        Opcode.INC -> emitLine("fadd.s  #1.0, ${fpuRegName(fpReg1!!)}")
+        Opcode.DEC -> emitLine("fsub.s  #1.0, ${fpuRegName(fpReg1!!)}")
+
+        Opcode.NEG -> emitLine("fneg  ${fpuRegName(fpReg1!!)}, ${fpuRegName(fpReg1)}")
 
         Opcode.ADDR -> {
             val src = fpReg2 ?: error("ADDR.f needs fpReg2")
-            emitLine("fadd  ${fpuRegName(src)}, ${fpuRegName(fpReg1)}")
+            emitLine("fadd  ${fpuRegName(src)}, ${fpuRegName(fpReg1!!)}")
         }
 
         Opcode.ADD -> when {
-            immFp != null -> emitFaddConstant(fpReg1, immFp)
+            immFp != null -> emitFaddConstant(fpReg1!!, immFp)
             else -> TODO("FLOAT ADD without immediate")
         }
 
         Opcode.SUBR -> {
             val src = fpReg2 ?: error("SUBR.f needs fpReg2")
-            emitLine("fsub  ${fpuRegName(src)}, ${fpuRegName(fpReg1)}")
+            emitLine("fsub  ${fpuRegName(src)}, ${fpuRegName(fpReg1!!)}")
         }
 
         Opcode.SUB -> when {
-            immFp != null -> emitFsubConstant(fpReg1, immFp)
+            immFp != null -> emitFsubConstant(fpReg1!!, immFp)
             else -> TODO("FLOAT SUB without immediate")
         }
 
         Opcode.MULR -> {
             val src = fpReg2 ?: error("MULR.f needs fpReg2")
-            emitLine("fmul  ${fpuRegName(src)}, ${fpuRegName(fpReg1)}")
+            emitLine("fmul  ${fpuRegName(src)}, ${fpuRegName(fpReg1!!)}")
         }
 
         Opcode.MUL -> when {
-            immFp != null -> emitFmulConstant(fpReg1, immFp)
+            immFp != null -> emitFmulConstant(fpReg1!!, immFp)
             else -> TODO("FLOAT MUL without immediate")
         }
 
         Opcode.DIVR -> {
             val src = fpReg2 ?: error("DIVR.f needs fpReg2")
-            emitLine("fdiv  ${fpuRegName(src)}, ${fpuRegName(fpReg1)}")
+            emitLine("fdiv  ${fpuRegName(src)}, ${fpuRegName(fpReg1!!)}")
         }
 
         Opcode.DIV -> when {
-            immFp != null -> emitFdivConstant(fpReg1, immFp)
+            immFp != null -> emitFdivConstant(fpReg1!!, immFp)
             else -> TODO("FLOAT DIV without immediate")
         }
 
         // signed float multiply/divide are the same as unsigned for floats
         Opcode.MULSR -> {
             val src = fpReg2 ?: error("MULSR.f needs fpReg2")
-            emitLine("fmul  ${fpuRegName(src)}, ${fpuRegName(fpReg1)}")
+            emitLine("fmul  ${fpuRegName(src)}, ${fpuRegName(fpReg1!!)}")
         }
 
         Opcode.MULS -> when {
-            immFp != null -> emitFmulConstant(fpReg1, immFp)
+            immFp != null -> emitFmulConstant(fpReg1!!, immFp)
             else -> TODO("FLOAT MULS without immediate")
         }
 
         Opcode.DIVSR -> {
             val src = fpReg2 ?: error("DIVSR.f needs fpReg2")
-            emitLine("fdiv  ${fpuRegName(src)}, ${fpuRegName(fpReg1)}")
+            emitLine("fdiv  ${fpuRegName(src)}, ${fpuRegName(fpReg1!!)}")
         }
 
         Opcode.DIVS -> when {
-            immFp != null -> emitFdivConstant(fpReg1, immFp)
+            immFp != null -> emitFdivConstant(fpReg1!!, immFp)
             else -> TODO("FLOAT DIVS without immediate")
         }
 
         Opcode.SQRT -> {
             val src = fpReg2 ?: error("SQRT.f needs fpReg2")
-            emitLine("fsqrt  ${fpuRegName(src)}, ${fpuRegName(fpReg1)}")
+            emitLine("fsqrt  ${fpuRegName(src)}, ${fpuRegName(fpReg1!!)}")
         }
 
         Opcode.SQUARE -> {
             val src = fpReg2 ?: error("SQUARE.f needs fpReg2")
-            emitLine("fmul  ${fpuRegName(src)}, ${fpuRegName(fpReg1)}")
+            emitLine("fmul  ${fpuRegName(src)}, ${fpuRegName(fpReg1!!)}")
         }
+
+        Opcode.ADDM -> emitFloatMemBinary("fadd", fpReg1!!, addr, label, offset)
+        Opcode.SUBM -> emitFloatMemBinary("fsub", fpReg1!!, addr, label, offset)
+        Opcode.MULM, Opcode.MULSM -> emitFloatMemBinary("fmul", fpReg1!!, addr, label, offset)
+        Opcode.DIVM, Opcode.DIVSM -> emitFloatMemBinary("fdiv", fpReg1!!, addr, label, offset)
 
         else -> TODO("FLOAT arithmetic: ${insn.opcode}")
     }
@@ -715,9 +724,27 @@ private fun AsmGen.emitFdivConstant(fpReg: RegisterNum, value: Double) {
     emitLine("fdiv.s  (a0), ${fpuRegName(fpReg)}")
 }
 
+private fun AsmGen.emitFloatMemUnary(op: String, addr: MemoryAddress?, label: String?, offset: Int?, immediateStr: String? = null) {
+    val target = resolveAddress(addr, label, offset)
+    emitLine("fmove.s  $target, fp0")
+    if (immediateStr != null)
+        emitLine("$op  $immediateStr, fp0")
+    else
+        emitLine("$op  fp0, fp0")
+    emitLine("fmove.s  fp0, $target")
+}
+
+private fun AsmGen.emitFloatMemBinary(op: String, fpReg1: RegisterNum, addr: MemoryAddress?, label: String?, offset: Int?) {
+    val target = resolveAddress(addr, label, offset)
+    val scratch = if (fpReg1.value == 0) "fp7" else "fp0"
+    emitLine("fmove.s  $target, $scratch")
+    emitLine("$op  ${fpuRegName(fpReg1)}, $scratch")
+    emitLine("fmove.s  $scratch, $target")
+}
+
 private fun immVal(value: Int, type: IRDataType): Int = when(type) {
-    IRDataType.BYTE -> value.toInt() and 0xff
-    IRDataType.WORD -> value.toInt() and 0xffff
-    IRDataType.LONG, IRDataType.POINTER -> value.toInt()
-    else -> value.toInt() and 0xffff
+    IRDataType.BYTE -> value and 0xff
+    IRDataType.WORD -> value and 0xffff
+    IRDataType.LONG, IRDataType.POINTER -> value
+    else -> value and 0xffff
 }
