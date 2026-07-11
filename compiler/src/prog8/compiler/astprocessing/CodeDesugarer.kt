@@ -254,6 +254,24 @@ _after:
             }
         }
 
+        if(outerFunc==listOf("pushp")) {
+            // pushp adapts to pointer size: pushw on 16-bit targets, pushl on 32-bit
+            val pushName = if(target.POINTER_MEM_SIZE > 2u) "pushl" else "pushw"
+            val newCall = FunctionCallStatement(
+                IdentifierReference(listOf(pushName), position),
+                functionCall.args, false, position
+            )
+            return listOf(AstReplaceNode(functionCall as Node, newCall, parent))
+        }
+        if(outerFunc==listOf("popp")) {
+            val popName = if(target.POINTER_MEM_SIZE > 2u) "popl" else "popw"
+            val newCall = FunctionCallExpression(
+                IdentifierReference(listOf(popName), position),
+                mutableListOf(), position
+            )
+            return listOf(AstReplaceNode(functionCall as Node, newCall, parent))
+        }
+
         return noModifications
     }
 

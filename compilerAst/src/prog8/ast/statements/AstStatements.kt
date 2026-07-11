@@ -1157,7 +1157,9 @@ class AnonymousScope(override val statements: MutableList<Statement>,
     }
 
     override fun replaceChildNode(node: Node, replacement: Node) {
-        require(replacement is Statement)
+        require(replacement is Statement) {
+            "anonymousScope can't be replaced by $replacement , must be a Statement"
+        }
         val idx = statements.indexOfFirst { it===node }
         statements[idx] = replacement
         replacement.parent = this

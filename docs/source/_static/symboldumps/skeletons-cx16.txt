@@ -45,10 +45,12 @@ pop  () -> ubyte
 popf  () -> float
 popl  () -> long
 popw  () -> uword
+popp  () -> pointer
 push  (ubyte|byte|bool value)
 pushf  (float value)
 pushl  (long value)
 pushw  (uword|word|pointer value)
+pushp  (pointer value)
 rol  (ubyte|uword|long item)
 rol2  (ubyte|uword|long item)
 ror  (ubyte|uword|long item)

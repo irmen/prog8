@@ -181,10 +181,12 @@ val BuiltinFunctions: Map<String, FSignature> = mapOf(
     "pushw"         to FSignature(false, emptyArray(), FParam("value", BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.POINTER)),
     "pushl"         to FSignature(false, emptyArray(), FParam("value", BaseDataType.LONG)),
     "pushf"         to FSignature(false, emptyArray(), FParam("value", BaseDataType.FLOAT)),
+    "pushp"         to FSignature(false, emptyArray(), FParam("value", BaseDataType.POINTER)),
     "pop"           to FSignature(false, arrayOf(BaseDataType.UBYTE)),
     "popw"          to FSignature(false, arrayOf(BaseDataType.UWORD)),
     "popl"          to FSignature(false, arrayOf(BaseDataType.LONG)),
     "popf"          to FSignature(false, arrayOf(BaseDataType.FLOAT)),
+    "popp"          to FSignature(false, arrayOf(BaseDataType.POINTER)),
 )
 
 val InplaceModifyingBuiltinFunctions = setOf(

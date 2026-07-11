@@ -8,8 +8,9 @@
 main {
 
     sub start() {
-        for cx16.r0 in [321, 719, 194, 550, 187, 203, 520, 562, 221, 676, 97, 852, 273, 326, 589, 606, 275, 794, 63, 716]
-            btree.add(cx16.r0)
+        uword value
+        for value in [321, 719, 194, 550, 187, 203, 520, 562, 221, 676, 97, 852, 273, 326, 589, 606, 275, 794, 63, 716]
+            btree.add(value)
 
         txt.print_ub(btree.size())
         txt.print(" sorted values: ")
@@ -111,14 +112,14 @@ btree {
         sub count_node(^^Node r) {
             count++
             if r.left!=0 {
-                pushw(r)
+                pushp(r)
                 count_node(r.left)
-                r = popw()
+                r = popp()
             }
             if r.right!=0 {
-                pushw(r)
+                pushp(r)
                 count_node(r.right)
-                r = popw()
+                r = popp()
             }
         }
     }
@@ -178,16 +179,16 @@ btree {
 
         sub print_tree(^^Node r) {
             if r.left!=0 {
-                pushw(r)
+                pushp(r)
                 print_tree(r.left)
-                r = popw()
+                r = popp()
             }
             txt.print_uw(r.value)
             txt.print(", ")
             if r.right!=0 {
-                pushw(r)
+                pushp(r)
                 print_tree(r.right)
-                r = popw()
+                r = popp()
             }
         }
     }
@@ -203,18 +204,18 @@ btree {
             txt.print_uw(r.value)
             txt.nl()
             if r.left!=0 {
-                pushw(r)
+                pushp(r)
                 push(depth)
                 print_tree(r.left, depth+1)
                 depth = pop()
-                r = popw()
+                r = popp()
             }
             if r.right!=0 {
-                pushw(r)
+                pushp(r)
                 push(depth)
                 print_tree(r.right, depth+1)
                 depth = pop()
-                r = popw()
+                r = popp()
             }
         }
     }
@@ -223,10 +224,10 @@ btree {
 
 arena {
     ; extremely trivial arena allocator (that never frees)
-    uword buffer = memory("arena", 2000, 0)
-    uword next = buffer
+    pointer buffer = memory("arena", 2000, 0)
+    pointer next = buffer
 
-    sub alloc(ubyte size) -> uword {
+    sub alloc(ubyte size) -> pointer {
         defer next += size
         return next
     }

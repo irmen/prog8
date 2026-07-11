@@ -103,6 +103,12 @@ CPU Stack
     Low-level function that is seldomly used in user code.
     Don't assume anything about the order in which the bytes are pushed - popw will make sense of them again.
 
+:index:`pushp` (value)
+    pushes a pointer value on the CPU hardware stack.
+    On 2-byte pointer targets this is the same as pushw, on 32-bit pointer targets it acts as pushl.
+    Low-level function that is seldomly used in user code.
+    Don't assume anything about the order in which the bytes are pushed - popp will make sense of them again.
+
 :index:`pushl` (value)
     pushes a 32-bit value on the CPU hardware stack.
     Low-level function that is seldomly used in user code.
@@ -119,6 +125,11 @@ CPU Stack
 
 :index:`popw` ()
     pops a 16-bit word value off the CPU hardware stack that was pushed before by pushw, and returns it.
+    Low-level function that is seldomly used in user code.
+
+:index:`popp` ()
+    pops a pointer value off the CPU hardware stack that was pushed before by pushp, and returns it.
+    On 2-byte pointer targets this is the same as popw, on 32-bit pointer targets it acts as popl.
     Low-level function that is seldomly used in user code.
 
 :index:`popl` ()

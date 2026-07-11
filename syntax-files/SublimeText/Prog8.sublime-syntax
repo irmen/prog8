@@ -156,7 +156,7 @@ contexts:
     - match: (\b(const)\b)
       scope: storage.modifier.prog8
   support:
-    - match: (\b(abs|call|callfar|callfar2|clamp|cmp|defer|divmod|len|lsb|lsw|lmh|lsr|memory|mkword|min|max|msb|msw|offsetof|peek|peekw|peekl|peekf|peekbool|poke|pokew|pokel|pokef|pokebool|pop|popw|popl|popf|psg|psg2|push|pushw|pushl|pushf|rsave|rsavex|rrestore|rrestorex|rol|rol2|ror|ror2|setlsb|setmsb|sgn|sizeof|sqrt|sqrtw|swap)\b)
+    - match: (\b(abs|call|callfar|callfar2|clamp|cmp|defer|divmod|len|lsb|lsw|lmh|lsr|memory|mkword|min|max|msb|msw|offsetof|peek|peekw|peekl|peekf|peekbool|poke|pokew|pokel|pokef|pokebool|pop|popw|popl|popf|popp|psg|psg2|push|pushw|pushl|pushf|pushp|rsave|rsavex|rrestore|rrestorex|rol|rol2|ror|ror2|setlsb|setmsb|sgn|sizeof|sqrt|sqrtw|swap)\b)
       scope: support.function.prog8
   variable:
     - match: (\b\w+\b)

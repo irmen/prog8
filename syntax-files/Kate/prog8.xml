@@ -136,12 +136,14 @@
       <item>popf</item>
       <item>popl</item>
       <item>popw</item>
+      <item>popp</item>
       <item>psg</item>
       <item>psg2</item>
       <item>push</item>
       <item>pushf</item>
       <item>pushl</item>
       <item>pushw</item>
+      <item>pushp</item>
       <item>rol</item>
       <item>rol2</item>
       <item>ror</item>

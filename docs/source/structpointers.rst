@@ -264,15 +264,18 @@ a dynamic pointer to an Enemy struct.
 
 An example of how a super simple dynamic allocator could look like::
 
+.. note::
+    The ``pointer`` type is used instead of ``uword`` so that the code also works correctly on targets where memory addresses are wider than 2 bytes (such as the m68k target with 4-byte pointers).
+
     ^^Node newnode = allocator.alloc(sizeof(Node))
     ...
 
     allocator {
         ; extremely trivial arena allocator
-        uword buffer = memory("arena", 2000, 0)
-        uword next = buffer
+        pointer buffer = memory("arena", 2000, 0)
+        pointer next = buffer
 
-        sub alloc(ubyte size) -> uword {
+        sub alloc(ubyte size) -> pointer {
             defer next += size
             return next
         }

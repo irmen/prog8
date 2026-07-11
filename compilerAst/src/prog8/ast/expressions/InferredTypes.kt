@@ -84,6 +84,7 @@ object InferredTypes {
         BaseDataType.LONG to InferredType.known(BaseDataType.LONG),
         BaseDataType.FLOAT to InferredType.known(BaseDataType.FLOAT),
         BaseDataType.STR to InferredType.known(BaseDataType.STR),
+        BaseDataType.POINTER to InferredType.known(DataType.pointer(BaseDataType.UBYTE)),
         BaseDataType.UNDEFINED to InferredType.known(BaseDataType.UNDEFINED)
     )
 
