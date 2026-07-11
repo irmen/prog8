@@ -32,8 +32,6 @@ internal class M68kAstChecker(private val errors: IErrorReporter) : IAstVisitor 
     }
 
     override fun visit(module: Module) {
-        if (module.isLibrary)
-            return
         for (statement in module.statements) {
             statement.accept(this)
         }
@@ -95,8 +93,6 @@ internal class M68kAstChecker(private val errors: IErrorReporter) : IAstVisitor 
         if (subroutine.isAsmSubroutine) {
             if (subroutine.asmAddress != null) {
                 errors.err("extsub is not available on the m68k target", subroutine.position)
-            } else {
-                errors.err("asmsub is not implemented yet on the m68k target (register names D0-D7, A0-A6, FP0-FP7 are recognized by the parser though)", subroutine.position)
             }
             return
         }

@@ -305,6 +305,7 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
         if (firstChunk != null)
             emitSourceComment(firstChunk.sourceLinesPositions)
         emitRaw("")
+        emitLine("ALIGN 2")
         emitLabel(subLabel)
         val entrypointNames = setOf("p8b_main.p8s_start", "main.start")
         if(sub.label in entrypointNames)
@@ -335,6 +336,7 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
 
     private fun emitAsmSubroutine(sub: IRAsmSubroutine) {
         emitRaw("")
+        emitLine("ALIGN 2")
         emitLabel(fixNameSymbols(sub.label))
         emitRaw(sub.asmChunk.assembly)
         emitRaw("")

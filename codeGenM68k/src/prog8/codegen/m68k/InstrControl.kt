@@ -64,8 +64,7 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
 
         Opcode.SYSCALL -> {
             val num = imm ?: 0
-            emitLine("; syscall #$num")
-            emitLine("trap  #$num")
+            emitLine("trap  #$num   ;  TODO not implemented syscall $num")
         }
 
         Opcode.RETURN -> emitLine("rts")

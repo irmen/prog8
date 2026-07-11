@@ -316,7 +316,7 @@ sub  hex2long(str string) -> long {
 sub  str2long(str string) -> long {
     ; -- convert a decimal string (terminated with a zero byte) into a long. Clobbers R0
     long result = 0
-    bool @nozp negative = string[0] == '-'
+    bool negative = string[0] == '-'
     if negative or string[0]=='+'
         string++
     repeat {

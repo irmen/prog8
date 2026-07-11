@@ -52,7 +52,7 @@ qemu {
     const ubyte RTC_CLEAR_INTERRUPT = $1c
 
 
-     asmsub chrout(ubyte char @D0) {
+    asmsub chrout(ubyte char @D0) {
         %asm {{
             move.l  d0,qemu.TTY_PUT_CHAR
             rts
@@ -145,8 +145,48 @@ qemu {
         return ptr + peekw(ptr + 2)
     }
 
+    ; --- Bootinfo record tags ---
+    const uword BI_LAST                = $0000
+    const uword BI_MACHTYPE            = $0001
+    const uword BI_CPUTYPE             = $0002
+    const uword BI_FPUTYPE             = $0003
+    const uword BI_MMUTYPE             = $0004
+    const uword BI_MEMCHUNK            = $0005
+    const uword BI_RAMDISK             = $0006
+    const uword BI_COMMAND_LINE        = $0007
+    const uword BI_RNG_SEED            = $0008
+    const uword BI_VIRT_QEMU_VERSION   = $8000
+    const uword BI_VIRT_GF_PIC_BASE    = $8001
+    const uword BI_VIRT_GF_RTC_BASE    = $8002
+    const uword BI_VIRT_GF_TTY_BASE    = $8003
+    const uword BI_VIRT_VIRTIO_BASE    = $8004
+    const uword BI_VIRT_CTRL_BASE      = $8005
+
+    ; --- Machine type constants (for BI_MACHTYPE) ---
+    const long MACH_AMIGA   = 1
+    const long MACH_ATARI   = 2
+    const long MACH_MAC     = 3
+    const long MACH_APOLLO  = 4
+    const long MACH_SUN3    = 5
+    const long MACH_MVME147 = 6
+    const long MACH_MVME16x = 7
+    const long MACH_BVME6000 = 8
+    const long MACH_HP300   = 9
+    const long MACH_Q40     = 10
+    const long MACH_SUN3x   = 11
+    const long MACH_M54xx   = 12
+    const long MACH_M5441x  = 13
+    const long MACH_VIRT    = 14
+
+    ; --- CPU feature bits (for BI_CPUTYPE) ---
+    const long CPU_FEATURE_68020   = 1
+    const long CPU_FEATURE_68030   = 2
+    const long CPU_FEATURE_68040   = 4
+    const long CPU_FEATURE_68060   = 8
+    const long CPU_FEATURE_COLDFIRE = 16
+
     ; Dump all bootinfo records to the TTY in hex.
-    asmsub bootinfo_print() {
+    asmsub bootinfo_dump() {
         %asm {{
             bsr     qemu.bootinfo_ptr
             movea.l d0,a2           ; a2 = first record
