@@ -281,7 +281,7 @@ class TestCompilerOnExamplesBothC64andCx16: FunSpec({
             ExampleSizes("cube3d-float", c64SizeOptimized=2591, c64SizeUnoptimized=2643, cx16SizeOptimized=2447, cx16SizeUnoptimized=2770),
             ExampleSizes("cube3d-gfx", c64SizeOptimized=3528, c64SizeUnoptimized=3625, cx16SizeOptimized=2198, cx16SizeUnoptimized=2522),
             ExampleSizes("dirlist", c64SizeOptimized=1515, c64SizeUnoptimized=2291, cx16SizeOptimized=1525, cx16SizeUnoptimized=3270),
-            ExampleSizes("fibonacci", c64SizeOptimized=570, c64SizeUnoptimized=585, cx16SizeOptimized=626, cx16SizeUnoptimized=925),
+            ExampleSizes("fibonacci", c64SizeOptimized=582, c64SizeUnoptimized=601, cx16SizeOptimized=634, cx16SizeUnoptimized=933),
             ExampleSizes("fractal-tree", c64SizeOptimized=2778, c64SizeUnoptimized=2821, cx16SizeOptimized=1168, cx16SizeUnoptimized=1462),
             ExampleSizes("maze", c64SizeOptimized=3088, c64SizeUnoptimized=3277, cx16SizeOptimized=2873, cx16SizeUnoptimized=3251),
             ExampleSizes("mandelbrot", c64SizeOptimized=1173, c64SizeUnoptimized=1213, cx16SizeOptimized=1120, cx16SizeUnoptimized=1434),

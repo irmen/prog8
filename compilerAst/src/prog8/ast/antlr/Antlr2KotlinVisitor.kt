@@ -132,6 +132,10 @@ class Antlr2KotlinVisitor(val source: SourceCode, private val target: ICompilati
 
     override fun visitAlias(ctx: AliasContext): Alias {
         val identifier = getname(ctx.identifier())
+        if (ctx.basedatatype() != null || ctx.pointertype() != null) {
+            val typeText = if (ctx.basedatatype() != null) ctx.basedatatype().text else ctx.pointertype().text
+            throw SyntaxError("type aliases are not supported", ctx.toPosition())
+        }
         val target = ctx.scoped_identifier().accept(this) as IdentifierReference
         return Alias(identifier, target, ctx.PRIVATE() != null, ctx.toPosition())
     }

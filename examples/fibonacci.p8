@@ -21,9 +21,10 @@ main {
     uword fib_current = 1
 
     sub fib_next() -> uword {
+        uword result = fib_prev
         uword new = fib_current + fib_prev
         fib_prev = fib_current
         fib_current = new
-        return fib_prev
+        return result
     }
 }
