@@ -1585,7 +1585,7 @@ internal class AstChecker(private val program: Program,
                                 )
                         }
                     } else
-                        errors.err("cannot find struct type", expr.left.position)
+                        errors.err("cannot find struct type '${rightIdentifier.nameInSource.joinToString(".")}'", expr.left.position)
                 }
             } else if(rightIndexer!=null) {
                 val leftDt = expr.left.inferType(program)
@@ -1603,7 +1603,7 @@ internal class AstChecker(private val program: Program,
                                 errors.err("field '$fieldName' is not an array field, cannot index it", rightIndexer.position)
                         }
                     } else {
-                        errors.err("cannot find struct type", expr.left.position)
+                        errors.err("cannot find struct type $leftDt", expr.left.position)
                     }
                 } else {
                     errors.err("at the moment it is not possible to chain array syntax on pointers like  ...p1[x].p2[y]... use separate expressions for the time being", expr.right.position)
