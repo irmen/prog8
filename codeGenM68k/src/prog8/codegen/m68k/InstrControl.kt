@@ -64,7 +64,11 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
 
         Opcode.SYSCALL -> {
             val num = imm ?: 0
-            emitLine("trap  #$num   ;  TODO not implemented syscall $num")
+            val args = insn.fcallArgs
+            if (args != null)
+                translateSyscall(num, args)
+            else
+                emitLine("; syscall #$num   (no args)")
         }
 
         Opcode.RETURN -> emitLine("rts")
@@ -156,6 +160,7 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
                 }
                 IRDataType.LONG -> {
                     emitLine("move.l  ${regAddr(srcReg)}, d0")
+                    emitLine("swap  d0")
                     emitLine("lsr.w  #8, d0")
                 }
                 else -> TODO("MSIGB for ${type.name}")

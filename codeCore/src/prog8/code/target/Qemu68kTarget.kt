@@ -33,7 +33,7 @@ class Qemu68kTarget: ICompilationTarget,
     override val FLOAT_MEM_SIZE = 4u
     override val POINTER_MEM_SIZE = 4u
     override val PROGRAM_LOAD_ADDRESS = 0x10000u      
-    override val PROGRAM_MEMTOP_ADDRESS = 0x00100000u 
+    override val PROGRAM_MEMTOP_ADDRESS = 0x00100000u       // TODO hardcoded at 1 Mb of RAM for now... it starts at $0
 
     override val BSSHIGHRAM_START = 0u          // not actually used
     override val BSSHIGHRAM_END = 0u            // not actually used

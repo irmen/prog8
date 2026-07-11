@@ -28,16 +28,10 @@ class AssemblyProgramM68k(
         } catch (e: Exception) {
             when {
                 tool=="vasm" -> {
-                    System.err.println("Cannot find '${command[0]}' (vasm assembler for m68k). Install it via your package manager, e.g.:")
-                    System.err.println("  sudo apt install vasm         # Debian/Ubuntu")
-                    System.err.println("  sudo pacman -S vasm           # Arch Linux")
-                    System.err.println("or build it from source: http://sun.hasenbraten.de/vasm/")
+                    System.err.println("Cannot find '${command[0]}' (vasm assembler for m68k). Install it via your package manager if it's on there, or build it from source: http://sun.hasenbraten.de/vasm/")
                 }
                 tool=="vlink" -> {
-                    System.err.println("Cannot find 'vlink' (linker). Install it via your package manager, e.g.:")
-                    System.err.println("  sudo apt install vlink         # Debian/Ubuntu")
-                    System.err.println("  sudo pacman -S vlink           # Arch Linux")
-                    System.err.println("or build it from source: http://sun.hasenbraten.de/vlink/")
+                    System.err.println("Cannot find 'vlink' (linker). Install it via your package manager if it's on there, or build it from source: http://sun.hasenbraten.de/vlink/")
                 }
                 else -> {
                     System.err.println("process failed to start: ${e.message}")
