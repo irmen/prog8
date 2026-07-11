@@ -19,7 +19,7 @@ import kotlin.io.path.Path
 import kotlin.io.path.isRegularFile
 
 
-class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node>(), Prog8ANTLRVisitor<Node> {
+class Antlr2KotlinVisitor(val source: SourceCode, private val target: ICompilationTarget? = null): AbstractParseTreeVisitor<Node>(), Prog8ANTLRVisitor<Node> {
 
     // Cached resolved filename - computed once per visitor since it never changes during a single parse
     private var cachedFileName: String? = null
@@ -46,8 +46,12 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
     override fun visitExpression(ctx: ExpressionContext): Expression {
         if(ctx.sizeof_expression!=null) {
             // Handle pointer type argument: sizeof(^^float)
-            if(ctx.sizeof_argument().pointertype()!=null)
-                return IdentifierReference(listOf("sys", "SIZEOF_POINTER"), ctx.toPosition())
+            if(ctx.sizeof_argument().pointertype()!=null) {
+                if(target!=null)
+                    return NumericLiteral.optimalInteger(target.POINTER_MEM_SIZE.toInt(), ctx.toPosition())
+                else
+                    return IdentifierReference(listOf("sys", "SIZEOF_POINTER"), ctx.toPosition())
+            }
 
             // Handle address-of argument: sizeof(&var) or sizeof(&&var)
             val addressofCtx = ctx.sizeof_argument().addressof()
@@ -1015,8 +1019,13 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
         if(dtctx==null)
             return null
         val base = baseDatatypeFor(dtctx.basedatatype())
-        if(base!=null)
+        if(base!=null) {
+            if(base==BaseDataType.POINTER && target!=null) {
+                val replacement = if(target.POINTER_MEM_SIZE > 2u) BaseDataType.LONG else BaseDataType.UWORD
+                return DataType.forDt(replacement)
+            }
             return DataType.forDt(base)
+        }
         val pointer = pointerDatatypeFor(dtctx.pointertype())
         if(pointer!=null)
             return pointer

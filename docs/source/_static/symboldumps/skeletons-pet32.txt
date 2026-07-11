@@ -1,6 +1,6 @@
 
 Prog8 compiler v12.3-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit cb240f6a in branch new-codegens
+Prerelease version from git commit e9ff2de4 in branch new-codegens
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-pet32.p8
@@ -16,7 +16,7 @@ callfar2  (ubyte bank, uword address, ubyte argA, ubyte argX, ubyte argY, bool a
 clamp  (byte value, byte minimum, byte maximum) -> undefined
 cmp  (ubyte|byte|uword|word|long value1, ubyte|byte|uword|word|long|float value2)
 divmod  (ubyte|uword dividend, ubyte|uword divisor) -> undefined, undefined
-len  (str|array|array_splitw values) -> uword
+len  (str|array|array_splitw|array_pointer values) -> uword
 lmh  (long value) -> ubyte, ubyte, ubyte
 lsb  (uword|word|long value) -> ubyte
 lsw  (uword|word|long value) -> uword
@@ -29,18 +29,18 @@ mkword  (ubyte msb, ubyte lsb) -> uword
 msb  (uword|word|long value) -> ubyte
 msw  (uword|word|long value) -> uword
 offsetof  (ubyte field) -> ubyte
-peek  (uword address) -> ubyte
-peekbool  (uword address) -> bool
-peekf  (uword address) -> float
-peekl  (uword address) -> long
-peekw  (uword address) -> uword
-poke  (uword address, ubyte|byte value)
-pokebool  (uword address, bool value)
-pokebowl  (uword address, bool value)
-pokef  (uword address, float value)
-pokel  (uword address, long value)
+peek  (uword|long address) -> ubyte
+peekbool  (uword|long address) -> bool
+peekf  (uword|long address) -> float
+peekl  (uword|long address) -> long
+peekw  (uword|long address) -> uword
+poke  (uword|long address, ubyte|byte value)
+pokebool  (uword|long address, bool value)
+pokebowl  (uword|long address, bool value)
+pokef  (uword|long address, float value)
+pokel  (uword|long address, long value)
 pokemon  (uword address, ubyte value) -> ubyte
-pokew  (uword address, uword|word value)
+pokew  (uword|long address, uword|word value)
 pop  () -> ubyte
 popf  () -> float
 popl  () -> long
@@ -202,8 +202,8 @@ coroutines  {
     const ubyte  MAX_TASKS
     ubyte  active_task
     uword  supervisor
-    uword[]  tasklist
-    uword[]  userdatas
+    @nosplit uword[]  tasklist
+    @nosplit uword[]  userdatas
     add  (uword taskaddress, uword userdata) -> ubyte
     current  () -> ubyte
     kill  (ubyte taskid)
@@ -218,7 +218,7 @@ LIBRARY MODULE NAME: cx16logo
 -----------------------------
 
 cx16logo  {
-    uword[]  logo_lines
+    @nosplit uword[]  logo_lines
     logo  ()
     logo_at  (ubyte column, ubyte row)
 }

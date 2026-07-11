@@ -87,6 +87,7 @@
       <item>const</item>
       <item>float</item>
       <item>long</item>
+      <item>pointer</item>
       <item>str</item>
       <item>struct</item>
       <item>ubyte</item>

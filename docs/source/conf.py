@@ -18,7 +18,14 @@
 
 # -- Project information -----------------------------------------------------
 
+import os
 import subprocess
+import sys
+
+# -- Path setup --------------------------------------------------------------
+
+# Add the docs source directory to sys.path so custom modules like prog8_lexer can be imported
+sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 
 project = "Prog8"
 copyright = "Irmen de Jong"
@@ -70,6 +77,10 @@ else:
 def setup(app):
     # add custom css
     app.add_css_file("css/customize.css")
+    # register custom Prog8 Pygments lexer
+    from prog8_lexer import Prog8Lexer
+    from sphinx.highlighting import lexers
+    lexers["prog8"] = Prog8Lexer()
 
 
 # -- General configuration ---------------------------------------------------

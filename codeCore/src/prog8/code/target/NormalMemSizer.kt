@@ -32,7 +32,7 @@ internal class NormalMemSizer(val floatsize: Int, val pointerSize: Int = 2): IMe
             dt.isLong -> 4 * (numElements ?: 1)
             dt.isWord -> 2 * (numElements ?: 1)
             dt.isPointer -> pointerSize * (numElements ?: 1)
-            dt.isStructInstance -> dt.subType!!.memsize(this)
+            dt.isStructInstance -> dt.subType?.memsize(this) ?: 0
             dt.isUndefined -> throw IllegalArgumentException("undefined has no memory size")
             else -> throw IllegalArgumentException("invalid dt $dt")
         }

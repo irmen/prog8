@@ -33,7 +33,7 @@ color red "\<(sub|(inline[[:space:]]+)?asmsub|extsub|else|then|void|not|and|or|x
 color sky "^[[:alpha:]][[:alnum:]_]*:"
 
 # Data Types
-color crimson "\<(u?byte|u?word|str|bool|float|long)\>"
+color crimson "\<(u?byte|u?word|str|bool|float|long|pointer)\>"
 
 # Brackets
 color yellow "[()]"

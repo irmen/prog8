@@ -266,6 +266,7 @@ type identifier  type                     storage size       example var declara
 ``str``          string (PETSCII)         varies             ``str myvar = "hello."``
                                                              implicitly terminated by a 0-byte
 ``^^type``       typed pointer            2 bytes            pointer types are explained in their own chapter :ref:`pointers`
+``pointer``      untyped address          2 or 4 bytes       ``pointer ptr = $a000``.  See :ref:`pointers` for details.
 ===============  =======================  =================  =========================================
 
 Integers (bytes, words, longs)

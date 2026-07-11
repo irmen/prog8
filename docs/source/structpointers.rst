@@ -39,9 +39,9 @@ Structs and Pointers
         thenode.field = 9999
 
 
-Legacy untyped pointers (uword)
--------------------------------
-.. index:: single: Pointers; legacy untyped
+Untyped pointers and the ``pointer`` type
+-----------------------------------------
+.. index:: single: Pointers; untyped
 
 Prior to version 12 of the language, the only pointer type available was a plain ``uword`` value (the memory address)
 which could be used as a pointer to an ``ubyte`` (the byte value at that memory address).
@@ -54,13 +54,22 @@ explicitly for what it actually pointed to, if that wasn't a simple byte.
 Some implicit conversions were allowed too (such as putting ``str`` as the type of a subroutine parameter,
 which would be changed to ``uword`` by the compiler).
 
-Since Prog8 version 12 there now are *typed pointers* that better express the intent and tell the compiler how to use the pointer;
-these are explained below.
+Since version 12.6 there now is a dedicated ``pointer`` type keyword that serves as an untyped address
+and automatically takes the size of memory addresses on the target system.
+On 6502-based systems (C64, CX16, C128, PET32) it is 2 bytes (equivalent to ``uword``).
+On the m68k target (qemu68k) it is 4 bytes (equivalent to ``long``).
+This is useful when writing code that is compiled for different targets,
+because you don't need to manually switch between ``uword`` and ``long`` via conditional compilation::
 
-*For backward compatibility reasons, this untyped uword pointer still exists in the language.*
-You can assign any other pointer type to an untyped pointer variable (uword) without the need for an explicit cast.
-You can assign an untyped pointer (uword) to a typed pointer variable without the need for an explicit cast.
+    pointer ptr = $a000
+    ; same program works on both 6502 and m68k targets
+    ; ptr is 2 bytes on C64, CX16, etc.
+    ; ptr is 4 bytes on qemu68k
 
+You can assign any other pointer type to an untyped pointer variable (``uword``, ``long``` or ``pointer``) without the need for an explicit cast.
+You can assign an untyped pointer to a typed pointer variable without the need for an explicit cast.
+Prog8 *typed pointers* better express the intent and better tell the compiler how to use the pointer. 
+These are preferred to be used in new code, and are explained below.
 
 
 Typed pointer to simple datatype

@@ -34,6 +34,7 @@ STEP: 'step';
 ELSE: 'else';
 THEN: 'then';
 ENUM: 'enum';
+POINTERSTR: 'pointer';
 
 UNICODEDNAME :  [\p{Letter}]([\p{Letter}\p{Mark}\p{Digit}_] | '::')* ;           // match unicode properties
 UNDERSCORENAME :  '_' UNICODEDNAME ;           // match unicode properties
@@ -212,7 +213,7 @@ constdecl: PRIVATE? 'const' datatype? identifierlist '=' expression ;
 
 memoryvardecl: ADDRESS_OF varinitializer;
 
-basedatatype:  'ubyte' | 'byte' | 'uword' | 'word' | 'long' | 'float' | 'str' | 'bool' ;
+basedatatype:  'ubyte' | 'byte' | 'uword' | 'word' | 'long' | 'float' | 'str' | 'bool' | 'pointer' ;
 
 datatype: pointertype | basedatatype | structtype=scoped_identifier;
 
@@ -315,7 +316,7 @@ breakstmt : 'break';
 
 continuestmt: 'continue';
 
-identifier :  UNICODEDNAME | UNDERSCORENAME | ON | CALL | INLINE | PRIVATE | STEP ;              // due to the way antlr creates tokens, need to list the tokens here explicitly that we want to allow as identifiers too
+identifier :  UNICODEDNAME | UNDERSCORENAME | ON | CALL | INLINE | PRIVATE | STEP | POINTERSTR ;              // due to the way antlr creates tokens, need to list the tokens here explicitly that we want to allow as identifiers too
 
 scoped_identifier :  identifier ('.' identifier)* ;
 

@@ -2847,4 +2847,53 @@ main {
         val result2 = compileText(Qemu68kTarget(), false, src, outputDir)
         result2 shouldNotBe null
     }
+
+    test("bare pointer type keyword is converted to uword or long") {
+        val src = """
+            %zeropage basicsafe
+            main {
+                sub start() {
+                    pointer @shared ptrvar = 42
+                    ubyte @shared s1 = sizeof(ptrvar)
+                    ubyte @shared s2 = sizeof(pointer)
+                }
+            }"""
+        // On VMTarget (6502-like, POINTER_MEM_SIZE=2): pointer -> uword, sizeof = 2
+        val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = false)!!
+        val stmts = result.compilerAst.entrypoint.statements
+
+        val ptrDecl = stmts.filterIsInstance<VarDecl>().find { it.name == "ptrvar" }!!
+        ptrDecl.datatype.shouldBe(DataType.UWORD)
+
+        val s1Assign = stmts.filterIsInstance<Assignment>().find {
+            val iref = it.target.toExpression() as? IdentifierReference
+            iref?.nameInSource?.last() == "s1"
+        }!!
+        (s1Assign.value as NumericLiteral).number shouldBe 2.0
+
+        val s2Assign = stmts.filterIsInstance<Assignment>().find {
+            val iref = it.target.toExpression() as? IdentifierReference
+            iref?.nameInSource?.last() == "s2"
+        }!!
+        (s2Assign.value as NumericLiteral).number shouldBe 2.0
+
+        // On m68k (POINTER_MEM_SIZE=4): pointer -> long, sizeof = 4
+        val result68k = compileText(Qemu68kTarget(), false, src, outputDir, writeAssembly = false)!!
+        val stmts68k = result68k.compilerAst.entrypoint.statements
+
+        val ptrDecl68k = stmts68k.filterIsInstance<VarDecl>().find { it.name == "ptrvar" }!!
+        ptrDecl68k.datatype.shouldBe(DataType.LONG)
+
+        val s1Assign68k = stmts68k.filterIsInstance<Assignment>().find {
+            val iref = it.target.toExpression() as? IdentifierReference
+            iref?.nameInSource?.last() == "s1"
+        }!!
+        (s1Assign68k.value as NumericLiteral).number shouldBe 4.0
+
+        val s2Assign68k = stmts68k.filterIsInstance<Assignment>().find {
+            val iref = it.target.toExpression() as? IdentifierReference
+            iref?.nameInSource?.last() == "s2"
+        }!!
+        (s2Assign68k.value as NumericLiteral).number shouldBe 4.0
+    }
 })

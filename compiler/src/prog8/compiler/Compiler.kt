@@ -415,7 +415,7 @@ fun parseMainModule(filepath: Path,
     val program = Program(filepath.nameWithoutExtension, bf, compTarget)
     bf.program = program
 
-    val importer = ModuleImporter(program, compTarget.name, errors, sourceDirs, libraryDirs, cwd, quiet, traceImports)
+    val importer = ModuleImporter(program, compTarget, errors, sourceDirs, libraryDirs, cwd, quiet, traceImports)
     val importedModuleResult = importer.importMainModule(filepath)
     importedModuleResult.onErr { throw it }
     errors.report()

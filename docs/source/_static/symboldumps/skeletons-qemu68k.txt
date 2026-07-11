@@ -1,6 +1,6 @@
 
 Prog8 compiler v12.3-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit cb240f6a in branch new-codegens
+Prerelease version from git commit e9ff2de4 in branch new-codegens
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-qemu68k.p8
@@ -16,7 +16,7 @@ callfar2  (ubyte bank, uword address, ubyte argA, ubyte argX, ubyte argY, bool a
 clamp  (byte value, byte minimum, byte maximum) -> undefined
 cmp  (ubyte|byte|uword|word|long value1, ubyte|byte|uword|word|long|float value2)
 divmod  (ubyte|uword dividend, ubyte|uword divisor) -> undefined, undefined
-len  (str|array|array_splitw values) -> uword
+len  (str|array|array_splitw|array_pointer values) -> uword
 lmh  (long value) -> ubyte, ubyte, ubyte
 lsb  (uword|word|long value) -> ubyte
 lsw  (uword|word|long value) -> uword
@@ -29,18 +29,18 @@ mkword  (ubyte msb, ubyte lsb) -> uword
 msb  (uword|word|long value) -> ubyte
 msw  (uword|word|long value) -> uword
 offsetof  (ubyte field) -> ubyte
-peek  (uword address) -> ubyte
-peekbool  (uword address) -> bool
-peekf  (uword address) -> float
-peekl  (uword address) -> long
-peekw  (uword address) -> uword
-poke  (uword address, ubyte|byte value)
-pokebool  (uword address, bool value)
-pokebowl  (uword address, bool value)
-pokef  (uword address, float value)
-pokel  (uword address, long value)
+peek  (uword|long address) -> ubyte
+peekbool  (uword|long address) -> bool
+peekf  (uword|long address) -> float
+peekl  (uword|long address) -> long
+peekw  (uword|long address) -> uword
+poke  (uword|long address, ubyte|byte value)
+pokebool  (uword|long address, bool value)
+pokebowl  (uword|long address, bool value)
+pokef  (uword|long address, float value)
+pokel  (uword|long address, long value)
 pokemon  (uword address, ubyte value) -> ubyte
-pokew  (uword address, uword|word value)
+pokew  (uword|long address, uword|word value)
 pop  () -> ubyte
 popf  () -> float
 popl  () -> long
@@ -176,6 +176,8 @@ floats  {
     const float  PI
     const float  TWOPI
     const float  π
+    print  (float value @FP0)
+    tostr  (float value @FP0) -> str @A0
 }
 
 
@@ -234,9 +236,14 @@ LIBRARY MODULE NAME: strings
 ----------------------------
 
 strings  {
+    compare  (str st1 @D0, str st2 @D1) -> byte @D0
+    copy  (str source @D0, str target @D1) -> ubyte @D0
+    hash  (str string @D0) -> ubyte @D0
     isdigit  (ubyte char) -> bool
     isxdigit  (ubyte char) -> bool
+    length  (str string @D0) -> ubyte @D0
     lowerchar  (ubyte char) -> ubyte
+    ncopy  (str source @D0, str target @D1, ubyte maxlength @D2) -> ubyte @D0
 }
 
 
@@ -244,6 +251,26 @@ LIBRARY MODULE NAME: syslib
 ---------------------------
 
 qemu  {
+    const uword  BI_COMMAND_LINE
+    const uword  BI_CPUTYPE
+    const uword  BI_FPUTYPE
+    const uword  BI_LAST
+    const uword  BI_MACHTYPE
+    const uword  BI_MEMCHUNK
+    const uword  BI_MMUTYPE
+    const uword  BI_RAMDISK
+    const uword  BI_RNG_SEED
+    const uword  BI_VIRT_CTRL_BASE
+    const uword  BI_VIRT_GF_PIC_BASE
+    const uword  BI_VIRT_GF_RTC_BASE
+    const uword  BI_VIRT_GF_TTY_BASE
+    const uword  BI_VIRT_QEMU_VERSION
+    const uword  BI_VIRT_VIRTIO_BASE
+    const long  CPU_FEATURE_68020
+    const long  CPU_FEATURE_68030
+    const long  CPU_FEATURE_68040
+    const long  CPU_FEATURE_68060
+    const long  CPU_FEATURE_COLDFIRE
     const ubyte  CTRL_CMD_HALT
     const ubyte  CTRL_CMD_NOOP
     const ubyte  CTRL_CMD_PANIC
@@ -253,6 +280,20 @@ qemu  {
     const long  GF_PIC_BASE
     const long  GF_RTC_BASE
     const long  GF_TTY_BASE
+    const long  MACH_AMIGA
+    const long  MACH_APOLLO
+    const long  MACH_ATARI
+    const long  MACH_BVME6000
+    const long  MACH_HP300
+    const long  MACH_M5441x
+    const long  MACH_M54xx
+    const long  MACH_MAC
+    const long  MACH_MVME147
+    const long  MACH_MVME16x
+    const long  MACH_Q40
+    const long  MACH_SUN3
+    const long  MACH_SUN3x
+    const long  MACH_VIRT
     const ubyte  PIC_REG_DISABLE
     const ubyte  PIC_REG_ENABLE
     const ubyte  PIC_REG_IRQ_DISABLE_ALL
@@ -279,6 +320,14 @@ qemu  {
     const long  TTY_VERSION
     const long  VIRTIO_BASE
     const long  VIRT_CTRL_BASE
+    bootinfo_dump  ()
+    bootinfo_next  (long ptr) -> long
+    bootinfo_ptr  () -> long
+    chrin  () -> ubyte @D0
+    chrout  (ubyte char @D0)
+    input_data  (long buffer @A0, uword maxlen @D1) -> uword @D0
+    keypressed  () -> bool @Pz
+    puts  (str msg @A0)
 }
 
 sys  {
@@ -305,11 +354,13 @@ sys  {
     clear_irqd  ()
     die  (ubyte code, str message)
     exit  (ubyte returnvalue)
-    memcopy  (^^ubyte source, ^^ubyte tgt, uword count)
-    memset  (^^ubyte mem, uword numbytes, ubyte value)
+    memclear  (long mem @D0, uword numbytes @D1)
+    memcopy  (long source @D0, long tgt @D1, uword count @D2)
+    memset  (long mem @D0, uword numbytes @D1, ubyte value @D2)
+    memsetw  (long mem @D0, uword numwords @D1, uword value @D2)
     poweroff_system  ()
-    progend  () -> long @D0
-    progstart  () -> long
+    progend  () -> long @A0
+    progstart  () -> long @A0
     reset_system  ()
     set_carry  ()
     set_irqd  ()
@@ -321,17 +372,23 @@ LIBRARY MODULE NAME: textio
 ---------------------------
 
 txt  {
-    chrout  (ubyte char)
+    bell  ()
+    chrin   alias for: qemu.chrin
+    chrout  (ubyte char @D0)
     clear_screen  ()
     cls  ()
+    color  (ubyte txtcol)
+    column  (ubyte col)
     home  ()
+    input_chars  (str buffer) -> ubyte
     iso  ()
-    iso_off  ()
+    keypressed   alias for: qemu.keypressed
     lowercase  ()
     nl  ()
-    print  (str text)
+    print  (str text @A0)
     print_b  (byte value)
     print_bool  (bool value)
+    print_f   alias for: floats.print
     print_l  (long value)
     print_ub  (ubyte value)
     print_ub0  (ubyte value)
@@ -346,7 +403,6 @@ txt  {
     rvs_off  ()
     rvs_on  ()
     spc  ()
-    uppercase  ()
 }
 
 

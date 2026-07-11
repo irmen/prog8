@@ -1,6 +1,6 @@
 
 Prog8 compiler v12.3-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit cb240f6a in branch new-codegens
+Prerelease version from git commit e9ff2de4 in branch new-codegens
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-cx16.p8
@@ -16,7 +16,7 @@ callfar2  (ubyte bank, uword address, ubyte argA, ubyte argX, ubyte argY, bool a
 clamp  (byte value, byte minimum, byte maximum) -> undefined
 cmp  (ubyte|byte|uword|word|long value1, ubyte|byte|uword|word|long|float value2)
 divmod  (ubyte|uword dividend, ubyte|uword divisor) -> undefined, undefined
-len  (str|array|array_splitw values) -> uword
+len  (str|array|array_splitw|array_pointer values) -> uword
 lmh  (long value) -> ubyte, ubyte, ubyte
 lsb  (uword|word|long value) -> ubyte
 lsw  (uword|word|long value) -> uword
@@ -29,18 +29,18 @@ mkword  (ubyte msb, ubyte lsb) -> uword
 msb  (uword|word|long value) -> ubyte
 msw  (uword|word|long value) -> uword
 offsetof  (ubyte field) -> ubyte
-peek  (uword address) -> ubyte
-peekbool  (uword address) -> bool
-peekf  (uword address) -> float
-peekl  (uword address) -> long
-peekw  (uword address) -> uword
-poke  (uword address, ubyte|byte value)
-pokebool  (uword address, bool value)
-pokebowl  (uword address, bool value)
-pokef  (uword address, float value)
-pokel  (uword address, long value)
+peek  (uword|long address) -> ubyte
+peekbool  (uword|long address) -> bool
+peekf  (uword|long address) -> float
+peekl  (uword|long address) -> long
+peekw  (uword|long address) -> uword
+poke  (uword|long address, ubyte|byte value)
+pokebool  (uword|long address, bool value)
+pokebowl  (uword|long address, bool value)
+pokef  (uword|long address, float value)
+pokel  (uword|long address, long value)
 pokemon  (uword address, ubyte value) -> ubyte
-pokew  (uword address, uword|word value)
+pokew  (uword|long address, uword|word value)
 pop  () -> ubyte
 popf  () -> float
 popl  () -> long
@@ -73,7 +73,7 @@ adpcm  {
     uword @requirezp  pstep
     uword @requirezp  pstep_2
     byte[]  t_index
-    uword[]  t_step
+    @nosplit uword[]  t_step
     decode_block_mono  (uword nibblesptr)
     decode_block_stereo  (uword nibblesptr)
     decode_nibble  (ubyte nibble)
@@ -261,8 +261,8 @@ coroutines  {
     const ubyte  MAX_TASKS
     ubyte  active_task
     uword  supervisor
-    uword[]  tasklist
-    uword[]  userdatas
+    @nosplit uword[]  tasklist
+    @nosplit uword[]  userdatas
     add  (uword taskaddress, uword userdata) -> ubyte
     current  () -> ubyte
     kill  (ubyte taskid)
@@ -277,7 +277,7 @@ LIBRARY MODULE NAME: cx16logo
 -----------------------------
 
 cx16logo  {
-    uword[]  logo_lines
+    @nosplit uword[]  logo_lines
     logo  ()
     logo_at  (ubyte column, ubyte row)
 }
@@ -662,7 +662,7 @@ monogfx  {
     uword  height
     bool  lores_mode
     ubyte  mode
-    uword[] @shared  times40
+    @nosplit uword[] @shared  times40
     uword  width
     circle  (uword xcenter, uword ycenter, ubyte radius, bool draw)
     clear_screen  (bool draw)
@@ -736,7 +736,7 @@ psg  {
     ubyte[]  envelope_releases
     ubyte[]  envelope_states
     ubyte[]  envelope_sustains
-    uword[]  envelope_volumes
+    @nosplit uword[]  envelope_volumes
     bool[]  voice_enabled
     envelope  (ubyte voice_num, ubyte maxvolume, ubyte attack, ubyte sustain, ubyte release)
     envelopes_irq  () -> bool
@@ -1321,17 +1321,17 @@ cx16  {
     FB_cursor_next_line  (uword x @R0) clobbers (A,X,Y) = $ff02
     FB_cursor_position  (uword x @R0, uword y @R1) clobbers (A,X,Y) = $feff
     FB_fill_pixels  (uword count @R0, uword pstep @R1, ubyte color @A) clobbers (A,X,Y) = $ff17
-    FB_filter_pixels  (uword pointer @R0, uword count @R1) clobbers (A,X,Y) = $ff1a
+    FB_filter_pixels  (uword ptr @R0, uword count @R1) clobbers (A,X,Y) = $ff1a
     FB_get_info  () clobbers (X,Y) -> byte @A, uword @R0, uword @R1 = $fef9
     FB_get_pixel  () clobbers (X,Y) -> ubyte @A = $ff05
-    FB_get_pixels  (uword pointer @R0, uword count @R1) clobbers (A,X,Y) = $ff08
+    FB_get_pixels  (uword ptr @R0, uword count @R1) clobbers (A,X,Y) = $ff08
     FB_init  () clobbers (A,X,Y) = $fef6
     FB_move_pixels  (uword sx @R0, uword sy @R1, uword tx @R2, uword ty @R3, uword count @R4) clobbers (A,X,Y) = $ff1d
     FB_set_8_pixels  (ubyte pattern @A, ubyte color @X) clobbers (A,X,Y) = $ff11
     FB_set_8_pixels_opaque  (ubyte pattern @R0, ubyte mask @A, ubyte color1 @X, ubyte color2 @Y) clobbers (A,X,Y) = $ff14
-    FB_set_palette  (uword pointer @R0, ubyte index @A, ubyte colorcount @X) clobbers (A,X,Y) = $fefc
+    FB_set_palette  (uword ptr @R0, ubyte index @A, ubyte colorcount @X) clobbers (A,X,Y) = $fefc
     FB_set_pixel  (ubyte color @A) clobbers (A,X,Y) = $ff0b
-    FB_set_pixels  (uword pointer @R0, uword count @R1) clobbers (A,X,Y) = $ff0e
+    FB_set_pixels  (uword ptr @R0, uword count @R1) clobbers (A,X,Y) = $ff0e
     GRAPH_clear  () clobbers (A,X,Y) = $ff23
     GRAPH_draw_image  (uword x @R0, uword y @R1, uword ptr @R2, uword width @R3, uword height @R4) clobbers (A,X,Y) = $ff38
     GRAPH_draw_line  (uword x1 @R0, uword y1 @R1, uword x2 @R2, uword y2 @R3) clobbers (A,X,Y) = $ff2c
@@ -1369,7 +1369,7 @@ cx16  {
     console_get_char  () clobbers (X,Y) -> ubyte @A = $fee1
     console_init  (uword x @R0, uword y @R1, uword width @R2, uword height @R3) clobbers (A,X,Y) = $fedb
     console_put_char  (ubyte character @A, bool wrapping @Pc) clobbers (A,X,Y) = $fede
-    console_put_image  (uword pointer @R0, uword width @R1, uword height @R2) clobbers (A,X,Y) = $fed8
+    console_put_image  (uword ptr @R0, uword width @R1, uword height @R2) clobbers (A,X,Y) = $fed8
     console_set_paging_message  (uword msgptr @R0) clobbers (A,X,Y) = $fed5
     disable_irq_handlers  ()
     disable_irqs  () clobbers (A)

@@ -35,9 +35,9 @@ syn match prog8Directive "\(^\|\s\)%\(zpreserved\|zpallowed\|address\|encoding\|
 syn match prog8Directive "\(^\|\s\)%\(align\|asmbinary\|asminclude\|breakpoint\)\>"
 syn match prog8Directive "\(^\|\s\)%\(asm\|ir\)\>"
 
-syn match prog8Type "\<\%(u\?byte\|u\?word\|float\|str\|bool\|long\|\^\^\)\>"
+syn match prog8Type "\<\%(u\?byte\|u\?word\|float\|str\|bool\|long\|pointer\|\^\^\)\>"
 syn region prog8ArrayType matchgroup=prog8Type
-            \ start="\<\%(u\?byte\|u\?word\|float\|str\|bool\)\[" end="\]"
+            \ start="\<\%(u\?byte\|u\?word\|float\|str\|bool\|pointer\)\[" end="\]"
             \ transparent
 syn keyword prog8StorageClass const enum struct
 syn match prog8StorageClass "\(^\|\s\)\(@zp\|@bank\|@shared\|@nosplit\|@nozp\|@requirezp\|@align64\|@alignword\|@alignpage\|@dirty\)\>"

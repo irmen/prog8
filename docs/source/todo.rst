@@ -2,7 +2,6 @@ TODO
 ====
 
 - need a bunch of type casting/conversion checks that test the handling of the 4-byte/long pointer datatype on the qemu68k target.
-- need a 'pointer' type that is an alias for long on m68k and uword otherwise?
 - some generated label names in the m68k codegen can maybe replaced by local/anonymous labels?
 
 
@@ -16,6 +15,7 @@ Note: this problem does NOT affect regular data/address registers because those 
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
+- use .. code-block:: prog8   in the documentation instead of 'bare' code blocks (there is a prog8 lexer now added for pygments to pick this up)
 - make enums strongly typed instead of just syntactic sugar for ints (see ideas/enum-strong-type.md for the plan)
 - add %option private_symbols to make access mode private by default; need (new) 'public' keyword to explicitly mark symbols public.
 - symboldump: some sort of javadocs generated from the p8 source files (instead of just the function signatures). Use markdown for formatting, not html.
