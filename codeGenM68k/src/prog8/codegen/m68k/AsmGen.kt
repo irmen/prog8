@@ -611,7 +611,7 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
             // Only emit an ALIGN directive if the variable requires alignment 
             // AND we haven't already established that alignment boundary for this group.
             if (alignment < currentBlockAlignment) {
-                if (alignment == 2) {
+                if (alignment >= 2) {
                     emitRaw("    ALIGN  2")
                 }
                 // Update our tracked alignment group state

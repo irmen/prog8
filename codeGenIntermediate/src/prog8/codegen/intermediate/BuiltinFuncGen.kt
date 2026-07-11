@@ -664,10 +664,10 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
 
     private fun funcStructAlloc(call: PtFunctionCall): ExpressionCodeResult {
         val code = IRCodeChunk(null, null)
-        val resultReg = codeGen.registers.next(IRDataType.WORD)
+        val resultReg = codeGen.registers.next(IRDataType.POINTER)
         val labelname = SymbolTable.labelnameForStructInstance(call)
-        code += IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1=resultReg, labelSymbol = "${StStructInstanceBlockName}.$labelname")
-        return ExpressionCodeResult(code, IRDataType.WORD, resultReg, -1)
+        code += IRInstruction(Opcode.LOAD, IRDataType.POINTER, reg1=resultReg, labelSymbol = "${StStructInstanceBlockName}.$labelname")
+        return ExpressionCodeResult(code, IRDataType.POINTER, resultReg, -1)
     }
 
     private fun funcLsb(call: PtFunctionCall, fromLong: Boolean): ExpressionCodeResult {
@@ -805,16 +805,16 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                 val offset = if (msb) { if(target.type.isLong) 3 else 1 } else 0
                 if(isConstZeroValue) {
                     result += IRCodeChunk(null, null).also {
-                        val pointerReg = codeGen.registers.next(IRDataType.WORD)
-                        it += IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1 = pointerReg, labelSymbol = target.name)
+                        val pointerReg = codeGen.registers.next(IRDataType.POINTER)
+                        it += IRInstruction(Opcode.LOAD, IRDataType.POINTER, reg1 = pointerReg, labelSymbol = target.name)
                         it += IRInstruction(Opcode.STOREZI, IRDataType.BYTE, reg1 = pointerReg, immediate = offset)
                     }
                 } else {
                     val valueTr = exprGen.translateExpression(call.args[1])
                     addToResult(result, valueTr, valueTr.resultReg, -1)
                     result += IRCodeChunk(null, null).also {
-                        val pointerReg = codeGen.registers.next(IRDataType.WORD)
-                        it += IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1 = pointerReg, labelSymbol = target.name)
+                        val pointerReg = codeGen.registers.next(IRDataType.POINTER)
+                        it += IRInstruction(Opcode.LOAD, IRDataType.POINTER, reg1 = pointerReg, labelSymbol = target.name)
                         it += IRInstruction(Opcode.STOREI, IRDataType.BYTE, reg1 = valueTr.resultReg, reg2 = pointerReg, immediate = offset)
                     }
                 }
@@ -829,13 +829,13 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                     if(constIndex != null) {
                         val offset = eltSize * constIndex + if(msb) eltSize - 1 else 0
                         if(offset > 0)
-                            addInstr(result, IRInstruction(Opcode.ADD, IRDataType.WORD, reg1 = pointerTr.resultReg, immediate = offset), null)
+                            addInstr(result, IRInstruction(Opcode.ADD, IRDataType.POINTER, reg1 = pointerTr.resultReg, immediate = offset), null)
                     } else {
                         val (code, indexWordReg) = codeGen.loadIndexReg(target.index, eltSize, true, false)
                         result += code
-                        addInstr(result, IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1 = pointerTr.resultReg, reg2 = indexWordReg), null)
+                        addInstr(result, IRInstruction(Opcode.ADDR, IRDataType.POINTER, reg1 = pointerTr.resultReg, reg2 = indexWordReg), null)
                         if(msb)
-                            addInstr(result, IRInstruction(Opcode.ADD, IRDataType.WORD, reg1 = pointerTr.resultReg, immediate = eltSize - 1), null)
+                            addInstr(result, IRInstruction(Opcode.ADD, IRDataType.POINTER, reg1 = pointerTr.resultReg, immediate = eltSize - 1), null)
                     }
                     if(isConstZeroValue) {
                         addInstr(result, IRInstruction(Opcode.STOREZI, IRDataType.BYTE, reg1 = pointerTr.resultReg, immediate = 0), null)

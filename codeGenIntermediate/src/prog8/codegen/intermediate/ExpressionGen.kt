@@ -457,6 +457,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 val constOffset = (ptrWithOffset.right as? PtNumber)?.number?.toInt()
                 if(constOffset in 0..65535) {
                     val ptrName = (ptrWithOffset.left as PtIdentifier).name
+                    // TODO m68k: if ptrName is a pointer variable, use IRDataType.POINTER instead of WORD
                     val pointerReg = codeGen.registers.next(IRDataType.WORD)
                     result += IRCodeChunk(null, null).also {
                         it += IRInstruction(Opcode.LOADM, IRDataType.WORD, reg1 = pointerReg, labelSymbol = ptrName)

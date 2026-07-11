@@ -254,15 +254,15 @@ class IRCodeGen(
             )
             irProg.st.add(clearedVar)
 
-            val sourceReg = registers.next(IRDataType.WORD)
-            val destReg = registers.next(IRDataType.WORD)
+            val sourceReg = registers.next(IRDataType.POINTER)
+            val destReg = registers.next(IRDataType.POINTER)
             val countReg = registers.next(IRDataType.WORD)
-            chunk += IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1 = sourceReg, labelSymbol = shadowName)
-            chunk += IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1 = destReg, labelSymbol = variable.name)
+            chunk += IRInstruction(Opcode.LOAD, IRDataType.POINTER, reg1 = sourceReg, labelSymbol = shadowName)
+            chunk += IRInstruction(Opcode.LOAD, IRDataType.POINTER, reg1 = destReg, labelSymbol = variable.name)
             chunk += IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1 = countReg, immediate = initBytes.size)
             val args = listOf(
-                FunctionCallArgs.ArgumentSpec("", null, FunctionCallArgs.RegSpec(IRDataType.WORD, RegisterNum(sourceReg), null, null)),
-                FunctionCallArgs.ArgumentSpec("", null, FunctionCallArgs.RegSpec(IRDataType.WORD, RegisterNum(destReg), null, null)),
+                FunctionCallArgs.ArgumentSpec("", null, FunctionCallArgs.RegSpec(IRDataType.POINTER, RegisterNum(sourceReg), null, null)),
+                FunctionCallArgs.ArgumentSpec("", null, FunctionCallArgs.RegSpec(IRDataType.POINTER, RegisterNum(destReg), null, null)),
                 FunctionCallArgs.ArgumentSpec("", null, FunctionCallArgs.RegSpec(IRDataType.WORD, RegisterNum(countReg), null, null))
             )
             chunk += IRInstruction(Opcode.SYSCALL, immediate = IMSyscall.MEMCOPY.number, fcallArgs = FunctionCallArgs(args, emptyList()))

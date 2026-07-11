@@ -591,6 +591,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                                 val constOffset = (ptrWithOffset.right as? PtNumber)?.number?.toInt()
                                 if(constOffset in 0..65535) {
                                     val ptrName = (ptrWithOffset.left as PtIdentifier).name
+                                    // TODO m68k: if ptrName is a pointer variable, use IRDataType.POINTER instead of WORD
                                     val pointerReg = codeGen.registers.next(IRDataType.WORD)
                                     result += IRCodeChunk(null, null).also {
                                         it += IRInstruction(Opcode.LOADM, IRDataType.WORD, reg1=pointerReg, labelSymbol = ptrName)
@@ -653,21 +654,21 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
         if(zeroValue) {
             if(constIndex!=null) {
                 val offset = eltSize * constIndex
-                addInstr(result, IRInstruction(Opcode.ADD, IRDataType.WORD, reg1=pointerReg, immediate = offset), null)
+                addInstr(result, IRInstruction(Opcode.ADD, IRDataType.POINTER, reg1=pointerReg, immediate = offset), null)
             } else {
                 val (code, indexReg) = codeGen.loadIndexReg(targetArray.index, eltSize, true, targetArray.splitWords)
                 result += code
-                addInstr(result, IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1=pointerReg, reg2=indexReg), null)
+                addInstr(result, IRInstruction(Opcode.ADDR, IRDataType.POINTER, reg1=pointerReg, reg2=indexReg), null)
             }
             codeGen.storeValueAtPointersLocation(result, pointerReg, 0u, targetIdent.type.dereference(), true, -1)
         } else {
             if(constIndex!=null) {
                 val offset = eltSize * constIndex
-                addInstr(result, IRInstruction(Opcode.ADD, IRDataType.WORD, reg1=pointerReg, immediate = offset), null)
+                addInstr(result, IRInstruction(Opcode.ADD, IRDataType.POINTER, reg1=pointerReg, immediate = offset), null)
             } else {
                 val (code, indexReg) = codeGen.loadIndexReg(targetArray.index, eltSize, true, targetArray.splitWords)
                 result += code
-                addInstr(result, IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1=pointerReg, reg2=indexReg), null)
+                addInstr(result, IRInstruction(Opcode.ADDR, IRDataType.POINTER, reg1=pointerReg, reg2=indexReg), null)
             }
             val realValueReg = if(targetDt == IRDataType.FLOAT) valueFpRegister else valueRegister
             codeGen.storeValueAtPointersLocation(result, pointerReg, 0u, targetIdent.type.dereference(), false, realValueReg)
@@ -789,7 +790,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
             // index is an expression
             val (code, indexReg) = codeGen.loadIndexReg(targetArray.index, eltSize, true, targetArray.splitWords)
             result += code
-            addInstr(result, IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1 = pointerReg, reg2 = indexReg), null)
+            addInstr(result, IRInstruction(Opcode.ADDR, IRDataType.POINTER, reg1 = pointerReg, reg2 = indexReg), null)
             if(zero) {
                 addInstr(result, IRInstruction(Opcode.STOREZI, targetDt, reg1 = pointerReg, immediate = 0), null)
             } else {
