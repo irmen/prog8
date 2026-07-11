@@ -463,7 +463,7 @@ main {
         errors.errors[2] shouldContain "15:9: cannot write to this memory mapped string or array (possibly located in ROM"
     }
 
-    test("long addresses not yet supported in memread and memwrite") {
+    test("long addresses not supported in memread and memwrite for 6502") {
         val src = """
 main {
     sub start() {
@@ -478,8 +478,25 @@ main {
         val errors = ErrorReporterForTests()
         compileText(Cx16Target(), true, src, outputDir, errors = errors, writeAssembly = false) shouldBe null
         errors.errors.size shouldBe 3
-        errors.errors[0] shouldContain "long address not yet supported"
-        errors.errors[1] shouldContain "long address not yet supported"
-        errors.errors[2] shouldContain "long address not yet supported"
+        errors.errors[0] shouldContain "invalid address type"
+        errors.errors[1] shouldContain "invalid address type"
+        errors.errors[2] shouldContain "invalid address type"
     }
+
+    test("long addresses supported in memread and memwrite for m68k") {
+        val src = """
+main {
+    sub start() {
+        const long bufferll = 888888
+        long @shared addrlv = 777777
+
+        ubyte result1 = bufferll[2]
+        ubyte result2 = @(999999)
+        ubyte result3 = @(addrlv)
+    }
+}"""
+        val errors = ErrorReporterForTests()
+        compileText(Qemu68kTarget(), true, src, outputDir, errors = errors, writeAssembly = false) shouldNotBe null
+        errors.errors.size shouldBe 0
+    }    
 })

@@ -136,23 +136,13 @@ qemu {
     }
 
     ; Advance to the next bootinfo record.
-    ; Input: D0 = current record pointer
-    ; Output: D0 = next record pointer, or 0 if BI_LAST was reached
-    asmsub bootinfo_next(long ptr @D0) -> long @D0 {
-        %asm {{
-            movea.l d0,a0
-            clr.l   d0
-            move.w  (a0),d0         ; tag
-            beq     .last
-            clr.l   d1
-            move.w  2(a0),d1        ; total size
-            move.l  a0,d0           ; start address
-            add.l   d1,d0           ; advance by size
-            rts
-.last:
-            moveq   #0,d0           ; D0 = 0 (null)
-            rts
-        }}
+    ; Input: ptr = current record pointer
+    ; Output: next record pointer, or 0 if BI_LAST was reached
+    sub bootinfo_next(long ptr) -> long {
+        uword tag = peekw(ptr)
+        if tag == 0
+            return 0
+        return ptr + peekw(ptr + 2)
     }
 
     ; Dump all bootinfo records to the TTY in hex.
@@ -168,7 +158,7 @@ qemu {
             move.l  d0,d4           ; save tag in d4
             move.l  d1,d5           ; save size in d5
             move.l  a2,a3           ; save current pointer
-            move.l  a2,d0           ; prep for bootinfo_next
+            move.l  a2,qemu.bootinfo_next.ptr    ; store ptr
             bsr     qemu.bootinfo_next
             movea.l d0,a2           ; a2 = next record
 

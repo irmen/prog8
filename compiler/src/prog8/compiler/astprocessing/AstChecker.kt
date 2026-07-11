@@ -2261,10 +2261,8 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(memread: DirectMemoryRead) {
-        if(memread.addressExpression.inferType(program).isLong)
-            errors.err("long address not yet supported", memread.addressExpression.position)
-        else if(!allowedMemoryAccessAddressExpression(memread.addressExpression, program))
-            errors.err("invalid address type for memory access, expected ^^ubyte or just uword", memread.position)
+        if(!allowedMemoryAccessAddressExpression(memread.addressExpression, program))
+            errors.err("invalid address type for memory access", memread.position)
 
         val pointervar = memread.addressExpression as? IdentifierReference
         if(pointervar!=null)
@@ -2284,6 +2282,8 @@ internal class AstChecker(private val program: Program,
 
     private fun allowedMemoryAccessAddressExpression(addressExpression: Expression, program: Program): Boolean {
         val dt = addressExpression.inferType(program)
+        if(dt.isLong && program.target.POINTER_MEM_SIZE>2u)
+            return true
         if(dt.isUnsignedWord || (dt.isPointer && dt.getOrUndef().sub?.isByteOrBool==true))
             return true
         val tc = addressExpression as? TypecastExpression
@@ -2296,10 +2296,8 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(memwrite: DirectMemoryWrite) {
-        if(memwrite.addressExpression.inferType(program).isLong)
-            errors.err("long address not yet supported", memwrite.addressExpression.position)
-        else if(!allowedMemoryAccessAddressExpression(memwrite.addressExpression, program))
-            errors.err("invalid address type for memory access, expected ^^ubyte or just uword", memwrite.position)
+        if(!allowedMemoryAccessAddressExpression(memwrite.addressExpression, program))
+            errors.err("invalid address type for memory access", memwrite.position)
 
         val pointervar = memwrite.addressExpression as? IdentifierReference
         if(pointervar!=null)

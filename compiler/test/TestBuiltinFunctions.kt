@@ -57,7 +57,7 @@ class TestBuiltinFunctions: FunSpec({
         val func = BuiltinFunctions.getValue("poke")
         func.parameters.size shouldBe 2
         func.parameters[0].name shouldBe "address"
-        func.parameters[0].possibleDatatypes shouldBe arrayOf(BaseDataType.UWORD)
+        func.parameters[0].possibleDatatypes shouldBe arrayOf(BaseDataType.UWORD, BaseDataType.LONG)
         func.parameters[1].name shouldBe "value"
         func.parameters[1].possibleDatatypes shouldBe arrayOf(BaseDataType.UBYTE, BaseDataType.BYTE)
         func.pure shouldBe false
