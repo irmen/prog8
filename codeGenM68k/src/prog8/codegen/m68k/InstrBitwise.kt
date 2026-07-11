@@ -347,26 +347,26 @@ private fun AsmGen.rotateRightThroughCarry(reg: Int, type: IRDataType) {
 private fun AsmGen.bitTest(reg: Int, bit: Int, type: IRDataType) {
     val s = dtSuffix(type)
     emitLine("move$s  ${regAddr(reg)}, d0")
-    emitLine("btst$s  #$bit, d0")
+    emitLine("btst.l  #$bit, d0")
 }
 
 private fun AsmGen.bitSet(reg: Int, bit: Int, type: IRDataType) {
     val s = dtSuffix(type)
     emitLine("move$s  ${regAddr(reg)}, d0")
-    emitLine("bset$s  #$bit, d0")
+    emitLine("bset.l  #$bit, d0")
     emitLine("move$s  d0, ${regAddr(reg)}")
 }
 
 private fun AsmGen.bitClear(reg: Int, bit: Int, type: IRDataType) {
     val s = dtSuffix(type)
     emitLine("move$s  ${regAddr(reg)}, d0")
-    emitLine("bclr$s  #$bit, d0")
+    emitLine("bclr.l  #$bit, d0")
     emitLine("move$s  d0, ${regAddr(reg)}")
 }
 
 private fun AsmGen.bitToggle(reg: Int, bit: Int, type: IRDataType) {
     val s = dtSuffix(type)
     emitLine("move$s  ${regAddr(reg)}, d0")
-    emitLine("bchg$s  #$bit, d0")
+    emitLine("bchg.l  #$bit, d0")
     emitLine("move$s  d0, ${regAddr(reg)}")
 }

@@ -168,4 +168,31 @@ txt {
     sub bell() {
         chrout(7)
     }
+
+    sub width() -> ubyte {
+        return 80
+    }
+
+    sub height() -> ubyte {
+        return 25
+    }
+
+    sub size() -> ubyte, ubyte {
+        return width(), height()
+    }
+
+    sub plot(ubyte col, ubyte row) {
+        ; use ANSI escape sequence to position the cursor
+        chrout(27)
+        chrout('[')
+        print_ub(row)
+        chrout(';')
+        print_ub(col)
+        chrout('H')
+    }
+
+    sub setchr(ubyte col, ubyte row, ubyte char) {
+        plot(col, row)
+        chrout(char)
+    }
 }

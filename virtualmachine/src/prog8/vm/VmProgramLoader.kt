@@ -468,6 +468,7 @@ class VmProgramLoader {
                         val prefix = elt.name[0]
                         val stripped = SymbolNames.stripPrefixes(elt.name.drop(1))
                         val sym = symbolAddresses[stripped]
+                            ?: symbolAddresses["${stripped}_lsb"]  // split-word array base address
                             ?: throw IRParseException("vm cannot yet load a label address as a value: <$stripped")
                         val symbolAddress: UInt = if(prefix=='<') {
                             sym.and(255u)
@@ -480,6 +481,7 @@ class VmProgramLoader {
                     else -> {
                         val stripped = SymbolNames.stripPrefixes(elt.name)
                         val symbolAddress = symbolAddresses[stripped]
+                            ?: symbolAddresses["${stripped}_lsb"]  // split-word array base address
                             ?: throw IRParseException("vm cannot yet load a label address as a value: $stripped")
                         left(symbolAddress.toInt().toDouble())
                     }

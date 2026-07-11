@@ -505,7 +505,11 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
             }
             dt.isArray && init is IRVariableInitializer.Array -> {
                 val elemDt = dt.elementType()
-                val elemSize = if(elemDt.isByte || elemDt.isBool) 1 else 2
+                val elemSize = if(elemDt.isByte || elemDt.isBool) 1 else if(elemDt.isLong) 4 else {
+                    // on 32-bit targets, arrays of string pointers (stored as uword[]) need 4 bytes per element
+                    if(target.POINTER_MEM_SIZE > 2u && init.elements.any { it is IRStSymbolicReference.Symbol } && elemDt.isWord) target.POINTER_MEM_SIZE.toInt()
+                    else target.memorySize(elemDt.base)
+                }
                 val values = init.elements.map { elt ->
                     when(elt) {
                         is IRStSymbolicReference.Numeric -> elt.value.toInt().toString()
@@ -513,12 +517,21 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
                         is IRStSymbolicReference.BoolValue -> if(elt.value) "1" else "0"
                     }
                 }
-                if(elemSize == 1) {
-                    emitLine("$label:")
-                    emitLine("dc.b  ${values.joinToString(",")}", v.name)
-                } else {
-                    emitLine("$label:")
-                    emitLine("dc.w  ${values.joinToString(",")}", v.name)
+                when (elemSize) {
+                    1 -> {
+                        emitLine("$label:")
+                        emitLine("dc.b  ${values.joinToString(",")}", v.name)
+                    }
+                    4 -> {
+                        emitLine("    ALIGN  4")
+                        emitLine("$label:")
+                        emitLine("dc.l  ${values.joinToString(",")}", v.name)
+                    }
+                    else -> {
+                        emitLine("    ALIGN  2")
+                        emitLine("$label:")
+                        emitLine("dc.w  ${values.joinToString(",")}", v.name)
+                    }
                 }
             }
             dt.isNumeric || dt.isBool -> {
