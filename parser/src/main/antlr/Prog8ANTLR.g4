@@ -181,7 +181,7 @@ subroutinedeclaration :
     | extsubroutine
     ;
 
-alias: PRIVATE? 'alias' identifier '=' scoped_identifier ;
+alias: PRIVATE? 'alias' identifier '=' (scoped_identifier | basedatatype | pointertype) ;
 
 defer: 'defer' (statement | statement_block) ;
 
