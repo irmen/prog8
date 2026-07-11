@@ -15,6 +15,15 @@ strings {
         return char
     }
 
+    sub upperchar(ubyte char) -> ubyte {
+        if char >= 'a' and char <= 'z'
+            return char - 32
+        return char
+    }
+
+    alias lowerchar_iso = strings.lowerchar
+    alias upperchar_iso = strings.upperchar
+
 
     asmsub length(str string @D0) -> ubyte @D0 {
         ; Returns the number of bytes in the string up to the first 0-terminator.

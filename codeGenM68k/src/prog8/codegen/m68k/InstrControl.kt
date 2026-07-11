@@ -313,7 +313,8 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
             val fpDst = insn.fpReg1 ?: error("FFROMUB needs fpReg1")
             val srcReg = r1 ?: error("FFROMUB needs reg1")
             emitLine("move.b  ${regAddr(srcReg)}, d0")
-            emitLine("fmove.b  d0, ${fpuRegName(fpDst)}")
+            emitLine($$"and.l  #\$ff, d0")
+            emitLine("fmove.l  d0, ${fpuRegName(fpDst)}")
         }
 
         Opcode.FFROMSB -> {
@@ -328,7 +329,8 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
             val fpDst = insn.fpReg1 ?: error("FFROMUW needs fpReg1")
             val srcReg = r1 ?: error("FFROMUW needs reg1")
             emitLine("move.w  ${regAddr(srcReg)}, d0")
-            emitLine("fmove.w  d0, ${fpuRegName(fpDst)}")
+            emitLine($$"and.l  #\$ffff, d0")
+            emitLine("fmove.l  d0, ${fpuRegName(fpDst)}")
         }
 
         Opcode.FFROMSW -> {

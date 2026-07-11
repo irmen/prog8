@@ -2,6 +2,8 @@ package prog8.codegen.m68k
 
 import prog8.code.core.*
 import prog8.intermediate.*
+import kotlin.math.max
+import kotlin.math.min
 
 /**
  * M68k codegen.
@@ -146,6 +148,7 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
                     $$"$${addr.toUInt().toString(16).padStart(8, '0')}"
                 }
             }
+            is IRStStructInstance, is IRStStaticVariable, is IRStMemorySlab -> fixNameSymbols(name)
             else -> fixNameSymbols(name)
         }
     }
@@ -419,24 +422,24 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
 
     private fun emitDataSection() {
         val initdVars = program.st.allVariables().filter { !it.inBss }.toList()
-        if (initdVars.isNotEmpty() || dataFloatConstants.isNotEmpty()) {
+        val structInstancesWithInit = program.st.allStructInstances().filter { it.values.isNotEmpty() }.toList()
+        if (initdVars.isNotEmpty() || dataFloatConstants.isNotEmpty() || structInstancesWithInit.isNotEmpty()) {
             emitRaw("    SECTION .data,data  ; initialized variables (writable)")
         }
         if (initdVars.isNotEmpty()) {
-            emitRaw("    ALIGN  4")
             emitRaw("; static variables with initial values")
             for (v in initdVars) {
+                emitRaw("    ALIGN  2")
                 emitInitializedVariable(v)
             }
             emitRaw("")
         }
 
         if (dataFloatConstants.isNotEmpty()) {
-            if (initdVars.isEmpty())
-                emitRaw("    ALIGN  4")
             emitRaw("; float constants (single precision, 4 bytes each)")
             for ((label, value) in dataFloatConstants) {
                 val bits = value.toFloat().toRawBits()
+                emitRaw("    ALIGN  4")
                 emitRaw("$label:")
                 emitRaw("    dc.b  ${(bits ushr 24).toUByte().toString(10)}")
                 emitRaw("    dc.b  ${(bits ushr 16).toUByte().toString(10)}")
@@ -445,7 +448,46 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
             }
             emitRaw("")
         }
-        if (initdVars.isNotEmpty() || dataFloatConstants.isNotEmpty()) {
+
+        // struct instances with init values
+        if (structInstancesWithInit.isNotEmpty()) {
+            emitRaw("; struct instances with initial values")
+            for (si in structInstancesWithInit) {
+                emitRaw("    ALIGN  2")
+                emitLabel(fixNameSymbols(si.name))
+                for (fieldValue in si.values) {
+                    val m68kSize = when (fieldValue.dt) {
+                        BaseDataType.POINTER, BaseDataType.LONG, BaseDataType.FLOAT -> 4
+                        BaseDataType.UWORD, BaseDataType.WORD -> 2
+                        else -> 1
+                    }
+                    when (val fv = fieldValue.value) {
+                        is IRStSymbolicReference.Numeric -> {
+                            val v = fv.value.toInt()
+                            when (m68kSize) {
+                                4 -> emitLine("dc.l  $v")
+                                2 -> emitLine("dc.w  $v")
+                                else -> emitLine("dc.b  $v")
+                            }
+                        }
+                        is IRStSymbolicReference.Symbol -> {
+                            when (m68kSize) {
+                                4 -> emitLine("dc.l  ${fixNameSymbols(fv.name)}")
+                                2 -> emitLine("dc.w  ${fixNameSymbols(fv.name)}")
+                                else -> emitLine("dc.b  ${fixNameSymbols(fv.name)}")
+                            }
+                        }
+                        is IRStSymbolicReference.BoolValue -> {
+                            val v = if (fv.value) 1 else 0
+                            emitLine("dc.b  $v")
+                        }
+                    }
+                }
+            }
+            emitRaw("")
+        }
+
+        if (initdVars.isNotEmpty() || dataFloatConstants.isNotEmpty() || structInstancesWithInit.isNotEmpty()) {
             emitRaw("    SECTION .text,code  ; back to code section")
         }
     }
@@ -539,7 +581,7 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
 
     private fun emitBssSection() {
         emitRaw("    SECTION .bss,bss    ; bss section")
-        emitRaw("    ALIGN   4")
+        emitRaw("    ALIGN  4")
         emitLabel("prog8_bss_section_start")
 
         // 1. Map variables to their sizes and actual M68k alignment requirements
@@ -570,7 +612,7 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
             // AND we haven't already established that alignment boundary for this group.
             if (alignment < currentBlockAlignment) {
                 if (alignment == 2) {
-                    emitRaw("    ALIGN   2")
+                    emitRaw("    ALIGN  2")
                 }
                 // Update our tracked alignment group state
                 currentBlockAlignment = alignment
@@ -580,22 +622,33 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
             emitLine("ds.b  $size")
         }
 
+        // struct instances without init values (zeroed at startup)
+        val structInstancesNoInit = program.st.allStructInstances().filter { it.values.isEmpty() }.toList()
+        if (structInstancesNoInit.isNotEmpty()) {
+            emitRaw("")
+            emitRaw("; struct instances (zeroed)")
+            for (si in structInstancesNoInit) {
+                emitRaw("    ALIGN  2")
+                emitLabel(fixNameSymbols(si.name))
+                emitLine("ds.b  ${si.size}")
+            }
+        }
+
         // memory slabs
         val slabs = program.st.allMemorySlabs().toList()
         if(slabs.isNotEmpty()) {
             emitRaw("")
             emitRaw("; memory slabs")
             for(slab in slabs) {
-                val alignment = slab.align.toInt()
-                if(alignment>1)
-                    emitRaw("    ALIGN   $alignment")
+                val alignment = max(2, slab.align.toInt())
+                emitRaw("    ALIGN  $alignment")
                 emitLabel(fixNameSymbols(slab.name))
                 emitLine("ds.b  ${slab.size}")
             }
         }
 
         // register file (always at the end of BSS variables)
-        emitRaw("    ALIGN   4")
+        emitRaw("    ALIGN  4")
         emitLabel(REGFILE_LABEL)
         emitLine("ds.b  ${regFileLayout.totalSize}")
 

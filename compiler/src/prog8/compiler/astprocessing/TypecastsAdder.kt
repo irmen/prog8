@@ -714,9 +714,9 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                         addTypecastOrCastedValueModification(modifications, it.second, targetDt, parent)
                     } else if (array != null) {
                         addTypecastOrCastedValueModification(modifications, it.second, targetDt, parent)
-                    } else if(identifier!=null && targetDt.isUnsignedWord && argDt.isPassByRef) {
+                    } else if(identifier!=null && (targetDt.isUnsignedWord || targetDt.isLong) && argDt.isPassByRef) {
                         if(!identifier.isSubroutineParameter()) {
-                            // We allow STR/ARRAY values for UWORD or ^^UBYTE parameters, via typed AddressOf.
+                            // We allow STR/ARRAY values for UWORD/LONG (pointer-equivalent) parameters, via typed AddressOf.
                             if(!argDt.isString || it.second is IdentifierReference) {
                                 modifications += AstReplaceNode(
                                     identifier,
@@ -728,13 +728,13 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                     } else if(targetDt.isBool) {
                         addTypecastOrCastedValueModification(modifications, it.second, DataType.BOOL, parent)
                     } else if(!targetDt.isIterable && argDt isAssignableTo targetDt) {
-                        if(!argDt.isString || !targetDt.isUnsignedWord)
+                        if(!argDt.isString || !(targetDt.isUnsignedWord || targetDt.isLong))
                             addTypecastOrCastedValueModification(modifications, it.second, targetDt, parent)
                     }
                 }
             } else {
                 val identifier = it.second as? IdentifierReference
-                if(identifier!=null && targetDt.isUnsignedWord) {
+                if(identifier!=null && (targetDt.isUnsignedWord || targetDt.isLong)) {
                     val dt = identifier.inferType(program)
                     if(dt.isArray || dt.isString) {
                         // take the address of the identifier
