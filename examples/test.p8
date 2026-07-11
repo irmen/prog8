@@ -4,10 +4,13 @@
 
 main {
     sub start() {
-        float @shared f1 = floats.π
-        f1++
-        f1 = sqrt(f1 * 99)
-        txt.print_f(f1)
+        str input = "?"*80
+        txt.print("Enter your name: ")
+        ubyte length=txt.input_chars(input)
+        txt.print("\nHello, ")
+        txt.print(input)
+        txt.print("!\n")
+        txt.print_ub(length)
         txt.nl()
     }
 }

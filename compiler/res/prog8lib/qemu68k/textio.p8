@@ -2,7 +2,14 @@
 %option ignore_unused
 
 txt {
-    alias chrout = qemu.chrout
+    asmsub chrout(ubyte char @D0) {
+        %asm {{
+            bra  qemu.chrout
+        }}
+    }
+
+    alias chrin = qemu.chrin
+    alias keypressed = qemu.keypressed
 
     sub nl() {
         chrout('\n')
@@ -12,12 +19,16 @@ txt {
         chrout(' ')
     }
 
-    sub print(str text) {
-        uword ii
-        while text[ii] != 0 {
-            chrout(text[ii])
-            ii++
-        }
+    asmsub print(str text @A0) {
+        %asm {{
+.loop:
+            move.b   (a0)+,d0
+            beq.s    .done
+            move.l   d0,qemu.TTY_PUT_CHAR
+            bra.s    .loop
+.done:
+            rts
+        }}
     }
 
     sub print_ub(ubyte value) {
@@ -85,6 +96,33 @@ txt {
             print("false")
     }
 
+    sub  input_chars  (str buffer) -> ubyte  {
+        ; Input a string (max. 80 chars) from the keyboard. Returns length of input.
+        ; User entered EOL is trimmed, and the string is terminated with a 0 byte.
+        ubyte count
+        while count < 80 {
+            ubyte ch = qemu.chrin()
+            if ch == '\r' or ch == '\n' {
+                buffer[count] = 0
+                return count
+            }
+            if ch == 8 or ch == 127 {
+                if count > 0 {
+                    count--
+                    chrout(8)       ; move cursor back
+                    chrout(' ')     ; overwrite with space
+                    chrout(8)       ; move cursor back again
+                }
+            } else {
+                chrout(ch)
+                buffer[count] = ch
+                count++
+            }
+        }
+        buffer[count] = 0
+        return count
+    }
+
     sub iso() {
         ; is the default
     }
@@ -106,11 +144,11 @@ txt {
     }
 
     sub column(ubyte col) {
-        txt.chrout(27)
-        txt.chrout('[')
-        txt.print_ub(col+1)
-        txt.chrout(';')
-        txt.chrout('G')
+        chrout(27)
+        chrout('[')
+        print_ub(col+1)
+        chrout(';')
+        chrout('G')
     }
 
     sub rvs_on() {

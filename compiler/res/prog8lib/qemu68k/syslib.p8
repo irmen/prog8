@@ -58,6 +58,194 @@ qemu {
             rts
         }}
     }
+
+    ; Read one character from TTY input (blocking)
+    asmsub chrin() -> ubyte @D0 {
+        %asm {{
+            suba.l  #4,sp
+            movea.l  sp,a0       ; buffer = stack pointer (in A0 for input_data)
+            moveq   #1,d1        ; maxlen = 1
+            bsr     qemu.input_data
+            move.b  (sp),d0
+            adda.l  #4,sp
+            rts
+        }}
+    }
+
+    ; Check if at least one character is available on TTY input (non-zero means data available)
+    asmsub keypressed() -> bool @Pz {
+        %asm {{
+            movea.l #qemu.TTY_BYTES_READY,a1
+            move.l  (a1),d0
+            tst.l   d0
+            rts
+        }}
+    }
+
+    ; Read up to maxlen bytes from TTY input into buffer.
+    ; Blocks until at least one byte is available. Does NOT add a trailing 0-byte.
+    ; Returns the actual number of bytes read (may be less than maxlen).
+    asmsub input_data(long buffer @A0, uword maxlen @D1) -> uword @D0 {
+        %asm {{
+1$:         movea.l  #qemu.TTY_BYTES_READY,a1
+            move.l   (a1),d0
+            tst.l    d0
+            beq      1$                  ; wait for at least 1 byte
+            ; d0 = available bytes, d1 = maxlen
+            cmp.l    d1,d0               ; available - maxlen
+            bls      2$                  ; if available <= maxlen, keep d0
+            move.l   d1,d0               ; else cap at maxlen
+2$:         movea.l  #qemu.TTY_DATA_PTR,a1
+            move.l   a0,(a1)
+            movea.l  #qemu.TTY_DATA_LEN,a1
+            move.l   d0,(a1)
+            movea.l  #qemu.TTY_CMD,a1
+            move.l   #qemu.TTY_CMD_READ_BUFFER,(a1)
+            rts
+        }}
+    }
+
+    ; Print a null-terminated string to the TTY.
+    ; Preserves all registers (no caller-saved registers clobbered).
+    asmsub puts(str msg @A0) {
+        %asm {{
+            move.l  d0,-(sp)
+            move.l  a0,-(sp)
+.loop:
+            move.b   (a0)+,d0
+            beq      .done
+            move.l   d0,qemu.TTY_PUT_CHAR
+            bra.s    .loop
+.done:
+            move.l  (sp)+,a0
+            move.l  (sp)+,d0
+            rts
+        }}
+    }
+
+    ; === Bootinfo record parsing ===
+    ; The m68k QEMU virt machine places bootinfo records right after the kernel's
+    ; ELF LOAD segment, word-aligned.  Each record:
+    ;   uint16 tag   (0 = BI_LAST sentinel)
+    ;   uint16 size  (total record size in bytes, including 4-byte header)
+    ;   uint8  data[size-4]
+
+    ; Returns address of the first bootinfo record (word-aligned past end of program).
+    sub bootinfo_ptr() -> long {
+        return sys.progend() + 1 & $fffffffe
+    }
+
+    ; Advance to the next bootinfo record.
+    ; Input: D0 = current record pointer
+    ; Output: D0 = next record pointer, or 0 if BI_LAST was reached
+    asmsub bootinfo_next(long ptr @D0) -> long @D0 {
+        %asm {{
+            movea.l d0,a0
+            clr.l   d0
+            move.w  (a0),d0         ; tag
+            beq     .last
+            clr.l   d1
+            move.w  2(a0),d1        ; total size
+            move.l  a0,d0           ; start address
+            add.l   d1,d0           ; advance by size
+            rts
+.last:
+            moveq   #0,d0           ; D0 = 0 (null)
+            rts
+        }}
+    }
+
+    ; Dump all bootinfo records to the TTY in hex.
+    asmsub bootinfo_print() {
+        %asm {{
+            bsr     qemu.bootinfo_ptr
+            movea.l d0,a2           ; a2 = first record
+1$:         clr.l   d0
+            move.w  (a2),d0         ; tag
+            beq     9$              ; BI_LAST
+            clr.l   d1
+            move.w  2(a2),d1        ; total size
+            move.l  d0,d4           ; save tag in d4
+            move.l  d1,d5           ; save size in d5
+            move.l  a2,a3           ; save current pointer
+            move.l  a2,d0           ; prep for bootinfo_next
+            bsr     qemu.bootinfo_next
+            movea.l d0,a2           ; a2 = next record
+
+            ; print "REC "
+            lea     .str_rec,a0
+            bsr     qemu.puts
+            ; print tag as 4-digit hex
+            move.w  d4,d0           ; restore tag from d4 (16-bit)
+            moveq   #3,d7
+2$:         rol.w   #4,d0
+            move.b  d0,d3
+            and.b   #$f,d3
+            add.b   #'0',d3
+            cmp.b   #'9',d3
+            bls     3$
+            add.b   #7,d3
+3$:         move.l  d3,qemu.TTY_PUT_CHAR
+            dbra    d7,2$
+            ; print " size="
+            lea     .str_size,a0
+            bsr     qemu.puts
+            ; print size as 4-digit hex
+            move.w  d5,d0           ; restore size (16-bit)
+            moveq   #3,d7
+4$:         rol.w   #4,d0
+            move.b  d0,d3
+            and.b   #$f,d3
+            add.b   #'0',d3
+            cmp.b   #'9',d3
+            bls     5$
+            add.b   #7,d3
+5$:         move.l  d3,qemu.TTY_PUT_CHAR
+            dbra    d7,4$
+            ; print " data="
+            lea     .str_data,a0
+            bsr     qemu.puts
+            ; print each data byte as 2-digit hex
+            movea.l a3,a0
+            addq.l  #4,a0           ; a0 -> data payload
+            move.l  d5,d1
+            subq.l  #4,d1           ; d1 = data size
+            ble     7$              ; skip if size<=4 (no payload bytes)
+            moveq   #0,d6
+6$:         move.b  (a0)+,d3
+            lsr.b   #4,d3
+            add.b   #'0',d3
+            cmp.b   #'9',d3
+            bls     8$
+            add.b   #7,d3
+8$:         move.l  d3,qemu.TTY_PUT_CHAR
+            move.b  -1(a0),d3
+            and.b   #$f,d3
+            add.b   #'0',d3
+            cmp.b   #'9',d3
+            bls     10$
+            add.b   #7,d3
+10$:        move.l  d3,qemu.TTY_PUT_CHAR
+            move.b  #' ',d3
+            move.l  d3,qemu.TTY_PUT_CHAR
+            addq.l  #1,d6
+            cmp.l   d1,d6
+            blo     6$
+7$:         ; newline (must use 32-bit write, goldfish TTY ignores byte writes)
+            moveq   #10,d0
+            move.l  d0,qemu.TTY_PUT_CHAR
+            bra     1$
+
+9$:         lea     .str_end,a0
+            bra     qemu.puts
+
+.str_rec:   dc.b "REC ",0
+.str_size:  dc.b " size=",0
+.str_data:  dc.b " data=",0
+.str_end:   dc.b "--- end bootinfo ---",10,0
+            ; !notreached!
+        }}
+    }
 }
 
 sys {
