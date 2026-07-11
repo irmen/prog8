@@ -497,7 +497,8 @@ sys {
             lsl.l    #5,d3
             adda.l   d3,a0           ; a0 = end address
 
-            ; zero all 8 data registers for movem
+            ; zero all data registers except d7 (d7 will be the loop counter, not in movem)
+            move.l   d1,d7           ; d7 = block count (save before zeroing)
             moveq    #0,d0
             move.l   d0,d1
             move.l   d0,d2
@@ -505,14 +506,13 @@ sys {
             move.l   d0,d4
             move.l   d0,d5
             move.l   d0,d6
-            move.l   d0,d7
+            movea.l  d0,a1           ; also zero a1 (part of movem)
 
-            ; bulk clear: 32 bytes per movem, decrementing a0
-            move.l   a1,d7           ; d7 = block count (for dbra)
+            ; bulk clear: 32 bytes per movem (d0-d6=28 bytes + a1=4 bytes), decrementing a0
             subq.w   #1,d7
             bmi      .tail
 .loop_m:
-            movem.l  d0-d7,-(a0)
+            movem.l  d0-d6/a1,-(a0)
             dbra     d7,.loop_m
 
 .tail:
