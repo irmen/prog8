@@ -122,7 +122,9 @@ class DataType private constructor(
                 require(sub!=null || subType!=null || subTypeFromAntlr!=null)
             }
             base.isArray -> {
-                require(sub != null && subType==null && subTypeFromAntlr==null)
+                require(sub != null)
+                // subType and subTypeFromAntlr allowed for arrays with struct element types
+                // (from parser creating ARRAY(LONG) directly for 32-bit targets, or from VariousCleanups conversion)
                 if(base == BaseDataType.ARRAY_SPLITW)
                     require(sub == BaseDataType.UWORD || sub == BaseDataType.WORD)
             }
@@ -201,8 +203,11 @@ class DataType private constructor(
 
         fun arrayOfPointersTo(sub: BaseDataType): DataType = DataType(BaseDataType.ARRAY_POINTER, sub, null)
         fun arrayOfPointersTo(structType: ISubType?): DataType = DataType(BaseDataType.ARRAY_POINTER, null, structType)
+        fun arrayForWithSubType(elementDt: BaseDataType, structSubType: ISubType): DataType = DataType(BaseDataType.ARRAY, elementDt, structSubType)
         fun arrayOfPointersFromAntlrTo(sub: BaseDataType?, identifier: List<String>?): DataType =
             DataType(BaseDataType.ARRAY_POINTER, sub, null, identifier)
+        fun arrayFromAntlrTo(elementDt: BaseDataType, identifier: List<String>): DataType =
+            DataType(BaseDataType.ARRAY, elementDt, null, identifier)
 
         fun pointer(base: BaseDataType): DataType = DataType(BaseDataType.POINTER, base, null)
         fun pointer(dt: DataType): DataType = if(dt.isBasic)
@@ -230,7 +235,10 @@ class DataType private constructor(
     fun elementType(): DataType =
         when {
             isPointerArray -> DataType(BaseDataType.POINTER, sub, subType)
-            base.isArray || base==BaseDataType.STR -> forDt(sub!!)
+            base.isArray || base==BaseDataType.STR -> {
+                val dt = forDt(sub!!)
+                if (subType != null) DataType(BaseDataType.POINTER, null, subType) else dt
+            }
             else -> throw IllegalArgumentException("not an array")
         }
 

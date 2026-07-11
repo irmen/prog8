@@ -1317,7 +1317,7 @@ _after:
         }
 
         if(parent is VarDecl) {
-            if (parent.datatype.isPointerArray && parent.datatype.elementType().subType!=null) {
+            if (parent.datatype.elementType().isPointer && parent.datatype.elementType().subType!=null) {
                 val struct = parent.datatype.elementType().subType as StructDecl
                 val allremovals = mutableListOf<VarDecl>()
                 var changes = false

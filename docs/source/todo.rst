@@ -4,6 +4,10 @@ TODO
 - need a bunch of type casting/conversion checks that test the handling of the 4-byte/long pointer datatype on the qemu68k target.
 - some generated label names in the m68k codegen can maybe replaced by local/anonymous labels?
 
+What is this, why are pointer arrays being so difficult here?
+// handle DONTCARE pointer arrays on non-6502 targets: convert back to regular array with long elements
+// but preserve the struct subtype so field access (struct.field) still works
+
 
 m68k Codegen: FPU register allocation (68881 only has fp0-fp7)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

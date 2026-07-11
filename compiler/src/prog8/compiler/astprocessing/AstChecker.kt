@@ -288,7 +288,7 @@ internal class AstChecker(private val program: Program,
 
                     BaseDataType.POINTER -> {
                         if (!iterableDt.isUnsignedWord) {
-                            if (iterableDt.isPointerArray || iterableDt.isUnsignedWordArray) {
+                            if (iterableDt.isPointerArray || iterableDt.isUnsignedWordArray || iterableDt.isLongArray) {
                                 val elementDt = iterableDt.elementType()
                                 if(loopvar.datatype != elementDt) {
                                     if(!elementDt.isUnsignedWord)
@@ -1105,6 +1105,12 @@ internal class AstChecker(private val program: Program,
                 if(decl.datatype.isPointerArray) {
                     if(!iDt.getOrUndef().isWordArray)
                         valueerr("initialization value for pointer array must be a word array")
+                }
+                else if(decl.datatype.isLongArray && decl.datatype.subType!=null) {
+                    // long[] with struct subtype (from parser creating ARRAY(LONG) for 32-bit targets)
+                    // accept pointer array values as initializer
+                    if(!iDt.getOrUndef().isPointerArray && !iDt.getOrUndef().isWordArray)
+                        valueerr("initialization value has incompatible type ($iDt) for the variable (${decl.datatype})")
                 }
                 else if(decl.isArray) {
                     val eltDt = decl.datatype.elementType()

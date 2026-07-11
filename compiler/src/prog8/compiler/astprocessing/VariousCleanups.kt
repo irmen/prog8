@@ -32,7 +32,8 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                         if(decl.isArray) {
                             // using a array of words as initializer to a pointer array is fine
                             val ok = valueDt.isSplitWordArray && decl.datatype.isPointerArray ||
-                                    valueDt.isWordArray && decl.datatype.isPointerArray && decl.splitwordarray == SplitWish.DONTCARE && options.compTarget.POINTER_MEM_SIZE == 2u
+                                    valueDt.isWordArray && decl.datatype.isPointerArray && decl.splitwordarray == SplitWish.DONTCARE && options.compTarget.POINTER_MEM_SIZE == 2u ||
+                                    decl.datatype.isLongArray && (valueDt.isPointerArray || valueDt.isWordArray)
                             if (!ok)
                                 errors.err("value has incompatible type ($valueType) for the variable (${decl.datatype})", decl.value!!.position)
                         } else if(!decl.datatype.isString) {
@@ -138,8 +139,12 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
         }
 
         // handle DONTCARE pointer arrays on non-6502 targets: convert back to regular array with long elements
+        // but preserve the struct subtype so field access (struct.field) still works
         if(decl.datatype.isPointerArray && decl.splitwordarray == SplitWish.DONTCARE && options.compTarget.POINTER_MEM_SIZE > 2u) {
-            val newDt = DataType.arrayFor(BaseDataType.LONG)
+            val newDt = if(decl.datatype.subType!=null)
+                    DataType.arrayForWithSubType(BaseDataType.LONG, decl.datatype.subType!!)
+                else
+                    DataType.arrayFor(BaseDataType.LONG)
             var value = decl.value
             if(value is ArrayLiteral && !(value.type istype newDt)) {
                 value = ArrayLiteral(InferredTypes.knownFor(newDt), value.value, value.position)
