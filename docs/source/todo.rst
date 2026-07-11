@@ -89,16 +89,6 @@ Optimizations
 - various optimizers skip stuff if compTarget.name==VMTarget.NAME.  Once new 6502 codegen is done from IR code, those 6502 only optimizations should probably be removed
 
 
-BSS section bug in 64tass (v1.60)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-See ``test_64tass_bss_bug.asm`` for a minimal reproduction.
-The new 6502 code generator ran into this when trying to nest ``.section BSS`` inside nested ``.proc`` blocks.
-64tass gives "not defined 'BSS'" (interprets bare section name as expression). Quoting also fails.
-Workaround in new6502gen: strip ``.section``/``.send`` from library asmsub assembly.
-Affected variables (``_exitcarry``, ``_exitcode``, ``_exitcodeX``, ``_exitcodeY``) end up as a binary gap
-instead of cleared BSS — 4 bytes unzeroed.  Fine for ``sys.exit(n)`` (values written before read).
-
-
 Dead Code Elimination bug in 64tass, for nested subroutines
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 - When a subroutine contains a nested ``asmsub`` (or possibly a nested ``sub()``), 64tass cannot properly eliminate

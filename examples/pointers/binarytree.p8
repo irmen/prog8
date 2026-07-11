@@ -164,7 +164,9 @@ btree {
         }
 
         sub replacechild(^^Node p, ^^Node child, ^^Node newchild) {
-            if p.left==child
+            if p==0
+                root = newchild
+            else if p.left==child
                 p.left = newchild
             else
                 p.right = newchild
