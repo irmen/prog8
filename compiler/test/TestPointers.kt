@@ -2842,9 +2842,9 @@ main {
                     return 0
                 }
             }"""
-        val result = compileText(VMTarget(), false, src, outputDir)
+        val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = false)
         result shouldNotBe null
-        val result2 = compileText(Qemu68kTarget(), false, src, outputDir)
+        val result2 = compileText(Qemu68kTarget(), false, src, outputDir, writeAssembly = false)
         result2 shouldNotBe null
     }
 
