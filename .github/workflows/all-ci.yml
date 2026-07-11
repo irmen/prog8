@@ -12,11 +12,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v5
 
-      - name: install 64tass
+      - name: install 64tass and vasm
         run: |
           sudo apt update
           sudo apt install 64tass
           64tass --version
+          sudo snap install vasm
+          vasmm68k_mot --version
 
       - name: Set up JDK 17
         uses: actions/setup-java@v5
