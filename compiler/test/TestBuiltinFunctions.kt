@@ -32,7 +32,7 @@ class TestBuiltinFunctions: FunSpec({
         func.pure shouldBe true
         func.returnTypes shouldBe arrayOf(BaseDataType.BYTE)
 
-        val conv = func.callConvention(listOf(BaseDataType.UBYTE))
+        val conv = func.callConventionFor6502(listOf(BaseDataType.UBYTE))
         conv.params.size shouldBe 1
         conv.params[0].dt shouldBe BaseDataType.UBYTE
         conv.params[0].reg shouldBe RegisterOrPair.A
@@ -47,7 +47,7 @@ class TestBuiltinFunctions: FunSpec({
         func.pure shouldBe false
         func.returnTypes.size shouldBe 0
 
-        val conv = func.callConvention(listOf(BaseDataType.UWORD, BaseDataType.UWORD))
+        val conv = func.callConventionFor6502(listOf(BaseDataType.UWORD, BaseDataType.UWORD))
         conv.params.size shouldBe 2
         conv.returns.dt shouldBe null
         conv.returns.reg shouldBe null

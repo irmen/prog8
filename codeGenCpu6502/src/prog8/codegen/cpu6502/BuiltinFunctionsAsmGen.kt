@@ -2597,7 +2597,7 @@ import prog8.codegen.cpu6502.assignment.*
 
     private fun translateArguments(call: PtFunctionCall, funcname: String?, scope: IPtSubroutine?) {
         val signature = BuiltinFunctions.getValue(call.name)
-        val callConv = signature.callConvention(call.args.map {
+        val callConv = signature.callConventionFor6502(call.args.map {
             require(it.type.isNumericOrBool)
             it.type.base
         })

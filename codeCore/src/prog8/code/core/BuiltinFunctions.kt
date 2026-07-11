@@ -33,7 +33,7 @@ class FSignature(val pure: Boolean,      // does it have side effects?
                  val returnTypes: Array<BaseDataType>,
                  vararg val parameters: FParam) {
 
-    fun callConvention(actualParamTypes: List<BaseDataType>): CallConvention {
+    fun callConventionFor6502(actualParamTypes: List<BaseDataType>): CallConvention {
         val returns: ReturnConvention
         if(returnTypes.isEmpty())
             returns = ReturnConvention(null, null)
@@ -41,7 +41,7 @@ class FSignature(val pure: Boolean,      // does it have side effects?
             val returnType = returnTypes[0]
             returns = when (returnType) {
                 BaseDataType.UBYTE, BaseDataType.BYTE -> ReturnConvention(returnType, RegisterOrPair.A)
-                BaseDataType.UWORD, BaseDataType.WORD -> ReturnConvention(returnType, RegisterOrPair.AY)
+                BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.POINTER -> ReturnConvention(returnType, RegisterOrPair.AY)
                 BaseDataType.LONG -> ReturnConvention(returnType, RegisterOrPair.R14R15)
                 BaseDataType.FLOAT -> ReturnConvention(returnType, RegisterOrPair.FAC1)
                 in IterableDatatypes -> ReturnConvention(returnType, RegisterOrPair.AY)
@@ -49,7 +49,7 @@ class FSignature(val pure: Boolean,      // does it have side effects?
                     // return type depends on arg type
                     when (val paramType = actualParamTypes.first()) {
                         BaseDataType.UBYTE, BaseDataType.BYTE -> ReturnConvention(paramType, RegisterOrPair.A)
-                        BaseDataType.UWORD, BaseDataType.WORD -> ReturnConvention(paramType, RegisterOrPair.AY)
+                        BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.POINTER -> ReturnConvention(paramType, RegisterOrPair.AY)
                         BaseDataType.LONG -> ReturnConvention(returnType, RegisterOrPair.R14R15)
                         BaseDataType.FLOAT -> ReturnConvention(paramType, RegisterOrPair.FAC1)
                         in IterableDatatypes -> ReturnConvention(paramType, RegisterOrPair.AY)
@@ -172,8 +172,8 @@ val BuiltinFunctions: Map<String, FSignature> = mapOf(
     "pokemon"       to FSignature(false, arrayOf(BaseDataType.UBYTE), FParam("address", BaseDataType.UWORD), FParam("value", BaseDataType.UBYTE)),
     "rsave"         to FSignature(false, emptyArray()),
     "rrestore"      to FSignature(false, emptyArray()),
-    "memory"        to FSignature(true,  arrayOf(BaseDataType.UWORD), FParam("name", BaseDataType.STR), FParam("size", BaseDataType.UWORD), FParam("alignment", BaseDataType.UWORD)),
-    "memory__ref"   to FSignature(true, arrayOf(BaseDataType.UWORD), FParam("name", BaseDataType.STR)),
+    "memory"        to FSignature(true,  arrayOf(BaseDataType.POINTER), FParam("name", BaseDataType.STR), FParam("size", BaseDataType.UWORD), FParam("alignment", BaseDataType.UWORD)),
+    "memory__ref"   to FSignature(true, arrayOf(BaseDataType.POINTER), FParam("name", BaseDataType.STR)),
     "callfar"       to FSignature(false, arrayOf(BaseDataType.UWORD), FParam("bank", BaseDataType.UBYTE), FParam("address", BaseDataType.UWORD), FParam("arg", BaseDataType.UWORD)),
     "callfar2"      to FSignature(false, arrayOf(BaseDataType.UWORD), FParam("bank", BaseDataType.UBYTE), FParam("address", BaseDataType.UWORD), FParam("argA", BaseDataType.UBYTE), FParam("argX", BaseDataType.UBYTE), FParam("argY", BaseDataType.UBYTE), FParam("argC", BaseDataType.BOOL)),
     "call"          to FSignature(false, arrayOf(BaseDataType.UWORD), FParam("address", BaseDataType.UWORD)),
