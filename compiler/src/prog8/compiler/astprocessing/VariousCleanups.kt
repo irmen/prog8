@@ -143,23 +143,6 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
             return listOf(AstReplaceNode(decl, newDecl, parent))
         }
 
-        // handle DONTCARE pointer arrays on non-6502 targets: convert back to regular array with long elements
-        // but preserve the struct subtype so field access (struct.field) still works
-        if(decl.datatype.isPointerArray && decl.splitwordarray == SplitWish.DONTCARE && options.compTarget.POINTER_MEM_SIZE > 2u) {
-            val newDt = if(decl.datatype.subType!=null)
-                    DataType.arrayForWithSubType(BaseDataType.LONG, decl.datatype.subType!!)
-                else
-                    DataType.arrayFor(BaseDataType.LONG, options.compTarget)
-            var value = decl.value
-            if(value is ArrayLiteral && !(value.type istype newDt)) {
-                value = ArrayLiteral(InferredTypes.knownFor(newDt), value.value, value.position)
-            }
-            val newDecl = VarDecl.builder(newDt, decl.position)
-                .copyFrom(decl)
-                .value(value)
-                .build()
-            return listOf(AstReplaceNode(decl, newDecl, parent))
-        }
         return noModifications
     }
 
