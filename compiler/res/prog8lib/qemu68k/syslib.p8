@@ -237,7 +237,7 @@ qemu {
             bsr     qemu.puts
             ; print each data byte as 2-digit hex
             movea.l a3,a0
-            addq.l  #4,a0           ; a0 -> data payload
+            adda.l  #4,a0           ; a0 -> data payload
             move.l  d5,d1
             subq.l  #4,d1           ; d1 = data size
             ble     7$              ; skip if size<=4 (no payload bytes)

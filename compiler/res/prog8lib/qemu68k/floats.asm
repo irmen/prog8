@@ -1,4 +1,4 @@
-; Floating point routines for m68k target (using 68881/68882 FPU)
+; Floating point routines for m68k target (using 68881/68882 FPU, requires 68020+ CPU)
 
 
   SECTION .text,code
