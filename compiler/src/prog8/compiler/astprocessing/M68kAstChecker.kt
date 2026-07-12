@@ -77,7 +77,7 @@ internal class M68kAstChecker(private val errors: IErrorReporter) : IAstVisitor 
             ZeropageWish.DONTCARE -> {}
         }
         if (decl.splitwordarray == SplitWish.NOSPLIT) {
-            errors.info("@nosplit is redundant on the m68k target", decl.position)
+            errors.info("@nosplit is redundant here", decl.position)
         }
         if (decl.datatype.isSplitWordArray && decl.splitwordarray != SplitWish.DONTCARE) {
             errors.err("split word arrays are not supported on the m68k target", decl.position)

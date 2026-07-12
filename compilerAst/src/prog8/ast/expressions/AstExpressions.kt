@@ -1284,8 +1284,8 @@ class ArrayLiteral(val type: InferredTypes.InferredType,     // inferred because
         }
         return when {
             dts.any { it.isFloat } -> InferredTypes.knownFor(DataType.arrayFor(BaseDataType.FLOAT, program.target))
-            // TODO: on 32-bit targets (m68k), str arrays should be arrays of LONG (4-byte pointers)
-            dts.any { it.isString } -> InferredTypes.knownFor(DataType.arrayFor(BaseDataType.UWORD, program.target))
+            dts.any { it.isString } -> InferredTypes.knownFor(DataType.arrayFor(BaseDataType.STR, program.target))
+            dts.any { it.isLong } -> InferredTypes.knownFor(DataType.arrayFor(BaseDataType.LONG, program.target))
             dts.any { it.isSignedWord } -> InferredTypes.knownFor(DataType.arrayFor(BaseDataType.WORD, program.target))
             dts.any { it.isUnsignedWord } -> InferredTypes.knownFor(DataType.arrayFor(BaseDataType.UWORD, program.target))
             dts.any { it.isSignedByte } -> InferredTypes.knownFor(DataType.arrayFor(BaseDataType.BYTE, program.target))

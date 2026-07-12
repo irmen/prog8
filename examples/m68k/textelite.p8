@@ -954,15 +954,15 @@ planet {
             txt.chrout(strings.upperchar(c))
     }
 
-    sub getword(ubyte listnum, ubyte wordidx) -> uword {
+    sub getword(ubyte listnum, ubyte wordidx) -> pointer {
         if sys.SIZEOF_POINTER==4 {
             ; on 32-bit targets, the array stores flat 4-byte pointers
             long wordlist_base = &wordlists
             long addr = peekl(wordlist_base + (listnum-$81) * 4)
-            return peekw(addr + wordidx*2)
+            return peekl(addr + wordidx*4) as pointer
         } else {
             uword list = wordlists[listnum-$81]
-            return peekw(list + wordidx*2)      ; this depends on the word list itself to be @nosplit !
+            return peekw(list + wordidx*2) as pointer      ; this depends on the word list itself to be @nosplit !
         }
     }
 }

@@ -82,8 +82,13 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
 
         // check splitting of word arrays
         if(decl.splitwordarray != SplitWish.DONTCARE && !decl.datatype.isWordArray && !decl.datatype.isPointerArray) {
-            if(decl.origin != VarDeclOrigin.ARRAYLITERAL)
-                errors.err("@nosplit is for word or pointer arrays only", decl.position)
+            if(decl.origin != VarDeclOrigin.ARRAYLITERAL) {
+                if(decl.datatype.isLongArray) {
+                    errors.info("@nosplit is redundant here", decl.position)
+                }
+                else
+                    errors.err("@nosplit is for word or pointer arrays only", decl.position)
+            }
         }
 
         if(decl.datatype.isWordArray) {
