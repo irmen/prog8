@@ -70,6 +70,7 @@ internal object DaemonProtocol {
         append(prop("showTimings", req.showTimings))
         append(prop("asmListfile", req.asmListfile))
         append(prop("includeSourcelines", req.includeSourcelines))
+        append(prop("newCodegen", req.newCodegen))
         append(prop("dumpVariables", req.dumpVariables))
         append(prop("dumpSymbols", req.dumpSymbols))
         append(prop("varsHighBank", req.varsHighBank))
@@ -166,9 +167,9 @@ internal object DaemonProtocol {
             newCodegen = map["newCodegen"] as Boolean,
             dumpVariables = map["dumpVariables"] as Boolean,
             dumpSymbols = map["dumpSymbols"] as Boolean,
-            varsHighBank = map["varsHighBank"] as? Int,
+            varsHighBank = (map["varsHighBank"] as? Number)?.toInt(),
             varsGolden = map["varsGolden"] as Boolean,
-            slabsHighBank = map["slabsHighBank"] as? Int,
+            slabsHighBank = (map["slabsHighBank"] as? Number)?.toInt(),
             slabsGolden = map["slabsGolden"] as Boolean,
             compilationTarget = map["compilationTarget"] as String,
             breakpointCpuInstruction = map["breakpointCpuInstruction"] as? String,
