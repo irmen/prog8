@@ -595,7 +595,15 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
                 }
             }
         }
-        emitRaw("")
+
+        // memory-mapped variables (fixed addresses)
+        val memvars = program.st.allMemMappedVariables()
+        for (mv in memvars.sortedBy { it.address }) {
+            emitRaw("${fixNameSymbols(mv.name)} = $${mv.address.toString(16)}")
+        }
+
+        if (emitted.size > 0 || memvars.count() > 0)
+            emitRaw("")
     }
 
 
