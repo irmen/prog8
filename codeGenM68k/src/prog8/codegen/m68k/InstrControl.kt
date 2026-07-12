@@ -18,6 +18,7 @@ package prog8.codegen.m68k
 
 import prog8.code.core.Statusflag
 import prog8.code.core.toHex
+import prog8.code.target.Amiga500Target
 import prog8.intermediate.FunctionCallArgs
 import prog8.intermediate.IRDataType
 import prog8.intermediate.IRInstruction
@@ -55,11 +56,31 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
         }
 
         Opcode.CALLFAR -> {
-            TODO("CALLFAR (not applicable to M68k)")
+            if(program.options.compTarget.name.contains("amiga")) {
+                val offset = insn.address!!.value.toInt()
+                require(offset<0) { "amiga libcall offsets should all be <0" }
+                val bank = insn.immediate!!
+                if(bank==1) {
+                    // exec.library is always at 4.w
+                    emitLine("move.l  4.w,a6")
+                } else {
+                    val library = Amiga500Target.LibraryNumbers.getValue(bank)
+                    val baseVar = "sys.${library.capitalize()}Base"
+                    emitLine("move.l  $baseVar,a6")
+                }
+
+                val fcallArgs = insn.fcallArgs!!
+                for(arg in fcallArgs.arguments)
+                    translateArgument(arg)
+                emitLine("jsr  $offset(a6)")    // do the actual call
+                for(ret in fcallArgs.returns)
+                    translateReturnValue(ret)
+            }
+            else  error("CALLFAR not applicable on this M68k")
         }
 
         Opcode.CALLFARVB -> {
-            TODO("CALLFARVB (not applicable to M68k)")
+            error("CALLFARVB not applicable on M68k")
         }
 
         Opcode.SYSCALL -> {

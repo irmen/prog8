@@ -702,7 +702,10 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
         val asmAddr = if(srcSub.asmAddress==null) null else {
             val constAddr = srcSub.asmAddress!!.address.constValue(program)
                 ?: throw FatalAstException("extsub address should be a constant")
-            PtAsmSub.Address(srcSub.asmAddress!!.constbank, varbank, constAddr.number.toUInt())
+            if(constAddr.number<0) {
+                require(compilationOptions.compTarget.name.contains("amiga")) { "extsub address should be positive" }
+            }
+            PtAsmSub.Address(srcSub.asmAddress!!.constbank, varbank, constAddr.number.toInt().toUInt())
         }
         val sub = PtAsmSub(srcSub.name,
             asmAddr,

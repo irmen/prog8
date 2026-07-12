@@ -31,7 +31,7 @@ internal object DeferProcessor {
         val maskType = if (target.cpu == CpuType.M68000 || target.cpu == CpuType.M68020) DataType.UWORD else DataType.UBYTE
         val defers = setDeferMasks(program, maskType, errors)
         if(errors.noErrors())
-            integrateDefers(defers, program, st, maskType, target, errors)
+            integrateDefers(defers, program, st, maskType, target)
     }
 
     /**
@@ -101,7 +101,7 @@ internal object DeferProcessor {
     /**
      * Second pass: integrate defer calls at exit points and generate handler routines.
      */
-    private fun integrateDefers(subdefers: Map<PtSub, List<PtDefer>>, program: PtProgram, st: SymbolTable, maskType: DataType, target: ICompilationTarget, errors: IErrorReporter) {
+    private fun integrateDefers(subdefers: Map<PtSub, List<PtDefer>>, program: PtProgram, st: SymbolTable, maskType: DataType, target: ICompilationTarget) {
         val jumpsAndCallsToAugment = mutableListOf<PtNode>()
         val returnsToAugment = mutableListOf<PtReturn>()
         val subEndsToAugment = mutableListOf<PtSub>()

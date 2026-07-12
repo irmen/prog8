@@ -87,16 +87,15 @@ internal class M68kAstChecker(private val errors: IErrorReporter) : IAstVisitor 
     }
 
     override fun visit(subroutine: Subroutine) {
-        if (subroutine.isAsmSubroutine) {
-            if (subroutine.asmAddress != null) {
-                errors.err("extsub is not available on the m68k target", subroutine.position)
-            }
-            return
-        }
-        for (param in subroutine.parameters) {
-            if (param.registerOrPair != null) {
-                if (param.registerOrPair in m68kRegisters) {
-                    errors.err("register annotations on normal subroutine parameters are not available on the m68k target (only used in asmsub)", param.position)
+        if (!subroutine.isAsmSubroutine) {
+            for (param in subroutine.parameters) {
+                if (param.registerOrPair != null) {
+                    if (param.registerOrPair in m68kRegisters) {
+                        errors.err(
+                            "register annotations on normal subroutine parameters are not available on the m68k target (only used in asmsub)",
+                            param.position
+                        )
+                    }
                 }
             }
         }

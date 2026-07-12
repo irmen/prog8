@@ -228,7 +228,7 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
         emitRaw("; NOTE: M68k is BIG-ENDIAN — bytes within words/longs are MSB-first")
         emitRaw("; Motorola syntax rules:")
         emitRaw(";   - Operations:  mnemonic  src,dst  (src is first operand, dst is second)")
-        emitRaw(";   - NOTE: vasm requires NO space after the comma between operands")
+        emitRaw(";   - NOTE: vasm preferes NO space after the comma between operands (but with -spaces it allows it)")
         emitRaw(";   - Addressing:  Dn=datareg, An=addrreg, (An)=indirect, imm=#value")
         emitRaw(";   - Labels: global = alphanumeric+underscore (add -ldots for dots in labels)")
         emitRaw(";     local = prefix '.' or suffix '$', valid between two global labels")

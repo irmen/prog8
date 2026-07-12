@@ -3,7 +3,7 @@
 exec {
     %option no_symbol_prefixing, ignore_unused
 
-    const pointer ExecBase = 4
+    &pointer ExecBase = 4
 
     asmsub OpenLibrary(str libname @A1, long version @D0) -> pointer @D0 {
         %asm {{

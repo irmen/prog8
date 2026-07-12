@@ -1,5 +1,5 @@
 sys {
-    %option merge
+    %option merge, ignore_unused
 
 ; ------- memory routines --------
 

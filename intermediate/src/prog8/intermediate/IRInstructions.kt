@@ -9,7 +9,7 @@ import prog8.code.core.toHex
  */
 @JvmInline
 value class MemoryAddress(val value: UInt) {
-    init { require(value <= 0xffffu) { "address out of range: $value" } }
+    init { require(value <= 0xffffffffu) { "address out of range: $value" } }
     override fun toString(): String = "$" + value.toString(16).padStart(2, '0')
     fun toHex(): String = "$" + value.toString(16)
     operator fun plus(other: UInt): MemoryAddress = MemoryAddress(value + other)

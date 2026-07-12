@@ -2,6 +2,7 @@ package prog8.codegen.m68k
 
 import prog8.code.assembly.IAssemblyProgram
 import prog8.code.core.*
+import prog8.code.target.Amiga500Target
 import java.nio.file.Files
 import java.nio.file.Path
 
@@ -61,6 +62,7 @@ class AssemblyProgramM68k(override val name: String, private val outputDir: Path
                     "-Fbin",
                     "-opt-speed",
                     "-ldots",
+                    "-spaces",
                     "-join=0x${loadAddr.toString(16)}",
                     "-o", rawFile.toString(),
                     assemblyFile.toString()
@@ -82,6 +84,7 @@ class AssemblyProgramM68k(override val name: String, private val outputDir: Path
                     "-Felf",
                     "-opt-speed",
                     "-ldots",
+                    "-spaces",
                     "-o", objFile.toString(),
                     assemblyFile.toString()
                 )
@@ -114,16 +117,36 @@ class AssemblyProgramM68k(override val name: String, private val outputDir: Path
             OutputType.AMIGAHUNK -> {
                 // Step 1: assemble directly to AmigaHunk executable file
                 val exefile = outputDir.resolve(name)
-                val assembleCmd = mutableListOf(
-                    "vasmm68k_mot",
-                    "-m$cpu",
-                    "-m68881",  // enable FPU
-                    "-Fhunkexe",
-                    "-opt-speed",
-                    "-ldots",
-                    "-o", exefile.toString(),
-                    assemblyFile.toString()
-                )
+                val assembleCmd = when(options.compTarget) {
+                    is Amiga500Target -> {
+                        // amiga 500 with kickstart 1.3
+                        mutableListOf(
+                            "vasmm68k_mot",
+                            "-m$cpu",
+                            "-Fhunkexe",
+                            "-kick1hunks",   // old hunk format compatible with AmigaDOS 1.3
+                            "-opt-speed",
+                            "-ldots",
+                            "-spaces",
+                            "-o", exefile.toString(),
+                            assemblyFile.toString()
+                        )
+                    }
+                    else -> {
+                        // assume at least an amiga 1200 with 68020 and optional FPU
+                        mutableListOf(
+                            "vasmm68k_mot",
+                            "-m$cpu",
+                            "-m68881",  // enable FPU
+                            "-Fhunkexe",
+                            "-opt-speed",
+                            "-ldots",
+                            "-spaces",
+                            "-o", exefile.toString(),
+                            assemblyFile.toString()
+                        )
+                    }
+                }
                 if (options.asmQuiet)
                     assembleCmd.add("-quiet")
                 if (!runProcess(assembleCmd, options.quiet, "vasm"))

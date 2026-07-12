@@ -10,7 +10,7 @@ class Amiga500Target: ICompilationTarget,
     IMemSizer by NormalMemSizer(4, pointerSize = 4) {
 
     override val name = NAME
-    override val supportsBankedCalls = false
+    override val supportsBankedCalls = true
     override val defaultEncoding = Encoding.ISO
     override val libraryPath = null
     override val customLauncher = emptyList<String>()
@@ -20,6 +20,46 @@ class Amiga500Target: ICompilationTarget,
 
     companion object {
         const val NAME = "amiga500"
+        
+        /** needed to map bank numbers to libraries in extsub/CALLFAR library calls */
+        val LibraryNumbers = mapOf(
+             1 to "exec",
+             2 to "dos",
+             3 to "graphics",
+             4 to "intuition",
+             5 to "gadtools",
+             6 to "layers",
+             7 to "asl",
+             8 to "console",
+             9 to "utility",
+            10 to "expansion",
+            11 to "icon",
+            12 to "wb",
+            13 to "diskfont",
+            14 to "iffparse",
+            15 to "input",
+            16 to "keymap",
+            17 to "locale",
+            18 to "timer",
+            19 to "lowlevel",
+            20 to "mathffp",
+            21 to "mathieeesingbas",
+            22 to "mathieeesingtrans",
+            23 to "mathieeedoubbas",
+            24 to "mathieeedoubtrans",
+            25 to "mathtrans",
+            26 to "nonvolatile",
+            27 to "realtime",
+            28 to "translator",
+            29 to "rexxsyslib",
+            30 to "commodities",
+            31 to "datatypes",
+            32 to "disk",
+            33 to "amigaguide",
+            34 to "arexx",
+            35 to "battclock",
+            36 to "battmem"
+        )
     }
 
     override val cpu = CpuType.M68000

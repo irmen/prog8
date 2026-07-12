@@ -1,10 +1,15 @@
 %option no_symbol_prefixing, ignore_unused
 
+%import exec
+
 p8_sys_startup {
     %option force_output
 
     sub init_system() {
-        ; TODO
+        sys.DOSBase = exec.OpenLibrary("dos.library",0)
+        sys.GfxBase = exec.OpenLibrary("graphics.library",0)
+        sys.IntuitionBase = exec.OpenLibrary("intuition.library",0)
+        sys.IconBase = exec.OpenLibrary("icon.library",0)
     }
 
     sub init_system_phase2() {
@@ -29,6 +34,9 @@ p8_sys_startup {
     }
 
     sub cleanup_at_exit() {
-        ; TODO
+        if sys.IconBase != 0 exec.CloseLibrary(sys.IconBase)
+        if sys.IntuitionBase != 0 exec.CloseLibrary(sys.IntuitionBase)
+        if sys.GfxBase != 0 exec.CloseLibrary(sys.GfxBase)
+        if sys.DOSBase != 0 exec.CloseLibrary(sys.DOSBase)
     }
 }

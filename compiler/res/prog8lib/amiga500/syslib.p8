@@ -3,6 +3,8 @@
 %option no_symbol_prefixing, ignore_unused
 %import shared_m68k_memory_routines
 
+%import dos
+
 sys {
     ; ------- lowlevel system routines --------
 
@@ -29,17 +31,24 @@ sys {
     ; MIN_FLOAT and MAX_FLOAT are defined in the floats module if imported
 
 
-    sub  reset_system()  {
-        ; TODO
-    }
+    ; SysBase/ExecBase is always simply available at 4.w
+    pointer @shared DOSBase
+    pointer @shared GfxBase
+    pointer @shared IntuitionBase
+    pointer @shared IconBase
 
-    sub poweroff_system() {
-        ; TODO
+
+    sub  reset_system()  {
+        %asm {{
+            lea  2.l,a0
+            reset
+            jmp (a0)
+        }}
     }
 
     sub wait(uword jiffies) {
         ; --- wait approximately the given number of jiffies (1/60th seconds)
-        ; TODO implement the wait
+        dos.Delay(jiffies)
     }
 
     sub exit(ubyte returnvalue) {
@@ -47,7 +56,7 @@ sys {
         %asm {{
             moveq.l  #0,d0
             move.b   sys.exit.returnvalue,d0
-            illegal   ; TODO implement the exit
+            illegal   ; TODO implement the exit by restoring the stack pointer and performing a RTS
         }}
     }
 
@@ -65,14 +74,6 @@ sys {
         }}
     }
 
-
-    sub clear_irqd() {
-        ; TODO
-    }
-
-    sub set_irqd() {
-        ; TODO
-    }
 
     inline asmsub progstart() -> long @A0 {
         %asm {{
