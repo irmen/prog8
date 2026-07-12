@@ -7,6 +7,7 @@ import io.kotest.matchers.booleans.shouldBeTrue
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import prog8.code.core.*
+import prog8.code.target.Cx16Target
 
 
 /**
@@ -14,6 +15,7 @@ import prog8.code.core.*
  * Focus on type predicates, relationships, and key operations.
  */
 class TestDataType: FunSpec({
+    val tgt = Cx16Target()
 
     val dummyMemSizer = object : IMemSizer {
         override fun memorySize(dt: DataType, numElements: Int?): Int {
@@ -121,11 +123,11 @@ class TestDataType: FunSpec({
     }
 
     test("DataType.arrayFor creates array types") {
-        val ubyteArray = DataType.arrayFor(BaseDataType.UBYTE)
+        val ubyteArray = DataType.arrayFor(BaseDataType.UBYTE, tgt)
         ubyteArray.base shouldBe BaseDataType.ARRAY
         ubyteArray.sub shouldBe BaseDataType.UBYTE
 
-        val wordArray = DataType.arrayFor(BaseDataType.WORD)
+        val wordArray = DataType.arrayFor(BaseDataType.WORD, tgt)
         wordArray.base shouldBe BaseDataType.ARRAY
         wordArray.sub shouldBe BaseDataType.WORD
     }
@@ -144,7 +146,7 @@ class TestDataType: FunSpec({
         DataType.UBYTE.isBasic.shouldBeTrue()
         DataType.WORD.isBasic.shouldBeTrue()
         DataType.STR.isBasic.shouldBeFalse()
-        DataType.arrayFor(BaseDataType.UBYTE).isBasic.shouldBeFalse()
+        DataType.arrayFor(BaseDataType.UBYTE, tgt).isBasic.shouldBeFalse()
     }
 
     test("DataType.isByte property") {
@@ -161,7 +163,7 @@ class TestDataType: FunSpec({
     }
 
     test("DataType.isArray property") {
-        DataType.arrayFor(BaseDataType.UBYTE).isArray.shouldBeTrue()
+        DataType.arrayFor(BaseDataType.UBYTE, tgt).isArray.shouldBeTrue()
         DataType.UBYTE.isArray.shouldBeFalse()
     }
 
@@ -177,7 +179,7 @@ class TestDataType: FunSpec({
 
     test("DataType.isPassByRef property") {
         DataType.STR.isPassByRef.shouldBeTrue()
-        DataType.arrayFor(BaseDataType.UBYTE).isPassByRef.shouldBeTrue()
+        DataType.arrayFor(BaseDataType.UBYTE, tgt).isPassByRef.shouldBeTrue()
         DataType.UBYTE.isPassByRef.shouldBeFalse()
         DataType.pointer(BaseDataType.UBYTE).isPassByRef.shouldBeFalse()
     }
@@ -187,8 +189,8 @@ class TestDataType: FunSpec({
     // ============================================================================
 
     test("DataType.elementType returns element type for arrays") {
-        DataType.arrayFor(BaseDataType.UBYTE).elementType() shouldBe DataType.UBYTE
-        DataType.arrayFor(BaseDataType.WORD).elementType() shouldBe DataType.WORD
+        DataType.arrayFor(BaseDataType.UBYTE, tgt).elementType() shouldBe DataType.UBYTE
+        DataType.arrayFor(BaseDataType.WORD, tgt).elementType() shouldBe DataType.WORD
         DataType.STR.elementType() shouldBe DataType.UBYTE
     }
 
@@ -306,7 +308,7 @@ class TestDataType: FunSpec({
     }
 
     test("DataType.toString for arrays") {
-        DataType.arrayFor(BaseDataType.UBYTE).toString() shouldBe "ubyte[]"
-        DataType.arrayFor(BaseDataType.WORD).toString() shouldBe "word[]"
+        DataType.arrayFor(BaseDataType.UBYTE, tgt).toString() shouldBe "ubyte[]"
+        DataType.arrayFor(BaseDataType.WORD, tgt).toString() shouldBe "word[]"
     }
 })

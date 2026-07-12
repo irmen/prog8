@@ -59,49 +59,6 @@ object Prog8Parser {
         return visitorResult as Module
     }
 
-    fun parseModule(src: SourceCode): Module {
-        val lexer = Prog8ANTLRLexer(CharStreams.fromString(src.text, src.origin))
-        lexer.removeErrorListeners()
-        val tokens = CommonTokenStream(lexer)
-
-        // Fast path: try SLL prediction mode first (faster on correct input)
-        val sllErrorListener = CollectingErrorListener(src)
-        lexer.addErrorListener(sllErrorListener)
-        val parser = Prog8ANTLRParser(tokens)
-        parser.interpreter.predictionMode = PredictionMode.SLL
-        parser.errorHandler = DefaultErrorStrategy()
-        parser.removeErrorListeners()
-        parser.addErrorListener(sllErrorListener)
-
-        val parseTree = parser.module()
-
-        if(!sllErrorListener.hasErrors()) {
-            // SLL succeeded cleanly — use this tree
-            val visitor = Antlr2KotlinVisitor(src)
-            val visitorResult = visitor.visit(parseTree)
-            return visitorResult as Module
-        }
-
-        // SLL found errors — fall back to LL for full context parsing
-        val llErrorListener = CollectingErrorListener(src)
-        lexer.reset()
-        parser.reset()
-        parser.interpreter.predictionMode = PredictionMode.LL
-        parser.removeErrorListeners()
-        parser.addErrorListener(llErrorListener)
-
-        val llParseTree = parser.module()
-
-        if(llErrorListener.hasErrors()) {
-            throw MultipleParseErrors(llErrorListener.getErrors())
-        }
-
-        val visitor = Antlr2KotlinVisitor(src)
-        val visitorResult = visitor.visit(llParseTree)
-        return visitorResult as Module
-    }
-
-
     class CollectingErrorListener(private val src: SourceCode): BaseErrorListener() {
         private val errors = mutableListOf<ParseError>()
 

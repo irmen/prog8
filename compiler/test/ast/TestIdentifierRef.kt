@@ -53,8 +53,8 @@ class TestIdentifierRef: FunSpec({
                     ww = &main
                 }
             } """)
-        val module = Prog8Parser.parseModule(src)
         val target = VMTarget()
+        val module = Prog8Parser.parseModule(src, target)
         val program = Program("test", DummyFunctions, target)
         program.addModule(module)
         val mstmts = (module.statements.single() as Block).statements

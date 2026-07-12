@@ -15,6 +15,7 @@ import prog8.code.ast.*
 import prog8.code.core.BaseDataType
 import prog8.code.core.DataType
 import prog8.code.target.*
+import prog8tests.helpers.DummyMemsizer
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
 import prog8tests.helpers.shouldContainInOrder
@@ -82,7 +83,7 @@ main {
         val seed = start.children[1] as PtVariable
         seed.name shouldBe "p8v_seed"
         seed.value shouldBe null
-        seed.type shouldBe DataType.arrayFor(BaseDataType.UWORD)
+        seed.type shouldBe DataType.arrayFor(BaseDataType.UWORD, DummyMemsizer)
         val assign = start.children[2] as PtAssignment
         assign.target.identifier!!.name shouldBe "cx16.r0"
         assign.value shouldBe instanceOf<PtBinaryExpression>()
@@ -736,7 +737,7 @@ main {
     sub start() {
        str foo = "foo"
        str bar = "bar"
-       bool flag = true
+       bool @shared flag = true
        uword @shared foobar = if flag foo else bar
     }
 }"""
@@ -941,7 +942,7 @@ main {
                 sub start() {
                     str a = "hello"
                     str b = "world"
-                    bool flag = true
+                    bool @shared flag = true
                     ^^ubyte p = if flag then a else b
                 }
             }

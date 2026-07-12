@@ -34,6 +34,7 @@ import kotlin.io.path.nameWithoutExtension
 class TestProg8Parser: FunSpec( {
 
     val outputDir = tempdir().toPath()
+    val c64Target = C64Target()
 
     context("Newline at end") {
         test("is not required - #40, fixed by #45") {
@@ -41,14 +42,14 @@ class TestProg8Parser: FunSpec( {
             val src = SourceCode.Text("foo {$nl}")   // source ends with '}' (= NO newline, issue #40)
 
             // #40: Prog8ANTLRParser would report (throw) "missing <EOL> at '<EOF>'"
-            val module = parseModule(src)
+            val module = parseModule(src, c64Target)
             module.statements.size shouldBe 1
         }
 
         test("is still accepted - #40, fixed by #45") {
             val nl = "\n" // say, Unix-style (different flavours tested elsewhere)
             val srcText = "foo {$nl}$nl"  // source does end with a newline (issue #40)
-            val module = parseModule(SourceCode.Text(srcText))
+            val module = parseModule(SourceCode.Text(srcText), c64Target)
             module.statements.size shouldBe 1
         }
     }
@@ -63,8 +64,8 @@ class TestProg8Parser: FunSpec( {
             // GOOD: 2nd block `bar` does start on a new line; however, a nl at the very end ain't needed
             val srcGood = "foo {$nl}${nl}bar {$nl}"
 
-            shouldThrow<MultipleParseErrors> { parseModule(SourceCode.Text(srcBad)) }
-            val module = parseModule(SourceCode.Text(srcGood))
+            shouldThrow<MultipleParseErrors> { parseModule(SourceCode.Text(srcBad), c64Target) }
+            val module = parseModule(SourceCode.Text(srcGood), c64Target)
             module.statements.size shouldBe 2
         }
 
@@ -75,14 +76,14 @@ class TestProg8Parser: FunSpec( {
                 blockA {
                 } blockB {
                 }
-            """)) }
+            """), c64Target) }
 
             // block and directive
             shouldThrow<MultipleParseErrors>{ parseModule(
                 SourceCode.Text("""
                 blockB {
                 } %import textio
-            """)) }
+            """), c64Target) }
 
             // The following two are bogus due to directive *args* expected to follow the directive name.
             // Leaving them in anyways.
@@ -92,12 +93,12 @@ class TestProg8Parser: FunSpec( {
                 SourceCode.Text("""
                 %import textio blockB {
                 }
-            """)) }
+            """), c64Target) }
 
             shouldThrow<MultipleParseErrors>{ parseModule(
                 SourceCode.Text("""
                 %import textio %import syslib
-            """)) }
+            """), c64Target) }
         }
 
         test("can be Win, Unix or mixed, even mixed") {
@@ -123,7 +124,7 @@ class TestProg8Parser: FunSpec( {
                 "}" +
                 nlUnix      // end with newline (see testModuleSourceNeedNotEndWithNewline)
 
-            val module = parseModule(SourceCode.Text(srcText))
+            val module = parseModule(SourceCode.Text(srcText), c64Target)
             module.statements.size shouldBe 2
         }
     }
@@ -140,7 +141,7 @@ class TestProg8Parser: FunSpec( {
                 blockA {            
                 }
             """
-            val module = parseModule(SourceCode.Text(srcText))
+            val module = parseModule(SourceCode.Text(srcText), c64Target)
             module.statements.size shouldBe 1
         }
 
@@ -156,7 +157,7 @@ class TestProg8Parser: FunSpec( {
                 blockB {            
                 }
             """
-            val module = parseModule(SourceCode.Text(srcText))
+            val module = parseModule(SourceCode.Text(srcText), c64Target)
             module.statements.size shouldBe 2
         }
 
@@ -170,7 +171,7 @@ class TestProg8Parser: FunSpec( {
                 ; comment
                 
             """
-            val module = parseModule(SourceCode.Text(srcText))
+            val module = parseModule(SourceCode.Text(srcText), c64Target)
             module.statements.size shouldBe 1
         }
     }
@@ -180,7 +181,7 @@ class TestProg8Parser: FunSpec( {
             val importedNoExt = assumeNotExists(fixturesDir, "i_do_not_exist")
             assumeNotExists(fixturesDir, "i_do_not_exist.p8")
             val text = "%import ${importedNoExt.name}"
-            val module = parseModule(SourceCode.Text(text))
+            val module = parseModule(SourceCode.Text(text), c64Target)
 
             module.statements.size shouldBe 1
         }
@@ -188,13 +189,13 @@ class TestProg8Parser: FunSpec( {
 
     context("EmptySourcecode") {
         test("from an empty string should result in empty Module") {
-            val module = parseModule(SourceCode.Text(""))
+            val module = parseModule(SourceCode.Text(""), c64Target)
             module.statements.size shouldBe 0
         }
 
         test("from an empty file should result in empty Module") {
             val path = assumeReadableFile(fixturesDir, "ast_empty.p8")
-            val module = parseModule(ImportFileSystem.getFile(path))
+            val module = parseModule(ImportFileSystem.getFile(path), c64Target)
             module.statements.size shouldBe 0
         }
     }
@@ -205,7 +206,7 @@ class TestProg8Parser: FunSpec( {
                 main {
                 }
             """.trimIndent()
-            val module = parseModule(SourceCode.Text(srcText))
+            val module = parseModule(SourceCode.Text(srcText), c64Target)
 
             // Note: assertContains has *actual* as first param
             module.name shouldContain Regex("^string:[0-9a-f\\-]+$")
@@ -213,7 +214,7 @@ class TestProg8Parser: FunSpec( {
 
         test("parsed from a file") {
             val path = assumeReadableFile(fixturesDir, "ast_simple_main.p8")
-            val module = parseModule(ImportFileSystem.getFile(path))
+            val module = parseModule(ImportFileSystem.getFile(path), c64Target)
             module.name shouldBe path.nameWithoutExtension
         }
     }
@@ -319,7 +320,7 @@ class TestProg8Parser: FunSpec( {
         test("in ParseError from bad string source code") {
             val srcText = "bad * { }\n"
 
-            val e = shouldThrow<MultipleParseErrors> { parseModule(SourceCode.Text(srcText)) }
+            val e = shouldThrow<MultipleParseErrors> { parseModule(SourceCode.Text(srcText), c64Target) }
             assertPosition(e.errors.first().position, Regex("^string:[0-9a-f\\-]+$"), 1, 5, 5, srcText)
         }
 
@@ -327,7 +328,7 @@ class TestProg8Parser: FunSpec( {
             val path = assumeReadableFile(fixturesDir, "ast_file_with_syntax_error.p8")
             val srcText = ImportFileSystem.getFile(path).text
 
-            val e = shouldThrow<MultipleParseErrors> { parseModule(ImportFileSystem.getFile(path)) }
+            val e = shouldThrow<MultipleParseErrors> { parseModule(ImportFileSystem.getFile(path), c64Target) }
             assertPosition(e.errors.first().position, SourceCode.relative(path).toString(), 2, 5, sourceText=srcText)
         }
 
@@ -336,14 +337,14 @@ class TestProg8Parser: FunSpec( {
                 main {
                 }
             """
-            val module = parseModule(SourceCode.Text(srcText))
+            val module = parseModule(SourceCode.Text(srcText), c64Target)
             assertPositionOf(module, Regex("^string:[0-9a-f\\-]+$"), 1, 1, sourceText=srcText)
         }
 
         test("of Module parsed from a file") {
             val path = assumeReadableFile(fixturesDir, "ast_simple_main.p8")
             val srcText = ImportFileSystem.getFile(path).text
-            val module = parseModule(ImportFileSystem.getFile(path))
+            val module = parseModule(ImportFileSystem.getFile(path), c64Target)
             assertPositionOf(module, SourceCode.relative(path).toString(), 1, 1, sourceText=srcText)
         }
 
@@ -351,7 +352,7 @@ class TestProg8Parser: FunSpec( {
             val path = assumeReadableFile(fixturesDir, "ast_simple_main.p8")
             val srcText = ImportFileSystem.getFile(path).text
 
-            val module = parseModule(ImportFileSystem.getFile(path))
+            val module = parseModule(ImportFileSystem.getFile(path), c64Target)
             val mpf = module.position.file
             assertPositionOf(module, SourceCode.relative(path).toString(), 1, 1, sourceText=srcText)
             val mainBlock = module.statements.filterIsInstance<Block>()[0]
@@ -377,7 +378,7 @@ class TestProg8Parser: FunSpec( {
                     }
                 }
             """.trimIndent()
-            val module = parseModule(SourceCode.Text(srcText))
+            val module = parseModule(SourceCode.Text(srcText), c64Target)
             val mpf = module.position.file
 
             val targetDirective = module.statements.filterIsInstance<Directive>()[0]
@@ -419,7 +420,7 @@ class TestProg8Parser: FunSpec( {
 
         test("isn't absolute for filesystem paths") {
             val path = assumeReadableFile(fixturesDir, "ast_simple_main.p8")
-            val module = parseModule(ImportFileSystem.getFile(path))
+            val module = parseModule(ImportFileSystem.getFile(path), c64Target)
             assertSomethingForAllNodes(module) {
                 Path(it.position.file).isAbsolute shouldBe false
                 Path(it.position.file).isRegularFile() shouldBe true
@@ -437,7 +438,7 @@ class TestProg8Parser: FunSpec( {
                     }
                 }
             """.trimIndent()
-            val module = parseModule(SourceCode.Text(srcText))
+            val module = parseModule(SourceCode.Text(srcText), c64Target)
             assertSomethingForAllNodes(module) {
                 SourceCode.isStringResource(it.position.file) shouldBe true
             }
@@ -446,7 +447,7 @@ class TestProg8Parser: FunSpec( {
         test("is library prefixed path for resources")
         {
             val resource = ImportFileSystem.getResource("prog8lib/math.p8")
-            val module = parseModule(resource)
+            val module = parseModule(resource, c64Target)
             assertSomethingForAllNodes(module) {
                 SourceCode.isLibraryResource(it.position.file) shouldBe true
             }
@@ -463,7 +464,7 @@ class TestProg8Parser: FunSpec( {
                     }
                 }
             """)
-            val module = parseModule(src)
+            val module = parseModule(src, c64Target)
 
             val startSub = module
                 .statements.filterIsInstance<Block>()[0]
@@ -481,7 +482,7 @@ class TestProg8Parser: FunSpec( {
                     ubyte c = 'x'
                 }
             """)
-            val module = parseModule(src)
+            val module = parseModule(src, c64Target)
             val decl = module
                 .statements.filterIsInstance<Block>()[0]
                 .statements.filterIsInstance<VarDecl>()[0]
@@ -497,7 +498,7 @@ class TestProg8Parser: FunSpec( {
                     const ubyte c = sc:'x'
                 }
             """)
-            val module = parseModule(src)
+            val module = parseModule(src, c64Target)
             val decl = module
                 .statements.filterIsInstance<Block>()[0]
                 .statements.filterIsInstance<VarDecl>()[0]
@@ -513,7 +514,7 @@ class TestProg8Parser: FunSpec( {
                     const ubyte c = iso:'_'
                 }
             """)
-            val module = parseModule(src)
+            val module = parseModule(src, c64Target)
             val decl = module
                 .statements.filterIsInstance<Block>()[0]
                 .statements.filterIsInstance<VarDecl>()[0]
@@ -532,7 +533,7 @@ class TestProg8Parser: FunSpec( {
                     }
                 }
             """)
-            val module = parseModule(src)
+            val module = parseModule(src, c64Target)
             val decl = module
                 .statements.filterIsInstance<Block>()[0]
                 .statements.filterIsInstance<Subroutine>()[0]
@@ -551,7 +552,7 @@ class TestProg8Parser: FunSpec( {
                     }
                 }
             """)
-            val module = parseModule(src)
+            val module = parseModule(src, c64Target)
             val decl = module
                 .statements.filterIsInstance<Block>()[0]
                 .statements.filterIsInstance<Subroutine>()[0]
@@ -570,7 +571,7 @@ class TestProg8Parser: FunSpec( {
                     }
                 }
             """)
-            val module = parseModule(src)
+            val module = parseModule(src, c64Target)
             val decl = module
                 .statements.filterIsInstance<Block>()[0]
                 .statements.filterIsInstance<Subroutine>()[0]
@@ -589,7 +590,7 @@ class TestProg8Parser: FunSpec( {
                 main {
                     str name = "name"
                 }"""
-            val module = parseModule(SourceCode.Text(source))
+            val module = parseModule(SourceCode.Text(source), c64Target)
             val decl = module
                 .statements.filterIsInstance<Block>()[0]
                 .statements.filterIsInstance<VarDecl>()[0]
@@ -605,7 +606,7 @@ class TestProg8Parser: FunSpec( {
                     str name2 = sc:"Name"
                     str name3 = iso:"Name"
                 }"""
-            val module = parseModule(SourceCode.Text(source))
+            val module = parseModule(SourceCode.Text(source), c64Target)
             val (decl1, decl2, decl3) = module
                 .statements.filterIsInstance<Block>()[0]
                 .statements.filterIsInstance<VarDecl>()
@@ -641,7 +642,7 @@ class TestProg8Parser: FunSpec( {
                         }
                     }
                 }
-            """))
+            """), c64Target)
             val iterables = module
                 .statements.filterIsInstance<Block>()[0]
                 .statements.filterIsInstance<Subroutine>()[0]
@@ -721,7 +722,7 @@ class TestProg8Parser: FunSpec( {
                 }
             }
         """)
-        val module = parseModule(src)
+        val module = parseModule(src, c64Target)
         val mainBlock = module.statements.single() as Block
         val start = mainBlock.statements.single() as Subroutine
         val repeatbody = (start.statements.single() as RepeatLoop).body
@@ -763,7 +764,7 @@ class TestProg8Parser: FunSpec( {
                 }
             }
         """)
-        val module = parseModule(src)
+        val module = parseModule(src, c64Target)
         val mainBlock = module.statements.single() as Block
         val start = mainBlock.statements.single() as Subroutine
         val labels = start.statements.filterIsInstance<Label>()
@@ -781,7 +782,7 @@ class TestProg8Parser: FunSpec( {
                 }
             }
         """)
-        val module = parseModule(src)
+        val module = parseModule(src, c64Target)
         val start = (module.statements.single() as Block).statements.single() as Subroutine
         val andAssignmentExpr = (start.statements[1] as Assignment).value
         val orAssignmentExpr = (start.statements[2] as Assignment).value
@@ -810,7 +811,7 @@ class TestProg8Parser: FunSpec( {
                 bool bb2 = (3+bb) or (3333+ww)       ; expression combining ubyte and uword
             }
         """)
-        val module = parseModule(src)
+        val module = parseModule(src, c64Target)
         val target = VMTarget()
         val program = Program("test", DummyFunctions, target)
         program.addModule(module)
@@ -834,7 +835,7 @@ class TestProg8Parser: FunSpec( {
                 uword zz2 = (not bb as uword) or not ww
             }
         """)
-        val module = parseModule(src)
+        val module = parseModule(src, c64Target)
         val target = VMTarget()
         val program = Program("test", DummyFunctions, target)
         program.addModule(module)
@@ -862,7 +863,7 @@ class TestProg8Parser: FunSpec( {
                 ubyte r
                 ubyte ub = (cos8(r)/2 + 100) as ubyte
             }""")
-        val module = parseModule(src)
+        val module = parseModule(src, c64Target)
         val target = VMTarget()
         val program = Program("test", DummyFunctions, target)
         program.addModule(module)
@@ -894,7 +895,7 @@ class TestProg8Parser: FunSpec( {
                 }
             }""")
 
-        val module = parseModule(src)
+        val module = parseModule(src, c64Target)
         val target = VMTarget()
         val program = Program("test", DummyFunctions, target)
         program.addModule(module)

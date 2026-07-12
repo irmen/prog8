@@ -395,8 +395,8 @@ class VarDecl(
             if(arrayDt.isSplitWordArray) {
                 // autovars for array literals are NEVER stored as a split word array!
                 when(arrayDt.sub) {
-                    BaseDataType.WORD -> arrayDt = DataType.arrayFor(BaseDataType.WORD)
-                    BaseDataType.UWORD -> arrayDt = DataType.arrayFor(BaseDataType.UWORD)
+                    BaseDataType.WORD -> arrayDt = DataType.arrayFor(BaseDataType.WORD, target)
+                    BaseDataType.UWORD -> arrayDt = DataType.arrayFor(BaseDataType.UWORD, target)
                     else -> { }
                 }
             }

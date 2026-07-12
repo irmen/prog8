@@ -2,6 +2,7 @@ package prog8lsp
 
 import prog8.ast.Module
 import prog8.ast.statements.Block
+import prog8.code.core.ICompilationTarget
 import prog8.code.core.Position
 import prog8.code.source.SourceCode
 import prog8.parser.MultipleParseErrors
@@ -26,10 +27,10 @@ object Prog8Parser {
      * Parse Prog8 source text into a Module AST.
      * Returns a ParseResult containing the module (if successful) and any parse errors.
      */
-    fun parseModule(text: String): ParseResult {
+    fun parseModule(text: String, target: ICompilationTarget): ParseResult {
         return try {
             val sourceCode = SourceCode.Text(text)
-            val module = InternalParser.parseModule(sourceCode)
+            val module = InternalParser.parseModule(sourceCode, target)
             ParseResult(module, emptyList())
         } catch (e: MultipleParseErrors) {
             // Collect all parse errors into the result

@@ -19,7 +19,7 @@ import kotlin.io.path.Path
 import kotlin.io.path.isRegularFile
 
 
-class Antlr2KotlinVisitor(val source: SourceCode, private val target: ICompilationTarget? = null): AbstractParseTreeVisitor<Node>(), Prog8ANTLRVisitor<Node> {
+class Antlr2KotlinVisitor(val source: SourceCode, private val target: ICompilationTarget): AbstractParseTreeVisitor<Node>(), Prog8ANTLRVisitor<Node> {
 
     // Cached resolved filename - computed once per visitor since it never changes during a single parse
     private var cachedFileName: String? = null
@@ -223,19 +223,19 @@ class Antlr2KotlinVisitor(val source: SourceCode, private val target: ICompilati
         val baseDt = dataTypeFor(ctx.datatype()) ?: DataType.UNDEFINED
         val dt = if(!isArray) baseDt else {
             if(baseDt.isPointer) {
-                val pointerSize = target?.memorySize(BaseDataType.POINTER) ?: 2
+                val pointerSize = target.memorySize(BaseDataType.POINTER)
                 val is32bitPointerTarget = pointerSize > 2
                 if(is32bitPointerTarget) {
                     if(baseDt.subTypeFromAntlr != null)
                         DataType.arrayFromAntlrTo(BaseDataType.LONG, baseDt.subTypeFromAntlr!!)
                     else
-                        DataType.arrayFor(BaseDataType.LONG)
+                        DataType.arrayFor(BaseDataType.LONG, target)
                 } else
                     DataType.arrayOfPointersFromAntlrTo(baseDt.sub, baseDt.subTypeFromAntlr)
             } else if(baseDt.isStructInstance)
                 throw SyntaxError("array of structures not allowed (use array of pointers)", ctx.toPosition())
             else
-                DataType.arrayFor(baseDt.base)
+                DataType.arrayFor(baseDt.base, target)       // TODO: on 32-bit (m68k), str arrays should be arrays of LONG (4-byte pointers)
         }
 
         return VarDecl.builder(dt, ctx.toPosition())
@@ -635,7 +635,7 @@ class Antlr2KotlinVisitor(val source: SourceCode, private val target: ICompilati
             if(arrayIndices.size > 1) {
                 throw SyntaxError("2D arrays cannot be used as subroutine parameters", decl.toPosition())
             }
-            datatype = datatype.elementToArray()
+            datatype = datatype.elementToArray(target)
         }
 
         val identifiers = decl.identifierlist().identifier()
@@ -844,7 +844,7 @@ class Antlr2KotlinVisitor(val source: SourceCode, private val target: ICompilati
                 throw SyntaxError("array field must have a specified size", ctx.toPosition())
             if(arrayIndices.size > 1)
                 throw SyntaxError("2D arrays are not allowed as struct fields", ctx.toPosition())
-            val dt = baseDt.elementToArray()
+            val dt = baseDt.elementToArray(target)
             val arrayIndexExpr = arrayIndices[0].accept(this) as ArrayIndex
             val size = (arrayIndexExpr.indexExpr as? NumericLiteral)?.number?.toInt()
                 ?: throw SyntaxError("array field size must be a constant integer expression", ctx.toPosition())
@@ -974,7 +974,7 @@ class Antlr2KotlinVisitor(val source: SourceCode, private val target: ICompilati
             if(arrayIndices.size > 1) {
                 throw SyntaxError("2D arrays cannot be used as subroutine parameters", vardecl.toPosition())
             }
-            datatype = datatype.elementToArray()
+            datatype = datatype.elementToArray(target)
         }
         val (registerorpair, statusregister) = parseParamRegister(pctx.register, pctx.toPosition())
         val identifiers = vardecl.identifierlist().identifier()

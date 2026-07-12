@@ -327,7 +327,7 @@ class TestMemory: FunSpec({
     }
 
     test("array not in mapped IO ram") {
-        val decl = VarDecl.builder(DataType.arrayFor(BaseDataType.UBYTE), Position.DUMMY)
+        val decl = VarDecl.builder(DataType.arrayFor(BaseDataType.UBYTE, c64target), Position.DUMMY)
             .names("address")
             .build()
         val arrayindexed = ArrayIndexedExpression(IdentifierReference(listOf("address"), Position.DUMMY), null, null, ArrayIndex(NumericLiteral.optimalInteger(1, Position.DUMMY), Position.DUMMY), Position.DUMMY)
@@ -342,7 +342,7 @@ class TestMemory: FunSpec({
 
     test("memory mapped array not in mapped IO ram") {
         val address = 0x1000u
-        val decl = VarDecl.builder(DataType.arrayFor(BaseDataType.UBYTE), Position.DUMMY)
+        val decl = VarDecl.builder(DataType.arrayFor(BaseDataType.UBYTE, c64target), Position.DUMMY)
             .names("address")
             .type(VarDeclType.MEMORY)
             .value(NumericLiteral.optimalInteger(address, Position.DUMMY))
@@ -359,7 +359,7 @@ class TestMemory: FunSpec({
 
     test("memory mapped array in mapped IO ram") {
         val address = 0xd800u
-        val decl = VarDecl.builder(DataType.arrayFor(BaseDataType.UBYTE), Position.DUMMY)
+        val decl = VarDecl.builder(DataType.arrayFor(BaseDataType.UBYTE, c64target), Position.DUMMY)
             .names("address")
             .type(VarDeclType.MEMORY)
             .value(NumericLiteral.optimalInteger(address, Position.DUMMY))
@@ -419,12 +419,12 @@ class TestMemory: FunSpec({
             target.memorySize(BaseDataType.ARRAY) shouldBe 2
             target.memorySize(BaseDataType.ARRAY_SPLITW) shouldBe 2
 
-            target.memorySize(DataType.arrayFor(BaseDataType.BOOL), 10) shouldBe 10
-            target.memorySize(DataType.arrayFor(BaseDataType.BYTE), 10) shouldBe 10
-            target.memorySize(DataType.arrayFor(BaseDataType.WORD), 10) shouldBe 20
-            target.memorySize(DataType.arrayFor(BaseDataType.UWORD), 10) shouldBe 20
-            target.memorySize(DataType.arrayFor(BaseDataType.LONG), 10) shouldBe 40
-            target.memorySize(DataType.arrayFor(BaseDataType.FLOAT), 10) shouldBe 10*target.FLOAT_MEM_SIZE.toInt()
+            target.memorySize(DataType.arrayFor(BaseDataType.BOOL, c64target), 10) shouldBe 10
+            target.memorySize(DataType.arrayFor(BaseDataType.BYTE, c64target), 10) shouldBe 10
+            target.memorySize(DataType.arrayFor(BaseDataType.WORD, c64target), 10) shouldBe 20
+            target.memorySize(DataType.arrayFor(BaseDataType.UWORD, c64target), 10) shouldBe 20
+            target.memorySize(DataType.arrayFor(BaseDataType.LONG, c64target), 10) shouldBe 40
+            target.memorySize(DataType.arrayFor(BaseDataType.FLOAT, c64target), 10) shouldBe 10*target.FLOAT_MEM_SIZE.toInt()
             target.memorySize(DataType.splitWordArrayFor(BaseDataType.WORD), 10) shouldBe 20
             target.memorySize(DataType.splitWordArrayFor(BaseDataType.UWORD), 10) shouldBe 20
 

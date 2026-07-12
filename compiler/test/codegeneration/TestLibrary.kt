@@ -10,6 +10,7 @@ import prog8.code.core.BaseDataType
 import prog8.code.core.DataType
 import prog8.code.target.C64Target
 import prog8.code.target.Cx16Target
+import prog8tests.helpers.DummyMemsizer
 import prog8tests.helpers.compileText
 import kotlin.io.path.readBytes
 import kotlin.io.path.readText
@@ -61,7 +62,7 @@ library {
         main.name shouldBe "p8b_main"
         val jumptable = main.children[0] as PtVariable
         jumptable.name shouldBe "p8v_jumptable"
-        jumptable.type shouldBe DataType.arrayFor(BaseDataType.UWORD)
+        jumptable.type shouldBe DataType.arrayFor(BaseDataType.UWORD, DummyMemsizer)
         jumptable.arraySize shouldBe 4u
         val bin = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".bin").readBytes().map { it.toUByte() }
 
@@ -144,7 +145,7 @@ library {
         main.name shouldBe "p8b_main"
         val jumptable = main.children[0] as PtVariable
         jumptable.name shouldBe "p8v_jumptable"
-        jumptable.type shouldBe DataType.arrayFor(BaseDataType.UWORD)
+        jumptable.type shouldBe DataType.arrayFor(BaseDataType.UWORD, DummyMemsizer)
         jumptable.arraySize shouldBe 4u
         val asm = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".asm").readText()
         println(asm)

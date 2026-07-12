@@ -57,7 +57,7 @@ class TestVmCodeGen: FunSpec({
         ))
         sub.add(PtVariable(
             "particleX",
-            DataType.arrayFor(BaseDataType.UBYTE),
+            DataType.arrayFor(BaseDataType.UBYTE, compTarget),
             ZeropageWish.DONTCARE,
             0u,
             false,
@@ -67,7 +67,7 @@ class TestVmCodeGen: FunSpec({
         ))
         sub.add(PtVariable(
             "particleDX",
-            DataType.arrayFor(BaseDataType.UBYTE),
+            DataType.arrayFor(BaseDataType.UBYTE, compTarget),
             ZeropageWish.DONTCARE,
             0u,
             false,
@@ -90,7 +90,7 @@ class TestVmCodeGen: FunSpec({
         val target = PtAssignTarget(false, Position.DUMMY).also {
             val targetIdx = PtArrayIndexer(DataType.UBYTE, Position.DUMMY).also { idx ->
                 idx.add(PtIdentifier("main.start.particleX",
-                    DataType.arrayFor(BaseDataType.UBYTE),
+                    DataType.arrayFor(BaseDataType.UBYTE, compTarget),
                     Position.DUMMY))
                 idx.add(PtNumber(BaseDataType.UBYTE, 2.0, Position.DUMMY))
             }
@@ -98,7 +98,7 @@ class TestVmCodeGen: FunSpec({
         }
         val value = PtArrayIndexer(DataType.UBYTE, Position.DUMMY)
         value.add(PtIdentifier("main.start.particleDX",
-            DataType.arrayFor(BaseDataType.UBYTE),
+            DataType.arrayFor(BaseDataType.UBYTE, compTarget),
             Position.DUMMY))
         value.add(PtNumber(BaseDataType.UBYTE, 2.0, Position.DUMMY))
         assign.add(target)

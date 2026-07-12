@@ -1262,7 +1262,7 @@ class ArrayLiteral(val type: InferredTypes.InferredType,     // inferred because
                 return if(!loopvarDt.isNumericOrBool)
                     InferredTypes.unknown()
                 else
-                    InferredTypes.knownFor(loopvarDt.getOrUndef().elementToArray())
+                    InferredTypes.knownFor(loopvarDt.getOrUndef().elementToArray(program.target))
             }
         }
 
@@ -1283,19 +1283,20 @@ class ArrayLiteral(val type: InferredTypes.InferredType,     // inferred because
             }
         }
         return when {
-            dts.any { it.isFloat } -> InferredTypes.knownFor(DataType.arrayFor(BaseDataType.FLOAT))
-            dts.any { it.isString } -> InferredTypes.knownFor(DataType.arrayFor(BaseDataType.UWORD))
-            dts.any { it.isSignedWord } -> InferredTypes.knownFor(DataType.arrayFor(BaseDataType.WORD))
-            dts.any { it.isUnsignedWord } -> InferredTypes.knownFor(DataType.arrayFor(BaseDataType.UWORD))
-            dts.any { it.isSignedByte } -> InferredTypes.knownFor(DataType.arrayFor(BaseDataType.BYTE))
+            dts.any { it.isFloat } -> InferredTypes.knownFor(DataType.arrayFor(BaseDataType.FLOAT, program.target))
+            // TODO: on 32-bit targets (m68k), str arrays should be arrays of LONG (4-byte pointers)
+            dts.any { it.isString } -> InferredTypes.knownFor(DataType.arrayFor(BaseDataType.UWORD, program.target))
+            dts.any { it.isSignedWord } -> InferredTypes.knownFor(DataType.arrayFor(BaseDataType.WORD, program.target))
+            dts.any { it.isUnsignedWord } -> InferredTypes.knownFor(DataType.arrayFor(BaseDataType.UWORD, program.target))
+            dts.any { it.isSignedByte } -> InferredTypes.knownFor(DataType.arrayFor(BaseDataType.BYTE, program.target))
             dts.any { it.isBool } -> {
                 if(dts.all { it.isBool})
-                    InferredTypes.knownFor(DataType.arrayFor(BaseDataType.BOOL))
+                    InferredTypes.knownFor(DataType.arrayFor(BaseDataType.BOOL, program.target))
                 else
                     InferredTypes.unknown()
             }
-            dts.any { it.isUnsignedByte } -> InferredTypes.knownFor(DataType.arrayFor(BaseDataType.UBYTE))
-            dts.any { it.isArray } -> InferredTypes.knownFor(DataType.arrayFor(BaseDataType.UWORD))
+            dts.any { it.isUnsignedByte } -> InferredTypes.knownFor(DataType.arrayFor(BaseDataType.UBYTE, program.target))
+            dts.any { it.isArray } -> InferredTypes.knownFor(DataType.arrayFor(BaseDataType.UWORD, program.target))
             else -> InferredTypes.unknown()
         }
     }
@@ -1395,18 +1396,18 @@ class RangeExpression(var from: Expression,
         val toDt=to.inferType(program)
         return when {
             !fromDt.isKnown || !toDt.isKnown -> InferredTypes.unknown()
-            fromDt istype DataType.UBYTE && toDt istype DataType.UBYTE -> InferredTypes.knownFor(DataType.arrayFor(BaseDataType.UBYTE))
-            fromDt istype DataType.UWORD && toDt istype DataType.UWORD -> InferredTypes.knownFor(DataType.arrayFor(BaseDataType.UWORD))
+            fromDt istype DataType.UBYTE && toDt istype DataType.UBYTE -> InferredTypes.knownFor(DataType.arrayFor(BaseDataType.UBYTE, program.target))
+            fromDt istype DataType.UWORD && toDt istype DataType.UWORD -> InferredTypes.knownFor(DataType.arrayFor(BaseDataType.UWORD, program.target))
             fromDt istype DataType.STR && toDt istype DataType.STR -> InferredTypes.knownFor(BaseDataType.STR)
-            fromDt istype DataType.WORD || toDt istype DataType.WORD -> InferredTypes.knownFor(DataType.arrayFor(BaseDataType.WORD))
-            fromDt istype DataType.BYTE || toDt istype DataType.BYTE -> InferredTypes.knownFor(DataType.arrayFor(BaseDataType.BYTE))
+            fromDt istype DataType.WORD || toDt istype DataType.WORD -> InferredTypes.knownFor(DataType.arrayFor(BaseDataType.WORD, program.target))
+            fromDt istype DataType.BYTE || toDt istype DataType.BYTE -> InferredTypes.knownFor(DataType.arrayFor(BaseDataType.BYTE, program.target))
             else -> {
                 val fdt = fromDt.getOrUndef()
                 val tdt = toDt.getOrUndef()
                 if(fdt.largerSizeThan(tdt))
-                    InferredTypes.knownFor(fdt.elementToArray())
+                    InferredTypes.knownFor(fdt.elementToArray(program.target))
                 else
-                    InferredTypes.knownFor(tdt.elementToArray())
+                    InferredTypes.knownFor(tdt.elementToArray(program.target))
             }
         }
     }
@@ -1875,7 +1876,13 @@ class IfExpression(var condition: Expression, var truevalue: Expression, var fal
     override fun inferType(program: Program): InferredTypes.InferredType {
         val t1 = truevalue.inferType(program)
         val t2 = falsevalue.inferType(program)
-        if(t1==t2) return t1
+        if(t1==t2) {
+            if(t1.isString) {
+                // even when the values are STR, the type of the expression is a pointer because you cannot pass strings around by value
+                return InferredTypes.knownFor(DataType.pointer(BaseDataType.UBYTE))
+            }
+            return t1
+        }
         if(t1.isPointer && t2.isUnsignedWord || t1.isUnsignedWord && t2.isPointer) return InferredTypes.knownFor(BaseDataType.UWORD)
         return InferredTypes.unknown()
     }

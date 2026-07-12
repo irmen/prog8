@@ -18,6 +18,7 @@ import prog8.code.core.BaseDataType
 import prog8.code.core.DataType
 import prog8.code.core.Position
 import prog8.code.target.*
+import prog8tests.helpers.DummyMemsizer
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
 
@@ -1070,12 +1071,12 @@ main {
         DataType.forDt(BaseDataType.STR).isString shouldBe true
         DataType.forDt(BaseDataType.FLOAT).isFloat shouldBe true
 
-        DataType.arrayFor(BaseDataType.LONG).isLongArray shouldBe true
-        DataType.arrayFor(BaseDataType.FLOAT).isFloatArray shouldBe true
-        DataType.arrayFor(BaseDataType.UWORD).isUnsignedWordArray shouldBe true
-        DataType.arrayFor(BaseDataType.UWORD).isArray shouldBe true
+        DataType.arrayFor(BaseDataType.LONG, DummyMemsizer).isLongArray shouldBe true
+        DataType.arrayFor(BaseDataType.FLOAT, DummyMemsizer).isFloatArray shouldBe true
+        DataType.arrayFor(BaseDataType.UWORD, DummyMemsizer).isUnsignedWordArray shouldBe true
+        DataType.arrayFor(BaseDataType.UWORD, DummyMemsizer).isArray shouldBe true
         DataType.splitWordArrayFor(BaseDataType.UWORD).isSplitWordArray shouldBe true
-        DataType.arrayFor(BaseDataType.UWORD).isSplitWordArray shouldBe false
+        DataType.arrayFor(BaseDataType.UWORD, DummyMemsizer).isSplitWordArray shouldBe false
 
         shouldThrow<NoSuchElementException> {
             DataType.forDt(BaseDataType.ARRAY)
@@ -1084,10 +1085,10 @@ main {
             DataType.forDt(BaseDataType.ARRAY_SPLITW)
         }
         shouldThrow<NoSuchElementException> {
-            DataType.arrayFor(BaseDataType.ARRAY)
+            DataType.arrayFor(BaseDataType.ARRAY, DummyMemsizer)
         }
         shouldThrow<NoSuchElementException> {
-            DataType.arrayFor(BaseDataType.UNDEFINED)
+            DataType.arrayFor(BaseDataType.UNDEFINED, DummyMemsizer)
         }
     }
 

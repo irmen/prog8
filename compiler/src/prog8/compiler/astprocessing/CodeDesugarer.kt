@@ -803,7 +803,7 @@ _after:
             return noModifications
 
         val numlabels = ongoto.labels.size
-        val arrayDt = DataType.arrayFor(BaseDataType.UWORD)
+        val arrayDt = DataType.arrayFor(BaseDataType.UWORD, program.target)
         val labelArray = ArrayLiteral(InferredTypes.knownFor(arrayDt), ongoto.labels.toTypedArray(), ongoto.position)
         val jumplistArray = VarDecl.createAutoOptionalSplit(labelArray)
 

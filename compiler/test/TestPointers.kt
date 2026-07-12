@@ -758,11 +758,11 @@ main {
         DataType.UNDEFINED.typeForUntypedAddressOf(false, memsizer) shouldBe DataType.UWORD
         DataType.UNDEFINED.typeForUntypedAddressOf(true, memsizer) shouldBe DataType.pointer(BaseDataType.UBYTE)
         DataType.STR.typeForUntypedAddressOf(false, memsizer) shouldBe DataType.pointer(BaseDataType.UBYTE)
-        DataType.arrayFor(BaseDataType.FLOAT).typeForUntypedAddressOf(false, memsizer) shouldBe DataType.pointer(BaseDataType.FLOAT)
-        DataType.arrayFor(BaseDataType.FLOAT).typeForUntypedAddressOf(true, memsizer) shouldBe DataType.pointer(BaseDataType.UBYTE)
-        DataType.arrayFor(BaseDataType.UWORD).typeForUntypedAddressOf(false, memsizer) shouldBe DataType.pointer(BaseDataType.UWORD)
+        DataType.arrayFor(BaseDataType.FLOAT, memsizer).typeForUntypedAddressOf(false, memsizer) shouldBe DataType.pointer(BaseDataType.FLOAT)
+        DataType.arrayFor(BaseDataType.FLOAT, memsizer).typeForUntypedAddressOf(true, memsizer) shouldBe DataType.pointer(BaseDataType.UBYTE)
+        DataType.arrayFor(BaseDataType.UWORD, memsizer).typeForUntypedAddressOf(false, memsizer) shouldBe DataType.pointer(BaseDataType.UWORD)
         DataType.splitWordArrayFor(BaseDataType.UWORD).typeForUntypedAddressOf(false, memsizer) shouldBe DataType.pointer(BaseDataType.UBYTE)
-        DataType.arrayFor(BaseDataType.UWORD).typeForUntypedAddressOf(true, memsizer) shouldBe DataType.pointer(BaseDataType.UBYTE)
+        DataType.arrayFor(BaseDataType.UWORD, memsizer).typeForUntypedAddressOf(true, memsizer) shouldBe DataType.pointer(BaseDataType.UBYTE)
         DataType.splitWordArrayFor(BaseDataType.UWORD).typeForUntypedAddressOf(true, memsizer) shouldBe DataType.pointer(BaseDataType.UBYTE)
 
         DataType.pointer(Struct("struct")).typeForUntypedAddressOf(false, memsizer) shouldBe DataType.UWORD

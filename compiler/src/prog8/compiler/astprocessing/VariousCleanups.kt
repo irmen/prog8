@@ -92,7 +92,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                 SplitWish.DONTCARE -> {
                     changeDataType = if(decl.datatype.isSplitWordArray) {
                         if(options.compTarget.POINTER_MEM_SIZE > 2u)
-                            DataType.arrayFor(decl.datatype.elementType().base)
+                            DataType.arrayFor(decl.datatype.elementType().base, options.compTarget)
                         else
                             null
                     } else {
@@ -107,7 +107,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                 }
                 SplitWish.NOSPLIT -> {
                     changeDataType = if(decl.datatype.isSplitWordArray && !decl.datatype.elementType().isPointer)
-                        DataType.arrayFor(decl.datatype.elementType().base)
+                        DataType.arrayFor(decl.datatype.elementType().base, options.compTarget)
                     else null
                 }
             }
@@ -126,7 +126,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
 
         // handle @nosplit on pointer arrays: convert to regular non-split word array
         if(decl.datatype.isPointerArray && decl.splitwordarray == SplitWish.NOSPLIT) {
-            val newDt = DataType.arrayFor(BaseDataType.UWORD)  // non-split
+            val newDt = DataType.arrayFor(BaseDataType.UWORD, options.compTarget)  // non-split
             var value = decl.value
             if(value is ArrayLiteral && !(value.type istype newDt)) {
                 value = ArrayLiteral(InferredTypes.knownFor(newDt), value.value, value.position)
@@ -144,7 +144,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
             val newDt = if(decl.datatype.subType!=null)
                     DataType.arrayForWithSubType(BaseDataType.LONG, decl.datatype.subType!!)
                 else
-                    DataType.arrayFor(BaseDataType.LONG)
+                    DataType.arrayFor(BaseDataType.LONG, options.compTarget)
             var value = decl.value
             if(value is ArrayLiteral && !(value.type istype newDt)) {
                 value = ArrayLiteral(InferredTypes.knownFor(newDt), value.value, value.position)
@@ -349,7 +349,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
 
                     // replace x==1 or x==2 or x==3  with a containment check  x in [1,2,3]
                     val valueCopies = values.sortedBy { it.number }.map { it.copy() }
-                    val arrayType = DataType.arrayFor(elementType.base)
+                    val arrayType = DataType.arrayFor(elementType.base, options.compTarget)
                     val valuesArray = ArrayLiteral(InferredTypes.InferredType.known(arrayType), valueCopies.toTypedArray(), expr.position)
                     val containment = ContainmentCheck(needle, valuesArray, expr.position)
                     return listOf(AstReplaceNode(expr, containment, parent))

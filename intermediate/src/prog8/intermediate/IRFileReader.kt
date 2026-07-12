@@ -614,13 +614,13 @@ class IRFileReader {
                 }
             }
             return when(type) {
-                "bool" -> DataType.arrayFor(BaseDataType.BOOL)
-                "byte" -> DataType.arrayFor(BaseDataType.BYTE)
-                "ubyte", "str" -> DataType.arrayFor(BaseDataType.UBYTE)
-                "word" -> DataType.arrayFor(BaseDataType.WORD)
-                "uword" -> DataType.arrayFor(BaseDataType.UWORD)
-                "float" -> DataType.arrayFor(BaseDataType.FLOAT)
-                "long" -> DataType.arrayFor(BaseDataType.LONG)
+                "bool" -> DataType.arrayFor(BaseDataType.BOOL, options.compTarget)
+                "byte" -> DataType.arrayFor(BaseDataType.BYTE, options.compTarget)
+                "ubyte", "str" -> DataType.arrayFor(BaseDataType.UBYTE, options.compTarget)
+                "word" -> DataType.arrayFor(BaseDataType.WORD, options.compTarget)
+                "uword" -> DataType.arrayFor(BaseDataType.UWORD, options.compTarget)
+                "float" -> DataType.arrayFor(BaseDataType.FLOAT, options.compTarget)
+                "long" -> DataType.arrayFor(BaseDataType.LONG, options.compTarget)
                 else -> {
                     throw IRParseException("invalid dt  $type")
                 }
@@ -636,7 +636,7 @@ class IRFileReader {
                     "uword" -> DataType.pointer(BaseDataType.UWORD)
                     "float" -> DataType.pointer(BaseDataType.FLOAT)
                     "long" -> DataType.pointer(BaseDataType.LONG)
-                    // note: 'str' should not occur anymore in IR. Should be 'uword'
+                    "str" -> error("'str' should not occur anymore in IR. Should be uword or ulong or ^^ubyte")
                     else -> DataType.pointer(IRSubtypePlaceholder(type.drop(2)))
                 }
             }
@@ -648,7 +648,7 @@ class IRFileReader {
                 "uword" -> DataType.UWORD
                 "float" -> DataType.FLOAT
                 "long" -> DataType.LONG
-                // note: 'str' should not occur anymore in IR. Should be 'uword'
+                "str" -> error("'str' should not occur anymore in IR. Should be uword or ulong or ^^ubyte")
                 else -> {
                     if('.' in type)
                         DataType.structInstance(IRSubtypePlaceholder(type))

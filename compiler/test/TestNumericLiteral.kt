@@ -15,6 +15,7 @@ import prog8.code.core.BaseDataType
 import prog8.code.core.DataType
 import prog8.code.core.Encoding
 import prog8.code.core.Position
+import prog8.code.target.C64Target
 import prog8.code.target.Cx16Target
 
 
@@ -95,8 +96,10 @@ class TestNumericLiteral: FunSpec({
 
 
     }
+    
 
     test("testEqualsRef") {
+        val c64target = C64Target()
         (StringLiteral.create("hello", Encoding.PETSCII, Position.DUMMY) == StringLiteral.create("hello", Encoding.PETSCII, Position.DUMMY)) shouldBe true
         (StringLiteral.create("hello", Encoding.PETSCII, Position.DUMMY) != StringLiteral.create("bye", Encoding.PETSCII, Position.DUMMY)) shouldBe true
         (StringLiteral.create("hello", Encoding.SCREENCODES, Position.DUMMY) == StringLiteral.create("hello", Encoding.SCREENCODES, Position.DUMMY)) shouldBe true
@@ -110,9 +113,9 @@ class TestNumericLiteral: FunSpec({
         val lvTwoR = NumericLiteral(BaseDataType.UBYTE, 2.0, Position.DUMMY)
         val lvThreeR = NumericLiteral(BaseDataType.UBYTE, 3.0, Position.DUMMY)
         val lvFour= NumericLiteral(BaseDataType.UBYTE, 4.0, Position.DUMMY)
-        val lv1 = ArrayLiteral(InferredTypes.InferredType.known(DataType.arrayFor(BaseDataType.UBYTE)), arrayOf(lvOne, lvTwo, lvThree), Position.DUMMY)
-        val lv2 = ArrayLiteral(InferredTypes.InferredType.known(DataType.arrayFor(BaseDataType.UBYTE)), arrayOf(lvOneR, lvTwoR, lvThreeR), Position.DUMMY)
-        val lv3 = ArrayLiteral(InferredTypes.InferredType.known(DataType.arrayFor(BaseDataType.UBYTE)), arrayOf(lvOneR, lvTwoR, lvFour), Position.DUMMY)
+        val lv1 = ArrayLiteral(InferredTypes.InferredType.known(DataType.arrayFor(BaseDataType.UBYTE, c64target)), arrayOf(lvOne, lvTwo, lvThree), Position.DUMMY)
+        val lv2 = ArrayLiteral(InferredTypes.InferredType.known(DataType.arrayFor(BaseDataType.UBYTE, c64target)), arrayOf(lvOneR, lvTwoR, lvThreeR), Position.DUMMY)
+        val lv3 = ArrayLiteral(InferredTypes.InferredType.known(DataType.arrayFor(BaseDataType.UBYTE, c64target)), arrayOf(lvOneR, lvTwoR, lvFour), Position.DUMMY)
         lv1 shouldBe lv2
         lv1 shouldNotBe lv3
     }

@@ -16,6 +16,7 @@ import prog8.code.target.C64Target
 import prog8.code.target.Cx16Target
 import prog8.code.target.VMTarget
 import prog8.parser.Prog8Parser.parseModule
+import prog8tests.helpers.DummyMemsizer
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
 
@@ -37,7 +38,7 @@ class TestSubroutines: FunSpec({
             }
         """
         val src = SourceCode.Text(text)
-        val module = parseModule(src)
+        val module = parseModule(src, VMTarget())
         val mainBlock = module.statements.single() as Block
         val asmfunc = mainBlock.statements.filterIsInstance<Subroutine>().single { it.name=="asmfunc"}
         val func = mainBlock.statements.filterIsInstance<Subroutine>().single { it.name=="func"}
@@ -62,15 +63,15 @@ class TestSubroutines: FunSpec({
             }
         """
         val src = SourceCode.Text(text)
-        val module = parseModule(src)
+        val module = parseModule(src, VMTarget())
         val mainBlock = module.statements.single() as Block
         val asmfunc = mainBlock.statements.filterIsInstance<Subroutine>().single { it.name=="asmfunc"}
         val func = mainBlock.statements.filterIsInstance<Subroutine>().single { it.name=="func"}
         asmfunc.isAsmSubroutine shouldBe true
-        asmfunc.parameters.single().type shouldBe DataType.arrayFor(BaseDataType.UBYTE)
+        asmfunc.parameters.single().type shouldBe DataType.arrayFor(BaseDataType.UBYTE, DummyMemsizer)
         asmfunc.statements.isEmpty() shouldBe true
         func.isAsmSubroutine shouldBe false
-        func.parameters.single().type shouldBe DataType.arrayFor(BaseDataType.UBYTE)
+        func.parameters.single().type shouldBe DataType.arrayFor(BaseDataType.UBYTE, DummyMemsizer)
         func.statements.isEmpty() shouldBe true
     }
 

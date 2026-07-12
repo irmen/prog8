@@ -1175,8 +1175,8 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
         if(type.isSplitWordArray) {
             // ranges are never a split word array!
             when(type.sub) {
-                BaseDataType.WORD -> type = DataType.arrayFor(BaseDataType.WORD)
-                BaseDataType.UWORD -> type = DataType.arrayFor(BaseDataType.UWORD)
+                BaseDataType.WORD -> type = DataType.arrayFor(BaseDataType.WORD, program.target)
+                BaseDataType.UWORD -> type = DataType.arrayFor(BaseDataType.UWORD, program.target)
                 else -> { }
             }
         }

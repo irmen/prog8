@@ -24,6 +24,7 @@ import prog8.code.target.Cx16Target
 import prog8.code.target.VMTarget
 import prog8.vm.VmRunner
 import prog8tests.helpers.DummyFunctions
+import prog8tests.helpers.DummyMemsizer
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
 import kotlin.io.path.readText
@@ -799,7 +800,7 @@ main {
         arrayDecl.isArray shouldBe true
         arrayDecl.arraysize?.constIndex() shouldBe 6
         val arrayValue = arrayDecl.value as ArrayLiteral
-        arrayValue.type shouldBe InferredTypes.InferredType.known(DataType.arrayFor(BaseDataType.UBYTE))
+        arrayValue.type shouldBe InferredTypes.InferredType.known(DataType.arrayFor(BaseDataType.UBYTE, DummyMemsizer))
         arrayValue.value shouldBe listOf(
             NumericLiteral.optimalInteger(1, Position.DUMMY),
             NumericLiteral.optimalInteger(2, Position.DUMMY),

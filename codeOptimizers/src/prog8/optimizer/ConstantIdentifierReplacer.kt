@@ -599,7 +599,7 @@ internal class ConstantIdentifierReplacer(
                 if(declArraySize!=null && declArraySize!=rangeExpr.size())
                     errors.err("range expression size (${rangeExpr.size()}) doesn't match declared array size ($declArraySize)", decl.value?.position!!)
                 if(constRange!=null) {
-                    return ArrayLiteral(InferredTypes.InferredType.known(DataType.arrayFor(BaseDataType.FLOAT)),
+                    return ArrayLiteral(InferredTypes.InferredType.known(DataType.arrayFor(BaseDataType.FLOAT, program.target)),
                         constRange.map { NumericLiteral(BaseDataType.FLOAT, it.toDouble(), decl.value!!.position) }.toTypedArray(),
                         position = decl.value!!.position)
                 }

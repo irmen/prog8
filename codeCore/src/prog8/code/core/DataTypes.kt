@@ -186,10 +186,12 @@ class DataType private constructor(
             return simpletypes.getValue(dt)
         }
 
-        fun arrayFor(elementDt: BaseDataType): DataType {
+        fun arrayFor(elementDt: BaseDataType, memsizer: IMemSizer): DataType {
             // wether or not a word-array should be split-words, is determined later
             require(!elementDt.isPointer) { "use other array constructor for arrays of pointers" }
-            val actualElementDt = if(elementDt==BaseDataType.STR) BaseDataType.UWORD else elementDt      // array of strings is actually just an array of UWORD pointers
+            // TODO: on 32-bit targets (m68k), str arrays should be arrays of LONG (4-byte pointers),
+            // but this requires systematically handling str as a 4-byte type across the entire compiler.
+            val actualElementDt = if(elementDt==BaseDataType.STR) BaseDataType.UWORD else elementDt
             if(actualElementDt.isNumericOrBool)
                 return DataType(BaseDataType.ARRAY, actualElementDt, null)
             else
@@ -225,11 +227,14 @@ class DataType private constructor(
     // DataType Methods
     // ============================================================================
 
-    fun elementToArray(splitwords: Boolean = true): DataType {
+    fun elementToArray(target: ICompilationTarget, splitwords: Boolean = true): DataType {
+        if(target.cpu !in setOf(CpuType.CPU6502, CpuType.CPU65C02))
+            return arrayFor(base, target)
+        
         if (splitwords && (base == BaseDataType.UWORD || base == BaseDataType.WORD || base == BaseDataType.STR))
             return splitWordArrayFor(base)
         else 
-            return arrayFor(base)
+            return arrayFor(base, target)
     }
 
     fun elementType(): DataType =

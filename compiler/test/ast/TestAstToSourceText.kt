@@ -15,9 +15,10 @@ import prog8tests.helpers.DummyFunctions
 
 class TestAstToSourceText: FunSpec({
 
+    val target = VMTarget()
+
     // Helper function to generate Prog8 source from AST
     fun generateP8(module: Module): String {
-        val target = VMTarget()
         val program = Program("test", DummyFunctions, target)
             .addModule(module)
 
@@ -32,7 +33,7 @@ class TestAstToSourceText: FunSpec({
     fun roundTrip(module: Module): Pair<String, Module> {
         val generatedText = generateP8(module)
         try {
-            val parsedAgain = parseModule(SourceCode.Text(generatedText))
+            val parsedAgain = parseModule(SourceCode.Text(generatedText), target)
             return Pair(generatedText, parsedAgain)
         } catch (e: ParseError) {
             error("should produce valid Prog8 but threw $e")
@@ -45,7 +46,7 @@ class TestAstToSourceText: FunSpec({
 
     test("testMentionsProg8ContainerModules") {
         val orig = SourceCode.Text("\n")
-        val (txt, _) = roundTrip(parseModule(orig))
+        val (txt, _) = roundTrip(parseModule(orig, target))
         PROG8_CONTAINER_MODULES.forEach {
             txt shouldContain Regex(";.*$it")
         }
@@ -53,13 +54,13 @@ class TestAstToSourceText: FunSpec({
 
     test("testImportDirectiveWithLib") {
         val orig = SourceCode.Text("%import textio\n")
-        val (txt, _) = roundTrip(parseModule(orig))
+        val (txt, _) = roundTrip(parseModule(orig, target))
         txt shouldContain Regex("%import +textio")
     }
 
     test("testImportDirectiveWithUserModule") {
         val orig = SourceCode.Text("%import my_own_stuff\n")
-        val (txt, _) = roundTrip(parseModule(orig))
+        val (txt, _) = roundTrip(parseModule(orig, target))
         txt shouldContain Regex("%import +my_own_stuff")
     }
 
@@ -70,7 +71,7 @@ class TestAstToSourceText: FunSpec({
                 str s = "fooBar\n"
             }
         """)
-        val (txt, _) = roundTrip(parseModule(orig))
+        val (txt, _) = roundTrip(parseModule(orig, target))
         txt shouldContain Regex("str +s += +\"fooBar\\\\n\"")
     }
 
@@ -80,7 +81,7 @@ class TestAstToSourceText: FunSpec({
                 str sAlt = sc:"fooBar\n"
             }
         """)
-        val (txt, _) = roundTrip(parseModule(orig))
+        val (txt, _) = roundTrip(parseModule(orig, target))
         txt shouldContain Regex("str +sAlt += +sc:\"fooBar\\\\n\"")
     }
 
@@ -90,7 +91,7 @@ class TestAstToSourceText: FunSpec({
                 str sAlt = iso:"fooBar\n"
             }
         """)
-        val (txt, _) = roundTrip(parseModule(orig))
+        val (txt, _) = roundTrip(parseModule(orig, target))
         txt shouldContain Regex("str +sAlt += +iso:\"fooBar\\\\n\"")
     }
 
@@ -100,7 +101,7 @@ class TestAstToSourceText: FunSpec({
                 ubyte c = 'x'
             }
         """)
-        val (txt, _) = roundTrip(parseModule(orig))
+        val (txt, _) = roundTrip(parseModule(orig, target))
         txt shouldContain Regex("ubyte +c += +'x'")
     }
 
@@ -110,7 +111,7 @@ class TestAstToSourceText: FunSpec({
                 ubyte cAlt = sc:'x'
             }
         """)
-        val (txt, _) = roundTrip(parseModule(orig))
+        val (txt, _) = roundTrip(parseModule(orig, target))
         txt shouldContain Regex("ubyte +cAlt += +sc:'x'")
     }
 
@@ -120,7 +121,7 @@ class TestAstToSourceText: FunSpec({
                 ubyte @shared @zp qq
             }
         """)
-        val (txt, _) = roundTrip(parseModule(orig))
+        val (txt, _) = roundTrip(parseModule(orig, target))
         txt shouldContain Regex("ubyte +@zp +@shared +qq")
     }
 

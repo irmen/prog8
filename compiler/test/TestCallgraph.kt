@@ -27,6 +27,7 @@ import kotlin.io.path.readText
 class TestCallgraph: FunSpec({
 
     val outputDir = tempdir().toPath()
+    val target = VMTarget()
 
     test("testGraphForEmptySubs") {
         val sourcecode = """
@@ -167,7 +168,7 @@ class TestCallgraph: FunSpec({
                     @(1000) = 0
                 }
             }"""
-        val module = parseModule(SourceCode.Text(source))
+        val module = parseModule(SourceCode.Text(source), target)
         val program = Program("test", DummyFunctions, VMTarget())
         program.addModule(module)
         val callgraph = CallGraph(program)
@@ -202,7 +203,7 @@ class TestCallgraph: FunSpec({
                     start()
                 }
             }"""
-        val module = parseModule(SourceCode.Text(source))
+        val module = parseModule(SourceCode.Text(source), target)
         val program = Program("test", DummyFunctions, VMTarget())
         program.addModule(module)
         val callgraph = CallGraph(program)
@@ -226,7 +227,7 @@ class TestCallgraph: FunSpec({
                     uword @shared address = &start
                 }
             }"""
-        val module = parseModule(SourceCode.Text(source))
+        val module = parseModule(SourceCode.Text(source), target)
         val program = Program("test", DummyFunctions, VMTarget())
         program.addModule(module)
         val callgraph = CallGraph(program)

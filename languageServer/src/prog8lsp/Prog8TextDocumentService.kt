@@ -4,6 +4,7 @@ import org.eclipse.lsp4j.*
 import org.eclipse.lsp4j.jsonrpc.messages.Either
 import org.eclipse.lsp4j.services.LanguageClient
 import org.eclipse.lsp4j.services.TextDocumentService
+import prog8.code.target.VMTarget
 import prog8lsp.SymbolLookup.SymbolAtPosition
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentHashMap
@@ -54,6 +55,8 @@ class Prog8TextDocumentService: TextDocumentService {
         this.client = client
     }
 
+    private val compTarget = VMTarget()
+
     override fun didOpen(params: DidOpenTextDocumentParams) {
         logger.config("didOpen: ${params.textDocument.uri}")
 
@@ -68,7 +71,7 @@ class Prog8TextDocumentService: TextDocumentService {
         async.execute {
             // Parse and cache AST for the document
             astCache[params.textDocument.uri] = AstCache(
-                module = Prog8Parser.parseModule(params.textDocument.text).module,
+                module = Prog8Parser.parseModule(params.textDocument.text, compTarget).module,
                 isStale = false
             )
 
@@ -137,7 +140,7 @@ class Prog8TextDocumentService: TextDocumentService {
                 
                 // Reparse if AST is missing or stale
                 if (cache.module == null || cache.isStale) {
-                    cache.module = Prog8Parser.parseModule(document.text).module
+                    cache.module = Prog8Parser.parseModule(document.text, compTarget).module
                     cache.isStale = false
                 }
                 
@@ -166,7 +169,7 @@ class Prog8TextDocumentService: TextDocumentService {
                     AstCache(module = null, isStale = true)
                 }
                 if (cache.module == null || cache.isStale) {
-                    cache.module = Prog8Parser.parseModule(document.text).module
+                    cache.module = Prog8Parser.parseModule(document.text, compTarget).module
                     cache.isStale = false
                 }
 
@@ -310,7 +313,7 @@ class Prog8TextDocumentService: TextDocumentService {
                 AstCache(module = null, isStale = true)
             }
             if (cache.module == null || cache.isStale) {
-                cache.module = Prog8Parser.parseModule(document.text).module
+                cache.module = Prog8Parser.parseModule(document.text, compTarget).module
                 cache.isStale = false
             }
 
@@ -379,7 +382,7 @@ class Prog8TextDocumentService: TextDocumentService {
                 AstCache(module = null, isStale = true)
             }
             if (cache.module == null || cache.isStale) {
-                cache.module = Prog8Parser.parseModule(document.text).module
+                cache.module = Prog8Parser.parseModule(document.text, compTarget).module
                 cache.isStale = false
             }
 
@@ -415,7 +418,7 @@ class Prog8TextDocumentService: TextDocumentService {
                 AstCache(module = null, isStale = true)
             }
             if (cache.module == null || cache.isStale) {
-                cache.module = Prog8Parser.parseModule(document.text).module
+                cache.module = Prog8Parser.parseModule(document.text, compTarget).module
                 cache.isStale = false
             }
 
@@ -445,7 +448,7 @@ class Prog8TextDocumentService: TextDocumentService {
                 AstCache(module = null, isStale = true)
             }
             if (cache.module == null || cache.isStale) {
-                cache.module = Prog8Parser.parseModule(document.text).module
+                cache.module = Prog8Parser.parseModule(document.text, compTarget).module
                 cache.isStale = false
             }
 
@@ -584,7 +587,7 @@ class Prog8TextDocumentService: TextDocumentService {
                 AstCache(module = null, isStale = true)
             }
             if (cache.module == null || cache.isStale) {
-                cache.module = Prog8Parser.parseModule(document.text).module
+                cache.module = Prog8Parser.parseModule(document.text, compTarget).module
                 cache.isStale = false
             }
 
@@ -691,7 +694,7 @@ class Prog8TextDocumentService: TextDocumentService {
                 AstCache(module = null, isStale = true)
             }
             if (cache.module == null || cache.isStale) {
-                cache.module = Prog8Parser.parseModule(document.text).module
+                cache.module = Prog8Parser.parseModule(document.text, compTarget).module
                 cache.isStale = false
             }
 
@@ -754,7 +757,7 @@ class Prog8TextDocumentService: TextDocumentService {
         val diagnostics = mutableListOf<Diagnostic>()
 
         // Parse the document and collect parser errors
-        val parseResult = Prog8Parser.parseModule(document.text)
+        val parseResult = Prog8Parser.parseModule(document.text, compTarget)
 
         // Convert parse errors to diagnostics
         for (error in parseResult.errors) {
