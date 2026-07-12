@@ -61,7 +61,7 @@ color magenta "%[Aa][Sm][Mm]"
 color magenta "^[[:space:]]*%[[:alpha:]]+"
 
 # Built-in functions
-color white "\<(abs|call|callfar|callfar2|clamp|cmp|defer|divmod|len|lsb|lsw|lmh|lsr|memory|mkword|min|max|msb|msw|offsetof|peek|peekw|peekl|peekf|peekbool|poke|pokew|pokel|pokef|pokebool|pop|popw|popl|popf|popp|psg|psg2|push|pushw|pushl|pushf|pushp|rsave|rsavex|rrestore|rrestorex|rol|rol2|ror|ror2|setlsb|setmsb|sgn|sizeof|sqrt|sqrtw|swap)\>"
+color white "\<(abs|call|callfar|callfar2|clamp|cmp|defer|divmod|len|lsb|lsw|lmh|lsr|memory|mkword|min|max|msb|msw|offsetof|peek|peekw|peekp|peekl|peekf|peekbool|poke|pokew|pokep|pokel|pokef|pokebool|pop|popw|popl|popf|popp|psg|psg2|push|pushw|pushl|pushf|pushp|rsave|rsavex|rrestore|rrestorex|rol|rol2|ror|ror2|setlsb|setmsb|sgn|sizeof|sqrt|sqrtw|swap)\>"
 
 # Strings
 color brightblue ""([^"]|\\")*""

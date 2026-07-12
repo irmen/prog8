@@ -103,7 +103,7 @@ CPU Stack
     Low-level function that is seldomly used in user code.
     Don't assume anything about the order in which the bytes are pushed - popw will make sense of them again.
 
-:index:`pushp` (value)
+:index:`pushp` (value)  **experimental, may change or be removed**
     pushes a pointer value on the CPU hardware stack.
     On 2-byte pointer targets this is the same as pushw, on 32-bit pointer targets it acts as pushl.
     Low-level function that is seldomly used in user code.
@@ -127,7 +127,7 @@ CPU Stack
     pops a 16-bit word value off the CPU hardware stack that was pushed before by pushw, and returns it.
     Low-level function that is seldomly used in user code.
 
-:index:`popp` ()
+:index:`popp` ()   **experimental, may change or be removed**
     pops a pointer value off the CPU hardware stack that was pushed before by pushp, and returns it.
     On 2-byte pointer targets this is the same as popw, on 32-bit pointer targets it acts as popl.
     Low-level function that is seldomly used in user code.
@@ -226,6 +226,10 @@ Miscellaneous
     Caution: when using peekw to get words out of an array pointer, make sure the array is *not* a split word array
     (peekw requires the LSB and MSB of the word value to be consecutive in memory).
 
+:index:`peekp` (address)  **experimental, may change or be removed**
+    reads a pointer value at the given address in memory.
+    On 16-bit targets this reads 2 bytes (like peekw), on 32-bit targets this reads 4 bytes (like peekl).
+
 :index:`peekl` (address)
     reads the signed long value at the given address in memory. Long is read as usual little-endian lsb/msb byte order.
 
@@ -247,6 +251,10 @@ Miscellaneous
 
 :index:`pokef` (address, value)
     writes the float value at the given address in memory. On CBM machines, this writes 5 bytes.
+
+:index:`pokep` (address, value)  **experimental, may change or be removed**
+    writes the pointer value at the given address in memory.
+    On 16-bit targets this writes 2 bytes (like pokew), on 32-bit targets this writes 4 bytes (like pokel).
 
 :index:`pokemon` (address, value)
     Like poke(), but also returns the previous value in the given address.

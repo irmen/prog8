@@ -127,11 +127,13 @@
       <item>peekf</item>
       <item>peekl</item>
       <item>peekw</item>
+      <item>peekp</item>
       <item>poke</item>
       <item>pokebool</item>
       <item>pokef</item>
       <item>pokel</item>
       <item>pokew</item>
+      <item>pokep</item>
       <item>pop</item>
       <item>popf</item>
       <item>popl</item>

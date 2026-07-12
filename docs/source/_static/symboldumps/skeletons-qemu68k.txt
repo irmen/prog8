@@ -32,15 +32,17 @@ offsetof  (ubyte field) -> ubyte
 peek  (uword|long address) -> ubyte
 peekbool  (uword|long address) -> bool
 peekf  (uword|long address) -> float
-peekl  (uword|long address) -> long
-peekw  (uword|long address) -> uword
-poke  (uword|long address, ubyte|byte value)
-pokebool  (uword|long address, bool value)
-pokebowl  (uword|long address, bool value)
-pokef  (uword|long address, float value)
-pokel  (uword|long address, long value)
-pokemon  (uword address, ubyte value) -> ubyte
-pokew  (uword|long address, uword|word value)
+ peekl  (uword|long address) -> long
+ peekw  (uword|long address) -> uword
+ peekp  (pointer|uword|long address) -> pointer
+ poke  (uword|long address, ubyte|byte value)
+ pokebool  (uword|long address, bool value)
+ pokebowl  (uword|long address, bool value)
+ pokef  (uword|long address, float value)
+ pokel  (uword|long address, long value)
+ pokemon  (uword address, ubyte value) -> ubyte
+ pokew  (uword|long address, uword|word value)
+ pokep  (pointer|uword|long address, pointer value)
 pop  () -> ubyte
 popf  () -> float
 popl  () -> long

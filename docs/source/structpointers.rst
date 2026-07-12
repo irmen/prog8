@@ -262,10 +262,9 @@ However, it is possible to write a dynamic memory handling library yourself (it 
 If you ask such a library to give you a pointer to a piece of memory with size ``sizeof(Enemy)`` you can use that as
 a dynamic pointer to an Enemy struct.
 
-An example of how a super simple dynamic allocator could look like::
-
-.. note::
-    The ``pointer`` type is used instead of ``uword`` so that the code also works correctly on targets where memory addresses are wider than 2 bytes (such as the m68k target with 4-byte pointers).
+An example of how a super simple dynamic allocator could look like follows. 
+Noe that the ``pointer`` type is used instead of ``uword`` so that the code also works correctly on targets 
+where memory addresses are wider than 2 bytes (such as the m68k target with 4-byte pointers)::
 
     ^^Node newnode = allocator.alloc(sizeof(Node))
     ...

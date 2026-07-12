@@ -957,12 +957,12 @@ planet {
     sub getword(ubyte listnum, ubyte wordidx) -> pointer {
         if sys.SIZEOF_POINTER==4 {
             ; on 32-bit targets, the array stores flat 4-byte pointers
-            long wordlist_base = &wordlists
-            long addr = peekl(wordlist_base + (listnum-$81) * 4)
-            return peekl(addr + wordidx*4) as pointer
+            pointer wordlist_base = &wordlists
+            pointer addr = peekp(wordlist_base + (listnum-$81) * 4)
+            return peekp(addr + wordidx*4)
         } else {
-            uword list = wordlists[listnum-$81]
-            return peekw(list + wordidx*2) as pointer      ; this depends on the word list itself to be @nosplit !
+            pointer list = wordlists[listnum-$81]
+            return peekp(list + wordidx*2)     ; this depends on the word list itself to be @nosplit !
         }
     }
 }

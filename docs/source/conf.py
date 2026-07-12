@@ -126,6 +126,7 @@ exclude_patterns = []
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = "sphinx"
 # highlight_language = 'none'
+highlight_language = 'prog8'
 
 
 # -- Options for HTML output -------------------------------------------------

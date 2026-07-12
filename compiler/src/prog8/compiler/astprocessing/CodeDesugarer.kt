@@ -271,6 +271,14 @@ _after:
             )
             return listOf(AstReplaceNode(functionCall as Node, newCall, parent))
         }
+        if(outerFunc==listOf("pokep")) {
+            val pokeName = if(target.POINTER_MEM_SIZE > 2u) "pokel" else "pokew"
+            val newCall = FunctionCallStatement(
+                IdentifierReference(listOf(pokeName), position),
+                functionCall.args, false, position
+            )
+            return listOf(AstReplaceNode(functionCall as Node, newCall, parent))
+        }
 
         return noModifications
     }
@@ -335,6 +343,14 @@ _after:
                 globalReservedSlabs[slabName] = reservation
             }
             return mods
+        }
+        if(functionCallExpr.target.nameInSource==listOf("peekp")) {
+            val peekName = if(target.POINTER_MEM_SIZE > 2u) "peekl" else "peekw"
+            val newCall = FunctionCallExpression(
+                IdentifierReference(listOf(peekName), functionCallExpr.position),
+                functionCallExpr.args.toMutableList(), functionCallExpr.position
+            )
+            return listOf(AstReplaceNode(functionCallExpr, newCall, parent))
         }
         return noModifications
     }
