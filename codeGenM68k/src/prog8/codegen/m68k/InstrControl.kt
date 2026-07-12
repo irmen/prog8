@@ -259,16 +259,14 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
                     // r1 = WORD(r2 as MSB, r3 as LSB)
                     emitLine("move.b  ${regAddr(srcReg2)}, d0")
                     emitLine("lsl.w  #8, d0")
-                    emitLine("move.b  ${regAddr(srcReg3)}, d1")
-                    emitLine("or.w  d1, d0")
+                    emitLine("or.b  ${regAddr(srcReg3)}, d0")
                     emitLine("move.w  d0, ${regAddr(dstReg)}")
                 }
                 IRDataType.WORD -> {
                     // r1 = LONG(r2 as MSW, r3 as LSW)
                     emitLine("move.w  ${regAddr(srcReg2)}, d0")
                     emitLine("lsl.l  #16, d0")
-                    emitLine("move.w  ${regAddr(srcReg3)}, d1")
-                    emitLine("or.l  d1, d0")
+                    emitLine("or.w  ${regAddr(srcReg3)}, d0")
                     emitLine("move.l  d0, ${regAddr(dstReg)}")
                 }
                 else -> TODO("CONCAT for ${type.name}")
