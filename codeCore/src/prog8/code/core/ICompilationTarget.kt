@@ -36,7 +36,10 @@ enum class CpuType(val statusBitsOnMultiByteOps: Boolean) {
     /** 8-bit CMOS 65C02. Same status-bit issue as plain 6502. */
     CPU65C02(false),
     
-    /** 16/32 bit Motorola 68020. has single instructions that set status bits when dealing with multi byte operands */
+    /** 16/32 bit Motorola 68000. has single instructions that set status bits when dealing with multi byte operands */
+    M68000(true),
+
+    /** 32 bit Motorola 68020. has single instructions that set status bits when dealing with multi byte operands */
     M68020(true),
 
     /**

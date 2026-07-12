@@ -4,11 +4,7 @@ import prog8.ast.Module
 import prog8.ast.Program
 import prog8.ast.statements.Subroutine
 import prog8.ast.walk.IAstVisitor
-import prog8.code.core.ICompilationTarget
-import prog8.code.core.IErrorReporter
-import prog8.code.core.Position
-import prog8.code.core.RegisterOrPair
-import prog8.code.target.Qemu68kTarget
+import prog8.code.core.*
 import prog8.code.target.VMTarget
 
 
@@ -51,7 +47,7 @@ internal class AsmSubRegisterChecker(private val errors: IErrorReporter, private
     }
 
     private fun validateAsmSubRegister(register: RegisterOrPair, pos: Position) {
-        val isM68kTarget = target.name == Qemu68kTarget.NAME
+        val isM68kTarget = target.cpu in setOf(CpuType.M68000, CpuType.M68020)
         val isM68kReg = register in m68kRegisters
 
         if (!isM68kTarget && isM68kReg && target.name != VMTarget.NAME) {

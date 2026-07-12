@@ -1,0 +1,170 @@
+
+Prog8 compiler v12.3-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
+Prerelease version from git commit 0764e11f in branch new-codegens
+This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
+
+Using existing prog8c daemon at /run/user/1000/prog8c-daemon.sock
+Compiling program import-all-amiga500.p8
+Compiler target: amiga500
+
+
+BUILTIN FUNCTIONS
+-----------------
+abs  (ubyte|byte|uword|word|long|float value) -> undefined
+call  (uword address) -> uword
+callfar  (ubyte bank, uword address, uword arg) -> uword
+callfar2  (ubyte bank, uword address, ubyte argA, ubyte argX, ubyte argY, bool argC) -> uword
+clamp  (byte value, byte minimum, byte maximum) -> undefined
+cmp  (ubyte|byte|uword|word|long value1, ubyte|byte|uword|word|long|float value2)
+divmod  (ubyte|uword dividend, ubyte|uword divisor) -> undefined, undefined
+len  (str|array|array_splitw|array_pointer values) -> uword
+lmh  (long value) -> ubyte, ubyte, ubyte
+lsb  (uword|word|long value) -> ubyte
+lsw  (uword|word|long value) -> uword
+max  (byte val1, byte val2) -> undefined
+memory  (str name, uword size, uword alignment) -> pointer
+min  (byte val1, byte val2) -> undefined
+mklong  (ubyte msb, ubyte b2, ubyte b1, ubyte lsb) -> long
+mklong2  (uword msw, uword lsw) -> long
+mkword  (ubyte msb, ubyte lsb) -> uword
+msb  (uword|word|long value) -> ubyte
+msw  (uword|word|long value) -> uword
+offsetof  (ubyte field) -> ubyte
+peek  (uword|long address) -> ubyte
+peekbool  (uword|long address) -> bool
+peekf  (uword|long address) -> float
+peekl  (uword|long address) -> long
+peekp  (pointer|uword|long address) -> pointer
+peekw  (uword|long address) -> uword
+poke  (uword|long address, ubyte|byte value)
+pokebool  (uword|long address, bool value)
+pokebowl  (uword|long address, bool value)
+pokef  (uword|long address, float value)
+pokel  (uword|long address, long value)
+pokemon  (uword address, ubyte value) -> ubyte
+pokep  (pointer|uword|long address, pointer value)
+pokew  (uword|long address, uword|word value)
+pop  () -> ubyte
+popf  () -> float
+popl  () -> long
+popp  () -> pointer
+popw  () -> uword
+push  (ubyte|byte|bool value)
+pushf  (float value)
+pushl  (long value)
+pushp  (pointer value)
+pushw  (uword|word|pointer value)
+rol  (ubyte|uword|long item)
+rol2  (ubyte|uword|long item)
+ror  (ubyte|uword|long item)
+ror2  (ubyte|uword|long item)
+rrestore  ()
+rsave  ()
+setlsb  (word|uword|long variable, byte|ubyte value)
+setmsb  (word|uword|long variable, byte|ubyte value)
+sgn  (ubyte|byte|uword|word|long|float value) -> byte
+sizeof  (ubyte|byte|uword|word|long|float|bool|str|array|array_splitw|pointer|array_pointer|undefined object) -> ubyte
+sqrt  (ubyte|byte|uword|word|long|float value) -> undefined
+
+
+LIBRARY MODULE NAME: buffers
+----------------------------
+
+smallringbuffer  {
+    ubyte[]  buffer
+    ubyte  fill
+    ubyte  head
+    ubyte  tail
+    free  () -> ubyte
+    get  () -> ubyte
+    getw  () -> uword
+    init  ()
+    isempty  () -> bool
+    isfull  () -> bool
+    put  (ubyte value)
+    putw  (uword value)
+    size  () -> ubyte
+}
+
+smallstack  {
+    ubyte[]  buffer
+    ubyte  sp
+    free  () -> ubyte
+    init  ()
+    isempty  () -> bool
+    isfull  () -> bool
+    pop_b  () -> ubyte
+    pop_w  () -> uword
+    push_b  (ubyte value)
+    push_w  (uword value)
+    size  () -> ubyte
+}
+
+stack  {
+    uword  buffer_ptr
+    uword  sp
+    free  () -> uword
+    init  ()
+    isempty  () -> bool
+    isfull  () -> bool
+    pop_b  () -> ubyte
+    pop_w  () -> uword
+    push_b  (ubyte value)
+    push_w  (uword value)
+    size  () -> uword
+}
+
+ringbuffer  {
+    uword  buffer_ptr
+    uword  fill
+    uword  head
+    uword  tail
+    free  () -> uword
+    get  () -> ubyte
+    getw  () -> uword
+    inc_head  ()
+    inc_tail  ()
+    init  ()
+    isempty  () -> bool
+    isfull  () -> bool
+    put  (ubyte value)
+    putw  (uword value)
+    size  () -> uword
+}
+
+
+LIBRARY MODULE NAME: compression
+--------------------------------
+
+compression  {
+    decode_rle  (uword compressed @AY, uword target @R0, uword maxsize @R1) clobbers (X) -> uword @AY
+    decode_rle_srcfunc  (uword source_function @AY, uword target @R0, uword maxsize @R1) clobbers (X) -> uword @AY
+    decode_tscrunch  (uword compressed @R0, uword target @R1) clobbers (A,X,Y)
+    decode_tscrunch_inplace  (uword compressed @R0) clobbers (A,X,Y)
+    decode_zx0  (uword compressed @R0, uword target @R1) clobbers (A,X,Y)
+    encode_rle  (uword data, uword size, uword target, bool is_last_block) -> uword
+    encode_rle_outfunc  (uword data, uword size, uword output_function, bool is_last_block)
+}
+
+
+LIBRARY MODULE NAME: wavfile
+----------------------------
+
+wavfile  {
+    const ubyte  Format::ADPCM
+    const ubyte  Format::ALAW
+    const ubyte  Format::DVI_ADPCM
+    const ubyte  Format::IEEE_FLOAT
+    const ubyte  Format::MULAW
+    const ubyte  Format::PCM
+    ubyte  bits_per_sample
+    uword  block_align
+    uword  data_offset
+    long  data_size
+    ubyte  nchannels
+    uword  sample_rate
+    ubyte  wavefmt
+    parse_header  (^^ubyte wav_data) -> bool
+}
+
+

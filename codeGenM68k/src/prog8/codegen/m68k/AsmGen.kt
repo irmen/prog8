@@ -26,7 +26,7 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
     }
 
     init {
-        require(target.cpu == CpuType.M68020) { "M68k codegen requires M68020 cpu" }
+        require(target.cpu == CpuType.M68000 || target.cpu == CpuType.M68020) { "M68k codegen requires M68000 or M68020 cpu, got ${target.cpu}" }
     }
 
     private var labelSeqCounter = 0
@@ -194,7 +194,11 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
         emitDataSection()
         emitBssSection()
 
-        // label prog8_program_end is defined by the linker script
+        if(target.name=="amiga500") {
+            emitRaw("prog8_program_end:     ; end of the program")
+        } else {
+            // label prog8_program_end is defined by the linker script
+        }
 
         val options = program.options
         val asmFile = options.outputDir.resolve("${program.name}.asm")
@@ -246,7 +250,10 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
 
         // Set up stack pointer and jump to program start
         emitLabel("prog8_program_start")
-        emitLine("move.l  #${options.memtopAddress.toHex()}, sp", "initialize stack pointer")
+        
+        if(options.compTarget.name == "qemu68k")
+            emitLine("move.l  #${options.memtopAddress.toHex()}, sp", "initialize stack pointer")
+        
         // clear BSS section
         emitLine("lea  prog8_bss_section_start, a0")
         emitLine("lea  prog8_program_end, a1")

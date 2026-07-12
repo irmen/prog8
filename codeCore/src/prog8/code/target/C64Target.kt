@@ -99,6 +99,7 @@ val CompilationTargets = listOf(
     Cx16Target.NAME,
     PETTarget.NAME,
     Qemu68kTarget.NAME,
+    Amiga500Target.NAME,
     VMTarget.NAME
 )
 
@@ -108,6 +109,7 @@ fun getCompilationTargetByName(name: String) = when(name.lowercase()) {
     Cx16Target.NAME -> Cx16Target()
     PETTarget.NAME -> PETTarget()
     Qemu68kTarget.NAME -> Qemu68kTarget()
+    Amiga500Target.NAME -> Amiga500Target()
     VMTarget.NAME -> VMTarget()
     else -> throw IllegalArgumentException("invalid compilation target")
 }

@@ -154,6 +154,14 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                 processAst(program, args.errors, compilationOptions)
             }
 
+            if(compilationOptions.dumpSymbols) {
+                // symbol dump was printed, skip rest of compilation
+                // (import files have no main block, so optimization would crash)
+                return CompilationResult(
+                    resultingProgram!!, null, null, compilationOptions, importedFiles
+                )
+            }
+
 //            println("*********** COMPILER AST RIGHT BEFORE OPTIMIZING *************")
 //            printProgram(program)
 
@@ -541,10 +549,10 @@ private fun processAst(program: Program, errors: IErrorReporter, compilerOptions
     program.preprocessAst(errors, compilerOptions)
     if(errors.noErrors() && compilerOptions.dumpSymbols) {
         printSymbols(program)
-        exitProcess(0)
+        return
     }
 
-    if(compilerOptions.compTarget.name == Qemu68kTarget.NAME) {
+    if(compilerOptions.compTarget.cpu in setOf(CpuType.M68000, CpuType.M68020)) {
         program.checkM68kSyntax(errors)
         errors.report()
     }
@@ -701,6 +709,7 @@ private fun createAssemblyAndAssemble(program: PtProgram,
                 prog8.codegen.cpu6502.AsmGen6502(lastGeneratedLabelSequenceNr+1, asm6502CallIds)
         }
         compilerOptions.compTarget.name == Qemu68kTarget.NAME -> prog8.codegen.m68k.M68kCodeGenerator(retainSSAforIR)
+        compilerOptions.compTarget.name == Amiga500Target.NAME -> prog8.codegen.m68k.M68kCodeGenerator(retainSSAforIR)
         compilerOptions.compTarget.name == VMTarget.NAME -> VmCodeGen(retainSSAforIR, irCallIds)
         else -> throw NotImplementedError("no code generator for cpu ${compilerOptions.compTarget.cpu}")
     }

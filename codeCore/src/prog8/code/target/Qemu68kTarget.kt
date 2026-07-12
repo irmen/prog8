@@ -62,11 +62,13 @@ class Qemu68kTarget: ICompilationTarget,
         val elfFile = programNameWithPath.resolveSibling("${programNameWithPath.fileName}.elf")
         val binFile = programNameWithPath.resolveSibling("${programNameWithPath.fileName}.bin")
         val isElf = elfFile.toFile().exists()
+        val cpuStr = this.cpu.toString().lowercase()
+
         val cmd = if (isElf) {
             listOf(
                 "qemu-system-m68k",
                 "-M", "virt",
-                "-cpu", "m68020",       // TODO how to dynamically switch this to 68000 if required?
+                "-cpu", cpuStr,
                 "-m", "1M",
                 "-kernel", elfFile.toString(),
                 "-nographic"
@@ -76,7 +78,7 @@ class Qemu68kTarget: ICompilationTarget,
             listOf(
                 "qemu-system-m68k",
                 "-M", "virt",
-                "-cpu", "m68020",       // TODO how to dynamically switch this to 68000 if required?
+                "-cpu", cpuStr,
                 "-m", "1M",
                 "-device", "loader,file=${binFile},addr=0x${loadAddr.toString(16)},cpu-num=0",
                 "-nographic"

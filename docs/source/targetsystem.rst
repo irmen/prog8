@@ -16,7 +16,8 @@ Currently these machines can be selected as a compilation target (via the ``-tar
 - 'cx16': the `Commander X16 <https://www.commanderx16.com/>`_
 - 'c128': the Commodore 128
 - 'pet32': the Commodore PET 4032
-- 'qemu68k': Qemu M68k simulator
+- 'qemu68k': Qemu M68k simulator (experimental)
+- 'amiga500': Amiga 500 (experimental)
 - 'virtual': a builtin virtual machine
 - custom targets via a separate configuration file (see :ref:`customizable_target`)
 

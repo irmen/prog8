@@ -28,7 +28,7 @@ internal object DeferProcessor {
     fun process(program: PtProgram, st: SymbolTable, target: ICompilationTarget, errors: IErrorReporter) {
         // On 68k targets, use UWORD mask so shift/rotate can operate directly on memory
         // (68k only supports .w size for memory operand shifts/rotates)
-        val maskType = if (target.cpu == CpuType.M68020) DataType.UWORD else DataType.UBYTE
+        val maskType = if (target.cpu == CpuType.M68000 || target.cpu == CpuType.M68020) DataType.UWORD else DataType.UBYTE
         val defers = setDeferMasks(program, maskType, errors)
         if(errors.noErrors())
             integrateDefers(defers, program, st, maskType, target, errors)

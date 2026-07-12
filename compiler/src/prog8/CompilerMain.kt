@@ -851,7 +851,7 @@ private fun communicateWithDaemon(channel: SocketChannel, compilerArgs: Compiler
                 "INFO" -> reporter.info(error.message, pos)
             }
         }
-        reporter.report()
+        runCatching { reporter.report() }
 
         System.out.print(response.stdout)
         System.out.flush()

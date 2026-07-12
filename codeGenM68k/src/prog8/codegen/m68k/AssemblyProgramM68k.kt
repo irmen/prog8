@@ -5,11 +5,7 @@ import prog8.code.core.*
 import java.nio.file.Files
 import java.nio.file.Path
 
-class AssemblyProgramM68k(
-    override val name: String,
-    private val outputDir: Path,
-    private val compTarget: ICompilationTarget
-) : IAssemblyProgram {
+class AssemblyProgramM68k(override val name: String, private val outputDir: Path) : IAssemblyProgram {
 
     override val irInstructionCount: Int = 0
     override val irChunkCount: Int = 0
@@ -49,11 +45,12 @@ class AssemblyProgramM68k(
 
     override fun assemble(options: CompilationOptions, errors: IErrorReporter): Boolean {
         val cpu = when(options.compTarget.cpu) {
+            CpuType.M68000 -> "68000"
             CpuType.M68020 -> "68020"
             else -> error("invalid cpu type for m68k codegen ${options.compTarget.cpu}")
         }
 
-        val loadAddr = compTarget.PROGRAM_LOAD_ADDRESS.toInt()
+        val loadAddr = options.compTarget.PROGRAM_LOAD_ADDRESS.toInt()
         when(options.output) {
             OutputType.RAW -> {
                 val rawFile = outputDir.resolve("$name.bin")
@@ -113,6 +110,25 @@ class AssemblyProgramM68k(
                 val linkOk = runProcess(linkCmd, options.quiet, "vlink")
                 Files.deleteIfExists(linkScript)
                 return linkOk
+            }
+            OutputType.AMIGAHUNK -> {
+                // Step 1: assemble directly to AmigaHunk executable file
+                val exefile = outputDir.resolve(name)
+                val assembleCmd = mutableListOf(
+                    "vasmm68k_mot",
+                    "-m$cpu",
+                    "-m68881",  // enable FPU
+                    "-Fhunkexe",
+                    "-opt-speed",
+                    "-ldots",
+                    "-o", exefile.toString(),
+                    assemblyFile.toString()
+                )
+                if (options.asmQuiet)
+                    assembleCmd.add("-quiet")
+                if (!runProcess(assembleCmd, options.quiet, "vasm"))
+                    return false
+                return true
             }
             else -> error("Unsupported output type: ${options.output}")
         }

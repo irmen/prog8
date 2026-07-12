@@ -170,6 +170,7 @@ enum class OutputType {
     PRG,
     XEX,
     ELF,
+    AMIGAHUNK,
     LIBRARY
 }
 

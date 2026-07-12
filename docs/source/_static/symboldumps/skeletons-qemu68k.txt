@@ -1,8 +1,9 @@
 
 Prog8 compiler v12.3-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit e9ff2de4 in branch new-codegens
+Prerelease version from git commit 0764e11f in branch new-codegens
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
+Using existing prog8c daemon at /run/user/1000/prog8c-daemon.sock
 Compiling program import-all-qemu68k.p8
 Compiler target: qemu68k
 
@@ -21,7 +22,7 @@ lmh  (long value) -> ubyte, ubyte, ubyte
 lsb  (uword|word|long value) -> ubyte
 lsw  (uword|word|long value) -> uword
 max  (byte val1, byte val2) -> undefined
-memory  (str name, uword size, uword alignment) -> uword
+memory  (str name, uword size, uword alignment) -> pointer
 min  (byte val1, byte val2) -> undefined
 mklong  (ubyte msb, ubyte b2, ubyte b1, ubyte lsb) -> long
 mklong2  (uword msw, uword lsw) -> long
@@ -32,27 +33,27 @@ offsetof  (ubyte field) -> ubyte
 peek  (uword|long address) -> ubyte
 peekbool  (uword|long address) -> bool
 peekf  (uword|long address) -> float
- peekl  (uword|long address) -> long
- peekw  (uword|long address) -> uword
- peekp  (pointer|uword|long address) -> pointer
- poke  (uword|long address, ubyte|byte value)
- pokebool  (uword|long address, bool value)
- pokebowl  (uword|long address, bool value)
- pokef  (uword|long address, float value)
- pokel  (uword|long address, long value)
- pokemon  (uword address, ubyte value) -> ubyte
- pokew  (uword|long address, uword|word value)
- pokep  (pointer|uword|long address, pointer value)
+peekl  (uword|long address) -> long
+peekp  (pointer|uword|long address) -> pointer
+peekw  (uword|long address) -> uword
+poke  (uword|long address, ubyte|byte value)
+pokebool  (uword|long address, bool value)
+pokebowl  (uword|long address, bool value)
+pokef  (uword|long address, float value)
+pokel  (uword|long address, long value)
+pokemon  (uword address, ubyte value) -> ubyte
+pokep  (pointer|uword|long address, pointer value)
+pokew  (uword|long address, uword|word value)
 pop  () -> ubyte
 popf  () -> float
 popl  () -> long
-popw  () -> uword
 popp  () -> pointer
+popw  () -> uword
 push  (ubyte|byte|bool value)
 pushf  (float value)
 pushl  (long value)
-pushw  (uword|word|pointer value)
 pushp  (pointer value)
+pushw  (uword|word|pointer value)
 rol  (ubyte|uword|long item)
 rol2  (ubyte|uword|long item)
 ror  (ubyte|uword|long item)
@@ -219,23 +220,6 @@ math  {
 }
 
 
-LIBRARY MODULE NAME: sorting
-----------------------------
-
-sorting  {
-    gnomesort_by_ub  (^^ubyte ub_keys, ^^uword wordvalues, ubyte num_elements)
-    gnomesort_by_uw  (uword uw_keys, uword wordvalues, ubyte num_elements)
-    gnomesort_ub  (^^ubyte bytearray @AY, ubyte num_elements @X)
-    gnomesort_uw  (uword wordvalues, ubyte num_elements)
-    shellsort_by_ub  (^^ubyte ub_keys, ^^uword wordvalues, ubyte num_elements)
-    shellsort_by_uw  (^^uword uw_keys, ^^uword wordvalues, ubyte num_elements)
-    shellsort_pointers  (uword pointers, ubyte num_elements, uword comparefunc)
-    shellsort_ub  (^^ubyte values, ubyte num_elements)
-    shellsort_uw  (^^uword values, ubyte num_elements)
-    string_comparator  (str string1 @R0, str string2 @R1) -> bool @Pc
-}
-
-
 LIBRARY MODULE NAME: strings
 ----------------------------
 
@@ -247,7 +231,10 @@ strings  {
     isxdigit  (ubyte char) -> bool
     length  (str string @D0) -> ubyte @D0
     lowerchar  (ubyte char) -> ubyte
+    lowerchar_iso   alias for: strings.lowerchar
     ncopy  (str source @D0, str target @D1, ubyte maxlength @D2) -> ubyte @D0
+    upperchar  (ubyte char) -> ubyte
+    upperchar_iso   alias for: strings.upperchar
 }
 
 
@@ -383,12 +370,14 @@ txt  {
     cls  ()
     color  (ubyte txtcol)
     column  (ubyte col)
+    height  () -> ubyte
     home  ()
     input_chars  (str buffer) -> ubyte
     iso  ()
     keypressed   alias for: qemu.keypressed
     lowercase  ()
     nl  ()
+    plot  (ubyte col, ubyte row)
     print  (str text @A0)
     print_b  (byte value)
     print_bool  (bool value)
@@ -406,7 +395,10 @@ txt  {
     print_w  (word value)
     rvs_off  ()
     rvs_on  ()
+    setchr  (ubyte col, ubyte row, ubyte char)
+    size  () -> ubyte, ubyte
     spc  ()
+    width  () -> ubyte
 }
 
 

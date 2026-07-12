@@ -2,6 +2,7 @@ package prog8.code
 
 import prog8.code.ast.*
 import prog8.code.core.*
+import prog8.code.target.Amiga500Target
 import prog8.code.target.Qemu68kTarget
 import prog8.code.target.VMTarget
 
@@ -35,7 +36,7 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
         }
         require(scopestack.size==1)
 
-        if(options.compTarget.name !in setOf(VMTarget.NAME, Qemu68kTarget.NAME)) {
+        if(options.compTarget.cpu in setOf(CpuType.CPU6502, CpuType.CPU65C02)) {
             listOf(
                 PtMemMapped("P8ZP_SCRATCH_B1", DataType.UBYTE, options.compTarget.zeropage.SCRATCH_B1, null, Position.DUMMY),
                 PtMemMapped("P8ZP_SCRATCH_REG", DataType.UBYTE, options.compTarget.zeropage.SCRATCH_REG, null, Position.DUMMY),
