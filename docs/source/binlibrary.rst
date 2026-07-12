@@ -97,7 +97,9 @@ From Prog8, declare it as a plain ``extsub`` (not ``@bank``)::
 
     extsub $A000 = lib_init()
 
-From BASIC::
+From BASIC:
+
+.. code-block:: text
 
     SYS $A000 : REM TO INITIALIZE VARIABLES, REQUIRED!
 
@@ -148,7 +150,9 @@ Assuming the load address of the library is $A000:
 
 .. index:: single: Examples; Library from BASIC
 
-**From BASIC**::
+**From BASIC**:
+
+.. code-block:: text
 
     BLOAD "LIBRARY.BIN",8,1,$A000
     SYS $A000 : REM TO INITIALIZE VARIABLES, REQUIRED!
@@ -186,7 +190,9 @@ differences if you want to write portable code)::
 
 .. index:: single: Examples; Library from C
 
-**From C**::
+**From C**:
+
+.. code-block:: c
 
     #include <cbm.h>
 
@@ -207,7 +213,9 @@ differences if you want to write portable code)::
 
 .. index:: single: Examples; Library from Assembly
 
-**From Assembly**::
+**From Assembly**:
+
+.. code-block:: text
 
     ; add error handling as desired.
         ldy  #>libname

@@ -438,7 +438,9 @@ Troubleshooting
 Compilation errors or warnings
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 When there are warnings or errors during compilation of your program, no output files will be produced,
-and the error messages will be printed on the screen like this::
+and the error messages will be printed on the screen like this:
+
+.. code-block:: text
 
     ERROR file:///home/user/code/test.p8:13:9: undefined symbol: zzz
 
@@ -538,11 +540,15 @@ A bunch of example programs can be found in the :source:`examples` directory of 
 
 There are cross-platform examples that can be compiled for various systems unaltered,
 and there are also examples specific to certain computers (C64, X16, etcetera).
-So for instance, to compile and run the Commodore 64 rasterbars example program, use this command::
+So for instance, to compile and run the Commodore 64 rasterbars example program, use this command:
+
+.. code-block:: bash
 
     $ java -jar prog8c.jar -target c64 -emu examples/c64/rasterbars.p8
 
-or::
+or:
+
+.. code-block:: bash
 
     $ /path/to/prog8c -target c64 -emu examples/c64/rasterbars.p8
 

@@ -23,7 +23,9 @@ It then prints the top N lines in your (assembly) program source that perform th
 which you can use to identify possible hot spots/bottlenecks/variables that should be better placed in zeropage etc.
 Note that the profiler simply works with the total number of accesses to memory locations.
 This is *not* the same as the most run-time (cpu instructions cycle times aren't taken into account at all)!
-Here is an example of the output it generates::
+Here is an example of the output it generates:
+
+.. code-block:: text
 
     $ scripts/profiler.py -n 10 cobramk3-gfx.list memstats.txt                                                                             ✔
 
@@ -82,7 +84,9 @@ You'll have to redirect the emulator's output to a csv file to capture it.  The 
 
 To use subroutine profiling:
 
-1. Compile your program with the ``-profiling`` flag::
+1. Compile your program with the ``-profiling`` flag:
+
+   .. code-block:: bash
 
        prog8c -target cx16 -profiling your_program.p8
 
@@ -105,7 +109,9 @@ It requires the following Python packages:
 - ``graphviz`` (for PDF/SVG call graph generation)
 - The ``flamegraph.pl`` Perl script (for flame graph generation, usually available via your system package manager)
 
-Run the script::
+Run the script:
+
+.. code-block:: bash
 
     python scripts/parse_profile_csv.py
 
@@ -153,7 +159,9 @@ This presents an interactive menu with the following options:
 Example workflow
 ^^^^^^^^^^^^^^^^
 
-Here's a typical workflow for profiling a Prog8 program::
+Here's a typical workflow for profiling a Prog8 program:
+
+.. code-block:: bash
 
     # Compile with profiling enabled
     prog8c -target cx16 -profiling examples/textelite.p8
