@@ -225,13 +225,10 @@ private fun AsmGen.invertMemory(target: String, type: IRDataType) {
 
 // === Shift/rotate size helpers ===
 
-private fun AsmGen.shiftOpcode(isLeft: Boolean, isArithmetic: Boolean, isRotate: Boolean = false, throughCarry: Boolean = false): String {
+private fun AsmGen.shiftOpcode(isLeft: Boolean, isArithmetic: Boolean, isRotate: Boolean = false): String {
     if (isRotate) {
-        return if (throughCarry) {
-            if (isLeft) "roxl" else "roxr"
-        } else {
-            if (isLeft) "rol" else "ror"
-        }
+        // Always use roxl/roxr (never rol/ror). X is managed as rotate-carry.
+        return if (isLeft) "roxl" else "roxr"
     }
     return if (isLeft) {
         "lsl"
@@ -251,15 +248,20 @@ private fun AsmGen.shiftRegister(reg: Int, count: Int, type: IRDataType, isArith
 }
 
 private fun AsmGen.memoryShiftRotate(target: String, count: Int, type: IRDataType, isArithmetic: Boolean, isLeft: Boolean, isRotate: Boolean, throughCarry: Boolean) {
+    // For logical rotates (ROL/ROR), clear X before roxl/roxr
+    // so the injected bit is 0 (logical rotate, not through-carry).
+    if (isRotate && !throughCarry) {
+        emitLine($$"andi  #$ef, ccr")
+    }
     // On 68k, shift/rotate instructions can operate directly on memory operands
     // (only for .w size, and shift/rotate count must be 1)
     if (type == IRDataType.WORD && count == 1) {
-        val op = shiftOpcode(isLeft, isArithmetic, isRotate, throughCarry)
+        val op = shiftOpcode(isLeft, isArithmetic, isRotate)
         emitLine("$op.w  $target")
         return
     }
     val s = dtSuffix(type)
-    val op = shiftOpcode(isLeft, isArithmetic, isRotate, throughCarry)
+    val op = shiftOpcode(isLeft, isArithmetic, isRotate)
     emitLine("move$s  $target, d0")
     emitLine("$op$s  #$count, d0")
     emitLine("move$s  d0, $target")
@@ -310,25 +312,35 @@ private fun AsmGen.shiftMemoryLeftVar(target: String, countReg: Int, type: IRDat
     emitLine("move$s  d0, $target")
 }
 
-// === Rotates (no carry involvement — true rotates) ===
+// === Rotates ===
+// On M68k, the X (extend/CCR bit 4) bit serves as the "carry for rotates",
+// while C (carry/CCR bit 0) is used for comparisons.
+// This maps naturally: ROL/ROR IR (logical rotate) = clear X + roxl/roxr,
+// ROXL/ROXR IR (rotate through carry) = roxl/roxr directly.
+// CLC/SEC manage both C+X to keep them in sync.
 
 private fun AsmGen.rotateLeft(reg: Int, type: IRDataType) {
+    // IR ROL: logical rotate left (inject 0 into LSB)
     val s = dtSuffix(type)
     emitLine("move$s  ${regAddr(reg)}, d0")
-    emitLine("rol$s  #1, d0")
+    emitLine($$"andi  #$ef, ccr")       // clear X (and leave C alone)
+    emitLine("roxl$s  #1, d0")           // rotate through X: X=0 -> bit 0 gets 0
     emitLine("move$s  d0, ${regAddr(reg)}")
 }
 
 private fun AsmGen.rotateRight(reg: Int, type: IRDataType) {
+    // IR ROR: logical rotate right (inject 0 into MSB)
     val s = dtSuffix(type)
     emitLine("move$s  ${regAddr(reg)}, d0")
-    emitLine("ror$s  #1, d0")
+    emitLine($$"andi  #$ef, ccr")       // clear X (and leave C alone)
+    emitLine("roxr$s  #1, d0")           // rotate through X: X=0 -> MSB gets 0
     emitLine("move$s  d0, ${regAddr(reg)}")
 }
 
 // === Rotates through carry (extend) ===
 
 private fun AsmGen.rotateLeftThroughCarry(reg: Int, type: IRDataType) {
+    // IR ROXL: rotate left through carry (on M68k, X serves as rotate-carry)
     val s = dtSuffix(type)
     emitLine("move$s  ${regAddr(reg)}, d0")
     emitLine("roxl$s  #1, d0")
@@ -336,6 +348,7 @@ private fun AsmGen.rotateLeftThroughCarry(reg: Int, type: IRDataType) {
 }
 
 private fun AsmGen.rotateRightThroughCarry(reg: Int, type: IRDataType) {
+    // IR ROXR: rotate right through carry (on M68k, X serves as rotate-carry)
     val s = dtSuffix(type)
     emitLine("move$s  ${regAddr(reg)}, d0")
     emitLine("roxr$s  #1, d0")

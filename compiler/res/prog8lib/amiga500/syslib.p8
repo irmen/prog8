@@ -62,7 +62,8 @@ sys {
 
     sub set_carry() {
         %asm {{
-            moveq  #1,d0
+            ; set both C (comparison carry) and X (rotate carry) bits
+            moveq  #$11,d0
             move.w  d0,ccr
         }}
     }

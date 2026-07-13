@@ -65,6 +65,12 @@ Status bit contract (see CpuType.statusBitsOnMultiByteOps for the rationale):
   - The shift/rotate operations (ASR, LSR, LSL, ROL, ROR) and their memory variants
     set the CARRY flag (the bit shifted out becomes the new carry) for use by
     ROXL/ROXR (rotate through carry). They do NOT set Z or N.
+    
+    Note for M68k backends: M68k has separate C (carry/CCR bit 0) and X (extend/CCR bit 4)
+    bits. On M68k, the X bit serves as the "rotate carry" for ROXL/ROXR, while C is
+    used for comparisons. ROL/ROR on M68k are implemented as "clear X + roxl/roxr"
+    (logical rotate: inject 0 via X=0), while ROXL/ROXR use roxl/roxr directly
+    (rotate through X). CLC/SEC manage both C and X to keep them in sync.
 
   - ALL other instructions (LOAD, LOADM, LOADX, LOADR, LOADI, INC, INCM, DEC, DECM,
     NEG, NEGM, ADD, SUB, MUL, DIV, AND, OR, XOR, INV, BITSET, BITCLR, BITTOG,
@@ -251,14 +257,14 @@ lsl         reg1                             - shift reg1 left by 1 bits + set C
 lsrm                     address             - shift memory right by 1 bits + set Carry to shifted bit
 asrm                     address             - shift memory right by 1 bits (signed) + set Carry to shifted bit
 lslm                     address             - shift memory left by 1 bits + set Carry to shifted bit
-ror         reg1                             - rotate reg1 right by 1 bits, not using carry  + set Carry to shifted bit
-roxr        reg1                             - rotate reg1 right by 1 bits, using carry  + set Carry to shifted bit  (maps to 6502 CPU instruction ror)
-rol         reg1                             - rotate reg1 left by 1 bits, not using carry  + set Carry to shifted bit
-roxl        reg1                             - rotate reg1 left by 1 bits, using carry,  + set Carry to shifted bit  (maps to 6502 CPU instruction rol)
-rorm                     address             - rotate memory right by 1 bits, not using carry  + set Carry to shifted bit
-roxrm                    address             - rotate memory right by 1 bits, using carry  + set Carry to shifted bit    (maps to 6502 CPU instruction ror)
-rolm                     address             - rotate memory left by 1 bits, not using carry  + set Carry to shifted bit
-roxlm                    address             - rotate memory left by 1 bits, using carry,  + set Carry to shifted bit    (maps to 6502 CPU instruction rol)
+ror         reg1                             - rotate reg1 right by 1 bits, not using carry (logical rotate, inject 0 into MSB) + set Carry to shifted bit
+roxr        reg1                             - rotate reg1 right by 1 bits, using carry (inject carry into MSB) + set Carry to shifted bit  (maps to 6502 ror; M68k uses X as rotate-carry)
+rol         reg1                             - rotate reg1 left by 1 bits, not using carry (logical rotate, inject 0 into LSB) + set Carry to shifted bit
+roxl        reg1                             - rotate reg1 left by 1 bits, using carry (inject carry into LSB) + set Carry to shifted bit  (maps to 6502 rol; M68k uses X as rotate-carry)
+rorm                     address             - rotate memory right by 1 bits, not using carry (logical rotate) + set Carry to shifted bit
+roxrm                    address             - rotate memory right by 1 bits, using carry + set Carry to shifted bit    (maps to 6502 ror; M68k uses X as rotate-carry)
+rolm                     address             - rotate memory left by 1 bits, not using carry (logical rotate) + set Carry to shifted bit
+roxlm                    address             - rotate memory left by 1 bits, using carry + set Carry to shifted bit    (maps to 6502 rol; M68k uses X as rotate-carry)
 
 SINGLE-BIT MANIPULATIONS
 -------------------------

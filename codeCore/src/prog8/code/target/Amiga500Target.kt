@@ -23,42 +23,42 @@ class Amiga500Target: ICompilationTarget,
         
         /** needed to map bank numbers to libraries in extsub/CALLFAR library calls */
         val LibraryNumbers = mapOf(
-             1 to "exec",
-             2 to "dos",
-             3 to "graphics",
-             4 to "intuition",
-             5 to "gadtools",
-             6 to "layers",
-             7 to "asl",
-             8 to "console",
-             9 to "utility",
-            10 to "expansion",
-            11 to "icon",
-            12 to "wb",
-            13 to "diskfont",
-            14 to "iffparse",
-            15 to "input",
-            16 to "keymap",
-            17 to "locale",
-            18 to "timer",
-            19 to "lowlevel",
-            20 to "mathffp",
-            21 to "mathieeesingbas",
-            22 to "mathieeesingtrans",
-            23 to "mathieeedoubbas",
-            24 to "mathieeedoubtrans",
-            25 to "mathtrans",
-            26 to "nonvolatile",
-            27 to "realtime",
-            28 to "translator",
-            29 to "rexxsyslib",
-            30 to "commodities",
-            31 to "datatypes",
-            32 to "disk",
-            33 to "amigaguide",
-            34 to "arexx",
-            35 to "battclock",
-            36 to "battmem"
+             1 to "Sys",        // exec
+             2 to "DOS",
+             3 to "Gfx",
+             4 to "Intuition",
+             5 to "GadTools",
+             6 to "Layers",
+             7 to "Asl",
+             8 to "ConsoleDevice",
+             9 to "Utility",
+            10 to "Expansion",
+            11 to "Icon",
+            12 to "Workbench",
+            13 to "Diskfont",
+            14 to "IFFParse",
+            15 to "Input",
+            16 to "Keymap",
+            17 to "Locale",
+            18 to "Timer",
+            19 to "LowLevel",
+            20 to "Math",
+            21 to "MathIeeeSingBas",
+            22 to "MathIeeeSingTrans",
+            23 to "MathIeeeDoubBas",
+            24 to "MathIeeeDoubTrans",
+            25 to "MathTrans",
+            26 to "NV",
+            27 to "RealTime",
+            28 to "Translator",
+            29 to "RexxSys",
+            30 to "Cx",
+            31 to "DataTypes",
+            32 to "Disk",
+            33 to "AmigaGuide",
+            34 to "ARexx",
+            35 to "BattClock",
+            36 to "BattMem"
         )
     }
 
@@ -107,10 +107,9 @@ class Amiga500Target: ICompilationTarget,
                 "--cpu", cpuStr,
                 exeFile.toString(),
             )
-        println("Launching Amitools's Vamos...")
+        if(!quiet)
+            println("Launching Amitools's Vamos...")
         val pb = ProcessBuilder(cmd).inheritIO()
-        if (quiet)
-            pb.redirectOutput(ProcessBuilder.Redirect.DISCARD)
         pb.start().waitFor()
     }
 

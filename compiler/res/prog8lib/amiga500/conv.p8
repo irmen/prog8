@@ -8,61 +8,71 @@ conv {
 
     %option ignore_unused
     str  string_out = "????????????????"       ; result buffer for the string conversion routines
+    private long @shared fmt_value_l
+    private uword @shared fmt_value_w
 
+    private asmsub putcharproc(ubyte character @D0, pointer output @A3) -> ubyte @D0 {
+        %asm {{
+            move.b  d0, (a3)+           ; Store character in buffer and advance pointer
+            rts                         ; Return control to RawDoFmt loop
+        }}
+    }
 
 sub  str_ub0(ubyte value) -> str {
     ; ---- convert the ubyte in A in decimal string form, with left padding 0s (3 positions total)
-    ; TODO
-    return "todo"
+    fmt_value_w = value as uword
+    void exec.RawDoFmt("%03d", &fmt_value_w, putcharproc, string_out)
+    return string_out
 }
 
 sub  str_ub(ubyte value) -> str {
     ; ---- convert the ubyte in A in decimal string form, without left padding 0s
-    ; TODO
-    return "todo"
+    fmt_value_w = value as uword
+    void exec.RawDoFmt("%d", &fmt_value_w, putcharproc, string_out)
+    return string_out
 }
 
 sub  str_b(byte value) -> str {
     ; ---- convert the byte in A in decimal string form, without left padding 0s
-    ; TODO
-    return "todo"
+    fmt_value_w = value as uword
+    void exec.RawDoFmt("%d", &fmt_value_w, putcharproc, string_out)
+    return string_out
 }
-
-private str hex_digits = "0123456789abcdef"
 
 sub  str_ubhex  (ubyte value) -> str {
     ; ---- convert the ubyte in A in hex string form
-    string_out[0] = hex_digits[value>>4]
-    string_out[1] = hex_digits[value&15]
-    string_out[2] = 0
+    fmt_value_w = value as uword
+    void exec.RawDoFmt("%02x", &fmt_value_w, putcharproc, string_out)
     return string_out
 }
 
 sub  str_ubbin  (ubyte value) -> str {
-    ; ---- convert the ubyte in A in binary string form
+    ; ---- convert the ubyte in binary string form
     ^^ubyte out_ptr = &string_out
+    ubyte mask = 128
     repeat 8 {
-        rol(value)
-        if_cc
-            @(out_ptr) = '0'
-        else
+        if value & mask != 0
             @(out_ptr) = '1'
+        else
+            @(out_ptr) = '0'
         out_ptr++
+        mask >>= 1
     }
     @(out_ptr) = 0
     return string_out
 }
 
 sub  str_uwbin  (uword value) -> str {
-    ; ---- convert the uword in A/Y in binary string form
+    ; ---- convert the uword in binary string form
     ^^ubyte out_ptr = &string_out
+    uword mask = $8000
     repeat 16 {
-        rol(value)
-        if_cc
-            @(out_ptr) = '0'
-        else
+        if value & mask != 0
             @(out_ptr) = '1'
+        else
+            @(out_ptr) = '0'
         out_ptr++
+        mask >>= 1
     }
     @(out_ptr) = 0
     return string_out
@@ -70,123 +80,40 @@ sub  str_uwbin  (uword value) -> str {
 
 sub  str_uwhex  (uword value) -> str {
     ; ---- convert the uword in hexadecimal string form (4 digits)
-    ubyte bits = msb(value)
-    string_out[0] = hex_digits[bits>>4]
-    string_out[1] = hex_digits[bits&15]
-    bits = lsb(value)
-    string_out[2] = hex_digits[bits>>4]
-    string_out[3] = hex_digits[bits&15]
-    string_out[4] = 0
+    void exec.RawDoFmt("%04x", &value, putcharproc, string_out)
     return string_out
 }
 
 sub  str_ulhex  (long value) -> str {
     ; ---- convert the long in hexadecimal string form (8 digits)
-    uword upperw = msw(value)
-    uword lowerw = lsw(value)
-    ubyte bits = msb(upperw)
-    string_out[0] = hex_digits[bits>>4]
-    string_out[1] = hex_digits[bits&15]
-    bits = lsb(upperw)
-    string_out[2] = hex_digits[bits>>4]
-    string_out[3] = hex_digits[bits&15]
-    bits = msb(lowerw)
-    string_out[4] = hex_digits[bits>>4]
-    string_out[5] = hex_digits[bits&15]
-    bits = lsb(lowerw)
-    string_out[6] = hex_digits[bits>>4]
-    string_out[7] = hex_digits[bits&15]
-    string_out[8] = 0
+    void exec.RawDoFmt("%08lx", &value, putcharproc, string_out)
     return string_out
 }
 
 sub  str_uw0  (uword value) -> str {
-    ; ---- convert the uword in A/Y in decimal string form, with left padding 0s (5 positions total)
-    uword value2 = value/10
-    ubyte digits = value-value2*10 as ubyte
-    uword value3 = value2/10
-    ubyte tens = value2-value3*10 as ubyte
-    uword value4 = value3/10
-    ubyte hundreds = value3-value4*10 as ubyte
-    uword value5 = value4/10
-    ubyte thousands = value4-value5*10 as ubyte
-    uword value6 = value5/10
-    ubyte tenthousands = value5-value6*10 as ubyte
-    string_out[0] = tenthousands+'0'
-    string_out[1] = thousands+'0'
-    string_out[2] = hundreds+'0'
-    string_out[3] = tens+'0'
-    string_out[4] = digits+'0'
-    string_out[5] = 0
+    ; ---- convert the uword in decimal string form, with left padding 0s (5 positions total)
+    ; requires kickstart 2.0+
+    void exec.RawDoFmt("%05u", &value, putcharproc, string_out)
     return string_out
 }
 
 sub  str_uw  (uword value) -> str {
-    ; ---- convert the uword in A/Y in decimal string form, without left padding 0s
-    internal_str_uw(value, string_out)
+    ; ---- convert the uword in decimal string form, without left padding 0s
+    ; requires kickstart 2.0+
+    void exec.RawDoFmt("%u", &value, putcharproc, string_out)
     return string_out
 }
 
 sub  str_w  (word value) -> str {
     ; ---- convert the (signed) word into decimal string form, without left padding 0's
-    ^^ubyte out_ptr = &string_out
-    if value<0 {
-        @(out_ptr) = '-'
-        out_ptr++
-        value = -value
-    }
-    internal_str_uw(value as uword, out_ptr)
+    void exec.RawDoFmt("%d", &value, putcharproc, string_out)
     return string_out
 }
 
 sub  str_l  (long value) -> str {
     ; ---- convert the (signed) long into decimal string form
-    ^^ubyte out_ptr = &string_out
-    if value < 0 {
-        @(out_ptr) = '-'
-        out_ptr++
-        value = -value
-    }
-    internal_str_uw(value as uword, out_ptr)
+    void exec.RawDoFmt("%ld", &value, putcharproc, string_out)
     return string_out
-}
-
-private sub internal_str_uw(uword value, str out_ptr) {
-    uword value2 = value/10
-    ubyte digits = value-value2*10 as ubyte
-    uword value3 = value2/10
-    ubyte tens = value2-value3*10 as ubyte
-    uword value4 = value3/10
-    ubyte hundreds = value3-value4*10 as ubyte
-    uword value5 = value4/10
-    ubyte thousands = value4-value5*10 as ubyte
-    uword value6 = value5/10
-    ubyte tenthousands = value5-value6*10 as ubyte
-    if tenthousands!=0
-        goto output_tenthousands
-    if thousands!=0
-        goto output_thousands
-    if hundreds!=0
-        goto output_hundreds
-    if tens!=0
-        goto output_tens
-    goto output_ones
-output_tenthousands:
-    @(out_ptr) = tenthousands+'0'
-    out_ptr++
-output_thousands:
-    @(out_ptr) = thousands+'0'
-    out_ptr++
-output_hundreds:
-    @(out_ptr) = hundreds+'0'
-    out_ptr++
-output_tens:
-    @(out_ptr) = tens+'0'
-    out_ptr++
-output_ones:
-    @(out_ptr) = digits+'0'
-    out_ptr++
-    @(out_ptr) = 0
 }
 
 

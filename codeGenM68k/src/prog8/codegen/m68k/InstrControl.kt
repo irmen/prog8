@@ -65,7 +65,7 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
                     emitLine("move.l  4.w,a6")
                 } else {
                     val library = Amiga500Target.LibraryNumbers.getValue(bank)
-                    val baseVar = "sys.${library.capitalize()}Base"
+                    val baseVar = "sys.${library}Base"
                     emitLine("move.l  $baseVar,a6")
                 }
 
@@ -142,8 +142,11 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
 
         // === Flag manipulation ===
 
-        Opcode.CLC -> emitLine($$"andi  #$fe, ccr")
-        Opcode.SEC -> emitLine($$"ori  #$01, ccr")
+        // On M68k, X (extend/CCR bit 4) serves as the rotate-carry,
+        // while C (carry/CCR bit 0) is used for comparisons.
+        // CLC/SEC must manage both to keep them in sync.
+        Opcode.CLC -> emitLine($$"andi  #$ee, ccr")   // clear C and X
+        Opcode.SEC -> emitLine($$"ori  #$11, ccr")    // set C and X
         Opcode.CLI -> emitLine($$"andi  #$fb, ccr")
         Opcode.SEI -> emitLine($$"ori  #$04, ccr")
 

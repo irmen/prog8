@@ -87,11 +87,11 @@ class Qemu68kTarget: ICompilationTarget,
             System.err.println("No .elf or .bin file found for ${programNameWithPath.fileName}")
             return
         }
-        val launchMsg = if (isElf) "ELF" else "raw binary"
-        println("Launching QEMU (press Ctrl-A X to exit)... (from $launchMsg)")
+        if(!quiet) {
+            val launchMsg = if (isElf) "ELF" else "raw binary"
+            println("Launching QEMU (press Ctrl-A X to exit)... (from $launchMsg)")
+        }
         val pb = ProcessBuilder(cmd).inheritIO()
-        if (quiet)
-            pb.redirectOutput(ProcessBuilder.Redirect.DISCARD)
         try {
             pb.start().waitFor()
         } catch (_: java.io.IOException) {

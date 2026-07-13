@@ -265,6 +265,8 @@ Miscellaneous
     This uses the CPU's rotate semantics: bit 0 will be set to the current value of the Carry flag,
     while the highest bit will become the new Carry flag value.
     (essentially, it is a 9-bit or 17-bit rotation)
+    On M68k targets, the extend (X) bit substitutes the carry flag for rotates
+    (because M68k has separate C and X flags; ``set_carry`` and ``clear_carry`` manage both).
     Modifies in-place, doesn't return a value (so can't be used in an expression).
     You can rol a memory location directly by using the direct memory access syntax, so like ``rol(@($5000))``
     You can use ``if_cc`` or ``if_cs`` after a rol to act on the new carry bit, if required.
@@ -280,6 +282,8 @@ Miscellaneous
     This uses the CPU's rotate semantics: the highest bit will be set to the current value of the Carry flag,
     while bit 0 will become the new Carry flag value.
     (essentially, it is a 9-bit or 17-bit rotation)
+    On M68k targets, the extend (X) bit substitutes the carry flag for rotates
+    (because M68k has separate C and X flags; ``set_carry`` and ``clear_carry`` manage both).
     Modifies in-place, doesn't return a value (so can't be used in an expression).
     You can ror a memory location directly by using the direct memory access syntax, so like ``ror(@($5000))``
     You can use ``if_cc`` or ``if_cs`` after a ror to act on the new carry bit, if required.
@@ -1708,6 +1712,10 @@ processor status flags
 
 ``clear_carry ()``
     Clears the CPU status register Carry flag.
+    On M68k targets, this also clears the X (extend) flag, because on such CPUs
+    the rotate instructions (``rol``, ``ror``) use the X bit as the rotate-carry
+    rather than the C bit.  On 6502-based targets this distinction does not exist
+    (there is only a single carry flag).
 
 ``clear_irqd ()``
     Clears the CPU status register Interrupt Disable flag.
@@ -1727,6 +1735,10 @@ processor status flags
 
 ``set_carry ()``
     Sets the CPU status register Carry flag.
+    On M68k targets, this also sets the X (extend) flag, because on such CPUs
+    the rotate instructions (``rol``, ``ror``) use the X bit as the rotate-carry
+    rather than the C bit.  On 6502-based targets this distinction does not exist
+    (there is only a single carry flag).
 
 ``set_irqd ()``
     Sets the CPU status register Interrupt Disable flag.

@@ -212,6 +212,13 @@ builtin functions (``set_carry()``, ``clear_carry()``, ``set_irqd()``,  ``clear_
 and read via the ``read_flags()`` function.  With the special status branch statements like ``if_cc``,
 ``if_cs`` etc you can branch directly on the status of the flags.
 
+.. note::
+   On M68k targets, ``set_carry()`` and ``clear_carry()`` also affect the X (extend) flag,
+   because the rotate instructions (``rol``, ``ror``) use the X bit as the rotate-carry
+   rather than the C bit that is used for comparisons.  ``set_carry``/``clear_carry`` manage
+   both bits to keep them in sync.  On 6502-based targets there is a single carry flag and
+   this distinction does not arise.
+
 The 16 'virtual' 16-bit registers that are defined on the Commander X16 machine are not real hardware
 registers and are just 16 memory-mapped word values that you *can* access directly from everywhere.
 

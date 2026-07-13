@@ -74,15 +74,16 @@ sub  str_ubhex  (ubyte value) -> str {
 }
 
 sub  str_ubbin  (ubyte value) -> str {
-    ; ---- convert the ubyte in A in binary string form
+    ; ---- convert the ubyte in binary string form
     ^^ubyte out_ptr = &string_out
+    ubyte mask = 128
     repeat 8 {
-        rol(value)
-        if_cc
-            @(out_ptr) = '0'
-        else
+        if value & mask != 0
             @(out_ptr) = '1'
+        else
+            @(out_ptr) = '0'
         out_ptr++
+        mask >>= 1
     }
     @(out_ptr) = 0
     return string_out
@@ -91,13 +92,14 @@ sub  str_ubbin  (ubyte value) -> str {
 sub  str_uwbin  (uword value) -> str {
     ; ---- convert the uword in A/Y in binary string form
     ^^ubyte out_ptr = &string_out
+    uword mask = $8000
     repeat 16 {
-        rol(value)
-        if_cc
-            @(out_ptr) = '0'
-        else
+        if value & mask != 0
             @(out_ptr) = '1'
+        else
+            @(out_ptr) = '0'
         out_ptr++
+        mask >>= 1
     }
     @(out_ptr) = 0
     return string_out
@@ -182,8 +184,35 @@ sub  str_l  (long value) -> str {
         out_ptr++
         value = -value
     }
-    internal_str_uw(value as uword, out_ptr)
+    internal_str_ul(value as long, out_ptr)
     return string_out
+}
+
+private sub internal_str_ul(long value, str out_ptr) {
+    ; ---- convert ulong to decimal string (up to 10 digits), writing to out_ptr
+    ; uses string_out[11..] as temporary backwards buffer then copies forward
+    ubyte ii = 11
+    string_out[ii] = 0
+    if value == 0 {
+        @(out_ptr) = '0'
+        out_ptr++
+        @(out_ptr) = 0
+        return
+    }
+    do {
+        ii--
+        long divided = value / 10
+        ubyte digit = value - divided*10 as ubyte
+        string_out[ii] = digit + '0'
+        value = divided
+    } until value == 0
+    ; copy from temp buffer to output pointer
+    while string_out[ii] != 0 {
+        @(out_ptr) = string_out[ii]
+        out_ptr++
+        ii++
+    }
+    @(out_ptr) = 0
 }
 
 private sub internal_str_uw(uword value, str out_ptr) {

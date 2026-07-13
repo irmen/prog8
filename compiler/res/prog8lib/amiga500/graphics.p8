@@ -23,7 +23,7 @@ graphics {
     extsub @bank 3   -126 = InitMasks(pointer vSprite @A0)
     extsub @bank 3   -132 = RemIBob(pointer bob @A0, pointer rp @A1, pointer vp @A2)
     extsub @bank 3   -138 = RemVSprite(pointer vSprite @A0)
-    extsub @bank 3   -144 = SetCollision(long num @D0, pointer routine @A0, pointer gelB) @A1)
+    extsub @bank 3   -144 = SetCollision(long num @D0, pointer routine @A0, pointer gelB @A1)
     extsub @bank 3   -150 = SortGList(pointer rp @A1)
     extsub @bank 3   -156 = AddAnimOb(pointer anOb @A0, pointer anKey @A1, pointer rp @A2)
     extsub @bank 3   -162 = Animate(pointer anKey @A0, pointer rp @A1)

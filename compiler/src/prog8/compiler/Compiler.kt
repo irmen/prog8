@@ -24,7 +24,6 @@ import kotlin.io.path.Path
 import kotlin.io.path.absolute
 import kotlin.io.path.isRegularFile
 import kotlin.io.path.nameWithoutExtension
-import kotlin.system.exitProcess
 import kotlin.time.Duration
 import kotlin.time.DurationUnit
 import kotlin.time.measureTime
@@ -158,7 +157,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                 // symbol dump was printed, skip rest of compilation
                 // (import files have no main block, so optimization would crash)
                 return CompilationResult(
-                    resultingProgram!!, null, null, compilationOptions, importedFiles
+                    resultingProgram, null, null, compilationOptions, importedFiles
                 )
             }
 

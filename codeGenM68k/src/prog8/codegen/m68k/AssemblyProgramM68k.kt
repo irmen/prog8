@@ -72,7 +72,10 @@ class AssemblyProgramM68k(override val name: String, private val outputDir: Path
                 // clean up any leftover ELF/obj files from previous builds
                 Files.deleteIfExists(outputDir.resolve("$name.elf"))
                 Files.deleteIfExists(outputDir.resolve("$name.o"))
-                return runProcess(assembleCmd, options.quiet, "vasm")
+                val ok = runProcess(assembleCmd, options.quiet, "vasm")
+                if(ok && !options.quiet)
+                    println("Executable written to $rawFile")
+                return ok
             }
             OutputType.ELF -> {
                 // Step 1: assemble to ELF object file
@@ -112,6 +115,8 @@ class AssemblyProgramM68k(override val name: String, private val outputDir: Path
                 )
                 val linkOk = runProcess(linkCmd, options.quiet, "vlink")
                 Files.deleteIfExists(linkScript)
+                if(linkOk && !options.quiet)
+                    println("Executable written to $elfFile")
                 return linkOk
             }
             OutputType.AMIGAHUNK -> {
@@ -128,6 +133,7 @@ class AssemblyProgramM68k(override val name: String, private val outputDir: Path
                             "-opt-speed",
                             "-ldots",
                             "-spaces",
+                            "-nosym",       // no debug symbols
                             "-o", exefile.toString(),
                             assemblyFile.toString()
                         )
@@ -151,6 +157,8 @@ class AssemblyProgramM68k(override val name: String, private val outputDir: Path
                     assembleCmd.add("-quiet")
                 if (!runProcess(assembleCmd, options.quiet, "vasm"))
                     return false
+                if(!options.quiet)
+                    println("Executable written to $exefile")
                 return true
             }
             else -> error("Unsupported output type: ${options.output}")
