@@ -456,5 +456,14 @@ exec {
     const uword SYS_TRAPALLOC = $8000
     const ubyte INCLUDE_VERSION = $002f
     const ubyte LIBRARY_MINIMUM = $0021
+    const long ERR_OPENDEVICE = -1
+    const ubyte MEM_BLOCKMASK = $0007
+    const ubyte NL = $000a
+    const ubyte TS_ADDED = $0001
+    const ubyte TS_RUN = $0002
+    const ubyte TS_READY = $0003
+    const ubyte TS_WAIT = $0004
+    const ubyte TS_EXCEPT = $0005
+    const ubyte TS_REMOVED = $0006
 }
 ;; End of auto-generated exec_lib.sfd

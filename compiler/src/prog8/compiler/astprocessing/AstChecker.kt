@@ -1089,8 +1089,9 @@ internal class AstChecker(private val program: Program,
                 }
                 val numvalue = decl.value?.constValue(program)
                 if(numvalue!=null) {
-                    if (!numvalue.type.isInteger || numvalue.number.toInt() < 0 || numvalue.number.toInt() > 65535) {
-                        valueerr($$"memory address must be valid integer 0..$ffff")
+                    val maxAddr = if(options.compTarget.POINTER_MEM_SIZE > 2u) 0xFFFFFFFFu else 0xFFFFu
+                    if (!numvalue.type.isInteger || numvalue.number.toLong() < 0L || numvalue.number.toLong() > maxAddr.toLong()) {
+                        valueerr("memory address must be valid integer 0..\$${maxAddr.toString(16)}")
                     }
                 } else {
                     valueerr("value of memory mapped variable can only be a constant number, maybe use an address pointer type instead?")

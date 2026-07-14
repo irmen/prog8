@@ -113,7 +113,11 @@ class Amiga500Target: ICompilationTarget,
         pb.start().waitFor()
     }
 
-    override fun isIOAddress(address: UInt): Boolean = false        // TODO add amiga I/O ranges
+    override fun isIOAddress(address: UInt): Boolean =
+        address in 0xbfd000u..0xbfdfffu ||             // CIA-B
+        address in 0xbfe000u..0xbfefffu ||             // CIA-A
+        address in 0xdff000u..0xdff1ffu ||             // Custom chipset (Paula, Alice, Lisa, Denise)
+        address in 0xe80000u..0xefffffu                // Zorro II autoconfig space
 
     override fun initializeMemoryAreas(compilerOptions: CompilationOptions) {
         zeropage = AmigaZeropage(compilerOptions)

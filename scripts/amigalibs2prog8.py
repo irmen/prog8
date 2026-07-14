@@ -27,7 +27,7 @@ TYPE_MAP = {
     'LONG': 'long', 'ULONG': 'long',
     'WORD': 'word', 'UWORD': 'uword',
     'BYTE': 'byte', 'UBYTE': 'ubyte',
-    'BOOL': 'bool',
+    'BOOL': 'uword',  # uword (not bool) for STRUCT fields: BOOL is 16-bit WORD on m68k; using 1-byte bool would read the high byte on big-endian, always seeing 0 for small values. Function returns override to 'bool' in parse_c_type (reads D0 low byte, which is correct).
     'FLOAT': 'float', 'DOUBLE': 'float',
     'APTR': 'pointer', 'CONST_APTR': 'pointer',
     'CPTR': 'pointer', 'BPTR': 'pointer',
@@ -235,7 +235,7 @@ TYPE_MAP_SIZES = {
     'TEXT': 4, 'CONST_TEXT': 4, 'BSTR': 4, 'PLANEPTR': 4, 'DisplayInfoHandle': 4,
     'LONG': 4, 'ULONG': 4,
     'WORD': 2, 'UWORD': 2,
-    'BYTE': 1, 'UBYTE': 1, 'BOOL': 1,
+    'BYTE': 1, 'UBYTE': 1, 'BOOL': 2,
     'FLOAT': 4, 'DOUBLE': 8,
     'STRUCT': 0,
 }
@@ -372,10 +372,8 @@ def _flatten(tag: str, rs, all_raw: dict, prefix: str, visiting: frozenset, size
     offset = 0
     base_off = _parse_size_expr(rs['base_offset_str'], sizes)
     if base_off > 0:
-        # First try to find parent by label name (exact match)
         parent_tag = _find_tag_by_label(rs['base_offset_str'], all_raw)
         if parent_tag is None:
-            # Fall back to size-based lookup
             parent_tag = _find_tag_by_size(base_off, all_raw)
         if parent_tag and parent_tag in STRUCT_NAME_MAP:
             pprefix = STRUCT_NAME_MAP[parent_tag][1]
@@ -385,7 +383,6 @@ def _flatten(tag: str, rs, all_raw: dict, prefix: str, visiting: frozenset, size
     for field in rs['fields_raw']:
         if field['type'] == 'STRUCT':
             sz = _parse_size_expr(field.get('size_str', ''), sizes)
-            # Don't expand Clang-generated opaque struct fields (already handled)
             if field.get('_clang_processed'):
                 flat.append({
                     'prog8_type': 'ubyte',
@@ -413,42 +410,50 @@ def _flatten(tag: str, rs, all_raw: dict, prefix: str, visiting: frozenset, size
         else:
             ptype = TYPE_MAP.get(field['type'], 'pointer')
             sz = field['_size']
+            if sz > 1:
+                if offset & 1:
+                    flat.append({
+                        'prog8_type': 'ubyte',
+                        'prog8_name': f'_pad_{hex(offset)[2:]}',
+                        'offset': offset,
+                        'origin_tag': tag,
+                    })
+                    offset += 1
             if field.get('_clang_processed'):
                 pname = field['name']
                 if field.get('_is_array'):
-                    # Arrays: store as ubyte[size] name (Prog8 supports array struct fields)
                     flat.append({
                         'prog8_type': ptype,
                         'prog8_name': pname,
-                        'offset': field.get('_offset', offset),
+                        'offset': offset,
                         'array_size': field['_size'] // _type_size(ptype),
                         'origin_tag': tag,
                     })
-                    if '_offset' in field:
-                        offset = field['_offset'] + field['_size']
-                    else:
-                        offset += field['_size']
+                    offset += field['_size']
                     continue
-                # String detection for Clang fields (not arrays)
                 if ptype == 'pointer' and _is_clang_string_field(pname):
                     ptype = 'str'
             else:
                 pname = _field_name(field['name'], prefix)
-                # Some APTR fields in .i files are actually string pointers (STRPTR in C)
                 if ptype == 'pointer' and _is_string_field(field['name'], prefix):
                     ptype = 'str'
             flat.append({
                 'prog8_type': ptype,
                 'prog8_name': pname,
-                'offset': field.get('_offset', offset),
+                'offset': offset,
                 'origin_tag': tag,
             })
-            if '_offset' in field:
-                offset = field['_offset'] + sz
-            else:
-                offset += sz
+            offset += sz
             for extra in field.get('extra_names', []):
                 ename = _field_name(extra, prefix)
+                if sz > 1 and offset & 1:
+                    flat.append({
+                        'prog8_type': 'ubyte',
+                        'prog8_name': f'_pad_{hex(offset)[2:]}',
+                        'offset': offset,
+                        'origin_tag': tag,
+                    })
+                    offset += 1
                 flat.append({
                     'prog8_type': ptype,
                     'prog8_name': ename,
@@ -772,17 +777,17 @@ def generate_structs(resolved: dict, lib_name: str, indent: str = '    ', header
         fields = rs['fields']
         total_size = rs['size']
         stripped = []
-        # struct truncation override: strip everything at/after named field
+        # struct truncation override: strip everything after named field (field itself is kept)
         truncate_after = STRUCT_TRUNCATE_AFTER.get(rs["c_name"])
         if truncate_after:
             for fi, f in enumerate(fields):
-                if f['prog8_name'] == truncate_after:
-                    to_strip = fields[fi:]
+                if f['prog8_name'] == truncate_after and f.get('origin_tag', tag) == tag:
+                    to_strip = fields[fi+1:]
                     for fs in to_strip:
                         fsz = fs.get('array_size', 1) * _type_size(fs['prog8_type'])
                         total_size -= fsz
                         stripped.append((fs, fsz))
-                    del fields[fi:]
+                    del fields[fi+1:]
                     break
         # strip trailing reserved fields if struct exceeds max_size
         if total_size > max_size:
@@ -795,6 +800,17 @@ def generate_structs(resolved: dict, lib_name: str, indent: str = '    ', header
                     del fields[fi]
                     if total_size <= max_size:
                         break
+            # if still too large, strip opaque embedded structs (ubyte[N]) from the end
+            if total_size > max_size:
+                for fi in range(len(fields) - 1, -1, -1):
+                    f = fields[fi]
+                    fsize = f.get('array_size', 1) * _type_size(f['prog8_type'])
+                    if f['prog8_type'] == 'ubyte' and f.get('array_size', 1) > 4:
+                        total_size -= fsize
+                        stripped.append((f, fsize))
+                        del fields[fi]
+                        if total_size <= max_size:
+                            break
         # recompute total_size from remaining fields
         if fields:
             last = max(fields, key=lambda f: f['offset'])
@@ -850,10 +866,10 @@ def generate_consts(consts: list, lib_name: str, indent: str = '    ', header_te
 # Struct truncation overrides
 # ---------------------------------------------------------------------------
 
-# Struct tag -> field name: truncate struct to end before this field.
-# Fields from (and including) this field are stripped with a comment.
+# Struct tag -> field name: truncate struct after this field (field itself is kept).
+# Fields after the named field are stripped with a comment.
 STRUCT_TRUNCATE_AFTER = {
-    'Screen': 'Font',       # Screen exceeds 256B limit due to huge embedded sub-structs
+    'Screen': 'emb_RastPort',   # Keep direct fields + ViewPort + RastPort, strip everything after
 }
 
 # ---------------------------------------------------------------------------
@@ -899,7 +915,10 @@ def parse_c_type(c_type: str) -> tuple:
     c_type = c_type.replace('*', '').strip()
     c_type = re.sub(r'\b(struct|union)\s+', '', c_type).strip()
     if c_type in TYPE_MAP:
-        return (TYPE_MAP[c_type], c_type)
+        prog8_type = TYPE_MAP[c_type]
+        if c_type == 'BOOL':
+            prog8_type = 'bool'
+        return (prog8_type, c_type)
     return ('pointer', c_type) if is_ptr else ('long', c_type)
 
 
@@ -1496,7 +1515,9 @@ def parse_structs_from_clang(ndk_path: str, lib_name: str) -> dict:
         'graphics': ['graphics/gfx.h', 'graphics/rastport.h', 'graphics/clip.h',
                      'graphics/view.h', 'graphics/text.h', 'graphics/layers.h',
                      'graphics/videocontrol.h'],
-        'intuition': ['intuition/intuition.h'],
+        'intuition': ['intuition/intuition.h',
+                      'graphics/gfx.h', 'graphics/view.h', 'graphics/rastport.h',
+                      'graphics/clip.h', 'graphics/text.h', 'graphics/layers.h'],
     }
 
     # Which struct tags belong to which library (to avoid cross-library duplication)

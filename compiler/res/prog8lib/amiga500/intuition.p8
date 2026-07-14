@@ -268,6 +268,7 @@ intuition {
         ubyte FrontPen  ; 0
         ubyte BackPen  ; 1
         ubyte DrawMode  ; 2
+        ubyte _pad_3  ; 3
         word LeftEdge  ; 4
         word TopEdge  ; 6
         pointer ITextFont  ; 8
@@ -301,6 +302,7 @@ intuition {
         pointer ItemFill  ; 18
         pointer SelectFill  ; 22
         byte Command  ; 26
+        ubyte _pad_1b  ; 27
         pointer SubItem  ; 28
         uword NextSelect  ; 32
     }
@@ -355,6 +357,7 @@ intuition {
         pointer ReqText  ; 24
         uword Flags  ; 28
         ubyte BackFill  ; 30
+        ubyte _pad_1f  ; 31
         pointer ReqLayer  ; 32
         ubyte[32] ReqPad1  ; 36
         pointer ImageBMap  ; 68
@@ -363,7 +366,7 @@ intuition {
         ubyte[32] ReqPad2  ; 80
     }
 
-    struct Screen {  ; total size: 40
+    struct Screen {  ; total size: 184
         pointer NextScreen  ; 0
         pointer FirstWindow  ; 4
         word LeftEdge  ; 8
@@ -384,7 +387,11 @@ intuition {
         byte WBorLeft  ; 36
         byte WBorRight  ; 37
         byte WBorBottom  ; 38
-    ; stripped: pointer UserData (4B), pointer ExtData (4B), pointer BarLayer (4B), uword SaveColor0 (2B), ubyte BlockPen (1B), ubyte DetailPen (1B), pointer FirstGadget (4B), ubyte[102] emb_LayerInfo (102B), ubyte[40] emb_BitMap (40B), ubyte[100] emb_RastPort (100B), ubyte[40] emb_ViewPort (40B), pointer Font (4B)
+        ubyte _pad_27  ; 39
+        pointer Font  ; 40
+        ubyte[40] emb_ViewPort  ; 44
+        ubyte[100] emb_RastPort  ; 84
+    ; stripped: pointer UserData (4B), pointer ExtData (4B), pointer BarLayer (4B), uword SaveColor0 (2B), ubyte BlockPen (1B), ubyte DetailPen (1B), pointer FirstGadget (4B), ubyte[102] emb_LayerInfo (102B), ubyte[40] emb_BitMap (40B)
     }
 
     struct Window {  ; total size: 136

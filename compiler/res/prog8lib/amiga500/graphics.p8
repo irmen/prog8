@@ -765,5 +765,14 @@ graphics {
     const ubyte PENF_EXCLUSIVE = $0001
     const ubyte PENB_NO_SETCOLOR = 1
     const ubyte PENF_NO_SETCOLOR = $0002
+    const long VGAEXTRALORESHAM_KEY = $00031804
+    const long VGAEXTRALORESHAMLACE_KEY = $00031805
+    const long VGAEXTRALORESEHB_KEY = $00031084
+    const long VGAEXTRALORESEHBLACE_KEY = $00031085
+    const long EURO72EXTRALORESHAM_KEY = $00061804
+    const long EURO72EXTRALORESHAMLACE_KEY = $00061805
+    const long EURO72EXTRALORESEHB_KEY = $00061084
+    const long EURO72EXTRALORESEHBLACE_KEY = $00061085
+    const ubyte COLORMAP_TYPE_V36 = $0001
 }
 ;; End of auto-generated graphics_lib.sfd

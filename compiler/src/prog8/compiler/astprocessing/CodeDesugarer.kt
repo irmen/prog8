@@ -790,7 +790,7 @@ _after:
                 var struct = firstDt.subType
                 for(name in identifier.nameInSource.drop(1)) {
                     if(struct==null) {
-                        errors.err("unknown field '${name}'", position = identifier.position)
+                        errors.err("cannot lookup fields through untyped pointers", position = identifier.position)
                         return noModifications
                     }
                     val fieldDt = struct.getFieldType(name)
