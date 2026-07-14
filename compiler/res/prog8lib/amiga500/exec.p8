@@ -128,15 +128,15 @@ exec {
         ubyte Type  ; 8
         byte Pri  ; 9
         str Name  ; 10
-        pointer Replyport  ; 14
-        uword IOStdReq_Length  ; 18
+        pointer ReplyPort  ; 14
+        uword Length  ; 18
         pointer Device  ; 20
         pointer Unit  ; 24
         uword Command  ; 28
         ubyte Flags  ; 30
         byte Error  ; 31
         long Actual  ; 32
-        long Length  ; 36
+        long IOStdReq_Length  ; 36
         pointer Data  ; 40
         long Offset  ; 44
     }
@@ -147,8 +147,8 @@ exec {
         ubyte Type  ; 8
         byte Pri  ; 9
         str Name  ; 10
-        pointer Replyport  ; 14
-        uword IOStdReq_Length  ; 18
+        pointer ReplyPort  ; 14
+        uword Length  ; 18
         pointer Device  ; 20
         pointer Unit  ; 24
         uword Command  ; 28
@@ -169,7 +169,7 @@ exec {
     struct List {  ; total size: 14
         pointer Head  ; 0
         pointer Tail  ; 4
-        pointer Tailpred  ; 8
+        pointer TailPred  ; 8
         ubyte Type  ; 12
         ubyte Pad  ; 13
     }
@@ -182,13 +182,13 @@ exec {
         str Name  ; 10
         ubyte Flags  ; 14
         ubyte Pad  ; 15
-        uword Negsize  ; 16
-        uword Possize  ; 18
+        uword NegSize  ; 16
+        uword PosSize  ; 18
         uword Version  ; 20
         uword Revision  ; 22
-        str Idstring  ; 24
+        str IdString  ; 24
         long Sum  ; 28
-        uword Opencnt  ; 32
+        uword OpenCnt  ; 32
     }
 
     struct Node {  ; total size: 14
@@ -202,7 +202,7 @@ exec {
     struct MinList {  ; total size: 12
         pointer Head  ; 0
         pointer Tail  ; 4
-        pointer Tailpred  ; 8
+        pointer TailPred  ; 8
     }
 
     struct MinNode {  ; total size: 8
@@ -216,7 +216,7 @@ exec {
         ubyte Type  ; 8
         byte Pri  ; 9
         str Name  ; 10
-        pointer Replyport  ; 14
+        pointer ReplyPort  ; 14
         uword Length  ; 18
     }
 
@@ -227,16 +227,16 @@ exec {
         byte Pri  ; 9
         str Name  ; 10
         ubyte Flags  ; 14
-        ubyte Sigbit  ; 15
-        pointer Sigtask  ; 16
+        ubyte SigBit  ; 15
+        pointer SigTask  ; 16
         pointer Head  ; 20
         pointer Tail  ; 24
-        pointer Tailpred  ; 28
+        pointer TailPred  ; 28
         ubyte List_Type  ; 32
         ubyte Pad  ; 33
     }
 
-    struct Task {  ; total size: 84
+    struct Task {  ; total size: 92
         pointer Succ  ; 0
         pointer Pred  ; 4
         ubyte Type  ; 8
@@ -244,27 +244,29 @@ exec {
         str Name  ; 10
         ubyte Flags  ; 14
         ubyte State  ; 15
-        byte Idnestcnt  ; 16
-        byte Tdnestcnt  ; 17
-        long Sigalloc  ; 18
-        long Sigwait  ; 22
-        long Sigrecvd  ; 26
-        long Sigexcept  ; 30
-        uword Trapalloc  ; 34
-        uword Trapable  ; 36
-        pointer Exceptdata  ; 38
-        pointer Exceptcode  ; 42
-        pointer Trapdata  ; 46
-        pointer Trapcode  ; 50
-        pointer Spreg  ; 54
-        pointer Splower  ; 58
-        pointer Spupper  ; 62
-        pointer Head  ; 66
-        pointer Tail  ; 70
-        pointer Tailpred  ; 74
-        ubyte List_Type  ; 78
-        ubyte Pad  ; 79
-        pointer Userdata  ; 80
+        byte IDNestCnt  ; 16
+        byte TDNestCnt  ; 17
+        long SigAlloc  ; 18
+        long SigWait  ; 22
+        long SigRecvd  ; 26
+        long SigExcept  ; 30
+        uword TrapAlloc  ; 34
+        uword TrapAble  ; 36
+        pointer ExceptData  ; 38
+        pointer ExceptCode  ; 42
+        pointer TrapData  ; 46
+        pointer TrapCode  ; 50
+        pointer SPReg  ; 54
+        pointer SPLower  ; 58
+        pointer SPUpper  ; 62
+        pointer Switch  ; 66
+        pointer Launch  ; 70
+        pointer Head  ; 74
+        pointer Tail  ; 78
+        pointer TailPred  ; 82
+        ubyte List_Type  ; 86
+        ubyte Pad  ; 87
+        pointer UserData  ; 88
     }
 
     ; ---- constants ----

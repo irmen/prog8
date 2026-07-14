@@ -14,6 +14,9 @@ import sys
 import re
 import os
 import argparse
+import subprocess
+import json
+import tempfile
 
 # ---------------------------------------------------------------------------
 # Type mapping
@@ -233,7 +236,7 @@ TYPE_MAP_SIZES = {
     'LONG': 4, 'ULONG': 4,
     'WORD': 2, 'UWORD': 2,
     'BYTE': 1, 'UBYTE': 1, 'BOOL': 1,
-    'FLOAT': 4, 'DOUBLE': 4,
+    'FLOAT': 4, 'DOUBLE': 8,
     'STRUCT': 0,
 }
 
@@ -345,7 +348,7 @@ def resolve_struct_sizes(raw_structs: dict) -> dict:
             'c_name': c_name,
             'prefix': prefix,
             'fields': flat,
-            'size': flat[-1]['offset'] + _type_size(flat[-1]['prog8_type']) if flat else 0,
+            'size': rs.get('total_size', 0) or (flat[-1]['offset'] + _type_size(flat[-1]['prog8_type']) if flat else 0),
         }
         # If the mapping has a split, also emit the base struct
         if len(entry) >= 3 and isinstance(entry[2], tuple):
@@ -382,36 +385,68 @@ def _flatten(tag: str, rs, all_raw: dict, prefix: str, visiting: frozenset, size
     for field in rs['fields_raw']:
         if field['type'] == 'STRUCT':
             sz = _parse_size_expr(field.get('size_str', ''), sizes)
-            emb_tag = _find_tag_by_size(sz, all_raw)
-            if emb_tag and emb_tag in STRUCT_NAME_MAP:
-                eprefix = STRUCT_NAME_MAP[emb_tag][1]
-                eflat = _flatten(emb_tag, all_raw[emb_tag], all_raw, eprefix, new_visiting, sizes)
-                for ef in eflat:
-                    ec = dict(ef)
-                    ec['offset'] += offset
-                    flat.append(ec)
-            else:
+            # Don't expand Clang-generated opaque struct fields (already handled)
+            if field.get('_clang_processed'):
                 flat.append({
-                    'prog8_type': 'pointer',
+                    'prog8_type': 'ubyte',
                     'prog8_name': f'emb_{field["name"]}',
                     'offset': offset,
-                    'comment': f'; TODO embedded {field["size_str"]}',
+                    'array_size': sz,
                 })
+            else:
+                emb_tag = _find_tag_by_size(sz, all_raw)
+                if emb_tag and emb_tag in STRUCT_NAME_MAP:
+                    eprefix = STRUCT_NAME_MAP[emb_tag][1]
+                    eflat = _flatten(emb_tag, all_raw[emb_tag], all_raw, eprefix, new_visiting, sizes)
+                    for ef in eflat:
+                        ec = dict(ef)
+                        ec['offset'] += offset
+                        flat.append(ec)
+                else:
+                    flat.append({
+                        'prog8_type': 'ubyte',
+                        'prog8_name': f'emb_{field["name"]}',
+                        'offset': offset,
+                        'array_size': sz,
+                    })
             offset += sz
         else:
             ptype = TYPE_MAP.get(field['type'], 'pointer')
-            pname = _field_name(field['name'], prefix)
             sz = field['_size']
-            # Some APTR fields in .i files are actually string pointers (STRPTR in C)
-            if ptype == 'pointer' and _is_string_field(field['name'], prefix):
-                ptype = 'str'
+            if field.get('_clang_processed'):
+                pname = field['name']
+                if field.get('_is_array'):
+                    # Arrays: store as ubyte[size] name (Prog8 supports array struct fields)
+                    flat.append({
+                        'prog8_type': ptype,
+                        'prog8_name': pname,
+                        'offset': field.get('_offset', offset),
+                        'array_size': field['_size'] // _type_size(ptype),
+                        'origin_tag': tag,
+                    })
+                    if '_offset' in field:
+                        offset = field['_offset'] + field['_size']
+                    else:
+                        offset += field['_size']
+                    continue
+                # String detection for Clang fields (not arrays)
+                if ptype == 'pointer' and _is_clang_string_field(pname):
+                    ptype = 'str'
+            else:
+                pname = _field_name(field['name'], prefix)
+                # Some APTR fields in .i files are actually string pointers (STRPTR in C)
+                if ptype == 'pointer' and _is_string_field(field['name'], prefix):
+                    ptype = 'str'
             flat.append({
                 'prog8_type': ptype,
                 'prog8_name': pname,
-                'offset': offset,
+                'offset': field.get('_offset', offset),
                 'origin_tag': tag,
             })
-            offset += sz
+            if '_offset' in field:
+                offset = field['_offset'] + sz
+            else:
+                offset += sz
             for extra in field.get('extra_names', []):
                 ename = _field_name(extra, prefix)
                 flat.append({
@@ -464,6 +499,17 @@ _STRING_FIELD_KEYWORDS = frozenset({
     '_TITLE', '_NAME', '_TEXT', '_STRING', '_COMMENT', '_IDSTRING',
     '_MATCHSTRING', '_SCREENTITLE', '_WINDOWTITLE',
 })
+
+# PascalCase equivalents for Clang field detection
+_CLANG_STRING_SUFFIXES = frozenset({
+    'Name', 'Text', 'Title', 'String', 'Comment', 'IdString',
+    'MatchString', 'ScreenTitle', 'WindowTitle',
+})
+
+
+def _is_clang_string_field(name: str) -> bool:
+    """Check if a PascalCase field name looks like a string pointer."""
+    return name in _CLANG_STRING_SUFFIXES or name.rstrip('_') in _CLANG_STRING_SUFFIXES
 
 
 def _is_string_field(raw_field_name: str, prefix: str) -> bool:
@@ -602,7 +648,8 @@ def _ct(v: int) -> str:
 # Prog8 code generation
 # ---------------------------------------------------------------------------
 
-def generate_structs(resolved: dict, lib_name: str, indent: str = '    ', header_text: str | None = None) -> str:
+def generate_structs(resolved: dict, lib_name: str, indent: str = '    ', header_text: str | None = None,
+                     max_size: int = 256) -> str:
     lines = []
     if not resolved:
         return ''
@@ -611,17 +658,64 @@ def generate_structs(resolved: dict, lib_name: str, indent: str = '    ', header
     for tag in sorted(resolved.keys()):
         lines.append('')
         rs = resolved[tag]
-        lines.append(f'{indent}struct {rs["c_name"]} {{  ; total size: {rs["size"]}')
-        for f in rs['fields']:
+        fields = rs['fields']
+        total_size = rs['size']
+        stripped = []
+        # struct truncation override: strip everything at/after named field
+        truncate_after = STRUCT_TRUNCATE_AFTER.get(rs["c_name"])
+        if truncate_after:
+            for fi, f in enumerate(fields):
+                if f['prog8_name'] == truncate_after:
+                    to_strip = fields[fi:]
+                    for fs in to_strip:
+                        fsz = fs.get('array_size', 1) * _type_size(fs['prog8_type'])
+                        total_size -= fsz
+                        stripped.append((fs, fsz))
+                    del fields[fi:]
+                    break
+        # strip trailing reserved fields if struct exceeds max_size
+        if total_size > max_size:
+            for fi in range(len(fields) - 1, -1, -1):
+                f = fields[fi]
+                fsize = f.get('array_size', 1) * _type_size(f['prog8_type'])
+                if 'reserved' in f['prog8_name'].lower():
+                    total_size -= fsize
+                    stripped.append((f, fsize))
+                    del fields[fi]
+                    if total_size <= max_size:
+                        break
+        # recompute total_size from remaining fields
+        if fields:
+            last = max(fields, key=lambda f: f['offset'])
+            last_end = last['offset'] + (last.get('array_size', 1) * _type_size(last['prog8_type']))
+            total_size = last_end
+            if total_size & 1:
+                total_size += 1  # word-align
+        else:
+            total_size = 0
+        lines.append(f'{indent}struct {rs["c_name"]} {{  ; total size: {total_size}')
+        for f in fields:
             ptype = f['prog8_type']
             pname = f['prog8_name']
             off = f['offset']
             comment = f.get('comment', '')
-            line = f'{indent}    {ptype} {pname}'
+            arr_size = f.get('array_size')
+            if arr_size:
+                line = f'{indent}    {ptype}[{arr_size}] {pname}'
+            else:
+                line = f'{indent}    {ptype} {pname}'
             if comment:
                 line += f'  {comment}'
             line += f'  ; {off}'
             lines.append(line)
+        if stripped:
+            stripped.reverse()
+            parts = ', '.join(
+                (f'{f["prog8_type"]}[{f["array_size"]}] ' if f.get("array_size") else f'{f["prog8_type"]} ')
+                + f'{f["prog8_name"]} ({fz}B)'
+                for f, fz in stripped
+            )
+            lines.append(f'{indent}; stripped: {parts}')
         lines.append(f'{indent}}}')
     return '\n'.join(lines)
 
@@ -640,6 +734,16 @@ def generate_consts(consts: list, lib_name: str, indent: str = '    ', header_te
         lines.append(line)
     return '\n'.join(lines)
 
+
+# ---------------------------------------------------------------------------
+# Struct truncation overrides
+# ---------------------------------------------------------------------------
+
+# Struct tag -> field name: truncate struct to end before this field.
+# Fields from (and including) this field are stripped with a comment.
+STRUCT_TRUNCATE_AFTER = {
+    'Screen': 'Font',       # Screen exceeds 256B limit due to huge embedded sub-structs
+}
 
 # ---------------------------------------------------------------------------
 # Library bank mapping (unchanged)
@@ -853,6 +957,528 @@ def parse_sfd_func_line(line: str):
 
 
 # ---------------------------------------------------------------------------
+# Clang JSON AST based struct parser (replaces .i file parsing)
+# ---------------------------------------------------------------------------
+
+# Mapping from C qualType (as emitted by clang) to NDK type tokens
+_C_QUAL_TO_NDK = {
+    'APTR': ('APTR', 4),
+    'CONST_APTR': ('CONST_APTR', 4),
+    'BPTR': ('BPTR', 4),
+    'CPTR': ('CPTR', 4),
+    'STRPTR': ('STRPTR', 4),
+    'CONST_STRPTR': ('CONST_STRPTR', 4),
+    'PLANEPTR': ('PLANEPTR', 4),
+    'DisplayInfoHandle': ('DisplayInfoHandle', 4),
+    'BSTR': ('BSTR', 4),
+    'UBYTE': ('UBYTE', 1),
+    'BYTE': ('BYTE', 1),
+    'UWORD': ('UWORD', 2),
+    'WORD': ('WORD', 2),
+    'ULONG': ('ULONG', 4),
+    'LONG': ('LONG', 4),
+    'BOOL': ('BOOL', 2),
+    'FLOAT': ('FLOAT', 4),
+    'DOUBLE': ('DOUBLE', 8),
+    'TEXT': ('UBYTE', 1),
+    'CONST_TEXT': ('UBYTE', 1),
+    'char': ('UBYTE', 1),
+    'unsigned char': ('UBYTE', 1),
+    'signed char': ('BYTE', 1),
+}
+
+
+def _c_field_type_to_ndk(qual_type: str, typedef_map: dict) -> tuple:
+    """Convert a C qualType string to (ndk_type, size_in_bytes)."""
+    qt = qual_type.strip()
+
+    # Pointer types: anything with * or function pointer syntax
+    if '*' in qt or '(**' in qt or '(*)(' in qt:
+        # char * is a string pointer
+        if qt.startswith('char ') or qt.startswith('const char '):
+            return ('STRPTR', 4)
+        if 'char' in qt.replace('*', '').strip():
+            return ('STRPTR', 4)
+        return ('APTR', 4)
+
+    # Function pointers like void (*)()
+    if qt.startswith('void (*') or qt.startswith('void (*'):
+        return ('APTR', 4)
+
+    # Embedded structs/unions: struct Name (without *)
+    if qt.startswith('struct ') or qt.startswith('union '):
+        return ('STRUCT', 0)
+
+    # Arrays: BaseType[N]
+    m = re.match(r'(\S+)\[(\d+)\]', qt)
+    if m:
+        base_qt = m.group(1)
+        count = int(m.group(2))
+        base_ndk, base_size = _c_field_type_to_ndk(base_qt, typedef_map)
+        return (base_ndk, base_size * count)
+
+    # Void is unusual for a field but handle it
+    if qt == 'void':
+        return ('APTR', 4)
+
+    # Try direct NDK type lookup
+    if qt in _C_QUAL_TO_NDK:
+        return _C_QUAL_TO_NDK[qt]
+
+    # Resolve typedef chain
+    resolved = qt
+    seen = set()
+    while resolved in typedef_map and resolved not in seen:
+        seen.add(resolved)
+        resolved = typedef_map[resolved]
+        if resolved in _C_QUAL_TO_NDK:
+            return _C_QUAL_TO_NDK[resolved]
+
+    # Try cleaning up qualifiers
+    cleaned = re.sub(r'\b(const|volatile|unsigned|signed)\b', '', resolved).strip()
+    cleaned = re.sub(r'\s+', ' ', cleaned)
+    if cleaned in _C_QUAL_TO_NDK:
+        return _C_QUAL_TO_NDK[cleaned]
+
+    # Fallback: 4 bytes as APTR
+    return ('APTR', 4)
+
+
+def _c_field_name_to_asm(c_name: str, prefix: str) -> str:
+    """Convert a C field name to Prog8 field name.
+
+    Strips the C-style lowercase prefix (e.g. 'ln_', 'lh_', 'tc_')
+    and PascalCases the result: first char uppercase, rest lowercase.
+    Handles special case where l_pad doesn't match prefix lh_ (falls back to l_).
+    """
+    if not c_name:
+        return 'unknown'
+
+    pu = prefix.upper()
+    lower_name = c_name.lower()
+
+    # Try full prefix match first
+    c_prefix = prefix.lower().rstrip('_')
+    if c_prefix and lower_name.startswith(c_prefix + '_'):
+        rest = c_name[len(c_prefix) + 1:]
+    elif lower_name.startswith(prefix.lower()):
+        rest = c_name[len(prefix):]
+    else:
+        # Try stripping the first underscore-delimited component
+        parts = c_name.split('_', 1)
+        if len(parts) == 2:
+            rest = parts[1]
+        else:
+            rest = c_name
+
+    if not rest:
+        return 'unknown'
+
+    # Preserve existing mixed case (already PascalCase like RPort, TxHeight)
+    # Only PascalCase if all-uppercase (like REPLYPE) or all-lowercase (like replype)
+    if rest.isupper() or rest.islower():
+        result = rest[0].upper() + rest[1:].lower()
+    else:
+        result = rest  # Keep existing mixed case
+
+    # Ensure the name doesn't start with a digit (invalid in Prog8)
+    if result and result[0].isdigit():
+        # Prefix with the first component of the original C name
+        prefix_part = c_name.split('_')[0]
+        # Keep PascalCase for the prefix part
+        prefix_part = prefix_part[0].upper() + prefix_part[1:].lower()
+        result = prefix_part + '_' + result
+
+    return result
+
+
+# 68000 word-alignment rule: align to min(type_size, 2)
+_ALIGNMENT = lambda s: min(s, 2)
+
+
+def _align_offset(offset: int, size: int) -> int:
+    align = _ALIGNMENT(size)
+    if align > 0 and offset % align != 0:
+        offset += align - (offset % align)
+    return offset
+
+
+def _build_typedef_map(ast: dict) -> dict:
+    """Build a mapping from typedef name to underlying qualType from the JSON AST."""
+    typedef_map = {}
+
+    def walk(node):
+        if isinstance(node, dict):
+            if node.get('kind') == 'TypedefDecl':
+                name = node.get('name')
+                qtype = node.get('type', {}).get('qualType')
+                if name and qtype and '?' not in qtype and qtype != name:
+                    typedef_map[name] = qtype
+            for val in node.values():
+                if isinstance(val, (dict, list)):
+                    walk(val)
+        elif isinstance(node, list):
+            for item in node:
+                walk(item)
+
+    walk(ast)
+    return typedef_map
+
+
+def _find_record_decl(ast: dict, name: str) -> dict | None:
+    """Find a RecordDecl (struct definition) by name, preferring the definition over forward declarations."""
+
+    found = []
+
+    def search(node):
+        if isinstance(node, dict):
+            if node.get('kind') == 'RecordDecl' and node.get('name') == name:
+                found.append(node)
+            for val in node.values():
+                if isinstance(val, (dict, list)):
+                    search(val)
+        elif isinstance(node, list):
+            for item in node:
+                search(item)
+
+    search(ast)
+
+    # Prefer definition with fields
+    for d in found:
+        if d.get('isDefinition') and any(c.get('kind') == 'FieldDecl' for c in d.get('inner', [])):
+            return d
+    # Then any definition
+    for d in found:
+        if d.get('isDefinition'):
+            return d
+    # Then any with fields
+    for d in found:
+        if any(c.get('kind') == 'FieldDecl' for c in d.get('inner', [])):
+            return d
+    # Otherwise return first
+    return found[0] if found else None
+
+
+def _get_struct_fields(record_decl: dict) -> list:
+    """Extract FieldDecl entries from a RecordDecl."""
+    fields = []
+    for child in record_decl.get('inner', []):
+        if child.get('kind') == 'FieldDecl':
+            name = child.get('name', '')
+            qtype = child.get('type', {}).get('qualType', '')
+            if name and qtype:
+                fields.append((name, qtype))
+    return fields
+
+
+def _find_tag_by_c_name(c_name: str) -> str | None:
+    """Find the assembly tag that corresponds to a C struct name."""
+    for tag, entry in STRUCT_NAME_MAP.items():
+        if len(entry) >= 4:
+            # Some entries have alternative names
+            if entry[0] == c_name or entry[3] == c_name:
+                return tag
+        elif entry[0] == c_name:
+            return tag
+    return None
+
+
+_STRUCT_CACHE: dict = {}
+
+
+def _compute_ast_struct_size(record_decl: dict, typedef_map: dict, ast: dict) -> int:
+    """Compute total size of a struct from its Clang AST RecordDecl."""
+    total = 0
+    for child in record_decl.get('inner', []):
+        if child.get('kind') == 'FieldDecl':
+            qtype = child.get('type', {}).get('qualType', '')
+            if qtype.startswith('struct ') and '*' not in qtype and '(' not in qtype:
+                struct_name = qtype[len('struct '):].strip()
+                emb_record = _find_record_decl(ast, struct_name)
+                if emb_record and any(c.get('kind') == 'FieldDecl' for c in emb_record.get('inner', [])):
+                    sz = _compute_ast_struct_size(emb_record, typedef_map, ast)
+                else:
+                    sz = 0
+            else:
+                _, sz = _c_field_type_to_ndk(qtype, typedef_map)
+            total = _align_offset(total, sz) + sz
+    # Tail padding to 2
+    if total % 2 != 0:
+        total += 1
+    return total
+
+
+def _add_simple_field(fields_raw: list, field_name: str, qual_type: str,
+                      typedef_map: dict, ast: dict, used_names: set,
+                      tag: str, prefix: str, offset: int) -> int:
+    """Add a regular (non-struct) field to fields_raw, update offset."""
+    # Handle array types
+    array_match = re.match(r'(\w+(?:\s*\*)?)\s*\[(\d+)\]', qual_type)
+    count = 1
+    if array_match:
+        base_type_str = array_match.group(1)
+        count = int(array_match.group(2))
+        ndk_type, field_size = _c_field_type_to_ndk(base_type_str, typedef_map)
+        field_size *= count
+    else:
+        ndk_type, field_size = _c_field_type_to_ndk(qual_type, typedef_map)
+
+    # Compute aligned offset
+    offset = _align_offset(offset, field_size)
+
+    # Determine field name
+    raw_name = _c_field_name_to_asm(field_name, prefix)
+    base_name = raw_name
+
+    # Resolve name conflicts by prefixing with C struct name
+    if raw_name in used_names:
+        cname = STRUCT_NAME_MAP.get(tag, ('',))[0]
+        raw_name = cname + '_' + raw_name
+
+    used_names.add(base_name)
+    used_names.add(raw_name)
+
+    field_dict = {
+        'type': ndk_type,
+        'name': raw_name,
+        'extra_names': [],
+        'comment': '',
+        '_offset': offset,
+        '_size': field_size,
+        '_clang_processed': True,
+        '_is_array': bool(array_match and count > 1),
+    }
+    if ndk_type == 'STRUCT':
+        field_dict['size_str'] = str(field_size)
+    fields_raw.append(field_dict)
+    return offset + field_size
+
+
+def _inline_struct_fields(tag: str, ast: dict, typedef_map: dict,
+                          used_names: set, offset: int) -> tuple[list, int]:
+    """Recursively inline fields of a struct, handling embedded structs.
+
+    Returns (fields_raw, new_offset).
+    """
+    entry = STRUCT_NAME_MAP.get(tag)
+    if not entry:
+        return [], offset
+
+    c_name = entry[0]
+    prefix = entry[1]
+    record = _find_record_decl(ast, c_name)
+    if record is None:
+        return [], offset
+
+    fields_raw = []
+    current_offset = offset
+    pending_anon_record = None  # anonymous RecordDecl awaiting its FieldDecl
+
+    def _has_prefix(fname: str) -> bool:
+        """Check if a field name starts with the struct's prefix (lowercase).
+        E.g. mp_Node starts with mp_ prefix, ViewPort does NOT start with sc_ prefix."""
+        cp = prefix.lower().rstrip('_')
+        return cp and fname.lower().startswith(cp)
+
+    # Iterate over all children; handle FieldDecl and anonymous RecordDecl (inline structs)
+    for child in record.get('inner', []):
+        kind = child.get('kind')
+
+        if kind == 'RecordDecl' and not child.get('name'):
+            # Anonymous inline struct: store for the following FieldDecl
+            pending_anon_record = child
+            continue
+
+        if kind == 'FieldDecl':
+            field_name = child.get('name', '')
+            qual_type = child.get('type', {}).get('qualType', '')
+            if not field_name or not qual_type:
+                continue
+
+            # Handle embedded structs/unions (not pointers) — including anonymous ones
+            is_anon_struct = qual_type.startswith('struct (unnamed') or qual_type.startswith('union (unnamed')
+            is_named_struct = (qual_type.startswith('struct ') or qual_type.startswith('union ')) and '*' not in qual_type
+            if is_named_struct or is_anon_struct:
+                if is_anon_struct and pending_anon_record:
+                    # Inline the anonymous struct's fields (X, Y) directly into parent
+                    for anon_child in pending_anon_record.get('inner', []):
+                        if anon_child.get('kind') == 'FieldDecl':
+                            fname = anon_child.get('name', '')
+                            qtype = anon_child.get('type', {}).get('qualType', '')
+                            if not fname or not qtype:
+                                continue
+                            current_offset = _add_simple_field(
+                                fields_raw, fname, qtype, typedef_map, ast,
+                                used_names, tag, prefix, current_offset)
+                    pending_anon_record = None
+                    continue
+                if is_named_struct and '(' not in qual_type:
+                    struct_name = qual_type[len('struct '):].strip()
+                    emb_tag = _find_tag_by_c_name(struct_name)
+                    if emb_tag and _has_prefix(field_name):
+                        emb_fields, current_offset = _inline_struct_fields(
+                            emb_tag, ast, typedef_map, used_names, current_offset)
+                        fields_raw.extend(emb_fields)
+                        continue
+
+                # Anonymous struct or non-prefix embedded: compute size and create opaque block
+                if is_anon_struct:
+                    # Find preceding anonymous RecordDecl
+                    anon_record = None
+                    for sib in record.get('inner', []):
+                        if sib.get('kind') == 'RecordDecl' and not sib.get('name'):
+                            anon_record = sib
+                            break
+                    if anon_record and any(c.get('kind') == 'FieldDecl' for c in anon_record.get('inner', [])):
+                        struct_size = _compute_ast_struct_size(anon_record, typedef_map, ast)
+                    else:
+                        struct_size = 0
+                else:
+                    emb_record = _find_record_decl(ast, struct_name)
+                    if emb_record and any(c.get('kind') == 'FieldDecl' for c in emb_record.get('inner', [])):
+                        struct_size = _compute_ast_struct_size(emb_record, typedef_map, ast)
+                    else:
+                        struct_size = 0
+
+                # Create opaque ubyte[N] field for the embedded struct
+                current_offset = _align_offset(current_offset, struct_size)
+                raw_name = _c_field_name_to_asm(field_name, prefix)
+                base_name = raw_name
+                if raw_name in used_names:
+                    cname = STRUCT_NAME_MAP.get(tag, ('',))[0]
+                    raw_name = cname + '_' + raw_name
+                used_names.add(base_name)
+                used_names.add(raw_name)
+                fields_raw.append({
+                    'type': 'STRUCT',
+                    'name': raw_name,
+                    'extra_names': [],
+                    'comment': '',
+                    '_offset': current_offset,
+                    '_size': struct_size,
+                    '_clang_processed': True,
+                    'size_str': str(struct_size),
+                })
+                current_offset += struct_size
+                continue
+
+            # Regular field (not struct or union)
+            current_offset = _add_simple_field(fields_raw, field_name, qual_type, typedef_map, ast, used_names, tag, prefix, current_offset)
+
+    return fields_raw, current_offset
+
+
+def parse_structs_from_clang(ndk_path: str, lib_name: str) -> dict:
+    """Parse struct definitions from C headers via clang JSON AST dump.
+
+    Returns dict in the same raw_structs format as parse_struct_i_files().
+    Falls back to .i file parsing if clang is unavailable or fails.
+    """
+    inc_path = os.path.join(ndk_path, 'Include_H')
+
+    # Build the C source to feed to clang
+    c_lines = ['#include <exec/exec.h>']
+
+    lib_headers = {
+        'exec': [],
+        'dos': ['dos/dosextens.h', 'dos/exall.h'],
+        'graphics': ['graphics/gfx.h', 'graphics/rastport.h', 'graphics/clip.h',
+                     'graphics/view.h', 'graphics/text.h', 'graphics/layers.h',
+                     'graphics/videocontrol.h'],
+        'intuition': ['intuition/intuition.h'],
+    }
+
+    # Which struct tags belong to which library (to avoid cross-library duplication)
+    lib_struct_tags = {
+        'exec': {'LN', 'MLN', 'LH', 'MLH', 'MP', 'MN', 'IO', 'IS', 'LIB', 'TC_Struct'},
+        'dos': {'FileHandle', 'FileLock', 'Process', 'DosPacket', 'StandardPacket',
+                'DateStamp', 'FileInfoBlock', 'InfoData', 'ErrorString', 'ExAllData', 'ExAllControl'},
+        'graphics': {'RastPort', 'Layer', 'ClipRect', 'BitMap', 'View', 'TextFont',
+                     'TextAttr', 'ColorMap', 'TmpRas', 'AreaInfo', 'TextExtent'},
+        'intuition': {'Window', 'Screen', 'IntuiMessage', 'Gadget', 'Image', 'Border',
+                      'IntuiText', 'MenuItem', 'Requester', 'NewScreen', 'NewWindow',
+                      'IBox', 'EasyStruct', 'ExtGadget', 'ExtIntuiMessage', 'DrawInfo',
+                      'ColorSpec', 'Menu'},
+    }
+    for hdr in lib_headers.get(lib_name, []):
+        c_lines.append(f'#include <{hdr}>')
+
+    c_source = '\n'.join(c_lines)
+
+    # Write temp C file and run clang
+    try:
+        with tempfile.NamedTemporaryFile(suffix='.c', mode='w', delete=False) as f:
+            f.write(c_source)
+            c_file = f.name
+
+        result = subprocess.run(
+            ['clang', '-Xclang', '-ast-dump=json', '-fsyntax-only',
+             f'-I{inc_path}', c_file],
+            capture_output=True, text=True, timeout=30)
+
+        if result.returncode != 0:
+            print(f"Warning: clang error: {result.stderr}", file=sys.stderr)
+            return None
+
+        ast = json.loads(result.stdout)
+    except (subprocess.TimeoutExpired, FileNotFoundError, json.JSONDecodeError,
+            PermissionError, OSError) as e:
+        print(f"Warning: clang AST dump failed: {e}", file=sys.stderr)
+        return None
+    finally:
+        try:
+            os.unlink(c_file)
+        except OSError:
+            pass
+
+    # Build typedef map
+    typedef_map = _build_typedef_map(ast)
+
+    # Parse all structs in STRUCT_NAME_MAP that exist in the AST
+    allowed_tags = lib_struct_tags.get(lib_name, set())
+    structs = {}
+    for tag in STRUCT_NAME_MAP:
+        # Only include structs that belong to this library
+        if tag not in allowed_tags:
+            continue
+        entry = STRUCT_NAME_MAP[tag]
+        c_name = entry[0]
+        prefix = entry[1]
+
+        record = _find_record_decl(ast, c_name)
+        if record is None:
+            continue
+
+        # Check struct size from AST if available
+        if record.get('type', {}).get('qualType'):
+            t = record.get('type', {})
+            size_info = t.get('size', 0)
+            # Not all AST versions provide size in RecordDecl
+        used_names = set()
+        fields_raw, total_size = _inline_struct_fields(tag, ast, typedef_map,
+                                                       used_names, 0)
+
+        # Tail padding: round total size to highest alignment
+        max_align = 2
+        if total_size % max_align != 0:
+            total_size += max_align - (total_size % max_align)
+
+        structs[tag] = {
+            'tag': tag,
+            'base_offset_str': '0',
+            'fields_raw': fields_raw,
+            'total_size': total_size,
+            'labels': [],
+        }
+
+    if not structs:
+        print("Warning: no structs found via clang AST dump", file=sys.stderr)
+        return None
+
+    return structs
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -875,19 +1501,24 @@ def main():
     ndk = args.ndk_path.rstrip('/')
     lib = args.lib_name
 
-    # Detect if we need to generate structs section inside the block
+    # Parse struct definitions - prefer clang JSON AST over .i files
+    all_raw = {}
     inc = os.path.join(ndk, 'Include_I', lib)
     exec_inc = os.path.join(ndk, 'Include_I', 'exec')
     if args.structs or args.consts:
-        all_raw = {}
-        if os.path.isdir(exec_inc):
-            all_raw.update(parse_struct_i_files(exec_inc))
-        if os.path.isdir(inc):
-            lib_structs = parse_struct_i_files(inc)
-            for tag in lib_structs:
-                if tag in all_raw:
-                    print(f"Warning: struct '{tag}' from exec overwritten by {lib}", file=sys.stderr)
-            all_raw.update(lib_structs)
+        clang_structs = parse_structs_from_clang(ndk, lib)
+        if clang_structs is not None:
+            all_raw = clang_structs
+        else:
+            # Fallback to .i file parsing
+            if os.path.isdir(exec_inc):
+                all_raw.update(parse_struct_i_files(exec_inc))
+            if os.path.isdir(inc):
+                lib_structs = parse_struct_i_files(inc)
+                for tag in lib_structs:
+                    if tag in all_raw:
+                        print(f"Warning: struct '{tag}' from exec overwritten by {lib}", file=sys.stderr)
+                all_raw.update(lib_structs)
     else:
         all_raw = {}
 

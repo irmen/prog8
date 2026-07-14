@@ -137,9 +137,9 @@ intuition {
     struct Border {  ; total size: 16
         word LeftEdge  ; 0
         word TopEdge  ; 2
-        byte FrontPen  ; 4
-        byte BackPen  ; 5
-        byte DrawMode  ; 6
+        ubyte FrontPen  ; 4
+        ubyte BackPen  ; 5
+        ubyte DrawMode  ; 6
         byte Count  ; 7
         pointer Xy  ; 8
         pointer NextBorder  ; 12
@@ -153,153 +153,108 @@ intuition {
     }
 
     struct DrawInfo {  ; total size: 50
-        uword Dri_Version  ; 0
-        uword Dri_NumPens  ; 2
-        pointer Dri_Pens  ; 4
-        pointer Dri_Font  ; 8
-        uword Dri_Depth  ; 12
-        uword Dri_ResolutionX  ; 14
-        uword Dri_ResolutionY  ; 16
-        long Dri_Flags  ; 18
-        pointer Dri_CheckMark  ; 22
-        pointer Dri_AmigaKey  ; 26
-        pointer Succ  ; 30
-        pointer Pred  ; 34
-        ubyte Type  ; 38
-        byte Pri  ; 39
-        str Name  ; 40
-        pointer Replyport  ; 44
-        uword Length  ; 48
+        uword Version  ; 0
+        uword NumPens  ; 2
+        pointer Pens  ; 4
+        pointer Font  ; 8
+        uword Depth  ; 12
+        uword X  ; 14
+        uword Y  ; 16
+        long Flags  ; 18
+        pointer CheckMark  ; 22
+        pointer AmigaKey  ; 26
+        pointer Screen  ; 30
+        long[4] Reserved  ; 34
     }
 
     struct EasyStruct {  ; total size: 20
         long StructSize  ; 0
         long Flags  ; 4
         str Title  ; 8
-        pointer TextFormat  ; 12
-        pointer GadgetFormat  ; 16
+        str TextFormat  ; 12
+        str GadgetFormat  ; 16
     }
 
     struct ExtGadget {  ; total size: 56
-        pointer G_NextGadget  ; 0
-        word G_LeftEdge  ; 4
-        word G_TopEdge  ; 6
-        word G_Width  ; 8
-        word G_Height  ; 10
-        word G_Flags  ; 12
-        word G_Activation  ; 14
-        word G_GadgetType  ; 16
-        pointer G_GadgetRender  ; 18
-        pointer G_SelectRender  ; 22
-        pointer G_GadgetText  ; 26
-        long G_MutualExclude  ; 30
-        pointer G_SpecialInfo  ; 34
-        word G_GadgetID  ; 38
-        pointer G_UserData  ; 40
-        long G_MoreFlags  ; 44
-        word G_BoundsLeftEdge  ; 48
-        word G_BoundsTopEdge  ; 50
-        word G_BoundsWidth  ; 52
-        word G_BoundsHeight  ; 54
+        pointer NextGadget  ; 0
+        word LeftEdge  ; 4
+        word TopEdge  ; 6
+        word Width  ; 8
+        word Height  ; 10
+        uword Flags  ; 12
+        uword Activation  ; 14
+        uword GadgetType  ; 16
+        pointer GadgetRender  ; 18
+        pointer SelectRender  ; 22
+        pointer GadgetText  ; 26
+        long MutualExclude  ; 30
+        pointer SpecialInfo  ; 34
+        uword GadgetID  ; 38
+        pointer UserData  ; 40
+        long MoreFlags  ; 44
+        word BoundsLeftEdge  ; 48
+        word BoundsTopEdge  ; 50
+        word BoundsWidth  ; 52
+        word BoundsHeight  ; 54
     }
 
-    struct ExtIntuiMessage {  ; total size: 8
-        pointer emb_eim_IntuiMessage  ; TODO embedded im_SIZEOF  ; 0
-        pointer TabletData  ; 4
+    struct ExtIntuiMessage {  ; total size: 56
+        ubyte[20] emb_ExecMessage  ; 0
+        long Class  ; 20
+        uword Code  ; 24
+        uword Qualifier  ; 26
+        pointer IAddress  ; 28
+        word MouseX  ; 32
+        word MouseY  ; 34
+        long Seconds  ; 36
+        long Micros  ; 40
+        pointer IDCMPWindow  ; 44
+        pointer SpecialLink  ; 48
+        pointer TabletData  ; 52
     }
 
     struct Gadget {  ; total size: 44
-        pointer Gg_NextGadget  ; 0
-        word Gg_LeftEdge  ; 4
-        word Gg_TopEdge  ; 6
-        word Gg_Width  ; 8
-        word Gg_Height  ; 10
-        word Gg_Flags  ; 12
-        word Gg_Activation  ; 14
-        word Gg_GadgetType  ; 16
-        pointer Gg_GadgetRender  ; 18
-        pointer Gg_SelectRender  ; 22
-        pointer Gg_GadgetText  ; 26
-        long Gg_MutualExclude  ; 30
-        pointer Gg_SpecialInfo  ; 34
-        word Gg_GadgetID  ; 38
-        pointer Gg_UserData  ; 40
+        pointer NextGadget  ; 0
+        word LeftEdge  ; 4
+        word TopEdge  ; 6
+        word Width  ; 8
+        word Height  ; 10
+        uword Flags  ; 12
+        uword Activation  ; 14
+        uword GadgetType  ; 16
+        pointer GadgetRender  ; 18
+        pointer SelectRender  ; 22
+        pointer GadgetText  ; 26
+        long MutualExclude  ; 30
+        pointer SpecialInfo  ; 34
+        uword GadgetID  ; 38
+        pointer UserData  ; 40
     }
 
     struct IBox {  ; total size: 8
-        word Ox_Left  ; 0
-        word Ox_Top  ; 2
-        word Ox_Width  ; 4
-        word Ox_Height  ; 6
-    }
-
-    struct IOStdReq {  ; total size: 48
-        pointer Succ  ; 0
-        pointer Pred  ; 4
-        ubyte Type  ; 8
-        byte Pri  ; 9
-        str Name  ; 10
-        pointer Replyport  ; 14
-        uword IOStdReq_Length  ; 18
-        pointer Device  ; 20
-        pointer Unit  ; 24
-        uword Command  ; 28
-        ubyte Flags  ; 30
-        byte Error  ; 31
-        long Actual  ; 32
-        long Length  ; 36
-        pointer Data  ; 40
-        long Offset  ; 44
-    }
-
-    struct IORequest {  ; total size: 32
-        pointer Succ  ; 0
-        pointer Pred  ; 4
-        ubyte Type  ; 8
-        byte Pri  ; 9
-        str Name  ; 10
-        pointer Replyport  ; 14
-        uword IOStdReq_Length  ; 18
-        pointer Device  ; 20
-        pointer Unit  ; 24
-        uword Command  ; 28
-        ubyte Flags  ; 30
-        byte Error  ; 31
-    }
-
-    struct Interrupt {  ; total size: 22
-        pointer Succ  ; 0
-        pointer Pred  ; 4
-        ubyte Type  ; 8
-        byte Pri  ; 9
-        str Name  ; 10
-        pointer Data  ; 14
-        pointer Code  ; 18
+        word Left  ; 0
+        word Top  ; 2
+        word Width  ; 4
+        word Height  ; 6
     }
 
     struct Image {  ; total size: 20
-        word Ig_LeftEdge  ; 0
-        word Ig_TopEdge  ; 2
-        word Ig_Width  ; 4
-        word Ig_Height  ; 6
-        word Ig_Depth  ; 8
-        pointer Ig_ImageData  ; 10
-        byte Ig_PlanePick  ; 14
-        byte Ig_PlaneOnOff  ; 15
-        pointer Ig_NextImage  ; 16
+        word LeftEdge  ; 0
+        word TopEdge  ; 2
+        word Width  ; 4
+        word Height  ; 6
+        word Depth  ; 8
+        pointer ImageData  ; 10
+        ubyte PlanePick  ; 14
+        ubyte PlaneOnOff  ; 15
+        pointer NextImage  ; 16
     }
 
     struct IntuiMessage {  ; total size: 52
-        pointer Succ  ; 0
-        pointer Pred  ; 4
-        ubyte Type  ; 8
-        byte Pri  ; 9
-        str Name  ; 10
-        pointer Replyport  ; 14
-        uword Length  ; 18
+        ubyte[20] emb_ExecMessage  ; 0
         long Class  ; 20
-        word Code  ; 24
-        word Qualifier  ; 26
+        uword Code  ; 24
+        uword Qualifier  ; 26
         pointer IAddress  ; 28
         word MouseX  ; 32
         word MouseY  ; 34
@@ -310,85 +265,14 @@ intuition {
     }
 
     struct IntuiText {  ; total size: 20
-        byte FrontPen  ; 0
-        byte BackPen  ; 1
-        byte DrawMode  ; 2
-        byte KludgeFill00  ; 3
+        ubyte FrontPen  ; 0
+        ubyte BackPen  ; 1
+        ubyte DrawMode  ; 2
         word LeftEdge  ; 4
         word TopEdge  ; 6
         pointer ITextFont  ; 8
-        pointer IText  ; 12
+        str IText  ; 12
         pointer NextText  ; 16
-    }
-
-    struct List {  ; total size: 14
-        pointer Head  ; 0
-        pointer Tail  ; 4
-        pointer Tailpred  ; 8
-        ubyte Type  ; 12
-        ubyte Pad  ; 13
-    }
-
-    struct Library {  ; total size: 34
-        pointer Succ  ; 0
-        pointer Pred  ; 4
-        ubyte Type  ; 8
-        byte Pri  ; 9
-        str Name  ; 10
-        ubyte Flags  ; 14
-        ubyte Pad  ; 15
-        uword Negsize  ; 16
-        uword Possize  ; 18
-        uword Version  ; 20
-        uword Revision  ; 22
-        str Idstring  ; 24
-        long Sum  ; 28
-        uword Opencnt  ; 32
-    }
-
-    struct Node {  ; total size: 14
-        pointer Succ  ; 0
-        pointer Pred  ; 4
-        ubyte Type  ; 8
-        byte Pri  ; 9
-        str Name  ; 10
-    }
-
-    struct MinList {  ; total size: 12
-        pointer Head  ; 0
-        pointer Tail  ; 4
-        pointer Tailpred  ; 8
-    }
-
-    struct MinNode {  ; total size: 8
-        pointer Succ  ; 0
-        pointer Pred  ; 4
-    }
-
-    struct Message {  ; total size: 20
-        pointer Succ  ; 0
-        pointer Pred  ; 4
-        ubyte Type  ; 8
-        byte Pri  ; 9
-        str Name  ; 10
-        pointer Replyport  ; 14
-        uword Length  ; 18
-    }
-
-    struct MsgPort {  ; total size: 34
-        pointer Succ  ; 0
-        pointer Pred  ; 4
-        ubyte Type  ; 8
-        byte Pri  ; 9
-        str Name  ; 10
-        ubyte Flags  ; 14
-        ubyte Sigbit  ; 15
-        pointer Sigtask  ; 16
-        pointer Head  ; 20
-        pointer Tail  ; 24
-        pointer Tailpred  ; 28
-        ubyte List_Type  ; 32
-        ubyte Pad  ; 33
     }
 
     struct Menu {  ; total size: 30
@@ -397,8 +281,8 @@ intuition {
         word TopEdge  ; 6
         word Width  ; 8
         word Height  ; 10
-        word Flags  ; 12
-        pointer MenuName  ; 14
+        uword Flags  ; 12
+        str MenuName  ; 14
         pointer FirstItem  ; 18
         word JazzX  ; 22
         word JazzY  ; 24
@@ -412,14 +296,13 @@ intuition {
         word TopEdge  ; 6
         word Width  ; 8
         word Height  ; 10
-        word Flags  ; 12
+        uword Flags  ; 12
         long MutualExclude  ; 14
         pointer ItemFill  ; 18
         pointer SelectFill  ; 22
         byte Command  ; 26
-        byte KludgeFill00  ; 27
         pointer SubItem  ; 28
-        word NextSelect  ; 32
+        uword NextSelect  ; 32
     }
 
     struct NewScreen {  ; total size: 32
@@ -428,12 +311,12 @@ intuition {
         word Width  ; 4
         word Height  ; 6
         word Depth  ; 8
-        byte DetailPen  ; 10
-        byte BlockPen  ; 11
-        word ViewModes  ; 12
-        word Type  ; 14
+        ubyte DetailPen  ; 10
+        ubyte BlockPen  ; 11
+        uword ViewModes  ; 12
+        uword Type  ; 14
         pointer Font  ; 16
-        pointer DefaultTitle  ; 20
+        str DefaultTitle  ; 20
         pointer Gadgets  ; 24
         pointer CustomBitMap  ; 28
     }
@@ -443,8 +326,8 @@ intuition {
         word TopEdge  ; 2
         word Width  ; 4
         word Height  ; 6
-        byte DetailPen  ; 8
-        byte BlockPen  ; 9
+        ubyte DetailPen  ; 8
+        ubyte BlockPen  ; 9
         long IDCMPFlags  ; 10
         long Flags  ; 14
         pointer FirstGadget  ; 18
@@ -454,9 +337,9 @@ intuition {
         pointer BitMap  ; 34
         word MinWidth  ; 38
         word MinHeight  ; 40
-        word MaxWidth  ; 42
-        word MaxHeight  ; 44
-        word Type  ; 46
+        uword MaxWidth  ; 42
+        uword MaxHeight  ; 44
+        uword Type  ; 46
     }
 
     struct Requester {  ; total size: 112
@@ -470,42 +353,17 @@ intuition {
         pointer ReqGadget  ; 16
         pointer ReqBorder  ; 20
         pointer ReqText  ; 24
-        word Flags  ; 28
+        uword Flags  ; 28
         ubyte BackFill  ; 30
-        byte KludgeFill00  ; 31
         pointer ReqLayer  ; 32
-        word NewScreen_LeftEdge  ; 36
-        word NewScreen_TopEdge  ; 38
-        word NewScreen_Width  ; 40
-        word NewScreen_Height  ; 42
-        word Depth  ; 44
-        byte DetailPen  ; 46
-        byte BlockPen  ; 47
-        word ViewModes  ; 48
-        word Type  ; 50
-        pointer Font  ; 52
-        pointer DefaultTitle  ; 56
-        pointer Gadgets  ; 60
-        pointer CustomBitMap  ; 64
+        ubyte[32] ReqPad1  ; 36
         pointer ImageBMap  ; 68
         pointer RWindow  ; 72
         pointer ReqImage  ; 76
-        word NewScreen_LeftEdge1  ; 80
-        word NewScreen_TopEdge1  ; 82
-        word NewScreen_Width1  ; 84
-        word NewScreen_Height1  ; 86
-        word NewScreen_Depth  ; 88
-        byte NewScreen_DetailPen  ; 90
-        byte NewScreen_BlockPen  ; 91
-        word NewScreen_ViewModes  ; 92
-        word NewScreen_Type  ; 94
-        pointer NewScreen_Font  ; 96
-        pointer NewScreen_DefaultTitle  ; 100
-        pointer NewScreen_Gadgets  ; 104
-        pointer NewScreen_CustomBitMap  ; 108
+        ubyte[32] ReqPad2  ; 80
     }
 
-    struct Screen {  ; total size: 80
+    struct Screen {  ; total size: 40
         pointer NextScreen  ; 0
         pointer FirstWindow  ; 4
         word LeftEdge  ; 8
@@ -514,9 +372,9 @@ intuition {
         word Height  ; 14
         word MouseY  ; 16
         word MouseX  ; 18
-        word Flags  ; 20
+        uword Flags  ; 20
         str Title  ; 22
-        pointer DefaultTitle  ; 26
+        str DefaultTitle  ; 26
         byte BarHeight  ; 30
         byte BarVBorder  ; 31
         byte BarHBorder  ; 32
@@ -526,50 +384,7 @@ intuition {
         byte WBorLeft  ; 36
         byte WBorRight  ; 37
         byte WBorBottom  ; 38
-        byte KludgeFill00  ; 39
-        pointer Font  ; 40
-        pointer emb_sc_ViewPort  ; TODO embedded vp_SIZEOF  ; 44
-        pointer emb_sc_RastPort  ; TODO embedded rp_SIZEOF  ; 48
-        pointer emb_sc_BitMap  ; TODO embedded bm_SIZEOF  ; 52
-        pointer emb_sc_LayerInfo  ; TODO embedded li_SIZEOF  ; 56
-        pointer FirstGadget  ; 60
-        byte DetailPen  ; 64
-        byte BlockPen  ; 65
-        word SaveColor0  ; 66
-        pointer BarLayer  ; 68
-        pointer ExtData  ; 72
-        pointer UserData  ; 76
-    }
-
-    struct Task {  ; total size: 84
-        pointer Succ  ; 0
-        pointer Pred  ; 4
-        ubyte Type  ; 8
-        byte Pri  ; 9
-        str Name  ; 10
-        ubyte Flags  ; 14
-        ubyte State  ; 15
-        byte Idnestcnt  ; 16
-        byte Tdnestcnt  ; 17
-        long Sigalloc  ; 18
-        long Sigwait  ; 22
-        long Sigrecvd  ; 26
-        long Sigexcept  ; 30
-        uword Trapalloc  ; 34
-        uword Trapable  ; 36
-        pointer Exceptdata  ; 38
-        pointer Exceptcode  ; 42
-        pointer Trapdata  ; 46
-        pointer Trapcode  ; 50
-        pointer Spreg  ; 54
-        pointer Splower  ; 58
-        pointer Spupper  ; 62
-        pointer Head  ; 66
-        pointer Tail  ; 70
-        pointer Tailpred  ; 74
-        ubyte List_Type  ; 78
-        ubyte Pad  ; 79
-        pointer Userdata  ; 80
+    ; stripped: pointer UserData (4B), pointer ExtData (4B), pointer BarLayer (4B), uword SaveColor0 (2B), ubyte BlockPen (1B), ubyte DetailPen (1B), pointer FirstGadget (4B), ubyte[102] emb_LayerInfo (102B), ubyte[40] emb_BitMap (40B), ubyte[100] emb_RastPort (100B), ubyte[40] emb_ViewPort (40B), pointer Font (4B)
     }
 
     struct Window {  ; total size: 136
@@ -582,8 +397,8 @@ intuition {
         word MouseX  ; 14
         word MinWidth  ; 16
         word MinHeight  ; 18
-        word MaxWidth  ; 20
-        word MaxHeight  ; 22
+        uword MaxWidth  ; 20
+        uword MaxHeight  ; 22
         long Flags  ; 24
         pointer MenuStrip  ; 28
         str Title  ; 32
@@ -609,8 +424,8 @@ intuition {
         pointer UserPort  ; 86
         pointer WindowPort  ; 90
         pointer MessageKey  ; 94
-        byte DetailPen  ; 98
-        byte BlockPen  ; 99
+        ubyte DetailPen  ; 98
+        ubyte BlockPen  ; 99
         pointer CheckMark  ; 100
         str ScreenTitle  ; 104
         word GZZMouseX  ; 108

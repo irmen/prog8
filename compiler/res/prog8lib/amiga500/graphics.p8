@@ -171,39 +171,34 @@ graphics {
     ; ---- struct definitions ----
 
     struct AreaInfo {  ; total size: 24
-        long VctrTbl  ; 0
-        long VctrPtr  ; 4
-        long FlagTbl  ; 8
-        long FlagPtr  ; 12
+        pointer VctrTbl  ; 0
+        pointer VctrPtr  ; 4
+        pointer FlagTbl  ; 8
+        pointer FlagPtr  ; 12
         word Count  ; 16
         word MaxCount  ; 18
         word FirstX  ; 20
         word FirstY  ; 22
     }
 
-    struct BitMap {  ; total size: 16
-        word BytesPerRow  ; 0
-        word Rows  ; 2
-        byte Flags  ; 4
-        byte Depth  ; 5
-        word Pad  ; 6
-        pointer Succ  ; 8
-        pointer Pred  ; 12
+    struct BitMap {  ; total size: 40
+        uword BytesPerRow  ; 0
+        uword Rows  ; 2
+        ubyte Flags  ; 4
+        ubyte Depth  ; 5
+        uword Pad  ; 6
+        pointer[8] Planes  ; 8
     }
 
-    struct ClipRect {  ; total size: 40
-        long Next  ; 0
-        long Reservedlink  ; 4
+    struct ClipRect {  ; total size: 36
+        pointer Next  ; 0
+        pointer Reservedlink  ; 4
         long Obscured  ; 8
-        long BitMap  ; 12
-        word MinX  ; 16
-        word MinY  ; 18
-        word MaxX  ; 20
-        word MaxY  ; 22
+        pointer BitMap  ; 12
+        ubyte[8] emb_Bounds  ; 16
         pointer Vlink  ; 24
         pointer Home  ; 28
-        long Reserved  ; 32
-        long Flags  ; 36
+        pointer Reserved  ; 32
     }
 
     struct ColorMap {  ; total size: 52
@@ -223,259 +218,76 @@ graphics {
         pointer Batch_items  ; 32
         long VPModeID  ; 36
         pointer PalExtra  ; 40
-        uword SpriteBase_Even  ; 44
-        uword SpriteBase_Odd  ; 46
+        uword Even  ; 44
+        uword Odd  ; 46
         uword Bp_0_base  ; 48
         uword Bp_1_base  ; 50
     }
 
-    struct IOStdReq {  ; total size: 48
-        pointer Succ  ; 0
-        pointer Pred  ; 4
-        ubyte Type  ; 8
-        byte Pri  ; 9
-        str Name  ; 10
-        pointer Replyport  ; 14
-        uword IOStdReq_Length  ; 18
-        pointer Device  ; 20
-        pointer Unit  ; 24
-        uword Command  ; 28
-        ubyte Flags  ; 30
-        byte Error  ; 31
-        long Actual  ; 32
-        long Length  ; 36
-        pointer Data  ; 40
-        long Offset  ; 44
-    }
-
-    struct IORequest {  ; total size: 32
-        pointer Succ  ; 0
-        pointer Pred  ; 4
-        ubyte Type  ; 8
-        byte Pri  ; 9
-        str Name  ; 10
-        pointer Replyport  ; 14
-        uword IOStdReq_Length  ; 18
-        pointer Device  ; 20
-        pointer Unit  ; 24
-        uword Command  ; 28
-        ubyte Flags  ; 30
-        byte Error  ; 31
-    }
-
-    struct Interrupt {  ; total size: 22
-        pointer Succ  ; 0
-        pointer Pred  ; 4
-        ubyte Type  ; 8
-        byte Pri  ; 9
-        str Name  ; 10
-        pointer Data  ; 14
-        pointer Code  ; 18
-    }
-
-    struct List {  ; total size: 14
-        pointer Head  ; 0
-        pointer Tail  ; 4
-        pointer Tailpred  ; 8
-        ubyte Type  ; 12
-        ubyte Pad  ; 13
-    }
-
-    struct Library {  ; total size: 34
-        pointer Succ  ; 0
-        pointer Pred  ; 4
-        ubyte Type  ; 8
-        byte Pri  ; 9
-        str Name  ; 10
-        ubyte Flags  ; 14
-        ubyte Pad  ; 15
-        uword Negsize  ; 16
-        uword Possize  ; 18
-        uword Version  ; 20
-        uword Revision  ; 22
-        str Idstring  ; 24
-        long Sum  ; 28
-        uword Opencnt  ; 32
-    }
-
-    struct Node {  ; total size: 14
-        pointer Succ  ; 0
-        pointer Pred  ; 4
-        ubyte Type  ; 8
-        byte Pri  ; 9
-        str Name  ; 10
-    }
-
-    struct Layer {  ; total size: 118
-        long Lr_front  ; 0
-        long Lr_back  ; 4
-        long Lr_ClipRect  ; 8
-        long Lr_rp  ; 12
-        word Lr_MinX  ; 16
-        word Lr_MinY  ; 18
-        word Lr_MaxX  ; 20
-        word Lr_MaxY  ; 22
-        pointer Lr_nlink  ; 24
-        word Lr_priority  ; 28
-        word Lr_Flags  ; 30
-        long Lr_SuperBitMap  ; 32
-        long Lr_SuperClipRect  ; 36
-        pointer Lr_Window  ; 40
-        word Lr_Scroll_X  ; 44
-        word Lr_Scroll_Y  ; 46
-        pointer Lr_OnScreen  ; 48
-        pointer Lr_OffScreen  ; 52
-        pointer Lr_Backup  ; 56
-        pointer Lr_SuperSaveClipRects  ; 60
-        pointer Lr_Undamaged  ; 64
-        pointer Lr_LayerInfo  ; 68
-        pointer emb_lr_Lock  ; TODO embedded SS_SIZE  ; 72
-        pointer Lr_BackFill  ; 76
-        long Lr_reserved1  ; 80
-        pointer Lr_ClipRegion  ; 84
-        pointer Lr_clipped  ; 88
-        word Lr_Width  ; 92
-        word Lr_Height  ; 94
-        long V_ViewPort  ; 96
-        long V_LOFCprList  ; 100
-        long V_SHFCprList  ; 104
-        word V_DyOffset  ; 108
-        word V_DxOffset  ; 110
-        word V_Modes  ; 112
-        pointer Lr_DamageList  ; 114
-    }
-
-    struct Layer_Info {  ; total size: 60
-        pointer Top_layer  ; 0
-        pointer ResPtr1  ; 4
-        pointer ResPtr2  ; 8
-        pointer FreeClipRects  ; 12
-        word MinX  ; 16
-        word MinY  ; 18
-        word MaxX  ; 20
-        word MaxY  ; 22
-        pointer emb_li_Lock  ; TODO embedded SS_SIZE  ; 24
-        pointer Head  ; 28
-        pointer Tail  ; 32
-        pointer Tailpred  ; 36
-        word PrivateReserve3  ; 40
-        pointer PrivateReserve4  ; 42
-        word Flags  ; 46
-        byte Res_count  ; 48
-        byte LockLayersCount  ; 49
-        word PrivateReserve5  ; 50
-        pointer BlankHook  ; 52
-        pointer ResPtr5  ; 56
-    }
-
-    struct MinList {  ; total size: 12
-        pointer Head  ; 0
-        pointer Tail  ; 4
-        pointer Tailpred  ; 8
-    }
-
-    struct MinNode {  ; total size: 8
-        pointer Succ  ; 0
-        pointer Pred  ; 4
-    }
-
-    struct Message {  ; total size: 20
-        pointer Succ  ; 0
-        pointer Pred  ; 4
-        ubyte Type  ; 8
-        byte Pri  ; 9
-        str Name  ; 10
-        pointer Replyport  ; 14
-        uword Length  ; 18
-    }
-
-    struct MsgPort {  ; total size: 34
-        pointer Succ  ; 0
-        pointer Pred  ; 4
-        ubyte Type  ; 8
-        byte Pri  ; 9
-        str Name  ; 10
-        ubyte Flags  ; 14
-        ubyte Sigbit  ; 15
-        pointer Sigtask  ; 16
-        pointer Head  ; 20
-        pointer Tail  ; 24
-        pointer Tailpred  ; 28
-        ubyte List_Type  ; 32
-        ubyte Pad  ; 33
+    struct Layer {  ; total size: 160
+        pointer Front  ; 0
+        pointer Back  ; 4
+        pointer ClipRect  ; 8
+        pointer Rp  ; 12
+        ubyte[8] emb_Bounds  ; 16
+        pointer Nlink  ; 24
+        uword Priority  ; 28
+        uword Flags  ; 30
+        pointer SuperBitMap  ; 32
+        pointer SuperClipRect  ; 36
+        pointer Window  ; 40
+        word X  ; 44
+        word Y  ; 46
+        pointer OnScreen  ; 48
+        pointer OffScreen  ; 52
+        pointer Backup  ; 56
+        pointer SuperSaveClipRects  ; 60
+        pointer Undamaged  ; 64
+        pointer LayerInfo  ; 68
+        ubyte[46] emb_Lock  ; 72
+        pointer BackFill  ; 118
+        long Reserved1  ; 122
+        pointer ClipRegion  ; 126
+        pointer Clipped  ; 130
+        word Width  ; 134
+        word Height  ; 136
+        ubyte[18] Reserved2  ; 138
+        pointer DamageList  ; 156
     }
 
     struct RastPort {  ; total size: 100
-        long Layer  ; 0
-        long BitMap  ; 4
-        long AreaPtrn  ; 8
-        long TmpRas  ; 12
-        long AreaInfo  ; 16
-        long GelsInfo  ; 20
-        byte Mask  ; 24
+        pointer Layer  ; 0
+        pointer BitMap  ; 4
+        pointer AreaPtrn  ; 8
+        pointer TmpRas  ; 12
+        pointer AreaInfo  ; 16
+        pointer GelsInfo  ; 20
+        ubyte Mask  ; 24
         byte FgPen  ; 25
         byte BgPen  ; 26
-        byte AOLPen  ; 27
+        byte AOlPen  ; 27
         byte DrawMode  ; 28
         byte AreaPtSz  ; 29
         byte Linpatcnt  ; 30
         byte Dummy  ; 31
-        word Flags  ; 32
-        word LinePtrn  ; 34
-        word Cp_x  ; 36
-        word Cp_y  ; 38
-        pointer Succ  ; 40
-        pointer Pred  ; 44
+        uword Flags  ; 32
+        uword LinePtrn  ; 34
+        word X  ; 36
+        word Y  ; 38
+        ubyte[8] Minterms  ; 40
         word PenWidth  ; 48
         word PenHeight  ; 50
-        long Font  ; 52
-        byte AlgoStyle  ; 56
-        byte TxFlags  ; 57
-        word TxHeight  ; 58
-        word TxWidth  ; 60
-        word TxBaseline  ; 62
+        pointer Font  ; 52
+        ubyte AlgoStyle  ; 56
+        ubyte TxFlags  ; 57
+        uword TxHeight  ; 58
+        uword TxWidth  ; 60
+        uword TxBaseline  ; 62
         word TxSpacing  ; 64
-        pointer RP_User  ; 66
-        pointer MinNode_Succ  ; 70
-        pointer MinNode_Pred  ; 74
-        pointer Head  ; 78
-        pointer Tail  ; 82
-        pointer Tailpred  ; 86
-        ubyte Type  ; 90
-        ubyte Pad  ; 91
-        pointer MinNode_Succ1  ; 92
-        pointer MinNode_Pred1  ; 96
-    }
-
-    struct Task {  ; total size: 84
-        pointer Succ  ; 0
-        pointer Pred  ; 4
-        ubyte Type  ; 8
-        byte Pri  ; 9
-        str Name  ; 10
-        ubyte Flags  ; 14
-        ubyte State  ; 15
-        byte Idnestcnt  ; 16
-        byte Tdnestcnt  ; 17
-        long Sigalloc  ; 18
-        long Sigwait  ; 22
-        long Sigrecvd  ; 26
-        long Sigexcept  ; 30
-        uword Trapalloc  ; 34
-        uword Trapable  ; 36
-        pointer Exceptdata  ; 38
-        pointer Exceptcode  ; 42
-        pointer Trapdata  ; 46
-        pointer Trapcode  ; 50
-        pointer Spreg  ; 54
-        pointer Splower  ; 58
-        pointer Spupper  ; 62
-        pointer Head  ; 66
-        pointer Tail  ; 70
-        pointer Tailpred  ; 74
-        ubyte List_Type  ; 78
-        ubyte Pad  ; 79
-        pointer Userdata  ; 80
+        pointer User  ; 66
+        long[2] Longreserved  ; 70
+        uword[7] Wordreserved  ; 78
+        ubyte[8] Reserved  ; 92
     }
 
     struct TextAttr {  ; total size: 8
@@ -488,8 +300,7 @@ graphics {
     struct TextExtent {  ; total size: 12
         uword Width  ; 0
         uword Height  ; 2
-        pointer Succ  ; 4
-        pointer Pred  ; 8
+        ubyte[8] emb_Extent  ; 4
     }
 
     struct TextFont {  ; total size: 52
@@ -498,7 +309,7 @@ graphics {
         ubyte Type  ; 8
         byte Pri  ; 9
         str Name  ; 10
-        pointer Replyport  ; 14
+        pointer ReplyPort  ; 14
         uword Length  ; 18
         uword YSize  ; 20
         ubyte Style  ; 22
@@ -522,12 +333,12 @@ graphics {
     }
 
     struct View {  ; total size: 18
-        long V_ViewPort  ; 0
-        long V_LOFCprList  ; 4
-        long V_SHFCprList  ; 8
-        word V_DyOffset  ; 12
-        word V_DxOffset  ; 14
-        word V_Modes  ; 16
+        pointer ViewPort  ; 0
+        pointer LOFCprList  ; 4
+        pointer SHFCprList  ; 8
+        word DyOffset  ; 12
+        word DxOffset  ; 14
+        uword Modes  ; 16
     }
 
     ; ---- constants ----

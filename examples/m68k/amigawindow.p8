@@ -1,3 +1,4 @@
+%import textio
 %import intuition
 %import graphics
 %import exec
@@ -7,7 +8,7 @@ main {
 
     sub start() {
         ^^intuition.NewWindow nw = [
-            20, 20, 300, 100, -1, -1,
+            20, 20, 300, 100, -1 as ubyte, -1 as ubyte,
             intuition.IDCMP_CLOSEWINDOW | intuition.IDCMP_REFRESHWINDOW,
             intuition.WFLG_CLOSEGADGET | intuition.WFLG_DRAGBAR | intuition.WFLG_DEPTHGADGET | intuition.WFLG_ACTIVATE | intuition.WFLG_SIZEGADGET,
             0, 0,
@@ -23,9 +24,8 @@ main {
         intuition.ActivateWindow(win)
 
         ^^graphics.RastPort rp = win.RPort
-        word font_height = rp.TxHeight
-        word font_baseline = rp.TxBaseline
-        word font_descent = font_height - font_baseline
+        word font_baseline = rp.TxBaseline as word
+        word font_descent = rp.TxHeight - font_baseline
         str message = "Woah it works!"
         word text_width = graphics.TextLength(rp, message, len(message))
         word x_pos = 100
@@ -89,7 +89,7 @@ main {
             }
 
             ; Cycle color: 1 -> 2 -> 3 -> 1 -> ...
-            color_idx = (color_idx % 3) + 1
+            color_idx++ ; = (color_idx % 3) + 1
 
             drawText()
             dos.Delay(1)

@@ -169,9 +169,9 @@ dos {
     ; ---- struct definitions ----
 
     struct DateStamp {  ; total size: 12
-        long Ds_Days  ; 0
-        long Ds_Minute  ; 4
-        long Ds_Tick  ; 8
+        long Days  ; 0
+        long Minute  ; 4
+        long Tick  ; 8
     }
 
     struct DosPacket {  ; total size: 48
@@ -190,8 +190,8 @@ dos {
     }
 
     struct ErrorString {  ; total size: 8
-        pointer Estr_Nums  ; 0
-        pointer Estr_Strings  ; 4
+        pointer Nums  ; 0
+        str Strings  ; 4
     }
 
     struct ExAllControl {  ; total size: 16
@@ -202,24 +202,24 @@ dos {
     }
 
     struct ExAllData {  ; total size: 40
-        pointer Ed_Next  ; 0
-        str Ed_Name  ; 4
-        long Ed_Type  ; 8
-        long Ed_Size  ; 12
-        long Ed_Prot  ; 16
-        long Ed_Days  ; 20
-        long Ed_Mins  ; 24
-        long Ed_Ticks  ; 28
-        str Ed_Comment  ; 32
-        uword Ed_OwnerUID  ; 36
-        uword Ed_OwnerGID  ; 38
+        pointer Next  ; 0
+        str Name  ; 4
+        long Type  ; 8
+        long Size  ; 12
+        long Prot  ; 16
+        long Days  ; 20
+        long Mins  ; 24
+        long Ticks  ; 28
+        str Comment  ; 32
+        uword OwnerUID  ; 36
+        uword OwnerGID  ; 38
     }
 
     struct FileHandle {  ; total size: 44
         pointer Link  ; 0
-        pointer Interactive  ; 4
+        pointer Port  ; 4
         pointer Type  ; 8
-        long Buf  ; 12
+        pointer Buf  ; 12
         long Pos  ; 16
         long End  ; 20
         long Funcs  ; 24
@@ -229,19 +229,21 @@ dos {
         long Arg2  ; 40
     }
 
-    struct FileInfoBlock {  ; total size: 224
+    struct FileInfoBlock {  ; total size: 228
         long DiskKey  ; 0
         long DirEntryType  ; 4
-        pointer emb_fib_FileName  ; TODO embedded 108  ; 8
+        ubyte[108] FileName  ; 8
         long Protection  ; 116
         long EntryType  ; 120
         long Size  ; 124
         long NumBlocks  ; 128
-        pointer emb_fib_DateStamp  ; TODO embedded ds_SIZEOF  ; 132
-        pointer emb_fib_Comment  ; TODO embedded 80  ; 136
-        uword OwnerUID  ; 216
-        uword OwnerGID  ; 218
-        pointer emb_fib_Reserved  ; TODO embedded 32  ; 220
+        long Days  ; 132
+        long Minute  ; 136
+        long Tick  ; 140
+        ubyte[80] Comment  ; 144
+        uword OwnerUID  ; 224
+        uword OwnerGID  ; 226
+    ; stripped: ubyte[32] Reserved (32B)
     }
 
     struct FileLock {  ; total size: 20
@@ -252,187 +254,19 @@ dos {
         pointer Volume  ; 16
     }
 
-    struct IOStdReq {  ; total size: 48
-        pointer Succ  ; 0
-        pointer Pred  ; 4
-        ubyte Type  ; 8
-        byte Pri  ; 9
-        str Name  ; 10
-        pointer Replyport  ; 14
-        uword IOStdReq_Length  ; 18
-        pointer Device  ; 20
-        pointer Unit  ; 24
-        uword Command  ; 28
-        ubyte Flags  ; 30
-        byte Error  ; 31
-        long Actual  ; 32
-        long Length  ; 36
-        pointer Data  ; 40
-        long Offset  ; 44
-    }
-
-    struct IORequest {  ; total size: 32
-        pointer Succ  ; 0
-        pointer Pred  ; 4
-        ubyte Type  ; 8
-        byte Pri  ; 9
-        str Name  ; 10
-        pointer Replyport  ; 14
-        uword IOStdReq_Length  ; 18
-        pointer Device  ; 20
-        pointer Unit  ; 24
-        uword Command  ; 28
-        ubyte Flags  ; 30
-        byte Error  ; 31
-    }
-
-    struct Interrupt {  ; total size: 22
-        pointer Succ  ; 0
-        pointer Pred  ; 4
-        ubyte Type  ; 8
-        byte Pri  ; 9
-        str Name  ; 10
-        pointer Data  ; 14
-        pointer Code  ; 18
-    }
-
     struct InfoData {  ; total size: 36
-        long Id_NumSoftErrors  ; 0
-        long Id_UnitNumber  ; 4
-        long Id_DiskState  ; 8
-        long Id_NumBlocks  ; 12
-        long Id_NumBlocksUsed  ; 16
-        long Id_BytesPerBlock  ; 20
-        long Id_DiskType  ; 24
-        pointer Id_VolumeNode  ; 28
-        long Id_InUse  ; 32
+        long NumSoftErrors  ; 0
+        long UnitNumber  ; 4
+        long DiskState  ; 8
+        long NumBlocks  ; 12
+        long NumBlocksUsed  ; 16
+        long BytesPerBlock  ; 20
+        long DiskType  ; 24
+        pointer VolumeNode  ; 28
+        long InUse  ; 32
     }
 
-    struct List {  ; total size: 14
-        pointer Head  ; 0
-        pointer Tail  ; 4
-        pointer Tailpred  ; 8
-        ubyte Type  ; 12
-        ubyte Pad  ; 13
-    }
-
-    struct Library {  ; total size: 34
-        pointer Succ  ; 0
-        pointer Pred  ; 4
-        ubyte Type  ; 8
-        byte Pri  ; 9
-        str Name  ; 10
-        ubyte Flags  ; 14
-        ubyte Pad  ; 15
-        uword Negsize  ; 16
-        uword Possize  ; 18
-        uword Version  ; 20
-        uword Revision  ; 22
-        str Idstring  ; 24
-        long Sum  ; 28
-        uword Opencnt  ; 32
-    }
-
-    struct Node {  ; total size: 14
-        pointer Succ  ; 0
-        pointer Pred  ; 4
-        ubyte Type  ; 8
-        byte Pri  ; 9
-        str Name  ; 10
-    }
-
-    struct MinList {  ; total size: 12
-        pointer Head  ; 0
-        pointer Tail  ; 4
-        pointer Tailpred  ; 8
-    }
-
-    struct MinNode {  ; total size: 8
-        pointer Succ  ; 0
-        pointer Pred  ; 4
-    }
-
-    struct Message {  ; total size: 20
-        pointer Succ  ; 0
-        pointer Pred  ; 4
-        ubyte Type  ; 8
-        byte Pri  ; 9
-        str Name  ; 10
-        pointer Replyport  ; 14
-        uword Length  ; 18
-    }
-
-    struct MsgPort {  ; total size: 34
-        pointer Succ  ; 0
-        pointer Pred  ; 4
-        ubyte Type  ; 8
-        byte Pri  ; 9
-        str Name  ; 10
-        ubyte Flags  ; 14
-        ubyte Sigbit  ; 15
-        pointer Sigtask  ; 16
-        pointer Head  ; 20
-        pointer Tail  ; 24
-        pointer Tailpred  ; 28
-        ubyte List_Type  ; 32
-        ubyte Pad  ; 33
-    }
-
-    struct Process {  ; total size: 130
-        pointer emb_pr_Task  ; TODO embedded TC_SIZE  ; 0
-        pointer Succ  ; 4
-        pointer Pred  ; 8
-        ubyte Type  ; 12
-        byte Pri  ; 13
-        str Name  ; 14
-        ubyte Process_Flags  ; 18
-        ubyte Sigbit  ; 19
-        pointer Sigtask  ; 20
-        pointer Head  ; 24
-        pointer Tail  ; 28
-        pointer Tailpred  ; 32
-        ubyte List_Type  ; 36
-        ubyte Process_Pad  ; 37
-        word Pad  ; 28
-        pointer SegList  ; 30
-        long StackSize  ; 34
-        pointer GlobVec  ; 38
-        long TaskNum  ; 42
-        pointer StackBase  ; 46
-        long Result2  ; 50
-        pointer CurrentDir  ; 54
-        pointer Cis  ; 58
-        pointer Cos  ; 62
-        pointer ConsoleTask  ; 66
-        pointer FileSystemTask  ; 70
-        pointer Cli  ; 74
-        pointer ReturnAddr  ; 78
-        pointer PktWait  ; 82
-        pointer WindowPtr  ; 86
-        pointer HomeDir  ; 90
-        long Flags  ; 94
-        pointer ExitCode  ; 98
-        long ExitData  ; 102
-        pointer Arguments  ; 106
-        pointer MinList_Head  ; 110
-        pointer MinList_Tail  ; 114
-        pointer MinList_Tailpred  ; 118
-        pointer ShellPrivate  ; 122
-        pointer Ces  ; 126
-    }
-
-    struct StandardPacket {  ; total size: 24
-        pointer Succ  ; 0
-        pointer Pred  ; 4
-        ubyte Type  ; 8
-        byte Pri  ; 9
-        str Name  ; 10
-        pointer Replyport  ; 14
-        uword Length  ; 18
-        pointer emb_sp_Pkt  ; TODO embedded dp_SIZEOF  ; 20
-    }
-
-    struct Task {  ; total size: 84
+    struct Process {  ; total size: 228
         pointer Succ  ; 0
         pointer Pred  ; 4
         ubyte Type  ; 8
@@ -440,27 +274,90 @@ dos {
         str Name  ; 10
         ubyte Flags  ; 14
         ubyte State  ; 15
-        byte Idnestcnt  ; 16
-        byte Tdnestcnt  ; 17
-        long Sigalloc  ; 18
-        long Sigwait  ; 22
-        long Sigrecvd  ; 26
-        long Sigexcept  ; 30
-        uword Trapalloc  ; 34
-        uword Trapable  ; 36
-        pointer Exceptdata  ; 38
-        pointer Exceptcode  ; 42
-        pointer Trapdata  ; 46
-        pointer Trapcode  ; 50
-        pointer Spreg  ; 54
-        pointer Splower  ; 58
-        pointer Spupper  ; 62
-        pointer Head  ; 66
-        pointer Tail  ; 70
-        pointer Tailpred  ; 74
-        ubyte List_Type  ; 78
-        ubyte Pad  ; 79
-        pointer Userdata  ; 80
+        byte IDNestCnt  ; 16
+        byte TDNestCnt  ; 17
+        long SigAlloc  ; 18
+        long SigWait  ; 22
+        long SigRecvd  ; 26
+        long SigExcept  ; 30
+        uword TrapAlloc  ; 34
+        uword TrapAble  ; 36
+        pointer ExceptData  ; 38
+        pointer ExceptCode  ; 42
+        pointer TrapData  ; 46
+        pointer TrapCode  ; 50
+        pointer SPReg  ; 54
+        pointer SPLower  ; 58
+        pointer SPUpper  ; 62
+        pointer Switch  ; 66
+        pointer Launch  ; 70
+        pointer Head  ; 74
+        pointer Tail  ; 78
+        pointer TailPred  ; 82
+        ubyte Process_List_Type  ; 86
+        ubyte Pad  ; 87
+        pointer UserData  ; 88
+        pointer Node_Succ  ; 92
+        pointer Node_Pred  ; 96
+        ubyte Node_Type  ; 100
+        byte Node_Pri  ; 101
+        str Node_Name  ; 102
+        ubyte MsgPort_Flags  ; 106
+        ubyte SigBit  ; 107
+        pointer SigTask  ; 108
+        pointer List_Head  ; 112
+        pointer List_Tail  ; 116
+        pointer List_TailPred  ; 120
+        ubyte List_Type  ; 124
+        ubyte List_Pad  ; 125
+        word Process_Pad  ; 126
+        pointer SegList  ; 128
+        long StackSize  ; 132
+        pointer GlobVec  ; 136
+        long TaskNum  ; 140
+        pointer StackBase  ; 144
+        long Result2  ; 148
+        pointer CurrentDir  ; 152
+        pointer Cis  ; 156
+        pointer Cos  ; 160
+        pointer ConsoleTask  ; 164
+        pointer FileSystemTask  ; 168
+        pointer Cli  ; 172
+        pointer ReturnAddr  ; 176
+        pointer PktWait  ; 180
+        pointer WindowPtr  ; 184
+        pointer HomeDir  ; 188
+        long Process_Flags  ; 192
+        pointer ExitCode  ; 196
+        long ExitData  ; 200
+        str Arguments  ; 204
+        pointer MinList_Head  ; 208
+        pointer MinList_Tail  ; 212
+        pointer MinList_TailPred  ; 216
+        long ShellPrivate  ; 220
+        pointer Ces  ; 224
+    }
+
+    struct StandardPacket {  ; total size: 68
+        pointer Succ  ; 0
+        pointer Pred  ; 4
+        ubyte Type  ; 8
+        byte Pri  ; 9
+        str Name  ; 10
+        pointer ReplyPort  ; 14
+        uword Length  ; 18
+        pointer Link  ; 20
+        pointer Port  ; 24
+        long DosPacket_Type  ; 28
+        long Res1  ; 32
+        long Res2  ; 36
+        long Arg1  ; 40
+        long Arg2  ; 44
+        long Arg3  ; 48
+        long Arg4  ; 52
+        long Arg5  ; 56
+        long Arg6  ; 60
+        long Arg7  ; 64
     }
 
     ; ---- constants ----
