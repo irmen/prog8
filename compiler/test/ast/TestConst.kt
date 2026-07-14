@@ -12,6 +12,7 @@ import prog8.ast.statements.Return
 import prog8.ast.statements.VarDecl
 import prog8.ast.statements.VarDeclType
 import prog8.code.core.BaseDataType
+import prog8.code.core.DataType
 import prog8.code.core.Position
 import prog8.code.target.C64Target
 import prog8.code.target.Cx16Target
@@ -804,6 +805,76 @@ main {
         value shouldNotBe null
         value shouldBe instanceOf<NumericLiteral>()
         (value as NumericLiteral).number.toInt() shouldBe 0x3000
+    }
+
+    test("long const bitwise and keeps long type") {
+        // Same as bitwise or test, but for AND
+        val src = $$"""
+main {
+    sub start() {
+        const long L1 = $ff0000
+        const long L2 = $00ff00
+        long @shared result = L1 & L2
+    }
+}"""
+        val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = false, errors = ErrorReporterForTests())!!
+        val st = result.compilerAst.entrypoint.statements
+        val initAssign = st.filterIsInstance<Assignment>().find {
+            val target = it.target.toExpression() as? IdentifierReference
+            target?.nameInSource?.lastOrNull() == "result"
+        }
+        initAssign shouldNotBe null
+        val initValue = initAssign!!.value as NumericLiteral
+        initValue.type shouldBe BaseDataType.LONG
+        initValue.number.toInt() shouldBe 0
+    }
+
+    test("long const bitwise xor keeps long type") {
+        // Verify that XOR with overlapping bits between two LONG values stays LONG
+        val src = $$"""
+main {
+    sub start() {
+        const long L1 = $00ff0000
+        const long L2 = $0000ff00
+        long @shared result = L1 ^ L2
+    }
+}"""
+        val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = false, errors = ErrorReporterForTests())!!
+        val st = result.compilerAst.entrypoint.statements
+        val initAssign = st.filterIsInstance<Assignment>().find {
+            val target = it.target.toExpression() as? IdentifierReference
+            target?.nameInSource?.lastOrNull() == "result"
+        }
+        initAssign shouldNotBe null
+        val initValue = initAssign!!.value as NumericLiteral
+        initValue.type shouldBe BaseDataType.LONG
+        initValue.number.toInt() shouldBe 0x00ffff00
+    }
+
+    test("long const bitwise or keeps long type") {
+        // Verify that LONG constants keep their type when OR'd,
+        // even if the result fits in a smaller type.
+        // Regression test: VariousCleanups was narrowing long consts to uword,
+        // and ConstExprEvaluator.bitwiseOr was using optimalNumeric which also narrowed.
+        val src = $$"""
+main {
+    sub start() {
+        const long L1 = $0200
+        const long L2 = $0004
+        const long L3 = $00200000
+        long @shared result = L1 | L2 | L3
+    }
+}"""
+        val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = false, errors = ErrorReporterForTests())!!
+        val st = result.compilerAst.entrypoint.statements
+        val initAssign = st.filterIsInstance<Assignment>().find {
+            val target = it.target.toExpression() as? IdentifierReference
+            target?.nameInSource?.lastOrNull() == "result"
+        }
+        initAssign shouldNotBe null
+        val initValue = initAssign!!.value as NumericLiteral
+        initValue.type shouldBe BaseDataType.LONG
+        initValue.number.toInt() shouldBe 0x00200204
     }
 })
 
