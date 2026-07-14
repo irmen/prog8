@@ -47,7 +47,7 @@ STRUCT_NAME_MAP = {
     'MLH':            ('MinList',          'MLH_'),
     'MP':             ('MsgPort',          'MP_'),
     'MN':             ('Message',          'MN_'),
-    'IO':             ('IORequest',        'IO_'),
+    'IO':             ('IOStdReq',         'IO_',      ('IORequest', 32)),
     'IS':             ('Interrupt',        'IS_'),
     'LIB':            ('Library',          'LIB_'),
     'TC_Struct':      ('Task',             'TC_'),
@@ -107,8 +107,8 @@ PROG8_KEYWORDS = {
 }
 
 PROG8_KEYWORDS.update({
-    'exec':1, 'dos':1, 'graphics':1, 'intuition':1,
-    'sys':1, 'main':1, 'txt':1,
+    'exec', 'dos', 'graphics', 'intuition',
+    'sys', 'main', 'txt',
 })
 
 # ---------------------------------------------------------------------------
@@ -129,17 +129,22 @@ def parse_struct_i_files(i_dir: str) -> dict:
     for fn in sorted(os.listdir(i_dir)):
         if not fn.endswith('.i'):
             continue
-        structs.update(_parse_one_i(os.path.join(i_dir, fn)))
+        new_structs = _parse_one_i(os.path.join(i_dir, fn))
+        for tag in new_structs:
+            if tag in structs:
+                print(f"Warning: struct '{tag}' redefined in {fn}, overwriting", file=sys.stderr)
+        structs.update(new_structs)
     # Second pass: resolve total sizes for structs with base_offset references
     # Iterate because some bases reference structs that also have bases
-    for _ in range(10):
+    changed = True
+    while changed:
+        changed = False
         sizes = {}
         for tag, rs in structs.items():
             if tag in STRUCT_NAME_MAP and rs['total_size'] > 0:
                 tag_up = tag.upper()
                 sizes[f'{tag_up}_SIZE'] = rs['total_size']
                 sizes[f'{tag_up}_SIZEOF'] = rs['total_size']
-        changed = False
         for tag, rs in structs.items():
             base_off = _parse_size_expr(rs['base_offset_str'], sizes)
             expected = base_off + sum(f.get('_size', 0) for f in rs.get('fields_raw', []))
@@ -177,8 +182,7 @@ def _parse_one_i(filepath: str) -> dict:
                 if re.match(r'LABEL\s+\S+', sl):
                     lm = re.match(r'LABEL\s+(\S+)', sl)
                     if lm:
-                        # track this label as belonging to this struct
-                        labels.setdefault('_names', []).append(lm.group(1))
+                        labels['_names'].append(lm.group(1))
                     i += 1
                     continue
                 if re.match(r'\w+\s+MACRO', sl):
@@ -235,7 +239,7 @@ TYPE_MAP_SIZES = {
 
 
 def _read_i_lines(filepath: str) -> list:
-    with open(filepath) as f:
+    with open(filepath, encoding='latin-1') as f:
         return [line.rstrip('\n').rstrip('\r') for line in f]
 
 
@@ -282,6 +286,8 @@ def _parse_size_expr(s: str, known: dict) -> int:
     try:
         return int(s)
     except ValueError:
+        if s not in known:
+            print(f"Warning: unknown size symbol '{s}', defaulting to 4", file=sys.stderr)
         return known.get(s, 4)
 
 
@@ -303,22 +309,62 @@ def resolve_struct_sizes(raw_structs: dict) -> dict:
     for tag, rs in raw_structs.items():
         if tag not in STRUCT_NAME_MAP:
             continue
-        c_name, prefix = STRUCT_NAME_MAP[tag]
-        flat = _flatten(tag, rs, raw_structs, prefix, set(), sizes)
+        entry = STRUCT_NAME_MAP[tag]
+        c_name = entry[0]
+        prefix = entry[1]
+        flat = _flatten(tag, rs, raw_structs, prefix, frozenset(), sizes)
+        # Deduplicate field names: track used names and prefix colliding
+        # fields with the origin struct's C name.
+        used_original = {}  # base name -> first origin
+        used_all = set()    # all field names (original + renamed)
+        for f in flat:
+            base = f['prog8_name']
+            origin = f.get('origin_tag', tag)
+            origin_cname = STRUCT_NAME_MAP.get(origin, (origin,))[0]
+            if base not in used_original:
+                used_original[base] = origin
+                used_all.add(base)
+            else:
+                prev_origin = used_original[base]
+                if origin == tag:
+                    # own field — rename the conflicting previous embedding
+                    for prev in flat:
+                        if prev is f:
+                            break
+                        if prev['prog8_name'] == base:
+                            newname = _unique_name(f'{origin_cname}_{base}', used_all)
+                            prev['prog8_name'] = newname
+                            used_all.add(newname)
+                            break
+                else:
+                    newname = _unique_name(f'{origin_cname}_{base}', used_all)
+                    f['prog8_name'] = newname
+                    used_all.add(newname)
         resolved[tag] = {
             'tag': tag,
             'c_name': c_name,
             'prefix': prefix,
             'fields': flat,
-            'size': rs['total_size'],
+            'size': flat[-1]['offset'] + _type_size(flat[-1]['prog8_type']) if flat else 0,
         }
+        # If the mapping has a split, also emit the base struct
+        if len(entry) >= 3 and isinstance(entry[2], tuple):
+            base_name, base_size = entry[2]
+            base_fields = [f for f in flat if f['offset'] < base_size]
+            resolved[f'{tag}_BASE'] = {
+                'tag': f'{tag}_BASE',
+                'c_name': base_name,
+                'prefix': prefix,
+                'fields': base_fields,
+                'size': base_size,
+            }
     return resolved
 
 
-def _flatten(tag: str, rs, all_raw: dict, prefix: str, visiting: set, sizes: dict) -> list:
+def _flatten(tag: str, rs, all_raw: dict, prefix: str, visiting: frozenset, sizes: dict) -> list:
     if tag in visiting:
         return []           # guard against cycles
-    visiting.add(tag)
+    new_visiting = visiting | {tag}
     flat = []
     offset = 0
     base_off = _parse_size_expr(rs['base_offset_str'], sizes)
@@ -330,16 +376,16 @@ def _flatten(tag: str, rs, all_raw: dict, prefix: str, visiting: set, sizes: dic
             parent_tag = _find_tag_by_size(base_off, all_raw)
         if parent_tag and parent_tag in STRUCT_NAME_MAP:
             pprefix = STRUCT_NAME_MAP[parent_tag][1]
-            pflat = _flatten(parent_tag, all_raw[parent_tag], all_raw, pprefix, visiting, sizes)
+            pflat = _flatten(parent_tag, all_raw[parent_tag], all_raw, pprefix, new_visiting, sizes)
             flat.extend(dict(f) for f in pflat)
             offset = base_off
     for field in rs['fields_raw']:
         if field['type'] == 'STRUCT':
-            sz = field['_size']
+            sz = _parse_size_expr(field.get('size_str', ''), sizes)
             emb_tag = _find_tag_by_size(sz, all_raw)
             if emb_tag and emb_tag in STRUCT_NAME_MAP:
                 eprefix = STRUCT_NAME_MAP[emb_tag][1]
-                eflat = _flatten(emb_tag, all_raw[emb_tag], all_raw, eprefix, visiting, sizes)
+                eflat = _flatten(emb_tag, all_raw[emb_tag], all_raw, eprefix, new_visiting, sizes)
                 for ef in eflat:
                     ec = dict(ef)
                     ec['offset'] += offset
@@ -356,10 +402,14 @@ def _flatten(tag: str, rs, all_raw: dict, prefix: str, visiting: set, sizes: dic
             ptype = TYPE_MAP.get(field['type'], 'pointer')
             pname = _field_name(field['name'], prefix)
             sz = field['_size']
+            # Some APTR fields in .i files are actually string pointers (STRPTR in C)
+            if ptype == 'pointer' and _is_string_field(field['name'], prefix):
+                ptype = 'str'
             flat.append({
                 'prog8_type': ptype,
                 'prog8_name': pname,
                 'offset': offset,
+                'origin_tag': tag,
             })
             offset += sz
             for extra in field.get('extra_names', []):
@@ -368,9 +418,9 @@ def _flatten(tag: str, rs, all_raw: dict, prefix: str, visiting: set, sizes: dic
                     'prog8_type': ptype,
                     'prog8_name': ename,
                     'offset': offset,
+                    'origin_tag': tag,
                 })
                 offset += sz
-    visiting.discard(tag)
     return flat
 
 
@@ -388,6 +438,47 @@ def _find_tag_by_label(label: str, all_raw: dict) -> str | None:
             if ln.upper() == label.upper():
                 return t
     return None
+
+
+def _unique_name(base: str, used: set) -> str:
+    """Find a unique name by appending numeric suffixes if needed."""
+    if base not in used:
+        return base
+    suffix = 1
+    while f'{base}{suffix}' in used:
+        suffix += 1
+    return f'{base}{suffix}'
+
+
+def _type_size(prog8_type: str) -> int:
+    return {
+        'pointer': 4, 'str': 4,
+        'long': 4, 'uword': 2, 'word': 2,
+        'ubyte': 1, 'byte': 1, 'bool': 1,
+        'float': 4,
+    }.get(prog8_type, 4)
+
+
+# Field name keywords that indicate an APTR is actually a string pointer
+_STRING_FIELD_KEYWORDS = frozenset({
+    '_TITLE', '_NAME', '_TEXT', '_STRING', '_COMMENT', '_IDSTRING',
+    '_MATCHSTRING', '_SCREENTITLE', '_WINDOWTITLE',
+})
+
+
+def _is_string_field(raw_field_name: str, prefix: str) -> bool:
+    """Check if a field is likely a string pointer (STRPTR in C)."""
+    up = raw_field_name.upper()
+    # Strip prefix and check if the remaining name contains any string keywords
+    if prefix:
+        pu = prefix.upper()
+        if up.startswith(pu):
+            up = up[len(prefix):]
+    for kw in _STRING_FIELD_KEYWORDS:
+        # Check exact match or keyword as suffix/prefix of a compound name
+        if up == kw.strip('_') or up.endswith('_' + kw.strip('_')):
+            return True
+    return False
 
 
 def _field_name(raw: str, prefix: str) -> str:
@@ -445,16 +536,30 @@ def parse_consts_i_files(i_dir: str) -> list:
 
 def _parse_consts_one(filepath: str) -> list:
     consts = []
-    with open(filepath) as f:
+    with open(filepath, encoding='latin-1') as f:
         for line in f:
             stripped = line.strip()
             if not stripped or stripped.startswith('*') or stripped.startswith(';'):
                 continue
             m = re.match(r'BITDEF\s+(\w+)\s*,\s*(\w+)\s*,\s*(\d+)', stripped)
             if m:
-                p = m.group(1); n = m.group(2); b = int(m.group(3))
-                consts.append({'name': f'{p}B_{n}', 'value': str(b), 'prog8_type': 'ubyte', 'comment': f'; BITDEF {p},{n},{b}'})
-                consts.append({'name': f'{p}F_{n}', 'value': _fmt(1 << b), 'prog8_type': 'long' if (1<<b) > 65535 else 'uword' if (1<<b) > 255 else 'ubyte', 'comment': f'; BITDEF mask {p},{n},{b}'})
+                p = m.group(1)
+                n = m.group(2)
+                b = int(m.group(3))
+                consts.append({
+                    'name': f'{p}B_{n}',
+                    'value': str(b),
+                    'prog8_type': 'ubyte',
+                    'comment': f'; BITDEF {p},{n},{b}'
+                })
+                mask = 1 << b
+                mask_type = 'long' if mask > 65535 else 'uword' if mask > 255 else 'ubyte'
+                consts.append({
+                    'name': f'{p}F_{n}',
+                    'value': _fmt(mask),
+                    'prog8_type': mask_type,
+                    'comment': f'; BITDEF mask {p},{n},{b}'
+                })
                 continue
             m = re.match(r'(\w+)\s+EQU\s+(\S+)', stripped)
             if m:
@@ -470,21 +575,26 @@ def _parse_consts_one(filepath: str) -> list:
 def _eval_const(raw: str) -> int | None:
     raw = raw.strip()
     m = re.match(r'\$([0-9a-fA-F]+)', raw)
-    if m: return int(m.group(1), 16)
+    if m:
+        return int(m.group(1), 16)
     m = re.match(r'(-?\d+)', raw)
-    if m: return int(m.group(1))
+    if m:
+        return int(m.group(1))
     m = re.match(r'1\s*<<\s*(\d+)', raw)
-    if m: return 1 << int(m.group(1))
+    if m:
+        return 1 << int(m.group(1))
     return None
 
 
 def _fmt(v: int) -> str:
-    if v < 0: return str(v)
+    if v < 0:
+        return str(v)
     return f'${v:04x}' if v <= 65535 else f'${v:08x}' if v > 255 else f'${v:02x}'
 
 
 def _ct(v: int) -> str:
-    if v < 0: return 'long'
+    if v < 0:
+        return 'long'
     return 'ubyte' if v <= 255 else 'uword' if v <= 65535 else 'long'
 
 
@@ -492,40 +602,42 @@ def _ct(v: int) -> str:
 # Prog8 code generation
 # ---------------------------------------------------------------------------
 
-def generate_structs(resolved: dict, lib_name: str) -> str:
+def generate_structs(resolved: dict, lib_name: str, indent: str = '    ', header_text: str | None = None) -> str:
     lines = []
     if not resolved:
         return ''
-    lines.append(f'\n; ---- struct definitions for {lib_name} ----\n')
+    header = header_text if header_text else f'struct definitions for {lib_name}'
+    lines.append(f'\n{indent}; ---- {header} ----')
     for tag in sorted(resolved.keys()):
+        lines.append('')
         rs = resolved[tag]
-        lines.append(f'struct {rs["c_name"]} {{  ; total size: {rs["size"]}')
+        lines.append(f'{indent}struct {rs["c_name"]} {{  ; total size: {rs["size"]}')
         for f in rs['fields']:
             ptype = f['prog8_type']
             pname = f['prog8_name']
             off = f['offset']
             comment = f.get('comment', '')
-            line = f'    {ptype} {pname}'
+            line = f'{indent}    {ptype} {pname}'
             if comment:
                 line += f'  {comment}'
             line += f'  ; {off}'
             lines.append(line)
-        lines.append('}\n')
+        lines.append(f'{indent}}}')
     return '\n'.join(lines)
 
 
-def generate_consts(consts: list, lib_name: str) -> str:
+def generate_consts(consts: list, lib_name: str, indent: str = '    ', header_text: str | None = None) -> str:
     if not consts:
         return ''
-    lines = [f'\n; ---- constants for {lib_name} ----\n']
+    header = header_text if header_text else f'constants for {lib_name}'
+    lines = [f'\n{indent}; ---- {header} ----']
     seen = set()
     for c in consts:
         if c['name'] in seen:
             continue
         seen.add(c['name'])
-        line = f'const {c["prog8_type"]} {c["name"]} = {c["value"]}'
+        line = f'{indent}const {c["prog8_type"]} {c["name"]} = {c["value"]}'
         lines.append(line)
-    lines.append('')
     return '\n'.join(lines)
 
 
@@ -566,7 +678,8 @@ PROG8_KEYWORDS.update(LIBRARY_BANK_MAP.keys())
 def parse_c_type(c_type: str) -> tuple:
     c_type = c_type.strip()
     c_type = re.sub(r'\b(const|volatile|register|unsigned|signed)\b', '', c_type).strip()
-    while '  ' in c_type: c_type = c_type.replace('  ', ' ')
+    while '  ' in c_type:
+        c_type = c_type.replace('  ', ' ')
     is_ptr = '*' in c_type
     c_type = c_type.replace('*', '').strip()
     c_type = re.sub(r'\b(struct|union)\s+', '', c_type).strip()
@@ -577,7 +690,7 @@ def parse_c_type(c_type: str) -> tuple:
 
 def parse_lvo(filepath: str) -> dict:
     lvos = {}
-    with open(filepath) as f:
+    with open(filepath, encoding='latin-1') as f:
         for line in f:
             m = re.match(r'^_LVO(\w+)\s+equ\s+(-?\d+)', line)
             if m:
@@ -587,7 +700,7 @@ def parse_lvo(filepath: str) -> dict:
 
 def join_sfd_lines(filepath: str) -> list:
     joined = []
-    with open(filepath) as f:
+    with open(filepath, encoding='latin-1') as f:
         prev = None
         for line in f:
             line = line.rstrip('\n')
@@ -605,15 +718,23 @@ def join_sfd_lines(filepath: str) -> list:
 def extract_last_paren_group(text: str):
     close_pos = -1
     for i in range(len(text) - 1, -1, -1):
-        if text[i] == ')': close_pos = i; break
-    if close_pos < 0: return None
-    depth = 0; open_pos = -1
+        if text[i] == ')':
+            close_pos = i
+            break
+    if close_pos < 0:
+        return None
+    depth = 0
+    open_pos = -1
     for i in range(close_pos, -1, -1):
-        if text[i] == ')': depth += 1
+        if text[i] == ')':
+            depth += 1
         elif text[i] == '(':
             depth -= 1
-            if depth == 0: open_pos = i; break
-    if open_pos < 0: return None
+            if depth == 0:
+                open_pos = i
+                break
+    if open_pos < 0:
+        return None
     return (open_pos, close_pos, text[open_pos + 1:close_pos].strip())
 
 
@@ -622,7 +743,8 @@ def parse_sfd_param(param_str: str) -> tuple:
     if not param_str:
         return ('long', 'arg')
     fp = re.search(r'\(\*(\w+)\)', param_str)
-    if fp: return ('pointer', fp.group(1))
+    if fp:
+        return ('pointer', fp.group(1))
     parts = param_str.rsplit(None, 1)
     if len(parts) == 2:
         ptype_raw, pname = parts
@@ -642,50 +764,91 @@ def parse_sfd_param(param_str: str) -> tuple:
 def parse_sfd(filepath: str) -> dict:
     lines = join_sfd_lines(filepath)
     funcs = {}
-    in_alias = False; libname = ''
+    in_alias = False
+    libname = ''
     for line in lines:
         stripped = line.strip()
         if not stripped or stripped.startswith('*'):
-            in_alias = False; continue
+            in_alias = False
+            continue
         if stripped.startswith('==') or stripped.startswith('##'):
-            d = stripped.split()[0] if stripped.split() else ''
-            if d in ('==alias', '##alias'): in_alias = True; continue
+            d = stripped.split()[0]
+            if d in ('==alias', '##alias'):
+                in_alias = True
+                continue
             in_alias = False
             m = re.match(r'==base\s+(\S+)', stripped)
-            if m: libname = m.group(1)
+            if m:
+                libname = m.group(1)
             continue
-        if in_alias: in_alias = False; continue
+        if in_alias:
+            in_alias = False
+            continue
         info = parse_sfd_func_line(line)
         if info: funcs[info['name']] = info
     funcs['__libname'] = libname
     return funcs
 
 
+def split_sfd_params(param_str: str) -> list:
+    """Split SFD parameters by comma, respecting nested parentheses."""
+    parts = []
+    depth = 0
+    current = []
+    for ch in param_str:
+        if ch == '(':
+            depth += 1
+            current.append(ch)
+        elif ch == ')':
+            depth -= 1
+            current.append(ch)
+        elif ch == ',' and depth == 0:
+            parts.append(''.join(current).strip())
+            current = []
+        else:
+            current.append(ch)
+    if current:
+        parts.append(''.join(current).strip())
+    return [p for p in parts if p]
+
+
 def parse_sfd_func_line(line: str):
     line = line.strip()
-    if not line: return None
+    if not line:
+        return None
     rg = extract_last_paren_group(line)
-    if rg is None: return None
+    if rg is None:
+        return None
     regs = [r.strip() for r in rg[2].replace('/', ',').split(',') if r.strip()] if rg[2] else []
     sig = line[:rg[0]].strip()
-    if not sig: return None
+    if not sig:
+        return None
     fp = sig.find('(')
-    if fp < 0: return None
-    depth = 0; pc = -1
+    if fp < 0:
+        return None
+    depth = 0
+    pc = -1
     for i in range(fp, len(sig)):
-        if sig[i] == '(': depth += 1
+        if sig[i] == '(':
+            depth += 1
         elif sig[i] == ')':
             depth -= 1
-            if depth == 0: pc = i; break
-    if pc < 0: return None
+            if depth == 0:
+                pc = i
+                break
+    if pc < 0:
+        return None
     ps = sig[fp+1:pc].strip()
     before = sig[:fp].strip()
     words = before.split()
-    if not words: return None
-    nraw = words[-1]; name = nraw.lstrip('*'); stars = len(nraw) - len(name)
+    if not words:
+        return None
+    nraw = words[-1]
+    name = nraw.lstrip('*')
+    stars = len(nraw) - len(name)
     rt = ' '.join(words[:-1]) + (' *' * stars) if stars > 0 else ' '.join(words[:-1])
     is_void = rt.strip() in ('VOID', 'void')
-    params = [parse_sfd_param(p) for p in ps.split(',') if p.strip()] if ps else []
+    params = [parse_sfd_param(p) for p in split_sfd_params(ps)] if ps else []
     return {'name': name, 'ret_type': rt, 'params': params, 'regs': regs, 'is_void': is_void}
 
 
@@ -703,22 +866,28 @@ def main():
     args = ap.parse_args()
 
     if args.mapping and not args.lib_name:
-        print_mapping(None); return
+        print_mapping(None)
+        return
     if not args.ndk_path or not args.lib_name:
-        ap.print_help(); sys.exit(1)
+        ap.print_help()
+        sys.exit(1)
 
     ndk = args.ndk_path.rstrip('/')
     lib = args.lib_name
 
     # Detect if we need to generate structs section inside the block
+    inc = os.path.join(ndk, 'Include_I', lib)
+    exec_inc = os.path.join(ndk, 'Include_I', 'exec')
     if args.structs or args.consts:
-        inc = os.path.join(ndk, 'Include_I', lib)
-        exec_inc = os.path.join(ndk, 'Include_I', 'exec')
         all_raw = {}
         if os.path.isdir(exec_inc):
             all_raw.update(parse_struct_i_files(exec_inc))
         if os.path.isdir(inc):
-            all_raw.update(parse_struct_i_files(inc))
+            lib_structs = parse_struct_i_files(inc)
+            for tag in lib_structs:
+                if tag in all_raw:
+                    print(f"Warning: struct '{tag}' from exec overwritten by {lib}", file=sys.stderr)
+            all_raw.update(lib_structs)
     else:
         all_raw = {}
 
@@ -737,7 +906,8 @@ def main():
     print(f";; Auto-generated from {lib}_lib.sfd and {lib}_lib.i")
     if libname:
         print(f";; Library base: {libname}  in prog8: sys.{libname[1:]}")
-    if bank: print(f";; Bank: {bank}")
+    if bank:
+        print(f";; Bank: {bank}")
     print(f";; Functions: {len(lvos)}\n")
 
     print(f"{lib} {{")
@@ -745,15 +915,16 @@ def main():
     # extsub definitions
     for name, lvo in sorted(lvos.items(), key=lambda x: x[1], reverse=True):
         info = sfd_funcs.get(name)
-        pi = info['params'] if info else []
-        regs = info['regs'] if info else []
-        iv = info['is_void'] if info else True
-        rt = info['ret_type'] if info and info['ret_type'] else None
+        pi = (info or {}).get('params', [])
+        regs = (info or {}).get('regs', [])
+        iv = (info or {}).get('is_void', True)
+        rt = (info or {}).get('ret_type')
         pp = []
         idx = 0
         for r in regs:
             if idx < len(pi):
-                pt, pn = pi[idx]; idx += 1
+                pt, pn = pi[idx]
+                idx += 1
             else:
                 pt, pn = 'long', f'reg_{r.lower()}'
             pp.append(f"{pt} {pn} @{r.upper()}")
@@ -767,49 +938,31 @@ def main():
     # structs inside the block
     if args.structs:
         resolved = resolve_struct_sizes(all_raw)
-        target_tags = _tags_in_dir(inc) if os.path.isdir(inc) else set()
-        print(f"\n    ; ---- struct definitions ----")
-        for tag in sorted(resolved.keys()):
-            rs = resolved[tag]
-            print(f'    struct {rs["c_name"]} {{  ; total size: {rs["size"]}')
-            for f in rs['fields']:
-                ptype = f['prog8_type']
-                pname = f['prog8_name']
-                off = f['offset']
-                comment = f.get('comment', '')
-                line = f'        {ptype} {pname}'
-                if comment:
-                    line += f'  {comment}'
-                line += f'  ; {off}'
-                print(line)
-            print('    }')
+        print(generate_structs(resolved, lib, indent='    ', header_text='struct definitions'))
 
     # constants inside the block
     if args.consts:
         consts = []
         if os.path.isdir(inc):
             consts.extend(parse_consts_i_files(inc))
-        print(f"\n    ; ---- constants ----")
-        seen = set()
-        for c in consts:
-            if c['name'] in seen:
-                continue
-            seen.add(c['name'])
-            print(f'    const {c["prog8_type"]} {c["name"]} = {c["value"]}')
+        print(generate_consts(consts, lib, indent='    ', header_text='constants'))
 
     print(f"}}")
     print(f";; End of auto-generated {lib}_lib.sfd")
-    if args.mapping: print_mapping(lib)
+    if args.mapping:
+        print_mapping(lib)
 
 
 def _tags_in_dir(d: str) -> set:
     tags = set()
     for fn in os.listdir(d):
-        if not fn.endswith('.i'): continue
-        with open(os.path.join(d, fn)) as f:
+        if not fn.endswith('.i'):
+            continue
+        with open(os.path.join(d, fn), encoding='latin-1') as f:
             for line in f:
                 m = re.match(r'STRUCTURE\s+(\w+)\s*,', line)
-                if m: tags.add(m.group(1))
+                if m:
+                    tags.add(m.group(1))
     return tags
 
 

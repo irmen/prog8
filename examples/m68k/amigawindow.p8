@@ -3,38 +3,6 @@
 %import exec
 %import dos
 
-intuition {
-    %option merge
-
-    struct NewWindow {
-        word leftEdge, topEdge, width, height
-        byte detailPen, blockPen
-        long idcmpFlags
-        long flags
-        pointer firstGadget, checkmark
-        str title
-        pointer screen, bitmap
-        word minWidth, minHeight
-        uword maxWidth, maxHeight, type
-    }
-
-    ; IDCMP flags from NDK
-    const long IDCMP_REFRESHWINDOW   = $00000004
-    const long IDCMP_CLOSEWINDOW     = $00000200
-
-    ; Window flags (from NDK)
-    const long WFLG_SIZEGADGET       = 1
-    const long WFLG_DRAGBAR          = 2
-    const long WFLG_DEPTHGADGET      = 4
-    const long WFLG_CLOSEGADGET      = 8
-    const long WFLG_ACTIVATE         = $1000
-    const uword WBENCHSCREEN         = 1
-
-    ; IntuiMessage Class offset
-    const ubyte IM_CLASS_OFFSET = $14
-
-}
-
 main {
 
     sub start() {
@@ -48,47 +16,83 @@ main {
             intuition.WBENCHSCREEN
         ]
 
-        pointer win = intuition.OpenWindow(nw)
+        ^^intuition.Window win = intuition.OpenWindow(nw)
         if win == 0
             return
 
         intuition.ActivateWindow(win)
 
-        ; Get RastPort from Window struct (offset 0x32)
-        pointer rp = peekp(win+$32)
-        ; Get UserPort from Window struct (offset 0x56)
-        pointer userport = peekp(win+$56)
+        ^^graphics.RastPort rp = win.RPort
+        word font_height = rp.TxHeight
+        word font_baseline = rp.TxBaseline
+        word font_descent = font_height - font_baseline
+        str message = "Woah it works!"
+        word text_width = graphics.TextLength(rp, message, len(message))
+        word x_pos = 100
+        word y_pos = 40
+        word dx = 2
+        word dy = 1
+        ubyte color_idx = 1
+        ; Client area offset (word for cast-free arithmetic)
+        word border_left = win.BorderLeft
+        word border_top = win.BorderTop
+        word border_right = win.BorderRight
+        word border_bottom = win.BorderBottom
 
         sub drawText() {
-            graphics.SetDrMd(rp, 1)
-            graphics.SetAPen(rp, 2)
-            graphics.Move(rp, 15, 25)
-            str message = "Woah it works!"
+            graphics.SetDrMd(rp, 1)       ; JAM2 - solid character cells, readable
+            graphics.SetAPen(rp, color_idx)
+            graphics.Move(rp, x_pos + border_left, y_pos + border_top)
             void graphics.Text(rp, message, len(message))
         }
 
         drawText()
 
-        ; Message pump / idle loop
+        ; Message pump / animation loop
         bool running = true
         while running {
-            void exec.WaitPort(userport)
-            pointer msg = exec.GetMsg(userport)
+            ; Process pending messages (non-blocking)
+            ^^intuition.IntuiMessage msg = exec.GetMsg(win.UserPort)
             while msg != 0 {
-                ; Check msg.Class at offset 0x14
-                long msgclass = peekl(msg+$14)
-                if msgclass == intuition.IDCMP_CLOSEWINDOW {
-                    running = false
-                } else {
-                    if msgclass == intuition.IDCMP_REFRESHWINDOW {
+                when msg.Class {
+                    intuition.IDCMP_CLOSEWINDOW -> running = false
+                    intuition.IDCMP_REFRESHWINDOW -> {
                         intuition.BeginRefresh(win)
                         drawText()
                         intuition.EndRefresh(win, 1)
                     }
                 }
                 exec.ReplyMsg(msg)
-                msg = exec.GetMsg(userport)
+                msg = exec.GetMsg(win.UserPort)
             }
+
+            ; Bounce the text within client area
+            x_pos += dx
+            y_pos += dy
+            word client_w = win.Width - border_left - border_right
+            word client_h = win.Height - border_top - border_bottom
+            if x_pos < 0 {
+                x_pos = 0
+                dx = -dx
+            }
+            if x_pos + text_width > client_w {
+                x_pos = client_w - text_width
+                dx = -dx
+            }
+            if y_pos < font_baseline {
+                y_pos = font_baseline
+                dy = -dy
+            }
+            if y_pos > client_h - 1 - font_descent {
+                y_pos = client_h - 1 - font_descent
+                dy = -dy
+            }
+
+            ; Cycle color: 1 -> 2 -> 3 -> 1 -> ...
+            color_idx = (color_idx % 3) + 1
+
+            drawText()
+            dos.Delay(1)
         }
 
         intuition.CloseWindow(win)

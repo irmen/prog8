@@ -119,6 +119,340 @@ exec {
     extsub @bank 1   -780 = RemMemHandler(pointer memhand @A1)
     extsub @bank 1   -786 = ObtainQuickVector(pointer interruptCode @A0) -> long @D0
     extsub @bank 1   -828 = NewMinList(pointer minlist @A0)
-}
 
+    ; ---- struct definitions ----
+
+    struct IOStdReq {  ; total size: 48
+        pointer Succ  ; 0
+        pointer Pred  ; 4
+        ubyte Type  ; 8
+        byte Pri  ; 9
+        str Name  ; 10
+        pointer Replyport  ; 14
+        uword IOStdReq_Length  ; 18
+        pointer Device  ; 20
+        pointer Unit  ; 24
+        uword Command  ; 28
+        ubyte Flags  ; 30
+        byte Error  ; 31
+        long Actual  ; 32
+        long Length  ; 36
+        pointer Data  ; 40
+        long Offset  ; 44
+    }
+
+    struct IORequest {  ; total size: 32
+        pointer Succ  ; 0
+        pointer Pred  ; 4
+        ubyte Type  ; 8
+        byte Pri  ; 9
+        str Name  ; 10
+        pointer Replyport  ; 14
+        uword IOStdReq_Length  ; 18
+        pointer Device  ; 20
+        pointer Unit  ; 24
+        uword Command  ; 28
+        ubyte Flags  ; 30
+        byte Error  ; 31
+    }
+
+    struct Interrupt {  ; total size: 22
+        pointer Succ  ; 0
+        pointer Pred  ; 4
+        ubyte Type  ; 8
+        byte Pri  ; 9
+        str Name  ; 10
+        pointer Data  ; 14
+        pointer Code  ; 18
+    }
+
+    struct List {  ; total size: 14
+        pointer Head  ; 0
+        pointer Tail  ; 4
+        pointer Tailpred  ; 8
+        ubyte Type  ; 12
+        ubyte Pad  ; 13
+    }
+
+    struct Library {  ; total size: 34
+        pointer Succ  ; 0
+        pointer Pred  ; 4
+        ubyte Type  ; 8
+        byte Pri  ; 9
+        str Name  ; 10
+        ubyte Flags  ; 14
+        ubyte Pad  ; 15
+        uword Negsize  ; 16
+        uword Possize  ; 18
+        uword Version  ; 20
+        uword Revision  ; 22
+        str Idstring  ; 24
+        long Sum  ; 28
+        uword Opencnt  ; 32
+    }
+
+    struct Node {  ; total size: 14
+        pointer Succ  ; 0
+        pointer Pred  ; 4
+        ubyte Type  ; 8
+        byte Pri  ; 9
+        str Name  ; 10
+    }
+
+    struct MinList {  ; total size: 12
+        pointer Head  ; 0
+        pointer Tail  ; 4
+        pointer Tailpred  ; 8
+    }
+
+    struct MinNode {  ; total size: 8
+        pointer Succ  ; 0
+        pointer Pred  ; 4
+    }
+
+    struct Message {  ; total size: 20
+        pointer Succ  ; 0
+        pointer Pred  ; 4
+        ubyte Type  ; 8
+        byte Pri  ; 9
+        str Name  ; 10
+        pointer Replyport  ; 14
+        uword Length  ; 18
+    }
+
+    struct MsgPort {  ; total size: 34
+        pointer Succ  ; 0
+        pointer Pred  ; 4
+        ubyte Type  ; 8
+        byte Pri  ; 9
+        str Name  ; 10
+        ubyte Flags  ; 14
+        ubyte Sigbit  ; 15
+        pointer Sigtask  ; 16
+        pointer Head  ; 20
+        pointer Tail  ; 24
+        pointer Tailpred  ; 28
+        ubyte List_Type  ; 32
+        ubyte Pad  ; 33
+    }
+
+    struct Task {  ; total size: 84
+        pointer Succ  ; 0
+        pointer Pred  ; 4
+        ubyte Type  ; 8
+        byte Pri  ; 9
+        str Name  ; 10
+        ubyte Flags  ; 14
+        ubyte State  ; 15
+        byte Idnestcnt  ; 16
+        byte Tdnestcnt  ; 17
+        long Sigalloc  ; 18
+        long Sigwait  ; 22
+        long Sigrecvd  ; 26
+        long Sigexcept  ; 30
+        uword Trapalloc  ; 34
+        uword Trapable  ; 36
+        pointer Exceptdata  ; 38
+        pointer Exceptcode  ; 42
+        pointer Trapdata  ; 46
+        pointer Trapcode  ; 50
+        pointer Spreg  ; 54
+        pointer Splower  ; 58
+        pointer Spupper  ; 62
+        pointer Head  ; 66
+        pointer Tail  ; 70
+        pointer Tailpred  ; 74
+        ubyte List_Type  ; 78
+        ubyte Pad  ; 79
+        pointer Userdata  ; 80
+    }
+
+    ; ---- constants ----
+    const ubyte UNITB_ACTIVE = 0
+    const ubyte UNITF_ACTIVE = $0001
+    const ubyte UNITB_INTASK = 1
+    const ubyte UNITF_INTASK = $0002
+    const long IOERR_OPENFAIL = -1
+    const long IOERR_ABORTED = -2
+    const long IOERR_NOCMD = -3
+    const long IOERR_BADLENGTH = -4
+    const long IOERR_BADADDRESS = -5
+    const long IOERR_UNITBUSY = -6
+    const long IOERR_SELFTEST = -7
+    const ubyte AFB_68010 = 0
+    const ubyte AFF_68010 = $0001
+    const ubyte AFB_68020 = 1
+    const ubyte AFF_68020 = $0002
+    const ubyte AFB_68030 = 2
+    const ubyte AFF_68030 = $0004
+    const ubyte AFB_68040 = 3
+    const ubyte AFF_68040 = $0008
+    const ubyte AFB_68881 = 4
+    const ubyte AFF_68881 = $0010
+    const ubyte AFB_68882 = 5
+    const ubyte AFF_68882 = $0020
+    const ubyte AFB_FPU40 = 6
+    const ubyte AFF_FPU40 = $0040
+    const ubyte AFB_68060 = 7
+    const ubyte AFF_68060 = $0080
+    const ubyte AFB_FPGA = 10
+    const uword AFF_FPGA = $0400
+    const ubyte AFB_PRIVATE = 15
+    const uword AFF_PRIVATE = $8000
+    const ubyte CACRB_EnableI = 0
+    const ubyte CACRF_EnableI = $0001
+    const ubyte CACRB_FreezeI = 1
+    const ubyte CACRF_FreezeI = $0002
+    const ubyte CACRB_ClearI = 3
+    const ubyte CACRF_ClearI = $0008
+    const ubyte CACRB_IBE = 4
+    const ubyte CACRF_IBE = $0010
+    const ubyte CACRB_EnableD = 8
+    const uword CACRF_EnableD = $0100
+    const ubyte CACRB_FreezeD = 9
+    const uword CACRF_FreezeD = $0200
+    const ubyte CACRB_ClearD = 11
+    const uword CACRF_ClearD = $0800
+    const ubyte CACRB_DBE = 12
+    const uword CACRF_DBE = $1000
+    const ubyte CACRB_WriteAllocate = 13
+    const uword CACRF_WriteAllocate = $2000
+    const ubyte CACRB_EnableE = 30
+    const long CACRF_EnableE = $40000000
+    const ubyte CACRB_CopyBack = 31
+    const long CACRF_CopyBack = $80000000
+    const ubyte DMAB_Continue = 1
+    const ubyte DMAF_Continue = $0002
+    const ubyte DMAB_NoModify = 2
+    const ubyte DMAF_NoModify = $0004
+    const ubyte DMAB_ReadFromRAM = 3
+    const ubyte DMAF_ReadFromRAM = $0008
+    const ubyte SB_SAR = 15
+    const uword SF_SAR = $8000
+    const ubyte SB_TQE = 14
+    const uword SF_TQE = $4000
+    const ubyte SB_SINT = 13
+    const uword SF_SINT = $2000
+    const ubyte SIH_PRIMASK = $00f0
+    const ubyte SIH_QUEUES = $0005
+    const ubyte INTB_NMI = 15
+    const uword INTF_NMI = $8000
+    const ubyte IOB_QUICK = 0
+    const ubyte IOF_QUICK = $0001
+    const ubyte LIB_VECTSIZE = $0006
+    const ubyte LIB_RESERVED = $0004
+    const ubyte LIBB_SUMMING = 0
+    const ubyte LIBF_SUMMING = $0001
+    const ubyte LIBB_CHANGED = 1
+    const ubyte LIBF_CHANGED = $0002
+    const ubyte LIBB_SUMUSED = 2
+    const ubyte LIBF_SUMUSED = $0004
+    const ubyte LIBB_DELEXP = 3
+    const ubyte LIBF_DELEXP = $0008
+    const ubyte LIBB_EXP0CNT = 4
+    const ubyte LIBF_EXP0CNT = $0010
+    const ubyte MEMF_ANY = $0000
+    const ubyte MEMB_PUBLIC = 0
+    const ubyte MEMF_PUBLIC = $0001
+    const ubyte MEMB_CHIP = 1
+    const ubyte MEMF_CHIP = $0002
+    const ubyte MEMB_FAST = 2
+    const ubyte MEMF_FAST = $0004
+    const ubyte MEMB_LOCAL = 8
+    const uword MEMF_LOCAL = $0100
+    const ubyte MEMB_24BITDMA = 9
+    const uword MEMF_24BITDMA = $0200
+    const ubyte MEMB_KICK = 10
+    const uword MEMF_KICK = $0400
+    const ubyte MEMB_CLEAR = 16
+    const long MEMF_CLEAR = $00010000
+    const ubyte MEMB_LARGEST = 17
+    const long MEMF_LARGEST = $00020000
+    const ubyte MEMB_REVERSE = 18
+    const long MEMF_REVERSE = $00040000
+    const ubyte MEMB_TOTAL = 19
+    const long MEMF_TOTAL = $00080000
+    const ubyte MEMB_NO_EXPUNGE = 31
+    const long MEMF_NO_EXPUNGE = $80000000
+    const ubyte MEM_BLOCKSIZE = $0008
+    const ubyte MEMHB_RECYCLE = 0
+    const ubyte MEMHF_RECYCLE = $0001
+    const ubyte MEM_DID_NOTHING = $0000
+    const long MEM_ALL_DONE = -1
+    const ubyte MEM_TRY_AGAIN = $0001
+    const ubyte NT_UNKNOWN = $0000
+    const ubyte NT_TASK = $0001
+    const ubyte NT_INTERRUPT = $0002
+    const ubyte NT_DEVICE = $0003
+    const ubyte NT_MSGPORT = $0004
+    const ubyte NT_MESSAGE = $0005
+    const ubyte NT_FREEMSG = $0006
+    const ubyte NT_REPLYMSG = $0007
+    const ubyte NT_RESOURCE = $0008
+    const ubyte NT_LIBRARY = $0009
+    const ubyte NT_MEMORY = $000a
+    const ubyte NT_SOFTINT = $000b
+    const ubyte NT_FONT = $000c
+    const ubyte NT_PROCESS = $000d
+    const ubyte NT_SEMAPHORE = $000e
+    const ubyte NT_SIGNALSEM = $000f
+    const ubyte NT_BOOTNODE = $0010
+    const ubyte NT_KICKMEM = $0011
+    const ubyte NT_GRAPHICS = $0012
+    const ubyte NT_DEATHMESSAGE = $0013
+    const ubyte NT_USER = $00fe
+    const ubyte NT_EXTENDED = $00ff
+    const ubyte PF_ACTION = $0003
+    const ubyte PA_SIGNAL = $0000
+    const ubyte PA_SOFTINT = $0001
+    const ubyte PA_IGNORE = $0002
+    const uword RTC_MATCHWORD = $4afc
+    const ubyte RTB_COLDSTART = 0
+    const ubyte RTF_COLDSTART = $0001
+    const ubyte RTB_SINGLETASK = 1
+    const ubyte RTF_SINGLETASK = $0002
+    const ubyte RTB_AFTERDOS = 2
+    const ubyte RTF_AFTERDOS = $0004
+    const ubyte RTB_AUTOINIT = 7
+    const ubyte RTF_AUTOINIT = $0080
+    const ubyte RTW_NEVER = $0000
+    const ubyte RTW_COLDSTART = $0001
+    const ubyte EOS = $0000
+    const ubyte BELL = $0007
+    const ubyte LF = $000a
+    const ubyte CR = $000d
+    const ubyte BS = $0008
+    const ubyte DEL = $007f
+    const ubyte TB_PROCTIME = 0
+    const ubyte TF_PROCTIME = $0001
+    const ubyte TB_ETASK = 3
+    const ubyte TF_ETASK = $0008
+    const ubyte TB_STACKCHK = 4
+    const ubyte TF_STACKCHK = $0010
+    const ubyte TB_EXCEPT = 5
+    const ubyte TF_EXCEPT = $0020
+    const ubyte TB_SWITCH = 6
+    const ubyte TF_SWITCH = $0040
+    const ubyte TB_LAUNCH = 7
+    const ubyte TF_LAUNCH = $0080
+    const ubyte TS_INVALID = $0000
+    const ubyte SIGB_ABORT = 0
+    const ubyte SIGF_ABORT = $0001
+    const ubyte SIGB_CHILD = 1
+    const ubyte SIGF_CHILD = $0002
+    const ubyte SIGB_BLIT = 4
+    const ubyte SIGF_BLIT = $0010
+    const ubyte SIGB_SINGLE = 4
+    const ubyte SIGF_SINGLE = $0010
+    const ubyte SIGB_INTUITION = 5
+    const ubyte SIGF_INTUITION = $0020
+    const ubyte SIGB_NET = 7
+    const ubyte SIGF_NET = $0080
+    const ubyte SIGB_DOS = 8
+    const uword SIGF_DOS = $0100
+    const uword SYS_SIGALLOC = $ffff
+    const uword SYS_TRAPALLOC = $8000
+    const ubyte INCLUDE_VERSION = $002f
+    const ubyte LIBRARY_MINIMUM = $0021
+}
 ;; End of auto-generated exec_lib.sfd

@@ -6,62 +6,62 @@
 intuition {
     extsub @bank 4   -30 = OpenIntuition()
     extsub @bank 4   -36 = Intuition(pointer iEvent @A0)
-    extsub @bank 4   -42 = AddGadget(pointer window @A0, pointer gadget @A1, uword position @D0) -> uword @D0
-    extsub @bank 4   -48 = ClearDMRequest(pointer window @A0) -> bool @D0
-    extsub @bank 4   -54 = ClearMenuStrip(pointer window @A0)
-    extsub @bank 4   -60 = ClearPointer(pointer window @A0)
+    extsub @bank 4   -42 = AddGadget(pointer k_window @A0, pointer gadget @A1, uword position @D0) -> uword @D0
+    extsub @bank 4   -48 = ClearDMRequest(pointer k_window @A0) -> bool @D0
+    extsub @bank 4   -54 = ClearMenuStrip(pointer k_window @A0)
+    extsub @bank 4   -60 = ClearPointer(pointer k_window @A0)
     extsub @bank 4   -66 = CloseScreen(pointer screen @A0) -> bool @D0
-    extsub @bank 4   -72 = CloseWindow(pointer window @A0)
+    extsub @bank 4   -72 = CloseWindow(pointer k_window @A0)
     extsub @bank 4   -78 = CloseWorkBench() -> long @D0
     extsub @bank 4   -84 = CurrentTime(long seconds @A0, long micros @A1)
-    extsub @bank 4   -90 = DisplayAlert(long alertNumber @D0, str string @A0, uword height @D1) -> bool @D0
+    extsub @bank 4   -90 = DisplayAlert(long alertNumber @D0, str k_string @A0, uword height @D1) -> bool @D0
     extsub @bank 4   -96 = DisplayBeep(pointer screen @A0)
     extsub @bank 4   -102 = DoubleClick(long sSeconds @D0, long sMicros @D1, long cSeconds @D2, long cMicros @D3) -> bool @D0
     extsub @bank 4   -108 = DrawBorder(pointer rp @A0, pointer border @A1, word leftOffset @D0, word topOffset @D1)
     extsub @bank 4   -114 = DrawImage(pointer rp @A0, pointer image @A1, word leftOffset @D0, word topOffset @D1)
-    extsub @bank 4   -120 = EndRequest(pointer requester @A0, pointer window @A1)
+    extsub @bank 4   -120 = EndRequest(pointer k_requester @A0, pointer k_window @A1)
     extsub @bank 4   -126 = GetDefPrefs(pointer preferences @A0, word size @D0) -> pointer @D0
     extsub @bank 4   -132 = GetPrefs(pointer preferences @A0, word size @D0) -> pointer @D0
-    extsub @bank 4   -138 = InitRequester(pointer requester @A0)
+    extsub @bank 4   -138 = InitRequester(pointer k_requester @A0)
     extsub @bank 4   -144 = ItemAddress(pointer menuStrip @A0, uword menuNumber @D0) -> pointer @D0
-    extsub @bank 4   -150 = ModifyIDCMP(pointer window @A0, long flags @D0) -> bool @D0
-    extsub @bank 4   -156 = ModifyProp(pointer gadget @A0, pointer window @A1, pointer requester @A2, uword flags @D0, uword horizPot @D1, uword vertPot @D2, uword horizBody @D3, uword vertBody @D4)
+    extsub @bank 4   -150 = ModifyIDCMP(pointer k_window @A0, long flags @D0) -> bool @D0
+    extsub @bank 4   -156 = ModifyProp(pointer gadget @A0, pointer k_window @A1, pointer k_requester @A2, uword flags @D0, uword horizPot @D1, uword vertPot @D2, uword horizBody @D3, uword vertBody @D4)
     extsub @bank 4   -162 = MoveScreen(pointer screen @A0, word dx @D0, word dy @D1)
-    extsub @bank 4   -168 = MoveWindow(pointer window @A0, word dx @D0, word dy @D1)
-    extsub @bank 4   -174 = OffGadget(pointer gadget @A0, pointer window @A1, pointer requester @A2)
-    extsub @bank 4   -180 = OffMenu(pointer window @A0, uword menuNumber @D0)
-    extsub @bank 4   -186 = OnGadget(pointer gadget @A0, pointer window @A1, pointer requester @A2)
-    extsub @bank 4   -192 = OnMenu(pointer window @A0, uword menuNumber @D0)
+    extsub @bank 4   -168 = MoveWindow(pointer k_window @A0, word dx @D0, word dy @D1)
+    extsub @bank 4   -174 = OffGadget(pointer gadget @A0, pointer k_window @A1, pointer k_requester @A2)
+    extsub @bank 4   -180 = OffMenu(pointer k_window @A0, uword menuNumber @D0)
+    extsub @bank 4   -186 = OnGadget(pointer gadget @A0, pointer k_window @A1, pointer k_requester @A2)
+    extsub @bank 4   -192 = OnMenu(pointer k_window @A0, uword menuNumber @D0)
     extsub @bank 4   -198 = OpenScreen(pointer newScreen @A0) -> pointer @D0
     extsub @bank 4   -204 = OpenWindow(pointer newWindow @A0) -> pointer @D0
     extsub @bank 4   -210 = OpenWorkBench() -> long @D0
     extsub @bank 4   -216 = PrintIText(pointer rp @A0, pointer iText @A1, word left @D0, word top @D1)
-    extsub @bank 4   -222 = RefreshGadgets(pointer gadgets @A0, pointer window @A1, pointer requester @A2)
-    extsub @bank 4   -228 = RemoveGadget(pointer window @A0, pointer gadget @A1) -> uword @D0
-    extsub @bank 4   -234 = ReportMouse(bool flag @D0, pointer window @A0)
-    extsub @bank 4   -240 = Request(pointer requester @A0, pointer window @A1) -> bool @D0
+    extsub @bank 4   -222 = RefreshGadgets(pointer gadgets @A0, pointer k_window @A1, pointer k_requester @A2)
+    extsub @bank 4   -228 = RemoveGadget(pointer k_window @A0, pointer gadget @A1) -> uword @D0
+    extsub @bank 4   -234 = ReportMouse(bool flag @D0, pointer k_window @A0)
+    extsub @bank 4   -240 = Request(pointer k_requester @A0, pointer k_window @A1) -> bool @D0
     extsub @bank 4   -246 = ScreenToBack(pointer screen @A0)
     extsub @bank 4   -252 = ScreenToFront(pointer screen @A0)
-    extsub @bank 4   -258 = SetDMRequest(pointer window @A0, pointer requester @A1) -> bool @D0
-    extsub @bank 4   -264 = SetMenuStrip(pointer window @A0, pointer menu @A1) -> bool @D0
-    extsub @bank 4   -270 = SetPointer(pointer window @A0, uword k_pointer @A1, word height @D0, word width @D1, word xOffset @D2, word yOffset @D3)
-    extsub @bank 4   -276 = SetWindowTitles(pointer window @A0, str windowTitle @A1, str screenTitle @A2)
+    extsub @bank 4   -258 = SetDMRequest(pointer k_window @A0, pointer k_requester @A1) -> bool @D0
+    extsub @bank 4   -264 = SetMenuStrip(pointer k_window @A0, pointer menu @A1) -> bool @D0
+    extsub @bank 4   -270 = SetPointer(pointer k_window @A0, uword k_pointer @A1, word height @D0, word width @D1, word xOffset @D2, word yOffset @D3)
+    extsub @bank 4   -276 = SetWindowTitles(pointer k_window @A0, str windowTitle @A1, str screenTitle @A2)
     extsub @bank 4   -282 = ShowTitle(pointer screen @A0, bool showIt @D0)
-    extsub @bank 4   -288 = SizeWindow(pointer window @A0, word dx @D0, word dy @D1)
+    extsub @bank 4   -288 = SizeWindow(pointer k_window @A0, word dx @D0, word dy @D1)
     extsub @bank 4   -294 = ViewAddress() -> pointer @D0
-    extsub @bank 4   -300 = ViewPortAddress(pointer window @A0) -> pointer @D0
-    extsub @bank 4   -306 = WindowToBack(pointer window @A0)
-    extsub @bank 4   -312 = WindowToFront(pointer window @A0)
-    extsub @bank 4   -318 = WindowLimits(pointer window @A0, long widthMin @D0, long heightMin @D1, long widthMax @D2, long heightMax @D3) -> bool @D0
+    extsub @bank 4   -300 = ViewPortAddress(pointer k_window @A0) -> pointer @D0
+    extsub @bank 4   -306 = WindowToBack(pointer k_window @A0)
+    extsub @bank 4   -312 = WindowToFront(pointer k_window @A0)
+    extsub @bank 4   -318 = WindowLimits(pointer k_window @A0, long widthMin @D0, long heightMin @D1, long widthMax @D2, long heightMax @D3) -> bool @D0
     extsub @bank 4   -324 = SetPrefs(pointer preferences @A0, long size @D0, bool inform @D1) -> pointer @D0
     extsub @bank 4   -330 = IntuiTextLength(pointer iText @A0) -> long @D0
     extsub @bank 4   -336 = WBenchToBack() -> bool @D0
     extsub @bank 4   -342 = WBenchToFront() -> bool @D0
-    extsub @bank 4   -348 = AutoRequest(pointer window @A0, pointer body @A1, pointer posText @A2, pointer negText @A3, long pFlag @D0, long nFlag @D1, uword width @D2, uword height @D3) -> bool @D0
-    extsub @bank 4   -354 = BeginRefresh(pointer window @A0)
-    extsub @bank 4   -360 = BuildSysRequest(pointer window @A0, pointer body @A1, pointer posText @A2, pointer negText @A3, long flags @D0, uword width @D1, uword height @D2) -> pointer @D0
-    extsub @bank 4   -366 = EndRefresh(pointer window @A0, long complete @D0)
-    extsub @bank 4   -372 = FreeSysRequest(pointer window @A0)
+    extsub @bank 4   -348 = AutoRequest(pointer k_window @A0, pointer body @A1, pointer posText @A2, pointer negText @A3, long pFlag @D0, long nFlag @D1, uword width @D2, uword height @D3) -> bool @D0
+    extsub @bank 4   -354 = BeginRefresh(pointer k_window @A0)
+    extsub @bank 4   -360 = BuildSysRequest(pointer k_window @A0, pointer body @A1, pointer posText @A2, pointer negText @A3, long flags @D0, uword width @D1, uword height @D2) -> pointer @D0
+    extsub @bank 4   -366 = EndRefresh(pointer k_window @A0, long complete @D0)
+    extsub @bank 4   -372 = FreeSysRequest(pointer k_window @A0)
     extsub @bank 4   -378 = MakeScreen(pointer screen @A0) -> long @D0
     extsub @bank 4   -384 = RemakeDisplay() -> long @D0
     extsub @bank 4   -390 = RethinkDisplay() -> long @D0
@@ -71,19 +71,19 @@ intuition {
     extsub @bank 4   -414 = LockIBase(long dontknow @D0) -> long @D0
     extsub @bank 4   -420 = UnlockIBase(long ibLock @A0)
     extsub @bank 4   -426 = GetScreenData(pointer buffer @A0, uword size @D0, uword k_type @D1, pointer screen @A1) -> long @D0
-    extsub @bank 4   -432 = RefreshGList(pointer gadgets @A0, pointer window @A1, pointer requester @A2, word numGad @D0)
-    extsub @bank 4   -438 = AddGList(pointer window @A0, pointer gadget @A1, uword position @D0, word numGad @D1, pointer requester @A2) -> uword @D0
+    extsub @bank 4   -432 = RefreshGList(pointer gadgets @A0, pointer k_window @A1, pointer k_requester @A2, word numGad @D0)
+    extsub @bank 4   -438 = AddGList(pointer k_window @A0, pointer gadget @A1, uword position @D0, word numGad @D1, pointer k_requester @A2) -> uword @D0
     extsub @bank 4   -444 = RemoveGList(pointer remPtr @A0, pointer gadget @A1, word numGad @D0) -> uword @D0
-    extsub @bank 4   -450 = ActivateWindow(pointer window @A0)
-    extsub @bank 4   -456 = RefreshWindowFrame(pointer window @A0)
-    extsub @bank 4   -462 = ActivateGadget(pointer gadgets @A0, pointer window @A1, pointer requester @A2) -> bool @D0
-    extsub @bank 4   -468 = NewModifyProp(pointer gadget @A0, pointer window @A1, pointer requester @A2, uword flags @D0, uword horizPot @D1, uword vertPot @D2, uword horizBody @D3, uword vertBody @D4, word numGad @D5)
+    extsub @bank 4   -450 = ActivateWindow(pointer k_window @A0)
+    extsub @bank 4   -456 = RefreshWindowFrame(pointer k_window @A0)
+    extsub @bank 4   -462 = ActivateGadget(pointer gadgets @A0, pointer k_window @A1, pointer k_requester @A2) -> bool @D0
+    extsub @bank 4   -468 = NewModifyProp(pointer gadget @A0, pointer k_window @A1, pointer k_requester @A2, uword flags @D0, uword horizPot @D1, uword vertPot @D2, uword horizBody @D3, uword vertBody @D4, word numGad @D5)
     extsub @bank 4   -474 = QueryOverscan(long displayID @A0, pointer rect @A1, word oScanType @D0) -> long @D0
-    extsub @bank 4   -480 = MoveWindowInFrontOf(pointer window @A0, pointer behindWindow @A1)
-    extsub @bank 4   -486 = ChangeWindowBox(pointer window @A0, word left @D0, word top @D1, word width @D2, word height @D3)
+    extsub @bank 4   -480 = MoveWindowInFrontOf(pointer k_window @A0, pointer behindWindow @A1)
+    extsub @bank 4   -486 = ChangeWindowBox(pointer k_window @A0, word left @D0, word top @D1, word width @D2, word height @D3)
     extsub @bank 4   -492 = SetEditHook(pointer hook @A0) -> pointer @D0
-    extsub @bank 4   -498 = SetMouseQueue(pointer window @A0, uword queueLength @D0) -> long @D0
-    extsub @bank 4   -504 = ZipWindow(pointer window @A0)
+    extsub @bank 4   -498 = SetMouseQueue(pointer k_window @A0, uword queueLength @D0) -> long @D0
+    extsub @bank 4   -504 = ZipWindow(pointer k_window @A0)
     extsub @bank 4   -510 = LockPubScreen(str name @A0) -> pointer @D0
     extsub @bank 4   -516 = UnlockPubScreen(str name @A0, pointer screen @A1)
     extsub @bank 4   -522 = LockPubScreenList() -> pointer @D0
@@ -96,9 +96,9 @@ intuition {
     extsub @bank 4   -564 = ReleaseGIRPort(pointer rp @A0)
     extsub @bank 4   -570 = GadgetMouse(pointer gadget @A0, pointer gInfo @A1, word mousePoint @A2)
     extsub @bank 4   -582 = GetDefaultPubScreen(str nameBuffer @A0)
-    extsub @bank 4   -588 = EasyRequestArgs(pointer window @A0, pointer easyStruct @A1, long idcmpPtr @A2, pointer args @A3) -> long @D0
-    extsub @bank 4   -594 = BuildEasyRequestArgs(pointer window @A0, pointer easyStruct @A1, long idcmp @D0, pointer args @A3) -> pointer @D0
-    extsub @bank 4   -600 = SysReqHandler(pointer window @A0, long idcmpPtr @A1, bool waitInput @D0) -> long @D0
+    extsub @bank 4   -588 = EasyRequestArgs(pointer k_window @A0, pointer easyStruct @A1, long idcmpPtr @A2, pointer args @A3) -> long @D0
+    extsub @bank 4   -594 = BuildEasyRequestArgs(pointer k_window @A0, pointer easyStruct @A1, long idcmp @D0, pointer args @A3) -> pointer @D0
+    extsub @bank 4   -600 = SysReqHandler(pointer k_window @A0, long idcmpPtr @A1, bool waitInput @D0) -> long @D0
     extsub @bank 4   -606 = OpenWindowTagList(pointer newWindow @A0, pointer tagList @A1) -> pointer @D0
     extsub @bank 4   -612 = OpenScreenTagList(pointer newScreen @A0, pointer tagList @A1) -> pointer @D0
     extsub @bank 4   -618 = DrawImageState(pointer rp @A0, pointer image @A1, word leftOffset @D0, word topOffset @D1, long state @D2, pointer drawInfo @A2)
@@ -108,13 +108,13 @@ intuition {
     extsub @bank 4   -642 = DisposeObject(pointer object @A0)
     extsub @bank 4   -648 = SetAttrsA(pointer object @A0, pointer tagList @A1) -> long @D0
     extsub @bank 4   -654 = GetAttr(long attrID @D0, pointer object @A0, long storagePtr @A1) -> long @D0
-    extsub @bank 4   -660 = SetGadgetAttrsA(pointer gadget @A0, pointer window @A1, pointer requester @A2, pointer tagList @A3) -> long @D0
+    extsub @bank 4   -660 = SetGadgetAttrsA(pointer gadget @A0, pointer k_window @A1, pointer k_requester @A2, pointer tagList @A3) -> long @D0
     extsub @bank 4   -666 = NextObject(pointer objectPtrPtr @A0) -> pointer @D0
     extsub @bank 4   -678 = MakeClass(str classID @A0, str superClassID @A1, pointer superClassPtr @A2, uword instanceSize @D0, long flags @D1) -> pointer @D0
     extsub @bank 4   -684 = AddClass(pointer classPtr @A0)
     extsub @bank 4   -690 = GetScreenDrawInfo(pointer screen @A0) -> pointer @D0
     extsub @bank 4   -696 = FreeScreenDrawInfo(pointer screen @A0, pointer drawInfo @A1)
-    extsub @bank 4   -702 = ResetMenuStrip(pointer window @A0, pointer menu @A1) -> bool @D0
+    extsub @bank 4   -702 = ResetMenuStrip(pointer k_window @A0, pointer menu @A1) -> bool @D0
     extsub @bank 4   -708 = RemoveClass(pointer classPtr @A0)
     extsub @bank 4   -714 = FreeClass(pointer classPtr @A0) -> bool @D0
     extsub @bank 4   -768 = AllocScreenBuffer(pointer sc @A0, pointer bm @A1, long flags @D0) -> pointer @D0
@@ -126,11 +126,954 @@ intuition {
     extsub @bank 4   -804 = LendMenus(pointer fromwindow @A0, pointer towindow @A1)
     extsub @bank 4   -810 = DoGadgetMethodA(pointer gad @A0, pointer win @A1, pointer req @A2, long message @A3) -> long @D0
     extsub @bank 4   -816 = SetWindowPointerA(pointer win @A0, pointer taglist @A1)
-    extsub @bank 4   -822 = TimedDisplayAlert(long alertNumber @D0, str string @A0, uword height @D1, long time @A1) -> bool @D0
+    extsub @bank 4   -822 = TimedDisplayAlert(long alertNumber @D0, str k_string @A0, uword height @D1, long time @A1) -> bool @D0
     extsub @bank 4   -828 = HelpControl(pointer win @A0, long flags @D0)
-    extsub @bank 4   -834 = ShowWindow(pointer window @A0, pointer other @A1) -> bool @D0
-    extsub @bank 4   -840 = HideWindow(pointer window @A0) -> bool @D0
+    extsub @bank 4   -834 = ShowWindow(pointer k_window @A0, pointer other @A1) -> bool @D0
+    extsub @bank 4   -840 = HideWindow(pointer k_window @A0) -> bool @D0
     extsub @bank 4   -1212 = IntuitionControlA(pointer object @A0, pointer taglist @A1) -> long @D0
-}
 
+    ; ---- struct definitions ----
+
+    struct Border {  ; total size: 16
+        word LeftEdge  ; 0
+        word TopEdge  ; 2
+        byte FrontPen  ; 4
+        byte BackPen  ; 5
+        byte DrawMode  ; 6
+        byte Count  ; 7
+        pointer Xy  ; 8
+        pointer NextBorder  ; 12
+    }
+
+    struct ColorSpec {  ; total size: 8
+        word ColorIndex  ; 0
+        uword Red  ; 2
+        uword Green  ; 4
+        uword Blue  ; 6
+    }
+
+    struct DrawInfo {  ; total size: 50
+        uword Dri_Version  ; 0
+        uword Dri_NumPens  ; 2
+        pointer Dri_Pens  ; 4
+        pointer Dri_Font  ; 8
+        uword Dri_Depth  ; 12
+        uword Dri_ResolutionX  ; 14
+        uword Dri_ResolutionY  ; 16
+        long Dri_Flags  ; 18
+        pointer Dri_CheckMark  ; 22
+        pointer Dri_AmigaKey  ; 26
+        pointer Succ  ; 30
+        pointer Pred  ; 34
+        ubyte Type  ; 38
+        byte Pri  ; 39
+        str Name  ; 40
+        pointer Replyport  ; 44
+        uword Length  ; 48
+    }
+
+    struct EasyStruct {  ; total size: 20
+        long StructSize  ; 0
+        long Flags  ; 4
+        str Title  ; 8
+        pointer TextFormat  ; 12
+        pointer GadgetFormat  ; 16
+    }
+
+    struct ExtGadget {  ; total size: 56
+        pointer G_NextGadget  ; 0
+        word G_LeftEdge  ; 4
+        word G_TopEdge  ; 6
+        word G_Width  ; 8
+        word G_Height  ; 10
+        word G_Flags  ; 12
+        word G_Activation  ; 14
+        word G_GadgetType  ; 16
+        pointer G_GadgetRender  ; 18
+        pointer G_SelectRender  ; 22
+        pointer G_GadgetText  ; 26
+        long G_MutualExclude  ; 30
+        pointer G_SpecialInfo  ; 34
+        word G_GadgetID  ; 38
+        pointer G_UserData  ; 40
+        long G_MoreFlags  ; 44
+        word G_BoundsLeftEdge  ; 48
+        word G_BoundsTopEdge  ; 50
+        word G_BoundsWidth  ; 52
+        word G_BoundsHeight  ; 54
+    }
+
+    struct ExtIntuiMessage {  ; total size: 8
+        pointer emb_eim_IntuiMessage  ; TODO embedded im_SIZEOF  ; 0
+        pointer TabletData  ; 4
+    }
+
+    struct Gadget {  ; total size: 44
+        pointer Gg_NextGadget  ; 0
+        word Gg_LeftEdge  ; 4
+        word Gg_TopEdge  ; 6
+        word Gg_Width  ; 8
+        word Gg_Height  ; 10
+        word Gg_Flags  ; 12
+        word Gg_Activation  ; 14
+        word Gg_GadgetType  ; 16
+        pointer Gg_GadgetRender  ; 18
+        pointer Gg_SelectRender  ; 22
+        pointer Gg_GadgetText  ; 26
+        long Gg_MutualExclude  ; 30
+        pointer Gg_SpecialInfo  ; 34
+        word Gg_GadgetID  ; 38
+        pointer Gg_UserData  ; 40
+    }
+
+    struct IBox {  ; total size: 8
+        word Ox_Left  ; 0
+        word Ox_Top  ; 2
+        word Ox_Width  ; 4
+        word Ox_Height  ; 6
+    }
+
+    struct IOStdReq {  ; total size: 48
+        pointer Succ  ; 0
+        pointer Pred  ; 4
+        ubyte Type  ; 8
+        byte Pri  ; 9
+        str Name  ; 10
+        pointer Replyport  ; 14
+        uword IOStdReq_Length  ; 18
+        pointer Device  ; 20
+        pointer Unit  ; 24
+        uword Command  ; 28
+        ubyte Flags  ; 30
+        byte Error  ; 31
+        long Actual  ; 32
+        long Length  ; 36
+        pointer Data  ; 40
+        long Offset  ; 44
+    }
+
+    struct IORequest {  ; total size: 32
+        pointer Succ  ; 0
+        pointer Pred  ; 4
+        ubyte Type  ; 8
+        byte Pri  ; 9
+        str Name  ; 10
+        pointer Replyport  ; 14
+        uword IOStdReq_Length  ; 18
+        pointer Device  ; 20
+        pointer Unit  ; 24
+        uword Command  ; 28
+        ubyte Flags  ; 30
+        byte Error  ; 31
+    }
+
+    struct Interrupt {  ; total size: 22
+        pointer Succ  ; 0
+        pointer Pred  ; 4
+        ubyte Type  ; 8
+        byte Pri  ; 9
+        str Name  ; 10
+        pointer Data  ; 14
+        pointer Code  ; 18
+    }
+
+    struct Image {  ; total size: 20
+        word Ig_LeftEdge  ; 0
+        word Ig_TopEdge  ; 2
+        word Ig_Width  ; 4
+        word Ig_Height  ; 6
+        word Ig_Depth  ; 8
+        pointer Ig_ImageData  ; 10
+        byte Ig_PlanePick  ; 14
+        byte Ig_PlaneOnOff  ; 15
+        pointer Ig_NextImage  ; 16
+    }
+
+    struct IntuiMessage {  ; total size: 52
+        pointer Succ  ; 0
+        pointer Pred  ; 4
+        ubyte Type  ; 8
+        byte Pri  ; 9
+        str Name  ; 10
+        pointer Replyport  ; 14
+        uword Length  ; 18
+        long Class  ; 20
+        word Code  ; 24
+        word Qualifier  ; 26
+        pointer IAddress  ; 28
+        word MouseX  ; 32
+        word MouseY  ; 34
+        long Seconds  ; 36
+        long Micros  ; 40
+        pointer IDCMPWindow  ; 44
+        pointer SpecialLink  ; 48
+    }
+
+    struct IntuiText {  ; total size: 20
+        byte FrontPen  ; 0
+        byte BackPen  ; 1
+        byte DrawMode  ; 2
+        byte KludgeFill00  ; 3
+        word LeftEdge  ; 4
+        word TopEdge  ; 6
+        pointer ITextFont  ; 8
+        pointer IText  ; 12
+        pointer NextText  ; 16
+    }
+
+    struct List {  ; total size: 14
+        pointer Head  ; 0
+        pointer Tail  ; 4
+        pointer Tailpred  ; 8
+        ubyte Type  ; 12
+        ubyte Pad  ; 13
+    }
+
+    struct Library {  ; total size: 34
+        pointer Succ  ; 0
+        pointer Pred  ; 4
+        ubyte Type  ; 8
+        byte Pri  ; 9
+        str Name  ; 10
+        ubyte Flags  ; 14
+        ubyte Pad  ; 15
+        uword Negsize  ; 16
+        uword Possize  ; 18
+        uword Version  ; 20
+        uword Revision  ; 22
+        str Idstring  ; 24
+        long Sum  ; 28
+        uword Opencnt  ; 32
+    }
+
+    struct Node {  ; total size: 14
+        pointer Succ  ; 0
+        pointer Pred  ; 4
+        ubyte Type  ; 8
+        byte Pri  ; 9
+        str Name  ; 10
+    }
+
+    struct MinList {  ; total size: 12
+        pointer Head  ; 0
+        pointer Tail  ; 4
+        pointer Tailpred  ; 8
+    }
+
+    struct MinNode {  ; total size: 8
+        pointer Succ  ; 0
+        pointer Pred  ; 4
+    }
+
+    struct Message {  ; total size: 20
+        pointer Succ  ; 0
+        pointer Pred  ; 4
+        ubyte Type  ; 8
+        byte Pri  ; 9
+        str Name  ; 10
+        pointer Replyport  ; 14
+        uword Length  ; 18
+    }
+
+    struct MsgPort {  ; total size: 34
+        pointer Succ  ; 0
+        pointer Pred  ; 4
+        ubyte Type  ; 8
+        byte Pri  ; 9
+        str Name  ; 10
+        ubyte Flags  ; 14
+        ubyte Sigbit  ; 15
+        pointer Sigtask  ; 16
+        pointer Head  ; 20
+        pointer Tail  ; 24
+        pointer Tailpred  ; 28
+        ubyte List_Type  ; 32
+        ubyte Pad  ; 33
+    }
+
+    struct Menu {  ; total size: 30
+        pointer NextMenu  ; 0
+        word LeftEdge  ; 4
+        word TopEdge  ; 6
+        word Width  ; 8
+        word Height  ; 10
+        word Flags  ; 12
+        pointer MenuName  ; 14
+        pointer FirstItem  ; 18
+        word JazzX  ; 22
+        word JazzY  ; 24
+        word BeatX  ; 26
+        word BeatY  ; 28
+    }
+
+    struct MenuItem {  ; total size: 34
+        pointer NextItem  ; 0
+        word LeftEdge  ; 4
+        word TopEdge  ; 6
+        word Width  ; 8
+        word Height  ; 10
+        word Flags  ; 12
+        long MutualExclude  ; 14
+        pointer ItemFill  ; 18
+        pointer SelectFill  ; 22
+        byte Command  ; 26
+        byte KludgeFill00  ; 27
+        pointer SubItem  ; 28
+        word NextSelect  ; 32
+    }
+
+    struct NewScreen {  ; total size: 32
+        word LeftEdge  ; 0
+        word TopEdge  ; 2
+        word Width  ; 4
+        word Height  ; 6
+        word Depth  ; 8
+        byte DetailPen  ; 10
+        byte BlockPen  ; 11
+        word ViewModes  ; 12
+        word Type  ; 14
+        pointer Font  ; 16
+        pointer DefaultTitle  ; 20
+        pointer Gadgets  ; 24
+        pointer CustomBitMap  ; 28
+    }
+
+    struct NewWindow {  ; total size: 48
+        word LeftEdge  ; 0
+        word TopEdge  ; 2
+        word Width  ; 4
+        word Height  ; 6
+        byte DetailPen  ; 8
+        byte BlockPen  ; 9
+        long IDCMPFlags  ; 10
+        long Flags  ; 14
+        pointer FirstGadget  ; 18
+        pointer CheckMark  ; 22
+        str Title  ; 26
+        pointer Screen  ; 30
+        pointer BitMap  ; 34
+        word MinWidth  ; 38
+        word MinHeight  ; 40
+        word MaxWidth  ; 42
+        word MaxHeight  ; 44
+        word Type  ; 46
+    }
+
+    struct Requester {  ; total size: 112
+        pointer OlderRequest  ; 0
+        word LeftEdge  ; 4
+        word TopEdge  ; 6
+        word Width  ; 8
+        word Height  ; 10
+        word RelLeft  ; 12
+        word RelTop  ; 14
+        pointer ReqGadget  ; 16
+        pointer ReqBorder  ; 20
+        pointer ReqText  ; 24
+        word Flags  ; 28
+        ubyte BackFill  ; 30
+        byte KludgeFill00  ; 31
+        pointer ReqLayer  ; 32
+        word NewScreen_LeftEdge  ; 36
+        word NewScreen_TopEdge  ; 38
+        word NewScreen_Width  ; 40
+        word NewScreen_Height  ; 42
+        word Depth  ; 44
+        byte DetailPen  ; 46
+        byte BlockPen  ; 47
+        word ViewModes  ; 48
+        word Type  ; 50
+        pointer Font  ; 52
+        pointer DefaultTitle  ; 56
+        pointer Gadgets  ; 60
+        pointer CustomBitMap  ; 64
+        pointer ImageBMap  ; 68
+        pointer RWindow  ; 72
+        pointer ReqImage  ; 76
+        word NewScreen_LeftEdge1  ; 80
+        word NewScreen_TopEdge1  ; 82
+        word NewScreen_Width1  ; 84
+        word NewScreen_Height1  ; 86
+        word NewScreen_Depth  ; 88
+        byte NewScreen_DetailPen  ; 90
+        byte NewScreen_BlockPen  ; 91
+        word NewScreen_ViewModes  ; 92
+        word NewScreen_Type  ; 94
+        pointer NewScreen_Font  ; 96
+        pointer NewScreen_DefaultTitle  ; 100
+        pointer NewScreen_Gadgets  ; 104
+        pointer NewScreen_CustomBitMap  ; 108
+    }
+
+    struct Screen {  ; total size: 80
+        pointer NextScreen  ; 0
+        pointer FirstWindow  ; 4
+        word LeftEdge  ; 8
+        word TopEdge  ; 10
+        word Width  ; 12
+        word Height  ; 14
+        word MouseY  ; 16
+        word MouseX  ; 18
+        word Flags  ; 20
+        str Title  ; 22
+        pointer DefaultTitle  ; 26
+        byte BarHeight  ; 30
+        byte BarVBorder  ; 31
+        byte BarHBorder  ; 32
+        byte MenuVBorder  ; 33
+        byte MenuHBorder  ; 34
+        byte WBorTop  ; 35
+        byte WBorLeft  ; 36
+        byte WBorRight  ; 37
+        byte WBorBottom  ; 38
+        byte KludgeFill00  ; 39
+        pointer Font  ; 40
+        pointer emb_sc_ViewPort  ; TODO embedded vp_SIZEOF  ; 44
+        pointer emb_sc_RastPort  ; TODO embedded rp_SIZEOF  ; 48
+        pointer emb_sc_BitMap  ; TODO embedded bm_SIZEOF  ; 52
+        pointer emb_sc_LayerInfo  ; TODO embedded li_SIZEOF  ; 56
+        pointer FirstGadget  ; 60
+        byte DetailPen  ; 64
+        byte BlockPen  ; 65
+        word SaveColor0  ; 66
+        pointer BarLayer  ; 68
+        pointer ExtData  ; 72
+        pointer UserData  ; 76
+    }
+
+    struct Task {  ; total size: 84
+        pointer Succ  ; 0
+        pointer Pred  ; 4
+        ubyte Type  ; 8
+        byte Pri  ; 9
+        str Name  ; 10
+        ubyte Flags  ; 14
+        ubyte State  ; 15
+        byte Idnestcnt  ; 16
+        byte Tdnestcnt  ; 17
+        long Sigalloc  ; 18
+        long Sigwait  ; 22
+        long Sigrecvd  ; 26
+        long Sigexcept  ; 30
+        uword Trapalloc  ; 34
+        uword Trapable  ; 36
+        pointer Exceptdata  ; 38
+        pointer Exceptcode  ; 42
+        pointer Trapdata  ; 46
+        pointer Trapcode  ; 50
+        pointer Spreg  ; 54
+        pointer Splower  ; 58
+        pointer Spupper  ; 62
+        pointer Head  ; 66
+        pointer Tail  ; 70
+        pointer Tailpred  ; 74
+        ubyte List_Type  ; 78
+        ubyte Pad  ; 79
+        pointer Userdata  ; 80
+    }
+
+    struct Window {  ; total size: 136
+        pointer NextWindow  ; 0
+        word LeftEdge  ; 4
+        word TopEdge  ; 6
+        word Width  ; 8
+        word Height  ; 10
+        word MouseY  ; 12
+        word MouseX  ; 14
+        word MinWidth  ; 16
+        word MinHeight  ; 18
+        word MaxWidth  ; 20
+        word MaxHeight  ; 22
+        long Flags  ; 24
+        pointer MenuStrip  ; 28
+        str Title  ; 32
+        pointer FirstRequest  ; 36
+        pointer DMRequest  ; 40
+        word ReqCount  ; 44
+        pointer WScreen  ; 46
+        pointer RPort  ; 50
+        byte BorderLeft  ; 54
+        byte BorderTop  ; 55
+        byte BorderRight  ; 56
+        byte BorderBottom  ; 57
+        pointer BorderRPort  ; 58
+        pointer FirstGadget  ; 62
+        pointer Parent  ; 66
+        pointer Descendant  ; 70
+        pointer Pointer  ; 74
+        byte PtrHeight  ; 78
+        byte PtrWidth  ; 79
+        byte XOffset  ; 80
+        byte YOffset  ; 81
+        long IDCMPFlags  ; 82
+        pointer UserPort  ; 86
+        pointer WindowPort  ; 90
+        pointer MessageKey  ; 94
+        byte DetailPen  ; 98
+        byte BlockPen  ; 99
+        pointer CheckMark  ; 100
+        str ScreenTitle  ; 104
+        word GZZMouseX  ; 108
+        word GZZMouseY  ; 110
+        word GZZWidth  ; 112
+        word GZZHeight  ; 114
+        pointer ExtData  ; 116
+        pointer UserData  ; 120
+        pointer WLayer  ; 124
+        pointer IFont  ; 128
+        long MoreFlags  ; 132
+    }
+
+    ; ---- constants ----
+    const ubyte CLB_INLIST = $0000
+    const ubyte CLF_INLIST = $0001
+    const ubyte OPUB_INTERIM = $0000
+    const ubyte OPUF_INTERIM = $0001
+    const ubyte LORIENT_NONE = $0000
+    const ubyte LORIENT_HORIZ = $0001
+    const ubyte LORIENT_VERT = $0002
+    const ubyte GM_HITTEST = $0000
+    const ubyte GM_RENDER = $0001
+    const ubyte GM_GOACTIVE = $0002
+    const ubyte GM_HANDLEINPUT = $0003
+    const ubyte GM_GOINACTIVE = $0004
+    const ubyte GM_HELPTEST = $0005
+    const ubyte GM_LAYOUT = $0006
+    const ubyte GM_DOMAIN = $0007
+    const ubyte GM_KEYTEST = $0008
+    const ubyte GM_KEYGOACTIVE = $0009
+    const ubyte GM_KEYGOINACTIVE = $000a
+    const ubyte GMR_GADGETHIT = $0004
+    const ubyte GMR_NOHELPHIT = $0000
+    const long GMR_HELPHIT = $ffffffff
+    const long GMR_HELPCODE = $00010000
+    const ubyte GREDRAW_UPDATE = $0002
+    const ubyte GREDRAW_REDRAW = $0001
+    const ubyte GREDRAW_TOGGLE = $0000
+    const ubyte GMR_MEACTIVE = $0000
+    const ubyte GMR_NOREUSE = $0002
+    const ubyte GMR_REUSE = $0004
+    const ubyte GMR_VERIFY = $0008
+    const ubyte GMR_NEXTACTIVE = $0010
+    const ubyte GMR_PREVACTIVE = $0020
+    const ubyte GMRB_NOREUSE = $0001
+    const ubyte GMRB_REUSE = $0002
+    const ubyte GMRB_VERIFY = $0003
+    const ubyte GMRB_NEXTACTIVE = $0004
+    const ubyte GMRB_PREVACTIVE = $0005
+    const ubyte GMRF_NOREUSE = $0002
+    const ubyte GMRF_REUSE = $0004
+    const ubyte GMRF_VERIFY = $0008
+    const ubyte GMRF_NEXTACTIVE = $0010
+    const ubyte GMRF_PREVACTIVE = $0020
+    const ubyte GDOMAIN_MINIMUM = $0000
+    const ubyte GDOMAIN_NOMINAL = $0001
+    const ubyte GDOMAIN_MAXIMUM = $0002
+    const ubyte GMR_KEYACTIVE = $0010
+    const ubyte GMR_KEYVERIFY = $0020
+    const uword ICM_SETLOOP = $0402
+    const uword ICM_CLEARLOOP = $0403
+    const uword ICM_CHECKLOOP = $0404
+    const long ICTARGET_IDCMP = $ffffffff
+    const ubyte FRAME_DEFAULT = $0000
+    const ubyte FRAME_BUTTON = $0001
+    const ubyte FRAME_RIDGE = $0002
+    const ubyte FRAME_ICONDROPBOX = $0003
+    const ubyte FRAME_PROPBORDER = $0004
+    const ubyte FRAME_PROPKNOB = $0005
+    const ubyte FRAME_DISPLAY = $0006
+    const ubyte FRAME_CONTEXT = $0007
+    const ubyte IDOMAIN_MINIMUM = $0000
+    const ubyte IDOMAIN_NOMINAL = $0001
+    const ubyte IDOMAIN_MAXIMUM = $0002
+    const ubyte MENUENABLED = $0001
+    const uword MIDRAWN = $0100
+    const ubyte CHECKIT = $0001
+    const ubyte ITEMTEXT = $0002
+    const ubyte COMMSEQ = $0004
+    const ubyte MENUTOGGLE = $0008
+    const ubyte ITEMENABLED = $0010
+    const ubyte HIGHFLAGS = $00c0
+    const ubyte HIGHIMAGE = $0000
+    const ubyte HIGHCOMP = $0040
+    const ubyte HIGHBOX = $0080
+    const ubyte HIGHNONE = $00c0
+    const uword CHECKED = $0100
+    const uword ISDRAWN = $1000
+    const uword HIGHITEM = $2000
+    const uword MENUTOGGLED = $4000
+    const ubyte POINTREL = $0001
+    const ubyte PREDRAWN = $0002
+    const ubyte NOISYREQ = $0004
+    const ubyte SIMPLEREQ = $0010
+    const ubyte USEREQIMAGE = $0020
+    const ubyte NOREQBACKFILL = $0040
+    const uword REQOFFWINDOW = $1000
+    const uword REQACTIVE = $2000
+    const uword SYSREQUEST = $4000
+    const uword DEFERREFRESH = $8000
+    const ubyte GFLG_GADGHIGHBITS = $0003
+    const ubyte GFLG_GADGHCOMP = $0000
+    const ubyte GFLG_GADGHBOX = $0001
+    const ubyte GFLG_GADGHIMAGE = $0002
+    const ubyte GFLG_GADGHNONE = $0003
+    const ubyte GFLG_GADGIMAGE = $0004
+    const ubyte GFLG_RELBOTTOM = $0008
+    const ubyte GFLG_RELRIGHT = $0010
+    const ubyte GFLG_RELWIDTH = $0020
+    const ubyte GFLG_RELHEIGHT = $0040
+    const uword GFLG_RELSPECIAL = $4000
+    const ubyte GFLG_SELECTED = $0080
+    const uword GFLG_DISABLED = $0100
+    const uword GFLG_LABELMASK = $3000
+    const ubyte GFLG_LABELITEXT = $0000
+    const uword GFLG_LABELSTRING = $1000
+    const uword GFLG_LABELIMAGE = $2000
+    const uword GFLG_TABCYCLE = $0200
+    const uword GFLG_STRINGEXTEND = $0400
+    const uword GFLG_IMAGEDISABLE = $0800
+    const uword GFLG_EXTENDED = $8000
+    const ubyte GACT_RELVERIFY = $0001
+    const ubyte GACT_IMMEDIATE = $0002
+    const ubyte GACT_ENDGADGET = $0004
+    const ubyte GACT_FOLLOWMOUSE = $0008
+    const ubyte GACT_RIGHTBORDER = $0010
+    const ubyte GACT_LEFTBORDER = $0020
+    const ubyte GACT_TOPBORDER = $0040
+    const ubyte GACT_BOTTOMBORDER = $0080
+    const uword GACT_BORDERSNIFF = $8000
+    const uword GACT_TOGGLESELECT = $0100
+    const uword GACT_BOOLEXTEND = $2000
+    const ubyte GACT_STRINGLEFT = $0000
+    const uword GACT_STRINGCENTER = $0200
+    const uword GACT_STRINGRIGHT = $0400
+    const uword GACT_LONGINT = $0800
+    const uword GACT_ALTKEYMAP = $1000
+    const uword GACT_STRINGEXTEND = $2000
+    const uword GACT_ACTIVEGADGET = $4000
+    const uword GTYP_GADGETTYPE = $fc00
+    const uword GTYP_SCRGADGET = $4000
+    const uword GTYP_GZZGADGET = $2000
+    const uword GTYP_REQGADGET = $1000
+    const uword GTYP_SYSGADGET = $8000
+    const ubyte GTYP_SYSTYPEMASK = $00f0
+    const ubyte GTYP_SIZING = $0010
+    const ubyte GTYP_WDRAGGING = $0020
+    const ubyte GTYP_SDRAGGING = $0030
+    const ubyte GTYP_WDEPTH = $0040
+    const ubyte GTYP_SDEPTH = $0050
+    const ubyte GTYP_WZOOM = $0060
+    const ubyte GTYP_SUNUSED = $0070
+    const ubyte GTYP_CLOSE = $0080
+    const ubyte GTYP_ICONIFY = $0090
+    const ubyte GTYP_GTYPEMASK = $0007
+    const ubyte GTYP_BOOLGADGET = $0001
+    const ubyte GTYP_GADGET0002 = $0002
+    const ubyte GTYP_PROPGADGET = $0003
+    const ubyte GTYP_STRGADGET = $0004
+    const ubyte GTYP_CUSTOMGADGET = $0005
+    const ubyte GMORE_BOUNDS = $0001
+    const ubyte GMORE_GADGETHELP = $0002
+    const ubyte GMORE_SCROLLRASTER = $0004
+    const ubyte GMORE_HIDDEN = $0010
+    const uword GMORE_BOOPSIGADGET = $0400
+    const uword GMORE_FREEIMAGE = $0800
+    const long GMORE_PARENTHIDDEN = $01000000
+    const ubyte BOOLMASK = $0001
+    const ubyte AUTOKNOB = $0001
+    const ubyte FREEHORIZ = $0002
+    const ubyte FREEVERT = $0004
+    const ubyte PROPBORDERLESS = $0008
+    const uword KNOBHIT = $0100
+    const ubyte PROPNEWLOOK = $0010
+    const ubyte SMARTKNOBIMAGE = $0020
+    const ubyte KNOBHMIN = $0006
+    const ubyte KNOBVMIN = $0004
+    const uword MAXBODY = $ffff
+    const uword MAXPOT = $ffff
+    const ubyte IDCMP_SIZEVERIFY = $0001
+    const ubyte IDCMP_NEWSIZE = $0002
+    const ubyte IDCMP_REFRESHWINDOW = $0004
+    const ubyte IDCMP_MOUSEBUTTONS = $0008
+    const ubyte IDCMP_MOUSEMOVE = $0010
+    const ubyte IDCMP_GADGETDOWN = $0020
+    const ubyte IDCMP_GADGETUP = $0040
+    const ubyte IDCMP_REQSET = $0080
+    const uword IDCMP_MENUPICK = $0100
+    const uword IDCMP_CLOSEWINDOW = $0200
+    const uword IDCMP_RAWKEY = $0400
+    const uword IDCMP_REQVERIFY = $0800
+    const uword IDCMP_REQCLEAR = $1000
+    const uword IDCMP_MENUVERIFY = $2000
+    const uword IDCMP_NEWPREFS = $4000
+    const uword IDCMP_DISKINSERTED = $8000
+    const long IDCMP_DISKREMOVED = $00010000
+    const long IDCMP_WBENCHMESSAGE = $00020000
+    const long IDCMP_ACTIVEWINDOW = $00040000
+    const long IDCMP_INACTIVEWINDOW = $00080000
+    const long IDCMP_DELTAMOVE = $00100000
+    const long IDCMP_VANILLAKEY = $00200000
+    const long IDCMP_INTUITICKS = $00400000
+    const long IDCMP_IDCMPUPDATE = $00800000
+    const long IDCMP_MENUHELP = $01000000
+    const long IDCMP_CHANGEWINDOW = $02000000
+    const long IDCMP_GADGETHELP = $04000000
+    const long IDCMP_LONELYMESSAGE = $80000000
+    const ubyte CWCODE_MOVESIZE = $0000
+    const ubyte CWCODE_DEPTH = $0001
+    const ubyte CWCODE_HIDE = $0002
+    const ubyte CWCODE_SHOW = $0003
+    const ubyte MENUHOT = $0001
+    const ubyte MENUCANCEL = $0002
+    const ubyte MENUWAITING = $0003
+    const ubyte OKABORT = $0004
+    const ubyte WBENCHOPEN = $0001
+    const ubyte WBENCHCLOSE = $0002
+    const ubyte WFLG_SIZEGADGET = $0001
+    const ubyte WFLG_DRAGBAR = $0002
+    const ubyte WFLG_DEPTHGADGET = $0004
+    const ubyte WFLG_CLOSEGADGET = $0008
+    const ubyte WFLG_SIZEBRIGHT = $0010
+    const ubyte WFLG_SIZEBBOTTOM = $0020
+    const ubyte WFLG_REFRESHBITS = $00c0
+    const ubyte WFLG_SMART_REFRESH = $0000
+    const ubyte WFLG_SIMPLE_REFRESH = $0040
+    const ubyte WFLG_SUPER_BITMAP = $0080
+    const ubyte WFLG_OTHER_REFRESH = $00c0
+    const uword WFLG_BACKDROP = $0100
+    const uword WFLG_REPORTMOUSE = $0200
+    const uword WFLG_GIMMEZEROZERO = $0400
+    const uword WFLG_BORDERLESS = $0800
+    const uword WFLG_ACTIVATE = $1000
+    const long WFLG_RMBTRAP = $00010000
+    const long WFLG_NOCAREREFRESH = $00020000
+    const long WFLG_NW_EXTENDED = $00040000
+    const long WFLG_NEWLOOKMENUS = $00200000
+    const uword WFLG_WINDOWACTIVE = $2000
+    const uword WFLG_INREQUEST = $4000
+    const uword WFLG_MENUSTATE = $8000
+    const long WFLG_WINDOWREFRESH = $01000000
+    const long WFLG_WBENCHWINDOW = $02000000
+    const long WFLG_WINDOWTICKED = $04000000
+    const long WFLG_VISITOR = $08000000
+    const long WFLG_ZOOMED = $10000000
+    const long WFLG_HASZOOM = $20000000
+    const long WFLG_HASICONIFY = $40000000
+    const long SUPER_UNUSED = $fcfc0000
+    const ubyte DEFAULTMOUSEQUEUE = $0005
+    const ubyte HC_GADGETHELP = $0001
+    const ubyte WINDOW_BACKMOST = $0000
+    const ubyte WINDOW_FRONTMOST = $0001
+    const ubyte NOMENU = $001f
+    const ubyte NOITEM = $003f
+    const ubyte NOSUB = $001f
+    const uword MENUNULL = $ffff
+    const ubyte CHECKWIDTH = $0013
+    const ubyte COMMWIDTH = $001b
+    const ubyte LOWCHECKWIDTH = $000d
+    const ubyte LOWCOMMWIDTH = $0010
+    const long ALERT_TYPE = $80000000
+    const ubyte RECOVERY_ALERT = $0000
+    const long DEADEND_ALERT = $80000000
+    const ubyte AUTOFRONTPEN = $0000
+    const ubyte AUTOBACKPEN = $0001
+    const ubyte AUTOLEFTEDGE = $0006
+    const ubyte AUTOTOPEDGE = $0003
+    const ubyte AUTOITEXTFONT = $0000
+    const ubyte AUTONEXTTEXT = $0000
+    const ubyte CURSORUP = $004c
+    const ubyte CURSORLEFT = $004f
+    const ubyte CURSORRIGHT = $004e
+    const ubyte CURSORDOWN = $004d
+    const ubyte KEYCODE_Q = $0010
+    const ubyte KEYCODE_Z = $0031
+    const ubyte KEYCODE_X = $0032
+    const ubyte KEYCODE_V = $0034
+    const ubyte KEYCODE_B = $0035
+    const ubyte KEYCODE_N = $0036
+    const ubyte KEYCODE_M = $0037
+    const ubyte KEYCODE_LESS = $0038
+    const ubyte KEYCODE_GREATER = $0039
+    const ubyte POINTERXRESN_DEFAULT = $0000
+    const ubyte POINTERXRESN_140NS = $0001
+    const ubyte POINTERXRESN_70NS = $0002
+    const ubyte POINTERXRESN_35NS = $0003
+    const ubyte POINTERXRESN_SCREENRES = $0004
+    const ubyte POINTERXRESN_LORES = $0005
+    const ubyte POINTERXRESN_HIRES = $0006
+    const ubyte POINTERYRESN_DEFAULT = $0000
+    const ubyte POINTERYRESN_HIGH = $0002
+    const ubyte POINTERYRESN_HIGHASPECT = $0003
+    const ubyte POINTERYRESN_SCREENRES = $0004
+    const ubyte POINTERYRESN_SCREENRESASPECT = $0005
+    const ubyte FILENAME_SIZE = $001e
+    const ubyte DEVNAME_SIZE = $0010
+    const ubyte TOPAZ_EIGHTY = $0008
+    const ubyte TOPAZ_SIXTY = $0009
+    const ubyte LACEWB = $0001
+    const uword SCREEN_DRAG = $4000
+    const uword MOUSE_ACCEL = $8000
+    const ubyte PARALLEL_PRINTER = $0000
+    const ubyte SERIAL_PRINTER = $0001
+    const ubyte BAUD_110 = $0000
+    const ubyte BAUD_300 = $0001
+    const ubyte BAUD_1200 = $0002
+    const ubyte BAUD_2400 = $0003
+    const ubyte BAUD_4800 = $0004
+    const ubyte BAUD_9600 = $0005
+    const ubyte BAUD_19200 = $0006
+    const ubyte BAUD_MIDI = $0007
+    const ubyte FANFOLD = $0000
+    const ubyte SINGLE = $0080
+    const ubyte PICA = $0000
+    const uword ELITE = $0400
+    const uword FINE = $0800
+    const ubyte DRAFT = $0000
+    const uword LETTER = $0100
+    const ubyte SIX_LPI = $0000
+    const uword EIGHT_LPI = $0200
+    const ubyte IMAGE_POSITIVE = $0000
+    const ubyte IMAGE_NEGATIVE = $0001
+    const ubyte ASPECT_HORIZ = $0000
+    const ubyte ASPECT_VERT = $0001
+    const ubyte SHADE_BW = $0000
+    const ubyte SHADE_GREYSCALE = $0001
+    const ubyte SHADE_COLOR = $0002
+    const ubyte US_LETTER = $0000
+    const ubyte US_LEGAL = $0010
+    const ubyte N_TRACTOR = $0020
+    const ubyte W_TRACTOR = $0030
+    const ubyte CUSTOM = $0040
+    const ubyte EURO_A0 = $0050
+    const ubyte EURO_A1 = $0060
+    const ubyte EURO_A2 = $0070
+    const ubyte EURO_A3 = $0080
+    const ubyte EURO_A4 = $0090
+    const ubyte EURO_A5 = $00a0
+    const ubyte EURO_A6 = $00b0
+    const ubyte EURO_A7 = $00c0
+    const ubyte EURO_A8 = $00d0
+    const ubyte CUSTOM_NAME = $0000
+    const ubyte ALPHA_P_101 = $0001
+    const ubyte BROTHER_15XL = $0002
+    const ubyte CBM_MPS1000 = $0003
+    const ubyte DIAB_630 = $0004
+    const ubyte DIAB_ADV_D25 = $0005
+    const ubyte DIAB_C_150 = $0006
+    const ubyte EPSON = $0007
+    const ubyte EPSON_JX_80 = $0008
+    const ubyte OKIMATE_20 = $0009
+    const ubyte QUME_LP_20 = $000a
+    const ubyte HP_LASERJET = $000b
+    const ubyte HP_LASERJET_PLUS = $000c
+    const ubyte SBUF_512 = $0000
+    const ubyte SBUF_1024 = $0001
+    const ubyte SBUF_2048 = $0002
+    const ubyte SBUF_4096 = $0003
+    const ubyte SBUF_8000 = $0004
+    const ubyte SBUF_16000 = $0005
+    const ubyte SREAD_BITS = $00f0
+    const ubyte SWRITE_BITS = $000f
+    const ubyte SSTOP_BITS = $00f0
+    const ubyte SBUFSIZE_BITS = $000f
+    const ubyte SPARITY_BITS = $00f0
+    const ubyte SHSHAKE_BITS = $000f
+    const ubyte SPARITY_NONE = $0000
+    const ubyte SPARITY_EVEN = $0001
+    const ubyte SPARITY_ODD = $0002
+    const ubyte SPARITY_MARK = $0003
+    const ubyte SPARITY_SPACE = $0004
+    const ubyte SHSHAKE_XON = $0000
+    const ubyte SHSHAKE_RTS = $0001
+    const ubyte SHSHAKE_NONE = $0002
+    const ubyte CORRECT_RED = $0001
+    const ubyte CORRECT_GREEN = $0002
+    const ubyte CORRECT_BLUE = $0004
+    const ubyte CENTER_IMAGE = $0008
+    const ubyte IGNORE_DIMENSIONS = $0000
+    const ubyte BOUNDED_DIMENSIONS = $0010
+    const ubyte ABSOLUTE_DIMENSIONS = $0020
+    const ubyte PIXEL_DIMENSIONS = $0040
+    const ubyte MULTIPLY_DIMENSIONS = $0080
+    const uword INTEGER_SCALING = $0100
+    const ubyte ORDERED_DITHERING = $0000
+    const uword HALFTONE_DITHERING = $0200
+    const uword FLOYD_DITHERING = $0400
+    const uword ANTI_ALIAS = $0800
+    const uword GREY_SCALE2 = $1000
+    const ubyte DRI_VERSION = $0002
+    const ubyte DRIF_NEWLOOK = $0001
+    const ubyte DRIB_NEWLOOK = $0000
+    const uword PEN_C3 = $fefc
+    const uword PEN_C2 = $fefd
+    const uword PEN_C1 = $fefe
+    const uword PEN_C0 = $feff
+    const ubyte SCREENTYPE = $000f
+    const ubyte WBENCHSCREEN = $0001
+    const ubyte PUBLICSCREEN = $0002
+    const ubyte CUSTOMSCREEN = $000f
+    const ubyte SHOWTITLE = $0010
+    const ubyte BEEPING = $0020
+    const ubyte CUSTOMBITMAP = $0040
+    const ubyte SCREENBEHIND = $0080
+    const uword SCREENQUIET = $0100
+    const uword SCREENHIRES = $0200
+    const long STDSCREENHEIGHT = -1
+    const long STDSCREENWIDTH = -1
+    const uword NS_EXTENDED = $1000
+    const uword AUTOSCROLL = $4000
+    const uword PENSHARED = $0400
+    const ubyte OSCAN_TEXT = $0001
+    const ubyte OSCAN_STANDARD = $0002
+    const ubyte OSCAN_MAX = $0003
+    const ubyte OSCAN_VIDEO = $0004
+    const ubyte PSNF_PRIVATE = $0001
+    const ubyte MAXPUBSCREENNAME = $008b
+    const ubyte SHANGHAI = $0001
+    const ubyte POPPUBSCREEN = $0002
+    const ubyte SDEPTH_TOFRONT = $0000
+    const ubyte SDEPTH_TOBACK = $0001
+    const ubyte SDEPTH_INFAMILY = $0002
+    const ubyte SPOS_RELATIVE = $0000
+    const ubyte SPOS_ABSOLUTE = $0001
+    const ubyte SPOS_MAKEVISIBLE = $0002
+    const ubyte SPOS_FORCEDRAG = $0004
+    const ubyte SB_SCREEN_BITMAP = $0001
+    const ubyte SB_COPY_BITMAP = $0002
+    const ubyte SGM_REPLACE = $0001
+    const ubyte SGMB_REPLACE = $0000
+    const ubyte SGMF_REPLACE = $0001
+    const ubyte SGM_FIXEDFIELD = $0002
+    const ubyte SGMB_FIXEDFIELD = $0001
+    const ubyte SGMF_FIXEDFIELD = $0002
+    const ubyte SGM_NOFILTER = $0004
+    const ubyte SGMB_NOFILTER = $0002
+    const ubyte SGMF_NOFILTER = $0004
+    const ubyte SGM_EXITHELP = $0080
+    const ubyte SGMB_EXITHELP = $0007
+    const ubyte SGMF_EXITHELP = $0080
+    const ubyte SGA_USE = $0001
+    const ubyte SGAB_USE = $0000
+    const ubyte SGAF_USE = $0001
+    const ubyte SGA_END = $0002
+    const ubyte SGAB_END = $0001
+    const ubyte SGAF_END = $0002
+    const ubyte SGA_BEEP = $0004
+    const ubyte SGAB_BEEP = $0002
+    const ubyte SGAF_BEEP = $0004
+    const ubyte SGA_REUSE = $0008
+    const ubyte SGAB_REUSE = $0003
+    const ubyte SGAF_REUSE = $0008
+    const ubyte SGA_REDISPLAY = $0010
+    const ubyte SGAB_REDISPLAY = $0004
+    const ubyte SGAF_REDISPLAY = $0010
+    const ubyte SGA_NEXTACTIVE = $0020
+    const ubyte SGAB_NEXTACTIVE = $0005
+    const ubyte SGAF_NEXTACTIVE = $0020
+    const ubyte SGA_PREVACTIVE = $0040
+    const ubyte SGAB_PREVACTIVE = $0006
+    const ubyte SGAF_PREVACTIVE = $0040
+    const ubyte SGH_KEY = $0001
+    const ubyte SGH_CLICK = $0002
+}
 ;; End of auto-generated intuition_lib.sfd
