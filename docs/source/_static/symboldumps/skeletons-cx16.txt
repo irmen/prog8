@@ -1,6 +1,6 @@
 
 Prog8 compiler v12.3-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit 0764e11f in branch new-codegens
+Prerelease version from git commit 7565d04c in branch new-codegens
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Using existing prog8c daemon at /run/user/1000/prog8c-daemon.sock
@@ -758,6 +758,7 @@ LIBRARY MODULE NAME: psg2
 -------------------------
 
 psg2  {
+    struct Voice
     const ubyte  BOTH
     const ubyte  DISABLED
     const ubyte  EnvelopeState::ATTACK

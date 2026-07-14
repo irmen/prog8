@@ -3,13 +3,14 @@
 %import graphics
 %import exec
 %import dos
+%import strings
 
 main {
 
     sub start() {
         ^^intuition.NewWindow nw = [
             20, 20, 300, 100, -1 as ubyte, -1 as ubyte,
-            intuition.IDCMP_CLOSEWINDOW | intuition.IDCMP_REFRESHWINDOW | intuition.IDCMP_VANILLAKEY,
+            intuition.IDCMP_CLOSEWINDOW | intuition.IDCMP_REFRESHWINDOW | intuition.IDCMP_VANILLAKEY | intuition.IDCMP_MOUSEBUTTONS,
             intuition.WFLG_CLOSEGADGET | intuition.WFLG_DRAGBAR | intuition.WFLG_DEPTHGADGET | intuition.WFLG_ACTIVATE | intuition.WFLG_SIZEGADGET,
             0, 0,
             "Hello from Prog8!",
@@ -39,6 +40,11 @@ main {
         word border_right = win.BorderRight
         word border_bottom = win.BorderBottom
 
+        sub drawDisc(word x, word y) {
+            graphics.SetAPen(rp, 2)
+            graphics.DrawEllipse(rp, x, y, 40, 20)
+        }
+
         sub drawText() {
             graphics.SetDrMd(rp, 1)       ; JAM2 - solid character cells, readable
             graphics.SetAPen(rp, color_idx)
@@ -60,6 +66,10 @@ main {
                         intuition.BeginRefresh(win)
                         drawText()
                         intuition.EndRefresh(win, 1)
+                    }
+                    intuition.IDCMP_MOUSEBUTTONS -> {
+                        if msg.Code == intuition.SELECTDOWN
+                            drawDisc(msg.MouseX, msg.MouseY)
                     }
                     intuition.IDCMP_VANILLAKEY -> running = false
                 }

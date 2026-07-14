@@ -1,5 +1,5 @@
 strings {
-    %option no_symbol_prefixing, ignore_unused
+    %option merge, no_symbol_prefixing, ignore_unused
 
     sub isdigit(ubyte char) -> bool {
         return char >= '0' and char <= '9'

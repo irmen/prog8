@@ -1,6 +1,6 @@
 
 Prog8 compiler v12.3-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit 0764e11f in branch new-codegens
+Prerelease version from git commit 7565d04c in branch new-codegens
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Using existing prog8c daemon at /run/user/1000/prog8c-daemon.sock
@@ -133,15 +133,6 @@ ringbuffer  {
 }
 
 
-LIBRARY MODULE NAME: compression
---------------------------------
-
-compression  {
-    decode_rle  (^^ubyte compressed, ^^ubyte target, uword maxsize) -> uword
-    encode_rle  (^^ubyte data, uword size, ^^ubyte target, bool is_last_block) -> uword
-}
-
-
 LIBRARY MODULE NAME: conv
 -------------------------
 
@@ -229,7 +220,7 @@ strings  {
     hash  (str string @D0) -> ubyte @D0
     isdigit  (ubyte char) -> bool
     isxdigit  (ubyte char) -> bool
-    length  (str string @D0) -> ubyte @D0
+    length  (str string @A0) -> ubyte @D0
     lowerchar  (ubyte char) -> ubyte
     lowerchar_iso   alias for: strings.lowerchar
     ncopy  (str source @D0, str target @D1, ubyte maxlength @D2) -> ubyte @D0

@@ -1,6 +1,6 @@
 
 Prog8 compiler v12.3-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit 0764e11f in branch new-codegens
+Prerelease version from git commit 6e508cff in branch new-codegens
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Using existing prog8c daemon at /run/user/1000/prog8c-daemon.sock
@@ -133,17 +133,2721 @@ ringbuffer  {
 }
 
 
-LIBRARY MODULE NAME: compression
---------------------------------
+LIBRARY MODULE NAME: conv
+-------------------------
 
-compression  {
-    decode_rle  (uword compressed @AY, uword target @R0, uword maxsize @R1) clobbers (X) -> uword @AY
-    decode_rle_srcfunc  (uword source_function @AY, uword target @R0, uword maxsize @R1) clobbers (X) -> uword @AY
-    decode_tscrunch  (uword compressed @R0, uword target @R1) clobbers (A,X,Y)
-    decode_tscrunch_inplace  (uword compressed @R0) clobbers (A,X,Y)
-    decode_zx0  (uword compressed @R0, uword target @R1) clobbers (A,X,Y)
-    encode_rle  (uword data, uword size, uword target, bool is_last_block) -> uword
-    encode_rle_outfunc  (uword data, uword size, uword output_function, bool is_last_block)
+conv  {
+    str  string_out
+    any2uword  (str string) -> uword, ubyte
+    bin2uword  (str string) -> uword
+    hex2long  (str string) -> long
+    hex2uword  (str string) -> uword
+    str2byte  (str string) -> byte
+    str2long  (str string) -> long
+    str2ubyte  (str string) -> ubyte
+    str2uword  (str string) -> uword
+    str2word  (str string) -> word
+    str_b  (byte value) -> str
+    str_l  (long value) -> str
+    str_ub  (ubyte value) -> str
+    str_ub0  (ubyte value) -> str
+    str_ubbin  (ubyte value) -> str
+    str_ubhex  (ubyte value) -> str
+    str_ulhex  (long value) -> str
+    str_uw  (uword value) -> str
+    str_uw0  (uword value) -> str
+    str_uwbin  (uword value) -> str
+    str_uwhex  (uword value) -> str
+    str_w  (word value) -> str
+}
+
+
+LIBRARY MODULE NAME: dos
+------------------------
+
+dos  {
+    struct DateStamp
+    struct DosPacket
+    struct ErrorString
+    struct ExAllControl
+    struct ExAllData
+    struct FileHandle
+    struct FileInfoBlock
+    struct FileLock
+    struct InfoData
+    struct Process
+    struct StandardPacket
+    const uword  ABORT_BUSY
+    const uword  ABORT_DISK_ERROR
+    const long  ACCESS_READ
+    const long  ACCESS_WRITE
+    const uword  ACTION_ADD_NOTIFY
+    const uword  ACTION_CHANGE_MODE
+    const uword  ACTION_CHANGE_SIGNAL
+    const ubyte  ACTION_COPY_DIR
+    const uword  ACTION_COPY_DIR_FH
+    const ubyte  ACTION_CREATE_DIR
+    const ubyte  ACTION_CURRENT_VOLUME
+    const ubyte  ACTION_DELETE_OBJECT
+    const ubyte  ACTION_DIE
+    const ubyte  ACTION_DISK_CHANGE
+    const ubyte  ACTION_DISK_INFO
+    const ubyte  ACTION_DISK_TYPE
+    const uword  ACTION_END
+    const ubyte  ACTION_EVENT
+    const uword  ACTION_EXAMINE_ALL
+    const uword  ACTION_EXAMINE_ALL_END
+    const uword  ACTION_EXAMINE_FH
+    const ubyte  ACTION_EXAMINE_NEXT
+    const ubyte  ACTION_EXAMINE_OBJECT
+    const uword  ACTION_FH_FROM_LOCK
+    const uword  ACTION_FINDINPUT
+    const uword  ACTION_FINDOUTPUT
+    const uword  ACTION_FINDUPDATE
+    const ubyte  ACTION_FLUSH
+    const uword  ACTION_FORMAT
+    const ubyte  ACTION_FREE_LOCK
+    const uword  ACTION_FREE_RECORD
+    const ubyte  ACTION_GET_BLOCK
+    const ubyte  ACTION_INFO
+    const ubyte  ACTION_INHIBIT
+    const uword  ACTION_IS_FILESYSTEM
+    const ubyte  ACTION_LOCATE_OBJECT
+    const uword  ACTION_LOCK_RECORD
+    const uword  ACTION_MAKE_LINK
+    const ubyte  ACTION_MORE_CACHE
+    const ubyte  ACTION_NIL
+    const ubyte  ACTION_PARENT
+    const uword  ACTION_PARENT_FH
+    const uword  ACTION_READ_LINK
+    const uword  ACTION_READ_RETURN
+    const uword  ACTION_REMOVE_NOTIFY
+    const ubyte  ACTION_RENAME_DISK
+    const ubyte  ACTION_RENAME_OBJECT
+    const ubyte  ACTION_SAME_LOCK
+    const uword  ACTION_SCREEN_MODE
+    const uword  ACTION_SEEK
+    const uword  ACTION_SERIALIZE_DISK
+    const ubyte  ACTION_SET_COMMENT
+    const ubyte  ACTION_SET_DATE
+    const uword  ACTION_SET_FILE_SIZE
+    const ubyte  ACTION_SET_MAP
+    const uword  ACTION_SET_OWNER
+    const ubyte  ACTION_SET_PROTECT
+    const ubyte  ACTION_STARTUP
+    const ubyte  ACTION_TIMER
+    const uword  ACTION_UNDISK_INFO
+    const ubyte  ACTION_WAIT_CHAR
+    const uword  ACTION_WRITE_PROTECT
+    const uword  ACTION_WRITE_RETURN
+    const long  ADO_Dummy
+    const ubyte  APB_DIDDIR
+    const ubyte  APB_DODIR
+    const ubyte  APB_DODOT
+    const ubyte  APB_DOWILD
+    const ubyte  APB_DirChanged
+    const ubyte  APB_FollowHLinks
+    const ubyte  APB_ITSWILD
+    const ubyte  APB_NOMEMERR
+    const ubyte  APF_DIDDIR
+    const ubyte  APF_DODIR
+    const ubyte  APF_DODOT
+    const ubyte  APF_DOWILD
+    const ubyte  APF_DirChanged
+    const ubyte  APF_FollowHLinks
+    const ubyte  APF_ITSWILD
+    const ubyte  APF_NOMEMERR
+    const ubyte  BITSPERBYTE
+    const ubyte  BITSPERLONG
+    const ubyte  BUF_FULL
+    const ubyte  BUF_LINE
+    const ubyte  BUF_NONE
+    const ubyte  BYTESPERLONG
+    const ubyte  CHANGE_FH
+    const ubyte  CHANGE_LOCK
+    const long  CMD_DISABLED
+    const long  CMD_INTERNAL
+    const long  CMD_SYSTEM
+    const ubyte  COMPLEX_BIT
+    const ubyte  DDB_AllBit
+    const ubyte  DDB_Completed
+    const ubyte  DDB_ExaminedBit
+    const ubyte  DDB_PatternBit
+    const ubyte  DDB_SINGLE
+    const ubyte  DDF_AllBit
+    const ubyte  DDF_Completed
+    const ubyte  DDF_ExaminedBit
+    const ubyte  DDF_PatternBit
+    const ubyte  DDF_SINGLE
+    const ubyte  DE_BAUD
+    const ubyte  DE_BLKSPERTRACK
+    const ubyte  DE_BOOTBLOCKS
+    const ubyte  DE_BOOTPRI
+    const ubyte  DE_BUFMEMTYPE
+    const ubyte  DE_CONTROL
+    const ubyte  DE_DOSTYPE
+    const ubyte  DE_INTERLEAVE
+    const ubyte  DE_LOWCYL
+    const ubyte  DE_MASK
+    const ubyte  DE_MAXTRANSFER
+    const ubyte  DE_MEMBUFTYPE
+    const ubyte  DE_NUMBUFFERS
+    const ubyte  DE_NUMHEADS
+    const ubyte  DE_PREFAC
+    const ubyte  DE_RESERVEDBLKS
+    const ubyte  DE_SECORG
+    const ubyte  DE_SECSPERBLK
+    const ubyte  DE_SIZEBLOCK
+    const ubyte  DE_TABLESIZE
+    const ubyte  DE_UPPERCYL
+    const ubyte  DLT_DEVICE
+    const ubyte  DLT_DIRECTORY
+    const ubyte  DLT_LATE
+    const ubyte  DLT_NONBINDING
+    const long  DLT_PRIVATE
+    const ubyte  DLT_VOLUME
+    const ubyte  DOSFALSE
+    const long  DOSTRUE
+    const ubyte  DOS_CLI
+    const ubyte  DOS_EXALLCONTROL
+    const ubyte  DOS_FIB
+    const ubyte  DOS_FILEHANDLE
+    const ubyte  DOS_RDARGS
+    const ubyte  DOS_STDIO_I
+    const ubyte  DOS_STDPKT
+    const ubyte  DTB_FUTURE
+    const ubyte  DTB_SUBST
+    const ubyte  DTF_FUTURE
+    const ubyte  DTF_SUBST
+    const ubyte  DVPB_ASSIGN
+    const ubyte  DVPB_UNLOCK
+    const ubyte  DVPF_ASSIGN
+    const ubyte  DVPF_UNLOCK
+    const ubyte  ED_COMMENT
+    const ubyte  ED_DATE
+    const ubyte  ED_NAME
+    const ubyte  ED_OWNER
+    const ubyte  ED_PROTECTION
+    const ubyte  ED_SIZE
+    const ubyte  ED_TYPE
+    const long  ENDSTREAMCH
+    const ubyte  ENVB_DISABLENSD
+    const ubyte  ENVB_SCSIDIRECT
+    const ubyte  ENVB_SUPERFLOPPY
+    const long  ENVF_DISABLENSD
+    const long  ENVF_SCSIDIRECT
+    const long  ENVF_SUPERFLOPPY
+    const ubyte  ERROR_ACTION_NOT_KNOWN
+    const ubyte  ERROR_BAD_HUNK
+    const ubyte  ERROR_BAD_NUMBER
+    const ubyte  ERROR_BAD_STREAM_NAME
+    const ubyte  ERROR_BAD_TEMPLATE
+    const uword  ERROR_BREAK
+    const uword  ERROR_BUFFER_OVERFLOW
+    const ubyte  ERROR_COMMENT_TOO_BIG
+    const ubyte  ERROR_DELETE_PROTECTED
+    const ubyte  ERROR_DEVICE_NOT_MOUNTED
+    const ubyte  ERROR_DIRECTORY_NOT_EMPTY
+    const ubyte  ERROR_DIR_NOT_FOUND
+    const ubyte  ERROR_DISK_FULL
+    const ubyte  ERROR_DISK_NOT_VALIDATED
+    const ubyte  ERROR_DISK_WRITE_PROTECTED
+    const ubyte  ERROR_FILE_NOT_OBJECT
+    const ubyte  ERROR_INVALID_COMPONENT_NAME
+    const ubyte  ERROR_INVALID_LOCK
+    const ubyte  ERROR_INVALID_RESIDENT_LIBRARY
+    const ubyte  ERROR_IS_SOFT_LINK
+    const ubyte  ERROR_KEY_NEEDS_ARG
+    const ubyte  ERROR_LINE_TOO_LONG
+    const ubyte  ERROR_LOCK_COLLISION
+    const ubyte  ERROR_LOCK_TIMEOUT
+    const ubyte  ERROR_NOT_A_DOS_DISK
+    const uword  ERROR_NOT_EXECUTABLE
+    const ubyte  ERROR_NOT_IMPLEMENTED
+    const ubyte  ERROR_NO_DEFAULT_DIR
+    const ubyte  ERROR_NO_DISK
+    const ubyte  ERROR_NO_FREE_STORE
+    const ubyte  ERROR_NO_MORE_ENTRIES
+    const ubyte  ERROR_OBJECT_EXISTS
+    const ubyte  ERROR_OBJECT_IN_USE
+    const ubyte  ERROR_OBJECT_LINKED
+    const ubyte  ERROR_OBJECT_NOT_FOUND
+    const ubyte  ERROR_OBJECT_TOO_LARGE
+    const ubyte  ERROR_OBJECT_WRONG_TYPE
+    const ubyte  ERROR_READ_PROTECTED
+    const ubyte  ERROR_RECORD_NOT_LOCKED
+    const ubyte  ERROR_RENAME_ACROSS_DEVICES
+    const ubyte  ERROR_REQUIRED_ARG_MISSING
+    const ubyte  ERROR_SEEK_ERROR
+    const ubyte  ERROR_TASK_TABLE_FULL
+    const ubyte  ERROR_TOO_MANY_ARGS
+    const ubyte  ERROR_TOO_MANY_LEVELS
+    const ubyte  ERROR_UNLOCK_ERROR
+    const ubyte  ERROR_UNMATCHED_QUOTES
+    const ubyte  ERROR_WRITE_PROTECTED
+    const ubyte  EXAMINE_BIT
+    const long  EXCLUSIVE_LOCK
+    const ubyte  EXT_ABS
+    const ubyte  EXT_ABSREF16
+    const ubyte  EXT_ABSREF8
+    const ubyte  EXT_COMMON
+    const ubyte  EXT_COMMONDEF
+    const ubyte  EXT_DEF
+    const ubyte  EXT_DEXT16
+    const ubyte  EXT_DEXT32
+    const ubyte  EXT_DEXT8
+    const ubyte  EXT_REF16
+    const ubyte  EXT_REF32
+    const ubyte  EXT_REF8
+    const ubyte  EXT_RELCOMMON
+    const ubyte  EXT_RELREF32
+    const ubyte  EXT_RES
+    const ubyte  EXT_SYMB
+    const ubyte  FAULT_MAX
+    const ubyte  FIBB_ARCHIVE
+    const ubyte  FIBB_DELETE
+    const ubyte  FIBB_EXECUTE
+    const ubyte  FIBB_GRP_DELETE
+    const ubyte  FIBB_GRP_EXECUTE
+    const ubyte  FIBB_GRP_READ
+    const ubyte  FIBB_GRP_WRITE
+    const ubyte  FIBB_HOLD
+    const ubyte  FIBB_OTR_DELETE
+    const ubyte  FIBB_OTR_EXECUTE
+    const ubyte  FIBB_OTR_READ
+    const ubyte  FIBB_OTR_WRITE
+    const ubyte  FIBB_PURE
+    const ubyte  FIBB_READ
+    const ubyte  FIBB_SCRIPT
+    const ubyte  FIBB_WRITE
+    const ubyte  FIBF_ARCHIVE
+    const ubyte  FIBF_DELETE
+    const ubyte  FIBF_EXECUTE
+    const uword  FIBF_GRP_DELETE
+    const uword  FIBF_GRP_EXECUTE
+    const uword  FIBF_GRP_READ
+    const uword  FIBF_GRP_WRITE
+    const ubyte  FIBF_HOLD
+    const uword  FIBF_OTR_DELETE
+    const uword  FIBF_OTR_EXECUTE
+    const uword  FIBF_OTR_READ
+    const uword  FIBF_OTR_WRITE
+    const ubyte  FIBF_PURE
+    const ubyte  FIBF_READ
+    const ubyte  FIBF_SCRIPT
+    const ubyte  FIBF_WRITE
+    const ubyte  GVB_BINARY_VAR
+    const ubyte  GVB_DONT_NULL_TERM
+    const ubyte  GVB_GLOBAL_ONLY
+    const ubyte  GVB_LOCAL_ONLY
+    const ubyte  GVB_SAVE_VAR
+    const uword  GVF_BINARY_VAR
+    const uword  GVF_DONT_NULL_TERM
+    const uword  GVF_GLOBAL_ONLY
+    const uword  GVF_LOCAL_ONLY
+    const uword  GVF_SAVE_VAR
+    const ubyte  HUNKB_ADVISORY
+    const ubyte  HUNKB_CHIP
+    const ubyte  HUNKB_FAST
+    const long  HUNKF_ADVISORY
+    const long  HUNKF_CHIP
+    const long  HUNKF_FAST
+    const uword  HUNK_ABSRELOC16
+    const uword  HUNK_BREAK
+    const uword  HUNK_BSS
+    const uword  HUNK_CODE
+    const uword  HUNK_DATA
+    const uword  HUNK_DEBUG
+    const uword  HUNK_DREL16
+    const uword  HUNK_DREL32
+    const uword  HUNK_DREL8
+    const uword  HUNK_END
+    const uword  HUNK_EXT
+    const uword  HUNK_HEADER
+    const uword  HUNK_INDEX
+    const uword  HUNK_LIB
+    const uword  HUNK_NAME
+    const uword  HUNK_OVERLAY
+    const uword  HUNK_RELOC16
+    const uword  HUNK_RELOC32
+    const uword  HUNK_RELOC32SHORT
+    const uword  HUNK_RELOC8
+    const uword  HUNK_RELRELOC32
+    const uword  HUNK_SYMBOL
+    const uword  HUNK_UNIT
+    const long  ID_NO_DISK_PRESENT
+    const ubyte  ID_VALIDATED
+    const ubyte  ID_VALIDATING
+    const ubyte  ID_WRITE_PROTECTED
+    const long  ITEM_EQUAL
+    const long  ITEM_ERROR
+    const ubyte  ITEM_NOTHING
+    const ubyte  ITEM_QUOTED
+    const ubyte  ITEM_UNQUOTED
+    const ubyte  LDB_ASSIGNS
+    const ubyte  LDB_DELETE
+    const ubyte  LDB_DEVICES
+    const ubyte  LDB_ENTRY
+    const ubyte  LDB_READ
+    const ubyte  LDB_VOLUMES
+    const ubyte  LDB_WRITE
+    const ubyte  LDF_ASSIGNS
+    const ubyte  LDF_DELETE
+    const ubyte  LDF_DEVICES
+    const ubyte  LDF_ENTRY
+    const ubyte  LDF_READ
+    const ubyte  LDF_VOLUMES
+    const ubyte  LDF_WRITE
+    const ubyte  LEN_DATSTRING
+    const ubyte  LINK_HARD
+    const ubyte  LINK_SOFT
+    const long  LOCK_DIFFERENT
+    const ubyte  LOCK_SAME
+    const ubyte  LOCK_SAME_VOLUME
+    const ubyte  LVB_IGNORE
+    const ubyte  LVF_IGNORE
+    const ubyte  LV_ALIAS
+    const ubyte  LV_VAR
+    const long  MAXINT
+    const long  MININT
+    const uword  MODE_NEWFILE
+    const uword  MODE_OLDFILE
+    const uword  MODE_READWRITE
+    const long  NOTIFY_CLASS
+    const uword  NOTIFY_CODE
+    const long  NP_Dummy
+    const ubyte  NRB_MAGIC
+    const ubyte  NRB_NOTIFY_INITIAL
+    const ubyte  NRB_SEND_MESSAGE
+    const ubyte  NRB_SEND_SIGNAL
+    const ubyte  NRB_WAIT_REPLY
+    const long  NRF_MAGIC
+    const ubyte  NRF_NOTIFY_INITIAL
+    const ubyte  NRF_SEND_MESSAGE
+    const ubyte  NRF_SEND_SIGNAL
+    const ubyte  NRF_WAIT_REPLY
+    const long  NR_HANDLER_FLAGS
+    const long  OFFSET_BEGINNING
+    const ubyte  OFFSET_CURRENT
+    const ubyte  OFFSET_END
+    const ubyte  PRB_CLOSEERROR
+    const ubyte  PRB_CLOSEINPUT
+    const ubyte  PRB_CLOSEOUTPUT
+    const ubyte  PRB_FREEARGS
+    const ubyte  PRB_FREECLI
+    const ubyte  PRB_FREECURRDIR
+    const ubyte  PRB_FREESEGLIST
+    const ubyte  PRF_CLOSEERROR
+    const ubyte  PRF_CLOSEINPUT
+    const ubyte  PRF_CLOSEOUTPUT
+    const ubyte  PRF_FREEARGS
+    const ubyte  PRF_FREECLI
+    const ubyte  PRF_FREECURRDIR
+    const ubyte  PRF_FREESEGLIST
+    const ubyte  P_ANY
+    const ubyte  P_CLASS
+    const ubyte  P_NOT
+    const ubyte  P_NOTCLASS
+    const ubyte  P_NOTEND
+    const ubyte  P_OREND
+    const ubyte  P_ORNEXT
+    const ubyte  P_ORSTART
+    const ubyte  P_REPBEG
+    const ubyte  P_REPEND
+    const ubyte  P_SINGLE
+    const ubyte  P_STOP
+    const ubyte  RDAB_NOALLOC
+    const ubyte  RDAB_NOPROMPT
+    const ubyte  RDAB_STDIN
+    const ubyte  RDAF_NOALLOC
+    const ubyte  RDAF_NOPROMPT
+    const ubyte  RDAF_STDIN
+    const ubyte  REC_EXCLUSIVE
+    const ubyte  REC_EXCLUSIVE_IMMED
+    const ubyte  REC_SHARED
+    const ubyte  REC_SHARED_IMMED
+    const ubyte  REPORT_INSERT
+    const ubyte  REPORT_LOCK
+    const ubyte  REPORT_STREAM
+    const ubyte  REPORT_TASK
+    const ubyte  REPORT_VOLUME
+    const ubyte  RETURN_ERROR
+    const ubyte  RETURN_FAIL
+    const ubyte  RETURN_OK
+    const ubyte  RETURN_WARN
+    const ubyte  RNB_PRIVATE1
+    const ubyte  RNB_WILDSTAR
+    const ubyte  RNF_PRIVATE1
+    const long  RNF_WILDSTAR
+    const long  RUN_EXECUTE
+    const long  RUN_SYSTEM
+    const long  RUN_SYSTEM_ASYNCH
+    const long  SHARED_LOCK
+    const long  SHELL_DUMMY
+    const ubyte  SIGBREAKB_CTRL_C
+    const ubyte  SIGBREAKB_CTRL_D
+    const ubyte  SIGBREAKB_CTRL_E
+    const ubyte  SIGBREAKB_CTRL_F
+    const uword  SIGBREAKF_CTRL_C
+    const uword  SIGBREAKF_CTRL_D
+    const uword  SIGBREAKF_CTRL_E
+    const uword  SIGBREAKF_CTRL_F
+    const long  ST_FILE
+    const ubyte  ST_LINKDIR
+    const long  ST_LINKFILE
+    const long  ST_PIPEFILE
+    const ubyte  ST_ROOT
+    const ubyte  ST_SOFTLINK
+    const ubyte  ST_USERDIR
+    const long  SYS_Dummy
+    const ubyte  TICKS_PER_SECOND
+    const ubyte  reserve
+    const ubyte  vsize
+    AbortPkt  (long port @D1, long pkt @D2)@bank 2 = -$0108
+    AddBuffers  (str name @D1, long number @D2) -> long @D0@bank 2 = -$02dc
+    AddDosEntry  (long dlist @D1) -> long @D0@bank 2 = -$02a6
+    AddPart  (str dirname @D1, str filename @D2, long size @D3) -> bool @D0@bank 2 = -$0372
+    AddSegment  (str name @D1, long seg @D2, long system @D3) -> long @D0@bank 2 = -$0306
+    AllocDosObject  (long k_type @D1, long tags @D2) -> long @D0@bank 2 = -$e4
+    AssignAdd  (str name @D1, long lock @D2) -> bool @D0@bank 2 = -$0276
+    AssignLate  (str name @D1, str path @D2) -> bool @D0@bank 2 = -$026a
+    AssignLock  (str name @D1, long lock @D2) -> long @D0@bank 2 = -$0264
+    AssignPath  (str name @D1, str path @D2) -> bool @D0@bank 2 = -$0270
+    AttemptLockDosList  (long flags @D1) -> long @D0@bank 2 = -$029a
+    ChangeMode  (long k_type @D1, long fh @D2, long newmode @D3) -> long @D0@bank 2 = -$01c2
+    CheckSignal  (long mask @D1) -> long @D0@bank 2 = -$0318
+    Cli  () -> long @D0@bank 2 = -$01ec
+    CliInitNewcli  (long dp @A0) -> long @D0@bank 2 = -$03a2
+    CliInitRun  (long dp @A0) -> long @D0@bank 2 = -$03a8
+    Close  (long file @D1) -> long @D0@bank 2 = -$24
+    CompareDates  (long date1 @D1, long date2 @D2) -> long @D0@bank 2 = -$02e2
+    CreateDir  (str name @D1) -> long @D0@bank 2 = -$78
+    CreateNewProc  (long tags @D1) -> long @D0@bank 2 = -$01f2
+    CreateProc  (str name @D1, long pri @D2, long segList @D3, long stackSize @D4) -> long @D0@bank 2 = -$8a
+    CurrentDir  (long lock @D1) -> long @D0@bank 2 = -$7e
+    DateStamp  (long date @D1) -> long @D0@bank 2 = -$c0
+    DateToStr  (long datetime @D1) -> long @D0@bank 2 = -$02e8
+    Delay  (long timeout @D1)@bank 2 = -$c6
+    DeleteFile  (str name @D1) -> long @D0@bank 2 = -$48
+    DeleteVar  (str name @D1, long flags @D2) -> long @D0@bank 2 = -$0390
+    DeviceProc  (str name @D1) -> long @D0@bank 2 = -$ae
+    DoPkt  (long port @D1, long action @D2, long arg1 @D3, long arg2 @D4, long arg3 @D5, long arg4 @D6, long arg5 @D7) -> long @D0@bank 2 = -$f0
+    DoShellMethodTagList  (long method @D0, long tags @A0) -> long @D0@bank 2 = -$0480
+    DupLock  (long lock @D1) -> long @D0@bank 2 = -$60
+    DupLockFromFH  (long fh @D1) -> long @D0@bank 2 = -$0174
+    EndNotify  (long notify @D1)@bank 2 = -$037e
+    ErrorOutput  () -> long @D0@bank 2 = -$046e
+    ErrorReport  (long code @D1, long k_type @D2, long arg1 @D3, long device @D4) -> long @D0@bank 2 = -$01e0
+    ExAll  (long lock @D1, long buffer @D2, long size @D3, long data @D4, long control @D5) -> long @D0@bank 2 = -$01b0
+    ExAllEnd  (long lock @D1, long buffer @D2, long size @D3, long data @D4, long control @D5)@bank 2 = -$03de
+    ExNext  (long lock @D1, long fileInfoBlock @D2) -> long @D0@bank 2 = -$6c
+    Examine  (long lock @D1, long fileInfoBlock @D2) -> long @D0@bank 2 = -$66
+    ExamineFH  (long fh @D1, long fib @D2) -> bool @D0@bank 2 = -$0186
+    Execute  (str k_string @D1, long file @D2, long file2 @D3) -> long @D0@bank 2 = -$de
+    Exit  (long returnCode @D1)@bank 2 = -$90
+    FGetC  (long fh @D1) -> long @D0@bank 2 = -$0132
+    FGets  (long fh @D1, str buf @D2, long buflen @D3) -> str @D0@bank 2 = -$0150
+    FPutC  (long fh @D1, long ch @D2) -> long @D0@bank 2 = -$0138
+    FPuts  (long fh @D1, str k_str @D2) -> long @D0@bank 2 = -$0156
+    FRead  (long fh @D1, long block @D2, long blocklen @D3, long number @D4) -> long @D0@bank 2 = -$0144
+    FWrite  (long fh @D1, long block @D2, long blocklen @D3, long number @D4) -> long @D0@bank 2 = -$014a
+    Fault  (long code @D1, str header @D2, str buffer @D3, long len @D4) -> bool @D0@bank 2 = -$01d4
+    FilePart  (str path @D1) -> str @D0@bank 2 = -$0366
+    FindArg  (str keyword @D1, str arg_template @D2) -> long @D0@bank 2 = -$0324
+    FindCliProc  (long num @D1) -> long @D0@bank 2 = -$0222
+    FindDosEntry  (long dlist @D1, str name @D2, long flags @D3) -> long @D0@bank 2 = -$02ac
+    FindSegment  (str name @D1, long seg @D2, long system @D3) -> long @D0@bank 2 = -$030c
+    FindVar  (str name @D1, long k_type @D2) -> long @D0@bank 2 = -$0396
+    Flush  (long fh @D1) -> long @D0@bank 2 = -$0168
+    Format  (str filesystem @D1, str volumename @D2, long dostype @D3) -> bool @D0@bank 2 = -$02ca
+    FreeArgs  (long args @D1)@bank 2 = -$035a
+    FreeDeviceProc  (long dp @D1)@bank 2 = -$0288
+    FreeDosEntry  (long dlist @D1)@bank 2 = -$02be
+    FreeDosObject  (long k_type @D1, long ptr @D2)@bank 2 = -$ea
+    GetArgStr  () -> str @D0@bank 2 = -$0216
+    GetConsoleTask  () -> long @D0@bank 2 = -$01fe
+    GetCurrentDir  () -> long @D0@bank 2 = -$0402
+    GetCurrentDirName  (str buf @D1, long len @D2) -> bool @D0@bank 2 = -$0234
+    GetDeviceProc  (str name @D1, long dp @D2) -> long @D0@bank 2 = -$0282
+    GetFileSysTask  () -> long @D0@bank 2 = -$020a
+    GetProgramDir  () -> long @D0@bank 2 = -$0258
+    GetProgramName  (str buf @D1, long len @D2) -> bool @D0@bank 2 = -$0240
+    GetPrompt  (str buf @D1, long len @D2) -> bool @D0@bank 2 = -$024c
+    GetVar  (str name @D1, str buffer @D2, long size @D3, long flags @D4) -> long @D0@bank 2 = -$038a
+    Info  (long lock @D1, long parameterBlock @D2) -> long @D0@bank 2 = -$72
+    Inhibit  (str name @D1, long onoff @D2) -> long @D0@bank 2 = -$02d6
+    Input  () -> long @D0@bank 2 = -$36
+    InternalLoadSeg  (long fh @D0, long table @A0, long funcarray @A1, long stack @A2) -> long @D0@bank 2 = -$02f4
+    InternalUnLoadSeg  (long seglist @D1, long freefunc @A1) -> bool @D0@bank 2 = -$02fa
+    IoErr  () -> long @D0@bank 2 = -$84
+    IsFileSystem  (str name @D1) -> bool @D0@bank 2 = -$02c4
+    IsInteractive  (long file @D1) -> long @D0@bank 2 = -$d8
+    LoadSeg  (str name @D1) -> long @D0@bank 2 = -$96
+    Lock  (str name @D1, long k_type @D2) -> long @D0@bank 2 = -$54
+    LockDosList  (long flags @D1) -> long @D0@bank 2 = -$028e
+    LockRecord  (long fh @D1, long offset @D2, long length @D3, long mode @D4, long timeout @D5) -> bool @D0@bank 2 = -$010e
+    LockRecords  (long recArray @D1, long timeout @D2) -> bool @D0@bank 2 = -$0114
+    MakeDosEntry  (str name @D1, long k_type @D2) -> long @D0@bank 2 = -$02b8
+    MakeLink  (str name @D1, long dest @D2, long soft @D3) -> long @D0@bank 2 = -$01bc
+    MatchEnd  (long anchor @D1)@bank 2 = -$0342
+    MatchFirst  (str pat @D1, long anchor @D2) -> long @D0@bank 2 = -$0336
+    MatchNext  (long anchor @D1) -> long @D0@bank 2 = -$033c
+    MatchPattern  (long patbuf @D1, str k_str @D2) -> bool @D0@bank 2 = -$034e
+    MatchPatternNoCase  (long patbuf @D1, str k_str @D2) -> bool @D0@bank 2 = -$03cc
+    MaxCli  () -> long @D0@bank 2 = -$0228
+    NameFromFH  (long fh @D1, str buffer @D2, long len @D3) -> long @D0@bank 2 = -$0198
+    NameFromLock  (long lock @D1, str buffer @D2, long len @D3) -> long @D0@bank 2 = -$0192
+    NewLoadSeg  (str file @D1, long tags @D2) -> long @D0@bank 2 = -$0300
+    NextDosEntry  (long dlist @D1, long flags @D2) -> long @D0@bank 2 = -$02b2
+    Open  (str name @D1, long accessMode @D2) -> long @D0@bank 2 = -$1e
+    OpenFromLock  (long lock @D1) -> long @D0@bank 2 = -$017a
+    Output  () -> long @D0@bank 2 = -$3c
+    ParentDir  (long lock @D1) -> long @D0@bank 2 = -$d2
+    ParentOfFH  (long fh @D1) -> long @D0@bank 2 = -$0180
+    ParsePattern  (str pat @D1, ubyte patbuf @D2, long patbuflen @D3) -> long @D0@bank 2 = -$0348
+    ParsePatternNoCase  (str pat @D1, ubyte patbuf @D2, long patbuflen @D3) -> long @D0@bank 2 = -$03c6
+    PathPart  (str path @D1) -> str @D0@bank 2 = -$036c
+    PrintFault  (long code @D1, str header @D2) -> bool @D0@bank 2 = -$01da
+    PutErrStr  (str k_str @D1) -> long @D0@bank 2 = -$0468
+    PutStr  (str k_str @D1) -> long @D0@bank 2 = -$03b4
+    Read  (long file @D1, long buffer @D2, long length @D3) -> long @D0@bank 2 = -$2a
+    ReadArgs  (str arg_template @D1, long array @D2, long args @D3) -> long @D0@bank 2 = -$031e
+    ReadItem  (str name @D1, long maxchars @D2, long cSource @D3) -> long @D0@bank 2 = -$032a
+    ReadLink  (long port @D1, long lock @D2, str path @D3, str buffer @D4, long size @D5) -> long @D0@bank 2 = -$01b6
+    Relabel  (str drive @D1, str newname @D2) -> long @D0@bank 2 = -$02d0
+    RemAssignList  (str name @D1, long lock @D2) -> long @D0@bank 2 = -$027c
+    RemDosEntry  (long dlist @D1) -> bool @D0@bank 2 = -$02a0
+    RemSegment  (long seg @D1) -> long @D0@bank 2 = -$0312
+    Rename  (str oldName @D1, str newName @D2) -> long @D0@bank 2 = -$4e
+    ReplyPkt  (long dp @D1, long res1 @D2, long res2 @D3)@bank 2 = -$0102
+    RunCommand  (long seg @D1, long stack @D2, str paramptr @D3, long paramlen @D4) -> long @D0@bank 2 = -$01f8
+    SameDevice  (long lock1 @D1, long lock2 @D2) -> bool @D0@bank 2 = -$03d8
+    SameLock  (long lock1 @D1, long lock2 @D2) -> long @D0@bank 2 = -$01a4
+    ScanStackToken  (long seg @D1, long defaultstack @D2) -> long @D0@bank 2 = -$0486
+    Seek  (long file @D1, long position @D2, long offset @D3) -> long @D0@bank 2 = -$42
+    SelectError  (long fh @D1) -> long @D0@bank 2 = -$0474
+    SelectInput  (long fh @D1) -> long @D0@bank 2 = -$0126
+    SelectOutput  (long fh @D1) -> long @D0@bank 2 = -$012c
+    SendPkt  (long dp @D1, long port @D2, long replyport @D3)@bank 2 = -$f6
+    SetArgStr  (str k_string @D1) -> str @D0@bank 2 = -$021c
+    SetComment  (str name @D1, str comment @D2) -> long @D0@bank 2 = -$b4
+    SetConsoleTask  (long task @D1) -> long @D0@bank 2 = -$0204
+    SetCurrentDirName  (str name @D1) -> bool @D0@bank 2 = -$022e
+    SetFileDate  (str name @D1, long date @D2) -> long @D0@bank 2 = -$018c
+    SetFileSize  (long fh @D1, long pos @D2, long mode @D3) -> long @D0@bank 2 = -$01c8
+    SetFileSysTask  (long task @D1) -> long @D0@bank 2 = -$0210
+    SetIoErr  (long result @D1) -> long @D0@bank 2 = -$01ce
+    SetMode  (long fh @D1, long mode @D2) -> long @D0@bank 2 = -$01aa
+    SetOwner  (str name @D1, long owner_info @D2) -> bool @D0@bank 2 = -$03e4
+    SetProgramDir  (long lock @D1) -> long @D0@bank 2 = -$0252
+    SetProgramName  (str name @D1) -> bool @D0@bank 2 = -$023a
+    SetPrompt  (str name @D1) -> bool @D0@bank 2 = -$0246
+    SetProtection  (str name @D1, long protect @D2) -> long @D0@bank 2 = -$ba
+    SetVBuf  (long fh @D1, str buff @D2, long k_type @D3, long size @D4) -> long @D0@bank 2 = -$016e
+    SetVar  (str name @D1, str buffer @D2, long size @D3, long flags @D4) -> bool @D0@bank 2 = -$0384
+    SplitName  (str name @D1, ubyte separator @D2, str buf @D3, word oldpos @D4, long size @D5) -> word @D0@bank 2 = -$019e
+    StartNotify  (long notify @D1) -> bool @D0@bank 2 = -$0378
+    StrToDate  (long datetime @D1) -> long @D0@bank 2 = -$02ee
+    StrToLong  (str k_string @D1, long value @D2) -> long @D0@bank 2 = -$0330
+    SystemTagList  (str command @D1, long tags @D2) -> long @D0@bank 2 = -$025e
+    UnGetC  (long fh @D1, long character @D2) -> long @D0@bank 2 = -$013e
+    UnLoadSeg  (long seglist @D1)@bank 2 = -$9c
+    UnLock  (long lock @D1)@bank 2 = -$5a
+    UnLockDosList  (long flags @D1)@bank 2 = -$0294
+    UnLockRecord  (long fh @D1, long offset @D2, long length @D3) -> bool @D0@bank 2 = -$011a
+    UnLockRecords  (long recArray @D1) -> bool @D0@bank 2 = -$0120
+    VFPrintf  (long fh @D1, str format @D2, long argarray @D3) -> long @D0@bank 2 = -$0162
+    VFWritef  (long fh @D1, str format @D2, long argarray @D3)@bank 2 = -$015c
+    VPrintf  (str format @D1, long argarray @D2) -> long @D0@bank 2 = -$03ba
+    VolumeRequestHook  (str vol @D1) -> long @D0@bank 2 = -$03f6
+    WaitForChar  (long file @D1, long timeout @D2) -> long @D0@bank 2 = -$cc
+    WaitPkt  () -> long @D0@bank 2 = -$fc
+    Write  (long file @D1, long buffer @D2, long length @D3) -> long @D0@bank 2 = -$30
+    WriteChars  (str buf @D1, long buflen @D2) -> long @D0@bank 2 = -$03ae
+}
+
+
+LIBRARY MODULE NAME: exec
+-------------------------
+
+exec  {
+    struct IORequest
+    struct IOStdReq
+    struct Interrupt
+    struct Library
+    struct List
+    struct Message
+    struct MinList
+    struct MinNode
+    struct MsgPort
+    struct Node
+    struct Task
+    const ubyte  AFB_68010
+    const ubyte  AFB_68020
+    const ubyte  AFB_68030
+    const ubyte  AFB_68040
+    const ubyte  AFB_68060
+    const ubyte  AFB_68881
+    const ubyte  AFB_68882
+    const ubyte  AFB_FPGA
+    const ubyte  AFB_FPU40
+    const ubyte  AFB_PRIVATE
+    const ubyte  AFF_68010
+    const ubyte  AFF_68020
+    const ubyte  AFF_68030
+    const ubyte  AFF_68040
+    const ubyte  AFF_68060
+    const ubyte  AFF_68881
+    const ubyte  AFF_68882
+    const uword  AFF_FPGA
+    const ubyte  AFF_FPU40
+    const uword  AFF_PRIVATE
+    const ubyte  BELL
+    const ubyte  BS
+    const ubyte  CACRB_ClearD
+    const ubyte  CACRB_ClearI
+    const ubyte  CACRB_CopyBack
+    const ubyte  CACRB_DBE
+    const ubyte  CACRB_EnableD
+    const ubyte  CACRB_EnableE
+    const ubyte  CACRB_EnableI
+    const ubyte  CACRB_FreezeD
+    const ubyte  CACRB_FreezeI
+    const ubyte  CACRB_IBE
+    const ubyte  CACRB_WriteAllocate
+    const uword  CACRF_ClearD
+    const ubyte  CACRF_ClearI
+    const long  CACRF_CopyBack
+    const uword  CACRF_DBE
+    const uword  CACRF_EnableD
+    const long  CACRF_EnableE
+    const ubyte  CACRF_EnableI
+    const uword  CACRF_FreezeD
+    const ubyte  CACRF_FreezeI
+    const ubyte  CACRF_IBE
+    const uword  CACRF_WriteAllocate
+    const ubyte  CR
+    const ubyte  DEL
+    const ubyte  DMAB_Continue
+    const ubyte  DMAB_NoModify
+    const ubyte  DMAB_ReadFromRAM
+    const ubyte  DMAF_Continue
+    const ubyte  DMAF_NoModify
+    const ubyte  DMAF_ReadFromRAM
+    const ubyte  EOS
+    const ubyte  INCLUDE_VERSION
+    const ubyte  INTB_NMI
+    const uword  INTF_NMI
+    const ubyte  IOB_QUICK
+    const long  IOERR_ABORTED
+    const long  IOERR_BADADDRESS
+    const long  IOERR_BADLENGTH
+    const long  IOERR_NOCMD
+    const long  IOERR_OPENFAIL
+    const long  IOERR_SELFTEST
+    const long  IOERR_UNITBUSY
+    const ubyte  IOF_QUICK
+    const ubyte  LF
+    const ubyte  LIBB_CHANGED
+    const ubyte  LIBB_DELEXP
+    const ubyte  LIBB_EXP0CNT
+    const ubyte  LIBB_SUMMING
+    const ubyte  LIBB_SUMUSED
+    const ubyte  LIBF_CHANGED
+    const ubyte  LIBF_DELEXP
+    const ubyte  LIBF_EXP0CNT
+    const ubyte  LIBF_SUMMING
+    const ubyte  LIBF_SUMUSED
+    const ubyte  LIBRARY_MINIMUM
+    const ubyte  LIB_RESERVED
+    const ubyte  LIB_VECTSIZE
+    const ubyte  MEMB_24BITDMA
+    const ubyte  MEMB_CHIP
+    const ubyte  MEMB_CLEAR
+    const ubyte  MEMB_FAST
+    const ubyte  MEMB_KICK
+    const ubyte  MEMB_LARGEST
+    const ubyte  MEMB_LOCAL
+    const ubyte  MEMB_NO_EXPUNGE
+    const ubyte  MEMB_PUBLIC
+    const ubyte  MEMB_REVERSE
+    const ubyte  MEMB_TOTAL
+    const uword  MEMF_24BITDMA
+    const ubyte  MEMF_ANY
+    const ubyte  MEMF_CHIP
+    const long  MEMF_CLEAR
+    const ubyte  MEMF_FAST
+    const uword  MEMF_KICK
+    const long  MEMF_LARGEST
+    const uword  MEMF_LOCAL
+    const long  MEMF_NO_EXPUNGE
+    const ubyte  MEMF_PUBLIC
+    const long  MEMF_REVERSE
+    const long  MEMF_TOTAL
+    const ubyte  MEMHB_RECYCLE
+    const ubyte  MEMHF_RECYCLE
+    const long  MEM_ALL_DONE
+    const ubyte  MEM_BLOCKSIZE
+    const ubyte  MEM_DID_NOTHING
+    const ubyte  MEM_TRY_AGAIN
+    const ubyte  NT_BOOTNODE
+    const ubyte  NT_DEATHMESSAGE
+    const ubyte  NT_DEVICE
+    const ubyte  NT_EXTENDED
+    const ubyte  NT_FONT
+    const ubyte  NT_FREEMSG
+    const ubyte  NT_GRAPHICS
+    const ubyte  NT_INTERRUPT
+    const ubyte  NT_KICKMEM
+    const ubyte  NT_LIBRARY
+    const ubyte  NT_MEMORY
+    const ubyte  NT_MESSAGE
+    const ubyte  NT_MSGPORT
+    const ubyte  NT_PROCESS
+    const ubyte  NT_REPLYMSG
+    const ubyte  NT_RESOURCE
+    const ubyte  NT_SEMAPHORE
+    const ubyte  NT_SIGNALSEM
+    const ubyte  NT_SOFTINT
+    const ubyte  NT_TASK
+    const ubyte  NT_UNKNOWN
+    const ubyte  NT_USER
+    const ubyte  PA_IGNORE
+    const ubyte  PA_SIGNAL
+    const ubyte  PA_SOFTINT
+    const ubyte  PF_ACTION
+    const ubyte  RTB_AFTERDOS
+    const ubyte  RTB_AUTOINIT
+    const ubyte  RTB_COLDSTART
+    const ubyte  RTB_SINGLETASK
+    const uword  RTC_MATCHWORD
+    const ubyte  RTF_AFTERDOS
+    const ubyte  RTF_AUTOINIT
+    const ubyte  RTF_COLDSTART
+    const ubyte  RTF_SINGLETASK
+    const ubyte  RTW_COLDSTART
+    const ubyte  RTW_NEVER
+    const ubyte  SB_SAR
+    const ubyte  SB_SINT
+    const ubyte  SB_TQE
+    const uword  SF_SAR
+    const uword  SF_SINT
+    const uword  SF_TQE
+    const ubyte  SIGB_ABORT
+    const ubyte  SIGB_BLIT
+    const ubyte  SIGB_CHILD
+    const ubyte  SIGB_DOS
+    const ubyte  SIGB_INTUITION
+    const ubyte  SIGB_NET
+    const ubyte  SIGB_SINGLE
+    const ubyte  SIGF_ABORT
+    const ubyte  SIGF_BLIT
+    const ubyte  SIGF_CHILD
+    const uword  SIGF_DOS
+    const ubyte  SIGF_INTUITION
+    const ubyte  SIGF_NET
+    const ubyte  SIGF_SINGLE
+    const ubyte  SIH_PRIMASK
+    const ubyte  SIH_QUEUES
+    const uword  SYS_SIGALLOC
+    const uword  SYS_TRAPALLOC
+    const ubyte  TB_ETASK
+    const ubyte  TB_EXCEPT
+    const ubyte  TB_LAUNCH
+    const ubyte  TB_PROCTIME
+    const ubyte  TB_STACKCHK
+    const ubyte  TB_SWITCH
+    const ubyte  TF_ETASK
+    const ubyte  TF_EXCEPT
+    const ubyte  TF_LAUNCH
+    const ubyte  TF_PROCTIME
+    const ubyte  TF_STACKCHK
+    const ubyte  TF_SWITCH
+    const ubyte  TS_INVALID
+    const ubyte  UNITB_ACTIVE
+    const ubyte  UNITB_INTASK
+    const ubyte  UNITF_ACTIVE
+    const ubyte  UNITF_INTASK
+    AbortIO  (long ioRequest @A1)@bank 1 = -$01e0
+    AddDevice  (long device @A1)@bank 1 = -$01b0
+    AddHead  (long list @A0, long node @A1)@bank 1 = -$f0
+    AddIntServer  (long intNumber @D0, long interrupt @A1)@bank 1 = -$a8
+    AddLibrary  (long library @A1)@bank 1 = -$018c
+    AddMemHandler  (long memhand @A1)@bank 1 = -$0306
+    AddMemList  (long size @D0, long attributes @D1, long pri @D2, long base @A0, str name @A1)@bank 1 = -$026a
+    AddPort  (long port @A1)@bank 1 = -$0162
+    AddResource  (long resource @A1)@bank 1 = -$01e6
+    AddSemaphore  (long sigSem @A1)@bank 1 = -$0258
+    AddTail  (long list @A0, long node @A1)@bank 1 = -$f6
+    AddTask  (long task @A1, long initPC @A2, long finalPC @A3) -> long @D0@bank 1 = -$011a
+    Alert  (long alertNum @D7)@bank 1 = -$6c
+    AllocAbs  (long byteSize @D0, long location @A1) -> long @D0@bank 1 = -$cc
+    AllocEntry  (long entry @A0) -> long @D0@bank 1 = -$de
+    AllocMem  (long byteSize @D0, long requirements @D1) -> long @D0@bank 1 = -$c6
+    AllocPooled  (long poolHeader @A0, long memSize @D0) -> long @D0@bank 1 = -$02c4
+    AllocSignal  (byte signalNum @D0) -> byte @D0@bank 1 = -$014a
+    AllocTrap  (long trapNum @D0) -> long @D0@bank 1 = -$0156
+    AllocVec  (long byteSize @D0, long requirements @D1) -> long @D0@bank 1 = -$02ac
+    Allocate  (long freeList @A0, long byteSize @D0) -> long @D0@bank 1 = -$ba
+    AttemptSemaphore  (long sigSem @A0) -> long @D0@bank 1 = -$0240
+    AttemptSemaphoreShared  (long sigSem @A0) -> long @D0@bank 1 = -$02d0
+    AvailMem  (long requirements @D1) -> long @D0@bank 1 = -$d8
+    CacheClearE  (long address @A0, long length @D0, long caches @D1)@bank 1 = -$0282
+    CacheClearU  ()@bank 1 = -$027c
+    CacheControl  (long cacheBits @D0, long cacheMask @D1) -> long @D0@bank 1 = -$0288
+    CachePostDMA  (long address @A0, long length @A1, long flags @D0)@bank 1 = -$0300
+    CachePreDMA  (long address @A0, long length @A1, long flags @D0) -> long @D0@bank 1 = -$02fa
+    Cause  (long interrupt @A1)@bank 1 = -$b4
+    CheckIO  (long ioRequest @A1) -> long @D0@bank 1 = -$01d4
+    CloseDevice  (long ioRequest @A1)@bank 1 = -$01c2
+    CloseLibrary  (long library @A1)@bank 1 = -$019e
+    ColdReboot  ()@bank 1 = -$02d6
+    CopyMem  (long source @A0, long dest @A1, long size @D0)@bank 1 = -$0270
+    CopyMemQuick  (long source @A0, long dest @A1, long size @D0)@bank 1 = -$0276
+    CreateIORequest  (long port @A0, long size @D0) -> long @D0@bank 1 = -$028e
+    CreateMsgPort  () -> long @D0@bank 1 = -$029a
+    CreatePool  (long requirements @D0, long puddleSize @D1, long threshSize @D2) -> long @D0@bank 1 = -$02b8
+    Deallocate  (long freeList @A0, long memoryBlock @A1, long byteSize @D0)@bank 1 = -$c0
+    Debug  (long flags @D0)@bank 1 = -$72
+    DeleteIORequest  (long iorequest @A0)@bank 1 = -$0294
+    DeleteMsgPort  (long port @A0)@bank 1 = -$02a0
+    DeletePool  (long poolHeader @A0)@bank 1 = -$02be
+    Disable  ()@bank 1 = -$78
+    DoIO  (long ioRequest @A1) -> byte @D0@bank 1 = -$01c8
+    Enable  ()@bank 1 = -$7e
+    Enqueue  (long list @A0, long node @A1)@bank 1 = -$010e
+    FindName  (long list @A0, str name @A1) -> long @D0@bank 1 = -$0114
+    FindPort  (str name @A1) -> long @D0@bank 1 = -$0186
+    FindResident  (str name @A1) -> long @D0@bank 1 = -$60
+    FindSemaphore  (str name @A1) -> long @D0@bank 1 = -$0252
+    FindTask  (str name @A1) -> long @D0@bank 1 = -$0126
+    Forbid  ()@bank 1 = -$84
+    FreeEntry  (long entry @A0)@bank 1 = -$e4
+    FreeMem  (long memoryBlock @A1, long byteSize @D0)@bank 1 = -$d2
+    FreePooled  (long poolHeader @A0, long k_memory @A1, long memSize @D0)@bank 1 = -$02ca
+    FreeSignal  (byte signalNum @D0)@bank 1 = -$0150
+    FreeTrap  (long trapNum @D0)@bank 1 = -$015c
+    FreeVec  (long memoryBlock @A1)@bank 1 = -$02b2
+    GetCC  () -> long @D0@bank 1 = -$0210
+    GetMsg  (long port @A0) -> long @D0@bank 1 = -$0174
+    InitCode  (long startClass @D0, long version @D1)@bank 1 = -$48
+    InitResident  (long resident @A1, long segList @D1) -> long @D0@bank 1 = -$66
+    InitSemaphore  (long sigSem @A0)@bank 1 = -$022e
+    InitStruct  (long initTable @A1, long k_memory @A2, long size @D0)@bank 1 = -$4e
+    Insert  (long list @A0, long node @A1, long pred @A2)@bank 1 = -$ea
+    MakeFunctions  (long target @A0, long functionArray @A1, long funcDispBase @A2)@bank 1 = -$5a
+    MakeLibrary  (long funcInit @A0, long structInit @A1, long libInit @A2, long dataSize @D0, long segList @D1) -> long @D0@bank 1 = -$54
+    NewMinList  (long minlist @A0)@bank 1 = -$033c
+    ObtainQuickVector  (long interruptCode @A0) -> long @D0@bank 1 = -$0312
+    ObtainSemaphore  (long sigSem @A0)@bank 1 = -$0234
+    ObtainSemaphoreList  (long sigSem @A0)@bank 1 = -$0246
+    ObtainSemaphoreShared  (long sigSem @A0)@bank 1 = -$02a6
+    OldOpenLibrary  (str libName @A1) -> long @D0@bank 1 = -$0198
+    OpenDevice  (str devName @A0, long unit @D0, long ioRequest @A1, long flags @D1) -> byte @D0@bank 1 = -$01bc
+    OpenLibrary  (str libName @A1, long version @D0) -> long @D0@bank 1 = -$0228
+    OpenResource  (str resName @A1) -> long @D0@bank 1 = -$01f2
+    Permit  ()@bank 1 = -$8a
+    Procure  (long sigSem @A0, long bidMsg @A1) -> long @D0@bank 1 = -$021c
+    PutMsg  (long port @A0, long message @A1)@bank 1 = -$016e
+    RawDoFmt  (str formatString @A0, long dataStream @A1, long putChProc @A2, long putChData @A3) -> long @D0@bank 1 = -$020a
+    ReleaseSemaphore  (long sigSem @A0)@bank 1 = -$023a
+    ReleaseSemaphoreList  (long sigSem @A0)@bank 1 = -$024c
+    RemDevice  (long device @A1)@bank 1 = -$01b6
+    RemHead  (long list @A0) -> long @D0@bank 1 = -$0102
+    RemIntServer  (long intNumber @D0, long interrupt @A1)@bank 1 = -$ae
+    RemLibrary  (long library @A1)@bank 1 = -$0192
+    RemMemHandler  (long memhand @A1)@bank 1 = -$030c
+    RemPort  (long port @A1)@bank 1 = -$0168
+    RemResource  (long resource @A1)@bank 1 = -$01ec
+    RemSemaphore  (long sigSem @A1)@bank 1 = -$025e
+    RemTail  (long list @A0) -> long @D0@bank 1 = -$0108
+    RemTask  (long task @A1)@bank 1 = -$0120
+    Remove  (long node @A1)@bank 1 = -$fc
+    ReplyMsg  (long message @A1)@bank 1 = -$017a
+    SendIO  (long ioRequest @A1)@bank 1 = -$01ce
+    SetExcept  (long newSignals @D0, long signalSet @D1) -> long @D0@bank 1 = -$0138
+    SetFunction  (long library @A1, long funcOffset @A0, long newFunction @D0) -> long @D0@bank 1 = -$01a4
+    SetIntVector  (long intNumber @D0, long interrupt @A1) -> long @D0@bank 1 = -$a2
+    SetSR  (long newSR @D0, long mask @D1) -> long @D0@bank 1 = -$90
+    SetSignal  (long newSignals @D0, long signalSet @D1) -> long @D0@bank 1 = -$0132
+    SetTaskPri  (long task @A1, long priority @D0) -> byte @D0@bank 1 = -$012c
+    Signal  (long task @A1, long signalSet @D0)@bank 1 = -$0144
+    StackSwap  (long newStack @A0)@bank 1 = -$02dc
+    SumKickData  () -> long @D0@bank 1 = -$0264
+    SumLibrary  (long library @A1)@bank 1 = -$01aa
+    SuperState  () -> long @D0@bank 1 = -$96
+    Supervisor  (long userFunction @A5) -> long @D0@bank 1 = -$1e
+    TypeOfMem  (long address @A1) -> long @D0@bank 1 = -$0216
+    UserState  (long sysStack @D0)@bank 1 = -$9c
+    Vacate  (long sigSem @A0, long bidMsg @A1)@bank 1 = -$0222
+    Wait  (long signalSet @D0) -> long @D0@bank 1 = -$013e
+    WaitIO  (long ioRequest @A1) -> byte @D0@bank 1 = -$01da
+    WaitPort  (long port @A0) -> long @D0@bank 1 = -$0180
+}
+
+
+LIBRARY MODULE NAME: graphics
+-----------------------------
+
+graphics  {
+    struct AreaInfo
+    struct BitMap
+    struct ClipRect
+    struct ColorMap
+    struct Layer
+    struct RastPort
+    struct TextAttr
+    struct TextExtent
+    struct TextFont
+    struct TmpRas
+    struct View
+    const long  A2024FIFTEENHERTZ_KEY
+    const long  A2024TENHERTZ_KEY
+    const long  A2024_MONITOR_ID
+    const ubyte  ANFRACSIZE
+    const ubyte  ANIMHALF
+    const ubyte  AVOID_FLICKER
+    const ubyte  BB_BDRAWN
+    const ubyte  BB_BOBISCOMP
+    const ubyte  BB_BOBNIX
+    const ubyte  BB_BOBSAWAY
+    const ubyte  BB_BWAITING
+    const ubyte  BB_OUTSTEP
+    const ubyte  BB_SAVEBOB
+    const ubyte  BB_SAVEPRESERVE
+    const uword  BF_BDRAWN
+    const ubyte  BF_BOBISCOMP
+    const uword  BF_BOBNIX
+    const uword  BF_BOBSAWAY
+    const uword  BF_BWAITING
+    const uword  BF_OUTSTEP
+    const ubyte  BF_SAVEBOB
+    const uword  BF_SAVEPRESERVE
+    const long  BIDTAG_BlueBits
+    const long  BIDTAG_DIPFMustHave
+    const long  BIDTAG_DIPFMustNotHave
+    const long  BIDTAG_Depth
+    const long  BIDTAG_DesiredHeight
+    const long  BIDTAG_DesiredWidth
+    const long  BIDTAG_GfxPrivate
+    const long  BIDTAG_GreenBits
+    const long  BIDTAG_MonitorID
+    const long  BIDTAG_NominalHeight
+    const long  BIDTAG_NominalWidth
+    const long  BIDTAG_RedBits
+    const long  BIDTAG_SourceID
+    const long  BIDTAG_ViewPort
+    const ubyte  BMB_CLEAR
+    const ubyte  BMB_DISPLAYABLE
+    const ubyte  BMB_FRIENDISTAG
+    const ubyte  BMB_HIJACKED
+    const ubyte  BMB_INTERLEAVED
+    const ubyte  BMB_INVALID
+    const ubyte  BMB_MINPLANES
+    const ubyte  BMB_RTGCHECK
+    const ubyte  BMB_RTGTAGS
+    const ubyte  BMB_STANDARD
+    const ubyte  BMF_CLEAR
+    const ubyte  BMF_DISPLAYABLE
+    const uword  BMF_FRIENDISTAG
+    const ubyte  BMF_HIJACKED
+    const ubyte  BMF_INTERLEAVED
+    const uword  BMF_INVALID
+    const ubyte  BMF_MINPLANES
+    const uword  BMF_RTGCHECK
+    const uword  BMF_RTGTAGS
+    const ubyte  BMF_STANDARD
+    const ubyte  BORDER_BLANKING
+    const ubyte  BORDER_NOTRANSPARENCY
+    const ubyte  BUSERFLAGS
+    const ubyte  CMAB_DUALPF_DISABLE
+    const ubyte  CMAB_FULLPALETTE
+    const ubyte  CMAB_NO_COLOR_LOAD
+    const ubyte  CMAB_NO_INTERMED_UPDATE
+    const ubyte  CMAF_DUALPF_DISABLE
+    const ubyte  CMAF_FULLPALETTE
+    const ubyte  CMAF_NO_COLOR_LOAD
+    const ubyte  CMAF_NO_INTERMED_UPDATE
+    const ubyte  CMB_BRDNTRAN
+    const ubyte  CMB_BRDRBLNK
+    const ubyte  CMB_BRDRSPRT
+    const ubyte  CMB_CMTRANS
+    const ubyte  CMB_CPTRANS
+    const ubyte  CMF_BRDNTRAN
+    const ubyte  CMF_BRDRBLNK
+    const ubyte  CMF_BRDRSPRT
+    const ubyte  CMF_CMTRANS
+    const ubyte  CMF_CPTRANS
+    const ubyte  COLORMAP_TRANSPARENCY
+    const ubyte  COLORMAP_TYPE_V1_2
+    const ubyte  COLORMAP_TYPE_V1_4
+    const ubyte  COLORMAP_TYPE_V39
+    const ubyte  COLORPLANE_TRANSPARENCY
+    const ubyte  CTB_MAPCOLOR
+    const ubyte  CTF_MAPCOLOR
+    const ubyte  CT_ANTIALIAS
+    const ubyte  CT_COLORFONT
+    const ubyte  CT_GREYFONT
+    const long  DBLNTSCEXTRALORESDPF2FF_KEY
+    const long  DBLNTSCEXTRALORESDPF2LACE_KEY
+    const long  DBLNTSCEXTRALORESDPF2_KEY
+    const long  DBLNTSCEXTRALORESDPFFF_KEY
+    const long  DBLNTSCEXTRALORESDPFLACE_KEY
+    const long  DBLNTSCEXTRALORESDPF_KEY
+    const long  DBLNTSCEXTRALORESEHBFF_KEY
+    const long  DBLNTSCEXTRALORESEHBLACE_KEY
+    const long  DBLNTSCEXTRALORESEHB_KEY
+    const long  DBLNTSCEXTRALORESFF_KEY
+    const long  DBLNTSCEXTRALORESHAMFF_KEY
+    const long  DBLNTSCEXTRALORESHAMLACE_KEY
+    const long  DBLNTSCEXTRALORESHAM_KEY
+    const long  DBLNTSCEXTRALORESLACE_KEY
+    const long  DBLNTSCEXTRALORES_KEY
+    const long  DBLNTSCHIRESDPF2FF_KEY
+    const long  DBLNTSCHIRESDPF2LACE_KEY
+    const long  DBLNTSCHIRESDPF2_KEY
+    const long  DBLNTSCHIRESDPFFF_KEY
+    const long  DBLNTSCHIRESDPFLACE_KEY
+    const long  DBLNTSCHIRESDPF_KEY
+    const long  DBLNTSCHIRESEHBFF_KEY
+    const long  DBLNTSCHIRESEHBLACE_KEY
+    const long  DBLNTSCHIRESEHB_KEY
+    const long  DBLNTSCHIRESFF_KEY
+    const long  DBLNTSCHIRESHAMFF_KEY
+    const long  DBLNTSCHIRESHAMLACE_KEY
+    const long  DBLNTSCHIRESHAM_KEY
+    const long  DBLNTSCHIRESLACE_KEY
+    const long  DBLNTSCHIRES_KEY
+    const long  DBLNTSCLORESDPF2FF_KEY
+    const long  DBLNTSCLORESDPF2LACE_KEY
+    const long  DBLNTSCLORESDPF2_KEY
+    const long  DBLNTSCLORESDPFFF_KEY
+    const long  DBLNTSCLORESDPFLACE_KEY
+    const long  DBLNTSCLORESDPF_KEY
+    const long  DBLNTSCLORESEHBFF_KEY
+    const long  DBLNTSCLORESEHBLACE_KEY
+    const long  DBLNTSCLORESEHB_KEY
+    const long  DBLNTSCLORESFF_KEY
+    const long  DBLNTSCLORESHAMFF_KEY
+    const long  DBLNTSCLORESHAMLACE_KEY
+    const long  DBLNTSCLORESHAM_KEY
+    const long  DBLNTSCLORESLACE_KEY
+    const long  DBLNTSCLORES_KEY
+    const long  DBLNTSC_MONITOR_ID
+    const long  DBLPALEXTRALORESDPF2FF_KEY
+    const long  DBLPALEXTRALORESDPF2LACE_KEY
+    const long  DBLPALEXTRALORESDPF2_KEY
+    const long  DBLPALEXTRALORESDPFFF_KEY
+    const long  DBLPALEXTRALORESDPFLACE_KEY
+    const long  DBLPALEXTRALORESDPF_KEY
+    const long  DBLPALEXTRALORESEHBFF_KEY
+    const long  DBLPALEXTRALORESEHBLACE_KEY
+    const long  DBLPALEXTRALORESEHB_KEY
+    const long  DBLPALEXTRALORESFF_KEY
+    const long  DBLPALEXTRALORESHAMFF_KEY
+    const long  DBLPALEXTRALORESHAMLACE_KEY
+    const long  DBLPALEXTRALORESHAM_KEY
+    const long  DBLPALEXTRALORESLACE_KEY
+    const long  DBLPALEXTRALORES_KEY
+    const long  DBLPALHIRESDPF2LACE_KEY
+    const long  DBLPALHIRESDPF2_KEY
+    const long  DBLPALHIRESDPFLACE_KEY
+    const long  DBLPALHIRESDPF_KEY
+    const long  DBLPALHIRESEHBFF_KEY
+    const long  DBLPALHIRESEHBLACE_KEY
+    const long  DBLPALHIRESEHB_KEY
+    const long  DBLPALHIRESFF_KEY
+    const long  DBLPALHIRESHAMFF_KEY
+    const long  DBLPALHIRESHAMLACE_KEY
+    const long  DBLPALHIRESHAM_KEY
+    const long  DBLPALHIRESLACE_KEY
+    const long  DBLPALHIRES_KEY
+    const long  DBLPALLORESDPF2LACE_KEY
+    const long  DBLPALLORESDPF2_KEY
+    const long  DBLPALLORESDPFLACE_KEY
+    const long  DBLPALLORESDPF_KEY
+    const long  DBLPALLORESEHBFF_KEY
+    const long  DBLPALLORESEHBLACE_KEY
+    const long  DBLPALLORESEHB_KEY
+    const long  DBLPALLORESFF_KEY
+    const long  DBLPALLORESHAMFF_KEY
+    const long  DBLPALLORESHAMLACE_KEY
+    const long  DBLPALLORESHAM_KEY
+    const long  DBLPALLORESLACE_KEY
+    const long  DBLPALLORES_KEY
+    const long  DBLPAL_MONITOR_ID
+    const ubyte  DEFAULT_MONITOR_ID
+    const long  EURO36_MONITOR_ID
+    const long  EURO72EHBLACE_KEY
+    const long  EURO72EHB_KEY
+    const long  EURO72EXTRAHALFBRITELACE_KEY
+    const long  EURO72EXTRAHALFBRITE_KEY
+    const long  EURO72EXTRALORESDBL_KEY
+    const long  EURO72EXTRALORESDPF2_KEY
+    const long  EURO72EXTRALORESDPF_KEY
+    const long  EURO72EXTRALORESEHBDBL_KEY
+    const long  EURO72EXTRALORESHAMDBL_KEY
+    const long  EURO72EXTRALORESLACEDPF2_KEY
+    const long  EURO72EXTRALORESLACEDPF_KEY
+    const long  EURO72EXTRALORESLACE_KEY
+    const long  EURO72EXTRALORES_KEY
+    const long  EURO72HAMLACE_KEY
+    const long  EURO72HAM_KEY
+    const long  EURO72LORESDBL_KEY
+    const long  EURO72LORESDPF2_KEY
+    const long  EURO72LORESDPF_KEY
+    const long  EURO72LORESEHBDBL_KEY
+    const long  EURO72LORESEHBLACE_KEY
+    const long  EURO72LORESEHB_KEY
+    const long  EURO72LORESHAMDBL_KEY
+    const long  EURO72LORESHAMLACE_KEY
+    const long  EURO72LORESHAM_KEY
+    const long  EURO72LORESLACEDPF2_KEY
+    const long  EURO72LORESLACEDPF_KEY
+    const long  EURO72LORESLACE_KEY
+    const long  EURO72LORES_KEY
+    const long  EURO72PRODUCTDBL_KEY
+    const long  EURO72PRODUCTDPF2_KEY
+    const long  EURO72PRODUCTDPF_KEY
+    const long  EURO72PRODUCTEHBDBL_KEY
+    const long  EURO72PRODUCTHAMDBL_KEY
+    const long  EURO72PRODUCTHAMLACE_KEY
+    const long  EURO72PRODUCTHAM_KEY
+    const long  EURO72PRODUCTLACEDPF2_KEY
+    const long  EURO72PRODUCTLACEDPF_KEY
+    const long  EURO72PRODUCTLACE_KEY
+    const long  EURO72PRODUCT_KEY
+    const long  EURO72_MONITOR_ID
+    const ubyte  EXACT_LINE
+    const uword  EXTEND_VSTRUCT
+    const ubyte  EXTRAHALFBRITELACE_KEY
+    const ubyte  EXTRAHALFBRITE_KEY
+    const ubyte  FPB_DESIGNED
+    const ubyte  FPB_DISKFONT
+    const ubyte  FPB_PROPORTIONAL
+    const ubyte  FPB_REMOVED
+    const ubyte  FPB_REVPATH
+    const ubyte  FPB_ROMFONT
+    const ubyte  FPB_TALLDOT
+    const ubyte  FPB_WIDEDOT
+    const ubyte  FPF_DESIGNED
+    const ubyte  FPF_DISKFONT
+    const ubyte  FPF_PROPORTIONAL
+    const ubyte  FPF_REMOVED
+    const ubyte  FPF_REVPATH
+    const ubyte  FPF_ROMFONT
+    const ubyte  FPF_TALLDOT
+    const ubyte  FPF_WIDEDOT
+    const ubyte  FSB_BOLD
+    const ubyte  FSB_COLORFONT
+    const ubyte  FSB_EXTENDED
+    const ubyte  FSB_ITALIC
+    const ubyte  FSB_TAGGED
+    const ubyte  FSB_UNDERLINED
+    const ubyte  FSF_BOLD
+    const ubyte  FSF_COLORFONT
+    const ubyte  FSF_EXTENDED
+    const ubyte  FSF_ITALIC
+    const ubyte  FSF_TAGGED
+    const ubyte  FSF_UNDERLINED
+    const ubyte  FS_NORMAL
+    const ubyte  GBFLAGSB_LASTBLIT
+    const ubyte  GBFLAGSB_TIMER
+    const ubyte  GBFLAGSF_LASTBLIT
+    const ubyte  GBFLAGSF_TIMER
+    const uword  GENLOCK_AUDIO
+    const ubyte  GENLOCK_VIDEO
+    const ubyte  GFXB_AA_ALICE
+    const ubyte  GFXB_AA_LISA
+    const ubyte  GFXB_AA_MLISA
+    const ubyte  GFXB_BIG_BLITS
+    const ubyte  GFXB_HR_AGNUS
+    const ubyte  GFXB_HR_DENISE
+    const ubyte  GFXF_AA_ALICE
+    const ubyte  GFXF_AA_LISA
+    const ubyte  GFXF_AA_MLISA
+    const ubyte  GFXF_BIG_BLITS
+    const ubyte  GFXF_HR_AGNUS
+    const ubyte  GFXF_HR_DENISE
+    const ubyte  GRAPHICS_GFXNODES_I
+    const ubyte  HALF_LINE
+    const uword  HAMLACE_KEY
+    const uword  HAM_KEY
+    const uword  HIRESDPF2_KEY
+    const uword  HIRESDPF_KEY
+    const uword  HIRESEHBLACE_KEY
+    const uword  HIRESEHB_KEY
+    const uword  HIRESHAMLACE_KEY
+    const uword  HIRESHAMSDBL_KEY
+    const uword  HIRESHAM_KEY
+    const uword  HIRESLACEDPF2_KEY
+    const uword  HIRESLACEDPF_KEY
+    const uword  HIRESLACE_KEY
+    const uword  HIRES_KEY
+    const ubyte  IGNORE_MCOMPAT
+    const uword  LORESDPF2_KEY
+    const uword  LORESDPF_KEY
+    const ubyte  LORESEHBSDBL_KEY
+    const uword  LORESHAMSDBL_KEY
+    const uword  LORESLACEDPF2_KEY
+    const uword  LORESLACEDPF_KEY
+    const ubyte  LORESLACE_KEY
+    const ubyte  LORESSDBL_KEY
+    const ubyte  LORES_KEY
+    const uword  MAXFONTMATCHWEIGHT
+    const long  MONITOR_ID_MASK
+    const ubyte  MONITOR_SPEC_TYPE
+    const ubyte  MSB_DOUBLE_SPRITES
+    const ubyte  MSB_REQUEST_A2024
+    const ubyte  MSB_REQUEST_NTSC
+    const ubyte  MSB_REQUEST_PAL
+    const ubyte  MSB_REQUEST_SPECIAL
+    const ubyte  MSF_DOUBLE_SPRITES
+    const ubyte  MSF_REQUEST_A2024
+    const ubyte  MSF_REQUEST_NTSC
+    const ubyte  MSF_REQUEST_PAL
+    const ubyte  MSF_REQUEST_SPECIAL
+    const long  NTSC_MONITOR_ID
+    const long  PAL_MONITOR_ID
+    const ubyte  PENB_EXCLUSIVE
+    const ubyte  PENB_NO_SETCOLOR
+    const ubyte  PENF_EXCLUSIVE
+    const ubyte  PENF_NO_SETCOLOR
+    const ubyte  PRESERVE_COLORS
+    const long  PROTO_MONITOR_ID
+    const ubyte  RINGTRIGGER
+    const ubyte  RPB_AREAOUTLINE
+    const ubyte  RPB_DBUFFER
+    const ubyte  RPB_FRST_DOT
+    const ubyte  RPB_NOCROSSFILL
+    const ubyte  RPB_ONE_DOT
+    const ubyte  RPB_TXSCALE
+    const ubyte  RPF_AREAOUTLINE
+    const ubyte  RPF_DBUFFER
+    const ubyte  RPF_FRST_DOT
+    const ubyte  RPF_NOCROSSFILL
+    const ubyte  RPF_ONE_DOT
+    const ubyte  RPF_TXSCALE
+    const ubyte  RP_COMPLEMENT
+    const ubyte  RP_INVERSVID
+    const ubyte  RP_JAM1
+    const ubyte  RP_JAM2
+    const ubyte  SPECIAL_MONITOR_TYPE
+    const ubyte  SS_GRAPHICS
+    const long  SUPER72HIRESDBL_KEY
+    const long  SUPER72HIRESEHBDBL_KEY
+    const long  SUPER72HIRESHAMDBL_KEY
+    const long  SUPER72LORESDBL_KEY
+    const long  SUPER72LORESEHBDBL_KEY
+    const long  SUPER72LORESHAMDBL_KEY
+    const long  SUPER72SUPERDBL_KEY
+    const long  SUPER72SUPEREHBDBL_KEY
+    const long  SUPER72SUPERHAMDBL_KEY
+    const long  SUPER72_MONITOR_ID
+    const uword  SUPERDPF2_KEY
+    const uword  SUPERDPF_KEY
+    const uword  SUPEREHBLACE_KEY
+    const uword  SUPEREHB_KEY
+    const uword  SUPERHAMLACE_KEY
+    const uword  SUPERHAM_KEY
+    const uword  SUPERLACEDPF2_KEY
+    const uword  SUPERLACEDPF_KEY
+    const uword  SUPERLACE_KEY
+    const uword  SUPER_KEY
+    const ubyte  SUSERFLAGS
+    const ubyte  TA_DeviceDPI
+    const ubyte  TE0B_NOREMFONT
+    const ubyte  TE0F_NOREMFONT
+    const ubyte  USER_COPPER_CLIP
+    const long  VGAEHBLACE_KEY
+    const long  VGAEHB_KEY
+    const long  VGAEXTRAHALFBRITELACE_KEY
+    const long  VGAEXTRAHALFBRITE_KEY
+    const long  VGAEXTRALORESDPF2_KEY
+    const long  VGAEXTRALORESDPF_KEY
+    const long  VGAEXTRALORESLACEDPF2_KEY
+    const long  VGAEXTRALORESLACEDPF_KEY
+    const long  VGAEXTRALORESLACE_KEY
+    const long  VGAEXTRALORES_KEY
+    const long  VGAHAMLACE_KEY
+    const long  VGAHAM_KEY
+    const long  VGALORESDPF2_KEY
+    const long  VGALORESDPF_KEY
+    const long  VGALORESEHBLACE_KEY
+    const long  VGALORESEHB_KEY
+    const long  VGALORESHAMLACE_KEY
+    const long  VGALORESHAM_KEY
+    const long  VGALORESLACEDPF2_KEY
+    const long  VGALORESLACEDPF_KEY
+    const long  VGALORESLACE_KEY
+    const long  VGALORES_KEY
+    const long  VGAPRODUCTDPF2_KEY
+    const long  VGAPRODUCTDPF_KEY
+    const long  VGAPRODUCTHAMLACE_KEY
+    const long  VGAPRODUCTHAM_KEY
+    const long  VGAPRODUCTLACEDPF2_KEY
+    const long  VGAPRODUCTLACEDPF_KEY
+    const long  VGAPRODUCTLACE_KEY
+    const long  VGAPRODUCT_KEY
+    const long  VGA_MONITOR_ID
+    const ubyte  VIDEOCONTROL_BATCH
+    const ubyte  VIEWPORT_EXTRA_TYPE
+    const ubyte  VIEW_EXTRA_TYPE
+    const ubyte  VPB_A2024
+    const ubyte  VPB_TENHZ
+    const ubyte  VPF_A2024
+    const ubyte  VPF_TENHZ
+    const ubyte  VSB_BACKSAVED
+    const ubyte  VSB_BOBUPDATE
+    const ubyte  VSB_GELGONE
+    const ubyte  VSB_MUSTDRAW
+    const ubyte  VSB_OVERLAY
+    const ubyte  VSB_SAVEBACK
+    const ubyte  VSB_VSOVERFLOW
+    const ubyte  VSB_VSPRITE
+    const uword  VSF_BACKSAVED
+    const uword  VSF_BOBUPDATE
+    const uword  VSF_GELGONE
+    const ubyte  VSF_MUSTDRAW
+    const ubyte  VSF_OVERLAY
+    const ubyte  VSF_SAVEBACK
+    const uword  VSF_VSOVERFLOW
+    const ubyte  VSF_VSPRITE
+    const ubyte  V_DOUBLESCAN
+    const uword  V_DUALPF
+    const uword  V_EXTENDED_MODE
+    const ubyte  V_EXTRA_HALFBRITE
+    const uword  V_HAM
+    const uword  V_HIRES
+    const ubyte  V_LACE
+    const ubyte  V_PFBA
+    const uword  V_SPRITES
+    const ubyte  V_SUPERHIRES
+    const uword  V_VP_HIDE
+    AddAnimOb  (long anOb @A0, long anKey @A1, long rp @A2)@bank 3 = -$9c
+    AddBob  (long bob @A0, long rp @A1)@bank 3 = -$60
+    AddFont  (long textFont @A1)@bank 3 = -$01e0
+    AddVSprite  (long vSprite @A0, long rp @A1)@bank 3 = -$66
+    AllocBitMap  (long sizex @D0, long sizey @D1, long depth @D2, long flags @D3, long friend_bitmap @A0) -> long @D0@bank 3 = -$0396
+    AllocDBufInfo  (long vp @A0) -> long @D0@bank 3 = -$03c6
+    AllocRaster  (uword width @D0, uword height @D1) -> long @D0@bank 3 = -$01ec
+    AllocSpriteDataA  (long bm @A2, long tags @A1) -> long @D0@bank 3 = -$03fc
+    AndRectRegion  (long region @A0, long rectangle @A1)@bank 3 = -$01f8
+    AndRegionRegion  (long srcRegion @A0, long destRegion @A1) -> bool @D0@bank 3 = -$0270
+    Animate  (long anKey @A0, long rp @A1)@bank 3 = -$a2
+    AreaDraw  (long rp @A1, word x @D0, word y @D1) -> long @D0@bank 3 = -$0102
+    AreaEllipse  (long rp @A1, word xCenter @D0, word yCenter @D1, word a @D2, word b @D3) -> long @D0@bank 3 = -$ba
+    AreaEnd  (long rp @A1) -> long @D0@bank 3 = -$0108
+    AreaMove  (long rp @A1, word x @D0, word y @D1) -> long @D0@bank 3 = -$fc
+    AskFont  (long rp @A1, long textAttr @A0)@bank 3 = -$01da
+    AskSoftStyle  (long rp @A1) -> long @D0@bank 3 = -$54
+    AttachPalExtra  (long cm @A0, long vp @A1) -> long @D0@bank 3 = -$0342
+    AttemptLockLayerRom  (long layer @A5) -> bool @D0@bank 3 = -$028e
+    BestModeIDA  (long tags @A0) -> long @D0@bank 3 = -$041a
+    BitMapScale  (long bitScaleArgs @A0)@bank 3 = -$02a6
+    BltBitMap  (long srcBitMap @A0, word xSrc @D0, word ySrc @D1, long destBitMap @A1, word xDest @D2, word yDest @D3, word xSize @D4, word ySize @D5, ubyte minterm @D6, ubyte mask @D7, long tempA @A2) -> long @D0@bank 3 = -$1e
+    BltBitMapRastPort  (long srcBitMap @A0, word xSrc @D0, word ySrc @D1, long destRP @A1, word xDest @D2, word yDest @D3, word xSize @D4, word ySize @D5, ubyte minterm @D6)@bank 3 = -$025e
+    BltClear  (long memBlock @A1, long byteCount @D0, long flags @D1)@bank 3 = -$012c
+    BltMaskBitMapRastPort  (long srcBitMap @A0, word xSrc @D0, word ySrc @D1, long destRP @A1, word xDest @D2, word yDest @D3, word xSize @D4, word ySize @D5, ubyte minterm @D6, long bltMask @A2)@bank 3 = -$027c
+    BltPattern  (long rp @A1, long mask @A0, word xMin @D0, word yMin @D1, word xMax @D2, word yMax @D3, uword maskBPR @D4)@bank 3 = -$0138
+    BltTemplate  (long source @A0, word xSrc @D0, word srcMod @D1, long destRP @A1, word xDest @D2, word yDest @D3, word xSize @D4, word ySize @D5)@bank 3 = -$24
+    CBump  (long copList @A1)@bank 3 = -$016e
+    CMove  (long copList @A1, long destination @D0, word data @D1) -> long @D0@bank 3 = -$0174
+    CWait  (long copList @A1, word v @D0, word h @D1) -> long @D0@bank 3 = -$017a
+    CalcIVG  (long v @A0, long vp @A1) -> uword @D0@bank 3 = -$033c
+    ChangeExtSpriteA  (long vp @A0, long oldsprite @A1, long newsprite @A2, long tags @A3) -> long @D0@bank 3 = -$0402
+    ChangeSprite  (long vp @A0, long sprite @A1, uword newData @A2)@bank 3 = -$01a4
+    ChangeVPBitMap  (long vp @A0, long bm @A1, long db @A2)@bank 3 = -$03ae
+    ClearEOL  (long rp @A1)@bank 3 = -$2a
+    ClearRectRegion  (long region @A0, long rectangle @A1) -> bool @D0@bank 3 = -$020a
+    ClearRegion  (long region @A0)@bank 3 = -$0210
+    ClearScreen  (long rp @A1)@bank 3 = -$30
+    ClipBlit  (long srcRP @A0, word xSrc @D0, word ySrc @D1, long destRP @A1, word xDest @D2, word yDest @D3, word xSize @D4, word ySize @D5, ubyte minterm @D6)@bank 3 = -$0228
+    CloseFont  (long textFont @A1)@bank 3 = -$4e
+    CloseMonitor  (long monitorSpec @A0) -> bool @D0@bank 3 = -$02d0
+    CoerceMode  (long vp @A0, long monitorid @D0, long flags @D1) -> long @D0@bank 3 = -$03a8
+    CopySBitMap  (long layer @A0)@bank 3 = -$01c2
+    DisownBlitter  ()@bank 3 = -$01ce
+    DisposeRegion  (long region @A0)@bank 3 = -$0216
+    DoCollision  (long rp @A1)@bank 3 = -$6c
+    Draw  (long rp @A1, word x @D0, word y @D1)@bank 3 = -$f6
+    DrawEllipse  (long rp @A1, word xCenter @D0, word yCenter @D1, word a @D2, word b @D3)@bank 3 = -$b4
+    DrawGList  (long rp @A1, long vp @A0)@bank 3 = -$72
+    EraseRect  (long rp @A1, word xMin @D0, word yMin @D1, word xMax @D2, word yMax @D3)@bank 3 = -$032a
+    ExtendFont  (long font @A0, long fontTags @A1) -> long @D0@bank 3 = -$0330
+    FindColor  (long cm @A3, long r @D1, long g @D2, long b @D3, long maxcolor @D4) -> long @D0@bank 3 = -$03f0
+    FindDisplayInfo  (long displayID @D0) -> long @D0@bank 3 = -$02d6
+    Flood  (long rp @A1, long mode @D2, word x @D0, word y @D1) -> bool @D0@bank 3 = -$014a
+    FontExtent  (long font @A0, long fontExtent @A1)@bank 3 = -$02fa
+    FreeBitMap  (long bm @A0)@bank 3 = -$039c
+    FreeColorMap  (long colorMap @A0)@bank 3 = -$0240
+    FreeCopList  (long copList @A0)@bank 3 = -$0222
+    FreeCprList  (long cprList @A0)@bank 3 = -$0234
+    FreeDBufInfo  (long dbi @A1)@bank 3 = -$03cc
+    FreeGBuffers  (long anOb @A0, long rp @A1, bool flag @D0)@bank 3 = -$0258
+    FreeRaster  (long p @A0, uword width @D0, uword height @D1)@bank 3 = -$01f2
+    FreeSprite  (word num @D0)@bank 3 = -$019e
+    FreeSpriteData  (long sp @A2)@bank 3 = -$0408
+    FreeVPortCopLists  (long vp @A0)@bank 3 = -$021c
+    GetAPen  (long rp @A0) -> long @D0@bank 3 = -$035a
+    GetBPen  (long rp @A0) -> long @D0@bank 3 = -$0360
+    GetBitMapAttr  (long bm @A0, long attrnum @D1) -> long @D0@bank 3 = -$03c0
+    GetColorMap  (long entries @D0) -> long @D0@bank 3 = -$023a
+    GetDisplayInfoData  (long handle @A0, long buf @A1, long size @D0, long tagID @D1, long displayID @D2) -> long @D0@bank 3 = -$02f4
+    GetDrMd  (long rp @A0) -> long @D0@bank 3 = -$0366
+    GetExtSpriteA  (long ss @A2, long tags @A1) -> long @D0@bank 3 = -$03a2
+    GetGBuffers  (long anOb @A0, long rp @A1, bool flag @D0) -> bool @D0@bank 3 = -$a8
+    GetOutlinePen  (long rp @A0) -> long @D0@bank 3 = -$036c
+    GetRGB32  (long cm @A0, long firstcolor @D0, long ncolors @D1, long table @A1)@bank 3 = -$0384
+    GetRGB4  (long colorMap @A0, long entry @D0) -> long @D0@bank 3 = -$0246
+    GetRPAttrsA  (long rp @A0, long tags @A1)@bank 3 = -$0414
+    GetSprite  (long sprite @A0, word num @D0) -> word @D0@bank 3 = -$0198
+    GetVPModeID  (long vp @A0) -> long @D0@bank 3 = -$0318
+    GfxAssociate  (long associateNode @A0, long gfxNodePtr @A1)@bank 3 = -$02a0
+    GfxFree  (long gfxNodePtr @A0)@bank 3 = -$029a
+    GfxLookUp  (long associateNode @A0) -> long @D0@bank 3 = -$02be
+    GfxNew  (long gfxNodeType @D0) -> long @D0@bank 3 = -$0294
+    InitArea  (long areaInfo @A0, long vectorBuffer @A1, word maxVectors @D0)@bank 3 = -$011a
+    InitBitMap  (long bitMap @A0, byte depth @D0, word width @D1, word height @D2)@bank 3 = -$0186
+    InitGMasks  (long anOb @A0)@bank 3 = -$ae
+    InitGels  (long head @A0, long tail @A1, long gelsInfo @A2)@bank 3 = -$78
+    InitMasks  (long vSprite @A0)@bank 3 = -$7e
+    InitRastPort  (long rp @A1)@bank 3 = -$c6
+    InitTmpRas  (long tmpRas @A0, long buffer @A1, long size @D0) -> long @D0@bank 3 = -$01d4
+    InitVPort  (long vp @A0)@bank 3 = -$cc
+    InitView  (long view @A1)@bank 3 = -$0168
+    LoadRGB32  (long vp @A0, long table @A1)@bank 3 = -$0372
+    LoadRGB4  (long vp @A0, long colors @A1, word count @D0)@bank 3 = -$c0
+    LoadView  (long view @A1)@bank 3 = -$de
+    LockLayerRom  (long layer @A5)@bank 3 = -$01b0
+    MakeVPort  (long view @A0, long vp @A1) -> long @D0@bank 3 = -$d8
+    ModeNotAvailable  (long modeID @D0) -> long @D0@bank 3 = -$031e
+    Move  (long rp @A1, word x @D0, word y @D1)@bank 3 = -$f0
+    MoveSprite  (long vp @A0, long sprite @A1, word x @D0, word y @D1)@bank 3 = -$01aa
+    MrgCop  (long view @A1) -> long @D0@bank 3 = -$d2
+    NewRegion  () -> long @D0@bank 3 = -$0204
+    NextDisplayInfo  (long displayID @D0) -> long @D0@bank 3 = -$02dc
+    ObtainBestPenA  (long cm @A0, long r @D1, long g @D2, long b @D3, long tags @A1) -> long @D0@bank 3 = -$0348
+    ObtainPen  (long cm @A0, long n @D0, long r @D1, long g @D2, long b @D3, long f @D4) -> long @D0@bank 3 = -$03ba
+    OpenFont  (long textAttr @A0) -> long @D0@bank 3 = -$48
+    OpenMonitor  (str monitorName @A1, long displayID @D0) -> long @D0@bank 3 = -$02ca
+    OrRectRegion  (long region @A0, long rectangle @A1) -> bool @D0@bank 3 = -$01fe
+    OrRegionRegion  (long srcRegion @A0, long destRegion @A1) -> bool @D0@bank 3 = -$0264
+    OwnBlitter  ()@bank 3 = -$01c8
+    PolyDraw  (long rp @A1, word count @D0, long polyTable @A0)@bank 3 = -$0150
+    QBSBlit  (long blit @A1)@bank 3 = -$0126
+    QBlit  (long blit @A1)@bank 3 = -$0114
+    ReadPixel  (long rp @A1, word x @D0, word y @D1) -> long @D0@bank 3 = -$013e
+    ReadPixelArray8  (long rp @A0, uword xstart @D0, uword ystart @D1, uword xstop @D2, uword ystop @D3, ubyte array @A2, long temprp @A1) -> long @D0@bank 3 = -$030c
+    ReadPixelLine8  (long rp @A0, uword xstart @D0, uword ystart @D1, uword width @D2, ubyte array @A2, long tempRP @A1) -> long @D0@bank 3 = -$0300
+    RectFill  (long rp @A1, word xMin @D0, word yMin @D1, word xMax @D2, word yMax @D3)@bank 3 = -$0132
+    ReleasePen  (long cm @A0, long n @D0)@bank 3 = -$03b4
+    RemFont  (long textFont @A1)@bank 3 = -$01e6
+    RemIBob  (long bob @A0, long rp @A1, long vp @A2)@bank 3 = -$84
+    RemVSprite  (long vSprite @A0)@bank 3 = -$8a
+    ScalerDiv  (uword factor @D0, uword numerator @D1, uword denominator @D2) -> uword @D0@bank 3 = -$02ac
+    ScrollRaster  (long rp @A1, word dx @D0, word dy @D1, word xMin @D2, word yMin @D3, word xMax @D4, word yMax @D5)@bank 3 = -$018c
+    ScrollRasterBF  (long rp @A1, word dx @D0, word dy @D1, word xMin @D2, word yMin @D3, word xMax @D4, word yMax @D5)@bank 3 = -$03ea
+    ScrollVPort  (long vp @A0)@bank 3 = -$024c
+    SetABPenDrMd  (long rp @A1, long apen @D0, long bpen @D1, long drawmode @D2)@bank 3 = -$037e
+    SetAPen  (long rp @A1, ubyte pen @D0)@bank 3 = -$0156
+    SetBPen  (long rp @A1, ubyte pen @D0)@bank 3 = -$015c
+    SetChipRev  (long want @D0) -> long @D0@bank 3 = -$0378
+    SetCollision  (long num @D0, long routine @A0, long gelsInfo @A1)@bank 3 = -$90
+    SetDrMd  (long rp @A1, ubyte drawMode @D0)@bank 3 = -$0162
+    SetFont  (long rp @A1, long textFont @A0) -> long @D0@bank 3 = -$42
+    SetMaxPen  (long rp @A0, long maxpen @D0)@bank 3 = -$03de
+    SetOutlinePen  (long rp @A0, long pen @D0) -> long @D0@bank 3 = -$03d2
+    SetRGB32  (long vp @A0, long n @D0, long r @D1, long g @D2, long b @D3)@bank 3 = -$0354
+    SetRGB32CM  (long cm @A0, long n @D0, long r @D1, long g @D2, long b @D3)@bank 3 = -$03e4
+    SetRGB4  (long vp @A0, word index @D0, ubyte red @D1, ubyte green @D2, ubyte blue @D3)@bank 3 = -$0120
+    SetRGB4CM  (long colorMap @A0, word index @D0, ubyte red @D1, ubyte green @D2, ubyte blue @D3)@bank 3 = -$0276
+    SetRPAttrsA  (long rp @A0, long tags @A1)@bank 3 = -$040e
+    SetRast  (long rp @A1, ubyte pen @D0)@bank 3 = -$ea
+    SetSoftStyle  (long rp @A1, long style @D0, long enable @D1) -> long @D0@bank 3 = -$5a
+    SetWriteMask  (long rp @A0, long msk @D0) -> long @D0@bank 3 = -$03d8
+    SortGList  (long rp @A1)@bank 3 = -$96
+    StripFont  (long font @A0)@bank 3 = -$0336
+    SyncSBitMap  (long layer @A0)@bank 3 = -$01bc
+    Text  (long rp @A1, str k_string @A0, uword count @D0) -> long @D0@bank 3 = -$3c
+    TextExtent  (long rp @A1, str k_string @A0, word count @D0, long textExtent @A2) -> word @D0@bank 3 = -$02b2
+    TextFit  (long rp @A1, str k_string @A0, uword strLen @D0, long textExtent @A2, long constrainingExtent @A3, word strDirection @D1, uword constrainingBitWidth @D2, uword constrainingBitHeight @D3) -> long @D0@bank 3 = -$02b8
+    TextLength  (long rp @A1, str k_string @A0, uword count @D0) -> word @D0@bank 3 = -$36
+    UCopperListInit  (long uCopList @A0, word n @D0) -> long @D0@bank 3 = -$0252
+    UnlockLayerRom  (long layer @A5)@bank 3 = -$01b6
+    VBeamPos  () -> long @D0@bank 3 = -$0180
+    VideoControl  (long colorMap @A0, long tagarray @A1) -> bool @D0@bank 3 = -$02c4
+    WaitBOVP  (long vp @A0)@bank 3 = -$0192
+    WaitBlit  ()@bank 3 = -$e4
+    WaitTOF  ()@bank 3 = -$010e
+    WeighTAMatch  (long reqTextAttr @A0, long targetTextAttr @A1, long targetTags @A2) -> word @D0@bank 3 = -$0324
+    WriteChunkyPixels  (long rp @A0, uword xstart @D0, uword ystart @D1, uword xstop @D2, uword ystop @D3, ubyte array @A2, long bytesperrow @D4)@bank 3 = -$0420
+    WritePixel  (long rp @A1, word x @D0, word y @D1) -> long @D0@bank 3 = -$0144
+    WritePixelArray8  (long rp @A0, uword xstart @D0, uword ystart @D1, uword xstop @D2, uword ystop @D3, ubyte array @A2, long temprp @A1) -> long @D0@bank 3 = -$0312
+    WritePixelLine8  (long rp @A0, uword xstart @D0, uword ystart @D1, uword width @D2, ubyte array @A2, long tempRP @A1) -> long @D0@bank 3 = -$0306
+    XorRectRegion  (long region @A0, long rectangle @A1) -> bool @D0@bank 3 = -$022e
+    XorRegionRegion  (long srcRegion @A0, long destRegion @A1) -> bool @D0@bank 3 = -$026a
+}
+
+
+LIBRARY MODULE NAME: intuition
+------------------------------
+
+intuition  {
+    struct Border
+    struct ColorSpec
+    struct DrawInfo
+    struct EasyStruct
+    struct ExtGadget
+    struct ExtIntuiMessage
+    struct Gadget
+    struct IBox
+    struct Image
+    struct IntuiMessage
+    struct IntuiText
+    struct Menu
+    struct MenuItem
+    struct NewScreen
+    struct NewWindow
+    struct Requester
+    struct Screen
+    struct Window
+    const ubyte  ABSOLUTE_DIMENSIONS
+    const long  ALERT_TYPE
+    const ubyte  ALPHA_P_101
+    const ubyte  ALTLEFT
+    const ubyte  ALTRIGHT
+    const ubyte  AMIGAKEY
+    const ubyte  AMIGAKEYS
+    const ubyte  AMIGALEFT
+    const ubyte  AMIGARIGHT
+    const uword  ANTI_ALIAS
+    const ubyte  ASPECT_HORIZ
+    const ubyte  ASPECT_VERT
+    const ubyte  AUTOBACKPEN
+    const ubyte  AUTOFRONTPEN
+    const ubyte  AUTOITEXTFONT
+    const ubyte  AUTOKNOB
+    const ubyte  AUTOLEFTEDGE
+    const ubyte  AUTONEXTTEXT
+    const uword  AUTOSCROLL
+    const ubyte  AUTOTOPEDGE
+    const ubyte  BAUD_110
+    const ubyte  BAUD_1200
+    const ubyte  BAUD_19200
+    const ubyte  BAUD_2400
+    const ubyte  BAUD_300
+    const ubyte  BAUD_4800
+    const ubyte  BAUD_9600
+    const ubyte  BAUD_MIDI
+    const ubyte  BEEPING
+    const ubyte  BOOLMASK
+    const ubyte  BOUNDED_DIMENSIONS
+    const ubyte  BROTHER_15XL
+    const ubyte  CBM_MPS1000
+    const ubyte  CENTER_IMAGE
+    const uword  CHECKED
+    const ubyte  CHECKIMAGE
+    const ubyte  CHECKIT
+    const ubyte  CHECKWIDTH
+    const ubyte  CLB_INLIST
+    const ubyte  CLF_INLIST
+    const ubyte  CLOSEIMAGE
+    const ubyte  COMMSEQ
+    const ubyte  COMMWIDTH
+    const ubyte  CORRECT_BLUE
+    const ubyte  CORRECT_GREEN
+    const ubyte  CORRECT_RED
+    const ubyte  CORRECT_RGB_MASK
+    const ubyte  CURSORDOWN
+    const ubyte  CURSORLEFT
+    const ubyte  CURSORRIGHT
+    const ubyte  CURSORUP
+    const ubyte  CUSTOM
+    const ubyte  CUSTOMBITMAP
+    const long  CUSTOMIMAGEDEPTH
+    const ubyte  CUSTOMSCREEN
+    const ubyte  CUSTOM_NAME
+    const ubyte  CWCODE_DEPTH
+    const ubyte  CWCODE_HIDE
+    const ubyte  CWCODE_MOVESIZE
+    const ubyte  CWCODE_SHOW
+    const long  DEADEND_ALERT
+    const ubyte  DEFAULTMOUSEQUEUE
+    const uword  DEFERREFRESH
+    const ubyte  DEPTHIMAGE
+    const ubyte  DEVNAME_SIZE
+    const ubyte  DIAB_630
+    const ubyte  DIAB_ADV_D25
+    const ubyte  DIAB_C_150
+    const ubyte  DIMENSIONS_MASK
+    const uword  DITHERING_MASK
+    const ubyte  DOWNIMAGE
+    const ubyte  DRAFT
+    const ubyte  DRIB_NEWLOOK
+    const ubyte  DRIF_NEWLOOK
+    const ubyte  DRI_VERSION
+    const uword  EIGHT_LPI
+    const uword  ELITE
+    const ubyte  EO_BADFORMAT
+    const ubyte  EO_BIGCHANGE
+    const ubyte  EO_CLEAR
+    const ubyte  EO_DELBACKWARD
+    const ubyte  EO_DELFORWARD
+    const ubyte  EO_ENTER
+    const ubyte  EO_INSERTCHAR
+    const ubyte  EO_MOVECURSOR
+    const ubyte  EO_NOOP
+    const ubyte  EO_REPLACECHAR
+    const ubyte  EO_RESET
+    const ubyte  EO_SPECIAL
+    const ubyte  EO_UNDO
+    const ubyte  EPSON
+    const ubyte  EPSON_JX_80
+    const ubyte  EURO_A0
+    const ubyte  EURO_A1
+    const ubyte  EURO_A2
+    const ubyte  EURO_A3
+    const ubyte  EURO_A4
+    const ubyte  EURO_A5
+    const ubyte  EURO_A6
+    const ubyte  EURO_A7
+    const ubyte  EURO_A8
+    const ubyte  FANFOLD
+    const ubyte  FILENAME_SIZE
+    const uword  FINE
+    const uword  FLOYD_DITHERING
+    const ubyte  FRAMEB_MINIMAL
+    const ubyte  FRAMEB_SPECIFY
+    const ubyte  FRAMEF_MINIMAL
+    const ubyte  FRAMEF_SPECIFY
+    const ubyte  FRAME_BUTTON
+    const ubyte  FRAME_CONTEXT
+    const ubyte  FRAME_DEFAULT
+    const ubyte  FRAME_DISPLAY
+    const ubyte  FRAME_ICONDROPBOX
+    const ubyte  FRAME_PROPBORDER
+    const ubyte  FRAME_PROPKNOB
+    const ubyte  FRAME_RIDGE
+    const ubyte  FREEHORIZ
+    const ubyte  FREEVERT
+    const long  GACT_ACTIVEGADGET
+    const long  GACT_ALTKEYMAP
+    const long  GACT_BOOLEXTEND
+    const long  GACT_BORDERSNIFF
+    const long  GACT_BOTTOMBORDER
+    const long  GACT_ENDGADGET
+    const long  GACT_FOLLOWMOUSE
+    const long  GACT_IMMEDIATE
+    const long  GACT_LEFTBORDER
+    const long  GACT_LONGINT
+    const long  GACT_RELVERIFY
+    const long  GACT_RIGHTBORDER
+    const long  GACT_STRINGCENTER
+    const long  GACT_STRINGEXTEND
+    const long  GACT_STRINGLEFT
+    const long  GACT_STRINGRIGHT
+    const long  GACT_TOGGLESELECT
+    const long  GACT_TOPBORDER
+    const long  GA_ActivateKey
+    const long  GA_BackFill
+    const long  GA_Border
+    const long  GA_BottomBorder
+    const long  GA_Bounds
+    const long  GA_Disabled
+    const long  GA_DrawInfo
+    const long  GA_Dummy
+    const long  GA_EndGadget
+    const long  GA_FollowMouse
+    const long  GA_GZZGadget
+    const long  GA_GadgetHelp
+    const long  GA_GadgetHelpText
+    const long  GA_Height
+    const long  GA_Highlight
+    const long  GA_ID
+    const long  GA_Image
+    const long  GA_Immediate
+    const long  GA_IntuiText
+    const long  GA_LabelImage
+    const long  GA_Left
+    const long  GA_LeftBorder
+    const long  GA_Next
+    const long  GA_Previous
+    const long  GA_ReadOnly
+    const long  GA_RelBottom
+    const long  GA_RelHeight
+    const long  GA_RelRight
+    const long  GA_RelSpecial
+    const long  GA_RelVerify
+    const long  GA_RelWidth
+    const long  GA_RightBorder
+    const long  GA_SelectRender
+    const long  GA_Selected
+    const long  GA_SpecialInfo
+    const long  GA_SysGType
+    const long  GA_SysGadget
+    const long  GA_TabCycle
+    const long  GA_Text
+    const long  GA_TextAttr
+    const long  GA_ToggleSelect
+    const long  GA_Top
+    const long  GA_TopBorder
+    const long  GA_Underscore
+    const long  GA_UserData
+    const long  GA_UserInput
+    const long  GA_Width
+    const ubyte  GDOMAIN_MAXIMUM
+    const ubyte  GDOMAIN_MINIMUM
+    const ubyte  GDOMAIN_NOMINAL
+    const long  GFLG_DISABLED
+    const long  GFLG_EXTENDED
+    const long  GFLG_GADGHBOX
+    const long  GFLG_GADGHCOMP
+    const long  GFLG_GADGHIGHBITS
+    const long  GFLG_GADGHIMAGE
+    const long  GFLG_GADGHNONE
+    const long  GFLG_GADGIMAGE
+    const long  GFLG_IMAGEDISABLE
+    const long  GFLG_LABELIMAGE
+    const long  GFLG_LABELITEXT
+    const long  GFLG_LABELMASK
+    const long  GFLG_LABELSTRING
+    const long  GFLG_RELBOTTOM
+    const long  GFLG_RELHEIGHT
+    const long  GFLG_RELRIGHT
+    const long  GFLG_RELSPECIAL
+    const long  GFLG_RELWIDTH
+    const long  GFLG_SELECTED
+    const long  GFLG_STRINGEXTEND
+    const long  GFLG_TABCYCLE
+    const long  GMORE_BOOPSIGADGET
+    const long  GMORE_BOUNDS
+    const long  GMORE_FREEIMAGE
+    const long  GMORE_GADGETHELP
+    const long  GMORE_HIDDEN
+    const long  GMORE_PARENTHIDDEN
+    const long  GMORE_SCROLLRASTER
+    const ubyte  GMRB_NEXTACTIVE
+    const ubyte  GMRB_NOREUSE
+    const ubyte  GMRB_PREVACTIVE
+    const ubyte  GMRB_REUSE
+    const ubyte  GMRB_VERIFY
+    const ubyte  GMRF_NEXTACTIVE
+    const ubyte  GMRF_NOREUSE
+    const ubyte  GMRF_PREVACTIVE
+    const ubyte  GMRF_REUSE
+    const ubyte  GMRF_VERIFY
+    const ubyte  GMR_GADGETHIT
+    const long  GMR_HELPCODE
+    const long  GMR_HELPHIT
+    const ubyte  GMR_KEYACTIVE
+    const ubyte  GMR_KEYVERIFY
+    const ubyte  GMR_MEACTIVE
+    const ubyte  GMR_NEXTACTIVE
+    const ubyte  GMR_NOHELPHIT
+    const ubyte  GMR_NOREUSE
+    const ubyte  GMR_PREVACTIVE
+    const ubyte  GMR_REUSE
+    const ubyte  GMR_VERIFY
+    const ubyte  GM_DOMAIN
+    const ubyte  GM_GOACTIVE
+    const ubyte  GM_GOINACTIVE
+    const ubyte  GM_HANDLEINPUT
+    const ubyte  GM_HELPTEST
+    const ubyte  GM_HITTEST
+    const ubyte  GM_KEYGOACTIVE
+    const ubyte  GM_KEYGOINACTIVE
+    const ubyte  GM_KEYTEST
+    const ubyte  GM_LAYOUT
+    const ubyte  GM_RENDER
+    const ubyte  GREDRAW_REDRAW
+    const ubyte  GREDRAW_TOGGLE
+    const ubyte  GREDRAW_UPDATE
+    const uword  GREY_SCALE2
+    const long  GTYP_BOOLGADGET
+    const long  GTYP_CLOSE
+    const long  GTYP_CUSTOMGADGET
+    const long  GTYP_GADGET0002
+    const long  GTYP_GADGETTYPE
+    const long  GTYP_GTYPEMASK
+    const long  GTYP_GZZGADGET
+    const long  GTYP_ICONIFY
+    const long  GTYP_PROPGADGET
+    const long  GTYP_REQGADGET
+    const long  GTYP_SCRGADGET
+    const long  GTYP_SDEPTH
+    const long  GTYP_SDOWNBACK
+    const long  GTYP_SDRAGGING
+    const long  GTYP_SIZING
+    const long  GTYP_STRGADGET
+    const long  GTYP_SUNUSED
+    const long  GTYP_SUPFRONT
+    const long  GTYP_SYSGADGET
+    const long  GTYP_SYSTYPEMASK
+    const long  GTYP_WDEPTH
+    const long  GTYP_WDOWNBACK
+    const long  GTYP_WDRAGGING
+    const long  GTYP_WUPFRONT
+    const long  GTYP_WZOOM
+    const uword  HALFTONE_DITHERING
+    const ubyte  HC_GADGETHELP
+    const ubyte  HIGHBOX
+    const ubyte  HIGHCOMP
+    const ubyte  HIGHFLAGS
+    const ubyte  HIGHIMAGE
+    const uword  HIGHITEM
+    const ubyte  HIGHNONE
+    const ubyte  HP_LASERJET
+    const ubyte  HP_LASERJET_PLUS
+    const long  IA_APatSize
+    const long  IA_APattern
+    const long  IA_ActivateKey
+    const long  IA_BGPen
+    const long  IA_Data
+    const long  IA_DoubleEmboss
+    const long  IA_EdgesOnly
+    const long  IA_EraseBackground
+    const long  IA_FGPen
+    const long  IA_Font
+    const long  IA_FrameType
+    const long  IA_Height
+    const long  IA_HighlightPen
+    const long  IA_Label
+    const long  IA_LabelPen
+    const long  IA_Left
+    const long  IA_LineWidth
+    const long  IA_Mode
+    const long  IA_Orientation
+    const long  IA_Outline
+    const long  IA_Pens
+    const long  IA_Precision
+    const long  IA_Recessed
+    const long  IA_Resolution
+    const long  IA_Scalable
+    const long  IA_Screen
+    const long  IA_ShadowPen
+    const long  IA_SupportsDisable
+    const long  IA_Top
+    const long  IA_Underscore
+    const long  IA_Width
+    const long  ICA_Dummy
+    const long  ICA_MAP
+    const long  ICA_TARGET
+    const uword  ICM_CHECKLOOP
+    const uword  ICM_CLEARLOOP
+    const uword  ICM_SETLOOP
+    const ubyte  ICONIFYIMAGE
+    const long  ICSPECIAL_CODE
+    const long  ICTARGET_IDCMP
+    const long  IDCMP_ACTIVEWINDOW
+    const long  IDCMP_CHANGEWINDOW
+    const long  IDCMP_CLOSEWINDOW
+    const long  IDCMP_DELTAMOVE
+    const long  IDCMP_DISKINSERTED
+    const long  IDCMP_DISKREMOVED
+    const long  IDCMP_GADGETDOWN
+    const long  IDCMP_GADGETHELP
+    const long  IDCMP_GADGETUP
+    const long  IDCMP_IDCMPUPDATE
+    const long  IDCMP_INACTIVEWINDOW
+    const long  IDCMP_INTUITICKS
+    const long  IDCMP_LONELYMESSAGE
+    const long  IDCMP_MENUHELP
+    const long  IDCMP_MENUPICK
+    const long  IDCMP_MENUVERIFY
+    const long  IDCMP_MOUSEBUTTONS
+    const long  IDCMP_MOUSEMOVE
+    const long  IDCMP_NEWPREFS
+    const long  IDCMP_NEWSIZE
+    const long  IDCMP_RAWKEY
+    const long  IDCMP_REFRESHWINDOW
+    const long  IDCMP_REQCLEAR
+    const long  IDCMP_REQSET
+    const long  IDCMP_REQVERIFY
+    const long  IDCMP_SIZEVERIFY
+    const long  IDCMP_VANILLAKEY
+    const long  IDCMP_WBENCHMESSAGE
+    const ubyte  IDOMAIN_MAXIMUM
+    const ubyte  IDOMAIN_MINIMUM
+    const ubyte  IDOMAIN_NOMINAL
+    const ubyte  IDS_BUSY
+    const ubyte  IDS_DISABLED
+    const ubyte  IDS_INACTIVEDISABLED
+    const ubyte  IDS_INACTIVENORMAL
+    const ubyte  IDS_INACTIVESELECTED
+    const ubyte  IDS_INDETERMINANT
+    const ubyte  IDS_INDETERMINATE
+    const ubyte  IDS_NORMAL
+    const ubyte  IDS_SELECTED
+    const ubyte  IDS_SELECTEDDISABLED
+    const uword  IECLASS_ACTIVEWINDOW
+    const uword  IECLASS_CHANGEWINDOW
+    const uword  IECLASS_CLOSEWINDOW
+    const uword  IECLASS_DISKINSERTED
+    const uword  IECLASS_DISKREMOVED
+    const uword  IECLASS_EVENT
+    const uword  IECLASS_GADGETDOWN
+    const uword  IECLASS_GADGETUP
+    const uword  IECLASS_INACTIVEWINDOW
+    const uword  IECLASS_MAX
+    const uword  IECLASS_MENUHELP
+    const uword  IECLASS_MENULIST
+    const uword  IECLASS_NEWPOINTERPOS
+    const uword  IECLASS_NEWPREFS
+    const uword  IECLASS_NULL
+    const uword  IECLASS_POINTERPOS
+    const uword  IECLASS_RAWKEY
+    const uword  IECLASS_RAWMOUSE
+    const uword  IECLASS_REFRESHWINDOW
+    const uword  IECLASS_REQUESTER
+    const uword  IECLASS_SIZEWINDOW
+    const uword  IECLASS_TIMER
+    const uword  IECODEB_UP_PREFIX
+    const uword  IECODE_ASCII_DEL
+    const uword  IECODE_ASCII_FIRST
+    const uword  IECODE_ASCII_LAST
+    const uword  IECODE_C0_FIRST
+    const uword  IECODE_C0_LAST
+    const uword  IECODE_C1_FIRST
+    const uword  IECODE_C1_LAST
+    const uword  IECODE_COMM_CODE_FIRST
+    const uword  IECODE_COMM_CODE_LAST
+    const uword  IECODE_KEY_CODE_FIRST
+    const uword  IECODE_KEY_CODE_LAST
+    const uword  IECODE_LATIN1_FIRST
+    const uword  IECODE_LATIN1_LAST
+    const uword  IECODE_LBUTTON
+    const uword  IECODE_MBUTTON
+    const uword  IECODE_NEWACTIVE
+    const uword  IECODE_NEWSIZE
+    const uword  IECODE_NOBUTTON
+    const uword  IECODE_RBUTTON
+    const uword  IECODE_REFRESH
+    const uword  IECODE_REQCLEAR
+    const uword  IECODE_REQSET
+    const uword  IECODE_UP_PREFIX
+    const uword  IEQUALIFIERB_CAPSLOCK
+    const uword  IEQUALIFIERB_CONTROL
+    const uword  IEQUALIFIERB_INTERRUPT
+    const uword  IEQUALIFIERB_LALT
+    const uword  IEQUALIFIERB_LCOMMAND
+    const uword  IEQUALIFIERB_LEFTBUTTON
+    const uword  IEQUALIFIERB_LSHIFT
+    const uword  IEQUALIFIERB_MIDBUTTON
+    const uword  IEQUALIFIERB_MULTIBROADCAST
+    const uword  IEQUALIFIERB_NUMERICPAD
+    const uword  IEQUALIFIERB_RALT
+    const uword  IEQUALIFIERB_RBUTTON
+    const uword  IEQUALIFIERB_RCOMMAND
+    const uword  IEQUALIFIERB_RELATIVEMOUSE
+    const uword  IEQUALIFIERB_REPEAT
+    const uword  IEQUALIFIERB_RSHIFT
+    const uword  IEQUALIFIER_CAPSLOCK
+    const uword  IEQUALIFIER_CONTROL
+    const uword  IEQUALIFIER_INTERRUPT
+    const uword  IEQUALIFIER_LALT
+    const uword  IEQUALIFIER_LCOMMAND
+    const uword  IEQUALIFIER_LEFTBUTTON
+    const uword  IEQUALIFIER_LSHIFT
+    const uword  IEQUALIFIER_MIDBUTTON
+    const uword  IEQUALIFIER_MULTIBROADCAST
+    const uword  IEQUALIFIER_NUMERICPAD
+    const uword  IEQUALIFIER_RALT
+    const uword  IEQUALIFIER_RBUTTON
+    const uword  IEQUALIFIER_RCOMMAND
+    const uword  IEQUALIFIER_RELATIVEMOUSE
+    const uword  IEQUALIFIER_REPEAT
+    const uword  IEQUALIFIER_RSHIFT
+    const uword  IESUBCLASS_COMPATIBLE
+    const uword  IESUBCLASS_NEWTABLET
+    const uword  IESUBCLASS_PIXEL
+    const uword  IESUBCLASS_TABLET
+    const ubyte  IGNORE_DIMENSIONS
+    const long  IMAGE_ATTRIBUTES
+    const ubyte  IMAGE_NEGATIVE
+    const ubyte  IMAGE_POSITIVE
+    const uword  IM_DOMAINFRAME
+    const uword  IM_DRAW
+    const uword  IM_DRAWFRAME
+    const uword  IM_ERASE
+    const uword  IM_ERASEFRAME
+    const uword  IM_FRAMEBOX
+    const uword  IM_HITFRAME
+    const uword  IM_HITTEST
+    const uword  IM_MOVE
+    const uword  INTEGER_SCALING
+    const uword  ISDRAWN
+    const ubyte  ITEMENABLED
+    const ubyte  ITEMTEXT
+    const ubyte  KEYCODE_B
+    const ubyte  KEYCODE_GREATER
+    const ubyte  KEYCODE_LESS
+    const ubyte  KEYCODE_M
+    const ubyte  KEYCODE_N
+    const ubyte  KEYCODE_Q
+    const ubyte  KEYCODE_V
+    const ubyte  KEYCODE_X
+    const ubyte  KEYCODE_Z
+    const uword  KNOBHIT
+    const ubyte  KNOBHMIN
+    const ubyte  KNOBVMIN
+    const ubyte  LACEWB
+    const long  LAYOUTA_ChildMaxHeight
+    const long  LAYOUTA_ChildMaxWidth
+    const long  LAYOUTA_Dummy
+    const long  LAYOUTA_LayoutObj
+    const long  LAYOUTA_Orientation
+    const long  LAYOUTA_Spacing
+    const ubyte  LEFTIMAGE
+    const uword  LETTER
+    const ubyte  LORIENT_HORIZ
+    const ubyte  LORIENT_NONE
+    const ubyte  LORIENT_VERT
+    const ubyte  LOWCHECKWIDTH
+    const ubyte  LOWCOMMWIDTH
+    const uword  MAXBODY
+    const uword  MAXPOT
+    const ubyte  MAXPUBSCREENNAME
+    const ubyte  MENUCANCEL
+    const ubyte  MENUCHECK
+    const uword  MENUDOWN
+    const ubyte  MENUENABLED
+    const ubyte  MENUHOT
+    const ubyte  MENUMX
+    const uword  MENUNULL
+    const ubyte  MENUSUB
+    const ubyte  MENUTOGGLE
+    const uword  MENUTOGGLED
+    const uword  MENUUP
+    const ubyte  MENUWAITING
+    const uword  MIDDLEDOWN
+    const uword  MIDDLEUP
+    const uword  MIDRAWN
+    const uword  MOUSE_ACCEL
+    const ubyte  MULTIPLY_DIMENSIONS
+    const ubyte  MXIMAGE
+    const ubyte  NOISYREQ
+    const ubyte  NOITEM
+    const ubyte  NOMENU
+    const ubyte  NOREQBACKFILL
+    const ubyte  NOSUB
+    const uword  NS_EXTENDED
+    const ubyte  N_TRACTOR
+    const ubyte  OKABORT
+    const ubyte  OKCANCEL
+    const ubyte  OKIMATE_20
+    const ubyte  OKOK
+    const uword  OM_ADDMEMBER
+    const uword  OM_ADDTAIL
+    const uword  OM_DISPOSE
+    const uword  OM_GET
+    const uword  OM_NEW
+    const uword  OM_NOTIFY
+    const uword  OM_REMMEMBER
+    const uword  OM_REMOVE
+    const uword  OM_SET
+    const uword  OM_UPDATE
+    const ubyte  OPUB_INTERIM
+    const ubyte  OPUF_INTERIM
+    const ubyte  ORDERED_DITHERING
+    const ubyte  OSCAN_MAX
+    const ubyte  OSCAN_STANDARD
+    const ubyte  OSCAN_TEXT
+    const ubyte  OSCAN_VIDEO
+    const ubyte  OSERR_ATTACHFAIL
+    const ubyte  OSERR_NOCHIPMEM
+    const ubyte  OSERR_NOCHIPS
+    const ubyte  OSERR_NOMEM
+    const ubyte  OSERR_NOMONITOR
+    const ubyte  OSERR_NOTAVAILABLE
+    const ubyte  OSERR_PUBNOTUNIQUE
+    const ubyte  OSERR_TOODEEP
+    const ubyte  OSERR_UNKNOWNMODE
+    const ubyte  PARALLEL_PRINTER
+    const uword  PENSHARED
+    const uword  PEN_C0
+    const uword  PEN_C1
+    const uword  PEN_C2
+    const uword  PEN_C3
+    const long  PGA_Borderless
+    const long  PGA_Dummy
+    const long  PGA_Freedom
+    const long  PGA_HorizBody
+    const long  PGA_HorizPot
+    const long  PGA_KnobImage
+    const long  PGA_NewLook
+    const long  PGA_Top
+    const long  PGA_Total
+    const long  PGA_VertBody
+    const long  PGA_VertPot
+    const long  PGA_Visible
+    const ubyte  PICA
+    const ubyte  PIXEL_DIMENSIONS
+    const long  POINTERA_BitMap
+    const long  POINTERA_Dummy
+    const long  POINTERA_WordWidth
+    const long  POINTERA_XOffset
+    const long  POINTERA_XResolution
+    const long  POINTERA_YOffset
+    const long  POINTERA_YResolution
+    const ubyte  POINTERXRESN_140NS
+    const ubyte  POINTERXRESN_35NS
+    const ubyte  POINTERXRESN_70NS
+    const ubyte  POINTERXRESN_DEFAULT
+    const ubyte  POINTERXRESN_HIRES
+    const ubyte  POINTERXRESN_LORES
+    const ubyte  POINTERXRESN_SCREENRES
+    const ubyte  POINTERYRESN_DEFAULT
+    const ubyte  POINTERYRESN_HIGH
+    const ubyte  POINTERYRESN_HIGHASPECT
+    const ubyte  POINTERYRESN_SCREENRES
+    const ubyte  POINTERYRESN_SCREENRESASPECT
+    const ubyte  POINTREL
+    const ubyte  POPPUBSCREEN
+    const ubyte  PREDRAWN
+    const ubyte  PROPBORDERLESS
+    const ubyte  PROPNEWLOOK
+    const ubyte  PSNF_PRIVATE
+    const ubyte  PUBLICSCREEN
+    const ubyte  QUME_LP_20
+    const ubyte  RECOVERY_ALERT
+    const uword  REQACTIVE
+    const uword  REQOFFWINDOW
+    const ubyte  RIGHTIMAGE
+    const long  SA_AutoScroll
+    const long  SA_BackChild
+    const long  SA_BackFill
+    const long  SA_Behind
+    const long  SA_BitMap
+    const long  SA_BlockPen
+    const long  SA_ColorMapEntries
+    const long  SA_Colors
+    const long  SA_Colors32
+    const long  SA_DClip
+    const long  SA_Depth
+    const long  SA_DetailPen
+    const long  SA_DisplayID
+    const long  SA_Draggable
+    const long  SA_ErrorCode
+    const long  SA_Exclusive
+    const long  SA_Font
+    const long  SA_FrontChild
+    const long  SA_FullPalette
+    const long  SA_Height
+    const long  SA_Interleaved
+    const long  SA_Left
+    const long  SA_LikeWorkbench
+    const long  SA_MinimizeISG
+    const long  SA_Obsolete1
+    const long  SA_OffScreenDragging
+    const long  SA_Overscan
+    const long  SA_Parent
+    const long  SA_Pens
+    const long  SA_PubName
+    const long  SA_PubSig
+    const long  SA_PubTask
+    const long  SA_Quiet
+    const long  SA_Reserved
+    const long  SA_SharePens
+    const long  SA_ShowTitle
+    const long  SA_SysFont
+    const long  SA_Title
+    const long  SA_Top
+    const long  SA_Type
+    const long  SA_VideoControl
+    const long  SA_Width
+    const ubyte  SBUFSIZE_BITS
+    const ubyte  SBUF_1024
+    const ubyte  SBUF_16000
+    const ubyte  SBUF_2048
+    const ubyte  SBUF_4096
+    const ubyte  SBUF_512
+    const ubyte  SBUF_8000
+    const ubyte  SB_COPY_BITMAP
+    const ubyte  SB_SCREEN_BITMAP
+    const ubyte  SCREENBEHIND
+    const uword  SCREENHIRES
+    const uword  SCREENQUIET
+    const ubyte  SCREENTYPE
+    const uword  SCREEN_DRAG
+    const ubyte  SDEPTHIMAGE
+    const ubyte  SDEPTH_CHILDONLY
+    const ubyte  SDEPTH_INFAMILY
+    const ubyte  SDEPTH_TOBACK
+    const ubyte  SDEPTH_TOFRONT
+    const uword  SELECTDOWN
+    const uword  SELECTUP
+    const ubyte  SERIAL_PRINTER
+    const ubyte  SGAB_BEEP
+    const ubyte  SGAB_END
+    const ubyte  SGAB_NEXTACTIVE
+    const ubyte  SGAB_PREVACTIVE
+    const ubyte  SGAB_REDISPLAY
+    const ubyte  SGAB_REUSE
+    const ubyte  SGAB_USE
+    const ubyte  SGAF_BEEP
+    const ubyte  SGAF_END
+    const ubyte  SGAF_NEXTACTIVE
+    const ubyte  SGAF_PREVACTIVE
+    const ubyte  SGAF_REDISPLAY
+    const ubyte  SGAF_REUSE
+    const ubyte  SGAF_USE
+    const ubyte  SGA_BEEP
+    const ubyte  SGA_END
+    const ubyte  SGA_NEXTACTIVE
+    const ubyte  SGA_PREVACTIVE
+    const ubyte  SGA_REDISPLAY
+    const ubyte  SGA_REUSE
+    const ubyte  SGA_USE
+    const ubyte  SGH_CLICK
+    const ubyte  SGH_KEY
+    const ubyte  SGMB_EXITHELP
+    const ubyte  SGMB_FIXEDFIELD
+    const ubyte  SGMB_NOFILTER
+    const ubyte  SGMB_REPLACE
+    const ubyte  SGMF_EXITHELP
+    const ubyte  SGMF_FIXEDFIELD
+    const ubyte  SGMF_NOFILTER
+    const ubyte  SGMF_REPLACE
+    const ubyte  SGM_EXITHELP
+    const ubyte  SGM_FIXEDFIELD
+    const ubyte  SGM_NOFILTER
+    const ubyte  SGM_REPLACE
+    const ubyte  SG_DEFAULTMAXCHARS
+    const ubyte  SHADE_BW
+    const ubyte  SHADE_COLOR
+    const ubyte  SHADE_GREYSCALE
+    const ubyte  SHANGHAI
+    const ubyte  SHIFTKEYIMAGE
+    const ubyte  SHOWTITLE
+    const ubyte  SHSHAKE_BITS
+    const ubyte  SHSHAKE_NONE
+    const ubyte  SHSHAKE_RTS
+    const ubyte  SHSHAKE_XON
+    const ubyte  SIMPLEREQ
+    const ubyte  SINGLE
+    const ubyte  SIX_LPI
+    const ubyte  SIZEIMAGE
+    const ubyte  SMARTKNOBIMAGE
+    const ubyte  SPARITY_BITS
+    const ubyte  SPARITY_EVEN
+    const ubyte  SPARITY_MARK
+    const ubyte  SPARITY_NONE
+    const ubyte  SPARITY_ODD
+    const ubyte  SPARITY_SPACE
+    const ubyte  SPOS_ABSOLUTE
+    const ubyte  SPOS_FORCEDRAG
+    const ubyte  SPOS_MAKEVISIBLE
+    const ubyte  SPOS_RELATIVE
+    const ubyte  SREAD_BITS
+    const ubyte  SSTOP_BITS
+    const long  STDSCREENHEIGHT
+    const long  STDSCREENWIDTH
+    const long  STRINGA_ActivePens
+    const long  STRINGA_AltKeyMap
+    const long  STRINGA_Buffer
+    const long  STRINGA_BufferPos
+    const long  STRINGA_DispPos
+    const long  STRINGA_Dummy
+    const long  STRINGA_EditHook
+    const long  STRINGA_EditModes
+    const long  STRINGA_ExitHelp
+    const long  STRINGA_FixedFieldMode
+    const long  STRINGA_Font
+    const long  STRINGA_Justification
+    const long  STRINGA_LongVal
+    const long  STRINGA_MaxChars
+    const long  STRINGA_NoFilterMode
+    const long  STRINGA_Pens
+    const long  STRINGA_ReplaceMode
+    const long  STRINGA_TextVal
+    const long  STRINGA_UndoBuffer
+    const long  STRINGA_WorkBuffer
+    const long  SUPER_UNUSED
+    const ubyte  SWRITE_BITS
+    const long  SYSIA_Depth
+    const long  SYSIA_DrawInfo
+    const long  SYSIA_Pens
+    const long  SYSIA_ReferenceFont
+    const long  SYSIA_Size
+    const long  SYSIA_Which
+    const ubyte  SYSISIZE_HIRES
+    const ubyte  SYSISIZE_LOWRES
+    const ubyte  SYSISIZE_MEDRES
+    const uword  SYSREQUEST
+    const long  TABLETA_AngleX
+    const long  TABLETA_AngleY
+    const long  TABLETA_AngleZ
+    const long  TABLETA_ButtonBits
+    const long  TABLETA_Dummy
+    const long  TABLETA_InProximity
+    const long  TABLETA_Pressure
+    const long  TABLETA_RangeZ
+    const long  TABLETA_ResolutionX
+    const long  TABLETA_ResolutionY
+    const long  TABLETA_TabletZ
+    const ubyte  TOPAZ_EIGHTY
+    const ubyte  TOPAZ_SIXTY
+    const ubyte  UPIMAGE
+    const ubyte  USEREQIMAGE
+    const ubyte  US_LEGAL
+    const ubyte  US_LETTER
+    const long  WA_Activate
+    const long  WA_AmigaKey
+    const long  WA_AutoAdjust
+    const long  WA_BackFill
+    const long  WA_Backdrop
+    const long  WA_BlockPen
+    const long  WA_Borderless
+    const long  WA_BusyPointer
+    const long  WA_Checkmark
+    const long  WA_CloseGadget
+    const long  WA_Colors
+    const long  WA_CustomScreen
+    const long  WA_DepthGadget
+    const long  WA_DetailPen
+    const long  WA_DragBar
+    const long  WA_Flags
+    const long  WA_Gadgets
+    const long  WA_GimmeZeroZero
+    const long  WA_Height
+    const long  WA_HelpGroup
+    const long  WA_HelpGroupWindow
+    const long  WA_Hidden
+    const long  WA_IDCMP
+    const long  WA_IconifyGadget
+    const long  WA_InnerHeight
+    const long  WA_InnerWidth
+    const long  WA_Left
+    const long  WA_MaxHeight
+    const long  WA_MaxWidth
+    const long  WA_MenuHelp
+    const long  WA_MinHeight
+    const long  WA_MinWidth
+    const long  WA_MouseQueue
+    const long  WA_NewLookMenus
+    const long  WA_NoCareRefresh
+    const long  WA_NotifyDepth
+    const long  WA_Obsolete
+    const long  WA_Pointer
+    const long  WA_PointerDelay
+    const long  WA_PointerType
+    const long  WA_PubScreen
+    const long  WA_PubScreenFallBack
+    const long  WA_PubScreenName
+    const long  WA_RMBTrap
+    const long  WA_ReportMouse
+    const long  WA_RptQueue
+    const long  WA_ScreenTitle
+    const long  WA_SimpleRefresh
+    const long  WA_SizeBBottom
+    const long  WA_SizeBRight
+    const long  WA_SizeGadget
+    const long  WA_SmartRefresh
+    const long  WA_SuperBitMap
+    const long  WA_TabletMessages
+    const long  WA_Title
+    const long  WA_Top
+    const long  WA_WBenchWindow
+    const long  WA_Width
+    const long  WA_WindowName
+    const long  WA_Zoom
+    const ubyte  WBENCHCLOSE
+    const ubyte  WBENCHOPEN
+    const ubyte  WBENCHSCREEN
+    const long  WFLG_ACTIVATE
+    const long  WFLG_BACKDROP
+    const long  WFLG_BORDERLESS
+    const long  WFLG_CLOSEGADGET
+    const long  WFLG_DEPTHGADGET
+    const long  WFLG_DRAGBAR
+    const long  WFLG_GIMMEZEROZERO
+    const long  WFLG_HASICONIFY
+    const long  WFLG_HASZOOM
+    const long  WFLG_INREQUEST
+    const long  WFLG_MENUSTATE
+    const long  WFLG_NEWLOOKMENUS
+    const long  WFLG_NOCAREREFRESH
+    const long  WFLG_NW_EXTENDED
+    const long  WFLG_OTHER_REFRESH
+    const long  WFLG_REFRESHBITS
+    const long  WFLG_REPORTMOUSE
+    const long  WFLG_RMBTRAP
+    const long  WFLG_SIMPLE_REFRESH
+    const long  WFLG_SIZEBBOTTOM
+    const long  WFLG_SIZEBRIGHT
+    const long  WFLG_SIZEGADGET
+    const long  WFLG_SMART_REFRESH
+    const long  WFLG_SUPER_BITMAP
+    const long  WFLG_VISITOR
+    const long  WFLG_WBENCHWINDOW
+    const long  WFLG_WINDOWACTIVE
+    const long  WFLG_WINDOWREFRESH
+    const long  WFLG_WINDOWTICKED
+    const long  WFLG_ZOOMED
+    const ubyte  WINDOW_BACKMOST
+    const ubyte  WINDOW_FRONTMOST
+    const ubyte  W_TRACTOR
+    const ubyte  ZOOMIMAGE
+    ActivateGadget  (long gadgets @A0, long k_window @A1, long k_requester @A2) -> bool @D0@bank 4 = -$01ce
+    ActivateWindow  (long k_window @A0)@bank 4 = -$01c2
+    AddClass  (long classPtr @A0)@bank 4 = -$02ac
+    AddGList  (long k_window @A0, long gadget @A1, uword position @D0, word numGad @D1, long k_requester @A2) -> uword @D0@bank 4 = -$01b6
+    AddGadget  (long k_window @A0, long gadget @A1, uword position @D0) -> uword @D0@bank 4 = -$2a
+    AllocRemember  (long rememberKey @A0, long size @D0, long flags @D1) -> long @D0@bank 4 = -$018c
+    AllocScreenBuffer  (long sc @A0, long bm @A1, long flags @D0) -> long @D0@bank 4 = -$0300
+    AlohaWorkbench  (long wbport @A0)@bank 4 = -$0192
+    AutoRequest  (long k_window @A0, long body @A1, long posText @A2, long negText @A3, long pFlag @D0, long nFlag @D1, uword width @D2, uword height @D3) -> bool @D0@bank 4 = -$015c
+    BeginRefresh  (long k_window @A0)@bank 4 = -$0162
+    BuildEasyRequestArgs  (long k_window @A0, long easyStruct @A1, long idcmp @D0, long args @A3) -> long @D0@bank 4 = -$0252
+    BuildSysRequest  (long k_window @A0, long body @A1, long posText @A2, long negText @A3, long flags @D0, uword width @D1, uword height @D2) -> long @D0@bank 4 = -$0168
+    ChangeScreenBuffer  (long sc @A0, long sb @A1) -> long @D0@bank 4 = -$030c
+    ChangeWindowBox  (long k_window @A0, word left @D0, word top @D1, word width @D2, word height @D3)@bank 4 = -$01e6
+    ClearDMRequest  (long k_window @A0) -> bool @D0@bank 4 = -$30
+    ClearMenuStrip  (long k_window @A0)@bank 4 = -$36
+    ClearPointer  (long k_window @A0)@bank 4 = -$3c
+    CloseScreen  (long screen @A0) -> bool @D0@bank 4 = -$42
+    CloseWindow  (long k_window @A0)@bank 4 = -$48
+    CloseWorkBench  () -> long @D0@bank 4 = -$4e
+    CurrentTime  (long seconds @A0, long micros @A1)@bank 4 = -$54
+    DisplayAlert  (long alertNumber @D0, str k_string @A0, uword height @D1) -> bool @D0@bank 4 = -$5a
+    DisplayBeep  (long screen @A0)@bank 4 = -$60
+    DisposeObject  (long object @A0)@bank 4 = -$0282
+    DoGadgetMethodA  (long gad @A0, long win @A1, long req @A2, long message @A3) -> long @D0@bank 4 = -$032a
+    DoubleClick  (long sSeconds @D0, long sMicros @D1, long cSeconds @D2, long cMicros @D3) -> bool @D0@bank 4 = -$66
+    DrawBorder  (long rp @A0, long border @A1, word leftOffset @D0, word topOffset @D1)@bank 4 = -$6c
+    DrawImage  (long rp @A0, long image @A1, word leftOffset @D0, word topOffset @D1)@bank 4 = -$72
+    DrawImageState  (long rp @A0, long image @A1, word leftOffset @D0, word topOffset @D1, long state @D2, long drawInfo @A2)@bank 4 = -$026a
+    EasyRequestArgs  (long k_window @A0, long easyStruct @A1, long idcmpPtr @A2, long args @A3) -> long @D0@bank 4 = -$024c
+    EndRefresh  (long k_window @A0, long complete @D0)@bank 4 = -$016e
+    EndRequest  (long k_requester @A0, long k_window @A1)@bank 4 = -$78
+    EraseImage  (long rp @A0, long image @A1, word leftOffset @D0, word topOffset @D1)@bank 4 = -$0276
+    FreeClass  (long classPtr @A0) -> bool @D0@bank 4 = -$02ca
+    FreeRemember  (long rememberKey @A0, bool reallyForget @D0)@bank 4 = -$0198
+    FreeScreenBuffer  (long sc @A0, long sb @A1)@bank 4 = -$0306
+    FreeScreenDrawInfo  (long screen @A0, long drawInfo @A1)@bank 4 = -$02b8
+    FreeSysRequest  (long k_window @A0)@bank 4 = -$0174
+    GadgetMouse  (long gadget @A0, long gInfo @A1, word mousePoint @A2)@bank 4 = -$023a
+    GetAttr  (long attrID @D0, long object @A0, long storagePtr @A1) -> long @D0@bank 4 = -$028e
+    GetDefPrefs  (long preferences @A0, word size @D0) -> long @D0@bank 4 = -$7e
+    GetDefaultPubScreen  (str nameBuffer @A0)@bank 4 = -$0246
+    GetPrefs  (long preferences @A0, word size @D0) -> long @D0@bank 4 = -$84
+    GetScreenData  (long buffer @A0, uword size @D0, uword k_type @D1, long screen @A1) -> long @D0@bank 4 = -$01aa
+    GetScreenDrawInfo  (long screen @A0) -> long @D0@bank 4 = -$02b2
+    HelpControl  (long win @A0, long flags @D0)@bank 4 = -$033c
+    HideWindow  (long k_window @A0) -> bool @D0@bank 4 = -$0348
+    InitRequester  (long k_requester @A0)@bank 4 = -$8a
+    IntuiTextLength  (long iText @A0) -> long @D0@bank 4 = -$014a
+    Intuition  (long iEvent @A0)@bank 4 = -$24
+    IntuitionControlA  (long object @A0, long taglist @A1) -> long @D0@bank 4 = -$04bc
+    ItemAddress  (long menuStrip @A0, uword menuNumber @D0) -> long @D0@bank 4 = -$90
+    LendMenus  (long fromwindow @A0, long towindow @A1)@bank 4 = -$0324
+    LockIBase  (long dontknow @D0) -> long @D0@bank 4 = -$019e
+    LockPubScreen  (str name @A0) -> long @D0@bank 4 = -$01fe
+    LockPubScreenList  () -> long @D0@bank 4 = -$020a
+    MakeClass  (str classID @A0, str superClassID @A1, long superClassPtr @A2, uword instanceSize @D0, long flags @D1) -> long @D0@bank 4 = -$02a6
+    MakeScreen  (long screen @A0) -> long @D0@bank 4 = -$017a
+    ModifyIDCMP  (long k_window @A0, long flags @D0) -> bool @D0@bank 4 = -$96
+    ModifyProp  (long gadget @A0, long k_window @A1, long k_requester @A2, uword flags @D0, uword horizPot @D1, uword vertPot @D2, uword horizBody @D3, uword vertBody @D4)@bank 4 = -$9c
+    MoveScreen  (long screen @A0, word dx @D0, word dy @D1)@bank 4 = -$a2
+    MoveWindow  (long k_window @A0, word dx @D0, word dy @D1)@bank 4 = -$a8
+    MoveWindowInFrontOf  (long k_window @A0, long behindWindow @A1)@bank 4 = -$01e0
+    NewModifyProp  (long gadget @A0, long k_window @A1, long k_requester @A2, uword flags @D0, uword horizPot @D1, uword vertPot @D2, uword horizBody @D3, uword vertBody @D4, word numGad @D5)@bank 4 = -$01d4
+    NewObjectA  (long classPtr @A0, str classID @A1, long tagList @A2) -> long @D0@bank 4 = -$027c
+    NextObject  (long objectPtrPtr @A0) -> long @D0@bank 4 = -$029a
+    NextPubScreen  (long screen @A0, str namebuf @A1) -> str @D0@bank 4 = -$0216
+    ObtainGIRPort  (long gInfo @A0) -> long @D0@bank 4 = -$022e
+    OffGadget  (long gadget @A0, long k_window @A1, long k_requester @A2)@bank 4 = -$ae
+    OffMenu  (long k_window @A0, uword menuNumber @D0)@bank 4 = -$b4
+    OnGadget  (long gadget @A0, long k_window @A1, long k_requester @A2)@bank 4 = -$ba
+    OnMenu  (long k_window @A0, uword menuNumber @D0)@bank 4 = -$c0
+    OpenIntuition  ()@bank 4 = -$1e
+    OpenScreen  (long newScreen @A0) -> long @D0@bank 4 = -$c6
+    OpenScreenTagList  (long newScreen @A0, long tagList @A1) -> long @D0@bank 4 = -$0264
+    OpenWindow  (long newWindow @A0) -> long @D0@bank 4 = -$cc
+    OpenWindowTagList  (long newWindow @A0, long tagList @A1) -> long @D0@bank 4 = -$025e
+    OpenWorkBench  () -> long @D0@bank 4 = -$d2
+    PointInImage  (long point @D0, long image @A0) -> bool @D0@bank 4 = -$0270
+    PrintIText  (long rp @A0, long iText @A1, word left @D0, word top @D1)@bank 4 = -$d8
+    PubScreenStatus  (long screen @A0, uword statusFlags @D0) -> uword @D0@bank 4 = -$0228
+    QueryOverscan  (long displayID @A0, long rect @A1, word oScanType @D0) -> long @D0@bank 4 = -$01da
+    RefreshGList  (long gadgets @A0, long k_window @A1, long k_requester @A2, word numGad @D0)@bank 4 = -$01b0
+    RefreshGadgets  (long gadgets @A0, long k_window @A1, long k_requester @A2)@bank 4 = -$de
+    RefreshWindowFrame  (long k_window @A0)@bank 4 = -$01c8
+    ReleaseGIRPort  (long rp @A0)@bank 4 = -$0234
+    RemakeDisplay  () -> long @D0@bank 4 = -$0180
+    RemoveClass  (long classPtr @A0)@bank 4 = -$02c4
+    RemoveGList  (long remPtr @A0, long gadget @A1, word numGad @D0) -> uword @D0@bank 4 = -$01bc
+    RemoveGadget  (long k_window @A0, long gadget @A1) -> uword @D0@bank 4 = -$e4
+    ReportMouse  (bool flag @D0, long k_window @A0)@bank 4 = -$ea
+    Request  (long k_requester @A0, long k_window @A1) -> bool @D0@bank 4 = -$f0
+    ResetMenuStrip  (long k_window @A0, long menu @A1) -> bool @D0@bank 4 = -$02be
+    RethinkDisplay  () -> long @D0@bank 4 = -$0186
+    ScreenDepth  (long screen @A0, long flags @D0, long reserved @A1)@bank 4 = -$0312
+    ScreenPosition  (long screen @A0, long flags @D0, long x1 @D1, long y1 @D2, long x2 @D3, long y2 @D4)@bank 4 = -$0318
+    ScreenToBack  (long screen @A0)@bank 4 = -$f6
+    ScreenToFront  (long screen @A0)@bank 4 = -$fc
+    ScrollWindowRaster  (long win @A1, word dx @D0, word dy @D1, word xMin @D2, word yMin @D3, word xMax @D4, word yMax @D5)@bank 4 = -$031e
+    SetAttrsA  (long object @A0, long tagList @A1) -> long @D0@bank 4 = -$0288
+    SetDMRequest  (long k_window @A0, long k_requester @A1) -> bool @D0@bank 4 = -$0102
+    SetDefaultPubScreen  (str name @A0)@bank 4 = -$021c
+    SetEditHook  (long hook @A0) -> long @D0@bank 4 = -$01ec
+    SetGadgetAttrsA  (long gadget @A0, long k_window @A1, long k_requester @A2, long tagList @A3) -> long @D0@bank 4 = -$0294
+    SetMenuStrip  (long k_window @A0, long menu @A1) -> bool @D0@bank 4 = -$0108
+    SetMouseQueue  (long k_window @A0, uword queueLength @D0) -> long @D0@bank 4 = -$01f2
+    SetPointer  (long k_window @A0, uword k_pointer @A1, word height @D0, word width @D1, word xOffset @D2, word yOffset @D3)@bank 4 = -$010e
+    SetPrefs  (long preferences @A0, long size @D0, bool inform @D1) -> long @D0@bank 4 = -$0144
+    SetPubScreenModes  (uword modes @D0) -> uword @D0@bank 4 = -$0222
+    SetWindowPointerA  (long win @A0, long taglist @A1)@bank 4 = -$0330
+    SetWindowTitles  (long k_window @A0, str windowTitle @A1, str screenTitle @A2)@bank 4 = -$0114
+    ShowTitle  (long screen @A0, bool showIt @D0)@bank 4 = -$011a
+    ShowWindow  (long k_window @A0, long other @A1) -> bool @D0@bank 4 = -$0342
+    SizeWindow  (long k_window @A0, word dx @D0, word dy @D1)@bank 4 = -$0120
+    SysReqHandler  (long k_window @A0, long idcmpPtr @A1, bool waitInput @D0) -> long @D0@bank 4 = -$0258
+    TimedDisplayAlert  (long alertNumber @D0, str k_string @A0, uword height @D1, long time @A1) -> bool @D0@bank 4 = -$0336
+    UnlockIBase  (long ibLock @A0)@bank 4 = -$01a4
+    UnlockPubScreen  (str name @A0, long screen @A1)@bank 4 = -$0204
+    UnlockPubScreenList  ()@bank 4 = -$0210
+    ViewAddress  () -> long @D0@bank 4 = -$0126
+    ViewPortAddress  (long k_window @A0) -> long @D0@bank 4 = -$012c
+    WBenchToBack  () -> bool @D0@bank 4 = -$0150
+    WBenchToFront  () -> bool @D0@bank 4 = -$0156
+    WindowLimits  (long k_window @A0, long widthMin @D0, long heightMin @D1, long widthMax @D2, long heightMax @D3) -> bool @D0@bank 4 = -$013e
+    WindowToBack  (long k_window @A0)@bank 4 = -$0132
+    WindowToFront  (long k_window @A0)@bank 4 = -$0138
+    ZipWindow  (long k_window @A0)@bank 4 = -$01f8
+}
+
+
+LIBRARY MODULE NAME: lineclip
+-----------------------------
+
+lineclip  {
+    clip  (word x1, word y1, word x2, word y2) -> bool, word, word, word, word
+    inside  (word x, word y) -> bool
+    set_cliprect  (word x1, word y1, word x2, word y2)
+}
+
+
+LIBRARY MODULE NAME: math
+-------------------------
+
+math  {
+    ubyte  a1
+    ubyte  b1
+    ubyte  c1
+    ubyte  x1
+    cos8  (ubyte angle) -> byte
+    cos8u  (ubyte angle) -> ubyte
+    cosr8  (ubyte radians) -> byte
+    cosr8u  (ubyte radians) -> ubyte
+    randrange  (ubyte n) -> ubyte
+    randrangew  (uword n) -> uword
+    rnd  () -> ubyte
+    rndseed  (uword seed1, uword seed2)
+    rndw  () -> uword
+    sin8  (ubyte angle) -> byte
+    sin8u  (ubyte angle) -> ubyte
+    sinr8  (ubyte radians) -> byte
+    sinr8u  (ubyte radians) -> ubyte
+}
+
+
+LIBRARY MODULE NAME: strings
+----------------------------
+
+strings  {
+    compare  (str st1 @D0, str st2 @D1) -> byte @D0
+    copy  (str source @D0, str target @D1) -> ubyte @D0
+    hash  (str string @D0) -> ubyte @D0
+    isdigit  (ubyte char) -> bool
+    isxdigit  (ubyte char) -> bool
+    length  (str string @A0) -> ubyte @D0
+    lowerchar  (ubyte char) -> ubyte
+    lowerchar_iso   alias for: strings.lowerchar
+    ncopy  (str source @D0, str target @D1, ubyte maxlength @D2) -> ubyte @D0
+    upperchar  (ubyte char) -> ubyte
+    upperchar_iso   alias for: strings.upperchar
+}
+
+
+LIBRARY MODULE NAME: syslib
+---------------------------
+
+sys  {
+    long @shared  DOSBase
+    long @shared  GfxBase
+    long @shared  IconBase
+    long @shared  IntuitionBase
+    const byte  MAX_BYTE
+    const long  MAX_LONG
+    const ubyte  MAX_UBYTE
+    const uword  MAX_UWORD
+    const word  MAX_WORD
+    const byte  MIN_BYTE
+    const long  MIN_LONG
+    const ubyte  MIN_UBYTE
+    const uword  MIN_UWORD
+    const word  MIN_WORD
+    const ubyte  SIZEOF_BOOL
+    const ubyte  SIZEOF_BYTE
+    const ubyte  SIZEOF_FLOAT
+    const ubyte  SIZEOF_LONG
+    const ubyte  SIZEOF_POINTER
+    const ubyte  SIZEOF_UBYTE
+    const ubyte  SIZEOF_UWORD
+    const ubyte  SIZEOF_WORD
+    const ubyte  target
+    clear_carry  ()
+    exit  (ubyte returnvalue)
+    memclear  (long mem @D0, uword numbytes @D1)
+    memcopy  (long source @D0, long tgt @D1, uword count @D2)
+    memset  (long mem @D0, uword numbytes @D1, ubyte value @D2)
+    memsetw  (long mem @D0, uword numwords @D1, uword value @D2)
+    progend  () -> long @A0
+    progstart  () -> long @A0
+    reset_system  ()
+    set_carry  ()
+    wait  (uword jiffies)
+}
+
+
+LIBRARY MODULE NAME: textio
+---------------------------
+
+txt  {
+    bell  ()
+    chrout  (ubyte char @D0)
+    clear_screen  ()
+    cls  ()
+    color  (ubyte txtcol)
+    column  (ubyte col)
+    height  () -> ubyte
+    home  ()
+    iso  ()
+    lowercase  ()
+    nl  ()
+    plot  (ubyte col, ubyte row)
+    print  (str text @A0)
+    print_b  (byte value)
+    print_bool  (bool value)
+    print_l  (long value)
+    print_ub  (ubyte value)
+    print_ub0  (ubyte value)
+    print_ubbin  (ubyte value, bool prefix)
+    print_ubhex  (ubyte value, bool prefix)
+    print_ulhex  (long value, bool prefix)
+    print_uw  (uword value)
+    print_uw0  (uword value)
+    print_uwbin  (uword value, bool prefix)
+    print_uwhex  (uword value, bool prefix)
+    print_w  (word value)
+    rvs_off  ()
+    rvs_on  ()
+    setchr  (ubyte col, ubyte row, ubyte char)
+    size  () -> ubyte, ubyte
+    spc  ()
+    width  () -> ubyte
 }
 
 

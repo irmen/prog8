@@ -569,19 +569,74 @@ def _field_name(raw: str, prefix: str) -> str:
 # EQU / BITDEF parser
 # ---------------------------------------------------------------------------
 
-def parse_consts_i_files(i_dir: str) -> list:
-    if not os.path.isdir(i_dir):
+def parse_consts_i_files(i_dir: str, extra_dirs: list = None, extra_files: list = None) -> list:
+    """Parse .i files for constants with cross-file symbol resolution.
+
+    Collects all raw EQU definitions first, then iteratively resolves
+    them using a shared symbol table built from all files in i_dir,
+    extra_dirs (scanned for .i files), and extra_files (specific .i paths).
+    """
+    filepaths = []
+    if os.path.isdir(i_dir):
+        for fn in sorted(os.listdir(i_dir)):
+            if fn.endswith('.i'):
+                filepaths.append(os.path.join(i_dir, fn))
+    if extra_dirs:
+        for d in extra_dirs:
+            if os.path.isdir(d):
+                for fn in sorted(os.listdir(d)):
+                    if fn.endswith('.i'):
+                        filepaths.append(os.path.join(d, fn))
+    if extra_files:
+        for fp in extra_files:
+            if os.path.isfile(fp) and fp.endswith('.i'):
+                filepaths.append(fp)
+    if not filepaths:
         return []
-    consts = []
-    for fn in sorted(os.listdir(i_dir)):
-        if not fn.endswith('.i'):
-            continue
-        consts.extend(_parse_consts_one(os.path.join(i_dir, fn)))
-    return consts
+
+    all_resolved = []
+    all_raw_equ = {}
+
+    for fp in filepaths:
+        resolved, raw_equ = _collect_consts_one(fp)
+        all_resolved.extend(resolved)
+        for name, raw_val in raw_equ.items():
+            if name not in all_raw_equ:
+                all_raw_equ[name] = raw_val
+
+    # Build symbol table from already-resolved constants
+    symbol_table = dict(_KNOWN_SYMBOLS)
+    for c in all_resolved:
+        v = _eval_const(c['value'], symbol_table)
+        if v is not None:
+            symbol_table[c['name']] = v
+
+    # Iteratively resolve raw EQU defs using the shared symbol table
+    resolved_names = set()
+    changed = True
+    while changed:
+        changed = False
+        for name in list(all_raw_equ.keys()):
+            if name in resolved_names:
+                continue
+            v = _eval_const(all_raw_equ[name], symbol_table)
+            if v is not None:
+                all_resolved.append({'name': name, 'value': _fmt(v), 'prog8_type': _ct(v, name)})
+                symbol_table[name] = v
+                resolved_names.add(name)
+                changed = True
+
+    return all_resolved
 
 
-def _parse_consts_one(filepath: str) -> list:
-    consts = []
+def _collect_consts_one(filepath: str) -> tuple[list, dict]:
+    """Parse a single .i file, return (resolved_consts, raw_equ_defs).
+
+    resolved_consts: list of already-resolved constants (BITDEF, ENUM/EITEM, simple EQU).
+    raw_equ_defs: dict of name -> raw_value_string for EQU defs that need cross-file resolution.
+    """
+    resolved = []
+    raw_equ = {}
     enum_counter = None
     with open(filepath, encoding='latin-1') as f:
         for line in f:
@@ -593,7 +648,7 @@ def _parse_consts_one(filepath: str) -> list:
                 p = m.group(1)
                 n = m.group(2)
                 b = int(m.group(3))
-                consts.append({
+                resolved.append({
                     'name': f'{p}B_{n}',
                     'value': str(b),
                     'prog8_type': 'ubyte',
@@ -601,7 +656,7 @@ def _parse_consts_one(filepath: str) -> list:
                 })
                 mask = 1 << b
                 mask_type = 'long' if mask > 65535 else 'uword' if mask > 255 else 'ubyte'
-                consts.append({
+                resolved.append({
                     'name': f'{p}F_{n}',
                     'value': _fmt(mask),
                     'prog8_type': mask_type,
@@ -614,7 +669,9 @@ def _parse_consts_one(filepath: str) -> list:
                 rawv = m.group(2)
                 v = _eval_const(rawv)
                 if v is not None:
-                    consts.append({'name': cname, 'value': _fmt(v), 'prog8_type': _ct(v, cname)})
+                    resolved.append({'name': cname, 'value': _fmt(v), 'prog8_type': _ct(v, cname)})
+                else:
+                    raw_equ[cname] = rawv
                 continue
             m = re.match(r'ENUM\s+(\S+)', stripped)
             if m:
@@ -626,10 +683,10 @@ def _parse_consts_one(filepath: str) -> list:
             m = re.match(r'EITEM\s+(\w+)', stripped)
             if m and enum_counter is not None:
                 cname = m.group(1)
-                consts.append({'name': cname, 'value': _fmt(enum_counter), 'prog8_type': _ct(enum_counter, cname)})
+                resolved.append({'name': cname, 'value': _fmt(enum_counter), 'prog8_type': _ct(enum_counter, cname)})
                 enum_counter += 1
                 continue
-    return consts
+    return resolved, raw_equ
 
 
 # Well-known symbols from .i files that aren't defined as EQU
@@ -638,20 +695,24 @@ _KNOWN_SYMBOLS = {
     'TAG_USER+33': 0x80000021,
 }
 
-def _eval_const(raw: str) -> int | None:
+def _eval_const(raw: str, symbols: dict = None) -> int | None:
     raw = raw.strip()
-    # Check known symbols first
-    if raw in _KNOWN_SYMBOLS:
-        return _KNOWN_SYMBOLS[raw]
-    # Handle parentheses
+    # Handle parentheses (must be before symbol lookups, as in:
+    #   SELECTDOWN EQU (IECODE_LBUTTON)  -> strip to IECODE_LBUTTON)
     while raw.startswith('(') and raw.endswith(')'):
         raw = raw[1:-1].strip()
+    # Check known symbols
+    if raw in _KNOWN_SYMBOLS:
+        return _KNOWN_SYMBOLS[raw]
+    # Check dynamic symbol table
+    if symbols is not None and raw in symbols:
+        return symbols[raw]
     # Handle simple binary expressions: X + Y, X - Y
     for op in ('+', '-'):
         parts = raw.split(op, 1)
         if len(parts) == 2:
-            a = _eval_const(parts[0].strip())
-            b = _eval_const(parts[1].strip())
+            a = _eval_const(parts[0].strip(), symbols)
+            b = _eval_const(parts[1].strip(), symbols)
             if a is not None and b is not None:
                 return a + b if op == '+' else a - b
     # Handle bit shift with optional type suffix
@@ -676,10 +737,19 @@ def _fmt(v: int) -> str:
 
 # Constant prefixes that should always be 'long' (LONG flags fields in Amiga structs)
 _LONG_CONST_PREFIXES = ('IDCMP_', 'WFLG_', 'GFLG_', 'GACT_', 'GTYP_', 'GMORE_')
+# Constant prefixes that should always be 'uword' (UWORD fields like IntuiMessage.Code/Qualifier)
+_UWORD_CONST_PREFIXES = ('IECODE_', 'IECODEB_', 'IECLASS_', 'IESUBCLASS_',
+                          'IEQUALIFIER_', 'IEQUALIFIERB_')
+# Specific names that must be 'uword' (mouse button codes matching Code field)
+_UWORD_CONST_NAMES = {'SELECTDOWN', 'SELECTUP', 'MENUDOWN', 'MENUUP', 'MIDDLEDOWN', 'MIDDLEUP'}
 
 def _ct(v: int, name: str = '') -> str:
     if any(name.startswith(p) for p in _LONG_CONST_PREFIXES):
         return 'long'
+    if any(name.startswith(p) for p in _UWORD_CONST_PREFIXES):
+        return 'uword'
+    if name in _UWORD_CONST_NAMES:
+        return 'uword'
     if v < 0:
         return 'long'
     return 'ubyte' if v <= 255 else 'uword' if v <= 65535 else 'long'
@@ -1615,8 +1685,13 @@ def main():
     # constants inside the block
     if args.consts:
         consts = []
+        extra_files = []
+        if lib == 'intuition':
+            ie_file = os.path.join(ndk, 'Include_I', 'devices', 'inputevent.i')
+            if os.path.isfile(ie_file):
+                extra_files.append(ie_file)
         if os.path.isdir(inc):
-            consts.extend(parse_consts_i_files(inc))
+            consts.extend(parse_consts_i_files(inc, extra_files=extra_files))
         print(generate_consts(consts, lib, indent='    ', header_text='constants'))
 
     print(f"}}")

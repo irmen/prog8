@@ -12,3 +12,8 @@
 %import syslib
 %import textio
 %import wavfile
+%import exec
+%import dos
+%import graphics
+%import intuition
+
