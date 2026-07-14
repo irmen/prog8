@@ -28,7 +28,7 @@ Follow ALL the rules below carefully.
 - To point a typed pointer at a `memory()` block, assign the uword directly: `^^MyStruct ptr = memory("name", size)`. The `^^Type:expression` syntax (below) only works with array literals, not general uword expressions.
 - Struct initialization: `^^StructType ptr = ^^StructType:[val1,val2,...]` (the `^^StructType:` can be omitted if inferable). This `^^Type:[...]` syntax does NOT work with variables or `memory()` — only literal arrays.
 - Struct definitions must be inside a block, not at file level.
-- Struct fields: only simple types + `str` allowed. NO arrays as fields. `str` in struct = `^^ubyte`
+- Struct fields: simple types, `str`, and fixed-size arrays. Array fields: `ubyte[108] name`. `str` in struct = `^^ubyte`
 - Word/pointer arrays split into LSB/MSB by default. Override with `@nosplit`
 - **No call stack**: all variables statically allocated. No recursion without manual stack management
 - Variables zero-initialized (globals at start, locals on subroutine entry)
