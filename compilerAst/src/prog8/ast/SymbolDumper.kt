@@ -67,8 +67,8 @@ private class SymbolDumper(val skipLibraries: Boolean): IAstVisitor {
     }
 
     override fun visit(block: Block) {
-        val (vars, others) = block.statements
-            .filter{ it is Subroutine || it is Alias || it is VarDecl }
+        val statements = block.statements
+            .filter{ it is Subroutine || it is Alias || it is VarDecl || it is StructDecl || it is Enumeration }
             .filter {
                 when (it) {
                     is VarDecl -> !it.isPrivate
@@ -76,35 +76,39 @@ private class SymbolDumper(val skipLibraries: Boolean): IAstVisitor {
                     else -> true
                 }
             }
-            .partition { it is VarDecl }
-        if(vars.isNotEmpty() || others.isNotEmpty()) {
+        val vars = statements.filterIsInstance<VarDecl>()
+        val subsAndAliases = statements.filter { it is Subroutine || it is Alias }
+        val structs = statements.filterIsInstance<StructDecl>()
+        val enums = statements.filterIsInstance<Enumeration>()
+        if(statements.isNotEmpty()) {
             outputln("${block.name}  {")
-            for (variable in vars.sortedBy { (it as VarDecl).name }) {
+
+            for(struct in structs.sortedBy { it.name }) {
+                output("    ")
+                struct.accept(this)
+            }
+
+            for(enumeration in enums.sortedBy { it.name }) {
+                output("    ")
+                enumeration.accept(this)
+            }
+
+            for (variable in vars.sortedBy { it.name }) {
                 output("    ")
                 variable.accept(this)
             }
 
-            val byname = others.map {
-                val name = if(it is Alias) it.alias else if(it is Subroutine) it.name else "???"
-                name to it
-            }
-
-            for((_, thing) in byname.sortedBy { it.first }) {
-                when (thing) {
-                    is Subroutine -> {
-                        output("    ")
-                        thing.accept(this)
-                    }
-
-                    is Alias -> {
-                        output("    ")
-                        thing.accept(this)
-                    }
-
-                    else -> {
-                        outputln("???")
-                    }
+            val subsAndAliasesSorted = subsAndAliases.map {
+                val name = when(it) {
+                    is Alias -> it.alias
+                    is Subroutine -> it.name
+                    else -> "???"
                 }
+                name to it
+            }.sortedBy { it.first }
+            for((_, thing) in subsAndAliasesSorted) {
+                output("    ")
+                thing.accept(this)
             }
 
             outputln("}\n")
@@ -213,6 +217,14 @@ private class SymbolDumper(val skipLibraries: Boolean): IAstVisitor {
 
     override fun visit(alias: Alias) {
         output("${alias.alias}   alias for: ${alias.target.nameInSource.joinToString(".")}\n")
+    }
+
+    override fun visit(struct: StructDecl) {
+        output("struct ${struct.name}\n")
+    }
+
+    override fun visit(enum: Enumeration) {
+        output("enum ${enum.name}\n")
     }
 
     private fun formatSignature(sig: FSignature): String {
