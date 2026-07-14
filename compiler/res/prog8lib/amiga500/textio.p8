@@ -103,6 +103,25 @@ txt {
             print("false")
     }
 
+    sub input_chars(str buffer) -> ubyte {
+        ; Input a string (max. 80 chars) from the keyboard. Returns length of input.
+        ; User entered EOL is trimmed, and the string is terminated with a 0 byte.
+        ; Uses line-buffered input (stdin stays in its default line mode).
+        pointer fh = dos.Input()
+        if fh == 0
+            return 0
+        long actual = dos.Read(fh, buffer, 80)
+        if actual <= 0 {
+            buffer[0] = 0
+            return 0
+        }
+        ubyte count = actual as ubyte
+        if count > 0 and (buffer[count-1] == '\n' or buffer[count-1] == '\r')
+            count--
+        buffer[count] = 0
+        return count
+    }
+
     sub iso() {
         ; is the default
     }
@@ -116,7 +135,7 @@ txt {
     }
 
     sub clear_screen() {
-        print("\x1b[2J\x1B[H")
+        print("\x1b[H\x1B[J")
     }
 
     sub home() {

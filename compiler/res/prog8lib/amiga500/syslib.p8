@@ -56,7 +56,8 @@ sys {
         %asm {{
             moveq.l  #0,d0
             move.b   sys.exit.returnvalue,d0
-            illegal   ; TODO implement the exit by restoring the stack pointer and performing a RTS
+            move.l   p8_sys_startup.orig_stackpointer,sp
+            jmp  p8_sys_startup.cleanup_at_exit
         }}
     }
 
@@ -70,11 +71,23 @@ sys {
 
     sub clear_carry() {
         %asm {{
+            ; clear C and X bits
             moveq  #0,d0
             move.w  d0,ccr
         }}
     }
 
+    asmsub exec_version() -> uword @D0 {
+        ; Returns the exec library version.
+        ; This corresponds to the Kickstart/ROM version:
+        ;   30 = KS 1.0, 33 = KS 1.2, 34 = KS 1.3,
+        ;   37 = KS 2.0, 39 = KS 3.0, 40 = KS 3.1
+        %asm {{
+            move.l  $4,a0
+            move.w  20(a0),d0
+            rts
+        }}
+    }
 
     inline asmsub progstart() -> long @A0 {
         %asm {{

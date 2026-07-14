@@ -53,9 +53,9 @@ main {
             void graphics.Text(rp, message, len(message))
         }
 
-        drawText()
-        ^^intuition.Screen screen = win.WScreen
-        graphics.SetRGB4(&screen.emb_ViewPort, 0, $f, $0, $f)
+        ;; set a screen color:
+        ;; ^^intuition.Screen screen = win.WScreen
+        ;; graphics.SetRGB4(&screen.emb_ViewPort, 0, $2, $8, $f)
 
         ; Message pump / animation loop
         bool running = true
@@ -107,10 +107,6 @@ main {
 
             drawText()
             dos.Delay(1)
-            custom.COLOR16 = $0f0f
-            custom.COLOR17 = $000f
-            custom.COLOR18 = $00f0
-            custom.COLOR19 = $0f00
         }
 
         intuition.CloseWindow(win)

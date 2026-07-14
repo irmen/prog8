@@ -3,7 +3,6 @@ package prog8.codegen.m68k
 import prog8.code.core.*
 import prog8.intermediate.*
 import kotlin.math.max
-import kotlin.math.min
 
 /**
  * M68k codegen.
@@ -180,12 +179,6 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
         IRDataType.POINTER -> ".l"
     }
 
-    fun memSuffix(type: IRDataType): String = when (type) {
-        IRDataType.WORD -> ".l"      // 32-bit for pointers/addresses on M68k
-        IRDataType.POINTER -> ".l"
-        else -> dtSuffix(type)
-    }
-
     // === main entry point ===
 
     fun generate(): Boolean {
@@ -254,21 +247,12 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
         if(options.compTarget.name == "qemu68k")
             emitLine("move.l  #${options.memtopAddress.toHex()}, sp", "initialize stack pointer")
         
-        // clear BSS section
-        emitLine("lea  prog8_bss_section_start, a0")
-        emitLine("lea  prog8_program_end, a1")
-        emitLine("sub.l  a0, a1", "a1 = bss size in bytes")
-        emitLine("beq  .bss_done")
-        emitLine("moveq  #0, d0")
-        emitLabel(".bss_loop")
-        emitLine("move.b  d0, (a0)+")
-        emitLine("subq.l  #1, a1")
-        emitLine("bne  .bss_loop")
-        emitLabel(".bss_done")
+        emitLine("jsr  ${fixNameSymbols("p8_sys_startup.clear_bss_section")}")
         if (!options.noSysInit)
             emitLine("jsr  ${fixNameSymbols("p8_sys_startup.init_system")}")
         emitLine("jsr  ${fixNameSymbols("p8_sys_startup.init_system_phase2")}")
         emitLine("jsr  ${fixNameSymbols("p8b_main.p8s_start")}")
+        emitLine("moveq  #0, d0", "normal return status 0")
         emitLine("jmp  ${fixNameSymbols("p8_sys_startup.cleanup_at_exit")}")
     }
 
