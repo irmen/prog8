@@ -66,6 +66,8 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                             {
                                 val constValue = decl.value!!.constValue(program) ?: return noModifications
                                 errors.err("value '${constValue.number}' out of range for ${decl.datatype}", constValue.position)
+                            } else if(decl.datatype.isLong) {
+                                return noModifications   // preserve long type for long const declarations
                             } else {
                                 val changed = decl.copy(valueDt)
                                 return listOf(AstReplaceNode(decl, changed, parent))

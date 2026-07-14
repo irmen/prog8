@@ -66,21 +66,6 @@ class ConstExprEvaluator {
         return NumericLiteral.optimalNumeric(left.type, null, result.toDouble(), left.position)
     }
 
-    private fun bitwiseXor(left: NumericLiteral, right: NumericLiteral): NumericLiteral {
-        if(right.type.isIntegerOrBool) {
-            val leftDt = left.type
-            if(leftDt.isByteOrBool)
-                return NumericLiteral(BaseDataType.UBYTE, ((left.number.toInt() xor right.number.toInt()) and 255).toDouble(), left.position)
-            else if(leftDt.isInteger) {
-                if (leftDt == BaseDataType.UWORD || leftDt == BaseDataType.WORD)
-                    return NumericLiteral(BaseDataType.UWORD, ((left.number.toInt() xor right.number.toInt()) and 65535).toDouble(), left.position)
-                else if (leftDt == BaseDataType.LONG)
-                    return NumericLiteral.optimalNumeric((left.number.toInt() xor right.number.toInt()).toDouble(), left.position)
-            }
-        }
-        throw ExpressionError("cannot calculate $left ^ $right", left.position)
-    }
-
     private fun bitwiseOr(left: NumericLiteral, right: NumericLiteral): NumericLiteral {
         if(right.type.isIntegerOrBool) {
             val leftDt = left.type
@@ -90,7 +75,7 @@ class ConstExprEvaluator {
                 if (leftDt == BaseDataType.UWORD || leftDt == BaseDataType.WORD)
                     return NumericLiteral(BaseDataType.UWORD, ((left.number.toInt() or right.number.toInt()) and 65535).toDouble(), left.position)
                 else if (leftDt == BaseDataType.LONG)
-                    return NumericLiteral.optimalNumeric((left.number.toInt() or right.number.toInt()).toDouble(), left.position)
+                    return NumericLiteral(BaseDataType.LONG, (left.number.toInt() or right.number.toInt()).toDouble(), left.position)
             }
         }
         throw ExpressionError("cannot calculate $left | $right", left.position)
@@ -105,10 +90,25 @@ class ConstExprEvaluator {
                 if (leftDt == BaseDataType.UWORD || leftDt == BaseDataType.WORD)
                     return NumericLiteral(BaseDataType.UWORD, ((left.number.toInt() and right.number.toInt()) and 65535).toDouble(), left.position)
                 else if (leftDt == BaseDataType.LONG)
-                    return NumericLiteral.optimalNumeric((left.number.toInt() and right.number.toInt()).toDouble(), left.position)
+                    return NumericLiteral(BaseDataType.LONG, (left.number.toInt() and right.number.toInt()).toDouble(), left.position)
             }
         }
         throw ExpressionError("cannot calculate $left & $right", left.position)
+    }
+
+    private fun bitwiseXor(left: NumericLiteral, right: NumericLiteral): NumericLiteral {
+        if(right.type.isIntegerOrBool) {
+            val leftDt = left.type
+            if(leftDt.isByteOrBool)
+                return NumericLiteral(BaseDataType.UBYTE, ((left.number.toInt() xor right.number.toInt()) and 255).toDouble(), left.position)
+            else if(leftDt.isInteger) {
+                if (leftDt == BaseDataType.UWORD || leftDt == BaseDataType.WORD)
+                    return NumericLiteral(BaseDataType.UWORD, ((left.number.toInt() xor right.number.toInt()) and 65535).toDouble(), left.position)
+                else if (leftDt == BaseDataType.LONG)
+                    return NumericLiteral(BaseDataType.LONG, (left.number.toInt() xor right.number.toInt()).toDouble(), left.position)
+            }
+        }
+        throw ExpressionError("cannot calculate $left ^ $right", left.position)
     }
 
     private fun logicalAnd(left: NumericLiteral, right: NumericLiteral): NumericLiteral =
