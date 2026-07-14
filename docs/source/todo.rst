@@ -3,6 +3,7 @@ TODO
 
 - need a bunch of type casting/conversion checks that test the handling of the 4-byte/long pointer datatype on the qemu68k target.
 - some generated label names in the m68k codegen can maybe replaced by local/anonymous labels?
+- make sys.exit() work from everywhere on m68k
 
 
 m68k Codegen: FPU register allocation (68881 only has fp0-fp7)

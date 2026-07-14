@@ -582,6 +582,7 @@ def parse_consts_i_files(i_dir: str) -> list:
 
 def _parse_consts_one(filepath: str) -> list:
     consts = []
+    enum_counter = None
     with open(filepath, encoding='latin-1') as f:
         for line in f:
             stripped = line.strip()
@@ -613,22 +614,57 @@ def _parse_consts_one(filepath: str) -> list:
                 rawv = m.group(2)
                 v = _eval_const(rawv)
                 if v is not None:
-                    consts.append({'name': cname, 'value': _fmt(v), 'prog8_type': _ct(v)})
-                # skip unresolved expressions (they use ! operator, macros, etc.)
+                    consts.append({'name': cname, 'value': _fmt(v), 'prog8_type': _ct(v, cname)})
+                continue
+            m = re.match(r'ENUM\s+(\S+)', stripped)
+            if m:
+                rawv = m.group(1)
+                v = _eval_const(rawv)
+                if v is not None:
+                    enum_counter = v
+                continue
+            m = re.match(r'EITEM\s+(\w+)', stripped)
+            if m and enum_counter is not None:
+                cname = m.group(1)
+                consts.append({'name': cname, 'value': _fmt(enum_counter), 'prog8_type': _ct(enum_counter, cname)})
+                enum_counter += 1
+                continue
     return consts
 
 
+# Well-known symbols from .i files that aren't defined as EQU
+_KNOWN_SYMBOLS = {
+    'TAG_USER': 0x80000000,
+    'TAG_USER+33': 0x80000021,
+}
+
 def _eval_const(raw: str) -> int | None:
     raw = raw.strip()
-    m = re.match(r'\$([0-9a-fA-F]+)', raw)
+    # Check known symbols first
+    if raw in _KNOWN_SYMBOLS:
+        return _KNOWN_SYMBOLS[raw]
+    # Handle parentheses
+    while raw.startswith('(') and raw.endswith(')'):
+        raw = raw[1:-1].strip()
+    # Handle simple binary expressions: X + Y, X - Y
+    for op in ('+', '-'):
+        parts = raw.split(op, 1)
+        if len(parts) == 2:
+            a = _eval_const(parts[0].strip())
+            b = _eval_const(parts[1].strip())
+            if a is not None and b is not None:
+                return a + b if op == '+' else a - b
+    # Handle bit shift with optional type suffix
+    m = re.match(r'(\d+)(?:UL|L|U)?\s*<<\s*(\d+)', raw)
+    if m:
+        return int(m.group(1)) << int(m.group(2))
+    # Handle hex with C-style (0x) or assembler-style ($) prefix
+    m = re.match(r'(?:0x|\$)([0-9a-fA-F]+)', raw)
     if m:
         return int(m.group(1), 16)
     m = re.match(r'(-?\d+)', raw)
     if m:
         return int(m.group(1))
-    m = re.match(r'1\s*<<\s*(\d+)', raw)
-    if m:
-        return 1 << int(m.group(1))
     return None
 
 
@@ -638,7 +674,12 @@ def _fmt(v: int) -> str:
     return f'${v:04x}' if v <= 65535 else f'${v:08x}' if v > 255 else f'${v:02x}'
 
 
-def _ct(v: int) -> str:
+# Constant prefixes that should always be 'long' (LONG flags fields in Amiga structs)
+_LONG_CONST_PREFIXES = ('IDCMP_', 'WFLG_', 'GFLG_', 'GACT_', 'GTYP_', 'GMORE_')
+
+def _ct(v: int, name: str = '') -> str:
+    if any(name.startswith(p) for p in _LONG_CONST_PREFIXES):
+        return 'long'
     if v < 0:
         return 'long'
     return 'ubyte' if v <= 255 else 'uword' if v <= 65535 else 'long'

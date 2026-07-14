@@ -9,7 +9,7 @@ main {
     sub start() {
         ^^intuition.NewWindow nw = [
             20, 20, 300, 100, -1 as ubyte, -1 as ubyte,
-            intuition.IDCMP_CLOSEWINDOW | intuition.IDCMP_REFRESHWINDOW,
+            intuition.IDCMP_CLOSEWINDOW | intuition.IDCMP_REFRESHWINDOW | intuition.IDCMP_VANILLAKEY,
             intuition.WFLG_CLOSEGADGET | intuition.WFLG_DRAGBAR | intuition.WFLG_DEPTHGADGET | intuition.WFLG_ACTIVATE | intuition.WFLG_SIZEGADGET,
             0, 0,
             "Hello from Prog8!",
@@ -61,6 +61,7 @@ main {
                         drawText()
                         intuition.EndRefresh(win, 1)
                     }
+                    intuition.IDCMP_VANILLAKEY -> running = false
                 }
                 exec.ReplyMsg(msg)
                 msg = exec.GetMsg(win.UserPort)

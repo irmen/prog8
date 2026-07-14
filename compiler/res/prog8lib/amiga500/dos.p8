@@ -707,6 +707,9 @@ dos {
     const ubyte EXT_RELCOMMON = $0089
     const ubyte EXT_ABSREF16 = $008a
     const ubyte EXT_ABSREF8 = $008b
+    const long SYS_Dummy = $80000020
+    const long NP_Dummy = $800003e8
+    const long ADO_Dummy = $800007d0
     const ubyte ED_NAME = $0001
     const ubyte ED_TYPE = $0002
     const ubyte ED_SIZE = $0003
@@ -764,6 +767,7 @@ dos {
     const ubyte REC_EXCLUSIVE_IMMED = $0001
     const ubyte REC_SHARED = $0002
     const ubyte REC_SHARED_IMMED = $0003
+    const long SHELL_DUMMY = $80000bb8
     const ubyte DOS_STDIO_I = $0001
     const ubyte BUF_LINE = $0000
     const ubyte BUF_FULL = $0001
