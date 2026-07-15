@@ -4,6 +4,7 @@
 ;; Functions: 161
 
 dos {
+    %option no_symbol_prefixing
     extsub @bank 2   -30 = Open(str name @D1, long accessMode @D2) -> pointer @D0
     extsub @bank 2   -36 = Close(pointer file @D1) -> long @D0
     extsub @bank 2   -42 = Read(pointer file @D1, pointer buffer @D2, long length @D3) -> long @D0

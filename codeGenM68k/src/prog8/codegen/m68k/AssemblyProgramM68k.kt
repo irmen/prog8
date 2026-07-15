@@ -55,6 +55,7 @@ class AssemblyProgramM68k(override val name: String, private val outputDir: Path
         when(options.output) {
             OutputType.RAW -> {
                 val rawFile = outputDir.resolve("$name.bin")
+                val listFile = outputDir.resolve("$name.lis")
                 val assembleCmd = mutableListOf(
                     "vasmm68k_mot",
                     "-m$cpu",
@@ -67,6 +68,8 @@ class AssemblyProgramM68k(override val name: String, private val outputDir: Path
                     "-o", rawFile.toString(),
                     assemblyFile.toString()
                 )
+                if (options.asmListfile)
+                    assembleCmd.addAll(listOf("-L", listFile.toString()))
                 if (options.asmQuiet)
                     assembleCmd.add("-quiet")
                 // clean up any leftover ELF/obj files from previous builds
@@ -80,6 +83,7 @@ class AssemblyProgramM68k(override val name: String, private val outputDir: Path
             OutputType.ELF -> {
                 // Step 1: assemble to ELF object file
                 val objFile = outputDir.resolve("$name.o")
+                val listFile = outputDir.resolve("$name.list")
                 val assembleCmd = mutableListOf(
                     "vasmm68k_mot",
                     "-m$cpu",
@@ -91,6 +95,8 @@ class AssemblyProgramM68k(override val name: String, private val outputDir: Path
                     "-o", objFile.toString(),
                     assemblyFile.toString()
                 )
+                if (options.asmListfile)
+                    assembleCmd.addAll(listOf("-L", listFile.toString()))
                 if (options.asmQuiet)
                     assembleCmd.add("-quiet")
                 if (!runProcess(assembleCmd, options.quiet, "vasm"))
@@ -122,6 +128,7 @@ class AssemblyProgramM68k(override val name: String, private val outputDir: Path
             OutputType.AMIGAHUNK -> {
                 // Step 1: assemble directly to AmigaHunk executable file
                 val exefile = outputDir.resolve(name)
+                val listfile = outputDir.resolve("$name.list")
                 val assembleCmd = when(options.compTarget) {
                     is Amiga500Target -> {
                         // amiga 500 with kickstart 1.3
@@ -136,7 +143,15 @@ class AssemblyProgramM68k(override val name: String, private val outputDir: Path
                             "-nosym",       // no debug symbols
                             "-o", exefile.toString(),
                             assemblyFile.toString()
-                        )
+                        ).also { cmd ->
+                            if (options.asmListfile) {
+                                cmd.add("-L")
+                                cmd.add(listfile.toString())
+                                cmd.add("-Lns")
+                            }
+                            if (options.asmQuiet)
+                                cmd.add("-quiet")
+                        }
                     }
                     else -> {
                         // assume at least an amiga 1200 with 68020 and optional FPU
@@ -150,11 +165,16 @@ class AssemblyProgramM68k(override val name: String, private val outputDir: Path
                             "-spaces",
                             "-o", exefile.toString(),
                             assemblyFile.toString()
-                        )
+                        ).also { cmd ->
+                            if (options.asmListfile) {
+                                cmd.add("-L")
+                                cmd.add(listfile.toString())
+                            }
+                            if (options.asmQuiet)
+                                cmd.add("-quiet")
+                        }
                     }
                 }
-                if (options.asmQuiet)
-                    assembleCmd.add("-quiet")
                 if (!runProcess(assembleCmd, options.quiet, "vasm"))
                     return false
                 if(!options.quiet)

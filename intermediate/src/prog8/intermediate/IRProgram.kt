@@ -454,6 +454,13 @@ class IRProgram(val name: String,
     }
 
 
+    /**
+     * Verify each register has a consistent type across all uses.
+     *
+     * Cannot be used after register packing: the packer may assign the same slot to
+     * differently-typed (but POINTER-compatible) registers in different subroutines,
+     * which this strict check would reject. Use RegisterPacker.rebuildTypeMap() instead.
+     */
     fun verifyRegisterTypes(registerTypes: Map<RegisterNum, IRDataType>) {
         for(block in blocks) {
             for(bc in block.children) {

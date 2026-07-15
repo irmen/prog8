@@ -1674,6 +1674,7 @@ def main():
     print(f";; Functions: {len(lvos)}\n")
 
     print(f"{lib} {{")
+    print(f"    %option no_symbol_prefixing")
 
     # extsub definitions
     for name, lvo in sorted(lvos.items(), key=lambda x: x[1], reverse=True):

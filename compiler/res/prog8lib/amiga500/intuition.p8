@@ -4,6 +4,7 @@
 ;; Functions: 127
 
 intuition {
+    %option no_symbol_prefixing
     extsub @bank 4   -30 = OpenIntuition()
     extsub @bank 4   -36 = Intuition(pointer iEvent @A0)
     extsub @bank 4   -42 = AddGadget(pointer k_window @A0, pointer gadget @A1, uword position @D0) -> uword @D0

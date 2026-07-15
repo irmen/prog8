@@ -27,6 +27,8 @@ class IRCodeGen(
     private val assignmentGen = AssignmentGen(this, expressionEval)
     internal val registers = RegisterPool()
     internal val extsubCallSiteIds: MutableMap<String, UByte> = preassignedCallSiteIds.toMutableMap()
+    var wasPackingApplied: Boolean = false
+        private set
 
     fun generate(): IRProgram {
         // The pure "virtual" (VM) target doesn't need symbol prefixing because the VM
@@ -80,6 +82,15 @@ class IRCodeGen(
         // the optimizer also does 1 essential step regardless of optimizations: joining adjacent chunks.
         val optimizer = IRPeepholeOptimizer(irProg, retainSSA)
         optimizer.optimize(options.optimize, errors)
+
+        // Register packing: reduce distinct virtual registers by coalescing non-overlapping live ranges.
+        // Only applies to non-virtual targets (the VM has unlimited registers and doesn't benefit).
+        if(options.optimize && options.compTarget.name!=VMTarget.NAME) {
+            RegisterPacker.pack(irProg)
+            registers.resetTypes(RegisterPacker.rebuildTypeMap(irProg))
+            wasPackingApplied = true
+        }
+
         irProg.validate()
 
         return irProg

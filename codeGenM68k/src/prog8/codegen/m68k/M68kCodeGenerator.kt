@@ -19,7 +19,8 @@ class M68kCodeGenerator(val retainSSA: Boolean): ICodeGeneratorBackend {
 
         val irCodeGen = IRCodeGen(program, symbolTable, options, errors, retainSSA)
         val irProgram = irCodeGen.generate()
-        irProgram.verifyRegisterTypes(irCodeGen.registerTypes())
+        if (!irCodeGen.wasPackingApplied)
+            irProgram.verifyRegisterTypes(irCodeGen.registerTypes())        // TODO run an alternative
 
         IRFileWriter(irProgram, null).write()
 

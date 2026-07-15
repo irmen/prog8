@@ -14,6 +14,11 @@ internal class RegisterPool {
     private val registerTypes: MutableMap<RegisterNum, IRDataType> = mutableMapOf()
 
     fun getTypes(): Map<RegisterNum, IRDataType> = registerTypes
+    fun resetTypes(types: Map<RegisterNum, IRDataType>) {
+        // called after register packing
+        registerTypes.clear()
+        registerTypes.putAll(types)
+    }
 
     init {
         for(i in 99000..99099)

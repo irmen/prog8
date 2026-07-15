@@ -4,6 +4,7 @@
 ;; Functions: 115
 
 exec {
+    %option no_symbol_prefixing
     extsub @bank 1   -30 = Supervisor(pointer userFunction @A5) -> long @D0
     extsub @bank 1   -72 = InitCode(long startClass @D0, long version @D1)
     extsub @bank 1   -78 = InitStruct(pointer initTable @A1, pointer k_memory @A2, long size @D0)

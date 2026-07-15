@@ -1,22 +1,19 @@
 %import textio
-%import exec
-%import dos
 %import graphics
-%import intuition
 
 main {
-    struct Node {
-        bool flag
-        uword value
-    }
 
     sub start() {
-        ^^Node node = exec.AllocVec(sizeof(Node), 0)
+        str buffer = "?"*80
 
-        txt.print_ulhex(node, true)
-        node.flag = true
-        node.value=4242
+        repeat 60
+            sys.waitvsync()
 
-        exec.FreeVec(node)
+        txt.print("Enter your name: ")
+        txt.print_ub(txt.input_chars(buffer))
+        txt.nl()
+        txt.print("Hello, ")
+        txt.print(buffer)
+        txt.print("!\n")
     }
 }

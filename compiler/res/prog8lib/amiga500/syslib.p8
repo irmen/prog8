@@ -51,6 +51,14 @@ sys {
         dos.Delay(jiffies)
     }
 
+    inline asmsub waitvsync()  {
+        ; --- wait until the next vsync has occurred
+        %asm {{
+            move.l  sys.GfxBase,a6
+            jsr     graphics.WaitTOF(a6)
+        }}
+    }
+
     sub exit(ubyte returnvalue) {
         ; -- immediately exit the program with a return code in the D0 register
         %asm {{

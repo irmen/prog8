@@ -4,6 +4,7 @@
 ;; Functions: 163
 
 graphics {
+    %option no_symbol_prefixing
     extsub @bank 3   -30 = BltBitMap(pointer srcBitMap @A0, word xSrc @D0, word ySrc @D1, pointer destBitMap @A1, word xDest @D2, word yDest @D3, word xSize @D4, word ySize @D5, ubyte minterm @D6, ubyte mask @D7, pointer tempA @A2) -> long @D0
     extsub @bank 3   -36 = BltTemplate(long source @A0, word xSrc @D0, word srcMod @D1, pointer destRP @A1, word xDest @D2, word yDest @D3, word xSize @D4, word ySize @D5)
     extsub @bank 3   -42 = ClearEOL(pointer rp @A1)
