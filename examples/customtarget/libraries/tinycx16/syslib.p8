@@ -72,6 +72,9 @@ p8_sys_startup {
 
     asmsub  init_system_phase2() {
         %asm {{
+            cld
+            clc
+            clv
             rts
         }}
     }

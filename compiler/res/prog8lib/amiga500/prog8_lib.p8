@@ -5,7 +5,8 @@
 p8_sys_startup {
     %option force_output
 
-    long orig_stackpointer  ; saved initial SP for sys.exit()
+    private long @shared orig_stackpointer  ; saved initial SP for sys.exit()
+    private long @shared WBMsg
 
     asmsub clear_bss_section() {
         %asm {{
@@ -29,7 +30,26 @@ p8_sys_startup {
             move.l  sp,a0
             addq.l  #4,a0
             move.l  a0,p8_sys_startup.orig_stackpointer
+
+proc_MsgPort = 92
+proc_CLI = 172
+
+            ; Check if we are started from Workbench
+            move.l  4.w,a6
+		    sub.l   a1,a1
+		    jsr     exec.FindTask(a6)
+		    move.l  d0,a5
+		    beq.w   1$
+		    tst.l   proc_CLI(a5)
+		    bne.b   1$
+    		lea.l   proc_MsgPort(a5),a0
+		    jsr     exec.WaitPort(a6)   ; Wait for workbench message
+		    lea.l   proc_MsgPort(a5),a0
+		    jsr     exec.GetMsg(a6)
+		    move.l  d0,p8_sys_startup.WBMsg		; Store message pointer to reply at exit later
+1$:
         }}
+
         sys.DOSBase = exec.OpenLibrary("dos.library",0)
         sys.GfxBase = exec.OpenLibrary("graphics.library",0)
         sys.IntuitionBase = exec.OpenLibrary("intuition.library",0)
@@ -59,7 +79,15 @@ p8_sys_startup {
 
     sub cleanup_at_exit() {
         %asm {{
-            movem.l  d0,-(sp)       ; keep return code
+            movem.l d0,-(sp)       ; keep return code
+
+            ; reply to Workbench message if it exists
+    		move.l  4.w,a6
+		    tst.l   p8_sys_startup.WBMsg
+		    beq.b   1$
+		    move.l  p8_sys_startup(pc),a1
+		    jsr     exec.ReplyMsg(a6)
+1$:
         }}
 
         if sys.IconBase != 0 exec.CloseLibrary(sys.IconBase)

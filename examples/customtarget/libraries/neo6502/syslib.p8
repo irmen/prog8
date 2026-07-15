@@ -328,10 +328,7 @@ p8_sys_startup {
         ; Called automatically by the loader program logic.
         %asm {{
             sei
-            cld
-            clc
             ; TODO reset screen mode etc etc?
-            clv
             ; TODO what about IRQ handler?  cli
             rts
         }}
@@ -339,6 +336,9 @@ p8_sys_startup {
 
     asmsub  init_system_phase2()  {
         %asm {{
+            cld
+            clc
+            clv
             rts     ; no phase 2 steps on the Neo6502
         }}
     }
