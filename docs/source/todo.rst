@@ -4,6 +4,8 @@ TODO
 - need a bunch of type casting/conversion checks that test the handling of the 4-byte/long pointer datatype on the qemu68k target.
 - some generated label names in the m68k codegen can maybe replaced by local/anonymous labels?
 - amiga library structs: use more typed pointers if it knows the struct type , rather than using `pointer`
+- the amiga LVO's in the p8ir (and thus in the .asm) end up as full unsigned longs dos.Open = $ffffffe2   these should be negative decimal numerics instead. extsub addresses up to $7ffffff should just be positive hexadecimals like before.
+- is there a way to add the symbolic name for the LVO as comment after the assembly JSR -666(a6)  ; Lib call name here    Or maybe replace the numeric offset -666 by the sumbolic name itself.
 
 
 m68k Codegen: FPU register allocation (68881 only has fp0-fp7)
@@ -87,6 +89,7 @@ Optimizations
 - Port more benchmarks from https://thred.github.io/c-bench-64/  to prog8 and see how it stacks up. (see benchmark-c/ directory)
 - Compilation speed: try to join multiple modifications in 1 result in the AST processors instead of returning it straight away every time
 - various optimizers skip stuff if compTarget.name==VMTarget.NAME.  Once new 6502 codegen is done from IR code, those 6502 only optimizations should probably be removed
+- **Register packer** (`RegisterPacker.kt`) look in register-packing.md for all details
 
 
 Dead Code Elimination bug in 64tass, for nested subroutines

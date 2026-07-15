@@ -24,9 +24,9 @@ class New6502CodeGenerator(val retainSSA: Boolean,
         // but you can also use the Intermediate Representation to build a codegen on:
         val irCodeGen = IRCodeGen(program, symbolTable, options, errors, retainSSA, preassignedCallSiteIds)
         val irProgram = irCodeGen.generate()
-        irProgram.verifyRegisterTypes(irCodeGen.registerTypes())
+        if (!irCodeGen.wasPackingApplied)
+            irProgram.verifyRegisterTypes(irCodeGen.registerTypes())
 
-        // TODO remove this later: also write the IR program to disk for now for debugging purposes
         IRFileWriter(irProgram, null).write()
 
         val gen = AsmGen(irProgram, irProgram.options.compTarget)

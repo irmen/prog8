@@ -1,19 +1,31 @@
 %import textio
-%import graphics
+
+; This example computes the first 20 values of the Fibonacci sequence.
+; Note: this program can be compiled for multiple target systems.
+
+; Note that the fibonacci subroutine keeps is state in two outer variables
+; so that every call to it is able to produce the next single number in the sequence.
 
 main {
-
     sub start() {
-        str buffer = "?"*80
+        txt.print("fibonacci sequence\n")
 
-        repeat 60
-            sys.waitvsync()
+        repeat 21 {
+            txt.print_uw(fib_next())
+            txt.nl()
+        }
 
-        txt.print("Enter your name: ")
-        txt.print_ub(txt.input_chars(buffer))
-        txt.nl()
-        txt.print("Hello, ")
-        txt.print(buffer)
-        txt.print("!\n")
+        sys.poweroff_system()
+    }
+
+    uword fib_prev = 0
+    uword fib_current = 1
+
+    sub fib_next() -> uword {
+        uword result = fib_prev
+        uword new = fib_current + fib_prev
+        fib_prev = fib_current
+        fib_current = new
+        return result
     }
 }

@@ -27,7 +27,8 @@ object RegisterPacker {
         val globalSlotTypes = mutableMapOf<Int, IRDataType>()
         irProg.foreachSub { sub -> packSubroutine(sub, allRegTypes, globalSlotTypes, startSlot) }
 
-        val afterCount = irProg.registersUsed().let { (it.readRegs.keys + it.writeRegs.keys).size }
+        val afterTypes = rebuildTypeMap(irProg)
+        val afterCount = afterTypes.size
         if (!irProg.options.quiet)
             println("Register packing: $beforeCount -> $afterCount registers")
     }
@@ -108,8 +109,9 @@ object RegisterPacker {
                 for (r in written) {
                     if (r in liveSet) {
                         val end = lastUse.getOrElse(r) { globalI }
+                        val actualType = getRegisterType(instr, r)
                         registerIntervals.getOrPut(r) { mutableListOf() }
-                            .add(Interval(r, globalI, end, registerTypes.getOrElse(r) { IRDataType.BYTE }))
+                            .add(Interval(r, globalI, end, actualType))
                         liveSet.remove(r)
                         lastUse.remove(r)
                     }
@@ -127,20 +129,28 @@ object RegisterPacker {
         if (registerIntervals.isEmpty())
             return
 
-        // Merge adjacent/overlapping intervals for each register
+        // Merge adjacent/overlapping intervals for each register.
+        // Also merge non-overlapping intervals of the same register into a single
+        // contiguous range, because the value in the slot must persist across the
+        // gap to the next use (otherwise another register packed to the same slot
+        // would clobber it between intervals).
         val mergedIntervals = mutableListOf<Interval>()
+        val skipRegs = mutableSetOf<Int>()
         for ((reg, intervals) in registerIntervals) {
             val sorted = intervals.sortedBy { it.start }
             var current = sorted.first()
             for (next in sorted.drop(1)) {
-                if (next.start <= current.end + 1) {
-                    current = Interval(reg, current.start, maxOf(current.end, next.end), current.type)
-                } else {
-                    mergedIntervals.add(current)
-                    current = next
+                if (current.type != next.type && !typesCompatible(current.type, next.type)) {
+                    skipRegs.add(reg)
                 }
+                // Always merge: same register's intervals are merged into a single
+                // contiguous range to preserve the value across gaps.
+                current = Interval(reg, current.start, maxOf(current.end, next.end), current.type)
             }
             mergedIntervals.add(current)
+        }
+        if (skipRegs.isNotEmpty()) {
+            mergedIntervals.removeAll { it.register in skipRegs }
         }
 
         val conflictGraph = buildConflictGraph(sub)

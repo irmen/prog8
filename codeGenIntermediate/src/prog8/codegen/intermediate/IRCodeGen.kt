@@ -84,12 +84,15 @@ class IRCodeGen(
         optimizer.optimize(options.optimize, errors)
 
         // Register packing: reduce distinct virtual registers by coalescing non-overlapping live ranges.
-        // Only applies to non-virtual targets (the VM has unlimited registers and doesn't benefit).
-        if(options.optimize && options.compTarget.name!=VMTarget.NAME) {
-            RegisterPacker.pack(irProg)
-            registers.resetTypes(RegisterPacker.rebuildTypeMap(irProg))
-            wasPackingApplied = true
-        }
+        // Subroutines at different call depths should get disjoint slot ranges to avoid caller/callee
+        // clashes. Currently DISABLED - see register-packing.md for the plan and what needs fixing.
+        // TODO: re-enable once the depth-range approach is implemented.
+        //if(options.optimize && options.compTarget.name!=VMTarget.NAME) {
+        //    RegisterPacker.pack(irProg)
+        //    registers.resetTypes(RegisterPacker.rebuildTypeMap(irProg))
+        //    irProg.wasPackingApplied = true
+        //    wasPackingApplied = true
+        //}
 
         irProg.validate()
 

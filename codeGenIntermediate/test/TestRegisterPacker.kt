@@ -1,6 +1,8 @@
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import io.kotest.matchers.string.shouldContain
 import prog8.code.core.CompilationOptions
 import prog8.code.core.OutputType
 import prog8.code.core.Position
@@ -395,5 +397,144 @@ class TestRegisterPacker: FunSpec({
         // all registers should be >= 6
         for (rn in allRegNums)
             rn shouldNotBe 5
+    }
+
+    test("strict registersUsed throws on incompatible types across subroutines") {
+        // Regression: registersUsed() in strict mode (no packing applied) must detect
+        // the same register number used with incompatible types in different subroutines.
+        val target = VMTarget()
+        val options = CompilationOptions.builder(target)
+            .output(OutputType.RAW)
+            .zeropage(ZeropageType.DONTUSE)
+            .noSysInit(true)
+            .compilerVersion("99.99")
+            .build()
+        val prog = IRProgram("test", IRSymbolTable(), options, target)
+        val block = IRBlock("p8b_main", false, IRBlock.Options(), Position.DUMMY)
+
+        // Sub 1: uses r37 as POINTER
+        val sub1 = IRSubroutine("p8b_main.sub1", emptyList(), emptyList(), Position.DUMMY)
+        val c1 = IRCodeChunk("p8b_main.sub1", null)
+        c1 += IRInstruction(Opcode.LOAD, IRDataType.POINTER, reg1=37, immediate=0x1000)
+        c1 += IRInstruction(Opcode.STOREM, IRDataType.POINTER, reg1=37, labelSymbol="sp")
+        sub1 += c1
+
+        // Sub 2: uses same r37 as BYTE (incompatible)
+        val sub2 = IRSubroutine("p8b_main.sub2", emptyList(), emptyList(), Position.DUMMY)
+        val c2 = IRCodeChunk("p8b_main.sub2", null)
+        c2 += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=37, immediate=42)
+        c2 += IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1=37, labelSymbol="sb")
+        sub2 += c2
+
+        block += sub1
+        block += sub2
+        prog.addBlock(block)
+        prog.linkChunks()
+        prog.validate()
+
+        // No packing applied - strict mode should detect the incompatibility
+        val ex = shouldThrow<IllegalArgumentException> {
+            prog.registersUsed()
+        }
+        ex.message shouldContain "register r37 given multiple types"
+        ex.message shouldContain "POINTER"
+        ex.message shouldContain "BYTE"
+    }
+
+    test("intra-subroutine cross-type register is skipped by packer") {
+        // When a register has non-overlapping intervals with incompatible types (e.g.
+        // BYTE and LONG in different chunks), the packer skips it entirely because its
+        // single-entry packing map can't handle a register with multiple types.
+        // After packing, the register retains its original number and is not rewritten.
+        // registersUsed() in permissive mode uses putIfAbsent and should not throw.
+        val target = VMTarget()
+        val options = CompilationOptions.builder(target)
+            .output(OutputType.RAW)
+            .zeropage(ZeropageType.DONTUSE)
+            .noSysInit(true)
+            .compilerVersion("99.99")
+            .build()
+        val prog = IRProgram("test", IRSymbolTable(), options, target)
+        val block = IRBlock("p8b_main", false, IRBlock.Options(), Position.DUMMY)
+
+        // Single subroutine with two chunks using same register with incompatible types
+        val sub = IRSubroutine("p8b_main.sub1", emptyList(), emptyList(), Position.DUMMY)
+
+        val c1 = IRCodeChunk("p8b_main.sub1", null)
+        c1 += IRInstruction(Opcode.LOAD, IRDataType.POINTER, reg1=37, immediate=0x1000)
+        c1 += IRInstruction(Opcode.STOREM, IRDataType.POINTER, reg1=37, labelSymbol="sp")
+        sub += c1
+
+        val c2 = IRCodeChunk("p8b_main.sub1.c2", c1)
+        c2 += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=37, immediate=42)
+        c2 += IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1=37, labelSymbol="sb")
+        sub += c2
+
+        block += sub
+        prog.addBlock(block)
+        prog.linkChunks()
+        prog.validate()
+
+        RegisterPacker.pack(prog)
+        prog.wasPackingApplied = true
+
+        // registersUsed() in permissive mode: putIfAbsent, should not throw
+        val used = prog.registersUsed()
+        // r37 should still appear (was skipped by packer)
+        used.regsTypes.containsKey(RegisterNum(37)) shouldBe true
+    }
+
+    test("disjoint intervals of same register must be merged into one contiguous range") {
+        // Regression: if register r1 has disjoint intervals (written in chunk 1,
+        // read in chunk 3 with a gap in chunk 2), the packer must merge them into
+        // a single interval spanning the gap. Otherwise another register (r2) with
+        // an interval in chunk 2 could share the same slot and clobber r1's value.
+        val target = VMTarget()
+        val options = CompilationOptions.builder(target)
+            .output(OutputType.RAW)
+            .zeropage(ZeropageType.DONTUSE)
+            .noSysInit(true)
+            .compilerVersion("99.99")
+            .build()
+        val prog = IRProgram("test", IRSymbolTable(), options, target)
+        val block = IRBlock("p8b_main", false, IRBlock.Options(), Position.DUMMY)
+        val sub = IRSubroutine("p8b_main.sub1", emptyList(), emptyList(), Position.DUMMY)
+
+        // Chunk 1: write r1 (value should persist to chunk 3)
+        val c1 = IRCodeChunk("p8b_main.sub1", null)
+        c1 += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=1, immediate=42)
+        c1 += IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1=1, labelSymbol="s1")
+        sub += c1
+
+        // Chunk 2: write and read r2 (this interval falls in the gap between r1's uses)
+        val c2 = IRCodeChunk("p8b_main.sub1.c2", c1)
+        c2 += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=2, immediate=99)
+        c2 += IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1=2, labelSymbol="s2")
+        sub += c2
+
+        // Chunk 3: read r1 (uses the value from chunk 1)
+        val c3 = IRCodeChunk("p8b_main.sub1.c3", c2)
+        c3 += IRInstruction(Opcode.LOADR, IRDataType.BYTE, reg1=3, reg2=1)
+        c3 += IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1=3, labelSymbol="s3")
+        sub += c3
+
+        block += sub
+        prog.addBlock(block)
+        prog.linkChunks()
+        prog.validate()
+
+        RegisterPacker.pack(prog)
+
+        // After packing, r1 and r2 must be in DIFFERENT slots because r1's
+        // merged interval spans [0..?] covering the gap, preventing r2
+        // from sharing the same slot.
+        val instructions = prog.instructions()
+        // Find the register numbers used for the STOREM to s1 (was r1) and s2 (was r2)
+        val s1Reg = instructions.first { it.labelSymbol=="s1" }.reg1
+        val s2Reg = instructions.first { it.labelSymbol=="s2" }.reg1
+        // They must be different (can't share a slot)
+        s1Reg shouldNotBe null
+        s2Reg shouldNotBe null
+        s1Reg shouldNotBe s2Reg
     }
 })

@@ -63,6 +63,7 @@ class IRProgram(val name: String,
     val asmSymbols = mutableMapOf<String, String>()
     val globalInits = IRCodeChunk(null, null)
     val blocks = mutableListOf<IRBlock>()
+    var wasPackingApplied = false
 
     fun allSubs(): Sequence<IRSubroutine> = blocks.asSequence().flatMap { it.children.filterIsInstance<IRSubroutine>() }
     fun allAsmSubs(): Sequence<IRAsmSubroutine> = blocks.asSequence().flatMap { it.children.filterIsInstance<IRAsmSubroutine>() }
@@ -275,7 +276,7 @@ class IRProgram(val name: String,
         }
     }
 
-    fun registersUsed(): RegistersUsed {
+    fun registersUsed(permissive: Boolean = wasPackingApplied): RegistersUsed {
         val readRegsCounts = mutableMapOf<RegisterNum, Int>().withDefault { 0 }
         val regsTypes = mutableMapOf<RegisterNum, IRDataType>()
         val readFpRegsCounts = mutableMapOf<RegisterNum, Int>().withDefault { 0 }
@@ -287,18 +288,27 @@ class IRProgram(val name: String,
             usedRegisters.writeRegs.forEach{ (reg, count) -> writeRegsCounts[reg] = writeRegsCounts.getValue(reg) + count }
             usedRegisters.readFpRegs.forEach{ (reg, count) -> readFpRegsCounts[reg] = readFpRegsCounts.getValue(reg) + count }
             usedRegisters.writeFpRegs.forEach{ (reg, count) -> writeFpRegsCounts[reg] = writeFpRegsCounts.getValue(reg) + count }
+        if(permissive) {
+            // After register packing, the same slot number may be used with different types
+            // in different subroutines (the packer's globalSlotTypes mechanism ensures type
+            // consistency within each subroutine). Use putIfAbsent for cross-subroutine types.
             usedRegisters.regsTypes.forEach{ (reg, type) ->
-                val existingType = regsTypes[reg]
-                if (existingType!=null) {
-                    if (existingType != type) {
-                        // POINTER is compatible with WORD or LONG (size depends on target)
-                        val compatible = (existingType==IRDataType.POINTER && type in setOf(IRDataType.WORD, IRDataType.LONG)) ||
-                                (type==IRDataType.POINTER && existingType in setOf(IRDataType.WORD, IRDataType.LONG))
-                        if(!compatible)
-                            throw IllegalArgumentException("register $reg given multiple types! $existingType and $type  ${this.name}<--${child.label ?: child}")
-                    }
-                } else
-                    regsTypes[reg] = type
+                regsTypes.putIfAbsent(reg, type)
+            }
+        } else {
+                usedRegisters.regsTypes.forEach{ (reg, type) ->
+                    val existingType = regsTypes[reg]
+                    if (existingType!=null) {
+                        if (existingType != type) {
+                            // POINTER is compatible with WORD or LONG (size depends on target)
+                            val compatible = (existingType==IRDataType.POINTER && type in setOf(IRDataType.WORD, IRDataType.LONG)) ||
+                                    (type==IRDataType.POINTER && existingType in setOf(IRDataType.WORD, IRDataType.LONG))
+                            if(!compatible)
+                                throw IllegalArgumentException("register $reg given multiple types! $existingType and $type  ${this.name}<--${child.label ?: child}")
+                        }
+                    } else
+                        regsTypes[reg] = type
+                }
             }
         }
 
