@@ -4,8 +4,8 @@ TODO
 - need a bunch of type casting/conversion checks that test the handling of the 4-byte/long pointer datatype on the qemu68k target.
 - some generated label names in the m68k codegen can maybe replaced by local/anonymous labels?
 - amiga library structs: use more typed pointers if it knows the struct type , rather than using `pointer`
-- the amiga LVO's in the p8ir (and thus in the .asm) end up as full unsigned longs dos.Open = $ffffffe2   these should be negative decimal numerics instead. extsub addresses up to $7ffffff should just be positive hexadecimals like before.
-- is there a way to add the symbolic name for the LVO as comment after the assembly JSR -666(a6)  ; Lib call name here    Or maybe replace the numeric offset -666 by the sumbolic name itself.
+- amiga startup code: what to do on 68020+ cpus with the cpu caches? they should probably be enabled in the custom.grab_system() ?
+- amiga textio: should probably test for os 2.0 to call the more efficient new dos routines like PutStr and PutChr   
 
 
 m68k Codegen: FPU register allocation (68881 only has fp0-fp7)

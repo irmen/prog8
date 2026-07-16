@@ -1,31 +1,13 @@
-%import textio
+%import custom
 
-; This example computes the first 20 values of the Fibonacci sequence.
-; Note: this program can be compiled for multiple target systems.
-
-; Note that the fibonacci subroutine keeps is state in two outer variables
-; so that every call to it is able to produce the next single number in the sequence.
 
 main {
     sub start() {
-        txt.print("fibonacci sequence\n")
+        custom.grab_system()
 
-        repeat 21 {
-            txt.print_uw(fib_next())
-            txt.nl()
-        }
+        ; TODO wait for raster position 100
+        ; TODO draw a nice raster bar pattern, color register = custom.COLOR0
 
-        sys.poweroff_system()
-    }
-
-    uword fib_prev = 0
-    uword fib_current = 1
-
-    sub fib_next() -> uword {
-        uword result = fib_prev
-        uword new = fib_current + fib_prev
-        fib_prev = fib_current
-        fib_current = new
-        return result
+        custom.return_system()
     }
 }

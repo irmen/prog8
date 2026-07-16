@@ -1,20 +1,109 @@
+%import exec
+%import syslib
+
 custom {
     %option no_symbol_prefixing, ignore_unused
 
 
-    asmsub grab_system() {
+    inline asmsub grab_system() {
         ; take over the whole OS and system, to run hardware banging programs (games, demos, etc)
-        ; TODO
+        ; inline because it stores stuff on the stack.
         %asm {{
-            rts
+
+exec_AttnFlags = 296
+gfx_ActiView = $22
+gfx_copinit = $26
+gfx_LOFlist = $32
+GfxLoadView    = -222
+GfxWaitTOF = -270
+IRQ1 = $64
+IRQ2 = $68
+IRQ3 = $6C
+IRQ4 = $70
+IRQ5 = $74
+IRQ6 = $78
+IRQ7 = $7C
+
+            move.l  4.w,a6
+            jsr     exec.Forbid(a6)        ; Do not run other tasks
+            btst.b  #0,exec_AttnFlags+1(a6)    ; Check if > 68000 processor
+            beq.s   1$            ; On 68000 no VBR (always zero)
+            lea.l   _S_GetVBR(PC),a5    ; Function to call as supervisor
+            jsr     exec.Supervisor(a6)    ; Call supervisor function in A5
+            move.l  d0,S_VBR        ; Store the returned VBR contents
+1$
+            move.l  sys.GfxBase,a6     ; A6 = Graphics base
+            move.l  gfx_ActiView(a6),-(sp)    ; Store current View pointer
+            sub.l   a1,a1            ; NULL view = default settings
+            jsr    GfxLoadView(a6)        ; Load the view
+            jsr    GfxWaitTOF(a6)        ; Wait one screen refresh
+            jsr    GfxWaitTOF(a6)        ; Wait a 2nd (in case of interlace)
+
+            move.w  #$8000,d0        ; Value
+            move.w  custom.DMACONR,-(sp)    ; Store system DMA channels
+            or.w    d0,(sp)            ; SET/CLR set to SET
+            move.w  custom.INTENAR,-(sp)    ; Store system enabled interrupts
+            or.w    d0,(sp)            ; SET/CLR set to SET
+            move.w  custom.ADKCONR,-(sp)    ; Audio, disk and UART
+            or.w    d0,(sp)            ; SET/CLR set to SET
+            move.w  custom.VPOSR,d0        ; Vertical pos and Agnus ID
+            btst    #13,d0            ; When set: NTSC, when clear: PAL
+            bne.s   2$                 ; Leave value 0 for NTSC
+            move.w  #$FFFF,S_PAL        ; Set all bits for PAL
+
+2$          btst.b  #14-8,custom.DMACONR    ; Dummy read
+3$          btst.b  #14-8,custom.DMACONR    ; Blitter still busy?
+            bne.s   3$                      ; If yes, wait a bit
+            move.w  #$01FF,custom.DMACON    ; Disable all DMA
+            move.w  #$3FFF,custom.INTENA    ; Disable all interrupts
+
+            move.l  S_VBR,a0         ; A0 = Pointer to vector base
+            move.l  IRQ1(a0),-(sp)        ; Store IRQ1 vector
+            move.l  IRQ3(a0),-(sp)        ; Store IRQ3 vector
+            move.l  IRQ4(a0),-(sp)        ; Store IRQ4 vector
+            bra.s   _skip
+
+_S_GetVBR:    dc.l    $4E7A0801            ; MOVEC VBR,d0  - privileged instruction
+            rte                            ; Return from supervisor mode
+
+_skip:
+
+            SECTION .bss,bss
+S_VBR:        ds.l    1
+S_PAL:      ds.w    1
+
+            SECTION .text,code
         }}
     }
 
-    asmsub return_system() {
+    inline asmsub return_system() {
         ; return to the original OS and multitasking operation when the game/demo exits.
-        ; TODO
+        ; inline because stuff was stored on the stack
         %asm {{
-            rts
+            btst.b  #14-8,custom.DMACONR    ; Dummy read
+1$          btst.b  #14-8,custom.DMACONR   ; Blitter still busy?
+            bne.s   1$                      ; If yes, wait a bit
+            move.w  #$01FF,custom.DMACON    ; Disable all DMA
+            move.w  #$3FFF,custom.INTENA   ; Disable all interrupts
+
+            move.l  S_VBR,a0            ; A0 = Pointer to vector base
+            move.l  (sp)+,IRQ4(a0)      ; Restore IRQ4 vector
+            move.l  (sp)+,IRQ3(a0)      ; Restore IRQ3 vector
+            move.l  (sp)+,IRQ1(a0)      ; Restore IRQ1 vector
+
+            move.l  sys.GfxBase,a6      ; A6 = Graphics base
+            move.l  gfx_copinit(a6),custom.COP1LC    ; Restore coplist pointer 1
+            move.l  gfx_LOFlist(a6),custom.COP2LC    ; Restore coplist pointer 2
+            clr.w   custom.COPJMP1       ; Make Copper use restored pointer
+
+            move.w  (sp)+,custom.ADKCON    ; Restore audio, disk and UART
+            move.w  (sp)+,custom.INTENA    ; Restore original interrupts
+            move.w  (sp)+,custom.DMACON    ; Restore original DMA
+
+            move.l  (sp)+,a1        ; Get original view pointer
+            jsr     GfxLoadView(a6)        ; Restore the original view
+            jsr     GfxWaitTOF(a6)        ; Wait one screen refresh
+            jsr     GfxWaitTOF(a6)        ; Wait a 2nd (in case of interlace)
         }}
     }
 
@@ -415,6 +504,26 @@ custom {
 
         pokew($dff180 + offset, low_word)
         pokew($dff180 + offset, high_word)
+    }
+
+    ; ========== mouse button status ==========
+
+    sub left_button() -> bool {
+        ; Returns true if the left mouse button (port 1) is pressed.
+        ; Left button is CIA-A PRA bit 6, active low.
+        return (custom.CIAA_PRA & %01000000) == 0
+    }
+
+    sub right_button() -> bool {
+        ; Returns true if the right mouse button (port 1) is pressed.
+        ; Right button is POTINP ($dff016) bit 10, active low.
+        return (custom.POTINP & %0000010000000000) == 0
+    }
+
+    sub middle_button() -> bool {
+        ; Returns true if the middle mouse button (port 1) is pressed.
+        ; Middle button is POTINP ($dff016) bit 8, active low.
+        return (custom.POTINP & %0000000100000000) == 0
     }
 
     ; ========== CIA registers ==========
