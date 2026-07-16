@@ -56,6 +56,10 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
         }
 
         Opcode.CALLFAR -> {
+            // On the amiga target, CALLFAR is repurposed to encode automatic library LVO calls:
+            // bank = library number (1=exec, 2=dos, 3=graphics, 4=intuition, ...)
+            // address = negative LVO offset (the offset into the library's jump table)
+            // extSubName = symbolic function name, emitted as the displacement in jsr Symbol(a6)
             if(program.options.compTarget.name.contains("amiga")) {
                 val offset = insn.address!!.value.toInt()
                 require(offset<0) { "amiga libcall offsets should all be <0" }
@@ -72,7 +76,11 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
                 val fcallArgs = insn.fcallArgs!!
                 for(arg in fcallArgs.arguments)
                     translateArgument(arg)
-                emitLine("jsr  $offset(a6)")    // do the actual call
+                if(insn.extSubName!=null) {
+                    emitLine("jsr  ${insn.extSubName}(a6)")    // do the actual call (symbolic ref)
+                } else {
+                    emitLine("jsr  $offset(a6)")    // do the actual call
+                }
                 for(ret in fcallArgs.returns)
                     translateReturnValue(ret)
             }

@@ -159,6 +159,20 @@ Footnotes for the Commodore 128
     This gives about 41 Kb of contiguous RAM for Prog8 programs.
 
 
+Footnotes for the Amiga 500
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. index:: single: Targets; Amiga 500 notes
+
+The amiga500 target is **experimental**. It uses the M68k code generator backend and produces
+Amiga Hunk executable files via the vasm assembler.
+
+The ``-emu`` flag uses **Vamos** from the `Amitools <https://github.com/cnvogelg/amitools>`_ package
+to run the compiled program. Vamos is a very limited Amiga runtime that runs on the host operating system
+directly - it is **not** a full Amiga emulator. Many AmigaOS library calls and features are not supported
+or behave differently. For best results, copy the generated executable to a proper Amiga emulator such as
+`WinUAE <https://www.winuae.net/>`_ or `FS-UAE <https://fs-uae.net/>`_ and run it there instead.
+
+
 Zero page usage by the Prog8 compiler
 -------------------------------------
 .. index:: single: Targets; Zero page usage

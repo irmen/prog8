@@ -110,7 +110,11 @@ class Amiga500Target: ICompilationTarget,
         if(!quiet)
             println("Launching Amitools's Vamos...")
         val pb = ProcessBuilder(cmd).inheritIO()
-        pb.start().waitFor()
+        try {
+            pb.start().waitFor()
+        } catch(e: Exception) {
+            System.err.println("Cannot find 'vamos' (Amitools's Amiga emulator). Install it from: https://github.com/cnvogelg/amitools")
+        }
     }
 
     override fun isIOAddress(address: UInt): Boolean =

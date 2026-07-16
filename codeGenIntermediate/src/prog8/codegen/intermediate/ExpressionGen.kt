@@ -1209,7 +1209,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 address = address.address.toAddress(),
                 immediate = address.constbank!!.toInt(),
                 fcallArgs = fcallArgs
-            )
+            ).also { it.extSubName = callTarget.scopedNameString }
         } else {
             val varBank = address.varbank!!
             val target = codeGen.symbolTable.lookup(varBank.name) ?: codeGen.symbolTable.lookupUnscoped(varBank.name)

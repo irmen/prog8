@@ -46,16 +46,19 @@ sys {
         }}
     }
 
-    sub wait(uword jiffies) {
+    asmsub wait(long jiffies @D1) {
         ; --- wait approximately the given number of jiffies (1/60th seconds)
-        dos.Delay(jiffies)
+        %asm {{
+            move.l  sys.DOSBase,a6
+            jmp     -198(a6)        ; Delay
+        }}
     }
 
     inline asmsub waitvsync()  {
         ; --- wait until the next vsync has occurred
         %asm {{
             move.l  sys.GfxBase,a6
-            jsr     graphics.WaitTOF(a6)
+            jsr     -270(a6)        ; WaitTOF
         }}
     }
 

@@ -1790,7 +1790,8 @@ class IRCodeGen(
                             "extsub should be empty at ${child.position}"
                         }
                         val bank = if(addr.constbank!=null) " ; @bank ${addr.constbank}" else ""
-                        val asm = "${child.name} = ${addr.address.toHex()}$bank"
+                        val addressStr = if(addr.address > 0x7fffffffu) addr.address.toInt().toString() else addr.address.toHex()
+                        val asm = "${child.name} = $addressStr$bank"
                         irBlock += IRInlineAsmChunk(null, asm, false, null)
                     } else {
                         // regular asmsub

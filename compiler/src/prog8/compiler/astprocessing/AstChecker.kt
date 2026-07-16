@@ -140,7 +140,8 @@ internal class AstChecker(private val program: Program,
                     errors.err("invalid statement in unroll loop", it.position)
             }
             if (iterations * unrollLoop.body.statements.size > 256) {
-                errors.warn("large number of unrolls, potential code size issue", unrollLoop.position)
+                if(options.compTarget.cpu !in setOf(CpuType.M68000, CpuType.M68020))
+                    errors.warn("large number of unrolls, potential code size issue", unrollLoop.position)
             }
         }
         super.visit(unrollLoop)
@@ -276,7 +277,8 @@ internal class AstChecker(private val program: Program,
                     }
 
                     BaseDataType.LONG -> {
-                        errors.warn("for loop using a long counter could be very slow", forLoop.position)
+                        if(options.compTarget.cpu !in setOf(CpuType.M68000, CpuType.M68020))
+                            errors.warn("for loop using a long counter could be very slow", forLoop.position)
                     }
 
                     BaseDataType.FLOAT -> {
@@ -698,11 +700,13 @@ internal class AstChecker(private val program: Program,
         if (iterations != null) {
             require(floor(iterations.number)==iterations.number)
             if (iterations.number.toInt() > 65536) 
-                errors.warn("repeat using a long counter could be very slow", iterations.position)
+                if(options.compTarget.cpu !in setOf(CpuType.M68000, CpuType.M68020))
+                    errors.warn("repeat using a long counter could be very slow", iterations.position)
         }
         
         if(repeatLoop.iterations?.inferType(program)?.isLong==true) {
-            errors.warn("repeat using a long counter could be very slow", repeatLoop.iterations!!.position)
+            if(options.compTarget.cpu !in setOf(CpuType.M68000, CpuType.M68020))
+                errors.warn("repeat using a long counter could be very slow", repeatLoop.iterations!!.position)
         }
 
         val ident = repeatLoop.iterations as? IdentifierReference

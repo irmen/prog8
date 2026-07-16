@@ -1,6 +1,24 @@
 custom {
     %option no_symbol_prefixing, ignore_unused
 
+
+    asmsub grab_system() {
+        ; take over the whole OS and system, to run hardware banging programs (games, demos, etc)
+        ; TODO
+        %asm {{
+            rts
+        }}
+    }
+
+    asmsub return_system() {
+        ; return to the original OS and multitasking operation when the game/demo exits.
+        ; TODO
+        %asm {{
+            rts
+        }}
+    }
+
+
     ; Amiga custom chip registers (full addresses, base $dff000)
     ; Based on Commodore Amiga NDK hardware/custom.i
     ; All registers are 16-bit words accessed on even byte boundaries.

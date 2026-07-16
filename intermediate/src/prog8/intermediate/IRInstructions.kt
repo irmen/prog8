@@ -136,7 +136,10 @@ call   label(argument register list) [: resultreg.type]
                                         If the arguments should be passed in CPU registers, they'll have a @REGISTER postfix.
                                         For example: call $ffd2(r5.b@A)
                                         Always preceded by parameter setup
-callfar             bank,  address      Call a subroutine at the given memory address, in the given RAM/ROM bank (switches both banks at the same time)
+callfar             bank,  address      Call a subroutine at the given memory address, in the given RAM/ROM bank (switches both banks at the same time).
+                                        On the amiga target, this is repurposed for automatic Amiga library LVO calls:
+                                        bank = library number (1=exec,2=dos,3=graphics,4=intuition,...),
+                                        address = negative LVO offset (displayed as signed decimal in the IR text).
 callfarvb   reg1           address      Call a subroutine at the given memory address, in the RAM/ROM bank in reg1.b  (switches both banks at the same time)
 syscall   number (argument register list) [: resultreg.type]
                                       - do a systemcall identified by number, result value(s) are pushed on value stack by the syscall code so
@@ -895,6 +898,7 @@ data class IRInstruction(
     var branchTarget: IRCodeChunkBase? = null,    // Will be linked after loading in IRProgram.linkChunks()! This is the chunk that the branch labelSymbol points to.
     val fcallArgs: FunctionCallArgs? = null       // will be set for the CALL and SYSCALL instructions.
 ) {
+    var extSubName: String? = null      // optional external subroutine name (for asm comments mainly). NOT part of serialization.
     // reg1 and fpreg1 can be IN/OUT/INOUT (all others are readonly INPUT)
     // This knowledge is useful in IL assembly optimizers to see how registers are used.
     val reg1direction: OperandDirection
@@ -1172,7 +1176,13 @@ data class IRInstruction(
                     if (immediate != null) {
                         append("#${immediate.toHex()},")
                     }
-                    address?.let { append(it.toHex()) }
+                    address?.let {
+                        if (it.value > 0x7fffffffu) {
+                            append(it.value.toInt().toString())     // negative decimal for Amiga LVO
+                        } else {
+                            append(it.toHex())
+                        }
+                    }
                 }
                 else -> {
                     if (labelSymbol != null) {
