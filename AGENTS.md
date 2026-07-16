@@ -30,7 +30,7 @@
 - The prog8 compiler is written mostly in Kotlin, those files have the .kt extension.
 - The standard library is mostly written in Prog8 and assembly code, and can be found in the "compiler" module, in the 'res/prog8lib' directory.
 - **Library Reference**: For a quick overview of all available modules, routines, and their signatures, **consult the skeleton files (symboldumps)** in `docs/source/_static/symboldumps/`. They are named `skeletons-<target>.txt`.
-- Kotlin version 2.3 is used for the compiler implementation.
+- Kotlin version 2.4 is used for the compiler implementation.
 - Java 17 is used as Java runtime version.
 - ANTLR4 version 4.13 is used for the parser implementation.
 - Dependent library versions can be found in 'build.gradle.kts' and in the IntelliJ IDEA configuration files in .idea/libraries
@@ -158,18 +158,6 @@ When the task involves writing or understanding `.p8` (Prog8 source) or `.p8ir` 
 - never perform any git source control write/update/add/commit/branch operations. Read and status operations are allowed.
 - **git log/history queries can be useful** for understanding when/why a feature was added or tracking down when a bug was introduced, but for locating code use grep_search or glob instead.
 - Architecture decisions: separation of frontend/parser, IR intermediate representation, multiple backends
-
-## Junie Agent Commitments
-These instructions apply specifically to the Junie agent:
-
-*   **Code Discovery and Navigation**: Use the `get_file_structure` tool to understand the API and structure of files before reading or editing them.
-*   **Symbol-Aware Searching**: Use the `search_project` tool as the primary method for finding symbol definitions (classes, methods, variables) across the project.
-*   **Project-Wide Refactoring**: Exclusively use the `rename_element` tool for any symbol renames to ensure all references, imports, and documentation are updated correctly.
-*   **Structured Test Execution**: Use the `run_test` tool for rapid, isolated verification of Kotlin logic changes.
-*   **Contextual Exploration**: Use the `open` tool with specific `line_number` parameters to navigate directly to relevant code sections.
-*   **Gradle Console Output**: Always use the `--console=plain` flag with `gradle` commands. Fancy console output (like progress bars) will mess up the coding agent's text interface.
-
-**Note on Terminal usage**: Junie uses `gradle` and terminal commands primarily for project lifecycle tasks (e.g., `gradle installdist` to re-embed standard library resources), manual compiler verification with `prog8c`, and full regression testing before submission. When using `gradle`, always append `--console=plain`.
 
 # Dev environment tips
 

@@ -3,7 +3,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 
 plugins {
-    kotlin("jvm") version "2.4.0"
+    kotlin("jvm") version "2.4.10"
 }
 
 allprojects {
@@ -52,7 +52,7 @@ subprojects {
     // Common test dependencies via Kotest BOM (Bill of Materials)
     // This manages all Kotest module versions centrally
     dependencies {
-        testImplementation(platform("io.kotest:kotest-bom:6.2.1"))
+        testImplementation(platform("io.kotest:kotest-bom:6.2.3"))
         // implementation("com.github.irmen:ksim65:v2.1")
     }
 

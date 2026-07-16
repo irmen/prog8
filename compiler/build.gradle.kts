@@ -1,7 +1,7 @@
 plugins {
     id("application")
     kotlin("jvm")
-    id("com.gradleup.shadow") version "9.4.3"
+    id("com.gradleup.shadow") version "9.6.1"
     id("com.peterabeles.gversion") version "1.11.0"
 }
 
@@ -41,6 +41,7 @@ application {
 tasks.shadowJar {
     archiveBaseName.set("prog8c")
     archiveVersion.set(version.toString())
+    duplicatesStrategy = DuplicatesStrategy.WARN
     // minimize()
 }
 
