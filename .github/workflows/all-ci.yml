@@ -28,14 +28,14 @@ jobs:
         uses: gradle/actions/setup-gradle@v6
 
       - name: Compile
-        run: ./gradlew compileKotlin compileTestKotlin --console=plain --non-interactive
+        run: ./gradlew compileKotlin compileTestKotlin --console=plain
 
       - name: Test
-        run: ./gradlew test --continue --console=plain --non-interactive
+        run: ./gradlew test --continue --console=plain
 
       - name: Package
         run: |
-          ./gradlew shadowJar --console=plain --non-interactive
+          ./gradlew shadowJar --console=plain
           sha256sum -b compiler/build/libs/*-all.jar > compiler/build/libs/hash.txt
 
       - name: Create compiler shadowJar artifact
