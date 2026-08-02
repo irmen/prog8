@@ -19,6 +19,10 @@ txt {
         chrout(' ')
     }
 
+    sub tab() {
+        chrout('\t')
+    }
+
     asmsub print(str text @A0) {
         %asm {{
 .loop:
@@ -141,6 +145,38 @@ txt {
 
     sub home() {
         print("\x1b[H")
+    }
+
+    sub bold() {
+        print("\x1b[1m")
+    }
+
+    sub dim() {
+        print("\x1b[2m")
+    }
+
+    sub italic() {
+        print("\x1b[3m")
+    }
+
+    sub underline() {
+        print("\x1b[4m")
+    }
+
+    sub rvs() {
+        print("\x1b[7m")
+    }
+
+    sub normal() {
+        print("\x1b[0m")
+    }
+
+    sub cursor_off() {
+        txt.print("\x1b[?25l")
+    }
+
+    sub cursor_on() {
+        txt.print("\x1b[?25h")
     }
 
     sub column(ubyte col) {

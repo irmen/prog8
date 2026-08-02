@@ -608,6 +608,7 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
                 val alignment = when {
                     v.dt.isPointer || v.dt.isLong || v.dt.isFloat -> 4
                     v.dt.isWord -> 2
+                    v.dt.isArray -> 2
                     else -> 1
                 }
                 Triple(v, size, alignment)
@@ -615,19 +616,10 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
             // 2. Sort primary by alignment descending, secondary by size descending
             .sortedWith(compareByDescending<Triple<IRStStaticVariable, Int, Int>> { it.third }.thenByDescending { it.second })
 
-        // Keep track of the current alignment block we are emitting to avoid redundant lines
-        var currentBlockAlignment = 4
-
         // 3. Emit sorted variables
         for ((v, size, alignment) in bssVars) {
-            // Only emit an ALIGN directive if the variable requires alignment 
-            // AND we haven't already established that alignment boundary for this group.
-            if (alignment < currentBlockAlignment) {
-                if (alignment >= 2) {
-                    emitRaw("    ALIGN  2")
-                }
-                // Update our tracked alignment group state
-                currentBlockAlignment = alignment
+            if (alignment >= 2) {
+                emitRaw("    ALIGN  $alignment")
             }
 
             emitLabel(fixNameSymbols(v.name))

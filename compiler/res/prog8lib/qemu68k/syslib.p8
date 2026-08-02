@@ -270,9 +270,13 @@ qemu {
 9$:         lea     .str_end,a0
             bra     qemu.puts
 
+            ALIGN 2
 .str_rec:   dc.b "REC ",0
+            ALIGN 2
 .str_size:  dc.b " size=",0
+            ALIGN 2
 .str_data:  dc.b " data=",0
+            ALIGN 2
 .str_end:   dc.b "--- end bootinfo ---",10,0
             ; !notreached!
         }}
@@ -375,6 +379,12 @@ sys {
         }}
     }
 
+    asmsub exec_version() -> uword @D0 {
+        %asm {{
+            moveq  #36,d0
+            rts
+        }}
+    }
 
     sub clear_irqd() {
         %asm {{

@@ -2,9 +2,9 @@
 
   SECTION .bss,bss
 
-math._sqrt_ub.value:   ds.b 1
-math._sqrt_uw.value:   ds.w 1
 math._sqrt_l.value:    ds.l 1
+math._sqrt_uw.value:   ds.w 1
+math._sqrt_ub.value:   ds.b 1
 
   SECTION .text,code  ; back to code section
 

@@ -67,7 +67,8 @@ class StatementOptimizer(private val program: Program,
 
         // printing a literal string of just 2 or 1 characters is replaced by directly outputting those characters
         // only do this optimization if the arg is a known-constant string literal instead of a user defined variable.
-        if(functionCallStatement.target.nameInSource==listOf("txt", "print")) {
+        // only on 6502 targets.
+        if(options.compTarget.cpu in setOf(CpuType.CPU6502, CpuType.CPU65C02) && functionCallStatement.target.nameInSource==listOf("txt", "print")) {
             val arg = functionCallStatement.args.single()
             val stringVar: IdentifierReference? = if(arg is AddressOf) {
                 if(arg.arrayIndex==null) {

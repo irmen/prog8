@@ -62,6 +62,7 @@ class AssemblyProgramM68k(override val name: String, private val outputDir: Path
                     "-m68881",  // enable FPU
                     "-Fbin",
                     "-opt-speed",
+                    "-warnunaligned",
                     "-ldots",
                     "-spaces",
                     "-join=0x${loadAddr.toString(16)}",
@@ -90,6 +91,7 @@ class AssemblyProgramM68k(override val name: String, private val outputDir: Path
                     "-m68881",  // enable FPU
                     "-Felf",
                     "-opt-speed",
+                    "-warnunaligned",
                     "-ldots",
                     "-spaces",
                     "-o", objFile.toString(),
@@ -138,6 +140,7 @@ class AssemblyProgramM68k(override val name: String, private val outputDir: Path
                             "-Fhunkexe",
                             "-kick1hunks",   // old hunk format compatible with AmigaDOS 1.3
                             "-opt-speed",
+                            "-warnunaligned",
                             "-ldots",
                             "-spaces",
                             "-nosym",       // no debug symbols
@@ -161,6 +164,7 @@ class AssemblyProgramM68k(override val name: String, private val outputDir: Path
                             "-m68881",  // enable FPU
                             "-Fhunkexe",
                             "-opt-speed",
+                            "-warnunaligned",
                             "-ldots",
                             "-spaces",
                             "-o", exefile.toString(),

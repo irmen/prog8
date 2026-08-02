@@ -18,7 +18,18 @@ main {
         terminal_width = txt.width()
         txt.lowercase()
         txt.clear_screen()
-        txt.print("\n --- TextElite v1.3 ---\n")
+        txt.dim()
+        txt.bold()
+        txt.italic()
+        txt.underline()
+        txt.print("\n --- TextElite v1.3 for M68000/Amiga ---\n")
+        txt.normal()
+
+        if sys.exec_version()<36 {
+            txt.bold()
+            txt.print("\nWarning: number output formatting requires kickstart 2.0+\n")
+            txt.normal()
+        }
 
         planet.set_seed(0, 0)
         galaxy.travel_to(1, numforLave)
@@ -225,7 +236,9 @@ trader {
         txt.print("\n(l)ocal or (g)alaxy starmap? ")
         num_chars = txt.input_chars(input)
         if num_chars!=0 {
+            txt.cursor_off()
             galaxy.starmap(input[0]=='l')
+            txt.cursor_on()
         }
     }
 
@@ -307,6 +320,7 @@ market {
 
     sub display() {
         ubyte ci
+        txt.cursor_off()
         txt.nl()
         planet.print_name_uppercase()
         txt.print(" trade market:\n    COMMODITY / PRICE / AVAIL / IN HOLD\n")
@@ -314,7 +328,7 @@ market {
             util.print_right(13, names[ci])
             txt.print("   ")
             util.print_10s(current_price[ci])
-            txt.column(24)
+            txt.tab()
             txt.print_ub(current_quantity[ci])
             txt.chrout(' ')
             when units[ci] {
@@ -322,10 +336,11 @@ market {
                 1 -> txt.print("kg")
                 2 -> txt.chrout('g')
             }
-            txt.column(32)
+            txt.tab()
             txt.print_ub(ship.cargohold[ci])
             txt.nl()
         }
+        txt.cursor_on()
     }
 
     sub match(str nameptr) -> ubyte {

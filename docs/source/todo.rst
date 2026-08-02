@@ -4,8 +4,7 @@ TODO
 - need a bunch of type casting/conversion checks that test the handling of the 4-byte/long pointer datatype on the qemu68k target.
 - some generated label names in the m68k codegen can maybe replaced by local/anonymous labels?
 - amiga library structs: use more typed pointers if it knows the struct type , rather than using `pointer`
-- amiga startup code: what to do on 68020+ cpus with the cpu caches? they should probably be enabled in the custom.grab_system() ?
-- amiga textio: should probably test for os 2.0 to call the more efficient new dos routines like PutStr and PutChr   
+- amiga startup code: what to do on 68020+ cpus with the cpu caches? they should probably be enabled in the custom.grab_system() with CacheControl() ? Or just depend on whatever was set with the standard CPU utility?
 
 
 m68k Codegen: FPU register allocation (68881 only has fp0-fp7)

@@ -85,7 +85,7 @@ proc_CLI = 172
     		move.l  4.w,a6
 		    tst.l   p8_sys_startup.WBMsg
 		    beq.b   1$
-		    move.l  p8_sys_startup(pc),a1
+		    move.l  p8_sys_startup.WBMsg,a1
 		    jsr     exec.ReplyMsg(a6)
 1$:
         }}

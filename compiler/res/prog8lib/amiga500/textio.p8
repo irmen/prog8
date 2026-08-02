@@ -4,15 +4,26 @@
 %option ignore_unused
 
 txt {
-    asmsub chrout(ubyte char @D0) {
+    asmsub chrout(ubyte char @D0) clobbers(D0,D1,D2,D3,A0,A6) {
         %asm {{
-            move.b  d0,-(sp)          ; 1. Push character onto the stack. A7 now points to it!
             move.l  sys.DOSBase,a6
+            move.b  d0,-(sp)          ; 1. Push character onto the stack. A7 now points to it!
+            move.l  4.w,a0
+            cmp.w   #36,20(a0)      ; KS 2.0 = V36
+            bcc.s   .use_writechars
+
             jsr     -60(a6)           ; Output()
             move.l  d0, d1
             move.l  sp, d2             ; D2 = Pointer to our character (Current Stack Pointer)
             moveq   #1, d3             ; D3 = We only want to write exactly 1 byte
             jsr     -48(a6)           ; Write()
+            addq.l  #2, sp
+            rts
+
+.use_writechars:
+            move.l  sp, d1
+            moveq   #1, d2
+            jsr     -942(a6)        ; WriteChars (ks 2.0+)
             addq.l  #2, sp
             rts
         }}
@@ -26,8 +37,29 @@ txt {
         chrout(' ')
     }
 
-    asmsub print(str text @A0) {
+    sub tab() {
+        chrout('\t')
+    }
+
+    asmsub flush() {
         %asm {{
+            move.l  4.w,a6
+            cmp.w   #36,20(a6)      ; KS 2.0 = V36
+            bcc.s   .do_flush
+            rts
+.do_flush:
+            move.l  sys.DOSBase,a6
+            jsr     -60(a6)
+            move.l  d0,d1
+            jmp     -360(a6)       ; Flush (ks 2.0+)
+        }}
+    }
+
+    asmsub print(str text @A0) clobbers(D0,D1,D2,D3,A0,A6) {
+        %asm {{
+            move.l  4.w,a6
+            cmp.w   #36,20(a6)      ; KS 2.0 = V36
+            bcc.s   .use_putstr
             move.l  a0,d2
             jsr  strings.length
             move.l  d0,d3
@@ -35,6 +67,13 @@ txt {
             jsr     -60(a6)           ; Output()
             move.l  d0,d1
             jmp     -48(a6)           ; Write()
+.use_putstr:
+            move.l  sys.DOSBase,a6
+            move.l  a0,d1
+            jsr     -948(a6)          ; PutStr()  (KS 2.0+)
+            jsr     -60(a6)         ; Output()
+            move.l  d0,d1
+            jmp     -360(a6)       ; Flush (ks 2.0+)
         }}
     }
 
@@ -142,20 +181,36 @@ txt {
         print("\x1b[H")
     }
 
-    sub column(ubyte col) {
-        chrout(27)
-        chrout('[')
-        print_ub(col+1)
-        chrout(';')
-        chrout('G')
+    sub bold() {
+        print("\x1b[1m")
     }
 
-    sub rvs_on() {
+    sub dim() {
+        print("\x1b[2m")
+    }
+
+    sub italic() {
+        print("\x1b[3m")
+    }
+
+    sub underline() {
+        print("\x1b[4m")
+    }
+
+    sub rvs() {
         print("\x1b[7m")
     }
 
-    sub rvs_off() {
+    sub normal() {
         print("\x1b[0m")
+    }
+
+    sub cursor_off() {
+        txt.print("\x1b[0 p")
+    }
+
+    sub cursor_on() {
+        txt.print("\x1b[1 p")
     }
 
     sub color (ubyte txtcol) {
@@ -185,8 +240,7 @@ txt {
 
     sub plot(ubyte col, ubyte row) {
         ; use ANSI escape sequence to position the cursor
-        chrout(27)
-        chrout('[')
+        print("\x1b[")
         print_ub(row)
         chrout(';')
         print_ub(col)
