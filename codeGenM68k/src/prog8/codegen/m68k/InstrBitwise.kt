@@ -202,9 +202,8 @@ private fun AsmGen.xorImmediate(dstReg: Int, value: Int, type: IRDataType) {
 
 private fun AsmGen.xorMemory(dstReg: Int, sourceAddress: String, type: IRDataType) {
     val s = dtSuffix(type)
-    emitLine("move$s  $sourceAddress, d0")
-    emitLine("eor$s  ${regAddr(dstReg)}, d0")
-    emitLine("move$s  d0, $sourceAddress")
+    emitLine("move$s  ${regAddr(dstReg)}, d0")
+    emitLine("eor$s  d0, $sourceAddress")
 }
 
 // === Invert ===

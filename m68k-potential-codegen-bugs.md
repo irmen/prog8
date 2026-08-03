@@ -17,9 +17,6 @@ Targets: Amiga500 (M68000), Qemu68k (M68020). m68k is big-endian with
   493-497`). The `target != null` branches read memory as a source but
   store the result into the virtual register, and the DIV word case
   computes `reg/target` instead of `target/reg`.
-- **`eor <ea>,Dn` is invalid 68000 syntax** (`InstrBitwise.kt:203-208`,
-  `xorMemory`). Only `EOR Dn,<ea>` is legal, so this is a vasm error on
-  every target. Fix also drops a redundant trailing `move`.
 - **68020/68010-only instructions emitted unconditionally for Amiga500
   (M68000)**: `extb.l` (`InstrArithmetic.kt`, `InstrControl.kt:354`),
   `divu.l`/`divs.l`/`divul.l`/`divsl.l` (`InstrArithmetic.kt:397-419,
@@ -31,10 +28,6 @@ Targets: Amiga500 (M68000), Qemu68k (M68020). m68k is big-endian with
 - **DIVMOD does not push on the stack** (`InstrArithmetic.kt:575-644`):
   quotient/remainder are written to regfile slots instead of pushed, so the
   IR's two following `POP`s read the wrong stack entries.
-- **Wrong shift-count register type** (`codeGenIntermediate/.../IRCodeGen.kt:1105-1106,
-  1223-1224, 1240-1241`): uses `dt` (WORD) for an `LSLNM` operand that
-  `IRInstructions.kt` mandates be BYTE -> `register given multiple types`
-  crash with `-noopt`.
 
 ---
 
