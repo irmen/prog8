@@ -12,7 +12,6 @@ import prog8.ast.statements.Return
 import prog8.ast.statements.VarDecl
 import prog8.ast.statements.VarDeclType
 import prog8.code.core.BaseDataType
-import prog8.code.core.DataType
 import prog8.code.core.Position
 import prog8.code.target.C64Target
 import prog8.code.target.Cx16Target
