@@ -1,6 +1,7 @@
 %option no_symbol_prefixing, ignore_unused
 
 %import exec
+%import timer
 
 p8_sys_startup {
     %option force_output
@@ -65,6 +66,21 @@ proc_CLI = 172
     }
 
     sub init_system_phase2() {
+        ; open timer.device in a kickstart 1.3 compatible fashion
+        ^^exec.MsgPort timerPort = []
+        sys.TimerIO = exec.AllocMem(sizeof(timer.TimeRequest), exec.MEMF_PUBLIC | exec.MEMF_CLEAR)
+        timerPort.Type = exec.NT_MSGPORT
+        timerPort.Flags = exec.PA_SIGNAL
+        timerPort.SigBit = exec.AllocSignal(-1) as ubyte
+        timerPort.SigTask = exec.FindTask(0)
+        exec.NewList(&&timerPort.Head)
+        sys.TimerIO.ReplyPort = timerPort
+
+        if exec.OpenDevice("timer.device", timer.UNIT::MICROHZ, sys.TimerIO, 0)==0 {
+            sys.TimerBase = sys.TimerIO.Device
+        }
+
+
         %asm {{
             moveq   #0,d0
             moveq   #0,d1
@@ -98,6 +114,13 @@ proc_CLI = 172
 1$:
         }}
 
+        if sys.TimerIO != 0 {
+            ^^exec.MsgPort timerPort = sys.TimerIO.ReplyPort
+            byte sigbit = timerPort.SigBit as byte
+            exec.CloseDevice(sys.TimerIO)
+            exec.FreeSignal(sigbit)
+            exec.FreeMem(sys.TimerIO, sizeof(timer.TimeRequest))
+        }
         if sys.UtilityBase != 0 exec.CloseLibrary(sys.UtilityBase)
         if sys.IconBase != 0 exec.CloseLibrary(sys.IconBase)
         if sys.IntuitionBase != 0 exec.CloseLibrary(sys.IntuitionBase)
