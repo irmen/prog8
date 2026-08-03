@@ -930,7 +930,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                     if(!idt.isKnown)
                         throw FatalAstException("unknown dt")
                     return NumericLiteral(idt.getOrUndef().base, 0.0, expr.position)
-                } else if (cv in powersOfTwoFloat && leftVal?.type?.isUnsignedInteger == true) {
+                } else if (cv in powersOfTwoFloat && expr.left.inferType(program).getOrUndef().isUnsignedInteger) {
                     expr.operator = "&"
                     expr.right = NumericLiteral.optimalInteger(cv!!.toInt()-1, expr.position)
                     return null
