@@ -100,24 +100,6 @@ signed `> -1` / `<= -1` rewrites are 6502-motivated (compare against 0
 is free with the Z flag), but on m68k they are equivalent or slightly
 better (`tst` vs `cmp #imm`) and never harmful. Leave as-is.
 
-### `BinaryExpression` — shift-by-8/16/24 → lsb/msb/msw/lsw (lines 332-458)
-Rewrites:
-- `msb(word << 8)` → `lsb(word)`
-- `lsb(word >> 8)` → `msb(word)`
-- `msb(long << 8)` → `lsb(msw(long))`
-- `msw(long << 16)` → `lsw(long)`
-- `lsb(long >> 16)` → `lsb(msw(long))`
-- `lsb(long >> 24)` → `msb(long)`
-- etc.
-
-**NEEDS GATING.** On 6502 a byte-boundary shift is "just" a byte
-rearrangement while a multi-bit shift is 8+ ROL/RORs, so the byte
-extraction is a huge win. On m68k `lsl.w #8` is one instruction and
-each `lsb()`/`msb()`/`msw()`/`lsw()` call lowers to `LSIGB`/`MSIGB`/
-`LSIGW`/`MSIGW` (a `move.b` plus a sign/zero extension), so the
-"shortcut" is strictly more IR than the original shift. Restrict to
-6502/65C02.
-
 ### `BinaryExpression` — `(WORD & $xx00) == y` → `msb()` (lines 543-568)
 
 **NEEDS GATING.** Same rationale as the `ifElse` rewrite at lines 66-87.
@@ -136,13 +118,6 @@ Rewrites:
 a single 8-bit compare of `msb()`. On m68k `cmp.w #256` is one
 instruction; the rewrite to `msb()` lowers to `MSIGB` + compare, which
 is *more* IR, never less. Restrict to 6502/65C02.
-
-### `optimizeDivision` — `x / 256` → `msb(x)` (lines 971-984)
-6502-specific (dividing by 256 = taking the high byte). On m68k the
-natural lowering is `lsr.w #8` (unsigned) or `divu`, both of which are
-already single-instruction forms.
-
-**NEEDS GATING.** Restrict to 6502/65C02.
 
 ### `optimizeShiftLeft` — `word << 8` → `mkword(lsb(x), 0)` (lines 1090-1119)
 On 6502 a word left-shift by 8 is "just" moving the low byte to the
@@ -165,10 +140,8 @@ On m68k `lsr.w #8` / `asr.w #8` is one instruction.
 | File:line | Rewrite | Status |
 |---|---|---|
 | **`ExpressionSimplifier.kt:66-87`** | `WORD & $xx00` → `msb(WORD) & $xx` | **NEEDS GATING** |
-| **`ExpressionSimplifier.kt:332-458`** | `<<`/`>>` by 8/16/24 → lsb/msb | **NEEDS GATING** |
 | **`ExpressionSimplifier.kt:543-568`** | `(WORD & $xx00) == y` → msb | **NEEDS GATING** |
 | **`ExpressionSimplifier.kt:582-632`** | `uword` vs 255/256/`$xx00` → msb | **NEEDS GATING** |
-| **`ExpressionSimplifier.kt:971-984`** | `x / 256` → `msb(x)` | **NEEDS GATING** |
 | **`ExpressionSimplifier.kt:1090-1119`** | `word << 8` → `mkword(lsb(x), 0)` | **NEEDS GATING** |
 | **`ExpressionSimplifier.kt:1151-1183`** | `word >> 8` → `msb(x)` | **NEEDS GATING** |
 

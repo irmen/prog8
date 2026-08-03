@@ -981,12 +981,16 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                         BaseDataType.UBYTE -> if (!expr.left.hasSideEffects(options.compTarget)) return NumericLiteral(BaseDataType.UBYTE, 0.0, expr.position) else return null
                         BaseDataType.BYTE -> return null        // is either 0 or -1 we cannot tell here
                         BaseDataType.UWORD, BaseDataType.WORD -> {
-                            // just use:  msb(value) as type
-                            val msb = FunctionCallExpression(IdentifierReference(listOf("msb"), expr.position), mutableListOf(expr.left), expr.position)
-                            return if(leftDt.isSignedWord)
-                                TypecastExpression(msb, DataType.BYTE, true, expr.position)
-                            else
-                                TypecastExpression(msb, DataType.UWORD, true, expr.position)
+                            // just use:  msb(value) as type - this is only cheaper on the 6502 where
+                            // the high byte is directly accessible; other CPUs shift by 8 in one instruction
+                            if (options.compTarget.cpu.is6502) {
+                                val msb = FunctionCallExpression(IdentifierReference(listOf("msb"), expr.position), mutableListOf(expr.left), expr.position)
+                                return if(leftDt.isSignedWord)
+                                    TypecastExpression(msb, DataType.BYTE, true, expr.position)
+                                else
+                                    TypecastExpression(msb, DataType.UWORD, true, expr.position)
+                            } else
+                                return null
                         }
                         else -> return null
                     }
