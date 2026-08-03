@@ -312,23 +312,27 @@ class StatementOptimizer(private val program: Program,
                         return listOf(AstSwapOperands(rExpr))
                     }
 
-                    val rNum = (rExpr.right as? NumericLiteral)?.number
-                    if(rNum!=null) {
-                        if ((op1 == "+" || op1 == "-") && (op2 == "+" || op2 == "-")) {
-                            // A = A op1 (B op2 N)  --->  A = A op1 B  ;  A = A secondOp N
-                            // only valid for additive operators (op2 must be + or -).
-                            // secondOp keeps the combined expression equivalent:
-                            //   A+(B+N)=A+N,  A+(B-N)=A-N,  A-(B+N)=A-N,  A-(B-N)=A+N
-                            val secondOp = if (op1 == "+") op2 else if (op2 == "+") "-" else "+"
-                            val expr2 = BinaryExpression(binExpr.left, binExpr.operator, rExpr.left, binExpr.position)
-                            val opConstant = Assignment(
+                    if(options.compTarget.cpu.is6502) {
+                        val rNum = (rExpr.right as? NumericLiteral)?.number
+                        if (rNum != null) {
+                            if ((op1 == "+" || op1 == "-") && (op2 == "+" || op2 == "-")) {
+                                // A = A op1 (B op2 N)  --->  A = A op1 B  ;  A = A secondOp N
+                                // only valid for additive operators (op2 must be + or -).
+                                // secondOp keeps the combined expression equivalent:
+                                //   A+(B+N)=A+N,  A+(B-N)=A-N,  A-(B+N)=A-N,  A-(B-N)=A+N
+                                val secondOp = if (op1 == "+") op2 else if (op2 == "+") "-" else "+"
+                                val expr2 =
+                                    BinaryExpression(binExpr.left, binExpr.operator, rExpr.left, binExpr.position)
+                                val opConstant = Assignment(
                                     assignment.target.copy(),
                                     BinaryExpression(binExpr.left.copy(), secondOp, rExpr.right, binExpr.position),
                                     AssignmentOrigin.OPTIMIZER, assignment.position
-                            )
-                            return listOf(
+                                )
+                                return listOf(
                                     AstReplaceNode(binExpr, expr2, binExpr.parent),
-                                    AstInsert.after(assignment, opConstant, parent as IStatementContainer))
+                                    AstInsert.after(assignment, opConstant, parent as IStatementContainer)
+                                )
+                            }
                         }
                     }
                 }
