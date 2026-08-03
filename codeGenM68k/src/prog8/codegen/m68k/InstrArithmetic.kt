@@ -72,7 +72,7 @@ internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
             val value = imm ?: error("ADDIM needs immediate")
             val target = resolveAddress(addr, label, offset)
             val sv = dtSuffix(type)
-            if(value in 0..7) {
+            if(value in 1..8) {
                 emitLine("addq$sv  #$value,$target")
             } else {
                 when (type) {
@@ -117,7 +117,7 @@ internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
             val value = imm ?: error("SUBIM needs immediate")
             val target = resolveAddress(addr, label, offset)
             val sv = dtSuffix(type)
-            if(value in 0..7) {
+            if(value in 1..8) {
                 emitLine("subq$sv  #$value,$target")
             } else {
                 when (type) {

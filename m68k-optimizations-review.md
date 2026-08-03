@@ -1,127 +1,180 @@
-# AST Optimizer Review for IR / m68k Codegens
+# m68k Optimizations & Correctness Review
 
-Analysis of `codeOptimizers/src/prog8/optimizer/StatementOptimizer.kt` and
-`ExpressionSimplifier.kt`. The question: which of these AST-level rewrites
-were designed with the 6502 codegen's cost model in mind, and how do they
-affect the new IR (virtual) and m68k (Amiga500 / Qemu68k) targets?
+Audit of the Prog8 compiler for the m68k targets (Amiga500 = M68000,
+Qemu68k = M68020). m68k is big-endian, has 32-bit registers, and native
+`addq`/`subq`/`tst`/`cmp`/`lsl`/`lsr`/`swap`/`scc`/`dbra` instructions.
+Pointers are 4 bytes (`POINTER_MEM_SIZE = 4`).
 
-Both optimizer passes run in `optimizeAst()` (see
-`compiler/src/prog8/compiler/Compiler.kt`) for *every* compilation target
-unless a rewrite explicitly checks `compTarget.cpu`. The resulting AST is
-then handed to `codeGenIntermediate` (IR) and (for m68k) on to
-`codeGenM68k`. So a 6502-specific rewrite that was never gated can either
-emit useless IR or, worse, emit *wrong* code on m68k.
+Two optimizer layers run for every target:
+- The compiler-AST optimizer: `codeOptimizers/src/prog8/optimizer/`
+  (`StatementOptimizer.kt`, `ExpressionSimplifier.kt`, `Inliner.kt`,
+  `ConstantFoldingOptimizer.kt`, `ConstantIdentifierReplacer.kt`,
+  `ConstExprEvaluator.kt`, `UnusedCodeRemover.kt`).
+- The simplified-AST optimizer: `simpleAst/src/prog8/code/optimize/`
+  (`ExpressionOptimizers.kt`, `ComparisonOptimizers.kt`,
+  `BooleanOptimizers.kt`, `MemoryOptimizers.kt`, `VariableOptimizers.kt`,
+  `ControlFlowOptimizers.kt`).
 
-## Context: how the m68k codegen sees these constructs
+The IR backend (`codeGenIntermediate`) and the m68k backend
+(`codeGenM68k`) then lower the result.
 
-- The m68k backend (`codeGenM68k`) consumes the IR produced by
-  `codeGenIntermediate` (`BuiltinFuncGen.kt`). The IR has dedicated
-  opcodes for `lsb` / `msb` / `msw` / `lsw` / `mkword`
-  (`LSIGB`, `MSIGB`, `LSIGW`, `MSIGW`, `CONCAT`, `EXT`).
-- The m68k codegen itself has *no* concept of `lsb()`/`msb()` etc. as
-  language builtins. It just lowers the byte-extraction opcodes.
-- m68k targets are big-endian and have `addq #n` (1-8), `lsl #8`,
-  `cmp.w #imm`, and a 32-bit register file. None of these cost what
-  they cost on 6502.
-
-The encoding used below:
-
-- **Gated** = already checks the target CPU.
-- **NEEDS GATING** = would harm m68k and is not gated.
-- **WRONG on m68k** = semantic break (big-endian / address-of-memory
-  assumptions).
-- **Neutral** = harmless on m68k, just useless extra IR.
-
-The reference pattern for gating is the one already used at
-`StatementOptimizer.kt:71`: `options.compTarget.cpu.is6502`
-(the `is6502` property lives on the `CpuType` enum in
-`codeCore/src/prog8/code/core/ICompilationTarget.kt`).
-
-> **Note:** any optimization not listed in this document is considered
-> **fine** for the IR and m68k codegens (target-neutral, or
-> already correctly gated, or beneficial on m68k too).
-
-## How to gate an optimization for m68k
-
-The optimizer passes run for every target, so a 6502-only rewrite must
-explicitly skip the non-6502 targets. The mechanism:
-
-- Check `options.compTarget.cpu`. The 6502-family targets are
-  `CpuType.CPU6502` and `CpuType.CPU65C02`. The m68k targets are
-  `CpuType.M68000` (Amiga500) and `CpuType.M68020` (Qemu68k). The
-  `VIRTUAL` target is also unaffected by these rewrites.
-- The cleanest form (used as the reference at
-  `StatementOptimizer.kt:71`) is a guard around the rewrite:
-
-  ```kotlin
-  if (options.compTarget.cpu.is6502) {
-      // 6502-only rewrite
-  }
-  ```
-
-  The `is6502` property already exists on the `CpuType` enum in
-  `codeCore/src/prog8/code/core/ICompilationTarget.kt`, so no local
-  helper is needed.
-- For rewrites that assume the 6502 memory layout (little-endian,
-  bank-byte at a fixed offset), gating to 6502 is mandatory. These are
-  not just "suboptimal" on m68k - they are *wrong* there because m68k
-  is big-endian.
-- When in doubt, prefer leaving the original expression intact for
-  m68k and let `codeGenIntermediate` / `codeGenM68k` lower it with the
-  native m68k instructions (which are often already single-instruction
-  forms like `addq`, `lsl`, `tst`, `cmp`).
+Gating reference: `options.compTarget.cpu.is6502` (6502/65C02 only) or
+`cpu.isBigEndian` (m68k only). The `CpuType` enum lives in
+`codeCore/src/prog8/code/core/ICompilationTarget.kt`.
 
 ---
 
-## `ExpressionSimplifier.kt`
+## 1. simpleAst optimizer rewrites that are 6502-specific / not gated
 
-### `ifElse` — `WORD & $xx00` → `msb(WORD) & $xx` (lines 66-87)
-Converts a 16-bit AND with a high-byte mask into a byte-level `msb()`
-call, and `WORD & $00ff` → `lsb(WORD) & $ff`.
+- **`MemoryOptimizers.kt:41-72`** `msb(^^field)`/`lsb(^^field)` ->
+  `@(&field + offset)`. **WRONG on big-endian**: little-endian byte offsets
+  (`msb` at `+1`, `lsb` at `+0`) are used, so m68k returns the swapped
+  byte. Also hardcodes `DataType.UWORD` for the `PtAddressOf`, truncating
+  the 4-byte m68k pointer address to 16 bits. The compiler-AST pass got this
+  right (`ExpressionSimplifier.kt:759,804` use `isBigEndian`). Gate with
+  `is6502`, or make it endian-aware and use `typeForUntypedAddressOf`.
+- **`ExpressionOptimizers.kt:20-52`** `w + (b<<1 as uword)` ->
+  `(w+b)+b`. Guard is `options.compTarget.name != VMTarget.NAME`, so m68k
+  takes it. On m68k a zero-extension is not free (`EXT` lowers to 3
+  instructions), so this trades one shift for a second load + second
+  extension: **+3 instructions** and one extra live IR register. Change the
+  guard to `cpu.is6502`.
+- **`ComparisonOptimizers.kt:199-219`** `float <op> 0` ->
+  `sgn(float) <op> 0`. A 6502 MFLPT trick (avoids a 5-byte compare call).
+  On m68k the ideal lowering of `f == 0.0` is a 2-instruction `ftst`/`fbcc`;
+  the rewrite produces `SGN.f` (6 instr) + branch = 8, and structurally
+  prevents the float-compare peephole. Gate with `is6502` (and ideally fix
+  `FCOMP` lowering in `IRCodeGen.kt` to emit a direct float compare+branch).
+- **`ExpressionOptimizers.kt:429`** (correctly `is6502`-gated `x+=2` ->
+  `x++ x++` rewrite): shares one `PtNode` instance across two
+  `PtMemoryByte` parents -> double-parent hazard / double-prefixing. A live
+  6502 bug; use the gate as the model for the rest of the file.
+- **`ExpressionOptimizers.kt:500-526`** operand-order swap uses a 6502
+  cost table but the direction is right for the IR anyway; the real gap is a
+  missing `hasSideEffects` guard (swapping can reorder I/O reads).
+- **`MemoryOptimizers.kt:16-34`** `@(&x)` -> `x` for `isByteOrBool`: a
+  `UBYTE` node replaced by a `BYTE`/`BOOL` node silently changes a
+  zero-extend into a sign-extend for signed `BYTE`. Target-agnostic bug.
 
-**Gated for 6502/65C02** (`&& options.compTarget.cpu.is6502`). The
-rewrite is neutral-to-slightly-better on m68k, but gated anyway to keep
-m68k output simple and predictable (`and.w #imm` is more readable than
-byte-extraction opcodes).
+---
 
-### `BinaryExpression` — comparison vs 0/1 rewrites (lines 194-237)
-- `x >= 1` → `x > 0` (line 194)
-- `X <= -1` → `X < 0` (line 201)
-- `unsigned >= 0` → `true` (line 212)
-- `unsigned > 0` → `!= 0` (line 216)
-- `x < 1` → `x <= 0` (line 222)
-- `unsigned < 0` → `false` (line 229)
-- `unsigned <= 0` → `== 0` (line 233)
+## 2. codeOptimizers rewrites that are 6502-flavored / wrong on m68k
 
-**Neutral.** The `unsigned >= 0 → true`, `unsigned < 0 → false`
-folds are always good. The `>= 1` → `> 0`, `< 1` → `<= 0` and the
-signed `> -1` / `<= -1` rewrites are 6502-motivated (compare against 0
-is free with the Z flag), but on m68k they are equivalent or slightly
-better (`tst` vs `cmp #imm`) and never harmful. Leave as-is.
+- **`ConstantIdentifierReplacer.kt:417,458`** and **`ConstantFoldingOptimizer.kt:120,133`**
+  force const pointers into `NumericLiteral(UWORD, ...)`. `NumericLiteral`
+  requires `0..65535`, so any Amiga/Qemu68k address >64KB **crashes the
+  compiler**, and below that it silently narrows a 4-byte pointer to 2
+  bytes. The correct idiom (`typeForUntypedAddressOf` / `POINTER_MEM_SIZE>2 -> LONG`)
+  exists elsewhere but is not used here. Also reachable via
+  `AddressOf.constValue` -> `UWORD` (`compilerAst AstExpressions.kt:678,686`).
+- **`StatementOptimizer.kt:40`** `pokew(&ptrvar, x)` -> `ptrvar = x`. On
+  m68k a pointer variable is 4 bytes, so a 2-byte store becomes a 4-byte
+  store -> changed semantics. Gate by `POINTER_MEM_SIZE == 2u`.
+- **`ConstExprEvaluator.kt:363-375`** `strings.isupper`/`islower`/`isletter`
+  folded with PETSCII ranges for every target. The VM/ISO stdlib
+  (`compiler/res/prog8lib/virtual/strings.p8`) uses the opposite ISO mapping,
+  so const-folding gives an **inverted result** today on the virtual target
+  and would on m68k once the m68k stdlib adds those routines. `isdigit`,
+  `isspace`, `isprint` happen to agree. Gate by encoding/target.
+- **`ExpressionSimplifier.kt:998-1004`** signed `x / 2^n` -> `x >> n`.
+  Prog8 integer division truncates toward zero; `>>` lowers to ASR (floors),
+  so `-3 / 2` (== -1) becomes `-3 >> 1` (== -2). Wrong for negatives on
+  every target, and `-noopt` vs optimized disagree. The simpleAst twin
+  (`ExpressionOptimizers.kt:386`) is correctly unsigned-only.
+- **`ExpressionSimplifier.kt:249,258,275,284`** pointer `==`/`!=` 0/1
+  retyped to `UWORD` -> a 16-bit compare of a 32-bit pointer (`ptr == 0`
+  true for `$00010000`). Should widen to `LONG` when `POINTER_MEM_SIZE > 2`.
+- **`Inliner.kt:434`** explicit "prevent code bloat on 6502" restriction
+  (`isSimpleReturnExpression` only, plus `parameters.size <= 1` at `:142`,
+  `:253`) is ungated and over-conservative for m68k where calls/registers
+  are cheaper. `Inliner.kt:264` gates by `name != VMTarget.NAME` (so m68k
+  gets the 6502 label-collision rule) instead of by backend.
+- **`StatementOptimizer.kt:574-593`** `when` -> `on..goto` jump table uses
+  a 6502 break-even threshold (6 cases, byte condition) and builds a UWORD
+  label array; the element-size scaling should be verified on a 32-bit
+  target (`AsmGen.kt:499-501` widens symbol-bearing uword arrays to 4 bytes).
+- **`ExpressionSimplifier.kt:752-764,797-809`** long byte extraction ->
+  `@(&var + offset)` is endianness-correct but forces the variable to memory
+  (defeats register allocation on m68k) and hardcodes a UWORD offset literal.
+- **`ExpressionSimplifier.kt:766-771,811-816`** `lsb(cx16.rN)` ->
+  `cx16.rNL` / `msb` -> `cx16.rNH` matches purely on the `cx16` name with a
+  hardcoded little-endian layout. Harmless today (no `cx16` block for m68k)
+  but a latent trap on big-endian.
 
-### `BinaryExpression` — `(WORD & $xx00) == y` → `msb()` (lines 543-568)
+---
 
-**Gated for 6502/65C02** (`&& options.compTarget.cpu.is6502`). The
-high-mask `msb()` form ties a native `and.w #imm`, and the low-mask
-`lsb()` form is slightly cheaper, but gated anyway so m68k always emits
-the simpler word-level `and.w` + `cmpi.w`.
+## 3. Rewrites verified fine on m68k (leave alone)
+
+- **`ComparisonOptimizers.kt:26-101`** boundary compares vs 0/1:
+  neutral-to-beneficial. `unsigned >= 0`/`unsigned < 0`/`unsigned <= 0`/
+  `unsigned > 0` win (1-2 instructions); the signed `>= 1`/`<= -1` etc. are
+  ties. `ptr != 0` could additionally fold if `isPointer` were accepted
+  (pointers are the dominant 32-bit type on m68k).
+- **`ExpressionOptimizers.kt:126-148,386-410`** mul/div/mod -> shift/mask:
+  beneficial on m68k (68000 has no 32-bit MUL/DIV; `mulu.w`/`divu.w` are
+  ~70/~140 cycles). Signed division is correctly excluded.
+- **`BooleanOptimizers.kt`**, **`ControlFlowOptimizers.kt`**: clean
+  (no flag assumptions; pure CFG shape).
+- **`ExpressionSimplifier.kt:332-458`** the `<<`/`>>` <-> `lsb`/`msb`/
+  `lsw`/`msw` family: value-level, endianness-independent, eliminates a real
+  shift on m68k too.
+- **`ExpressionSimplifier.kt:527-541`** `x & bit == bit` -> `x & bit != 0`
+  (maps to `btst` on m68k).
+- **`UnusedCodeRemover.kt`** self/duplicate-assignment removal: correctly
+  guarded by `hasSideEffects`/`isIOAddress`/`isIORead` (both m68k targets
+  implement `isIOAddress`).
+
+---
+
+## 4. New m68k codegen optimization opportunities
+
+Lowering improvements that would shrink m68k output (no correctness risk):
+
+- **`cmpi #0` -> `tst`** peephole in `cmpBranchSignedImm`/
+  `cmpBranchUnsignedImm` (`InstrBranch.kt:70-102`). The `Opcode.CMPI`
+  already has this peephole (`InstrArithmetic.kt:324-328`) but the branch
+  paths do not apply it; doing so turns the four neutral boundary-compare
+  rows into 1-instruction wins.
+- **Constant fast path for `operatorGreaterThan`/`operatorLessThan`**
+  (`ExpressionGen`): `operatorEquals` already has one, but `>`/`<` always
+  load `#0` and do a register-register branch, so `b = x > 0` (~9 instr)
+  vs `b = x != 0` (~5 instr). Saves ~4 instructions in value context.
+- **`lsl`/`lsr` with immediate count** instead of materializing the count
+  into a register (`LSLN`/`LSRN` emit a variable shift). Also
+  **`x << 16` / `x >> 16` -> `swap`** (the backend already knows this trick
+  in `MSIGW`).
+- Generic: redundant moves into/out of the `p8_regfile` register file (e.g.
+  `move.w reg,d0` + `move.w d0,regfile`) and load-then-immediate-compare
+  sequences are candidates for a m68k-specific peephole pass.
 
 ---
 
 ## Summary table
 
-| File:line | Rewrite | Status |
-|---|---|---|
-| **`ExpressionSimplifier.kt:66-87`** | `WORD & $xx00` → `msb(WORD) & $xx` | Gated (is6502) |
-| **`ExpressionSimplifier.kt:543-568`** | `(WORD & $xx00) == y` → msb | Gated (is6502) |
+| # | File:line | Issue | m68k impact | Gated? |
+|---|---|---|---|---|
+| 1 | `MemoryOptimizers.kt:41-72` | `msb/lsb(^^field)` -> `@(&field+offset)` | **WRONG** (byte order + 16-bit ptr) | No |
+| 2 | `ExpressionOptimizers.kt:25` | `w + (b<<1)` -> `(w+b)+b` | +3 instr | `!= VM` only |
+| 3 | `ComparisonOptimizers.kt:199-219` | `float <op> 0` -> `sgn(...)` | 8 vs 2 instr | No |
+| 4 | `ConstantIdentifierReplacer.kt:417,458` | const ptr -> `UWORD` literal | **crash** / truncation | No |
+| 5 | `ConstantFoldingOptimizer.kt:120,133` | folded `ptr±N` -> `UWORD` | **crash** / truncation | No |
+| 6 | `StatementOptimizer.kt:40` | `pokew(&ptrvar,x)` -> `ptrvar=x` | 2-byte -> 4-byte store | No |
+| 7 | `ConstExprEvaluator.kt:363-375` | `strings.isupper/islower/isletter` PETSCII | **inverted result** | No |
+| 8 | `ExpressionSimplifier.kt:998-1004` | signed `x / 2^n` -> `x >> n` | wrong rounding | No |
+| 9 | `ExpressionSimplifier.kt:249,258,275,284` | ptr `==`/`!=` 0/1 -> `UWORD` | 16-bit compare of 32-bit ptr | No |
+| 10 | `Inliner.kt:434` (+`:142`,`:253`,`:264`) | 6502 code-bloat heuristics | over-conservative | No |
 
 ---
 
-## Recommended changes
+## Recommended order of work
 
-1. Leave the boundary compares vs 0/1 (lines 194-237) alone — they
-   are mildly 6502-flavored but never harmful.
-2. No further gating is required: all rewrites that would harm m68k,
-   and the `WORD & $xx00` / `$00ff` AND-mask rewrites (gated by
-   preference for simpler m68k code), are already restricted to
-   `is6502` targets.
+1. Gate the simpleAst rewrites in section 1 (`MemoryOptimizers.kt` is the
+   dangerous one; `ExpressionOptimizers.kt:25` and `ComparisonOptimizers.kt:199`
+   are cheap wins matching the existing `is6502` pattern). The m68k codegen
+   correctness bugs are tracked separately in `m68k-potential-codegen-bugs.md`.
+2. Fix the const-pointer / POINTER_MEM_SIZE issues in section 2 (crasher on
+   real Amiga addresses) and the `pokew`/`isupper`/`signed-div` correctness
+   items.
+3. Land the m68k lowering improvements in section 4.
+4. Revisit the remaining 6502-cost-model items (Inliner, `when`->on..goto)
+   for m68k benefit once the above is stable.
