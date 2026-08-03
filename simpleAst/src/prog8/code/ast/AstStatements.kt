@@ -280,13 +280,9 @@ sealed interface IPtAssignment {
         get() = children.size>2
 }
 
-class PtAssignment(position: Position, val isVarInitializer: Boolean=false) : PtNode(position), IPtAssignment {
-    override fun copy(): PtNode = PtAssignment(position, isVarInitializer)
-}
+class PtAssignment(position: Position, val isVarInitializer: Boolean=false) : PtNode(position), IPtAssignment
 
-class PtAugmentedAssign(val operator: String, position: Position) : PtNode(position), IPtAssignment {
-    override fun copy(): PtNode = PtAugmentedAssign(operator, position)
-}
+class PtAugmentedAssign(val operator: String, position: Position) : PtNode(position), IPtAssignment
 
 
 class PtAssignTarget(val void: Boolean, position: Position) : PtNode(position) {

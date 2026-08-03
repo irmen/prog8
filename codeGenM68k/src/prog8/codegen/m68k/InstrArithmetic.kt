@@ -68,6 +68,30 @@ internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
             emitLine("add$sv  d0, $target")
         }
 
+        Opcode.ADDIM -> {
+            val value = imm ?: error("ADDIM needs immediate")
+            val target = resolveAddress(addr, label, offset)
+            val sv = dtSuffix(type)
+            if(value in 0..7) {
+                emitLine("addq$sv  #$value,$target")
+            } else {
+                when (type) {
+                    IRDataType.BYTE -> {
+                        require(value in 2..255)
+                        emitLine("add$sv  #$value,$target")
+                    }
+                    IRDataType.WORD -> {
+                        require(value in 2..65535)
+                        emitLine("add$sv  #$value,$target")
+                    }
+                    IRDataType.LONG, IRDataType.POINTER -> {
+                        require(value in 2..0x7fffffff)
+                        emitLine("add$sv  #$value,$target")
+                    }
+                }
+            }
+        }
+
         Opcode.SUBR -> {
             val dstReg = r1 ?: error("SUBR needs reg1")
             val srcReg = r2 ?: error("SUBR needs reg2")
@@ -87,6 +111,30 @@ internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
             val sv = dtSuffix(type)
             emitLine("move$sv  ${regAddr(reg)}, d0")
             emitLine("sub$sv  d0, $target")
+        }
+        
+        Opcode.SUBIM -> {
+            val value = imm ?: error("SUBIM needs immediate")
+            val target = resolveAddress(addr, label, offset)
+            val sv = dtSuffix(type)
+            if(value in 0..7) {
+                emitLine("subq$sv  #$value,$target")
+            } else {
+                when (type) {
+                    IRDataType.BYTE -> {
+                        require(value in 2..255)
+                        emitLine("sub$sv  #$value,$target")
+                    }
+                    IRDataType.WORD -> {
+                        require(value in 2..65535)
+                        emitLine("sub$sv  #$value,$target")
+                    }
+                    IRDataType.LONG, IRDataType.POINTER -> {
+                        require(value in 2..0x7fffffff)
+                        emitLine("sub$sv  #$value,$target")
+                    }
+                }
+            }
         }
 
         // --- Multiply (unsigned) ---

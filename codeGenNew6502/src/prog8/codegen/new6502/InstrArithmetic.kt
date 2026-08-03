@@ -59,6 +59,10 @@ internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
             val target = resolveAddress(addr, label, offset)
             addMemory(r1 ?: error("ADDM needs reg1"), target, type)
         }
+        Opcode.ADDIM -> {
+            val target = resolveAddress(addr, label, offset)
+            addMemoryImm(imm ?: error("ADDIM needs immediate"), target, type)
+        }
 
         Opcode.SUBR -> {
             val r2val = r2 ?: error("SUBR needs reg2")
@@ -71,6 +75,10 @@ internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
         Opcode.SUBM -> {
             val target = resolveAddress(addr, label, offset)
             subMemory(r1 ?: error("SUBM needs reg1"), target, type)
+        }
+        Opcode.SUBIM -> {
+            val target = resolveAddress(addr, label, offset)
+            subMemoryImm(imm ?: error("SUBIM needs imm"), target, type)
         }
 
         Opcode.MULR -> {
@@ -413,7 +421,7 @@ internal fun AsmGen.addRegisters(dstReg: Int, srcReg: Int, type: IRDataType) {
             emitLine("adc  ${regAddrByte(srcReg, 3)}")
             emitLine("sta  ${regAddrByte(dstReg, 3)}")
         }
-        IRDataType.FLOAT -> TODO("FLOAT ADDR r$dstReg, r$srcReg")
+        IRDataType.FLOAT -> error("FLOAT ADDR shoud have been handled elsewhere")
     }
 }
 
@@ -453,7 +461,7 @@ internal fun AsmGen.addImmediate(dstReg: Int, value: Int, type: IRDataType) {
             emitLine("adc  #${(value shr 24) and 0xff}")
             emitLine("sta  ${regAddrByte(dstReg, 3)}")
         }
-        IRDataType.FLOAT -> TODO("FLOAT ADD r$dstReg, #$value")
+        IRDataType.FLOAT -> error("FLOAT ADD shoud have been handled elsewhere")
     }
 }
 
@@ -489,7 +497,46 @@ internal fun AsmGen.addMemory(dstReg: Int, sourceAddress: String, type: IRDataTy
             emitLine("adc  ${regAddrByte(dstReg, 3)}")
             emitLine("sta  $sourceAddress+3")
         }
-        IRDataType.FLOAT -> TODO("FLOAT ADDM r$dstReg, $sourceAddress")
+        IRDataType.FLOAT -> error("FLOAT ADDM shoud have been handled elsewhere")
+    }
+}
+
+internal fun AsmGen.addMemoryImm(immediate: Int, sourceAddress: String, type: IRDataType) {
+    when (type) {
+        IRDataType.BYTE -> {
+            require(immediate in 2..255)
+            emitLine("clc")
+            emitLine("lda  $sourceAddress")
+            emitLine("adc  #$immediate")
+            emitLine("sta  $sourceAddress")
+        }
+        IRDataType.WORD, IRDataType.POINTER -> {
+            require(immediate in 2..65535)
+            emitLine("clc")
+            emitLine("lda  $sourceAddress")
+            emitLine("adc  #<$immediate")
+            emitLine("sta  $sourceAddress")
+            emitLine("lda  $sourceAddress+1")
+            emitLine("adc  #>$immediate")
+            emitLine("sta  $sourceAddress+1")
+        }
+        IRDataType.LONG -> {
+            require(immediate in 2..0x7fffffff)
+            emitLine("clc")
+            emitLine("lda  $sourceAddress")
+            emitLine("adc  #${immediate and 0xff}")
+            emitLine("sta  $sourceAddress")
+            emitLine("lda  $sourceAddress+1")
+            emitLine("adc  #${(immediate shr 8) and 0xff}")
+            emitLine("sta  $sourceAddress+1")
+            emitLine("lda  $sourceAddress+2")
+            emitLine("adc  #${(immediate shr 16) and 0xff}")
+            emitLine("sta  $sourceAddress+2")
+            emitLine("lda  $sourceAddress+3")
+            emitLine("adc  #${(immediate shr 24) and 0xff}")
+            emitLine("sta  $sourceAddress+3")
+        }
+        IRDataType.FLOAT -> error("FLOAT ADDM shoud have been handled elsewhere")
     }
 }
 
@@ -527,7 +574,7 @@ internal fun AsmGen.subRegisters(dstReg: Int, srcReg: Int, type: IRDataType) {
             emitLine("sbc  ${regAddrByte(srcReg, 3)}")
             emitLine("sta  ${regAddrByte(dstReg, 3)}")
         }
-        IRDataType.FLOAT -> TODO("FLOAT SUBR r$dstReg, r$srcReg")
+        IRDataType.FLOAT -> error("FLOAT SUBR shoud have been handled elsewhere")
     }
 }
 
@@ -567,7 +614,7 @@ internal fun AsmGen.subImmediate(dstReg: Int, value: Int, type: IRDataType) {
             emitLine("sbc  #${(value shr 24) and 0xff}")
             emitLine("sta  ${regAddrByte(dstReg, 3)}")
         }
-        IRDataType.FLOAT -> TODO("FLOAT SUB r$dstReg, #$value")
+        IRDataType.FLOAT -> error("FLOAT SUB should have been handled elsewhere")
     }
 }
 
@@ -603,7 +650,46 @@ internal fun AsmGen.subMemory(dstReg: Int, sourceAddress: String, type: IRDataTy
             emitLine("sbc  ${regAddrByte(dstReg, 3)}")
             emitLine("sta  $sourceAddress+3")
         }
-        IRDataType.FLOAT -> TODO("FLOAT SUBM r$dstReg, $sourceAddress")
+        IRDataType.FLOAT -> error("FLOAT SUBM shoud have been handled elsewhere")
+    }
+}
+
+internal fun AsmGen.subMemoryImm(immediate: Int, sourceAddress: String, type: IRDataType) {
+    when (type) {
+        IRDataType.BYTE -> {
+            require(immediate in 2..255)
+            emitLine("sec")
+            emitLine("lda  $sourceAddress")
+            emitLine("sbc  #$immediate")
+            emitLine("sta  $sourceAddress")
+        }
+        IRDataType.WORD, IRDataType.POINTER -> {
+            require(immediate in 2..65535)
+            emitLine("sec")
+            emitLine("lda  $sourceAddress")
+            emitLine("sbc  #<$immediate")
+            emitLine("sta  $sourceAddress")
+            emitLine("lda  $sourceAddress+1")
+            emitLine("sbc  #>$immediate")
+            emitLine("sta  $sourceAddress+1")
+        }
+        IRDataType.LONG -> {
+            require(immediate in 2..0x7fffffff)
+            emitLine("sec")
+            emitLine("lda  $sourceAddress")
+            emitLine("sbc  #${immediate and 0xff}")
+            emitLine("sta  $sourceAddress")
+            emitLine("lda  $sourceAddress+1")
+            emitLine("sbc  #${(immediate shr 8) and 0xff}")
+            emitLine("sta  $sourceAddress+1")
+            emitLine("lda  $sourceAddress+2")
+            emitLine("sbc  #${(immediate shr 16) and 0xff}")
+            emitLine("sta  $sourceAddress+2")
+            emitLine("lda  $sourceAddress+3")
+            emitLine("sbc  #${(immediate shr 24) and 0xff}")
+            emitLine("sta  $sourceAddress+3")
+        }
+        IRDataType.FLOAT -> error("FLOAT SUBM shoud have been handled elsewhere")
     }
 }
 

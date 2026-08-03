@@ -1009,11 +1009,7 @@ class VirtualMachine(irProgram: IRProgram) {
                 val value = (registers.getUB(i.reg1!!)+1u).toUByte()
                 registers.setUB(i.reg1!!, value)
             }
-            IRDataType.WORD -> {
-                val value = (registers.getUW(i.reg1!!)+1u).toUShort()
-                registers.setUW(i.reg1!!, value)
-            }
-            IRDataType.POINTER -> {
+            IRDataType.WORD, IRDataType.POINTER -> {
                 val value = (registers.getUW(i.reg1!!)+1u).toUShort()
                 registers.setUW(i.reg1!!, value)
             }
@@ -1033,11 +1029,7 @@ class VirtualMachine(irProgram: IRProgram) {
                 val value = (memory.getUB(address)+1u).toUByte()
                 memory.setUB(address, value)
             }
-            IRDataType.WORD -> {
-                val value = (memory.getUW(address)+1u).toUShort()
-                memory.setUW(address, value)
-            }
-            IRDataType.POINTER -> {
+            IRDataType.WORD, IRDataType.POINTER -> {
                 val value = (memory.getUW(address)+1u).toUShort()
                 memory.setUW(address, value)
             }
@@ -1056,11 +1048,7 @@ class VirtualMachine(irProgram: IRProgram) {
                 val value = (registers.getUB(i.reg1!!)-1u).toUByte()
                 registers.setUB(i.reg1!!, value)
             }
-            IRDataType.WORD -> {
-                val value = (registers.getUW(i.reg1!!)-1u).toUShort()
-                registers.setUW(i.reg1!!, value)
-            }
-            IRDataType.POINTER -> {
+            IRDataType.WORD, IRDataType.POINTER -> {
                 val value = (registers.getUW(i.reg1!!)-1u).toUShort()
                 registers.setUW(i.reg1!!, value)
             }
@@ -1079,11 +1067,7 @@ class VirtualMachine(irProgram: IRProgram) {
                 val value = (memory.getUB(i.address!!.value)-1u).toUByte()
                 memory.setUB(i.address!!.value, value)
             }
-            IRDataType.WORD -> {
-                val value = (memory.getUW(i.address!!.value)-1u).toUShort()
-                memory.setUW(i.address!!.value, value)
-            }
-            IRDataType.POINTER -> {
+            IRDataType.WORD, IRDataType.POINTER -> {
                 val value = (memory.getUW(i.address!!.value)-1u).toUShort()
                 memory.setUW(i.address!!.value, value)
             }
@@ -1102,11 +1086,7 @@ class VirtualMachine(irProgram: IRProgram) {
                 val value = -registers.getUB(i.reg1!!).toInt()
                 registers.setUB(i.reg1!!, value.toUByte())
             }
-            IRDataType.WORD -> {
-                val value = -registers.getUW(i.reg1!!).toInt()
-                registers.setUW(i.reg1!!, value.toUShort())
-            }
-            IRDataType.POINTER -> {
+            IRDataType.WORD, IRDataType.POINTER -> {
                 val value = -registers.getUW(i.reg1!!).toInt()
                 registers.setUW(i.reg1!!, value.toUShort())
             }
@@ -1126,11 +1106,7 @@ class VirtualMachine(irProgram: IRProgram) {
                 val value = -memory.getUB(address).toInt()
                 memory.setUB(address, value.toUByte())
             }
-            IRDataType.WORD -> {
-                val value = -memory.getUW(address).toInt()
-                memory.setUW(address, value.toUShort())
-            }
-            IRDataType.POINTER -> {
+            IRDataType.WORD, IRDataType.POINTER -> {
                 val value = -memory.getUW(address).toInt()
                 memory.setUW(address, value.toUShort())
             }
@@ -1146,8 +1122,7 @@ class VirtualMachine(irProgram: IRProgram) {
     private fun InsADDR(i: IRInstruction) {
         when(i.type!!) {
             IRDataType.BYTE -> plusMinusMultAnyByte("+", i.reg1!!, i.reg2!!)
-            IRDataType.WORD -> plusMinusMultAnyWord("+", i.reg1!!, i.reg2!!)
-            IRDataType.POINTER -> plusMinusMultAnyWord("+", i.reg1!!, i.reg2!!)
+            IRDataType.WORD, IRDataType.POINTER -> plusMinusMultAnyWord("+", i.reg1!!, i.reg2!!)
             IRDataType.LONG -> plusMinusMultAnyLong("+", i.reg1!!, i.reg2!!)
             IRDataType.FLOAT -> {
                 val left = registers.getFloat(i.fpReg1!!)
@@ -1162,8 +1137,7 @@ class VirtualMachine(irProgram: IRProgram) {
     private fun InsADD(i: IRInstruction) {
         when(i.type!!) {
             IRDataType.BYTE -> plusMinusMultConstByte("+", i.reg1!!, i.immediate!!.toUByte())
-            IRDataType.WORD -> plusMinusMultConstWord("+", i.reg1!!, i.immediate!!.toUShort())
-            IRDataType.POINTER -> plusMinusMultConstWord("+", i.reg1!!, i.immediate!!.toUShort())
+            IRDataType.WORD, IRDataType.POINTER -> plusMinusMultConstWord("+", i.reg1!!, i.immediate!!.toUShort())
             IRDataType.LONG -> plusMinusMultConstLong("+", i.reg1!!, i.immediate!!)
             IRDataType.FLOAT -> {
                 val left = registers.getFloat(i.fpReg1!!)
@@ -1178,8 +1152,7 @@ class VirtualMachine(irProgram: IRProgram) {
         val address = i.address!!.value
         when(i.type!!) {
             IRDataType.BYTE -> plusMinusMultAnyByteInplace("+", i.reg1!!, address)
-            IRDataType.WORD -> plusMinusMultAnyWordInplace("+", i.reg1!!, address)
-            IRDataType.POINTER -> plusMinusMultAnyWordInplace("+", i.reg1!!, address)
+            IRDataType.WORD, IRDataType.POINTER -> plusMinusMultAnyWordInplace("+", i.reg1!!, address)
             IRDataType.LONG -> plusMinusMultAnyLongInplace("+", i.reg1!!, address)
             IRDataType.FLOAT -> {
                 val left = memory.getFloat(address)
@@ -1195,7 +1168,7 @@ class VirtualMachine(irProgram: IRProgram) {
         val address = i.address!!.value
         when(i.type!!) {
             IRDataType.BYTE -> plusMinusMultConstByteInplace("+", i.immediate!!.toUByte(), address)
-            IRDataType.WORD -> plusMinusMultConstWordInplace("+", i.immediate!!.toUShort(), address)
+            IRDataType.WORD, IRDataType.POINTER -> plusMinusMultConstWordInplace("+", i.immediate!!.toUShort(), address)
             IRDataType.LONG -> plusMinusMultConstLongInplace("+", i.immediate!!, address)
             IRDataType.FLOAT -> {
                 val left = memory.getFloat(address)
@@ -1209,8 +1182,7 @@ class VirtualMachine(irProgram: IRProgram) {
     private fun InsSUBR(i: IRInstruction) {
         when(i.type!!) {
             IRDataType.BYTE -> plusMinusMultAnyByte("-", i.reg1!!, i.reg2!!)
-            IRDataType.WORD -> plusMinusMultAnyWord("-", i.reg1!!, i.reg2!!)
-            IRDataType.POINTER -> plusMinusMultAnyWord("-", i.reg1!!, i.reg2!!)
+            IRDataType.WORD, IRDataType.POINTER -> plusMinusMultAnyWord("-", i.reg1!!, i.reg2!!)
             IRDataType.LONG -> plusMinusMultAnyLong("-", i.reg1!!, i.reg2!!)
             IRDataType.FLOAT -> {
                 val left = registers.getFloat(i.fpReg1!!)
@@ -1225,8 +1197,7 @@ class VirtualMachine(irProgram: IRProgram) {
     private fun InsSUB(i: IRInstruction) {
         when(i.type!!) {
             IRDataType.BYTE -> plusMinusMultConstByte("-", i.reg1!!, i.immediate!!.toUByte())
-            IRDataType.WORD -> plusMinusMultConstWord("-", i.reg1!!, i.immediate!!.toUShort())
-            IRDataType.POINTER -> plusMinusMultConstWord("-", i.reg1!!, i.immediate!!.toUShort())
+            IRDataType.WORD, IRDataType.POINTER -> plusMinusMultConstWord("-", i.reg1!!, i.immediate!!.toUShort())
             IRDataType.LONG -> plusMinusMultConstLong("-", i.reg1!!, i.immediate!!)
             IRDataType.FLOAT -> {
                 val left = registers.getFloat(i.fpReg1!!)
@@ -1241,8 +1212,7 @@ class VirtualMachine(irProgram: IRProgram) {
         val address = i.address!!.value
         when(i.type!!) {
             IRDataType.BYTE -> plusMinusMultAnyByteInplace("-", i.reg1!!, address)
-            IRDataType.WORD -> plusMinusMultAnyWordInplace("-", i.reg1!!, address)
-            IRDataType.POINTER -> plusMinusMultAnyWordInplace("-", i.reg1!!, address)
+            IRDataType.WORD, IRDataType.POINTER -> plusMinusMultAnyWordInplace("-", i.reg1!!, address)
             IRDataType.LONG -> plusMinusMultAnyLongInplace("-", i.reg1!!, address)
             IRDataType.FLOAT -> {
                 val left = memory.getFloat(address)
@@ -1258,7 +1228,7 @@ class VirtualMachine(irProgram: IRProgram) {
         val address = i.address!!.value
         when(i.type!!) {
             IRDataType.BYTE -> plusMinusMultConstByteInplace("-", i.immediate!!.toUByte(), address)
-            IRDataType.WORD -> plusMinusMultConstWordInplace("-", i.immediate!!.toUShort(), address)
+            IRDataType.WORD, IRDataType.POINTER -> plusMinusMultConstWordInplace("-", i.immediate!!.toUShort(), address)
             IRDataType.LONG -> plusMinusMultConstLongInplace("-", i.immediate!!, address)
             IRDataType.FLOAT -> {
                 val left = memory.getFloat(address)

@@ -417,6 +417,43 @@ internal object ExpressionOptimizers {
                     }
                 }
             }
+            else if (node is PtAugmentedAssign && (node.operator=="+=" || node.operator=="-=")) {
+                if(options.compTarget.cpu.is6502 && node.target.type.isByte) {
+                    // replace byte  x+=2 or x-=2  by x++ x++  or x-- x--  on 6502 only
+                    
+                    fun makeTarget(variable: PtIdentifier?, memory: PtMemoryByte?, origTarget: PtAssignTarget): PtAssignTarget {
+                        val tgt = PtAssignTarget(false, origTarget.position)
+                        if(variable!=null)
+                            tgt.add(PtIdentifier(variable.name, origTarget.identifier!!.type, origTarget.identifier!!.position))
+                        else {
+                            val membyte = PtMemoryByte(origTarget.position)
+                            membyte.add(memory!!.address)       // TODO copy of address expression?
+                            tgt.add(membyte)
+                        }
+                        return tgt
+                    }
+                    
+                    val targetIdentifier = node.target.identifier
+                    val targetMemory = node.target.memory
+                    if(targetIdentifier!=null || (targetMemory!=null && targetMemory.address.isSimple())) {
+                        val number = node.value.asConstInteger()
+                        if (number == 2) {
+                            val replacement = PtNodeGroup()
+                            val addOrSubOne1 = PtAugmentedAssign(node.operator, node.position)
+                            addOrSubOne1.add(makeTarget(targetIdentifier, targetMemory, node.target))
+                            addOrSubOne1.add(PtNumber(node.target.type.base, 1.0, node.position))
+                            val addOrSubOne2 = PtAugmentedAssign(node.operator, node.position)
+                            addOrSubOne2.add(makeTarget(targetIdentifier, targetMemory, node.target))
+                            addOrSubOne2.add(PtNumber(node.target.type.base, 1.0, node.position))
+                            replacement.add(addOrSubOne1)
+                            replacement.add(addOrSubOne2)
+                            val index = node.parent.children.indexOf(node)
+                            node.parent.setChild(index, replacement)
+                            changes++
+                        }
+                    }
+                }
+            }
             true
         }
         return changes
