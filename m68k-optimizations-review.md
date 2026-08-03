@@ -119,20 +119,6 @@ a single 8-bit compare of `msb()`. On m68k `cmp.w #256` is one
 instruction; the rewrite to `msb()` lowers to `MSIGB` + compare, which
 is *more* IR, never less. Restrict to 6502/65C02.
 
-### `optimizeShiftLeft` — `word << 8` → `mkword(lsb(x), 0)` (lines 1090-1119)
-On 6502 a word left-shift by 8 is "just" moving the low byte to the
-high byte and zeroing the low byte, which is free register allocation.
-On m68k `lsl.w #8` is one instruction, while `mkword(lsb(x), 0)`
-lowers to `LSIGB` + zero-extend + `CONCAT` — more IR, never less.
-
-**NEEDS GATING.** Restrict to 6502/65C02.
-
-### `optimizeShiftRight` — `word >> 8` → `msb(x)` (lines 1151-1183)
-On m68k `lsr.w #8` / `asr.w #8` is one instruction.
-
-**NEEDS GATING.** Same rationale as `optimizeShiftLeft`. Restrict to
-6502/65C02.
-
 ---
 
 ## Summary table
@@ -142,8 +128,6 @@ On m68k `lsr.w #8` / `asr.w #8` is one instruction.
 | **`ExpressionSimplifier.kt:66-87`** | `WORD & $xx00` → `msb(WORD) & $xx` | **NEEDS GATING** |
 | **`ExpressionSimplifier.kt:543-568`** | `(WORD & $xx00) == y` → msb | **NEEDS GATING** |
 | **`ExpressionSimplifier.kt:582-632`** | `uword` vs 255/256/`$xx00` → msb | **NEEDS GATING** |
-| **`ExpressionSimplifier.kt:1090-1119`** | `word << 8` → `mkword(lsb(x), 0)` | **NEEDS GATING** |
-| **`ExpressionSimplifier.kt:1151-1183`** | `word >> 8` → `msb(x)` | **NEEDS GATING** |
 
 ---
 

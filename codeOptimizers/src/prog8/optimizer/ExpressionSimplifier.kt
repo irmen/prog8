@@ -1100,11 +1100,13 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                     return NumericLiteral(targetDt, 0.0, expr.position)
                 }
                 else if(amount==8) {
+                    if(!options.compTarget.cpu.is6502) return null
                     // shift left by 8 bits is just a byte operation: mkword(lsb(X), 0)
                     val lsb = FunctionCallExpression(IdentifierReference(listOf("lsb"), expr.position), mutableListOf(expr.left), expr.position)
                     return FunctionCallExpression(IdentifierReference(listOf("mkword"), expr.position), mutableListOf(lsb, NumericLiteral(BaseDataType.UBYTE, 0.0, expr.position)), expr.position)
                 }
                 else if (amount > 8) {
+                    if(!options.compTarget.cpu.is6502) return null
                     // same as above but with residual shifts.
                     val lsb = FunctionCallExpression(IdentifierReference(listOf("lsb"), expr.position), mutableListOf(expr.left), expr.position)
                     val shifted = BinaryExpression(lsb, "<<", NumericLiteral.optimalInteger(amount - 8, expr.position), expr.position)
@@ -1117,12 +1119,14 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                     return NumericLiteral(targetDt, 0.0, expr.position)
                 }
                 else if(amount==8) {
+                    if(!options.compTarget.cpu.is6502) return null
                     // shift left by 8 bits is just a byte operation: mkword(lsb(X), 0)
                     val lsb = FunctionCallExpression(IdentifierReference(listOf("lsb"), expr.position), mutableListOf(expr.left), expr.position)
                     val mkword =  FunctionCallExpression(IdentifierReference(listOf("mkword"), expr.position), mutableListOf(lsb, NumericLiteral(BaseDataType.UBYTE, 0.0, expr.position)), expr.position)
                     return TypecastExpression(mkword, DataType.WORD, true, expr.position)
                 }
                 else if (amount > 8) {
+                    if(!options.compTarget.cpu.is6502) return null
                     // same as above but with residual shifts.
                     val lsb = FunctionCallExpression(IdentifierReference(listOf("lsb"), expr.position), mutableListOf(expr.left), expr.position)
                     val shifted = BinaryExpression(lsb, "<<", NumericLiteral.optimalInteger(amount - 8, expr.position), expr.position)
@@ -1166,11 +1170,13 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                     return null
                 }
                 else if(amount==8) {
+                    if(!options.compTarget.cpu.is6502) return null
                     // shift right by 8 bits is just a byte operation: msb(X) as uword
                     val msb = FunctionCallExpression(IdentifierReference(listOf("msb"), expr.position), mutableListOf(expr.left), expr.position)
                     return TypecastExpression(msb, DataType.UWORD, true, expr.position)
                 }
                 else if (amount > 8) {
+                    if(!options.compTarget.cpu.is6502) return null
                     // same as above but with residual shifts.
                     val msb = FunctionCallExpression(IdentifierReference(listOf("msb"), expr.position), mutableListOf(expr.left), expr.position)
                     return TypecastExpression(BinaryExpression(msb, ">>", NumericLiteral.optimalInteger(amount - 8, expr.position), expr.position), DataType.UWORD, true, expr.position)
@@ -1182,11 +1188,13 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                     return null
                 }
                 else if(amount == 8) {
+                    if(!options.compTarget.cpu.is6502) return null
                     // shift right by 8 bits is just a byte operation: msb(X) as byte  (will get converted to word later)
                     val msb = FunctionCallExpression(IdentifierReference(listOf("msb"), expr.position), mutableListOf(expr.left), expr.position)
                     return TypecastExpression(msb, DataType.BYTE, true, expr.position)
                 }
                 else if(amount > 8) {
+                    if(!options.compTarget.cpu.is6502) return null
                     // same as above but with residual shifts. Take care to do signed shift.
                     val msb = FunctionCallExpression(IdentifierReference(listOf("msb"), expr.position), mutableListOf(expr.left), expr.position)
                     val signed = TypecastExpression(msb, DataType.BYTE, true, expr.position)
