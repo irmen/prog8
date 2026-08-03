@@ -63,9 +63,7 @@ proc_CLI = 172
         sys.IntuitionBase = exec.OpenLibrary("intuition.library",0)
         sys.IconBase = exec.OpenLibrary("icon.library",0)
         sys.UtilityBase = exec.OpenLibrary("utility.library",0)     ; only succeeds on kickstart 2.0+
-    }
 
-    sub init_system_phase2() {
         ; open timer.device in a kickstart 1.3 compatible fashion
         ^^exec.MsgPort timerPort = []
         sys.TimerIO = exec.AllocMem(sizeof(timer.TimeRequest), exec.MEMF_PUBLIC | exec.MEMF_CLEAR)
@@ -79,8 +77,9 @@ proc_CLI = 172
         if exec.OpenDevice("timer.device", timer.UNIT::MICROHZ, sys.TimerIO, 0)==0 {
             sys.TimerBase = sys.TimerIO.Device
         }
+    }
 
-
+    sub init_system_phase2() {
         %asm {{
             moveq   #0,d0
             moveq   #0,d1
