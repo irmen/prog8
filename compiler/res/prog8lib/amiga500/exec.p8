@@ -5,6 +5,19 @@
 
 exec {
     %option no_symbol_prefixing
+
+    asmsub NewList(^^List list @A0) {
+        ; manually added utility routine to initialize new exec linked lists
+        %asm {{
+            addq.l  #4, a0              ; Point to lh_Tail
+            move.l  a0, -4(a0)          ; lh_Head = &lh_Tail
+            clr.l   (a0)                ; lh_Tail = NULL
+            subq.l  #4, a0              ; Point back to &lh_Head
+            move.l  a0, 4(a0)           ; lh_TailPred = &lh_Head
+            rts
+        }}
+    }
+
     extsub @bank 1   -30 = Supervisor(pointer userFunction @A5) -> long @D0
     extsub @bank 1   -72 = InitCode(long startClass @D0, long version @D1)
     extsub @bank 1   -78 = InitStruct(pointer initTable @A1, pointer k_memory @A2, long size @D0)
@@ -271,6 +284,17 @@ exec {
     }
 
     ; ---- constants ----
+    const uword CMD_INVALID =0
+    const uword CMD_RESET   =1
+    const uword CMD_READ    =2
+    const uword CMD_WRITE   =3
+    const uword CMD_UPDATE  =4
+    const uword CMD_CLEAR   =5
+    const uword CMD_STOP    =6
+    const uword CMD_START   =7
+    const uword CMD_FLUSH   =8
+    const uword CMD_NONSTD  =9
+
     const ubyte UNITB_ACTIVE = 0
     const ubyte UNITF_ACTIVE = $0001
     const ubyte UNITB_INTASK = 1

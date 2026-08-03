@@ -129,7 +129,7 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
 
     // === label/symbol helpers ===
 
-    internal fun fixNameSymbols(name: String): String = name   // for now, no mangling needed {
+    internal fun fixNameSymbols(name: String): String = name.replace("::", "_")
 
     
     fun resolveSymbolRef(name: String): String {
