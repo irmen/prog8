@@ -75,14 +75,6 @@ explicitly skip the non-6502 targets. The mechanism:
 
 ## `StatementOptimizer.kt`
 
-### `before(assignment)` — `A = A ± B ± N` split (lines 315-343)
-Splits `A = A ± B ± N` into two statements so each add can be done
-in-place. The motivation is 6502 in-place memory accumulation.
-
-**Neutral.** Still correct on m68k but the codegen could have combined the
-adds into a single `addq`/`add.l`. Not actively harmful. Optional
-follow-up: keep, but consider whether m68k codegen can do better.
-
 ### `after(assignment)` — `xx += 2` → `xx++; xx++` (lines 464-489)
 The comment even admits "ideally this optimization should be done by the
 code generator". On 6502 two `INC`s beat a load/add/store of a constant
@@ -159,24 +151,25 @@ a single 8-bit compare of `msb()`. On m68k `cmp.w #256` is one
 instruction; the rewrite to `msb()` lowers to `MSIGB` + compare, which
 is *more* IR, never less. Restrict to 6502/65C02.
 
-### `functionCallExpression` — `lsb(msw(longvar))` → `@(&longvar+2)` (lines 752-760)
+### `functionCallExpression` — `lsb(msw(longvar))` → `@(&longvar+2)` / `@(&longvar+1)` (lines 752-760)
 Comment: "get the bank byte from a long variable".
 
-**WRONG on m68k.** This hardcodes a little-endian byte offset into the
-memory layout of a long. On the 6502 (LE), a long `0x11223344` lives in
-memory as `44 33 22 11`, so `lsb(msw(long))` (bits 16-23 = `33`) is byte
-`+2`. On the m68k (BE), the same long is `11 22 33 44` in memory, so
-`lsb(msw(long))` (bits 16-23 = `22`) is byte `+1`, not `+2`. The
-rewrite reads the wrong byte on m68k.
+**Endianness-aware (fixed).** The offset into the variable's memory depends
+on the target's endianness, so the rewrite now picks it from
+`options.compTarget.cpu.isBigEndian`:
+- little-endian (6502 family, virtual): bits 16-23 are at offset `+2`
+- big-endian (m68k): bits 16-23 are at offset `+1`
 
-### `functionCallExpression` — `msb(lsw(longvar))` → `@(&longvar+1)` (lines 793-801)
-**WRONG on m68k** for the same reason. On BE, `msb(lsw(long))` (bits
-8-15) is byte `+2`, but the rewrite reads byte `+1`.
+Previously the offset was hardcoded to `+2`, which read the wrong byte on
+m68k. Now it reads the correct bank byte on every target. Verified:
+`lsb(msw($11223344))` yields `$22` on 6502/virtual **and** amiga500.
+(An `isBigEndian` property was added to `CpuType` for this; note the VM is
+little-endian, so it is correctly treated as LE.)
 
-Both rewrites are also semantically tied to the "bank byte" memory
-model which is 6502/CX16-specific. Restrict to 6502/65C02 (or to
-`CpuType.CPU6502` / `CPU65C02` explicitly with a `cx16` check, since the
-"bank byte" framing is really about the CX16 memory banking).
+### `functionCallExpression` — `msb(lsw(longvar))` → `@(&longvar+1)` / `@(&longvar+2)` (lines 793-801)
+Same endianness-aware fix. Bits 8-15 are at offset `+1` on LE and `+2` on
+BE (m68k). Previously hardcoded to `+1`, wrong on m68k. Now `msb(lsw($11223344))`
+yields `$33` correctly on all targets.
 
 ### `optimizeRemainder` (lines 919-942)
 `% 1` → `0`, and `% 2^n` → `& (2^n-1)` for **unsigned** types.
@@ -232,14 +225,13 @@ On m68k `lsr.w #8` / `asr.w #8` is one instruction.
 
 | File:line | Rewrite | Status |
 |---|---|---|
-| `StatementOptimizer.kt:315-343` | `A = A ± B ± N` split | Neutral |
 | **`StatementOptimizer.kt:464-489`** | `xx += 2` → `xx++; xx++` | **NEEDS GATING** |
 | **`ExpressionSimplifier.kt:66-87`** | `WORD & $xx00` → `msb(WORD) & $xx` | **NEEDS GATING** |
 | **`ExpressionSimplifier.kt:332-458`** | `<<`/`>>` by 8/16/24 → lsb/msb | **NEEDS GATING** |
 | **`ExpressionSimplifier.kt:543-568`** | `(WORD & $xx00) == y` → msb | **NEEDS GATING** |
 | **`ExpressionSimplifier.kt:582-632`** | `uword` vs 255/256/`$xx00` → msb | **NEEDS GATING** |
-| **`ExpressionSimplifier.kt:752-760`** | `lsb(msw(longvar))` → `@(&longvar+2)` | **WRONG on m68k (BE)** |
-| **`ExpressionSimplifier.kt:793-801`** | `msb(lsw(longvar))` → `@(&longvar+1)` | **WRONG on m68k (BE)** |
+| **`ExpressionSimplifier.kt:752-760`** | `lsb(msw(longvar))` → `@(&longvar+N)` | **Fixed (endianness-aware offset)** |
+| **`ExpressionSimplifier.kt:793-801`** | `msb(lsw(longvar))` → `@(&longvar+N)` | **Fixed (endianness-aware offset)** |
 | **`ExpressionSimplifier.kt:971-984`** | `x / 256` → `msb(x)` | **NEEDS GATING** |
 | **`ExpressionSimplifier.kt:1090-1119`** | `word << 8` → `mkword(lsb(x), 0)` | **NEEDS GATING** |
 | **`ExpressionSimplifier.kt:1151-1183`** | `word >> 8` → `msb(x)` | **NEEDS GATING** |
@@ -251,8 +243,13 @@ On m68k `lsr.w #8` / `asr.w #8` is one instruction.
 1. Gate each of the entries marked **NEEDS GATING** with
    `if (options.compTarget.cpu.is6502)` (the `is6502` property already
    exists on `CpuType` in `codeCore/src/prog8/code/core/ICompilationTarget.kt`).
-2. Gate the two `@(&longvar+N)` rewrites the same way; they are
-   little-endian / bank-byte assumptions that are simply wrong on m68k.
+ 2. **DONE** — the two `@(&longvar+N)` rewrites (`lsb(msw(longvar))` →
+    `@(&longvar+offset)` at lines 752-760, `msb(lsw(longvar))` →
+    `@(&longvar+offset)` at lines 793-801) now pick the offset from
+    `options.compTarget.cpu.isBigEndian` instead of hardcoding the
+    little-endian value. LE targets (6502, virtual) use `+2`/`+1`; BE (m68k)
+    uses `+1`/`+2`. Verified correct (`$22`/`$33`) on amiga500, 6502 and
+    virtual. An `isBigEndian` property was added to `CpuType`.
 3. **DONE** — the `optimizeRemainder` guard at line 933 now uses
    `expr.left.inferType(program).getOrUndef().isUnsignedInteger`, so the
    `% 2^n → & (2^n-1)` rewrite fires for unsigned *variables* (not just
@@ -262,5 +259,5 @@ On m68k `lsr.w #8` / `asr.w #8` is one instruction.
    virtual (runtime `41 % 16 == 9` via `&`, `-1 % 16 == -1` via `mods`),
    m68k (IR `and` for unsigned, `mods` for signed), and 6502 (`and` for
    unsigned; signed `%` is a separate, pre-existing 6502 limitation).
-4. Leave the boundary compares vs 0/1 (lines 194-237) alone — they
-   are mildly 6502-flavored but never harmful.
+ 4. Leave the boundary compares vs 0/1 (lines 194-237) alone — they
+    are mildly 6502-flavored but never harmful.

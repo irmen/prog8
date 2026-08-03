@@ -750,12 +750,16 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                     return listOf(AstReplaceNode(functionCallExpr, cast, parent))
                 }
             } else if(arg is FunctionCallExpression && arg.target.nameInSource == listOf("msw")) {
-                // lsb(msw(longvar)) -->  @(&longvar+2)   ; get the bank byte from a long variable
+                // lsb(msw(longvar)) -->  @(&longvar+offset)   ; get the bank byte from a long variable
+                // The offset into the variable's memory depends on the target's endianness:
+                //   little-endian (6502, virtual): bits 16-23 are at offset +2
+                //   big-endian (m68k):           bits 16-23 are at offset +1
                 val longvar = arg.args[0] as? IdentifierReference
                 if(longvar!=null && longvar.inferType(program).isLong) {
+                    val offset = if (options.compTarget.cpu.isBigEndian) 1 else 2
                     val address = AddressOf(longvar, null, null, false, false, functionCallExpr.position)
-                    val plus2 = BinaryExpression(address, "+", NumericLiteral(BaseDataType.UWORD, 2.0, functionCallExpr.position), functionCallExpr.position)
-                    val memread = DirectMemoryRead(plus2, functionCallExpr.position)
+                    val plus = BinaryExpression(address, "+", NumericLiteral(BaseDataType.UWORD, offset.toDouble(), functionCallExpr.position), functionCallExpr.position)
+                    val memread = DirectMemoryRead(plus, functionCallExpr.position)
                     return listOf(AstReplaceNode(functionCallExpr, memread, parent))
                 }
             } else {
@@ -791,12 +795,16 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                             parent))
                 }
             } else if(arg is FunctionCallExpression && arg.target.nameInSource == listOf("lsw")) {
-                // msb(lsw(longvar)) -->  @(&longvar+1)   ; get the second byte from a long variable
+                // msb(lsw(longvar)) -->  @(&longvar+offset)   ; get the second byte from a long variable
+                // The offset into the variable's memory depends on the target's endianness:
+                //   little-endian (6502, virtual): bits  8-15 are at offset +1
+                //   big-endian (m68k):           bits  8-15 are at offset +2
                 val longvar = arg.args[0] as? IdentifierReference
                 if(longvar!=null && longvar.inferType(program).isLong) {
+                    val offset = if (options.compTarget.cpu.isBigEndian) 2 else 1
                     val address = AddressOf(longvar, null, null, false, false, functionCallExpr.position)
-                    val plus2 = BinaryExpression(address, "+", NumericLiteral(BaseDataType.UWORD, 1.0, functionCallExpr.position), functionCallExpr.position)
-                    val memread = DirectMemoryRead(plus2, functionCallExpr.position)
+                    val plus = BinaryExpression(address, "+", NumericLiteral(BaseDataType.UWORD, offset.toDouble(), functionCallExpr.position), functionCallExpr.position)
+                    val memread = DirectMemoryRead(plus, functionCallExpr.position)
                     return listOf(AstReplaceNode(functionCallExpr, memread, parent))
                 }
             } else {

@@ -55,6 +55,11 @@ enum class CpuType(val statusBitsOnMultiByteOps: Boolean) {
     /** True for the 6502-family targets (plain 6502 and 65C02). */
     val is6502: Boolean
         get() = this == CPU6502 || this == CPU65C02
+    val is68k: Boolean
+        get() = this == M68000 || this == M68020
+    /** True for big-endian targets. The 6502 family and the VM are little-endian. */
+    val isBigEndian: Boolean
+        get() = this == M68000 || this == M68020
 }
 
 interface ICompilationTarget: IStringEncoding, IMemSizer {
