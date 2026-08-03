@@ -22,7 +22,9 @@ import prog8.code.core.Position
 import prog8.code.target.C64Target
 import prog8.code.target.Cx16Target
 import prog8.code.target.VMTarget
+import prog8.intermediate.IRFileReader
 import prog8.vm.VmRunner
+import prog8.vm.VmVariableAllocator
 import prog8tests.helpers.*
 import kotlin.io.path.readText
 
@@ -2434,5 +2436,33 @@ main {
         }
         
         checkParents(root, ParentSentinel)
+    }
+
+    test("A = A +/- (B +/- N) split keeps correct values (sign-bug regression)") {
+        // Regression test for the "A = A +/- (B +/- N)" split in StatementOptimizer.
+        // The split rewrites  A = A op1 (B op2 N)  into  A = A op1 B ; A = A secondOp N
+        // where secondOp must keep the combined expression equivalent:
+        //   A+(B+N)=A+N,  A+(B-N)=A-N,  A-(B+N)=A-N,  A-(B-N)=A+N
+        // The buggy version hardcoded secondOp = op2, which gave the wrong sign
+        // for the A-... cases (e.g. A-(B-N) became A-B-N instead of A-B+N).
+        val workingDir = assumeDirectory("")
+        val examplesDir = assumeDirectory(workingDir, "../examples")
+        val result = compileFile(VMTarget(), true, examplesDir, "test.p8", outputDir)!!
+        val irFile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
+        val irContent = irFile.readText()
+        val irProgram = IRFileReader().read(irContent)
+        irProgram.st.stripAllPrefixes()
+        val allocations = VmVariableAllocator(irProgram.st, irProgram.encoding, irProgram.options.compTarget).allocations
+
+        VmRunner().runAndTestProgram(irContent) { vm ->
+            // a = a + (b + 5)   -> 10+3+5  = 18
+            vm.memory.getUW(allocations["main.start.a"]!!) shouldBe 18u
+            // c = c - (d - 2)   -> 20-(4-2) = 18   (buggy split gave 14)
+            vm.memory.getUW(allocations["main.start.c"]!!) shouldBe 18u
+            // g = g - (h + 3)   -> 50-(5+3) = 42   (buggy split gave 48)
+            vm.memory.getUW(allocations["main.start.g"]!!) shouldBe 42u
+            // e = e + (f - 3)   -> 100+7-3 = 104
+            vm.memory.getUW(allocations["main.start.e"]!!) shouldBe 104u
+        }
     }
 })
