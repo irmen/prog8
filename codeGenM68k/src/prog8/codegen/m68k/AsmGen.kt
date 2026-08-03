@@ -454,11 +454,11 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
                     }
                     when (val fv = fieldValue.value) {
                         is IRStSymbolicReference.Numeric -> {
-                            val v = fv.value.toInt()
-                            when (m68kSize) {
-                                4 -> emitLine("dc.l  $v")
-                                2 -> emitLine("dc.w  $v")
-                                else -> emitLine("dc.b  $v")
+                            when {
+                                fieldValue.dt == BaseDataType.FLOAT -> emitLine("dc.s  ${fv.value ?: 0.0}")
+                                m68kSize == 4 -> emitLine("dc.l  ${fv.value.toInt()}")
+                                m68kSize == 2 -> emitLine("dc.w  ${fv.value.toInt()}")
+                                else -> emitLine("dc.b  ${fv.value.toInt()}")
                             }
                         }
                         is IRStSymbolicReference.Symbol -> {
@@ -532,15 +532,28 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
                     is IRVariableInitializer.Str -> 0
                     null -> 0
                 }
+                val initFloat = when(init) {
+                    is IRVariableInitializer.Numeric -> init.value
+                    else -> 0.0
+                }
                 when(dt) {
                     DataType.BYTE, DataType.UBYTE, DataType.BOOL -> {
                         emitLine("$label:")
                         emitLine("dc.b  $initValue", v.name)
                     }
-                    else -> {
+                    DataType.WORD, DataType.UWORD -> {
                         emitLine("$label:")
                         emitLine("dc.w  $initValue", v.name)
                     }
+                    DataType.LONG -> {
+                        emitLine("$label:")
+                        emitLine("dc.l  $initValue", v.name)
+                    }
+                    DataType.FLOAT -> {
+                        emitLine("$label:")
+                        emitLine("dc.s  $initFloat", v.name)
+                    }
+                    else -> TODO("initialization value for dt $dt variable ${v.name}")
                 }
             }
             else -> {

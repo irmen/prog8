@@ -16,6 +16,7 @@
 
 package prog8.codegen.m68k
 
+import prog8.code.core.CpuType
 import prog8.code.core.Statusflag
 import prog8.code.core.toHex
 import prog8.code.target.Amiga500Target
@@ -137,13 +138,17 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
         // === Status flag stack ops via Scc ===
 
         Opcode.PUSHST -> {
-            // Move CCR to D0 (low byte), then push as byte
+            // Move CCR to D0 (low byte), then push as byte.
+            if(program.options.compTarget.cpu == CpuType.M68000)
+                error("the 68000 cpu cannot save/restore the status bits using a nonprivileged instruction. This is required to implement the 'PUSHST/POPST' IR opcodes. Compile for 68010 or higher cpu or change the code such that PUSHST/POPST are no longer used (sometimes complicated rol/ror operations need it)")
             emitLine("move  ccr, d0")
             emitLine("move.b  d0, -(sp)")
         }
 
         Opcode.POPST -> {
             // Pop byte into D0, then restore CCR
+            if(program.options.compTarget.cpu == CpuType.M68000)
+                error("the 68000 cpu cannot save/restore the status bits using a nonprivileged instruction. This is required to implement the 'PUSHST/POPST' IR opcodes. Compile for 68010 or higher cpu or change the code such that PUSHST/POPST are no longer used (sometimes complicated rol/ror operations need it)")
             emitLine("move.b  (sp)+, d0")
             emitLine("move  d0, ccr")
         }

@@ -551,7 +551,7 @@ private fun processAst(program: Program, errors: IErrorReporter, compilerOptions
         return
     }
 
-    if(compilerOptions.compTarget.cpu in setOf(CpuType.M68000, CpuType.M68020)) {
+    if(compilerOptions.compTarget.cpu.is68k) {
         program.checkM68kSyntax(errors)
         errors.report()
     }

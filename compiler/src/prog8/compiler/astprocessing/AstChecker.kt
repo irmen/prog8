@@ -140,7 +140,7 @@ internal class AstChecker(private val program: Program,
                     errors.err("invalid statement in unroll loop", it.position)
             }
             if (iterations * unrollLoop.body.statements.size > 256) {
-                if(options.compTarget.cpu !in setOf(CpuType.M68000, CpuType.M68020))
+                if(!options.compTarget.cpu.is68k)
                     errors.warn("large number of unrolls, potential code size issue", unrollLoop.position)
             }
         }
@@ -277,7 +277,7 @@ internal class AstChecker(private val program: Program,
                     }
 
                     BaseDataType.LONG -> {
-                        if(options.compTarget.cpu !in setOf(CpuType.M68000, CpuType.M68020))
+                        if(!options.compTarget.cpu.is68k)
                             errors.warn("for loop using a long counter could be very slow", forLoop.position)
                     }
 
@@ -700,12 +700,12 @@ internal class AstChecker(private val program: Program,
         if (iterations != null) {
             require(floor(iterations.number)==iterations.number)
             if (iterations.number.toInt() > 65536) 
-                if(options.compTarget.cpu !in setOf(CpuType.M68000, CpuType.M68020))
+                if(!options.compTarget.cpu.is68k)
                     errors.warn("repeat using a long counter could be very slow", iterations.position)
         }
         
         if(repeatLoop.iterations?.inferType(program)?.isLong==true) {
-            if(options.compTarget.cpu !in setOf(CpuType.M68000, CpuType.M68020))
+            if(!options.compTarget.cpu.is68k)
                 errors.warn("repeat using a long counter could be very slow", repeatLoop.iterations!!.position)
         }
 

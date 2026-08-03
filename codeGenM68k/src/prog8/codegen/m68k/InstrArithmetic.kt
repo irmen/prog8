@@ -556,13 +556,13 @@ private fun AsmGen.emitModOp(dstReg: Int, srcReg: Int?, type: IRDataType, unsign
             when {
                 srcReg != null -> {
                     emitLine("move.l  ${regAddr(dstReg)}, d0", "dividend")
-                    emitLine("$opLong  ${regAddr(srcReg)}, d1, d0")
+                    emitLine("$opLong  ${regAddr(srcReg)}, d1:d0")
                     emitLine("move.l  d1, ${regAddr(dstReg)}", "remainder")
                 }
                 imm != null -> {
                     emitLine("move.l  ${regAddr(dstReg)}, d0", "dividend")
                     emitLine("move.l  #${imm}, d2", "divisor")
-                    emitLine("$opLong  d2, d1, d0")
+                    emitLine("$opLong  d2, d1:d0")
                     emitLine("move.l  d1, ${regAddr(dstReg)}", "remainder")
                 }
             }
@@ -592,7 +592,7 @@ private fun AsmGen.emitDivModOp(dstReg: Int, srcReg: Int?, type: IRDataType, uns
                     if (!unsigned) emitLine("extb.l  d2", "sign extend")
                 }
             }
-            emitLine("$op  d2, d1, d0")
+                    emitLine("$op  d2, d1:d0")
             emitLine("move.b  d1, ${regAddrByte(dstReg, 0)}", "remainder lo")
             emitLine("move.b  d0, ${regAddrByte(dstReg, 1)}", "quotient hi")
         }
@@ -625,14 +625,14 @@ private fun AsmGen.emitDivModOp(dstReg: Int, srcReg: Int?, type: IRDataType, uns
             when {
                 srcReg != null -> {
                     emitLine("move.l  ${regAddr(dstReg)}, d0", "dividend")
-                    emitLine("$op  ${regAddr(srcReg)}, d1, d0")
+                    emitLine("$op  ${regAddr(srcReg)}, d1:d0")
                     emitLine("move.l  d1, ${regAddr(dstReg)}", "remainder")
                     emitLine("move.l  d0, ${regAddrByte(dstReg, 4)}", "quotient in next 4 bytes")
                 }
                 imm != null -> {
                     emitLine("move.l  ${regAddr(dstReg)}, d0", "dividend")
                     emitLine("move.l  #${imm}, d2", "divisor")
-                    emitLine("$op  d2, d1, d0")
+            emitLine("$op  d2, d1:d0")
                     emitLine("move.l  d1, ${regAddr(dstReg)}", "remainder")
                     emitLine("move.l  d0, ${regAddrByte(dstReg, 4)}", "quotient in next 4 bytes")
                 }
