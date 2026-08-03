@@ -1,36 +1,19 @@
 %import textio
-%import exec
-%import timer
+%zeropage basicsafe
+%option no_sysinit
 
 main {
     sub start() {
+        uword @shared x = 41
+        uword @shared y = x % 16      ; expect 41 & 15 = 9
+        txt.print("U=")
+        txt.print_uw(y)
+        txt.print(" ")
 
-        long secs, micro = timer.getsystime()
-        txt.print_l(secs)
-        txt.spc()
-        txt.print_l(micro)
-        txt.nl()
-
-        timer.setsystime(9,99999)
-        secs, micro = timer.getsystime()
-        txt.print_l(secs)
-        txt.spc()
-        txt.print_l(micro)
-        txt.nl()
-
-;        ^^timer.EClockVal eclock = []
-;        timer.GetSysTime(systime)
-;        txt.print_l(systime.secs)
-;        txt.spc()
-;        txt.print_l(systime.micro)
-;        txt.nl()
-;
-;        long tickrate = timer.ReadEClock(eclock)
-;        txt.print_l(tickrate)
-;        txt.nl()
-;        txt.print_ulhex(eclock.hi,true)
-;        txt.spc()
-;        txt.print_ulhex(eclock.lo,false)
-;        txt.nl()
+        word @shared z = -1
+        word @shared w = z % 16      ; signed: expect -1 (must stay %)
+        txt.print("S=")
+        txt.print_w(w)
+        txt.print("\n")
     }
 }
