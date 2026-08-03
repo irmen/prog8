@@ -1236,4 +1236,25 @@ main {
             vm.memory.getUW(valuesAddr + 4u) shouldBe 3000u
         }
     }
+
+    test("power-of-two multiply with -noopt must not crash on shift-count register type") {
+        // Regression test for the "Wrong shift-count register type" IR-codegen bug:
+        // a power-of-two multiply lowers to LSLNM whose count register was typed WORD
+        // instead of BYTE, causing "register rN given multiple types! WORD and BYTE"
+        // during IR generation. This surfaces with optimizations OFF (the -noopt path).
+        // The test only checks that compilation succeeds; it currently FAILS
+        // (throws during the compilation step) until the bug is fixed.
+        val src = """
+            %zeropage basicsafe
+            %option no_sysinit
+            main {
+                sub start() {
+                    uword z = 1234
+                    z = z * 8
+                }
+            }
+        """.trimIndent()
+        val result = compileText(VMTarget(), optimize=false, src, outputDir, writeAssembly = true)
+        result shouldNotBe null
+    }
 })

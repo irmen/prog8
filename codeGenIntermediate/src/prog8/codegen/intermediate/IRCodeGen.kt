@@ -1102,8 +1102,8 @@ class IRCodeGen(
         }
         else if(pow2>=1) {
             // just shift multiple bits
-            val pow2reg = registers.next(dt)
-            code += IRInstruction(Opcode.LOAD, dt, reg1=pow2reg, immediate = pow2)
+            val pow2reg = registers.next(IRDataType.BYTE)
+            code += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=pow2reg, immediate = pow2)
             code += if(knownAddress!=null)
                 IRInstruction(Opcode.LSLNM, dt, reg1=pow2reg, address = knownAddress.toAddress())
             else
@@ -1220,8 +1220,8 @@ class IRCodeGen(
                         IRInstruction(Opcode.ASRM, dt, labelSymbol = symbol)
                 } else {
                     // just shift multiple bits (signed)
-                    val pow2reg = registers.next(dt)
-                    code += IRInstruction(Opcode.LOAD, dt, reg1 = pow2reg, immediate = pow2)
+                    val pow2reg = registers.next(IRDataType.BYTE)
+                    code += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = pow2reg, immediate = pow2)
                     code += if (knownAddress != null)
                                 IRInstruction(Opcode.ASRNM, dt, reg1 = pow2reg, address = knownAddress.toAddress())
                             else
@@ -1237,8 +1237,8 @@ class IRCodeGen(
                 }
                 else {
                     // just shift multiple bits (unsigned)
-                    val pow2reg = registers.next(dt)
-                    code += IRInstruction(Opcode.LOAD, dt, reg1=pow2reg, immediate = pow2)
+                    val pow2reg = registers.next(IRDataType.BYTE)
+                    code += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=pow2reg, immediate = pow2)
                     code += if(knownAddress!=null)
                                 IRInstruction(Opcode.LSRNM, dt, reg1 = pow2reg, address = knownAddress.toAddress())
                             else
