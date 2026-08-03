@@ -1,34 +1,57 @@
 %import textio
 %zeropage basicsafe
 
-; Demonstrates the two "wrong-on-m68k" AST rewrites in ExpressionSimplifier:
-;   lsb(msw(longvar))  ->  @(&longvar+2)
-;   msb(lsw(longvar))  ->  @(&longvar+1)
-; These assume a little-endian (6502) memory layout. They are NOT gated, so
-; they fire for every target. On 6502 (and the virtual target) the offsets are
-; correct; on big-endian m68k the same offsets read a different byte, so the
-; printed value is wrong there.
-;
-; With value = 0x11223344  (LE bytes in memory: 44 33 22 11):
-;   lsb(msw(value)) should be bits 16-23 = 0x22  (6502/virtual prints 0x34)
-;   msb(lsw(value)) should be bits  8-15 = 0x33  (6502/virtual prints 0x51)
-; On m68k (bytes 11 22 33 44) the offset +2/+1 reads the wrong byte, so the
-; output is swapped: lsb(msw)=0x51, msb(lsw)=0x34.
+; Demonstrates the "xx += 2 -> xx++; xx++" AST rewrite in StatementOptimizer.
+; On 6502 two INC/DEC are cheaper than a load/add/store of a constant 2, so
+; the optimizer splits the add into two increments. On m68k a single addq #2
+; is one instruction, so the split is strictly worse there.
 
 main {
     sub start() {
-        long @shared value = $11223344
+        incdec()
+        quick()
+        more()
+    }
 
-        ubyte @shared a = lsb(msw(value))
-        txt.print("lsb(msw)=")
-        txt.print_ubhex(a, true)
-        txt.print(" ($22 on 6502, wrong on m68k)")
-        txt.print("\n")
+    sub incdec() {
+        ubyte @shared x = 5
+        x += 2      ; expect 7
+        txt.print("x=")
+        txt.print_ub(x)
+        txt.nl()
 
-        ubyte @shared b = msb(lsw(value))
-        txt.print("msb(lsw)=")
-        txt.print_ubhex(b, true)
-        txt.print(" ($33 on 6502, wrong on m68k)")
-        txt.print("\n")
+        ubyte @shared y = 20
+        y -= 2      ; expect 18
+        txt.print("y=")
+        txt.print_ub(y)
+        txt.nl()
+    }
+
+    sub quick() {
+        ubyte @shared p = 5
+        p += 7      ; expect 12
+        txt.print("p=")
+        txt.print_ub(p)
+        txt.nl()
+
+        ubyte @shared q = 20
+        q -= 7      ; expect 13
+        txt.print("q=")
+        txt.print_ub(q)
+        txt.nl()
+    }
+
+    sub more() {
+        ubyte @shared a = 11
+        a += 55      ; expect 66
+        txt.print("a=")
+        txt.print_ub(a)
+        txt.nl()
+
+        ubyte @shared b = 100
+        b -= 70      ; expect 30
+        txt.print("b=")
+        txt.print_ub(b)
+        txt.nl()
     }
 }

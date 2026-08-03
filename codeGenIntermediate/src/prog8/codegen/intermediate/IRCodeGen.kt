@@ -402,8 +402,9 @@ class IRCodeGen(
             val old = it.first.instructions[it.second]
             val formats = instructionFormats.getValue(old.opcode)
             val format = formats.getOrElse(old.type) { throw IllegalArgumentException("type ${old.type} invalid for ${old.opcode}") }
-            val immediateValue = if(format.immediate) it.third.toInt() else null
-            val addressValue: UInt? = if(format.immediate) null else it.third
+            val addressUsed = format.address != OperandDirection.UNUSED
+            val immediateValue = if(addressUsed) old.immediate else if(format.immediate) it.third.toInt() else null
+            val addressValue: UInt? = if(addressUsed) it.third else null
 
             it.first.instructions[it.second] = IRInstruction(
                 old.opcode,
@@ -414,6 +415,7 @@ class IRCodeGen(
                 old.fpReg1,
                 old.fpReg2,
                 immediate = immediateValue,
+                immediateFp = old.immediateFp,
                 address = addressValue?.toAddress()
             )
         }
@@ -993,20 +995,35 @@ class IRCodeGen(
                 }
             }
             else -> {
-                val valueReg = registers.next(dt)
-                if(value>0) {
-                    code += IRInstruction(Opcode.LOAD, dt, reg1=valueReg, immediate = value)
-                    code += if(knownAddress!=null)
-                        IRInstruction(Opcode.ADDM, dt, reg1=valueReg, address = knownAddress.toAddress())
-                    else
-                        IRInstruction(Opcode.ADDM, dt, reg1=valueReg, labelSymbol = symbol)
-                }
-                else {
-                    code += IRInstruction(Opcode.LOAD, dt, reg1=valueReg, immediate = -value)
-                    code += if(knownAddress!=null)
-                        IRInstruction(Opcode.SUBM, dt, reg1=valueReg, address = knownAddress.toAddress())
-                    else
-                        IRInstruction(Opcode.SUBM, dt, reg1=valueReg, labelSymbol = symbol)
+                if(dt==IRDataType.FLOAT) {
+                    // float loop variables are not currently supported; keep the load+addm/subm form
+                    val valueReg = registers.next(dt)
+                    if(value>0) {
+                        code += IRInstruction(Opcode.LOAD, dt, reg1=valueReg, immediate = value)
+                        code += if(knownAddress!=null)
+                            IRInstruction(Opcode.ADDM, dt, reg1=valueReg, address = knownAddress.toAddress())
+                        else
+                            IRInstruction(Opcode.ADDM, dt, reg1=valueReg, labelSymbol = symbol)
+                    }
+                    else {
+                        code += IRInstruction(Opcode.LOAD, dt, reg1=valueReg, immediate = -value)
+                        code += if(knownAddress!=null)
+                            IRInstruction(Opcode.SUBM, dt, reg1=valueReg, address = knownAddress.toAddress())
+                        else
+                            IRInstruction(Opcode.SUBM, dt, reg1=valueReg, labelSymbol = symbol)
+                    }
+                } else {
+                    if(value>0) {
+                        code += if(knownAddress!=null)
+                            IRInstruction(Opcode.ADDIM, dt, immediate = value, address = knownAddress.toAddress())
+                        else
+                            IRInstruction(Opcode.ADDIM, dt, immediate = value, labelSymbol = symbol)
+                    } else {
+                        code += if(knownAddress!=null)
+                            IRInstruction(Opcode.SUBIM, dt, immediate = -value, address = knownAddress.toAddress())
+                        else
+                            IRInstruction(Opcode.SUBIM, dt, immediate = -value, labelSymbol = symbol)
+                    }
                 }
             }
         }

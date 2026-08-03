@@ -103,6 +103,43 @@ internal fun VirtualMachine.multiplyConstByteSigned(reg1: Int, value: Byte) {
     registers.setSB(reg1, result.toByte())
 }
 
+internal fun VirtualMachine.plusMinusMultConstByteInplace(operator: String, value: UByte, address: UInt) {
+    val memvalue = memory.getUB(address)
+    val result = when(operator) {
+        "+" -> memvalue + value
+        "-" -> memvalue - value
+        "*" -> memvalue * value
+        else -> throw IllegalArgumentException("operator byte $operator")
+    }
+    memory.setUB(address, result.toUByte())
+}
+
+internal fun VirtualMachine.plusMinusMultConstWordInplace(operator: String, value: UShort, address: UInt) {
+    val memvalue = memory.getUW(address)
+    val result: UInt = when(operator) {
+        "+" -> memvalue + value
+        "-" -> memvalue - value
+        "*" -> {
+            val r = memvalue.toUInt() * value
+            mul16LastUpper = r shr 16
+            r
+        }
+        else -> throw IllegalArgumentException("operator word $operator")
+    }
+    memory.setUW(address, result.toUShort())
+}
+
+internal fun VirtualMachine.plusMinusMultConstLongInplace(operator: String, value: Int, address: UInt) {
+    val memvalue = memory.getSL(address)
+    val result: Int = when(operator) {
+        "+" -> memvalue + value
+        "-" -> memvalue - value
+        "*" -> memvalue * value
+        else -> throw IllegalArgumentException("operator long $operator")
+    }
+    memory.setSL(address, result)
+}
+
 internal fun VirtualMachine.plusMinusMultAnyByteInplace(operator: String, reg1: Int, address: UInt) {
     val memvalue = memory.getUB(address)
     val operand = registers.getUB(reg1)
