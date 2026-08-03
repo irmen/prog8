@@ -7,7 +7,6 @@ import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.types.instanceOf
 import prog8.code.ast.*
 import prog8.code.target.Cx16Target
-import prog8.code.target.VMTarget
 import prog8tests.helpers.compileText
 
 class TestDefers : FunSpec({

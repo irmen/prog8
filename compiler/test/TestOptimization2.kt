@@ -1,31 +1,26 @@
 package prog8tests.compiler
 
 import io.kotest.assertions.fail
-import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.engine.spec.tempdir
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
-import io.kotest.matchers.string.shouldStartWith
 import io.kotest.matchers.types.instanceOf
-import io.kotest.matchers.types.shouldBeSameInstanceAs
 import prog8.ast.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
 import prog8.code.ast.*
-import prog8.code.core.BaseDataType
-import prog8.code.core.DataType
-import prog8.code.core.Position
 import prog8.code.target.C64Target
 import prog8.code.target.Cx16Target
 import prog8.code.target.VMTarget
 import prog8.intermediate.IRFileReader
 import prog8.vm.VmRunner
 import prog8.vm.VmVariableAllocator
-import prog8tests.helpers.*
+import prog8tests.helpers.ErrorReporterForTests
+import prog8tests.helpers.compileText
 import kotlin.io.path.readText
 
 

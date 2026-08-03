@@ -3,10 +3,6 @@ package prog8.ast.walk
 import prog8.ast.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
-import prog8.ast.walk.AstInsert.Companion.after
-import prog8.ast.walk.AstInsert.Companion.before
-import prog8.ast.walk.AstInsert.Companion.first
-import prog8.ast.walk.AstInsert.Companion.last
 import prog8.code.core.CommutativeOperators
 
 

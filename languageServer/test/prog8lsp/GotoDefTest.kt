@@ -2,7 +2,6 @@ package prog8lsp
 
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
-import io.kotest.matchers.shouldNotBe
 
 class GotoDefTest: FunSpec({
     lateinit var harness: LspTestHarness

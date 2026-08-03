@@ -1,8 +1,10 @@
 package prog8.code
 
 import prog8.code.ast.*
-import prog8.code.core.*
-import kotlin.math.absoluteValue
+import prog8.code.core.AssemblyError
+import prog8.code.core.CompilationOptions
+import prog8.code.core.DataType
+import prog8.code.core.ISubType
 
 fun prefixSymbols(program: PtProgram, options: CompilationOptions, st: SymbolTable): SymbolTable {
     val nodesToPrefix = mutableListOf<Pair<PtNode, Int>>()
