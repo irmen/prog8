@@ -1,5 +1,6 @@
 package prog8.codegen.m68k
 
+import prog8.code.core.CpuType
 import prog8.intermediate.*
 
 internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
@@ -339,31 +340,30 @@ private fun AsmGen.emitMulOp(dstReg: Int, srcReg: Int?, type: IRDataType, unsign
     when (type) {
         IRDataType.BYTE -> {
             // No .b multiply on M68k: zero-extend to word, mulu.w/muls.w, store low byte
-            val loadOp = if (unsigned) $$"and.l  #$ff, d0" else "extb.l  d0"
             when {
                 srcReg != null -> {
                     emitLine("move.b  ${regAddr(srcReg)}, d0")
                     emitLine("move.b  ${regAddr(dstReg)}, d1")
-                    emitLine(loadOp, "extend src to 32-bit")
+                    if (unsigned) emitLine($$"and.l  #$ff, d0") else emitSignExtendByteToLong("d0")
                     emitLine("move.l  d0, d2")
                     emitLine("move.b  ${regAddr(dstReg)}, d0")
-                    emitLine(loadOp, "extend dst to 32-bit")
+                    if (unsigned) emitLine($$"and.l  #$ff, d0") else emitSignExtendByteToLong("d0")
                     emitLine("$op.w  d2, d0")
                     emitLine("move.b  d0, ${regAddr(dstReg)}")
                 }
                 imm != null -> {
                     emitLine("move.b  ${regAddr(dstReg)}, d0")
-                    emitLine(loadOp, "extend to 32-bit")
+                    if (unsigned) emitLine($$"and.l  #$ff, d0") else emitSignExtendByteToLong("d0")
                     emitLine("$op.w  #${imm.and(0xffff)}, d0")
                     emitLine("move.b  d0, ${regAddr(dstReg)}")
                 }
                 target != null -> {
                     emitLine("move.b  ${regAddr(dstReg)}, d0")
-                    emitLine(loadOp, "extend to 32-bit")
+                    if (unsigned) emitLine($$"and.l  #$ff, d0") else emitSignExtendByteToLong("d0")
                     emitLine("move.b  $target, d1")
                     emitLine("move.l  d1, d2")
                     emitLine("move.b  ${regAddr(dstReg)}, d0")
-                    emitLine(loadOp, "extend to 32-bit")
+                    if (unsigned) emitLine($$"and.l  #$ff, d0") else emitSignExtendByteToLong("d0")
                     emitLine("$op.w  d2, d0")
                     emitLine("move.b  d0, ${regAddr(dstReg)}")
                 }
@@ -397,6 +397,9 @@ private fun AsmGen.emitMulOp(dstReg: Int, srcReg: Int?, type: IRDataType, unsign
         IRDataType.LONG -> {
             // 68020+ mulu.l/muls.l (32x32→64, lower 32 are result)
             // destination must be a data register, not memory
+            if(program.options.compTarget.cpu < CpuType.M68020)
+                TODO("long multiplication needs at least a 68020 cpu at this time")
+            
             when {
                 srcReg != null -> {
                     emitLine("move.l  ${regAddr(srcReg)}, d0")
@@ -427,27 +430,26 @@ private fun AsmGen.emitDivOp(dstReg: Int, srcReg: Int?, type: IRDataType, unsign
     when (type) {
         IRDataType.BYTE -> {
             // No .b divide on M68k: extend to word, divu.w/divs.w, take quotient from low byte
-            val extend = if (unsigned) $$"and.l  #$ff, d0" else "extb.l  d0"
             when {
                 srcReg != null -> {
                     emitLine("move.b  ${regAddr(dstReg)}, d0")
-                    emitLine(extend, "extend dividend to 32-bit")
+                    if (unsigned) emitLine($$"and.l  #$ff, d0") else emitSignExtendByteToLong("d0")
                     emitLine("move.b  ${regAddr(srcReg)}, d1")
-                    if (unsigned) emitLine($$"and.l  #$ff, d1") else emitLine("extb.l  d1", "sign extend divisor")
+                    if (unsigned) emitLine($$"and.l  #$ff, d1") else emitSignExtendByteToLong("d1")
                     emitLine("$op.w  d1, d0")
                     emitLine("move.b  d0, ${regAddr(dstReg)}", "quotient in low byte")
                 }
                 imm != null -> {
                     emitLine("move.b  ${regAddr(dstReg)}, d0")
-                    emitLine(extend, "extend dividend")
+                    if (unsigned) emitLine($$"and.l  #$ff, d0") else emitSignExtendByteToLong("d0")
                     emitLine("$op.w  #${imm.and(0xffff)}, d0")
                     emitLine("move.b  d0, ${regAddr(dstReg)}", "quotient")
                 }
                 target != null -> {
                     emitLine("move.b  ${regAddr(dstReg)}, d0")
-                    emitLine(extend, "extend dividend")
+                    if (unsigned) emitLine($$"and.l  #$ff, d0") else emitSignExtendByteToLong("d0")
                     emitLine("move.b  $target, d1")
-                    if (unsigned) emitLine($$"and.l  #$ff, d1") else emitLine("extb.l  d1", "sign extend")
+                    if (unsigned) emitLine($$"and.l  #$ff, d1") else emitSignExtendByteToLong("d1")
                     emitLine("$op.w  d1, d0")
                     emitLine("move.b  d0, ${regAddr(dstReg)}", "quotient")
                 }
@@ -479,6 +481,8 @@ private fun AsmGen.emitDivOp(dstReg: Int, srcReg: Int?, type: IRDataType, unsign
 
         IRDataType.LONG -> {
             // 68020+ divu.l/divs.l (32/32→32)
+            if(program.options.compTarget.cpu < CpuType.M68020)
+                TODO("long division needs at least a 68020 cpu at this time")
             when {
                 srcReg != null -> {
                     emitLine("move.l  ${regAddr(dstReg)}, d0")
@@ -507,19 +511,18 @@ private fun AsmGen.emitModOp(dstReg: Int, srcReg: Int?, type: IRDataType, unsign
     when (type) {
         IRDataType.BYTE -> {
             // divu.w gives quotient low word, remainder high word. Swap to get remainder.
-            val extend = if (unsigned) $$"and.l  #$ff, d0" else "extb.l  d0"
             when {
                 srcReg != null -> {
                     emitLine("move.b  ${regAddr(dstReg)}, d0")
-                    emitLine(extend, "extend dividend")
+                    if (unsigned) emitLine($$"and.l  #$ff, d0") else emitSignExtendByteToLong("d0")
                     emitLine("move.b  ${regAddr(srcReg)}, d1")
-                    if (unsigned) emitLine($$"and.l  #$ff, d1") else emitLine("extb.l  d1")
+                    if (unsigned) emitLine($$"and.l  #$ff, d1") else emitSignExtendByteToLong("d1")
                     emitLine("$opDiv.w  d1, d0")
                     emitLine("lsr.l  #8, d0", "shift remainder to low byte")  // remainder in upper 16 bits after swap
                 }
                 imm != null -> {
                     emitLine("move.b  ${regAddr(dstReg)}, d0")
-                    emitLine(extend, "extend dividend")
+                    if (unsigned) emitLine($$"and.l  #$ff, d0") else emitSignExtendByteToLong("d0")
                     emitLine("$opDiv.w  #${imm.and(0xffff)}, d0")
                 }
             }
@@ -577,19 +580,18 @@ private fun AsmGen.emitDivModOp(dstReg: Int, srcReg: Int?, type: IRDataType, uns
     when (type) {
         IRDataType.BYTE -> {
             // divul: Dq=dividend→quotient, Dr=remainder. Pack remainder lo, quotient hi.
-            val extend = if (unsigned) $$"and.l  #$ff, d0" else "extb.l  d0"
             when {
                 srcReg != null -> {
                     emitLine("move.b  ${regAddr(dstReg)}, d0")
-                    emitLine(extend, "extend dividend")
+                    if (unsigned) emitLine($$"and.l  #$ff, d0") else emitSignExtendByteToLong("d0")
                     emitLine("move.b  ${regAddr(srcReg)}, d2")
-                    if (unsigned) emitLine($$"and.l  #$ff, d2") else emitLine("extb.l  d2")
+                    if (unsigned) emitLine($$"and.l  #$ff, d2") else emitSignExtendByteToLong("d2")
                 }
                 imm != null -> {
                     emitLine("move.b  ${regAddr(dstReg)}, d0")
-                    emitLine(extend, "extend dividend")
+                    if (unsigned) emitLine($$"and.l  #$ff, d0") else emitSignExtendByteToLong("d0")
                     emitLine("moveq  #${imm.and(0xff)}, d2")
-                    if (!unsigned) emitLine("extb.l  d2", "sign extend")
+                    if (!unsigned) emitSignExtendByteToLong("d2")
                 }
             }
                     emitLine("$op  d2, d1:d0")
@@ -622,6 +624,8 @@ private fun AsmGen.emitDivModOp(dstReg: Int, srcReg: Int?, type: IRDataType, uns
         }
 
         IRDataType.LONG -> {
+            if(program.options.compTarget.cpu < CpuType.M68020)
+                TODO("long division needs at least a 68020 cpu at this time")
             when {
                 srcReg != null -> {
                     emitLine("move.l  ${regAddr(dstReg)}, d0", "dividend")

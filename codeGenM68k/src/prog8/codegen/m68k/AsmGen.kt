@@ -16,16 +16,16 @@ import kotlin.math.max
  * instead. Return values are passed via virtual registers mapped back to the caller's result register.
  */
 
-internal class AsmGen(val program: IRProgram, private val target: ICompilationTarget) {
+internal class AsmGen(val program: IRProgram, internal val target: ICompilationTarget) {
     private val output = StringBuilder()
-    private val cpu get() = target.cpu
+    internal val cpu get() = target.cpu
 
     companion object {
         const val REGFILE_LABEL = "p8_regfile"
     }
 
     init {
-        require(target.cpu == CpuType.M68000 || target.cpu == CpuType.M68020) { "M68k codegen requires M68000 or M68020 cpu, got ${target.cpu}" }
+        require(target.cpu.is68k) { "M68k codegen requires M680x0 cpu, got ${target.cpu}" }
     }
 
     private var labelSeqCounter = 0
@@ -258,6 +258,19 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
 
     // === code emission ===
 
+    // Sign-extend a byte to a 32-bit long.
+    // extb.l is a 68020+ instruction; on the 68000 use the two-step EXT sequence
+    // (ext.w then ext.l) which is functionally equivalent.
+    internal fun AsmGen.emitSignExtendByteToLong(reg: String) {
+        if (cpu == CpuType.M68000) {
+            emitLine("ext.w  $reg")
+            emitLine("ext.l  $reg")
+        } else {
+            emitLine("extb.l  $reg")
+        }
+    }
+    
+
     private fun emitCode() {
         emitLabel("run_global_inits")
         translateChunk(program.globalInits)
@@ -455,7 +468,7 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
                     when (val fv = fieldValue.value) {
                         is IRStSymbolicReference.Numeric -> {
                             when {
-                                fieldValue.dt == BaseDataType.FLOAT -> emitLine("dc.s  ${fv.value ?: 0.0}")
+                                fieldValue.dt == BaseDataType.FLOAT -> emitLine("dc.s  ${fv.value}")
                                 m68kSize == 4 -> emitLine("dc.l  ${fv.value.toInt()}")
                                 m68kSize == 2 -> emitLine("dc.w  ${fv.value.toInt()}")
                                 else -> emitLine("dc.b  ${fv.value.toInt()}")

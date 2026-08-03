@@ -356,7 +356,7 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
             val fpDst = insn.fpReg1 ?: error("FFROMSB needs fpReg1")
             val srcReg = r1 ?: error("FFROMSB needs reg1")
             emitLine("move.b  ${regAddr(srcReg)}, d0")
-            emitLine("extb.l  d0", "68020+ sign-extend byte to long")
+            emitSignExtendByteToLong("d0")
             emitLine("fmove.l  d0, ${fpuRegName(fpDst)}")
         }
 
@@ -629,7 +629,12 @@ private fun AsmGen.translateReturnValue(ret: FunctionCallArgs.RegSpec) {
 
 // === Slot to M68k hardware register mapping ===
 
+// Slots 0..7 are the 6502/cx16-style scalar registers (A, X, Y, AX, AY, XY,
+// FAC1, FAC2) used by target-independent builtins (e.g. divmod returns its
+// quotient in AY). Map them onto distinct M68k hardware registers so the
+// backend can emit code for them.
 fun m68kSlotRegister(slot: prog8.intermediate.CallingConventionSlot): String = when (slot.value) {
+    in 0..7 -> error("slots 0-7 should never be used on the M68K they are 6502 cpu registers")
     in 10..17 -> "d${slot.value - 10}"     // M68k slots: D0-D7
     in 18..24 -> "a${slot.value - 18}"     // M68k slots: A0-A6
     in 25..32 -> "fp${slot.value - 25}"    // M68k slots: FP0-FP7

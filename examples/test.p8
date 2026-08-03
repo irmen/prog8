@@ -1,57 +1,47 @@
+; Reproduces the m68k divmod codegen bugs:
+;   1. internal error "unknown calling convention slot: s4" - divmod() returns its
+;      quotient in the 6502-style AY hardware register (slot s4), which the m68k
+;      backend did not map. (Fixed in m68kSlotRegister.)
+;   2. "DIVMOD does not push on the stack" - emitDivModOp writes the quotient and
+;      remainder into regfile slots instead of pushing them, so the two following
+;      POPs overwrite them with stack garbage (see m68k-potential-codegen-bugs.md).
+;   3. divmod() stores its remainder in the cx16-only symbol cx16.r15, which does
+;      not exist on the m68k target (undefined symbol at assembly time).
+;
+; Compiling for -target amiga500 currently fails to assemble because of (3).
+; The program also prints calculated (divmod) vs expected ('/' and '%') values
+; so the push bug (2) shows up as wrong printed results once it assembles.
+
 %import textio
 %zeropage basicsafe
 
-; Demonstrates the "xx += 2 -> xx++; xx++" AST rewrite in StatementOptimizer.
-; On 6502 two INC/DEC are cheaper than a load/add/store of a constant 2, so
-; the optimizer splits the add into two increments. On m68k a single addq #2
-; is one instruction, so the split is strictly worse there.
-
 main {
     sub start() {
-        incdec()
-        quick()
-        more()
+        check(40000, 500)
+        check(43211, 2)
+        check(65535, 1000)
+        check(12345, 777)
+        txt.print("done\n")
     }
 
-    sub incdec() {
-        ubyte @shared x = 5
-        x += 2      ; expect 7
-        txt.print("x=")
-        txt.print_ub(x)
-        txt.nl()
+    sub check(uword a, uword b) {
+        ; divmod gives quotient and remainder in one division
+        uword q, r = divmod(a, b)
+        ; independent reference values
+        uword exp_q = a / b
+        uword exp_r = a % b
 
-        ubyte @shared y = 20
-        y -= 2      ; expect 18
-        txt.print("y=")
-        txt.print_ub(y)
-        txt.nl()
-    }
-
-    sub quick() {
-        ubyte @shared p = 5
-        p += 7      ; expect 12
-        txt.print("p=")
-        txt.print_ub(p)
-        txt.nl()
-
-        ubyte @shared q = 20
-        q -= 7      ; expect 13
-        txt.print("q=")
-        txt.print_ub(q)
-        txt.nl()
-    }
-
-    sub more() {
-        ubyte @shared a = 11
-        a += 55      ; expect 66
-        txt.print("a=")
-        txt.print_ub(a)
-        txt.nl()
-
-        ubyte @shared b = 100
-        b -= 70      ; expect 30
-        txt.print("b=")
-        txt.print_ub(b)
-        txt.nl()
+        txt.print_uw(a)
+        txt.print(" / ")
+        txt.print_uw(b)
+        txt.print(" : divmod q=")
+        txt.print_uw(q)
+        txt.print(" r=")
+        txt.print_uw(r)
+        txt.print("   (expected q=")
+        txt.print_uw(exp_q)
+        txt.print(" r=")
+        txt.print_uw(exp_r)
+        txt.print(")\n")
     }
 }

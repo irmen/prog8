@@ -1,6 +1,6 @@
 
 timer {
-    %option no_symbol_prefixing
+    %option no_symbol_prefixing, ignore_unused
 
     enum UNIT {
         MICROHZ = 0,
