@@ -44,7 +44,6 @@ class BreakpointException(val pcChunk: IRCodeChunk, val pcIndex: Int): Exception
 
 @Suppress("FunctionName")
 class VirtualMachine(irProgram: IRProgram) {
-    private val irProgram = irProgram
 
     init {
         // The VM implements the STRICT status-bits contract: only CMP, CMPI, SEC, CLC,
@@ -274,9 +273,11 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.ADDR -> InsADDR(ins)
             Opcode.ADD -> InsADD(ins)
             Opcode.ADDM -> InsADDM(ins)
+            Opcode.ADDIM -> InsADDIM(ins)
             Opcode.SUBR -> InsSUBR(ins)
             Opcode.SUB -> InsSUB(ins)
             Opcode.SUBM -> InsSUBM(ins)
+            Opcode.SUBIM -> InsSUBIM(ins)
             Opcode.MULR -> InsMULR(ins)
             Opcode.MUL -> InsMUL(ins)
             Opcode.MULM -> InsMULM(ins)
@@ -1111,6 +1112,21 @@ class VirtualMachine(irProgram: IRProgram) {
         nextPc()
     }
 
+    private fun InsADDIM(i: IRInstruction) {
+        val address = i.address!!.value
+        when(i.type!!) {
+            IRDataType.BYTE -> plusMinusMultConstByteInplace("+", i.immediate!!.toUByte(), address)
+            IRDataType.WORD -> plusMinusMultConstWordInplace("+", i.immediate!!.toUShort(), address)
+            IRDataType.LONG -> plusMinusMultConstLongInplace("+", i.immediate!!, address)
+            IRDataType.FLOAT -> {
+                val left = memory.getFloat(address)
+                val result = arithFloat(left, "+", i.immediateFp!!)
+                memory.setFloat(address, result)
+            }
+        }
+        nextPc()
+    }
+
     private fun InsSUBR(i: IRInstruction) {
         when(i.type!!) {
             IRDataType.BYTE -> plusMinusMultAnyByte("-", i.reg1!!, i.reg2!!)
@@ -1155,6 +1171,21 @@ class VirtualMachine(irProgram: IRProgram) {
         }
         nextPc()
     }
+
+    private fun InsSUBIM(i: IRInstruction) {
+        val address = i.address!!.value
+        when(i.type!!) {
+            IRDataType.BYTE -> plusMinusMultConstByteInplace("-", i.immediate!!.toUByte(), address)
+            IRDataType.WORD -> plusMinusMultConstWordInplace("-", i.immediate!!.toUShort(), address)
+            IRDataType.LONG -> plusMinusMultConstLongInplace("-", i.immediate!!, address)
+            IRDataType.FLOAT -> {
+                val left = memory.getFloat(address)
+                val result = arithFloat(left, "-", i.immediateFp!!)
+                memory.setFloat(address, result)
+            }
+        }
+        nextPc()
+    }    
 
     private fun InsMULR(i: IRInstruction) {
         when(i.type!!) {

@@ -192,9 +192,11 @@ negm                           address      - sign negate memory at address
 addr        reg1, reg2                      - reg1 += reg2 
 add         reg1,              value        - reg1 += value 
 addm        reg1,              address      - memory at address += reg1 
+addim                value,    address      - memory at address += value
 subr        reg1, reg2                      - reg1 -= reg2 
 sub         reg1,              value        - reg1 -= value 
 subm        reg1,              address      - memory at address -= reg1 
+subim                value,    address      - memory at address -= value
 mulr        reg1, reg2                      - unsigned multiply reg1 *= reg2  note: byte*byte->byte, no type extension!
 mulsr       reg1, reg2                      - signed multiply reg1 *= reg2  note: byte*byte->byte, no type extension!
 mul         reg1,              value        - unsigned multiply reg1 *= value  note: byte*byte->byte, no type extension!
@@ -380,9 +382,11 @@ enum class Opcode {
     ADDR,
     ADD,
     ADDM,
+    ADDIM,
     SUBR,
     SUB,
     SUBM,
+    SUBIM,
     MULR,
     MUL,
     MULM,
@@ -745,9 +749,11 @@ val instructionFormats = mutableMapOf(
     Opcode.ADDR       to InstructionFormat.from("BWL,<>r1,<r2  | F,<>fr1,<fr2"),
     Opcode.ADD        to InstructionFormat.from("BWL,<>r1,<i   | F,<>fr1,<i"),
     Opcode.ADDM       to InstructionFormat.from("BWL,<r1,<>a   | F,<fr1,<>a"),
+    Opcode.ADDIM      to InstructionFormat.from("BWL,<i,<>a    | F,<i,<>a"),
     Opcode.SUBR       to InstructionFormat.from("BWL,<>r1,<r2  | F,<>fr1,<fr2"),
     Opcode.SUB        to InstructionFormat.from("BWL,<>r1,<i   | F,<>fr1,<i"),
     Opcode.SUBM       to InstructionFormat.from("BWL,<r1,<>a   | F,<fr1,<>a"),
+    Opcode.SUBIM      to InstructionFormat.from("BWL,<i,<>a    | F,<i,<>a"),
     Opcode.MULR       to InstructionFormat.from("BW,<>r1,<r2  | F,<>fr1,<fr2"),
     Opcode.MUL        to InstructionFormat.from("BW,<>r1,<i   | F,<>fr1,<i"),
     Opcode.MULM       to InstructionFormat.from("BW,<r1,<>a   | F,<fr1,<>a"),

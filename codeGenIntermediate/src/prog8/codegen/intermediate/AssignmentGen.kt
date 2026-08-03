@@ -1477,11 +1477,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                 if(constValue==1) {
                     addInstr(result, IRInstruction(Opcode.DECM, eltDt, labelSymbol = arrayVariableName, symbolOffset = constIndex*eltSize), null)
                 } else {
-                    val valueReg=codeGen.registers.next(eltDt)
-                    result += IRCodeChunk(null, null).also {
-                        it += IRInstruction(Opcode.LOAD, eltDt, reg1=valueReg, immediate = constValue)
-                        it += IRInstruction(Opcode.SUBM, eltDt, reg1=valueReg, labelSymbol = arrayVariableName, symbolOffset = constIndex*eltSize)
-                    }
+                    addInstr(result, IRInstruction(Opcode.SUBIM, eltDt, immediate = constValue, labelSymbol = arrayVariableName, symbolOffset = constIndex*eltSize), null)
                 }
                 return result
             }
@@ -1604,8 +1600,12 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                     IRInstruction(Opcode.DECM, vmDt, address = constAddress.toAddress())
                 else
                     IRInstruction(Opcode.DECM, vmDt, labelSymbol = symbol), null)
-            }
-            else {
+            } else if(constValue!=null) {
+                addInstr(result, if(constAddress!=null)
+                    IRInstruction(Opcode.SUBIM, vmDt, immediateFp = constValue, address = constAddress.toAddress())
+                else
+                    IRInstruction(Opcode.SUBIM, vmDt, immediateFp = constValue, labelSymbol = symbol), null)
+            } else {
                 val tr = exprGen.translateExpression(operand)
                 addToResult(result, tr, -1, tr.resultFpReg)
                 addInstr(result, if(constAddress!=null)
@@ -1619,8 +1619,12 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                     IRInstruction(Opcode.DECM, vmDt, address = constAddress.toAddress())
                 else
                     IRInstruction(Opcode.DECM, vmDt, labelSymbol = symbol), null)
-            }
-            else {
+            } else if(constValue!=null) {
+                addInstr(result, if(constAddress!=null)
+                    IRInstruction(Opcode.SUBIM, vmDt, immediate = constValue.toInt(), address = constAddress.toAddress())
+                else
+                    IRInstruction(Opcode.SUBIM, vmDt, immediate = constValue.toInt(), labelSymbol = symbol), null)
+            } else {
                 val tr = exprGen.translateExpression(operand)
                 addToResult(result, tr, tr.resultReg, -1)
                 addInstr(result, if(constAddress!=null)
@@ -1793,11 +1797,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                 if(constValue==1) {
                     addInstr(result, IRInstruction(Opcode.INCM, elementDt, labelSymbol = arrayVariableName, symbolOffset = constIndex*eltSize), null)
                 } else {
-                    val valueReg=codeGen.registers.next(elementDt)
-                    result += IRCodeChunk(null, null).also {
-                        it += IRInstruction(Opcode.LOAD, elementDt, reg1=valueReg, immediate = constValue)
-                        it += IRInstruction(Opcode.ADDM, elementDt, reg1=valueReg, labelSymbol = arrayVariableName, symbolOffset = constIndex*eltSize)
-                    }
+                    addInstr(result, IRInstruction(Opcode.ADDIM, elementDt, immediate = constValue, labelSymbol = arrayVariableName, symbolOffset = constIndex*eltSize), null)
                 }
                 return result
             }
@@ -1923,8 +1923,12 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                     IRInstruction(Opcode.INCM, vmDt, address = constAddress.toAddress())
                 else
                     IRInstruction(Opcode.INCM, vmDt, labelSymbol = symbol) , null)
-            }
-            else {
+            } else if(constValue!=null) {
+                addInstr(result, if (constAddress != null)
+                    IRInstruction(Opcode.ADDIM, vmDt, immediateFp = constValue, address = constAddress.toAddress())
+                else
+                    IRInstruction(Opcode.ADDIM, vmDt, immediateFp = constValue, labelSymbol = symbol) , null)
+            } else {
                 val tr = exprGen.translateExpression(operand)
                 addToResult(result, tr, -1, tr.resultFpReg)
                 addInstr(result, if (constAddress != null)
@@ -1938,8 +1942,12 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                     IRInstruction(Opcode.INCM, vmDt, address = constAddress.toAddress())
                 else
                     IRInstruction(Opcode.INCM, vmDt, labelSymbol = symbol) , null)
-            }
-            else {
+            } else if(constValue!=null) {
+                addInstr(result, if (constAddress != null)
+                    IRInstruction(Opcode.ADDIM, vmDt, immediate = constValue.toInt(), address = constAddress.toAddress())
+                else
+                    IRInstruction(Opcode.ADDIM, vmDt, immediate = constValue.toInt(), labelSymbol = symbol) , null)
+            } else {
                 val tr = exprGen.translateExpression(operand)
                 addToResult(result, tr, tr.resultReg, -1)
                 if (constAddress != null)
