@@ -79,11 +79,10 @@ explicitly skip the non-6502 targets. The mechanism:
 Converts a 16-bit AND with a high-byte mask into a byte-level `msb()`
 call, and `WORD & $00ff` → `lsb(WORD) & $ff`.
 
-**NEEDS GATING.** On 6502 the high byte of a 16-bit value is already
-isolated in a register, so the byte-level rewrite is genuinely cheaper.
-On m68k a `and.w #imm` is one instruction while a `msb()` call lowers to
-`MSIGB` + masking — strictly more work, never less. Restrict to
-6502/65C02.
+**Gated for 6502/65C02** (`&& options.compTarget.cpu.is6502`). The
+rewrite is neutral-to-slightly-better on m68k, but gated anyway to keep
+m68k output simple and predictable (`and.w #imm` is more readable than
+byte-extraction opcodes).
 
 ### `BinaryExpression` — comparison vs 0/1 rewrites (lines 194-237)
 - `x >= 1` → `x > 0` (line 194)
@@ -102,22 +101,10 @@ better (`tst` vs `cmp #imm`) and never harmful. Leave as-is.
 
 ### `BinaryExpression` — `(WORD & $xx00) == y` → `msb()` (lines 543-568)
 
-**NEEDS GATING.** Same rationale as the `ifElse` rewrite at lines 66-87.
-Restrict to 6502/65C02.
-
-### `BinaryExpression` — `uword` vs $ff/$ff00 boundary compares (lines 582-632)
-Rewrites:
-- `uword > 255` → `msb(value) != 0`
-- `uword >= 256` → `msb(value) != 0`
-- `uword >= $xx00` → `msb(value) >= xx`
-- `uword < 256` → `msb(value) == 0`
-- `uword <= 255` → `msb(value) == 0`
-- `uword <= $xxFF` → `msb(value) <= xx`
-
-**NEEDS GATING.** On 6502 a 16-bit compare against $ff/$ff00 reduces to
-a single 8-bit compare of `msb()`. On m68k `cmp.w #256` is one
-instruction; the rewrite to `msb()` lowers to `MSIGB` + compare, which
-is *more* IR, never less. Restrict to 6502/65C02.
+**Gated for 6502/65C02** (`&& options.compTarget.cpu.is6502`). The
+high-mask `msb()` form ties a native `and.w #imm`, and the low-mask
+`lsb()` form is slightly cheaper, but gated anyway so m68k always emits
+the simpler word-level `and.w` + `cmpi.w`.
 
 ---
 
@@ -125,16 +112,16 @@ is *more* IR, never less. Restrict to 6502/65C02.
 
 | File:line | Rewrite | Status |
 |---|---|---|
-| **`ExpressionSimplifier.kt:66-87`** | `WORD & $xx00` → `msb(WORD) & $xx` | **NEEDS GATING** |
-| **`ExpressionSimplifier.kt:543-568`** | `(WORD & $xx00) == y` → msb | **NEEDS GATING** |
-| **`ExpressionSimplifier.kt:582-632`** | `uword` vs 255/256/`$xx00` → msb | **NEEDS GATING** |
+| **`ExpressionSimplifier.kt:66-87`** | `WORD & $xx00` → `msb(WORD) & $xx` | Gated (is6502) |
+| **`ExpressionSimplifier.kt:543-568`** | `(WORD & $xx00) == y` → msb | Gated (is6502) |
 
 ---
 
 ## Recommended changes
 
-1. Gate each of the entries marked **NEEDS GATING** with
-   `if (options.compTarget.cpu.is6502)` (the `is6502` property already
-   exists on `CpuType` in `codeCore/src/prog8/code/core/ICompilationTarget.kt`).
- 2. Leave the boundary compares vs 0/1 (lines 194-237) alone — they
-    are mildly 6502-flavored but never harmful.
+1. Leave the boundary compares vs 0/1 (lines 194-237) alone — they
+   are mildly 6502-flavored but never harmful.
+2. No further gating is required: all rewrites that would harm m68k,
+   and the `WORD & $xx00` / `$00ff` AND-mask rewrites (gated by
+   preference for simpler m68k code), are already restricted to
+   `is6502` targets.

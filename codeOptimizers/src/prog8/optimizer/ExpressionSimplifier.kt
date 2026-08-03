@@ -64,7 +64,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
         }
 
         val booleanCondition = ifElse.condition as? BinaryExpression
-        if(booleanCondition!=null && booleanCondition.operator=="&") {
+        if(booleanCondition!=null && booleanCondition.operator=="&" && options.compTarget.cpu.is6502) {
             val rightNum = booleanCondition.right as? NumericLiteral
             if (rightNum!=null && rightNum.type==BaseDataType.UWORD) {
                 if ((rightNum.number.toInt() and 0x00ff) == 0) {
@@ -540,7 +540,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                     }
                 }
 
-                if (bitwise.inferType(program).isWords) {
+                if (bitwise.inferType(program).isWords && options.compTarget.cpu.is6502) {
                     val andNum = (bitwise.right as? NumericLiteral)?.number?.toInt()
                     if (andNum!=null) {
                         if ((andNum and 0x00ff) == 0) {
@@ -579,7 +579,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
             return intValue >= 256 && (intValue and 0xFF) == 0
         }
 
-        if (leftDt.isUnsignedWord && rightVal!=null) {
+        if (leftDt.isUnsignedWord && rightVal!=null && options.compTarget.cpu.is6502) {
             if (expr.operator == ">" && rightVal.number == 255.0 || expr.operator == ">=" && rightVal.number == 256.0) {
                 // uword > 255  -->  msb(value)!=0
                 // uword >= 256 -->  msb(value)!=0
