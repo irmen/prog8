@@ -1,13 +1,20 @@
-%import custom
-
+%import textio
+%import utility
 
 main {
     sub start() {
-        custom.grab_system()
+        if sys.UtilityBase==0 {
+            txt.print("no utility.library\n")
+            return
+        }
 
-        ; TODO wait for raster position 100
-        ; TODO draw a nice raster bar pattern, color register = custom.COLOR0
-
-        custom.return_system()
+        txt.print_ulhex(utility.GetUniqueID(), true)
+        txt.nl()
+        txt.print_ulhex(utility.GetUniqueID(), true)
+        txt.nl()
+        txt.print_ulhex(utility.GetUniqueID(), true)
+        txt.nl()
+        txt.print_ulhex(utility.GetUniqueID(), true)
+        txt.nl()
     }
 }

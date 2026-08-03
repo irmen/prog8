@@ -1,6 +1,6 @@
 
 Prog8 compiler v12.3-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit 6e508cff in branch new-codegens
+Prerelease version from git commit b6e503a6 in branch new-codegens
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Using existing prog8c daemon at /run/user/1000/prog8c-daemon.sock
@@ -240,7 +240,12 @@ dos  {
     const ubyte  ACTION_WAIT_CHAR
     const uword  ACTION_WRITE_PROTECT
     const uword  ACTION_WRITE_RETURN
+    const long  ADO_CommFileLen
+    const long  ADO_CommNameLen
+    const long  ADO_DirLen
     const long  ADO_Dummy
+    const long  ADO_FH_Mode
+    const long  ADO_PromptLen
     const ubyte  APB_DIDDIR
     const ubyte  APB_DODIR
     const ubyte  APB_DODOT
@@ -388,7 +393,9 @@ dos  {
     const ubyte  EXAMINE_BIT
     const long  EXCLUSIVE_LOCK
     const ubyte  EXT_ABS
+    const ubyte  EXT_ABSCOMMON
     const ubyte  EXT_ABSREF16
+    const ubyte  EXT_ABSREF32
     const ubyte  EXT_ABSREF8
     const ubyte  EXT_COMMON
     const ubyte  EXT_COMMONDEF
@@ -400,7 +407,9 @@ dos  {
     const ubyte  EXT_REF32
     const ubyte  EXT_REF8
     const ubyte  EXT_RELCOMMON
+    const ubyte  EXT_RELREF16
     const ubyte  EXT_RELREF32
+    const ubyte  EXT_RELREF8
     const ubyte  EXT_RES
     const ubyte  EXT_SYMB
     const ubyte  FAULT_MAX
@@ -453,6 +462,7 @@ dos  {
     const long  HUNKF_CHIP
     const long  HUNKF_FAST
     const uword  HUNK_ABSRELOC16
+    const uword  HUNK_ABSRELOC32
     const uword  HUNK_BREAK
     const uword  HUNK_BSS
     const uword  HUNK_CODE
@@ -472,7 +482,9 @@ dos  {
     const uword  HUNK_RELOC32
     const uword  HUNK_RELOC32SHORT
     const uword  HUNK_RELOC8
+    const uword  HUNK_RELRELOC16
     const uword  HUNK_RELRELOC32
+    const uword  HUNK_RELRELOC8
     const uword  HUNK_SYMBOL
     const uword  HUNK_UNIT
     const long  ID_NO_DISK_PRESENT
@@ -503,6 +515,7 @@ dos  {
     const ubyte  LINK_SOFT
     const long  LOCK_DIFFERENT
     const ubyte  LOCK_SAME
+    const ubyte  LOCK_SAME_HANDLER
     const ubyte  LOCK_SAME_VOLUME
     const ubyte  LVB_IGNORE
     const ubyte  LVF_IGNORE
@@ -515,7 +528,32 @@ dos  {
     const uword  MODE_READWRITE
     const long  NOTIFY_CLASS
     const uword  NOTIFY_CODE
+    const long  NP_Arguments
+    const long  NP_Cli
+    const long  NP_CloseError
+    const long  NP_CloseInput
+    const long  NP_CloseOutput
+    const long  NP_CommandName
+    const long  NP_ConsoleTask
+    const long  NP_CopyVars
+    const long  NP_CurrentDir
     const long  NP_Dummy
+    const long  NP_Entry
+    const long  NP_Error
+    const long  NP_ExitCode
+    const long  NP_ExitData
+    const long  NP_FreeSeglist
+    const long  NP_HomeDir
+    const long  NP_Input
+    const long  NP_Name
+    const long  NP_NotifyOnDeath
+    const long  NP_Output
+    const long  NP_Path
+    const long  NP_Priority
+    const long  NP_Seglist
+    const long  NP_StackSize
+    const long  NP_Synchronous
+    const long  NP_WindowPtr
     const ubyte  NRB_MAGIC
     const ubyte  NRB_NOTIFY_INITIAL
     const ubyte  NRB_SEND_MESSAGE
@@ -527,6 +565,7 @@ dos  {
     const ubyte  NRF_SEND_SIGNAL
     const ubyte  NRF_WAIT_REPLY
     const long  NR_HANDLER_FLAGS
+    const long  OFFSET_BEGINING
     const long  OFFSET_BEGINNING
     const ubyte  OFFSET_CURRENT
     const ubyte  OFFSET_END
@@ -583,7 +622,9 @@ dos  {
     const long  RUN_SYSTEM
     const long  RUN_SYSTEM_ASYNCH
     const long  SHARED_LOCK
+    const long  SHELL_ADDH_LINE
     const long  SHELL_DUMMY
+    const long  SHELL_FGETS_FULL
     const ubyte  SIGBREAKB_CTRL_C
     const ubyte  SIGBREAKB_CTRL_D
     const ubyte  SIGBREAKB_CTRL_E
@@ -599,7 +640,15 @@ dos  {
     const ubyte  ST_ROOT
     const ubyte  ST_SOFTLINK
     const ubyte  ST_USERDIR
+    const long  SYS_Asynch
+    const long  SYS_CmdStream
+    const long  SYS_CustomShell
     const long  SYS_Dummy
+    const long  SYS_Error
+    const long  SYS_ExecuteInputStream
+    const long  SYS_Input
+    const long  SYS_Output
+    const long  SYS_UserShell
     const ubyte  TICKS_PER_SECOND
     const ubyte  reserve
     const ubyte  vsize
@@ -835,6 +884,7 @@ exec  {
     const ubyte  DMAF_NoModify
     const ubyte  DMAF_ReadFromRAM
     const ubyte  EOS
+    const long  ERR_OPENDEVICE
     const ubyte  INCLUDE_VERSION
     const ubyte  INTB_NMI
     const uword  INTF_NMI
@@ -887,9 +937,11 @@ exec  {
     const ubyte  MEMHB_RECYCLE
     const ubyte  MEMHF_RECYCLE
     const long  MEM_ALL_DONE
+    const ubyte  MEM_BLOCKMASK
     const ubyte  MEM_BLOCKSIZE
     const ubyte  MEM_DID_NOTHING
     const ubyte  MEM_TRY_AGAIN
+    const ubyte  NL
     const ubyte  NT_BOOTNODE
     const ubyte  NT_DEATHMESSAGE
     const ubyte  NT_DEVICE
@@ -963,7 +1015,13 @@ exec  {
     const ubyte  TF_PROCTIME
     const ubyte  TF_STACKCHK
     const ubyte  TF_SWITCH
+    const ubyte  TS_ADDED
+    const ubyte  TS_EXCEPT
     const ubyte  TS_INVALID
+    const ubyte  TS_READY
+    const ubyte  TS_REMOVED
+    const ubyte  TS_RUN
+    const ubyte  TS_WAIT
     const ubyte  UNITB_ACTIVE
     const ubyte  UNITB_INTASK
     const ubyte  UNITF_ACTIVE
@@ -1181,6 +1239,7 @@ graphics  {
     const ubyte  COLORMAP_TRANSPARENCY
     const ubyte  COLORMAP_TYPE_V1_2
     const ubyte  COLORMAP_TYPE_V1_4
+    const ubyte  COLORMAP_TYPE_V36
     const ubyte  COLORMAP_TYPE_V39
     const ubyte  COLORPLANE_TRANSPARENCY
     const ubyte  CTB_MAPCOLOR
@@ -1286,7 +1345,11 @@ graphics  {
     const long  EURO72EXTRALORESDPF2_KEY
     const long  EURO72EXTRALORESDPF_KEY
     const long  EURO72EXTRALORESEHBDBL_KEY
+    const long  EURO72EXTRALORESEHBLACE_KEY
+    const long  EURO72EXTRALORESEHB_KEY
     const long  EURO72EXTRALORESHAMDBL_KEY
+    const long  EURO72EXTRALORESHAMLACE_KEY
+    const long  EURO72EXTRALORESHAM_KEY
     const long  EURO72EXTRALORESLACEDPF2_KEY
     const long  EURO72EXTRALORESLACEDPF_KEY
     const long  EURO72EXTRALORESLACE_KEY
@@ -1465,6 +1528,10 @@ graphics  {
     const long  VGAEXTRAHALFBRITE_KEY
     const long  VGAEXTRALORESDPF2_KEY
     const long  VGAEXTRALORESDPF_KEY
+    const long  VGAEXTRALORESEHBLACE_KEY
+    const long  VGAEXTRALORESEHB_KEY
+    const long  VGAEXTRALORESHAMLACE_KEY
+    const long  VGAEXTRALORESHAM_KEY
     const long  VGAEXTRALORESLACEDPF2_KEY
     const long  VGAEXTRALORESLACEDPF_KEY
     const long  VGAEXTRALORESLACE_KEY
@@ -2797,8 +2864,10 @@ sys  {
     const ubyte  SIZEOF_UBYTE
     const ubyte  SIZEOF_UWORD
     const ubyte  SIZEOF_WORD
+    long @shared  UtilityBase
     const ubyte  target
     clear_carry  ()
+    exec_version  () -> uword @D0
     exit  (ubyte returnvalue)
     memclear  (long mem @D0, uword numbytes @D1)
     memcopy  (long source @D0, long tgt @D1, uword count @D2)
@@ -2808,7 +2877,8 @@ sys  {
     progstart  () -> long @A0
     reset_system  ()
     set_carry  ()
-    wait  (uword jiffies)
+    wait  (long jiffies @D1)
+    waitvsync  ()
 }
 
 
@@ -2817,18 +2887,25 @@ LIBRARY MODULE NAME: textio
 
 txt  {
     bell  ()
-    chrout  (ubyte char @D0)
+    bold  ()
+    chrout  (ubyte char @D0) clobbers (D0,D1,D2,D3,A0,A6)
     clear_screen  ()
     cls  ()
     color  (ubyte txtcol)
-    column  (ubyte col)
+    cursor_off  ()
+    cursor_on  ()
+    dim  ()
+    flush  ()
     height  () -> ubyte
     home  ()
+    input_chars  (str buffer) -> ubyte
     iso  ()
+    italic  ()
     lowercase  ()
     nl  ()
+    normal  ()
     plot  (ubyte col, ubyte row)
-    print  (str text @A0)
+    print  (str text @A0) clobbers (D0,D1,D2,D3,A0,A6)
     print_b  (byte value)
     print_bool  (bool value)
     print_l  (long value)
@@ -2842,12 +2919,94 @@ txt  {
     print_uwbin  (uword value, bool prefix)
     print_uwhex  (uword value, bool prefix)
     print_w  (word value)
-    rvs_off  ()
-    rvs_on  ()
+    rvs  ()
     setchr  (ubyte col, ubyte row, ubyte char)
     size  () -> ubyte, ubyte
     spc  ()
+    tab  ()
+    underline  ()
     width  () -> ubyte
+}
+
+
+LIBRARY MODULE NAME: utility
+----------------------------
+
+utility  {
+    struct ClockData
+    struct Hook
+    struct TagItem
+    const uword  ANO_Flags
+    const uword  ANO_NameSpace
+    const uword  ANO_Priority
+    const uword  ANO_UserSpace
+    const ubyte  MAP_KEEP_NOT_FOUND
+    const ubyte  MAP_REMOVE_NOT_FOUND
+    const ubyte  NSB_CASE
+    const ubyte  NSB_NODUPS
+    const ubyte  NSF_CASE
+    const ubyte  NSF_NODUPS
+    const ubyte  PSTB_EXISTS
+    const ubyte  PSTB_PACK
+    const ubyte  PSTB_SIGNED
+    const ubyte  PSTB_UNPACK
+    const long  PSTF_EXISTS
+    const long  PSTF_PACK
+    const long  PSTF_SIGNED
+    const long  PSTF_UNPACK
+    const ubyte  TAGFILTER_AND
+    const ubyte  TAGFILTER_NOT
+    const ubyte  TAG_DONE
+    const ubyte  TAG_END
+    const ubyte  TAG_IGNORE
+    const ubyte  TAG_MORE
+    const ubyte  TAG_SKIP
+    const long  TAG_USER
+    const ubyte  UTILITY_NAME_I
+    const ubyte  UTILITY_PACK_I
+    AddNamedObject  (long nameSpace @A0, long object @A1) -> bool @D0@bank 9 = -$de
+    AllocNamedObjectA  (str name @A0, long tagList @A1) -> long @D0@bank 9 = -$e4
+    AllocateTagItems  (long numTags @D0) -> long @D0@bank 9 = -$42
+    Amiga2Date  (long seconds @D0, long result @A0)@bank 9 = -$78
+    ApplyTagChanges  (long list @A0, long changeList @A1)@bank 9 = -$ba
+    AttemptRemNamedObject  (long object @A0) -> long @D0@bank 9 = -$ea
+    CallHookPkt  (long hook @A0, long object @A2, long paramPacket @A1) -> long @D0@bank 9 = -$66
+    CheckDate  (long date @A0) -> long @D0@bank 9 = -$84
+    CloneTagItems  (long tagList @A0) -> long @D0@bank 9 = -$48
+    Date2Amiga  (long date @A0) -> long @D0@bank 9 = -$7e
+    FilterTagChanges  (long changeList @A0, long originalList @A1, long apply @D0)@bank 9 = -$36
+    FilterTagItems  (long tagList @A0, long filterArray @A1, long logic @D0) -> long @D0@bank 9 = -$60
+    FindNamedObject  (long nameSpace @A0, str name @A1, long lastObject @A2) -> long @D0@bank 9 = -$f0
+    FindTagItem  (long tagVal @D0, long tagList @A0) -> long @D0@bank 9 = -$1e
+    FreeNamedObject  (long object @A0)@bank 9 = -$f6
+    FreeTagItems  (long tagList @A0)@bank 9 = -$4e
+    GetTagData  (long tagValue @D0, long defaultVal @D1, long tagList @A0) -> long @D0@bank 9 = -$24
+    GetUniqueID  () -> long @D0@bank 9 = -$010e
+    MapTags  (long tagList @A0, long mapList @A1, long mapType @D0)@bank 9 = -$3c
+    NamedObjectName  (long object @A0) -> str @D0@bank 9 = -$fc
+    NextTagItem  (long tagListPtr @A0) -> long @D0@bank 9 = -$30
+    PackBoolTags  (long initialFlags @D0, long tagList @A0, long boolMap @A1) -> long @D0@bank 9 = -$2a
+    PackStructureTags  (long pack @A0, long packTable @A1, long tagList @A2) -> long @D0@bank 9 = -$d2
+    RefreshTagItemClones  (long clone @A0, long original @A1)@bank 9 = -$54
+    ReleaseNamedObject  (long object @A0)@bank 9 = -$0102
+    RemNamedObject  (long object @A0, long message @A1)@bank 9 = -$0108
+    SDivMod32  (long dividend @D0, long divisor @D1) -> long @D0@bank 9 = -$96
+    SDivMod64  (long hi @D1, long lo @D0, long divisor @D2) -> long @D0@bank 9 = -$01c2
+    SMult32  (long arg1 @D0, long arg2 @D1) -> long @D0@bank 9 = -$8a
+    SMult64  (long arg1 @D0, long arg2 @D1) -> long @D0@bank 9 = -$c6
+    Stricmp  (str string1 @A0, str string2 @A1) -> long @D0@bank 9 = -$a2
+    Strncat  (str dst @A1, str src @A0, long size @D0) -> str @D0@bank 9 = -$01bc
+    Strncpy  (str dst @A1, str src @A0, long size @D0) -> str @D0@bank 9 = -$01b6
+    Strnicmp  (str string1 @A0, str string2 @A1, long length @D0) -> long @D0@bank 9 = -$a8
+    TagInArray  (long tagValue @D0, long tagArray @A0) -> bool @D0@bank 9 = -$5a
+    ToLower  (ubyte character @D0) -> ubyte @D0@bank 9 = -$b4
+    ToUpper  (ubyte character @D0) -> ubyte @D0@bank 9 = -$ae
+    UDivMod32  (long dividend @D0, long divisor @D1) -> long @D0@bank 9 = -$9c
+    UDivMod64  (long hi @D1, long lo @D0, long divisor @D2) -> long @D0@bank 9 = -$01c8
+    UMult32  (long arg1 @D0, long arg2 @D1) -> long @D0@bank 9 = -$90
+    UMult64  (long arg1 @D0, long arg2 @D1) -> long @D0@bank 9 = -$cc
+    UnpackStructureTags  (long pack @A0, long packTable @A1, long tagList @A2) -> long @D0@bank 9 = -$d8
+    VSNPrintf  (str buffer @A0, long bufsize @D0, str fmt @A1, long data @A2) -> long @D0@bank 9 = -$0138
 }
 
 

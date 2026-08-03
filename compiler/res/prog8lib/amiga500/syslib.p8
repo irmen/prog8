@@ -36,6 +36,7 @@ sys {
     pointer @shared GfxBase
     pointer @shared IntuitionBase
     pointer @shared IconBase
+    pointer @shared UtilityBase     ; kickstart 2.0+
 
 
     sub  reset_system()  {

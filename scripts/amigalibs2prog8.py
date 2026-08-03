@@ -98,6 +98,10 @@ STRUCT_NAME_MAP = {
     'DrawInfo':       ('DrawInfo',         'di_'),
     'IBox':           ('IBox',             'ib_'),
     'ColorSpec':      ('ColorSpec',        'cs_'),
+    # utility
+    'TagItem':        ('TagItem',          'ti_'),
+    'HOOK':           ('Hook',             'h_'),
+    'CLOCKDATA':      ('ClockData',        ''),
 }
 
 # Prog8 keywords that conflict with field names
@@ -137,8 +141,19 @@ def parse_struct_i_files(i_dir: str) -> dict:
             if tag in structs:
                 print(f"Warning: struct '{tag}' redefined in {fn}, overwriting", file=sys.stderr)
         structs.update(new_structs)
-    # Second pass: resolve total sizes for structs with base_offset references
-    # Iterate because some bases reference structs that also have bases
+    # Resolve total sizes for structs with base_offset references.
+    # (May be called again later on merged structs to resolve cross-directory bases.)
+    _resolve_base_sizes(structs)
+    return structs
+
+
+def _resolve_base_sizes(structs: dict) -> None:
+    """Resolve total sizes of structs that inherit from a base struct.
+
+    Iterates because some bases reference structs that also have bases.
+    Must be called with a dict containing all referenced base structs,
+    otherwise cross-directory references cannot be resolved.
+    """
     changed = True
     while changed:
         changed = False
@@ -156,7 +171,6 @@ def parse_struct_i_files(i_dir: str) -> dict:
                 changed = True
         if not changed:
             break
-    return structs
 
 
 def _parse_one_i(filepath: str) -> dict:
@@ -668,7 +682,7 @@ def _collect_consts_one(filepath: str) -> tuple[list, dict]:
                     'comment': f'; BITDEF mask {p},{n},{b}'
                 })
                 continue
-            m = re.match(r'(\w+)\s+EQU\s+(\S+)', stripped)
+            m = re.match(r'(\w+)\s+EQU\s+(\S+)', stripped, re.IGNORECASE)
             if m:
                 cname = m.group(1)
                 rawv = m.group(2)
@@ -1498,6 +1512,41 @@ def _inline_struct_fields(tag: str, ast: dict, typedef_map: dict,
     return fields_raw, current_offset
 
 
+# Which C headers to include per library for the clang AST dump
+LIB_HEADERS = {
+    'exec': [],
+    'dos': ['dos/dosextens.h', 'dos/exall.h'],
+    'graphics': ['graphics/gfx.h', 'graphics/rastport.h', 'graphics/clip.h',
+                 'graphics/view.h', 'graphics/text.h', 'graphics/layers.h',
+                 'graphics/videocontrol.h'],
+    'intuition': ['intuition/intuition.h',
+                  'graphics/gfx.h', 'graphics/view.h', 'graphics/rastport.h',
+                  'graphics/clip.h', 'graphics/text.h', 'graphics/layers.h'],
+    'utility': ['utility/tagitem.h', 'utility/hooks.h', 'utility/date.h'],
+}
+
+# Which struct tags belong to which library (to avoid cross-library duplication)
+LIB_STRUCT_TAGS = {
+    'exec': {'LN', 'MLN', 'LH', 'MLH', 'MP', 'MN', 'IO', 'IS', 'LIB', 'TC_Struct'},
+    'dos': {'FileHandle', 'FileLock', 'Process', 'DosPacket', 'StandardPacket',
+            'DateStamp', 'FileInfoBlock', 'InfoData', 'ErrorString', 'ExAllData', 'ExAllControl'},
+    'graphics': {'RastPort', 'Layer', 'ClipRect', 'BitMap', 'View', 'TextFont',
+                 'TextAttr', 'ColorMap', 'TmpRas', 'AreaInfo', 'TextExtent'},
+    'intuition': {'Window', 'Screen', 'IntuiMessage', 'Gadget', 'Image', 'Border',
+                  'IntuiText', 'MenuItem', 'Requester', 'NewScreen', 'NewWindow',
+                  'IBox', 'EasyStruct', 'ExtGadget', 'ExtIntuiMessage', 'DrawInfo',
+                  'ColorSpec', 'Menu'},
+    'utility': {'TagItem', 'HOOK', 'CLOCKDATA'},
+}
+
+
+def _library_struct_tags(lib_name: str) -> set:
+    """Struct tags to emit for a library, including split base structs (e.g. IO_BASE)."""
+    tags = set(LIB_STRUCT_TAGS.get(lib_name, set()))
+    tags.update(f'{t}_BASE' for t in list(tags))
+    return tags
+
+
 def parse_structs_from_clang(ndk_path: str, lib_name: str) -> dict:
     """Parse struct definitions from C headers via clang JSON AST dump.
 
@@ -1509,30 +1558,7 @@ def parse_structs_from_clang(ndk_path: str, lib_name: str) -> dict:
     # Build the C source to feed to clang
     c_lines = ['#include <exec/exec.h>']
 
-    lib_headers = {
-        'exec': [],
-        'dos': ['dos/dosextens.h', 'dos/exall.h'],
-        'graphics': ['graphics/gfx.h', 'graphics/rastport.h', 'graphics/clip.h',
-                     'graphics/view.h', 'graphics/text.h', 'graphics/layers.h',
-                     'graphics/videocontrol.h'],
-        'intuition': ['intuition/intuition.h',
-                      'graphics/gfx.h', 'graphics/view.h', 'graphics/rastport.h',
-                      'graphics/clip.h', 'graphics/text.h', 'graphics/layers.h'],
-    }
-
-    # Which struct tags belong to which library (to avoid cross-library duplication)
-    lib_struct_tags = {
-        'exec': {'LN', 'MLN', 'LH', 'MLH', 'MP', 'MN', 'IO', 'IS', 'LIB', 'TC_Struct'},
-        'dos': {'FileHandle', 'FileLock', 'Process', 'DosPacket', 'StandardPacket',
-                'DateStamp', 'FileInfoBlock', 'InfoData', 'ErrorString', 'ExAllData', 'ExAllControl'},
-        'graphics': {'RastPort', 'Layer', 'ClipRect', 'BitMap', 'View', 'TextFont',
-                     'TextAttr', 'ColorMap', 'TmpRas', 'AreaInfo', 'TextExtent'},
-        'intuition': {'Window', 'Screen', 'IntuiMessage', 'Gadget', 'Image', 'Border',
-                      'IntuiText', 'MenuItem', 'Requester', 'NewScreen', 'NewWindow',
-                      'IBox', 'EasyStruct', 'ExtGadget', 'ExtIntuiMessage', 'DrawInfo',
-                      'ColorSpec', 'Menu'},
-    }
-    for hdr in lib_headers.get(lib_name, []):
+    for hdr in LIB_HEADERS.get(lib_name, []):
         c_lines.append(f'#include <{hdr}>')
 
     c_source = '\n'.join(c_lines)
@@ -1567,7 +1593,7 @@ def parse_structs_from_clang(ndk_path: str, lib_name: str) -> dict:
     typedef_map = _build_typedef_map(ast)
 
     # Parse all structs in STRUCT_NAME_MAP that exist in the AST
-    allowed_tags = lib_struct_tags.get(lib_name, set())
+    allowed_tags = _library_struct_tags(lib_name)
     structs = {}
     for tag in STRUCT_NAME_MAP:
         # Only include structs that belong to this library
@@ -1651,6 +1677,8 @@ def main():
                     if tag in all_raw:
                         print(f"Warning: struct '{tag}' from exec overwritten by {lib}", file=sys.stderr)
                 all_raw.update(lib_structs)
+            # Resolve base sizes across merged structs (e.g. utility HOOK extends exec MLN)
+            _resolve_base_sizes(all_raw)
     else:
         all_raw = {}
 
@@ -1702,6 +1730,8 @@ def main():
     # structs inside the block
     if args.structs:
         resolved = resolve_struct_sizes(all_raw)
+        allowed = _library_struct_tags(lib)
+        resolved = {tag: rs for tag, rs in resolved.items() if tag in allowed}
         print(generate_structs(resolved, lib, indent='    ', header_text='struct definitions'))
 
     # constants inside the block

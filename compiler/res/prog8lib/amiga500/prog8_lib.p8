@@ -34,26 +34,34 @@ p8_sys_startup {
 proc_MsgPort = 92
 proc_CLI = 172
 
-            ; Check if we are started from Workbench
             move.l  4.w,a6
+            cmp.w   #36,20(a6)      ; KS 2.0 = V36
+            blo.s   1$
+
+            move.l  #-1,d0
+            move.l  d0,d1
+            jsr     -648(a6)        ; CacheControl(): turn on all cpu caches
+1$:
+            ; Check if we are started from Workbench
 		    sub.l   a1,a1
 		    jsr     exec.FindTask(a6)
 		    move.l  d0,a5
-		    beq.w   1$
+		    beq.w   2$
 		    tst.l   proc_CLI(a5)
-		    bne.b   1$
+		    bne.b   2$
     		lea.l   proc_MsgPort(a5),a0
 		    jsr     exec.WaitPort(a6)   ; Wait for workbench message
 		    lea.l   proc_MsgPort(a5),a0
 		    jsr     exec.GetMsg(a6)
 		    move.l  d0,p8_sys_startup.WBMsg		; Store message pointer to reply at exit later
-1$:
+2$:
         }}
 
         sys.DOSBase = exec.OpenLibrary("dos.library",0)
         sys.GfxBase = exec.OpenLibrary("graphics.library",0)
         sys.IntuitionBase = exec.OpenLibrary("intuition.library",0)
         sys.IconBase = exec.OpenLibrary("icon.library",0)
+        sys.UtilityBase = exec.OpenLibrary("utility.library",0)     ; only succeeds on kickstart 2.0+
     }
 
     sub init_system_phase2() {
@@ -90,6 +98,7 @@ proc_CLI = 172
 1$:
         }}
 
+        if sys.UtilityBase != 0 exec.CloseLibrary(sys.UtilityBase)
         if sys.IconBase != 0 exec.CloseLibrary(sys.IconBase)
         if sys.IntuitionBase != 0 exec.CloseLibrary(sys.IntuitionBase)
         if sys.GfxBase != 0 exec.CloseLibrary(sys.GfxBase)

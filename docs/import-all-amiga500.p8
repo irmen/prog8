@@ -16,4 +16,5 @@
 %import dos
 %import graphics
 %import intuition
+%import utility
 

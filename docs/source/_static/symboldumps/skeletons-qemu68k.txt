@@ -1,6 +1,6 @@
 
 Prog8 compiler v12.3-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit 7565d04c in branch new-codegens
+Prerelease version from git commit b6e503a6 in branch new-codegens
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Using existing prog8c daemon at /run/user/1000/prog8c-daemon.sock
@@ -335,6 +335,7 @@ sys  {
     clear_carry  ()
     clear_irqd  ()
     die  (ubyte code, str message)
+    exec_version  () -> uword @D0
     exit  (ubyte returnvalue)
     memclear  (long mem @D0, uword numbytes @D1)
     memcopy  (long source @D0, long tgt @D1, uword count @D2)
@@ -355,19 +356,25 @@ LIBRARY MODULE NAME: textio
 
 txt  {
     bell  ()
+    bold  ()
     chrin   alias for: qemu.chrin
     chrout  (ubyte char @D0)
     clear_screen  ()
     cls  ()
     color  (ubyte txtcol)
     column  (ubyte col)
+    cursor_off  ()
+    cursor_on  ()
+    dim  ()
     height  () -> ubyte
     home  ()
     input_chars  (str buffer) -> ubyte
     iso  ()
+    italic  ()
     keypressed   alias for: qemu.keypressed
     lowercase  ()
     nl  ()
+    normal  ()
     plot  (ubyte col, ubyte row)
     print  (str text @A0)
     print_b  (byte value)
@@ -384,11 +391,14 @@ txt  {
     print_uwbin  (uword value, bool prefix)
     print_uwhex  (uword value, bool prefix)
     print_w  (word value)
+    rvs  ()
     rvs_off  ()
     rvs_on  ()
     setchr  (ubyte col, ubyte row, ubyte char)
     size  () -> ubyte, ubyte
     spc  ()
+    tab  ()
+    underline  ()
     width  () -> ubyte
 }
 
