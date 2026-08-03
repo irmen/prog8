@@ -286,7 +286,7 @@ class AstPreprocessor(val program: Program,
         // ONLY for 6502/65C02 targets that actually have a zeropage concept
         if(decl.datatype.isPointer && decl.zeropage==ZeropageWish.DONTCARE) {
             if(decl.origin!= VarDeclOrigin.SUBROUTINEPARAM && !decl.definingModule.isLibrary) {
-                if(options.compTarget.cpu==CpuType.CPU6502 || options.compTarget.cpu==CpuType.CPU65C02) {
+                if(options.compTarget.cpu.is6502) {
                     decl.zeropage = ZeropageWish.PREFER_ZEROPAGE
                 }
             }

@@ -336,9 +336,9 @@ class TestCompilerOnExamplesVirtual: FunSpec({
             ExampleSizes("fountain", virtualInstrCountOptimized=207, virtualInstrCountUnoptimized=829, virtualRegCountOptimized=80, virtualRegCountUnoptimized=369),
             ExampleSizes("pixelshader", virtualInstrCountOptimized=93, virtualInstrCountUnoptimized=308, virtualRegCountOptimized=17, virtualRegCountUnoptimized=115),
             ExampleSizes("sincos", virtualInstrCountOptimized=335, virtualInstrCountUnoptimized=934, virtualRegCountOptimized=138, virtualRegCountUnoptimized=409),
-            ExampleSizes("pointers/animalgame", virtualInstrCountOptimized=434, virtualInstrCountUnoptimized=2158, virtualRegCountOptimized=155, virtualRegCountUnoptimized=939),
+            ExampleSizes("pointers/animalgame", virtualInstrCountOptimized=428, virtualInstrCountUnoptimized=2158, virtualRegCountOptimized=155, virtualRegCountUnoptimized=939),
             ExampleSizes("pointers/binarytree", virtualInstrCountOptimized=658, virtualInstrCountUnoptimized=2327, virtualRegCountOptimized=260, virtualRegCountUnoptimized=1026),
-            ExampleSizes("pointers/hashtable", virtualInstrCountOptimized=700, virtualInstrCountUnoptimized=2326, virtualRegCountOptimized=300, virtualRegCountUnoptimized=1051),
+            ExampleSizes("pointers/hashtable", virtualInstrCountOptimized=682, virtualInstrCountUnoptimized=2326, virtualRegCountOptimized=291, virtualRegCountUnoptimized=1051),
             ExampleSizes("pointers/sortedlist", virtualInstrCountOptimized=404, virtualInstrCountUnoptimized=2488, virtualRegCountOptimized=130, virtualRegCountUnoptimized=1092),
             ExampleSizes("pointers/fountain-virtual", virtualInstrCountOptimized=203, virtualInstrCountUnoptimized=824, virtualRegCountOptimized=75, virtualRegCountUnoptimized=363),
             ExampleSizes("pointers/sorting", virtualInstrCountOptimized=530, virtualInstrCountUnoptimized=2322, virtualRegCountOptimized=183, virtualRegCountUnoptimized=1016)

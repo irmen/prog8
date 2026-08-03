@@ -231,7 +231,7 @@ class DataType private constructor(
     // ============================================================================
 
     fun elementToArray(target: ICompilationTarget, splitwords: Boolean = true): DataType {
-        if(target.cpu !in setOf(CpuType.CPU6502, CpuType.CPU65C02))
+        if(!target.cpu.is6502)
             return arrayFor(base, target)
         
         if (splitwords && (base == BaseDataType.UWORD || base == BaseDataType.WORD || base == BaseDataType.STR))

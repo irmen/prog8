@@ -50,6 +50,11 @@ enum class CpuType(val statusBitsOnMultiByteOps: Boolean) {
      * behavior consistent across all current targets.
      */
     VIRTUAL(false)
+    ;
+
+    /** True for the 6502-family targets (plain 6502 and 65C02). */
+    val is6502: Boolean
+        get() = this == CPU6502 || this == CPU65C02
 }
 
 interface ICompilationTarget: IStringEncoding, IMemSizer {

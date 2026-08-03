@@ -36,7 +36,7 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
         }
         require(scopestack.size==1)
 
-        if(options.compTarget.cpu in setOf(CpuType.CPU6502, CpuType.CPU65C02)) {
+        if(options.compTarget.cpu.is6502) {
             listOf(
                 PtMemMapped("P8ZP_SCRATCH_B1", DataType.UBYTE, options.compTarget.zeropage.SCRATCH_B1, null, Position.DUMMY),
                 PtMemMapped("P8ZP_SCRATCH_REG", DataType.UBYTE, options.compTarget.zeropage.SCRATCH_REG, null, Position.DUMMY),

@@ -55,7 +55,7 @@ class Cpu6502SimulatorHelper(val result: CompilationResult) {
     val prgFile: Path = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".prg")
 
     init {
-        require(result.compilationOptions.compTarget.cpu in listOf(prog8.code.core.CpuType.CPU6502, prog8.code.core.CpuType.CPU65C02)) {
+        require(result.compilationOptions.compTarget.cpu.is6502) {
             "can only simulate CPU6502 and CPU65C02 programs, not ${result.compilationOptions.compTarget.cpu}"
         }
         if (!prgFile.exists()) {

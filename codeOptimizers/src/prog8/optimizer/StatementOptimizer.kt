@@ -68,7 +68,7 @@ class StatementOptimizer(private val program: Program,
         // printing a literal string of just 2 or 1 characters is replaced by directly outputting those characters
         // only do this optimization if the arg is a known-constant string literal instead of a user defined variable.
         // only on 6502 targets.
-        if(options.compTarget.cpu in setOf(CpuType.CPU6502, CpuType.CPU65C02) && functionCallStatement.target.nameInSource==listOf("txt", "print")) {
+        if(options.compTarget.cpu.is6502 && functionCallStatement.target.nameInSource==listOf("txt", "print")) {
             val arg = functionCallStatement.args.single()
             val stringVar: IdentifierReference? = if(arg is AddressOf) {
                 if(arg.arrayIndex==null) {
@@ -413,7 +413,7 @@ class StatementOptimizer(private val program: Program,
             }
 
             // pointer arithmetic for 6502 target
-            if (options.compTarget.cpu != CpuType.VIRTUAL) {
+            if (options.compTarget.cpu.is6502) {
                 if(bexpr.operator=="+" && !bexpr.right.isSimple && !assignment.isAugmentable) {
                     if(targetIDt.isUnsignedWord || targetIDt.getOrUndef().isPointerToByte) {
                         val leftDt = bexpr.left.inferType(program).getOrUndef()
