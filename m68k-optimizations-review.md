@@ -36,17 +36,6 @@ Gating reference: `options.compTarget.cpu.is6502` (6502/65C02 only) or
 - **`StatementOptimizer.kt:40`** `pokew(&ptrvar, x)` -> `ptrvar = x`. On
   m68k a pointer variable is 4 bytes, so a 2-byte store becomes a 4-byte
   store -> changed semantics. Gate by `POINTER_MEM_SIZE == 2u`.
-- **`ConstExprEvaluator.kt:363-375`** `strings.isupper`/`islower`/`isletter`
-  folded with PETSCII ranges for every target. The VM/ISO stdlib
-  (`compiler/res/prog8lib/virtual/strings.p8`) uses the opposite ISO mapping,
-  so const-folding gives an **inverted result** today on the virtual target
-  and would on m68k once the m68k stdlib adds those routines. `isdigit`,
-  `isspace`, `isprint` happen to agree. Gate by encoding/target.
-- **`ExpressionSimplifier.kt:998-1004`** signed `x / 2^n` -> `x >> n`.
-  Prog8 integer division truncates toward zero; `>>` lowers to ASR (floors),
-  so `-3 / 2` (== -1) becomes `-3 >> 1` (== -2). Wrong for negatives on
-  every target, and `-noopt` vs optimized disagree. The simpleAst twin
-  (`ExpressionOptimizers.kt:386`) is correctly unsigned-only.
 - **`ExpressionSimplifier.kt:249,258,275,284`** pointer `==`/`!=` 0/1
   retyped to `UWORD` -> a 16-bit compare of a 32-bit pointer (`ptr == 0`
   true for `$00010000`). Should widen to `LONG` when `POINTER_MEM_SIZE > 2`.
@@ -122,18 +111,15 @@ Lowering improvements that would shrink m68k output (no correctness risk):
 | 1 | `ConstantIdentifierReplacer.kt:417,458` | const ptr -> `UWORD` literal | **crash** / truncation | No |
 | 2 | `ConstantFoldingOptimizer.kt:120,133` | folded `ptr±N` -> `UWORD` | **crash** / truncation | No |
 | 3 | `StatementOptimizer.kt:40` | `pokew(&ptrvar,x)` -> `ptrvar=x` | 2-byte -> 4-byte store | No |
-| 4 | `ConstExprEvaluator.kt:363-375` | `strings.isupper/islower/isletter` PETSCII | **inverted result** | No |
-| 5 | `ExpressionSimplifier.kt:998-1004` | signed `x / 2^n` -> `x >> n` | wrong rounding | No |
-| 6 | `ExpressionSimplifier.kt:249,258,275,284` | ptr `==`/`!=` 0/1 -> `UWORD` | 16-bit compare of 32-bit ptr | No |
-| 7 | `Inliner.kt:434` (+`:142`,`:253`,`:264`) | 6502 code-bloat heuristics | over-conservative | No |
+| 4 | `ExpressionSimplifier.kt:249,258,275,284` | ptr `==`/`!=` 0/1 -> `UWORD` | 16-bit compare of 32-bit ptr | No |
+| 5 | `Inliner.kt:434` (+`:142`,`:253`,`:264`) | 6502 code-bloat heuristics | over-conservative | No |
 
 ---
 
 ## Recommended order of work
 
  1. Fix the const-pointer / POINTER_MEM_SIZE issues in section 1 (crasher on
-    real Amiga addresses) and the `pokew`/`isupper`/`signed-div` correctness
-    items.
+    real Amiga addresses) and the `pokew` correctness items.
  2. Land the m68k lowering improvements in section 3.
  3. Revisit the remaining 6502-cost-model items (Inliner, `when`->on..goto)
     for m68k benefit once the above is stable.

@@ -1178,11 +1178,14 @@ class IRCodeGen(
             }
             return code
         }
-        if(pow2>=0 && signed && options.compTarget.cpu.is6502) {
-            // signed division by a power of two: bias-corrected shift (much cheaper than a DIVS routine on the 6502)
-            emitSignedDivByPow2Shift(code, dt, reg, pow2)
-            return code
-        }
+
+// NOTE: bias-shift code not activated because it causes large code bloat
+//        if(pow2>=0 && signed && options.compTarget.cpu.is6502) {
+//            // signed division by a power of two: bias-corrected shift (much cheaper than a DIVS routine on the 6502)
+//            emitSignedDivByPow2Shift(code, dt, reg, pow2)
+//            return code
+//        }
+
         // regular div (also used for signed division by a power of two on non-6502 targets: >> floors,
         // whereas / truncates toward zero for negative dividends, so a plain shift is wrong)
         code += if (factor == 0) {
@@ -1222,20 +1225,21 @@ class IRCodeGen(
         // signed division by a power of two falls through to the real division below
         else
         {
-            if(pow2>=0 && signed && options.compTarget.cpu.is6502) {
-                // signed division by a power of two: bias-corrected shift (much cheaper than a DIVS routine on the 6502)
-                val reg = registers.next(dt)
-                code += if(knownAddress!=null)
-                    IRInstruction(Opcode.LOADM, dt, reg1 = reg, address = knownAddress.toAddress())
-                else
-                    IRInstruction(Opcode.LOADM, dt, reg1 = reg, labelSymbol = symbol)
-                emitSignedDivByPow2Shift(code, dt, reg, pow2)
-                code += if(knownAddress!=null)
-                    IRInstruction(Opcode.STOREM, dt, reg1 = reg, address = knownAddress.toAddress())
-                else
-                    IRInstruction(Opcode.STOREM, dt, reg1 = reg, labelSymbol = symbol)
-                return code
-            }
+// NOTE: bias-shift code not activated because it causes large code bloat
+//            if(pow2>=0 && signed && options.compTarget.cpu.is6502) {
+//                // signed division by a power of two: bias-corrected shift (much cheaper than a DIVS routine on the 6502)
+//                val reg = registers.next(dt)
+//                code += if(knownAddress!=null)
+//                    IRInstruction(Opcode.LOADM, dt, reg1 = reg, address = knownAddress.toAddress())
+//                else
+//                    IRInstruction(Opcode.LOADM, dt, reg1 = reg, labelSymbol = symbol)
+//                emitSignedDivByPow2Shift(code, dt, reg, pow2)
+//                code += if(knownAddress!=null)
+//                    IRInstruction(Opcode.STOREM, dt, reg1 = reg, address = knownAddress.toAddress())
+//                else
+//                    IRInstruction(Opcode.STOREM, dt, reg1 = reg, labelSymbol = symbol)
+//                return code
+//            }
             // regular div
             if (factor == 0) {
                 val reg = registers.next(dt)

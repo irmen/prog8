@@ -395,6 +395,42 @@ internal object ExpressionOptimizers {
                     }
                 }
 
+                // Signed division by a power of two on the 6502: replace with a bias-corrected
+                // arithmetic shift. A plain arithmetic shift floors toward -inf, but integer
+                // division truncates toward zero, so for negative dividends we must add the
+                // remainder before shifting:  x / 2^n  ==  (x + ((x >> (W-1)) & (2^n - 1))) >> n
+                // (the 6502 codegen has no cheap signed DIV routine, so this avoids the slow div)
+// NOTE: this is not activated because it causes large 6502 code bloat.
+//                if (node.operator == "/" && rightConst != null && node.type.isSigned && options.compTarget.cpu.is6502 && !options.newCodegen) {
+//                    if (rightConst in powersOfTwoFloat && node.left.isSimple()) {
+//                        val numshifts = log2(rightConst)
+//                        val wordSize = if (node.type.isByte) 8 else if (node.type.isWord) 16 else 32
+//                        val mask = rightConst - 1.0   // 2^n - 1
+//                        // innerShift = left >> (W-1)   (sign broadcast)
+//                        val innerShift = PtBinaryExpression(">>", node.type, node.position)
+//                        val left1 = node.left.clone()
+//                        val left2 = node.left.clone()
+//                        innerShift.add(left1)
+//                        innerShift.add(PtNumber(BaseDataType.UBYTE, (wordSize - 1).toDouble(), node.position))
+//                        // andExpr = innerShift & mask
+//                        val andExpr = PtBinaryExpression("&", node.type, node.position)
+//                        andExpr.add(innerShift)
+//                        andExpr.add(PtNumber(node.type.base, mask, node.position))
+//                        // addExpr = left + andExpr   (left is also used by innerShift; reused as-is)
+//                        val addExpr = PtBinaryExpression("+", node.type, node.position)
+//                        addExpr.add(left2)
+//                        addExpr.add(andExpr)
+//                        // outerShift = addExpr >> n
+//                        val outerShift = PtBinaryExpression(">>", node.type, node.position)
+//                        outerShift.add(addExpr)
+//                        outerShift.add(PtNumber(BaseDataType.UBYTE, numshifts, node.position))
+//                        val index = node.parent.children.indexOf(node)
+//                        node.parent.setChild(index, outerShift)
+//                        outerShift.parent = node.parent
+//                        changes++
+//                    }
+//                }
+
                 // Modulo by power of two: x % 2^n -> x & (2^n - 1) (for unsigned integers only)
                 if (node.operator == "%" && rightConst != null && node.type.isUnsignedInteger) {
                     if (rightConst in powersOfTwoFloat) {

@@ -716,7 +716,9 @@ internal fun AsmGen.mulRegisters(dstReg: Int, srcReg: Int, type: IRDataType) {
             emitLine("sta  ${regAddrLo(dstReg)}")
             emitLine("sty  ${regAddrHi(dstReg)}")
         }
-        IRDataType.LONG -> TODO("MULR LONG r$dstReg, r$srcReg")
+        IRDataType.LONG -> {
+            TODO("implement MULR long via prog8_math.multiply_longs routine")
+        }
         IRDataType.FLOAT -> TODO("MULR FLOAT r$dstReg, r$srcReg")
     }
 }
@@ -740,6 +742,9 @@ internal fun AsmGen.mulImmediate(dstReg: Int, value: Int, type: IRDataType) {
             emitLine("sta  ${regAddrLo(dstReg)}")
             emitLine("sty  ${regAddrHi(dstReg)}")
         }
+        IRDataType.LONG -> {
+            TODO("implement MUL long via prog8_math.multiply_longs routine")
+        }
         else -> TODO("MUL r$dstReg, #$value ${type.name}")
     }
 }
@@ -762,6 +767,9 @@ internal fun AsmGen.mulMemory(dstReg: Int, sourceAddress: String, type: IRDataTy
             emitLine("jsr  prog8_math.multiply_words")
             emitLine("sta  $sourceAddress")
             emitLine("sty  $sourceAddress+1")
+        }
+        IRDataType.LONG -> {
+            TODO("implement MULM long via prog8_math.multiply_longs routine")
         }
         else -> TODO("MULM r$dstReg, $sourceAddress ${type.name}")
     }
@@ -803,6 +811,9 @@ internal fun AsmGen.divRegisters(dstReg: Int, srcReg: Int, type: IRDataType) {
             emitLine("sta  ${regAddrLo(dstReg)}")
             emitLine("sty  ${regAddrHi(dstReg)}")
         }
+        IRDataType.LONG -> {
+            TODO("implement DIVR long division via prog8_math.div_longs routine")
+        }
         else -> TODO("DIVR r$dstReg, r$srcReg ${type.name}")
     }
 }
@@ -825,6 +836,9 @@ internal fun AsmGen.divImmediate(dstReg: Int, value: Int, type: IRDataType) {
             emitLine("jsr  prog8_math.divmod_uw_asm")
             emitLine("sta  ${regAddrLo(dstReg)}")
             emitLine("sty  ${regAddrHi(dstReg)}")
+        }
+        IRDataType.LONG -> {
+            TODO("implement DIV long division via prog8_math.div_longs routine")
         }
         else -> TODO("DIV r$dstReg, $value ${type.name}")
     }
@@ -849,6 +863,9 @@ internal fun AsmGen.divMemory(dstReg: Int, sourceAddress: String, type: IRDataTy
             emitLine("sta  $sourceAddress")
             emitLine("sty  $sourceAddress+1")
         }
+        IRDataType.LONG -> {
+            TODO("implement DIVM long division via prog8_math.div_longs routine")
+        }
         else -> TODO("DIVM r$dstReg, $sourceAddress ${type.name}")
     }
 }
@@ -872,6 +889,9 @@ internal fun AsmGen.divSignedRegisters(dstReg: Int, srcReg: Int, type: IRDataTyp
             emitLine("sta  ${regAddrLo(dstReg)}")
             emitLine("sty  ${regAddrHi(dstReg)}")
         }
+        IRDataType.LONG -> {
+            TODO("implement DIVSR long division via prog8_math.div_longs routine")
+        }
         else -> TODO("DIVSR r$dstReg, r$srcReg ${type.name}")
     }
 }
@@ -894,6 +914,9 @@ internal fun AsmGen.divSignedImmediate(dstReg: Int, value: Int, type: IRDataType
             emitLine("jsr  prog8_math.divmod_w_asm")
             emitLine("sta  ${regAddrLo(dstReg)}")
             emitLine("sty  ${regAddrHi(dstReg)}")
+        }
+        IRDataType.LONG -> {
+            TODO("implement DIVS long division via prog8_math.div_longs routine")
         }
         else -> TODO("DIVS r$dstReg, $value ${type.name}")
     }
