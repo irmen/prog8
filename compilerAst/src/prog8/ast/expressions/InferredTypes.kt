@@ -54,6 +54,7 @@ object InferredTypes {
         infix fun isNotAssignableTo(targetDt: DataType): Boolean = !this.isAssignableTo(targetDt)
 
         val isBool = datatype?.isBool==true
+        val isUnsignedByte = datatype?.isUnsignedByte==true
         val isBytes = datatype?.isByte==true
         val isWords = datatype?.isWord==true
         val isLong = datatype?.isLong==true

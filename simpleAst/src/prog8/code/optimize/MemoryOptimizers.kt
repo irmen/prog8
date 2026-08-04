@@ -18,11 +18,11 @@ internal object MemoryOptimizers {
         var changes = 0
         walkAst(program) { node: PtNode, depth: Int ->
             if (node is PtMemoryByte) {
-                // @(&x) -> x  (only if x is a byte type)
+                // @(&x) -> x  (only for unsigned byte / bool variables)
                 val addressOf = node.address as? PtAddressOf
                 if (addressOf != null && addressOf.identifier != null) {
                     val identifier = addressOf.identifier!!
-                    if (identifier.type.isByteOrBool) {
+                    if (identifier.type.base == BaseDataType.UBYTE || identifier.type.base == BaseDataType.BOOL) {
                         val index = node.parent.children.indexOf(node)
                         node.parent.setChild(index, identifier)
                         changes++

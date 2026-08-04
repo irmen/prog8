@@ -21,10 +21,11 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
     }
 
     override fun before(memread: DirectMemoryRead, parent: Node): Iterable<AstModification> {
-        // @( &thing )  -->  thing  (but only if thing is a byte type!)
+        // @( &thing )  -->  thing  (but only if thing is unsigned byte or bool, this prevents sign extension errors)
         val addrOf = memread.addressExpression as? AddressOf
         if(addrOf!=null) {
-            if(addrOf.identifier?.inferType(program)?.isBytes==true)
+            val it = addrOf.identifier?.inferType(program) 
+            if(it?.isUnsignedByte==true || it?.isBool==true)
                 return listOf(AstReplaceNode(memread, addrOf.identifier!!, parent))
         }
         return noModifications
