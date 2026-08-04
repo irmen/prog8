@@ -717,7 +717,33 @@ internal fun AsmGen.mulRegisters(dstReg: Int, srcReg: Int, type: IRDataType) {
             emitLine("sty  ${regAddrHi(dstReg)}")
         }
         IRDataType.LONG -> {
-            TODO("implement MULR long via prog8_math.multiply_longs routine")
+            // multiplicand (dstReg) -> cx16.r12/r13,  multiplier (srcReg) -> cx16.r14/r15
+            // prog8_math.multiply_longs handles signed longs; result in cx16.r14/r15
+            emitLine("lda  ${regAddrLo(dstReg)}")
+            emitLine("sta  cx16.r12")
+            emitLine("lda  ${regAddrHi(dstReg)}")
+            emitLine("sta  cx16.r12+1")
+            emitLine("lda  ${regAddrByte(dstReg, 2)}")
+            emitLine("sta  cx16.r13")
+            emitLine("lda  ${regAddrByte(dstReg, 3)}")
+            emitLine("sta  cx16.r13+1")
+            emitLine("lda  ${regAddrLo(srcReg)}")
+            emitLine("sta  cx16.r14")
+            emitLine("lda  ${regAddrHi(srcReg)}")
+            emitLine("sta  cx16.r14+1")
+            emitLine("lda  ${regAddrByte(srcReg, 2)}")
+            emitLine("sta  cx16.r15")
+            emitLine("lda  ${regAddrByte(srcReg, 3)}")
+            emitLine("sta  cx16.r15+1")
+            emitLine("jsr  prog8_math.multiply_longs")
+            emitLine("lda  cx16.r14")
+            emitLine("sta  ${regAddrLo(dstReg)}")
+            emitLine("lda  cx16.r14+1")
+            emitLine("sta  ${regAddrHi(dstReg)}")
+            emitLine("lda  cx16.r15")
+            emitLine("sta  ${regAddrByte(dstReg, 2)}")
+            emitLine("lda  cx16.r15+1")
+            emitLine("sta  ${regAddrByte(dstReg, 3)}")
         }
         IRDataType.FLOAT -> TODO("MULR FLOAT r$dstReg, r$srcReg")
     }
@@ -743,7 +769,33 @@ internal fun AsmGen.mulImmediate(dstReg: Int, value: Int, type: IRDataType) {
             emitLine("sty  ${regAddrHi(dstReg)}")
         }
         IRDataType.LONG -> {
-            TODO("implement MUL long via prog8_math.multiply_longs routine")
+            // multiplicand (dstReg) -> cx16.r12/r13,  immediate multiplier -> cx16.r14/r15
+            // prog8_math.multiply_longs handles signed longs; result in cx16.r14/r15
+            emitLine("lda  ${regAddrLo(dstReg)}")
+            emitLine("sta  cx16.r12")
+            emitLine("lda  ${regAddrHi(dstReg)}")
+            emitLine("sta  cx16.r12+1")
+            emitLine("lda  ${regAddrByte(dstReg, 2)}")
+            emitLine("sta  cx16.r13")
+            emitLine("lda  ${regAddrByte(dstReg, 3)}")
+            emitLine("sta  cx16.r13+1")
+            emitLine("lda  #${value and 0xff}")
+            emitLine("sta  cx16.r14")
+            emitLine("lda  #${(value shr 8) and 0xff}")
+            emitLine("sta  cx16.r14+1")
+            emitLine("lda  #${(value shr 16) and 0xff}")
+            emitLine("sta  cx16.r15")
+            emitLine("lda  #${(value shr 24) and 0xff}")
+            emitLine("sta  cx16.r15+1")
+            emitLine("jsr  prog8_math.multiply_longs")
+            emitLine("lda  cx16.r14")
+            emitLine("sta  ${regAddrLo(dstReg)}")
+            emitLine("lda  cx16.r14+1")
+            emitLine("sta  ${regAddrHi(dstReg)}")
+            emitLine("lda  cx16.r15")
+            emitLine("sta  ${regAddrByte(dstReg, 2)}")
+            emitLine("lda  cx16.r15+1")
+            emitLine("sta  ${regAddrByte(dstReg, 3)}")
         }
         else -> TODO("MUL r$dstReg, #$value ${type.name}")
     }
@@ -769,24 +821,50 @@ internal fun AsmGen.mulMemory(dstReg: Int, sourceAddress: String, type: IRDataTy
             emitLine("sty  $sourceAddress+1")
         }
         IRDataType.LONG -> {
-            TODO("implement MULM long via prog8_math.multiply_longs routine")
+            // in-place: memory (multiplicand and result) -> cx16.r12/r13,  multiplier (reg) -> cx16.r14/r15
+            // prog8_math.multiply_longs handles signed longs; result in cx16.r14/r15
+            emitLine("lda  $sourceAddress")
+            emitLine("sta  cx16.r12")
+            emitLine("lda  $sourceAddress+1")
+            emitLine("sta  cx16.r12+1")
+            emitLine("lda  $sourceAddress+2")
+            emitLine("sta  cx16.r13")
+            emitLine("lda  $sourceAddress+3")
+            emitLine("sta  cx16.r13+1")
+            emitLine("lda  ${regAddrLo(dstReg)}")
+            emitLine("sta  cx16.r14")
+            emitLine("lda  ${regAddrHi(dstReg)}")
+            emitLine("sta  cx16.r14+1")
+            emitLine("lda  ${regAddrByte(dstReg, 2)}")
+            emitLine("sta  cx16.r15")
+            emitLine("lda  ${regAddrByte(dstReg, 3)}")
+            emitLine("sta  cx16.r15+1")
+            emitLine("jsr  prog8_math.multiply_longs")
+            emitLine("lda  cx16.r14")
+            emitLine("sta  $sourceAddress")
+            emitLine("lda  cx16.r14+1")
+            emitLine("sta  $sourceAddress+1")
+            emitLine("lda  cx16.r15")
+            emitLine("sta  $sourceAddress+2")
+            emitLine("lda  cx16.r15+1")
+            emitLine("sta  $sourceAddress+3")
         }
         else -> TODO("MULM r$dstReg, $sourceAddress ${type.name}")
     }
 }
 
 internal fun AsmGen.mulSignedRegisters(dstReg: Int, srcReg: Int, type: IRDataType) {
-    emitLine("; MULSR r$dstReg, r$srcReg (signed) - using unsigned for now")
+    // prog8_math.multiply_longs performs signed long multiplication
     mulRegisters(dstReg, srcReg, type)
 }
 
 internal fun AsmGen.mulSignedImmediate(dstReg: Int, value: Int, type: IRDataType) {
-    emitLine("; MULS r$dstReg, #$value (signed) - using unsigned for now")
+    // prog8_math.multiply_longs performs signed long multiplication
     mulImmediate(dstReg, value, type)
 }
 
 internal fun AsmGen.mulSignedMemory(dstReg: Int, sourceAddress: String, type: IRDataType) {
-    emitLine("; MULSM r$dstReg, $sourceAddress (signed) - using unsigned for now")
+    // prog8_math.multiply_longs performs signed long multiplication
     mulMemory(dstReg, sourceAddress, type)
 }
 
@@ -812,7 +890,33 @@ internal fun AsmGen.divRegisters(dstReg: Int, srcReg: Int, type: IRDataType) {
             emitLine("sty  ${regAddrHi(dstReg)}")
         }
         IRDataType.LONG -> {
-            TODO("implement DIVR long division via prog8_math.div_longs routine")
+            // dividend (dstReg) -> cx16.r12/r13,  divisor (srcReg) -> cx16.r14/r15
+            // prog8_math.div_longs performs signed long division; quotient in cx16.r14/r15
+            emitLine("lda  ${regAddrLo(dstReg)}")
+            emitLine("sta  cx16.r12")
+            emitLine("lda  ${regAddrHi(dstReg)}")
+            emitLine("sta  cx16.r12+1")
+            emitLine("lda  ${regAddrByte(dstReg, 2)}")
+            emitLine("sta  cx16.r13")
+            emitLine("lda  ${regAddrByte(dstReg, 3)}")
+            emitLine("sta  cx16.r13+1")
+            emitLine("lda  ${regAddrLo(srcReg)}")
+            emitLine("sta  cx16.r14")
+            emitLine("lda  ${regAddrHi(srcReg)}")
+            emitLine("sta  cx16.r14+1")
+            emitLine("lda  ${regAddrByte(srcReg, 2)}")
+            emitLine("sta  cx16.r15")
+            emitLine("lda  ${regAddrByte(srcReg, 3)}")
+            emitLine("sta  cx16.r15+1")
+            emitLine("jsr  prog8_math.div_longs")
+            emitLine("lda  cx16.r14")
+            emitLine("sta  ${regAddrLo(dstReg)}")
+            emitLine("lda  cx16.r14+1")
+            emitLine("sta  ${regAddrHi(dstReg)}")
+            emitLine("lda  cx16.r15")
+            emitLine("sta  ${regAddrByte(dstReg, 2)}")
+            emitLine("lda  cx16.r15+1")
+            emitLine("sta  ${regAddrByte(dstReg, 3)}")
         }
         else -> TODO("DIVR r$dstReg, r$srcReg ${type.name}")
     }
@@ -838,7 +942,33 @@ internal fun AsmGen.divImmediate(dstReg: Int, value: Int, type: IRDataType) {
             emitLine("sty  ${regAddrHi(dstReg)}")
         }
         IRDataType.LONG -> {
-            TODO("implement DIV long division via prog8_math.div_longs routine")
+            // dividend (dstReg) -> cx16.r12/r13,  immediate divisor -> cx16.r14/r15
+            // prog8_math.div_longs performs signed long division; quotient in cx16.r14/r15
+            emitLine("lda  ${regAddrLo(dstReg)}")
+            emitLine("sta  cx16.r12")
+            emitLine("lda  ${regAddrHi(dstReg)}")
+            emitLine("sta  cx16.r12+1")
+            emitLine("lda  ${regAddrByte(dstReg, 2)}")
+            emitLine("sta  cx16.r13")
+            emitLine("lda  ${regAddrByte(dstReg, 3)}")
+            emitLine("sta  cx16.r13+1")
+            emitLine("lda  #${value and 0xff}")
+            emitLine("sta  cx16.r14")
+            emitLine("lda  #${(value shr 8) and 0xff}")
+            emitLine("sta  cx16.r14+1")
+            emitLine("lda  #${(value shr 16) and 0xff}")
+            emitLine("sta  cx16.r15")
+            emitLine("lda  #${(value shr 24) and 0xff}")
+            emitLine("sta  cx16.r15+1")
+            emitLine("jsr  prog8_math.div_longs")
+            emitLine("lda  cx16.r14")
+            emitLine("sta  ${regAddrLo(dstReg)}")
+            emitLine("lda  cx16.r14+1")
+            emitLine("sta  ${regAddrHi(dstReg)}")
+            emitLine("lda  cx16.r15")
+            emitLine("sta  ${regAddrByte(dstReg, 2)}")
+            emitLine("lda  cx16.r15+1")
+            emitLine("sta  ${regAddrByte(dstReg, 3)}")
         }
         else -> TODO("DIV r$dstReg, $value ${type.name}")
     }
@@ -864,7 +994,33 @@ internal fun AsmGen.divMemory(dstReg: Int, sourceAddress: String, type: IRDataTy
             emitLine("sty  $sourceAddress+1")
         }
         IRDataType.LONG -> {
-            TODO("implement DIVM long division via prog8_math.div_longs routine")
+            // in-place: memory (dividend) -> cx16.r12/r13,  divisor (reg) -> cx16.r14/r15
+            // prog8_math.div_longs performs signed long division; quotient in cx16.r14/r15
+            emitLine("lda  $sourceAddress")
+            emitLine("sta  cx16.r12")
+            emitLine("lda  $sourceAddress+1")
+            emitLine("sta  cx16.r12+1")
+            emitLine("lda  $sourceAddress+2")
+            emitLine("sta  cx16.r13")
+            emitLine("lda  $sourceAddress+3")
+            emitLine("sta  cx16.r13+1")
+            emitLine("lda  ${regAddrLo(dstReg)}")
+            emitLine("sta  cx16.r14")
+            emitLine("lda  ${regAddrHi(dstReg)}")
+            emitLine("sta  cx16.r14+1")
+            emitLine("lda  ${regAddrByte(dstReg, 2)}")
+            emitLine("sta  cx16.r15")
+            emitLine("lda  ${regAddrByte(dstReg, 3)}")
+            emitLine("sta  cx16.r15+1")
+            emitLine("jsr  prog8_math.div_longs")
+            emitLine("lda  cx16.r14")
+            emitLine("sta  $sourceAddress")
+            emitLine("lda  cx16.r14+1")
+            emitLine("sta  $sourceAddress+1")
+            emitLine("lda  cx16.r15")
+            emitLine("sta  $sourceAddress+2")
+            emitLine("lda  cx16.r15+1")
+            emitLine("sta  $sourceAddress+3")
         }
         else -> TODO("DIVM r$dstReg, $sourceAddress ${type.name}")
     }
@@ -890,7 +1046,8 @@ internal fun AsmGen.divSignedRegisters(dstReg: Int, srcReg: Int, type: IRDataTyp
             emitLine("sty  ${regAddrHi(dstReg)}")
         }
         IRDataType.LONG -> {
-            TODO("implement DIVSR long division via prog8_math.div_longs routine")
+            // prog8_math.div_longs performs signed long division
+            divRegisters(dstReg, srcReg, type)
         }
         else -> TODO("DIVSR r$dstReg, r$srcReg ${type.name}")
     }
@@ -916,14 +1073,16 @@ internal fun AsmGen.divSignedImmediate(dstReg: Int, value: Int, type: IRDataType
             emitLine("sty  ${regAddrHi(dstReg)}")
         }
         IRDataType.LONG -> {
-            TODO("implement DIVS long division via prog8_math.div_longs routine")
+            // prog8_math.div_longs performs signed long division
+            divImmediate(dstReg, value, type)
         }
         else -> TODO("DIVS r$dstReg, $value ${type.name}")
     }
 }
 
-internal fun divSignedMemory(dstReg: Int, sourceAddress: String, type: IRDataType) {
-    TODO("DIVSM r$dstReg, $sourceAddress (signed)")
+internal fun AsmGen.divSignedMemory(dstReg: Int, sourceAddress: String, type: IRDataType) {
+    // prog8_math.div_longs performs signed long division
+    divMemory(dstReg, sourceAddress, type)
 }
 
 // === Modulo ===
