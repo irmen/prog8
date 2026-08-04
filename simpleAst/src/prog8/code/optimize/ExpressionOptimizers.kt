@@ -5,7 +5,6 @@ import prog8.code.core.BaseDataType
 import prog8.code.core.CompilationOptions
 import prog8.code.core.negativePowersOfTwoFloat
 import prog8.code.core.powersOfTwoFloat
-import prog8.code.target.VMTarget
 import kotlin.math.log2
 
 /**
@@ -22,7 +21,7 @@ internal object ExpressionOptimizers {
         walkAst(program) { node: PtNode, _: Int ->
             if (node is PtBinaryExpression) {
                 val constvalue = node.right.asConstValue()
-                if(node.operator=="<<" && constvalue==1.0 && options.compTarget.name!=VMTarget.NAME) {
+                if(node.operator=="<<" && constvalue==1.0 && options.compTarget.cpu.is6502) {
                     val typecast=node.left as? PtTypeCast
                     if(typecast!=null && typecast.type.isWord && typecast.value is PtIdentifier) {
                         val addition = node.parent as? PtBinaryExpression

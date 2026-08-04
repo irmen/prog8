@@ -2,6 +2,7 @@ package prog8.code.optimize
 
 import prog8.code.ast.*
 import prog8.code.core.BaseDataType
+import prog8.code.core.CompilationOptions
 import prog8.code.core.DataType
 
 /**
@@ -37,8 +38,12 @@ internal object MemoryOptimizers {
      * Optimizes lsb()/msb() builtin calls on struct field dereferences.
      * msb(struct.field) --> @(&struct.field+1)
      * lsb(struct.field) --> @(&struct.field)
+     * Only valid on little-endian targets (6502); on big-endian (m68k) the
+     * byte offsets are swapped, so this must not run there.
      */
-    fun optimizeLsbMsbOnStructfields(program: PtProgram): Int {
+    fun optimizeLsbMsbOnStructfields(program: PtProgram, options: CompilationOptions): Int {
+        if(!options.compTarget.cpu.is6502)
+            return 0
         var changes = 0
         walkAst(program) { node: PtNode, depth: Int ->
             if (node is PtFunctionCall && node.builtin && (node.name=="msb" || node.name=="lsb")) {

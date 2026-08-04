@@ -195,8 +195,12 @@ internal object ComparisonOptimizers {
 
     /**
      * Optimizes float comparisons to zero using sgn().
+     * 6502 MFLPT trick; on other targets a direct float compare+branch is better,
+     * so this is gated to 6502 only.
      */
-    fun optimizeFloatComparesToZero(program: PtProgram): Int {
+    fun optimizeFloatComparesToZero(program: PtProgram, options: CompilationOptions): Int {
+        if(!options.compTarget.cpu.is6502)
+            return 0
         var changes = 0
         walkAst(program) { node: PtNode, depth: Int ->
             if (node is PtBinaryExpression) {

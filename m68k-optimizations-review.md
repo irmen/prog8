@@ -26,29 +26,6 @@ Gating reference: `options.compTarget.cpu.is6502` (6502/65C02 only) or
 
 ## 1. simpleAst optimizer rewrites that are 6502-specific / not gated
 
-- **`MemoryOptimizers.kt:41-72`** `msb(^^field)`/`lsb(^^field)` ->
-  `@(&field + offset)`. **WRONG on big-endian**: little-endian byte offsets
-  (`msb` at `+1`, `lsb` at `+0`) are used, so m68k returns the swapped
-  byte. Also hardcodes `DataType.UWORD` for the `PtAddressOf`, truncating
-  the 4-byte m68k pointer address to 16 bits. The compiler-AST pass got this
-  right (`ExpressionSimplifier.kt:759,804` use `isBigEndian`). Gate with
-  `is6502`, or make it endian-aware and use `typeForUntypedAddressOf`.
-- **`ExpressionOptimizers.kt:20-52`** `w + (b<<1 as uword)` ->
-  `(w+b)+b`. Guard is `options.compTarget.name != VMTarget.NAME`, so m68k
-  takes it. On m68k a zero-extension is not free (`EXT` lowers to 3
-  instructions), so this trades one shift for a second load + second
-  extension: **+3 instructions** and one extra live IR register. Change the
-  guard to `cpu.is6502`.
-- **`ComparisonOptimizers.kt:199-219`** `float <op> 0` ->
-  `sgn(float) <op> 0`. A 6502 MFLPT trick (avoids a 5-byte compare call).
-  On m68k the ideal lowering of `f == 0.0` is a 2-instruction `ftst`/`fbcc`;
-  the rewrite produces `SGN.f` (6 instr) + branch = 8, and structurally
-  prevents the float-compare peephole. Gate with `is6502` (and ideally fix
-  `FCOMP` lowering in `IRCodeGen.kt` to emit a direct float compare+branch).
-- **`ExpressionOptimizers.kt:429`** (correctly `is6502`-gated `x+=2` ->
-  `x++ x++` rewrite): shares one `PtNode` instance across two
-  `PtMemoryByte` parents -> double-parent hazard / double-prefixing. A live
-  6502 bug; use the gate as the model for the rest of the file.
 - **`ExpressionOptimizers.kt:500-526`** operand-order swap uses a 6502
   cost table but the direction is right for the IR anyway; the real gap is a
   missing `hasSideEffects` guard (swapping can reorder I/O reads).
@@ -153,27 +130,21 @@ Lowering improvements that would shrink m68k output (no correctness risk):
 
 | # | File:line | Issue | m68k impact | Gated? |
 |---|---|---|---|---|
-| 1 | `MemoryOptimizers.kt:41-72` | `msb/lsb(^^field)` -> `@(&field+offset)` | **WRONG** (byte order + 16-bit ptr) | No |
-| 2 | `ExpressionOptimizers.kt:25` | `w + (b<<1)` -> `(w+b)+b` | +3 instr | `!= VM` only |
-| 3 | `ComparisonOptimizers.kt:199-219` | `float <op> 0` -> `sgn(...)` | 8 vs 2 instr | No |
-| 4 | `ConstantIdentifierReplacer.kt:417,458` | const ptr -> `UWORD` literal | **crash** / truncation | No |
-| 5 | `ConstantFoldingOptimizer.kt:120,133` | folded `ptr±N` -> `UWORD` | **crash** / truncation | No |
-| 6 | `StatementOptimizer.kt:40` | `pokew(&ptrvar,x)` -> `ptrvar=x` | 2-byte -> 4-byte store | No |
-| 7 | `ConstExprEvaluator.kt:363-375` | `strings.isupper/islower/isletter` PETSCII | **inverted result** | No |
-| 8 | `ExpressionSimplifier.kt:998-1004` | signed `x / 2^n` -> `x >> n` | wrong rounding | No |
-| 9 | `ExpressionSimplifier.kt:249,258,275,284` | ptr `==`/`!=` 0/1 -> `UWORD` | 16-bit compare of 32-bit ptr | No |
-| 10 | `Inliner.kt:434` (+`:142`,`:253`,`:264`) | 6502 code-bloat heuristics | over-conservative | No |
+| 1 | `ConstantIdentifierReplacer.kt:417,458` | const ptr -> `UWORD` literal | **crash** / truncation | No |
+| 2 | `ConstantFoldingOptimizer.kt:120,133` | folded `ptr±N` -> `UWORD` | **crash** / truncation | No |
+| 3 | `StatementOptimizer.kt:40` | `pokew(&ptrvar,x)` -> `ptrvar=x` | 2-byte -> 4-byte store | No |
+| 4 | `ConstExprEvaluator.kt:363-375` | `strings.isupper/islower/isletter` PETSCII | **inverted result** | No |
+| 5 | `ExpressionSimplifier.kt:998-1004` | signed `x / 2^n` -> `x >> n` | wrong rounding | No |
+| 6 | `ExpressionSimplifier.kt:249,258,275,284` | ptr `==`/`!=` 0/1 -> `UWORD` | 16-bit compare of 32-bit ptr | No |
+| 7 | `Inliner.kt:434` (+`:142`,`:253`,`:264`) | 6502 code-bloat heuristics | over-conservative | No |
 
 ---
 
 ## Recommended order of work
 
-1. Gate the simpleAst rewrites in section 1 (`MemoryOptimizers.kt` is the
-   dangerous one; `ExpressionOptimizers.kt:25` and `ComparisonOptimizers.kt:199`
-   are cheap wins matching the existing `is6502` pattern).
-2. Fix the const-pointer / POINTER_MEM_SIZE issues in section 2 (crasher on
+1. Fix the const-pointer / POINTER_MEM_SIZE issues in section 2 (crasher on
    real Amiga addresses) and the `pokew`/`isupper`/`signed-div` correctness
    items.
-3. Land the m68k lowering improvements in section 4.
-4. Revisit the remaining 6502-cost-model items (Inliner, `when`->on..goto)
+2. Land the m68k lowering improvements in section 4.
+3. Revisit the remaining 6502-cost-model items (Inliner, `when`->on..goto)
    for m68k benefit once the above is stable.

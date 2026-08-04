@@ -1,62 +1,50 @@
 %import textio
+%import floats
 %zeropage basicsafe
 
 main {
+    struct S { uword value }
+
     sub start() {
-        check_unsigned(40000, 7, 5714, 2)
-        check_unsigned(30000, 13, 2307, 9)
-        check_signed(-1000, 7, -142, -6)
-        check_signed(-255, 16, -15, -15)
-        check_lmh()
+        ; Issue 1: msb/lsb of a struct field via pointer deref.
+        ; Optimizer rewrites msb(^^field)/lsb(^^field) -> @(&field+offset).
+        ; Correct on little-endian 6502 but WRONG on big-endian m68k,
+        ; so the rewrite is now gated to is6502 only.
+        ^^S p = memory("sstorage", 2, 0)
+        p.value = $1234
+        ubyte lo = lsb(p.value)
+        ubyte hi = msb(p.value)
+        txt.print("struct msb/lsb: lo=")
+        txt.print_ub(lo)
+        txt.print(" hi=")
+        txt.print_ub(hi)
+        txt.print("  (expected lo=52 hi=18)\n")
+
+        ; Issue 2: word + (byte<<1 as uword) -> (word+byte)+byte.
+        ; 6502-specific addressing-mode win; on m68k a zero-extend is not free,
+        ; so the rewrite is now gated to is6502 only.
+        word @shared w = 1000
+        byte @shared b = 5
+        word result = w + (b as uword << 1)
+        txt.print("w + b<<1: ")
+        txt.print_w(result)
+        txt.print("  (expected 1010)\n")
+
+        ; Issue 3: float == 0.0 -> sgn(float) == 0.
+        ; 6502 MFLPT trick; on m68k a direct ftst/fbcc is far better,
+        ; so the rewrite is now gated to is6502 only.
+        float @shared f = 3.14
+        if f == 0.0
+            txt.print("float f: zero\n")
+        else
+            txt.print("float f: nonzero\n")
+        float @shared g = 0.0
+        if g == 0.0
+            txt.print("float g: zero\n")
+        else
+            txt.print("float g: nonzero\n")
+
         txt.print("done\n")
         ;sys.poweroff_system()
-    }
-
-    sub check_lmh() {
-        long @shared value = $01020304
-        ubyte low_b, mid_b, high_b = lmh(value)
-        txt.print("lmh: low=")
-        txt.print_ub(low_b)
-        txt.print(" mid=")
-        txt.print_ub(mid_b)
-        txt.print(" high=")
-        txt.print_ub(high_b)
-        txt.print("\n")
-    }
-
-    sub check_unsigned(uword a, uword b, uword exp_q, uword exp_r) {
-        uword q
-        uword r
-        q, r = divmod(a, b)
-        txt.print_uw(a)
-        txt.print(" / ")
-        txt.print_uw(b)
-        txt.print(" u: q=")
-        txt.print_uw(q)
-        txt.print(" r=")
-        txt.print_uw(r)
-        txt.print("  (expected q=")
-        txt.print_uw(exp_q)
-        txt.print(" r=")
-        txt.print_uw(exp_r)
-        txt.print(")\n")
-    }
-
-    sub check_signed(word a, word b, word exp_q, word exp_r) {
-        word q
-        word r
-        q, r = divmod(a, b)
-        txt.print_w(a)
-        txt.print(" / ")
-        txt.print_w(b)
-        txt.print(" s: q=")
-        txt.print_w(q)
-        txt.print(" r=")
-        txt.print_w(r)
-        txt.print("  (expected q=")
-        txt.print_w(exp_q)
-        txt.print(" r=")
-        txt.print_w(exp_r)
-        txt.print(")\n")
     }
 }
