@@ -233,7 +233,7 @@ When writing inline assembly (`%asm {{ }}` blocks or `asmsub` routines), load th
 - Hex: `$FF` (not `0xFF`); Binary: `%1010` (not `0b1010`). Underscores for readability: `25_000_000`
 - 4-digit hex `$0000` = uword. No type suffixes (no `0L`). Cast: `expr as type`
 - Augmented assignment: `+=`, `-=`, `*=`, `/=`, `%=`, `&=`, `|=`, `^=`, `<<=`, `>>=`
-- **`;` starts a comment to end of line** — NOT a statement separator. One statement per line
+- **One statement per line.** You CANNOT put multiple statements on a single source line, even if you try to separate them with `;`. The `;` character is a line comment, not a statement separator, so `stmt1 ; stmt2` is parsed as one statement followed by a comment — `stmt2` is silently dropped (and may break codegen). Always put each statement on its own line.
 - **No `elif`**: use nested `else { if ... }`
 - Type casting: `expression as type` (e.g., `bytevar as word`). `as` has very low precedence (lower than arithmetic)
 - **No automatic type widening**: `byte*byte=byte` (overflow possible!). Cast explicitly
