@@ -71,14 +71,8 @@ Lowering improvements that would shrink m68k output (no correctness risk):
   array indexing. Rotates are not affected — the IR has no
   `ROLN`/`RORN` opcodes and any constant-count rotate is already
   unrolled at IR-build time.
-- **`storeimm` IR opcode to skip the regfile round-trip for constant
-  initializers.** The IR `load.b r1, #5; storem.b r1, p8v_x` lowers to
-  `move.b #5, p8_regfile+0; move.b p8_regfile+0, mem` (2 instr) because
-  `storem` only takes a register operand. Adding a `storeimm.b/w/l #N,
-  mem` opcode that the m68k backend lowers to a single `move.b #N, mem`
-  saves 1 instr per global initializer. Small but free.
 
-  Other low-priority candidates surveyed and rejected:
+  Low-priority candidates surveyed and rejected:
   - Spill+reload pairs (`move d0, p8_regfile; ...; move p8_regfile, d0`)
     occur ~9 times in 1946 lines, all are required (next op modified
     the value), and eliminating them needs a "d0 still holds last-store"
@@ -89,6 +83,10 @@ Lowering improvements that would shrink m68k output (no correctness risk):
   - Same-slot double-writes: 11 occurrences, all from
     `b = cond ? 0 : 1` lowered to if/else with a jump between writes
     (mutually exclusive basic blocks, not redundant).
+  - `load + storei` pairs: 0 occurrences in the IR. `storei`
+    (register-indirect) is only used for non-constant stores; an
+    indirect-immediate variant was considered and rejected as dead
+    code (no real peephole target).
 
 ---
 

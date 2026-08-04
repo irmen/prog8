@@ -70,7 +70,7 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction) {
             val off = imm ?: 0
             loadPointerToA0(base)
             if(off<-32768 || off>32767) {
-                if (off != 0) emitLine("adda.l  #$off, a0")
+                emitLine("adda.l  #$off, a0")
                 emitLine("move$s  (a0), d0")
             } else {
                 if(off==0)
@@ -84,6 +84,11 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction) {
         Opcode.STOREM -> {
             val src = r1 ?: error("STOREM needs reg1")
             emitLine("move${dtSuffix(type)}  ${regAddr(src)}, $target")
+        }
+
+        Opcode.STOREIM -> {
+            val value = imm ?: error("STOREIM needs immediate value")
+            emitLine("move$s  #$value, $target")
         }
 
         Opcode.STOREX -> {
@@ -105,7 +110,7 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction) {
             val off = imm ?: 0
             loadPointerToA0(base)
             if(off<-32768 || off>32767) {
-                if (off != 0) emitLine("adda.l  #$off, a0")
+                emitLine("adda.l  #$off, a0")
                 emitLine("clr$s  (a0)")
             } else {
                 if(off==0)
@@ -135,7 +140,7 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction) {
             val off = imm ?: 0
             loadPointerToA0(base)
             if(off<-32768 || off>32767) {
-                if (off != 0) emitLine("adda.l  #$off, a0")
+                emitLine("adda.l  #$off, a0")
                 emitLine("move$s  ${regAddr(value)}, (a0)")
             } else {
                 if(off==0)
@@ -231,6 +236,20 @@ private fun AsmGen.translateFloatLoadStore(insn: IRInstruction, target: String) 
                 }
 
                 Opcode.STOREM -> emitLine("fmove.s  ${fpuRegName(fp1)}, $target")
+
+                Opcode.STOREIM -> {
+                    val value = immFp ?: error("STOREIM.f needs immediateFp value")
+                    when {
+                        value == 0.0 -> emitLine("fmovecr  #\$0f, fp0")
+                        value == 1.0 -> emitLine("fmovecr  #\$0e, fp0")
+                        else -> {
+                            val lbl = makeFloatConstLabel(value)
+                            emitLine("lea  $lbl, a0")
+                            emitLine("fmove.s  (a0), fp0")
+                        }
+                    }
+                    emitLine("fmove.s  fp0, $target")
+                }
 
                 Opcode.STOREX -> {
                     val idx = r1 ?: error("STOREX.f needs reg1 (index)")

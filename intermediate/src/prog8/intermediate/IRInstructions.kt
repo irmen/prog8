@@ -114,6 +114,7 @@ loadhfaczero       fpreg1             - load "cpu hardware register" fac0 into f
 loadhfacone        fpreg1             - load "cpu hardware register" fac1 into freg1.f
 storem      reg1,         address     - store reg1 at memory address
 storei      reg1, reg2,   value       - store reg1 in memory indirect, pointed to by reg2 + offsetvalue 0-65535 (often used to write a field from a pointer to a struct, or with offset=0 just straight to the pointer)
+storeim     value,        address     - store an immediate value (constant) at memory address (the constant goes in the value field, NOT via a register).
 storezi     reg1,         value       - store zero at memory pointed to by reg1 + offsetvalue 0-65535  (just like storei, but a shorthand to store a constant 0)
 storex      reg1, reg2,   address     - store reg1 at memory address, indexed by value in reg2 (0-255, a byte)
 storezm                   address     - store zero at memory address
@@ -344,6 +345,7 @@ enum class Opcode {
     STOREX,
     STOREZM,
     STOREZI,
+    STOREIM,
     STOREZX,
     STOREHR,
     STOREI,
@@ -713,6 +715,7 @@ val instructionFormats = mutableMapOf(
     Opcode.STOREX     to InstructionFormat.from("BWL,<r1,<r2,>a | F,<fr1,<r1,>a"),
     Opcode.STOREZM    to InstructionFormat.from("BWL,>a         | F,>a"),
     Opcode.STOREZI    to InstructionFormat.from("BWL,<r1,<i     | F,<r1,<i"),
+    Opcode.STOREIM    to InstructionFormat.from("BWL,<i,>a      | F,<i,>a"),
     Opcode.STOREZX    to InstructionFormat.from("BWL,<r1,>a     | F,<r1,>a"),
     Opcode.STOREHR    to InstructionFormat.from("BWL,<r1,<i     | F,<fr1,<i"),
     Opcode.STOREI to InstructionFormat.from("BWL,<r1,<r2,<i     | F,<fr1,<r1,<i"),

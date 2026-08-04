@@ -505,7 +505,13 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
         var valueRegister = -1
         var valueFpRegister = -1
         val zero = codeGen.isZero(assignment.value)
-        if(!zero) {
+        // STOREIM only helps when the target is a simple identifier or a fixed address;
+        // for computed memory targets we still need a register to hold the value.
+        val canUseStoreIm = assignment.target.identifier != null ||
+                (assignment.target.memory?.address is PtNumber)
+        val constInt = if(canUseStoreIm && targetDt != IRDataType.FLOAT && !zero) assignment.value.asConstInteger() else null
+        val constFloat = if(canUseStoreIm && targetDt == IRDataType.FLOAT && !zero) assignment.value.asConstValue() else null
+        if(!zero && constInt==null && constFloat==null) {
             // calculate the assignment value
             if (valueDt == IRDataType.FLOAT) {
                 val tr = exprGen.translateExpression(assignment.value)
@@ -546,14 +552,25 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
         with(assignment.target) {
             when {
                 identifier != null -> {
-                    val instruction = if(zero) {
-                        IRInstruction(Opcode.STOREZM, targetDt, labelSymbol = identifier!!.name)
-                    } else {
-                        if (targetDt == IRDataType.FLOAT) {
+                    val instruction = when {
+                        zero -> IRInstruction(Opcode.STOREZM, targetDt, labelSymbol = identifier!!.name)
+                        constInt != null -> {
+                            val v = when(targetDt) {
+                                IRDataType.BYTE -> constInt and 0xff
+                                IRDataType.WORD, IRDataType.POINTER -> constInt and 0xffff
+                                IRDataType.LONG -> constInt
+                                else -> throw AssemblyError("invalid target dt $targetDt for const store")
+                            }
+                            IRInstruction(Opcode.STOREIM, targetDt, immediate = v, labelSymbol = identifier!!.name)
+                        }
+                        constFloat != null -> {
+                            IRInstruction(Opcode.STOREIM, targetDt, immediateFp = constFloat, labelSymbol = identifier!!.name)
+                        }
+                        targetDt == IRDataType.FLOAT -> {
                             require(valueFpRegister>=0)
                             IRInstruction(Opcode.STOREM, targetDt, fpReg1 = RegisterNum(valueFpRegister), labelSymbol = identifier!!.name)
                         }
-                        else {
+                        else -> {
                             require(valueRegister>=0)
                             IRInstruction(Opcode.STOREM, targetDt, reg1 = valueRegister, labelSymbol = identifier!!.name)
                         }
@@ -582,7 +599,20 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                     } else {
                         val constAddress = memory!!.address as? PtNumber
                         if(constAddress!=null) {
-                            addInstr(result, IRInstruction(Opcode.STOREM, targetDt, reg1=valueRegister, address=constAddress.number.toUInt().toAddress()), null)
+                            val storeIns = when {
+                                zero -> IRInstruction(Opcode.STOREZM, targetDt, address=constAddress.number.toUInt().toAddress())
+                                constInt != null -> {
+                                    val v = when(targetDt) {
+                                        IRDataType.BYTE -> constInt and 0xff
+                                        IRDataType.WORD, IRDataType.POINTER -> constInt and 0xffff
+                                        IRDataType.LONG -> constInt
+                                        else -> null
+                                    }
+                                    if(v != null) IRInstruction(Opcode.STOREIM, targetDt, immediate = v, address=constAddress.number.toUInt().toAddress()) else null
+                                }
+                                else -> null
+                            } ?: IRInstruction(Opcode.STOREM, targetDt, reg1=valueRegister, address=constAddress.number.toUInt().toAddress())
+                            addInstr(result, storeIns, null)
                             return result
                         }
                         val ptrWithOffset = memory!!.address as? PtBinaryExpression

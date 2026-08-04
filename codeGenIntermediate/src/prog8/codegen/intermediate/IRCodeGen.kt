@@ -149,10 +149,8 @@ class IRCodeGen(
                 when(val initValue = variable.initializationValue) {
                     is IRVariableInitializer.Numeric -> {
                         val dt = irType(variable.dt)
-                        val tempReg = registers.next(dt)
                         val chunk = IRCodeChunk(null, null)
-                        chunk += IRInstruction(Opcode.LOAD, dt, reg1 = tempReg, immediate = initValue.value.toInt())
-                        chunk += IRInstruction(Opcode.STOREM, dt, reg1 = tempReg, labelSymbol = variable.name)
+                        chunk += IRInstruction(Opcode.STOREIM, dt, immediate = initValue.value.toInt(), labelSymbol = variable.name)
                         irProg.addGlobalInits(chunk)
                         // replace with uninitialized version so it goes to NOINIT section
                         replacements += IRStStaticVariable(
@@ -893,10 +891,9 @@ class IRCodeGen(
                 else -> rangeEndExclusiveUntyped
             }
         val result = mutableListOf<IRCodeChunkBase>()
-        val chunk = IRCodeChunk(null, null)
         val indexReg = registers.next(loopvarDtIr)
-        chunk += IRInstruction(Opcode.LOAD, loopvarDtIr, reg1=indexReg, immediate = iterable.first)
-        chunk += IRInstruction(Opcode.STOREM, loopvarDtIr, reg1=indexReg, labelSymbol=loopvarSymbol)
+        val chunk = IRCodeChunk(null, null)
+        chunk += IRInstruction(Opcode.STOREIM, loopvarDtIr, immediate = iterable.first, labelSymbol=loopvarSymbol)
         result += chunk
         result += labelFirstChunk(translateNode(forLoop.statements), loopLabel)
         val chunk2 = addConstMem(loopvarDtIr, null, loopvarSymbol, iterable.step)

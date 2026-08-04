@@ -100,6 +100,12 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction) {
             zeroMemory(target, type)
         }
 
+        Opcode.STOREIM -> {
+            val target = resolveAddress(addr, label, offset)
+            val value = imm ?: error("STOREIM needs immediate value")
+            storeImmediateToMemory(value, target, type)
+        }
+
         Opcode.STOREZI -> {
             val offset = insn.immediate ?: 0
             zeroIndexed(r1 ?: error("STOREZI needs reg1"), offset, type)
@@ -133,6 +139,7 @@ private fun AsmGen.translateFloatLoadStore(insn: IRInstruction) {
     val fpReg1 = insn.fpReg1
     val fpReg2 = insn.fpReg2
     val imm = insn.immediate
+    val immFp = insn.immediateFp
     val addr = insn.address
     val label = insn.labelSymbol
     val offset = insn.labelSymbolOffset
@@ -195,6 +202,18 @@ private fun AsmGen.translateFloatLoadStore(insn: IRInstruction) {
             val fpReg = fpReg1 ?: error("STOREM.f needs fpReg1")
             emitLine("lda  #<${fpRegAddr(fpReg.value)}")
             emitLine("ldy  #>${fpRegAddr(fpReg.value)}")
+            emitLine("jsr  floats.MOVFM")
+            emitLine("ldx  #<$target")
+            emitLine("ldy  #>$target")
+            emitLine("jsr  floats.MOVMF")
+        }
+
+        Opcode.STOREIM -> {
+            val target = resolveAddress(addr, label, offset)
+            val value = immFp ?: error("STOREIM.f needs immediateFp value")
+            val constLabel = getFloatConstLabel(value)
+            emitLine("lda  #<$constLabel")
+            emitLine("ldy  #>$constLabel")
             emitLine("jsr  floats.MOVFM")
             emitLine("ldx  #<$target")
             emitLine("ldy  #>$target")
@@ -595,6 +614,34 @@ internal fun AsmGen.copyRegister(dstReg: Int, srcReg: Int, type: IRDataType) {
         IRDataType.LONG -> copyRegisterLong(dstReg, srcReg)
         IRDataType.FLOAT -> {
             TODO("FLOAT LOADR r$dstReg = r$srcReg")
+        }
+    }
+}
+
+internal fun AsmGen.storeImmediateToMemory(value: Int, target: String, type: IRDataType) {
+    when (type) {
+        IRDataType.BYTE -> {
+            emitLine("lda  #${value and 0xff}")
+            emitLine("sta  $target")
+        }
+        IRDataType.WORD, IRDataType.POINTER -> {
+            emitLine("lda  #<${value and 0xffff}")
+            emitLine("sta  $target")
+            emitLine("lda  #>${value and 0xffff}")
+            emitLine("sta  $target+1")
+        }
+        IRDataType.LONG -> {
+            emitLine("lda  #<${value and 0xffff}")
+            emitLine("sta  $target")
+            emitLine("lda  #>${value and 0xffff}")
+            emitLine("sta  $target+1")
+            emitLine("lda  #${(value ushr 16) and 0xff}")
+            emitLine("sta  $target+2")
+            emitLine("lda  #${(value ushr 24) and 0xff}")
+            emitLine("sta  $target+3")
+        }
+        IRDataType.FLOAT -> {
+            TODO("FLOAT STOREIM $value -> $target")
         }
     }
 }

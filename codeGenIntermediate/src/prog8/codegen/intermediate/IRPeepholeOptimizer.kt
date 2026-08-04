@@ -48,6 +48,7 @@ class IRPeepholeOptimizer(private val irprog: IRProgram, private val retainSSA: 
                         val changed = removeNops(chunk1, indexedInstructions)
                                 || replaceConcatZeroMsbWithExt(chunk1, indexedInstructions)
                                 || removeDoubleLoadsAndStores(chunk1, indexedInstructions)
+                                || foldLoadStoremToStoreim(chunk1, indexedInstructions)
                                 || removeUselessArithmetic(chunk1, indexedInstructions)
                                 || removeNeedlessCompares(chunk1, indexedInstructions)
                                 || removeWeirdBranches(chunk1, chunk2, indexedInstructions)
@@ -673,6 +674,40 @@ jump p8_label_gen_2
             if (ins.opcode == Opcode.NOP) {
                 changed = true
                 chunk.instructions.removeAt(idx)
+            }
+        }
+        return changed
+    }
+
+    private fun foldLoadStoremToStoreim(chunk: IRCodeChunk, indexedInstructions: List<IndexedValue<IRInstruction>>): Boolean {
+        /*
+        load.b rX, #imm
+        storem.b rX, addr           ->  storeim.b #imm, addr
+         */
+        var changed = false
+        indexedInstructions.forEach { (idx, ins) ->
+            if(ins.opcode==Opcode.STOREM && idx>0) {
+                val prev = indexedInstructions[idx-1].value
+                if(prev.opcode==Opcode.LOAD && prev.labelSymbol==null) {
+                    val isInt = prev.immediate != null && prev.immediateFp == null
+                    val isFloat = prev.immediateFp != null
+                    val sameReg = when(ins.type) {
+                        IRDataType.FLOAT -> prev.fpReg1 != null && ins.fpReg1 == prev.fpReg1
+                        else -> prev.reg1 != null && ins.reg1 == prev.reg1
+                    }
+                    if(sameReg && (isInt || isFloat)) {
+                        val newIns = ins.copy(
+                            opcode = Opcode.STOREIM,
+                            reg1 = null,
+                            fpReg1 = null,
+                            immediate = if(isInt) prev.immediate else null,
+                            immediateFp = if(isFloat) prev.immediateFp else null
+                        )
+                        chunk.instructions[idx] = newIns
+                        chunk.instructions[idx-1] = IRInstruction(Opcode.NOP)
+                        changed = true
+                    }
+                }
             }
         }
         return changed

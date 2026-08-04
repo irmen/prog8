@@ -232,6 +232,7 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.STOREZM -> InsSTOREZM(ins)
             Opcode.STOREZX -> InsSTOREZX(ins)
             Opcode.STOREZI -> InsSTOREZI(ins)
+            Opcode.STOREIM -> InsSTOREIM(ins)
             Opcode.STOREHR -> InsSTOREHR(ins)
             Opcode.STOREHFACZERO -> InsSTOREHFACZERO(ins)
             Opcode.STOREHFACONE-> InsSTOREHFACONE(ins)
@@ -657,6 +658,18 @@ class VirtualMachine(irProgram: IRProgram) {
             IRDataType.POINTER -> memory.setUW(i.address!!.value, 0u)
             IRDataType.LONG -> memory.setSL(i.address!!.value, 0)
             IRDataType.FLOAT -> memory.setFloat(i.address!!.value, 0.0)
+        }
+        nextPc()
+    }
+
+    private fun InsSTOREIM(i: IRInstruction) {
+        val addr = i.address!!.value
+        when(i.type!!) {
+            IRDataType.BYTE -> memory.setUB(addr, (i.immediate!! and 0xff).toUByte())
+            IRDataType.WORD -> memory.setUW(addr, (i.immediate!! and 0xffff).toUShort())
+            IRDataType.POINTER -> memory.setUW(addr, (i.immediate!! and 0xffff).toUShort())
+            IRDataType.LONG -> memory.setSL(addr, i.immediate!!)
+            IRDataType.FLOAT -> memory.setFloat(addr, i.immediateFp!!)
         }
         nextPc()
     }
