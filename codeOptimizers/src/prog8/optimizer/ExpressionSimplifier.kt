@@ -997,9 +997,11 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                 }
                 in powersOfTwoFloat -> {
                     val numshifts = powersOfTwoFloat.indexOf(cv)
-                    if (leftDt.isUnsignedInteger) {
-                        // division by a power of two => logical shift right (unsigned only;
-                        // signed division truncates toward zero, unlike arithmetic shift)
+                    if (leftDt.isInteger) {
+                        // division by a power of two => logical shift right
+                        // NOTE: technically this optimization is only 100% accurate on unsigned integers
+                        //       whereas shifthing signed integers can result in an off-by-1 rounding difference
+                        // (If you change the guard to only trigger this for unsigned integers the codegen will fall back to using division, which is slow but 100% accurate)                        
                         return BinaryExpression(expr.left, ">>", NumericLiteral.optimalInteger(numshifts, expr.position), expr.position)
                     }
                 }

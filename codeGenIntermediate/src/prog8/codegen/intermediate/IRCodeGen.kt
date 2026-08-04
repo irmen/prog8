@@ -1240,6 +1240,7 @@ class IRCodeGen(
 //                    IRInstruction(Opcode.STOREM, dt, reg1 = reg, labelSymbol = symbol)
 //                return code
 //            }
+
             // regular div
             if (factor == 0) {
                 val reg = registers.next(dt)

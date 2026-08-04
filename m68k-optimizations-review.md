@@ -58,29 +58,6 @@ Gating reference: `options.compTarget.cpu.is6502` (6502/65C02 only) or
 
 ---
 
-## 2. Rewrites verified fine on m68k (leave alone)
-
-- **`ComparisonOptimizers.kt:26-101`** boundary compares vs 0/1:
-  neutral-to-beneficial. `unsigned >= 0`/`unsigned < 0`/`unsigned <= 0`/
-  `unsigned > 0` win (1-2 instructions); the signed `>= 1`/`<= -1` etc. are
-  ties. `ptr != 0` could additionally fold if `isPointer` were accepted
-  (pointers are the dominant 32-bit type on m68k).
-- **`ExpressionOptimizers.kt:126-148,386-410`** mul/div/mod -> shift/mask:
-  beneficial on m68k (68000 has no 32-bit MUL/DIV; `mulu.w`/`divu.w` are
-  ~70/~140 cycles). Signed division is correctly excluded.
-- **`BooleanOptimizers.kt`**, **`ControlFlowOptimizers.kt`**: clean
-  (no flag assumptions; pure CFG shape).
-- **`ExpressionSimplifier.kt:332-458`** the `<<`/`>>` <-> `lsb`/`msb`/
-  `lsw`/`msw` family: value-level, endianness-independent, eliminates a real
-  shift on m68k too.
-- **`ExpressionSimplifier.kt:527-541`** `x & bit == bit` -> `x & bit != 0`
-  (maps to `btst` on m68k).
-- **`UnusedCodeRemover.kt`** self/duplicate-assignment removal: correctly
-  guarded by `hasSideEffects`/`isIOAddress`/`isIORead` (both m68k targets
-  implement `isIOAddress`).
-
----
-
 ## 3. New m68k codegen optimization opportunities
 
 Lowering improvements that would shrink m68k output (no correctness risk):
