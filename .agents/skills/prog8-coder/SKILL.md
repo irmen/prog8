@@ -18,6 +18,16 @@ Follow ALL the rules below carefully.
 - **Library dump**: `prog8c -libdump <dir>` to extract all embedded library source files
 - **`sys` module**: always available, no import needed
 - **CX16 programs**: add `%encoding iso`, call `txt.iso()` in `start()`, end with `sys.poweroff_system()`
+- **WARNING: `%option no_sysinit` on `amiga500`**. It skips the runtime `init_system`
+  that opens `dos.library`, `graphics.library`, `intuition.library`, `icon.library`,
+  `utility.library`, and `timer.device`, storing the base pointers in `sys.*Base`.
+  With those zero, the first library call (`txt.print`, `sys.exit`, any `exec.*`,
+  `dos.*`, `intuition.*`, `timer.*`, `bcd.*`) traps or hangs. **Do not use
+  `%option no_sysinit` in a regular amiga500 program intended to run on real
+  hardware or under vamos/FS-UAE.** It is appropriate only for `%output library`
+  modules (set automatically by the compiler), IRQ handlers, boot stubs, or code
+  that avoids every library call. (`qemu68k` is unaffected: its `init_system` is
+  empty and has nothing to skip.)
 
 ## Datatypes & Variables
 - Primitives: `bool`, `byte`, `ubyte`, `word`, `uword`, `long`, `float`, `str`

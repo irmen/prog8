@@ -73,7 +73,11 @@ private fun AsmGen.cmpBranchUnsignedImm(insn: IRInstruction, label: String, bran
     val imm = insn.immediate ?: error("unsigned branch needs immediate")
     val s = dtSuffix(type)
     emitLine("move$s  ${regAddr(reg)}, d0")
-    emitLine("cmpi$s  #$imm, d0")
+    // cmpi.x #0, d0 can be replaced by the faster tst.x d0
+    if(imm==0)
+        emitLine("tst$s  d0")
+    else
+        emitLine("cmpi$s  #$imm, d0")
     emitLine("$branchOp  $label")
 }
 
@@ -97,7 +101,11 @@ private fun AsmGen.cmpBranchSignedImm(insn: IRInstruction, label: String, branch
     val imm = insn.immediate ?: error("signed branch needs immediate")
     val s = dtSuffix(type)
     emitLine("move$s  ${regAddr(reg)}, d0")
-    emitLine("cmpi$s  #$imm, d0")
+    // cmpi.x #0, d0 can be replaced by the faster tst.x d0
+    if(imm==0)
+        emitLine("tst$s  d0")
+    else
+        emitLine("cmpi$s  #$imm, d0")
     emitLine("$branchOp  $label")
 }
 

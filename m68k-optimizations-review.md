@@ -28,11 +28,6 @@ Gating reference: `options.compTarget.cpu.is6502` (6502/65C02 only) or
 
 Lowering improvements that would shrink m68k output (no correctness risk):
 
-- **`cmpi #0` -> `tst`** peephole in `cmpBranchSignedImm`/
-  `cmpBranchUnsignedImm` (`InstrBranch.kt:70-102`). The `Opcode.CMPI`
-  already has this peephole (`InstrArithmetic.kt:324-328`) but the branch
-  paths do not apply it; doing so turns the four neutral boundary-compare
-  rows into 1-instruction wins.
 - **Constant fast path for `operatorGreaterThan`/`operatorLessThan`**
   (`ExpressionGen`): `operatorEquals` already has one, but `>`/`<` always
   load `#0` and do a register-register branch, so `b = x > 0` (~9 instr)
