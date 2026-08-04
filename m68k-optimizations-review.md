@@ -24,15 +24,6 @@ Gating reference: `options.compTarget.cpu.is6502` (6502/65C02 only) or
 
 ---
 
-## 1. codeOptimizers rewrites that are 6502-flavored / wrong on m68k
-
-- **`StatementOptimizer.kt:574-593`** `when` -> `on..goto` jump table uses
-  a 6502 break-even threshold (6 cases, byte condition) and builds a UWORD
-  label array; the element-size scaling should be verified on a 32-bit
-  target (`AsmGen.kt:499-501` widens symbol-bearing uword arrays to 4 bytes).
-
----
-
 ## 3. New m68k codegen optimization opportunities
 
 Lowering improvements that would shrink m68k output (no correctness risk):
@@ -50,22 +41,48 @@ Lowering improvements that would shrink m68k output (no correctness risk):
   into a register (`LSLN`/`LSRN` emit a variable shift). Also
   **`x << 16` / `x >> 16` -> `swap`** (the backend already knows this trick
   in `MSIGW`).
+  - Sites that emit the suboptimal `LOAD #N + LSLN/LSRN/ASRN` sequence
+    (m68k immediate count 1..8 = single instruction; 6502 unrolls to N
+    1-bit shifts): `IRCodeGen.kt:1078, 1106, 1175, 1216`
+    (multiplyByConst / divideByConst and their inplace variants),
+    `ExpressionGen.kt:1422, 1441` (operatorShiftRight / operatorShiftLeft
+    for any non-1 right operand),
+    `AssignmentGen.kt:2073, 2132` (in-place array `>>=`/ `<<= const`).
+    The peephole optimizer at `IRPeepholeOptimizer.kt:606-619` currently
+    only removes `shift by 0`; a new pass `foldShiftByConstant` could
+    rewrite these into N 1-bit `LSL`/`LSR`/`ASR` (works on 6502 + m68k)
+    or directly into the m68k immediate form.
+  - **Recommended structural fix: add immediate-count IR opcodes
+    `LSLI` / `LSRI` / `ASRI`** (with a literal count operand, format
+    `BWL,>r1,<i`). The IR builder then emits `LSLI rX, #N` directly
+    instead of `LOAD rN,#N; LSLN rX,rN`. The m68k backend emits
+    `lsl.b #N, d0` (1 instruction, 6+2N cycles) for N=1..8 and
+    `lsl.b #8, d0; lsl.b #(N-8), d0` (2 instructions) for N=9..15 on a
+    word. The 6502 backend unrolls to N `asl`/`lsr`/`cmp+ror`. The new
+    opcodes require changes in: `IRInstructions.kt` (3 new enum values
+    + 3 format-map entries), the m68k and 6502 backend opcode handlers
+    (in `InstrBitwise.kt` for both), and the IR builder sites listed
+    above. The peephole optimizer then just rewrites any leftover
+    `LOAD + LSLN` to `LSLI`. This is the cleanest fix because it lets
+    the IR express the actual intent (shift by N) instead of forcing
+    the backend to either unroll, emit a runtime loop, or have a
+    target-specific peephole to re-fuse the unrolled form.
+- **`addq`/`subq` for small constants in the register-form ADD/SUB path.**
+  The m68k memory form already uses ADDQ/SUBQ for 1..8
+  (`InstrArithmetic.kt:72-94, 117-139`) but the **register** form
+  (`InstrArithmetic.kt:58-62` ADD, `103-107` SUB) emits
+  `add.b #N, d0` / `sub.b #N, d0` for any N. ADDQ/SUBQ are 2 bytes
+  vs 4-6 for `add`/`sub` immediate. The gap propagates from the IR:
+  `addConstByteToReg` (`IRCodeGen.kt:934-961`) has special cases for
+  value 1 (INC) and 2 (INC INC) but falls through to `ADD #N` for
+  N = 3..8; many `ExpressionGen`/`AssignmentGen`/`BuiltinFuncGen`
+  sites emit `ADD #const` for pointer offsets, field offsets, and
+  array indexing. Rotates are not affected — the IR has no
+  `ROLN`/`RORN` opcodes and any constant-count rotate is already
+  unrolled at IR-build time.
 - Generic: redundant moves into/out of the `p8_regfile` register file (e.g.
   `move.w reg,d0` + `move.w d0,regfile`) and load-then-immediate-compare
   sequences are candidates for a m68k-specific peephole pass.
 
 ---
 
-## Summary table
-
-| # | File:line | Issue | m68k impact | Gated? |
-|---|---|---|---|---|
-| 1 | `Inliner.kt:142`,`:253` | 6502 code-bloat heuristics (parameters.size <= 1) | over-conservative | No |
-
----
-
-## Recommended order of work
-
-  1. Land the m68k lowering improvements in section 3.
-  2. Revisit the remaining 6502-cost-model items (Inliner, `when`->on..goto)
-     for m68k benefit once the above is stable.

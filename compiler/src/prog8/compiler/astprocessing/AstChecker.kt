@@ -342,12 +342,15 @@ internal class AstChecker(private val program: Program,
             }
         } else {
             val addr = jump.target.constValue(program)?.number
-            if (addr != null && addr !in 0.0..65535.0)
-                errors.err("goto address must be uword", jump.position)
+            val maxAddr = if(options.compTarget.POINTER_MEM_SIZE > 2u) 4294967295.0 else 65535.0
+            if (addr != null && addr !in 0.0..maxAddr)
+                errors.err("goto address must fit in a pointer", jump.position)
 
             val addressDt = jump.target.inferType(program).getOrUndef()
-            if(!(addressDt.isUnsignedByte || addressDt.isUnsignedWord))
-                errors.err("goto address must be uword", jump.position)
+            val validAddrType = addressDt.isUnsignedByte || addressDt.isUnsignedWord ||
+                    (options.compTarget.POINTER_MEM_SIZE > 2u && addressDt.isLong)
+            if(!validAddrType)
+                errors.err("goto address must fit in a pointer", jump.position)
         }
         super.visit(jump)
     }
@@ -364,7 +367,8 @@ internal class AstChecker(private val program: Program,
 
         val addr = block.address
         if (addr!=null) {
-            if (addr > 65535u)
+            val maxAddr = if(options.compTarget.POINTER_MEM_SIZE > 2u) 0xffffffffu else 65535u
+            if (addr > maxAddr)
                 errors.err($$"block address must be valid integer 0..$ffff", block.position)
         }
 

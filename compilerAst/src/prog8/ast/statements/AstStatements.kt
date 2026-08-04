@@ -1527,7 +1527,11 @@ class When(var condition: Expression,
 
     fun betterAsOnGoto(program: Program, compilerOptions: CompilationOptions): Boolean {
         // a when that has only goto's and the values 0,1,2,3,4... is better written as a on..goto
-        val sizeLimit = if(compilerOptions.compTarget.cpu == CpuType.CPU65C02) 4 else 6
+        val sizeLimit = when {
+            compilerOptions.compTarget.cpu == CpuType.CPU65C02 -> 4
+            compilerOptions.compTarget.cpu.is68k -> 5
+            else -> 6
+        }
         if(choices.size >= sizeLimit) {
             if (condition.inferType(program).isBytes) {
                 if (choices.all { (it.statements.statements.singleOrNull() as? Jump)?.target is IdentifierReference }) {

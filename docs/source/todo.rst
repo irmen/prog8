@@ -62,6 +62,7 @@ Romable (%option romable)
 
 IR/VM
 ^^^^^
+- introduce a multi-bit shift/rotate opcode in the IR that is more efficiently implemented on the m68k
 - maybe change all branch instructions to have 2 exits (label if branch condition true, and label if false) instead of 1, and get rid of the implicit "next code chunk" link between chunks.
 - implement more TODOs in AssignmentGen?
 - add more optimizations in IRPeepholeOptimizer?
