@@ -24,18 +24,7 @@ Gating reference: `options.compTarget.cpu.is6502` (6502/65C02 only) or
 
 ---
 
-## 1. simpleAst optimizer rewrites that are 6502-specific / not gated
-
-- **`ExpressionOptimizers.kt:500-526`** operand-order swap uses a 6502
-  cost table but the direction is right for the IR anyway; the real gap is a
-  missing `hasSideEffects` guard (swapping can reorder I/O reads).
-- **`MemoryOptimizers.kt:16-34`** `@(&x)` -> `x` for `isByteOrBool`: a
-  `UBYTE` node replaced by a `BYTE`/`BOOL` node silently changes a
-  zero-extend into a sign-extend for signed `BYTE`. Target-agnostic bug.
-
----
-
-## 2. codeOptimizers rewrites that are 6502-flavored / wrong on m68k
+## 1. codeOptimizers rewrites that are 6502-flavored / wrong on m68k
 
 - **`ConstantIdentifierReplacer.kt:417,458`** and **`ConstantFoldingOptimizer.kt:120,133`**
   force const pointers into `NumericLiteral(UWORD, ...)`. `NumericLiteral`
@@ -80,7 +69,7 @@ Gating reference: `options.compTarget.cpu.is6502` (6502/65C02 only) or
 
 ---
 
-## 3. Rewrites verified fine on m68k (leave alone)
+## 2. Rewrites verified fine on m68k (leave alone)
 
 - **`ComparisonOptimizers.kt:26-101`** boundary compares vs 0/1:
   neutral-to-beneficial. `unsigned >= 0`/`unsigned < 0`/`unsigned <= 0`/
@@ -103,7 +92,7 @@ Gating reference: `options.compTarget.cpu.is6502` (6502/65C02 only) or
 
 ---
 
-## 4. New m68k codegen optimization opportunities
+## 3. New m68k codegen optimization opportunities
 
 Lowering improvements that would shrink m68k output (no correctness risk):
 
@@ -142,9 +131,9 @@ Lowering improvements that would shrink m68k output (no correctness risk):
 
 ## Recommended order of work
 
-1. Fix the const-pointer / POINTER_MEM_SIZE issues in section 2 (crasher on
-   real Amiga addresses) and the `pokew`/`isupper`/`signed-div` correctness
-   items.
-2. Land the m68k lowering improvements in section 4.
-3. Revisit the remaining 6502-cost-model items (Inliner, `when`->on..goto)
-   for m68k benefit once the above is stable.
+ 1. Fix the const-pointer / POINTER_MEM_SIZE issues in section 1 (crasher on
+    real Amiga addresses) and the `pokew`/`isupper`/`signed-div` correctness
+    items.
+ 2. Land the m68k lowering improvements in section 3.
+ 3. Revisit the remaining 6502-cost-model items (Inliner, `when`->on..goto)
+    for m68k benefit once the above is stable.
