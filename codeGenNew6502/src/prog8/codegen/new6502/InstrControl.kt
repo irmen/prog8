@@ -344,6 +344,8 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
             emitLine("sta  ${regAddrLo(dest)}")
             emitLine("lda  ${regAddrByte(src, 3)}")
             emitLine("sta  ${regAddrHi(dest)}")
+            emitStoreZero(regAddrByte(dest, 2))
+            emitStoreZero(regAddrByte(dest, 3))
         }
 
         Opcode.BSIGB -> {

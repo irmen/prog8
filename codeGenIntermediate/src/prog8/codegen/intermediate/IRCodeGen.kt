@@ -1181,6 +1181,9 @@ class IRCodeGen(
             // unsigned division by a power of two: logical shift right (correct)
             if(pow2==1) {
                 code += IRInstruction(Opcode.LSR, dt, reg1=reg)
+            } else if(dt == IRDataType.LONG && pow2 == 16) {
+                // x / 65536 for unsigned long == x >> 16 == MSIGW(x)
+                code += IRInstruction(Opcode.MSIGW, dt, reg1=reg, reg2=reg)
             } else {
                 code += IRInstruction(Opcode.LSRI, dt, reg1 = reg, immediate = pow2)
             }

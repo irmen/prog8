@@ -246,6 +246,17 @@ private fun AsmGen.shiftOpcode(isLeft: Boolean, isArithmetic: Boolean, isRotate:
 private fun AsmGen.shiftRegister(reg: Int, count: Int, type: IRDataType, isArithmetic: Boolean, isLeft: Boolean) {
     val s = dtSuffix(type)
     val op = shiftOpcode(isLeft, isArithmetic)
+    if (isLeft && type == IRDataType.LONG && count == 16) {
+        // x << 16 for long: `swap; clr.w`. Left shift by 16 has the same
+        // result for signed and unsigned long: the sign bit lives in the
+        // top half, which is replaced by the bottom half; the bottom
+        // half is always cleared.
+        emitLine("move.l  ${regAddr(reg)}, d0")
+        emitLine("swap  d0")
+        emitLine("clr.w  d0")
+        emitLine("move.l  d0, ${regAddr(reg)}")
+        return
+    }
     if (count in 1..8) {
         emitLine("move$s  ${regAddr(reg)}, d0")
         emitLine("$op$s  #$count, d0")

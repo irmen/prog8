@@ -211,6 +211,7 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
             emitLine("move.l  ${regAddr(srcReg)}, d0")
             emitLine("swap  d0")
             emitLine("move.w  d0, ${regAddr(dstReg)}")
+            emitLine("clr.w  ${regAddrByte(dstReg, 2)}")
         }
 
         Opcode.BSIGB -> {

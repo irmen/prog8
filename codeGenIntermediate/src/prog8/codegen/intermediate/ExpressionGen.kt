@@ -1460,8 +1460,12 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             if(constCount != null) {
                 val leftTr = translateExpression(binExpr.left)
                 addToResult(result, leftTr, leftTr.resultReg, -1)
-                val opc = if (signed) Opcode.ASRI else Opcode.LSRI
-                addInstr(result, IRInstruction(opc, vmDt, reg1 = leftTr.resultReg, immediate = constCount), null)
+                if(vmDt == IRDataType.LONG && !signed && constCount == 16) {
+                    addInstr(result, IRInstruction(Opcode.MSIGW, IRDataType.LONG, reg1 = leftTr.resultReg, reg2 = leftTr.resultReg), null)
+                } else {
+                    val opc = if (signed) Opcode.ASRI else Opcode.LSRI
+                    addInstr(result, IRInstruction(opc, vmDt, reg1 = leftTr.resultReg, immediate = constCount), null)
+                }
                 ExpressionCodeResult(result, vmDt, leftTr.resultReg, -1)
             } else {
                 val leftTr = translateExpression(binExpr.left)
