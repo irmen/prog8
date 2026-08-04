@@ -68,6 +68,15 @@ val BaseDataType.isSignedWord get() = this == BaseDataType.WORD
 val BaseDataType.isLong get() = this == BaseDataType.LONG
 val BaseDataType.isFloat get() = this == BaseDataType.FLOAT
 val BaseDataType.isInteger get() = this in setOf(BaseDataType.UBYTE, BaseDataType.BYTE, BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.LONG)
+val BaseDataType.maxUnsignedValue: Double
+    get() = when (this) {
+        BaseDataType.UBYTE -> 255.0
+        BaseDataType.BYTE -> 127.0
+        BaseDataType.UWORD -> 65535.0
+        BaseDataType.WORD -> 32767.0
+        BaseDataType.LONG -> 2147483647.0
+        else -> Double.MAX_VALUE
+    }
 val BaseDataType.isIntegerOrBool get() = this in setOf(BaseDataType.UBYTE, BaseDataType.BYTE, BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.LONG, BaseDataType.BOOL)
 val BaseDataType.isWordOrByteOrBool get() = this in setOf(BaseDataType.UBYTE, BaseDataType.BYTE, BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.BOOL)
 val BaseDataType.isNumeric get() = this == BaseDataType.FLOAT || this.isInteger

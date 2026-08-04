@@ -675,8 +675,10 @@ data class AddressOf(var identifier: IdentifierReference?, var arrayIndex: Array
                         } else
                             return null
                     }
-                    val addressType = if(targetVar.datatype.isLong) BaseDataType.LONG else BaseDataType.UWORD
-                    return NumericLiteral(addressType, address, position)
+                    val addressType = if(program.target.POINTER_MEM_SIZE > 2u) BaseDataType.LONG else BaseDataType.UWORD
+                    if(address < 0.0 || address > addressType.maxUnsignedValue)
+                        return null
+                    return NumericLiteral(addressType, address, position).also { it.linkParents(this) }
                 }
             }
         }
@@ -684,7 +686,11 @@ data class AddressOf(var identifier: IdentifierReference?, var arrayIndex: Array
         val targetAsmAddress = (target as? Subroutine)?.asmAddress
         if (targetAsmAddress != null) {
             val constAddress = targetAsmAddress.address.constValue(program) ?: return null
-            return NumericLiteral(BaseDataType.UWORD, constAddress.number, position)
+            val address = constAddress.number
+            val addressType = if(program.target.POINTER_MEM_SIZE > 2u) BaseDataType.LONG else BaseDataType.UWORD
+            if(address < 0.0 || address > addressType.maxUnsignedValue)
+                return null
+            return NumericLiteral(addressType, address, position).also { it.linkParents(this) }
         }
         return null
     }
@@ -1022,7 +1028,7 @@ class NumericLiteral(val type: BaseDataType,    // only numerical types allowed 
                             else
                                 ValueAfterCast(true, null, NumericLiteral(targettype, converted, position))
                         }
-                        BaseDataType.LONG if number in 0.0..2.147483647E9 -> {
+                        BaseDataType.LONG if number in 0.0..2147483647.0 -> {
                             val converted = number.toInt().toDouble()
                             return if(implicit && converted!=number)
                                 ValueAfterCast(false, "refused truncating of float to avoid loss of precision", this)
