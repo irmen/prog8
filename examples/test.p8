@@ -1,57 +1,26 @@
 %import textio
 %zeropage basicsafe
 
-; Demonstrates the "xx += 2 -> xx++; xx++" AST rewrite in StatementOptimizer.
-; On 6502 two INC/DEC are cheaper than a load/add/store of a constant 2, so
-; the optimizer splits the add into two increments. On m68k a single addq #2
-; is one instruction, so the split is strictly worse there.
-
 main {
     sub start() {
-        incdec()
-        quick()
-        more()
-    }
+        ; Issue 4: @(...) is always an UNSIGNED byte read. The optimizer rewrite
+        ; @(&x) -> x (ConstantFoldingOptimizer / MemoryOptimizers) must not turn the
+        ; unsigned memory read into the signed variable, which would sign-extend on widen.
+        ; Reading -1 from memory (0xFF) must give 255, not 65535.
+        byte @shared sv = -1       ; memory holds 0xFF
+        word a = @(&sv)            ; zero-extends the unsigned byte to 255
+        txt.print("mem-read signed byte -1: ")
+        txt.print_w(a)
+        txt.print("  (raw 0xFF; zero-extends to 255)\n")
 
-    sub incdec() {
-        ubyte @shared x = 5
-        x += 2      ; expect 7
-        txt.print("x=")
-        txt.print_ub(x)
-        txt.nl()
+        ; Contrast: an UNSIGNED byte read via @(&x) is correctly zero-extended.
+        ubyte @shared uv = 255     ; memory also holds 0xFF
+        word b = @(&uv)            ; zero-extends to 255
+        txt.print("mem-read unsigned byte 255: ")
+        txt.print_w(b)
+        txt.print("  (raw 0xFF; zero-extends to 255)\n")
 
-        ubyte @shared y = 20
-        y -= 2      ; expect 18
-        txt.print("y=")
-        txt.print_ub(y)
-        txt.nl()
-    }
-
-    sub quick() {
-        ubyte @shared p = 5
-        p += 7      ; expect 12
-        txt.print("p=")
-        txt.print_ub(p)
-        txt.nl()
-
-        ubyte @shared q = 20
-        q -= 7      ; expect 13
-        txt.print("q=")
-        txt.print_ub(q)
-        txt.nl()
-    }
-
-    sub more() {
-        ubyte @shared a = 11
-        a += 55      ; expect 66
-        txt.print("a=")
-        txt.print_ub(a)
-        txt.nl()
-
-        ubyte @shared b = 100
-        b -= 70      ; expect 30
-        txt.print("b=")
-        txt.print_ub(b)
-        txt.nl()
+        txt.print("done\n")
+        ;sys.poweroff_system()
     }
 }
