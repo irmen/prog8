@@ -1,4 +1,4 @@
-# m68k Optimizations & Correctness Review
+# m68k Optimizations Review
 
 Audit of the Prog8 compiler for the m68k targets (Amiga500 = M68000,
 Qemu68k = M68020). m68k is big-endian, has 32-bit registers, and native
@@ -24,7 +24,7 @@ Gating reference: `options.compTarget.cpu.is6502` (6502/65C02 only) or
 
 ---
 
-## 3. New m68k codegen optimization opportunities
+## 3. Remaining optimization opportunities
 
 Lowering improvements that would shrink m68k output (no correctness risk):
 
@@ -58,35 +58,3 @@ Lowering improvements that would shrink m68k output (no correctness risk):
     the IR express the actual intent (shift by N) instead of forcing
     the backend to either unroll, emit a runtime loop, or have a
     target-specific peephole to re-fuse the unrolled form.
-- **`addq`/`subq` for small constants in the register-form ADD/SUB path.**
-  The m68k memory form already uses ADDQ/SUBQ for 1..8
-  (`InstrArithmetic.kt:72-94, 117-139`) but the **register** form
-  (`InstrArithmetic.kt:58-62` ADD, `103-107` SUB) emits
-  `add.b #N, d0` / `sub.b #N, d0` for any N. ADDQ/SUBQ are 2 bytes
-  vs 4-6 for `add`/`sub` immediate. The gap propagates from the IR:
-  `addConstByteToReg` (`IRCodeGen.kt:934-961`) has special cases for
-  value 1 (INC) and 2 (INC INC) but falls through to `ADD #N` for
-  N = 3..8; many `ExpressionGen`/`AssignmentGen`/`BuiltinFuncGen`
-  sites emit `ADD #const` for pointer offsets, field offsets, and
-  array indexing. Rotates are not affected — the IR has no
-  `ROLN`/`RORN` opcodes and any constant-count rotate is already
-  unrolled at IR-build time.
-
-  Low-priority candidates surveyed and rejected:
-  - Spill+reload pairs (`move d0, p8_regfile; ...; move p8_regfile, d0`)
-    occur ~9 times in 1946 lines, all are required (next op modified
-    the value), and eliminating them needs a "d0 still holds last-store"
-    tracker.
-  - LOAD+cmpi same-reg pairs: 0 occurrences in the IR; the constant
-    fast path in `operatorEquals`/`GreaterThan`/`LessThan` already
-    folds the LOAD into the cmpi at IR-build time.
-  - Same-slot double-writes: 11 occurrences, all from
-    `b = cond ? 0 : 1` lowered to if/else with a jump between writes
-    (mutually exclusive basic blocks, not redundant).
-  - `load + storei` pairs: 0 occurrences in the IR. `storei`
-    (register-indirect) is only used for non-constant stores; an
-    indirect-immediate variant was considered and rejected as dead
-    code (no real peephole target).
-
----
-

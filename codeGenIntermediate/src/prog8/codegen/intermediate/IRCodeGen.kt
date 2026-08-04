@@ -959,6 +959,7 @@ class IRCodeGen(
 
     private fun addConstMem(dt: IRDataType, knownAddress: UInt?, symbol: String?, value: Int): IRCodeChunk {
         val code = IRCodeChunk(null, null)
+        val is6502 = options.compTarget.cpu.is6502
         when(value) {
             0 -> { /* do nothing */ }
             1 -> {
@@ -968,12 +969,19 @@ class IRCodeGen(
                     IRInstruction(Opcode.INCM, dt, labelSymbol = symbol)
             }
             2 -> {
-                if(knownAddress!=null) {
-                    code += IRInstruction(Opcode.INCM, dt, address = knownAddress.toAddress())
-                    code += IRInstruction(Opcode.INCM, dt, address = knownAddress.toAddress())
+                if(is6502) {
+                    if(knownAddress!=null) {
+                        code += IRInstruction(Opcode.INCM, dt, address = knownAddress.toAddress())
+                        code += IRInstruction(Opcode.INCM, dt, address = knownAddress.toAddress())
+                    } else {
+                        code += IRInstruction(Opcode.INCM, dt, labelSymbol = symbol)
+                        code += IRInstruction(Opcode.INCM, dt, labelSymbol = symbol)
+                    }
                 } else {
-                    code += IRInstruction(Opcode.INCM, dt, labelSymbol = symbol)
-                    code += IRInstruction(Opcode.INCM, dt, labelSymbol = symbol)
+                    if(knownAddress!=null)
+                        code += IRInstruction(Opcode.ADDIM, dt, immediate = 2, address = knownAddress.toAddress())
+                    else
+                        code += IRInstruction(Opcode.ADDIM, dt, immediate = 2, labelSymbol = symbol)
                 }
             }
             -1 -> {
@@ -983,12 +991,19 @@ class IRCodeGen(
                     IRInstruction(Opcode.DECM, dt, labelSymbol = symbol)
             }
             -2 -> {
-                if(knownAddress!=null) {
-                    code += IRInstruction(Opcode.DECM, dt, address = knownAddress.toAddress())
-                    code += IRInstruction(Opcode.DECM, dt, address = knownAddress.toAddress())
+                if(is6502) {
+                    if(knownAddress!=null) {
+                        code += IRInstruction(Opcode.DECM, dt, address = knownAddress.toAddress())
+                        code += IRInstruction(Opcode.DECM, dt, address = knownAddress.toAddress())
+                    } else {
+                        code += IRInstruction(Opcode.DECM, dt, labelSymbol = symbol)
+                        code += IRInstruction(Opcode.DECM, dt, labelSymbol = symbol)
+                    }
                 } else {
-                    code += IRInstruction(Opcode.DECM, dt, labelSymbol = symbol)
-                    code += IRInstruction(Opcode.DECM, dt, labelSymbol = symbol)
+                    if(knownAddress!=null)
+                        code += IRInstruction(Opcode.SUBIM, dt, immediate = 2, address = knownAddress.toAddress())
+                    else
+                        code += IRInstruction(Opcode.SUBIM, dt, immediate = 2, labelSymbol = symbol)
                 }
             }
             else -> {

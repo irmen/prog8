@@ -58,7 +58,11 @@ internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
         Opcode.ADD -> {
             val reg = r1 ?: error("ADD needs reg1")
             val value = imm ?: error("ADD needs immediate")
-            emitLine("add${dtSuffix(type)}  #${immVal(value, type)}, ${regAddr(reg)}")
+            if(value in 1..8) {
+                emitLine("addq${dtSuffix(type)}  #$value, ${regAddr(reg)}")
+            } else {
+                emitLine("add${dtSuffix(type)}  #${immVal(value, type)}, ${regAddr(reg)}")
+            }
         }
 
         Opcode.ADDM -> {
@@ -103,7 +107,11 @@ internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
         Opcode.SUB -> {
             val reg = r1 ?: error("SUB needs reg1")
             val value = imm ?: error("SUB needs immediate")
-            emitLine("sub${dtSuffix(type)}  #${immVal(value, type)}, ${regAddr(reg)}")
+            if(value in 1..8) {
+                emitLine("subq${dtSuffix(type)}  #$value, ${regAddr(reg)}")
+            } else {
+                emitLine("sub${dtSuffix(type)}  #${immVal(value, type)}, ${regAddr(reg)}")
+            }
         }
 
         Opcode.SUBM -> {

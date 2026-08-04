@@ -1985,11 +1985,21 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                     IRInstruction(Opcode.INCM, vmDt, address = constAddress.toAddress())
                 else
                     IRInstruction(Opcode.INCM, vmDt, labelSymbol = symbol) , null)
+            } else if(constValue==2.0 && codeGen.options.compTarget.cpu.is6502) {
+                result += IRCodeChunk(null, null).also {
+                    if (constAddress != null) {
+                        it += IRInstruction(Opcode.INCM, vmDt, address = constAddress.toAddress())
+                        it += IRInstruction(Opcode.INCM, vmDt, address = constAddress.toAddress())
+                    } else {
+                        it += IRInstruction(Opcode.INCM, vmDt, labelSymbol = symbol)
+                        it += IRInstruction(Opcode.INCM, vmDt, labelSymbol = symbol)
+                    }
+                }
             } else if(constValue!=null) {
                 addInstr(result, if (constAddress != null)
                     IRInstruction(Opcode.ADDIM, vmDt, immediate = constValue.toInt(), address = constAddress.toAddress())
                 else
-                    IRInstruction(Opcode.ADDIM, vmDt, immediate = constValue.toInt(), labelSymbol = symbol) , null)
+                    IRInstruction(Opcode.ADDIM, vmDt, immediate = constValue.toInt(), labelSymbol = symbol), null)
             } else {
                 val tr = exprGen.translateExpression(operand)
                 addToResult(result, tr, tr.resultReg, -1)
