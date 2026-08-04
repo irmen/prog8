@@ -896,7 +896,7 @@ skip:
                 and  #7
                 pha     ; xbits
             }}
-            xpos /= 8
+            xpos >>=3       ; /= 8
             if lores_mode {
                 %asm {{
                     ; xpos += yy*40

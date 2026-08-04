@@ -48,18 +48,19 @@ main {
         word wcosc = math.cos8(az)
         word wsinc = math.sin8(az)
 
-        word wcosa_sinb = wcosa*wsinb / 128
-        word wsina_sinb = wsina*wsinb / 128
+        ; instead of (slow) /128, we simply shift 7 bits (and take the roundoff error)
+        word wcosa_sinb = wcosa*wsinb >> 7
+        word wsina_sinb = wsina*wsinb >> 7
 
-        word Axx = wcosa*wcosb / 128
-        word Axy = (wcosa_sinb*wsinc - wsina*wcosc) / 128
-        word Axz = (wcosa_sinb*wcosc + wsina*wsinc) / 128
-        word Ayx = wsina*wcosb / 128
-        word Ayy = (wsina_sinb*wsinc + wcosa*wcosc) / 128
-        word Ayz = (wsina_sinb*wcosc - wcosa*wsinc) / 128
+        word Axx = wcosa*wcosb >> 7
+        word Axy = (wcosa_sinb*wsinc - wsina*wcosc) >> 7
+        word Axz = (wcosa_sinb*wcosc + wsina*wsinc) >> 7
+        word Ayx = wsina*wcosb >> 7
+        word Ayy = (wsina_sinb*wsinc + wcosa*wcosc) >> 7
+        word Ayz = (wsina_sinb*wcosc - wcosa*wsinc) >> 7
         word Azx = -wsinb
-        word Azy = wcosb*wsinc / 128
-        word Azz = wcosb*wcosc / 128
+        word Azy = wcosb*wsinc >> 7
+        word Azz = wcosb*wcosc >> 7
 
         ubyte @zp i
         for i in 0 to len(xcoor)-1 {
@@ -84,7 +85,7 @@ main {
         for i in 0 to len(xcoor)-1 {
             rz = rotatedz[i]
             if rz >= 10 {
-                persp = 900 + rz/32
+                persp = 900 + (rz>>5)
                 sx = rotatedx[i] / persp as byte + txt.DEFAULT_WIDTH/2
                 sy = rotatedy[i] / persp as byte + txt.DEFAULT_HEIGHT/2
                 txt.setcc(sx as ubyte, sy as ubyte, 46, 7)
@@ -94,7 +95,7 @@ main {
         for i in 0 to len(xcoor)-1 {
             rz = rotatedz[i]
             if rz < 10 {
-                persp = 900 + rz/32
+                persp = 900 + (rz>>5)
                 sx = rotatedx[i] / persp as byte + txt.DEFAULT_WIDTH/2
                 sy = rotatedy[i] / persp as byte + txt.DEFAULT_HEIGHT/2
                 txt.setcc(sx as ubyte, sy as ubyte, 81, 7)

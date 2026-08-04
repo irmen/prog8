@@ -1167,41 +1167,33 @@ class IRCodeGen(
         if(factor==1)
             return code
         val pow2 = powersOfTwoInt.indexOf(factor)
-        if(pow2>=0) {
-            if(signed) {
-                if(pow2==1) {
-                    // simple single bit shift (signed)
-                    code += IRInstruction(Opcode.ASR, dt, reg1=reg)
-                } else {
-                    // just shift multiple bits (signed)
-                    val pow2reg = registers.next(IRDataType.BYTE)
-                    code += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=pow2reg, immediate = pow2)
-                    code += IRInstruction(Opcode.ASRN, dt, reg1=reg, reg2=pow2reg)
-                }
+        if(pow2>=0 && !signed) {
+            // unsigned division by a power of two: logical shift right (correct)
+            if(pow2==1) {
+                code += IRInstruction(Opcode.LSR, dt, reg1=reg)
             } else {
-                if(pow2==1) {
-                    // simple single bit shift (unsigned)
-                    code += IRInstruction(Opcode.LSR, dt, reg1=reg)
-                } else {
-                    // just shift multiple bits (unsigned)
-                    val pow2reg = registers.next(IRDataType.BYTE)
-                    code += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = pow2reg, immediate = pow2)
-                    code += IRInstruction(Opcode.LSRN, dt, reg1 = reg, reg2 = pow2reg)
-                }
-            }
-            return code
-        } else {
-            // regular div
-            code += if (factor == 0) {
-                IRInstruction(Opcode.LOAD, dt, reg1=reg, immediate = 0xffff)
-            } else {
-                if(signed)
-                    IRInstruction(Opcode.DIVS, dt, reg1=reg, immediate = factor)
-                else
-                    IRInstruction(Opcode.DIV, dt, reg1=reg, immediate = factor)
+                val pow2reg = registers.next(IRDataType.BYTE)
+                code += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = pow2reg, immediate = pow2)
+                code += IRInstruction(Opcode.LSRN, dt, reg1 = reg, reg2 = pow2reg)
             }
             return code
         }
+        if(pow2>=0 && signed && options.compTarget.cpu.is6502) {
+            // signed division by a power of two: bias-corrected shift (much cheaper than a DIVS routine on the 6502)
+            emitSignedDivByPow2Shift(code, dt, reg, pow2)
+            return code
+        }
+        // regular div (also used for signed division by a power of two on non-6502 targets: >> floors,
+        // whereas / truncates toward zero for negative dividends, so a plain shift is wrong)
+        code += if (factor == 0) {
+            IRInstruction(Opcode.LOAD, dt, reg1=reg, immediate = 0xffff)
+        } else {
+            if(signed)
+                IRInstruction(Opcode.DIVS, dt, reg1=reg, immediate = factor)
+            else
+                IRInstruction(Opcode.DIV, dt, reg1=reg, immediate = factor)
+        }
+        return code
     }
 
     internal fun divideByConstInplace(dt: IRDataType, knownAddress: UInt?, symbol: String?, factor: Int, signed: Boolean): IRCodeChunk {
@@ -1209,46 +1201,41 @@ class IRCodeGen(
         if(factor==1)
             return code
         val pow2 = powersOfTwoInt.indexOf(factor)
-        if(pow2>=0) {
-            // can do bit shift instead of division
-            if(signed) {
-                if(pow2==1) {
-                    // just simple bit shift (signed)
-                    code += if (knownAddress != null)
-                        IRInstruction(Opcode.ASRM, dt, address = knownAddress.toAddress())
-                    else
-                        IRInstruction(Opcode.ASRM, dt, labelSymbol = symbol)
-                } else {
-                    // just shift multiple bits (signed)
-                    val pow2reg = registers.next(IRDataType.BYTE)
-                    code += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = pow2reg, immediate = pow2)
-                    code += if (knownAddress != null)
-                                IRInstruction(Opcode.ASRNM, dt, reg1 = pow2reg, address = knownAddress.toAddress())
-                            else
-                                IRInstruction(Opcode.ASRNM, dt, reg1 = pow2reg, labelSymbol = symbol)
-                }
-            } else {
-                if(pow2==1) {
-                    // just simple bit shift (unsigned)
-                    code += if(knownAddress!=null)
-                        IRInstruction(Opcode.LSRM, dt, address = knownAddress.toAddress())
-                    else
-                        IRInstruction(Opcode.LSRM, dt, labelSymbol = symbol)
-                }
-                else {
-                    // just shift multiple bits (unsigned)
-                    val pow2reg = registers.next(IRDataType.BYTE)
-                    code += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=pow2reg, immediate = pow2)
-                    code += if(knownAddress!=null)
-                                IRInstruction(Opcode.LSRNM, dt, reg1 = pow2reg, address = knownAddress.toAddress())
-                            else
-                                IRInstruction(Opcode.LSRNM, dt, reg1 = pow2reg, labelSymbol = symbol)
-                }
+        if(pow2>=0 && !signed) {
+            // unsigned division by a power of two: logical shift right (correct)
+            if(pow2==1) {
+                code += if(knownAddress!=null)
+                    IRInstruction(Opcode.LSRM, dt, address = knownAddress.toAddress())
+                else
+                    IRInstruction(Opcode.LSRM, dt, labelSymbol = symbol)
+            }
+            else {
+                val pow2reg = registers.next(IRDataType.BYTE)
+                code += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=pow2reg, immediate = pow2)
+                code += if(knownAddress!=null)
+                            IRInstruction(Opcode.LSRNM, dt, reg1 = pow2reg, address = knownAddress.toAddress())
+                        else
+                            IRInstruction(Opcode.LSRNM, dt, reg1 = pow2reg, labelSymbol = symbol)
             }
             return code
         }
+        // signed division by a power of two falls through to the real division below
         else
         {
+            if(pow2>=0 && signed && options.compTarget.cpu.is6502) {
+                // signed division by a power of two: bias-corrected shift (much cheaper than a DIVS routine on the 6502)
+                val reg = registers.next(dt)
+                code += if(knownAddress!=null)
+                    IRInstruction(Opcode.LOADM, dt, reg1 = reg, address = knownAddress.toAddress())
+                else
+                    IRInstruction(Opcode.LOADM, dt, reg1 = reg, labelSymbol = symbol)
+                emitSignedDivByPow2Shift(code, dt, reg, pow2)
+                code += if(knownAddress!=null)
+                    IRInstruction(Opcode.STOREM, dt, reg1 = reg, address = knownAddress.toAddress())
+                else
+                    IRInstruction(Opcode.STOREM, dt, reg1 = reg, labelSymbol = symbol)
+                return code
+            }
             // regular div
             if (factor == 0) {
                 val reg = registers.next(dt)
@@ -1276,6 +1263,31 @@ class IRCodeGen(
             }
             return code
         }
+    }
+
+    private fun emitSignedDivByPow2Shift(code: IRCodeChunk, dt: IRDataType, reg: Int, pow2: Int) {
+        // Signed division by 2^pow2 via a bias-corrected arithmetic shift, which is far cheaper
+        // than a DIVS routine on the 6502. Plain arithmetic shift floors toward -inf, whereas
+        // integer division truncates toward zero, so for negative dividends we must add the
+        // remainder before shifting. The sign-dependent correction is folded into the add:
+        //   result = (x + ((x >> (W-1)) & (2^pow2 - 1))) >> pow2
+        val wordSize = when(dt) {
+            IRDataType.BYTE -> 8
+            IRDataType.WORD -> 16
+            IRDataType.LONG -> 32
+            else -> throw IllegalArgumentException("division of unsupported datatype $dt")
+        }
+        val signReg = registers.next(dt)
+        val wm1Reg = registers.next(IRDataType.BYTE)
+        val nReg = registers.next(IRDataType.BYTE)
+        val mask = (1 shl pow2) - 1
+        code += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = wm1Reg, immediate = wordSize - 1)
+        code += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = nReg, immediate = pow2)
+        code += IRInstruction(Opcode.LOADR, dt, reg1 = signReg, reg2 = reg)       // signReg = x
+        code += IRInstruction(Opcode.ASRN, dt, reg1 = signReg, reg2 = wm1Reg)     // signReg = x >> (W-1)
+        code += IRInstruction(Opcode.AND, dt, reg1 = signReg, immediate = mask)   // signReg = correction
+        code += IRInstruction(Opcode.ADDR, dt, reg1 = reg, reg2 = signReg)        // reg = x + correction
+        code += IRInstruction(Opcode.ASRN, dt, reg1 = reg, reg2 = nReg)          // reg = result
     }
 
     private fun translate(ifElse: PtIfElse): IRCodeChunks {
