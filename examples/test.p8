@@ -7,8 +7,21 @@ main {
         check_unsigned(30000, 13, 2307, 9)
         check_signed(-1000, 7, -142, -6)
         check_signed(-255, 16, -15, -15)
+        check_lmh()
         txt.print("done\n")
         ;sys.poweroff_system()
+    }
+
+    sub check_lmh() {
+        long @shared value = $01020304
+        ubyte low_b, mid_b, high_b = lmh(value)
+        txt.print("lmh: low=")
+        txt.print_ub(low_b)
+        txt.print(" mid=")
+        txt.print_ub(mid_b)
+        txt.print(" high=")
+        txt.print_ub(high_b)
+        txt.print("\n")
     }
 
     sub check_unsigned(uword a, uword b, uword exp_q, uword exp_r) {

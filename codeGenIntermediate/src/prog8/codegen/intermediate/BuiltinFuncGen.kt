@@ -188,7 +188,8 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             ExpressionCodeResult(result, IRDataType.BYTE, -1, -1)
         else {
             val resultvalueReg = codeGen.registers.next(IRDataType.WORD)
-            addInstr(result, IRInstruction(Opcode.LOADHR, IRDataType.WORD, reg1=resultvalueReg, immediate=4), null)
+            val slot = if(codeGen.options.compTarget.cpu.is68k) 10 else 4
+            addInstr(result, IRInstruction(Opcode.LOADHR, IRDataType.WORD, reg1=resultvalueReg, immediate=slot), null)
             ExpressionCodeResult(result, IRDataType.WORD, resultvalueReg, -1)
         }
     }
@@ -255,19 +256,35 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             divisionReg = numTr.resultReg
         }
         // DIVMOD result convention: quotient in reg1, remainder in reg2.
-        // Then route to return locations: STOREHR for quotient (AY slot), STOREM for remainder (cx16.r15).
-        // Note: STOREM must come before STOREHR, otherwise STOREM clobbers A before LOADHR reads it.
-        if(type==IRDataType.BYTE) {
-            result += IRCodeChunk(null, null).also {
-                it += IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1=remainderReg, labelSymbol = "cx16.r15")
-                it += IRInstruction(Opcode.STOREHR, IRDataType.BYTE, reg1=divisionReg, immediate=0)
-            }
-        } else if(type==IRDataType.WORD) {
-            result += IRCodeChunk(null, null).also {
-                it += IRInstruction(Opcode.STOREM, IRDataType.WORD, reg1=remainderReg, labelSymbol = "cx16.r15")
-                it += IRInstruction(Opcode.STOREHR, IRDataType.WORD, reg1=divisionReg, immediate=4)
-            }
-        } else throw AssemblyError("invalid type for DIVMOD")
+        // Route to the return value locations expected by the caller (via returnsWhatWhere).
+        if(codeGen.options.compTarget.cpu.is68k) {
+            // m68k: first return value in D0 (slot 10), second in D1 (slot 11)
+            if(type==IRDataType.BYTE) {
+                result += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.STOREHR, IRDataType.BYTE, reg1=remainderReg, immediate=11)
+                    it += IRInstruction(Opcode.STOREHR, IRDataType.BYTE, reg1=divisionReg, immediate=10)
+                }
+            } else if(type==IRDataType.WORD) {
+                result += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.STOREHR, IRDataType.WORD, reg1=remainderReg, immediate=11)
+                    it += IRInstruction(Opcode.STOREHR, IRDataType.WORD, reg1=divisionReg, immediate=10)
+                }
+            } else throw AssemblyError("invalid type for DIVMOD")
+        } else {
+            // 6502/cx16: quotient to A (slot 0) or AY (slot 4), remainder to cx16.r15
+            // Note: STOREM must come before STOREHR, otherwise STOREM clobbers A before LOADHR reads it.
+            if(type==IRDataType.BYTE) {
+                result += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1=remainderReg, labelSymbol = "cx16.r15")
+                    it += IRInstruction(Opcode.STOREHR, IRDataType.BYTE, reg1=divisionReg, immediate=0)
+                }
+            } else if(type==IRDataType.WORD) {
+                result += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.STOREM, IRDataType.WORD, reg1=remainderReg, labelSymbol = "cx16.r15")
+                    it += IRInstruction(Opcode.STOREHR, IRDataType.WORD, reg1=divisionReg, immediate=4)
+                }
+            } else throw AssemblyError("invalid type for DIVMOD")
+        }
         return ExpressionCodeResult(result, type, -1, -1)
     }
 
@@ -691,14 +708,25 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         // TODO this can be more optimal if the argument is a variable or memory address
         val tr = exprGen.translateExpression(call.args.single())
         addToResult(result, tr, tr.resultReg, -1)
-        // low byte returned in A, mid in R15, high (bank) in R14
         val byteReg = codeGen.registers.next(IRDataType.BYTE)
-        addInstr(result, IRInstruction(Opcode.BSIGB, IRDataType.LONG, reg1 = byteReg, reg2 = tr.resultReg), null)
-        addInstr(result, IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1 = byteReg, labelSymbol = "cx16.r14"), null)
-        addInstr(result, IRInstruction(Opcode.MIDB, IRDataType.LONG, reg1 = byteReg, reg2 = tr.resultReg), null)
-        addInstr(result, IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1 = byteReg, labelSymbol = "cx16.r15"), null)
-        addInstr(result, IRInstruction(Opcode.LSIGB, IRDataType.LONG, reg1 = byteReg, reg2 = tr.resultReg), null)
-        addInstr(result, IRInstruction(Opcode.STOREHR, IRDataType.BYTE, reg1 = byteReg, immediate = 0), null)
+        if(codeGen.options.compTarget.cpu.is68k) {
+            // m68k: 3 return values in D0 (slot 10), D1 (slot 11), D2 (slot 12)
+            // store high byte first, then mid, then low (to avoid clobbering)
+            addInstr(result, IRInstruction(Opcode.BSIGB, IRDataType.LONG, reg1 = byteReg, reg2 = tr.resultReg), null)
+            addInstr(result, IRInstruction(Opcode.STOREHR, IRDataType.BYTE, reg1 = byteReg, immediate = 12), null)
+            addInstr(result, IRInstruction(Opcode.MIDB, IRDataType.LONG, reg1 = byteReg, reg2 = tr.resultReg), null)
+            addInstr(result, IRInstruction(Opcode.STOREHR, IRDataType.BYTE, reg1 = byteReg, immediate = 11), null)
+            addInstr(result, IRInstruction(Opcode.LSIGB, IRDataType.LONG, reg1 = byteReg, reg2 = tr.resultReg), null)
+            addInstr(result, IRInstruction(Opcode.STOREHR, IRDataType.BYTE, reg1 = byteReg, immediate = 10), null)
+        } else {
+            // 6502/cx16: low byte in A (slot 0), mid in cx16.r15, high (bank) in cx16.r14
+            addInstr(result, IRInstruction(Opcode.BSIGB, IRDataType.LONG, reg1 = byteReg, reg2 = tr.resultReg), null)
+            addInstr(result, IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1 = byteReg, labelSymbol = "cx16.r14"), null)
+            addInstr(result, IRInstruction(Opcode.MIDB, IRDataType.LONG, reg1 = byteReg, reg2 = tr.resultReg), null)
+            addInstr(result, IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1 = byteReg, labelSymbol = "cx16.r15"), null)
+            addInstr(result, IRInstruction(Opcode.LSIGB, IRDataType.LONG, reg1 = byteReg, reg2 = tr.resultReg), null)
+            addInstr(result, IRInstruction(Opcode.STOREHR, IRDataType.BYTE, reg1 = byteReg, immediate = 0), null)
+        }
         return ExpressionCodeResult(result, IRDataType.BYTE, -1, -1)
     }
 

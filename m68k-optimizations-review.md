@@ -170,8 +170,7 @@ Lowering improvements that would shrink m68k output (no correctness risk):
 
 1. Gate the simpleAst rewrites in section 1 (`MemoryOptimizers.kt` is the
    dangerous one; `ExpressionOptimizers.kt:25` and `ComparisonOptimizers.kt:199`
-   are cheap wins matching the existing `is6502` pattern). The m68k codegen
-   correctness bugs are tracked separately in `m68k-potential-codegen-bugs.md`.
+   are cheap wins matching the existing `is6502` pattern).
 2. Fix the const-pointer / POINTER_MEM_SIZE issues in section 2 (crasher on
    real Amiga addresses) and the `pokew`/`isupper`/`signed-div` correctness
    items.
