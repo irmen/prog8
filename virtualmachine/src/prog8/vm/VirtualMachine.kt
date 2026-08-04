@@ -1463,9 +1463,9 @@ class VirtualMachine(irProgram: IRProgram) {
 
     private fun InsDIVMODR(i: IRInstruction) {
         when(i.type!!) {
-            IRDataType.BYTE -> divAndModUByte(i.reg1!!, i.reg2!!)       // division+remainder results on value stack
-            IRDataType.WORD -> divAndModUWord(i.reg1!!, i.reg2!!)       // division+remainder results on value stack
-            IRDataType.POINTER -> divAndModUWord(i.reg1!!, i.reg2!!)       // division+remainder results on value stack
+            IRDataType.BYTE -> divAndModUByte(i.reg1!!, i.reg2!!)
+            IRDataType.WORD -> divAndModUWord(i.reg1!!, i.reg2!!)
+            IRDataType.POINTER -> divAndModUWord(i.reg1!!, i.reg2!!)
             IRDataType.LONG -> throw IllegalArgumentException("divmodr unsigned long not supported")
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
@@ -1474,9 +1474,9 @@ class VirtualMachine(irProgram: IRProgram) {
 
     private fun InsDIVMOD(i: IRInstruction) {
         when(i.type!!) {
-            IRDataType.BYTE -> divAndModConstUByte(i.reg1!!, i.immediate!!.toUByte())    // division+remainder results on value stack
-            IRDataType.WORD -> divAndModConstUWord(i.reg1!!, i.immediate!!.toUShort())   // division+remainder results on value stack
-            IRDataType.POINTER -> divAndModConstUWord(i.reg1!!, i.immediate!!.toUShort())   // division+remainder results on value stack
+            IRDataType.BYTE -> divAndModConstUByte(i.reg1!!, i.reg2!!, i.immediate!!.toUByte())
+            IRDataType.WORD -> divAndModConstUWord(i.reg1!!, i.reg2!!, i.immediate!!.toUShort())
+            IRDataType.POINTER -> divAndModConstUWord(i.reg1!!, i.reg2!!, i.immediate!!.toUShort())
             IRDataType.LONG -> throw IllegalArgumentException("divmod unsigned long not supported")
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
@@ -1485,9 +1485,9 @@ class VirtualMachine(irProgram: IRProgram) {
 
     private fun InsSDIVMODR(i: IRInstruction) {
         when(i.type!!) {
-            IRDataType.BYTE -> divAndModSByte(i.reg1!!, i.reg2!!)       // signed division+remainder results on value stack
-            IRDataType.WORD -> divAndModSWord(i.reg1!!, i.reg2!!)       // signed division+remainder results on value stack
-            IRDataType.POINTER -> divAndModSWord(i.reg1!!, i.reg2!!)       // signed division+remainder results on value stack
+            IRDataType.BYTE -> divAndModSByte(i.reg1!!, i.reg2!!)
+            IRDataType.WORD -> divAndModSWord(i.reg1!!, i.reg2!!)
+            IRDataType.POINTER -> divAndModSWord(i.reg1!!, i.reg2!!)
             IRDataType.LONG -> throw IllegalArgumentException("divmodr signed long not supported")
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
@@ -1496,9 +1496,9 @@ class VirtualMachine(irProgram: IRProgram) {
 
     private fun InsSDIVMOD(i: IRInstruction) {
         when(i.type!!) {
-            IRDataType.BYTE -> divAndModConstSByte(i.reg1!!, i.immediate!!.toByte())    // signed division+remainder results on value stack
-            IRDataType.WORD -> divAndModConstSWord(i.reg1!!, i.immediate!!.toShort())   // signed division+remainder results on value stack
-            IRDataType.POINTER -> divAndModConstSWord(i.reg1!!, i.immediate!!.toShort())   // signed division+remainder results on value stack
+            IRDataType.BYTE -> divAndModConstSByte(i.reg1!!, i.reg2!!, i.immediate!!.toByte())
+            IRDataType.WORD -> divAndModConstSWord(i.reg1!!, i.reg2!!, i.immediate!!.toShort())
+            IRDataType.POINTER -> divAndModConstSWord(i.reg1!!, i.reg2!!, i.immediate!!.toShort())
             IRDataType.LONG -> throw IllegalArgumentException("divmod signed long not supported")
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }

@@ -254,7 +254,7 @@ internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
         }
 
         Opcode.DIVMOD -> {
-            emitDivModOp(r1 ?: error("DIVMOD needs reg1"), null, type, unsigned=true, imm=imm ?: error("DIVMOD needs immediate"))
+            emitDivModOp(r1 ?: error("DIVMOD needs reg1"), r2 ?: error("DIVMOD needs reg2"), type, unsigned=true, imm=imm ?: error("DIVMOD needs immediate"))
         }
 
         Opcode.SDIVMODR -> {
@@ -262,7 +262,7 @@ internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
         }
 
         Opcode.SDIVMOD -> {
-            emitDivModOp(r1 ?: error("SDIVMOD needs reg1"), null, type, unsigned=false, imm=imm ?: error("SDIVMOD needs immediate"))
+            emitDivModOp(r1 ?: error("SDIVMOD needs reg1"), r2 ?: error("SDIVMOD needs reg2"), type, unsigned=false, imm=imm ?: error("SDIVMOD needs immediate"))
         }
 
         // --- Integer sqrt/square ---
@@ -588,72 +588,53 @@ private fun AsmGen.emitModOp(dstReg: Int, srcReg: Int?, type: IRDataType, unsign
     }
 }
 
-private fun AsmGen.emitDivModOp(dstReg: Int, srcReg: Int?, type: IRDataType, unsigned: Boolean, imm: Int?) {
-    val op = if (unsigned) "divul.l" else "divsl.l"
+private fun AsmGen.emitDivModOp(dstReg: Int, remainderReg: Int, type: IRDataType, unsigned: Boolean, imm: Int?) {
+    val opLong = if (unsigned) "divul.l" else "divsl.l"
     when (type) {
         IRDataType.BYTE -> {
-            // divul: Dq=dividend→quotient, Dr=remainder. Pack remainder lo, quotient hi.
-            when {
-                srcReg != null -> {
-                    emitLine("move.b  ${regAddr(dstReg)}, d0")
-                    if (unsigned) emitLine($$"and.l  #$ff, d0") else emitSignExtendByteToLong("d0")
-                    emitLine("move.b  ${regAddr(srcReg)}, d2")
-                    if (unsigned) emitLine($$"and.l  #$ff, d2") else emitSignExtendByteToLong("d2")
-                }
-                imm != null -> {
-                    emitLine("move.b  ${regAddr(dstReg)}, d0")
-                    if (unsigned) emitLine($$"and.l  #$ff, d0") else emitSignExtendByteToLong("d0")
-                    emitLine("moveq  #${imm.and(0xff)}, d2")
-                    if (!unsigned) emitSignExtendByteToLong("d2")
-                }
+            val opDiv = if (unsigned) "divu.w" else "divs.w"
+            emitLine("move.b  ${regAddr(dstReg)}, d0")
+            if (unsigned) emitLine($$"and.l  #$ff, d0") else emitSignExtendByteToLong("d0")
+            if(imm!=null) {
+                emitLine("moveq  #${imm.and(0xff)}, d1")
+                if (!unsigned) emitSignExtendByteToLong("d1")
+            } else {
+                emitLine("move.b  ${regAddr(remainderReg)}, d1")
+                if (unsigned) emitLine($$"and.l  #$ff, d1") else emitSignExtendByteToLong("d1")
             }
-                    emitLine("$op  d2, d1:d0")
-            emitLine("move.b  d1, ${regAddrByte(dstReg, 0)}", "remainder lo")
-            emitLine("move.b  d0, ${regAddrByte(dstReg, 1)}", "quotient hi")
+            emitLine("$opDiv  d1, d0")
+            emitLine("move.b  d0, ${regAddr(dstReg)}", "quotient")
+            emitLine("swap  d0")
+            emitLine("move.b  d0, ${regAddr(remainderReg)}", "remainder")
         }
 
         IRDataType.WORD -> {
-            // divu.w packs quotient in low word, remainder in high word natively
-            // note: clear d0 first because move.w preserves upper word on 68030
             val opDiv = if (unsigned) "divu.w" else "divs.w"
-            when {
-                srcReg != null -> {
-                    emitLine("moveq  #0, d0", "clear upper word for divu.w")
-                    emitLine("move.w  ${regAddr(dstReg)}, d0")
-                    emitLine("$opDiv  ${regAddr(srcReg)}, d0")
-                }
-                imm != null -> {
-                    emitLine("moveq  #0, d0", "clear upper word for divu.w")
-                    emitLine("move.w  ${regAddr(dstReg)}, d0")
-                    emitLine("$opDiv  #${imm.and(0xffff)}, d0")
-                }
+            emitLine("moveq  #0, d0", "clear upper word")
+            emitLine("move.w  ${regAddr(dstReg)}, d0")
+            if (!unsigned) emitLine("ext.l  d0", "sign-extend for divs.w")
+            if(imm!=null) {
+                emitLine("$opDiv  #${imm.and(0xffff)}, d0")
+            } else {
+                emitLine("$opDiv  ${regAddr(remainderReg)}, d0")
             }
-            // After: low word = quotient, high word = remainder
-            // Store: low word = quotient, next word = remainder? Or vice versa?
-            // Convention: remainder in low part, quotient in high part
-            emitLine("move.w  d0, ${regAddr(dstReg)}", "quotient in low word")
-            emitLine("swap  d0", "remainder to low word")
-            emitLine("move.w  d0, ${regAddrByte(dstReg, 2)}", "remainder in next word")
+            emitLine("move.w  d0, ${regAddr(dstReg)}", "quotient")
+            emitLine("swap  d0")
+            emitLine("move.w  d0, ${regAddr(remainderReg)}", "remainder")
         }
 
         IRDataType.LONG -> {
             if(program.options.compTarget.cpu < CpuType.M68020)
-                TODO("long division needs at least a 68020 cpu at this time")
-            when {
-                srcReg != null -> {
-                    emitLine("move.l  ${regAddr(dstReg)}, d0", "dividend")
-                    emitLine("$op  ${regAddr(srcReg)}, d1:d0")
-                    emitLine("move.l  d1, ${regAddr(dstReg)}", "remainder")
-                    emitLine("move.l  d0, ${regAddrByte(dstReg, 4)}", "quotient in next 4 bytes")
-                }
-                imm != null -> {
-                    emitLine("move.l  ${regAddr(dstReg)}, d0", "dividend")
-                    emitLine("move.l  #${imm}, d2", "divisor")
-            emitLine("$op  d2, d1:d0")
-                    emitLine("move.l  d1, ${regAddr(dstReg)}", "remainder")
-                    emitLine("move.l  d0, ${regAddrByte(dstReg, 4)}", "quotient in next 4 bytes")
-                }
+                TODO("long divmod needs at least a 68020 cpu at this time")
+            emitLine("move.l  ${regAddr(dstReg)}, d0", "dividend")
+            if(imm!=null) {
+                emitLine("move.l  #${imm}, d1", "divisor")
+            } else {
+                emitLine("move.l  ${regAddr(remainderReg)}, d1", "divisor")
             }
+            emitLine("$opLong  d1, d0")
+            emitLine("move.l  d0, ${regAddr(dstReg)}", "quotient")
+            emitLine("move.l  d1, ${regAddr(remainderReg)}", "remainder")
         }
 
         else -> TODO("DIVMOD for ${type.name}")

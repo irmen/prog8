@@ -222,10 +222,10 @@ modr        reg1, reg2                      - remainder (modulo) of unsigned div
 mod         reg1,              value        - remainder (modulo) of unsigned division reg1 %= value  note: division by zero yields max signed int $ff/$ffff
 modsr       reg1, reg2                      - remainder (modulo) of signed division reg1 %= reg2  note: division by zero yields max signed long
 mods       reg1,              value        - remainder (modulo) of signed division reg1 %= value  note: division by zero yields max signed long
-divmodr     reg1, reg2                      - unsigned division reg1/reg2, storing division and remainder on value stack (so need to be POPped off)
-divmod      reg1,              value        - unsigned division reg1/value, storing division and remainder on value stack (so need to be POPped off)
-sdivmodr    reg1, reg2                      - signed division reg1/reg2, storing division and remainder on value stack (so need to be POPped off)
-sdivmod     reg1,              value        - signed division reg1/value, storing division and remainder on value stack (so need to be POPped off)
+divmodr     reg1, reg2                      - unsigned division reg1/reg2, storing quotient in reg1 and remainder in reg2
+divmod      reg1, reg2, value               - unsigned division reg1/value, storing quotient in reg1 and remainder in reg2
+sdivmodr    reg1, reg2                      - signed division reg1/reg2, storing quotient in reg1 and remainder in reg2
+sdivmod     reg1, reg2, value               - signed division reg1/value, storing quotient in reg1 and remainder in reg2
 sqrt        reg1, reg2                      - reg1 is the square root of reg2 (reg2 can be l.1, .w or .b, result type in reg1 is .w or .b)  you can also use it with floating point types, fpreg1 and fpreg2 (result is also .f)
 square      reg1, reg2                      - reg1 is the square of reg2 (reg2 can be .w or .b, result type in reg1 is always .b)  you can also use it with floating point types, fpreg1 and fpreg2 (result is also .f)
 sgn         reg1, reg2                      - reg1.b is the sign of reg2 (or fpreg1, if sgn.f) (0.b, 1.b or -1.b)
@@ -601,10 +601,6 @@ val OpcodesWithSideEffects = OpcodesThatBranch + setOf(
     Opcode.POP,
     Opcode.PUSHST,
     Opcode.POPST,
-    Opcode.DIVMOD,
-    Opcode.DIVMODR,
-    Opcode.SDIVMOD,
-    Opcode.SDIVMODR,
     Opcode.BREAKPOINT
 )
 
@@ -788,10 +784,10 @@ val instructionFormats = mutableMapOf(
     Opcode.MOD        to InstructionFormat.from("BW,<>r1,<i"),
     Opcode.MODSR      to InstructionFormat.from("BWL,<>r1,<r2"),
     Opcode.MODS       to InstructionFormat.from("BWL,<>r1,<i"),
-    Opcode.DIVMODR    to InstructionFormat.from("BW,<>r1,<r2"),
-    Opcode.DIVMOD     to InstructionFormat.from("BW,<>r1,<i"),
-    Opcode.SDIVMODR   to InstructionFormat.from("BW,<>r1,<r2"),
-    Opcode.SDIVMOD    to InstructionFormat.from("BW,<>r1,<i"),
+    Opcode.DIVMODR    to InstructionFormat.from("BW,<>r1,<>r2"),
+    Opcode.DIVMOD     to InstructionFormat.from("BW,<>r1,>r2,<i"),
+    Opcode.SDIVMODR   to InstructionFormat.from("BWL,<>r1,<>r2"),
+    Opcode.SDIVMOD    to InstructionFormat.from("BWL,<>r1,>r2,<i"),
     Opcode.CMP        to InstructionFormat.from("BWL,<r1,<r2"),
     Opcode.CMPI       to InstructionFormat.from("BWL,<r1,<i"),
     Opcode.EXT        to InstructionFormat.from("BWL,>r1,<r2"),

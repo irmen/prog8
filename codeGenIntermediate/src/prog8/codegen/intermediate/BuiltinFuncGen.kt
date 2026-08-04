@@ -238,31 +238,30 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         if(divident is PtNumber) {
             val tr = exprGen.translateExpression(number)
             addToResult(result, tr, tr.resultReg, -1)
-            addInstr(result, IRInstruction(divmodOpcode, type, reg1 = tr.resultReg, immediate = divident.number.toInt()), null)
-            divisionReg = tr.resultReg
             remainderReg = codeGen.registers.next(type)
+            addInstr(result, IRInstruction(divmodOpcode, type, reg1 = tr.resultReg, reg2 = remainderReg, immediate = divident.number.toInt()), null)
+            divisionReg = tr.resultReg
         } else {
             val numTr = exprGen.translateExpression(number)
             addToResult(result, numTr, numTr.resultReg, -1)
             val dividentTr = exprGen.translateExpression(divident)
             addToResult(result, dividentTr, dividentTr.resultReg, -1)
-            addInstr(result, IRInstruction(divmodrOpcode, type, reg1 = numTr.resultReg, reg2=dividentTr.resultReg), null)
-            divisionReg = numTr.resultReg
             remainderReg = dividentTr.resultReg
+            addInstr(result, IRInstruction(divmodrOpcode, type, reg1 = numTr.resultReg, reg2 = dividentTr.resultReg), null)
+            divisionReg = numTr.resultReg
         }
-        // DIVMOD instruction result convention: on value stack, division and remainder on top.
-        addInstr(result, IRInstruction(Opcode.POP, type, reg1=remainderReg), null)
-        addInstr(result, IRInstruction(Opcode.POP, type, reg1=divisionReg), null)
-        // return the 2 result values: division and remainder  division in AY, remainder in R15
+        // DIVMOD result convention: quotient in reg1, remainder in reg2.
+        // Then route to return locations: STOREHR for quotient (AY slot), STOREM for remainder (cx16.r15).
+        // Note: STOREM must come before STOREHR, otherwise STOREM clobbers A before LOADHR reads it.
         if(type==IRDataType.BYTE) {
             result += IRCodeChunk(null, null).also {
-                it += IRInstruction(Opcode.STOREHR, IRDataType.BYTE, reg1=divisionReg, immediate=0)
                 it += IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1=remainderReg, labelSymbol = "cx16.r15")
+                it += IRInstruction(Opcode.STOREHR, IRDataType.BYTE, reg1=divisionReg, immediate=0)
             }
         } else if(type==IRDataType.WORD) {
             result += IRCodeChunk(null, null).also {
-                it += IRInstruction(Opcode.STOREHR, IRDataType.WORD, reg1=divisionReg, immediate=4)
                 it += IRInstruction(Opcode.STOREM, IRDataType.WORD, reg1=remainderReg, labelSymbol = "cx16.r15")
+                it += IRInstruction(Opcode.STOREHR, IRDataType.WORD, reg1=divisionReg, immediate=4)
             }
         } else throw AssemblyError("invalid type for DIVMOD")
         return ExpressionCodeResult(result, type, -1, -1)

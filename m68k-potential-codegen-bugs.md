@@ -12,35 +12,23 @@ Targets: Amiga500 (M68000), Qemu68k (M68020). m68k is big-endian with
 
 ## Bugs
 
-- **DIVMOD return convention is broken on m68k** (two distinct problems):
-  - **(a) Results are not pushed onto the stack** (`InstrArithmetic.kt:578-646`,
-    `emitDivModOp`). The `DIVMOD`/`DIVMODR` IR instruction must push the
-    quotient then the remainder onto the value stack (the VM reference does
-    `valueStack.add(division)` then `valueStack.add(remainder)`), so the two
-    following `POP`s recover them. Instead `emitDivModOp` writes quotient and
-    remainder into `reg1`'s regfile slots (e.g. `regAddr(dstReg)` and
-    `regAddrByte(dstReg,2/4)`) and never pushes. The two `POP`s then read `sp`
-    and overwrite those exact slots with stack garbage, so `q`/`r` end up wrong.
-    Fix: after computing `d0`=quotient, `d1`=remainder, emit
-    `move.s d0,-(sp)` then `move.s d1,-(sp)` (matching type width) and delete
-    the regfile writes.
-  - **(b) The builtin's return locations are cx16-specific**
-    (`BuiltinFuncGen.kt:230-268`, `funcDivmod`). After the `POP`s it returns
-    the quotient via `STOREHR` into the 6502 hardware register `AY` (slot `s4`
-    for word, `s0`/`A` for byte) and the remainder via `STOREM` into the cx16
-    memory symbol **`cx16.r15`**. Neither exists on m68k:
-    - `m68kSlotRegister` (`InstrControl.kt:632`) originally handled only slots
-      10-32 (`D0-D7`/`A0-A6`/`FP0-FP7`) and crashed with
-      `unknown calling convention slot: s4` on the `STOREHR`. *Fixed:* slots
-      0-7 (`A`/`X`/`Y`/`AX`/`AY`/`XY`/`FAC1`/`FAC2`) now map to
-      `d0`-`d5`/`fp0`/`fp1`.
-    - `cx16.r15` is still undefined on m68k, so assembly fails with
-      `undefined symbol <cx16.r15>` at the `STOREM` (`InstrLoadStore.kt:125-130`).
-      The m68k target needs its own remainder home (e.g. a dedicated BSS
-      symbol) instead of the cx16 scratch register.
-  - Repro: `examples/test.p8` (`-target amiga500`) - currently reaches the
-    `cx16.r15` assembler error; once that is resolved the push bug (a) will
-    show up as wrong printed quotient/remainder.
+- **DIVMOD return convention is broken on m68k**:
+  - The `DIVMOD`/`DIVMODR` IR instructions now write quotient to `reg1` and
+    remainder to `reg2` directly (no value stack round-trip). The builtin
+    `funcDivmod()` then routes results via `STOREHR` (quotient to AY slot)
+    and `STOREM` (remainder to `cx16.r15` memory address).
+  - **`STOREM` into `cx16.r15` is undefined on m68k** (`BuiltinFuncGen.kt:253-267`,
+    `funcDivmod`). The `cx16.r15` memory symbol does not exist on m68k, so
+    assembly fails with `undefined symbol <cx16.r15>` at the `STOREM`
+    (`InstrLoadStore.kt:84-90`). The m68k target needs its own remainder
+    home (e.g. a dedicated BSS symbol) instead of the cx16 scratch register.
+  - **`STOREHR` slot mapping may not work correctly on m68k**
+    (`InstrLoadStore.kt:125-130`). Slots 0-7 (A/X/Y/AX/AY/XY/FAC1/FAC2)
+    map to `d0`-`d5`/`fp0`/`fp1`, but the 6502 slot semantics (A=low byte,
+    Y=high byte for word values) may not translate correctly to M68k
+    register conventions.
+  - Repro: `examples/test.p8` (`-target amiga500`) - currently fails with
+    `cx16.r15` assembler error.
 
 ---
 

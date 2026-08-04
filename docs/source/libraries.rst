@@ -67,7 +67,7 @@ Math
     Returns quotient and remainder of the division as two ubyte or uword values.
     Performs the division only once. Using '/' and '%' separately
     would perform the division twice, so using divmod is much more efficient for this.
-    **Note:** Clobbers ``cx16.r15`` (the remainder is stored there for the word variant).
+    **Clobbers:** ``cx16.r15`` (stores the remainder there).
     The ``%`` operator on its own used to also clobber ``cx16.r15`` but now preserves it.
 
 :index:`gcd` (a, b)

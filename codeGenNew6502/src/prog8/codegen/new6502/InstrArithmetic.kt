@@ -154,7 +154,8 @@ internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
         }
         Opcode.DIVMOD -> {
             val value = imm ?: error("DIVMOD needs immediate")
-            divModImmediate(r1 ?: error("DIVMOD needs reg1"), value, type)
+            val r2val = r2 ?: error("DIVMOD needs reg2")
+            divModImmediate(r1 ?: error("DIVMOD needs reg1"), r2val, value, type)
         }
         Opcode.SDIVMODR -> {
             val r2val = r2 ?: error("SDIVMODR needs reg2")
@@ -162,7 +163,8 @@ internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
         }
         Opcode.SDIVMOD -> {
             val value = imm ?: error("SDIVMOD needs immediate")
-            sdivModImmediate(r1 ?: error("SDIVMOD needs reg1"), value, type)
+            val r2val = r2 ?: error("SDIVMOD needs reg2")
+            sdivModImmediate(r1 ?: error("SDIVMOD needs reg1"), r2val, value, type)
         }
 
         Opcode.CMP -> {
@@ -965,14 +967,14 @@ internal fun AsmGen.modSignedImmediate(dstReg: Int, value: Int, type: IRDataType
 // === DivMod ===
 
 internal fun AsmGen.divModRegisters(dstReg: Int, srcReg: Int, type: IRDataType) {
-    // division and modulo combined: dstReg = dstReg/srcReg, dstReg+1 = dstReg%srcReg
+    // division and modulo combined: quotient in dstReg, remainder in srcReg
     when (type) {
         IRDataType.BYTE -> {
             emitLine("lda  ${regAddrLo(dstReg)}")
             emitLine("ldy  ${regAddrLo(srcReg)}")
             emitLine("jsr  prog8_math.divmod_ub_asm")
             emitLine("sty  ${regAddrLo(dstReg)}")
-            emitLine("sta  ${regAddrByte(dstReg, 1)}")
+            emitLine("sta  ${regAddrLo(srcReg)}")
         }
         IRDataType.WORD -> {
             emitLine("lda  ${regAddrLo(dstReg)}")
@@ -985,9 +987,9 @@ internal fun AsmGen.divModRegisters(dstReg: Int, srcReg: Int, type: IRDataType) 
             emitLine("sta  ${regAddrLo(dstReg)}")
             emitLine("sty  ${regAddrHi(dstReg)}")
             emitLine("lda  P8ZP_SCRATCH_W2")
-            emitLine("sta  ${regAddrByte(dstReg, 2)}")
+            emitLine("sta  ${regAddrLo(srcReg)}")
             emitLine("lda  P8ZP_SCRATCH_W2+1")
-            emitLine("sta  ${regAddrByte(dstReg, 3)}")
+            emitLine("sta  ${regAddrHi(srcReg)}")
         }
         else -> TODO("DIVMODR r$dstReg, r$srcReg ${type.name}")
     }
@@ -997,14 +999,14 @@ internal fun sdivModRegisters(dstReg: Int, srcReg: Int, type: IRDataType) {
     TODO("SDIVMODR r$dstReg, r$srcReg (signed)")
 }
 
-internal fun AsmGen.divModImmediate(dstReg: Int, value: Int, type: IRDataType) {
+internal fun AsmGen.divModImmediate(dstReg: Int, remainderReg: Int, value: Int, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
             emitLine("lda  ${regAddrLo(dstReg)}")
             emitLine("ldy  #${value and 0xff}")
             emitLine("jsr  prog8_math.divmod_ub_asm")
             emitLine("sty  ${regAddrLo(dstReg)}")
-            emitLine("sta  ${regAddrByte(dstReg, 1)}")
+            emitLine("sta  ${regAddrLo(remainderReg)}")
         }
         IRDataType.WORD -> {
             emitLine("lda  ${regAddrLo(dstReg)}")
@@ -1017,17 +1019,17 @@ internal fun AsmGen.divModImmediate(dstReg: Int, value: Int, type: IRDataType) {
             emitLine("sta  ${regAddrLo(dstReg)}")
             emitLine("sty  ${regAddrHi(dstReg)}")
             emitLine("lda  P8ZP_SCRATCH_W2")
-            emitLine("sta  ${regAddrByte(dstReg, 2)}")
+            emitLine("sta  ${regAddrLo(remainderReg)}")
             emitLine("lda  P8ZP_SCRATCH_W2+1")
-            emitLine("sta  ${regAddrByte(dstReg, 3)}")
+            emitLine("sta  ${regAddrHi(remainderReg)}")
         }
         else -> TODO("DIVMOD r$dstReg, $value ${type.name}")
     }
 }
 
-internal fun AsmGen.sdivModImmediate(dstReg: Int, value: Int, type: IRDataType) {
-    emitLine("; SDIVMOD r$dstReg, $value (signed, using unsigned)")
-    divModImmediate(dstReg, value, type)
+internal fun AsmGen.sdivModImmediate(dstReg: Int, remainderReg: Int, value: Int, type: IRDataType) {
+    emitLine("; SDIVMOD r$dstReg, r$remainderReg, $value (signed, using unsigned)")
+    divModImmediate(dstReg, remainderReg, value, type)
 }
 
 // === Compare ===

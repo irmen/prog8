@@ -247,16 +247,16 @@ internal fun VirtualMachine.divAndModUByte(reg1: Int, reg2: Int) {
     val right = registers.getUB(reg2)
     val division = if(right==0.toUByte()) 0xffu else left / right
     val remainder = if(right==0.toUByte()) 0u else left % right
-    valueStack.add(division.toUByte())
-    valueStack.add(remainder.toUByte())
+    registers.setUB(reg1, division.toUByte())
+    registers.setUB(reg2, remainder.toUByte())
 }
 
-internal fun VirtualMachine.divAndModConstUByte(reg1: Int, value: UByte) {
+internal fun VirtualMachine.divAndModConstUByte(reg1: Int, remainderReg: Int, value: UByte) {
     val left = registers.getUB(reg1)
     val division = if(value==0.toUByte()) 0xffu else left / value
     val remainder = if(value==0.toUByte()) 0u else left % value
-    valueStack.add(division.toUByte())
-    valueStack.add(remainder.toUByte())
+    registers.setUB(reg1, division.toUByte())
+    registers.setUB(remainderReg, remainder.toUByte())
 }
 
 internal fun VirtualMachine.divAndModUWord(reg1: Int, reg2: Int) {
@@ -264,16 +264,16 @@ internal fun VirtualMachine.divAndModUWord(reg1: Int, reg2: Int) {
     val right = registers.getUW(reg2)
     val division = if(right==0.toUShort()) 0xffffu else left / right
     val remainder = if(right==0.toUShort()) 0u else left % right
-    valueStack.pushw(division.toUShort())
-    valueStack.pushw(remainder.toUShort())
+    registers.setUW(reg1, division.toUShort())
+    registers.setUW(reg2, remainder.toUShort())
 }
 
-internal fun VirtualMachine.divAndModConstUWord(reg1: Int, value: UShort) {
+internal fun VirtualMachine.divAndModConstUWord(reg1: Int, remainderReg: Int, value: UShort) {
     val left = registers.getUW(reg1)
     val division = if(value==0.toUShort()) 0xffffu else left / value
     val remainder = if(value==0.toUShort()) 0u else left % value
-    valueStack.pushw(division.toUShort())
-    valueStack.pushw(remainder.toUShort())
+    registers.setUW(reg1, division.toUShort())
+    registers.setUW(remainderReg, remainder.toUShort())
 }
 
 internal fun VirtualMachine.divAndModSByte(reg1: Int, reg2: Int) {
@@ -281,16 +281,16 @@ internal fun VirtualMachine.divAndModSByte(reg1: Int, reg2: Int) {
     val right = registers.getSB(reg2)
     val division = if(right==0.toByte()) 127 else left / right
     val remainder = if(right==0.toByte()) 0 else left % right
-    valueStack.add(division.toUByte())
-    valueStack.add(remainder.toUByte())
+    registers.setUB(reg1, division.toUByte())
+    registers.setUB(reg2, remainder.toUByte())
 }
 
-internal fun VirtualMachine.divAndModConstSByte(reg1: Int, value: Byte) {
+internal fun VirtualMachine.divAndModConstSByte(reg1: Int, remainderReg: Int, value: Byte) {
     val left = registers.getSB(reg1)
     val division = if(value==0.toByte()) 127 else left / value
     val remainder = if(value==0.toByte()) 0 else left % value
-    valueStack.add(division.toUByte())
-    valueStack.add(remainder.toUByte())
+    registers.setUB(reg1, division.toUByte())
+    registers.setUB(remainderReg, remainder.toUByte())
 }
 
 internal fun VirtualMachine.divAndModSWord(reg1: Int, reg2: Int) {
@@ -298,16 +298,16 @@ internal fun VirtualMachine.divAndModSWord(reg1: Int, reg2: Int) {
     val right = registers.getSW(reg2)
     val division = if(right==0.toShort()) 32767 else left / right
     val remainder = if(right==0.toShort()) 0 else left % right
-    valueStack.pushw(division.toUShort())
-    valueStack.pushw(remainder.toUShort())
+    registers.setUW(reg1, division.toUShort())
+    registers.setUW(reg2, remainder.toUShort())
 }
 
-internal fun VirtualMachine.divAndModConstSWord(reg1: Int, value: Short) {
+internal fun VirtualMachine.divAndModConstSWord(reg1: Int, remainderReg: Int, value: Short) {
     val left = registers.getSW(reg1)
     val division = if(value==0.toShort()) 32767 else left / value
     val remainder = if(value==0.toShort()) 0 else left % value
-    valueStack.pushw(division.toUShort())
-    valueStack.pushw(remainder.toUShort())
+    registers.setUW(reg1, division.toUShort())
+    registers.setUW(remainderReg, remainder.toUShort())
 }
 
 internal fun VirtualMachine.divModByteUnsignedInplace(operator: String, reg1: Int, address: UInt) {
