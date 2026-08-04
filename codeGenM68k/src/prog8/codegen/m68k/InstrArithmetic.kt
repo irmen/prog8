@@ -457,22 +457,29 @@ private fun AsmGen.emitDivOp(dstReg: Int, srcReg: Int?, type: IRDataType, unsign
         }
 
         IRDataType.WORD -> {
+            // divu.w/divs.w divide a 32-bit dividend (Dd) by a 16-bit divisor.
+            // divs.w requires the 32-bit dividend to be SIGN-extended; for unsigned it
+            // must be ZERO-extended. A plain `move.w` does not extend the upper word, so
+            // extend explicitly here (this is what was wrong: signed dividends ended up
+            // zero-extended, e.g. -1000 became +64536).
+            fun loadDividend() {
+                emitLine("move.w  ${regAddr(dstReg)}, d0")
+                if (unsigned) emitLine($$"and.l  #$ffff, d0", "zero-extend upper word for divu.w")
+                else emitLine("ext.l  d0", "sign-extend upper word for divs.w (signed 32-bit dividend)")
+            }
             when {
                 srcReg != null -> {
-                    emitLine("moveq  #0, d0", "clear upper word for divu.w")
-                    emitLine("move.w  ${regAddr(dstReg)}, d0")
+                    loadDividend()
                     emitLine("$op.w  ${regAddr(srcReg)}, d0")
                     emitLine("move.w  d0, ${regAddr(dstReg)}", "quotient in low word")
                 }
                 imm != null -> {
-                    emitLine("moveq  #0, d0", "clear upper word for divu.w")
-                    emitLine("move.w  ${regAddr(dstReg)}, d0")
+                    loadDividend()
                     emitLine("$op.w  #${imm.and(0xffff)}, d0")
                     emitLine("move.w  d0, ${regAddr(dstReg)}", "quotient")
                 }
                 target != null -> {
-                    emitLine("moveq  #0, d0", "clear upper word for divu.w")
-                    emitLine("move.w  ${regAddr(dstReg)}, d0")
+                    loadDividend()
                     emitLine("$op.w  $target, d0")
                     emitLine("move.w  d0, ${regAddr(dstReg)}", "quotient")
                 }
@@ -535,17 +542,22 @@ private fun AsmGen.emitModOp(dstReg: Int, srcReg: Int?, type: IRDataType, unsign
         }
 
         IRDataType.WORD -> {
-            // divu.w: remainder in upper 16 bits, swap to get it
-            // note: clear d0 first because move.w preserves upper word on 68030
+            // divu.w/divs.w: remainder in upper 16 bits, swap to get it.
+            // divs.w requires the 32-bit dividend to be SIGN-extended; for unsigned it
+            // must be ZERO-extended. A plain `move.w` does not extend the upper word, so
+            // extend explicitly (signed dividends were wrongly zero-extended before).
+            fun loadDividend() {
+                emitLine("move.w  ${regAddr(dstReg)}, d0")
+                if (unsigned) emitLine($$"and.l  #$ffff, d0", "zero-extend upper word for divu.w")
+                else emitLine("ext.l  d0", "sign-extend upper word for divs.w (signed 32-bit dividend)")
+            }
             when {
                 srcReg != null -> {
-                    emitLine("moveq  #0, d0", "clear upper word for divu.w")
-                    emitLine("move.w  ${regAddr(dstReg)}, d0")
+                    loadDividend()
                     emitLine("$opDiv.w  ${regAddr(srcReg)}, d0")
                 }
                 imm != null -> {
-                    emitLine("moveq  #0, d0", "clear upper word for divu.w")
-                    emitLine("move.w  ${regAddr(dstReg)}, d0")
+                    loadDividend()
                     emitLine("$opDiv.w  #${imm.and(0xffff)}, d0")
                 }
             }

@@ -16,6 +16,7 @@ Note: this problem does NOT affect regular data/address registers because those 
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
+- amiga500: use dos.VFPrintf for certain txt output routines that now first call conv / RawDoFmt separately
 - m68k codegen: implement long division and multiplication (see "long division needs at least a 68020 cpu at this time"). Possibly via utility.library? (requires kickstart 2.0+)
 - split up AssignmentAsmGen.kt in codeGenCpu6502 it is by far the largest file 6000+ lines
 - make enums strongly typed instead of just syntactic sugar for ints (see ideas/enum-strong-type.md for the plan)

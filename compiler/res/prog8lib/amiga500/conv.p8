@@ -93,14 +93,16 @@ sub  str_ulhex  (long value) -> str {
 sub  str_uw0  (uword value) -> str {
     ; ---- convert the uword in decimal string form, with left padding 0s (5 positions total)
     ; requires kickstart 2.0+
-    void exec.RawDoFmt("%05u", &value, putcharproc, string_out)
+    fmt_value_l = value as long
+    void exec.RawDoFmt("%05lu", &fmt_value_l, putcharproc, string_out)
     return string_out
 }
 
 sub  str_uw  (uword value) -> str {
     ; ---- convert the uword in decimal string form, without left padding 0s
     ; requires kickstart 2.0+
-    void exec.RawDoFmt("%u", &value, putcharproc, string_out)
+    fmt_value_l = value as long
+    void exec.RawDoFmt("%lu", &fmt_value_l, putcharproc, string_out)
     return string_out
 }
 

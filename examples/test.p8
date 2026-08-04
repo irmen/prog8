@@ -1,47 +1,63 @@
-; Reproduces the m68k divmod codegen bugs:
-;   1. internal error "unknown calling convention slot: s4" - divmod() returns its
-;      quotient in the 6502-style AY hardware register (slot s4), which the m68k
-;      backend did not map. (Fixed in m68kSlotRegister.)
-;   2. "DIVMOD does not push on the stack" - emitDivModOp writes the quotient and
-;      remainder into regfile slots instead of pushing them, so the two following
-;      POPs overwrite them with stack garbage (see m68k-potential-codegen-bugs.md).
-;   3. divmod() stores its remainder in the cx16-only symbol cx16.r15, which does
-;      not exist on the m68k target (undefined symbol at assembly time).
+; Reproduces the "Signed div/mod zero-extends the dividend" m68k codegen bug
+; (m68k-potential-codegen-bugs.md).
 ;
-; Compiling for -target amiga500 currently fails to assemble because of (3).
-; The program also prints calculated (divmod) vs expected ('/' and '%') values
-; so the push bug (2) shows up as wrong printed results once it assembles.
+; The WORD div/mod emitters do:
+;     moveq  #0, d0          ; "clear upper word"
+;     move.w  <dividend>, d0 ; upper word stays 0 (zero-extended)
+;     divs.w  <divisor>, d0
+; The dividend ends up ZERO-extended instead of sign-extended, so a negative
+; signed dividend is treated as a large positive number -> wrong quotient and
+; remainder. (Verified by running under vamos: -1000 / 7 prints q=9219 instead
+; of -142, r=3 instead of -6.)
+;
+; The unsigned cases below are a control: under vamos they are CORRECT, because
+; a zero-extended upper word is exactly what unsigned division wants.
+;
+; NOTE: on a real 68000 `move.w` to a data register sign-extends, so the
+; behaviour would flip (signed correct, unsigned >= 0x8000 wrong). The robust
+; fix is to extend explicitly: signed -> ext.l, unsigned -> and.l #$ffff.
 
 %import textio
-%zeropage basicsafe
 
 main {
     sub start() {
-        check(40000, 500)
-        check(43211, 2)
-        check(65535, 1000)
-        check(12345, 777)
+        check_unsigned(40000, 7, 5714, 2)    ; control: correct under vamos
+        check_unsigned(30000, 13, 2307, 9)   ; control: correct under vamos
+        check_signed(-1000, 7, -142, -6)     ; BUG: prints q=9219 r=3
         txt.print("done\n")
     }
 
-    sub check(uword a, uword b) {
-        ; divmod gives quotient and remainder in one division
-        uword q, r = divmod(a, b)
-        ; independent reference values
-        uword exp_q = a / b
-        uword exp_r = a % b
-
+    sub check_unsigned(uword a, uword b, uword exp_q, uword exp_r) {
+        uword q = a / b
+        uword r = a % b
         txt.print_uw(a)
         txt.print(" / ")
         txt.print_uw(b)
-        txt.print(" : divmod q=")
+        txt.print(" u: q=")
         txt.print_uw(q)
         txt.print(" r=")
         txt.print_uw(r)
-        txt.print("   (expected q=")
+        txt.print("  (expected q=")
         txt.print_uw(exp_q)
         txt.print(" r=")
         txt.print_uw(exp_r)
+        txt.print(")\n")
+    }
+
+    sub check_signed(word a, word b, word exp_q, word exp_r) {
+        word q = a / b
+        word r = a % b
+        txt.print_w(a)
+        txt.print(" / ")
+        txt.print_w(b)
+        txt.print(" s: q=")
+        txt.print_w(q)
+        txt.print(" r=")
+        txt.print_w(r)
+        txt.print("  (expected q=")
+        txt.print_w(exp_q)
+        txt.print(" r=")
+        txt.print_w(exp_r)
         txt.print(")\n")
     }
 }

@@ -17,9 +17,6 @@ Targets: Amiga500 (M68000), Qemu68k (M68020). m68k is big-endian with
   493-497`). The `target != null` branches read memory as a source but
   store the result into the virtual register, and the DIV word case
   computes `reg/target` instead of `target/reg`.
-- **Signed div/mod zero-extends the dividend** (`InstrArithmetic.kt:459-477`
-  DIV word, `534-551` MOD word, `606-613` DIVMOD word) via `moveq #0,d0`
-  before `divs.w` -> wrong for negative values.
 - **DIVMOD return convention is broken on m68k** (two distinct problems):
   - **(a) Results are not pushed onto the stack** (`InstrArithmetic.kt:578-646`,
     `emitDivModOp`). The `DIVMOD`/`DIVMODR` IR instruction must push the
