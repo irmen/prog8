@@ -246,7 +246,11 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
             }
             if (rightVal?.number == 1.0) {
                 if (rightDt != leftDt && !(leftDt.isPointer && rightDt.isUnsignedWord)) {
-                    val dt = if(leftDt.isPointer) BaseDataType.UWORD else leftDt.base
+                    val dt = when {
+                        leftDt.isPointer && options.compTarget.POINTER_MEM_SIZE > 2u -> BaseDataType.LONG
+                        leftDt.isPointer -> BaseDataType.UWORD
+                        else -> leftDt.base
+                    }
                     if(!dt.isLong) {
                         val right = NumericLiteral(dt, rightVal.number, rightVal.position)
                         return listOf(AstReplaceNode(expr.right, right, expr))
@@ -255,7 +259,11 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
             }
             else if (rightVal?.number == 0.0) {
                 if (rightDt != leftDt && !(leftDt.isPointer && rightDt.isUnsignedWord)) {
-                    val dt = if(leftDt.isPointer) BaseDataType.UWORD else leftDt.base
+                    val dt = when {
+                        leftDt.isPointer && options.compTarget.POINTER_MEM_SIZE > 2u -> BaseDataType.LONG
+                        leftDt.isPointer -> BaseDataType.UWORD
+                        else -> leftDt.base
+                    }
                     if(!dt.isLong) {
                         val right = NumericLiteral(dt, rightVal.number, rightVal.position)
                         return listOf(AstReplaceNode(expr.right, right, expr))
@@ -272,7 +280,11 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
             }
             if (rightVal?.number == 1.0) {
                 if(rightDt!=leftDt && !(leftDt.isPointer && rightDt.isUnsignedWord)) {
-                    val dt = if(leftDt.isPointer) BaseDataType.UWORD else leftDt.base
+                    val dt = when {
+                        leftDt.isPointer && options.compTarget.POINTER_MEM_SIZE > 2u -> BaseDataType.LONG
+                        leftDt.isPointer -> BaseDataType.UWORD
+                        else -> leftDt.base
+                    }
                     if(!dt.isLong) {
                         val right = NumericLiteral(dt, rightVal.number, rightVal.position)
                         return listOf(AstReplaceNode(expr.right, right, expr))
@@ -281,7 +293,11 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
             }
             else if (rightVal?.number == 0.0) {
                 if(rightDt!=leftDt && !(leftDt.isPointer && rightDt.isUnsignedWord)) {
-                    val dt = if(leftDt.isPointer) BaseDataType.UWORD else leftDt.base
+                    val dt = when {
+                        leftDt.isPointer && options.compTarget.POINTER_MEM_SIZE > 2u -> BaseDataType.LONG
+                        leftDt.isPointer -> BaseDataType.UWORD
+                        else -> leftDt.base
+                    }
                     if(!dt.isLong) {
                         val right = NumericLiteral(dt, rightVal.number, rightVal.position)
                         return listOf(AstReplaceNode(expr.right, right, expr))

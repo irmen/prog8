@@ -26,9 +26,6 @@ Gating reference: `options.compTarget.cpu.is6502` (6502/65C02 only) or
 
 ## 1. codeOptimizers rewrites that are 6502-flavored / wrong on m68k
 
-- **`ExpressionSimplifier.kt:249,258,275,284`** pointer `==`/`!=` 0/1
-  retyped to `UWORD` -> a 16-bit compare of a 32-bit pointer (`ptr == 0`
-  true for `$00010000`). Should widen to `LONG` when `POINTER_MEM_SIZE > 2`.
 - **`Inliner.kt:434`** explicit "prevent code bloat on 6502" restriction
   (`isSimpleReturnExpression` only, plus `parameters.size <= 1` at `:142`,
   `:253`) is ungated and over-conservative for m68k where calls/registers
@@ -75,8 +72,7 @@ Lowering improvements that would shrink m68k output (no correctness risk):
 
 | # | File:line | Issue | m68k impact | Gated? |
 |---|---|---|---|---|
-| 1 | `ExpressionSimplizer.kt:249,258,275,284` | ptr `==`/`!=` 0/1 -> `UWORD` | 16-bit compare of 32-bit ptr | No |
-| 2 | `Inliner.kt:434` (+`:142`,`:253`,`:264`) | 6502 code-bloat heuristics | over-conservative | No |
+| 1 | `Inliner.kt:434` (+`:142`,`:253`,`:264`) | 6502 code-bloat heuristics | over-conservative | No |
 
 ---
 
