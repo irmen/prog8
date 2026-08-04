@@ -28,33 +28,33 @@ Gating reference: `options.compTarget.cpu.is6502` (6502/65C02 only) or
 
 Lowering improvements that would shrink m68k output (no correctness risk):
 
-- **`lsl`/`lsr` with immediate count** instead of materializing the count
-  into a register (`LSLN`/`LSRN` emit a variable shift). Also
-  **`x << 16` / `x >> 16` -> `swap`** (the backend already knows this trick
-  in `MSIGW`).
-  - Sites that emit the suboptimal `LOAD #N + LSLN/LSRN/ASRN` sequence
-    (m68k immediate count 1..8 = single instruction; 6502 unrolls to N
-    1-bit shifts): `IRCodeGen.kt:1078, 1106, 1175, 1216`
-    (multiplyByConst / divideByConst and their inplace variants),
-    `ExpressionGen.kt:1422, 1441` (operatorShiftRight / operatorShiftLeft
-    for any non-1 right operand),
-    `AssignmentGen.kt:2073, 2132` (in-place array `>>=`/ `<<= const`).
-    The peephole optimizer at `IRPeepholeOptimizer.kt:606-619` currently
-    only removes `shift by 0`; a new pass `foldShiftByConstant` could
-    rewrite these into N 1-bit `LSL`/`LSR`/`ASR` (works on 6502 + m68k)
-    or directly into the m68k immediate form.
-  - **Recommended structural fix: add immediate-count IR opcodes
-    `LSLI` / `LSRI` / `ASRI`** (with a literal count operand, format
-    `BWL,>r1,<i`). The IR builder then emits `LSLI rX, #N` directly
-    instead of `LOAD rN,#N; LSLN rX,rN`. The m68k backend emits
-    `lsl.b #N, d0` (1 instruction, 6+2N cycles) for N=1..8 and
-    `lsl.b #8, d0; lsl.b #(N-8), d0` (2 instructions) for N=9..15 on a
-    word. The 6502 backend unrolls to N `asl`/`lsr`/`cmp+ror`. The new
-    opcodes require changes in: `IRInstructions.kt` (3 new enum values
-    + 3 format-map entries), the m68k and 6502 backend opcode handlers
-    (in `InstrBitwise.kt` for both), and the IR builder sites listed
-    above. The peephole optimizer then just rewrites any leftover
-    `LOAD + LSLN` to `LSLI`. This is the cleanest fix because it lets
-    the IR express the actual intent (shift by N) instead of forcing
-    the backend to either unroll, emit a runtime loop, or have a
-    target-specific peephole to re-fuse the unrolled form.
+- **`x >> 16` (long) -> `swap` (MSIGW)**. The m68k `swap` instruction
+  exchanges the high and low 16-bit halves of a 32-bit data register.
+  This is only meaningful for 32-bit `long` values; for `uword`/`byte`,
+  shifting by 16 always gives 0 and the IR builder constant-folds that.
+  The existing `MSIGW` handler in `codeGenM68k/InstrControl.kt:208-214`
+  already uses this: `move.l src,d0; swap d0; move.w d0,dst`. The
+  complementary case `x << 16` for a long is `swap; clr.w d0` (swap
+  to bring the low 16 bits to the high half, then zero the low half
+  to drop what was the original high 16 bits) -- also 2 m68k
+  instructions versus the unoptimised `move.l x,d0; lsl.l #16,d0`
+  (lsl.l #16 is slow: 8+2N = 40 cycles).
+- **In-place memory shifts** (LSLNM/LSRNM/ASRNM) with a constant count.
+  The IR builder still emits `LOAD #N + LSLNM` for in-place shifts in
+  `multiplyByConstInplace` (IRCodeGen.kt), `divideByConstInplace`
+  (IRCodeGen.kt), and the in-place array `>>=`/`<<=` paths in
+  AssignmentGen.kt. Note that the m68k has no `lsl #N,<memory>` form
+  (shifts only target a data register), so the saving from a constant
+  count comes from skipping the regfile round-trip for the count, not
+  from a single memory-shift instruction. The current `LOAD + LSLNM`
+  pattern lowers to 5 m68k instructions plus 1 regfile slot
+  (`move #N,regfile+rN; move regfile+rN,d1; move target,d0; lsl d1,d0;
+  move d0,target`); a constant-count in-place shift would lower to
+  the same 3-instruction load-shift-store sequence as the register
+  case (`move target,d0; lsl #N,d0; move d0,target`), saving 2 m68k
+  instructions and the regfile slot. Same applies to 6502 (skip the
+  loop overhead when the count is known). To realise this, either add
+  `LSLIM`/`LSRIM`/`ASRIM` IR opcodes (regfile-free; backends lower
+  to load-shift-store / unroll) or fold `LOAD #N + LSLNM` in the IR
+  peephole (the local peephole that was tried earlier was reverted
+  in favor of the new IR opcodes; the same approach would work here).

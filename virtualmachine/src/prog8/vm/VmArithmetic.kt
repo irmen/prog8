@@ -577,6 +577,17 @@ internal fun VirtualMachine.getLogicalOperandsU(i: IRInstruction): Pair<UInt, UI
     }
 }
 
+internal fun VirtualMachine.getLogicalOperandU(i: IRInstruction): UInt {
+    return when(i.type) {
+        IRDataType.BYTE -> registers.getUB(i.reg1!!).toUInt()
+        IRDataType.WORD -> registers.getUW(i.reg1!!).toUInt()
+        IRDataType.POINTER -> registers.getUW(i.reg1!!).toUInt()
+        IRDataType.LONG -> registers.getSL(i.reg1!!).toUInt()
+        IRDataType.FLOAT -> throw IllegalArgumentException("can't use float here")
+        null -> throw IllegalArgumentException("need type for logical instruction")
+    }
+}
+
 internal fun VirtualMachine.getLogicalOperandsS(i: IRInstruction): Pair<Int, Int> {
     return when(i.type) {
         IRDataType.BYTE -> Pair(registers.getSB(i.reg1!!).toInt(), registers.getSB(i.reg2!!).toInt())
@@ -586,6 +597,17 @@ internal fun VirtualMachine.getLogicalOperandsS(i: IRInstruction): Pair<Int, Int
         IRDataType.FLOAT -> {
             throw IllegalArgumentException("can't use float here")
         }
+        null -> throw IllegalArgumentException("need type for logical instruction")
+    }
+}
+
+internal fun VirtualMachine.getLogicalOperandS(i: IRInstruction): Int {
+    return when(i.type) {
+        IRDataType.BYTE -> registers.getSB(i.reg1!!).toInt()
+        IRDataType.WORD -> registers.getSW(i.reg1!!).toInt()
+        IRDataType.POINTER -> registers.getSW(i.reg1!!).toInt()
+        IRDataType.LONG -> registers.getSL(i.reg1!!)
+        IRDataType.FLOAT -> throw IllegalArgumentException("can't use float here")
         null -> throw IllegalArgumentException("need type for logical instruction")
     }
 }

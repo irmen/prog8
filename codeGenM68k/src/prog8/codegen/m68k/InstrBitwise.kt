@@ -86,6 +86,11 @@ internal fun AsmGen.translateBitwise(insn: IRInstruction) {
         Opcode.LSRNM -> shiftMemoryVar(resolveAddress(addr, label, offset), r1 ?: error("LSRNM needs reg1"), type, isArithmetic = false)
         Opcode.LSLNM -> shiftMemoryLeftVar(resolveAddress(addr, label, offset), r1 ?: error("LSLNM needs reg1"), type)
 
+        // Immediate-count shifts (LSLI/LSRI/ASRI): the count is a literal in insn.immediate.
+        Opcode.ASRI -> shiftRegister(r1 ?: error("ASRI needs reg1"), imm ?: error("ASRI needs immediate count"), type, isArithmetic = true, isLeft = false)
+        Opcode.LSRI -> shiftRegister(r1 ?: error("LSRI needs reg1"), imm ?: error("LSRI needs immediate count"), type, isArithmetic = false, isLeft = false)
+        Opcode.LSLI -> shiftRegister(r1 ?: error("LSLI needs reg1"), imm ?: error("LSLI needs immediate count"), type, isArithmetic = false, isLeft = true)
+
         Opcode.ASR -> shiftRegister(r1 ?: error("ASR needs reg1"), 1, type, isArithmetic = true, isLeft = false)
         Opcode.ASRM -> memoryShiftRotate(resolveAddress(addr, label, offset), 1, type, isArithmetic = true, isLeft = false, isRotate = false, throughCarry = false)
         Opcode.LSR -> shiftRegister(r1 ?: error("LSR needs reg1"), 1, type, isArithmetic = false, isLeft = false)
@@ -241,9 +246,20 @@ private fun AsmGen.shiftOpcode(isLeft: Boolean, isArithmetic: Boolean, isRotate:
 private fun AsmGen.shiftRegister(reg: Int, count: Int, type: IRDataType, isArithmetic: Boolean, isLeft: Boolean) {
     val s = dtSuffix(type)
     val op = shiftOpcode(isLeft, isArithmetic)
-    emitLine("move$s  ${regAddr(reg)}, d0")
-    emitLine("$op$s  #$count, d0")
-    emitLine("move$s  d0, ${regAddr(reg)}")
+    if (count in 1..8) {
+        emitLine("move$s  ${regAddr(reg)}, d0")
+        emitLine("$op$s  #$count, d0")
+        emitLine("move$s  d0, ${regAddr(reg)}")
+    } else {
+        // m68k immediate-shift range is 1..8; for larger counts the count
+        // has to go into a data register first. `move.w` preserves the
+        // count up to 32767 (Prog8 shift counts are 0..255, so this is
+        // always safe).
+        emitLine("move.w  #$count, d1")
+        emitLine("move$s  ${regAddr(reg)}, d0")
+        emitLine("$op$s  d1, d0")
+        emitLine("move$s  d0, ${regAddr(reg)}")
+    }
 }
 
 private fun AsmGen.memoryShiftRotate(target: String, count: Int, type: IRDataType, isArithmetic: Boolean, isLeft: Boolean, isRotate: Boolean, throughCarry: Boolean) {

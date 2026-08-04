@@ -98,6 +98,11 @@ internal fun AsmGen.translateBitwise(insn: IRInstruction) {
         Opcode.LSL -> logicalShiftLeft(r1 ?: error("LSL needs reg1"), 1, type)
         Opcode.LSLM -> logicalShiftLeftMemory(resolveAddress(addr, label, offset), 1, type)
 
+        // Immediate-count shifts (LSLI/LSRI/ASRI): unroll the count into N 1-bit shifts
+        Opcode.ASRI -> arithmeticShiftRight(r1 ?: error("ASRI needs reg1"), imm ?: error("ASRI needs immediate count"), type)
+        Opcode.LSRI -> logicalShiftRight(r1 ?: error("LSRI needs reg1"), imm ?: error("LSRI needs immediate count"), type)
+        Opcode.LSLI -> logicalShiftLeft(r1 ?: error("LSLI needs reg1"), imm ?: error("LSLI needs immediate count"), type)
+
         Opcode.ROR -> rotateRight(r1 ?: error("ROR needs reg1"), type)
         Opcode.RORM -> rotateRightMemory(resolveAddress(addr, label, offset), type)
         Opcode.ROL -> rotateLeft(r1 ?: error("ROL needs reg1"), type)

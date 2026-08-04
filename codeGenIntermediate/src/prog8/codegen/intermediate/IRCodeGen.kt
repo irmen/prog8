@@ -1086,9 +1086,7 @@ class IRCodeGen(
         }
         else if(pow2>=1) {
             // just shift multiple bits
-            val pow2reg = registers.next(IRDataType.BYTE)
-            code += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=pow2reg, immediate = pow2)
-            code += IRInstruction(Opcode.LSLN, irdt, reg1=reg, reg2=pow2reg)
+            code += IRInstruction(Opcode.LSLI, irdt, reg1=reg, immediate = pow2)
         } else {
             code += if (factor == 0) {
                 IRInstruction(Opcode.LOAD, irdt, reg1=reg, immediate = 0)
@@ -1184,9 +1182,7 @@ class IRCodeGen(
             if(pow2==1) {
                 code += IRInstruction(Opcode.LSR, dt, reg1=reg)
             } else {
-                val pow2reg = registers.next(IRDataType.BYTE)
-                code += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = pow2reg, immediate = pow2)
-                code += IRInstruction(Opcode.LSRN, dt, reg1 = reg, reg2 = pow2reg)
+                code += IRInstruction(Opcode.LSRI, dt, reg1 = reg, immediate = pow2)
             }
             return code
         }

@@ -224,10 +224,23 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                         "|=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.ORR, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
                         "&=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.ANDR, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
                         "^=", "xor=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.XORR, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
-                        "<<=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.LSLN, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
+                        "<<=" -> {
+                            val constCount = value.asConstInteger()
+                            if(constCount != null) {
+                                addInstr(inplaceInstrs, IRInstruction(Opcode.LSLI, targetDt, reg1 = oldvalueReg, immediate = constCount), null)
+                            } else {
+                                addInstr(inplaceInstrs, IRInstruction(Opcode.LSLN, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
+                            }
+                        }
                         ">>=" -> {
-                            val opc = if (signed) Opcode.ASRN else Opcode.LSRN
-                            addInstr(inplaceInstrs, IRInstruction(opc, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
+                            val constCount = value.asConstInteger()
+                            if(constCount != null) {
+                                val opc = if (signed) Opcode.ASRI else Opcode.LSRI
+                                addInstr(inplaceInstrs, IRInstruction(opc, targetDt, reg1 = oldvalueReg, immediate = constCount), null)
+                            } else {
+                                val opc = if (signed) Opcode.ASRN else Opcode.LSRN
+                                addInstr(inplaceInstrs, IRInstruction(opc, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
+                            }
                         }
                         "or=" -> {
                             val shortcutLabel = codeGen.createLabelName()

@@ -257,6 +257,9 @@ lsln        reg1, reg2                       - reg1 = multi-shift reg1 left by r
 asrnm       reg1,        address             - multi-shift memory right by reg1 bits (signed) + Carry is undefined
 lsrnm       reg1,        address             - multi-shift memory right by reg1 bits + Carry is undefined
 lslnm       reg1,        address             - multi-shift memory left by reg1 bits + Carry is undefined
+asri        reg1,            value          - reg1 = multi-shift reg1 right by value bits (signed, immediate count) + Carry is undefined
+lsri        reg1,            value          - reg1 = multi-shift reg1 right by value bits (immediate count) + Carry is undefined
+lsli        reg1,            value          - reg1 = multi-shift reg1 left by value bits (immediate count) + Carry is undefined
 asr         reg1                             - shift reg1 right by 1 bits (signed) + set Carry to shifted bit
 lsr         reg1                             - shift reg1 right by 1 bits + set Carry to shifted bit
 lsl         reg1                             - shift reg1 left by 1 bits + set Carry to shifted bit
@@ -443,6 +446,9 @@ enum class Opcode {
     LSRNM,
     LSLN,
     LSLNM,
+    ASRI,
+    LSRI,
+    LSLI,
     ASR,
     ASRM,
     LSR,
@@ -812,6 +818,9 @@ val instructionFormats = mutableMapOf(
     Opcode.LSRNM      to InstructionFormat.from("BWL,<r1,<>a"),
     Opcode.LSLN       to InstructionFormat.from("BWL,<>r1,<r2"),
     Opcode.LSLNM      to InstructionFormat.from("BWL,<r1,<>a"),
+    Opcode.ASRI       to InstructionFormat.from("BWL,<>r1,<i"),
+    Opcode.LSRI       to InstructionFormat.from("BWL,<>r1,<i"),
+    Opcode.LSLI       to InstructionFormat.from("BWL,<>r1,<i"),
     Opcode.ASR        to InstructionFormat.from("BWL,<>r1"),
     Opcode.ASRM       to InstructionFormat.from("BWL,<>a"),
     Opcode.LSR        to InstructionFormat.from("BWL,<>r1"),

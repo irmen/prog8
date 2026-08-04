@@ -302,7 +302,8 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
                 IRDataType.WORD -> {
                     // r1 = LONG(r2 as MSW, r3 as LSW)
                     emitLine("move.w  ${regAddr(srcReg2)}, d0")
-                    emitLine("lsl.l  #16, d0")
+                    emitLine("swap  d0")
+                    emitLine("clr.w  d0")
                     emitLine("or.w  ${regAddr(srcReg3)}, d0")
                     emitLine("move.l  d0, ${regAddr(dstReg)}")
                 }

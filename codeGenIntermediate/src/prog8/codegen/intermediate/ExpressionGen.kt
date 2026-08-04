@@ -1456,14 +1456,23 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             addInstr(result, IRInstruction(opc, vmDt, reg1 = tr.resultReg), null)
             ExpressionCodeResult(result, vmDt, tr.resultReg, -1)
         } else {
-            val leftTr = translateExpression(binExpr.left)
-            addToResult(result, leftTr, leftTr.resultReg, -1)
-            val rightTr = translateExpression(binExpr.right)
-            require(rightTr.dt== IRDataType.BYTE) { "can only shift by 0-255" }
-            addToResult(result, rightTr, rightTr.resultReg, -1)
-            val opc = if (signed) Opcode.ASRN else Opcode.LSRN
-            addInstr(result, IRInstruction(opc, vmDt, reg1 = leftTr.resultReg, reg2 = rightTr.resultReg), null)
-            ExpressionCodeResult(result, vmDt, leftTr.resultReg, -1)
+            val constCount = binExpr.right.asConstInteger()
+            if(constCount != null) {
+                val leftTr = translateExpression(binExpr.left)
+                addToResult(result, leftTr, leftTr.resultReg, -1)
+                val opc = if (signed) Opcode.ASRI else Opcode.LSRI
+                addInstr(result, IRInstruction(opc, vmDt, reg1 = leftTr.resultReg, immediate = constCount), null)
+                ExpressionCodeResult(result, vmDt, leftTr.resultReg, -1)
+            } else {
+                val leftTr = translateExpression(binExpr.left)
+                addToResult(result, leftTr, leftTr.resultReg, -1)
+                val rightTr = translateExpression(binExpr.right)
+                require(rightTr.dt== IRDataType.BYTE) { "can only shift by 0-255" }
+                addToResult(result, rightTr, rightTr.resultReg, -1)
+                val opc = if (signed) Opcode.ASRN else Opcode.LSRN
+                addInstr(result, IRInstruction(opc, vmDt, reg1 = leftTr.resultReg, reg2 = rightTr.resultReg), null)
+                ExpressionCodeResult(result, vmDt, leftTr.resultReg, -1)
+            }
         }
     }
 
@@ -1475,13 +1484,21 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             addInstr(result, IRInstruction(Opcode.LSL, vmDt, reg1=tr.resultReg), null)
             ExpressionCodeResult(result, vmDt, tr.resultReg, -1)
         } else {
-            val leftTr = translateExpression(binExpr.left)
-            addToResult(result, leftTr, leftTr.resultReg, -1)
-            val rightTr = translateExpression(binExpr.right)
-            require(rightTr.dt== IRDataType.BYTE) { "can only shift by 0-255" }
-            addToResult(result, rightTr, rightTr.resultReg, -1)
-            addInstr(result, IRInstruction(Opcode.LSLN, vmDt, reg1=leftTr.resultReg, rightTr.resultReg), null)
-            ExpressionCodeResult(result, vmDt, leftTr.resultReg, -1)
+            val constCount = binExpr.right.asConstInteger()
+            if(constCount != null) {
+                val leftTr = translateExpression(binExpr.left)
+                addToResult(result, leftTr, leftTr.resultReg, -1)
+                addInstr(result, IRInstruction(Opcode.LSLI, vmDt, reg1 = leftTr.resultReg, immediate = constCount), null)
+                ExpressionCodeResult(result, vmDt, leftTr.resultReg, -1)
+            } else {
+                val leftTr = translateExpression(binExpr.left)
+                addToResult(result, leftTr, leftTr.resultReg, -1)
+                val rightTr = translateExpression(binExpr.right)
+                require(rightTr.dt== IRDataType.BYTE) { "can only shift by 0-255" }
+                addToResult(result, rightTr, rightTr.resultReg, -1)
+                addInstr(result, IRInstruction(Opcode.LSLN, vmDt, reg1=leftTr.resultReg, rightTr.resultReg), null)
+                ExpressionCodeResult(result, vmDt, leftTr.resultReg, -1)
+            }
         }
     }
 

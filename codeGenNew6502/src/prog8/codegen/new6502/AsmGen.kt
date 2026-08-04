@@ -755,6 +755,7 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
             Opcode.XORR, Opcode.XOR, Opcode.XORM,
             Opcode.INV, Opcode.INVM,
             Opcode.ASRN, Opcode.ASRNM, Opcode.LSRN, Opcode.LSRNM, Opcode.LSLN, Opcode.LSLNM,
+            Opcode.ASRI, Opcode.LSRI, Opcode.LSLI,
             Opcode.ASR, Opcode.ASRM, Opcode.LSR, Opcode.LSRM, Opcode.LSL, Opcode.LSLM,
             Opcode.ROR, Opcode.RORM, Opcode.ROL, Opcode.ROLM,
             Opcode.ROXR, Opcode.ROXRM, Opcode.ROXL, Opcode.ROXLM,
