@@ -765,7 +765,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                     val cast = TypecastExpression(arg.expression, DataType.UBYTE, true, arg.position)
                     return listOf(AstReplaceNode(functionCallExpr, cast, parent))
                 }
-            } else if(arg is FunctionCallExpression && arg.target.nameInSource == listOf("msw")) {
+            } else if(options.compTarget.cpu.is6502 && arg is FunctionCallExpression && arg.target.nameInSource == listOf("msw")) {
                 // lsb(msw(longvar)) -->  @(&longvar+offset)   ; get the bank byte from a long variable
                 // The offset into the variable's memory depends on the target's endianness:
                 //   little-endian (6502, virtual): bits 16-23 are at offset +2
@@ -774,14 +774,16 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                 if(longvar!=null && longvar.inferType(program).isLong) {
                     val offset = if (options.compTarget.cpu.isBigEndian) 1 else 2
                     val address = AddressOf(longvar, null, null, false, false, functionCallExpr.position)
-                    val plus = BinaryExpression(address, "+", NumericLiteral(BaseDataType.UWORD, offset.toDouble(), functionCallExpr.position), functionCallExpr.position)
+                    val offsetDt = if (options.compTarget.POINTER_MEM_SIZE > 2u) BaseDataType.LONG else BaseDataType.UWORD
+                    val plus = BinaryExpression(address, "+", NumericLiteral(offsetDt, offset.toDouble(), functionCallExpr.position), functionCallExpr.position)
                     val memread = DirectMemoryRead(plus, functionCallExpr.position)
                     return listOf(AstReplaceNode(functionCallExpr, memread, parent))
                 }
             } else {
-                if(arg is IdentifierReference && arg.nameInSource.size==2
+                if(!options.compTarget.cpu.isBigEndian
+                    && arg is IdentifierReference && arg.nameInSource.size==2
                     && arg.nameInSource[0]=="cx16" && arg.nameInSource[1].uppercase() in RegisterOrPair.names) {
-                    // lsb(cx16.r0) -> cx16.r0L
+                    // lsb(cx16.r0) -> cx16.r0L  (little-endian only; m68k byte order is reversed)
                     val highReg = IdentifierReference(listOf("cx16", arg.nameInSource[1]+'L'), arg.position)
                     return listOf(AstReplaceNode(functionCallExpr, highReg, parent))
                 }
@@ -810,7 +812,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                             NumericLiteral(valueDt.getOr(DataType.UBYTE).base, 0.0, arg.expression.position),
                             parent))
                 }
-            } else if(arg is FunctionCallExpression && arg.target.nameInSource == listOf("lsw")) {
+            } else if(options.compTarget.cpu.is6502 && arg is FunctionCallExpression && arg.target.nameInSource == listOf("lsw")) {
                 // msb(lsw(longvar)) -->  @(&longvar+offset)   ; get the second byte from a long variable
                 // The offset into the variable's memory depends on the target's endianness:
                 //   little-endian (6502, virtual): bits  8-15 are at offset +1
@@ -819,14 +821,16 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                 if(longvar!=null && longvar.inferType(program).isLong) {
                     val offset = if (options.compTarget.cpu.isBigEndian) 2 else 1
                     val address = AddressOf(longvar, null, null, false, false, functionCallExpr.position)
-                    val plus = BinaryExpression(address, "+", NumericLiteral(BaseDataType.UWORD, offset.toDouble(), functionCallExpr.position), functionCallExpr.position)
+                    val offsetDt = if (options.compTarget.POINTER_MEM_SIZE > 2u) BaseDataType.LONG else BaseDataType.UWORD
+                    val plus = BinaryExpression(address, "+", NumericLiteral(offsetDt, offset.toDouble(), functionCallExpr.position), functionCallExpr.position)
                     val memread = DirectMemoryRead(plus, functionCallExpr.position)
                     return listOf(AstReplaceNode(functionCallExpr, memread, parent))
                 }
             } else {
-                if(arg is IdentifierReference && arg.nameInSource.size==2
+                if(!options.compTarget.cpu.isBigEndian
+                    && arg is IdentifierReference && arg.nameInSource.size==2
                     && arg.nameInSource[0]=="cx16" && arg.nameInSource[1].uppercase() in RegisterOrPair.names) {
-                    // msb(cx16.r0) -> cx16.r0H
+                    // msb(cx16.r0) -> cx16.r0H  (little-endian only; m68k byte order is reversed)
                     val highReg = IdentifierReference(listOf("cx16", arg.nameInSource[1]+'H'), arg.position)
                     return listOf(AstReplaceNode(functionCallExpr, highReg, parent))
                 }

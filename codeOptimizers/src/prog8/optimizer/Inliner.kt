@@ -6,7 +6,6 @@ import prog8.ast.statements.*
 import prog8.ast.walk.*
 import prog8.code.core.CompilationOptions
 import prog8.code.core.InternalCompilerException
-import prog8.code.target.VMTarget
 
 
 private  fun isEmptyReturn(stmt: Statement): Boolean = stmt is Return && stmt.values.isEmpty()
@@ -261,7 +260,7 @@ class Inliner(private val program: Program, private val options: CompilationOpti
             }
         }
         
-        if (options.compTarget.name != VMTarget.NAME) {
+        if (options.compTarget.cpu.is6502) {
             // Get the first non-parameter statement (skip VarDecl with SUBROUTINEPARAM origin)
             val bodyStmt = sub.statements.firstOrNull { it !is VarDecl || it.origin != VarDeclOrigin.SUBROUTINEPARAM }
             if (bodyStmt is IFunctionCall) {
@@ -432,7 +431,7 @@ class Inliner(private val program: Program, private val options: CompilationOpti
             return noModifications
 
         // Only allow simple return values to prevent code bloat on 6502
-        if (!toInline.values.all { isSimpleReturnExpression(it) })
+        if (options.compTarget.cpu.is6502 && !toInline.values.all { isSimpleReturnExpression(it) })
             return noModifications
 
         // Substitute parameters in all return values

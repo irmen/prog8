@@ -26,22 +26,10 @@ Gating reference: `options.compTarget.cpu.is6502` (6502/65C02 only) or
 
 ## 1. codeOptimizers rewrites that are 6502-flavored / wrong on m68k
 
-- **`Inliner.kt:434`** explicit "prevent code bloat on 6502" restriction
-  (`isSimpleReturnExpression` only, plus `parameters.size <= 1` at `:142`,
-  `:253`) is ungated and over-conservative for m68k where calls/registers
-  are cheaper. `Inliner.kt:264` gates by `name != VMTarget.NAME` (so m68k
-  gets the 6502 label-collision rule) instead of by backend.
 - **`StatementOptimizer.kt:574-593`** `when` -> `on..goto` jump table uses
   a 6502 break-even threshold (6 cases, byte condition) and builds a UWORD
   label array; the element-size scaling should be verified on a 32-bit
   target (`AsmGen.kt:499-501` widens symbol-bearing uword arrays to 4 bytes).
-- **`ExpressionSimplifier.kt:752-764,797-809`** long byte extraction ->
-  `@(&var + offset)` is endianness-correct but forces the variable to memory
-  (defeats register allocation on m68k) and hardcodes a UWORD offset literal.
-- **`ExpressionSimplifier.kt:766-771,811-816`** `lsb(cx16.rN)` ->
-  `cx16.rNL` / `msb` -> `cx16.rNH` matches purely on the `cx16` name with a
-  hardcoded little-endian layout. Harmless today (no `cx16` block for m68k)
-  but a latent trap on big-endian.
 
 ---
 
@@ -72,7 +60,7 @@ Lowering improvements that would shrink m68k output (no correctness risk):
 
 | # | File:line | Issue | m68k impact | Gated? |
 |---|---|---|---|---|
-| 1 | `Inliner.kt:434` (+`:142`,`:253`,`:264`) | 6502 code-bloat heuristics | over-conservative | No |
+| 1 | `Inliner.kt:142`,`:253` | 6502 code-bloat heuristics (parameters.size <= 1) | over-conservative | No |
 
 ---
 
