@@ -496,7 +496,7 @@ internal object ExpressionOptimizers {
      * Only swaps if maySwapOperandOrder() returns true and left is simpler than right.
      * For comparison operators, also swaps the operator appropriately.
      */
-    fun optimizeOperandOrder(program: PtProgram): Int {
+    fun optimizeOperandOrder(program: PtProgram, options: CompilationOptions): Int {
         var changes = 0
         walkAst(program) { node: PtNode, _: Int ->
             if (node is PtBinaryExpression && node.maySwapOperandOrder()) {
@@ -505,6 +505,13 @@ internal object ExpressionOptimizers {
 
                 // Want simplest term on the right, so swap if left is simpler than right
                 if (leftComplexity < rightComplexity) {
+
+                    // Don't swap if either operand has a side effect (e.g. I/O read,
+                    // function call): the swap would change evaluation order.
+                    if (node.left.hasSideEffects(options.compTarget) || node.right.hasSideEffects(options.compTarget)) {
+                        return@walkAst true
+                    }
+
                     // Determine the new operator (may need to swap for comparisons)
                     val newOperator = swappedComparisonOperator(node.operator) ?: node.operator
 
