@@ -116,18 +116,31 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
         return when(this) {
             is PtAddressOf -> arrayIndexExpr?.hasSideEffects(target) == true
             is PtArray -> children.any { (it as PtExpression).hasSideEffects(target) }
-            is PtArrayIndexer -> true
+            is PtArrayIndexer ->
+                // A read (a[i]) is pure aside from its index/array subexpressions, but a write
+                // (a[i] = x) is wrapped in a PtAssignTarget as the assignment's LHS, so detect that
+                // via the parent to correctly mark it as having a side effect.
+                (parentHasBeenSet() && parent is PtAssignTarget) || children.any { (it as PtExpression).hasSideEffects(target) }
             is PtBinaryExpression -> left.hasSideEffects(target) || right.hasSideEffects(target)
             is PtContainmentCheck -> children.any { it is PtExpression && it.hasSideEffects(target) }
             is PtFunctionCall -> !hasNoSideEffects || args.any { it.hasSideEffects(target) }
             is PtIdentifier -> false
             is PtIrRegister -> false
             is PtMemoryByte -> {
-                val addr = address.asConstInteger()
-                if (addr != null && target != null) {
-                    target.isIOAddress(addr.toUInt())
+                if (parentHasBeenSet() && parent is PtAssignTarget) {
+                    true  // writing to a memory location is a side effect
+                } else if (address.hasSideEffects(target)) {
+                    true  // evaluating the address expression itself has side effects
                 } else {
-                    true
+                    val addr = address.asConstInteger()
+                    when {
+                        // A read of a known memory-mapped I/O register can change hardware state.
+                        addr != null && target != null -> target.isIOAddress(addr.toUInt())
+                        // A non-constant address is a pointer deref reading RAM: a pure read.
+                        addr == null -> false
+                        // Constant address but no target info available: stay conservative.
+                        else -> true
+                    }
                 }
             }
             is PtBool -> false
@@ -294,17 +307,41 @@ class PtContainmentCheck(position: Position): PtExpression(DataType.BOOL, positi
 
 class PtFunctionCall(val name: String,
                      val builtin: Boolean,
-                     val hasNoSideEffects: Boolean,
+                     hasNoSideEffects: Boolean,
                      val returntypes: Array<DataType>,
                      position: Position) : PtExpression(singletype(returntypes), position) {
+    // Library routines in certain modules are known to be pure (no side effects); fold that
+    // knowledge into hasNoSideEffects so hasSideEffects() can rely on it directly.
+    val hasNoSideEffects: Boolean = hasNoSideEffects ||
+            name.startsWith("math.") ||
+            name.startsWith("strings.is") ||
+            name in knownPureStringsRoutines ||
+            name in knownPureSysRoutines
+    companion object {
+        // Pure (side-effect-free) string library routines that read their inputs but never mutate
+        // them nor touch global state. In-place mutators such as lower/upper/copy/append are NOT
+        // included here on purpose.
+        private val knownPureStringsRoutines = setOf(
+            "strings.length", "strings.find", "strings.find_eol", "strings.rfind", "strings.contains",
+            "strings.compare", "strings.compare_nocase", "strings.compare_nocase_iso",
+            "strings.lowerchar", "strings.lowerchar_iso", "strings.upperchar", "strings.upperchar_iso",
+            "strings.pattern_match", "strings.pattern_match_nocase", "strings.hash"
+        )
+
+        // Pure (side-effect-free) sys routines that only read memory/constants and never mutate
+        // global state or hardware. Flag-reading/mutating routines (read_flags, set_carry, irqd,
+        // ...) and memory-writing routines (memcopy, memset, die, save/restore internals) are NOT
+        // included because reordering them changes observable behavior.
+        private val knownPureSysRoutines = setOf(
+            "sys.memcmp", "sys.progstart", "sys.progend", "sys.read_flags"
+        )
+
+        fun singletype(types: Array<DataType>) = types.singleOrNull() ?: DataType.UNDEFINED
+    }
     val args: List<PtExpression>
         get() = children.map { it as PtExpression }
 
     val void = returntypes.isEmpty()
-
-    companion object {
-        fun singletype(types: Array<DataType>) = types.singleOrNull() ?: DataType.UNDEFINED
-    }
 }
 
 
