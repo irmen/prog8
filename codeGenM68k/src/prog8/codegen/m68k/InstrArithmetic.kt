@@ -358,14 +358,13 @@ private fun AsmGen.emitMulOp(dstReg: Int, srcReg: Int?, type: IRDataType, unsign
                     emitLine("move.b  d0, ${regAddr(dstReg)}")
                 }
                 target != null -> {
-                    emitLine("move.b  ${regAddr(dstReg)}, d0")
-                    if (unsigned) emitLine($$"and.l  #$ff, d0") else emitSignExtendByteToLong("d0")
                     emitLine("move.b  $target, d1")
+                    if (unsigned) emitLine($$"and.l  #$ff, d1") else emitSignExtendByteToLong("d1")
                     emitLine("move.l  d1, d2")
                     emitLine("move.b  ${regAddr(dstReg)}, d0")
                     if (unsigned) emitLine($$"and.l  #$ff, d0") else emitSignExtendByteToLong("d0")
                     emitLine("$op.w  d2, d0")
-                    emitLine("move.b  d0, ${regAddr(dstReg)}")
+                    emitLine("move.b  d0, $target")
                 }
             }
         }
@@ -389,7 +388,7 @@ private fun AsmGen.emitMulOp(dstReg: Int, srcReg: Int?, type: IRDataType, unsign
                     emitLine("move.w  $target, d0")
                     emitLine("move.w  ${regAddr(dstReg)}, d1")
                     emitLine("$op.w  d1, d0")
-                    emitLine("move.w  d0, ${regAddr(dstReg)}")
+                    emitLine("move.w  d0, $target")
                 }
             }
         }
@@ -416,7 +415,7 @@ private fun AsmGen.emitMulOp(dstReg: Int, srcReg: Int?, type: IRDataType, unsign
                     emitLine("move.l  $target, d0")
                     emitLine("move.l  ${regAddr(dstReg)}, d1")
                     emitLine("$op.l  d1, d0")
-                    emitLine("move.l  d0, ${regAddr(dstReg)}")
+                    emitLine("move.l  d0, $target")
                 }
             }
         }
@@ -446,12 +445,12 @@ private fun AsmGen.emitDivOp(dstReg: Int, srcReg: Int?, type: IRDataType, unsign
                     emitLine("move.b  d0, ${regAddr(dstReg)}", "quotient")
                 }
                 target != null -> {
-                    emitLine("move.b  ${regAddr(dstReg)}, d0")
+                    emitLine("move.b  $target, d0")
                     if (unsigned) emitLine($$"and.l  #$ff, d0") else emitSignExtendByteToLong("d0")
-                    emitLine("move.b  $target, d1")
+                    emitLine("move.b  ${regAddr(dstReg)}, d1")
                     if (unsigned) emitLine($$"and.l  #$ff, d1") else emitSignExtendByteToLong("d1")
                     emitLine("$op.w  d1, d0")
-                    emitLine("move.b  d0, ${regAddr(dstReg)}", "quotient")
+                    emitLine("move.b  d0, $target", "quotient")
                 }
             }
         }
@@ -479,9 +478,11 @@ private fun AsmGen.emitDivOp(dstReg: Int, srcReg: Int?, type: IRDataType, unsign
                     emitLine("move.w  d0, ${regAddr(dstReg)}", "quotient")
                 }
                 target != null -> {
-                    loadDividend()
-                    emitLine("$op.w  $target, d0")
-                    emitLine("move.w  d0, ${regAddr(dstReg)}", "quotient")
+                    emitLine("move.w  $target, d0")
+                    if (unsigned) emitLine($$"and.l  #$ffff, d0", "zero-extend upper word for divu.w")
+                    else emitLine("ext.l  d0", "sign-extend upper word for divs.w (signed 32-bit dividend)")
+                    emitLine("$op.w  ${regAddr(dstReg)}, d0")
+                    emitLine("move.w  d0, $target", "quotient")
                 }
             }
         }
@@ -502,9 +503,9 @@ private fun AsmGen.emitDivOp(dstReg: Int, srcReg: Int?, type: IRDataType, unsign
                     emitLine("move.l  d0, ${regAddr(dstReg)}", "quotient")
                 }
                 target != null -> {
-                    emitLine("move.l  ${regAddr(dstReg)}, d0")
-                    emitLine("$op.l  $target, d0")
-                    emitLine("move.l  d0, ${regAddr(dstReg)}", "quotient")
+                    emitLine("move.l  $target, d0")
+                    emitLine("$op.l  ${regAddr(dstReg)}, d0")
+                    emitLine("move.l  d0, $target", "quotient")
                 }
             }
         }
