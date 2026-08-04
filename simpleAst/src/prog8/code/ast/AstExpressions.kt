@@ -205,8 +205,6 @@ class PtAddressOf(type: DataType, val typedResult: Boolean, position: Position, 
 
     val isFromArrayElement: Boolean
         get() = children.size==2
-    
-    override fun copy() = PtAddressOf(type, typedResult, position, isMsbForSplitArray)
 }
 
 
@@ -228,8 +226,6 @@ class PtArrayIndexer(elementType: DataType, position: Position): PtExpression(el
             "invalid array element type $elementType at $position"
         }
     }
-    
-    override fun copy() = PtArrayIndexer(type, position)
 }
 
 
@@ -244,8 +240,6 @@ class PtArray(type: DataType, position: Position): PtExpression(type, position) 
 
     val size: Int
         get() = children.size
-    
-    override fun copy() = PtArray(type, position)
 }
 
 
@@ -262,8 +256,6 @@ class PtBinaryExpression(val operator: String, type: DataType, position: Positio
             require(!type.isBool) { "no bool allowed for this operator $operator"}
     }
     
-    override fun copy() = PtBinaryExpression(operator, type, position)
-
     fun maySwapOperandOrder(): Boolean =
         (operator in CommutativeOperators || operator in ComparisonOperators)
 }
@@ -276,8 +268,6 @@ class PtIfExpression(type: DataType, position: Position): PtExpression(type, pos
         get() = children[1] as PtExpression
     val falsevalue: PtExpression
         get() = children[2] as PtExpression
-    
-    override fun copy() = PtIfExpression(type, position)
 }
 
 class PtBranchCondExpression(val condition: BranchCondition, type: DataType, position: Position): PtExpression(type, position) {
@@ -285,8 +275,6 @@ class PtBranchCondExpression(val condition: BranchCondition, type: DataType, pos
         get() = children[0] as PtExpression
     val falsevalue: PtExpression
         get() = children[1] as PtExpression
-    
-    override fun copy() = PtBranchCondExpression(condition, type, position)
 }
 
 class PtContainmentCheck(position: Position): PtExpression(DataType.BOOL, position) {
@@ -301,8 +289,6 @@ class PtContainmentCheck(position: Position): PtExpression(DataType.BOOL, positi
         const val MAX_SIZE_FOR_INLINE_CHECKS_BYTE = 5
         const val MAX_SIZE_FOR_INLINE_CHECKS_WORD = 4
     }
-    
-    override fun copy() = PtContainmentCheck(position)
 }
 
 
@@ -319,8 +305,6 @@ class PtFunctionCall(val name: String,
     companion object {
         fun singletype(types: Array<DataType>) = types.singleOrNull() ?: DataType.UNDEFINED
     }
-
-    override fun copy() = PtFunctionCall(name, builtin, hasNoSideEffects, returntypes, position)
 }
 
 
@@ -339,8 +323,6 @@ class PtIdentifier(val name: String, type: DataType, position: Position) : PtExp
 class PtMemoryByte(position: Position) : PtExpression(DataType.UBYTE, position) {
     val address: PtExpression
         get() = children.single() as PtExpression
-    
-    override fun copy() = PtMemoryByte(position)
 }
 
 
@@ -412,8 +394,6 @@ class PtPrefix(val operator: String, type: DataType, position: Position): PtExpr
     init {
         require(operator in PrefixOperators) { "invalid prefix operator: $operator" }
     }
-    
-    override fun copy() = PtPrefix(operator, type, position)
 }
 
 
@@ -451,8 +431,6 @@ class PtRange(type: DataType, position: Position) : PtExpression(type, position)
         val stepVal = step.number.toInt()
         return makeRange(fromVal, toVal, stepVal)
     }
-    
-    override fun copy() = PtRange(type, position)
 }
 
 
@@ -495,8 +473,6 @@ class PtPointerDeref(type: DataType, val chain: List<String>, val derefLast: Boo
     init {
         require(!type.isUndefined)
     }
-    
-    override fun copy() = PtPointerDeref(type, chain, derefLast, position)
 }
 
 
