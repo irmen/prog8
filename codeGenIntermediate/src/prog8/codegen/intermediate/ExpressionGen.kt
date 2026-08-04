@@ -1259,17 +1259,30 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             if(binExpr.left.type.isString || binExpr.right.type.isString) {
                 throw AssemblyError("str compares should have been replaced with builtin function call to do the compare")
             } else {
-                val leftTr = translateExpression(binExpr.left)
-                addToResult(result, leftTr, leftTr.resultReg, -1)
-                val rightTr = translateExpression(binExpr.right)
-                addToResult(result, rightTr, rightTr.resultReg, -1)
-                val branch = if (signed) {
-                    if (greaterEquals) Opcode.BGESR else Opcode.BGTSR
+                val rightConst = binExpr.right.asConstValue()
+                if (rightConst != null) {
+                    val leftTr = translateExpression(binExpr.left)
+                    addToResult(result, leftTr, leftTr.resultReg, -1)
+                    val branch = if (signed) {
+                        if (greaterEquals) Opcode.BGES else Opcode.BGTS
+                    } else {
+                        if (greaterEquals) Opcode.BGE else Opcode.BGT
+                    }
+                    val resultReg = compareImmediateAsBooleanResult(branch, leftTr.dt, leftTr.resultReg, rightConst.toInt(), result)
+                    return ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
                 } else {
-                    if (greaterEquals) Opcode.BGER else Opcode.BGTR
+                    val leftTr = translateExpression(binExpr.left)
+                    addToResult(result, leftTr, leftTr.resultReg, -1)
+                    val rightTr = translateExpression(binExpr.right)
+                    addToResult(result, rightTr, rightTr.resultReg, -1)
+                    val branch = if (signed) {
+                        if (greaterEquals) Opcode.BGESR else Opcode.BGTSR
+                    } else {
+                        if (greaterEquals) Opcode.BGER else Opcode.BGTR
+                    }
+                    val resultReg = compareRegisterAsBooleanResult(branch, leftTr.dt, leftTr.resultReg, rightTr.resultReg, result)
+                    return ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
                 }
-                val resultReg = compareRegisterAsBooleanResult(branch, leftTr.dt, leftTr.resultReg, rightTr.resultReg, result)
-                return ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
             }
         }
     }
@@ -1295,17 +1308,30 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             if(binExpr.left.type.isString || binExpr.right.type.isString) {
                 throw AssemblyError("str compares should have been replaced with builtin function call to do the compare")
             } else {
-                val leftTr = translateExpression(binExpr.left)
-                addToResult(result, leftTr, leftTr.resultReg, -1)
-                val rightTr = translateExpression(binExpr.right)
-                addToResult(result, rightTr, rightTr.resultReg, -1)
-                val branch = if (signed) {
-                    if (lessEquals) Opcode.BGESR else Opcode.BGTSR
+                val rightConst = binExpr.right.asConstValue()
+                if (rightConst != null) {
+                    val leftTr = translateExpression(binExpr.left)
+                    addToResult(result, leftTr, leftTr.resultReg, -1)
+                    val branch = if (signed) {
+                        if (lessEquals) Opcode.BLES else Opcode.BLTS
+                    } else {
+                        if (lessEquals) Opcode.BLE else Opcode.BLT
+                    }
+                    val resultReg = compareImmediateAsBooleanResult(branch, leftTr.dt, leftTr.resultReg, rightConst.toInt(), result)
+                    return ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
                 } else {
-                    if (lessEquals) Opcode.BGER else Opcode.BGTR
+                    val leftTr = translateExpression(binExpr.left)
+                    addToResult(result, leftTr, leftTr.resultReg, -1)
+                    val rightTr = translateExpression(binExpr.right)
+                    addToResult(result, rightTr, rightTr.resultReg, -1)
+                    val branch = if (signed) {
+                        if (lessEquals) Opcode.BGESR else Opcode.BGTSR
+                    } else {
+                        if (lessEquals) Opcode.BGER else Opcode.BGTR
+                    }
+                    val resultReg = compareRegisterAsBooleanResult(branch, leftTr.dt, rightTr.resultReg, leftTr.resultReg, result)
+                    return ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
                 }
-                val resultReg = compareRegisterAsBooleanResult(branch, leftTr.dt, rightTr.resultReg, leftTr.resultReg, result)
-                return ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
             }
         }
     }
@@ -1379,6 +1405,22 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         val resultReg = codeGen.registers.next(IRDataType.BYTE)
         result += IRCodeChunk(null, null).also {
             it += IRInstruction(branchForTrue, dt, reg1 = reg1, reg2 = reg2, labelSymbol = labelTrue)
+            it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = resultReg, immediate = 0)
+            it += IRInstruction(Opcode.JUMP, labelSymbol = labelDone)
+        }
+        result += IRCodeChunk(labelTrue, null).also {
+            it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = resultReg, immediate = 1)
+        }
+        result += IRCodeChunk(labelDone, null)
+        return resultReg
+    }
+
+    private fun compareImmediateAsBooleanResult(branchForTrue: Opcode, dt: IRDataType, reg1: Int, imm: Int, result: MutableList<IRCodeChunkBase>): Int {
+        val labelTrue = codeGen.createLabelName()
+        val labelDone = codeGen.createLabelName()
+        val resultReg = codeGen.registers.next(IRDataType.BYTE)
+        result += IRCodeChunk(null, null).also {
+            it += IRInstruction(branchForTrue, dt, reg1 = reg1, immediate = imm, labelSymbol = labelTrue)
             it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = resultReg, immediate = 0)
             it += IRInstruction(Opcode.JUMP, labelSymbol = labelDone)
         }

@@ -28,10 +28,6 @@ Gating reference: `options.compTarget.cpu.is6502` (6502/65C02 only) or
 
 Lowering improvements that would shrink m68k output (no correctness risk):
 
-- **Constant fast path for `operatorGreaterThan`/`operatorLessThan`**
-  (`ExpressionGen`): `operatorEquals` already has one, but `>`/`<` always
-  load `#0` and do a register-register branch, so `b = x > 0` (~9 instr)
-  vs `b = x != 0` (~5 instr). Saves ~4 instructions in value context.
 - **`lsl`/`lsr` with immediate count** instead of materializing the count
   into a register (`LSLN`/`LSRN` emit a variable shift). Also
   **`x << 16` / `x >> 16` -> `swap`** (the backend already knows this trick
@@ -75,9 +71,24 @@ Lowering improvements that would shrink m68k output (no correctness risk):
   array indexing. Rotates are not affected — the IR has no
   `ROLN`/`RORN` opcodes and any constant-count rotate is already
   unrolled at IR-build time.
-- Generic: redundant moves into/out of the `p8_regfile` register file (e.g.
-  `move.w reg,d0` + `move.w d0,regfile`) and load-then-immediate-compare
-  sequences are candidates for a m68k-specific peephole pass.
+- **`storeimm` IR opcode to skip the regfile round-trip for constant
+  initializers.** The IR `load.b r1, #5; storem.b r1, p8v_x` lowers to
+  `move.b #5, p8_regfile+0; move.b p8_regfile+0, mem` (2 instr) because
+  `storem` only takes a register operand. Adding a `storeimm.b/w/l #N,
+  mem` opcode that the m68k backend lowers to a single `move.b #N, mem`
+  saves 1 instr per global initializer. Small but free.
+
+  Other low-priority candidates surveyed and rejected:
+  - Spill+reload pairs (`move d0, p8_regfile; ...; move p8_regfile, d0`)
+    occur ~9 times in 1946 lines, all are required (next op modified
+    the value), and eliminating them needs a "d0 still holds last-store"
+    tracker.
+  - LOAD+cmpi same-reg pairs: 0 occurrences in the IR; the constant
+    fast path in `operatorEquals`/`GreaterThan`/`LessThan` already
+    folds the LOAD into the cmpi at IR-build time.
+  - Same-slot double-writes: 11 occurrences, all from
+    `b = cond ? 0 : 1` lowered to if/else with a jump between writes
+    (mutually exclusive basic blocks, not redundant).
 
 ---
 
