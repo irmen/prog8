@@ -4,8 +4,9 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import prog8.code.core.*
 import prog8.code.target.Cx16Target
-import prog8.intermediate.*
 import prog8.codegen.new6502.AsmGen
+import prog8.intermediate.*
+import prog8tests.helpers.ErrorReporterForTests
 import java.nio.file.Path
 import kotlin.io.path.Path
 import kotlin.io.path.exists
@@ -58,7 +59,7 @@ class TestInlineAsmSub : FunSpec({
     }
 
     fun generateAsm(outputDir: Path, program: IRProgram, target: ICompilationTarget): String {
-        val codegen = AsmGen(program, target)
+        val codegen = AsmGen(program, target, ErrorReporterForTests())
         codegen.generate()
         val asmFile = outputDir.resolve("${program.name}.asm")
         check(asmFile.exists()) { "Assembly file not written: $asmFile" }

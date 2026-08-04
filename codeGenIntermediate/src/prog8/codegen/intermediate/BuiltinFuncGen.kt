@@ -228,6 +228,10 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
     }
 
     private fun funcDivmod(call: PtFunctionCall, type: IRDataType, signed: Boolean): ExpressionCodeResult {
+        if(signed && codeGen.options.compTarget.cpu.is6502) {
+            codeGen.errors.err("expected all ubyte or all uword arguments (no signed divmod support on 6502 yet)", call.position)
+            return ExpressionCodeResult(mutableListOf(), type, -1, -1)
+        }
         val result = mutableListOf<IRCodeChunkBase>()
         val number = call.args[0]
         val divident = call.args[1]

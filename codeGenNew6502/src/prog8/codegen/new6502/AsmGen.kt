@@ -35,7 +35,7 @@ import prog8.code.core.*
 import prog8.codegen.new6502.optimization.PeepholeOptimizer
 import prog8.intermediate.*
 
-internal class AsmGen(val program: IRProgram, private val target: ICompilationTarget) {
+internal class AsmGen(val program: IRProgram, private val target: ICompilationTarget, val errors: IErrorReporter) {
     private val output = StringBuilder()
     private val cpu get() = target.cpu
     val floatMemSize: Int get() = target.FLOAT_MEM_SIZE.toInt()

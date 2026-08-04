@@ -4,8 +4,9 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import prog8.code.core.*
 import prog8.code.target.Cx16Target
-import prog8.intermediate.*
 import prog8.codegen.new6502.AsmGen
+import prog8.intermediate.*
+import prog8tests.helpers.ErrorReporterForTests
 import java.nio.file.Path
 import kotlin.io.path.Path
 import kotlin.io.path.exists
@@ -66,7 +67,7 @@ class TestRegfileSection : FunSpec({
         IRStStaticVariable(name, dt, null, null, ZeropageWish.DONTCARE, 0u, dirty = true, inBss = true)
 
     fun generateAsm(outputDir: Path, program: IRProgram, target: ICompilationTarget): String {
-        val codegen = AsmGen(program, target)
+        val codegen = AsmGen(program, target, ErrorReporterForTests())
         // generate() also runs 64tass; the .asm file is written regardless of
         // whether the assembler succeeds, so we always read it back.
         codegen.generate()

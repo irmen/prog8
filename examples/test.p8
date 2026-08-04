@@ -5,8 +5,8 @@ main {
     sub start() {
         check_unsigned(40000, 7, 5714, 2)
         check_unsigned(30000, 13, 2307, 9)
-        ;check_signed(-1000, 7, -142, -6)
-        ;check_signed(-255, 16, -15, -15)
+        check_signed(-1000, 7, -142, -6)
+        check_signed(-255, 16, -15, -15)
         txt.print("done\n")
         ;sys.poweroff_system()
     }

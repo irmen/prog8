@@ -29,7 +29,7 @@ class New6502CodeGenerator(val retainSSA: Boolean,
 
         IRFileWriter(irProgram, null).write()
 
-        val gen = AsmGen(irProgram, irProgram.options.compTarget)
+        val gen = AsmGen(irProgram, irProgram.options.compTarget, errors)
         val success = gen.generate()
         if(!success)
             return null
