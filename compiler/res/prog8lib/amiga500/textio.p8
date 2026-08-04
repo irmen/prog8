@@ -77,50 +77,53 @@ txt {
         }}
     }
 
+    private long @shared fmt_value_l
+    private uword @shared fmt_value_w
+
     sub print_ub(ubyte value) {
-        print(conv.str_ub(value))
+        fmt_value_w = value as uword
+        void dos.VPrintf("%d", &fmt_value_w)
     }
 
     sub print_ub0(ubyte value) {
-        print(conv.str_ub0(value))
+        fmt_value_w = value as uword
+        void dos.VPrintf("%03d", &fmt_value_w)
     }
 
     sub print_b(byte value) {
-        print(conv.str_b(value))
+        fmt_value_w = value as uword
+        void dos.VPrintf("%d", &fmt_value_w)
     }
 
     sub print_uw(uword value) {
-        print(conv.str_uw(value))
+        fmt_value_l = value as long
+        void dos.VPrintf("%lu", &fmt_value_l)
     }
 
     sub print_uw0(uword value) {
-        print(conv.str_uw0(value))
+        fmt_value_l = value as long
+        void dos.VPrintf("%05lu", &fmt_value_l)
     }
 
     sub print_w(word value) {
-        print(conv.str_w(value))
+        void dos.VPrintf("%d", &value)
     }
 
     sub print_l(long value) {
-        print(conv.str_l(value))
+        void dos.VPrintf("%ld", &value)
     }
 
     sub print_ulhex(long value, bool prefix) {
-        if prefix
-            chrout('$')
-        print(conv.str_ulhex(value))
+        void dos.VPrintf(if prefix then "$%08lx" else "%08lx", &value)
     }
 
     sub print_uwhex(uword value, bool prefix) {
-        if prefix
-            chrout('$')
-        print(conv.str_uwhex(value))
+        void dos.VPrintf(if prefix then "$%04x" else "%04x", &value)
     }
 
     sub print_ubhex(ubyte value, bool prefix) {
-        if prefix
-            chrout('$')
-        print(conv.str_ubhex(value))
+        fmt_value_w = value as uword
+        void dos.VPrintf(if prefix then "$%02x" else "%02x", &fmt_value_w)
     }
 
     sub print_ubbin(ubyte value, bool prefix) {
