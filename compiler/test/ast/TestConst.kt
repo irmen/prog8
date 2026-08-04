@@ -245,7 +245,7 @@ main {
     sub start() {
         float fl = 1.2  ; no other assignments
         bool @shared result1 = strings.isdigit(math.diff(119, floats.floor(floats.deg(fl)) as ubyte))
-        bool @shared result2 = strings.isletter(math.diff(119, floats.floor(floats.deg(1.2)) as ubyte))
+        bool @shared result2 = strings.isdigit(119)
     }
 }"""
         val result = compileText(Cx16Target(), true, src, outputDir, writeAssembly = false)!!

@@ -355,33 +355,10 @@ class ConstExprEvaluator {
     }
 
     private fun evalString(func: FunctionCallExpression, args: List<NumericLiteral>): NumericLiteral? {
-        return when(func.target.nameInSource[1]) {
-            "isdigit" -> {
-                val char = args[0].number.toInt()
-                NumericLiteral.fromBoolean(char in 48..57, func.position)
-            }
-            "isupper" -> {
-                // shifted petscii has 2 ranges that contain the upper case letters... 97-122 and 193-218
-                val char = args[0].number.toInt()
-                NumericLiteral.fromBoolean(char in 97..122 || char in 193..218, func.position)
-            }
-            "islower" -> {
-                val char = args[0].number.toInt()
-                NumericLiteral.fromBoolean(char in 65..90, func.position)
-            }
-            "isletter" -> {
-                val char = args[0].number.toInt()
-                NumericLiteral.fromBoolean(char in 65..90 || char in 97..122 || char in 193..218, func.position)
-            }
-            "isspace" -> {
-                val char = args[0].number.toInt()
-                NumericLiteral.fromBoolean(char in setOf(32, 13, 9, 10, 141, 160), func.position)
-            }
-            "isprint" -> {
-                val char = args[0].number.toInt()
-                NumericLiteral.fromBoolean(char in 32..127 || char>=160, func.position)
-            }
-            else -> null
+        return if (func.target.nameInSource[1] == "isdigit") {
+            val char = args[0].number.toInt()
+            NumericLiteral.fromBoolean(char in 48..57, func.position)
         }
+        else null
     }
 }
