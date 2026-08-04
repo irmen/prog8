@@ -33,9 +33,13 @@ Gating reference: `options.compTarget.cpu.is6502` (6502/65C02 only) or
   bytes. The correct idiom (`typeForUntypedAddressOf` / `POINTER_MEM_SIZE>2 -> LONG`)
   exists elsewhere but is not used here. Also reachable via
   `AddressOf.constValue` -> `UWORD` (`compilerAst AstExpressions.kt:678,686`).
-- **`StatementOptimizer.kt:40`** `pokew(&ptrvar, x)` -> `ptrvar = x`. On
-  m68k a pointer variable is 4 bytes, so a 2-byte store becomes a 4-byte
-  store -> changed semantics. Gate by `POINTER_MEM_SIZE == 2u`.
+- **`StatementOptimizer.kt:38-58`** `pokew(&ptrvar, x)` -> `ptrvar = x` was
+  applied on m68k where a pointer variable is 4 bytes, so a 2-byte store
+  became a 4-byte store -> changed semantics. Fixed: the `pokew` rewrite now
+  only fires for genuine 2-byte (`isWords`) variables; the pointer-variable
+  rewrite is handled by the `pokel` branch on 4-byte-pointer targets
+  (`dt.isPointer && POINTER_MEM_SIZE > 2u`), so `pokel(&ptrvar, x)` ->
+  `ptrvar = x` correctly performs a 4-byte store.
 - **`ExpressionSimplifier.kt:249,258,275,284`** pointer `==`/`!=` 0/1
   retyped to `UWORD` -> a 16-bit compare of a 32-bit pointer (`ptr == 0`
   true for `$00010000`). Should widen to `LONG` when `POINTER_MEM_SIZE > 2`.
@@ -87,7 +91,7 @@ Lowering improvements that would shrink m68k output (no correctness risk):
 |---|---|---|---|---|
 | 1 | `ConstantIdentifierReplacer.kt:417,458` | const ptr -> `UWORD` literal | **crash** / truncation | No |
 | 2 | `ConstantFoldingOptimizer.kt:120,133` | folded `ptr±N` -> `UWORD` | **crash** / truncation | No |
-| 3 | `StatementOptimizer.kt:40` | `pokew(&ptrvar,x)` -> `ptrvar=x` | 2-byte -> 4-byte store | No |
+| 3 | `StatementOptimizer.kt:38-58` | ptr rewrite moved from `pokew` to `pokel` on 4-byte-pointer targets | 2-byte -> 4-byte store | Fixed |
 | 4 | `ExpressionSimplifier.kt:249,258,275,284` | ptr `==`/`!=` 0/1 -> `UWORD` | 16-bit compare of 32-bit ptr | No |
 | 5 | `Inliner.kt:434` (+`:142`,`:253`,`:264`) | 6502 code-bloat heuristics | over-conservative | No |
 
@@ -95,8 +99,8 @@ Lowering improvements that would shrink m68k output (no correctness risk):
 
 ## Recommended order of work
 
- 1. Fix the const-pointer / POINTER_MEM_SIZE issues in section 1 (crasher on
-    real Amiga addresses) and the `pokew` correctness items.
+  1. Fix the const-pointer / POINTER_MEM_SIZE issues in section 1 (crasher on
+     real Amiga addresses)
  2. Land the m68k lowering improvements in section 3.
  3. Revisit the remaining 6502-cost-model items (Inliner, `when`->on..goto)
     for m68k benefit once the above is stable.

@@ -37,7 +37,10 @@ class StatementOptimizer(private val program: Program,
                 }
                 "pokew" -> {
                     val addrOfIdentifier = (functionCallStatement.args[0] as? AddressOf)?.identifier
-                    if(addrOfIdentifier!=null && (addrOfIdentifier.inferType(program).isWords || addrOfIdentifier.inferType(program).isPointer)) {
+                    val dt = addrOfIdentifier?.inferType(program)
+                    // a pointer variable is 2 bytes only on word-pointer targets; on 4-byte-pointer
+                    // targets the pokew->assignment rewrite is incorrect, handled by the pokel branch instead
+                    if(addrOfIdentifier!=null && dt!=null && (dt.isWords || (dt.isPointer && options.compTarget.POINTER_MEM_SIZE == 2u))) {
                         // pokew(&wordvar, x) --> wordvar=x
                         val target = AssignTarget(addrOfIdentifier, null, null, null, false, position = functionCallStatement.position)
                         val assign = Assignment(target, functionCallStatement.args[1], AssignmentOrigin.OPTIMIZER, functionCallStatement.position)
@@ -46,8 +49,9 @@ class StatementOptimizer(private val program: Program,
                 }
                 "pokel" -> {
                     val addrOfIdentifier = (functionCallStatement.args[0] as? AddressOf)?.identifier
-                    if(addrOfIdentifier!=null && addrOfIdentifier.inferType(program).isLong) {
-                        // pokel(&longvar, x) --> longvar=x
+                    val dt = addrOfIdentifier?.inferType(program)
+                    if(addrOfIdentifier!=null && dt!=null && (dt.isLong || (dt.isPointer && options.compTarget.POINTER_MEM_SIZE == 4u))) {
+                        // pokel(&longvar, x) --> longvar=x   (a 4-byte pointer var is also handled here)
                         val target = AssignTarget(addrOfIdentifier, null, null, null, false, position = functionCallStatement.position)
                         val assign = Assignment(target, functionCallStatement.args[1], AssignmentOrigin.OPTIMIZER, functionCallStatement.position)
                         return listOf(AstReplaceNode(functionCallStatement, assign, parent))
