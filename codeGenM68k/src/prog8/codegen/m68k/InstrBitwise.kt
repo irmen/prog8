@@ -207,16 +207,12 @@ private fun AsmGen.xorMemory(dstReg: Int, sourceAddress: String, type: IRDataTyp
 
 private fun AsmGen.invertRegister(reg: Int, type: IRDataType) {
     val s = dtSuffix(type)
-    emitLine("move$s  ${regAddr(reg)}, d0")
-    emitLine("not$s  d0")
-    emitLine("move$s  d0, ${regAddr(reg)}")
+    emitLine("not$s  ${regAddr(reg)}")
 }
 
 private fun AsmGen.invertMemory(target: String, type: IRDataType) {
     val s = dtSuffix(type)
-    emitLine("move$s  $target, d0")
-    emitLine("not$s  d0")
-    emitLine("move$s  d0, $target")
+    emitLine("not$s  $target")
 }
 
 // === Shift/rotate size helpers ===

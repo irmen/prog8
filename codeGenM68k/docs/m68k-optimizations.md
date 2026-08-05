@@ -20,38 +20,16 @@ should be left alone:
 - ADDIM/SUBIM against memory variables
 - CMPI (`cmpi.x #imm, mem`, and `tst.x mem` for #0), InstrArithmetic.kt:329
 - STOREZM / STOREIM zero via `clr.x mem`
+- LOAD with immediate 0 via `clr.x mem` (InstrLoadStore.kt)
 - LOADR (register copy) as a direct memory-to-memory `move.x mem, mem`
 - register-to-register ALU: `move.x src,d0` + `op.x d0, mem`
+- ANDI/ORI/EORI with immediate: `opi.x #imm, mem`
+- register-source ANDM/ORM/XORM: `move.x reg,d0` + `op.x d0, mem`
+- INV/INVM (bitwise not): `not.x mem`
 - divide/multiply already take a memory operand where the instruction allows it
 
 
-1. NOT directly on memory
---------------------------
-
-`invertRegister` and `invertMemory` (InstrBitwise.kt:210,217) round-trip:
-
-    move.w  mem, d0
-    not.w   d0
-    move.w  d0, mem
-
-`not.b/w/l` supports a memory destination directly:
-
-    not.w   mem
-
-
-2. Zero loads -> clr
----------------------
-
-`LOAD` with an immediate value of 0 (InstrLoadStore.kt:28) emits
-`move.l #0, mem` (10 bytes for .l). `clr.l mem` is 6 bytes and faster.
-Same idea for any other spot that loads the constant 0 into a slot.
-
-For small non-zero .l constants, `moveq #imm,d0` + `move.l d0,mem` is also
-shorter/faster than `move.l #imm,mem`, but it clobbers d0, so only do this
-where d0 is already dead.
-
-
-3. Pointer/address loads: drop the a0 round-trip
+1. Pointer/address loads: drop the a0 round-trip
 --------------------------------------------------
 
 `LOAD` with a labelSymbol (InstrLoadStore.kt:29-33) emits:
@@ -66,7 +44,7 @@ The address is a link-time constant, so one instruction is enough:
 This also frees a0 for the caller.
 
 
-4. Compare-and-branch immediates: skip the load
+2. Compare-and-branch immediates: skip the load
 --------------------------------------------------
 
 `cmpBranchUnsignedImm` and `cmpBranchSignedImm` (InstrBranch.kt:70,98) emit:
@@ -88,10 +66,10 @@ and for imm == 0:
 This matches what `CMPI` in InstrArithmetic.kt:329 already does.
 
 
-5. Bit ops directly on memory
+3. Bit ops directly on memory
 ------------------------------
 
-`bitTest`, `bitSet`, `bitClear`, `bitToggle` (InstrBitwise.kt:380,386,393,400)
+`bitTest`, `bitSet`, `bitClear`, `bitToggle` (InstrBitwise.kt:374,380,387,394)
 round-trip through d0. `btst/bset/bclr/bchg` with an immediate bit number
 accept a memory operand, but the operation applies to a byte at that address.
 
@@ -106,7 +84,7 @@ accept a memory operand, but the operation applies to a byte at that address.
   so the direct form is safe there.
 
 
-6. Peephole "d0 cache" (biggest win, still no full allocation)
+4. Peephole "d0 cache" (biggest win, still no full allocation)
 ----------------------------------------------------------------
 
 The scratch usage is very regular: D0-D2 data registers, A0 for addresses,
@@ -131,14 +109,14 @@ cache must never skip a load that is followed by an instruction that relies
 on the flags being set by that load. Since the cached loads are pure data
 moves that do not set flags, only skip the load, never reorder anything.
 
-7. Small items
+5. Small items
 ---------------
 
-- `shiftRegister` (InstrBitwise.kt:240): for `.w` size and count 1, m68k
+- `shiftRegister` (InstrBitwise.kt:234): for `.w` size and count 1, m68k
   supports the memory form `lsl.w mem` directly (the memory path already
-  does this in `memoryShiftRotate`, InstrBitwise.kt:270).
+  does this in `memoryShiftRotate`, InstrBitwise.kt:264).
 - The `.w` count-1 rotates (`rotateLeft`, `rotateRight`,
-  `rotateLeftThroughCarry`, `rotateRightThroughCarry`, InstrBitwise.kt:342-376)
+  `rotateLeftThroughCarry`, `rotateRightThroughCarry`, InstrBitwise.kt:336-372)
   can do the same: `roxl.w mem` / `roxr.w mem` directly on the slot. For the
   logical ROL/ROR the `andi #$ef, ccr` (clear X) still has to precede it,
   and only `.w` memory rotates exist.
@@ -150,8 +128,8 @@ moves that do not set flags, only skip the load, never reorder anything.
 Suggested order of implementation
 -----------------------------------
 
-1. Items 1, 2, 3: pure instruction selection, no state, low risk.
-2. Items 4, 5: also pure selection.
-3. Item 6: the peephole d0 cache, as a separate pass, with the invalidation
+1. Items 1, 2: pure instruction selection, no state, low risk.
+2. Item 3: direct bit ops for byte slots first.
+3. Item 4: the peephole d0 cache, as a separate pass, with the invalidation
    rules above.
-4. Item 7: small items (shifts/rotates, byte multiply) as time permits.
+4. Item 5: small items (shifts/rotates, byte multiply) as time permits.

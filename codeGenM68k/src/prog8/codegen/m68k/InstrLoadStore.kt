@@ -25,7 +25,12 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction) {
             val value = insn.immediate
             val sym = insn.labelSymbol
             when {
-                value != null -> emitLine("move$s  #${value}, ${regAddr(dst)}")
+                value != null -> {
+                    if(value == 0)
+                        emitLine("clr$s  ${regAddr(dst)}")
+                    else
+                        emitLine("move$s  #$value, ${regAddr(dst)}")
+                }
                 sym != null -> {
                     val resolved = resolveSymbolRef(sym)
                     val symOff = if (offset != null) "$resolved+$offset" else resolved
@@ -88,7 +93,10 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction) {
 
         Opcode.STOREIM -> {
             val value = imm ?: error("STOREIM needs immediate value")
-            emitLine("move$s  #$value, $target")
+            if(value == 0)
+                emitLine("clr$s  $target")
+            else
+                emitLine("move$s  #$value, $target")
         }
 
         Opcode.STOREX -> {
