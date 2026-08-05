@@ -231,6 +231,23 @@ private fun AsmGen.shiftOpcode(isLeft: Boolean, isArithmetic: Boolean, isRotate:
 
 // === Shifts by 1 (constant count 1) ===
 
+// Emit a .w count=1 memory-form shift/rotate. The absolute form (`op.w addr`)
+// is one instruction and optimal, but the QEMU 68020 emulation has a bug where
+// `asr.w` with absolute addressing zero-extends the 16-bit operand before the
+// shift instead of sign-extending it, producing a logical shift result for
+// negative values. The 68000 (vamos) and the `(a0)` / register forms are
+// unaffected. Workaround for the qemu68k target only: load the address into
+// a0 and use `(a0)` addressing. A0 is a scratch address register in the m68k
+// codegen, so this is safe.
+private fun AsmGen.emitMemoryWordShiftOrRotate(op: String, address: String) {
+    if (target.name == "qemu68k") {
+        emitLine("lea  $address, a0")
+        emitLine("$op.w  (a0)")
+    } else {
+        emitLine("$op.w  $address")
+    }
+}
+
 private fun AsmGen.shiftRegister(reg: Int, count: Int, type: IRDataType, isArithmetic: Boolean, isLeft: Boolean) {
     val s = dtSuffix(type)
     val op = shiftOpcode(isLeft, isArithmetic)
@@ -243,6 +260,12 @@ private fun AsmGen.shiftRegister(reg: Int, count: Int, type: IRDataType, isArith
         emitLine("swap  d0")
         emitLine("clr.w  d0")
         emitLine("move.l  d0, ${regAddr(reg)}")
+        return
+    }
+    if (type == IRDataType.WORD && count == 1) {
+        // m68k memory shift/rotate is supported for .w count=1; collapse the
+        // d0 round-trip into a single memory form
+        emitMemoryWordShiftOrRotate(op, regAddr(reg))
         return
     }
     if (count in 1..8) {
@@ -271,7 +294,7 @@ private fun AsmGen.memoryShiftRotate(target: String, count: Int, type: IRDataTyp
     // (only for .w size, and shift/rotate count must be 1)
     if (type == IRDataType.WORD && count == 1) {
         val op = shiftOpcode(isLeft, isArithmetic, isRotate)
-        emitLine("$op.w  $target")
+        emitMemoryWordShiftOrRotate(op, target)
         return
     }
     val s = dtSuffix(type)
@@ -335,6 +358,11 @@ private fun AsmGen.shiftMemoryLeftVar(target: String, countReg: Int, type: IRDat
 
 private fun AsmGen.rotateLeft(reg: Int, type: IRDataType) {
     // IR ROL: logical rotate left (inject 0 into LSB)
+    if (type == IRDataType.WORD) {
+        emitLine($$"andi  #$ef, ccr")       // clear X (and leave C alone)
+        emitMemoryWordShiftOrRotate("roxl", regAddr(reg))
+        return
+    }
     val s = dtSuffix(type)
     emitLine("move$s  ${regAddr(reg)}, d0")
     emitLine($$"andi  #$ef, ccr")       // clear X (and leave C alone)
@@ -344,6 +372,11 @@ private fun AsmGen.rotateLeft(reg: Int, type: IRDataType) {
 
 private fun AsmGen.rotateRight(reg: Int, type: IRDataType) {
     // IR ROR: logical rotate right (inject 0 into MSB)
+    if (type == IRDataType.WORD) {
+        emitLine($$"andi  #$ef, ccr")       // clear X (and leave C alone)
+        emitMemoryWordShiftOrRotate("roxr", regAddr(reg))
+        return
+    }
     val s = dtSuffix(type)
     emitLine("move$s  ${regAddr(reg)}, d0")
     emitLine($$"andi  #$ef, ccr")       // clear X (and leave C alone)
@@ -355,6 +388,10 @@ private fun AsmGen.rotateRight(reg: Int, type: IRDataType) {
 
 private fun AsmGen.rotateLeftThroughCarry(reg: Int, type: IRDataType) {
     // IR ROXL: rotate left through carry (on M68k, X serves as rotate-carry)
+    if (type == IRDataType.WORD) {
+        emitMemoryWordShiftOrRotate("roxl", regAddr(reg))
+        return
+    }
     val s = dtSuffix(type)
     emitLine("move$s  ${regAddr(reg)}, d0")
     emitLine("roxl$s  #1, d0")
@@ -363,6 +400,10 @@ private fun AsmGen.rotateLeftThroughCarry(reg: Int, type: IRDataType) {
 
 private fun AsmGen.rotateRightThroughCarry(reg: Int, type: IRDataType) {
     // IR ROXR: rotate right through carry (on M68k, X serves as rotate-carry)
+    if (type == IRDataType.WORD) {
+        emitMemoryWordShiftOrRotate("roxr", regAddr(reg))
+        return
+    }
     val s = dtSuffix(type)
     emitLine("move$s  ${regAddr(reg)}, d0")
     emitLine("roxr$s  #1, d0")

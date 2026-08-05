@@ -351,7 +351,6 @@ private fun AsmGen.emitMulOp(dstReg: Int, srcReg: Int?, type: IRDataType, unsign
             when {
                 srcReg != null -> {
                     emitLine("move.b  ${regAddr(srcReg)}, d0")
-                    emitLine("move.b  ${regAddr(dstReg)}, d1")
                     if (unsigned) emitLine($$"and.l  #$ff, d0") else emitSignExtendByteToLong("d0")
                     emitLine("move.l  d0, d2")
                     emitLine("move.b  ${regAddr(dstReg)}, d0")
