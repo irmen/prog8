@@ -207,6 +207,7 @@ One or more .p8 module files
 
 ``-newcodegen``
     Use new 6502 code generation backend (*incomplete/experimental*). This generates 6502 assembly code based on IR instead of the AST.
+    **Do not use for production code yet.**
 
 ``-float2bytes <number>``
     convert floating point number to a list of bytes for the specified target system.
