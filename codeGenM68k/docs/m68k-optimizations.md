@@ -25,37 +25,10 @@ should be left alone:
 - divide/multiply already take a memory operand where the instruction allows it
 
 
-1. Immediate logical ops: 3 instructions -> 1
-----------------------------------------------
-
-Currently `andImmediate`, `orImmediate`, `xorImmediate`
-(InstrBitwise.kt:139,167,195) emit:
-
-    move.w  p8_regfile+off, d0
-    and.w   #mask, d0
-    move.w  d0, p8_regfile+off
-
-The M68k ANDI/ORI/EORI instructions accept a memory destination, so emit
-a single instruction:
-
-    andi.w  #mask, p8_regfile+off
-
-- `.b` and `.w` work on all M68k CPUs.
-- `.l` on a memory operand requires 68020+; guard with the existing
-  `program.options.compTarget.cpu < CpuType.M68020` check used for long
-  multiply/divide.
-
-This applies to all three opcodes (AND, OR, XOR) and their register-file
-destinations. The memory-variable variants (andMemory, orMemory, xorMemory)
-can also be simplified the same way: `move.x mem,d0` + `op.x d0, mem`
-becomes `opi.x #mask, mem` only for immediate ops; for register sources the
-current form is already optimal.
-
-
-2. NOT directly on memory
+1. NOT directly on memory
 --------------------------
 
-`invertRegister` and `invertMemory` (InstrBitwise.kt:216,223) round-trip:
+`invertRegister` and `invertMemory` (InstrBitwise.kt:210,217) round-trip:
 
     move.w  mem, d0
     not.w   d0
@@ -66,7 +39,7 @@ current form is already optimal.
     not.w   mem
 
 
-3. Zero loads -> clr
+2. Zero loads -> clr
 ---------------------
 
 `LOAD` with an immediate value of 0 (InstrLoadStore.kt:28) emits
@@ -78,7 +51,7 @@ shorter/faster than `move.l #imm,mem`, but it clobbers d0, so only do this
 where d0 is already dead.
 
 
-4. Pointer/address loads: drop the a0 round-trip
+3. Pointer/address loads: drop the a0 round-trip
 --------------------------------------------------
 
 `LOAD` with a labelSymbol (InstrLoadStore.kt:29-33) emits:
@@ -93,7 +66,7 @@ The address is a link-time constant, so one instruction is enough:
 This also frees a0 for the caller.
 
 
-5. Compare-and-branch immediates: skip the load
+4. Compare-and-branch immediates: skip the load
 --------------------------------------------------
 
 `cmpBranchUnsignedImm` and `cmpBranchSignedImm` (InstrBranch.kt:70,98) emit:
@@ -115,10 +88,10 @@ and for imm == 0:
 This matches what `CMPI` in InstrArithmetic.kt:329 already does.
 
 
-6. Bit ops directly on memory
+5. Bit ops directly on memory
 ------------------------------
 
-`bitTest`, `bitSet`, `bitClear`, `bitToggle` (InstrBitwise.kt:386-411)
+`bitTest`, `bitSet`, `bitClear`, `bitToggle` (InstrBitwise.kt:380,386,393,400)
 round-trip through d0. `btst/bset/bclr/bchg` with an immediate bit number
 accept a memory operand, but the operation applies to a byte at that address.
 
@@ -133,7 +106,7 @@ accept a memory operand, but the operation applies to a byte at that address.
   so the direct form is safe there.
 
 
-7. Peephole "d0 cache" (biggest win, still no full allocation)
+6. Peephole "d0 cache" (biggest win, still no full allocation)
 ----------------------------------------------------------------
 
 The scratch usage is very regular: D0-D2 data registers, A0 for addresses,
@@ -158,12 +131,17 @@ cache must never skip a load that is followed by an instruction that relies
 on the flags being set by that load. Since the cached loads are pure data
 moves that do not set flags, only skip the load, never reorder anything.
 
-8. Small items
+7. Small items
 ---------------
 
-- `shiftRegister` (InstrBitwise.kt:246): for `.w` size and count 1, m68k
+- `shiftRegister` (InstrBitwise.kt:240): for `.w` size and count 1, m68k
   supports the memory form `lsl.w mem` directly (the memory path already
-  does this in `memoryShiftRotate`, InstrBitwise.kt:284).
+  does this in `memoryShiftRotate`, InstrBitwise.kt:270).
+- The `.w` count-1 rotates (`rotateLeft`, `rotateRight`,
+  `rotateLeftThroughCarry`, `rotateRightThroughCarry`, InstrBitwise.kt:342-376)
+  can do the same: `roxl.w mem` / `roxr.w mem` directly on the slot. For the
+  logical ROL/ROR the `andi #$ef, ccr` (clear X) still has to precede it,
+  and only `.w` memory rotates exist.
 - Byte multiply (InstrArithmetic.kt:353-360) reloads the same slot twice;
   it can be tidied to load once (minor).
 - Float constants already use real FPU registers and `fmovecr` for 0.0/1.0;
@@ -174,6 +152,6 @@ Suggested order of implementation
 
 1. Items 1, 2, 3: pure instruction selection, no state, low risk.
 2. Items 4, 5: also pure selection.
-3. Item 6: direct bit ops for byte slots first.
-4. Item 7: the peephole d0 cache, as a separate pass, with the invalidation
+3. Item 6: the peephole d0 cache, as a separate pass, with the invalidation
    rules above.
+4. Item 7: small items (shifts/rotates, byte multiply) as time permits.

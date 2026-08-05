@@ -144,16 +144,13 @@ private fun AsmGen.andImmediate(dstReg: Int, value: Int, type: IRDataType) {
         IRDataType.LONG -> value
         else -> error("unsupported type for AND immediate")
     }
-    emitLine("move$s  ${regAddr(dstReg)}, d0")
-    emitLine("and$s  #$mask, d0")
-    emitLine("move$s  d0, ${regAddr(dstReg)}")
+    emitLine("andi$s  #$mask, ${regAddr(dstReg)}")
 }
 
 private fun AsmGen.andMemory(dstReg: Int, sourceAddress: String, type: IRDataType) {
     val s = dtSuffix(type)
-    emitLine("move$s  $sourceAddress, d0")
-    emitLine("and$s  ${regAddr(dstReg)}, d0")
-    emitLine("move$s  d0, $sourceAddress")
+    emitLine("move$s  ${regAddr(dstReg)}, d0")
+    emitLine("and$s  d0, $sourceAddress")
 }
 
 // === OR ===
@@ -172,16 +169,13 @@ private fun AsmGen.orImmediate(dstReg: Int, value: Int, type: IRDataType) {
         IRDataType.LONG -> value
         else -> error("unsupported type for OR immediate")
     }
-    emitLine("move$s  ${regAddr(dstReg)}, d0")
-    emitLine("or$s  #$mask, d0")
-    emitLine("move$s  d0, ${regAddr(dstReg)}")
+    emitLine("ori$s  #$mask, ${regAddr(dstReg)}")
 }
 
 private fun AsmGen.orMemory(dstReg: Int, sourceAddress: String, type: IRDataType) {
     val s = dtSuffix(type)
-    emitLine("move$s  $sourceAddress, d0")
-    emitLine("or$s  ${regAddr(dstReg)}, d0")
-    emitLine("move$s  d0, $sourceAddress")
+    emitLine("move$s  ${regAddr(dstReg)}, d0")
+    emitLine("or$s  d0, $sourceAddress")
 }
 
 // === XOR ===
@@ -200,9 +194,7 @@ private fun AsmGen.xorImmediate(dstReg: Int, value: Int, type: IRDataType) {
         IRDataType.LONG -> value
         else -> error("unsupported type for XOR immediate")
     }
-    emitLine("move$s  ${regAddr(dstReg)}, d0")
-    emitLine("eor$s  #$mask, d0")
-    emitLine("move$s  d0, ${regAddr(dstReg)}")
+    emitLine("eori$s  #$mask, ${regAddr(dstReg)}")
 }
 
 private fun AsmGen.xorMemory(dstReg: Int, sourceAddress: String, type: IRDataType) {
