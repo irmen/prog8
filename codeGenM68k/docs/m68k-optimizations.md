@@ -27,24 +27,10 @@ should be left alone:
 - register-source ANDM/ORM/XORM: `move.x reg,d0` + `op.x d0, mem`
 - INV/INVM (bitwise not): `not.x mem`
 - divide/multiply already take a memory operand where the instruction allows it
+- LOAD with a labelSymbol as a direct `move.l #label+off, mem` (InstrLoadStore.kt)
 
 
-1. Pointer/address loads: drop the a0 round-trip
---------------------------------------------------
-
-`LOAD` with a labelSymbol (InstrLoadStore.kt:29-33) emits:
-
-    lea     label+off, a0
-    move.l  a0, p8_regfile+off
-
-The address is a link-time constant, so one instruction is enough:
-
-    move.l  #label+off, p8_regfile+off
-
-This also frees a0 for the caller.
-
-
-2. Compare-and-branch immediates: skip the load
+1. Compare-and-branch immediates: skip the load
 --------------------------------------------------
 
 `cmpBranchUnsignedImm` and `cmpBranchSignedImm` (InstrBranch.kt:70,98) emit:
@@ -66,7 +52,7 @@ and for imm == 0:
 This matches what `CMPI` in InstrArithmetic.kt:329 already does.
 
 
-3. Bit ops directly on memory
+2. Bit ops directly on memory
 ------------------------------
 
 `bitTest`, `bitSet`, `bitClear`, `bitToggle` (InstrBitwise.kt:374,380,387,394)
@@ -84,7 +70,7 @@ accept a memory operand, but the operation applies to a byte at that address.
   so the direct form is safe there.
 
 
-4. Peephole "d0 cache" (biggest win, still no full allocation)
+3. Peephole "d0 cache" (biggest win, still no full allocation)
 ----------------------------------------------------------------
 
 The scratch usage is very regular: D0-D2 data registers, A0 for addresses,
@@ -109,7 +95,7 @@ cache must never skip a load that is followed by an instruction that relies
 on the flags being set by that load. Since the cached loads are pure data
 moves that do not set flags, only skip the load, never reorder anything.
 
-5. Small items
+4. Small items
 ---------------
 
 - `shiftRegister` (InstrBitwise.kt:234): for `.w` size and count 1, m68k
@@ -128,8 +114,8 @@ moves that do not set flags, only skip the load, never reorder anything.
 Suggested order of implementation
 -----------------------------------
 
-1. Items 1, 2: pure instruction selection, no state, low risk.
-2. Item 3: direct bit ops for byte slots first.
-3. Item 4: the peephole d0 cache, as a separate pass, with the invalidation
+1. Item 1: pure instruction selection, no state, low risk.
+2. Item 2: direct bit ops for byte slots first.
+3. Item 3: the peephole d0 cache, as a separate pass, with the invalidation
    rules above.
-4. Item 5: small items (shifts/rotates, byte multiply) as time permits.
+4. Item 4: small items (shifts/rotates, byte multiply) as time permits.

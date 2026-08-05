@@ -110,11 +110,6 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         emitLine("move.l  ${regAddr(reg)}, a0")
     }
 
-    fun storeA0ToPointer(reg: Int) {
-        // store a0 (a 32-bit pointer) to the register file
-        emitLine("move.l  a0, ${regAddr(reg)}")
-    }
-
 
     fun loadIndexToD0(idx: Int) {
         // load an index register into d0, zero-extending to 32 bits

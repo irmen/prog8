@@ -197,7 +197,7 @@ class TestModuleImporter: FunSpec({
     context("ImportFromResourceModule") {
         test("neighbor directory search is skipped for modules loaded from internal library resources") {
             val importer = makeImporter(null)
-            val resourceModule = Prog8Parser.parseModule(ImportFileSystem.getResource("/prog8lib/cx16/textio.p8"))
+            val resourceModule = Prog8Parser.parseModule(ImportFileSystem.getResource("/prog8lib/cx16/textio.p8"), VMTarget())
             resourceModule.position.file shouldStartWith "library:"
 
             val (result, searched) = importer.getModuleFromFile("syslib", resourceModule)

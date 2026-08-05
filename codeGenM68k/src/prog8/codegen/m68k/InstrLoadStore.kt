@@ -34,8 +34,7 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction) {
                 sym != null -> {
                     val resolved = resolveSymbolRef(sym)
                     val symOff = if (offset != null) "$resolved+$offset" else resolved
-                    emitLine("lea  $symOff, a0")
-                    storeA0ToPointer(dst)
+                    emitLine("move.l  #$symOff, ${regAddr(dst)}")
                 }
                 else -> error("LOAD needs immediate or labelSymbol")
             }

@@ -53,6 +53,7 @@ You are working with **6502/65C02 assembly** using **64tass syntax**, in separat
 - Branches: `bne`, `beq`, `bmi`, `bpl`, `bcs`, `bcc`, `bvs`, `bvc` (relative, max +127/-128 bytes)
 - Jumps: `jmp` (absolute or indirect), `jsr`/`rts` (subroutine call/return)
 - No `push`/`pop` mnemonics — use `pha`/`pla` (byte) and `txa`/`phx`/`plx`/`tay`/`phy`/`ply` for registers
+- Other common instructions: `nop` (no operation), `cpx`/`cpy` (compare X/Y register)
 
 ### Instruction Side Effects (Flags)
 - **`Z` (Zero)**: Set if the result of an operation is 0.
@@ -64,6 +65,7 @@ You are working with **6502/65C02 assembly** using **64tass syntax**, in separat
 
 ## 6502 vs 65C02
 - **CX16 target only**: can use WDC 65C02 instructions — `stz`, `phx`, `plx`, `phy`, `ply`, `bra`, `trb`, `tsb`, `stp`, `wai`, `inc a`, `dec a`, `bit #imm`, `bit zp,x`, `bit abs,x`, `jmp (abs,x)`, and `(zp)` indirect addressing mode (e.g., `lda (zp)`).
+- **`tsb`/`trb`** (65C02): Test and Set/Reset bits in memory. `tsb $addr` sets bits in memory where A has 1s; `trb $addr` resets bits where A has 1s. Both set Z if all tested bits were 0.
 - **C64, C128, PET32 targets**: original 6502 only — no `stz`, no `phx`/`plx`/`phy`/`ply`, no `bra` etc.
 - **Note**: The Rockwell/bit-manipulation instructions (`rmb`, `smb`, `bbr`, `bbs`) are **NOT** available.
 - Check the target before using 65C02-specific instructions
@@ -86,7 +88,7 @@ $00-$1F:$C000-$FFFF System ROM (512 KiB) (32x16K banks)
 - **Y register**: 8-bit, often used for indirect addressing index
 - **Processor Status (P)**: flags — carry (C), zero (Z), negative/N (sign bit 7), overflow (V), decimal (D), interrupt (I), break (B)
 - **No caller-saved vs callee-saved convention** — list all modified registers in `clobbers (A, X, Y)` when writing `asmsub`
-- The CPU stack (SP, $0100-$01FF) is limited (usually ~128 bytes free). Do not overflow it
+- The CPU stack (SP, $0100-$01FF) is limited. The stack grows downward from $01FF; safe range is typically $0100-$017F (~128 bytes). Do not overflow it
 
 ## Assembly within Prog8 Programs
 
