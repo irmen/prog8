@@ -8,13 +8,16 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldBeIn
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
+import io.kotest.matchers.string.shouldStartWith
 import prog8.ast.Program
 import prog8.code.INTERNED_STRINGS_MODULENAME
 import prog8.code.PROG8_CONTAINER_MODULES
 import prog8.code.core.IErrorReporter
+import prog8.code.source.ImportFileSystem
 import prog8.code.source.SourceCode
 import prog8.compiler.ModuleImporter
 import prog8.parser.MultipleParseErrors
+import prog8.parser.Prog8Parser
 import prog8tests.helpers.*
 import kotlin.io.path.*
 
@@ -186,6 +189,22 @@ class TestModuleImporter: FunSpec({
                 test("testImportingFileWithSyntaxError_twice") {
                     doTestImportingFileWithSyntaxError(2)
                 }
+            }
+        }
+    }
+
+    context("ImportFromResourceModule") {
+        test("neighbor directory search is skipped for modules loaded from internal library resources") {
+            val importer = makeImporter(null)
+            val resourceModule = Prog8Parser.parseModule(ImportFileSystem.getResource("/prog8lib/cx16/textio.p8"))
+            resourceModule.position.file shouldStartWith "library:"
+
+            val (result, searched) = importer.getModuleFromFile("syslib", resourceModule)
+            withClue("syslib only exists as an internal library resource, not on the filesystem") {
+                result.getErrorOrElse { error("expected a filesystem search failure") }.file.name shouldBe "syslib"
+            }
+            withClue("no filesystem search location may be derived from the library: origin: $searched") {
+                searched.none { it.toString().contains("library:") } shouldBe true
             }
         }
     }

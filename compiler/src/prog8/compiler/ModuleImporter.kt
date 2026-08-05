@@ -175,17 +175,20 @@ class ModuleImporter(private val program: Program,
         return result.mapError { NoSuchFileException(File(name)) }
     }
 
-    private fun getModuleFromFile(name: String, importingModule: Module?): Pair<Result<SourceCode, NoSuchFileException>, List<Path>> {
+    internal fun getModuleFromFile(name: String, importingModule: Module?): Pair<Result<SourceCode, NoSuchFileException>, List<Path>> {
         val fileName = "$name.p8"
         val requestedBy = importingModule?.name ?: "~implicit~"
 
+        val cwd = Path("").absolute()
         val normalLocations =
             if (importingModule == null) {
-                (sourcePaths + listOf(Path("").absolute())).distinct()
-            } else {
+                (sourcePaths + listOf(cwd)).distinct()
+            } else if (SourceCode.isRegularFilesystemPath(importingModule.position.file)) {
                 val pathFromImportingModule = (Path(importingModule.position.file).parent ?: Path("")).sanitize()
-                val cwd = Path("").absolute()
                 (sourcePaths + listOf(pathFromImportingModule, cwd)).distinct()
+            } else {
+                // library/string resources have no neighboring directory on disk
+                (sourcePaths + listOf(cwd)).distinct()
             }
 
         val libraryPathsSet = libraryPaths.toSet()

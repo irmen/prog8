@@ -250,7 +250,7 @@ Major breaking changes that require code modifications when upgrading:
     - **Fuzzy library search** — ``-libsearch`` now automatically attempts a fuzzy search if no exact matches are found.
 
 
-**v12.3** — Not released yet
+**v12.3** — August 2026
     - Laying groundwork for new code generation targets. Still highly experimental.
     - **Module search order rework** — replaced alphabetical search with a deterministic, prioritized list; filesystem now searched before internal libraries. 
     - **New experimental 6502 code generator** based on the IR, enabled with ``-newcodegen`` (do not use for production code yet).
