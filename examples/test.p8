@@ -1,114 +1,245 @@
 %import textio
 %zeropage basicsafe
 
-; Tests for "NOT directly on memory" in the m68k codegen.
+; Tests for "Compare-and-branch immediates: skip the load" in the m68k codegen.
 ; See codeGenM68k/docs/m68k-optimizations.md item 1:
 ;
-;   - INV on register-file destinations (invertRegister in InstrBitwise.kt)
-;     emits a 3-instruction roundtrip:
+;   - cmpBranchUnsignedImm and cmpBranchSignedImm (InstrBranch.kt) currently emit:
 ;         move.x  p8_regfile+off, d0
-;         not.x   d0
-;         move.x  d0, p8_regfile+off
-;   - In-place invert on plain variables (INVM, invertMemory) roundtrips
-;     through d0 the same way.
+;         cmpi.x  #imm, d0      (or tst.x d0 for imm == 0)
+;         bxx     label
+;   - cmpi.x #imm, <ea> accepts a memory operand directly, so the redundant
+;     register-file load can be skipped:
+;         cmpi.x  #imm, p8_regfile+off
+;         bxx     label
+;     and for imm == 0:
+;         tst.x   p8_regfile+off
+;         bxx     label
 ;
-; `not.b/w/l` supports a memory destination directly on all 68000-family
-; cpus, so both patterns could collapse to a single `not.x mem`.
+; `if (x > imm)` style conditions compile to the BGT/BGE/BLT/BLE (unsigned) and
+; BGTS/BGES/BLTS/BLES (signed) branch opcodes with an immediate operand (the IR
+; optimizer rewrites `>` / `<=` into `>=` / `<` with an adjusted immediate, and
+; unsigned zero-compares into BSTEQ/BSTNE, so BGE/BLT and the signed variants
+; are what actually reach the m68k codegen).
 ;
-; The test covers byte, word and long sizes for both patterns, and prints
-; the resulting and expected value in hex so correctness is easy to verify.
+; Convention: every case prints PASS when the condition evaluates to its
+; expected truth. Cases that expect the condition to be FALSE use `not` (which
+; merely swaps the branch labels, still using the same branch opcode).
 ;
 ;   prog8c -target amiga500 -out /tmp/opencode examples/test.p8
-;   rg '^\s*(inv|invm)\.' /tmp/opencode/test.p8ir
-;   rg -n -B1 -A2 '^\s*not\.' /tmp/opencode/test.asm
+;   rg '^\s*(bge|blt|bgts|bges|blts|bles)\.' /tmp/opencode/test.p8ir
+;   rg -n -B2 '^\s*(bhs|blo|bls|bge|blt|bgt|ble) ' /tmp/opencode/test.asm
 ;   prog8c -target amiga500 -emu examples/test.p8   (uses vamos emulator)
 
 main {
+    ubyte @shared pass_count = 0
+    ubyte @shared fail_count = 0
+
     sub start() {
-        test_inv()
-        test_invm()
-        test_zero_loads()
-    }
-
-    sub test_inv() {
-        ubyte @shared b = $b5
-        ubyte @shared r = ~b
-        txt.print("inv byte:  ~$b5 = ")
-        txt.print_ubhex(r, true)
-        txt.print("  expected $4a")
+        test_unsigned()
+        test_signed()
+        test_zero()
         txt.nl()
-
-        uword @shared w = $f00f
-        uword @shared rw = ~w
-        txt.print("inv word:  ~$f00f = ")
-        txt.print_uwhex(rw, true)
-        txt.print("  expected $0ff0")
-        txt.nl()
-
-        long @shared l = $ff00ff00
-        long @shared rl = ~l
-        txt.print("inv long:  ~$ff00ff00 = ")
-        txt.print_ulhex(rl, true)
-        txt.print("  expected $00ff00ff")
-        txt.nl()
+        txt.print("summary: pass=")
+        txt.print_ub(pass_count)
+        txt.print(" fail=")
+        txt.print_ub(fail_count)
         txt.nl()
     }
 
-    sub test_invm() {
-        ; in-place invert on plain variables -> INVM memory variant
-        ubyte @shared bm = $b5
-        bm = ~bm
-        txt.print("inv= byte: ~$b5 = ")
-        txt.print_ubhex(bm, true)
-        txt.print("  expected $4a")
-        txt.nl()
-
-        uword @shared wm = $f00f
-        wm = ~wm
-        txt.print("inv= word: ~$f00f = ")
-        txt.print_uwhex(wm, true)
-        txt.print("  expected $0ff0")
-        txt.nl()
-
-        long @shared lm = $ff00ff00
-        lm = ~lm
-        txt.print("inv= long: ~$ff00ff00 = ")
-        txt.print_ulhex(lm, true)
-        txt.print("  expected $00ff00ff")
-        txt.nl()
-    }
-
-    sub test_zero_loads() {
-        ; "Zero loads -> clr": loading immediate 0 into a slot should emit
-        ; clr instead of move. See m68k-optimizations.md item 1.
-        ;
-        ;   - `for ch in "..."` string iteration emits LOAD byte 0 for the
-        ;     index register (IRCodeGen.kt)
-        ;   - `for i in 0..n` numeric range emits STOREIM word 0 for the
-        ;     loop variable (IRCodeGen.kt)
-        ;
-        ; Both should become clr in the generated asm.
-
-        ; string iteration -> LOAD byte 0
-        uword @shared count = 0
-        ubyte ch
-        for ch in "test" {
-            count++
+    sub check(ubyte ok) {
+        if ok != 0 {
+            pass_count++
+            txt.print("PASS\n")
+        } else {
+            fail_count++
+            txt.print("FAIL\n")
         }
-        txt.print("string iteration count = ")
-        txt.print_uw(count)
-        txt.print("  expected 4")
-        txt.nl()
+    }
 
-        ; numeric range starting at 0 -> STOREIM word 0
-        uword @shared sum = 0
-        uword i
-        for i in 0 to 4 {
-            sum += i
-        }
-        txt.print("range 0..4 sum = ")
-        txt.print_uw(sum)
-        txt.print("  expected 10")
-        txt.nl()
+    sub test_unsigned() {
+        txt.print("--- unsigned ---\n")
+
+        ubyte @shared b_hi = 100
+        ubyte @shared b_lo = 20
+        txt.print("ub 100 > 50: ")
+        if b_hi > 50 { check(1) } else { check(0) }
+        txt.print("ub 20  > 50: ")
+        if not (b_lo > 50) { check(1) } else { check(0) }
+        txt.print("ub 100 >= 50: ")
+        if b_hi >= 50 { check(1) } else { check(0) }
+        txt.print("ub 20  >= 50: ")
+        if not (b_lo >= 50) { check(1) } else { check(0) }
+        txt.print("ub 100 < 50: ")
+        if not (b_hi < 50) { check(1) } else { check(0) }
+        txt.print("ub 20  < 50: ")
+        if b_lo < 50 { check(1) } else { check(0) }
+        txt.print("ub 100 <= 50: ")
+        if not (b_hi <= 50) { check(1) } else { check(0) }
+        txt.print("ub 20  <= 50: ")
+        if b_lo <= 50 { check(1) } else { check(0) }
+
+        uword @shared w_hi = 60000
+        uword @shared w_lo = 30000
+        txt.print("uw 60000 > 40000: ")
+        if w_hi > 40000 { check(1) } else { check(0) }
+        txt.print("uw 30000 > 40000: ")
+        if not (w_lo > 40000) { check(1) } else { check(0) }
+        txt.print("uw 60000 >= 40000: ")
+        if w_hi >= 40000 { check(1) } else { check(0) }
+        txt.print("uw 30000 >= 40000: ")
+        if not (w_lo >= 40000) { check(1) } else { check(0) }
+        txt.print("uw 60000 < 40000: ")
+        if not (w_hi < 40000) { check(1) } else { check(0) }
+        txt.print("uw 30000 < 40000: ")
+        if w_lo < 40000 { check(1) } else { check(0) }
+        txt.print("uw 60000 <= 40000: ")
+        if not (w_hi <= 40000) { check(1) } else { check(0) }
+        txt.print("uw 30000 <= 40000: ")
+        if w_lo <= 40000 { check(1) } else { check(0) }
+
+        long @shared l_hi = 10000000
+        long @shared l_lo = 1000000
+        txt.print("ul 10000000 > 5000000: ")
+        if l_hi > 5000000 { check(1) } else { check(0) }
+        txt.print("ul 1000000 > 5000000: ")
+        if not (l_lo > 5000000) { check(1) } else { check(0) }
+        txt.print("ul 10000000 >= 5000000: ")
+        if l_hi >= 5000000 { check(1) } else { check(0) }
+        txt.print("ul 1000000 >= 5000000: ")
+        if not (l_lo >= 5000000) { check(1) } else { check(0) }
+        txt.print("ul 10000000 < 5000000: ")
+        if not (l_hi < 5000000) { check(1) } else { check(0) }
+        txt.print("ul 1000000 < 5000000: ")
+        if l_lo < 5000000 { check(1) } else { check(0) }
+        txt.print("ul 10000000 <= 5000000: ")
+        if not (l_hi <= 5000000) { check(1) } else { check(0) }
+        txt.print("ul 1000000 <= 5000000: ")
+        if l_lo <= 5000000 { check(1) } else { check(0) }
+    }
+
+    sub test_signed() {
+        txt.print("--- signed ---\n")
+
+        byte @shared b_hi = 100
+        byte @shared b_lo = -50
+        txt.print("sb 100 > -20: ")
+        if b_hi > -20 { check(1) } else { check(0) }
+        txt.print("sb -50 > -20: ")
+        if not (b_lo > -20) { check(1) } else { check(0) }
+        txt.print("sb 100 >= -20: ")
+        if b_hi >= -20 { check(1) } else { check(0) }
+        txt.print("sb -50 >= -20: ")
+        if not (b_lo >= -20) { check(1) } else { check(0) }
+        txt.print("sb 100 < -20: ")
+        if not (b_hi < -20) { check(1) } else { check(0) }
+        txt.print("sb -50 < -20: ")
+        if b_lo < -20 { check(1) } else { check(0) }
+        txt.print("sb 100 <= -20: ")
+        if not (b_hi <= -20) { check(1) } else { check(0) }
+        txt.print("sb -50 <= -20: ")
+        if b_lo <= -20 { check(1) } else { check(0) }
+
+        word @shared w_hi = 20000
+        word @shared w_lo = -20000
+        txt.print("sw 20000 > -5000: ")
+        if w_hi > -5000 { check(1) } else { check(0) }
+        txt.print("sw -20000 > -5000: ")
+        if not (w_lo > -5000) { check(1) } else { check(0) }
+        txt.print("sw 20000 >= -5000: ")
+        if w_hi >= -5000 { check(1) } else { check(0) }
+        txt.print("sw -20000 >= -5000: ")
+        if not (w_lo >= -5000) { check(1) } else { check(0) }
+        txt.print("sw 20000 < -5000: ")
+        if not (w_hi < -5000) { check(1) } else { check(0) }
+        txt.print("sw -20000 < -5000: ")
+        if w_lo < -5000 { check(1) } else { check(0) }
+        txt.print("sw 20000 <= -5000: ")
+        if not (w_hi <= -5000) { check(1) } else { check(0) }
+        txt.print("sw -20000 <= -5000: ")
+        if w_lo <= -5000 { check(1) } else { check(0) }
+
+        long @shared l_hi = 10000000
+        long @shared l_lo = -10000000
+        txt.print("sl 10000000 > -5000000: ")
+        if l_hi > -5000000 { check(1) } else { check(0) }
+        txt.print("sl -10000000 > -5000000: ")
+        if not (l_lo > -5000000) { check(1) } else { check(0) }
+        txt.print("sl 10000000 >= -5000000: ")
+        if l_hi >= -5000000 { check(1) } else { check(0) }
+        txt.print("sl -10000000 >= -5000000: ")
+        if not (l_lo >= -5000000) { check(1) } else { check(0) }
+        txt.print("sl 10000000 < -5000000: ")
+        if not (l_hi < -5000000) { check(1) } else { check(0) }
+        txt.print("sl -10000000 < -5000000: ")
+        if l_lo < -5000000 { check(1) } else { check(0) }
+        txt.print("sl 10000000 <= -5000000: ")
+        if not (l_hi <= -5000000) { check(1) } else { check(0) }
+        txt.print("sl -10000000 <= -5000000: ")
+        if l_lo <= -5000000 { check(1) } else { check(0) }
+    }
+
+    sub test_zero() {
+        txt.print("--- zero immediate (tst path) ---\n")
+
+        ubyte @shared ub = 7
+        txt.print("ub 7 > 0: ")
+        if ub > 0 { check(1) } else { check(0) }
+        txt.print("ub 7 >= 0: ")
+        if ub >= 0 { check(1) } else { check(0) }
+        txt.print("ub 7 < 0: ")
+        if not (ub < 0) { check(1) } else { check(0) }
+        txt.print("ub 7 <= 0: ")
+        if not (ub <= 0) { check(1) } else { check(0) }
+
+        uword @shared uw = 60000
+        txt.print("uw 60000 > 0: ")
+        if uw > 0 { check(1) } else { check(0) }
+        txt.print("uw 60000 >= 0: ")
+        if uw >= 0 { check(1) } else { check(0) }
+        txt.print("uw 60000 < 0: ")
+        if not (uw < 0) { check(1) } else { check(0) }
+        txt.print("uw 60000 <= 0: ")
+        if not (uw <= 0) { check(1) } else { check(0) }
+
+        long @shared ul = 70000000
+        txt.print("ul 70000000 > 0: ")
+        if ul > 0 { check(1) } else { check(0) }
+        txt.print("ul 70000000 >= 0: ")
+        if ul >= 0 { check(1) } else { check(0) }
+        txt.print("ul 70000000 < 0: ")
+        if not (ul < 0) { check(1) } else { check(0) }
+        txt.print("ul 70000000 <= 0: ")
+        if not (ul <= 0) { check(1) } else { check(0) }
+
+        byte @shared sb = -5
+        txt.print("sb -5 > 0: ")
+        if not (sb > 0) { check(1) } else { check(0) }
+        txt.print("sb -5 >= 0: ")
+        if not (sb >= 0) { check(1) } else { check(0) }
+        txt.print("sb -5 < 0: ")
+        if sb < 0 { check(1) } else { check(0) }
+        txt.print("sb -5 <= 0: ")
+        if sb <= 0 { check(1) } else { check(0) }
+
+        word @shared sw = -30000
+        txt.print("sw -30000 > 0: ")
+        if not (sw > 0) { check(1) } else { check(0) }
+        txt.print("sw -30000 >= 0: ")
+        if not (sw >= 0) { check(1) } else { check(0) }
+        txt.print("sw -30000 < 0: ")
+        if sw < 0 { check(1) } else { check(0) }
+        txt.print("sw -30000 <= 0: ")
+        if sw <= 0 { check(1) } else { check(0) }
+
+        long @shared sl = -50000000
+        txt.print("sl -50000000 > 0: ")
+        if not (sl > 0) { check(1) } else { check(0) }
+        txt.print("sl -50000000 >= 0: ")
+        if not (sl >= 0) { check(1) } else { check(0) }
+        txt.print("sl -50000000 < 0: ")
+        if sl < 0 { check(1) } else { check(0) }
+        txt.print("sl -50000000 <= 0: ")
+        if sl <= 0 { check(1) } else { check(0) }
     }
 }

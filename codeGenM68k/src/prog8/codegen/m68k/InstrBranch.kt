@@ -72,12 +72,12 @@ private fun AsmGen.cmpBranchUnsignedImm(insn: IRInstruction, label: String, bran
     val reg = insn.reg1 ?: error("branch needs reg1")
     val imm = insn.immediate ?: error("unsigned branch needs immediate")
     val s = dtSuffix(type)
-    emitLine("move$s  ${regAddr(reg)}, d0")
-    // cmpi.x #0, d0 can be replaced by the faster tst.x d0
+    // cmpi.x #imm, <ea> and tst.x <ea> accept memory operands, so the
+    // register-file load into d0 is redundant
     if(imm==0)
-        emitLine("tst$s  d0")
+        emitLine("tst$s  ${regAddr(reg)}")
     else
-        emitLine("cmpi$s  #$imm, d0")
+        emitLine("cmpi$s  #$imm, ${regAddr(reg)}")
     emitLine("$branchOp  $label")
 }
 
@@ -100,12 +100,12 @@ private fun AsmGen.cmpBranchSignedImm(insn: IRInstruction, label: String, branch
     val reg = insn.reg1 ?: error("branch needs reg1")
     val imm = insn.immediate ?: error("signed branch needs immediate")
     val s = dtSuffix(type)
-    emitLine("move$s  ${regAddr(reg)}, d0")
-    // cmpi.x #0, d0 can be replaced by the faster tst.x d0
+    // cmpi.x #imm, <ea> and tst.x <ea> accept memory operands, so the
+    // register-file load into d0 is redundant
     if(imm==0)
-        emitLine("tst$s  d0")
+        emitLine("tst$s  ${regAddr(reg)}")
     else
-        emitLine("cmpi$s  #$imm, d0")
+        emitLine("cmpi$s  #$imm, ${regAddr(reg)}")
     emitLine("$branchOp  $label")
 }
 
