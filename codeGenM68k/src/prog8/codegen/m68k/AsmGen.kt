@@ -443,13 +443,9 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         if (dataFloatConstants.isNotEmpty()) {
             emitRaw("; float constants (single precision, 4 bytes each)")
             for ((label, value) in dataFloatConstants) {
-                val bits = value.toFloat().toRawBits()
                 emitRaw("    ALIGN  4")
                 emitRaw("$label:")
-                emitRaw("    dc.b  ${(bits ushr 24).toUByte().toString(10)}")
-                emitRaw("    dc.b  ${(bits ushr 16).toUByte().toString(10)}")
-                emitRaw("    dc.b  ${(bits ushr 8).toUByte().toString(10)}")
-                emitRaw("    dc.b  ${bits.toUByte().toString(10)}")
+                emitRaw("    dc.s  $value")
             }
             emitRaw("")
         }
