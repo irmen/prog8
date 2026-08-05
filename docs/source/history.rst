@@ -247,32 +247,19 @@ Major breaking changes that require code modifications when upgrading:
     - **``math.crc16()`` signature changed** — now requires ``initvalue`` and ``xorout`` parameters for flexibility
     - **New compiler options**: ``-daemon`` (IDE integration), ``-nostdlib``
     - **New modules**: ``serial`` (CX16 UART+ZiModem), ``lineclip``, ``wavfile``, ``adpcm``
-    - **``-libsearch`` fuzzy search fallback** — finds libraries even with partial names
-
-
-**v12.3** — June 2026
-    - **Deterministic module search order** — replaced alphabetical search with prioritized list.
-    - **``-srcdirs`` priority** — user-specified source directories now have the highest priority.
-    - **Neighboring directory priority** — the directory of the importing file is searched before the current directory.
-    - **Standard library overrides** — the filesystem is now searched before internal resources.
-    - **Improved error messages** — missing module errors now list all searched filesystem paths and the requester.
     - **Fuzzy library search** — ``-libsearch`` now automatically attempts a fuzzy search if no exact matches are found.
-    - **Trace imports** — new ``-traceimports`` option to see exactly how modules are being resolved.
-    - **Search Path Comparison**:
 
-    +------+-----------------------------------------------+-----------------------------------------------+
-    | Step | Old Behavior (Approximate)                    | New Behavior (Strict)                         |
-    +======+===============================================+===============================================+
-    | 1    | Internal Standard Library                     | **User Source Directories (-srcdirs)**        |
-    +------+-----------------------------------------------+-----------------------------------------------+
-    | 2    | Target Library Directories                    | **Neighboring Directory**                     |
-    +------+-----------------------------------------------+-----------------------------------------------+
-    | 3    | Neighboring Directory                         | **Current Working Directory (.)**             |
-    +------+-----------------------------------------------+-----------------------------------------------+
-    | 4    | User Source Directories (alphabetical)        | **Target Library Directories**                |
-    +------+-----------------------------------------------+-----------------------------------------------+
-    | 5    | (not applicable)                              | **Internal Standard Library**                 |
-    +------+-----------------------------------------------+-----------------------------------------------+
+
+**v12.3** — Not released yet
+    - Laying groundwork for new code generation targets. Still highly experimental.
+    - **Module search order rework** — replaced alphabetical search with a deterministic, prioritized list; filesystem now searched before internal libraries. 
+    - **New experimental 6502 code generator** based on the IR, enabled with ``-newcodegen`` (do not use for production code yet).
+    - **m68k code generator** — a full experimental m68k code generator will follow in a later version.
+    - **Embedded arrays in structs** — structs can now contain arrays as fields.
+    - **``@bank`` accepts a subroutine name** — for dynamic / overlay banking with a bank manager
+    - **New library routines** — ``floats.mod()``; ``sys.MAX_LONG`` / ``sys.MIN_LONG``; PET32 ``petsnd`` playback functions, ``REST`` constant, ``set_gap()``, enharmonic flat note symbols; PET32 ``sys.set_irq()`` / ``sys.restore_irq()``; serial module: configurable baud rate.
+    - **Breaking changes** — ``-nostdlib`` removed; ``bankmanager`` renamed to ``bankselector``; ``swap`` is now a statement.
+    - **Search Path Comparison**:
 
 
 *This document summarizes major and minor releases. Bugfix releases (e.g., v12.0.1, v12.1.1) are omitted for brevity.*

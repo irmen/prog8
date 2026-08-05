@@ -282,7 +282,7 @@ gradle :compiler:compileTestKotlin --info 2>&1 | grep "^e:"
 - Unit tests use KoTest (FunSpec style)
 - Tests are in the "compiler" module's `test` directory (and some other modules)
 - Test config is in root `build.gradle.kts`; tests run in parallel
-- **When writing test programs**, add at the top: `%zeropage basicsafe` and `%option no_sysinit`
+- **When writing test programs**, add at the top: `%zeropage basicsafe` and `%option no_sysinit` - the latter ONLY when NOT writing for the amiga500 or qemu68k targets
 - When a test fails, the output shows "There were failing tests. See the report at:" - **read that HTML report**
 
 ### Compiler Unit Test Snippets
