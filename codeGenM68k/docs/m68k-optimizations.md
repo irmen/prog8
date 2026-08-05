@@ -30,28 +30,13 @@ should be left alone:
 - LOAD with a labelSymbol as a direct `move.l #label+off, mem` (InstrLoadStore.kt)
 - compare-and-branch immediates: `cmpi.x #imm, mem` / `tst.x mem` directly on
   the slot (InstrBranch.kt), matching `CMPI` in InstrArithmetic.kt:329
+- bit ops (BITTST/BITSET/BITCLR/BITTOG) directly on the register-file slot:
+  `bset #(bit % 8), mem + (size-1-bit/8)` (big-endian, so the target bit lives
+  in byte `size-1-bit/8` at position `bit % 8`), a single instruction with no
+  d0 round-trip (InstrBitwise.kt)
 
 
-1. Bit ops directly on memory
------------------------------
--
-
-`bitTest`, `bitSet`, `bitClear`, `bitToggle` (InstrBitwise.kt:374,380,387,394)
-round-trip through d0. `btst/bset/bclr/bchg` with an immediate bit number
-accept a memory operand, but the operation applies to a byte at that address.
-
-- For byte-sized register slots: emit directly, e.g. `bset #bit, mem`.
-- For word/long slots: the bit is a compile-time immediate, so adjust the
-  address by `bit/8` and use `bit % 8`:
-
-      bset    #(bit % 8), p8_regfile+(off + bit/8)
-
-  Only worth doing where the added offset complexity is justified.
-- `btst` feeds a following BSTEQ/BSTNE branch, which only needs the Z flag,
-  so the direct form is safe there.
-
-
-2. Peephole "d0 cache" (biggest win, still no full allocation)
+1. Peephole "d0 cache" (biggest win, still no full allocation)
 ----------------------------------------------------------------
 
 The scratch usage is very regular: D0-D2 data registers, A0 for addresses,
@@ -76,17 +61,45 @@ cache must never skip a load that is followed by an instruction that relies
 on the flags being set by that load. Since the cached loads are pure data
 moves that do not set flags, only skip the load, never reorder anything.
 
+
+2. Memory-form shifts and rotates for .w count=1
+--------------------------------------------------
+
+On the 68000, the shift/rotate instructions (ASL/ASR/LSL/LSR/ROL/ROR/ROXL/ROXR)
+have a memory form, but only for **`.w` size and count=1**. The EA is restricted
+to memory alterable (`(An)`, `d16(An)`, `abs.W`, `abs.L`, ...). For the regfile
+the slot address is a static symbol+offset, so the absolute form is strictly
+best: no scratch register needed.
+
+The relevant code paths currently always d0-round-trip, even for `.w` count=1,
+where the memory form would collapse 3 instructions into 1:
+
+- `shiftRegister` (InstrBitwise.kt:234): handles LSL/LSR/ASL/ASR on a register
+  slot. Currently emits `move.x mem,d0; op.x #1,d0; move.x d0,mem` for every
+  count 1..8. The memory path `memoryShiftRotate` (InstrBitwise.kt:264) already
+  emits the direct `op.w mem` form when the target is an explicit memory
+  operand; `shiftRegister` should do the same for `.w` count=1.
+- The rotates (`rotateLeft`, `rotateRight`, `rotateLeftThroughCarry`,
+  `rotateRightThroughCarry`, InstrBitwise.kt:336-372) currently always
+  d0-round-trip too. For `.w` count=1 they can emit `roxl.w mem` / `roxr.w mem`
+  directly on the slot. For the logical ROL/ROR (not through carry) the
+  `andi #$ef, ccr` (clear X) still has to precede the memory rotate; the
+  through-carry forms have no extra setup.
+- No `.b` or `.l` memory shifts/rotates exist on the 68000, so those sizes
+  and counts 2-8 (and variable counts) must keep the d0 round-trip. Going via
+  `(A0)` instead of `D0` (`lea mem,a0; op.x (a0)`) would be the same 2
+  instructions and is no improvement.
+
+This is a localized, easy fix: in `shiftRegister` and the four rotate
+functions, when `.w` and count==1, emit the memory form directly. The existing
+`memoryShiftRotate` already contains the right encoding logic (modulo the
+`andi #$ef, ccr` for logical ROL/ROR), so this is mostly routing the
+register-target path through the same helper.
+
+
 3. Small items
 ---------------
 
-- `shiftRegister` (InstrBitwise.kt:234): for `.w` size and count 1, m68k
-  supports the memory form `lsl.w mem` directly (the memory path already
-  does this in `memoryShiftRotate`, InstrBitwise.kt:264).
-- The `.w` count-1 rotates (`rotateLeft`, `rotateRight`,
-  `rotateLeftThroughCarry`, `rotateRightThroughCarry`, InstrBitwise.kt:336-372)
-  can do the same: `roxl.w mem` / `roxr.w mem` directly on the slot. For the
-  logical ROL/ROR the `andi #$ef, ccr` (clear X) still has to precede it,
-  and only `.w` memory rotates exist.
 - Byte multiply (InstrArithmetic.kt:353-360) reloads the same slot twice;
   it can be tidied to load once (minor).
 - Float constants already use real FPU registers and `fmovecr` for 0.0/1.0;
@@ -95,7 +108,9 @@ moves that do not set flags, only skip the load, never reorder anything.
 Suggested order of implementation
 -----------------------------------
 
-1. Item 1: direct bit ops for byte slots first.
-2. Item 2: the peephole d0 cache, as a separate pass, with the invalidation
+1. Item 1: the peephole d0 cache, as a separate pass, with the invalidation
    rules above.
-3. Item 3: small items (shifts/rotates, byte multiply) as time permits.
+2. Item 2: the memory-form shifts/rotates for `.w` count=1 (route
+   `shiftRegister` and the four rotates through the existing memory path;
+   trivial mechanical change with measurable wins).
+3. Item 3: small items (byte multiply) as time permits.

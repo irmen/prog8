@@ -1,44 +1,46 @@
 %import textio
 %zeropage basicsafe
 
-; Tests for "Compare-and-branch immediates: skip the load" in the m68k codegen.
+; Tests for "Bit ops directly on memory" in the m68k codegen.
 ; See codeGenM68k/docs/m68k-optimizations.md item 1:
 ;
-;   - cmpBranchUnsignedImm and cmpBranchSignedImm (InstrBranch.kt) currently emit:
+;   - bitTest/bitSet/bitClear/bitToggle (InstrBitwise.kt) round-trip through d0:
 ;         move.x  p8_regfile+off, d0
-;         cmpi.x  #imm, d0      (or tst.x d0 for imm == 0)
-;         bxx     label
-;   - cmpi.x #imm, <ea> accepts a memory operand directly, so the redundant
-;     register-file load can be skipped:
-;         cmpi.x  #imm, p8_regfile+off
-;         bxx     label
-;     and for imm == 0:
-;         tst.x   p8_regfile+off
-;         bxx     label
+;         btst.l  #bit, d0
+;         move.x  d0, p8_regfile+off        (bitTest has no write-back)
+;   - btst/bset/bclr/bchg with an immediate bit number accept a memory operand
+;     (applied to a byte at that address), so the round-trip can collapse to a
+;     single `bset #bit, mem` etc. for byte slots.
 ;
-; `if (x > imm)` style conditions compile to the BGT/BGE/BLT/BLE (unsigned) and
-; BGTS/BGES/BLTS/BLES (signed) branch opcodes with an immediate operand (the IR
-; optimizer rewrites `>` / `<=` into `>=` / `<` with an adjusted immediate, and
-; unsigned zero-compares into BSTEQ/BSTNE, so BGE/BLT and the signed variants
-; are what actually reach the m68k codegen).
+; The IR peephole optimizer converts these Prog8 patterns into the bit ops:
+;   - `(x & power2) != 0` / `== 0`  -> BITTST (feeds a BSTEQ/BSTNE branch)
+;   - `x | power2`                  -> BITSET
+;   - `x & ~power2`                 -> BITCLR
+;   - `x xor power2`                -> BITTOG
 ;
-; Convention: every case prints PASS when the condition evaluates to its
-; expected truth. Cases that expect the condition to be FALSE use `not` (which
-; merely swaps the branch labels, still using the same branch opcode).
+; NOTE: a plain assignment `x = x | power2` is rewritten to `x |= power2` by
+; the optimizer and becomes an ORM/ANDM/XORM memory op, which does NOT go
+; through the register bit-op peephole. So the tests here use `(x + 1) | pow2`
+; etc.: the left operand lands in a virtual register (load + inc), and only
+; then the bit op is applied, which triggers the BITSET/BITCLR/BITTOG/BITTST
+; IR opcodes.
+;
+; The test covers byte, word and long sizes and all four ops, printing the
+; resulting/expected values in hex so correctness is easy to verify.
 ;
 ;   prog8c -target amiga500 -out /tmp/opencode examples/test.p8
-;   rg '^\s*(bge|blt|bgts|bges|blts|bles)\.' /tmp/opencode/test.p8ir
-;   rg -n -B2 '^\s*(bhs|blo|bls|bge|blt|bgt|ble) ' /tmp/opencode/test.asm
-;   prog8c -target amiga500 -emu examples/test.p8   (uses vamos emulator)
+;   rg '^\s*(bittst|bitset|bitclr|bittog)\.' /tmp/opencode/test.p8ir
+;   rg -n -B1 -A1 '^\s*(btst|bset|bclr|bchg)\.' /tmp/opencode/test.asm
+;   prog8c -target qemu68k -emu examples/test.p8   (QEMU, vamos not installed)
 
 main {
     ubyte @shared pass_count = 0
     ubyte @shared fail_count = 0
 
     sub start() {
-        test_unsigned()
-        test_signed()
-        test_zero()
+        test_byte()
+        test_word()
+        test_long()
         txt.nl()
         txt.print("summary: pass=")
         txt.print_ub(pass_count)
@@ -47,8 +49,8 @@ main {
         txt.nl()
     }
 
-    sub check(ubyte ok) {
-        if ok != 0 {
+    sub check(bool ok) {
+        if ok {
             pass_count++
             txt.print("PASS\n")
         } else {
@@ -57,189 +59,118 @@ main {
         }
     }
 
-    sub test_unsigned() {
-        txt.print("--- unsigned ---\n")
+    sub test_byte() {
+        txt.print("--- byte ---\n")
 
-        ubyte @shared b_hi = 100
-        ubyte @shared b_lo = 20
-        txt.print("ub 100 > 50: ")
-        if b_hi > 50 { check(1) } else { check(0) }
-        txt.print("ub 20  > 50: ")
-        if not (b_lo > 50) { check(1) } else { check(0) }
-        txt.print("ub 100 >= 50: ")
-        if b_hi >= 50 { check(1) } else { check(0) }
-        txt.print("ub 20  >= 50: ")
-        if not (b_lo >= 50) { check(1) } else { check(0) }
-        txt.print("ub 100 < 50: ")
-        if not (b_hi < 50) { check(1) } else { check(0) }
-        txt.print("ub 20  < 50: ")
-        if b_lo < 50 { check(1) } else { check(0) }
-        txt.print("ub 100 <= 50: ")
-        if not (b_hi <= 50) { check(1) } else { check(0) }
-        txt.print("ub 20  <= 50: ")
-        if b_lo <= 50 { check(1) } else { check(0) }
+        ; BITSET: (x+1) | 1   (set bit 0); $55+1=$56, $56|1 = $57
+        ubyte @shared base = $55
+        ubyte @shared bs = 0
+        bs = (base + 1) | 1
+        txt.print("ub ($55+1) | 1 = ")
+        txt.print_ubhex(bs, true)
+        txt.print("  expected $57")
+        txt.nl()
+        check(bs == $57)
 
-        uword @shared w_hi = 60000
-        uword @shared w_lo = 30000
-        txt.print("uw 60000 > 40000: ")
-        if w_hi > 40000 { check(1) } else { check(0) }
-        txt.print("uw 30000 > 40000: ")
-        if not (w_lo > 40000) { check(1) } else { check(0) }
-        txt.print("uw 60000 >= 40000: ")
-        if w_hi >= 40000 { check(1) } else { check(0) }
-        txt.print("uw 30000 >= 40000: ")
-        if not (w_lo >= 40000) { check(1) } else { check(0) }
-        txt.print("uw 60000 < 40000: ")
-        if not (w_hi < 40000) { check(1) } else { check(0) }
-        txt.print("uw 30000 < 40000: ")
-        if w_lo < 40000 { check(1) } else { check(0) }
-        txt.print("uw 60000 <= 40000: ")
-        if not (w_hi <= 40000) { check(1) } else { check(0) }
-        txt.print("uw 30000 <= 40000: ")
-        if w_lo <= 40000 { check(1) } else { check(0) }
+        ; BITCLR: (x+1) & ~2   (clear bit 1); $56 & $fd = $54
+        ubyte @shared bc = 0
+        bc = (base + 1) & ~2
+        txt.print("ub ($55+1) & ~2 = ")
+        txt.print_ubhex(bc, true)
+        txt.print("  expected $54")
+        txt.nl()
+        check(bc == $54)
 
-        long @shared l_hi = 10000000
-        long @shared l_lo = 1000000
-        txt.print("ul 10000000 > 5000000: ")
-        if l_hi > 5000000 { check(1) } else { check(0) }
-        txt.print("ul 1000000 > 5000000: ")
-        if not (l_lo > 5000000) { check(1) } else { check(0) }
-        txt.print("ul 10000000 >= 5000000: ")
-        if l_hi >= 5000000 { check(1) } else { check(0) }
-        txt.print("ul 1000000 >= 5000000: ")
-        if not (l_lo >= 5000000) { check(1) } else { check(0) }
-        txt.print("ul 10000000 < 5000000: ")
-        if not (l_hi < 5000000) { check(1) } else { check(0) }
-        txt.print("ul 1000000 < 5000000: ")
-        if l_lo < 5000000 { check(1) } else { check(0) }
-        txt.print("ul 10000000 <= 5000000: ")
-        if not (l_hi <= 5000000) { check(1) } else { check(0) }
-        txt.print("ul 1000000 <= 5000000: ")
-        if l_lo <= 5000000 { check(1) } else { check(0) }
+        ; BITTOG: (x+1) ^ 8   (toggle bit 3); $56 ^ 8 = $5e
+        ubyte @shared bt = 0
+        bt = (base + 1) ^ 8
+        txt.print("ub ($55+1) ^ 8 = ")
+        txt.print_ubhex(bt, true)
+        txt.print("  expected $5e")
+        txt.nl()
+        check(bt == $5e)
+
+        ; BITTST: x & 1 != 0  (bit 0 set in $55) and x & 2 == 0 (bit 1 clear)
+        txt.print("ub $55 & 1 != 0: ")
+        if (base & 1) != 0 { check(true) } else { check(false) }
+        txt.print("ub $55 & 2 == 0: ")
+        if (base & 2) == 0 { check(true) } else { check(false) }
     }
 
-    sub test_signed() {
-        txt.print("--- signed ---\n")
+    sub test_word() {
+        txt.print("--- word ---\n")
 
-        byte @shared b_hi = 100
-        byte @shared b_lo = -50
-        txt.print("sb 100 > -20: ")
-        if b_hi > -20 { check(1) } else { check(0) }
-        txt.print("sb -50 > -20: ")
-        if not (b_lo > -20) { check(1) } else { check(0) }
-        txt.print("sb 100 >= -20: ")
-        if b_hi >= -20 { check(1) } else { check(0) }
-        txt.print("sb -50 >= -20: ")
-        if not (b_lo >= -20) { check(1) } else { check(0) }
-        txt.print("sb 100 < -20: ")
-        if not (b_hi < -20) { check(1) } else { check(0) }
-        txt.print("sb -50 < -20: ")
-        if b_lo < -20 { check(1) } else { check(0) }
-        txt.print("sb 100 <= -20: ")
-        if not (b_hi <= -20) { check(1) } else { check(0) }
-        txt.print("sb -50 <= -20: ")
-        if b_lo <= -20 { check(1) } else { check(0) }
+        ; BITSET: (x+1) | $100   (set bit 8); $1234+1=$1235, $1235|$100 = $1335
+        uword @shared base = $1234
+        uword @shared ws = 0
+        ws = (base + 1) | $100
+        txt.print("uw ($1234+1) | $100 = ")
+        txt.print_uwhex(ws, true)
+        txt.print("  expected $1335")
+        txt.nl()
+        check(ws == $1335)
 
-        word @shared w_hi = 20000
-        word @shared w_lo = -20000
-        txt.print("sw 20000 > -5000: ")
-        if w_hi > -5000 { check(1) } else { check(0) }
-        txt.print("sw -20000 > -5000: ")
-        if not (w_lo > -5000) { check(1) } else { check(0) }
-        txt.print("sw 20000 >= -5000: ")
-        if w_hi >= -5000 { check(1) } else { check(0) }
-        txt.print("sw -20000 >= -5000: ")
-        if not (w_lo >= -5000) { check(1) } else { check(0) }
-        txt.print("sw 20000 < -5000: ")
-        if not (w_hi < -5000) { check(1) } else { check(0) }
-        txt.print("sw -20000 < -5000: ")
-        if w_lo < -5000 { check(1) } else { check(0) }
-        txt.print("sw 20000 <= -5000: ")
-        if not (w_hi <= -5000) { check(1) } else { check(0) }
-        txt.print("sw -20000 <= -5000: ")
-        if w_lo <= -5000 { check(1) } else { check(0) }
+        ; BITCLR: (x+1) & ~$1000   (clear bit 12); $1235 & $efff = $0235
+        uword @shared wc = 0
+        wc = (base + 1) & ~$1000
+        txt.print("uw ($1234+1) & ~$1000 = ")
+        txt.print_uwhex(wc, true)
+        txt.print("  expected $0235")
+        txt.nl()
+        check(wc == $0235)
 
-        long @shared l_hi = 10000000
-        long @shared l_lo = -10000000
-        txt.print("sl 10000000 > -5000000: ")
-        if l_hi > -5000000 { check(1) } else { check(0) }
-        txt.print("sl -10000000 > -5000000: ")
-        if not (l_lo > -5000000) { check(1) } else { check(0) }
-        txt.print("sl 10000000 >= -5000000: ")
-        if l_hi >= -5000000 { check(1) } else { check(0) }
-        txt.print("sl -10000000 >= -5000000: ")
-        if not (l_lo >= -5000000) { check(1) } else { check(0) }
-        txt.print("sl 10000000 < -5000000: ")
-        if not (l_hi < -5000000) { check(1) } else { check(0) }
-        txt.print("sl -10000000 < -5000000: ")
-        if l_lo < -5000000 { check(1) } else { check(0) }
-        txt.print("sl 10000000 <= -5000000: ")
-        if not (l_hi <= -5000000) { check(1) } else { check(0) }
-        txt.print("sl -10000000 <= -5000000: ")
-        if l_lo <= -5000000 { check(1) } else { check(0) }
+        ; BITTOG: (x+1) ^ 2   (toggle bit 1); $1235 ^ 2 = $1237
+        uword @shared wt = 0
+        wt = (base + 1) ^ 2
+        txt.print("uw ($1234+1) ^ 2 = ")
+        txt.print_uwhex(wt, true)
+        txt.print("  expected $1237")
+        txt.nl()
+        check(wt == $1237)
+
+        ; BITTST: x & $10 != 0  (bit 4 set in $1234) and x & 8 == 0 (bit 3 clear)
+        txt.print("uw $1234 & $10 != 0: ")
+        if (base & $10) != 0 { check(true) } else { check(false) }
+        txt.print("uw $1234 & 8 == 0: ")
+        if (base & 8) == 0 { check(true) } else { check(false) }
     }
 
-    sub test_zero() {
-        txt.print("--- zero immediate (tst path) ---\n")
+    sub test_long() {
+        txt.print("--- long ---\n")
 
-        ubyte @shared ub = 7
-        txt.print("ub 7 > 0: ")
-        if ub > 0 { check(1) } else { check(0) }
-        txt.print("ub 7 >= 0: ")
-        if ub >= 0 { check(1) } else { check(0) }
-        txt.print("ub 7 < 0: ")
-        if not (ub < 0) { check(1) } else { check(0) }
-        txt.print("ub 7 <= 0: ")
-        if not (ub <= 0) { check(1) } else { check(0) }
+        ; BITSET: (x+1) | $40000000   (set bit 30); $12345678+1=$12345679
+        ; $12345679 | $40000000 = $52345679
+        long @shared base = $12345678
+        long @shared ls = 0
+        ls = (base + 1) | $40000000
+        txt.print("ul ($12345678+1) | $40000000 = ")
+        txt.print_ulhex(ls, true)
+        txt.print("  expected $52345679")
+        txt.nl()
+        check(ls == $52345679)
 
-        uword @shared uw = 60000
-        txt.print("uw 60000 > 0: ")
-        if uw > 0 { check(1) } else { check(0) }
-        txt.print("uw 60000 >= 0: ")
-        if uw >= 0 { check(1) } else { check(0) }
-        txt.print("uw 60000 < 0: ")
-        if not (uw < 0) { check(1) } else { check(0) }
-        txt.print("uw 60000 <= 0: ")
-        if not (uw <= 0) { check(1) } else { check(0) }
+        ; BITCLR: (x+1) & ~$10000000   (clear bit 28); $12345679 & $efffffff = $02345679
+        long @shared lc = 0
+        lc = (base + 1) & ~$10000000
+        txt.print("ul ($12345678+1) & ~$10000000 = ")
+        txt.print_ulhex(lc, true)
+        txt.print("  expected $02345679")
+        txt.nl()
+        check(lc == $02345679)
 
-        long @shared ul = 70000000
-        txt.print("ul 70000000 > 0: ")
-        if ul > 0 { check(1) } else { check(0) }
-        txt.print("ul 70000000 >= 0: ")
-        if ul >= 0 { check(1) } else { check(0) }
-        txt.print("ul 70000000 < 0: ")
-        if not (ul < 0) { check(1) } else { check(0) }
-        txt.print("ul 70000000 <= 0: ")
-        if not (ul <= 0) { check(1) } else { check(0) }
+        ; BITTOG: (x+1) ^ 8   (toggle bit 3); $12345679 ^ 8 = $12345671
+        long @shared lt = 0
+        lt = (base + 1) ^ 8
+        txt.print("ul ($12345678+1) ^ 8 = ")
+        txt.print_ulhex(lt, true)
+        txt.print("  expected $12345671")
+        txt.nl()
+        check(lt == $12345671)
 
-        byte @shared sb = -5
-        txt.print("sb -5 > 0: ")
-        if not (sb > 0) { check(1) } else { check(0) }
-        txt.print("sb -5 >= 0: ")
-        if not (sb >= 0) { check(1) } else { check(0) }
-        txt.print("sb -5 < 0: ")
-        if sb < 0 { check(1) } else { check(0) }
-        txt.print("sb -5 <= 0: ")
-        if sb <= 0 { check(1) } else { check(0) }
-
-        word @shared sw = -30000
-        txt.print("sw -30000 > 0: ")
-        if not (sw > 0) { check(1) } else { check(0) }
-        txt.print("sw -30000 >= 0: ")
-        if not (sw >= 0) { check(1) } else { check(0) }
-        txt.print("sw -30000 < 0: ")
-        if sw < 0 { check(1) } else { check(0) }
-        txt.print("sw -30000 <= 0: ")
-        if sw <= 0 { check(1) } else { check(0) }
-
-        long @shared sl = -50000000
-        txt.print("sl -50000000 > 0: ")
-        if not (sl > 0) { check(1) } else { check(0) }
-        txt.print("sl -50000000 >= 0: ")
-        if not (sl >= 0) { check(1) } else { check(0) }
-        txt.print("sl -50000000 < 0: ")
-        if sl < 0 { check(1) } else { check(0) }
-        txt.print("sl -50000000 <= 0: ")
-        if sl <= 0 { check(1) } else { check(0) }
+        ; BITTST: x & $10000000 != 0  (bit 28 set) and x & $08000000 == 0 (bit 27 clear)
+        txt.print("ul $12345678 & $10000000 != 0: ")
+        if (base & $10000000) != 0 { check(true) } else { check(false) }
+        txt.print("ul $12345678 & $08000000 == 0: ")
+        if (base & $08000000) == 0 { check(true) } else { check(false) }
     }
 }

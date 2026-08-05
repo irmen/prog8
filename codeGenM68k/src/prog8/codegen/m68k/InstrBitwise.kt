@@ -371,29 +371,33 @@ private fun AsmGen.rotateRightThroughCarry(reg: Int, type: IRDataType) {
 
 // === Bit manipulation ===
 
+private fun AsmGen.bitOpMem(op: String, reg: Int, bit: Int, type: IRDataType) {
+    // The register slot is big-endian in memory, so the target bit lives in
+    // byte (size-1-bit/8) at bit position (bit % 8). A byte-sized bit op with
+    // an immediate bit number operates on that byte directly, no d0 round-trip.
+    val size = when(type) {
+        IRDataType.BYTE -> 1
+        IRDataType.WORD -> 2
+        IRDataType.LONG -> 4
+        else -> error("bit op on unsupported type $type")
+    }
+    val byteOffset = size - 1 - bit / 8
+    val bitInByte = bit % 8
+    emitLine("$op  #$bitInByte, ${regAddrByte(reg, byteOffset)}")
+}
+
 private fun AsmGen.bitTest(reg: Int, bit: Int, type: IRDataType) {
-    val s = dtSuffix(type)
-    emitLine("move$s  ${regAddr(reg)}, d0")
-    emitLine("btst.l  #$bit, d0")
+    bitOpMem("btst", reg, bit, type)
 }
 
 private fun AsmGen.bitSet(reg: Int, bit: Int, type: IRDataType) {
-    val s = dtSuffix(type)
-    emitLine("move$s  ${regAddr(reg)}, d0")
-    emitLine("bset.l  #$bit, d0")
-    emitLine("move$s  d0, ${regAddr(reg)}")
+    bitOpMem("bset", reg, bit, type)
 }
 
 private fun AsmGen.bitClear(reg: Int, bit: Int, type: IRDataType) {
-    val s = dtSuffix(type)
-    emitLine("move$s  ${regAddr(reg)}, d0")
-    emitLine("bclr.l  #$bit, d0")
-    emitLine("move$s  d0, ${regAddr(reg)}")
+    bitOpMem("bclr", reg, bit, type)
 }
 
 private fun AsmGen.bitToggle(reg: Int, bit: Int, type: IRDataType) {
-    val s = dtSuffix(type)
-    emitLine("move$s  ${regAddr(reg)}, d0")
-    emitLine("bchg.l  #$bit, d0")
-    emitLine("move$s  d0, ${regAddr(reg)}")
+    bitOpMem("bchg", reg, bit, type)
 }
