@@ -259,7 +259,6 @@ Major breaking changes that require code modifications when upgrading:
     - **``@bank`` accepts a subroutine name** — for dynamic / overlay banking with a bank manager
     - **New library routines** — ``floats.mod()``; ``sys.MAX_LONG`` / ``sys.MIN_LONG``; PET32 ``petsnd`` playback functions, ``REST`` constant, ``set_gap()``, enharmonic flat note symbols; PET32 ``sys.set_irq()`` / ``sys.restore_irq()``; serial module: configurable baud rate.
     - **Breaking changes** — ``-nostdlib`` removed; ``bankmanager`` renamed to ``bankselector``; ``swap`` is now a statement.
-    - **Search Path Comparison**:
 
 
 *This document summarizes major and minor releases. Bugfix releases (e.g., v12.0.1, v12.1.1) are omitted for brevity.*
