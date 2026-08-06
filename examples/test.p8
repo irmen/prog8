@@ -1,46 +1,44 @@
 %import textio
-%import coroutines
-%zeropage basicsafe
+%import timer
+%import arexx
+%import exec
 
 main {
     sub start() {
-        void coroutines.add(task1, 0)
-        void coroutines.add(task2, 0)
-        void coroutines.add(task3, 0)
-        txt.print("starting 3 tasks...\n")
-        coroutines.run(supervisor)
-        txt.print("\ndone.\n")
-    }
 
-    ubyte @shared count
-
-    sub supervisor() -> bool {
-        count++
-        if count==200 {
-            coroutines.killall()
-            return false
+        if timer.opendevice() {
+            ;; TODO fix   long hi,lo = timer.getsystime()
+            long hi,lo
+            hi,lo = timer.getsystime()
+            txt.print_l(hi)
+            txt.spc()
+            txt.print_l(lo)
+            txt.nl()
+            timer.setsystime(123,456)
+            hi,lo = timer.getsystime()
+            txt.print_l(hi)
+            txt.spc()
+            txt.print_l(lo)
+            txt.nl()
+            timer.closedevice()
         }
-        return true
-    }
 
-    sub task1() {
-        repeat {
-            txt.chrout('a')
-            void coroutines.yield()
-        }
-    }
 
-    sub task2() {
-        repeat {
-            txt.chrout('b')
-            void coroutines.yield()
-        }
-    }
+        if arexx.openlib() {
+            txt.print_ulhex(sys.RexxSysBase, true)
+            txt.nl()
 
-    sub task3() {
-        repeat {
-            txt.chrout('c')
-            void coroutines.yield()
+            pointer a = arexx.CreateArgstring("irmen", 5)
+            if a!=0 {
+                txt.print_ulhex(a, true)
+                txt.nl()
+                arexx.DeleteArgstring(a)
+            }
+
+            arexx.closelib()
+        } else {
+            txt.print("no lib\n")
         }
+
     }
 }

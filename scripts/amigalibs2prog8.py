@@ -102,6 +102,8 @@ STRUCT_NAME_MAP = {
     'TagItem':        ('TagItem',          'ti_'),
     'HOOK':           ('Hook',             'h_'),
     'CLOCKDATA':      ('ClockData',        ''),
+    # arexx (rexxsyslib)
+    'RexxMsg':        ('RexxMsg',          'rm_'),
 }
 
 # Prog8 keywords that conflict with field names
@@ -966,6 +968,19 @@ LIBRARY_HELPERS = {
         }}
     }
 ''',
+    'arexx': '''
+    sub openlib() -> bool {
+        sys.RexxSysBase = exec.OpenLibrary("rexxsyslib.library", 0)
+        return sys.RexxSysBase!=0
+    }
+
+    sub closelib() {
+        if sys.RexxSysBase!=0 {
+            exec.CloseLibrary(sys.RexxSysBase)
+            sys.RexxSysBase = 0
+        }
+    }
+''',
 }
 
 # ---------------------------------------------------------------------------
@@ -981,6 +996,13 @@ def parse_c_type(c_type: str) -> tuple:
     c_type = c_type.replace('*', '').strip()
     c_type = re.sub(r'\b(struct|union)\s+', '', c_type).strip()
     if c_type in TYPE_MAP:
+        # If the original was a pointer, return pointer (or str for char*).
+        if is_ptr:
+            if c_type in ('STRPTR', 'TEXT', 'CONST_STRPTR', 'CONST_TEXT', 'BSTR', 'char'):
+                return ('str', c_type)
+            if c_type == 'BOOL':
+                return ('pointer', c_type)
+            return ('pointer', c_type)
         prog8_type = TYPE_MAP[c_type]
         if c_type == 'BOOL':
             prog8_type = 'bool'
@@ -1575,6 +1597,7 @@ LIB_HEADERS = {
                   'graphics/gfx.h', 'graphics/view.h', 'graphics/rastport.h',
                   'graphics/clip.h', 'graphics/text.h', 'graphics/layers.h'],
     'utility': ['utility/tagitem.h', 'utility/hooks.h', 'utility/date.h'],
+    'arexx': ['rexx/storage.h', 'rexx/rexxio.h', 'dos/dos.h'],
 }
 
 # Which struct tags belong to which library (to avoid cross-library duplication)
@@ -1589,6 +1612,7 @@ LIB_STRUCT_TAGS = {
                   'IBox', 'EasyStruct', 'ExtGadget', 'ExtIntuiMessage', 'DrawInfo',
                   'ColorSpec', 'Menu'},
     'utility': {'TagItem', 'HOOK', 'CLOCKDATA'},
+    'arexx': {'RexxMsg'},
 }
 
 
@@ -1711,9 +1735,14 @@ def main():
     ndk = args.ndk_path.rstrip('/')
     lib = args.lib_name
 
+    # Special handling: the 'arexx' module exposes the rexxsyslib functions
+    # (the actual ARexx REXX-message routines). The 'arexx' Amiga library
+    # is just a BOOPSI class wrapper, not where the rexx functions live.
+    arexx_alias = (lib == 'arexx')
+
     # Parse struct definitions - prefer clang JSON AST over .i files
     all_raw = {}
-    inc = os.path.join(ndk, 'Include_I', lib)
+    inc = os.path.join(ndk, 'Include_I', 'rexx' if arexx_alias else lib)
     exec_inc = os.path.join(ndk, 'Include_I', 'exec')
     if args.structs or args.consts:
         clang_structs = parse_structs_from_clang(ndk, lib)
@@ -1735,15 +1764,17 @@ def main():
         all_raw = {}
 
     # Parse LVO and SFD for function signatures
-    lvo_p = os.path.join(ndk, 'Include_I', 'lvo', f'{lib}_lib.i')
-    sfd_p = os.path.join(ndk, 'SFD', f'{lib}_lib.sfd')
+    lvo_lib = 'rexxsyslib' if arexx_alias else lib
+    lvo_p = os.path.join(ndk, 'Include_I', 'lvo', f'{lvo_lib}_lib.i')
+    sfd_p = os.path.join(ndk, 'SFD', f'{lvo_lib}_lib.sfd')
     if not os.path.exists(lvo_p) or not os.path.exists(sfd_p):
         print(f"Error: LVO or SFD file not found for '{lib}'", file=sys.stderr)
         sys.exit(1)
     lvos = parse_lvo(lvo_p)
     sfd_funcs = parse_sfd(sfd_p)
     libname = sfd_funcs.pop('__libname', '')
-    bank = LIBRARY_BANK_MAP.get(lib)
+    # The arexx module uses the rexxsyslib bank (where the rexx functions actually live).
+    bank = LIBRARY_BANK_MAP.get(lvo_lib) if arexx_alias else LIBRARY_BANK_MAP.get(lib)
     btag = f"@bank {bank} " if bank else ""
 
     print(f";; Auto-generated from {lib}_lib.sfd and {lib}_lib.i")
@@ -1753,6 +1784,9 @@ def main():
         print(f";; Bank: {bank}")
     print(f";; Functions: {len(lvos)}\n")
 
+    if arexx_alias:
+        print(f"%import exec")
+        print()
     print(f"{lib} {{")
     print(f"    %option no_symbol_prefixing")
 

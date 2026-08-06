@@ -1,6 +1,9 @@
+%import exec
 
 timer {
     %option no_symbol_prefixing, ignore_unused
+
+    ^^TimeRequest @shared TimerIO
 
     enum UNIT {
         MICROHZ = 0,
@@ -46,17 +49,46 @@ timer {
         long lo
     }
 
+    sub opendevice() -> bool {
+        ; open timer.device in a kickstart 1.3 compatible fashion
+        ^^exec.MsgPort timerPort = []
+        TimerIO = exec.AllocMem(sizeof(timer.TimeRequest), exec.MEMF_PUBLIC | exec.MEMF_CLEAR)
+        timerPort.Type = exec.NT_MSGPORT
+        timerPort.Flags = exec.PA_SIGNAL
+        timerPort.SigBit = exec.AllocSignal(-1) as ubyte
+        timerPort.SigTask = exec.FindTask(0)
+        exec.NewList(&&timerPort.Head)
+        TimerIO.ReplyPort = timerPort
+
+        if exec.OpenDevice("timer.device", timer.UNIT::MICROHZ, TimerIO, 0)==0 {
+            sys.TimerBase = TimerIO.Device
+            return true
+        }
+        return false
+    }
+
+    sub closedevice() {
+        if TimerIO != 0 {
+            ^^exec.MsgPort timerPort = TimerIO.ReplyPort
+            byte sigbit = timerPort.SigBit as byte
+            exec.CloseDevice(TimerIO)
+            exec.FreeSignal(sigbit)
+            exec.FreeMem(TimerIO, sizeof(timer.TimeRequest))
+            TimerIO = 0
+        }
+    }
+
     sub getsystime() -> long, long {
-        sys.TimerIO.Command = timer.TR_GETSYSTIME
-        void exec.DoIO(sys.TimerIO)
-        return sys.TimerIO.secs, sys.TimerIO.micro
+        TimerIO.Command = timer.TR_GETSYSTIME
+        void exec.DoIO(TimerIO)
+        return TimerIO.secs, TimerIO.micro
     }
 
     sub setsystime(long secs, long micro) {
-        sys.TimerIO.Command = timer.TR_SETSYSTIME
-        sys.TimerIO.secs = secs
-        sys.TimerIO.micro = micro
-        void exec.DoIO(sys.TimerIO)
+        TimerIO.Command = timer.TR_SETSYSTIME
+        TimerIO.secs = secs
+        TimerIO.micro = micro
+        void exec.DoIO(TimerIO)
     }
 
     extsub @bank 18  -42 = AddTime( ^^TimeVal dest @A0, ^^TimeVal src @A1 )

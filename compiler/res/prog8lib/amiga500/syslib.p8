@@ -4,7 +4,6 @@
 %import shared_m68k_memory_routines
 
 %import dos
-%import timer
 
 sys {
     ; ------- lowlevel system routines --------
@@ -38,8 +37,8 @@ sys {
     pointer @shared IntuitionBase
     pointer @shared IconBase
     pointer @shared UtilityBase     ; kickstart 2.0+
-    pointer @shared TimerBase
-    ^^timer.TimeRequest @shared TimerIO     ; note: cannot be statically allocated here because these variables are not initialized yet at the time the system init code runs
+    pointer @shared RexxSysBase     ; kickstart 2.0+, loaded from disk on demand
+    pointer @shared TimerBase       ; opened on demand
 
     sub  reset_system()  {
         %asm {{
