@@ -20,6 +20,7 @@
 
 package prog8.codegen.new6502
 
+import prog8.code.core.AssemblyError
 import prog8.intermediate.IRDataType
 import prog8.intermediate.IRInstruction
 import prog8.intermediate.Opcode
@@ -1138,12 +1139,11 @@ internal fun AsmGen.modImmediate(dstReg: Int, value: Int, type: IRDataType) {
 }
 
 internal fun modSignedRegisters(dstReg: Int, srcReg: Int, type: IRDataType) {
-    TODO("MODSR r$dstReg, r$srcReg (signed)")
+    throw AssemblyError("remainder of signed integers is not properly defined/implementedon 6502 target, use unsigned instead")
 }
 
 internal fun AsmGen.modSignedImmediate(dstReg: Int, value: Int, type: IRDataType) {
-    emitLine("; MODS r$dstReg, $value (signed, using unsigned)")
-    modImmediate(dstReg, value, type)
+    throw AssemblyError("remainder of signed integers is not properly defined/implemented on 6502 target, use unsigned instead")
 }
 
 // === DivMod ===

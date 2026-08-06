@@ -376,6 +376,11 @@ import prog8.codegen.cpu6502.assignment.*
 
         val identifier = fcall.args[0] as? PtIdentifier
         if(identifier!=null) {
+            // NOTE: `jmp (ptr)` below has the 6502 page-wrap bug on plain
+            // 6502 if the pointer (the identifier, a variable holding a
+            // routine address) lands at $xxFF. 65C02 is fine. Latent; only
+            // misbehaves for variables placed at a $xxFF address. The
+            // new6502 codegen's CALLI has the same hazard.
             asmgen.out("""
                 ; push a return address so the jmp becomes indirect jsr
                 lda  #>((+)-1)
@@ -387,6 +392,9 @@ import prog8.codegen.cpu6502.assignment.*
             return arrayOf(RegisterOrPair.AY)
         }
 
+        // NOTE: same 6502 page-wrap pitfall as above: the pointer is
+        // staged through P8ZP_SCRATCH_W2 before the indirect jmp, so the
+        // scratch word must not land at $xxFF on plain 6502. 65C02 is fine.
         asmgen.assignExpressionToVariable(fcall.args[0], asmgen.asmVariableName("P8ZP_SCRATCH_W2"), DataType.UWORD)     // jump address
         asmgen.out("""
                 ; push a return address so the jmp becomes indirect jsr

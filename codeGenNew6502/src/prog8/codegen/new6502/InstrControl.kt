@@ -42,6 +42,12 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
 
         Opcode.JUMPI -> {
             val reg = r1 ?: error("JUMPI needs reg1")
+            // NOTE: `jmp (ptr)` has the 6502 page-wrap bug on plain 6502
+            // (if the pointer's address ends in $FF the high byte is read
+            // from the same page instead of the next). 65C02 is fine.
+            // Latent: the pointer is a register in p8_regfile (BSS) and only
+            // misbehaves if that slot happens to land at $xxFF. The old 6502
+            // codegen has the same hazard.
             emitLine("jmp  (${regAddr(reg)})")
         }
 
@@ -53,6 +59,10 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
 
         Opcode.CALLI -> {
             val reg = r1 ?: error("CALLI needs reg1")
+            // NOTE: same 6502 page-wrap pitfall as JUMPI above: `jmp (ptr)`
+            // misbehaves on plain 6502 if the pointer (here a register in
+            // p8_regfile) lands at $xxFF. 65C02 is fine. Same hazard exists
+            // in the old 6502 codegen.
             emitLine("lda  #>((+)-1)")
             emitLine("pha")
             emitLine("lda  #<((+)-1)")
@@ -301,7 +311,9 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
 
         Opcode.ALIGN -> {
             val alignment = imm ?: 256
-            emitLine("; ALIGN to $alignment bytes")
+            if (alignment > 1) {
+                emitLine(".align  ${alignment.toUInt().toHex()}")
+            }
         }
 
         Opcode.LSIGB -> {

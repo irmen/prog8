@@ -1996,6 +1996,13 @@ $repeatLabel""")
 
     internal fun jmp(asmLabel: String, indirect: Boolean=false, indexedX: Boolean=false) {
         if(indirect) {
+            // NOTE: `jmp (ptr)` / `jmp (ptr,x)` have the 6502 page-wrap bug
+            // on plain 6502: if the pointer's address ends in $FF, the
+            // high byte of the target is read from the same page instead
+            // of the next. 65C02 is fine. Latent: only misbehaves when the
+            // pointer variable (the operand, e.g. a computed-goto target)
+            // is placed at a $xxFF address. The new6502 codegen has the
+            // same hazard for its JUMPI/CALLI emitters.
             if(indexedX)
                 out("  jmp  ($asmLabel,x)")
             else

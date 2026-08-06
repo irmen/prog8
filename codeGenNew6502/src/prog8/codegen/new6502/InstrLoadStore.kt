@@ -850,12 +850,13 @@ internal fun AsmGen.zeroMemoryIndexed(reg: Int, baseAddress: String, type: IRDat
         }
         IRDataType.WORD, IRDataType.POINTER -> {
             emitStoreZero("$baseAddress,x")
-            emitLine("ldx  ${regAddrHi(reg)}")
             emitStoreZero("${baseAddress}+1,x")
         }
         IRDataType.LONG -> {
-            emitLine("; STOREZX LONG not fully implemented")
             emitStoreZero("$baseAddress,x")
+            emitStoreZero("${baseAddress}+1,x")
+            emitStoreZero("${baseAddress}+2,x")
+            emitStoreZero("${baseAddress}+3,x")
         }
         IRDataType.FLOAT -> {
             TODO("FLOAT STOREZX")

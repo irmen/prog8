@@ -3,7 +3,7 @@ TODO
 
 - need a bunch of type casting/conversion checks that test the handling of the 4-byte/long pointer datatype on the qemu68k target.
 - some generated label names in the m68k codegen can maybe replaced by local/anonymous labels?
-- amiga library structs: use more typed pointers if it knows the struct type , rather than using `pointer`
+- amiga library structs: use more typed pointers if it knows the struct type , rather than using `pointer`. Consider both the extsubs but also the struct fields in the amigaDOS structs in the generated library modules.
 
 
 m68k Codegen: FPU register allocation (68881 only has fp0-fp7)
