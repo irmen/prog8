@@ -1,2 +1,5 @@
-; the m68k codegen doesn't support coroutines yet, maybe some day
+%import shared_m68k_coroutines
 
+coroutines {
+    %option ignore_unused
+}

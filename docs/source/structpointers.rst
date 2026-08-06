@@ -102,11 +102,6 @@ the string is actually passed by reference (it's address pointer is passed) inst
 In previous Prog8 versions these were untyped uword pointers, but since version 12, these are now translated as ``^^ubyte``.
 Resulting assembly code should be equivalent still.
 
-.. note::
-    **Pointers to subroutines:**
-    While Prog8 allows you to take the address of a subroutine, it has no support yet for typed function pointers.
-    Calling a routine through a pointer with ``goto``, ``call()`` and such, only works with the raw uword address for now.
-
 
 Dereferencing a pointer, pointer arithmetic
 -------------------------------------------

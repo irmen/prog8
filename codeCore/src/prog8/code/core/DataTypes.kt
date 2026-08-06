@@ -468,7 +468,11 @@ class DataType private constructor(
     val isBool = base == BaseDataType.BOOL
     val isFloat = base == BaseDataType.FLOAT
     val isLong = base == BaseDataType.LONG
-    val isStringly = base == BaseDataType.STR || base == BaseDataType.UWORD || (base == BaseDataType.ARRAY && (sub == BaseDataType.UBYTE || sub == BaseDataType.BYTE))
+    fun isStringly(target: ICompilationTarget): Boolean =
+        base == BaseDataType.STR ||
+        (target.POINTER_MEM_SIZE == 2u && base == BaseDataType.UWORD) ||
+        (target.POINTER_MEM_SIZE > 2u && base == BaseDataType.LONG) ||
+        (base == BaseDataType.ARRAY && (sub == BaseDataType.UBYTE || sub == BaseDataType.BYTE))
     val isSplitWordArray = base.isSplitWordArray
     val isSplitUnsignedWordArray = base == BaseDataType.ARRAY_SPLITW && sub == BaseDataType.UWORD
     val isSplitSignedWordArray = base == BaseDataType.ARRAY_SPLITW && sub == BaseDataType.WORD

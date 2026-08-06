@@ -145,7 +145,7 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
         val leftconst = expr.left.constValue(program)
         val rightconst = expr.right.constValue(program)
 
-        if(expr.left.inferType(program).isStringLy) {
+        if(expr.left.inferType(program).isStringLy(program.target)) {
             if(expr.operator=="+" && expr.left is StringLiteral && expr.right is StringLiteral) {
                 // concatenate two strings.
                 val leftString = expr.left as StringLiteral

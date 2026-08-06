@@ -2,6 +2,7 @@ package prog8.ast.expressions
 
 import prog8.code.core.BaseDataType
 import prog8.code.core.DataType
+import prog8.code.core.ICompilationTarget
 import java.util.*
 
 
@@ -69,7 +70,7 @@ object InferredTypes {
         val isFloatArray = datatype?.isFloatArray==true
         val isByteArray = datatype?.isByteArray==true
         val isString = datatype?.isString==true
-        val isStringLy = datatype?.isStringly==true
+        fun isStringLy(target: ICompilationTarget) = datatype?.isStringly(target)==true
         val isIterable = datatype?.isIterable==true
     }
 
