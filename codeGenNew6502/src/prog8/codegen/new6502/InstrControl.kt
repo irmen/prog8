@@ -843,9 +843,9 @@ private fun AsmGen.translateReturnValue(ret: FunctionCallArgs.RegSpec) {
                         emitLine("lda  cx16.r14+1")
                         emitLine("sta  ${regAddrHi(regNum)}")
                         emitLine("lda  cx16.r15")
-                        emitLine("sta  ${regAddrLo(regNum + 1)}")
+                        emitLine("sta  ${regAddrByte(regNum, 2)}")
                         emitLine("lda  cx16.r15+1")
-                        emitLine("sta  ${regAddrHi(regNum + 1)}")
+                        emitLine("sta  ${regAddrByte(regNum, 3)}")
                     }
                     IRDataType.FLOAT -> {
                         emitLine("ldx  #<${fpRegAddr(regNum)}")
@@ -1377,24 +1377,13 @@ private fun AsmGen.translateFloatToSignedLong(insn: IRInstruction) {
     emitLine("lda  #<${fpRegAddr(fpReg.value)}")
     emitLine("ldy  #>${fpRegAddr(fpReg.value)}")
     emitLine("jsr  floats.MOVFM")
-    val fpr = fpReg.value
-    val doneLabel = "ftosl_done_${fpr}_${r1}"
-    val posLabel = "ftosl_pos_${fpr}_${r1}"
-    // Check if FAC1 is zero (exponent = 0)
-    emitLine("lda  floats.FAC_ADDR")
-    emitLine("bne  +")
-    // Zero: store 4 zero bytes and return
-    emitLine("stz  $regAddr")
-    emitLine("stz  ${regAddr}+1")
-    emitLine("stz  ${regAddr}+2")
-    emitLine("stz  ${regAddr}+3")
-    emitLine("bra  $doneLabel")
-    // Non-zero: check sign (bit 7 of FAC_ADDR+1)
-    emitLine("+   lda  floats.FAC_ADDR+1")
-    emitLine("bpl  $posLabel")
-    // Negative: negate, QINT, copy mantissa, then negate the 4-byte result
-    emitLine("jsr  floats.NEGOP")
+    // QINT converts FAC1 to a signed 32-bit integer in the mantissa bytes.
+    // Note: bit 7 of FAC_ADDR+1 (facho) is the hidden mantissa bit, NOT the
+    // sign - the sign lives in facsgn (FAC_ADDR+5). QINT handles the sign
+    // itself, so no extra sign handling is needed here. This matches the old
+    // codegen's cast_as_long routine.
     emitLine("jsr  floats.QINT")
+    // Copy the 4-byte (signed) integer result, least significant byte first.
     emitLine("lda  $facho+3")
     emitLine("sta  $regAddr")
     emitLine("lda  $facho+2")
@@ -1403,33 +1392,6 @@ private fun AsmGen.translateFloatToSignedLong(insn: IRInstruction) {
     emitLine("sta  ${regAddr}+2")
     emitLine("lda  $facho")
     emitLine("sta  ${regAddr}+3")
-    // Negate the 32-bit result (two's complement)
-    emitLine("sec")
-    emitLine("lda  #0")
-    emitLine("sbc  $regAddr")
-    emitLine("sta  $regAddr")
-    emitLine("lda  #0")
-    emitLine("sbc  ${regAddr}+1")
-    emitLine("sta  ${regAddr}+1")
-    emitLine("lda  #0")
-    emitLine("sbc  ${regAddr}+2")
-    emitLine("sta  ${regAddr}+2")
-    emitLine("lda  #0")
-    emitLine("sbc  ${regAddr}+3")
-    emitLine("sta  ${regAddr}+3")
-    emitLine("bra  $doneLabel")
-    // Positive: QINT and copy mantissa bytes to target
-    emitLine("$posLabel:")
-    emitLine("jsr  floats.QINT")
-    emitLine("lda  $facho+3")
-    emitLine("sta  $regAddr")
-    emitLine("lda  $facho+2")
-    emitLine("sta  ${regAddr}+1")
-    emitLine("lda  $facho+1")
-    emitLine("sta  ${regAddr}+2")
-    emitLine("lda  $facho")
-    emitLine("sta  ${regAddr}+3")
-    emitLine("$doneLabel:")
 }
 
 private fun AsmGen.translateFloatCompare(insn: IRInstruction) {

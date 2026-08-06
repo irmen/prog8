@@ -307,6 +307,13 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
         }
     }
 
+    fun emitUnconditionalBranch(label: String) {
+        if (cpu == CpuType.CPU65C02)
+            emitLine("bra  $label")
+        else
+            emitLine("jmp  $label")
+    }
+
     fun is65C02() = cpu == CpuType.CPU65C02
 
     /** Look up an asmsub parameter that maps to a CX16 virtual register. */

@@ -168,9 +168,10 @@ private fun AsmGen.translateCmpBranchLongUnsigned(insn: IRInstruction, label: St
             // a > imm -> imm < a: swap operands
             for (byteIdx in 0..3) {
                 val immPart = (imm shr (byteIdx * 8)) and 0xff
-                if (byteIdx == 0)
+                if (byteIdx == 0) {
                     emitLine("lda  #$immPart")
-                else {
+                    emitLine("cmp  ${regAddrByte(reg, byteIdx)}")
+                } else {
                     emitLine("lda  #$immPart")
                     emitLine("sbc  ${regAddrByte(reg, byteIdx)}")
                 }
@@ -209,9 +210,10 @@ private fun AsmGen.translateCmpBranchLongUnsigned(insn: IRInstruction, label: St
             // a <= imm -> imm >= a: swap operands
             for (byteIdx in 0..3) {
                 val immPart = (imm shr (byteIdx * 8)) and 0xff
-                if (byteIdx == 0)
+                if (byteIdx == 0) {
                     emitLine("lda  #$immPart")
-                else {
+                    emitLine("cmp  ${regAddrByte(reg, byteIdx)}")
+                } else {
                     emitLine("lda  #$immPart")
                     emitLine("sbc  ${regAddrByte(reg, byteIdx)}")
                 }
@@ -262,9 +264,10 @@ private fun AsmGen.translateCmpBranchRegUnsigned(insn: IRInstruction, label: Str
             if (greaterThan) {
                 // a > b -> b < a: swap operands
                 for (byteIdx in 0..3) {
-                    if (byteIdx == 0)
+                    if (byteIdx == 0) {
                         emitLine("lda  ${regAddrByte(reg2, byteIdx)}")
-                    else {
+                        emitLine("cmp  ${regAddrByte(reg1, byteIdx)}")
+                    } else {
                         emitLine("lda  ${regAddrByte(reg2, byteIdx)}")
                         emitLine("sbc  ${regAddrByte(reg1, byteIdx)}")
                     }
@@ -395,9 +398,10 @@ private fun AsmGen.translateCmpBranchSigned(insn: IRInstruction, label: String,
                     // a > imm -> imm < a: swap operands (subtract reg FROM imm)
                     for (byteIdx in 0..3) {
                         val immPart = (imm shr (byteIdx * 8)) and 0xff
-                        if (byteIdx == 0)
+                        if (byteIdx == 0) {
                             emitLine("lda  #$immPart")
-                        else if (byteIdx < 3) {
+                            emitLine("cmp  ${regAddrByte(reg, byteIdx)}")
+                        } else if (byteIdx < 3) {
                             emitLine("lda  #$immPart")
                             emitLine("sbc  ${regAddrByte(reg, byteIdx)}")
                         } else {
@@ -413,9 +417,10 @@ private fun AsmGen.translateCmpBranchSigned(insn: IRInstruction, label: String,
                 greaterOrEqual -> {
                     for (byteIdx in 0..3) {
                         val immPart = (imm shr (byteIdx * 8)) and 0xff
-                        if (byteIdx == 0)
+                        if (byteIdx == 0) {
                             emitLine("lda  ${regAddrByte(reg, byteIdx)}")
-                        else if (byteIdx < 3) {
+                            emitLine("cmp  #$immPart")
+                        } else if (byteIdx < 3) {
                             emitLine("lda  ${regAddrByte(reg, byteIdx)}")
                             emitLine("sbc  #$immPart")
                         } else {
@@ -431,9 +436,10 @@ private fun AsmGen.translateCmpBranchSigned(insn: IRInstruction, label: String,
                 lessThan -> {
                     for (byteIdx in 0..3) {
                         val immPart = (imm shr (byteIdx * 8)) and 0xff
-                        if (byteIdx == 0)
+                        if (byteIdx == 0) {
                             emitLine("lda  ${regAddrByte(reg, byteIdx)}")
-                        else if (byteIdx < 3) {
+                            emitLine("cmp  #$immPart")
+                        } else if (byteIdx < 3) {
                             emitLine("lda  ${regAddrByte(reg, byteIdx)}")
                             emitLine("sbc  #$immPart")
                         } else {
@@ -450,9 +456,10 @@ private fun AsmGen.translateCmpBranchSigned(insn: IRInstruction, label: String,
                     // a <= imm -> imm >= a: swap operands
                     for (byteIdx in 0..3) {
                         val immPart = (imm shr (byteIdx * 8)) and 0xff
-                        if (byteIdx == 0)
+                        if (byteIdx == 0) {
                             emitLine("lda  #$immPart")
-                        else if (byteIdx < 3) {
+                            emitLine("cmp  ${regAddrByte(reg, byteIdx)}")
+                        } else if (byteIdx < 3) {
                             emitLine("lda  #$immPart")
                             emitLine("sbc  ${regAddrByte(reg, byteIdx)}")
                         } else {
@@ -552,9 +559,10 @@ private fun AsmGen.translateCmpBranchRegSigned(insn: IRInstruction, label: Strin
             if (greaterThan) {
                 // a > b -> b < a: swap operands
                 for (byteIdx in 0..3) {
-                    if (byteIdx == 0)
+                    if (byteIdx == 0) {
                         emitLine("lda  ${regAddrByte(reg2, byteIdx)}")
-                    else if (byteIdx < 3) {
+                        emitLine("cmp  ${regAddrByte(reg1, byteIdx)}")
+                    } else if (byteIdx < 3) {
                         emitLine("lda  ${regAddrByte(reg2, byteIdx)}")
                         emitLine("sbc  ${regAddrByte(reg1, byteIdx)}")
                     } else {
@@ -603,9 +611,10 @@ private fun AsmGen.translateCmpBranchRegSigned(insn: IRInstruction, label: Strin
             } else if (lessOrEqual) {
                 // a <= b -> b >= a: swap operands
                 for (byteIdx in 0..3) {
-                    if (byteIdx == 0)
+                    if (byteIdx == 0) {
                         emitLine("lda  ${regAddrByte(reg2, byteIdx)}")
-                    else if (byteIdx < 3) {
+                        emitLine("cmp  ${regAddrByte(reg1, byteIdx)}")
+                    } else if (byteIdx < 3) {
                         emitLine("lda  ${regAddrByte(reg2, byteIdx)}")
                         emitLine("sbc  ${regAddrByte(reg1, byteIdx)}")
                     } else {
