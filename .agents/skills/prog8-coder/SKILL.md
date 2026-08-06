@@ -250,6 +250,7 @@ When writing inline assembly (`%asm {{ }}` blocks or `asmsub` routines), load th
 - **No bare `{ }` blocks** like C/Java
 - Indentation: 4 spaces for .p8 and .asm files (no tabs)
 - Character encoding: 6502 targets use PETSCII by default (call `txt.lowercase()` at start for lowercase). Virtual target uses ISO (`%encoding iso` + `txt.iso()`)
+- **Test programs for CBM targets must only use lowercase text in string literals** (the C64/C128/PET32/CX16 targets all use PETSCII). In PETSCII, uppercase letters A-Z are the *graphics* symbols, so any uppercase text you put in a string literal is rendered as unpredictable graphics characters instead of readable letters. Use only lowercase (a-z) for any printed test output, labels, or expected-match strings on these targets; reserve uppercase for intentional PETSCII graphics. The `virtual` target (ISO) is unaffected and may use either case.
 - Array size inferred from initializer: `str[] types = ["a", "b", "c"]`
 - Enums: `Enum::Value` syntax (double colon), declared inside a block. They are syntactic sugar for a list of `const` declarations, not a type. Use enums for related values, `const` for standalone
 - Avoid `globals.XXXX` — move constants closer to where they're used
