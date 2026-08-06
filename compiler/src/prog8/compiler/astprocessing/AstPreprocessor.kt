@@ -151,17 +151,47 @@ class AstPreprocessor(val program: Program,
                     if(decl.names.size>1) {
                         // we need to handle multi-decl here too, the desugarer maybe has not processed it here yet...
                         if(decl.value!=null) {
-                            decl.names.forEach { name ->
-                                val target = AssignTarget(
-                                    IdentifierReference(listOf(name), decl.position),
-                                    null,
-                                    null,
-                                    null,
-                                    false,
-                                    position = decl.position
+                            // only use a multi-value assignment if the initializer is a function call with multiple
+                            // return values, so that the call is only performed once. Otherwise (e.g. a constant
+                            // initializer) we have to fall back to individual assignments.
+                            val fcall = decl.value as? IFunctionCall
+                            val fcallTarget = fcall?.target?.targetSubroutine()
+                            val isBuiltinMultiReturn = fcall?.target?.let { target ->
+                                val name = target.nameInSource.singleOrNull()
+                                name != null && name in program.builtinFunctions.names &&
+                                        program.builtinFunctions.returnTypes(name).size > 1
+                            } ?: false
+                            if(fcallTarget!=null || isBuiltinMultiReturn) {
+                                val variables = decl.names.map { name ->
+                                    AssignTarget(
+                                        IdentifierReference(listOf(name), decl.position),
+                                        null,
+                                        null,
+                                        null,
+                                        false,
+                                        position = decl.position
+                                    )
+                                }
+                                val assign = Assignment(
+                                    AssignTarget(null, null, null, variables, false, position = decl.position),
+                                    decl.value!!,
+                                    AssignmentOrigin.VARINIT,
+                                    decl.position
                                 )
-                                val assign = Assignment(target.copy(), decl.value!!.copy(), AssignmentOrigin.VARINIT, decl.position)
                                 replacements.add(AstInsert.after(decl, assign, scope))
+                            } else {
+                                decl.names.forEach { name ->
+                                    val target = AssignTarget(
+                                        IdentifierReference(listOf(name), decl.position),
+                                        null,
+                                        null,
+                                        null,
+                                        false,
+                                        position = decl.position
+                                    )
+                                    val assign = Assignment(target, decl.value!!.copy(), AssignmentOrigin.VARINIT, decl.position)
+                                    replacements.add(AstInsert.after(decl, assign, scope))
+                                }
                             }
                             replacements.add(AstRemove(decl, scope))
                             decl.value = null
