@@ -1116,6 +1116,8 @@ data class IRInstruction(
                 return IRDataType.BYTE
             if(opcode==Opcode.SQRT)
                 return IRDataType.WORD
+            if(opcode==Opcode.STOREZX)
+                return IRDataType.BYTE
         }
         if(opcode in setOf(Opcode.JUMPI, Opcode.CALLI, Opcode.STOREZI, Opcode.LSIGW, Opcode.MSIGW))
             return IRDataType.WORD
