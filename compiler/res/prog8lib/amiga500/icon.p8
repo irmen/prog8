@@ -4,6 +4,7 @@
 ;; Functions: 24
 
 icon {
+    %option no_symbol_prefixing
     extsub @bank 11   -54 = FreeFreeList(pointer freelist @A0)
     extsub @bank 11   -72 = AddFreeList(pointer freelist @A0, pointer mem @A1, long size @A2) -> bool @D0
     extsub @bank 11   -78 = GetDiskObject(str name @A0) -> pointer @D0
@@ -29,5 +30,4 @@ icon {
     extsub @bank 11   -198 = ChangeToSelectedIconColor(pointer cr @A0)
     extsub @bank 11   -204 = BumpRevisionLength(str newname @A0, str oldname @A1, long maxLength @D0) -> str @D0
 }
-
 ;; End of auto-generated icon_lib.sfd

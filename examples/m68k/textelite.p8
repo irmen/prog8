@@ -26,9 +26,8 @@ main {
         txt.normal()
 
         if sys.exec_version()<36 {
-            txt.bold()
-            txt.print("\nWarning: number output formatting requires kickstart 2.0+\n")
-            txt.normal()
+            txt.print("\nError: number output formatting requires kickstart 2.0+\n\n")
+            sys.exit(1)
         }
 
         planet.set_seed(0, 0)

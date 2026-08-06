@@ -10,6 +10,7 @@ timer {
         WAITECLOCK = 4
     }
 
+    ; timer.device IO commands:
     const uword TR_ADDREQUEST = 9
     const uword TR_GETSYSTIME = 9+1
     const uword TR_SETSYSTIME = 9+2

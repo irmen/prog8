@@ -35,7 +35,7 @@ dos {
     extsub @bank 2   -204 = WaitForChar(pointer file @D1, long timeout @D2) -> long @D0
     extsub @bank 2   -210 = ParentDir(pointer lock @D1) -> pointer @D0
     extsub @bank 2   -216 = IsInteractive(pointer file @D1) -> long @D0
-    extsub @bank 2   -222 = Execute(str k_string @D1, pointer file @D2, pointer file2 @D3) -> long @D0
+    extsub @bank 2   -222 = Execute(str string @D1, pointer file @D2, pointer file2 @D3) -> long @D0
     extsub @bank 2   -228 = AllocDosObject(long k_type @D1, pointer tags @D2) -> pointer @D0
     extsub @bank 2   -234 = FreeDosObject(long k_type @D1, pointer ptr @D2)
     extsub @bank 2   -240 = DoPkt(pointer port @D1, long action @D2, long arg1 @D3, long arg2 @D4, long arg3 @D5, long arg4 @D6, long arg5 @D7) -> long @D0
@@ -87,7 +87,7 @@ dos {
     extsub @bank 2   -522 = GetFileSysTask() -> pointer @D0
     extsub @bank 2   -528 = SetFileSysTask(pointer task @D1) -> pointer @D0
     extsub @bank 2   -534 = GetArgStr() -> str @D0
-    extsub @bank 2   -540 = SetArgStr(str k_string @D1) -> str @D0
+    extsub @bank 2   -540 = SetArgStr(str string @D1) -> str @D0
     extsub @bank 2   -546 = FindCliProc(long num @D1) -> pointer @D0
     extsub @bank 2   -552 = MaxCli() -> long @D0
     extsub @bank 2   -558 = SetCurrentDirName(str name @D1) -> bool @D0
@@ -133,7 +133,7 @@ dos {
     extsub @bank 2   -798 = ReadArgs(str arg_template @D1, long array @D2, pointer args @D3) -> pointer @D0
     extsub @bank 2   -804 = FindArg(str keyword @D1, str arg_template @D2) -> long @D0
     extsub @bank 2   -810 = ReadItem(str name @D1, long maxchars @D2, pointer cSource @D3) -> long @D0
-    extsub @bank 2   -816 = StrToLong(str k_string @D1, long value @D2) -> long @D0
+    extsub @bank 2   -816 = StrToLong(str string @D1, long value @D2) -> long @D0
     extsub @bank 2   -822 = MatchFirst(str pat @D1, pointer anchor @D2) -> long @D0
     extsub @bank 2   -828 = MatchNext(pointer anchor @D1) -> long @D0
     extsub @bank 2   -834 = MatchEnd(pointer anchor @D1)
@@ -367,6 +367,11 @@ dos {
     const ubyte DTF_SUBST = $0001
     const ubyte DTB_FUTURE = 1
     const ubyte DTF_FUTURE = $0002
+    const ubyte FORMAT_DOS = $0000
+    const ubyte FORMAT_INT = $0001
+    const ubyte FORMAT_USA = $0002
+    const ubyte FORMAT_CDN = $0003
+    const ubyte FORMAT_DEF = $0004
     const long DOSTRUE = -1
     const ubyte DOSFALSE = $0000
     const uword MODE_OLDFILE = $03ed
@@ -764,6 +769,8 @@ dos {
     const ubyte RDAF_NOALLOC = $0002
     const ubyte RDAB_NOPROMPT = 2
     const ubyte RDAF_NOPROMPT = $0004
+    const ubyte MAX_TEMPLATE_ITEMS = $0064
+    const ubyte MAX_MULTIARGS = $0080
     const ubyte REC_EXCLUSIVE = $0000
     const ubyte REC_EXCLUSIVE_IMMED = $0001
     const ubyte REC_SHARED = $0002
@@ -788,6 +795,7 @@ dos {
     const uword GVF_DONT_NULL_TERM = $0800
     const ubyte GVB_SAVE_VAR = 12
     const uword GVF_SAVE_VAR = $1000
+    const ubyte FORMAT_MAX = $0003
     const long OFFSET_BEGINING = -1
     const ubyte LOCK_SAME_HANDLER = $0001
     const uword HUNK_ABSRELOC32 = $03ec

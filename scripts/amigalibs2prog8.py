@@ -10,12 +10,12 @@ Parses the LVO file for LVO offsets, SFD file for function signatures,
 and optionally .i files for struct definitions and constants.
 """
 
-import sys
-import re
-import os
 import argparse
-import subprocess
 import json
+import os
+import re
+import subprocess
+import sys
 import tempfile
 
 # ---------------------------------------------------------------------------
@@ -657,10 +657,39 @@ def _collect_consts_one(filepath: str) -> tuple[list, dict]:
     resolved = []
     raw_equ = {}
     enum_counter = None
+    cmd_count = None
     with open(filepath, encoding='latin-1') as f:
         for line in f:
             stripped = line.strip()
             if not stripped or stripped.startswith('*') or stripped.startswith(';'):
+                continue
+            # DEVINIT [n] — initialize the device command counter
+            # (macro from exec/io.i: sets CMD_COUNT to n, or to CMD_NONSTD's value if n is empty)
+            m = re.match(r'DEVINIT\s*(\S*)', stripped, re.IGNORECASE)
+            if m:
+                arg = m.group(1).strip()
+                if arg:
+                    v = _eval_const(arg)
+                    if v is not None:
+                        cmd_count = v
+                else:
+                    cmd_count = 0  # CMD_NONSTD not yet defined; macro defaults to 0
+                continue
+            # DEVCMD name — emit name = cmd_count, then cmd_count += 1
+            # (IORequest command field is UWORD, so always uword)
+            # Skip the MACRO definition line itself: "DEVCMD MACRO ..."
+            m = re.match(r'DEVCMD\s+(\w+)(?!\s*MACRO)', stripped, re.IGNORECASE)
+            if m and cmd_count is not None:
+                cname = m.group(1)
+                if cname.upper() == 'MACRO':
+                    continue
+                resolved.append({
+                    'name': cname,
+                    'value': _fmt(cmd_count),
+                    'prog8_type': 'uword',
+                    'comment': f'; DEVCMD ({cname})'
+                })
+                cmd_count += 1
                 continue
             m = re.match(r'BITDEF\s+(\w+)\s*,\s*(\w+)\s*,\s*(\d+)', stripped)
             if m:
@@ -914,7 +943,30 @@ LIBRARY_BANK_MAP = {
     'texteditor': 73, 'trackfile': 74, 'virtual': 75, 'window': 76,
 }
 
-PROG8_KEYWORDS.update(LIBRARY_BANK_MAP.keys())
+# Note: library names (e.g. 'icon', 'exec') are NOT added to PROG8_KEYWORDS.
+# They are namespaced identifiers, not reserved words. Adding them would cause
+# SFD parameter renaming bugs (e.g. the icon library's own param 'icon' would
+# become 'k_icon') and struct field over-prefixing.
+
+# ---------------------------------------------------------------------------
+# Library-specific helper routines (not from NDK, hand-maintained)
+# ---------------------------------------------------------------------------
+
+LIBRARY_HELPERS = {
+    'exec': '''
+    asmsub NewList(^^List list @A0) {
+        ; manually added utility routine to initialize new exec linked lists
+        %asm {{
+            addq.l  #4, a0              ; Point to lh_Tail
+            move.l  a0, -4(a0)          ; lh_Head = &lh_Tail
+            clr.l   (a0)                ; lh_Tail = NULL
+            subq.l  #4, a0              ; Point back to &lh_Head
+            move.l  a0, 4(a0)           ; lh_TailPred = &lh_Head
+            rts
+        }}
+    }
+''',
+}
 
 # ---------------------------------------------------------------------------
 # Existing SFD / LVO parsers
@@ -1704,6 +1756,11 @@ def main():
     print(f"{lib} {{")
     print(f"    %option no_symbol_prefixing")
 
+    # library-specific helper routines (hand-maintained, not from NDK)
+    helper = LIBRARY_HELPERS.get(lib)
+    if helper:
+        print(helper)
+
     # extsub definitions
     for name, lvo in sorted(lvos.items(), key=lambda x: x[1], reverse=True):
         info = sfd_funcs.get(name)
@@ -1732,7 +1789,9 @@ def main():
         resolved = resolve_struct_sizes(all_raw)
         allowed = _library_struct_tags(lib)
         resolved = {tag: rs for tag, rs in resolved.items() if tag in allowed}
-        print(generate_structs(resolved, lib, indent='    ', header_text='struct definitions'))
+        structs_text = generate_structs(resolved, lib, indent='    ', header_text='struct definitions')
+        if structs_text:
+            print(structs_text)
 
     # constants inside the block
     if args.consts:
@@ -1744,7 +1803,9 @@ def main():
                 extra_files.append(ie_file)
         if os.path.isdir(inc):
             consts.extend(parse_consts_i_files(inc, extra_files=extra_files))
-        print(generate_consts(consts, lib, indent='    ', header_text='constants'))
+        consts_text = generate_consts(consts, lib, indent='    ', header_text='constants')
+        if consts_text:
+            print(consts_text)
 
     print(f"}}")
     print(f";; End of auto-generated {lib}_lib.sfd")
