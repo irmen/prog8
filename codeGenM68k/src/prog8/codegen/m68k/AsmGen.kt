@@ -238,7 +238,8 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         if(options.compTarget.name == "qemu68k")
             emitLine("move.l  #${options.memtopAddress.toHex()}, sp", "initialize stack pointer")
         
-        emitLine("jsr  ${fixNameSymbols("p8_sys_startup.clear_bss_section")}")
+        // NOTE: the executable loader already zero-fills the BSS section (LoadSeg on Amiga HUNK, ELF loader on qemu68k); manual clear_bss_section call not needed here.
+        
         if (!options.noSysInit)
             emitLine("jsr  ${fixNameSymbols("p8_sys_startup.init_system")}")
         emitLine("jsr  ${fixNameSymbols("p8_sys_startup.init_system_phase2")}")

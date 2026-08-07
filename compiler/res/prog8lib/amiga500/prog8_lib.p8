@@ -8,22 +8,25 @@ p8_sys_startup {
     private long @shared orig_stackpointer  ; saved initial SP for sys.exit()
     private long @shared WBMsg
 
-    asmsub clear_bss_section() {
-        %asm {{
-            ; clear BSS section
-            lea  prog8_bss_section_start, a0
-            lea  prog8_program_end, a1
-            sub.l  a0, a1       ; bss size in bytes
-            beq  2$
-            moveq  #0, d0
-1$
-            move.b  d0, (a0)+
-            subq.l  #1, a1
-            bne  1$
-2$
-            rts
-        }}
-    }
+    ; NOTE: the executable loader already zero-fills the BSS section
+    ; (LoadSeg on Amiga HUNK, or the ELF loader on qemu68k), so this
+    ; manual clear is unnecessary and has been commented out.
+    ; asmsub clear_bss_section() {
+    ;     %asm {{
+    ;         ; clear BSS section
+    ;         lea  prog8_bss_section_start, a0
+    ;         lea  prog8_program_end, a1
+    ;         sub.l  a0, a1       ; bss size in bytes
+    ;         beq  2$
+    ;         moveq  #0, d0
+    ; 1$
+    ;         move.b  d0, (a0)+
+    ;         subq.l  #1, a1
+    ;         bne  1$
+    ; 2$
+    ;         rts
+    ;     }}
+    ; }
 
     sub init_system() {
         %asm {{
