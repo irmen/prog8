@@ -590,8 +590,8 @@ sealed class IRCodeChunkBase(override val label: String?, var next: IRCodeChunkB
 
 class IRCodeChunk(label: String?, next: IRCodeChunkBase?): IRCodeChunkBase(label, next) {
 
-    override fun isEmpty() = instructions.isEmpty()
-    override fun isNotEmpty() = instructions.isNotEmpty()
+    override fun isEmpty() = instructions.isEmpty() && label==null
+    override fun isNotEmpty() = instructions.isNotEmpty() || label!=null
     override fun usedRegisters(): RegistersUsed {
         val readRegsCounts = mutableMapOf<RegisterNum, Int>().withDefault { 0 }
         val regsTypes = mutableMapOf<RegisterNum, IRDataType>()

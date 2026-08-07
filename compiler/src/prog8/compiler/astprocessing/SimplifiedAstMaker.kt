@@ -375,6 +375,8 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
         }
 
 
+        val firstStmt = srcBlock.statements.firstOrNull()
+        val firstIsLabel = firstStmt is Label
         val (vardecls, statements) = srcBlock.statements.partition { it is VarDecl || it is MemorySlabReservation }
         val src = srcBlock.definingModule.source
         val block = PtBlock(srcBlock.name, srcBlock.isInLibrary, src,
@@ -389,9 +391,15 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
             block.add(table)
         }
 
+        if (firstIsLabel) {
+            // Keep the first label at the top, where the source put it
+            block.add(transformStatement(firstStmt!!))
+        }
         makeScopeVarsDecls(vardecls).forEach { block.add(it) }
-        for (stmt in statements)
+        for (stmt in statements) {
+            if (firstIsLabel && stmt === firstStmt) continue
             block.add(transformStatement(stmt))
+        }
         recombineMemorySlabAssignments(block)
         return block
     }
