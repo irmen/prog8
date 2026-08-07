@@ -70,7 +70,7 @@ graphics {
     extsub @bank 3   -402 = WaitBOVP(pointer vp @A0)
     extsub @bank 3   -408 = GetSprite(pointer sprite @A0, word num @D0) -> word @D0
     extsub @bank 3   -414 = FreeSprite(word num @D0)
-    extsub @bank 3   -420 = ChangeSprite(pointer vp @A0, pointer sprite @A1, uword newData @A2)
+    extsub @bank 3   -420 = ChangeSprite(pointer vp @A0, pointer sprite @A1, pointer newData @A2)
     extsub @bank 3   -426 = MoveSprite(pointer vp @A0, pointer sprite @A1, word x @D0, word y @D1)
     extsub @bank 3   -432 = LockLayerRom(pointer layer @A5)
     extsub @bank 3   -438 = UnlockLayerRom(pointer layer @A5)
@@ -123,10 +123,10 @@ graphics {
     extsub @bank 3   -732 = NextDisplayInfo(long displayID @D0) -> long @D0
     extsub @bank 3   -756 = GetDisplayInfoData(pointer handle @A0, pointer buf @A1, long size @D0, long tagID @D1, long displayID @D2) -> long @D0
     extsub @bank 3   -762 = FontExtent(pointer font @A0, pointer fontExtent @A1)
-    extsub @bank 3   -768 = ReadPixelLine8(pointer rp @A0, uword xstart @D0, uword ystart @D1, uword width @D2, ubyte array @A2, pointer tempRP @A1) -> long @D0
-    extsub @bank 3   -774 = WritePixelLine8(pointer rp @A0, uword xstart @D0, uword ystart @D1, uword width @D2, ubyte array @A2, pointer tempRP @A1) -> long @D0
-    extsub @bank 3   -780 = ReadPixelArray8(pointer rp @A0, uword xstart @D0, uword ystart @D1, uword xstop @D2, uword ystop @D3, ubyte array @A2, pointer temprp @A1) -> long @D0
-    extsub @bank 3   -786 = WritePixelArray8(pointer rp @A0, uword xstart @D0, uword ystart @D1, uword xstop @D2, uword ystop @D3, ubyte array @A2, pointer temprp @A1) -> long @D0
+    extsub @bank 3   -768 = ReadPixelLine8(pointer rp @A0, uword xstart @D0, uword ystart @D1, uword width @D2, pointer array @A2, pointer tempRP @A1) -> long @D0
+    extsub @bank 3   -774 = WritePixelLine8(pointer rp @A0, uword xstart @D0, uword ystart @D1, uword width @D2, pointer array @A2, pointer tempRP @A1) -> long @D0
+    extsub @bank 3   -780 = ReadPixelArray8(pointer rp @A0, uword xstart @D0, uword ystart @D1, uword xstop @D2, uword ystop @D3, pointer array @A2, pointer temprp @A1) -> long @D0
+    extsub @bank 3   -786 = WritePixelArray8(pointer rp @A0, uword xstart @D0, uword ystart @D1, uword xstop @D2, uword ystop @D3, pointer array @A2, pointer temprp @A1) -> long @D0
     extsub @bank 3   -792 = GetVPModeID(pointer vp @A0) -> long @D0
     extsub @bank 3   -798 = ModeNotAvailable(long modeID @D0) -> long @D0
     extsub @bank 3   -804 = WeighTAMatch(pointer reqTextAttr @A0, pointer targetTextAttr @A1, pointer targetTags @A2) -> word @D0
@@ -144,7 +144,7 @@ graphics {
     extsub @bank 3   -882 = LoadRGB32(pointer vp @A0, pointer table @A1)
     extsub @bank 3   -888 = SetChipRev(long want @D0) -> long @D0
     extsub @bank 3   -894 = SetABPenDrMd(pointer rp @A1, long apen @D0, long bpen @D1, long drawmode @D2)
-    extsub @bank 3   -900 = GetRGB32(pointer cm @A0, long firstcolor @D0, long ncolors @D1, long table @A1)
+    extsub @bank 3   -900 = GetRGB32(pointer cm @A0, long firstcolor @D0, long ncolors @D1, pointer table @A1)
     extsub @bank 3   -918 = AllocBitMap(long sizex @D0, long sizey @D1, long depth @D2, long flags @D3, pointer friend_bitmap @A0) -> pointer @D0
     extsub @bank 3   -924 = FreeBitMap(pointer bm @A0)
     extsub @bank 3   -930 = GetExtSpriteA(pointer ss @A2, pointer tags @A1) -> long @D0
@@ -167,7 +167,7 @@ graphics {
     extsub @bank 3   -1038 = SetRPAttrsA(pointer rp @A0, pointer tags @A1)
     extsub @bank 3   -1044 = GetRPAttrsA(pointer rp @A0, pointer tags @A1)
     extsub @bank 3   -1050 = BestModeIDA(pointer tags @A0) -> long @D0
-    extsub @bank 3   -1056 = WriteChunkyPixels(pointer rp @A0, uword xstart @D0, uword ystart @D1, uword xstop @D2, uword ystop @D3, ubyte array @A2, long bytesperrow @D4)
+    extsub @bank 3   -1056 = WriteChunkyPixels(pointer rp @A0, uword xstart @D0, uword ystart @D1, uword xstop @D2, uword ystop @D3, pointer array @A2, long bytesperrow @D4)
 
     ; ---- struct definitions ----
 

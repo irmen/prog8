@@ -127,8 +127,8 @@ exec {
     extsub @bank 1   -720 = AttemptSemaphoreShared(pointer sigSem @A0) -> long @D0
     extsub @bank 1   -726 = ColdReboot()
     extsub @bank 1   -732 = StackSwap(pointer newStack @A0)
-    extsub @bank 1   -762 = CachePreDMA(pointer address @A0, long length @A1, long flags @D0) -> pointer @D0
-    extsub @bank 1   -768 = CachePostDMA(pointer address @A0, long length @A1, long flags @D0)
+    extsub @bank 1   -762 = CachePreDMA(pointer address @A0, pointer length @A1, long flags @D0) -> pointer @D0
+    extsub @bank 1   -768 = CachePostDMA(pointer address @A0, pointer length @A1, long flags @D0)
     extsub @bank 1   -774 = AddMemHandler(pointer memhand @A1)
     extsub @bank 1   -780 = RemMemHandler(pointer memhand @A1)
     extsub @bank 1   -786 = ObtainQuickVector(pointer interruptCode @A0) -> long @D0

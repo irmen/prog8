@@ -2,13 +2,11 @@ TODO
 ====
 
 - need a bunch of type casting/conversion checks that test the handling of the 4-byte/long pointer datatype on the qemu68k target.
-- some generated label names in the m68k codegen can maybe replaced by local/anonymous labels?
-- check the qemu68k and amiga500 library files (including the .asm they might include) and check that address parameters there are also of pointer type
 - amiga library structs: use more typed pointers if it knows the struct type , rather than using `pointer`. Consider both the extsubs but also the struct fields in the amigaDOS structs in the generated library modules.
 
 
-m68k Codegen: FPU register allocation (68881 only has fp0-fp7)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+m68k Codegen: FPU register allocation (68881 only has fp0-fp7) currently broken
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 The m68k codegen maps IR virtual FPU register numbers (RegisterNum) directly to physical ``fpN`` names — so fr8 becomes ``fp8``, which doesn't exist on a real 68881 (only fp0-fp7).
 A proper virtual-to-physical register allocator is needed to remap the virtual registers to the 8 available FPU registers.
 This was not noticed earlier because simple float programs only use 1-3 registers.

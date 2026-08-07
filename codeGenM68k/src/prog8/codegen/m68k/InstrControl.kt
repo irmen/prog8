@@ -487,14 +487,16 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
             val src = insn.fpReg2 ?: error("FCEIL needs fpReg2")
             val isIntLabel = makeLabel("fceil_is_int")
             val doneLabel = makeLabel("fceil_done")
+            val posLabel = makeLabel(".fceil_pos")
             emitLine("fmove  ${fpuRegName(src)}, ${fpuRegName(dst)}")
             emitLine("fintrz  ${fpuRegName(dst)}, ${fpuRegName(dst)}")  // truncate toward zero
             emitLine("fcmp  ${fpuRegName(src)}, ${fpuRegName(dst)}")
             emitLine("fbeq  $isIntLabel")              // if equal, already integer
             emitLine("ftst  ${fpuRegName(src)}")
-            emitLine("fbgt  +")                         // if >0, need to add 1
+            emitLine("fbgt  $posLabel")                // if >0, need to add 1
             emitLine("bra  $doneLabel")
-            emitLine("+  fadd.s  #1.0, ${fpuRegName(dst)}")
+            emitLabel(posLabel)
+            emitLine("fadd.s  #1.0, ${fpuRegName(dst)}")
             emitLine("bra  $doneLabel")
             emitLabel(isIntLabel)
             // dst already holds the integer (from fintrz)

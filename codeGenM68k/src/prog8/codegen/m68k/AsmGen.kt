@@ -58,12 +58,8 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
     }
 
     fun emitLabel(label: String) {
-        if (label == "+" || label == "-")
-            output.appendLine(label)
-        else {
-            output.appendLine()
-            output.appendLine("$label:")
-        }
+        output.appendLine()
+        output.appendLine("$label:")
     }
 
     fun emitRaw(code: String) {

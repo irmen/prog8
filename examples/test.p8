@@ -7,8 +7,7 @@ main {
     sub start() {
 
         if timer.opendevice() {
-            ;; TODO fix   long hi,lo = timer.getsystime()
-            long hi,lo
+            long hi,lo = timer.getsystime()
             hi,lo = timer.getsystime()
             txt.print_l(hi)
             txt.spc()

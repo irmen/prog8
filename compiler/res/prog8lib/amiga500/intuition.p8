@@ -14,7 +14,7 @@ intuition {
     extsub @bank 4   -66 = CloseScreen(pointer screen @A0) -> bool @D0
     extsub @bank 4   -72 = CloseWindow(pointer window @A0)
     extsub @bank 4   -78 = CloseWorkBench() -> long @D0
-    extsub @bank 4   -84 = CurrentTime(long seconds @A0, long micros @A1)
+    extsub @bank 4   -84 = CurrentTime(pointer seconds @A0, pointer micros @A1)
     extsub @bank 4   -90 = DisplayAlert(long alertNumber @D0, str string @A0, uword height @D1) -> bool @D0
     extsub @bank 4   -96 = DisplayBeep(pointer screen @A0)
     extsub @bank 4   -102 = DoubleClick(long sSeconds @D0, long sMicros @D1, long cSeconds @D2, long cMicros @D3) -> bool @D0
@@ -45,7 +45,7 @@ intuition {
     extsub @bank 4   -252 = ScreenToFront(pointer screen @A0)
     extsub @bank 4   -258 = SetDMRequest(pointer window @A0, pointer requester @A1) -> bool @D0
     extsub @bank 4   -264 = SetMenuStrip(pointer window @A0, pointer menu @A1) -> bool @D0
-    extsub @bank 4   -270 = SetPointer(pointer window @A0, uword k_pointer @A1, word height @D0, word width @D1, word xOffset @D2, word yOffset @D3)
+    extsub @bank 4   -270 = SetPointer(pointer window @A0, pointer k_pointer @A1, word height @D0, word width @D1, word xOffset @D2, word yOffset @D3)
     extsub @bank 4   -276 = SetWindowTitles(pointer window @A0, str windowTitle @A1, str screenTitle @A2)
     extsub @bank 4   -282 = ShowTitle(pointer screen @A0, bool showIt @D0)
     extsub @bank 4   -288 = SizeWindow(pointer window @A0, word dx @D0, word dy @D1)
@@ -95,11 +95,11 @@ intuition {
     extsub @bank 4   -552 = PubScreenStatus(pointer screen @A0, uword statusFlags @D0) -> uword @D0
     extsub @bank 4   -558 = ObtainGIRPort(pointer gInfo @A0) -> pointer @D0
     extsub @bank 4   -564 = ReleaseGIRPort(pointer rp @A0)
-    extsub @bank 4   -570 = GadgetMouse(pointer gadget @A0, pointer gInfo @A1, word mousePoint @A2)
+    extsub @bank 4   -570 = GadgetMouse(pointer gadget @A0, pointer gInfo @A1, pointer mousePoint @A2)
     extsub @bank 4   -582 = GetDefaultPubScreen(str nameBuffer @A0)
-    extsub @bank 4   -588 = EasyRequestArgs(pointer window @A0, pointer easyStruct @A1, long idcmpPtr @A2, pointer args @A3) -> long @D0
+    extsub @bank 4   -588 = EasyRequestArgs(pointer window @A0, pointer easyStruct @A1, pointer idcmpPtr @A2, pointer args @A3) -> long @D0
     extsub @bank 4   -594 = BuildEasyRequestArgs(pointer window @A0, pointer easyStruct @A1, long idcmp @D0, pointer args @A3) -> pointer @D0
-    extsub @bank 4   -600 = SysReqHandler(pointer window @A0, long idcmpPtr @A1, bool waitInput @D0) -> long @D0
+    extsub @bank 4   -600 = SysReqHandler(pointer window @A0, pointer idcmpPtr @A1, bool waitInput @D0) -> long @D0
     extsub @bank 4   -606 = OpenWindowTagList(pointer newWindow @A0, pointer tagList @A1) -> pointer @D0
     extsub @bank 4   -612 = OpenScreenTagList(pointer newScreen @A0, pointer tagList @A1) -> pointer @D0
     extsub @bank 4   -618 = DrawImageState(pointer rp @A0, pointer image @A1, word leftOffset @D0, word topOffset @D1, long state @D2, pointer drawInfo @A2)
@@ -108,7 +108,7 @@ intuition {
     extsub @bank 4   -636 = NewObjectA(pointer classPtr @A0, str classID @A1, pointer tagList @A2) -> pointer @D0
     extsub @bank 4   -642 = DisposeObject(pointer object @A0)
     extsub @bank 4   -648 = SetAttrsA(pointer object @A0, pointer tagList @A1) -> long @D0
-    extsub @bank 4   -654 = GetAttr(long attrID @D0, pointer object @A0, long storagePtr @A1) -> long @D0
+    extsub @bank 4   -654 = GetAttr(long attrID @D0, pointer object @A0, pointer storagePtr @A1) -> long @D0
     extsub @bank 4   -660 = SetGadgetAttrsA(pointer gadget @A0, pointer window @A1, pointer requester @A2, pointer tagList @A3) -> long @D0
     extsub @bank 4   -666 = NextObject(pointer objectPtrPtr @A0) -> pointer @D0
     extsub @bank 4   -678 = MakeClass(str classID @A0, str superClassID @A1, pointer superClassPtr @A2, uword instanceSize @D0, long flags @D1) -> pointer @D0

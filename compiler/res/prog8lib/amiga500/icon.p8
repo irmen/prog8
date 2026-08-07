@@ -10,7 +10,7 @@ icon {
     extsub @bank 11   -78 = GetDiskObject(str name @A0) -> pointer @D0
     extsub @bank 11   -84 = PutDiskObject(str name @A0, pointer diskobj @A1) -> bool @D0
     extsub @bank 11   -90 = FreeDiskObject(pointer diskobj @A0)
-    extsub @bank 11   -96 = FindToolType(str toolTypeArray @A0, str typeName @A1) -> ubyte @D0
+    extsub @bank 11   -96 = FindToolType(str toolTypeArray @A0, str typeName @A1) -> pointer @D0
     extsub @bank 11   -102 = MatchToolValue(str typeString @A0, str value @A1) -> bool @D0
     extsub @bank 11   -108 = BumpRevision(str newname @A0, str oldname @A1) -> str @D0
     extsub @bank 11   -114 = FreeAlloc(pointer free @A0, long len @A1, long k_type @A2) -> pointer @D0
