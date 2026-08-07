@@ -736,22 +736,25 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                 val identifier = it.second as? IdentifierReference
                 if(identifier!=null && (targetDt.isUnsignedWord || targetDt.isLong)) {
                     val dt = identifier.inferType(program)
-                    if(dt.isArray || dt.isString) {
-                        // take the address of the identifier
-                        modifications += AstReplaceNode(
-                            identifier,
-                            AddressOf(identifier, null, null, false, false,it.second.position),
-                            parent
-                        )
-                    } else if(dt.isUnknown) {
-                        val subOrLabel = identifier.targetStatement()
-                        if(subOrLabel is Subroutine || subOrLabel is Label) {
-                            // take the address of the subroutine or label
-                            modifications += AstReplaceNode(
-                                identifier,
-                                AddressOf(identifier, null, null, false, false, it.second.position),
-                                parent
-                            )
+                    val addressOfExpr: AddressOf? = when {
+                        dt.isArray || dt.isString -> AddressOf(identifier, null, null, false, false, it.second.position)
+                        dt.isUnknown -> {
+                            val subOrLabel = identifier.targetStatement()
+                            if(subOrLabel is Subroutine || subOrLabel is Label)
+                                AddressOf(identifier, null, null, false, false, it.second.position)
+                            else null
+                        }
+                        else -> null
+                    }
+                    if(addressOfExpr!=null) {
+                        // On targets where untyped pointers are UWORD but the function expects LONG,
+                        // we need to add a typecast after the AddressOf wrapping.
+                        val addrofDt = addressOfExpr.inferType(program).getOrUndef()
+                        if(targetDt==DataType.LONG && addrofDt==DataType.UWORD) {
+                            val cast = TypecastExpression(addressOfExpr, DataType.LONG, true, it.second.position)
+                            modifications += AstReplaceNode(it.second, cast, parent)
+                        } else {
+                            modifications += AstReplaceNode(it.second, addressOfExpr, parent)
                         }
                     }
                 }
