@@ -1076,22 +1076,26 @@ internal class AstChecker(private val program: Program,
                 if(arraysize!=null) {
                     val arraySize = arraysize.constIndex() ?: 1
                     val dt = decl.datatype
+                    val byteLimit = options.compTarget.ARRAY_SIZE_LIMIT.toInt()
+                    val wordLimit = byteLimit / 2
+                    val longLimit = byteLimit / 4
+                    val floatLimit = byteLimit / options.compTarget.FLOAT_MEM_SIZE.toInt()
                     when {
                         dt.isString || dt.isByteArray || dt.isBoolArray ->
-                            if(arraySize > 256)
-                                err("byte array length must be 1-256")
+                            if(arraySize > byteLimit)
+                                err("byte array length must be 1-$byteLimit")
                         dt.isSplitWordArray ->
-                            if(arraySize > 256)
-                                err("split word array length must be 1-256")
+                            if(arraySize > byteLimit)
+                                err("split word array length must be 1-$byteLimit")
                         dt.isWordArray ->
-                            if(arraySize > 128)
-                                err("regular word array length must be 1-128, use split array to get to 256")
+                            if(arraySize > wordLimit)
+                                err("regular word array length must be 1-$wordLimit, use split array to get to $byteLimit")
                         dt.isLongArray ->
-                            if(arraySize > 64)
-                                err("long array length must be 1-64")
+                            if(arraySize > longLimit)
+                                err("long array length must be 1-$longLimit")
                         dt.isFloatArray ->
-                            if(arraySize > 51)
-                                err("float array length must be 1-51")
+                            if(arraySize > floatLimit)
+                                err("float array length must be 1-$floatLimit")
                         else -> {}
                     }
                 }
@@ -1188,26 +1192,30 @@ internal class AstChecker(private val program: Program,
             if(length==null)
                 err("array length must be known at compile-time")
             else {
+                val byteLimit = options.compTarget.ARRAY_SIZE_LIMIT.toInt()
+                val wordLimit = byteLimit / 2
+                val longLimit = byteLimit / 4
+                val floatLimit = byteLimit / options.compTarget.FLOAT_MEM_SIZE.toInt()
                 when  {
                     decl.datatype.isString || decl.datatype.isByteArray || decl.datatype.isBoolArray -> {
-                        if (length == 0 || length > 256)
-                            err("string and byte array length must be 1-256")
+                        if (length == 0 || length > byteLimit)
+                            err("string and byte array length must be 1-$byteLimit")
                     }
                     decl.datatype.isSplitWordArray -> {
-                        if (length == 0 || length > 256)
-                            err("split word array length must be 1-256")
+                        if (length == 0 || length > byteLimit)
+                            err("split word array length must be 1-$byteLimit")
                     }
                     decl.datatype.isWordArray -> {
-                        if (length == 0 || length > 128)
-                            err("regular word array length must be 1-128, use split array to get to 256")
+                        if (length == 0 || length > wordLimit)
+                            err("regular word array length must be 1-$wordLimit, use split array to get to $byteLimit")
                     }
                     decl.datatype.isLongArray -> {
-                        if (length == 0 || length > 64)
-                            err("long array length must be 1-64")
+                        if (length == 0 || length > longLimit)
+                            err("long array length must be 1-$longLimit")
                     }
                     decl.datatype.isFloatArray -> {
-                        if (length == 0 || length > 51)
-                            err("float array length must be 1-51")
+                        if (length == 0 || length > floatLimit)
+                            err("float array length must be 1-$floatLimit")
                     }
                     else -> {
                     }
@@ -2180,12 +2188,23 @@ internal class AstChecker(private val program: Program,
 //            }
         }
 
-        // check index value 0..255 if the index variable is not a pointer
+        // Check the index expression type against the target's addressing capabilities.
+        // (The earlier block above already validates the array variable and rejects signed
+        //  index *variables*; here we validate the index *expression* value width.)
+        // On the 6502 family the index register is 8-bit, so the index must be a byte.
+        // On the 68000 family array indexing uses a signed 16-bit displacement (d16, An),
+        // so an unsigned word (or byte) index is the maximum that can be encoded.
         val dtxNum = arrayIndexedExpression.indexer.indexExpr.inferType(program)
         if(dtxNum.isKnown) {
             val arrayVarDt = arrayIndexedExpression.plainarrayvar?.inferType(program)
-            if (arrayVarDt!=null && !arrayVarDt.isPointer && !(dtxNum issimpletype BaseDataType.UBYTE) && !(dtxNum issimpletype BaseDataType.BYTE))
-                errors.err("array indexing is limited to byte size 0..255", arrayIndexedExpression.position)
+            if (arrayVarDt!=null && !arrayVarDt.isPointer) {
+                if (options.compTarget.cpu.is6502) {
+                    if (!(dtxNum issimpletype BaseDataType.UBYTE) && !(dtxNum issimpletype BaseDataType.BYTE))
+                        errors.err("array indexing is limited to byte size 0..255", arrayIndexedExpression.position)
+                } else if (!(dtxNum.isUnsignedWord || dtxNum.isBytes || dtxNum.isWords)) {
+                    errors.err("array indexing on the 68000 requires an unsigned word index", arrayIndexedExpression.position)
+                }
+            }
         }
 
         super.visit(arrayIndexedExpression)
@@ -2334,8 +2353,9 @@ internal class AstChecker(private val program: Program,
         if(uniqueFields.size!=struct.fields.size)
             errors.err("duplicate field names in struct", struct.position)
         val memsize = struct.memsize(program.target)
-        if(memsize>256)
-            errors.err("struct contains too many fields, max struct size is 256 bytes (actual: $memsize)", struct.position)
+        val maxStructSize = options.compTarget.ARRAY_SIZE_LIMIT.toInt()
+        if(memsize>maxStructSize)
+            errors.err("struct contains too many fields, max struct size is $maxStructSize bytes (actual: $memsize)", struct.position)
 
         if(uniqueFields.isEmpty())
             errors.err("struct must contain at least one field", struct.position)
@@ -2411,6 +2431,7 @@ internal class AstChecker(private val program: Program,
         if(value.type.isUnknown)
             return false
 
+        val byteLimit = options.compTarget.ARRAY_SIZE_LIMIT.toInt()
         when {
             targetDt.isString -> return err("string value expected")
             targetDt.isBoolArray -> {
@@ -2421,14 +2442,14 @@ internal class AstChecker(private val program: Program,
                     val arraySpecSize = arrayspec.constIndex()
                     val arraySize = value.value.size
                     if(arraySpecSize!=null && arraySpecSize>0) {
-                        if(arraySpecSize>256)
-                            return err("boolean array length must be 1-256")
+                        if(arraySpecSize>byteLimit)
+                            return err("boolean array length must be 1-$byteLimit")
                         val expectedSize = arrayspec.constIndex() ?: return err("array size specifier must be constant integer value")
                         if (arraySize != expectedSize)
                             return err("array size mismatch (expecting $expectedSize, got $arraySize)")
                         return true
                     }
-                    return err("invalid boolean array size, must be 1-256")
+                    return err("invalid boolean array size, must be 1-$byteLimit")
                 }
                 return err("invalid boolean array initialization value ${value.type}, expected $targetDt")
             }
@@ -2440,14 +2461,14 @@ internal class AstChecker(private val program: Program,
                     val arraySpecSize = arrayspec.constIndex()
                     val arraySize = value.value.size
                     if(arraySpecSize!=null && arraySpecSize>0) {
-                        if(arraySpecSize>256)
-                            return err("byte array length must be 1-256")
+                        if(arraySpecSize>byteLimit)
+                            return err("byte array length must be 1-$byteLimit")
                         val expectedSize = arrayspec.constIndex() ?: return err("array size specifier must be constant integer value")
                         if (arraySize != expectedSize)
                             return err("array size mismatch (expecting $expectedSize, got $arraySize)")
                         return true
                     }
-                    return err("invalid byte array size, must be 1-256")
+                    return err("invalid byte array size, must be 1-$byteLimit")
                 }
                 return err("invalid byte array initialization value ${value.type}, expected $targetDt")
             }
@@ -2458,7 +2479,7 @@ internal class AstChecker(private val program: Program,
                         return false
                     val arraySpecSize = arrayspec.constIndex()
                     val arraySize = value.value.size
-                    val maxLength = if(targetDt.isSplitWordArray) 256 else 128
+                    val maxLength = if(targetDt.isSplitWordArray) byteLimit else byteLimit / 2
                     if(arraySpecSize!=null && arraySpecSize>0) {
                         if(arraySpecSize>maxLength)
                             return err("array length must be 1-$maxLength")
@@ -2474,7 +2495,7 @@ internal class AstChecker(private val program: Program,
             targetDt.isPointerArray -> {
                 val arraySpecSize = arrayspec.constIndex()
                 val arraySize = value.value.size
-                val maxLength = if(targetDt.isSplitWordArray) 256 else 128
+                val maxLength = if(targetDt.isSplitWordArray) byteLimit else byteLimit / 2
                 if(arraySpecSize!=null && arraySpecSize>0) {
                     if(arraySpecSize>maxLength)
                         return err("array length must be 1-$maxLength")
@@ -2492,14 +2513,15 @@ internal class AstChecker(private val program: Program,
                         return false
                     val arraySize = value.value.size
                     val arraySpecSize = arrayspec.constIndex()
+                    val maxLength = byteLimit / options.compTarget.FLOAT_MEM_SIZE.toInt()
                     if(arraySpecSize!=null && arraySpecSize>0) {
-                        if(arraySpecSize>51)
-                            return err("float array length must be 1-51")
+                        if(arraySpecSize>maxLength)
+                            return err("float array length must be 1-$maxLength")
                         val expectedSize = arrayspec.constIndex() ?: return err("array size specifier must be constant integer value")
                         if (arraySize != expectedSize)
                             return err("array size mismatch (expecting $expectedSize, got $arraySize)")
                     } else
-                        return err("invalid float array size, must be 1-51")
+                        return err("invalid float array size, must be 1-$maxLength")
 
                     // check if the floating point values are all within range
                     val doubles = value.value.map { it.constValue(program)?.number!! }.toDoubleArray()

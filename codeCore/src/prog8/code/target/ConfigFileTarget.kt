@@ -155,6 +155,7 @@ class ConfigFileTarget(
     override val FLOAT_MAX_NEGATIVE = -9.999999999e97
     override val FLOAT_MEM_SIZE = 8u
     override val POINTER_MEM_SIZE = 2u      // TODO should support other pointer size as well 
+    override val ARRAY_SIZE_LIMIT = 256u    // TODO should support other size as well
     override lateinit var zeropage: Zeropage
 
     override fun getFloatAsmBytes(num: Number) = TODO("floats")

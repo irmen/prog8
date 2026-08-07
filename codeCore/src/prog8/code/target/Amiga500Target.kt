@@ -68,6 +68,7 @@ class Amiga500Target: ICompilationTarget,
     override val FLOAT_MAX_NEGATIVE = -Float.MAX_VALUE.toDouble()
     override val FLOAT_MEM_SIZE = 4u
     override val POINTER_MEM_SIZE = 4u
+    override val ARRAY_SIZE_LIMIT = 32768u
     override val PROGRAM_LOAD_ADDRESS = 0u      // amiga executables are relocatable
     override val PROGRAM_MEMTOP_ADDRESS = 0xfffffffeu       // not actually used
 

@@ -398,11 +398,15 @@ or when adding more stuff to the array later. Here are some examples of arrays::
     char = string[-2]           ; the second-to-last character in the string (Python-style indexing from the end)
 
 .. note::
-    To allow the 6502 CPU to efficiently access values in an array, the array should be small enough to be
-    indexable by a single byte index.
-    This means byte arrays should be <= 256 elements, word arrays <= 256 elements as well (if split, which
-    is the default. When not split, the maximum length is 128. See below for details about this distinction).
-    Float arrays should be <= 51 elements.
+    On the 6502-family targets (c64, c128, cx16, pet32, virtual) the 8-bit index register limits an array to be
+    indexable by a single byte. This means byte/string arrays are limited to 256 elements (255 characters for a
+    string, because of the terminating null byte), word arrays to 256 elements as well (if split, which is the
+    default; when not split the maximum length is 128; see below for details about this distinction), and
+    float arrays to 51 elements.
+    On the m68k targets (amiga500, qemu68k) the array and string size limit is **32768 bytes**. There the
+    byte/string array limit is 32768 elements (32767 characters for a string), the split word array limit is
+    32768 elements (16384 if not split), the long array limit is 8192 elements, and the float array limit is
+    8192 elements.
 
 Arrays can be initialized with a range expression or an array literal value.
 You can write out such an initializer value over several lines if you want to improve readability.
@@ -465,6 +469,10 @@ The combined array size is subject to the same limits as regular 1D arrays:
 - The ``@split`` tag works normally with 2D syntax.
 - The ``@nosplit`` tag can also be used on 2D word arrays if sequential storage is needed.
 
+These limits apply to the 6502-family targets. On the m68k targets (amiga500, qemu68k) the maximum total
+element count is 32768 bytes: byte/bool arrays up to 32768 elements, split word/str arrays up to 32768 elements,
+sequential word arrays up to 16384, long arrays up to 8192, and float arrays up to 8192 elements.
+
 **Not supported:**
 
 - 3D or higher-dimensional arrays are not supported.
@@ -497,7 +505,8 @@ See also :ref:`pointervars` and the chapter about it :ref:`pointers`.
 
 As an optimization, (u)word arrays, pointer arrays, and str arrays are split by the compiler in memory as two separate arrays,
 one with the LSBs and one with the MSBs of the word values. This is more efficient to access by the 6502 cpu.
-It also allows a maximum length of 256 for word arrays, where normally it would have been 128.
+It also allows a maximum length of 256 for word arrays, where normally it would have been 128
+(on the m68k targets this split-word limit is 32768 instead).
 
 For normal prog8 array indexing, the compiler takes care of the distinction for you under water.
 *But for assembly code, or code that otherwise accesses the array elements directly, you have to be aware of the distinction from 'normal' arrays.*
@@ -533,7 +542,10 @@ Strings
 ^^^^^^^
 .. index:: pair: Data Types; Strings
 
-Strings are a sequence of characters enclosed in double quotes. The length is limited to 255 characters.
+Strings are a sequence of characters enclosed in double quotes. The length is limited to 255 characters
+on the 6502-family targets (the 256-byte array/string size limit minus the terminating null byte);
+on the m68k targets (amiga500, qemu68k) this limit is 32767 characters, matching those targets' 32768-byte
+array/string size limit.
 They're stored and treated much the same as a byte array,
 but they have some special properties because they are considered to be *text*.
 Strings (without encoding prefix) will be encoded (translated from ASCII/UTF-8) into bytes via the

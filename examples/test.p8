@@ -1,43 +1,42 @@
+;%import intuition
+;%import graphics
+;%import utility
 %import textio
-%import timer
-%import arexx
-%import exec
 
 main {
     sub start() {
+        uword[4000] array
 
-        if timer.opendevice() {
-            long hi,lo = timer.getsystime()
-            hi,lo = timer.getsystime()
-            txt.print_l(hi)
-            txt.spc()
-            txt.print_l(lo)
-            txt.nl()
-            timer.setsystime(123,456)
-            hi,lo = timer.getsystime()
-            txt.print_l(hi)
-            txt.spc()
-            txt.print_l(lo)
-            txt.nl()
-            timer.closedevice()
-        }
+        array[3] = 1111
+        array[33] = 2222
+        array[333] = 3333
+        array[3333] = 4444
 
+        txt.print_uw(array[3])
+        txt.nl()
+        txt.print_uw(array[33])
+        txt.nl()
+        txt.print_uw(array[333])
+        txt.nl()
+        txt.print_uw(array[3333])
+        txt.nl()
 
-        if arexx.openlib() {
-            txt.print_ulhex(sys.RexxSysBase, true)
-            txt.nl()
-
-            pointer a = arexx.CreateArgstring("irmen", 5)
-            if a!=0 {
-                txt.print_ulhex(a, true)
-                txt.nl()
-                arexx.DeleteArgstring(a)
-            }
-
-            arexx.closelib()
-        } else {
-            txt.print("no lib\n")
-        }
-
+;        long[] screentags = [
+;            intuition.SA_Left,      0,
+;            intuition.SA_Top,       0,
+;            intuition.SA_Width,     320,
+;            intuition.SA_Height,    200,
+;            intuition.SA_Depth,     5,  ;  5 bitplanes=32 colors
+;            intuition.SA_DisplayID, graphics.NTSC_MONITOR_ID | graphics.LORES_KEY,
+;            intuition.SA_Title,     "My 32-Color NTSC Screen" as long,
+;            intuition.SA_Type,      intuition.CUSTOMSCREEN as long,
+;            intuition.SA_ShowTitle, true as long,
+;            utility.TAG_DONE,     0
+;        ]
+;
+;        txt.print_bool(sizeof(screentags))
+;        txt.nl()
+;        txt.print_uw(len(screentags))
+;        txt.nl()
     }
 }

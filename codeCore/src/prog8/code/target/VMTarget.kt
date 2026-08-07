@@ -30,7 +30,9 @@ class VMTarget: ICompilationTarget,
     override val FLOAT_MAX_POSITIVE = Double.MAX_VALUE
     override val FLOAT_MAX_NEGATIVE = -Double.MAX_VALUE
     override val FLOAT_MEM_SIZE = 8u
-    override val POINTER_MEM_SIZE = 2u      // TODO do we want to support 32 bits pointers in the VM one day?:
+    override val POINTER_MEM_SIZE = 2u      // TODO do we want to support 32 bits pointers in the VM one day?
+    override val ARRAY_SIZE_LIMIT = 256u    // ... if so then also need to bump this up
+    
     override val PROGRAM_LOAD_ADDRESS = 0u      // not actually used
     override val PROGRAM_MEMTOP_ADDRESS = 0xffffu  // not actually used
 

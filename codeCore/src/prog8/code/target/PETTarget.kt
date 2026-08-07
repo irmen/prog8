@@ -29,6 +29,7 @@ class PETTarget: ICompilationTarget,
     override val FLOAT_MAX_NEGATIVE = Mflpt5.FLOAT_MAX_NEGATIVE
     override val FLOAT_MEM_SIZE = Mflpt5.FLOAT_MEM_SIZE.toUInt()
     override val POINTER_MEM_SIZE = 2u
+    override val ARRAY_SIZE_LIMIT = 256u
     override val PROGRAM_LOAD_ADDRESS = 0x0401u
     override val PROGRAM_MEMTOP_ADDRESS = 0x8000u
 
