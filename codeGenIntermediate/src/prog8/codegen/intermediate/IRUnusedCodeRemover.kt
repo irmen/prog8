@@ -11,9 +11,11 @@ class IRUnusedCodeRemover(
     fun optimize(): Int {
         var numRemoved = removeUnusedSubroutines() + removeUnusedAsmSubroutines()
 
-        // remove empty blocks (but keep blocks with %option force_output)
+        // remove empty blocks (but keep blocks with %option force_output,
+        // and also blocks that contain labels -- labels are addressable symbols)
         irprog.blocks.reversed().forEach { block ->
-            if(block.isEmpty() && !block.options.forceOutput) {
+            val hasLabels = block.children.any { it.label != null }
+            if(!hasLabels && block.isEmpty() && !block.options.forceOutput) {
                 irprog.blocks.remove(block)
                 pruneSymboltable(block.label)
                 numRemoved++
