@@ -1,11 +1,8 @@
 
-Prog8 compiler v12.3-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit 7565d04c in branch new-codegens
+Prog8 compiler v14.0-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
+Prerelease version from git commit 96eebbe0 in branch new-codegens
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
-Using existing prog8c daemon at /run/user/1000/prog8c-daemon.sock
-Starting new prog8c daemon (previous was stale)...
-prog8c daemon (new) started.
 Compiling program import-all-c64.p8
 Compiler target: c64
 
@@ -13,9 +10,9 @@ Compiler target: c64
 BUILTIN FUNCTIONS
 -----------------
 abs  (ubyte|byte|uword|word|long|float value) -> undefined
-call  (uword address) -> uword
-callfar  (ubyte bank, uword address, uword arg) -> uword
-callfar2  (ubyte bank, uword address, ubyte argA, ubyte argX, ubyte argY, bool argC) -> uword
+call  (pointer address) -> uword
+callfar  (ubyte bank, pointer address, uword arg) -> uword
+callfar2  (ubyte bank, pointer address, ubyte argA, ubyte argX, ubyte argY, bool argC) -> uword
 clamp  (byte value, byte minimum, byte maximum) -> undefined
 cmp  (ubyte|byte|uword|word|long value1, ubyte|byte|uword|word|long|float value2)
 divmod  (ubyte|uword dividend, ubyte|uword divisor) -> undefined, undefined
@@ -32,20 +29,20 @@ mkword  (ubyte msb, ubyte lsb) -> uword
 msb  (uword|word|long value) -> ubyte
 msw  (uword|word|long value) -> uword
 offsetof  (ubyte field) -> ubyte
-peek  (uword|long address) -> ubyte
-peekbool  (uword|long address) -> bool
-peekf  (uword|long address) -> float
-peekl  (uword|long address) -> long
+peek  (uword|long|pointer address) -> ubyte
+peekbool  (uword|long|pointer address) -> bool
+peekf  (uword|long|pointer address) -> float
+peekl  (uword|long|pointer address) -> long
 peekp  (pointer|uword|long address) -> pointer
-peekw  (uword|long address) -> uword
-poke  (uword|long address, ubyte|byte value)
-pokebool  (uword|long address, bool value)
-pokebowl  (uword|long address, bool value)
-pokef  (uword|long address, float value)
-pokel  (uword|long address, long value)
-pokemon  (uword address, ubyte value) -> ubyte
+peekw  (uword|long|pointer address) -> uword
+poke  (uword|long|pointer address, ubyte|byte value)
+pokebool  (uword|long|pointer address, bool value)
+pokebowl  (uword|long|pointer address, bool value)
+pokef  (uword|long|pointer address, float value)
+pokel  (uword|long|pointer address, long value)
+pokemon  (uword|long|pointer address, ubyte value) -> ubyte
 pokep  (pointer|uword|long address, pointer value)
-pokew  (uword|long address, uword|word value)
+pokew  (uword|long|pointer address, uword|word value)
 pop  () -> ubyte
 popf  () -> float
 popl  () -> long

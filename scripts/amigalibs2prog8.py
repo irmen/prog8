@@ -642,7 +642,7 @@ def parse_consts_i_files(i_dir: str, extra_dirs: list = None, extra_files: list 
                 continue
             v = _eval_const(all_raw_equ[name], symbol_table)
             if v is not None:
-                all_resolved.append({'name': name, 'value': _fmt(v), 'prog8_type': _ct(v, name)})
+                all_resolved.append({'name': name, 'value': _display_value(all_raw_equ[name], v), 'prog8_type': _ct(all_raw_equ[name], v, name)})
                 symbol_table[name] = v
                 resolved_names.add(name)
                 changed = True
@@ -719,7 +719,7 @@ def _collect_consts_one(filepath: str) -> tuple[list, dict]:
                 rawv = m.group(2)
                 v = _eval_const(rawv)
                 if v is not None:
-                    resolved.append({'name': cname, 'value': _fmt(v), 'prog8_type': _ct(v, cname)})
+                    resolved.append({'name': cname, 'value': _display_value(rawv, v), 'prog8_type': _ct(rawv, v, cname)})
                 else:
                     raw_equ[cname] = rawv
                 continue
@@ -733,7 +733,7 @@ def _collect_consts_one(filepath: str) -> tuple[list, dict]:
             m = re.match(r'EITEM\s+(\w+)', stripped)
             if m and enum_counter is not None:
                 cname = m.group(1)
-                resolved.append({'name': cname, 'value': _fmt(enum_counter), 'prog8_type': _ct(enum_counter, cname)})
+                resolved.append({'name': cname, 'value': _fmt(enum_counter), 'prog8_type': _ct(None, enum_counter, cname)})
                 enum_counter += 1
                 continue
     return resolved, raw_equ
@@ -785,6 +785,21 @@ def _fmt(v: int) -> str:
     return f'${v:04x}' if v <= 65535 else f'${v:08x}' if v > 255 else f'${v:02x}'
 
 
+def _display_value(rawv, v: int) -> str:
+    """The value string to emit for a constant.
+
+    When the EQU is written as a plain hex literal (e.g. $0000000f), the
+    original literal is preserved verbatim so the generated width matches the
+    NDK source.  Otherwise the value is formatted from its integer result.
+    """
+    s = (rawv or '').strip()
+    while s.startswith('(') and s.endswith(')'):
+        s = s[1:-1].strip()
+    if re.fullmatch(r'(?:0x|\$)[0-9a-fA-F]+', s):
+        return s
+    return _fmt(v)
+
+
 # Constant prefixes that should always be 'long' (LONG flags fields in Amiga structs)
 _LONG_CONST_PREFIXES = ('IDCMP_', 'WFLG_', 'GFLG_', 'GACT_', 'GTYP_', 'GMORE_')
 # Constant prefixes that should always be 'uword' (UWORD fields like IntuiMessage.Code/Qualifier)
@@ -793,7 +808,22 @@ _UWORD_CONST_PREFIXES = ('IECODE_', 'IECODEB_', 'IECLASS_', 'IESUBCLASS_',
 # Specific names that must be 'uword' (mouse button codes matching Code field)
 _UWORD_CONST_NAMES = {'SELECTDOWN', 'SELECTUP', 'MENUDOWN', 'MENUUP', 'MIDDLEDOWN', 'MIDDLEUP'}
 
-def _ct(v: int, name: str = '') -> str:
+def _ct(rawv, v: int, name: str = '') -> str:
+    # A constant written as a fixed-width hex literal keeps that width as
+    # its Prog8 type, even when the numeric value would fit in a smaller type.
+    #   $xxxx       -> uword
+    #   $xxxxxxxx   -> long
+    if rawv:
+        s = rawv.strip()
+        while s.startswith('(') and s.endswith(')'):
+            s = s[1:-1].strip()
+        hm = re.fullmatch(r'(?:0x|\$)([0-9a-fA-F]+)', s)
+        if hm:
+            digits = len(hm.group(1))
+            if digits == 8:
+                return 'long'
+            if digits == 4:
+                return 'uword'
     if any(name.startswith(p) for p in _LONG_CONST_PREFIXES):
         return 'long'
     if any(name.startswith(p) for p in _UWORD_CONST_PREFIXES):

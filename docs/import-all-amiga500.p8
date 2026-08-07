@@ -1,7 +1,9 @@
 ; all library modules for the qemu68k compiler target
 
+%import arexx
 %import buffers
 %import compression
+%import coroutines
 %import conv
 %import floats
 %import lineclip
@@ -17,4 +19,5 @@
 %import graphics
 %import intuition
 %import utility
+%import timer
 

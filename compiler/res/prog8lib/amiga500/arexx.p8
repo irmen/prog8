@@ -130,10 +130,10 @@ arexx {
     const long RXADDFH = $07000000
     const long RXADDLIB = $08000000
     const long RXREMLIB = $09000000
-    const long RXADDCON = $0a000000
-    const long RXREMCON = $0b000000
-    const long RXTCOPN = $0c000000
-    const long RXTCCLS = $0d000000
+    const long RXADDCON = $0A000000
+    const long RXREMCON = $0B000000
+    const long RXTCOPN = $0C000000
+    const long RXTCCLS = $0D000000
     const ubyte RXFB_NOIO = $0010
     const ubyte RXFB_RESULT = $0011
     const ubyte RXFB_STRING = $0012
@@ -145,8 +145,8 @@ arexx {
     const ubyte RXFF_TOKEN = $0001
     const ubyte RXFF_NONRET = $0001
     const ubyte RXFF_SCRIPT = $0001
-    const long RXCODEMASK = $ff000000
-    const ubyte RXARGMASK = $000f
+    const long RXCODEMASK = $FF000000
+    const long RXARGMASK = $0000000F
     const ubyte RRT_ANY = $0000
     const ubyte RRT_LIB = $0001
     const ubyte RRT_PORT = $0002
@@ -162,7 +162,7 @@ arexx {
     const ubyte RTFB_WAIT = $0006
     const ubyte RTFB_CLOSE = $0007
     const ubyte MEMQUANT = $0010
-    const long MEMMASK = $fffffff0
+    const long MEMMASK = $FFFFFFF0
     const ubyte MEMQUICK = $0001
     const long MEMCLEAR = $00010000
     const ubyte ERR10_001 = $0001

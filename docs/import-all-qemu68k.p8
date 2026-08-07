@@ -1,6 +1,7 @@
 ; all library modules for the qemu68k compiler target
 
 %import buffers
+%import coroutines
 %import compression
 %import conv
 %import floats
