@@ -16,7 +16,6 @@ Note: this problem does NOT affect regular data/address registers because those 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 - m68k codegen: add floating point support (assume a FPU is present, this also requires 68020+)
-- m68k codegen: implement long division and multiplication (see "long division needs at least a 68020 cpu at this time"). Possibly via utility.library? (requires kickstart 2.0+)
 - split up AssignmentAsmGen.kt in codeGenCpu6502 it is by far the largest file 6000+ lines
 - make enums strongly typed instead of just syntactic sugar for ints (see ideas/enum-strong-type.md for the plan)
 - add %option private_symbols to make access mode private by default; need (new) 'public' keyword to explicitly mark symbols public.

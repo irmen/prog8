@@ -343,6 +343,27 @@ internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
 
 // === Multiply / Divide / Modulus / DIVMOD for all int sizes (68030-aware) ===
 
+// emit a call to one of the 68000 long math helper routines (utility.library fast path + software fallback)
+private fun AsmGen.emitLongMathCall(dstReg: Int, srcReg: Int?, imm: Int?, target: String?, routine: String, resultReg: String) {
+    when {
+        srcReg != null -> {
+            emitLine("move.l  ${regAddr(dstReg)}, d0")
+            emitLine("move.l  ${regAddr(srcReg)}, d1")
+        }
+        imm != null -> {
+            emitLine("move.l  ${regAddr(dstReg)}, d0")
+            emitLine("move.l  #$imm, d1")
+        }
+        target != null -> {
+            emitLine("move.l  $target, d0")
+            emitLine("move.l  ${regAddr(dstReg)}, d1")
+        }
+    }
+    emitLine("jsr  $routine")
+    val storeTarget = target ?: regAddr(dstReg)
+    emitLine("move.l  $resultReg, $storeTarget")
+}
+
 private fun AsmGen.emitMulOp(dstReg: Int, srcReg: Int?, type: IRDataType, unsigned: Boolean, imm: Int?, target: String?) {
     val op = if (unsigned) "mulu" else "muls"
     when (type) {
@@ -401,28 +422,31 @@ private fun AsmGen.emitMulOp(dstReg: Int, srcReg: Int?, type: IRDataType, unsign
         }
 
         IRDataType.LONG -> {
-            // 68020+ mulu.l/muls.l (32x32→64, lower 32 are result)
-            // destination must be a data register, not memory
-            if(program.options.compTarget.cpu < CpuType.M68020)
-                TODO("long multiplication needs at least a 68020 cpu at this time")
-            
-            when {
-                srcReg != null -> {
-                    emitLine("move.l  ${regAddr(srcReg)}, d0")
-                    emitLine("move.l  ${regAddr(dstReg)}, d1")
-                    emitLine("$op.l  d1, d0")
-                    emitLine("move.l  d0, ${regAddr(dstReg)}")
-                }
-                imm != null -> {
-                    emitLine("move.l  ${regAddr(dstReg)}, d0")
-                    emitLine("$op.l  #${imm}, d0")
-                    emitLine("move.l  d0, ${regAddr(dstReg)}")
-                }
-                target != null -> {
-                    emitLine("move.l  $target, d0")
-                    emitLine("move.l  ${regAddr(dstReg)}, d1")
-                    emitLine("$op.l  d1, d0")
-                    emitLine("move.l  d0, $target")
+            if(program.options.compTarget.cpu < CpuType.M68020) {
+                // 68000: no mulu.l/muls.l; use a helper routine (utility.library or software fallback)
+                val routine = if (unsigned) "p8_umult32" else "p8_smult32"
+                emitLongMathCall(dstReg, srcReg, imm, target, routine, "d0")
+            } else {
+                // 68020+ mulu.l/muls.l (32x32→64, lower 32 are result)
+                // destination must be a data register, not memory
+                when {
+                    srcReg != null -> {
+                        emitLine("move.l  ${regAddr(srcReg)}, d0")
+                        emitLine("move.l  ${regAddr(dstReg)}, d1")
+                        emitLine("$op.l  d1, d0")
+                        emitLine("move.l  d0, ${regAddr(dstReg)}")
+                    }
+                    imm != null -> {
+                        emitLine("move.l  ${regAddr(dstReg)}, d0")
+                        emitLine("$op.l  #${imm}, d0")
+                        emitLine("move.l  d0, ${regAddr(dstReg)}")
+                    }
+                    target != null -> {
+                        emitLine("move.l  $target, d0")
+                        emitLine("move.l  ${regAddr(dstReg)}, d1")
+                        emitLine("$op.l  d1, d0")
+                        emitLine("move.l  d0, $target")
+                    }
                 }
             }
         }
@@ -495,24 +519,28 @@ private fun AsmGen.emitDivOp(dstReg: Int, srcReg: Int?, type: IRDataType, unsign
         }
 
         IRDataType.LONG -> {
-            // 68020+ divu.l/divs.l (32/32→32)
-            if(program.options.compTarget.cpu < CpuType.M68020)
-                TODO("long division needs at least a 68020 cpu at this time")
-            when {
-                srcReg != null -> {
-                    emitLine("move.l  ${regAddr(dstReg)}, d0")
-                    emitLine("$op.l  ${regAddr(srcReg)}, d0")
-                    emitLine("move.l  d0, ${regAddr(dstReg)}", "quotient")
-                }
-                imm != null -> {
-                    emitLine("move.l  ${regAddr(dstReg)}, d0")
-                    emitLine("$op.l  #${imm}, d0")
-                    emitLine("move.l  d0, ${regAddr(dstReg)}", "quotient")
-                }
-                target != null -> {
-                    emitLine("move.l  $target, d0")
-                    emitLine("$op.l  ${regAddr(dstReg)}, d0")
-                    emitLine("move.l  d0, $target", "quotient")
+            if(program.options.compTarget.cpu < CpuType.M68020) {
+                // 68000: no divu.l/divs.l; use a helper routine (utility.library or software fallback)
+                val routine = if (unsigned) "p8_udivmod32" else "p8_sdivmod32"
+                emitLongMathCall(dstReg, srcReg, imm, target, routine, "d0")
+            } else {
+                // 68020+ divu.l/divs.l (32/32→32)
+                when {
+                    srcReg != null -> {
+                        emitLine("move.l  ${regAddr(dstReg)}, d0")
+                        emitLine("$op.l  ${regAddr(srcReg)}, d0")
+                        emitLine("move.l  d0, ${regAddr(dstReg)}", "quotient")
+                    }
+                    imm != null -> {
+                        emitLine("move.l  ${regAddr(dstReg)}, d0")
+                        emitLine("$op.l  #${imm}, d0")
+                        emitLine("move.l  d0, ${regAddr(dstReg)}", "quotient")
+                    }
+                    target != null -> {
+                        emitLine("move.l  $target, d0")
+                        emitLine("$op.l  ${regAddr(dstReg)}, d0")
+                        emitLine("move.l  d0, $target", "quotient")
+                    }
                 }
             }
         }
@@ -574,19 +602,25 @@ private fun AsmGen.emitModOp(dstReg: Int, srcReg: Int?, type: IRDataType, unsign
         }
 
         IRDataType.LONG -> {
-            // 68020+ divul.l <ea>, Dr, Dq: Dr=remainder, Dq=quotient
-            val opLong = if (unsigned) "divul.l" else "divsl.l"
-            when {
-                srcReg != null -> {
-                    emitLine("move.l  ${regAddr(dstReg)}, d0", "dividend")
-                    emitLine("$opLong  ${regAddr(srcReg)}, d1:d0")
-                    emitLine("move.l  d1, ${regAddr(dstReg)}", "remainder")
-                }
-                imm != null -> {
-                    emitLine("move.l  ${regAddr(dstReg)}, d0", "dividend")
-                    emitLine("move.l  #${imm}, d2", "divisor")
-                    emitLine("$opLong  d2, d1:d0")
-                    emitLine("move.l  d1, ${regAddr(dstReg)}", "remainder")
+            if(program.options.compTarget.cpu < CpuType.M68020) {
+                // 68000: no divul.l/divsl.l; use a helper routine (utility.library or software fallback)
+                val routine = if (unsigned) "p8_udivmod32" else "p8_sdivmod32"
+                emitLongMathCall(dstReg, srcReg, imm, null, routine, "d1")
+            } else {
+                // 68020+ divul.l <ea>, Dr, Dq: Dr=remainder, Dq=quotient
+                val opLong = if (unsigned) "divul.l" else "divsl.l"
+                when {
+                    srcReg != null -> {
+                        emitLine("move.l  ${regAddr(dstReg)}, d0", "dividend")
+                        emitLine("$opLong  ${regAddr(srcReg)}, d1:d0")
+                        emitLine("move.l  d1, ${regAddr(dstReg)}", "remainder")
+                    }
+                    imm != null -> {
+                        emitLine("move.l  ${regAddr(dstReg)}, d0", "dividend")
+                        emitLine("move.l  #${imm}, d2", "divisor")
+                        emitLine("$opLong  d2, d1:d0")
+                        emitLine("move.l  d1, ${regAddr(dstReg)}", "remainder")
+                    }
                 }
             }
         }
@@ -631,17 +665,29 @@ private fun AsmGen.emitDivModOp(dstReg: Int, remainderReg: Int, type: IRDataType
         }
 
         IRDataType.LONG -> {
-            if(program.options.compTarget.cpu < CpuType.M68020)
-                TODO("long divmod needs at least a 68020 cpu at this time")
-            emitLine("move.l  ${regAddr(dstReg)}, d0", "dividend")
-            if(imm!=null) {
-                emitLine("move.l  #${imm}, d1", "divisor")
+            if(program.options.compTarget.cpu < CpuType.M68020) {
+                // 68000: no divul.l/divsl.l; use a helper routine (utility.library or software fallback)
+                val routine = if (unsigned) "p8_udivmod32" else "p8_sdivmod32"
+                emitLine("move.l  ${regAddr(dstReg)}, d0", "dividend")
+                if(imm!=null) {
+                    emitLine("move.l  #${imm}, d1", "divisor")
+                } else {
+                    emitLine("move.l  ${regAddr(remainderReg)}, d1", "divisor")
+                }
+                emitLine("jsr  $routine")
+                emitLine("move.l  d0, ${regAddr(dstReg)}", "quotient")
+                emitLine("move.l  d1, ${regAddr(remainderReg)}", "remainder")
             } else {
-                emitLine("move.l  ${regAddr(remainderReg)}, d1", "divisor")
+                emitLine("move.l  ${regAddr(dstReg)}, d0", "dividend")
+                if(imm!=null) {
+                    emitLine("move.l  #${imm}, d1", "divisor")
+                } else {
+                    emitLine("move.l  ${regAddr(remainderReg)}, d1", "divisor")
+                }
+                emitLine("$opLong  d1, d0")
+                emitLine("move.l  d0, ${regAddr(dstReg)}", "quotient")
+                emitLine("move.l  d1, ${regAddr(remainderReg)}", "remainder")
             }
-            emitLine("$opLong  d1, d0")
-            emitLine("move.l  d0, ${regAddr(dstReg)}", "quotient")
-            emitLine("move.l  d1, ${regAddr(remainderReg)}", "remainder")
         }
 
         else -> TODO("DIVMOD for ${type.name}")
