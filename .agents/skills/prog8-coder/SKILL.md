@@ -6,7 +6,7 @@ description: Writing or understanding Prog8 programs
 # Prog8 Coder Skill
 
 You are an expert retro system development assistant, versed in the Prog8 programming language. Keep responses concise and practical — prefer short, correct code examples over lengthy prose.
-You are working with **Prog8** source code (`.p8` files) or its Intermediate Representation (`.p8ir` files). Prog8 targets 8-bit systems (C64, CX16, C128, PET32) with the 6502 CPU, plus a `virtual` target for testing.
+You are working with **Prog8** source code (`.p8` files) or its Intermediate Representation (`.p8ir` files). Prog8 targets 8-bit systems (C64, CX16, C128, PET32) with the 6502 CPU, plus 32-bit systems (amiga500, qemu68k) with the Motorola M68000 CPU, plus a `virtual` target for testing.
 Follow ALL the rules below carefully.
 
 ## General & Setup
@@ -28,13 +28,15 @@ Follow ALL the rules below carefully.
   modules (set automatically by the compiler), IRQ handlers, boot stubs, or code
   that avoids every library call. (`qemu68k` is unaffected: its `init_system` is
   empty and has nothing to skip.)
+- **M68000 targets (`amiga500`, `qemu68k`)**: 32-bit, big-endian architecture. Pointers, addresses, and the `uword` size differ from the 6502 targets — on these targets pointer-sized values are **32-bit (`long`)**, not 16-bit. `memory()` and address-of expressions yield 32-bit addresses. The `pointer` type (see Datatypes) adapts to the target automatically: a `word`/`uword` size on 8-bit 6502 targets, a `long` size on 32-bit M68000 targets. Code that assumes 16-bit pointers or uses `uword` for addresses will not be portable to these targets — use the `pointer` type instead. Assembly on these targets uses M68K syntax (vasm mot); load the `m68k-coder` skill for details.
 
 ## Datatypes & Variables
-- Primitives: `bool`, `byte`, `ubyte`, `word`, `uword`, `long`, `float`, `str`
+- Primitives: `bool`, `byte`, `ubyte`, `word`, `uword`, `long`, `float`, `str`, `pointer`
 - `ubyte`/`uword` = unsigned; `long` = signed 4-byte; `float` = 5-byte MS format; `str` = 0-terminated ubytes (max 255 chars)
+- `pointer` = address-sized unsigned integer. **Auto-adapts to the target**: a 16-bit `uword` on the 8-bit 6502 targets (C64, CX16, C128, PET32, virtual), a 32-bit `long` on the 32-bit M68000 targets (amiga500, qemu68k). Use it for addresses/pointers that must be portable across targets instead of hardcoding `uword` or `long`.
 - **float requires `%import floats`** at top of file, else compiler errors
 - Arrays: max 256 bytes (512 for split word arrays). For larger data, use `memory()` + pointers
-- `memory(name, size)` returns a `uword` address to a statically reserved block of memory
+- `memory(name, size)` returns the address to a statically reserved block of memory. The result is `pointer`-sized: a `uword` (16-bit) on 6502 targets, a `long` (32-bit) on M68000 targets.
 - To point a typed pointer at a `memory()` block, assign the uword directly: `^^MyStruct ptr = memory("name", size)`. The `^^Type:expression` syntax (below) only works with array literals, not general uword expressions.
 - Struct initialization: `^^StructType ptr = ^^StructType:[val1,val2,...]` (the `^^StructType:` can be omitted if inferable). This `^^Type:[...]` syntax does NOT work with variables or `memory()` — only literal arrays.
 - Struct definitions must be inside a block, not at file level.
@@ -53,7 +55,7 @@ Follow ALL the rules below carefully.
 - `@shared` marks variables as "used by external code" (assembly), prevents the optimizer from removing them due to const folding
 - `@zp`/`@requirezp`: use sparingly — only for pointers (limited zeropage space)
 - Pointer-like typed pointers (`^^type`) support C-style scaled arithmetic; `uword` pointers always treat element as 1 byte
-- `&` = untyped address (uword); `&&` = typed pointer
+- `&` = untyped address; yields a `pointer`-sized value (16-bit `uword` on 6502 targets, 32-bit `long` on M68000 targets). When assigning an address to a typed field/variable, prefer the `pointer` type so it adapts to the target. `&&` = typed pointer
 - Available zeropage scratch: `P8ZP_SCRATCH_B1`, `P8ZP_SCRATCH_REG`, `P8ZP_SCRATCH_W1`, `P8ZP_SCRATCH_W2`, `P8ZP_SCRATCH_PTR` — and cx16 virtual registers R0-R15 on all targets
 - Virtual registers (`cx16.r0`–`cx16.r15`): global 16-bit, NOT preserved across calls.
 - **WARNING: Virtual registers in ISR/IRQ handlers**: The virtual registers R0-R15 are *not preserved* across the IRQ handler call. If your handler uses them, it will corrupt the interrupted program's state. Either avoid using them in the handler, or save/restore with `cx16.save_virtual_registers()` / `cx16.restore_virtual_registers()`. This applies to all targets, not just CX16.

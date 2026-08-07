@@ -2,6 +2,69 @@ package prog8.codegen.intermediate
 
 import prog8.intermediate.*
 
+/*
+ * Graph-coloring register allocator (present form: a MEMORY-SLOT packer, not a
+ * hardware-register allocator).
+ *
+ * What it does today:
+ *   - Per subroutine, it builds a CFG, computes intraprocedural liveness,
+ *     derives live intervals, builds a conflict graph, and greedily colors
+ *     virtual registers into SHARED MEMORY SLOTS in the flat `p8_regfile` BSS
+ *     block (coalescing vregs whose live ranges do not overlap).
+ *   - Slots are drawn from a single GLOBAL pool (startSlot = maxReg + 1) shared
+ *     by all subroutines, because the regfile is one shared memory block.
+ *   - It does NOT model CALL clobbering (no caller/callee-saved interference
+ *     edges), so packing a caller and its callee into the same slot lets the
+ *     callee overwrite the caller's value. Combined with the flat shared
+ *     regfile this is unsound, which is why this packer is DISABLED in
+ *     production (its only call site in IRCodeGen.generate() is commented out);
+ *     it currently runs only under TestRegisterPacker.
+ *
+ * Reuse: the liveness / interval / conflict-graph / coloring / rewrite machinery
+ * here is the reusable foundation for the true m68k hardware-register allocator
+ * described in m68k-register-allocation.md. That design repoints the color step
+ * at real D/A/FP registers, adds CALL-aware interference (kill caller-saved,
+ * preserve callee-saved), and adds spilling + prologue/epilogue emission.
+ */
+
+/*
+ * Known bugs / unsoundness (carried over from the removed register-packing.md):
+ *
+ * 1. Disjoint-interval value clobbering (observed on cx16 Fibonacci).
+ *    A register with multiple DISJOINT live ranges (e.g. a loop counter written
+ *    at loop entry and read at loop exit, with no uses in between) was split
+ *    into separate intervals; the packer allowed another register to share the
+ *    same slot during the gap, overwriting the value before its next read.
+ *    Fix applied (see packSubroutine interval merging): always merge ALL
+ *    intervals of the same register into one contiguous range, regardless of
+ *    overlap, so the value persists across gaps.
+ *
+ * 2. Complex control flow (observed on m68k TextElite).
+ *    The iterative gen/kill fixed-point liveness (computeLiveness) produced
+ *    incorrect live ranges for subroutines with complex CFGs (nested
+ *    conditionals, loops, early returns). Two registers with genuinely
+ *    overlapping live ranges were assigned the same slot, so one clobbered the
+ *    other at runtime (symptom: infinite loop printing spaces — galaxy map
+ *    data read from the wrong memory location). Root cause: the dataflow does
+ *    not converge to the true meet-over-all-paths solution for all loop /
+ *    conditional structures. The liveness MUST be validated against nested
+ *    loops, conditionals, early returns, and switch-like dispatch before reuse.
+ *
+ * 3. Cross-subroutine slot collision (fundamental design issue; see header
+ *    comment above). Per-subroutine packing into ONE flat shared regfile is
+ *    unsound: a callee packed into the same slot as a caller's live value
+ *    clobbers it. The packer does not model CALL clobbering. Soundness would
+ *    require the full-program call tree (call-graph-aware allocation, depth
+ *    ranges, or save/restore around calls) — which is exactly what the m68k
+ *    allocator with a calling convention avoids by allocating per-subroutine.
+ *
+ * 4. Interval-merge type loss / silent skips. When merging a register's
+ *    intervals, the merged interval keeps only the FIRST interval's type; if a
+ *    later interval has an incompatible type, the register is dropped via
+ *    skipRegs (and its original number is preserved via the startSlot =
+ *    maxReg + 1 invariant). When reusing this code, merged intervals must carry
+ *    the WIDEST type, not just the first, to avoid under-sized slots.
+ */
 
 object RegisterPacker {
 
