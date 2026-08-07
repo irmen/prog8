@@ -71,6 +71,7 @@ No call stack for variable storage — recursion overwrites locals. To handle it
 3. **Iterative rewrite (preferred)**: Many recursive algorithms work as `repeat` loops with explicit bounds — avoids all stack overhead
 
 ## Strings, Arrays & Pointers
+- String escapes: `\\`, `\"`, `\'`, `\n`, `\r`, plus hex/unicode: `\xHH` (raw byte, no encoding applied) and `\uHHHH` (unicode codepoint)
 - `str` / array: max 256 bytes. `long[]` limited to 64 entries (64x4=256). `str[]` for string arrays: `str[5] names = ["a","b","c","d","e"]`
 - 2D arrays: `type[rows][cols] name`, access `name[r][c]`. Flat init list only (no nested `[[...]]`). Total size still ≤ 256 bytes
 - str/array passed as pointer to subroutine (receiving subroutine gets `^^ubyte` or `^^element`)
@@ -245,7 +246,8 @@ When writing inline assembly (`%asm {{ }}` blocks or `asmsub` routines), load th
 - Hex: `$FF` (not `0xFF`); Binary: `%1010` (not `0b1010`). Underscores for readability: `25_000_000`
 - 4-digit hex `$0000` = uword. No type suffixes (no `0L`). Cast: `expr as type`
 - Augmented assignment: `+=`, `-=`, `*=`, `/=`, `%=`, `&=`, `|=`, `^=`, `<<=`, `>>=`
-- **One statement per line.** You CANNOT put multiple statements on a single source line, even if you try to separate them with `;`. The `;` character is a line comment, not a statement separator, so `stmt1 ; stmt2` is parsed as one statement followed by a comment — `stmt2` is silently dropped (and may break codegen). Always put each statement on its own line.
+- **No `;` as statement separator.** The `;` character is a line comment, not a statement separator, so `stmt1 ; stmt2` is parsed as one statement followed by a comment — `stmt2` is silently dropped (and may break codegen). Never use `;` to separate statements.
+- **One statement per line (recommended).** Although Prog8's parser can technically accept multiple statements on a single line when no separator is used at all (e.g. `x = 5  y = 10`), this hurts readability and is not recommended. Prefer putting each statement on its own line.
 - **No `elif`**: use nested `else { if ... }`
 - Type casting: `expression as type` (e.g., `bytevar as word`). `as` has very low precedence (lower than arithmetic)
 - **No automatic type widening**: `byte*byte=byte` (overflow possible!). Cast explicitly
