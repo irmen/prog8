@@ -1,6 +1,9 @@
 package prog8.codegen.m68k
 
-import prog8.intermediate.*
+import prog8.intermediate.CallingConventionSlot
+import prog8.intermediate.IRDataType
+import prog8.intermediate.IRInstruction
+import prog8.intermediate.Opcode
 
 internal fun AsmGen.translateLoadStore(insn: IRInstruction) {
     val type = insn.type ?: IRDataType.BYTE
@@ -200,38 +203,61 @@ private fun AsmGen.translateFloatLoadStore(insn: IRInstruction, target: String) 
             emitLine("fmove.s  fp0, $target")
         }
 
+        Opcode.STOREIM -> {
+            val value = immFp ?: error("STOREIM.f needs immediateFp value")
+            val native = nativeFloatConst(value)
+            if (native != null) {
+                emitLine("fmovecr  #$native, fp0")
+            } else {
+                val lbl = makeFloatConstLabel(value)
+                emitLine("lea  $lbl, a0")
+                emitLine("fmove.s  (a0), fp0")
+            }
+            emitLine("fmove.s  fp0, $target")
+        }
+
         else -> {
             val fp1 = fpReg1 ?: error("float op needs fpReg1 for ${insn.opcode}")
             when (insn.opcode) {
                 Opcode.LOAD -> when {
-                    immFp != null -> emitFloadConstant(fp1, immFp)
+                    immFp != null -> {
+                        emitFloadConstantToAcc(immFp)
+                        emitLine("fmove.s  $FP_ACC, ${floatRegFileAddr(fp1)}")
+                    }
                     label != null -> {
                         val resolved = resolveSymbolRef(label)
                         val symOff = if (offset != null) "$resolved+$offset" else resolved
                         emitLine("lea  $symOff, a0")
-                        emitLine("fmove.s  (a0), ${fpuRegName(fp1)}")
+                        emitLine("fmove.s  (a0), $FP_ACC")
+                        emitLine("fmove.s  $FP_ACC, ${floatRegFileAddr(fp1)}")
                     }
                     else -> error("FLOAT LOAD needs immediateFp or labelSymbol")
                 }
 
-                Opcode.LOADM -> emitLine("fmove.s  $target, ${fpuRegName(fp1)}")
+                Opcode.LOADM -> {
+                    emitLine("fmove.s  $target, $FP_ACC")
+                    emitLine("fmove.s  $FP_ACC, ${floatRegFileAddr(fp1)}")
+                }
 
                 Opcode.LOADR -> {
                     val src = fpReg2 ?: error("LOADR.f needs fpReg2")
-                    emitLine("fmove  ${fpuRegName(src)}, ${fpuRegName(fp1)}")
+                    emitLine("fmove.s  ${floatRegFileAddr(src)}, $FP_ACC")
+                    emitLine("fmove.s  $FP_ACC, ${floatRegFileAddr(fp1)}")
                 }
 
                 Opcode.LOADX -> {
                     val idx = r1 ?: error("LOADX.f needs reg1 (index)")
                     loadIndexToD0(idx)
                     emitLine("lea  $target, a0")
-                    emitLine("fmove.s  (0, a0, d0.l), ${fpuRegName(fp1)}", "index pre-scaled")
+                    emitLine("fmove.s  (0, a0, d0.l), $FP_ACC", "index pre-scaled")
+                    emitLine("fmove.s  $FP_ACC, ${floatRegFileAddr(fp1)}")
                 }
 
                 Opcode.LOADHR -> {
                     val slot = imm ?: error("LOADHR.f needs slot immediate")
                     val hwReg = m68kSlotRegister(CallingConventionSlot(slot))
-                    emitLine("fmove  $hwReg, ${fpuRegName(fp1)}")
+                    emitLine("fmove  $hwReg, $FP_ACC")
+                    emitLine("fmove.s  $FP_ACC, ${floatRegFileAddr(fp1)}")
                 }
 
                 Opcode.LOADI -> {
@@ -239,36 +265,28 @@ private fun AsmGen.translateFloatLoadStore(insn: IRInstruction, target: String) 
                     val off = imm ?: 0
                     loadPointerToA0(base)
                     if (off != 0) emitLine("adda.l  #$off, a0")
-                    emitLine("fmove.s  (a0), ${fpuRegName(fp1)}")
+                    emitLine("fmove.s  (a0), $FP_ACC")
+                    emitLine("fmove.s  $FP_ACC, ${floatRegFileAddr(fp1)}")
                 }
 
-                Opcode.STOREM -> emitLine("fmove.s  ${fpuRegName(fp1)}, $target")
-
-                Opcode.STOREIM -> {
-                    val value = immFp ?: error("STOREIM.f needs immediateFp value")
-                    when {
-                        value == 0.0 -> emitLine("fmovecr  #\$0f, fp0")
-                        value == 1.0 -> emitLine("fmovecr  #\$0e, fp0")
-                        else -> {
-                            val lbl = makeFloatConstLabel(value)
-                            emitLine("lea  $lbl, a0")
-                            emitLine("fmove.s  (a0), fp0")
-                        }
-                    }
-                    emitLine("fmove.s  fp0, $target")
+                Opcode.STOREM -> {
+                    emitLine("fmove.s  ${floatRegFileAddr(fp1)}, $FP_ACC")
+                    emitLine("fmove.s  $FP_ACC, $target")
                 }
 
                 Opcode.STOREX -> {
                     val idx = r1 ?: error("STOREX.f needs reg1 (index)")
                     loadIndexToD0(idx)
                     emitLine("lea  $target, a0")
-                    emitLine("fmove.s  ${fpuRegName(fp1)}, (0, a0, d0.l)", "index pre-scaled")
+                    emitLine("fmove.s  ${floatRegFileAddr(fp1)}, $FP_ACC")
+                    emitLine("fmove.s  $FP_ACC, (0, a0, d0.l)", "index pre-scaled")
                 }
 
                 Opcode.STOREHR -> {
                     val slot = imm ?: error("STOREHR.f needs slot immediate")
                     val hwReg = m68kSlotRegister(CallingConventionSlot(slot))
-                    emitLine("fmove  ${fpuRegName(fp1)}, $hwReg")
+                    emitLine("fmove.s  ${floatRegFileAddr(fp1)}, $FP_ACC")
+                    emitLine("fmove  $FP_ACC, $hwReg")
                 }
 
                 Opcode.STOREI -> {
@@ -276,14 +294,21 @@ private fun AsmGen.translateFloatLoadStore(insn: IRInstruction, target: String) 
                     val off = imm ?: 0
                     loadPointerToA0(base)
                     if (off != 0) emitLine("adda.l  #$off, a0")
-                    emitLine("fmove.s  ${fpuRegName(fp1)}, (a0)")
+                    emitLine("fmove.s  ${floatRegFileAddr(fp1)}, $FP_ACC")
+                    emitLine("fmove.s  $FP_ACC, (a0)")
                 }
 
-                Opcode.LOADHFACZERO -> emitLine("fmovecr  #\$0f, ${fpuRegName(fp1)}")
-                Opcode.LOADHFACONE -> emitLine("fmovecr  #\$0e, ${fpuRegName(fp1)}")
+                Opcode.LOADHFACZERO -> {
+                    emitLine("fmovecr  #\$0f, $FP_ACC")
+                    emitLine("fmove.s  $FP_ACC, ${floatRegFileAddr(fp1)}")
+                }
+                Opcode.LOADHFACONE -> {
+                    emitLine("fmovecr  #$32, $FP_ACC")
+                    emitLine("fmove.s  $FP_ACC, ${floatRegFileAddr(fp1)}")
+                }
                 Opcode.STOREHFACONE -> {
-                    emitLine("fmovecr  #\$0e, ${fpuRegName(fp1)}")
-                    emitLine("fmove.s  ${fpuRegName(fp1)}, $target")
+                    emitLine("fmovecr  #$32, $FP_ACC")
+                    emitLine("fmove.s  $FP_ACC, $target")
                 }
 
                 else -> error("Unknown float load/store opcode: ${insn.opcode}")
@@ -292,17 +317,6 @@ private fun AsmGen.translateFloatLoadStore(insn: IRInstruction, target: String) 
     }
 }
 
-private fun AsmGen.emitFloadConstant(fpReg: RegisterNum, value: Double) {
-    when {
-        value == 0.0 -> emitLine("fmovecr  #\$0f, ${fpuRegName(fpReg)}")
-        value == 1.0 -> emitLine("fmovecr  #\$0e, ${fpuRegName(fpReg)}")
-        else -> {
-            val label = makeFloatConstLabel(value)
-            emitLine("lea  $label, a0")
-            emitLine("fmove.s  (a0), ${fpuRegName(fpReg)}")
-        }
-    }
-}
 
 private var floatConstCounter = 0
 internal fun AsmGen.makeFloatConstLabel(value: Double): String {

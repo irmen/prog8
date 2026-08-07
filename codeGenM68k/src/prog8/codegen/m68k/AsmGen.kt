@@ -4,6 +4,40 @@ import prog8.code.core.*
 import prog8.intermediate.*
 import kotlin.math.max
 
+internal const val FP_ACC = "fp0"   // primary FPU scratch / accumulator
+internal const val FP_SRC = "fp1"   // secondary FPU scratch / source operand
+
+/**
+ * Returns the 68881 fmovecr ROM constant encoding for common float values
+ * (from the Motorola MC68881/MC68882 User's Manual Table 4-2),
+ * or null if the value is not a native constant and must go through the constant pool.
+ *
+ * This lets the codegen emit a single `fmovecr #imm, fpN` instruction instead of
+ * loading from the constant pool (lea + fmove.s).
+ */
+internal fun nativeFloatConst(value: Double): String? = when (value) {
+    0.0 -> "\$0f"               // 0.0
+    1.0 -> "\$32"               // 10^0 = 1.0
+    10.0 -> "\$33"              // 10^1
+    100.0 -> "\$34"             // 10^2
+    10000.0 -> "\$35"           // 10^4
+    1.0e8 -> "\$36"             // 10^8
+    1.0e16 -> "\$37"            // 10^16
+    1.0e32 -> "\$38"            // 10^32
+    1.0e64 -> "\$39"            // 10^64
+    1.0e128 -> "\$3a"           // 10^128
+    1.0e256 -> "\$3b"           // 10^256
+    1.0e512 -> "\$3c"           // 10^512
+    kotlin.math.PI -> "\$00"    // pi
+    kotlin.math.E -> "\$0c"     // e
+    kotlin.math.ln(2.0) -> "\$30"        // ln(2)
+    kotlin.math.ln(10.0) -> "\$31"       // ln(10)
+    kotlin.math.log10(kotlin.math.E) -> "\$0d"   // log2(e)
+    kotlin.math.log10(2.0) -> "\$0b"     // log10(2)
+    kotlin.math.log10(kotlin.math.E) -> "\$0e"   // log10(e)
+    else -> null
+}
+
 /**
  * M68k codegen.
  * Targeting the QEMU M68k 'virt' system simulator.
@@ -22,6 +56,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
 
     companion object {
         const val REGFILE_LABEL = "p8_regfile"
+        const val FLOAT_REGFILE_LABEL = "p8_fregfile"
     }
 
     init {
@@ -87,6 +122,23 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
             currentOffset = (currentOffset + 1) / 2 * 2
             offsets[regNum.value] = currentOffset
             currentOffset += slotSizeForType(regType)
+        }
+        RegFileLayout(offsets, currentOffset)
+    }
+
+    private val floatRegFileLayout: RegFileLayout by lazy {
+        val used = program.registersUsed()
+        val allFpRegs = mutableMapOf<RegisterNum, IRDataType>()
+        for (reg in used.readFpRegs.keys + used.writeFpRegs.keys) {
+            allFpRegs[reg] = IRDataType.FLOAT
+        }
+        val offsets = mutableMapOf<Int, Int>()
+        var currentOffset = 0
+        for ((regNum, _) in allFpRegs.entries.sortedBy { it.key.value }) {
+            // word-align each slot
+            currentOffset = (currentOffset + 1) / 2 * 2
+            offsets[regNum.value] = currentOffset
+            currentOffset += target.FLOAT_MEM_SIZE.toInt()
         }
         RegFileLayout(offsets, currentOffset)
     }
@@ -160,13 +212,29 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
 
     fun fpuRegName(regNum: RegisterNum): String = "fp${regNum.value}"
 
+    fun floatRegFileAddr(reg: RegisterNum): String {
+        val offset = floatRegFileLayout.offsets[reg.value] ?: error("float register fr${reg.value} has no layout info")
+        return "$FLOAT_REGFILE_LABEL+$offset"
+    }
+
+    fun emitFloadConstantToAcc(value: Double) {
+        val native = nativeFloatConst(value)
+        if (native != null) {
+            emitLine("fmovecr  #$native, $FP_ACC")
+        } else {
+            val label = makeFloatConstLabel(value)
+            emitLine("lea  $label, a0")
+            emitLine("fmove.s  (a0), $FP_ACC")
+        }
+    }
+
     // === size suffix helpers ===
 
     fun dtSuffix(type: IRDataType): String = when (type) {
         IRDataType.BYTE -> ".b"
         IRDataType.WORD -> ".w"
         IRDataType.LONG -> ".l"
-        IRDataType.FLOAT -> ".f"     // single precision (64-bit) for FPU 
+        IRDataType.FLOAT -> ".f"     // IR float suffix (not the m68k asm ".s" suffix)
         IRDataType.POINTER -> ".l"
     }
 
@@ -426,7 +494,6 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         if (initdVars.isNotEmpty()) {
             emitRaw("; static variables with initial values")
             for (v in initdVars) {
-                emitRaw("    ALIGN  2")
                 emitInitializedVariable(v)
             }
             emitRaw("")
@@ -515,16 +582,17 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
                         emitLine("$label:")
                         emitLine("dc.b  ${values.joinToString(",")}", v.name)
                     }
-                    4 -> {
-                        emitLine("    ALIGN  4")
-                        emitLine("$label:")
-                        emitLine("dc.l  ${values.joinToString(",")}", v.name)
-                    }
-                    else -> {
+                    2 -> {
                         emitLine("    ALIGN  2")
                         emitLine("$label:")
                         emitLine("dc.w  ${values.joinToString(",")}", v.name)
                     }
+                    4 -> {
+                        emitLine("    ALIGN  $elemSize")
+                        emitLine("$label:")
+                        emitLine("dc.l  ${values.joinToString(",")}", v.name)
+                    }
+                    else -> error("expected array element size 1,2 or 4 for ${v.name}")
                 }
             }
             dt.isNumeric || dt.isBool -> {
@@ -544,14 +612,17 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
                         emitLine("dc.b  $initValue", v.name)
                     }
                     DataType.WORD, DataType.UWORD -> {
+                        emitLine("    ALIGN  2")
                         emitLine("$label:")
                         emitLine("dc.w  $initValue", v.name)
                     }
                     DataType.LONG -> {
+                        emitLine("    ALIGN  4")
                         emitLine("$label:")
                         emitLine("dc.l  $initValue", v.name)
                     }
                     DataType.FLOAT -> {
+                        emitLine("    ALIGN  4")
                         emitLine("$label:")
                         emitLine("dc.s  $initFloat", v.name)
                     }
@@ -670,6 +741,13 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         emitRaw("    ALIGN  4")
         emitLabel(REGFILE_LABEL)
         emitLine("ds.b  ${regFileLayout.totalSize}")
+
+        // float register file
+        if (floatRegFileLayout.totalSize > 0) {
+            emitRaw("    ALIGN  4")
+            emitLabel(FLOAT_REGFILE_LABEL)
+            emitLine("ds.b  ${floatRegFileLayout.totalSize}")
+        }
 
         // define the end of the program (used by startup code for BSS clearing)
         // only needed for RAW (no linker script); ELF uses the linker file instead

@@ -695,6 +695,29 @@ private fun AsmGen.emitDivModOp(dstReg: Int, remainderReg: Int, type: IRDataType
 }
 
 // === Float arithmetic via 68881 FPU ===
+// Float virtual registers live in the memory regfile. Physical fp0 (FP_ACC) and
+// fp1 (FP_SRC) are used as scratch during FPU operations.
+
+private fun AsmGen.emitFloatBinaryOp(op: String, dst: RegisterNum, src: RegisterNum) {
+    emitLine("fmove.s  ${floatRegFileAddr(dst)}, $FP_ACC")
+    emitLine("fmove.s  ${floatRegFileAddr(src)}, $FP_SRC")
+    emitLine("$op  $FP_SRC, $FP_ACC")
+    emitLine("fmove.s  $FP_ACC, ${floatRegFileAddr(dst)}")
+}
+
+private fun AsmGen.emitFloatOpWithConstant(fpReg: RegisterNum, op: String, value: Double) {
+    emitLine("fmove.s  ${floatRegFileAddr(fpReg)}, $FP_ACC")
+    val native = nativeFloatConst(value)
+    if (native != null) {
+        emitLine("fmovecr  #$native, $FP_SRC")
+    } else {
+        val label = makeFloatConstLabel(value)
+        emitLine("lea  $label, a0")
+        emitLine("fmove.s  (a0), $FP_SRC")
+    }
+    emitLine("$op  $FP_SRC, $FP_ACC")
+    emitLine("fmove.s  $FP_ACC, ${floatRegFileAddr(fpReg)}")
+}
 
 private fun AsmGen.translateFloatArithmetic(insn: IRInstruction) {
     val immFp = insn.immediateFp
@@ -709,80 +732,86 @@ private fun AsmGen.translateFloatArithmetic(insn: IRInstruction) {
         Opcode.DECM -> emitFloatMemUnary("fsub.s", addr, label, offset, immediateStr = "#1.0")
         Opcode.NEGM -> emitFloatMemUnary("fneg", addr, label, offset)
 
-        Opcode.INC -> emitLine("fadd.s  #1.0, ${fpuRegName(fpReg1!!)}")
-        Opcode.DEC -> emitLine("fsub.s  #1.0, ${fpuRegName(fpReg1!!)}")
-
-        Opcode.NEG -> emitLine("fneg  ${fpuRegName(fpReg1!!)}, ${fpuRegName(fpReg1)}")
+        Opcode.INC -> {
+            emitLine("fmove.s  ${floatRegFileAddr(fpReg1!!)}, $FP_ACC")
+            emitLine("fadd.s  #1.0, $FP_ACC")
+            emitLine("fmove.s  $FP_ACC, ${floatRegFileAddr(fpReg1)}")
+        }
+        Opcode.DEC -> {
+            emitLine("fmove.s  ${floatRegFileAddr(fpReg1!!)}, $FP_ACC")
+            emitLine("fsub.s  #1.0, $FP_ACC")
+            emitLine("fmove.s  $FP_ACC, ${floatRegFileAddr(fpReg1)}")
+        }
+        Opcode.NEG -> {
+            emitLine("fmove.s  ${floatRegFileAddr(fpReg1!!)}, $FP_ACC")
+            emitLine("fneg  $FP_ACC, $FP_ACC")
+            emitLine("fmove.s  $FP_ACC, ${floatRegFileAddr(fpReg1)}")
+        }
 
         Opcode.ADDR -> {
             val src = fpReg2 ?: error("ADDR.f needs fpReg2")
-            emitLine("fadd  ${fpuRegName(src)}, ${fpuRegName(fpReg1!!)}")
+            emitFloatBinaryOp("fadd", fpReg1!!, src)
         }
-
         Opcode.ADD -> when {
-            immFp != null -> emitFaddConstant(fpReg1!!, immFp)
+            immFp != null -> emitFloatOpWithConstant(fpReg1!!, "fadd", immFp)
             else -> TODO("FLOAT ADD without immediate")
         }
 
         Opcode.SUBR -> {
             val src = fpReg2 ?: error("SUBR.f needs fpReg2")
-            emitLine("fsub  ${fpuRegName(src)}, ${fpuRegName(fpReg1!!)}")
+            emitFloatBinaryOp("fsub", fpReg1!!, src)
         }
-
         Opcode.SUB -> when {
-            immFp != null -> emitFsubConstant(fpReg1!!, immFp)
+            immFp != null -> emitFloatOpWithConstant(fpReg1!!, "fsub", immFp)
             else -> TODO("FLOAT SUB without immediate")
         }
 
         Opcode.MULR -> {
             val src = fpReg2 ?: error("MULR.f needs fpReg2")
-            emitLine("fmul  ${fpuRegName(src)}, ${fpuRegName(fpReg1!!)}")
+            emitFloatBinaryOp("fmul", fpReg1!!, src)
         }
-
         Opcode.MUL -> when {
-            immFp != null -> emitFmulConstant(fpReg1!!, immFp)
+            immFp != null -> emitFloatOpWithConstant(fpReg1!!, "fmul", immFp)
             else -> TODO("FLOAT MUL without immediate")
         }
 
         Opcode.DIVR -> {
             val src = fpReg2 ?: error("DIVR.f needs fpReg2")
-            emitLine("fdiv  ${fpuRegName(src)}, ${fpuRegName(fpReg1!!)}")
+            emitFloatBinaryOp("fdiv", fpReg1!!, src)
         }
-
         Opcode.DIV -> when {
-            immFp != null -> emitFdivConstant(fpReg1!!, immFp)
+            immFp != null -> emitFloatOpWithConstant(fpReg1!!, "fdiv", immFp)
             else -> TODO("FLOAT DIV without immediate")
         }
 
-        // signed float multiply/divide are the same as unsigned for floats
         Opcode.MULSR -> {
             val src = fpReg2 ?: error("MULSR.f needs fpReg2")
-            emitLine("fmul  ${fpuRegName(src)}, ${fpuRegName(fpReg1!!)}")
+            emitFloatBinaryOp("fmul", fpReg1!!, src)
         }
-
         Opcode.MULS -> when {
-            immFp != null -> emitFmulConstant(fpReg1!!, immFp)
+            immFp != null -> emitFloatOpWithConstant(fpReg1!!, "fmul", immFp)
             else -> TODO("FLOAT MULS without immediate")
         }
 
         Opcode.DIVSR -> {
             val src = fpReg2 ?: error("DIVSR.f needs fpReg2")
-            emitLine("fdiv  ${fpuRegName(src)}, ${fpuRegName(fpReg1!!)}")
+            emitFloatBinaryOp("fdiv", fpReg1!!, src)
         }
-
         Opcode.DIVS -> when {
-            immFp != null -> emitFdivConstant(fpReg1!!, immFp)
+            immFp != null -> emitFloatOpWithConstant(fpReg1!!, "fdiv", immFp)
             else -> TODO("FLOAT DIVS without immediate")
         }
 
         Opcode.SQRT -> {
             val src = fpReg2 ?: error("SQRT.f needs fpReg2")
-            emitLine("fsqrt  ${fpuRegName(src)}, ${fpuRegName(fpReg1!!)}")
+            emitLine("fmove.s  ${floatRegFileAddr(src)}, $FP_ACC")
+            emitLine("fsqrt  $FP_ACC, $FP_ACC")
+            emitLine("fmove.s  $FP_ACC, ${floatRegFileAddr(fpReg1!!)}")
         }
 
         Opcode.SQUARE -> {
             val src = fpReg2 ?: error("SQUARE.f needs fpReg2")
-            emitLine("fmul  ${fpuRegName(src)}, ${fpuRegName(fpReg1!!)}")
+            emitFloatBinaryOp("fmul", fpReg1!!, src)
         }
 
         Opcode.ADDM -> emitFloatMemBinary("fadd", fpReg1!!, addr, label, offset)
@@ -790,37 +819,34 @@ private fun AsmGen.translateFloatArithmetic(insn: IRInstruction) {
         Opcode.MULM, Opcode.MULSM -> emitFloatMemBinary("fmul", fpReg1!!, addr, label, offset)
         Opcode.DIVM, Opcode.DIVSM -> emitFloatMemBinary("fdiv", fpReg1!!, addr, label, offset)
 
+        Opcode.ADDIM -> emitFloatMemBinaryImmediate("fadd", immFp, addr, label, offset)
+        Opcode.SUBIM -> emitFloatMemBinaryImmediate("fsub", immFp, addr, label, offset)
+
         else -> TODO("FLOAT arithmetic: ${insn.opcode}")
     }
 }
 
-private fun AsmGen.emitFaddConstant(fpReg: RegisterNum, value: Double) {
-    when {
-        value == 1.0 -> emitLine("fadd.s  #1.0, ${fpuRegName(fpReg)}")
+private fun AsmGen.emitFloatMemBinaryImmediate(op: String, value: Double?, addr: MemoryAddress?, label: String?, offset: Int?) {
+    val target = resolveAddress(addr, label, offset)
+    val v = value ?: error("float mem op with constant needs immediate value")
+    emitLine("fmove.s $target,$FP_ACC")
+    when (v) {
+        0.0 -> { emitLine("fmove.s #0.0,$FP_SRC"); emitLine("$op $FP_SRC,$FP_ACC") }
+        1.0 -> {
+            if (op == "fadd" || op == "fsub") {
+                emitLine("f${op.substring(1)}.s #1.0,$FP_ACC")
+            } else {
+                return  // mul/div by 1.0 is no-op, just keep loaded value
+            }
+        }
         else -> {
-            val label = makeFloatConstLabel(value)
-            emitLine("lea  $label, a0")
-            emitLine("fadd.s  (a0), ${fpuRegName(fpReg)}")
+            val lbl = makeFloatConstLabel(v)
+            emitLine("lea $lbl,a0")
+            emitLine("fmove.s (a0),$FP_SRC")
+            emitLine("$op $FP_SRC,$FP_ACC")
         }
     }
-}
-
-private fun AsmGen.emitFsubConstant(fpReg: RegisterNum, value: Double) {
-    val label = makeFloatConstLabel(value)
-    emitLine("lea  $label, a0")
-    emitLine("fsub.s  (a0), ${fpuRegName(fpReg)}")
-}
-
-private fun AsmGen.emitFmulConstant(fpReg: RegisterNum, value: Double) {
-    val label = makeFloatConstLabel(value)
-    emitLine("lea  $label, a0")
-    emitLine("fmul.s  (a0), ${fpuRegName(fpReg)}")
-}
-
-private fun AsmGen.emitFdivConstant(fpReg: RegisterNum, value: Double) {
-    val label = makeFloatConstLabel(value)
-    emitLine("lea  $label, a0")
-    emitLine("fdiv.s  (a0), ${fpuRegName(fpReg)}")
+    emitLine("fmove.s $FP_ACC,$target")
 }
 
 private fun AsmGen.emitFloatMemUnary(op: String, addr: MemoryAddress?, label: String?, offset: Int?, immediateStr: String? = null) {
@@ -835,10 +861,10 @@ private fun AsmGen.emitFloatMemUnary(op: String, addr: MemoryAddress?, label: St
 
 private fun AsmGen.emitFloatMemBinary(op: String, fpReg1: RegisterNum, addr: MemoryAddress?, label: String?, offset: Int?) {
     val target = resolveAddress(addr, label, offset)
-    val scratch = if (fpReg1.value == 0) "fp7" else "fp0"
-    emitLine("fmove.s  $target, $scratch")
-    emitLine("$op  ${fpuRegName(fpReg1)}, $scratch")
-    emitLine("fmove.s  $scratch, $target")
+    emitLine("fmove.s  $target, $FP_ACC")
+    emitLine("fmove.s  ${floatRegFileAddr(fpReg1)}, $FP_SRC")
+    emitLine("$op  $FP_SRC, $FP_ACC")
+    emitLine("fmove.s  $FP_ACC, $target")
 }
 
 private fun immVal(value: Int, type: IRDataType): Int = when(type) {

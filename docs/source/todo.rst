@@ -5,14 +5,6 @@ TODO
 - amiga library structs: use more typed pointers if it knows the struct type , rather than using `pointer`. Consider both the extsubs but also the struct fields in the amigaDOS structs in the generated library modules.
 
 
-m68k Codegen: FPU register allocation (68881 only has fp0-fp7) currently broken
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-The m68k codegen maps IR virtual FPU register numbers (RegisterNum) directly to physical ``fpN`` names — so fr8 becomes ``fp8``, which doesn't exist on a real 68881 (only fp0-fp7).
-A proper virtual-to-physical register allocator is needed to remap the virtual registers to the 8 available FPU registers.
-This was not noticed earlier because simple float programs only use 1-3 registers.
-The FP code generation should not directly map onto physical FP registers, and just use the register file like the normal data/address registers also do for now. 
-
-
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 - m68k codegen: add floating point support (assume a FPU is present, this also requires 68020+)

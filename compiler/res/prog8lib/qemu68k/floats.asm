@@ -108,4 +108,22 @@ floats._tostr:
 floats.str_buf:
   ds.b 32
 
+  SECTION .data,data
+
+floats._fzero:
+  dc.s 0.0
+floats._fone:
+  dc.s 1.0
+floats._fneg_one:
+  dc.s -1.0
+floats._ften:
+  dc.s 10.0
+floats._rnd_scale:
+  dc.s 16777216.0      ; 2^24
+
+  SECTION .bss,bss
+
+floats._rnd_state:
+  ds.l 1
+
   SECTION .text,code  ; back to code section for remainder of assembly

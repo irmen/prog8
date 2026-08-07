@@ -20,10 +20,7 @@ import prog8.code.core.CpuType
 import prog8.code.core.Statusflag
 import prog8.code.core.toHex
 import prog8.code.target.Amiga500Target
-import prog8.intermediate.FunctionCallArgs
-import prog8.intermediate.IRDataType
-import prog8.intermediate.IRInstruction
-import prog8.intermediate.Opcode
+import prog8.intermediate.*
 
 internal fun AsmGen.translateControl(insn: IRInstruction) {
     val r1 = insn.reg1
@@ -104,10 +101,15 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
         Opcode.RETURN -> emitLine("rts")
 
         Opcode.RETURNR -> {
-            val reg = r1 ?: error("RETURNR needs reg1")
             val type = insn.type ?: IRDataType.BYTE
-            val s = dtSuffix(type)
-            emitLine("move$s  ${regAddr(reg)}, d0")
+            if (type == IRDataType.FLOAT) {
+                val fpReg = insn.fpReg1 ?: error("RETURNR.f needs fpReg1")
+                emitLine("fmove.s  ${floatRegFileAddr(fpReg)}, $FP_ACC")
+            } else {
+                val reg = r1 ?: error("RETURNR needs reg1")
+                val s = dtSuffix(type)
+                emitLine("move$s  ${regAddr(reg)}, d0")
+            }
             emitLine("rts")
         }
 
@@ -318,7 +320,7 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
             val dstReg = r1 ?: error("SGN needs reg1")
             if (insn.type == IRDataType.FLOAT) {
                 val srcFp = insn.fpReg1 ?: error("SGN.f needs fpReg1")
-                emitLine("ftst  ${fpuRegName(srcFp)}")
+                emitLine("ftst  ${floatRegFileAddr(srcFp)}")
                 emitLine("fslt  d0")
                 emitLine("fsgt  d1")
                 emitLine("neg.b  d1")
@@ -351,7 +353,8 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
             val srcReg = r1 ?: error("FFROMUB needs reg1")
             emitLine("move.b  ${regAddr(srcReg)}, d0")
             emitLine($$"and.l  #\$ff, d0")
-            emitLine("fmove.l  d0, ${fpuRegName(fpDst)}")
+            emitLine("fmove.l  d0, $FP_ACC")
+            emitLine("fmove.s  $FP_ACC, ${floatRegFileAddr(fpDst)}")
         }
 
         Opcode.FFROMSB -> {
@@ -359,7 +362,8 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
             val srcReg = r1 ?: error("FFROMSB needs reg1")
             emitLine("move.b  ${regAddr(srcReg)}, d0")
             emitSignExtendByteToLong("d0")
-            emitLine("fmove.l  d0, ${fpuRegName(fpDst)}")
+            emitLine("fmove.l  d0, $FP_ACC")
+            emitLine("fmove.s  $FP_ACC, ${floatRegFileAddr(fpDst)}")
         }
 
         Opcode.FFROMUW -> {
@@ -367,7 +371,8 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
             val srcReg = r1 ?: error("FFROMUW needs reg1")
             emitLine("move.w  ${regAddr(srcReg)}, d0")
             emitLine($$"and.l  #\$ffff, d0")
-            emitLine("fmove.l  d0, ${fpuRegName(fpDst)}")
+            emitLine("fmove.l  d0, $FP_ACC")
+            emitLine("fmove.s  $FP_ACC, ${floatRegFileAddr(fpDst)}")
         }
 
         Opcode.FFROMSW -> {
@@ -375,20 +380,23 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
             val srcReg = r1 ?: error("FFROMSW needs reg1")
             emitLine("move.w  ${regAddr(srcReg)}, d0")
             emitLine("ext.l  d0")
-            emitLine("fmove.l  d0, ${fpuRegName(fpDst)}")
+            emitLine("fmove.l  d0, $FP_ACC")
+            emitLine("fmove.s  $FP_ACC, ${floatRegFileAddr(fpDst)}")
         }
 
         Opcode.FFROMSL -> {
             val fpDst = insn.fpReg1 ?: error("FFROMSL needs fpReg1")
             val srcReg = r1 ?: error("FFROMSL needs reg1")
             emitLine("move.l  ${regAddr(srcReg)}, d0")
-            emitLine("fmove.l  d0, ${fpuRegName(fpDst)}")
+            emitLine("fmove.l  d0, $FP_ACC")
+            emitLine("fmove.s  $FP_ACC, ${floatRegFileAddr(fpDst)}")
         }
 
         Opcode.FTOUB -> {
             val dstReg = r1 ?: error("FTOUB needs reg1")
             val fpSrc = insn.fpReg1 ?: error("FTOUB needs fpReg1")
-            emitLine("fmove.b  ${fpuRegName(fpSrc)}, d0")
+            emitLine("fmove.s  ${floatRegFileAddr(fpSrc)}, $FP_ACC")
+            emitLine("fmove.b  $FP_ACC, d0")
             emitLine("and.l  #\$ff, d0")
             emitLine("move.b  d0, ${regAddr(dstReg)}")
         }
@@ -396,89 +404,113 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
         Opcode.FTOSB -> {
             val dstReg = r1 ?: error("FTOSB needs reg1")
             val fpSrc = insn.fpReg1 ?: error("FTOSB needs fpReg1")
-            emitLine("fmove.b  ${fpuRegName(fpSrc)}, d0")
+            emitLine("fmove.s  ${floatRegFileAddr(fpSrc)}, $FP_ACC")
+            emitLine("fmove.b  $FP_ACC, d0")
             emitLine("move.b  d0, ${regAddr(dstReg)}")
         }
 
         Opcode.FTOUW -> {
             val dstReg = r1 ?: error("FTOUW needs reg1")
             val fpSrc = insn.fpReg1 ?: error("FTOUW needs fpReg1")
-            emitLine("fmove.w  ${fpuRegName(fpSrc)}, d0")
+            emitLine("fmove.s  ${floatRegFileAddr(fpSrc)}, $FP_ACC")
+            emitLine("fmove.w  $FP_ACC, d0")
             emitLine("move.w  d0, ${regAddr(dstReg)}")
         }
 
         Opcode.FTOSW -> {
             val dstReg = r1 ?: error("FTOSW needs reg1")
             val fpSrc = insn.fpReg1 ?: error("FTOSW needs fpReg1")
-            emitLine("fmove.w  ${fpuRegName(fpSrc)}, d0")
+            emitLine("fmove.s  ${floatRegFileAddr(fpSrc)}, $FP_ACC")
+            emitLine("fmove.w  $FP_ACC, d0")
             emitLine("move.w  d0, ${regAddr(dstReg)}")
         }
 
         Opcode.FTOSL -> {
             val dstReg = r1 ?: error("FTOSL needs reg1")
             val fpSrc = insn.fpReg1 ?: error("FTOSL needs fpReg1")
-            emitLine("fmove.l  ${fpuRegName(fpSrc)}, d0")
+            emitLine("fmove.s  ${floatRegFileAddr(fpSrc)}, $FP_ACC")
+            emitLine("fmove.l  $FP_ACC, d0")
             emitLine("move.l  d0, ${regAddr(dstReg)}")
         }
 
         Opcode.FABS -> {
             val dst = insn.fpReg1 ?: error("FABS needs fpReg1")
             val src = insn.fpReg2 ?: error("FABS needs fpReg2")
-            emitLine("fabs  ${fpuRegName(src)}, ${fpuRegName(dst)}")
+            emitLine("fmove.s  ${floatRegFileAddr(src)}, $FP_ACC")
+            emitLine("fabs  $FP_ACC, $FP_ACC")
+            emitLine("fmove.s  $FP_ACC, ${floatRegFileAddr(dst)}")
         }
 
         Opcode.FSIN -> {
             val dst = insn.fpReg1 ?: error("FSIN needs fpReg1")
             val src = insn.fpReg2 ?: error("FSIN needs fpReg2")
-            emitLine("fsin  ${fpuRegName(src)}, ${fpuRegName(dst)}")
+            emitLine("fmove.s  ${floatRegFileAddr(src)}, $FP_ACC")
+            emitLine("fsin  $FP_ACC, $FP_ACC")
+            emitLine("fmove.s  $FP_ACC, ${floatRegFileAddr(dst)}")
         }
 
         Opcode.FCOS -> {
             val dst = insn.fpReg1 ?: error("FCOS needs fpReg1")
             val src = insn.fpReg2 ?: error("FCOS needs fpReg2")
-            emitLine("fcos  ${fpuRegName(src)}, ${fpuRegName(dst)}")
+            emitLine("fmove.s  ${floatRegFileAddr(src)}, $FP_ACC")
+            emitLine("fcos  $FP_ACC, $FP_ACC")
+            emitLine("fmove.s  $FP_ACC, ${floatRegFileAddr(dst)}")
         }
 
         Opcode.FTAN -> {
             val dst = insn.fpReg1 ?: error("FTAN needs fpReg1")
             val src = insn.fpReg2 ?: error("FTAN needs fpReg2")
-            emitLine("ftan  ${fpuRegName(src)}, ${fpuRegName(dst)}")
+            emitLine("fmove.s  ${floatRegFileAddr(src)}, $FP_ACC")
+            emitLine("ftan  $FP_ACC, $FP_ACC")
+            emitLine("fmove.s  $FP_ACC, ${floatRegFileAddr(dst)}")
         }
 
         Opcode.FATAN -> {
             val dst = insn.fpReg1 ?: error("FATAN needs fpReg1")
             val src = insn.fpReg2 ?: error("FATAN needs fpReg2")
-            emitLine("fatan  ${fpuRegName(src)}, ${fpuRegName(dst)}")
+            emitLine("fmove.s  ${floatRegFileAddr(src)}, $FP_ACC")
+            emitLine("fatan  $FP_ACC, $FP_ACC")
+            emitLine("fmove.s  $FP_ACC, ${floatRegFileAddr(dst)}")
         }
 
         Opcode.FPOW -> {
             val dst = insn.fpReg1 ?: error("FPOW needs fpReg1")
             val src = insn.fpReg2 ?: error("FPOW needs fpReg2")
-            emitLine("fpow  ${fpuRegName(src)}, ${fpuRegName(dst)}")
+            emitLine("fmove.s  ${floatRegFileAddr(src)}, $FP_ACC")
+            emitLine("fpow  $FP_ACC, $FP_ACC")
+            emitLine("fmove.s  $FP_ACC, ${floatRegFileAddr(dst)}")
         }
 
         Opcode.FLN -> {
             val dst = insn.fpReg1 ?: error("FLN needs fpReg1")
             val src = insn.fpReg2 ?: error("FLN needs fpReg2")
-            emitLine("flogn  ${fpuRegName(src)}, ${fpuRegName(dst)}")
+            emitLine("fmove.s  ${floatRegFileAddr(src)}, $FP_ACC")
+            emitLine("flogn  $FP_ACC, $FP_ACC")
+            emitLine("fmove.s  $FP_ACC, ${floatRegFileAddr(dst)}")
         }
 
         Opcode.FLOG -> {
             val dst = insn.fpReg1 ?: error("FLOG needs fpReg1")
             val src = insn.fpReg2 ?: error("FLOG needs fpReg2")
-            emitLine("flog2  ${fpuRegName(src)}, ${fpuRegName(dst)}")
+            emitLine("fmove.s  ${floatRegFileAddr(src)}, $FP_ACC")
+            emitLine("flog2  $FP_ACC, $FP_ACC")
+            emitLine("fmove.s  $FP_ACC, ${floatRegFileAddr(dst)}")
         }
 
         Opcode.FROUND -> {
             val dst = insn.fpReg1 ?: error("FROUND needs fpReg1")
             val src = insn.fpReg2 ?: error("FROUND needs fpReg2")
-            emitLine("fround  ${fpuRegName(src)}, ${fpuRegName(dst)}")
+            emitLine("fmove.s  ${floatRegFileAddr(src)}, $FP_ACC")
+            emitLine("fround  $FP_ACC, $FP_ACC")
+            emitLine("fmove.s  $FP_ACC, ${floatRegFileAddr(dst)}")
         }
 
         Opcode.FFLOOR -> {
             val dst = insn.fpReg1 ?: error("FFLOOR needs fpReg1")
             val src = insn.fpReg2 ?: error("FFLOOR needs fpReg2")
-            emitLine("ffloor  ${fpuRegName(src)}, ${fpuRegName(dst)}")
+            emitLine("fmove.s  ${floatRegFileAddr(src)}, $FP_ACC")
+            emitLine("ffloor  $FP_ACC, $FP_ACC")
+            emitLine("fmove.s  $FP_ACC, ${floatRegFileAddr(dst)}")
         }
 
         Opcode.FCEIL -> {
@@ -488,19 +520,21 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
             val isIntLabel = makeLabel("fceil_is_int")
             val doneLabel = makeLabel("fceil_done")
             val posLabel = makeLabel(".fceil_pos")
-            emitLine("fmove  ${fpuRegName(src)}, ${fpuRegName(dst)}")
-            emitLine("fintrz  ${fpuRegName(dst)}, ${fpuRegName(dst)}")  // truncate toward zero
-            emitLine("fcmp  ${fpuRegName(src)}, ${fpuRegName(dst)}")
+            emitLine("fmove.s  ${floatRegFileAddr(src)}, $FP_ACC")
+            emitLine("fmove.s  $FP_ACC, $FP_SRC")
+            emitLine("fintrz  $FP_SRC, $FP_SRC")  // truncate toward zero
+            emitLine("fcmp  $FP_ACC, $FP_SRC")
             emitLine("fbeq  $isIntLabel")              // if equal, already integer
-            emitLine("ftst  ${fpuRegName(src)}")
+            emitLine("ftst  $FP_ACC")
             emitLine("fbgt  $posLabel")                // if >0, need to add 1
             emitLine("bra  $doneLabel")
             emitLabel(posLabel)
-            emitLine("fadd.s  #1.0, ${fpuRegName(dst)}")
+            emitLine("fadd.s  #1.0, $FP_SRC")
             emitLine("bra  $doneLabel")
             emitLabel(isIntLabel)
             // dst already holds the integer (from fintrz)
             emitLabel(doneLabel)
+            emitLine("fmove.s  $FP_SRC, ${floatRegFileAddr(dst)}")
         }
 
         Opcode.FCOMP -> {
@@ -510,7 +544,8 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
             val eqLabel = makeLabel("fcomp_eq")
             val doneLabel = makeLabel("fcomp_done")
             val gtLabel = makeLabel("fcomp_gt")
-            emitLine("fcmp  ${fpuRegName(fr2)}, ${fpuRegName(fr1)}")
+            emitLine("fmove.s  ${floatRegFileAddr(fr1)}, $FP_ACC")
+            emitLine("fcmp  ${floatRegFileAddr(fr2)}, $FP_ACC")
             emitLine("fbeq  $eqLabel")
             emitLine("fbgt  $gtLabel")
             emitLine("moveq  #-1, d0")
@@ -564,7 +599,7 @@ private fun AsmGen.translateArgument(arg: FunctionCallArgs.ArgumentSpec, fnLabel
     if (slot != null) {
         val hwReg = m68kSlotRegister(slot)
         if (argReg.dt == IRDataType.FLOAT) {
-            emitLine("fmove  ${fpuRegName(argReg.registerNum)}, $hwReg")
+            emitLine("fmove.s  ${floatRegFileAddr(argReg.registerNum)}, $hwReg")
         } else {
             val s = dtSuffix(argReg.dt)
             emitLine("move$s  ${regAddr(argReg.registerNum.value)}, $hwReg")
@@ -574,15 +609,17 @@ private fun AsmGen.translateArgument(arg: FunctionCallArgs.ArgumentSpec, fnLabel
         if (arg.name.isNotEmpty() && fnLabel != null) {
             val paramVarName = "$fnLabel.${arg.name}"
             val target = fixNameSymbols(paramVarName)
-            val regVal = regAddr(argReg.registerNum.value)
             when (argReg.dt) {
-                IRDataType.BYTE -> emitLine("move.b  $regVal, $target")
-                IRDataType.WORD -> {
-                    val sv = dtSuffix(IRDataType.WORD)
-                    emitLine("move$sv  $regVal, $target")
+                IRDataType.FLOAT -> {
+                    val fRegVal = floatRegFileAddr(argReg.registerNum)
+                    emitLine("fmove.s  $fRegVal, $FP_ACC")
+                    emitLine("fmove.s  $FP_ACC, $target")
                 }
-                IRDataType.LONG, IRDataType.POINTER -> emitLine("move.l  $regVal, $target")
-                IRDataType.FLOAT -> emitLine("fmove.s  $regVal, $target")
+                else -> {
+                    val regVal = regAddr(argReg.registerNum.value)
+                    val s = dtSuffix(argReg.dt)
+                    emitLine("move$s  $regVal, $target")
+                }
             }
         }
     }
@@ -610,7 +647,7 @@ private fun AsmGen.translateReturnValue(ret: FunctionCallArgs.RegSpec) {
     if (slot != null) {
         val hwReg = m68kSlotRegister(slot)
         if (ret.dt == IRDataType.FLOAT) {
-            emitLine("fmove.s  $hwReg, ${regAddr(retReg.value)}")
+            emitLine("fmove.s  $hwReg, ${floatRegFileAddr(RegisterNum(retReg.value))}")
         } else {
             val s = dtSuffix(ret.dt)
             emitLine("move$s  $hwReg, ${regAddr(retReg.value)}")
@@ -623,7 +660,7 @@ private fun AsmGen.translateReturnValue(ret: FunctionCallArgs.RegSpec) {
         // Slightly inefficient: m68k pointers ideally live in address registers, but returning
         // them in d0 is simpler and avoids ambiguity. Explicit @A0 can be used for hot paths.
         if (ret.dt == IRDataType.FLOAT) {
-            emitLine("fmove.s  d0, ${regAddr(retReg.value)}")
+            emitLine("fmove.s  $FP_ACC, ${floatRegFileAddr(RegisterNum(retReg.value))}")
         } else {
             val s = dtSuffix(ret.dt)
             emitLine("move$s  d0, ${regAddr(retReg.value)}")
