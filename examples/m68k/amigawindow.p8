@@ -1,3 +1,6 @@
+; Amiga windowing exmple
+; works on any amiga
+
 %import textio
 %import intuition
 %import graphics
@@ -47,7 +50,7 @@ main {
         }
 
         sub drawText() {
-            graphics.SetDrMd(rp, 1)       ; JAM2 - solid character cells, readable
+            graphics.SetDrMd(rp, graphics.RP_JAM2)       ; JAM2 - solid character cells, readable
             graphics.SetAPen(rp, color_idx)
             graphics.Move(rp, x_pos + border_left, y_pos + border_top)
             void graphics.Text(rp, message, len(message))

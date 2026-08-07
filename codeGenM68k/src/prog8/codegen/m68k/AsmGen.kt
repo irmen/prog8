@@ -560,6 +560,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
             dt.isString && init is IRVariableInitializer.Str -> {
                 val bytes = program.encoding.encodeString(init.text, init.encoding)
                 val bytesStr = if(bytes.isNotEmpty()) bytes.joinToString(",") { it.toString(10) } + "," else ""
+                emitLine("    ALIGN  2")
                 emitLine("$label:")
                 emitLine("dc.b  ${bytesStr}0", v.name)
             }
@@ -579,6 +580,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
                 }
                 when (elemSize) {
                     1 -> {
+                        emitLine("    ALIGN  2")
                         emitLine("$label:")
                         emitLine("dc.b  ${values.joinToString(",")}", v.name)
                     }

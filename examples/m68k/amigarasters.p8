@@ -1,3 +1,6 @@
+; Amiga raster bars example
+; works on any amiga
+
 %import custom
 %import textio
 
