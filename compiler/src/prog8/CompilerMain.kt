@@ -691,10 +691,13 @@ private fun compileViaDaemon(compilerArgs: CompilerArguments, plainText: Boolean
     val socketPath = CompilerDaemon.getDefaultSocketPath()
     var channel = connectToDaemon(socketPath)
     var wasExisting = true
+    // Suppress the informational daemon messages when output should be quiet,
+    // or when only a symbol/variable dump is requested (its output must not be polluted).
+    val silent = compilerArgs.quietAll || compilerArgs.dumpSymbols || compilerArgs.dumpVariables
 
     if (channel == null) {
         wasExisting = false
-        println("Starting prog8c daemon...")
+        if (!silent) println("Starting prog8c daemon...")
         if (!startDaemonProcess()) {
             System.err.println("Failed to start prog8c daemon")
             return null
@@ -704,9 +707,9 @@ private fun compileViaDaemon(compilerArgs: CompilerArguments, plainText: Boolean
             System.err.println("prog8c daemon did not start in time")
             return null
         }
-        println("prog8c daemon started.")
+        if (!silent) println("prog8c daemon started.")
     } else {
-        println("Using existing prog8c daemon at $socketPath")
+        if (!silent) println("Using existing prog8c daemon at $socketPath")
     }
 
     val response = communicateWithDaemon(channel, compilerArgs, plainText)
@@ -714,7 +717,7 @@ private fun compileViaDaemon(compilerArgs: CompilerArguments, plainText: Boolean
 
     // Existing daemon rejected us (version mismatch) and has self-terminated.
     // Start a fresh daemon.
-    println("Starting new prog8c daemon (previous was stale)...")
+    if (!silent) println("Starting new prog8c daemon (previous was stale)...")
     if (!startDaemonProcess()) {
         System.err.println("Failed to start prog8c daemon")
         return null
@@ -724,7 +727,7 @@ private fun compileViaDaemon(compilerArgs: CompilerArguments, plainText: Boolean
         System.err.println("prog8c daemon did not start in time")
         return null
     }
-    println("prog8c daemon (new) started.")
+    if (!silent) println("prog8c daemon (new) started.")
 
     return communicateWithDaemon(channel, compilerArgs, plainText)
 }
