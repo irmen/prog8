@@ -3,7 +3,6 @@ TODO
 
 - need a bunch of type casting/conversion checks that test the handling of the 4-byte/long pointer datatype on the qemu68k target.
 - amiga library structs: use more typed pointers if it knows the struct type , rather than using `pointer`. Consider both the extsubs but also the struct fields in the amigaDOS structs in the generated library modules.
-- BUG (m68k targets): the ``setlsb``/``setmsb`` builtins on array elements produce byte-swapped results on big-endian targets: ``funcSetLsbMsb`` in BuiltinFuncGen.kt assumes little-endian word layout (it adds +1 to the index for msb), but m68k stores words big-endian in memory so lsb/msb hit the wrong byte. E.g. ``uword[100] arr; arr[i]=$1234; setlsb(arr[i], $56)`` yields ``$5634`` instead of ``$1256`` on qemu68k. Probably needs a target-endianness dependent offset (and check other lsb/msb/lsb-msb-concat word byte-extraction code paths for the same assumption).
 
 
 Future Things and Ideas
