@@ -439,12 +439,25 @@ gfx_hires {
             return
         ubyte @zp yy = 0
         word @zp decisionOver2 = (1 as word)-radius
+        ubyte pendingRadius
+        ubyte pendingWidth
+        bool hasPending = false
 
         while radius>=yy {
             horizontal_line(xcenter-radius, ycenter+yy, radius*$0002+1, color)
             horizontal_line(xcenter-radius, ycenter-yy, radius*$0002+1, color)
-            horizontal_line(xcenter-yy, ycenter+radius, yy*$0002+1, color)
-            horizontal_line(xcenter-yy, ycenter-radius, yy*$0002+1, color)
+            if hasPending and pendingRadius != radius {
+                if pendingRadius != pendingWidth {
+                    horizontal_line(xcenter-pendingWidth, ycenter+pendingRadius, pendingWidth*$0002+1, color)
+                    horizontal_line(xcenter-pendingWidth, ycenter-pendingRadius, pendingWidth*$0002+1, color)
+                }
+                hasPending = false
+            }
+            if not hasPending {
+                pendingRadius = radius
+                hasPending = true
+            }
+            pendingWidth = yy
             yy++
             if decisionOver2>=0 {
                 radius--
@@ -452,6 +465,10 @@ gfx_hires {
             }
             decisionOver2 += yy*$0002
             decisionOver2++
+        }
+        if hasPending and pendingRadius != pendingWidth {
+            horizontal_line(xcenter-pendingWidth, ycenter+pendingRadius, pendingWidth*$0002+1, color)
+            horizontal_line(xcenter-pendingWidth, ycenter-pendingRadius, pendingWidth*$0002+1, color)
         }
     }
 
@@ -462,12 +479,25 @@ gfx_hires {
             return
         ubyte @zp yy = 0
         word @zp decisionOver2 = (1 as word)-radius
+        ubyte pendingRadius
+        ubyte pendingWidth
+        bool hasPending = false
 
         while radius>=yy {
             safe_horizontal_line(xcenter-radius, ycenter+yy, radius*$0002+1, color)
             safe_horizontal_line(xcenter-radius, ycenter-yy, radius*$0002+1, color)
-            safe_horizontal_line(xcenter-yy, ycenter+radius, yy*$0002+1, color)
-            safe_horizontal_line(xcenter-yy, ycenter-radius, yy*$0002+1, color)
+            if hasPending and pendingRadius != radius {
+                if pendingRadius != pendingWidth {
+                    safe_horizontal_line(xcenter-pendingWidth, ycenter+pendingRadius, pendingWidth*$0002+1, color)
+                    safe_horizontal_line(xcenter-pendingWidth, ycenter-pendingRadius, pendingWidth*$0002+1, color)
+                }
+                hasPending = false
+            }
+            if not hasPending {
+                pendingRadius = radius
+                hasPending = true
+            }
+            pendingWidth = yy
             yy++
             if decisionOver2>=0 {
                 radius--
@@ -475,6 +505,10 @@ gfx_hires {
             }
             decisionOver2 += yy*$0002
             decisionOver2++
+        }
+        if hasPending and pendingRadius != pendingWidth {
+            safe_horizontal_line(xcenter-pendingWidth, ycenter+pendingRadius, pendingWidth*$0002+1, color)
+            safe_horizontal_line(xcenter-pendingWidth, ycenter-pendingRadius, pendingWidth*$0002+1, color)
         }
     }
 

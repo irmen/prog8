@@ -501,11 +501,24 @@ gfx_lores {
             return
         ubyte @zp yy = 0
         word @zp decisionOver2 = (1 as word)-radius
+        ubyte pendingRadius
+        ubyte pendingWidth
+        bool hasPending = false
         while radius>=yy {
             horizontal_line(xcenter-radius, ycenter+yy, radius*$0002+1, color)
             horizontal_line(xcenter-radius, ycenter-yy, radius*$0002+1, color)
-            horizontal_line(xcenter-yy, ycenter+radius, yy*$0002+1, color)
-            horizontal_line(xcenter-yy, ycenter-radius, yy*$0002+1, color)
+            if hasPending and pendingRadius != radius {
+                if pendingRadius != pendingWidth {
+                    horizontal_line(xcenter-pendingWidth, ycenter+pendingRadius, pendingWidth*$0002+1, color)
+                    horizontal_line(xcenter-pendingWidth, ycenter-pendingRadius, pendingWidth*$0002+1, color)
+                }
+                hasPending = false
+            }
+            if not hasPending {
+                pendingRadius = radius
+                hasPending = true
+            }
+            pendingWidth = yy
             yy++
             if decisionOver2>=0 {
                 radius--
@@ -513,6 +526,10 @@ gfx_lores {
             }
             decisionOver2 += yy*$0002
             decisionOver2++
+        }
+        if hasPending and pendingRadius != pendingWidth {
+            horizontal_line(xcenter-pendingWidth, ycenter+pendingRadius, pendingWidth*$0002+1, color)
+            horizontal_line(xcenter-pendingWidth, ycenter-pendingRadius, pendingWidth*$0002+1, color)
         }
     }
 
@@ -523,6 +540,9 @@ gfx_lores {
             return
         ubyte @zp yy = 0
         word @zp decisionOver2 = (1 as word)-radius
+        ubyte pendingRadius
+        ubyte pendingWidth
+        bool hasPending = false
 
         while radius>=yy {
             uword liney = ycenter+yy
@@ -532,12 +552,22 @@ gfx_lores {
             if msb(liney)==0
                 safe_horizontal_line(xcenter-radius, lsb(liney), radius*$0002+1, color)
 
-            liney = ycenter+radius
-            if msb(liney)==0
-                safe_horizontal_line(xcenter-yy, lsb(liney), yy*$0002+1, color)
-            liney = ycenter-radius
-            if msb(liney)==0
-                safe_horizontal_line(xcenter-yy, lsb(liney), yy*$0002+1, color)
+            if hasPending and pendingRadius != radius {
+                if pendingRadius != pendingWidth {
+                    liney = ycenter+pendingRadius
+                    if msb(liney)==0
+                        safe_horizontal_line(xcenter-pendingWidth, lsb(liney), pendingWidth*$0002+1, color)
+                    liney = ycenter-pendingRadius
+                    if msb(liney)==0
+                        safe_horizontal_line(xcenter-pendingWidth, lsb(liney), pendingWidth*$0002+1, color)
+                }
+                hasPending = false
+            }
+            if not hasPending {
+                pendingRadius = radius
+                hasPending = true
+            }
+            pendingWidth = yy
 
             yy++
             if decisionOver2>=0 {
@@ -546,6 +576,14 @@ gfx_lores {
             }
             decisionOver2 += yy*$0002
             decisionOver2++
+        }
+        if hasPending and pendingRadius != pendingWidth {
+            uword flushLiney = ycenter+pendingRadius
+            if msb(flushLiney)==0
+                safe_horizontal_line(xcenter-pendingWidth, lsb(flushLiney), pendingWidth*$0002+1, color)
+            flushLiney = ycenter-pendingRadius
+            if msb(flushLiney)==0
+                safe_horizontal_line(xcenter-pendingWidth, lsb(flushLiney), pendingWidth*$0002+1, color)
         }
     }
 
