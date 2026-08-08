@@ -2,6 +2,7 @@ package prog8
 
 import kotlinx.cli.*
 import prog8.ast.AstException
+import prog8.code.core.ErrorsReportedException
 import prog8.code.core.Position
 import prog8.code.source.ImportFileSystem
 import prog8.code.source.ImportFileSystem.expandTilde
@@ -836,6 +837,11 @@ private fun communicateWithDaemon(channel: SocketChannel, compilerArgs: Compiler
             return response
         }
 
+        System.out.print(response.stdout)
+        System.out.flush()
+        System.err.print(response.stderr)
+        System.err.flush()
+
         val txtcolors = if(plainText) ErrorReporter.PlainText else ErrorReporter.AnsiColors
         val reporter = ErrorReporter(txtcolors)
         for (error in response.errors) {
@@ -846,13 +852,12 @@ private fun communicateWithDaemon(channel: SocketChannel, compilerArgs: Compiler
                 "INFO" -> reporter.info(error.message, pos)
             }
         }
-        reporter.report()
-
-        System.out.print(response.stdout)
-        System.out.flush()
-        System.err.print(response.stderr)
-        System.out.flush()
-        System.err.flush()
+        try {
+            reporter.report()
+        } catch (x: ErrorsReportedException) {
+            if(!x.message.isNullOrEmpty())
+                reporter.printSingleError(x.message!!)
+        }
 
         return response
     } finally {
