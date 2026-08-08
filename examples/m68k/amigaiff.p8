@@ -37,7 +37,7 @@ main {
         ]
 
         if not iffparse.openlib() {
-            txt.print("no iffparse\n")
+            txt.print("requires iffparse.library\n")
             sys.exit(1)
         }
 
@@ -64,24 +64,23 @@ main {
     }
 
 
-    struct BMHDheader {
-        uword w, h                  ; Raster width and height in pixels
-        word  x, y                  ; Pixel position on screen (usually 0,0)
-        ubyte nPlanes               ; Number of bitplanes (1 to 8)
-        ubyte masking               ; Masking technique (0=None, 1=HasMask, 2=HasTransparentColor)
-        ubyte compression           ; Compression algorithm (0=None, 1=ByteRun1)
-        ubyte pad1                  ; Reserved byte / alignment
-        uword transparentColor      ; Transparent color choice
-        ubyte xAspect, yAspect      ; Pixel aspect ratio
-        word  pageWidth, pageHeight ; Source page size in pixels
-    }
-
-
     sub loadIFFimage(str filename, ^^intuition.Screen scr) {
         const long ID_ILBM = $494C424D  ; 'ILBM'
         const long ID_BMHD = $424D4844  ; 'BMHD'
         const long ID_CMAP = $434D4150  ; 'CMAP'
         const long ID_BODY = $424F4459  ; 'BODY'
+
+        struct BMHDheader {
+            uword w, h                  ; Raster width and height in pixels
+            word  x, y                  ; Pixel position on screen (usually 0,0)
+            ubyte nPlanes               ; Number of bitplanes (1 to 8)
+            ubyte masking               ; Masking technique (0=None, 1=HasMask, 2=HasTransparentColor)
+            ubyte compression           ; Compression algorithm (0=None, 1=ByteRun1)
+            ubyte pad1                  ; Reserved byte / alignment
+            uword transparentColor      ; Transparent color choice
+            ubyte xAspect, yAspect      ; Pixel aspect ratio
+            word  pageWidth, pageHeight ; Source page size in pixels
+        }
 
         ^^graphics.RastPort rp = &scr.emb_RastPort
         ^^iffparse.IFFHandle iff = iffparse.AllocIFF()
@@ -104,10 +103,9 @@ main {
                             pointer bodyBuffer = exec.AllocVec(cn.Size, exec.MEMF_PUBLIC)
                             if bodyBuffer!=0 {
                                 if iffparse.ReadChunkBytes(iff, bodyBuffer, cn.Size) == cn.Size {
-
-                                    if cmap!=0 and cmap.Data!=0
+                                    if cmap!=0 and cmap.Data!=0 {
                                         setPalette(cmap)
-
+                                    }
                                     decode(header, bodyBuffer)
                                 }
                                 exec.FreeVec(bodyBuffer)
@@ -134,8 +132,18 @@ main {
                     when compression {
                         0 -> {
                             ; non-compressed
-                            sys.memcopy(body, target, bytesPerRow as uword)
-                            body += bytesPerRow
+                            ;sys.memcopy(body, target, bytesPerRow as uword)
+                            ;body += bytesPerRow
+                            %asm {{
+                                move.l  p8b_main.p8s_loadIFFimage.p8s_decode.p8v_body,a0
+                                move.l  p8b_main.p8s_loadIFFimage.p8s_decode.p8v_target,a1
+                                move.l  p8b_main.p8s_loadIFFimage.p8s_decode.p8v_bytesPerRow,d0
+                                lea     (a0,d0.w),a2        ; body += bytesPerRow
+                                move.l  a2,p8b_main.p8s_loadIFFimage.p8s_decode.p8v_body
+                                subq.w  #1,d0
+.copy                           move.b  (a0)+,(a1)+
+                                dbra    d0,.copy
+                            }}
                         }
                         1 -> {
                             ; byterun1 RLE
@@ -146,67 +154,39 @@ main {
                 }
             }
 
-            sub unpackRLErow(^^ubyte src, ^^ubyte tgt, word amount) -> ^^ubyte {
-                while amount > 0 {
-                    byte n = @(src) as byte
-                    src++
-                    if n>=0 {
-                        ; litaral run: copy n+1 bytes verbatim
- ;                        amount -= n+1
- ;                        repeat n+1 {
- ;                            @(tgt) = @(src)
- ;                            tgt++
- ;                            src++
- ;                        }
-                         %asm {{
-                            ; amount -= n+1
-                            move.b  p8b_main.p8s_loadIFFimage.p8s_decode.p8s_unpackRLErow.p8v_n,d0
-                            ext.w   d0
-                            move.w  p8b_main.p8s_loadIFFimage.p8s_decode.p8s_unpackRLErow.p8v_amount,d1
-                            sub.w   d0,d1
-                            subq.w  #1,d1
-                            move.w  d1,p8b_main.p8s_loadIFFimage.p8s_decode.p8s_unpackRLErow.p8v_amount
+            asmsub unpackRLErow(^^ubyte src @A0, ^^ubyte tgt @A1, word amount @D0) clobbers (A1, D0, D1, D2) -> ^^ubyte @A0 {
+                %asm {{
+.next_packet:
+                    tst.w   d0
+                    ble.s   .done
+                    move.b  (a0)+,d1
+                    ext.w   d1
+                    bpl.s   .literal
+                    cmpi.b  #$80,d1
+                    beq.s   .next_packet
 
-                            ; repeat n+1 copy bytes verbatim
-                            move.l  p8b_main.p8s_loadIFFimage.p8s_decode.p8s_unpackRLErow.p8v_src,a0
-                            move.l  p8b_main.p8s_loadIFFimage.p8s_decode.p8s_unpackRLErow.p8v_tgt,a1
-.copy                       move.b  (a0)+,(a1)+
-                            dbra    d0,.copy
-                            move.l  a0,p8b_main.p8s_loadIFFimage.p8s_decode.p8s_unpackRLErow.p8v_src
-                            move.l  a1,p8b_main.p8s_loadIFFimage.p8s_decode.p8s_unpackRLErow.p8v_tgt
-                        }}
-                   } else if n!=-128 {
-                        ; repeat run: repeat next byte 1-n times
-;                        amount -= 1-n
-;                        ubyte b = @(src)
-;                        src++
-;                        repeat 1-n {
-;                            @(tgt) = b
-;                            tgt++
-;                        }
+                    ; Repeat run: repeat the next byte 1-n times.
+                    add.w   d1,d0
+                    subq.w  #1,d0
+                    neg.w   d1
+                    move.b  (a0)+,d2
+.repeat:
+                    move.b  d2,(a1)+
+                    dbra    d1,.repeat
+                    bra.s   .next_packet
 
-                        %asm {{
-                            ; amount -= 1-n  -->  amount += n, amount -= 1
-                            move.b  p8b_main.p8s_loadIFFimage.p8s_decode.p8s_unpackRLErow.p8v_n,d0
-                            ext.w   d0
-                            move.w  p8b_main.p8s_loadIFFimage.p8s_decode.p8s_unpackRLErow.p8v_amount,d1
-                            add.w   d0,d1
-                            subq.w  #1,d1
-                            move.w  d1,p8b_main.p8s_loadIFFimage.p8s_decode.p8s_unpackRLErow.p8v_amount
+.literal:
+                    ; Literal run: copy n+1 bytes verbatim.
+                    sub.w   d1,d0
+                    subq.w  #1,d0
+.copy:
+                    move.b  (a0)+,(a1)+
+                    dbra    d1,.copy
+                    bra.s   .next_packet
 
-                            ; repeat copy next byte 1-n times
-                            move.l  p8b_main.p8s_loadIFFimage.p8s_decode.p8s_unpackRLErow.p8v_src,a0
-                            move.l  p8b_main.p8s_loadIFFimage.p8s_decode.p8s_unpackRLErow.p8v_tgt,a1
-                            move.b  (a0)+,d1
-                            neg.w   d0
-.rep                        move.b  d1,(a1)+
-                            dbra    d0,.rep
-                            move.l  a0,p8b_main.p8s_loadIFFimage.p8s_decode.p8s_unpackRLErow.p8v_src
-                            move.l  a1,p8b_main.p8s_loadIFFimage.p8s_decode.p8s_unpackRLErow.p8v_tgt
-                        }}
-                    }
-                }
-                return src
+.done:
+                    rts
+                }}
             }
         }
 

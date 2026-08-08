@@ -9,6 +9,7 @@ Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 - allow declaring a for loop iterator variable in the for statement itself (for ubyte c in 0 to 10...) ideally the visibity should be limited to the for block (name mangle? because all vars are hoisted to subroutine scope)
 - m68k codegen: add floating point support (assume a FPU is present, this also requires 68020+)
+- m68k codegen: make use of scaling factors in the indexed instructions on 68020+ ?
 - support arrays-of-structs, see ideas/arrays-of-structs.md
 - split up AssignmentAsmGen.kt in codeGenCpu6502 it is by far the largest file 6000+ lines
 - make enums strongly typed instead of just syntactic sugar for ints (see ideas/enum-strong-type.md for the plan)
