@@ -349,16 +349,28 @@ hline_filled_right   .byte  0, %10000000, %11000000, %11100000, %11110000, %1111
     sub disc(uword xcenter, ubyte ycenter, ubyte radius) {
         ; Warning: NO BOUNDS CHECKS. Make sure circle fits in the screen.
         ; Midpoint algorithm, filled.
-        ; Overdraws horizontal lines unfortunately.
         if radius==0
             return
         ubyte @zp yy = 0
         word decisionOver2 = (1 as word)-radius
+        ubyte pendingRadius
+        ubyte pendingWidth
+        bool hasPending = false
         while radius>=yy {
             horizontal_line(xcenter-radius, ycenter+yy, radius*2+1)
             horizontal_line(xcenter-radius, ycenter-yy, radius*2+1)
-            horizontal_line(xcenter-yy, ycenter+radius, yy*2+1)
-            horizontal_line(xcenter-yy, ycenter-radius, yy*2+1)
+            if hasPending and pendingRadius != radius {
+                if pendingRadius != pendingWidth {
+                    horizontal_line(xcenter-pendingWidth, ycenter+pendingRadius, pendingWidth*2+1)
+                    horizontal_line(xcenter-pendingWidth, ycenter-pendingRadius, pendingWidth*2+1)
+                }
+                hasPending = false
+            }
+            if not hasPending {
+                pendingRadius = radius
+                hasPending = true
+            }
+            pendingWidth = yy
             yy++
             if decisionOver2>=0 {
                 radius--
@@ -366,6 +378,10 @@ hline_filled_right   .byte  0, %10000000, %11000000, %11100000, %11110000, %1111
             }
             decisionOver2 += yy*$0002
             decisionOver2++
+        }
+        if hasPending and pendingRadius != pendingWidth {
+            horizontal_line(xcenter-pendingWidth, ycenter+pendingRadius, pendingWidth*2+1)
+            horizontal_line(xcenter-pendingWidth, ycenter-pendingRadius, pendingWidth*2+1)
         }
     }
 
@@ -445,5 +461,4 @@ _y_lookup_hi    .byte  >_plot_y_values
     }
 
 }
-
 

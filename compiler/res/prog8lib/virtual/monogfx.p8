@@ -304,11 +304,24 @@ monogfx {
             return
         ubyte @zp yy = 0
         word @zp decisionOver2 = (1 as word)-radius
+        ubyte pendingRadius
+        ubyte pendingWidth
+        bool hasPending = false
         while radius>=yy {
             horizontal_line(xcenter-radius, ycenter+yy, radius*$0002+1, draw)
             horizontal_line(xcenter-radius, ycenter-yy, radius*$0002+1, draw)
-            horizontal_line(xcenter-yy, ycenter+radius, yy*$0002+1, draw)
-            horizontal_line(xcenter-yy, ycenter-radius, yy*$0002+1, draw)
+            if hasPending and pendingRadius != radius {
+                if pendingRadius != pendingWidth {
+                    horizontal_line(xcenter-pendingWidth, ycenter+pendingRadius, pendingWidth*$0002+1, draw)
+                    horizontal_line(xcenter-pendingWidth, ycenter-pendingRadius, pendingWidth*$0002+1, draw)
+                }
+                hasPending = false
+            }
+            if not hasPending {
+                pendingRadius = radius
+                hasPending = true
+            }
+            pendingWidth = yy
             yy++
             if decisionOver2>=0 {
                 radius--
@@ -316,6 +329,10 @@ monogfx {
             }
             decisionOver2 += yy*$0002
             decisionOver2++
+        }
+        if hasPending and pendingRadius != pendingWidth {
+            horizontal_line(xcenter-pendingWidth, ycenter+pendingRadius, pendingWidth*$0002+1, draw)
+            horizontal_line(xcenter-pendingWidth, ycenter-pendingRadius, pendingWidth*$0002+1, draw)
         }
     }
 
@@ -326,11 +343,24 @@ monogfx {
             return
         ubyte @zp yy = 0
         word @zp decisionOver2 = (1 as word)-radius
+        ubyte pendingRadius
+        ubyte pendingWidth
+        bool hasPending = false
         while radius>=yy {
             safe_horizontal_line(xcenter-radius, ycenter+yy, radius*$0002+1, draw)
             safe_horizontal_line(xcenter-radius, ycenter-yy, radius*$0002+1, draw)
-            safe_horizontal_line(xcenter-yy, ycenter+radius, yy*$0002+1, draw)
-            safe_horizontal_line(xcenter-yy, ycenter-radius, yy*$0002+1, draw)
+            if hasPending and pendingRadius != radius {
+                if pendingRadius != pendingWidth {
+                    safe_horizontal_line(xcenter-pendingWidth, ycenter+pendingRadius, pendingWidth*$0002+1, draw)
+                    safe_horizontal_line(xcenter-pendingWidth, ycenter-pendingRadius, pendingWidth*$0002+1, draw)
+                }
+                hasPending = false
+            }
+            if not hasPending {
+                pendingRadius = radius
+                hasPending = true
+            }
+            pendingWidth = yy
             yy++
             if decisionOver2>=0 {
                 radius--
@@ -338,6 +368,10 @@ monogfx {
             }
             decisionOver2 += yy*$0002
             decisionOver2++
+        }
+        if hasPending and pendingRadius != pendingWidth {
+            safe_horizontal_line(xcenter-pendingWidth, ycenter+pendingRadius, pendingWidth*$0002+1, draw)
+            safe_horizontal_line(xcenter-pendingWidth, ycenter-pendingRadius, pendingWidth*$0002+1, draw)
         }
     }
 
