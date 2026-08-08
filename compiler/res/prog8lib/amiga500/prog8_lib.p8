@@ -101,6 +101,8 @@ proc_CLI = 172
 1$:
         }}
 
+        if sys.RexxSysBase != 0 exec.CloseLibrary(sys.RexxSysBase)
+        if sys.IFFParseBase != 0 exec.CloseLibrary(sys.IFFParseBase)
         if sys.UtilityBase != 0 exec.CloseLibrary(sys.UtilityBase)
         if sys.IconBase != 0 exec.CloseLibrary(sys.IconBase)
         if sys.IntuitionBase != 0 exec.CloseLibrary(sys.IntuitionBase)

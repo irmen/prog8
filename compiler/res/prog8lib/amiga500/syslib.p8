@@ -38,6 +38,7 @@ sys {
     pointer @shared IconBase
     pointer @shared UtilityBase     ; kickstart 2.0+
     pointer @shared RexxSysBase     ; kickstart 2.0+, loaded from disk on demand
+    pointer @shared IFFParseBase    ; kickstart 2.0+, loaded from disk on demand
     pointer @shared TimerBase       ; opened on demand
 
     sub  reset_system()  {

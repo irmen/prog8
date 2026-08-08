@@ -213,5 +213,11 @@ arexx {
     const ubyte RLFB_TRACE = $0000
     const ubyte RLFB_HALT = $0001
     const ubyte RLFB_SUSP = $0002
+    const ubyte NSF_INTNUM = $0001
+    const ubyte NSF_DPNUM = $0001
+    const ubyte NSF_ALPHA = $0001
+    const ubyte NSF_OWNED = $0001
+    const ubyte KEEPSTR = $0001
+    const ubyte KEEPNUM = $0001
 }
 ;; End of auto-generated arexx_lib.sfd

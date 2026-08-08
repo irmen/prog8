@@ -395,7 +395,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
 
         if (firstIsLabel) {
             // Keep the first label at the top, where the source put it
-            block.add(transformStatement(firstStmt!!))
+            block.add(transformStatement(firstStmt))
         }
         makeScopeVarsDecls(vardecls).forEach { block.add(it) }
         for (stmt in statements) {

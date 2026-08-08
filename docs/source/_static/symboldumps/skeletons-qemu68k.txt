@@ -1,6 +1,6 @@
 
 Prog8 compiler v14.0-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit 96eebbe0 in branch new-codegens
+Prerelease version from git commit 45f48d2e in branch new-codegens
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-qemu68k.p8
@@ -190,7 +190,34 @@ floats  {
     const float  PI
     const float  TWOPI
     const float  π
+    atan  (float value @FP0) -> float @FP0
+    atan2  (float y, float x) -> float
+    ceil  (float value @FP0) -> float @FP0
+    clampf  (float value, float minimum, float maximum) -> float
+    cos  (float angle @FP0) -> float @FP0
+    cot  (float value) -> float
+    csc  (float value) -> float
+    deg  (float angle) -> float
+    floor  (float value @FP0) -> float @FP0
+    interpolate  (float v, float inputMin, float inputMax, float outputMin, float outputMax) -> float
+    lerp  (float v0, float v1, float t) -> float
+    lerp_fast  (float v0, float v1, float t) -> float
+    ln  (float value @FP0) -> float @FP0
+    log2  (float value @FP0) -> float @FP0
+    maxf  (float f1, float f2) -> float
+    minf  (float f1, float f2) -> float
+    mod  (float value, float divisor) -> float
+    normalize  (float value) -> float
+    parse  (str value @A0) -> float @FP0
+    pow  (float value @FP0, float power @FP1) -> float @FP0
     print  (float value @FP0)
+    rad  (float angle) -> float
+    rnd  () -> float @FP0
+    rndseed  (float seed @FP0)
+    round  (float value @FP0) -> float @FP0
+    secant  (float value) -> float
+    sin  (float angle @FP0) -> float @FP0
+    tan  (float value @FP0) -> float @FP0
     tostr  (float value @FP0) -> str @A0
 }
 
@@ -217,6 +244,8 @@ math  {
     cos8u  (ubyte angle) -> ubyte
     cosr8  (ubyte radians) -> byte
     cosr8u  (ubyte radians) -> ubyte
+    lerpf   alias for: floats.lerp
+    lerpf_fast   alias for: floats.lerp_fast
     randrange  (ubyte n) -> ubyte
     randrangew  (uword n) -> uword
     rnd  () -> ubyte
@@ -332,11 +361,13 @@ qemu  {
 
 sys  {
     const byte  MAX_BYTE
+    const float  MAX_FLOAT
     const long  MAX_LONG
     const ubyte  MAX_UBYTE
     const uword  MAX_UWORD
     const word  MAX_WORD
     const byte  MIN_BYTE
+    const float  MIN_FLOAT
     const long  MIN_LONG
     const ubyte  MIN_UBYTE
     const uword  MIN_UWORD

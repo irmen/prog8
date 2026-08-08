@@ -869,7 +869,7 @@ graphics {
     const ubyte FPF_DESIGNED = $0040
     const ubyte FPB_REMOVED = 7
     const ubyte FPF_REMOVED = $0080
-    const ubyte TA_DeviceDPI = $0001
+    const long TA_DeviceDPI = $80000001
     const uword MAXFONTMATCHWEIGHT = $7fff
     const ubyte TE0B_NOREMFONT = 0
     const ubyte TE0F_NOREMFONT = $0001
@@ -1029,8 +1029,12 @@ graphics {
     const uword BMF_CHECKMASK = $0f80
     const uword BMF_CHECKVALUE = $0700
     const ubyte SETCHIPREV_A = $0001
+    const ubyte SETCHIPREV_ECS = $0003
+    const ubyte SETCHIPREV_AA = $000f
+    const ubyte BANDWIDTH_1X = $0000
     const ubyte BANDWIDTH_2XNML = $0001
     const ubyte BANDWIDTH_2XDBL = $0002
+    const ubyte BANDWIDTH_4X = $0003
     const long VGAEXTRALORESHAM_KEY = $00031804
     const long VGAEXTRALORESHAMLACE_KEY = $00031805
     const long VGAEXTRALORESEHB_KEY = $00031084
@@ -1039,6 +1043,7 @@ graphics {
     const long EURO72EXTRALORESHAMLACE_KEY = $00061805
     const long EURO72EXTRALORESEHB_KEY = $00061084
     const long EURO72EXTRALORESEHBLACE_KEY = $00061085
+    const uword MUST_FLAGS = $100e
     const ubyte COLORMAP_TYPE_V36 = $0001
 }
 ;; End of auto-generated graphics_lib.sfd

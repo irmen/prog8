@@ -8,6 +8,16 @@ Usage:
 
 Parses the LVO file for LVO offsets, SFD file for function signatures,
 and optionally .i files for struct definitions and constants.
+
+Generated library modules (written to compiler/res/prog8lib/amiga500/):
+  arexx      --structs --consts
+  dos        --structs --consts
+  exec       --structs --consts
+  graphics   --structs --consts
+  icon
+  iffparse   --structs --consts
+  intuition  --structs --consts
+  utility    --structs --consts
 """
 
 import argparse
@@ -104,6 +114,12 @@ STRUCT_NAME_MAP = {
     'CLOCKDATA':      ('ClockData',        ''),
     # arexx (rexxsyslib)
     'RexxMsg':        ('RexxMsg',          'rm_'),
+    # iffparse
+    'IFFHandle':      ('IFFHandle',        'iff_'),
+    'IFFStreamCmd':   ('IFFStreamCmd',     'sc_'),
+    'ContextNode':    ('ContextNode',      'cn_'),
+    'StoredProperty': ('StoredProperty',   'sp_'),
+    'CollectionItem': ('CollectionItem',   'ci_'),
 }
 
 # Prog8 keywords that conflict with field names
@@ -713,7 +729,7 @@ def _collect_consts_one(filepath: str) -> tuple[list, dict]:
                     'comment': f'; BITDEF mask {p},{n},{b}'
                 })
                 continue
-            m = re.match(r'(\w+)\s+EQU\s+(\S+)', stripped, re.IGNORECASE)
+            m = re.match(r'(\w+)\s+EQU\s+(\'(?:[^\']*)\'|\S+)', stripped, re.IGNORECASE)
             if m:
                 cname = m.group(1)
                 rawv = m.group(2)
@@ -765,10 +781,25 @@ def _eval_const(raw: str, symbols: dict = None) -> int | None:
             b = _eval_const(parts[1].strip(), symbols)
             if a is not None and b is not None:
                 return a + b if op == '+' else a - b
+    # Handle bitwise OR/AND ('!' is the m68k assembler OR operator)
+    for op in ('!', '&'):
+        parts = raw.split(op, 1)
+        if len(parts) == 2:
+            a = _eval_const(parts[0].strip(), symbols)
+            b = _eval_const(parts[1].strip(), symbols)
+            if a is not None and b is not None:
+                return a | b if op == '!' else a & b
     # Handle bit shift with optional type suffix
     m = re.match(r'(\d+)(?:UL|L|U)?\s*<<\s*(\d+)', raw)
     if m:
         return int(m.group(1)) << int(m.group(2))
+    # Handle multi-char constants: 'FORM' -> 0x464F524D (big-endian)
+    m = re.match(r"'(.+?)'", raw)
+    if m and len(m.group(1)) <= 4:
+        v = 0
+        for ch in m.group(1):
+            v = (v << 8) | ord(ch)
+        return v
     # Handle hex with C-style (0x) or assembler-style ($) prefix
     m = re.match(r'(?:0x|\$)([0-9a-fA-F]+)', raw)
     if m:
@@ -1008,6 +1039,19 @@ LIBRARY_HELPERS = {
         if sys.RexxSysBase!=0 {
             exec.CloseLibrary(sys.RexxSysBase)
             sys.RexxSysBase = 0
+        }
+    }
+''',
+    'iffparse': '''
+    sub openlib() -> bool {
+        sys.IFFParseBase = exec.OpenLibrary("iffparse.library", 0)
+        return sys.IFFParseBase!=0
+    }
+
+    sub closelib() {
+        if sys.IFFParseBase!=0 {
+            exec.CloseLibrary(sys.IFFParseBase)
+            sys.IFFParseBase = 0
         }
     }
 ''',
@@ -1628,6 +1672,7 @@ LIB_HEADERS = {
                   'graphics/clip.h', 'graphics/text.h', 'graphics/layers.h'],
     'utility': ['utility/tagitem.h', 'utility/hooks.h', 'utility/date.h'],
     'arexx': ['rexx/storage.h', 'rexx/rexxio.h', 'dos/dos.h'],
+    'iffparse': ['libraries/iffparse.h'],
 }
 
 # Which struct tags belong to which library (to avoid cross-library duplication)
@@ -1643,6 +1688,8 @@ LIB_STRUCT_TAGS = {
                   'ColorSpec', 'Menu'},
     'utility': {'TagItem', 'HOOK', 'CLOCKDATA'},
     'arexx': {'RexxMsg'},
+    'iffparse': {'IFFHandle', 'IFFStreamCmd', 'ContextNode',
+                 'StoredProperty', 'CollectionItem'},
 }
 
 
@@ -1774,6 +1821,12 @@ def main():
     all_raw = {}
     inc = os.path.join(ndk, 'Include_I', 'rexx' if arexx_alias else lib)
     exec_inc = os.path.join(ndk, 'Include_I', 'exec')
+    # iffparse's include files live in the shared Include_I/libraries dir
+    lib_i_files = []
+    if lib == 'iffparse':
+        iff_file = os.path.join(ndk, 'Include_I', 'libraries', 'iffparse.i')
+        if os.path.isfile(iff_file):
+            lib_i_files.append(iff_file)
     if args.structs or args.consts:
         clang_structs = parse_structs_from_clang(ndk, lib)
         if clang_structs is not None:
@@ -1788,6 +1841,9 @@ def main():
                     if tag in all_raw:
                         print(f"Warning: struct '{tag}' from exec overwritten by {lib}", file=sys.stderr)
                 all_raw.update(lib_structs)
+            elif lib_i_files:
+                for fp in lib_i_files:
+                    all_raw.update(_parse_one_i(fp))
             # Resolve base sizes across merged structs (e.g. utility HOOK extends exec MLN)
             _resolve_base_sizes(all_raw)
     else:
@@ -1814,7 +1870,9 @@ def main():
         print(f";; Bank: {bank}")
     print(f";; Functions: {len(lvos)}\n")
 
-    if arexx_alias:
+    # library-specific helper routines (hand-maintained, not from NDK)
+    helper = LIBRARY_HELPERS.get(lib)
+    if helper and 'exec.' in helper:
         print(f"%import exec")
         print()
     print(f"{lib} {{")
@@ -1867,6 +1925,8 @@ def main():
                 extra_files.append(ie_file)
         if os.path.isdir(inc):
             consts.extend(parse_consts_i_files(inc, extra_files=extra_files))
+        elif lib_i_files:
+            consts.extend(parse_consts_i_files('', extra_files=extra_files + lib_i_files))
         consts_text = generate_consts(consts, lib, indent='    ', header_text='constants')
         if consts_text:
             print(consts_text)

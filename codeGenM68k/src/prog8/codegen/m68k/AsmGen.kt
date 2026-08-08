@@ -210,8 +210,6 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
 
     // === FPU helpers (M680x0 with 68881/68882) ===
 
-    fun fpuRegName(regNum: RegisterNum): String = "fp${regNum.value}"
-
     fun floatRegFileAddr(reg: RegisterNum): String {
         val offset = floatRegFileLayout.offsets[reg.value] ?: error("float register fr${reg.value} has no layout info")
         return "$FLOAT_REGFILE_LABEL+$offset"

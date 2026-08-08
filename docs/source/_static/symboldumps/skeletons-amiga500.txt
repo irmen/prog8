@@ -1,6 +1,6 @@
 
 Prog8 compiler v14.0-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit 96eebbe0 in branch new-codegens
+Prerelease version from git commit 45f48d2e in branch new-codegens
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-amiga500.p8
@@ -139,6 +139,8 @@ arexx  {
     const ubyte  ERR10_048
     const ubyte  ERRC_MSG
     const ubyte  GLOBALSZ
+    const ubyte  KEEPNUM
+    const ubyte  KEEPSTR
     const ubyte  MAXRMARG
     const long  MEMCLEAR
     const long  MEMMASK
@@ -152,12 +154,16 @@ arexx  {
     const ubyte  NSB_NUMBER
     const ubyte  NSB_SOURCE
     const ubyte  NSB_STRING
+    const ubyte  NSF_ALPHA
     const ubyte  NSF_BINARY
+    const ubyte  NSF_DPNUM
     const ubyte  NSF_EXT
     const ubyte  NSF_FLOAT
+    const ubyte  NSF_INTNUM
     const ubyte  NSF_KEEP
     const ubyte  NSF_NOTNUM
     const ubyte  NSF_NUMBER
+    const ubyte  NSF_OWNED
     const ubyte  NSF_SOURCE
     const ubyte  NSF_STRING
     const ubyte  NUMLISTS
@@ -414,6 +420,7 @@ dos  {
     const ubyte  ACTION_NIL
     const ubyte  ACTION_PARENT
     const uword  ACTION_PARENT_FH
+    const ubyte  ACTION_READ
     const uword  ACTION_READ_LINK
     const uword  ACTION_READ_RETURN
     const uword  ACTION_REMOVE_NOTIFY
@@ -433,6 +440,7 @@ dos  {
     const ubyte  ACTION_TIMER
     const uword  ACTION_UNDISK_INFO
     const ubyte  ACTION_WAIT_CHAR
+    const ubyte  ACTION_WRITE
     const uword  ACTION_WRITE_PROTECT
     const uword  ACTION_WRITE_RETURN
     const long  ADO_CommFileLen
@@ -688,7 +696,20 @@ dos  {
     const uword  HUNK_RELRELOC8
     const uword  HUNK_SYMBOL
     const uword  HUNK_UNIT
+    const ubyte  ID_COMPLONG_FFS_DISK
+    const ubyte  ID_DOS_DISK
+    const ubyte  ID_FASTDIR_DOS_DISK
+    const ubyte  ID_FASTDIR_FFS_DISK
+    const ubyte  ID_FFS_DISK
+    const ubyte  ID_INTER_DOS_DISK
+    const ubyte  ID_INTER_FFS_DISK
+    const ubyte  ID_KICKSTART_DISK
+    const ubyte  ID_LONG_DOS_DISK
+    const ubyte  ID_LONG_FFS_DISK
+    const ubyte  ID_MSDOS_DISK
+    const ubyte  ID_NOT_REALLY_DOS
     const long  ID_NO_DISK_PRESENT
+    const ubyte  ID_UNREADABLE_DISK
     const ubyte  ID_VALIDATED
     const ubyte  ID_VALIDATING
     const ubyte  ID_WRITE_PROTECTED
@@ -704,6 +725,7 @@ dos  {
     const ubyte  LDB_READ
     const ubyte  LDB_VOLUMES
     const ubyte  LDB_WRITE
+    const ubyte  LDF_ALL
     const ubyte  LDF_ASSIGNS
     const ubyte  LDF_DELETE
     const ubyte  LDF_DEVICES
@@ -1543,8 +1565,10 @@ graphics  {
     const ubyte  ANFRACSIZE
     const uword  ANIMHALF
     const ubyte  AVOID_FLICKER
+    const ubyte  BANDWIDTH_1X
     const ubyte  BANDWIDTH_2XDBL
     const ubyte  BANDWIDTH_2XNML
+    const ubyte  BANDWIDTH_4X
     const ubyte  BB_BDRAWN
     const ubyte  BB_BOBISCOMP
     const ubyte  BB_BOBNIX
@@ -1975,6 +1999,7 @@ graphics  {
     const ubyte  MSF_REQUEST_NTSC
     const ubyte  MSF_REQUEST_PAL
     const ubyte  MSF_REQUEST_SPECIAL
+    const uword  MUST_FLAGS
     const ubyte  MVP_NO_DISPLAY
     const ubyte  MVP_NO_DSPINS
     const ubyte  MVP_NO_MEM
@@ -2044,7 +2069,9 @@ graphics  {
     const ubyte  RP_JAM1
     const ubyte  RP_JAM2
     const ubyte  SETCHIPREV_A
+    const ubyte  SETCHIPREV_AA
     const long  SETCHIPREV_BEST
+    const ubyte  SETCHIPREV_ECS
     const ubyte  SPECIAL_MONITOR_TYPE
     const long  SPRITEA_Attached
     const long  SPRITEA_OldDataFormat
@@ -2081,7 +2108,7 @@ graphics  {
     const long  SUPERLACE_KEY
     const long  SUPER_KEY
     const uword  SUSERFLAGS
-    const ubyte  TA_DeviceDPI
+    const long  TA_DeviceDPI
     const ubyte  TE0B_NOREMFONT
     const ubyte  TE0F_NOREMFONT
     const ubyte  TODA_SAFE
@@ -2396,6 +2423,107 @@ graphics  {
     WritePixelLine8  (long rp @A0, uword xstart @D0, uword ystart @D1, uword width @D2, long array @A2, long tempRP @A1) -> long @D0@bank 3 = -$0306
     XorRectRegion  (long region @A0, long rectangle @A1) -> bool @D0@bank 3 = -$022e
     XorRegionRegion  (long srcRegion @A0, long destRegion @A1) -> bool @D0@bank 3 = -$026a
+}
+
+
+LIBRARY MODULE NAME: iffparse
+-----------------------------
+
+iffparse  {
+    struct CollectionItem
+    struct ContextNode
+    struct IFFHandle
+    struct IFFStreamCmd
+    struct StoredProperty
+    const long  ID_CAT
+    const long  ID_FORM
+    const long  ID_LIST
+    const long  ID_NULL
+    const long  ID_PROP
+    const ubyte  IFFCMD_CLEANUP
+    const ubyte  IFFCMD_ENTRY
+    const ubyte  IFFCMD_EXIT
+    const ubyte  IFFCMD_INIT
+    const ubyte  IFFCMD_PURGELCI
+    const ubyte  IFFCMD_READ
+    const ubyte  IFFCMD_SEEK
+    const ubyte  IFFCMD_WRITE
+    const long  IFFERR_EOC
+    const long  IFFERR_EOF
+    const long  IFFERR_MANGLED
+    const long  IFFERR_NOHOOK
+    const long  IFFERR_NOMEM
+    const long  IFFERR_NOSCOPE
+    const long  IFFERR_NOTIFF
+    const long  IFFERR_READ
+    const long  IFFERR_SEEK
+    const long  IFFERR_SYNTAX
+    const long  IFFERR_WRITE
+    const ubyte  IFFF_FSEEK
+    const ubyte  IFFF_READ
+    const long  IFFF_RESERVED
+    const ubyte  IFFF_RSEEK
+    const ubyte  IFFF_RWBITS
+    const ubyte  IFFF_WRITE
+    const long  IFFLCI_COLLECTION
+    const long  IFFLCI_ENTRYHANDLER
+    const long  IFFLCI_EXITHANDLER
+    const long  IFFLCI_PROP
+    const ubyte  IFFPARSE_RAWSTEP
+    const ubyte  IFFPARSE_SCAN
+    const ubyte  IFFPARSE_STEP
+    const ubyte  IFFSCC_CLEANUP
+    const ubyte  IFFSCC_INIT
+    const ubyte  IFFSCC_READ
+    const ubyte  IFFSCC_SEEK
+    const ubyte  IFFSCC_WRITE
+    const long  IFFSIZE_UNKNOWN
+    const ubyte  IFFSLI_PROP
+    const ubyte  IFFSLI_ROOT
+    const ubyte  IFFSLI_TOP
+    const long  IFF_RETURN2CLIENT
+    AllocIFF  () -> long @D0@bank 14 = -$1e
+    AllocLocalItem  (long k_type @D0, long id @D1, long ident @D2, long dataSize @D3) -> long @D0@bank 14 = -$ba
+    CloseClipboard  (long clipHandle @A0)@bank 14 = -$fc
+    CloseIFF  (long iff @A0)@bank 14 = -$30
+    CollectionChunk  (long iff @A0, long k_type @D0, long id @D1) -> long @D0@bank 14 = -$8a
+    CollectionChunks  (long iff @A0, long propArray @A1, long numPairs @D0) -> long @D0@bank 14 = -$90
+    CurrentChunk  (long iff @A0) -> long @D0@bank 14 = -$ae
+    EntryHandler  (long iff @A0, long k_type @D0, long id @D1, long position @D2, long handler @A1, long object @A2) -> long @D0@bank 14 = -$66
+    ExitHandler  (long iff @A0, long k_type @D0, long id @D1, long position @D2, long handler @A1, long object @A2) -> long @D0@bank 14 = -$6c
+    FindCollection  (long iff @A0, long k_type @D0, long id @D1) -> long @D0@bank 14 = -$a2
+    FindLocalItem  (long iff @A0, long k_type @D0, long id @D1, long ident @D2) -> long @D0@bank 14 = -$d2
+    FindProp  (long iff @A0, long k_type @D0, long id @D1) -> long @D0@bank 14 = -$9c
+    FindPropContext  (long iff @A0) -> long @D0@bank 14 = -$a8
+    FreeIFF  (long iff @A0)@bank 14 = -$36
+    FreeLocalItem  (long localItem @A0)@bank 14 = -$cc
+    GoodID  (long id @D0) -> long @D0@bank 14 = -$0102
+    GoodType  (long k_type @D0) -> long @D0@bank 14 = -$0108
+    IDtoStr  (long id @D0, str buf @A0) -> str @D0@bank 14 = -$010e
+    InitIFF  (long iff @A0, long flags @D0, long streamHook @A1)@bank 14 = -$e4
+    InitIFFasClip  (long iff @A0)@bank 14 = -$f0
+    InitIFFasDOS  (long iff @A0)@bank 14 = -$ea
+    LocalItemData  (long localItem @A0) -> long @D0@bank 14 = -$c0
+    OpenClipboard  (long unitNumber @D0) -> long @D0@bank 14 = -$f6
+    OpenIFF  (long iff @A0, long rwMode @D0) -> long @D0@bank 14 = -$24
+    ParentChunk  (long contextNode @A0) -> long @D0@bank 14 = -$b4
+    ParseIFF  (long iff @A0, long control @D0) -> long @D0@bank 14 = -$2a
+    PopChunk  (long iff @A0) -> long @D0@bank 14 = -$5a
+    PropChunk  (long iff @A0, long k_type @D0, long id @D1) -> long @D0@bank 14 = -$72
+    PropChunks  (long iff @A0, long propArray @A1, long numPairs @D0) -> long @D0@bank 14 = -$78
+    PushChunk  (long iff @A0, long k_type @D0, long id @D1, long size @D2) -> long @D0@bank 14 = -$54
+    ReadChunkBytes  (long iff @A0, long buf @A1, long numBytes @D0) -> long @D0@bank 14 = -$3c
+    ReadChunkRecords  (long iff @A0, long buf @A1, long bytesPerRecord @D0, long numRecords @D1) -> long @D0@bank 14 = -$48
+    SetLocalItemPurge  (long localItem @A0, long purgeHook @A1)@bank 14 = -$c6
+    StopChunk  (long iff @A0, long k_type @D0, long id @D1) -> long @D0@bank 14 = -$7e
+    StopChunks  (long iff @A0, long propArray @A1, long numPairs @D0) -> long @D0@bank 14 = -$84
+    StopOnExit  (long iff @A0, long k_type @D0, long id @D1) -> long @D0@bank 14 = -$96
+    StoreItemInContext  (long iff @A0, long localItem @A1, long contextNode @A2)@bank 14 = -$de
+    StoreLocalItem  (long iff @A0, long localItem @A1, long position @D0) -> long @D0@bank 14 = -$d8
+    WriteChunkBytes  (long iff @A0, long buf @A1, long numBytes @D0) -> long @D0@bank 14 = -$42
+    WriteChunkRecords  (long iff @A0, long buf @A1, long bytesPerRecord @D0, long numRecords @D1) -> long @D0@bank 14 = -$4e
+    closelib  ()
+    openlib  () -> bool
 }
 
 
@@ -3660,6 +3788,7 @@ LIBRARY MODULE NAME: syslib
 sys  {
     long @shared  DOSBase
     long @shared  GfxBase
+    long @shared  IFFParseBase
     long @shared  IconBase
     long @shared  IntuitionBase
     const byte  MAX_BYTE

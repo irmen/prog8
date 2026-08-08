@@ -427,6 +427,19 @@ dos {
     const ubyte ID_VALIDATING = $0051
     const ubyte ID_VALIDATED = $0052
     const long ID_NO_DISK_PRESENT = -1
+    const ubyte ID_UNREADABLE_DISK = $0042
+    const ubyte ID_NOT_REALLY_DOS = $004e
+    const ubyte ID_DOS_DISK = $0044
+    const ubyte ID_FFS_DISK = $0044
+    const ubyte ID_INTER_DOS_DISK = $0044
+    const ubyte ID_INTER_FFS_DISK = $0044
+    const ubyte ID_FASTDIR_DOS_DISK = $0044
+    const ubyte ID_FASTDIR_FFS_DISK = $0044
+    const ubyte ID_LONG_DOS_DISK = $0044
+    const ubyte ID_LONG_FFS_DISK = $0044
+    const ubyte ID_COMPLONG_FFS_DISK = $0044
+    const ubyte ID_KICKSTART_DISK = $004b
+    const ubyte ID_MSDOS_DISK = $004d
     const ubyte ERROR_NO_FREE_STORE = $0067
     const ubyte ERROR_TASK_TABLE_FULL = $0069
     const ubyte ERROR_BAD_TEMPLATE = $0072
@@ -570,6 +583,8 @@ dos {
     const ubyte ACTION_CURRENT_VOLUME = $0007
     const ubyte ACTION_LOCATE_OBJECT = $0008
     const ubyte ACTION_RENAME_DISK = $0009
+    const ubyte ACTION_WRITE = $0057
+    const ubyte ACTION_READ = $0052
     const ubyte ACTION_FREE_LOCK = $000f
     const ubyte ACTION_DELETE_OBJECT = $0010
     const ubyte ACTION_RENAME_OBJECT = $0011
@@ -798,6 +813,7 @@ dos {
     const ubyte FORMAT_MAX = $0003
     const long OFFSET_BEGINING = -1
     const ubyte LOCK_SAME_HANDLER = $0001
+    const ubyte LDF_ALL = $001c
     const uword HUNK_ABSRELOC32 = $03ec
     const uword HUNK_RELRELOC16 = $03ed
     const uword HUNK_RELRELOC8 = $03ee

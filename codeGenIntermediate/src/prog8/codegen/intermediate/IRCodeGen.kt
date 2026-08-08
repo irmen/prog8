@@ -1281,7 +1281,7 @@ class IRCodeGen(
         }
     }
 
-    private fun emitSignedDivByPow2Shift(code: IRCodeChunk, dt: IRDataType, reg: Int, pow2: Int) {
+/*    private fun emitSignedDivByPow2Shift(code: IRCodeChunk, dt: IRDataType, reg: Int, pow2: Int) {
         // Signed division by 2^pow2 via a bias-corrected arithmetic shift, which is far cheaper
         // than a DIVS routine on the 6502. Plain arithmetic shift floors toward -inf, whereas
         // integer division truncates toward zero, so for negative dividends we must add the
@@ -1304,7 +1304,7 @@ class IRCodeGen(
         code += IRInstruction(Opcode.AND, dt, reg1 = signReg, immediate = mask)   // signReg = correction
         code += IRInstruction(Opcode.ADDR, dt, reg1 = reg, reg2 = signReg)        // reg = x + correction
         code += IRInstruction(Opcode.ASRN, dt, reg1 = reg, reg2 = nReg)          // reg = result
-    }
+    }*/
 
     private fun translate(ifElse: PtIfElse): IRCodeChunks {
         val goto = ifElse.ifScope.children.firstOrNull() as? PtJump

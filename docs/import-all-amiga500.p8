@@ -2,6 +2,7 @@
 
 %import arexx
 %import buffers
+%import iffparse
 %import compression
 %import coroutines
 %import conv
