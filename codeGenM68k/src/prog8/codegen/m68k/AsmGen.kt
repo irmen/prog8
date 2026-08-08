@@ -161,13 +161,25 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
 
     fun loadIndexToD0(idx: Int) {
         // load an index register into d0, zero-extending to 32 bits
-        val idxType = program.registersUsed().regsTypes[RegisterNum(idx)]
-        emitLine("moveq.l  #0,d0")      // clear everything for any caller that uses (a0,d0.l) addressing
-        when (idxType) {
-            IRDataType.BYTE -> emitLine("move.b  ${regAddr(idx)}, d0")
-            IRDataType.POINTER, IRDataType.LONG -> emitLine("move.l  ${regAddr(idx)}, d0")
-            else -> emitLine("move.w  ${regAddr(idx)}, d0")
-        }
+        loadRegToD0(idx)
+    }
+
+    // Load a virtual register into d0 using the register's ACTUAL slot size,
+    // zero-extending to 32 bits. m68k move.b/move.w into a data register do NOT
+    // clear the upper bits, and reading a slot with a larger suffix than the
+    // slot's size would bleed into the adjacent register slot. Always clear
+    // first and use the register's own type for the load.
+    fun loadRegToD0(reg: Int) {
+        val regType = program.registersUsed().regsTypes[RegisterNum(reg)] ?: IRDataType.BYTE
+        emitLine("moveq  #0, d0")
+        emitLine("move${dtSuffix(regType)}  ${regAddr(reg)}, d0")
+    }
+
+    // Same as loadRegToD0, but into d1.
+    fun loadRegToD1(reg: Int) {
+        val regType = program.registersUsed().regsTypes[RegisterNum(reg)] ?: IRDataType.BYTE
+        emitLine("moveq  #0, d1")
+        emitLine("move${dtSuffix(regType)}  ${regAddr(reg)}, d1")
     }
 
     // === label/symbol helpers ===

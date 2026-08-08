@@ -3,6 +3,7 @@ TODO
 
 - need a bunch of type casting/conversion checks that test the handling of the 4-byte/long pointer datatype on the qemu68k target.
 - amiga library structs: use more typed pointers if it knows the struct type , rather than using `pointer`. Consider both the extsubs but also the struct fields in the amigaDOS structs in the generated library modules.
+- BUG (m68k targets): the ``setlsb``/``setmsb`` builtins on array elements produce byte-swapped results on big-endian targets: ``funcSetLsbMsb`` in BuiltinFuncGen.kt assumes little-endian word layout (it adds +1 to the index for msb), but m68k stores words big-endian in memory so lsb/msb hit the wrong byte. E.g. ``uword[100] arr; arr[i]=$1234; setlsb(arr[i], $56)`` yields ``$5634`` instead of ``$1256`` on qemu68k. Probably needs a target-endianness dependent offset (and check other lsb/msb/lsb-msb-concat word byte-extraction code paths for the same assumption).
 
 
 Future Things and Ideas
@@ -82,6 +83,7 @@ Optimizations
 ^^^^^^^^^^^^^
 - Port more benchmarks from https://thred.github.io/c-bench-64/  to prog8 and see how it stacks up. (see benchmark-c/ directory)
 - Compilation speed: try to join multiple modifications in 1 result in the AST processors instead of returning it straight away every time
+- Compilation speed: cache ``IRProgram.registersUsed()`` - it rescans every instruction in the whole program on each call, and the m68k AsmGen helpers (``loadRegToD0``/``loadRegToD1``, used by ADDR/SUBR/CMP and indexed addressing) call it per instruction, making codegen O(program size x arith instruction count). Cache once in ``AsmGen`` (``private val regsUsed by lazy { program.registersUsed() }``) or memoize in ``IRProgram`` itself.
 - various optimizers skip stuff if compTarget.name==VMTarget.NAME.  Once new 6502 codegen is done from IR code, those 6502 only optimizations should probably be removed
 - **Register packer** (`RegisterPacker.kt`) look in register-packing.md for all details
 

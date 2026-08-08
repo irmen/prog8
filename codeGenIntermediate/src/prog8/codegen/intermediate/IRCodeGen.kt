@@ -30,6 +30,9 @@ class IRCodeGen(
     var wasPackingApplied: Boolean = false
         private set
 
+    // on 32-bit targets, LOADX/STOREX/STOREZX use a word index register (0-32767) instead of a byte (0-255)
+    internal val wordArrayIndex: Boolean = options.compTarget.POINTER_MEM_SIZE > 2u
+
     fun generate(): IRProgram {
         // The pure "virtual" (VM) target doesn't need symbol prefixing because the VM
         // doesn't emit assembly and has no risk of symbol clashes.  Any other target

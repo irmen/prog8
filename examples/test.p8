@@ -3,22 +3,48 @@
 
 main {
     sub start() {
-        uword @shared ptr1
-        long @shared ptr2
-        pointer @shared ptr3
-        ^^bool @shared ptr4
-        ^^word @shared ptr5
+        struct Foo {
+            bool field
+            pointer[5] Planes
+        }
 
-        ubyte x = ptr1[10]      ; should fail on 32 bits target
-        ubyte y = ptr2[10]
-        ubyte z = ptr3[10]
-        bool q = ptr4[10]
-        word r = ptr5[10]
+        ^^Foo bm = [
+            true,
+            [ $1111,$2222,$3333,$4444,$5555]
+        ]
 
-        ptr1[10]++      ; should fail on 32 bits target
-        ptr2[10]++
-        ptr3[10]++
-        ptr4[10] = true
-        ptr5[10] = -32768
+        txt.print("bitplane0: ")
+        txt.print_ulhex(bm.Planes[0], true)
+        txt.print("\nbitplane1: ")
+        txt.print_ulhex(bm.Planes[1], true)
+        txt.print("\nbitplane2: ")
+        txt.print_ulhex(bm.Planes[2], true)
+        txt.print("\nbitplane3: ")
+        txt.print_ulhex(bm.Planes[3], true)
+        txt.print("\nbitplane4: ")
+        txt.print_ulhex(bm.Planes[4], true)
+        txt.nl()
+        txt.nl()
+
+        ubyte plane = 0
+        txt.print("bitplane0: ")
+        txt.print_ulhex(bm.Planes[plane], true)
+        txt.print("\nbitplane1: ")
+        txt.print_ulhex(bm.Planes[plane+1], true)
+        txt.print("\nbitplane2: ")
+        txt.print_ulhex(bm.Planes[plane+2], true)
+        txt.print("\nbitplane3: ")
+        txt.print_ulhex(bm.Planes[plane+3], true)
+        txt.print("\nbitplane4: ")
+        txt.print_ulhex(bm.Planes[plane+4], true)
+        txt.nl()
+        txt.nl()
+
+        for plane in 0 to 4 {
+            ^^ubyte target = bm.Planes[plane] ; + bytesPerRow*y
+            txt.print_ulhex(target as long, true)
+            txt.spc()
+        }
+        txt.nl()
     }
 }

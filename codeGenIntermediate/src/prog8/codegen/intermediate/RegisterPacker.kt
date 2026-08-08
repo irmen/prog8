@@ -71,12 +71,13 @@ object RegisterPacker {
     data class Interval(val register: Int, val start: Int, val end: Int, val type: IRDataType)
 
     fun pack(irProg: IRProgram) {
+        val indexRegType = if(irProg.options.compTarget.POINTER_MEM_SIZE > 2u) IRDataType.WORD else IRDataType.BYTE
         val allRegTypes = mutableMapOf<Int, IRDataType>()
         irProg.foreachCodeChunk { chunk ->
             for (instr in chunk.instructions) {
                 val (written, read) = getRegisterAccess(instr)
                 for (r in written + read) {
-                    val dt = getRegisterType(instr, r)
+                    val dt = getRegisterType(instr, r, indexRegType)
                     allRegTypes.putIfAbsent(r, dt)
                 }
             }
@@ -88,7 +89,7 @@ object RegisterPacker {
         val maxReg = allRegTypes.keys.maxOrNull() ?: 0
         val startSlot = maxReg + 1
         val globalSlotTypes = mutableMapOf<Int, IRDataType>()
-        irProg.foreachSub { sub -> packSubroutine(sub, allRegTypes, globalSlotTypes, startSlot) }
+        irProg.foreachSub { sub -> packSubroutine(sub, allRegTypes, globalSlotTypes, startSlot, indexRegType) }
 
         val afterTypes = rebuildTypeMap(irProg)
         val afterCount = afterTypes.size
@@ -100,12 +101,13 @@ object RegisterPacker {
     // This avoids the strict per-instruction validation in usedRegisters() that POINTER↔LONG↔WORD
     // cross-type packing can trigger.
     fun rebuildTypeMap(irProg: IRProgram): Map<RegisterNum, IRDataType> {
+        val indexRegType = if(irProg.options.compTarget.POINTER_MEM_SIZE > 2u) IRDataType.WORD else IRDataType.BYTE
         val newTypes = mutableMapOf<RegisterNum, IRDataType>()
         irProg.foreachCodeChunk { chunk ->
             for (instr in chunk.instructions) {
                 for ((reg, regNum) in listOf(instr.reg1 to 1, instr.reg2 to 2, instr.reg3 to 3)) {
                     if (reg != null)
-                        newTypes.putIfAbsent(RegisterNum(reg), determineIntRegType(instr, regNum))
+                        newTypes.putIfAbsent(RegisterNum(reg), determineIntRegType(instr, regNum, indexRegType))
                 }
                 instr.fpReg1?.let { fpr -> newTypes.putIfAbsent(RegisterNum(fpr.value), IRDataType.FLOAT) }
                 instr.fpReg2?.let { fpr -> newTypes.putIfAbsent(RegisterNum(fpr.value), IRDataType.FLOAT) }
@@ -120,7 +122,7 @@ object RegisterPacker {
         return newTypes
     }
 
-    private fun packSubroutine(sub: IRSubroutine, allRegTypes: Map<Int, IRDataType>, globalSlotTypes: MutableMap<Int, IRDataType>, startSlot: Int) {
+    private fun packSubroutine(sub: IRSubroutine, allRegTypes: Map<Int, IRDataType>, globalSlotTypes: MutableMap<Int, IRDataType>, startSlot: Int, indexRegType: IRDataType) {
         if (sub.chunks.isEmpty())
             return
 
@@ -160,7 +162,7 @@ object RegisterPacker {
 
                 // Process READ first so types are set before WRITE processing
                 for (r in read) {
-                    val dt = getRegisterType(instr, r)
+                    val dt = getRegisterType(instr, r, indexRegType)
                     registerTypes.putIfAbsent(r, dt)
                     if (r !in liveSet) {
                         lastUse[r] = globalI
@@ -172,7 +174,7 @@ object RegisterPacker {
                 for (r in written) {
                     if (r in liveSet) {
                         val end = lastUse.getOrElse(r) { globalI }
-                        val actualType = getRegisterType(instr, r)
+                        val actualType = getRegisterType(instr, r, indexRegType)
                         registerIntervals.getOrPut(r) { mutableListOf() }
                             .add(Interval(r, globalI, end, actualType))
                         liveSet.remove(r)
@@ -216,21 +218,21 @@ object RegisterPacker {
             mergedIntervals.removeAll { it.register in skipRegs }
         }
 
-        val conflictGraph = buildConflictGraph(sub)
+        val conflictGraph = buildConflictGraph(sub, indexRegType)
         val packing = greedyColor(mergedIntervals, conflictGraph, allRegTypes, globalSlotTypes, startSlot)
 
         if (packing.isNotEmpty())
             rewrite(sub, packing)
     }
 
-    private fun buildConflictGraph(sub: IRSubroutine): Map<Int, Set<Int>> {
+    private fun buildConflictGraph(sub: IRSubroutine, indexRegType: IRDataType): Map<Int, Set<Int>> {
         val conflicts = mutableMapOf<Int, MutableSet<Int>>()
         for (chunk in sub.chunks.filterIsInstance<IRCodeChunk>()) {
             val typeRegs = mutableMapOf<IRDataType, MutableSet<Int>>()
             for (instr in chunk.instructions) {
                 for ((reg, regNum) in listOf(instr.reg1 to 1, instr.reg2 to 2, instr.reg3 to 3)) {
                     if (reg != null) {
-                        val dt = determineIntRegType(instr, regNum)
+                        val dt = determineIntRegType(instr, regNum, indexRegType)
                         typeRegs.getOrPut(dt) { mutableSetOf() }.add(reg)
                     }
                 }
@@ -427,14 +429,14 @@ object RegisterPacker {
         return written to read
     }
 
-    private fun getRegisterType(instr: IRInstruction, register: Int): IRDataType {
+    private fun getRegisterType(instr: IRInstruction, register: Int, indexRegType: IRDataType): IRDataType {
         if (instr.fpReg1?.value == register || instr.fpReg2?.value == register)
             return IRDataType.FLOAT
 
         return when {
-            instr.reg1 == register -> determineIntRegType(instr, 1)
-            instr.reg2 == register -> determineIntRegType(instr, 2)
-            instr.reg3 == register -> determineIntRegType(instr, 3)
+            instr.reg1 == register -> determineIntRegType(instr, 1, indexRegType)
+            instr.reg2 == register -> determineIntRegType(instr, 2, indexRegType)
+            instr.reg3 == register -> determineIntRegType(instr, 3, indexRegType)
             else -> {
                 // fcallArgs registers use their own type from the RegSpec, not instr.type
                 val fcallArgs = instr.fcallArgs
@@ -451,7 +453,7 @@ object RegisterPacker {
         }
     }
 
-    private fun determineIntRegType(instr: IRInstruction, regNum: Int): IRDataType {
+    private fun determineIntRegType(instr: IRInstruction, regNum: Int, indexRegType: IRDataType): IRDataType {
         val opcode = instr.opcode
         val type = instr.type
 
@@ -459,7 +461,7 @@ object RegisterPacker {
             return when (opcode) {
                 Opcode.FFROMUB, Opcode.FFROMSB, Opcode.FTOUB, Opcode.FTOSB,
                 Opcode.FCOMP, Opcode.SGN -> IRDataType.BYTE
-                Opcode.LOADX, Opcode.STOREX, Opcode.STOREZX -> IRDataType.BYTE
+                Opcode.LOADX, Opcode.STOREX, Opcode.STOREZX -> indexRegType
                 Opcode.FFROMSL, Opcode.FTOSL -> IRDataType.LONG
                 Opcode.LOADI, Opcode.STOREI -> IRDataType.POINTER
                 else -> IRDataType.WORD
@@ -468,7 +470,8 @@ object RegisterPacker {
 
         if (type == IRDataType.WORD && regNum == 1) {
             return when (opcode) {
-                Opcode.SGN, Opcode.STOREZX, Opcode.SQRT -> IRDataType.BYTE
+                Opcode.SGN, Opcode.SQRT -> IRDataType.BYTE
+                Opcode.STOREZX -> indexRegType
                 Opcode.EXT, Opcode.EXTS, Opcode.CONCAT -> IRDataType.LONG
                 else -> type
             }
@@ -478,13 +481,14 @@ object RegisterPacker {
             return when (opcode) {
                 Opcode.SGN -> IRDataType.BYTE
                 Opcode.SQRT -> IRDataType.WORD
+                Opcode.STOREZX -> indexRegType
                 else -> type
             }
         }
 
         if (regNum == 2 || regNum == 3) {
             return when (opcode) {
-                Opcode.LOADX, Opcode.STOREX -> IRDataType.BYTE
+                Opcode.LOADX, Opcode.STOREX -> indexRegType
                 Opcode.LOADI, Opcode.STOREI -> IRDataType.POINTER
                 Opcode.ASRN, Opcode.LSRN, Opcode.LSLN -> IRDataType.BYTE
                 else -> type ?: IRDataType.BYTE

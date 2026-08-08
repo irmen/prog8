@@ -5,7 +5,6 @@ import prog8.code.SymbolTable
 import prog8.code.ast.*
 import prog8.code.core.AssemblyError
 import prog8.code.core.BaseDataType
-import prog8.code.core.DataType
 import prog8.intermediate.*
 
 
@@ -926,18 +925,17 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                                 it += IRInstruction(Opcode.STOREZX, IRDataType.BYTE, reg1=offsetReg, labelSymbol = targetVariable.name)
                             }
                         } else {
-                            val indexTr = exprGen.translateExpression(target.index)
-                            addToResult(result, indexTr, indexTr.resultReg, -1)
+                            val (code, indexReg) = codeGen.loadIndexReg(target.index, eltSize, codeGen.wordArrayIndex, false)
+                            result += code
+                            val indexDt = if(codeGen.wordArrayIndex) IRDataType.WORD else IRDataType.BYTE
                             result += IRCodeChunk(null, null).also {
-                                if(eltSize>1)
-                                    it += codeGen.multiplyByConst(DataType.UBYTE, indexTr.resultReg, eltSize)
                                 if(msb) {
                                     it += if(target.type.isLong)
-                                        IRInstruction(Opcode.ADD, IRDataType.BYTE, reg1 = indexTr.resultReg, immediate = 3)
+                                        IRInstruction(Opcode.ADD, indexDt, reg1 = indexReg, immediate = 3)
                                     else
-                                        IRInstruction(Opcode.INC, IRDataType.BYTE, reg1 = indexTr.resultReg)
+                                        IRInstruction(Opcode.INC, indexDt, reg1 = indexReg)
                                 }
-                                it += IRInstruction(Opcode.STOREZX, IRDataType.BYTE, reg1=indexTr.resultReg, labelSymbol = targetVariable.name)
+                                it += IRInstruction(Opcode.STOREZX, IRDataType.BYTE, reg1=indexReg, labelSymbol = targetVariable.name)
                             }
                         }
                     } else {
@@ -951,18 +949,17 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                                 it += IRInstruction(Opcode.STOREX, IRDataType.BYTE, reg1=valueTr.resultReg, reg2=offsetReg, labelSymbol = targetVariable.name)
                             }
                         } else {
-                            val indexTr = exprGen.translateExpression(target.index)
-                            addToResult(result, indexTr, indexTr.resultReg, -1)
+                            val (code, indexReg) = codeGen.loadIndexReg(target.index, eltSize, codeGen.wordArrayIndex, false)
+                            result += code
+                            val indexDt = if(codeGen.wordArrayIndex) IRDataType.WORD else IRDataType.BYTE
                             result += IRCodeChunk(null, null).also {
-                                if(eltSize>1)
-                                    it += codeGen.multiplyByConst(DataType.UBYTE, indexTr.resultReg, eltSize)
                                 if(msb) {
                                     it += if(target.type.isLong)
-                                        IRInstruction(Opcode.ADD, IRDataType.BYTE, reg1 = indexTr.resultReg, immediate = 3)
+                                        IRInstruction(Opcode.ADD, indexDt, reg1 = indexReg, immediate = 3)
                                     else
-                                        IRInstruction(Opcode.INC, IRDataType.BYTE, reg1 = indexTr.resultReg)
+                                        IRInstruction(Opcode.INC, indexDt, reg1 = indexReg)
                                 }
-                                it += IRInstruction(Opcode.STOREX, IRDataType.BYTE, reg1=valueTr.resultReg, reg2=indexTr.resultReg, labelSymbol = targetVariable.name)
+                                it += IRInstruction(Opcode.STOREX, IRDataType.BYTE, reg1=valueTr.resultReg, reg2=indexReg, labelSymbol = targetVariable.name)
                             }
                         }
                     }

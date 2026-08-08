@@ -643,15 +643,15 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         }
 
         fun indexByExpression() {
-            val (code, indexByteReg) = codeGen.loadIndexReg(arrayIx.index, eltSize, false, arrayIx.splitWords)
+            val (code, indexReg) = codeGen.loadIndexReg(arrayIx.index, eltSize, codeGen.wordArrayIndex, arrayIx.splitWords)
             result += code
             if(vmDt==IRDataType.FLOAT) {
                 resultFpRegister = codeGen.registers.next(IRDataType.FLOAT)
-                addInstr(result, IRInstruction(Opcode.LOADX, IRDataType.FLOAT, fpReg1 = RegisterNum(resultFpRegister), reg1=indexByteReg, labelSymbol = arrayVarSymbol), null)
+                addInstr(result, IRInstruction(Opcode.LOADX, IRDataType.FLOAT, fpReg1 = RegisterNum(resultFpRegister), reg1=indexReg, labelSymbol = arrayVarSymbol), null)
             }
             else {
                 resultRegister = codeGen.registers.next(vmDt)
-                addInstr(result, IRInstruction(Opcode.LOADX, vmDt, reg1=resultRegister, reg2=indexByteReg, labelSymbol = arrayVarSymbol), null)
+                addInstr(result, IRInstruction(Opcode.LOADX, vmDt, reg1=resultRegister, reg2=indexReg, labelSymbol = arrayVarSymbol), null)
             }
         }
 

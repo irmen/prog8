@@ -51,7 +51,7 @@ internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
         Opcode.ADDR -> {
             val dstReg = r1 ?: error("ADDR needs reg1")
             val srcReg = r2 ?: error("ADDR needs reg2")
-            emitLine("move${dtSuffix(type)}  ${regAddr(srcReg)}, d0")
+            loadRegToD0(srcReg)
             emitLine("add${dtSuffix(type)}  d0, ${regAddr(dstReg)}")
         }
 
@@ -100,7 +100,7 @@ internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
         Opcode.SUBR -> {
             val dstReg = r1 ?: error("SUBR needs reg1")
             val srcReg = r2 ?: error("SUBR needs reg2")
-            emitLine("move${dtSuffix(type)}  ${regAddr(srcReg)}, d0")
+            loadRegToD0(srcReg)
             emitLine("sub${dtSuffix(type)}  d0, ${regAddr(dstReg)}")
         }
 
@@ -322,8 +322,9 @@ internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
         Opcode.CMP -> {
             val leftReg = insn.reg1 ?: error("CMP needs reg1")
             val rightReg = insn.reg2 ?: error("CMP needs reg2")
-            emitLine("move${dtSuffix(type)}  ${regAddr(leftReg)}, d0")
-            emitLine("cmp${dtSuffix(type)}  ${regAddr(rightReg)}, d0")
+            loadRegToD0(leftReg)
+            loadRegToD1(rightReg)
+            emitLine("cmp${dtSuffix(type)}  d1, d0")
         }
 
         Opcode.CMPI -> {

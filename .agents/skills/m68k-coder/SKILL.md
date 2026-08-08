@@ -214,6 +214,23 @@ All Prog8 symbols are prefixed when accessed from assembly:
 - `movea.l` does NOT set condition codes (address register variant)
 - Use `move.l` when you need to test the result
 
+### MOVE.b / MOVE.w do NOT zero-fill the upper bits (data register destination)
+- **FALSE assumption**: "`move.w <ea>, d0` zero-fills the upper 16 bits of d0".
+- **Actual behavior**: `move.b <ea>, dn` and `move.w <ea>, dn` (data register as destination) modify ONLY the low 8 or 16 bits of the destination register. The upper bits keep their PREVIOUS value and are NOT cleared.
+- This is unlike x86 `movzx` and unlike `move.w <ea>,An` (movea.w) to an ADDRESS register, which DOES sign-extend the word to 32 bits.
+- Consequence: if the destination register holds a stale non-zero upper part, any later 32-bit operation (`move.l`, `add.l`, `sub.l` for pointer arithmetic, etc.) uses those garbage upper bits, silently corrupting addresses and arithmetic.
+- To zero-extend a loaded byte/word into a data register, clear first or mask explicitly:
+  ```asm
+  moveq  #0,d0        ; clear upper bits
+  move.b  p8v_byte,d0 ; then load (upper bits stay 0)
+  ```
+  or
+  ```asm
+  move.w  p8v_word,d0
+  and.l   #$ffff,d0   ; zero-extend after the load
+  ```
+- Pitfall for code generators with a memory-based register file: reading a virtual register with a `.l` suffix when its slot is only 1 or 2 bytes over-reads into the NEXT register's slot (and `move.w`/`move.b` from a register slot never widens it in the destination). Always widen explicitly with `and.l #$ff/#$ffff`, `moveq #0`, or `ext`/`extb.l`.
+
 ### Stack Alignment
 - Stack pointer (A7) should be word-aligned
 - Pushing odd-sized data can misalign the stack

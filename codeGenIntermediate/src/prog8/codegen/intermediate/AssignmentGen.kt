@@ -743,7 +743,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                 }
                 result += chunk
             } else {
-                val (code, indexReg) = codeGen.loadIndexReg(targetArray.index, eltSize, false, targetArray.splitWords)
+                val (code, indexReg) = codeGen.loadIndexReg(targetArray.index, eltSize, codeGen.wordArrayIndex, targetArray.splitWords)
                 result += code
                 result += IRCodeChunk(null, null).also {
                     if(targetArray.splitWords) {
@@ -763,7 +763,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                     }
                     result += chunk
                 } else {
-                    val (code, indexReg) = codeGen.loadIndexReg(targetArray.index, eltSize, false, targetArray.splitWords)
+                    val (code, indexReg) = codeGen.loadIndexReg(targetArray.index, eltSize, codeGen.wordArrayIndex, targetArray.splitWords)
                     result += code
                     result += IRCodeChunk(null, null).also {
                         it += IRInstruction(Opcode.STOREX, targetDt, reg1 = indexReg, fpReg1 = RegisterNum(valueFpRegister), labelSymbol = variable)
@@ -784,7 +784,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                     }
                     result += chunk
                 } else {
-                    val (code, indexReg) = codeGen.loadIndexReg(targetArray.index, eltSize, false, targetArray.splitWords)
+                    val (code, indexReg) = codeGen.loadIndexReg(targetArray.index, eltSize, codeGen.wordArrayIndex, targetArray.splitWords)
                     result += code
                     result += IRCodeChunk(null, null).also {
                         if(targetArray.splitWords) {

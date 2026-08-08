@@ -169,7 +169,8 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
     }
 
     private fun writeCodeChunk(chunk: IRCodeChunk) {
-        val usedRegs = chunk.usedRegisters()
+        val indexRegType = if(irProgram.options.compTarget.POINTER_MEM_SIZE > 2u) IRDataType.WORD else IRDataType.BYTE
+        val usedRegs = chunk.usedRegisters(indexRegType)
         val regs = StringBuilder()
         if(usedRegs.readRegs.any() || usedRegs.writeRegs.any()) {
             regs.append("\nINT REGS:\n")

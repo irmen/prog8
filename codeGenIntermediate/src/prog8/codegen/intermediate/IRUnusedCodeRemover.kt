@@ -80,6 +80,7 @@ class IRUnusedCodeRemover(
         }
 
         // remove stray loads
+        val indexRegType = if(irprog.options.compTarget.POINTER_MEM_SIZE > 2u) IRDataType.WORD else IRDataType.BYTE
         val readRegs = mutableSetOf<Int>()
         val readFpRegs = mutableSetOf<Int>()
         instructions.forEach { ins ->
@@ -88,7 +89,7 @@ class IRUnusedCodeRemover(
             val writeRegsCounts = mutableMapOf<RegisterNum, Int>()
             val writeFpRegsCounts = mutableMapOf<RegisterNum, Int>()
             val regsTypes = mutableMapOf<RegisterNum, IRDataType>()
-            ins.addUsedRegistersCounts(readRegsCounts, writeRegsCounts, readFpRegsCounts, writeFpRegsCounts, regsTypes, null)
+            ins.addUsedRegistersCounts(readRegsCounts, writeRegsCounts, readFpRegsCounts, writeFpRegsCounts, regsTypes, null, indexRegType)
             readRegs.addAll(readRegsCounts.keys.map { it.value })
             readFpRegs.addAll(readFpRegsCounts.keys.map { it.value })
         }

@@ -1026,7 +1026,8 @@ data class IRInstruction(
         readFpRegsCounts: MutableMap<RegisterNum, Int>,
         writeFpRegsCounts: MutableMap<RegisterNum, Int>,
         regsTypes: MutableMap<RegisterNum, IRDataType>,
-        chunk: IRCodeChunk?
+        chunk: IRCodeChunk?,
+        indexRegType: IRDataType = IRDataType.BYTE
     ) {
         fun incReadReg(reg: RegisterNum) = readRegsCounts.merge(reg, 1, Int::plus)
         fun incWriteReg(reg: RegisterNum) = writeRegsCounts.merge(reg, 1, Int::plus)
@@ -1048,28 +1049,28 @@ data class IRInstruction(
             OperandDirection.UNUSED -> {}
             OperandDirection.READ -> {
                 incReadReg(RegisterNum(this.reg1!!))
-                determineReg1Type()?.let { setRegType(RegisterNum(this.reg1), it) }
+                determineReg1Type(indexRegType)?.let { setRegType(RegisterNum(this.reg1), it) }
             }
             OperandDirection.WRITE -> {
                 incWriteReg(RegisterNum(this.reg1!!))
-                determineReg1Type()?.let { setRegType(RegisterNum(this.reg1), it) }
+                determineReg1Type(indexRegType)?.let { setRegType(RegisterNum(this.reg1), it) }
             }
             OperandDirection.READWRITE -> {
                 incReadReg(RegisterNum(this.reg1!!))
                 incWriteReg(RegisterNum(this.reg1))
-                determineReg1Type()?.let { setRegType(RegisterNum(this.reg1), it) }
+                determineReg1Type(indexRegType)?.let { setRegType(RegisterNum(this.reg1), it) }
             }
         }
         when (this.reg2direction) {
             OperandDirection.UNUSED -> {}
             OperandDirection.READ -> {
                 incReadReg(RegisterNum(this.reg2!!))
-                determineReg2Type()?.let { setRegType(RegisterNum(this.reg2), it) }
+                determineReg2Type(indexRegType)?.let { setRegType(RegisterNum(this.reg2), it) }
             }
             OperandDirection.READWRITE -> {
                 incReadReg(RegisterNum(this.reg2!!))
                 incWriteReg(RegisterNum(this.reg2))
-                determineReg2Type()?.let { setRegType(RegisterNum(this.reg2), it) }
+                determineReg2Type(indexRegType)?.let { setRegType(RegisterNum(this.reg2), it) }
             }
             else -> throw IllegalArgumentException("reg2 can only be read or readwrite")
         }
@@ -1114,7 +1115,7 @@ data class IRInstruction(
         }
     }
 
-    private fun determineReg1Type(): IRDataType? {
+    private fun determineReg1Type(indexRegType: IRDataType): IRDataType? {
         if(type==IRDataType.FLOAT) {
             // some float instructions have an integer (byte, word, or pointer) register as well in reg1
             return when (opcode) {
@@ -1123,10 +1124,10 @@ data class IRInstruction(
                 Opcode.FTOUB,
                 Opcode.FTOSB,
                 Opcode.FCOMP,
+                Opcode.SGN -> IRDataType.BYTE
                 Opcode.LOADX,
                 Opcode.STOREX,
-                Opcode.STOREZX,
-                Opcode.SGN -> IRDataType.BYTE
+                Opcode.STOREZX -> indexRegType
                 Opcode.FFROMSL, Opcode.FTOSL -> IRDataType.LONG
                 // LOADI/STOREI with float type: reg1 holds the memory address (pointer)
                 Opcode.LOADI, Opcode.STOREI -> IRDataType.POINTER
@@ -1136,7 +1137,8 @@ data class IRInstruction(
         if(type==IRDataType.WORD) {
             // some word instructions have byte reg1
             when (opcode) {
-                Opcode.SGN, Opcode.STOREZX, Opcode.SQRT -> return IRDataType.BYTE
+                Opcode.SGN, Opcode.SQRT -> return IRDataType.BYTE
+                Opcode.STOREZX -> return indexRegType
                 Opcode.EXT, Opcode.EXTS, Opcode.CONCAT -> return IRDataType.LONG
                 else -> {}
             }
@@ -1147,7 +1149,7 @@ data class IRInstruction(
             if(opcode==Opcode.SQRT)
                 return IRDataType.WORD
             if(opcode==Opcode.STOREZX)
-                return IRDataType.BYTE
+                return indexRegType
         }
         if(opcode in setOf(Opcode.JUMPI, Opcode.CALLI, Opcode.STOREZI))
             return IRDataType.POINTER
@@ -1162,9 +1164,9 @@ data class IRInstruction(
         return this.type
     }
 
-    private fun determineReg2Type(): IRDataType? {
+    private fun determineReg2Type(indexRegType: IRDataType): IRDataType? {
         if(opcode==Opcode.LOADX || opcode==Opcode.STOREX)
-            return IRDataType.BYTE
+            return indexRegType
         if(opcode==Opcode.LOADI || opcode==Opcode.STOREI)
             return IRDataType.POINTER
         if(opcode==Opcode.ASRN || opcode==Opcode.LSRN || opcode==Opcode.LSLN)
