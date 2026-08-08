@@ -2896,4 +2896,64 @@ main {
         }!!
         (s2Assign68k.value as NumericLiteral).number shouldBe 4.0
     }
+
+    test("uword and long variables can be indexed as pointer holders") {
+        // On targets with POINTER_MEM_SIZE>2 (e.g. m68k), only a long variable can hold a pointer value,
+        // so long[i] and pointer[i] compile but uword[i] does not. On 16-bit pointer targets it's the
+        // other way around: uword[i] compiles, long[i] does not.
+        val src32 = """
+            main {
+                sub start() {
+                    long @shared ptr2
+                    pointer @shared ptr3
+                    ubyte @shared idx
+                    ptr2[10] = 42
+                    ptr2[idx] = idx
+                    ptr3[10] = 42
+                    ubyte @shared a = ptr2[10]
+                    ubyte @shared b = ptr2[idx]
+                    ubyte @shared c = ptr3[10]
+                }
+            }"""
+        compileText(Qemu68kTarget(), false, src32, outputDir, writeAssembly = false) shouldNotBe null
+        compileText(Qemu68kTarget(), true, src32, outputDir, writeAssembly = false) shouldNotBe null
+
+        // uword indexing is rejected on 32-bit targets
+        val srcUwordOn32 = """
+            main {
+                sub start() {
+                    uword @shared ptr1
+                    ubyte @shared dummy = ptr1[10]
+                }
+            }"""
+        val errorsUword32 = ErrorReporterForTests()
+        compileText(Qemu68kTarget(), false, srcUwordOn32, outputDir, writeAssembly = false, errors = errorsUword32) shouldBe null
+        errorsUword32.errors.any { it.contains("indexing requires an iterable, address long, or pointer variable") } shouldBe true
+
+        // uword indexing works on 16-bit targets
+        val src16 = """
+            main {
+                sub start() {
+                    uword @shared ptr1
+                    ubyte @shared idx
+                    ptr1[10] = 42
+                    ptr1[idx] = idx
+                    ubyte @shared a = ptr1[10]
+                    ubyte @shared b = ptr1[idx]
+                }
+            }"""
+        compileText(VMTarget(), false, src16, outputDir, writeAssembly = false) shouldNotBe null
+
+        // long indexing is rejected on 16-bit targets
+        val srcLongOn16 = """
+            main {
+                sub start() {
+                    long @shared ptr2
+                    ubyte @shared dummy = ptr2[10]
+                }
+            }"""
+        val errorsLong16 = ErrorReporterForTests()
+        compileText(VMTarget(), false, srcLongOn16, outputDir, writeAssembly = false, errors = errorsLong16) shouldBe null
+        errorsLong16.errors.any { it.contains("indexing requires an iterable, address uword, or pointer variable") } shouldBe true
+    }
 })

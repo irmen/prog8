@@ -496,8 +496,11 @@ class ArrayIndexedExpression(var plainarrayvar: IdentifierReference?,
         if(plainarrayvar!=null) {
             val target = plainarrayvar!!.targetStatement()
             if(target is VarDecl) {
+                // uword (16-bit) or long (32-bit) variables can hold a pointer value, so indexing them reads a byte from that address
+                val isUwordPointerHolder = program.target.POINTER_MEM_SIZE <= 2u && target.datatype.isUnsignedWord
+                val isLongPointerHolder = program.target.POINTER_MEM_SIZE > 2u && target.datatype.isLong
                 return when {
-                    target.datatype.isString || target.datatype.isUnsignedWord -> InferredTypes.knownFor(BaseDataType.UBYTE)
+                    target.datatype.isString || isUwordPointerHolder || isLongPointerHolder -> InferredTypes.knownFor(BaseDataType.UBYTE)
                     target.datatype.isArray -> InferredTypes.knownFor(target.datatype.elementType())
                     target.datatype.isPointer -> InferredTypes.knownFor(target.datatype.dereference())
                     else -> InferredTypes.knownFor(target.datatype)

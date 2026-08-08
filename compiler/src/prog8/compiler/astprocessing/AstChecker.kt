@@ -2133,11 +2133,16 @@ internal class AstChecker(private val program: Program,
         
         val target = arrayIndexedExpression.plainarrayvar?.targetStatement(program.builtinFunctions)
         if(target is VarDecl) {
-            if (!target.datatype.isIterable && !target.datatype.isUnsignedWord && !target.datatype.isPointer)
+            // uword (16-bit) or long (32-bit) variables can hold a pointer value and can be indexed as such
+            val isUwordPointerHolder = options.compTarget.POINTER_MEM_SIZE <= 2u && target.datatype.isUnsignedWord
+            val isLongPointerHolder = options.compTarget.POINTER_MEM_SIZE > 2u && target.datatype.isLong
+            if (!target.datatype.isIterable && !target.datatype.isPointer && !isUwordPointerHolder && !isLongPointerHolder) {
+                val addressType = if(options.compTarget.POINTER_MEM_SIZE > 2u) "long" else "uword"
                 errors.err(
-                    "indexing requires an iterable, address uword, or pointer variable",
+                    "indexing requires an iterable, address $addressType, or pointer variable",
                     arrayIndexedExpression.position
                 )
+            }
             val indexVariable = arrayIndexedExpression.indexer.indexExpr as? IdentifierReference
             if (indexVariable != null) {
                 if (indexVariable.targetVarDecl()?.datatype?.isSigned == true) {

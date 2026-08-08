@@ -485,7 +485,10 @@ _after:
 
         val indexExpr = arrayIndexedExpression.indexer.indexExpr
         val arrayVar = arrayIndexedExpression.plainarrayvar!!.targetVarDecl()
-        if(arrayVar!=null && (arrayVar.datatype.isUnsignedWord || arrayVar.datatype.isPointer)) {
+        // uword (16-bit) or long (32-bit) variables can hold a pointer value and can be indexed as such
+        val isUwordPointerHolder = arrayVar!=null && arrayVar.datatype.isUnsignedWord && target.POINTER_MEM_SIZE <= 2u
+        val isLongPointerHolder = arrayVar!=null && arrayVar.datatype.isLong && target.POINTER_MEM_SIZE > 2u
+        if(arrayVar!=null && (isUwordPointerHolder || isLongPointerHolder || arrayVar.datatype.isPointer)) {
             val indexType = if(target.POINTER_MEM_SIZE > 2u) DataType.LONG else DataType.UWORD
             val wordIndex = TypecastExpression(indexExpr, indexType, true, indexExpr.position)
             val address = BinaryExpression(
@@ -494,7 +497,7 @@ _after:
                 wordIndex,
                 arrayIndexedExpression.position
             )
-            if(arrayVar.datatype.isUnsignedWord || arrayVar.datatype.sub?.isByte==true) {
+            if(isUwordPointerHolder || isLongPointerHolder || arrayVar.datatype.sub?.isByte==true) {
                 return if (parent is AssignTarget) {
                     // assignment to array
                     val memwrite = DirectMemoryWrite(address, arrayIndexedExpression.position)
