@@ -114,4 +114,13 @@ sys {
             lea  prog8_program_end,a0
         }}
     }
+
+    asmsub cpuAtLeast68020() clobbers (A6, D0) -> bool @Pz {
+        %asm {{
+            move.l  4.w,a6
+            move.w  296(a6),d0
+            andi.w  #$008e,d0
+            rts
+        }}
+    }
 }
