@@ -15,8 +15,6 @@ import kotlin.io.path.readText
 
 class TestAmigaChipramOption: FunSpec({
 
-    val outputDir = tempdir().toPath()
-
     test("amiga_chipram option on amiga500 block sets AMIGACHIPRAM in codegen AST") {
         val src = """
 chipper {
@@ -37,7 +35,7 @@ main {
     }
 }
 """
-        val result = compileText(Amiga500Target(), optimize = false, src, outputDir, writeAssembly = true)
+        val result = compileText(Amiga500Target(), optimize = false, src, tempdir().toPath(), writeAssembly = true)
         result shouldNotBe null
         val blocks = result!!.codegenAst!!.allBlocks().toList()
         val chipramBlock = blocks.singleOrNull { it.options.amigaChipram }
@@ -68,7 +66,7 @@ main {
     }
 }
 """
-        val result = compileText(Amiga500Target(), optimize = false, src, outputDir, writeAssembly = true)
+        val result = compileText(Amiga500Target(), optimize = false, src, tempdir().toPath(), writeAssembly = true)
         result shouldNotBe null
         val irFile = result!!.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         val irText = irFile.readText()
@@ -95,7 +93,7 @@ main {
     }
 }
 """
-        val result = compileText(Amiga500Target(), optimize = false, src, outputDir, writeAssembly = true)
+        val result = compileText(Amiga500Target(), optimize = false, src, tempdir().toPath(), writeAssembly = true)
         result shouldNotBe null
         val asmFile = result!!.compilationOptions.outputDir.resolve(result.compilerAst.name + ".asm")
         val lines = asmFile.readText().lines().map { it.trim() }
@@ -115,7 +113,7 @@ main {
 }
 """
         val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
-        compileText(Amiga500Target(), optimize = false, src, outputDir, writeAssembly = false, errors = errors) shouldBe null
+        compileText(Amiga500Target(), optimize = false, src, tempdir().toPath(), writeAssembly = false, errors = errors) shouldBe null
         errors.errors.size shouldBe 1
         errors.errors[0] shouldContain "option that is not valid for modules"
     }
@@ -137,7 +135,7 @@ main {
 }
 """
         val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
-        compileText(C64Target(), optimize = false, src, outputDir, writeAssembly = false, errors = errors) shouldBe null
+        compileText(C64Target(), optimize = false, src, tempdir().toPath(), writeAssembly = false, errors = errors) shouldBe null
         errors.errors.size shouldBe 1
         errors.errors[0] shouldContain "amiga_chipram option is only valid on amiga500 target"
     }
@@ -159,7 +157,7 @@ main {
 }
 """
         val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
-        compileText(Qemu68kTarget(), optimize = false, src, outputDir, writeAssembly = false, errors = errors) shouldBe null
+        compileText(Qemu68kTarget(), optimize = false, src, tempdir().toPath(), writeAssembly = false, errors = errors) shouldBe null
         errors.errors.size shouldBe 1
         errors.errors[0] shouldContain "amiga_chipram option is only valid on amiga500 target"
     }
