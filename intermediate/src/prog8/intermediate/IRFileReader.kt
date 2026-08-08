@@ -456,7 +456,8 @@ class IRFileReader {
                 attrs.getOrDefault("FORCEOUTPUT", "false").toBoolean(),
                 attrs.getOrDefault("NOPREFIXING", "false").toBoolean(),
                 attrs.getOrDefault("VERAFXMULS", "false").toBoolean(),
-                attrs.getOrDefault("IGNOREUNUSED", "false").toBoolean()
+                attrs.getOrDefault("IGNOREUNUSED", "false").toBoolean(),
+                attrs.getOrDefault("AMIGACHIPRAM", "false").toBoolean()
             ),
             parsePosition(attrs.getValue("POS")))
         skipText(reader)

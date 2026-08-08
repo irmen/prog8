@@ -360,6 +360,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
         var veraFxMuls = false
         var noSymbolPrefixing = false
         var ignoreUnused = false
+        var amigaChipram = false
         val directives = srcBlock.statements.filterIsInstance<Directive>()
         for (directive in directives.filter { it.directive == "%option" }) {
             for (arg in directive.args) {
@@ -369,6 +370,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
                     "force_output" -> forceOutput = true
                     "merge" -> { /* ignore this one */ }
                     "verafxmuls" -> veraFxMuls = true
+                    "amiga_chipram" -> amigaChipram = true
                     else -> throw FatalAstException("weird directive option: ${arg.string}")
                 }
             }
@@ -380,7 +382,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
         val (vardecls, statements) = srcBlock.statements.partition { it is VarDecl || it is MemorySlabReservation }
         val src = srcBlock.definingModule.source
         val block = PtBlock(srcBlock.name, srcBlock.isInLibrary, src,
-            PtBlock.Options(srcBlock.address, forceOutput, noSymbolPrefixing, veraFxMuls, ignoreUnused),
+            PtBlock.Options(srcBlock.address, forceOutput, noSymbolPrefixing, veraFxMuls, ignoreUnused, amigaChipram),
             srcBlock.position)
 
         for(directive in directives.filter { it.directive == "%jmptable" }) {

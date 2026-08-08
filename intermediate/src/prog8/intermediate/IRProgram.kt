@@ -502,7 +502,8 @@ class IRBlock(
                   val forceOutput: Boolean = false,
                   val noSymbolPrefixing: Boolean = false,
                   val veraFxMuls: Boolean = false,
-                  val ignoreUnused: Boolean = false)
+                  val ignoreUnused: Boolean = false,
+                  val amigaChipram: Boolean = false)
 
     operator fun plusAssign(sub: IRSubroutine) { children += sub }
     operator fun plusAssign(sub: IRAsmSubroutine) { children += sub }

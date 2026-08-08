@@ -1808,7 +1808,8 @@ class IRCodeGen(
                 block.options.forceOutput,
                 block.options.noSymbolPrefixing,
                 block.options.veraFxMuls,
-                block.options.ignoreUnused
+                block.options.ignoreUnused,
+                block.options.amigaChipram
             ), block.position)
         for (child in block.children) {
             when(child) {

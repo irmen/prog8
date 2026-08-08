@@ -103,6 +103,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
             if(block.options.noSymbolPrefixing) xml.writeAttribute("NOPREFIXING", "true")
             if(block.options.veraFxMuls) xml.writeAttribute("VERAFXMULS", "true")
             if(block.options.ignoreUnused) xml.writeAttribute("IGNOREUNUSED", "true")
+            if(block.options.amigaChipram) xml.writeAttribute("AMIGACHIPRAM", "true")
             xml.writeAttribute("LIBRARY", block.library.toString())
             xml.writeAttribute("POS", block.position.toString())
             xml.writeCharacters("\n")

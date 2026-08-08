@@ -339,6 +339,10 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
 
         for (block in program.blocks) {
             val blockLabel = fixNameSymbols(block.label)
+            val chipram = target.name == "amiga500" && block.options.amigaChipram
+            if (chipram) {
+                emitRaw("    SECTION code_c,code,chip   ; amiga CHIP ram code")
+            }
             emitRaw("; Block: $blockLabel")
             emitLabel(blockLabel)
             for (element in block.children) {
@@ -359,6 +363,9 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
                         emitLine("dc.b  $bytes")
                     }
                 }
+            }
+            if (chipram) {
+                emitRaw("    SECTION .text,code  ; back to normal code section")
             }
             emitRaw("")
         }
@@ -486,14 +493,74 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
     // === data section ===
 
     private fun emitDataSection() {
-        val initdVars = program.st.allVariables().filter { !it.inBss }.toList()
-        val structInstancesWithInit = program.st.allStructInstances().filter { it.values.isNotEmpty() }.toList()
-        if (initdVars.isNotEmpty() || dataFloatConstants.isNotEmpty() || structInstancesWithInit.isNotEmpty()) {
+        val chipramBlocks = if (target.name == "amiga500") chipramBlockLabels() else emptySet()
+        val initdVars: List<IRStStaticVariable> = program.st.allVariables().filter { !it.inBss }.toList()
+        val (chipramVars: List<IRStStaticVariable>, normalVars: List<IRStStaticVariable>) =
+            if (chipramBlocks.isNotEmpty()) {
+                initdVars.partition { it.name.substringBefore('.') in chipramBlocks }
+            } else {
+                emptyList<IRStStaticVariable>() to initdVars
+            }
+        val structInstancesWithInit: List<IRStStructInstance> = program.st.allStructInstances().filter { it.values.isNotEmpty() }.toList()
+        val (chipramStructs: List<IRStStructInstance>, normalStructs: List<IRStStructInstance>) =
+            if (chipramBlocks.isNotEmpty()) {
+                structInstancesWithInit.partition { it.name.substringBefore('.') in chipramBlocks }
+            } else {
+                emptyList<IRStStructInstance>() to structInstancesWithInit
+            }
+
+        if (chipramVars.isNotEmpty() || chipramStructs.isNotEmpty()) {
+            emitRaw("    SECTION data_c,data,chip   ; amiga CHIP ram initialized data")
+        }
+        if (chipramVars.isNotEmpty()) {
+            emitRaw("; static variables with initial values (amiga chip ram)")
+            for (v in chipramVars) {
+                emitInitializedVariable(v)
+            }
+            emitRaw("")
+        }
+        if (chipramStructs.isNotEmpty()) {
+            emitRaw("; struct instances with initial values (amiga chip ram)")
+            for (si in chipramStructs) {
+                emitRaw("    ALIGN  2")
+                emitLabel(fixNameSymbols(si.name))
+                for (fieldValue in si.values) {
+                    val m68kSize = when (fieldValue.dt) {
+                        BaseDataType.POINTER, BaseDataType.LONG, BaseDataType.FLOAT -> 4
+                        BaseDataType.UWORD, BaseDataType.WORD -> 2
+                        else -> 1
+                    }
+                    when (val fv = fieldValue.value) {
+                        is IRStSymbolicReference.Numeric -> {
+                            when {
+                                fieldValue.dt == BaseDataType.FLOAT -> emitLine("dc.s  ${fv.value}")
+                                m68kSize == 4 -> emitLine("dc.l  ${fv.value.toInt()}")
+                                m68kSize == 2 -> emitLine("dc.w  ${fv.value.toInt()}")
+                                else -> emitLine("dc.b  ${fv.value.toInt()}")
+                            }
+                        }
+                        is IRStSymbolicReference.Symbol -> {
+                            when (m68kSize) {
+                                4 -> emitLine("dc.l  ${fixNameSymbols(fv.name)}")
+                                2 -> emitLine("dc.w  ${fixNameSymbols(fv.name)}")
+                                else -> emitLine("dc.b  ${fixNameSymbols(fv.name)}")
+                            }
+                        }
+                        is IRStSymbolicReference.BoolValue -> {
+                            val v = if (fv.value) 1 else 0
+                            emitLine("dc.b  $v")
+                        }
+                    }
+                }
+            }
+            emitRaw("")
+        }
+        if (chipramVars.isNotEmpty() || chipramStructs.isNotEmpty()) {
             emitRaw("    SECTION .data,data  ; initialized variables (writable)")
         }
-        if (initdVars.isNotEmpty()) {
+        if (normalVars.isNotEmpty()) {
             emitRaw("; static variables with initial values")
-            for (v in initdVars) {
+            for (v in normalVars) {
                 emitInitializedVariable(v)
             }
             emitRaw("")
@@ -510,9 +577,9 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         }
 
         // struct instances with init values
-        if (structInstancesWithInit.isNotEmpty()) {
+        if (normalStructs.isNotEmpty()) {
             emitRaw("; struct instances with initial values")
-            for (si in structInstancesWithInit) {
+            for (si in normalStructs) {
                 emitRaw("    ALIGN  2")
                 emitLabel(fixNameSymbols(si.name))
                 for (fieldValue in si.values) {
@@ -547,10 +614,13 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
             emitRaw("")
         }
 
-        if (initdVars.isNotEmpty() || dataFloatConstants.isNotEmpty() || structInstancesWithInit.isNotEmpty()) {
+        if (normalVars.isNotEmpty() || dataFloatConstants.isNotEmpty() || normalStructs.isNotEmpty()) {
             emitRaw("    SECTION .text,code  ; back to code section")
         }
     }
+
+    private fun chipramBlockLabels(): Set<String> =
+        program.blocks.filter { it.options.amigaChipram }.map { it.label }.toSet()
 
     private fun emitInitializedVariable(v: IRStStaticVariable) {
         val dt = v.dt
@@ -680,64 +750,97 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
 
 
     private fun emitBssSection() {
-        emitRaw("    SECTION .bss,bss    ; bss section")
-        emitRaw("    ALIGN  4")
-        emitLabel("prog8_bss_section_start")
+        val chipramBlocks = if (target.name == "amiga500") chipramBlockLabels() else emptySet()
 
         // 1. Map variables to their sizes and actual M68k alignment requirements
-        val bssVars = program.st.allVariables()
-            .filter { it.inBss }
-            .map { v ->
-                val size = target.memorySize(v.dt, v.length?.toInt())
-                // M68K alignment rules: 
-                // - Objects containing 32-bit types need 4-byte alignment
-                // - Objects containing 16-bit types need 2-byte alignment
-                // - Pure byte arrays/scalars only need 1-byte alignment
-                val alignment = when {
-                    v.dt.isPointer || v.dt.isLong || v.dt.isFloat -> 4
-                    v.dt.isWord -> 2
-                    v.dt.isArray -> 2
-                    else -> 1
-                }
-                Triple(v, size, alignment)
+        val allBssVars: List<IRStStaticVariable> = program.st.allVariables().filter { it.inBss }.toList()
+        val (chipramBssVars: List<IRStStaticVariable>, normalBssVars: List<IRStStaticVariable>) =
+            if (chipramBlocks.isNotEmpty()) {
+                allBssVars.partition { it.name.substringBefore('.') in chipramBlocks }
+            } else {
+                emptyList<IRStStaticVariable>() to allBssVars
             }
-            // 2. Sort primary by alignment descending, secondary by size descending
-            .sortedWith(compareByDescending<Triple<IRStStaticVariable, Int, Int>> { it.third }.thenByDescending { it.second })
-
-        // 3. Emit sorted variables
-        for ((v, size, alignment) in bssVars) {
-            if (alignment >= 2) {
-                emitRaw("    ALIGN  $alignment")
+        val allStructsNoInit: List<IRStStructInstance> = program.st.allStructInstances().filter { it.values.isEmpty() }.toList()
+        val (chipramStructsNoInit: List<IRStStructInstance>, normalStructsNoInit: List<IRStStructInstance>) =
+            if (chipramBlocks.isNotEmpty()) {
+                allStructsNoInit.partition { it.name.substringBefore('.') in chipramBlocks }
+            } else {
+                emptyList<IRStStructInstance>() to allStructsNoInit
+            }
+        val allSlabs: List<IRStMemorySlab> = program.st.allMemorySlabs().toList()
+        val (chipramSlabs: List<IRStMemorySlab>, normalSlabs: List<IRStMemorySlab>) =
+            if (chipramBlocks.isNotEmpty()) {
+                allSlabs.partition { it.name.substringBefore('.') in chipramBlocks }
+            } else {
+                emptyList<IRStMemorySlab>() to allSlabs
             }
 
-            emitLabel(fixNameSymbols(v.name))
-            emitLine("ds.b  $size")
+        fun layout(v: IRStStaticVariable): Triple<IRStStaticVariable, Int, Int> {
+            val size = target.memorySize(v.dt, v.length?.toInt())
+            // M68K alignment rules:
+            // - Objects containing 32-bit types need 4-byte alignment
+            // - Objects containing 16-bit types need 2-byte alignment
+            // - Pure byte arrays/scalars only need 1-byte alignment
+            val alignment = when {
+                v.dt.isPointer || v.dt.isLong || v.dt.isFloat -> 4
+                v.dt.isWord -> 2
+                v.dt.isArray -> 2
+                else -> 1
+            }
+            return Triple(v, size, alignment)
         }
 
-        // struct instances without init values (zeroed at startup)
-        val structInstancesNoInit = program.st.allStructInstances().filter { it.values.isEmpty() }.toList()
-        if (structInstancesNoInit.isNotEmpty()) {
+        fun emitBssVars(vars: List<IRStStaticVariable>) {
+            val sorted = vars.map(::layout)
+                .sortedWith(compareByDescending<Triple<IRStStaticVariable, Int, Int>> { it.third }.thenByDescending { it.second })
+            for ((v, size, alignment) in sorted) {
+                if (alignment >= 2) {
+                    emitRaw("    ALIGN  $alignment")
+                }
+                emitLabel(fixNameSymbols(v.name))
+                emitLine("ds.b  $size")
+            }
+        }
+
+        fun emitStructsNoInit(structs: List<IRStStructInstance>) {
+            if (structs.isEmpty()) return
             emitRaw("")
             emitRaw("; struct instances (zeroed)")
-            for (si in structInstancesNoInit) {
+            for (si in structs) {
                 emitRaw("    ALIGN  2")
                 emitLabel(fixNameSymbols(si.name))
                 emitLine("ds.b  ${si.size}")
             }
         }
 
-        // memory slabs
-        val slabs = program.st.allMemorySlabs().toList()
-        if(slabs.isNotEmpty()) {
+        fun emitSlabs(slabs: List<IRStMemorySlab>) {
+            if (slabs.isEmpty()) return
             emitRaw("")
             emitRaw("; memory slabs")
-            for(slab in slabs) {
+            for (slab in slabs) {
                 val alignment = max(2, slab.align.toInt())
                 emitRaw("    ALIGN  $alignment")
                 emitLabel(fixNameSymbols(slab.name))
                 emitLine("ds.b  ${slab.size}")
             }
         }
+
+        // amiga CHIP ram BSS (variables, structs and slabs belonging to chipram blocks)
+        if (chipramBssVars.isNotEmpty() || chipramStructsNoInit.isNotEmpty() || chipramSlabs.isNotEmpty()) {
+            emitRaw("    SECTION bss_c,bss,chip   ; amiga CHIP ram bss")
+            emitRaw("    ALIGN  4")
+            emitBssVars(chipramBssVars)
+            emitStructsNoInit(chipramStructsNoInit)
+            emitSlabs(chipramSlabs)
+        }
+
+        // normal bss section
+        emitRaw("    SECTION .bss,bss    ; bss section")
+        emitRaw("    ALIGN  4")
+        emitLabel("prog8_bss_section_start")
+        emitBssVars(normalBssVars)
+        emitStructsNoInit(normalStructsNoInit)
+        emitSlabs(normalSlabs)
 
         // register file (always at the end of BSS variables)
         emitRaw("    ALIGN  4")

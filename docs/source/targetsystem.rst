@@ -172,6 +172,9 @@ directly - it is **not** a full Amiga emulator. Many AmigaOS library calls and f
 or behave differently. For best results, copy the generated executable to a proper Amiga emulator such as
 `WinUAE <https://www.winuae.net/>`_ or `FS-UAE <https://fs-uae.net/>`_ and run it there instead.
 
+Blocks can opt-in to living in Amiga CHIP RAM via the ``%option amiga_chipram`` block-level option;
+see the :ref:`option directive <pair: Directives; %option>` for details.
+
 
 Zero page usage by the Prog8 compiler
 -------------------------------------

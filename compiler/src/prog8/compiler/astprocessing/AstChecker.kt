@@ -5,6 +5,7 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
 import prog8.code.core.*
+import prog8.code.target.Amiga500Target
 import prog8.code.target.C128Target
 import prog8.code.target.Cx16Target
 import prog8.code.target.VMTarget
@@ -1365,10 +1366,10 @@ internal class AstChecker(private val program: Program,
                     err("this directive may only occur in a block or at module level")
                 if(directive.args.isEmpty())
                     err("missing option directive argument(s)")
-                else if(directive.args.map{it.string in setOf("enable_floats", "force_output", "no_sysinit", "merge", "verafxmuls", "no_symbol_prefixing", "ignore_unused", "romable")}.any { !it })
+                else if(directive.args.map{it.string in setOf("enable_floats", "force_output", "no_sysinit", "merge", "verafxmuls", "no_symbol_prefixing", "ignore_unused", "romable", "amiga_chipram")}.any { !it })
                     err("invalid option directive argument(s)")
                 if(directive.parent is Block) {
-                    if(directive.args.any {it.string !in setOf("force_output", "merge", "verafxmuls", "no_symbol_prefixing", "ignore_unused")})
+                    if(directive.args.any {it.string !in setOf("force_output", "merge", "verafxmuls", "no_symbol_prefixing", "ignore_unused", "amiga_chipram")})
                         err("using an option that is not valid for blocks")
                 }
                 if(directive.parent is Module) {
@@ -1377,6 +1378,8 @@ internal class AstChecker(private val program: Program,
                 }
                 if(directive.args.any { it.string=="verafxmuls" } && options.compTarget.name != Cx16Target.NAME)
                     err("verafx option is only valid on cx16 target")
+                if(directive.args.any { it.string=="amiga_chipram" } && options.compTarget.name != Amiga500Target.NAME)
+                    err("amiga_chipram option is only valid on amiga500 target")
             }
             "%encoding" -> {
                 if(directive.parent !is Module)

@@ -12,10 +12,12 @@ class IRUnusedCodeRemover(
         var numRemoved = removeUnusedSubroutines() + removeUnusedAsmSubroutines()
 
         // remove empty blocks (but keep blocks with %option force_output,
-        // and also blocks that contain labels -- labels are addressable symbols)
+        // and also blocks that contain labels -- labels are addressable symbols,
+        // and blocks that still have variables in the symbol table -- a block with variables is not truly empty)
         irprog.blocks.reversed().forEach { block ->
             val hasLabels = block.children.any { it.label != null }
-            if(!hasLabels && block.isEmpty() && !block.options.forceOutput) {
+            val hasVariables = irprog.st.allVariables().any { it.name.startsWith(block.label + ".") }
+            if(!hasLabels && !hasVariables && block.isEmpty() && !block.options.forceOutput) {
                 irprog.blocks.remove(block)
                 pruneSymboltable(block.label)
                 numRemoved++
