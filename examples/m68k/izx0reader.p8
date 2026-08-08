@@ -10,6 +10,7 @@
 main {
     sub start() {
 
+        ; open a 320x256, 5-plane screen
         long[] screentags = [
             intuition.SA_Left,      0,
             intuition.SA_Top,       0,
@@ -63,7 +64,9 @@ main {
 
 
 izx0 {
-    const long HEADER_SIZE = 48
+    ; IZX0 header, palette, then compressed planes.
+    const long HEADER_SIZE = 52
+    const long TOTAL_COMPRESSED_SIZE_OFFSET = 48
     const long MAX_PALETTE_SIZE = 256 * 4
 
     uword imageWidth
@@ -93,34 +96,34 @@ izx0 {
                     numColors = peekw(header + 12)
                     uword paletteSize = peekw(header + 14)
 
+                    ; palette follows the header
                     clearPalette()
                     bytesRead = dos.Read(file, palette, paletteSize)
                     if bytesRead == paletteSize {
-                        long largestPlane = 0
+                        ; buffer all compressed planes before decoding
+                        long compressedSize = peekl(header + TOTAL_COMPRESSED_SIZE_OFFSET)
                         uword plane
-                        for plane in 0 to numPlanes - 1 {
-                            long planeSize = peekl(header + 16 + plane * 4)
-                            if planeSize > largestPlane
-                                largestPlane = planeSize
-                        }
 
-                        if largestPlane > 0 and bitplanepointers!=0 {
-                            pointer planeBuffer = exec.AllocVec(largestPlane, exec.MEMF_PUBLIC)
-                            if planeBuffer != 0 {
-                                for plane in 0 to numPlanes - 1 {
-                                    long streamSize = peekl(header + 16 + plane * 4)
-                                    bytesRead = dos.Read(file, planeBuffer, streamSize)
-                                    if bytesRead == streamSize {
+                        if compressedSize > 0 and bitplanepointers!=0 {
+                            pointer compressedBuffer = exec.AllocVec(compressedSize, exec.MEMF_PUBLIC)
+                            if compressedBuffer != 0 {
+                                bytesRead = dos.Read(file, compressedBuffer, compressedSize)
+                                if bytesRead == compressedSize {
+                                    pointer compressedPlane = compressedBuffer
+                                    for plane in 0 to numPlanes - 1 {
+                                        long streamSize = peekl(header + 16 + plane * 4)
                                         long bitplane = peekp(bitplanepointers)
+                                        ; decode one plane into CHIP RAM
                                         if bitplane!=0
-                                            compression.unZX0(planeBuffer, bitplane)
+                                            compression.unZX0(compressedPlane, bitplane)
+                                        compressedPlane += streamSize
                                         bitplanepointers++
                                     }
+                                    success = true
                                 }
-                                exec.FreeVec(planeBuffer)
+                                exec.FreeVec(compressedBuffer)
                             }
                         }
-                        success = true
                     }
                 }
             }

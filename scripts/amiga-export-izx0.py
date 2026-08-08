@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 IZX0 Image File Format Specification & Exporter Script
 ======================================================
@@ -11,7 +12,7 @@ compressed bitplane streams using the ZX0 compression algorithm (via Salvador).
 File Layout:
 ------------
 +-----------------------------------------------------------------------------+
-| Fixed Binary Header (48 Bytes, Big-Endian)                                  |
+| Fixed Binary Header (52 Bytes, Big-Endian)                                  |
 +-----------------------------------------------------------------------------+
 | Palette Data (Variable length = palette_data_size)                          |
 |   - ECS Mode (is_aga=0): Array of UWORD ($0RGB, 2 bytes/color)              |
@@ -24,7 +25,7 @@ File Layout:
 |   - Plane N Stream (Size = plane_sizes[N-1])                                |
 +-----------------------------------------------------------------------------+
 
-Fixed Binary Header Memory Map (48 Bytes Total):
+Fixed Binary Header Memory Map (52 Bytes Total):
 ------------------------------------------------
 Offset (Hex)  Offset (Dec)  Type       Description
 -------------------------------------------------------------------------------
@@ -37,8 +38,9 @@ Offset (Hex)  Offset (Dec)  Type       Description
 0x0C          12            UWORD      Number of Palette Entries (2^nPlanes)
 0x0E          14            UWORD      Palette Data Size in Bytes
 0x10          16            ULONG[8]   Array of Compressed Sizes (Planes 0..7)
+0x30          48            ULONG      Total compressed bitmap data size
 -------------------------------------------------------------------------------
-Total Header Size: 48 Bytes (0x30)
+Total Header Size: 52 Bytes (0x34)
 
 Palette Entry Specifications:
 -----------------------------
@@ -216,13 +218,14 @@ def export_izx0(input_path, output_path, force_aga=False, max_colors=256):
 
     palette_data_size = len(palette_bytes)
 
-    # 5. Build Fixed 48-Byte Binary Header (Big-Endian)
+    # 5. Build Fixed 52-Byte Binary Header (Big-Endian)
     plane_sizes = [0] * 8
     for i in range(num_planes):
         plane_sizes[i] = len(compressed_planes[i])
+    compressed_payload_size = sum(plane_sizes)
 
     header = struct.pack(
-        ">4sHHHBB HH 8I",
+        ">4sHHHBB HH 9I",
         b"IZX0",
         aligned_width,
         height,
@@ -232,6 +235,7 @@ def export_izx0(input_path, output_path, force_aga=False, max_colors=256):
         num_palette_entries,  # 2^num_planes
         palette_data_size,  # Byte count of palette block
         *plane_sizes,
+        compressed_payload_size,
     )
 
     # 6. Write Output File
@@ -241,17 +245,16 @@ def export_izx0(input_path, output_path, force_aga=False, max_colors=256):
         for c_data in compressed_planes:
             f.write(c_data)
 
-    compressed_payload_size = sum(len(c) for c in compressed_planes)
     file_size = os.path.getsize(output_path)
     print(f"\nSaved '{output_path}' ({file_size} bytes total)")
     print(
-        f"Header: 48B | Palette: {palette_data_size}B ({num_palette_entries} entries) | Streams: {compressed_payload_size}B"
+        f"Header: 52B | Palette: {palette_data_size}B ({num_palette_entries} entries) | Streams: {compressed_payload_size}B"
     )
 
 
 def main():
     parser = argparse.ArgumentParser(
-        prog="export_izx0",
+        prog="amiga-export-izx0",
         description="Convert image files (PNG/BMP/etc.) into the IZX0 planar compressed Amiga format.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
@@ -284,6 +287,10 @@ def main():
         metavar="[2-256]",
         help="Max colors for quantization palette reduction (default: 256)",
     )
+
+    if len(sys.argv) == 1:
+        parser.print_help()
+        return
 
     args = parser.parse_args()
 

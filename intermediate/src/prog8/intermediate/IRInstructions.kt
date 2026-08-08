@@ -107,7 +107,7 @@ All have type b or w or l or f.
 load        reg1,         value       - load immediate value into register. If you supply a symbol, loads the *address* of the symbol! (variable values are loaded from memory via the loadm instruction)
 loadm       reg1,         address     - load reg1 with value at memory address
 loadi       reg1, reg2,   value       - load reg1 with value in memory indirect, pointed to by reg2 + offsetvalue 0-65535 (often used to read a field from a pointer to a struct, or with offset=0 just straight from the pointer)
-loadx       reg1, reg2,   address     - load reg1 with value at memory address indexed by value in reg2 (0-255, a byte)
+loadx       reg1, reg2,   address     - load reg1 with value at memory address indexed by value in reg2 (a byte 0-255 on 8-bit targets, a word 0-32767 on 32-bit targets)
 loadr       reg1, reg2                - load reg1 with value in register reg2,  "reg1 = reg2"
 loadhr      reg1, slot                - load cpu hardware register from calling convention slot (s0=A, s1=X, s2=Y, s3=AX, s4=AY, s5=XY, s6=FAC1, s7=FAC2) into reg1
 loadhfaczero       fpreg1             - load "cpu hardware register" fac0 into freg1.f
@@ -116,9 +116,9 @@ storem      reg1,         address     - store reg1 at memory address
 storei      reg1, reg2,   value       - store reg1 in memory indirect, pointed to by reg2 + offsetvalue 0-65535 (often used to write a field from a pointer to a struct, or with offset=0 just straight to the pointer)
 storeim     value,        address     - store an immediate value (constant) at memory address (the constant goes in the value field, NOT via a register).
 storezi     reg1,         value       - store zero at memory pointed to by reg1 + offsetvalue 0-65535  (just like storei, but a shorthand to store a constant 0)
-storex      reg1, reg2,   address     - store reg1 at memory address, indexed by value in reg2 (0-255, a byte)
+storex      reg1, reg2,   address     - store reg1 at memory address, indexed by value in reg2 (a byte 0-255 on 8-bit targets, a word 0-32767 on 32-bit targets)
 storezm                   address     - store zero at memory address
-storezx     reg1,         address     - store zero at memory address, indexed by value in reg1 (0-255, a byte)
+storezx     reg1,         address     - store zero at memory address, indexed by value in reg1 (a byte 0-255 on 8-bit targets, a word 0-32767 on 32-bit targets)
 storehr     reg1, slot                - store reg1 into cpu hardware register for calling convention slot (s0=A, s1=X, s2=Y, s3=AX, s4=AY, s5=XY, s6=FAC1, s7=FAC2)
 storehfaczero        fpreg1           - store fpreg1.f into "cpu register" fac0
 storehfacone         fpreg1           - store fpreg1.f into "cpu register" fac1

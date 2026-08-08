@@ -35,7 +35,7 @@ Follow ALL the rules below carefully.
 - `ubyte`/`uword` = unsigned; `long` = signed 4-byte; `float` = 5-byte MS format; `str` = 0-terminated ubytes (max 255 chars)
 - `pointer` = address-sized unsigned integer. **Auto-adapts to the target**: a 16-bit `uword` on the 8-bit 6502 targets (C64, CX16, C128, PET32, virtual), a 32-bit `long` on the 32-bit M68000 targets (amiga500, qemu68k). Use it for addresses/pointers that must be portable across targets instead of hardcoding `uword` or `long`.
 - **float requires `%import floats`** at top of file, else compiler errors
-- Arrays: max 256 bytes (512 for split word arrays). For larger data, use `memory()` + pointers
+- Arrays: the size limit is a **byte budget** on all targets. On 6502 targets: max 256 bytes total (512 for split word arrays), so element counts are 256/4=64 for long arrays, 256/2=128 for word arrays, 256 for byte arrays. On M68000 targets (amiga500, qemu68k): max 32768 bytes total (16384 for word arrays, 8192 for long arrays). For larger data, use `memory()` + pointers
 - `memory(name, size)` returns the address to a statically reserved block of memory. The result is `pointer`-sized: a `uword` (16-bit) on 6502 targets, a `long` (32-bit) on M68000 targets.
 - To point a typed pointer at a `memory()` block, assign the uword directly: `^^MyStruct ptr = memory("name", size)`. The `^^Type:expression` syntax (below) only works with array literals, not general uword expressions.
 - Struct initialization: `^^StructType ptr = ^^StructType:[val1,val2,...]` (the `^^StructType:` can be omitted if inferable). This `^^Type:[...]` syntax does NOT work with variables or `memory()` — only literal arrays.
@@ -72,8 +72,8 @@ No call stack for variable storage — recursion overwrites locals. To handle it
 
 ## Strings, Arrays & Pointers
 - String escapes: `\\`, `\"`, `\'`, `\n`, `\r`, plus hex/unicode: `\xHH` (raw byte, no encoding applied) and `\uHHHH` (unicode codepoint)
-- `str` / array: max 256 bytes. `long[]` limited to 64 entries (64x4=256). `str[]` for string arrays: `str[5] names = ["a","b","c","d","e"]`
-- 2D arrays: `type[rows][cols] name`, access `name[r][c]`. Flat init list only (no nested `[[...]]`). Total size still ≤ 256 bytes
+- `str` / array: the limit is a **byte budget** on all targets. On 6502 targets: max 256 bytes (so `long[]` limited to 64 entries, 64x4=256; word arrays 128 entries, 128x2=256). On M68000 targets (amiga500, qemu68k): max 32768 bytes (16384 for word arrays, 8192 for long arrays). `str[]` for string arrays: `str[5] names = ["a","b","c","d","e"]`
+- 2D arrays: `type[rows][cols] name`, access `name[r][c]`. Flat init list only (no nested `[[...]]`). Total size is a byte budget: ≤ 256 bytes on 6502 targets; max 32768 bytes on M68000 targets.
 - str/array passed as pointer to subroutine (receiving subroutine gets `^^ubyte` or `^^element`)
 - **No const pointers** or pointer-to-pointer currently supported
 - **Parsing limitation**: `pointer[index].field` as assignment target needs `^^`: `pointer[index]^^.field = value`

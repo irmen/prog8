@@ -55,7 +55,8 @@ Romable (%option romable)
 
 IR/VM
 ^^^^^
-- make long shifts with values >= 32 consistent across targets: virtual wraps the shift count mod 32 (``5 << 33`` becomes ``5 << 1`` = 10), but qemu68k saturates to 0. uword shifts with values > 15 are an error. Pick one behavior and apply uniformly (also affects the ``examples/test.p8`` bit-shift tests, which currently have to omit 33 for long to stay target-agnostic).
+- encode indexed scaling into IR (so that m68k codegen can use scale factor addressing) see ideas/scaled-indexing-IR.md
+- make long shifts with values >= 32 consistent across targets: virtual wraps the shift count mod 32 (``5 << 33`` becomes ``5 << 1`` = 10), but qemu68k saturates to 0. uword shifts with values > 15 are an error. 
 - maybe change all branch instructions to have 2 exits (label if branch condition true, and label if false) instead of 1, and get rid of the implicit "next code chunk" link between chunks.
 - implement more TODOs in AssignmentGen?
 - add more optimizations in IRPeepholeOptimizer?
