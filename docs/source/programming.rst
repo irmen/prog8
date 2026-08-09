@@ -604,13 +604,14 @@ The loop variable is normally declared implicitly by the loop. It is inferred as
 iterated over, which can be a range, an array, or a string. Floating-point arrays cannot be iterated over directly.
 The explicit form is also supported when you want to reuse a loop variable in multiple loops. The existing declaration must
 be able to accept values of the iterable's element type.
+You can also specify a type for the implicitly declared loop variable by writing the type name before the variable name.
 The expression that you loop over can be anything that supports iteration (such as ranges like ``0 to 100``,
 array variables and strings) *except* floating-point arrays (because a floating-point loop variable is not supported).
 Remember that a step value in a range must be a constant value.
 
 You can use a single statement, or a statement block like in the example below::
 
-    for <loopvar>  in  <expression>  [ step <amount> ]   {
+    for [type] <loopvar>  in  <expression>  [ step <amount> ]   {
         ; do something...
         break       ; break out of the loop
         continue    ; immediately next iteration
@@ -621,6 +622,32 @@ For example, this loop implicitly declares ``i`` with the element type of the ra
     for i in 20 to 155 {
         ; do something
     }
+
+You can specify a type for the loop variable to override the inferred type. This is useful when you want
+a wider type than the iterable's element type, or when you want to control the exact type used::
+
+    for uword i in [1, 2, 3, 4, 5] {
+        ; i is uword even though array elements are ubyte
+    }
+
+This is equivalent to declaring a new loop variable separately before the for loop. The two forms below
+have the same behavior::
+
+    uword i
+    for i in [1, 2, 3, 4, 5] {
+        ; ...
+    }
+
+    for uword i in [1, 2, 3, 4, 5] {
+        ; ...
+    }
+
+If a variable with the same name is already declared, use the untyped form to reuse it. A typed loop
+reports a conflicting variable declaration instead. When the same implicit loop variable is used in
+multiple consecutive for loops, all loops must use a compatible type::
+
+    for word w in arr1 { ... }
+    for long w in arr2 { ... }   ; error: type mismatch, w is already declared as word
 
 To loop over a decreasing or descending range, use the ``downto`` keyword::
 

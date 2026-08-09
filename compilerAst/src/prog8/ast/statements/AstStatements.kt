@@ -1341,6 +1341,7 @@ class ConditionalBranch(var condition: BranchCondition,
 class ForLoop(var loopVar: IdentifierReference,
               var iterable: Expression,
               var body: AnonymousScope,
+              var loopVarType: DataType?,
               override val position: Position) : Statement() {
     override lateinit var parent: Node
 
@@ -1365,13 +1366,20 @@ class ForLoop(var loopVar: IdentifierReference,
 
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
-    override fun toString() = "ForLoop(loopVar: $loopVar, iterable: $iterable, pos=$position)"
+    override fun toString(): String {
+        val typeStr = if (loopVarType != null) "type: $loopVarType, " else ""
+        return "ForLoop(${typeStr}loopVar: $loopVar, iterable: $iterable, pos=$position)"
+    }
     override fun referencesIdentifier(nameInSource: List<String>): Boolean =
         loopVar.referencesIdentifier(nameInSource) ||
                 iterable.referencesIdentifier(nameInSource) ||
                 body.referencesIdentifier(nameInSource)
 
-    fun loopVarDt(program: Program) = loopVar.inferType(program)
+    fun loopVarDt(program: Program): InferredTypes.InferredType {
+        if (loopVarType != null)
+            return InferredTypes.knownFor(loopVarType!!)
+        return loopVar.inferType(program)
+    }
 
 }
 

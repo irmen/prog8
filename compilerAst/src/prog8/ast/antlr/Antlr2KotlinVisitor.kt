@@ -46,12 +46,8 @@ class Antlr2KotlinVisitor(val source: SourceCode, private val target: ICompilati
     override fun visitExpression(ctx: ExpressionContext): Expression {
         if(ctx.sizeof_expression!=null) {
             // Handle pointer type argument: sizeof(^^float)
-            if(ctx.sizeof_argument().pointertype()!=null) {
-                if(target!=null)
-                    return NumericLiteral.optimalInteger(target.POINTER_MEM_SIZE.toInt(), ctx.toPosition())
-                else
-                    return IdentifierReference(listOf("sys", "SIZEOF_POINTER"), ctx.toPosition())
-            }
+            if(ctx.sizeof_argument().pointertype()!=null)
+                return NumericLiteral.optimalInteger(target.POINTER_MEM_SIZE.toInt(), ctx.toPosition())
 
             // Handle address-of argument: sizeof(&var) or sizeof(&&var)
             val addressofCtx = ctx.sizeof_argument().addressof()
@@ -133,7 +129,6 @@ class Antlr2KotlinVisitor(val source: SourceCode, private val target: ICompilati
     override fun visitAlias(ctx: AliasContext): Alias {
         val identifier = getname(ctx.identifier())
         if (ctx.basedatatype() != null || ctx.pointertype() != null) {
-            val typeText = if (ctx.basedatatype() != null) ctx.basedatatype().text else ctx.pointertype().text
             throw SyntaxError("type aliases are not supported", ctx.toPosition())
         }
         val target = ctx.scoped_identifier().accept(this) as IdentifierReference
@@ -711,7 +706,8 @@ class Antlr2KotlinVisitor(val source: SourceCode, private val target: ICompilati
         val loopvar = ctx.scoped_identifier().accept(this) as IdentifierReference
         val iterable = ctx.expression().accept(this) as Expression
         val scope = stmtBlockOrSingle(ctx.statement_block(), ctx.statement())
-        return ForLoop(loopvar, iterable, scope, ctx.toPosition())
+        val loopVarType = dataTypeFor(ctx.datatype())
+        return ForLoop(loopvar, iterable, scope, loopVarType, ctx.toPosition())
     }
 
     override fun visitWhileloop(ctx: WhileloopContext): WhileLoop {
@@ -1032,7 +1028,7 @@ class Antlr2KotlinVisitor(val source: SourceCode, private val target: ICompilati
             return null
         val base = baseDatatypeFor(dtctx.basedatatype())
         if(base!=null) {
-            if(base==BaseDataType.POINTER && target!=null) {
+            if(base==BaseDataType.POINTER) {
                 val replacement = if(target.POINTER_MEM_SIZE > 2u) BaseDataType.LONG else BaseDataType.UWORD
                 return DataType.forDt(replacement)
             }

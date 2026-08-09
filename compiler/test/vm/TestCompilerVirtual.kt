@@ -261,7 +261,7 @@ main {
         }
     }
 
-    test("implicit for loop iterators execute over ranges and arrays") {
+    test("implicit for loop var execute over ranges and arrays") {
         val src = """
 main {
     uword @shared range_sum

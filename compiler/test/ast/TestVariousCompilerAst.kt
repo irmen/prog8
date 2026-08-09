@@ -455,7 +455,7 @@ main {
     }
 
     context("variable declarations") {
-        test("for loop iterator is declared implicitly before the loop") {
+        test("for loop var is declared implicitly before the loop") {
             val src = """
 main {
     sub start() {
@@ -502,7 +502,7 @@ main {
             errors.errors.isEmpty() shouldBe false
         }
 
-        test("for loop infers iterator types from strings and word arrays") {
+        test("for loop infers types from strings and word arrays") {
             val src = """
 main {
     sub start() {
@@ -565,7 +565,83 @@ main {
             result.compilerAst.entrypoint.statements.filterIsInstance<VarDecl>().count { it.name == "i" } shouldBe 1
         }
 
-        test("for loop iterator declaration in a nested block is hoisted") {
+        test("typed for loop uses specified type for implicit declaration") {
+            val src = """
+main {
+    sub start() {
+        for word w in "derp" {
+        }
+    }
+}
+"""
+            val result = compileText(C64Target(), optimize = false, src, outputDir, writeAssembly = false)!!
+            val declaration = result.compilerAst.entrypoint.statements.filterIsInstance<VarDecl>().single { it.name == "w" }
+            declaration.type shouldBe VarDeclType.VAR
+            declaration.datatype shouldBe DataType.WORD
+        }
+
+        test("typed for loop widening from string elements accepted") {
+            val src = """
+main {
+    sub start() {
+        for word w in "abc" {
+        }
+        for long l in "xyz" {
+        }
+    }
+}
+"""
+            val result = compileText(C64Target(), optimize = false, src, outputDir, writeAssembly = false)!!
+            val declarations = result.compilerAst.entrypoint.statements.filterIsInstance<VarDecl>()
+            declarations.single { it.name == "w" }.datatype shouldBe DataType.WORD
+            declarations.single { it.name == "l" }.datatype shouldBe DataType.LONG
+        }
+
+        test("typed for loop widening from byte array elements accepted") {
+            val src = """
+main {
+    sub start() {
+        ubyte[] values = [1, 2, 3]
+        for long l in values {
+        }
+    }
+}
+"""
+            val result = compileText(C64Target(), optimize = false, src, outputDir, writeAssembly = false)!!
+            result.compilerAst.entrypoint.statements.filterIsInstance<VarDecl>().single { it.name == "l" }.datatype shouldBe DataType.LONG
+        }
+
+        test("typed for loop conflicts with existing declaration") {
+            val src = """
+main {
+    sub start() {
+        ubyte w
+        for word w in "derp" {
+        }
+    }
+}
+"""
+            val errors = ErrorReporterForTests()
+            compileText(C64Target(), optimize = false, src, outputDir, writeAssembly = false, errors = errors) shouldBe null
+            errors.errors.any { it.contains("conflicting variable declaration") } shouldBe true
+        }
+
+        test("typed for loop conflicts with existing declaration even when types match") {
+            val src = """
+main {
+    sub start() {
+        word w
+        for word w in "derp" {
+        }
+    }
+}
+"""
+            val errors = ErrorReporterForTests()
+            compileText(C64Target(), optimize = false, src, outputDir, writeAssembly = false, errors = errors) shouldBe null
+            errors.errors.any { it.contains("conflicting variable declaration") } shouldBe true
+        }
+
+        test("for loop var declaration in a nested block is hoisted") {
             val src = """
 main {
     sub start() {

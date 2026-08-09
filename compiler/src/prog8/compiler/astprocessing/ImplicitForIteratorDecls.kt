@@ -41,11 +41,28 @@ class ImplicitForIteratorDecls(
         val existing = scope.lookup(names)
 
         if (existing is VarDecl) {
+            if (forLoop.loopVarType != null) {
+                val wasImplicitlyCreated = pending.any { it.scope === scope && it.name == names.singleOrNull() }
+                if (!wasImplicitlyCreated) {
+                    errors.err(
+                        "conflicting variable declaration: '${names.joinToString(".")}' is already declared",
+                        forLoop.position
+                    )
+                    return emptyList()
+                }
+                if (forLoop.loopVarType != existing.datatype) {
+                    errors.err(
+                        "for loop iterator type mismatch: '${names.joinToString(".")}' is already declared as ${existing.datatype} but the loop requests type ${forLoop.loopVarType}",
+                        forLoop.position
+                    )
+                    return emptyList()
+                }
+            }
             if (existing.datatype.isPointer && (iterableType.isUnsignedWordArray || iterableType.isPointerArray))
                 return emptyList()
             if (forLoop.iterable !is RangeExpression && !(elementType isAssignableTo existing.datatype)) {
                 errors.err(
-                    "for loop iterator '${names.joinToString(".")}' has type ${existing.datatype}, but the iterable elements have type $elementType",
+                    "for loop var '${names.joinToString(".")}' has type ${existing.datatype}, but the iterable elements have type $elementType",
                     forLoop.position
                 )
             }
@@ -55,11 +72,12 @@ class ImplicitForIteratorDecls(
         if (existing != null)
             return emptyList()
 
+        val effectiveType = forLoop.loopVarType ?: elementType
         val queued = pending.firstOrNull { it.scope === scope && it.name == names.singleOrNull() }
         if (queued != null) {
-            if (!(elementType isAssignableTo queued.datatype)) {
+            if (!(effectiveType isAssignableTo queued.datatype)) {
                 errors.err(
-                    "for loop iterator '${names.joinToString(".")}' has type ${queued.datatype}, but the iterable elements have type $elementType",
+                    "for loop var '${names.joinToString(".")}' already has type ${queued.datatype} (from an earlier variable declaration or for loop), but the requested type is $effectiveType",
                     forLoop.position
                 )
             }
@@ -67,19 +85,19 @@ class ImplicitForIteratorDecls(
         }
 
         if (names.size != 1) {
-            errors.err("implicit for loop iterator must be an unqualified name", forLoop.position)
+            errors.err("implicit for loop var must be an unqualified name", forLoop.position)
             return emptyList()
         }
 
-        val declaration = VarDecl.builder(elementType, forLoop.position)
+        val declaration = VarDecl.builder(effectiveType, forLoop.position)
             .names(names.single())
             .type(VarDeclType.VAR)
             .build()
-        pending += PendingDecl(scope, names.single(), elementType)
+        pending += PendingDecl(scope, names.single(), effectiveType)
 
         val container = parent as? IStatementContainer
         if (container == null) {
-            errors.err("cannot insert implicit for loop iterator declaration here", forLoop.position)
+            errors.err("cannot insert implicit for loop var declaration here", forLoop.position)
             return emptyList()
         }
         return listOf(AstInsert.before(forLoop, declaration, container))

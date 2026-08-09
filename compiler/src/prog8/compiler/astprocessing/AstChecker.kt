@@ -232,6 +232,7 @@ internal class AstChecker(private val program: Program,
         }
 
         val iterableDt = forLoop.iterable.inferType(program).getOrUndef()
+        val isTypedForLoop = forLoop.loopVarType != null
 
         if(forLoop.iterable is IFunctionCall) {
             errors.err("can not loop over function call return value", forLoop.position)
@@ -272,7 +273,8 @@ internal class AstChecker(private val program: Program,
                     BaseDataType.WORD -> {
                         if (!iterableDt.isSignedByte && !iterableDt.isSignedWord &&
                             !iterableDt.isSignedByteArray && !iterableDt.isUnsignedByteArray &&
-                            !iterableDt.isSignedWordArray && !iterableDt.isUnsignedWordArray
+                            !iterableDt.isSignedWordArray && !iterableDt.isUnsignedWordArray &&
+                            !(isTypedForLoop && iterableDt.isString)
                         )
                             errors.err("word loop variable can only loop over bytes or words", forLoop.position)
                     }

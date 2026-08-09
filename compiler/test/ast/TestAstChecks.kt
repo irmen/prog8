@@ -307,6 +307,34 @@ main {
         compileText(C64Target(), true, src, outputDir, writeAssembly = false) shouldNotBe null
     }
 
+    test("typed for loop with untyped existing variable is ok") {
+        val src = """
+main {
+    sub start() {
+        ubyte w
+        for w in "derp" {
+        }
+    }
+}
+"""
+        compileText(C64Target(), false, src, outputDir, writeAssembly = false) shouldNotBe null
+    }
+
+    test("typed for loop allows widening iterable elements") {
+        val src = """
+main {
+    sub start() {
+        ubyte[] values = [1, 2, 3]
+        for word w in values {
+        }
+        for long l in values {
+        }
+    }
+}
+"""
+        compileText(C64Target(), false, src, outputDir, writeAssembly = false) shouldNotBe null
+    }
+
     test("reg params cannot be statusflag") {
         val src="""
 main {

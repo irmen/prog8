@@ -430,6 +430,8 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
 
     override fun visit(forLoop: ForLoop) {
         output("for ")
+        if (forLoop.loopVarType != null)
+            output(forLoop.loopVarType!!.sourceString() + " ")
         forLoop.loopVar.accept(this)
         output(" in ")
         forLoop.iterable.accept(this)

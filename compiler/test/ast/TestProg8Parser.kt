@@ -670,6 +670,56 @@ class TestProg8Parser: FunSpec( {
             it4.from shouldBe instanceOf<NumericLiteral>()
             it4.to shouldBe instanceOf<NumericLiteral>()
         }
+
+        test("typed for-loops parse the datatype") {
+            val module = parseModule(
+                SourceCode.Text("""
+                main {
+                    sub start() {
+                        for long w in "derp" {
+                        }
+                        for word i in 1 to 10 {
+                        }
+                        for ubyte c in "abc" {
+                        }
+                    }
+                }
+            """), c64Target)
+            val forLoops = module
+                .statements.filterIsInstance<Block>()[0]
+                .statements.filterIsInstance<Subroutine>()[0]
+                .statements.filterIsInstance<ForLoop>()
+
+            forLoops.size shouldBe 3
+
+            forLoops[0].loopVarType shouldBe DataType.LONG
+            forLoops[0].loopVar.nameInSource shouldBe listOf("w")
+
+            forLoops[1].loopVarType shouldBe DataType.WORD
+            forLoops[1].loopVar.nameInSource shouldBe listOf("i")
+
+            forLoops[2].loopVarType shouldBe DataType.UBYTE
+            forLoops[2].loopVar.nameInSource shouldBe listOf("c")
+        }
+
+        test("untyped for-loops have null loopVarType") {
+            val module = parseModule(
+                SourceCode.Text("""
+                main {
+                    sub start() {
+                        ubyte ub
+                        for ub in "something" {
+                        }
+                    }
+                }
+            """), c64Target)
+            val forLoop = module
+                .statements.filterIsInstance<Block>()[0]
+                .statements.filterIsInstance<Subroutine>()[0]
+                .statements.filterIsInstance<ForLoop>()[0]
+
+            forLoop.loopVarType shouldBe null
+        }
     }
 
     test("testCharLiteralConstValue") {
