@@ -1151,6 +1151,8 @@ data class IRInstruction(
             if(opcode==Opcode.STOREZX)
                 return indexRegType
         }
+        if(type==IRDataType.BYTE && opcode==Opcode.STOREZX)
+            return indexRegType
         if(opcode in setOf(Opcode.JUMPI, Opcode.CALLI, Opcode.STOREZI))
             return IRDataType.POINTER
         if(opcode in setOf(Opcode.LSIGW, Opcode.MSIGW))

@@ -504,6 +504,8 @@ object RegisterPacker {
                 return IRDataType.BYTE
             if (type == IRDataType.BYTE && opcode in setOf(Opcode.EXT, Opcode.EXTS, Opcode.CONCAT))
                 return IRDataType.WORD
+            if (type == IRDataType.BYTE && opcode == Opcode.STOREZX)
+                return indexRegType
         }
         return type ?: IRDataType.BYTE
     }
