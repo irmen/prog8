@@ -53,7 +53,6 @@ main {
 
         fill_default_palette()
 
-        ubyte index
         for index in 0 to 255 {
             fadeLUT[index] = find_darker(index)
         }

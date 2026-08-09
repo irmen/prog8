@@ -13,7 +13,6 @@ main {
         turtle.pos(150, 110)
         turtle.pd()
 
-        ubyte i
         for i in 0 to 100 {
             turtle.fd(i+20)
             turtle.rt(94)

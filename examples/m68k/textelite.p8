@@ -266,7 +266,6 @@ ship {
     }
 
     sub cargo_free() -> ubyte {
-        ubyte ci
         ubyte total = 0
         for ci in 0 to len(cargohold)-1 {
             if market.units[ci]==0      ; tonnes only
@@ -302,7 +301,6 @@ market {
         ; The decimal point in prices is introduced only when printing them.
         ; Internally, all prices are integers.
         ; The player's cash is held in four bytes.
-        ubyte ci
         for ci in 0 to len(names)-1 {
             word product
             byte changing
@@ -319,7 +317,6 @@ market {
     }
 
     sub display() {
-        ubyte ci
         txt.cursor_off()
         txt.nl()
         planet.print_name_uppercase()
@@ -344,7 +341,6 @@ market {
     }
 
     sub match(str nameptr) -> ubyte {
-        ubyte ci
         for ci in 0 to len(names)-1 {
             if util.prefix_matches(nameptr, names[ci])
                 return ci
@@ -408,7 +404,6 @@ galaxy {
         bool found = false
         ubyte current_closest_pi
         ubyte current_distance = 127
-        ubyte pi
         for pi in 0 to 255 {
             generate_next_planet()
             void strings.copy(make_current_planet_name(), planet.name)
@@ -757,7 +752,6 @@ planet {
     }
 
     sub random_name() -> str {
-        ubyte ii
         str randname = "        "       ; 8 chars max
         ubyte nx = 0
         for ii in 0 to goatsoup_rnd_number() & 3 {
@@ -852,7 +846,6 @@ planet {
                         else if c == $b1 {
                             @(result_ptr) = strings.upperchar(name[0])
                             result_ptr++
-                            ubyte ni
                             for ni in 1 to len(name) {
                                 ubyte cc = name[ni]
                                 if cc in ['e', 'o', 0]

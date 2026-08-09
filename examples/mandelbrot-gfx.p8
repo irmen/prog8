@@ -16,9 +16,6 @@ main {
     sub start()  {
         graphics.enable_bitmap_mode()
 
-        uword pixelx
-        ubyte pixely
-
         for pixely in 0 to height-1 {
             float yy = (pixely as float)/0.4/height - 1.0
 

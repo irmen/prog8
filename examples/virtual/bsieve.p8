@@ -9,7 +9,6 @@ main {
     sub start() {
 
         uword count
-        uword i
         uword prime
         uword k
         const uword SIZEPL = 8191

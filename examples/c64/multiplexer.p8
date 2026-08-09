@@ -27,11 +27,9 @@ main {
         ; prepare the sprite graphics (put a different letter in each of the balloons)
         sys.set_irqd()
         c64.banks(%011)  ; enable CHAREN, so the character rom accessible at $d000 (inverse at $d400)
-        ubyte i
         for i in 0 to NUM_VSPRITES-1 {
             uword sprdat = spritedata_base + $0040*i
             sys.memcopy(balloonsprite, sprdat, 64)
-            ubyte cptr
             for cptr in 0 to 7 {
                 sprdat[7+cptr*3] = @($d400+(i+sc:'a')*$0008 + cptr)
             }
@@ -46,7 +44,6 @@ main {
         repeat {
             animate_sprites()
             ; wait for raster lines and update hardware sprites
-            ubyte vs_index
             for vs_index in 0 to NUM_VSPRITES-1 {
                 ubyte virtual_sprite = sort_virtualsprite[vs_index]
                 ubyte hw_sprite = virtual_sprite & 7
@@ -70,7 +67,6 @@ main {
     sub animate_sprites() {
         tt += 2
         ubyte st = tt
-        ubyte virtual_sprite
         for virtual_sprite in 0 to NUM_VSPRITES-1 {
             ^^Sprite sprite = sprites[virtual_sprite]
             sprite.x = $0028 + math.sin8u(st)
@@ -190,4 +186,3 @@ main {
         %00000000,%00011100,%00000000
     ]
 }
-

@@ -62,7 +62,6 @@ main {
                 ; draw graphics
                 graphics.SetRast(rp, 1)
 
-                ubyte index
                 for index in 0 to 31 {
                     word radius = index *3 + 10
                     graphics.SetAPen(rp, index)

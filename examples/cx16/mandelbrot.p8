@@ -11,9 +11,6 @@ main {
         txt.print("calculating mandelbrot fractal...\n\n")
         cbm.SETTIM(0,0,0)
 
-        ubyte pixelx
-        ubyte pixely
-
         for pixely in 0 to height-1 {
             float yy = (pixely as float)/0.40/height - 1.3
 

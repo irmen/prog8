@@ -124,9 +124,7 @@ main {
             ^^graphics.BitMap bm = rp.BitMap
             ubyte compression = hdr.compression
 
-            uword y
             for y in 0 to hdr.h-1 {
-                ubyte plane
                 for plane in 0 to hdr.nPlanes-1 {
                     ^^ubyte target = bm.Planes[plane] + y*bytesPerRow
                     when compression {
@@ -194,7 +192,6 @@ main {
             ^^ubyte rgb = iffcmap.Data
             uword numcolors = iffcmap.Size as uword /3
             pointer viewport = &scr.emb_ViewPort
-            uword c
             for c in 0 to numcolors-1
                 graphics.SetRGB4(viewport, c as word, rgb[c*3]>>4, rgb[c*3+1]>>4, rgb[c*3+2]>>4)
         }

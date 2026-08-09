@@ -4,7 +4,6 @@
 
 main {
     sub start() {
-        ubyte i
         for i in 0 to 7 {
             c64.set_sprite_ptr(i, &spritedata.balloonsprite)           ; alternatively, set directly:  c64.SPRPTR[i] = $0a00 / 64
         }

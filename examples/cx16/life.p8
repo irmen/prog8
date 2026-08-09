@@ -79,8 +79,6 @@ main {
 
         ; randomize whole world
         uword offset = STRIDE+1
-        ubyte x
-        ubyte y
         for y in 0 to HEIGHT-1 {
             for x in 0 to WIDTH-1 {
                 active_world[offset+x] = math.rnd() & 1
@@ -108,8 +106,6 @@ main {
         ^^ubyte @requirezp new_world_ptr = new_world + STRIDE+1-DXOFFSET
         ^^ubyte @requirezp active_world_ptr = active_world + STRIDE+1-DXOFFSET
 
-        ubyte x
-        ubyte y
         for y in DYOFFSET to HEIGHT+DYOFFSET-1 {
 
             cx16.vaddr_autoincr(1, $b000 + 256*y, 0, 2)     ;  allows us to use simple Vera data byte assigns later instead of setchr() calls

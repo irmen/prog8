@@ -93,11 +93,9 @@ main {
 
     sub makechar() {
         ubyte[8] bittab = [ $01, $02, $04, $08, $10, $20, $40, $80 ]
-        ubyte c
         cx16.vaddr_autoincr(1, VERA_CHARSET, 0, 1)
         for c in 0 to 255 {
             ubyte @zp s = math.sin8u(c)     ; chance
-            ubyte i
             ; for all the pixels in the 8x8 character grid, determine (with a rnd chance) if they should be on or off
             for i in 0 to 7 {
                 ubyte b=0

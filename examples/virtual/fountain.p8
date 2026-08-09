@@ -49,7 +49,6 @@ main  {
     }
 
     sub update_particles() {
-        ubyte pi
         for pi in 0 to active_particles-1 {
 
             particleSpeedY[pi] += GRAVITY

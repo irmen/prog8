@@ -7,8 +7,9 @@ TODO
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
+- for loops: allow type specififier in implicit declaration to override the type, see ideas/for-loop-type-decl.md
 - m68k codegen: add floating point support (assume a FPU is present, this also requires 68020+)
-- m68k codegen: make use of scaling factors in the indexed instructions on 68020+ ?
+- m68k codegen: make use of scaling factors in the indexed instructions on 68020+ ? see ideas/scaled-indexing-IR.md
 - support arrays-of-structs, see ideas/arrays-of-structs.md
 - split up AssignmentAsmGen.kt in codeGenCpu6502 it is by far the largest file 6000+ lines
 - make enums strongly typed instead of just syntactic sugar for ints (see ideas/enum-strong-type.md for the plan)

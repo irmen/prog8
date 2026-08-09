@@ -64,7 +64,6 @@ main {
     }
 
     sub drawDiscs(^^graphics.BitMap bitmap) {
-        uword index
         for index in 0 to 99 {
             uword x = 80 + (index % 10) * 159 / 9
             uword y = 80 + (index / 10) * 95 / 9
@@ -116,7 +115,6 @@ main {
         uword lastPixel = left + length - 1
         uword lastByte = lastPixel >> 3
         uword byteOffset = y*BYTES_PER_ROW + firstByte
-        ubyte plane
         for plane in 0 to SCREEN_DEPTH-1 {
             pointer address = bitmap.Planes[plane] + byteOffset
             bool setPlane = (color & planeMasks[plane]) != 0

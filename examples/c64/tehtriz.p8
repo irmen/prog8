@@ -200,7 +200,6 @@ waitkey:
             if blocklogic.isLineFull(linepos) {
                 complete_lines[num_lines]=linepos
                 num_lines++
-                ubyte x
                 for x in boardOffsetX to boardOffsetX+boardWidth-1
                     txt.setcc(x, linepos, sc:'▒', 1)
             }
@@ -549,7 +548,6 @@ blocklogic {
     }
 
     sub isLineFull(ubyte ypos) -> bool {
-        ubyte x
         for x in main.boardOffsetX to main.boardOffsetX+main.boardWidth-1 {
             if txt.getchr(x, ypos)==32
                 return false
@@ -559,7 +557,6 @@ blocklogic {
 
     sub collapse(ubyte ypos) {
         while ypos>main.startYpos+1 {
-            ubyte x
             for x in main.boardOffsetX+main.boardWidth-1 downto main.boardOffsetX {
                 ubyte char = txt.getchr(x, ypos-1)
                 ubyte color = txt.getclr(x, ypos-1)

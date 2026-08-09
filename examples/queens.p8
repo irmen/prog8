@@ -12,7 +12,6 @@ main {
     sub could_place(ubyte row, ubyte col) -> bool {
         if row==0
             return true
-        ubyte i
         for i in 0 to row-1 {
             if board[i]==col or board[i]-i==col-row or board[i]+i==col+row
                 return false
@@ -27,7 +26,6 @@ main {
         txt.print("found solution ")
         txt.print_ub(solution_count)
         txt.nl()
-        ubyte i
         for i in 0 to NUMQUEENS-1 {
             ubyte col = board[i]
             txt.chrout(' ')

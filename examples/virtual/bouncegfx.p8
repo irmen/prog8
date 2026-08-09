@@ -30,8 +30,6 @@ main  {
         }
 
         sub fade() {
-            uword xx
-            uword yy
             for yy in 0 to 239 {
                 for xx in 0 to 319 {
                     ubyte pixel = sys.gfx_getpixel(xx, yy)

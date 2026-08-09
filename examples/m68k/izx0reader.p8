@@ -102,8 +102,6 @@ izx0 {
                     if bytesRead == paletteSize {
                         ; buffer all compressed planes before decoding
                         long compressedSize = peekl(header + TOTAL_COMPRESSED_SIZE_OFFSET)
-                        uword plane
-
                         if compressedSize > 0 and bitplanepointers!=0 {
                             pointer compressedBuffer = exec.AllocVec(compressedSize, exec.MEMF_PUBLIC)
                             if compressedBuffer != 0 {
