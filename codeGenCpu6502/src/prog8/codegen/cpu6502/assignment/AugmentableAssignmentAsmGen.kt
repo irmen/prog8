@@ -931,8 +931,12 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                 }
                 else -> {
                     asmgen.out("""
-                        lda  #0
-                        sta  $variable
+                        lda  $variable+3
+                        bpl  +
+                        lda  #255
+                        bne  ++
++                       lda  #0
++                       sta  $variable
                         sta  $variable+1
                         sta  $variable+2
                         sta  $variable+3""")

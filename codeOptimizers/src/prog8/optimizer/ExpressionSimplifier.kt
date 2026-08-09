@@ -1157,6 +1157,12 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                     return TypecastExpression(mkword, DataType.WORD, true, expr.position)
                 }
             }
+            BaseDataType.LONG -> {
+                if (amount >= 32) {
+                    errors.info("shift always results in 0", expr.position)
+                    return NumericLiteral(targetDt, 0.0, expr.position)
+                }
+            }
             else -> {
             }
         }

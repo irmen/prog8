@@ -7,7 +7,7 @@ TODO
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
-- allow declaring a for loop iterator variable in the for statement itself (for ubyte c in 0 to 10...) ideally the visibity should be limited to the for block (name mangle? because all vars are hoisted to subroutine scope)
+- allow implicitly declaring a for loop iterator variable in the for statement itself (for c in 0 to 10...). It should insert a regular vardecl for you with the type of the elements in the iterable. If there already exists a vardecl for this variable with that same type, silently ignore. If the type is different, compiler error. Add unit tests. Also update user docs about the for loop in docs/
 - m68k codegen: add floating point support (assume a FPU is present, this also requires 68020+)
 - m68k codegen: make use of scaling factors in the indexed instructions on 68020+ ?
 - support arrays-of-structs, see ideas/arrays-of-structs.md
@@ -56,7 +56,6 @@ Romable (%option romable)
 IR/VM
 ^^^^^
 - encode indexed scaling into IR (so that m68k codegen can use scale factor addressing) see ideas/scaled-indexing-IR.md
-- make long shifts with values >= 32 consistent across targets: virtual wraps the shift count mod 32 (``5 << 33`` becomes ``5 << 1`` = 10), but qemu68k saturates to 0. uword shifts with values > 15 are an error. 
 - maybe change all branch instructions to have 2 exits (label if branch condition true, and label if false) instead of 1, and get rid of the implicit "next code chunk" link between chunks.
 - implement more TODOs in AssignmentGen?
 - add more optimizations in IRPeepholeOptimizer?

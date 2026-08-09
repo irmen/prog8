@@ -11,6 +11,7 @@ Follow ALL the rules below carefully.
 
 ## General & Setup
 - A program = a `main` block containing a `start` subroutine entry point, plus optional other subroutines/blocks
+- Never run Gradle or Gradle wrapper commands in parallel. Gradle tasks share build caches and parallel invocations can corrupt them; run each Gradle command sequentially.
 - Add `%zeropage basicsafe` at the top of your program to allow clean return on exit (instead of resetting the machine/emulator)
 - Module imports: `%import modulename` — no `as` aliasing. Use the module's defined prefix (e.g., `%import textio` → `txt.xxx`)
 - `.p8ir` files are the **Intermediate Representation** — target-independent, executable via `prog8c -vm file.p8ir`
