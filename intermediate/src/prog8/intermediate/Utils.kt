@@ -17,7 +17,7 @@ fun DataType.irTypeString(length: UInt?): String {
         BaseDataType.WORD -> "word"
         BaseDataType.LONG -> "long"
         BaseDataType.FLOAT -> "float"
-        BaseDataType.STR -> "ubyte[$lengthStr]"             // here string doesn't exist as a seperate datatype anymore
+        BaseDataType.STR -> "ubyte[$lengthStr]"             // here string doesn't exist as a separate datatype anymore
         BaseDataType.POINTER -> "uword"
         BaseDataType.ARRAY_POINTER -> "uword"
         BaseDataType.STRUCT_INSTANCE -> {
