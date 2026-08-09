@@ -224,6 +224,8 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                         }
                         "or=" -> {
                             val shortcutLabel = codeGen.createLabelName()
+                            if(!codeGen.options.compTarget.cpu.statusBitsOnMultiByteOps)
+                                addInstr(inplaceInstrs, IRInstruction(Opcode.CMPI, targetDt, reg1 = oldvalueReg, immediate = 0), null)
                             addInstr(inplaceInstrs, IRInstruction(Opcode.BSTNE, labelSymbol = shortcutLabel), null)
                             val valueTr = exprGen.translateExpression(value)
                             inplaceInstrs += valueTr.chunks
@@ -232,6 +234,8 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                         }
                         "and=" -> {
                             val shortcutLabel = codeGen.createLabelName()
+                            if(!codeGen.options.compTarget.cpu.statusBitsOnMultiByteOps)
+                                addInstr(inplaceInstrs, IRInstruction(Opcode.CMPI, targetDt, reg1 = oldvalueReg, immediate = 0), null)
                             addInstr(inplaceInstrs, IRInstruction(Opcode.BSTEQ, labelSymbol = shortcutLabel), null)
                             val valueTr = exprGen.translateExpression(value)
                             inplaceInstrs += valueTr.chunks
@@ -385,7 +389,11 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                     val arrayVariableName = array.variable!!.name
                     val skipCarryLabel = codeGen.createLabelName()
                     if(constIndex!=null) {
+                        val negLsbReg = codeGen.registers.next(IRDataType.BYTE)
                         addInstr(result, IRInstruction(Opcode.NEGM, IRDataType.BYTE, labelSymbol = arrayVariableName+"_lsb", symbolOffset = constIndex), null)
+                        addInstr(result, IRInstruction(Opcode.LOADM, IRDataType.BYTE, reg1 = negLsbReg, labelSymbol = arrayVariableName+"_lsb", symbolOffset = constIndex), null)
+                        if(!codeGen.options.compTarget.cpu.statusBitsOnMultiByteOps)
+                            addInstr(result, IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1 = negLsbReg, immediate = 0), null)
                         addInstr(result, IRInstruction(Opcode.BSTEQ, labelSymbol = skipCarryLabel), null)
                         addInstr(result, IRInstruction(Opcode.INCM, IRDataType.BYTE, labelSymbol = arrayVariableName+"_msb", symbolOffset = constIndex), null)
                         addInstr(result, IRInstruction(Opcode.NEGM, IRDataType.BYTE, labelSymbol = arrayVariableName+"_msb", symbolOffset = constIndex), skipCarryLabel)
@@ -1029,6 +1037,8 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                     IRInstruction(Opcode.LOADM, vmDt, reg1=inplaceReg, address = constAddress.toAddress())
                 else
                     IRInstruction(Opcode.LOADM, vmDt, reg1=inplaceReg, labelSymbol = symbol)
+                if(!codeGen.options.compTarget.cpu.statusBitsOnMultiByteOps)
+                    it += IRInstruction(Opcode.CMPI, vmDt, reg1=inplaceReg, immediate = 0)
                 it += IRInstruction(Opcode.BSTEQ, labelSymbol = shortcutLabel)
             }
             addToResult(result, tr, tr.resultReg, -1)
@@ -1289,6 +1299,8 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                     IRInstruction(Opcode.LOADM, vmDt, reg1=inplaceReg, address = constAddress.toAddress())
                 else
                     IRInstruction(Opcode.LOADM, vmDt, reg1=inplaceReg, labelSymbol = symbol)
+                if(!codeGen.options.compTarget.cpu.statusBitsOnMultiByteOps)
+                    it += IRInstruction(Opcode.CMPI, vmDt, reg1=inplaceReg, immediate = 0)
                 it += IRInstruction(Opcode.BSTNE, labelSymbol = shortcutLabel)
             }
             addToResult(result, tr, tr.resultReg, -1)
@@ -1716,6 +1728,8 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                 val lsbReg = codeGen.registers.next(IRDataType.BYTE)
                 result += IRCodeChunk(null, null).also {
                     it += IRInstruction(Opcode.LOADM, IRDataType.BYTE, reg1 = lsbReg, labelSymbol = arrayVariableName+"_lsb", symbolOffset = constIndex)
+                    if(!codeGen.options.compTarget.cpu.statusBitsOnMultiByteOps)
+                        it += IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1 = lsbReg, immediate = 0)
                     it += IRInstruction(Opcode.BSTNE, labelSymbol = skip)
                     it += IRInstruction(Opcode.DECM, IRDataType.BYTE, labelSymbol = arrayVariableName+"_msb", symbolOffset = constIndex)
                 }
@@ -1968,8 +1982,12 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
             
             if(constValue==1) {
                 val skip = codeGen.createLabelName()
+                val lsbReg = codeGen.registers.next(IRDataType.BYTE)
                 result += IRCodeChunk(null, null).also {
                     it += IRInstruction(Opcode.INCM, IRDataType.BYTE, labelSymbol = arrayVariableName+"_lsb", symbolOffset = constIndex)
+                    it += IRInstruction(Opcode.LOADM, IRDataType.BYTE, reg1 = lsbReg, labelSymbol = arrayVariableName+"_lsb", symbolOffset = constIndex)
+                    if(!codeGen.options.compTarget.cpu.statusBitsOnMultiByteOps)
+                        it += IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1 = lsbReg, immediate = 0)
                     it += IRInstruction(Opcode.BSTNE, labelSymbol = skip)
                     it += IRInstruction(Opcode.INCM, IRDataType.BYTE, labelSymbol = arrayVariableName+"_msb", symbolOffset = constIndex)
                 }

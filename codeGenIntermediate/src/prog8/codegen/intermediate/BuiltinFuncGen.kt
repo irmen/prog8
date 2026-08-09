@@ -300,12 +300,15 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
 
         val tr = exprGen.translateExpression(call.args[0])
         addToResult(result, tr, tr.resultReg, -1)
+        val needsExplicitCmpi = !codeGen.options.compTarget.cpu.statusBitsOnMultiByteOps
         when (sourceDt.base) {
             BaseDataType.BYTE -> {
                 val notNegativeLabel = codeGen.createLabelName()
                 val compareReg = codeGen.registers.next(IRDataType.BYTE)
                 result += IRCodeChunk(null, null).also {
                     it += IRInstruction(Opcode.LOADR, IRDataType.BYTE, reg1=compareReg, reg2=tr.resultReg)
+                    if(needsExplicitCmpi)
+                        it += IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1=compareReg, immediate = 0)
                     it += IRInstruction(Opcode.BSTPOS, labelSymbol = notNegativeLabel)
                     it += IRInstruction(Opcode.NEG, IRDataType.BYTE, reg1=tr.resultReg)
                 }
@@ -317,6 +320,8 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                 val compareReg = codeGen.registers.next(IRDataType.WORD)
                 result += IRCodeChunk(null, null).also {
                     it += IRInstruction(Opcode.LOADR, IRDataType.WORD, reg1=compareReg, reg2=tr.resultReg)
+                    if(needsExplicitCmpi)
+                        it += IRInstruction(Opcode.CMPI, IRDataType.WORD, reg1=compareReg, immediate = 0)
                     it += IRInstruction(Opcode.BSTPOS, labelSymbol = notNegativeLabel)
                     it += IRInstruction(Opcode.NEG, IRDataType.WORD, reg1=tr.resultReg)
                 }
@@ -328,6 +333,8 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                 val compareReg = codeGen.registers.next(IRDataType.LONG)
                 result += IRCodeChunk(null, null).also {
                     it += IRInstruction(Opcode.LOADR, IRDataType.LONG, reg1=compareReg, reg2=tr.resultReg)
+                    if(needsExplicitCmpi)
+                        it += IRInstruction(Opcode.CMPI, IRDataType.LONG, reg1=compareReg, immediate = 0)
                     it += IRInstruction(Opcode.BSTPOS, labelSymbol = notNegativeLabel)
                     it += IRInstruction(Opcode.NEG, IRDataType.LONG, reg1=tr.resultReg)
                 }
