@@ -149,9 +149,9 @@ This (re)initialization is also done on each subroutine entry for the variables 
 
 There may be certain scenarios where this initialization is redundant and/or where you want to avoid the overhead of it.
 In some cases, Prog8 itself can detect that a variable doesn't need a separate automatic initialization to zero, if
-it's trivial that it is not being read between the variable's declaration and the first assignment. For instance, when
-you declare a variable immediately before a for loop where it is the loop variable. However Prog8 is not yet very smart
-at detecting these redundant initializations. If you want to be sure, check the generated assembly output.
+it's trivial that it is not being read between the variable's declaration and the first assignment. This also applies
+to a loop variable introduced implicitly by a ``for`` statement. However Prog8 is not yet very smart at detecting these redundant
+initializations. If you want to be sure, check the generated assembly output.
 
 In any case, you can use the ``@dirty`` tag on the variable declaration to make the variable *not* being reinitialized
 when entering the subroutine (it will still be set to 0 once at program startup).
@@ -681,7 +681,7 @@ the downto variant to avoid having to specify the step as well::
     xx = 10
     aa to xx                 ; range of 5, 6, 7, 8, 9, 10
 
-    for  i  in  0 to 127  {
+    for i in 0 to 127 {
         ; i loops 0, 1, 2, ... 127
     }
 

@@ -7,7 +7,6 @@ TODO
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
-- allow implicitly declaring a for loop iterator variable in the for statement itself (for c in 0 to 10...). It should insert a regular vardecl for you with the type of the elements in the iterable. If there already exists a vardecl for this variable with that same type, silently ignore. If the type is different, compiler error. Add unit tests. Also update user docs about the for loop in docs/
 - m68k codegen: add floating point support (assume a FPU is present, this also requires 68020+)
 - m68k codegen: make use of scaling factors in the indexed instructions on 68020+ ?
 - support arrays-of-structs, see ideas/arrays-of-structs.md

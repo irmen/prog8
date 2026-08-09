@@ -11,6 +11,11 @@ class AstPreprocessor(val program: Program,
                       val errors: IErrorReporter,
                       val options: CompilationOptions) : AstWalker() {
 
+    private val implicitForIteratorDecls = ImplicitForIteratorDecls(program, errors)
+
+    override fun before(forLoop: ForLoop, parent: Node): Iterable<AstModification> =
+        implicitForIteratorDecls.before(forLoop, parent)
+
     override fun before(program: Program): Iterable<AstModification> {
         if(options.zeropage==ZeropageType.KERNALSAFE || options.zeropage==ZeropageType.FULL) {
             // there may be enough space in the zero page to put the cx16 virtual registers there.

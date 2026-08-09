@@ -566,7 +566,12 @@ The *for*-loop is used to let a variable iterate over a range of values. Iterati
 
     Usually a loop in descending order downto 0 or 1, produces more efficient assembly code than the same loop in ascending order.
 
-The loop variable must be declared separately as byte or word earlier, so that you can reuse it for multiple occasions.
+The loop variable is normally declared implicitly by the ``for`` statement. Its type is inferred from the element type of
+the expression being iterated over. Such a loop variable ends up as a regular variable in the surrounding scope, and a ``for`` loop
+does not introduce a new scope.
+If you need to reuse a loop variable in multiple loops, or need to declare it explicitly for another reason, you can declare
+it before the first loop. An existing declaration that can accept the loop values is reused; an incompatible declaration
+is an error.
 Iterating with a floating point variable is not supported. If you want to loop over a floating-point array, use a loop with an integer index variable instead.
 If the from value is already outside of the loop range, the whole for loop is skipped.
 
@@ -595,7 +600,10 @@ for loop
 ^^^^^^^^
 .. index:: pair: Loops; for loop
 
-The loop variable must be a byte or word variable, and it must be defined separately first.
+The loop variable is normally declared implicitly by the loop. It is inferred as the element type of the expression being
+iterated over, which can be a range, an array, or a string. Floating-point arrays cannot be iterated over directly.
+The explicit form is also supported when you want to reuse a loop variable in multiple loops. The existing declaration must
+be able to accept values of the iterable's element type.
 The expression that you loop over can be anything that supports iteration (such as ranges like ``0 to 100``,
 array variables and strings) *except* floating-point arrays (because a floating-point loop variable is not supported).
 Remember that a step value in a range must be a constant value.
@@ -608,11 +616,7 @@ You can use a single statement, or a statement block like in the example below::
         continue    ; immediately next iteration
     }
 
-For example, this is a for loop using a byte variable ``i``, defined before, to loop over a certain range of numbers::
-
-    ubyte i
-
-    ...
+For example, this loop implicitly declares ``i`` with the element type of the range::
 
     for i in 20 to 155 {
         ; do something
@@ -620,19 +624,11 @@ For example, this is a for loop using a byte variable ``i``, defined before, to 
 
 To loop over a decreasing or descending range, use the ``downto`` keyword::
 
-    ubyte i
-
-    ...
-
     for i in 155 downto 20 {        ; 155, 154, 153, ..., 20
         ; do something
     }
 
 Similarly, a descending range may be specified by using ``to`` in combination with a ``step`` that is ``< 0``::
-
-    ubyte i
-
-    ...
 
     for i in 155 to 20 step -1 {    ; 155, 154, 153, ..., 20
         ; do something
@@ -642,10 +638,16 @@ The following example is a loop over the values of the array ``fibonacci_numbers
 
     uword[] fibonacci_numbers = [0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377, 610, 987, 1597, 2584, 4181]
 
-    uword number
     for number in fibonacci_numbers {
         ; do something with number...
         break       ; break out of the loop early
+    }
+
+If the loop variable is declared explicitly, its type must be able to accept the iterable's element type::
+
+    uword number
+    for number in fibonacci_numbers {
+        ; do something with number...
     }
 
 See :ref:`range-expression` for all of the details.

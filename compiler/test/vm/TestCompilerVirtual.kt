@@ -261,6 +261,36 @@ main {
         }
     }
 
+    test("implicit for loop iterators execute over ranges and arrays") {
+        val src = """
+main {
+    uword @shared range_sum
+    uword @shared array_sum
+
+    sub start() {
+        for i in 1 to 5 {
+            range_sum += i
+        }
+
+        ubyte[] values = [2, 4, 6]
+        for value in values {
+            array_sum += value
+        }
+    }
+}
+"""
+        val result = compileText(VMTarget(), optimize = true, src, outputDir, writeAssembly = true)!!
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
+        val irSrc = virtfile.readText()
+        val irProgram = IRFileReader().read(irSrc)
+        irProgram.st.stripAllPrefixes()
+        val allocations = VmVariableAllocator(irProgram.st, irProgram.encoding, irProgram.options.compTarget).allocations
+        VmRunner().runAndTestProgram(irSrc) { vm ->
+            vm.memory.getUW(allocations["main.range_sum"]!!) shouldBe 15u
+            vm.memory.getUW(allocations["main.array_sum"]!!) shouldBe 12u
+        }
+    }
+
     test("inline asm for virtual target should be IR") {
         val src = """
 main {

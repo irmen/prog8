@@ -2014,10 +2014,10 @@ class VirtualMachine(irProgram: IRProgram) {
         val left = getLogicalOperandS(i)
         val right = i.immediate!!
         when(i.type!!) {
-            IRDataType.BYTE -> registers.setSB(i.reg1!!, shiftRightArithmetic(left, right.toInt(), 8).toByte())
-            IRDataType.WORD -> registers.setSW(i.reg1!!, shiftRightArithmetic(left, right.toInt(), 16).toShort())
-            IRDataType.POINTER -> registers.setSW(i.reg1!!, shiftRightArithmetic(left, right.toInt(), 16).toShort())
-            IRDataType.LONG -> registers.setSL(i.reg1!!, shiftRightArithmetic(left, right.toInt(), 32))
+            IRDataType.BYTE -> registers.setSB(i.reg1!!, shiftRightArithmetic(left, right, 8).toByte())
+            IRDataType.WORD -> registers.setSW(i.reg1!!, shiftRightArithmetic(left, right, 16).toShort())
+            IRDataType.POINTER -> registers.setSW(i.reg1!!, shiftRightArithmetic(left, right, 16).toShort())
+            IRDataType.LONG -> registers.setSL(i.reg1!!, shiftRightArithmetic(left, right, 32))
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
         nextPc()
@@ -2119,10 +2119,10 @@ class VirtualMachine(irProgram: IRProgram) {
         val left = getLogicalOperandU(i)
         val right = i.immediate!!
         when(i.type!!) {
-            IRDataType.BYTE -> registers.setUB(i.reg1!!, shiftRightLogical(left, right.toInt(), 8).toUByte())
-            IRDataType.WORD -> registers.setUW(i.reg1!!, shiftRightLogical(left, right.toInt(), 16).toUShort())
-            IRDataType.POINTER -> registers.setUW(i.reg1!!, shiftRightLogical(left, right.toInt(), 16).toUShort())
-            IRDataType.LONG -> registers.setSL(i.reg1!!, shiftRightLogical(left, right.toInt(), 32).toInt())
+            IRDataType.BYTE -> registers.setUB(i.reg1!!, shiftRightLogical(left, right, 8).toUByte())
+            IRDataType.WORD -> registers.setUW(i.reg1!!, shiftRightLogical(left, right, 16).toUShort())
+            IRDataType.POINTER -> registers.setUW(i.reg1!!, shiftRightLogical(left, right, 16).toUShort())
+            IRDataType.LONG -> registers.setSL(i.reg1!!, shiftRightLogical(left, right, 32).toInt())
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
         nextPc()
@@ -2232,10 +2232,10 @@ class VirtualMachine(irProgram: IRProgram) {
         val left = getLogicalOperandU(i)
         val right = i.immediate!!
         when(i.type!!) {
-            IRDataType.BYTE -> registers.setUB(i.reg1!!, shiftLeft(left, right.toInt(), 8).toUByte())
-            IRDataType.WORD -> registers.setUW(i.reg1!!, shiftLeft(left, right.toInt(), 16).toUShort())
-            IRDataType.POINTER -> registers.setUW(i.reg1!!, shiftLeft(left, right.toInt(), 16).toUShort())
-            IRDataType.LONG -> registers.setSL(i.reg1!!, shiftLeft(left, right.toInt(), 32).toInt())
+            IRDataType.BYTE -> registers.setUB(i.reg1!!, shiftLeft(left, right, 8).toUByte())
+            IRDataType.WORD -> registers.setUW(i.reg1!!, shiftLeft(left, right, 16).toUShort())
+            IRDataType.POINTER -> registers.setUW(i.reg1!!, shiftLeft(left, right, 16).toUShort())
+            IRDataType.LONG -> registers.setSL(i.reg1!!, shiftLeft(left, right, 32).toInt())
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
         nextPc()

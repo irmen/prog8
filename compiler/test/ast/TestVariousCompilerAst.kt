@@ -455,6 +455,183 @@ main {
     }
 
     context("variable declarations") {
+        test("for loop iterator is declared implicitly before the loop") {
+            val src = """
+main {
+    sub start() {
+        for i in 0 to 10 {
+        }
+    }
+}
+"""
+            val result = compileText(C64Target(), optimize = false, src, outputDir, writeAssembly = false)!!
+            val statements = result.compilerAst.entrypoint.statements
+            val declaration = statements.filterIsInstance<VarDecl>().single { it.name == "i" }
+            declaration.type shouldBe VarDeclType.VAR
+            declaration.datatype shouldBe DataType.UBYTE
+            statements.indexOf(declaration) shouldBe statements.indexOfFirst { it is ForLoop } - 1
+        }
+
+        test("for loop reuses an existing iterator declaration") {
+            val src = """
+main {
+    sub start() {
+        ubyte i
+        for i in 0 to 10 {
+        }
+    }
+}
+"""
+            val result = compileText(C64Target(), optimize = false, src, outputDir, writeAssembly = false)!!
+            result.compilerAst.entrypoint.statements.filterIsInstance<VarDecl>().count { it.name == "i" } shouldBe 1
+        }
+
+        test("for loop rejects an iterator declaration with a different type") {
+            val src = """
+main {
+    sub start() {
+        ubyte[] values = [1, 2, 3]
+        byte i
+        for i in values {
+        }
+    }
+}
+"""
+            val errors = ErrorReporterForTests()
+            compileText(C64Target(), optimize = false, src, outputDir, writeAssembly = false, errors = errors) shouldBe null
+            errors.errors.isEmpty() shouldBe false
+        }
+
+        test("for loop infers iterator types from strings and word arrays") {
+            val src = """
+main {
+    sub start() {
+        for character in "abc" {
+        }
+
+        uword[] values = [1000, 2000]
+        for value in values {
+        }
+    }
+}
+"""
+            val result = compileText(C64Target(), optimize = false, src, outputDir, writeAssembly = false)!!
+            val declarations = result.compilerAst.entrypoint.statements.filterIsInstance<VarDecl>()
+            declarations.single { it.name == "character" }.datatype shouldBe DataType.UBYTE
+            declarations.single { it.name == "value" }.datatype shouldBe DataType.UWORD
+            declarations.filter { it.name == "character" || it.name == "value" }
+                .all { it.type == VarDeclType.VAR && it.value == null } shouldBe true
+        }
+
+        test("for loop infers a word iterator from a word-sized range") {
+            val src = """
+main {
+    sub start() {
+        for value in 1000 to 2000 {
+        }
+    }
+}
+"""
+            val result = compileText(C64Target(), optimize = false, src, outputDir, writeAssembly = false)!!
+            result.compilerAst.entrypoint.statements.filterIsInstance<VarDecl>().single { it.name == "value" }.datatype shouldBe DataType.UWORD
+        }
+
+        test("for loop infers a long iterator from a long array") {
+            val src = """
+main {
+    sub start() {
+        long[] values = [100000, 200000]
+        for value in values {
+        }
+    }
+}
+"""
+            val result = compileText(C64Target(), optimize = false, src, outputDir, writeAssembly = false)!!
+            result.compilerAst.entrypoint.statements.filterIsInstance<VarDecl>().single { it.name == "value" }.datatype shouldBe DataType.LONG
+        }
+
+        test("for loops reuse one implicit iterator declaration") {
+            val src = """
+main {
+    sub start() {
+        for i in 0 to 10 {
+        }
+        for i in 20 to 30 {
+        }
+    }
+}
+"""
+            val result = compileText(C64Target(), optimize = false, src, outputDir, writeAssembly = false)!!
+            result.compilerAst.entrypoint.statements.filterIsInstance<VarDecl>().count { it.name == "i" } shouldBe 1
+        }
+
+        test("for loop iterator declaration in a nested block is hoisted") {
+            val src = """
+main {
+    sub start() {
+        if true {
+            for i in 0 to 10 {
+            }
+        }
+    }
+}
+"""
+            val result = compileText(C64Target(), optimize = false, src, outputDir, writeAssembly = false)!!
+            val declaration = result.compilerAst.entrypoint.statements.filterIsInstance<VarDecl>().single { it.name == "i" }
+            val ifStatement = result.compilerAst.entrypoint.statements.filterIsInstance<IfElse>().single()
+            declaration.type shouldBe VarDeclType.VAR
+            ifStatement.truepart.statements.filterIsInstance<VarDecl>().none { it.name == "i" } shouldBe true
+            ifStatement.truepart.statements.filterIsInstance<ForLoop>().size shouldBe 1
+        }
+
+        test("nested for loops get separate implicit iterator declarations") {
+            val src = """
+main {
+    sub start() {
+        for outer in 0 to 2 {
+            for inner in 0 to 3 {
+            }
+        }
+    }
+}
+"""
+            val result = compileText(C64Target(), optimize = false, src, outputDir, writeAssembly = false)!!
+            val declarations = result.compilerAst.entrypoint.statements.filterIsInstance<VarDecl>()
+            declarations.count { it.name == "outer" } shouldBe 1
+            declarations.count { it.name == "inner" } shouldBe 1
+            val outer = result.compilerAst.entrypoint.statements.filterIsInstance<ForLoop>().single()
+            outer.body.statements.filterIsInstance<ForLoop>().size shouldBe 1
+        }
+
+        test("for loop retains constant iterator diagnostic") {
+            val src = """
+main {
+    sub start() {
+        const ubyte i = 0
+        for i in 0 to 10 {
+        }
+    }
+}
+"""
+            val errors = ErrorReporterForTests()
+            compileText(C64Target(), optimize = false, src, outputDir, writeAssembly = false, errors = errors) shouldBe null
+            errors.errors.any { it.contains("requires a variable") } shouldBe true
+        }
+
+        test("for loop rejects an implicitly declared qualified iterator") {
+            val src = """
+main {
+    sub start() {
+        for missing.i in 0 to 10 {
+        }
+    }
+}
+"""
+            val errors = ErrorReporterForTests()
+            compileText(C64Target(), optimize = false, src, outputDir, writeAssembly = false, errors = errors) shouldBe null
+            errors.errors.any { it.contains("unqualified name") } shouldBe true
+        }
+
         test("multi-var decls in scope with initializer") {
             val src="""
 main {
@@ -1400,4 +1577,3 @@ main {
         errors.errors[1] shouldContain "can only multiply array by integer constant"
     }
 })
-
