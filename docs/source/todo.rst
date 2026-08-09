@@ -3,6 +3,7 @@ TODO
 
 - need a bunch of type casting/conversion checks that test the handling of the 4-byte/long pointer datatype on the qemu68k target.
 - amiga library structs: use more typed pointers if it knows the struct type , rather than using `pointer`. Consider both the extsubs but also the struct fields in the amigaDOS structs in the generated library modules.
+- BUG: register type mismatch crash on 32-bit targets (qemu68k/amiga500) when a ubyte variable is used as array index multiple times in the same function. The IR code generator creates a WORD register for the index extension, but when the same ubyte variable is used again, it conflicts with the existing WORD register type. Example: `ubyte ii = 11; string_out[ii] = 0; ii--; string_out[ii] = 42` crashes with "register r2 given multiple types! WORD and BYTE". The issue is in how register types are tracked across multiple index operations in the same code chunk.
 
 
 Future Things and Ideas

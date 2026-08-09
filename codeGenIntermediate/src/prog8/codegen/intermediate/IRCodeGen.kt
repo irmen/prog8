@@ -699,73 +699,84 @@ class IRCodeGen(
                 val elementDt = irType(iterable.type.elementType())
                 val iterableLength = symbolTable.getLength(iterable.name)
                 val loopvarSymbol = forLoop.variable.name
-                val indexReg = registers.next(IRDataType.BYTE)
+                val loopvarDt = irType((loopvar.astNode as IPtVariable).type)
+                val needsWidening = loopvarDt > elementDt && elementDt != IRDataType.FLOAT
+                val indexRegType = if(wordArrayIndex) IRDataType.WORD else IRDataType.BYTE
+                val indexReg = registers.next(indexRegType)
                 val tmpReg = registers.next(elementDt)
                 val loopLabel = createLabelName()
                 val endLabel = createLabelName()
+
+                // EXT only extends one step: BYTE->WORD or WORD->LONG
+                // for BYTE->LONG we need two steps
+                fun emitWidening(chunk: IRCodeChunk, srcReg: Int, srcDt: IRDataType): Pair<Int, IRDataType> {
+                    if(!needsWidening) return Pair(srcReg, srcDt)
+                    val wordReg = registers.next(IRDataType.WORD)
+                    chunk += IRInstruction(Opcode.EXT, srcDt, reg1=wordReg, reg2=srcReg)
+                    if(loopvarDt == IRDataType.LONG && srcDt == IRDataType.BYTE) {
+                        val longReg = registers.next(IRDataType.LONG)
+                        chunk += IRInstruction(Opcode.EXT, IRDataType.WORD, reg1=longReg, reg2=wordReg)
+                        return Pair(longReg, IRDataType.LONG)
+                    }
+                    return Pair(wordReg, loopvarDt)
+                }
+
                 when {
                     iterable.type.isString -> {
-                        // iterate over a zero-terminated string
-                        addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = indexReg, immediate = 0), null)
-                        result += IRCodeChunk(loopLabel, null).also {
-                            it += IRInstruction(Opcode.LOADX, elementDt, reg1 = tmpReg, reg2 = indexReg, labelSymbol = iterable.name)
-                            // Emit explicit CMPI #0 before the BSTEQ branch on 8-bit targets
-                            // (where LOADX doesn't reliably set Z for multi-byte results).
-                            // See CpuType.statusBitsOnMultiByteOps.
-                            if(!options.compTarget.cpu.statusBitsOnMultiByteOps) {
-                                it += IRInstruction(Opcode.CMPI, elementDt, reg1 = tmpReg, immediate = 0)
-                            }
-                            it += IRInstruction(Opcode.BSTEQ, labelSymbol = endLabel)
-                            it += IRInstruction(Opcode.STOREM, elementDt, reg1 = tmpReg, labelSymbol = loopvarSymbol)
-                        }
+                        addInstr(result, IRInstruction(Opcode.LOAD, indexRegType, reg1 = indexReg, immediate = 0), null)
+                        val loopChunk = IRCodeChunk(loopLabel, null)
+                        loopChunk += IRInstruction(Opcode.LOADX, elementDt, reg1 = tmpReg, reg2 = indexReg, labelSymbol = iterable.name)
+                        if(!options.compTarget.cpu.statusBitsOnMultiByteOps)
+                            loopChunk += IRInstruction(Opcode.CMPI, elementDt, reg1 = tmpReg, immediate = 0)
+                        loopChunk += IRInstruction(Opcode.BSTEQ, labelSymbol = endLabel)
+                        val (storeReg, storeDt) = emitWidening(loopChunk, tmpReg, elementDt)
+                        loopChunk += IRInstruction(Opcode.STOREM, storeDt, reg1 = storeReg, labelSymbol = loopvarSymbol)
+                        result += loopChunk
                         result += translateNode(forLoop.statements)
                         val jumpChunk = IRCodeChunk(null, null)
-                        jumpChunk += IRInstruction(Opcode.INC, IRDataType.BYTE, reg1 = indexReg)
+                        jumpChunk += IRInstruction(Opcode.INC, indexRegType, reg1 = indexReg)
                         jumpChunk += IRInstruction(Opcode.JUMP, labelSymbol = loopLabel)
                         result += jumpChunk
                         result += IRCodeChunk(endLabel, null)
                     }
                     iterable.type.isSplitWordArray || iterable.type.isPointerArray -> {
-                        // iterate over lsb/msb split word array
                         if(elementDt!=IRDataType.WORD && elementDt!=IRDataType.POINTER)
                             throw AssemblyError("weird dt $elementDt")
-                        addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=indexReg, immediate = 0), null)
-                        result += IRCodeChunk(loopLabel, null).also {
-                            val tmpRegLsb = registers.next(IRDataType.BYTE)
-                            val tmpRegMsb = registers.next(IRDataType.BYTE)
-                            val concatReg = registers.next(IRDataType.WORD)
-                            it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=tmpRegMsb, reg2=indexReg, labelSymbol=iterable.name+"_msb")
-                            it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=tmpRegLsb, reg2=indexReg, labelSymbol=iterable.name+"_lsb")
-                            it += IRInstruction(Opcode.CONCAT, IRDataType.BYTE, reg1=concatReg, reg2=tmpRegMsb, reg3=tmpRegLsb)
-                            it += IRInstruction(Opcode.STOREM, elementDt, reg1=concatReg, labelSymbol = loopvarSymbol)
-                        }
+                        addInstr(result, IRInstruction(Opcode.LOAD, indexRegType, reg1=indexReg, immediate = 0), null)
+                        val loopChunk = IRCodeChunk(loopLabel, null)
+                        val tmpRegLsb = registers.next(IRDataType.BYTE)
+                        val tmpRegMsb = registers.next(IRDataType.BYTE)
+                        val concatReg = registers.next(IRDataType.WORD)
+                        loopChunk += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=tmpRegMsb, reg2=indexReg, labelSymbol=iterable.name+"_msb")
+                        loopChunk += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=tmpRegLsb, reg2=indexReg, labelSymbol=iterable.name+"_lsb")
+                        loopChunk += IRInstruction(Opcode.CONCAT, IRDataType.BYTE, reg1=concatReg, reg2=tmpRegMsb, reg3=tmpRegLsb)
+                        val (storeReg, storeDt) = emitWidening(loopChunk, concatReg, IRDataType.WORD)
+                        loopChunk += IRInstruction(Opcode.STOREM, storeDt, reg1=storeReg, labelSymbol = loopvarSymbol)
+                        result += loopChunk
                         result += translateNode(forLoop.statements)
                         result += IRCodeChunk(null, null).also {
-                            it += IRInstruction(Opcode.INC, IRDataType.BYTE, reg1=indexReg)
-                            if(iterableLength!=256) {
-                                // for length 256, the compare is actually against 0, which doesn't require a separate CMP instruction
-                                it += IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1=indexReg, immediate = iterableLength)
-                            }
+                            it += IRInstruction(Opcode.INC, indexRegType, reg1=indexReg)
+                            if(iterableLength!=256)
+                                it += IRInstruction(Opcode.CMPI, indexRegType, reg1=indexReg, immediate = iterableLength)
                             it += IRInstruction(Opcode.BSTNE, labelSymbol = loopLabel)
                         }
                     }
                     else -> {
-                        // iterate over regular array
-                        val elementDt = iterable.type.sub!!
-                        val elementSize = program.memsizer.memorySize(elementDt)
+                        val arrElementDt = iterable.type.sub!!
+                        val elementSize = program.memsizer.memorySize(arrElementDt)
                         val lengthBytes = iterableLength!! * elementSize
-                        addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=indexReg, immediate = 0), null)
-                        result += IRCodeChunk(loopLabel, null).also {
-                            it += IRInstruction(Opcode.LOADX, irType(DataType.forDt(elementDt)), reg1=tmpReg, reg2=indexReg, labelSymbol=iterable.name)
-                            it += IRInstruction(Opcode.STOREM, irType(DataType.forDt(elementDt)), reg1=tmpReg, labelSymbol = loopvarSymbol)
-                        }
+                        val arrElementIR = irType(DataType.forDt(arrElementDt))
+                        addInstr(result, IRInstruction(Opcode.LOAD, indexRegType, reg1=indexReg, immediate = 0), null)
+                        val loopChunk = IRCodeChunk(loopLabel, null)
+                        loopChunk += IRInstruction(Opcode.LOADX, arrElementIR, reg1=tmpReg, reg2=indexReg, labelSymbol=iterable.name)
+                        val (storeReg, storeDt) = emitWidening(loopChunk, tmpReg, arrElementIR)
+                        loopChunk += IRInstruction(Opcode.STOREM, storeDt, reg1=storeReg, labelSymbol = loopvarSymbol)
+                        result += loopChunk
                         result += translateNode(forLoop.statements)
-                        result += addConstByteToReg(indexReg, elementSize)
+                        result += addConstToReg(indexReg, elementSize, indexRegType)
                         result += IRCodeChunk(null, null).also {
-                            if(lengthBytes!=256) {
-                                // for length 256, the compare is actually against 0, which doesn't require a separate CMP instruction
-                                it += IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1=indexReg, immediate = lengthBytes)
-                            }
+                            if(lengthBytes!=256)
+                                it += IRInstruction(Opcode.CMPI, indexRegType, reg1=indexReg, immediate = lengthBytes)
                             it += IRInstruction(Opcode.BSTNE, labelSymbol = loopLabel)
                         }
                     }
@@ -954,6 +965,35 @@ class IRCodeGen(
                     IRInstruction(Opcode.ADD, IRDataType.BYTE, reg1 = reg, immediate = value)
                 } else {
                     IRInstruction(Opcode.SUB, IRDataType.BYTE, reg1 = reg, immediate = -value)
+                }
+            }
+        }
+        return code
+    }
+
+    private fun addConstToReg(reg: Int, value: Int, dt: IRDataType): IRCodeChunk {
+        val code = IRCodeChunk(null, null)
+        when(value) {
+            0 -> { /* do nothing */ }
+            1 -> {
+                code += IRInstruction(Opcode.INC, dt, reg1=reg)
+            }
+            2 -> {
+                code += IRInstruction(Opcode.INC, dt, reg1=reg)
+                code += IRInstruction(Opcode.INC, dt, reg1=reg)
+            }
+            -1 -> {
+                code += IRInstruction(Opcode.DEC, dt, reg1=reg)
+            }
+            -2 -> {
+                code += IRInstruction(Opcode.DEC, dt, reg1=reg)
+                code += IRInstruction(Opcode.DEC, dt, reg1=reg)
+            }
+            else -> {
+                code += if(value>0) {
+                    IRInstruction(Opcode.ADD, dt, reg1 = reg, immediate = value)
+                } else {
+                    IRInstruction(Opcode.SUB, dt, reg1 = reg, immediate = -value)
                 }
             }
         }

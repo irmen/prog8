@@ -40,6 +40,42 @@ Update `compilerAst/src/prog8/ast/statements/AstStatements.kt`:
 - Include the type in `toString()` when present.
 - No AST walker changes are needed because `DataType` is not an AST node.
 
+### `loopVarDt()` Behavior
+
+`ForLoop.loopVarDt(program)` at
+`compilerAst/src/prog8/ast/statements/AstStatements.kt` currently infers the
+loop variable's type by calling `loopVar.inferType(program)`, which looks up
+the `VarDecl` and returns its `DataType`.
+
+With the new `loopVarType` property, update `loopVarDt()` to return the
+explicit type when present:
+
+```kotlin
+fun loopVarDt(program: Program): InferredType {
+    if (loopVarType != null)
+        return InferredTypes.knownFor(loopVarType!!)
+    return loopVar.inferType(program)
+}
+```
+
+**Why this matters:** `TypecastsAdder` at
+`compiler/src/prog8/compiler/astprocessing/TypecastsAdder.kt` calls
+`parent.loopVarDt(program)` to determine the target type when adjusting range
+expression `from`/`to` values. For a typed loop like `for word w in 10 to 20`,
+the range endpoints (ubyte constants) need to be widened to `word` to match
+the loop variable. `loopVarDt()` must return `word`, not the inferred ubyte
+from the range.
+
+This also ensures `AstChecker`'s range boundary validation uses the correct
+target type when checking `checkValueTypeAndRange` and
+`isNotAssignableTo`/`istype` on range endpoints.
+
+**Note:** For typed loops, `ImplicitForIteratorDecls` already creates the
+`VarDecl` with the specified type (e.g., `word`), so
+`loopVar.inferType(program)` would also return the correct type. The explicit
+`loopVarType` check is a safety measure that avoids relying on declaration
+ordering and makes the intent clear.
+
 ### Parser Visitor
 
 Update `compilerAst/src/prog8/ast/antlr/Antlr2KotlinVisitor.kt`:
