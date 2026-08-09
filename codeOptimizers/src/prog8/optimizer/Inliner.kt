@@ -303,7 +303,6 @@ class Inliner(private val program: Program, private val options: CompilationOpti
         fun inlineFunctionBody(toInline: Return): Iterable<AstModification> {
             // call site is an expression, so we have to have a Return here in the inlined sub to provide the values
             return if (toInline.values.size == 1 && functionCallExpr !== toInline.values[0]) {
-                logInlining(sub, functionCallExpr)
                 sub.hasBeenInlined = true
                 val substitutedReturn = substituteParameters(sub, functionCallExpr, toInline.values[0]) as Expression
                 listOf(AstReplaceNode(functionCallExpr, substitutedReturn, parent))
@@ -331,13 +330,11 @@ class Inliner(private val program: Program, private val options: CompilationOpti
 
             if (functionCalls.isEmpty()) {
                 // No function calls in the return values - the void call has no side effects and can be removed.
-                logInlining(sub, origNode)
                 sub.hasBeenInlined = true
                 return listOf(AstRemove(origNode as Statement, parent as IStatementContainer))
             }
 
             // There are function calls in the return values - convert each to a void statement.
-            logInlining(sub, origNode)
             sub.hasBeenInlined = true
 
             val voidStatements: MutableList<Statement> = functionCalls.map { fcall ->
@@ -358,7 +355,6 @@ class Inliner(private val program: Program, private val options: CompilationOpti
             val inlinedStatement = substituteParameters(sub, origNode as IFunctionCall, toInline) as Statement
 
             return if (origNode !== toInline) {
-                logInlining(sub, origNode)
                 sub.hasBeenInlined = true
                 listOf(AstReplaceNode(origNode, inlinedStatement, parent))
             } else
@@ -389,13 +385,6 @@ class Inliner(private val program: Program, private val options: CompilationOpti
         return noModifications
     }
 
-
-    private fun logInlining(sub: Subroutine, call: Node) {
-        // TODO remove this logging once we are sure everything works good
-        if (sub.parameters.isNotEmpty() && !options.quiet) {
-            println(">>> INLINER: inlining '${sub.name}' at ${call.position} (subroutine at ${sub.position})")
-        }
-    }
 
     private fun isSimpleReturnExpression(expr: Expression): Boolean {
         return when (expr) {

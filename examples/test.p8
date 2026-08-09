@@ -1,16 +1,12 @@
-%import textio
-%encoding iso
 main {
+    str string_out = "????????????"
+
+    ; TODO: bug, this currently crashes the compiler on both m68k targets
+    
     sub start() {
-        long @shared w
-
-        for w in "derp" {
-            txt.chrout(w)
-        }
-
-;        for w in [1111,2222,3333] {
-;            txt.print_w(w)
-;            txt.nl()
-;        }
+        uword ii = 11
+        string_out[ii] = 0
+        ii--
+        string_out[ii] = '0'
     }
 }
