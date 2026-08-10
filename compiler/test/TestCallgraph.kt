@@ -333,4 +333,30 @@ main {
 
         compileText(VMTarget(), true, src, outputDir, writeAssembly = true) shouldNotBe null
     }
+
+    test("pointer to nested struct does not create a recursive call") {
+        val src = """
+main {
+    sub start() {
+        load()
+    }
+
+    sub load() {
+        struct Header {
+            ubyte value
+        }
+
+        ^^Header header = ^^Header:[0]
+        decode(header)
+
+        sub decode(^^Header header) {
+        }
+    }
+}
+"""
+        val errors = ErrorReporterForTests(throwExceptionAtReportIfErrors = false, keepMessagesAfterReporting = true)
+        val result = compileText(VMTarget(), false, src, outputDir, errors = errors, writeAssembly = false)
+        result shouldNotBe null
+        errors.warnings.any { it.contains("recursive subroutine") } shouldBe false
+    }
 })

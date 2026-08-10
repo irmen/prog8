@@ -155,7 +155,7 @@ class CallGraph(private val program: Program) : IAstVisitor {
                     val declSub = decl.definingSubroutine
                     val structSub = struct.definingSubroutine
                     if (declSub != null && structSub != null && declSub!=structSub) {
-                        calls[declSub] = calls.getValue(declSub) + structSub
+                        // A pointer to a struct declared in another subroutine is a type dependency, not a call.
                         calledBy[structSub] = calledBy.getValue(structSub) + declSub
                     }
                 }
