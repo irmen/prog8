@@ -7,6 +7,7 @@
 %import iffparse
 %import utility
 %import textio
+%import compression
 
 main {
     sub start() {
@@ -122,12 +123,12 @@ main {
         sub decode(^^BMHDheader hdr, ^^ubyte body) {
             long bytesPerRow = ((hdr.w + 15) / 16) * 2
             ^^graphics.BitMap bm = rp.BitMap
-            ubyte compression = hdr.compression
+            ubyte compressionType = hdr.compression
 
             for y in 0 to hdr.h-1 {
                 for plane in 0 to hdr.nPlanes-1 {
                     ^^ubyte target = bm.Planes[plane] + y*bytesPerRow
-                    when compression {
+                    when compressionType {
                         0 -> {
                             ; non-compressed
                             ;sys.memcopy(body, target, bytesPerRow as uword)
@@ -144,47 +145,11 @@ main {
                             }}
                         }
                         1 -> {
-                            ; byterun1 RLE
-                            body = unpackRLErow(body, target, bytesPerRow as word)
+                            body = compression.decode_rle(body, target, bytesPerRow as uword)
                         }
                         ; any other compression values silently ignored
                     }
                 }
-            }
-
-            asmsub unpackRLErow(^^ubyte src @A0, ^^ubyte tgt @A1, word amount @D0) clobbers (A1, D0, D1, D2) -> ^^ubyte @A0 {
-                %asm {{
-.next_packet:
-                    tst.w   d0
-                    ble.s   .done
-                    move.b  (a0)+,d1
-                    ext.w   d1
-                    bpl.s   .literal
-                    cmpi.b  #$80,d1
-                    beq.s   .next_packet
-
-                    ; Repeat run: repeat the next byte 1-n times.
-                    add.w   d1,d0
-                    subq.w  #1,d0
-                    neg.w   d1
-                    move.b  (a0)+,d2
-.repeat:
-                    move.b  d2,(a1)+
-                    dbra    d1,.repeat
-                    bra.s   .next_packet
-
-.literal:
-                    ; Literal run: copy n+1 bytes verbatim.
-                    sub.w   d1,d0
-                    subq.w  #1,d0
-.copy:
-                    move.b  (a0)+,(a1)+
-                    dbra    d1,.copy
-                    bra.s   .next_packet
-
-.done:
-                    rts
-                }}
             }
         }
 

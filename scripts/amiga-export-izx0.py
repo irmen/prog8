@@ -100,6 +100,34 @@ def channel_8to4(color: int) -> int:
     return (color * 15 + 135) >> 8
 
 
+def sort_palette_dark_to_light(img):
+    """Sort a paletted image by luminance and move black to palette index 0."""
+    palette = img.getpalette() or []
+    _, max_value = img.getextrema()
+    colors = []
+    for index in range(max_value + 1):
+        offset = index * 3
+        rgb = palette[offset : offset + 3]
+        colors.append(tuple((rgb + [0, 0, 0])[:3]))
+
+    def sort_key(index):
+        r, g, b = colors[index]
+        luminance = 299 * r + 587 * g + 114 * b
+        return (0 if (r, g, b) == (0, 0, 0) else 1, luminance, r, g, b)
+
+    order = sorted(range(len(colors)), key=sort_key)
+    remap = [0] * len(colors)
+    for new_index, old_index in enumerate(order):
+        remap[old_index] = new_index
+
+    pixels = bytes(remap[index] for index in img.tobytes())
+    sorted_img = Image.frombytes("P", img.size, pixels)
+    sorted_palette = [component for index in order for component in colors[index]]
+    sorted_palette.extend([0] * (768 - len(sorted_palette)))
+    sorted_img.putpalette(sorted_palette)
+    return sorted_img
+
+
 def build_ecs_palette(palette_rgb, num_colors):
     """Builds a flat UWORD array suitable for LoadRGB4(ViewPort, table, count).
 
@@ -150,7 +178,13 @@ def export_izx0(input_path, output_path, force_aga=False, max_colors=256):
             background.paste(img, mask=img.split()[3])
             img = background
 
-        img = img.quantize(colors=max_colors, method=Image.Quantize.FLOYDSTEINBERG)
+        img = img.quantize(
+            colors=max_colors,
+            method=Image.Quantize.MEDIANCUT,
+            dither=Image.Dither.FLOYDSTEINBERG,
+        )
+
+    img = sort_palette_dark_to_light(img)
 
     width, height = img.size
 
@@ -210,6 +244,7 @@ def export_izx0(input_path, output_path, force_aga=False, max_colors=256):
     # 4. Extract Palette Data
     num_palette_entries = 1 << num_planes
     raw_palette_rgb = img.getpalette()[: num_palette_entries * 3]
+    raw_palette_rgb += [0] * (num_palette_entries * 3 - len(raw_palette_rgb))
 
     if is_aga:
         palette_bytes = build_aga_palette(raw_palette_rgb, num_palette_entries)

@@ -2,11 +2,52 @@ compression {
 
     %option ignore_unused, merge
 
+
+    asmsub decode_rle(^^ubyte compressed @A0, ^^ubyte target @A1, uword maxsize @D0) clobbers (A1, D0, D1, D2) -> ^^ubyte @A0 {
+        ; -- Decodes "ByteRun1" (aka PackBits) RLE compressed data. Control byte value 128 ends the decoding.
+        ;    Also stops decompressing if the maxsize has been reached.
+        ;    Returns the size of the decompressed data.
+        %asm {{
+.next_packet:
+                    tst.w   d0
+                    ble.s   .done
+                    move.b  (a0)+,d1
+                    ext.w   d1
+                    bpl.s   .literal
+                    cmpi.b  #$80,d1
+                    beq.s   .next_packet
+
+                    ; Repeat run: repeat the next byte 1-n times.
+                    add.w   d1,d0
+                    subq.w  #1,d0
+                    neg.w   d1
+                    move.b  (a0)+,d2
+.repeat:
+                    move.b  d2,(a1)+
+                    dbra    d1,.repeat
+                    bra.s   .next_packet
+
+.literal:
+                    ; Literal run: copy n+1 bytes verbatim.
+                    sub.w   d1,d0
+                    subq.w  #1,d0
+.copy:
+                    move.b  (a0)+,(a1)+
+                    dbra    d1,.copy
+                    bra.s   .next_packet
+
+.done:
+                    rts
+        }}
+    }
+
+
     asmsub unZX0(pointer compressed @A0, pointer output @A1) {
         %asm {{
-;  unzx0_68000.s - ZX0 decompressor for 68000
+
+;  unzx0_68000.s - ZX0 decompressor for 68000   (raw, headerless data)
 ;
-; platon42: Modified to not preserve registers and to not use long word operations with
+; platon42: Modified to not preserve registers [irmen: changed this again...] and to not use long word operations with
 ; unlikely and unsupported block lengths > 64 KB. get_elias inlined for speed and other
 ; optimizations.
 ;
