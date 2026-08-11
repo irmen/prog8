@@ -29,7 +29,7 @@ turtle {
     float angle
     bool pendown
 
-    const uword SPRITE_MEMORY = $5800
+    const SPRITE_MEMORY = $5800
 
     sub init() {
         xpos = 160.0

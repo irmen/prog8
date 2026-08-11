@@ -258,12 +258,27 @@ class Antlr2KotlinVisitor(val source: SourceCode, private val target: ICompilati
     }
 
     override fun visitConstdecl(ctx: ConstdeclContext): VarDecl {
-        if(ctx.datatype()==null)  // semantic check instead of grammar rule to have a better error message
-            throw SyntaxError("datatype missing", ctx.identifierlist().toPosition())
         val isPrivate = ctx.PRIVATE() != null
-        val datatype = dataTypeFor(ctx.datatype()) ?: DataType.LONG
-        val identifiers = ctx.identifierlist().identifier().map { getname(it) }
         val initialvalue = ctx.expression().accept(this) as Expression
+        val datatype = if(ctx.datatype()!=null) {
+            dataTypeFor(ctx.datatype()) ?: DataType.LONG
+        } else {
+            when(initialvalue) {
+                is NumericLiteral -> when(initialvalue.type) {
+                    BaseDataType.FLOAT -> DataType.FLOAT
+                    BaseDataType.BOOL -> DataType.BOOL
+                    else -> DataType.LONG
+                }
+                is FunctionCallExpression -> {
+                    if(initialvalue.target.nameInSource.singleOrNull() == "memory") {
+                        val replacement = if(target.POINTER_MEM_SIZE > 2u) BaseDataType.LONG else BaseDataType.UWORD
+                        DataType.forDt(replacement)
+                    } else DataType.LONG
+                }
+                else -> DataType.LONG
+            }
+        }
+        val identifiers = ctx.identifierlist().identifier().map { getname(it) }
         val actualValue = if(initialvalue is NumericLiteral && datatype.base.largerSizeThan(initialvalue.type))
                 NumericLiteral(datatype.base, initialvalue.number, initialvalue.position)
             else

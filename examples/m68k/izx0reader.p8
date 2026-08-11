@@ -65,9 +65,9 @@ main {
 
 izx0 {
     ; IZX0 header, palette, then compressed planes.
-    const long HEADER_SIZE = 52
-    const long TOTAL_COMPRESSED_SIZE_OFFSET = 48
-    const long MAX_PALETTE_SIZE = 256 * 4
+    const HEADER_SIZE = 52
+    const TOTAL_COMPRESSED_SIZE_OFFSET = 48
+    const MAX_PALETTE_SIZE = 256 * 4
 
     uword imageWidth
     uword imageHeight

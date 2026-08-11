@@ -69,7 +69,7 @@ irq {
 }
 
 sprites {
-    const ubyte sprites_Y_start = 55
+    const sprites_Y_start = 55
 
     sub set_sprites_Y(ubyte y) {
         for cx16.r0L in 1 to 15 step 2 {

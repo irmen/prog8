@@ -5,8 +5,8 @@
 
 main  {
 
-    const ubyte MAX_PARTICLES = 255
-    const ubyte GRAVITY = 1
+    const MAX_PARTICLES = 255
+    const GRAVITY = 1
 
     word[MAX_PARTICLES] particleX
     word[MAX_PARTICLES] particleY

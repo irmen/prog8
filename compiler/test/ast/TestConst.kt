@@ -875,5 +875,133 @@ main {
         initValue.type shouldBe BaseDataType.LONG
         initValue.number.toInt() shouldBe 0x00200204
     }
-})
 
+    test("untyped const integer defaults to long") {
+        val src = """
+main {
+    const A = 42
+    sub start() {}
+}"""
+        val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = false)!!
+        val st = result.compilerAst.allBlocks.first { it.name=="main" }.statements
+        val decl = st[0] as VarDecl
+        decl.datatype.base shouldBe BaseDataType.LONG
+        (decl.value as NumericLiteral).number shouldBe 42.0
+    }
+
+    test("untyped const float infers float type") {
+        val src = """
+main {
+    const PI = 3.14
+    sub start() {}
+}"""
+        val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = false)!!
+        val st = result.compilerAst.allBlocks.first { it.name=="main" }.statements
+        val decl = st[0] as VarDecl
+        decl.datatype.base shouldBe BaseDataType.FLOAT
+        (decl.value as NumericLiteral).number shouldBe 3.14
+    }
+
+    test("untyped const bool infers bool type") {
+        val src = """
+main {
+    const FLAG = true
+    sub start() {}
+}"""
+        val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = false)!!
+        val st = result.compilerAst.allBlocks.first { it.name=="main" }.statements
+        val decl = st[0] as VarDecl
+        decl.datatype.base shouldBe BaseDataType.BOOL
+        (decl.value as NumericLiteral).number shouldBe 1.0
+    }
+
+    test("untyped const memory() infers pointer type") {
+        val src = """
+main {
+    const M = memory("screen", 1000, 0)
+    sub start() {}
+}"""
+        compileText(VMTarget(), false, src, outputDir, writeAssembly = false) shouldNotBe null
+    }
+
+    test("untyped const integer chain defaults to long") {
+        val src = """
+main {
+    const A = 42
+    const B = A + 1
+    sub start() {}
+}"""
+        val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = false)!!
+        val st = result.compilerAst.allBlocks.first { it.name=="main" }.statements
+        val declA = st[0] as VarDecl
+        val declB = st[1] as VarDecl
+        declA.datatype.base shouldBe BaseDataType.LONG
+        declB.datatype.base shouldBe BaseDataType.LONG
+    }
+
+    test("untyped long const narrows to uword without loss") {
+        val src = """
+main {
+    const SIZE = 8191
+    sub start() {
+        uword @shared value = SIZE
+    }
+}
+"""
+        compileText(VMTarget(), false, src, outputDir, writeAssembly = false) shouldNotBe null
+    }
+
+    test("untyped const char literal defaults to long") {
+        val src = """
+main {
+    const CH = 'a'
+    sub start() {}
+}"""
+        val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = false)!!
+        val st = result.compilerAst.allBlocks.first { it.name=="main" }.statements
+        val decl = st[0] as VarDecl
+        decl.datatype.base shouldBe BaseDataType.LONG
+        (decl.value as NumericLiteral).number shouldBe 97.0
+    }
+
+    test("untyped const large integer defaults to long") {
+        val src = """
+main {
+    const LARGE = 1000000000
+    sub start() {}
+}"""
+        val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = false)!!
+        val st = result.compilerAst.allBlocks.first { it.name=="main" }.statements
+        val decl = st[0] as VarDecl
+        decl.datatype.base shouldBe BaseDataType.LONG
+        (decl.value as NumericLiteral).number shouldBe 1000000000.0
+    }
+
+    test("untyped const negative integer defaults to long") {
+        val src = """
+main {
+    const NEG = -5
+    sub start() {}
+}"""
+        val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = false)!!
+        val st = result.compilerAst.allBlocks.first { it.name=="main" }.statements
+        val decl = st[0] as VarDecl
+        decl.datatype.base shouldBe BaseDataType.LONG
+        (decl.value as NumericLiteral).number shouldBe -5.0
+    }
+
+    test("explicit typed const still works unchanged") {
+        val src = """
+main {
+    const ubyte X = 5
+    const float PI = 3.14
+    const bool FLAG = true
+    sub start() {}
+}"""
+        val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = false)!!
+        val st = result.compilerAst.allBlocks.first { it.name=="main" }.statements
+        (st[0] as VarDecl).datatype.base shouldBe BaseDataType.UBYTE
+        (st[1] as VarDecl).datatype.base shouldBe BaseDataType.FLOAT
+        (st[2] as VarDecl).datatype.base shouldBe BaseDataType.BOOL
+    }
+})

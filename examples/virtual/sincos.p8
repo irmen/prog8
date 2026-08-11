@@ -6,8 +6,8 @@
 ; NOTE: meant to test to virtual machine output target (use -target virtual)
 
 main {
-    const uword width = 320
-    const ubyte height = 200
+    const width = 320
+    const height = 200
 
     sub start()  {
         sys.gfx_enable(0)       ; enable lo res screen

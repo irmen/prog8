@@ -66,10 +66,10 @@ main {
 
 
     sub loadIFFimage(str filename, ^^intuition.Screen scr) {
-        const long ID_ILBM = $494C424D  ; 'ILBM'
-        const long ID_BMHD = $424D4844  ; 'BMHD'
-        const long ID_CMAP = $434D4150  ; 'CMAP'
-        const long ID_BODY = $424F4459  ; 'BODY'
+        const ID_ILBM = $494C424D  ; 'ILBM'
+        const ID_BMHD = $424D4844  ; 'BMHD'
+        const ID_CMAP = $434D4150  ; 'CMAP'
+        const ID_BODY = $424F4459  ; 'BODY'
 
         struct BMHDheader {
             uword w, h                  ; Raster width and height in pixels

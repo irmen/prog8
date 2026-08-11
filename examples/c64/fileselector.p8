@@ -29,7 +29,7 @@ fileselector {
 
     uword filenamesbuffer
     uword filename_ptrs_start             ; array of 127 string pointers for each of the names in the buffer. ends with $0000.
-    const uword filenamesbuf_size = $0f00
+    const filenamesbuf_size = $0f00
     ubyte dialog_topx = 4
     ubyte dialog_topy = 1
     ubyte max_lines = 15

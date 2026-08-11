@@ -4,7 +4,7 @@
 
 main  {
 
-    const ubyte MAX_PARTICLES = 128
+    const MAX_PARTICLES = 128
 
     sub start() {
         word[MAX_PARTICLES] particleX

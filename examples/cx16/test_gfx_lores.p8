@@ -8,7 +8,7 @@
 
 main {
 
-    const ubyte FILL_STACK_BANK = 2
+    const FILL_STACK_BANK = 2
 
     sub start() {
         demofill()

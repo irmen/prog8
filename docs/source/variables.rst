@@ -210,6 +210,20 @@ Variables on the other hand can't be optimized as much, need memory, and more co
 Note that a subset of the library routines in the ``math``, ``strings`` and ``floats`` modules are recognised in
 compile time expressions. For example, the compiler knows what ``math.sin8u(12)`` is and replaces it with the computed result.
 
+The type of a constant can be omitted. When omitted, the type is inferred from the initializer expression:
+- Integer literals default to ``long``
+- Float literals default to ``float``
+- Boolean literals default to ``bool``
+- ``memory()`` calls default to ``uword`` (or ``long`` on 32-bit targets)
+- All other expressions default to ``long``
+
+Examples::
+
+    const long SCREEN_WIDTH = 320    ; explicit type
+    const SCREEN_HEIGHT = 240        ; inferred as long
+    const PI = 3.14                  ; inferred as float
+    const DEBUG = true               ; inferred as bool
+
 Enums
 -----
 .. index:: single: Enums
