@@ -56,7 +56,6 @@ Romable (%option romable)
 
 IR/VM
 ^^^^^
-- if the IR codegen explicitly creates new temporary variables to hold values, can't that be simplified by just keeping the value inside one of the register file's registers alive? (so basically using that register file number as a temporary for the duration)
 - encode indexed scaling into IR (so that m68k codegen can use scale factor addressing) see ideas/scaled-indexing-IR.md
 - maybe change all branch instructions to have 2 exits (label if branch condition true, and label if false) instead of 1, and get rid of the implicit "next code chunk" link between chunks.
 - implement more TODOs in AssignmentGen?

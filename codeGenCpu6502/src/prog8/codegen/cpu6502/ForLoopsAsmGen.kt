@@ -57,12 +57,360 @@ internal class ForLoopsAsmGen(
     }
 
     private fun translateForOverNonconstStepRange(stmt: PtForLoop, iterableDt: DataType, range: PtRange) {
-        val typeName = when {
-            iterableDt.isLongArray -> "long"
-            iterableDt.isWordArray -> "word"
-            else -> "byte"
+        when {
+            iterableDt.isByteArray -> forOverNonconstStepByteRange(stmt, iterableDt, range)
+            iterableDt.isWordArray && !iterableDt.isSplitWordArray -> forOverNonconstStepWordRange(stmt, iterableDt, range)
+            iterableDt.isLongArray -> throw AssemblyError("variable-step for loops over long ranges are not supported by the legacy 6502 code generator at ${stmt.position}")
+            else -> throw AssemblyError("range expression can only be byte, word or long")
         }
-        TODO("variable-step for loops over $typeName are not implemented in the legacy 6502 code generator yet at ${stmt.position}")
+        asmgen.loopEndLabels.removeLast()
+    }
+
+    private fun forOverNonconstStepByteRange(stmt: PtForLoop, iterableDt: DataType, range: PtRange) {
+        val loopDt = iterableDt.elementType()
+        val loopvar = asmgen.asmVariableName(stmt.variable)
+        val toValueVar = asmgen.createTempVarReused(loopDt.base, false, range)
+        val stepVar = asmgen.createTempVarReused(range.step.type.base, false, range)
+        val nextVar = asmgen.createTempVarReused(loopDt.base, false, range)
+        val loopLabel = asmgen.makeLabel("for_loop")
+        val descendingLabel = asmgen.makeLabel("for_desc")
+        val endLabel = asmgen.makeLabel("for_end")
+        asmgen.loopEndLabels.add(endLabel)
+
+        // Keep range expression evaluation in source order and preserve each value across the next one.
+        asmgen.assignExpressionToVariable(range.from, loopvar, loopDt)
+        asmgen.assignExpressionToVariable(range.to, toValueVar, loopDt)
+        asmgen.assignExpressionToVariable(range.step, stepVar, range.step.type)
+        if (range.step.type.isSigned)
+            asmgen.out("  lda  $stepVar  |  beq  $endLabel  |  bmi  $descendingLabel")
+        else
+            asmgen.out("  lda  $stepVar  |  beq  $endLabel")
+
+        emitByteRangePrecheck(loopvar, toValueVar, loopLabel, endLabel, loopDt.isSigned, true)
+        asmgen.out(loopLabel)
+        asmgen.translate(stmt.statements)
+        emitByteRangeUpdate(loopvar, toValueVar, stepVar, nextVar, endLabel, loopLabel, loopDt.isSigned, range.step.type.isSigned)
+
+        asmgen.out(descendingLabel)
+        emitByteRangePrecheck(loopvar, toValueVar, loopLabel, endLabel, loopDt.isSigned, false)
+        asmgen.out("  jmp  $loopLabel")
+        asmgen.out(endLabel)
+    }
+
+    private fun emitByteRangePrecheck(loopvar: String, toValueVar: String, loopLabel: String, endLabel: String, signed: Boolean, ascending: Boolean) {
+        val notEqualLabel = asmgen.makeLabel("for_not_equal")
+        val compareDoneLabel = asmgen.makeLabel("for_compare_done")
+        if (signed) {
+            asmgen.out("""
+                lda  $loopvar
+                cmp  $toValueVar
+                bne  $notEqualLabel
+                jmp  $loopLabel
+$notEqualLabel
+                sec
+                lda  $loopvar
+                sbc  $toValueVar
+                bvc  $compareDoneLabel
+                eor  #$80
+$compareDoneLabel
+                ${if (ascending) "bpl" else "bmi"}  $endLabel
+            """)
+        } else if (ascending) {
+            asmgen.out("""
+                lda  $toValueVar
+                cmp  $loopvar
+                bcc  $endLabel
+                jmp  $loopLabel
+            """)
+        } else {
+            asmgen.out("""
+                lda  $loopvar
+                cmp  $toValueVar
+                bcc  $endLabel
+            """)
+        }
+    }
+
+    private fun emitByteRangeUpdate(
+        loopvar: String,
+        toValueVar: String,
+        stepVar: String,
+        nextVar: String,
+        endLabel: String,
+        loopLabel: String,
+        loopvarSigned: Boolean,
+        stepSigned: Boolean
+    ) {
+        val notLastLabel = asmgen.makeLabel("for_not_last")
+        val ascendingCompareDoneLabel = asmgen.makeLabel("for_next_compare_done")
+        val descendingCompareDoneLabel = asmgen.makeLabel("for_desc_compare_done")
+        val descendingUpdateLabel = asmgen.makeLabel("for_desc_update")
+        val storeNextLabel = asmgen.makeLabel("for_store_next")
+        val ascendingWrapBranch = if (loopvarSigned && stepSigned) "bvs" else "bcs"
+        val descendingWrapBranch = if (loopvarSigned && stepSigned) "bvs" else "bcc"
+        asmgen.out("""
+            lda  $loopvar
+            cmp  $toValueVar
+            bne  $notLastLabel
+            jmp  $endLabel
+$notLastLabel
+        """)
+        if (stepSigned)
+            asmgen.out("  lda  $stepVar  |  bmi  $descendingUpdateLabel")
+        asmgen.out("""
+            clc
+            lda  $loopvar
+            adc  $stepVar
+            $ascendingWrapBranch  $endLabel
+            sta  $nextVar
+        """)
+        asmgen.out("""
+            lda  $nextVar
+            cmp  $toValueVar
+            beq  $storeNextLabel
+            sec
+            lda  $nextVar
+            sbc  $toValueVar
+            bvc  $ascendingCompareDoneLabel
+            eor  #$80
+$ascendingCompareDoneLabel
+        """)
+        if (loopvarSigned)
+            asmgen.out("  bpl  $endLabel")
+        else
+            asmgen.out("  bcs  $endLabel")
+        asmgen.out("""
+            jmp  $storeNextLabel
+
+$descendingUpdateLabel
+            lda  $loopvar
+            cmp  $toValueVar
+            beq  $endLabel
+            clc
+            lda  $loopvar
+            adc  $stepVar
+            $descendingWrapBranch  $endLabel
+            sta  $nextVar
+        """)
+        if (loopvarSigned)
+            asmgen.out("""
+            sec
+            lda  $nextVar
+            sbc  $toValueVar
+            bvc  $descendingCompareDoneLabel
+            eor  #$80
+$descendingCompareDoneLabel
+            bmi  $endLabel
+            """)
+        else
+            asmgen.out("""
+            lda  $nextVar
+            cmp  $toValueVar
+            bcc  $endLabel
+            """)
+        asmgen.out("""
+            jmp  $storeNextLabel
+
+$storeNextLabel
+            lda  $nextVar
+            sta  $loopvar
+            jmp  $loopLabel
+        """)
+    }
+
+    private fun forOverNonconstStepWordRange(stmt: PtForLoop, iterableDt: DataType, range: PtRange) {
+        val loopDt = iterableDt.elementType()
+        val loopvar = asmgen.asmVariableName(stmt.variable)
+        val toValueVar = asmgen.createTempVarReused(loopDt.base, false, range)
+        val stepVar = asmgen.createTempVarReused(range.step.type.base, false, range)
+        val nextVar = asmgen.createTempVarReused(loopDt.base, false, range)
+        val loopLabel = asmgen.makeLabel("for_loop")
+        val descendingLabel = asmgen.makeLabel("for_desc")
+        val endLabel = asmgen.makeLabel("for_end")
+        asmgen.loopEndLabels.add(endLabel)
+
+        // Keep range expression evaluation in source order and preserve each value across the next one.
+        asmgen.assignExpressionToVariable(range.from, loopvar, loopDt)
+        asmgen.assignExpressionToVariable(range.to, toValueVar, loopDt)
+        asmgen.assignExpressionToVariable(range.step, stepVar, range.step.type)
+        if (range.step.type.isSigned)
+            asmgen.out("  lda  $stepVar  |  ora  ${stepVar}+1  |  beq  $endLabel  |  lda  ${stepVar}+1  |  bmi  $descendingLabel")
+        else
+            asmgen.out("  lda  $stepVar  |  ora  ${stepVar}+1  |  beq  $endLabel")
+
+        emitWordRangePrecheck(loopvar, toValueVar, loopLabel, endLabel, loopDt.isSigned, true)
+        asmgen.out(loopLabel)
+        asmgen.translate(stmt.statements)
+        emitWordRangeUpdate(loopvar, toValueVar, stepVar, nextVar, endLabel, loopLabel, loopDt.isSigned, range.step.type.isSigned)
+
+        asmgen.out(descendingLabel)
+        emitWordRangePrecheck(loopvar, toValueVar, loopLabel, endLabel, loopDt.isSigned, false)
+        asmgen.out("  jmp  $loopLabel")
+        asmgen.out(endLabel)
+    }
+
+    private fun emitWordRangePrecheck(loopvar: String, toValueVar: String, loopLabel: String, endLabel: String, signed: Boolean, ascending: Boolean) {
+        val notEqualLabel = asmgen.makeLabel("for_not_equal")
+        val compareDoneLabel = asmgen.makeLabel("for_compare_done")
+        if (signed) {
+            asmgen.out("""
+                lda  $loopvar+1
+                cmp  $toValueVar+1
+                bne  $notEqualLabel
+                lda  $loopvar
+                cmp  $toValueVar
+                bne  $notEqualLabel
+                jmp  $loopLabel
+$notEqualLabel
+                sec
+                lda  $loopvar
+                sbc  $toValueVar
+                lda  $loopvar+1
+                sbc  $toValueVar+1
+                bvc  $compareDoneLabel
+                eor  #$80
+$compareDoneLabel
+                ${if (ascending) "bpl" else "bmi"}  $endLabel
+            """)
+        } else if (ascending) {
+            asmgen.out("""
+                lda  $toValueVar+1
+                cmp  $loopvar+1
+                bcc  $endLabel
+                bne  $loopLabel
+                lda  $toValueVar
+                cmp  $loopvar
+                bcc  $endLabel
+                jmp  $loopLabel
+            """)
+        } else {
+            asmgen.out("""
+                lda  $loopvar+1
+                cmp  $toValueVar+1
+                bcc  $endLabel
+                bne  $loopLabel
+                lda  $loopvar
+                cmp  $toValueVar
+                bcc  $endLabel
+                jmp  $loopLabel
+            """)
+        }
+    }
+
+    private fun emitWordRangeUpdate(
+        loopvar: String,
+        toValueVar: String,
+        stepVar: String,
+        nextVar: String,
+        endLabel: String,
+        loopLabel: String,
+        loopvarSigned: Boolean,
+        stepSigned: Boolean
+    ) {
+        val notLastLabel = asmgen.makeLabel("for_not_last")
+        val ascendingCompareLabel = asmgen.makeLabel("for_next_compare")
+        val ascendingCompareDoneLabel = asmgen.makeLabel("for_next_compare_done")
+        val descendingCompareDoneLabel = asmgen.makeLabel("for_desc_compare_done")
+        val descendingUpdateLabel = asmgen.makeLabel("for_desc_update")
+        val descendingNotLastLabel = asmgen.makeLabel("for_desc_not_last")
+        val storeNextLabel = asmgen.makeLabel("for_store_next")
+        val ascendingWrapBranch = if (loopvarSigned && stepSigned) "bvs" else "bcs"
+        val descendingWrapBranch = if (loopvarSigned && stepSigned) "bvs" else "bcc"
+        asmgen.out("""
+            lda  $loopvar+1
+            cmp  $toValueVar+1
+            bne  $notLastLabel
+            lda  $loopvar
+            cmp  $toValueVar
+            beq  $endLabel
+$notLastLabel
+        """)
+        if (stepSigned)
+            asmgen.out("  lda  ${stepVar}+1  |  bmi  $descendingUpdateLabel")
+        asmgen.out("""
+            clc
+            lda  $loopvar
+            adc  $stepVar
+            sta  $nextVar
+            lda  $loopvar+1
+            adc  $stepVar+1
+            $ascendingWrapBranch  $endLabel
+            sta  $nextVar+1
+        """)
+        asmgen.out("""
+            lda  $nextVar+1
+            cmp  $toValueVar+1
+            bne  $ascendingCompareLabel
+            lda  $nextVar
+            cmp  $toValueVar
+            beq  $storeNextLabel
+$ascendingCompareLabel
+            sec
+            lda  $nextVar
+            sbc  $toValueVar
+            lda  $nextVar+1
+            sbc  $toValueVar+1
+            bvc  $ascendingCompareDoneLabel
+            eor  #$80
+$ascendingCompareDoneLabel
+        """)
+        if (loopvarSigned)
+            asmgen.out("  bpl  $endLabel")
+        else
+            asmgen.out("  bcs  $endLabel")
+        asmgen.out("""
+            jmp  $storeNextLabel
+
+$descendingUpdateLabel
+            lda  $loopvar+1
+            cmp  $toValueVar+1
+            bne  $descendingNotLastLabel
+            lda  $loopvar
+            cmp  $toValueVar
+            beq  $endLabel
+$descendingNotLastLabel
+            clc
+            lda  $loopvar
+            adc  $stepVar
+            sta  $nextVar
+            lda  $loopvar+1
+            adc  $stepVar+1
+            $descendingWrapBranch  $endLabel
+            sta  $nextVar+1
+        """)
+        if (loopvarSigned)
+            asmgen.out("""
+            sec
+            lda  $nextVar
+            sbc  $toValueVar
+            lda  $nextVar+1
+            sbc  $toValueVar+1
+            bvc  $descendingCompareDoneLabel
+            eor  #$80
+$descendingCompareDoneLabel
+            bmi  $endLabel
+            """)
+        else
+            asmgen.out("""
+            lda  $nextVar+1
+            cmp  $toValueVar+1
+            bcc  $endLabel
+            bne  $storeNextLabel
+            lda  $nextVar
+            cmp  $toValueVar
+            bcc  $endLabel
+            """)
+        asmgen.out("""
+            jmp  $storeNextLabel
+        """)
+        asmgen.out("""
+$storeNextLabel
+            lda  $nextVar
+            sta  $loopvar
+            lda  $nextVar+1
+            sta  $loopvar+1
+            jmp  $loopLabel
+        """)
     }
 
     private fun forOverNonconstLongRange(stmt: PtForLoop, iterableDt: DataType, range: PtRange) {

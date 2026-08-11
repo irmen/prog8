@@ -8,6 +8,7 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import prog8.code.target.Cx16Target
 import prog8tests.helpers.CapturingSerialIO
+import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
 import prog8tests.helpers.simulate
 import razorvine.ksim65.Disassembler
@@ -60,6 +61,155 @@ class TestExecution6502 : FunSpec({
         val compileResult = compileText(Cx16Target(), false, src, outputDir)
         val machine = compileResult!!.simulate()
         machine.assertMemory(0x02, 42)
+    }
+
+    test("dynamic byte and word for loops stop before wrap") {
+        val src = $$"""
+            %option no_sysinit
+            %launcher none
+            %address $1000
+
+            main {
+                &ubyte poweroff = $f203
+                &ubyte byteAscending = $02
+                &ubyte byteDescending = $03
+                &ubyte byteEmpty = $04
+                &ubyte wordAscending = $05
+                &ubyte wordDescending = $06
+                &ubyte evalOrder = $07
+                &ubyte orderedCount = $08
+                &ubyte byteUnsignedDescending = $09
+                &ubyte wordUnsignedDescending = $0a
+
+                sub start() {
+                    byte ordered
+                    for ordered in getFrom() to getTo() step getStep() {
+                        orderedCount++
+                    }
+
+                    byte b
+                    byte @shared bfrom = 1
+                    byte @shared bto = 5
+                    byte @shared bstep = 2
+                    for b in bfrom to bto step bstep {
+                        byteAscending++
+                    }
+
+                    byte @shared bdownFrom = 5
+                    byte @shared bdownTo = 1
+                    byte @shared bdownStep = -2
+                    for b in bdownFrom to bdownTo step bdownStep {
+                        byteDescending++
+                    }
+
+                    ubyte ub
+                    ubyte @shared ubFrom = 5
+                    ubyte @shared ubTo = 1
+                    byte @shared ubStep = -2
+                    for ub in ubFrom to ubTo step ubStep {
+                        byteUnsignedDescending++
+                    }
+
+                    byte @shared zeroStep = 0
+                    for b in bfrom to bto step zeroStep {
+                        byteEmpty++
+                    }
+
+                    uword w
+                    uword @shared wfrom = 65530
+                    uword @shared wto = 65535
+                    uword @shared wstep = 3
+                    for w in wfrom to wto step wstep {
+                        wordAscending++
+                    }
+
+                    word wdown
+                    word @shared wdownFrom = 300
+                    word @shared wdownTo = 290
+                    word @shared wdownStep = -4
+                    for wdown in wdownFrom to wdownTo step wdownStep {
+                        wordDescending++
+                    }
+
+                    uword uwdown
+                    uword @shared uwdownFrom = 65530
+                    uword @shared uwdownTo = 65520
+                    word @shared uwdownStep = -3
+                    for uwdown in uwdownFrom to uwdownTo step uwdownStep {
+                        wordUnsignedDescending++
+                    }
+
+                    poweroff = 1
+                }
+
+                sub getFrom() -> byte {
+                    evalOrder = 1
+                    return 1
+                }
+
+                sub getTo() -> byte {
+                    evalOrder = evalOrder * 10 + 2
+                    return 5
+                }
+
+                sub getStep() -> byte {
+                    evalOrder = evalOrder * 10 + 3
+                    return 2
+                }
+            }
+        """.trimIndent()
+
+        val compileResult = compileText(Cx16Target(), false, src, outputDir)
+        val machine = compileResult!!.simulate()
+        machine.assertMemory(0x02, 3)
+        machine.assertMemory(0x03, 3)
+        machine.assertMemory(0x04, 0)
+        machine.assertMemory(0x05, 2)
+        machine.assertMemory(0x06, 3)
+        machine.assertMemory(0x07, 123)
+        machine.assertMemory(0x08, 3)
+        machine.assertMemory(0x09, 3)
+        machine.assertMemory(0x0a, 4)
+    }
+
+    test("dynamic legacy for loop break targets remain scoped") {
+        val src = $$"""
+            %option no_sysinit
+            %launcher none
+            %address $1000
+
+            main {
+                &ubyte outerCount = $02
+                &ubyte poweroff = $f203
+
+                sub start() {
+                    byte outer
+                    byte inner
+                    byte @shared outerFrom = 1
+                    byte @shared outerTo = 3
+                    byte @shared outerStep = 1
+                    byte @shared innerFrom = 1
+                    byte @shared innerTo = 3
+                    byte @shared innerStep = 1
+
+                    for outer in outerFrom to outerTo step outerStep {
+                        for inner in innerFrom to innerTo step innerStep {
+                            break
+                        }
+                        outerCount++
+                        break
+                    }
+                    poweroff = 1
+                }
+            }
+        """.trimIndent()
+
+        val errors = ErrorReporterForTests()
+        val compileResult = compileText(Cx16Target(), false, src, outputDir, errors = errors)
+        if (compileResult == null)
+            throw AssertionError(errors.errors.joinToString("\n"))
+        val machine = compileResult.simulate()
+        machine.assertMemory(0x02, 1)
     }
 
     test("serial output") {

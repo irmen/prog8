@@ -223,8 +223,12 @@ and `LONG` values before claiming those types are supported.
 
 ### 6. Legacy 6502 codegen - new variable-step path
 
-**Status: deferred.** The legacy backend emits a clean unsupported diagnostic
-for dynamic steps. Variable-step byte/word assembly lowering is not implemented.
+**Status: complete for byte and word ranges.** The legacy backend now lowers
+dynamic byte/word steps with captured RAM temporaries, a shared loop body,
+runtime direction selection, fixed-width wrap checks, and no self-modifying
+code. Dynamic long ranges still emit a clean unconditional unsupported
+diagnostic. `TestExecution6502`, `TestVariousCodeGen`, and the full Gradle
+build pass.
 
 `codeGenCpu6502/src/prog8/codegen/cpu6502/ForLoopsAsmGen.kt`.
 
@@ -232,16 +236,16 @@ for dynamic steps. Variable-step byte/word assembly lowering is not implemented.
   `range.step.asConstInteger()!!` usage (the `< -1` unsigned-wrap check only
   applies to constant steps); route a non-`PtNumber` step to a new
   `translateForOverNonconstStepRange`.
-- **New byte/word variable-step assembly**:
+- **Byte/word variable-step assembly**:
   - evaluate `from`, `to`, and `step` once in source order into reused temp
     variables (`createTempVarReused`), preserving the step's signedness
   - runtime sign handling must treat unsigned step values as ascending and
     signed step values according to their runtime sign; do not use `bmi` for
     an unsigned step merely because its high bit is set
-  - ascending: precheck `to < from -> end`; body; calculate the next value;
-    use the captured direction to select the ascCont/descCont comparison;
-    ascCont continues while `loopvar <= to`, descCont while
-    `loopvar >= to`
+   - ascending: precheck `to < from -> end`; shared body; calculate the next
+     value; use the captured step sign to select the ascending or descending
+     update and comparison tail; ascending continues while `loopvar <= to`,
+     descending while `loopvar >= to`
   - calculate the next loop value in registers or a temporary before storing
     it, and terminate when it reverses direction due to byte/word wrap
   - signed byte/word variants reuse the existing signed-comparison patterns
@@ -299,7 +303,43 @@ once its implementation exists.
 - Record any acceptable performance or code-size tradeoffs and add focused
   assertions or regression tests for issues found during the review.
 
-**Status: pending.**
+**Status: complete as an analysis-only review.** Representative `-noopt`
+constant-step and variable-step fixtures were compiled for virtual, CX16
+`-newcodegen`, qemu68k, amiga500, and legacy CX16/C64 paths.
+
+| Target/path | Constant | Variable | Main increase |
+|-------------|----------|----------|---------------|
+| virtual IR | 327 instructions, 70 chunks, 110 registers | 434 instructions, 122 chunks, 135 registers | +107 instructions, +52 chunks, +25 registers |
+| CX16 newcodegen | 271 instructions, 85 chunks, 99 registers | 378 instructions, 137 chunks, 124 registers | +107 instructions, +52 chunks, +25 registers |
+| qemu68k IR | 84 instructions, 42 chunks, 19 registers | 192 instructions, 95 chunks, 44 registers | +108 instructions, +53 chunks, +25 registers |
+| amiga500 IR | 111 instructions, 43 chunks, 39 registers | 219 instructions, 96 chunks, 64 registers | +108 instructions, +53 chunks, +25 registers |
+| legacy C64 subset | 435-byte PRG data | 1164-byte PRG data | +729 bytes |
+
+Findings:
+
+- The new IR and legacy paths evaluate `from`, `to`, and `step` once. No
+  repeated source expression evaluation was found.
+- The shared-body legacy implementation avoids duplicate body code and keeps
+  `break`/`continue` labels valid. Its extra `next` temporary and bound/wrap
+  checks are necessary for fixed-width safety.
+- Both IR and legacy variable-step paths still emit descending setup/update
+  machinery for statically unsigned steps, even though that direction is
+  unreachable. Specializing unsigned steps would reduce code size and remove
+  the direction flag for those loops.
+- The legacy path rechecks the captured signed step's sign on every iteration
+  to select its update tail. A setup-time direction flag or specialized signed
+  path could avoid that repeated load, with a code-size tradeoff.
+- The IR-backed M68K output shows the expected generic register-file traffic,
+  including repeated `p8_regfile` loads and byte zero-extension sequences.
+  This is backend-wide overhead rather than duplicated FOR-loop expression
+  evaluation.
+- No register packing limits, assembler failures, or target-specific
+  instruction-set violations were found. The dynamic legacy path contains no
+  self-modifying code; existing constant-step paths remain unchanged.
+
+Recommended follow-ups are unsigned-step specialization in both codegens and
+possible direction-tail sharing or flag caching in the legacy backend. These
+were not implemented as part of this review.
 
 ## Test Gates
 
@@ -343,9 +383,13 @@ program.
 
 ### Gate commands
 
-**Status: complete for the virtual and currently tested target gates.** The
-optimized and `-noopt` virtual runs pass, as do runtime checks on qemu68k,
-amiga500, and cx16 `-newcodegen`.
+**Status: complete for the virtual, IR, and legacy byte/word target gates.**
+The optimized and `-noopt` virtual runs pass, as do runtime checks on qemu68k,
+amiga500, and cx16 `-newcodegen`. Legacy C64/C128/PET32 assembly checks and
+CX16 simulator coverage pass. ROMable verification is targeted: existing or
+necessary self-modifying constant-step paths may report the normal
+`romableError`; the new dynamic byte/word path is expected to remain ROMable
+because it uses temporaries instead of self-modifying code.
 
 1. **Compiler AST**: `prog8c -target virtual -check forstep_gate.p8`
    and `prog8c -target virtual -printast1 forstep_gate.p8`.
@@ -367,10 +411,13 @@ amiga500, and cx16 `-newcodegen`.
    - m68k: compile for both `qemu68k` and `amiga500`, inspect the generated
      assembly, and add backend-specific assembly assertions. Runtime execution
      is optional only where no emulator harness exists.
-   - legacy 6502: compile the byte/word gate for `c64`, `c128`, `pet32`, and
-     `cx16`; inspect assembly for each target. Run the CX16 version with
-     `x16emu -echo iso -run -prg ...` when available, and test ROMable mode
-     separately.
+    - legacy 6502: compile `forstep_gate.p8` for `c64`, `c128`, `pet32`, and
+      `cx16`; the dynamic long-loop case is commented out for this shared gate
+      because long ranges remain unsupported by the legacy backend. Inspect
+      assembly for each target. Run the CX16 version with
+      `x16emu -echo iso -run -prg ...` when available. In ROMable mode, verify
+      that the dynamic byte/word path runs and that existing self-modifying
+      paths report the normal `romableError` where applicable.
 
 ## Tests
 
@@ -378,24 +425,32 @@ amiga500, and cx16 `-newcodegen`.
   without "range step must be a constant integer"; the error still fires for
   containment checks, dynamic `when` choices, and other non-for-loop ranges;
   constant step `0` still errors.
-- VM functional tests (`compiler/test/vm/`): execute variable-step loops on
-  the virtual target for byte/word/long, signed and unsigned loopvars, and
-  pointer loopvars if supported;
-  ascending and descending runtime steps; step `0`; wrong-direction step;
-  `from==to`; body mutating the step variable; non-const from/to combined with
-  variable step; fixed-width overflow; side-effecting operands; nested loops;
-  `break`; and `continue`.
+- VM functional tests are implemented in
+  `compiler/test/vm/TestVariableStepForLoops.kt`. The 15 tests cover byte,
+  word, long, and pointer loopvars; signed and unsigned steps; ascending and
+  descending runtime steps; step `0`; wrong-direction steps; `from==to`; body
+  mutation of the step variable; non-constant bounds; fixed-width overflow;
+  side-effecting operands; nested `break`; and `continue`.
 - `compiler/test/arithmetic/testforloops.p8` (manual x16emu): add byte/word
   variable-step cases, including signed negative steps and overflow guards.
 - Add AST/SimpleAST assertions for `PtRange.step` type and side-effect
   metadata.
 - Add IR assertions that the step expression is translated once, direct
   `BGTR`/`BGTSR` comparisons are used, and the wrap guard is present.
-- Add new6502 assembly/simulation tests and m68k assembly assertions. Shared
-  IR tests are not sufficient to validate backend-specific signed comparison,
-  extension, and multi-byte arithmetic.
-- Compile the legacy 6502 gate for `c64`, `c128`, `pet32`, and `cx16`; run the
-  CX16 version under `x16emu` when available. Test ROMable mode separately.
+- New6502 legacy byte/word simulator coverage and C64/C128/PET32 assembly
+  checks are implemented. The dedicated
+  `compiler/test/codegeneration/TestVariableStepForLoops6502.kt` suite covers
+  the supported runtime cases through `ksim65` and checks the explicit
+  unsupported diagnostic for dynamic long ranges. Shared IR tests are not
+  sufficient to validate backend-specific signed comparison, extension, and
+  multi-byte arithmetic. ROMable-mode verification is limited to confirming
+  that the new dynamic path remains ROMable and that necessary existing
+  self-modifying paths use the established `romableError` diagnostic.
+- Compile `forstep_gate.p8` for `c64`, `c128`, `pet32`, and `cx16`; the dynamic
+  long-loop case is currently commented out for this shared legacy gate. Run
+  the CX16 version under `x16emu` when available. Verify the dynamic path and
+  expected `romableError` diagnostics separately in ROMable mode.
+  Restore or use a separate IR gate for long-loop coverage.
 
 ## Verification
 
