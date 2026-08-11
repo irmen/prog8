@@ -573,9 +573,13 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
         varDt: DataType,
         parent: Node
     ): List<AstModification> {
+        val normalizedStep = normalizeRangeStep(range, parent, varDt)
 
         if(!varDt.isUndefined && fromDt==varDt && toDt==varDt) {
-            return noModifications
+            return if (normalizedStep === range.step)
+                noModifications
+            else
+                listOf(AstReplaceNode(range.step, normalizedStep, range))
         }
 
         if(fromConst!=null) {
@@ -587,12 +591,12 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                         // can we make the to value into the same smaller type?
                         val smallerTo = NumericLiteral.optimalInteger(toConst.number.toInt(), toConst.position)
                         if(smaller.type==smallerTo.type) {
-                            val newRange = RangeExpression(smaller, smallerTo, range.step, range.position)
+                            val newRange = RangeExpression(smaller, smallerTo, normalizedStep, range.position)
                             return listOf(AstReplaceNode(range, newRange, parent))
                         }
                     }
                 } else {
-                    val newRange = RangeExpression(smaller, range.to, range.step, range.position)
+                    val newRange = RangeExpression(smaller, range.to, normalizedStep, range.position)
                     return listOf(AstReplaceNode(range, newRange, parent))
                 }
             }
@@ -606,18 +610,20 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                         // can we make the from value into the same smaller type?
                         val smallerFrom = NumericLiteral.optimalInteger(fromConst.number.toInt(), fromConst.position)
                         if(smaller.type==smallerFrom.type) {
-                            val newRange = RangeExpression(smallerFrom, smaller, range.step, range.position)
+                            val newRange = RangeExpression(smallerFrom, smaller, normalizedStep, range.position)
                             return listOf(AstReplaceNode(range, newRange, parent))
                         }
                     }
                 } else {
-                    val newRange = RangeExpression(range.from, smaller, range.step, range.position)
+                    val newRange = RangeExpression(range.from, smaller, normalizedStep, range.position)
                     return listOf(AstReplaceNode(range, newRange, parent))
                 }
             }
         }
 
         val modifications = mutableListOf<AstModification>()
+        if (normalizedStep !== range.step)
+            modifications += AstReplaceNode(range.step, normalizedStep, range)
 
         if(!varDt.isUndefined) {
             // adjust from value
@@ -662,6 +668,47 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
             addTypecastOrCastedValueModification(modifications, toChange, commonDt, range)
 
         return modifications
+    }
+
+    private fun normalizeRangeStep(range: RangeExpression, parent: Node, varDt: DataType): Expression {
+        if (parent !is ForLoop || range.step.constValue(program) != null)
+            return range.step
+
+        val stepDt = range.step.inferType(program).getOrUndef()
+        if (!stepDt.isInteger) {
+            errors.err("range step must be an integer", range.step.position)
+            return range.step
+        }
+        if (varDt.isUndefined || (!varDt.isInteger && !varDt.isPointer))
+            return range.step
+
+        val stepWidth = integerWidth(stepDt)
+        val loopvarWidth = integerWidth(varDt)
+        if (stepWidth == null || loopvarWidth == null)
+            return range.step
+        if (stepWidth > loopvarWidth) {
+            errors.err("incompatible range step type", range.step.position)
+            return range.step
+        }
+
+        val normalizedBase = when {
+            loopvarWidth == 1 -> if (stepDt.isSigned) BaseDataType.BYTE else BaseDataType.UBYTE
+            loopvarWidth == 2 -> if (stepDt.isSigned) BaseDataType.WORD else BaseDataType.UWORD
+            stepDt.isSigned -> BaseDataType.LONG
+            else -> BaseDataType.UWORD
+        }
+        if (stepDt.base == normalizedBase)
+            return range.step
+
+        return TypecastExpression(range.step, DataType.forDt(normalizedBase), true, range.step.position)
+    }
+
+    private fun integerWidth(dt: DataType): Int? = when {
+        dt.isByte -> 1
+        dt.isWord -> 2
+        dt.isLong -> 4
+        dt.isPointer -> options.compTarget.POINTER_MEM_SIZE.toInt()
+        else -> null
     }
 
     override fun after(arrayIndexedExpression: ArrayIndexedExpression, parent: Node): Iterable<AstModification> {

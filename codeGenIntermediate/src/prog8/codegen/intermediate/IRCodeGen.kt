@@ -911,26 +911,14 @@ class IRCodeGen(
         addToResult(result, toTr, toTr.resultReg, -1)
         val stepTr = expressionEval.translateExpression(iterable.step)
         addToResult(result, stepTr, stepTr.resultReg, -1)
-        var stepReg = stepTr.resultReg
-        if(stepTr.dt != loopvarDtIr) {
-            val extendOpcode = if(iterable.step.type.isSigned) Opcode.EXTS else Opcode.EXT
-            when {
-                stepTr.dt == IRDataType.BYTE && loopvarDtIr == IRDataType.WORD -> {
-                    stepReg = registers.next(IRDataType.WORD)
-                    addInstr(result, IRInstruction(extendOpcode, IRDataType.BYTE, reg1=stepReg, reg2=stepTr.resultReg), null)
-                }
-                stepTr.dt == IRDataType.BYTE && loopvarDtIr == IRDataType.LONG -> {
-                    val wordReg = registers.next(IRDataType.WORD)
-                    stepReg = registers.next(IRDataType.LONG)
-                    addInstr(result, IRInstruction(extendOpcode, IRDataType.BYTE, reg1=wordReg, reg2=stepTr.resultReg), null)
-                    addInstr(result, IRInstruction(extendOpcode, IRDataType.WORD, reg1=stepReg, reg2=wordReg), null)
-                }
-                stepTr.dt == IRDataType.WORD && loopvarDtIr == IRDataType.LONG -> {
-                    stepReg = registers.next(IRDataType.LONG)
-                    addInstr(result, IRInstruction(extendOpcode, IRDataType.WORD, reg1=stepReg, reg2=stepTr.resultReg), null)
-                }
-                else -> throw AssemblyError("cannot widen loop step ${stepTr.dt} to $loopvarDtIr")
+        val stepReg = when {
+            stepTr.dt == loopvarDtIr -> stepTr.resultReg
+            stepTr.dt == IRDataType.WORD && loopvarDtIr == IRDataType.LONG && !iterable.step.type.isSigned -> {
+                val widenedReg = registers.next(IRDataType.LONG)
+                addInstr(result, IRInstruction(Opcode.EXT, IRDataType.WORD, reg1=widenedReg, reg2=stepTr.resultReg), null)
+                widenedReg
             }
+            else -> throw AssemblyError("unexpected normalized loop step ${stepTr.dt} for $loopvarDtIr")
         }
 
         // step == 0 => empty loop

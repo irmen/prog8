@@ -94,9 +94,9 @@ known constant unsafe steps.
 
 ### 2. `TypecastsAdder` - validate/cast the step to the loopvar type
 
-**Status: deferred.** The current implementation performs step widening and
-signedness-aware extension directly in IR codegen. Centralized validation and
-normalization in `TypecastsAdder` remain future work.
+**Status: complete.** Dynamic integer steps are validated and normalized in
+`TypecastsAdder` before code generation. The IR codegen now only needs a
+remaining unsigned `uword` to 32-bit `long` zero-extension case.
 
 `compiler/src/prog8/compiler/astprocessing/TypecastsAdder.kt:470-665`
 (`after(range)` and `adjustRangeDts`).
@@ -105,7 +105,7 @@ normalization in `TypecastsAdder` remain future work.
   signedness needed to determine runtime direction.
 - Validate that the step is integer and that its width can be converted to the
   loopvar width. Preserve whether the original step is signed or unsigned.
-  Use sign extension for signed steps and zero extension for unsigned steps.
+  Normalize narrower steps to the loopvar width using sign or zero extension.
 - Handle this before every existing early return in `adjustRangeDts`, including
   the fast path at lines 577-579 and the constant-bound narrowing paths at
   lines 590-615. Any replacement `RangeExpression` must contain the validated
@@ -118,7 +118,9 @@ normalization in `TypecastsAdder` remain future work.
 
 This guarantees codegen receives a width-normalized step together with enough
 type information to preserve its signedness. Codegens still need to use that
-signedness when selecting direction and when extending the step.
+signedness when selecting direction. A 32-bit loopvar has no unsigned `long`
+type, so an unsigned `uword` step remains `uword` and is zero-extended by IR
+codegen when needed.
 
 ### 3. `SimplifiedAstMaker` - stop forcing step to `PtNumber`
 
@@ -157,7 +159,10 @@ tracking, and simplicity checks are supported.
 **Status: implemented and validated.** The IR path evaluates bounds and step
 once in source order, preserves direction, computes `next` in a temporary
 register, and uses direct `BGTR`/`BGTSR` checks for bound crossing and wrap.
-The virtual, qemu68k, amiga500, and cx16 `-newcodegen` gates pass.
+Step type normalization is handled by `TypecastsAdder`; IR only retains the
+unsigned `uword` to 32-bit `long` zero-extension case and rejects unexpected
+type mismatches. The virtual, qemu68k, amiga500, and cx16 `-newcodegen` gates
+pass.
 
 `codeGenIntermediate/src/prog8/codegen/intermediate/IRCodeGen.kt`.
 

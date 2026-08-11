@@ -8,10 +8,7 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.types.instanceOf
-import prog8.ast.expressions.ArrayLiteral
-import prog8.ast.expressions.IdentifierReference
-import prog8.ast.expressions.NumericLiteral
-import prog8.ast.expressions.RangeExpression
+import prog8.ast.expressions.*
 import prog8.ast.statements.ForLoop
 import prog8.ast.statements.VarDecl
 import prog8.code.ast.*
@@ -189,6 +186,31 @@ class TestCompilerOnRanges: FunSpec({
         val intProgression = rangeExpr.toConstantIntegerRange()
         intProgression?.first shouldBe 1
         intProgression?.last shouldBe 9
+    }
+
+    test("dynamic range step is widened while retaining signedness") {
+        val result = compileText(Cx16Target(), optimize = false, """
+            main {
+                sub start() {
+                    uword i
+                    ubyte unsignedStep
+                    byte signedStep
+                    for i in 0 to 10 step unsignedStep {
+                    }
+                    for i in 10 to 0 step signedStep {
+                    }
+                }
+            }
+        """, outputDir, writeAssembly = false)!!
+
+        val ranges = result.compilerAst.entrypoint.statements
+            .filterIsInstance<ForLoop>()
+            .map { it.iterable as RangeExpression }
+        val unsignedStep = ranges[0].step as TypecastExpression
+        val signedStep = ranges[1].step as TypecastExpression
+
+        unsignedStep.type shouldBe DataType.UWORD
+        signedStep.type shouldBe DataType.WORD
     }
 
     test("testForLoopWithRange_str_downto_str") {
