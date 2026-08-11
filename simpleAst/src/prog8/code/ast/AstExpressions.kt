@@ -146,7 +146,7 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
             is PtBool -> false
             is PtNumber -> false
             is PtPrefix -> value.hasSideEffects(target)
-            is PtRange -> from.hasSideEffects(target) || to.hasSideEffects(target)
+            is PtRange -> from.hasSideEffects(target) || to.hasSideEffects(target) || step.hasSideEffects(target)
             is PtString -> false
             is PtPointerDeref -> true
             is PtTypeCast -> value.hasSideEffects(target)
@@ -170,7 +170,7 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
             is PtBool -> true
             is PtNumber -> true
             is PtPrefix -> value.isSimple()
-            is PtRange -> true
+            is PtRange -> from.isSimple() && to.isSimple() && step.isSimple()
             is PtString -> true
             is PtPointerDeref -> false
             is PtTypeCast -> value.isSimple()
@@ -440,8 +440,8 @@ class PtRange(type: DataType, position: Position) : PtExpression(type, position)
         get() = children[0] as PtExpression
     val to: PtExpression
         get() = children[1] as PtExpression
-    val step: PtNumber
-        get() = children[2] as PtNumber
+    val step: PtExpression
+        get() = children[2] as PtExpression
 
     fun toConstantIntegerRange(): IntProgression? {
         fun makeRange(fromVal: Int, toVal: Int, stepVal: Int): IntProgression {
@@ -460,13 +460,16 @@ class PtRange(type: DataType, position: Position) : PtExpression(type, position)
             }
         }
 
+        if(step !is PtNumber)
+            return null
+
         val fromLv = from as? PtNumber
         val toLv = to as? PtNumber
         if(fromLv==null || toLv==null)
             return null
         val fromVal = fromLv.number.toInt()
         val toVal = toLv.number.toInt()
-        val stepVal = step.number.toInt()
+        val stepVal = step.asConstInteger()!!
         return makeRange(fromVal, toVal, stepVal)
     }
 }

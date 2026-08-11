@@ -223,8 +223,8 @@ internal class AstChecker(private val program: Program,
         fun checkUnsignedLoopDownto0(range: RangeExpression?) {
             if(range==null)
                 return
-            val step = range.step.constValue(program)?.number ?: 1.0
-            if(step < -1.0) {
+            val stepConst = range.step.constValue(program)?.number ?: return
+            if(stepConst < -1.0) {
                 val limit = range.to.constValue(program)?.number
                 if(limit==0.0 && range.from.constValue(program)==null)
                     errors.err("for unsigned loop variable it's not possible to count down with step != -1 from a non-const value to exactly zero due to value wrapping", forLoop.position)
@@ -1834,15 +1834,22 @@ internal class AstChecker(private val program: Program,
         val from = range.from.constValue(program)
         val to = range.to.constValue(program)
         val stepLv = range.step.constValue(program)
+        val isForIterable = range.parent is ForLoop && (range.parent as ForLoop).iterable === range
         if(stepLv==null) {
-            err("range step must be a constant integer")
-            return
-        } else if (!stepLv.type.isInteger || stepLv.number.toInt() == 0) {
+            if(!isForIterable) {
+                err("range step must be a constant integer")
+                return
+            }
+            if(!range.step.inferType(program).isInteger) {
+                err("range step must be an integer != 0")
+                return
+            }
+        } else if(!stepLv.type.isInteger || stepLv.number.toInt() == 0) {
             err("range step must be an integer != 0")
             return
         }
-        val step = stepLv.number.toInt()
-        if(from!=null && to != null) {
+        if(from!=null && to!=null && stepLv!=null) {
+            val step = stepLv.number.toInt()
             when {
                 from.type.isInteger && to.type.isInteger -> {
                     val fromValue = from.number.toInt()

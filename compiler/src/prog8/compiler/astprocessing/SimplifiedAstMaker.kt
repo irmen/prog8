@@ -1196,7 +1196,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
         val range=PtRange(type, srcRange.position)
         range.add(transformExpression(srcRange.from))
         range.add(transformExpression(srcRange.to))
-        range.add(transformExpression(srcRange.step) as PtNumber)
+        range.add(transformExpression(srcRange.step))
         return range
     }
 

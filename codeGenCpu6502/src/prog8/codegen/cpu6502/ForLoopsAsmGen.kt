@@ -5,6 +5,7 @@ import prog8.code.StMemVar
 import prog8.code.StStaticVariable
 import prog8.code.ast.PtForLoop
 import prog8.code.ast.PtIdentifier
+import prog8.code.ast.PtNumber
 import prog8.code.ast.PtRange
 import prog8.code.core.*
 import kotlin.math.absoluteValue
@@ -33,10 +34,16 @@ internal class ForLoopsAsmGen(
     }
 
     private fun translateForOverNonconstRange(stmt: PtForLoop, iterableDt: DataType, range: PtRange) {
-        if(range.step.asConstInteger()!! < -1) {
+        val constStep = range.step.asConstInteger()
+        if(constStep != null && constStep < -1) {
             val limit = range.to.asConstInteger()
             if(limit==0)
                 throw AssemblyError("for unsigned loop variable it's not possible to count down with step != -1 from a non-const value to exactly zero due to value wrapping")
+        }
+
+        if(range.step !is PtNumber) {
+            translateForOverNonconstStepRange(stmt, iterableDt, range)
+            return
         }
 
         when {
@@ -47,6 +54,15 @@ internal class ForLoopsAsmGen(
         }
 
         asmgen.loopEndLabels.removeLast()
+    }
+
+    private fun translateForOverNonconstStepRange(stmt: PtForLoop, iterableDt: DataType, range: PtRange) {
+        val typeName = when {
+            iterableDt.isLongArray -> "long"
+            iterableDt.isWordArray -> "word"
+            else -> "byte"
+        }
+        TODO("variable-step for loops over $typeName are not implemented in the legacy 6502 code generator yet at ${stmt.position}")
     }
 
     private fun forOverNonconstLongRange(stmt: PtForLoop, iterableDt: DataType, range: PtRange) {

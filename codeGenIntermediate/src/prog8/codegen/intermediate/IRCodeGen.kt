@@ -689,7 +689,7 @@ class IRCodeGen(
         val result = mutableListOf<IRCodeChunkBase>()
         when(iterable) {
             is PtRange -> {
-                result += if(iterable.from is PtNumber && iterable.to is PtNumber)
+                result += if(iterable.from is PtNumber && iterable.to is PtNumber && iterable.step is PtNumber)
                     translateForInConstantRange(forLoop, loopvar)
                 else
                     translateForInNonConstantRange(forLoop, loopvar)
@@ -789,7 +789,7 @@ class IRCodeGen(
 
     private fun translateForInNonConstantRange(forLoop: PtForLoop, loopvar: StNode): IRCodeChunks {
         val iterable = forLoop.iterable as PtRange
-        val step = iterable.step.number.toInt()
+        val step = iterable.step.asConstInteger()
         if (step==0)
             throw AssemblyError("step 0")
         require(forLoop.variable.name == loopvar.scopedNameString)
@@ -835,12 +835,16 @@ class IRCodeGen(
             }
         }
         else {
+            if(step==null)
+                return translateForInVariableStepRange(forLoop, loopvar)
+
             val toTr = expressionEval.translateExpression(iterable.to)
             addToResult(result, toTr, toTr.resultReg, -1)
             val fromTr = expressionEval.translateExpression(iterable.from)
             addToResult(result, fromTr, fromTr.resultReg, -1)
 
             val labelAfterFor = createLabelName()
+
             val precheckInstruction = if(loopvarDt.isSigned) {
                 if(step>0)
                     IRInstruction(Opcode.BGTSR, loopvarDtIr, fromTr.resultReg, toTr.resultReg, labelSymbol=labelAfterFor)
@@ -879,6 +883,106 @@ class IRCodeGen(
             }
             result += IRCodeChunk(labelAfterFor, null)
         }
+        return result
+    }
+
+    private fun translateForInVariableStepRange(forLoop: PtForLoop, loopvar: StNode): IRCodeChunks {
+        val iterable = forLoop.iterable as PtRange
+        require(forLoop.variable.name == loopvar.scopedNameString)
+        val loopvarSymbol = forLoop.variable.name
+        val loopvarDt = when(loopvar) {
+            is StMemVar -> loopvar.dt
+            is StStaticVariable -> loopvar.dt
+            else -> throw AssemblyError("invalid loopvar node type")
+        }
+        val loopvarDtIr = irType(loopvarDt)
+        val result = mutableListOf<IRCodeChunkBase>()
+
+        val labelAfterFor = createLabelName()
+        val loopLabel = createLabelName()
+        val labelDescending = createLabelName()
+        val labelDescendingTail = createLabelName()
+
+        // Evaluate bounds and step once, in source order. The step register stays live throughout
+        // because the register pool is monotonic (never reuses registers).
+        val fromTr = expressionEval.translateExpression(iterable.from)
+        addToResult(result, fromTr, fromTr.resultReg, -1)
+        val toTr = expressionEval.translateExpression(iterable.to)
+        addToResult(result, toTr, toTr.resultReg, -1)
+        val stepTr = expressionEval.translateExpression(iterable.step)
+        addToResult(result, stepTr, stepTr.resultReg, -1)
+        var stepReg = stepTr.resultReg
+        if(stepTr.dt != loopvarDtIr) {
+            val extendOpcode = if(iterable.step.type.isSigned) Opcode.EXTS else Opcode.EXT
+            when {
+                stepTr.dt == IRDataType.BYTE && loopvarDtIr == IRDataType.WORD -> {
+                    stepReg = registers.next(IRDataType.WORD)
+                    addInstr(result, IRInstruction(extendOpcode, IRDataType.BYTE, reg1=stepReg, reg2=stepTr.resultReg), null)
+                }
+                stepTr.dt == IRDataType.BYTE && loopvarDtIr == IRDataType.LONG -> {
+                    val wordReg = registers.next(IRDataType.WORD)
+                    stepReg = registers.next(IRDataType.LONG)
+                    addInstr(result, IRInstruction(extendOpcode, IRDataType.BYTE, reg1=wordReg, reg2=stepTr.resultReg), null)
+                    addInstr(result, IRInstruction(extendOpcode, IRDataType.WORD, reg1=stepReg, reg2=wordReg), null)
+                }
+                stepTr.dt == IRDataType.WORD && loopvarDtIr == IRDataType.LONG -> {
+                    stepReg = registers.next(IRDataType.LONG)
+                    addInstr(result, IRInstruction(extendOpcode, IRDataType.WORD, reg1=stepReg, reg2=stepTr.resultReg), null)
+                }
+                else -> throw AssemblyError("cannot widen loop step ${stepTr.dt} to $loopvarDtIr")
+            }
+        }
+
+        // step == 0 => empty loop
+        addInstr(result, IRInstruction(Opcode.CMPI, loopvarDtIr, reg1=stepReg, immediate=0), null)
+        addInstr(result, IRInstruction(Opcode.BSTEQ, labelSymbol=labelAfterFor), null)
+
+        // Determine direction from step sign
+        if(iterable.step.type.isSigned)
+            addInstr(result, IRInstruction(Opcode.BSTNEG, labelSymbol=labelDescending), null)
+
+        val precheckOpcode = if(loopvarDt.isSigned) Opcode.BGTSR else Opcode.BGTR
+
+        val directionReg = registers.next(IRDataType.BYTE)
+        val currentReg = registers.next(loopvarDtIr)
+        val nextReg = registers.next(loopvarDtIr)
+
+        // Both directions share the body. The direction flag selects the
+        // appropriate tail after calculating the next value.
+        addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=directionReg, immediate=0), null)
+        addInstr(result, IRInstruction(precheckOpcode, loopvarDtIr, reg1=fromTr.resultReg, reg2=toTr.resultReg, labelSymbol=labelAfterFor), null)
+        addInstr(result, IRInstruction(Opcode.STOREM, loopvarDtIr, reg1=fromTr.resultReg, labelSymbol=loopvarSymbol), null)
+        addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol=loopLabel), null)
+
+        result += IRCodeChunk(labelDescending, null)
+        addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=directionReg, immediate=1), null)
+        addInstr(result, IRInstruction(precheckOpcode, loopvarDtIr, reg1=toTr.resultReg, reg2=fromTr.resultReg, labelSymbol=labelAfterFor), null)
+        addInstr(result, IRInstruction(Opcode.STOREM, loopvarDtIr, reg1=fromTr.resultReg, labelSymbol=loopvarSymbol), null)
+
+        result += labelFirstChunk(translateNode(forLoop.statements), loopLabel)
+        addInstr(result, IRInstruction(Opcode.LOADM, loopvarDtIr, reg1=currentReg, labelSymbol=loopvarSymbol), null)
+        addInstr(result, IRInstruction(Opcode.LOADR, loopvarDtIr, reg1=nextReg, reg2=currentReg), null)
+        addInstr(result, IRInstruction(Opcode.ADDR, loopvarDtIr, reg1=nextReg, reg2=stepReg), null)
+
+        addInstr(result, IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1=directionReg, immediate=0), null)
+        addInstr(result, IRInstruction(Opcode.BSTNE, labelSymbol=labelDescendingTail), null)
+
+        // Ascending: wrapping makes next smaller than current; otherwise
+        // next must not exceed the upper bound.
+        addInstr(result, IRInstruction(precheckOpcode, loopvarDtIr, reg1=currentReg, reg2=nextReg, labelSymbol=labelAfterFor), null)
+        addInstr(result, IRInstruction(precheckOpcode, loopvarDtIr, reg1=nextReg, reg2=toTr.resultReg, labelSymbol=labelAfterFor), null)
+        addInstr(result, IRInstruction(Opcode.STOREM, loopvarDtIr, reg1=nextReg, labelSymbol=loopvarSymbol), null)
+        addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol=loopLabel), null)
+
+        result += IRCodeChunk(labelDescendingTail, null)
+        // Descending: wrapping makes next larger than current; otherwise
+        // next must not fall below the lower bound.
+        addInstr(result, IRInstruction(precheckOpcode, loopvarDtIr, reg1=nextReg, reg2=currentReg, labelSymbol=labelAfterFor), null)
+        addInstr(result, IRInstruction(precheckOpcode, loopvarDtIr, reg1=toTr.resultReg, reg2=nextReg, labelSymbol=labelAfterFor), null)
+        addInstr(result, IRInstruction(Opcode.STOREM, loopvarDtIr, reg1=nextReg, labelSymbol=loopvarSymbol), null)
+        addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol=loopLabel), null)
+
+        result += IRCodeChunk(labelAfterFor, null)
         return result
     }
 
@@ -940,35 +1044,6 @@ class IRCodeGen(
         }
         result += chunk2
         return result
-    }
-
-    private fun addConstByteToReg(reg: Int, value: Int): IRCodeChunk {
-        val code = IRCodeChunk(null, null)
-        when(value) {
-            0 -> { /* do nothing */ }
-            1 -> {
-                code += IRInstruction(Opcode.INC, IRDataType.BYTE, reg1=reg)
-            }
-            2 -> {
-                code += IRInstruction(Opcode.INC, IRDataType.BYTE, reg1=reg)
-                code += IRInstruction(Opcode.INC, IRDataType.BYTE, reg1=reg)
-            }
-            -1 -> {
-                code += IRInstruction(Opcode.DEC, IRDataType.BYTE, reg1=reg)
-            }
-            -2 -> {
-                code += IRInstruction(Opcode.DEC, IRDataType.BYTE, reg1=reg)
-                code += IRInstruction(Opcode.DEC, IRDataType.BYTE, reg1=reg)
-            }
-            else -> {
-                code += if(value>0) {
-                    IRInstruction(Opcode.ADD, IRDataType.BYTE, reg1 = reg, immediate = value)
-                } else {
-                    IRInstruction(Opcode.SUB, IRDataType.BYTE, reg1 = reg, immediate = -value)
-                }
-            }
-        }
-        return code
     }
 
     private fun addConstToReg(reg: Int, value: Int, dt: IRDataType): IRCodeChunk {

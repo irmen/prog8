@@ -62,6 +62,11 @@ and legacy paths or rejected with a clear diagnostic before code generation.
 
 ### 1. `AstChecker` - relax the constant-step requirement
 
+**Status: complete for the current scope.** Dynamic integer steps are accepted
+for direct `for` ranges, while non-loop ranges retain the constant-step rule.
+Constant zero and direction checks remain. Runtime wrap safety is handled by
+the IR backend, and the legacy backend rejects dynamic steps clearly.
+
 `compiler/src/prog8/compiler/astprocessing/AstChecker.kt:1829-1860`
 (`visit(RangeExpression)`).
 
@@ -89,6 +94,10 @@ known constant unsafe steps.
 
 ### 2. `TypecastsAdder` - validate/cast the step to the loopvar type
 
+**Status: deferred.** The current implementation performs step widening and
+signedness-aware extension directly in IR codegen. Centralized validation and
+normalization in `TypecastsAdder` remain future work.
+
 `compiler/src/prog8/compiler/astprocessing/TypecastsAdder.kt:470-665`
 (`after(range)` and `adjustRangeDts`).
 
@@ -113,6 +122,8 @@ signedness when selecting direction and when extending the step.
 
 ### 3. `SimplifiedAstMaker` - stop forcing step to `PtNumber`
 
+**Status: complete.** Dynamic steps are preserved as expressions.
+
 `compiler/src/prog8/compiler/astprocessing/SimplifiedAstMaker.kt:1185-1201`
 (`transform(RangeExpression)`).
 
@@ -123,6 +134,9 @@ The containment-check step restriction (`SimplifiedAstMaker.kt:1151`) stays;
 containment remains constant-only.
 
 ### 4. Simple AST - `PtRange.step` becomes `PtExpression`
+
+**Status: complete.** Dynamic steps, constant-range conversion, side-effect
+tracking, and simplicity checks are supported.
 
 `simpleAst/src/prog8/code/ast/AstExpressions.kt:438-472`.
 
@@ -139,6 +153,11 @@ containment remains constant-only.
   optimized as a harmless literal.
 
 ### 5. IR codegen - new variable-step path
+
+**Status: implemented and validated.** The IR path evaluates bounds and step
+once in source order, preserves direction, computes `next` in a temporary
+register, and uses direct `BGTR`/`BGTSR` checks for bound crossing and wrap.
+The virtual, qemu68k, amiga500, and cx16 `-newcodegen` gates pass.
 
 `codeGenIntermediate/src/prog8/codegen/intermediate/IRCodeGen.kt`.
 
@@ -199,6 +218,9 @@ and `LONG` values before claiming those types are supported.
 
 ### 6. Legacy 6502 codegen - new variable-step path
 
+**Status: deferred.** The legacy backend emits a clean unsupported diagnostic
+for dynamic steps. Variable-step byte/word assembly lowering is not implemented.
+
 `codeGenCpu6502/src/prog8/codegen/cpu6502/ForLoopsAsmGen.kt`.
 
 - **`translateForOverNonconstRange`** (lines 35-50): guard the
@@ -251,7 +273,28 @@ and `LONG` values before claiming those types are supported.
     passes non-literal steps through (`adjustRangeDt`).
   - `StatementOptimizer` (`StatementOptimizer.kt:184-216`) uses
     `range.size()`, which returns null for non-constant steps, so no
-    loop-removal / repeat-conversion fires. No changes needed.
+  loop-removal / repeat-conversion fires. No changes needed.
+
+### Code generation quality review
+
+Before considering the implementation complete, review the generated code for
+size and performance on every supported IR target and on the legacy backend
+once its implementation exists.
+
+- Compare variable-step loops with equivalent constant-step loops for code
+  size, register count, chunk count, and per-iteration instruction count.
+- Confirm that `from`, `to`, and `step` are evaluated only once and that no
+  redundant loads or expression evaluations remain inside the loop body.
+- Review the cost of the temporary `next` value, direction selection, direct
+  comparisons, and wrap guards in byte, word, long, and pointer loops.
+- Check register pressure and register packing limits, especially for nested
+  loops and long or pointer loop variables.
+- Inspect generated 6502 and M68K assembly for unnecessary memory traffic,
+  avoidable branches, and target-specific instruction opportunities.
+- Record any acceptable performance or code-size tradeoffs and add focused
+  assertions or regression tests for issues found during the review.
+
+**Status: pending.**
 
 ## Test Gates
 
@@ -260,10 +303,14 @@ touched**. After every big code change, run the gate program below.
 
 ### Gate program
 
+**Status: complete.** The self-checking gate is at `forstep_gate.p8` in the
+project root and covers 16 cases, including pointer, signed word, wrong
+direction, side effects, `continue`, wrapping, nesting, and step mutation.
+
 Create a real, self-checking program at
-`compiler/test/vm/forstep_gate.p8` before implementing the codegen. It must
+`forstep_gate.p8` before implementing the codegen. It must
 contain executable loops, expected counts or accumulated sums, PASS/FAIL
-output, and `sys.poweroff_system()` so it can run unattended. Do not use a
+output, and a portable termination call such as `sys.exit(0)` so it can run unattended. Do not use a
 comment-only placeholder in the plan or test suite.
 
 Use `@shared` on step variables so the optimizer cannot const-fold them away.
@@ -291,22 +338,26 @@ program.
 
 ### Gate commands
 
-1. **Compiler AST**: `prog8c -target virtual -check compiler/test/vm/forstep_gate.p8`
-   and `prog8c -target virtual -printast1 compiler/test/vm/forstep_gate.p8`.
+**Status: complete for the virtual and currently tested target gates.** The
+optimized and `-noopt` virtual runs pass, as do runtime checks on qemu68k,
+amiga500, and cx16 `-newcodegen`.
+
+1. **Compiler AST**: `prog8c -target virtual -check forstep_gate.p8`
+   and `prog8c -target virtual -printast1 forstep_gate.p8`.
    Confirm that the variable step remains an expression and that no constant
    direction error is emitted.
-2. **Simple AST**: `prog8c -target virtual -printast2 compiler/test/vm/forstep_gate.p8`.
+2. **Simple AST**: `prog8c -target virtual -printast2 forstep_gate.p8`.
    Confirm that `PtRange.step` is a `PtExpression`, side effects are retained,
    and no literal-only cast occurs.
 3. **IR + execution (THE GATE)**:
-   `prog8c -target virtual -emu compiler/test/vm/forstep_gate.p8` must produce
+   `prog8c -target virtual -emu forstep_gate.p8` must produce
    only PASS results. Repeat with `-noopt -emu`.
 4. **IR file execution**: compile to a dedicated output directory and run the
    resulting `.p8ir` with `prog8c -vm`. Inspect the IR to confirm the step is
    evaluated once and that the loop uses direct comparisons and wrap guards.
    For failures use `-compareir` and `-vmtrace` (see AGENTS.md).
 5. Only when virtual is flawless, move to the per-target gates:
-   - new6502: `prog8c -target cx16 -newcodegen compiler/test/vm/forstep_gate.p8`
+   - new6502: `prog8c -target cx16 -newcodegen forstep_gate.p8`
      plus assembly assertions or simulator execution.
    - m68k: compile for both `qemu68k` and `amiga500`, inspect the generated
      assembly, and add backend-specific assembly assertions. Runtime execution
@@ -346,11 +397,11 @@ program.
 ```bash
 gradle :compiler:compileKotlin --console=plain        # quick check after Kotlin edits
 gradle installdist installshadowdist --console=plain  # after compiler or embedded-library changes
-prog8c -target virtual -emu compiler/test/vm/forstep_gate.p8
-prog8c -target virtual -out /tmp/forstep-gate compiler/test/vm/forstep_gate.p8
+prog8c -target virtual -emu forstep_gate.p8
+prog8c -target virtual -out /tmp/forstep-gate forstep_gate.p8
 prog8c -vm /tmp/forstep-gate/forstep_gate.p8ir
-prog8c -target cx16 -newcodegen compiler/test/vm/forstep_gate.p8
-prog8c -target cx16 compiler/test/vm/forstep_gate.p8
+prog8c -target cx16 -newcodegen forstep_gate.p8
+prog8c -target cx16 forstep_gate.p8
 gradle build --console=plain                          # final gate, all targets and tests
 ```
 
@@ -359,6 +410,8 @@ after compiler Kotlin, grammar, or embedded standard-library changes. Gradle
 commands must be run sequentially, never in parallel.
 
 ## Documentation
+
+**Status: pending.**
 
 Update the for-loop / range documentation:
 
@@ -369,3 +422,26 @@ Update the for-loop / range documentation:
   the loop empty, and that fixed-width wrap terminates the loop.
 - `docs/source/programming.rst:610` - same update.
 - Check `docs/source/todo.rst` for related entries.
+
+## Final FOR-loop Codegen Review
+
+**Status: pending.**
+
+As the final step, review the IR and legacy 6502 FOR-loop code generators in
+general, including both constant-step and variable-step paths. This is an
+analysis-only review; do not change code as part of this step unless a separate
+follow-up task is created.
+
+- Assess whether the implementations are clear, appropriately factored, and
+  maintainable, or whether control flow and target-specific cases are overly
+  complicated or convoluted.
+- Identify duplicated logic between byte, word, long, pointer, signed, and
+  unsigned loop variants, and between constant-step and variable-step paths.
+- Check whether existing helpers, labels, temporary values, comparison logic,
+  wrap handling, and register allocation can be simplified or shared safely.
+- Review the IR and legacy 6502 implementations separately for correctness,
+  target-specific constraints, generated code quality, and consistency of
+  semantics.
+- Record concrete findings, possible simplifications, and any recommended
+  refactoring work as follow-up items, without performing those refactorings in
+  this plan step.
