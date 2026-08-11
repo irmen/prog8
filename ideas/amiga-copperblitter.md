@@ -287,16 +287,15 @@ Each instruction is 4 bytes (2 words):
 
 | Type | Word 1 | Word 2 |
 |------|--------|--------|
-| **MOVE** | `(reg_addr & $1FE) << 7 | (reg_addr >> 8)`, bit 0 = 0 | value |
+| **MOVE** | `reg_offset & $1FE` (register offset from $dff000, bit 0 = 0) | value |
 | **WAIT** | `vpos << 8 | hpos << 1 | 1` | mask, bit 0 = 0 |
 | **SKIP** | `vpos << 8 | hpos << 1 | 1` | mask, bit 0 = 1 |
 | **END** | `$FFFF` | `$FFFE` |
 
 **MOVE encoding detail:**
-- Register address is 9 bits (0-511 for custom chips at $dff000-$dffffe)
-- Word 1 bits 15-8: register address bits 7-1 (shifted)
-- Word 1 bits 7-1: register address bits 15-8
-- Word 1 bit 0: 0 (MOVE flag)
+- Register address is the offset from $dff000 (e.g., $dff180 → offset $180)
+- Since all custom registers are word-aligned, bit 0 of offset is always 0
+- Word 1 = register offset with bit 0 masked clear (`and.w #$1FE`)
 - Word 2: 16-bit value
 
 **WAIT/SKIP encoding detail:**
@@ -342,12 +341,9 @@ Add a MOVE instruction to write value to custom chip register.
 **Implementation:**
 ```asm
 move.l  _copper_pos,a0
-move.w  d0,d2           ; d2 = reg_addr
-lsl.w   #7,d2           ; shift bits 8-1 to 15-8
-move.w  d0,d3
-lsr.w   #8,d3           ; d3 = reg_addr bits 15-8
-or.w    d3,d2           ; combine (bit 0 already 0 for MOVE)
-move.w  d2,(a0)+        ; write upper word
+move.w  d0,d2           ; d2 = reg_addr (full address like $dff180)
+and.w   #$1FE,d2        ; extract offset from $dff000, bit 0 guaranteed clear
+move.w  d2,(a0)+        ; write upper word (register address)
 move.w  d1,(a0)+        ; write lower word (value)
 move.l  a0,_copper_pos
 rts

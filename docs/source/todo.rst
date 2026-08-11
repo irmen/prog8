@@ -2,8 +2,8 @@ TODO
 ====
 
 - need a bunch of type casting/conversion checks that test the handling of the 4-byte/long pointer datatype on the qemu68k target.
-- amiga library structs: use more typed pointers if it knows the struct type , rather than using `pointer`. Consider both the extsubs but also the struct fields in the amigaDOS structs in the generated library modules.
-- BUG: register type mismatch crash on 32-bit targets (qemu68k/amiga500) when a ubyte variable is used as array index multiple times in the same function. The IR code generator creates a WORD register for the index extension, but when the same ubyte variable is used again, it conflicts with the existing WORD register type. Example: `ubyte ii = 11; string_out[ii] = 0; ii--; string_out[ii] = 42` crashes with "register r2 given multiple types! WORD and BYTE". The issue is in how register types are tracked across multiple index operations in the same code chunk.
+- amiga library structs: use more typed pointers if it knows the struct type from the same (or another amiga library module) , rather than using `pointer`. Consider both the extsubs but also the struct fields in the amigaDOS structs in the generated library modules.
+- amiga500: add blitter.p8 and copper.p8 library modules for bare-metal blitter/copper operations (see ideas/amiga-copperblitter.md) 
 
 
 Future Things and Ideas
@@ -21,7 +21,6 @@ Future Things and Ideas
 - struct/ptr: typed function pointers (simplified): ``&&subroutine`` returns opaque typed pointer (no ``funcptr`` keyword), assignment allowed where target type is inferred, calling via ``ptr(args)``. No explicit signature syntax. Useful mostly for 68000 targets.
 - struct/ptr: really fixing the pointer dereferencing issues (cursed hybrid between IdentifierReference, PtrDereferece and PtrIndexedDereference) may require getting rid of scoped identifiers altogether and treat '.' as a "scope or pointer following operator"
 - struct/ptr: (later, nasty parser problem:) support chaining pointer dereference on function calls that return a pointer.  (type checking now fails on stuff like func().field and func().next.field)
-- Make const type declaration optional: untyped ``const x = 42`` defaults to ``long``, ``const x = 3.14`` to ``float``, ``const x = true`` to ``bool``, ``const x = memory()`` to ``pointer``, ``const X = PI`` inherits PI's type. Untyped enums default to long. Explicitly typed consts unchanged. -> long-consts plan
 - add documentation for more library modules instead of just linking to the source code
 - sizeof(pointer) is now always 2 (an uword), make this a variable in the ICompilationTarget so that it could be 4 at the time we might ad a 32-bits 68000 target for example. Much code assumes word size addresses though.
 - add float support to the configurable compiler targets. Restrictions: just have "cbm-style floats" as an option (to that it can slot into the current float codegen), where all you have to specify is the addresses of AYINT and GIVAYF and FADDT and all their friends.
@@ -75,7 +74,6 @@ Libraries
 ^^^^^^^^^
 - Add split-word array sorting routines to sorting module?
 - make a list of all floats.* routines that the compiler expects for full float support?
-- amiga500: add blitter.p8 and copper.p8 library modules for bare-metal blitter/copper operations (see ideas/amiga-copperblitter.md) 
 
 
 Optimizations
