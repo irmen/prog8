@@ -117,7 +117,10 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
             val value = imm ?: 0
             val type = insn.type ?: IRDataType.BYTE
             val s = dtSuffix(type)
-            emitLine("move$s  #$value, d0")
+            if (value in -128..127)
+                emitLine("moveq  #$value, d0")
+            else
+                emitLine("move$s  #$value, d0")
             emitLine("rts")
         }
 
@@ -242,14 +245,14 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
             when (type) {
                 IRDataType.BYTE -> {
                     // zero-extend byte to word
+                    emitLine("moveq  #0, d0")
                     emitLine("move.b  ${regAddr(srcReg)}, d0")
-                    emitLine($$"and.w  #$ff, d0")
                     emitLine("move.w  d0, ${regAddr(dstReg)}")
                 }
                 IRDataType.WORD -> {
                     // zero-extend word to long
+                    emitLine("moveq  #0, d0")
                     emitLine("move.w  ${regAddr(srcReg)}, d0")
-                    emitLine($$"and.l  #$ffff, d0")
                     emitLine("move.l  d0, ${regAddr(dstReg)}")
                 }
                 IRDataType.LONG -> {

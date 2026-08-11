@@ -638,7 +638,10 @@ private fun AsmGen.emitDivModOp(dstReg: Int, remainderReg: Int, type: IRDataType
             emitLine("move.b  ${regAddr(dstReg)}, d0")
             if (unsigned) emitLine($$"and.l  #$ff, d0") else emitSignExtendByteToLong("d0")
             if(imm!=null) {
-                emitLine("moveq  #${imm.and(0xff)}, d1")
+                if (unsigned)
+                    emitLine("move.l  #${imm.and(0xff)}, d1")
+                else
+                    emitLine("moveq  #${imm.and(0xff)}, d1")
                 if (!unsigned) emitSignExtendByteToLong("d1")
             } else {
                 emitLine("move.b  ${regAddr(remainderReg)}, d1")

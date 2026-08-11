@@ -5,6 +5,14 @@ import prog8.intermediate.IRDataType
 import prog8.intermediate.IRInstruction
 import prog8.intermediate.Opcode
 
+private fun AsmGen.addIndirectOffset(offset: Int) {
+    when (offset) {
+        in 1..8 -> emitLine("addq.l  #$offset, a0")
+        in -8..-1 -> emitLine("subq.l  #${-offset}, a0")
+        else -> emitLine("adda.l  #$offset, a0")
+    }
+}
+
 internal fun AsmGen.translateLoadStore(insn: IRInstruction) {
     val type = insn.type ?: IRDataType.BYTE
     val r1 = insn.reg1
@@ -77,7 +85,7 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction) {
             val off = imm ?: 0
             loadPointerToA0(base)
             if(off<-32768 || off>32767) {
-                emitLine("adda.l  #$off, a0")
+                addIndirectOffset(off)
                 emitLine("move$s  (a0), d0")
             } else {
                 if(off==0)
@@ -120,7 +128,7 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction) {
             val off = imm ?: 0
             loadPointerToA0(base)
             if(off<-32768 || off>32767) {
-                emitLine("adda.l  #$off, a0")
+                addIndirectOffset(off)
                 emitLine("clr$s  (a0)")
             } else {
                 if(off==0)
@@ -150,7 +158,7 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction) {
             val off = imm ?: 0
             loadPointerToA0(base)
             if(off<-32768 || off>32767) {
-                emitLine("adda.l  #$off, a0")
+                addIndirectOffset(off)
                 emitLine("move$s  ${regAddr(value)}, (a0)")
             } else {
                 if(off==0)
@@ -185,7 +193,7 @@ private fun AsmGen.translateFloatLoadStore(insn: IRInstruction, target: String) 
             val base = r1 ?: error("STOREZI.f needs reg1 (base)")
             val off = imm ?: 0
             loadPointerToA0(base)
-            if (off != 0) emitLine("adda.l  #$off, a0")
+            if (off != 0) addIndirectOffset(off)
             emitLine("fmovecr  #\$0f, fp0")
             emitLine("fmove.s  fp0, (a0)")
         }
@@ -264,7 +272,7 @@ private fun AsmGen.translateFloatLoadStore(insn: IRInstruction, target: String) 
                     val base = r1 ?: error("LOADI.f needs reg1 (base)")
                     val off = imm ?: 0
                     loadPointerToA0(base)
-                    if (off != 0) emitLine("adda.l  #$off, a0")
+                    if (off != 0) addIndirectOffset(off)
                     emitLine("fmove.s  (a0), $FP_ACC")
                     emitLine("fmove.s  $FP_ACC, ${floatRegFileAddr(fp1)}")
                 }
@@ -293,7 +301,7 @@ private fun AsmGen.translateFloatLoadStore(insn: IRInstruction, target: String) 
                     val base = r1 ?: error("STOREI.f needs reg1 (base)")
                     val off = imm ?: 0
                     loadPointerToA0(base)
-                    if (off != 0) emitLine("adda.l  #$off, a0")
+                    if (off != 0) addIndirectOffset(off)
                     emitLine("fmove.s  ${floatRegFileAddr(fp1)}, $FP_ACC")
                     emitLine("fmove.s  $FP_ACC, (a0)")
                 }
