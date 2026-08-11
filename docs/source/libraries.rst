@@ -733,6 +733,9 @@ floats
     Floating point support is available on most cbm-compatible targets (except the C128 for now), and the virtual target.
     On the X16, make sure rom bank 4 is still active before doing floating point operations (it's the bank that contains the fp routines).
     On the C64, you have to make sure the Basic ROM is still banked in (same reason).
+    On the ``qemu68k`` and ``amiga500`` targets, floating point support requires a 68020 or better CPU with an 68881/68882 FPU.
+    For ``amiga500`` programs that use floats, the compiler automatically assembles with ``-m68020 -m68881``.
+    Such programs will not run on an Amiga 500/600 or 1200 without an FP coprocessor or a suitable upgraded/emulated CPU configuration.
 
 Provides definitions for the ROM/Kernal subroutines and utility routines dealing with floating point variables.
 

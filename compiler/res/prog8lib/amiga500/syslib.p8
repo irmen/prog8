@@ -43,9 +43,18 @@ sys {
 
     sub  reset_system()  {
         %asm {{
-            lea  2.l,a0
+            move.l  4.w,a6
+            move.w  20(a6),d0       ; ExecBase version
+            cmpi.w  #36,d0
+            bge.s   .cold_reboot
+
+            move.l  4.w,a0          ; Kickstart 1.3 fallback
             reset
-            jmp (a0)
+            move.l  (a0),a0
+            jmp     (a0)
+
+.cold_reboot:
+            jmp     -726(a6)       ; ColdReboot()
         }}
     }
 

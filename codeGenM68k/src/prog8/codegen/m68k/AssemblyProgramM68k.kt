@@ -1,7 +1,10 @@
 package prog8.codegen.m68k
 
 import prog8.code.assembly.IAssemblyProgram
-import prog8.code.core.*
+import prog8.code.core.CompilationOptions
+import prog8.code.core.CpuType
+import prog8.code.core.IErrorReporter
+import prog8.code.core.OutputType
 import prog8.code.target.Amiga500Target
 import java.nio.file.Files
 import java.nio.file.Path
@@ -50,6 +53,7 @@ class AssemblyProgramM68k(override val name: String, private val outputDir: Path
             CpuType.M68020 -> "68020"
             else -> error("invalid cpu type for m68k codegen ${options.compTarget.cpu}")
         }
+        val assemblerCpu = if(options.compTarget.name == "amiga500" && options.floats) "68020" else cpu
 
         val loadAddr = options.compTarget.PROGRAM_LOAD_ADDRESS.toInt()
         when(options.output) {
@@ -58,7 +62,7 @@ class AssemblyProgramM68k(override val name: String, private val outputDir: Path
                 val listFile = outputDir.resolve("$name.lis")
                 val assembleCmd = mutableListOf(
                     "vasmm68k_mot",
-                    "-m$cpu",
+                    "-m$assemblerCpu",
                     "-m68881",  // enable FPU
                     "-Fbin",
                     "-opt-speed",
@@ -87,7 +91,7 @@ class AssemblyProgramM68k(override val name: String, private val outputDir: Path
                 val listFile = outputDir.resolve("$name.list")
                 val assembleCmd = mutableListOf(
                     "vasmm68k_mot",
-                    "-m$cpu",
+                    "-m$assemblerCpu",
                     "-m68881",  // enable FPU
                     "-Felf",
                     "-opt-speed",
@@ -136,7 +140,8 @@ class AssemblyProgramM68k(override val name: String, private val outputDir: Path
                         // amiga 500 with kickstart 1.3
                         mutableListOf(
                             "vasmm68k_mot",
-                            "-m$cpu",
+                            "-m$assemblerCpu",
+                            *if(options.floats) arrayOf("-m68881") else emptyArray(),
                             "-Fhunkexe",
                             "-kick1hunks",   // old hunk format compatible with AmigaDOS 1.3
                             "-opt-speed",
@@ -160,7 +165,7 @@ class AssemblyProgramM68k(override val name: String, private val outputDir: Path
                         // assume at least an amiga 1200 with 68020 and optional FPU
                         mutableListOf(
                             "vasmm68k_mot",
-                            "-m$cpu",
+                            "-m$assemblerCpu",
                             "-m68881",  // enable FPU
                             "-Fhunkexe",
                             "-opt-speed",

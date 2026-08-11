@@ -432,6 +432,13 @@ fun parseMainModule(filepath: Path,
         .map { Path(it.origin) }
     val compilerOptions = determineCompilationOptions(program, compTarget)
 
+    if(compTarget.name == Amiga500Target.NAME && compilerOptions.floats) {
+        errors.warn(
+            "floating-point code requires a 68020 or better CPU with an 68881/68882 FPU; assembler options set to -m68020 -m68881. This program will NOT run on an Amiga 500/600 or 1200 without fp coprocessor!",
+            program.toplevelModule.position
+        )
+    }
+
     // import the default modules
     importer.importImplicitLibraryModule("syslib")
     importer.importImplicitLibraryModule("prog8_math")
