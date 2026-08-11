@@ -2238,11 +2238,20 @@ class IRCodeGen(
         val byteIndexTr = expressionEval.translateExpression(index)
         addToResult(result, byteIndexTr, byteIndexTr.resultReg, -1)
 
-        if(itemsize==1 || arrayIsSplitWords)
-            return Pair(result, byteIndexTr.resultReg)
+        // LOADX/STOREX use word-sized indices on targets with 32-bit pointers.
+        // Widen byte indices before returning them, including for byte arrays.
+        val indexRegType = if(options.compTarget.POINTER_MEM_SIZE > 2u) IRDataType.WORD else IRDataType.BYTE
+        var indexReg = byteIndexTr.resultReg
+        if(indexRegType == IRDataType.WORD && byteIndexTr.dt == IRDataType.BYTE) {
+            indexReg = registers.next(IRDataType.WORD)
+            addInstr(result, IRInstruction(Opcode.EXT, IRDataType.BYTE, reg1=indexReg, reg2=byteIndexTr.resultReg), null)
+        }
 
-        result += multiplyByConst(DataType.UBYTE, byteIndexTr.resultReg, itemsize)
-        return Pair(result, byteIndexTr.resultReg)
+        if(itemsize==1 || arrayIsSplitWords)
+            return Pair(result, indexReg)
+
+        result += multiplyByConst(if(indexRegType == IRDataType.WORD) DataType.UWORD else DataType.UBYTE, indexReg, itemsize)
+        return Pair(result, indexReg)
     }
 
     internal fun irType(type: DataType): IRDataType {

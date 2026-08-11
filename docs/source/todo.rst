@@ -21,9 +21,7 @@ Future Things and Ideas
 - struct/ptr: typed function pointers (simplified): ``&&subroutine`` returns opaque typed pointer (no ``funcptr`` keyword), assignment allowed where target type is inferred, calling via ``ptr(args)``. No explicit signature syntax. Useful mostly for 68000 targets.
 - struct/ptr: really fixing the pointer dereferencing issues (cursed hybrid between IdentifierReference, PtrDereferece and PtrIndexedDereference) may require getting rid of scoped identifiers altogether and treat '.' as a "scope or pointer following operator"
 - struct/ptr: (later, nasty parser problem:) support chaining pointer dereference on function calls that return a pointer.  (type checking now fails on stuff like func().field and func().next.field)
-- Make all constants long by default? or not? (remove type name altogether), reduce to target type implicitly if the actual value fits.  -> long-consts branch
-  This will break some existing programs that depend on value wraparound, but gives more intuitive constant number handling.
-  Can give descriptive error message for old syntax that still includes the type name?
+- Make const type declaration optional: untyped ``const x = 42`` defaults to ``long``, ``const x = 3.14`` to ``float``, ``const x = true`` to ``bool``, ``const x = memory()`` to ``pointer``, ``const X = PI`` inherits PI's type. Untyped enums default to long. Explicitly typed consts unchanged. -> long-consts plan
 - add documentation for more library modules instead of just linking to the source code
 - sizeof(pointer) is now always 2 (an uword), make this a variable in the ICompilationTarget so that it could be 4 at the time we might ad a 32-bits 68000 target for example. Much code assumes word size addresses though.
 - add float support to the configurable compiler targets. Restrictions: just have "cbm-style floats" as an option (to that it can slot into the current float codegen), where all you have to specify is the addresses of AYINT and GIVAYF and FADDT and all their friends.
@@ -76,7 +74,8 @@ IR/VM
 Libraries
 ^^^^^^^^^
 - Add split-word array sorting routines to sorting module?
-- make a list of all floats.* routines that the compiler expects for full float support? 
+- make a list of all floats.* routines that the compiler expects for full float support?
+- amiga500: add blitter.p8 and copper.p8 library modules for bare-metal blitter/copper operations (see ideas/amiga-copperblitter.md) 
 
 
 Optimizations

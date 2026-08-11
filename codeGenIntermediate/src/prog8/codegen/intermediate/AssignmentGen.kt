@@ -11,6 +11,14 @@ import prog8.intermediate.*
 
 internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen: ExpressionGen) {
 
+    private fun normalizeArrayIndex(result: MutableList<IRCodeChunkBase>, indexTr: ExpressionCodeResult): Pair<Int, DataType> {
+        if(codeGen.options.compTarget.POINTER_MEM_SIZE <= 2u || indexTr.dt != IRDataType.BYTE)
+            return indexTr.resultReg to DataType.UBYTE
+        val indexReg = codeGen.registers.next(IRDataType.WORD)
+        addInstr(result, IRInstruction(Opcode.EXT, IRDataType.BYTE, reg1=indexReg, reg2=indexTr.resultReg), null)
+        return indexReg to DataType.UWORD
+    }
+
     internal fun translate(assignment: PtAssignment): IRCodeChunks {
         if(assignment.multiTarget) {
             val values = assignment.value as? PtFunctionCall
@@ -396,9 +404,10 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
         fun loadIndex(): Int {
             val tr = exprGen.translateExpression(array.index)
             addToResult(result, tr, tr.resultReg, -1)
+            val (indexReg, indexDt) = normalizeArrayIndex(result, tr)
             if(!array.splitWords && eltSize>1)
-                result += codeGen.multiplyByConst(DataType.UBYTE, tr.resultReg, eltSize)
-            return tr.resultReg
+                result += codeGen.multiplyByConst(indexDt, indexReg, eltSize)
+            return indexReg
         }
 
         if(array.splitWords) {
@@ -902,7 +911,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                 // Non-constant index - use LOADX for each byte array
                 val indexTr = exprGen.translateExpression(array.index)
                 addToResult(result, indexTr, indexTr.resultReg, -1)
-                val indexReg = indexTr.resultReg
+                val (indexReg, indexDt) = normalizeArrayIndex(result, indexTr)
                 val valueTr = exprGen.translateExpression(operand)
                 addToResult(result, valueTr, valueTr.resultReg, -1)
                 if(valueTr.resultReg < 0) return null
@@ -934,11 +943,11 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
             // Non-constant index - use LOADX/ANDR/STOREX
             val indexTr = exprGen.translateExpression(array.index)
             addToResult(result, indexTr, indexTr.resultReg, -1)
-            val indexReg = indexTr.resultReg
+            val (indexReg, indexDt) = normalizeArrayIndex(result, indexTr)
             val arrayVarName = array.variable!!.name
             // Multiply index by element size for LOADX/STOREX
             if(eltSize > 1) {
-                result += codeGen.multiplyByConst(DataType.UBYTE, indexReg, eltSize)
+                result += codeGen.multiplyByConst(indexDt, indexReg, eltSize)
             }
             if(constValue!=null) {
                 val loadReg = codeGen.registers.next(vmDt)
@@ -1031,7 +1040,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
             // Non-constant index
             val indexTr = exprGen.translateExpression(array.index)
             addToResult(result, indexTr, indexTr.resultReg, -1)
-            val indexReg = indexTr.resultReg
+            val (indexReg, indexDt) = normalizeArrayIndex(result, indexTr)
             if(constValue!=null) {
                 val loadReg = codeGen.registers.next(vmDt)
                 val constReg = codeGen.registers.next(vmDt)
@@ -1160,7 +1169,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                 }
                 val indexTr = exprGen.translateExpression(array.index)
                 addToResult(result, indexTr, indexTr.resultReg, -1)
-                val indexReg = indexTr.resultReg
+                val (indexReg, indexDt) = normalizeArrayIndex(result, indexTr)
                 val valueTr = exprGen.translateExpression(operand)
                 addToResult(result, valueTr, valueTr.resultReg, -1)
                 if(valueTr.resultReg < 0) return null
@@ -1191,11 +1200,11 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
             // Non-constant index - use LOADX/ORR/STOREX
             val indexTr = exprGen.translateExpression(array.index)
             addToResult(result, indexTr, indexTr.resultReg, -1)
-            val indexReg = indexTr.resultReg
+            val (indexReg, indexDt) = normalizeArrayIndex(result, indexTr)
             val arrayVarName2 = array.variable!!.name
             // Multiply index by element size for LOADX/STOREX
             if(eltSize > 1) {
-                result += codeGen.multiplyByConst(DataType.UBYTE, indexReg, eltSize)
+                result += codeGen.multiplyByConst(indexDt, indexReg, eltSize)
             }
             if(constValue!=null) {
                 val loadReg = codeGen.registers.next(vmDt)
@@ -1292,7 +1301,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
             // Non-constant index
             val indexTr = exprGen.translateExpression(array.index)
             addToResult(result, indexTr, indexTr.resultReg, -1)
-            val indexReg = indexTr.resultReg
+            val (indexReg, indexDt) = normalizeArrayIndex(result, indexTr)
             val arrayVarName2 = array.variable!!.name
             if(constValue!=null) {
                 val loadReg = codeGen.registers.next(vmDt)
@@ -1466,11 +1475,11 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
             // Non-constant index - use LOADX/MULR/STOREX
             val indexTr = exprGen.translateExpression(array.index)
             addToResult(result, indexTr, indexTr.resultReg, -1)
-            val indexReg = indexTr.resultReg
+            val (indexReg, indexDt) = normalizeArrayIndex(result, indexTr)
             val arrayVariableName = array.variable!!.name
             // Multiply index by element size for LOADX/STOREX
             if(eltSize > 1) {
-                result += codeGen.multiplyByConst(DataType.UBYTE, indexReg, eltSize)
+                result += codeGen.multiplyByConst(indexDt, indexReg, eltSize)
             }
             if(constValue!=null) {
                 val loadReg = codeGen.registers.next(eltDt)
@@ -1562,11 +1571,11 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
             // Non-constant index - use LOADX/SUBR/STOREX
             val indexTr = exprGen.translateExpression(array.index)
             addToResult(result, indexTr, indexTr.resultReg, -1)
-            val indexReg = indexTr.resultReg
+            val (indexReg, indexDt) = normalizeArrayIndex(result, indexTr)
             val arrayVariableName = array.variable!!.name
             // Multiply index by element size for LOADX/STOREX
             if(eltSize > 1) {
-                result += codeGen.multiplyByConst(DataType.UBYTE, indexReg, eltSize)
+                result += codeGen.multiplyByConst(indexDt, indexReg, eltSize)
             }
             if(constValue!=null) {
                 // Non-constant index, constant value
@@ -1884,11 +1893,11 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
             // Non-constant index - use LOADX/ADDR/STOREX
             val indexTr = exprGen.translateExpression(array.index)
             addToResult(result, indexTr, indexTr.resultReg, -1)
-            val indexReg = indexTr.resultReg
+            val (indexReg, indexDt) = normalizeArrayIndex(result, indexTr)
             val arrayVariableName = array.variable!!.name
             // Multiply index by element size for LOADX/STOREX
             if(eltSize > 1) {
-                result += codeGen.multiplyByConst(DataType.UBYTE, indexReg, eltSize)
+                result += codeGen.multiplyByConst(indexDt, indexReg, eltSize)
             }
             if(constValue!=null) {
                 // Non-constant index, constant value
@@ -2279,7 +2288,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                 }
                 val indexTr = exprGen.translateExpression(array.index)
                 addToResult(result, indexTr, indexTr.resultReg, -1)
-                val indexReg = indexTr.resultReg
+                val (indexReg, indexDt) = normalizeArrayIndex(result, indexTr)
                 val valueTr = exprGen.translateExpression(operand)
                 addToResult(result, valueTr, valueTr.resultReg, -1)
                 if(valueTr.resultReg < 0) return null
@@ -2310,7 +2319,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
             // Non-constant index - use LOADX/XORR/STOREX
             val indexTr = exprGen.translateExpression(array.index)
             addToResult(result, indexTr, indexTr.resultReg, -1)
-            val indexReg = indexTr.resultReg
+            val (indexReg, indexDt) = normalizeArrayIndex(result, indexTr)
             val arrayVarName2 = array.variable!!.name
             if(constValue!=null) {
                 val loadReg = codeGen.registers.next(vmDt)

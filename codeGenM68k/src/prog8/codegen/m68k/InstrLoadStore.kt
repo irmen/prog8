@@ -5,6 +5,8 @@ import prog8.intermediate.IRDataType
 import prog8.intermediate.IRInstruction
 import prog8.intermediate.Opcode
 
+private fun staticSymbolComment(label: String?): String = label ?: ""
+
 private fun AsmGen.addIndirectOffset(offset: Int) {
     when (offset) {
         in 1..8 -> emitLine("addq.l  #$offset, a0")
@@ -53,7 +55,7 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction) {
 
         Opcode.LOADM -> {
             val dst = r1 ?: error("LOADM needs reg1")
-            emitLine("move${dtSuffix(type)}  $target, ${regAddr(dst)}")
+            emitLine("move${dtSuffix(type)}  $target, ${regAddr(dst)}", staticSymbolComment(label))
         }
 
         Opcode.LOADR -> {
@@ -98,15 +100,15 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction) {
 
         Opcode.STOREM -> {
             val src = r1 ?: error("STOREM needs reg1")
-            emitLine("move${dtSuffix(type)}  ${regAddr(src)}, $target")
+            emitLine("move${dtSuffix(type)}  ${regAddr(src)}, $target", staticSymbolComment(label))
         }
 
         Opcode.STOREIM -> {
             val value = imm ?: error("STOREIM needs immediate value")
             if(value == 0)
-                emitLine("clr$s  $target")
+                emitLine("clr$s  $target", staticSymbolComment(label))
             else
-                emitLine("move$s  #$value, $target")
+                emitLine("move$s  #$value, $target", staticSymbolComment(label))
         }
 
         Opcode.STOREX -> {
@@ -120,7 +122,7 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction) {
         }
 
         Opcode.STOREZM -> {
-            emitLine("clr${dtSuffix(type)}  $target")
+            emitLine("clr${dtSuffix(type)}  $target", staticSymbolComment(label))
         }
 
         Opcode.STOREZI -> {

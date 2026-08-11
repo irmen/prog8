@@ -1040,7 +1040,7 @@ data class IRInstruction(
                 val compatible = (existingType==IRDataType.POINTER && type in setOf(IRDataType.WORD, IRDataType.LONG)) ||
                         (type==IRDataType.POINTER && existingType in setOf(IRDataType.WORD, IRDataType.LONG))
                 if(!compatible)
-                    throw IllegalArgumentException("register $reg given multiple types! $existingType and $type in $chunk")
+                    throw IllegalArgumentException("register $reg given multiple types! $existingType and $type while processing $this in $chunk")
             } else
                 regsTypes[reg] = type
         }
@@ -1319,5 +1319,4 @@ data class IRInstruction(
             setLength(length - 1)
     }.trimEnd()
 }
-
 
