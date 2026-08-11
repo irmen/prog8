@@ -220,6 +220,34 @@ class TestVariableStepForLoops: FunSpec({
         }
     }
 
+    test("unsigned constant step stops on near-wrap and evaluates dynamic bounds in order") {
+        runVm("""
+            %zeropage basicsafe
+            %option no_sysinit
+            main {
+                ubyte @shared count
+                ubyte @shared order
+                sub getFrom() -> ubyte {
+                    order = 1
+                    return 254
+                }
+                sub getTo() -> ubyte {
+                    order = order * 10 + 2
+                    return 255
+                }
+                sub start() {
+                    ubyte i
+                    for i in getFrom() to getTo() step 3 {
+                        count++
+                    }
+                }
+            }
+        """) { memory, allocations ->
+            memory.getUB(allocations["main.count"]!!) shouldBe 1u
+            memory.getUB(allocations["main.order"]!!) shouldBe 12u
+        }
+    }
+
     test("nested break exits only the inner loop") {
         runVm("""
             %zeropage basicsafe

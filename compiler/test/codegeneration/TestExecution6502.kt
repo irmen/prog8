@@ -172,6 +172,42 @@ class TestExecution6502 : FunSpec({
         machine.assertMemory(0x0a, 4)
     }
 
+    test("signed legacy loop variables stop on overflow with unsigned dynamic steps") {
+        val src = $$"""
+            %option no_sysinit
+            %launcher none
+            %address $1000
+
+            main {
+                &ubyte poweroff = $f203
+                &ubyte byteCount = $0b
+                &ubyte wordCount = $0c
+                sub start() {
+                    byte b
+                    byte @shared bfrom = 120
+                    byte @shared bto = 127
+                    ubyte @shared bstep = 10
+                    for b in bfrom to bto step bstep {
+                        byteCount++
+                    }
+
+                    word w
+                    word @shared wfrom = 32760
+                    word @shared wto = 32767
+                    uword @shared wstep = 10
+                    for w in wfrom to wto step wstep {
+                        wordCount++
+                    }
+                    poweroff = 1
+                }
+            }
+        """.trimIndent()
+        val compileResult = compileText(Cx16Target(), false, src, outputDir)
+        val machine = compileResult!!.simulate()
+        machine.assertMemory(0x0b, 1)
+        machine.assertMemory(0x0c, 1)
+    }
+
     test("dynamic legacy for loop break targets remain scoped") {
         val src = $$"""
             %option no_sysinit

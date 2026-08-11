@@ -15,6 +15,8 @@ main {
         ubyte aa
         ubyte ub
         byte bb
+        byte @shared stepbyte
+        ubyte @shared stepubyte
         word total
         ubyte a
 
@@ -590,6 +592,30 @@ main {
         else
             txt.print("fail!!!\n")
 
+        count = 0
+        total = 0
+        stepbyte = -3
+        txt.print("byte var dynamic step -3:    ")
+        for bb in 24 to 10 step stepbyte {
+            count++
+            total += bb
+        }
+        if count==5 and total==90
+            txt.print("ok\n")
+        else
+            txt.print("fail!!!\n")
+
+        count = 0
+        stepubyte = 3
+        txt.print("byte var dynamic wrap:    ")
+        for ub in 254 to 255 step stepubyte {
+            count++
+        }
+        if count==1
+            txt.print("ok\n")
+        else
+            txt.print("fail!!!\n")
+
         wait_input()
 
         ; ---------- UWORD var ---------
@@ -598,6 +624,7 @@ main {
         uword enduw1
         uword totaluw
         uword uw
+        word @shared stepword
 
         count = 0
         totaluw = 0
@@ -784,6 +811,19 @@ main {
         else
             txt.print("fail!!!\n")
 
+        count = 0
+        totaluw = 0
+        stepword = 333
+        txt.print("uword var dynamic step 333:    ")
+        for uw in 1000 to 2200 step stepword {
+            count++
+            totaluw += uw
+        }
+        if count==4 and totaluw==5998
+            txt.print("ok\n")
+        else
+            txt.print("fail!!!\n")
+
         wait_input()
 
         ; ---------- WORD var ---------
@@ -791,6 +831,7 @@ main {
         word[] warr = [-111,222,-333,444]
         word endw1
         word ww
+        word @shared stepword2
 
         count = 0
         total = 0
@@ -961,6 +1002,19 @@ main {
             total += ww
         }
         if count==9 and total==9940
+            txt.print("ok\n")
+        else
+            txt.print("fail!!!\n")
+
+        count = 0
+        total = 0
+        stepword2 = -3
+        txt.print("word var dynamic step -3:    ")
+        for ww in 24 to 10 step stepword2 {
+            count++
+            total += ww
+        }
+        if count==5 and total==90
             txt.print("ok\n")
         else
             txt.print("fail!!!\n")

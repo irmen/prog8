@@ -838,10 +838,10 @@ class IRCodeGen(
             if(step==null)
                 return translateForInVariableStepRange(forLoop, loopvar)
 
-            val toTr = expressionEval.translateExpression(iterable.to)
-            addToResult(result, toTr, toTr.resultReg, -1)
             val fromTr = expressionEval.translateExpression(iterable.from)
             addToResult(result, fromTr, fromTr.resultReg, -1)
+            val toTr = expressionEval.translateExpression(iterable.to)
+            addToResult(result, toTr, toTr.resultReg, -1)
 
             val labelAfterFor = createLabelName()
 
@@ -873,13 +873,19 @@ class IRCodeGen(
                 // ind/dec index, then:
                 // ascending: if endvalue >= loopvar, iterate
                 // descending: if loopvar >= endvalue, iterate
+                val previousReg = registers.next(loopvarDtIr)
+                addInstr(result, IRInstruction(Opcode.LOADM, loopvarDtIr, reg1 = previousReg, labelSymbol = loopvarSymbol), null)
                 result += addConstMem(loopvarDtIr, null, loopvarSymbol, step)
                 addInstr(result, IRInstruction(Opcode.LOADM, loopvarDtIr, reg1=fromTr.resultReg, labelSymbol = loopvarSymbol), null)
-                if(step > 0)
-                    addInstr(result, IRInstruction(Opcode.CMP, loopvarDtIr, reg1 = toTr.resultReg, fromTr.resultReg), null)
-                else
-                    addInstr(result, IRInstruction(Opcode.CMP, loopvarDtIr, reg1 = fromTr.resultReg, toTr.resultReg), null)
-                addInstr(result, IRInstruction(Opcode.BSTPOS, labelSymbol = loopLabel), null)
+                val compareOpcode = if(loopvarDt.isSigned) Opcode.BGTSR else Opcode.BGTR
+                if(step > 0) {
+                    addInstr(result, IRInstruction(compareOpcode, loopvarDtIr, reg1 = previousReg, reg2 = fromTr.resultReg, labelSymbol = labelAfterFor), null)
+                    addInstr(result, IRInstruction(compareOpcode, loopvarDtIr, reg1 = fromTr.resultReg, reg2 = toTr.resultReg, labelSymbol = labelAfterFor), null)
+                } else {
+                    addInstr(result, IRInstruction(compareOpcode, loopvarDtIr, reg1 = fromTr.resultReg, reg2 = previousReg, labelSymbol = labelAfterFor), null)
+                    addInstr(result, IRInstruction(compareOpcode, loopvarDtIr, reg1 = toTr.resultReg, reg2 = fromTr.resultReg, labelSymbol = labelAfterFor), null)
+                }
+                addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol = loopLabel), null)
             }
             result += IRCodeChunk(labelAfterFor, null)
         }
@@ -900,8 +906,10 @@ class IRCodeGen(
 
         val labelAfterFor = createLabelName()
         val loopLabel = createLabelName()
-        val labelDescending = createLabelName()
-        val labelDescendingTail = createLabelName()
+        val labelStoreNext = createLabelName()
+        val signedStep = iterable.step.type.isSigned
+        val labelDescending = if(signedStep) createLabelName() else null
+        val labelDescendingTail = if(signedStep) createLabelName() else null
 
         // Evaluate bounds and step once, in source order. The step register stays live throughout
         // because the register pool is monotonic (never reuses registers).
@@ -926,47 +934,54 @@ class IRCodeGen(
         addInstr(result, IRInstruction(Opcode.BSTEQ, labelSymbol=labelAfterFor), null)
 
         // Determine direction from step sign
-        if(iterable.step.type.isSigned)
-            addInstr(result, IRInstruction(Opcode.BSTNEG, labelSymbol=labelDescending), null)
+        if(signedStep)
+            addInstr(result, IRInstruction(Opcode.BSTNEG, labelSymbol=labelDescending!!), null)
 
         val precheckOpcode = if(loopvarDt.isSigned) Opcode.BGTSR else Opcode.BGTR
 
-        val directionReg = registers.next(IRDataType.BYTE)
+        val directionReg = if(signedStep) registers.next(IRDataType.BYTE) else null
         val currentReg = registers.next(loopvarDtIr)
         val nextReg = registers.next(loopvarDtIr)
 
-        // Both directions share the body. The direction flag selects the
-        // appropriate tail after calculating the next value.
-        addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=directionReg, immediate=0), null)
+        if(signedStep)
+            addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=directionReg!!, immediate=0), null)
         addInstr(result, IRInstruction(precheckOpcode, loopvarDtIr, reg1=fromTr.resultReg, reg2=toTr.resultReg, labelSymbol=labelAfterFor), null)
         addInstr(result, IRInstruction(Opcode.STOREM, loopvarDtIr, reg1=fromTr.resultReg, labelSymbol=loopvarSymbol), null)
         addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol=loopLabel), null)
 
-        result += IRCodeChunk(labelDescending, null)
-        addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=directionReg, immediate=1), null)
-        addInstr(result, IRInstruction(precheckOpcode, loopvarDtIr, reg1=toTr.resultReg, reg2=fromTr.resultReg, labelSymbol=labelAfterFor), null)
-        addInstr(result, IRInstruction(Opcode.STOREM, loopvarDtIr, reg1=fromTr.resultReg, labelSymbol=loopvarSymbol), null)
+        if(signedStep) {
+            result += IRCodeChunk(labelDescending!!, null)
+            addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=directionReg!!, immediate=1), null)
+            addInstr(result, IRInstruction(precheckOpcode, loopvarDtIr, reg1=toTr.resultReg, reg2=fromTr.resultReg, labelSymbol=labelAfterFor), null)
+            addInstr(result, IRInstruction(Opcode.STOREM, loopvarDtIr, reg1=fromTr.resultReg, labelSymbol=loopvarSymbol), null)
+        }
 
         result += labelFirstChunk(translateNode(forLoop.statements), loopLabel)
         addInstr(result, IRInstruction(Opcode.LOADM, loopvarDtIr, reg1=currentReg, labelSymbol=loopvarSymbol), null)
         addInstr(result, IRInstruction(Opcode.LOADR, loopvarDtIr, reg1=nextReg, reg2=currentReg), null)
         addInstr(result, IRInstruction(Opcode.ADDR, loopvarDtIr, reg1=nextReg, reg2=stepReg), null)
 
-        addInstr(result, IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1=directionReg, immediate=0), null)
-        addInstr(result, IRInstruction(Opcode.BSTNE, labelSymbol=labelDescendingTail), null)
+        if(signedStep) {
+            addInstr(result, IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1=directionReg!!, immediate=0), null)
+            addInstr(result, IRInstruction(Opcode.BSTNE, labelSymbol=labelDescendingTail!!), null)
+        }
 
         // Ascending: wrapping makes next smaller than current; otherwise
         // next must not exceed the upper bound.
         addInstr(result, IRInstruction(precheckOpcode, loopvarDtIr, reg1=currentReg, reg2=nextReg, labelSymbol=labelAfterFor), null)
         addInstr(result, IRInstruction(precheckOpcode, loopvarDtIr, reg1=nextReg, reg2=toTr.resultReg, labelSymbol=labelAfterFor), null)
-        addInstr(result, IRInstruction(Opcode.STOREM, loopvarDtIr, reg1=nextReg, labelSymbol=loopvarSymbol), null)
-        addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol=loopLabel), null)
+        addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol=labelStoreNext), null)
 
-        result += IRCodeChunk(labelDescendingTail, null)
-        // Descending: wrapping makes next larger than current; otherwise
-        // next must not fall below the lower bound.
-        addInstr(result, IRInstruction(precheckOpcode, loopvarDtIr, reg1=nextReg, reg2=currentReg, labelSymbol=labelAfterFor), null)
-        addInstr(result, IRInstruction(precheckOpcode, loopvarDtIr, reg1=toTr.resultReg, reg2=nextReg, labelSymbol=labelAfterFor), null)
+        if(signedStep) {
+            result += IRCodeChunk(labelDescendingTail!!, null)
+            // Descending: wrapping makes next larger than current; otherwise
+            // next must not fall below the lower bound.
+            addInstr(result, IRInstruction(precheckOpcode, loopvarDtIr, reg1=nextReg, reg2=currentReg, labelSymbol=labelAfterFor), null)
+            addInstr(result, IRInstruction(precheckOpcode, loopvarDtIr, reg1=toTr.resultReg, reg2=nextReg, labelSymbol=labelAfterFor), null)
+            addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol=labelStoreNext), null)
+        }
+
+        result += IRCodeChunk(labelStoreNext, null)
         addInstr(result, IRInstruction(Opcode.STOREM, loopvarDtIr, reg1=nextReg, labelSymbol=loopvarSymbol), null)
         addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol=loopLabel), null)
 

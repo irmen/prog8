@@ -168,7 +168,9 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
     // zero-extending to 32 bits. m68k move.b/move.w into a data register do NOT
     // clear the upper bits, and reading a slot with a larger suffix than the
     // slot's size would bleed into the adjacent register slot. Always clear
-    // first and use the register's own type for the load.
+    // first and use the register's own type for the load. Removing this clear
+    // requires register-value and liveness tracking, because IR virtual
+    // registers are memory-backed and may have been written by another path.
     fun loadRegToD0(reg: Int) {
         val regType = program.registersUsed().regsTypes[RegisterNum(reg)] ?: IRDataType.BYTE
         emitLine("moveq  #0, d0")

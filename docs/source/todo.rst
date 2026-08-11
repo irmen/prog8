@@ -10,7 +10,6 @@ Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 - m68k codegen: add floating point support (assume a FPU is present, this also requires 68020+)
 - m68k codegen: make use of scaling factors in the indexed instructions on 68020+ ? see ideas/scaled-indexing-IR.md
-- support variable ``for``-loop step sizes, see ideas/for-step-variable.md
 - support arrays-of-structs, see ideas/arrays-of-structs.md
 - split up AssignmentAsmGen.kt in codeGenCpu6502 it is by far the largest file 6000+ lines
 - make enums strongly typed instead of just syntactic sugar for ints (see ideas/enum-strong-type.md for the plan)
@@ -44,11 +43,11 @@ Future Things and Ideas
 
 Romable (%option romable)
 ^^^^^^^^^^^^^^^^^^^^^^^^^
-- ForLoopsAsmGen: fix remaining codegens. Three methods use self-modifying code (patching ``cmp #0`` immediates) with no romable-safe alternative:
+- ForLoopsAsmGen: remaining constant-step methods use self-modifying code (patching ``cmp #0`` immediates). This is an accepted RAM-mode size optimization; in ROMable mode they should continue to report the established ``romableError`` unless a smaller ROM-safe implementation is later desired:
   - ``forOverBytesRangeStepGreaterOne`` (byte, abs(step)>=2)
   - ``forOverWordsRangeStepGreaterOne`` (word, step>=2)
   - ``forOverWordsRangeStepGreaterOneDescending`` (word, step<=-2)
-  Fix pattern (already used by step-1 methods): add ``if(romable)`` branch that allocates a temp var via ``createTempVarReused``, stores the loop end value into it, and compares against it. Existing self-modifying code stays in ``else`` branch for RAM programs.
+  The new variable-step byte/word paths are already ROM-safe because they use temporary variables rather than self-modifying code. Add more ROMable tests for both behaviors as needed.
 - BuiltinFunctionsAsmGen: ``callfar`` / ``callfar2`` with non-const bank/addr. Uses self-modifying ``sta +0`` / ``sty +1`` to patch JSRFAR operands. Needs a RAM trampoline approach (copy stub with variable args into RAM, JSR to that).
 - FunctionCallAsmGen: ``extsub`` with variable bank. Same JSRFAR operand patching issue. Needs RAM trampoline.
 - Add more test coverage for the romable option.

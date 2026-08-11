@@ -607,7 +607,13 @@ be able to accept values of the iterable's element type.
 You can also specify a type for the implicitly declared loop variable by writing the type name before the variable name.
 The expression that you loop over can be anything that supports iteration (such as ranges like ``0 to 100``,
 array variables and strings) *except* floating-point arrays (because a floating-point loop variable is not supported).
-Remember that a step value in a range must be a constant value.
+For a range used directly by a ``for`` loop, the step may be an integer expression.  It is evaluated once
+at the start of the loop, so changing a variable used by the expression inside the loop does not change the
+step.  The signedness of the step determines how its runtime value is interpreted: an unsigned step is
+always ascending, while a signed step uses its runtime sign to select ascending or descending iteration.
+A zero step, or a step pointing away from the ``to`` value, produces an empty loop.  If adding the step
+would wrap the loop variable's fixed-width type, the loop terminates instead of continuing with the wrapped
+value.  Range expressions used outside a direct ``for`` loop still require a constant step.
 
 You can use a single statement, or a statement block like in the example below::
 

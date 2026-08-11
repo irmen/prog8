@@ -303,7 +303,7 @@ once its implementation exists.
 - Record any acceptable performance or code-size tradeoffs and add focused
   assertions or regression tests for issues found during the review.
 
-**Status: complete as an analysis-only review.** Representative `-noopt`
+**Status: complete.** Representative `-noopt`
 constant-step and variable-step fixtures were compiled for virtual, CX16
 `-newcodegen`, qemu68k, amiga500, and legacy CX16/C64 paths.
 
@@ -322,10 +322,9 @@ Findings:
 - The shared-body legacy implementation avoids duplicate body code and keeps
   `break`/`continue` labels valid. Its extra `next` temporary and bound/wrap
   checks are necessary for fixed-width safety.
-- Both IR and legacy variable-step paths still emit descending setup/update
-  machinery for statically unsigned steps, even though that direction is
-  unreachable. Specializing unsigned steps would reduce code size and remove
-  the direction flag for those loops.
+- Unsigned-step specialization is complete in both IR and legacy 6502 codegen:
+  unreachable descending setup/update machinery and the IR direction flag are
+  omitted for statically unsigned steps.
 - The legacy path rechecks the captured signed step's sign on every iteration
   to select its update tail. A setup-time direction flag or specialized signed
   path could avoid that repeated load, with a code-size tradeoff.
@@ -336,10 +335,15 @@ Findings:
 - No register packing limits, assembler failures, or target-specific
   instruction-set violations were found. The dynamic legacy path contains no
   self-modifying code; existing constant-step paths remain unchanged.
+- The review initially found two correctness issues: an invalid `CMP` plus
+  `BSTPOS` sequence in the IR constant non-unit path, and incorrect carry-based
+  wrap detection for signed legacy loop variables with unsigned steps. Both
+  were fixed and covered by regression tests.
 
-Recommended follow-ups are unsigned-step specialization in both codegens and
-possible direction-tail sharing or flag caching in the legacy backend. These
-were not implemented as part of this review.
+Direction-tail sharing is complete in the IR path. Direction caching is not
+worthwhile and remains intentionally not planned. Other non-blocking findings are
+the existing legacy long non-unit-step stub, duplicated typed lowering, and the
+generic legacy pointer diagnostic.
 
 ## Test Gates
 
@@ -383,13 +387,14 @@ program.
 
 ### Gate commands
 
-**Status: complete for the virtual, IR, and legacy byte/word target gates.**
+**Status: complete for the virtual, IR, legacy, and ROMable target gates.**
 The optimized and `-noopt` virtual runs pass, as do runtime checks on qemu68k,
 amiga500, and cx16 `-newcodegen`. Legacy C64/C128/PET32 assembly checks and
-CX16 simulator coverage pass. ROMable verification is targeted: existing or
-necessary self-modifying constant-step paths may report the normal
-`romableError`; the new dynamic byte/word path is expected to remain ROMable
-because it uses temporaries instead of self-modifying code.
+CX16 simulator coverage pass. The `forstep_romable.p8` fixture compiles and
+runs under x16emu with RAM placement options. Existing or necessary
+self-modifying constant-step paths retain the normal `romableError` behavior;
+the new dynamic byte/word path remains ROMable because it uses temporaries
+instead of self-modifying code.
 
 1. **Compiler AST**: `prog8c -target virtual -check forstep_gate.p8`
    and `prog8c -target virtual -printast1 forstep_gate.p8`.
@@ -431,12 +436,13 @@ because it uses temporaries instead of self-modifying code.
   descending runtime steps; step `0`; wrong-direction steps; `from==to`; body
   mutation of the step variable; non-constant bounds; fixed-width overflow;
   side-effecting operands; nested `break`; and `continue`.
-- `compiler/test/arithmetic/testforloops.p8` (manual x16emu): add byte/word
-  variable-step cases, including signed negative steps and overflow guards.
-- Add AST/SimpleAST assertions for `PtRange.step` type and side-effect
-  metadata.
-- Add IR assertions that the step expression is translated once, direct
-  `BGTR`/`BGTSR` comparisons are used, and the wrap guard is present.
+- `compiler/test/arithmetic/testforloops.p8` now includes manual CX16 cases
+  for byte/word variable steps, signed negative steps, and byte wrap guards.
+- AST/SimpleAST assertions are implemented in
+  `compiler/test/vm/TestVariableStepForLoopStructure.kt` for `PtRange.step`
+  type and side-effect metadata.
+- IR assertions are implemented in the same test file for single step
+  translation, direct `BGTR`/`BGTSR` comparisons, and wrap/bound guards.
 - New6502 legacy byte/word simulator coverage and C64/C128/PET32 assembly
   checks are implemented. The dedicated
   `compiler/test/codegeneration/TestVariableStepForLoops6502.kt` suite covers
@@ -447,10 +453,11 @@ because it uses temporaries instead of self-modifying code.
   that the new dynamic path remains ROMable and that necessary existing
   self-modifying paths use the established `romableError` diagnostic.
 - Compile `forstep_gate.p8` for `c64`, `c128`, `pet32`, and `cx16`; the dynamic
-  long-loop case is currently commented out for this shared legacy gate. Run
-  the CX16 version under `x16emu` when available. Verify the dynamic path and
-  expected `romableError` diagnostics separately in ROMable mode.
-  Restore or use a separate IR gate for long-loop coverage.
+  long-loop case remains commented out for this shared legacy gate. The
+  separate `forstep_ir_gate.p8` covers long ascending and descending IR loops.
+  The `forstep_romable.p8` fixture covers the dynamic legacy byte/word path in
+  ROMable mode; existing self-modifying constant-step paths retain the normal
+  `romableError` behavior.
 
 ## Verification
 
@@ -458,10 +465,17 @@ because it uses temporaries instead of self-modifying code.
 gradle :compiler:compileKotlin --console=plain        # quick check after Kotlin edits
 gradle installdist installshadowdist --console=plain  # after compiler or embedded-library changes
 prog8c -target virtual -emu forstep_gate.p8
-prog8c -target virtual -out /tmp/forstep-gate forstep_gate.p8
-prog8c -vm /tmp/forstep-gate/forstep_gate.p8ir
+prog8c -target virtual -emu forstep_ir_gate.p8
+prog8c -target virtual -out /tmp/forstep-gate forstep_ir_gate.p8
+prog8c -vm /tmp/forstep-gate/forstep_ir_gate.p8ir
+prog8c -target cx16 -varshigh 1 -slabshigh 1 -out /tmp/forstep-romable forstep_romable.p8
+x16emu -echo iso -run -prg /tmp/forstep-romable/forstep_romable.prg
 prog8c -target cx16 -newcodegen forstep_gate.p8
-prog8c -target cx16 forstep_gate.p8
+prog8c -target qemu68k forstep_gate.p8
+prog8c -target amiga500 forstep_gate.p8
+prog8c -target c64 forstep_gate.p8
+prog8c -target c128 forstep_gate.p8
+prog8c -target pet32 forstep_gate.p8
 gradle build --console=plain                          # final gate, all targets and tests
 ```
 
@@ -471,7 +485,7 @@ commands must be run sequentially, never in parallel.
 
 ## Documentation
 
-**Status: pending.**
+**Status: complete.**
 
 Update the for-loop / range documentation:
 
@@ -485,7 +499,7 @@ Update the for-loop / range documentation:
 
 ## Final FOR-loop Codegen Review
 
-**Status: pending.**
+**Status: complete.**
 
 As the final step, review the IR and legacy 6502 FOR-loop code generators in
 general, including both constant-step and variable-step paths. This is an
@@ -505,3 +519,11 @@ follow-up task is created.
 - Record concrete findings, possible simplifications, and any recommended
   refactoring work as follow-up items, without performing those refactorings in
   this plan step.
+
+The review found no remaining correctness blocker after the IR comparison and
+legacy signed-overflow fixes. The legacy long non-unit-step path now fails with
+an unconditional diagnostic. Pointer values are normalized to target-width
+integer types before legacy 6502 codegen, so the generic pointer diagnostic is
+not reachable from a normal legacy CX16 pointer range. Remaining work is
+optional: reduce duplicated typed lowering. Direction-tail sharing is complete;
+direction caching remains intentionally not planned.

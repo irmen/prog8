@@ -669,8 +669,15 @@ from the starting value to (and including) the ending value::
     <start>  to  <end>   [ step  <step> ]
     <start>  downto  <end>   [ step  <step> ]
 
-You an provide a step value if you need something else than the default increment which is one (or,
-in case of downto, a decrement of one).  Unlike the start and end values, the step value must be a constant.
+You can provide a step value if you need something else than the default increment which is one (or,
+in case of downto, a decrement of one).  For a range used directly by a ``for`` loop, the step may be an
+integer expression.  It is evaluated once at the start of the loop.  The signedness of the step determines
+how its runtime value is interpreted: an unsigned step is always ascending, while a signed step uses its
+runtime sign to select ascending or descending iteration.  A zero step, or a step pointing away from the
+end value, produces an empty loop.  If adding the step would wrap the loop variable's fixed-width type,
+the loop terminates instead of continuing with the wrapped value.
+Range expressions used elsewhere, such as for array initialization or containment checks, still require a
+constant step.
 Because a step of minus one is so common you can just use
 the downto variant to avoid having to specify the step as well::
 
