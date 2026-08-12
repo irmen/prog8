@@ -4,7 +4,6 @@ TODO
 - amiga AGA: verify custom.set_aga_color() workings 
 - need a bunch of type casting/conversion checks that test the handling of the 4-byte/long pointer datatype on the qemu68k target.
 - amiga library structs: use more typed pointers if it knows the struct type from the same (or another amiga library module) , rather than using `pointer`. Consider both the extsubs but also the struct fields in the amigaDOS structs in the generated library modules.
-- amiga500: add blitter.p8 and copper.p8 library modules for bare-metal blitter/copper operations (see ideas/amiga-copperblitter.md) 
 
 
 Future Things and Ideas

@@ -3,6 +3,7 @@ package prog8.compiler
 
 internal data class DaemonRequest(
     val version: String,
+    val plainText: Boolean,
     val filepath: String,
     val optimize: Boolean,
     val writeAssembly: Boolean,
@@ -36,21 +37,11 @@ internal data class DaemonRequest(
 internal data class DaemonResponse(
     val ok: Boolean,
     val versionError: String?,
-    val errors: List<DaemonError>,
     val stdout: String,
     val stderr: String,
     val t_ms: Long,
     val outputFiles: List<String>,
     val importedFiles: List<String>
-)
-
-internal data class DaemonError(
-    val severity: String,
-    val message: String,
-    val file: String?,
-    val line: Int,
-    val startCol: Int,
-    val endCol: Int
 )
 
 
@@ -60,6 +51,7 @@ internal object DaemonProtocol {
     fun encodeRequest(req: DaemonRequest): String = buildString {
         append('{')
         append(prop("version", req.version))
+        append(prop("plainText", req.plainText))
         append(prop("filepath", req.filepath))
         append(prop("optimize", req.optimize))
         append(prop("writeAssembly", req.writeAssembly))
@@ -97,21 +89,6 @@ internal object DaemonProtocol {
         append('{')
         append(prop("ok", resp.ok))
         append(propOpt("versionError", resp.versionError))
-        append("\"errors\":[")
-        for ((i, e) in resp.errors.withIndex()) {
-            if (i > 0) append(',')
-            append('{')
-            append(prop("severity", e.severity))
-            append(prop("message", e.message))
-            append(propOpt("file", e.file))
-            append(prop("line", e.line))
-            append(prop("startCol", e.startCol))
-            append(prop("endCol", e.endCol))
-            append("null")
-            setLength(length - 4)
-            append('}')
-        }
-        append("],")
         append(prop("stdout", resp.stdout))
         append(prop("stderr", resp.stderr))
         append(prop("t_ms", resp.t_ms))
@@ -124,24 +101,11 @@ internal object DaemonProtocol {
 
     fun decodeResponse(json: String): DaemonResponse {
         val map = parseJsonObject(json)
-        val errorsJson = map["errors"] as? List<*> ?: emptyList<Any>()
-        val errors = errorsJson.map { e ->
-            val em = e as Map<*, *>
-            DaemonError(
-                severity = em["severity"] as String,
-                message = em["message"] as String,
-                file = em["file"] as? String,
-                line = (em["line"] as Number).toInt(),
-                startCol = (em["startCol"] as Number).toInt(),
-                endCol = (em["endCol"] as Number).toInt()
-            )
-        }
-        val outputFiles = (map["outputFiles"] as? List<*>)?.map { it as String } ?: emptyList()
+        val outputFiles = (map["outputFiles"] as? List<*>)?.map { it as String } ?: emptyList<String>()
         val importedFiles = (map["importedFiles"] as? List<*>)?.map { it as String } ?: emptyList()
         return DaemonResponse(
             ok = map["ok"] as Boolean,
             versionError = map["versionError"] as? String,
-            errors = errors,
             stdout = map["stdout"] as String,
             stderr = map["stderr"] as String,
             t_ms = (map["t_ms"] as Number).toLong(),
@@ -154,6 +118,7 @@ internal object DaemonProtocol {
         val map = parseJsonObject(json)
         return DaemonRequest(
             version = map["version"] as String,
+            plainText = map["plainText"] as Boolean,
             filepath = map["filepath"] as String,
             optimize = map["optimize"] as Boolean,
             writeAssembly = map["writeAssembly"] as Boolean,

@@ -27,6 +27,7 @@ class ModuleImporter(private val program: Program,
                      libraryDirs: List<String>,
                      val cwd: Path,
                      val quiet: Boolean,
+                     val printCompileInfo: Boolean = true,
                      val traceImports: Boolean = false) {
 
     private val sourcePaths: List<Path> = sourceDirs.map { Path(it).sanitize() }.distinct()
@@ -62,7 +63,7 @@ class ModuleImporter(private val program: Program,
     }
 
     private fun printCompileInfo(programPath: Path) {
-        if(!quiet) {
+        if(!quiet && printCompileInfo) {
             println("Compiling program ${cwd.toAbsolutePath().relativize(programPath)}")
             println("Compiler target: ${compTarget.name}")
         }

@@ -1,9 +1,8 @@
 package prog8.compiler
 
 import prog8.buildversion.BUILD_UNIX_TIME
-import prog8.code.core.Position
+import prog8.code.core.IErrorReporter
 import prog8.code.source.ImportFileSystem
-import prog8.code.source.SourceCode
 import prog8.code.target.VMTarget
 import java.io.*
 import java.net.StandardProtocolFamily
@@ -105,7 +104,6 @@ internal class CompilerDaemon(private val socketPath: Path) {
                 val resp = DaemonResponse(
                     ok = false,
                     versionError = "daemon version mismatch: build time differs",
-                    errors = emptyList(),
                     stdout = "",
                     stderr = "",
                     t_ms = 0,
@@ -128,17 +126,16 @@ internal class CompilerDaemon(private val socketPath: Path) {
             System.setOut(combinedStream)
             System.setErr(combinedStream)
 
-            val daemonErr = DaemonErrorReporter()
+            val reporter = ErrorReporter(if (request.plainText) ErrorReporter.PlainText else ErrorReporter.AnsiColors)
             var result: CompilationResult? = null
             ImportFileSystem.clearCaches()
             val t_ms = try {
                 measureTime {
-                    val compilerArgs = request.toCompilerArguments(daemonErr)
+                    val compilerArgs = request.toCompilerArguments(reporter)
                     result = compileProgram(compilerArgs)
                 }.toLong(DurationUnit.MILLISECONDS)
             } catch (e: Exception) {
                 System.err.println("daemon: compilation crash: ${e.message}")
-                daemonErr.err("internal daemon error: ${e.message}", Position.DUMMY)
                 0L
             } finally {
                 System.out.flush()
@@ -170,35 +167,6 @@ internal class CompilerDaemon(private val socketPath: Path) {
             val resp = DaemonResponse(
                 ok = result != null,
                 versionError = null,
-                errors = daemonErr.getMessages().map { msg ->
-                    // Strip "ERROR ", "WARNING ", "INFO " prefixes
-                    var message = if (msg.message.startsWith("${msg.severity} ")) {
-                        msg.message.substring(msg.severity.length + 1)
-                    } else {
-                        msg.message
-                    }
-                    
-                    // Strip path prefix if it exists (e.g. file:///...:line:col: )
-                    // The path prefix usually ends with a colon followed by a space
-                    val pathRegex = Regex("^file:///[^:]+:[0-9]+:[0-9]+: ")
-                    message = message.replace(pathRegex, "")
-
-                    DaemonError(
-                        severity = msg.severity,
-                        message = message,
-                        file = msg.position?.let {
-                            val origin = it.file
-                            if (SourceCode.isLibraryResource(origin)) {
-                                origin
-                            } else {
-                                ImportFileSystem.userHome.resolve(origin).normalize().toString()
-                            }
-                        },
-                        line = msg.position?.line ?: 1,
-                        startCol = msg.position?.startCol ?: 1,
-                        endCol = msg.position?.endCol ?: 1
-                    )
-                },
                 stdout = stdout,
                 stderr = stderr,
                 t_ms = t_ms,
@@ -215,7 +183,7 @@ internal class CompilerDaemon(private val socketPath: Path) {
         }
     }
 
-    private fun DaemonRequest.toCompilerArguments(daemonErr: DaemonErrorReporter): CompilerArguments {
+    private fun DaemonRequest.toCompilerArguments(errors: IErrorReporter): CompilerArguments {
         // Resolve the output directory path: if relative, make it absolute by resolving against
         // the client's working directory (cwd) to avoid writing files in the daemon's CWD.
         val clientCwd = Path.of(cwd)
@@ -246,6 +214,7 @@ internal class CompilerDaemon(private val socketPath: Path) {
             breakpointCpuInstruction = breakpointCpuInstruction,
             printAst1 = printAst1,
             printAst2 = printAst2,
+            printCompileInfo = false,
             ignoreFootguns = ignoreFootguns,
             profilingInstrumentation = profilingInstrumentation,
             traceImports = traceImports,
@@ -253,7 +222,7 @@ internal class CompilerDaemon(private val socketPath: Path) {
             sourceDirs = sourceDirs,
             outputDir = resolvedOutputDir,
             cwd = clientCwd,
-            errors = daemonErr
+            errors = errors
         )
     }
 }

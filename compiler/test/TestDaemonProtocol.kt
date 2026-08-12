@@ -11,6 +11,7 @@ class TestDaemonProtocol : FunSpec({
     test("DaemonRequest roundtrip encode/decode preserves all fields") {
         val request = DaemonRequest(
             version = "12.3-SNAPSHOT",
+            plainText = true,
             filepath = "/path/to/test.p8",
             optimize = true,
             writeAssembly = false,
@@ -78,6 +79,7 @@ class TestDaemonProtocol : FunSpec({
     test("DaemonRequest roundtrip with null optional fields") {
         val request = DaemonRequest(
             version = "1.0",
+            plainText = true,
             filepath = "test.p8",
             optimize = false,
             writeAssembly = false,

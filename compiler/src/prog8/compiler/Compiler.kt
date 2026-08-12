@@ -62,6 +62,7 @@ class CompilerArguments(val filepath: Path,
                         val breakpointCpuInstruction: String?,
                         val printAst1: Boolean,
                         val printAst2: Boolean,
+                        val printCompileInfo: Boolean = true,
                         val ignoreFootguns: Boolean,
                         val profilingInstrumentation: Boolean,
                         val traceImports: Boolean = false,
@@ -109,8 +110,9 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                     libraryDirs,
                     args.cwd,
                     args.quietAll,
+                    args.printCompileInfo,
                     args.traceImports
-                )
+                 )
             }
 
             val (program, options, imported) = parseresult
@@ -417,12 +419,13 @@ fun parseMainModule(filepath: Path,
                     libraryDirs: List<String>,
                     cwd: Path,
                     quiet: Boolean,
-                    traceImports: Boolean): Triple<Program, CompilationOptions, List<Path>> {
+                    printCompileInfo: Boolean = true,
+                     traceImports: Boolean = false): Triple<Program, CompilationOptions, List<Path>> {
     val bf = BuiltinFunctionsFacade(BuiltinFunctions)
     val program = Program(filepath.nameWithoutExtension, bf, compTarget)
     bf.program = program
 
-    val importer = ModuleImporter(program, compTarget, errors, sourceDirs, libraryDirs, cwd, quiet, traceImports)
+    val importer = ModuleImporter(program, compTarget, errors, sourceDirs, libraryDirs, cwd, quiet, printCompileInfo, traceImports)
     val importedModuleResult = importer.importMainModule(filepath)
     importedModuleResult.onErr { throw it }
     errors.report()
