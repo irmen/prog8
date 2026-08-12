@@ -42,7 +42,7 @@ main {
                     blue = 31 - blue
 
                 ; or the red, green and blue bars together into one $0RGB value
-                custom.COLOR0 = mkword(red, (green << 4) | blue)
+                custom.COLOR00 = mkword(red, (green << 4) | blue)
 
                 line += 4               ; amiga 500 is too slow for <4 at this time
                 cg = (cg + 1) & 31
@@ -50,7 +50,7 @@ main {
                 cb = (cb + 1) & 31
             }
 
-            custom.COLOR0 = 0
+            custom.COLOR00 = 0
             offset = (offset + 1) & 31        ; scroll the red bars each frame
             frame++
             if frame & 1 == 0

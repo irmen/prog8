@@ -109,187 +109,217 @@ S_PAL:      ds.w    1
 
 
     ; Amiga custom chip registers (full addresses, base $dff000)
-    ; Based on Commodore Amiga NDK hardware/custom.i
+    ; Regenerated from https://github.com/alfishe/amiga-bootcamp/blob/main/14_references/custom_chip_registers.md
     ; All registers are 16-bit words accessed on even byte boundaries.
 
     ; ========== Read-only registers ==========
 
-    &uword  BLTDDAT     = $dff000   ; blitter destination read data
+    &uword  BLTDDAT     = $dff000   ; blitter destination early read
     &uword  DMACONR     = $dff002   ; DMA control read
-    &uword  VPOSR       = $dff004   ; vertical beam position read
-    &uword  VHPOSR      = $dff006   ; vertical + horizontal beam position read
-    &uword  DSKDATR     = $dff008   ; disk data read
-    &uword  JOY0DAT     = $dff00a   ; joystick/mouse 0 data
-    &uword  JOY1DAT     = $dff00c   ; joystick/mouse 1 data
-    &uword  CLXDAT      = $dff00e   ; collision detect data
-
-    &uword  ADKCONR     = $dff010   ; audio, disk control read
-    &uword  POT0DAT     = $dff012   ; potentiometer 0 data
-    &uword  POT1DAT     = $dff014   ; potentiometer 1 data
-    &uword  POTINP      = $dff016   ; potentiometer input
-    &uword  SERDATR     = $dff018   ; serial port data and status read
-    &uword  DSKBYTR     = $dff01a   ; disk byte status read
+    &uword  VPOSR       = $dff004   ; beam position (V high bits + LOF)
+    &uword  VHPOSR      = $dff006   ; beam position (V low + H)
+    &uword  DSKDATR     = $dff008   ; disk data early read
+    &uword  JOY0DAT     = $dff00a   ; joystick/mouse port 0
+    &uword  JOY1DAT     = $dff00c   ; joystick/mouse port 1
+    &uword  CLXDAT      = $dff00e   ; collision detection
+    &uword  ADKCONR     = $dff010   ; audio/disk control read
+    &uword  POT0DAT     = $dff012   ; pot port 0 data
+    &uword  POT1DAT     = $dff014   ; pot port 1 data
+    &uword  POTGOR      = $dff016   ; pot port data read
+    &uword  SERDATR     = $dff018   ; serial port data + status
+    &uword  DSKBYTR     = $dff01a   ; disk data byte + status
     &uword  INTENAR     = $dff01c   ; interrupt enable read
     &uword  INTREQR     = $dff01e   ; interrupt request read
 
     ; ========== Write / Read-Write registers ==========
 
     ; Disk
-    &uword  DSKPT       = $dff020   ; disk pointer (two writes: lo,hi)
-    &uword  DSKLEN      = $dff024   ; disk length
-    &uword  DSKDAT      = $dff026   ; disk data write
+    &uword  DSKPTH      = $dff020   ; disk DMA pointer (high)
+    &uword  DSKPTL      = $dff022   ; disk DMA pointer (low)
+    &pointer DSKPT       = $dff020   ; disk DMA pointer (full 32-bit, hi/lo auto-increment)
+    &uword  DSKLEN      = $dff024   ; disk DMA length
+    &uword  DSKDAT      = $dff026   ; disk DMA data write
     &uword  REFPTR      = $dff028   ; refresh pointer
 
     ; Beam position (write)
-    &uword  VPOSW       = $dff02a   ; vertical beam position write
-    &uword  VHPOSW      = $dff02c   ; vertical + horizontal beam position write
+    &uword  VPOSW       = $dff02a   ; beam position write (V)
+    &uword  VHPOSW      = $dff02c   ; beam position write (H)
     &uword  COPCON      = $dff02e   ; copper control
 
     ; Serial
-    &uword  SERDAT      = $dff030   ; serial port data and status write
-    &uword  SERPER      = $dff032   ; serial port period
+    &uword  SERDAT      = $dff030   ; serial port data write
+    &uword  SERPER      = $dff032   ; serial port period/control
 
     ; Pot/Game
-    &uword  POTGO       = $dff034   ; potentiometer control
-    &uword  JOYTEST     = $dff036   ; joystick test
-    &uword  STREQU      = $dff038   ; strobe vertical equ
-    &uword  STRVBL      = $dff03a   ; strobe vertical blank
-    &uword  STRHOR      = $dff03c   ; strobe horizontal
-    &uword  STRLONG     = $dff03e   ; strobe long frame
+    &uword  POTGO       = $dff034   ; pot port control
+    &uword  JOYTEST     = $dff036   ; joystick counter test
+    &uword  STREQU      = $dff038   ; short frame strobe (ECS)
+    &uword  STRVBL      = $dff03a   ; vertical blank strobe (ECS)
+    &uword  STRHOR      = $dff03c   ; horizontal sync strobe (ECS)
+    &uword  STRLONG     = $dff03e   ; long frame strobe (ECS)
 
     ; Blitter
     &uword  BLTCON0     = $dff040   ; blitter control 0
     &uword  BLTCON1     = $dff042   ; blitter control 1
     &uword  BLTAFWM     = $dff044   ; blitter A first word mask
     &uword  BLTALWM     = $dff046   ; blitter A last word mask
-    &uword  BLTCPT      = $dff048   ; blitter C pointer (two writes: lo,hi)
-    &uword  BLTBPT      = $dff04c   ; blitter B pointer (two writes: lo,hi)
-    &uword  BLTAPT      = $dff050   ; blitter A pointer (two writes: lo,hi)
-    &uword  BLTDPT      = $dff054   ; blitter D pointer (two writes: lo,hi)
-    &uword  BLTSIZE     = $dff058   ; blitter size (height|width)
-    &ubyte  BLTCON0L    = $dff05b   ; blitter control 0 low byte (byte access only)
-    &uword  BLTSIZV     = $dff05c   ; blitter size vertical (for 1024+ wide blits)
-    &uword  BLTSIZH     = $dff05e   ; blitter size horizontal (for 1024+ wide blits)
-
+    &uword  BLTCPTH     = $dff048   ; blitter C pointer (high)
+    &uword  BLTCPTL     = $dff04a   ; blitter C pointer (low)
+    &pointer BLTCPT      = $dff048   ; blitter C pointer (full 32-bit, hi/lo auto-increment)
+    &uword  BLTBPTH     = $dff04c   ; blitter B pointer (high)
+    &uword  BLTBPTL     = $dff04e   ; blitter B pointer (low)
+    &pointer BLTBPT      = $dff04c   ; blitter B pointer (full 32-bit, hi/lo auto-increment)
+    &uword  BLTAPTH     = $dff050   ; blitter A pointer (high)
+    &uword  BLTAPTL     = $dff052   ; blitter A pointer (low)
+    &pointer BLTAPT      = $dff050   ; blitter A pointer (full 32-bit, hi/lo auto-increment)
+    &uword  BLTDPTH     = $dff054   ; blitter D pointer (high)
+    &uword  BLTDPTL     = $dff056   ; blitter D pointer (low)
+    &pointer BLTDPT      = $dff054   ; blitter D pointer (full 32-bit, hi/lo auto-increment)
+    &uword  BLTSIZE     = $dff058   ; blitter size (starts blit)
+    &uword  BLTCON0L    = $dff05a   ; blitter control 0 (lower bits, ECS)
+    &uword  BLTSIZV     = $dff05c   ; blitter V size (ECS)
+    &uword  BLTSIZH     = $dff05e   ; blitter H size (ECS, starts blit)
     &uword  BLTCMOD     = $dff060   ; blitter C modulo
     &uword  BLTBMOD     = $dff062   ; blitter B modulo
     &uword  BLTAMOD     = $dff064   ; blitter A modulo
     &uword  BLTDMOD     = $dff066   ; blitter D modulo
-
     &uword  BLTCDAT     = $dff070   ; blitter C data
     &uword  BLTBDAT     = $dff072   ; blitter B data
     &uword  BLTADAT     = $dff074   ; blitter A data
-
-    &uword  DENISEID    = $dff07c   ; Denise/Lisa chip ID
+    &uword  SPRHDAT     = $dff078   ; ext sprite data (ECS)
+    &uword  DENISEID    = $dff07c   ; Denise/Lisa chip ID (ECS/AGA)
     &uword  DSKSYNC     = $dff07e   ; disk sync pattern
 
     ; Copper
-    &uword  COP1LC      = $dff080   ; copper 1 list pointer (two writes: lo,hi)
-    &uword  COP2LC      = $dff084   ; copper 2 list pointer (two writes: lo,hi)
-    &uword  COPJMP1     = $dff088   ; copper 1 jump (write to activate)
-    &uword  COPJMP2     = $dff08a   ; copper 2 jump (write to activate)
-    &uword  COPINS      = $dff08c   ; copper instruction
+    &uword  COP1LCH     = $dff080   ; copper 1 list pointer (high)
+    &uword  COP1LCL     = $dff082   ; copper 1 list pointer (low)
+    &pointer COP1LC      = $dff080   ; copper 1 list pointer (full 32-bit, hi/lo auto-increment)
+    &uword  COP2LCH     = $dff084   ; copper 2 list pointer (high)
+    &uword  COP2LCL     = $dff086   ; copper 2 list pointer (low)
+    &pointer COP2LC      = $dff084   ; copper 2 list pointer (full 32-bit, hi/lo auto-increment)
+    &uword  COPJMP1     = $dff088   ; copper jump strobe 1
+    &uword  COPJMP2     = $dff08a   ; copper jump strobe 2
+    &uword  COPINS      = $dff08c   ; copper instruction fetch
 
     ; Display window / data fetch
     &uword  DIWSTRT     = $dff08e   ; display window start
     &uword  DIWSTOP     = $dff090   ; display window stop
-    &uword  DDFSTRT     = $dff092   ; display data fetch start
-    &uword  DDFSTOP     = $dff094   ; display data fetch stop
+    &uword  DDFSTRT     = $dff092   ; data fetch start
+    &uword  DDFSTOP     = $dff094   ; data fetch stop
 
     ; Control registers
     &uword  DMACON      = $dff096   ; DMA control write
     &uword  CLXCON      = $dff098   ; collision control
-    &uword  INTENA      = $dff09a   ; interrupt enable write
-    &uword  INTREQ      = $dff09c   ; interrupt request write
-    &uword  ADKCON      = $dff09e   ; audio, disk control
+    &uword  INTENA      = $dff09a   ; interrupt enable
+    &uword  INTREQ      = $dff09c   ; interrupt request
+    &uword  ADKCON      = $dff09e   ; audio/disk control
 
     ; ========== Audio channels ==========
 
-    &uword  AUD0_PTR_LO = $dff0a0   ; audio 0 pointer low
-    &uword  AUD0_PTR_HI = $dff0a2   ; audio 0 pointer high
-    &uword  AUD0_LEN    = $dff0a4   ; audio 0 length
-    &uword  AUD0_PER    = $dff0a6   ; audio 0 period
-    &uword  AUD0_VOL    = $dff0a8   ; audio 0 volume
-    &uword  AUD0_DAT    = $dff0aa   ; audio 0 sample data
+    &uword  AUD0PTH     = $dff0a0   ; audio 0 pointer (high)
+    &uword  AUD0PTL     = $dff0a2   ; audio 0 pointer (low)
+    &pointer AUD0PT      = $dff0a0   ; audio 0 pointer (full 32-bit, hi/lo auto-increment)
+    &uword  AUD0LEN     = $dff0a4   ; audio 0 length
+    &uword  AUD0PER     = $dff0a6   ; audio 0 period
+    &uword  AUD0VOL     = $dff0a8   ; audio 0 volume
+    &uword  AUD0DAT     = $dff0aa   ; audio 0 sample data
 
-    &uword  AUD1_PTR_LO = $dff0b0   ; audio 1 pointer low
-    &uword  AUD1_PTR_HI = $dff0b2   ; audio 1 pointer high
-    &uword  AUD1_LEN    = $dff0b4   ; audio 1 length
-    &uword  AUD1_PER    = $dff0b6   ; audio 1 period
-    &uword  AUD1_VOL    = $dff0b8   ; audio 1 volume
-    &uword  AUD1_DAT    = $dff0ba   ; audio 1 sample data
+    &uword  AUD1PTH     = $dff0b0   ; audio 1 pointer (high)
+    &uword  AUD1PTL     = $dff0b2   ; audio 1 pointer (low)
+    &pointer AUD1PT      = $dff0b0   ; audio 1 pointer (full 32-bit, hi/lo auto-increment)
+    &uword  AUD1LEN     = $dff0b4   ; audio 1 length
+    &uword  AUD1PER     = $dff0b6   ; audio 1 period
+    &uword  AUD1VOL     = $dff0b8   ; audio 1 volume
+    &uword  AUD1DAT     = $dff0ba   ; audio 1 sample data
 
-    &uword  AUD2_PTR_LO = $dff0c0   ; audio 2 pointer low
-    &uword  AUD2_PTR_HI = $dff0c2   ; audio 2 pointer high
-    &uword  AUD2_LEN    = $dff0c4   ; audio 2 length
-    &uword  AUD2_PER    = $dff0c6   ; audio 2 period
-    &uword  AUD2_VOL    = $dff0c8   ; audio 2 volume
-    &uword  AUD2_DAT    = $dff0ca   ; audio 2 sample data
+    &uword  AUD2PTH     = $dff0c0   ; audio 2 pointer (high)
+    &uword  AUD2PTL     = $dff0c2   ; audio 2 pointer (low)
+    &pointer AUD2PT      = $dff0c0   ; audio 2 pointer (full 32-bit, hi/lo auto-increment)
+    &uword  AUD2LEN     = $dff0c4   ; audio 2 length
+    &uword  AUD2PER     = $dff0c6   ; audio 2 period
+    &uword  AUD2VOL     = $dff0c8   ; audio 2 volume
+    &uword  AUD2DAT     = $dff0ca   ; audio 2 sample data
 
-    &uword  AUD3_PTR_LO = $dff0d0   ; audio 3 pointer low
-    &uword  AUD3_PTR_HI = $dff0d2   ; audio 3 pointer high
-    &uword  AUD3_LEN    = $dff0d4   ; audio 3 length
-    &uword  AUD3_PER    = $dff0d6   ; audio 3 period
-    &uword  AUD3_VOL    = $dff0d8   ; audio 3 volume
-    &uword  AUD3_DAT    = $dff0da   ; audio 3 sample data
+    &uword  AUD3PTH     = $dff0d0   ; audio 3 pointer (high)
+    &uword  AUD3PTL     = $dff0d2   ; audio 3 pointer (low)
+    &pointer AUD3PT      = $dff0d0   ; audio 3 pointer (full 32-bit, hi/lo auto-increment)
+    &uword  AUD3LEN     = $dff0d4   ; audio 3 length
+    &uword  AUD3PER     = $dff0d6   ; audio 3 period
+    &uword  AUD3VOL     = $dff0d8   ; audio 3 volume
+    &uword  AUD3DAT     = $dff0da   ; audio 3 sample data
 
     ; ========== Bitplane pointers ==========
 
-    &uword  BPL0_PTR_LO = $dff0e0   ; bitplane 0 pointer low
-    &uword  BPL0_PTR_HI = $dff0e2   ; bitplane 0 pointer high
-    &uword  BPL1_PTR_LO = $dff0e4   ; bitplane 1 pointer low
-    &uword  BPL1_PTR_HI = $dff0e6   ; bitplane 1 pointer high
-    &uword  BPL2_PTR_LO = $dff0e8   ; bitplane 2 pointer low
-    &uword  BPL2_PTR_HI = $dff0ea   ; bitplane 2 pointer high
-    &uword  BPL3_PTR_LO = $dff0ec   ; bitplane 3 pointer low
-    &uword  BPL3_PTR_HI = $dff0ee   ; bitplane 3 pointer high
-    &uword  BPL4_PTR_LO = $dff0f0   ; bitplane 4 pointer low
-    &uword  BPL4_PTR_HI = $dff0f2   ; bitplane 4 pointer high
-    &uword  BPL5_PTR_LO = $dff0f4   ; bitplane 5 pointer low
-    &uword  BPL5_PTR_HI = $dff0f6   ; bitplane 5 pointer high
-    &uword  BPL6_PTR_LO = $dff0f8   ; bitplane 6 pointer low
-    &uword  BPL6_PTR_HI = $dff0fa   ; bitplane 6 pointer high
-    &uword  BPL7_PTR_LO = $dff0fc   ; bitplane 7 pointer low
-    &uword  BPL7_PTR_HI = $dff0fe   ; bitplane 7 pointer high
+    &uword  BPL1PTH     = $dff0e0   ; bitplane 1 pointer (high)
+    &uword  BPL1PTL     = $dff0e2   ; bitplane 1 pointer (low)
+    &pointer BPL1PT      = $dff0e0   ; bitplane 1 pointer (full 32-bit, hi/lo auto-increment)
+    &uword  BPL2PTH     = $dff0e4   ; bitplane 2 pointer (high)
+    &uword  BPL2PTL     = $dff0e6   ; bitplane 2 pointer (low)
+    &pointer BPL2PT      = $dff0e4   ; bitplane 2 pointer (full 32-bit, hi/lo auto-increment)
+    &uword  BPL3PTH     = $dff0e8   ; bitplane 3 pointer (high)
+    &uword  BPL3PTL     = $dff0ea   ; bitplane 3 pointer (low)
+    &pointer BPL3PT      = $dff0e8   ; bitplane 3 pointer (full 32-bit, hi/lo auto-increment)
+    &uword  BPL4PTH     = $dff0ec   ; bitplane 4 pointer (high)
+    &uword  BPL4PTL     = $dff0ee   ; bitplane 4 pointer (low)
+    &pointer BPL4PT      = $dff0ec   ; bitplane 4 pointer (full 32-bit, hi/lo auto-increment)
+    &uword  BPL5PTH     = $dff0f0   ; bitplane 5 pointer (high)
+    &uword  BPL5PTL     = $dff0f2   ; bitplane 5 pointer (low)
+    &pointer BPL5PT      = $dff0f0   ; bitplane 5 pointer (full 32-bit, hi/lo auto-increment)
+    &uword  BPL6PTH     = $dff0f4   ; bitplane 6 pointer (high)
+    &uword  BPL6PTL     = $dff0f6   ; bitplane 6 pointer (low)
+    &pointer BPL6PT      = $dff0f4   ; bitplane 6 pointer (full 32-bit, hi/lo auto-increment)
+    &uword  BPL7PTH     = $dff0f8   ; bitplane 7 pointer (high)
+    &uword  BPL7PTL     = $dff0fa   ; bitplane 7 pointer (low)
+    &pointer BPL7PT      = $dff0f8   ; bitplane 7 pointer (full 32-bit, hi/lo auto-increment)
+    &uword  BPL8PTH     = $dff0fc   ; bitplane 8 pointer (high)
+    &uword  BPL8PTL     = $dff0fe   ; bitplane 8 pointer (low)
+    &pointer BPL8PT      = $dff0fc   ; bitplane 8 pointer (full 32-bit, hi/lo auto-increment)
 
     ; ========== Bitplane control ==========
 
     &uword  BPLCON0     = $dff100   ; bitplane control 0
-    &uword  BPLCON1     = $dff102   ; bitplane control 1 (horizontal scroll)
-    &uword  BPLCON2     = $dff104   ; bitplane control 2 (priority/playfield)
-    &uword  BPLCON3     = $dff106   ; bitplane control 3 (AGA+)
-    &uword  BPL1MOD     = $dff108   ; bitplane modulo 1
-    &uword  BPL2MOD     = $dff10a   ; bitplane modulo 2
+    &uword  BPLCON1     = $dff102   ; bitplane control 1 (scroll)
+    &uword  BPLCON2     = $dff104   ; bitplane control 2 (priority)
+    &uword  BPLCON3     = $dff106   ; bitplane control 3 (AGA)
+    &uword  BPL1MOD     = $dff108   ; bitplane modulo (odd planes)
+    &uword  BPL2MOD     = $dff10a   ; bitplane modulo (even planes)
     &uword  BPLCON4     = $dff10c   ; bitplane control 4 (AGA)
-    &uword  CLXCON2     = $dff10e   ; collision control 2 (AGA)
 
-    &uword  BPL0DAT     = $dff110   ; bitplane 0 data
-    &uword  BPL1DAT     = $dff112   ; bitplane 1 data
-    &uword  BPL2DAT     = $dff114   ; bitplane 2 data
-    &uword  BPL3DAT     = $dff116   ; bitplane 3 data
-    &uword  BPL4DAT     = $dff118   ; bitplane 4 data
-    &uword  BPL5DAT     = $dff11a   ; bitplane 5 data
-    &uword  BPL6DAT     = $dff11c   ; bitplane 6 data
-    &uword  BPL7DAT     = $dff11e   ; bitplane 7 data
+    &uword  BPL1DAT     = $dff110   ; bitplane 1 data
+    &uword  BPL2DAT     = $dff112   ; bitplane 2 data
+    &uword  BPL3DAT     = $dff114   ; bitplane 3 data
+    &uword  BPL4DAT     = $dff116   ; bitplane 4 data
+    &uword  BPL5DAT     = $dff118   ; bitplane 5 data
+    &uword  BPL6DAT     = $dff11a   ; bitplane 6 data
+    &uword  BPL7DAT     = $dff11c   ; bitplane 7 data
+    &uword  BPL8DAT     = $dff11e   ; bitplane 8 data
 
     ; ========== Sprite pointers ==========
 
-    &uword  SPR0_PTR_LO = $dff120   ; sprite 0 pointer low
-    &uword  SPR0_PTR_HI = $dff122   ; sprite 0 pointer high
-    &uword  SPR1_PTR_LO = $dff124   ; sprite 1 pointer low
-    &uword  SPR1_PTR_HI = $dff126   ; sprite 1 pointer high
-    &uword  SPR2_PTR_LO = $dff128   ; sprite 2 pointer low
-    &uword  SPR2_PTR_HI = $dff12a   ; sprite 2 pointer high
-    &uword  SPR3_PTR_LO = $dff12c   ; sprite 3 pointer low
-    &uword  SPR3_PTR_HI = $dff12e   ; sprite 3 pointer high
-    &uword  SPR4_PTR_LO = $dff130   ; sprite 4 pointer low
-    &uword  SPR4_PTR_HI = $dff132   ; sprite 4 pointer high
-    &uword  SPR5_PTR_LO = $dff134   ; sprite 5 pointer low
-    &uword  SPR5_PTR_HI = $dff136   ; sprite 5 pointer high
-    &uword  SPR6_PTR_LO = $dff138   ; sprite 6 pointer low
-    &uword  SPR6_PTR_HI = $dff13a   ; sprite 6 pointer high
-    &uword  SPR7_PTR_LO = $dff13c   ; sprite 7 pointer low
-    &uword  SPR7_PTR_HI = $dff13e   ; sprite 7 pointer high
+    &uword  SPR0PTH     = $dff120   ; sprite 0 pointer (high)
+    &uword  SPR0PTL     = $dff122   ; sprite 0 pointer (low)
+    &pointer SPR0PT      = $dff120   ; sprite 0 pointer (full 32-bit, hi/lo auto-increment)
+    &uword  SPR1PTH     = $dff124   ; sprite 1 pointer (high)
+    &uword  SPR1PTL     = $dff126   ; sprite 1 pointer (low)
+    &pointer SPR1PT      = $dff124   ; sprite 1 pointer (full 32-bit, hi/lo auto-increment)
+    &uword  SPR2PTH     = $dff128   ; sprite 2 pointer (high)
+    &uword  SPR2PTL     = $dff12a   ; sprite 2 pointer (low)
+    &pointer SPR2PT      = $dff128   ; sprite 2 pointer (full 32-bit, hi/lo auto-increment)
+    &uword  SPR3PTH     = $dff12c   ; sprite 3 pointer (high)
+    &uword  SPR3PTL     = $dff12e   ; sprite 3 pointer (low)
+    &pointer SPR3PT      = $dff12c   ; sprite 3 pointer (full 32-bit, hi/lo auto-increment)
+    &uword  SPR4PTH     = $dff130   ; sprite 4 pointer (high)
+    &uword  SPR4PTL     = $dff132   ; sprite 4 pointer (low)
+    &pointer SPR4PT      = $dff130   ; sprite 4 pointer (full 32-bit, hi/lo auto-increment)
+    &uword  SPR5PTH     = $dff134   ; sprite 5 pointer (high)
+    &uword  SPR5PTL     = $dff136   ; sprite 5 pointer (low)
+    &pointer SPR5PT      = $dff134   ; sprite 5 pointer (full 32-bit, hi/lo auto-increment)
+    &uword  SPR6PTH     = $dff138   ; sprite 6 pointer (high)
+    &uword  SPR6PTL     = $dff13a   ; sprite 6 pointer (low)
+    &pointer SPR6PT      = $dff138   ; sprite 6 pointer (full 32-bit, hi/lo auto-increment)
+    &uword  SPR7PTH     = $dff13c   ; sprite 7 pointer (high)
+    &uword  SPR7PTL     = $dff13e   ; sprite 7 pointer (low)
+    &pointer SPR7PT      = $dff13c   ; sprite 7 pointer (full 32-bit, hi/lo auto-increment)
 
     ; ========== Sprite data ==========
 
@@ -328,16 +358,16 @@ S_PAL:      ds.w    1
 
     ; ========== Color palette ==========
 
-    &uword  COLOR0      = $dff180   ; color 0 (background)
-    &uword  COLOR1      = $dff182
-    &uword  COLOR2      = $dff184
-    &uword  COLOR3      = $dff186
-    &uword  COLOR4      = $dff188
-    &uword  COLOR5      = $dff18a
-    &uword  COLOR6      = $dff18c
-    &uword  COLOR7      = $dff18e
-    &uword  COLOR8      = $dff190
-    &uword  COLOR9      = $dff192
+    &uword  COLOR00     = $dff180   ; color 0 (background)
+    &uword  COLOR01     = $dff182
+    &uword  COLOR02     = $dff184
+    &uword  COLOR03     = $dff186
+    &uword  COLOR04     = $dff188
+    &uword  COLOR05     = $dff18a
+    &uword  COLOR06     = $dff18c
+    &uword  COLOR07     = $dff18e
+    &uword  COLOR08     = $dff190
+    &uword  COLOR09     = $dff192
     &uword  COLOR10     = $dff194
     &uword  COLOR11     = $dff196
     &uword  COLOR12     = $dff198
@@ -361,27 +391,26 @@ S_PAL:      ds.w    1
     &uword  COLOR30     = $dff1bc
     &uword  COLOR31     = $dff1be
 
-    ; ========== AGA/ECS extended registers ==========
+    ; ========== ECS/AGA extended registers ==========
 
-    &uword  HTOTAL      = $dff1c0   ; horizontal total (AGA)
-    &uword  HSSTOP      = $dff1c2   ; horizontal sync stop (AGA)
-    &uword  HBSTRT      = $dff1c4   ; horizontal blank start (AGA)
-    &uword  HBSTOP      = $dff1c6   ; horizontal blank stop (AGA)
-    &uword  VTOTAL      = $dff1c8   ; vertical total (AGA)
-    &uword  VSSTOP      = $dff1ca   ; vertical sync stop (AGA)
-    &uword  VBSTRT      = $dff1cc   ; vertical blank start (AGA)
-    &uword  VBSTOP      = $dff1ce   ; vertical blank stop (AGA)
+    &uword  HTOTAL      = $dff1c0   ; H total (ECS)
+    &uword  HSSTOP      = $dff1c2   ; H sync stop (ECS)
+    &uword  HBSTRT      = $dff1c4   ; H blank start (ECS)
+    &uword  HBSTOP      = $dff1c6   ; H blank stop (ECS)
+    &uword  VTOTAL      = $dff1c8   ; V total (ECS)
+    &uword  VSSTOP      = $dff1ca   ; V sync stop (ECS)
+    &uword  VBSTRT      = $dff1cc   ; V blank start (ECS)
+    &uword  VBSTOP      = $dff1ce   ; V blank stop (ECS)
     &uword  SPRHSTRT    = $dff1d0   ; sprite horizontal start (AGA)
     &uword  SPRHSTOP    = $dff1d2   ; sprite horizontal stop (AGA)
     &uword  BPLHSTRT    = $dff1d4   ; bitplane horizontal start (AGA)
     &uword  BPLHSTOP    = $dff1d6   ; bitplane horizontal stop (AGA)
     &uword  HHPOSW      = $dff1d8   ; horizontal hardware position write (AGA)
     &uword  HHPOSR      = $dff1da   ; horizontal hardware position read (AGA)
-    &uword  BEAMCON0    = $dff1dc   ; beam counter control (AGA)
-    &uword  HSSTRT      = $dff1de   ; horizontal sync start (AGA)
-    &uword  VSSTRT      = $dff1e0   ; vertical sync start (AGA)
-    &uword  HCENTER     = $dff1e2   ; horizontal center (AGA)
-    &uword  DIWHIGH     = $dff1e4   ; display window high bits (AGA)
+    &uword  BEAMCON0    = $dff1dc   ; beam counter control (ECS)
+    &uword  HSSTRT      = $dff1de   ; H sync start (ECS)
+    &uword  VSSTRT      = $dff1e0   ; V sync start (ECS)
+    &uword  DIWHIGH     = $dff1e4   ; display window high bits (ECS)
     &uword  FMODE       = $dff1fc   ; fetch mode (AGA)
 
     ; ========== Blitter minterm constants ==========
@@ -489,21 +518,43 @@ S_PAL:      ds.w    1
     sub set_aga_color(ubyte color_index, long rgb24) {
         ; Write a 24-bit RGB color ($00RRGGBB) to any of the 256
         ; AGA palette entries (indices 0-255).
-        ; Handles 24-bit to dual 16-bit conversion and BPLCON4
-        ; bank switching automatically.
-        ; On OCS/ECS only indices 0-31 are valid.
+        ; AGA has 8 banks of 32 colors, all sharing the same 32
+        ; physical COLOR registers at $DFF180-$DFF1BE. The active
+        ; bank is selected by BPLCON3 bits 15-13 (BANK2..BANK0).
+        ; 24-bit RGB is loaded via two writes: first the high 4 bits
+        ; of each channel (LOCT=0), then the low 4 bits (LOCT=1).
+        ; On OCS/ECS, only the first 32 colors are accessible; the
+        ; LOCT bit is a no-op but the second write may overwrite the
+        ; high nibble, so use custom.COLORnn = value for OCS/ECS.
         uword red   = ((rgb24 >> 16) as uword) & $ff
         uword green = ((rgb24 >> 8) as uword) & $ff
         uword blue  = (rgb24 as uword) & $ff
-        uword low_word  = ((red & $0f) << 8) | ((green & $0f) << 4) | (blue & $0f)
-        uword high_word = ((red >> 4) << 8) | ((green >> 4) << 4) | (blue >> 4)
-        uword offset = ((color_index & $1f) as uword) * 2
 
-        uword bank = (color_index >> 5) as uword
-        custom.BPLCON4 = bank
+        ; High nibble: R[7:4]<<8 | G[7:4]<<4 | B[7:4]  ($0RGB with top 4 bits of each channel)
+        uword high_nibble = ((red & $f0) << 4) | (green & $f0) | (blue >> 4)
+        ; Low nibble:  R[3:0]<<8 | G[3:0]<<4 | B[3:0]  ($0RGB with bottom 4 bits of each channel)
+        uword low_nibble  = ((red & $0f) << 8) | ((green & $0f) << 4) | (blue & $0f)
 
-        pokew($dff180 + offset, low_word)
-        pokew($dff180 + offset, high_word)
+        ; AGA: 8 banks of 32 colors
+        uword bank = ((color_index >> 5) as uword) & $07
+        uword reg_in_bank = (color_index as uword) & $1f
+        uword addr = ($DFF180 + reg_in_bank * 2) as uword
+
+        ; Select AGA color bank (0-7) via BPLCON3 bits 15-13 (mask $E000)
+        uword saved_bplcon3 = custom.BPLCON3
+        custom.BPLCON3 = (saved_bplcon3 & ~$E000) | (bank << 13)
+
+        ; Step 1: Write the high nibble (normal 12-bit write, LOCT=0)
+        pokew(addr, high_nibble)
+
+        ; Step 2: Set LOCT bit (BPLCON3 bit 9 = $0200) to enable low-nibble write
+        custom.BPLCON3 = custom.BPLCON3 | $0200
+
+        ; Step 3: Write the low nibble
+        pokew(addr, low_nibble)
+
+        ; Step 4: Restore BPLCON3 (clear LOCT, preserve other bits)
+        custom.BPLCON3 = saved_bplcon3
     }
 
     ; ========== mouse button status ==========
@@ -516,14 +567,14 @@ S_PAL:      ds.w    1
 
     sub right_button() -> bool {
         ; Returns true if the right mouse button (port 1) is pressed.
-        ; Right button is POTINP ($dff016) bit 10, active low.
-        return (custom.POTINP & %0000010000000000) == 0
+        ; Right button is POTGOR ($dff016) bit 10, active low.
+        return (custom.POTGOR & %0000010000000000) == 0
     }
 
     sub middle_button() -> bool {
         ; Returns true if the middle mouse button (port 1) is pressed.
-        ; Middle button is POTINP ($dff016) bit 8, active low.
-        return (custom.POTINP & %0000000100000000) == 0
+        ; Middle button is POTGOR ($dff016) bit 8, active low.
+        return (custom.POTGOR & %0000000100000000) == 0
     }
 
     ; ========== CIA registers ==========
