@@ -1649,6 +1649,12 @@ miscellaneous
 ``memsetw (address, numwords, wordvalue)``
     Efficiently set a part of memory to the given (u)word value.
     But the most efficient will always be to write a specialized fill routine in assembly yourself!
+    Note: on m68k targets (amiga500, qemu68k), the address must be word-aligned (even).
+
+``memsetl (address, numlongs, longvalue)``  (available on 32 bits targets only)
+    Efficiently set a part of memory to the given (u)long value.
+    But the most efficient will always be to write a specialized fill routine in assembly yourself!
+    Note: on m68k targets (amiga500, qemu68k), the address must be longword-aligned (divisible by 4).
 
 ``memcmp (address1, address2, size)``
     Compares two blocks of memory of up to 65535 bytes in size.

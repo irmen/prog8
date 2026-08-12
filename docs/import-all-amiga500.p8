@@ -2,6 +2,8 @@
 
 %import arexx
 %import buffers
+%import blitter
+%import copper
 %import iffparse
 %import compression
 %import coroutines

@@ -1,6 +1,6 @@
 
 Prog8 compiler v14.0-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit 45f48d2e in branch new-codegens
+Prerelease version from git commit b63ff20f in branch new-codegens
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-amiga500.p8
@@ -249,6 +249,26 @@ arexx  {
 }
 
 
+LIBRARY MODULE NAME: blitter
+----------------------------
+
+blitter  {
+    const uword  MINTERM_A_ONLY
+    const uword  MINTERM_A_XOR_C
+    const uword  MINTERM_B_ONLY
+    const uword  MINTERM_MASKED
+    clear_plane  (long dst @A0, uword size_words @D0) clobbers (D0,A0)
+    copy_plane  (long src @A0, long dst @A1, uword size_words @D0) clobbers (D0,D1,A0,A1)
+    copy_rect  (long src @A0, long dst @A1, uword width_words @D0, uword height @D1, uword src_mod @D2, uword dst_mod @D3, uword minterm @D4, ubyte descending @D5) clobbers (D0,D1,D2,D3,D4,D5,A0,A1)
+    fill_rect  (long dst @A0, uword width_words @D0, uword height @D1, uword pattern @D2, uword modulo @D3) clobbers (D0,D1,D2,D3,A0)
+    invert_plane  (long dst @A0, uword size_words @D0) clobbers (D0,A0)
+    line_draw  (uword x1 @D0, uword y1 @D1, uword x2 @D2, uword y2 @D3, uword screen_mod @D4, long screen_ptr @A1) clobbers (D0,D1,D2,D3,D5,D6,A0,A1)
+    line_init  (uword mask @D0, uword pixel @D1, uword pattern @D2, uword screen_mod @D4) clobbers (D0,D1,D2,D4,A0,A1)
+    masked_blit  (long src @A0, long mask @A1, long dst @A2, uword width_words @D0, uword height @D1, uword src_mod @D2, uword mask_mod @D3, uword dst_mod @D4) clobbers (D0,D1,D2,D3,D4,A0,A1,A2)
+    wait  ()
+}
+
+
 LIBRARY MODULE NAME: buffers
 ----------------------------
 
@@ -315,6 +335,15 @@ ringbuffer  {
 }
 
 
+LIBRARY MODULE NAME: compression
+--------------------------------
+
+compression  {
+    decode_rle  (^^ubyte compressed @A0, ^^ubyte target @A1, uword maxsize @D0) clobbers (D0,D1,D2,A1) -> ^^ubyte @A0
+    unZX0  (long compressed @A0, long output @A1)
+}
+
+
 LIBRARY MODULE NAME: conv
 -------------------------
 
@@ -344,6 +373,22 @@ conv  {
 }
 
 
+LIBRARY MODULE NAME: copper
+---------------------------
+
+copper  {
+    long @shared  _copper_pos
+    append_raster_colors  (ubyte vpos_start, ^^uword colors, ubyte num_lines)
+    end  () clobbers (A0)
+    get_pos  () -> long @A0
+    init  (long list_ptr @A0) clobbers (A0)
+    move  (uword reg_addr @D0, uword value @D1) clobbers (D0,D1,A0)
+    skip  (ubyte vpos @D0, ubyte hpos @D1, uword compare_mask @D2) clobbers (D0,D1,D2,A0)
+    start  (long list_ptr @A0) clobbers (A0)
+    wait  (ubyte vpos @D0, ubyte hpos @D1, uword compare_mask @D2) clobbers (D0,D1,D2,A0)
+}
+
+
 LIBRARY MODULE NAME: coroutines
 -------------------------------
 
@@ -360,6 +405,382 @@ coroutines  {
     run  (long supervisor_routine)
     termination  ()
     yield  () -> long
+}
+
+
+LIBRARY MODULE NAME: custom
+---------------------------
+
+custom  {
+    const uword  ABC
+    const uword  ABNC
+    &uword  ADKCON
+    &uword  ADKCONR
+    const uword  ADKF_FAST
+    const uword  ADKF_MFMPREC
+    const uword  ADKF_MSBSYNC
+    const uword  ADKF_PRECOMP0
+    const uword  ADKF_PRECOMP1
+    const uword  ADKF_SETCLR
+    const uword  ADKF_UARTBRK
+    const uword  ADKF_USE0P1
+    const uword  ADKF_USE0V1
+    const uword  ADKF_USE1P2
+    const uword  ADKF_USE1V2
+    const uword  ADKF_USE2P3
+    const uword  ADKF_USE2V3
+    const uword  ADKF_USE3PN
+    const uword  ADKF_USE3VN
+    const uword  ADKF_WORDSYNC
+    const uword  ANBC
+    const uword  ANBNC
+    &uword  AUD0DAT
+    &uword  AUD0LEN
+    &uword  AUD0PER
+    &long  AUD0PT
+    &uword  AUD0PTH
+    &uword  AUD0PTL
+    &uword  AUD0VOL
+    &uword  AUD1DAT
+    &uword  AUD1LEN
+    &uword  AUD1PER
+    &long  AUD1PT
+    &uword  AUD1PTH
+    &uword  AUD1PTL
+    &uword  AUD1VOL
+    &uword  AUD2DAT
+    &uword  AUD2LEN
+    &uword  AUD2PER
+    &long  AUD2PT
+    &uword  AUD2PTH
+    &uword  AUD2PTL
+    &uword  AUD2VOL
+    &uword  AUD3DAT
+    &uword  AUD3LEN
+    &uword  AUD3PER
+    &long  AUD3PT
+    &uword  AUD3PTH
+    &uword  AUD3PTL
+    &uword  AUD3VOL
+    const uword  BC0F_DEST
+    const uword  BC0F_SRCA
+    const uword  BC0F_SRCB
+    const uword  BC0F_SRCC
+    const uword  BC1F_AUL
+    const uword  BC1F_DESC
+    const uword  BC1F_FILL_CARRYIN
+    const uword  BC1F_FILL_OR
+    const uword  BC1F_FILL_XOR
+    const uword  BC1F_LINEMODE
+    const uword  BC1F_ONEDOT
+    const uword  BC1F_OVFLAG
+    const uword  BC1F_SIGNFLAG
+    const uword  BC1F_SUD
+    const uword  BC1F_SUL
+    &uword  BEAMCON0
+    &uword  BLTADAT
+    &uword  BLTAFWM
+    &uword  BLTALWM
+    &uword  BLTAMOD
+    &long  BLTAPT
+    &uword  BLTAPTH
+    &uword  BLTAPTL
+    &uword  BLTBDAT
+    &uword  BLTBMOD
+    &long  BLTBPT
+    &uword  BLTBPTH
+    &uword  BLTBPTL
+    &uword  BLTCDAT
+    &uword  BLTCMOD
+    &uword  BLTCON0
+    &uword  BLTCON0L
+    &uword  BLTCON1
+    &long  BLTCPT
+    &uword  BLTCPTH
+    &uword  BLTCPTL
+    &uword  BLTDDAT
+    &uword  BLTDMOD
+    &long  BLTDPT
+    &uword  BLTDPTH
+    &uword  BLTDPTL
+    &uword  BLTSIZE
+    &uword  BLTSIZH
+    &uword  BLTSIZV
+    &uword  BPL1DAT
+    &uword  BPL1MOD
+    &long  BPL1PT
+    &uword  BPL1PTH
+    &uword  BPL1PTL
+    &uword  BPL2DAT
+    &uword  BPL2MOD
+    &long  BPL2PT
+    &uword  BPL2PTH
+    &uword  BPL2PTL
+    &uword  BPL3DAT
+    &long  BPL3PT
+    &uword  BPL3PTH
+    &uword  BPL3PTL
+    &uword  BPL4DAT
+    &long  BPL4PT
+    &uword  BPL4PTH
+    &uword  BPL4PTL
+    &uword  BPL5DAT
+    &long  BPL5PT
+    &uword  BPL5PTH
+    &uword  BPL5PTL
+    &uword  BPL6DAT
+    &long  BPL6PT
+    &uword  BPL6PTH
+    &uword  BPL6PTL
+    &uword  BPL7DAT
+    &long  BPL7PT
+    &uword  BPL7PTH
+    &uword  BPL7PTL
+    &uword  BPL8DAT
+    &long  BPL8PT
+    &uword  BPL8PTH
+    &uword  BPL8PTL
+    &uword  BPLCON0
+    &uword  BPLCON1
+    &uword  BPLCON2
+    &uword  BPLCON3
+    &uword  BPLCON4
+    &uword  BPLHSTOP
+    &uword  BPLHSTRT
+    &ubyte  CIAA_CRA
+    &ubyte  CIAA_CRB
+    &ubyte  CIAA_DDRA
+    &ubyte  CIAA_DDRB
+    &ubyte  CIAA_ICR
+    &ubyte  CIAA_PRA
+    &ubyte  CIAA_PRB
+    &ubyte  CIAA_SDR
+    &ubyte  CIAA_TAHI
+    &ubyte  CIAA_TALO
+    &ubyte  CIAA_TBHI
+    &ubyte  CIAA_TBLO
+    &ubyte  CIAA_TODHI
+    &ubyte  CIAA_TODLOW
+    &ubyte  CIAA_TODMID
+    &ubyte  CIAB_CRA
+    &ubyte  CIAB_CRB
+    &ubyte  CIAB_DDRA
+    &ubyte  CIAB_DDRB
+    &ubyte  CIAB_ICR
+    &ubyte  CIAB_PRA
+    &ubyte  CIAB_PRB
+    &ubyte  CIAB_SDR
+    &ubyte  CIAB_TAHI
+    &ubyte  CIAB_TALO
+    &ubyte  CIAB_TBHI
+    &ubyte  CIAB_TBLO
+    &ubyte  CIAB_TODHI
+    &ubyte  CIAB_TODLOW
+    &ubyte  CIAB_TODMID
+    &uword  CLXCON
+    &uword  CLXDAT
+    &uword  COLOR00
+    &uword  COLOR01
+    &uword  COLOR02
+    &uword  COLOR03
+    &uword  COLOR04
+    &uword  COLOR05
+    &uword  COLOR06
+    &uword  COLOR07
+    &uword  COLOR08
+    &uword  COLOR09
+    &uword  COLOR10
+    &uword  COLOR11
+    &uword  COLOR12
+    &uword  COLOR13
+    &uword  COLOR14
+    &uword  COLOR15
+    &uword  COLOR16
+    &uword  COLOR17
+    &uword  COLOR18
+    &uword  COLOR19
+    &uword  COLOR20
+    &uword  COLOR21
+    &uword  COLOR22
+    &uword  COLOR23
+    &uword  COLOR24
+    &uword  COLOR25
+    &uword  COLOR26
+    &uword  COLOR27
+    &uword  COLOR28
+    &uword  COLOR29
+    &uword  COLOR30
+    &uword  COLOR31
+    &long  COP1LC
+    &uword  COP1LCH
+    &uword  COP1LCL
+    &long  COP2LC
+    &uword  COP2LCH
+    &uword  COP2LCL
+    &uword  COPCON
+    &uword  COPINS
+    &uword  COPJMP1
+    &uword  COPJMP2
+    &uword  DDFSTOP
+    &uword  DDFSTRT
+    &uword  DENISEID
+    &uword  DIWHIGH
+    &uword  DIWSTOP
+    &uword  DIWSTRT
+    &uword  DMACON
+    &uword  DMACONR
+    const uword  DMAF_ALL
+    const uword  DMAF_AUD0
+    const uword  DMAF_AUD1
+    const uword  DMAF_AUD2
+    const uword  DMAF_AUD3
+    const uword  DMAF_AUDIO
+    const uword  DMAF_BLITHOG
+    const uword  DMAF_BLITTER
+    const uword  DMAF_BLTDONE
+    const uword  DMAF_BLTNZERO
+    const uword  DMAF_COPPER
+    const uword  DMAF_DISK
+    const uword  DMAF_MASTER
+    const uword  DMAF_RASTER
+    const uword  DMAF_SETCLR
+    const uword  DMAF_SPRITE
+    &uword  DSKBYTR
+    &uword  DSKDAT
+    &uword  DSKDATR
+    &uword  DSKLEN
+    &long  DSKPT
+    &uword  DSKPTH
+    &uword  DSKPTL
+    &uword  DSKSYNC
+    &uword  FMODE
+    &uword  HBSTOP
+    &uword  HBSTRT
+    &uword  HHPOSR
+    &uword  HHPOSW
+    &uword  HSSTOP
+    &uword  HSSTRT
+    &uword  HTOTAL
+    &uword  INTENA
+    &uword  INTENAR
+    const uword  INTF_AUD0
+    const uword  INTF_AUD1
+    const uword  INTF_AUD2
+    const uword  INTF_AUD3
+    const uword  INTF_BLIT
+    const uword  INTF_COPER
+    const uword  INTF_DSKBLK
+    const uword  INTF_DSKSYNC
+    const uword  INTF_EXTER
+    const uword  INTF_INTEN
+    const uword  INTF_PORTS
+    const uword  INTF_RBF
+    const uword  INTF_SETCLR
+    const uword  INTF_SOFTINT
+    const uword  INTF_TBE
+    const uword  INTF_VERTB
+    &uword  INTREQ
+    &uword  INTREQR
+    &uword  JOY0DAT
+    &uword  JOY1DAT
+    &uword  JOYTEST
+    const uword  MINTERM_AND
+    const uword  MINTERM_CLEAR
+    const uword  MINTERM_COPY
+    const uword  MINTERM_NOP
+    const uword  MINTERM_NOT
+    const uword  MINTERM_OR
+    const uword  MINTERM_XOR
+    const uword  NABC
+    const uword  NABNC
+    const uword  NANBC
+    const uword  NANBNC
+    &uword  POT0DAT
+    &uword  POT1DAT
+    &uword  POTGO
+    &uword  POTGOR
+    &uword  REFPTR
+    &uword  SERDAT
+    &uword  SERDATR
+    &uword  SERPER
+    &uword  SPR0CTL
+    &uword  SPR0DATA
+    &uword  SPR0DATB
+    &uword  SPR0POS
+    &long  SPR0PT
+    &uword  SPR0PTH
+    &uword  SPR0PTL
+    &uword  SPR1CTL
+    &uword  SPR1DATA
+    &uword  SPR1DATB
+    &uword  SPR1POS
+    &long  SPR1PT
+    &uword  SPR1PTH
+    &uword  SPR1PTL
+    &uword  SPR2CTL
+    &uword  SPR2DATA
+    &uword  SPR2DATB
+    &uword  SPR2POS
+    &long  SPR2PT
+    &uword  SPR2PTH
+    &uword  SPR2PTL
+    &uword  SPR3CTL
+    &uword  SPR3DATA
+    &uword  SPR3DATB
+    &uword  SPR3POS
+    &long  SPR3PT
+    &uword  SPR3PTH
+    &uword  SPR3PTL
+    &uword  SPR4CTL
+    &uword  SPR4DATA
+    &uword  SPR4DATB
+    &uword  SPR4POS
+    &long  SPR4PT
+    &uword  SPR4PTH
+    &uword  SPR4PTL
+    &uword  SPR5CTL
+    &uword  SPR5DATA
+    &uword  SPR5DATB
+    &uword  SPR5POS
+    &long  SPR5PT
+    &uword  SPR5PTH
+    &uword  SPR5PTL
+    &uword  SPR6CTL
+    &uword  SPR6DATA
+    &uword  SPR6DATB
+    &uword  SPR6POS
+    &long  SPR6PT
+    &uword  SPR6PTH
+    &uword  SPR6PTL
+    &uword  SPR7CTL
+    &uword  SPR7DATA
+    &uword  SPR7DATB
+    &uword  SPR7POS
+    &long  SPR7PT
+    &uword  SPR7PTH
+    &uword  SPR7PTL
+    &uword  SPRHDAT
+    &uword  SPRHSTOP
+    &uword  SPRHSTRT
+    &uword  STREQU
+    &uword  STRHOR
+    &uword  STRLONG
+    &uword  STRVBL
+    &uword  VBSTOP
+    &uword  VBSTRT
+    &uword  VHPOSR
+    &uword  VHPOSW
+    &uword  VPOSR
+    &uword  VPOSW
+    &uword  VSSTOP
+    &uword  VSSTRT
+    &uword  VTOTAL
+    grab_system  ()
+    left_button  () -> bool
+    middle_button  () -> bool
+    return_system  ()
+    right_button  () -> bool
+    set_aga_color  (ubyte color_index, long rgb24)
 }
 
 
@@ -1540,6 +1961,47 @@ exec  {
     Wait  (long signalSet @D0) -> long @D0@bank 1 = -$013e
     WaitIO  (long ioRequest @A1) -> byte @D0@bank 1 = -$01da
     WaitPort  (long port @A0) -> long @D0@bank 1 = -$0180
+}
+
+
+LIBRARY MODULE NAME: floats
+---------------------------
+
+floats  {
+    const float  E
+    const float  EPSILON
+    const float  PI
+    const float  TWOPI
+    const float  π
+    atan  (float value @FP0) -> float @FP0
+    atan2  (float y, float x) -> float
+    ceil  (float value @FP0) -> float @FP0
+    clampf  (float value, float minimum, float maximum) -> float
+    cos  (float angle @FP0) -> float @FP0
+    cot  (float value) -> float
+    csc  (float value) -> float
+    deg  (float angle) -> float
+    floor  (float value @FP0) -> float @FP0
+    interpolate  (float v, float inputMin, float inputMax, float outputMin, float outputMax) -> float
+    lerp  (float v0, float v1, float t) -> float
+    lerp_fast  (float v0, float v1, float t) -> float
+    ln  (float value @FP0) -> float @FP0
+    log2  (float value @FP0) -> float @FP0
+    maxf  (float f1, float f2) -> float
+    minf  (float f1, float f2) -> float
+    mod  (float value, float divisor) -> float
+    normalize  (float value) -> float
+    parse  (str value @A0) -> float @FP0
+    pow  (float value @FP0, float power @FP1) -> float @FP0
+    print  (float value @FP0)
+    rad  (float angle) -> float
+    rnd  () -> float @FP0
+    rndseed  (float seed @FP0)
+    round  (float value @FP0) -> float @FP0
+    secant  (float value) -> float
+    sin  (float angle @FP0) -> float @FP0
+    tan  (float value @FP0) -> float @FP0
+    tostr  (float value @FP0) -> str @A0
 }
 
 
@@ -3814,11 +4276,13 @@ sys  {
     long @shared  UtilityBase
     const ubyte  target
     clear_carry  ()
+    cpuAtLeast68020  () clobbers (D0,A6) -> bool @Pz
     exec_version  () -> uword @D0
     exit  (ubyte returnvalue)
     memclear  (long mem @D0, uword numbytes @D1)
     memcopy  (long source @D0, long tgt @D1, uword count @D2)
     memset  (long mem @D0, uword numbytes @D1, ubyte value @D2)
+    memsetl  (long mem @D0, uword numlongs @D1, long value @D2)
     memsetw  (long mem @D0, uword numwords @D1, uword value @D2)
     progend  () -> long @A0
     progstart  () -> long @A0
@@ -3855,6 +4319,7 @@ txt  {
     print  (str text @A0) clobbers (D0,D1,D2,D3,A0,A6)
     print_b  (byte value)
     print_bool  (bool value)
+    print_f   alias for: floats.print
     print_l  (long value)
     print_ub  (ubyte value)
     print_ub0  (ubyte value)
@@ -4006,3 +4471,4 @@ wavfile  {
 }
 
 
+[93mWARN  [0mfile:///home/irmen/Projects/prog8/docs/import-all-amiga500.p8:1:54: floating-point code requires a 68020 or better CPU with an 68881/68882 FPU; assembler options set to -m68020 -m68881. This program will NOT run on an Amiga 500/600 or 1200 without fp coprocessor!

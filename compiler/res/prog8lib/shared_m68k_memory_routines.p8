@@ -196,9 +196,8 @@ sys {
 
     asmsub memsetw(long mem @D0, uword numwords @D1, uword value @D2) {
         ; Fill memory with the given 16-bit word value, for the given number of words.
-        ; Word-aligned start: fast path with longword stores (2 words at a time).
-        ; Odd start: first byte written individually to realign, then same fast path
-        ; with byte-swapped fill to keep the pattern correct, plus trailing byte.
+        ; Requires word-aligned start address. Uses longword stores (2 words at a time)
+        ; for the bulk fill, with a possible trailing single word.
         %asm {{
             movea.l  d0,a0
             moveq    #0,d0
@@ -206,47 +205,45 @@ sys {
             beq      .done
             move.w   d2,d1           ; d1 = fill word value
 
-            move.l   a0,d3
-            btst     #0,d3
-            beq      .aligned
-
-            ; odd start: write high byte to align to even
-            move.b   d1,(a0)+
-            subq.l   #1,d0
-            blt      .done
-            ; swap fill bytes so aligned fills continue the pattern correctly
+            ; Create longword fill pattern: d1:d1
             move.w   d1,d2
-            swap     d2              ; d2 = fill word, bytes swapped
-            moveq    #1,d3           ; flag: odd start (need trailing byte)
-            bra      .setup
-
-.aligned:
-            move.w   d1,d2           ; d2 = fill word as-is
-            moveq    #0,d3           ; flag: even start (no trailing byte)
-
-.setup:
-            move.l   d2,d4
-            swap     d4
-            move.w   d2,d4           ; d4 = d2 : d2  (longword fill pattern)
+            swap     d2
+            move.w   d1,d2           ; d2 = d1 : d1
 
             ; longword fill (2 words at a time)
-            move.l   d0,d5
-            lsr.l    #1,d5           ; d5 = numwords / 2
+            move.l   d0,d3
+            lsr.l    #1,d3           ; d3 = numwords / 2
             beq      .odd_word
-            subq.w   #1,d5
+            subq.w   #1,d3
 .loop_l:
-            move.l   d4,(a0)+
-            dbra     d5,.loop_l
+            move.l   d2,(a0)+
+            dbra     d3,.loop_l
 
 .odd_word:
             btst     #0,d0
-            beq      .trailing
-            move.w   d2,(a0)+
-
-.trailing:
-            tst.b    d3
             beq      .done
-            move.b   d1,(a0)         ; original value's low byte to complete last word
+            move.w   d1,(a0)+
+
+.done:
+            rts
+        }}
+    }
+
+    asmsub memsetl(long mem @D0, uword numlongs @D1, long value @D2) {
+        ; Fill memory with the given 32-bit longword value, for the given number of longwords.
+        ; Requires longword-aligned start address. Uses longword stores.
+        %asm {{
+            movea.l  d0,a0
+            moveq    #0,d0
+            move.w   d1,d0           ; d0 = numlongs (zero-extended)
+            beq      .done
+
+            ; longword fill
+            subq.w   #1,d0
+.loop_l:
+            move.l   d2,(a0)+
+            dbra     d0,.loop_l
+
 .done:
             rts
         }}

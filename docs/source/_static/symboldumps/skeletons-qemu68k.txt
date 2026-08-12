@@ -1,6 +1,6 @@
 
 Prog8 compiler v14.0-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit 45f48d2e in branch new-codegens
+Prerelease version from git commit b63ff20f in branch new-codegens
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-qemu68k.p8
@@ -129,6 +129,15 @@ ringbuffer  {
     put  (ubyte value)
     putw  (uword value)
     size  () -> uword
+}
+
+
+LIBRARY MODULE NAME: compression
+--------------------------------
+
+compression  {
+    decode_rle  (^^ubyte compressed @A0, ^^ubyte target @A1, uword maxsize @D0) clobbers (D0,D1,D2,A1) -> ^^ubyte @A0
+    unZX0  (long compressed @A0, long output @A1)
 }
 
 
@@ -389,6 +398,7 @@ sys  {
     memclear  (long mem @D0, uword numbytes @D1)
     memcopy  (long source @D0, long tgt @D1, uword count @D2)
     memset  (long mem @D0, uword numbytes @D1, ubyte value @D2)
+    memsetl  (long mem @D0, uword numlongs @D1, long value @D2)
     memsetw  (long mem @D0, uword numwords @D1, uword value @D2)
     poweroff_system  ()
     progend  () -> long @A0
