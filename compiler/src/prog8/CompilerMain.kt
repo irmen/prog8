@@ -2,8 +2,6 @@ package prog8
 
 import kotlinx.cli.*
 import prog8.ast.AstException
-import prog8.code.core.ErrorsReportedException
-import prog8.code.core.Position
 import prog8.code.source.ImportFileSystem
 import prog8.code.source.ImportFileSystem.expandTilde
 import prog8.code.target.CompilationTargets
@@ -222,6 +220,7 @@ private fun compileMain(args: Array<String>): Boolean {
                     breakpointCpuInstruction,
                     printAst1 == true,
                     printAst2 == true,
+                    printCompileInfo = true,
                     ignoreFootguns == true,
                     profilingInstrumentation == true,
                     traceImports == true,
@@ -307,11 +306,12 @@ private fun compileMain(args: Array<String>): Boolean {
                 breakpointCpuInstruction,
                 printAst1 == true,
                 printAst2 == true,
+                true,
                 ignoreFootguns == true,
                 profilingInstrumentation == true,
-                    traceImports == true,
-                    processedSymbols,
-                    absoluteSrcDirs,
+                traceImports == true,
+                processedSymbols,
+                absoluteSrcDirs,
                 outputPath,
                 cwd = Path.of(System.getProperty("user.dir")),
                 errors = ErrorReporter(txtcolors)
@@ -372,6 +372,7 @@ private fun compileMain(args: Array<String>): Boolean {
                     breakpointCpuInstruction,
                     printAst1 == true,
                     printAst2 == true,
+                    true,
                     ignoreFootguns == true,
                     profilingInstrumentation == true,
                     traceImports == true,
@@ -706,6 +707,7 @@ private fun compileViaDaemon(compilerArgs: CompilerArguments, plainText: Boolean
         println("Using existing prog8c daemon at $socketPath")
     }
 
+    printCompileStart(compilerArgs)
     val response = communicateWithDaemon(channel, compilerArgs, plainText)
     if (response != null && (response.ok || !wasExisting || response.versionError == null)) return response
 
@@ -724,6 +726,15 @@ private fun compileViaDaemon(compilerArgs: CompilerArguments, plainText: Boolean
     println("prog8c daemon (new) started.")
 
     return communicateWithDaemon(channel, compilerArgs, plainText)
+}
+
+private fun printCompileStart(args: CompilerArguments) {
+    if (args.quietAll)
+        return
+    val programPath = args.filepath.toAbsolutePath().normalize()
+    val display = args.cwd.toAbsolutePath().relativize(programPath)
+    println("Compiling program $display")
+    println("Compiler target: ${getCompilationTargetByName(args.compilationTarget).name}")
 }
 
 private fun startDaemonProcess(): Boolean {
@@ -785,6 +796,7 @@ private fun communicateWithDaemon(channel: SocketChannel, compilerArgs: Compiler
 
         val request = DaemonRequest(
             version = prog8.buildversion.BUILD_UNIX_TIME.toString(),
+            plainText = plainText,
             filepath = compilerArgs.filepath.toString(),
             optimize = compilerArgs.optimize,
             writeAssembly = compilerArgs.writeAssembly,
@@ -841,23 +853,6 @@ private fun communicateWithDaemon(channel: SocketChannel, compilerArgs: Compiler
         System.out.flush()
         System.err.print(response.stderr)
         System.err.flush()
-
-        val txtcolors = if(plainText) ErrorReporter.PlainText else ErrorReporter.AnsiColors
-        val reporter = ErrorReporter(txtcolors)
-        for (error in response.errors) {
-            val pos = Position(error.file ?: "", error.line, error.startCol, error.endCol)
-            when (error.severity) {
-                "ERROR" -> reporter.err(error.message, pos)
-                "WARNING" -> reporter.warn(error.message, pos)
-                "INFO" -> reporter.info(error.message, pos)
-            }
-        }
-        try {
-            reporter.report()
-        } catch (x: ErrorsReportedException) {
-            if(!x.message.isNullOrEmpty())
-                reporter.printSingleError(x.message!!)
-        }
 
         return response
     } finally {
