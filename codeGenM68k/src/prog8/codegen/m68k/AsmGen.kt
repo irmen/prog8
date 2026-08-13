@@ -52,6 +52,7 @@ internal fun nativeFloatConst(value: Double): String? = when (value) {
 
 internal class AsmGen(val program: IRProgram, internal val target: ICompilationTarget) {
     private val output = StringBuilder()
+    private val regsUsed by lazy { program.registersUsed() }
     internal val cpu get() = target.cpu
 
     companion object {
@@ -113,7 +114,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
     }
 
     private val regFileLayout: RegFileLayout by lazy {
-        val allRegs = program.registersUsed().regsTypes
+        val allRegs = regsUsed.regsTypes
         val offsets = mutableMapOf<Int, Int>()
         var currentOffset = 0
         for ((regNum, regType) in allRegs.entries.sortedBy { it.key.value }) {
@@ -127,7 +128,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
     }
 
     private val floatRegFileLayout: RegFileLayout by lazy {
-        val used = program.registersUsed()
+        val used = regsUsed
         val allFpRegs = mutableMapOf<RegisterNum, IRDataType>()
         for (reg in used.readFpRegs.keys + used.writeFpRegs.keys) {
             allFpRegs[reg] = IRDataType.FLOAT
@@ -172,14 +173,14 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
     // requires register-value and liveness tracking, because IR virtual
     // registers are memory-backed and may have been written by another path.
     fun loadRegToD0(reg: Int) {
-        val regType = program.registersUsed().regsTypes[RegisterNum(reg)] ?: IRDataType.BYTE
+        val regType = regsUsed.regsTypes[RegisterNum(reg)] ?: IRDataType.BYTE
         emitLine("moveq  #0, d0")
         emitLine("move${dtSuffix(regType)}  ${regAddr(reg)}, d0")
     }
 
     // Same as loadRegToD0, but into d1.
     fun loadRegToD1(reg: Int) {
-        val regType = program.registersUsed().regsTypes[RegisterNum(reg)] ?: IRDataType.BYTE
+        val regType = regsUsed.regsTypes[RegisterNum(reg)] ?: IRDataType.BYTE
         emitLine("moveq  #0, d1")
         emitLine("move${dtSuffix(regType)}  ${regAddr(reg)}, d1")
     }

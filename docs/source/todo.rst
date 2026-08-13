@@ -14,11 +14,11 @@ Future Things and Ideas
 - make enums strongly typed instead of just syntactic sugar for ints (see ideas/enum-strong-type.md for the plan)
 - symboldump: some sort of javadocs generated from the p8 source files (instead of just the function signatures). Use markdown for formatting, not html.
 - if implementing unsigned longs: remove the (multiple?) "TODO "hack" to allow unsigned long constants to be used as values for signed longs, without needing a cast
-- struct/ptr: implement the remaining TODOs in PointerAssignmentsGen.
+- struct/ptr: implement the remaining TODOs in PointerAssignmentsGen (see ``ideas/ptr-assignment-todo.md`` for the severity breakdown).
 - struct/ptr: really fixing the pointer dereferencing issues (cursed hybrid between IdentifierReference, PtrDereferece and PtrIndexedDereference) may require getting rid of scoped identifiers altogether and treat '.' as a "scope or pointer following operator"
 - struct/ptr: (later, nasty parser problem:) support chaining pointer dereference on function calls that return a pointer.  (type checking now fails on stuff like func().field and func().next.field)
 - add documentation for more library modules instead of just linking to the source code
-- add float support to the configurable compiler targets. Restrictions: just have "cbm-style floats" as an option (to that it can slot into the current float codegen), where all you have to specify is the addresses of AYINT and GIVAYF and FADDT and all their friends.
+- add float support to the configurable compiler targets. Restrictions: just have "cbm-style floats" as an option (to that it can slot into the current float codegen), where "all" you have to specify is the addresses of AYINT and GIVAYF and FADDT and all their friends.
 - Change scoping rules for qualified symbols so that they don't always start from the root but behave like other programming languages (look in local scope first), maybe only when qualified symbol starts with '.' such as: .local.value = 33, or the other way around? i.e. require new syntax to explicitly look up from global scope. That would give a backwards compatible solution.
 - implement the signed remainder byte and word routines on 6502 (virtual target already has them working)
 - implement the signed divmod byte and word routines on 6502 (virtual target already has them working)
@@ -73,7 +73,6 @@ Optimizations
 ^^^^^^^^^^^^^
 - Port more benchmarks from https://thred.github.io/c-bench-64/  to prog8 and see how it stacks up. (see benchmark-c/ directory)
 - Compilation speed: try to join multiple modifications in 1 result in the AST processors instead of returning it straight away every time
-- Compilation speed: cache ``IRProgram.registersUsed()`` - it rescans every instruction in the whole program on each call, and the m68k AsmGen helpers (``loadRegToD0``/``loadRegToD1``, used by ADDR/SUBR/CMP and indexed addressing) call it per instruction, making codegen O(program size x arith instruction count). Cache once in ``AsmGen`` (``private val regsUsed by lazy { program.registersUsed() }``) or memoize in ``IRProgram`` itself.
 - various optimizers skip stuff if compTarget.name==VMTarget.NAME.  Once new 6502 codegen is done from IR code, those 6502 only optimizations should probably be removed
 
 
