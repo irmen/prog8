@@ -12,7 +12,6 @@ Future Things and Ideas
 - support arrays-of-structs, see ideas/arrays-of-structs.md
 - split up AssignmentAsmGen.kt in codeGenCpu6502 it is by far the largest file 6000+ lines
 - make enums strongly typed instead of just syntactic sugar for ints (see ideas/enum-strong-type.md for the plan)
-- add %option private_symbols to make access mode private by default; need (new) 'public' keyword to explicitly mark symbols public.
 - symboldump: some sort of javadocs generated from the p8 source files (instead of just the function signatures). Use markdown for formatting, not html.
 - if implementing unsigned longs: remove the (multiple?) "TODO "hack" to allow unsigned long constants to be used as values for signed longs, without needing a cast
 - struct/ptr: implement the remaining TODOs in PointerAssignmentsGen.
@@ -21,7 +20,7 @@ Future Things and Ideas
 - add documentation for more library modules instead of just linking to the source code
 - add support for pointer size >2  to configurable compiler targets.
 - add float support to the configurable compiler targets. Restrictions: just have "cbm-style floats" as an option (to that it can slot into the current float codegen), where all you have to specify is the addresses of AYINT and GIVAYF and FADDT and all their friends.
-- Change scoping rules for qualified symbols so that they don't always start from the root but behave like other programming languages (look in local scope first), maybe only when qualified symbol starts with '.' such as: .local.value = 33
+- Change scoping rules for qualified symbols so that they don't always start from the root but behave like other programming languages (look in local scope first), maybe only when qualified symbol starts with '.' such as: .local.value = 33, or the other way around? i.e. require new syntax to explicitly look up from global scope, ::globalmodule.var = 99 ?  consider pros cons
 - implement the signed remainder byte and word routines on 6502 (virtual target already has them working)
 - implement the signed divmod byte and word routines on 6502 (virtual target already has them working)
 - make a form of "manual generics" possible like: varsub routine(T arg)->T  where T is expanded to a specific type

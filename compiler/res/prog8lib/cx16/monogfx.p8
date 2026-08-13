@@ -16,13 +16,14 @@ monogfx {
     ; read-only control variables:
     uword width = 0
     uword height = 0
-    bool lores_mode
-    ubyte mode
+    uword buffer_visible, buffer_back
+
     const ubyte MODE_NORMAL  = %00000000
     const ubyte MODE_STIPPLE = %00000001
     const ubyte MODE_INVERT  = %00000010
 
-    uword buffer_visible, buffer_back
+    private bool lores_mode
+    private ubyte mode
 
 
     sub lores() {
@@ -1054,7 +1055,7 @@ _doplot         beq  +
 
     ; y*40 lookup table. Pretty compact because it all fits in a word and we only need 240 y positions.
     ; a y*80 lookup table would be very large (lo,mid,hi for 480 values...)
-    uword[240] @shared times40 = [
+    private uword[240] @shared times40 = [
         0, 40, 80, 120, 160, 200, 240, 280, 320, 360, 400, 440, 480, 520, 560, 600,
         640, 680, 720, 760, 800, 840, 880, 920, 960, 1000, 1040, 1080, 1120, 1160,
         1200, 1240, 1280, 1320, 1360, 1400, 1440, 1480, 1520, 1560, 1600, 1640, 1680,
@@ -1075,8 +1076,8 @@ _doplot         beq  +
         9000, 9040, 9080, 9120, 9160, 9200, 9240, 9280, 9320, 9360, 9400, 9440, 9480,
         9520, 9560]
 
-    const ubyte charset_bank = $1
-    const uword charset_addr = $f000       ; in bank 1, so $1f000
+    private const ubyte charset_bank = $1
+    private const uword charset_addr = $f000       ; in bank 1, so $1f000
 
     sub text_charset(ubyte charset) {
         ; -- select the text charset to use with the text() routine
@@ -1202,7 +1203,7 @@ cdraw_mod2              ora  cx16.VERA_DATA1
         }
     }
 
-    asmsub cs_innerloop640(bool draw @A) clobbers(Y) {
+    private asmsub cs_innerloop640(bool draw @A) clobbers(Y) {
         ; using verafx 32 bits writes here would make this faster but it's safer to
         ; use verafx only explicitly when you know what you're doing.
         %asm {{

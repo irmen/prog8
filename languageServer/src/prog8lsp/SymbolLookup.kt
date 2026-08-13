@@ -453,7 +453,7 @@ object SymbolLookup {
         val symbols = mutableListOf<CompletionSymbol>()
 
         for (stmt in module.statements) {
-            collectSymbolsFromStatement(stmt, symbols)
+            collectSymbolsFromStatement(stmt, symbols, module, null)
         }
 
         return symbols
@@ -466,7 +466,7 @@ object SymbolLookup {
         val insertText: String
     )
 
-    private fun collectSymbolsFromStatement(stmt: Statement, symbols: MutableList<CompletionSymbol>) {
+    private fun collectSymbolsFromStatement(stmt: Statement, symbols: MutableList<CompletionSymbol>, module: Module, block: Block?) {
         when (stmt) {
             is Block -> {
                 symbols.add(CompletionSymbol(
@@ -477,11 +477,11 @@ object SymbolLookup {
                 ))
                 // Also collect symbols from inside the block
                 for (innerStmt in stmt.statements) {
-                    collectSymbolsFromStatement(innerStmt, symbols)
+                    collectSymbolsFromStatement(innerStmt, symbols, module, stmt)
                 }
             }
             is Subroutine -> {
-                if(stmt.isPrivate)
+                if(!isVisible(stmt, module, block))
                     return
                 val params = stmt.parameters.joinToString(", ") { "${it.name}: ${it.type}" }
                 symbols.add(CompletionSymbol(
@@ -492,11 +492,11 @@ object SymbolLookup {
                 ))
                 // Also collect symbols from inside the subroutine body
                 for (innerStmt in stmt.statements) {
-                    collectSymbolsFromStatement(innerStmt, symbols)
+                    collectSymbolsFromStatement(innerStmt, symbols, module, block)
                 }
             }
             is VarDecl -> {
-                if(stmt.isPrivate)
+                if(!isVisible(stmt, module, block))
                     return
                 val kind = if (stmt.type == VarDeclType.CONST) {
                     org.eclipse.lsp4j.CompletionItemKind.Constant
@@ -511,7 +511,7 @@ object SymbolLookup {
                 ))
             }
             is StructDecl -> {
-                if(stmt.isPrivate)
+                if(!isVisible(stmt, module, block))
                     return
                 symbols.add(CompletionSymbol(
                     name = stmt.name,
@@ -524,6 +524,25 @@ object SymbolLookup {
                 // Ignore other statement types
             }
         }
+    }
+
+    private fun isVisible(statement: Statement, module: Module, block: Block?): Boolean {
+        val visibility = when (statement) {
+            is Alias -> statement.visibility
+            is VarDecl -> statement.visibility
+            is StructDecl -> statement.visibility
+            is Enumeration -> statement.visibility
+            is Subroutine -> statement.visibility
+            else -> null
+        }
+        if (visibility == Visibility.PRIVATE)
+            return false
+        if (visibility == Visibility.PUBLIC)
+            return true
+
+        return block != null
+            && "private_symbols" !in block.options()
+            && "private_symbols" !in module.options()
     }
 
     /**

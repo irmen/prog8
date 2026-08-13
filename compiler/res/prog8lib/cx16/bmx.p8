@@ -5,26 +5,28 @@
 
 %import diskio
 %option ignore_unused
+%option private_symbols
 
 bmx {
 
     ubyte[32] header
     str FILEID = petscii:"bmx"
 
-    ubyte bitsperpixel          ; consider using set_bpp() when setting this
-    ubyte vera_colordepth       ; consider using set_vera_colordepth() when setting this
-    uword width
-    uword height
-    ubyte border
-    uword palette_entries       ; 1-256
-    ubyte palette_start
-    ubyte compression
-    ^^ubyte @shared palette_buffer_ptr = 0    ; should you want to load or save the palette into main memory instead of directly into vram
+    public ubyte bitsperpixel          ; consider using set_bpp() when setting this
+    public ubyte vera_colordepth       ; consider using set_vera_colordepth() when setting this
+    public uword width
+    public uword height
+    public ubyte border
+    public uword palette_entries       ; 1-256
+    public ubyte palette_start
+    public ubyte compression
+    public ^^ubyte @shared palette_buffer_ptr = 0    ; should you want to load or save the palette into main memory instead of directly into vram
 
-    ^^ubyte error_message             ; pointer to error message, or 0 if all ok
+    public ^^ubyte error_message             ; pointer to error message, or 0 if all ok
+
     ubyte old_drivenumber
 
-    sub open(ubyte drivenumber, str filename) -> bool {
+    public sub open(ubyte drivenumber, str filename) -> bool {
         ; Open a BMX bitmap file and reads the header information.
         ; Returns true if all is ok, false otherwise + error_message will be set.
         error_message = 0
@@ -51,13 +53,13 @@ bmx {
         return false
     }
 
-    sub close() {
+    public sub close() {
         ; if you want to close the file before actually loading palette or bitmap data.
         diskio.f_close()
         diskio.drivenumber = old_drivenumber
     }
 
-    sub continue_load(ubyte vbank, uword vaddr) -> bool {
+    public sub continue_load(ubyte vbank, uword vaddr) -> bool {
         ; Continues loading the palette and bitmap data from the opened BMX file.
         ; Parameters: the vram bank and address where the bitmap data should go.
         ; You can set palette_buffer_ptr if you want the palette buffered rather than directly into vram.
@@ -81,7 +83,7 @@ bmx {
         return error_message==0
     }
 
-    sub continue_load_stamp(ubyte vbank, uword vaddr, uword screenwidth) -> bool {
+    public sub continue_load_stamp(ubyte vbank, uword vaddr, uword screenwidth) -> bool {
         ; Continues loading the palette and bitmap "stamp" data from the opened BMX file.
         ; "Stamp" means: load an image that is smaller than the screen (so we need to pad around it)
         ; Parameters:the vram bank and address where the bitmap data should go,
@@ -104,7 +106,7 @@ bmx {
         return error_message==0
     }
 
-    sub continue_load_only_palette() -> bool {
+    public sub continue_load_only_palette() -> bool {
         ; Continues loading the palette but not the bitmap data from the opened BMX file.
         ; You can set palette_buffer_ptr if you want the palette buffered rather than directly into vram.
         ; Returns true if all is ok, false otherwise + error_message will be set.
@@ -117,7 +119,7 @@ bmx {
         return error_message==0
     }
 
-    sub save(ubyte drivenumber, str filename, ubyte vbank, uword vaddr, uword screenwidth) -> bool {
+    public sub save(ubyte drivenumber, str filename, ubyte vbank, uword vaddr, uword screenwidth) -> bool {
         ; Save bitmap and palette data from vram into a BMX file.
         ; First you must have set all bmx.* variables to the correct values! (like width, height..)
         ; Parameters:
@@ -163,13 +165,13 @@ save_end:
         return error_message==0
     }
 
-    sub set_bpp(ubyte bpp) {
+    public sub set_bpp(ubyte bpp) {
         ubyte[8] depths = [0,1,1,2,2,2,2,3]
         vera_colordepth = depths[bpp-1]
         bitsperpixel = bpp
     }
 
-    sub set_vera_colordepth(ubyte depth) {
+    public sub set_vera_colordepth(ubyte depth) {
         vera_colordepth = depth
         bitsperpixel = 1 << depth
     }

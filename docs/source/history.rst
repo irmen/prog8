@@ -257,6 +257,7 @@ Major breaking changes that require code modifications when upgrading:
     - **m68k code generator** — a full experimental m68k code generator will follow in a later version.
     - **Embedded arrays in structs** — structs can now contain arrays as fields.
     - **``@bank`` accepts a subroutine name** — for dynamic / overlay banking with a bank manager
+    - **``%option private_symbols`` and ``public`` keyword** — new option to make all symbols private by default; use ``public`` to selectively expose them. See :ref:`private-symbols`.
     - **New library routines** — ``floats.mod()``; ``sys.MAX_LONG`` / ``sys.MIN_LONG``; PET32 ``petsnd`` playback functions, ``REST`` constant, ``set_gap()``, enharmonic flat note symbols; PET32 ``sys.set_irq()`` / ``sys.restore_irq()``; serial module: configurable baud rate.
     - **Breaking changes** — ``-nostdlib`` removed; ``bankmanager`` renamed to ``bankselector``; ``swap`` is now a statement.
 

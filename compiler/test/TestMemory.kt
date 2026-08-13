@@ -31,7 +31,7 @@ class TestMemory: FunSpec({
 
     fun wrapWithProgram(statements: List<Statement>): Program {
         val program = Program("test", DummyFunctions, c64target)
-        val subroutine = Subroutine("test", mutableListOf(), mutableListOf(), emptyList(), emptyList(), emptySet(), null, false, false, false, false, statements.toMutableList(), Position.DUMMY)
+        val subroutine = Subroutine("test", mutableListOf(), mutableListOf(), emptyList(), emptyList(), emptySet(), null, false, false, false, null, statements.toMutableList(), Position.DUMMY)
         val module = Module(mutableListOf(subroutine), Position.DUMMY, SourceCode.Generated("test"))
         program.addModule(module)
         return program
@@ -273,7 +273,7 @@ class TestMemory: FunSpec({
             position = Position.DUMMY
         )
         val assignment = Assignment(target, NumericLiteral.optimalInteger(0, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
-        val subroutine = Subroutine("test", mutableListOf(), mutableListOf(), emptyList(), emptyList(), emptySet(), null, false, false, false, false, mutableListOf(decl, assignment), Position.DUMMY)
+        val subroutine = Subroutine("test", mutableListOf(), mutableListOf(), emptyList(), emptyList(), emptySet(), null, false, false, false, null, mutableListOf(decl, assignment), Position.DUMMY)
         val module = Module(mutableListOf(subroutine), Position.DUMMY, SourceCode.Generated("test"))
         Program("test", DummyFunctions, c64target)
             .addModule(module)
@@ -296,7 +296,7 @@ class TestMemory: FunSpec({
             position = Position.DUMMY
         )
         val assignment = Assignment(target, NumericLiteral.optimalInteger(0, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
-        val subroutine = Subroutine("test", mutableListOf(), mutableListOf(), emptyList(), emptyList(), emptySet(), null, false, false, false, false, mutableListOf(decl, assignment), Position.DUMMY)
+        val subroutine = Subroutine("test", mutableListOf(), mutableListOf(), emptyList(), emptyList(), emptySet(), null, false, false, false, null, mutableListOf(decl, assignment), Position.DUMMY)
         val module = Module(mutableListOf(subroutine), Position.DUMMY, SourceCode.Generated("test"))
         Program("test", DummyFunctions, c64target)
             .addModule(module)
@@ -319,7 +319,7 @@ class TestMemory: FunSpec({
             position = Position.DUMMY
         )
         val assignment = Assignment(target, NumericLiteral.optimalInteger(0, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
-        val subroutine = Subroutine("test", mutableListOf(), mutableListOf(), emptyList(), emptyList(), emptySet(), null, false, false, false, false, mutableListOf(decl, assignment), Position.DUMMY)
+        val subroutine = Subroutine("test", mutableListOf(), mutableListOf(), emptyList(), emptyList(), emptySet(), null, false, false, false, null, mutableListOf(decl, assignment), Position.DUMMY)
         val module = Module(mutableListOf(subroutine), Position.DUMMY, SourceCode.Generated("test"))
         Program("test", DummyFunctions, c64target)
             .addModule(module)
@@ -333,7 +333,7 @@ class TestMemory: FunSpec({
         val arrayindexed = ArrayIndexedExpression(IdentifierReference(listOf("address"), Position.DUMMY), null, null, ArrayIndex(NumericLiteral.optimalInteger(1, Position.DUMMY), Position.DUMMY), Position.DUMMY)
         val target = AssignTarget(null, arrayindexed, null, null, false, position = Position.DUMMY)
         val assignment = Assignment(target, NumericLiteral.optimalInteger(0, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
-        val subroutine = Subroutine("test", mutableListOf(), mutableListOf(), emptyList(), emptyList(), emptySet(), null, false, false, false, false, mutableListOf(decl, assignment), Position.DUMMY)
+        val subroutine = Subroutine("test", mutableListOf(), mutableListOf(), emptyList(), emptyList(), emptySet(), null, false, false, false, null, mutableListOf(decl, assignment), Position.DUMMY)
         val module = Module(mutableListOf(subroutine), Position.DUMMY, SourceCode.Generated("test"))
         Program("test", DummyFunctions, c64target)
             .addModule(module)
@@ -350,7 +350,7 @@ class TestMemory: FunSpec({
         val arrayindexed = ArrayIndexedExpression(IdentifierReference(listOf("address"), Position.DUMMY), null, null, ArrayIndex(NumericLiteral.optimalInteger(1, Position.DUMMY), Position.DUMMY), Position.DUMMY)
         val target = AssignTarget(null, arrayindexed, null, null, false, position = Position.DUMMY)
         val assignment = Assignment(target, NumericLiteral.optimalInteger(0, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
-        val subroutine = Subroutine("test", mutableListOf(), mutableListOf(), emptyList(), emptyList(), emptySet(), null, false, false, false, false, mutableListOf(decl, assignment), Position.DUMMY)
+        val subroutine = Subroutine("test", mutableListOf(), mutableListOf(), emptyList(), emptyList(), emptySet(), null, false, false, false, null, mutableListOf(decl, assignment), Position.DUMMY)
         val module = Module(mutableListOf(subroutine), Position.DUMMY, SourceCode.Generated("test"))
         Program("test", DummyFunctions, c64target)
             .addModule(module)
@@ -367,7 +367,7 @@ class TestMemory: FunSpec({
         val arrayindexed = ArrayIndexedExpression(IdentifierReference(listOf("address"), Position.DUMMY), null, null, ArrayIndex(NumericLiteral.optimalInteger(1, Position.DUMMY), Position.DUMMY), Position.DUMMY)
         val target = AssignTarget(null, arrayindexed, null, null, false, position = Position.DUMMY)
         val assignment = Assignment(target, NumericLiteral.optimalInteger(0, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
-        val subroutine = Subroutine("test", mutableListOf(), mutableListOf(), emptyList(), emptyList(), emptySet(), null, false, false, false, false, mutableListOf(decl, assignment), Position.DUMMY)
+        val subroutine = Subroutine("test", mutableListOf(), mutableListOf(), emptyList(), emptyList(), emptySet(), null, false, false, false, null, mutableListOf(decl, assignment), Position.DUMMY)
         val module = Module(mutableListOf(subroutine), Position.DUMMY, SourceCode.Generated("test"))
         Program("test", DummyFunctions, c64target)
             .addModule(module)

@@ -483,6 +483,7 @@ internal fun determineCompilationOptions(program: Program, compTarget: ICompilat
     val floatsEnabled = "enable_floats" in allOptions
     var noSysInit = "no_sysinit" in allOptions
     val romable = "romable" in allOptions
+    val privateSymbols = "private_symbols" in allOptions
     var zpType: ZeropageType =
         if (zpoption == null)
             if (floatsEnabled) ZeropageType.FLOATSAFE else ZeropageType.KERNALSAFE
@@ -552,6 +553,7 @@ internal fun determineCompilationOptions(program: Program, compTarget: ICompilat
         .romable(romable)
         .compilerVersion(VERSION)
         .build()
+        .apply { this.privateSymbols = privateSymbols }
 }
 
 private fun processAst(program: Program, errors: IErrorReporter, compilerOptions: CompilationOptions) {

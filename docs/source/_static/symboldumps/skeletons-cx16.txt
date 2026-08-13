@@ -1,6 +1,6 @@
 
 Prog8 compiler v14.0-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit 96eebbe0 in branch new-codegens
+Prerelease version from git commit 556ce702 in branch new-codegens
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-cx16.p8
@@ -70,20 +70,8 @@ LIBRARY MODULE NAME: adpcm
 --------------------------
 
 adpcm  {
-    ubyte @requirezp  index
-    ubyte @requirezp  index_2
-    uword @requirezp  predict
-    uword @requirezp  predict_2
-    uword @requirezp  pstep
-    uword @requirezp  pstep_2
-    byte[]  t_index
-    @nosplit uword[]  t_step
     decode_block_mono  (uword nibblesptr)
     decode_block_stereo  (uword nibblesptr)
-    decode_nibble  (ubyte nibble)
-    decode_nibble_second  (ubyte nibble)
-    init  (uword startPredict, ubyte startIndex)
-    init_second  (uword startPredict_2, ubyte startIndex_2)
 }
 
 
@@ -111,38 +99,24 @@ LIBRARY MODULE NAME: bmx
 ------------------------
 
 bmx  {
-    str  FILEID
     ubyte  bitsperpixel
     ubyte  border
     ubyte  compression
     ^^ubyte  error_message
-    ubyte[]  header
     uword  height
-    ubyte  old_drivenumber
     ^^ubyte @shared  palette_buffer_ptr
     uword  palette_entries
     ubyte  palette_start
     ubyte  vera_colordepth
     uword  width
-    build_header  ()
-    bytes_per_scanline  (uword w) -> uword
     close  ()
     continue_load  (ubyte vbank, uword vaddr) -> bool
     continue_load_only_palette  () -> bool
     continue_load_stamp  (ubyte vbank, uword vaddr, uword screenwidth) -> bool
     open  (ubyte drivenumber, str filename) -> bool
-    parse_header  () -> bool
-    read_bitmap  (ubyte vbank, uword vaddr) -> bool
-    read_bitmap_padded  (ubyte vbank, uword vaddr, uword screenwidth) -> bool
-    read_header  () -> bool
-    read_palette  () -> bool
-    read_scanline  (uword size)
     save  (ubyte drivenumber, str filename, ubyte vbank, uword vaddr, uword screenwidth) -> bool
     set_bpp  (ubyte bpp)
     set_vera_colordepth  (ubyte depth)
-    write_bitmap  (ubyte vbank, uword vaddr, uword screenwidth) -> bool
-    write_header  () -> bool
-    write_palette  () -> bool
 }
 
 
@@ -494,12 +468,8 @@ LIBRARY MODULE NAME: gfx_hires
 gfx_hires  {
     const uword  HEIGHT
     const uword  WIDTH
-    const uword  charset_addr
-    const ubyte  charset_bank
-    addr_mul_24_for_highres_4c  (uword yy @R2, uword xx @R3) clobbers (A,Y) -> uword @R0, uword @R1
     circle  (uword xcenter, uword ycenter, ubyte radius, ubyte color)
     clear_screen  (ubyte color)
-    cs_innerloop640  (ubyte color @A) clobbers (Y)
     disc  (uword xcenter, uword ycenter, ubyte radius, ubyte color)
     fill  (uword x, uword y, ubyte new_color, ubyte stack_rambank)
     fillrect  (uword xx, uword yy, uword rwidth, uword rheight, ubyte color)
@@ -534,9 +504,6 @@ LIBRARY MODULE NAME: gfx_lores
 gfx_lores  {
     const ubyte  HEIGHT
     const uword  WIDTH
-    const uword  charset_addr
-    const ubyte  charset_bank
-    bool  eor_mode
     circle  (uword xcenter, ubyte ycenter, ubyte radius, ubyte color)
     clear_screen  (ubyte color)
     disc  (uword xcenter, ubyte ycenter, ubyte radius, ubyte color)
@@ -573,8 +540,6 @@ LIBRARY MODULE NAME: graphics
 graphics  {
     const ubyte  HEIGHT
     const uword  WIDTH
-    ubyte  background_color
-    ubyte  stroke_color
     FB_cursor_position2  () clobbers (A,X,Y) = $feff
     circle  (uword xcenter, ubyte ycenter, ubyte radius)
     clear_screen  (ubyte pixelcolor, ubyte bgcolor)
@@ -657,20 +622,13 @@ LIBRARY MODULE NAME: monogfx
 ----------------------------
 
 monogfx  {
-    uword  buffer_visible, buffer_back
     const ubyte  MODE_INVERT
     const ubyte  MODE_NORMAL
     const ubyte  MODE_STIPPLE
-    const uword  charset_addr
-    const ubyte  charset_bank
     uword  height
-    bool  lores_mode
-    ubyte  mode
-    @nosplit uword[] @shared  times40
     uword  width
     circle  (uword xcenter, uword ycenter, ubyte radius, bool draw)
     clear_screen  (bool draw)
-    cs_innerloop640  (bool draw @A) clobbers (Y)
     disc  (uword xcenter, uword ycenter, ubyte radius, bool draw)
     drawmode  (ubyte dm)
     enable_doublebuffer  ()
@@ -872,7 +830,6 @@ sprites  {
     flipx  (ubyte spritenum, bool flipped)
     flipy  (ubyte spritenum, bool flipped)
     get_data_ptr  (ubyte spritenum @A) -> ubyte @R1, uword @R0
-    get_data_ptr_internal  (ubyte spritenum)
     getx  (ubyte spritenum) -> word
     getxy  (ubyte spritenum) -> word, word
     gety  (ubyte spritenum) -> word

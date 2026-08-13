@@ -30,6 +30,7 @@ GOTO: 'goto';
 CALL: 'call';
 INLINE: 'inline';
 PRIVATE: 'private';
+PUBLIC: 'public';
 STEP: 'step';
 ELSE: 'else';
 THEN: 'then';
@@ -91,9 +92,9 @@ block: identifier integerliteral? EOL? '{' EOL? (block_statement | EOL)* '}';
 // and can appear at block level or inside subroutines (local enums/aliases).
 block_statement:
     directive
+    | subroutinedeclaration
     | variabledeclaration
     | structdeclaration
-    | subroutinedeclaration
     | inlineasm
     | labeldef
     | alias
@@ -104,6 +105,7 @@ block_statement:
 statement :
     directive
     | ongoto
+    | subroutinedeclaration
     | variabledeclaration
     | structdeclaration
     | assignment
@@ -113,7 +115,6 @@ statement :
     | functioncall_stmt
     | if_stmt
     | branch_stmt
-    | subroutinedeclaration
     | inlineasm
     | returnstmt
     | forloop
@@ -153,7 +154,7 @@ statement :
     ;
 
 
-enum :  PRIVATE? ENUM identifier '{' EOL? enum_member? (',' EOL? enum_member)* ','? EOL? '}' ;       // you can split the values over several lines, trailing comma allowed
+enum :  PRIVATE? PUBLIC? ENUM identifier '{' EOL? enum_member? (',' EOL? enum_member)* ','? EOL? '}' ;       // you can split the values over several lines, trailing comma allowed
 
 enum_member :  identifier ('=' integerliteral)?  ;
 
@@ -169,7 +170,7 @@ variabledeclaration :
 
 
 structdeclaration:
-    PRIVATE? STRUCT identifier '{' EOL? (structfielddecl | EOL)+ '}'
+    PRIVATE? PUBLIC? STRUCT identifier '{' EOL? (structfielddecl | EOL)+ '}'
     ;
 
 structfielddecl: datatype (arrayindex arrayindex? | EMPTYARRAYSIG)? identifierlist;
@@ -182,7 +183,7 @@ subroutinedeclaration :
     | extsubroutine
     ;
 
-alias: PRIVATE? 'alias' identifier '=' (scoped_identifier | basedatatype | pointertype) ;
+alias: PRIVATE? PUBLIC? 'alias' identifier '=' (scoped_identifier | basedatatype | pointertype) ;
 
 defer: 'defer' (statement | statement_block) ;
 
@@ -198,7 +199,7 @@ directivenamelist: '(' EOL? scoped_identifier (',' EOL? scoped_identifier)* ','?
 
 directivearg : stringliteral | identifier | integerliteral ;
 
-vardecl: PRIVATE? datatype (arrayindex arrayindex? | EMPTYARRAYSIG)? TAG* identifierlist ;
+vardecl: PRIVATE? PUBLIC? datatype (arrayindex arrayindex? | EMPTYARRAYSIG)? TAG* identifierlist ;
 // grammar allows [] and [][] so the visitor can give user-friendly error messages for invalid combinations
 
 identifierlist: identifier (',' identifier)* ;
@@ -208,7 +209,7 @@ varinitializer :
     | vardecl '=' tuple_expression
     ;
 
-constdecl: PRIVATE? 'const' datatype? identifierlist '=' expression ;
+constdecl: PRIVATE? PUBLIC? 'const' datatype? identifierlist '=' expression ;
 // datatype is optional in the grammar so the visitor can give "datatype missing" instead of a cryptic parse error
 
 memoryvardecl: ADDRESS_OF varinitializer;
@@ -345,7 +346,7 @@ literalvalue :
 inlineasm :  directivename EOL? INLINEASMBLOCK;         // directive name should be '%asm' or '%ir'
 
 subroutine :
-    PRIVATE? INLINE? 'sub' identifier '(' sub_params? ')' sub_return_part? EOL? (statement_block EOL?)
+    PRIVATE? PUBLIC? INLINE? 'sub' identifier '(' sub_params? ')' sub_return_part? EOL? (statement_block EOL?)
     ;
 
 sub_return_part : '->' datatype (',' datatype)*  ;
@@ -362,11 +363,11 @@ sub_params :  sub_param (',' EOL? sub_param)* ;
 sub_param: vardecl ('@' register=UNICODEDNAME)? ;
 
 asmsubroutine :
-    PRIVATE? INLINE? 'asmsub' asmsub_decl EOL? (statement_block EOL?)
+    PRIVATE? PUBLIC? INLINE? 'asmsub' asmsub_decl EOL? (statement_block EOL?)
     ;
 
 extsubroutine :
-    PRIVATE? 'extsub' (TAG (constbank=integerliteral | varbank=scoped_identifier))? address=expression '=' asmsub_decl
+    PRIVATE? PUBLIC? 'extsub' (TAG (constbank=integerliteral | varbank=scoped_identifier))? address=expression '=' asmsub_decl
     ;
 
 asmsub_signature : '(' asmsub_params? ')' asmsub_clobbers? asmsub_returns? ;

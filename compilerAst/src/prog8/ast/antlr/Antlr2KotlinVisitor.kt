@@ -31,6 +31,18 @@ class Antlr2KotlinVisitor(val source: SourceCode, private val target: ICompilati
         private val BRANCH_CONDITION_MAP = BranchCondition.entries.associateBy { "if_" + it.name.lowercase() }
     }
 
+    private fun visibilityFromTokens(ctx: ParserRuleContext): Visibility? {
+        val hasPrivate = ctx.getToken(PRIVATE, 0) != null
+        val hasPublic = ctx.getToken(PUBLIC, 0) != null
+        if (hasPrivate && hasPublic)
+            throw SyntaxError("cannot use both 'private' and 'public' on the same declaration", ctx.toPosition())
+        return when {
+            hasPrivate -> Visibility.PRIVATE
+            hasPublic -> Visibility.PUBLIC
+            else -> null
+        }
+    }
+
     override fun visitModule(ctx: ModuleContext): Module {
         val statements = ctx.module_element().mapTo(mutableListOf()) { it.accept(this) as Statement }
         return Module(statements, ctx.toPosition(), source)
@@ -132,7 +144,7 @@ class Antlr2KotlinVisitor(val source: SourceCode, private val target: ICompilati
             throw SyntaxError("type aliases are not supported", ctx.toPosition())
         }
         val target = ctx.scoped_identifier().accept(this) as IdentifierReference
-        return Alias(identifier, target, ctx.PRIVATE() != null, ctx.toPosition())
+        return Alias(identifier, target, visibilityFromTokens(ctx), ctx.toPosition())
     }
 
     override fun visitDefer(ctx: DeferContext): Defer {
@@ -174,7 +186,7 @@ class Antlr2KotlinVisitor(val source: SourceCode, private val target: ICompilati
     }
 
     override fun visitVardecl(ctx: VardeclContext): VarDecl {
-        val isPrivate = ctx.PRIVATE() != null
+        val visibility = visibilityFromTokens(ctx)
         val tags = ctx.TAG().map { it.text }
         val validTags = arrayOf("@zp", "@requirezp", "@nozp", "@nosplit", "@shared", "@alignword", "@alignpage", "@align64", "@dirty")
         for(tag in tags) {
@@ -238,7 +250,7 @@ class Antlr2KotlinVisitor(val source: SourceCode, private val target: ICompilati
             .alignment(if(alignword) 2u else if(align64) 64u else if(alignpage) 256u else 0u)
             .arraysize(arraySize)
             .dirty("@dirty" in tags)
-            .isPrivate(isPrivate)
+            .visibility(visibility)
             .matrixNumCols(matrixNumCols)
             .sharedWithAsm("@shared" in tags)
             .splitwordarray(split)
@@ -258,7 +270,7 @@ class Antlr2KotlinVisitor(val source: SourceCode, private val target: ICompilati
     }
 
     override fun visitConstdecl(ctx: ConstdeclContext): VarDecl {
-        val isPrivate = ctx.PRIVATE() != null
+        val visibility = visibilityFromTokens(ctx)
         val initialvalue = ctx.expression().accept(this) as Expression
         val datatype = if(ctx.datatype()!=null) {
             dataTypeFor(ctx.datatype()) ?: DataType.LONG
@@ -286,7 +298,7 @@ class Antlr2KotlinVisitor(val source: SourceCode, private val target: ICompilati
 
         return VarDecl.builder(datatype, ctx.toPosition())
             .names(identifiers)
-            .isPrivate(isPrivate)
+            .visibility(visibility)
             .type(VarDeclType.CONST)
             .value(actualValue)
             .build()
@@ -603,7 +615,7 @@ class Antlr2KotlinVisitor(val source: SourceCode, private val target: ICompilati
     }
 
     override fun visitSubroutine(ctx: SubroutineContext): Subroutine {
-        val isPrivate = ctx.PRIVATE() != null
+        val visibility = visibilityFromTokens(ctx)
         val name = getname(ctx.identifier())
         val parameters = ctx.sub_params()?.sub_param()?.mapTo(mutableListOf()) { it.accept(this) as SubroutineParameter } ?: mutableListOf()
         val returntypes = ctx.sub_return_part()?.datatype()?.mapTo(mutableListOf()) { dataTypeFor(it)!! } ?: mutableListOf()
@@ -619,7 +631,7 @@ class Antlr2KotlinVisitor(val source: SourceCode, private val target: ICompilati
             asmAddress = null,
             isAsmSubroutine = false,
             inline = ctx.INLINE() != null,
-            isPrivate = isPrivate,
+            visibility = visibility,
             statements = statements.statements,
             position = ctx.toPosition()
         )
@@ -661,7 +673,7 @@ class Antlr2KotlinVisitor(val source: SourceCode, private val target: ICompilati
     }
 
     override fun visitAsmsubroutine(ctx: AsmsubroutineContext): Subroutine {
-        val isPrivate = ctx.PRIVATE() != null
+        val visibility = visibilityFromTokens(ctx)
         val inline = ctx.INLINE()!=null
         val ad = asmSubDecl(ctx.asmsub_decl())
         val statements = ctx.statement_block().accept(this) as AnonymousScope
@@ -671,7 +683,7 @@ class Antlr2KotlinVisitor(val source: SourceCode, private val target: ICompilati
             ad.returntypes,
             ad.asmParameterRegisters,
             ad.asmReturnvaluesRegisters,
-            ad.asmClobbers, null, true, inline, false, isPrivate,
+            ad.asmClobbers, null, true, inline, false, visibility,
             statements.statements, ctx.toPosition()
         )
     }
@@ -684,7 +696,7 @@ class Antlr2KotlinVisitor(val source: SourceCode, private val target: ICompilati
         val address = Subroutine.Address(constbank, varbank, addr)
         return Subroutine(subdecl.name, subdecl.parameters, subdecl.returntypes,
             subdecl.asmParameterRegisters, subdecl.asmReturnvaluesRegisters,
-            subdecl.asmClobbers, address, true, inline = false, isPrivate = ctx.PRIVATE() != null, statements = mutableListOf(), position = ctx.toPosition()
+            subdecl.asmClobbers, address, true, inline = false, visibility = visibilityFromTokens(ctx), statements = mutableListOf(), position = ctx.toPosition()
         )
     }
 
@@ -839,7 +851,7 @@ class Antlr2KotlinVisitor(val source: SourceCode, private val target: ICompilati
         val name = getname(ctx.identifier())
         val fieldDefs = ctx.structfielddecl().map { getStructField(it) }
         val flattened = fieldDefs.flatMap { (dt, names, arrSize) -> names.map { StructField(dt, it, arrSize) }}
-        return StructDecl(name, flattened.toTypedArray(), ctx.PRIVATE() != null, ctx.toPosition())
+        return StructDecl(name, flattened.toTypedArray(), visibilityFromTokens(ctx), ctx.toPosition())
     }
 
     private data class StructFieldDef(val type: DataType, val names: List<String>, val arraySize: Int?)
@@ -881,7 +893,7 @@ class Antlr2KotlinVisitor(val source: SourceCode, private val target: ICompilati
         val members = members1.map {
             it.first to it.second?.number?.toInt()
         }.toTypedArray()
-        return Enumeration(name, largestType, members, ctx.PRIVATE() != null, ctx.toPosition())
+        return Enumeration(name, largestType, members, visibilityFromTokens(ctx), ctx.toPosition())
     }
 
 

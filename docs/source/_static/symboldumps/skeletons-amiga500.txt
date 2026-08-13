@@ -1,10 +1,11 @@
 
 Prog8 compiler v14.0-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit b63ff20f in branch new-codegens
+Prerelease version from git commit 556ce702 in branch new-codegens
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-amiga500.p8
 Compiler target: amiga500
+[93mWARN  [0mfile:///home/irmen/Projects/prog8/docs/import-all-amiga500.p8:1:54: floating-point code requires a 68020 or better CPU with an 68881/68882 FPU; assembler options set to -m68020 -m68881. This program will NOT run on an Amiga 500/600 or 1200 without fp coprocessor!
 
 
 BUILTIN FUNCTIONS
@@ -4471,4 +4472,3 @@ wavfile  {
 }
 
 
-[93mWARN  [0mfile:///home/irmen/Projects/prog8/docs/import-all-amiga500.p8:1:54: floating-point code requires a 68020 or better CPU with an 68881/68882 FPU; assembler options set to -m68020 -m68881. This program will NOT run on an Amiga 500/600 or 1200 without fp coprocessor!

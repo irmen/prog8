@@ -369,6 +369,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
                     "ignore_unused" -> ignoreUnused = true
                     "force_output" -> forceOutput = true
                     "merge" -> { /* ignore this one */ }
+                    "private_symbols" -> { /* handled before simplification */ }
                     "verafxmuls" -> veraFxMuls = true
                     "amiga_chipram" -> amigaChipram = true
                     else -> throw FatalAstException("weird directive option: ${arg.string}")

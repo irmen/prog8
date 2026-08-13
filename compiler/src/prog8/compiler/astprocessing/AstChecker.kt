@@ -39,7 +39,7 @@ internal class AstChecker(private val program: Program,
             } else {
                 if (startSub.parameters.isNotEmpty() || startSub.returntypes.isNotEmpty())
                     errors.err("program entrypoint subroutine can't have parameters and/or return values", startSub.position)
-                if (startSub.isPrivate)
+                if (startSub.visibility == Visibility.PRIVATE)
                     errors.err("program entrypoint subroutine 'start' cannot be private", startSub.position)
             }
         }
@@ -122,10 +122,18 @@ internal class AstChecker(private val program: Program,
 
     private fun checkPrivateTypeAccess(type: DataType, position: Position, currentBlock: Block) {
         val struct = type.subType
-        if(struct is StructDecl && struct.isPrivate) {
+        if(struct is StructDecl) {
             val structBlock = struct.definingBlock
-            if(currentBlock !== structBlock)
-                errors.err("cannot access private struct '${struct.scopedName.joinToString(".")}' from outside its block", position)
+            val hasPrivateSymbolsOption = "private_symbols" in structBlock.options()
+                    || (structBlock.parent is Module && "private_symbols" in (structBlock.parent as Module).options())
+
+            if(hasPrivateSymbolsOption) {
+                if(struct.visibility != Visibility.PUBLIC && currentBlock !== structBlock)
+                    errors.err("cannot access struct '${struct.scopedName.joinToString(".")}' from outside its block (not public)", position)
+            } else {
+                if(struct.visibility == Visibility.PRIVATE && currentBlock !== structBlock)
+                    errors.err("cannot access private struct '${struct.scopedName.joinToString(".")}' from outside its block", position)
+            }
         }
     }
 
@@ -1368,14 +1376,14 @@ internal class AstChecker(private val program: Program,
                     err("this directive may only occur in a block or at module level")
                 if(directive.args.isEmpty())
                     err("missing option directive argument(s)")
-                else if(directive.args.map{it.string in setOf("enable_floats", "force_output", "no_sysinit", "merge", "verafxmuls", "no_symbol_prefixing", "ignore_unused", "romable", "amiga_chipram")}.any { !it })
+                else if(directive.args.map{it.string in setOf("enable_floats", "force_output", "no_sysinit", "merge", "verafxmuls", "no_symbol_prefixing", "ignore_unused", "romable", "amiga_chipram", "private_symbols")}.any { !it })
                     err("invalid option directive argument(s)")
                 if(directive.parent is Block) {
-                    if(directive.args.any {it.string !in setOf("force_output", "merge", "verafxmuls", "no_symbol_prefixing", "ignore_unused", "amiga_chipram")})
+                    if(directive.args.any {it.string !in setOf("force_output", "merge", "verafxmuls", "no_symbol_prefixing", "ignore_unused", "amiga_chipram", "private_symbols")})
                         err("using an option that is not valid for blocks")
                 }
                 if(directive.parent is Module) {
-                    if(directive.args.any {it.string !in setOf("enable_floats", "no_sysinit", "no_symbol_prefixing", "ignore_unused", "romable")})
+                    if(directive.args.any {it.string !in setOf("enable_floats", "no_sysinit", "no_symbol_prefixing", "ignore_unused", "romable", "private_symbols")})
                         err("using an option that is not valid for modules")
                 }
                 if(directive.args.any { it.string=="verafxmuls" } && options.compTarget.name != Cx16Target.NAME)

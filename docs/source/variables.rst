@@ -84,6 +84,7 @@ Tag         Effect
 
 .. _private-variables:
 .. index:: pair: Variables; Private
+.. index:: pair: Variables; Public
 
 You can use the ``private`` keyword (must come first, before the datatype and any tags) to make a variable or constant invisible from outside its block::
 
@@ -92,6 +93,16 @@ You can use the ``private`` keyword (must come first, before the datatype and an
     private const ubyte fixed_value = 99
 
 This makes the variable only accessible within the block where it's declared. Accessing it from another block will result in a compilation error.
+
+You can also use the ``public`` keyword to explicitly mark a variable or constant as accessible from other blocks.
+This is especially useful with ``%option private_symbols`` which makes all symbols private by default::
+
+    %option private_symbols
+
+    main {
+        public ubyte visible = 10
+        ubyte hidden = 20      ; only accessible within this block
+    }
 
 
 Variables can be defined inside any scope (blocks, subroutines etc.) See :ref:`blocks`.

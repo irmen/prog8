@@ -29,7 +29,7 @@ gfx_lores {
         eor_mode = enabled
     }
 
-    bool eor_mode
+    private bool eor_mode
 
     sub clear_screen(ubyte color) {
         if verafx.available() {
@@ -742,8 +742,8 @@ skip:
         cx16.screen_set_charset(charset, 0)
     }
 
-    const ubyte charset_bank = $1
-    const uword charset_addr = $f000       ; in bank 1, so $1f000
+    private const ubyte charset_bank = $1
+    private const uword charset_addr = $f000       ; in bank 1, so $1f000
 
     sub text(uword @zp xx, uword yy, ubyte color, str textptr) {
         ; -- Write some text at the given pixel position. The text string must be in an encoding approprite for the charset.

@@ -71,7 +71,7 @@ sprites {
         }}
     }
 
-    sub get_data_ptr_internal(ubyte spritenum) {
+    private sub get_data_ptr_internal(ubyte spritenum) {
         sprite_reg = VERA_SPRITEREGS + spritenum*$0008
         cx16.r0L = cx16.vpeek(1, sprite_reg)
         cx16.r0H = cx16.vpeek(1, sprite_reg+1)

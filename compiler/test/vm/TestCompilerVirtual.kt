@@ -1287,4 +1287,24 @@ main {
         val result = compileText(VMTarget(), optimize=false, src, outputDir, writeAssembly = true)
         result shouldNotBe null
     }
+
+    test("private_symbols with public override compiles and runs correctly") {
+        val src = """
+            %zeropage basicsafe
+            %option no_sysinit
+            %option private_symbols
+            main {
+                sub start() {
+                    other.doStuff()
+                }
+            }
+            other {
+                public sub doStuff() {
+                }
+            }
+        """.trimIndent()
+        val errors = ErrorReporterForTests(throwExceptionAtReportIfErrors = false, keepMessagesAfterReporting = true)
+        val result = compileText(VMTarget(), true, src, outputDir, errors=errors, writeAssembly = false)
+        result shouldNotBe null
+    }
 })

@@ -153,7 +153,7 @@ data class DirectiveArg(val string: String?, val int: UInt?, override val positi
     override fun referencesIdentifier(nameInSource: List<String>): Boolean = false
 }
 
-data class Alias(val alias: String, val target: IdentifierReference, val isPrivate: Boolean = false, override val position: Position) : Statement() {
+data class Alias(val alias: String, val target: IdentifierReference, val visibility: Visibility? = null, override val position: Position) : Statement() {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -161,7 +161,7 @@ data class Alias(val alias: String, val target: IdentifierReference, val isPriva
         target.parent = this
     }
 
-    override fun copy(): Statement = Alias(alias, target.copy(), isPrivate, position)
+    override fun copy(): Statement = Alias(alias, target.copy(), visibility, position)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
     override fun replaceChildNode(node: Node, replacement: Node) = throw FatalAstException("can't replace here")
@@ -264,6 +264,11 @@ enum class VarDeclType {
     MEMORY
 }
 
+enum class Visibility {
+    PUBLIC,
+    PRIVATE
+}
+
 class VarDecl(
     var type: VarDeclType,
     val origin: VarDeclOrigin,
@@ -278,7 +283,7 @@ class VarDecl(
     val sharedWithAsm: Boolean,
     val alignment: UInt,
     val dirty: Boolean,
-    val isPrivate: Boolean,
+    val visibility: Visibility?,
     override val position: Position) : Statement(), INamedStatement {
     override lateinit var parent: Node
     var allowInitializeWithZero = true
@@ -308,7 +313,7 @@ class VarDecl(
             private var sharedWithAsm = false
             private var alignment = 0u
             private var dirty = false
-            private var isPrivate = false
+            private var visibility: Visibility? = null
             private var hasExplicitInitializer = false
 
             fun names(vararg names: String): Builder = apply {
@@ -331,7 +336,7 @@ class VarDecl(
             fun sharedWithAsm(s: Boolean) = apply { this.sharedWithAsm = s }
             fun alignment(a: UInt) = apply { this.alignment = a }
             fun dirty(d: Boolean) = apply { this.dirty = d }
-            fun isPrivate(p: Boolean) = apply { this.isPrivate = p }
+            fun visibility(v: Visibility?) = apply { this.visibility = v }
             fun hasExplicitInitializer(h: Boolean) = apply { this.hasExplicitInitializer = h }
 
             fun copyFrom(v: VarDecl) = apply {
@@ -347,7 +352,7 @@ class VarDecl(
                 this.sharedWithAsm = v.sharedWithAsm
                 this.alignment = v.alignment
                 this.dirty = v.dirty
-                this.isPrivate = v.isPrivate
+                this.visibility = v.visibility
                 this.hasExplicitInitializer = v.hasExplicitInitializer
             }
 
@@ -355,7 +360,7 @@ class VarDecl(
                 val finalName = name ?: throw IllegalStateException("name is required")
                 val v = VarDecl(
                     type, origin, datatype, zeropage, splitwordarray, arraysize, matrixNumCols,
-                    finalName, additionalNames, value, sharedWithAsm, alignment, dirty, isPrivate, position
+                    finalName, additionalNames, value, sharedWithAsm, alignment, dirty, visibility, position
                 )
                 v.hasExplicitInitializer = hasExplicitInitializer
                 return v
@@ -512,7 +517,7 @@ class VarDecl(
     }
 }
 
-class StructDecl(override val name: String, val fields: Array<StructField>, val isPrivate: Boolean, override val position: Position) : Statement(), INamedStatement, ISubType {
+class StructDecl(override val name: String, val fields: Array<StructField>, val visibility: Visibility?, override val position: Position) : Statement(), INamedStatement, ISubType {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -521,7 +526,7 @@ class StructDecl(override val name: String, val fields: Array<StructField>, val 
 
     override fun replaceChildNode(node: Node, replacement: Node) = throw FatalAstException("can't replace here")
     override fun referencesIdentifier(nameInSource: List<String>) = false
-    override fun copy() = StructDecl(name, fields.clone(), isPrivate, position)
+    override fun copy() = StructDecl(name, fields.clone(), visibility, position)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
     override fun memsize(sizer: IMemSizer): Int = fields.sumOf { field ->
@@ -578,7 +583,7 @@ class StructFieldRef(val pointer: IdentifierReference, val struct: StructDecl, v
 
 }
 
-class Enumeration(override val name: String, val type: BaseDataType, val members: Array<Pair<String, Int?>>, val isPrivate: Boolean, override val position: Position) : Statement(), INamedStatement {
+class Enumeration(override val name: String, val type: BaseDataType, val members: Array<Pair<String, Int?>>, val visibility: Visibility?, override val position: Position) : Statement(), INamedStatement {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -587,7 +592,7 @@ class Enumeration(override val name: String, val type: BaseDataType, val members
 
     override fun replaceChildNode(node: Node, replacement: Node) = throw FatalAstException("can't replace here")
     override fun referencesIdentifier(nameInSource: List<String>) = false
-    override fun copy(): Enumeration = Enumeration(name, type, members.toList().toTypedArray(), isPrivate, position)
+    override fun copy(): Enumeration = Enumeration(name, type, members.toList().toTypedArray(), visibility, position)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 }
@@ -1184,7 +1189,7 @@ class Subroutine(override val name: String,
                  val isAsmSubroutine: Boolean,
                  var inline: Boolean,
                  var hasBeenInlined: Boolean=false,
-                 val isPrivate: Boolean,
+                 val visibility: Visibility?,
                  override val statements: MutableList<Statement>,
                  override val position: Position) : Statement(), INameScope {
     override lateinit var parent: Node

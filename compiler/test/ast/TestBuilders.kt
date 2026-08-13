@@ -21,7 +21,7 @@ class TestBuilders : FunSpec({
             decl.origin shouldBe VarDeclOrigin.USERCODE
             decl.zeropage shouldBe ZeropageWish.DONTCARE
             decl.splitwordarray shouldBe SplitWish.DONTCARE
-            decl.isPrivate shouldBe false
+            decl.visibility shouldBe null
             decl.names.isEmpty() shouldBe true
         }
 
@@ -72,7 +72,7 @@ class TestBuilders : FunSpec({
                 .alignment(4u)
                 .arraysize(arraySize)
                 .dirty(true)
-                .isPrivate(true)
+                .visibility(Visibility.PRIVATE)
                 .matrixNumCols(numColsExpr)
                 .origin(VarDeclOrigin.ARRAYLITERAL)
                 .sharedWithAsm(true)
@@ -88,7 +88,7 @@ class TestBuilders : FunSpec({
             decl.origin shouldBe VarDeclOrigin.ARRAYLITERAL
             decl.zeropage shouldBe ZeropageWish.REQUIRE_ZEROPAGE
             decl.splitwordarray shouldBe SplitWish.NOSPLIT
-            decl.isPrivate shouldBe true
+            decl.visibility shouldBe Visibility.PRIVATE
             decl.sharedWithAsm shouldBe true
             decl.alignment shouldBe 4u
             decl.dirty shouldBe true

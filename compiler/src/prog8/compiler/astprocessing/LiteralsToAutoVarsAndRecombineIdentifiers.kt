@@ -153,12 +153,26 @@ internal class LiteralsToAutoVarsAndRecombineIdentifiers(private val program: Pr
             // First component might be an alias
             val tgt2 = identifier.definingScope.lookup(identifier.nameInSource[0]) as? Alias
             if(tgt2!=null && parent !is Alias) {
-                if(tgt2.isPrivate) {
-                    val referencingBlock = findParentNode<Block>(identifier)
-                    val aliasBlock = findParentNode<Block>(tgt2)
-                    if(referencingBlock!=null && aliasBlock!=null && referencingBlock!==aliasBlock) {
-                        errors.err("cannot access private alias '${tgt2.alias}' from outside its block", identifier.position)
-                        return noModifications
+                val aliasBlock = findParentNode<Block>(tgt2)
+                if(aliasBlock!=null) {
+                    val hasPrivateSymbolsOption = "private_symbols" in aliasBlock.options()
+                            || (aliasBlock.parent is Module && "private_symbols" in (aliasBlock.parent as Module).options())
+                    if(hasPrivateSymbolsOption) {
+                        if(tgt2.visibility != Visibility.PUBLIC) {
+                            val referencingBlock = findParentNode<Block>(identifier)
+                            if(referencingBlock!=null && referencingBlock!==aliasBlock) {
+                                errors.err("cannot access alias '${tgt2.alias}' from outside its block (not public)", identifier.position)
+                                return noModifications
+                            }
+                        }
+                    } else {
+                        if(tgt2.visibility == Visibility.PRIVATE) {
+                            val referencingBlock = findParentNode<Block>(identifier)
+                            if(referencingBlock!=null && referencingBlock!==aliasBlock) {
+                                errors.err("cannot access private alias '${tgt2.alias}' from outside its block", identifier.position)
+                                return noModifications
+                            }
+                        }
                     }
                 }
                 val aliasTarget = resolveAliasTarget(tgt2)
@@ -173,12 +187,26 @@ internal class LiteralsToAutoVarsAndRecombineIdentifiers(private val program: Pr
         }
 
         if(target is Alias && parent !is Alias) {
-            if(target.isPrivate) {
-                val referencingBlock = findParentNode<Block>(identifier)
-                val aliasBlock = findParentNode<Block>(target)
-                if(referencingBlock!=null && aliasBlock!=null && referencingBlock!==aliasBlock) {
-                    errors.err("cannot access private alias '${target.alias}' from outside its block", identifier.position)
-                    return noModifications
+            val aliasBlock = findParentNode<Block>(target)
+            if(aliasBlock!=null) {
+                val hasPrivateSymbolsOption = "private_symbols" in aliasBlock.options()
+                        || (aliasBlock.parent is Module && "private_symbols" in (aliasBlock.parent as Module).options())
+                if(hasPrivateSymbolsOption) {
+                    if(target.visibility != Visibility.PUBLIC) {
+                        val referencingBlock = findParentNode<Block>(identifier)
+                        if(referencingBlock!=null && referencingBlock!==aliasBlock) {
+                            errors.err("cannot access alias '${target.alias}' from outside its block (not public)", identifier.position)
+                            return noModifications
+                        }
+                    }
+                } else {
+                    if(target.visibility == Visibility.PRIVATE) {
+                        val referencingBlock = findParentNode<Block>(identifier)
+                        if(referencingBlock!=null && referencingBlock!==aliasBlock) {
+                            errors.err("cannot access private alias '${target.alias}' from outside its block", identifier.position)
+                            return noModifications
+                        }
+                    }
                 }
             }
             val targetStatement = resolveAliasTarget(target)
@@ -240,12 +268,26 @@ internal class LiteralsToAutoVarsAndRecombineIdentifiers(private val program: Pr
         if(deref.chain.isEmpty()) return emptyList()
         val tgt2 = deref.definingScope.lookup(deref.chain[0]) as? Alias
         if(tgt2!=null && parent !is Alias) {
-            if(tgt2.isPrivate) {
-                val referencingBlock = findParentNode<Block>(deref)
-                val aliasBlock = findParentNode<Block>(tgt2)
-                if(referencingBlock!=null && aliasBlock!=null && referencingBlock!==aliasBlock) {
-                    errors.err("cannot access private alias '${tgt2.alias}' from outside its block", deref.position)
-                    return noModifications
+            val aliasBlock = findParentNode<Block>(tgt2)
+            if(aliasBlock!=null) {
+                val hasPrivateSymbolsOption = "private_symbols" in aliasBlock.options()
+                        || (aliasBlock.parent is Module && "private_symbols" in (aliasBlock.parent as Module).options())
+                if(hasPrivateSymbolsOption) {
+                    if(tgt2.visibility != Visibility.PUBLIC) {
+                        val referencingBlock = findParentNode<Block>(deref)
+                        if(referencingBlock!=null && referencingBlock!==aliasBlock) {
+                            errors.err("cannot access alias '${tgt2.alias}' from outside its block (not public)", deref.position)
+                            return noModifications
+                        }
+                    }
+                } else {
+                    if(tgt2.visibility == Visibility.PRIVATE) {
+                        val referencingBlock = findParentNode<Block>(deref)
+                        if(referencingBlock!=null && referencingBlock!==aliasBlock) {
+                            errors.err("cannot access private alias '${tgt2.alias}' from outside its block", deref.position)
+                            return noModifications
+                        }
+                    }
                 }
             }
             val aliasTarget = resolveAliasTarget(tgt2)

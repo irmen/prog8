@@ -822,8 +822,8 @@ set_byte:
         }}
     }
 
-    const ubyte charset_bank = $1
-    const uword charset_addr = $f000       ; in bank 1, so $1f000
+    private const ubyte charset_bank = $1
+    private const uword charset_addr = $f000       ; in bank 1, so $1f000
 
     sub text_charset(ubyte charset) {
         ; -- select the text charset to use with the text() routine
@@ -900,7 +900,7 @@ set_byte:
         }
     }
 
-    asmsub cs_innerloop640(ubyte color @A) clobbers(Y) {
+    private asmsub cs_innerloop640(ubyte color @A) clobbers(Y) {
         ; using verafx 32 bits writes here would make this faster but it's safer to
         ; use verafx only explicitly when you know what you're doing.
         %asm {{
@@ -919,7 +919,7 @@ set_byte:
         }}
     }
 
-    asmsub addr_mul_24_for_highres_4c(uword yy @R2, uword xx @R3)  clobbers(A, Y) -> uword @R0, uword @R1 {
+    private asmsub addr_mul_24_for_highres_4c(uword yy @R2, uword xx @R3)  clobbers(A, Y) -> uword @R0, uword @R1 {
         ; yy * 160 + xx/4  (24 bits calculation)
         ; 24 bits result is in r0 and r1L (highest byte)
         %asm {{

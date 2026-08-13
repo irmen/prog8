@@ -35,7 +35,8 @@ class CompilationOptions(val output: OutputType,
                          var outputDir: Path = Path(""),
                          var quiet: Boolean = false,
                          var profilingInstrumentation: Boolean = false,
-                         var symbolDefs: Map<String, String> = emptyMap()
+                         var symbolDefs: Map<String, String> = emptyMap(),
+                         var privateSymbols: Boolean = false
 ) {
     init {
         compTarget.initializeMemoryAreas(this)

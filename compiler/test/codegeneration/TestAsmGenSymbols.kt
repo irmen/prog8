@@ -75,7 +75,7 @@ class TestAsmGenSymbols: StringSpec({
         val assign8 = Assignment(tgt, AddressOf(IdentifierReference(listOf("main","label_outside"), Position.DUMMY), null, null, false, false, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
 
         val statements = mutableListOf(varInSub, var2InSub, labelInSub, assign1, assign2, assign3, assign4, assign5, assign6, assign7, assign8)
-        val subroutine = Subroutine("start", mutableListOf(), mutableListOf(), emptyList(), emptyList(), emptySet(), null, false, false, false, false, statements, Position.DUMMY)
+        val subroutine = Subroutine("start", mutableListOf(), mutableListOf(), emptyList(), emptyList(), emptySet(), null, false, false, false, null, statements, Position.DUMMY)
         val labelInBlock = Label("label_outside", Position.DUMMY)
         val varInBlock = VarDecl.builder(DataType.UWORD, Position.DUMMY).names("var_outside").build()
         val block = Block("main", null, mutableListOf(labelInBlock, varInBlock, subroutine), false, Position.DUMMY)

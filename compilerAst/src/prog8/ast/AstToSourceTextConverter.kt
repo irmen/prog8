@@ -127,8 +127,10 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
         if(decl.origin==VarDeclOrigin.SUBROUTINEPARAM)
             return
 
-        if(decl.isPrivate)
+        if(decl.visibility == Visibility.PRIVATE)
             output("private ")
+        else if(decl.visibility == Visibility.PUBLIC)
+            output("public ")
 
         when(decl.type) {
             VarDeclType.VAR -> {}
@@ -190,8 +192,10 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
     }
 
     override fun visit(struct: StructDecl) {
-        if(struct.isPrivate)
+        if(struct.visibility == Visibility.PRIVATE)
             output("private ")
+        else if(struct.visibility == Visibility.PUBLIC)
+            output("public ")
         outputln("struct ${struct.name} {")
         for(member in struct.fields) {
             val arraySuffix = if(member.isArray) "[${member.arraySize}]" else ""
@@ -201,8 +205,10 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
     }
 
     override fun visit(enum: Enumeration) {
-        if(enum.isPrivate)
+        if(enum.visibility == Visibility.PRIVATE)
             output("private ")
+        else if(enum.visibility == Visibility.PUBLIC)
+            output("public ")
         output("enum ${enum.name} { ")
         for(member in enum.members) {
             output(member.first)
@@ -217,8 +223,10 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
     override fun visit(subroutine: Subroutine) {
         output("\n")
         outputi("")
-        if(subroutine.isPrivate)
+        if(subroutine.visibility == Visibility.PRIVATE)
             output("private ")
+        else if(subroutine.visibility == Visibility.PUBLIC)
+            output("public ")
         if(subroutine.inline)
             output("inline ")
         if(subroutine.isAsmSubroutine) {
@@ -593,8 +601,10 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
     }
 
     override fun visit(alias: Alias) {
-        if(alias.isPrivate)
+        if(alias.visibility == Visibility.PRIVATE)
             output("private ")
+        else if(alias.visibility == Visibility.PUBLIC)
+            output("public ")
         output("alias ${alias.alias} = ${alias.target.nameInSource.joinToString(".")}")
     }
 

@@ -161,7 +161,7 @@ It's used to tell the compiler to put the block at a certain position in memory.
     Using qualified names ("dotted names") to reference symbols defined elsewhere
 
     Every symbol is 'public' and can be accessed from anywhere else, when given its *full* "dotted name".
-    You can use the ``private`` keyword to hide symbols from other blocks - see :ref:`private-symbols`.
+    You can use the ``private`` keyword to hide symbols from other blocks, or ``%option private_symbols`` to make all symbols private by default - see :ref:`private-symbols`.
     So, accessing a variable ``counter`` defined in subroutine ``worker`` in block ``main``,
     can be done from anywhere by using ``main.worker.counter``.
     Unlike most other programming languages, as soon as a name is scoped,
@@ -485,6 +485,9 @@ Directives
     - ``amiga_chipram`` (block, amiga500 target only) places the block's code in the ``code_c`` section, and its variables (initialized data and BSS, including memory slabs and struct instances) in the ``data_c`` and ``bss_c`` sections. These are Amiga CHIP RAM hunks, so they will be loaded in CHIP ram by the OS.
     - ``romable`` (module) *WORK-IN-PROGRESS/EXPERIMENTAL* make sure that the generated code is suitable for running in ROM (so no self-modifying code and such, which is normally used to generate smaller/more optimized code)
       See :ref:`romable` for more details.
+    - ``private_symbols`` (module or block) makes all symbols private by default within the module or block where this option is set.
+      This means symbols can only be accessed from within the same block, unless they are explicitly marked with the ``public`` keyword.
+      This is useful for enforcing encapsulation in larger programs or library modules. See :ref:`private-symbols` for more details.
 
 
 .. index:: pair: Directives; %output
@@ -1281,9 +1284,19 @@ external subroutines. These last two are described in detail below.
 
 .. _private-symbols:
 
-Private symbols
-^^^^^^^^^^^^^^^
+Private and public symbols
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. index:: pair: Symbols; Private
+.. index:: pair: Symbols; Public
+
+By default, all symbols in a Prog8 program are accessible from any block.
+You can change this behavior in two ways:
+
+1. Use the ``private`` keyword on individual declarations to hide them from other blocks.
+2. Use ``%option private_symbols`` to make all symbols private by default, and use the ``public`` keyword to selectively expose them.
+
+The ``private`` keyword
+~~~~~~~~~~~~~~~~~~~~~~~
 
 You can use the ``private`` keyword to hide a symbol from outside its block.
 Accessing a private symbol from another block results in a compilation error.
@@ -1322,6 +1335,82 @@ The ``private`` keyword can be applied to the following declarations:
 - **aliases**::
 
     private alias MyReg = cx16.r0
+
+
+The ``public`` keyword and ``%option private_symbols``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``public`` keyword explicitly marks a symbol as accessible from other blocks.
+It can be applied to exactly the same declarations as ``private``.
+This is useful in combination with ``%option private_symbols``, which makes all
+symbols private by default.
+
+When ``%option private_symbols`` is set (at module or block level), all symbols
+within that scope are private unless explicitly marked ``public``.
+This enforces encapsulation and prevents accidental cross-block access.
+
+Example::
+
+    %option private_symbols
+
+    main {
+        sub start() {
+            helper.doStuff()      ; ok, doStuff() is public
+            helper.internal()     ; error! internal() is not public
+        }
+    }
+
+    helper {
+        public sub doStuff() {
+            ; accessible from other blocks
+        }
+
+        sub internal() {
+            ; only accessible within this block
+        }
+    }
+
+You can also apply ``%option private_symbols`` to a single block,
+making only that block's symbols private by default::
+
+    main {
+        sub start() {
+            other.doStuff()            ; ok, doStuff() is public
+            ubyte x = other.value      ; ok, value is public
+            ubyte y = other.internal   ; error! internal is not public
+        }
+    }
+
+    other {
+        %option private_symbols
+
+        public ubyte value = 42
+        public sub doStuff() {
+            ; accessible from other blocks
+        }
+
+        ubyte internal = 99
+        ; internal is only accessible within this block
+    }
+
+The ``public`` keyword is allowed even without ``%option private_symbols``
+(in which case it has no effect, since all symbols are already public by default).
+You cannot use both ``private`` and ``public`` on the same declaration.
+
+Visibility rules
+~~~~~~~~~~~~~~~~
+
+The visibility of a declaration is resolved as follows, in this order:
+
+1. A declaration marked ``private`` is inaccessible from every other block.
+2. A declaration marked ``public`` is accessible from other blocks.
+3. An unmarked declaration is private when ``private_symbols`` is enabled on
+   its defining block or its containing module; otherwise it is public.
+
+The option affects declarations in its scope only: a module-level option
+applies to all blocks in that module, while a block-level option applies only
+to declarations in that block. Fully qualified names do not bypass these
+rules.
 
 
 .. _reusevirtualregs_params:
