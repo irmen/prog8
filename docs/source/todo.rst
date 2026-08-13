@@ -24,7 +24,6 @@ Future Things and Ideas
 - implement the signed divmod byte and word routines on 6502 (virtual target already has them working)
 - make a form of "manual generics" possible like: varsub routine(T arg)->T  where T is expanded to a specific type
   (this is already done hardcoded for several of the builtin functions)
-- migrate CLI argument parsing from the obsolete kotlinx-cli library to Clikt (com.github.ajalt:clikt)
 - add new directives ``%bssaddress`` and ``%slabsaddress`` to set the memory address for the BSS area and memory slabs (analogous to ``%address`` for program load address).
   Note: these should be mutually exclusive with the existing CLI options (``-varsgolden``, ``-varshigh``, ``-slabsgolden``, ``-slabshigh``)
   because the CLI options are target-aware shorthands (set bank symbols, do bounds checking against predefined ranges)

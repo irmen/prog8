@@ -1,22 +1,17 @@
 package prog8.codegen.m68k
 
-import kotlinx.cli.ArgParser
-import kotlinx.cli.ArgType
+import com.github.ajalt.clikt.core.CliktCommand
+import com.github.ajalt.clikt.core.main
+import com.github.ajalt.clikt.parameters.arguments.argument
 import prog8.code.core.CpuType
 import prog8.intermediate.IRFileReader
 import kotlin.io.path.Path
 import kotlin.io.path.readText
-import kotlin.system.exitProcess
 
 fun main(args: Array<String>) {
-    val cli = ArgParser("prog8-m68kgen", prefixStyle = ArgParser.OptionPrefixStyle.JVM)
-    val inputFile by cli.argument(ArgType.String, fullName = "input", description = "path to .p8ir file")
-    try {
-        cli.parse(args)
-    } catch (e: IllegalStateException) {
-        println(e.message)
-        exitProcess(1)
-    }
+    val cli = M68kCli()
+    cli.main(args)
+    val inputFile = cli.inputFile
 
     val reader = IRFileReader()
     val source = Path(inputFile).readText()
@@ -35,4 +30,10 @@ fun main(args: Array<String>) {
             error("This code generator only works for M68000 or M68020 CPU.")
         }
     }
+}
+
+private class M68kCli : CliktCommand(name = "prog8-m68kgen") {
+    val inputFile by argument(help = "path to .p8ir")
+
+    override fun run() = Unit
 }

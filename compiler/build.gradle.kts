@@ -16,7 +16,7 @@ dependencies {
     implementation(project(":codeGenIntermediate"))
     implementation(project(":intermediate"))
     implementation(project(":virtualmachine"))
-    implementation("org.jetbrains.kotlinx:kotlinx-cli:0.3.6")
+    implementation("com.github.ajalt.clikt:clikt:5.0.3")
     implementation("com.michael-bull.kotlin-result:kotlin-result-jvm:2.3.1")
 
     testImplementation(project(":codeCore"))
@@ -43,7 +43,11 @@ application {
 tasks.shadowJar {
     archiveBaseName.set("prog8c")
     archiveVersion.set(version.toString())
-    duplicatesStrategy = DuplicatesStrategy.WARN
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+    mergeServiceFiles()
+    filesMatching("META-INF/LICENSE") {
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    }
     // minimize()
 }
 

@@ -148,6 +148,9 @@ Command line options
 
 .. index:: pair: Usage; Command line options
 
+Options accept either a single dash or a double dash. For example, ``-target c64``
+and ``--target c64`` are equivalent.
+
 One or more .p8 module files
     Specify the main module file(s) to compile.
     Every file specified is a separate program.
@@ -552,4 +555,3 @@ or:
 .. code-block:: bash
 
     $ /path/to/prog8c -target c64 -emu examples/c64/rasterbars.p8
-

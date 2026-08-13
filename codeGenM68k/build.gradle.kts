@@ -45,7 +45,7 @@ repositories {
 dependencies {
     implementation(project(":codeCore"))
     implementation(project(":intermediate"))
-    implementation("org.jetbrains.kotlinx:kotlinx-cli:0.3.6")
+    implementation("com.github.ajalt.clikt:clikt:5.0.3")
 
     // Test dependencies - Kotest BOM is provided by root build.gradle.kts
     testImplementation("io.kotest:kotest-runner-junit5")

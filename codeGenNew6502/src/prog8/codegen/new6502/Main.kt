@@ -1,7 +1,10 @@
 package prog8.codegen.new6502
 
-import kotlinx.cli.ArgParser
-import kotlinx.cli.ArgType
+import com.github.ajalt.clikt.core.CliktCommand
+import com.github.ajalt.clikt.core.main
+import com.github.ajalt.clikt.parameters.arguments.argument
+import com.github.ajalt.clikt.parameters.options.flag
+import com.github.ajalt.clikt.parameters.options.option
 import prog8.code.core.CpuType
 import prog8.intermediate.IRFileReader
 import kotlin.io.path.Path
@@ -9,15 +12,10 @@ import kotlin.io.path.readText
 import kotlin.system.exitProcess
 
 fun main(args: Array<String>) {
-    val cli = ArgParser("prog8-newgen", prefixStyle = ArgParser.OptionPrefixStyle.JVM)
-    val inputFile by cli.argument(ArgType.String, fullName = "input", description = "path to .p8ir file")
-    val asmListfile by cli.option(ArgType.Boolean, fullName = "list", shortName = "l", description = "produce assembler listing file (.list)")
-    try {
-        cli.parse(args)
-    } catch (e: IllegalStateException) {
-        println(e.message)
-        exitProcess(1)
-    }
+    val cli = New6502Cli()
+    cli.main(args)
+    val inputFile = cli.inputFile
+    val asmListfile = cli.asmListfile
 
     val reader = IRFileReader()
     val source = Path(inputFile).readText()
@@ -68,4 +66,11 @@ fun main(args: Array<String>) {
         System.err.println("Assembly failed.")
         exitProcess(1)
     }
+}
+
+private class New6502Cli : CliktCommand(name = "prog8-newgen") {
+    val inputFile by argument(help = "path to .p8ir")
+    val asmListfile by option("-l", "-list", "--list", help = "produce assembler listing file (.list)").flag()
+
+    override fun run() = Unit
 }
