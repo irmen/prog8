@@ -1,116 +1,165 @@
-; TODO in progress attempts to make a flexible sprite multiplexer
-; For an easy sprite multiplexer (actually, just a sprite duplicator) see the "simplemultiplexer" example.
-; inspiration: https://codebase64.net/doku.php?id=base:sprite_multiplexing
+; Minimal sprite multiplexer experiment.
+; Sixteen virtual sprites are displayed using eight hardware slots.
+; Each slot is rewritten immediately after its 21-line sprite display.
 
 %import syslib
 %import math
-%import textio
+%import sorting
 %option no_sysinit
 
 main {
-    const ubyte NUM_VSPRITES = 16
-    const uword spritedata_base = $3000     ; NOTE: in VIC bank 0 (and 2), the Char Rom is at $1000 so we can't store sprite data there
+    const ubyte NUM_INSTANCES = 16
+    const ubyte NUM_HARDWARE = 8
+    const uword spritedata_base = $3000
+
+    ubyte[NUM_INSTANCES] sort_y
+    uword[NUM_INSTANCES] @nosplit sort_order = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    ubyte[NUM_HARDWARE] current_y
 
     sub start() {
-        setup_sprite_graphics()
-        c64.SPENA = 255    ; enable all sprites
-
-        method1_wait_raster_before_each_sprite()
-
-        ; Theoretically, I think all sprite Y values can be set in one go, and again after the last of the 8 hw sprites has started drawing, etc.
-        ; There's no strict need to set it right before the sprite is starting to draw. But it only saves a few cycles?
-        ; method2_after_old_sprite()
-
-    }
-
-    sub setup_sprite_graphics() {
-        ; prepare the sprite graphics (put a different letter in each of the balloons)
         sys.set_irqd()
-        c64.banks(%011)  ; enable CHAREN, so the character rom accessible at $d000 (inverse at $d400)
-        for i in 0 to NUM_VSPRITES-1 {
-            uword sprdat = spritedata_base + $0040*i
-            sys.memcopy(balloonsprite, sprdat, 64)
-            for cptr in 0 to 7 {
-                sprdat[7+cptr*3] = @($d400+(i+sc:'a')*$0008 + cptr)
-            }
-            ^^Sprite sprite = sprites[i]
-            sprite.dataptr = lsb(spritedata_base/64) + i
-        }
-        c64.banks(%111)     ; enable IO registers again
-        ; sys.clear_irqd()  ; do not re-enable IRQ as this will glitch the display because it interferes with raster timing
-    }
+        setup_sprite_graphics()
+        setup_multiplexer()
+        c64.SPENA = 255
 
-    sub method1_wait_raster_before_each_sprite() {
         repeat {
-            animate_sprites()
-            ; wait for raster lines and update hardware sprites
-            for vs_index in 0 to NUM_VSPRITES-1 {
-                ubyte virtual_sprite = sort_virtualsprite[vs_index]
-                ubyte hw_sprite = virtual_sprite & 7
+            c64.EXTCOL = 1
+            animate_x_positions()
+            c64.EXTCOL = 2
+            sort_instances()
+            c64.EXTCOL = 0
+
+            sys.waitvsync()
+            c64.EXTCOL = 4
+            ; Display sprites in sorted order, calculating timing dynamically
+            for display_index in 0 to NUM_INSTANCES-1 {
+                ubyte hw_sprite = display_index & 7
+                ubyte virtual_sprite = lsb(sort_order[display_index])
                 ^^Sprite sprite = sprites[virtual_sprite]
-                sys.waitrasterline(sprite.y-3)      ; wait for a few lines above the sprite so we have time to set all attributes properly
-                c64.EXTCOL++
-                c64.SPXY[hw_sprite*2+1] = sprite.y
+
+                ; Wait for the previous sprite in this slot to finish displaying
+                if display_index >= NUM_HARDWARE {
+                    ; Reusing a slot - wait for previous sprite to finish
+                    uword target_line = (current_y[hw_sprite] as uword) + 22
+                    uword raster_line = c64.RASTER
+                    if (c64.SCROLY & %10000000) != 0
+                        raster_line += 256
+
+                    ; Smart timing: immediate if passed, minimum 3 lines if too close
+                    if raster_line >= target_line {
+                        ; Already past target, update immediately
+                    } else {
+                        uword gap = target_line - raster_line
+                        if gap < 3 {
+                            target_line = raster_line + 3
+                        }
+                        sys.waitrasterline(target_line)
+                    }
+                }
+
+                ; Update sprite registers
                 c64.SPXY[hw_sprite*2] = lsb(sprite.x)
+                c64.SPCOL[hw_sprite] = sprite.color
                 if sprite.x >= 256
                     c64.MSIGX |= msigx_setmask[hw_sprite]
                 else
                     c64.MSIGX &= msigx_clearmask[hw_sprite]
-                c64.SPCOL[hw_sprite] = sprite.color
-                c64.SPRPTR[hw_sprite] = sprite.dataptr
-                c64.EXTCOL--
+                c64.SPXY[hw_sprite*2+1] = sprite.y
+                current_y[hw_sprite] = sprite.y
             }
+        }
+    }
+
+    sub setup_multiplexer() {
+        sort_instances()
+        for hw_sprite in 0 to NUM_HARDWARE-1 {
+            ubyte instance = lsb(sort_order[hw_sprite])
+            ^^Sprite sprite = sprites[instance]
+            current_y[hw_sprite] = sprite.y
+            c64.SPRPTR[hw_sprite] = lsb(spritedata_base/64)
+            c64.SPXY[hw_sprite*2+1] = current_y[hw_sprite]
+            c64.SPXY[hw_sprite*2] = lsb(sprite.x)
+            c64.SPCOL[hw_sprite] = sprite.color
+        }
+        c64.MSIGX = 0
+        for hw_sprite in 0 to NUM_HARDWARE-1 {
+            if sprites[lsb(sort_order[hw_sprite])].x >= 256
+                c64.MSIGX |= msigx_setmask[hw_sprite]
         }
     }
 
     ubyte tt
-    sub animate_sprites() {
-        tt += 2
-        ubyte st = tt
-        for virtual_sprite in 0 to NUM_VSPRITES-1 {
+    sub animate_x_positions() {
+        for virtual_sprite in 0 to NUM_INSTANCES-1 {
             ^^Sprite sprite = sprites[virtual_sprite]
-            sprite.x = $0028 + math.sin8u(st)
-            ; TODO  nice anim   sprite.y = $50 + math.cos8u(st*3)/2
-            st += 10
-            sort_ypositions[virtual_sprite] = sprite.y
-            sort_virtualsprite[virtual_sprite] = virtual_sprite
-            ; TODO keep working with the previously sorted result instead of rewriting the list every time, makes sorting faster if not much changes in the Y positions
+            sprite.x++
+            if sprite.x >= 340
+                sprite.x = 0
         }
 
-        ; TODO remove this simplistic animation but it's here to test the algorithms
-        sprite = sprites[0]
-        sprite.y++
-        sort_ypositions[0] = sprites[0].y
-        sprite = sprites[1]
-        sprite.y--
-        sort_ypositions[1] = sprites[1].y
-
-        ;c64.EXTCOL--
-        sort_virtual_sprites()
-        ;c64.EXTCOL++
+        ^^Sprite sprite0 = sprites[0]
+        sprite0.y++
+        sprite0 = sprites[1]
+        sprite0.x--
+        sprite0.x--
+        if sprite0.x > 330
+            sprite0.x = 330
+        sprite0.y++
+        sprite0.y++
+        sprite0.y++
+        sprite0 = sprites[2]
+        sprite0.x = math.sin8u(tt)/2 + 100
+        sprite0.y = math.cos8u(tt)/2 + 80
+        tt++
     }
 
-    ubyte[NUM_VSPRITES] sort_ypositions
-    ubyte[NUM_VSPRITES] sort_virtualsprite
-
-    ; TODO rewrite in assembly, sorting must be super fast
-    sub sort_virtual_sprites() {
-        ubyte @zp pos=1
-        while pos != NUM_VSPRITES {
-            if sort_ypositions[pos]>=sort_ypositions[pos-1]
-                pos++
-            else {
-                ; swap elements
-                swap(sort_ypositions[pos-1], sort_ypositions[pos])
-                ; swap virtual sprite indexes
-                swap(sort_virtualsprite[pos-1], sort_virtualsprite[pos])
-                pos--
-                if_z
-                    pos++
-            }
+    sub sort_instances() {
+        for pos in 0 to NUM_INSTANCES-1 {
+            sort_y[pos] = sprites[lsb(sort_order[pos])].y
         }
+        sorting.gnomesort_by_ub(sort_y, sort_order, NUM_INSTANCES)
     }
 
+    sub setup_sprite_graphics() {
+        ; Copy one sprite into a 64-byte-aligned area in VIC bank 0.
+        sys.set_irqd()
+        c64.banks(%011)
+        sys.memcopy(balloonsprite, spritedata_base, 64)
+        const uword sprdat = spritedata_base
+        for cptr in 0 to 7
+            sprdat[7+cptr*3] = @($d400+(sc:'a')*$0008+cptr)
+        for i in 0 to NUM_INSTANCES-1 {
+            ^^Sprite sprite = sprites[i]
+            sprite.dataptr = lsb(spritedata_base/64)
+        }
+        c64.banks(%111)
+    }
+
+    struct Sprite {
+        ubyte color
+        ubyte dataptr
+        uword x
+        ubyte y
+    }
+
+    ^^Sprite[NUM_INSTANCES] sprites = [
+        [1, $ff, 20, 40],
+        [2, $ff, 40, 54],
+        [3, $ff, 60, 68],
+        [4, $ff, 80, 82],
+        [5, $ff, 100, 96],
+        [7, $ff, 120, 110],
+        [8, $ff, 140, 124],
+        [9, $ff, 160, 138],
+        [10, $ff, 180, 152],
+        [11, $ff, 200, 166],
+        [12, $ff, 220, 180],
+        [13, $ff, 240, 194],
+        [14, $ff, 260, 208],
+        [15, $ff, 280, 222],
+        [1, $ff, 300, 236],
+        [2, $ff, 320, 250]
+    ]
 
     ubyte[8] msigx_setmask = [
         %00000001,
@@ -133,34 +182,6 @@ main {
         %10111111,
         %01111111
     ]
-
-    struct Sprite {
-        ubyte color
-        ubyte dataptr
-        uword x
-        ubyte y
-    }
-
-
-    ^^Sprite[NUM_VSPRITES]  sprites = [
-        [0, $ff, 20, 60],
-        [1, $ff, 40, 70],
-        [2, $ff, 60, 80],
-        [3, $ff, 80, 90],
-        [4, $ff, 100, 100],
-        [5, $ff, 120, 110],
-        [7, $ff, 140, 120],       ; skip color 6 (blue on blue)
-        [8, $ff, 160, 130],
-        [9, $ff, 180, 140],
-        [10, $ff, 200, 150],
-        [11, $ff, 220, 160],
-        [12, $ff, 240, 170],
-        [13, $ff, 260, 180],
-        [14, $ff, 280, 190],
-        [15, $ff, 300, 200],
-        [0, $ff, 320, 210],
-    ]
-
 
     ubyte[] balloonsprite = [
         %00000000,%01111111,%00000000,

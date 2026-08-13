@@ -27,7 +27,26 @@ Future Things and Ideas
   Note: these should be mutually exclusive with the existing CLI options (``-varsgolden``, ``-varshigh``, ``-slabsgolden``, ``-slabshigh``)
   because the CLI options are target-aware shorthands (set bank symbols, do bounds checking against predefined ranges)
   while the directives are raw addresses — they'd conflict if both specified for the same area.
-- the c64 sprite multiplexer example may need timing adjustments after compiler changes (not a compiler bug — cycle-exact C64 code is inherently fragile)
+- the c64 sprite multiplexer still needs adjustments to make it smooth, it lacks a proper raster event scheduler.
+- compiler bug: consecutive ``--`` on a uword struct field via typed pointer only decrements the low byte.
+  The optimizer merges two ``x--`` into a single ``sbc #2`` but forgets the high-byte borrow.
+  Reproduction::
+
+    struct Sprite { uword x }
+    ^^Sprite sprite = sprites[0]
+    sprite.x--
+    sprite.x--
+    ; generated asm only touches low byte:
+    ;   ldy #2
+    ;   lda (ptr),y
+    ;   sec
+    ;   sbc #2
+    ;   sta (ptr),y
+    ; high byte is never decremented, so when low byte underflows past 0
+    ; the uword wraps to $FF00 instead of the correct value.
+  Workaround: use explicit subtraction instead of two ``--``::
+
+    sprite.x = sprite.x - 2
 
 
 Romable (%option romable)
