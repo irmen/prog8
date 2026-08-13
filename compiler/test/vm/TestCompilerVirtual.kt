@@ -1307,4 +1307,211 @@ main {
         val result = compileText(VMTarget(), true, src, outputDir, errors=errors, writeAssembly = false)
         result shouldNotBe null
     }
+
+    test("word array /= in-place (signed)") {
+        val src = """
+%zeropage basicsafe
+%option no_sysinit
+
+main {
+    sub start() {
+        ; const index, const value
+        word[] arr1 = [-6000, 10000, -5000]
+        arr1[0] /= 30
+
+        ; const index, variable value
+        word[] arr2 = [-6000, 10000, -5000]
+        word v2 = 50
+        arr2[1] /= v2
+
+        ; variable index, const value
+        word[] arr3 = [-6000, 10000, -5000]
+        ubyte idx3 = 2
+        arr3[idx3] /= 25
+
+        main.r1 = arr1[0]
+        main.r2 = arr1[1]
+        main.r3 = arr1[2]
+        main.r4 = arr2[0]
+        main.r5 = arr2[1]
+        main.r6 = arr2[2]
+        main.r7 = arr3[0]
+        main.r8 = arr3[1]
+        main.r9 = arr3[2]
+    }
+
+    word @shared r1
+    word @shared r2
+    word @shared r3
+    word @shared r4
+    word @shared r5
+    word @shared r6
+    word @shared r7
+    word @shared r8
+    word @shared r9
+}"""
+        val result = compileText(VMTarget(), optimize=false, src, outputDir, writeAssembly = true)!!
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
+        val irContent = virtfile.readText()
+        val irProgram = IRFileReader().read(irContent)
+        irProgram.st.stripAllPrefixes()
+        val allocations = VmVariableAllocator(irProgram.st, irProgram.encoding, irProgram.options.compTarget).allocations
+
+        VmRunner().runAndTestProgram(irContent) { vm ->
+            // arr1: [-6000/30, 10000, -5000] = [-200, 10000, -5000]
+            vm.memory.getSW(allocations["main.r1"]!!) shouldBe -200
+            vm.memory.getSW(allocations["main.r2"]!!) shouldBe 10000
+            vm.memory.getSW(allocations["main.r3"]!!) shouldBe -5000
+            // arr2: [-6000, 10000/50, -5000] = [-6000, 200, -5000]
+            vm.memory.getSW(allocations["main.r4"]!!) shouldBe -6000
+            vm.memory.getSW(allocations["main.r5"]!!) shouldBe 200
+            vm.memory.getSW(allocations["main.r6"]!!) shouldBe -5000
+            // arr3: [-6000, 10000, -5000/25] = [-6000, 10000, -200]
+            vm.memory.getSW(allocations["main.r7"]!!) shouldBe -6000
+            vm.memory.getSW(allocations["main.r8"]!!) shouldBe 10000
+            vm.memory.getSW(allocations["main.r9"]!!) shouldBe -200
+        }
+    }
+
+    test("non-split word array /= in-place (signed)") {
+        val src = """
+%zeropage basicsafe
+%option no_sysinit
+
+main {
+    sub start() {
+        word[] @nosplit arr = [-6000, 10000, -5000]
+        arr[0] /= 30
+        ubyte idx = 2
+        arr[idx] /= 25
+        main.r1 = arr[0]
+        main.r2 = arr[1]
+        main.r3 = arr[2]
+    }
+
+    word @shared r1
+    word @shared r2
+    word @shared r3
+}"""
+        val result = compileText(VMTarget(), optimize=false, src, outputDir, writeAssembly = true)!!
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
+        val irContent = virtfile.readText()
+        val irProgram = IRFileReader().read(irContent)
+        irProgram.st.stripAllPrefixes()
+        val allocations = VmVariableAllocator(irProgram.st, irProgram.encoding, irProgram.options.compTarget).allocations
+
+        VmRunner().runAndTestProgram(irContent) { vm ->
+            vm.memory.getSW(allocations["main.r1"]!!) shouldBe -200
+            vm.memory.getSW(allocations["main.r2"]!!) shouldBe 10000
+            vm.memory.getSW(allocations["main.r3"]!!) shouldBe -200
+        }
+    }
+
+    test("float array /= in-place") {
+        val src = """
+%zeropage basicsafe
+%option no_sysinit
+%import floats
+
+main {
+    sub start() {
+        ; const index, const value
+        float[] arr1 = [1.5, 10.0, 2.5]
+        arr1[1] /= 4.0
+
+        ; variable index, const value
+        float[] arr2 = [1.5, 10.0, 2.5]
+        ubyte idx2 = 2
+        arr2[idx2] /= 2.0
+
+        main.r1 = arr1[0]
+        main.r2 = arr1[1]
+        main.r3 = arr1[2]
+        main.r4 = arr2[0]
+        main.r5 = arr2[1]
+        main.r6 = arr2[2]
+    }
+
+    float @shared r1
+    float @shared r2
+    float @shared r3
+    float @shared r4
+    float @shared r5
+    float @shared r6
+}"""
+        val errors = ErrorReporterForTests(throwExceptionAtReportIfErrors = false, keepMessagesAfterReporting = true)
+        val result = compileText(VMTarget(), optimize=false, src, outputDir, errors=errors, writeAssembly = true)
+        withClue(errors.errors.joinToString("\n")) {
+            result shouldNotBe null
+        }
+        val compiled = result!!
+        val virtfile = compiled.compilationOptions.outputDir.resolve(compiled.compilerAst.name + ".p8ir")
+        val irContent = virtfile.readText()
+        val irProgram = IRFileReader().read(irContent)
+        irProgram.st.stripAllPrefixes()
+        val allocations = VmVariableAllocator(irProgram.st, irProgram.encoding, irProgram.options.compTarget).allocations
+
+        VmRunner().runAndTestProgram(irContent) { vm ->
+            // arr1: [1.5, 10.0/4.0, 2.5] = [1.5, 2.5, 2.5]
+            vm.memory.getFloat(allocations["main.r1"]!!) shouldBe 1.5
+            vm.memory.getFloat(allocations["main.r2"]!!) shouldBe 2.5
+            vm.memory.getFloat(allocations["main.r3"]!!) shouldBe 2.5
+            // arr2: [1.5, 10.0, 2.5/2.0] = [1.5, 10.0, 1.25]
+            vm.memory.getFloat(allocations["main.r4"]!!) shouldBe 1.5
+            vm.memory.getFloat(allocations["main.r5"]!!) shouldBe 10.0
+            vm.memory.getFloat(allocations["main.r6"]!!) shouldBe 1.25
+        }
+    }
+
+    test("word array %= in-place (signed)") {
+        val src = """
+%zeropage basicsafe
+%option no_sysinit
+
+main {
+    sub start() {
+        ; const index, const value
+        word[] arr1 = [-6000, 10000, -5000]
+        arr1[0] %= 4000
+
+        ; variable index, const value
+        word[] arr2 = [-6000, 10000, -5000]
+        ubyte idx2 = 1
+        arr2[idx2] %= 3000
+
+        main.r1 = arr1[0]
+        main.r2 = arr1[1]
+        main.r3 = arr1[2]
+        main.r4 = arr2[0]
+        main.r5 = arr2[1]
+        main.r6 = arr2[2]
+    }
+
+    word @shared r1
+    word @shared r2
+    word @shared r3
+    word @shared r4
+    word @shared r5
+    word @shared r6
+}"""
+        val result = compileText(VMTarget(), optimize=false, src, outputDir, writeAssembly = true)!!
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
+        val irContent = virtfile.readText()
+        val irProgram = IRFileReader().read(irContent)
+        irProgram.st.stripAllPrefixes()
+        val allocations = VmVariableAllocator(irProgram.st, irProgram.encoding, irProgram.options.compTarget).allocations
+
+        VmRunner().runAndTestProgram(irContent) { vm ->
+            // arr1: [-6000%4000, 10000, -5000] = [-2000, 10000, -5000]
+            vm.memory.getSW(allocations["main.r1"]!!) shouldBe -2000
+            vm.memory.getSW(allocations["main.r2"]!!) shouldBe 10000
+            vm.memory.getSW(allocations["main.r3"]!!) shouldBe -5000
+            // arr2: [-6000, 10000%3000, -5000] = [-6000, 1000, -5000]
+            vm.memory.getSW(allocations["main.r4"]!!) shouldBe -6000
+            vm.memory.getSW(allocations["main.r5"]!!) shouldBe 1000
+            vm.memory.getSW(allocations["main.r6"]!!) shouldBe -5000
+        }
+    }
+
+
 })
