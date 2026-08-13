@@ -56,6 +56,7 @@ class IRPeepholeOptimizer(private val irprog: IRProgram, private val retainSSA: 
                                 || cleanupPushPop(chunk1, indexedInstructions)
                                 || simplifyConstantReturns(chunk1, indexedInstructions)
                                 || removeNeedlessLoads(chunk1, indexedInstructions)
+                                || collapseAdjacentLoadrChains(chunk1, indexedInstructions)
                                 || removeDeadStores(chunk1, indexedInstructions)
                                 // || removeLoadrForwarding(chunk1, indexedInstructions)  // DISABLED - needs debugging
                                 || removeSelfIdentityOps(chunk1, indexedInstructions)
@@ -433,6 +434,21 @@ jump p8_label_gen_2
             if(idx < chunk.instructions.size-1) {
                 val nextInstr = chunk.instructions[idx+1]
                 val sameTarget = ins.reg1 != null && ins.reg1 == nextInstr.reg1 && ins.type == nextInstr.type
+                if(sameTarget && ins.opcode in setOf(Opcode.MUL, Opcode.MULS) &&
+                    ins.opcode == nextInstr.opcode && ins.type in setOf(IRDataType.BYTE, IRDataType.WORD, IRDataType.LONG) &&
+                    ins.immediate != null && nextInstr.immediate != null) {
+                    val product = ins.immediate!!.toLong() * nextInstr.immediate!!.toLong()
+                    val foldedImmediate = when(ins.type) {
+                        IRDataType.BYTE -> product.toInt() and 0xff
+                        IRDataType.WORD -> product.toInt() and 0xffff
+                        IRDataType.LONG -> product.toInt()
+                        else -> error("unexpected integer multiplication type")
+                    }
+                    chunk.instructions[idx] = ins.copy(immediate = foldedImmediate)
+                    chunk.instructions.removeAt(idx + 1)
+                    changed = true
+                    return@forEach
+                }
                 if(sameTarget) {
                     val delta = arithmeticDelta(ins)
                     val nextDelta = arithmeticDelta(nextInstr)
@@ -480,7 +496,11 @@ jump p8_label_gen_2
 
             when (ins.opcode) {
                 Opcode.DIV, Opcode.DIVS, Opcode.MUL, Opcode.MULS, Opcode.MOD -> {
-                    if (ins.immediate == 1) {
+                    if (ins.immediate == 0 && ins.opcode in setOf(Opcode.MUL, Opcode.MULS) &&
+                        ins.type in setOf(IRDataType.BYTE, IRDataType.WORD, IRDataType.LONG)) {
+                        chunk.instructions[idx] = IRInstruction(Opcode.LOAD, ins.type, reg1 = ins.reg1, immediate = 0)
+                        changed = true
+                    } else if (ins.immediate == 1) {
                         chunk.instructions.removeAt(idx)
                         changed = true
                     }
@@ -654,6 +674,31 @@ jump p8_label_gen_2
                 Opcode.MODR -> optimizeImmediateLoad(Opcode.MOD, false)
                 // Opcode.DIVMODR - skipped, no immediate DIVMOD variant exists
                 else -> {}
+            }
+        }
+        return changed
+    }
+
+    private fun collapseAdjacentLoadrChains(chunk: IRCodeChunk, indexedInstructions: List<IndexedValue<IRInstruction>>): Boolean {
+        var changed = false
+        indexedInstructions.reversed().forEach { (idx, ins) ->
+            if(idx >= chunk.instructions.size - 1 || ins.opcode != Opcode.LOADR)
+                return@forEach
+
+            val nextInstr = indexedInstructions[idx + 1].value
+            if(nextInstr.opcode != Opcode.LOADR || ins.type != nextInstr.type)
+                return@forEach
+
+            if(ins.type in setOf(IRDataType.BYTE, IRDataType.WORD, IRDataType.LONG, IRDataType.POINTER) &&
+                ins.reg1 != null && ins.reg2 != null && nextInstr.reg2 == ins.reg1) {
+                chunk.instructions[idx + 1] = nextInstr.copy(reg2 = ins.reg2)
+                chunk.instructions[idx] = IRInstruction(Opcode.NOP)
+                changed = true
+            } else if(ins.type == IRDataType.FLOAT &&
+                ins.fpReg1 != null && ins.fpReg2 != null && nextInstr.fpReg2 == ins.fpReg1) {
+                chunk.instructions[idx + 1] = nextInstr.copy(fpReg2 = ins.fpReg2)
+                chunk.instructions[idx] = IRInstruction(Opcode.NOP)
+                changed = true
             }
         }
         return changed

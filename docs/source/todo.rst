@@ -75,7 +75,6 @@ Optimizations
 - Compilation speed: try to join multiple modifications in 1 result in the AST processors instead of returning it straight away every time
 - Compilation speed: cache ``IRProgram.registersUsed()`` - it rescans every instruction in the whole program on each call, and the m68k AsmGen helpers (``loadRegToD0``/``loadRegToD1``, used by ADDR/SUBR/CMP and indexed addressing) call it per instruction, making codegen O(program size x arith instruction count). Cache once in ``AsmGen`` (``private val regsUsed by lazy { program.registersUsed() }``) or memoize in ``IRProgram`` itself.
 - various optimizers skip stuff if compTarget.name==VMTarget.NAME.  Once new 6502 codegen is done from IR code, those 6502 only optimizations should probably be removed
-- **Register packer** (`RegisterPacker.kt`) look in register-packing.md for all details
 
 
 Dead Code Elimination bug in 64tass, for nested subroutines
