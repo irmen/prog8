@@ -113,27 +113,80 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
     }
 
     internal fun inplaceByteInvert(target: PtrTarget) {
-        TODO("inplace byte invert pointer deref ${target.position}")
+        val (zpPtrVar, offset) = deref(target.pointer)
+        asmgen.out("""
+            ldy  #$offset
+            lda  ($zpPtrVar),y
+            eor  #255
+            sta  ($zpPtrVar),y""")
     }
 
     internal fun inplaceWordInvert(target: PtrTarget) {
-        TODO("inplace word invert pointer deref ${target.position}")
+        val (zpPtrVar, offset) = deref(target.pointer)
+        asmgen.out("""
+            ldy  #$offset
+            lda  ($zpPtrVar),y
+            eor  #255
+            sta  ($zpPtrVar),y
+            iny
+            lda  ($zpPtrVar),y
+            eor  #255
+            sta  ($zpPtrVar),y""")
     }
 
     internal fun inplaceByteNegate(target: PtrTarget, scope: IPtSubroutine?) {
-        TODO("inplace byte negate to pointer deref ${target.position}")
+        val (zpPtrVar, offset) = deref(target.pointer)
+        asmgen.out("""
+            ldy  #$offset
+            lda  #0
+            sec
+            sbc  ($zpPtrVar),y
+            sta  ($zpPtrVar),y""")
     }
 
     internal fun inplaceWordNegate(target: PtrTarget, scope: IPtSubroutine?) {
-        TODO("inplace word negate pointer deref ${target.position}")
+        val (zpPtrVar, offset) = deref(target.pointer)
+        asmgen.out("""
+            ldy  #$offset
+            lda  #0
+            sec
+            sbc  ($zpPtrVar),y
+            sta  ($zpPtrVar),y
+            iny
+            lda  #0
+            sbc  ($zpPtrVar),y
+            sta  ($zpPtrVar),y""")
     }
 
     internal fun inplaceLongNegate(target: PtrTarget, scope: IPtSubroutine?) {
-        TODO("inplace long negate pointer deref ${target.position}")
+        val (zpPtrVar, offset) = deref(target.pointer)
+        asmgen.out("""
+            ldy  #$offset
+            lda  #0
+            sec
+            sbc  ($zpPtrVar),y
+            sta  ($zpPtrVar),y
+            iny
+            lda  #0
+            sbc  ($zpPtrVar),y
+            sta  ($zpPtrVar),y
+            iny
+            lda  #0
+            sbc  ($zpPtrVar),y
+            sta  ($zpPtrVar),y
+            iny
+            lda  #0
+            sbc  ($zpPtrVar),y
+            sta  ($zpPtrVar),y""")
     }
 
     internal fun inplaceFloatNegate(target: PtrTarget, scope: IPtSubroutine?) {
-        TODO("inplace float negate pointer deref ${target.position}")
+        val (zpPtrVar, _) = deref(target.pointer, addOffsetToPointer=true)
+        asmgen.out("""
+            ldy  #1
+            lda  ($zpPtrVar),y
+            eor  #$80
+            sta  ($zpPtrVar),y""")
     }
 
 

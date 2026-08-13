@@ -7,29 +7,27 @@ code generation with `NotImplementedError`.
 
 ## Highest Impact
 
-### Pointer dereference assignments
+### Pointer dereference assignment helpers
 
 - Line 47: assign a float from AY to a pointer dereference.
 - Lines 760-797: assign float, byte, word, and long values to indexed pointer dereferences.
 
-These affect assignments such as `ptr[i] = value`, especially for non-byte
-element types. Severity: high, compiler crash.
-
-### Unary operations through pointers
-
-- Lines 115-136: byte and word invert, and byte, word, long, and float negate
-  through a pointer dereference.
-
-Severity: high, compiler crash.
+These helpers are still explicit `TODO()` paths, but representative source
+cases such as `pointers[idx]^^ = value` currently compile successfully for the
+C64 and CX16 targets. Existing pointer tests also cover byte, word, long, and
+float indexed assignments. The actual reachable source construct for these
+helpers has not been identified, so their severity is currently unverified
+rather than a confirmed compiler crash.
 
 ### Pointer-array index scaling
 
 - Lines 450, 467, 539, 557, 656, and 681: multiply an index by the element
   size for pointer-indexed byte, word, long, or struct arrays.
 
-Byte-sized elements can use the index directly. Multi-byte elements need index
-scaling before indirect access. Severity: high for multi-byte pointer arrays,
-compiler crash.
+Representative variable-index assignments for byte, word, and long pointees
+compile successfully for C64 and CX16 with and without optimization. The
+reachable source construct for these helpers has not been identified, so their
+severity is currently unverified rather than a confirmed compiler crash.
 
 ### Pointer augmented multiplication and division
 
@@ -37,8 +35,11 @@ compiler crash.
 - Lines 340 and 349: long `*=` and `/=` through pointers.
 - Line 357: byte `%=` through a pointer.
 
-Word and float variants are partly implemented. Severity: high, compiler crash
-when the missing type path is selected.
+Representative direct pointer dereference operations for byte and long values,
+including `*=`, `/=`, and byte `%=`, compile successfully for C64 and CX16 with
+and without optimization. The reachable source construct for these helpers has
+not been identified, so their severity is currently unverified rather than a
+confirmed compiler crash.
 
 ### Pointer augmented float operations
 
@@ -47,8 +48,11 @@ when the missing type path is selected.
 - Lines 2205-2207: variable, expression, and register operands for float `-=`
   and `/=`.
 
-Literal float operands work, but the other source forms crash code generation.
-Severity: high.
+Representative direct pointer dereferences using shared variable operands for
+`+=`, `*=`, `-=`, and `/=` compile successfully for C64 and CX16 with and
+without optimization. The reachable source construct for these helpers has
+not been identified, so their severity is currently unverified rather than a
+confirmed compiler crash.
 
 ## Medium-High Impact
 
@@ -107,15 +111,21 @@ compiler crash for signed `>>=` cases.
 
 ## Overall Assessment
 
-This TODO group is more severe than the optimization TODOs in
-`AssignmentGen`. Most entries are explicit compiler failure paths for valid
-pointer or struct programs. They generally fail early during compilation rather
-than silently generating incorrect machine code.
+The file contains many explicit `TODO()` calls, so any genuinely reachable
+path would fail during compilation rather than silently generating incorrect
+machine code. However, representative tests for indexed pointer assignments,
+pointer-array index scaling, pointer byte/long multiplication and division, and
+pointer float augmented operations all compile successfully for C64 and CX16,
+with and without optimization. Those entries are therefore currently latent or
+unreachable from the tested source forms, not confirmed user-facing crashes.
+
+The remaining struct, large-offset, comparison, register-source, and stack
+paths still need targeted reachability tests before their severity can be
+assessed reliably.
 
 Recommended implementation order:
 
-1. Indexed pointer assignments and index scaling.
-2. Basic pointer dereference assignments for all scalar types.
-3. Unary and augmented arithmetic operations.
-4. Nested struct and large-offset dereferences.
-5. Register-source and comparison variants.
+1. Identify reachable source constructs for the remaining TODOs.
+2. Add regression tests for confirmed failures.
+3. Implement confirmed pointer and struct gaps.
+4. Reassess or remove TODOs that remain unreachable.

@@ -2956,4 +2956,37 @@ main {
         compileText(VMTarget(), false, srcLongOn16, outputDir, writeAssembly = false, errors = errorsLong16) shouldBe null
         errorsLong16.errors.any { it.contains("indexing requires an iterable, address uword, or pointer variable") } shouldBe true
     }
+
+    test("unary operations through pointer dereferences") {
+        val src = """
+%import floats
+main {
+    sub start() {
+        byte b = 42
+        word w = -1234
+        long l = 123456
+        float f = 1.5
+        ^^byte bp = &&b
+        ^^word wp = &&w
+        ^^long lp = &&l
+        ^^float fp = &&f
+
+        bp^^ = ~bp^^
+        wp^^ = ~wp^^
+        -bp^^
+        -wp^^
+        -lp^^
+        -fp^^
+    }
+} """
+        val c64Errors = ErrorReporterForTests(throwExceptionAtReportIfErrors = false, keepMessagesAfterReporting = true)
+        val cx16Errors = ErrorReporterForTests(throwExceptionAtReportIfErrors = false, keepMessagesAfterReporting = true)
+        withClue(c64Errors.errors.joinToString("\n")) {
+            compileText(C64Target(), false, src, outputDir, writeAssembly = false, errors = c64Errors) shouldNotBe null
+        }
+        withClue(cx16Errors.errors.joinToString("\n")) {
+            compileText(Cx16Target(), false, src, outputDir, writeAssembly = false, errors = cx16Errors) shouldNotBe null
+        }
+    }
+
 })
