@@ -76,10 +76,36 @@ class IRPeepholeOptimizer(private val irprog: IRProgram, private val retainSSA: 
         indexedInstructions.reversed().forEach { (idx, ins) ->
             if (ins.opcode == Opcode.CONCAT && idx>0) {
                 // if the previous instruction loads a zero in the msb, this can be turned into EXT.B instead
-                val prev = indexedInstructions[idx-1].value
-                if(prev.opcode==Opcode.LOAD && prev.immediate==0 && prev.reg1==ins.reg2) {
+                val msbRegister = ins.reg2
+                var loadIndex: Int? = null
+                var safe = true
+                for (scanIndex in idx - 1 downTo 0) {
+                    val candidate = indexedInstructions[scanIndex].value
+                    if (candidate.opcode in OpcodesWithSideEffects) {
+                        safe = false
+                        break
+                    }
+                    val format = instructionFormats.getValue(candidate.opcode)[candidate.type]
+                        ?: instructionFormats.getValue(candidate.opcode)[null]
+                    val writesMsbRegister = msbRegister != null && (
+                        (format?.reg1 in setOf(OperandDirection.WRITE, OperandDirection.READWRITE) && candidate.reg1 == msbRegister) ||
+                        (format?.reg2 in setOf(OperandDirection.WRITE, OperandDirection.READWRITE) && candidate.reg2 == msbRegister) ||
+                        (format?.reg3 in setOf(OperandDirection.WRITE, OperandDirection.READWRITE) && candidate.reg3 == msbRegister)
+                    )
+                    if (writesMsbRegister) {
+                        if (candidate.opcode == Opcode.LOAD && candidate.immediate == 0 && candidate.reg1 == msbRegister) {
+                            loadIndex = scanIndex
+                        }
+                        break
+                    }
+                    if (candidate.opcode == Opcode.LOAD && candidate.immediate == 0 && candidate.reg1 == msbRegister) {
+                        loadIndex = scanIndex
+                        break
+                    }
+                }
+                if (safe && loadIndex != null) {
                     chunk.instructions[idx] = IRInstruction(Opcode.EXT, IRDataType.BYTE, reg1 = ins.reg1, reg2 = ins.reg3)
-                    chunk.instructions.removeAt(idx-1)
+                    chunk.instructions.removeAt(loadIndex)
                     changed = true
                 }
             }
@@ -394,7 +420,64 @@ jump p8_label_gen_2
     private fun removeUselessArithmetic(chunk: IRCodeChunk, indexedInstructions: List<IndexedValue<IRInstruction>>): Boolean {
         // note: this is hard to solve for the non-immediate instructions atm because the values are loaded into registers first
         var changed = false
+
+        fun arithmeticDelta(instruction: IRInstruction): Int? = when(instruction.opcode) {
+            Opcode.ADD -> instruction.immediate
+            Opcode.SUB -> instruction.immediate?.let { -it }
+            Opcode.INC -> 1
+            Opcode.DEC -> -1
+            else -> null
+        }
+
         indexedInstructions.reversed().forEach { (idx, ins) ->
+            if(idx < chunk.instructions.size-1) {
+                val nextInstr = chunk.instructions[idx+1]
+                val sameTarget = ins.reg1 != null && ins.reg1 == nextInstr.reg1 && ins.type == nextInstr.type
+                if(sameTarget) {
+                    val delta = arithmeticDelta(ins)
+                    val nextDelta = arithmeticDelta(nextInstr)
+                    if(delta != null && nextDelta != null) {
+                        val newDelta = delta + nextDelta
+                        when(newDelta) {
+                            0 -> {
+                                chunk.instructions[idx] = IRInstruction(Opcode.NOP)
+                                chunk.instructions[idx+1] = IRInstruction(Opcode.NOP)
+                            }
+                            1 -> chunk.instructions[idx] = IRInstruction(Opcode.INC, ins.type, reg1 = ins.reg1)
+                            -1 -> chunk.instructions[idx] = IRInstruction(Opcode.DEC, ins.type, reg1 = ins.reg1)
+                            else -> chunk.instructions[idx] = IRInstruction(
+                                if(newDelta > 0) Opcode.ADD else Opcode.SUB,
+                                ins.type,
+                                reg1 = ins.reg1,
+                                immediate = kotlin.math.abs(newDelta)
+                            )
+                        }
+                        chunk.instructions.removeAt(idx+1)
+                        changed = true
+                        return@forEach
+                    }
+
+                    if(ins.opcode == Opcode.AND && nextInstr.opcode == Opcode.AND) {
+                        chunk.instructions[idx] = ins.copy(immediate = ins.immediate!! and nextInstr.immediate!!)
+                        chunk.instructions.removeAt(idx+1)
+                        changed = true
+                        return@forEach
+                    }
+                    if(ins.opcode == Opcode.OR && nextInstr.opcode == Opcode.OR) {
+                        chunk.instructions[idx] = ins.copy(immediate = ins.immediate!! or nextInstr.immediate!!)
+                        chunk.instructions.removeAt(idx+1)
+                        changed = true
+                        return@forEach
+                    }
+                    if(ins.opcode == Opcode.XOR && nextInstr.opcode == Opcode.XOR && ins.immediate == nextInstr.immediate) {
+                        chunk.instructions[idx] = IRInstruction(Opcode.NOP)
+                        chunk.instructions[idx+1] = IRInstruction(Opcode.NOP)
+                        changed = true
+                        return@forEach
+                    }
+                }
+            }
+
             when (ins.opcode) {
                 Opcode.DIV, Opcode.DIVS, Opcode.MUL, Opcode.MULS, Opcode.MOD -> {
                     if (ins.immediate == 1) {

@@ -249,6 +249,62 @@ class TestIRPeepholeOpt: FunSpec({
         instr[5].immediate shouldBe -1
     }
 
+    test("combine adjacent immediate and/or operations") {
+        val irProg = makeIRProgram(listOf(
+            IRInstruction(Opcode.AND, IRDataType.BYTE, reg1=1, immediate = 0xf0),
+            IRInstruction(Opcode.AND, IRDataType.BYTE, reg1=1, immediate = 0xcc),
+            IRInstruction(Opcode.OR, IRDataType.WORD, reg1=2, immediate = 0x0010),
+            IRInstruction(Opcode.OR, IRDataType.WORD, reg1=2, immediate = 0x0003),
+        ))
+        val opt = IRPeepholeOptimizer(irProg, false)
+        opt.optimize(true, ErrorReporterForTests())
+        val instr = irProg.chunks().single().instructions
+        instr.size shouldBe 2
+        instr[0].opcode shouldBe Opcode.AND
+        instr[0].immediate shouldBe 0xc0
+        instr[1].opcode shouldBe Opcode.OR
+        instr[1].immediate shouldBe 0x0013
+    }
+
+    test("cancel identical adjacent immediate xor operations") {
+        val irProg = makeIRProgram(listOf(
+            IRInstruction(Opcode.XOR, IRDataType.BYTE, reg1=1, immediate = 3),
+            IRInstruction(Opcode.XOR, IRDataType.BYTE, reg1=1, immediate = 3),
+            IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=2, immediate = 42)
+        ))
+        val opt = IRPeepholeOptimizer(irProg, false)
+        opt.optimize(true, ErrorReporterForTests())
+        val instr = irProg.chunks().single().instructions
+        instr.size shouldBe 1
+        instr[0].opcode shouldBe Opcode.LOAD
+        instr[0].immediate shouldBe 42
+    }
+
+    test("fold adjacent immediate arithmetic with inc/dec") {
+        val irProg = makeIRProgram(listOf(
+            IRInstruction(Opcode.ADD, IRDataType.BYTE, reg1=1, immediate = 4),
+            IRInstruction(Opcode.INC, IRDataType.BYTE, reg1=1),
+            IRInstruction(Opcode.INC, IRDataType.BYTE, reg1=2),
+            IRInstruction(Opcode.ADD, IRDataType.BYTE, reg1=2, immediate = 4),
+            IRInstruction(Opcode.SUB, IRDataType.BYTE, reg1=3, immediate = 4),
+            IRInstruction(Opcode.DEC, IRDataType.BYTE, reg1=3),
+            IRInstruction(Opcode.DEC, IRDataType.BYTE, reg1=4),
+            IRInstruction(Opcode.SUB, IRDataType.BYTE, reg1=4, immediate = 4)
+        ))
+        val opt = IRPeepholeOptimizer(irProg, false)
+        opt.optimize(true, ErrorReporterForTests())
+        val instr = irProg.chunks().single().instructions
+        instr.size shouldBe 4
+        instr[0].opcode shouldBe Opcode.ADD
+        instr[0].immediate shouldBe 5
+        instr[1].opcode shouldBe Opcode.ADD
+        instr[1].immediate shouldBe 5
+        instr[2].opcode shouldBe Opcode.SUB
+        instr[2].immediate shouldBe 5
+        instr[3].opcode shouldBe Opcode.SUB
+        instr[3].immediate shouldBe 5
+    }
+
     test("replace register arithmetic by immediate operations") {
         // Test the new optimization: LOAD + SUBR/DIVR/MODR → immediate operation
         // Pattern: LOAD r1, #const  followed by  SUBR r2, r1  →  SUB r2, #const
@@ -327,6 +383,45 @@ class TestIRPeepholeOpt: FunSpec({
         instr[0].opcode shouldBe Opcode.LOAD
         instr[0].reg1 shouldBe 99
         instr[0].immediate shouldBe 42
+    }
+
+    test("replace concat with ext after harmless instruction") {
+        val irProg = makeIRProgram(listOf(
+            IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=10, immediate=0),
+            IRInstruction(Opcode.INC, IRDataType.BYTE, reg1=20),
+            IRInstruction(Opcode.CONCAT, IRDataType.BYTE, reg1=1, reg2=10, reg3=11),
+            IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=99, immediate=42)
+        ))
+        val opt = IRPeepholeOptimizer(irProg, false)
+        opt.optimize(true, ErrorReporterForTests())
+        val instr = irProg.chunks().single().instructions
+        instr.any { it.opcode == Opcode.EXT && it.reg1 == 1 && it.reg2 == 11 } shouldBe true
+        instr.any { it.opcode == Opcode.CONCAT } shouldBe false
+    }
+
+    test("do not replace concat after intervening write") {
+        val irProg = makeIRProgram(listOf(
+            IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=10, immediate=0),
+            IRInstruction(Opcode.INC, IRDataType.BYTE, reg1=10),
+            IRInstruction(Opcode.CONCAT, IRDataType.BYTE, reg1=1, reg2=10, reg3=11),
+            IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=99, immediate=42)
+        ))
+        val opt = IRPeepholeOptimizer(irProg, false)
+        opt.optimize(true, ErrorReporterForTests())
+        irProg.chunks().single().instructions.any { it.opcode == Opcode.CONCAT } shouldBe true
+    }
+
+    test("do not replace concat across control flow") {
+        val c1 = IRCodeChunk("p8b_main.p8s_start", null)
+        c1 += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=10, immediate=0)
+        c1 += IRInstruction(Opcode.JUMP, labelSymbol="after")
+        c1 += IRInstruction(Opcode.CONCAT, IRDataType.BYTE, reg1=1, reg2=10, reg3=11)
+        c1 += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=99, immediate=42)
+        val c2 = IRCodeChunk("after", null)
+        val irProg = makeIRProgram(listOf(c1, c2))
+        val opt = IRPeepholeOptimizer(irProg, false)
+        opt.optimize(true, ErrorReporterForTests())
+        irProg.chunks().flatMap { it.instructions }.any { it.opcode == Opcode.CONCAT } shouldBe true
     }
 
     test("cancel adjacent ops") {
