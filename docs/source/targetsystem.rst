@@ -73,6 +73,9 @@ The ``launcher`` property lets you set the default launcher type for all program
 without requiring a ``%launcher`` directive in every source file. Valid values are ``basic`` (CBM-BASIC SYS launcher)
 and ``none`` (no launcher). If omitted, the default is ``basic``.
 
+The optional ``pointer_size`` property sets the size of pointers in bytes. It defaults to ``2`` for compatibility
+with existing configuration files. The supported values are ``2`` and ``4``.
+
 
 Memory Model
 ============

@@ -38,8 +38,13 @@ class ConfigFileTarget(
     val virtualregistersStart: UInt,
     val zpFullsafe: List<UIntRange>,
     val zpKernalsafe: List<UIntRange>,
-    val zpBasicsafe: List<UIntRange>
-): ICompilationTarget, IStringEncoding by Encoder(true), IMemSizer by NormalMemSizer(8) {
+    val zpBasicsafe: List<UIntRange>,
+    val pointerSize: Int = 2
+): ICompilationTarget, IStringEncoding by Encoder(true), IMemSizer by NormalMemSizer(8, pointerSize) {
+
+    init {
+        require(pointerSize == 2 || pointerSize == 4) { "unsupported pointer size: $pointerSize" }
+    }
 
     companion object {
 
@@ -64,6 +69,12 @@ class ConfigFileTarget(
             if(value.startsWith("%"))
                 return value.drop(1).toUInt(2)
             return value.toUInt()
+        }
+
+        private fun parsePointerSize(props: Properties): Int {
+            val pointerSize = parseInt(props.getProperty("pointer_size", "2")).toInt()
+            require(pointerSize == 2 || pointerSize == 4) { "unsupported pointer size: $pointerSize" }
+            return pointerSize
         }
 
         private fun parseAddressRanges(key: String, props: Properties): List<UIntRange> {
@@ -111,6 +122,7 @@ class ConfigFileTarget(
                     (customLauncherStr+"\n").lines().map { it.trimEnd() }
                 else emptyList()
             val assemblerOptionsStr = props.getProperty("assembler_options", "").trim()
+            val pointerSize = parsePointerSize(props)
             val outputTypeString = props.getProperty("output_type", "PRG")
             val defaultOutputType = OutputType.valueOf(outputTypeString.uppercase())
             val launcherString = props.getProperty("launcher", "BASIC")
@@ -146,6 +158,7 @@ class ConfigFileTarget(
                 zpFullsafe,
                 zpKernalsafe,
                 zpBasicsafe,
+                pointerSize,
             )
         }
     }
@@ -154,8 +167,8 @@ class ConfigFileTarget(
     override val FLOAT_MAX_POSITIVE = 9.999999999e97
     override val FLOAT_MAX_NEGATIVE = -9.999999999e97
     override val FLOAT_MEM_SIZE = 8u
-    override val POINTER_MEM_SIZE = 2u      // TODO should support other pointer size as well 
-    override val ARRAY_SIZE_LIMIT = 256u    // TODO should support other size as well
+    override val POINTER_MEM_SIZE = pointerSize.toUInt()
+    override val ARRAY_SIZE_LIMIT = 256u
     override lateinit var zeropage: Zeropage
 
     override fun getFloatAsmBytes(num: Number) = TODO("floats")
