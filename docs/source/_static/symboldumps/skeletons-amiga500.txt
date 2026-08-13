@@ -1,6 +1,6 @@
 
 Prog8 compiler v14.0-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit 556ce702 in branch new-codegens
+Prerelease version from git commit e2db2936 in branch new-codegens
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-amiga500.p8
@@ -781,7 +781,8 @@ custom  {
     middle_button  () -> bool
     return_system  ()
     right_button  () -> bool
-    set_aga_color  (ubyte color_index, long rgb24)
+    set_aga_color  (ubyte color_index @D0, long rgb24 @D1) clobbers (D0,D1,D2,D3,D4,A0)
+    set_aga_color_nibbles  (ubyte color_index @D0, uword rgb_high_nibbles @D1, uword rgb_low_nibbles @D2) clobbers (D0,D1,D2,D3,A0)
 }
 
 

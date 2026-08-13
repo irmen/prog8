@@ -107,6 +107,108 @@ S_PAL:      ds.w    1
         }}
     }
 
+    ; ========== AGA palette utilities ==========
+
+    asmsub set_aga_color(ubyte color_index @D0, long rgb24 @D1) clobbers (D0,D1,D2,D3,D4,A0) {
+        ; Write a 24-bit RGB color ($00RRGGBB) to an AGA palette entry.
+        ; AGA uses eight banks of 32 COLOR registers and two writes per color:
+        ; first the upper nibble of each channel, then the lower nibble.
+        ; Keep this routine 68000-compatible: the amiga500 target is assembled as
+        ; 68000 by default, even though AGA hardware is normally paired with a 68020.
+        %asm {{
+            and.l   #$ff,d0
+            move.l  d0,d4
+            lsr.w   #5,d4
+            lsl.w   #8,d4
+            lsl.w   #5,d4
+
+            and.w   #$1f,d0
+            lsl.w   #1,d0
+            move.l  #$dff180,a0
+            adda.w   d0,a0
+
+            move.l  d1,d2
+            and.l   #$f00000,d2
+            lsr.l   #8,d2
+            lsr.l   #4,d2
+            move.l  d1,d3
+            and.l   #$00f000,d3
+            lsr.l   #8,d3
+            or.w    d3,d2
+            move.l  d1,d3
+            and.l   #$0000f0,d3
+            lsr.l   #4,d3
+            or.w    d3,d2
+
+            move.l  d1,d3
+            and.l   #$0f0000,d3
+            lsr.l   #8,d3
+            move.l  d1,d0
+            and.l   #$000f00,d0
+            lsr.l   #4,d0
+            or.w    d0,d3
+            move.l  d1,d0
+            and.l   #$00000f,d0
+            or.w    d0,d3
+
+            move.w  d4,custom.BPLCON3
+            move.w  d2,(a0)
+            ori.w   #$0200,d4
+            move.w  d4,custom.BPLCON3
+            move.w  d3,(a0)
+            andi.w  #$fdff,d4
+            move.w  d4,custom.BPLCON3
+            rts
+        }}
+    }
+
+    asmsub set_aga_color_nibbles(ubyte color_index @D0, uword rgb_high_nibbles @D1, uword rgb_low_nibbles @D2) clobbers (D0,D1,D2,D3,A0) {
+        ; Write preformatted AGA palette nibbles. Each value is $0RGB. Result will still be 24 bit RRGGBB AGA color.
+        ; Keep this routine 68000-compatible: the amiga500 target is assembled as
+        ; 68000 by default, even though AGA hardware is normally paired with a 68020.
+        %asm {{
+            and.l   #$ff,d0
+            move.l  d0,d3
+            lsr.w   #5,d3
+            lsl.w   #8,d3
+            lsl.w   #5,d3
+
+            and.w   #$1f,d0
+            lsl.w   #1,d0
+            move.l  #$dff180,a0
+            adda.w   d0,a0
+
+            move.w  d3,custom.BPLCON3
+            move.w  d1,(a0)
+            ori.w   #$0200,d3
+            move.w  d3,custom.BPLCON3
+            move.w  d2,(a0)
+            andi.w  #$fdff,d3
+            move.w  d3,custom.BPLCON3
+            rts
+        }}
+    }
+
+    ; ========== mouse button status ==========
+
+    sub left_button() -> bool {
+        ; Returns true if the left mouse button (port 1) is pressed.
+        ; Left button is CIA-A PRA bit 6, active low.
+        return (custom.CIAA_PRA & %01000000) == 0
+    }
+
+    sub right_button() -> bool {
+        ; Returns true if the right mouse button (port 1) is pressed.
+        ; Right button is POTGOR ($dff016) bit 10, active low.
+        return (custom.POTGOR & %0000010000000000) == 0
+    }
+
+    sub middle_button() -> bool {
+        ; Returns true if the middle mouse button (port 1) is pressed.
+        ; Middle button is POTGOR ($dff016) bit 8, active low.
+        return (custom.POTGOR & %0000000100000000) == 0
+    }
+
 
     ; Amiga custom chip registers (full addresses, base $dff000)
     ; Regenerated from https://github.com/alfishe/amiga-bootcamp/blob/main/14_references/custom_chip_registers.md
@@ -512,70 +614,6 @@ S_PAL:      ds.w    1
     const uword BC1F_SUD       = $0010
     const uword BC1F_SUL       = $0008
     const uword BC1F_AUL       = $0004
-
-    ; ========== AGA palette utility ==========
-
-    sub set_aga_color(ubyte color_index, long rgb24) {
-        ; Write a 24-bit RGB color ($00RRGGBB) to any of the 256
-        ; AGA palette entries (indices 0-255).
-        ; AGA has 8 banks of 32 colors, all sharing the same 32
-        ; physical COLOR registers at $DFF180-$DFF1BE. The active
-        ; bank is selected by BPLCON3 bits 15-13 (BANK2..BANK0).
-        ; 24-bit RGB is loaded via two writes: first the high 4 bits
-        ; of each channel (LOCT=0), then the low 4 bits (LOCT=1).
-        ; On OCS/ECS, only the first 32 colors are accessible; the
-        ; LOCT bit is a no-op but the second write may overwrite the
-        ; high nibble, so use custom.COLORnn = value for OCS/ECS.
-        uword red   = ((rgb24 >> 16) as uword) & $ff
-        uword green = ((rgb24 >> 8) as uword) & $ff
-        uword blue  = (rgb24 as uword) & $ff
-
-        ; High nibble: R[7:4]<<8 | G[7:4]<<4 | B[7:4]  ($0RGB with top 4 bits of each channel)
-        uword high_nibble = ((red & $f0) << 4) | (green & $f0) | (blue >> 4)
-        ; Low nibble:  R[3:0]<<8 | G[3:0]<<4 | B[3:0]  ($0RGB with bottom 4 bits of each channel)
-        uword low_nibble  = ((red & $0f) << 8) | ((green & $0f) << 4) | (blue & $0f)
-
-        ; AGA: 8 banks of 32 colors
-        uword bank = ((color_index >> 5) as uword) & $07
-        uword reg_in_bank = (color_index as uword) & $1f
-        uword addr = ($DFF180 + reg_in_bank * 2) as uword
-
-        ; Select AGA color bank (0-7) via BPLCON3 bits 15-13 (mask $E000)
-        uword saved_bplcon3 = custom.BPLCON3
-        custom.BPLCON3 = (saved_bplcon3 & ~$E000) | (bank << 13)
-
-        ; Step 1: Write the high nibble (normal 12-bit write, LOCT=0)
-        pokew(addr, high_nibble)
-
-        ; Step 2: Set LOCT bit (BPLCON3 bit 9 = $0200) to enable low-nibble write
-        custom.BPLCON3 = custom.BPLCON3 | $0200
-
-        ; Step 3: Write the low nibble
-        pokew(addr, low_nibble)
-
-        ; Step 4: Restore BPLCON3 (clear LOCT, preserve other bits)
-        custom.BPLCON3 = saved_bplcon3
-    }
-
-    ; ========== mouse button status ==========
-
-    sub left_button() -> bool {
-        ; Returns true if the left mouse button (port 1) is pressed.
-        ; Left button is CIA-A PRA bit 6, active low.
-        return (custom.CIAA_PRA & %01000000) == 0
-    }
-
-    sub right_button() -> bool {
-        ; Returns true if the right mouse button (port 1) is pressed.
-        ; Right button is POTGOR ($dff016) bit 10, active low.
-        return (custom.POTGOR & %0000010000000000) == 0
-    }
-
-    sub middle_button() -> bool {
-        ; Returns true if the middle mouse button (port 1) is pressed.
-        ; Middle button is POTGOR ($dff016) bit 8, active low.
-        return (custom.POTGOR & %0000000100000000) == 0
-    }
 
     ; ========== CIA registers ==========
 
