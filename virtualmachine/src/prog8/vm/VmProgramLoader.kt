@@ -1,11 +1,13 @@
 package prog8.vm
 
-import prog8.Either
 import prog8.code.SymbolNames
 import prog8.code.core.*
 import prog8.intermediate.*
-import prog8.left
-import prog8.right
+
+private sealed interface InitializerValue {
+    data class Numeric(val value: Double) : InitializerValue
+    data class Bool(val value: Boolean) : InitializerValue
+}
 
 private const val StMemorySlabBlockName = "prog8_slabs"
 
@@ -368,20 +370,20 @@ class VmProgramLoader {
             variable.dt.isBoolArray -> {
                 for (elt in iElts) {
                     val value = getInitializerValue(variable.dt, elt, symbolAddresses)
-                    value.fold(
-                        { throw IRParseException("didn't expect float") },
-                        { b -> memory.setUB(address, if(b) 1u else 0u) }
-                    )
+                    when (value) {
+                        is InitializerValue.Numeric -> throw IRParseException("didn't expect float")
+                        is InitializerValue.Bool -> memory.setUB(address, if(value.value) 1u else 0u)
+                    }
                     address++
                 }
             }
             variable.dt.isString || variable.dt.isUnsignedByteArray -> {
                 for (elt in iElts) {
                     val value = getInitializerValue(variable.dt, elt, symbolAddresses)
-                    value.fold(
-                        { memory.setUB(address, it.toInt().toUByte()) },
-                        { throw IRParseException("didn't expect bool") }
-                    )
+                    when (value) {
+                        is InitializerValue.Numeric -> memory.setUB(address, value.value.toInt().toUByte())
+                        is InitializerValue.Bool -> throw IRParseException("didn't expect bool")
+                    }
                     address++
                 }
             }
@@ -389,10 +391,10 @@ class VmProgramLoader {
             variable.dt.isSignedByteArray -> {
                 for (elt in iElts) {
                     val value = getInitializerValue(variable.dt, elt, symbolAddresses)
-                    value.fold(
-                        { memory.setSB(address, it.toInt().toByte()) },
-                        { throw IRParseException("didn't expect bool") }
-                    )
+                    when (value) {
+                        is InitializerValue.Numeric -> memory.setSB(address, value.value.toInt().toByte())
+                        is InitializerValue.Bool -> throw IRParseException("didn't expect bool")
+                    }
                     address++
                 }
             }
@@ -400,14 +402,14 @@ class VmProgramLoader {
             variable.dt.isSplitWordArray -> {
                 for (elt in iElts) {
                     val value = getInitializerValue(variable.dt, elt, symbolAddresses)
-                    value.fold(
-                        {
-                            val integer = it.toUInt()
+                    when (value) {
+                        is InitializerValue.Numeric -> {
+                            val integer = value.value.toUInt()
                             memory.setUB(address, (integer and 255u).toUByte())
                             memory.setUB(address + variable.length!!, (integer shr 8).toUByte())
-                        },
-                        { throw IRParseException("didn't expect bool") }
-                    )
+                        }
+                        is InitializerValue.Bool -> throw IRParseException("didn't expect bool")
+                    }
                     address++
                 }
             }
@@ -415,10 +417,10 @@ class VmProgramLoader {
             variable.dt.isUnsignedWordArray -> {
                 for (elt in iElts) {
                     val value = getInitializerValue(variable.dt, elt, symbolAddresses)
-                    value.fold(
-                        { memory.setUW(address, it.toInt().toUShort()) },
-                        { throw IRParseException("didn't expect bool") }
-                    )
+                    when (value) {
+                        is InitializerValue.Numeric -> memory.setUW(address, value.value.toInt().toUShort())
+                        is InitializerValue.Bool -> throw IRParseException("didn't expect bool")
+                    }
                     address += 2u
                 }
             }
@@ -426,10 +428,10 @@ class VmProgramLoader {
             variable.dt.isSignedWordArray -> {
                 for (elt in iElts) {
                     val value = getInitializerValue(variable.dt, elt, symbolAddresses)
-                    value.fold(
-                        { memory.setSW(address, it.toInt().toShort()) },
-                        { throw IRParseException("didn't expect bool") }
-                    )
+                    when (value) {
+                        is InitializerValue.Numeric -> memory.setSW(address, value.value.toInt().toShort())
+                        is InitializerValue.Bool -> throw IRParseException("didn't expect bool")
+                    }
                     address += 2u
                 }
             }
@@ -437,10 +439,10 @@ class VmProgramLoader {
             variable.dt.isLongArray -> {
                 for (elt in iElts) {
                     val value = getInitializerValue(variable.dt, elt, symbolAddresses)
-                    value.fold(
-                        { memory.setSL(address, it.toInt()) },
-                        { throw IRParseException("didn't expect bool") }
-                    )
+                    when (value) {
+                        is InitializerValue.Numeric -> memory.setSL(address, value.value.toInt())
+                        is InitializerValue.Bool -> throw IRParseException("didn't expect bool")
+                    }
                     address += 4u
                 }
             }
@@ -448,10 +450,10 @@ class VmProgramLoader {
             variable.dt.isFloatArray -> {
                 for (elt in iElts) {
                     val value = getInitializerValue(variable.dt, elt, symbolAddresses)
-                    value.fold(
-                        { memory.setFloat(address, it) },
-                        { throw IRParseException("didn't expect bool") }
-                    )
+                    when (value) {
+                        is InitializerValue.Numeric -> memory.setFloat(address, value.value)
+                        is InitializerValue.Bool -> throw IRParseException("didn't expect bool")
+                    }
                     address += program.options.compTarget.FLOAT_MEM_SIZE
                 }
             }
@@ -460,7 +462,7 @@ class VmProgramLoader {
         }
     }
 
-    private fun getInitializerValue(arrayDt: DataType, elt: IRStSymbolicReference, symbolAddresses: MutableMap<String, UInt>): Either<Double, Boolean> {
+    private fun getInitializerValue(arrayDt: DataType, elt: IRStSymbolicReference, symbolAddresses: MutableMap<String, UInt>): InitializerValue {
         return when(elt) {
             is IRStSymbolicReference.Symbol -> {
                 when {
@@ -476,19 +478,19 @@ class VmProgramLoader {
                             sym.shr(8)
                         } else
                             throw IRParseException("for byte-array address-of, expected < or > (lsb/msb)")
-                        left(symbolAddress.toDouble())
+                        InitializerValue.Numeric(symbolAddress.toDouble())
                     }
                     else -> {
                         val stripped = SymbolNames.stripPrefixes(elt.name)
                         val symbolAddress = symbolAddresses[stripped]
                             ?: symbolAddresses["${stripped}_lsb"]  // split-word array base address
                             ?: throw IRParseException("vm cannot yet load a label address as a value: $stripped")
-                        left(symbolAddress.toInt().toDouble())
+                        InitializerValue.Numeric(symbolAddress.toInt().toDouble())
                     }
                 }
             }
-            is IRStSymbolicReference.Numeric -> left(elt.value)
-            is IRStSymbolicReference.BoolValue -> right(elt.value)
+            is IRStSymbolicReference.Numeric -> InitializerValue.Numeric(elt.value)
+            is IRStSymbolicReference.BoolValue -> InitializerValue.Bool(elt.value)
         }
     }
 }

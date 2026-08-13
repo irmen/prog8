@@ -347,18 +347,18 @@ class IRProgram(val name: String,
             var chunk = IRCodeChunk(asmChunk.label, null)
             asmChunk.assembly.lineSequence().filter{it.isNotBlank()}.forEach {
                 val parsed = parseIRCodeLine(it.trim())
-                parsed.fold(
-                    ifLeft = { instruction -> chunk += instruction },
-                    ifRight = { label ->
+                when (parsed) {
+                    is ParsedIRLine.Instruction -> chunk += parsed.value
+                    is ParsedIRLine.Label -> {
                         val lastChunk = chunk
                         if(chunk.isNotEmpty() || chunk.label!=null)
                             chunks += chunk
-                        chunk = IRCodeChunk(label, null)
+                        chunk = IRCodeChunk(parsed.name, null)
                         val lastInstr = lastChunk.instructions.lastOrNull()
                         if(lastInstr==null || lastInstr.opcode !in OpcodesThatBranchUnconditionally)
                             lastChunk.next = chunk
                     }
-                )
+                }
             }
             if(chunk.isNotEmpty() || chunk.label!=null)
                 chunks += chunk
@@ -714,17 +714,17 @@ private fun registersUsedInAssembly(isIR: Boolean, assembly: String): RegistersU
             val t = line.trim()
             if(t.isNotEmpty()) {
                 val result = parseIRCodeLine(t)
-                result.fold(
-                    ifLeft = { it.addUsedRegistersCounts(
+                when (result) {
+                    is ParsedIRLine.Instruction -> result.value.addUsedRegistersCounts(
                         readRegsCounts,
                         writeRegsCounts,
                         readFpRegsCounts,
                         writeFpRegsCounts,
                         regsTypes,
                         null
-                    ) },
-                    ifRight = { /* labels can be skipped */ }
-                )
+                    )
+                    is ParsedIRLine.Label -> { /* labels can be skipped */ }
+                }
             }
         }
     }

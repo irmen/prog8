@@ -1,9 +1,6 @@
 package prog8.intermediate
 
-import prog8.Either
 import prog8.code.core.*
-import prog8.left
-import prog8.right
 
 
 fun DataType.irTypeString(length: UInt?): String {
@@ -81,13 +78,18 @@ fun parseIRValue(value: String): Double {
 }
 
 
+sealed interface ParsedIRLine {
+    data class Instruction(val value: IRInstruction) : ParsedIRLine
+    data class Label(val name: String) : ParsedIRLine
+}
+
 private val instructionPattern = Regex("""([a-z]+)(\.b|\.w|\.l|\.f|\.p)?(.*)""", RegexOption.IGNORE_CASE)
 private val labelPattern = Regex("""_([a-zA-Z\d\._]+):""")
 
-fun parseIRCodeLine(line: String): Either<IRInstruction, String> {
+fun parseIRCodeLine(line: String): ParsedIRLine {
     val labelmatch = labelPattern.matchEntire(line.trim())
     if(labelmatch!=null)
-        return right(labelmatch.groupValues[1])     // it's a label.
+        return ParsedIRLine.Label(labelmatch.groupValues[1])
 
     val match = instructionPattern.matchEntire(line)
         ?: throw IRParseException("invalid IR instruction: $line")
@@ -132,7 +134,7 @@ fun parseIRCodeLine(line: String): Either<IRInstruction, String> {
     if(format.sysCall) {
         val call = parseCall(rest)
         val syscallNum = call.address?.toInt() ?: (call.target?.let { parseIRValue(it).toInt() } ?: throw IRParseException("Missing syscall number"))
-        return left(IRInstruction(Opcode.SYSCALL, immediate = syscallNum, fcallArgs = FunctionCallArgs(call.args, call.returns)))
+        return ParsedIRLine.Instruction(IRInstruction(Opcode.SYSCALL, immediate = syscallNum, fcallArgs = FunctionCallArgs(call.args, call.returns)))
     } else if (format.funcCall || opcode in setOf(Opcode.CALLFAR, Opcode.CALLFARVB)) {
         val call = parseCall(rest)
         val ir = when(opcode) {
@@ -141,7 +143,7 @@ fun parseIRCodeLine(line: String): Either<IRInstruction, String> {
             else ->
                 IRInstruction(Opcode.CALL, address = call.address?.toAddress(), labelSymbol = call.target, fcallArgs = FunctionCallArgs(call.args, call.returns))
         }
-        return left(ir)
+        return ParsedIRLine.Instruction(ir)
     } else {
         operands.forEach { oper ->
             if (oper[0] == '&')
@@ -252,7 +254,7 @@ fun parseIRCodeLine(line: String): Either<IRInstruction, String> {
         }
     }
 
-    return left(IRInstruction(opcode, type, reg1, reg2, reg3, fpReg1, fpReg2, immediateInt, immediateFp, address?.toAddress(), labelSymbol = labelSymbol, symbolOffset = offset))
+    return ParsedIRLine.Instruction(IRInstruction(opcode, type, reg1, reg2, reg3, fpReg1, fpReg2, immediateInt, immediateFp, address?.toAddress(), labelSymbol = labelSymbol, symbolOffset = offset))
 }
 
 private fun isRegisterName(oper: String): Boolean {

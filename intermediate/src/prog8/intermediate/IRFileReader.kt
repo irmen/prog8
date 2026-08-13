@@ -416,14 +416,10 @@ class IRFileReader {
             text.lineSequence().forEach { line ->
                 if (line.isNotBlank() && !line.startsWith(';')) {
                     val result = parseIRCodeLine(line)
-                    result.fold(
-                        ifLeft = {
-                            chunk += it
-                        },
-                        ifRight = {
-                            throw IRParseException("code chunk should not contain a separate label line anymore, this should be the proper label of a new separate chunk")
-                        }
-                    )
+                    when (result) {
+                        is ParsedIRLine.Instruction -> chunk += result.value
+                        is ParsedIRLine.Label -> throw IRParseException("code chunk should not contain a separate label line anymore, this should be the proper label of a new separate chunk")
+                    }
                 }
             }
         }
