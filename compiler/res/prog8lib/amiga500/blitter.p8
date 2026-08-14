@@ -256,36 +256,22 @@ OctTbl:
         }}
     }
 
-    asmsub clear_plane(pointer dst @A0, uword size_words @D0) clobbers (D0,A0) {
+    asmsub clear_plane(pointer dst @A0, uword width_words @D0, uword height @D1) clobbers (D0,D1,A0) {
         %asm {{
         movem.l d2-d7/a2-a6,-(sp)
         bsr     .wait_blt
-        move.w  d0,d6
-        moveq   #0,d5
-.chunk_loop:
-        bsr     .wait_blt
-        cmp.w   #64,d6
-        bge.s   .full
-        move.w  d6,d0
-        bra.s   .doit
-.full:
-        move.w  #64,d0
-.doit:
-        move.w  #$0100,custom.BLTCON0
-        move.w  #$0000,custom.BLTCON1
+        move.w  #$ffff,custom.BLTAFWM
+        move.w  #$ffff,custom.BLTALWM
+        move.w  #$0000,custom.BLTCDAT
         move.w  #$0000,custom.BLTDMOD
-        move.l  a0,d1
-        add.l   d5,d1
-        move.l  d1,custom.BLTDPT
-        move.w  d0,d1
-        or.w    #$0040,d1
+        move.l  a0,custom.BLTDPT
+        move.w  #$01aa,custom.BLTCON0
+        move.w  #$0000,custom.BLTCON1
+        move.w  d1,d1
+        lsl.w   #6,d1
+        or.w    d0,d1
         move.w  d1,custom.BLTSIZE
         bsr     .wait_blt
-        lsl.w   #1,d0
-        add.w   d0,d5
-        sub.w   d0,d6
-        lsr.w   #1,d0
-        bne     .chunk_loop
         movem.l (sp)+,d2-d7/a2-a6
         rts
 .wait_blt:
@@ -295,86 +281,25 @@ OctTbl:
         }}
     }
 
-    asmsub copy_plane(pointer src @A0, pointer dst @A1, uword size_words @D0) clobbers (D0,D1,A0,A1) {
+    ; Fill an entire bitplane (or any width_words x height block) with a 16-bit pattern.
+    ; pattern: the value written to every word of the destination (e.g. $0000 clears,
+    ;          $ffff fills solid, $aaaa produces a vertical stripe pattern).
+    asmsub fill_plane(pointer dst @A0, uword width_words @D0, uword height @D1, uword pattern @D2) clobbers (D0,D1,D2,A0) {
         %asm {{
         movem.l d2-d7/a2-a6,-(sp)
         bsr     .wait_blt
-        move.w  d0,d6
-        moveq   #0,d5
-.chunk_loop:
-        bsr     .wait_blt
-        cmp.w   #64,d6
-        bge.s   .full
-        move.w  d6,d0
-        bra.s   .doit
-.full:
-        move.w  #64,d0
-.doit:
-        move.w  #$09f0,custom.BLTCON0
-        move.w  #$0000,custom.BLTCON1
         move.w  #$ffff,custom.BLTAFWM
         move.w  #$ffff,custom.BLTALWM
-        move.w  #$0000,custom.BLTAMOD
-        move.w  #$0000,custom.BLTDMOD
-        move.l  a0,d1
-        add.l   d5,d1
-        move.l  d1,custom.BLTAPT
-        move.l  a1,d1
-        add.l   d5,d1
-        move.l  d1,custom.BLTDPT
-        move.w  d0,d1
-        or.w    #$0040,d1
-        move.w  d1,custom.BLTSIZE
-        bsr     .wait_blt
-        lsl.w   #1,d0
-        add.w   d0,d5
-        sub.w   d0,d6
-        lsr.w   #1,d0
-        bne     .chunk_loop
-        movem.l (sp)+,d2-d7/a2-a6
-        rts
-.wait_blt:
-        btst.b  #6,custom.DMACONR
-        bne.s   .wait_blt
-        rts
-        }}
-    }
-
-    asmsub invert_plane(pointer dst @A0, uword size_words @D0) clobbers (D0,A0) {
-        %asm {{
-        movem.l d2-d7/a2-a6,-(sp)
-        bsr     .wait_blt
-        move.w  d0,d6
-        moveq   #0,d5
-.chunk_loop:
-        bsr     .wait_blt
-        cmp.w   #64,d6
-        bge.s   .full
-        move.w  d6,d0
-        bra.s   .doit
-.full:
-        move.w  #64,d0
-.doit:
-        move.w  #$0355,custom.BLTCON0
+        move.w  d2,custom.BLTCDAT
+        move.l  a0,custom.BLTDPT
+        move.w  #$01aa,custom.BLTCON0  ; USED=1, USEC=0, minterm=$AA (BLTCDAT -> D)
         move.w  #$0000,custom.BLTCON1
-        move.w  #$ffff,custom.BLTAFWM
-        move.w  #$ffff,custom.BLTALWM
-        move.w  #$ffff,custom.BLTCDAT
-        move.w  #$0000,custom.BLTCMOD
         move.w  #$0000,custom.BLTDMOD
-        move.l  a0,d1
-        add.l   d5,d1
-        move.l  d1,custom.BLTCPT
-        move.l  d1,custom.BLTDPT
-        move.w  d0,d1
-        or.w    #$0040,d1
+        move.w  d1,d1
+        lsl.w   #6,d1
+        or.w    d0,d1
         move.w  d1,custom.BLTSIZE
         bsr     .wait_blt
-        sub.w   d0,d6          ; subtract word count before converting
-        lsl.w   #1,d0          ; d0 = chunk size in bytes
-        add.w   d0,d5          ; d5 += chunk size in bytes
-        tst.w   d6
-        bne     .chunk_loop
         movem.l (sp)+,d2-d7/a2-a6
         rts
 .wait_blt:

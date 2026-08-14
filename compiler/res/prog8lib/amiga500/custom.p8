@@ -76,6 +76,28 @@ S_PAL:      ds.w    1
         }}
     }
 
+    asmsub waitvsync() {
+        %asm {{
+; Wait until the raster beam reaches line 300
+.WaitLine300:
+    MOVE.L  $DFF004, D0     ; Read VPOSR + VHPOSR simultaneously
+    LSR.L   #8, D0          ; Shift vertical position bits into low word
+    AND.W   #$01FF, D0      ; Mask out horizontal beam bits (get 9-bit line #)
+    CMP.W   #300, D0        ; Are we at raster line 300?
+    BNE.S   .WaitLine300
+
+    ; Wait until the beam MOVES PAST line 300
+    ; (Prevents fast CPUs like 030/040/060 from executing twice on the same line)
+.WaitLineNext:
+    MOVE.L  $DFF004, D0
+    LSR.L   #8, D0
+    AND.W   #$01FF, D0
+    CMP.W   #300, D0
+    BEQ.S   .WaitLineNext
+    rts
+        }}
+    }
+
     inline asmsub return_system() {
         ; return to the original OS and multitasking operation when the game/demo exits.
         ; inline because stuff was stored on the stack

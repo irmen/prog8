@@ -258,11 +258,10 @@ blitter  {
     const uword  MINTERM_A_XOR_C
     const uword  MINTERM_B_ONLY
     const uword  MINTERM_MASKED
-    clear_plane  (long dst @A0, uword size_words @D0) clobbers (D0,A0)
-    copy_plane  (long src @A0, long dst @A1, uword size_words @D0) clobbers (D0,D1,A0,A1)
+    clear_plane  (long dst @A0, uword width_words @D0, uword height @D1) clobbers (D0,D1,A0)
     copy_rect  (long src @A0, long dst @A1, uword width_words @D0, uword height @D1, uword src_mod @D2, uword dst_mod @D3, uword minterm @D4, ubyte descending @D5) clobbers (D0,D1,D2,D3,D4,D5,A0,A1)
+    fill_plane  (long dst @A0, uword width_words @D0, uword height @D1, uword pattern @D2) clobbers (D0,D1,D2,A0)
     fill_rect  (long dst @A0, uword width_words @D0, uword height @D1, uword pattern @D2, uword modulo @D3) clobbers (D0,D1,D2,D3,A0)
-    invert_plane  (long dst @A0, uword size_words @D0) clobbers (D0,A0)
     line_draw  (uword x1 @D0, uword y1 @D1, uword x2 @D2, uword y2 @D3, uword screen_mod @D4, long screen_ptr @A1) clobbers (D0,D1,D2,D3,D5,D6,A0,A1)
     line_init  (uword mask @D0, uword pixel @D1, uword pattern @D2, uword screen_mod @D4) clobbers (D0,D1,D2,D4,A0,A1)
     masked_blit  (long src @A0, long mask @A1, long dst @A2, uword width_words @D0, uword height @D1, uword src_mod @D2, uword mask_mod @D3, uword dst_mod @D4) clobbers (D0,D1,D2,D3,D4,A0,A1,A2)

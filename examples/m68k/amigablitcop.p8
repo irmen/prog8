@@ -23,9 +23,11 @@ main {
         blitter.fill_rect(bottom_half, 20, 128, $0000, 0)
         blitter.wait()
 
-        ; Invert bottom 1/4th of screen (lines 192-255)
+        ; Fill bottom 1/4th of screen (lines 192-255) solid white.
+        ; The region was cleared to zero by the previous fill_rect, so a solid
+        ; fill produces the same visual result as inverting it used to.
         pointer bottom_quarter = bitplane + (192 * 40)  ; offset to line 192
-        blitter.invert_plane(bottom_quarter, 1280)       ; 20 words * 64 lines
+        blitter.fill_plane(bottom_quarter, 20, 64, $ffff) ; 20 words * 64 lines
         blitter.wait()
 
         ; Fill a 112x100 square in the middle of the screen with pattern $1010
