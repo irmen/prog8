@@ -1,263 +1,136 @@
 ---
 name: prog8-coder
-description: Writing or understanding Prog8 programs
+description: Writing or understanding Prog8 programs and Prog8 IR
 ---
 
-# Prog8 Coder Skill
+# Prog8 Coder
 
-You are an expert retro system development assistant, versed in the Prog8 programming language. Keep responses concise and practical — prefer short, correct code examples over lengthy prose.
-You are working with **Prog8** source code (`.p8` files) or its Intermediate Representation (`.p8ir` files). Prog8 targets 8-bit systems (C64, CX16, C128, PET32) with the 6502 CPU, plus 32-bit systems (amiga500, qemu68k) with the Motorola M68000 CPU, plus a `virtual` target for testing.
-Follow ALL the rules below carefully.
+You are an expert Prog8 assistant. Keep answers concise and practical. This
+skill covers `.p8` source and `.p8ir` intermediate representation for the
+6502, M68000, and virtual targets.
 
-## General & Setup
-- A program = a `main` block containing a `start` subroutine entry point, plus optional other subroutines/blocks
-- Never run Gradle or Gradle wrapper commands in parallel. Gradle tasks share build caches and parallel invocations can corrupt them; run each Gradle command sequentially.
-- Add `%zeropage basicsafe` at the top of your program to allow clean return on exit (instead of resetting the machine/emulator)
-- Module imports: `%import modulename` — no `as` aliasing. Use the module's defined prefix (e.g., `%import textio` → `txt.xxx`)
-- `.p8ir` files are the **Intermediate Representation** — target-independent, executable via `prog8c -vm file.p8ir`
-- **Library search**: `prog8c -libsearch <regex>` to find routines in the embedded stdlib (e.g., `prog8c -libsearch "txt\."`)
-- **Library dump**: `prog8c -libdump <dir>` to extract all embedded library source files
-- **`sys` module**: always available, no import needed
-- **CX16 programs**: add `%encoding iso`, call `txt.iso()` in `start()`, end with `sys.poweroff_system()`
-- **WARNING: `%option no_sysinit` on `amiga500`**. It skips the runtime `init_system`
-  that opens `dos.library`, `graphics.library`, `intuition.library`, `icon.library`,
-  `utility.library`, and `timer.device`, storing the base pointers in `sys.*Base`.
-  With those zero, the first library call (`txt.print`, `sys.exit`, any `exec.*`,
-  `dos.*`, `intuition.*`, `timer.*`, `bcd.*`) traps or hangs. **Do not use
-  `%option no_sysinit` in a regular amiga500 program intended to run on real
-  hardware or under vamos/FS-UAE.** It is appropriate only for `%output library`
-  modules (set automatically by the compiler), IRQ handlers, boot stubs, or code
-  that avoids every library call. (`qemu68k` is unaffected: its `init_system` is
-  empty and has nothing to skip.)
-- **M68000 targets (`amiga500`, `qemu68k`)**: 32-bit, big-endian architecture. Pointers, addresses, and the `uword` size differ from the 6502 targets — on these targets pointer-sized values are **32-bit (`long`)**, not 16-bit. `memory()` and address-of expressions yield 32-bit addresses. The `pointer` type (see Datatypes) adapts to the target automatically: a `word`/`uword` size on 8-bit 6502 targets, a `long` size on 32-bit M68000 targets. Code that assumes 16-bit pointers or uses `uword` for addresses will not be portable to these targets — use the `pointer` type instead. Assembly on these targets uses M68K syntax (vasm mot); load the `m68k-coder` skill for details.
+For full language reference, link users to these project documents rather than
+repeating them here:
 
-## Datatypes & Variables
-- Primitives: `bool`, `byte`, `ubyte`, `word`, `uword`, `long`, `float`, `str`, `pointer`
-- `ubyte`/`uword` = unsigned; `long` = signed 4-byte; `float` = 5-byte MS format; `str` = 0-terminated ubytes (max 255 chars)
-- `pointer` = address-sized unsigned integer. **Auto-adapts to the target**: a 16-bit `uword` on the 8-bit 6502 targets (C64, CX16, C128, PET32, virtual), a 32-bit `long` on the 32-bit M68000 targets (amiga500, qemu68k). Use it for addresses/pointers that must be portable across targets instead of hardcoding `uword` or `long`.
-- **float requires `%import floats`** at top of file, else compiler errors
-- Arrays: the size limit is a **byte budget** on all targets. On 6502 targets: max 256 bytes total (512 for split word arrays), so element counts are 256/4=64 for long arrays, 256/2=128 for word arrays, 256 for byte arrays. On M68000 targets (amiga500, qemu68k): max 32768 bytes total (16384 for word arrays, 8192 for long arrays). For larger data, use `memory()` + pointers
-- `memory(name, size)` returns the address to a statically reserved block of memory. The result is `pointer`-sized: a `uword` (16-bit) on 6502 targets, a `long` (32-bit) on M68000 targets.
-- To point a typed pointer at a `memory()` block, assign the uword directly: `^^MyStruct ptr = memory("name", size)`. The `^^Type:expression` syntax (below) only works with array literals, not general uword expressions.
-- Struct initialization: `^^StructType ptr = ^^StructType:[val1,val2,...]` (the `^^StructType:` can be omitted if inferable). This `^^Type:[...]` syntax does NOT work with variables or `memory()` — only literal arrays.
-- Struct definitions must be inside a block, not at file level.
-- Struct fields: simple types, `str`, and fixed-size arrays. Array fields: `ubyte[108] name`. `str` in struct = `^^ubyte`
-- Word/pointer arrays split into LSB/MSB by default. Override with `@nosplit`
-- **No call stack**: all variables statically allocated. No recursion without manual stack management
-- Variables zero-initialized (globals at start, locals on subroutine entry)
-- `@shared`, `@zp`, `@requirezp`, `@dirty`, `@nosplit` are **tags** that go on variable declarations. **Place them after the datatype (and array specifiers), before the variable name(s):**
-  ```
-  private ubyte[8] @shared vera_storage     ; single var with tag
-  ubyte @zp @shared varname                 ; multiple tags allowed
-  ubyte @requirezp var1                     ; require zeropage
-  ubyte[] @shared names                     ; array with tag
-  ```
-  The grammar is: `[private] datatype [arraydims] [tags...] identifierlist`
-- `@shared` marks variables as "used by external code" (assembly), prevents the optimizer from removing them due to const folding
-- `@zp`/`@requirezp`: use sparingly — only for pointers (limited zeropage space)
-- Pointer-like typed pointers (`^^type`) support C-style scaled arithmetic; `uword` pointers always treat element as 1 byte
-- `&` = untyped address; yields a `pointer`-sized value (16-bit `uword` on 6502 targets, 32-bit `long` on M68000 targets). When assigning an address to a typed field/variable, prefer the `pointer` type so it adapts to the target. `&&` = typed pointer
-- Available zeropage scratch: `P8ZP_SCRATCH_B1`, `P8ZP_SCRATCH_REG`, `P8ZP_SCRATCH_W1`, `P8ZP_SCRATCH_W2`, `P8ZP_SCRATCH_PTR` — and cx16 virtual registers R0-R15 on all targets
-- Virtual registers (`cx16.r0`–`cx16.r15`): global 16-bit, NOT preserved across calls.
-- **WARNING: Virtual registers in ISR/IRQ handlers**: The virtual registers R0-R15 are *not preserved* across the IRQ handler call. If your handler uses them, it will corrupt the interrupted program's state. Either avoid using them in the handler, or save/restore with `cx16.save_virtual_registers()` / `cx16.restore_virtual_registers()`. This applies to all targets, not just CX16.
-- **WARNING: Long operations clobber R12-R15**: Some operations on `long` values use R12-R15 as temporary storage and will silently overwrite them. Do not rely on R12-R15 values when working with longs, and avoid using R12-R15 explicitly if your code uses long arithmetic.
-- **WARNING: VERA registers in ISR handlers (CX16)**: If your IRQ handler reads or writes VERA control registers (e.g., `cx16.VERA_DATA0`, `cx16.VERA_ADDR_L`, etc.), you must save and restore the VERA context around the handler's work using `cx16.save_vera_context()` / `cx16.restore_vera_context()`. Without this, the handler will corrupt any VERA operations (tilemap updates, sprite positioning, etc.) happening in the interrupted main program.
-- **IRQ handler best practices**: Keep handlers extremely short and fast — they run with interrupts disabled and steal cycles from the main program. Do NOT do lengthy processing, I/O, or complex subroutine calls inside the handler. Instead, set a boolean flag or semaphore that the main loop checks periodically, and do the actual work there.
-- Math performance: integer trig (`math.sin8`, `math.cos8`) uses fast LUTs; float trig (`floats.sin`/`cos`) is much slower
+- Program structure and syntax: `docs/source/programming.rst`
+- Variables, datatypes, arrays, and tags: `docs/source/variables.rst`
+- Structs and pointers: `docs/source/structpointers.rst`
+- Compilation and compiler options: `docs/source/compiling.rst`
+- Standard library: `docs/source/libraries.rst`
+- Binary libraries and `extsub`: `docs/source/binlibrary.rst`
+- Target differences: `docs/source/targetsystem.rst`
+- Known limitations: `docs/source/todo.rst`
+- Target API signatures: `docs/source/_static/symboldumps/skeletons-<target>.txt`
 
-## Recursion & Stack Management
-No call stack for variable storage — recursion overwrites locals. To handle it:
-1. **CPU hardware stack**: `push()`/`pushw()`/`pushl()`/`pushf()` and `pop()`/`popw()`/`popl()`/`popf()`. Save/restore locals around recursive calls
-2. **Software stacks**: `buffers.stack` (uword) / `buffers.smallstack` (ubyte). Both provide `push_b()`/`push_w()` and `pop_b()`/`pop_w()`
-3. **Iterative rewrite (preferred)**: Many recursive algorithms work as `repeat` loops with explicit bounds — avoids all stack overhead
+## Essentials
 
-## Strings, Arrays & Pointers
-- String escapes: `\\`, `\"`, `\'`, `\n`, `\r`, plus hex/unicode: `\xHH` (raw byte, no encoding applied) and `\uHHHH` (unicode codepoint)
-- `str` / array: the limit is a **byte budget** on all targets. On 6502 targets: max 256 bytes (so `long[]` limited to 64 entries, 64x4=256; word arrays 128 entries, 128x2=256). On M68000 targets (amiga500, qemu68k): max 32768 bytes (16384 for word arrays, 8192 for long arrays). `str[]` for string arrays: `str[5] names = ["a","b","c","d","e"]`
-- 2D arrays: `type[rows][cols] name`, access `name[r][c]`. Flat init list only (no nested `[[...]]`). Total size is a byte budget: ≤ 256 bytes on 6502 targets; max 32768 bytes on M68000 targets.
-- str/array passed as pointer to subroutine (receiving subroutine gets `^^ubyte` or `^^element`)
-- **No const pointers** or pointer-to-pointer currently supported
-- **Parsing limitation**: `pointer[index].field` as assignment target needs `^^`: `pointer[index]^^.field = value`
-- **Pre-allocate buffers**: `str buffer = "." * 50` (empty `""` allocates nothing — `strings.append()` will fail)
-- **No reassignment**: can't `buffer = "new text"` after declaration. Use `strings.copy()`/`strings.ncopy()`
-- String concat is expensive on 6502. Prefer separate prints over concatenation
-- **Efficient buffer iteration**: prefer `ptr++` + `@(ptr)` over `@(buffer + offset)`. Exception: if offset is a `ubyte` (≤ 255), `buffer[offset]` works fine
-- `@(ptr)` = peek/poke byte. For words: `peekw`/`pokew`, longs: `peekl`/`pokel`, floats: `peekf`/`pokef`, bools: `peekbool`/`pokebool`
-- Assigning a uword address to a `str` field of a struct is done by direct assignment. Compute the address in a uword variable first, then assign: `cx16.r0 = &namebufs + offset; entry.name = cx16.r0`. The `^^ubyte:(expr)` cast syntax does not parse — use a temp uword instead.
-- Use `len(array)` instead of hardcoded sizes
-- Array indexing is 0-based: `arr[0]` is first element
-- Static memory only — real dynamic allocation impossible, but can emulate with a simple arena allocator over a `memory()` slab
+- A program normally has a `main` block with a parameterless `start` entry
+  subroutine. Other blocks and subroutines may be added.
+- `%import modulename` imports a module without aliases. Use its defined prefix,
+  such as `%import textio` followed by `txt.print(...)`.
+- `sys` is always available and needs no import.
+- `.p8ir` is target-independent IR and can be run with
+  `prog8c -vm program.p8ir`.
+- Use `%zeropage basicsafe` in test programs when a clean return is needed.
+- Find library routines with `prog8c -libsearch <regex>` or extract them with
+  `prog8c -libdump <dir>`.
 
-## Logic & Control Flow
-- Logical operators (short-circuit, bool only): `and`, `or`, `xor`, `not`
-  - In `a and b`: if `a` is false, `b` is NOT evaluated
-  - In `a or b`: if `a` is true, `b` is NOT evaluated
-  - Important when `b` has side effects
-- Bitwise operators: `&`, `|`, `^`, `~`, `<<`, `>>`
-- Bit rotation: `rol()`/`ror()` (through carry), `rol2()`/`ror2()` (no carry)
-- CPU status flag branches: `if_cs`, `if_cc`, `if_z`, `if_nz` (compile to single 6502 branch instructions)
-- If-expressions for simple value assignments based on a choice
-- **Optional braces in if/else**: when the `if` or `else` body is a single statement, the `{ }` can be omitted. Place the statement on the next line, indented. Example:
-  ```
-  if x < 5
-      txt.print("small")
-  ```
-- `defer` defers statement execution until scope exit. Multiple defers fire in **reverse registration order** (LIFO / stack order — last deferred runs first). A defer is only registered if execution reaches that statement — conditional paths that skip the `defer` line will not register it.
-- `goto`, labels, jump lists allowed
-- **Common mistake**: `and`/`or` for bitmasking — use `&`/`|` instead!
+For CX16 emulator programs, use `%encoding iso`, call `txt.iso()` in `start`,
+and finish with `sys.poweroff_system()`. CBM targets use PETSCII by default;
+avoid uppercase in test output unless intentional graphics. The virtual target
+uses ISO when configured with `%encoding iso` and `txt.iso()`.
 
-### The when Statement
-The `when` statement is a control flow construct that enables you to execute a specific action based on the value of an expression. It is generally more readable and often more efficient than a sequence of `if-else if` statements, as the compiler can optimize it into more efficient branching structures, such as a jump table.
-- **Expression**: Evaluates an expression and compares it against case values.
-- **Cases**: Defined by a value followed by the `->` operator.
-- **Blocks**: Use `{ }` to enclose multiple statements for a case.
-- **Else Clause**: Serves as a default handler; mandatory unless the expression type is fully covered.
-- **Efficiency**: Recommended for handling sets of fixed choices as it typically results in better assembly code.
+Do not use `%option no_sysinit` in regular `amiga500` programs. It skips the
+library initialization needed by DOS, graphics, intuition, timer, and related
+calls. It is appropriate for library modules, IRQ handlers, boot stubs, or
+code that deliberately avoids those libraries. `qemu68k` has an empty
+`init_system` and is unaffected.
 
-## Loop Constructs
-Prog8 supports these loop types. All support `break` and `continue` (except `unroll`).
+## Types and Memory
 
-### `for` loop — iterate over a range or array
-- Loop variable **must be declared separately** before the `for` statement
-- Works with `ubyte`, `byte`, `uword`, `word`, `long`, pointer types (NOT `float`)
-- Iterates over ranges (`start to end`), descending ranges (`start downto end`), or arrays/strings
-- Optional `step <constant>` for non-unit step sizes
-- Loop variable value **after the loop is undefined** — don't rely on it
-- Descending loops with `downto` usually produce more efficient 6502 code
-```
-ubyte i
-for i in 20 to 155 {
-    ; body
-    break       ; exit loop
-    continue    ; next iteration
-}
+- Primitive types include `bool`, `byte`, `ubyte`, `word`, `uword`, `long`,
+  `float`, `str`, and `pointer`.
+- `pointer` is target-sized: 16-bit on 6502 and virtual targets, 32-bit on
+  `amiga500` and `qemu68k`. Use it for portable addresses, not `uword` or
+  `long` chosen by assumption.
+- M68000 targets are big-endian and use 32-bit pointers. Load the `m68k-coder`
+  skill for assembly details.
+- `float` requires `%import floats`.
+- Variables are statically allocated and zero-initialized. There is no normal
+  call stack for locals, so recursion overwrites locals unless an explicit
+  hardware or software stack is used. Iterative rewrites are preferred.
+- `memory(name, size)` reserves static memory and returns a `pointer`.
+- `str` and arrays have compile-time byte budgets. On 6502 targets the usual
+  limit is 256 bytes; M68000 targets allow up to 32768 bytes. Use `memory()`
+  for larger data.
+- Word arrays are split into LSB/MSB arrays by default. Use `@nosplit` when
+  contiguous storage is required.
+- Variable tags follow the type and array dimensions, before the name:
 
-; descending
-for i in 155 downto 20 {}
-for i in 155 to 20 step -1 {}
-
-; iterate over array elements
-uword[] fib = [0, 1, 1, 2, 3, 5, 8, 13]
-uword num
-for num in fib {
-    ...
-}
+```prog8
+ubyte[8] @shared vera_storage
+uword @requirezp address
 ```
 
-### `while` loop — repeat while condition is true
-```
-while condition {
-    ; body
-    break
-    continue
-}
-```
+Use `@shared` for values accessed externally by assembly. Use `@zp` and
+`@requirezp` sparingly because zeropage is limited. Never assume virtual
+registers survive calls. Long operations may clobber `R12-R15`.
 
-### `do`-`until` loop — always executes body at least once
-```
-do {
-    ; body
-    break
-    continue
-} until condition
-```
+## Syntax Pitfalls
 
-### `repeat` loop — repeat a fixed number of times (most efficient)
-- Most efficient code generation — prefer over `for` when loop variable not needed
-- Omit count for infinite loop (still supports `break`)
-```
-repeat 15 {
-    ; body
-    break
-    continue
-}
+- Hex uses `$FF`, binary uses `%1010`, and casts use `expression as type`.
+- There is no automatic type widening: `byte * byte` remains a byte. Cast
+  explicitly when a wider result is needed.
+- `&` is an untyped address and `&&` is a typed pointer. Complex pointer field
+  assignments may require `ptr^^.field`.
+- `and`, `or`, `xor`, and `not` are logical operators. Use `&`, `|`, `^`, and
+  `~` for bitwise operations.
+- `and` and `or` short-circuit, so the right operand may not be evaluated.
+- There is no `elif`, bare block, or semicolon statement separator. Semicolon
+  starts a comment. Prefer one statement per line and four-space indentation.
+- `defer` executes registered statements in reverse registration order.
+- Array indexing starts at zero. Use `len(array)` rather than hardcoded sizes.
+- There is no function overloading. Call type-specific library routines such as
+  `txt.print_ub` or `txt.print_w`.
 
-; infinite:
-repeat {
-    ; body
-    break if x==5
-}
-```
+## Control Flow
 
-### `unroll` loop — compile-time code duplication
-- Not a real loop — duplicates body N times at compile time
-- No `break`/`continue` allowed
-- Only simple statements (assignments, calls) in body
-- Constant iteration count required
-```
-unroll 80 {
-    cx16.VERA_DATA0 = 255
-}
-```
+Prog8 supports `if`/`else`, `when`, `for`, `while`, `do`/`until`, `repeat`,
+`unroll`, `break`, `continue`, `goto`, and labels. `unroll` duplicates a
+constant-count body at compile time and does not support `break` or `continue`.
+`repeat` is usually more efficient than `for` when no loop variable is needed.
+Use `if_cs`, `if_cc`, `if_z`, and `if_nz` for direct CPU-flag branches.
 
-## Subroutines & Return Values
-- **Don't use `private` on subroutines and variables** (including nested ones) unless the user asks for it. Everything is public by default in Prog8 — follow that convention.
-- `inline` keyword for subroutines to suggest inlining
-- No **function overloading** (except builtins) and no **polymorphism** in general. This means you must call specific routines for different types (e.g., `txt.print_ub(val)` vs `txt.print_w(val)` instead of a generic `print(val)`). Cannot use builtin names (msw, lsw, msb, lsb, mkword, mklong, peek, peekw, peekl, etc.) as variable/sub names
-- Can return 0, 1, or multiple values: `a, b, c = routine()`. Use `void` to skip: `void routine()`, `a, void, c = routine()`
-- Nested subroutines access parent scope variables directly
+## Subroutines and Assembly
 
-## Assembly Subroutines (asmsub)
-For low-level assembly that gets arguments via registers and returns values in registers.
-- **Syntax**: `[private] [inline] asmsub subname(params) [clobbers(regs)] [-> returns] { %asm {{ ... }} }`
-- **Body Restriction**: The body of an `asmsub` **must only contain** a single `%asm {{ ... }}` node. Regular Prog8 statements or nested blocks are NOT allowed.
-- **Parameters**: `type name @register` (e.g., `ubyte val @A`, `uword addr @AX`, `float f @FAC1`).
-- **Return Values**: `-> type @register` (e.g., `-> ubyte @A`, `-> bool @Pz` for immediate branch use).
-- **Registers**:
-    - **8-bit**: `@A`, `@X`, `@Y`
-    - **16-bit**: `@AX`, `@AY`, `@XY` (register pairs)
-    - **Float**: `@FAC1`, `@FAC2` (Floating Point Accumulators)
-    - **Virtual**: `@R0`–`@R15` (16-bit), `@R0R1`–`@R14R15` (32-bit combined)
-    - **Status Flags (for returns)**: `@Pc` (Carry), `@Pz` (Zero), `@Pv` (Overflow), `@Pn` (Negative)
-- **Clobbers**: `clobbers (A, X, Y)` — list all hardware registers modified by the routine.
-- **Parameter names** are for documentation and type checking only. Use the registers in your assembly code.
-- **Inlining**: `inline asmsub` will paste the assembly code directly at the call site, avoiding `jsr`/`rts` overhead.
+- Subroutines can return zero, one, or multiple values:
+  `a, b = routine()` or `void routine()`.
+- Avoid `private` unless requested. Prog8 symbols are public by default.
+- `asmsub` bodies contain only one `%asm {{ ... }}` node. Parameters are type
+  checked and documented, but assembly must use the mapped registers. Declare
+  every modified hardware register in `clobbers`.
+- `extsub` maps a signature to a fixed external address and has no body. Use
+  it for ROM, kernel, drivers, or binary-library routines.
+- For inline assembly, load `asm6502-coder` for 64tass syntax, target-specific
+  instructions, zero-page rules, and symbol references. Load `m68k-coder` for
+  M68000 assembly.
 
-## External Subroutines (extsub)
-Used to call routines at fixed memory addresses (like ROM KERNAL routines or third-party drivers).
-- **Syntax**: `[private] extsub [@bank <value>] address = subname(params) [clobbers(regs)] [-> returns]`
-- **Address**: Can be a hex literal (`$C000`) or a constant expression.
-- **Bank (optional)**: `@bank <integer>` (constant bank) or `@bank <identifier>` (variable bank).
-- **No Body**: Unlike `asmsub`, `extsub` has no `{ }` body; it just maps a signature to an address.
-- **Example**:
-  ```prog8
-  ; CX16 KERNAL CHROUT
-  extsub $FFD2 = chrout(ubyte char @A) clobbers(A, X, Y)
+## Interrupts and Hardware
 
-  ; Routine in a specific RAM bank
-  extsub @bank 10 $C09F = audio_init() clobbers(A, X, Y) -> bool @Pc
-  ```
+- Keep IRQ handlers short. Set a flag and do substantial work in the main loop.
+- Virtual registers `R0-R15` are not preserved across IRQ handlers. Avoid them
+  or save and restore them with the library routines.
+- CX16 IRQ handlers that touch VERA registers must save and restore VERA
+  context.
+- Use only symbolic scratch names such as `P8ZP_SCRATCH_W1` and
+  `cx16.r0`; never hardcode zeropage addresses.
 
-## Inline Assembly
-When writing inline assembly (`%asm {{ }}` blocks or `asmsub` routines), load the **asm6502-coder** skill for formatting rules, symbol references, anonymous labels, and 64tass syntax details.
+## Verification
 
-
-
-## Standard Library
-- Find routines, functions, variables, modules and signatures in the symbol dump file for the given compilation target. 
-  - Online location: https://prog8.readthedocs.io/en/latest/libraries.html#low-fi-variable-and-subroutine-definitions-in-all-available-library-modules  they are linked there 1 for each compilation target
-  - Structure: builtin functions, then module sections with variables/constants (`type name`) and subroutines (`name (params) -> returntype`)
-- Text output: `textio` module (`txt.print`, `txt.chrout`, `txt.print_b`/`_ub`/`_w`/`_uw`/`_l`/`_bool`, `txt.print_f` for floats, `txt.spc()`, `txt.nl()`). **Note: Prog8 has no function overloading**, so you cannot use `txt.print(number)` — you must call the specific routine for the type (e.g., `txt.print_ub(val)` for an unsigned byte).
-- Math: `math` module — integer trig (`sin8`, `cos8`) via fast LUTs; `math.rnd()` for random numbers
-- String conversion: `conv` module (`str_uword`, `str2word`, etc.) — for printing numbers use txt routines instead
-- Char operations: `strings` module (`isdigit`, `isxdigit`, `isupper`, `islower`, `isletter`, `isspace`, `isprint`) — use these instead of manual ASCII/PETSCII arithmetic
-- String functions return useful lengths — capture them: `len = strings.copy(dest, src)`, `len = strings.append(buf, text)`, `len = strings.upper(mystr)`
-
-## Syntax & Formatting
-- Hex: `$FF` (not `0xFF`); Binary: `%1010` (not `0b1010`). Underscores for readability: `25_000_000`
-- 4-digit hex `$0000` = uword. No type suffixes (no `0L`). Cast: `expr as type`
-- Augmented assignment: `+=`, `-=`, `*=`, `/=`, `%=`, `&=`, `|=`, `^=`, `<<=`, `>>=`
-- **No `;` as statement separator.** The `;` character is a line comment, not a statement separator, so `stmt1 ; stmt2` is parsed as one statement followed by a comment — `stmt2` is silently dropped (and may break codegen). Never use `;` to separate statements.
-- **One statement per line (recommended).** Although Prog8's parser can technically accept multiple statements on a single line when no separator is used at all (e.g. `x = 5  y = 10`), this hurts readability and is not recommended. Prefer putting each statement on its own line.
-- **No `elif`**: use nested `else { if ... }`
-- Type casting: `expression as type` (e.g., `bytevar as word`). `as` has very low precedence (lower than arithmetic)
-- **No automatic type widening**: `byte*byte=byte` (overflow possible!). Cast explicitly
-- **No bare `{ }` blocks** like C/Java
-- Indentation: 4 spaces for .p8 and .asm files (no tabs)
-- Character encoding: 6502 targets use PETSCII by default (call `txt.lowercase()` at start for lowercase). Virtual target uses ISO (`%encoding iso` + `txt.iso()`)
-- **Test programs for CBM targets must only use lowercase text in string literals** (the C64/C128/PET32/CX16 targets all use PETSCII). In PETSCII, uppercase letters A-Z are the *graphics* symbols, so any uppercase text you put in a string literal is rendered as unpredictable graphics characters instead of readable letters. Use only lowercase (a-z) for any printed test output, labels, or expected-match strings on these targets; reserve uppercase for intentional PETSCII graphics. The `virtual` target (ISO) is unaffected and may use either case.
-- Array size inferred from initializer: `str[] types = ["a", "b", "c"]`
-- Enums: `Enum::Value` syntax (double colon), declared inside a block. They are syntactic sugar for a list of `const` declarations, not a type. Use enums for related values, `const` for standalone
-- Avoid `globals.XXXX` — move constants closer to where they're used
-- Member access through pointers: use `.` for both direct and pointer access. The compiler infers the type. For complex assignment targets, `^^` may be needed: `ptr^^.field = value`
-- Qualified names: must use full path from top level (e.g., `cx16.r0`, not relative)
+- Use the `virtual` target for behavioral tests when possible:
+  `prog8c -target virtual -emu program.p8`.
+- Use `-check` for syntax and semantic checks without output generation.
+- Use `-noopt` to determine whether a failure is optimizer-related.
+- For IR execution, use `-vmtrace` when control flow needs inspection.
+- Do not modify a correct test program to work around a compiler crash. Reduce
+  the case and fix the compiler instead.
