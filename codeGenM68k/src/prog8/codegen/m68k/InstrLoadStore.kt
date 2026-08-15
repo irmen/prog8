@@ -15,7 +15,7 @@ private fun AsmGen.addIndirectOffset(offset: Int) {
     }
 }
 
-internal fun AsmGen.translateLoadStore(insn: IRInstruction) {
+internal fun AsmGen.translateLoadStore(insn: IRInstruction, suppressRegfileStore: Boolean = false) {
     val type = insn.type ?: IRDataType.BYTE
     val r1 = insn.reg1
     val r2 = insn.reg2
@@ -39,6 +39,8 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction) {
             val sym = insn.labelSymbol
             when {
                 value != null -> {
+                    if (suppressRegfileStore)
+                        return
                     if(value == 0)
                         emitLine("clr$s  ${regAddr(dst)}")
                     else

@@ -74,6 +74,7 @@ blitter {
         beq.s   .nodesc
         move.w  #$0002,d1
 .nodesc:
+        or.w    #$0800,d1       ; B32: AGA 32-bit blit mode
         move.w  d1,custom.BLTCON1
         move.w  d7,d1
         lsl.w   #6,d1
@@ -98,7 +99,7 @@ blitter {
         move.w  d2,custom.BLTCDAT
         move.l  a0,custom.BLTDPT
         move.w  #$01aa,custom.BLTCON0  ; USED=1, USEC=0, minterm=$AA (BLTCDAT -> D)
-        move.w  #$0000,custom.BLTCON1
+        move.w  #$0800,custom.BLTCON1 ; B32: AGA 32-bit blit mode
         move.w  d1,d1
         lsl.w   #6,d1
         or.w    d0,d1
@@ -242,7 +243,7 @@ OctTbl:
         move.l  a2,custom.BLTCPT
         move.l  a2,custom.BLTDPT
         move.w  #$0fca,custom.BLTCON0
-        move.w  #$0000,custom.BLTCON1
+        move.w  #$0800,custom.BLTCON1 ; B32: AGA 32-bit blit mode
         move.w  d1,d1
         lsl.w   #6,d1
         or.w    d0,d1
@@ -266,7 +267,7 @@ OctTbl:
         move.w  #$0000,custom.BLTDMOD
         move.l  a0,custom.BLTDPT
         move.w  #$01aa,custom.BLTCON0
-        move.w  #$0000,custom.BLTCON1
+        move.w  #$0800,custom.BLTCON1 ; B32: AGA 32-bit blit mode
         move.w  d1,d1
         lsl.w   #6,d1
         or.w    d0,d1
@@ -293,7 +294,7 @@ OctTbl:
         move.w  d2,custom.BLTCDAT
         move.l  a0,custom.BLTDPT
         move.w  #$01aa,custom.BLTCON0  ; USED=1, USEC=0, minterm=$AA (BLTCDAT -> D)
-        move.w  #$0000,custom.BLTCON1
+        move.w  #$0800,custom.BLTCON1 ; B32: AGA 32-bit blit mode
         move.w  #$0000,custom.BLTDMOD
         move.w  d1,d1
         lsl.w   #6,d1

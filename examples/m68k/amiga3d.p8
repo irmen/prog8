@@ -7,14 +7,7 @@
 ; 3d spinning Dodecahedron.  Needs a Amiga1200 with fast ram to display smoothly (there's no double buffering)
 
 main {
-    sub start() {
-        pointer bitplane = exec.AllocMem(10240, exec.MEMF_CHIP)
-        pointer copper_list = exec.AllocMem(512, exec.MEMF_CHIP)
-
-        ; Take over the Amiga hardware and configure a 320x256 one-bitplane display.
-        custom.grab_system()
-        custom.DMACON = $83C0
-
+    sub setup_copper(pointer bitplane, pointer copper_list) {
         copper.init(copper_list)
         copper.move($096, $83C0)
         copper.move($0e0, msw(bitplane))
@@ -117,6 +110,17 @@ main {
         copper.move($180, $0000)
         copper.end()
         copper.start(copper_list)
+    }
+
+    sub start() {
+        pointer bitplane = exec.AllocMem(10240, exec.MEMF_CHIP)
+        pointer copper_list = exec.AllocMem(512, exec.MEMF_CHIP)
+
+        ; Take over the Amiga hardware and configure a 320x256 one-bitplane display.
+        custom.grab_system()
+        custom.DMACON = $83C0
+
+        setup_copper(bitplane, copper_list)
 
         const ubyte TEXT_Y = 240
         ; Copy the generated monochrome message into the reserved bottom strip.

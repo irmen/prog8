@@ -8,6 +8,38 @@ internal const val FP_ACC = "fp0"   // primary FPU scratch / accumulator
 internal const val FP_SRC = "fp1"   // secondary FPU scratch / source operand
 
 /**
+ * Describes an atomic immediate-argument forwarding opportunity for one call.
+ *
+ * [loads] holds the contiguous run of immediate LOAD instructions that directly
+ * precede the call (scanned backwards until a non-immediate-LOAD instruction).
+ * It may contain registers that are NOT call arguments.
+ * For every call argument register, the loaded immediate value is forwarded
+ * directly into the argument's hardware register instead of going through the
+ * register file (move #imm,dX instead of move p8_regfile+N,dX).
+ *
+ * [deadRegisters] are the registers from [loads] that are not read anywhere
+ * else in the subroutine (their only use is the forwarded call argument);
+ * their register-file stores are omitted entirely. Note that this can also
+ * remove stores for registers that are not call arguments at all.
+ *
+ * The read check covers the subroutine's whole flattened instruction list
+ * rather than only the part after the call (see `isRegisterReadElsewhere`),
+ * so it is independent of control flow and remains sound in the presence of
+ * backward branches (loops) and arbitrary branch targets. Suppression is
+ * disabled for subroutines containing inline assembly chunks that can read
+ * virtual registers, because those reads are invisible to the analysis
+ * (see `canSuppressDeadStores`); the immediate forwarding itself does not
+ * depend on liveness and is still applied in those cases.
+ *
+ * Floating-point registers are intentionally not included; they use the
+ * separate floating-point register file and require FPU-specific constants.
+ */
+internal data class ImmediateCallOptimization(
+    val loads: Map<Int, IRInstruction>,
+    val deadRegisters: Set<Int>
+)
+
+/**
  * Returns the 68881 fmovecr ROM constant encoding for common float values
  * (from the Motorola MC68881/MC68882 User's Manual Table 4-2),
  * or null if the value is not a native constant and must go through the constant pool.
@@ -397,13 +429,17 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         val entrypointNames = setOf("p8b_main.p8s_start", "main.start")
         if(sub.label in entrypointNames)
             emitLine("jsr  run_global_inits")
+        val livenessInstructions = sub.chunks.filterIsInstance<IRCodeChunk>().flatMap { it.instructions }
+        val deadStoreSuppressionAllowed = canSuppressDeadStores(sub)
+        var instructionOffset = 0
         for (chunk in sub.chunks) {
             when (chunk) {
                 is IRCodeChunk -> {
                     val chunkLabel = chunk.label?.let { fixNameSymbols(it) }
                     if (chunkLabel != null && chunkLabel != subLabel && chunkLabel != subUnscoped)
                         emitLabel(chunkLabel)
-                    translateChunk(chunk)
+                    translateChunk(chunk, livenessInstructions, instructionOffset, deadStoreSuppressionAllowed)
+                    instructionOffset += chunk.instructions.size
                 }
                 is IRInlineAsmChunk -> {
                     val cl = chunk.label?.let { fixNameSymbols(it) }
@@ -432,16 +468,121 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
     private fun unscopedName(scopedName: String): String =
         scopedName.substringAfterLast('.')
 
-    private fun translateChunk(chunk: IRCodeChunk) {
-        emitSourceComment(chunk.sourceLinesPositions)
-        for (insn in chunk.instructions) {
-            translateInstruction(insn)
+    // Dead-store suppression checks whether a register is read anywhere else in the
+    // subroutine (see isRegisterReadElsewhere), which is independent of control
+    // flow and therefore sound regardless of branch topology (loops, indirect
+    // jumps). Inline assembly chunks need special care because their contents are
+    // invisible to the analysis; they are only assumed to read virtual registers
+    // when they actually can (see inlineAsmMayReadRegisters).
+    private fun canSuppressDeadStores(sub: IRSubroutine): Boolean =
+        sub.chunks.none { it is IRInlineAsmChunk && inlineAsmMayReadRegisters(it) }
+
+    // The only way inline assembly can access virtual registers is through the
+    // register file symbols: IR-form assembly is analyzed for register reads,
+    // and raw assembly can only refer to the regfile symbols textually.
+    private fun inlineAsmMayReadRegisters(chunk: IRInlineAsmChunk): Boolean {
+        if (chunk.isIR) {
+            val used = chunk.usedRegisters()
+            return used.readRegs.isNotEmpty() || used.readFpRegs.isNotEmpty()
         }
+        return REGFILE_LABEL in chunk.assembly || FLOAT_REGFILE_LABEL in chunk.assembly
+    }
+
+    private fun translateChunk(
+        chunk: IRCodeChunk,
+        livenessInstructions: List<IRInstruction> = chunk.instructions,
+        instructionOffset: Int = 0,
+        deadStoreSuppressionAllowed: Boolean = true
+    ) {
+        emitSourceComment(chunk.sourceLinesPositions)
+        val callOptimizations = mutableMapOf<Int, ImmediateCallOptimization>()
+        val deadLoadIndices = mutableSetOf<Int>()
+        for (index in chunk.instructions.indices) {
+            val insn = chunk.instructions[index]
+            if (insn.opcode != Opcode.CALL)
+                continue
+            val optimization = immediateLoadsForCall(livenessInstructions, instructionOffset + index, instructionOffset, insn.fcallArgs)
+                ?: continue
+            val effectiveOptimization =
+                if (deadStoreSuppressionAllowed) optimization
+                else optimization.copy(deadRegisters = emptySet())
+            callOptimizations[index] = effectiveOptimization
+            var loadIndex = index - 1
+            while (loadIndex >= 0) {
+                val load = chunk.instructions[loadIndex]
+                if (load.opcode != Opcode.LOAD || load.reg1 == null || load.immediate == null)
+                    break
+                if (load.reg1 in effectiveOptimization.deadRegisters)
+                    deadLoadIndices.add(loadIndex)
+                loadIndex--
+            }
+        }
+        for (index in chunk.instructions.indices) {
+            val insn = chunk.instructions[index]
+            translateInstruction(
+                insn,
+                callOptimizations[index],
+                index in deadLoadIndices
+            )
+        }
+    }
+
+    private fun isRegisterReadElsewhere(instructions: List<IRInstruction>, callIndex: Int, register: Int): Boolean {
+        for (index in instructions.indices) {
+            if (index == callIndex)
+                continue
+            val insn = instructions[index]
+            if ((insn.reg1 == register && insn.reg1direction in setOf(OperandDirection.READ, OperandDirection.READWRITE)) ||
+                (insn.reg2 == register && insn.reg2direction in setOf(OperandDirection.READ, OperandDirection.READWRITE)) ||
+                (insn.reg3 == register && insn.reg3direction in setOf(OperandDirection.READ, OperandDirection.READWRITE)) ||
+                insn.fcallArgs?.arguments?.any { it.reg.registerNum.value == register } == true)
+                return true
+        }
+        return false
+    }
+
+    private fun immediateLoadsForCall(
+        instructions: List<IRInstruction>,
+        callIndex: Int,
+        chunkStartIndex: Int,
+        args: FunctionCallArgs?
+    ): ImmediateCallOptimization? {
+        // Float arguments use p8_fregfile and need separate FPU constant handling.
+        if (args == null || args.arguments.isEmpty() || args.arguments.any {
+                it.reg.callingConventionSlot == null || it.reg.dt == IRDataType.FLOAT
+            })
+            return null
+
+        val loads = mutableMapOf<Int, IRInstruction>()
+        var index = callIndex - 1
+        while (index >= chunkStartIndex) {
+            val load = instructions[index]
+            val reg = load.reg1
+            if (load.opcode != Opcode.LOAD || reg == null || load.immediate == null)
+                break
+            loads.putIfAbsent(reg, load)
+            index--
+        }
+
+        if (!args.arguments.all {
+                val load = loads[it.reg.registerNum.value]
+                load != null && load.type == it.reg.dt
+            })
+            return null
+
+        val deadRegisters = loads.keys.filterTo(mutableSetOf()) {
+            !isRegisterReadElsewhere(instructions, callIndex, it)
+        }
+        return ImmediateCallOptimization(loads, deadRegisters)
     }
 
     // === instruction dispatch ===
 
-    private fun translateInstruction(insn: IRInstruction) {
+    private fun translateInstruction(
+        insn: IRInstruction,
+        forwardedImmediateCall: ImmediateCallOptimization? = null,
+        suppressRegfileStore: Boolean = false
+    ) {
         emitRaw("        ; $insn")
         when (insn.opcode) {
             Opcode.NOP -> {}
@@ -450,7 +591,8 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
             Opcode.LOAD, Opcode.LOADM, Opcode.LOADR, Opcode.LOADX, Opcode.LOADHR, Opcode.LOADI,
             Opcode.STOREM, Opcode.STOREX, Opcode.STOREZM, Opcode.STOREZI, Opcode.STOREIM, Opcode.STOREZX, Opcode.STOREHR, Opcode.STOREI,
             Opcode.LOADHFACZERO, Opcode.LOADHFACONE,
-            Opcode.STOREHFACZERO, Opcode.STOREHFACONE -> translateLoadStore(insn)
+            Opcode.STOREHFACZERO, Opcode.STOREHFACONE ->
+                translateLoadStore(insn, suppressRegfileStore)
 
             Opcode.INC, Opcode.INCM, Opcode.DEC, Opcode.DECM,
             Opcode.NEG, Opcode.NEGM,
@@ -499,7 +641,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
             Opcode.FABS, Opcode.FSIN, Opcode.FCOS, Opcode.FTAN, Opcode.FATAN,
             Opcode.FPOW, Opcode.FLN, Opcode.FLOG,
             Opcode.FROUND, Opcode.FFLOOR, Opcode.FCEIL,
-            Opcode.FCOMP -> translateControl(insn)
+            Opcode.FCOMP -> translateControl(insn, forwardedImmediateCall)
         }
     }
 

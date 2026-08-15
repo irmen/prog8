@@ -63,6 +63,17 @@ Romable (%option romable)
 
 IR/VM
 ^^^^^
+- IR file reader cannot round-trip ``callfar`` instructions with negative Amiga LVO offsets.
+  The serializer writes addresses with ``value > $7fffffff`` as a negative decimal (see ``IRInstruction.toString``),
+  but ``parseCall`` (in the ``intermediate`` module, Utils.kt) only accepts a target that starts with ``$`` or a digit,
+  so a value like ``-552`` is treated as a symbolic name and the address stays null.
+  The ``IRInstruction`` init then crashes with ``IllegalArgumentException: missing an address or labelsymbol``.
+  Trigger scenario: compile any amiga500 program that performs library LVO calls (for instance a simple
+  ``txt.print("hello")`` program, which generates ``callfar #1,-552(...)``) to a ``.p8ir`` file, then re-run the
+  standalone m68k code generator on it (``gradle :codeGenM68k:run --args="file.p8ir"``, the prog8-m68kgen tool):
+  it crashes while reading the IR file. Note that just accepting a leading ``-`` is not enough, because
+  ``parseIRValue(...).toUInt()`` clamps negative values to 0; the conversion must round-trip through ``toInt().toUInt()``
+  to recover the original bit pattern.
 - encode indexed scaling into IR (so that m68k codegen can use scale factor addressing) see ideas/scaled-indexing-IR.md
 - maybe change all branch instructions to have 2 exits (label if branch condition true, and label if false) instead of 1, and get rid of the implicit "next code chunk" link between chunks.
 - implement more TODOs in AssignmentGen?
@@ -89,6 +100,8 @@ Libraries
 
 Optimizations
 ^^^^^^^^^^^^^
+- new6502 codegen: use virtual-register liveness or write tracking to remove the retained register-file store when an immediate value is forwarded directly into all arguments of a call.
+- M68K codegen: extend immediate call-argument forwarding and dead-store removal to floating-point registers and ``p8_fregfile``.
 - Port more benchmarks from https://thred.github.io/c-bench-64/  to prog8 and see how it stacks up. (see benchmark-c/ directory)
 - Compilation speed: try to join multiple modifications in 1 result in the AST processors instead of returning it straight away every time
 - various optimizers skip stuff if compTarget.name==VMTarget.NAME.  Once new 6502 codegen is done from IR code, those 6502 only optimizations should probably be removed

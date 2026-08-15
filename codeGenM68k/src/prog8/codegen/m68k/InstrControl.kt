@@ -22,7 +22,7 @@ import prog8.code.core.toHex
 import prog8.code.target.Amiga500Target
 import prog8.intermediate.*
 
-internal fun AsmGen.translateControl(insn: IRInstruction) {
+internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall: ImmediateCallOptimization? = null) {
     val r1 = insn.reg1
     val r2 = insn.reg2
     val imm = insn.immediate
@@ -44,7 +44,7 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
         Opcode.CALL -> {
             val fnLabel = label?.let { fixNameSymbols(it) } ?: addr?.value?.toHex() ?: error("CALL needs label or address")
             val args = insn.fcallArgs
-            translateCall(fnLabel, args)
+            translateCall(fnLabel, args, forwardedImmediateCall)
         }
 
         Opcode.CALLI -> {
@@ -571,10 +571,10 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
 
 // === CALL translation with argument handling ===
 
-private fun AsmGen.translateCall(fnLabel: String, args: FunctionCallArgs?) {
+private fun AsmGen.translateCall(fnLabel: String, args: FunctionCallArgs?, forwardedImmediateCall: ImmediateCallOptimization? = null) {
     if (args != null) {
         for (arg in args.arguments) {
-            translateArgument(arg, fnLabel)
+            translateArgument(arg, fnLabel, forwardedImmediateCall)
         }
     }
 
@@ -594,7 +594,11 @@ private fun AsmGen.translateCall(fnLabel: String, args: FunctionCallArgs?) {
     }
 }
 
-private fun AsmGen.translateArgument(arg: FunctionCallArgs.ArgumentSpec, fnLabel: String? = null) {
+private fun AsmGen.translateArgument(
+    arg: FunctionCallArgs.ArgumentSpec,
+    fnLabel: String? = null,
+    forwardedImmediateCall: ImmediateCallOptimization? = null
+) {
     val argReg = arg.reg
 
     // If the argument has a calling convention slot, load it into that hardware register
@@ -603,6 +607,14 @@ private fun AsmGen.translateArgument(arg: FunctionCallArgs.ArgumentSpec, fnLabel
         val hwReg = m68kSlotRegister(slot)
         if (argReg.dt == IRDataType.FLOAT) {
             emitLine("fmove.s  ${floatRegFileAddr(argReg.registerNum)}, $hwReg")
+        } else if (forwardedImmediateCall != null) {
+            val value = forwardedImmediateCall.loads[argReg.registerNum.value]?.immediate
+                ?: error("missing forwarded immediate for call argument r${argReg.registerNum.value}")
+            val s = dtSuffix(argReg.dt)
+            if (value == 0)
+                emitLine("clr$s  $hwReg")
+            else
+                emitLine("move$s  #$value, $hwReg")
         } else {
             val s = dtSuffix(argReg.dt)
             emitLine("move$s  ${regAddr(argReg.registerNum.value)}, $hwReg")
