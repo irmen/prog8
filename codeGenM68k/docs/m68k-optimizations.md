@@ -18,7 +18,7 @@ should be left alone:
 - NEG, INC, DEC (addq/subq/neg on memory), InstrArithmetic.kt
 - ADD/SUB with immediate (addq for 1-8, else `add.x #imm, mem`)
 - ADDIM/SUBIM against memory variables
-- CMPI (`cmpi.x #imm, mem`, and `tst.x mem` for #0), InstrArithmetic.kt:329
+- CMPI (`cmpi.x #imm, mem`, and `tst.x mem` for #0), InstrArithmetic.kt:330
 - STOREZM / STOREIM zero via `clr.x mem`
 - LOAD with immediate 0 via `clr.x mem` (InstrLoadStore.kt)
 - LOADR (register copy) as a direct memory-to-memory `move.x mem, mem`
@@ -36,9 +36,9 @@ should be left alone:
   d0 round-trip (InstrBitwise.kt)
 - memory-form shifts/rotates for `.w` count=1: `lsl.w mem`, `lsr.w mem`,
   `asr.w mem`, `roxl.w mem`, `roxr.w mem` directly on the regfile slot. The
-  memory path (`memoryShiftRotate`, InstrBitwise.kt:264) already used this for
+  memory path (`memoryShiftRotate`, InstrBitwise.kt:287) already used this for
   explicit memory targets; the register-target path (`shiftRegister` and the
-  four rotate functions, InstrBitwise.kt:234-372) now does the same, collapsing
+  four rotate functions, InstrBitwise.kt:251-405) now does the same, collapsing
   3 instructions into 1. Only `.w` count=1 is supported by the 68000 memory
   form; `.b`/`.l` and counts 2-8 keep the d0 round-trip.
 - QEMU 68020 quirk workaround: the qemu68k target's 68020 model has a bug
@@ -54,6 +54,12 @@ should be left alone:
   case for `.b` no longer issues a dead `move.b dst,d1`; it loads src
   into d0, saves to d2, then loads dst into d0 (6 instructions instead
   of 7).
+- d0 loads for byte/word consumers no longer zero-extend first: ADDR/SUBR
+  read only the operand's own width and integer LOADX/STOREX/STOREZX read
+  only `d0.w` via `(a0,d0.w)`, so the `moveq #0,d0` clear is skipped there.
+  Float indexing keeps the clear because it reads the full `d0.l`. The former
+  `loadRegToD0`/`loadIndexToD0` helpers were removed; the loads are emitted
+  inline per call site.
 
 
 1. Peephole "d0 cache" (biggest win, still no full allocation)
@@ -109,13 +115,13 @@ private var d0CacheType: IRDataType? = null
 // Load virtual register into d0, skip if cache hit
 fun emitLoadD0(reg: Int, type: IRDataType) {
     if (d0CacheReg == reg && d0CacheType == type) return
-    emitLine("move.${dtSuffix(type)}  ${regAddr(reg)}, d0")
+    emitLine("move${dtSuffix(type)}  ${regAddr(reg)}, d0")
     d0CacheReg = reg; d0CacheType = type
 }
 
 // Store d0 to virtual register, update cache
 fun emitStoreD0(reg: Int, type: IRDataType) {
-    emitLine("move.${dtSuffix(type)}  d0, ${regAddr(reg)}")
+    emitLine("move${dtSuffix(type)}  d0, ${regAddr(reg)}")
     d0CacheReg = reg; d0CacheType = type
 }
 
@@ -195,6 +201,15 @@ private fun translateChunk(chunk: IRCodeChunk) {
 The cache only skips `move.x mem,d0`, which is a pure data move that does NOT set CCR.
 The subsequent ALU op (which DOES set CCR) is always emitted. So skipping the load
 never affects flag-based decisions. This is the key invariant from the doc.
+
+*Interaction with the width-aware loads above:*
+Since the zero-extension was removed for byte/word consumers, the cache must
+know that a cached `.b`/`.w` value in d0 has stale upper bits. A `.l` consumer
+(e.g. float indexing reading `d0.l`) must therefore be treated as a cache miss
+even if the register number matches, because the stale upper bits cannot be
+trusted. Keep the type in the cache key (as above) and additionally make the
+float `(0,a0,d0.l)` sites either call `invalidateD0()` before loading or never
+use `emitLoadD0` for their own index load.
 
 *What about d1/d2?*
 d1 and d2 are used for word/long multiply (operand registers) and for some

@@ -51,7 +51,7 @@ internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
         Opcode.ADDR -> {
             val dstReg = r1 ?: error("ADDR needs reg1")
             val srcReg = r2 ?: error("ADDR needs reg2")
-            loadRegToD0(srcReg)
+            emitLine("move${dtSuffix(type)}  ${regAddr(srcReg)}, d0")
             emitLine("add${dtSuffix(type)}  d0, ${regAddr(dstReg)}")
         }
 
@@ -100,7 +100,7 @@ internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
         Opcode.SUBR -> {
             val dstReg = r1 ?: error("SUBR needs reg1")
             val srcReg = r2 ?: error("SUBR needs reg2")
-            loadRegToD0(srcReg)
+            emitLine("move${dtSuffix(type)}  ${regAddr(srcReg)}, d0")
             emitLine("sub${dtSuffix(type)}  d0, ${regAddr(dstReg)}")
         }
 

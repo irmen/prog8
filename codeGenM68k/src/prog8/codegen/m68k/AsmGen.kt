@@ -194,24 +194,6 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
     }
 
 
-    fun loadIndexToD0(idx: Int) {
-        // load an index register into d0, zero-extending to 32 bits
-        loadRegToD0(idx)
-    }
-
-    // Load a virtual register into d0 using the register's ACTUAL slot size,
-    // zero-extending to 32 bits. m68k move.b/move.w into a data register do NOT
-    // clear the upper bits, and reading a slot with a larger suffix than the
-    // slot's size would bleed into the adjacent register slot. Always clear
-    // first and use the register's own type for the load. Removing this clear
-    // requires register-value and liveness tracking, because IR virtual
-    // registers are memory-backed and may have been written by another path.
-    fun loadRegToD0(reg: Int) {
-        val regType = regsUsed.regsTypes[RegisterNum(reg)] ?: IRDataType.BYTE
-        emitLine("moveq  #0, d0")
-        emitLine("move${dtSuffix(regType)}  ${regAddr(reg)}, d0")
-    }
-
     // === label/symbol helpers ===
 
     internal fun fixNameSymbols(name: String): String = name.replace("::", "_")
