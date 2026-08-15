@@ -3,15 +3,21 @@
 What is Prog8?
 *************************************
 
-This is a compiled programming language targeting the 8-bit 6502 CPU family.
+This is a compiled programming language targeting the 8-bit 6502 CPU family,
+as well as the 32-bit Motorola 68000 CPU.
 The language aims to provide many conveniences over raw assembly code (even when using a macro assembler),
 while still being low level enough to create high performance programs.
 
-The targeted CPUs are the `6502 <https://en.wikipedia.org/wiki/MOS_Technology_6502>`_ /
+The 8-bit targeted CPUs are the `6502 <https://en.wikipedia.org/wiki/MOS_Technology_6502>`_ /
 `6510 <https://en.wikipedia.org/wiki/MOS_Technology_6510>`_ /
 `65c02 <https://en.wikipedia.org/wiki/MOS_Technology_65C02>`_ microprocessors.
 They are from the late 1970's and early 1980's and were used in many home computers from that era,
 such as the `Commodore 64 <https://en.wikipedia.org/wiki/Commodore_64>`_.
+
+In addition, Prog8 supports the **32-bit** `Motorola 68000 <https://en.wikipedia.org/wiki/Motorola_68000>`_ CPU
+via its m68k code generator backend. The intended machine for this backend is the
+`Commodore Amiga <https://en.wikipedia.org/wiki/Amiga>`_ (the amiga500 target),
+which can take full advantage of the 68000's 32-bit registers and 16 MB address space.
 
 You can compile programs for various machines that are built into the compiler:
 
@@ -19,6 +25,8 @@ You can compile programs for various machines that are built into the compiler:
 * Commodore 64
 * Commodore 128 (limited support)
 * Commodore PET (limited support)
+* Amiga 500  (32-bit 68000 cpu - the intended machine for the m68k code generator backend; experimental)
+* Qemu M68k simulator (experimental)
 * any other 65(C)02 target machine or setup can be configured to a great extent in a user written configuration file.
   There are some for the Atari 800 XL, NEO6502, Foenix F256, and such.
 * some users have been experimenting with a NES and a C64 OS target as well.

@@ -4,13 +4,14 @@ PayPal: [![PayPal](https://www.paypalobjects.com/en_US/i/btn/btn_donate_LG.gif)]
 
 [![Documentation](https://readthedocs.org/projects/prog8/badge/?version=latest)](https://prog8.readthedocs.io/)
 
-Prog8 - Structured Programming Language for 8-bit 6502/65c02 microprocessors
-============================================================================
+Prog8 - Structured Programming Language for 6502/65c02 (8-bit) and 68000 (32-bit) microprocessors
+=================================================================================================
 
 *Written by Irmen de Jong (irmen@razorvine.net)*
 
 This is a structured programming language for the 8-bit 6502/6510/65c02 microprocessor from the late 1970's and 1980's
-as used in many home computers from that era. It is a medium to low level programming language,
+as used in many home computers from that era. It also supports the 32-bit Motorola 68000 CPU, for which the
+Commodore Amiga is the intended machine. It is a medium to low level programming language,
 which aims to provide many conveniences over raw assembly code (even when using a macro assembler).
 
 **Want to buy me a coffee or a pizza perhaps?**
@@ -104,6 +105,8 @@ What does Prog8 provide?
 - "c64": Commodore-64  (6502 like CPU)
 - "c128": Commodore-128  (6502 like CPU - the Z80 cpu mode is not supported)
 - "pet32": Commodore PET (limited support)
+- "amiga500": Commodore Amiga 500  (32-bit 68000 CPU - the intended machine for the m68k code generator backend)
+- "qemu68k": Qemu M68k simulator (experimental)
 - via external configurable targets: Atari 800 XL, Neo6502, NES, C64 OS, Foenix F256, ...
 - If you only use standard kernal and prog8 library routines, it is possible to compile the *exact same program* for different machines (just change the compiler target flag)
 

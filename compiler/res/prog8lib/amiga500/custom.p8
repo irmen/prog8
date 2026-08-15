@@ -78,6 +78,7 @@ S_PAL:      ds.w    1
 
     asmsub waitvsync() {
         %asm {{
+; synchronize to the screen's vsync, this routine doesn't require the OS to be active (sys.waitvsync is the OS-compatible version of this routine)
 ; Wait until the raster beam reaches line 300
 .WaitLine300:
     MOVE.L  $DFF004, D0     ; Read VPOSR + VHPOSR simultaneously

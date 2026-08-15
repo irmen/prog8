@@ -67,7 +67,9 @@ sys {
     }
 
     inline asmsub waitvsync()  {
-        ; --- wait until the next vsync has occurred
+        ; --- Wait until the next vsync has occurred.
+        ;     This routine requires the OS to be functioning.
+        ;     If you have disabled the OS/interrupts and are banging the hardware directly, use custom.waitvsync() instead.
         %asm {{
             move.l  sys.GfxBase,a6
             jsr     -270(a6)        ; WaitTOF

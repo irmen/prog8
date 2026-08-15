@@ -6,7 +6,8 @@ Target system specification
 Prog8 targets the following hardware:
 
 - 8 bit MOS 6502/65c02/6510 CPU
-- 64 Kb addressable memory (RAM or ROM)
+- 32 bit Motorola 68000 CPU
+- 64 Kb addressable memory (RAM or ROM) on 6502 targets, 16 Mb on m68k targets
 - optional use of memory-mapped I/O registers
 - optional use of system ROM routines
 
@@ -22,6 +23,7 @@ Currently these machines can be selected as a compilation target (via the ``-tar
 - custom targets via a separate configuration file (see :ref:`customizable_target`)
 
 This chapter explains some relevant system details of the c64 and cx16 machines.
+Details about the m68k targets are in the :ref:`amiga500 footnotes <amiga500footnotes>` below.
 
 .. hint::
     If you only use standard Kernal and prog8 library routines,
@@ -164,6 +166,7 @@ Footnotes for the Commodore 128
 
 Footnotes for the Amiga 500
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. _amiga500footnotes:
 .. index:: single: Targets; Amiga 500 notes
 
 The amiga500 target is **experimental**. It uses the M68k code generator backend and produces

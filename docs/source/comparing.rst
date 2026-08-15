@@ -16,7 +16,9 @@ The language
 - It is meant to sit well above low level assembly code, but still allows that low level access to the system it runs on.
   Via language features, or even simply by using inline hand-written assembly code.
 - Prog8 is targeting very CPU and memory constrained 8-bit systems, this reflects many design choices to work within those limitations
-   (single digit Megahertz cpu clock speeds, and memory capacity counted in Kilobytes)
+   (single digit Megahertz cpu clock speeds, and memory capacity counted in Kilobytes).
+   In addition it also supports the 32-bit Motorola 68000 CPU (with the Amiga as the intended machine),
+   where the 32-bit registers and 16 Mb address space lift most of those constraints.
 - Identifiers and string literals can contain non-ASCII characters so for example ``knäckebröd`` and ``見せしめ`` are valid identifiers.
 - There's usually a single statement per line. There is no statement separator.
 - Semicolon ``;`` is used to start a line comment.  Multi-line comments are also possible by enclosing it all in ``/*`` and ``*/``.

@@ -48,6 +48,11 @@ Future Things and Ideas
 
     sprite.x = sprite.x - 2
 
+- comptime expressions ("better macros") - evaluate expressions at compile time and use the results in the generated code,
+  going beyond the current compile-time constant folding of constant values.
+- extend the 'virtual' target (and its virtual machine) to a 32-bit machine with 16 MB of memory,
+  so that programs can be run and tested on it that don't fit on the 64 Kb 8-bit machines.
+
 
 Romable (%option romable)
 ^^^^^^^^^^^^^^^^^^^^^^^^^

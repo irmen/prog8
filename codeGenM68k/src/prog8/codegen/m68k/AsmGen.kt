@@ -212,13 +212,6 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         emitLine("move${dtSuffix(regType)}  ${regAddr(reg)}, d0")
     }
 
-    // Same as loadRegToD0, but into d1.
-    fun loadRegToD1(reg: Int) {
-        val regType = regsUsed.regsTypes[RegisterNum(reg)] ?: IRDataType.BYTE
-        emitLine("moveq  #0, d1")
-        emitLine("move${dtSuffix(regType)}  ${regAddr(reg)}, d1")
-    }
-
     // === label/symbol helpers ===
 
     internal fun fixNameSymbols(name: String): String = name.replace("::", "_")
