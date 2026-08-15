@@ -770,7 +770,7 @@ jump p8_label_gen_2
                         changed = true
                     }
                 }
-                Opcode.EXT, Opcode.EXTS -> {
+                Opcode.EXT, Opcode.EXTS, Opcode.EXTL, Opcode.EXTLS -> {
                     if(insAfter.opcode == ins.opcode && insAfter.reg1 == ins.reg1 && insAfter.type == ins.type) {
                         chunk.instructions[idx+1] = IRInstruction(Opcode.NOP)
                         changed = true

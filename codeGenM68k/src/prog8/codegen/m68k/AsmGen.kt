@@ -611,7 +611,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
             Opcode.ALIGN,
             Opcode.LSIGB, Opcode.LSIGW, Opcode.MSIGB, Opcode.MSIGW, Opcode.BSIGB,
             Opcode.MIDB, Opcode.CONCAT,
-            Opcode.EXT, Opcode.EXTS,
+            Opcode.EXT, Opcode.EXTS, Opcode.EXTL, Opcode.EXTLS,
             Opcode.SGN,
             Opcode.FFROMUB, Opcode.FFROMSB, Opcode.FFROMUW, Opcode.FFROMSW, Opcode.FFROMSL,
             Opcode.FTOUB, Opcode.FTOSB, Opcode.FTOUW, Opcode.FTOSW, Opcode.FTOSL,

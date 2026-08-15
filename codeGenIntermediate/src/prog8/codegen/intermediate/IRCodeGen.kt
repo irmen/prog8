@@ -708,16 +708,16 @@ class IRCodeGen(
                 val endLabel = createLabelName()
 
                 // EXT only extends one step: BYTE->WORD or WORD->LONG
-                // for BYTE->LONG we need two steps
+                // for BYTE->LONG we use EXTL (single step)
                 fun emitWidening(chunk: IRCodeChunk, srcReg: Int, srcDt: IRDataType): Pair<Int, IRDataType> {
                     if(!needsWidening) return Pair(srcReg, srcDt)
-                    val wordReg = registers.next(IRDataType.WORD)
-                    chunk += IRInstruction(Opcode.EXT, srcDt, reg1=wordReg, reg2=srcReg)
                     if(loopvarDt == IRDataType.LONG && srcDt == IRDataType.BYTE) {
                         val longReg = registers.next(IRDataType.LONG)
-                        chunk += IRInstruction(Opcode.EXT, IRDataType.WORD, reg1=longReg, reg2=wordReg)
+                        chunk += IRInstruction(Opcode.EXTL, srcDt, reg1=longReg, reg2=srcReg)
                         return Pair(longReg, IRDataType.LONG)
                     }
+                    val wordReg = registers.next(IRDataType.WORD)
+                    chunk += IRInstruction(Opcode.EXT, srcDt, reg1=wordReg, reg2=srcReg)
                     return Pair(wordReg, loopvarDt)
                 }
 

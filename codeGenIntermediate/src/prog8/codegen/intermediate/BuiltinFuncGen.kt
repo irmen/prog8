@@ -471,12 +471,10 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         } else {
             // mklong(msb, b3, b2, lsb)
             if((call.args[0] as? PtNumber)?.number == 0.0 && (call.args[1] as? PtNumber)?.number == 0.0 && (call.args[2] as? PtNumber)?.number == 0.0) {
-                // use EXT.b + EXT.w
+                // use EXTL.b: zero-extend byte directly to long
                 val lsbTr = exprGen.translateExpression(call.args[3])
                 addToResult(result, lsbTr, lsbTr.resultReg, -1)
-                val wordReg = codeGen.registers.next(IRDataType.WORD)
-                addInstr(result, IRInstruction(Opcode.EXT, IRDataType.BYTE, reg1=wordReg, reg2 = lsbTr.resultReg), null)
-                addInstr(result, IRInstruction(Opcode.EXT, IRDataType.WORD, reg1=resultReg, reg2 = wordReg), null)
+                addInstr(result, IRInstruction(Opcode.EXTL, IRDataType.BYTE, reg1=resultReg, reg2 = lsbTr.resultReg), null)
             } else {
                 val msbTr = exprGen.translateExpression(call.args[0])
                 val b2Tr = exprGen.translateExpression(call.args[1])

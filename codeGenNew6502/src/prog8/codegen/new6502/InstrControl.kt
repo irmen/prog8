@@ -433,6 +433,10 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
             emitLabel("+")
         }
 
+        Opcode.EXTL -> TODO("EXTL: zero-extend byte to long (4 bytes) for 6502 - not yet needed")
+
+        Opcode.EXTLS -> TODO("EXTLS: sign-extend byte to long (4 bytes) for 6502 - not yet needed")
+
         Opcode.SQRT -> {
             if (insn.type == IRDataType.FLOAT)
                 translateFloatUnary(insn, "floats.SQR")

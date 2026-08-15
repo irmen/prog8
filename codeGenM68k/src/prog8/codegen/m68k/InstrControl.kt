@@ -288,6 +288,24 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
             }
         }
 
+        Opcode.EXTL -> {
+            val dstReg = r1 ?: error("EXTL needs reg1")
+            val srcReg = r2 ?: error("EXTL needs reg2")
+            // zero-extend byte to long: move.b only writes the low byte, so clear d0 first
+            emitLine("moveq  #0, d0")
+            emitLine("move.b  ${regAddr(srcReg)}, d0")
+            emitLine("move.l  d0, ${regAddr(dstReg)}")
+        }
+
+        Opcode.EXTLS -> {
+            val dstReg = r1 ?: error("EXTLS needs reg1")
+            val srcReg = r2 ?: error("EXTLS needs reg2")
+            // sign-extend byte to long
+            emitLine("move.b  ${regAddr(srcReg)}, d0")
+            emitSignExtendByteToLong("d0")
+            emitLine("move.l  d0, ${regAddr(dstReg)}")
+        }
+
         // === Concatenation ===
 
         Opcode.CONCAT -> {

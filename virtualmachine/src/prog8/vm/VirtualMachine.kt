@@ -306,6 +306,8 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.SQUARE -> InsSQUARE(ins)
             Opcode.EXT -> InsEXT(ins)
             Opcode.EXTS -> InsEXTS(ins)
+            Opcode.EXTL -> InsEXTL(ins)
+            Opcode.EXTLS -> InsEXTLS(ins)
             Opcode.ANDR -> InsANDR(ins)
             Opcode.AND -> InsAND(ins)
             Opcode.ANDM -> InsANDM(ins)
@@ -1742,6 +1744,16 @@ class VirtualMachine(irProgram: IRProgram) {
             IRDataType.LONG -> throw IllegalArgumentException("exts.l makes no sense, 32 bits is already the widest you can get")
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
+        nextPc()
+    }
+
+    private fun InsEXTL(i: IRInstruction) {
+        registers.setSL(i.reg1!!, registers.getUB(i.reg2!!).toInt())
+        nextPc()
+    }
+
+    private fun InsEXTLS(i: IRInstruction) {
+        registers.setSL(i.reg1!!, registers.getSB(i.reg2!!).toInt())
         nextPc()
     }
 

@@ -193,6 +193,8 @@ All have type b or w or l or f. Note: result types are the same as operand types
 
 exts        reg1, reg2                      - reg1 = signed extension of reg2 (byte to word, or word to long)  (note: unlike M68k, exts.b -> word and exts.w -> long.)
 ext         reg1, reg2                      - reg1 = unsigned extension of reg2 (which in practice just means clearing the MSB / MSW) (note: unlike M68k, ext.b -> word and ext.w -> long. )
+extls       reg1, reg2                      - reg1 = signed extension of reg2 from byte directly to long (single step, no intermediate word register)
+extl        reg1, reg2                      - reg1 = unsigned extension of reg2 from byte directly to long (single step, no intermediate word register)
 inc         reg1                            - reg1 = reg1+1
 incm                           address      - memory at address += 1
 dec         reg1                            - reg1 = reg1-1
@@ -428,6 +430,8 @@ enum class Opcode {
     CMPI,
     EXT,
     EXTS,
+    EXTL,
+    EXTLS,
 
     ANDR,
     AND,
@@ -811,6 +815,8 @@ val instructionFormats = mutableMapOf(
     Opcode.CMPI       to InstructionFormat.from("BWL,<r1,<i"),
     Opcode.EXT        to InstructionFormat.from("BWL,>r1,<r2"),
     Opcode.EXTS       to InstructionFormat.from("BWL,>r1,<r2"),
+    Opcode.EXTL       to InstructionFormat.from("B,>r1,<r2"),
+    Opcode.EXTLS      to InstructionFormat.from("B,>r1,<r2"),
     Opcode.ANDR       to InstructionFormat.from("BWL,<>r1,<r2"),
     Opcode.AND        to InstructionFormat.from("BWL,<>r1,<i"),
     Opcode.ANDM       to InstructionFormat.from("BWL,<r1,<>a"),
@@ -1169,6 +1175,8 @@ data class IRInstruction(
             return IRDataType.WORD
         if(opcode==Opcode.EXT || opcode==Opcode.EXTS)
             return if (type == IRDataType.BYTE) IRDataType.WORD else null
+        if(opcode==Opcode.EXTL || opcode==Opcode.EXTLS)
+            return IRDataType.LONG
         if(opcode==Opcode.CONCAT)
             return if (type == IRDataType.BYTE) IRDataType.WORD else null
         if(opcode in setOf(Opcode.ASRNM, Opcode.LSRNM, Opcode.LSLNM, Opcode.SQRT, Opcode.LSIGB, Opcode.MSIGB, Opcode.BSIGB, Opcode.MIDB))
