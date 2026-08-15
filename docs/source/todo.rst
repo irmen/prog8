@@ -1,6 +1,7 @@
 TODO
 ====
 
+- compiler crash: asmsub returning multiple values where one is a status flag (e.g. ``pointer @A0, bool @Pz``) causes ``NotImplementedError: find a way to assign cpu Z status bit to reg N but it can already be clobbered by other return values``. The IR codegen cannot handle the case where a status flag return value needs to be assigned to a register while other return values also use registers. Workaround: return the bool in a data register (``bool @D0``) instead of a status flag.
 - need a bunch of type casting/conversion checks that test the handling of the 4-byte/long pointer datatype on the qemu68k target.
 - amiga library structs: use more typed pointers if it knows the struct type from the same (or another amiga library module) , rather than using `pointer`. Consider both the extsubs but also the struct fields in the amigaDOS structs in the generated library modules.
 

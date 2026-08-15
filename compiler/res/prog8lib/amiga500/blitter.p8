@@ -27,9 +27,25 @@ blitter {
         ; Use this before reading back blitter-modified memory or swapping buffers.
         %asm {{
 .busy:
-        btst.b  #6,custom.DMACONR
-        bne.s   .busy
-        rts
+            btst.b  #6,custom.DMACONR
+            bne.s   .busy
+            rts
+        }}
+    }
+
+    asmsub set_blitpri(bool hasprio @D0) clobbers (D0) {
+        ; Set or clear blitter priority over the CPU.
+        ; When enabled, the blitter gets bus priority and completes faster,
+        ; but the CPU runs slower during the blit.
+        ; Disable when you need full CPU speed while the blitter runs.
+        %asm {{
+            tst.b   d0
+            beq.s   .clear
+            move.w  #$8400,custom.DMACON   ; SET bit + BLITPRI bit
+            rts
+.clear:
+            move.w  #$0400,custom.DMACON   ; BLITPRI bit only (clears it)
+            rts
         }}
     }
 

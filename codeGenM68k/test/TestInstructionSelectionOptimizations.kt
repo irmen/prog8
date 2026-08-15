@@ -9,6 +9,7 @@ import prog8.code.core.Position
 import prog8.code.core.ZeropageType
 import prog8.code.target.Qemu68kTarget
 import prog8.codegen.m68k.AsmGen
+import prog8.codegen.m68k.optimizeAssembly
 import prog8.intermediate.*
 import prog8tests.helpers.DummyStringEncoder
 import java.nio.file.Path
@@ -27,6 +28,7 @@ class TestInstructionSelectionOptimizations : FunSpec({
             .floats(false)
             .compilerVersion("test")
             .memtopAddress(0xffffu)
+            .optimize(true)
             .build()
         val program = IRProgram("test", IRSymbolTable(), options, DummyStringEncoder)
         program.options.outputDir = outputDir
@@ -510,5 +512,154 @@ class TestInstructionSelectionOptimizations : FunSpec({
 
         lines.any { it == "move.w  #384,d0" } shouldBe true
         lines.any { it == "move.w  #384,p8_regfile+0" } shouldBe false
+    }
+
+    test("removes jmp to immediately following label") {
+        val chunk1 = IRCodeChunk(null, null)
+        chunk1.instructions.add(IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = 1, immediate = 42))
+        chunk1.instructions.add(IRInstruction(Opcode.JUMP, labelSymbol = "test.end"))
+        val chunk2 = IRCodeChunk("test.end", null)
+        chunk2.instructions.add(IRInstruction(Opcode.RETURN))
+        val lines = generateAsmChunks(
+            tempRoot.resolve("test-m68k-jmp-to-next-label"),
+            listOf(chunk1, chunk2)
+        )
+
+        lines.any { it.startsWith("jmp  test.end") } shouldBe false
+        lines.any { it == "rts" } shouldBe true
+    }
+
+    test("removes jmp to immediately following label but keeps label on jmp line") {
+        val chunk1 = IRCodeChunk(null, null)
+        chunk1.instructions.add(IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = 1, immediate = 42))
+        val chunk2 = IRCodeChunk("test.mid", null)
+        chunk2.instructions.add(IRInstruction(Opcode.JUMP, labelSymbol = "test.end"))
+        val chunk3 = IRCodeChunk("test.end", null)
+        chunk3.instructions.add(IRInstruction(Opcode.RETURN))
+        val lines = generateAsmChunks(
+            tempRoot.resolve("test-m68k-jmp-to-next-label-with-label"),
+            listOf(chunk1, chunk2, chunk3)
+        )
+
+        lines.any { it.startsWith("jmp  test.end") } shouldBe false
+        lines.any { it.startsWith("test.mid:") } shouldBe true
+        lines.any { it == "rts" } shouldBe true
+    }
+
+    test("optimizes jsr+rts to jmp (tail call)") {
+        // When jsr+rts is followed immediately by the target label, both jsr and rts are removed
+        // (optimizeJmpToNextLabel removes the jmp that optimizeTailCall created)
+        val chunk1 = IRCodeChunk(null, null)
+        chunk1.instructions.add(IRInstruction(Opcode.CALL, labelSymbol = "test.target"))
+        chunk1.instructions.add(IRInstruction(Opcode.RETURN))
+        val chunk2 = IRCodeChunk("test.target", null)
+        chunk2.instructions.add(IRInstruction(Opcode.RETURN))
+        val lines = generateAsmChunks(
+            tempRoot.resolve("test-m68k-tail-call"),
+            listOf(chunk1, chunk2)
+        )
+
+        lines.any { it.startsWith("jsr  test.target") } shouldBe false
+        // The jmp is removed by optimizeJmpToNextLabel because test.target: immediately follows
+        lines.any { it.startsWith("jmp  test.target") } shouldBe false
+        // Count rts only in the test subroutine (after "test.start:"), not in startup code
+        val testStartIdx = lines.indexOfFirst { it.startsWith("test.start:") }
+        val testLines = lines.drop(testStartIdx)
+        testLines.count { it == "rts" } shouldBe 1
+    }
+
+    test("optimizes jsr+rts to jmp when target is not immediately following") {
+        // When there's code between the jsr+rts and the target label, the jmp is kept
+        val chunk1 = IRCodeChunk(null, null)
+        chunk1.instructions.add(IRInstruction(Opcode.CALL, labelSymbol = "test.target"))
+        chunk1.instructions.add(IRInstruction(Opcode.RETURN))
+        val chunk2 = IRCodeChunk(null, null)
+        chunk2.instructions.add(IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = 1, immediate = 99))
+        val chunk3 = IRCodeChunk("test.target", null)
+        chunk3.instructions.add(IRInstruction(Opcode.RETURN))
+        val lines = generateAsmChunks(
+            tempRoot.resolve("test-m68k-tail-call-with-gap"),
+            listOf(chunk1, chunk2, chunk3)
+        )
+
+        lines.any { it.startsWith("jsr  test.target") } shouldBe false
+        lines.any { it.startsWith("jmp  test.target") } shouldBe true
+        // Count rts only in the test subroutine
+        val testStartIdx = lines.indexOfFirst { it.startsWith("test.start:") }
+        val testLines = lines.drop(testStartIdx)
+        testLines.count { it == "rts" } shouldBe 1
+    }
+
+    test("optimizes jsr+rts to jmp but keeps label on jsr line") {
+        val chunk1 = IRCodeChunk(null, null)
+        chunk1.instructions.add(IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = 1, immediate = 42))
+        val chunk2 = IRCodeChunk("test.caller", null)
+        chunk2.instructions.add(IRInstruction(Opcode.CALL, labelSymbol = "test.target"))
+        chunk2.instructions.add(IRInstruction(Opcode.RETURN))
+        val chunk3 = IRCodeChunk(null, null)
+        chunk3.instructions.add(IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = 2, immediate = 99))
+        val chunk4 = IRCodeChunk("test.target", null)
+        chunk4.instructions.add(IRInstruction(Opcode.RETURN))
+        val lines = generateAsmChunks(
+            tempRoot.resolve("test-m68k-tail-call-with-label"),
+            listOf(chunk1, chunk2, chunk3, chunk4)
+        )
+
+        lines.any { it.startsWith("jsr  test.target") } shouldBe false
+        lines.any { it.startsWith("jmp  test.target") } shouldBe true
+        lines.any { it.startsWith("test.caller:") } shouldBe true
+        // Count rts only in the test subroutine
+        val testStartIdx = lines.indexOfFirst { it.startsWith("test.start:") }
+        val testLines = lines.drop(testStartIdx)
+        testLines.count { it == "rts" } shouldBe 1
+    }
+
+    test("removes redundant tst after move to same location") {
+        // Test the optimizer directly on raw assembly lines
+        val lines = mutableListOf(
+            "    move.b  d0, p8_regfile+198",
+            "    tst.b   p8_regfile+198",
+            "    beq     somewhere"
+        )
+        optimizeAssembly(lines)
+        lines.any { it.contains("tst.b") } shouldBe false
+        lines.any { it.contains("move.b") } shouldBe true
+        lines.any { it.contains("beq") } shouldBe true
+    }
+
+    test("removes redundant tst after move with label on move line") {
+        val lines = mutableListOf(
+            "mylabel:",
+            "    move.w  d0, p8_regfile+200",
+            "    tst.w   p8_regfile+200",
+            "    bne     somewhere"
+        )
+        optimizeAssembly(lines)
+        // tst should be removed, label should stay on move line
+        lines.any { it.contains("tst.w") } shouldBe false
+        lines.any { it.contains("mylabel:") } shouldBe true
+        lines.any { it.contains("move.w") } shouldBe true
+    }
+
+    test("does not remove tst when target is different from move destination") {
+        val lines = mutableListOf(
+            "    move.b  d0, p8_regfile+198",
+            "    tst.b   p8_regfile+200",
+            "    beq     somewhere"
+        )
+        optimizeAssembly(lines)
+        // tst should NOT be removed because it tests a different location
+        lines.any { it.contains("tst.b") } shouldBe true
+    }
+
+    test("does not remove tst when size differs from move") {
+        val lines = mutableListOf(
+            "    move.b  d0, p8_regfile+198",
+            "    tst.w   p8_regfile+198",
+            "    beq     somewhere"
+        )
+        optimizeAssembly(lines)
+        // tst should NOT be removed because sizes differ
+        lines.any { it.contains("tst.w") } shouldBe true
     }
 })

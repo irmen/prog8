@@ -350,6 +350,13 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
         }
         emitRaw(".enc 'none'")
         emitRaw("")
+        emitRaw("; ASM PEEPHOLE OPTIMIZER")
+        emitRaw(";   This codegen runs an asm-level peephole optimizer over the emitted")
+        emitRaw(";   instructions. It uses the '; Subroutine:' markers (see below) to delimit")
+        emitRaw(";   code units for scope-bounded analyses (e.g. dead register-slot detection).")
+        emitRaw(";   Do NOT rename, remove, or otherwise alter those markers, or the")
+        emitRaw(";   optimizer may produce incorrect output.")
+        emitRaw("")
         val zp = target.zeropage
         emitRaw("; zero-page scratch registers (used for address computation and temp values)")
         emitRaw("P8ZP_SCRATCH_B1  = ${zp.SCRATCH_B1}    ; byte")
@@ -615,7 +622,10 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
         childLabel.startsWith(parentSub.label + ".")
 
     private fun emitSubroutine(sub: IRSubroutine) {
-        emitRaw("; Subroutine: ${sub.label}")
+        // asm-peephole boundary marker — the '; Subroutine:' and '; End of subroutine:'
+        // lines emitted here are parsed by the asm peephole optimizer to delimit code
+        // units (e.g. for dead register-slot detection). Do not alter/rename/remove them.
+        emitRaw("; ---- Subroutine: ${sub.label} ----")
         val firstChunk = sub.chunks.filterIsInstance<IRCodeChunk>().firstOrNull()
         if (firstChunk != null)
             emitSourceComment(firstChunk.sourceLinesPositions)
@@ -665,13 +675,19 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
                 }
             }
         }
+        // Nested subroutines (.proc/.pend) are emitted inside the parent scope above.
+        // They don't need their own '; Subroutine:' markers — they're bounded by the
+        // parent's markers and the .pend here.
         emitRaw(".pend")
+        emitRaw("; End of subroutine: ${sub.label}")
         emitRaw("")
     }
 
     /** Emit a nested subroutine (uses unscoped name since it's inside parent scope) */
     private fun emitNestedSubroutine(sub: IRSubroutine) {
+        // asm-peephole boundary marker for this nested code unit — do not alter/rename/remove.
         emitRaw("")
+        emitRaw("    ; ---- Subroutine: ${sub.label} ----")
         emitRaw("    ; source: ${sub.position}")
         emitRaw("    ${unscopedName(sub.label)}  .proc")
         for (chunk in sub.chunks) {
@@ -699,6 +715,7 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
             }
         }
         emitRaw("    .pend")
+        emitRaw("    ; End of subroutine: ${sub.label}")
     }
 
     private fun emitAsmSubroutine(sub: IRAsmSubroutine) {
@@ -713,10 +730,13 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
         if (addr != null) {
             emitLine("* = $addr")
         }
+        // asm-peephole boundary marker — do not alter/rename/remove.
         emitRaw("")
+        emitRaw("; ---- Subroutine: ${sub.label} ----")
         emitRaw("${sub.label}  .proc")
         emitRaw(sub.asmChunk.assembly)
         emitRaw(".pend")
+        emitRaw("; End of subroutine: ${sub.label}")
         emitRaw("")
     }
 

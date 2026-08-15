@@ -277,7 +277,14 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         val options = program.options
         val asmFile = options.outputDir.resolve("${program.name}.asm")
         try {
-            asmFile.toFile().writeText(output.toString())
+            if (options.optimize) {
+                val asmLines = output.toString().lines().toMutableList()
+                optimizeAssembly(asmLines)
+                asmFile.toFile().writeText(asmLines.joinToString("\n") + "\n")
+            } else {
+                // write the unmodified code
+                asmFile.toFile().writeText(output.toString())
+            }
         } catch (e: Exception) {
             System.err.println("Failed to write assembly file: ${e.message}")
             return false
@@ -307,6 +314,13 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         emitRaw(";   - Labels: global = alphanumeric+underscore (add -ldots for dots in labels)")
         emitRaw(";     local = prefix '.' or suffix '$', valid between two global labels")
         emitRaw(";   - Directives:  DC.B, DC.W, DC.L, EQU, '=' for constants, etc.")
+        emitRaw("")
+        emitRaw("; ASM PEEPHOLE OPTIMIZER")
+        emitRaw(";   This codegen runs an asm-level peephole optimizer over the emitted")
+        emitRaw(";   instructions. It uses the '; Subroutine:' markers (see below) to delimit")
+        emitRaw(";   code units for scope-bounded analyses (e.g. dead register-slot detection).")
+        emitRaw(";   Do NOT rename, remove, or otherwise alter those markers, or the")
+        emitRaw(";   optimizer may produce incorrect output.")
         emitRaw("")
         emitRaw("    section .text,code")
 
@@ -396,7 +410,10 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
     private fun emitSubroutine(sub: IRSubroutine) {
         val subLabel = fixNameSymbols(sub.label)
         val subUnscoped = unscopedName(sub.label)
-        emitRaw("; Subroutine: $subLabel")
+        // asm-peephole boundary marker — the '; Subroutine:' and '; End of subroutine:'
+        // lines emitted here are parsed by the asm peephole optimizer to delimit code
+        // units (e.g. for dead register-slot detection). Do not alter/rename/remove them.
+        emitRaw("; ---- Subroutine: $subLabel ----")
         val firstChunk = sub.chunks.filterIsInstance<IRCodeChunk>().firstOrNull()
         if (firstChunk != null)
             emitSourceComment(firstChunk.sourceLinesPositions)
@@ -431,14 +448,21 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
                 }
             }
         }
+        emitRaw("; End of subroutine: $subLabel")
         emitRaw("")
     }
 
     private fun emitAsmSubroutine(sub: IRAsmSubroutine) {
+        val asmLabel = fixNameSymbols(sub.label)
+        // asm-peephole boundary marker — the '; Subroutine:' and '; End of subroutine:'
+        // lines emitted here are parsed by the asm peephole optimizer to delimit code
+        // units (e.g. for dead register-slot detection). Do not alter/rename/remove them.
         emitRaw("")
+        emitRaw("; ---- Subroutine: $asmLabel ----")
         emitLine("ALIGN 2")
-        emitLabel(fixNameSymbols(sub.label))
+        emitLabel(asmLabel)
         emitRaw(sub.asmChunk.assembly)
+        emitRaw("; End of subroutine: $asmLabel")
         emitRaw("")
     }
 
