@@ -372,10 +372,10 @@ private fun AsmGen.emitMulOp(dstReg: Int, srcReg: Int?, type: IRDataType, unsign
             // No .b multiply on M68k: zero-extend to word, mulu.w/muls.w, store low byte
             when {
                 srcReg != null -> {
-                    emitLine("move.b  ${regAddr(srcReg)}, d0")
-                    if (unsigned) emitLine($$"and.l  #$ff, d0") else emitSignExtendByteToLong("d0")
-                    emitLine("move.l  d0, d2")
                     emitLine("move.b  ${regAddr(dstReg)}, d0")
+                    if (unsigned) emitLine($$"and.l  #$ff, d0") else emitSignExtendByteToLong("d0")
+                    emitLine("move.w  d0, d2")
+                    emitLine("move.b  ${regAddr(srcReg)}, d0")
                     if (unsigned) emitLine($$"and.l  #$ff, d0") else emitSignExtendByteToLong("d0")
                     emitLine("$op.w  d2, d0")
                     emitLine("move.b  d0, ${regAddr(dstReg)}")
@@ -389,7 +389,7 @@ private fun AsmGen.emitMulOp(dstReg: Int, srcReg: Int?, type: IRDataType, unsign
                 target != null -> {
                     emitLine("move.b  $target, d1")
                     if (unsigned) emitLine($$"and.l  #$ff, d1") else emitSignExtendByteToLong("d1")
-                    emitLine("move.l  d1, d2")
+                    emitLine("move.w  d1, d2")
                     emitLine("move.b  ${regAddr(dstReg)}, d0")
                     if (unsigned) emitLine($$"and.l  #$ff, d0") else emitSignExtendByteToLong("d0")
                     emitLine("$op.w  d2, d0")
@@ -403,9 +403,8 @@ private fun AsmGen.emitMulOp(dstReg: Int, srcReg: Int?, type: IRDataType, unsign
             // destination must be a data register, not memory
             when {
                 srcReg != null -> {
-                    emitLine("move.w  ${regAddr(srcReg)}, d0")
-                    emitLine("move.w  ${regAddr(dstReg)}, d1")
-                    emitLine("$op.w  d1, d0")
+                    emitLine("move.w  ${regAddr(dstReg)}, d0")
+                    emitLine("$op.w  ${regAddr(srcReg)}, d0")
                     emitLine("move.w  d0, ${regAddr(dstReg)}")
                 }
                 imm != null -> {
@@ -414,9 +413,8 @@ private fun AsmGen.emitMulOp(dstReg: Int, srcReg: Int?, type: IRDataType, unsign
                     emitLine("move.w  d0, ${regAddr(dstReg)}")
                 }
                 target != null -> {
-                    emitLine("move.w  $target, d0")
-                    emitLine("move.w  ${regAddr(dstReg)}, d1")
-                    emitLine("$op.w  d1, d0")
+                    emitLine("move.w  ${regAddr(dstReg)}, d0")
+                    emitLine("$op.w  $target, d0")
                     emitLine("move.w  d0, $target")
                 }
             }
@@ -431,23 +429,21 @@ private fun AsmGen.emitMulOp(dstReg: Int, srcReg: Int?, type: IRDataType, unsign
                 // 68020+ mulu.l/muls.l (32x32→64, lower 32 are result)
                 // destination must be a data register, not memory
                 when {
-                    srcReg != null -> {
-                        emitLine("move.l  ${regAddr(srcReg)}, d0")
-                        emitLine("move.l  ${regAddr(dstReg)}, d1")
-                        emitLine("$op.l  d1, d0")
-                        emitLine("move.l  d0, ${regAddr(dstReg)}")
-                    }
-                    imm != null -> {
-                        emitLine("move.l  ${regAddr(dstReg)}, d0")
-                        emitLine("$op.l  #${imm}, d0")
-                        emitLine("move.l  d0, ${regAddr(dstReg)}")
-                    }
-                    target != null -> {
-                        emitLine("move.l  $target, d0")
-                        emitLine("move.l  ${regAddr(dstReg)}, d1")
-                        emitLine("$op.l  d1, d0")
-                        emitLine("move.l  d0, $target")
-                    }
+                srcReg != null -> {
+                    emitLine("move.l  ${regAddr(dstReg)}, d0")
+                    emitLine("$op.l  ${regAddr(srcReg)}, d0")
+                    emitLine("move.l  d0, ${regAddr(dstReg)}")
+                }
+                imm != null -> {
+                    emitLine("move.l  ${regAddr(dstReg)}, d0")
+                    emitLine("$op.l  #${imm}, d0")
+                    emitLine("move.l  d0, ${regAddr(dstReg)}")
+                }
+                target != null -> {
+                    emitLine("move.l  ${regAddr(dstReg)}, d0")
+                    emitLine("$op.l  $target, d0")
+                    emitLine("move.l  d0, $target")
+                }
                 }
             }
         }

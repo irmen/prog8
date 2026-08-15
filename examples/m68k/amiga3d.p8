@@ -4,7 +4,7 @@
 %import blitter
 %import math
 
-; 3d spinning Dodecahedron.  Needs a Amiga1200 with fast ram to display smoothly (there's no double buffering)
+; 3d spinning Dodecahedron with double buffering for smooth display on Amiga1200
 
 main {
     sub setup_copper(pointer bitplane, pointer copper_list) {
@@ -112,20 +112,38 @@ main {
         copper.start(copper_list)
     }
 
+    sub update_copper_bitplane(pointer copper_list, pointer bitplane) {
+        ; Update the bitplane pointer in the copper list.
+        ; Copper list layout after init():
+        ;   offset 0-3:  move $096, $83C0
+        ;   offset 4-7:  move $0e0, msw(bitplane)
+        ;   offset 8-11: move $0e2, lsw(bitplane)
+        ; Only the value words (offsets 6 and 10) need updating.
+        pokew(copper_list + 6, msw(bitplane))
+        pokew(copper_list + 10, lsw(bitplane))
+    }
+
     sub start() {
-        pointer bitplane = exec.AllocMem(10240, exec.MEMF_CHIP)
+        pointer bitplane1 = exec.AllocMem(10240, exec.MEMF_CHIP)
+        pointer bitplane2 = exec.AllocMem(10240, exec.MEMF_CHIP)
         pointer copper_list = exec.AllocMem(512, exec.MEMF_CHIP)
 
         ; Take over the Amiga hardware and configure a 320x256 one-bitplane display.
         custom.grab_system()
         custom.DMACON = $83C0
 
-        setup_copper(bitplane, copper_list)
+        pointer current_bitplane = bitplane1
+        pointer back_bitplane = bitplane2
+
+        setup_copper(current_bitplane, copper_list)
 
         const ubyte TEXT_Y = 240
-        ; Copy the generated monochrome message into the reserved bottom strip.
-        pointer text_screen = bitplane + (TEXT_Y * 40)
-        blitter.copy_rect(textdata.text_bitmap_words, text_screen, textdata.TEXT_WIDTH_WORDS, textdata.TEXT_HEIGHT, 0, 26, $f0, 0)
+        ; Copy the generated monochrome message into the reserved bottom strip of BOTH bitplanes.
+        pointer text_screen1 = bitplane1 + (TEXT_Y * 40)
+        pointer text_screen2 = bitplane2 + (TEXT_Y * 40)
+        blitter.copy_rect(textdata.text_bitmap_words, text_screen1, textdata.TEXT_WIDTH_WORDS, textdata.TEXT_HEIGHT, 0, 26, $f0, 0)
+        blitter.wait()
+        blitter.copy_rect(textdata.text_bitmap_words, text_screen2, textdata.TEXT_WIDTH_WORDS, textdata.TEXT_HEIGHT, 0, 26, $f0, 0)
         blitter.wait()
 
         const ubyte VERTEX_COUNT = 20
@@ -162,6 +180,17 @@ main {
         while not custom.left_button() {
             word[VERTEX_COUNT] px
             word[VERTEX_COUNT] py
+
+            ; Wait for vertical blank, then ensure blitter is done before swapping.
+            custom.waitvsync()
+            blitter.wait()
+            update_copper_bitplane(copper_list, back_bitplane)
+            pointer temp = current_bitplane
+            current_bitplane = back_bitplane
+            back_bitplane = temp
+
+            ; Clear the back buffer and prepare for drawing.
+            blitter.clear_plane(back_bitplane, 20, TEXT_Y)
 
             ; Build the fixed-point rotation matrix and rotate all vertices.
             word wcosa = cos8_fixed(angle_x)
@@ -207,8 +236,6 @@ main {
                     py[i] = TEXT_Y - 1
             }
 
-            custom.waitvsync()
-            blitter.clear_plane(bitplane, 20, TEXT_Y)
             blitter.line_init($ffff, $8000, $ffff, 40)
 
             ; Draw the dodecahedron skeleton with the hardware line blitter.
@@ -216,7 +243,7 @@ main {
             for e in 0 to EDGE_COUNT - 1 {
                 ubyte v1 = edgesFrom[e]
                 ubyte v2 = edgesTo[e]
-                blitter.line_draw(px[v1] as uword, py[v1] as uword, px[v2] as uword, py[v2] as uword, 40, bitplane)
+                blitter.line_draw(px[v1] as uword, py[v1] as uword, px[v2] as uword, py[v2] as uword, 40, back_bitplane)
             }
 
             angle_x += ROT_X_SPEED
@@ -226,7 +253,8 @@ main {
 
         custom.return_system()
         exec.FreeMem(copper_list, 512)
-        exec.FreeMem(bitplane, 10240)
+        exec.FreeMem(bitplane1, 10240)
+        exec.FreeMem(bitplane2, 10240)
     }
 
     sub sin8_fixed(uword angle) -> word {

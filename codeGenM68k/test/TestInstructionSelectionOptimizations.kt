@@ -105,6 +105,36 @@ class TestInstructionSelectionOptimizations : FunSpec({
         lines.any { it == "moveq  #0,d1" } shouldBe false
     }
 
+    test("byte modulus takes the remainder via swap without corrupting shifts") {
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-byte-mod"),
+            listOf(
+                IRInstruction(Opcode.MODR, IRDataType.BYTE, reg1 = 1, reg2 = 2),
+                IRInstruction(Opcode.MODSR, IRDataType.BYTE, reg1 = 3, reg2 = 4)
+            )
+        )
+
+        lines.count { it == "divu.w  d1,d0" } shouldBe 1
+        lines.count { it == "divs.w  d1,d0" } shouldBe 1
+        lines.count { it.startsWith("lsr.l") } shouldBe 0
+        lines.count { it.startsWith("swap  d0") } shouldBe 2
+    }
+
+    test("word and long multiplication use memory sources instead of loading both operands") {
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-mul-memsrc"),
+            listOf(
+                IRInstruction(Opcode.MULR, IRDataType.WORD, reg1 = 1, reg2 = 2),
+                IRInstruction(Opcode.MULR, IRDataType.LONG, reg1 = 3, reg2 = 4)
+            )
+        )
+
+        lines.count { it == "mulu.w  p8_regfile+2,d0" } shouldBe 1
+        lines.count { it == "mulu.l  p8_regfile+8,d0" } shouldBe 1
+        lines.count { it.startsWith("move.w  p8_regfile+2,d1") } shouldBe 0
+        lines.count { it.startsWith("move.l  p8_regfile+8,d1") } shouldBe 0
+    }
+
     test("forwards an immediate load into a following hardware-register call argument") {
         val args = FunctionCallArgs(
             listOf(

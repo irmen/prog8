@@ -10,6 +10,12 @@ blitter {
     ; WIDTH LIMITATION: The blitter can only handle 64 words (1024 pixels) width per operation.
     ; Standard Amiga screens (320/640 pixels) fit within this limit.
     ; For wider images, split the blit into multiple operations manually.
+    ;
+    ; WAITING BEHAVIOR: All blitter operations wait for the blitter to become idle
+    ; at the START of the call, but do NOT wait for the operation to finish before
+    ; returning. This allows the CPU to continue working while the blitter runs.
+    ; Call blitter.wait() explicitly when you need to ensure the blitter has completed
+    ; (e.g., before reading back modified memory or swapping display buffers).
 
     const uword MINTERM_MASKED = $CA    ; (A AND B) OR (NOT A AND C) - masked sprite blit
     const uword MINTERM_A_ONLY = $F0    ; channel A only (same as COPY)
@@ -17,6 +23,8 @@ blitter {
     const uword MINTERM_A_XOR_C = $5A   ; A XOR C (erase/restore patterns)
 
     asmsub wait() {
+        ; Wait until the blitter is completely idle.
+        ; Use this before reading back blitter-modified memory or swapping buffers.
         %asm {{
 .busy:
         btst.b  #6,custom.DMACONR
@@ -25,6 +33,8 @@ blitter {
         }}
     }
 
+    ; Copy a rectangular block from src to dst.
+    ; Waits for blitter idle at start, returns immediately after triggering the blit.
     asmsub copy_rect(pointer src @A0, pointer dst @A1, uword width_words @D0, uword height @D1, uword src_mod @D2, uword dst_mod @D3, uword minterm @D4, ubyte descending @D5) clobbers (D0,D1,D2,D3,D4,D5,A0,A1) {
         %asm {{
         movem.l d2-d7/a2-a6,-(sp)
@@ -89,6 +99,8 @@ blitter {
         }}
     }
 
+    ; Fill a rectangular block with a pattern.
+    ; Waits for blitter idle at start, returns immediately after triggering the blit.
     asmsub fill_rect(pointer dst @A0, uword width_words @D0, uword height @D1, uword pattern @D2, uword modulo @D3) clobbers (D0,D1,D2,D3,A0) {
         %asm {{
         movem.l d2-d7/a2-a6,-(sp)
@@ -119,6 +131,7 @@ blitter {
     ; pixel: line pixel pattern in BLTADAT (usually $8000 for single pixel)
     ; pattern: line fill pattern in BLTBDAT (usually $ffff for solid lines)
     ; screen_mod: bytes per row of the destination bitplane (pitch)
+    ; Waits for blitter idle at start, returns immediately after setup.
     asmsub line_init(uword mask @D0, uword pixel @D1, uword pattern @D2, uword screen_mod @D4) clobbers (D0,D1,D2,D4,A0,A1) {
         %asm {{
         movem.l d2-d7/a2-a6,-(sp)
@@ -145,6 +158,7 @@ blitter {
     ; x2, y2: ending coordinates
     ; screen_mod: bytes per row of the destination bitplane (pitch)
     ; screen_ptr: pointer to bitplane memory (CHIP RAM)
+    ; Waits for blitter idle at start, returns immediately after triggering the blit.
     asmsub line_draw(uword x1 @D0, uword y1 @D1, uword x2 @D2, uword y2 @D3, uword screen_mod @D4, pointer screen_ptr @A1) clobbers (D0,D1,D2,D3,D5,D6,A0,A1) {
         %asm {{
         movem.l d2-d7/a2-a6,-(sp)
@@ -228,6 +242,8 @@ OctTbl:
         }}
     }
 
+    ; Masked blit: copy src to dst using a mask channel.
+    ; Waits for blitter idle at start, returns immediately after triggering the blit.
     asmsub masked_blit(pointer src @A0, pointer mask @A1, pointer dst @A2, uword width_words @D0, uword height @D1, uword src_mod @D2, uword mask_mod @D3, uword dst_mod @D4) clobbers (D0,D1,D2,D3,D4,A0,A1,A2) {
         %asm {{
         movem.l d2-d7/a2-a6,-(sp)
@@ -257,6 +273,8 @@ OctTbl:
         }}
     }
 
+    ; Clear a rectangular region of a bitplane to zero.
+    ; Waits for blitter idle at start, returns immediately after triggering the blit.
     asmsub clear_plane(pointer dst @A0, uword width_words @D0, uword height @D1) clobbers (D0,D1,A0) {
         %asm {{
         movem.l d2-d7/a2-a6,-(sp)
@@ -272,7 +290,6 @@ OctTbl:
         lsl.w   #6,d1
         or.w    d0,d1
         move.w  d1,custom.BLTSIZE
-        bsr     .wait_blt
         movem.l (sp)+,d2-d7/a2-a6
         rts
 .wait_blt:
@@ -285,6 +302,7 @@ OctTbl:
     ; Fill an entire bitplane (or any width_words x height block) with a 16-bit pattern.
     ; pattern: the value written to every word of the destination (e.g. $0000 clears,
     ;          $ffff fills solid, $aaaa produces a vertical stripe pattern).
+    ; Waits for blitter idle at start, returns immediately after triggering the blit.
     asmsub fill_plane(pointer dst @A0, uword width_words @D0, uword height @D1, uword pattern @D2) clobbers (D0,D1,D2,A0) {
         %asm {{
         movem.l d2-d7/a2-a6,-(sp)
@@ -300,7 +318,6 @@ OctTbl:
         lsl.w   #6,d1
         or.w    d0,d1
         move.w  d1,custom.BLTSIZE
-        bsr     .wait_blt
         movem.l (sp)+,d2-d7/a2-a6
         rts
 .wait_blt:
