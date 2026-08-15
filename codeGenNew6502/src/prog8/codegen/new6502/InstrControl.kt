@@ -352,12 +352,11 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
         Opcode.MSIGW -> {
             val dest = r1 ?: error("MSIGW needs reg1")
             val src = r2 ?: error("MSIGW needs reg2")
+            // dest is WORD (bytes 0-1 only), no need to zero bytes 2-3
             emitLine("lda  ${regAddrByte(src, 2)}")
             emitLine("sta  ${regAddrLo(dest)}")
             emitLine("lda  ${regAddrByte(src, 3)}")
             emitLine("sta  ${regAddrHi(dest)}")
-            emitStoreZero(regAddrByte(dest, 2))
-            emitStoreZero(regAddrByte(dest, 3))
         }
 
         Opcode.BSIGB -> {

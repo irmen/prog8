@@ -149,6 +149,87 @@ class TestInstructionSelectionOptimizations : FunSpec({
         lines.count { it.startsWith("move.l  p8_regfile+") && it.endsWith(",a0") } shouldBe 0
     }
 
+    test("signed word divmod omits redundant zero extension") {
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-divmod-word"),
+            listOf(
+                IRInstruction(Opcode.DIVMODR, IRDataType.WORD, reg1 = 1, reg2 = 2),
+                IRInstruction(Opcode.SDIVMODR, IRDataType.WORD, reg1 = 3, reg2 = 4)
+            )
+        )
+
+        lines.count { it.startsWith("moveq  #0,d0") && "clear upper word" in it } shouldBe 1
+        lines.count { it.startsWith("ext.l  d0") } shouldBe 1
+        lines.count { it.startsWith("divu.w  p8_regfile+") } shouldBe 1
+        lines.count { it.startsWith("divs.w  p8_regfile+") } shouldBe 1
+    }
+
+    test("byte and word extraction uses direct register-file loads") {
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-extract"),
+            listOf(
+                IRInstruction(Opcode.MSIGB, IRDataType.WORD, reg1 = 1, reg2 = 2),
+                IRInstruction(Opcode.MSIGB, IRDataType.LONG, reg1 = 3, reg2 = 4),
+                IRInstruction(Opcode.LSIGB, IRDataType.WORD, reg1 = 5, reg2 = 6),
+                IRInstruction(Opcode.LSIGB, IRDataType.LONG, reg1 = 7, reg2 = 8),
+                IRInstruction(Opcode.MSIGW, IRDataType.LONG, reg1 = 9, reg2 = 10),
+                IRInstruction(Opcode.LSIGW, IRDataType.LONG, reg1 = 11, reg2 = 12),
+                IRInstruction(Opcode.BSIGB, IRDataType.LONG, reg1 = 13, reg2 = 14),
+                IRInstruction(Opcode.MIDB, IRDataType.LONG, reg1 = 15, reg2 = 16)
+            )
+        )
+
+        lines.count { it.startsWith("lsr") } shouldBe 0
+        lines.count { it.startsWith("swap") } shouldBe 0
+        lines.count { it.startsWith("clr.w") } shouldBe 0
+        lines.count { it.startsWith("move.b  p8_regfile+") && ",d0" in it } shouldBe 4
+    }
+
+    test("lsb/msb on words and longs use direct byte loads") {
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-lsb-msb"),
+            listOf(
+                IRInstruction(Opcode.LSIGB, IRDataType.WORD, reg1 = 1, reg2 = 2),
+                IRInstruction(Opcode.LSIGB, IRDataType.LONG, reg1 = 3, reg2 = 4),
+                IRInstruction(Opcode.MSIGB, IRDataType.WORD, reg1 = 5, reg2 = 6),
+                IRInstruction(Opcode.MSIGB, IRDataType.LONG, reg1 = 7, reg2 = 8)
+            )
+        )
+
+        lines.count { it.startsWith("lsr") } shouldBe 0
+        lines.count { it.startsWith("swap") } shouldBe 0
+        lines.count { it.startsWith("move.b  p8_regfile+") && ",d0" in it } shouldBe 2
+    }
+
+    test("lsw/msw on longs use direct word loads") {
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-lsw-msw"),
+            listOf(
+                IRInstruction(Opcode.LSIGW, IRDataType.LONG, reg1 = 1, reg2 = 2),
+                IRInstruction(Opcode.MSIGW, IRDataType.LONG, reg1 = 3, reg2 = 4)
+            )
+        )
+
+        lines.count { it.startsWith("lsr") } shouldBe 0
+        lines.count { it.startsWith("swap") } shouldBe 0
+        lines.count { it.startsWith("clr.w") } shouldBe 0
+        lines.count { it.startsWith("move.w  p8_regfile+") && ",d0" in it } shouldBe 1
+    }
+
+    test("lmh uses BSIGB, MIDB, LSIGB") {
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-lmh"),
+            listOf(
+                IRInstruction(Opcode.BSIGB, IRDataType.LONG, reg1 = 1, reg2 = 2),
+                IRInstruction(Opcode.MIDB, IRDataType.LONG, reg1 = 3, reg2 = 4),
+                IRInstruction(Opcode.LSIGB, IRDataType.LONG, reg1 = 5, reg2 = 6)
+            )
+        )
+
+        lines.count { it.startsWith("lsr") } shouldBe 0
+        lines.count { it.startsWith("move.b  p8_regfile+") && ",d0" in it } shouldBe 2
+    }
+
     test("forwards an immediate load into a following hardware-register call argument") {
         val args = FunctionCallArgs(
             listOf(

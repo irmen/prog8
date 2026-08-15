@@ -205,44 +205,32 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
             val dstReg = r1 ?: error("MSIGB needs reg1")
             val srcReg = r2 ?: error("MSIGB needs reg2")
             val type = insn.type ?: IRDataType.WORD
-            when (type) {
-                IRDataType.WORD -> {
-                    emitLine("move.w  ${regAddr(srcReg)}, d0")
-                    emitLine("lsr.w  #8, d0")
-                }
-                IRDataType.LONG -> {
-                    emitLine("move.l  ${regAddr(srcReg)}, d0")
-                    emitLine("swap  d0")
-                    emitLine("lsr.w  #8, d0")
-                }
-                else -> TODO("MSIGB for ${type.name}")
-            }
+            // Big-endian: MSB is at byte offset 0 for both word and long.
+            emitLine("move.b  ${regAddrByte(srcReg, 0)}, d0")
             emitLine("move.b  d0, ${regAddr(dstReg)}")
         }
 
         Opcode.MSIGW -> {
             val dstReg = r1 ?: error("MSIGW needs reg1")
             val srcReg = r2 ?: error("MSIGW needs reg2")
-            emitLine("move.l  ${regAddr(srcReg)}, d0")
-            emitLine("swap  d0")
+            // Big-endian: word 0 (offset+0) is most significant. Extract directly.
+            emitLine("move.w  ${regAddrByte(srcReg, 0)}, d0")
             emitLine("move.w  d0, ${regAddr(dstReg)}")
-            emitLine("clr.w  ${regAddrByte(dstReg, 2)}")
         }
 
         Opcode.BSIGB -> {
             val dstReg = r1 ?: error("BSIGB needs reg1")
             val srcReg = r2 ?: error("BSIGB needs reg2")
-            emitLine("move.l  ${regAddr(srcReg)}, d0")
-            emitLine("lsr.l  #8, d0")
-            emitLine("lsr.l  #8, d0")
+            // Big-endian: bits 16-23 are at byte offset 1 of a long.
+            emitLine("move.b  ${regAddrByte(srcReg, 1)}, d0")
             emitLine("move.b  d0, ${regAddr(dstReg)}")
         }
 
         Opcode.MIDB -> {
             val dstReg = r1 ?: error("MIDB needs reg1")
             val srcReg = r2 ?: error("MIDB needs reg2")
-            emitLine("move.l  ${regAddr(srcReg)}, d0")
-            emitLine("lsr.l  #8, d0")
+            // Big-endian: bits 8-15 are at byte offset 2 of a long.
+            emitLine("move.b  ${regAddrByte(srcReg, 2)}, d0")
             emitLine("move.b  d0, ${regAddr(dstReg)}")
         }
 

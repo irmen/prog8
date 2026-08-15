@@ -72,8 +72,8 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction, suppressRegfileStore
             loadIndexToD0(idx)
             emitLine("lea  $target, a0")
             val sx = dtSuffix(type)
-            emitLine("move$sx  (a0,d0.w), d1")
-            emitLine("move$sx  d1, ${regAddr(dst)}")
+            emitLine("move$sx  (a0,d0.w), d0")
+            emitLine("move$sx  d0, ${regAddr(dst)}")
         }
 
         Opcode.LOADHR -> {

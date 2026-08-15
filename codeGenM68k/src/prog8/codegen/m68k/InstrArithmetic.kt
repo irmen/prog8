@@ -647,7 +647,7 @@ private fun AsmGen.emitDivModOp(dstReg: Int, remainderReg: Int, type: IRDataType
 
         IRDataType.WORD -> {
             val opDiv = if (unsigned) "divu.w" else "divs.w"
-            emitLine("moveq  #0, d0", "clear upper word")
+            if (unsigned) emitLine("moveq  #0, d0", "clear upper word for divu.w")
             emitLine("move.w  ${regAddr(dstReg)}, d0")
             if (!unsigned) emitLine("ext.l  d0", "sign-extend for divs.w")
             if(imm!=null) {

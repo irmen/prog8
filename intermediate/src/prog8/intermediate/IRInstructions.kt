@@ -499,6 +499,16 @@ enum class Opcode {
     POP,
     PUSHST,
     POPST,
+    // Byte/word extraction from larger registers.
+    // IMPORTANT: the destination register (reg1) has a DIFFERENT data type
+    // than the source register (reg2). reg1 is always BYTE or WORD, while
+    // reg2 is WORD or LONG (determined by the instruction's type field).
+    //   LSIGB: least significant byte  (reg1=BYTE, reg2=type from insn)
+    //   LSIGW: least significant word  (reg1=WORD, reg2=LONG)
+    //   MSIGB: most significant byte   (reg1=BYTE, reg2=type from insn)
+    //   MSIGW: most significant word   (reg1=WORD, reg2=LONG)
+    //   BSIGB: "bits 16-23" byte of long (reg1=BYTE, reg2=LONG)
+    //   MIDB:  "bits 8-15" byte of long (reg1=BYTE, reg2=LONG)
     LSIGB,
     LSIGW,
     MSIGB,

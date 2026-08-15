@@ -4,7 +4,7 @@
 %import blitter
 %import math
 
-; 3d spinning Dodecahedron with double buffering for smooth display on Amiga1200
+; 3d spinning Dodecahedron with double buffering for smooth display
 
 main {
     sub setup_copper(pointer bitplane, pointer copper_list) {
