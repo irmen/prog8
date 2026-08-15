@@ -135,6 +135,20 @@ class TestInstructionSelectionOptimizations : FunSpec({
         lines.count { it.startsWith("move.l  p8_regfile+8,d1") } shouldBe 0
     }
 
+    test("indirect jumps and calls use memory-indirect addressing on 68020") {
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-indirect"),
+            listOf(
+                IRInstruction(Opcode.JUMPI, reg1 = 1),
+                IRInstruction(Opcode.CALLI, reg1 = 2)
+            )
+        )
+
+        lines.count { it.startsWith("jmp  ([p8_regfile+") } shouldBe 1
+        lines.count { it.startsWith("jsr  ([p8_regfile+") } shouldBe 1
+        lines.count { it.startsWith("move.l  p8_regfile+") && it.endsWith(",a0") } shouldBe 0
+    }
+
     test("forwards an immediate load into a following hardware-register call argument") {
         val args = FunctionCallArgs(
             listOf(

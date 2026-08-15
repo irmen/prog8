@@ -37,8 +37,13 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
 
         Opcode.JUMPI -> {
             val reg = r1 ?: error("JUMPI needs reg1")
-            emitLine("move.l  ${regAddr(reg)}, a0")
-            emitLine("jmp  (a0)")
+            if(program.options.compTarget.cpu >= CpuType.M68020) {
+                // 68020+ supports memory-indirect addressing: fetch the target address from memory directly.
+                emitLine("jmp  ([${regAddr(reg)}])")
+            } else {
+                emitLine("move.l  ${regAddr(reg)}, a0")
+                emitLine("jmp  (a0)")
+            }
         }
 
         Opcode.CALL -> {
@@ -49,8 +54,13 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
 
         Opcode.CALLI -> {
             val reg = r1 ?: error("CALLI needs reg1")
-            emitLine("move.l  ${regAddr(reg)}, a0")
-            emitLine("jsr  (a0)")
+            if(program.options.compTarget.cpu >= CpuType.M68020) {
+                // 68020+ supports memory-indirect addressing: fetch the target address from memory directly.
+                emitLine("jsr  ([${regAddr(reg)}])")
+            } else {
+                emitLine("move.l  ${regAddr(reg)}, a0")
+                emitLine("jsr  (a0)")
+            }
         }
 
         Opcode.CALLFAR -> {
