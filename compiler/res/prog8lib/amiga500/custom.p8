@@ -212,6 +212,24 @@ S_PAL:      ds.w    1
         }}
     }
 
+    ; ========== audio filter =======
+
+    asmsub filter_on() {
+        ; ENABLE Audio Filter (Muffled audio / Dimmed Power LED)
+        %asm {{
+            bclr    #1,custom.CIAA_PRA       ; Set Bit 1 to LOW -> Filter ON
+            rts
+        }}
+    }
+
+    asmsub filter_off() {
+        ; DISABLE Audio Filter (Clear, crisp audio / Bright Power LED)
+        %asm {{
+            bset    #1,custom.CIAA_PRA       ; Set Bit 1 to HIGH -> Filter OFF
+            rts
+        }}
+    }
+
     ; ========== mouse button status ==========
 
     sub left_button() -> bool {

@@ -42,8 +42,12 @@ concise and practical.
   bit-field, or 32-bit multiply/divide instructions. The 68020 (`qemu68k`)
   adds those features and `extb.l`.
 - On 68000, sign-extend a byte with `ext.w` followed by `ext.l`.
-- `move.b` and `move.w` to a data register do not clear its upper bits. Use
-  `moveq #0,d0` first, or mask with `and.l #$ff` / `and.l #$ffff`.
+- `move.b` and `move.w` to a data register do not clear its upper bits. Like
+  `move.w` only writes the lower 16 bits, `move.b` only writes the lower 8 bits;
+  both leave all other bits of the register untouched. So zero-extending a byte
+  to long requires `moveq #0,d0` first, then `move.b src,d0`, then `move.l d0,dst`
+  (or mask with `and.l #$ff` / `and.l #$ffff`). Relying on `move.b` to clear the
+  upper bits is a common bug that corrupts values.
 - `movea` does not set condition codes; `move` does. Keep the stack word
   aligned and push words or longs, never bytes.
 

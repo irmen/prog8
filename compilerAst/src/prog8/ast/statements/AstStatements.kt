@@ -1109,7 +1109,7 @@ class InlineAssembly(val assembly: String, val isIR: Boolean, override val posit
 
     companion object {
         private val returnJumpRegex = Regex("""[ \t](return|returnr|returni|jump|jumpi)\b""")
-        private val rtsRegex = Regex("""[ \t](rti|rts|jmp|bra)\b""")
+        private val rtsRegex = Regex("""[ \t](rti|rts|jmp|bra)\b""", RegexOption.IGNORE_CASE)
     }
 
     fun hasReturnOrRts(): Boolean =
