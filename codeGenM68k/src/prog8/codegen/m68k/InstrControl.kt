@@ -41,7 +41,7 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
                 // 68020+ supports memory-indirect addressing: fetch the target address from memory directly.
                 emitLine("jmp  ([${regAddr(reg)}])")
             } else {
-                emitLine("move.l  ${regAddr(reg)}, a0")
+                emitLine("movea.l  ${regAddr(reg).removeSuffix("+0")}, a0")
                 emitLine("jmp  (a0)")
             }
         }
@@ -58,7 +58,7 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
                 // 68020+ supports memory-indirect addressing: fetch the target address from memory directly.
                 emitLine("jsr  ([${regAddr(reg)}])")
             } else {
-                emitLine("move.l  ${regAddr(reg)}, a0")
+                emitLine("movea.l  ${regAddr(reg).removeSuffix("+0")}, a0")
                 emitLine("jsr  (a0)")
             }
         }
@@ -611,11 +611,24 @@ private fun AsmGen.translateArgument(
             val s = dtSuffix(argReg.dt)
             if (value == 0)
                 emitLine("clr$s  $hwReg")
-            else
-                emitLine("move$s  #$value, $hwReg")
+            else {
+                // use moveq (2 bytes, 4 cycles) when the value fits in its signed 8-bit range;
+                // for byte args the value is unsigned 0-255, so map 128-255 to -128--1 (low byte is the same)
+                val moveqValue = if (argReg.dt == IRDataType.BYTE && value in 128..255) value - 256 else value
+                if (moveqValue in -128..127)
+                    emitLine("moveq  #$moveqValue, $hwReg")
+                else
+                    emitLine("move$s  #$value, $hwReg")
+            }
         } else {
-            val s = dtSuffix(argReg.dt)
-            emitLine("move$s  ${regAddr(argReg.registerNum.value)}, $hwReg")
+            val source = regAddr(argReg.registerNum.value)
+            if (hwReg.startsWith("a") && argReg.dt in setOf(IRDataType.LONG, IRDataType.POINTER)) {
+                // loading a pointer into an address register; movea.l is the proper form and skips the +0 offset
+                emitLine("movea.l  ${source.removeSuffix("+0")}, $hwReg")
+            } else {
+                val s = dtSuffix(argReg.dt)
+                emitLine("move$s  $source, $hwReg")
+            }
         }
     } else {
         // Store to the callee's parameter variable (if this is a named param)

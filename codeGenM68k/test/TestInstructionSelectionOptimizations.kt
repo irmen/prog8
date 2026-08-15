@@ -314,6 +314,79 @@ class TestInstructionSelectionOptimizations : FunSpec({
         lines.any { it == "move.w  #384,d0" } shouldBe true
     }
 
+    test("uses moveq for forwarded small immediate call arguments") {
+        val args = FunctionCallArgs(
+            listOf(
+                FunctionCallArgs.ArgumentSpec("", null, FunctionCallArgs.RegSpec(IRDataType.WORD, RegisterNum(1), CallingConventionSlot(10), null)),
+                FunctionCallArgs.ArgumentSpec("", null, FunctionCallArgs.RegSpec(IRDataType.BYTE, RegisterNum(2), CallingConventionSlot(11), null))
+            ),
+            emptyList()
+        )
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-call-forward-moveq"),
+            listOf(
+                IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1 = 1, immediate = 100),
+                IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = 2, immediate = 48),
+                IRInstruction(Opcode.CALL, labelSymbol = "copper.wait", fcallArgs = args)
+            )
+        )
+
+        lines.any { it == "moveq  #100,d0" } shouldBe true
+        lines.any { it == "moveq  #48,d1" } shouldBe true
+        lines.any { it == "move.w  #100,d0" } shouldBe false
+        lines.any { it == "move.b  #48,d1" } shouldBe false
+    }
+
+    test("maps byte values 128-255 to signed moveq range for forwarded arguments") {
+        val args = FunctionCallArgs(
+            listOf(
+                FunctionCallArgs.ArgumentSpec("", null, FunctionCallArgs.RegSpec(IRDataType.BYTE, RegisterNum(1), CallingConventionSlot(10), null))
+            ),
+            emptyList()
+        )
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-call-forward-moveq-signed"),
+            listOf(
+                IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = 1, immediate = 200),
+                IRInstruction(Opcode.CALL, labelSymbol = "copper.wait", fcallArgs = args)
+            )
+        )
+
+        lines.any { it == "moveq  #-56,d0" } shouldBe true
+        lines.any { it == "move.b  #200,d0" } shouldBe false
+    }
+
+    test("keeps move.w for forwarded immediates that do not fit moveq range") {
+        val args = FunctionCallArgs(
+            listOf(
+                FunctionCallArgs.ArgumentSpec("", null, FunctionCallArgs.RegSpec(IRDataType.WORD, RegisterNum(1), CallingConventionSlot(10), null))
+            ),
+            emptyList()
+        )
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-call-forward-nomoveq"),
+            listOf(
+                IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1 = 1, immediate = 384),
+                IRInstruction(Opcode.CALL, labelSymbol = "copper.move", fcallArgs = args)
+            )
+        )
+
+        lines.any { it == "move.w  #384,d0" } shouldBe true
+        lines.any { it == "moveq  #384,d0" } shouldBe false
+    }
+
+    test("loads pointers into a0 with movea and without a +0 offset") {
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-pointer-a0"),
+            listOf(
+                IRInstruction(Opcode.STOREZI, IRDataType.WORD, reg1 = 1, immediate = 1)
+            )
+        )
+
+        lines.any { it == "movea.l  p8_regfile,a0" } shouldBe true
+        lines.any { it.startsWith("move.l  p8_regfile") } shouldBe false
+    }
+
     test("does not forward across an intervening instruction") {
         val args = FunctionCallArgs(
             listOf(

@@ -188,7 +188,9 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
 
     fun loadPointerToA0(reg: Int) {
         // load a 32-bit pointer from the register file into a0
-        emitLine("move.l  ${regAddr(reg)}, a0")
+        val offset = regFileLayout.offsets[reg] ?: error("register r$reg has no layout info")
+        val addr = if (offset == 0) REGFILE_LABEL else "$REGFILE_LABEL+$offset"
+        emitLine("movea.l  $addr, a0")
     }
 
 
