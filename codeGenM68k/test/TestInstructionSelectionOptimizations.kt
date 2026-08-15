@@ -93,6 +93,18 @@ class TestInstructionSelectionOptimizations : FunSpec({
         lines.any { it == "move.b  #255,d0" } shouldBe true
     }
 
+    test("compares a virtual register directly against memory") {
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-compare"),
+            listOf(IRInstruction(Opcode.CMP, IRDataType.BYTE, reg1 = 1, reg2 = 2))
+        )
+
+        lines.any { it == "move.b  p8_regfile+0,d0" } shouldBe true
+        lines.any { it == "cmp.b  p8_regfile+2,d0" } shouldBe true
+        lines.any { it == "moveq  #0,d0" } shouldBe false
+        lines.any { it == "moveq  #0,d1" } shouldBe false
+    }
+
     test("forwards an immediate load into a following hardware-register call argument") {
         val args = FunctionCallArgs(
             listOf(

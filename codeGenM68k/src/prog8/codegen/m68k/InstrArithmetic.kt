@@ -322,9 +322,9 @@ internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
         Opcode.CMP -> {
             val leftReg = insn.reg1 ?: error("CMP needs reg1")
             val rightReg = insn.reg2 ?: error("CMP needs reg2")
-            loadRegToD0(leftReg)
-            loadRegToD1(rightReg)
-            emitLine("cmp${dtSuffix(type)}  d1, d0")
+            val s = dtSuffix(type)
+            emitLine("move$s  ${regAddr(leftReg)}, d0")
+            emitLine("cmp$s  ${regAddr(rightReg)}, d0")
         }
 
         Opcode.CMPI -> {
@@ -562,7 +562,6 @@ private fun AsmGen.emitModOp(dstReg: Int, srcReg: Int?, type: IRDataType, unsign
                     emitLine("move.b  ${regAddr(srcReg)}, d1")
                     if (unsigned) emitLine($$"and.l  #$ff, d1") else emitSignExtendByteToLong("d1")
                     emitLine("$opDiv.w  d1, d0")
-                    emitLine("lsr.l  #8, d0", "shift remainder to low byte")  // remainder in upper 16 bits after swap
                 }
                 imm != null -> {
                     emitLine("move.b  ${regAddr(dstReg)}, d0")
@@ -570,10 +569,7 @@ private fun AsmGen.emitModOp(dstReg: Int, srcReg: Int?, type: IRDataType, unsign
                     emitLine("$opDiv.w  #${imm.and(0xffff)}, d0")
                 }
             }
-            // After divu.w: remainder in upper 16 bits of d0 (bits 16-31 if 32-bit reg)
-            // Actually: divu.w divides 32-bit D0 by 16-bit divisor.
-            // After: quotient in lower 16 bits, remainder in upper 16 bits.
-            // So we need to shift right by 16 to get remainder in low word, then take low byte.
+            // After divu.w/divs.w: quotient in lower word, remainder in upper word of d0.
             emitLine("swap  d0", "remainder to low word")
             emitLine("move.b  d0, ${regAddr(dstReg)}", "remainder")
         }
