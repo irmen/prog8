@@ -5,6 +5,7 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.*
 import prog8.code.ast.PtContainmentCheck
+import prog8.code.core.BaseDataType
 import prog8.code.core.IErrorReporter
 
 
@@ -25,6 +26,41 @@ internal class LiteralsToAutoVarsAndRecombineIdentifiers(private val program: Pr
                     return noModifications
                 }
             }
+
+            // String literal used to initialize a sized ubyte/byte array field in a struct initializer:
+            // convert to an ArrayLiteral of byte values using C-style semantics
+            // (encoded string bytes padded with zero bytes up to arraySize; an implicit 0
+            // terminator is included only when the string is shorter than the array).
+            // The struct initializer may be a StaticStructInitializer directly (typed form:
+            // ^^Struct : [...] ) or an ArrayLiteral that is the value of a VarDecl of a struct
+            // pointer (inferred form: ^^Struct x = [...]).
+            val structFieldInfo = findStructFieldForStringLiteral(string)
+            if(structFieldInfo != null) {
+                val (_, field) = structFieldInfo
+                val baseDt = when {
+                    field.type.isUnsignedByteArray -> BaseDataType.UBYTE
+                    field.type.isSignedByteArray -> BaseDataType.BYTE
+                    else -> null
+                }
+                if(baseDt != null) {
+                    val arraySize = field.arraySize!!
+                    val encoded = program.target.encodeString(string.value, string.encoding)
+                    if(encoded.size > arraySize) {
+                        errors.err("string literal (${encoded.size} bytes) does not fit in ${baseDt.name.lowercase()} array field '${field.name}' of size $arraySize", string.position)
+                        return noModifications
+                    }
+                    // Pad with zero bytes to fill the rest of the array. The trailing zeros act as
+                    // an implicit 0 terminator when the string was shorter than the array.
+                    val padded = encoded + List(arraySize - encoded.size) { 0u.toUByte() }
+                    val arrayLit = stringToByteArrayLiteral(string, padded, baseDt)
+                    if(arrayLit == null) {
+                        errors.err("string literal contains bytes > 127 which do not fit in the signed byte array field '${field.name}'", string.position)
+                        return noModifications
+                    }
+                    return listOf(AstReplaceNode(string, arrayLit, parent))
+                }
+            }
+
             val isInStruct = findParentNode<StaticStructInitializer>(string) != null
             val scopedName = program.internString(string, deduplicate = !isInStruct)
             val identifier = IdentifierReference(scopedName, string.position)
@@ -32,6 +68,41 @@ internal class LiteralsToAutoVarsAndRecombineIdentifiers(private val program: Pr
         }
         return noModifications
     }
+
+    // Returns (StructDecl, target StructField) if this string literal occupies the position of
+    // a struct initializer argument, else null. Caller still has to verify the field is a
+    // ubyte/byte array.
+    private fun findStructFieldForStringLiteral(string: StringLiteral): Pair<StructDecl, StructField>? {
+        // Typed form: ^^Struct : ["abc", ...]
+        val structInit = findParentNode<StaticStructInitializer>(string)
+        if(structInit != null) {
+            val struct = structInit.structname.targetStructDecl() ?: return null
+            val idx = structInit.args.indexOf(string)
+            return struct.fields.getOrNull(idx)?.let { struct to it }
+        }
+        // Inferred form: ^^Struct x = [..., "abc", ...]  (the outer ArrayLiteral becomes a StaticStructInitializer)
+        val outerArray = string.parent as? ArrayLiteral ?: return null
+        val vardecl = outerArray.parent as? VarDecl ?: return null
+        val dt = vardecl.datatype
+        val struct = when {
+            dt.isPointerArray -> dt.elementType().subType as? StructDecl
+            dt.isPointer -> dt.subType as? StructDecl
+            else -> null
+        } ?: return null
+        val idx = outerArray.value.indexOf(string)
+        return struct.fields.getOrNull(idx)?.let { struct to it }
+    }
+
+    private fun stringToByteArrayLiteral(string: StringLiteral, bytes: List<UByte>, baseDt: BaseDataType): ArrayLiteral? {
+        if(baseDt == BaseDataType.BYTE && bytes.any { it.toInt() > 127 })
+            return null
+        val elements: Array<Expression> = bytes.map {
+            NumericLiteral(baseDt, if(baseDt == BaseDataType.BYTE) it.toByte().toDouble() else it.toDouble(), string.position)
+        }.toTypedArray()
+        return ArrayLiteral(InferredTypes.InferredType.unknown(), elements, string.position)
+    }
+
+
 
     override fun after(array: ArrayLiteral, parent: Node): Iterable<AstModification> {
         if (findParentNode<StaticStructInitializer>(array) != null) return noModifications
