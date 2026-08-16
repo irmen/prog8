@@ -53,6 +53,7 @@ class TestCodegen: FunSpec({
         sub.add(PtVariable(
             "pi",
             DataType.UBYTE,
+            false,
             ZeropageWish.DONTCARE,
             0u,
             false,
@@ -63,6 +64,7 @@ class TestCodegen: FunSpec({
         sub.add(PtVariable(
             "particleX",
             DataType.arrayFor(BaseDataType.UBYTE, compTarget),
+            false,
             ZeropageWish.DONTCARE,
             0u,
             false,
@@ -73,6 +75,7 @@ class TestCodegen: FunSpec({
         sub.add(PtVariable(
             "particleDX",
             DataType.arrayFor(BaseDataType.UBYTE, compTarget),
+            false,
             ZeropageWish.DONTCARE,
             0u,
             false,
@@ -83,6 +86,7 @@ class TestCodegen: FunSpec({
         sub.add(PtVariable(
             "xx",
             DataType.WORD,
+            false,
             ZeropageWish.DONTCARE,
             0u,
             false,
@@ -93,13 +97,13 @@ class TestCodegen: FunSpec({
 
         val assign = PtAugmentedAssign("+=", Position.DUMMY)
         val target = PtAssignTarget(false, Position.DUMMY).also {
-            val targetIdx = PtArrayIndexer(DataType.UBYTE, Position.DUMMY).also { idx ->
+            val targetIdx = PtArrayIndexer(DataType.UBYTE, false, Position.DUMMY).also { idx ->
                 idx.add(PtIdentifier("main.start.particleX", DataType.arrayFor(BaseDataType.UBYTE, compTarget), Position.DUMMY))
                 idx.add(PtNumber(BaseDataType.UBYTE, 2.0, Position.DUMMY))
             }
             it.add(targetIdx)
         }
-        val value = PtArrayIndexer(DataType.UBYTE, Position.DUMMY)
+        val value = PtArrayIndexer(DataType.UBYTE, false, Position.DUMMY)
         value.add(PtIdentifier("main.start.particleDX", DataType.arrayFor(BaseDataType.UBYTE, compTarget), Position.DUMMY))
         value.add(PtNumber(BaseDataType.UBYTE, 2.0, Position.DUMMY))
         assign.add(target)

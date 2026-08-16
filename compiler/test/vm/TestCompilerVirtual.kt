@@ -33,9 +33,8 @@ main {
     sub start() {
         str localstr = "hello"
         ubyte[] otherarray = [1,2,3]
-        uword[] @nosplit words = [1111,2222,"three",&localstr,&otherarray]
-        uword @shared zz = &words
-        bool result = 2222 in words
+        pointer[] @nosplit words = [1111,2222,"three",&localstr,&otherarray]
+        pointer @shared zz = &words
         zz = words[2]
         zz++
         zz = words[3]
@@ -52,9 +51,8 @@ main {
     sub start() {
         str localstr = "hello"
         ubyte[] otherarray = [1,2,3]
-        uword[] words = [1111,2222,"three",&localstr,&otherarray]
-        uword @shared zz = &words
-        bool result = 2222 in words
+        pointer[] words = [1111,2222,"three",&localstr,&otherarray]
+        pointer @shared zz = &words
         zz = words[2]
         zz++
         zz = words[3]
@@ -71,13 +69,13 @@ main {
     sub start() {
         cx16.r0L=0
         if cx16.r0L==0 {
-            uword[] addresses = [scores2, start]
+            pointer[] addresses = [scores2, start]
             uword[] scores1 = [10, 25, 50, 100]
             uword[] scores2 = [100, 250, 500, 1000]
 
-            cx16.r0 = &scores1
-            cx16.r1 = &scores2
-            cx16.r2 = &addresses
+            pointer addr1 = &scores1
+            pointer addr2 = &scores2
+            pointer addr3 = &addresses
         }
     }
 }"""
@@ -211,7 +209,7 @@ skipLABEL:
         val src = """
 main {
     sub start() {
-        uword slab1 = memory("slab1", 2000, 64)
+        pointer slab1 = memory("slab1", 2000, 64)
         slab1[10]=42
         slab1[11]=43
         ubyte @shared value1 = slab1[10]     ; var at 2
@@ -340,11 +338,11 @@ main {
 
 mylabel:
         ubyte variable
-        uword @shared pointer1 = &main.start
-        uword @shared pointer2 = &start
-        uword @shared pointer3 = &main.start.mylabel
-        uword @shared pointer4 = &mylabel
-        uword[] @shared ptrs = [&variable, &start, &main.start, &mylabel, &main.start.mylabel]
+        pointer @shared pointer1 = &main.start
+        pointer @shared pointer2 = &start
+        pointer @shared pointer3 = &main.start.mylabel
+        pointer @shared pointer4 = &mylabel
+        pointer[] @shared ptrs = [&variable, &start, &main.start, &mylabel, &main.start.mylabel]
     }
 }
 
@@ -366,7 +364,7 @@ main $1000 {
 }
 other {
     sub start() {
-        uword @shared ptr = &main
+        pointer @shared ptr = &main
     }
 }
 """
@@ -555,7 +553,7 @@ main {
         start.children.size shouldBe 12
         val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         VmRunner().runAndTestProgram(virtfile.readText()) { vm ->
-            vm.memory.getUW(0xff02u) shouldBe 3837u      // $ff02 = cx16.r0
+            vm.memory.getUW(0xff0000u) shouldBe 3837u      // $ff0000 = cx16.r0
         }
     }
 
@@ -608,7 +606,7 @@ main {
         start.children.size shouldBe 22
         val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         VmRunner().runAndTestProgram(virtfile.readText()) { vm ->
-            vm.memory.getUW(0xff02u) shouldBe 3837u      // $ff02 = cx16.r0
+            vm.memory.getUW(0xff0000u) shouldBe 3837u      // $ff0000 = cx16.r0
         }
     }
 
@@ -947,7 +945,7 @@ main {
     }
     
     ^^State @shared matchstatePtr
-    uword @shared lastlistPtr
+    pointer @shared lastlistPtr
 }"""
         val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = true)!!
         val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
@@ -1135,11 +1133,10 @@ main {
     test("memory() in array should not crash IRFileWriter") {
         val code = """
             %zeropage basicsafe
-            %import textio
             main {
-                uword[2] addresses = [ memory("a1", 10, 0), memory("a2", 20, 0) ]
+                pointer[2] addresses = [ memory("a1", 10, 0), memory("a2", 20, 0) ]
                 sub start() {
-                    txt.print_uw(addresses[0])
+                    pointer @shared a = addresses[0]
                 }
             }
         """.trimIndent()
@@ -1154,13 +1151,12 @@ main {
     test("LONG constants and variables should not crash IRFileWriter") {
         val code = """
             %zeropage basicsafe
-            %import textio
             main {
                 const long CL = $12345678
                 long vl = $87654321
                 sub start() {
-                    txt.print_l(CL)
-                    txt.print_l(vl)
+                    long @shared v1 = CL
+                    long @shared v2 = vl
                 }
             }
         """.trimIndent()
@@ -1199,9 +1195,9 @@ main {
                 }
 
                 sub read_data() -> uword {
-                    ^^uword ptr = &main.data
-                    ptr = ptr^^
-                    return ptr
+                    long ptr = &main.data
+                    uword val = peekw(ptr)
+                    return val
                 }
             }
         """.trimIndent()

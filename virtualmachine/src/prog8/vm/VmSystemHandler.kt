@@ -31,8 +31,8 @@ internal fun VirtualMachine.gfx_getpixel(x: UShort, y: UShort): UByte {
     }
 }
 
-internal fun VirtualMachine.gfx_text(xx: UShort, yy: UShort, textptr: UShort, color: UByte) {
-    val text = memory.getString(textptr.toUInt())
+internal fun VirtualMachine.gfx_text(xx: UShort, yy: UShort, textptr: UInt, color: UByte) {
+    val text = memory.getString(textptr)
     window?.drawText(xx.toInt(), yy.toInt(), text, color.toInt())
 }
 

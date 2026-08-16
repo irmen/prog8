@@ -89,7 +89,6 @@ val BaseDataType.isArray get() = this == BaseDataType.ARRAY || this == BaseDataT
 val BaseDataType.isPointer get() = this == BaseDataType.POINTER
 val BaseDataType.isStructInstance get() = this == BaseDataType.STRUCT_INSTANCE
 val BaseDataType.isPointerArray get() = this == BaseDataType.ARRAY_POINTER
-val BaseDataType.isSplitWordArray get() = this == BaseDataType.ARRAY_SPLITW || this == BaseDataType.ARRAY_POINTER
 val BaseDataType.isIterable get() =  this in setOf(BaseDataType.STR, BaseDataType.ARRAY, BaseDataType.ARRAY_SPLITW, BaseDataType.ARRAY_POINTER)
 val BaseDataType.isPassByRef get() = this.isIterable && !this.isPointer
 val BaseDataType.isPassByValue get() = !this.isIterable || this.isPointer
@@ -468,12 +467,18 @@ class DataType private constructor(
     val isBool = base == BaseDataType.BOOL
     val isFloat = base == BaseDataType.FLOAT
     val isLong = base == BaseDataType.LONG
-    fun isStringly(target: ICompilationTarget): Boolean =
+    fun isStringly(memsizer: IMemSizer): Boolean =
         base == BaseDataType.STR ||
-        (target.POINTER_MEM_SIZE == 2u && base == BaseDataType.UWORD) ||
-        (target.POINTER_MEM_SIZE > 2u && base == BaseDataType.LONG) ||
+        (memsizer.POINTER_MEM_SIZE == 2u && base == BaseDataType.UWORD) ||
+        (memsizer.POINTER_MEM_SIZE > 2u && base == BaseDataType.LONG) ||
         (base == BaseDataType.ARRAY && (sub == BaseDataType.UBYTE || sub == BaseDataType.BYTE))
-    val isSplitWordArray = base.isSplitWordArray
+    fun isSplitWordArray(memsizer: IMemSizer): Boolean  {
+        return if(base== BaseDataType.ARRAY_SPLITW)
+            true
+        else if(base==BaseDataType.ARRAY_POINTER)
+            memsizer.POINTER_MEM_SIZE<=2u
+        else false
+    }
     val isSplitUnsignedWordArray = base == BaseDataType.ARRAY_SPLITW && sub == BaseDataType.UWORD
     val isSplitSignedWordArray = base == BaseDataType.ARRAY_SPLITW && sub == BaseDataType.WORD
     val isIterable =  base.isIterable

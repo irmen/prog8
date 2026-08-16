@@ -33,6 +33,15 @@ class IRCodeGen(
     // on 32-bit targets, LOADX/STOREX/STOREZX use a word index register (0-32767) instead of a byte (0-255)
     internal val wordArrayIndex: Boolean = options.compTarget.POINTER_MEM_SIZE > 2u
 
+    /**
+     * The IR data type to use for a memory address on the current target.
+     * On 32-bit-pointer targets (VM) this is LONG (32-bit signed); on 16-bit-pointer
+     * targets (6502) this is WORD (16-bit unsigned). Use this everywhere the IR
+     * generator emits a register or argument that holds a memory address.
+     */
+    internal val addressDt: IRDataType
+        get() = addressDtFor(options.compTarget)
+
     fun generate(): IRProgram {
         // The pure "virtual" (VM) target doesn't need symbol prefixing because the VM
         // doesn't emit assembly and has no risk of symbol clashes.  Any other target
@@ -189,7 +198,7 @@ class IRCodeGen(
                 continue
             if(variable.zpwish == ZeropageWish.DONTCARE || variable.zpwish == ZeropageWish.NOT_IN_ZEROPAGE)
                 continue
-            if(variable.dt.isSplitWordArray)
+            if(variable.dt.isSplitWordArray(irProg.options.compTarget))
                 continue
             if(variable.initializationValue is IRVariableInitializer.Numeric)
                 continue
@@ -269,15 +278,16 @@ class IRCodeGen(
             )
             irProg.st.add(clearedVar)
 
-            val sourceReg = registers.next(IRDataType.POINTER)
-            val destReg = registers.next(IRDataType.POINTER)
+            val addressDt = addressDtFor(irProg.options.compTarget)
+            val sourceReg = registers.next(addressDt)
+            val destReg = registers.next(addressDt)
             val countReg = registers.next(IRDataType.WORD)
-            chunk += IRInstruction(Opcode.LOAD, IRDataType.POINTER, reg1 = sourceReg, labelSymbol = shadowName)
-            chunk += IRInstruction(Opcode.LOAD, IRDataType.POINTER, reg1 = destReg, labelSymbol = variable.name)
+            chunk += IRInstruction(Opcode.LOAD, addressDt, reg1 = sourceReg, labelSymbol = shadowName)
+            chunk += IRInstruction(Opcode.LOAD, addressDt, reg1 = destReg, labelSymbol = variable.name)
             chunk += IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1 = countReg, immediate = initBytes.size)
             val args = listOf(
-                FunctionCallArgs.ArgumentSpec("", null, FunctionCallArgs.RegSpec(IRDataType.POINTER, RegisterNum(sourceReg), null, null)),
-                FunctionCallArgs.ArgumentSpec("", null, FunctionCallArgs.RegSpec(IRDataType.POINTER, RegisterNum(destReg), null, null)),
+                FunctionCallArgs.ArgumentSpec("", null, FunctionCallArgs.RegSpec(addressDt, RegisterNum(sourceReg), null, null)),
+                FunctionCallArgs.ArgumentSpec("", null, FunctionCallArgs.RegSpec(addressDt, RegisterNum(destReg), null, null)),
                 FunctionCallArgs.ArgumentSpec("", null, FunctionCallArgs.RegSpec(IRDataType.WORD, RegisterNum(countReg), null, null))
             )
             chunk += IRInstruction(Opcode.SYSCALL, immediate = IMSyscall.MEMCOPY.number, fcallArgs = FunctionCallArgs(args, emptyList()))
@@ -739,7 +749,7 @@ class IRCodeGen(
                         result += jumpChunk
                         result += IRCodeChunk(endLabel, null)
                     }
-                    iterable.type.isSplitWordArray || iterable.type.isPointerArray -> {
+                    iterable.type.isSplitWordArray(options.compTarget) || iterable.type.isPointerArray -> {
                         if(elementDt!=IRDataType.WORD && elementDt!=IRDataType.POINTER)
                             throw AssemblyError("weird dt $elementDt")
                         addInstr(result, IRInstruction(Opcode.LOAD, indexRegType, reg1=indexReg, immediate = 0), null)
@@ -2272,3 +2282,12 @@ class IRCodeGen(
     }
 
 }
+
+/**
+ * Returns the IR data type to use for a memory address on [target].
+ * On 32-bit-pointer targets (VM, M68k) this is LONG (32-bit signed);
+ * on 16-bit-pointer targets (6502) this is WORD (16-bit unsigned).
+ * Use this everywhere the IR generator emits a register or argument that holds a memory address.
+ */
+internal fun addressDtFor(target: ICompilationTarget): IRDataType =
+    if(target.POINTER_MEM_SIZE > 2u) IRDataType.LONG else IRDataType.WORD

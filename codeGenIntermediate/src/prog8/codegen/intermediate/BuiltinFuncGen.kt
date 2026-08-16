@@ -201,7 +201,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         addToResult(result, bankTr, bankTr.resultReg, -1)
         addToResult(result, addressTr, addressTr.resultReg, -1)
         addToResult(result, argumentwordTr, argumentwordTr.resultReg, -1)
-        result += codeGen.makeSyscall(IMSyscall.CALLFAR, listOf(IRDataType.BYTE to bankTr.resultReg, IRDataType.WORD to addressTr.resultReg, IRDataType.WORD to argumentwordTr.resultReg), IRDataType.WORD to argumentwordTr.resultReg)
+        result += codeGen.makeSyscall(IMSyscall.CALLFAR, listOf(IRDataType.BYTE to bankTr.resultReg, codeGen.addressDt to addressTr.resultReg, IRDataType.WORD to argumentwordTr.resultReg), IRDataType.WORD to argumentwordTr.resultReg)
         return ExpressionCodeResult(result, IRDataType.WORD, argumentwordTr.resultReg, -1)
     }
 
@@ -219,7 +219,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         addToResult(result, argumentX, argumentX.resultReg, -1)
         addToResult(result, argumentY, argumentY.resultReg, -1)
         addToResult(result, argumentCarry, argumentCarry.resultReg, -1)
-        result += codeGen.makeSyscall(IMSyscall.CALLFAR2, listOf(IRDataType.BYTE to bankTr.resultReg, IRDataType.WORD to addressTr.resultReg,
+        result += codeGen.makeSyscall(IMSyscall.CALLFAR2, listOf(IRDataType.BYTE to bankTr.resultReg, codeGen.addressDt to addressTr.resultReg,
             IRDataType.BYTE to argumentA.resultReg,
             IRDataType.BYTE to argumentX.resultReg,
             IRDataType.BYTE to argumentY.resultReg,
@@ -294,7 +294,8 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         addToResult(result, left, left.resultReg, -1)
         addToResult(result, right, right.resultReg, -1)
         val resultReg = codeGen.registers.next(IRDataType.BYTE)
-        result += codeGen.makeSyscall(IMSyscall.COMPARE_STRINGS, listOf(left.dt to left.resultReg, right.dt to right.resultReg), IRDataType.BYTE to resultReg)
+        val addressDt = codeGen.addressDt
+        result += codeGen.makeSyscall(IMSyscall.COMPARE_STRINGS, listOf(addressDt to left.resultReg, addressDt to right.resultReg), IRDataType.BYTE to resultReg)
         return ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
     }
 

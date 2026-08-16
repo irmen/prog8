@@ -706,7 +706,7 @@ main {
     sub start() {
         const uword mem1 = memory("mem1", 10, 0)
         const uword const1 = 1000
-        uword[3] arr = [mem1, const1, memory("mem2", 20, 0)]
+        pointer[3] arr = [mem1, const1, memory("mem2", 20, 0)]
     }
 }"""
         compileText(VMTarget(), false, src, outputDir, writeAssembly = true) shouldNotBe null
@@ -717,7 +717,7 @@ main {
         val src = """
 main {
     sub start() {
-        uword[3] arr = [memory("m1", 10, 0), memory("m2", 20, 0), memory("m3", 30, 0)]
+        pointer[3] arr = [memory("m1", 10, 0), memory("m2", 20, 0), memory("m3", 30, 0)]
     }
 }"""
         compileText(VMTarget(), false, src, outputDir, writeAssembly = true) shouldNotBe null
@@ -728,12 +728,12 @@ main {
         val src = """
 main {
     struct Mixed {
-        uword ptr
+        pointer ptr
         uword value
     }
     
     sub start() {
-        const uword m = memory("struct_mem", 100, 0)
+        const pointer m = memory("struct_mem", 100, 0)
         const uword v = 5000
         ^^Mixed m1 = [m, v]
         ^^Mixed m2 = [memory("mem2", 50, 0), 1234]

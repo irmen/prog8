@@ -31,11 +31,21 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                     VarDeclType.VAR -> {
                         if(decl.isArray) {
                             // using a array of words as initializer to a pointer array is fine
-                            val ok = valueDt.isSplitWordArray && decl.datatype.isPointerArray ||
-                                    valueDt.isWordArray && decl.datatype.isPointerArray && decl.splitwordarray == SplitWish.DONTCARE && options.compTarget.POINTER_MEM_SIZE == 2u ||
+                            val ok = valueDt.isSplitWordArray(options.compTarget) && decl.datatype.isPointerArray ||
+                                    valueDt.isWordArray && decl.datatype.isPointerArray && decl.splitwordarray == SplitWish.DONTCARE ||
                                     decl.datatype.isLongArray && (valueDt.isPointerArray || valueDt.isWordArray)
-                            if (!ok)
-                                errors.err("value has incompatible type ($valueType) for the variable (${decl.datatype})", decl.value!!.position)
+                            if (!ok) {
+                                val splitNote = when {
+                                    valueDt.isSplitWordArray(options.compTarget) && decl.datatype.isSplitWordArray(options.compTarget) ->
+                                        " (both the value and the variable are split word arrays)"
+                                    valueDt.isSplitWordArray(options.compTarget) ->
+                                        " (the value is a split word array)"
+                                    decl.datatype.isSplitWordArray(options.compTarget) ->
+                                        " (the variable is a split word array)"
+                                    else -> ""
+                                }
+                                errors.err("value has incompatible type ($valueType) for the variable (${decl.datatype})$splitNote", decl.value!!.position)
+                            }
                         } else if(!decl.datatype.isString) {
                             if (valueDt.largerSizeThan(decl.datatype)) {
                                 val constValue = decl.value?.constValue(program)
@@ -97,7 +107,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
             var changeDataType: DataType?
             when(decl.splitwordarray) {
                 SplitWish.DONTCARE -> {
-                    changeDataType = if(decl.datatype.isSplitWordArray) {
+                    changeDataType = if(decl.datatype.isSplitWordArray(options.compTarget)) {
                         if(options.compTarget.POINTER_MEM_SIZE > 2u)
                             DataType.arrayFor(decl.datatype.elementType().base, options.compTarget)
                         else
@@ -113,7 +123,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                     }
                 }
                 SplitWish.NOSPLIT -> {
-                    changeDataType = if(decl.datatype.isSplitWordArray && !decl.datatype.elementType().isPointer)
+                    changeDataType = if(decl.datatype.isSplitWordArray(options.compTarget) && !decl.datatype.elementType().isPointer)
                         DataType.arrayFor(decl.datatype.elementType().base, options.compTarget)
                     else null
                 }

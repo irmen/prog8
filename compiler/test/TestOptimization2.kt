@@ -52,7 +52,7 @@ main {
 }
 
 some_block {
-    uword buffer = memory("arena", 2000, 0)
+    pointer buffer = memory("arena", 2000, 0)
 }
 
 

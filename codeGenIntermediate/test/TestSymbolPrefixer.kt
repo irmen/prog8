@@ -62,7 +62,7 @@ class TestSymbolPrefixer : FunSpec({
         val program = PtProgram("test", VMTarget())
         val block = PtBlock("main", false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
         val sub = PtSub("start", emptyList(), emptyList(), Position.DUMMY)
-        val varX = PtVariable("x", DataType.UBYTE, ZeropageWish.DONTCARE, 0u, false, null, null, Position.DUMMY)
+        val varX = PtVariable("x", DataType.UBYTE, false, ZeropageWish.DONTCARE, 0u, false, null, null, Position.DUMMY)
         sub.add(varX)
         block.add(sub)
         program.add(block)
@@ -270,7 +270,7 @@ class TestSymbolPrefixer : FunSpec({
         val program = PtProgram("test", VMTarget())
         val block = PtBlock("main", false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
         val sub = PtSub("start", emptyList(), emptyList(), Position.DUMMY)
-        val varX = PtVariable("x", DataType.UBYTE, ZeropageWish.DONTCARE, 0u, false, null, null, Position.DUMMY)
+        val varX = PtVariable("x", DataType.UBYTE, false, ZeropageWish.DONTCARE, 0u, false, null, null, Position.DUMMY)
         sub.add(varX)
 
         // Add an identifier reference to the variable
@@ -308,7 +308,7 @@ class TestSymbolPrefixer : FunSpec({
 })
 
 private fun basicTestOptions(): CompilationOptions {
-    val target = prog8.code.target.VMTarget()
+    val target = VMTarget()
     return CompilationOptions.builder(target)
         .output(OutputType.RAW)
         .zeropage(ZeropageType.DONTUSE)

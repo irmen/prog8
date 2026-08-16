@@ -413,11 +413,11 @@ class TestMemory: FunSpec({
             target.memorySize(DataType.LONG, null) shouldBe 4
             target.memorySize(DataType.FLOAT, null) shouldBe target.FLOAT_MEM_SIZE.toInt()
 
-            target.memorySize(DataType.STR, null) shouldBe 2
+            target.memorySize(DataType.STR, null) shouldBe target.POINTER_MEM_SIZE.toInt()
             target.memorySize(DataType.STR, 50) shouldBe 50
-            target.memorySize(BaseDataType.STR) shouldBe 2
-            target.memorySize(BaseDataType.ARRAY) shouldBe 2
-            target.memorySize(BaseDataType.ARRAY_SPLITW) shouldBe 2
+            target.memorySize(BaseDataType.STR) shouldBe target.POINTER_MEM_SIZE.toInt()
+            target.memorySize(BaseDataType.ARRAY) shouldBe target.POINTER_MEM_SIZE.toInt()
+            target.memorySize(BaseDataType.ARRAY_SPLITW) shouldBe target.POINTER_MEM_SIZE.toInt()
 
             target.memorySize(DataType.arrayFor(BaseDataType.BOOL, c64target), 10) shouldBe 10
             target.memorySize(DataType.arrayFor(BaseDataType.BYTE, c64target), 10) shouldBe 10

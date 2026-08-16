@@ -1,29 +1,17 @@
 main {
-
     sub start() {
-        str name = "name"
-        pointer nameptr = &name
-        bool result
-
-        result = name=="foo"
-        result = name!="foo"
-        result = name<"foo"
-        result = name>"foo"
-
-        result = nameptr=="foo"
-        result = nameptr!="foo"
-        result = nameptr<"foo"
-        result = nameptr>"foo"
-
-        void compare(name, "foo")
-        void compare(name, "name")
-        void compare(nameptr, "foo")
-        void compare(nameptr, "name")
+        uword err1, err2
+        uword val
+        err1, val, err2 = eval("42")
+        if err1 == 0 {
+            val += 1
+        }
     }
 
-    sub compare(str s1, str s2) -> ubyte {
-        if s1==s2
-            return 42
-        return 0
+    sub eval(str expr) -> str, uword, str {
+        if expr == 0 {
+            return "empty", 0, "empty2"
+        }
+        return 0, 42, 0
     }
 }

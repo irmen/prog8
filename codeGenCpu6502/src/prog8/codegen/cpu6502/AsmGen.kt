@@ -273,7 +273,7 @@ class AsmGen6502Internal (
         }
         if (e is PtAddressOf && e.identifier != null && !e.isFromArrayElement && e.dereference == null) {
             var symbol = asmVariableName(e.identifier!!)
-            if (e.identifier!!.type.isSplitWordArray) {
+            if (e.identifier!!.type.isSplitWordArray(options.compTarget)) {
                 symbol = if (e.isMsbForSplitArray) symbol + "_msb" else symbol + "_lsb"
             }
             return Pair("#<$symbol", "#>$symbol")
@@ -2085,7 +2085,7 @@ $repeatLabel""")
                         throw AssemblyError("write &dereference, makes no sense at ${addrOf.position}")
                     } else {
                         var symbolName = asmSymbolName(addrOf.identifier!!)
-                        if(addrOf.identifier!!.type.isSplitWordArray) {
+                        if(addrOf.identifier!!.type.isSplitWordArray(options.compTarget)) {
                             symbolName = if(addrOf.isMsbForSplitArray) symbolName+"_msb" else symbolName+"_lsb"
                         }
                         out("  sta  $symbolName+${constOffset}")
@@ -2132,7 +2132,7 @@ $repeatLabel""")
                         return true
                 } else {
                     var symbolName = asmSymbolName(addrOf.identifier!!)
-                    if(addrOf.identifier!!.type.isSplitWordArray) {
+                    if(addrOf.identifier!!.type.isSplitWordArray(options.compTarget)) {
                         symbolName = if(addrOf.isMsbForSplitArray) symbolName+"_msb" else symbolName+"_lsb"
                     }
                     out("  lda  $symbolName+${constOffset}")
@@ -2186,7 +2186,7 @@ $repeatLabel""")
                         throw AssemblyError("write &dereference, makes no sense at ${addrOf.position}")
                     } else {
                         var symbolName = asmSymbolName(addrOf.identifier!!)
-                        if(addrOf.identifier!!.type.isSplitWordArray) {
+                        if(addrOf.identifier!!.type.isSplitWordArray(options.compTarget)) {
                             symbolName = if(addrOf.isMsbForSplitArray) symbolName+"_msb" else symbolName+"_lsb"
                         }
                         out("  sta  $symbolName-${constOffset}")
@@ -2223,7 +2223,7 @@ $repeatLabel""")
                         TODO("read &dereference ${addrOf.position}")
                     } else {
                         var symbolName = asmSymbolName(addrOf.identifier!!)
-                        if(addrOf.identifier!!.type.isSplitWordArray) {
+                        if(addrOf.identifier!!.type.isSplitWordArray(options.compTarget)) {
                             symbolName = if(addrOf.isMsbForSplitArray) symbolName+"_msb" else symbolName+"_lsb"
                         }
                         out("  lda  $symbolName-${constOffset}")

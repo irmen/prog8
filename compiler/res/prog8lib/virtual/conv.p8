@@ -244,8 +244,8 @@ sub  str2uword(str string) -> uword {
     ;    the number may NOT be preceded by a + sign and may NOT contain spaces
     ;    (any non-digit character will terminate the number string that is parsed)
     %ir {{
-        loadm.w r99000,conv.str2uword.string
-        syscall 11 (r99000.w) : r99000.w
+        loadm.l r99200,conv.str2uword.string
+        syscall 11 (r99200.l) : r99000.w
         returnr.w r99000
     }}
 }
@@ -255,8 +255,8 @@ sub  str2word(str string) -> word {
     ;    the number may be preceded by a + or - sign but may NOT contain spaces
     ;    (any non-digit character will terminate the number string that is parsed)
     %ir {{
-        loadm.w r99000,conv.str2word.string
-        syscall 12 (r99000.w) : r99000.w
+        loadm.l r99200,conv.str2word.string
+        syscall 12 (r99200.l) : r99000.w
         returnr.w r99000
     }}
 }

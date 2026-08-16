@@ -7,7 +7,7 @@ Prog8 targets the following hardware:
 
 - 8 bit MOS 6502/65c02/6510 CPU
 - 32 bit Motorola 68000 CPU
-- 64 Kb addressable memory (RAM or ROM) on 6502 targets, 16 Mb on m68k targets
+- 64 Kb addressable memory (RAM or ROM) on 6502 targets, 16 Mb on m68k and virtual targets
 - optional use of memory-mapped I/O registers
 - optional use of system ROM routines
 
@@ -19,7 +19,7 @@ Currently these machines can be selected as a compilation target (via the ``-tar
 - 'pet32': the Commodore PET 4032
 - 'qemu68k': Qemu M68k simulator (experimental)
 - 'amiga500': Amiga 500 (experimental)
-- 'virtual': a builtin virtual machine
+- 'virtual': a builtin virtual machine (32-bit pointers, 16 MB memory)
 - custom targets via a separate configuration file (see :ref:`customizable_target`)
 
 This chapter explains some relevant system details of the c64 and cx16 machines.

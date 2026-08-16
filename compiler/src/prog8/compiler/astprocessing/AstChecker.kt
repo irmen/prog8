@@ -268,7 +268,7 @@ internal class AstChecker(private val program: Program,
                     BaseDataType.UWORD -> {
                         if (!iterableDt.isUnsignedByte && !iterableDt.isUnsignedWord && !iterableDt.isString &&
                             !iterableDt.isUnsignedByteArray && !iterableDt.isUnsignedWordArray &&
-                            !iterableDt.isSplitWordArray
+                            !iterableDt.isSplitWordArray(options.compTarget)
                         )
                             errors.err("uword loop variable can only loop over unsigned bytes, words or strings", forLoop.position)
 
@@ -936,7 +936,7 @@ internal class AstChecker(private val program: Program,
         }
 
         if(addressOf.msb) {
-            if(variable!=null && !variable.datatype.isSplitWordArray)
+            if(variable!=null && !variable.datatype.isSplitWordArray(options.compTarget))
                 errors.err("$> can only be used on split word arrays", addressOf.position)
         }
 
@@ -996,6 +996,20 @@ internal class AstChecker(private val program: Program,
 
         fun err(msg: String) = errors.err(msg, decl.position)
         fun valueerr(msg: String) = errors.err(msg, decl.value?.position ?: decl.position)
+
+        fun incompatibleTypeError(valueDt: InferredTypes.InferredType, variableDt: DataType): String {
+            val value = valueDt.getOrUndef()
+            val splitNote = when {
+                value.isSplitWordArray(options.compTarget) && variableDt.isSplitWordArray(options.compTarget) ->
+                    " (both the value and the variable are split word arrays)"
+                value.isSplitWordArray(options.compTarget) ->
+                    " (the value is a split word array)"
+                variableDt.isSplitWordArray(options.compTarget) ->
+                    " (the variable is a split word array)"
+                else -> ""
+            }
+            return "initialization value has incompatible type ($valueDt) for the variable ($variableDt)$splitNote"
+        }
 
         // the initializer value can't refer to the variable itself (recursive definition)
         if(decl.value?.referencesIdentifier(listOf(decl.name)) == true || decl.arraysize?.indexExpr?.referencesIdentifier(listOf(decl.name)) == true)
@@ -1097,7 +1111,7 @@ internal class AstChecker(private val program: Program,
                         dt.isString || dt.isByteArray || dt.isBoolArray ->
                             if(arraySize > byteLimit)
                                 err("byte array length must be 1-$byteLimit")
-                        dt.isSplitWordArray ->
+                        dt.isSplitWordArray(options.compTarget) ->
                             if(arraySize > byteLimit)
                                 err("split word array length must be 1-$byteLimit")
                         dt.isWordArray ->
@@ -1136,12 +1150,12 @@ internal class AstChecker(private val program: Program,
                     // long[] with struct subtype (from parser creating ARRAY(LONG) for 32-bit targets)
                     // accept pointer array values as initializer
                     if(!iDt.getOrUndef().isPointerArray && !iDt.getOrUndef().isWordArray)
-                        valueerr("initialization value has incompatible type ($iDt) for the variable (${decl.datatype})")
+                        valueerr(incompatibleTypeError(iDt, decl.datatype))
                 }
                 else if(decl.isArray) {
                     val eltDt = decl.datatype.elementType()
                     if(!(iDt istype eltDt) && iDt.isKnown)
-                        valueerr("initialization value has incompatible type ($iDt) for the variable (${decl.datatype})")
+                        valueerr(incompatibleTypeError(iDt, decl.datatype))
                 } else if(!decl.datatype.isString) {
                     if(!(iDt.isBool && decl.datatype.isUnsignedByte || iDt issimpletype BaseDataType.UBYTE && decl.datatype.isBool)) {
                         // pointer variables can be initialized with a compatible pointer or with a uword
@@ -1149,10 +1163,10 @@ internal class AstChecker(private val program: Program,
                             if(options.compTarget.POINTER_MEM_SIZE>2u && iDt.getOrUndef().isWord)
                                 valueerr("incompatible value type for pointer: $iDt (use explicit typecast?)")
                             else if (!iDt.isAssignableTo(decl.datatype))
-                                valueerr("initialization value has incompatible type ($iDt) for the variable (${decl.datatype})")
+                                valueerr(incompatibleTypeError(iDt, decl.datatype))
                         }
                         else
-                            valueerr("initialization value has incompatible type ($iDt) for the variable (${decl.datatype})")
+                            valueerr(incompatibleTypeError(iDt, decl.datatype))
                     }
                 }
             }
@@ -1214,7 +1228,7 @@ internal class AstChecker(private val program: Program,
                         if (length == 0 || length > byteLimit)
                             err("string and byte array length must be 1-$byteLimit")
                     }
-                    decl.datatype.isSplitWordArray -> {
+                    decl.datatype.isSplitWordArray(options.compTarget) -> {
                         if (length == 0 || length > byteLimit)
                             err("split word array length must be 1-$byteLimit")
                     }
@@ -1235,11 +1249,11 @@ internal class AstChecker(private val program: Program,
                 }
             }
 
-            if(decl.datatype.isSplitWordArray && decl.type==VarDeclType.MEMORY)
+            if(decl.datatype.isSplitWordArray(options.compTarget) && decl.type==VarDeclType.MEMORY)
                 err("memory mapped word arrays cannot be split, should have @nosplit")
         }
 
-        if(decl.datatype.isSplitWordArray) {
+        if(decl.datatype.isSplitWordArray(options.compTarget)) {
             if (!decl.datatype.isWordArray && !decl.datatype.isPointerArray) {
                 errors.err("split can only be used on word and pointer arrays", decl.position)
             }
@@ -2506,7 +2520,7 @@ internal class AstChecker(private val program: Program,
                         return false
                     val arraySpecSize = arrayspec.constIndex()
                     val arraySize = value.value.size
-                    val maxLength = if(targetDt.isSplitWordArray) byteLimit else byteLimit / 2
+                    val maxLength = if(targetDt.isSplitWordArray(options.compTarget)) byteLimit else byteLimit / 2
                     if(arraySpecSize!=null && arraySpecSize>0) {
                         if(arraySpecSize>maxLength)
                             return err("array length must be 1-$maxLength")
@@ -2522,7 +2536,7 @@ internal class AstChecker(private val program: Program,
             targetDt.isPointerArray -> {
                 val arraySpecSize = arrayspec.constIndex()
                 val arraySize = value.value.size
-                val maxLength = if(targetDt.isSplitWordArray) byteLimit else byteLimit / 2
+                val maxLength = if(targetDt.isSplitWordArray(options.compTarget)) byteLimit else byteLimit / 2
                 if(arraySpecSize!=null && arraySpecSize>0) {
                     if(arraySpecSize>maxLength)
                         return err("array length must be 1-$maxLength")

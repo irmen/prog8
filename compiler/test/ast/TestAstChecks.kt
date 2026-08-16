@@ -189,7 +189,7 @@ main {
         """
         val errors = ErrorReporterForTests()
         compileText(VMTarget(), true, text, outputDir, writeAssembly = false, errors=errors) shouldBe null
-        errors.errors.size shouldBe 2
+        errors.errors.size shouldBe 1
         errors.errors[0] shouldContain "pointer arrays cannot be memory-mapped"
     }
 

@@ -566,7 +566,7 @@ internal class AssignmentAsmGen(
                 val addressOfIdentifier = (result.first as? PtAddressOf)?.identifier
                 if(addressOfIdentifier!=null) {
                     var varname = asmgen.asmVariableName(addressOfIdentifier)
-                    if(addressOfIdentifier.type.isSplitWordArray) {
+                    if(addressOfIdentifier.type.isSplitWordArray(program.target)) {
                         val addrOf = result.first as PtAddressOf
                         varname = if(addrOf.isMsbForSplitArray) varname+"_msb" else varname+"_lsb"
                     }
@@ -1260,12 +1260,11 @@ internal class AssignmentAsmGen(
                     } else {
                         val tgt = PtAssignTarget(false, assign.target.position)
                         val targetarray = assign.target.array!!
-                        val array = PtArrayIndexer(assign.target.datatype, targetarray.position)
-
                         val targetArrayVar = targetarray.variable
                         if (targetArrayVar == null) {
                             TODO("optimized comparison on pointer ${targetarray.position}")
                         } else {
+                            val array = PtArrayIndexer(assign.target.datatype, targetArrayVar.type.isSplitWordArray(program.memsizer), targetarray.position)
                             array.add(targetArrayVar)
                             array.add(targetarray.index)
                             tgt.add(array)
@@ -1935,7 +1934,7 @@ internal class AssignmentAsmGen(
             // Handle when left is PtAddressOf of a split word array
             val leftAddressOf = left as? PtAddressOf
             if(leftAddressOf!=null && leftAddressOf.identifier!=null && !leftAddressOf.isFromArrayElement && leftAddressOf.dereference==null) {
-                if(leftAddressOf.identifier!!.type.isSplitWordArray) {
+                if(leftAddressOf.identifier!!.type.isSplitWordArray(program.memsizer)) {
                     var symbol = asmgen.asmVariableName(leftAddressOf.identifier!!)
                     symbol = if(leftAddressOf.isMsbForSplitArray) symbol+"_msb" else symbol+"_lsb"
                     assignExpressionToRegister(right, RegisterOrPair.AY, right.type.isSigned)
@@ -2000,7 +1999,7 @@ internal class AssignmentAsmGen(
                         TODO("read &dereference ${right.position}")
                     } else {
                         var symbol = asmgen.asmVariableName(right.identifier!!)
-                        if(right.identifier!!.type.isSplitWordArray) {
+                        if(right.identifier!!.type.isSplitWordArray(program.memsizer)) {
                             symbol = if(right.isMsbForSplitArray) symbol+"_msb" else symbol+"_lsb"
                         }
                         assignExpressionToRegister(left, RegisterOrPair.AY, dt.isSigned)
@@ -2988,7 +2987,7 @@ $endLabel""")
             }
             dt.isWordArray -> {
                 assignExpressionToVariable(containment.needle, "P8ZP_SCRATCH_W1", elementDt)
-                if(dt.isSplitWordArray) {
+                if(dt.isSplitWordArray(program.memsizer)) {
                     assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, containment.definingISub(), containment.position, "P8ZP_SCRATCH_W2"), symbolName+"_lsb", false, null, null)
                     asmgen.out("  ldy  #$numElements")
                     asmgen.out("  jsr  prog8_lib.containment_splitwordarray")
@@ -3887,7 +3886,7 @@ $endLabel""")
     private fun assignAddressOf(target: AsmAssignTarget, sourceName: String, msb: Boolean, arrayDt: DataType?, arrayIndexExpr: PtExpression?) {
         var actualSourceName = sourceName
         var actualMsb = msb
-        if (arrayDt?.isSplitWordArray == true) {
+        if (arrayDt?.isSplitWordArray(program.memsizer) == true) {
             if (!sourceName.endsWith("_lsb") && !sourceName.endsWith("_msb")) {
                 actualSourceName = if (msb) sourceName + "_msb" else sourceName + "_lsb"
             }
@@ -3925,7 +3924,7 @@ $endLabel""")
                 }
                 else {
                     if(constIndex>0) {
-                        val offset = if(arrayDt.isSplitWordArray) constIndex else program.memsizer.memorySize(arrayDt, constIndex)  // add arrayIndexExpr * elementsize  to the address of the array variable.
+                        val offset = if(arrayDt.isSplitWordArray(program.memsizer)) constIndex else program.memsizer.memorySize(arrayDt, constIndex)  // add arrayIndexExpr * elementsize  to the address of the array variable.
                         asmgen.out("  lda  #<($actualSourceName + $offset) |  ldy  #>($actualSourceName + $offset)")
                     } else {
                         asmgen.out("  lda  #<$actualSourceName |  ldy  #>$actualSourceName")
@@ -3974,7 +3973,7 @@ $endLabel""")
                     if(subtype.isByteOrBool) {
                         // elt size 1, we're good
                     } else if(subtype.isWord)  {
-                        if(!arrayDt.isSplitWordArray) {
+                        if(!arrayDt.isSplitWordArray(program.memsizer)) {
                             // elt size 2
                             asmgen.out("  asl  a")
                         }
@@ -5780,7 +5779,7 @@ $endLabel""")
                     throw AssemblyError("write &dereference, makes no sense at ${addressOf.position}")
                 } else {
                     var symbolName = asmgen.asmSymbolName(addressOf.identifier!!)
-                    if(addressOf.identifier!!.type.isSplitWordArray) {
+                    if(addressOf.identifier!!.type.isSplitWordArray(program.memsizer)) {
                         symbolName = if(addressOf.isMsbForSplitArray) symbolName+"_msb" else symbolName+"_lsb"
                     }
                     asmgen.out("  sta  $symbolName")
@@ -5795,7 +5794,7 @@ $endLabel""")
                     val addressOfIdentifier = (result.first as? PtAddressOf)?.identifier
                     if(addressOfIdentifier!=null) {
                         var varname = asmgen.asmVariableName(addressOfIdentifier)
-                        if(addressOfIdentifier.type.isSplitWordArray) {
+                        if(addressOfIdentifier.type.isSplitWordArray(program.memsizer)) {
                             val addrOf = result.first as PtAddressOf
                             varname = if(addrOf.isMsbForSplitArray) varname+"_msb" else varname+"_lsb"
                         }

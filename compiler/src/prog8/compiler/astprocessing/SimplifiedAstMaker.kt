@@ -795,6 +795,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
                 return PtVariable(
                     srcVar.name,
                     srcVar.datatype,
+                    srcVar.datatype.isSplitWordArray(compilationOptions.compTarget),
                     srcVar.zeropage,
                     srcVar.alignment,
                     srcVar.dirty,
@@ -880,28 +881,32 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
             if (!dt.isArray && !dt.isString && !dt.isPointer)
                 throw FatalAstException("array indexing can only be used on array, string or pointer variables ${srcArr.position}")
             val eltType = srcArr.inferType(program).getOrElse { throw FatalAstException("unknown dt") }
-            val array = PtArrayIndexer(eltType, srcArr.position)
-            array.add(transform(srcArr.plainarrayvar!!))
+            val arrayvar = transform(srcArr.plainarrayvar!!)
+            val array = PtArrayIndexer(eltType, arrayvar.type.isSplitWordArray(compilationOptions.compTarget), srcArr.position)
+            array.add(arrayvar)
             array.add(transformExpression(srcArr.indexer.indexExpr))
             return array
         }
         if(srcArr.pointerderef!=null) {
             val dt = srcArr.pointerderef!!.inferType(program)
             if(dt.isUnsignedWord) {
-                val array = PtArrayIndexer(DataType.UBYTE, srcArr.position)
-                array.add(transform(srcArr.pointerderef!!))
+                val arrayVar = transform(srcArr.pointerderef!!)
+                val array = PtArrayIndexer(DataType.UBYTE, arrayVar.type.isSplitWordArray(compilationOptions.compTarget), srcArr.position)
+                array.add(arrayVar)
                 array.add(transformExpression(srcArr.indexer.indexExpr))
                 return array
             } else if(dt.isPointer) {
                 val eltType = dt.getOrUndef().dereference()
-                val array = PtArrayIndexer(eltType, srcArr.position)
-                array.add(transform(srcArr.pointerderef!!))
+                val arrayVar = transform(srcArr.pointerderef!!)
+                val array = PtArrayIndexer(eltType, arrayVar.type.isSplitWordArray(compilationOptions.compTarget), srcArr.position)
+                array.add(arrayVar)
                 array.add(transformExpression(srcArr.indexer.indexExpr))
                 return array
             } else if(dt.isArray) {
                 val eltType = dt.getOrUndef().elementType()
-                val array = PtArrayIndexer(eltType, srcArr.position)
-                array.add(transform(srcArr.pointerderef!!))
+                val arrayVar = transform(srcArr.pointerderef!!)
+                val array = PtArrayIndexer(eltType, arrayVar.type.isSplitWordArray(compilationOptions.compTarget), srcArr.position)
+                array.add(arrayVar)
                 array.add(transformExpression(srcArr.indexer.indexExpr))
                 return array
             } else
@@ -1186,7 +1191,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
     private fun transform(srcRange: RangeExpression): PtRange {
         require(srcRange.from.inferType(program)==srcRange.to.inferType(program))
         var type = srcRange.inferType(program).getOrElse { throw FatalAstException("unknown dt") }
-        if(type.isSplitWordArray) {
+        if(type.isSplitWordArray(compilationOptions.compTarget)) {
             // ranges are never a split word array!
             when(type.sub) {
                 BaseDataType.WORD -> type = DataType.arrayFor(BaseDataType.WORD, program.target)

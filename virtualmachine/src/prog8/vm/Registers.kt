@@ -3,9 +3,9 @@ package prog8.vm
 import prog8.intermediate.RegisterNum
 
 /**
- * 65536 virtual integer registers of 16 bits wide.
- * 65536 virtual float registers of 32 bits wide.
- * A,X and Y "physical" 6502 registers.
+ * ~100000 virtual integer registers (32 bits wide).
+ * ~100000 virtual float registers (64 bits wide).
+ * A,X and Y "physical" 6502 registers (8 bits wide).
  */
 class Registers {
     private val registers = Array(99999) { 0 }
@@ -51,6 +51,12 @@ class Registers {
 
     fun getSL(reg: Int) = registers[reg]
     fun getSL(reg: RegisterNum) = registers[reg.value]
+
+    fun setUL(reg: Int, value: UInt) { registers[reg] = value.toInt() }
+    fun setUL(reg: RegisterNum, value: UInt) { registers[reg.value] = value.toInt() }
+
+    fun getUL(reg: Int) = registers[reg].toUInt()
+    fun getUL(reg: RegisterNum) = registers[reg.value].toUInt()
 
     fun getFloat(reg: Int) = floatRegisters[reg]
     fun getFloat(reg: RegisterNum) = floatRegisters[reg.value]

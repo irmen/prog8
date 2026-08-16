@@ -68,9 +68,9 @@ strings {
 
     sub lstrip(str s) {
         ; -- gets rid of whitespace and other non-visible characters at the start of the string (destructive)
-        cx16.r0 = lstripped(s)
-        if cx16.r0 != s
-            void copy(cx16.r0, s)
+        ^^ubyte result = lstripped(s)
+        if result != s
+            void copy(result, s)
     }
 
     sub lstripped(str s) -> str {
@@ -105,9 +105,9 @@ strings {
 
     sub ltrim(str s) {
         ; -- gets rid of whitespace characters at the start of the string (destructive)
-        cx16.r0 = ltrimmed(s)
-        if cx16.r0 != s
-            void copy(cx16.r0, s)
+        ^^ubyte result = ltrimmed(s)
+        if result != s
+            void copy(result, s)
     }
 
     sub ltrimmed(str s) -> str {

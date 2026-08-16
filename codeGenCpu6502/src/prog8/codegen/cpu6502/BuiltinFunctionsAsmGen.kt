@@ -1440,7 +1440,7 @@ import prog8.codegen.cpu6502.assignment.*
                     return emptyArray()
                 } else if(addressOfIdentifier!=null && (addressOfIdentifier.type.isWord || addressOfIdentifier.type.isPointer || addressOfIdentifier.type.isByteArray)) {
                     var varname = asmgen.asmVariableName(addressOfIdentifier)
-                    if(addressOfIdentifier.type.isSplitWordArray) {
+                    if(addressOfIdentifier.type.isSplitWordArray(asmgen.options.compTarget)) {
                         val addrOf = result.first as PtAddressOf
                         varname = if(addrOf.isMsbForSplitArray) varname+"_msb" else varname+"_lsb"
                     }
@@ -1822,7 +1822,7 @@ import prog8.codegen.cpu6502.assignment.*
                     }
                 } else if(addressOfIdentifier!=null && (addressOfIdentifier.type.isWord || addressOfIdentifier.type.isPointer || addressOfIdentifier.type.isByteArray)) {
                     var varname = asmgen.asmVariableName(addressOfIdentifier)
-                    if(addressOfIdentifier.type.isSplitWordArray) {
+                    if(addressOfIdentifier.type.isSplitWordArray(asmgen.options.compTarget)) {
                         val addrOf = result.first as PtAddressOf
                         varname = if(addrOf.isMsbForSplitArray) varname+"_msb" else varname+"_lsb"
                     }

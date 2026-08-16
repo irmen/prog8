@@ -15,4 +15,8 @@ interface IMemSizer {
             throw IllegalArgumentException(x.message)
         }
     }
+
+    fun isSplitWordArray(dt: DataType): Boolean {
+        return dt.isSplitWordArray(this)
+    }
 }

@@ -188,7 +188,7 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
         return when(this) {
             is PtAddressOf -> withClonedChildrenFrom(this, PtAddressOf(type, typedResult, position, isMsbForSplitArray))
             is PtArray -> withClonedChildrenFrom(this, PtArray(type, position))
-            is PtArrayIndexer -> withClonedChildrenFrom(this, PtArrayIndexer(type, position))
+            is PtArrayIndexer -> withClonedChildrenFrom(this, PtArrayIndexer(type, splitWords,position))
             is PtBinaryExpression -> TODO("clone: cannot clone ${this::class} (not a simple expression)")
             is PtBranchCondExpression -> withClonedChildrenFrom(this, PtBranchCondExpression(condition, type, position))
             is PtContainmentCheck -> TODO("clone: cannot clone ${this::class} (not a simple expression)")
@@ -222,18 +222,14 @@ class PtAddressOf(type: DataType, val typedResult: Boolean, position: Position, 
 }
 
 
-class PtArrayIndexer(elementType: DataType, position: Position): PtExpression(elementType, position) {
+class PtArrayIndexer(elementType: DataType, val splitWords: Boolean, position: Position): PtExpression(elementType, position) {
+    // splitWords is an explicit property because some array DataType enums might depend on the compilation target for being actually a split array or not
     val variable: PtIdentifier?
         get() = children[0] as? PtIdentifier
     val pointerderef: PtPointerDeref?
         get() = children[0] as? PtPointerDeref
     val index: PtExpression
         get() = children[1] as PtExpression
-    val splitWords: Boolean
-        get() = if(children[0] is PtPointerDeref)
-            true        // indexing on pointers is always split words
-        else
-            variable!!.type.isSplitWordArray
 
     init {
         require(elementType.isNumericOrBool || elementType.isPointer || elementType.isStructInstance) {

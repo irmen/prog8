@@ -564,7 +564,7 @@ private fun processAst(program: Program, errors: IErrorReporter, compilerOptions
     }
 
     if(compilerOptions.compTarget.cpu.is68k) {
-        program.checkM68kSyntax(errors)
+        program.checkM68kSyntax(errors, compilerOptions.compTarget)
         errors.report()
     }
 

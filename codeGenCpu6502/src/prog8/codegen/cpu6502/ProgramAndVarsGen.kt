@@ -645,7 +645,7 @@ internal class ProgramAndVarsGen(
             arrayVarsWithInitInZp.forEach {
                 val size = it.alloc.size
                 val name = asmgen.asmVariableName(it.name)
-                if(it.alloc.dt.isSplitWordArray) {
+                if(it.alloc.dt.isSplitWordArray(compTarget)) {
                     val halfSize = size / 2
                     if(halfSize>0) {
                         asmgen.out("""
@@ -724,7 +724,7 @@ internal class ProgramAndVarsGen(
             if (scopedName.startsWith("cx16.r"))
                 continue        // The 16 virtual registers of the cx16 are not actual variables in zp, they're memory mapped
             val variable = symboltable.flat.getValue(scopedName) as StStaticVariable
-            if(variable.dt.isSplitWordArray) {
+            if(variable.dt.isSplitWordArray(compTarget)) {
                 val lsbAddr = zpvar.address
                 val msbAddr = zpvar.address + (zpvar.size/2).toUInt()
                 asmgen.out("${scopedName.substringAfterLast('.')}_lsb \t= $lsbAddr \t; zp ${zpvar.dt} (lsbs)")
@@ -816,7 +816,7 @@ internal class ProgramAndVarsGen(
             dt.isSignedWord -> asmgen.out("${variable.name}\t.sint  ?")
             dt.isLong -> asmgen.out("${variable.name}\t.dint  ?")
             dt.isFloat -> asmgen.out("${variable.name}\t.fill  ${compTarget.FLOAT_MEM_SIZE}")
-            dt.isSplitWordArray -> {
+            dt.isSplitWordArray(compTarget) -> {
                 alignVar(variable.align)
                 val numbytesPerHalf = compTarget.memorySize(variable.dt, variable.length!!.toInt()) / 2
                 asmgen.out("${variable.name}_lsb\t.fill  $numbytesPerHalf")
@@ -907,7 +907,7 @@ internal class ProgramAndVarsGen(
                         asmgen.out("  .char  " + chunk.joinToString())
                 }
             }
-            dt.isSplitWordArray -> {
+            dt.isSplitWordArray(compTarget) -> {
                 if(dt.elementType().isUnsignedWord || dt.elementType().isPointer) {
                     val data = makeArrayFillDataUnsigned(dt, value, orNumberOfZeros)
                     asmgen.out("${varname}_words := ${data.joinToString()}")
@@ -1032,7 +1032,7 @@ internal class ProgramAndVarsGen(
                     is StArrayElement.Number -> "$" + it.value.toInt().toString(16).padStart(4, '0')
                     is StArrayElement.AddressOf -> {
                         val symbol = symboltable.lookup(it.symbol)!!
-                        if(symbol is StStaticVariable && symbol.dt.isSplitWordArray)
+                        if(symbol is StStaticVariable && symbol.dt.isSplitWordArray(compTarget))
                             asmgen.asmSymbolName(it.symbol+"_lsb")
                         else
                             asmgen.asmSymbolName(it.symbol)
@@ -1073,7 +1073,7 @@ internal class ProgramAndVarsGen(
                         is StArrayElement.Number -> "$" + it.value.toInt().toString(16).padStart(4, '0')
                         is StArrayElement.AddressOf -> {
                             val symbol = symboltable.lookup(it.symbol)!!
-                            if(symbol is StStaticVariable && symbol.dt.isSplitWordArray)
+                            if(symbol is StStaticVariable && symbol.dt.isSplitWordArray(compTarget))
                                 asmgen.asmSymbolName(it.symbol+"_lsb")
                             else
                                 asmgen.asmSymbolName(it.symbol)

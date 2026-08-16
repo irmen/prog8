@@ -1674,7 +1674,7 @@ $shortcutLabel:""")
             // use the already existing optimized codegen for regular assignments  x += array[index]
             val binexpr = PtBinaryExpression(operator, dt, value.position)
             binexpr.add(PtIdentifier(name, dt, value.position))
-            val arrayValue = PtArrayIndexer(value.type, value.position)
+            val arrayValue = PtArrayIndexer(value.type, valueVar.type.isSplitWordArray(program.memsizer), value.position)
             arrayValue.add(valueVar)
             arrayValue.add(value.index)
             binexpr.add(arrayValue)

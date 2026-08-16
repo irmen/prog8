@@ -5,7 +5,7 @@ import prog8.code.core.Statusflag
 import prog8.code.core.toHex
 
 /**
- * Inline value class representing a 16-bit memory address (0-$ffff).
+ * Inline value class representing a memory address (up to 32-bit).
  */
 @JvmInline
 value class MemoryAddress(val value: UInt) {
@@ -45,7 +45,7 @@ Program to execute is not stored in the system memory, it's just a separate list
     reserved 99100 - 99199 : BYTE registers for syscall arguments and response value(s)
     reseverd 99200 - 99299 : LONG registers for syscall arguments and response value(s)
 100K virtual floating point registers (64 bits double precision)  fr0-fr99999
-65536 bytes of memory (in the reference VM). On other targets, memory size and pointer width are target-specific.
+16 MB of memory (on the virtual target). On other targets, memory size and pointer width are target-specific.
 Value stack, max 128 entries of 1 byte each.
 
 Status flags: Carry, Zero, Negative, Overflow.
@@ -92,7 +92,7 @@ See CpuType.statusBitsOnMultiByteOps for the per-CPU configuration.
 
 Instruction set is mostly a load/store architecture, there are few instructions operating on memory directly.
 
-Value types: integers (.b=byte=8 bits, .w=word=16 bits, .l=long=32 bits), float (.f=64 bits), and pointer (.p=target specific pointer width: 2 bytes on 6502, 4 bytes on m68k). Omitting it defaults to b if the instruction requires a type.
+Value types: integers (.b=byte=8 bits, .w=word=16 bits, .l=long=32 bits), float (.f=64 bits), and pointer (.p=target specific pointer width: 2 bytes on 6502, 4 bytes on m68k and virtual). Omitting it defaults to b if the instruction requires a type.
 There is no distinction between signed and unsigned for many instructions. Instead, a different instruction is used if a distinction should be made (for example div and divs).
 Floating point operations are just 'f' typed regular instructions, however there are a few unique fp conversion instructions.
 
@@ -925,7 +925,7 @@ data class IRInstruction(
     val fpReg2: RegisterNum?=null,      // 0-99999
     val immediate: Int?=null,   // 0-$ff or $ffff or $ffffffff
     val immediateFp: Double?=null,
-    val address: MemoryAddress? = null,    // 0-$ffff
+    val address: MemoryAddress? = null,    // 0-$ffffff (or $ffffffff)
     val labelSymbol: String?=null,          // symbolic label name as alternative to address (so only for Branch/jump/call Instructions!)
     private val symbolOffset: Int? = null,     // offset to add on labelSymbol (used to index into an array variable)
     var branchTarget: IRCodeChunkBase? = null,    // Will be linked after loading in IRProgram.linkChunks()! This is the chunk that the branch labelSymbol points to.

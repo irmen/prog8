@@ -254,7 +254,7 @@ main {
         val src="""
 main {
     sub start() {
-        uword @shared pointer
+        pointer @shared pointer
         ubyte[10] array
         str name = "hello"
         

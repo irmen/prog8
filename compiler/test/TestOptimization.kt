@@ -1326,7 +1326,7 @@ main {
         val src="""
 main {
     sub start() {
-        uword @shared bulletRef, enemyRef
+        pointer @shared bulletRef, enemyRef
         const ubyte BD_Y = 10
         const ubyte EN_Y = 11
 

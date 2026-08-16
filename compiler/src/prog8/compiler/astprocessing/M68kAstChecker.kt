@@ -8,13 +8,14 @@ import prog8.ast.statements.Directive
 import prog8.ast.statements.Subroutine
 import prog8.ast.statements.VarDecl
 import prog8.ast.walk.IAstVisitor
+import prog8.code.core.ICompilationTarget
 import prog8.code.core.IErrorReporter
 import prog8.code.core.RegisterOrPair
 import prog8.code.core.SplitWish
 import prog8.code.core.ZeropageWish
 
 
-internal class M68kAstChecker(private val errors: IErrorReporter) : IAstVisitor {
+internal class M68kAstChecker(private val errors: IErrorReporter, private val target: ICompilationTarget) : IAstVisitor {
 
     private val m68kRegisters = setOf(
         RegisterOrPair.D0, RegisterOrPair.D1, RegisterOrPair.D2, RegisterOrPair.D3,
@@ -79,7 +80,7 @@ internal class M68kAstChecker(private val errors: IErrorReporter) : IAstVisitor 
         if (decl.splitwordarray == SplitWish.NOSPLIT) {
             errors.info("@nosplit is redundant here", decl.position)
         }
-        if (decl.datatype.isSplitWordArray && decl.splitwordarray != SplitWish.DONTCARE) {
+        if (decl.datatype.isSplitWordArray(target) && decl.splitwordarray != SplitWish.DONTCARE) {
             errors.err("split word arrays are not supported on the m68k target", decl.position)
         }
         decl.value?.accept(this)

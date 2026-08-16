@@ -152,7 +152,7 @@ class PtProgram(
     fun internString(string: PtString, st: SymbolTable): String {
         val internedStringsBlock = children.first { it is PtBlock && it.name == INTERNED_STRINGS_MODULENAME }
         val varname = "ptstring_${internedStringsBlock.children.size}"
-        val internedString = PtVariable(varname, DataType.STR, ZeropageWish.NOT_IN_ZEROPAGE, 0u, false, string, null, string.position)
+        val internedString = PtVariable(varname, DataType.STR, false, ZeropageWish.NOT_IN_ZEROPAGE, 0u, false, string, null, string.position)
         internedStringsBlock.add(internedString)
         val stEntry = StStaticVariable(internedString.scopedName, DataType.STR, string.value to string.encoding, null, string.value.length.toUInt()+1u,
             ZeropageWish.NOT_IN_ZEROPAGE, 0u, false, astNode=internedString)

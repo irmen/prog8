@@ -272,7 +272,7 @@ class IRFileReader {
 
     private fun parseInitValue(dt: DataType, value: String, arraysize: UInt?): IRVariableInitializer? {
         return when {
-            dt.isNumericOrBool -> IRVariableInitializer.Numeric(parseIRValue(value))
+            dt.isNumericOrBool || dt.isPointer -> IRVariableInitializer.Numeric(parseIRValue(value))
             dt.isBoolArray -> {
                 val elements = value.split(',').map {
                     IRStSymbolicReference.BoolValue(parseIRValue(it) != 0.0)
@@ -645,6 +645,7 @@ class IRFileReader {
                 "uword" -> DataType.UWORD
                 "float" -> DataType.FLOAT
                 "long" -> DataType.LONG
+                "pointer" -> DataType.pointer(BaseDataType.UBYTE)  // pointer-sized, resolved at runtime
                 "str" -> error("'str' should not occur anymore in IR. Should be uword or ulong or ^^ubyte")
                 else -> {
                     if('.' in type)

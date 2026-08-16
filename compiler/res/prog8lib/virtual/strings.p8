@@ -107,10 +107,10 @@ strings {
         ; Copy a string to another, overwriting that one.
         ; Returns the length of the string that was copied.
         %ir {{
-            loadm.w r99000,strings.copy.source
-            loadm.w r99001,strings.copy.target
+            loadm.l r99200,strings.copy.source
+            loadm.l r99201,strings.copy.target
             load.b r99100,#255
-            syscall 39 (r99000.w, r99001.w, r99100.b): r99100.b
+            syscall 39 (r99200.l, r99201.l, r99100.b): r99100.b
             returnr.b r99100
         }}
     }
@@ -119,10 +119,10 @@ strings {
         ; Copy a string to another, overwriting that one, but limited to the given length.
         ; Returns the length of the string that was copied.
         %ir {{
-            loadm.w r99000,strings.ncopy.source
-            loadm.w r99001,strings.ncopy.target
+            loadm.l r99200,strings.ncopy.source
+            loadm.l r99201,strings.ncopy.target
             loadm.b r99100,strings.ncopy.maxlength
-            syscall 39 (r99000.w, r99001.w, r99100.b): r99100.b
+            syscall 39 (r99200.l, r99201.l, r99100.b): r99100.b
             returnr.b r99100
         }}
     }
@@ -150,9 +150,9 @@ strings {
         ; Note that you can also directly compare strings and string values with each other using
         ; comparison operators ==, < etcetera (this will use strcmp automatically).
         %ir {{
-            loadm.w r99000,strings.compare.st1
-            loadm.w r99001,strings.compare.st2
-            syscall 16 (r99000.w, r99001.w) : r99100.b
+            loadm.l r99200,strings.compare.st1
+            loadm.l r99201,strings.compare.st2
+            syscall 16 (r99200.l, r99201.l) : r99100.b
             returnr.b r99100
         }}
     }
@@ -163,9 +163,9 @@ strings {
         ; Note that you can also directly compare strings and string values with each other using
         ; comparison operators ==, < etcetera (this will use strcmp automatically).
         %ir {{
-            loadm.w r99000,strings.compare_nocase.st1
-            loadm.w r99001,strings.compare_nocase.st2
-            syscall 58 (r99000.w, r99001.w) : r99100.b
+            loadm.l r99200,strings.compare_nocase.st1
+            loadm.l r99201,strings.compare_nocase.st2
+            syscall 58 (r99200.l, r99201.l) : r99100.b
             returnr.b r99100
         }}
     }

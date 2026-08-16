@@ -55,8 +55,8 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                     // if the only difference in their array types is split vs non-split word arrays,
                     // we accept that (a cleanup of this is done elsewhere)
                     if(valueDt.getOrUndef().isWordArray && decl.datatype.isWordArray) {
-                        val valueIsSplit = valueDt.getOrUndef().isSplitWordArray
-                        val declIsSplit = decl.datatype.isSplitWordArray
+                        val valueIsSplit = valueDt.getOrUndef().isSplitWordArray(options.compTarget)
+                        val declIsSplit = decl.datatype.isSplitWordArray(options.compTarget)
                         if (valueIsSplit != declIsSplit) {
                             return noModifications
                         }

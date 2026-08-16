@@ -48,7 +48,7 @@ internal class ForLoopsAsmGen(
 
         when {
             iterableDt.isByteArray -> forOverNonconstByteRange(stmt, iterableDt, range)
-            iterableDt.isWordArray && !iterableDt.isSplitWordArray -> forOverNonconstWordRange(stmt, iterableDt, range)
+            iterableDt.isWordArray && !iterableDt.isSplitWordArray(asmgen.options.compTarget) -> forOverNonconstWordRange(stmt, iterableDt, range)
             iterableDt.isLongArray -> forOverNonconstLongRange(stmt, iterableDt, range)
             else -> throw AssemblyError("range expression can only be byte, word or long")
         }
@@ -59,7 +59,7 @@ internal class ForLoopsAsmGen(
     private fun translateForOverNonconstStepRange(stmt: PtForLoop, iterableDt: DataType, range: PtRange) {
         when {
             iterableDt.isByteArray -> forOverNonconstStepByteRange(stmt, iterableDt, range)
-            iterableDt.isWordArray && !iterableDt.isSplitWordArray -> forOverNonconstStepWordRange(stmt, iterableDt, range)
+            iterableDt.isWordArray && !iterableDt.isSplitWordArray(asmgen.options.compTarget) -> forOverNonconstStepWordRange(stmt, iterableDt, range)
             iterableDt.isLongArray -> throw AssemblyError("variable-step for loops over long ranges are not supported by the legacy 6502 code generator at ${stmt.position}")
             else -> throw AssemblyError("range expression can only be byte, word or long")
         }
@@ -1187,7 +1187,7 @@ $loopLabel          sty  $indexVar
         when {
             iterableDt.isString -> iterateStrings()
             iterableDt.isByteArray || iterableDt.isBoolArray -> iterateBytes()
-            iterableDt.isSplitWordArray -> iterateSplitWords()
+            iterableDt.isSplitWordArray(asmgen.options.compTarget) -> iterateSplitWords()
             iterableDt.isWordArray -> iterateWords()
             iterableDt.isLongArray -> iterateWords(true)
             iterableDt.isFloatArray -> throw AssemblyError("for loop with floating point variables is not supported")
@@ -1285,7 +1285,7 @@ $loopLabel""")
                 }
                 asmgen.out(endLabel)
             }
-            iterableDt.isWordArray && !iterableDt.isSplitWordArray -> {
+            iterableDt.isWordArray && !iterableDt.isSplitWordArray(asmgen.options.compTarget) -> {
                 // loop over word range via loopvar, step >= 2 or <= -2
                 when (range.step) {
                     1, -1 -> {

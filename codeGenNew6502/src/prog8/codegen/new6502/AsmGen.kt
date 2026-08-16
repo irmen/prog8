@@ -975,7 +975,7 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
         val init = v.initializationValue
 
         when {
-            dt.isSplitWordArray -> {
+            dt.isSplitWordArray(target) -> {
                 // _lsb / _msb halves via helper array
                 val numElements = v.length?.toInt() ?: 0
                 val halfBytes = numElements   // each element is 1 byte per half
@@ -1119,7 +1119,7 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
         for ((scopedName, alloc) in zpVars) {
             if (scopedName.startsWith("cx16.r")) continue
             val label = fixNameSymbols(scopedName)
-            if (alloc.dt.isSplitWordArray) {
+            if (alloc.dt.isSplitWordArray(target)) {
                 val lsbAddr = alloc.address
                 val msbAddr = alloc.address + (alloc.size.toUInt() / 2u)
                 emitLine("${label}_lsb  = $lsbAddr")
@@ -1245,7 +1245,7 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
         val dt = v.dt
 
         val (directive, count) = when {
-            dt.isSplitWordArray -> {
+            dt.isSplitWordArray(target) -> {
                 // two separate byte arrays: _lsb and _msb
                 val numElements = v.length?.toInt() ?: 1
                 emitLine("${label}_lsb  .fill  $numElements")

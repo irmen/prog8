@@ -13,9 +13,9 @@ import kotlin.random.Random
 Virtual machine specs:
 
 Program to execute is not stored in the system memory, it's just a separate list of instructions.
-65536 virtual registers, 16 bits wide, can also be used as 8 bits. r0-r65535
-65536 virtual floating point registers (32 bits single precision floats)  fr0-fr65535
-65536 bytes of memory, thus memory pointers (addresses) are limited to 16 bits.
+100K virtual integer registers (32 bits wide, can also be used as 8 or 16 bits). r0-r99999
+100K virtual floating point registers (64 bits double precision). fr0-fr99999
+16 MB of memory. Memory pointers (addresses) are 32 bits.
 Value stack, max 128 entries of 1 byte each.
 
 Status flags: Carry, Zero, Negative, Overflow.
@@ -96,6 +96,7 @@ class VirtualMachine(irProgram: IRProgram) {
     internal var randomGenerator = Random(0xa55a7653)
     internal var randomGeneratorFloats = Random(0xc0d3dbad)
     internal var mul16LastUpper = 0u
+    internal val wordArrayIndex = machine.POINTER_MEM_SIZE > 2u
 
     init {
         val (prg, labelAddr) = VmProgramLoader().load(irProgram, memory)
@@ -403,7 +404,7 @@ class VirtualMachine(irProgram: IRProgram) {
                 registers.setUW(reg, value.toUShort())
             }
             IRDataType.POINTER -> {
-                registers.setUW(reg, value.toUShort())
+                registers.setUL(reg, value.toUInt())
             }
             IRDataType.LONG -> {
                 registers.setSL(reg, value)
@@ -426,8 +427,8 @@ class VirtualMachine(irProgram: IRProgram) {
                 valueStack.pushw(value)
             }
             IRDataType.POINTER -> {
-                val value = registers.getUW(i.reg1!!)
-                valueStack.pushw(value)
+                val value = registers.getSL(i.reg1!!)
+                valueStack.pushl(value)
             }
             IRDataType.LONG -> {
                 val value = registers.getSL(i.reg1!!)
@@ -445,7 +446,7 @@ class VirtualMachine(irProgram: IRProgram) {
         when(i.type!!) {
             IRDataType.BYTE -> setResultReg(i.reg1!!, valueStack.removeLast().toInt(), i.type!!)
             IRDataType.WORD -> setResultReg(i.reg1!!, valueStack.popw().toInt(), i.type!!)
-            IRDataType.POINTER -> setResultReg(i.reg1!!, valueStack.popw().toInt(), i.type!!)
+            IRDataType.POINTER -> setResultReg(i.reg1!!, valueStack.popl(), i.type!!)
             IRDataType.LONG -> setResultReg(i.reg1!!, valueStack.popl(), i.type!!)
             IRDataType.FLOAT -> registers.setFloat(i.fpReg1!!, valueStack.popf())
         }
@@ -483,7 +484,7 @@ class VirtualMachine(irProgram: IRProgram) {
             when(value.dt!!) {
                 IRDataType.BYTE -> valueStack.add(value.value as UByte)
                 IRDataType.WORD -> valueStack.pushw(value.value as UShort)
-                IRDataType.POINTER -> valueStack.pushw(value.value as UShort)
+                IRDataType.POINTER -> valueStack.pushl(value.value as Int)
                 IRDataType.LONG -> valueStack.pushl(value.value as Int)
                 IRDataType.FLOAT -> valueStack.pushf(value.value as Double)
             }
@@ -536,8 +537,8 @@ class VirtualMachine(irProgram: IRProgram) {
                 registers.setUW(i.reg1!!, value)
             }
             IRDataType.POINTER -> {
-                val value = memory.getUW(i.address!!.value)
-                registers.setUW(i.reg1!!, value)
+                val value = memory.getSL(i.address!!.value)
+                registers.setSL(i.reg1!!, value)
             }
             IRDataType.LONG -> {
                 val value = memory.getSL(i.address!!.value)
@@ -552,24 +553,20 @@ class VirtualMachine(irProgram: IRProgram) {
         val offset = i.immediate!!
         require(offset in 0..65535)
         when(i.type!!) {
-            IRDataType.BYTE -> {
-                val value = memory.getUB(registers.getUW(i.reg2!!).toUInt() + offset.toUInt())
-                registers.setUB(i.reg1!!, value)
-            }
-            IRDataType.WORD -> {
-                val value = memory.getUW(registers.getUW(i.reg2!!).toUInt() + offset.toUInt())
-                registers.setUW(i.reg1!!, value)
-            }
-            IRDataType.POINTER -> {
-                val value = memory.getUW(registers.getUW(i.reg2!!).toUInt() + offset.toUInt())
-                registers.setUW(i.reg1!!, value)
-            }
-            IRDataType.LONG -> {
-                val value = memory.getSL(registers.getUW(i.reg2!!).toUInt() + offset.toUInt())
-                registers.setSL(i.reg1!!, value)
-            }
             IRDataType.FLOAT -> {
-                registers.setFloat(i.fpReg1!!, memory.getFloat(registers.getUW(i.reg1!!).toUInt() + offset.toUInt()))
+                val baseAddr = if(wordArrayIndex) registers.getSL(i.reg1!!).toUInt() else registers.getUW(i.reg1!!).toUInt()
+                val value = memory.getFloat(baseAddr + offset.toUInt())
+                registers.setFloat(i.fpReg1!!, value)
+            }
+            else -> {
+                val baseAddr = if(wordArrayIndex) registers.getSL(i.reg2!!).toUInt() else registers.getUW(i.reg2!!).toUInt()
+                when(i.type!!) {
+                    IRDataType.BYTE -> registers.setUB(i.reg1!!, memory.getUB(baseAddr + offset.toUInt()))
+                    IRDataType.WORD -> registers.setUW(i.reg1!!, memory.getUW(baseAddr + offset.toUInt()))
+                    IRDataType.POINTER -> registers.setUL(i.reg1!!, memory.getUL(baseAddr + offset.toUInt()))
+                    IRDataType.LONG -> registers.setSL(i.reg1!!, memory.getSL(baseAddr + offset.toUInt()))
+                    IRDataType.FLOAT -> throw IllegalStateException("unreachable")
+                }
             }
         }
         nextPc()
@@ -577,23 +574,20 @@ class VirtualMachine(irProgram: IRProgram) {
 
     private fun InsLOADX(i: IRInstruction) {
         when (i.type!!) {
-            IRDataType.BYTE -> {
-                val value = memory.getUB(i.address!!.value + registers.getUB(i.reg2!!).toUInt())
-                registers.setUB(i.reg1!!, value)
+            IRDataType.FLOAT -> {
+                val index = if(wordArrayIndex) registers.getUW(i.reg1!!).toUInt() else registers.getUB(i.reg1!!).toUInt()
+                registers.setFloat(i.fpReg1!!, memory.getFloat(i.address!!.value + index))
             }
-            IRDataType.WORD -> {
-                val value = memory.getUW(i.address!!.value + registers.getUB(i.reg2!!).toUInt())
-                registers.setUW(i.reg1!!, value)
+            else -> {
+                val index = if(wordArrayIndex) registers.getUW(i.reg2!!).toUInt() else registers.getUB(i.reg2!!).toUInt()
+                when (i.type!!) {
+                    IRDataType.BYTE -> registers.setUB(i.reg1!!, memory.getUB(i.address!!.value + index))
+                    IRDataType.WORD -> registers.setUW(i.reg1!!, memory.getUW(i.address!!.value + index))
+                    IRDataType.POINTER -> registers.setUL(i.reg1!!, memory.getUL(i.address!!.value + index))
+                    IRDataType.LONG -> registers.setSL(i.reg1!!, memory.getSL(i.address!!.value + index))
+                    IRDataType.FLOAT -> throw IllegalStateException("unreachable")
+                }
             }
-            IRDataType.POINTER -> {
-                val value = memory.getUW(i.address!!.value + registers.getUB(i.reg2!!).toUInt())
-                registers.setUW(i.reg1!!, value)
-            }
-            IRDataType.LONG -> {
-                val value = memory.getSL(i.address!!.value + registers.getUB(i.reg2!!).toUInt())
-                registers.setSL(i.reg1!!, value)
-            }
-            IRDataType.FLOAT -> registers.setFloat(i.fpReg1!!, memory.getFloat(i.address!!.value + registers.getUB(i.reg1!!).toUInt()))
         }
         nextPc()
     }
@@ -609,8 +603,8 @@ class VirtualMachine(irProgram: IRProgram) {
                 registers.setUW(i.reg1!!, value)
             }
             IRDataType.POINTER -> {
-                val value = registers.getUW(i.reg2!!)
-                registers.setUW(i.reg1!!, value)
+                val value = registers.getSL(i.reg2!!)
+                registers.setSL(i.reg1!!, value)
             }
             IRDataType.LONG -> {
                 val value = registers.getSL(i.reg2!!)
@@ -625,7 +619,7 @@ class VirtualMachine(irProgram: IRProgram) {
         when(i.type!!) {
             IRDataType.BYTE -> memory.setUB(i.address!!.value, registers.getUB(i.reg1!!))
             IRDataType.WORD -> memory.setUW(i.address!!.value, registers.getUW(i.reg1!!))
-            IRDataType.POINTER -> memory.setUW(i.address!!.value, registers.getUW(i.reg1!!))
+            IRDataType.POINTER -> memory.setSL(i.address!!.value, registers.getSL(i.reg1!!))
             IRDataType.LONG -> memory.setSL(i.address!!.value, registers.getSL(i.reg1!!))
             IRDataType.FLOAT -> memory.setFloat(i.address!!.value, registers.getFloat(i.fpReg1!!))
         }
@@ -636,22 +630,40 @@ class VirtualMachine(irProgram: IRProgram) {
         val offset = i.immediate!!
         require(offset in 0..65535)
         when (i.type!!) {
-            IRDataType.BYTE -> memory.setUB(registers.getUW(i.reg2!!).toUInt() + offset.toUInt(), registers.getUB(i.reg1!!))
-            IRDataType.WORD -> memory.setUW(registers.getUW(i.reg2!!).toUInt() + offset.toUInt(), registers.getUW(i.reg1!!))
-            IRDataType.POINTER -> memory.setUW(registers.getUW(i.reg2!!).toUInt() + offset.toUInt(), registers.getUW(i.reg1!!))
-            IRDataType.LONG -> memory.setSL(registers.getUW(i.reg2!!).toUInt() + offset.toUInt(), registers.getSL(i.reg1!!))
-            IRDataType.FLOAT -> memory.setFloat(registers.getUW(i.reg1!!).toUInt() + offset.toUInt(), registers.getFloat(i.fpReg1!!))
+            IRDataType.FLOAT -> {
+                val baseAddr = if(wordArrayIndex) registers.getSL(i.reg1!!).toUInt() else registers.getUW(i.reg1!!).toUInt()
+                memory.setFloat(baseAddr + offset.toUInt(), registers.getFloat(i.fpReg1!!))
+            }
+            else -> {
+                val baseAddr = if(wordArrayIndex) registers.getSL(i.reg2!!).toUInt() else registers.getUW(i.reg2!!).toUInt()
+                when (i.type!!) {
+                    IRDataType.BYTE -> memory.setUB(baseAddr + offset.toUInt(), registers.getUB(i.reg1!!))
+                    IRDataType.WORD -> memory.setUW(baseAddr + offset.toUInt(), registers.getUW(i.reg1!!))
+                    IRDataType.POINTER -> memory.setUL(baseAddr + offset.toUInt(), registers.getUL(i.reg1!!))
+                    IRDataType.LONG -> memory.setSL(baseAddr + offset.toUInt(), registers.getSL(i.reg1!!))
+                    IRDataType.FLOAT -> throw IllegalStateException("unreachable")
+                }
+            }
         }
         nextPc()
     }
 
     private fun InsSTOREX(i: IRInstruction) {
         when (i.type!!) {
-            IRDataType.BYTE -> memory.setUB(i.address!!.value + registers.getUB(i.reg2!!).toUInt(), registers.getUB(i.reg1!!))
-            IRDataType.WORD -> memory.setUW(i.address!!.value + registers.getUB(i.reg2!!).toUInt(), registers.getUW(i.reg1!!))
-            IRDataType.POINTER -> memory.setUW(i.address!!.value + registers.getUB(i.reg2!!).toUInt(), registers.getUW(i.reg1!!))
-            IRDataType.LONG -> memory.setSL(i.address!!.value + registers.getUB(i.reg2!!).toUInt(), registers.getSL(i.reg1!!))
-            IRDataType.FLOAT -> memory.setFloat(i.address!!.value + registers.getUB(i.reg1!!).toUInt(), registers.getFloat(i.fpReg1!!))
+            IRDataType.FLOAT -> {
+                val index = if(wordArrayIndex) registers.getUW(i.reg1!!).toUInt() else registers.getUB(i.reg1!!).toUInt()
+                memory.setFloat(i.address!!.value + index, registers.getFloat(i.fpReg1!!))
+            }
+            else -> {
+                val index = if(wordArrayIndex) registers.getUW(i.reg2!!).toUInt() else registers.getUB(i.reg2!!).toUInt()
+                when (i.type!!) {
+                    IRDataType.BYTE -> memory.setUB(i.address!!.value + index, registers.getUB(i.reg1!!))
+                    IRDataType.WORD -> memory.setUW(i.address!!.value + index, registers.getUW(i.reg1!!))
+                    IRDataType.POINTER -> memory.setUL(i.address!!.value + index, registers.getUL(i.reg1!!))
+                    IRDataType.LONG -> memory.setSL(i.address!!.value + index, registers.getSL(i.reg1!!))
+                    IRDataType.FLOAT -> throw IllegalStateException("unreachable")
+                }
+            }
         }
         nextPc()
     }
@@ -660,7 +672,7 @@ class VirtualMachine(irProgram: IRProgram) {
         when(i.type!!) {
             IRDataType.BYTE -> memory.setUB(i.address!!.value, 0u)
             IRDataType.WORD -> memory.setUW(i.address!!.value, 0u)
-            IRDataType.POINTER -> memory.setUW(i.address!!.value, 0u)
+            IRDataType.POINTER -> memory.setSL(i.address!!.value, 0)
             IRDataType.LONG -> memory.setSL(i.address!!.value, 0)
             IRDataType.FLOAT -> memory.setFloat(i.address!!.value, 0.0)
         }
@@ -672,7 +684,7 @@ class VirtualMachine(irProgram: IRProgram) {
         when(i.type!!) {
             IRDataType.BYTE -> memory.setUB(addr, (i.immediate!! and 0xff).toUByte())
             IRDataType.WORD -> memory.setUW(addr, (i.immediate!! and 0xffff).toUShort())
-            IRDataType.POINTER -> memory.setUW(addr, (i.immediate!! and 0xffff).toUShort())
+            IRDataType.POINTER -> memory.setSL(addr, i.immediate!!)
             IRDataType.LONG -> memory.setSL(addr, i.immediate!!)
             IRDataType.FLOAT -> memory.setFloat(addr, i.immediateFp!!)
         }
@@ -682,23 +694,25 @@ class VirtualMachine(irProgram: IRProgram) {
     private fun InsSTOREZI(i: IRInstruction) {
         val offset = i.immediate!!
         require(offset in 0..65535)
+        val baseAddr = if(wordArrayIndex) registers.getSL(i.reg1!!).toUInt() else registers.getUW(i.reg1!!).toUInt()
         when (i.type!!) {
-            IRDataType.BYTE -> memory.setUB(registers.getUW(i.reg1!!).toUInt() + offset.toUInt(), 0u)
-            IRDataType.WORD -> memory.setUW(registers.getUW(i.reg1!!).toUInt() + offset.toUInt(), 0u)
-            IRDataType.POINTER -> memory.setUW(registers.getUW(i.reg1!!).toUInt() + offset.toUInt(), 0u)
-            IRDataType.LONG -> memory.setSL(registers.getUW(i.reg1!!).toUInt() + offset.toUInt(), 0)
-            IRDataType.FLOAT -> memory.setFloat(registers.getUW(i.reg1!!).toUInt() + offset.toUInt(), 0.0)
+            IRDataType.BYTE -> memory.setUB(baseAddr + offset.toUInt(), 0u)
+            IRDataType.WORD -> memory.setUW(baseAddr + offset.toUInt(), 0u)
+            IRDataType.POINTER -> memory.setUL(baseAddr + offset.toUInt(), 0u)
+            IRDataType.LONG -> memory.setSL(baseAddr + offset.toUInt(), 0)
+            IRDataType.FLOAT -> memory.setFloat(baseAddr + offset.toUInt(), 0.0)
         }
         nextPc()
     }
 
     private fun InsSTOREZX(i: IRInstruction) {
+        val index = if(wordArrayIndex) registers.getUW(i.reg1!!).toUInt() else registers.getUB(i.reg1!!).toUInt()
         when (i.type!!) {
-            IRDataType.BYTE -> memory.setUB(i.address!!.value + registers.getUB(i.reg1!!).toUInt(), 0u)
-            IRDataType.WORD -> memory.setUW(i.address!!.value + registers.getUB(i.reg1!!).toUInt(), 0u)
-            IRDataType.POINTER -> memory.setUW(i.address!!.value + registers.getUB(i.reg1!!).toUInt(), 0u)
-            IRDataType.LONG -> memory.setSL(i.address!!.value + registers.getUB(i.reg1!!).toUInt(), 0)
-            IRDataType.FLOAT -> memory.setFloat(i.address!!.value + registers.getUB(i.reg1!!).toUInt(), 0.0)
+            IRDataType.BYTE -> memory.setUB(i.address!!.value + index, 0u)
+            IRDataType.WORD -> memory.setUW(i.address!!.value + index, 0u)
+            IRDataType.POINTER -> memory.setUL(i.address!!.value + index, 0u)
+            IRDataType.LONG -> memory.setSL(i.address!!.value + index, 0)
+            IRDataType.FLOAT -> memory.setFloat(i.address!!.value + index, 0.0)
         }
         nextPc()
     }
@@ -708,7 +722,7 @@ class VirtualMachine(irProgram: IRProgram) {
     }
 
     private fun InsJUMPI(i: IRInstruction) {
-        val artificialAddress: UInt = registers.getUW(i.reg1!!).toUInt()
+        val artificialAddress: UInt = registers.getUL(i.reg1!!)
         if(!artificialLabelAddresses.contains(artificialAddress))
             throw IllegalArgumentException("vm program can't jump to system memory address (${i.opcode} ${artificialAddress.toHex()})")
         pcChunk = artificialLabelAddresses.getValue(artificialAddress)
@@ -724,7 +738,7 @@ class VirtualMachine(irProgram: IRProgram) {
             when(arg.reg.dt) {
                 IRDataType.BYTE -> memory.setUB(arg.address!!, registers.getUB(arg.reg.registerNum))
                 IRDataType.WORD -> memory.setUW(arg.address!!, registers.getUW(arg.reg.registerNum))
-                IRDataType.POINTER -> memory.setUW(arg.address!!, registers.getUW(arg.reg.registerNum))
+                IRDataType.POINTER -> memory.setSL(arg.address!!, registers.getSL(arg.reg.registerNum))
                 IRDataType.LONG -> memory.setSL(arg.address!!, registers.getSL(arg.reg.registerNum))
                 IRDataType.FLOAT -> memory.setFloat(arg.address!!, registers.getFloat(arg.reg.registerNum))
             }
@@ -774,8 +788,8 @@ class VirtualMachine(irProgram: IRProgram) {
                 }
                 IRDataType.POINTER -> {
                     if(returns.isNotEmpty()) {
-                        val value = i.immediate!!.toUShort()
-                        registers.setUW(returns.single().registerNum, value)
+                        val value = i.immediate!!
+                        registers.setSL(returns.single().registerNum, value)
                     } else {
                         val callInstr = context.returnChunk.instructions[context.returnIndex-1]
                         if(callInstr.opcode!=Opcode.CALL)
@@ -836,8 +850,8 @@ class VirtualMachine(irProgram: IRProgram) {
                 }
                 IRDataType.POINTER -> {
                     if(returns.isNotEmpty()) {
-                        val value = registers.getUW(i.reg1!!)
-                        registers.setUW(returns.single().registerNum, value)
+                        val value = registers.getSL(i.reg1!!)
+                        registers.setSL(returns.single().registerNum, value)
                     } else {
                         val callInstr = context.returnChunk.instructions[context.returnIndex-1]
                         if(callInstr.opcode!=Opcode.CALL)
@@ -1027,9 +1041,13 @@ class VirtualMachine(irProgram: IRProgram) {
                 val value = (registers.getUB(i.reg1!!)+1u).toUByte()
                 registers.setUB(i.reg1!!, value)
             }
-            IRDataType.WORD, IRDataType.POINTER -> {
+            IRDataType.WORD -> {
                 val value = (registers.getUW(i.reg1!!)+1u).toUShort()
                 registers.setUW(i.reg1!!, value)
+            }
+            IRDataType.POINTER -> {
+                val value = registers.getSL(i.reg1!!)+1
+                registers.setSL(i.reg1!!, value)
             }
             IRDataType.LONG -> {
                 val value = registers.getSL(i.reg1!!)+1
@@ -1047,9 +1065,13 @@ class VirtualMachine(irProgram: IRProgram) {
                 val value = (memory.getUB(address)+1u).toUByte()
                 memory.setUB(address, value)
             }
-            IRDataType.WORD, IRDataType.POINTER -> {
+            IRDataType.WORD -> {
                 val value = (memory.getUW(address)+1u).toUShort()
                 memory.setUW(address, value)
+            }
+            IRDataType.POINTER -> {
+                val value = memory.getSL(address)+1
+                memory.setSL(address, value)
             }
             IRDataType.LONG -> {
                 val value = memory.getSL(address)+1
@@ -1066,9 +1088,13 @@ class VirtualMachine(irProgram: IRProgram) {
                 val value = (registers.getUB(i.reg1!!)-1u).toUByte()
                 registers.setUB(i.reg1!!, value)
             }
-            IRDataType.WORD, IRDataType.POINTER -> {
+            IRDataType.WORD -> {
                 val value = (registers.getUW(i.reg1!!)-1u).toUShort()
                 registers.setUW(i.reg1!!, value)
+            }
+            IRDataType.POINTER -> {
+                val value = registers.getSL(i.reg1!!)-1
+                registers.setSL(i.reg1!!, value)
             }
             IRDataType.LONG -> {
                 val value = registers.getSL(i.reg1!!)-1
@@ -1085,9 +1111,13 @@ class VirtualMachine(irProgram: IRProgram) {
                 val value = (memory.getUB(i.address!!.value)-1u).toUByte()
                 memory.setUB(i.address!!.value, value)
             }
-            IRDataType.WORD, IRDataType.POINTER -> {
+            IRDataType.WORD -> {
                 val value = (memory.getUW(i.address!!.value)-1u).toUShort()
                 memory.setUW(i.address!!.value, value)
+            }
+            IRDataType.POINTER -> {
+                val value = memory.getSL(i.address!!.value)-1
+                memory.setSL(i.address!!.value, value)
             }
             IRDataType.LONG -> {
                 val value = memory.getSL(i.address!!.value)-1
@@ -1104,9 +1134,13 @@ class VirtualMachine(irProgram: IRProgram) {
                 val value = -registers.getUB(i.reg1!!).toInt()
                 registers.setUB(i.reg1!!, value.toUByte())
             }
-            IRDataType.WORD, IRDataType.POINTER -> {
+            IRDataType.WORD -> {
                 val value = -registers.getUW(i.reg1!!).toInt()
                 registers.setUW(i.reg1!!, value.toUShort())
+            }
+            IRDataType.POINTER -> {
+                val value = -registers.getSL(i.reg1!!)
+                registers.setSL(i.reg1!!, value)
             }
             IRDataType.LONG -> {
                 val value = -registers.getSL(i.reg1!!)
@@ -1124,9 +1158,13 @@ class VirtualMachine(irProgram: IRProgram) {
                 val value = -memory.getUB(address).toInt()
                 memory.setUB(address, value.toUByte())
             }
-            IRDataType.WORD, IRDataType.POINTER -> {
+            IRDataType.WORD -> {
                 val value = -memory.getUW(address).toInt()
                 memory.setUW(address, value.toUShort())
+            }
+            IRDataType.POINTER -> {
+                val value = -memory.getSL(address)
+                memory.setSL(address, value)
             }
             IRDataType.LONG -> {
                 val value = -memory.getSL(address)
@@ -1140,7 +1178,8 @@ class VirtualMachine(irProgram: IRProgram) {
     private fun InsADDR(i: IRInstruction) {
         when(i.type!!) {
             IRDataType.BYTE -> plusMinusMultAnyByte("+", i.reg1!!, i.reg2!!)
-            IRDataType.WORD, IRDataType.POINTER -> plusMinusMultAnyWord("+", i.reg1!!, i.reg2!!)
+            IRDataType.WORD -> plusMinusMultAnyWord("+", i.reg1!!, i.reg2!!)
+            IRDataType.POINTER -> plusMinusMultAnyLong("+", i.reg1!!, i.reg2!!)
             IRDataType.LONG -> plusMinusMultAnyLong("+", i.reg1!!, i.reg2!!)
             IRDataType.FLOAT -> {
                 val left = registers.getFloat(i.fpReg1!!)
@@ -1155,7 +1194,8 @@ class VirtualMachine(irProgram: IRProgram) {
     private fun InsADD(i: IRInstruction) {
         when(i.type!!) {
             IRDataType.BYTE -> plusMinusMultConstByte("+", i.reg1!!, i.immediate!!.toUByte())
-            IRDataType.WORD, IRDataType.POINTER -> plusMinusMultConstWord("+", i.reg1!!, i.immediate!!.toUShort())
+            IRDataType.WORD -> plusMinusMultConstWord("+", i.reg1!!, i.immediate!!.toUShort())
+            IRDataType.POINTER -> plusMinusMultConstLong("+", i.reg1!!, i.immediate!!)
             IRDataType.LONG -> plusMinusMultConstLong("+", i.reg1!!, i.immediate!!)
             IRDataType.FLOAT -> {
                 val left = registers.getFloat(i.fpReg1!!)
@@ -1170,7 +1210,8 @@ class VirtualMachine(irProgram: IRProgram) {
         val address = i.address!!.value
         when(i.type!!) {
             IRDataType.BYTE -> plusMinusMultAnyByteInplace("+", i.reg1!!, address)
-            IRDataType.WORD, IRDataType.POINTER -> plusMinusMultAnyWordInplace("+", i.reg1!!, address)
+            IRDataType.WORD -> plusMinusMultAnyWordInplace("+", i.reg1!!, address)
+            IRDataType.POINTER -> plusMinusMultAnyLongInplace("+", i.reg1!!, address)
             IRDataType.LONG -> plusMinusMultAnyLongInplace("+", i.reg1!!, address)
             IRDataType.FLOAT -> {
                 val left = memory.getFloat(address)
@@ -1186,7 +1227,8 @@ class VirtualMachine(irProgram: IRProgram) {
         val address = i.address!!.value
         when(i.type!!) {
             IRDataType.BYTE -> plusMinusMultConstByteInplace("+", i.immediate!!.toUByte(), address)
-            IRDataType.WORD, IRDataType.POINTER -> plusMinusMultConstWordInplace("+", i.immediate!!.toUShort(), address)
+            IRDataType.WORD -> plusMinusMultConstWordInplace("+", i.immediate!!.toUShort(), address)
+            IRDataType.POINTER -> plusMinusMultConstLongInplace("+", i.immediate!!, address)
             IRDataType.LONG -> plusMinusMultConstLongInplace("+", i.immediate!!, address)
             IRDataType.FLOAT -> {
                 val left = memory.getFloat(address)
@@ -1200,7 +1242,8 @@ class VirtualMachine(irProgram: IRProgram) {
     private fun InsSUBR(i: IRInstruction) {
         when(i.type!!) {
             IRDataType.BYTE -> plusMinusMultAnyByte("-", i.reg1!!, i.reg2!!)
-            IRDataType.WORD, IRDataType.POINTER -> plusMinusMultAnyWord("-", i.reg1!!, i.reg2!!)
+            IRDataType.WORD -> plusMinusMultAnyWord("-", i.reg1!!, i.reg2!!)
+            IRDataType.POINTER -> plusMinusMultAnyLong("-", i.reg1!!, i.reg2!!)
             IRDataType.LONG -> plusMinusMultAnyLong("-", i.reg1!!, i.reg2!!)
             IRDataType.FLOAT -> {
                 val left = registers.getFloat(i.fpReg1!!)
@@ -1215,7 +1258,8 @@ class VirtualMachine(irProgram: IRProgram) {
     private fun InsSUB(i: IRInstruction) {
         when(i.type!!) {
             IRDataType.BYTE -> plusMinusMultConstByte("-", i.reg1!!, i.immediate!!.toUByte())
-            IRDataType.WORD, IRDataType.POINTER -> plusMinusMultConstWord("-", i.reg1!!, i.immediate!!.toUShort())
+            IRDataType.WORD -> plusMinusMultConstWord("-", i.reg1!!, i.immediate!!.toUShort())
+            IRDataType.POINTER -> plusMinusMultConstLong("-", i.reg1!!, i.immediate!!)
             IRDataType.LONG -> plusMinusMultConstLong("-", i.reg1!!, i.immediate!!)
             IRDataType.FLOAT -> {
                 val left = registers.getFloat(i.fpReg1!!)
@@ -1230,7 +1274,8 @@ class VirtualMachine(irProgram: IRProgram) {
         val address = i.address!!.value
         when(i.type!!) {
             IRDataType.BYTE -> plusMinusMultAnyByteInplace("-", i.reg1!!, address)
-            IRDataType.WORD, IRDataType.POINTER -> plusMinusMultAnyWordInplace("-", i.reg1!!, address)
+            IRDataType.WORD -> plusMinusMultAnyWordInplace("-", i.reg1!!, address)
+            IRDataType.POINTER -> plusMinusMultAnyLongInplace("-", i.reg1!!, address)
             IRDataType.LONG -> plusMinusMultAnyLongInplace("-", i.reg1!!, address)
             IRDataType.FLOAT -> {
                 val left = memory.getFloat(address)
@@ -1246,7 +1291,8 @@ class VirtualMachine(irProgram: IRProgram) {
         val address = i.address!!.value
         when(i.type!!) {
             IRDataType.BYTE -> plusMinusMultConstByteInplace("-", i.immediate!!.toUByte(), address)
-            IRDataType.WORD, IRDataType.POINTER -> plusMinusMultConstWordInplace("-", i.immediate!!.toUShort(), address)
+            IRDataType.WORD -> plusMinusMultConstWordInplace("-", i.immediate!!.toUShort(), address)
+            IRDataType.POINTER -> plusMinusMultConstLongInplace("-", i.immediate!!, address)
             IRDataType.LONG -> plusMinusMultConstLongInplace("-", i.immediate!!, address)
             IRDataType.FLOAT -> {
                 val left = memory.getFloat(address)
@@ -1261,7 +1307,7 @@ class VirtualMachine(irProgram: IRProgram) {
         when(i.type!!) {
             IRDataType.BYTE -> plusMinusMultAnyByte("*", i.reg1!!, i.reg2!!)
             IRDataType.WORD -> plusMinusMultAnyWord("*", i.reg1!!, i.reg2!!)
-            IRDataType.POINTER -> plusMinusMultAnyWord("*", i.reg1!!, i.reg2!!)
+            IRDataType.POINTER -> plusMinusMultAnyLong("*", i.reg1!!, i.reg2!!)
             IRDataType.LONG -> throw IllegalArgumentException("mulr unsigned long not supported")
             IRDataType.FLOAT -> {
                 val left = registers.getFloat(i.fpReg1!!)
@@ -1277,7 +1323,7 @@ class VirtualMachine(irProgram: IRProgram) {
         when(i.type!!) {
             IRDataType.BYTE -> plusMinusMultConstByte("*", i.reg1!!, i.immediate!!.toUByte())
             IRDataType.WORD -> plusMinusMultConstWord("*", i.reg1!!, i.immediate!!.toUShort())
-            IRDataType.POINTER -> plusMinusMultConstWord("*", i.reg1!!, i.immediate!!.toUShort())
+            IRDataType.POINTER -> plusMinusMultConstLong("*", i.reg1!!, i.immediate!!)
             IRDataType.LONG -> throw IllegalArgumentException("mul unsigned long not supported")
             IRDataType.FLOAT -> {
                 val left = registers.getFloat(i.fpReg1!!)
@@ -1293,7 +1339,7 @@ class VirtualMachine(irProgram: IRProgram) {
         when(i.type!!) {
             IRDataType.BYTE -> plusMinusMultAnyByteInplace("*", i.reg1!!, address)
             IRDataType.WORD -> plusMinusMultAnyWordInplace("*", i.reg1!!, address)
-            IRDataType.POINTER -> plusMinusMultAnyWordInplace("*", i.reg1!!, address)
+            IRDataType.POINTER -> plusMinusMultAnyLongInplace("*", i.reg1!!, address)
             IRDataType.LONG -> throw IllegalArgumentException("mulm unsigned long not supported")
             IRDataType.FLOAT -> {
                 val left = memory.getFloat(address)
@@ -1309,7 +1355,7 @@ class VirtualMachine(irProgram: IRProgram) {
         when(i.type!!) {
             IRDataType.BYTE -> multiplyAnyByteSigned(i.reg1!!, i.reg2!!)
             IRDataType.WORD -> multiplyAnyWordSigned(i.reg1!!, i.reg2!!)
-            IRDataType.POINTER -> multiplyAnyWordSigned(i.reg1!!, i.reg2!!)
+            IRDataType.POINTER -> multiplyAnyLongSigned(i.reg1!!, i.reg2!!)
             IRDataType.LONG -> multiplyAnyLongSigned(i.reg1!!, i.reg2!!)
             IRDataType.FLOAT -> {
                 val left = registers.getFloat(i.fpReg1!!)
@@ -1325,7 +1371,7 @@ class VirtualMachine(irProgram: IRProgram) {
         when(i.type!!) {
             IRDataType.BYTE -> multiplyConstByteSigned(i.reg1!!, i.immediate!!.toByte())
             IRDataType.WORD -> multiplyConstWordSigned(i.reg1!!, i.immediate!!.toShort())
-            IRDataType.POINTER -> multiplyConstWordSigned(i.reg1!!, i.immediate!!.toShort())
+            IRDataType.POINTER -> multiplyConstLongSigned(i.reg1!!, i.immediate!!)
             IRDataType.LONG -> multiplyConstLongSigned(i.reg1!!, i.immediate!!)
             IRDataType.FLOAT -> {
                 val left = registers.getFloat(i.fpReg1!!)
@@ -1341,7 +1387,7 @@ class VirtualMachine(irProgram: IRProgram) {
         when(i.type!!) {
             IRDataType.BYTE -> multiplyAnyByteSignedInplace(i.reg1!!, address)
             IRDataType.WORD -> multiplyAnyWordSignedInplace(i.reg1!!, address)
-            IRDataType.POINTER -> multiplyAnyWordSignedInplace(i.reg1!!, address)
+            IRDataType.POINTER -> multiplyAnyLongSignedInplace(i.reg1!!, address)
             IRDataType.LONG -> multiplyAnyLongSignedInplace(i.reg1!!, address)
             IRDataType.FLOAT -> {
                 val left = memory.getFloat(address)
@@ -1357,7 +1403,7 @@ class VirtualMachine(irProgram: IRProgram) {
         when(i.type!!) {
             IRDataType.BYTE -> divOrModByteUnsigned("/", i.reg1!!, i.reg2!!)
             IRDataType.WORD -> divOrModWordUnsigned("/", i.reg1!!, i.reg2!!)
-            IRDataType.POINTER -> divOrModWordUnsigned("/", i.reg1!!, i.reg2!!)
+            IRDataType.POINTER -> throw IllegalArgumentException("divr unsigned pointer not supported")
             IRDataType.LONG -> throw IllegalArgumentException("divr unsigned long not supported")
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
@@ -1368,7 +1414,7 @@ class VirtualMachine(irProgram: IRProgram) {
         when(i.type!!) {
             IRDataType.BYTE -> divOrModConstByteUnsigned("/", i.reg1!!, i.immediate!!.toUByte())
             IRDataType.WORD -> divOrModConstWordUnsigned("/", i.reg1!!, i.immediate!!.toUShort())
-            IRDataType.POINTER -> divOrModConstWordUnsigned("/", i.reg1!!, i.immediate!!.toUShort())
+            IRDataType.POINTER -> throw IllegalArgumentException("div unsigned pointer not supported")
             IRDataType.LONG -> throw IllegalArgumentException("div unsigned long not supported")
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
@@ -1380,7 +1426,7 @@ class VirtualMachine(irProgram: IRProgram) {
         when(i.type!!) {
             IRDataType.BYTE -> divModByteUnsignedInplace("/", i.reg1!!, address)
             IRDataType.WORD -> divModWordUnsignedInplace("/", i.reg1!!, address)
-            IRDataType.POINTER -> divModWordUnsignedInplace("/", i.reg1!!, address)
+            IRDataType.POINTER -> throw IllegalArgumentException("divm unsigned pointer not supported")
             IRDataType.LONG -> throw IllegalArgumentException("divm unsigned long not supported")
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
@@ -1391,7 +1437,7 @@ class VirtualMachine(irProgram: IRProgram) {
         when(i.type!!) {
             IRDataType.BYTE -> divModByteSigned("/", i.reg1!!, i.reg2!!)
             IRDataType.WORD -> divModWordSigned("/", i.reg1!!, i.reg2!!)
-            IRDataType.POINTER -> divModWordSigned("/", i.reg1!!, i.reg2!!)
+            IRDataType.POINTER -> divModLongSigned("/", i.reg1!!, i.reg2!!)
             IRDataType.LONG -> divModLongSigned("/", i.reg1!!, i.reg2!!)
             IRDataType.FLOAT -> {
                 val left = registers.getFloat(i.fpReg1!!)
@@ -1407,7 +1453,7 @@ class VirtualMachine(irProgram: IRProgram) {
         when(i.type!!) {
             IRDataType.BYTE -> divModConstByteSigned("/", i.reg1!!, i.immediate!!.toByte())
             IRDataType.WORD -> divModConstWordSigned("/", i.reg1!!, i.immediate!!.toShort())
-            IRDataType.POINTER -> divModConstWordSigned("/", i.reg1!!, i.immediate!!.toShort())
+            IRDataType.POINTER -> divModConstLongSigned("/", i.reg1!!, i.immediate!!)
             IRDataType.LONG -> divModConstLongSigned("/", i.reg1!!, i.immediate!!)
             IRDataType.FLOAT -> {
                 val left = registers.getFloat(i.fpReg1!!)
@@ -1423,7 +1469,7 @@ class VirtualMachine(irProgram: IRProgram) {
         when(i.type!!) {
             IRDataType.BYTE -> divModByteSignedInplace("/", i.reg1!!, address)
             IRDataType.WORD -> divModWordSignedInplace("/", i.reg1!!, address)
-            IRDataType.POINTER -> divModWordSignedInplace("/", i.reg1!!, address)
+            IRDataType.POINTER -> divModLongSignedInplace("/", i.reg1!!, address)
             IRDataType.LONG -> divModLongSignedInplace("/", i.reg1!!, address)
             IRDataType.FLOAT -> {
                 val left = memory.getFloat(address)
@@ -1439,7 +1485,7 @@ class VirtualMachine(irProgram: IRProgram) {
         when(i.type!!) {
             IRDataType.BYTE -> divOrModByteUnsigned("%", i.reg1!!, i.reg2!!)
             IRDataType.WORD -> divOrModWordUnsigned("%", i.reg1!!, i.reg2!!)
-            IRDataType.POINTER -> divOrModWordUnsigned("%", i.reg1!!, i.reg2!!)
+            IRDataType.POINTER -> throw IllegalArgumentException("modr unsigned pointer not supported")
             IRDataType.LONG -> throw IllegalArgumentException("modr unsigned long not supported")
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
@@ -1450,7 +1496,7 @@ class VirtualMachine(irProgram: IRProgram) {
         when(i.type!!) {
             IRDataType.BYTE -> divOrModConstByteUnsigned("%", i.reg1!!, i.immediate!!.toUByte())
             IRDataType.WORD -> divOrModConstWordUnsigned("%", i.reg1!!, i.immediate!!.toUShort())
-            IRDataType.POINTER -> divOrModConstWordUnsigned("%", i.reg1!!, i.immediate!!.toUShort())
+            IRDataType.POINTER -> throw IllegalArgumentException("mod unsigned pointer not supported")
             IRDataType.LONG -> throw IllegalArgumentException("mod unsigned long not supported")
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
@@ -1461,7 +1507,7 @@ class VirtualMachine(irProgram: IRProgram) {
         when(i.type!!) {
             IRDataType.BYTE -> divModByteSigned("%", i.reg1!!, i.reg2!!)
             IRDataType.WORD -> divModWordSigned("%", i.reg1!!, i.reg2!!)
-            IRDataType.POINTER -> divModWordSigned("%", i.reg1!!, i.reg2!!)
+            IRDataType.POINTER -> divModLongSigned("%", i.reg1!!, i.reg2!!)
             IRDataType.LONG -> divModLongSigned("%", i.reg1!!, i.reg2!!)
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
@@ -1472,7 +1518,7 @@ class VirtualMachine(irProgram: IRProgram) {
         when(i.type!!) {
             IRDataType.BYTE -> divModConstByteSigned("%", i.reg1!!, i.immediate!!.toByte())
             IRDataType.WORD -> divModConstWordSigned("%", i.reg1!!, i.immediate!!.toShort())
-            IRDataType.POINTER -> divModConstWordSigned("%", i.reg1!!, i.immediate!!.toShort())
+            IRDataType.POINTER -> divModConstLongSigned("%", i.reg1!!, i.immediate!!)
             IRDataType.LONG -> divModConstLongSigned("%", i.reg1!!, i.immediate!!)
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
@@ -1483,7 +1529,7 @@ class VirtualMachine(irProgram: IRProgram) {
         when(i.type!!) {
             IRDataType.BYTE -> divAndModUByte(i.reg1!!, i.reg2!!)
             IRDataType.WORD -> divAndModUWord(i.reg1!!, i.reg2!!)
-            IRDataType.POINTER -> divAndModUWord(i.reg1!!, i.reg2!!)
+            IRDataType.POINTER -> throw IllegalArgumentException("divmodr unsigned pointer not supported")
             IRDataType.LONG -> throw IllegalArgumentException("divmodr unsigned long not supported")
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
@@ -1494,7 +1540,7 @@ class VirtualMachine(irProgram: IRProgram) {
         when(i.type!!) {
             IRDataType.BYTE -> divAndModConstUByte(i.reg1!!, i.reg2!!, i.immediate!!.toUByte())
             IRDataType.WORD -> divAndModConstUWord(i.reg1!!, i.reg2!!, i.immediate!!.toUShort())
-            IRDataType.POINTER -> divAndModConstUWord(i.reg1!!, i.reg2!!, i.immediate!!.toUShort())
+            IRDataType.POINTER -> throw IllegalArgumentException("divmod unsigned pointer not supported")
             IRDataType.LONG -> throw IllegalArgumentException("divmod unsigned long not supported")
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
@@ -1505,7 +1551,7 @@ class VirtualMachine(irProgram: IRProgram) {
         when(i.type!!) {
             IRDataType.BYTE -> divAndModSByte(i.reg1!!, i.reg2!!)
             IRDataType.WORD -> divAndModSWord(i.reg1!!, i.reg2!!)
-            IRDataType.POINTER -> divAndModSWord(i.reg1!!, i.reg2!!)
+            IRDataType.POINTER -> throw IllegalArgumentException("divmodr signed pointer not supported")
             IRDataType.LONG -> throw IllegalArgumentException("divmodr signed long not supported")
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
@@ -1516,7 +1562,7 @@ class VirtualMachine(irProgram: IRProgram) {
         when(i.type!!) {
             IRDataType.BYTE -> divAndModConstSByte(i.reg1!!, i.reg2!!, i.immediate!!.toByte())
             IRDataType.WORD -> divAndModConstSWord(i.reg1!!, i.reg2!!, i.immediate!!.toShort())
-            IRDataType.POINTER -> divAndModConstSWord(i.reg1!!, i.reg2!!, i.immediate!!.toShort())
+            IRDataType.POINTER -> throw IllegalArgumentException("divmod signed pointer not supported")
             IRDataType.LONG -> throw IllegalArgumentException("divmod signed long not supported")
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
@@ -1527,7 +1573,7 @@ class VirtualMachine(irProgram: IRProgram) {
         val sign: Int = when (i.type!!) {
             IRDataType.BYTE -> registers.getSB(i.reg2!!).toInt().sign
             IRDataType.WORD -> registers.getSW(i.reg2!!).toInt().sign
-            IRDataType.POINTER -> registers.getSW(i.reg2!!).toInt().sign
+            IRDataType.POINTER -> registers.getSL(i.reg2!!).sign
             IRDataType.LONG -> registers.getSL(i.reg2!!).sign
             IRDataType.FLOAT -> registers.getFloat(i.fpReg1!!).sign.toInt()
         }
@@ -1540,7 +1586,10 @@ class VirtualMachine(irProgram: IRProgram) {
         when(i.type!!) {
             IRDataType.BYTE -> registers.setUB(i.reg1!!, sqrt(registers.getUB(i.reg2!!).toDouble()).toInt().toUByte())
             IRDataType.WORD -> registers.setUB(i.reg1!!, sqrt(registers.getUW(i.reg2!!).toDouble()).toInt().toUByte())
-            IRDataType.POINTER -> registers.setUB(i.reg1!!, sqrt(registers.getUW(i.reg2!!).toDouble()).toInt().toUByte())
+            IRDataType.POINTER -> {
+                val value = registers.getUL(i.reg2!!)
+                registers.setUL(i.reg1!!, sqrt(value.toDouble()).toUInt())
+            }
             IRDataType.LONG -> {
                 val value = registers.getSL(i.reg2!!)
                 if(value<0)
@@ -1563,8 +1612,8 @@ class VirtualMachine(irProgram: IRProgram) {
                 registers.setUW(i.reg1!!, (value*value).toUShort())
             }
             IRDataType.POINTER -> {
-                val value = registers.getUW(i.reg2!!).toInt()
-                registers.setUW(i.reg1!!, (value*value).toUShort())
+                val value = registers.getSL(i.reg2!!)
+                registers.setSL(i.reg1!!, value*value)
             }
             IRDataType.LONG -> {
                 val value = registers.getSL(i.reg2!!)
@@ -1583,14 +1632,14 @@ class VirtualMachine(irProgram: IRProgram) {
         val left = when(type) {
             IRDataType.BYTE -> registers.getUB(i.reg1!!).toInt()
             IRDataType.WORD -> registers.getUW(i.reg1!!).toInt()
-            IRDataType.POINTER -> registers.getUW(i.reg1!!).toInt()
+            IRDataType.POINTER -> registers.getSL(i.reg1!!)
             IRDataType.LONG -> registers.getSL(i.reg1!!)
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
         val right = when(type) {
             IRDataType.BYTE -> registers.getUB(i.reg2!!).toInt()
             IRDataType.WORD -> registers.getUW(i.reg2!!).toInt()
-            IRDataType.POINTER -> registers.getUW(i.reg2!!).toInt()
+            IRDataType.POINTER -> registers.getSL(i.reg2!!)
             IRDataType.LONG -> registers.getSL(i.reg2!!)
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
@@ -1603,14 +1652,14 @@ class VirtualMachine(irProgram: IRProgram) {
         val left = when(type) {
             IRDataType.BYTE -> registers.getUB(i.reg1!!).toInt()
             IRDataType.WORD -> registers.getUW(i.reg1!!).toInt()
-            IRDataType.POINTER -> registers.getUW(i.reg1!!).toInt()
+            IRDataType.POINTER -> registers.getSL(i.reg1!!)
             IRDataType.LONG -> registers.getSL(i.reg1!!)
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
         val right = when(type) {
             IRDataType.BYTE -> i.immediate!! and 0xff
             IRDataType.WORD -> i.immediate!! and 0xffff
-            IRDataType.POINTER -> i.immediate!! and 0xffff
+            IRDataType.POINTER -> i.immediate!!
             IRDataType.LONG -> i.immediate!!
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
@@ -1645,7 +1694,7 @@ class VirtualMachine(irProgram: IRProgram) {
         val value: Int = when(i.type!!) {
             IRDataType.BYTE -> registers.getUB(i.reg1!!).toInt()
             IRDataType.WORD -> registers.getUW(i.reg1!!).toInt()
-            IRDataType.POINTER -> registers.getUW(i.reg1!!).toInt()
+            IRDataType.POINTER -> registers.getSL(i.reg1!!)
             IRDataType.LONG -> registers.getSL(i.reg1!!)
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
@@ -1665,8 +1714,8 @@ class VirtualMachine(irProgram: IRProgram) {
                 registers.setUW(i.reg1!!, value.toUShort())
             }
             IRDataType.POINTER -> {
-                val value = registers.getUW(i.reg1!!).toInt() or mask
-                registers.setUW(i.reg1!!, value.toUShort())
+                val value = registers.getSL(i.reg1!!) or mask
+                registers.setSL(i.reg1!!, value)
             }
             IRDataType.LONG -> {
                 val value = registers.getSL(i.reg1!!) or mask
@@ -1689,8 +1738,8 @@ class VirtualMachine(irProgram: IRProgram) {
                 registers.setUW(i.reg1!!, value.toUShort())
             }
             IRDataType.POINTER -> {
-                val value = registers.getUW(i.reg1!!).toInt() and mask.inv()
-                registers.setUW(i.reg1!!, value.toUShort())
+                val value = registers.getSL(i.reg1!!) and mask.inv()
+                registers.setSL(i.reg1!!, value)
             }
             IRDataType.LONG -> {
                 val value = registers.getSL(i.reg1!!) and mask.inv()
@@ -1713,8 +1762,8 @@ class VirtualMachine(irProgram: IRProgram) {
                 registers.setUW(i.reg1!!, value.toUShort())
             }
             IRDataType.POINTER -> {
-                val value = registers.getUW(i.reg1!!).toInt() xor mask
-                registers.setUW(i.reg1!!, value.toUShort())
+                val value = registers.getSL(i.reg1!!) xor mask
+                registers.setSL(i.reg1!!, value)
             }
             IRDataType.LONG -> {
                 val value = registers.getSL(i.reg1!!) xor mask
@@ -1729,7 +1778,7 @@ class VirtualMachine(irProgram: IRProgram) {
         when(i.type!!){
             IRDataType.BYTE -> registers.setUW(i.reg1!!, registers.getUB(i.reg2!!).toUShort())
             IRDataType.WORD -> registers.setSL(i.reg1!!, registers.getUW(i.reg2!!).toInt())
-            IRDataType.POINTER -> registers.setSL(i.reg1!!, registers.getUW(i.reg2!!).toInt())
+            IRDataType.POINTER -> throw IllegalArgumentException("ext.p makes no sense, 32 bits is already the widest you can get")
             IRDataType.LONG -> throw IllegalArgumentException("ext.l makes no sense, 32 bits is already the widest you can get")
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
@@ -1740,7 +1789,7 @@ class VirtualMachine(irProgram: IRProgram) {
         when(i.type!!){
             IRDataType.BYTE -> registers.setSW(i.reg1!!, registers.getSB(i.reg2!!).toShort())
             IRDataType.WORD -> registers.setSL(i.reg1!!, registers.getSW(i.reg2!!).toInt())
-            IRDataType.POINTER -> registers.setSL(i.reg1!!, registers.getSW(i.reg2!!).toInt())
+            IRDataType.POINTER -> throw IllegalArgumentException("exts.p makes no sense, 32 bits is already the widest you can get")
             IRDataType.LONG -> throw IllegalArgumentException("exts.l makes no sense, 32 bits is already the widest you can get")
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
@@ -1763,7 +1812,7 @@ class VirtualMachine(irProgram: IRProgram) {
         when(i.type!!) {
             IRDataType.BYTE -> registers.setUB(i.reg1!!, value.toUByte())
             IRDataType.WORD -> registers.setUW(i.reg1!!, value.toUShort())
-            IRDataType.POINTER -> registers.setUW(i.reg1!!, value.toUShort())
+            IRDataType.POINTER -> registers.setSL(i.reg1!!, value)
             IRDataType.LONG -> registers.setSL(i.reg1!!, value)
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
@@ -1782,8 +1831,8 @@ class VirtualMachine(irProgram: IRProgram) {
                 registers.setUW(i.reg1!!, value.toUShort())
             }
             IRDataType.POINTER -> {
-                value = registers.getUW(i.reg1!!).toInt() and i.immediate!!
-                registers.setUW(i.reg1!!, value.toUShort())
+                value = registers.getSL(i.reg1!!) and i.immediate!!
+                registers.setSL(i.reg1!!, value)
             }
             IRDataType.LONG -> {
                 value = registers.getSL(i.reg1!!) and i.immediate!!
@@ -1811,10 +1860,10 @@ class VirtualMachine(irProgram: IRProgram) {
                 memory.setUW(address, value.toUShort())
             }
             IRDataType.POINTER -> {
-                val left = memory.getUW(address)
-                val right = registers.getUW(i.reg1!!)
-                value = left.toInt() and right.toInt()
-                memory.setUW(address, value.toUShort())
+                val left = memory.getSL(address)
+                val right = registers.getSL(i.reg1!!)
+                value = left and right
+                memory.setSL(address, value)
             }
             IRDataType.LONG -> {
                 val left = memory.getSL(address)
@@ -1833,7 +1882,7 @@ class VirtualMachine(irProgram: IRProgram) {
         when(i.type!!) {
             IRDataType.BYTE -> registers.setUB(i.reg1!!, value.toUByte())
             IRDataType.WORD -> registers.setUW(i.reg1!!, value.toUShort())
-            IRDataType.POINTER -> registers.setUW(i.reg1!!, value.toUShort())
+            IRDataType.POINTER -> registers.setSL(i.reg1!!, value)
             IRDataType.LONG -> registers.setSL(i.reg1!!, value)
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
@@ -1852,8 +1901,8 @@ class VirtualMachine(irProgram: IRProgram) {
                 registers.setUW(i.reg1!!, value.toUShort())
             }
             IRDataType.POINTER -> {
-                value = registers.getUW(i.reg1!!).toInt() or i.immediate!!
-                registers.setUW(i.reg1!!, value.toUShort())
+                value = registers.getSL(i.reg1!!) or i.immediate!!
+                registers.setSL(i.reg1!!, value)
             }
             IRDataType.LONG -> {
                 value = registers.getSL(i.reg1!!) or i.immediate!!
@@ -1881,10 +1930,10 @@ class VirtualMachine(irProgram: IRProgram) {
                 memory.setUW(address, value.toUShort())
             }
             IRDataType.POINTER -> {
-                val left = memory.getUW(address)
-                val right = registers.getUW(i.reg1!!)
-                value = left.toInt() or right.toInt()
-                memory.setUW(address, value.toUShort())
+                val left = memory.getSL(address)
+                val right = registers.getSL(i.reg1!!)
+                value = left or right
+                memory.setSL(address, value)
             }
             IRDataType.LONG -> {
                 val left = memory.getSL(address)
@@ -1903,7 +1952,7 @@ class VirtualMachine(irProgram: IRProgram) {
         when(i.type!!) {
             IRDataType.BYTE -> registers.setUB(i.reg1!!, value.toUByte())
             IRDataType.WORD -> registers.setUW(i.reg1!!, value.toUShort())
-            IRDataType.POINTER -> registers.setUW(i.reg1!!, value.toUShort())
+            IRDataType.POINTER -> registers.setSL(i.reg1!!, value)
             IRDataType.LONG -> registers.setSL(i.reg1!!, value)
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
@@ -1922,8 +1971,8 @@ class VirtualMachine(irProgram: IRProgram) {
                 registers.setUW(i.reg1!!, value.toUShort())
             }
             IRDataType.POINTER -> {
-                value = registers.getUW(i.reg1!!).toInt() xor i.immediate!!
-                registers.setUW(i.reg1!!, value.toUShort())
+                value = registers.getSL(i.reg1!!) xor i.immediate!!
+                registers.setSL(i.reg1!!, value)
             }
             IRDataType.LONG -> {
                 value = registers.getSL(i.reg1!!) xor i.immediate!!
@@ -1951,10 +2000,10 @@ class VirtualMachine(irProgram: IRProgram) {
                 memory.setUW(address, value.toUShort())
             }
             IRDataType.POINTER -> {
-                val left = memory.getUW(address)
-                val right = registers.getUW(i.reg1!!)
-                value = left.toInt() xor right.toInt()
-                memory.setUW(address, value.toUShort())
+                val left = memory.getSL(address)
+                val right = registers.getSL(i.reg1!!)
+                value = left xor right
+                memory.setSL(address, value)
             }
             IRDataType.LONG -> {
                 val left = memory.getSL(address)
@@ -1971,7 +2020,7 @@ class VirtualMachine(irProgram: IRProgram) {
         when(i.type!!) {
             IRDataType.BYTE -> registers.setUB(i.reg1!!, registers.getUB(i.reg1!!).inv())
             IRDataType.WORD -> registers.setUW(i.reg1!!, registers.getUW(i.reg1!!).inv())
-            IRDataType.POINTER -> registers.setUW(i.reg1!!, registers.getUW(i.reg1!!).inv())
+            IRDataType.POINTER -> registers.setSL(i.reg1!!, registers.getSL(i.reg1!!).inv())
             IRDataType.LONG -> registers.setSL(i.reg1!!, registers.getSL(i.reg1!!).inv())
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
@@ -1983,7 +2032,7 @@ class VirtualMachine(irProgram: IRProgram) {
         when(i.type!!) {
             IRDataType.BYTE -> memory.setUB(address, memory.getUB(address).inv())
             IRDataType.WORD -> memory.setUW(address, memory.getUW(address).inv())
-            IRDataType.POINTER -> memory.setUW(address, memory.getUW(address).inv())
+            IRDataType.POINTER -> memory.setSL(address, memory.getSL(address).inv())
             IRDataType.LONG -> memory.setSL(address, memory.getSL(address).inv())
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
@@ -2015,7 +2064,7 @@ class VirtualMachine(irProgram: IRProgram) {
         when(i.type!!) {
             IRDataType.BYTE -> registers.setSB(i.reg1!!, shiftRightArithmetic(left, right, 8).toByte())
             IRDataType.WORD -> registers.setSW(i.reg1!!, shiftRightArithmetic(left, right, 16).toShort())
-            IRDataType.POINTER -> registers.setSW(i.reg1!!, shiftRightArithmetic(left, right, 16).toShort())
+            IRDataType.POINTER -> registers.setSL(i.reg1!!, shiftRightArithmetic(left, right, 32))
             IRDataType.LONG -> registers.setSL(i.reg1!!, shiftRightArithmetic(left, right, 32))
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
@@ -2028,7 +2077,7 @@ class VirtualMachine(irProgram: IRProgram) {
         when(i.type!!) {
             IRDataType.BYTE -> registers.setSB(i.reg1!!, shiftRightArithmetic(left, right, 8).toByte())
             IRDataType.WORD -> registers.setSW(i.reg1!!, shiftRightArithmetic(left, right, 16).toShort())
-            IRDataType.POINTER -> registers.setSW(i.reg1!!, shiftRightArithmetic(left, right, 16).toShort())
+            IRDataType.POINTER -> registers.setSL(i.reg1!!, shiftRightArithmetic(left, right, 32))
             IRDataType.LONG -> registers.setSL(i.reg1!!, shiftRightArithmetic(left, right, 32))
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
@@ -2048,8 +2097,8 @@ class VirtualMachine(irProgram: IRProgram) {
                 memory.setSW(address, shiftRightArithmetic(memvalue, operand, 16).toShort())
             }
             IRDataType.POINTER -> {
-                val memvalue = memory.getSW(address).toInt()
-                memory.setSW(address, shiftRightArithmetic(memvalue, operand, 16).toShort())
+                val memvalue = memory.getSL(address)
+                memory.setSL(address, shiftRightArithmetic(memvalue, operand, 32))
             }
             IRDataType.LONG -> {
                 val memvalue = memory.getSL(address)
@@ -2073,9 +2122,9 @@ class VirtualMachine(irProgram: IRProgram) {
                 registers.setSW(i.reg1!!, (value shr 1).toShort())
             }
             IRDataType.POINTER -> {
-                val value = registers.getSW(i.reg1!!).toInt()
+                val value = registers.getSL(i.reg1!!)
                 statusCarry = (value and 1)!=0
-                registers.setSW(i.reg1!!, (value shr 1).toShort())
+                registers.setSL(i.reg1!!, value shr 1)
             }
             IRDataType.LONG -> {
                 val value = registers.getSL(i.reg1!!)
@@ -2101,9 +2150,9 @@ class VirtualMachine(irProgram: IRProgram) {
                 memory.setSW(address, (value shr 1).toShort())
             }
             IRDataType.POINTER -> {
-                val value = memory.getSW(address).toInt()
+                val value = memory.getSL(address)
                 statusCarry = (value and 1)!=0
-                memory.setSW(address, (value shr 1).toShort())
+                memory.setSL(address, value shr 1)
             }
             IRDataType.LONG -> {
                 val value = memory.getSL(address)
@@ -2120,7 +2169,7 @@ class VirtualMachine(irProgram: IRProgram) {
         when(i.type!!) {
             IRDataType.BYTE -> registers.setUB(i.reg1!!, shiftRightLogical(left, right.toInt(), 8).toUByte())
             IRDataType.WORD -> registers.setUW(i.reg1!!, shiftRightLogical(left, right.toInt(), 16).toUShort())
-            IRDataType.POINTER -> registers.setUW(i.reg1!!, shiftRightLogical(left, right.toInt(), 16).toUShort())
+            IRDataType.POINTER -> registers.setSL(i.reg1!!, shiftRightLogical(left, right.toInt(), 32).toInt())
             IRDataType.LONG -> registers.setSL(i.reg1!!, shiftRightLogical(left, right.toInt(), 32).toInt())
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
@@ -2133,7 +2182,7 @@ class VirtualMachine(irProgram: IRProgram) {
         when(i.type!!) {
             IRDataType.BYTE -> registers.setUB(i.reg1!!, shiftRightLogical(left, right, 8).toUByte())
             IRDataType.WORD -> registers.setUW(i.reg1!!, shiftRightLogical(left, right, 16).toUShort())
-            IRDataType.POINTER -> registers.setUW(i.reg1!!, shiftRightLogical(left, right, 16).toUShort())
+            IRDataType.POINTER -> registers.setSL(i.reg1!!, shiftRightLogical(left, right, 32).toInt())
             IRDataType.LONG -> registers.setSL(i.reg1!!, shiftRightLogical(left, right, 32).toInt())
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
@@ -2153,8 +2202,8 @@ class VirtualMachine(irProgram: IRProgram) {
                 memory.setUW(address, shiftRightLogical(memvalue.toUInt(), operand, 16).toUShort())
             }
             IRDataType.POINTER -> {
-                val memvalue = memory.getUW(address).toInt()
-                memory.setUW(address, shiftRightLogical(memvalue.toUInt(), operand, 16).toUShort())
+                val memvalue = memory.getSL(address)
+                memory.setSL(address, shiftRightLogical(memvalue.toUInt(), operand, 32).toInt())
             }
             IRDataType.LONG -> {
                 val memvalue = memory.getSL(address)
@@ -2178,9 +2227,9 @@ class VirtualMachine(irProgram: IRProgram) {
                 registers.setUW(i.reg1!!, (value shr 1).toUShort())
             }
             IRDataType.POINTER -> {
-                val value = registers.getUW(i.reg1!!).toInt()
+                val value = registers.getSL(i.reg1!!)
                 statusCarry = (value and 1)!=0
-                registers.setUW(i.reg1!!, (value shr 1).toUShort())
+                registers.setSL(i.reg1!!, value ushr 1)
             }
             IRDataType.LONG -> {
                 val value = registers.getSL(i.reg1!!)
@@ -2206,9 +2255,9 @@ class VirtualMachine(irProgram: IRProgram) {
                 memory.setUW(address, (value shr 1).toUShort())
             }
             IRDataType.POINTER -> {
-                val value = memory.getUW(address).toInt()
+                val value = memory.getSL(address)
                 statusCarry = (value and 1)!=0
-                memory.setUW(address, (value shr 1).toUShort())
+                memory.setSL(address, value ushr 1)
             }
             IRDataType.LONG -> {
                 val value = memory.getSL(address)
@@ -2230,7 +2279,7 @@ class VirtualMachine(irProgram: IRProgram) {
                 registers.setUW(i.reg1!!, shiftLeft(left, right.toInt(), 16).toUShort())
             }
             IRDataType.POINTER -> {
-                registers.setUW(i.reg1!!, shiftLeft(left, right.toInt(), 16).toUShort())
+                registers.setSL(i.reg1!!, shiftLeft(left, right.toInt(), 32).toInt())
             }
             IRDataType.LONG -> {
                 registers.setSL(i.reg1!!, shiftLeft(left, right.toInt(), 32).toInt())
@@ -2246,7 +2295,7 @@ class VirtualMachine(irProgram: IRProgram) {
         when(i.type!!) {
             IRDataType.BYTE -> registers.setUB(i.reg1!!, shiftLeft(left, right, 8).toUByte())
             IRDataType.WORD -> registers.setUW(i.reg1!!, shiftLeft(left, right, 16).toUShort())
-            IRDataType.POINTER -> registers.setUW(i.reg1!!, shiftLeft(left, right, 16).toUShort())
+            IRDataType.POINTER -> registers.setSL(i.reg1!!, shiftLeft(left, right, 32).toInt())
             IRDataType.LONG -> registers.setSL(i.reg1!!, shiftLeft(left, right, 32).toInt())
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
@@ -2266,8 +2315,8 @@ class VirtualMachine(irProgram: IRProgram) {
                 memory.setUW(address, shiftLeft(memvalue.toUInt(), operand, 16).toUShort())
             }
             IRDataType.POINTER -> {
-                val memvalue = memory.getUW(address).toInt()
-                memory.setUW(address, shiftLeft(memvalue.toUInt(), operand, 16).toUShort())
+                val memvalue = memory.getSL(address)
+                memory.setSL(address, shiftLeft(memvalue.toUInt(), operand, 32).toInt())
             }
             IRDataType.LONG -> {
                 val memvalue = memory.getSL(address)
@@ -2291,9 +2340,9 @@ class VirtualMachine(irProgram: IRProgram) {
                 registers.setUW(i.reg1!!, (value shl 1).toUShort())
             }
             IRDataType.POINTER -> {
-                val value = registers.getUW(i.reg1!!).toInt()
-                statusCarry = (value and 0x8000)!=0
-                registers.setUW(i.reg1!!, (value shl 1).toUShort())
+                val value = registers.getSL(i.reg1!!)
+                statusCarry = value<0
+                registers.setSL(i.reg1!!, value shl 1)
             }
             IRDataType.LONG -> {
                 val value = registers.getSL(i.reg1!!)
@@ -2319,9 +2368,9 @@ class VirtualMachine(irProgram: IRProgram) {
                 memory.setUW(address, (value shl 1).toUShort())
             }
             IRDataType.POINTER -> {
-                val value = memory.getUW(address).toInt()
-                statusCarry = (value and 0x8000)!=0
-                memory.setUW(address, (value shl 1).toUShort())
+                val value = memory.getSL(address)
+                statusCarry = value<0
+                memory.setSL(address, value shl 1)
             }
             IRDataType.LONG -> {
                 val value = memory.getSL(address)
@@ -2357,14 +2406,14 @@ class VirtualMachine(irProgram: IRProgram) {
                 registers.setUW(i.reg1!!, rotated)
             }
             IRDataType.POINTER -> {
-                val orig = registers.getUW(i.reg1!!)
-                newStatusCarry = (orig.toInt() and 1) != 0
-                val rotated: UShort = if (useCarry) {
-                    val carry = if (statusCarry) 0x8000u else 0x0000u
-                    (orig.toUInt().rotateRight(1) or carry).toUShort()
+                val orig = registers.getUL(i.reg1!!)
+                newStatusCarry = (orig and 1u) != 0u
+                val rotated: UInt = if (useCarry) {
+                    val carry = if (statusCarry) 0x80000000u else 0u
+                    (orig.rotateRight(1) or carry)
                 } else
                     orig.rotateRight(1)
-                registers.setUW(i.reg1!!, rotated)
+                registers.setUL(i.reg1!!, rotated)
             }
             IRDataType.LONG -> {
                 val orig = registers.getSL(i.reg1!!).toUInt()
@@ -2409,14 +2458,14 @@ class VirtualMachine(irProgram: IRProgram) {
                 memory.setUW(address, rotated)
             }
             IRDataType.POINTER -> {
-                val orig = memory.getUW(address)
-                newStatusCarry = (orig.toInt() and 1) != 0
-                val rotated: UShort = if (useCarry) {
-                    val carry = if (statusCarry) 0x8000u else 0x0000u
-                    (orig.toUInt().rotateRight(1) or carry).toUShort()
+                val orig = memory.getUL(address)
+                newStatusCarry = (orig and 1u) != 0u
+                val rotated: UInt = if (useCarry) {
+                    val carry = if (statusCarry) 0x80000000u else 0u
+                    (orig.rotateRight(1) or carry)
                 } else
                     orig.rotateRight(1)
-                memory.setUW(address, rotated)
+                memory.setUL(address, rotated)
             }
             IRDataType.LONG -> {
                 val orig = memory.getSL(address).toUInt()
@@ -2460,14 +2509,14 @@ class VirtualMachine(irProgram: IRProgram) {
                 registers.setUW(i.reg1!!, rotated)
             }
             IRDataType.POINTER -> {
-                val orig = registers.getUW(i.reg1!!)
-                newStatusCarry = (orig.toInt() and 0x8000) != 0
-                val rotated: UShort = if (useCarry) {
+                val orig = registers.getUL(i.reg1!!)
+                newStatusCarry = (orig and 0x80000000u) != 0u
+                val rotated: UInt = if (useCarry) {
                     val carry = if (statusCarry) 1u else 0u
-                    (orig.toUInt().rotateLeft(1) or carry).toUShort()
+                    (orig.rotateLeft(1) or carry)
                 } else
                     orig.rotateLeft(1)
-                registers.setUW(i.reg1!!, rotated)
+                registers.setUL(i.reg1!!, rotated)
             }
             IRDataType.LONG -> {
                 val orig = registers.getSL(i.reg1!!).toUInt()
@@ -2512,14 +2561,14 @@ class VirtualMachine(irProgram: IRProgram) {
                 memory.setUW(address, rotated)
             }
             IRDataType.POINTER -> {
-                val orig = memory.getUW(address)
-                newStatusCarry = (orig.toInt() and 0x8000) != 0
-                val rotated: UShort = if (useCarry) {
+                val orig = memory.getUL(address)
+                newStatusCarry = (orig and 0x80000000u) != 0u
+                val rotated: UInt = if (useCarry) {
                     val carry = if (statusCarry) 1u else 0u
-                    (orig.toUInt().rotateLeft(1) or carry).toUShort()
+                    (orig.rotateLeft(1) or carry)
                 } else
                     orig.rotateLeft(1)
-                memory.setUW(address, rotated)
+                memory.setUL(address, rotated)
             }
             IRDataType.LONG -> {
                 val orig = memory.getSL(address).toUInt()
@@ -2547,7 +2596,7 @@ class VirtualMachine(irProgram: IRProgram) {
                 registers.setUB(i.reg1!!, byte)
             }
             IRDataType.POINTER -> {
-                val value = registers.getUW(i.reg2!!)
+                val value = registers.getSL(i.reg2!!)
                 val byte = value.toUByte()
                 registers.setUB(i.reg1!!, byte)
             }
@@ -2562,7 +2611,7 @@ class VirtualMachine(irProgram: IRProgram) {
     }
 
     private fun InsLSIGW(i: IRInstruction) {
-        if (i.type!! == IRDataType.LONG) {
+        if (i.type!! == IRDataType.LONG || i.type!! == IRDataType.POINTER) {
             val value = registers.getSL(i.reg2!!)
             val word = value.toUShort()
             registers.setUW(i.reg1!!, word)
@@ -2579,8 +2628,8 @@ class VirtualMachine(irProgram: IRProgram) {
                 registers.setUB(i.reg1!!, newValue.toUByte())
             }
             IRDataType.POINTER -> {
-                val value = registers.getUW(i.reg2!!)
-                val newValue = value.toInt() ushr 8
+                val value = registers.getSL(i.reg2!!)
+                val newValue = value ushr 24
                 registers.setUB(i.reg1!!, newValue.toUByte())
             }
             IRDataType.LONG -> {
@@ -2608,7 +2657,7 @@ class VirtualMachine(irProgram: IRProgram) {
     }
 
     private fun InsMSIGW(i: IRInstruction) {
-        if (i.type!! == IRDataType.LONG) {
+        if (i.type!! == IRDataType.LONG || i.type!! == IRDataType.POINTER) {
             val value = registers.getSL(i.reg2!!)
             val newValue = value ushr 16
             registers.setUW(i.reg1!!, newValue.toUShort())
@@ -2630,11 +2679,7 @@ class VirtualMachine(irProgram: IRProgram) {
                 val lsw = registers.getUW(i.reg3!!)
                 registers.setSL(i.reg1!!, ((msw.toInt() shl 16) or lsw.toInt()))
             }
-            IRDataType.POINTER -> {
-                val msw = registers.getUW(i.reg2!!)
-                val lsw = registers.getUW(i.reg3!!)
-                registers.setSL(i.reg1!!, ((msw.toInt() shl 16) or lsw.toInt()))
-            }
+            IRDataType.POINTER -> throw IllegalArgumentException("concat.p makes no sense, 32 bits is already the widest")
             IRDataType.LONG -> throw IllegalArgumentException("concat.l makes no sense, 32 bits is already the widest")
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }

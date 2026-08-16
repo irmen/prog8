@@ -294,7 +294,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
 
     private fun writeNoInitVar(variable: IRStStaticVariable) {
         val pname = variable.name
-        if(variable.dt.isSplitWordArray) {
+        if(variable.dt.isSplitWordArray(irProgram.options.compTarget)) {
             emitLine(buildString {
                 append("ubyte[${variable.length}] ${pname}_lsb zp=${variable.zpwish} split=true")
                 if(variable.align!=0u) append(" align=${variable.align}")
@@ -347,7 +347,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
     }
 
     private fun writeVarWithInit(variable: IRStStaticVariable) {
-        if(variable.dt.isSplitWordArray) {
+        if(variable.dt.isSplitWordArray(irProgram.options.compTarget)) {
             writeSplitWordArrayVariable(variable)
         } else {
             writeRegularVariableWithInit(variable)

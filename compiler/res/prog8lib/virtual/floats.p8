@@ -45,9 +45,9 @@ sub tostr(float value) -> str {
     ; ---- converts the floating point value to a string (no leading spaces)
     str @shared buffer=" "*20
     %ir {{
-        load.w r99000,floats.tostr.buffer
+        load.l r99200,floats.tostr.buffer
         loadm.f fr99000,floats.tostr.value
-        syscall 34 (r99000.w, fr99000.f)
+        syscall 34 (r99200.l, fr99000.f)
         load.w r99000,floats.tostr.buffer
         returnr.w r99000
     }}
@@ -56,8 +56,8 @@ sub tostr(float value) -> str {
 sub parse(str value) -> float {
     ; -- parse a string value of a number to float
     %ir {{
-        loadm.w  r99000,floats.parse.value
-        syscall 32 (r99000.w): fr99000.f
+        loadm.l  r99200,floats.parse.value
+        syscall 32 (r99200.l): fr99000.f
         returnr.f fr99000
     }}
 }

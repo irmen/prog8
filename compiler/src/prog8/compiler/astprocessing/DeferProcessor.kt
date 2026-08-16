@@ -63,6 +63,7 @@ internal object DeferProcessor {
             val deferVariable = PtVariable(
                 maskVarName,
                 maskType,
+                false,
                 ZeropageWish.NOT_IN_ZEROPAGE,
                 0u,
                 true,

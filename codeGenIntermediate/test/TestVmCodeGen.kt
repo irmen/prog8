@@ -48,6 +48,7 @@ class TestVmCodeGen: FunSpec({
         sub.add(PtVariable(
             "pi",
             DataType.UBYTE,
+            false,
             ZeropageWish.DONTCARE,
             0u,
             false,
@@ -58,6 +59,7 @@ class TestVmCodeGen: FunSpec({
         sub.add(PtVariable(
             "particleX",
             DataType.arrayFor(BaseDataType.UBYTE, compTarget),
+            false,
             ZeropageWish.DONTCARE,
             0u,
             false,
@@ -68,6 +70,7 @@ class TestVmCodeGen: FunSpec({
         sub.add(PtVariable(
             "particleDX",
             DataType.arrayFor(BaseDataType.UBYTE, compTarget),
+            false,
             ZeropageWish.DONTCARE,
             0u,
             false,
@@ -78,6 +81,7 @@ class TestVmCodeGen: FunSpec({
         sub.add(PtVariable(
             "xx",
             DataType.WORD,
+            false,
             ZeropageWish.DONTCARE,
             0u,
             false,
@@ -88,7 +92,7 @@ class TestVmCodeGen: FunSpec({
 
         val assign = PtAugmentedAssign("+=", Position.DUMMY)
         val target = PtAssignTarget(false, Position.DUMMY).also {
-            val targetIdx = PtArrayIndexer(DataType.UBYTE, Position.DUMMY).also { idx ->
+            val targetIdx = PtArrayIndexer(DataType.UBYTE, false, Position.DUMMY).also { idx ->
                 idx.add(PtIdentifier("main.start.particleX",
                     DataType.arrayFor(BaseDataType.UBYTE, compTarget),
                     Position.DUMMY))
@@ -96,7 +100,7 @@ class TestVmCodeGen: FunSpec({
             }
             it.add(targetIdx)
         }
-        val value = PtArrayIndexer(DataType.UBYTE, Position.DUMMY)
+        val value = PtArrayIndexer(DataType.UBYTE, false, Position.DUMMY)
         value.add(PtIdentifier("main.start.particleDX",
             DataType.arrayFor(BaseDataType.UBYTE, compTarget),
             Position.DUMMY))
@@ -156,8 +160,8 @@ class TestVmCodeGen: FunSpec({
         val program = PtProgram("test", VMTarget())
         val block = PtBlock("main", false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
         val sub = PtSub("start", emptyList(), emptyList(), Position.DUMMY)
-        sub.add(PtVariable("ptr", DataType.pointer(BaseDataType.UBYTE), ZeropageWish.DONTCARE, 0u, false, null, null, Position.DUMMY))
-        sub.add(PtVariable("val", DataType.UBYTE, ZeropageWish.DONTCARE, 0u, false, null, null, Position.DUMMY))
+        sub.add(PtVariable("ptr", DataType.pointer(BaseDataType.UBYTE), false, ZeropageWish.DONTCARE, 0u, false, null, null, Position.DUMMY))
+        sub.add(PtVariable("val", DataType.UBYTE, false, ZeropageWish.DONTCARE, 0u, false, null, null, Position.DUMMY))
 
         fun makeMemByteAssign(op: String, offset: Int): PtAugmentedAssign {
             // Use non-zero offset to avoid optimization
@@ -236,6 +240,7 @@ class TestVmCodeGen: FunSpec({
         sub.add(PtVariable(
             "f1",
             DataType.FLOAT,
+            false,
             ZeropageWish.DONTCARE,
             0u,
             false,
@@ -308,6 +313,7 @@ class TestVmCodeGen: FunSpec({
         sub.add(PtVariable(
             "f1",
             DataType.FLOAT,
+            false,
             ZeropageWish.DONTCARE,
             0u,
             false,
@@ -376,6 +382,7 @@ class TestVmCodeGen: FunSpec({
         sub.add(PtVariable(
             "f1",
             DataType.FLOAT,
+            false,
             ZeropageWish.DONTCARE,
             0u,
             false,
@@ -432,6 +439,7 @@ class TestVmCodeGen: FunSpec({
         sub.add(PtVariable(
             "sb1",
             DataType.BYTE,
+            false,
             ZeropageWish.DONTCARE,
             0u,
             false,
@@ -504,6 +512,7 @@ class TestVmCodeGen: FunSpec({
         sub.add(PtVariable(
             "sb1",
             DataType.BYTE,
+            false,
             ZeropageWish.DONTCARE,
             0u,
             false,
@@ -572,6 +581,7 @@ class TestVmCodeGen: FunSpec({
         sub.add(PtVariable(
             "ub1",
             DataType.BYTE,
+            false,
             ZeropageWish.DONTCARE,
             0u,
             false,
@@ -643,7 +653,7 @@ class TestVmCodeGen: FunSpec({
         val program = PtProgram("test", VMTarget())
         val block = PtBlock("main", false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
         val sub = PtSub("start", emptyList(), emptyList(), Position.DUMMY)
-        sub.add(PtVariable("x", DataType.UBYTE, ZeropageWish.DONTCARE, 0u, false, null, null, Position.DUMMY))
+        sub.add(PtVariable("x", DataType.UBYTE, false, ZeropageWish.DONTCARE, 0u, false, null, null, Position.DUMMY))
         block.add(sub)
         program.add(block)
 
@@ -671,7 +681,7 @@ class TestVmCodeGen: FunSpec({
         val program = PtProgram("test", VMTarget())
         val block = PtBlock("main", false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
         val sub = PtSub("start", emptyList(), emptyList(), Position.DUMMY)
-        sub.add(PtVariable("x", DataType.UBYTE, ZeropageWish.DONTCARE, 0u, false, null, null, Position.DUMMY))
+        sub.add(PtVariable("x", DataType.UBYTE, false, ZeropageWish.DONTCARE, 0u, false, null, null, Position.DUMMY))
         block.add(sub)
         program.add(block)
 

@@ -382,6 +382,7 @@ sealed interface IPtVariable {
 class PtVariable(
     name: String,
     override val type: DataType,
+    val isSplitWordArray: Boolean,          // because some array DataType enums might depend on the compilation target for being actually a split array or not 
     val zeropage: ZeropageWish,
     val align: UInt,
     val dirty: Boolean,
@@ -419,14 +420,16 @@ class PtVariable(
         private var dirty: Boolean = false
         private var value: PtExpression? = null
         private var arraySize: UInt? = null
+        private var isSplitWordArray: Boolean = false
 
         fun zeropage(z: ZeropageWish) = apply { zeropage = z }
+        fun splitwordarray(split: Boolean) = apply { isSplitWordArray = split }
         fun align(a: UInt) = apply { align = a }
         fun dirty(d: Boolean) = apply { dirty = d }
         fun value(v: PtExpression?) = apply { value = v }
         fun arraySize(s: UInt?) = apply { arraySize = s }
 
-        fun build() = PtVariable(name, type, zeropage, align, dirty, value, arraySize, position)
+        fun build() = PtVariable(name, type, isSplitWordArray, zeropage, align, dirty, value, arraySize, position)
     }
 }
 

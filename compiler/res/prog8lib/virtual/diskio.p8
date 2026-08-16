@@ -52,8 +52,8 @@ diskio {
         ;          if you're going to read from it yourself instead of using f_read()!
 
         %ir {{
-            loadm.w r99000,diskio.f_open.filenameptr
-            syscall 52 (r99000.w): r99100.b
+            loadm.l r99200,diskio.f_open.filenameptr
+            syscall 52 (r99200.l): r99100.b
             returnr.b r99100
         }}
     }
@@ -65,7 +65,7 @@ diskio {
         repeat num_bytes {
             %ir {{
                 syscall 54 (): r99000.w
-                storem.w r99000,$ff02
+                storem.w r99000,$ff0000
             }}
             if cx16.r0H==0
                 return actual
@@ -84,7 +84,7 @@ diskio {
         repeat {
             %ir {{
                 syscall 54 (): r99000.w
-                storem.w r99000,$ff02
+                storem.w r99000,$ff0000
             }}
             if cx16.r0H==0
                 return actual
@@ -104,7 +104,7 @@ diskio {
         repeat {
             %ir {{
                 syscall 54 (): r99000.w
-                storem.w r99000,$ff02
+                storem.w r99000,$ff0000
             }}
 
             if cx16.r0H==0 {
@@ -160,7 +160,7 @@ diskio {
                 loadm.w r99000,diskio.f_write.bufferpointer
                 loadi.b r99100,r99000,#0
                 syscall 55 (r99100.b): r99100.b
-                storem.b r99100,$ff02
+                storem.b r99100,$ff0000
             }}
             if cx16.r0L==0
                 return false
@@ -183,24 +183,24 @@ diskio {
     sub chdir(str path) {
         ; -- change current directory.
         %ir {{
-            loadm.w r99000,diskio.chdir.path
-            syscall 50 (r99000.w)
+            loadm.l r99200,diskio.chdir.path
+            syscall 50 (r99200.l)
         }}
     }
 
     sub mkdir(str name) {
         ; -- make a new subdirectory.
         %ir {{
-            loadm.w r99000,diskio.mkdir.name
-            syscall 49 (r99000.w)
+            loadm.l r99200,diskio.mkdir.name
+            syscall 49 (r99200.l)
         }}
     }
 
     sub rmdir(str name) {
         ; -- remove a subdirectory.
         %ir {{
-            loadm.w r99000,diskio.rmdir.name
-            syscall 51 (r99000.w)
+            loadm.l r99200,diskio.rmdir.name
+            syscall 51 (r99200.l)
         }}
     }
 
@@ -223,25 +223,25 @@ diskio {
     }
 
 
-    sub save(str filenameptr, uword start_address, uword savesize) -> bool {
+    sub save(str filenameptr, pointer start_address, uword savesize) -> bool {
         %ir {{
             load.b r99100,#0
-            loadm.w r99000,diskio.save.filenameptr
-            loadm.w r99001,diskio.save.start_address
+            loadm.l r99200,diskio.save.filenameptr
+            loadm.l r99201,diskio.save.start_address
             loadm.w r99002,diskio.save.savesize
-            syscall 42 (r99100.b, r99000.w, r99001.w, r99002.w): r99100.b
+            syscall 42 (r99100.b, r99200.l, r99201.l, r99002.w): r99100.b
             returnr.b r99100
         }}
     }
 
     ; like save() but omits the 2 byte prg header.
-    sub save_raw(str filenameptr, uword start_address, uword savesize) -> bool {
+    sub save_raw(str filenameptr, pointer start_address, uword savesize) -> bool {
         %ir {{
             load.b r99100,#1
-            loadm.w r99000,diskio.save_raw.filenameptr
-            loadm.w r99001,diskio.save_raw.start_address
+            loadm.l r99200,diskio.save_raw.filenameptr
+            loadm.l r99201,diskio.save_raw.start_address
             loadm.w r99002,diskio.save_raw.savesize
-            syscall 42 (r99100.b, r99000.w, r99001.w, r99002.w): r99100.b
+            syscall 42 (r99100.b, r99200.l, r99201.l, r99002.w): r99100.b
             returnr.b r99100
         }}
     }
@@ -252,11 +252,11 @@ diskio {
     ; If you specify a custom address_override, the first 2 bytes in the file are ignored
     ; and the rest is loaded at the given location in memory.
     ; Returns the end load address+1 if successful or 0 if a load error occurred.
-    sub load(str filenameptr, uword address_override) -> uword {
+    sub load(str filenameptr, pointer address_override) -> uword {
         %ir {{
-            loadm.w r99000,diskio.load.filenameptr
-            loadm.w r99001,diskio.load.address_override
-            syscall 40 (r99000.w, r99001.w): r99002.w
+            loadm.l r99200,diskio.load.filenameptr
+            loadm.l r99201,diskio.load.address_override
+            syscall 40 (r99200.l, r99201.l): r99002.w
             returnr.w r99002
         }}
     }
@@ -264,11 +264,11 @@ diskio {
     ; Identical to load(), but DOES INCLUDE the first 2 bytes in the file.
     ; No program header is assumed in the file. Everything is loaded.
     ; See comments on load() for more details.
-    sub load_raw(str filenameptr, uword start_address) -> uword {
+    sub load_raw(str filenameptr, pointer start_address) -> uword {
         %ir {{
-            loadm.w r99000,diskio.load_raw.filenameptr
-            loadm.w r99001,diskio.load_raw.start_address
-            syscall 41 (r99000.w, r99001.w): r99002.w
+            loadm.l r99200,diskio.load_raw.filenameptr
+            loadm.l r99201,diskio.load_raw.start_address
+            syscall 41 (r99200.l, r99201.l): r99002.w
             returnr.w r99002
         }}
     }
@@ -276,17 +276,17 @@ diskio {
     sub delete(str filenameptr) {
         ; -- delete a file on the drive
         %ir {{
-            loadm.w r99000,diskio.delete.filenameptr
-            syscall 43 (r99000.w)
+            loadm.l r99200,diskio.delete.filenameptr
+            syscall 43 (r99200.l)
         }}
     }
 
     sub rename(str oldfileptr, str newfileptr) {
         ; -- rename a file on the drive
         %ir {{
-            loadm.w r99000,diskio.rename.oldfileptr
-            loadm.w r99001,diskio.rename.newfileptr
-            syscall 44 (r99000.w, r99001.w)
+            loadm.l r99200,diskio.rename.oldfileptr
+            loadm.l r99201,diskio.rename.newfileptr
+            syscall 44 (r99200.l, r99201.l)
         }}
     }
 
@@ -332,7 +332,7 @@ diskio {
         return pos, size
     }
 
-    sub loadlib(str libnameptr, uword libaddress) -> uword {
+    sub loadlib(str libnameptr, pointer libaddress) -> uword {
         ; -- Load a prog8 compiled library binary blob at the given location into memory.
         ;    This is a wrapper around load_raw() for loading library binaries.
         return load_raw(libnameptr, libaddress)

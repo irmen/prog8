@@ -826,7 +826,7 @@ _after:
         val elementDt = if(program.target.POINTER_MEM_SIZE > 2u) BaseDataType.LONG else BaseDataType.UWORD
         val arrayDt = DataType.arrayFor(elementDt, program.target)
         val labelArray = ArrayLiteral(InferredTypes.knownFor(arrayDt), ongoto.labels.toTypedArray(), ongoto.position)
-        val jumplistArray = VarDecl.createAutoOptionalSplit(labelArray)
+        val jumplistArray = VarDecl.createAutoOptionalSplit(labelArray, target)
 
         val indexValue: Expression
         val conditionVar: VarDecl?

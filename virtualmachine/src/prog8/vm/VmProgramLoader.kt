@@ -193,7 +193,7 @@ class VmProgramLoader {
                         var address: UInt? = artificialLabelAddresses[label]
                         if(address==null) {
                             // generate an artificial address
-                            address = 0xa000u + artificialLabelAddresses.size.toUInt()
+                            address = 0x1000000u + artificialLabelAddresses.size.toUInt()
                             artificialLabelAddresses[label] = address
                         }
                         chunk.instructions[line] = instr.copy(address=address.toAddress(), branchTarget = target)
@@ -243,20 +243,15 @@ class VmProgramLoader {
                     repeat(variable.length!!.toInt()) {
                         when {
                             dt.isPointerArray -> {
-                                memory.setUW(addr, 0u)      // array of pointers is just array of word addresses
-                                addr += 2u
+                                memory.setUL(addr, 0u)      // array of pointers is array of 32-bit addresses
+                                addr += 4u
                             }
                             dt.isString || dt.isBoolArray || dt.isByteArray -> {
                                 memory.setUB(addr, 0u)
                                 addr++
                             }
-                            dt.isSplitWordArray -> {
-                                // lo bytes come after the hi bytes
-                                memory.setUB(addr, 0u)
-                                memory.setUB(addr + variable.length!!, 0u)
-                                addr++
-                            }
                             dt.isWordArray -> {
+                                // note: vm is 32 bits and never has split word arrays anymore
                                 memory.setUW(addr, 0u)
                                 addr += 2u
                             }
@@ -275,7 +270,8 @@ class VmProgramLoader {
                     when {
                         dt.isUnsignedByte || dt.isBool -> memory.setUB(addr, 0u)
                         dt.isSignedByte -> memory.setSB(addr, 0)
-                        dt.isUnsignedWord || dt.isPointer -> memory.setUW(addr, 0u)
+                        dt.isUnsignedWord -> memory.setUW(addr, 0u)
+                        dt.isPointer -> memory.setUL(addr, 0u)
                         dt.isSignedWord -> memory.setSW(addr, 0)
                         dt.isLong -> memory.setSL(addr, 0)
                         dt.isFloat -> memory.setFloat(addr, 0.0)
@@ -292,6 +288,7 @@ class VmProgramLoader {
                             variable.dt.isSignedByte -> memory.setSB(addr, initVal.value.toInt().toByte())
                             variable.dt.isUnsignedWord -> memory.setUW(addr, initVal.value.toInt().toUShort())
                             variable.dt.isSignedWord -> memory.setSW(addr, initVal.value.toInt().toShort())
+                            variable.dt.isPointer -> memory.setUL(addr, initVal.value.toUInt())
                             variable.dt.isLong -> memory.setSL(addr, initVal.value.toInt())
                             variable.dt.isFloat -> memory.setFloat(addr, initVal.value)
                             else -> throw IRParseException("invalid dt")
@@ -335,9 +332,13 @@ class VmProgramLoader {
                             memory.setUB(a, value.toInt().toUByte())
                             a++
                         }
-                        it.dt.isWord || it.dt.isPointer -> {
+                        it.dt.isWord -> {
                             memory.setUW(a, value.toInt().toUShort())
                             a += 2u
+                        }
+                        it.dt.isPointer -> {
+                            memory.setUL(a, value.toUInt())
+                            a += 4u
                         }
                         it.dt == BaseDataType.LONG -> {
                             memory.setSL(a, value.toInt())
@@ -393,21 +394,6 @@ class VmProgramLoader {
                     val value = getInitializerValue(variable.dt, elt, symbolAddresses)
                     when (value) {
                         is InitializerValue.Numeric -> memory.setSB(address, value.value.toInt().toByte())
-                        is InitializerValue.Bool -> throw IRParseException("didn't expect bool")
-                    }
-                    address++
-                }
-            }
-
-            variable.dt.isSplitWordArray -> {
-                for (elt in iElts) {
-                    val value = getInitializerValue(variable.dt, elt, symbolAddresses)
-                    when (value) {
-                        is InitializerValue.Numeric -> {
-                            val integer = value.value.toUInt()
-                            memory.setUB(address, (integer and 255u).toUByte())
-                            memory.setUB(address + variable.length!!, (integer shr 8).toUByte())
-                        }
                         is InitializerValue.Bool -> throw IRParseException("didn't expect bool")
                     }
                     address++

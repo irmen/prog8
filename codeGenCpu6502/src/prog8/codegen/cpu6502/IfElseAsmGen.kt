@@ -964,7 +964,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
                     asmgen.out("  cpy  #0")
                 } else {
                     var varname = asmgen.asmVariableName(e.identifier!!)
-                    if(e.identifier!!.type.isSplitWordArray) {
+                    if(e.identifier!!.type.isSplitWordArray(asmgen.options.compTarget)) {
                         varname += if(e.isMsbForSplitArray) "_msb" else "_lsb"
                     }
                     asmgen.out("  lda  #>$varname")
@@ -1836,7 +1836,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
                 block(varname, "$varname+1")
             } else if (e is PtAddressOf && !e.isFromArrayElement) {
                 val identifier = e.identifier!!
-                val varname = if (identifier.type.isSplitWordArray) {
+                val varname = if (identifier.type.isSplitWordArray(asmgen.options.compTarget)) {
                     if (e.isMsbForSplitArray) identifier.name + "_msb" else identifier.name + "_lsb"
                 } else {
                     identifier.name

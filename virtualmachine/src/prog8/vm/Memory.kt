@@ -1,12 +1,13 @@
 package prog8.vm
 
+import prog8.code.target.VMTarget
 import kotlin.random.Random
 
 /**
- * 64 Kb of random access memory. Initialized to random values.
+ * 16 MB of random access memory. Initialized to random values.
  */
 class Memory {
-    private val mem = ByteArray(64 * 1024) { Random.nextInt().toByte() }
+    private val mem = ByteArray(VMTarget.RAM_SIZE).also { Random.nextBytes(it) }
 
     fun reset() {
         mem.fill(0)
@@ -35,6 +36,14 @@ class Memory {
                ((mem[a+3].toInt() and 0xFF) shl 24)
     }
 
+    fun getUL(address: UInt): UInt {
+        val a = address.toInt()
+        return ((mem[a].toInt() and 0xFF) or
+               ((mem[a+1].toInt() and 0xFF) shl 8) or
+               ((mem[a+2].toInt() and 0xFF) shl 16) or
+               ((mem[a+3].toInt() and 0xFF) shl 24)).toUInt()
+    }
+
     fun setUW(address: UInt, value: UShort) {
         val a = address.toInt()
         mem[a] = (value.toInt() and 0xFF).toByte()
@@ -53,6 +62,15 @@ class Memory {
         mem[a+1] = ((value shr 8) and 0xFF).toByte()
         mem[a+2] = ((value shr 16) and 0xFF).toByte()
         mem[a+3] = ((value shr 24) and 0xFF).toByte()
+    }
+
+    fun setUL(address: UInt, value: UInt) {
+        val v = value.toInt()
+        val a = address.toInt()
+        mem[a] = (v and 0xFF).toByte()
+        mem[a+1] = ((v shr 8) and 0xFF).toByte()
+        mem[a+2] = ((v shr 16) and 0xFF).toByte()
+        mem[a+3] = ((v shr 24) and 0xFF).toByte()
     }
 
     fun setFloat(address: UInt, value: Double) {

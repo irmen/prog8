@@ -9,7 +9,7 @@ In the Antlr visitor there is // TODO: on 32-bit (m68k), str arrays should be ar
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
-- DataType.ARRAY_POINTER depends on the compilation target to be either a split word array or not. This is horrible because now we have to check with the compilation target everywhere to see if a DataType enumeration value is split word array .
+- DataType.ARRAY_POINTER depends on the compilation target to be either a split word array or not. This is horrible because now we have to check with the compilation target everywhere to see if a DataType enumeration value is split word array, and PtVariable and PtArrayIndexer need an explicit boolean to tell us if this is the case
 - m68k codegen: make use of scaling factors in the indexed instructions on 68020+ ? see ideas/scaled-indexing-IR.md
 - support arrays-of-structs, see ideas/arrays-of-structs.md
 - split up AssignmentAsmGen.kt in codeGenCpu6502 it is by far the largest file 6000+ lines
@@ -48,7 +48,6 @@ Romable (%option romable)
 
 IR/VM
 ^^^^^
-- extend the 'virtual' target (and its virtual machine) to a 32-bit machine with 16 MB of memory, so that programs can be run and tested on it that don't fit on the 64 Kb 8-bit machines.
 - encode indexed scaling into IR (so that m68k codegen can use scale factor addressing) see ideas/scaled-indexing-IR.md
 - maybe change all branch instructions to have 2 exits (label if branch condition true, and label if false) instead of 1, and get rid of the implicit "next code chunk" link between chunks.
 - implement more TODOs in AssignmentGen?

@@ -360,7 +360,7 @@ main {
         readbyte(&thing.array[1])   
     }
 
-    sub readbyte(uword ptr) {
+    sub readbyte(pointer ptr) {
         ptr=0
     }
 }
@@ -556,13 +556,15 @@ main {
         test2("zzz")
     }
 
+    pointer @shared r0
+    
     sub test1(str arg) -> str {
-        cx16.r0++
-        return cx16.r0
+        r0++
+        return r0
     }
 
     sub test2(ubyte[] arg) {
-        cx16.r0++
+        r0
     }
 }"""
 
@@ -685,11 +687,37 @@ main {
 }"""
 
         val errors = ErrorReporterForTests()
-        compileText(VMTarget(), false, src, outputDir, errors=errors)
+        compileText(Cx16Target(), false, src, outputDir, errors=errors)
         val err = errors.errors
         err.size shouldBe 1
         err[0] shouldContain("15:16: incompatible value type, can only assign uword")
     }
+
+    test("pointer long compatibility") {
+        val src="""
+main {
+    struct MyNode {
+        bool flag
+        ^^MyNode next
+    }
+
+    sub start() {
+        long r0 = ^^MyNode : []
+
+        ^^MyNode @shared ptr1 = r0
+
+        ptr1 = 2000000
+        ptr1 = 20
+        ptr1 = 20.2222
+    }
+}"""
+
+        val errors = ErrorReporterForTests()
+        compileText(VMTarget(), false, src, outputDir, errors=errors)
+        val err = errors.errors
+        err.size shouldBe 1
+        err[0] shouldContain("15:16: incompatible value type")
+    }    
 
     test("pointer uword assignments with cast") {
         val src="""
@@ -854,16 +882,16 @@ main {
         ^^List @shared l1 = 2000
         l1.next = l0
 
-        cx16.r0 = &l1.s
-        cx16.r1 = &l1.n
-        cx16.r2 = &l1.f
-        cx16.r3 = &l1.b
-        cx16.r4 = &l1.next
-        cx16.r5 = &l1.next.s
-        cx16.r6 = &l1.next.n
-        cx16.r7 = &l1.next.f
-        cx16.r8 = &l1.next.b
-        cx16.r9 = &l1.next.next
+        pointer @shared r0 = &l1.s
+        pointer @shared r1 = &l1.n
+        pointer @shared r2 = &l1.f
+        pointer @shared r3 = &l1.b
+        pointer @shared r4 = &l1.next
+        pointer @shared r5 = &l1.next.s
+        pointer @shared r6 = &l1.next.n
+        pointer @shared r7 = &l1.next.f
+        pointer @shared r8 = &l1.next.b
+        pointer @shared r9 = &l1.next.next
     }
 }"""
         compileText(VMTarget(), false, src, outputDir) shouldNotBe null
@@ -879,11 +907,11 @@ main {
         ubyte[10] array
         alias curframe = array
 
-        cx16.r0 = &curframe
-        cx16.r1 = &curframe[3]
-        cx16.r2 = &curframe + 3
-        cx16.r3 = &curframe[index]
-        cx16.r4 = &curframe + index
+        pointer @shared r0 = &curframe
+        pointer @shared r1 = &curframe[3]
+        pointer @shared r2 = &curframe + 3
+        pointer @shared r3 = &curframe[index]
+        pointer @shared r4 = &curframe + index
     }
 }"""
         compileText(C64Target(), false, src, outputDir) shouldNotBe null
@@ -910,7 +938,7 @@ main {
         (a4v.right as TypecastExpression).expression shouldBe instanceOf<IdentifierReference>()
     }
 
-    test("pointer arithmetic") {
+    test("pointer arithmetic (word size ptr)") {
         val src="""
 main {
     sub start() {
@@ -924,24 +952,106 @@ main {
         sub add1() {
             ptr += 5
             cx16.r0 = ptr + 5
-            cx16.r0 = peekw(ptr + 5)
+            cx16.r1 = peekw(ptr + 5)
         }
 
         sub add2() {
             ptr += cx16.r0L
             cx16.r0 = ptr + cx16.r0L
-            cx16.r0 = peekw(ptr + cx16.r0L)
+            cx16.r1 = peekw(ptr + cx16.r0L)
         }
 
         sub sub1() {
             ptr -= 5
             cx16.r0 = ptr - 5
-            cx16.r0 = peekw(ptr - 5)
+            cx16.r1 = peekw(ptr - 5)
         }
 
         sub sub2() {
             ptr -= cx16.r0L
             cx16.r0 = ptr - cx16.r0L
+            cx16.r1 = peekw(ptr - cx16.r0L)
+        }
+    }
+}"""
+
+        val result = compileText(Cx16Target(), true, src, outputDir)!!
+        val st = result.codegenAst!!.allBlocks().first { it.name=="main" }.children
+        st.size shouldBe 5
+        val add1 = (st[1] as PtSub).children
+        val add2 = (st[2] as PtSub).children
+        val sub1 = (st[3] as PtSub).children
+        val sub2 = (st[4] as PtSub).children
+        add1.size shouldBe 5
+        add2.size shouldBe 5
+        sub1.size shouldBe 5
+        sub2.size shouldBe 5
+
+        ((add1[1] as PtAugmentedAssign).value as PtNumber).number shouldBe 10.0
+        (((add1[2] as PtAssignment).value as PtBinaryExpression).right as PtNumber).number shouldBe 10.0
+        val add1peek = (add1[3] as PtAssignment).value as PtFunctionCall
+        add1peek.builtin shouldBe true
+        ((add1peek.args[0] as PtBinaryExpression).right as PtNumber).number shouldBe 10.0
+
+        val add2expr1 = (add2[1] as PtAugmentedAssign).value as PtBinaryExpression
+        add2expr1.operator shouldBe "<<"
+        (add2expr1.right as PtNumber).number shouldBe 1.0
+        val add2expr2 = ((add2[2] as PtAssignment).value as PtBinaryExpression).left as PtBinaryExpression
+        add2expr2.operator shouldBe "<<"
+        (add2expr2.right as PtNumber).number shouldBe 1.0
+        val add2expr3 = (((add2[3] as PtAssignment).value as PtFunctionCall).args[0] as PtBinaryExpression).left as PtBinaryExpression
+        add2expr3.operator shouldBe "<<"
+        (add2expr3.right as PtNumber).number shouldBe 1.0
+
+        ((sub1[1] as PtAugmentedAssign).value as PtNumber).number shouldBe 10.0
+        (((sub1[2] as PtAssignment).value as PtBinaryExpression).right as PtNumber).number shouldBe 10.0
+        val sub1peek = (sub1[3] as PtAssignment).value as PtFunctionCall
+        sub1peek.builtin shouldBe true
+        ((sub1peek.args[0] as PtBinaryExpression).right as PtNumber).number shouldBe 10.0
+
+        val sub2expr1 = (sub2[1] as PtAugmentedAssign).value as PtBinaryExpression
+        sub2expr1.operator shouldBe "<<"
+        (sub2expr1.right as PtNumber).number shouldBe 1.0
+        val sub2expr2 = ((sub2[2] as PtAssignment).value as PtBinaryExpression).right as PtBinaryExpression
+        sub2expr2.operator shouldBe "<<"
+        (sub2expr2.right as PtNumber).number shouldBe 1.0
+        val sub2expr3 = (((sub2[3] as PtAssignment).value as PtFunctionCall).args[0] as PtBinaryExpression).right as PtBinaryExpression
+        sub2expr3.operator shouldBe "<<"
+        (sub2expr3.right as PtNumber).number shouldBe 1.0
+    }
+
+    test("pointer arithmetic (long size ptr)") {
+        val src="""
+main {
+    sub start() {
+        ^^uword @shared ptr
+
+        add1()
+        add2()
+        sub1()
+        sub2()
+
+        sub add1() {
+            ptr += 5
+            long r0 = ptr + 5
+            cx16.r0 = peekw(ptr + 5)
+        }
+
+        sub add2() {
+            ptr += cx16.r0L
+            long r0 = ptr + cx16.r0L
+            cx16.r0 = peekw(ptr + cx16.r0L)
+        }
+
+        sub sub1() {
+            ptr -= 5
+            long r0 = ptr - 5
+            cx16.r0 = peekw(ptr - 5)
+        }
+
+        sub sub2() {
+            ptr -= cx16.r0L
+            long r0 = ptr - cx16.r0L
             cx16.r0 = peekw(ptr - cx16.r0L)
         }
     }
@@ -1277,7 +1387,7 @@ main {
         memcpy1.target.nameInSource shouldBe listOf("sys", "memcopy")
         (memcpy1.args[0] as IdentifierReference).nameInSource shouldBe listOf("l2")
         (memcpy1.args[1] as IdentifierReference).nameInSource shouldBe listOf("l1")
-        (memcpy1.args[2] as NumericLiteral).number shouldBe 13.0  // sizeof(List)
+        (memcpy1.args[2] as NumericLiteral).number shouldBe 15.0  // sizeof(List)
 
         memcpy2.target.nameInSource shouldBe listOf("sys", "memcopy")
         (memcpy2.args[0] as IdentifierReference).nameInSource shouldBe listOf("l2")
@@ -1285,7 +1395,7 @@ main {
         memcpy2value.operator shouldBe "+"
         (memcpy2value.left as IdentifierReference).nameInSource shouldBe listOf("l1")
         (memcpy2value.right as NumericLiteral).number shouldBe 3.0    // just rely on pointer arithmetic later
-        (memcpy2.args[2] as NumericLiteral).number shouldBe 13.0  // sizeof(List)
+        (memcpy2.args[2] as NumericLiteral).number shouldBe 15.0  // sizeof(List)
 
         (memcpy3.target isSameAs memcpy2.target) shouldBe true
         memcpy3.args.zip(memcpy2.args).all { it.first isSameAs it.second} shouldBe true
@@ -1942,17 +2052,18 @@ main {
         ^^float[4] array6 = [1000, 1100, 1200, 1300]
         ^^long[4] array7 = [1000, 1100, 1200, 1300]
 
-        cx16.r0 = array1[2]
-        cx16.r1 = array2[2]
-        cx16.r2 = array3[2]
-        cx16.r3 = array4[2]
-        cx16.r4 = array5[2]
-        cx16.r5 = array6[2]
-        cx16.r6 = array7[2]
+        pointer @shared r0 = array1[2]
+        pointer @shared r1 = array2[2]
+        pointer @shared r2 = array3[2]
+        pointer @shared r3 = array4[2]
+        pointer @shared r4 = array5[2]
+        pointer @shared r5 = array6[2]
+        pointer @shared r6 = array7[2]
     }
 }"""
 
         compileText(VMTarget(), false, src, outputDir) shouldNotBe null
+        compileText(Amiga500Target(), false, src, outputDir) shouldNotBe null
         compileText(C64Target(), false, src, outputDir) shouldNotBe null
         compileText(Cx16Target(), false, src, outputDir) shouldNotBe null
     }
@@ -2035,17 +2146,17 @@ main {
 
         cx16.r0L = untyped[$1000]
         cx16.r1L = ptr1[$1000]
-        cx16.r2 = ptr2[$1000]
+        pointer @shared r2 = ptr2[$1000]
         fl = ptr3[$1000]
         bb = ptr4[$1000]
         cx16.r0L = untyped[cx16.r0]
         cx16.r1L = ptr1[cx16.r0]
-        cx16.r2 = ptr2[cx16.r0]
+        r2 = ptr2[cx16.r0]
         fl = ptr3[cx16.r0]
         bb = ptr4[cx16.r0]
         cx16.r0L = untyped[cx16.r0+1]
         cx16.r1L = ptr1[cx16.r0+1]
-        cx16.r2 = ptr2[cx16.r0+1]
+        r2 = ptr2[cx16.r0+1]
         fl = ptr3[cx16.r0+1]
         bb = ptr4[cx16.r0+1]
     }
@@ -2073,6 +2184,12 @@ main {
         errors.errors.size shouldBe 2
         errors.errors[0] shouldContain "7:24: cannot assign different pointer type, expected ^^uword or uword but got ^^ubyte"
         errors.errors[1] shouldContain "10:24: cannot assign different pointer type, expected ^^ubyte or uword but got ^^uword"
+
+        errors.clear()
+        compileText(Qemu68kTarget(), false, src, outputDir, errors = errors, writeAssembly = false) shouldBe null
+        errors.errors.size shouldBe 2
+        errors.errors[0] shouldContain "7:24: cannot assign different pointer type, expected ^^uword or uword but got ^^ubyte"
+        errors.errors[1] shouldContain "10:24: cannot assign different pointer type, expected ^^ubyte or uword but got ^^uword"        
     }
 
     xtest("passing nosplit array of structpointers to a subroutine in various forms should be param type ptr to struct") {
@@ -2627,13 +2744,13 @@ main {
         sprptr.y = 99
         sprptr[0]^^.y = 99
         ;; sprites[0]^^.y = 99     ; no change here.    TODO: this syntax doesn't compile yet...
-        cx16.r0 = &sprptr[0]
+        pointer @shared r0 = &sprptr[0]
 
         cx16.r2L = sprptr.y
         cx16.r0L = sprptr[0].y
         cx16.r1L = sprites[0].y     ; no change here, need first array element
-        cx16.r0 = sprites[0]        ; no change here, need first array element
-        cx16.r0 = sprites[0]        ; no change here, need first array element
+        pointer @shared r1 = sprites[0]        ; no change here, need first array element
+        pointer @shared r2 = sprites[0]        ; no change here, need first array element
     }
 }"""
         val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = false)!!
@@ -2834,13 +2951,12 @@ main {
     test("memory() in const pointer and uword should not crash IRFileWriter") {
         val code = """
             %zeropage basicsafe
-            %import textio
             main {
-                const uword mp = memory("works", 100, 0)
+                const pointer mp = memory("works", 100, 0)
                 ^^long longs = memory("chunkoflongs", 2000, 0)
                 sub start() {
-                    txt.print_uwhex(mp, true)
-                    txt.print_uwhex(longs, true)
+                    pointer @shared xx = mp
+                    pointer @shared yy = longs
                 }
             }
         """.trimIndent()
@@ -2883,26 +2999,24 @@ main {
                     ubyte @shared s2 = sizeof(pointer)
                 }
             }"""
-        // On VMTarget (6502-like, POINTER_MEM_SIZE=2): pointer -> uword, sizeof = 2
         val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = false)!!
         val stmts = result.compilerAst.entrypoint.statements
 
         val ptrDecl = stmts.filterIsInstance<VarDecl>().find { it.name == "ptrvar" }!!
-        ptrDecl.datatype.shouldBe(DataType.UWORD)
+        ptrDecl.datatype.shouldBe(DataType.LONG)
 
         val s1Assign = stmts.filterIsInstance<Assignment>().find {
             val iref = it.target.toExpression() as? IdentifierReference
             iref?.nameInSource?.last() == "s1"
         }!!
-        (s1Assign.value as NumericLiteral).number shouldBe 2.0
+        (s1Assign.value as NumericLiteral).number shouldBe 4.0
 
         val s2Assign = stmts.filterIsInstance<Assignment>().find {
             val iref = it.target.toExpression() as? IdentifierReference
             iref?.nameInSource?.last() == "s2"
         }!!
-        (s2Assign.value as NumericLiteral).number shouldBe 2.0
+        (s2Assign.value as NumericLiteral).number shouldBe 4.0
 
-        // On m68k (POINTER_MEM_SIZE=4): pointer -> long, sizeof = 4
         val result68k = compileText(Qemu68kTarget(), false, src, outputDir, writeAssembly = false)!!
         val stmts68k = result68k.compilerAst.entrypoint.statements
 
@@ -2920,6 +3034,24 @@ main {
             iref?.nameInSource?.last() == "s2"
         }!!
         (s2Assign68k.value as NumericLiteral).number shouldBe 4.0
+
+        val result6502 = compileText(Cx16Target(), false, src, outputDir, writeAssembly = false)!!
+        val stmts6502 = result6502.compilerAst.entrypoint.statements
+
+        val ptrDecl6502 = stmts6502.filterIsInstance<VarDecl>().find { it.name == "ptrvar" }!!
+        ptrDecl6502.datatype.shouldBe(DataType.LONG)
+
+        val s1Assign6502 = stmts6502.filterIsInstance<Assignment>().find {
+            val iref = it.target.toExpression() as? IdentifierReference
+            iref?.nameInSource?.last() == "s1"
+        }!!
+        (s1Assign6502.value as NumericLiteral).number shouldBe 2.0
+
+        val s2Assign6502 = stmts6502.filterIsInstance<Assignment>().find {
+            val iref = it.target.toExpression() as? IdentifierReference
+            iref?.nameInSource?.last() == "s2"
+        }!!
+        (s2Assign6502.value as NumericLiteral).number shouldBe 2.0        
     }
 
     test("uword and long variables can be indexed as pointer holders") {

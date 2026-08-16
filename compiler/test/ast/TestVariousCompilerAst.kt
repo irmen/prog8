@@ -308,7 +308,7 @@ main {
 
     sub start() {
         str name = "name"
-        uword nameptr = &name
+        pointer nameptr = &name
         bool result
 
         result = name=="foo"
@@ -1306,8 +1306,8 @@ main {
         DataType.arrayFor(BaseDataType.FLOAT, DummyMemsizer).isFloatArray shouldBe true
         DataType.arrayFor(BaseDataType.UWORD, DummyMemsizer).isUnsignedWordArray shouldBe true
         DataType.arrayFor(BaseDataType.UWORD, DummyMemsizer).isArray shouldBe true
-        DataType.splitWordArrayFor(BaseDataType.UWORD).isSplitWordArray shouldBe true
-        DataType.arrayFor(BaseDataType.UWORD, DummyMemsizer).isSplitWordArray shouldBe false
+        DataType.splitWordArrayFor(BaseDataType.UWORD).isSplitWordArray(Cx16Target()) shouldBe true
+        DataType.arrayFor(BaseDataType.UWORD, DummyMemsizer).isSplitWordArray(Cx16Target()) shouldBe false
 
         shouldThrow<NoSuchElementException> {
             DataType.forDt(BaseDataType.ARRAY)
@@ -1548,14 +1548,14 @@ main {
     }
 }"""
 
-        val result = compileText(VMTarget(), optimize=false, src, outputDir, writeAssembly=false)!!
+        val result = compileText(Cx16Target(), optimize=false, src, outputDir, writeAssembly=false)!!
         val st = result.compilerAst.entrypoint.statements
         st.size shouldBe 4
         val decls = st.filterIsInstance<VarDecl>()
         decls.size shouldBe 3
         decls.all { it.datatype.sub!=null } shouldBe true
         decls.all { it.datatype.isPointerArray } shouldBe true
-        decls.all { it.datatype.isSplitWordArray } shouldBe true
+        decls.all { it.datatype.isSplitWordArray(Cx16Target()) } shouldBe true
     }
 
     test("on..call in nested scope compiles correctly with temp variable introduced") {

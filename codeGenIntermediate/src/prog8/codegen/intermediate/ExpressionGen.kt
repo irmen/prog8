@@ -83,7 +83,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     // for arrays this could mean a split word array, in which case we take the address of the _lsb array which comes first
                     val vmDt = if(expr.type.isUndefined) IRDataType.WORD else codeGen.irType(expr.type)
                     val resultRegister = codeGen.registers.next(vmDt)
-                    val labelsymbol = if(expr.type.isSplitWordArray) expr.name+"_lsb" else expr.name
+                    val labelsymbol = if(expr.type.isSplitWordArray(codeGen.options.compTarget)) expr.name+"_lsb" else expr.name
                     code += IRInstruction(Opcode.LOAD, vmDt, reg1 = resultRegister, labelSymbol = labelsymbol)
                     ExpressionCodeResult(code, vmDt, resultRegister, -1)
                 }
@@ -371,7 +371,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         fun loadAddressOfArrayLabel(reg: Int) {
             if (expr.isMsbForSplitArray) {
                 addInstr(result, IRInstruction(Opcode.LOAD, vmDt, reg1 = reg, labelSymbol = identifier!!.name + "_msb"), null)
-            } else if (identifier!!.type.isSplitWordArray) {
+            } else if (identifier!!.type.isSplitWordArray(codeGen.options.compTarget)) {
                 // the _lsb split array comes first in memory
                 addInstr(result, IRInstruction(Opcode.LOAD, vmDt, reg1 = reg, labelSymbol = identifier.name + "_lsb"), null)
             } else
@@ -419,7 +419,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 val eltSize = codeGen.program.memsizer.memorySize(identifier.type, 1)
                 result += IRCodeChunk(null, null).also {
                     loadAddressOfArrayLabel(resultRegister)
-                    if (eltSize > 1 && !identifier.type.isSplitWordArray) {
+                    if (eltSize > 1 && !identifier.type.isSplitWordArray(codeGen.options.compTarget)) {
                         it += codeGen.multiplyByConst(DataType.UWORD, indexWordReg, eltSize)
                     }
                     it += IRInstruction(Opcode.ADDR, IRDataType.POINTER, reg1 = resultRegister, reg2 = indexWordReg)
@@ -511,6 +511,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         }
 
         val haystackVar = check.haystackHeapVar!!
+        val addressDt = codeGen.addressDt
         when {
             haystackVar.type.isString -> {
                 val elementTr = translateExpression(check.needle)
@@ -518,7 +519,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 val iterableTr = translateExpression(haystackVar)
                 addToResult(result, iterableTr, iterableTr.resultReg, -1)
                 val resultReg = codeGen.registers.next(IRDataType.BYTE)
-                result += codeGen.makeSyscall(IMSyscall.STRING_CONTAINS, listOf(IRDataType.BYTE to elementTr.resultReg, IRDataType.WORD to iterableTr.resultReg), IRDataType.BYTE to resultReg)
+                result += codeGen.makeSyscall(IMSyscall.STRING_CONTAINS, listOf(IRDataType.BYTE to elementTr.resultReg, addressDt to iterableTr.resultReg), IRDataType.BYTE to resultReg)
                 addInstr(result, IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1=resultReg, immediate = 0), null)
                 return ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
             }
@@ -531,7 +532,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 val iterableLength = codeGen.symbolTable.getLength(haystackVar.name)
                 addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=lengthReg, immediate = iterableLength!!), null)
                 val resultReg = codeGen.registers.next(IRDataType.BYTE)
-                result += codeGen.makeSyscall(IMSyscall.BYTEARRAY_CONTAINS, listOf(IRDataType.BYTE to elementTr.resultReg, IRDataType.WORD to iterableTr.resultReg, IRDataType.BYTE to lengthReg), IRDataType.BYTE to resultReg)
+                result += codeGen.makeSyscall(IMSyscall.BYTEARRAY_CONTAINS, listOf(IRDataType.BYTE to elementTr.resultReg, addressDt to iterableTr.resultReg, IRDataType.BYTE to lengthReg), IRDataType.BYTE to resultReg)
                 addInstr(result, IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1=resultReg, immediate = 0), null)
                 return ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
             }
@@ -544,8 +545,8 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 val iterableLength = codeGen.symbolTable.getLength(haystackVar.name)
                 addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=lengthReg, immediate = iterableLength!!), null)
                 val resultReg = codeGen.registers.next(IRDataType.BYTE)
-                val syscall = if(haystackVar.type.isSplitWordArray) IMSyscall.SPLIT_WORDARRAY_CONTAINS else IMSyscall.WORDARRAY_CONTAINS
-                result += codeGen.makeSyscall(syscall, listOf(IRDataType.WORD to elementTr.resultReg, IRDataType.WORD to iterableTr.resultReg, IRDataType.BYTE to lengthReg), IRDataType.BYTE to resultReg)
+                val syscall = if(haystackVar.type.isSplitWordArray(codeGen.options.compTarget)) IMSyscall.SPLIT_WORDARRAY_CONTAINS else IMSyscall.WORDARRAY_CONTAINS
+                result += codeGen.makeSyscall(syscall, listOf(IRDataType.WORD to elementTr.resultReg, addressDt to iterableTr.resultReg, IRDataType.BYTE to lengthReg), IRDataType.BYTE to resultReg)
                 addInstr(result, IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1=resultReg, immediate = 0), null)
                 return ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
             }
@@ -558,7 +559,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 val resultReg = codeGen.registers.next(IRDataType.BYTE)
                 val iterableLength = codeGen.symbolTable.getLength(haystackVar.name)
                 addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=lengthReg, immediate = iterableLength!!), null)
-                result += codeGen.makeSyscall(IMSyscall.LONGARRAY_CONTAINS, listOf(IRDataType.LONG to elementTr.resultReg, IRDataType.WORD to iterableTr.resultReg, IRDataType.BYTE to lengthReg), IRDataType.BYTE to resultReg)
+                result += codeGen.makeSyscall(IMSyscall.LONGARRAY_CONTAINS, listOf(IRDataType.LONG to elementTr.resultReg, addressDt to iterableTr.resultReg, IRDataType.BYTE to lengthReg), IRDataType.BYTE to resultReg)
                 addInstr(result, IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1=resultReg, immediate = 0), null)
                 return ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
             }
@@ -571,7 +572,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 val resultReg = codeGen.registers.next(IRDataType.BYTE)
                 val iterableLength = codeGen.symbolTable.getLength(haystackVar.name)
                 addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=lengthReg, immediate = iterableLength!!), null)
-                result += codeGen.makeSyscall(IMSyscall.FLOATARRAY_CONTAINS, listOf(IRDataType.FLOAT to elementTr.resultFpReg, IRDataType.WORD to iterableTr.resultReg, IRDataType.BYTE to lengthReg), IRDataType.BYTE to resultReg)
+                result += codeGen.makeSyscall(IMSyscall.FLOATARRAY_CONTAINS, listOf(IRDataType.FLOAT to elementTr.resultFpReg, addressDt to iterableTr.resultReg, IRDataType.BYTE to lengthReg), IRDataType.BYTE to resultReg)
                 addInstr(result, IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1=resultReg, immediate = 0), null)
                 return ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
             }

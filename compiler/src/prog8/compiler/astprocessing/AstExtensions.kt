@@ -146,8 +146,8 @@ internal fun Program.checkPrivateAccess(errors: IErrorReporter) {
     checker.visit(this)
 }
 
-internal fun Program.checkM68kSyntax(errors: IErrorReporter) {
-    val checker = M68kAstChecker(errors)
+internal fun Program.checkM68kSyntax(errors: IErrorReporter, target: ICompilationTarget) {
+    val checker = M68kAstChecker(errors, target)
     checker.visit(this)
 }
 

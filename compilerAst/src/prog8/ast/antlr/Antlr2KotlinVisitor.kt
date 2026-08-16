@@ -230,15 +230,7 @@ class Antlr2KotlinVisitor(val source: SourceCode, private val target: ICompilati
         val baseDt = dataTypeFor(ctx.datatype()) ?: DataType.UNDEFINED
         val dt = if(!isArray) baseDt else {
             if(baseDt.isPointer) {
-                val pointerSize = target.memorySize(BaseDataType.POINTER)
-                val is32bitPointerTarget = pointerSize > 2
-                if(is32bitPointerTarget) {
-                    if(baseDt.subTypeFromAntlr != null)
-                        DataType.arrayFromAntlrTo(BaseDataType.LONG, baseDt.subTypeFromAntlr!!)
-                    else
-                        DataType.arrayFor(BaseDataType.LONG, target)
-                } else
-                    DataType.arrayOfPointersFromAntlrTo(baseDt.sub, baseDt.subTypeFromAntlr)
+                DataType.arrayOfPointersFromAntlrTo(baseDt.sub, baseDt.subTypeFromAntlr)
             } else if(baseDt.isStructInstance)
                 throw SyntaxError("array of structures not allowed (use array of pointers)", ctx.toPosition())
             else

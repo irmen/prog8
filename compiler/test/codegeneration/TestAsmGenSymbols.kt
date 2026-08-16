@@ -38,7 +38,7 @@ class TestAsmGenSymbols: StringSpec({
 
     sub start () {
         uword localvar
-        uword tgt
+        pointer tgt
 
     locallabel:
         tgt = localvar
@@ -54,7 +54,7 @@ class TestAsmGenSymbols: StringSpec({
 
          */
         val varInSub = VarDecl.builder(DataType.UWORD, Position.DUMMY).names("localvar").build()
-        val var2InSub = VarDecl.builder(DataType.UWORD, Position.DUMMY).names("tgt").build()
+        val var2InSub = VarDecl.builder(DataType.pointer(BaseDataType.UBYTE), Position.DUMMY).names("tgt").build()
         val labelInSub = Label("locallabel", Position.DUMMY)
 
         val tgt = AssignTarget(
@@ -229,14 +229,14 @@ main {
         ubyte col = 10
         ubyte row = 20
         print_ub(nop.lda(42))
-        print_uw(nop.lda.asl)
+        print_ptr(nop.lda.asl)
 
         void ffalse(99)
         void ftrue(99)
     }
     
     sub print_ub(ubyte v) {}
-    sub print_uw(uword v) {}
+    sub print_ptr(long v) {}
 }
 """
         val result = compileText(C64Target(), false, text, outputDir, writeAssembly = true)

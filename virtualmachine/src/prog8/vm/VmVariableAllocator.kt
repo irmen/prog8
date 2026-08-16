@@ -1,5 +1,6 @@
 package prog8.vm
 
+import prog8.code.core.BaseDataType
 import prog8.code.core.DataType
 import prog8.code.core.IMemSizer
 import prog8.code.core.IStringEncoding
@@ -21,7 +22,7 @@ class VmVariableAllocator(st: IRSymbolTable, val encoding: IStringEncoding, mems
         for (variable in st.allVariables()) {
             val memsize =
                 when {
-                    variable.dt.isPointer -> memsizer.memorySize(DataType.UWORD, null)  // a pointer is just a word address
+                    variable.dt.isPointer -> memsizer.memorySize(DataType.forDt(BaseDataType.POINTER), null)  // a pointer is a 32-bit address
                     variable.dt.isString -> {
                         val strInit = variable.initializationValue as? IRVariableInitializer.Str
                             ?: error("String variable missing initialization value")
