@@ -190,6 +190,8 @@ internal class AstChecker(private val program: Program,
                         // you can return a string or array or pointer when an uword (pointer) is returned
                     } else if(valueDt issimpletype BaseDataType.UWORD && expectedDt.isString) {
                         // you can return an uword pointer when the return type is a string
+                    } else if(expectedDt.isLong && options.compTarget.POINTER_MEM_SIZE>2u && (valueDataType.isIterable || valueDataType.isPointer)) {
+                        // you can return a string or array or pointer when a long (pointer) is returned on 32-bit targets
                     } else if((valueDataType.isUnsignedWord || valueDataType.isByte || valueDataType.isLong) && expectedDt.isPointer) {
                         // you can return an uword/ubyte/byte/long value when a pointer is required
                         if(options.compTarget.POINTER_MEM_SIZE>2u && !valueDataType.isLong)
@@ -2729,6 +2731,9 @@ internal class AstChecker(private val program: Program,
             errors.err("cannot assign float to ${targetDatatype}; possible loss of precision. Suggestion: round the value or revert to integer arithmetic", position)
         else if(targetDatatype.isUnsignedWord && (sourceDatatype.isPassByRef || sourceDatatype.isPointer)) {
             // this is allowed: a pass-by-reference or pointer datatype into an uword (untyped pointer value).
+        }
+        else if(targetDatatype.isLong && options.compTarget.POINTER_MEM_SIZE > 2u && (sourceDatatype.isPassByRef || sourceDatatype.isPointer)) {
+            // this is allowed: a pass-by-reference or pointer datatype into a long (untyped pointer value) on 32-bit targets.
         }
         else if(sourceIsBitwiseOperatorExpression && targetDatatype.equalsSize(sourceDatatype)) {
             // this is allowed: bitwise operation between different types as long as they're the same size.

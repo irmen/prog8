@@ -35,19 +35,34 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                 if (extsub.returns.size == assignmentTargets.size) {
                     // Targets and values match. Assign all the things. Skip 'void' targets.
                     // We need to handle both FP registers (FAC1/FAC2) and regular CPU registers
+                    // Status flag returns MUST be processed first, because their branch-based
+                    // code needs to read CPU flags immediately after the call, before any
+                    // LOADHR/STOREM instructions clobber them.
                     val fpRegs = funcCall.multipleResultFpRegs.toMutableList()
                     val cpuRegs = funcCall.multipleResultRegs.toMutableList()
 
-                    extsub.returns.zip(assignmentTargets).forEach { pair ->
-                        val returns = pair.first
-                        val target = pair.second as PtAssignTarget
-                        // consume the register even for void targets to keep indices aligned
+                    // Pre-consume register numbers in original order to keep indices aligned
+                    val regNumbers = extsub.returns.map { returns ->
                         val isFpRegister = returns.register.registerOrPair in listOf(RegisterOrPair.FAC1, RegisterOrPair.FAC2)
-                        val regNumber = if(isFpRegister) fpRegs.removeAt(0) else cpuRegs.removeAt(0)
+                        if(isFpRegister) fpRegs.removeAt(0) else cpuRegs.removeAt(0)
+                    }
+
+                    val paired = extsub.returns.zip(assignmentTargets).zip(regNumbers)
+                    val (flagPairs, otherPairs) = paired.partition { (pair, _) ->
+                        pair.first.register.statusflag != null
+                    }
+
+                    fun processPair(pair: Pair<Pair<StExtSubParameter, PtNode>, Int>) {
+                        val (returns, targetStmt) = pair.first
+                        val regNumber = pair.second
+                        val target = targetStmt as PtAssignTarget
                         if (!target.void) {
                             result += assignCpuRegister(returns, regNumber, target)
                         }
                     }
+
+                    flagPairs.forEach(::processPair)
+                    otherPairs.forEach(::processPair)
                 } else {
                     throw AssemblyError("number of values and targets don't match")
                 }
@@ -146,8 +161,32 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                     it += IRInstruction(Opcode.ROXL, IRDataType.BYTE, reg1=regNum)
                 }
             }
-            Statusflag.Pz -> TODO("find a way to assign cpu Z status bit to reg $regNum but it can already be clobbered by other return values")
-            Statusflag.Pn -> TODO("find a way to assign cpu Z status bit to reg $regNum but it can already be clobbered by other return values")
+            Statusflag.Pz -> {
+                val setLabel = codeGen.createLabelName()
+                val endLabel = codeGen.createLabelName()
+                result += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.BSTEQ, labelSymbol = setLabel)
+                    it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=regNum, immediate = 0)
+                    it += IRInstruction(Opcode.JUMP, labelSymbol = endLabel)
+                }
+                result += IRCodeChunk(setLabel, null).also {
+                    it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=regNum, immediate = 1)
+                }
+                result += IRCodeChunk(endLabel, null)
+            }
+            Statusflag.Pn -> {
+                val setLabel = codeGen.createLabelName()
+                val endLabel = codeGen.createLabelName()
+                result += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.BSTNEG, labelSymbol = setLabel)
+                    it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=regNum, immediate = 0)
+                    it += IRInstruction(Opcode.JUMP, labelSymbol = endLabel)
+                }
+                result += IRCodeChunk(setLabel, null).also {
+                    it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=regNum, immediate = 1)
+                }
+                result += IRCodeChunk(endLabel, null)
+            }
             Statusflag.Pv -> {
                 val skipLabel = codeGen.createLabelName()
                 result += IRCodeChunk(null, null).also {

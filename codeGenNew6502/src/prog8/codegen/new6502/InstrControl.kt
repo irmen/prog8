@@ -37,7 +37,7 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
     when (insn.opcode) {
         Opcode.JUMP -> {
             val target = label ?: addr?.value?.toHex() ?: error("JUMP needs target")
-            emitLine("jmp  $target")
+            emitUnconditionalBranch(target)
         }
 
         Opcode.JUMPI -> {
@@ -427,7 +427,7 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
             emitLine("beq  +")
             emitLine("lda  #255")
             emitLine("sta  ${regAddrHi(dest)}")
-            emitLine("jmp  ++")
+            emitUnconditionalBranch("++")
             emitLabel("+")
             emitStoreZero(regAddrHi(dest))
             emitLabel("+")
@@ -554,34 +554,21 @@ private fun AsmGen.translateCall(fnLabel: String, args: FunctionCallArgs?) {
 
     emitLine("jsr  $fnLabel")
 
+    // Move return values back to virtual registers.
+    // Skip status flag returns: always handled by IR's branch pattern (bsteq/bmi etc).
+    // In multi-assign context (returns.size > 1), also skip slot-based returns:
+    // the IR generates LOADHR for them.
+    // In single-return expression context, process slot returns normally
+    // (the IR doesn't generate LOADHR for single-return calls).
+    // LIMITATION: multiple status flag returns in one multi-assign (e.g. -> bool @Pz, bool @Pc)
+    // are not supported - codegen limitation: the first flag's extraction clobbers the state for subsequent flags.
     if (args != null) {
-        // Check if we need to save A before processing returns.
-        // Status flag extraction (php/pla/and/beq/lda) clobbers A,
-        // so if there's both a statusflag return AND an A register return (slot 0),
-        // we must save A first and restore it after status flag extraction.
-        val hasStatusFlagReturn = args.returns.any { it.statusflag != null }
-        val hasARegisterReturn = args.returns.any {
-            val slot = it.callingConventionSlot
-            slot != null && slot.value == 0
-        }
-        if (hasStatusFlagReturn && hasARegisterReturn) {
-            emitLine("pha")
-        }
-
-        // Process status flag returns first (they clobber A)
-        val statusFlagReturns = args.returns.filter { it.statusflag != null }
-        val otherReturns = args.returns.filter { it.statusflag == null }
-        for (ret in statusFlagReturns) {
-            translateReturnValue(ret)
-        }
-
-        // Restore A if we saved it
-        if (hasStatusFlagReturn && hasARegisterReturn) {
-            emitLine("pla")
-        }
-
-        // Now process the remaining returns (including slot 0 = A)
-        for (ret in otherReturns) {
+        val isMultiReturn = args.returns.size > 1
+        for (ret in args.returns) {
+            if (ret.statusflag != null)
+                continue
+            if (isMultiReturn)
+                continue
             translateReturnValue(ret)
         }
     }
@@ -788,6 +775,11 @@ private fun AsmGen.translateArgument(arg: FunctionCallArgs.ArgumentSpec, argInde
 }
 
 private fun AsmGen.translateReturnValue(ret: FunctionCallArgs.RegSpec) {
+    // Status flag returns are handled by the IR's branch pattern.
+    // Do not extract them here - the IR emits bsteq/bmi etc after the call.
+    if (ret.statusflag != null) {
+        return
+    }
     val slot = ret.callingConventionSlot
     val regNum = ret.registerNum.value
 
@@ -827,23 +819,7 @@ private fun AsmGen.translateReturnValue(ret: FunctionCallArgs.RegSpec) {
             emitLine("jsr  floats.MOVMF")
         }
         null -> {
-            val flag = ret.statusflag
-            if (flag != null) {
-                val mask = when (flag) {
-                    Statusflag.Pc -> 1
-                    Statusflag.Pz -> 2
-                    Statusflag.Pv -> 64
-                    Statusflag.Pn -> 128
-                }
-                emitLine("php")
-                emitLine("pla")
-                emitLine("and  #$mask")
-                emitLine("beq  +")
-                emitLine("lda  #1")
-                emitLabel("+")
-                emitLine("sta  ${regAddrLo(regNum)}")
-                emitStoreZero(regAddrHi(regNum))
-            } else if (regNum >= 0) {
+            if (regNum >= 0) {
                 when (ret.dt) {
                     IRDataType.BYTE -> {
                         emitLine("sta  ${regAddrLo(regNum)}")
@@ -1066,7 +1042,7 @@ private fun AsmGen.translateSyscallCallfar2(args: FunctionCallArgs) {
     emitLine("beq  +")
     emitLine("pla")
     emitLine("sec")
-    emitLine("jmp  ++")
+    emitUnconditionalBranch("++")
     emitLabel("+")
     emitLine("pla")
     emitLine("clc")
@@ -1189,7 +1165,7 @@ private fun AsmGen.translateSyscallLongarrayContains(args: FunctionCallArgs) {
     emitLine("bne  $labelLoop")
     emitLabel(labelNotFound)
     emitLine("lda  #0")
-    emitLine("jmp  $labelDone")
+    emitUnconditionalBranch(labelDone)
     emitLabel(labelFound)
     emitLine("lda  #1")
     emitLabel(labelDone)
@@ -1217,7 +1193,7 @@ private fun AsmGen.translateSyscallStringContains(args: FunctionCallArgs) {
     emitLine("bne  -")
     emitLabel(labelFound)
     emitLine("lda  #1")
-    emitLine("jmp  $labelDone")
+    emitUnconditionalBranch(labelDone)
     emitLabel(labelNotFound)
     emitLine("lda  #0")
     emitLabel(labelDone)

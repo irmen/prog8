@@ -40,11 +40,12 @@ and finish with `sys.poweroff_system()`. CBM targets use PETSCII by default;
 avoid uppercase in test output unless intentional graphics. The virtual target
 uses ISO when configured with `%encoding iso` and `txt.iso()`.
 
-Do not use `%option no_sysinit` in regular `amiga500` programs. It skips the
-library initialization needed by DOS, graphics, intuition, timer, and related
-calls. It is appropriate for library modules, IRQ handlers, boot stubs, or
-code that deliberately avoids those libraries. `qemu68k` has an empty
-`init_system` and is unaffected.
+Do not use `%option no_sysinit` on `amiga500` or `qemu68k` targets when the goal
+is to create normal runnable programs. It skips critical startup logic including
+library initialization (DOS, graphics, intuition, timer) and CLI argument
+handling, causing programs to crash on start. It is appropriate for library
+modules, IRQ handlers, boot stubs, or code that deliberately avoids those
+libraries.
 
 ## Types and Memory
 

@@ -1,7 +1,6 @@
 TODO
 ====
 
-- compiler crash: asmsub returning multiple values where one is a status flag (e.g. ``pointer @A0, bool @Pz``) causes ``NotImplementedError: find a way to assign cpu Z status bit to reg N but it can already be clobbered by other return values``. The IR codegen cannot handle the case where a status flag return value needs to be assigned to a register while other return values also use registers. Workaround: return the bool in a data register (``bool @D0``) instead of a status flag.
 - need a bunch of type casting/conversion checks that test the handling of the 4-byte/long pointer datatype on the qemu68k target.
 - amiga library structs: use more typed pointers if it knows the struct type from the same (or another amiga library module) , rather than using `pointer`. Consider both the extsubs but also the struct fields in the amigaDOS structs in the generated library modules.
 
@@ -96,6 +95,12 @@ IR/VM
 - ``IRInlineBinaryChunk`` and ``IRInlineAsmChunk`` - inline chunks cannot be loaded by the VM (VmProgramLoader.kt). Limitation of the current VM design: program is not loaded into memory as data
 - VM label address loading - ``VmProgramLoader.kt`` throws when it cannot resolve a label address as a value (``"vm cannot yet load a label address as a value"``).
 - ``prefixScopedName`` (``codeGenIntermediate/src/prog8/codegen/intermediate/SymbolPrefixer.kt:206``) hardcodes ``p8s_`` for all middle path parts of a dotted scoped name. This is wrong for structs in the path: ``main.MyStruct.field`` produces ``p8s_MyStruct`` (subroutine prefix) instead of ``p8t_MyStruct`` (struct prefix). Fix: look up each middle part in the symbol table and apply ``typePrefixChar()`` per part. Pre-existing bug carried over from the 6502 new6502codegen (``AsmGen.kt``).
+
+**Source line tracking in new codegen backends**
+- Improve source line tracking across the IR into the generated assembly code in the new codegen backends (new6502, m68k). Currently, the IR preserves some source position information, but this is not consistently propagated through to the final assembly output. Better tracking would improve debugging experience (e.g., in monitor/debugger tools) and make it easier to correlate generated assembly back to the original Prog8 source code. Consider adding source location metadata to IR instructions and ensuring code generators emit appropriate ``.line`` directives or comments in the assembly output.
+
+**Multiple status flag returns in new codegens**
+- The new6502 and m68k codegens do not support multiple status flag returns in a single multi-assign (e.g. ``-> bool @Pz, bool @Pc``). The first flag's extraction clobbers the CPU status register before the second flag can be read. This is a codegen limitation, not a fundamental IR issue. The old 6502 codegen handles this correctly by using ``php``/``plp`` to save/restore the processor status around each flag extraction (see ``AssignmentAsmGen.kt:60-84``). The new codegens could be improved similarly by detecting multiple status flag returns and emitting appropriate save/restore instructions around the IR's branch patterns.
 
 
 Libraries

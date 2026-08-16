@@ -2,11 +2,14 @@ package prog8tests.codegen.m68k
 
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.engine.spec.tempdir
+import io.kotest.matchers.ints.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
 import prog8.code.core.CompilationOptions
 import prog8.code.core.OutputType
 import prog8.code.core.Position
+import prog8.code.core.Statusflag
 import prog8.code.core.ZeropageType
+import prog8.code.target.Amiga500Target
 import prog8.code.target.Qemu68kTarget
 import prog8.codegen.m68k.AsmGen
 import prog8.codegen.m68k.optimizeAssembly
@@ -661,5 +664,135 @@ class TestInstructionSelectionOptimizations : FunSpec({
         optimizeAssembly(lines)
         // tst should NOT be removed because sizes differ
         lines.any { it.contains("tst.w") } shouldBe true
+    }
+
+    // === Tests for status flag return handling fixes (commit 1286b6cc8 follow-up) ===
+
+    test("single-return expression call with @A0 (slot 18) emits store instruction") {
+        // Bug fix: single-return expression calls with @A0-A6/@FP0-FP7 returns
+        // should emit the store instruction because the IR doesn't generate LOADHR
+        // for single-return calls.
+        val args = FunctionCallArgs(
+            emptyList(),
+            listOf(
+                FunctionCallArgs.RegSpec(IRDataType.POINTER, RegisterNum(0), CallingConventionSlot(18), null)
+            )
+        )
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-single-return-a0"),
+            listOf(
+                IRInstruction(Opcode.CALL, labelSymbol = "test.asmsub", fcallArgs = args)
+            )
+        )
+        // Should emit a store from a0 to virtual register
+        lines.any { it.contains("move.l") && it.contains("a0") && it.contains("p8_regfile") } shouldBe true
+    }
+
+    test("single-return expression call with @FP0 (slot 25) emits store instruction") {
+        // Bug fix: single-return expression calls with float register returns
+        // should emit the store instruction.
+        val args = FunctionCallArgs(
+            emptyList(),
+            listOf(
+                FunctionCallArgs.RegSpec(IRDataType.FLOAT, RegisterNum(0), CallingConventionSlot(25), null)
+            )
+        )
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-single-return-fp0"),
+            listOf(
+                IRInstruction(Opcode.CALL, labelSymbol = "test.asmsub", fcallArgs = args)
+            )
+        )
+        // Should emit fmove.s from fp0 to virtual register
+        lines.any { it.contains("fmove.s") && it.contains("fp0") } shouldBe true
+    }
+
+    test("multi-assign with @D0 + @Pz does not emit move between jsr and branch") {
+        // Bug fix: in multi-assign context, slot returns should be skipped because
+        // the IR generates LOADHR for them. Emitting move here would clobber CPU flags
+        // before the IR's branch pattern can read them.
+        val args = FunctionCallArgs(
+            emptyList(),
+            listOf(
+                FunctionCallArgs.RegSpec(IRDataType.BYTE, RegisterNum(0), CallingConventionSlot(10), null),
+                FunctionCallArgs.RegSpec(IRDataType.BYTE, RegisterNum(1), null, Statusflag.Pz)
+            )
+        )
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-multi-assign-d0-pz"),
+            listOf(
+                IRInstruction(Opcode.CALL, labelSymbol = "test.asmsub", fcallArgs = args)
+            )
+        )
+        // Find the jsr line
+        val jsrIndex = lines.indexOfFirst { it.startsWith("jsr") && it.contains("test.asmsub") }
+        jsrIndex shouldBeGreaterThan -1
+        // There should be NO move from d0 between jsr and any branch instruction (beq/bne)
+        val afterJsr = lines.subList(jsrIndex + 1, lines.size)
+        val branchIndex = afterJsr.indexOfFirst { it.startsWith("beq") || it.startsWith("bne") || it.startsWith("bmi") || it.startsWith("bpl") }
+        if (branchIndex > 0) {
+            val betweenJsrAndBranch = afterJsr.subList(0, branchIndex)
+            betweenJsrAndBranch.any { it.contains("move") && it.contains("d0") && it.contains("p8_regfile") } shouldBe false
+        }
+    }
+
+    test("CALLFAR multi-assign with slot + flag return does not emit move between jsr and branch") {
+        // Bug fix: CALLFAR in multi-assign context should also skip slot returns.
+        // CALLFAR only works for amiga targets, so we need a separate helper.
+        val args = FunctionCallArgs(
+            emptyList(),
+            listOf(
+                FunctionCallArgs.RegSpec(IRDataType.POINTER, RegisterNum(0), CallingConventionSlot(18), null),
+                FunctionCallArgs.RegSpec(IRDataType.BYTE, RegisterNum(1), null, Statusflag.Pz)
+            )
+        )
+        // For amiga CALLFAR, address is the LVO offset (negative as Int, but stored as UInt bits)
+        // -30 as Int = 0xFFFFFFE2 as UInt bits
+        val negativeOffset = (-30).toUInt()
+        val callfarInsn = IRInstruction(
+            Opcode.CALLFAR,
+            labelSymbol = "test.libfunc",
+            fcallArgs = args,
+            address = MemoryAddress(negativeOffset),
+            immediate = 1  // bank number (1=exec.library)
+        ).apply { extSubName = "test.libfunc" }
+
+        val target = Amiga500Target()
+        val options = CompilationOptions.builder(target)
+            .output(OutputType.RAW)
+            .zeropage(ZeropageType.FLOATSAFE)
+            .floats(false)
+            .compilerVersion("test")
+            .memtopAddress(0xffffu)
+            .optimize(true)
+            .build()
+        val program = IRProgram("test", IRSymbolTable(), options, DummyStringEncoder)
+        program.options.outputDir = tempRoot.resolve("test-m68k-callfar-multi")
+        val sub = IRSubroutine("test.start", emptyList(), emptyList(), Position.DUMMY)
+        val chunk = IRCodeChunk(null, null)
+        chunk.instructions.add(callfarInsn)
+        sub.chunks.add(chunk)
+        val block = IRBlock("test", false, IRBlock.Options(), Position.DUMMY)
+        block.children.add(sub)
+        program.blocks.add(block)
+
+        val output = program.options.outputDir.toFile()
+        output.deleteRecursively()
+        output.mkdirs()
+        AsmGen(program, target).generate()
+        val asmFile = program.options.outputDir.resolve("test.asm")
+        check(asmFile.exists()) { "Assembly file not written: $asmFile" }
+        val lines = asmFile.readText().lines().map { it.trim() }
+
+        // Find the jsr line
+        val jsrIndex = lines.indexOfFirst { it.startsWith("jsr") }
+        jsrIndex shouldBeGreaterThan -1
+        // There should be NO move from a0 between jsr and any branch instruction
+        val afterJsr = lines.subList(jsrIndex + 1, lines.size)
+        val branchIndex = afterJsr.indexOfFirst { it.startsWith("beq") || it.startsWith("bne") }
+        if (branchIndex > 0) {
+            val betweenJsrAndBranch = afterJsr.subList(0, branchIndex)
+            betweenJsrAndBranch.any { it.contains("move") && it.contains("a0") && it.contains("p8_regfile") } shouldBe false
+        }
     }
 })

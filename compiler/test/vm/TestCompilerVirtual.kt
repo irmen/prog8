@@ -1514,4 +1514,68 @@ main {
     }
 
 
+    test("asmsub multi-assign with status flag return values generates correct IR") {
+        val src = """
+%option no_sysinit
+main {
+    sub start() {
+        ubyte v1
+        bool f1
+        ubyte v2
+        bool f2
+        ubyte v3
+        bool f3
+
+        v1, f1 = testPz()
+        main.r1 = v1
+        main.b1 = f1
+
+        v2, f2 = testPn()
+        main.r2 = v2
+        main.b2 = f2
+
+        v3, f3 = testPv()
+        main.r3 = v3
+        main.b3 = f3
+    }
+
+    asmsub testPz() -> ubyte @A, bool @Pz {
+        %asm {{
+            lda  #42
+            cmp  #42        ; Z=1
+            rts
+        }}
+    }
+
+    asmsub testPn() -> ubyte @A, bool @Pn {
+        %asm {{
+            lda  #255       ; N=1
+            rts
+        }}
+    }
+
+    asmsub testPv() -> ubyte @A, bool @Pv {
+        %asm {{
+            lda  #1
+            clv
+            rts
+        }}
+    }
+
+    ubyte @shared r1
+    ubyte @shared r2
+    ubyte @shared r3
+    bool @shared b1
+    bool @shared b2
+    bool @shared b3
+}"""
+        val result = compileText(VMTarget(), optimize=false, src, outputDir, writeAssembly = true)!!
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
+        val irContent = virtfile.readText()
+        irContent shouldContain "bsteq"
+        irContent shouldContain "bstneg"
+        irContent shouldContain "bstvc"
+    }
+
+
 })

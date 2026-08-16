@@ -119,7 +119,9 @@ private fun String.moveSize(): Char = substringAfter('.').firstOrNull() ?: ' '
 private fun String.moveOperands(): Pair<String, String>? {
     val sp = indexOf(' ')
     if (sp < 0) return null
-    val ops = substring(sp + 1).split(',', limit = 2)
+    val rest = substring(sp + 1)
+    val commentIdx = rest.indexOf(';')
+    val ops = (if (commentIdx >= 0) rest.substring(0, commentIdx) else rest).split(',', limit = 2)
     if (ops.size != 2) return null
     return ops[0].trim() to ops[1].trim()
 }
@@ -266,10 +268,14 @@ private fun optimizeRedundantTst(linesBy: Sequence<List<TrimmedLine>>): List<Mod
     //  move.S  SRC, DST
     //  tst.S   DST              ->  remove the tst
     //
-    // On M68k, move sets N, Z (and clears V, C) based on the value moved. So a tst
-    // immediately after a move to the same location is redundant - the flags are already set.
-    // Only applies when both instructions use the same size suffix and the tst operand matches
-    // the move destination.
+    //  andi.S  #imm, DST
+    //  tst.S   DST              ->  remove the tst
+    //
+    //  ori.S   #imm, DST
+    //  tst.S   DST              ->  remove the tst
+    //
+    // On M68k, move/andi/ori/eori set N, Z based on the result. So a tst
+    // immediately after to the same location is redundant.
     val mods = mutableListOf<Modification>()
     for (lines in linesBy) {
         val first = lines[0].instruction
@@ -277,15 +283,40 @@ private fun optimizeRedundantTst(linesBy: Sequence<List<TrimmedLine>>): List<Mod
         // Don't remove tst if it's a jump target
         if (hasLabel(lines[1].trimmed))
             continue
-        if (first.isMove() && second.startsWith("tst.") && first.moveSize() == second.moveSize()) {
-            val (_, dst0) = first.moveOperands() ?: continue
-            val tstOperand = second.substringAfter('.').substringAfter(' ').trim()
-            if (dst0 == tstOperand && dst0.isSafeMemoryOperand()) {
-                mods.add(Modification(lines[1].index, true, null))
-            }
+        if (!second.startsWith("tst."))
+            continue
+        val dst0 = first.flagSettingDest() ?: continue
+        if (first.moveSize() != second.moveSize())
+            continue
+        val tstRaw = second.substringAfter('.').substringAfter(' ').trim()
+        val tstOperand = if (';' in tstRaw) tstRaw.substringBefore(';').trim() else tstRaw
+        if (dst0 == tstOperand && dst0.isSafeMemoryOperand()) {
+            mods.add(Modification(lines[1].index, true, null))
         }
     }
     return mods
+}
+
+/**
+ * If this instruction sets N/Z flags and writes to a single destination, return that destination.
+ * Covers move, andi, ori, eori (the ones the codegen emits before tst).
+ * Note: add/sub also set condition codes, but the codegen always inserts a move before branching,
+ * so add/sub are never followed by a redundant tst.
+ */
+private fun String.flagSettingDest(): String? {
+    val stripped = if (';' in this) substring(0, indexOf(';')).trim() else this
+    return when {
+        isMove() -> moveOperands()?.second
+        startsWith("andi.") || startsWith("ori.") || startsWith("eori.") -> {
+            // andi.S #imm, dst
+            val sp = stripped.indexOf(' ')
+            if (sp < 0) return null
+            val ops = stripped.substring(sp + 1).split(',', limit = 2)
+            if (ops.size != 2) return null
+            ops[1].trim()
+        }
+        else -> null
+    }
 }
 
 /** True if this operand is a prog8 register-file slot (e.g. "p8_regfile+268", "p8_fregfile+12"). */

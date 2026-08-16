@@ -8,8 +8,8 @@
 
 main {
     sub start() {
-        pointer bitplane1 = exec.AllocMem(10240, exec.MEMF_CHIP)
-        pointer bitplane2 = exec.AllocMem(10240, exec.MEMF_CHIP)
+        pointer bitplane1 = exec.AllocMem(10240, exec.MEMF_CHIP | exec.MEMF_CLEAR)
+        pointer bitplane2 = exec.AllocMem(10240, exec.MEMF_CHIP | exec.MEMF_CLEAR)
         pointer copper_list = exec.AllocMem(512, exec.MEMF_CHIP)
 
         ; Take over the Amiga hardware and configure a 320x256 one-bitplane display.

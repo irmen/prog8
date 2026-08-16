@@ -1,11 +1,11 @@
 /*
  * Control flow IR instruction translations for the M68k code generator.
  *
- * Scc (set on condition) instructions are used to convert status flags
- * into byte values for:
- *   - PUSHST/POPST: save/restore CCR via the stack  (Scc moves CCR to D0)
- *   - CALL return values via Statusflag (Pc/Pz/Pv/Pn -> 0/1 in virtual reg)
- *   - Status flag calling convention: seq/scs/smi/svs to extract flags
+ * Status flag returns (Pc/Pz/Pv/Pn) are handled by the IR's branch-based pattern
+ * (bsteq/bstneg/bstvs). The backend skips status flag returns in translateCall/translateReturnValue
+ * and trusts the IR to emit the appropriate branch instructions.
+ *
+ * PUSHST/POPST: save/restore CCR via the stack (Scc moves CCR to D0).
  *
  * Handles: JUMP, JUMPI, CALL, CALLI, CALLFAR, CALLFARVB, SYSCALL,
  * RETURN, RETURNR, RETURNI, PUSH, POP, PUSHST, POPST,
@@ -89,8 +89,20 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
                 } else {
                     emitLine("jsr  $offset(a6)")    // do the actual call
                 }
-                for(ret in fcallArgs.returns)
+                // Skip status flag returns: handled by IR branch pattern.
+                // In multi-assign context (returns.size > 1), also skip slot-based returns:
+                // the IR generates LOADHR for them.
+                // In single-return context, process slot returns normally.
+                // LIMITATION: multiple status flag returns in one multi-assign are not supported
+                // (codegen limitation: first flag extraction clobbers flags before second can be read).
+                val isMultiReturn = fcallArgs.returns.size > 1
+                for(ret in fcallArgs.returns) {
+                    if (ret.statusflag != null)
+                        continue
+                    if (isMultiReturn)
+                        continue
                     translateReturnValue(ret)
+                }
             }
             else  error("CALLFAR not applicable on this M68k")
         }
@@ -602,9 +614,22 @@ private fun AsmGen.translateCall(fnLabel: String, args: FunctionCallArgs?, forwa
         emitLine("jsr  $fnLabel")
     }
 
-    // Move return values back to virtual registers
+    // Move return values back to virtual registers.
+    // Skip status flag returns: always handled by IR's bsteq/bstneg/bstvs branch pattern.
+    // In multi-assign context (returns.size > 1), also skip slot-based returns:
+    // the IR generates LOADHR for them, and emitting here would clobber CPU flags
+    // before the branch pattern can read them.
+    // In single-return expression context, process all slot returns normally
+    // (the IR doesn't generate LOADHR for single-return calls).
+    // LIMITATION: multiple status flag returns in one multi-assign (e.g. -> bool @Pz, bool @Pc)
+    // are not supported - codegen limitation: the first flag's extraction clobbers the state for subsequent flags.
     if (args != null) {
+        val isMultiReturn = args.returns.size > 1
         for (ret in args.returns) {
+            if (ret.statusflag != null)
+                continue
+            if (isMultiReturn)
+                continue
             translateReturnValue(ret)
         }
     }
@@ -672,17 +697,9 @@ private fun AsmGen.translateArgument(
 private fun AsmGen.translateReturnValue(ret: FunctionCallArgs.RegSpec) {
     val retReg = ret.registerNum
 
-    // Handle status flag returns using Scc to convert flags to 0/1
+    // Status flag returns are handled by the IR's branch-based pattern (bsteq/bstneg/bstvs).
+    // Do NOT emit Scc here - it would clobber the flags before the branch can read them.
     if (ret.statusflag != null) {
-        val s = when (ret.statusflag!!) {
-            Statusflag.Pc -> "scs"
-            Statusflag.Pz -> "seq"
-            Statusflag.Pv -> "svs"
-            Statusflag.Pn -> "smi"
-        }
-        emitLine("$s  d0")
-        emitLine("neg.b  d0")
-        emitLine("move.b  d0, ${regAddr(retReg.value)}")
         return
     }
 

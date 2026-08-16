@@ -73,6 +73,11 @@ asmsub add100(uword value @D0) -> uword @D0 clobbers (D0) {
 }
 ```
 
+Do not use `%option no_sysinit` on `amiga500` or `qemu68k` targets when the goal
+is to create normal runnable programs. It skips critical startup logic including
+library initialization and CLI argument handling, causing programs to crash on
+start.
+
 Supported annotations include `@D0`-`@D7`, `@A0`-`@A6`, virtual `@R0`-`@R15`,
 floating-point `@FP0`-`@FP7`, and flags `@Pc` and `@Pz`.
 

@@ -99,7 +99,7 @@ private fun AsmGen.translateCmpBranchUnsigned(insn: IRInstruction, label: String
                     val skip = makeLabel("bskip")
                     emitLine("bcc  $skip")
                     emitLine("beq  $skip")
-                    emitLine("jmp  $label")
+                    emitUnconditionalBranch(label)
                     emitLabel(skip)
                 }
                 greaterOrEqual -> {
@@ -238,7 +238,7 @@ private fun AsmGen.translateCmpBranchRegUnsigned(insn: IRInstruction, label: Str
                 val skip = makeLabel("bskip")
                 emitLine("bcc  $skip")
                 emitLine("beq  $skip")
-                emitLine("jmp  $label")
+                emitUnconditionalBranch(label)
                 emitLabel(skip)
             } else if (greaterOrEqual) {
                 emitLine("bcs  $label")

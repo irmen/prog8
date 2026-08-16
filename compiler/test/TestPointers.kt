@@ -14,6 +14,7 @@ import prog8.code.core.BaseDataType
 import prog8.code.core.DataType
 import prog8.code.core.IMemSizer
 import prog8.code.core.ISubType
+import prog8.code.target.Amiga500Target
 import prog8.code.target.C64Target
 import prog8.code.target.Cx16Target
 import prog8.code.target.Qemu68kTarget
@@ -2987,6 +2988,52 @@ main {
         withClue(cx16Errors.errors.joinToString("\n")) {
             compileText(Cx16Target(), false, src, outputDir, writeAssembly = false, errors = cx16Errors) shouldNotBe null
         }
+    }
+
+    test("string literal can be assigned to long and pointer variables on 32-bit targets") {
+        // On targets with POINTER_MEM_SIZE>2 (e.g. m68k), a string literal is assignable to a
+        // long or pointer variable (it holds the string's address), just like it is assignable
+        // to uword on 16-bit pointer targets.
+        val src = """
+            %zeropage basicsafe
+            main {
+                sub start() {
+                    long @shared z1 = "sadfasdf1"
+                    pointer @shared z2 = "sadfasdf2"
+                }
+            }"""
+        compileText(Qemu68kTarget(), false, src, outputDir, writeAssembly = false) shouldNotBe null
+        compileText(Qemu68kTarget(), true, src, outputDir, writeAssembly = false) shouldNotBe null
+        compileText(Amiga500Target(), false, src, outputDir, writeAssembly = false) shouldNotBe null
+        compileText(Amiga500Target(), true, src, outputDir, writeAssembly = false) shouldNotBe null
+
+        // a string can also be returned from a long (pointer) returning subroutine on 32-bit targets
+        val srcReturn = """
+            %zeropage basicsafe
+            main {
+                sub start() {
+                    long @shared v = retfunc()
+                }
+                sub retfunc() -> long {
+                    return "abc"
+                }
+            }"""
+        compileText(Qemu68kTarget(), false, srcReturn, outputDir, writeAssembly = false) shouldNotBe null
+        compileText(Qemu68kTarget(), true, srcReturn, outputDir, writeAssembly = false) shouldNotBe null
+        compileText(Amiga500Target(), false, srcReturn, outputDir, writeAssembly = false) shouldNotBe null
+        compileText(Amiga500Target(), true, srcReturn, outputDir, writeAssembly = false) shouldNotBe null
+
+        // and on 16-bit pointer targets, a long variable still rejects a string literal
+        val src16 = """
+            %zeropage basicsafe
+            main {
+                sub start() {
+                    long @shared z1 = "sadfasdf1"
+                }
+            }"""
+        val errors16 = ErrorReporterForTests()
+        compileText(VMTarget(), false, src16, outputDir, writeAssembly = false, errors = errors16) shouldBe null
+        errors16.errors.any { it.contains("value type str doesn't match target type long") } shouldBe true
     }
 
 })

@@ -1637,6 +1637,14 @@ So in the case above that could be::
     if_cs
         something()
 
+.. note::
+   Multiple status flag returns in a single multi-assign are not supported on the (experimental) m68k and new6502 codegens
+   (the regular 6502 codegen handles this case correctly).
+   For example, ``asmsub example() -> bool @Pz, bool @Pc`` followed by ``flag1, flag2 = example()`` will not
+   work correctly. The extraction of the first flag clobbers the CPU status register before the
+   second flag can be read. If you need multiple boolean returns, use regular register returns
+   (e.g. ``-> bool @D0, bool @D1`` on m68k, or ``-> bool @A, bool @X`` on 6502) instead of status flags.
+
 Notice that a call to a subroutine that returns multiple values cannot be used inside an expression,
 because expression terms always need to be a single value. You'll have to use a separate multi-assignment
 first and then use the result of that in the expression. However, also read the sidebar about a possible alternative.
