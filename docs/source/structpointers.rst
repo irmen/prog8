@@ -217,6 +217,21 @@ If the struct contains inline arrays, you can initialize them by nesting another
     (without values) Places a 'Node' instance in BSS variable space instead, which gets zeroed out at program startup.
     Returns the address of this empty struct.
 
+Initializing byte-array fields with a string
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. index:: pair: Structs; String initializer
+
+For a sized ``ubyte`` (or ``byte``) array field, a string literal may be used in place of an explicit
+byte array. The string is encoded using the current ``%encoding`` and then filled into the array using
+C-style semantics: if the encoded string is shorter than the array, the remaining bytes are filled with
+zero (the first zero acts as the implicit C string terminator); if it is exactly the array length, no
+extra terminator is added; and if it is longer than the array, a compilation error is reported.
+
+For example, given ``ubyte[4] name``, the initializers ``"abcd"``, ``"abc"`` and ``"a"`` are all
+accepted and produce ``[a,b,c,d]``, ``[a,b,c,0]`` and ``[a,0,0,0]`` respectively, while ``"abcde"``
+causes an error. The same applies to inferred-form initializers such as ``^^Node n = [1, "abc", true]``.
+
+
 The field values in a struct initializer must be constants. You can use numeric literals, ``address-of`` expressions,
 or ``memory()`` calls (either directly or via ``const`` variables).
 It is also possible to put struct initializer inside arrays to make them all statically initialized and accessible via the array::

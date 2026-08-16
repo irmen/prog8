@@ -225,12 +225,13 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
                     }
                     continue
                 }
-                
+
                 if (field.isArray) {
-                    // Expecting array for array field
-                    if (arg !is ArrayLiteral) {
-                         errors.err("Array field '${field.name}' must be initialized with an array literal", arg.position)
-                    }
+                    // Expecting array (or, for sized ubyte/byte arrays, a string literal) for array field
+                    if (arg is ArrayLiteral) continue
+                    if (arg is StringLiteral && field.type.isByteArray)
+                        continue
+                    errors.err("Array field '${field.name}' must be initialized with an array literal (or a string literal for ubyte/byte arrays)", arg.position)
                 } else {
                     // Expecting scalar for scalar field
                     if (arg is ArrayLiteral) {
