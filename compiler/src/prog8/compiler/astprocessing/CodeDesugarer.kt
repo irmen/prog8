@@ -489,7 +489,7 @@ _after:
         val isUwordPointerHolder = arrayVar!=null && arrayVar.datatype.isUnsignedWord && target.POINTER_MEM_SIZE <= 2u
         val isLongPointerHolder = arrayVar!=null && arrayVar.datatype.isLong && target.POINTER_MEM_SIZE > 2u
         if(arrayVar!=null && (isUwordPointerHolder || isLongPointerHolder || arrayVar.datatype.isPointer)) {
-            val indexType = if(target.POINTER_MEM_SIZE > 2u) DataType.LONG else DataType.UWORD
+            val indexType = target.pointerType
             val wordIndex = TypecastExpression(indexExpr, indexType, true, indexExpr.position)
             val address = BinaryExpression(
                 arrayIndexedExpression.plainarrayvar!!.copy(),
@@ -823,7 +823,7 @@ _after:
             return noModifications
 
         val numlabels = ongoto.labels.size
-        val elementDt = if(program.target.POINTER_MEM_SIZE > 2u) BaseDataType.LONG else BaseDataType.UWORD
+        val elementDt = program.target.pointerBaseType
         val arrayDt = DataType.arrayFor(elementDt, program.target)
         val labelArray = ArrayLiteral(InferredTypes.knownFor(arrayDt), ongoto.labels.toTypedArray(), ongoto.position)
         val jumplistArray = VarDecl.createAutoOptionalSplit(labelArray, target)
@@ -1015,7 +1015,7 @@ _after:
                         val struct = ptrVar.datatype.subType!! as StructDecl
                         val offsetNumber = NumericLiteral.optimalInteger(struct.offsetof(field.first, program.target)!!.toInt(), deref.position)
                         val pointerIdentifier = IdentifierReference(ptrName, deref.position)
-                        val addrType = if(target.POINTER_MEM_SIZE > 2u) DataType.LONG else DataType.UWORD
+                        val addrType = target.pointerType
                         val address: Expression
                         if(ptrVar.datatype.isPointer) {
                             // pointer[idx].field = value       -->  pokeXXX(pointer as uword/long + idx*sizeof(Struct) + offsetof(Struct.field), value)

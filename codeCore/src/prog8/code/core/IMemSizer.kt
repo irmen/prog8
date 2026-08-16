@@ -4,6 +4,12 @@ interface IMemSizer {
     val FLOAT_MEM_SIZE: UInt
     val POINTER_MEM_SIZE: UInt
 
+    val pointerType: DataType
+        get() = if(POINTER_MEM_SIZE > 2u) DataType.LONG else DataType.UWORD
+
+    val pointerBaseType: BaseDataType
+        get() = if(POINTER_MEM_SIZE > 2u) BaseDataType.LONG else BaseDataType.UWORD
+
     fun memorySize(dt: DataType, numElements: Int?): Int
 
     fun memorySize(dt: BaseDataType): Int {

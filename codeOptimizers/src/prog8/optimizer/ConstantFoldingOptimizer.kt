@@ -126,7 +126,7 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
                 val scale = if(subDt is BaseDataType) program.target.memorySize(subDt) else ptrDt.size(program.target)
                 val offset = rightOffsetConst.number.toInt() * scale
                 val result = if (expr.operator == "+") leftPtrConst.number + offset else leftPtrConst.number - offset
-                val resultType = if(program.target.POINTER_MEM_SIZE > 2u) BaseDataType.LONG else BaseDataType.UWORD
+                val resultType = program.target.pointerBaseType
                 if(result < 0.0 || result > resultType.maxUnsignedValue)
                     return noModifications
                 return listOf(AstReplaceNode(expr, NumericLiteral(resultType, result, expr.position), parent))
@@ -142,7 +142,7 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
                 val scale = if(subDt is BaseDataType) program.target.memorySize(subDt) else ptrDt.size(program.target)
                 val offset = leftOffsetConst.number.toInt() * scale
                 val result = rightPtrConst.number + offset
-                val resultType = if(program.target.POINTER_MEM_SIZE > 2u) BaseDataType.LONG else BaseDataType.UWORD
+                val resultType = program.target.pointerBaseType
                 if(result < 0.0 || result > resultType.maxUnsignedValue)
                     return noModifications
                 return listOf(AstReplaceNode(expr, NumericLiteral(resultType, result, expr.position), parent))

@@ -678,7 +678,7 @@ data class AddressOf(var identifier: IdentifierReference?, var arrayIndex: Array
                         } else
                             return null
                     }
-                    val addressType = if(program.target.POINTER_MEM_SIZE > 2u) BaseDataType.LONG else BaseDataType.UWORD
+                    val addressType = program.target.pointerBaseType
                     if(address < 0.0 || address > addressType.maxUnsignedValue)
                         return null
                     return NumericLiteral(addressType, address, position).also { it.linkParents(this) }
@@ -690,7 +690,7 @@ data class AddressOf(var identifier: IdentifierReference?, var arrayIndex: Array
         if (targetAsmAddress != null) {
             val constAddress = targetAsmAddress.address.constValue(program) ?: return null
             val address = constAddress.number
-            val addressType = if(program.target.POINTER_MEM_SIZE > 2u) BaseDataType.LONG else BaseDataType.UWORD
+            val addressType = program.target.pointerBaseType
             if(address < 0.0 || address > addressType.maxUnsignedValue)
                 return null
             return NumericLiteral(addressType, address, position).also { it.linkParents(this) }
@@ -943,7 +943,7 @@ class NumericLiteral(val type: BaseDataType,    // only numerical types allowed 
                 if(targettype==BaseDataType.LONG)
                     return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
                 if(targettype.isPointer) {
-                    val ptrType = if(target.POINTER_MEM_SIZE > 2u) BaseDataType.LONG else BaseDataType.UWORD
+                    val ptrType = target.pointerBaseType
                     return ValueAfterCast(true, null, NumericLiteral(ptrType, number, position))
                 }
             }
@@ -1469,12 +1469,9 @@ class MemorySlabRef(val slabName: String, override val position: Position) : Exp
     override fun copy() = MemorySlabRef(slabName, position)
     override fun constValue(program: Program): NumericLiteral? = null
     override fun inferType(program: Program): InferredTypes.InferredType {
-        // The address type depends on the target's pointer size.
+         // The address type depends on the target's pointer size.
         // On 32-bit targets like m68k, this is LONG; on 8-bit targets (6502), it's UWORD.
-        return if(program.target.POINTER_MEM_SIZE > 2u)
-            InferredTypes.knownFor(BaseDataType.LONG)
-        else
-            InferredTypes.knownFor(BaseDataType.UWORD)
+        return InferredTypes.knownFor(program.target.pointerBaseType)
     }
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)

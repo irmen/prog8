@@ -27,8 +27,7 @@ import kotlin.math.log2
  */
 class SimplifiedAstMaker(private val program: Program, private val errors: IErrorReporter, private val compilationOptions: CompilationOptions) {
     private val slabDefs = mutableMapOf<String, StMemorySlab>()
-    private val addrType: DataType
-        get() = if(compilationOptions.compTarget.POINTER_MEM_SIZE > 2u) DataType.LONG else DataType.UWORD
+    private val addrType = compilationOptions.compTarget.pointerType
     fun transform(): PtProgram {
         // Pre-collect all memory slab reservations from the entire program
         val collector = object : IAstVisitor {

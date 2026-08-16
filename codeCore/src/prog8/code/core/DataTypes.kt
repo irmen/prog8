@@ -200,8 +200,7 @@ class DataType private constructor(
             // TODO: on 32-bit targets (m68k), str arrays should be arrays of LONG (4-byte pointers),
             // but this requires systematically handling str as a 4-byte type across the entire compiler.
             val actualElementDt = if(elementDt==BaseDataType.STR) {
-                val target = memsizer as? ICompilationTarget
-                if(target != null && target.POINTER_MEM_SIZE > 2u) BaseDataType.LONG else BaseDataType.UWORD
+                memsizer.pointerBaseType
             } else elementDt
             if(actualElementDt.isNumericOrBool)
                 return DataType(BaseDataType.ARRAY, actualElementDt, null)

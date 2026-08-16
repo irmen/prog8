@@ -2,6 +2,9 @@ package prog8.intermediate
 
 import prog8.code.core.*
 
+val IMemSizer.pointerIRType: IRDataType
+    get() = if(POINTER_MEM_SIZE > 2u) IRDataType.LONG else IRDataType.WORD
+
 /*
 
 Intermediate Represenation of the compiled program.

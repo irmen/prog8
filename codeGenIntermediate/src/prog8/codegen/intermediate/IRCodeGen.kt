@@ -2289,5 +2289,4 @@ class IRCodeGen(
  * on 16-bit-pointer targets (6502) this is WORD (16-bit unsigned).
  * Use this everywhere the IR generator emits a register or argument that holds a memory address.
  */
-internal fun addressDtFor(target: ICompilationTarget): IRDataType =
-    if(target.POINTER_MEM_SIZE > 2u) IRDataType.LONG else IRDataType.WORD
+internal fun addressDtFor(target: ICompilationTarget): IRDataType = target.pointerIRType

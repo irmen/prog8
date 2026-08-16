@@ -247,8 +247,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
             if (rightVal?.number == 1.0) {
                 if (rightDt != leftDt && !(leftDt.isPointer && rightDt.isUnsignedWord)) {
                     val dt = when {
-                        leftDt.isPointer && options.compTarget.POINTER_MEM_SIZE > 2u -> BaseDataType.LONG
-                        leftDt.isPointer -> BaseDataType.UWORD
+                        leftDt.isPointer -> options.compTarget.pointerBaseType
                         else -> leftDt.base
                     }
                     if(!dt.isLong) {
@@ -260,8 +259,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
             else if (rightVal?.number == 0.0) {
                 if (rightDt != leftDt && !(leftDt.isPointer && rightDt.isUnsignedWord)) {
                     val dt = when {
-                        leftDt.isPointer && options.compTarget.POINTER_MEM_SIZE > 2u -> BaseDataType.LONG
-                        leftDt.isPointer -> BaseDataType.UWORD
+                        leftDt.isPointer -> options.compTarget.pointerBaseType
                         else -> leftDt.base
                     }
                     if(!dt.isLong) {
@@ -281,8 +279,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
             if (rightVal?.number == 1.0) {
                 if(rightDt!=leftDt && !(leftDt.isPointer && rightDt.isUnsignedWord)) {
                     val dt = when {
-                        leftDt.isPointer && options.compTarget.POINTER_MEM_SIZE > 2u -> BaseDataType.LONG
-                        leftDt.isPointer -> BaseDataType.UWORD
+                        leftDt.isPointer -> options.compTarget.pointerBaseType
                         else -> leftDt.base
                     }
                     if(!dt.isLong) {
@@ -294,8 +291,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
             else if (rightVal?.number == 0.0) {
                 if(rightDt!=leftDt && !(leftDt.isPointer && rightDt.isUnsignedWord)) {
                     val dt = when {
-                        leftDt.isPointer && options.compTarget.POINTER_MEM_SIZE > 2u -> BaseDataType.LONG
-                        leftDt.isPointer -> BaseDataType.UWORD
+                        leftDt.isPointer -> options.compTarget.pointerBaseType
                         else -> leftDt.base
                     }
                     if(!dt.isLong) {
@@ -774,7 +770,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                 if(longvar!=null && longvar.inferType(program).isLong) {
                     val offset = if (options.compTarget.cpu.isBigEndian) 1 else 2
                     val address = AddressOf(longvar, null, null, false, false, functionCallExpr.position)
-                    val offsetDt = if (options.compTarget.POINTER_MEM_SIZE > 2u) BaseDataType.LONG else BaseDataType.UWORD
+                    val offsetDt = options.compTarget.pointerBaseType
                     val plus = BinaryExpression(address, "+", NumericLiteral(offsetDt, offset.toDouble(), functionCallExpr.position), functionCallExpr.position)
                     val memread = DirectMemoryRead(plus, functionCallExpr.position)
                     return listOf(AstReplaceNode(functionCallExpr, memread, parent))
@@ -821,7 +817,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                 if(longvar!=null && longvar.inferType(program).isLong) {
                     val offset = if (options.compTarget.cpu.isBigEndian) 2 else 1
                     val address = AddressOf(longvar, null, null, false, false, functionCallExpr.position)
-                    val offsetDt = if (options.compTarget.POINTER_MEM_SIZE > 2u) BaseDataType.LONG else BaseDataType.UWORD
+                    val offsetDt = options.compTarget.pointerBaseType
                     val plus = BinaryExpression(address, "+", NumericLiteral(offsetDt, offset.toDouble(), functionCallExpr.position), functionCallExpr.position)
                     val memread = DirectMemoryRead(plus, functionCallExpr.position)
                     return listOf(AstReplaceNode(functionCallExpr, memread, parent))

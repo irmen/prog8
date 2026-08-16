@@ -275,7 +275,7 @@ class Antlr2KotlinVisitor(val source: SourceCode, private val target: ICompilati
                 }
                 is FunctionCallExpression -> {
                     if(initialvalue.target.nameInSource.singleOrNull() == "memory") {
-                        val replacement = if(target.POINTER_MEM_SIZE > 2u) BaseDataType.LONG else BaseDataType.UWORD
+                        val replacement = target.pointerBaseType
                         DataType.forDt(replacement)
                     } else DataType.LONG
                 }
@@ -1046,10 +1046,9 @@ class Antlr2KotlinVisitor(val source: SourceCode, private val target: ICompilati
         if(dtctx==null)
             return null
         val base = baseDatatypeFor(dtctx.basedatatype())
-        if(base!=null) {
+         if(base!=null) {
             if(base==BaseDataType.POINTER) {
-                val replacement = if(target.POINTER_MEM_SIZE > 2u) BaseDataType.LONG else BaseDataType.UWORD
-                return DataType.forDt(replacement)
+                return DataType.forDt(target.pointerBaseType)
             }
             return DataType.forDt(base)
         }

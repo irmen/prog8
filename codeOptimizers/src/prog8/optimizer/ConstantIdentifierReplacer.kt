@@ -411,7 +411,7 @@ internal class ConstantIdentifierReplacer(
             if (targetNode is VarDecl && targetNode.type == VarDeclType.CONST) {
                 val pointerValue = targetNode.value?.constValue(program)
                 if (pointerValue != null) {
-                    val literalType = if(program.target.POINTER_MEM_SIZE > 2u) BaseDataType.LONG else BaseDataType.UWORD
+                    val literalType = program.target.pointerBaseType
                     if (pointerValue.number < 0.0 || pointerValue.number > literalType.maxUnsignedValue)
                         return noModifications
                     return listOf(
@@ -455,7 +455,7 @@ internal class ConstantIdentifierReplacer(
                 )
             }
             cval.type.isPointer -> {
-                val literalType = if(program.target.POINTER_MEM_SIZE > 2u) BaseDataType.LONG else BaseDataType.UWORD
+                val literalType = program.target.pointerBaseType
                 if (cval.number < 0.0 || cval.number > literalType.maxUnsignedValue)
                     return noModifications
                 return listOf(

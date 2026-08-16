@@ -207,11 +207,9 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
 
                 // comparison of a pointer with a number treats the pointer as its numeric type
                 // (uword on 6502, long on m68k); the other operand gets cast to match.
-                if(expr.operator in ComparisonOperators) {
-                    val pointerNumericType =
-                        if(options.compTarget.POINTER_MEM_SIZE>2u) DataType.LONG else DataType.UWORD
-                    val pointerNumericBasetype =
-                        if(options.compTarget.POINTER_MEM_SIZE>2u) BaseDataType.LONG else BaseDataType.UWORD
+                 if(expr.operator in ComparisonOperators) {
+                    val pointerNumericType = options.compTarget.pointerType
+                    val pointerNumericBasetype = options.compTarget.pointerBaseType
                     val modifications = mutableListOf<AstModification>()
                     if(leftDt.isNumeric && rightDt.isPointer) {
                         val cast = TypecastExpression(expr.right, pointerNumericType, true, expr.right.position)
@@ -234,7 +232,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
 
 
                 // pointer arithmetic
-                val indexDt = if(options.compTarget.POINTER_MEM_SIZE > 2u) DataType.LONG else DataType.UWORD
+                 val indexDt = options.compTarget.pointerType
                 if(leftDt.isPointer) {
                     val rightDt = expr.right.inferType(program).getOrUndef()
                     if(rightDt.base != indexDt.base) {
@@ -422,8 +420,8 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                     continue
                 }
                 // If the numeric literal is already the pointer's equivalent numeric type, no cast needed
-                if(subReturnType.isPointer) {
-                    val ptrNumericType = if(options.compTarget.POINTER_MEM_SIZE > 2u) BaseDataType.LONG else BaseDataType.UWORD
+                 if(subReturnType.isPointer) {
+                    val ptrNumericType = options.compTarget.pointerBaseType
                     if(returnValue.type == ptrNumericType)
                         continue
                 }
@@ -748,7 +746,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
         possibleDatatypes.zip(args).forEach {
             val possibleTargetDt = it.first.first()
             val targetDt = if(possibleTargetDt.isPointer) {
-                if(options.compTarget.POINTER_MEM_SIZE > 2u) DataType.LONG else DataType.UWORD
+                options.compTarget.pointerType
             } else possibleTargetDt
             val argIdt = it.second.inferType(program)
             if (argIdt.isKnown && !targetDt.isStructInstance) {
@@ -843,9 +841,9 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                 return
             }
         }
-        // If source type is already the pointer's numeric equivalent type (LONG on m68k, UWORD on 6502), no cast is needed
+         // If source type is already the pointer's numeric equivalent type (LONG on m68k, UWORD on 6502), no cast is needed
         if(requiredType.isPointer) {
-            val pointerNumericType = if(options.compTarget.POINTER_MEM_SIZE > 2u) BaseDataType.LONG else BaseDataType.UWORD
+            val pointerNumericType = options.compTarget.pointerBaseType
             if(sourceDt.base == pointerNumericType)
                 return
         }
@@ -854,10 +852,11 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
         // Instead, let the AstChecker report any type mismatch.
         if(expressionToCast is NumericLiteral && !requiredType.isNumericOrBool)
             return
-        if (requiredType.isUnsignedWord) {
-            // & (address-of) is allowed to be assigned to an uword without a cast
+        val isPointerHolderType = requiredType == options.compTarget.pointerType
+        if (isPointerHolderType) {
+            // & (address-of) is allowed to be assigned to a pointer-sized value without a cast
             if (expressionToCast is AddressOf) return
-            // casting a pointer to an uword is not needed
+            // casting a pointer to a pointer-sized value is not needed
             if (expressionToCast.inferType(program).isPointer) return
         }
 

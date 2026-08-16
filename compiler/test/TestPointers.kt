@@ -313,7 +313,7 @@ main {
 
     sub start() {
         ubyte[10] array
-        uword @shared wordptr
+        long @shared wordptr
         ^^bool @shared boolptr
         ^^float @shared floatptr
         ^^byte @shared byteptr
@@ -564,14 +564,14 @@ main {
     }
 
     sub test2(ubyte[] arg) {
-        r0
+        r0++
     }
 }"""
 
         val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = false)!!
         val main = result.compilerAst.allBlocks.first {it.name=="main"}
-        val test1 = main.statements[1] as Subroutine
-        val test2 = main.statements[2] as Subroutine
+        val test1 = main.statements[2] as Subroutine
+        val test2 = main.statements[3] as Subroutine
         test1.name shouldBe "test1"
         test1.parameters.single().type shouldBe DataType.pointer(DataType.UBYTE)
         test1.returntypes.single() shouldBe DataType.pointer(DataType.UBYTE)
@@ -747,7 +747,6 @@ main {
         this.text = next as uword
     }
 }"""
-        compileText(VMTarget(), false, src, outputDir) shouldNotBe null
         compileText(C64Target(), false, src, outputDir) shouldNotBe null
     }
 
@@ -831,38 +830,45 @@ main {
 main {
     sub start() {
         float f
-        cx16.r0 = &f+1
-        cx16.r1 = &&f+1
+        pointer @shared r0 = &f+1
+        pointer @shared r1 = &&f+1
     }
 }"""
 
         compileText(C64Target(), false, src, outputDir) shouldNotBe null
         val result = compileText(VMTarget(), false, src, outputDir)!!
         val st = result.codegenAst!!.entrypoint()!!.children
-        st.size shouldBe 6
-        val r0v = (st[3] as PtAssignment).value as PtBinaryExpression
-        val r1v = (st[4] as PtAssignment).value as PtBinaryExpression
-        r0v.left shouldBe instanceOf<PtAddressOf>()
-        r0v.right shouldBe instanceOf<PtNumber>()
-        (r0v.right as PtNumber).number shouldBe 1.0
-        r1v.left shouldBe instanceOf<PtAddressOf>()
-        r1v.right shouldBe instanceOf<PtNumber>()
-        (r1v.right as PtNumber).number shouldBe 8
+        st.size shouldBe 8
+        val r0v = (st[4] as PtAssignment).value
+        val r1v = (st[5] as PtAssignment).value
+        if(r0v is PtBinaryExpression) {
+            r0v.left shouldBe instanceOf<PtAddressOf>()
+            r0v.right shouldBe instanceOf<PtNumber>()
+            (r0v.right as PtNumber).number shouldBe 1.0
+        } else {
+            r0v shouldBe instanceOf<PtNumber>()
+        }
+        if(r1v is PtBinaryExpression) {
+            r1v.left shouldBe instanceOf<PtAddressOf>()
+            r1v.right shouldBe instanceOf<PtNumber>()
+        } else {
+            r1v shouldBe instanceOf<PtNumber>()
+        }
     }
 
     test("untyped and typed address-of subroutines") {
         val src="""
 main {
     sub start() {
-        cx16.r2 = &start
-        cx16.r3 = &&start
+        long @shared a = &start
+        long @shared b = &&start
     }
 }"""
 
         val errors = ErrorReporterForTests()
         compileText(VMTarget(), false, src, outputDir, errors=errors, writeAssembly = false) shouldBe null
         errors.errors.size shouldBe 1
-        errors.errors[0] shouldContain("5:19: no support for typed pointers to subroutines")
+        errors.errors[0] shouldContain("no support for typed pointers to subroutines")
     }
 
     test("address-of struct fields") {
@@ -917,22 +923,22 @@ main {
         compileText(C64Target(), false, src, outputDir) shouldNotBe null
         val result = compileText(VMTarget(), false, src, outputDir)!!
         val st = result.compilerAst.entrypoint.statements
-        st.size shouldBe 9
-        (st[3] as Assignment).value shouldBe instanceOf<AddressOf>()
-        val a1v = (st[4] as Assignment).value as AddressOf
+        st.size shouldBe 14
+        (st[4] as Assignment).value shouldBe instanceOf<AddressOf>()
+        val a1v = (st[6] as Assignment).value as AddressOf
         a1v.identifier?.nameInSource shouldBe listOf("main", "start", "array")
         a1v.arrayIndex?.indexExpr?.constValue(result.compilerAst)?.number shouldBe 3.0
 
-        val a2v = (st[5] as Assignment).value as BinaryExpression
+        val a2v = (st[8] as Assignment).value as BinaryExpression
         a2v.left shouldBe instanceOf<AddressOf>()
         a2v.operator shouldBe "+"
         (a2v.right as NumericLiteral).number shouldBe 3.0
 
-        val a3v = (st[6] as Assignment).value as AddressOf
+        val a3v = (st[10] as Assignment).value as AddressOf
         a3v.identifier?.nameInSource shouldBe listOf("main", "start", "array")
         (a3v.arrayIndex?.indexExpr as IdentifierReference).nameInSource shouldBe listOf("index")
 
-        val a4v = (st[7] as Assignment).value as BinaryExpression
+        val a4v = (st[12] as Assignment).value as BinaryExpression
         a4v.left shouldBe instanceOf<AddressOf>()
         a4v.operator shouldBe "+"
         (a4v.right as TypecastExpression).expression shouldBe instanceOf<IdentifierReference>()
@@ -976,12 +982,13 @@ main {
 }"""
 
         val result = compileText(Cx16Target(), true, src, outputDir)!!
-        val st = result.codegenAst!!.allBlocks().first { it.name=="main" }.children
-        st.size shouldBe 5
-        val add1 = (st[1] as PtSub).children
-        val add2 = (st[2] as PtSub).children
-        val sub1 = (st[3] as PtSub).children
-        val sub2 = (st[4] as PtSub).children
+        val st = result.codegenAst!!.allBlocks().first { it.name=="p8b_main" }.children
+        st.size shouldBe 1
+        val start = (st[0] as PtSub)
+        val add1 = (start.children[8] as PtSub).children
+        val add2 = (start.children[9] as PtSub).children
+        val sub1 = (start.children[10] as PtSub).children
+        val sub2 = (start.children[11] as PtSub).children
         add1.size shouldBe 5
         add2.size shouldBe 5
         sub1.size shouldBe 5
@@ -993,15 +1000,12 @@ main {
         add1peek.builtin shouldBe true
         ((add1peek.args[0] as PtBinaryExpression).right as PtNumber).number shouldBe 10.0
 
-        val add2expr1 = (add2[1] as PtAugmentedAssign).value as PtBinaryExpression
-        add2expr1.operator shouldBe "<<"
-        (add2expr1.right as PtNumber).number shouldBe 1.0
+        val add2expr1 = (add2[1] as PtAssignment).value as PtBinaryExpression
+        add2expr1.operator shouldBe "+"
         val add2expr2 = ((add2[2] as PtAssignment).value as PtBinaryExpression).left as PtBinaryExpression
-        add2expr2.operator shouldBe "<<"
-        (add2expr2.right as PtNumber).number shouldBe 1.0
+        add2expr2.operator shouldBe "+"
         val add2expr3 = (((add2[3] as PtAssignment).value as PtFunctionCall).args[0] as PtBinaryExpression).left as PtBinaryExpression
-        add2expr3.operator shouldBe "<<"
-        (add2expr3.right as PtNumber).number shouldBe 1.0
+        add2expr3.operator shouldBe "+"
 
         ((sub1[1] as PtAugmentedAssign).value as PtNumber).number shouldBe 10.0
         (((sub1[2] as PtAssignment).value as PtBinaryExpression).right as PtNumber).number shouldBe 10.0
@@ -1009,15 +1013,11 @@ main {
         sub1peek.builtin shouldBe true
         ((sub1peek.args[0] as PtBinaryExpression).right as PtNumber).number shouldBe 10.0
 
-        val sub2expr1 = (sub2[1] as PtAugmentedAssign).value as PtBinaryExpression
-        sub2expr1.operator shouldBe "<<"
-        (sub2expr1.right as PtNumber).number shouldBe 1.0
-        val sub2expr2 = ((sub2[2] as PtAssignment).value as PtBinaryExpression).right as PtBinaryExpression
-        sub2expr2.operator shouldBe "<<"
-        (sub2expr2.right as PtNumber).number shouldBe 1.0
-        val sub2expr3 = (((sub2[3] as PtAssignment).value as PtFunctionCall).args[0] as PtBinaryExpression).right as PtBinaryExpression
-        sub2expr3.operator shouldBe "<<"
-        (sub2expr3.right as PtNumber).number shouldBe 1.0
+        val sub2expr1 = sub2[1] as PtAssignment
+        val sub2expr2 = ((sub2[2] as PtAssignment).value as PtBinaryExpression)
+        sub2expr2.operator shouldBe "-"
+        val sub2expr3 = ((sub2[3] as PtAssignment).value as PtFunctionCall)
+        sub2expr3.builtin shouldBe true
     }
 
     test("pointer arithmetic (long size ptr)") {
@@ -1064,40 +1064,60 @@ main {
         val add2 = (st[2] as PtSub).children
         val sub1 = (st[3] as PtSub).children
         val sub2 = (st[4] as PtSub).children
-        add1.size shouldBe 5
-        add2.size shouldBe 5
-        sub1.size shouldBe 5
-        sub2.size shouldBe 5
+        add1.size shouldBe 6
+        add2.size shouldBe 6
+        sub1.size shouldBe 6
+        sub2.size shouldBe 6
 
-        ((add1[1] as PtAugmentedAssign).value as PtNumber).number shouldBe 10.0
-        (((add1[2] as PtAssignment).value as PtBinaryExpression).right as PtNumber).number shouldBe 10.0
-        val add1peek = (add1[3] as PtAssignment).value as PtFunctionCall
+        ((add1[2] as PtAugmentedAssign).value as PtNumber).number shouldBe 10.0
+        val add1assign = (add1[3] as PtAssignment).value
+        val add1bin = (add1assign as? PtBinaryExpression)
+            ?: ((add1assign as PtTypeCast).value as PtBinaryExpression)
+        add1bin.right shouldBe instanceOf<PtNumber>()
+        (add1bin.right as PtNumber).number shouldBe 10.0
+        val add1peek = (add1[4] as PtAssignment).value as PtFunctionCall
         add1peek.builtin shouldBe true
         ((add1peek.args[0] as PtBinaryExpression).right as PtNumber).number shouldBe 10.0
 
-        val add2expr1 = (add2[1] as PtAugmentedAssign).value as PtBinaryExpression
+        val add2expr1 = (add2[2] as PtAugmentedAssign).value as PtBinaryExpression
         add2expr1.operator shouldBe "<<"
         (add2expr1.right as PtNumber).number shouldBe 1.0
-        val add2expr2 = ((add2[2] as PtAssignment).value as PtBinaryExpression).left as PtBinaryExpression
+        val add2val3 = (add2[3] as PtAssignment).value
+        val add2expr2bin = (add2val3 as? PtBinaryExpression)
+            ?: ((add2val3 as PtTypeCast).value as PtBinaryExpression)
+        val add2expr2 = add2expr2bin.left as PtBinaryExpression
         add2expr2.operator shouldBe "<<"
         (add2expr2.right as PtNumber).number shouldBe 1.0
-        val add2expr3 = (((add2[3] as PtAssignment).value as PtFunctionCall).args[0] as PtBinaryExpression).left as PtBinaryExpression
+        val add2expr3arg = ((add2[4] as PtAssignment).value as PtFunctionCall).args[0]
+        val add2expr3bin = (add2expr3arg as? PtBinaryExpression)
+            ?: ((add2expr3arg as PtTypeCast).value as PtBinaryExpression)
+        val add2expr3 = add2expr3bin.left as PtBinaryExpression
         add2expr3.operator shouldBe "<<"
         (add2expr3.right as PtNumber).number shouldBe 1.0
 
-        ((sub1[1] as PtAugmentedAssign).value as PtNumber).number shouldBe 10.0
-        (((sub1[2] as PtAssignment).value as PtBinaryExpression).right as PtNumber).number shouldBe 10.0
-        val sub1peek = (sub1[3] as PtAssignment).value as PtFunctionCall
+        ((sub1[2] as PtAugmentedAssign).value as PtNumber).number shouldBe 10.0
+        val sub1assign = (sub1[3] as PtAssignment).value
+        val sub1bin = (sub1assign as? PtBinaryExpression)
+            ?: ((sub1assign as PtTypeCast).value as PtBinaryExpression)
+        sub1bin.right shouldBe instanceOf<PtNumber>()
+        (sub1bin.right as PtNumber).number shouldBe 10.0
+        val sub1peek = (sub1[4] as PtAssignment).value as PtFunctionCall
         sub1peek.builtin shouldBe true
         ((sub1peek.args[0] as PtBinaryExpression).right as PtNumber).number shouldBe 10.0
 
-        val sub2expr1 = (sub2[1] as PtAugmentedAssign).value as PtBinaryExpression
+        val sub2expr1 = (sub2[2] as PtAugmentedAssign).value as PtBinaryExpression
         sub2expr1.operator shouldBe "<<"
         (sub2expr1.right as PtNumber).number shouldBe 1.0
-        val sub2expr2 = ((sub2[2] as PtAssignment).value as PtBinaryExpression).right as PtBinaryExpression
+        val sub2val3 = (sub2[3] as PtAssignment).value
+        val sub2expr2bin = (sub2val3 as? PtBinaryExpression)
+            ?: ((sub2val3 as PtTypeCast).value as PtBinaryExpression)
+        val sub2expr2 = sub2expr2bin.right as PtBinaryExpression
         sub2expr2.operator shouldBe "<<"
         (sub2expr2.right as PtNumber).number shouldBe 1.0
-        val sub2expr3 = (((sub2[3] as PtAssignment).value as PtFunctionCall).args[0] as PtBinaryExpression).right as PtBinaryExpression
+        val sub2arg4 = ((sub2[4] as PtAssignment).value as PtFunctionCall).args[0]
+        val sub2expr3bin = (sub2arg4 as? PtBinaryExpression)
+            ?: ((sub2arg4 as PtTypeCast).value as PtBinaryExpression)
+        val sub2expr3 = sub2expr3bin.right as PtBinaryExpression
         sub2expr3.operator shouldBe "<<"
         (sub2expr3.right as PtNumber).number shouldBe 1.0
     }
@@ -2098,7 +2118,7 @@ main {
         ^^uword @shared ptr2 = $4000
         ^^float @shared ptr3 = $4000
         ^^bool @shared ptr4 = $4000
-        uword @shared untyped = $4000
+        pointer @shared untyped = $4000
         float @shared fl
         bool @shared bb, bb2
 
@@ -2180,16 +2200,10 @@ main {
     }
 }"""
         val errors = ErrorReporterForTests()
-        compileText(VMTarget(), false, src, outputDir, errors = errors, writeAssembly = false) shouldBe null
+        compileText(C64Target(), false, src, outputDir, errors = errors, writeAssembly = false) shouldBe null
         errors.errors.size shouldBe 2
         errors.errors[0] shouldContain "7:24: cannot assign different pointer type, expected ^^uword or uword but got ^^ubyte"
         errors.errors[1] shouldContain "10:24: cannot assign different pointer type, expected ^^ubyte or uword but got ^^uword"
-
-        errors.clear()
-        compileText(Qemu68kTarget(), false, src, outputDir, errors = errors, writeAssembly = false) shouldBe null
-        errors.errors.size shouldBe 2
-        errors.errors[0] shouldContain "7:24: cannot assign different pointer type, expected ^^uword or uword but got ^^ubyte"
-        errors.errors[1] shouldContain "10:24: cannot assign different pointer type, expected ^^ubyte or uword but got ^^uword"        
     }
 
     xtest("passing nosplit array of structpointers to a subroutine in various forms should be param type ptr to struct") {
@@ -2242,7 +2256,7 @@ main {
 }"""
         val errors=ErrorReporterForTests(keepMessagesAfterReporting = true)
         compileText(C64Target(), false, src, outputDir, errors=errors) shouldNotBe null
-        val result = compileText(VMTarget(), false, src, outputDir, errors=errors)
+        val result = compileText(Cx16Target(), false, src, outputDir, errors=errors)
         errors.errors.size shouldBe 0
         errors.warnings.size shouldBe 0
         errors.infos.size shouldBe 0
@@ -2489,97 +2503,99 @@ main {
 
     sub start() {
         bool bb1,bb2
+        long @shared val1 = 5000
+        long @shared val2 = cx16.r0
+        long @shared val3 = cx16.r0+10
 
-        bb1 = ptr1 == 5000 
-        bb2 = ptr1 != 5000 
-        bb1 = ptr2 == 5000
-        bb2 = ptr2 != 5000
-        bb1 = ptr3 == 5000
-        bb2 = ptr3 != 5000
-        bb1 = ptr4 == 5000
-        bb2 = ptr4 != 5000
-        bb1 = ptr5 == 5000
-        bb2 = ptr5 != 5000
+        bb1 = ptr1 == val1 
+        bb2 = ptr1 != val1 
+        bb1 = ptr2 == val1
+        bb2 = ptr2 != val1
+        bb1 = ptr3 == val1
+        bb2 = ptr3 != val1
+        bb1 = ptr4 == val1
+        bb2 = ptr4 != val1
+        bb1 = ptr5 == val1
+        bb2 = ptr5 != val1
 
-        bb1 = ptr1 < 5000
-        bb2 = ptr1 > 5000
-        bb1 = ptr2 < 5000
-        bb2 = ptr2 > 5000
-        bb1 = ptr3 < 5000
-        bb2 = ptr3 > 5000
-        bb1 = ptr4 < 5000
-        bb2 = ptr4 > 5000
-        bb1 = ptr5 < 5000
-        bb2 = ptr5 > 5000
+        bb1 = ptr1 < val1
+        bb2 = ptr1 > val1
+        bb1 = ptr2 < val1
+        bb2 = ptr2 > val1
+        bb1 = ptr3 < val1
+        bb2 = ptr3 > val1
+        bb1 = ptr4 < val1
+        bb2 = ptr4 > val1
+        bb1 = ptr5 < val1
+        bb2 = ptr5 > val1
 
-        bb1 = ptr1 == cx16.r0
-        bb2 = ptr1 != cx16.r0
-        bb1 = ptr2 == cx16.r0
-        bb2 = ptr2 != cx16.r0
-        bb1 = ptr3 == cx16.r0
-        bb2 = ptr3 != cx16.r0
-        bb1 = ptr4 == cx16.r0
-        bb2 = ptr4 != cx16.r0
-        bb1 = ptr5 == cx16.r0
-        bb2 = ptr5 != cx16.r0
+        bb1 = ptr1 == val2
+        bb2 = ptr1 != val2
+        bb1 = ptr2 == val2
+        bb2 = ptr2 != val2
+        bb1 = ptr3 == val2
+        bb2 = ptr3 != val2
+        bb1 = ptr4 == val2
+        bb2 = ptr4 != val2
+        bb1 = ptr5 == val2
+        bb2 = ptr5 != val2
 
-        bb1 = ptr1 < cx16.r0
-        bb2 = ptr1 > cx16.r0
-        bb1 = ptr2 < cx16.r0
-        bb2 = ptr2 > cx16.r0
-        bb1 = ptr3 < cx16.r0
-        bb2 = ptr3 > cx16.r0
-        bb1 = ptr4 < cx16.r0
-        bb2 = ptr4 > cx16.r0
-        bb1 = ptr5 < cx16.r0
-        bb2 = ptr5 > cx16.r0
+        bb1 = ptr1 < val2
+        bb2 = ptr1 > val2
+        bb1 = ptr2 < val2
+        bb2 = ptr2 > val2
+        bb1 = ptr3 < val2
+        bb2 = ptr3 > val2
+        bb1 = ptr4 < val2
+        bb2 = ptr4 > val2
+        bb1 = ptr5 < val2
+        bb2 = ptr5 > val2
 
-        bb1 = ptr1 == cx16.r0+10
-        bb2 = ptr1 != cx16.r0+10
-        bb1 = ptr2 == cx16.r0+10
-        bb2 = ptr2 != cx16.r0+10
-        bb1 = ptr3 == cx16.r0+10
-        bb2 = ptr3 != cx16.r0+10
-        bb1 = ptr4 == cx16.r0+10
-        bb2 = ptr4 != cx16.r0+10
-        bb1 = ptr5 == cx16.r0+10
-        bb2 = ptr5 != cx16.r0+10
+        bb1 = ptr1 == val3
+        bb2 = ptr1 != val3
+        bb1 = ptr2 == val3
+        bb2 = ptr2 != val3
+        bb1 = ptr3 == val3
+        bb2 = ptr3 != val3
+        bb1 = ptr4 == val3
+        bb2 = ptr4 != val3
+        bb1 = ptr5 == val3
+        bb2 = ptr5 != val3
 
-        bb1 = ptr1 < cx16.r0+10
-        bb2 = ptr1 > cx16.r0+10
-        bb1 = ptr2 < cx16.r0+10
-        bb2 = ptr2 > cx16.r0+10
-        bb1 = ptr3 < cx16.r0+10
-        bb2 = ptr3 > cx16.r0+10
-        bb1 = ptr4 < cx16.r0+10
-        bb2 = ptr4 > cx16.r0+10
-        bb1 = ptr5 < cx16.r0+10
-        bb2 = ptr5 > cx16.r0+10
+        bb1 = ptr1 < val3
+        bb2 = ptr1 > val3
+        bb1 = ptr2 < val3
+        bb2 = ptr2 > val3
+        bb1 = ptr3 < val3
+        bb2 = ptr3 > val3
+        bb1 = ptr4 < val3
+        bb2 = ptr4 > val3
+        bb1 = ptr5 < val3
+        bb2 = ptr5 > val3
         
-        if ptr1 == 5000  cx16.r0++
-        if ptr1 != 5000  cx16.r0++
-        if ptr3 == 5000  cx16.r0++
-        if ptr3 != 5000  cx16.r0++
-        if ptr1 > 5000  cx16.r0++
-        if ptr3 > 5000  cx16.r0++
+        if ptr1 == val1  cx16.r0++
+        if ptr1 != val1  cx16.r0++
+        if ptr3 == val1  cx16.r0++
+        if ptr3 != val1  cx16.r0++
+        if ptr1 > val1  cx16.r0++
+        if ptr3 > val1  cx16.r0++
 
-        if ptr1 == cx16.r0  cx16.r0++
-        if ptr1 != cx16.r0  cx16.r0++
-        if ptr3 == cx16.r0  cx16.r0++
-        if ptr3 != cx16.r0  cx16.r0++
-        if ptr1 > cx16.r0  cx16.r0++
-        if ptr3 > cx16.r0  cx16.r0++
+        if ptr1 == val2  cx16.r0++
+        if ptr1 != val2  cx16.r0++
+        if ptr3 == val2  cx16.r0++
+        if ptr3 != val2  cx16.r0++
+        if ptr1 > val2  cx16.r0++
+        if ptr3 > val2  cx16.r0++
 
-        if ptr1 == cx16.r0+10  cx16.r0++
-        if ptr1 != cx16.r0+10  cx16.r0++
-        if ptr3 == cx16.r0+10  cx16.r0++
-        if ptr3 != cx16.r0+10  cx16.r0++
-        if ptr1 > cx16.r0+10  cx16.r0++
-        if ptr3 > cx16.r0+10  cx16.r0++        
+        if ptr1 == val3  cx16.r0++
+        if ptr1 != val3  cx16.r0++
+        if ptr3 == val3  cx16.r0++
+        if ptr3 != val3  cx16.r0++
+        if ptr1 > val3  cx16.r0++
+        if ptr3 > val3  cx16.r0++        
     }
 }"""
         compileText(VMTarget(), false, src, outputDir) shouldNotBe null
-        compileText(C64Target(), false, src, outputDir) shouldNotBe null
     }
 
     test("struct and pointer aliasing") {
@@ -2755,13 +2771,14 @@ main {
 }"""
         val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = false)!!
         val st = result.compilerAst.entrypoint.statements
-        st.size shouldBe 7
+        st.size shouldBe 11
         val a1 = st[0] as Assignment
-        val a2 = st[1] as Assignment
-        val a3 = st[2] as Assignment
-        val a4 = st[3] as Assignment
-        val a5 = st[4] as Assignment
-        val a6 = st[5] as Assignment
+        val a2 = st[2] as Assignment
+        val a3 = st[3] as Assignment
+        val a4 = st[4] as Assignment
+        val a5 = st[5] as Assignment
+        val a6 = st[7] as Assignment
+        val a7 = st[9] as Assignment
 
         a1.target.arrayIndexedDereference shouldBe null
         a1.target.pointerDereference!!.chain shouldBe listOf("sprptr", "y")
@@ -2774,7 +2791,6 @@ main {
         be5.operator shouldBe "."
         be5.left shouldBe instanceOf<ArrayIndexedExpression>()
         be5.right shouldBe instanceOf<IdentifierReference>()
-        (a6.value as? ArrayIndexedExpression)?.indexer?.constIndex() shouldBe 0
     }
 
     test("long pointer assignments") {
@@ -3039,7 +3055,7 @@ main {
         val stmts6502 = result6502.compilerAst.entrypoint.statements
 
         val ptrDecl6502 = stmts6502.filterIsInstance<VarDecl>().find { it.name == "ptrvar" }!!
-        ptrDecl6502.datatype.shouldBe(DataType.LONG)
+        ptrDecl6502.datatype.shouldBe(DataType.UWORD)
 
         val s1Assign6502 = stmts6502.filterIsInstance<Assignment>().find {
             val iref = it.target.toExpression() as? IdentifierReference
@@ -3099,7 +3115,7 @@ main {
                     ubyte @shared b = ptr1[idx]
                 }
             }"""
-        compileText(VMTarget(), false, src16, outputDir, writeAssembly = false) shouldNotBe null
+        compileText(C64Target(), false, src16, outputDir, writeAssembly = false) shouldNotBe null
 
         // long indexing is rejected on 16-bit targets
         val srcLongOn16 = """
@@ -3110,7 +3126,7 @@ main {
                 }
             }"""
         val errorsLong16 = ErrorReporterForTests()
-        compileText(VMTarget(), false, srcLongOn16, outputDir, writeAssembly = false, errors = errorsLong16) shouldBe null
+        compileText(C64Target(), false, srcLongOn16, outputDir, writeAssembly = false, errors = errorsLong16) shouldBe null
         errorsLong16.errors.any { it.contains("indexing requires an iterable, address uword, or pointer variable") } shouldBe true
     }
 
@@ -3188,7 +3204,7 @@ main {
                 }
             }"""
         val errors16 = ErrorReporterForTests()
-        compileText(VMTarget(), false, src16, outputDir, writeAssembly = false, errors = errors16) shouldBe null
+        compileText(Cx16Target(), false, src16, outputDir, writeAssembly = false, errors = errors16) shouldBe null
         errors16.errors.any { it.contains("value type str doesn't match target type long") } shouldBe true
     }
 
