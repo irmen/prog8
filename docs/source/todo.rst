@@ -9,6 +9,7 @@ In the Antlr visitor there is // TODO: on 32-bit (m68k), str arrays should be ar
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
+- DataType.ARRAY_POINTER depends on the compilation target to be either a split word array or not. This is horrible because now we have to check with the compilation target everywhere to see if a DataType enumeration value is split word array .
 - m68k codegen: make use of scaling factors in the indexed instructions on 68020+ ? see ideas/scaled-indexing-IR.md
 - support arrays-of-structs, see ideas/arrays-of-structs.md
 - split up AssignmentAsmGen.kt in codeGenCpu6502 it is by far the largest file 6000+ lines
