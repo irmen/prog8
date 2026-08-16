@@ -7,7 +7,7 @@ import java.nio.file.Path
 
 class Amiga500Target: ICompilationTarget,
     IStringEncoding by Encoder(false),
-    IMemSizer by NormalMemSizer(4, pointerSize = 4) {
+    IMemSizer by NormalMemSizer(4u, 4u) {
 
     override val name = NAME
     override val supportsBankedCalls = true

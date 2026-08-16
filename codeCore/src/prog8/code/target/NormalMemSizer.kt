@@ -4,8 +4,11 @@ import prog8.code.core.BaseDataType
 import prog8.code.core.DataType
 import prog8.code.core.IMemSizer
 
-internal class NormalMemSizer(val floatsize: Int, val pointerSize: Int = 2): IMemSizer {
+internal class NormalMemSizer(override val FLOAT_MEM_SIZE: UInt, override val POINTER_MEM_SIZE: UInt): IMemSizer {
 
+    private val pointerSize = POINTER_MEM_SIZE.toInt()
+    private val floatSize = FLOAT_MEM_SIZE.toInt()
+    
     override fun memorySize(dt: DataType, numElements: Int?): Int {
         if(dt.isPointerArray)
             return pointerSize * numElements!!        // array of pointers
@@ -16,7 +19,7 @@ internal class NormalMemSizer(val floatsize: Int, val pointerSize: Int = 2): IMe
                 BaseDataType.UWORD, BaseDataType.WORD  -> numElements * 2
                 BaseDataType.STR, BaseDataType.POINTER -> numElements * pointerSize
                 BaseDataType.LONG -> numElements * 4
-                BaseDataType.FLOAT-> numElements * floatsize
+                BaseDataType.FLOAT-> numElements * floatSize
                 BaseDataType.UNDEFINED -> throw IllegalArgumentException("undefined has no memory size")
                 else -> throw IllegalArgumentException("invalid sub type")
             }
@@ -28,7 +31,7 @@ internal class NormalMemSizer(val floatsize: Int, val pointerSize: Int = 2): IMe
 
         return when {
             dt.isByteOrBool -> 1 * (numElements ?: 1)
-            dt.isFloat -> floatsize * (numElements ?: 1)
+            dt.isFloat -> floatSize * (numElements ?: 1)
             dt.isLong -> 4 * (numElements ?: 1)
             dt.isWord -> 2 * (numElements ?: 1)
             dt.isPointer -> pointerSize * (numElements ?: 1)

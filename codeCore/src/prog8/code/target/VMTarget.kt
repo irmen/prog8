@@ -10,7 +10,7 @@ import kotlin.io.path.readText
 
 class VMTarget: ICompilationTarget,
     IStringEncoding by Encoder(false),
-    IMemSizer by NormalMemSizer(8) {
+    IMemSizer by NormalMemSizer(8u, 2u) {
 
     override val name = NAME
     override val supportsBankedCalls = false

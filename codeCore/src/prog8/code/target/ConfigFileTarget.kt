@@ -40,7 +40,7 @@ class ConfigFileTarget(
     val zpKernalsafe: List<UIntRange>,
     val zpBasicsafe: List<UIntRange>,
     val pointerSize: Int = 2
-): ICompilationTarget, IStringEncoding by Encoder(true), IMemSizer by NormalMemSizer(8, pointerSize) {
+): ICompilationTarget, IStringEncoding by Encoder(true), IMemSizer by NormalMemSizer(8u, pointerSize.toUInt()) {
 
     init {
         require(pointerSize == 2 || pointerSize == 4) { "unsupported pointer size: $pointerSize" }

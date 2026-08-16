@@ -8,6 +8,9 @@ import prog8.code.core.*
  * Returns standard memory sizes for all data types.
  */
 object DummyMemsizer : IMemSizer {
+    override val FLOAT_MEM_SIZE: UInt = 4u
+    override val POINTER_MEM_SIZE: UInt = 2u
+
     override fun memorySize(dt: DataType, numElements: Int?): Int {
         if (dt.isPointerArray)
             return 2 * numElements!!
