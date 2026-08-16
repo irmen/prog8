@@ -4250,6 +4250,7 @@ LIBRARY MODULE NAME: syslib
 ---------------------------
 
 sys  {
+    ^^ubyte @shared  arguments
     long @shared  DOSBase
     long @shared  GfxBase
     long @shared  IFFParseBase

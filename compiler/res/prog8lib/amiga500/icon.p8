@@ -29,5 +29,22 @@ icon {
     extsub @bank 11   -192 = LayoutIconA(pointer icon @A0, pointer screen @A1, pointer tags @A2) -> bool @D0
     extsub @bank 11   -198 = ChangeToSelectedIconColor(pointer cr @A0)
     extsub @bank 11   -204 = BumpRevisionLength(str newname @A0, str oldname @A1, long maxLength @D0) -> str @D0
+
+    ; ---- struct definitions ----
+
+    struct DiskObject {  ; total size: 38
+        uword Magic  ; 0
+        uword Version  ; 2
+        ubyte[4] emb_do_Gadget  ; 4
+        ubyte Type  ; 8
+        ubyte Pad_byte  ; 9
+        pointer DefaultTool  ; 10
+        pointer ToolTypes  ; 14
+        long CurrentX  ; 18
+        long CurrentY  ; 22
+        pointer DrawerData  ; 26
+        pointer ToolWindow  ; 30
+        long StackSize  ; 34
+    }
 }
 ;; End of auto-generated icon_lib.sfd

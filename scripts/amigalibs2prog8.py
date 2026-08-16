@@ -120,6 +120,8 @@ STRUCT_NAME_MAP = {
     'ContextNode':    ('ContextNode',      'cn_'),
     'StoredProperty': ('StoredProperty',   'sp_'),
     'CollectionItem': ('CollectionItem',   'ci_'),
+    # workbench
+    'DiskObject':     ('DiskObject',       'do_'),
 }
 
 # Prog8 keywords that conflict with field names
@@ -1690,6 +1692,7 @@ LIB_STRUCT_TAGS = {
     'arexx': {'RexxMsg'},
     'iffparse': {'IFFHandle', 'IFFStreamCmd', 'ContextNode',
                  'StoredProperty', 'CollectionItem'},
+    'icon': {'DiskObject'},
 }
 
 
@@ -1822,11 +1825,16 @@ def main():
     inc = os.path.join(ndk, 'Include_I', 'rexx' if arexx_alias else lib)
     exec_inc = os.path.join(ndk, 'Include_I', 'exec')
     # iffparse's include files live in the shared Include_I/libraries dir
+    # icon's DiskObject struct is in workbench/workbench.i
     lib_i_files = []
     if lib == 'iffparse':
         iff_file = os.path.join(ndk, 'Include_I', 'libraries', 'iffparse.i')
         if os.path.isfile(iff_file):
             lib_i_files.append(iff_file)
+    if lib == 'icon':
+        wb_file = os.path.join(ndk, 'Include_I', 'workbench', 'workbench.i')
+        if os.path.isfile(wb_file):
+            lib_i_files.append(wb_file)
     if args.structs or args.consts:
         clang_structs = parse_structs_from_clang(ndk, lib)
         if clang_structs is not None:

@@ -181,6 +181,33 @@ or behave differently. For best results, copy the generated executable to a prop
 Blocks can opt-in to living in Amiga CHIP RAM via the ``%option amiga_chipram`` block-level option;
 see the :ref:`option directive <pair: Directives; %option>` for details.
 
+**Command-line arguments:**
+When a program is launched from the Amiga CLI (shell), command-line arguments are available via
+``sys.arguments``. This is a pointer to a null-terminated string containing the arguments. If the
+program is launched from Workbench (GUI), ``sys.arguments`` is NULL. Example::
+
+    %import textio
+    main {
+        sub start() {
+            if sys.arguments != 0 {
+                txt.print("Arguments: ")
+                txt.print(sys.arguments)
+                txt.print("\n")
+            } else {
+                txt.print("Launched from Workbench\n")
+            }
+        }
+    }
+
+Note: Do not use ``%option no_sysinit`` on amiga500 programs that need CLI argument handling,
+as the startup code is required to capture and process the arguments.
+
+**Icon library and Tooltypes:**
+Amiga programs launched from Workbench don't have an arguments string, but they can read
+configuration from their icon's Tooltypes using the ``icon`` module. Tooltypes are stored in the program's .info file and can be
+accessed via ``icon.GetDiskObject()``, ``icon.FindToolType()``, and ``icon.MatchToolValue()``.
+Note: Check that ``sys.IconBase`` is non-zero before using icon functions.
+
 
 Zero page usage by the Prog8 compiler
 -------------------------------------

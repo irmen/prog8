@@ -30,8 +30,13 @@ p8_sys_startup {
 
     sub init_system() {
         %asm {{
+            ; save CLI arguments
+            move.l  d0,-(sp)
+            move.l  a0,-(sp)
+
+            ; save original stackpointer
             move.l  sp,a0
-            addq.l  #4,a0
+            add.l   #4*3,a0       ; take care of JSR to this routine, and the 2 saved longs
             move.l  a0,p8_sys_startup.orig_stackpointer
 
 proc_MsgPort = 92
@@ -58,6 +63,25 @@ proc_CLI = 172
 		    jsr     exec.GetMsg(a6)
 		    move.l  d0,p8_sys_startup.WBMsg		; Store message pointer to reply at exit later
 2$:
+
+            ; CLI launch: restore saved arguments (if any)
+            move.l  (sp)+,a0
+            move.l  (sp)+,d0
+            tst.l   p8_sys_startup.WBMsg
+            bne.s   .workbench
+            tst.l   d0
+            beq.s   .emptyargs
+            subq.l  #1,d0
+            clr.b   (a0,d0.w)      ; replace newline by 0 terminator
+            move.l  a0,sys.arguments
+            bra.s   .done
+.emptyargs:
+            move.l  a0,sys.arguments   ; empty string, but still CLI launch
+            bra.s   .done
+.workbench:
+            moveq   #0,d0
+            move.l  d0,sys.arguments   ; NULL for Workbench launches
+.done:
         }}
 
         sys.DOSBase = exec.OpenLibrary("dos.library",0)

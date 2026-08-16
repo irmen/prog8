@@ -41,6 +41,8 @@ sys {
     pointer @shared IFFParseBase    ; kickstart 2.0+, loaded from disk on demand
     pointer @shared TimerBase       ; opened on demand
 
+    ^^ubyte @shared arguments       ; CLI argument string (null-terminated), or NULL if Workbench launch
+
     sub  reset_system()  {
         %asm {{
             move.l  4.w,a6
