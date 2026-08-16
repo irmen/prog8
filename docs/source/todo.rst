@@ -1,6 +1,8 @@
 TODO
 ====
 
+In the Antlr visitor there is // TODO: on 32-bit (m68k), str arrays should be arrays of LONG (4-byte pointers)   is this still a problem?
+
 - need a bunch of type casting/conversion checks that test the handling of the 4-byte/long pointer datatype on the qemu68k target.
 - amiga library structs: use more typed pointers if it knows the struct type from the same (or another amiga library module) , rather than using `pointer`. Consider both the extsubs but also the struct fields in the amigaDOS structs in the generated library modules.
 
@@ -45,19 +47,7 @@ Romable (%option romable)
 
 IR/VM
 ^^^^^
-- IR file reader cannot round-trip ``callfar`` instructions with negative Amiga LVO offsets.
-  The serializer writes addresses with ``value > $7fffffff`` as a negative decimal (see ``IRInstruction.toString``),
-  but ``parseCall`` (in the ``intermediate`` module, Utils.kt) only accepts a target that starts with ``$`` or a digit,
-  so a value like ``-552`` is treated as a symbolic name and the address stays null.
-  The ``IRInstruction`` init then crashes with ``IllegalArgumentException: missing an address or labelsymbol``.
-  Trigger scenario: compile any amiga500 program that performs library LVO calls (for instance a simple
-  ``txt.print("hello")`` program, which generates ``callfar #1,-552(...)``) to a ``.p8ir`` file, then re-run the
-  standalone m68k code generator on it (``gradle :codeGenM68k:run --args="file.p8ir"``, the prog8-m68kgen tool):
-  it crashes while reading the IR file. Note that just accepting a leading ``-`` is not enough, because
-  ``parseIRValue(...).toUInt()`` clamps negative values to 0; the conversion must round-trip through ``toInt().toUInt()``
-  to recover the original bit pattern.
-- extend the 'virtual' target (and its virtual machine) to a 32-bit machine with 16 MB of memory,
-  so that programs can be run and tested on it that don't fit on the 64 Kb 8-bit machines.
+- extend the 'virtual' target (and its virtual machine) to a 32-bit machine with 16 MB of memory, so that programs can be run and tested on it that don't fit on the 64 Kb 8-bit machines.
 - encode indexed scaling into IR (so that m68k codegen can use scale factor addressing) see ideas/scaled-indexing-IR.md
 - maybe change all branch instructions to have 2 exits (label if branch condition true, and label if false) instead of 1, and get rid of the implicit "next code chunk" link between chunks.
 - implement more TODOs in AssignmentGen?

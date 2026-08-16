@@ -51,8 +51,8 @@ libraries.
 
 - Primitive types include `bool`, `byte`, `ubyte`, `word`, `uword`, `long`,
   `float`, `str`, and `pointer`.
-- `pointer` is target-sized: 16-bit on 6502 and virtual targets, 32-bit on
-  `amiga500` and `qemu68k`. Use it for portable addresses, not `uword` or
+- `pointer` is target-sized: 16-bit on 6502 targets, 32-bit on `amiga500`,
+  `qemu68k`, and `virtual`. Use it for portable addresses, not `uword` or
   `long` chosen by assumption.
 - M68000 targets are big-endian and use 32-bit pointers. Load the `m68k-coder`
   skill for assembly details.
@@ -135,3 +135,6 @@ Use `if_cs`, `if_cc`, `if_z`, and `if_nz` for direct CPU-flag branches.
 - For IR execution, use `-vmtrace` when control flow needs inspection.
 - Do not modify a correct test program to work around a compiler crash. Reduce
   the case and fix the compiler instead.
+- When running `gradle` tests, grep for `SUCCESSFUL` to check if all tests
+  passed, and `FAILED` to check for failures. Gradle does not print individual
+  `PASSED` lines by default.

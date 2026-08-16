@@ -362,8 +362,9 @@ private fun parseCall(rest: String): ParsedCall {
         val parts = target.split(",", limit=2)
         immediate = parseIRValue(parts.first().drop(1)).toUInt()
         val restTarget = parts.getOrElse(1) { "" }
-        if(restTarget.startsWith('$') || restTarget[0].isDigit()) {
-            address = parseIRValue(restTarget).toUInt()
+        if(restTarget.startsWith('$') || restTarget.startsWith('-') || restTarget[0].isDigit()) {
+            val value = parseIRValue(restTarget)
+            address = if(value<0) value.toInt().toUInt() else value.toUInt()
         } else {
             actualTarget = restTarget
         }
