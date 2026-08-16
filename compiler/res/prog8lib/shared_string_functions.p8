@@ -66,13 +66,6 @@ strings {
         s[cx16.r0L+1] = 0
     }
 
-    sub lstrip(str s) {
-        ; -- gets rid of whitespace and other non-visible characters at the start of the string (destructive)
-        ^^ubyte result = lstripped(s)
-        if result != s
-            void copy(result, s)
-    }
-
     sub lstripped(str s) -> str {
         ; -- returns pointer to first non-whitespace and non-visible character at the start of the string (non-destructive lstrip)
         if s[0]==0
@@ -101,13 +94,6 @@ strings {
             cx16.r1L = s[cx16.r0L]
         } until cx16.r0L==0 or not isspace(cx16.r1L)
         s[cx16.r0L+1] = 0
-    }
-
-    sub ltrim(str s) {
-        ; -- gets rid of whitespace characters at the start of the string (destructive)
-        ^^ubyte result = ltrimmed(s)
-        if result != s
-            void copy(result, s)
     }
 
     sub ltrimmed(str s) -> str {
@@ -139,27 +125,6 @@ strings {
         if suffix_len > str_len
             return false
         return compare(st + str_len - suffix_len, suffix) == 0
-    }
-
-    sub findstr(str haystack, str needle) -> ubyte {
-        ; searches for needle in haystack.
-        ; returns index in haystack where it first occurs, and Carry set,
-        ; or if needle doesn't occur in haystack it returns Carry clear and 255 (an invalid index.)
-        cx16.r2L = length(haystack)
-        cx16.r3L = length(needle)
-        if cx16.r3L <= cx16.r2L {
-            cx16.r2L = cx16.r2L-cx16.r3L+1
-            cx16.r3 = haystack
-            repeat cx16.r2L {
-                if startswith(cx16.r3, needle) {
-                    sys.set_carry()
-                    return cx16.r3-(haystack as uword) as ubyte
-                }
-                cx16.r3++
-            }
-        }
-        sys.clear_carry()
-        return 255
     }
 
     sub next_token(str source, str delimiters) -> str {

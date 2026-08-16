@@ -261,4 +261,39 @@ strings {
     sub isprint(ubyte character) -> bool {
         return character>=32 and character<=127 or character>=160
     }
+
+    sub lstrip(str s) {
+        ; -- gets rid of whitespace and other non-visible characters at the start of the string (destructive)
+        ^^ubyte result = lstripped(s)
+        if result != s
+            void copy(result, s)
+    }
+
+    sub ltrim(str s) {
+        ; -- gets rid of whitespace characters at the start of the string (destructive)
+        ^^ubyte result = ltrimmed(s)
+        if result != s
+            void copy(result, s)
+    }
+
+    sub findstr(str haystack, str needle) -> ubyte {
+        ; searches for needle in haystack.
+        ; returns index in haystack where it first occurs, and Carry set,
+        ; or if needle doesn't occur in haystack it returns Carry clear and 255 (an invalid index.)
+        ubyte haystack_len = length(haystack)
+        ubyte needle_len = length(needle)
+        if needle_len <= haystack_len {
+            ubyte idx
+            haystack_len = haystack_len - needle_len + 1
+            repeat haystack_len {
+                if startswith(haystack+idx, needle) {
+                    sys.set_carry()
+                    return idx
+                }
+                idx++
+            }
+        }
+        sys.clear_carry()
+        return 255
+    }
 }
