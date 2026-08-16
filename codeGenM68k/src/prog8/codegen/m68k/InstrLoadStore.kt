@@ -26,7 +26,7 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction, suppressRegfileStore
     val target = resolveAddress(addr, label, offset)
 
     if (type == IRDataType.FLOAT) {
-        translateFloatLoadStore(insn, target)
+        translateFloatLoadStore(insn, target, suppressRegfileStore)
         return
     }
 
@@ -178,7 +178,7 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction, suppressRegfileStore
 
 // === Float load/store via FPU (68881/68882) ===
 
-private fun AsmGen.translateFloatLoadStore(insn: IRInstruction, target: String) {
+private fun AsmGen.translateFloatLoadStore(insn: IRInstruction, target: String, suppressRegfileStore: Boolean = false) {
     val fpReg1 = insn.fpReg1
     val fpReg2 = insn.fpReg2
     val r1 = insn.reg1
@@ -235,6 +235,8 @@ private fun AsmGen.translateFloatLoadStore(insn: IRInstruction, target: String) 
             when (insn.opcode) {
                 Opcode.LOAD -> when {
                     immFp != null -> {
+                        if (suppressRegfileStore)
+                            return
                         emitFloadConstantToAcc(immFp)
                         emitLine("fmove.s  $FP_ACC, ${floatRegFileAddr(fp1)}")
                     }

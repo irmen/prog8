@@ -380,6 +380,120 @@ class TestInstructionSelectionOptimizations : FunSpec({
         lines.any { it == "moveq  #384,d0" } shouldBe false
     }
 
+    // === Floating-point immediate call-argument forwarding and dead-store removal ===
+
+    test("forwards an immediate float load into a following FPU hardware-register call argument") {
+        val args = FunctionCallArgs(
+            listOf(
+                FunctionCallArgs.ArgumentSpec(
+                    "",
+                    null,
+                    FunctionCallArgs.RegSpec(IRDataType.FLOAT, RegisterNum(1), CallingConventionSlot(25), null)
+                )
+            ),
+            emptyList()
+        )
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-call-forward-float"),
+            listOf(
+                IRInstruction(Opcode.LOAD, IRDataType.FLOAT, fpReg1 = RegisterNum(1), immediateFp = 1.0),
+                IRInstruction(Opcode.CALL, labelSymbol = "math.func", fcallArgs = args)
+            )
+        )
+
+        lines.any { it == "fmovecr  #\$32,fp0" } shouldBe true
+        lines.any { it == "fmove.s  fp0,p8_fregfile+0" } shouldBe false
+        lines.any { it == "fmove.s  p8_fregfile+0,fp0" } shouldBe false
+    }
+
+    test("forwards an immediate float load into a different FPU register and drops the dead fregfile store") {
+        val args = FunctionCallArgs(
+            listOf(
+                FunctionCallArgs.ArgumentSpec(
+                    "",
+                    null,
+                    FunctionCallArgs.RegSpec(IRDataType.FLOAT, RegisterNum(1), CallingConventionSlot(26), null)
+                )
+            ),
+            emptyList()
+        )
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-call-forward-float-fp1"),
+            listOf(
+                IRInstruction(Opcode.LOAD, IRDataType.FLOAT, fpReg1 = RegisterNum(1), immediateFp = 100.0),
+                IRInstruction(Opcode.CALL, labelSymbol = "math.func", fcallArgs = args)
+            )
+        )
+
+        lines.any { it == "fmovecr  #\$34,fp1" } shouldBe true
+        lines.any { it == "fmove.s  fp0,p8_fregfile+0" } shouldBe false
+        lines.any { it == "fmove.s  p8_fregfile+0,fp1" } shouldBe false
+    }
+
+    test("forwards both integer and float immediate loads for a mixed-argument call") {
+        val args = FunctionCallArgs(
+            listOf(
+                FunctionCallArgs.ArgumentSpec("", null, FunctionCallArgs.RegSpec(IRDataType.WORD, RegisterNum(1), CallingConventionSlot(10), null)),
+                FunctionCallArgs.ArgumentSpec("", null, FunctionCallArgs.RegSpec(IRDataType.FLOAT, RegisterNum(2), CallingConventionSlot(25), null))
+            ),
+            emptyList()
+        )
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-call-forward-mixed"),
+            listOf(
+                IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1 = 1, immediate = 384),
+                IRInstruction(Opcode.LOAD, IRDataType.FLOAT, fpReg1 = RegisterNum(2), immediateFp = 1.0),
+                IRInstruction(Opcode.CALL, labelSymbol = "mixed.func", fcallArgs = args)
+            )
+        )
+
+        lines.any { it == "move.w  #384,d0" } shouldBe true
+        lines.any { it == "move.w  #384,p8_regfile+0" } shouldBe false
+        lines.any { it == "fmovecr  #\$32,fp0" } shouldBe true
+        lines.any { it == "fmove.s  fp0,p8_fregfile+0" } shouldBe false
+        lines.any { it == "fmove.s  p8_fregfile+0,fp0" } shouldBe false
+    }
+
+    test("retains the fregfile store when a forwarded float value is used after the call") {
+        val args = FunctionCallArgs(
+            listOf(
+                FunctionCallArgs.ArgumentSpec("", null, FunctionCallArgs.RegSpec(IRDataType.FLOAT, RegisterNum(1), CallingConventionSlot(25), null))
+            ),
+            emptyList()
+        )
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-call-forward-float-live"),
+            listOf(
+                IRInstruction(Opcode.LOAD, IRDataType.FLOAT, fpReg1 = RegisterNum(1), immediateFp = 1.0),
+                IRInstruction(Opcode.CALL, labelSymbol = "math.func", fcallArgs = args),
+                IRInstruction(Opcode.STOREM, IRDataType.FLOAT, fpReg1 = RegisterNum(1), labelSymbol = "p8b_test.p8v_value")
+            )
+        )
+
+        lines.any { it == "fmove.s  fp0,p8_fregfile+0" } shouldBe true
+        lines.count { it == "fmove.s  p8_fregfile+0,fp0" } shouldBe 1
+    }
+
+    test("does not partially forward a mixed-argument call when a float arg has no immediate load") {
+        val args = FunctionCallArgs(
+            listOf(
+                FunctionCallArgs.ArgumentSpec("", null, FunctionCallArgs.RegSpec(IRDataType.WORD, RegisterNum(1), CallingConventionSlot(10), null)),
+                FunctionCallArgs.ArgumentSpec("", null, FunctionCallArgs.RegSpec(IRDataType.FLOAT, RegisterNum(2), CallingConventionSlot(25), null))
+            ),
+            emptyList()
+        )
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-call-forward-mixed-atomic"),
+            listOf(
+                IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1 = 1, immediate = 384),
+                IRInstruction(Opcode.CALL, labelSymbol = "mixed.func", fcallArgs = args)
+            )
+        )
+
+        lines.any { it == "move.w  p8_regfile+0,d0" } shouldBe true
+        lines.any { it == "fmove.s  p8_fregfile+0,fp0" } shouldBe true
+    }
+
     test("loads pointers into a0 with movea and without a +0 offset") {
         val lines = generateAsm(
             tempRoot.resolve("test-m68k-pointer-a0"),

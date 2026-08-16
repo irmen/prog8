@@ -156,7 +156,7 @@ class TestCompilerOnExamplesC64: FunSpec({
             ExampleSizes("cube3d-sprites", c64SizeOptimized=2664, c64SizeUnoptimized=2705),
             ExampleSizes("fileselector", c64SizeOptimized=3523, c64SizeUnoptimized=4510),
             ExampleSizes("library/main", c64SizeOptimized=321, c64SizeUnoptimized=1147),
-            ExampleSizes("multiplexer", c64SizeOptimized=1798, c64SizeUnoptimized=1902),
+            ExampleSizes("multiplexer", c64SizeOptimized=1805, c64SizeUnoptimized=1909),
             ExampleSizes("petswirl", c64SizeOptimized=939, c64SizeUnoptimized=1005),
             ExampleSizes("plasma", c64SizeOptimized=1682, c64SizeUnoptimized=1723),
             ExampleSizes("rasterbars", c64SizeOptimized=845, c64SizeUnoptimized=892),

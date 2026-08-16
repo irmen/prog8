@@ -647,9 +647,16 @@ private fun AsmGen.translateArgument(
     if (slot != null) {
         val hwReg = m68kSlotRegister(slot)
         if (argReg.dt == IRDataType.FLOAT) {
-            emitLine("fmove.s  ${floatRegFileAddr(argReg.registerNum)}, $hwReg")
+            val forwarded = forwardedImmediateCall?.loads?.get(RegId.FloatReg(argReg.registerNum))
+            if (forwarded != null) {
+                val value = forwarded.immediateFp
+                    ?: error("missing forwarded float immediate for call argument fr${argReg.registerNum.value}")
+                emitFloadConstantTo(hwReg, value)
+            } else {
+                emitLine("fmove.s  ${floatRegFileAddr(argReg.registerNum)}, $hwReg")
+            }
         } else if (forwardedImmediateCall != null) {
-            val value = forwardedImmediateCall.loads[argReg.registerNum.value]?.immediate
+            val value = forwardedImmediateCall.loads[RegId.IntReg(argReg.registerNum.value)]?.immediate
                 ?: error("missing forwarded immediate for call argument r${argReg.registerNum.value}")
             val s = dtSuffix(argReg.dt)
             if (value == 0)

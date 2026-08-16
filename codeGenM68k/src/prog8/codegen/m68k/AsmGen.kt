@@ -8,6 +8,17 @@ internal const val FP_ACC = "fp0"   // primary FPU scratch / accumulator
 internal const val FP_SRC = "fp1"   // secondary FPU scratch / source operand
 
 /**
+ * Identity of a virtual register for call-argument forwarding, distinguishing
+ * the integer register file (rN) from the floating-point register file (frN).
+ * The two namespaces are independent, so the same numeric value can refer to
+ * both an integer and a floating-point register.
+ */
+internal sealed interface RegId {
+    data class IntReg(val num: Int) : RegId
+    data class FloatReg(val num: RegisterNum) : RegId
+}
+
+/**
  * Describes an atomic immediate-argument forwarding opportunity for one call.
  *
  * [loads] holds the contiguous run of immediate LOAD instructions that directly
@@ -15,7 +26,8 @@ internal const val FP_SRC = "fp1"   // secondary FPU scratch / source operand
  * It may contain registers that are NOT call arguments.
  * For every call argument register, the loaded immediate value is forwarded
  * directly into the argument's hardware register instead of going through the
- * register file (move #imm,dX instead of move p8_regfile+N,dX).
+ * register file (move #imm,dX instead of move p8_regfile+N,dX, and
+ * fmovecr or a const-pool load into fpX instead of moving through p8_fregfile).
  *
  * [deadRegisters] are the registers from [loads] that are not read anywhere
  * else in the subroutine (their only use is the forwarded call argument);
@@ -30,13 +42,10 @@ internal const val FP_SRC = "fp1"   // secondary FPU scratch / source operand
  * virtual registers, because those reads are invisible to the analysis
  * (see `canSuppressDeadStores`); the immediate forwarding itself does not
  * depend on liveness and is still applied in those cases.
- *
- * Floating-point registers are intentionally not included; they use the
- * separate floating-point register file and require FPU-specific constants.
  */
 internal data class ImmediateCallOptimization(
-    val loads: Map<Int, IRInstruction>,
-    val deadRegisters: Set<Int>
+    val loads: Map<RegId, IRInstruction>,
+    val deadRegisters: Set<RegId>
 )
 
 /**
@@ -239,16 +248,18 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         return "$FLOAT_REGFILE_LABEL+$offset"
     }
 
-    fun emitFloadConstantToAcc(value: Double) {
+    fun emitFloadConstantTo(dstReg: String, value: Double) {
         val native = nativeFloatConst(value)
         if (native != null) {
-            emitLine("fmovecr  #$native, $FP_ACC")
+            emitLine("fmovecr  #$native, $dstReg")
         } else {
             val label = makeFloatConstLabel(value)
             emitLine("lea  $label, a0")
-            emitLine("fmove.s  (a0), $FP_ACC")
+            emitLine("fmove.s  (a0), $dstReg")
         }
     }
+
+    fun emitFloadConstantToAcc(value: Double) = emitFloadConstantTo(FP_ACC, value)
 
     // === size suffix helpers ===
 
@@ -511,9 +522,17 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
             var loadIndex = index - 1
             while (loadIndex >= 0) {
                 val load = chunk.instructions[loadIndex]
-                if (load.opcode != Opcode.LOAD || load.reg1 == null || load.immediate == null)
+                val loadReg = load.reg1
+                val loadFpReg = load.fpReg1
+                val regId = if (load.opcode != Opcode.LOAD)
                     break
-                if (load.reg1 in effectiveOptimization.deadRegisters)
+                else if (loadReg != null && load.immediate != null)
+                    RegId.IntReg(loadReg)
+                else if (loadFpReg != null && load.immediateFp != null)
+                    RegId.FloatReg(loadFpReg)
+                else
+                    break
+                if (regId in effectiveOptimization.deadRegisters)
                     deadLoadIndices.add(loadIndex)
                 loadIndex--
             }
@@ -528,16 +547,26 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         }
     }
 
-    private fun isRegisterReadElsewhere(instructions: List<IRInstruction>, callIndex: Int, register: Int): Boolean {
+    private fun isRegisterReadElsewhere(instructions: List<IRInstruction>, callIndex: Int, register: RegId): Boolean {
         for (index in instructions.indices) {
             if (index == callIndex)
                 continue
             val insn = instructions[index]
-            if ((insn.reg1 == register && insn.reg1direction in setOf(OperandDirection.READ, OperandDirection.READWRITE)) ||
-                (insn.reg2 == register && insn.reg2direction in setOf(OperandDirection.READ, OperandDirection.READWRITE)) ||
-                (insn.reg3 == register && insn.reg3direction in setOf(OperandDirection.READ, OperandDirection.READWRITE)) ||
-                insn.fcallArgs?.arguments?.any { it.reg.registerNum.value == register } == true)
-                return true
+            when (register) {
+                is RegId.IntReg -> {
+                    if ((insn.reg1 == register.num && insn.reg1direction in setOf(OperandDirection.READ, OperandDirection.READWRITE)) ||
+                        (insn.reg2 == register.num && insn.reg2direction in setOf(OperandDirection.READ, OperandDirection.READWRITE)) ||
+                        (insn.reg3 == register.num && insn.reg3direction in setOf(OperandDirection.READ, OperandDirection.READWRITE)) ||
+                        insn.fcallArgs?.arguments?.any { it.reg.dt != IRDataType.FLOAT && it.reg.registerNum.value == register.num } == true)
+                        return true
+                }
+                is RegId.FloatReg -> {
+                    if ((insn.fpReg1 == register.num && insn.fpReg1direction in setOf(OperandDirection.READ, OperandDirection.READWRITE)) ||
+                        (insn.fpReg2 == register.num && insn.fpReg2direction in setOf(OperandDirection.READ, OperandDirection.READWRITE)) ||
+                        insn.fcallArgs?.arguments?.any { it.reg.dt == IRDataType.FLOAT && it.reg.registerNum == register.num } == true)
+                        return true
+                }
+            }
         }
         return false
     }
@@ -548,26 +577,32 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         chunkStartIndex: Int,
         args: FunctionCallArgs?
     ): ImmediateCallOptimization? {
-        // Float arguments use p8_fregfile and need separate FPU constant handling.
-        if (args == null || args.arguments.isEmpty() || args.arguments.any {
-                it.reg.callingConventionSlot == null || it.reg.dt == IRDataType.FLOAT
-            })
+        if (args == null || args.arguments.isEmpty())
             return null
 
-        val loads = mutableMapOf<Int, IRInstruction>()
+        val loads = mutableMapOf<RegId, IRInstruction>()
         var index = callIndex - 1
         while (index >= chunkStartIndex) {
             val load = instructions[index]
-            val reg = load.reg1
-            if (load.opcode != Opcode.LOAD || reg == null || load.immediate == null)
+            val loadReg = load.reg1
+            val loadFpReg = load.fpReg1
+            val regId = if (load.opcode != Opcode.LOAD)
                 break
-            loads.putIfAbsent(reg, load)
+            else if (loadReg != null && load.immediate != null)
+                RegId.IntReg(loadReg)
+            else if (loadFpReg != null && load.immediateFp != null)
+                RegId.FloatReg(loadFpReg)
+            else
+                break
+            loads.putIfAbsent(regId, load)
             index--
         }
 
         if (!args.arguments.all {
-                val load = loads[it.reg.registerNum.value]
-                load != null && load.type == it.reg.dt
+                val arg = it.reg
+                val regId = if (arg.dt == IRDataType.FLOAT) RegId.FloatReg(arg.registerNum) else RegId.IntReg(arg.registerNum.value)
+                val load = loads[regId]
+                load != null && load.type == arg.dt
             })
             return null
 
