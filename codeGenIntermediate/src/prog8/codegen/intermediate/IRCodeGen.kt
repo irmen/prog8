@@ -749,7 +749,7 @@ class IRCodeGen(
                         result += jumpChunk
                         result += IRCodeChunk(endLabel, null)
                     }
-                    iterable.type.isSplitWordArray(options.compTarget) || iterable.type.isPointerArray -> {
+                    iterable.type.isSplitWordArray(options.compTarget) -> {
                         if(elementDt!=IRDataType.WORD && elementDt!=IRDataType.POINTER)
                             throw AssemblyError("weird dt $elementDt")
                         addInstr(result, IRInstruction(Opcode.LOAD, indexRegType, reg1=indexReg, immediate = 0), null)
@@ -772,10 +772,10 @@ class IRCodeGen(
                         }
                     }
                     else -> {
-                        val arrElementDt = iterable.type.sub!!
-                        val elementSize = program.memsizer.memorySize(arrElementDt)
+                        val arrElementDt = iterable.type.elementType()
+                        val elementSize = program.memsizer.memorySize(arrElementDt, null)
                         val lengthBytes = iterableLength!! * elementSize
-                        val arrElementIR = irType(DataType.forDt(arrElementDt))
+                        val arrElementIR = irType(arrElementDt)
                         addInstr(result, IRInstruction(Opcode.LOAD, indexRegType, reg1=indexReg, immediate = 0), null)
                         val loopChunk = IRCodeChunk(loopLabel, null)
                         loopChunk += IRInstruction(Opcode.LOADX, arrElementIR, reg1=tmpReg, reg2=indexReg, labelSymbol=iterable.name)

@@ -444,6 +444,17 @@ class VmProgramLoader {
                 }
             }
 
+            variable.dt.isPointerArray -> {
+                for (elt in iElts) {
+                    val value = getInitializerValue(variable.dt, elt, symbolAddresses)
+                    when (value) {
+                        is InitializerValue.Numeric -> memory.setUL(address, value.value.toInt().toUInt())
+                        is InitializerValue.Bool -> throw IRParseException("didn't expect bool")
+                    }
+                    address += program.options.compTarget.POINTER_MEM_SIZE
+                }
+            }
+
             else -> throw IRParseException("invalid dt")
         }
     }

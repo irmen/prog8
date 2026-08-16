@@ -57,6 +57,9 @@ enum class CpuType(val statusBitsOnMultiByteOps: Boolean) {
         get() = this == CPU6502 || this == CPU65C02
     val is68k: Boolean
         get() = this == M68000 || this == M68020
+    /** True for targets that use the m68k-style hardware-register calling convention (D0-D7, A0-A6, FP0-FP7). */
+    val usesM68kConvention: Boolean
+        get() = is68k || this == VIRTUAL
     /** True for big-endian targets. The 6502 family and the VM are little-endian. */
     val isBigEndian: Boolean
         get() = this == M68000 || this == M68020

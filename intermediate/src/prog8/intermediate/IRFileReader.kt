@@ -607,7 +607,7 @@ class IRFileReader {
                     "uword" -> DataType.arrayOfPointersTo(BaseDataType.UWORD)
                     "float" -> DataType.arrayOfPointersTo(BaseDataType.FLOAT)
                     "long" -> DataType.arrayOfPointersTo(BaseDataType.LONG)
-                    else -> DataType.arrayOfPointersTo(IRSubtypePlaceholder(type.drop(2)))
+                    else -> DataType.arrayOfPointersTo(IRSubtypePlaceholder(type.drop(1)))
                 }
             }
             return when(type) {
@@ -634,7 +634,7 @@ class IRFileReader {
                     "float" -> DataType.pointer(BaseDataType.FLOAT)
                     "long" -> DataType.pointer(BaseDataType.LONG)
                     "str" -> error("'str' should not occur anymore in IR. Should be uword or ulong or ^^ubyte")
-                    else -> DataType.pointer(IRSubtypePlaceholder(type.drop(2)))
+                    else -> DataType.pointer(IRSubtypePlaceholder(type.drop(1)))
                 }
             }
             return when(type) {

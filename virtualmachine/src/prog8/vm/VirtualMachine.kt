@@ -93,6 +93,18 @@ class VirtualMachine(irProgram: IRProgram) {
     var hardwareRegisterFAC0: Double = 0.0
     var hardwareRegisterFAC1: Double = 0.0
 
+    // m68k-style hardware registers used by the 32-bit VIRTUAL target calling convention.
+    // NOTE: these are "for show" / interface compatibility only. The VM is NOT a true m68k:
+    //   - Floating point is stored as Double (8 bytes), not Single (4 bytes) like m68k.
+    //   - The machine is little-endian (x86 native), while m68k is big-endian.
+    // Struct instances containing a `float` field therefore have size 14 on VM (4-byte pointer
+    // + 8-byte float + 2-byte uword) but size 10 on m68k (4-byte pointer + 4-byte float + 2-byte uword),
+    // and the `area` field offset is 12 on VM vs 8 on m68k. The IR code generator already produces
+    // the correct per-target sizes and offsets.
+    internal val hardwareRegisterD = Array(8) { 0u }      // D0-D7 (slots 10-17)
+    internal val hardwareRegisterAddr = Array(7) { 0u }   // A0-A6 (slots 18-24)
+    internal val hardwareRegisterFP = Array(8) { 0.0 }    // FP0-FP7 (slots 25-32)
+
     internal var randomGenerator = Random(0xa55a7653)
     internal var randomGeneratorFloats = Random(0xc0d3dbad)
     internal var mul16LastUpper = 0u
@@ -150,6 +162,9 @@ class VirtualMachine(irProgram: IRProgram) {
         statusCarry = false
         statusNegative = false
         statusZero = false
+        hardwareRegisterD.fill(0u)
+        hardwareRegisterAddr.fill(0u)
+        hardwareRegisterFP.fill(0.0)
     }
 
     fun exit(statuscode: Int) {
@@ -2825,6 +2840,32 @@ class VirtualMachine(irProgram: IRProgram) {
             3 -> registers.setUW(i.reg1!!, ((hardwareRegisterX.toUInt() shl 8) + hardwareRegisterA).toUShort())
             4 -> registers.setUW(i.reg1!!, ((hardwareRegisterY.toUInt() shl 8) + hardwareRegisterA).toUShort())
             5 -> registers.setUW(i.reg1!!, ((hardwareRegisterY.toUInt() shl 8) + hardwareRegisterX).toUShort())
+            6 -> registers.setFloat(i.fpReg1!!, hardwareRegisterFAC0)
+            7 -> registers.setFloat(i.fpReg1!!, hardwareRegisterFAC1)
+            in 10..17 -> {
+                val reg = i.immediate!! - 10
+                when(i.type) {
+                    IRDataType.BYTE -> registers.setUB(i.reg1!!, hardwareRegisterD[reg].toUByte())
+                    IRDataType.WORD -> registers.setUW(i.reg1!!, hardwareRegisterD[reg].toUShort())
+                    IRDataType.LONG, IRDataType.POINTER -> registers.setUL(i.reg1!!, hardwareRegisterD[reg])
+                    else -> throw IllegalArgumentException("invalid type for D register LOADHR: ${i.type}")
+                }
+            }
+            in 18..24 -> {
+                val reg = i.immediate!! - 18
+                when(i.type) {
+                    IRDataType.WORD -> registers.setUW(i.reg1!!, hardwareRegisterAddr[reg].toUShort())
+                    IRDataType.LONG, IRDataType.POINTER -> registers.setUL(i.reg1!!, hardwareRegisterAddr[reg])
+                    else -> throw IllegalArgumentException("invalid type for A register LOADHR: ${i.type}")
+                }
+            }
+            in 25..32 -> {
+                val reg = i.immediate!! - 25
+                if(i.type==IRDataType.FLOAT)
+                    registers.setFloat(i.fpReg1!!, hardwareRegisterFP[reg])
+                else
+                    throw IllegalArgumentException("invalid type for FP register LOADHR: ${i.type}")
+            }
             else -> throw IllegalArgumentException("unknown hardware register slot: ${i.immediate}")
         }
         nextPc()
@@ -2849,6 +2890,32 @@ class VirtualMachine(irProgram: IRProgram) {
                 val word = registers.getUW(i.reg1!!).toUInt()
                 hardwareRegisterX = (word and 255u).toUByte()
                 hardwareRegisterY = (word shr 8).toUByte()
+            }
+            6 -> hardwareRegisterFAC0 = registers.getFloat(i.fpReg1!!)
+            7 -> hardwareRegisterFAC1 = registers.getFloat(i.fpReg1!!)
+            in 10..17 -> {
+                val reg = i.immediate!! - 10
+                hardwareRegisterD[reg] = when(i.type) {
+                    IRDataType.BYTE -> registers.getUB(i.reg1!!).toUInt()
+                    IRDataType.WORD -> registers.getUW(i.reg1!!).toUInt()
+                    IRDataType.LONG, IRDataType.POINTER -> registers.getUL(i.reg1!!)
+                    else -> throw IllegalArgumentException("invalid type for D register STOREHR: ${i.type}")
+                }
+            }
+            in 18..24 -> {
+                val reg = i.immediate!! - 18
+                hardwareRegisterAddr[reg] = when(i.type) {
+                    IRDataType.WORD -> registers.getUW(i.reg1!!).toUInt()
+                    IRDataType.LONG, IRDataType.POINTER -> registers.getUL(i.reg1!!)
+                    else -> throw IllegalArgumentException("invalid type for A register STOREHR: ${i.type}")
+                }
+            }
+            in 25..32 -> {
+                val reg = i.immediate!! - 25
+                if(i.type==IRDataType.FLOAT)
+                    hardwareRegisterFP[reg] = registers.getFloat(i.fpReg1!!)
+                else
+                    throw IllegalArgumentException("invalid type for FP register STOREHR: ${i.type}")
             }
             else -> throw IllegalArgumentException("unknown hardware register slot: ${i.immediate}")
         }

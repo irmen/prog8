@@ -187,7 +187,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             ExpressionCodeResult(result, IRDataType.BYTE, -1, -1)
         else {
             val resultvalueReg = codeGen.registers.next(IRDataType.WORD)
-            val slot = if(codeGen.options.compTarget.cpu.is68k) 10 else 4
+            val slot = if(codeGen.options.compTarget.cpu.usesM68kConvention) 10 else 4
             addInstr(result, IRInstruction(Opcode.LOADHR, IRDataType.WORD, reg1=resultvalueReg, immediate=slot), null)
             ExpressionCodeResult(result, IRDataType.WORD, resultvalueReg, -1)
         }
@@ -256,7 +256,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         }
         // DIVMOD result convention: quotient in reg1, remainder in reg2.
         // Route to the return value locations expected by the caller (via returnsWhatWhere).
-        if(codeGen.options.compTarget.cpu.is68k) {
+        if(codeGen.options.compTarget.cpu.usesM68kConvention) {
             // m68k: first return value in D0 (slot 10), second in D1 (slot 11)
             if(type==IRDataType.BYTE) {
                 result += IRCodeChunk(null, null).also {
@@ -714,7 +714,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         val tr = exprGen.translateExpression(call.args.single())
         addToResult(result, tr, tr.resultReg, -1)
         val byteReg = codeGen.registers.next(IRDataType.BYTE)
-        if(codeGen.options.compTarget.cpu.is68k) {
+        if(codeGen.options.compTarget.cpu.usesM68kConvention) {
             // m68k: 3 return values in D0 (slot 10), D1 (slot 11), D2 (slot 12)
             // store high byte first, then mid, then low (to avoid clobbering)
             addInstr(result, IRInstruction(Opcode.BSIGB, IRDataType.LONG, reg1 = byteReg, reg2 = tr.resultReg), null)
