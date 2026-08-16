@@ -362,7 +362,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
     internal fun inplaceModification(target: PtrTarget, operator: String, value: AsmAssignSource) {
         when (operator) {
             "+" -> {
-                if(target.dt.isByte && value.number?.number==1.0 || value.number?.number==2.0) {
+                if(target.dt.isByte && (value.number?.number==1.0 || value.number?.number==2.0)) {
                     val amount = value.number.number.toInt()
                     inplaceByteInc(target, amount)
                 } else {
@@ -374,7 +374,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                 }
             }
             "-" -> {
-                if(target.dt.isByte && value.number?.number==1.0 || value.number?.number==2.0) {
+                if(target.dt.isByte && (value.number?.number==1.0 || value.number?.number==2.0)) {
                     val amount = value.number.number.toInt()
                     inplaceByteDec(target, amount)
                 } else {

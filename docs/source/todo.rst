@@ -21,37 +21,14 @@ Future Things and Ideas
 - Change scoping rules for qualified symbols so that they don't always start from the root but behave like other programming languages (look in local scope first), maybe only when qualified symbol starts with '.' such as: .local.value = 33, or the other way around? i.e. require new syntax to explicitly look up from global scope. That would give a backwards compatible solution.
 - implement the signed remainder byte and word routines on 6502 (virtual target already has them working)
 - implement the signed divmod byte and word routines on 6502 (virtual target already has them working)
-- make a form of "manual generics" possible, see ``ideas/polymorphism.md``
-  (this is already done hardcoded for several of the builtin functions)
+- make a form of "manual generics" possible, see ``ideas/polymorphism.md`` (this is already done hardcoded for several of the builtin functions)
 - add new directives ``%bssaddress`` and ``%slabsaddress`` to set the memory address for the BSS area and memory slabs (analogous to ``%address`` for program load address).
   Note: these should be mutually exclusive with the existing CLI options (``-varsgolden``, ``-varshigh``, ``-slabsgolden``, ``-slabshigh``)
   because the CLI options are target-aware shorthands (set bank symbols, do bounds checking against predefined ranges)
   while the directives are raw addresses — they'd conflict if both specified for the same area.
 - the c64 sprite multiplexer still needs adjustments to make it smooth, it lacks a proper raster event scheduler.
-- compiler bug: consecutive ``--`` on a uword struct field via typed pointer only decrements the low byte.
-  The optimizer merges two ``x--`` into a single ``sbc #2`` but forgets the high-byte borrow.
-  Reproduction::
-
-    struct Sprite { uword x }
-    ^^Sprite sprite = sprites[0]
-    sprite.x--
-    sprite.x--
-    ; generated asm only touches low byte:
-    ;   ldy #2
-    ;   lda (ptr),y
-    ;   sec
-    ;   sbc #2
-    ;   sta (ptr),y
-    ; high byte is never decremented, so when low byte underflows past 0
-    ; the uword wraps to $FF00 instead of the correct value.
-  Workaround: use explicit subtraction instead of two ``--``::
-
-    sprite.x = sprite.x - 2
-
 - comptime expressions ("better macros") - evaluate expressions at compile time and use the results in the generated code,
   going beyond the current compile-time constant folding of constant values.
-- extend the 'virtual' target (and its virtual machine) to a 32-bit machine with 16 MB of memory,
-  so that programs can be run and tested on it that don't fit on the 64 Kb 8-bit machines.
 
 
 Romable (%option romable)
@@ -79,6 +56,8 @@ IR/VM
   it crashes while reading the IR file. Note that just accepting a leading ``-`` is not enough, because
   ``parseIRValue(...).toUInt()`` clamps negative values to 0; the conversion must round-trip through ``toInt().toUInt()``
   to recover the original bit pattern.
+- extend the 'virtual' target (and its virtual machine) to a 32-bit machine with 16 MB of memory,
+  so that programs can be run and tested on it that don't fit on the 64 Kb 8-bit machines.
 - encode indexed scaling into IR (so that m68k codegen can use scale factor addressing) see ideas/scaled-indexing-IR.md
 - maybe change all branch instructions to have 2 exits (label if branch condition true, and label if false) instead of 1, and get rid of the implicit "next code chunk" link between chunks.
 - implement more TODOs in AssignmentGen?

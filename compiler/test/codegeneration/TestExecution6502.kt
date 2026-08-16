@@ -565,6 +565,76 @@ class TestExecution6502 : FunSpec({
         machine.assertMemory(0x2003, 0x00)
     }
 
+    test("double increment/decrement of uword struct field via typed pointer") {
+        val src = $$"""
+            %option no_sysinit
+            %launcher none
+            %address $1000
+
+            main {
+                &ubyte poweroff = $f203
+                &uword result = $02
+
+                struct Sprite {
+                    ubyte pad
+                    ubyte pad2
+                    uword x
+                }
+
+                ^^Sprite[4] sprites
+
+                sub start() {
+                    ^^Sprite sprite = sprites[0]
+
+                    sprite.x = 255
+                    sprite.x++
+                    sprite.x++
+                    result = sprite.x     ; expect $0101
+                    poweroff = 1
+                }
+            }
+        """.trimIndent()
+
+        val compileResult = compileText(Cx16Target(), false, src, outputDir)
+        var machine = compileResult!!.simulate()
+        machine.assertMemory(0x02, 0x01)
+        machine.assertMemory(0x03, 0x01)
+
+        val src2 = $$"""
+            %option no_sysinit
+            %launcher none
+            %address $1000
+
+            main {
+                &ubyte poweroff = $f203
+                &uword result = $02
+
+                struct Sprite {
+                    ubyte pad
+                    ubyte pad2
+                    uword x
+                }
+
+                ^^Sprite[4] sprites
+
+                sub start() {
+                    ^^Sprite sprite = sprites[0]
+
+                    sprite.x = 1
+                    sprite.x--
+                    sprite.x--
+                    result = sprite.x     ; expect $ffff
+                    poweroff = 1
+                }
+            }
+        """.trimIndent()
+
+        val compileResult2 = compileText(Cx16Target(), false, src2, outputDir)
+        machine = compileResult2!!.simulate()
+        machine.assertMemory(0x02, 0xff)
+        machine.assertMemory(0x03, 0xff)
+    }
+
     test("struct with inlined array memory layout (6502)") {
         val src = $$"""
             %option no_sysinit
