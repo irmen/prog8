@@ -1,14 +1,29 @@
-%zeropage basicsafe
-%import textio
-
 main {
-    sub start() {
-        long @shared z1 = "sadfasdf1"
-        pointer @shared z2 = "sadfasdf2"
 
-        txt.print_ulhex(z1, true)
-        txt.nl()
-        txt.print_ulhex(z2, true)
-        txt.nl()
+    sub start() {
+        str name = "name"
+        pointer nameptr = &name
+        bool result
+
+        result = name=="foo"
+        result = name!="foo"
+        result = name<"foo"
+        result = name>"foo"
+
+        result = nameptr=="foo"
+        result = nameptr!="foo"
+        result = nameptr<"foo"
+        result = nameptr>"foo"
+
+        void compare(name, "foo")
+        void compare(name, "name")
+        void compare(nameptr, "foo")
+        void compare(nameptr, "name")
+    }
+
+    sub compare(str s1, str s2) -> ubyte {
+        if s1==s2
+            return 42
+        return 0
     }
 }

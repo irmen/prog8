@@ -83,9 +83,12 @@ internal class VerifyFunctionArgTypes(val program: Program, val options: Compila
 
     companion object {
 
-        private fun argTypeCompatible(argDt: DataType, paramDt: DataType): Boolean {
+        private fun argTypeCompatible(argDt: DataType, paramDt: DataType, target: ICompilationTarget): Boolean {
             if(argDt==paramDt)
                 return true
+
+            // on 32 bits platforms the pointer type is long, so long can be used as an (untyped) pointer
+            val is32bit = target.POINTER_MEM_SIZE > 2u
 
             // there are some exceptions that are considered compatible, such as STR <> UWORD,  UWORD <> pointer
             if(argDt.isUnsignedWord)
@@ -119,18 +122,18 @@ internal class VerifyFunctionArgTypes(val program: Program, val options: Compila
                 return true
 
             // if expected is any pointer and actual is long, we allow it (long is untyped 32-bit pointer)
-            if(paramDt.isPointer && argDt.base==BaseDataType.LONG)
+            if(paramDt.isPointer && argDt.base==BaseDataType.LONG && is32bit)
                 return true
 
             // if expected is LONG and actual is an array, we allow it (address of array is a long on 32-bit targets)
-            if(paramDt.isLong && argDt.isArray)
+            if(paramDt.isLong && argDt.isArray && is32bit)
                 return true
 
             // if expected is LONG and actual is any pointer, we allow it (pointer is a long on m68k)
-            if(paramDt.isLong && argDt.isPointer)
+            if(paramDt.isLong && argDt.isPointer && is32bit)
                 return true
 
-            if(paramDt.isString && (argDt.isPointer && argDt.sub==BaseDataType.UBYTE))
+            if(paramDt.isString && ((argDt.isPointer && argDt.sub==BaseDataType.UBYTE) || (argDt.isLong && is32bit)))
                 return true
 
             return false
@@ -152,7 +155,7 @@ internal class VerifyFunctionArgTypes(val program: Program, val options: Compila
             if (target is Subroutine) {
                 val consideredParamTypes: List<DataType> = target.parameters.map { it.type }
                 require(argtypes.size == consideredParamTypes.size)
-                val mismatch = argtypes.zip(consideredParamTypes).indexOfFirst { !argTypeCompatible(it.first, it.second) }
+                val mismatch = argtypes.zip(consideredParamTypes).indexOfFirst { !argTypeCompatible(it.first, it.second, program.target) }
                 if(mismatch>=0) {
                     val actual = argtypes[mismatch]
                     val expected = consideredParamTypes[mismatch]
@@ -205,7 +208,7 @@ internal class VerifyFunctionArgTypes(val program: Program, val options: Compila
                         if(it.isArray)
                             pair.first.isArray
                         else
-                            argTypeCompatible(pair.first, DataType.forDt(it))
+                            argTypeCompatible(pair.first, DataType.forDt(it), program.target)
                     }
                     if (!anyCompatible) {
                         val actual = pair.first

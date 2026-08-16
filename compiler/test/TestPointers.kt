@@ -524,6 +524,30 @@ main {
         assertIsStringCompare(r2v)
     }
 
+    test("on 32 bits platforms, comparing a string against a long (untyped pointer) is a string compare") {
+        val src="""
+main {
+    sub start() {
+        str name = "name"
+        long nameptr = &name
+        bool result
+        result = nameptr=="foo"
+        result = nameptr!="foo"
+        result = nameptr<"foo"
+        result = nameptr>"foo"
+    }
+}"""
+        val result = compileText(Qemu68kTarget(), false, src, outputDir, writeAssembly = false)!!
+        val main = result.compilerAst.allBlocks.first {it.name=="main"}
+        val start = main.statements.filterIsInstance<Subroutine>().first {it.name=="start"}
+        val assignments = start.statements.filterIsInstance<Assignment>().filter { it.value is BinaryExpression }
+        assignments.size shouldBe 4
+        for(assignment in assignments) {
+            val expr = assignment.value as BinaryExpression
+            (expr.left as FunctionCallExpression).target.nameInSource shouldBe listOf("prog8_lib_stringcompare")
+        }
+    }
+
     test("str or ubyte array params or return type replaced by pointer to ubyte") {
         val src="""
 main {

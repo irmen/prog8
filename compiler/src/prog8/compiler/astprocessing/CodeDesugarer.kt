@@ -589,6 +589,7 @@ _after:
             return when {
                 leftDt issimpletype BaseDataType.STR && rightDt issimpletype BaseDataType.STR -> true
                 leftDt issimpletype BaseDataType.UWORD && rightDt issimpletype BaseDataType.STR || leftDt issimpletype BaseDataType.STR && rightDt issimpletype BaseDataType.UWORD -> true
+                leftDt issimpletype BaseDataType.LONG && rightDt issimpletype BaseDataType.STR || leftDt issimpletype BaseDataType.STR && rightDt issimpletype BaseDataType.LONG -> target.POINTER_MEM_SIZE > 2u
                 leftDt.isPointer && leftDt.getOrUndef().sub == BaseDataType.UBYTE -> rightDt issimpletype BaseDataType.STR
                 rightDt.isPointer && rightDt.getOrUndef().sub == BaseDataType.UBYTE -> leftDt issimpletype BaseDataType.STR
                 else -> false

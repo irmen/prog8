@@ -1738,8 +1738,8 @@ internal class AstChecker(private val program: Program,
                 // exception allowed: bitwise operations with any integers
             } else if(options.compTarget.POINTER_MEM_SIZE==2u && (leftDt.isUnsignedWord && rightDt.isString) || (leftDt.isString && rightDt.isUnsignedWord)) {
                 // exception allowed on 16 bits pointers: comparing uword (pointer) with string
-            } else if(options.compTarget.POINTER_MEM_SIZE>2u && leftDt.isPointer && rightDt.isString) {
-                // exception allowed on 32 bits pointers: comparing pointer with string
+            } else if(options.compTarget.POINTER_MEM_SIZE>2u && ((leftDt.isPointer || leftDt.isLong) && rightDt.isString) || ((rightDt.isPointer || rightDt.isLong) && leftDt.isString)) {
+                // exception allowed on 32 bits pointers: comparing pointer (or long, which is the pointer type on 32 bits) with string
             } else if(options.compTarget.POINTER_MEM_SIZE>2u && ((leftDt.isLong && rightDt.isPointer) || (leftDt.isPointer && rightDt.isLong))) {
                 // exception allowed on 32 bits pointers: comparing long (untyped pointer) with pointer
             } else {

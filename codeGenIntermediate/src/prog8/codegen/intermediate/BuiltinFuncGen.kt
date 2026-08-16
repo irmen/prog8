@@ -294,7 +294,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         addToResult(result, left, left.resultReg, -1)
         addToResult(result, right, right.resultReg, -1)
         val resultReg = codeGen.registers.next(IRDataType.BYTE)
-        result += codeGen.makeSyscall(IMSyscall.COMPARE_STRINGS, listOf(IRDataType.WORD to left.resultReg, IRDataType.WORD to right.resultReg), IRDataType.BYTE to resultReg)
+        result += codeGen.makeSyscall(IMSyscall.COMPARE_STRINGS, listOf(left.dt to left.resultReg, right.dt to right.resultReg), IRDataType.BYTE to resultReg)
         return ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
     }
 
