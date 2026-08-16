@@ -1,7 +1,9 @@
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.ints.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
+import prog8.code.core.BaseDataType
 import prog8.code.core.CompilationOptions
+import prog8.code.core.DataType
 import prog8.code.core.OutputType
 import prog8.code.core.ZeropageType
 import prog8.code.target.Cx16Target
@@ -186,6 +188,53 @@ load.b r1,#0
         val struct = program.st.allStructInstances().first()
         struct.name shouldBe "testinst"
         struct.structName shouldBe "re.State"
+    }
+
+    test("test IR writer preserves decimal precision in float struct fields") {
+        // regression test: struct field floats used to be serialized via .toInt().toHex()
+        // which truncated the decimal portion (e.g. 1463.87 became 1463.0 in the loaded VM memory)
+        val target = Cx16Target()
+        val tempdir = Path(System.getProperty("java.io.tmpdir"))
+        val options = CompilationOptions.builder(target)
+            .output(OutputType.RAW)
+            .zeropage(ZeropageType.DONTUSE)
+            .noSysInit(true)
+            .compilerVersion("99.99")
+            .loadAddress(target.PROGRAM_LOAD_ADDRESS)
+            .memtopAddress(0xffffu)
+            .outputDir(tempdir)
+            .build()
+        val program = IRProgram("unittest-float-struct", IRSymbolTable(), options, target)
+        val structName = "main.Country"
+        val fields = listOf(
+            IRStStructField(DataType.forDt(BaseDataType.UWORD), "name"),
+            IRStStructField(DataType.forDt(BaseDataType.FLOAT), "population"),
+            IRStStructField(DataType.forDt(BaseDataType.UWORD), "area")
+        )
+        program.st.add(IRStStructDef(structName, fields, 8u))
+        val instanceName = "main.india_instance"
+        val population = 1463.87
+        val area = 3287
+        program.st.add(IRStStructInstance(
+            instanceName,
+            structName,
+            listOf(
+                IRStructInitValue(BaseDataType.UWORD, IRStSymbolicReference.Numeric(0.0)),
+                IRStructInitValue(BaseDataType.FLOAT, IRStSymbolicReference.Numeric(population)),
+                IRStructInitValue(BaseDataType.UWORD, IRStSymbolicReference.Numeric(area.toDouble()))
+            ),
+            8u
+        ))
+        val writer = IRFileWriter(program, null)
+        val generatedFile = writer.write()
+        val program2 = IRFileReader().read(generatedFile)
+        generatedFile.deleteExisting()
+        val instance = program2.st.allStructInstances().single { it.name == instanceName }
+        instance.values.size shouldBe 3
+        val floatValue = instance.values[1].value as IRStSymbolicReference.Numeric
+        floatValue.value shouldBe population
+        val intValue = instance.values[2].value as IRStSymbolicReference.Numeric
+        intValue.value shouldBe area.toDouble()
     }
 
     test("test IR reader parses loadhr/storehr sN immediate encoding") {

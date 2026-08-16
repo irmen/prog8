@@ -38,9 +38,9 @@ private object IRStSymbolicReferenceXml {
         is IRStSymbolicReference.BoolValue -> throw InternalCompilerException("bool in word array")
     }
 
-    fun formatForStructField(ref: IRStSymbolicReference): String = when(ref) {
+    fun formatForStructField(ref: IRStSymbolicReference, dt: DataType): String = when(ref) {
         is IRStSymbolicReference.BoolValue -> if(ref.value) "1" else "0"
-        is IRStSymbolicReference.Numeric -> ref.value.toInt().toHex()
+        is IRStSymbolicReference.Numeric -> if(dt.isFloat) ref.value.toString() else ref.value.toInt().toHex()
         is IRStSymbolicReference.Symbol -> "@${ref.name}"
     }
 }
@@ -458,7 +458,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
                         listOf(field.type)
                 }
                 val values = expandedTypes.zip(instance.values).map {(dt, value) ->
-                    val valuestr = IRStSymbolicReferenceXml.formatForStructField(value.value)
+                    val valuestr = IRStSymbolicReferenceXml.formatForStructField(value.value, dt)
                     dt to valuestr
                 }
                 append(values.joinToString(",") { "${it.first}:${it.second}" })
