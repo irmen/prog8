@@ -1744,8 +1744,8 @@ asmsub  restore_irq() clobbers(A) {
         sta  cx16.via1ier
         ; set timer1 back to free running mode
         lda  cx16.via1acr
-        and  %00111111
-        ora  %01000000
+        and  #%00111111
+        ora  #%01000000
         sta  cx16.via1acr
         lda  #$ff
         sta  cx16.via1t1ll

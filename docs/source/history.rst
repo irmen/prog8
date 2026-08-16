@@ -251,10 +251,8 @@ Major breaking changes that require code modifications when upgrading:
 
 
 **v12.3** — August 2026
-    - Laying groundwork for new code generation targets. Still highly experimental.
     - **Module search order rework** — replaced alphabetical search with a deterministic, prioritized list; filesystem now searched before internal libraries. 
-    - **New experimental 6502 code generator** based on the IR, enabled with ``-newcodegen`` (do not use for production code yet).
-    - **m68k code generator** — a full experimental m68k code generator will follow in a later version.
+    - **New experimental 6502 code generator** based on the IR, enabled with ``-newcodegen`` (experimental, generates pretty bad/buggy code still!)
     - **Embedded arrays in structs** — structs can now contain arrays as fields.
     - **``@bank`` accepts a subroutine name** — for dynamic / overlay banking with a bank manager
     - **New library routines** — ``floats.mod()``; ``sys.MAX_LONG`` / ``sys.MIN_LONG``; PET32 ``petsnd`` playback functions, ``REST`` constant, ``set_gap()``, enharmonic flat note symbols; PET32 ``sys.set_irq()`` / ``sys.restore_irq()``; serial module: configurable baud rate.
