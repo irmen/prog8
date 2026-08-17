@@ -888,7 +888,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
         }
         if(srcArr.pointerderef!=null) {
             val dt = srcArr.pointerderef!!.inferType(program)
-            if(dt.isUnsignedWord) {
+            if(dt.isUnsignedWord || (compilationOptions.compTarget.POINTER_MEM_SIZE > 2u && dt.isLong)) {
                 val arrayVar = transform(srcArr.pointerderef!!)
                 val array = PtArrayIndexer(DataType.UBYTE, arrayVar.type.isSplitWordArray(compilationOptions.compTarget), srcArr.position)
                 array.add(arrayVar)

@@ -857,9 +857,10 @@ internal class AstChecker(private val program: Program,
     override fun visit(assignTarget: AssignTarget) {
         super.visit(assignTarget)
 
-        val memAddr = assignTarget.memoryAddress?.addressExpression?.constValue(program)?.number?.toInt()
+        val memAddr = assignTarget.memoryAddress?.addressExpression?.constValue(program)?.number?.toLong()
         if (memAddr != null) {
-            if (memAddr !in 0..<65536)
+            val maxAddr = if(options.compTarget.POINTER_MEM_SIZE > 2u) 0xFFFFFFFFL else 0xFFFFL
+            if (memAddr !in 0..maxAddr)
                 errors.err("address out of range", assignTarget.position)
         }
 
@@ -1469,8 +1470,10 @@ internal class AstChecker(private val program: Program,
                 // all elements in the initializer array should be of the same element type
                 array.value.forEach {
                     val valueDt = it.inferType(program).getOrUndef()
-                    if(!valueDt.isUnsignedWord && valueDt != elementDt) {
-                        errors.err("struct initializer element has invalid type, expected $elementDt or uword but got $valueDt", it.position)
+                    val isAcceptedPtrType = valueDt.isUnsignedWord || (options.compTarget.POINTER_MEM_SIZE > 2u && valueDt.isLong)
+                    if(!isAcceptedPtrType && valueDt != elementDt) {
+                        val expectedExtra = if(options.compTarget.POINTER_MEM_SIZE > 2u) "long" else "uword"
+                        errors.err("struct initializer element has invalid type, expected $elementDt or $expectedExtra but got $valueDt", it.position)
                     }
                 }
             }
@@ -2210,7 +2213,8 @@ internal class AstChecker(private val program: Program,
 
         if(arrayIndexedExpression.pointerderef!=null) {
             val dt = arrayIndexedExpression.pointerderef!!.inferType(program)
-            if(!dt.isPointer && !dt.isUnsignedWord && !dt.isIterable) {
+            val isLongPtrHolder = options.compTarget.POINTER_MEM_SIZE > 2u && dt.isLong
+            if(!dt.isPointer && !dt.isUnsignedWord && !dt.isIterable && !isLongPtrHolder) {
                 errors.err("cannot array index on this field type", arrayIndexedExpression.indexer.position)
             }
 //            else if(target is StructFieldRef) {

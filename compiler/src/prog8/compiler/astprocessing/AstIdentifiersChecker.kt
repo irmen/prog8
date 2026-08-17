@@ -267,8 +267,10 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
                     }
                 }
                 is VarDecl -> {
-                    if(target.type!=VarDeclType.VAR || !target.datatype.isUnsignedWord)
-                        errors.err("wrong address variable datatype, expected uword", call.target.position)
+                    val isAddressType = target.datatype.isUnsignedWord ||
+                        (compTarget.POINTER_MEM_SIZE > 2u && target.datatype.isLong)
+                    if(target.type!=VarDeclType.VAR || !isAddressType)
+                        errors.err("wrong address variable datatype, expected ${if(compTarget.POINTER_MEM_SIZE > 2u) "long" else "uword"}", call.target.position)
                 }
                 is Alias -> {
                     val actualtarget = target.target.targetStatement(program.builtinFunctions)

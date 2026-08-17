@@ -249,10 +249,12 @@ internal fun IdentifierReference.checkFunctionOrLabelExists(program: Program, st
         is Label, is Subroutine, is BuiltinFunctionPlaceholder -> return targetStatement
         is VarDecl -> {
             if(statement is Jump) {
-                if (targetStatement.datatype.isUnsignedWord)
+                val isAddressType = targetStatement.datatype.isUnsignedWord ||
+                    (program.target.POINTER_MEM_SIZE > 2u && targetStatement.datatype.isLong)
+                if (isAddressType)
                     return targetStatement
                 else
-                    errors.err("wrong address variable datatype, expected uword", this.position)
+                    errors.err("wrong address variable datatype, expected ${if(program.target.POINTER_MEM_SIZE > 2u) "long" else "uword"}", this.position)
             }
             else
                 errors.err("cannot call that: ${this.nameInSource.joinToString(".")}", this.position)

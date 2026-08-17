@@ -53,18 +53,18 @@ main {
         assign_different_ptrs()
 
         sub assign_pointers() {
-            cx16.r0 = l_bp
-            cx16.r1 = l_bw
-            cx16.r2 = l_floats
-            cx16.r0 = g_bp
-            cx16.r1 = g_bw
-            cx16.r2 = g_floats
-            cx16.r0 = other.g_bp
-            cx16.r1 = other.g_bw
-            cx16.r2 = other.g_floats
-            cx16.r0 = other.func.l_bp
-            cx16.r1 = other.func.l_bw
-            cx16.r2 = other.func.l_floats
+            pointer @shared p0 = l_bp
+            pointer @shared p1 = l_bw
+            pointer @shared p2 = l_floats
+            pointer @shared p3 = g_bp
+            pointer @shared p4 = g_bw
+            pointer @shared p5 = g_floats
+            pointer @shared p6 = other.g_bp
+            pointer @shared p7 = other.g_bw
+            pointer @shared p8 = other.g_floats
+            pointer @shared p9 = other.func.l_bp
+            pointer @shared p10 = other.func.l_bw
+            pointer @shared p11 = other.func.l_floats
         }
 
         sub assign_deref() {
@@ -237,10 +237,10 @@ main {
 
     sub start() {
         ^^State matchstate
-        cx16.r0 = matchstate^^.ptr
-        cx16.r1 = matchstate^^.next^^.next^^.ptr
-        cx16.r2 = matchstate.ptr
-        cx16.r3 = matchstate.next.next.ptr
+        pointer @shared p0 = matchstate^^.ptr
+        pointer @shared p1 = matchstate^^.next^^.next^^.ptr
+        pointer @shared p2 = matchstate.ptr
+        pointer @shared p3 = matchstate.next.next.ptr
         cx16.r4 = matchstate.ptr^^
         cx16.r5 = matchstate.next.next.ptr^^
 
@@ -253,48 +253,50 @@ main {
 
         val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = false)!!
         val st = result.compilerAst.entrypoint.statements
-        st.size shouldBe 13
-        val a0v = (st[2] as Assignment).value as PtrDereference
+        st.size shouldBe 17
+        val a0v = (st[3] as Assignment).value as PtrDereference
         a0v.chain shouldBe listOf("matchstate", "ptr")
         a0v.derefLast shouldBe false
 
-        val a1v = (st[3] as Assignment).value as PtrDereference
+        val a1v = (st[5] as Assignment).value as PtrDereference
         a1v.chain shouldBe listOf("matchstate", "next", "next", "ptr")
         a1v.derefLast shouldBe false
 
-        val a2v = (st[4] as Assignment).value as PtrDereference
+        val a2v = (st[7] as Assignment).value as PtrDereference
         a2v.chain shouldBe listOf("matchstate", "ptr")
         a2v.derefLast shouldBe false
 
-        val a3v = (st[5] as Assignment).value as PtrDereference
+        val a3v = (st[9] as Assignment).value as PtrDereference
         a3v.chain shouldBe listOf("matchstate", "next", "next", "ptr")
         a3v.derefLast shouldBe false
 
-        val a4v = (st[6] as Assignment).value as FunctionCallExpression
+        val a4v = (st[10] as Assignment).value as FunctionCallExpression
         a4v.target.nameInSource shouldBe listOf("peekw")
-        val a4vp=(a4v.args[0] as PtrDereference)
+        val a4vp = ((a4v.args[0] as? PtrDereference)
+            ?: (a4v.args[0] as TypecastExpression).expression as PtrDereference)
         a4vp.chain shouldBe listOf("matchstate", "ptr")
         a4vp.derefLast shouldBe false
 
-        val a5v = (st[7] as Assignment).value as FunctionCallExpression
+        val a5v = (st[11] as Assignment).value as FunctionCallExpression
         a5v.target.nameInSource shouldBe listOf("peekw")
-        val a5vp=(a5v.args[0] as PtrDereference)
+        val a5vp = ((a5v.args[0] as? PtrDereference)
+            ?: (a5v.args[0] as TypecastExpression).expression as PtrDereference)
         a5vp.chain shouldBe listOf("matchstate", "next", "next", "ptr")
         a5vp.derefLast shouldBe false
 
-        val t0 = (st[8] as Assignment).target.pointerDereference!!
+        val t0 = (st[12] as Assignment).target.pointerDereference!!
         t0.derefLast shouldBe false
         t0.chain shouldBe listOf("matchstate", "ptr")
 
-        val t1 = (st[9] as Assignment).target.pointerDereference!!
+        val t1 = (st[13] as Assignment).target.pointerDereference!!
         t1.derefLast shouldBe false
         t1.chain shouldBe listOf("matchstate", "next", "next", "ptr")
 
-        val t2 = (st[10] as Assignment).target.pointerDereference!!
+        val t2 = (st[14] as Assignment).target.pointerDereference!!
         t2.derefLast shouldBe false
         t2.chain shouldBe listOf("matchstate", "ptr")
 
-        val t3 = (st[11] as Assignment).target.pointerDereference!!
+        val t3 = (st[15] as Assignment).target.pointerDereference!!
         t3.derefLast shouldBe false
         t3.chain shouldBe listOf("matchstate", "next", "next", "ptr")
     }
@@ -756,7 +758,7 @@ main {
     sub start() {
         const ^^ubyte cbyteptr = 53248
 
-        cx16.r1 = cbyteptr
+        pointer @shared p1 = cbyteptr
     }
 }"""
         val errors = ErrorReporterForTests()
@@ -1077,7 +1079,9 @@ main {
         (add1bin.right as PtNumber).number shouldBe 10.0
         val add1peek = (add1[4] as PtAssignment).value as PtFunctionCall
         add1peek.builtin shouldBe true
-        ((add1peek.args[0] as PtBinaryExpression).right as PtNumber).number shouldBe 10.0
+        val add1peekArg = (add1peek.args[0] as? PtBinaryExpression)
+            ?: ((add1peek.args[0] as PtTypeCast).value as PtBinaryExpression)
+        (add1peekArg.right as PtNumber).number shouldBe 10.0
 
         val add2expr1 = (add2[2] as PtAugmentedAssign).value as PtBinaryExpression
         add2expr1.operator shouldBe "<<"
@@ -1103,7 +1107,9 @@ main {
         (sub1bin.right as PtNumber).number shouldBe 10.0
         val sub1peek = (sub1[4] as PtAssignment).value as PtFunctionCall
         sub1peek.builtin shouldBe true
-        ((sub1peek.args[0] as PtBinaryExpression).right as PtNumber).number shouldBe 10.0
+        val sub1peekArg = (sub1peek.args[0] as? PtBinaryExpression)
+            ?: ((sub1peek.args[0] as PtTypeCast).value as PtBinaryExpression)
+        (sub1peekArg.right as PtNumber).number shouldBe 10.0
 
         val sub2expr1 = (sub2[2] as PtAugmentedAssign).value as PtBinaryExpression
         sub2expr1.operator shouldBe "<<"
@@ -1298,9 +1304,9 @@ main {
     sub start() {
         ^^uword l_wptr
 
-        cx16.r0 = g_wptr
+        pointer @shared p0 = g_wptr
         cx16.r1 = g_wptr^^
-        cx16.r0 = l_wptr
+        pointer @shared p2 = l_wptr
         cx16.r1 = l_wptr^^
     }
 }"""
@@ -1320,7 +1326,7 @@ main {
     ^^State matchstate
 
     sub start() {
-        cx16.r0 = matchstate.ptr
+        pointer @shared p0 = matchstate.ptr
         cx16.r1 = matchstate.ptr^^
         cx16.r2 = matchstate^^.ptr^^        ; equivalent to previous
         cx16.r3 = matchstate.c
@@ -1342,7 +1348,7 @@ main {
 
     sub start() {
         ^^State matchstate
-        cx16.r0 = matchstate.ptr
+        pointer @shared p0 = matchstate.ptr
         cx16.r1 = matchstate.ptr^^
         cx16.r2 = matchstate^^.ptr^^        ; equivalent to previous
         cx16.r3 = matchstate.c
@@ -1755,7 +1761,7 @@ main {
     }
 
     sub ok(^^ubyte ptr) {
-        cx16.r0 = ptr
+        pointer @shared p0 = ptr
     }
 }"""
         compileText(VMTarget(), false, src, outputDir) shouldNotBe null
@@ -1990,18 +1996,18 @@ main {
     ^^Node @shared first
 
     sub start() {
-        cx16.r1 = first
-        cx16.r2 = first.negative
-        cx16.r3 = first^^.negative
-        cx16.r4 = first.negative.animal
-        cx16.r5 = first^^.negative^^.animal
+        pointer @shared p1 = first
+        pointer @shared p2 = first.negative
+        pointer @shared p3 = first^^.negative
+        pointer @shared p4 = first.negative.animal
+        pointer @shared p5 = first^^.negative^^.animal
 
-        cx16.r1 = db.first
-        cx16.r2 = db.first.negative
+        pointer @shared p6 = db.first
+        pointer @shared p7 = db.first.negative
 
-        cx16.r3 = db.first^^.negative
-        cx16.r4 = db.first.negative.animal
-        cx16.r5 = db.first^^.negative^^.animal
+        pointer @shared p8 = db.first^^.negative
+        pointer @shared p9 = db.first.negative.animal
+        pointer @shared p10 = db.first^^.negative^^.animal
 
         db.first.negative.animal = 0
         db.first.negative = 0
@@ -2314,10 +2320,10 @@ main {
         if ptr==0
             cx16.r0++
 
-        cx16.r0 = if ptr!=0 0 else ptr
-        cx16.r1 = if ptr==0 0 else ptr
-        cx16.r2 = if ptr!=0 ptr else 0
-        cx16.r3 = if ptr==0 ptr else 0
+        pointer p1 = if ptr!=0 0 else ptr
+        pointer p2 = if ptr==0 0 else ptr
+        pointer p3 = if ptr!=0 ptr else 0
+        pointer p4 = if ptr==0 ptr else 0
     }
 }"""
         compileText(VMTarget(), false, src, outputDir) shouldNotBe null
@@ -2845,8 +2851,9 @@ main {
         temp = mb
         temp += 64
 
-        cx16.r0 = mb
-        temp = cx16.r0
+        uword @shared intermediary
+        intermediary = mb
+        temp = intermediary
         temp += 64
     }
 
@@ -2857,11 +2864,11 @@ main {
 }"""
         val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = false)
         val st = result!!.compilerAst.entrypoint.statements
-        st.size shouldBe 9
+        st.size shouldBe 10
         val a1 = st[3] as Assignment
         a1.target.identifier!!.nameInSource shouldBe listOf("temp")
         a1.value shouldBe instanceOf<IdentifierReference>()
-        val a2 = st[6] as Assignment
+        val a2 = st[7] as Assignment
         a2.target.identifier!!.nameInSource shouldBe listOf("temp")
         a2.value shouldBe instanceOf<IdentifierReference>()
     }

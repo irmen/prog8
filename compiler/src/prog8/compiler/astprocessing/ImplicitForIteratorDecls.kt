@@ -58,7 +58,8 @@ class ImplicitForIteratorDecls(
                     return emptyList()
                 }
             }
-            if (existing.datatype.isPointer && (iterableType.isUnsignedWordArray || iterableType.isPointerArray))
+            if (existing.datatype.isPointer && (iterableType.isUnsignedWordArray || iterableType.isPointerArray ||
+                (program.target.POINTER_MEM_SIZE > 2u && iterableType.isLongArray)))
                 return emptyList()
             if (forLoop.iterable !is RangeExpression && !(elementType isAssignableTo existing.datatype)) {
                 errors.err(

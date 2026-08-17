@@ -390,18 +390,18 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                     }
                 }
                 if (rightConstVal?.number == 1.0) {
-                    if (rightDt != leftDt && !(leftDt.isPointer && rightDt.isUnsignedWord)) {
-                        val dt = if(leftDt.isPointer) BaseDataType.UWORD else leftDt.base
-                        if(dt.isNumeric && !dt.isLong && dt!=BaseDataType.UNDEFINED) {
+                    if (rightDt != leftDt && !(leftDt.isPointer && rightDt.base == options.compTarget.pointerBaseType)) {
+                        val dt = if(leftDt.isPointer) options.compTarget.pointerBaseType else leftDt.base
+                        if(dt.isNumeric && dt!=BaseDataType.UNDEFINED && (!dt.isLong || leftDt.isPointer)) {
                             val right = NumericLiteral(dt, rightConstVal.number, rightConstVal.position)
                             return listOf(AstReplaceNode(expr.right, right, expr))
                         }
                     }
                 }
                 else if (rightConstVal?.number == 0.0) {
-                    if (rightDt != leftDt && !(leftDt.isPointer && rightDt.isUnsignedWord)) {
-                        val dt = if(leftDt.isPointer) BaseDataType.UWORD else leftDt.base
-                        if(dt.isNumeric && !dt.isLong && dt!=BaseDataType.UNDEFINED) {
+                    if (rightDt != leftDt && !(leftDt.isPointer && rightDt.base == options.compTarget.pointerBaseType)) {
+                        val dt = if(leftDt.isPointer) options.compTarget.pointerBaseType else leftDt.base
+                        if(dt.isNumeric && dt!=BaseDataType.UNDEFINED && (!dt.isLong || leftDt.isPointer)) {
                             val right = NumericLiteral(dt, rightConstVal.number, rightConstVal.position)
                             return listOf(AstReplaceNode(expr.right, right, expr))
                         }
@@ -416,18 +416,18 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                     }
                 }
                 if (rightConstVal?.number == 1.0) {
-                    if(rightDt!=leftDt && !(leftDt.isPointer && rightDt.isUnsignedWord)) {
-                        val dt = if(leftDt.isPointer) BaseDataType.UWORD else leftDt.base
-                        if(!dt.isLong && dt!=BaseDataType.UNDEFINED) {
+                    if(rightDt!=leftDt && !(leftDt.isPointer && rightDt.base == options.compTarget.pointerBaseType)) {
+                        val dt = if(leftDt.isPointer) options.compTarget.pointerBaseType else leftDt.base
+                        if(dt!=BaseDataType.UNDEFINED && (!dt.isLong || leftDt.isPointer)) {
                             val right = NumericLiteral(dt, rightConstVal.number, rightConstVal.position)
                             return listOf(AstReplaceNode(expr.right, right, expr))
                         }
                     }
                 }
                 else if (rightConstVal?.number == 0.0) {
-                    if(rightDt!=leftDt && !(leftDt.isPointer && rightDt.isUnsignedWord)) {
-                        val dt = if(leftDt.isPointer) BaseDataType.UWORD else leftDt.base
-                        if(!dt.isLong && dt!=BaseDataType.UNDEFINED) {
+                    if(rightDt!=leftDt && !(leftDt.isPointer && rightDt.base == options.compTarget.pointerBaseType)) {
+                        val dt = if(leftDt.isPointer) options.compTarget.pointerBaseType else leftDt.base
+                        if(dt!=BaseDataType.UNDEFINED && (!dt.isLong || leftDt.isPointer)) {
                             val right = NumericLiteral(dt, rightConstVal.number, rightConstVal.position)
                             return listOf(AstReplaceNode(expr.right, right, expr))
                         }
@@ -681,8 +681,8 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
         val ident = IdentifierReference(deref.chain, deref.position)
         val target = deref.definingScope.lookup(ident.nameInSource)
         when (target) {
-            is VarDecl -> require(target.datatype.isPointer || target.datatype.isUnsignedWord)
-            is StructFieldRef -> require(target.type.isPointer || target.type.isUnsignedWord)
+            is VarDecl -> require(target.datatype.isPointer || target.datatype == options.compTarget.pointerType)
+            is StructFieldRef -> require(target.type.isPointer || target.type == options.compTarget.pointerType)
             else -> throw FatalAstException("requires pointer or uword dereference target at ${deref.position}")
         }
         return ident

@@ -1889,7 +1889,7 @@ class IfExpression(var condition: Expression, var truevalue: Expression, var fal
             }
             return t1
         }
-        if(t1.isPointer && t2.isUnsignedWord || t1.isUnsignedWord && t2.isPointer) return InferredTypes.knownFor(BaseDataType.UWORD)
+        if(t1.isPointer && t2.isUnsignedWord || t1.isUnsignedWord && t2.isPointer) return InferredTypes.knownFor(program.target.pointerBaseType)
         return InferredTypes.unknown()
     }
 
@@ -1936,7 +1936,7 @@ class BranchConditionExpression(var condition: BranchCondition, var truevalue: E
         val t1 = truevalue.inferType(program)
         val t2 = falsevalue.inferType(program)
         if(t1==t2) return t1
-        if(t1.isPointer && t2.isUnsignedWord || t1.isUnsignedWord && t2.isPointer) return InferredTypes.knownFor(BaseDataType.UWORD)
+        if(t1.isPointer && t2.isUnsignedWord || t1.isUnsignedWord && t2.isPointer) return InferredTypes.knownFor(program.target.pointerBaseType)
         return InferredTypes.unknown()
     }
 
