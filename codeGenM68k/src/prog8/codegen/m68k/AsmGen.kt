@@ -577,7 +577,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         chunkStartIndex: Int,
         args: FunctionCallArgs?
     ): ImmediateCallOptimization? {
-        if (args == null || args.arguments.isEmpty())
+        if (args == null || args.arguments.isEmpty() || args.arguments.any { it.reg.callingConventionSlot == null })
             return null
 
         val loads = mutableMapOf<RegId, IRInstruction>()

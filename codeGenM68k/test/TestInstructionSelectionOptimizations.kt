@@ -301,6 +301,25 @@ class TestInstructionSelectionOptimizations : FunSpec({
         lines.any { it == "move.w  p8_regfile+0,d0" } shouldBe true
     }
 
+    test("retains immediate loads for named call arguments") {
+        val args = FunctionCallArgs(
+            listOf(
+                FunctionCallArgs.ArgumentSpec("value", null, FunctionCallArgs.RegSpec(IRDataType.BYTE, RegisterNum(1), null, null))
+            ),
+            emptyList()
+        )
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-call-named-argument"),
+            listOf(
+                IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = 1, immediate = 42),
+                IRInstruction(Opcode.CALL, labelSymbol = "callee", fcallArgs = args)
+            )
+        )
+
+        lines.any { it == "move.b  #42,p8_regfile+0" } shouldBe true
+        lines.any { it == "move.b  p8_regfile+0,callee.value" } shouldBe true
+    }
+
     test("retains the register-file store when the value is used after the call") {
         val args = FunctionCallArgs(
             listOf(FunctionCallArgs.ArgumentSpec("", null, FunctionCallArgs.RegSpec(IRDataType.WORD, RegisterNum(1), CallingConventionSlot(10), null))),
