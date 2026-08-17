@@ -30,6 +30,31 @@ concise and practical.
         dbra    d0,.loop
 ```
 
+## FPU Size Suffixes
+
+FPU instructions that access memory **must** include a size suffix: `.s`
+(single, 4 bytes), `.d` (double, 8 bytes), or `.x` (extended, 12 bytes).
+Without a suffix, vasm defaults to `.x`, reading 12 bytes and corrupting
+results when the operand is smaller.
+
+**Use `.s` with memory operands:**
+```asm
+        fmove.s  value(pc),fp0      ; load float from memory
+        fcmp.s   other(pc),fp0      ; compare float in memory
+        ftst.s   value(pc)          ; test float in memory
+```
+
+**Omit the suffix for register-to-register operations:**
+```asm
+        fadd     fp1,fp0            ; fp0 = fp0 + fp1
+        fcmp     fp1,fp0            ; compare fp0 vs fp1
+        ftst     fp0                ; test fp0
+        fintrz   fp0,fp0            ; truncate fp0
+```
+
+The FPU registers are always 80-bit internally, so no size suffix is needed
+when both operands are registers.
+
 ## Architecture
 
 - Registers `D0-D7` and `A0-A7` are 32-bit; `A7` is the stack pointer.

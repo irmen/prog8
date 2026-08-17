@@ -197,8 +197,8 @@ class DataType private constructor(
         fun arrayFor(elementDt: BaseDataType, memsizer: IMemSizer): DataType {
             // wether or not a word-array should be split-words, is determined later
             require(!elementDt.isPointer) { "use other array constructor for arrays of pointers" }
-            // TODO: on 32-bit targets (m68k), str arrays should be arrays of LONG (4-byte pointers),
-            // but this requires systematically handling str as a 4-byte type across the entire compiler.
+            // On 32-bit targets (m68k, virtual), str arrays become arrays of LONG (4-byte pointers)
+            // via pointerBaseType. On 6502 targets they become arrays of UWORD (2-byte pointers).
             val actualElementDt = if(elementDt==BaseDataType.STR) {
                 memsizer.pointerBaseType
             } else elementDt

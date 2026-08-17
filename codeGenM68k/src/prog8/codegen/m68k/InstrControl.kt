@@ -351,7 +351,7 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
             val dstReg = r1 ?: error("SGN needs reg1")
             if (insn.type == IRDataType.FLOAT) {
                 val srcFp = insn.fpReg1 ?: error("SGN.f needs fpReg1")
-                emitLine("ftst  ${floatRegFileAddr(srcFp)}")
+                emitLine("ftst.s  ${floatRegFileAddr(srcFp)}")
                 emitLine("fslt  d0")
                 emitLine("fsgt  d1")
                 emitLine("neg.b  d1")

@@ -234,7 +234,7 @@ class Antlr2KotlinVisitor(val source: SourceCode, private val target: ICompilati
             } else if(baseDt.isStructInstance)
                 throw SyntaxError("array of structures not allowed (use array of pointers)", ctx.toPosition())
             else
-                DataType.arrayFor(baseDt.base, target)       // TODO: on 32-bit (m68k), str arrays should be arrays of LONG (4-byte pointers)
+                DataType.arrayFor(baseDt.base, target)       // str arrays become LONG[] on 32-bit targets via pointerBaseType
         }
 
         return VarDecl.builder(dt, ctx.toPosition())
