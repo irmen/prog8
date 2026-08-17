@@ -1,10 +1,6 @@
 package prog8.vm
 
-import prog8.code.core.BaseDataType
-import prog8.code.core.DataType
-import prog8.code.core.IMemSizer
-import prog8.code.core.IStringEncoding
-import prog8.code.core.InternalCompilerException
+import prog8.code.core.*
 import prog8.intermediate.IRSymbolTable
 import prog8.intermediate.IRVariableInitializer
 

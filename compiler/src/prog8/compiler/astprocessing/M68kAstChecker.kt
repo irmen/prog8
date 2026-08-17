@@ -8,11 +8,7 @@ import prog8.ast.statements.Directive
 import prog8.ast.statements.Subroutine
 import prog8.ast.statements.VarDecl
 import prog8.ast.walk.IAstVisitor
-import prog8.code.core.ICompilationTarget
-import prog8.code.core.IErrorReporter
-import prog8.code.core.RegisterOrPair
-import prog8.code.core.SplitWish
-import prog8.code.core.ZeropageWish
+import prog8.code.core.*
 
 
 internal class M68kAstChecker(private val errors: IErrorReporter, private val target: ICompilationTarget) : IAstVisitor {

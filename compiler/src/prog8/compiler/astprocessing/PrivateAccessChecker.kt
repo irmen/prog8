@@ -1,10 +1,6 @@
 package prog8.compiler.astprocessing
 
-import prog8.ast.Module
-import prog8.ast.Node
-import prog8.ast.ParentSentinel
-import prog8.ast.Program
-import prog8.ast.findParentNode
+import prog8.ast.*
 import prog8.ast.expressions.BinaryExpression
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.statements.*

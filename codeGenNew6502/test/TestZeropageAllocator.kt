@@ -7,8 +7,8 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import prog8.code.core.*
 import prog8.code.target.Cx16Target
-import prog8.intermediate.*
 import prog8.codegen.new6502.ZeropageAllocator
+import prog8.intermediate.*
 
 class TestZeropageAllocator : FunSpec({
 

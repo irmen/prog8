@@ -2,9 +2,6 @@ package prog8.code
 
 import prog8.code.ast.*
 import prog8.code.core.*
-import prog8.code.target.Amiga500Target
-import prog8.code.target.Qemu68kTarget
-import prog8.code.target.VMTarget
 
 
 /**

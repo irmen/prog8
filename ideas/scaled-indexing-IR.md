@@ -14,14 +14,14 @@ targets and fixing the same problem uniformly for every backend.
 
 The IR generator pre-scales the array index:
 
-- `loadIndexReg` (`codeGenIntermediate/IRCodeGen.kt:2100-2128`) loads the
+- `loadIndexReg` (`codeGenIntermediate/IRCodeGen.kt:2228-2264`) loads the
   element index and immediately multiplies it by the element size
-  (`itemsize`), both on the 16-bit path (`:2115`, `multiplyByConst(UWORD, ...)`)
-  and on the 8-bit path (`:2126`, `multiplyByConst(UBYTE, ...)`).
+  (`itemsize`), both on the 16-bit path (`:2243`, `multiplyByConst(UWORD, ...)`)
+  and on the 8-bit path (`:2263`, `multiplyByConst(UBYTE, ...)`).
 - Therefore every consumer of `LOADX` / `STOREX` / `STOREZX` assumes the index
   register already holds a **byte offset** into the array:
   - The VM adds the raw index to the base address (`InsLOADX`/`InsSTOREX`/
-    `InsSTOREZX` in `VirtualMachine.kt:576/646/693`).
+    `InsSTOREZX` in `VirtualMachine.kt:590/666/723`).
   - new6502 uses the raw index as a byte offset into the array
     (`indexedLoad`/`storeExchange`/`zeroMemoryIndexed` in
     `InstrLoadStore.kt:675/753/845`).
@@ -65,10 +65,10 @@ Struct field access never goes through the scaled index register. Field offsets
 are always constant byte offsets:
 
 - Pointer field access: `LOADI` / `STOREI` with `immediate = fieldOffset`
-  (`ExpressionGen.kt:1886-1897`, `AssignmentGen.kt:295-315`).
+  (`ExpressionGen.kt:1886-1897`, `AssignmentGen.kt:698`).
 - Struct-variable field access: `LOADM` / `STOREM` with `symbolOffset`.
 - Array of structs: index is multiplied by the struct size and added to the
-  pointer via `ADDR` (genuine pointer arithmetic, `ExpressionGen.kt:1866-1868`).
+  pointer via `ADDR` (genuine pointer arithmetic, `ExpressionGen.kt:1863-1865`).
 
 So the "absolute fixed byte index" of a struct field never appears in a scaled
 `LOADX`/`STOREX`/`STOREZX` index register. The `scale` operand applies only to
@@ -87,7 +87,7 @@ changes freely. The serialized `scale` is always written for the three opcodes
 ### 3.1 The `scale` field
 
 - Add `val scale: Int = 1` to `IRInstruction`
-  (`intermediate/IRInstructions.kt`, constructor around `:902`).
+  (`intermediate/IRInstructions.kt`, constructor at `:918`).
 - Validation:
   - `scale >= 1`.
   - `scale != 1` is only allowed on `LOADX`, `STOREX`, `STOREZX`.
@@ -102,9 +102,9 @@ storx.b r1,r2,floatarray,S=5
 storezx.b r3,arr,S=1
 ```
 
-Parsing: `parseIRCodeLine` (`intermediate/Utils.kt:87`) strips an optional
+Parsing: `parseIRCodeLine` (`intermediate/Utils.kt:92`) strips an optional
 trailing `,S=N`; defaults to 1 when absent. The existing label + offset parsing
-(`arr+1`, `Utils.kt:242-253`) is unchanged and composes with it:
+(`arr+1`, `Utils.kt:248-257`) is unchanged and composes with it:
 
 ```
 storx.b r1,r2,arr+1,S=4
@@ -115,8 +115,8 @@ storx.b r1,r2,arr+1,S=4
 
 ### 3.3 Documentation updates
 
-- `instructionFormats` header comment (`IRInstructions.kt`, around `:710`).
-- The 32-bit word-index note in `IRProgram.kt:315`.
+- `instructionFormats` header comment (`IRInstructions.kt:724`).
+- The 32-bit word-index note in `IRProgram.kt:318`.
 
 ---
 
@@ -133,7 +133,7 @@ storx.b r1,r2,arr+1,S=4
 
 Constraints that make everything fit:
 
-- 6502: `ARRAY_SIZE_LIMIT = 256` is a **byte budget** (`AstChecker.kt:1080-1099`):
+- 6502: `ARRAY_SIZE_LIMIT = 256` is a **byte budget** (`AstChecker.kt:1107-1122`):
   word arrays <= 128 elements, long <= 64, float <= 51. A scaled byte offset
   therefore always fits in a byte (max 50*5 + 4 = 254), so 8-bit index
   arithmetic suffices.
@@ -152,28 +152,28 @@ Constraints that make everything fit:
 1. Add `scale: Int = 1` to `IRInstruction` with the validation from Section 3.1.
 2. Serialize `,S=N` in `toString()` for `LOADX`/`STOREX`/`STOREZX`; parse it in
    `Utils.parseIRCodeLine`.
-3. Update the comments in `IRInstructions.kt` and `IRProgram.kt:315`.
+3. Update the comments in `IRInstructions.kt` and `IRProgram.kt:318`.
 
 ### 5.2 `codeGenIntermediate` - stop pre-scaling
 
-**`loadIndexReg`** (`IRCodeGen.kt:2100`):
+**`loadIndexReg`** (`IRCodeGen.kt:2228`):
 
-- Delete the two `multiplyByConst` calls (`:2115` and `:2126`).
+- Delete the two `multiplyByConst` calls (`:2243` and `:2263`).
 - Drop the now-unused `itemsize` and `arrayIsSplitWords` parameters.
 - Keep the byte-to-word `EXT` so 32-bit targets get a word-sized index.
 
 **Array-indexing sites - emit `scale = eltSize` on the instruction:**
 
 - `ExpressionGen.kt:646` (`indexByExpression`).
-- `AssignmentGen.kt:746/766/787` (`translateRegularAssignArrayIndexed`).
-- Regular-array `for` loop (`IRCodeGen.kt:752-769`): LOADX gets
+- `AssignmentGen.kt:802/822/843` (`translateRegularAssignArrayIndexed`).
+- Regular-array `for` loop (`IRCodeGen.kt:774-792`): LOADX gets
   `scale = elementSize`; the loop increment changes from
   `addConstByteToReg(indexReg, elementSize)` to `+1`; the loop compare changes
   from `lengthBytes` (= length*elementSize) to `iterableLength`.
-- `setlsb`/`setmsb`, variable-index case (`BuiltinFuncGen.kt:931/952`):
+- `setlsb`/`setmsb`, variable-index case (`BuiltinFuncGen.kt:934/944`):
   `scale = eltSize`, `labelSymbolOffset = byteOffset(eltSize)`, and drop the
   `ADD indexReg, byteOffset` that is no longer needed. The const-index branches
-  (`:923-940`, `:944-950`) keep baking the full byte offset into the `LOAD`
+  (`:928-945`, `:950-966`) keep baking the full byte offset into the `LOAD`
   immediate with default `scale = 1`.
 
 **Pointer-arithmetic sites - keep the explicit multiply:**
@@ -183,37 +183,38 @@ combined with a pointer via `ADDR` or `LOADI`/`STOREI`). They must multiply by
 the element size themselves after `loadIndexReg`:
 
 - `ExpressionGen.kt:681` (`translatePointerIndexing`).
-- `ExpressionGen.kt:1866` (array-of-structs pointer math, struct size).
-- `AssignmentGen.kt:703/713/835` (pointer store paths).
-- `BuiltinFuncGen.kt:867` (`setlsb`/`setmsb` on a pointer target).
+- `ExpressionGen.kt:1863` (array-of-structs pointer math, struct size).
+- `AssignmentGen.kt:759/769/891` (pointer store paths).
+- `BuiltinFuncGen.kt:873` (`setlsb`/`setmsb` on a pointer target).
 
 These paths do **not** use the `scale` operand; they keep genuine pointer
 arithmetic, unchanged in behavior.
 
 ### 5.3 `virtualmachine`
 
-`InsLOADX` (`:576`), `InsSTOREX` (`:646`), `InsSTOREZX` (`:693`): multiply the
+`InsLOADX` (`:590`), `InsSTOREX` (`:666`), `InsSTOREZX` (`:723`): multiply the
 index register by `i.scale` before adding it to the base address. The index
 register is:
 
 - `reg2` for integer `LOADX` / `STOREX`,
 - `reg1` for float `LOADX` / `STOREX` and for all `STOREZX`
-  (matches `instructionFormats`, `IRInstructions.kt:714/721/725`).
+  (matches `instructionFormats`, `IRInstructions.kt:728/735/739`).
 
 `labelSymbolOffset` is already folded into the base address by
 `VmProgramLoader.kt:177-201`, so no change is needed there.
 
 ### 5.4 `codeGenM68k`
 
-In `InstrLoadStore.kt` (including the float variants at `:198/252/282`), after
-the index has been loaded into `d0` (`loadIndexToD0`, `AsmGen.kt:162`):
+In `InstrLoadStore.kt` (including the float variants at `:205/264/295`), after
+the index has been loaded into `d0` (inline `move.w` in `InstrLoadStore.kt`,
+previously `loadIndexToD0` in `AsmGen.kt`):
 
 - **M68020 (qemu68k):** use the hardware scaled-index mode:
   - `(a0,d0.w*N)` for the integer forms,
   - `(0,a0,d0.w*N)` for the float forms (the index is a word value, always
     <= 32767, so `.w*N` is correct).
   - `labelSymbolOffset` folds into the displacement via `resolveAddress`
-    (`AsmGen.kt:212`), producing `(B,a0,d0.w*N)`.
+    (`AsmGen.kt:233`), producing `(B,a0,d0.w*N)`.
 - **M68000 (amiga500):** there is no scaled-index mode, so shift explicitly:
   - `lsl.w #1,d0` for scale 2,
   - `lsl.l #2,d0` for scale 4,
@@ -221,7 +222,7 @@ the index has been loaded into `d0` (`loadIndexToD0`, `AsmGen.kt:162`):
 - Refresh the stale "index pre-scaled" comments.
 - `scale = 1` paths are unchanged.
 
-Gate on `AsmGen.cpu` (`AsmGen.kt:55`); only the 68020 path uses the scaled
+Gate on `AsmGen.cpu` (`AsmGen.kt:97`); only the 68020 path uses the scaled
 addressing mode.
 
 ### 5.5 `codeGenNew6502`
@@ -243,7 +244,7 @@ The helper is used by `indexedLoad` (`:675`, byte path), `storeExchange`
 base address via `resolveAddress`, so setlsb/setmsb needs no extra handling.
 
 Float `LOADX`/`STOREX`/`STOREZX` remain `TODO` in this backend
-(`:711/861-862`), unrelated to this change.
+(`:711/862`), unrelated to this change.
 
 ---
 
@@ -289,7 +290,7 @@ Float `LOADX`/`STOREX`/`STOREZX` remain `TODO` in this backend
 |---------|------|
 | IR instruction definition, formats, validation, serialization | `intermediate/src/prog8/intermediate/IRInstructions.kt` |
 | IR text parsing (`,S=N`) | `intermediate/src/prog8/intermediate/Utils.kt` |
-| IR comment (32-bit word index note) | `intermediate/src/prog8/intermediate/IRProgram.kt:315` |
+| IR comment (32-bit word index note) | `intermediate/src/prog8/intermediate/IRProgram.kt:318` |
 | IR code generator, `loadIndexReg`, for loop | `codeGenIntermediate/src/prog8/codegen/intermediate/IRCodeGen.kt` |
 | Scaled store sites | `codeGenIntermediate/src/prog8/codegen/intermediate/AssignmentGen.kt` |
 | Indexed loads, pointer math | `codeGenIntermediate/src/prog8/codegen/intermediate/ExpressionGen.kt` |
@@ -297,6 +298,6 @@ Float `LOADX`/`STOREX`/`STOREZX` remain `TODO` in this backend
 | VM execution of the three opcodes | `virtualmachine/src/prog8/vm/VirtualMachine.kt` |
 | VM label + offset resolution | `virtualmachine/src/prog8/vm/VmProgramLoader.kt:177-201` |
 | m68k load/store emission | `codeGenM68k/src/prog8/codegen/m68k/InstrLoadStore.kt` |
-| m68k `cpu`, `loadIndexToD0`, `resolveAddress` | `codeGenM68k/src/prog8/codegen/m68k/AsmGen.kt` |
+| m68k `cpu`, `resolveAddress` | `codeGenM68k/src/prog8/codegen/m68k/AsmGen.kt` |
 | new6502 load/store emission | `codeGenNew6502/src/prog8/codegen/new6502/InstrLoadStore.kt` |
-| Array byte budget limits | `compiler/src/prog8/compiler/astprocessing/AstChecker.kt:1080-1099` |
+| Array byte budget limits | `compiler/src/prog8/compiler/astprocessing/AstChecker.kt:1107-1122` |

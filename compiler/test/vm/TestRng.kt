@@ -4,7 +4,9 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.engine.spec.tempdir
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
-import prog8.code.target.*
+import prog8.code.target.Cx16Target
+import prog8.code.target.Qemu68kTarget
+import prog8.code.target.VMTarget
 import prog8.vm.VmRunner
 import prog8tests.helpers.CapturingSerialIO
 import prog8tests.helpers.compileText

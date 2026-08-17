@@ -4,11 +4,7 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.engine.spec.tempdir
 import io.kotest.matchers.ints.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
-import prog8.code.core.CompilationOptions
-import prog8.code.core.OutputType
-import prog8.code.core.Position
-import prog8.code.core.Statusflag
-import prog8.code.core.ZeropageType
+import prog8.code.core.*
 import prog8.code.target.Amiga500Target
 import prog8.code.target.Qemu68kTarget
 import prog8.codegen.m68k.AsmGen

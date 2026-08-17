@@ -13,8 +13,8 @@ import prog8.code.target.Cx16Target
 import prog8.code.target.VMTarget
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
-import prog8tests.helpers.simulate
 import prog8tests.helpers.shouldContainInOrder
+import prog8tests.helpers.simulate
 import kotlin.io.path.readText
 
 class TestArrayThings: FunSpec({

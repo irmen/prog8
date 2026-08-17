@@ -1,12 +1,7 @@
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.ints.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
-import prog8.code.core.BaseDataType
-import prog8.code.core.CompilationOptions
-import prog8.code.core.DataType
-import prog8.code.core.OutputType
-import prog8.code.core.Position
-import prog8.code.core.ZeropageType
+import prog8.code.core.*
 import prog8.code.target.Amiga500Target
 import prog8.code.target.Cx16Target
 import prog8.intermediate.*

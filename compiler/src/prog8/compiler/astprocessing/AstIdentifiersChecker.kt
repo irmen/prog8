@@ -9,7 +9,10 @@ import prog8.ast.expressions.StaticStructInitializer
 import prog8.ast.expressions.StringLiteral
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
-import prog8.code.core.*
+import prog8.code.core.BuiltinFunctions
+import prog8.code.core.ICompilationTarget
+import prog8.code.core.IErrorReporter
+import prog8.code.core.Position
 import prog8.code.target.VMTarget
 
 /**

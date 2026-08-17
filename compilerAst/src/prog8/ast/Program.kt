@@ -7,7 +7,10 @@ import prog8.ast.walk.IAstVisitor
 import prog8.code.GENERATED_LABEL_PREFIX
 import prog8.code.INTERNED_STRINGS_MODULENAME
 import prog8.code.PROG8_CONTAINER_MODULES
-import prog8.code.core.*
+import prog8.code.core.DataType
+import prog8.code.core.ICompilationTarget
+import prog8.code.core.Position
+import prog8.code.core.ZeropageWish
 import prog8.code.source.SourceCode
 
 /*********** Everything starts from here, the Program; zero or more modules *************/

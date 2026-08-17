@@ -2,7 +2,10 @@ package prog8.codegen.intermediate
 
 import prog8.code.*
 import prog8.code.ast.*
-import prog8.code.core.*
+import prog8.code.core.AssemblyError
+import prog8.code.core.CompilationOptions
+import prog8.code.core.DataType
+import prog8.code.core.ISubType
 
 
 /**

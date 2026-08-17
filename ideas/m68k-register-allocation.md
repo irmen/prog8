@@ -2,8 +2,9 @@
 
 This document describes the design for a **true register allocator** for the
 m68k code generation backend (`codeGenM68k`). It supersedes the earlier
-`register-packing.md` plan, which only compressed the *memory* register file
-(`p8_regfile` BSS block) and never placed values in real CPU registers.
+memory-slot packing approach in `codeGenIntermediate/RegisterPacker.kt`, which
+only compressed the *memory* register file (`p8_regfile` BSS block) and never
+placed values in real CPU registers.
 
 The goal here is different and bigger: keep virtual register (vreg) values in
 the m68k's actual hardware registers (D0–D7, A0–A6, FP0–FP7) for as long as
@@ -18,10 +19,10 @@ of targeting a register-rich 32-bit CPU.
 The m68k backend today (`AsmGen.kt`) spills **every** virtual register to a
 single flat BSS memory block:
 
-- `regFileLayout` (`AsmGen.kt:80-92`) lays out **all** registers returned by
+- `regFileLayout` (`AsmGen.kt:157-169`) lays out **all** registers returned by
   `program.registersUsed().regsTypes` — program-wide — into one block labelled
-  `p8_regfile`.
-- `regAddr(reg)` returns `p8_regfile+offset`, so every IR instruction becomes a
+  `p8_regfile` (label constant at `:100`).
+- `regAddr(reg)` (`AsmGen.kt:188`) returns `p8_regfile+offset`, so every IR instruction becomes a
   load from memory into D0/D1, compute, store result back to memory.
 - `RegisterPool` (`codeGenIntermediate/RegisterPool.kt`) assigns globally
   unique, monotonically increasing register numbers; `nextRegister` is never
@@ -39,13 +40,13 @@ adding a proper allocator.
 
 ### 2.1 No stack arguments
 
-Prog8 already has a stack-free calling convention (see `AsmGen.kt:12-17`):
+Prog8 already has a stack-free calling convention (see `AsmGen.kt:87-91`):
 
 - **Normal subs:** the caller writes arguments into the callee's *parameter
   variables* (memory/BSS, possibly ZP) before the `jsr`; the callee reads them
   from there.
 - **asmsub/extsub:** arguments go into fixed hardware slots via
-  `CallingConventionSlot` (`InstrControl.kt:640`): slots 10..17 → D0..D7,
+  `CallingConventionSlot` (`InstrControl.kt:645`): slots 10..17 → D0..D7,
   18..24 → A0..A6, 25..32 → FP0..FP7. In practice asmsub args/returns use
   D0–D2 and FP0–FP1.
 - **Returns:** come back through virtual registers mapped to the caller's
@@ -233,7 +234,7 @@ apply here: only a handful of hardware registers are involved.
 already implements, per subroutine: CFG construction, intraprocedural liveness
 (gen/kill fixed-point), live-interval building, interval merging, conflict-graph
 construction, greedy coloring, and instruction rewriting. Its only production
-call site (`IRCodeGen.generate()`) is commented out, so today it runs only under
+call site (`IRCodeGen.kt:102-107`) is commented out, so today it runs only under
 `TestRegisterPacker`; its file header comment documents what it does in its
 present form.
 
@@ -366,8 +367,8 @@ This document is **m68k-specific**. On the 6502 the situation differs:
   caller/callee-saved split applied to A/X/Y and ZP scratch) applies, but the
   payoff is far smaller than on m68k.
 
-A 6502-specific design is left to a separate document; the depth-range packer
-approach from `register-packing.md` remains directly relevant there.
+A 6502-specific design is left to a separate document; the depth-range packing
+approach from `RegisterPacker.kt` remains directly relevant there.
 
 ---
 

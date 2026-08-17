@@ -2,7 +2,7 @@ package prog8tests.ast
 
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
-import prog8.ast.expressions.*
+import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.*
 import prog8.code.core.*
 

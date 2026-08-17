@@ -9,7 +9,7 @@ the changes needed to support `structtype name[size]`.
 The feature is **explicitly gated** in the parser. Declaring an array of
 structures throws a hard error:
 
-- `compilerAst/src/prog8/ast/antlr/Antlr2KotlinVisitor.kt:235-236`
+- `compilerAst/src/prog8/ast/antlr/Antlr2KotlinVisitor.kt:234-235`
 
   ```kotlin
   } else if(baseDt.isStructInstance)
@@ -20,21 +20,28 @@ The recommended workaround today is `structtype[size]*` — an array of pointers
 to separately-allocated structs — because the pointer element size is fixed
 (2 bytes on 6502, 4 on m68k) and needs no struct-size stride.
 
+A second gate exists in `codeCore/src/prog8/code/core/DataTypes.kt:194-195`:
+```kotlin
+if(dt.isStructInstance)
+    TODO("cannot use struct instance as a data type (yet) - use a pointer instead")
+```
+This must also be relaxed for struct-typed array elements.
+
 ## What already exists (the hard parts are partly done)
 
 A surprising amount of the supporting machinery is already present:
 
 - **Array indexer accepts struct elements.** `PtArrayIndexer`
-  (`simpleAst/src/prog8/code/ast/AstExpressions.kt:239-240`) already permits
+  (`simpleAst/src/prog8/code/ast/AstExpressions.kt:235`) already permits
   `elementType.isStructInstance`, so the AST node is ready.
-- **Index × struct-size math exists.** `ExpressionGen.kt:161-185` computes
+- **Index × struct-size math exists.** `ExpressionGen.kt:167,183` computes
   `offset = constIndex * struct.size` and `multiplyByConst(indexReg,
-  struct.size)` when resolving a struct field; `:1850-1922` handles
+  struct.size)` when resolving a struct field; `:1858-1866` handles
   "index * structsize + field" for struct field access. The element-base
   arithmetic for arrays of structs is essentially the same code.
-- **Array iteration uses element size.** `IRCodeGen.kt:752` computes
-  `elementSize = program.memsizer.memorySize(elementDt)` and `:760` does
-  `lengthBytes = iterableLength * elementSize`. If `elementDt` is a struct,
+- **Array iteration uses element size.** `IRCodeGen.kt:776` computes
+  `elementSize = program.memsizer.memorySize(arrElementDt, null)` and `:777` does
+  `lengthBytes = iterableLength * elementSize`. If `arrElementDt` is a struct,
   this already yields `struct.size`.
 
 So this is not a from-scratch feature: the gates are the parser throw plus
@@ -44,8 +51,10 @@ stride handling.
 ## Change overview
 
 ### 1. Parser / declaration
-- Remove (or relax) the `SyntaxError` at `Antlr2KotlinVisitor.kt:235-236` so a
+- Remove (or relax) the `SyntaxError` at `Antlr2KotlinVisitor.kt:234-235` so a
   struct `DataType` can flow into the array-type builder.
+- Also relax the `TODO` at `DataTypes.kt:194-195` so a struct instance can be
+  used as a data type.
 - Allow `structtype name[size]` (and `const` / initialized forms).
 
 ### 2. DataType model (`codeCore/.../DataTypes.kt`)
@@ -58,7 +67,7 @@ stride handling.
 ### 3. Memory layout & sizing
 - Variable declaration must size the array as `length * struct.size` and align
   the base to the struct's alignment. The element-size plumbing already exists
-  (`IRCodeGen.kt:752,760`); once the element type is legal it computes the
+  (`IRCodeGen.kt:776-777`); once the element type is legal it computes the
   right total.
 - The `IRStStaticVariable` / static-var representation must carry the struct
   element type so sizing and alignment are correct.
@@ -70,7 +79,7 @@ stride handling.
 - `LOADX` / `STOREX` and pointer arithmetic must use this stride. For structs
   you typically compute the element base `base + index*struct.size` and then
   access fields within it, rather than a single wide load. The field-access
-  machinery in `ExpressionGen.kt:161-185` and `:1850-1922` is the template to
+  machinery in `ExpressionGen.kt:167,183` and `:1858-1866` is the template to
   reuse.
 
 ### 5. Member access `arr[i].field`
@@ -106,7 +115,8 @@ stride handling.
 
 ## Bottom line
 
-The single hard blocker is one parser throw. The datatype/sizing path already
+The two hard blockers are the parser throw (`Antlr2KotlinVisitor.kt:234-235`)
+and the `TODO` in `DataTypes.kt:194-195`. The datatype/sizing path already
 multiplies by element size in the right places. The real work is: (a) make
 struct a legal array element type end-to-end, (b) ensure the *stride* is
 `struct.size` consistently in all index math (not just field access),

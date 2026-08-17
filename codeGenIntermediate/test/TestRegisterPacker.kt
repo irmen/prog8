@@ -10,7 +10,6 @@ import prog8.code.core.ZeropageType
 import prog8.code.target.VMTarget
 import prog8.codegen.intermediate.RegisterPacker
 import prog8.intermediate.*
-import prog8tests.helpers.ErrorReporterForTests
 
 class TestRegisterPacker: FunSpec({
 

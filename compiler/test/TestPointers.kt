@@ -14,11 +14,7 @@ import prog8.code.core.BaseDataType
 import prog8.code.core.DataType
 import prog8.code.core.IMemSizer
 import prog8.code.core.ISubType
-import prog8.code.target.Amiga500Target
-import prog8.code.target.C64Target
-import prog8.code.target.Cx16Target
-import prog8.code.target.Qemu68kTarget
-import prog8.code.target.VMTarget
+import prog8.code.target.*
 import prog8.vm.VmRunner
 import prog8tests.helpers.DummyMemsizer
 import prog8tests.helpers.ErrorReporterForTests
@@ -1015,7 +1011,6 @@ main {
         sub1peek.builtin shouldBe true
         ((sub1peek.args[0] as PtBinaryExpression).right as PtNumber).number shouldBe 10.0
 
-        val sub2expr1 = sub2[1] as PtAssignment
         val sub2expr2 = ((sub2[2] as PtAssignment).value as PtBinaryExpression)
         sub2expr2.operator shouldBe "-"
         val sub2expr3 = ((sub2[3] as PtAssignment).value as PtFunctionCall)
@@ -2088,10 +2083,10 @@ main {
     }
 }"""
 
-        compileText(VMTarget(), false, src, outputDir) shouldNotBe null
-        compileText(Amiga500Target(), false, src, outputDir) shouldNotBe null
-        compileText(C64Target(), false, src, outputDir) shouldNotBe null
-        compileText(Cx16Target(), false, src, outputDir) shouldNotBe null
+        compileText(VMTarget(), false, src, outputDir, writeAssembly = false) shouldNotBe null
+        compileText(Amiga500Target(), false, src, outputDir, writeAssembly = false) shouldNotBe null
+        compileText(C64Target(), false, src, outputDir, writeAssembly = false) shouldNotBe null
+        compileText(Cx16Target(), false, src, outputDir, writeAssembly = false) shouldNotBe null
     }
 
     test("array indexing a pointer and a pointer array both work") {

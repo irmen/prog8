@@ -1,7 +1,7 @@
 package prog8tests.codecore
 
-import io.kotest.core.spec.style.FunSpec
 import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import prog8.code.core.BaseDataType
 import prog8.code.target.ConfigFileTarget
