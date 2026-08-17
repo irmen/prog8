@@ -31,6 +31,8 @@ Future Things and Ideas
 - the c64 sprite multiplexer still needs adjustments to make it smooth, it lacks a proper raster event scheduler.
 - comptime expressions ("better macros") - evaluate expressions at compile time and use the results in the generated code,
   going beyond the current compile-time constant folding of constant values.
+- TODO: ``equalsSize`` in ``DataTypes.kt`` treats POINTER as WORD-sized (lines46-47). On 32-bit targets (m68k, virtual), POINTER is actually LONG (4 bytes). Hasn't caused problems in practice so far.
+- STR is now assignable to LONG on all targets including 16-bit ones, for consistency with 32-bit targets where str arrays are LONG[]. On 16-bit targets this means a 2-byte string pointer can be assigned to a 4-byte long variable without a typecast.
 
 
 Romable (%option romable)

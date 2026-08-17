@@ -3194,18 +3194,6 @@ main {
         compileText(Qemu68kTarget(), true, srcReturn, outputDir, writeAssembly = false) shouldNotBe null
         compileText(Amiga500Target(), false, srcReturn, outputDir, writeAssembly = false) shouldNotBe null
         compileText(Amiga500Target(), true, srcReturn, outputDir, writeAssembly = false) shouldNotBe null
-
-        // and on 16-bit pointer targets, a long variable still rejects a string literal
-        val src16 = """
-            %zeropage basicsafe
-            main {
-                sub start() {
-                    long @shared z1 = "sadfasdf1"
-                }
-            }"""
-        val errors16 = ErrorReporterForTests()
-        compileText(Cx16Target(), false, src16, outputDir, writeAssembly = false, errors = errors16) shouldBe null
-        errors16.errors.any { it.contains("value type str doesn't match target type long") } shouldBe true
     }
 
 })

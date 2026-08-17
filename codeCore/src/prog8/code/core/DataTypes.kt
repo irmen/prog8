@@ -30,7 +30,7 @@ enum class BaseDataType {
             this.isByteOrBool -> false
             this.isWord -> other.isByteOrBool
             this == LONG -> other.isByteOrBool || other.isWord
-            this == STR && other == UWORD || this == UWORD && other == STR -> false
+            this == STR && (other == UWORD || other == LONG) || this == UWORD && other == STR -> false
             this.isArray && other.isArray -> false
             this.isArray -> other.isByteOrBool
             this == STR -> other.isByteOrBool
@@ -45,7 +45,9 @@ enum class BaseDataType {
             this.isByteOrBool -> other.isByteOrBool
             this.isWord -> other.isWord || other.isPointer
             this.isPointer -> other.isWord
-            this == STR && other== UWORD || this== UWORD && other== STR -> true
+            // TODO: on 32-bit targets (m68k, virtual), POINTER is LONG (4 bytes) not WORD (2 bytes),
+            // so the above two lines are incorrect. Hasn't caused problems in practice so far.
+            this == STR && (other == UWORD || other == LONG) || (this == UWORD || this == LONG) && other == STR -> true
             this == STR && other.isArray -> true
             this.isArray && other == STR -> true
             else -> false
@@ -395,7 +397,7 @@ class DataType private constructor(
             BaseDataType.WORD -> targetType.base in setOf(BaseDataType.WORD, BaseDataType.LONG, BaseDataType.FLOAT)
             BaseDataType.LONG -> targetType.base in setOf(BaseDataType.LONG, BaseDataType.FLOAT, BaseDataType.POINTER, BaseDataType.ARRAY_POINTER)
             BaseDataType.FLOAT -> targetType.base in arrayOf(BaseDataType.FLOAT)
-            BaseDataType.STR -> targetType.base in setOf(BaseDataType.STR, BaseDataType.UWORD) || (targetType.isPointer && targetType.sub==BaseDataType.UBYTE)
+            BaseDataType.STR -> targetType.base in setOf(BaseDataType.STR, BaseDataType.UWORD, BaseDataType.LONG) || (targetType.isPointer && targetType.sub==BaseDataType.UBYTE)
             BaseDataType.ARRAY, BaseDataType.ARRAY_SPLITW -> targetType.base in setOf(BaseDataType.ARRAY, BaseDataType.ARRAY_SPLITW) && targetType.sub == sub
             BaseDataType.POINTER -> {
                 when {
