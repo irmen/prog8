@@ -272,10 +272,7 @@ object SysCalls {
             Syscall.WAITVSYNC -> vm.waitvsync()
             Syscall.PRINT_F -> {
                 val value = getArgValues(callspec.arguments, vm).single() as Double
-                if(value.toInt().toDouble()==value)
-                    print(value.toInt())
-                else
-                    print(value)
+                print(value)
             }
             Syscall.STR_TO_UWORD -> {
                 val stringAddr = getArgValues(callspec.arguments, vm).single() as Int
@@ -519,7 +516,7 @@ object SysCalls {
                 val (buffer, number) = getArgValues(callspec.arguments, vm)
                 val bufferAddr = buffer as Int
                 val numf = number as Double
-                val numStr = if(numf.toInt().toDouble()==numf) numf.toInt().toString() else numf.toString()
+                val numStr = numf.toString()
                 vm.memory.setString(bufferAddr.toUInt(), numStr, true)
             }
             Syscall.MEMCOPY -> {

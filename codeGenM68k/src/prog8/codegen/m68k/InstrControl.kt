@@ -576,7 +576,7 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
             val doneLabel = makeLabel("fcomp_done")
             val gtLabel = makeLabel("fcomp_gt")
             emitLine("fmove.s  ${floatRegFileAddr(fr1)}, $FP_ACC")
-            emitLine("fcmp  ${floatRegFileAddr(fr2)}, $FP_ACC")
+            emitLine("fcmp.s  ${floatRegFileAddr(fr2)}, $FP_ACC")
             emitLine("fbeq  $eqLabel")
             emitLine("fbgt  $gtLabel")
             emitLine("moveq  #-1, d0")

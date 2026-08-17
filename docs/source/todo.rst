@@ -1,7 +1,9 @@
 TODO
 ====
 
-BUG: fix the m68k compilation of `sorting-problem.p8`; it prints the wrong sorted results. Virtual and cx16 targets print the correct order.
+BUG: fix the m68k compilation of `sorting-problem.p8`; it prints the wrong sorted results. Virtual and cx16 targets print the correct order.  (Root cause: fcmp in FCOMP codegen was missing .s size suffix, reading extended-precision garbage from memory.)
+
+BUG: virtual target's `floats.print()` truncates integer-valued floats to integers (e.g. 1002.0 prints as "1002"). The PRINT_F and FLOAT_TO_STR syscalls had an incorrect "optimization" that stripped decimals when the float happened to equal its integer truncation.
 
 In the Antlr visitor there is // TODO: on 32-bit (m68k), str arrays should be arrays of LONG (4-byte pointers)   is this still a problem?
 
