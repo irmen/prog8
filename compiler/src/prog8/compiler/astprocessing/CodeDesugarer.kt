@@ -876,8 +876,9 @@ _after:
     override fun after(deref: PtrDereference, parent: Node): Iterable<AstModification> {
         val isLHS = parent is AssignTarget
         val varDt = (deref.firstTarget() as? VarDecl)?.datatype
-        if(varDt?.isUnsignedWord==true || (varDt?.isPointer==true && varDt.sub?.isByte==true)) {
-            // replace  ptr^^   by  @(ptr)    when ptr is uword or ^^byte
+        val isRawAddressHolder = varDt?.isUnsignedWord==true || (target.POINTER_MEM_SIZE > 2u && varDt?.isLong==true)
+        if(isRawAddressHolder || (varDt?.isPointer==true && varDt.sub?.isByte==true)) {
+            // replace  ptr^^   by  @(ptr)    when ptr is raw address holder or ^^byte
             val identifier = IdentifierReference(deref.chain, deref.position)
             if(isLHS && varDt.sub==BaseDataType.UBYTE) {
                 val memwrite = DirectMemoryWrite(identifier, deref.position)

@@ -2,7 +2,6 @@ TODO
 ====
 
 - need a bunch of type casting/conversion checks that test the handling of the 4-byte/long pointer datatype on the qemu68k target.
-- analyze ``TypecastsAdder`` for more places where pointer-size checks are hardcoded to ``isUnsignedWord`` / ``UWORD`` rather than being dynamic based on the target's ``POINTER_MEM_SIZE``. The fix in ``addTypecastOrCastedValueModification`` (pointer-to-pointer-type cast bypass) is one example; there may be others that silently mishandle 32-bit pointer targets.
 - amiga library structs: use more typed pointers if it knows the struct type from the same (or another amiga library module) , rather than using `pointer`. Consider both the extsubs but also the struct fields in the amigaDOS structs in the generated library modules.
 
 
@@ -81,7 +80,7 @@ Libraries
 
 Optimizations
 ^^^^^^^^^^^^^
-- new6502 codegen: use virtual-register liveness or write tracking to remove the retained register-file store when an immediate value is forwarded directly into all arguments of a call.
+- new6502 codegen: use virtual-register liveness or write tracking to remove the retained register-file store when an immediate value is forwarded directly into all arguments of a call. (m68k codegen already implements this optimization.)
 - Port more benchmarks from https://thred.github.io/c-bench-64/  to prog8 and see how it stacks up. (see benchmark-c/ directory)
 - Compilation speed: try to join multiple modifications in 1 result in the AST processors instead of returning it straight away every time
 - various optimizers skip stuff if compTarget.name==VMTarget.NAME.  Once new 6502 codegen is done from IR code, those 6502 only optimizations should probably be removed

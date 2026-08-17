@@ -51,7 +51,7 @@ internal object SubtypeResolver {
     fun removeRedundantPointerCasts(program: PtProgram) {
         walkAst(program) { node, _ ->
             if(node is PtTypeCast) {
-                if(node.type.isUnsignedWord && node.value.type.isPointerToByte) {
+                if(node.type.isUnsignedWord && node.value.type.isPointerToByte && program.target.POINTER_MEM_SIZE <= 2u) {
                     // casting a pointer to a byte , to uword, is not required because pointer arithmetic on either of those will be identical
                     val idx = node.parent.children.indexOf(node)
                     node.parent.setChild(idx, node.value)

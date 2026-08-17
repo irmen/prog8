@@ -375,9 +375,10 @@ internal fun determineProgramLoadAddress(program: Program, options: CompilationO
     options.memtopAddress = program.toplevelModule.memtopAddress?.first ?: options.compTarget.PROGRAM_MEMTOP_ADDRESS
 
     if(loadAddress>options.memtopAddress) {
+        val maxAddress = if(options.compTarget.POINTER_MEM_SIZE > 2u) 0xFFFFFFFFu else 0xFFFFu
         errors.warn("program load address ${loadAddress.toHex()} is beyond default memtop address ${options.memtopAddress.toHex()}. " +
-                $$"Memtop has been adjusted to $ffff to avoid assembler error. Set a valid %memtop yourself to get rid of this warning.", program.toplevelModule.position)
-        options.memtopAddress = 0xffffu
+                "Memtop has been adjusted to ${maxAddress.toHex()} to avoid assembler error. Set a valid %memtop yourself to get rid of this warning.", program.toplevelModule.position)
+        options.memtopAddress = maxAddress
     }
 }
 
