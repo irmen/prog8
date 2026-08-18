@@ -30,6 +30,7 @@ Future Things and Ideas
   because the CLI options are target-aware shorthands (set bank symbols, do bounds checking against predefined ranges)
   while the directives are raw addresses — they'd conflict if both specified for the same area.
 - the c64 sprite multiplexer example may need timing adjustments after compiler changes (not a compiler bug — cycle-exact C64 code is inherently fragile)
+- once 'new-codegen' branch is merged, re-enable bunch of xtest() in TestConst.kt
 
 
 Romable (%option romable)

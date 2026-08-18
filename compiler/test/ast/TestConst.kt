@@ -875,5 +875,98 @@ main {
         initValue.type shouldBe BaseDataType.LONG
         initValue.number.toInt() shouldBe 0x00200204
     }
+
+    test("mixed type bitwise operations promote to widest type") {
+        // Regression test: ubyte | long was truncated to ubyte instead of promoting to long.
+        // This caused MEMF_CHIP (ubyte) | MEMF_CLEAR (long) to lose the MEMF_CLEAR flag.
+        val src = $$"""
+main {
+    sub start() {
+        const ubyte SMALL = $02
+        const long BIG = $00010000
+        long @shared result_or = SMALL | BIG
+        long @shared result_and = (SMALL | BIG) & $00010002
+        long @shared result_xor = SMALL ^ BIG
+    }
+}"""
+        val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = false, errors = ErrorReporterForTests())!!
+        val st = result.compilerAst.entrypoint.statements
+
+        val orAssign = st.filterIsInstance<Assignment>().find {
+            (it.target.toExpression() as? IdentifierReference)?.nameInSource?.lastOrNull() == "result_or"
+        }
+        orAssign shouldNotBe null
+        val orValue = orAssign!!.value as NumericLiteral
+        orValue.type shouldBe BaseDataType.LONG
+        orValue.number.toInt() shouldBe 0x00010002
+
+        val andAssign = st.filterIsInstance<Assignment>().find {
+            (it.target.toExpression() as? IdentifierReference)?.nameInSource?.lastOrNull() == "result_and"
+        }
+        andAssign shouldNotBe null
+        val andValue = andAssign!!.value as NumericLiteral
+        andValue.type shouldBe BaseDataType.LONG
+        andValue.number.toInt() shouldBe 0x00010002
+
+        val xorAssign = st.filterIsInstance<Assignment>().find {
+            (it.target.toExpression() as? IdentifierReference)?.nameInSource?.lastOrNull() == "result_xor"
+        }
+        xorAssign shouldNotBe null
+        val xorValue = xorAssign!!.value as NumericLiteral
+        xorValue.type shouldBe BaseDataType.LONG
+        xorValue.number.toInt() shouldBe 0x00010002
+    }
+
+    // TODO this test should be enabled again once new-codegen branch is merged
+    xtest("untyped const integer defaults to long") {
+        val src = """
+main {
+    const A = 42
+    sub start() {}
+}"""
+        val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = false)!!
+        val st = result.compilerAst.allBlocks.first { it.name=="main" }.statements
+        val decl = st[0] as VarDecl
+        decl.datatype.base shouldBe BaseDataType.LONG
+        (decl.value as NumericLiteral).number shouldBe 42.0
+    }
+
+    // TODO this test should be enabled again once new-codegen branch is merged
+    xtest("untyped const float infers float type") {
+        val src = """
+main {
+    const PI = 3.14
+    sub start() {}
+}"""
+        val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = false)!!
+        val st = result.compilerAst.allBlocks.first { it.name=="main" }.statements
+        val decl = st[0] as VarDecl
+        decl.datatype.base shouldBe BaseDataType.FLOAT
+        (decl.value as NumericLiteral).number shouldBe 3.14
+    }
+
+    // TODO this test should be enabled again once new-codegen branch is merged
+    xtest("untyped const bool infers bool type") {
+        val src = """
+main {
+    const FLAG = true
+    sub start() {}
+}"""
+        val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = false)!!
+        val st = result.compilerAst.allBlocks.first { it.name=="main" }.statements
+        val decl = st[0] as VarDecl
+        decl.datatype.base shouldBe BaseDataType.BOOL
+        (decl.value as NumericLiteral).number shouldBe 1.0
+    }
+
+    // TODO this test should be enabled again once new-codegen branch is merged
+    xtest("untyped const memory() infers pointer type") {
+        val src = """
+main {
+    const M = memory("screen", 1000, 0)
+    sub start() {}
+}"""
+        compileText(VMTarget(), false, src, outputDir, writeAssembly = false) shouldNotBe null
+    }
 })
 
