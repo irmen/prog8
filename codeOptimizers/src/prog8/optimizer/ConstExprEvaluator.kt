@@ -67,48 +67,46 @@ class ConstExprEvaluator {
     }
 
     private fun bitwiseOr(left: NumericLiteral, right: NumericLiteral): NumericLiteral {
-        if(right.type.isIntegerOrBool) {
-            val leftDt = left.type
-            if(leftDt.isByteOrBool)
-                return NumericLiteral(BaseDataType.UBYTE, ((left.number.toInt() or right.number.toInt()) and 255).toDouble(), left.position)
-            else if(leftDt.isInteger) {
-                if (leftDt == BaseDataType.UWORD || leftDt == BaseDataType.WORD)
-                    return NumericLiteral(BaseDataType.UWORD, ((left.number.toInt() or right.number.toInt()) and 65535).toDouble(), left.position)
-                else if (leftDt == BaseDataType.LONG)
-                    return NumericLiteral(BaseDataType.LONG, (left.number.toInt() or right.number.toInt()).toDouble(), left.position)
-            }
+        if(left.type.isIntegerOrBool && right.type.isIntegerOrBool) {
+            val resultType = bitwiseResultType(left.type, right.type)
+            val result = (left.number.toInt() or right.number.toInt()) and bitwiseMask(resultType)
+            return NumericLiteral(resultType, result.toDouble(), left.position)
         }
         throw ExpressionError("cannot calculate $left | $right", left.position)
     }
 
     private fun bitwiseAnd(left: NumericLiteral, right: NumericLiteral): NumericLiteral {
-        if(right.type.isIntegerOrBool) {
-            val leftDt = left.type
-            if(leftDt.isByteOrBool)
-                return NumericLiteral(BaseDataType.UBYTE, ((left.number.toInt() and right.number.toInt()) and 255).toDouble(), left.position)
-            else if(leftDt.isInteger) {
-                if (leftDt == BaseDataType.UWORD || leftDt == BaseDataType.WORD)
-                    return NumericLiteral(BaseDataType.UWORD, ((left.number.toInt() and right.number.toInt()) and 65535).toDouble(), left.position)
-                else if (leftDt == BaseDataType.LONG)
-                    return NumericLiteral(BaseDataType.LONG, (left.number.toInt() and right.number.toInt()).toDouble(), left.position)
-            }
+        if(left.type.isIntegerOrBool && right.type.isIntegerOrBool) {
+            val resultType = bitwiseResultType(left.type, right.type)
+            val result = (left.number.toInt() and right.number.toInt()) and bitwiseMask(resultType)
+            return NumericLiteral(resultType, result.toDouble(), left.position)
         }
         throw ExpressionError("cannot calculate $left & $right", left.position)
     }
 
     private fun bitwiseXor(left: NumericLiteral, right: NumericLiteral): NumericLiteral {
-        if(right.type.isIntegerOrBool) {
-            val leftDt = left.type
-            if(leftDt.isByteOrBool)
-                return NumericLiteral(BaseDataType.UBYTE, ((left.number.toInt() xor right.number.toInt()) and 255).toDouble(), left.position)
-            else if(leftDt.isInteger) {
-                if (leftDt == BaseDataType.UWORD || leftDt == BaseDataType.WORD)
-                    return NumericLiteral(BaseDataType.UWORD, ((left.number.toInt() xor right.number.toInt()) and 65535).toDouble(), left.position)
-                else if (leftDt == BaseDataType.LONG)
-                    return NumericLiteral(BaseDataType.LONG, (left.number.toInt() xor right.number.toInt()).toDouble(), left.position)
-            }
+        if(left.type.isIntegerOrBool && right.type.isIntegerOrBool) {
+            val resultType = bitwiseResultType(left.type, right.type)
+            val result = (left.number.toInt() xor right.number.toInt()) and bitwiseMask(resultType)
+            return NumericLiteral(resultType, result.toDouble(), left.position)
         }
         throw ExpressionError("cannot calculate $left ^ $right", left.position)
+    }
+
+    private fun bitwiseResultType(type1: BaseDataType, type2: BaseDataType): BaseDataType {
+        val width = if (type1.largerSizeThan(type2)) type1 else type2
+        return when {
+            width.isByteOrBool -> BaseDataType.UBYTE
+            width.isWord -> BaseDataType.UWORD
+            width == BaseDataType.LONG -> BaseDataType.LONG
+            else -> BaseDataType.UBYTE
+        }
+    }
+
+    private fun bitwiseMask(type: BaseDataType): Int = when(type) {
+        BaseDataType.UBYTE, BaseDataType.BYTE -> 0xFF
+        BaseDataType.UWORD, BaseDataType.WORD -> 0xFFFF
+        else -> 0xFFFFFFFF.toInt()
     }
 
     private fun logicalAnd(left: NumericLiteral, right: NumericLiteral): NumericLiteral =

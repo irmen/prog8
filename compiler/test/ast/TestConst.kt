@@ -990,6 +990,47 @@ main {
         (decl.value as NumericLiteral).number shouldBe -5.0
     }
 
+    test("mixed type bitwise operations promote to widest type") {
+        // Regression test: ubyte | long was truncated to ubyte instead of promoting to long.
+        // This caused MEMF_CHIP (ubyte) | MEMF_CLEAR (long) to lose the MEMF_CLEAR flag.
+        val src = $$"""
+main {
+    sub start() {
+        const ubyte SMALL = $02
+        const long BIG = $00010000
+        long @shared result_or = SMALL | BIG
+        long @shared result_and = (SMALL | BIG) & $00010002
+        long @shared result_xor = SMALL ^ BIG
+    }
+}"""
+        val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = false, errors = ErrorReporterForTests())!!
+        val st = result.compilerAst.entrypoint.statements
+
+        val orAssign = st.filterIsInstance<Assignment>().find {
+            (it.target.toExpression() as? IdentifierReference)?.nameInSource?.lastOrNull() == "result_or"
+        }
+        orAssign shouldNotBe null
+        val orValue = orAssign!!.value as NumericLiteral
+        orValue.type shouldBe BaseDataType.LONG
+        orValue.number.toInt() shouldBe 0x00010002
+
+        val andAssign = st.filterIsInstance<Assignment>().find {
+            (it.target.toExpression() as? IdentifierReference)?.nameInSource?.lastOrNull() == "result_and"
+        }
+        andAssign shouldNotBe null
+        val andValue = andAssign!!.value as NumericLiteral
+        andValue.type shouldBe BaseDataType.LONG
+        andValue.number.toInt() shouldBe 0x00010002
+
+        val xorAssign = st.filterIsInstance<Assignment>().find {
+            (it.target.toExpression() as? IdentifierReference)?.nameInSource?.lastOrNull() == "result_xor"
+        }
+        xorAssign shouldNotBe null
+        val xorValue = xorAssign!!.value as NumericLiteral
+        xorValue.type shouldBe BaseDataType.LONG
+        xorValue.number.toInt() shouldBe 0x00010002
+    }
+    
     test("explicit typed const still works unchanged") {
         val src = """
 main {
