@@ -23,4 +23,5 @@
 %import intuition
 %import utility
 %import timer
+%import audio
 

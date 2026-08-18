@@ -51,19 +51,29 @@ timer {
 
     sub opendevice() -> bool {
         ; open timer.device in a kickstart 1.3 compatible fashion
-        ^^exec.MsgPort timerPort = []
+        ^^exec.MsgPort timerPort = exec.AllocMem(sizeof(exec.MsgPort), exec.MEMF_PUBLIC | exec.MEMF_CLEAR)
+        if timerPort == 0 return false
         TimerIO = exec.AllocMem(sizeof(timer.TimeRequest), exec.MEMF_PUBLIC | exec.MEMF_CLEAR)
+        if TimerIO == 0 {
+            exec.FreeMem(timerPort, sizeof(exec.MsgPort))
+            return false
+        }
         timerPort.Type = exec.NT_MSGPORT
         timerPort.Flags = exec.PA_SIGNAL
         timerPort.SigBit = exec.AllocSignal(-1) as ubyte
         timerPort.SigTask = exec.FindTask(0)
-        exec.NewList(&&timerPort.Head)
+        ^^exec.List listPtr = &&timerPort.Head as ^^exec.List
+        exec.NewList(listPtr)
         TimerIO.ReplyPort = timerPort
 
         if exec.OpenDevice("timer.device", timer.UNIT::MICROHZ, TimerIO, 0)==0 {
             sys.TimerBase = TimerIO.Device
             return true
         }
+        exec.FreeSignal(timerPort.SigBit as byte)
+        exec.FreeMem(TimerIO, sizeof(timer.TimeRequest))
+        exec.FreeMem(timerPort, sizeof(exec.MsgPort))
+        TimerIO = 0
         return false
     }
 
@@ -74,6 +84,7 @@ timer {
             exec.CloseDevice(TimerIO)
             exec.FreeSignal(sigbit)
             exec.FreeMem(TimerIO, sizeof(timer.TimeRequest))
+            exec.FreeMem(timerPort, sizeof(exec.MsgPort))
             TimerIO = 0
         }
     }
