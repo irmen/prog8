@@ -21,7 +21,6 @@ main {
         pointer back_bitplane = bitplane2
 
         setup_copper(current_bitplane, copper_list)
-        blitter.set_blitpri(true)  ; make blitter take all dma cycles
 
         const ubyte TEXT_Y = 240
         ; Copy the generated monochrome message into the reserved bottom strip of BOTH bitplanes.

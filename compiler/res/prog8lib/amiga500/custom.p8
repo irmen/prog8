@@ -14,6 +14,7 @@ exec_AttnFlags = 296
 gfx_ActiView = $22
 gfx_copinit = $26
 gfx_LOFlist = $32
+gfx_DisplayFlags = $dc
 GfxLoadView    = -222
 GfxWaitTOF = -270
 IRQ1 = $64
@@ -30,9 +31,13 @@ IRQ7 = $7C
             beq.s   1$            ; On 68000 no VBR (always zero)
             lea.l   _S_GetVBR(PC),a5    ; Function to call as supervisor
             jsr     exec.Supervisor(a6)    ; Call supervisor function in A5
-            move.l  d0,S_VBR        ; Store the returned VBR contents
+            move.l  d0,custom.cpuVBR        ; Store the returned VBR contents
 1$
             move.l  sys.GfxBase,a6     ; A6 = Graphics base
+            btst.b  #0,gfx_DisplayFlags(a6) ; Check NTSC bit (bit 0)
+            bne.s   .isNTSC
+            move.b  #-1,custom.isPAL
+.isNTSC:
             move.l  gfx_ActiView(a6),-(sp)    ; Store current View pointer
             sub.l   a1,a1            ; NULL view = default settings
             jsr    GfxLoadView(a6)        ; Load the view
@@ -46,35 +51,30 @@ IRQ7 = $7C
             or.w    d0,(sp)            ; SET/CLR set to SET
             move.w  custom.ADKCONR,-(sp)    ; Audio, disk and UART
             or.w    d0,(sp)            ; SET/CLR set to SET
-            move.w  custom.VPOSR,d0        ; Vertical pos and Agnus ID
-            btst    #13,d0            ; When set: NTSC, when clear: PAL
-            bne.s   2$                 ; Leave value 0 for NTSC
-            move.w  #$FFFF,S_PAL        ; Set all bits for PAL
 
-2$          btst.b  #14-8,custom.DMACONR    ; Dummy read
+            btst.b  #14-8,custom.DMACONR    ; Dummy read
 3$          btst.b  #14-8,custom.DMACONR    ; Blitter still busy?
             bne.s   3$                      ; If yes, wait a bit
             move.w  #$01FF,custom.DMACON    ; Disable all DMA
             move.w  #$3FFF,custom.INTENA    ; Disable all interrupts
 
-            move.l  S_VBR,a0         ; A0 = Pointer to vector base
+            move.l  custom.cpuVBR,a0         ; A0 = Pointer to vector base
             move.l  IRQ1(a0),-(sp)        ; Store IRQ1 vector
             move.l  IRQ3(a0),-(sp)        ; Store IRQ3 vector
             move.l  IRQ4(a0),-(sp)        ; Store IRQ4 vector
             bra.s   _skip
 
 _S_GetVBR:    dc.l    $4E7A0801            ; MOVEC VBR,d0  - privileged instruction
-            rte                            ; Return from supervisor mode
+            rte
 
 _skip:
 
-            SECTION .bss,bss
-S_VBR:        ds.l    1
-S_PAL:      ds.w    1
-
-            SECTION .text,code
         }}
     }
+
+    pointer @shared cpuVBR     ; after calling grab_system: contains CPU VBR register
+    bool @shared isPAL         ; after calling grab_system: is true when system is PAL, or false if NTSC    TODO doesn't work yet
+
 
     asmsub waitvsync() {
         %asm {{
@@ -109,7 +109,7 @@ S_PAL:      ds.w    1
             move.w  #$01FF,custom.DMACON    ; Disable all DMA
             move.w  #$3FFF,custom.INTENA   ; Disable all interrupts
 
-            move.l  S_VBR,a0            ; A0 = Pointer to vector base
+            move.l  custom.cpuVBR,a0            ; A0 = Pointer to vector base
             move.l  (sp)+,IRQ4(a0)      ; Restore IRQ4 vector
             move.l  (sp)+,IRQ3(a0)      ; Restore IRQ3 vector
             move.l  (sp)+,IRQ1(a0)      ; Restore IRQ1 vector

@@ -1,11 +1,10 @@
 
 Prog8 compiler v14.0-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit d870c39a in branch new-codegens
+Prerelease version from git commit df659d28 in branch new-codegens
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-amiga500.p8
 Compiler target: amiga500
-[93mWARN  [0mfile:///home/irmen/Projects/prog8/docs/import-all-amiga500.p8:1:54: floating-point code requires a 68020 or better CPU with an 68881/68882 FPU; assembler options set to -m68020 -m68881. This program will NOT run on an Amiga 500/600 or 1200 without fp coprocessor!
 
 
 BUILTIN FUNCTIONS
@@ -265,6 +264,7 @@ blitter  {
     line_draw  (uword x1 @D0, uword y1 @D1, uword x2 @D2, uword y2 @D3, uword screen_mod @D4, long screen_ptr @A1) clobbers (D0,D1,D2,D3,D5,D6,A0,A1)
     line_init  (uword mask @D0, uword pixel @D1, uword pattern @D2, uword screen_mod @D4) clobbers (D0,D1,D2,D4,A0,A1)
     masked_blit  (long src @A0, long mask @A1, long dst @A2, uword width_words @D0, uword height @D1, uword src_mod @D2, uword mask_mod @D3, uword dst_mod @D4) clobbers (D0,D1,D2,D3,D4,A0,A1,A2)
+    set_blitpri  (bool hasprio @D0) clobbers (D0)
     wait  ()
 }
 
@@ -775,6 +775,10 @@ custom  {
     &uword  VSSTOP
     &uword  VSSTRT
     &uword  VTOTAL
+    long @shared  cpuVBR
+    bool @shared  isPAL
+    filter_off  ()
+    filter_on  ()
     grab_system  ()
     left_button  () -> bool
     middle_button  () -> bool
@@ -4250,7 +4254,6 @@ LIBRARY MODULE NAME: syslib
 ---------------------------
 
 sys  {
-    ^^ubyte @shared  arguments
     long @shared  DOSBase
     long @shared  GfxBase
     long @shared  IFFParseBase
@@ -4277,6 +4280,7 @@ sys  {
     const ubyte  SIZEOF_WORD
     long @shared  TimerBase
     long @shared  UtilityBase
+    ^^ubyte @shared  arguments
     const ubyte  target
     clear_carry  ()
     cpuAtLeast68020  () clobbers (D0,A6) -> bool @Pz
