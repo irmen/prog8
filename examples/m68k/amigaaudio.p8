@@ -3,18 +3,11 @@
 %import textio
 
 
-; TODO fix bug?  there is no sound playback, only silence...
-
-
 main {
     const uword SAMPLE_RATE = 8000  ; Hz
     const uword SAMPLE_COUNT = 8000 ; 1 second buffer at 8000 Hz
 
-    ; Channel allocation preference: try Ch 0, Ch 1, Ch 2, Ch 3 in order
-    ubyte[4] channel_matrix = [1, 2, 4, 8]
-
     sub start() {
-        txt.cls()
         txt.print("Audio test\n")
 
         ; 1. Allocate 8000 bytes in CHIP RAM
@@ -24,11 +17,11 @@ main {
             return
         }
 
-        ; 2. Generate a 8000-byte square wave directly in CHIP RAM
-        ; (100 Hz tone: 40 bytes high, 40 bytes low repeating)
+        ; 2. Generate a 1,000 Hz square wave directly in CHIP RAM
+        ; (8 samples per cycle at 8000 Hz sample rate)
         uword i = 0
         repeat {
-            if (i % 80) < 40 {
+            if (i % 8) < 4 {
                 samplebuf[i] = $40  ; +64
             } else {
                 samplebuf[i] = $C0  ; -64
@@ -37,31 +30,27 @@ main {
             if i >= SAMPLE_COUNT break
         }
 
-        ; Period = 3546895 / 8000 = 443
-        uword period = 3546895 / SAMPLE_RATE
-
         ; 3. Open device passing array directly (no &&)
         txt.print("Opening audio device...\n")
-        if audio.opendevice(channel_matrix, 4, 0) {
-            txt.print("Device opened!\n")
+
+        ; Bitmask 15 (1|2|4|8) forces allocation of ALL 4 CHANNELS
+        ubyte[1] channel_matrix = [15]
+        if audio.opendevice(channel_matrix, 1, 0) {
 
             ; 3. Configure playback (explicit type casts for 68k alignment)
             audio.AudioIO.Command = exec.CMD_WRITE
             audio.AudioIO.Flags = audio.ADIOF_PERVOL          ; ubyte $10
             audio.AudioIO.Data = samplebuf
             audio.AudioIO.IOAudio_Length = SAMPLE_COUNT as long ; Force 32-bit store
-            audio.AudioIO.Period = period                      ; uword 443
+            audio.AudioIO.Period = audio.period(SAMPLE_RATE)
             audio.AudioIO.Volume = 64                          ; Max volume
             audio.AudioIO.Cycles = 3                           ; Play 3 seconds
 
-            txt.print("Playing tone for 3 seconds...\n")
+            txt.print("Playing tone...\n")
 
-            exec.SendIO(audio.AudioIO)
+            ; not exec.DoIO/SendIO: those clear io_Flags, wiping ADIOF_PERVOL
+            audio.BeginIO(audio.AudioIO)
             void exec.WaitIO(audio.AudioIO)
-
-            txt.print("Error code: ")
-            txt.print_b(audio.AudioIO.Error)
-            txt.print("\n")
 
             audio.closedevice()
         } else {

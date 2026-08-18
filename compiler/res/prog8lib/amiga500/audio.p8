@@ -1,4 +1,5 @@
 %import exec
+%import syslib
 
 audio {
     %option no_symbol_prefixing, ignore_unused
@@ -65,11 +66,11 @@ audio {
         uword Msg_Length  ; 66
     }
 
-    sub opendevice(pointer channelPrefs, uword numChannels, byte precedence) -> bool {
+    sub opendevice(pointer channelPrefs, ubyte prefsLen, byte precedence) -> bool {
         ; Allocate and initialize MsgPort manually (Kickstart 1.3 compatible)
         ^^exec.MsgPort audioPort = exec.AllocMem(sizeof(exec.MsgPort), exec.MEMF_PUBLIC | exec.MEMF_CLEAR)
         if audioPort == 0 return false
-        
+
         AudioIO = exec.AllocMem(sizeof(audio.IOAudio), exec.MEMF_PUBLIC | exec.MEMF_CLEAR)
         if AudioIO == 0 {
             exec.FreeMem(audioPort, sizeof(exec.MsgPort))
@@ -79,20 +80,21 @@ audio {
         audioPort.Type = exec.NT_MSGPORT
         audioPort.Flags = exec.PA_SIGNAL
         audioPort.SigBit = exec.AllocSignal(-1) as ubyte
+        if audioPort.SigBit==255
+            return false
         audioPort.SigTask = exec.FindTask(0)
         ^^exec.List listPtr = &&audioPort.Head as ^^exec.List
         exec.NewList(listPtr)
         AudioIO.ReplyPort = audioPort
 
-        ; Set channel allocation preferences before opening (explicit long cast)
+        ; Set channel allocation preferences before opening
         AudioIO.Pri = precedence
         AudioIO.AllocKey = 0
         AudioIO.Data = channelPrefs
-        AudioIO.IOAudio_Length = numChannels as long
+        AudioIO.IOAudio_Length = prefsLen
 
-        if exec.OpenDevice("audio.device", 0, AudioIO, 0)==0 {
+        if exec.OpenDevice("audio.device", 0, AudioIO, 0)==0
             return true
-        }
 
         exec.FreeSignal(audioPort.SigBit as byte)
         exec.FreeMem(AudioIO, sizeof(audio.IOAudio))
@@ -111,5 +113,34 @@ audio {
             exec.FreeMem(audioPort, sizeof(exec.MsgPort))
             AudioIO = 0
         }
+    }
+
+    sub period(uword samplerate) -> uword {
+        ; calculate the Period to use for the desired sample rate
+        return audio.clock() / samplerate as uword
+    }
+
+    asmsub clock() clobbers (A6) -> long @D0 {
+        ; return the Audio/Color clock, used for Period calculations to get the correct frequency
+        %asm {{
+            move.l  sys.GfxBase, a6
+            btst.b  #0, $dc(a6)
+            bne.s   .ntsc
+            move.l  #3546895, d0        ; PAL
+            rts
+.ntsc:
+            move.l  #3579545, d0        ; NTSC
+            rts
+        }}
+    }
+
+    asmsub BeginIO(^^IOAudio io @A1) clobbers (D0, D1, A0, A1, A6) {
+        ; Calls the device's BeginIO vector directly, instead of exec DoIO/SendIO,
+        ; because those clear io_Flags which would wipe ADIOF_PERVOL and friends.
+        %asm {{
+            move.l  20(a1), a6          ; a6 = io_Device (offset 20 in IORequest)
+            jsr     -30(a6)             ; device BeginIO vector
+            rts
+        }}
     }
 }

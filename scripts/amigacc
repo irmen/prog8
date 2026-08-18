@@ -1,0 +1,28 @@
+#!/bin/bash
+# Amiga C cross-compiler wrapper using vc (vbcc's gcc-like frontend)
+# Usage: ./amigacc source.c [output]
+
+set -e
+
+VBCC=~/Projects/parked/vbcc
+NDK=/mnt/nfs/biggie/Storage/Retro/Amiga/AmigaNDK_headers/Include_H
+export VBCC
+export PATH=$VBCC/bin:$PATH
+
+SRC=$1
+if [ -z "$SRC" ]; then
+    echo "Usage: $0 source.c [output]"
+    exit 1
+fi
+
+BASE=${SRC%.c}
+OUT=${2:-$BASE}
+
+echo "Compiling $SRC -> $OUT"
+
+$VBCC/bin/vc +aos68k \
+    -O2 \
+    -I$NDK \
+    "$SRC" -lamiga -o "$OUT"
+
+echo "Done: $OUT"
