@@ -104,6 +104,13 @@ sys {
         }}
     }
 
+    inline asmsub memcopy(long source @A0, long tgt @A1, long count @D0) {
+        %asm {{
+            move.l  4.w,a6
+            jsr  exec.CopyMem(a6)
+        }}
+    }
+
     asmsub exec_version() -> uword @D0 {
         ; Returns the exec library version.
         ; This corresponds to the Kickstart/ROM version:

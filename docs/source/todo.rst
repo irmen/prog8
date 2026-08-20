@@ -1,7 +1,6 @@
 TODO
 ====
 
-- amiga500: forward sys.memcopy to exec.CopyMem
 - "expression does not return a value" error: exec.FreeSignal((IOAudio3.ReplyPort as ^^exec.MsgPort).SigBit as byte)
 - finish the Amiga high level audio interface, see examples/test.p8 for now
 - need a bunch of type casting/conversion checks that test the handling of the 4-byte/long pointer datatype on the qemu68k target.

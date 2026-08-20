@@ -398,6 +398,62 @@ sys {
         }}
     }
 
+    asmsub memcopy(long source @A0, long tgt @A1, long count @D0) {
+        ; Copy bytes from source to target. Allows long count.
+        ; Bulk of the work uses long-aligned longword copies;
+        ; pre-alignment and remainder bytes use individual byte copies.
+        %asm {{
+            move.l   d0,d2
+            beq      .done
+
+            ; check if both addresses share the same alignment offset
+            move.l   a0,d0
+            move.l   a1,d3
+            eor.l    d3,d0
+            andi.l   #3,d0
+            bne      .bytes
+
+            ; same alignment: pre-align both to a long boundary
+            move.l   a0,d3
+            and.w    #3,d3             ; d3 = offset (0-3)
+            beq      .bulk
+.loop_pre:
+            move.b   (a0)+,(a1)+
+            subq.l   #1,d2             ; track remaining count
+            beq      .done
+            move.l   a0,d3
+            andi.l   #3,d3
+            bne      .loop_pre
+
+.bulk:
+            move.l   d2,d3
+            lsr.l    #2,d3             ; d3 = longword count
+            beq      .rem
+.loop_l:
+            move.l   (a0)+,(a1)+
+            subq.l   #1,d3
+            bne      .loop_l
+
+.rem:
+            andi.l   #3,d2
+            beq      .done
+.loop_rem:
+            move.b   (a0)+,(a1)+
+            subq.l   #1,d2
+            bne      .loop_rem
+.done:
+            rts
+
+.bytes:
+            subq.l   #1,d2
+.loop_b:
+            move.b   (a0)+,(a1)+
+            subq.l   #1,d2
+            bne      .loop_b
+            rts
+        }}
+    }
+
     inline asmsub progstart() -> long @A0 {
         %asm {{
             lea  prog8_program_start,a0

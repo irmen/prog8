@@ -3,68 +3,7 @@ sys {
 
 ; ------- memory routines --------
 
-    asmsub memcopy(long source @D0, long tgt @D1, uword count @D2) {
-        ; Copy bytes from source to target.
-        ; Bulk of the work uses long-aligned longword copies;
-        ; pre-alignment and remainder bytes use individual byte copies.
-        %asm {{
-            movea.l  d0,a0
-            movea.l  d1,a1
-            move.w   d2,d2
-            beq      .done
-
-            ; check if both addresses share the same alignment offset
-            move.l   a0,d0
-            move.l   a1,d3
-            eor.l    d3,d0
-            btst     #1,d0
-            bne      .bytes
-
-            ; same alignment: pre-align both to a long boundary
-            move.l   a0,d3
-            and.w    #3,d3             ; d3 = offset (0-3)
-            beq      .bulk
-            move.w   d3,d0             ; d0 = bytes to align
-            cmp.w    d2,d0
-            bls      .pre
-            move.w   d2,d0             ; cap at count left
-
-.pre:
-            subq.w   #1,d0
-.loop_pre:
-            move.b   (a0)+,(a1)+
-            subq.w   #1,d2             ; track remaining count
-            dbra     d0,.loop_pre
-            beq      .done
-
-.bulk:
-            move.w   d2,d3
-            move.w   d3,d0
-            and.w    #3,d0             ; d0 = remainder 0-3 bytes after longwords
-            lsr.w    #2,d3             ; d3 = longword pairs
-            beq      .rem
-            subq.w   #1,d3
-.loop_l:
-            move.l   (a0)+,(a1)+
-            dbra     d3,.loop_l
-
-.rem:
-            subq.w   #1,d0
-            bmi      .done
-.loop_rem:
-            move.b   (a0)+,(a1)+
-            dbra     d0,.loop_rem
-.done:
-            rts
-
-.bytes:
-            subq.w   #1,d2
-.loop_b:
-            move.b   (a0)+,(a1)+
-            dbra     d2,.loop_b
-            rts
-        }}
-    }
+    ; note: memcopy() is implemented differently for Amiga so it's not here in shared.
 
     asmsub memset(long mem @D0, uword numbytes @D1, ubyte value @D2) {
         %asm {{
