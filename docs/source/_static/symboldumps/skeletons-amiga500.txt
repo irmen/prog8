@@ -1,6 +1,6 @@
 
 Prog8 compiler v14.0-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit df659d28 in branch new-codegens
+Prerelease version from git commit e5e25069 in branch new-codegens
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-amiga500.p8
@@ -246,6 +246,49 @@ arexx  {
     UnlockRexxBase  (long resource @D0)@bank 29 = -$01c8
     closelib  ()
     openlib  () -> bool
+}
+
+
+LIBRARY MODULE NAME: audio
+--------------------------
+
+audio  {
+    struct IOAudio
+    const byte  ADALLOC_MAXPREC
+    const byte  ADALLOC_MINPREC
+    const uword  ADCMD_ALLOCATE
+    const uword  ADCMD_FINISH
+    const uword  ADCMD_FREE
+    const uword  ADCMD_LOCK
+    const uword  ADCMD_PERVOL
+    const uword  ADCMD_SETPREC
+    const uword  ADCMD_WAITCYCLE
+    const uword  ADHARD_CHANNELS
+    const ubyte  ADIOB_NOWAIT
+    const ubyte  ADIOB_PERVOL
+    const ubyte  ADIOB_SYNCCYCLE
+    const ubyte  ADIOB_WRITEMESSAGE
+    const byte  ADIOERR_ALLOCFAILED
+    const byte  ADIOERR_CHANNELSTOLEN
+    const byte  ADIOERR_NOALLOCATION
+    const ubyte  ADIOF_NOWAIT
+    const ubyte  ADIOF_PERVOL
+    const ubyte  ADIOF_SYNCCYCLE
+    const ubyte  ADIOF_WRITEMESSAGE
+    ^^audio.IOAudio  AudioIO0
+    ^^audio.IOAudio  AudioIO1
+    ^^audio.IOAudio  AudioIO2
+    ^^audio.IOAudio  AudioIO3
+    clock  () clobbers (A6) -> long @D0
+    closedevice  ()
+    closedown  ()
+    get_io  (ubyte channel) -> ^^audio.IOAudio
+    init  () -> bool
+    opendevice  (long channelPrefs, ubyte prefsLen, byte precedence) -> bool
+    period  (uword samplerate) -> uword
+    play_sample  (ubyte channel, ^^byte samples, long num_samples, uword sample_rate, ubyte volume, uword cycles)
+    wait_all  ()
+    wait_channel  (ubyte channel)
 }
 
 

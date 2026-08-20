@@ -1,6 +1,9 @@
 TODO
 ====
 
+- amiga hl audio: waitall() hangs when not all channels are used?
+- amiga500: forward sys.memcopy to exec.CopyMem
+- "expression does not return a value" error: exec.FreeSignal((IOAudio3.ReplyPort as ^^exec.MsgPort).SigBit as byte)
 - finish the Amiga high level audio interface, see examples/test.p8 for now
 - need a bunch of type casting/conversion checks that test the handling of the 4-byte/long pointer datatype on the qemu68k target.
 - amiga library structs: use more typed pointers if it knows the struct type from the same (or another amiga library module) , rather than using `pointer`. Consider both the extsubs but also the struct fields in the amigaDOS structs in the generated library modules.

@@ -4,8 +4,6 @@
 audio {
     %option no_symbol_prefixing, ignore_unused
 
-    ^^IOAudio @shared AudioIO
-
     ; audio.device IO commands:
     const uword ADCMD_FREE = 9
     const uword ADCMD_SETPREC = 10
@@ -66,52 +64,125 @@ audio {
         uword Msg_Length  ; 66
     }
 
-    sub opendevice(pointer channelPrefs, ubyte prefsLen, byte precedence) -> bool {
-        ; Allocate and initialize MsgPort manually (Kickstart 1.3 compatible)
-        ^^exec.MsgPort audioPort = exec.AllocMem(sizeof(exec.MsgPort), exec.MEMF_PUBLIC | exec.MEMF_CLEAR)
-        if audioPort == 0 return false
+    ; 4 audio channel I/O structures to address each channel individually
+    ^^IOAudio AudioIO0 = []
+    ^^IOAudio AudioIO1 = []
+    ^^IOAudio AudioIO2 = []
+    ^^IOAudio AudioIO3 = []
 
-        AudioIO = exec.AllocMem(sizeof(audio.IOAudio), exec.MEMF_PUBLIC | exec.MEMF_CLEAR)
-        if AudioIO == 0 {
-            exec.FreeMem(audioPort, sizeof(exec.MsgPort))
+    private ^^exec.MsgPort msgport0 = []
+    private ^^exec.MsgPort msgport1 = []
+    private ^^exec.MsgPort msgport2 = []
+    private ^^exec.MsgPort msgport3 = []
+
+    ; ---- high level audio interface ----
+
+    sub init() -> bool {
+        ; -- Initialize the audio device on all 4 channels.
+        ubyte[1] channel_matrix = [15]      ; allocate all 4 channels at once
+        return opendevice(channel_matrix, 1, 0)
+    }
+
+    sub closedown() {
+        ; -- Close down the audio device on all 4 channels. Does not wait for sounds to finish playing.
+        closedevice()
+    }
+
+    sub play(ubyte channel, ^^byte samples, long num_samples, uword sample_rate, ubyte volume, uword cycles) {
+        ; -- Play a sample asynchronously on the given channel (0-3), with the given parameters.
+        ^^IOAudio io = get_io(channel)
+        io.Command = exec.CMD_WRITE
+        io.Flags = ADIOF_PERVOL
+        io.Data = samples
+        io.IOAudio_Length = num_samples
+        io.Period = period(sample_rate)
+        io.Volume = volume
+        io.Cycles = cycles
+        BeginIO(io)  ; not exec.DoIO/SendIO: those clear io_Flags, wiping ADIOF_PERVOL!
+        ; sound now plays asynchronously.
+    }
+
+    sub wait_channel(ubyte channel) {
+        ; wait for the current sound on this channel to finish playing.
+        void exec.WaitIO(get_io(channel))
+    }
+
+    sub wait_all() {
+        ; wait for all channels to finish playing their sounds.
+        wait_channel(0)
+        wait_channel(1)
+        wait_channel(2)
+        wait_channel(3)
+    }
+
+
+    ; ---- low level audio interface ----
+
+    sub opendevice(pointer channelPrefs, ubyte prefsLen, byte precedence) -> bool {
+        ; Set channel allocation preferences before opening
+        AudioIO0.Pri = precedence
+        AudioIO0.AllocKey = 0
+        AudioIO0.Data = channelPrefs
+        AudioIO0.IOAudio_Length = prefsLen
+
+        if exec.OpenDevice("audio.device", 0, AudioIO0, 0)!=0 {
+            AudioIO0.Type = 0
             return false
         }
 
-        audioPort.Type = exec.NT_MSGPORT
-        audioPort.Flags = exec.PA_SIGNAL
-        audioPort.SigBit = exec.AllocSignal(-1) as ubyte
-        if audioPort.SigBit==255
-            return false
-        audioPort.SigTask = exec.FindTask(0)
-        ^^exec.List listPtr = &&audioPort.Head as ^^exec.List
-        exec.NewList(listPtr)
-        AudioIO.ReplyPort = audioPort
+        ; Clone the other 3 IOAudio instances via CopyMem
+        ; This preserves AllocKey and channel binding from OpenDevice
+        AudioIO1^^ = AudioIO0^^
+        AudioIO2^^ = AudioIO0^^
+        AudioIO3^^ = AudioIO0^^
+        AudioIO0.Unit = 1  ; channel 1
+        AudioIO1.Unit = 2  ; channel 2
+        AudioIO2.Unit = 4  ; channel 3
+        AudioIO3.Unit = 8  ; channel 4
 
-        ; Set channel allocation preferences before opening
-        AudioIO.Pri = precedence
-        AudioIO.AllocKey = 0
-        AudioIO.Data = channelPrefs
-        AudioIO.IOAudio_Length = prefsLen
+        ; Allocate separate MsgPorts for each cloned IOAudio
+        AudioIO0.ReplyPort = init_msgport(msgport0)
+        AudioIO1.ReplyPort = init_msgport(msgport1)
+        AudioIO2.ReplyPort = init_msgport(msgport2)
+        AudioIO3.ReplyPort = init_msgport(msgport3)
 
-        if exec.OpenDevice("audio.device", 0, AudioIO, 0)==0
-            return true
+        return true
 
-        exec.FreeSignal(audioPort.SigBit as byte)
-        exec.FreeMem(AudioIO, sizeof(audio.IOAudio))
-        exec.FreeMem(audioPort, sizeof(exec.MsgPort))
-        AudioIO = 0
-        return false
+        private sub init_msgport(^^exec.MsgPort port) -> ^^exec.MsgPort {
+            port.Type = exec.NT_MSGPORT
+            port.Flags = exec.PA_SIGNAL
+            port.SigBit = exec.AllocSignal(-1) as ubyte
+            port.SigTask = exec.FindTask(0)
+            exec.NewList(&port.Head)
+            return port
+        }
     }
 
     sub closedevice() {
-        if AudioIO != 0 {
-            ^^exec.MsgPort audioPort = AudioIO.ReplyPort
-            byte sigbit = audioPort.SigBit as byte
-            exec.CloseDevice(AudioIO)
-            exec.FreeSignal(sigbit)
-            exec.FreeMem(AudioIO, sizeof(audio.IOAudio))
-            exec.FreeMem(audioPort, sizeof(exec.MsgPort))
-            AudioIO = 0
+        if AudioIO0.Type == 0
+            return
+
+        exec.CloseDevice(AudioIO0)
+        ^^exec.MsgPort port = AudioIO0.ReplyPort
+        exec.FreeSignal(port.SigBit as byte)
+        port = AudioIO1.ReplyPort
+        exec.FreeSignal(port.SigBit as byte)
+        port = AudioIO2.ReplyPort
+        exec.FreeSignal(port.SigBit as byte)
+        port = AudioIO3.ReplyPort
+        exec.FreeSignal(port.SigBit as byte)
+        AudioIO0.Type = 0
+        AudioIO1.Type = 0
+        AudioIO2.Type = 0
+        AudioIO3.Type = 0
+    }
+
+    sub get_io(ubyte channel) -> ^^IOAudio {
+        when channel {
+            0 -> return AudioIO0
+            1 -> return AudioIO1
+            2 -> return AudioIO2
+            else -> return AudioIO3
         }
     }
 
@@ -134,7 +205,7 @@ audio {
         }}
     }
 
-    asmsub BeginIO(^^IOAudio io @A1) clobbers (D0, D1, A0, A1, A6) {
+    private asmsub BeginIO(^^IOAudio io @A1) clobbers (D0, D1, A0, A1, A6) {
         ; Calls the device's BeginIO vector directly, instead of exec DoIO/SendIO,
         ; because those clear io_Flags which would wipe ADIOF_PERVOL and friends.
         %asm {{

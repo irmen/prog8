@@ -5,7 +5,7 @@
 ; Prog8 adaptation of the Text-Elite galaxy system trading simulation engine.
 ; Original C-version obtained from: http://www.elitehomepage.org/text/index.htm
 ; This is the version for the m68k target (lacks disk I/O at this time)
-; Works on Amiga with kickstart 2.0+ (600, 1200 etc)   or qemu68k
+; Works on Amiga with kickstart 2.0+ (600, 1200 etc), and qemu68k
 
 main {
 
