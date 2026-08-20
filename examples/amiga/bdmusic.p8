@@ -54,9 +54,8 @@ main {
                 audio.play(1, sample.data, len(sample.data), right_rate, 64, right_cycles)
 
                 txt.chrout('.')
-
-                audio.wait_channel(0)
-                audio.wait_channel(1)
+                txt.flush()
+                audio.wait_all()
             }
 
             txt.print("\ndone\n")

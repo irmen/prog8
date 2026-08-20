@@ -1,7 +1,6 @@
 TODO
 ====
 
-- amiga hl audio: waitall() hangs when not all channels are used?
 - amiga500: forward sys.memcopy to exec.CopyMem
 - "expression does not return a value" error: exec.FreeSignal((IOAudio3.ReplyPort as ^^exec.MsgPort).SigBit as byte)
 - finish the Amiga high level audio interface, see examples/test.p8 for now

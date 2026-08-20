@@ -74,18 +74,23 @@ audio {
     private ^^exec.MsgPort msgport1 = []
     private ^^exec.MsgPort msgport2 = []
     private ^^exec.MsgPort msgport3 = []
+    private bool[4] active_channels
 
     ; ---- high level audio interface ----
 
     sub init() -> bool {
         ; -- Initialize the audio device on all 4 channels.
         ubyte[1] channel_matrix = [15]      ; allocate all 4 channels at once
+        for ubyte channel in 0 to 3
+            active_channels[channel] = false
         return opendevice(channel_matrix, 1, 0)
     }
 
     sub closedown() {
         ; -- Close down the audio device on all 4 channels. Does not wait for sounds to finish playing.
         closedevice()
+        for ubyte channel in 0 to 3
+            active_channels[channel] = false
     }
 
     sub play(ubyte channel, ^^byte samples, long num_samples, uword sample_rate, ubyte volume, uword cycles) {
@@ -99,12 +104,16 @@ audio {
         io.Volume = volume
         io.Cycles = cycles
         BeginIO(io)  ; not exec.DoIO/SendIO: those clear io_Flags, wiping ADIOF_PERVOL!
+        active_channels[channel] = true
         ; sound now plays asynchronously.
     }
 
     sub wait_channel(ubyte channel) {
         ; wait for the current sound on this channel to finish playing.
-        void exec.WaitIO(get_io(channel))
+        if active_channels[channel] {
+            void exec.WaitIO(get_io(channel))
+            active_channels[channel] = false
+        }
     }
 
     sub wait_all() {
