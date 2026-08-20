@@ -5940,6 +5940,7 @@ $endLabel""")
                             eor  #255
                             sta  ${target.asmVarname}+3""")
                     }
+                    TargetStorageKind.POINTER -> pointergen.inplaceLongInvert(PtrTarget(target))
                     else -> TODO("LONG INVERT ${target.kind}  ${target.position}")
                 }
             }

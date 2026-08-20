@@ -9,28 +9,31 @@ Future Things and Ideas
 - symboldump: some sort of javadocs generated from the p8 source files (instead of just the function signatures). Use markdown for formatting, not html.
 - when implementing unsigned longs: remove the (multiple?) "TODO "hack" to allow unsigned long constants to be used as values for signed longs, without needing a cast
 - struct/ptr: implement the remaining TODOs in PointerAssignmentsGen.
-- struct/ptr: support pointer to pointer?
 - struct/ptr: typed function pointers (simplified): ``&&subroutine`` returns opaque typed pointer (no ``funcptr`` keyword), assignment allowed where target type is inferred, calling via ``ptr(args)``. No explicit signature syntax. Useful mostly for 68000 targets.
 - struct/ptr: really fixing the pointer dereferencing issues (cursed hybrid between IdentifierReference, PtrDereferece and PtrIndexedDereference) may require getting rid of scoped identifiers altogether and treat '.' as a "scope or pointer following operator"
-- struct/ptr: (later, nasty parser problem:) support chaining pointer dereference on function calls that return a pointer.  (type checking now fails on stuff like func().field and func().next.field)
+- struct/ptr: (later, nasty parser problem:) support chaining pointer dereference on function calls that return a pointer as assignment target (LHS). RHS value case ``a = func().field`` / ``a = func().next.field`` now works for both VM and 6502 via generic ``peek`` desugar (``AstExpressions.kt:280``, ``CodeDesugarer.kt:654``); still fails for ``func().field = a`` / ``func().next.field = a`` which requires ``Prog8ANTLR.g4:239`` ``assign_target`` grammar change to allow ``functioncall '.' field`` chain (see ``compiler/test/TestPointers.kt`` xtest).
 - Make all constants long by default? or not? (remove type name altogether), reduce to target type implicitly if the actual value fits.  -> long-consts branch
   This will break some existing programs that depend on value wraparound, but gives more intuitive constant number handling.
   Can give descriptive error message for old syntax that still includes the type name?
 - add documentation for more library modules instead of just linking to the source code
-- sizeof(pointer) is now always 2 (an uword), make this a variable in the ICompilationTarget so that it could be 4 at the time we might ad a 32-bits 68000 target for example. Much code assumes word size addresses though.
+- sizeof(pointer) is now always 2 (an uword), make this a variable in the ICompilationTarget so that it could be 4 at the time we might ad a 32-bits 68000 target for example. Much code assumes word size addresses though. (already done on new-codegens branch)
 - add float support to the configurable compiler targets. Restrictions: just have "cbm-style floats" as an option (to that it can slot into the current float codegen), where all you have to specify is the addresses of AYINT and GIVAYF and FADDT and all their friends.
 - Change scoping rules for qualified symbols so that they don't always start from the root but behave like other programming languages (look in local scope first), maybe only when qualified symbol starts with '.' such as: .local.value = 33
 - implement the signed remainder byte and word routines on 6502 (virtual target already has them working)
 - implement the signed divmod byte and word routines on 6502 (virtual target already has them working)
 - make a form of "manual generics" possible like: varsub routine(T arg)->T  where T is expanded to a specific type
   (this is already done hardcoded for several of the builtin functions)
-- migrate CLI argument parsing from the obsolete kotlinx-cli library to Clikt (com.github.ajalt:clikt)
+- migrate CLI argument parsing from the obsolete kotlinx-cli library to Clikt (com.github.ajalt:clikt) (already done on new-codegens branch)
 - add new directives ``%bssaddress`` and ``%slabsaddress`` to set the memory address for the BSS area and memory slabs (analogous to ``%address`` for program load address).
   Note: these should be mutually exclusive with the existing CLI options (``-varsgolden``, ``-varshigh``, ``-slabsgolden``, ``-slabshigh``)
   because the CLI options are target-aware shorthands (set bank symbols, do bounds checking against predefined ranges)
   while the directives are raw addresses — they'd conflict if both specified for the same area.
 - the c64 sprite multiplexer example may need timing adjustments after compiler changes (not a compiler bug — cycle-exact C64 code is inherently fragile)
 - once 'new-codegen' branch is merged, re-enable bunch of xtest() in TestConst.kt
+- add an ``atexit`` mechanism: like ``defer`` but runs only at program exit, regardless of which exit path is taken (fall-through, ``sys.exit``, poweroff). 
+  Mainly useful for library-owned cleanup (heap pools, opened devices/libraries/windows on the amiga500 target) without requiring the main program to call cleanup explicitly;
+  ``defer`` cannot do this because it is bound to subroutine scope. Prototype as a stdlib module first (fixed-capacity registry of subroutine addresses + explicit ``run_all()``, LIFO order), 
+  consider promoting to a language feature that invokes the handlers automatically in each target's program epilogue.
 
 
 Romable (%option romable)

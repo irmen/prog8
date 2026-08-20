@@ -2920,4 +2920,61 @@ main {
         compileText(C64Target(), false, src, outputDir) shouldNotBe null
         compileText(Cx16Target(), false, src, outputDir) shouldNotBe null
     }
+
+    xtest("function call returning pointer - field access chaining as assignment target [nasty parser problem]") {
+        val src="""
+main {
+    struct Thing {
+        uword port
+        ^^Thing next
+        bool flag
+    }
+
+    sub getThing() -> ^^Thing {
+        return 0
+    }
+
+    sub start() {
+        getThing().flag = true
+        getThing().next.flag = true
+        getThing().next.next.flag = false
+        getThing().port = 1234
+        getThing().next.port = 5678
+    }
+}"""
+        // currently fails at parse stage, should eventually compile for both VM and 6502 without needing assembly generation
+        compileText(VMTarget(), false, src, outputDir, writeAssembly = false) shouldNotBe null
+        compileText(Cx16Target(), false, src, outputDir, writeAssembly = false) shouldNotBe null
+    }
+
+    test("function call returning pointer - field access chaining as value (RHS) works") {
+        val src="""
+main {
+    struct Thing {
+        uword port
+        ^^Thing next
+        bool flag
+    }
+
+    sub getThing() -> ^^Thing {
+        return 0
+    }
+
+    sub start() {
+        bool a = getThing().flag
+        bool b = getThing().next.flag
+        bool c = getThing().next.next.flag
+        uword d = getThing().port
+        uword e = getThing().next.port
+        bool f = getThing().flag and getThing().next.flag
+        uword g = getThing().port + getThing().next.port
+        if getThing().flag {
+            a = true
+        }
+    }
+}"""
+        // RHS value case already works for both VM and 6502 without needing assembly generation
+        compileText(VMTarget(), false, src, outputDir, writeAssembly = false) shouldNotBe null
+        compileText(Cx16Target(), false, src, outputDir, writeAssembly = false) shouldNotBe null
+    }
 })

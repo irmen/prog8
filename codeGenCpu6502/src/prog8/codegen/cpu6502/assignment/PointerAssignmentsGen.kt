@@ -113,27 +113,118 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
     }
 
     internal fun inplaceByteInvert(target: PtrTarget) {
-        TODO("inplace byte invert pointer deref ${target.position}")
+        val (zpPtrVar, offset) = deref(target.pointer)
+        val eorVal = if(target.dt.isBool) 1 else 255
+        if(offset==0.toUByte() && asmgen.isTargetCpu(CpuType.CPU65C02)) {
+            asmgen.out("  lda  ($zpPtrVar) |  eor  #$eorVal |  sta  ($zpPtrVar)")
+        } else {
+            asmgen.out("""
+                ldy  #$offset
+                lda  ($zpPtrVar),y
+                eor  #$eorVal
+                sta  ($zpPtrVar),y""")
+        }
     }
 
     internal fun inplaceWordInvert(target: PtrTarget) {
-        TODO("inplace word invert pointer deref ${target.position}")
+        val (zpPtrVar, offset) = deref(target.pointer)
+        asmgen.out("""
+                ldy  #$offset
+                lda  ($zpPtrVar),y
+                eor  #255
+                sta  ($zpPtrVar),y
+                iny
+                lda  ($zpPtrVar),y
+                eor  #255
+                sta  ($zpPtrVar),y""")
+    }
+
+    internal fun inplaceLongInvert(target: PtrTarget) {
+        val (zpPtrVar, offset) = deref(target.pointer)
+        asmgen.out("""
+                ldy  #$offset
+                lda  ($zpPtrVar),y
+                eor  #255
+                sta  ($zpPtrVar),y
+                iny
+                lda  ($zpPtrVar),y
+                eor  #255
+                sta  ($zpPtrVar),y
+                iny
+                lda  ($zpPtrVar),y
+                eor  #255
+                sta  ($zpPtrVar),y
+                iny
+                lda  ($zpPtrVar),y
+                eor  #255
+                sta  ($zpPtrVar),y""")
     }
 
     internal fun inplaceByteNegate(target: PtrTarget, scope: IPtSubroutine?) {
-        TODO("inplace byte negate to pointer deref ${target.position}")
+        val (zpPtrVar, offset) = deref(target.pointer)
+        if(asmgen.isTargetCpu(CpuType.CPU65C02)) {
+            asmgen.out("""
+                ldy  #$offset
+                lda  ($zpPtrVar),y
+                eor  #255
+                ina
+                sta  ($zpPtrVar),y""")
+        } else {
+            asmgen.out("""
+                ldy  #$offset
+                lda  ($zpPtrVar),y
+                eor  #255
+                clc
+                adc  #1
+                sta  ($zpPtrVar),y""")
+        }
     }
 
     internal fun inplaceWordNegate(target: PtrTarget, scope: IPtSubroutine?) {
-        TODO("inplace word negate pointer deref ${target.position}")
+        val (zpPtrVar, offset) = deref(target.pointer)
+        asmgen.out("""
+                ldy  #$offset
+                sec
+                lda  #0
+                sbc  ($zpPtrVar),y
+                sta  ($zpPtrVar),y
+                iny
+                lda  #0
+                sbc  ($zpPtrVar),y
+                sta  ($zpPtrVar),y""")
     }
 
     internal fun inplaceLongNegate(target: PtrTarget, scope: IPtSubroutine?) {
-        TODO("inplace long negate pointer deref ${target.position}")
+        val (zpPtrVar, offset) = deref(target.pointer)
+        asmgen.out("""
+                ldy  #$offset
+                sec
+                lda  #0
+                sbc  ($zpPtrVar),y
+                sta  ($zpPtrVar),y
+                iny
+                lda  #0
+                sbc  ($zpPtrVar),y
+                sta  ($zpPtrVar),y
+                iny
+                lda  #0
+                sbc  ($zpPtrVar),y
+                sta  ($zpPtrVar),y
+                iny
+                lda  #0
+                sbc  ($zpPtrVar),y
+                sta  ($zpPtrVar),y""")
     }
 
     internal fun inplaceFloatNegate(target: PtrTarget, scope: IPtSubroutine?) {
-        TODO("inplace float negate pointer deref ${target.position}")
+        val (zpPtrVar, offset) = deref(target.pointer)
+        // flip sign bit in second byte of 5-byte float
+        asmgen.out("""
+                ldy  #$offset
+                iny
+                lda  ($zpPtrVar),y
+                eor  #${'$'}80
+                sta  ($zpPtrVar),y""")
     }
 
 
