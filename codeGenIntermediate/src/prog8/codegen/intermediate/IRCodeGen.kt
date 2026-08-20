@@ -766,7 +766,7 @@ class IRCodeGen(
                         result += translateNode(forLoop.statements)
                         result += IRCodeChunk(null, null).also {
                             it += IRInstruction(Opcode.INC, indexRegType, reg1=indexReg)
-                            if(iterableLength!=256)
+                            if(iterableLength!=256 || indexRegType==IRDataType.WORD)
                                 it += IRInstruction(Opcode.CMPI, indexRegType, reg1=indexReg, immediate = iterableLength)
                             it += IRInstruction(Opcode.BSTNE, labelSymbol = loopLabel)
                         }
@@ -785,7 +785,7 @@ class IRCodeGen(
                         result += translateNode(forLoop.statements)
                         result += addConstToReg(indexReg, elementSize, indexRegType)
                         result += IRCodeChunk(null, null).also {
-                            if(lengthBytes!=256)
+                            if(lengthBytes!=256 || indexRegType==IRDataType.WORD || elementSize!=1)
                                 it += IRInstruction(Opcode.CMPI, indexRegType, reg1=indexReg, immediate = lengthBytes)
                             it += IRInstruction(Opcode.BSTNE, labelSymbol = loopLabel)
                         }
