@@ -2823,4 +2823,101 @@ main {
             result shouldNotBe null
         }
     }
+
+    test("parenthesized pointer field access desugars same as unparenthesized") {
+        val src="""
+main {
+    struct Thing {
+        uword port
+        ^^Thing next
+        bool flag
+    }
+
+    sub start() {
+        ^^Thing @shared t
+        bool @shared d1 = t.next.flag
+        bool @shared d2 = (t.next).flag
+        ubyte @shared d3 = t.next.flag as ubyte
+        ubyte @shared d4 = (t.next).flag as ubyte
+        bool @shared d5 = t.next.next.flag
+        bool @shared d6 = (t.next).next.flag
+    }
+}"""
+        val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = false)!!
+        val assigns = result.compilerAst.entrypoint.statements.filterIsInstance<Assignment>()
+            .associateBy { it.target.identifier!!.nameInSource.last() }
+
+        val d1 = assigns.getValue("d1").value as PtrDereference
+        d1.chain shouldBe listOf("t", "next", "flag")
+        (assigns.getValue("d2").value as PtrDereference).chain shouldBe d1.chain
+        ((assigns.getValue("d3").value as TypecastExpression).expression as PtrDereference).chain shouldBe d1.chain
+        ((assigns.getValue("d4").value as TypecastExpression).expression as PtrDereference).chain shouldBe d1.chain
+        val d5 = assigns.getValue("d5").value as PtrDereference
+        d5.chain shouldBe listOf("t", "next", "next", "flag")
+        (assigns.getValue("d6").value as PtrDereference).chain shouldBe d5.chain
+
+        compileText(VMTarget(), true, src, outputDir) shouldNotBe null
+        compileText(C64Target(), false, src, outputDir) shouldNotBe null
+        compileText(Cx16Target(), false, src, outputDir) shouldNotBe null
+    }
+
+    test("field access on casted struct pointer expression") {
+        val src="""
+main {
+    struct Thing {
+        uword port
+        ^^Thing next
+        bool flag
+    }
+
+    sub start() {
+        ^^Thing @shared t
+        bool @shared d1 = (t.port as ^^Thing).flag
+        ubyte @shared d2 = (t.port as ^^Thing).flag as ubyte
+        ^^Thing @shared d3 = (t.port as ^^Thing).next
+        bool @shared d4 = (t.port as ^^Thing).next.flag
+        bool @shared d5 = ((t.port as ^^Thing).next).flag
+    }
+}"""
+        val errors = ErrorReporterForTests()
+        val result = compileText(VMTarget(), false, src, outputDir, errors, writeAssembly = false)
+        withClue(errors.errors.joinToString("\n")) {
+            result shouldNotBe null
+        }
+        val assigns = result!!.compilerAst.entrypoint.statements.filterIsInstance<Assignment>()
+            .associateBy { it.target.identifier!!.nameInSource.last() }
+
+        // (t.port as ^^Thing).field  -->  peekXXX((t.port as ^^Thing as uword) + offsetof(field))
+        val d1 = assigns.getValue("d1").value as FunctionCallExpression
+        d1.target.nameInSource shouldBe listOf("peekbool")
+        val d1addr = d1.args.single() as BinaryExpression
+        d1addr.operator shouldBe "+"
+        (d1addr.right as NumericLiteral).number shouldBe 4.0   // offsetof(Thing.flag)
+
+        val d2 = assigns.getValue("d2").value as TypecastExpression
+        d2.type shouldBe DataType.UBYTE
+        (d2.expression as FunctionCallExpression).target.nameInSource shouldBe listOf("peekbool")
+
+        // pointer-typed field read: peekw + cast back to the pointer type
+        val d3 = assigns.getValue("d3").value as TypecastExpression
+        d3.type.isPointer shouldBe true
+        val d3peek = d3.expression as FunctionCallExpression
+        d3peek.target.nameInSource shouldBe listOf("peekw")
+        ((d3peek.args.single() as BinaryExpression).right as NumericLiteral).number shouldBe 2.0   // offsetof(Thing.next)
+
+        // chained: inner pointer-typed field is read via peekw first, then .flag via peekbool
+        val d4 = assigns.getValue("d4").value as FunctionCallExpression
+        d4.target.nameInSource shouldBe listOf("peekbool")
+        val d4addr = d4.args.single() as BinaryExpression
+        (d4addr.right as NumericLiteral).number shouldBe 4.0
+        val d4inner = (d4addr.left as TypecastExpression).expression as TypecastExpression
+        (d4inner.expression as FunctionCallExpression).target.nameInSource shouldBe listOf("peekw")
+
+        // explicit parenthesized chain desugars the same
+        (assigns.getValue("d5").value as FunctionCallExpression).target.nameInSource shouldBe listOf("peekbool")
+
+        compileText(VMTarget(), true, src, outputDir) shouldNotBe null
+        compileText(C64Target(), false, src, outputDir) shouldNotBe null
+        compileText(Cx16Target(), false, src, outputDir) shouldNotBe null
+    }
 })

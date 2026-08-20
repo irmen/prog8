@@ -276,7 +276,11 @@ class BinaryExpression(
                             // SOMEEXPRESSION . NAME
                             val leftDt = leftExpr.inferType(program)
                             if (leftDt.isPointer) leftDt.getOrUndef().subType else null
-                        } else null
+                        } else {
+                            // generic pointer expression . field  (e.g. (expr as ^^Struct).field, or (ptrNext).field)
+                            val leftDt = left.inferType(program)
+                            if (leftDt.isPointer) leftDt.getOrUndef().subType else null
+                        }
                     if (struct == null)
                         InferredTypes.unknown()
                     else {
