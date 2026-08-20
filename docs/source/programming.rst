@@ -125,7 +125,7 @@ scoped names always need to be fully scoped (because they always start in the gl
 .. index:: pair: Identifiers; Aliases
 
 The ``alias`` statement makes it easier to refer to symbols from other places, and they can save
-you from having to type the fully scoped name everytime you need to access that symbol.
+you from having to type the fully scoped name every time you need to access that symbol.
 Aliases can be created in any scope except at the module level.
 An alias is created with ``alias <name> = <target>`` and then you can use ``<name>`` as if it were ``<target>``.
 It is possible to alias variables, labels and subroutines, and even whole blocks and words
@@ -196,7 +196,7 @@ to access a variable from a nested subroutine::
     }
 
 **:index:`Aliases`** make it easier to refer to symbols from other places. They save
-you from having to type the fully scoped name everytime you need to access that symbol.
+you from having to type the fully scoped name every time you need to access that symbol.
 Aliases can be created in any scope except at the module level.
 You can create and use an alias with the ``alias`` statement like so::
 

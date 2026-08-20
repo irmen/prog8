@@ -1,21 +1,24 @@
-%import textio
-
 main {
-    ubyte @shared counter
-    bool @shared flag
 
-    sub start() {
-        if flag {
-            ubyte a,b = multi()     ; compiler error when inside if block, OK if in subroutine directly
-            txt.print_ub(a)
-            txt.spc()
-            txt.print_ub(b)
-            txt.nl()
-        }
+    struct Thing {
+        uword port
+        ^^Thing next
+        bool flag
     }
 
-    sub multi() -> ubyte, ubyte {
-        counter++
-        return 11,22
+    sub start() {
+        ^^Thing t
+
+        ; this compiles fine:
+        bool derp1 = t.next.flag
+        ubyte derp2 = t.next.flag as ubyte
+
+        ; TODO fix compiler crash:
+        bool derp3 = (t.next).flag
+        ubyte derp4 = (t.next).flag as ubyte
+
+        ; TODO fix invalid error messages:
+        bool derp5 = (t.port as ^^Thing).flag
+        ubyte derp6 = (t.port as ^^Thing).flag as ubyte
     }
 }
