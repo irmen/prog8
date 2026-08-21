@@ -41,7 +41,7 @@ main {
 
     struct MyList {
         ^^MyNode Head
-        ^^MyNode Tail
+        pointer Tail
         ^^MyNode TailPred
     }
 

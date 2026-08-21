@@ -297,23 +297,12 @@ class AstPreprocessor(val program: Program,
             }
         }
 
-        // convert all antlr names to structs
+        // convert all antlr names to structs (following struct aliases)
         val antlrTypeName = decl.datatype.subTypeFromAntlr
         if(antlrTypeName!=null) {
-            val node = decl.definingScope.lookup(antlrTypeName)
-            if(node==null) {
-                errors.err("cannot find struct type ${antlrTypeName.joinToString(".")}", decl.position)
-            } else if(node is StructDecl) {
-                decl.datatype.setActualSubType(node)
-            } else if(antlrTypeName.size==1 && antlrTypeName[0] in program.builtinFunctions.names) {
-                errors.err("builtin function can only be called, not used as a type name", decl.position)
-            } else if(node is Alias) {
-                val actual = decl.definingScope.lookup(node.target.nameInSource)
-                if(actual is StructDecl)
-                    decl.datatype.setActualSubType(actual)
-                else if(actual==null)
-                    errors.err("cannot find struct type ${node.target.nameInSource.joinToString(".")}", decl.position)
-            }
+            val resolved = StructTypeResolver.resolve(decl.definingScope, program, antlrTypeName, decl.position, errors)
+            if(resolved!=null)
+                decl.datatype.setActualSubType(resolved)
         }
 
         // prefer to put pointer variables into zeropage if no other preference is given (to avoid having to copy the pointer var to zp every time)
@@ -372,16 +361,16 @@ class AstPreprocessor(val program: Program,
 
         subroutine.returntypes.forEach {
             if(it.subTypeFromAntlr!=null) {
-                val struct = subroutine.lookup(it.subTypeFromAntlr!!) as? ISubType
-                if(struct!=null)
-                    it.setActualSubType(struct)
+                val resolved = StructTypeResolver.resolve(subroutine, program, it.subTypeFromAntlr!!, subroutine.position, errors)
+                if(resolved!=null)
+                    it.setActualSubType(resolved)
             }
         }
         subroutine.parameters.forEach {
             if(it.type.subTypeFromAntlr!=null) {
-                val struct = subroutine.lookup(it.type.subTypeFromAntlr!!) as? ISubType
-                if(struct!=null)
-                    it.type.setActualSubType(struct)
+                val resolved = StructTypeResolver.resolve(subroutine, program, it.type.subTypeFromAntlr!!, it.position, errors)
+                if(resolved!=null)
+                    it.type.setActualSubType(resolved)
             }
         }
 
@@ -472,32 +461,32 @@ class AstPreprocessor(val program: Program,
     }
 
     override fun after(typecast: TypecastExpression, parent: Node): Iterable<AstModification> {
-        // convert all antlr names to structs
+        // convert all antlr names to structs (following struct aliases)
         if(typecast.type.subTypeFromAntlr!=null) {
-            val struct = typecast.definingScope.lookup(typecast.type.subTypeFromAntlr!!) as? ISubType
-            if(struct!=null)
-                typecast.type.setActualSubType(struct)
+            val resolved = StructTypeResolver.resolve(typecast.definingScope, program, typecast.type.subTypeFromAntlr!!, typecast.position, errors)
+            if(resolved!=null)
+                typecast.type.setActualSubType(resolved)
         }
         return noModifications
     }
 
     override fun after(field: StructFieldRef, parent: Node): Iterable<AstModification> {
         if(field.type.subTypeFromAntlr!=null) {
-            val struct = field.definingScope.lookup(field.type.subTypeFromAntlr!!) as? ISubType
-            if(struct!=null)
-                field.type.setActualSubType(struct)
+            val resolved = StructTypeResolver.resolve(field.definingScope, program, field.type.subTypeFromAntlr!!, field.position, errors)
+            if(resolved!=null)
+                field.type.setActualSubType(resolved)
         }
 
         return noModifications
     }
 
     override fun after(struct: StructDecl, parent: Node): Iterable<AstModification> {
-        // convert all antlr names to structs
+        // convert all antlr names to structs (following struct aliases)
         struct.fields.forEach { field ->
             if(field.type.subTypeFromAntlr!=null) {
-                val st = struct.definingScope.lookup(field.type.subTypeFromAntlr!!) as? ISubType
-                if(st!=null)
-                    field.type.setActualSubType(st)
+                val resolved = StructTypeResolver.resolve(struct.definingScope, program, field.type.subTypeFromAntlr!!, struct.position, errors)
+                if(resolved!=null)
+                    field.type.setActualSubType(resolved)
             }
         }
 

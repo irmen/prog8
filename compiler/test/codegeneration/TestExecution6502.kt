@@ -670,4 +670,68 @@ class TestExecution6502 : FunSpec({
         machine.assertMemory(0x4007, 9999 and 0xff)
         machine.assertMemory(0x4008, (9999 shr 8) and 0xff)
     }
+
+    test("list iteration on 6502 target (sentinel comparison against &struct.field)") {
+        // regression: the desugared loop's sentinel comparison `cursor == &list.Tail` used to
+        // crash the 6502 code generator (PtAddressOf wrapping a dereference has no identifier)
+        val src = $$"""
+            %option no_sysinit
+            %launcher none
+            %address $1000
+
+            main {
+                struct MyNode {
+                    ^^MyNode Succ
+                    ^^MyNode Pred
+                    ubyte value
+                }
+                struct MyList {
+                    ^^MyNode Head
+                    pointer Tail
+                    ^^MyNode TailPred
+                }
+                &ubyte poweroff = $f203
+                &ubyte count = $02
+                &ubyte sum = $03
+
+                sub start() {
+                    ^^MyList mylist = memory("mylist", sizeof(MyList), 0)
+                    ^^MyNode n1 = memory("n1", sizeof(MyNode), 0)
+                    ^^MyNode n2 = memory("n2", sizeof(MyNode), 0)
+                    ^^MyNode n3 = memory("n3", sizeof(MyNode), 0)
+                    mylist.Head = &mylist.Tail as ^^MyNode
+                    mylist.Tail = 0
+                    mylist.TailPred = &mylist.Head as ^^MyNode
+                    ; append nodes to the tail of the circular list
+                    n1.value = 10
+                    n1.Succ = &mylist.Tail as ^^MyNode
+                    n1.Pred = mylist.TailPred
+                    mylist.TailPred.Succ = n1
+                    mylist.TailPred = n1
+                    n2.value = 20
+                    n2.Succ = &mylist.Tail as ^^MyNode
+                    n2.Pred = mylist.TailPred
+                    mylist.TailPred.Succ = n2
+                    mylist.TailPred = n2
+                    n3.value = 40
+                    n3.Succ = &mylist.Tail as ^^MyNode
+                    n3.Pred = mylist.TailPred
+                    mylist.TailPred.Succ = n3
+                    mylist.TailPred = n3
+                    ; forward traversal using implicit loop var (inferred ^^MyNode)
+                    for node in mylist {
+                        if node==0 { break }
+                        count++
+                        sum += node.value
+                    }
+                    poweroff = 1
+                }
+            }
+        """.trimIndent()
+
+        val compileResult = compileText(Cx16Target(), false, src, outputDir)
+        val machine = compileResult!!.simulate()
+        machine.assertMemory(0x02, 3)
+        machine.assertMemory(0x03, 70)
+    }
 })

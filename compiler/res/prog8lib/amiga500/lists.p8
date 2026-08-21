@@ -3,28 +3,9 @@
 lists {
     %option ignore_unused
 
-    ; = exec.MinNode
-    struct Node {
-        ^^Node Succ
-        ^^Node Pred
-    }
-
-    ; = exec.MinList
-    struct List {
-        ^^Node Head
-        pointer Tail
-        ^^Node TailPred
-    }
-
-    ; helper for priority/name operations (full node layout)
-    ; = exec.Node
-    struct FullNode {
-        ^^FullNode Succ
-        ^^FullNode Pred
-        ubyte Type
-        byte Pri
-        str Name
-    }
+    alias Node = exec.MinNode
+    alias List = exec.MinList
+    alias FullNode = exec.Node
 
     inline sub init(pointer listptr) {
         exec.NewList(listptr as ^^exec.List)

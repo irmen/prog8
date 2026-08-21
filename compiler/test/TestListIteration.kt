@@ -6,6 +6,7 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
 import prog8.code.target.Amiga500Target
+import prog8.code.target.Cx16Target
 import prog8.code.target.VMTarget
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
@@ -239,6 +240,24 @@ class TestListIteration: FunSpec({
         (errors.errors.isNotEmpty() || errors.warnings.isNotEmpty()) shouldBe true
     }
 
+    test("amiga lists module struct aliases resolve in type positions") {
+        // Reproduces the qualified struct-alias bug: ^^lists.List and ^^lists.Node
+        // should resolve to exec.MinList and exec.MinNode, but currently remain unresolved.
+        val result = compileText(Amiga500Target(), false, """
+            %import lists
+            main {
+                sub start() {
+                    ^^lists.List lst = memory("lst", sizeof(lists.List), 0)
+                    ^^lists.Node node = memory("node", sizeof(lists.Node), 0)
+                    lists.init(lst)
+                    lists.add_tail(lst, node)
+                    ^^lists.Node current = lst.Head
+                }
+            }
+        """, outputDir)
+        result shouldNotBe null
+    }
+
     test("list raw pointer Head should fail - not iterable") {
         val errors = ErrorReporterForTests()
         compileText(VMTarget(), false, """
@@ -292,6 +311,34 @@ class TestListIteration: FunSpec({
             }
         """, outputDir, errors, writeAssembly = false) shouldBe null
         errors.errors[0] shouldContain "step for non-range iterable must be 1 or -1"
+    }
+
+    test("cx16 local list forward iteration - inferred node type") {
+        // regression: the sentinel comparison in the desugared loop used to crash the 6502 code generator
+        val result = compileText(Cx16Target(), false, """
+            main {
+                struct MyNode {
+                    ^^MyNode Succ
+                    ^^MyNode Pred
+                    ubyte value
+                }
+                struct MyList {
+                    ^^MyNode Head
+                    pointer Tail
+                    ^^MyNode TailPred
+                }
+                sub start() {
+                    ^^MyList mylist = memory("mylist", sizeof(MyList), 0)
+                    mylist.Head = &mylist.Tail as ^^MyNode
+                    mylist.Tail = 0
+                    mylist.TailPred = &mylist.Head as ^^MyNode
+                    for node in mylist {
+                        if node==0 { break }
+                    }
+                }
+            }
+        """, outputDir)
+        result shouldNotBe null
     }
 
     // ---------- amiga500 target - exec lists ----------

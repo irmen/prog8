@@ -12,6 +12,7 @@ import prog8.ast.walk.AstInsert
 import prog8.ast.walk.AstModification
 import prog8.code.core.DataType
 import prog8.code.core.IErrorReporter
+import prog8.code.core.Position
 
 
 class ImplicitForIteratorDecls(
@@ -41,7 +42,10 @@ class ImplicitForIteratorDecls(
             val listDecl = structDeclFor(iterableType) ?: return emptyList()
             val nodeType = listDecl.fields[0].type
             // Head field is ^^Node, use that as element type
-            nodeType
+            // Resolve it in the list declaration's own scope: the field type may not
+            // have been processed yet if its module hasn't been visited (and the name
+            // may not even be visible from the scope using the list).
+            resolveDt(nodeType, listDecl.definingScope, forLoop.position)
         } else iterableType.elementType()
         val scope = forLoop.definingScope
         val existing = scope.lookup(names)
@@ -56,7 +60,7 @@ class ImplicitForIteratorDecls(
                     )
                     return emptyList()
                 }
-                val loopVarTypeResolved = resolveDt(forLoop.loopVarType!!)
+                val loopVarTypeResolved = resolveDt(forLoop.loopVarType!!, scope, forLoop.position)
                 if (loopVarTypeResolved != existing.datatype) {
                     errors.err(
                         "for loop iterator type mismatch: '${names.joinToString(".")}' is already declared as ${existing.datatype} but the loop requests type ${forLoop.loopVarType}",
@@ -81,7 +85,7 @@ class ImplicitForIteratorDecls(
             return emptyList()
 
         val effectiveTypeRaw = forLoop.loopVarType ?: elementType
-        val effectiveType = resolveDt(effectiveTypeRaw)
+        val effectiveType = resolveDt(effectiveTypeRaw, scope, forLoop.position)
         val queued = pending.firstOrNull { it.scope === scope && it.name == names.singleOrNull() }
         if (queued != null) {
             if (!(effectiveType isAssignableTo queued.datatype)) {
@@ -114,12 +118,12 @@ class ImplicitForIteratorDecls(
 
     private fun isListIterable(dt: DataType): Boolean = ListIterationHelper.isListIterable(dt, program)
     private fun structDeclFor(dt: DataType): prog8.ast.statements.StructDecl? = ListIterationHelper.structDeclFor(dt, program)
-    private fun resolveDt(dt: DataType): DataType {
-        if(dt.subTypeFromAntlr==null) return dt
-        val decl = structDeclFor(dt) ?: return dt
+    private fun resolveDt(dt: DataType, scope: INameScope, position: Position): DataType {
+        val antlrName = dt.subTypeFromAntlr ?: return dt
+        val resolved = StructTypeResolver.resolve(scope, program, antlrName, position, errors) ?: return dt
         return when {
-            dt.isPointer -> DataType.pointer(decl)
-            dt.isStructInstance -> DataType.structInstance(decl)
+            dt.isPointer -> DataType.pointer(resolved)
+            dt.isStructInstance -> DataType.structInstance(resolved)
             else -> dt
         }
     }
