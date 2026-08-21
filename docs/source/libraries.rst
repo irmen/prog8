@@ -906,6 +906,100 @@ fully outside, or partially crossing the clipping rectangle. With ``inside`` you
     Returns ``visible`` (boolean), plus the clipped coordinates (or (0,0)-(0,0) if not visible).
 
 
+lists
+^^^^^
+.. index:: pair: Libraries; lists
+
+Portable doubly linked lists modeled after Amiga Exec lists (``MinList``/``MinNode``).
+Available on all targets; on ``amiga500`` the types and routines simply forward to ``exec.library``.
+
+Three struct types are provided:
+
+- ``lists.Node`` - minimal node with ``Succ`` and ``Pred`` link pointers (``^^Node``)
+- ``lists.List`` - list header with ``Head``, ``Tail`` and ``TailPred`` pointers
+- ``lists.FullNode`` - extended node with ``Type``, ``Pri`` and ``Name`` fields for priority/name operations
+
+On ``amiga500`` these are aliases: ``Node = exec.MinNode``, ``List = exec.MinList``, ``FullNode = exec.Node``.
+
+A list header must be initialized once with ``init(listptr)`` (sets ``Head = &Tail``, ``Tail = 0``, ``TailPred = &Head``).
+The list can then be manipulated with:
+
+- ``init(listptr)``, ``is_empty(listptr) -> bool``
+- ``add_head(listptr, node)``, ``add_tail(listptr, node)``, ``insert(listptr, node, pred)`` (``pred=0`` inserts at head)
+- ``remove(node)``, ``remove_head(listptr) -> pointer``, ``remove_tail(listptr) -> pointer``
+- ``enqueue(listptr, node)`` - priority-sorted insertion by ``Pri`` (requires ``FullNode`` layout, FIFO for equal priorities)
+- ``find_name(listptr, name) -> pointer`` - linear search by ``Name`` (requires ``FullNode`` layout)
+
+Lists are directly iterable with ``for`` loops: ``for node in mylist`` iterates forward via ``Succ``,
+``for node in mylist step -1`` iterates backward via ``Pred``. The loop variable type (``^^Node`` or ``^^FullNode``) can be inferred.
+
+Custom node types are supported by making sure the link pointers are the first fields at offset 0.
+For the minimal list operations (``add_head``, ``add_tail``, ``insert``, ``remove``) only ``Succ``/``Pred`` are required;
+``enqueue`` and ``find_name`` require the full ``Type``/``Pri``/``Name`` layout of ``FullNode``.
+Example::
+
+    main {
+        struct MyNode {
+            ^^MyNode Succ       ; must be first field (offset 0)
+            ^^MyNode Pred       ; must be second field
+            ubyte    value      ; your own payload follows
+        }
+        struct MyList {
+            ^^MyNode Head
+            pointer  Tail
+            ^^MyNode TailPred
+        }
+
+        sub start() {
+            ^^MyList mylist = []                ; zero-initialized header
+            ^^MyNode n1 = [0, 0, 42]            ; Succ, Pred, value
+            ^^MyNode n2 = [0, 0, 99]
+            lists.init(mylist)
+            lists.add_tail(mylist, n1)
+            lists.add_tail(mylist, n2)
+            for n in mylist {
+                txt.print_ub(n.value)
+            }
+        }
+    }
+
+On ``amiga500`` the same holds. Define the list header with your node type so
+``for``-iteration infers the correct type, and include ``Type``/``Pri``/``Name``
+if you need the full ``exec.Node`` layout. The header can still be
+initialized with ``exec.NewList``::
+
+    main {
+        struct MyNode {
+            ^^MyNode Succ       ; offset 0
+            ^^MyNode Pred       ; offset 4
+            ubyte    Type       ; include for FullNode compatibility if needed
+            byte     Pri
+            str      Name
+            ubyte    value
+        }
+        struct MyList {
+            ^^MyNode Head
+            pointer  Tail
+            ^^MyNode TailPred
+        }
+        sub start() {
+            ^^MyList mylist = []
+            ^^MyNode n1 = [0, 0, 0, 0, 0, 11]
+            exec.NewList(mylist as ^^exec.List)
+            lists.add_tail(mylist as pointer, n1 as pointer)
+        }
+    }
+
+Allocator agnostic: the routines never allocate or free memory themselves,
+they only link the ``pointer`` values you pass in. Nodes and headers can
+come from static ``[]`` variables as above, from ``memory()`` slabs, or
+from any arena/bump allocator - e.g. ``arena_alloc(sizeof(MyNode)) as ^^MyNode``
+or ``exec.AllocMem`` on ``amiga500``. Just ensure the allocation is
+suitably aligned (even address on 6502, long-aligned on m68k).
+
+Read the :source:`lists source code <compiler/res/prog8lib/lists.p8>` and
+:source:`amiga lists source code <compiler/res/prog8lib/amiga500/lists.p8>` for details.
+
 math
 ^^^^
 .. index:: pair: Libraries; math

@@ -705,11 +705,15 @@ _after:
                     val fieldName = fieldIdent.nameInSource.first()
                     val fieldDt = struct?.getFieldType(fieldName)
                     if(struct!=null && fieldDt!=null) {
-                        // (ptr).field  -->  peekXXX(ptr as uword + offsetof(Struct.field))
+                        // (ptr).field  -->  peekXXX(ptr as uword/long + offsetof(Struct.field))
                         val offset = struct.offsetof(fieldName, program.target)!!.toInt()
-                        val ptrAsUword = TypecastExpression(expr.left.copy(), DataType.UWORD, true, expr.left.position)
-                        val address: Expression = if(offset==0) ptrAsUword
-                            else BinaryExpression(ptrAsUword, "+", NumericLiteral.optimalInteger(offset, expr.position), expr.position)
+                        // cast to an integer type of the target's pointer size: keeps the '+' unscaled
+                        // if ptr is already a typecast (e.g. t.port as ^^Thing), unwrap to avoid
+                        // a WORD->POINTER->LONG chain that confuses the IR register allocator on 32-bit targets
+                        val ptrSrc = (expr.left as? TypecastExpression)?.expression ?: expr.left
+                        val ptrAsInt = TypecastExpression(ptrSrc.copy(), target.pointerType, true, ptrSrc.position)
+                        val address: Expression = if(offset==0) ptrAsInt
+                            else BinaryExpression(ptrAsInt, "+", NumericLiteral.optimalInteger(offset, expr.position), expr.position)
                         fun peekCall(func: String) =
                             FunctionCallExpression(IdentifierReference(listOf(func), expr.position), mutableListOf(address), expr.position)
                         val readExpr: Expression = when {
@@ -720,7 +724,11 @@ _after:
                             fieldDt.isSignedWord -> TypecastExpression(peekCall("peekw"), DataType.WORD, true, expr.position)
                             fieldDt.isLong -> peekCall("peekl")
                             fieldDt.isFloat -> peekCall("peekf")
-                            fieldDt.isPointer -> TypecastExpression(peekCall("peekw"), fieldDt, true, expr.position)
+                            fieldDt.isPointer -> {
+                                // pointer fields must be read with the target's pointer size
+                                val peekName = if(target.POINTER_MEM_SIZE > 2u) "peekl" else "peekw"
+                                TypecastExpression(peekCall(peekName), fieldDt, true, expr.position)
+                            }
                             else -> {
                                 errors.err("unsupported field type for pointer dereference", expr.position)
                                 return noModifications

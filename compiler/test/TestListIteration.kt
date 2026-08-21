@@ -258,6 +258,24 @@ class TestListIteration: FunSpec({
         result shouldNotBe null
     }
 
+    test("amiga lists module struct aliases resolve in for loop") {
+        val result = compileText(Amiga500Target(), false, """
+            %import lists
+            main {
+                sub start() {
+                    ^^lists.List lst = memory("lst", sizeof(lists.List), 0)
+                    ^^lists.Node node = memory("node", sizeof(lists.Node), 0)
+                    lists.init(lst)
+                    lists.add_tail(lst, node)
+                    for ^^lists.Node current in lst {
+                        break
+                    }
+                }
+            }
+        """, outputDir)
+        result shouldNotBe null
+    }
+
     test("list raw pointer Head should fail - not iterable") {
         val errors = ErrorReporterForTests()
         compileText(VMTarget(), false, """

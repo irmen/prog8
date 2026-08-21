@@ -299,6 +299,66 @@ testblock {
             compileText(VMTarget(), optimize=false, src, outputDir, writeAssembly=false, errors=errors) shouldNotBe null
             errors.errors.size shouldBe 0
         }
+
+        test("struct alias resolves for vardecl") {
+            val src="""
+%import exec
+main {
+    alias Node = exec.MinNode
+    sub start() {
+        ^^Node n = memory("n", sizeof(Node), 0)
+        n.Succ = 0
+    }
+}
+"""
+            compileText(Amiga500Target(), false, src, outputDir) shouldNotBe null
+        }
+
+        test("struct alias resolves for typecast") {
+            val src="""
+%import exec
+main {
+    alias Node = exec.MinNode
+    sub start() {
+        ^^Node n = memory("n", sizeof(Node), 0)
+        uword w = n as uword
+        ^^Node n2 = w as ^^Node
+        n2.Succ = 0
+    }
+}
+"""
+            compileText(Amiga500Target(), false, src, outputDir) shouldNotBe null
+        }
+
+        test("struct alias chain resolves") {
+            val src="""
+%import exec
+main {
+    alias Node = exec.MinNode
+    alias A = Node
+    sub start() {
+        ^^A n = memory("n", sizeof(A), 0)
+        n.Succ = 0
+    }
+}
+"""
+            compileText(Amiga500Target(), false, src, outputDir) shouldNotBe null
+        }
+
+        test("struct alias cycle is rejected") {
+            val src="""
+main {
+    alias A = B
+    alias B = A
+    sub start() {
+        ^^A n = memory("n", sizeof(A), 0)
+    }
+}
+"""
+            val errors = ErrorReporterForTests()
+            compileText(Amiga500Target(), false, src, outputDir, errors=errors) shouldBe null
+            errors.errors.any { it.contains("alias loop") } shouldBe true
+        }
     }
 
     context("strings") {

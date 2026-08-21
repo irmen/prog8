@@ -3267,26 +3267,26 @@ main {
         d1.target.nameInSource shouldBe listOf("peekbool")
         val d1addr = d1.args.single() as BinaryExpression
         d1addr.operator shouldBe "+"
-        (d1addr.right as NumericLiteral).number shouldBe 4.0   // offsetof(Thing.flag)
+        (d1addr.right as NumericLiteral).number shouldBe 6.0   // offsetof(Thing.flag) on VM (32-bit pointers: port 0, next 2..5, flag 6)
 
         val d2 = assigns.getValue("d2").value as TypecastExpression
         d2.type shouldBe DataType.UBYTE
         (d2.expression as FunctionCallExpression).target.nameInSource shouldBe listOf("peekbool")
 
-        // pointer-typed field read: peekw + cast back to the pointer type
+        // pointer-typed field read: peekl (+ cast) on VM (32-bit pointers)
         val d3 = assigns.getValue("d3").value as TypecastExpression
         d3.type.isPointer shouldBe true
         val d3peek = d3.expression as FunctionCallExpression
-        d3peek.target.nameInSource shouldBe listOf("peekw")
+        d3peek.target.nameInSource shouldBe listOf("peekl")
         ((d3peek.args.single() as BinaryExpression).right as NumericLiteral).number shouldBe 2.0   // offsetof(Thing.next)
 
-        // chained: inner pointer-typed field is read via peekw first, then .flag via peekbool
+        // chained: inner pointer-typed field is read via peekl first, then .flag via peekbool
         val d4 = assigns.getValue("d4").value as FunctionCallExpression
         d4.target.nameInSource shouldBe listOf("peekbool")
         val d4addr = d4.args.single() as BinaryExpression
-        (d4addr.right as NumericLiteral).number shouldBe 4.0
-        val d4inner = (d4addr.left as TypecastExpression).expression as TypecastExpression
-        (d4inner.expression as FunctionCallExpression).target.nameInSource shouldBe listOf("peekw")
+        (d4addr.right as NumericLiteral).number shouldBe 6.0
+        val d4innerPeek = d4addr.left as FunctionCallExpression
+        d4innerPeek.target.nameInSource shouldBe listOf("peekl")
 
         // explicit parenthesized chain desugars the same
         (assigns.getValue("d5").value as FunctionCallExpression).target.nameInSource shouldBe listOf("peekbool")
