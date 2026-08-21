@@ -722,6 +722,7 @@ object SymbolLookup {
                     locations.add(stmt.loopVar.position.toLspLocation(uri))
                 }
                 findReferencesInExpressionScoped(stmt.iterable, targetSymbol, locations, uri, visibleVars, blocks, subroutines)
+                stmt.step?.let { findReferencesInExpressionScoped(it, targetSymbol, locations, uri, visibleVars, blocks, subroutines) }
                 for (s in stmt.body.statements) findReferencesInStatementScoped(s, targetSymbol, locations, uri, visibleVars, blocks, subroutines)
             }
             is When -> {

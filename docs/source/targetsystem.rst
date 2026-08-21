@@ -179,7 +179,7 @@ or behave differently. For best results, copy the generated executable to a prop
 `WinUAE <https://www.winuae.net/>`_ or `FS-UAE <https://fs-uae.net/>`_ and run it there instead.
 
 Blocks can opt-in to living in Amiga CHIP RAM via the ``%option amiga_chipram`` block-level option;
-see the :ref:`option directive <pair: Directives; %option>` for details.
+see the :ref:`directives` for details on the ``%option`` directive.
 
 **Command-line arguments:**
 When a program is launched from the Amiga CLI (shell), command-line arguments are available via

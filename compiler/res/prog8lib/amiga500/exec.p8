@@ -13,7 +13,7 @@ exec {
             move.l  a0, -4(a0)          ; lh_Head = &lh_Tail
             clr.l   (a0)                ; lh_Tail = NULL
             subq.l  #4, a0              ; Point back to &lh_Head
-            move.l  a0, 4(a0)           ; lh_TailPred = &lh_Head
+            move.l  a0, 8(a0)           ; lh_TailPred = &lh_Head
             rts
         }}
     }
@@ -181,9 +181,9 @@ exec {
     }
 
     struct List {  ; total size: 14
-        pointer Head  ; 0
+        ^^Node Head  ; 0
         pointer Tail  ; 4
-        pointer TailPred  ; 8
+        ^^Node TailPred  ; 8
         ubyte Type  ; 12
         ubyte Pad  ; 13
     }
@@ -206,27 +206,27 @@ exec {
     }
 
     struct Node {  ; total size: 14
-        pointer Succ  ; 0
-        pointer Pred  ; 4
+        ^^Node Succ  ; 0
+        ^^Node Pred  ; 4
         ubyte Type  ; 8
         byte Pri  ; 9
         str Name  ; 10
     }
 
     struct MinList {  ; total size: 12
-        pointer Head  ; 0
+        ^^MinNode Head  ; 0
         pointer Tail  ; 4
-        pointer TailPred  ; 8
+        ^^MinNode TailPred  ; 8
     }
 
     struct MinNode {  ; total size: 8
-        pointer Succ  ; 0
-        pointer Pred  ; 4
+        ^^MinNode Succ  ; 0
+        ^^MinNode Pred  ; 4
     }
 
     struct Message {  ; total size: 20
-        pointer Succ  ; 0
-        pointer Pred  ; 4
+        ^^Message Succ  ; 0
+        ^^Message Pred  ; 4
         ubyte Type  ; 8
         byte Pri  ; 9
         str Name  ; 10

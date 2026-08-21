@@ -550,6 +550,37 @@ class StructDecl(override val name: String, val fields: Array<StructField>, val 
         }
         return null
     }
+
+    fun isNodeStruct(): Boolean {
+        if(fields.size < 2) return false
+        val f0 = fields[0]
+        val f1 = fields[1]
+        val namesOk = (f0.name=="Succ" && f1.name=="Pred") || (f0.name=="Next" && f1.name=="Prev")
+        if(!namesOk) return false
+        if(!f0.type.isPointer || !f1.type.isPointer) return false
+        val t0Name = (f0.type.subType as? StructDecl)?.name ?: f0.type.subTypeFromAntlr?.lastOrNull()
+        val t1Name = (f1.type.subType as? StructDecl)?.name ?: f1.type.subTypeFromAntlr?.lastOrNull()
+        return t0Name==name && t1Name==name
+    }
+
+    fun isListStruct(): Boolean {
+        if(fields.size < 3) return false
+        val h = fields[0]
+        val t = fields[1]
+        val tp = fields[2]
+        if(h.name!="Head" || t.name!="Tail" || tp.name!="TailPred") return false
+        if(!h.type.isPointer || !tp.type.isPointer) return false
+        if(h.type.subType==null && h.type.subTypeFromAntlr==null) return false
+        if(tp.type.subType==null && tp.type.subTypeFromAntlr==null) return false
+        val headNodeName = (h.type.subType as? StructDecl)?.name ?: h.type.subTypeFromAntlr?.lastOrNull() ?: return false
+        val tailPredNodeName = (tp.type.subType as? StructDecl)?.name ?: tp.type.subTypeFromAntlr?.lastOrNull() ?: return false
+        if(headNodeName!=tailPredNodeName) return false
+        // if node type is resolved, validate it is a node struct; otherwise rely on name match
+        val nodeDecl = h.type.subType as? StructDecl
+        if(nodeDecl!=null) return nodeDecl.isNodeStruct()
+        // unresolved - assume ok if names match (will be validated later when resolved)
+        return true
+    }
 }
 
 
@@ -1347,6 +1378,7 @@ class ForLoop(var loopVar: IdentifierReference,
               var iterable: Expression,
               var body: AnonymousScope,
               var loopVarType: DataType?,
+              var step: Expression?,
               override val position: Position) : Statement() {
     override lateinit var parent: Node
 
@@ -1354,6 +1386,7 @@ class ForLoop(var loopVar: IdentifierReference,
         this.parent=parent
         loopVar.linkParents(this)
         iterable.linkParents(this)
+        step?.linkParents(this)
         body.linkParents(this)
     }
 
@@ -1363,6 +1396,7 @@ class ForLoop(var loopVar: IdentifierReference,
         when {
             node===loopVar -> loopVar = replacement as IdentifierReference
             node===iterable -> iterable = replacement as Expression
+            node===step -> step = replacement as Expression
             node===body -> body = replacement as AnonymousScope
             else -> throw FatalAstException("invalid replace in $this at ${node.position}: $node -> $replacement")
         }
@@ -1373,11 +1407,13 @@ class ForLoop(var loopVar: IdentifierReference,
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
     override fun toString(): String {
         val typeStr = if (loopVarType != null) "type: $loopVarType, " else ""
-        return "ForLoop(${typeStr}loopVar: $loopVar, iterable: $iterable, pos=$position)"
+        val stepStr = if (step != null) ", step: $step" else ""
+        return "ForLoop(${typeStr}loopVar: $loopVar, iterable: $iterable$stepStr, pos=$position)"
     }
     override fun referencesIdentifier(nameInSource: List<String>): Boolean =
         loopVar.referencesIdentifier(nameInSource) ||
                 iterable.referencesIdentifier(nameInSource) ||
+                (step?.referencesIdentifier(nameInSource)==true) ||
                 body.referencesIdentifier(nameInSource)
 
     fun loopVarDt(program: Program): InferredTypes.InferredType {

@@ -395,4 +395,57 @@ class TestVariableStepForLoops: FunSpec({
             memory.getSL(allocations["main.result"]!!) shouldBe 150000
         }
     }
+
+    test("string literal descending") {
+        runVm("""
+            %zeropage basicsafe
+            %option no_sysinit
+            main {
+                uword @shared result
+                sub start() {
+                    ubyte c
+                    for c in "abcd" step -1 {
+                        result = result * 10 + c - 96
+                    }
+                }
+            }
+        """) { memory, allocations ->
+            memory.getUW(allocations["main.result"]!!) shouldBe 4321u
+        }
+    }
+
+    test("linked list descending") {
+        runVm("""
+            %zeropage basicsafe
+            %option no_sysinit
+            %import lists
+            main {
+                uword @shared result
+                sub start() {
+                    struct MyList {
+                        ^^list.FullNode Head
+                        pointer Tail
+                        ^^list.FullNode TailPred
+                    }
+                    ^^MyList mylist = memory("mylist", sizeof(MyList), 0)
+                    ^^list.FullNode n1 = memory("n1", sizeof(list.FullNode), 0)
+                    ^^list.FullNode n2 = memory("n2", sizeof(list.FullNode), 0)
+                    ^^list.FullNode n3 = memory("n3", sizeof(list.FullNode), 0)
+                    n1.Pri = 1
+                    n2.Pri = 2
+                    n3.Pri = 3
+                    list.init(mylist)
+                    list.add_tail(mylist, n1)
+                    list.add_tail(mylist, n2)
+                    list.add_tail(mylist, n3)
+                    for ^^list.FullNode node in mylist step -1 {
+                        uword digit = node.Pri as uword
+                        result = result * 10 + digit
+                    }
+                }
+            }
+        """) { memory, allocations ->
+            memory.getUW(allocations["main.result"]!!) shouldBe 321u
+        }
+    }
 })

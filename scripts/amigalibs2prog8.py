@@ -124,6 +124,15 @@ STRUCT_NAME_MAP = {
     'DiskObject':     ('DiskObject',       'do_'),
 }
 
+# Typed list link fields - keep in sync with exec.p8 hand edits and docs NDK reference
+TYPED_LIST_FIELDS = {
+    'LN':  {'Succ': '^^Node',    'Pred': '^^Node'},
+    'MLN': {'Succ': '^^MinNode', 'Pred': '^^MinNode'},
+    'LH':  {'Head': '^^Node',    'TailPred': '^^Node'},
+    'MLH': {'Head': '^^MinNode', 'TailPred': '^^MinNode'},
+    'MN':  {'Succ': '^^Message', 'Pred': '^^Message'},
+}
+
 # Prog8 keywords that conflict with field names
 PROG8_KEYWORDS = {
     'str', 'end', 'type', 'class', 'for', 'while', 'repeat', 'if', 'else',
@@ -471,6 +480,9 @@ def _flatten(tag: str, rs, all_raw: dict, prefix: str, visiting: frozenset, size
                 pname = _field_name(field['name'], prefix)
                 if ptype == 'pointer' and _is_string_field(field['name'], prefix):
                     ptype = 'str'
+                # apply typed list overrides (keep Amiga NDK typed headers in sync)
+                if tag in TYPED_LIST_FIELDS and pname in TYPED_LIST_FIELDS[tag]:
+                    ptype = TYPED_LIST_FIELDS[tag][pname]
             flat.append({
                 'prog8_type': ptype,
                 'prog8_name': pname,
@@ -1026,7 +1038,7 @@ LIBRARY_HELPERS = {
             move.l  a0, -4(a0)          ; lh_Head = &lh_Tail
             clr.l   (a0)                ; lh_Tail = NULL
             subq.l  #4, a0              ; Point back to &lh_Head
-            move.l  a0, 4(a0)           ; lh_TailPred = &lh_Head
+            move.l  a0, 8(a0)           ; lh_TailPred = &lh_Head
             rts
         }}
     }

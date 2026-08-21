@@ -514,6 +514,7 @@ abstract class AstWalker {
         track(before(forLoop, parent), forLoop, parent)
         forLoop.loopVar.accept(this, forLoop)
         forLoop.iterable.accept(this, forLoop)
+        forLoop.step?.accept(this, forLoop)
         forLoop.body.accept(this, forLoop)
         track(after(forLoop, parent), forLoop, parent)
     }

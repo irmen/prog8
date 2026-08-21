@@ -218,7 +218,7 @@ If the struct contains inline arrays, you can initialize them by nesting another
     Returns the address of this empty struct.
 
 Initializing byte-array fields with a string
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. index:: pair: Structs; String initializer
 
 For a sized ``ubyte`` (or ``byte``) array field, a string literal may be used in place of an explicit

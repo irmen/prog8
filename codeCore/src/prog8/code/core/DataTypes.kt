@@ -151,7 +151,12 @@ class DataType private constructor(
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is DataType) return false
-        return base == other.base && sub == other.sub && (subType==other.subType || subType!!.sameas(other.subType!!))
+        if (base != other.base || sub != other.sub) return false
+        val st1 = subType
+        val st2 = other.subType
+        if (st1 == st2) return true
+        if (st1 == null || st2 == null) return false
+        return st1.sameas(st2)
     }
 
     override fun hashCode(): Int = Objects.hash(base, sub, subType)
@@ -217,11 +222,8 @@ class DataType private constructor(
 
         fun arrayOfPointersTo(sub: BaseDataType): DataType = DataType(BaseDataType.ARRAY_POINTER, sub, null)
         fun arrayOfPointersTo(structType: ISubType?): DataType = DataType(BaseDataType.ARRAY_POINTER, null, structType)
-        fun arrayForWithSubType(elementDt: BaseDataType, structSubType: ISubType): DataType = DataType(BaseDataType.ARRAY, elementDt, structSubType)
         fun arrayOfPointersFromAntlrTo(sub: BaseDataType?, identifier: List<String>?): DataType =
             DataType(BaseDataType.ARRAY_POINTER, sub, null, identifier)
-        fun arrayFromAntlrTo(elementDt: BaseDataType, identifier: List<String>): DataType =
-            DataType(BaseDataType.ARRAY, elementDt, null, identifier)
 
         fun pointer(base: BaseDataType): DataType = DataType(BaseDataType.POINTER, base, null)
         fun pointer(dt: DataType): DataType = if(dt.isBasic)

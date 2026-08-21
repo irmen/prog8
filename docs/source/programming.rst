@@ -686,7 +686,59 @@ If the loop variable is declared explicitly, its type must be able to accept the
         ; do something with number...
     }
 
-See :ref:`range-expression` for all of the details.
+Reverse iteration
+~~~~~~~~~~~~~~~~~
+
+Arrays and strings can be iterated in reverse order with ``step -1``. The loop
+variable receives the elements from the last one to the first one::
+
+    for number in fibonacci_numbers step -1 {
+        ; 4181, 2584, 1597, ...
+    }
+
+    for character in "hello" step -1 {
+        ; 'o', 'l', 'l', 'e', 'h'
+    }
+
+For arrays and strings, the only supported explicit steps are ``1`` and ``-1``.
+The default is ``1``. Range expressions have their own step value, so a loop
+step cannot be added when the expression is already a range with a step.
+
+Linked-list iteration
+~~~~~~~~~~~~~~~~~~~~~
+
+A linked list can also be used as the expression in a ``for`` loop. The list
+structure must provide ``Head``, ``Tail`` and ``TailPred`` fields, with the
+first and third fields pointing to the node type. The node structure must have
+matching forward and backward links named either ``Succ`` and ``Pred``, or
+``Next`` and ``Prev``. Additional fields may be added to both structures.
+
+For example::
+
+    struct Node {
+        ^^Node Next
+        ^^Node Prev
+        ubyte value
+    }
+
+    struct List {
+        ^^Node Head
+        pointer Tail
+        ^^Node TailPred
+    }
+
+    ^^List items = memory("items", sizeof(List), 0)
+    for ^^Node node in items {
+        ; process node.value
+    }
+
+Use ``step -1`` to visit the nodes from the tail towards the head. The list
+must be initialized and linked correctly before iteration. On the ``amiga500``
+target, the ``exec`` module's ``List`` and ``Node`` structures and list
+routines use this same convention, so lists managed through ``exec.library``
+can be traversed directly with ``for`` loops.
+
+See :ref:`range-expression` for all of the details about range expressions.
 
 while loop
 ^^^^^^^^^^

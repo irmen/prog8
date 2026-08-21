@@ -33,10 +33,16 @@ class ImplicitForIteratorDecls(
         if (!inferredIterableType.isKnown)
             return emptyList()
         val iterableType = inferredIterableType.getOrUndef()
-        if (!iterableType.isIterable && forLoop.iterable !is RangeExpression)
+        val isList = isListIterable(iterableType)
+        if (!iterableType.isIterable && forLoop.iterable !is RangeExpression && !isList)
             return emptyList()
 
-        val elementType = iterableType.elementType()
+        val elementType = if(isList) {
+            val listDecl = structDeclFor(iterableType) ?: return emptyList()
+            val nodeType = listDecl.fields[0].type
+            // Head field is ^^Node, use that as element type
+            nodeType
+        } else iterableType.elementType()
         val scope = forLoop.definingScope
         val existing = scope.lookup(names)
 
@@ -50,7 +56,8 @@ class ImplicitForIteratorDecls(
                     )
                     return emptyList()
                 }
-                if (forLoop.loopVarType != existing.datatype) {
+                val loopVarTypeResolved = resolveDt(forLoop.loopVarType!!)
+                if (loopVarTypeResolved != existing.datatype) {
                     errors.err(
                         "for loop iterator type mismatch: '${names.joinToString(".")}' is already declared as ${existing.datatype} but the loop requests type ${forLoop.loopVarType}",
                         forLoop.position
@@ -73,7 +80,8 @@ class ImplicitForIteratorDecls(
         if (existing != null)
             return emptyList()
 
-        val effectiveType = forLoop.loopVarType ?: elementType
+        val effectiveTypeRaw = forLoop.loopVarType ?: elementType
+        val effectiveType = resolveDt(effectiveTypeRaw)
         val queued = pending.firstOrNull { it.scope === scope && it.name == names.singleOrNull() }
         if (queued != null) {
             if (!(effectiveType isAssignableTo queued.datatype)) {
@@ -102,5 +110,17 @@ class ImplicitForIteratorDecls(
             return emptyList()
         }
         return listOf(AstInsert.before(forLoop, declaration, container))
+    }
+
+    private fun isListIterable(dt: DataType): Boolean = ListIterationHelper.isListIterable(dt, program)
+    private fun structDeclFor(dt: DataType): prog8.ast.statements.StructDecl? = ListIterationHelper.structDeclFor(dt, program)
+    private fun resolveDt(dt: DataType): DataType {
+        if(dt.subTypeFromAntlr==null) return dt
+        val decl = structDeclFor(dt) ?: return dt
+        return when {
+            dt.isPointer -> DataType.pointer(decl)
+            dt.isStructInstance -> DataType.structInstance(decl)
+            else -> dt
+        }
     }
 }

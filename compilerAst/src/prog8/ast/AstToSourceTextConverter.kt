@@ -443,6 +443,10 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
         forLoop.loopVar.accept(this)
         output(" in ")
         forLoop.iterable.accept(this)
+        if(forLoop.step!=null) {
+            output(" step ")
+            forLoop.step!!.accept(this)
+        }
         output(" ")
         forLoop.body.accept(this)
     }

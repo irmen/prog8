@@ -3490,7 +3490,7 @@ $endLabel""")
                         else
                             asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName |  lda  #0  |  sta  $targetAsmVarName+1")
                     }
-                    BaseDataType.POINTER -> TODO("cast to pointer")
+                    BaseDataType.POINTER -> TODO("byte should not be cast to pointer")
                     BaseDataType.LONG -> {
                         asmgen.out("""
                             lda  $sourceAsmVarName
@@ -3527,7 +3527,7 @@ $endLabel""")
                         asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName")
                         asmgen.signExtendVariableLsb(targetAsmVarName, BaseDataType.BYTE)
                     }
-                    BaseDataType.POINTER -> TODO("cast to pointer")
+                    BaseDataType.POINTER -> TODO("byte should not be cast to pointer")
                     BaseDataType.LONG -> {
                         asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName")
                         asmgen.signExtendVariableLsb(targetAsmVarName, BaseDataType.BYTE)
@@ -3561,7 +3561,7 @@ $endLabel""")
                     BaseDataType.WORD -> {
                         asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName |  lda  $sourceAsmVarName+1 |  sta  $targetAsmVarName+1")
                     }
-                    BaseDataType.POINTER -> TODO("cast to pointer")
+                    BaseDataType.POINTER -> asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName |  lda  $sourceAsmVarName+1 |  sta  $targetAsmVarName+1")
                     BaseDataType.LONG -> {
                         asmgen.out("""
                             lda  $sourceAsmVarName

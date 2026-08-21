@@ -241,17 +241,34 @@ internal class AstChecker(private val program: Program,
             }
         }
 
+        // step validation for non-range iterables (AST desugaring, see ideas/list-iteration.md)
+        if(forLoop.step != null) {
+            if(forLoop.iterable is RangeExpression) {
+                errors.err("step on for-loop cannot be combined with range step - use 'to/downto ... step ...' inside the range", forLoop.position)
+            } else {
+                val stepVal = forLoop.step!!.constValue(program)?.number
+                if(stepVal==null) {
+                    errors.err("step for non-range iterable must be a constant 1 or -1", forLoop.position)
+                } else if(stepVal != 1.0 && stepVal != -1.0) {
+                    errors.err("step for non-range iterable must be 1 or -1 (arrays, strings and lists have no stride)", forLoop.position)
+                }
+            }
+        }
+
         val iterableDt = forLoop.iterable.inferType(program).getOrUndef()
         val isTypedForLoop = forLoop.loopVarType != null
+        val isList = isListIterable(iterableDt)
 
         if(forLoop.iterable is IFunctionCall) {
             errors.err("can not loop over function call return value", forLoop.position)
-        } else if(!(iterableDt.isIterable) && forLoop.iterable !is RangeExpression) {
+        } else if(!(iterableDt.isIterable) && forLoop.iterable !is RangeExpression && !isList) {
             errors.err("can only loop over an iterable type", forLoop.position)
         } else {
             val loopvar = forLoop.loopVar.targetVarDecl()
             if(loopvar==null || loopvar.type== VarDeclType.CONST) {
                 errors.err("for loop requires a variable to loop with", forLoop.position)
+            } else if(isList) {
+                validateListForLoop(forLoop, loopvar, iterableDt, isTypedForLoop)
             } else {
                 when (loopvar.datatype.base) {
                     BaseDataType.UBYTE -> {
@@ -340,6 +357,55 @@ internal class AstChecker(private val program: Program,
         }
 
         super.visit(forLoop)
+    }
+
+    private fun isListIterable(dt: DataType): Boolean = ListIterationHelper.isListIterable(dt, program)
+    private fun structDeclFor(dt: DataType): StructDecl? = ListIterationHelper.structDeclFor(dt, program)
+    private fun isNodeStruct(decl: StructDecl): Boolean = decl.isNodeStruct()
+
+    private fun validateListForLoop(forLoop: ForLoop, loopvar: VarDecl, iterableDt: DataType, isTyped: Boolean) {
+        // loop var must be pointer to node
+        if(!loopvar.datatype.isPointer) {
+            errors.err("for loop over list requires a pointer variable (^^Node)", forLoop.position)
+            return
+        }
+        val listDecl = structDeclFor(iterableDt) ?: run {
+            errors.err("unable to resolve list type", forLoop.position)
+            return
+        }
+        val expectedNodeDecl = structDeclFor(listDecl.fields[0].type) ?: run {
+            errors.err("list Head field must be a typed pointer", forLoop.position)
+            return
+        }
+        // if explicit type given on for (^^Type var), forLoop.loopVarType holds it, but loopvar.datatype is the actual var's type.
+        // We validate that loopvar's type is compatible with expected node type, or if explicit type differs, validate that explicit node is also a valid node.
+        val loopVarNodeDecl = structDeclFor(loopvar.datatype)
+        if(loopVarNodeDecl==null) {
+            errors.err("loop variable must be a typed pointer to a node struct with Succ/Pred", forLoop.position)
+            return
+        }
+        if(!isNodeStruct(loopVarNodeDecl)) {
+            errors.err("loop variable's struct must have Succ/Pred (or Next/Prev) pointer fields at offset 0", forLoop.position)
+            return
+        }
+        // if explicit for type differs from list's node, we allow it as reinterpretation but still require valid node layout (already checked)
+        // otherwise enforce that loop var type matches list's node type when not explicitly typed differently
+        if(!isTyped) {
+            // inferred case: require exact match to list's node type
+            if(loopVarNodeDecl.name != expectedNodeDecl.name) {
+                errors.err("loop variable type ^^${loopVarNodeDecl.name} does not match list's node type ^^${expectedNodeDecl.name} - use explicit 'for ^^${expectedNodeDecl.name} ${forLoop.loopVar.nameInSource.single()}' or declare variable as ^^${expectedNodeDecl.name}", forLoop.position)
+            }
+        } else {
+            // explicit typed loop: check that explicit type matches loopvar's declared type
+            val explicitDt = forLoop.loopVarType!!
+            val explicitDecl = structDeclFor(explicitDt)
+            if(explicitDecl!=null && explicitDecl.name != loopVarNodeDecl.name) {
+                errors.err("explicit for loop type ^^${explicitDecl.name} does not match loop variable's declared type ^^${loopVarNodeDecl.name}", forLoop.position)
+            }
+            if(explicitDecl!=null && !isNodeStruct(explicitDecl)) {
+                errors.err("explicit loop type must be a node struct with Succ/Pred", forLoop.position)
+            }
+        }
     }
 
     override fun visit(jump: Jump) {

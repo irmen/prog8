@@ -723,10 +723,11 @@ class Antlr2KotlinVisitor(val source: SourceCode, private val target: ICompilati
 
     override fun visitForloop(ctx: ForloopContext): ForLoop {
         val loopvar = ctx.scoped_identifier().accept(this) as IdentifierReference
-        val iterable = ctx.expression().accept(this) as Expression
+        val iterable = ctx.expression(0).accept(this) as Expression
         val scope = stmtBlockOrSingle(ctx.statement_block(), ctx.statement())
         val loopVarType = dataTypeFor(ctx.datatype())
-        return ForLoop(loopvar, iterable, scope, loopVarType, ctx.toPosition())
+        val step = if(ctx.STEP()!=null && ctx.expression().size > 1) ctx.expression(1).accept(this) as Expression else null
+        return ForLoop(loopvar, iterable, scope, loopVarType, step, ctx.toPosition())
     }
 
     override fun visitWhileloop(ctx: WhileloopContext): WhileLoop {

@@ -149,6 +149,7 @@ interface IAstVisitor {
     fun visit(forLoop: ForLoop) {
         forLoop.loopVar.accept(this)
         forLoop.iterable.accept(this)
+        forLoop.step?.accept(this)
         forLoop.body.accept(this)
     }
 
