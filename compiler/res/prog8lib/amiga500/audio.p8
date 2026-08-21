@@ -76,6 +76,14 @@ audio {
     private ^^exec.MsgPort msgport3 = []
     private bool[4] active_channels
 
+    ; Separate control-request structures for the ADCMD_* control commands.
+    ; An IORequest carrying an in-flight CMD_WRITE is queued inside audio.device
+    ; and must not be reused for another command, so the controls get their own.
+    private ^^IOAudio CtrlIO0 = []
+    private ^^IOAudio CtrlIO1 = []
+    private ^^IOAudio CtrlIO2 = []
+    private ^^IOAudio CtrlIO3 = []
+
     ; ---- high level audio interface ----
 
     sub init() -> bool {
@@ -88,6 +96,7 @@ audio {
 
     sub closedown() {
         ; -- Close down the audio device on all 4 channels. Does not wait for sounds to finish playing.
+        stop_all()
         closedevice()
         for ubyte channel in 0 to 3
             active_channels[channel] = false
@@ -124,6 +133,47 @@ audio {
         wait_channel(3)
     }
 
+    sub stop(ubyte channel) {
+        ; -- Abort the sound currently playing on this channel (ADCMD_FINISH).
+        ; The sound stops immediately; blocks until the aborted write request has completed.
+        if not active_channels[channel]
+            return
+        ^^IOAudio ctrl = get_ctrl(channel)
+        ctrl.Command = ADCMD_FINISH
+        ctrl.Flags = 0
+        BeginIO(ctrl)
+        void exec.WaitIO(ctrl)                ; reap the control request
+        void exec.WaitIO(get_io(channel))     ; reap the aborted write request
+        active_channels[channel] = false
+    }
+
+    sub stop_all() {
+        ; -- Abort the sounds currently playing on all channels.
+        stop(0)
+        stop(1)
+        stop(2)
+        stop(3)
+    }
+
+    sub set_freqvol(ubyte channel, uword samplerate, ubyte volume) {
+        ; -- Change the playback rate and volume of the sound currently playing on this channel (ADCMD_PERVOL).
+        ; Takes effect immediately. Both are always set together: ADCMD_PERVOL has no way to change just one.
+        if not active_channels[channel]
+            return
+        ^^IOAudio ctrl = get_ctrl(channel)
+        ctrl.Command = ADCMD_PERVOL
+        ctrl.Flags = 0
+        ctrl.Period = period(samplerate)
+        ctrl.Volume = volume
+        BeginIO(ctrl)
+    }
+
+    inline sub is_playing(ubyte channel) -> bool {
+        ; -- Returns true while a sound is playing on this channel,
+        ; i.e. between play() and wait_channel()/wait_all()/stop().
+        return active_channels[channel]
+    }
+
 
     ; ---- low level audio interface ----
 
@@ -154,6 +204,12 @@ audio {
         AudioIO1.ReplyPort = init_msgport(msgport1)
         AudioIO2.ReplyPort = init_msgport(msgport2)
         AudioIO3.ReplyPort = init_msgport(msgport3)
+
+        ; Clone the channel bindings into the control structures
+        CtrlIO0^^ = AudioIO0^^
+        CtrlIO1^^ = AudioIO1^^
+        CtrlIO2^^ = AudioIO2^^
+        CtrlIO3^^ = AudioIO3^^
 
         return true
 
@@ -195,9 +251,23 @@ audio {
         }
     }
 
+    private sub get_ctrl(ubyte channel) -> ^^IOAudio {
+        when channel {
+            0 -> return CtrlIO0
+            1 -> return CtrlIO1
+            2 -> return CtrlIO2
+            else -> return CtrlIO3
+        }
+    }
+
     sub period(uword samplerate) -> uword {
         ; calculate the Period to use for the desired sample rate
-        return audio.clock() / samplerate as uword
+        return clock() / samplerate as uword
+    }
+
+    sub sample_rate(uword per) -> uword {
+        ; calculate the sample rate belonging to the given Period; the inverse of period()
+        return clock() / per as uword
     }
 
     asmsub clock() clobbers (A6) -> long @D0 {

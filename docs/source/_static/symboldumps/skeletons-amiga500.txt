@@ -1,6 +1,6 @@
 
 Prog8 compiler v14.0-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit e5e25069 in branch new-codegens
+Prerelease version from git commit 4b320013 in branch new-codegens
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-amiga500.p8
@@ -284,9 +284,14 @@ audio  {
     closedown  ()
     get_io  (ubyte channel) -> ^^audio.IOAudio
     init  () -> bool
+    is_playing  (ubyte channel) -> bool
     opendevice  (long channelPrefs, ubyte prefsLen, byte precedence) -> bool
     period  (uword samplerate) -> uword
-    play_sample  (ubyte channel, ^^byte samples, long num_samples, uword sample_rate, ubyte volume, uword cycles)
+    play  (ubyte channel, ^^byte samples, long num_samples, uword sample_rate, ubyte volume, uword cycles)
+    sample_rate  (uword per) -> uword
+    set_freqvol  (ubyte channel, uword samplerate, ubyte volume)
+    stop  (ubyte channel)
+    stop_all  ()
     wait_all  ()
     wait_channel  (ubyte channel)
 }
@@ -4330,7 +4335,7 @@ sys  {
     exec_version  () -> uword @D0
     exit  (ubyte returnvalue)
     memclear  (long mem @D0, uword numbytes @D1)
-    memcopy  (long source @D0, long tgt @D1, uword count @D2)
+    memcopy  (long source @A0, long tgt @A1, long count @D0)
     memset  (long mem @D0, uword numbytes @D1, ubyte value @D2)
     memsetl  (long mem @D0, uword numlongs @D1, long value @D2)
     memsetw  (long mem @D0, uword numwords @D1, uword value @D2)
