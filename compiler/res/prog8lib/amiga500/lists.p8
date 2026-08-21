@@ -1,6 +1,6 @@
 %import exec
 
-list {
+lists {
     %option ignore_unused
 
     ; = exec.MinNode

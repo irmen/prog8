@@ -21,15 +21,15 @@ class TestListIteration: FunSpec({
             %import lists
             main {
                 sub start() {
-                    ^^list.List mylist = memory("mylist", sizeof(list.List), 0)
-                    ^^list.Node n1 = memory("n1", sizeof(list.Node), 0)
-                    ^^list.Node n2 = memory("n2", sizeof(list.Node), 0)
-                    ^^list.Node n3 = memory("n3", sizeof(list.Node), 0)
-                    list.init(mylist)
-                    list.add_tail(mylist, n1)
-                    list.add_tail(mylist, n2)
-                    list.add_tail(mylist, n3)
-                    for ^^list.Node node in mylist {
+                    ^^lists.List mylist = memory("mylist", sizeof(lists.List), 0)
+                    ^^lists.Node n1 = memory("n1", sizeof(lists.Node), 0)
+                    ^^lists.Node n2 = memory("n2", sizeof(lists.Node), 0)
+                    ^^lists.Node n3 = memory("n3", sizeof(lists.Node), 0)
+                    lists.init(mylist)
+                    lists.add_tail(mylist, n1)
+                    lists.add_tail(mylist, n2)
+                    lists.add_tail(mylist, n3)
+                    for ^^lists.Node node in mylist {
                         if node==0 { break }
                     }
                 }
@@ -43,10 +43,10 @@ class TestListIteration: FunSpec({
             %import lists
             main {
                 sub start() {
-                    ^^list.List mylist = memory("mylist", sizeof(list.List), 0)
-                    ^^list.Node n1 = memory("n1", sizeof(list.Node), 0)
-                    list.init(mylist)
-                    list.add_tail(mylist, n1)
+                    ^^lists.List mylist = memory("mylist", sizeof(lists.List), 0)
+                    ^^lists.Node n1 = memory("n1", sizeof(lists.Node), 0)
+                    lists.init(mylist)
+                    lists.add_tail(mylist, n1)
                     for node in mylist {
                         if node==0 { break }
                     }
@@ -54,7 +54,7 @@ class TestListIteration: FunSpec({
             }
         """, outputDir)
         result shouldNotBe null
-        // node should be inferred as ^^list.Node via Head field
+        // node should be inferred as ^^lists.Node via Head field
         val forNode = result!!.compilerAst.entrypoint.statements
             .flatMap { (it as? prog8.ast.statements.Subroutine)?.statements ?: emptyList() }
         // just verify compilation succeeded - deeper type check is in AstChecker
@@ -65,13 +65,13 @@ class TestListIteration: FunSpec({
             %import lists
             main {
                 sub start() {
-                    ^^list.List mylist = memory("mylist", sizeof(list.List), 0)
-                    ^^list.Node n1 = memory("n1", sizeof(list.Node), 0)
-                    ^^list.Node n2 = memory("n2", sizeof(list.Node), 0)
-                    list.init(mylist)
-                    list.add_tail(mylist, n1)
-                    list.add_tail(mylist, n2)
-                    for ^^list.Node node in mylist step -1 {
+                    ^^lists.List mylist = memory("mylist", sizeof(lists.List), 0)
+                    ^^lists.Node n1 = memory("n1", sizeof(lists.Node), 0)
+                    ^^lists.Node n2 = memory("n2", sizeof(lists.Node), 0)
+                    lists.init(mylist)
+                    lists.add_tail(mylist, n1)
+                    lists.add_tail(mylist, n2)
+                    for ^^lists.Node node in mylist step -1 {
                         if node==0 { break }
                     }
                 }
@@ -148,22 +148,22 @@ class TestListIteration: FunSpec({
             main {
                 sub start() {
                     ubyte @shared failures = 0
-                    ^^list.List mylist = memory("mylist", sizeof(list.List), 0)
-                    list.init(mylist)
+                    ^^lists.List mylist = memory("mylist", sizeof(lists.List), 0)
+                    lists.init(mylist)
                     ; empty
-                    for ^^list.Node node in mylist {
+                    for ^^lists.Node node in mylist {
                         failures++
                     }
-                    for ^^list.Node node in mylist step -1 {
+                    for ^^lists.Node node in mylist step -1 {
                         failures++
                     }
                     ; single
-                    ^^list.Node n1 = memory("n1", sizeof(list.Node), 0)
-                    list.add_tail(mylist, n1)
-                    for ^^list.Node node in mylist {
+                    ^^lists.Node n1 = memory("n1", sizeof(lists.Node), 0)
+                    lists.add_tail(mylist, n1)
+                    for ^^lists.Node node in mylist {
                         if node!=n1 { failures++ }
                     }
-                    for ^^list.Node node in mylist step -1 {
+                    for ^^lists.Node node in mylist step -1 {
                         if node!=n1 { failures++ }
                     }
                 }
@@ -268,9 +268,9 @@ class TestListIteration: FunSpec({
             %import lists
             main {
                 sub start() {
-                    ^^list.List mylist = memory("mylist", sizeof(list.List), 0)
-                    list.init(mylist)
-                    for ^^list.Node node in mylist step 2 {
+                    ^^lists.List mylist = memory("mylist", sizeof(lists.List), 0)
+                    lists.init(mylist)
+                    for ^^lists.Node node in mylist step 2 {
                     }
                 }
             }
@@ -284,9 +284,9 @@ class TestListIteration: FunSpec({
             %import lists
             main {
                 sub start() {
-                    ^^list.List mylist = memory("mylist", sizeof(list.List), 0)
-                    list.init(mylist)
-                    for ^^list.Node node in mylist step 0 {
+                    ^^lists.List mylist = memory("mylist", sizeof(lists.List), 0)
+                    lists.init(mylist)
+                    for ^^lists.Node node in mylist step 0 {
                     }
                 }
             }

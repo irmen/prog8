@@ -5,6 +5,7 @@
 %import compression
 %import conv
 %import floats
+%import lists
 %import lineclip
 %import math
 %import prog8_lib

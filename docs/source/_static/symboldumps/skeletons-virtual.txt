@@ -1,6 +1,6 @@
 
 Prog8 compiler v14.0-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit 556ce702 in branch new-codegens
+Prerelease version from git commit c5b17ae8 in branch new-codegens
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-virtual.p8
@@ -175,7 +175,7 @@ LIBRARY MODULE NAME: cx16logo
 -----------------------------
 
 cx16logo  {
-    @nosplit uword[]  logo_lines
+    long[]  logo_lines
     logo  ()
     logo_at  (ubyte column, ubyte row)
 }
@@ -204,14 +204,14 @@ diskio  {
     f_tell  () -> long, long
     f_write  (str bufferpointer, uword num_bytes) -> bool
     get_loadaddress  (str filename) -> uword
-    load  (str filenameptr, uword address_override) -> uword
-    load_raw  (str filenameptr, uword start_address) -> uword
-    loadlib  (str libnameptr, uword libaddress) -> uword
+    load  (str filenameptr, long address_override) -> uword
+    load_raw  (str filenameptr, long start_address) -> uword
+    loadlib  (str libnameptr, long libaddress) -> uword
     mkdir  (str name)
     rename  (str oldfileptr, str newfileptr)
     rmdir  (str name)
-    save  (str filenameptr, uword start_address, uword savesize) -> bool
-    save_raw  (str filenameptr, uword start_address, uword savesize) -> bool
+    save  (str filenameptr, long start_address, uword savesize) -> bool
+    save_raw  (str filenameptr, long start_address, uword savesize) -> bool
     status  () -> str
     status_code  () -> ubyte
 }
@@ -457,20 +457,18 @@ sys  {
     disable_caseswitch  ()
     enable_caseswitch  ()
     exit  (ubyte returnvalue)
-    get_as_returnaddress  (uword address) -> uword
     gfx_clear  (ubyte color)
     gfx_enable  (ubyte mode)
     gfx_getpixel  (uword xx, uword yy) -> ubyte
     gfx_plot  (uword xx, uword yy, ubyte color)
     gfx_text  (uword xx, uword yy, str textptr, ubyte color)
-    memcmp  (uword address1, uword address2, uword size) -> byte
-    memcopy  (uword source, uword tgt, uword count)
-    memset  (uword mem, uword numbytes, ubyte value)
-    memsetw  (uword mem, uword numwords, uword value)
+    memcmp  (long address1, long address2, uword size) -> byte
+    memcopy  (long source, long tgt, uword count)
+    memset  (long mem, uword numbytes, ubyte value)
+    memsetw  (long mem, uword numwords, uword value)
     poweroff_system  ()
     progend  () -> uword
     progstart  () -> uword
-    push_returnaddress  (uword w)
     read_flags  () -> ubyte
     reset_system  ()
     restore_prog8_internals  ()

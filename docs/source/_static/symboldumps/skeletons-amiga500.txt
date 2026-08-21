@@ -1,6 +1,6 @@
 
 Prog8 compiler v14.0-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit 4b320013 in branch new-codegens
+Prerelease version from git commit c5b17ae8 in branch new-codegens
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-amiga500.p8
@@ -4256,6 +4256,26 @@ lineclip  {
 }
 
 
+LIBRARY MODULE NAME: lists
+--------------------------
+
+lists  {
+    struct FullNode
+    struct List
+    struct Node
+    add_head  (long listptr, long node)
+    add_tail  (long listptr, long node)
+    enqueue  (long listptr, long node)
+    find_name  (long listptr, str name) -> long
+    init  (long listptr)
+    insert  (long listptr, long node, long pred)
+    is_empty  (long listptr) -> bool
+    remove  (long node)
+    remove_head  (long listptr) -> long
+    remove_tail  (long listptr) -> long
+}
+
+
 LIBRARY MODULE NAME: math
 -------------------------
 
@@ -4277,6 +4297,19 @@ math  {
     sin8u  (ubyte angle) -> ubyte
     sinr8  (ubyte radians) -> byte
     sinr8u  (ubyte radians) -> ubyte
+}
+
+
+LIBRARY MODULE NAME: ptplayer
+-----------------------------
+
+ptplayer  {
+    mt_disable  ()
+    mt_enable  ()
+    mt_end  ()
+    mt_init  (long moduledata @A0)
+    mt_install  () -> bool @D0
+    mt_remove  ()
 }
 
 

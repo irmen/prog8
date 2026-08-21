@@ -7,8 +7,10 @@
 %import iffparse
 %import compression
 %import coroutines
+%import custom
 %import conv
 %import floats
+%import lists
 %import lineclip
 %import math
 %import prog8_lib
@@ -24,4 +26,4 @@
 %import utility
 %import timer
 %import audio
-
+%import ptplayer

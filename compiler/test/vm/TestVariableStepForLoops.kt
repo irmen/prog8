@@ -423,22 +423,22 @@ class TestVariableStepForLoops: FunSpec({
                 uword @shared result
                 sub start() {
                     struct MyList {
-                        ^^list.FullNode Head
+                        ^^lists.FullNode Head
                         pointer Tail
-                        ^^list.FullNode TailPred
+                        ^^lists.FullNode TailPred
                     }
                     ^^MyList mylist = memory("mylist", sizeof(MyList), 0)
-                    ^^list.FullNode n1 = memory("n1", sizeof(list.FullNode), 0)
-                    ^^list.FullNode n2 = memory("n2", sizeof(list.FullNode), 0)
-                    ^^list.FullNode n3 = memory("n3", sizeof(list.FullNode), 0)
+                    ^^lists.FullNode n1 = memory("n1", sizeof(lists.FullNode), 0)
+                    ^^lists.FullNode n2 = memory("n2", sizeof(lists.FullNode), 0)
+                    ^^lists.FullNode n3 = memory("n3", sizeof(lists.FullNode), 0)
                     n1.Pri = 1
                     n2.Pri = 2
                     n3.Pri = 3
-                    list.init(mylist)
-                    list.add_tail(mylist, n1)
-                    list.add_tail(mylist, n2)
-                    list.add_tail(mylist, n3)
-                    for ^^list.FullNode node in mylist step -1 {
+                    lists.init(mylist)
+                    lists.add_tail(mylist, n1)
+                    lists.add_tail(mylist, n2)
+                    lists.add_tail(mylist, n3)
+                    for ^^lists.FullNode node in mylist step -1 {
                         uword digit = node.Pri as uword
                         result = result * 10 + digit
                     }

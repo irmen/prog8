@@ -1,4 +1,4 @@
-list {
+lists {
     %option ignore_unused
 
     struct Node {
