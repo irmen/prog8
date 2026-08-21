@@ -59,7 +59,7 @@ class VarConstantValueTypeAdjuster(
         if (decl.value != null && !isConstantInitializer(decl.value!!))
             return noModifications
         if (decl.value != null && isMemorySlabInit(decl.value!!))
-            return noModifications   //  a pointer to a memory slab is usually accessed often and/or in ways that benefit more from the pointer being an actual variable (preferrably in zeropage)
+            return noModifications   //  a pointer to a memory slab is usually accessed often and/or in ways that benefit more from the pointer being an actual variable (preferably in zeropage)
         val usages = callGraph.usages(decl)
         val (writes, reads) = usages
             .partition {

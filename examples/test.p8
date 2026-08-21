@@ -1,65 +1,22 @@
-%import lists
-%import textio
-%zeropage basicsafe
-
 main {
+
+    struct Thing {
+        uword port
+        ^^Thing next
+        bool flag
+    }
+
     sub start() {
-        reverseiter()
-        listiter()
-    }
+        ^^Thing @shared t
 
-    sub reverseiter() {
-        for x in "hello" {
-            txt.chrout(x)
-        }
+        ; this compiles fine:
+        bool @shared derp1 = t.next.flag
+        ubyte @shared derp2 = t.next.flag as ubyte
 
-        txt.nl()
+        bool @shared derp3 = (t.next).flag
+        ubyte @shared derp4 = (t.next).flag as ubyte
 
-        for x in "hello2" step -1 {
-            txt.chrout(x)
-        }
-        txt.nl()
-
-        for y in [11,22,33,44] {
-            txt.print_ub(y)
-            txt.spc()
-        }
-        txt.nl()
-
-        for y in [11,22,33,44] step -1 {
-            txt.print_ub(y)
-            txt.spc()
-        }
-        txt.nl()
-    }
-
-    struct MyNode {
-        ^^MyNode Succ
-        ^^MyNode Pred
-        ubyte value
-    }
-
-    struct MyList {
-        ^^MyNode Head
-        ^^MyNode Tail
-        ^^MyNode TailPred
-    }
-
-    sub listiter() {
-        ^^MyList mylist = []
-        ^^MyNode n1 = [0,0, 11]
-        ^^MyNode n2 = [0,0, 22]
-        ^^MyNode n3 = [0,0, 33]
-        list.init(mylist)
-        list.add_tail(mylist, n1)
-        list.add_tail(mylist, n2)
-        list.add_tail(mylist, n3)
-
-        for node in mylist {
-            txt.print_ulhex(node as long, true)
-            txt.spc()
-            txt.print_ub(node.value)
-            txt.nl()
-        }
+        bool @shared derp5 = (t.port as ^^Thing).flag
+        ubyte @shared derp6 = (t.port as ^^Thing).flag as ubyte
     }
 }

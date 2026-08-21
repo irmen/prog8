@@ -2212,7 +2212,7 @@ internal class AstChecker(private val program: Program,
     private fun checkPointer(pointervar: IdentifierReference) {
         val vardecl = pointervar.targetVarDecl()
         if(vardecl?.zeropage == ZeropageWish.NOT_IN_ZEROPAGE)
-            errors.info("pointer variable should preferrably be in zeropage but is marked nozp", vardecl.position)
+            errors.info("pointer variable should preferably be in zeropage but is marked nozp", vardecl.position)
     }
 
     override fun visit(arrayIndexedExpression: ArrayIndexedExpression) {

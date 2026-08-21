@@ -16,7 +16,7 @@ which aims to provide many conveniences over raw assembly code (even when using 
 
 **Want to buy me a coffee or a pizza perhaps?**
 
-This project was created over the last couple of years by dedicating a huge amoung of my free time to it, to make it the best I possibly can.
+This project was created over the last couple of years by dedicating a huge amount of my free time to it, to make it the best I possibly can.
 If you like Prog8, and think it's worth a nice cup of hot coffee or a delicious pizza, 
 you can help me out a little bit over at [ko-fi.com/irmen](https://ko-fi.com/irmen) or [PayPal](https://paypal.me/irmendejong)
 
@@ -95,7 +95,7 @@ What does Prog8 provide?
 *Rapid edit-compile-run-debug cycle:*
 
 - use a modern PC to do the work on, use nice editors and enjoy quick compilation times
-- can automatically run the program in the Vice emulator after succesful compilation
+- can automatically run the program in the Vice emulator after successful compilation
 - breakpoints, that let the Vice emulator drop into the monitor if execution hits them
 - source code labels automatically loaded in Vice emulator so it can show them in disassembly
 

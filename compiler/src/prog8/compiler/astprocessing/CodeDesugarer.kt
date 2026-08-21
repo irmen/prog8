@@ -628,7 +628,13 @@ _after:
 
         if(expr.operator==".") {
             if(expr.left is IdentifierReference) {
-                require(expr.right !is IdentifierReference)
+                if(expr.right is IdentifierReference) {
+                    // (a.b).c -> a.b.c  - merge dotted names (handles parenthesized pointer chains like (t.next).flag)
+                    val leftIdent = expr.left as IdentifierReference
+                    val rightIdent = expr.right as IdentifierReference
+                    val combined = IdentifierReference(leftIdent.nameInSource + rightIdent.nameInSource, expr.position)
+                    return listOf(AstReplaceNode(expr, combined, parent))
+                }
                 val ri = expr.right as? ArrayIndexedExpression
                 if(ri!=null && ri.plainarrayvar!=null) {
                     val leftIdent = expr.left as IdentifierReference
@@ -686,6 +692,52 @@ _after:
                 // this will be further modified elsewhere
                 val ident = IdentifierReference(right.chain, right.position)
                 return listOf(AstReplaceNode(expr.right, ident, expr))
+            }
+
+            // Generic pointer field access on complex expressions, e.g. (expr as ^^Struct).field
+            // Simple identifier/array left-hand-sides (a.b.c, ptr[i].field) are handled elsewhere.
+            // Writes through such an expression can't occur: the grammar only allows them as read expressions.
+            if(expr.left !is IdentifierReference && expr.left !is ArrayIndexedExpression) {
+                val fieldIdent = expr.right as? IdentifierReference
+                if(fieldIdent!=null) {
+                    val leftDt = expr.left.inferType(program).getOrUndef()
+                    val struct = if(leftDt.isPointer) leftDt.subType as? StructDecl else null
+                    val fieldName = fieldIdent.nameInSource.first()
+                    val fieldDt = struct?.getFieldType(fieldName)
+                    if(struct!=null && fieldDt!=null) {
+                        // (ptr).field  -->  peekXXX(ptr as uword + offsetof(Struct.field))
+                        val offset = struct.offsetof(fieldName, program.target)!!.toInt()
+                        val ptrAsUword = TypecastExpression(expr.left.copy(), DataType.UWORD, true, expr.left.position)
+                        val address: Expression = if(offset==0) ptrAsUword
+                            else BinaryExpression(ptrAsUword, "+", NumericLiteral.optimalInteger(offset, expr.position), expr.position)
+                        fun peekCall(func: String) =
+                            FunctionCallExpression(IdentifierReference(listOf(func), expr.position), mutableListOf(address), expr.position)
+                        val readExpr: Expression = when {
+                            fieldDt.isBool -> peekCall("peekbool")
+                            fieldDt.isUnsignedByte -> DirectMemoryRead(address, expr.position)
+                            fieldDt.isSignedByte -> TypecastExpression(DirectMemoryRead(address, expr.position), DataType.BYTE, true, expr.position)
+                            fieldDt.isUnsignedWord -> peekCall("peekw")
+                            fieldDt.isSignedWord -> TypecastExpression(peekCall("peekw"), DataType.WORD, true, expr.position)
+                            fieldDt.isLong -> peekCall("peekl")
+                            fieldDt.isFloat -> peekCall("peekf")
+                            fieldDt.isPointer -> TypecastExpression(peekCall("peekw"), fieldDt, true, expr.position)
+                            else -> {
+                                errors.err("unsupported field type for pointer dereference", expr.position)
+                                return noModifications
+                            }
+                        }
+                        if(fieldIdent.nameInSource.size==1)
+                            return listOf(AstReplaceNode(expr, readExpr, parent))
+                        // (ptr).field.rest...  -->  (read of first field) . rest...   (will be desugared further in the next pass)
+                        if(!fieldDt.isPointer) {
+                            errors.err("cannot dereference non-pointer field '$fieldName'", fieldIdent.position)
+                            return noModifications
+                        }
+                        val rest = IdentifierReference(fieldIdent.nameInSource.drop(1), fieldIdent.position)
+                        val chained = BinaryExpression(readExpr, ".", rest, expr.position)
+                        return listOf(AstReplaceNode(expr, chained, parent))
+                    }
+                }
             }
         }
 
