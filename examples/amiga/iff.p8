@@ -83,7 +83,6 @@ main {
             word  pageWidth, pageHeight ; Source page size in pixels
         }
 
-        ^^graphics.RastPort rp = &scr.emb_RastPort
         ^^iffparse.IFFHandle iff = iffparse.AllocIFF()
         if iff!=0 {
             iff.Stream = dos.Open(filename, dos.MODE_OLDFILE)
@@ -122,7 +121,7 @@ main {
 
         sub decode(^^BMHDheader hdr, ^^ubyte body) {
             long bytesPerRow = ((hdr.w + 15) / 16) * 2
-            ^^graphics.BitMap bm = rp.BitMap
+            ^^graphics.BitMap bm = intuition.GetScreenBitMap(scr)
             ubyte compressionType = hdr.compression
 
             for y in 0 to hdr.h-1 {
@@ -156,7 +155,7 @@ main {
         sub setPalette(^^iffparse.StoredProperty iffcmap) {
             ^^ubyte rgb = iffcmap.Data
             uword numcolors = iffcmap.Size as uword /3
-            pointer viewport = &scr.emb_ViewPort
+            pointer viewport = intuition.GetScreenViewPort(scr)
             for c in 0 to numcolors-1
                 graphics.SetRGB4(viewport, c as word, rgb[c*3]>>4, rgb[c*3+1]>>4, rgb[c*3+2]>>4)
         }

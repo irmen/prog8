@@ -50,14 +50,14 @@ main {
         ; open custom screen
         ^^intuition.Screen myScreen = intuition.OpenScreenTagList(0, screentags)
         if myScreen!=0 {
-            graphics.LoadRGB4(&myScreen.emb_ViewPort, palette, len(palette))
+            graphics.LoadRGB4(intuition.GetScreenViewPort(myScreen), palette, len(palette))
 
             ; now open a window to be able to set mouse cursor, handle mouse clicks, keyboard presses, etc.
             windowtags[1] = myScreen
             ^^intuition.Window myWindow = intuition.OpenWindowTagList(0, windowtags)
 
             if myWindow!=0 {
-                ^^graphics.RastPort rp = &myScreen.emb_RastPort
+                ^^graphics.RastPort rp = intuition.GetScreenRastPort(myScreen)
 
                 ; draw graphics
                 graphics.SetRast(rp, 1)

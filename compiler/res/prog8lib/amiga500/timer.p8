@@ -26,12 +26,12 @@ timer {
 
     struct TimeRequest {
         ; struct IORequest
-        pointer Succ  ; 0
-        pointer Pred  ; 4
+        ^^exec.Node Succ  ; 0
+        ^^exec.Node Pred  ; 4
         ubyte Type  ; 8
         byte Pri  ; 9
         str Name  ; 10
-        pointer ReplyPort  ; 14
+        ^^exec.MsgPort ReplyPort  ; 14
         uword Length  ; 18
         pointer Device  ; 20
         pointer Unit  ; 24

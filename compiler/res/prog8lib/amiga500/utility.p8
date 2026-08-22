@@ -3,24 +3,26 @@
 ;; Bank: 9
 ;; Functions: 43
 
+%import exec
+
 utility {
     %option no_symbol_prefixing
-    extsub @bank 9   -30 = FindTagItem(long tagVal @D0, pointer tagList @A0) -> pointer @D0
+    extsub @bank 9   -30 = FindTagItem(long tagVal @D0, pointer tagList @A0) -> ^^TagItem @D0
     extsub @bank 9   -36 = GetTagData(long tagValue @D0, long defaultVal @D1, pointer tagList @A0) -> long @D0
     extsub @bank 9   -42 = PackBoolTags(long initialFlags @D0, pointer tagList @A0, pointer boolMap @A1) -> long @D0
-    extsub @bank 9   -48 = NextTagItem(pointer tagListPtr @A0) -> pointer @D0
+    extsub @bank 9   -48 = NextTagItem(pointer tagListPtr @A0) -> ^^TagItem @D0
     extsub @bank 9   -54 = FilterTagChanges(pointer changeList @A0, pointer originalList @A1, long apply @D0)
     extsub @bank 9   -60 = MapTags(pointer tagList @A0, pointer mapList @A1, long mapType @D0)
-    extsub @bank 9   -66 = AllocateTagItems(long numTags @D0) -> pointer @D0
-    extsub @bank 9   -72 = CloneTagItems(pointer tagList @A0) -> pointer @D0
+    extsub @bank 9   -66 = AllocateTagItems(long numTags @D0) -> ^^TagItem @D0
+    extsub @bank 9   -72 = CloneTagItems(pointer tagList @A0) -> ^^TagItem @D0
     extsub @bank 9   -78 = FreeTagItems(pointer tagList @A0)
     extsub @bank 9   -84 = RefreshTagItemClones(pointer clone @A0, pointer original @A1)
     extsub @bank 9   -90 = TagInArray(long tagValue @D0, pointer tagArray @A0) -> bool @D0
     extsub @bank 9   -96 = FilterTagItems(pointer tagList @A0, pointer filterArray @A1, long logic @D0) -> long @D0
-    extsub @bank 9   -102 = CallHookPkt(pointer hook @A0, pointer object @A2, pointer paramPacket @A1) -> long @D0
-    extsub @bank 9   -120 = Amiga2Date(long seconds @D0, pointer result @A0)
-    extsub @bank 9   -126 = Date2Amiga(pointer date @A0) -> long @D0
-    extsub @bank 9   -132 = CheckDate(pointer date @A0) -> long @D0
+    extsub @bank 9   -102 = CallHookPkt(^^Hook hook @A0, pointer object @A2, pointer paramPacket @A1) -> long @D0
+    extsub @bank 9   -120 = Amiga2Date(long seconds @D0, ^^ClockData result @A0)
+    extsub @bank 9   -126 = Date2Amiga(^^ClockData date @A0) -> long @D0
+    extsub @bank 9   -132 = CheckDate(^^ClockData date @A0) -> long @D0
     extsub @bank 9   -138 = SMult32(long arg1 @D0, long arg2 @D1) -> long @D0
     extsub @bank 9   -144 = UMult32(long arg1 @D0, long arg2 @D1) -> long @D0
     extsub @bank 9   -150 = SDivMod32(long dividend @D0, long divisor @D1) -> long @D0
@@ -41,7 +43,7 @@ utility {
     extsub @bank 9   -246 = FreeNamedObject(pointer object @A0)
     extsub @bank 9   -252 = NamedObjectName(pointer object @A0) -> str @D0
     extsub @bank 9   -258 = ReleaseNamedObject(pointer object @A0)
-    extsub @bank 9   -264 = RemNamedObject(pointer object @A0, pointer message @A1)
+    extsub @bank 9   -264 = RemNamedObject(pointer object @A0, ^^exec.Message message @A1)
     extsub @bank 9   -270 = GetUniqueID() -> long @D0
     extsub @bank 9   -312 = VSNPrintf(str buffer @A0, long bufsize @D0, str fmt @A1, pointer data @A2) -> long @D0
     extsub @bank 9   -438 = Strncpy(str dst @A1, str src @A0, long size @D0) -> str @D0
@@ -62,8 +64,8 @@ utility {
     }
 
     struct Hook {  ; total size: 20
-        pointer Succ  ; 0
-        pointer Pred  ; 4
+        ^^exec.MinNode Succ  ; 0
+        ^^exec.MinNode Pred  ; 4
         pointer Entry  ; 8
         pointer SubEntry  ; 12
         pointer Data  ; 16

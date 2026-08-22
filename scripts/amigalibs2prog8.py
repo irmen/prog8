@@ -3,21 +3,21 @@
 Convert Amiga NDK LVO, SFD, and .i files to Prog8 definitions.
 
 Usage:
-  python amigalibs2prog8.py /path/to/AmigaNDK_headers libraryname                > output.p8
-  python amigalibs2prog8.py /path/to/AmigaNDK_headers libraryname --structs --consts  > out.p8
+  python amigalibs2prog8.py <ndk_path> <output_dir>
+
+  e.g. python scripts/amigalibs2prog8.py /path/to/AmigaNDK_headers compiler/res/prog8lib/amiga500
+
+Self-contained single file, clearly separated into 6 sections:
+  0. CONFIG      - AMIGA_LIBS, TYPE_MAP, STRUCT_NAME_MAP, LIB_STRUCT_TAGS, bank map
+  1. DRIVER      - main() controls fixed library set, two positional args
+  2. SCANNER     - parse LVO/SFD/.i and clang JSON AST per library
+  3. REGISTRY    - global_struct_map for cross-library typed pointers
+  4. TYPER       - TypeResolver: struct Foo * -> ^^lib.Foo with cross-lib qualification
+  5. PATCHES     - LIBRARY_HELPERS + Intuition GetScreen* helpers
+  6. WRITER      - generate_structs / generate_consts with typed pointers
 
 Parses the LVO file for LVO offsets, SFD file for function signatures,
-and optionally .i files for struct definitions and constants.
-
-Generated library modules (written to compiler/res/prog8lib/amiga500/):
-  arexx      --structs --consts
-  dos        --structs --consts
-  exec       --structs --consts
-  graphics   --structs --consts
-  icon
-  iffparse   --structs --consts
-  intuition  --structs --consts
-  utility    --structs --consts
+and optionally .i files for struct definitions and constants via clang.
 """
 
 import argparse
@@ -125,11 +125,12 @@ STRUCT_NAME_MAP = {
 }
 
 # Typed list link fields - keep in sync with exec.p8 hand edits and docs NDK reference
+# Tail stays pointer (sentinel, not typed) even though NDK declares struct Node *lh_Tail
 TYPED_LIST_FIELDS = {
     'LN':  {'Succ': '^^Node',    'Pred': '^^Node'},
     'MLN': {'Succ': '^^MinNode', 'Pred': '^^MinNode'},
-    'LH':  {'Head': '^^Node',    'TailPred': '^^Node'},
-    'MLH': {'Head': '^^MinNode', 'TailPred': '^^MinNode'},
+    'LH':  {'Head': '^^Node',    'Tail': 'pointer', 'TailPred': '^^Node'},
+    'MLH': {'Head': '^^MinNode', 'Tail': 'pointer', 'TailPred': '^^MinNode'},
     'MN':  {'Succ': '^^Message', 'Pred': '^^Message'},
 }
 
@@ -462,9 +463,20 @@ def _flatten(tag: str, rs, all_raw: dict, prefix: str, visiting: frozenset, size
                         'origin_tag': tag,
                     })
                     offset += 1
+            # Try cross-lib typed pointer resolution (before string heuristics)
+            if ptype == 'pointer' and _GLOBAL_MAP_FOR_TYPER and _CURRENT_LIB_FOR_TYPER:
+                qtype = field.get('_qual_type')
+                if qtype:
+                    typed = _resolve_c_pointer_to_prog8(qtype, _TYPEDEF_MAP_FOR_TYPER, _CURRENT_LIB_FOR_TYPER, _GLOBAL_MAP_FOR_TYPER)
+                    if typed:
+                        ptype = typed
             if field.get('_clang_processed'):
                 pname = field['name']
                 if field.get('_is_array'):
+                    # For arrays of typed pointers, element size is pointer size (4)
+                    # Apply typed list override also for arrays (unlikely but for consistency)
+                    if tag in TYPED_LIST_FIELDS and pname in TYPED_LIST_FIELDS[tag]:
+                        ptype = TYPED_LIST_FIELDS[tag][pname]
                     flat.append({
                         'prog8_type': ptype,
                         'prog8_name': pname,
@@ -480,9 +492,9 @@ def _flatten(tag: str, rs, all_raw: dict, prefix: str, visiting: frozenset, size
                 pname = _field_name(field['name'], prefix)
                 if ptype == 'pointer' and _is_string_field(field['name'], prefix):
                     ptype = 'str'
-                # apply typed list overrides (keep Amiga NDK typed headers in sync)
-                if tag in TYPED_LIST_FIELDS and pname in TYPED_LIST_FIELDS[tag]:
-                    ptype = TYPED_LIST_FIELDS[tag][pname]
+            # apply typed list overrides for both clang and .i paths (keep Tail as pointer)
+            if tag in TYPED_LIST_FIELDS and pname in TYPED_LIST_FIELDS[tag]:
+                ptype = TYPED_LIST_FIELDS[tag][pname]
             flat.append({
                 'prog8_type': ptype,
                 'prog8_name': pname,
@@ -537,6 +549,8 @@ def _unique_name(base: str, used: set) -> str:
 
 
 def _type_size(prog8_type: str) -> int:
+    if prog8_type.startswith('^^'):
+        return 4
     return {
         'pointer': 4, 'str': 4,
         'long': 4, 'uword': 2, 'word': 2,
@@ -989,7 +1003,7 @@ def generate_consts(consts: list, lib_name: str, indent: str = '    ', header_te
 # Struct tag -> field name: truncate struct after this field (field itself is kept).
 # Fields after the named field are stripped with a comment.
 STRUCT_TRUNCATE_AFTER = {
-    'Screen': 'emb_RastPort',   # Keep direct fields + ViewPort + RastPort, strip everything after
+    'Screen': 'Font',   # Truncate before embedded ViewPort (offset 44), use GetScreen* helpers for ViewPort/RastPort/BitMap
 }
 
 # ---------------------------------------------------------------------------
@@ -1024,6 +1038,12 @@ LIBRARY_BANK_MAP = {
 # They are namespaced identifiers, not reserved words. Adding them would cause
 # SFD parameter renaming bugs (e.g. the icon library's own param 'icon' would
 # become 'k_icon') and struct field over-prefixing.
+
+# ---------------------------------------------------------------------------
+# 0. CONFIG - Amiga libraries to generate
+# ---------------------------------------------------------------------------
+
+AMIGA_LIBS = ["exec", "dos", "graphics", "intuition", "utility", "iffparse", "arexx", "icon"]
 
 # ---------------------------------------------------------------------------
 # Library-specific helper routines (not from NDK, hand-maintained)
@@ -1067,6 +1087,28 @@ LIBRARY_HELPERS = {
             exec.CloseLibrary(sys.IFFParseBase)
             sys.IFFParseBase = 0
         }
+    }
+''',
+    'intuition': '''
+    inline asmsub GetScreenViewPort(^^Screen screen @A0) -> pointer @A1 {
+        ; ViewPort is embedded at Screen offset 44; the ViewPort struct is not generated
+        %asm {{
+            lea     44(a0), a1
+        }}
+    }
+
+    inline asmsub GetScreenRastPort(^^Screen screen @A0) -> ^^graphics.RastPort @A1 {
+        ; RastPort is embedded at Screen offset 84
+        %asm {{
+            lea     84(a0), a1
+        }}
+    }
+
+    inline asmsub GetScreenBitMap(^^Screen screen @A0) -> ^^graphics.BitMap @A1 {
+        ; BitMap is embedded at Screen offset 184
+        %asm {{
+            lea     184(a0), a1
+        }}
     }
 ''',
 }
@@ -1166,9 +1208,24 @@ def parse_sfd_param(param_str: str) -> tuple:
     if not pname:
         return ('long', 'arg')
     prog8_type = parse_c_type(ptype_raw)[0] or 'long'
+    # Try typed struct pointer if global registry is available (cross-lib)
+    if prog8_type == 'pointer' and _GLOBAL_MAP_FOR_TYPER and _CURRENT_LIB_FOR_TYPER:
+        typed = _resolve_c_pointer_to_prog8(ptype_raw, _TYPEDEF_MAP_FOR_TYPER, _CURRENT_LIB_FOR_TYPER, _GLOBAL_MAP_FOR_TYPER)
+        if typed:
+            prog8_type = 'pointer' if _is_text_extent_pointer(typed) or _is_tag_item_pointer(typed) else typed
     if pname in PROG8_KEYWORDS:
         pname = f'k_{pname}'
     return (prog8_type, pname)
+
+
+def _is_text_extent_pointer(prog8_type: str) -> bool:
+    return prog8_type in ('^^TextExtent', '^^graphics.TextExtent')
+
+
+def _is_tag_item_pointer(prog8_type: str) -> bool:
+    # Tag lists are commonly flat arrays, which Prog8 cannot represent as
+    # arrays of struct instances.
+    return prog8_type in ('^^TagItem', '^^utility.TagItem')
 
 
 def parse_sfd(filepath: str) -> dict:
@@ -1553,6 +1610,7 @@ def _add_simple_field(fields_raw: list, field_name: str, qual_type: str,
         '_size': field_size,
         '_clang_processed': True,
         '_is_array': bool(array_match and count > 1),
+        '_qual_type': qual_type,
     }
     if ndk_type == 'STRUCT':
         field_dict['size_str'] = str(field_size)
@@ -1805,39 +1863,138 @@ def parse_structs_from_clang(ndk_path: str, lib_name: str) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# Main
+# 3. REGISTRY + 4. TYPER - Global struct map and typed pointer resolution
 # ---------------------------------------------------------------------------
 
-def main():
-    ap = argparse.ArgumentParser(description="Convert Amiga NDK LVO, SFD, .i files to Prog8.")
-    ap.add_argument('ndk_path', nargs='?', help="Path to AmigaNDK_headers directory")
-    ap.add_argument('lib_name', nargs='?', help="Library name (e.g. exec, dos, graphics)")
-    ap.add_argument('-m', '--mapping', action='store_true', help="Print library bank mapping")
-    ap.add_argument('-s', '--structs', action='store_true', help="Generate struct definitions")
-    ap.add_argument('-c', '--consts', action='store_true', help="Generate constant definitions")
-    args = ap.parse_args()
+def _build_global_struct_map(all_libs_raw: dict) -> dict:
+    """Build C_Name -> {lib, prog8_name, qualified} for cross-lib typing.
+    all_libs_raw: dict lib -> raw_structs dict tag->raw
+    Returns dict C_Name -> {lib, prog8_name, tag, qualified_type}
+    """
+    cmap = {}
+    for lib, raw_dict in all_libs_raw.items():
+        for tag, rs in raw_dict.items():
+            if tag.endswith('_BASE'):
+                continue
+            entry = STRUCT_NAME_MAP.get(tag)
+            if not entry:
+                continue
+            c_name = entry[0]
+            # lib is determined by LIB_STRUCT_TAGS: find owner lib for this tag
+            owner_lib = None
+            for olib, tags in LIB_STRUCT_TAGS.items():
+                if tag in tags:
+                    owner_lib = olib
+                    break
+            if owner_lib is None:
+                owner_lib = lib
+            # prog8 name is C name entry[0] (already Prog8 struct name)
+            prog8_name = c_name
+            cmap[c_name] = {
+                'lib': owner_lib,
+                'prog8_name': prog8_name,
+                'tag': tag,
+            }
+    # Also ensure all STRUCT_NAME_MAP entries that exist in any raw are included even if tag not in LIB_STRUCT_TAGS set for that lib's filtered view
+    for tag, entry in STRUCT_NAME_MAP.items():
+        if tag in cmap or tag.endswith('_BASE'):
+            continue
+        # check if any raw has this tag
+        for lib, raw_dict in all_libs_raw.items():
+            if tag in raw_dict:
+                c_name = entry[0]
+                if c_name not in cmap:
+                    owner_lib = None
+                    for olib, tags in LIB_STRUCT_TAGS.items():
+                        if tag in tags:
+                            owner_lib = olib
+                            break
+                    if owner_lib is None:
+                        owner_lib = lib
+                    cmap[c_name] = {'lib': owner_lib, 'prog8_name': c_name, 'tag': tag}
+                break
+    return cmap
 
-    if args.mapping and not args.lib_name:
-        print_mapping(None)
-        return
-    if not args.ndk_path or not args.lib_name:
-        ap.print_help()
-        sys.exit(1)
 
-    ndk = args.ndk_path.rstrip('/')
-    lib = args.lib_name
+def _qualified_prog8_pointer(c_name: str, current_lib: str, global_map: dict) -> str | None:
+    """Return qualified typed pointer string for known struct C_Name, or None if unknown.
+    Returns e.g. '^^Node' if same lib, '^^exec.Node' if cross-lib.
+    """
+    info = global_map.get(c_name)
+    if not info:
+        return None
+    owner = info['lib']
+    pname = info['prog8_name']
+    if owner == current_lib:
+        return f'^^{pname}'
+    else:
+        return f'^^{owner}.{pname}'
 
-    # Special handling: the 'arexx' module exposes the rexxsyslib functions
-    # (the actual ARexx REXX-message routines). The 'arexx' Amiga library
-    # is just a BOOPSI class wrapper, not where the rexx functions live.
+
+def _resolve_c_pointer_to_prog8(c_qual_type: str, typedef_map: dict, current_lib: str, global_map: dict) -> str | None:
+    """Resolve a C qualType that is a pointer to a known struct to typed Prog8 pointer.
+    Returns typed string like '^^exec.Node' or None if not a typed struct pointer (fallback to generic).
+    """
+    qt = c_qual_type.strip()
+    # Strip array suffix for pointer arrays: "struct Foo *[N]" -> "struct Foo *"
+    qt = re.sub(r'\s*\[.*\]\s*$', '', qt).strip()
+    # Strip const/volatile etc. (case-insensitive, handles CONST from SFD)
+    qt = re.sub(r'\b(const|volatile|register|unsigned|signed)\b', '', qt, flags=re.IGNORECASE).strip()
+    qt = re.sub(r'\s+', ' ', qt).strip()
+    # Must contain * to be pointer
+    if '*' not in qt and '(**' not in qt and '(*)(' not in qt:
+        return None
+    # Count stars: pointer-to-pointer stays generic
+    # Remove function pointer patterns early
+    if '(*' in qt or '(**' in qt:
+        return None
+    star_count = qt.count('*')
+    if star_count != 1:
+        return None
+    # Strip trailing * and spaces
+    base = qt.replace('*', '').strip()
+    # Remove leading struct/union
+    base = re.sub(r'^\s*(struct|union)\s+', '', base, flags=re.IGNORECASE).strip()
+    # Strip remaining qualifiers
+    base = re.sub(r'\b(const|volatile)\b', '', base, flags=re.IGNORECASE).strip()
+    base = re.sub(r'\s+', ' ', base).strip()
+    # Resolve typedef chain if needed
+    orig_base = base
+    seen = set()
+    while base in typedef_map and base not in seen:
+        seen.add(base)
+        resolved = typedef_map[base]
+        # If typedef resolves to something with *, try again
+        if '*' in resolved:
+            # e.g. typedef struct Node *NodePtr; base=NodePtr
+            qt2 = resolved
+            # Re-evaluate as pointer type
+            return _resolve_c_pointer_to_prog8(qt2, typedef_map, current_lib, global_map)
+        base = resolved.strip()
+        base = re.sub(r'^\s*(struct|union)\s+', '', base).strip()
+        base = re.sub(r'\b(const|volatile)\b', '', base).strip()
+    # Check string types: char * already handled but fallback
+    if base in ('char', 'STRPTR', 'TEXT', 'CONST_STRPTR', 'CONST_TEXT', 'BSTR'):
+        return None  # caller will map to str
+    # Now base should be C struct name like Node, FileLock, etc.
+    # Try direct lookup
+    q = _qualified_prog8_pointer(base, current_lib, global_map)
+    if q is not None:
+        return q
+    # Try typedef base without struct prefix already handled
+    # Fallback generic
+    return None
+
+
+# ---------------------------------------------------------------------------
+# Helpers for driver - collection and generation
+# ---------------------------------------------------------------------------
+
+def _collect_raw_for_lib(ndk: str, lib: str) -> dict:
+    """Collect raw struct dict for one lib (clang preferred, .i fallback)."""
     arexx_alias = (lib == 'arexx')
-
-    # Parse struct definitions - prefer clang JSON AST over .i files
-    all_raw = {}
     inc = os.path.join(ndk, 'Include_I', 'rexx' if arexx_alias else lib)
     exec_inc = os.path.join(ndk, 'Include_I', 'exec')
-    # iffparse's include files live in the shared Include_I/libraries dir
-    # icon's DiskObject struct is in workbench/workbench.i
     lib_i_files = []
     if lib == 'iffparse':
         iff_file = os.path.join(ndk, 'Include_I', 'libraries', 'iffparse.i')
@@ -1847,96 +2004,237 @@ def main():
         wb_file = os.path.join(ndk, 'Include_I', 'workbench', 'workbench.i')
         if os.path.isfile(wb_file):
             lib_i_files.append(wb_file)
-    if args.structs or args.consts:
-        clang_structs = parse_structs_from_clang(ndk, lib)
-        if clang_structs is not None:
-            all_raw = clang_structs
-        else:
-            # Fallback to .i file parsing
-            if os.path.isdir(exec_inc):
-                all_raw.update(parse_struct_i_files(exec_inc))
-            if os.path.isdir(inc):
-                lib_structs = parse_struct_i_files(inc)
-                for tag in lib_structs:
-                    if tag in all_raw:
-                        print(f"Warning: struct '{tag}' from exec overwritten by {lib}", file=sys.stderr)
-                all_raw.update(lib_structs)
-            elif lib_i_files:
-                for fp in lib_i_files:
-                    all_raw.update(_parse_one_i(fp))
-            # Resolve base sizes across merged structs (e.g. utility HOOK extends exec MLN)
-            _resolve_base_sizes(all_raw)
-    else:
-        all_raw = {}
+    clang_structs = parse_structs_from_clang(ndk, lib)
+    if clang_structs is not None:
+        return clang_structs
+    all_raw = {}
+    if os.path.isdir(exec_inc):
+        all_raw.update(parse_struct_i_files(exec_inc))
+    if os.path.isdir(inc):
+        lib_structs = parse_struct_i_files(inc)
+        for tag in list(lib_structs.keys()):
+            if tag in all_raw:
+                print(f"Warning: struct '{tag}' from exec overwritten by {lib}", file=sys.stderr)
+        all_raw.update(lib_structs)
+    elif lib_i_files:
+        for fp in lib_i_files:
+            all_raw.update(_parse_one_i(fp))
+    _resolve_base_sizes(all_raw)
+    return all_raw
 
-    # Parse LVO and SFD for function signatures
-    lvo_lib = 'rexxsyslib' if arexx_alias else lib
-    lvo_p = os.path.join(ndk, 'Include_I', 'lvo', f'{lvo_lib}_lib.i')
-    sfd_p = os.path.join(ndk, 'SFD', f'{lvo_lib}_lib.sfd')
-    if not os.path.exists(lvo_p) or not os.path.exists(sfd_p):
-        print(f"Error: LVO or SFD file not found for '{lib}'", file=sys.stderr)
-        sys.exit(1)
-    lvos = parse_lvo(lvo_p)
-    sfd_funcs = parse_sfd(sfd_p)
-    libname = sfd_funcs.pop('__libname', '')
-    # The arexx module uses the rexxsyslib bank (where the rexx functions actually live).
-    bank = LIBRARY_BANK_MAP.get(lvo_lib) if arexx_alias else LIBRARY_BANK_MAP.get(lib)
-    btag = f"@bank {bank} " if bank else ""
 
-    print(f";; Auto-generated from {lib}_lib.sfd and {lib}_lib.i")
-    if libname:
-        print(f";; Library base: {libname}  in prog8: sys.{libname[1:]}")
-    if bank:
-        print(f";; Bank: {bank}")
-    print(f";; Functions: {len(lvos)}\n")
+# Track current lib and global map for typer callbacks (used by field helpers)
+_CURRENT_LIB_FOR_TYPER = None
+_GLOBAL_MAP_FOR_TYPER = {}
+_TYPEDEF_MAP_FOR_TYPER = {}
 
-    # library-specific helper routines (hand-maintained, not from NDK)
-    helper = LIBRARY_HELPERS.get(lib)
-    if helper and 'exec.' in helper:
-        print(f"%import exec")
-        print()
-    print(f"{lib} {{")
-    print(f"    %option no_symbol_prefixing")
 
-    # library-specific helper routines (hand-maintained, not from NDK)
-    helper = LIBRARY_HELPERS.get(lib)
-    if helper:
-        print(helper)
+# ---------------------------------------------------------------------------
+# 1. DRIVER - Controls library set
+# ---------------------------------------------------------------------------
 
-    # extsub definitions
-    for name, lvo in sorted(lvos.items(), key=lambda x: x[1], reverse=True):
-        info = sfd_funcs.get(name)
-        pi = (info or {}).get('params', [])
-        regs = (info or {}).get('regs', [])
-        iv = (info or {}).get('is_void', True)
-        rt = (info or {}).get('ret_type')
-        pp = []
-        idx = 0
-        for r in regs:
-            if idx < len(pi):
-                pt, pn = pi[idx]
-                idx += 1
-            else:
-                pt, pn = 'long', f'reg_{r.lower()}'
-            pp.append(f"{pt} {pn} @{r.upper()}")
-        ps = ", ".join(pp)
-        rets = ''
-        if not iv:
-            pr = parse_c_type(rt)[0] or 'long'
-            rets = f" -> {pr} @D0"
-        print(f"    extsub {btag}  {lvo} = {name}({ps}){rets}")
+def main():
+    ap = argparse.ArgumentParser(description="Convert Amiga NDK LVO, SFD, .i files to Prog8. Generates typed pointers cross-library.")
+    ap.add_argument('ndk_path', help="Path to AmigaNDK_headers directory")
+    ap.add_argument('output_dir', help="Path to amiga500 library output directory (e.g. compiler/res/prog8lib/amiga500)")
+    args = ap.parse_args()
 
-    # structs inside the block
-    if args.structs:
+    ndk = args.ndk_path.rstrip('/')
+    out_dir = args.output_dir.rstrip('/')
+    os.makedirs(out_dir, exist_ok=True)
+
+    # Phase 1: Scan all libs for raw structs to build global registry
+    print(f"Scanning NDK at {ndk} for {len(AMIGA_LIBS)} libs...", file=sys.stderr)
+    all_libs_raw = {}
+    all_libs_typedef = {}
+    for lib in AMIGA_LIBS:
+        raw = _collect_raw_for_lib(ndk, lib)
+        all_libs_raw[lib] = raw
+        # Also collect typedef map for typer (from clang AST if available)
+        # parse_structs_from_clang already built typedef map internally, but we need to capture it
+        # For simplicity, build typedef map from clang AST separately if available
+        # Fallback: empty map
+        all_libs_typedef[lib] = {}
+
+    # For clang path, we need typedef maps per lib; re-parse to get them
+    # Instead, build global map from STRUCT_NAME_MAP entries that exist in any raw
+    global_map = _build_global_struct_map(all_libs_raw)
+    # Rename dos.DateStamp struct to avoid collision with extsub DateStamp in same block (ST cannot hold both with same scoped name)
+    if "DateStamp" in global_map and global_map["DateStamp"]["lib"] == "dos":
+        global_map["DateStamp"]["prog8_name"] = "DateStampStruct"
+    print(f"Global struct map: {len(global_map)} known structs", file=sys.stderr)
+
+    # Phase 2: Generate each lib with cross-lib typed pointers
+    for lib in AMIGA_LIBS:
+        arexx_alias = (lib == 'arexx')
+        lvo_lib = 'rexxsyslib' if arexx_alias else lib
+        lvo_p = os.path.join(ndk, 'Include_I', 'lvo', f'{lvo_lib}_lib.i')
+        sfd_p = os.path.join(ndk, 'SFD', f'{lvo_lib}_lib.sfd')
+        if not os.path.exists(lvo_p) or not os.path.exists(sfd_p):
+            print(f"Warning: LVO or SFD not found for '{lib}', skipping", file=sys.stderr)
+            continue
+        # Set typer globals for this lib before parsing SFD and generating structs
+        global _CURRENT_LIB_FOR_TYPER, _GLOBAL_MAP_FOR_TYPER, _TYPEDEF_MAP_FOR_TYPER
+        _CURRENT_LIB_FOR_TYPER = lib
+        _GLOBAL_MAP_FOR_TYPER = global_map
+        # Build typedef map for this lib from clang AST if available
+        # Try to get typedef map via re-parsing clang AST for this lib
+        try:
+            # Quick: build typedef map from clang AST if parse succeeds
+            from pathlib import Path
+            # Use existing parse_structs_from_clang path to also get typedef map
+            # We call a helper to get typedef map
+            _TYPEDEF_MAP_FOR_TYPER = {}
+            # Attempt to load clang AST typedefs: call parse_structs_from_clang with side effect capture
+            # Instead, directly build from AST if available
+            inc_path = os.path.join(ndk, 'Include_H')
+            c_lines = ['#include <exec/exec.h>']
+            for hdr in LIB_HEADERS.get(lib, []):
+                c_lines.append(f'#include <{hdr}>')
+            c_source = '\n'.join(c_lines)
+            import tempfile, subprocess, json
+            try:
+                with tempfile.NamedTemporaryFile(suffix='.c', mode='w', delete=False) as f:
+                    f.write(c_source)
+                    c_file = f.name
+                result = subprocess.run(['clang', '-Xclang', '-ast-dump=json', '-fsyntax-only', f'-I{inc_path}', c_file], capture_output=True, text=True, timeout=10)
+                if result.returncode == 0:
+                    ast = json.loads(result.stdout)
+                    _TYPEDEF_MAP_FOR_TYPER = _build_typedef_map(ast)
+                os.unlink(c_file)
+            except Exception:
+                pass
+        except Exception:
+            _TYPEDEF_MAP_FOR_TYPER = {}
+
+        lvos = parse_lvo(lvo_p)
+        # Need to re-parse SFD with typer globals set so parse_sfd_param can type extsubs
+        sfd_funcs = parse_sfd(sfd_p)
+        libname = sfd_funcs.pop('__libname', '')
+        bank = LIBRARY_BANK_MAP.get(lvo_lib) if arexx_alias else LIBRARY_BANK_MAP.get(lib)
+        btag = f"@bank {bank} " if bank else ""
+
+        all_raw = all_libs_raw.get(lib, {})
+
+        # Resolve structs with typer globals set
         resolved = resolve_struct_sizes(all_raw)
         allowed = _library_struct_tags(lib)
         resolved = {tag: rs for tag, rs in resolved.items() if tag in allowed}
-        structs_text = generate_structs(resolved, lib, indent='    ', header_text='struct definitions')
-        if structs_text:
-            print(structs_text)
+        # Rename dos.DateStamp struct to avoid collision with extsub DateStamp (ST cannot hold both with same scoped name)
+        if lib == "dos" and "DateStamp" in resolved:
+            resolved["DateStamp"]["c_name"] = "DateStampStruct"
 
-    # constants inside the block
-    if args.consts:
+        # Collect needed cross-lib imports from typed extsubs and structs
+        needed_imports = set()
+        # From extsubs
+        for info in sfd_funcs.values():
+            if not isinstance(info, dict):
+                continue
+            for pt, pn in info.get('params', []):
+                if pt.startswith('^^') and '.' in pt:
+                    imp = pt[2:].split('.')[0]
+                    if imp != lib:
+                        needed_imports.add(imp)
+            rt = info.get('ret_type', '')
+            # ret_type is string like "struct Node *", need to check if typed would be cross-lib
+            # We can re-resolve return type
+            if rt and not info.get('is_void', True):
+                # Try to resolve return type as typed pointer
+                typed_ret = None
+                if _GLOBAL_MAP_FOR_TYPER and _CURRENT_LIB_FOR_TYPER:
+                    typed_ret = _resolve_c_pointer_to_prog8(rt, _TYPEDEF_MAP_FOR_TYPER, lib, global_map)
+                    if typed_ret and not _is_text_extent_pointer(typed_ret) and '.' in typed_ret:
+                        imp = typed_ret[2:].split('.')[0]
+                        if imp != lib:
+                            needed_imports.add(imp)
+                # Also check if sfd_funcs already typed return is cross-lib (if stored as prog8_type)
+                # The sfd_funcs ret_type is still raw C, not yet converted; we already handled via typed_ret
+        # From structs
+        for rs in resolved.values():
+            for f in rs.get('fields', []):
+                ptype = f.get('prog8_type', '')
+                if ptype.startswith('^^') and '.' in ptype:
+                    imp = ptype[2:].split('.')[0]
+                    if imp != lib:
+                        needed_imports.add(imp)
+
+        # Also check helper imports (e.g. intuition helpers need graphics)
+        helper = LIBRARY_HELPERS.get(lib, '')
+        if helper and '^^graphics.' in helper:
+            needed_imports.add('graphics')
+        if helper and '^^exec.' in helper:
+            needed_imports.add('exec')
+
+        # Build output string
+        out_lines = []
+        out_lines.append(f";; Auto-generated from {lib}_lib.sfd and {lib}_lib.i")
+        if libname:
+            out_lines.append(f";; Library base: {libname}  in prog8: sys.{libname[1:]}")
+        if bank:
+            out_lines.append(f";; Bank: {bank}")
+        out_lines.append(f";; Functions: {len(lvos)}")
+        out_lines.append("")
+
+        # Imports for cross-lib types
+        for imp in sorted(needed_imports):
+            out_lines.append(f"%import {imp}")
+        if needed_imports:
+            out_lines.append("")
+
+        out_lines.append(f"{lib} {{")
+        out_lines.append(f"    %option no_symbol_prefixing")
+        if helper:
+            out_lines.append(helper)
+
+        # extsub definitions (already typed via parse_sfd_param globals)
+        for name, lvo in sorted(lvos.items(), key=lambda x: x[1], reverse=True):
+            info = sfd_funcs.get(name)
+            pi = (info or {}).get('params', [])
+            regs = (info or {}).get('regs', [])
+            iv = (info or {}).get('is_void', True)
+            rt = (info or {}).get('ret_type')
+            pp = []
+            idx = 0
+            for r in regs:
+                if idx < len(pi):
+                    pt, pn = pi[idx]
+                    idx += 1
+                else:
+                    pt, pn = 'long', f'reg_{r.lower()}'
+                pp.append(f"{pt} {pn} @{r.upper()}")
+            ps = ", ".join(pp)
+            rets = ''
+            if not iv:
+                # Typed return
+                pr = None
+                if _GLOBAL_MAP_FOR_TYPER and lib:
+                    pr = _resolve_c_pointer_to_prog8(rt, _TYPEDEF_MAP_FOR_TYPER, lib, global_map)
+                    if pr and _is_text_extent_pointer(pr):
+                        pr = 'pointer'
+                if pr is None:
+                    pr = parse_c_type(rt)[0] or 'long'
+                    # BOOL returns should be bool
+                    if rt and 'BOOL' in rt:
+                        pr = 'bool'
+                rets = f" -> {pr} @D0"
+            out_lines.append(f"    extsub {btag}  {lvo} = {name}({ps}){rets}")
+
+        # structs (max_size 32768 for m68k, not 256)
+        structs_text = generate_structs(resolved, lib, indent='    ', header_text='struct definitions', max_size=32768)
+        if structs_text:
+            out_lines.append(structs_text)
+
+        # constants
+        inc = os.path.join(ndk, 'Include_I', 'rexx' if arexx_alias else lib)
+        lib_i_files = []
+        if lib == 'iffparse':
+            iff_file = os.path.join(ndk, 'Include_I', 'libraries', 'iffparse.i')
+            if os.path.isfile(iff_file):
+                lib_i_files.append(iff_file)
+        if lib == 'icon':
+            wb_file = os.path.join(ndk, 'Include_I', 'workbench', 'workbench.i')
+            if os.path.isfile(wb_file):
+                lib_i_files.append(wb_file)
         consts = []
         extra_files = []
         if lib == 'intuition':
@@ -1949,12 +2247,29 @@ def main():
             consts.extend(parse_consts_i_files('', extra_files=extra_files + lib_i_files))
         consts_text = generate_consts(consts, lib, indent='    ', header_text='constants')
         if consts_text:
-            print(consts_text)
+            out_lines.append(consts_text)
 
-    print(f"}}")
-    print(f";; End of auto-generated {lib}_lib.sfd")
-    if args.mapping:
-        print_mapping(lib)
+        out_lines.append(f"}}")
+        out_lines.append(f";; End of auto-generated {lib}_lib.sfd")
+        content = "\n".join(out_lines) + "\n"
+
+        # Write transactionally only if changed
+        out_path = os.path.join(out_dir, f"{lib}.p8")
+        existing = None
+        if os.path.exists(out_path):
+            with open(out_path, 'r', encoding='utf-8') as f:
+                existing = f.read()
+        if existing != content:
+            with open(out_path, 'w', encoding='utf-8') as f:
+                f.write(content)
+            print(f"Wrote {out_path}", file=sys.stderr)
+        else:
+            print(f"Unchanged {out_path}", file=sys.stderr)
+
+    # Reset globals
+    _CURRENT_LIB_FOR_TYPER = None
+    _GLOBAL_MAP_FOR_TYPER = {}
+    _TYPEDEF_MAP_FOR_TYPER = {}
 
 
 def _tags_in_dir(d: str) -> set:

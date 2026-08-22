@@ -4,6 +4,7 @@
 ;; Functions: 40
 
 %import exec
+%import utility
 
 iffparse {
     %option no_symbol_prefixing
@@ -20,41 +21,41 @@ iffparse {
         }
     }
 
-    extsub @bank 14   -30 = AllocIFF() -> pointer @D0
-    extsub @bank 14   -36 = OpenIFF(pointer iff @A0, long rwMode @D0) -> long @D0
-    extsub @bank 14   -42 = ParseIFF(pointer iff @A0, long control @D0) -> long @D0
-    extsub @bank 14   -48 = CloseIFF(pointer iff @A0)
-    extsub @bank 14   -54 = FreeIFF(pointer iff @A0)
-    extsub @bank 14   -60 = ReadChunkBytes(pointer iff @A0, pointer buf @A1, long numBytes @D0) -> long @D0
-    extsub @bank 14   -66 = WriteChunkBytes(pointer iff @A0, pointer buf @A1, long numBytes @D0) -> long @D0
-    extsub @bank 14   -72 = ReadChunkRecords(pointer iff @A0, pointer buf @A1, long bytesPerRecord @D0, long numRecords @D1) -> long @D0
-    extsub @bank 14   -78 = WriteChunkRecords(pointer iff @A0, pointer buf @A1, long bytesPerRecord @D0, long numRecords @D1) -> long @D0
-    extsub @bank 14   -84 = PushChunk(pointer iff @A0, long k_type @D0, long id @D1, long size @D2) -> long @D0
-    extsub @bank 14   -90 = PopChunk(pointer iff @A0) -> long @D0
-    extsub @bank 14   -102 = EntryHandler(pointer iff @A0, long k_type @D0, long id @D1, long position @D2, pointer handler @A1, pointer object @A2) -> long @D0
-    extsub @bank 14   -108 = ExitHandler(pointer iff @A0, long k_type @D0, long id @D1, long position @D2, pointer handler @A1, pointer object @A2) -> long @D0
-    extsub @bank 14   -114 = PropChunk(pointer iff @A0, long k_type @D0, long id @D1) -> long @D0
-    extsub @bank 14   -120 = PropChunks(pointer iff @A0, pointer propArray @A1, long numPairs @D0) -> long @D0
-    extsub @bank 14   -126 = StopChunk(pointer iff @A0, long k_type @D0, long id @D1) -> long @D0
-    extsub @bank 14   -132 = StopChunks(pointer iff @A0, pointer propArray @A1, long numPairs @D0) -> long @D0
-    extsub @bank 14   -138 = CollectionChunk(pointer iff @A0, long k_type @D0, long id @D1) -> long @D0
-    extsub @bank 14   -144 = CollectionChunks(pointer iff @A0, pointer propArray @A1, long numPairs @D0) -> long @D0
-    extsub @bank 14   -150 = StopOnExit(pointer iff @A0, long k_type @D0, long id @D1) -> long @D0
-    extsub @bank 14   -156 = FindProp(pointer iff @A0, long k_type @D0, long id @D1) -> pointer @D0
-    extsub @bank 14   -162 = FindCollection(pointer iff @A0, long k_type @D0, long id @D1) -> pointer @D0
-    extsub @bank 14   -168 = FindPropContext(pointer iff @A0) -> pointer @D0
-    extsub @bank 14   -174 = CurrentChunk(pointer iff @A0) -> pointer @D0
-    extsub @bank 14   -180 = ParentChunk(pointer contextNode @A0) -> pointer @D0
+    extsub @bank 14   -30 = AllocIFF() -> ^^IFFHandle @D0
+    extsub @bank 14   -36 = OpenIFF(^^IFFHandle iff @A0, long rwMode @D0) -> long @D0
+    extsub @bank 14   -42 = ParseIFF(^^IFFHandle iff @A0, long control @D0) -> long @D0
+    extsub @bank 14   -48 = CloseIFF(^^IFFHandle iff @A0)
+    extsub @bank 14   -54 = FreeIFF(^^IFFHandle iff @A0)
+    extsub @bank 14   -60 = ReadChunkBytes(^^IFFHandle iff @A0, pointer buf @A1, long numBytes @D0) -> long @D0
+    extsub @bank 14   -66 = WriteChunkBytes(^^IFFHandle iff @A0, pointer buf @A1, long numBytes @D0) -> long @D0
+    extsub @bank 14   -72 = ReadChunkRecords(^^IFFHandle iff @A0, pointer buf @A1, long bytesPerRecord @D0, long numRecords @D1) -> long @D0
+    extsub @bank 14   -78 = WriteChunkRecords(^^IFFHandle iff @A0, pointer buf @A1, long bytesPerRecord @D0, long numRecords @D1) -> long @D0
+    extsub @bank 14   -84 = PushChunk(^^IFFHandle iff @A0, long k_type @D0, long id @D1, long size @D2) -> long @D0
+    extsub @bank 14   -90 = PopChunk(^^IFFHandle iff @A0) -> long @D0
+    extsub @bank 14   -102 = EntryHandler(^^IFFHandle iff @A0, long k_type @D0, long id @D1, long position @D2, ^^utility.Hook handler @A1, pointer object @A2) -> long @D0
+    extsub @bank 14   -108 = ExitHandler(^^IFFHandle iff @A0, long k_type @D0, long id @D1, long position @D2, ^^utility.Hook handler @A1, pointer object @A2) -> long @D0
+    extsub @bank 14   -114 = PropChunk(^^IFFHandle iff @A0, long k_type @D0, long id @D1) -> long @D0
+    extsub @bank 14   -120 = PropChunks(^^IFFHandle iff @A0, pointer propArray @A1, long numPairs @D0) -> long @D0
+    extsub @bank 14   -126 = StopChunk(^^IFFHandle iff @A0, long k_type @D0, long id @D1) -> long @D0
+    extsub @bank 14   -132 = StopChunks(^^IFFHandle iff @A0, pointer propArray @A1, long numPairs @D0) -> long @D0
+    extsub @bank 14   -138 = CollectionChunk(^^IFFHandle iff @A0, long k_type @D0, long id @D1) -> long @D0
+    extsub @bank 14   -144 = CollectionChunks(^^IFFHandle iff @A0, pointer propArray @A1, long numPairs @D0) -> long @D0
+    extsub @bank 14   -150 = StopOnExit(^^IFFHandle iff @A0, long k_type @D0, long id @D1) -> long @D0
+    extsub @bank 14   -156 = FindProp(^^IFFHandle iff @A0, long k_type @D0, long id @D1) -> ^^StoredProperty @D0
+    extsub @bank 14   -162 = FindCollection(^^IFFHandle iff @A0, long k_type @D0, long id @D1) -> ^^CollectionItem @D0
+    extsub @bank 14   -168 = FindPropContext(^^IFFHandle iff @A0) -> ^^ContextNode @D0
+    extsub @bank 14   -174 = CurrentChunk(^^IFFHandle iff @A0) -> ^^ContextNode @D0
+    extsub @bank 14   -180 = ParentChunk(^^ContextNode contextNode @A0) -> ^^ContextNode @D0
     extsub @bank 14   -186 = AllocLocalItem(long k_type @D0, long id @D1, long ident @D2, long dataSize @D3) -> pointer @D0
     extsub @bank 14   -192 = LocalItemData(pointer localItem @A0) -> pointer @D0
-    extsub @bank 14   -198 = SetLocalItemPurge(pointer localItem @A0, pointer purgeHook @A1)
+    extsub @bank 14   -198 = SetLocalItemPurge(pointer localItem @A0, ^^utility.Hook purgeHook @A1)
     extsub @bank 14   -204 = FreeLocalItem(pointer localItem @A0)
-    extsub @bank 14   -210 = FindLocalItem(pointer iff @A0, long k_type @D0, long id @D1, long ident @D2) -> pointer @D0
-    extsub @bank 14   -216 = StoreLocalItem(pointer iff @A0, pointer localItem @A1, long position @D0) -> long @D0
-    extsub @bank 14   -222 = StoreItemInContext(pointer iff @A0, pointer localItem @A1, pointer contextNode @A2)
-    extsub @bank 14   -228 = InitIFF(pointer iff @A0, long flags @D0, pointer streamHook @A1)
-    extsub @bank 14   -234 = InitIFFasDOS(pointer iff @A0)
-    extsub @bank 14   -240 = InitIFFasClip(pointer iff @A0)
+    extsub @bank 14   -210 = FindLocalItem(^^IFFHandle iff @A0, long k_type @D0, long id @D1, long ident @D2) -> pointer @D0
+    extsub @bank 14   -216 = StoreLocalItem(^^IFFHandle iff @A0, pointer localItem @A1, long position @D0) -> long @D0
+    extsub @bank 14   -222 = StoreItemInContext(^^IFFHandle iff @A0, pointer localItem @A1, ^^ContextNode contextNode @A2)
+    extsub @bank 14   -228 = InitIFF(^^IFFHandle iff @A0, long flags @D0, ^^utility.Hook streamHook @A1)
+    extsub @bank 14   -234 = InitIFFasDOS(^^IFFHandle iff @A0)
+    extsub @bank 14   -240 = InitIFFasClip(^^IFFHandle iff @A0)
     extsub @bank 14   -246 = OpenClipboard(long unitNumber @D0) -> pointer @D0
     extsub @bank 14   -252 = CloseClipboard(pointer clipHandle @A0)
     extsub @bank 14   -258 = GoodID(long id @D0) -> long @D0
@@ -64,14 +65,14 @@ iffparse {
     ; ---- struct definitions ----
 
     struct CollectionItem {  ; total size: 12
-        pointer Next  ; 0
+        ^^CollectionItem Next  ; 0
         long Size  ; 4
         pointer Data  ; 8
     }
 
     struct ContextNode {  ; total size: 24
-        pointer Succ  ; 0
-        pointer Pred  ; 4
+        ^^exec.MinNode Succ  ; 0
+        ^^exec.MinNode Pred  ; 4
         long Id  ; 8
         long Type  ; 12
         long Size  ; 16

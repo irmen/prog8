@@ -21,7 +21,7 @@ exec {
     extsub @bank 1   -30 = Supervisor(pointer userFunction @A5) -> long @D0
     extsub @bank 1   -72 = InitCode(long startClass @D0, long version @D1)
     extsub @bank 1   -78 = InitStruct(pointer initTable @A1, pointer k_memory @A2, long size @D0)
-    extsub @bank 1   -84 = MakeLibrary(pointer funcInit @A0, pointer structInit @A1, pointer libInit @A2, long dataSize @D0, long segList @D1) -> pointer @D0
+    extsub @bank 1   -84 = MakeLibrary(pointer funcInit @A0, pointer structInit @A1, pointer libInit @A2, long dataSize @D0, long segList @D1) -> ^^Library @D0
     extsub @bank 1   -90 = MakeFunctions(pointer target @A0, pointer functionArray @A1, long funcDispBase @A2)
     extsub @bank 1   -96 = FindResident(str name @A1) -> pointer @D0
     extsub @bank 1   -102 = InitResident(pointer resident @A1, long segList @D1) -> pointer @D0
@@ -34,10 +34,10 @@ exec {
     extsub @bank 1   -144 = SetSR(long newSR @D0, long mask @D1) -> long @D0
     extsub @bank 1   -150 = SuperState() -> pointer @D0
     extsub @bank 1   -156 = UserState(pointer sysStack @D0)
-    extsub @bank 1   -162 = SetIntVector(long intNumber @D0, pointer interrupt @A1) -> pointer @D0
-    extsub @bank 1   -168 = AddIntServer(long intNumber @D0, pointer interrupt @A1)
-    extsub @bank 1   -174 = RemIntServer(long intNumber @D0, pointer interrupt @A1)
-    extsub @bank 1   -180 = Cause(pointer interrupt @A1)
+    extsub @bank 1   -162 = SetIntVector(long intNumber @D0, ^^Interrupt interrupt @A1) -> ^^Interrupt @D0
+    extsub @bank 1   -168 = AddIntServer(long intNumber @D0, ^^Interrupt interrupt @A1)
+    extsub @bank 1   -174 = RemIntServer(long intNumber @D0, ^^Interrupt interrupt @A1)
+    extsub @bank 1   -180 = Cause(^^Interrupt interrupt @A1)
     extsub @bank 1   -186 = Allocate(pointer freeList @A0, long byteSize @D0) -> pointer @D0
     extsub @bank 1   -192 = Deallocate(pointer freeList @A0, pointer memoryBlock @A1, long byteSize @D0)
     extsub @bank 1   -198 = AllocMem(long byteSize @D0, long requirements @D1) -> pointer @D0
@@ -46,39 +46,39 @@ exec {
     extsub @bank 1   -216 = AvailMem(long requirements @D1) -> long @D0
     extsub @bank 1   -222 = AllocEntry(pointer entry @A0) -> pointer @D0
     extsub @bank 1   -228 = FreeEntry(pointer entry @A0)
-    extsub @bank 1   -234 = Insert(pointer list @A0, pointer node @A1, pointer pred @A2)
-    extsub @bank 1   -240 = AddHead(pointer list @A0, pointer node @A1)
-    extsub @bank 1   -246 = AddTail(pointer list @A0, pointer node @A1)
-    extsub @bank 1   -252 = Remove(pointer node @A1)
-    extsub @bank 1   -258 = RemHead(pointer list @A0) -> pointer @D0
-    extsub @bank 1   -264 = RemTail(pointer list @A0) -> pointer @D0
-    extsub @bank 1   -270 = Enqueue(pointer list @A0, pointer node @A1)
-    extsub @bank 1   -276 = FindName(pointer list @A0, str name @A1) -> pointer @D0
-    extsub @bank 1   -282 = AddTask(pointer task @A1, pointer initPC @A2, pointer finalPC @A3) -> pointer @D0
-    extsub @bank 1   -288 = RemTask(pointer task @A1)
-    extsub @bank 1   -294 = FindTask(str name @A1) -> pointer @D0
-    extsub @bank 1   -300 = SetTaskPri(pointer task @A1, long priority @D0) -> byte @D0
+    extsub @bank 1   -234 = Insert(^^List list @A0, ^^Node node @A1, ^^Node pred @A2)
+    extsub @bank 1   -240 = AddHead(^^List list @A0, ^^Node node @A1)
+    extsub @bank 1   -246 = AddTail(^^List list @A0, ^^Node node @A1)
+    extsub @bank 1   -252 = Remove(^^Node node @A1)
+    extsub @bank 1   -258 = RemHead(^^List list @A0) -> ^^Node @D0
+    extsub @bank 1   -264 = RemTail(^^List list @A0) -> ^^Node @D0
+    extsub @bank 1   -270 = Enqueue(^^List list @A0, ^^Node node @A1)
+    extsub @bank 1   -276 = FindName(^^List list @A0, str name @A1) -> ^^Node @D0
+    extsub @bank 1   -282 = AddTask(^^Task task @A1, pointer initPC @A2, pointer finalPC @A3) -> pointer @D0
+    extsub @bank 1   -288 = RemTask(^^Task task @A1)
+    extsub @bank 1   -294 = FindTask(str name @A1) -> ^^Task @D0
+    extsub @bank 1   -300 = SetTaskPri(^^Task task @A1, long priority @D0) -> byte @D0
     extsub @bank 1   -306 = SetSignal(long newSignals @D0, long signalSet @D1) -> long @D0
     extsub @bank 1   -312 = SetExcept(long newSignals @D0, long signalSet @D1) -> long @D0
     extsub @bank 1   -318 = Wait(long signalSet @D0) -> long @D0
-    extsub @bank 1   -324 = Signal(pointer task @A1, long signalSet @D0)
+    extsub @bank 1   -324 = Signal(^^Task task @A1, long signalSet @D0)
     extsub @bank 1   -330 = AllocSignal(byte signalNum @D0) -> byte @D0
     extsub @bank 1   -336 = FreeSignal(byte signalNum @D0)
     extsub @bank 1   -342 = AllocTrap(long trapNum @D0) -> long @D0
     extsub @bank 1   -348 = FreeTrap(long trapNum @D0)
-    extsub @bank 1   -354 = AddPort(pointer port @A1)
-    extsub @bank 1   -360 = RemPort(pointer port @A1)
-    extsub @bank 1   -366 = PutMsg(pointer port @A0, pointer message @A1)
-    extsub @bank 1   -372 = GetMsg(pointer port @A0) -> pointer @D0
-    extsub @bank 1   -378 = ReplyMsg(pointer message @A1)
-    extsub @bank 1   -384 = WaitPort(pointer port @A0) -> pointer @D0
-    extsub @bank 1   -390 = FindPort(str name @A1) -> pointer @D0
-    extsub @bank 1   -396 = AddLibrary(pointer library @A1)
-    extsub @bank 1   -402 = RemLibrary(pointer library @A1)
-    extsub @bank 1   -408 = OldOpenLibrary(str libName @A1) -> pointer @D0
-    extsub @bank 1   -414 = CloseLibrary(pointer library @A1)
-    extsub @bank 1   -420 = SetFunction(pointer library @A1, long funcOffset @A0, pointer newFunction @D0) -> pointer @D0
-    extsub @bank 1   -426 = SumLibrary(pointer library @A1)
+    extsub @bank 1   -354 = AddPort(^^MsgPort port @A1)
+    extsub @bank 1   -360 = RemPort(^^MsgPort port @A1)
+    extsub @bank 1   -366 = PutMsg(^^MsgPort port @A0, ^^Message message @A1)
+    extsub @bank 1   -372 = GetMsg(^^MsgPort port @A0) -> ^^Message @D0
+    extsub @bank 1   -378 = ReplyMsg(^^Message message @A1)
+    extsub @bank 1   -384 = WaitPort(^^MsgPort port @A0) -> ^^Message @D0
+    extsub @bank 1   -390 = FindPort(str name @A1) -> ^^MsgPort @D0
+    extsub @bank 1   -396 = AddLibrary(^^Library library @A1)
+    extsub @bank 1   -402 = RemLibrary(^^Library library @A1)
+    extsub @bank 1   -408 = OldOpenLibrary(str libName @A1) -> ^^Library @D0
+    extsub @bank 1   -414 = CloseLibrary(^^Library library @A1)
+    extsub @bank 1   -420 = SetFunction(^^Library library @A1, long funcOffset @A0, pointer newFunction @D0) -> pointer @D0
+    extsub @bank 1   -426 = SumLibrary(^^Library library @A1)
     extsub @bank 1   -432 = AddDevice(pointer device @A1)
     extsub @bank 1   -438 = RemDevice(pointer device @A1)
     extsub @bank 1   -444 = OpenDevice(str devName @A0, long unit @D0, pointer ioRequest @A1, long flags @D1) -> byte @D0
@@ -96,13 +96,13 @@ exec {
     extsub @bank 1   -534 = TypeOfMem(pointer address @A1) -> long @D0
     extsub @bank 1   -540 = Procure(pointer sigSem @A0, pointer bidMsg @A1) -> long @D0
     extsub @bank 1   -546 = Vacate(pointer sigSem @A0, pointer bidMsg @A1)
-    extsub @bank 1   -552 = OpenLibrary(str libName @A1, long version @D0) -> pointer @D0
+    extsub @bank 1   -552 = OpenLibrary(str libName @A1, long version @D0) -> ^^Library @D0
     extsub @bank 1   -558 = InitSemaphore(pointer sigSem @A0)
     extsub @bank 1   -564 = ObtainSemaphore(pointer sigSem @A0)
     extsub @bank 1   -570 = ReleaseSemaphore(pointer sigSem @A0)
     extsub @bank 1   -576 = AttemptSemaphore(pointer sigSem @A0) -> long @D0
-    extsub @bank 1   -582 = ObtainSemaphoreList(pointer sigSem @A0)
-    extsub @bank 1   -588 = ReleaseSemaphoreList(pointer sigSem @A0)
+    extsub @bank 1   -582 = ObtainSemaphoreList(^^List sigSem @A0)
+    extsub @bank 1   -588 = ReleaseSemaphoreList(^^List sigSem @A0)
     extsub @bank 1   -594 = FindSemaphore(str name @A1) -> pointer @D0
     extsub @bank 1   -600 = AddSemaphore(pointer sigSem @A1)
     extsub @bank 1   -606 = RemSemaphore(pointer sigSem @A1)
@@ -113,10 +113,10 @@ exec {
     extsub @bank 1   -636 = CacheClearU()
     extsub @bank 1   -642 = CacheClearE(pointer address @A0, long length @D0, long caches @D1)
     extsub @bank 1   -648 = CacheControl(long cacheBits @D0, long cacheMask @D1) -> long @D0
-    extsub @bank 1   -654 = CreateIORequest(pointer port @A0, long size @D0) -> pointer @D0
+    extsub @bank 1   -654 = CreateIORequest(^^MsgPort port @A0, long size @D0) -> pointer @D0
     extsub @bank 1   -660 = DeleteIORequest(pointer iorequest @A0)
-    extsub @bank 1   -666 = CreateMsgPort() -> pointer @D0
-    extsub @bank 1   -672 = DeleteMsgPort(pointer port @A0)
+    extsub @bank 1   -666 = CreateMsgPort() -> ^^MsgPort @D0
+    extsub @bank 1   -672 = DeleteMsgPort(^^MsgPort port @A0)
     extsub @bank 1   -678 = ObtainSemaphoreShared(pointer sigSem @A0)
     extsub @bank 1   -684 = AllocVec(long byteSize @D0, long requirements @D1) -> pointer @D0
     extsub @bank 1   -690 = FreeVec(pointer memoryBlock @A1)
@@ -129,20 +129,20 @@ exec {
     extsub @bank 1   -732 = StackSwap(pointer newStack @A0)
     extsub @bank 1   -762 = CachePreDMA(pointer address @A0, pointer length @A1, long flags @D0) -> pointer @D0
     extsub @bank 1   -768 = CachePostDMA(pointer address @A0, pointer length @A1, long flags @D0)
-    extsub @bank 1   -774 = AddMemHandler(pointer memhand @A1)
-    extsub @bank 1   -780 = RemMemHandler(pointer memhand @A1)
+    extsub @bank 1   -774 = AddMemHandler(^^Interrupt memhand @A1)
+    extsub @bank 1   -780 = RemMemHandler(^^Interrupt memhand @A1)
     extsub @bank 1   -786 = ObtainQuickVector(pointer interruptCode @A0) -> long @D0
-    extsub @bank 1   -828 = NewMinList(pointer minlist @A0)
+    extsub @bank 1   -828 = NewMinList(^^MinList minlist @A0)
 
     ; ---- struct definitions ----
 
     struct IOStdReq {  ; total size: 48
-        pointer Succ  ; 0
-        pointer Pred  ; 4
+        ^^Node Succ  ; 0
+        ^^Node Pred  ; 4
         ubyte Type  ; 8
         byte Pri  ; 9
         str Name  ; 10
-        pointer ReplyPort  ; 14
+        ^^MsgPort ReplyPort  ; 14
         uword Length  ; 18
         pointer Device  ; 20
         pointer Unit  ; 24
@@ -156,12 +156,12 @@ exec {
     }
 
     struct IORequest {  ; total size: 32
-        pointer Succ  ; 0
-        pointer Pred  ; 4
+        ^^Node Succ  ; 0
+        ^^Node Pred  ; 4
         ubyte Type  ; 8
         byte Pri  ; 9
         str Name  ; 10
-        pointer ReplyPort  ; 14
+        ^^MsgPort ReplyPort  ; 14
         uword Length  ; 18
         pointer Device  ; 20
         pointer Unit  ; 24
@@ -171,8 +171,8 @@ exec {
     }
 
     struct Interrupt {  ; total size: 22
-        pointer Succ  ; 0
-        pointer Pred  ; 4
+        ^^Node Succ  ; 0
+        ^^Node Pred  ; 4
         ubyte Type  ; 8
         byte Pri  ; 9
         str Name  ; 10
@@ -189,8 +189,8 @@ exec {
     }
 
     struct Library {  ; total size: 34
-        pointer Succ  ; 0
-        pointer Pred  ; 4
+        ^^Node Succ  ; 0
+        ^^Node Pred  ; 4
         ubyte Type  ; 8
         byte Pri  ; 9
         str Name  ; 10
@@ -230,29 +230,29 @@ exec {
         ubyte Type  ; 8
         byte Pri  ; 9
         str Name  ; 10
-        pointer ReplyPort  ; 14
+        ^^MsgPort ReplyPort  ; 14
         uword Length  ; 18
     }
 
     struct MsgPort {  ; total size: 34
-        pointer Succ  ; 0
-        pointer Pred  ; 4
+        ^^Node Succ  ; 0
+        ^^Node Pred  ; 4
         ubyte Type  ; 8
         byte Pri  ; 9
         str Name  ; 10
         ubyte Flags  ; 14
         ubyte SigBit  ; 15
         pointer SigTask  ; 16
-        pointer Head  ; 20
-        pointer Tail  ; 24
-        pointer TailPred  ; 28
+        ^^Node Head  ; 20
+        ^^Node Tail  ; 24
+        ^^Node TailPred  ; 28
         ubyte List_Type  ; 32
         ubyte Pad  ; 33
     }
 
     struct Task {  ; total size: 92
-        pointer Succ  ; 0
-        pointer Pred  ; 4
+        ^^Node Succ  ; 0
+        ^^Node Pred  ; 4
         ubyte Type  ; 8
         byte Pri  ; 9
         str Name  ; 10
@@ -275,9 +275,9 @@ exec {
         pointer SPUpper  ; 62
         pointer Switch  ; 66
         pointer Launch  ; 70
-        pointer Head  ; 74
-        pointer Tail  ; 78
-        pointer TailPred  ; 82
+        ^^Node Head  ; 74
+        ^^Node Tail  ; 78
+        ^^Node TailPred  ; 82
         ubyte List_Type  ; 86
         ubyte Pad  ; 87
         pointer UserData  ; 88

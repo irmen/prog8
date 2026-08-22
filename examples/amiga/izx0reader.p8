@@ -40,7 +40,7 @@ main {
         ^^intuition.Screen myScreen = intuition.OpenScreenTagList(0, screentags)
         if myScreen!=0 {
             izx0.clearPalette()
-            graphics.LoadRGB4(&myScreen.emb_ViewPort, izx0.palette, 32)
+            graphics.LoadRGB4(intuition.GetScreenViewPort(myScreen), izx0.palette, 32)
 
             ; now open a window to be able to set mouse cursor, handle mouse clicks, keyboard presses, etc.
             windowtags[1] = myScreen
@@ -48,10 +48,9 @@ main {
 
             if myWindow!=0 {
 
-                ^^graphics.RastPort rp = &myScreen.emb_RastPort
-                ^^graphics.BitMap bm = rp.BitMap
+                ^^graphics.BitMap bm = intuition.GetScreenBitMap(myScreen)
                 if izx0.read("cara.izx0", &bm.Planes) {
-                    graphics.LoadRGB4(&myScreen.emb_ViewPort, izx0.palette, izx0.numColors as word)
+                    graphics.LoadRGB4(intuition.GetScreenViewPort(myScreen), izx0.palette, izx0.numColors as word)
                 }
                 sys.wait(200)
 

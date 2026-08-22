@@ -3,67 +3,93 @@
 ;; Bank: 4
 ;; Functions: 127
 
+%import exec
+%import graphics
+%import utility
+
 intuition {
     %option no_symbol_prefixing
+
+    inline asmsub GetScreenViewPort(^^Screen screen @A0) -> pointer @A1 {
+        ; ViewPort is embedded at Screen offset 44; the ViewPort struct is not generated
+        %asm {{
+            lea     44(a0), a1
+        }}
+    }
+
+    inline asmsub GetScreenRastPort(^^Screen screen @A0) -> ^^graphics.RastPort @A1 {
+        ; RastPort is embedded at Screen offset 84
+        %asm {{
+            lea     84(a0), a1
+        }}
+    }
+
+    inline asmsub GetScreenBitMap(^^Screen screen @A0) -> ^^graphics.BitMap @A1 {
+        ; BitMap is embedded at Screen offset 184
+        %asm {{
+            lea     184(a0), a1
+        }}
+    }
+
     extsub @bank 4   -30 = OpenIntuition()
     extsub @bank 4   -36 = Intuition(pointer iEvent @A0)
-    extsub @bank 4   -42 = AddGadget(pointer window @A0, pointer gadget @A1, uword position @D0) -> uword @D0
-    extsub @bank 4   -48 = ClearDMRequest(pointer window @A0) -> bool @D0
-    extsub @bank 4   -54 = ClearMenuStrip(pointer window @A0)
-    extsub @bank 4   -60 = ClearPointer(pointer window @A0)
-    extsub @bank 4   -66 = CloseScreen(pointer screen @A0) -> bool @D0
-    extsub @bank 4   -72 = CloseWindow(pointer window @A0)
+    extsub @bank 4   -42 = AddGadget(^^Window window @A0, ^^Gadget gadget @A1, uword position @D0) -> uword @D0
+    extsub @bank 4   -48 = ClearDMRequest(^^Window window @A0) -> bool @D0
+    extsub @bank 4   -54 = ClearMenuStrip(^^Window window @A0)
+    extsub @bank 4   -60 = ClearPointer(^^Window window @A0)
+    extsub @bank 4   -66 = CloseScreen(^^Screen screen @A0) -> bool @D0
+    extsub @bank 4   -72 = CloseWindow(^^Window window @A0)
     extsub @bank 4   -78 = CloseWorkBench() -> long @D0
     extsub @bank 4   -84 = CurrentTime(pointer seconds @A0, pointer micros @A1)
     extsub @bank 4   -90 = DisplayAlert(long alertNumber @D0, str string @A0, uword height @D1) -> bool @D0
-    extsub @bank 4   -96 = DisplayBeep(pointer screen @A0)
+    extsub @bank 4   -96 = DisplayBeep(^^Screen screen @A0)
     extsub @bank 4   -102 = DoubleClick(long sSeconds @D0, long sMicros @D1, long cSeconds @D2, long cMicros @D3) -> bool @D0
-    extsub @bank 4   -108 = DrawBorder(pointer rp @A0, pointer border @A1, word leftOffset @D0, word topOffset @D1)
-    extsub @bank 4   -114 = DrawImage(pointer rp @A0, pointer image @A1, word leftOffset @D0, word topOffset @D1)
-    extsub @bank 4   -120 = EndRequest(pointer requester @A0, pointer window @A1)
+    extsub @bank 4   -108 = DrawBorder(^^graphics.RastPort rp @A0, ^^Border border @A1, word leftOffset @D0, word topOffset @D1)
+    extsub @bank 4   -114 = DrawImage(^^graphics.RastPort rp @A0, ^^Image image @A1, word leftOffset @D0, word topOffset @D1)
+    extsub @bank 4   -120 = EndRequest(^^Requester requester @A0, ^^Window window @A1)
     extsub @bank 4   -126 = GetDefPrefs(pointer preferences @A0, word size @D0) -> pointer @D0
     extsub @bank 4   -132 = GetPrefs(pointer preferences @A0, word size @D0) -> pointer @D0
-    extsub @bank 4   -138 = InitRequester(pointer requester @A0)
-    extsub @bank 4   -144 = ItemAddress(pointer menuStrip @A0, uword menuNumber @D0) -> pointer @D0
-    extsub @bank 4   -150 = ModifyIDCMP(pointer window @A0, long flags @D0) -> bool @D0
-    extsub @bank 4   -156 = ModifyProp(pointer gadget @A0, pointer window @A1, pointer requester @A2, uword flags @D0, uword horizPot @D1, uword vertPot @D2, uword horizBody @D3, uword vertBody @D4)
-    extsub @bank 4   -162 = MoveScreen(pointer screen @A0, word dx @D0, word dy @D1)
-    extsub @bank 4   -168 = MoveWindow(pointer window @A0, word dx @D0, word dy @D1)
-    extsub @bank 4   -174 = OffGadget(pointer gadget @A0, pointer window @A1, pointer requester @A2)
-    extsub @bank 4   -180 = OffMenu(pointer window @A0, uword menuNumber @D0)
-    extsub @bank 4   -186 = OnGadget(pointer gadget @A0, pointer window @A1, pointer requester @A2)
-    extsub @bank 4   -192 = OnMenu(pointer window @A0, uword menuNumber @D0)
-    extsub @bank 4   -198 = OpenScreen(pointer newScreen @A0) -> pointer @D0
-    extsub @bank 4   -204 = OpenWindow(pointer newWindow @A0) -> pointer @D0
+    extsub @bank 4   -138 = InitRequester(^^Requester requester @A0)
+    extsub @bank 4   -144 = ItemAddress(^^Menu menuStrip @A0, uword menuNumber @D0) -> ^^MenuItem @D0
+    extsub @bank 4   -150 = ModifyIDCMP(^^Window window @A0, long flags @D0) -> bool @D0
+    extsub @bank 4   -156 = ModifyProp(^^Gadget gadget @A0, ^^Window window @A1, ^^Requester requester @A2, uword flags @D0, uword horizPot @D1, uword vertPot @D2, uword horizBody @D3, uword vertBody @D4)
+    extsub @bank 4   -162 = MoveScreen(^^Screen screen @A0, word dx @D0, word dy @D1)
+    extsub @bank 4   -168 = MoveWindow(^^Window window @A0, word dx @D0, word dy @D1)
+    extsub @bank 4   -174 = OffGadget(^^Gadget gadget @A0, ^^Window window @A1, ^^Requester requester @A2)
+    extsub @bank 4   -180 = OffMenu(^^Window window @A0, uword menuNumber @D0)
+    extsub @bank 4   -186 = OnGadget(^^Gadget gadget @A0, ^^Window window @A1, ^^Requester requester @A2)
+    extsub @bank 4   -192 = OnMenu(^^Window window @A0, uword menuNumber @D0)
+    extsub @bank 4   -198 = OpenScreen(^^NewScreen newScreen @A0) -> ^^Screen @D0
+    extsub @bank 4   -204 = OpenWindow(^^NewWindow newWindow @A0) -> ^^Window @D0
     extsub @bank 4   -210 = OpenWorkBench() -> long @D0
-    extsub @bank 4   -216 = PrintIText(pointer rp @A0, pointer iText @A1, word left @D0, word top @D1)
-    extsub @bank 4   -222 = RefreshGadgets(pointer gadgets @A0, pointer window @A1, pointer requester @A2)
-    extsub @bank 4   -228 = RemoveGadget(pointer window @A0, pointer gadget @A1) -> uword @D0
-    extsub @bank 4   -234 = ReportMouse(bool flag @D0, pointer window @A0)
-    extsub @bank 4   -240 = Request(pointer requester @A0, pointer window @A1) -> bool @D0
-    extsub @bank 4   -246 = ScreenToBack(pointer screen @A0)
-    extsub @bank 4   -252 = ScreenToFront(pointer screen @A0)
-    extsub @bank 4   -258 = SetDMRequest(pointer window @A0, pointer requester @A1) -> bool @D0
-    extsub @bank 4   -264 = SetMenuStrip(pointer window @A0, pointer menu @A1) -> bool @D0
-    extsub @bank 4   -270 = SetPointer(pointer window @A0, pointer k_pointer @A1, word height @D0, word width @D1, word xOffset @D2, word yOffset @D3)
-    extsub @bank 4   -276 = SetWindowTitles(pointer window @A0, str windowTitle @A1, str screenTitle @A2)
-    extsub @bank 4   -282 = ShowTitle(pointer screen @A0, bool showIt @D0)
-    extsub @bank 4   -288 = SizeWindow(pointer window @A0, word dx @D0, word dy @D1)
-    extsub @bank 4   -294 = ViewAddress() -> pointer @D0
-    extsub @bank 4   -300 = ViewPortAddress(pointer window @A0) -> pointer @D0
-    extsub @bank 4   -306 = WindowToBack(pointer window @A0)
-    extsub @bank 4   -312 = WindowToFront(pointer window @A0)
-    extsub @bank 4   -318 = WindowLimits(pointer window @A0, long widthMin @D0, long heightMin @D1, long widthMax @D2, long heightMax @D3) -> bool @D0
+    extsub @bank 4   -216 = PrintIText(^^graphics.RastPort rp @A0, ^^IntuiText iText @A1, word left @D0, word top @D1)
+    extsub @bank 4   -222 = RefreshGadgets(^^Gadget gadgets @A0, ^^Window window @A1, ^^Requester requester @A2)
+    extsub @bank 4   -228 = RemoveGadget(^^Window window @A0, ^^Gadget gadget @A1) -> uword @D0
+    extsub @bank 4   -234 = ReportMouse(bool flag @D0, ^^Window window @A0)
+    extsub @bank 4   -240 = Request(^^Requester requester @A0, ^^Window window @A1) -> bool @D0
+    extsub @bank 4   -246 = ScreenToBack(^^Screen screen @A0)
+    extsub @bank 4   -252 = ScreenToFront(^^Screen screen @A0)
+    extsub @bank 4   -258 = SetDMRequest(^^Window window @A0, ^^Requester requester @A1) -> bool @D0
+    extsub @bank 4   -264 = SetMenuStrip(^^Window window @A0, ^^Menu menu @A1) -> bool @D0
+    extsub @bank 4   -270 = SetPointer(^^Window window @A0, pointer k_pointer @A1, word height @D0, word width @D1, word xOffset @D2, word yOffset @D3)
+    extsub @bank 4   -276 = SetWindowTitles(^^Window window @A0, str windowTitle @A1, str screenTitle @A2)
+    extsub @bank 4   -282 = ShowTitle(^^Screen screen @A0, bool showIt @D0)
+    extsub @bank 4   -288 = SizeWindow(^^Window window @A0, word dx @D0, word dy @D1)
+    extsub @bank 4   -294 = ViewAddress() -> ^^graphics.View @D0
+    extsub @bank 4   -300 = ViewPortAddress(^^Window window @A0) -> pointer @D0
+    extsub @bank 4   -306 = WindowToBack(^^Window window @A0)
+    extsub @bank 4   -312 = WindowToFront(^^Window window @A0)
+    extsub @bank 4   -318 = WindowLimits(^^Window window @A0, long widthMin @D0, long heightMin @D1, long widthMax @D2, long heightMax @D3) -> bool @D0
     extsub @bank 4   -324 = SetPrefs(pointer preferences @A0, long size @D0, bool inform @D1) -> pointer @D0
-    extsub @bank 4   -330 = IntuiTextLength(pointer iText @A0) -> long @D0
+    extsub @bank 4   -330 = IntuiTextLength(^^IntuiText iText @A0) -> long @D0
     extsub @bank 4   -336 = WBenchToBack() -> bool @D0
     extsub @bank 4   -342 = WBenchToFront() -> bool @D0
-    extsub @bank 4   -348 = AutoRequest(pointer window @A0, pointer body @A1, pointer posText @A2, pointer negText @A3, long pFlag @D0, long nFlag @D1, uword width @D2, uword height @D3) -> bool @D0
-    extsub @bank 4   -354 = BeginRefresh(pointer window @A0)
-    extsub @bank 4   -360 = BuildSysRequest(pointer window @A0, pointer body @A1, pointer posText @A2, pointer negText @A3, long flags @D0, uword width @D1, uword height @D2) -> pointer @D0
-    extsub @bank 4   -366 = EndRefresh(pointer window @A0, long complete @D0)
-    extsub @bank 4   -372 = FreeSysRequest(pointer window @A0)
-    extsub @bank 4   -378 = MakeScreen(pointer screen @A0) -> long @D0
+    extsub @bank 4   -348 = AutoRequest(^^Window window @A0, ^^IntuiText body @A1, ^^IntuiText posText @A2, ^^IntuiText negText @A3, long pFlag @D0, long nFlag @D1, uword width @D2, uword height @D3) -> bool @D0
+    extsub @bank 4   -354 = BeginRefresh(^^Window window @A0)
+    extsub @bank 4   -360 = BuildSysRequest(^^Window window @A0, ^^IntuiText body @A1, ^^IntuiText posText @A2, ^^IntuiText negText @A3, long flags @D0, uword width @D1, uword height @D2) -> ^^Window @D0
+    extsub @bank 4   -366 = EndRefresh(^^Window window @A0, long complete @D0)
+    extsub @bank 4   -372 = FreeSysRequest(^^Window window @A0)
+    extsub @bank 4   -378 = MakeScreen(^^Screen screen @A0) -> long @D0
     extsub @bank 4   -384 = RemakeDisplay() -> long @D0
     extsub @bank 4   -390 = RethinkDisplay() -> long @D0
     extsub @bank 4   -396 = AllocRemember(pointer rememberKey @A0, long size @D0, long flags @D1) -> pointer @D0
@@ -71,66 +97,66 @@ intuition {
     extsub @bank 4   -408 = FreeRemember(pointer rememberKey @A0, bool reallyForget @D0)
     extsub @bank 4   -414 = LockIBase(long dontknow @D0) -> long @D0
     extsub @bank 4   -420 = UnlockIBase(long ibLock @A0)
-    extsub @bank 4   -426 = GetScreenData(pointer buffer @A0, uword size @D0, uword k_type @D1, pointer screen @A1) -> long @D0
-    extsub @bank 4   -432 = RefreshGList(pointer gadgets @A0, pointer window @A1, pointer requester @A2, word numGad @D0)
-    extsub @bank 4   -438 = AddGList(pointer window @A0, pointer gadget @A1, uword position @D0, word numGad @D1, pointer requester @A2) -> uword @D0
-    extsub @bank 4   -444 = RemoveGList(pointer remPtr @A0, pointer gadget @A1, word numGad @D0) -> uword @D0
-    extsub @bank 4   -450 = ActivateWindow(pointer window @A0)
-    extsub @bank 4   -456 = RefreshWindowFrame(pointer window @A0)
-    extsub @bank 4   -462 = ActivateGadget(pointer gadgets @A0, pointer window @A1, pointer requester @A2) -> bool @D0
-    extsub @bank 4   -468 = NewModifyProp(pointer gadget @A0, pointer window @A1, pointer requester @A2, uword flags @D0, uword horizPot @D1, uword vertPot @D2, uword horizBody @D3, uword vertBody @D4, word numGad @D5)
+    extsub @bank 4   -426 = GetScreenData(pointer buffer @A0, uword size @D0, uword k_type @D1, ^^Screen screen @A1) -> long @D0
+    extsub @bank 4   -432 = RefreshGList(^^Gadget gadgets @A0, ^^Window window @A1, ^^Requester requester @A2, word numGad @D0)
+    extsub @bank 4   -438 = AddGList(^^Window window @A0, ^^Gadget gadget @A1, uword position @D0, word numGad @D1, ^^Requester requester @A2) -> uword @D0
+    extsub @bank 4   -444 = RemoveGList(^^Window remPtr @A0, ^^Gadget gadget @A1, word numGad @D0) -> uword @D0
+    extsub @bank 4   -450 = ActivateWindow(^^Window window @A0)
+    extsub @bank 4   -456 = RefreshWindowFrame(^^Window window @A0)
+    extsub @bank 4   -462 = ActivateGadget(^^Gadget gadgets @A0, ^^Window window @A1, ^^Requester requester @A2) -> bool @D0
+    extsub @bank 4   -468 = NewModifyProp(^^Gadget gadget @A0, ^^Window window @A1, ^^Requester requester @A2, uword flags @D0, uword horizPot @D1, uword vertPot @D2, uword horizBody @D3, uword vertBody @D4, word numGad @D5)
     extsub @bank 4   -474 = QueryOverscan(long displayID @A0, pointer rect @A1, word oScanType @D0) -> long @D0
-    extsub @bank 4   -480 = MoveWindowInFrontOf(pointer window @A0, pointer behindWindow @A1)
-    extsub @bank 4   -486 = ChangeWindowBox(pointer window @A0, word left @D0, word top @D1, word width @D2, word height @D3)
-    extsub @bank 4   -492 = SetEditHook(pointer hook @A0) -> pointer @D0
-    extsub @bank 4   -498 = SetMouseQueue(pointer window @A0, uword queueLength @D0) -> long @D0
-    extsub @bank 4   -504 = ZipWindow(pointer window @A0)
-    extsub @bank 4   -510 = LockPubScreen(str name @A0) -> pointer @D0
-    extsub @bank 4   -516 = UnlockPubScreen(str name @A0, pointer screen @A1)
-    extsub @bank 4   -522 = LockPubScreenList() -> pointer @D0
+    extsub @bank 4   -480 = MoveWindowInFrontOf(^^Window window @A0, ^^Window behindWindow @A1)
+    extsub @bank 4   -486 = ChangeWindowBox(^^Window window @A0, word left @D0, word top @D1, word width @D2, word height @D3)
+    extsub @bank 4   -492 = SetEditHook(^^utility.Hook hook @A0) -> ^^utility.Hook @D0
+    extsub @bank 4   -498 = SetMouseQueue(^^Window window @A0, uword queueLength @D0) -> long @D0
+    extsub @bank 4   -504 = ZipWindow(^^Window window @A0)
+    extsub @bank 4   -510 = LockPubScreen(str name @A0) -> ^^Screen @D0
+    extsub @bank 4   -516 = UnlockPubScreen(str name @A0, ^^Screen screen @A1)
+    extsub @bank 4   -522 = LockPubScreenList() -> ^^exec.List @D0
     extsub @bank 4   -528 = UnlockPubScreenList()
-    extsub @bank 4   -534 = NextPubScreen(pointer screen @A0, str namebuf @A1) -> str @D0
+    extsub @bank 4   -534 = NextPubScreen(^^Screen screen @A0, str namebuf @A1) -> str @D0
     extsub @bank 4   -540 = SetDefaultPubScreen(str name @A0)
     extsub @bank 4   -546 = SetPubScreenModes(uword modes @D0) -> uword @D0
-    extsub @bank 4   -552 = PubScreenStatus(pointer screen @A0, uword statusFlags @D0) -> uword @D0
-    extsub @bank 4   -558 = ObtainGIRPort(pointer gInfo @A0) -> pointer @D0
-    extsub @bank 4   -564 = ReleaseGIRPort(pointer rp @A0)
-    extsub @bank 4   -570 = GadgetMouse(pointer gadget @A0, pointer gInfo @A1, pointer mousePoint @A2)
+    extsub @bank 4   -552 = PubScreenStatus(^^Screen screen @A0, uword statusFlags @D0) -> uword @D0
+    extsub @bank 4   -558 = ObtainGIRPort(pointer gInfo @A0) -> ^^graphics.RastPort @D0
+    extsub @bank 4   -564 = ReleaseGIRPort(^^graphics.RastPort rp @A0)
+    extsub @bank 4   -570 = GadgetMouse(^^Gadget gadget @A0, pointer gInfo @A1, pointer mousePoint @A2)
     extsub @bank 4   -582 = GetDefaultPubScreen(str nameBuffer @A0)
-    extsub @bank 4   -588 = EasyRequestArgs(pointer window @A0, pointer easyStruct @A1, pointer idcmpPtr @A2, pointer args @A3) -> long @D0
-    extsub @bank 4   -594 = BuildEasyRequestArgs(pointer window @A0, pointer easyStruct @A1, long idcmp @D0, pointer args @A3) -> pointer @D0
-    extsub @bank 4   -600 = SysReqHandler(pointer window @A0, pointer idcmpPtr @A1, bool waitInput @D0) -> long @D0
-    extsub @bank 4   -606 = OpenWindowTagList(pointer newWindow @A0, pointer tagList @A1) -> pointer @D0
-    extsub @bank 4   -612 = OpenScreenTagList(pointer newScreen @A0, pointer tagList @A1) -> pointer @D0
-    extsub @bank 4   -618 = DrawImageState(pointer rp @A0, pointer image @A1, word leftOffset @D0, word topOffset @D1, long state @D2, pointer drawInfo @A2)
-    extsub @bank 4   -624 = PointInImage(long point @D0, pointer image @A0) -> bool @D0
-    extsub @bank 4   -630 = EraseImage(pointer rp @A0, pointer image @A1, word leftOffset @D0, word topOffset @D1)
+    extsub @bank 4   -588 = EasyRequestArgs(^^Window window @A0, ^^EasyStruct easyStruct @A1, pointer idcmpPtr @A2, pointer args @A3) -> long @D0
+    extsub @bank 4   -594 = BuildEasyRequestArgs(^^Window window @A0, ^^EasyStruct easyStruct @A1, long idcmp @D0, pointer args @A3) -> ^^Window @D0
+    extsub @bank 4   -600 = SysReqHandler(^^Window window @A0, pointer idcmpPtr @A1, bool waitInput @D0) -> long @D0
+    extsub @bank 4   -606 = OpenWindowTagList(^^NewWindow newWindow @A0, pointer tagList @A1) -> ^^Window @D0
+    extsub @bank 4   -612 = OpenScreenTagList(^^NewScreen newScreen @A0, pointer tagList @A1) -> ^^Screen @D0
+    extsub @bank 4   -618 = DrawImageState(^^graphics.RastPort rp @A0, ^^Image image @A1, word leftOffset @D0, word topOffset @D1, long state @D2, ^^DrawInfo drawInfo @A2)
+    extsub @bank 4   -624 = PointInImage(long point @D0, ^^Image image @A0) -> bool @D0
+    extsub @bank 4   -630 = EraseImage(^^graphics.RastPort rp @A0, ^^Image image @A1, word leftOffset @D0, word topOffset @D1)
     extsub @bank 4   -636 = NewObjectA(pointer classPtr @A0, str classID @A1, pointer tagList @A2) -> pointer @D0
     extsub @bank 4   -642 = DisposeObject(pointer object @A0)
     extsub @bank 4   -648 = SetAttrsA(pointer object @A0, pointer tagList @A1) -> long @D0
     extsub @bank 4   -654 = GetAttr(long attrID @D0, pointer object @A0, pointer storagePtr @A1) -> long @D0
-    extsub @bank 4   -660 = SetGadgetAttrsA(pointer gadget @A0, pointer window @A1, pointer requester @A2, pointer tagList @A3) -> long @D0
+    extsub @bank 4   -660 = SetGadgetAttrsA(^^Gadget gadget @A0, ^^Window window @A1, ^^Requester requester @A2, pointer tagList @A3) -> long @D0
     extsub @bank 4   -666 = NextObject(pointer objectPtrPtr @A0) -> pointer @D0
     extsub @bank 4   -678 = MakeClass(str classID @A0, str superClassID @A1, pointer superClassPtr @A2, uword instanceSize @D0, long flags @D1) -> pointer @D0
     extsub @bank 4   -684 = AddClass(pointer classPtr @A0)
-    extsub @bank 4   -690 = GetScreenDrawInfo(pointer screen @A0) -> pointer @D0
-    extsub @bank 4   -696 = FreeScreenDrawInfo(pointer screen @A0, pointer drawInfo @A1)
-    extsub @bank 4   -702 = ResetMenuStrip(pointer window @A0, pointer menu @A1) -> bool @D0
+    extsub @bank 4   -690 = GetScreenDrawInfo(^^Screen screen @A0) -> ^^DrawInfo @D0
+    extsub @bank 4   -696 = FreeScreenDrawInfo(^^Screen screen @A0, ^^DrawInfo drawInfo @A1)
+    extsub @bank 4   -702 = ResetMenuStrip(^^Window window @A0, ^^Menu menu @A1) -> bool @D0
     extsub @bank 4   -708 = RemoveClass(pointer classPtr @A0)
     extsub @bank 4   -714 = FreeClass(pointer classPtr @A0) -> bool @D0
-    extsub @bank 4   -768 = AllocScreenBuffer(pointer sc @A0, pointer bm @A1, long flags @D0) -> pointer @D0
-    extsub @bank 4   -774 = FreeScreenBuffer(pointer sc @A0, pointer sb @A1)
-    extsub @bank 4   -780 = ChangeScreenBuffer(pointer sc @A0, pointer sb @A1) -> long @D0
-    extsub @bank 4   -786 = ScreenDepth(pointer screen @A0, long flags @D0, pointer reserved @A1)
-    extsub @bank 4   -792 = ScreenPosition(pointer screen @A0, long flags @D0, long x1 @D1, long y1 @D2, long x2 @D3, long y2 @D4)
-    extsub @bank 4   -798 = ScrollWindowRaster(pointer win @A1, word dx @D0, word dy @D1, word xMin @D2, word yMin @D3, word xMax @D4, word yMax @D5)
-    extsub @bank 4   -804 = LendMenus(pointer fromwindow @A0, pointer towindow @A1)
-    extsub @bank 4   -810 = DoGadgetMethodA(pointer gad @A0, pointer win @A1, pointer req @A2, long message @A3) -> long @D0
-    extsub @bank 4   -816 = SetWindowPointerA(pointer win @A0, pointer taglist @A1)
+    extsub @bank 4   -768 = AllocScreenBuffer(^^Screen sc @A0, ^^graphics.BitMap bm @A1, long flags @D0) -> pointer @D0
+    extsub @bank 4   -774 = FreeScreenBuffer(^^Screen sc @A0, pointer sb @A1)
+    extsub @bank 4   -780 = ChangeScreenBuffer(^^Screen sc @A0, pointer sb @A1) -> long @D0
+    extsub @bank 4   -786 = ScreenDepth(^^Screen screen @A0, long flags @D0, pointer reserved @A1)
+    extsub @bank 4   -792 = ScreenPosition(^^Screen screen @A0, long flags @D0, long x1 @D1, long y1 @D2, long x2 @D3, long y2 @D4)
+    extsub @bank 4   -798 = ScrollWindowRaster(^^Window win @A1, word dx @D0, word dy @D1, word xMin @D2, word yMin @D3, word xMax @D4, word yMax @D5)
+    extsub @bank 4   -804 = LendMenus(^^Window fromwindow @A0, ^^Window towindow @A1)
+    extsub @bank 4   -810 = DoGadgetMethodA(^^Gadget gad @A0, ^^Window win @A1, ^^Requester req @A2, long message @A3) -> long @D0
+    extsub @bank 4   -816 = SetWindowPointerA(^^Window win @A0, pointer taglist @A1)
     extsub @bank 4   -822 = TimedDisplayAlert(long alertNumber @D0, str string @A0, uword height @D1, long time @A1) -> bool @D0
-    extsub @bank 4   -828 = HelpControl(pointer win @A0, long flags @D0)
-    extsub @bank 4   -834 = ShowWindow(pointer window @A0, pointer other @A1) -> bool @D0
-    extsub @bank 4   -840 = HideWindow(pointer window @A0) -> bool @D0
+    extsub @bank 4   -828 = HelpControl(^^Window win @A0, long flags @D0)
+    extsub @bank 4   -834 = ShowWindow(^^Window window @A0, ^^Window other @A1) -> bool @D0
+    extsub @bank 4   -840 = HideWindow(^^Window window @A0) -> bool @D0
     extsub @bank 4   -1212 = IntuitionControlA(pointer object @A0, pointer taglist @A1) -> long @D0
 
     ; ---- struct definitions ----
@@ -143,7 +169,7 @@ intuition {
         ubyte DrawMode  ; 6
         byte Count  ; 7
         pointer Xy  ; 8
-        pointer NextBorder  ; 12
+        ^^Border NextBorder  ; 12
     }
 
     struct ColorSpec {  ; total size: 8
@@ -157,14 +183,14 @@ intuition {
         uword Version  ; 0
         uword NumPens  ; 2
         pointer Pens  ; 4
-        pointer Font  ; 8
+        ^^graphics.TextFont Font  ; 8
         uword Depth  ; 12
         uword X  ; 14
         uword Y  ; 16
         long Flags  ; 18
-        pointer CheckMark  ; 22
-        pointer AmigaKey  ; 26
-        pointer Screen  ; 30
+        ^^Image CheckMark  ; 22
+        ^^Image AmigaKey  ; 26
+        ^^Screen Screen  ; 30
         long[4] Reserved  ; 34
     }
 
@@ -177,7 +203,7 @@ intuition {
     }
 
     struct ExtGadget {  ; total size: 56
-        pointer NextGadget  ; 0
+        ^^ExtGadget NextGadget  ; 0
         word LeftEdge  ; 4
         word TopEdge  ; 6
         word Width  ; 8
@@ -187,7 +213,7 @@ intuition {
         uword GadgetType  ; 16
         pointer GadgetRender  ; 18
         pointer SelectRender  ; 22
-        pointer GadgetText  ; 26
+        ^^IntuiText GadgetText  ; 26
         long MutualExclude  ; 30
         pointer SpecialInfo  ; 34
         uword GadgetID  ; 38
@@ -209,13 +235,13 @@ intuition {
         word MouseY  ; 34
         long Seconds  ; 36
         long Micros  ; 40
-        pointer IDCMPWindow  ; 44
-        pointer SpecialLink  ; 48
+        ^^Window IDCMPWindow  ; 44
+        ^^IntuiMessage SpecialLink  ; 48
         pointer TabletData  ; 52
     }
 
     struct Gadget {  ; total size: 44
-        pointer NextGadget  ; 0
+        ^^Gadget NextGadget  ; 0
         word LeftEdge  ; 4
         word TopEdge  ; 6
         word Width  ; 8
@@ -225,7 +251,7 @@ intuition {
         uword GadgetType  ; 16
         pointer GadgetRender  ; 18
         pointer SelectRender  ; 22
-        pointer GadgetText  ; 26
+        ^^IntuiText GadgetText  ; 26
         long MutualExclude  ; 30
         pointer SpecialInfo  ; 34
         uword GadgetID  ; 38
@@ -248,7 +274,7 @@ intuition {
         pointer ImageData  ; 10
         ubyte PlanePick  ; 14
         ubyte PlaneOnOff  ; 15
-        pointer NextImage  ; 16
+        ^^Image NextImage  ; 16
     }
 
     struct IntuiMessage {  ; total size: 52
@@ -261,8 +287,8 @@ intuition {
         word MouseY  ; 34
         long Seconds  ; 36
         long Micros  ; 40
-        pointer IDCMPWindow  ; 44
-        pointer SpecialLink  ; 48
+        ^^Window IDCMPWindow  ; 44
+        ^^IntuiMessage SpecialLink  ; 48
     }
 
     struct IntuiText {  ; total size: 20
@@ -272,20 +298,20 @@ intuition {
         ubyte _pad_3  ; 3
         word LeftEdge  ; 4
         word TopEdge  ; 6
-        pointer ITextFont  ; 8
+        ^^graphics.TextAttr ITextFont  ; 8
         str IText  ; 12
-        pointer NextText  ; 16
+        ^^IntuiText NextText  ; 16
     }
 
     struct Menu {  ; total size: 30
-        pointer NextMenu  ; 0
+        ^^Menu NextMenu  ; 0
         word LeftEdge  ; 4
         word TopEdge  ; 6
         word Width  ; 8
         word Height  ; 10
         uword Flags  ; 12
         str MenuName  ; 14
-        pointer FirstItem  ; 18
+        ^^MenuItem FirstItem  ; 18
         word JazzX  ; 22
         word JazzY  ; 24
         word BeatX  ; 26
@@ -293,7 +319,7 @@ intuition {
     }
 
     struct MenuItem {  ; total size: 34
-        pointer NextItem  ; 0
+        ^^MenuItem NextItem  ; 0
         word LeftEdge  ; 4
         word TopEdge  ; 6
         word Width  ; 8
@@ -304,7 +330,7 @@ intuition {
         pointer SelectFill  ; 22
         byte Command  ; 26
         ubyte _pad_1b  ; 27
-        pointer SubItem  ; 28
+        ^^MenuItem SubItem  ; 28
         uword NextSelect  ; 32
     }
 
@@ -318,10 +344,10 @@ intuition {
         ubyte BlockPen  ; 11
         uword ViewModes  ; 12
         uword Type  ; 14
-        pointer Font  ; 16
+        ^^graphics.TextAttr Font  ; 16
         str DefaultTitle  ; 20
-        pointer Gadgets  ; 24
-        pointer CustomBitMap  ; 28
+        ^^Gadget Gadgets  ; 24
+        ^^graphics.BitMap CustomBitMap  ; 28
     }
 
     struct NewWindow {  ; total size: 48
@@ -333,11 +359,11 @@ intuition {
         ubyte BlockPen  ; 9
         long IDCMPFlags  ; 10
         long Flags  ; 14
-        pointer FirstGadget  ; 18
-        pointer CheckMark  ; 22
+        ^^Gadget FirstGadget  ; 18
+        ^^Image CheckMark  ; 22
         str Title  ; 26
-        pointer Screen  ; 30
-        pointer BitMap  ; 34
+        ^^Screen Screen  ; 30
+        ^^graphics.BitMap BitMap  ; 34
         word MinWidth  ; 38
         word MinHeight  ; 40
         uword MaxWidth  ; 42
@@ -346,30 +372,30 @@ intuition {
     }
 
     struct Requester {  ; total size: 112
-        pointer OlderRequest  ; 0
+        ^^Requester OlderRequest  ; 0
         word LeftEdge  ; 4
         word TopEdge  ; 6
         word Width  ; 8
         word Height  ; 10
         word RelLeft  ; 12
         word RelTop  ; 14
-        pointer ReqGadget  ; 16
-        pointer ReqBorder  ; 20
-        pointer ReqText  ; 24
+        ^^Gadget ReqGadget  ; 16
+        ^^Border ReqBorder  ; 20
+        ^^IntuiText ReqText  ; 24
         uword Flags  ; 28
         ubyte BackFill  ; 30
         ubyte _pad_1f  ; 31
-        pointer ReqLayer  ; 32
+        ^^graphics.Layer ReqLayer  ; 32
         ubyte[32] ReqPad1  ; 36
-        pointer ImageBMap  ; 68
-        pointer RWindow  ; 72
-        pointer ReqImage  ; 76
+        ^^graphics.BitMap ImageBMap  ; 68
+        ^^Window RWindow  ; 72
+        ^^Image ReqImage  ; 76
         ubyte[32] ReqPad2  ; 80
     }
 
-    struct Screen {  ; total size: 184
-        pointer NextScreen  ; 0
-        pointer FirstWindow  ; 4
+    struct Screen {  ; total size: 44
+        ^^Screen NextScreen  ; 0
+        ^^Window FirstWindow  ; 4
         word LeftEdge  ; 8
         word TopEdge  ; 10
         word Width  ; 12
@@ -389,14 +415,12 @@ intuition {
         byte WBorRight  ; 37
         byte WBorBottom  ; 38
         ubyte _pad_27  ; 39
-        pointer Font  ; 40
-        ubyte[40] emb_ViewPort  ; 44
-        ubyte[100] emb_RastPort  ; 84
-    ; stripped: pointer UserData (4B), pointer ExtData (4B), pointer BarLayer (4B), uword SaveColor0 (2B), ubyte BlockPen (1B), ubyte DetailPen (1B), pointer FirstGadget (4B), ubyte[102] emb_LayerInfo (102B), ubyte[40] emb_BitMap (40B)
+        ^^graphics.TextAttr Font  ; 40
+    ; stripped: pointer UserData (4B), pointer ExtData (4B), ^^graphics.Layer BarLayer (4B), uword SaveColor0 (2B), ubyte BlockPen (1B), ubyte DetailPen (1B), ^^Gadget FirstGadget (4B), ubyte[102] emb_LayerInfo (102B), ubyte[40] emb_BitMap (40B), ubyte[100] emb_RastPort (100B), ubyte[40] emb_ViewPort (40B)
     }
 
     struct Window {  ; total size: 136
-        pointer NextWindow  ; 0
+        ^^Window NextWindow  ; 0
         word LeftEdge  ; 4
         word TopEdge  ; 6
         word Width  ; 8
@@ -408,33 +432,33 @@ intuition {
         uword MaxWidth  ; 20
         uword MaxHeight  ; 22
         long Flags  ; 24
-        pointer MenuStrip  ; 28
+        ^^Menu MenuStrip  ; 28
         str Title  ; 32
-        pointer FirstRequest  ; 36
-        pointer DMRequest  ; 40
+        ^^Requester FirstRequest  ; 36
+        ^^Requester DMRequest  ; 40
         word ReqCount  ; 44
-        pointer WScreen  ; 46
-        pointer RPort  ; 50
+        ^^Screen WScreen  ; 46
+        ^^graphics.RastPort RPort  ; 50
         byte BorderLeft  ; 54
         byte BorderTop  ; 55
         byte BorderRight  ; 56
         byte BorderBottom  ; 57
-        pointer BorderRPort  ; 58
-        pointer FirstGadget  ; 62
-        pointer Parent  ; 66
-        pointer Descendant  ; 70
+        ^^graphics.RastPort BorderRPort  ; 58
+        ^^Gadget FirstGadget  ; 62
+        ^^Window Parent  ; 66
+        ^^Window Descendant  ; 70
         pointer Pointer  ; 74
         byte PtrHeight  ; 78
         byte PtrWidth  ; 79
         byte XOffset  ; 80
         byte YOffset  ; 81
         long IDCMPFlags  ; 82
-        pointer UserPort  ; 86
-        pointer WindowPort  ; 90
-        pointer MessageKey  ; 94
+        ^^exec.MsgPort UserPort  ; 86
+        ^^exec.MsgPort WindowPort  ; 90
+        ^^IntuiMessage MessageKey  ; 94
         ubyte DetailPen  ; 98
         ubyte BlockPen  ; 99
-        pointer CheckMark  ; 100
+        ^^Image CheckMark  ; 100
         str ScreenTitle  ; 104
         word GZZMouseX  ; 108
         word GZZMouseY  ; 110
@@ -442,8 +466,8 @@ intuition {
         word GZZHeight  ; 114
         pointer ExtData  ; 116
         pointer UserData  ; 120
-        pointer WLayer  ; 124
-        pointer IFont  ; 128
+        ^^graphics.Layer WLayer  ; 124
+        ^^graphics.TextFont IFont  ; 128
         long MoreFlags  ; 132
     }
 

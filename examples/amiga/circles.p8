@@ -50,12 +50,11 @@ main {
 
         ^^intuition.Screen screen = intuition.OpenScreenTagList(0, screentags)
         if screen!=0 {
-            graphics.LoadRGB4(&screen.emb_ViewPort, palette, 32)
+            graphics.LoadRGB4(intuition.GetScreenViewPort(screen), palette, 32)
             windowtags[1] = screen
             ^^intuition.Window window = intuition.OpenWindowTagList(0, windowtags)
             if window!=0 {
-                ^^graphics.RastPort rp = &screen.emb_RastPort
-                drawDiscs(rp.BitMap)
+                drawDiscs(intuition.GetScreenBitMap(screen))
                 sys.wait(300)
                 intuition.CloseWindow(window)
             }

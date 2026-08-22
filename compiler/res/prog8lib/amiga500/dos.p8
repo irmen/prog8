@@ -3,6 +3,9 @@
 ;; Bank: 2
 ;; Functions: 161
 
+%import exec
+%import utility
+
 dos {
     %option no_symbol_prefixing
     extsub @bank 2   -30 = Open(str name @D1, long accessMode @D2) -> pointer @D0
@@ -17,20 +20,20 @@ dos {
     extsub @bank 2   -84 = Lock(str name @D1, long k_type @D2) -> pointer @D0
     extsub @bank 2   -90 = UnLock(pointer lock @D1)
     extsub @bank 2   -96 = DupLock(pointer lock @D1) -> pointer @D0
-    extsub @bank 2   -102 = Examine(pointer lock @D1, pointer fileInfoBlock @D2) -> long @D0
-    extsub @bank 2   -108 = ExNext(pointer lock @D1, pointer fileInfoBlock @D2) -> long @D0
-    extsub @bank 2   -114 = Info(pointer lock @D1, pointer parameterBlock @D2) -> long @D0
+    extsub @bank 2   -102 = Examine(pointer lock @D1, ^^FileInfoBlock fileInfoBlock @D2) -> long @D0
+    extsub @bank 2   -108 = ExNext(pointer lock @D1, ^^FileInfoBlock fileInfoBlock @D2) -> long @D0
+    extsub @bank 2   -114 = Info(pointer lock @D1, ^^InfoData parameterBlock @D2) -> long @D0
     extsub @bank 2   -120 = CreateDir(str name @D1) -> pointer @D0
     extsub @bank 2   -126 = CurrentDir(pointer lock @D1) -> pointer @D0
     extsub @bank 2   -132 = IoErr() -> long @D0
-    extsub @bank 2   -138 = CreateProc(str name @D1, long pri @D2, pointer segList @D3, long stackSize @D4) -> pointer @D0
+    extsub @bank 2   -138 = CreateProc(str name @D1, long pri @D2, pointer segList @D3, long stackSize @D4) -> ^^exec.MsgPort @D0
     extsub @bank 2   -144 = Exit(long returnCode @D1)
     extsub @bank 2   -150 = LoadSeg(str name @D1) -> pointer @D0
     extsub @bank 2   -156 = UnLoadSeg(pointer seglist @D1)
-    extsub @bank 2   -174 = DeviceProc(str name @D1) -> pointer @D0
+    extsub @bank 2   -174 = DeviceProc(str name @D1) -> ^^exec.MsgPort @D0
     extsub @bank 2   -180 = SetComment(str name @D1, str comment @D2) -> long @D0
     extsub @bank 2   -186 = SetProtection(str name @D1, long protect @D2) -> long @D0
-    extsub @bank 2   -192 = DateStamp(pointer date @D1) -> pointer @D0
+    extsub @bank 2   -192 = DateStamp(^^DateStampStruct date @D1) -> ^^DateStampStruct @D0
     extsub @bank 2   -198 = Delay(long timeout @D1)
     extsub @bank 2   -204 = WaitForChar(pointer file @D1, long timeout @D2) -> long @D0
     extsub @bank 2   -210 = ParentDir(pointer lock @D1) -> pointer @D0
@@ -38,11 +41,11 @@ dos {
     extsub @bank 2   -222 = Execute(str string @D1, pointer file @D2, pointer file2 @D3) -> long @D0
     extsub @bank 2   -228 = AllocDosObject(long k_type @D1, pointer tags @D2) -> pointer @D0
     extsub @bank 2   -234 = FreeDosObject(long k_type @D1, pointer ptr @D2)
-    extsub @bank 2   -240 = DoPkt(pointer port @D1, long action @D2, long arg1 @D3, long arg2 @D4, long arg3 @D5, long arg4 @D6, long arg5 @D7) -> long @D0
-    extsub @bank 2   -246 = SendPkt(pointer dp @D1, pointer port @D2, pointer replyport @D3)
-    extsub @bank 2   -252 = WaitPkt() -> pointer @D0
-    extsub @bank 2   -258 = ReplyPkt(pointer dp @D1, long res1 @D2, long res2 @D3)
-    extsub @bank 2   -264 = AbortPkt(pointer port @D1, pointer pkt @D2)
+    extsub @bank 2   -240 = DoPkt(^^exec.MsgPort port @D1, long action @D2, long arg1 @D3, long arg2 @D4, long arg3 @D5, long arg4 @D6, long arg5 @D7) -> long @D0
+    extsub @bank 2   -246 = SendPkt(^^DosPacket dp @D1, ^^exec.MsgPort port @D2, ^^exec.MsgPort replyport @D3)
+    extsub @bank 2   -252 = WaitPkt() -> ^^DosPacket @D0
+    extsub @bank 2   -258 = ReplyPkt(^^DosPacket dp @D1, long res1 @D2, long res2 @D3)
+    extsub @bank 2   -264 = AbortPkt(^^exec.MsgPort port @D1, ^^DosPacket pkt @D2)
     extsub @bank 2   -270 = LockRecord(pointer fh @D1, long offset @D2, long length @D3, long mode @D4, long timeout @D5) -> bool @D0
     extsub @bank 2   -276 = LockRecords(pointer recArray @D1, long timeout @D2) -> bool @D0
     extsub @bank 2   -282 = UnLockRecord(pointer fh @D1, long offset @D2, long length @D3) -> bool @D0
@@ -63,32 +66,32 @@ dos {
     extsub @bank 2   -372 = DupLockFromFH(pointer fh @D1) -> pointer @D0
     extsub @bank 2   -378 = OpenFromLock(pointer lock @D1) -> pointer @D0
     extsub @bank 2   -384 = ParentOfFH(pointer fh @D1) -> pointer @D0
-    extsub @bank 2   -390 = ExamineFH(pointer fh @D1, pointer fib @D2) -> bool @D0
-    extsub @bank 2   -396 = SetFileDate(str name @D1, pointer date @D2) -> long @D0
+    extsub @bank 2   -390 = ExamineFH(pointer fh @D1, ^^FileInfoBlock fib @D2) -> bool @D0
+    extsub @bank 2   -396 = SetFileDate(str name @D1, ^^DateStampStruct date @D2) -> long @D0
     extsub @bank 2   -402 = NameFromLock(pointer lock @D1, str buffer @D2, long len @D3) -> long @D0
     extsub @bank 2   -408 = NameFromFH(pointer fh @D1, str buffer @D2, long len @D3) -> long @D0
     extsub @bank 2   -414 = SplitName(str name @D1, ubyte separator @D2, str buf @D3, word oldpos @D4, long size @D5) -> word @D0
     extsub @bank 2   -420 = SameLock(pointer lock1 @D1, pointer lock2 @D2) -> long @D0
     extsub @bank 2   -426 = SetMode(pointer fh @D1, long mode @D2) -> long @D0
-    extsub @bank 2   -432 = ExAll(pointer lock @D1, pointer buffer @D2, long size @D3, long data @D4, pointer control @D5) -> long @D0
-    extsub @bank 2   -438 = ReadLink(pointer port @D1, pointer lock @D2, str path @D3, str buffer @D4, long size @D5) -> long @D0
+    extsub @bank 2   -432 = ExAll(pointer lock @D1, ^^ExAllData buffer @D2, long size @D3, long data @D4, ^^ExAllControl control @D5) -> long @D0
+    extsub @bank 2   -438 = ReadLink(^^exec.MsgPort port @D1, pointer lock @D2, str path @D3, str buffer @D4, long size @D5) -> long @D0
     extsub @bank 2   -444 = MakeLink(str name @D1, long dest @D2, long soft @D3) -> long @D0
     extsub @bank 2   -450 = ChangeMode(long k_type @D1, pointer fh @D2, long newmode @D3) -> long @D0
     extsub @bank 2   -456 = SetFileSize(pointer fh @D1, long pos @D2, long mode @D3) -> long @D0
     extsub @bank 2   -462 = SetIoErr(long result @D1) -> long @D0
     extsub @bank 2   -468 = Fault(long code @D1, str header @D2, str buffer @D3, long len @D4) -> bool @D0
     extsub @bank 2   -474 = PrintFault(long code @D1, str header @D2) -> bool @D0
-    extsub @bank 2   -480 = ErrorReport(long code @D1, long k_type @D2, long arg1 @D3, pointer device @D4) -> long @D0
+    extsub @bank 2   -480 = ErrorReport(long code @D1, long k_type @D2, long arg1 @D3, ^^exec.MsgPort device @D4) -> long @D0
     extsub @bank 2   -492 = Cli() -> pointer @D0
-    extsub @bank 2   -498 = CreateNewProc(pointer tags @D1) -> pointer @D0
+    extsub @bank 2   -498 = CreateNewProc(pointer tags @D1) -> ^^Process @D0
     extsub @bank 2   -504 = RunCommand(pointer seg @D1, long stack @D2, str paramptr @D3, long paramlen @D4) -> long @D0
-    extsub @bank 2   -510 = GetConsoleTask() -> pointer @D0
-    extsub @bank 2   -516 = SetConsoleTask(pointer task @D1) -> pointer @D0
-    extsub @bank 2   -522 = GetFileSysTask() -> pointer @D0
-    extsub @bank 2   -528 = SetFileSysTask(pointer task @D1) -> pointer @D0
+    extsub @bank 2   -510 = GetConsoleTask() -> ^^exec.MsgPort @D0
+    extsub @bank 2   -516 = SetConsoleTask(^^exec.MsgPort task @D1) -> ^^exec.MsgPort @D0
+    extsub @bank 2   -522 = GetFileSysTask() -> ^^exec.MsgPort @D0
+    extsub @bank 2   -528 = SetFileSysTask(^^exec.MsgPort task @D1) -> ^^exec.MsgPort @D0
     extsub @bank 2   -534 = GetArgStr() -> str @D0
     extsub @bank 2   -540 = SetArgStr(str string @D1) -> str @D0
-    extsub @bank 2   -546 = FindCliProc(long num @D1) -> pointer @D0
+    extsub @bank 2   -546 = FindCliProc(long num @D1) -> ^^Process @D0
     extsub @bank 2   -552 = MaxCli() -> long @D0
     extsub @bank 2   -558 = SetCurrentDirName(str name @D1) -> bool @D0
     extsub @bank 2   -564 = GetCurrentDirName(str buf @D1, long len @D2) -> bool @D0
@@ -120,7 +123,7 @@ dos {
     extsub @bank 2   -720 = Relabel(str drive @D1, str newname @D2) -> long @D0
     extsub @bank 2   -726 = Inhibit(str name @D1, long onoff @D2) -> long @D0
     extsub @bank 2   -732 = AddBuffers(str name @D1, long number @D2) -> long @D0
-    extsub @bank 2   -738 = CompareDates(pointer date1 @D1, pointer date2 @D2) -> long @D0
+    extsub @bank 2   -738 = CompareDates(^^DateStampStruct date1 @D1, ^^DateStampStruct date2 @D2) -> long @D0
     extsub @bank 2   -744 = DateToStr(pointer datetime @D1) -> long @D0
     extsub @bank 2   -750 = StrToDate(pointer datetime @D1) -> long @D0
     extsub @bank 2   -756 = InternalLoadSeg(pointer fh @D0, pointer table @A0, pointer funcarray @A1, pointer stack @A2) -> pointer @D0
@@ -149,15 +152,15 @@ dos {
     extsub @bank 2   -906 = GetVar(str name @D1, str buffer @D2, long size @D3, long flags @D4) -> long @D0
     extsub @bank 2   -912 = DeleteVar(str name @D1, long flags @D2) -> long @D0
     extsub @bank 2   -918 = FindVar(str name @D1, long k_type @D2) -> pointer @D0
-    extsub @bank 2   -930 = CliInitNewcli(pointer dp @A0) -> long @D0
-    extsub @bank 2   -936 = CliInitRun(pointer dp @A0) -> long @D0
+    extsub @bank 2   -930 = CliInitNewcli(^^DosPacket dp @A0) -> long @D0
+    extsub @bank 2   -936 = CliInitRun(^^DosPacket dp @A0) -> long @D0
     extsub @bank 2   -942 = WriteChars(str buf @D1, long buflen @D2) -> long @D0
     extsub @bank 2   -948 = PutStr(str k_str @D1) -> long @D0
     extsub @bank 2   -954 = VPrintf(str format @D1, pointer argarray @D2) -> long @D0
     extsub @bank 2   -966 = ParsePatternNoCase(str pat @D1, pointer patbuf @D2, long patbuflen @D3) -> long @D0
     extsub @bank 2   -972 = MatchPatternNoCase(pointer patbuf @D1, str k_str @D2) -> bool @D0
     extsub @bank 2   -984 = SameDevice(pointer lock1 @D1, pointer lock2 @D2) -> bool @D0
-    extsub @bank 2   -990 = ExAllEnd(pointer lock @D1, pointer buffer @D2, long size @D3, long data @D4, pointer control @D5)
+    extsub @bank 2   -990 = ExAllEnd(pointer lock @D1, ^^ExAllData buffer @D2, long size @D3, long data @D4, ^^ExAllControl control @D5)
     extsub @bank 2   -996 = SetOwner(str name @D1, long owner_info @D2) -> bool @D0
     extsub @bank 2   -1014 = VolumeRequestHook(str vol @D1) -> long @D0
     extsub @bank 2   -1026 = GetCurrentDir() -> pointer @D0
@@ -169,15 +172,15 @@ dos {
 
     ; ---- struct definitions ----
 
-    struct DateStamp {  ; total size: 12
+    struct DateStampStruct {  ; total size: 12
         long Days  ; 0
         long Minute  ; 4
         long Tick  ; 8
     }
 
     struct DosPacket {  ; total size: 48
-        pointer Link  ; 0
-        pointer Port  ; 4
+        ^^exec.Message Link  ; 0
+        ^^exec.MsgPort Port  ; 4
         long Type  ; 8
         long Res1  ; 12
         long Res2  ; 16
@@ -199,11 +202,11 @@ dos {
         long Entries  ; 0
         long LastKey  ; 4
         str MatchString  ; 8
-        pointer MatchFunc  ; 12
+        ^^utility.Hook MatchFunc  ; 12
     }
 
     struct ExAllData {  ; total size: 40
-        pointer Next  ; 0
+        ^^ExAllData Next  ; 0
         str Name  ; 4
         long Type  ; 8
         long Size  ; 12
@@ -217,9 +220,9 @@ dos {
     }
 
     struct FileHandle {  ; total size: 44
-        pointer Link  ; 0
-        pointer Port  ; 4
-        pointer Type  ; 8
+        ^^exec.Message Link  ; 0
+        ^^exec.MsgPort Port  ; 4
+        ^^exec.MsgPort Type  ; 8
         pointer Buf  ; 12
         long Pos  ; 16
         long End  ; 20
@@ -230,7 +233,7 @@ dos {
         long Arg2  ; 40
     }
 
-    struct FileInfoBlock {  ; total size: 228
+    struct FileInfoBlock {  ; total size: 260
         long DiskKey  ; 0
         long DirEntryType  ; 4
         ubyte[108] FileName  ; 8
@@ -244,14 +247,14 @@ dos {
         ubyte[80] Comment  ; 144
         uword OwnerUID  ; 224
         uword OwnerGID  ; 226
-    ; stripped: ubyte[32] Reserved (32B)
+        ubyte[32] Reserved  ; 228
     }
 
     struct FileLock {  ; total size: 20
         pointer Link  ; 0
         long Key  ; 4
         long Access  ; 8
-        pointer Task  ; 12
+        ^^exec.MsgPort Task  ; 12
         pointer Volume  ; 16
     }
 
@@ -268,8 +271,8 @@ dos {
     }
 
     struct Process {  ; total size: 228
-        pointer Succ  ; 0
-        pointer Pred  ; 4
+        ^^exec.Node Succ  ; 0
+        ^^exec.Node Pred  ; 4
         ubyte Type  ; 8
         byte Pri  ; 9
         str Name  ; 10
@@ -292,23 +295,23 @@ dos {
         pointer SPUpper  ; 62
         pointer Switch  ; 66
         pointer Launch  ; 70
-        pointer Head  ; 74
-        pointer Tail  ; 78
-        pointer TailPred  ; 82
+        ^^exec.Node Head  ; 74
+        ^^exec.Node Tail  ; 78
+        ^^exec.Node TailPred  ; 82
         ubyte Process_List_Type  ; 86
         ubyte Pad  ; 87
         pointer UserData  ; 88
-        pointer Node_Succ  ; 92
-        pointer Node_Pred  ; 96
+        ^^exec.Node Node_Succ  ; 92
+        ^^exec.Node Node_Pred  ; 96
         ubyte Node_Type  ; 100
         byte Node_Pri  ; 101
         str Node_Name  ; 102
         ubyte MsgPort_Flags  ; 106
         ubyte SigBit  ; 107
         pointer SigTask  ; 108
-        pointer List_Head  ; 112
-        pointer List_Tail  ; 116
-        pointer List_TailPred  ; 120
+        ^^exec.Node List_Head  ; 112
+        ^^exec.Node List_Tail  ; 116
+        ^^exec.Node List_TailPred  ; 120
         ubyte List_Type  ; 124
         ubyte List_Pad  ; 125
         word Process_Pad  ; 126
@@ -332,23 +335,23 @@ dos {
         pointer ExitCode  ; 196
         long ExitData  ; 200
         str Arguments  ; 204
-        pointer MinList_Head  ; 208
-        pointer MinList_Tail  ; 212
-        pointer MinList_TailPred  ; 216
+        ^^exec.MinNode MinList_Head  ; 208
+        ^^exec.MinNode MinList_Tail  ; 212
+        ^^exec.MinNode MinList_TailPred  ; 216
         long ShellPrivate  ; 220
         pointer Ces  ; 224
     }
 
     struct StandardPacket {  ; total size: 68
-        pointer Succ  ; 0
-        pointer Pred  ; 4
+        ^^exec.Node Succ  ; 0
+        ^^exec.Node Pred  ; 4
         ubyte Type  ; 8
         byte Pri  ; 9
         str Name  ; 10
-        pointer ReplyPort  ; 14
+        ^^exec.MsgPort ReplyPort  ; 14
         uword Length  ; 18
-        pointer Link  ; 20
-        pointer Port  ; 24
+        ^^exec.Message Link  ; 20
+        ^^exec.MsgPort Port  ; 24
         long DosPacket_Type  ; 28
         long Res1  ; 32
         long Res2  ; 36

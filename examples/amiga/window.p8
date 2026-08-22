@@ -65,7 +65,7 @@ main {
         bool running = true
         while running {
             ; Process pending messages (non-blocking)
-            ^^intuition.IntuiMessage msg = exec.GetMsg(win.UserPort)
+            ^^intuition.IntuiMessage msg = exec.GetMsg(win.UserPort) as ^^intuition.IntuiMessage
             while msg != 0 {
                 when msg.Class {
                     intuition.IDCMP_CLOSEWINDOW -> running = false
@@ -80,8 +80,8 @@ main {
                     }
                     intuition.IDCMP_VANILLAKEY -> running = false
                 }
-                exec.ReplyMsg(msg)
-                msg = exec.GetMsg(win.UserPort)
+                exec.ReplyMsg(msg as ^^exec.Message)
+                msg = exec.GetMsg(win.UserPort) as ^^intuition.IntuiMessage
             }
 
             ; Bounce the text within client area

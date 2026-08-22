@@ -35,12 +35,12 @@ audio {
 
     struct IOAudio {
         ; struct IORequest (base, 32 bytes)
-        pointer Succ  ; 0
-        pointer Pred  ; 4
+        ^^exec.Node Succ  ; 0
+        ^^exec.Node Pred  ; 4
         ubyte Type  ; 8
         byte Pri  ; 9
         str Name  ; 10
-        pointer ReplyPort  ; 14
+        ^^exec.MsgPort ReplyPort  ; 14
         uword Length  ; 18
         pointer Device  ; 20
         pointer Unit  ; 24
@@ -55,12 +55,12 @@ audio {
         uword Volume  ; 44
         uword Cycles  ; 46
         ; struct Message ioa_WriteMsg (20 bytes)
-        pointer Msg_Succ  ; 48
-        pointer Msg_Pred  ; 52
+        ^^exec.Node Msg_Succ  ; 48
+        ^^exec.Node Msg_Pred  ; 52
         ubyte Msg_Type  ; 56
         byte Msg_Pri  ; 57
         str Msg_Name  ; 58
-        pointer Msg_ReplyPort  ; 62
+        ^^exec.MsgPort Msg_ReplyPort  ; 62
         uword Msg_Length  ; 66
     }
 

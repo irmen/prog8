@@ -2,7 +2,7 @@
 %import floats
 %zeropage basicsafe
 
-; Note: this program can be compiled for multiple target systems.
+; Note: this program can be compiled for the various CBM target systems.
 
 main {
     const ubyte width = 30

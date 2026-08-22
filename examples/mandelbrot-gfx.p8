@@ -6,7 +6,7 @@
 ; NOTE: this will take an eternity to draw on a real c64. A CommanderX16 is a bit faster.
 ; even in Vice in warp mode (700% speed on my machine) it's slow, but you can see progress
 
-; Note: this program can be compiled for multiple target systems.
+; Note: this program can be compiled for the C64 target system.
 
 main {
     const uword width = 320

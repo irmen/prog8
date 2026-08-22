@@ -3,85 +3,88 @@
 ;; Bank: 3
 ;; Functions: 163
 
+%import exec
+%import utility
+
 graphics {
     %option no_symbol_prefixing
-    extsub @bank 3   -30 = BltBitMap(pointer srcBitMap @A0, word xSrc @D0, word ySrc @D1, pointer destBitMap @A1, word xDest @D2, word yDest @D3, word xSize @D4, word ySize @D5, ubyte minterm @D6, ubyte mask @D7, pointer tempA @A2) -> long @D0
-    extsub @bank 3   -36 = BltTemplate(long source @A0, word xSrc @D0, word srcMod @D1, pointer destRP @A1, word xDest @D2, word yDest @D3, word xSize @D4, word ySize @D5)
-    extsub @bank 3   -42 = ClearEOL(pointer rp @A1)
-    extsub @bank 3   -48 = ClearScreen(pointer rp @A1)
-    extsub @bank 3   -54 = TextLength(pointer rp @A1, str string @A0, uword count @D0) -> word @D0
-    extsub @bank 3   -60 = Text(pointer rp @A1, str string @A0, uword count @D0) -> long @D0
-    extsub @bank 3   -66 = SetFont(pointer rp @A1, pointer textFont @A0) -> long @D0
-    extsub @bank 3   -72 = OpenFont(pointer textAttr @A0) -> pointer @D0
-    extsub @bank 3   -78 = CloseFont(pointer textFont @A1)
-    extsub @bank 3   -84 = AskSoftStyle(pointer rp @A1) -> long @D0
-    extsub @bank 3   -90 = SetSoftStyle(pointer rp @A1, long style @D0, long enable @D1) -> long @D0
-    extsub @bank 3   -96 = AddBob(pointer bob @A0, pointer rp @A1)
-    extsub @bank 3   -102 = AddVSprite(pointer vSprite @A0, pointer rp @A1)
-    extsub @bank 3   -108 = DoCollision(pointer rp @A1)
-    extsub @bank 3   -114 = DrawGList(pointer rp @A1, pointer vp @A0)
+    extsub @bank 3   -30 = BltBitMap(^^BitMap srcBitMap @A0, word xSrc @D0, word ySrc @D1, ^^BitMap destBitMap @A1, word xDest @D2, word yDest @D3, word xSize @D4, word ySize @D5, ubyte minterm @D6, ubyte mask @D7, pointer tempA @A2) -> long @D0
+    extsub @bank 3   -36 = BltTemplate(long source @A0, word xSrc @D0, word srcMod @D1, ^^RastPort destRP @A1, word xDest @D2, word yDest @D3, word xSize @D4, word ySize @D5)
+    extsub @bank 3   -42 = ClearEOL(^^RastPort rp @A1)
+    extsub @bank 3   -48 = ClearScreen(^^RastPort rp @A1)
+    extsub @bank 3   -54 = TextLength(^^RastPort rp @A1, str string @A0, uword count @D0) -> word @D0
+    extsub @bank 3   -60 = Text(^^RastPort rp @A1, str string @A0, uword count @D0) -> long @D0
+    extsub @bank 3   -66 = SetFont(^^RastPort rp @A1, ^^TextFont textFont @A0) -> long @D0
+    extsub @bank 3   -72 = OpenFont(^^TextAttr textAttr @A0) -> ^^TextFont @D0
+    extsub @bank 3   -78 = CloseFont(^^TextFont textFont @A1)
+    extsub @bank 3   -84 = AskSoftStyle(^^RastPort rp @A1) -> long @D0
+    extsub @bank 3   -90 = SetSoftStyle(^^RastPort rp @A1, long style @D0, long enable @D1) -> long @D0
+    extsub @bank 3   -96 = AddBob(pointer bob @A0, ^^RastPort rp @A1)
+    extsub @bank 3   -102 = AddVSprite(pointer vSprite @A0, ^^RastPort rp @A1)
+    extsub @bank 3   -108 = DoCollision(^^RastPort rp @A1)
+    extsub @bank 3   -114 = DrawGList(^^RastPort rp @A1, pointer vp @A0)
     extsub @bank 3   -120 = InitGels(pointer head @A0, pointer tail @A1, pointer gelsInfo @A2)
     extsub @bank 3   -126 = InitMasks(pointer vSprite @A0)
-    extsub @bank 3   -132 = RemIBob(pointer bob @A0, pointer rp @A1, pointer vp @A2)
+    extsub @bank 3   -132 = RemIBob(pointer bob @A0, ^^RastPort rp @A1, pointer vp @A2)
     extsub @bank 3   -138 = RemVSprite(pointer vSprite @A0)
     extsub @bank 3   -144 = SetCollision(long num @D0, pointer routine @A0, pointer gelsInfo @A1)
-    extsub @bank 3   -150 = SortGList(pointer rp @A1)
-    extsub @bank 3   -156 = AddAnimOb(pointer anOb @A0, pointer anKey @A1, pointer rp @A2)
-    extsub @bank 3   -162 = Animate(pointer anKey @A0, pointer rp @A1)
-    extsub @bank 3   -168 = GetGBuffers(pointer anOb @A0, pointer rp @A1, bool flag @D0) -> bool @D0
+    extsub @bank 3   -150 = SortGList(^^RastPort rp @A1)
+    extsub @bank 3   -156 = AddAnimOb(pointer anOb @A0, pointer anKey @A1, ^^RastPort rp @A2)
+    extsub @bank 3   -162 = Animate(pointer anKey @A0, ^^RastPort rp @A1)
+    extsub @bank 3   -168 = GetGBuffers(pointer anOb @A0, ^^RastPort rp @A1, bool flag @D0) -> bool @D0
     extsub @bank 3   -174 = InitGMasks(pointer anOb @A0)
-    extsub @bank 3   -180 = DrawEllipse(pointer rp @A1, word xCenter @D0, word yCenter @D1, word a @D2, word b @D3)
-    extsub @bank 3   -186 = AreaEllipse(pointer rp @A1, word xCenter @D0, word yCenter @D1, word a @D2, word b @D3) -> long @D0
+    extsub @bank 3   -180 = DrawEllipse(^^RastPort rp @A1, word xCenter @D0, word yCenter @D1, word a @D2, word b @D3)
+    extsub @bank 3   -186 = AreaEllipse(^^RastPort rp @A1, word xCenter @D0, word yCenter @D1, word a @D2, word b @D3) -> long @D0
     extsub @bank 3   -192 = LoadRGB4(pointer vp @A0, pointer colors @A1, word count @D0)
-    extsub @bank 3   -198 = InitRastPort(pointer rp @A1)
+    extsub @bank 3   -198 = InitRastPort(^^RastPort rp @A1)
     extsub @bank 3   -204 = InitVPort(pointer vp @A0)
-    extsub @bank 3   -210 = MrgCop(pointer view @A1) -> long @D0
-    extsub @bank 3   -216 = MakeVPort(pointer view @A0, pointer vp @A1) -> long @D0
-    extsub @bank 3   -222 = LoadView(pointer view @A1)
+    extsub @bank 3   -210 = MrgCop(^^View view @A1) -> long @D0
+    extsub @bank 3   -216 = MakeVPort(^^View view @A0, pointer vp @A1) -> long @D0
+    extsub @bank 3   -222 = LoadView(^^View view @A1)
     extsub @bank 3   -228 = WaitBlit()
-    extsub @bank 3   -234 = SetRast(pointer rp @A1, ubyte pen @D0)
-    extsub @bank 3   -240 = Move(pointer rp @A1, word x @D0, word y @D1)
-    extsub @bank 3   -246 = Draw(pointer rp @A1, word x @D0, word y @D1)
-    extsub @bank 3   -252 = AreaMove(pointer rp @A1, word x @D0, word y @D1) -> long @D0
-    extsub @bank 3   -258 = AreaDraw(pointer rp @A1, word x @D0, word y @D1) -> long @D0
-    extsub @bank 3   -264 = AreaEnd(pointer rp @A1) -> long @D0
+    extsub @bank 3   -234 = SetRast(^^RastPort rp @A1, ubyte pen @D0)
+    extsub @bank 3   -240 = Move(^^RastPort rp @A1, word x @D0, word y @D1)
+    extsub @bank 3   -246 = Draw(^^RastPort rp @A1, word x @D0, word y @D1)
+    extsub @bank 3   -252 = AreaMove(^^RastPort rp @A1, word x @D0, word y @D1) -> long @D0
+    extsub @bank 3   -258 = AreaDraw(^^RastPort rp @A1, word x @D0, word y @D1) -> long @D0
+    extsub @bank 3   -264 = AreaEnd(^^RastPort rp @A1) -> long @D0
     extsub @bank 3   -270 = WaitTOF()
     extsub @bank 3   -276 = QBlit(pointer blit @A1)
-    extsub @bank 3   -282 = InitArea(pointer areaInfo @A0, pointer vectorBuffer @A1, word maxVectors @D0)
+    extsub @bank 3   -282 = InitArea(^^AreaInfo areaInfo @A0, pointer vectorBuffer @A1, word maxVectors @D0)
     extsub @bank 3   -288 = SetRGB4(pointer vp @A0, word index @D0, ubyte red @D1, ubyte green @D2, ubyte blue @D3)
     extsub @bank 3   -294 = QBSBlit(pointer blit @A1)
     extsub @bank 3   -300 = BltClear(pointer memBlock @A1, long byteCount @D0, long flags @D1)
-    extsub @bank 3   -306 = RectFill(pointer rp @A1, word xMin @D0, word yMin @D1, word xMax @D2, word yMax @D3)
-    extsub @bank 3   -312 = BltPattern(pointer rp @A1, long mask @A0, word xMin @D0, word yMin @D1, word xMax @D2, word yMax @D3, uword maskBPR @D4)
-    extsub @bank 3   -318 = ReadPixel(pointer rp @A1, word x @D0, word y @D1) -> long @D0
-    extsub @bank 3   -324 = WritePixel(pointer rp @A1, word x @D0, word y @D1) -> long @D0
-    extsub @bank 3   -330 = Flood(pointer rp @A1, long mode @D2, word x @D0, word y @D1) -> bool @D0
-    extsub @bank 3   -336 = PolyDraw(pointer rp @A1, word count @D0, pointer polyTable @A0)
-    extsub @bank 3   -342 = SetAPen(pointer rp @A1, ubyte pen @D0)
-    extsub @bank 3   -348 = SetBPen(pointer rp @A1, ubyte pen @D0)
-    extsub @bank 3   -354 = SetDrMd(pointer rp @A1, ubyte drawMode @D0)
-    extsub @bank 3   -360 = InitView(pointer view @A1)
+    extsub @bank 3   -306 = RectFill(^^RastPort rp @A1, word xMin @D0, word yMin @D1, word xMax @D2, word yMax @D3)
+    extsub @bank 3   -312 = BltPattern(^^RastPort rp @A1, long mask @A0, word xMin @D0, word yMin @D1, word xMax @D2, word yMax @D3, uword maskBPR @D4)
+    extsub @bank 3   -318 = ReadPixel(^^RastPort rp @A1, word x @D0, word y @D1) -> long @D0
+    extsub @bank 3   -324 = WritePixel(^^RastPort rp @A1, word x @D0, word y @D1) -> long @D0
+    extsub @bank 3   -330 = Flood(^^RastPort rp @A1, long mode @D2, word x @D0, word y @D1) -> bool @D0
+    extsub @bank 3   -336 = PolyDraw(^^RastPort rp @A1, word count @D0, pointer polyTable @A0)
+    extsub @bank 3   -342 = SetAPen(^^RastPort rp @A1, ubyte pen @D0)
+    extsub @bank 3   -348 = SetBPen(^^RastPort rp @A1, ubyte pen @D0)
+    extsub @bank 3   -354 = SetDrMd(^^RastPort rp @A1, ubyte drawMode @D0)
+    extsub @bank 3   -360 = InitView(^^View view @A1)
     extsub @bank 3   -366 = CBump(pointer copList @A1)
     extsub @bank 3   -372 = CMove(pointer copList @A1, pointer destination @D0, word data @D1) -> long @D0
     extsub @bank 3   -378 = CWait(pointer copList @A1, word v @D0, word h @D1) -> long @D0
     extsub @bank 3   -384 = VBeamPos() -> long @D0
-    extsub @bank 3   -390 = InitBitMap(pointer bitMap @A0, byte depth @D0, word width @D1, word height @D2)
-    extsub @bank 3   -396 = ScrollRaster(pointer rp @A1, word dx @D0, word dy @D1, word xMin @D2, word yMin @D3, word xMax @D4, word yMax @D5)
+    extsub @bank 3   -390 = InitBitMap(^^BitMap bitMap @A0, byte depth @D0, word width @D1, word height @D2)
+    extsub @bank 3   -396 = ScrollRaster(^^RastPort rp @A1, word dx @D0, word dy @D1, word xMin @D2, word yMin @D3, word xMax @D4, word yMax @D5)
     extsub @bank 3   -402 = WaitBOVP(pointer vp @A0)
     extsub @bank 3   -408 = GetSprite(pointer sprite @A0, word num @D0) -> word @D0
     extsub @bank 3   -414 = FreeSprite(word num @D0)
     extsub @bank 3   -420 = ChangeSprite(pointer vp @A0, pointer sprite @A1, pointer newData @A2)
     extsub @bank 3   -426 = MoveSprite(pointer vp @A0, pointer sprite @A1, word x @D0, word y @D1)
-    extsub @bank 3   -432 = LockLayerRom(pointer layer @A5)
-    extsub @bank 3   -438 = UnlockLayerRom(pointer layer @A5)
-    extsub @bank 3   -444 = SyncSBitMap(pointer layer @A0)
-    extsub @bank 3   -450 = CopySBitMap(pointer layer @A0)
+    extsub @bank 3   -432 = LockLayerRom(^^Layer layer @A5)
+    extsub @bank 3   -438 = UnlockLayerRom(^^Layer layer @A5)
+    extsub @bank 3   -444 = SyncSBitMap(^^Layer layer @A0)
+    extsub @bank 3   -450 = CopySBitMap(^^Layer layer @A0)
     extsub @bank 3   -456 = OwnBlitter()
     extsub @bank 3   -462 = DisownBlitter()
-    extsub @bank 3   -468 = InitTmpRas(pointer tmpRas @A0, pointer buffer @A1, long size @D0) -> pointer @D0
-    extsub @bank 3   -474 = AskFont(pointer rp @A1, pointer textAttr @A0)
-    extsub @bank 3   -480 = AddFont(pointer textFont @A1)
-    extsub @bank 3   -486 = RemFont(pointer textFont @A1)
+    extsub @bank 3   -468 = InitTmpRas(^^TmpRas tmpRas @A0, pointer buffer @A1, long size @D0) -> ^^TmpRas @D0
+    extsub @bank 3   -474 = AskFont(^^RastPort rp @A1, ^^TextAttr textAttr @A0)
+    extsub @bank 3   -480 = AddFont(^^TextFont textFont @A1)
+    extsub @bank 3   -486 = RemFont(^^TextFont textFont @A1)
     extsub @bank 3   -492 = AllocRaster(uword width @D0, uword height @D1) -> pointer @D0
     extsub @bank 3   -498 = FreeRaster(pointer p @A0, uword width @D0, uword height @D1)
     extsub @bank 3   -504 = AndRectRegion(pointer region @A0, pointer rectangle @A1)
@@ -92,82 +95,82 @@ graphics {
     extsub @bank 3   -534 = DisposeRegion(pointer region @A0)
     extsub @bank 3   -540 = FreeVPortCopLists(pointer vp @A0)
     extsub @bank 3   -546 = FreeCopList(pointer copList @A0)
-    extsub @bank 3   -552 = ClipBlit(pointer srcRP @A0, word xSrc @D0, word ySrc @D1, pointer destRP @A1, word xDest @D2, word yDest @D3, word xSize @D4, word ySize @D5, ubyte minterm @D6)
+    extsub @bank 3   -552 = ClipBlit(^^RastPort srcRP @A0, word xSrc @D0, word ySrc @D1, ^^RastPort destRP @A1, word xDest @D2, word yDest @D3, word xSize @D4, word ySize @D5, ubyte minterm @D6)
     extsub @bank 3   -558 = XorRectRegion(pointer region @A0, pointer rectangle @A1) -> bool @D0
     extsub @bank 3   -564 = FreeCprList(pointer cprList @A0)
-    extsub @bank 3   -570 = GetColorMap(long entries @D0) -> pointer @D0
-    extsub @bank 3   -576 = FreeColorMap(pointer colorMap @A0)
-    extsub @bank 3   -582 = GetRGB4(pointer colorMap @A0, long entry @D0) -> long @D0
+    extsub @bank 3   -570 = GetColorMap(long entries @D0) -> ^^ColorMap @D0
+    extsub @bank 3   -576 = FreeColorMap(^^ColorMap colorMap @A0)
+    extsub @bank 3   -582 = GetRGB4(^^ColorMap colorMap @A0, long entry @D0) -> long @D0
     extsub @bank 3   -588 = ScrollVPort(pointer vp @A0)
     extsub @bank 3   -594 = UCopperListInit(pointer uCopList @A0, word n @D0) -> pointer @D0
-    extsub @bank 3   -600 = FreeGBuffers(pointer anOb @A0, pointer rp @A1, bool flag @D0)
-    extsub @bank 3   -606 = BltBitMapRastPort(pointer srcBitMap @A0, word xSrc @D0, word ySrc @D1, pointer destRP @A1, word xDest @D2, word yDest @D3, word xSize @D4, word ySize @D5, ubyte minterm @D6)
+    extsub @bank 3   -600 = FreeGBuffers(pointer anOb @A0, ^^RastPort rp @A1, bool flag @D0)
+    extsub @bank 3   -606 = BltBitMapRastPort(^^BitMap srcBitMap @A0, word xSrc @D0, word ySrc @D1, ^^RastPort destRP @A1, word xDest @D2, word yDest @D3, word xSize @D4, word ySize @D5, ubyte minterm @D6)
     extsub @bank 3   -612 = OrRegionRegion(pointer srcRegion @A0, pointer destRegion @A1) -> bool @D0
     extsub @bank 3   -618 = XorRegionRegion(pointer srcRegion @A0, pointer destRegion @A1) -> bool @D0
     extsub @bank 3   -624 = AndRegionRegion(pointer srcRegion @A0, pointer destRegion @A1) -> bool @D0
-    extsub @bank 3   -630 = SetRGB4CM(pointer colorMap @A0, word index @D0, ubyte red @D1, ubyte green @D2, ubyte blue @D3)
-    extsub @bank 3   -636 = BltMaskBitMapRastPort(pointer srcBitMap @A0, word xSrc @D0, word ySrc @D1, pointer destRP @A1, word xDest @D2, word yDest @D3, word xSize @D4, word ySize @D5, ubyte minterm @D6, long bltMask @A2)
-    extsub @bank 3   -654 = AttemptLockLayerRom(pointer layer @A5) -> bool @D0
+    extsub @bank 3   -630 = SetRGB4CM(^^ColorMap colorMap @A0, word index @D0, ubyte red @D1, ubyte green @D2, ubyte blue @D3)
+    extsub @bank 3   -636 = BltMaskBitMapRastPort(^^BitMap srcBitMap @A0, word xSrc @D0, word ySrc @D1, ^^RastPort destRP @A1, word xDest @D2, word yDest @D3, word xSize @D4, word ySize @D5, ubyte minterm @D6, long bltMask @A2)
+    extsub @bank 3   -654 = AttemptLockLayerRom(^^Layer layer @A5) -> bool @D0
     extsub @bank 3   -660 = GfxNew(long gfxNodeType @D0) -> pointer @D0
     extsub @bank 3   -666 = GfxFree(pointer gfxNodePtr @A0)
     extsub @bank 3   -672 = GfxAssociate(pointer associateNode @A0, pointer gfxNodePtr @A1)
     extsub @bank 3   -678 = BitMapScale(pointer bitScaleArgs @A0)
     extsub @bank 3   -684 = ScalerDiv(uword factor @D0, uword numerator @D1, uword denominator @D2) -> uword @D0
-    extsub @bank 3   -690 = TextExtent(pointer rp @A1, str string @A0, word count @D0, pointer textExtent @A2) -> word @D0
-    extsub @bank 3   -696 = TextFit(pointer rp @A1, str string @A0, uword strLen @D0, pointer textExtent @A2, pointer constrainingExtent @A3, word strDirection @D1, uword constrainingBitWidth @D2, uword constrainingBitHeight @D3) -> long @D0
+    extsub @bank 3   -690 = TextExtent(^^RastPort rp @A1, str string @A0, word count @D0, pointer textExtent @A2) -> word @D0
+    extsub @bank 3   -696 = TextFit(^^RastPort rp @A1, str string @A0, uword strLen @D0, pointer textExtent @A2, pointer constrainingExtent @A3, word strDirection @D1, uword constrainingBitWidth @D2, uword constrainingBitHeight @D3) -> long @D0
     extsub @bank 3   -702 = GfxLookUp(pointer associateNode @A0) -> pointer @D0
-    extsub @bank 3   -708 = VideoControl(pointer colorMap @A0, pointer tagarray @A1) -> bool @D0
+    extsub @bank 3   -708 = VideoControl(^^ColorMap colorMap @A0, pointer tagarray @A1) -> bool @D0
     extsub @bank 3   -714 = OpenMonitor(str monitorName @A1, long displayID @D0) -> pointer @D0
     extsub @bank 3   -720 = CloseMonitor(pointer monitorSpec @A0) -> bool @D0
     extsub @bank 3   -726 = FindDisplayInfo(long displayID @D0) -> pointer @D0
     extsub @bank 3   -732 = NextDisplayInfo(long displayID @D0) -> long @D0
     extsub @bank 3   -756 = GetDisplayInfoData(pointer handle @A0, pointer buf @A1, long size @D0, long tagID @D1, long displayID @D2) -> long @D0
-    extsub @bank 3   -762 = FontExtent(pointer font @A0, pointer fontExtent @A1)
-    extsub @bank 3   -768 = ReadPixelLine8(pointer rp @A0, uword xstart @D0, uword ystart @D1, uword width @D2, pointer array @A2, pointer tempRP @A1) -> long @D0
-    extsub @bank 3   -774 = WritePixelLine8(pointer rp @A0, uword xstart @D0, uword ystart @D1, uword width @D2, pointer array @A2, pointer tempRP @A1) -> long @D0
-    extsub @bank 3   -780 = ReadPixelArray8(pointer rp @A0, uword xstart @D0, uword ystart @D1, uword xstop @D2, uword ystop @D3, pointer array @A2, pointer temprp @A1) -> long @D0
-    extsub @bank 3   -786 = WritePixelArray8(pointer rp @A0, uword xstart @D0, uword ystart @D1, uword xstop @D2, uword ystop @D3, pointer array @A2, pointer temprp @A1) -> long @D0
+    extsub @bank 3   -762 = FontExtent(^^TextFont font @A0, pointer fontExtent @A1)
+    extsub @bank 3   -768 = ReadPixelLine8(^^RastPort rp @A0, uword xstart @D0, uword ystart @D1, uword width @D2, pointer array @A2, ^^RastPort tempRP @A1) -> long @D0
+    extsub @bank 3   -774 = WritePixelLine8(^^RastPort rp @A0, uword xstart @D0, uword ystart @D1, uword width @D2, pointer array @A2, ^^RastPort tempRP @A1) -> long @D0
+    extsub @bank 3   -780 = ReadPixelArray8(^^RastPort rp @A0, uword xstart @D0, uword ystart @D1, uword xstop @D2, uword ystop @D3, pointer array @A2, ^^RastPort temprp @A1) -> long @D0
+    extsub @bank 3   -786 = WritePixelArray8(^^RastPort rp @A0, uword xstart @D0, uword ystart @D1, uword xstop @D2, uword ystop @D3, pointer array @A2, ^^RastPort temprp @A1) -> long @D0
     extsub @bank 3   -792 = GetVPModeID(pointer vp @A0) -> long @D0
     extsub @bank 3   -798 = ModeNotAvailable(long modeID @D0) -> long @D0
-    extsub @bank 3   -804 = WeighTAMatch(pointer reqTextAttr @A0, pointer targetTextAttr @A1, pointer targetTags @A2) -> word @D0
-    extsub @bank 3   -810 = EraseRect(pointer rp @A1, word xMin @D0, word yMin @D1, word xMax @D2, word yMax @D3)
-    extsub @bank 3   -816 = ExtendFont(pointer font @A0, pointer fontTags @A1) -> long @D0
-    extsub @bank 3   -822 = StripFont(pointer font @A0)
-    extsub @bank 3   -828 = CalcIVG(pointer v @A0, pointer vp @A1) -> uword @D0
-    extsub @bank 3   -834 = AttachPalExtra(pointer cm @A0, pointer vp @A1) -> long @D0
-    extsub @bank 3   -840 = ObtainBestPenA(pointer cm @A0, long r @D1, long g @D2, long b @D3, pointer tags @A1) -> long @D0
+    extsub @bank 3   -804 = WeighTAMatch(^^TextAttr reqTextAttr @A0, ^^TextAttr targetTextAttr @A1, pointer targetTags @A2) -> word @D0
+    extsub @bank 3   -810 = EraseRect(^^RastPort rp @A1, word xMin @D0, word yMin @D1, word xMax @D2, word yMax @D3)
+    extsub @bank 3   -816 = ExtendFont(^^TextFont font @A0, pointer fontTags @A1) -> long @D0
+    extsub @bank 3   -822 = StripFont(^^TextFont font @A0)
+    extsub @bank 3   -828 = CalcIVG(^^View v @A0, pointer vp @A1) -> uword @D0
+    extsub @bank 3   -834 = AttachPalExtra(^^ColorMap cm @A0, pointer vp @A1) -> long @D0
+    extsub @bank 3   -840 = ObtainBestPenA(^^ColorMap cm @A0, long r @D1, long g @D2, long b @D3, pointer tags @A1) -> long @D0
     extsub @bank 3   -852 = SetRGB32(pointer vp @A0, long n @D0, long r @D1, long g @D2, long b @D3)
-    extsub @bank 3   -858 = GetAPen(pointer rp @A0) -> long @D0
-    extsub @bank 3   -864 = GetBPen(pointer rp @A0) -> long @D0
-    extsub @bank 3   -870 = GetDrMd(pointer rp @A0) -> long @D0
-    extsub @bank 3   -876 = GetOutlinePen(pointer rp @A0) -> long @D0
+    extsub @bank 3   -858 = GetAPen(^^RastPort rp @A0) -> long @D0
+    extsub @bank 3   -864 = GetBPen(^^RastPort rp @A0) -> long @D0
+    extsub @bank 3   -870 = GetDrMd(^^RastPort rp @A0) -> long @D0
+    extsub @bank 3   -876 = GetOutlinePen(^^RastPort rp @A0) -> long @D0
     extsub @bank 3   -882 = LoadRGB32(pointer vp @A0, pointer table @A1)
     extsub @bank 3   -888 = SetChipRev(long want @D0) -> long @D0
-    extsub @bank 3   -894 = SetABPenDrMd(pointer rp @A1, long apen @D0, long bpen @D1, long drawmode @D2)
-    extsub @bank 3   -900 = GetRGB32(pointer cm @A0, long firstcolor @D0, long ncolors @D1, pointer table @A1)
-    extsub @bank 3   -918 = AllocBitMap(long sizex @D0, long sizey @D1, long depth @D2, long flags @D3, pointer friend_bitmap @A0) -> pointer @D0
-    extsub @bank 3   -924 = FreeBitMap(pointer bm @A0)
+    extsub @bank 3   -894 = SetABPenDrMd(^^RastPort rp @A1, long apen @D0, long bpen @D1, long drawmode @D2)
+    extsub @bank 3   -900 = GetRGB32(^^ColorMap cm @A0, long firstcolor @D0, long ncolors @D1, pointer table @A1)
+    extsub @bank 3   -918 = AllocBitMap(long sizex @D0, long sizey @D1, long depth @D2, long flags @D3, ^^BitMap friend_bitmap @A0) -> ^^BitMap @D0
+    extsub @bank 3   -924 = FreeBitMap(^^BitMap bm @A0)
     extsub @bank 3   -930 = GetExtSpriteA(pointer ss @A2, pointer tags @A1) -> long @D0
     extsub @bank 3   -936 = CoerceMode(pointer vp @A0, long monitorid @D0, long flags @D1) -> long @D0
-    extsub @bank 3   -942 = ChangeVPBitMap(pointer vp @A0, pointer bm @A1, pointer db @A2)
-    extsub @bank 3   -948 = ReleasePen(pointer cm @A0, long n @D0)
-    extsub @bank 3   -954 = ObtainPen(pointer cm @A0, long n @D0, long r @D1, long g @D2, long b @D3, long f @D4) -> long @D0
-    extsub @bank 3   -960 = GetBitMapAttr(pointer bm @A0, long attrnum @D1) -> long @D0
+    extsub @bank 3   -942 = ChangeVPBitMap(pointer vp @A0, ^^BitMap bm @A1, pointer db @A2)
+    extsub @bank 3   -948 = ReleasePen(^^ColorMap cm @A0, long n @D0)
+    extsub @bank 3   -954 = ObtainPen(^^ColorMap cm @A0, long n @D0, long r @D1, long g @D2, long b @D3, long f @D4) -> long @D0
+    extsub @bank 3   -960 = GetBitMapAttr(^^BitMap bm @A0, long attrnum @D1) -> long @D0
     extsub @bank 3   -966 = AllocDBufInfo(pointer vp @A0) -> pointer @D0
     extsub @bank 3   -972 = FreeDBufInfo(pointer dbi @A1)
-    extsub @bank 3   -978 = SetOutlinePen(pointer rp @A0, long pen @D0) -> long @D0
-    extsub @bank 3   -984 = SetWriteMask(pointer rp @A0, long msk @D0) -> long @D0
-    extsub @bank 3   -990 = SetMaxPen(pointer rp @A0, long maxpen @D0)
-    extsub @bank 3   -996 = SetRGB32CM(pointer cm @A0, long n @D0, long r @D1, long g @D2, long b @D3)
-    extsub @bank 3   -1002 = ScrollRasterBF(pointer rp @A1, word dx @D0, word dy @D1, word xMin @D2, word yMin @D3, word xMax @D4, word yMax @D5)
-    extsub @bank 3   -1008 = FindColor(pointer cm @A3, long r @D1, long g @D2, long b @D3, long maxcolor @D4) -> long @D0
-    extsub @bank 3   -1020 = AllocSpriteDataA(pointer bm @A2, pointer tags @A1) -> pointer @D0
+    extsub @bank 3   -978 = SetOutlinePen(^^RastPort rp @A0, long pen @D0) -> long @D0
+    extsub @bank 3   -984 = SetWriteMask(^^RastPort rp @A0, long msk @D0) -> long @D0
+    extsub @bank 3   -990 = SetMaxPen(^^RastPort rp @A0, long maxpen @D0)
+    extsub @bank 3   -996 = SetRGB32CM(^^ColorMap cm @A0, long n @D0, long r @D1, long g @D2, long b @D3)
+    extsub @bank 3   -1002 = ScrollRasterBF(^^RastPort rp @A1, word dx @D0, word dy @D1, word xMin @D2, word yMin @D3, word xMax @D4, word yMax @D5)
+    extsub @bank 3   -1008 = FindColor(^^ColorMap cm @A3, long r @D1, long g @D2, long b @D3, long maxcolor @D4) -> long @D0
+    extsub @bank 3   -1020 = AllocSpriteDataA(^^BitMap bm @A2, pointer tags @A1) -> pointer @D0
     extsub @bank 3   -1026 = ChangeExtSpriteA(pointer vp @A0, pointer oldsprite @A1, pointer newsprite @A2, pointer tags @A3) -> long @D0
     extsub @bank 3   -1032 = FreeSpriteData(pointer sp @A2)
-    extsub @bank 3   -1038 = SetRPAttrsA(pointer rp @A0, pointer tags @A1)
-    extsub @bank 3   -1044 = GetRPAttrsA(pointer rp @A0, pointer tags @A1)
+    extsub @bank 3   -1038 = SetRPAttrsA(^^RastPort rp @A0, pointer tags @A1)
+    extsub @bank 3   -1044 = GetRPAttrsA(^^RastPort rp @A0, pointer tags @A1)
     extsub @bank 3   -1050 = BestModeIDA(pointer tags @A0) -> long @D0
-    extsub @bank 3   -1056 = WriteChunkyPixels(pointer rp @A0, uword xstart @D0, uword ystart @D1, uword xstop @D2, uword ystop @D3, pointer array @A2, long bytesperrow @D4)
+    extsub @bank 3   -1056 = WriteChunkyPixels(^^RastPort rp @A0, uword xstart @D0, uword ystart @D1, uword xstop @D2, uword ystop @D3, pointer array @A2, long bytesperrow @D4)
 
     ; ---- struct definitions ----
 
@@ -192,12 +195,12 @@ graphics {
     }
 
     struct ClipRect {  ; total size: 36
-        pointer Next  ; 0
-        pointer Reservedlink  ; 4
+        ^^ClipRect Next  ; 0
+        ^^ClipRect Reservedlink  ; 4
         long Obscured  ; 8
-        pointer BitMap  ; 12
+        ^^BitMap BitMap  ; 12
         ubyte[8] emb_Bounds  ; 16
-        pointer Vlink  ; 24
+        ^^ClipRect Vlink  ; 24
         pointer Home  ; 28
         pointer Reserved  ; 32
     }
@@ -216,7 +219,7 @@ graphics {
         pointer Vp  ; 20
         pointer NormalDisplayInfo  ; 24
         pointer CoerceDisplayInfo  ; 28
-        pointer Batch_items  ; 32
+        ^^utility.TagItem Batch_items  ; 32
         long VPModeID  ; 36
         pointer PalExtra  ; 40
         uword Even  ; 44
@@ -226,30 +229,30 @@ graphics {
     }
 
     struct Layer {  ; total size: 160
-        pointer Front  ; 0
-        pointer Back  ; 4
-        pointer ClipRect  ; 8
-        pointer Rp  ; 12
+        ^^Layer Front  ; 0
+        ^^Layer Back  ; 4
+        ^^ClipRect ClipRect  ; 8
+        ^^RastPort Rp  ; 12
         ubyte[8] emb_Bounds  ; 16
-        pointer Nlink  ; 24
+        ^^Layer Nlink  ; 24
         uword Priority  ; 28
         uword Flags  ; 30
-        pointer SuperBitMap  ; 32
-        pointer SuperClipRect  ; 36
+        ^^BitMap SuperBitMap  ; 32
+        ^^ClipRect SuperClipRect  ; 36
         pointer Window  ; 40
         word X  ; 44
         word Y  ; 46
-        pointer OnScreen  ; 48
-        pointer OffScreen  ; 52
-        pointer Backup  ; 56
-        pointer SuperSaveClipRects  ; 60
-        pointer Undamaged  ; 64
+        ^^ClipRect OnScreen  ; 48
+        ^^ClipRect OffScreen  ; 52
+        ^^ClipRect Backup  ; 56
+        ^^ClipRect SuperSaveClipRects  ; 60
+        ^^ClipRect Undamaged  ; 64
         pointer LayerInfo  ; 68
         ubyte[46] emb_Lock  ; 72
-        pointer BackFill  ; 118
+        ^^utility.Hook BackFill  ; 118
         long Reserved1  ; 122
         pointer ClipRegion  ; 126
-        pointer Clipped  ; 130
+        ^^ClipRect Clipped  ; 130
         word Width  ; 134
         word Height  ; 136
         ubyte[18] Reserved2  ; 138
@@ -257,11 +260,11 @@ graphics {
     }
 
     struct RastPort {  ; total size: 100
-        pointer Layer  ; 0
-        pointer BitMap  ; 4
+        ^^Layer Layer  ; 0
+        ^^BitMap BitMap  ; 4
         pointer AreaPtrn  ; 8
-        pointer TmpRas  ; 12
-        pointer AreaInfo  ; 16
+        ^^TmpRas TmpRas  ; 12
+        ^^AreaInfo AreaInfo  ; 16
         pointer GelsInfo  ; 20
         ubyte Mask  ; 24
         byte FgPen  ; 25
@@ -278,7 +281,7 @@ graphics {
         ubyte[8] Minterms  ; 40
         word PenWidth  ; 48
         word PenHeight  ; 50
-        pointer Font  ; 52
+        ^^TextFont Font  ; 52
         ubyte AlgoStyle  ; 56
         ubyte TxFlags  ; 57
         uword TxHeight  ; 58
@@ -305,12 +308,12 @@ graphics {
     }
 
     struct TextFont {  ; total size: 52
-        pointer Succ  ; 0
-        pointer Pred  ; 4
+        ^^exec.Node Succ  ; 0
+        ^^exec.Node Pred  ; 4
         ubyte Type  ; 8
         byte Pri  ; 9
         str Name  ; 10
-        pointer ReplyPort  ; 14
+        ^^exec.MsgPort ReplyPort  ; 14
         uword Length  ; 18
         uword YSize  ; 20
         ubyte Style  ; 22

@@ -58,10 +58,6 @@ main {
         uword angle_x = 0
         uword angle_y = 0
         uword angle_z = 0
-        word[VERTEX_COUNT] rotatedx
-        word[VERTEX_COUNT] rotatedy
-        word[VERTEX_COUNT] rotatedz
-
         while not custom.left_button() {
             word[VERTEX_COUNT] px
             word[VERTEX_COUNT] py
@@ -99,18 +95,17 @@ main {
 
             ubyte i
             for i in 0 to VERTEX_COUNT - 1 {
-                rotatedx[i] = Axx * vx[i] + Axy * vy[i] + Axz * vz[i]
-                rotatedy[i] = Ayx * vx[i] + Ayy * vy[i] + Ayz * vz[i]
-                rotatedz[i] = Azx * vx[i] + Azy * vy[i] + Azz * vz[i]
-            }
+                ; Rotate the vertex.
+                word rx = Axx * vx[i] + Axy * vy[i] + Axz * vz[i]
+                word ry = Ayx * vx[i] + Ayy * vy[i] + Ayz * vz[i]
+                word rz = Azx * vx[i] + Azy * vy[i] + Azz * vz[i]
 
-            for i in 0 to VERTEX_COUNT - 1 {
                 ; Perspective projection: positive Z is nearer to the camera.
-                word persp = PERSPECTIVE_DISTANCE - (rotatedz[i] >> 8)
+                word persp = PERSPECTIVE_DISTANCE - (rz >> 8)
                 if persp < 32
                     persp = 32
-                px[i] = rotatedx[i] / persp + CX
-                py[i] = CY - rotatedy[i] / persp
+                px[i] = rx / persp + CX
+                py[i] = CY - ry / persp
                 if px[i] < 0
                     px[i] = 0
                 if px[i] > 319

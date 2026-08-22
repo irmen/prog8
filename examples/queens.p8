@@ -3,7 +3,7 @@
 ; Recursive N-Queens solver.
 ; The problem is: find all possible ways to place 8 Queen chess pieces on a chess board, so that none of them attacks any other.
 ; (this program prints all solutions without taking mirroring and flipping the chess board into account)
-; Note: this program can be compiled for multiple target systems.
+; Note: this program can be compiled for the various CBM target systems.
 
 main {
     const ubyte NUMQUEENS=8

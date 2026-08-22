@@ -23,30 +23,30 @@ arexx {
     extsub @bank 29   -126 = CreateArgstring(str string @A0, long length @D0) -> pointer @D0
     extsub @bank 29   -132 = DeleteArgstring(pointer argstring @A0)
     extsub @bank 29   -138 = LengthArgstring(pointer argstring @A0) -> long @D0
-    extsub @bank 29   -144 = CreateRexxMsg(pointer port @A0, str extension @A1, str host @D0) -> pointer @D0
-    extsub @bank 29   -150 = DeleteRexxMsg(pointer packet @A0)
-    extsub @bank 29   -156 = ClearRexxMsg(pointer msgptr @A0, long count @D0)
-    extsub @bank 29   -162 = FillRexxMsg(pointer msgptr @A0, long count @D0, long mask @D1) -> bool @D0
-    extsub @bank 29   -168 = IsRexxMsg(pointer msgptr @A0) -> bool @D0
+    extsub @bank 29   -144 = CreateRexxMsg(^^exec.MsgPort port @A0, str extension @A1, str host @D0) -> ^^RexxMsg @D0
+    extsub @bank 29   -150 = DeleteRexxMsg(^^RexxMsg packet @A0)
+    extsub @bank 29   -156 = ClearRexxMsg(^^RexxMsg msgptr @A0, long count @D0)
+    extsub @bank 29   -162 = FillRexxMsg(^^RexxMsg msgptr @A0, long count @D0, long mask @D1) -> bool @D0
+    extsub @bank 29   -168 = IsRexxMsg(^^RexxMsg msgptr @A0) -> bool @D0
     extsub @bank 29   -450 = LockRexxBase(long resource @D0)
     extsub @bank 29   -456 = UnlockRexxBase(long resource @D0)
-    extsub @bank 29   -480 = CreateRexxHostPort(str basename @A0) -> pointer @D0
-    extsub @bank 29   -486 = DeleteRexxHostPort(pointer port @A0)
-    extsub @bank 29   -492 = GetRexxVarFromMsg(str var @A0, pointer msgptr @A2, str value @A1) -> long @D0
-    extsub @bank 29   -498 = SetRexxVarFromMsg(str var @A0, pointer msgptr @A2, str value @A1) -> long @D0
-    extsub @bank 29   -504 = LaunchRexxScript(str script @A0, pointer replyport @A1, str extension @A2, pointer input @D1, pointer output @D2) -> pointer @D0
-    extsub @bank 29   -510 = FreeRexxMsg(pointer msgptr @A0)
-    extsub @bank 29   -516 = GetRexxBufferFromMsg(str var @A0, pointer msgptr @A2, str buffer @A1, long buffer_size @D0) -> long @D0
+    extsub @bank 29   -480 = CreateRexxHostPort(str basename @A0) -> ^^exec.MsgPort @D0
+    extsub @bank 29   -486 = DeleteRexxHostPort(^^exec.MsgPort port @A0)
+    extsub @bank 29   -492 = GetRexxVarFromMsg(str var @A0, ^^RexxMsg msgptr @A2, str value @A1) -> long @D0
+    extsub @bank 29   -498 = SetRexxVarFromMsg(str var @A0, ^^RexxMsg msgptr @A2, str value @A1) -> long @D0
+    extsub @bank 29   -504 = LaunchRexxScript(str script @A0, ^^exec.MsgPort replyport @A1, str extension @A2, pointer input @D1, pointer output @D2) -> ^^RexxMsg @D0
+    extsub @bank 29   -510 = FreeRexxMsg(^^RexxMsg msgptr @A0)
+    extsub @bank 29   -516 = GetRexxBufferFromMsg(str var @A0, ^^RexxMsg msgptr @A2, str buffer @A1, long buffer_size @D0) -> long @D0
 
     ; ---- struct definitions ----
 
     struct RexxMsg {  ; total size: 128
-        pointer Succ  ; 0
-        pointer Pred  ; 4
+        ^^exec.Node Succ  ; 0
+        ^^exec.Node Pred  ; 4
         ubyte Type  ; 8
         byte Pri  ; 9
         str Name  ; 10
-        pointer ReplyPort  ; 14
+        ^^exec.MsgPort ReplyPort  ; 14
         uword Length  ; 18
         pointer TaskBlock  ; 20
         pointer LibBase  ; 24
@@ -54,7 +54,7 @@ arexx {
         long Result1  ; 32
         long Result2  ; 36
         str[16] Args  ; 40
-        pointer PassPort  ; 104
+        ^^exec.MsgPort PassPort  ; 104
         str CommAddr  ; 108
         str FileExt  ; 112
         long Stdin  ; 116
