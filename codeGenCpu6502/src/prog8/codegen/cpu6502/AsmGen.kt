@@ -239,12 +239,35 @@ class AsmGen6502Internal (
         return e
     }
 
+    // Try to get a static address for a simple variable or constant-indexed array element.
+    // Returns the asm label if the expression is a variable/array with constant index,
+    // or null if it is more complex. The requested variableMemSize must match the
+    // variable's actual size, otherwise null is returned to force the generic path
+    // that correctly handles size conversions (e.g. ubyte promoted to uword).
     fun tryGetStaticAddress(expr: PtExpression, variableMemSize: Int): String? {
         val e = unwrapCasts(expr)
-        if (e is PtIdentifier) return asmVariableName(e)
+        if (e is PtIdentifier) {
+            val actualSize = when {
+                e.type.isByte -> 1
+                e.type.isWord -> 2
+                e.type.isLong -> 4
+                e.type.isFloat -> options.compTarget.FLOAT_MEM_SIZE
+                else -> variableMemSize
+            }
+            if (actualSize != variableMemSize) return null
+            return asmVariableName(e)
+        }
         if (e is PtArrayIndexer) {
             val idx = e.index.asConstInteger()
             if (idx != null && e.variable != null) {
+                val actualSize = when {
+                    e.type.isByte -> 1
+                    e.type.isWord -> 2
+                    e.type.isLong -> 4
+                    e.type.isFloat -> options.compTarget.FLOAT_MEM_SIZE
+                    else -> variableMemSize
+                }
+                if (actualSize != variableMemSize) return null
                 val offset = program.memsizer.memorySize(e.type, idx)
                 if (offset + (variableMemSize - 1) < 256) return "${asmVariableName(e.variable!!)}+$offset"
             }
@@ -2069,6 +2092,8 @@ $repeatLabel""")
     }
 
     internal fun isZpVar(variable: PtIdentifier): Boolean = allocator.isZpVar(variable.name)
+
+    internal fun isZpVar(scopedName: String): Boolean = allocator.isZpVar(scopedName)
 
     internal fun jmp(asmLabel: String, indirect: Boolean=false, indexedX: Boolean=false) {
         if(indirect) {
