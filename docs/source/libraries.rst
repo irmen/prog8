@@ -1490,6 +1490,20 @@ Read the :source:`sprites source code <compiler/res/prog8lib/cx16/sprites.p8>`
 to see what's in there.
 
 
+sfxgen
+^^^^^^
+.. index:: pair: Libraries; sfxgen
+
+Simple sound effect generator. It creates and transforms 8-bit signed mono audio sample buffers
+in memory using portable integer math, so the same code works on every Prog8 target.
+Routines are provided for basic waveforms (sine, square, triangle, sawtooth, noise),
+ swept variants, ADSR/amplify/distort filters, low/high-pass, echo/reverb/vibrato/mixing,
+ a generic sfxr-style synthesizer, and a collection of ready-made presets such as laser, explosion,
+ coin, jump, power-up and menu sounds.
+
+Read the :source:`sfxgen source code <compiler/res/prog8lib/sfxgen.p8>` to see what's in there.
+
+
 strings
 ^^^^^^^
 .. index:: pair: Libraries; strings
