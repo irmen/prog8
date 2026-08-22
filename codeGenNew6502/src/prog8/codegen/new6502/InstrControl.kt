@@ -433,9 +433,36 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
             emitLabel("+")
         }
 
-        Opcode.EXTL -> TODO("EXTL: zero-extend byte to long (4 bytes) for 6502 - not yet needed")
+        Opcode.EXTL -> {
+            val dest = r1 ?: error("EXTL needs reg1")
+            val src = r2 ?: error("EXTL needs reg2")
+            if (dest != src) {
+                emitLine("lda  ${regAddrLo(src)}")
+                emitLine("sta  ${regAddrLo(dest)}")
+            }
+            emitStoreZero(regAddrHi(dest))
+            emitStoreZero(regAddrByte(dest, 2))
+            emitStoreZero(regAddrByte(dest, 3))
+        }
 
-        Opcode.EXTLS -> TODO("EXTLS: sign-extend byte to long (4 bytes) for 6502 - not yet needed")
+        Opcode.EXTLS -> {
+            val dest = r1 ?: error("EXTLS needs reg1")
+            val src = r2 ?: error("EXTLS needs reg2")
+            emitLine("lda  ${regAddrLo(src)}")
+            emitLine("sta  ${regAddrLo(dest)}")
+            emitLine("and  #128")
+            emitLine("beq  +")
+            emitLine("lda  #255")
+            emitLine("sta  ${regAddrHi(dest)}")
+            emitLine("sta  ${regAddrByte(dest, 2)}")
+            emitLine("sta  ${regAddrByte(dest, 3)}")
+            emitUnconditionalBranch("++")
+            emitLabel("+")
+            emitStoreZero(regAddrHi(dest))
+            emitStoreZero(regAddrByte(dest, 2))
+            emitStoreZero(regAddrByte(dest, 3))
+            emitLabel("+")
+        }
 
         Opcode.SQRT -> {
             if (insn.type == IRDataType.FLOAT)

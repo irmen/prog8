@@ -378,10 +378,10 @@ object SysCalls {
                 vm.randomSeed(seed1 as UShort, seed2 as UShort)
             }
             Syscall.RND -> {
-                returnValue(callspec.returns.single(), vm.randomGenerator.nextInt().toUByte(), vm)
+                returnValue(callspec.returns.single(), (vm.nextRandWord().toInt() and 255).toUByte(), vm)
             }
             Syscall.RNDW -> {
-                returnValue(callspec.returns.single(), vm.randomGenerator.nextInt().toUShort(), vm)
+                returnValue(callspec.returns.single(), vm.nextRandWord(), vm)
             }
             Syscall.RNDF -> {
                 returnValue(callspec.returns.single(), vm.randomGeneratorFloats.nextFloat(), vm)

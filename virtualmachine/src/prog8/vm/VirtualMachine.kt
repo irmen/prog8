@@ -105,9 +105,31 @@ class VirtualMachine(irProgram: IRProgram) {
     internal val hardwareRegisterAddr = Array(7) { 0u }   // A0-A6 (slots 18-24)
     internal val hardwareRegisterFP = Array(8) { 0.0 }    // FP0-FP7 (slots 25-32)
 
-    internal var randomGenerator = Random(0xa55a7653)
+    // X ABC 4-byte PRNG, same as 6502/m68k targets (math.asm:490 / shared_m68k_math.p8:165)
+    internal var rnd_x1: UByte = 0x00u
+    internal var rnd_c1: UByte = 0xC2u
+    internal var rnd_a1: UByte = 0x11u
+    internal var rnd_b1: UByte = 0x37u
     internal var randomGeneratorFloats = Random(0xc0d3dbad)
     internal var mul16LastUpper = 0u
+
+    internal fun nextRandWord(): UShort {
+        // X ABC algorithm, identical to 6502 math.asm randword and m68k shared_m68k_math rndw
+        rnd_x1 = (rnd_x1 + 1u).toUByte()
+        var a = rnd_x1.toInt() xor rnd_c1.toInt() xor rnd_a1.toInt()
+        rnd_a1 = a.toUByte()
+        var sum = a + rnd_b1.toInt() // clc
+        var carry = if (sum > 255) 1 else 0
+        a = sum and 0xFF
+        rnd_b1 = a.toUByte()
+        carry = a and 1 // lsr carry
+        a = (a ushr 1) and 0xFF
+        a = a xor rnd_a1.toInt()
+        sum = a + rnd_c1.toInt() + carry
+        a = sum and 0xFF
+        rnd_c1 = a.toUByte()
+        return ((rnd_b1.toInt() shl 8) or rnd_c1.toInt()).toUShort()
+    }
     internal val wordArrayIndex = machine.POINTER_MEM_SIZE > 2u
 
     init {
