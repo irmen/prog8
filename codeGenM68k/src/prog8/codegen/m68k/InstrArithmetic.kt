@@ -281,17 +281,17 @@ internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
             when (type) {
                 IRDataType.BYTE -> {
                     emitLine("move.b  ${regAddr(srcReg)}, math._sqrt_ub.value", "sqrt byte")
-                    emitLine("jsr  math._sqrt_ub")
+                    emitLine("bsr  math._sqrt_ub")
                     emitLine("move.b  d0, ${regAddr(dstReg)}")
                 }
                 IRDataType.WORD -> {
                     emitLine("move.w  ${regAddr(srcReg)}, math._sqrt_uw.value", "sqrt word")
-                    emitLine("jsr  math._sqrt_uw")
+                    emitLine("bsr  math._sqrt_uw")
                     emitLine("move.b  d0, ${regAddr(dstReg)}")
                 }
                 IRDataType.LONG, IRDataType.POINTER -> {
                     emitLine("move.l  ${regAddr(srcReg)}, math._sqrt_l.value", "sqrt long")
-                    emitLine("jsr  math._sqrt_l")
+                    emitLine("bsr  math._sqrt_l")
                     emitLine("move.w  d0, ${regAddr(dstReg)}")
                 }
             }
@@ -360,7 +360,7 @@ private fun AsmGen.emitLongMathCall(dstReg: Int, srcReg: Int?, imm: Int?, target
             emitLine("move.l  ${regAddr(dstReg)}, d1")
         }
     }
-    emitLine("jsr  $routine")
+    emitLine("bsr  $routine")
     val storeTarget = target ?: regAddr(dstReg)
     emitLine("move.l  $resultReg, $storeTarget")
 }
@@ -670,7 +670,7 @@ private fun AsmGen.emitDivModOp(dstReg: Int, remainderReg: Int, type: IRDataType
                 } else {
                     emitLine("move.l  ${regAddr(remainderReg)}, d1", "divisor")
                 }
-                emitLine("jsr  $routine")
+                emitLine("bsr  $routine")
                 emitLine("move.l  d0, ${regAddr(dstReg)}", "quotient")
                 emitLine("move.l  d1, ${regAddr(remainderReg)}", "remainder")
             } else {

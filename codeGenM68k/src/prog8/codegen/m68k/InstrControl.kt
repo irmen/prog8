@@ -30,8 +30,14 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
 
     when (insn.opcode) {
         Opcode.JUMP -> {
-            val target = label?.let { fixNameSymbols(it) } ?: addr?.value?.toHex() ?: error("JUMP needs target")
-            emitLine("jmp  $target")
+            val labelTarget = label?.let { fixNameSymbols(it) }
+            if (labelTarget != null) {
+                // PC-relative branch; vasm picks the optimal size and falls back to jmp if out of range
+                emitLine("bra  $labelTarget")
+            } else {
+                val target = addr?.value?.toHex() ?: error("JUMP needs target")
+                emitLine("jmp  $target")
+            }
         }
 
         Opcode.JUMPI -> {
@@ -609,7 +615,8 @@ private fun AsmGen.translateCall(fnLabel: String, args: FunctionCallArgs?, forwa
     if (inlineTarget != null) {
         emitRaw(inlineTarget.asmChunk.assembly)
     } else {
-        emitLine("jsr  $fnLabel")
+        // PC-relative call; vasm picks the optimal size and falls back to jsr if out of range
+        emitLine("bsr  $fnLabel")
     }
 
     // Move return values back to virtual registers.

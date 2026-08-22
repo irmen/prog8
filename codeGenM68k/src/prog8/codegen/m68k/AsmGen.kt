@@ -372,11 +372,11 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         // NOTE: the executable loader already zero-fills the BSS section (LoadSeg on Amiga HUNK, ELF loader on qemu68k); manual clear_bss_section call not needed here.
         
         if (!options.noSysInit)
-            emitLine("jsr  ${fixNameSymbols("p8_sys_startup.init_system")}")
-        emitLine("jsr  ${fixNameSymbols("p8_sys_startup.init_system_phase2")}")
-        emitLine("jsr  ${fixNameSymbols("p8b_main.p8s_start")}")
+            emitLine("bsr  ${fixNameSymbols("p8_sys_startup.init_system")}")
+        emitLine("bsr  ${fixNameSymbols("p8_sys_startup.init_system_phase2")}")
+        emitLine("bsr  ${fixNameSymbols("p8b_main.p8s_start")}")
         emitLine("moveq  #0, d0", "normal return status 0")
-        emitLine("jmp  ${fixNameSymbols("p8_sys_startup.cleanup_at_exit")}")
+        emitLine("bra  ${fixNameSymbols("p8_sys_startup.cleanup_at_exit")}")
     }
 
     // === code emission ===
@@ -449,7 +449,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         emitLabel(subLabel)
         val entrypointNames = setOf("p8b_main.p8s_start", "main.start")
         if(sub.label in entrypointNames)
-            emitLine("jsr  run_global_inits")
+            emitLine("bsr  run_global_inits")
         val livenessInstructions = sub.chunks.filterIsInstance<IRCodeChunk>().flatMap { it.instructions }
         val deadStoreSuppressionAllowed = canSuppressDeadStores(sub)
         var instructionOffset = 0

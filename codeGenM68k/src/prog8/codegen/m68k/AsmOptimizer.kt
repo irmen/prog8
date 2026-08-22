@@ -205,20 +205,29 @@ private fun optimizeBounceToGlobal(linesBy: Sequence<List<TrimmedLine>>, allPret
 }
 
 private fun optimizeJmpToNextLabel(linesBy: Sequence<List<TrimmedLine>>): List<Modification> {
-    //  jmp  LABEL
-    //  LABEL:          ->  remove the jmp (keep any label on the jmp line itself)
+    //  bra  LABEL
+    //  LABEL:          ->  remove the branch (keep any label on the branch line itself)
     //
-    // The jmp is dead code because the target label immediately follows.
+    // The branch is dead code because the target label immediately follows.
+    // (also handles the older jmp form)
     val mods = mutableListOf<Modification>()
     for (lines in linesBy) {
         val firstInstr = lines[0].instruction
         val secondLine = lines[1].trimmed
-        if (firstInstr.startsWith("jmp ") && hasLabel(secondLine)) {
-            val target = firstInstr.substringAfter("jmp ").trim()
+        val branchMnemonic = when {
+            firstInstr.startsWith("bra ") -> "bra"
+            firstInstr.startsWith("jmp ") -> "jmp"
+            else -> null
+        } ?: continue
+        val target = firstInstr.substringAfter("$branchMnemonic ").trim()
+        // Skip indirect jumps like jmp ([p8_regfile+12]) or jmp (a0)
+        if (target.startsWith("("))
+            continue
+        if (hasLabel(secondLine)) {
             val label = keepLabel(secondLine).removeSuffix(":")
             if (target == label) {
                 if (hasLabel(lines[0].trimmed)) {
-                    // The jmp line also carries a label - keep the label, drop the jmp
+                    // The branch line also carries a label - keep the label, drop the branch
                     mods.add(Modification(lines[0].index, false, keepLabel(lines[0].trimmed)))
                 } else {
                     mods.add(Modification(lines[0].index, true, null))
@@ -230,12 +239,13 @@ private fun optimizeJmpToNextLabel(linesBy: Sequence<List<TrimmedLine>>): List<M
 }
 
 private fun optimizeTailCall(linesBy: Sequence<List<TrimmedLine>>): List<Modification> {
-    //  jsr  LABEL
-    //  rts              ->  jmp  LABEL
+    //  bsr  LABEL
+    //  rts              ->  bra  LABEL
     //
-    // When a subroutine call is immediately followed by a return, replace the jsr with a jmp.
+    // When a subroutine call is immediately followed by a return, replace the call with a branch.
     // The called routine will return directly to the caller's caller (tail call optimization).
-    // Only handles direct label targets, not indirect (jsr (a0) etc.).
+    // Only handles direct label targets, not indirect (bsr (a0) etc.).
+    // (also handles the older jsr form, normalizing it to bra as well)
     val mods = mutableListOf<Modification>()
     for (lines in linesBy) {
         val firstInstr = lines[0].instruction
@@ -243,20 +253,25 @@ private fun optimizeTailCall(linesBy: Sequence<List<TrimmedLine>>): List<Modific
         // Don't optimize if the rts line has a label (it's a jump target)
         if (hasLabel(lines[1].trimmed))
             continue
-        if (firstInstr.startsWith("jsr ") && secondInstr == "rts") {
-            val target = firstInstr.substringAfter("jsr ").trim()
-            // Skip indirect calls like jsr (a0) or jsr (a6)
+        val callMnemonic = when {
+            firstInstr.startsWith("bsr ") -> "bsr"
+            firstInstr.startsWith("jsr ") -> "jsr"
+            else -> null
+        } ?: continue
+        if (secondInstr == "rts") {
+            val target = firstInstr.substringAfter("$callMnemonic ").trim()
+            // Skip indirect calls like bsr (a0) or jsr (a6)
             if (target.startsWith("("))
                 continue
             val indent = lines[0].value.takeWhile { it.isWhitespace() }
             if (hasLabel(lines[0].trimmed)) {
-                // Keep the label, replace jsr with jmp and remove rts
+                // Keep the label, replace call with branch and remove rts
                 val label = keepLabel(lines[0].trimmed)
-                mods.add(Modification(lines[0].index, false, "$label\n${indent}jmp  $target"))
+                mods.add(Modification(lines[0].index, false, "$label\n${indent}bra  $target"))
                 mods.add(Modification(lines[1].index, true, null))
             } else {
-                // Replace jsr with jmp and remove rts
-                mods.add(Modification(lines[0].index, false, "${indent}jmp  $target"))
+                // Replace call with branch and remove rts
+                mods.add(Modification(lines[0].index, false, "${indent}bra  $target"))
                 mods.add(Modification(lines[1].index, true, null))
             }
         }

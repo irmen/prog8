@@ -36,7 +36,7 @@ private fun AsmGen.translateSyscallStringCompare(args: FunctionCallArgs) {
     val resultReg = args.returns[0].registerNum.value
     loadStringArg(reg1, args.arguments[0].reg.dt, "d0")
     loadStringArg(reg2, args.arguments[1].reg.dt, "d1")
-    emitLine("jsr  prog8_lib.strcmp")
+    emitLine("bsr  prog8_lib.strcmp")
     emitLine("move.b  d0, ${regAddrByte(resultReg, 0)}")
 }
 

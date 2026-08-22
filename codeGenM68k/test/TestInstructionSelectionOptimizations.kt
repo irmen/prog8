@@ -657,7 +657,7 @@ class TestInstructionSelectionOptimizations : FunSpec({
             listOf(chunk1, chunk2)
         )
 
-        lines.any { it.startsWith("jmp  test.end") } shouldBe false
+        lines.any { it.startsWith("bra  test.end") } shouldBe false
         lines.any { it == "rts" } shouldBe true
     }
 
@@ -673,14 +673,14 @@ class TestInstructionSelectionOptimizations : FunSpec({
             listOf(chunk1, chunk2, chunk3)
         )
 
-        lines.any { it.startsWith("jmp  test.end") } shouldBe false
+        lines.any { it.startsWith("bra  test.end") } shouldBe false
         lines.any { it.startsWith("test.mid:") } shouldBe true
         lines.any { it == "rts" } shouldBe true
     }
 
-    test("optimizes jsr+rts to jmp (tail call)") {
-        // When jsr+rts is followed immediately by the target label, both jsr and rts are removed
-        // (optimizeJmpToNextLabel removes the jmp that optimizeTailCall created)
+    test("optimizes bsr+rts to bra (tail call)") {
+        // When bsr+rts is followed immediately by the target label, both bsr and rts are removed
+        // (optimizeJmpToNextLabel removes the bra that optimizeTailCall created)
         val chunk1 = IRCodeChunk(null, null)
         chunk1.instructions.add(IRInstruction(Opcode.CALL, labelSymbol = "test.target"))
         chunk1.instructions.add(IRInstruction(Opcode.RETURN))
@@ -691,17 +691,17 @@ class TestInstructionSelectionOptimizations : FunSpec({
             listOf(chunk1, chunk2)
         )
 
-        lines.any { it.startsWith("jsr  test.target") } shouldBe false
-        // The jmp is removed by optimizeJmpToNextLabel because test.target: immediately follows
-        lines.any { it.startsWith("jmp  test.target") } shouldBe false
+        lines.any { it.startsWith("bsr  test.target") } shouldBe false
+        // The bra is removed by optimizeJmpToNextLabel because test.target: immediately follows
+        lines.any { it.startsWith("bra  test.target") } shouldBe false
         // Count rts only in the test subroutine (after "test.start:"), not in startup code
         val testStartIdx = lines.indexOfFirst { it.startsWith("test.start:") }
         val testLines = lines.drop(testStartIdx)
         testLines.count { it == "rts" } shouldBe 1
     }
 
-    test("optimizes jsr+rts to jmp when target is not immediately following") {
-        // When there's code between the jsr+rts and the target label, the jmp is kept
+    test("optimizes bsr+rts to bra when target is not immediately following") {
+        // When there's code between the bsr+rts and the target label, the bra is kept
         val chunk1 = IRCodeChunk(null, null)
         chunk1.instructions.add(IRInstruction(Opcode.CALL, labelSymbol = "test.target"))
         chunk1.instructions.add(IRInstruction(Opcode.RETURN))
@@ -714,15 +714,15 @@ class TestInstructionSelectionOptimizations : FunSpec({
             listOf(chunk1, chunk2, chunk3)
         )
 
-        lines.any { it.startsWith("jsr  test.target") } shouldBe false
-        lines.any { it.startsWith("jmp  test.target") } shouldBe true
+        lines.any { it.startsWith("bsr  test.target") } shouldBe false
+        lines.any { it.startsWith("bra  test.target") } shouldBe true
         // Count rts only in the test subroutine
         val testStartIdx = lines.indexOfFirst { it.startsWith("test.start:") }
         val testLines = lines.drop(testStartIdx)
         testLines.count { it == "rts" } shouldBe 1
     }
 
-    test("optimizes jsr+rts to jmp but keeps label on jsr line") {
+    test("optimizes bsr+rts to bra but keeps label on bsr line") {
         val chunk1 = IRCodeChunk(null, null)
         chunk1.instructions.add(IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = 1, immediate = 42))
         val chunk2 = IRCodeChunk("test.caller", null)
@@ -737,8 +737,8 @@ class TestInstructionSelectionOptimizations : FunSpec({
             listOf(chunk1, chunk2, chunk3, chunk4)
         )
 
-        lines.any { it.startsWith("jsr  test.target") } shouldBe false
-        lines.any { it.startsWith("jmp  test.target") } shouldBe true
+        lines.any { it.startsWith("bsr  test.target") } shouldBe false
+        lines.any { it.startsWith("bra  test.target") } shouldBe true
         lines.any { it.startsWith("test.caller:") } shouldBe true
         // Count rts only in the test subroutine
         val testStartIdx = lines.indexOfFirst { it.startsWith("test.start:") }
@@ -853,8 +853,8 @@ class TestInstructionSelectionOptimizations : FunSpec({
                 IRInstruction(Opcode.CALL, labelSymbol = "test.asmsub", fcallArgs = args)
             )
         )
-        // Find the jsr line
-        val jsrIndex = lines.indexOfFirst { it.startsWith("jsr") && it.contains("test.asmsub") }
+        // Find the bsr line
+        val jsrIndex = lines.indexOfFirst { it.startsWith("bsr") && it.contains("test.asmsub") }
         jsrIndex shouldBeGreaterThan -1
         // There should be NO move from d0 between jsr and any branch instruction (beq/bne)
         val afterJsr = lines.subList(jsrIndex + 1, lines.size)
