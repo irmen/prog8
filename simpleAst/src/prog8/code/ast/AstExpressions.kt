@@ -156,26 +156,36 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
         }
     }
 
-    fun isSimple(): Boolean {
+    // An expression is "simple" if evaluating it has no side effects and requires no temporary
+    // scratch storage or register preservation by the caller.
+    // The optional zeroPageVarCheck predicate (when given) additionally allows pointer derefs that can be
+    // evaluated without any codegen temporaries: the start pointer must already be a zeropage variable,
+    // so that the value can be read with a simple indirect indexed load from the pointer variable itself.
+    fun isSimple(zeroPageVarCheck: ((String) -> Boolean)? = null): Boolean {
         return when(this) {
-            is PtAddressOf -> this.arrayIndexExpr==null || this.arrayIndexExpr?.isSimple()==true
+            is PtAddressOf -> this.arrayIndexExpr==null || this.arrayIndexExpr?.isSimple(zeroPageVarCheck)==true
             is PtArray -> true
             is PtArrayIndexer -> index is PtNumber || index is PtIdentifier
             is PtBinaryExpression -> false
             is PtContainmentCheck -> false
-            is PtFunctionCall -> if (this.builtin && name in SimpleBuiltinFunctions) args.all { it.isSimple() } else false
+            is PtFunctionCall -> if (this.builtin && name in SimpleBuiltinFunctions) args.all { it.isSimple(zeroPageVarCheck) } else false
             is PtIdentifier -> true
             is PtIrRegister -> true
             is PtMemoryByte -> address is PtNumber
             is PtBool -> true
             is PtNumber -> true
-            is PtPrefix -> value.isSimple()
+            is PtPrefix -> value.isSimple(zeroPageVarCheck)
             is PtRange -> true
             is PtString -> true
-            is PtPointerDeref -> false
-            is PtTypeCast -> value.isSimple()
-            is PtIfExpression -> condition.isSimple() && truevalue.isSimple() && falsevalue.isSimple()
-            is PtBranchCondExpression -> truevalue.isSimple() && falsevalue.isSimple()
+            is PtPointerDeref ->
+                if(zeroPageVarCheck==null || type.isFloat || !zeroPageVarCheck(startpointer.name))
+                    false
+                else
+                    chain.isEmpty()               // *pp : lda (pp),y   (chain is never empty with derefLast=false)
+                            || (chain.size==1 && !derefLast)      // pp.field : lda (pp+offset),y
+            is PtTypeCast -> value.isSimple(zeroPageVarCheck)
+            is PtIfExpression -> condition.isSimple(zeroPageVarCheck) && truevalue.isSimple(zeroPageVarCheck) && falsevalue.isSimple(zeroPageVarCheck)
+            is PtBranchCondExpression -> truevalue.isSimple(zeroPageVarCheck) && falsevalue.isSimple(zeroPageVarCheck)
             is PtConstant -> true
         }
     }

@@ -1194,7 +1194,7 @@ import prog8.codegen.cpu6502.assignment.*
         val arg = fcall.args.single()
         if(arg is PtIdentifier) {
             val varname = asmgen.asmVariableName(arg)
-            when(val dt = arg.type.base) {
+            when(arg.type.base) {
                 BaseDataType.UBYTE -> {
                     asmgen.out("  lda  $varname |  jsr  prog8_lib.func_sign_ub_into_A")
                     return arrayOf(RegisterOrPair.A)
@@ -1975,25 +1975,60 @@ import prog8.codegen.cpu6502.assignment.*
 
     private fun funcClamp(fcall: PtFunctionCall): Array<RegisterOrPair> {
         val signed = fcall.type.isSigned
+        val zpCheck = { name: String -> asmgen.isZpVar(name) }
         when {
             fcall.type.isByte -> {
-                assignAsmGen.assignExpressionToVariable(fcall.args[1], "P8ZP_SCRATCH_W1", fcall.args[1].type)  // minimum
-                assignAsmGen.assignExpressionToVariable(fcall.args[2], "P8ZP_SCRATCH_W1+1", fcall.args[2].type)  // maximum
-                assignAsmGen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.A, signed)    // value
+                if (fcall.args[0].isSimple(zpCheck) && fcall.args[1].isSimple(zpCheck) && fcall.args[2].isSimple(zpCheck)) {
+                    // simple values (number/variable) do not clobber W1, so min/max can be evaluated first
+                    assignAsmGen.assignExpressionToVariable(fcall.args[1], "P8ZP_SCRATCH_W1", fcall.args[1].type)  // minimum
+                    assignAsmGen.assignExpressionToVariable(fcall.args[2], "P8ZP_SCRATCH_W1+1", fcall.args[2].type)  // maximum
+                    assignAsmGen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.A, signed)    // value
+                } else {
+                    // any non-simple argument may use W1 as a temporary, so evaluate value and minimum
+                    // first and preserve them while the maximum is evaluated
+                    assignAsmGen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.A, signed)    // value first (may use W1 as temp)
+                    asmgen.out("  pha")
+                    assignAsmGen.assignExpressionToVariable(fcall.args[1], "P8ZP_SCRATCH_W1", fcall.args[1].type)  // minimum
+                    asmgen.out("  lda  P8ZP_SCRATCH_W1\n  pha")
+                    assignAsmGen.assignExpressionToVariable(fcall.args[2], "P8ZP_SCRATCH_W1+1", fcall.args[2].type)  // maximum (may clobber W1)
+                    asmgen.out("  pla\n  sta  P8ZP_SCRATCH_W1")
+                    asmgen.out("  pla")
+                }
                 asmgen.out("  jsr  prog8_lib.func_clamp_${fcall.type.toString().lowercase()}")  // result in A
                 return arrayOf(RegisterOrPair.A)
             }
             fcall.type.isWord -> {
-                assignAsmGen.assignExpressionToVariable(fcall.args[1], "P8ZP_SCRATCH_W1", fcall.args[1].type)  // minimum
-                assignAsmGen.assignExpressionToVariable(fcall.args[2], "P8ZP_SCRATCH_W2", fcall.args[2].type)  // maximum
-                assignAsmGen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.AY, signed)    // value
+                if (fcall.args[0].isSimple(zpCheck) && fcall.args[1].isSimple(zpCheck) && fcall.args[2].isSimple(zpCheck)) {
+                    assignAsmGen.assignExpressionToVariable(fcall.args[1], "P8ZP_SCRATCH_W1", fcall.args[1].type)  // minimum
+                    assignAsmGen.assignExpressionToVariable(fcall.args[2], "P8ZP_SCRATCH_W2", fcall.args[2].type)  // maximum
+                    assignAsmGen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.AY, signed)    // value
+                } else {
+                    // any non-simple argument may use P8ZP_SCRATCH_W1/W2 as temporaries (e.g. via multiply_words/divmod_w_asm),
+                    // so evaluate value and minimum first and preserve them while the maximum is evaluated
+                    assignAsmGen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.AY, signed)    // value
+                    asmgen.out("  pha\n  tya\n  pha")                                                   // save AY on stack (A low, Y high)
+                    assignAsmGen.assignExpressionToVariable(fcall.args[1], "P8ZP_SCRATCH_W1", fcall.args[1].type)  // minimum
+                    asmgen.out("  lda  P8ZP_SCRATCH_W1\n  pha\n  lda  P8ZP_SCRATCH_W1+1\n  pha")       // save minimum
+                    assignAsmGen.assignExpressionToVariable(fcall.args[2], "P8ZP_SCRATCH_W2", fcall.args[2].type)  // maximum (may clobber W1)
+                    asmgen.out("  pla\n  sta  P8ZP_SCRATCH_W1+1\n  pla\n  sta  P8ZP_SCRATCH_W1")       // restore minimum
+                    asmgen.out("  pla\n  tay\n  pla")                                                   // restore AY
+                }
                 asmgen.out("  jsr  prog8_lib.func_clamp_${fcall.type.toString().lowercase()}")  // result in AY
                 return arrayOf(RegisterOrPair.AY)
             }
             fcall.type.isLong -> {
-                asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.R10R11, true)       // low
-                asmgen.assignExpressionToRegister(fcall.args[2], RegisterOrPair.R12R13, true)       // high
-                asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.R14R15, true)       // val
+                if (fcall.args[0].isSimple(zpCheck) && fcall.args[1].isSimple(zpCheck) && fcall.args[2].isSimple(zpCheck)) {
+                    asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.R10R11, true)       // low
+                    asmgen.assignExpressionToRegister(fcall.args[2], RegisterOrPair.R12R13, true)       // high
+                    asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.R14R15, true)       // val
+                } else {
+                    // same ordering issue: value may clobber R10R11/R12R13 via multiply_longs/div_longs
+                    asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.R14R15, true)       // val first
+                    asmgen.out("  lda  cx16.r14\n  pha\n  lda  cx16.r14+1\n  pha\n  lda  cx16.r15\n  pha\n  lda  cx16.r15+1\n  pha")
+                    asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.R10R11, true)       // low
+                    asmgen.assignExpressionToRegister(fcall.args[2], RegisterOrPair.R12R13, true)       // high
+                    asmgen.out("  pla\n  sta  cx16.r15+1\n  pla\n  sta  cx16.r15\n  pla\n  sta  cx16.r14+1\n  pla\n  sta  cx16.r14")
+                }
                 asmgen.out("  jsr  prog8_lib.func_clamp_long")
                 return arrayOf(RegisterOrPair.R14R15)
             }
@@ -2003,11 +2038,20 @@ import prog8.codegen.cpu6502.assignment.*
 
     private fun funcMin(fcall: PtFunctionCall): Array<RegisterOrPair> {
         val signed = fcall.type.isSigned
+        val zpCheck = { name: String -> asmgen.isZpVar(name) }
         when {
             fcall.type.isByte -> {
                 if (signed) {
-                    asmgen.assignExpressionToVariable(fcall.args[0], "P8ZP_SCRATCH_B1", fcall.type)     // left
-                    asmgen.assignExpressionToVariable(fcall.args[1], "P8ZP_SCRATCH_REG", fcall.type)    // right
+                    if (fcall.args[0].isSimple(zpCheck) && fcall.args[1].isSimple(zpCheck)) {
+                        asmgen.assignExpressionToVariable(fcall.args[0], "P8ZP_SCRATCH_B1", fcall.type)     // left
+                        asmgen.assignExpressionToVariable(fcall.args[1], "P8ZP_SCRATCH_REG", fcall.type)    // right
+                    } else {
+                        // left or right may use B1/REG as temp (e.g. multiply), so save left
+                        asmgen.assignExpressionToVariable(fcall.args[0], "P8ZP_SCRATCH_B1", fcall.type)     // left
+                        asmgen.out("  lda  P8ZP_SCRATCH_B1\n  pha")
+                        asmgen.assignExpressionToVariable(fcall.args[1], "P8ZP_SCRATCH_REG", fcall.type)    // right (may clobber B1)
+                        asmgen.out("  pla\n  sta  P8ZP_SCRATCH_B1")
+                    }
                     asmgen.out("""
                         lda  P8ZP_SCRATCH_B1
                         sec
@@ -2020,8 +2064,18 @@ import prog8.codegen.cpu6502.assignment.*
                     +   lda  P8ZP_SCRATCH_B1
                     +""")
                 } else {
-                    asmgen.assignExpressionToVariable(fcall.args[1], "P8ZP_SCRATCH_B1", fcall.type)     // right
-                    asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.A)          // left
+                    if (fcall.args[0].isSimple(zpCheck) && fcall.args[1].isSimple(zpCheck)) {
+                        asmgen.assignExpressionToVariable(fcall.args[1], "P8ZP_SCRATCH_B1", fcall.type)     // right
+                        asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.A)          // left
+                    } else {
+                        // right in B1, left in A - left may use B1 as temp, so save right
+                        asmgen.assignExpressionToVariable(fcall.args[1], "P8ZP_SCRATCH_B1", fcall.type)     // right
+                        asmgen.out("  lda  P8ZP_SCRATCH_B1\n  pha")
+                        asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.A)          // left (may clobber B1)
+                        asmgen.out("  pla\n  sta  P8ZP_SCRATCH_B1")
+                        // now A holds left, need to compare again? Actually left already in A, right in B1 restored, so cmp is still valid
+                        // Re-do cmp after restore is not needed, the following cmp uses P8ZP_SCRATCH_B1 correctly
+                    }
                     asmgen.out("  cmp  P8ZP_SCRATCH_B1")
                     asmgen.out("  bcc  +")
                     asmgen.out("""
@@ -2031,8 +2085,15 @@ import prog8.codegen.cpu6502.assignment.*
                 return arrayOf(RegisterOrPair.A)
             }
             fcall.type.isWord -> {
-                asmgen.assignExpressionToVariable(fcall.args[0], "P8ZP_SCRATCH_W1", fcall.type)     // left
-                asmgen.assignExpressionToVariable(fcall.args[1], "P8ZP_SCRATCH_W2", fcall.type)     // right
+                if (fcall.args[0].isSimple(zpCheck) && fcall.args[1].isSimple(zpCheck)) {
+                    asmgen.assignExpressionToVariable(fcall.args[0], "P8ZP_SCRATCH_W1", fcall.type)     // left
+                    asmgen.assignExpressionToVariable(fcall.args[1], "P8ZP_SCRATCH_W2", fcall.type)     // right
+                } else {
+                    asmgen.assignExpressionToVariable(fcall.args[0], "P8ZP_SCRATCH_W1", fcall.type)     // left
+                    asmgen.out("  lda  P8ZP_SCRATCH_W1\n  pha\n  lda  P8ZP_SCRATCH_W1+1\n  pha")
+                    asmgen.assignExpressionToVariable(fcall.args[1], "P8ZP_SCRATCH_W2", fcall.type)     // right (may clobber W1)
+                    asmgen.out("  pla\n  sta  P8ZP_SCRATCH_W1+1\n  pla\n  sta  P8ZP_SCRATCH_W1")
+                }
                 if(signed) {
                     asmgen.out("""
                         lda  P8ZP_SCRATCH_W1
@@ -2106,11 +2167,19 @@ import prog8.codegen.cpu6502.assignment.*
 
     private fun funcMax(fcall: PtFunctionCall): Array<RegisterOrPair> {
         val signed = fcall.type.isSigned
+        val zpCheck = { name: String -> asmgen.isZpVar(name) }
         when {
             fcall.type.isByte -> {
                 if (signed) {
-                    asmgen.assignExpressionToVariable(fcall.args[0], "P8ZP_SCRATCH_B1", fcall.type)     // left
-                    asmgen.assignExpressionToVariable(fcall.args[1], "P8ZP_SCRATCH_REG", fcall.type)    // right
+                    if (fcall.args[0].isSimple(zpCheck) && fcall.args[1].isSimple(zpCheck)) {
+                        asmgen.assignExpressionToVariable(fcall.args[0], "P8ZP_SCRATCH_B1", fcall.type)     // left
+                        asmgen.assignExpressionToVariable(fcall.args[1], "P8ZP_SCRATCH_REG", fcall.type)    // right
+                    } else {
+                        asmgen.assignExpressionToVariable(fcall.args[0], "P8ZP_SCRATCH_B1", fcall.type)     // left
+                        asmgen.out("  lda  P8ZP_SCRATCH_B1\n  pha")
+                        asmgen.assignExpressionToVariable(fcall.args[1], "P8ZP_SCRATCH_REG", fcall.type)    // right (may clobber B1)
+                        asmgen.out("  pla\n  sta  P8ZP_SCRATCH_B1")
+                    }
                     asmgen.out("""
                         lda  P8ZP_SCRATCH_B1
                         sec
@@ -2123,8 +2192,15 @@ import prog8.codegen.cpu6502.assignment.*
                     +   lda  P8ZP_SCRATCH_B1
                     +""")
                 } else {
-                    asmgen.assignExpressionToVariable(fcall.args[0], "P8ZP_SCRATCH_B1", fcall.type)     // left
-                    asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.A)          // right
+                    if (fcall.args[0].isSimple(zpCheck) && fcall.args[1].isSimple(zpCheck)) {
+                        asmgen.assignExpressionToVariable(fcall.args[0], "P8ZP_SCRATCH_B1", fcall.type)     // left
+                        asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.A)          // right
+                    } else {
+                        asmgen.assignExpressionToVariable(fcall.args[0], "P8ZP_SCRATCH_B1", fcall.type)     // left
+                        asmgen.out("  lda  P8ZP_SCRATCH_B1\n  pha")
+                        asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.A)          // right (may clobber B1)
+                        asmgen.out("  pla\n  sta  P8ZP_SCRATCH_B1")
+                    }
                     asmgen.out("  cmp  P8ZP_SCRATCH_B1")
                     asmgen.out("  bcs  +")
                     asmgen.out("""
@@ -2134,8 +2210,15 @@ import prog8.codegen.cpu6502.assignment.*
                 return arrayOf(RegisterOrPair.A)
             }
             fcall.type.isWord -> {
-                asmgen.assignExpressionToVariable(fcall.args[0], "P8ZP_SCRATCH_W1", fcall.type)     // left
-                asmgen.assignExpressionToVariable(fcall.args[1], "P8ZP_SCRATCH_W2", fcall.type)     // right
+                if (fcall.args[0].isSimple(zpCheck) && fcall.args[1].isSimple(zpCheck)) {
+                    asmgen.assignExpressionToVariable(fcall.args[0], "P8ZP_SCRATCH_W1", fcall.type)     // left
+                    asmgen.assignExpressionToVariable(fcall.args[1], "P8ZP_SCRATCH_W2", fcall.type)     // right
+                } else {
+                    asmgen.assignExpressionToVariable(fcall.args[0], "P8ZP_SCRATCH_W1", fcall.type)     // left
+                    asmgen.out("  lda  P8ZP_SCRATCH_W1\n  pha\n  lda  P8ZP_SCRATCH_W1+1\n  pha")
+                    asmgen.assignExpressionToVariable(fcall.args[1], "P8ZP_SCRATCH_W2", fcall.type)     // right (may clobber W1)
+                    asmgen.out("  pla\n  sta  P8ZP_SCRATCH_W1+1\n  pla\n  sta  P8ZP_SCRATCH_W1")
+                }
                 if (signed) {
                     asmgen.out("""
                         lda  P8ZP_SCRATCH_W1

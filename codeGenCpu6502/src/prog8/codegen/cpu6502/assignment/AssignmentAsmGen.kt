@@ -2777,8 +2777,8 @@ internal class AssignmentAsmGen(
                     "&" -> {
                         when {
                             value == 0 -> asmgen.out("  lda  #0 |  tay")
-                            value == 0x00ff -> asmgen.out("  lda  #0")
-                            value == 0xff00 -> asmgen.out("  ldy  #0")
+                            value == 0x00ff -> asmgen.out("  ldy  #0")
+                            value == 0xff00 -> asmgen.out("  lda  #0")
                             value and 255 == 0 -> asmgen.out("  tya |  and  #>$value |  tay |  lda  #0")
                             value < 0x0100 -> asmgen.out("  and  #<$value |  ldy  #0")
                             else -> asmgen.out("  and  #<$value |  tax |  tya |  and  #>$value |  tay |  txa")
