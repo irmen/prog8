@@ -83,76 +83,38 @@ main {
         for i in shipdata.totalNumberOfEdges -1 downto 0 {
             ubyte @zp vFrom = shipdata.edgesFrom[i]
             ubyte @zp vTo = shipdata.edgesTo[i]
-            word persp1 = 200 + matrix_math.rotatedz[vFrom]/256
-            word persp2 = 200 + matrix_math.rotatedz[vTo]/256
-            monogfx.line(matrix_math.rotatedx[vFrom] / persp1 + screen_width/2 as uword,
-                matrix_math.rotatedy[vFrom] / persp1 + screen_height/2 as uword,
-                matrix_math.rotatedx[vTo] / persp2 + screen_width/2 as uword,
-                matrix_math.rotatedy[vTo] / persp2 + screen_height/2 as uword,
+            monogfx.line(matrix_math.screenx[vFrom] as uword,
+                matrix_math.screeny[vFrom] as uword,
+                matrix_math.screenx[vTo] as uword,
+                matrix_math.screeny[vTo] as uword,
                 true)
         }
     }
 
     sub draw_lines_hiddenremoval() {
-        ; complex drawing routine that draws the ship model based on its faces,
-        ; where it uses the surface normals to determine visibility.
-        sys.memset(edgestodraw, shipdata.totalNumberOfEdges, 1)
-        ubyte @zp edgeIdx = 0
-        ubyte @zp pointIdx = 0
+        ; determine visibility of each face
         ubyte faceNumber
-        for faceNumber in shipdata.totalNumberOfFaces -1 downto 0 {
-            if matrix_math.facing_away_fast_but_imprecise(pointIdx) {           ;;  can also use matrix_math.facing_away_slow_but_precise(pointIdx)
-                ; don't draw this face, fast-forward over the edges and points
-                edgeIdx += 3    ; every face hast at least 3 edges
-                while shipdata.facesEdges[edgeIdx]!=255 {
-                    edgeIdx++
-                }
-                edgeIdx++
-                pointIdx += 3    ; every face has at least 3 points
-                while shipdata.facesPoints[pointIdx]!=255 {
-                    pointIdx++
-                }
-                pointIdx++
-            } else {
-                ; draw this face
-                ubyte @zp e1 = shipdata.facesEdges[edgeIdx]
-                edgeIdx ++
-                ubyte @zp e2 = shipdata.facesEdges[edgeIdx]
-                edgeIdx ++
-                ubyte @zp e3 = shipdata.facesEdges[edgeIdx]
-                edgeIdx ++
-                if edgestodraw[e1]
-                    draw_edge(e1)
-                if edgestodraw[e2]
-                    draw_edge(e2)
-                while e3!=255 {
-                    if edgestodraw[e3]
-                        draw_edge(e3)
-                    e3 = shipdata.facesEdges[edgeIdx]
-                    edgeIdx ++
-                }
-                ; skip the rest of the facesPoints, we don't need them here anymore
-                pointIdx += 3    ; every face has at least 3 points
-                while shipdata.facesPoints[pointIdx]!=255 {
-                    pointIdx++
-                }
-                pointIdx++
+        for faceNumber in 0 to matrix_math.FACE_COUNT-1 {
+            matrix_math.face_visible[faceNumber] = not matrix_math.facing_away_fast_but_imprecise(matrix_math.facePointIdx[faceNumber])
+        }
+
+        ; draw every edge that belongs to at least one visible face
+        ubyte @zp edgeIdx
+        for edgeIdx in 0 to shipdata.totalNumberOfEdges-1 {
+            if matrix_math.face_visible[matrix_math.edgeFaceA[edgeIdx]] or
+                    (matrix_math.edgeFaceB[edgeIdx] != 255 and matrix_math.face_visible[matrix_math.edgeFaceB[edgeIdx]]) {
+                draw_edge(edgeIdx)
             }
         }
     }
 
-    bool[shipdata.totalNumberOfEdges] edgestodraw
-
     sub draw_edge(ubyte edgeidx) {
-        edgestodraw[edgeidx] = false
         ubyte vFrom = shipdata.edgesFrom[edgeidx]
         ubyte vTo = shipdata.edgesTo[edgeidx]
-        word persp1 = 170 + matrix_math.rotatedz[vFrom]/256
-        word persp2 = 170 + matrix_math.rotatedz[vTo]/256
-        monogfx.line(matrix_math.rotatedx[vFrom] / persp1 + screen_width/2 as uword,
-            matrix_math.rotatedy[vFrom] / persp1 + screen_height/2 as uword,
-            matrix_math.rotatedx[vTo] / persp2 + screen_width/2 as uword,
-            matrix_math.rotatedy[vTo] / persp2 + screen_height/2 as uword,
+        monogfx.line(matrix_math.screenx[vFrom] as uword,
+            matrix_math.screeny[vFrom] as uword,
+            matrix_math.screenx[vTo] as uword,
+            matrix_math.screeny[vTo] as uword,
             true)
     }
 }
@@ -164,6 +126,17 @@ matrix_math {
     word[shipdata.totalNumberOfPoints] rotatedx
     word[shipdata.totalNumberOfPoints] rotatedy
     word[shipdata.totalNumberOfPoints] rotatedz
+    ; precomputed screen coordinates (perspective-corrected) for drawing
+    word[shipdata.totalNumberOfPoints] screenx
+    word[shipdata.totalNumberOfPoints] screeny
+
+    const ubyte FACE_COUNT = 22
+    ; start index of each face in shipdata.facesPoints
+    ubyte[FACE_COUNT] facePointIdx = [ 0, 4, 9, 13, 17, 22, 26, 30, 35, 39, 43, 47, 51, 59, 64, 69, 73, 77, 82, 87, 92, 97 ]
+    ; for each edge, the one or two incident faces (255 means no second face)
+    ubyte[shipdata.totalNumberOfEdges] edgeFaceA = [ 0, 0, 0, 1, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 10, 11, 13, 13, 13, 13, 14, 14, 14, 14, 15, 15, 15, 16, 16, 16, 17, 17, 17, 17, 18, 18, 18, 19, 19, 19, 20, 20, 21, 21 ]
+    ubyte[shipdata.totalNumberOfEdges] edgeFaceB = [ 1, 5, 2, 12, 7, 4, 9, 3, 11, 4, 11, 12, 8, 6, 7, 10, 12, 10, 9, 12, 12, 12, 12, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 18, 255, 20, 255, 21, 19, 21, 255, 20, 255, 255, 255, 255 ]
+    bool[FACE_COUNT] face_visible
 
     sub rotate_vertices(ubyte ax, ubyte ay, ubyte az) {
         ; rotate around origin (0,0,0)
@@ -176,18 +149,18 @@ matrix_math {
         word wcosc = math.cos8(az)
         word wsinc = math.sin8(az)
 
-        word wcosa_sinb = wcosa*wsinb / 128
-        word wsina_sinb = wsina*wsinb / 128
+        word wcosa_sinb = wcosa*wsinb  >> 7
+        word wsina_sinb = wsina*wsinb  >> 7
 
-        word Axx = wcosa*wcosb / 128
-        word Axy = (wcosa_sinb*wsinc - wsina*wcosc) / 128
-        word Axz = (wcosa_sinb*wcosc + wsina*wsinc) / 128
-        word Ayx = wsina*wcosb / 128
-        word Ayy = (wsina_sinb*wsinc + wcosa*wcosc) / 128
-        word Ayz = (wsina_sinb*wcosc - wcosa*wsinc) / 128
+        word Axx = wcosa*wcosb  >> 7
+        word Axy = (wcosa_sinb*wsinc - wsina*wcosc)  >> 7
+        word Axz = (wcosa_sinb*wcosc + wsina*wsinc)  >> 7
+        word Ayx = wsina*wcosb  >> 7
+        word Ayy = (wsina_sinb*wsinc + wcosa*wcosc)  >> 7
+        word Ayz = (wsina_sinb*wcosc - wcosa*wsinc)  >> 7
         word Azx = -wsinb
-        word Azy = wcosb*wsinc / 128
-        word Azz = wcosb*wcosc / 128
+        word Azy = wcosb*wsinc  >> 7
+        word Azz = wcosb*wcosc  >> 7
 
         ubyte @zp i
         for i in 0 to shipdata.totalNumberOfPoints-1 {
@@ -195,6 +168,13 @@ matrix_math {
             rotatedx[i] = Axx*shipdata.xcoor[i] + Axy*shipdata.ycoor[i] + Axz*shipdata.zcoor[i]
             rotatedy[i] = Ayx*shipdata.xcoor[i] + Ayy*shipdata.ycoor[i] + Ayz*shipdata.zcoor[i]
             rotatedz[i] = Azx*shipdata.xcoor[i] + Azy*shipdata.ycoor[i] + Azz*shipdata.zcoor[i]
+
+            ; perspective projection, done once per vertex instead of once per edge
+            word persp = 170 + rotatedz[i]/256
+            if persp < 32
+                persp = 32
+            screenx[i] = rotatedx[i] / persp + 160 as uword
+            screeny[i] = rotatedy[i] / persp + 120 as uword
         }
     }
 
@@ -207,12 +187,12 @@ matrix_math {
         edgePointsIdx++
         ubyte p3 = shipdata.facesPoints[edgePointsIdx]
 
-        word p1x = rotatedx[p1] / 128
-        word p1y = rotatedy[p1] / 128
-        word p2x = rotatedx[p2] / 128
-        word p2y = rotatedy[p2] / 128
-        word p3x = rotatedx[p3] / 128
-        word p3y = rotatedy[p3] / 128
+        word p1x = rotatedx[p1] >> 7
+        word p1y = rotatedy[p1] >> 7
+        word p2x = rotatedx[p2] >> 7
+        word p2y = rotatedy[p2] >> 7
+        word p3x = rotatedx[p3] >> 7
+        word p3y = rotatedy[p3] >> 7
         return (p2x-p3x)*(p1y-p3y) - (p2y-p3y)*(p1x-p3x) > 0
     }
 
@@ -225,12 +205,12 @@ matrix_math {
         ubyte p3 = shipdata.facesPoints[edgePointsIdx]
 
         ; Calculate two edge vectors of the triangle  (scaled by 2)
-        word v1x = (rotatedx[p2] - rotatedx[p1])/128
-        word v1y = (rotatedy[p2] - rotatedy[p1])/128
-        word v1z = (rotatedz[p2] - rotatedz[p1])/128
-        word v2x = (rotatedx[p3] - rotatedx[p1])/128
-        word v2y = (rotatedy[p3] - rotatedy[p1])/128
-        word v2z = (rotatedz[p3] - rotatedz[p1])/128
+        word v1x = (rotatedx[p2] - rotatedx[p1]) >> 7
+        word v1y = (rotatedy[p2] - rotatedy[p1]) >> 7
+        word v1z = (rotatedz[p2] - rotatedz[p1]) >> 7
+        word v2x = (rotatedx[p3] - rotatedx[p1]) >> 7
+        word v2y = (rotatedy[p3] - rotatedy[p1]) >> 7
+        word v2z = (rotatedz[p3] - rotatedz[p1]) >> 7
 
         ; Calculate surface normal using cross product: N = V1 x V2     (scaled by 4)
         ; Note: because of lack of precision in the 16 bit word math, we need to use floating point math here.... :-(
