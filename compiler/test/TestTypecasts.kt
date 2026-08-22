@@ -1063,4 +1063,30 @@ main {
         compileText(C64Target(), false, src, outputDir, writeAssembly = true) shouldNotBe null
         compileText(VMTarget(), false, src, outputDir, writeAssembly = true) shouldNotBe null
     }
+
+    test("typecast of array element as left operand of shift into long target doesn't crash codegen") {
+        val text = """
+            main {
+                sub start() {
+                    word[8] @shared rotatedx
+                    ubyte @shared p1 = 0
+                    long @shared x = rotatedx[p1] as long >> 7
+                }
+            }"""
+        compileText(C64Target(), true, text, outputDir, writeAssembly = true) shouldNotBe null
+        compileText(VMTarget(), true, text, outputDir, writeAssembly = true) shouldNotBe null
+    }
+
+    test("typecast of array element as left operand of long addition into long target doesn't crash codegen") {
+        val text = """
+            main {
+                sub start() {
+                    word[8] @shared rotatedz
+                    ubyte @shared p1 = 0
+                    long @shared x = (rotatedz[p1] as long + 43520) >> 7
+                }
+            }"""
+        compileText(C64Target(), true, text, outputDir, writeAssembly = true) shouldNotBe null
+        compileText(VMTarget(), true, text, outputDir, writeAssembly = true) shouldNotBe null
+    }
 })
