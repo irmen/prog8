@@ -10,10 +10,11 @@ main {
     word[] ycoor = [ -40, -40,  40,  40, -40, -40,  40, 40 ]
     word[] zcoor = [ -40,  40, -40,  40, -40,  40, -40, 40 ]
 
-    ; storage for rotated coordinates
-    word[len(xcoor)] rotatedx
-    word[len(ycoor)] rotatedy
+    ; storage for rotated Z (needed for back/front classification)
     word[len(zcoor)] rotatedz
+    ; precomputed screen coordinates (perspective-corrected) for drawing
+    byte[len(xcoor)] screenx
+    byte[len(ycoor)] screeny
 
     sub start()  {
 
@@ -65,9 +66,14 @@ main {
         ubyte @zp i
         for i in 0 to len(xcoor)-1 {
             ; don't normalize by dividing by 128, instead keep some precision for perspective calc later
-            rotatedx[i] = Axx*xcoor[i] + Axy*ycoor[i] + Axz*zcoor[i]
-            rotatedy[i] = Ayx*xcoor[i] + Ayy*ycoor[i] + Ayz*zcoor[i]
+            word rx = Axx*xcoor[i] + Axy*ycoor[i] + Axz*zcoor[i]
+            word ry = Ayx*xcoor[i] + Ayy*ycoor[i] + Ayz*zcoor[i]
             rotatedz[i] = Azx*xcoor[i] + Azy*ycoor[i] + Azz*zcoor[i]
+
+            ; perspective projection, done once per vertex
+            word persp = 900 + (rotatedz[i]>>5)
+            screenx[i] = rx / persp as byte + txt.DEFAULT_WIDTH/2
+            screeny[i] = ry / persp as byte + txt.DEFAULT_HEIGHT/2
         }
     }
 
@@ -78,27 +84,18 @@ main {
 
         ubyte @zp i
         word @zp rz
-        word @zp persp
-        byte sx
-        byte sy
 
         for i in 0 to len(xcoor)-1 {
             rz = rotatedz[i]
             if rz >= 10 {
-                persp = 900 + (rz>>5)
-                sx = rotatedx[i] / persp as byte + txt.DEFAULT_WIDTH/2
-                sy = rotatedy[i] / persp as byte + txt.DEFAULT_HEIGHT/2
-                txt.setcc(sx as ubyte, sy as ubyte, 46, 7)
+                txt.setcc(screenx[i] as ubyte, screeny[i] as ubyte, 46, 7)
             }
         }
 
         for i in 0 to len(xcoor)-1 {
             rz = rotatedz[i]
             if rz < 10 {
-                persp = 900 + (rz>>5)
-                sx = rotatedx[i] / persp as byte + txt.DEFAULT_WIDTH/2
-                sy = rotatedy[i] / persp as byte + txt.DEFAULT_HEIGHT/2
-                txt.setcc(sx as ubyte, sy as ubyte, 81, 7)
+                txt.setcc(screenx[i] as ubyte, screeny[i] as ubyte, 81, 7)
             }
         }
     }

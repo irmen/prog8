@@ -11,10 +11,11 @@ main {
     float[] ycoor = [ -1.0, -1.0,  1.0,  1.0, -1.0, -1.0,  1.0, 1.0 ]
     float[] zcoor = [ -1.0,  1.0, -1.0,  1.0, -1.0,  1.0, -1.0, 1.0 ]
 
-    ; storage for rotated coordinates
-    float[len(xcoor)] rotatedx
-    float[len(ycoor)] rotatedy
+    ; storage for rotated Z (needed for back/front classification)
     float[len(zcoor)] rotatedz
+    ; precomputed screen coordinates (perspective-corrected) for drawing
+    ubyte[len(xcoor)] screenx
+    ubyte[len(ycoor)] screeny
 
     sub start()  {
         float time=0.0
@@ -64,9 +65,14 @@ main {
 
         ubyte @zp i
         for i in 0 to len(xcoor)-1 {
-            rotatedx[i] = Axx*xcoor[i] + Axy*ycoor[i] + Axz*zcoor[i]
-            rotatedy[i] = Ayx*xcoor[i] + Ayy*ycoor[i] + Ayz*zcoor[i]
+            float rx = Axx*xcoor[i] + Axy*ycoor[i] + Axz*zcoor[i]
+            float ry = Ayx*xcoor[i] + Ayy*ycoor[i] + Ayz*zcoor[i]
             rotatedz[i] = Azx*xcoor[i] + Azy*ycoor[i] + Azz*zcoor[i]
+
+            ; perspective projection, done once per vertex
+            float persp = (5.0+rotatedz[i])/(txt.DEFAULT_HEIGHT as float)
+            screenx[i] = rx / persp + txt.DEFAULT_WIDTH/2.0 as ubyte
+            screeny[i] = ry / persp + txt.DEFAULT_HEIGHT/2.0 as ubyte
         }
     }
 
@@ -76,27 +82,18 @@ main {
         ; first the points on the back, then the points on the front (painter algorithm)
         ubyte @zp i
         float rz
-        float persp
-        ubyte sx
-        ubyte sy
 
         for i in 0 to len(xcoor)-1 {
             rz = rotatedz[i]
             if rz >= 0.1 {
-                persp = (5.0+rz)/(txt.DEFAULT_HEIGHT as float)
-                sx = rotatedx[i] / persp + txt.DEFAULT_WIDTH/2.0 as ubyte
-                sy = rotatedy[i] / persp + txt.DEFAULT_HEIGHT/2.0 as ubyte
-                txt.setcc(sx, sy, 46, 1)
+                txt.setcc(screenx[i], screeny[i], 46, 1)
             }
         }
 
         for i in 0 to len(xcoor)-1 {
             rz = rotatedz[i]
             if rz < 0.1 {
-                persp = (5.0+rz)/(txt.DEFAULT_HEIGHT as float)
-                sx = rotatedx[i] / persp + txt.DEFAULT_WIDTH/2.0 as ubyte
-                sy = rotatedy[i] / persp + txt.DEFAULT_HEIGHT/2.0 as ubyte
-                txt.setcc(sx, sy, 81, 1)
+                txt.setcc(screenx[i], screeny[i], 81, 1)
             }
         }
     }

@@ -883,7 +883,83 @@ class AsmGen6502Internal (
                             }
                         } else throw AssemblyError("weird casted type ${value.value.type} as ${value.type} at $value")
                     } else {
-                        TODO("assign typecasted expression $value to a long target ${target.kind} at  ${target.position}  - please report this issue. Use simple expressions and temporary variables for now")
+                        // inner value is not a plain identifier (e.g. an array element or function result)
+                        when {
+                            value.value.type.isByte -> {
+                                when (target.kind) {
+                                    TargetStorageKind.VARIABLE -> {
+                                        assignExpressionToRegister(value.value, RegisterOrPair.A, false)
+                                        out("  sta  ${target.asmVarname}")
+                                        signExtendLongVariable(target.asmVarname, value.value.type.base)
+                                    }
+                                    TargetStorageKind.ARRAY -> TODO("assign typecasted long to array  ${target.position}")
+                                    TargetStorageKind.MEMORY -> throw AssemblyError("memory is bytes not long ${target.position}")
+                                    TargetStorageKind.REGISTER -> assignExpressionToRegister(value, target.register!!, true)
+                                    TargetStorageKind.POINTER -> TODO("assign typecasted long into pointer  ${target.position}")
+                                    TargetStorageKind.VOID -> { /* do nothing */ }
+                                }
+                            }
+                            value.value.type.isWord -> {
+                                when (target.kind) {
+                                    TargetStorageKind.VARIABLE -> {
+                                        assignExpressionToRegister(value.value, RegisterOrPair.AY, value.value.type.isSigned)
+                                        out("""
+                                            sta  ${target.asmVarname}
+                                            sty  ${target.asmVarname}+1""")
+                                        signExtendLongVariable(target.asmVarname, value.value.type.base)
+                                    }
+                                    TargetStorageKind.ARRAY -> TODO("assign typecasted long to array  ${target.position}")
+                                    TargetStorageKind.MEMORY -> throw AssemblyError("memory is bytes not long ${target.position}")
+                                    TargetStorageKind.REGISTER -> {
+                                        require(target.register in CombinedLongRegisters)
+                                        val startreg = target.register!!.startregname()
+                                        assignExpressionToRegister(value.value, RegisterOrPair.AY, value.value.type.isSigned)
+                                        out("""
+                                            sta  cx16.$startreg
+                                            sty  cx16.$startreg+1""")
+                                        signExtendLongVariable("cx16.$startreg", value.value.type.base)
+                                    }
+                                    TargetStorageKind.POINTER -> TODO("assign typecasted long into pointer  ${target.position}")
+                                    TargetStorageKind.VOID -> { /* do nothing */ }
+                                }
+                            }
+                            value.value.type.isFloat -> {
+                                assignExpressionToRegister(value.value, RegisterOrPair.FAC1)
+                                when (target.kind) {
+                                    TargetStorageKind.VARIABLE -> {
+                                        out("""
+                                            jsr  floats.QINT
+                                            lda  floats.FAC_ADDR+4
+                                            sta  ${target.asmVarname}
+                                            lda  floats.FAC_ADDR+3
+                                            sta  ${target.asmVarname}+1
+                                            lda  floats.FAC_ADDR+2
+                                            sta  ${target.asmVarname}+2
+                                            lda  floats.FAC_ADDR+1
+                                            sta  ${target.asmVarname}+3""")
+                                    }
+                                    TargetStorageKind.REGISTER -> {
+                                        require(target.register in CombinedLongRegisters)
+                                        val startreg = target.register!!.startregname()
+                                        out("""
+                                            jsr  floats.QINT
+                                            lda  floats.FAC_ADDR+4
+                                            sta  cx16.$startreg
+                                            lda  floats.FAC_ADDR+3
+                                            sta  cx16.$startreg+1
+                                            lda  floats.FAC_ADDR+2
+                                            sta  cx16.$startreg+2
+                                            lda  floats.FAC_ADDR+1
+                                            sta  cx16.$startreg+3""")
+                                    }
+                                    TargetStorageKind.ARRAY -> TODO("assign typecasted float to long array  ${target.position}")
+                                    TargetStorageKind.MEMORY -> throw AssemblyError("memory is bytes not long ${target.position}")
+                                    TargetStorageKind.POINTER -> TODO("assign typecasted float to long pointer  ${target.position}")
+                                    TargetStorageKind.VOID -> { /* do nothing */ }
+                                }
+                            }
+                            else -> throw AssemblyError("weird casted type ${value.value.type} as ${value.type} at $value")
+                        }
                     }
                 } else if(target.kind == TargetStorageKind.REGISTER) {
                     assignExpressionToRegister(value, target.register!!, true)

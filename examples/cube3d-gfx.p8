@@ -11,10 +11,9 @@ main {
     word[] ycoor = [ -100, -100,  100,  100, -100, -100,  100, 100 ]
     word[] zcoor = [ -100,  100, -100,  100, -100,  100, -100, 100 ]
 
-    ; storage for rotated coordinates
-    word[len(xcoor)] rotatedx
-    word[len(ycoor)] rotatedy
-    word[len(zcoor)] rotatedz
+    ; storage for screen coordinates (perspective-corrected)
+    word[len(xcoor)] screenx
+    word[len(ycoor)] screeny
 
     ; edges
     ubyte[] edgesFrom = [ 0, 2, 6, 4, 1, 3, 7, 5, 0, 2, 6, 4]
@@ -70,9 +69,14 @@ main {
         ubyte @zp i
         for i in 0 to len(xcoor)-1 {
             ; don't normalize by dividing by 128, instead keep some precision for perspective calc later
-            rotatedx[i] = (Axx*xcoor[i] + Axy*ycoor[i] + Axz*zcoor[i])
-            rotatedy[i] = (Ayx*xcoor[i] + Ayy*ycoor[i] + Ayz*zcoor[i])
-            rotatedz[i] = (Azx*xcoor[i] + Azy*ycoor[i] + Azz*zcoor[i])
+            word rx = Axx*xcoor[i] + Axy*ycoor[i] + Axz*zcoor[i]
+            word ry = Ayx*xcoor[i] + Ayy*ycoor[i] + Ayz*zcoor[i]
+            word rz = Azx*xcoor[i] + Azy*ycoor[i] + Azz*zcoor[i]
+
+            ; perspective projection, done once per vertex
+            word persp = 256 + (rz>>8)
+            screenx[i] = rx / persp + graphics.WIDTH/2 as uword
+            screeny[i] = ry / persp + graphics.HEIGHT/2 as ubyte
         }
     }
 
@@ -81,12 +85,7 @@ main {
         for i in len(edgesFrom) -1 downto 0 {
             ubyte @zp vFrom = edgesFrom[i]
             ubyte @zp vTo = edgesTo[i]
-            word @zp persp1 = 256 + (rotatedz[vFrom]>>8)
-            word @zp persp2 = 256 + (rotatedz[vTo]>>8)
-            graphics.line(rotatedx[vFrom] / persp1 + graphics.WIDTH/2 as uword,
-                          rotatedy[vFrom] / persp1 + graphics.HEIGHT/2 as ubyte,
-                          rotatedx[vTo] / persp2 + graphics.WIDTH/2 as uword,
-                          rotatedy[vTo] / persp2 + graphics.HEIGHT/2 as ubyte)
+            graphics.line(screenx[vFrom] as uword, screeny[vFrom] as ubyte, screenx[vTo] as uword, screeny[vTo] as ubyte)
         }
     }
 }

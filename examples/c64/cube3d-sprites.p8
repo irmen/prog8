@@ -12,10 +12,11 @@ main {
     word[] ycoor = [ -100, -100,  100,  100, -100, -100,  100, 100 ]
     word[] zcoor = [ -100,  100, -100,  100, -100,  100, -100, 100 ]
 
-    ; storage for rotated coordinates
-    word[len(xcoor)] rotatedx
-    word[len(ycoor)] rotatedy
+    ; storage for rotated Z (needed for sprite sort and attributes)
     word[len(zcoor)] rotatedz
+    ; precomputed screen coordinates (perspective-corrected) for drawing
+    ubyte[len(xcoor)] screenx
+    ubyte[len(ycoor)] screeny
 
 
     sub start()  {
@@ -69,9 +70,14 @@ main {
         ubyte @zp i
         for i in 0 to len(xcoor)-1 {
             ; don't normalize by dividing by 128, instead keep some precision for perspective calc later
-            rotatedx[i] = (Axx*xcoor[i] + Axy*ycoor[i] + Axz*zcoor[i])
-            rotatedy[i] = (Ayx*xcoor[i] + Ayy*ycoor[i] + Ayz*zcoor[i])
-            rotatedz[i] = (Azx*xcoor[i] + Azy*ycoor[i] + Azz*zcoor[i])
+            word rx = Axx*xcoor[i] + Axy*ycoor[i] + Axz*zcoor[i]
+            word ry = Ayx*xcoor[i] + Ayy*ycoor[i] + Ayz*zcoor[i]
+            rotatedz[i] = Azx*xcoor[i] + Azy*ycoor[i] + Azz*zcoor[i]
+
+            ; perspective projection, done once per vertex
+            word persp = 300 + rotatedz[i]/256
+            screenx[i] = rx / persp + width/2 as ubyte + 20
+            screeny[i] = ry / persp + height/2 as ubyte + 40
         }
     }
 
@@ -88,15 +94,15 @@ main {
             for i1 in 0 to i {
                 ubyte i2 = i1+1
                 if(rotatedz[i1] > rotatedz[i2]) {
-                    word @zp temp = rotatedx[i1]
-                    rotatedx[i1] = rotatedx[i2]
-                    rotatedx[i2] = temp
-                    temp = rotatedy[i1]
-                    rotatedy[i1] = rotatedy[i2]
-                    rotatedy[i2] = temp
-                    temp = rotatedz[i1]
+                    word @zp tempz = rotatedz[i1]
                     rotatedz[i1] = rotatedz[i2]
-                    rotatedz[i2] = temp
+                    rotatedz[i2] = tempz
+                    ubyte @zp tempx = screenx[i1]
+                    screenx[i1] = screenx[i2]
+                    screenx[i2] = tempx
+                    ubyte @zp tempy = screeny[i1]
+                    screeny[i1] = screeny[i2]
+                    screeny[i2] = tempy
                 }
             }
         }
@@ -105,11 +111,8 @@ main {
 
         for i in 0 to 7 {
             word @zp zc = rotatedz[i]
-            word persp = 300+zc/256
-            ubyte sx = rotatedx[i] / persp + width/2 as ubyte + 20
-            ubyte sy = rotatedy[i] / persp + height/2 as ubyte + 40
 
-            c64.SPXYW[i] = mkword(sy, sx)
+            c64.SPXYW[i] = mkword(screeny[i], screenx[i])
 
             ; because we want speed, we don't use the dynamic c64.set_sprite_ptr() here
             if(zc < 30*128)
