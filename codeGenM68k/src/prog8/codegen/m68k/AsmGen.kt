@@ -195,6 +195,26 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         return "$REGFILE_LABEL+${offset + byteOffset}"
     }
 
+    /** Returns the IR data type of the given integer virtual register. */
+    fun regType(reg: Int): IRDataType = regsUsed.regsTypes[RegisterNum(reg)] ?: IRDataType.BYTE
+
+    /** Load a virtual register into d0, zero-extending if its natural width is smaller than [requiredType]. */
+    fun loadRegOrZeroExtendToD0(reg: Int, requiredType: IRDataType) {
+        val regType = regType(reg)
+        fun sizeOf(t: IRDataType) = when(t) {
+            IRDataType.BYTE -> 1
+            IRDataType.WORD -> 2
+            IRDataType.LONG, IRDataType.POINTER -> 4
+            IRDataType.FLOAT -> target.FLOAT_MEM_SIZE.toInt()
+        }
+        if (sizeOf(regType) < sizeOf(requiredType)) {
+            emitLine("moveq  #0, d0")
+            emitLine("move${dtSuffix(regType)}  ${regAddr(reg)}, d0")
+        } else {
+            emitLine("move${dtSuffix(requiredType)}  ${regAddr(reg)}, d0")
+        }
+    }
+
     fun loadPointerToA0(reg: Int) {
         // load a 32-bit pointer from the register file into a0
         val offset = regFileLayout.offsets[reg] ?: error("register r$reg has no layout info")

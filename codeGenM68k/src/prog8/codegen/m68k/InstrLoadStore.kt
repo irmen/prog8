@@ -7,6 +7,20 @@ import prog8.intermediate.Opcode
 
 private fun staticSymbolComment(label: String?): String = label ?: ""
 
+/**
+ * Load an array index into d0 for use with `(a0,d0.w)` addressing.
+ * Word indices can be loaded directly; byte indices must be zero-extended
+ * because `move.w` from a byte regfile slot would read the adjacent byte too.
+ */
+private fun AsmGen.loadIndexToD0(idx: Int) {
+    if (regType(idx) == IRDataType.BYTE) {
+        emitLine("moveq  #0, d0")
+        emitLine("move.b  ${regAddr(idx)}, d0")
+    } else {
+        emitLine("move.w  ${regAddr(idx)}, d0")
+    }
+}
+
 private fun AsmGen.addIndirectOffset(offset: Int) {
     when (offset) {
         in 1..8 -> emitLine("addq.l  #$offset, a0")
@@ -69,7 +83,7 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction, suppressRegfileStore
         Opcode.LOADX -> {
             val dst = r1 ?: error("LOADX needs reg1")
             val idx = r2 ?: error("LOADX needs reg2")
-            emitLine("move.w  ${regAddr(idx)}, d0")
+            loadIndexToD0(idx)
             emitLine("lea  $target, a0")
             val sx = dtSuffix(type)
             emitLine("move$sx  (a0,d0.w), d0")
@@ -116,7 +130,7 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction, suppressRegfileStore
         Opcode.STOREX -> {
             val value = r1 ?: error("STOREX needs reg1")
             val idx = r2 ?: error("STOREX needs reg2")
-            emitLine("move.w  ${regAddr(idx)}, d0")
+            loadIndexToD0(idx)
             emitLine("lea  $target, a0")
             val sx = dtSuffix(type)
             emitLine("move$sx  ${regAddr(value)}, d1")
@@ -144,7 +158,7 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction, suppressRegfileStore
 
         Opcode.STOREZX -> {
             val idx = r1 ?: error("STOREZX needs reg1")
-            emitLine("move.w  ${regAddr(idx)}, d0")
+            loadIndexToD0(idx)
             emitLine("lea  $target, a0")
             emitLine("clr$s  (a0,d0.w)")
         }

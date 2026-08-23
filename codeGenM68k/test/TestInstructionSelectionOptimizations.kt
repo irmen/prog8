@@ -521,6 +521,50 @@ class TestInstructionSelectionOptimizations : FunSpec({
         lines.any { it.startsWith("move.l  p8_regfile") } shouldBe false
     }
 
+    test("ADDR.P zero-extends a word source") {
+        val chunk = IRCodeChunk(null, null)
+        chunk.instructions.add(IRInstruction(Opcode.LOAD, IRDataType.POINTER, reg1 = 1, immediate = 0x10000))
+        chunk.instructions.add(IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1 = 2, immediate = 10))
+        chunk.instructions.add(IRInstruction(Opcode.ADDR, IRDataType.POINTER, reg1 = 1, reg2 = 2))
+        val lines = generateAsmChunks(
+            tempRoot.resolve("test-m68k-addr-p-word-src"),
+            listOf(chunk)
+        )
+        lines.any { it == "moveq  #0,d0" } shouldBe true
+        lines.any { it == "move.w  p8_regfile+4,d0" } shouldBe true
+        lines.any { it == "add.l  d0,p8_regfile+0" } shouldBe true
+        lines.any { it == "move.l  p8_regfile+4,d0" } shouldBe false
+    }
+
+    test("ADDR.P does not zero-extend a long source") {
+        val chunk = IRCodeChunk(null, null)
+        chunk.instructions.add(IRInstruction(Opcode.LOAD, IRDataType.POINTER, reg1 = 1, immediate = 0x10000))
+        chunk.instructions.add(IRInstruction(Opcode.LOAD, IRDataType.LONG, reg1 = 2, immediate = 10))
+        chunk.instructions.add(IRInstruction(Opcode.ADDR, IRDataType.POINTER, reg1 = 1, reg2 = 2))
+        val lines = generateAsmChunks(
+            tempRoot.resolve("test-m68k-addr-p-long-src"),
+            listOf(chunk)
+        )
+        lines.any { it == "move.l  p8_regfile+4,d0" } shouldBe true
+        lines.any { it == "add.l  d0,p8_regfile+0" } shouldBe true
+        lines.any { it == "moveq  #0,d0" } shouldBe false
+    }
+
+    test("SUBR.P zero-extends a word source") {
+        val chunk = IRCodeChunk(null, null)
+        chunk.instructions.add(IRInstruction(Opcode.LOAD, IRDataType.POINTER, reg1 = 1, immediate = 0x10000))
+        chunk.instructions.add(IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1 = 2, immediate = 10))
+        chunk.instructions.add(IRInstruction(Opcode.SUBR, IRDataType.POINTER, reg1 = 1, reg2 = 2))
+        val lines = generateAsmChunks(
+            tempRoot.resolve("test-m68k-subr-p-word-src"),
+            listOf(chunk)
+        )
+        lines.any { it == "moveq  #0,d0" } shouldBe true
+        lines.any { it == "move.w  p8_regfile+4,d0" } shouldBe true
+        lines.any { it == "sub.l  d0,p8_regfile+0" } shouldBe true
+        lines.any { it == "move.l  p8_regfile+4,d0" } shouldBe false
+    }
+
     test("does not forward across an intervening instruction") {
         val args = FunctionCallArgs(
             listOf(
