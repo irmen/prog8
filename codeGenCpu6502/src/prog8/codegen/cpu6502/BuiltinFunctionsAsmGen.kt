@@ -1981,11 +1981,104 @@ import prog8.codegen.cpu6502.assignment.*
         return arrayOf(RegisterOrPair.R14R15)
     }
 
+    private fun inlineClampByte(value: PtExpression, minVal: Int, maxVal: Int, signed: Boolean) {
+        val typeMin = if (signed) -128 else 0
+        val typeMax = if (signed) 127 else 255
+        assignAsmGen.assignExpressionToRegister(value, RegisterOrPair.A, signed)
+        when {
+            minVal == typeMin && maxVal == typeMax -> {
+                // no-op: the value in A is already the clamped result
+            }
+            minVal == typeMin -> {
+                // upper clamp only: min(x, maxVal)
+                emitByteUpperClamp(maxVal, signed)
+            }
+            maxVal == typeMax -> {
+                // lower clamp only: max(x, minVal)
+                emitByteLowerClamp(minVal, signed)
+            }
+            else -> {
+                // two-sided clamp: upper then lower, sequentially on the running value in A
+                emitByteUpperClamp(maxVal, signed)
+                emitByteLowerClamp(minVal, signed)
+            }
+        }
+    }
+
+    private fun emitByteUpperClamp(maxVal: Int, signed: Boolean) {
+        // result = min(x, maxVal); x is in A on entry
+        // mirrors the proven func_clamp_byte sequence (sec/sbc + bmi means "x < max")
+        val imm = "#${(maxVal and 0xff).toHex()}"
+        if (signed) {
+            val keep = asmgen.makeLabel("clampkeep")
+            val done = asmgen.makeLabel("clampdone")
+            asmgen.out(listOf(
+                "            tay",
+                "            sec",
+                "            sbc  $imm",
+                "            bvc  +",
+                "            eor  #128",
+                "+           bmi  $keep",
+                "            lda  $imm",
+                "            jmp  $done",
+                "$keep       tya",
+                "$done"
+            ).joinToString("\n"))
+        } else {
+            val keep = asmgen.makeLabel("clampkeep")
+            asmgen.out(listOf(
+                "            cmp  $imm",
+                "            bcc  $keep",
+                "            lda  $imm",
+                "$keep"
+            ).joinToString("\n"))
+        }
+    }
+
+    private fun emitByteLowerClamp(minVal: Int, signed: Boolean) {
+        // result = max(x, minVal); x is in A on entry
+        // mirrors the proven func_clamp_byte sequence (sec/sbc + bpl means "x >= min")
+        val imm = "#${(minVal and 0xff).toHex()}"
+        if (signed) {
+            val keep = asmgen.makeLabel("clampkeep")
+            val done = asmgen.makeLabel("clampdone")
+            asmgen.out(listOf(
+                "            tay",
+                "            sec",
+                "            sbc  $imm",
+                "            bvc  +",
+                "            eor  #128",
+                "+           bpl  $keep",
+                "            lda  $imm",
+                "            jmp  $done",
+                "$keep       tya",
+                "$done"
+            ).joinToString("\n"))
+        } else {
+            val keep = asmgen.makeLabel("clampkeep")
+            asmgen.out(listOf(
+                "            cmp  $imm",
+                "            bcs  $keep",
+                "            lda  $imm",
+                "$keep"
+            ).joinToString("\n"))
+        }
+    }
+
     private fun funcClamp(fcall: PtFunctionCall): Array<RegisterOrPair> {
         val signed = fcall.type.isSigned
         val zpCheck = { name: String -> asmgen.isZpVar(name) }
         when {
             fcall.type.isByte -> {
+                if (!signed && fcall.args[1] is PtNumber && fcall.args[2] is PtNumber) {
+                    // unsigned (ubyte) clamp with constant bounds: emit a small inline clamp.
+                    // Only worthwhile for ubyte: the signed inline sequence is larger than the
+                    // shared jsr func_clamp_byte subroutine, so signed clamps keep using that.
+                    val minVal = (fcall.args[1] as PtNumber).number.toInt()
+                    val maxVal = (fcall.args[2] as PtNumber).number.toInt()
+                    inlineClampByte(fcall.args[0], minVal, maxVal, signed)
+                    return arrayOf(RegisterOrPair.A)
+                }
                 if (fcall.args[0].isSimple(zpCheck) && fcall.args[1].isSimple(zpCheck) && fcall.args[2].isSimple(zpCheck)) {
                     // simple values (number/variable) do not clobber W1, so min/max can be evaluated first
                     assignAsmGen.assignExpressionToVariable(fcall.args[1], "P8ZP_SCRATCH_W1", fcall.args[1].type)  // minimum

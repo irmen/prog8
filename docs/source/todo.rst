@@ -24,12 +24,13 @@ Future Things and Ideas
 - add new directives ``%bssaddress`` and ``%slabsaddress`` to set the memory address for the BSS area and memory slabs (analogous to ``%address`` for program load address).
   Note: these should be mutually exclusive with the existing CLI options (``-varsgolden``, ``-varshigh``, ``-slabsgolden``, ``-slabshigh``)
   because the CLI options are target-aware shorthands (set bank symbols, do bounds checking against predefined ranges)
-  while the directives are raw addresses — they'd conflict if both specified for the same area.
+  while the directives are raw addresses — they'd conflict if both specified for the same area.  Update user docs about directives.
 - the c64 sprite multiplexer still needs adjustments to make it smooth, it lacks a proper raster event scheduler.
-- comptime expressions ("better macros") - evaluate expressions at compile time and use the results in the generated code,
-  going beyond the current compile-time constant folding of constant values.
-- TODO: ``equalsSize`` in ``DataTypes.kt`` treats POINTER as WORD-sized (lines46-47). On 32-bit targets (m68k, virtual), POINTER is actually LONG (4 bytes). Hasn't caused problems in practice so far.
+- TODO: ``equalsSize`` in ``DataTypes.kt`` treats POINTER as WORD-sized (lines46-47). On 32-bit targets (m68k, virtual), POINTER is actually LONG (4 bytes).
+  Status: not fixed. The helpers in ``codeCore`` are target-agnostic (no access to ``POINTER_MEM_SIZE``), so they cannot know the pointer width. All three call sites
+  (``AstChecker.kt`` bitwise-op check, ``StatementReorderer.kt`` array-element check, 6502-only redundant-cast path) never hit the raw-POINTER case, so it is dead code and has not caused problems.
 - STR is now assignable to LONG on all targets including 16-bit ones, for consistency with 32-bit targets where str arrays are LONG[]. On 16-bit targets this means a 2-byte string pointer can be assigned to a 4-byte long variable without a typecast.
+  Status: not fixed (known behavior). ``isAssignableTo`` in ``DataTypes.kt`` is target-agnostic and permits STR->LONG everywhere; the 16-bit side effect is harmless and correctness is enforced by the target-aware ``POINTER_MEM_SIZE`` branches in ``AstChecker``.
 
 
 Romable (%option romable)
