@@ -41,9 +41,15 @@ internal fun optimizeAssembly(lines: MutableList<String>) {
         by2 = runPass(optimizeJmpToNextLabel(by2), 2, by2)
         by2 = runPass(optimizeTailCall(by2), 2, by2)
         by2 = runPass(optimizeRedundantTst(by2), 2, by2)
+        by2 = runPass(optimizeMsigbSpill(by2, pretrimmed), 2, by2)
 
         if (!modified)
             break
+    }
+    // M3 is a full-file scan (not a 2-window peephole) and is idempotent; run once after the fixed-point loop
+    val clampMods = optimizeClampImmediate(pretrimmed, lines)
+    if (clampMods.isNotEmpty()) {
+        applyModifications(clampMods, lines, pretrimmed)
     }
 }
 
@@ -332,6 +338,168 @@ private fun String.flagSettingDest(): String? {
         }
         else -> null
     }
+}
+
+private fun optimizeMsigbSpill(linesBy: Sequence<List<TrimmedLine>>, allPretrimmed: List<String>): List<Modification> {
+    //  move.w/l  SYMBOL, p8_regfile+N   ; spill word/long to slot
+    //  move.b    p8_regfile+N, d0       ; read MSB
+    //  ->  move.b  SYMBOL, d0           ; big-endian: MSB is at SYMBOL+0, no spill needed
+    // Keep the spill only if the slot is read again later in the subroutine.
+    val mods = mutableListOf<Modification>()
+    for (lines in linesBy) {
+        if (hasLabel(lines[0].trimmed) || hasLabel(lines[1].trimmed)) continue
+        val first = lines[0].instruction
+        val second = lines[1].instruction
+        if (!first.isMove() || !second.isMove()) continue
+        if (second.moveSize() != 'b') continue
+        val firstSize = first.moveSize()
+        if (firstSize != 'w' && firstSize != 'l') continue
+        val (src0, dst0) = first.moveOperands() ?: continue
+        val (src1, dst1) = second.moveOperands() ?: continue
+        if (dst1 != "d0") continue
+        if (src1 != dst0) continue
+        if (!dst0.isRegfileSlot()) continue
+        if (src0.isRegfileSlot() || src0.isRegister()) continue
+        if ('(' in src0 || ')' in src0) continue
+        // src0 must be a plain memory operand (symbol)
+        if (!src0.isSafeMemoryOperand()) continue
+        // If the slot is read again later, keep the spill; otherwise we can remove it
+        val indent1 = lines[0].value.takeWhile { it.isWhitespace() }
+        val indent2 = lines[1].value.takeWhile { it.isWhitespace() }
+        if (isSlotReadAfter(dst0, lines[1].index + 1, allPretrimmed)) {
+            // keep spill, just rewrite the byte load to read directly from the symbol
+            mods.add(Modification(lines[1].index, false, "${indent2}move.b  $src0,d0"))
+        } else {
+            mods.add(Modification(lines[0].index, true, null))
+            mods.add(Modification(lines[1].index, false, "${indent2}move.b  $src0,d0"))
+        }
+    }
+    return mods
+}
+
+private fun optimizeClampImmediate(allPretrimmed: List<String>, lines: MutableList<String>): List<Modification> {
+    // M3: fold clamp bounds that were materialized as move #imm,SLOT.
+    // Only fold when we can identify the full clamp block, to avoid touching unrelated compares.
+    // Pattern (filtered lines, b/w/l size must match):
+    //   cmp.S  SLOT_MIN,d0
+    //   bge/bhs  .clamp_max
+    //   move.S SLOT_MIN,d0
+    //   bra  .clamp_done
+    //   .clamp_max:
+    //   cmp.S  SLOT_MAX,d0
+    //   ble/bls  .clamp_done
+    //   move.S SLOT_MAX,d0
+    //   .clamp_done:
+    // where SLOT_MIN/MAX were defined as move.S #imm,SLOT within a few lines before the block.
+    val filtered = allPretrimmed.withIndex()
+        .filter { it.value.isNotBlank() && !it.value.trimStart().startsWith(';') }
+        .map { TrimmedLine(lines[it.index], it.value.trimStart(), it.index) }
+
+    fun findDefine(slot: String, size: Char, useIdx: Int, limit: Int = 6): Pair<Int,String>? {
+        var count = 0
+        for (k in useIdx-1 downTo 0) {
+            if (count >= limit) break
+            count++
+            val cand = filtered[k]
+            val instr = cand.instruction
+            if (!instr.isMove()) continue
+            if (instr.moveSize() != size) continue
+            val (src, dst) = instr.moveOperands() ?: continue
+            if (dst != slot) continue
+            if (!src.startsWith("#")) continue
+            var overwritten = false
+            for (t in k+1 until useIdx) {
+                val mid = filtered[t]
+                if (mid.instruction.isMove()) {
+                    val ops = mid.instruction.moveOperands()
+                    if (ops != null && ops.second == slot) { overwritten = true; break }
+                }
+            }
+            if (!overwritten) return cand.index to src
+        }
+        return null
+    }
+
+    val mods = mutableListOf<Modification>()
+    // Scan for clamp blocks
+    for (idx in filtered.indices) {
+        val instr = filtered[idx].instruction
+        if (!instr.startsWith("cmp.")) continue
+        // need at least 8 more filtered lines for a full block
+        if (idx + 8 >= filtered.size) continue
+        val sizeMin = instr[4]
+        if (sizeMin != 'b' && sizeMin != 'w' && sizeMin != 'l') continue
+        val cmpMinParts = instr.substringAfter(' ').trim().split(',', limit = 2).map { it.trim().substringBefore(';').trim() }
+        if (cmpMinParts.size != 2 || cmpMinParts[1] != "d0" || !cmpMinParts[0].isRegfileSlot()) continue
+        val slotMin = cmpMinParts[0]
+
+        val bgeInstr = filtered[idx+1].instruction
+        if (!bgeInstr.startsWith("bge ") && !bgeInstr.startsWith("bhs ")) continue
+        // bge target should be the next label
+        val labelMax = bgeInstr.substringAfter(' ').trim().substringBefore(';').trim()
+
+        val moveMinInstr = filtered[idx+2].instruction
+        if (!moveMinInstr.startsWith("move.")) continue
+        if (moveMinInstr.moveSize() != sizeMin) continue
+        val moveMinOps = moveMinInstr.moveOperands() ?: continue
+        if (moveMinOps.first != slotMin || moveMinOps.second != "d0") continue
+
+        val braInstr = filtered[idx+3].instruction
+        if (!braInstr.startsWith("bra ")) continue
+        val labelDone = braInstr.substringAfter(' ').trim().substringBefore(';').trim()
+
+        val labelMaxLine = filtered[idx+4].trimmed
+        if (!labelMaxLine.startsWith("$labelMax:")) continue
+
+        val cmpMaxInstr = filtered[idx+5].instruction
+        if (!cmpMaxInstr.startsWith("cmp.")) continue
+        if (cmpMaxInstr[4] != sizeMin) continue
+        val cmpMaxParts = cmpMaxInstr.substringAfter(' ').trim().split(',', limit = 2).map { it.trim().substringBefore(';').trim() }
+        if (cmpMaxParts.size != 2 || cmpMaxParts[1] != "d0" || !cmpMaxParts[0].isRegfileSlot()) continue
+        val slotMax = cmpMaxParts[0]
+
+        val bleInstr = filtered[idx+6].instruction
+        if (!bleInstr.startsWith("ble ") && !bleInstr.startsWith("bls ")) continue
+        val bleTarget = bleInstr.substringAfter(' ').trim().substringBefore(';').trim()
+        if (bleTarget != labelDone) continue
+
+        val moveMaxInstr = filtered[idx+7].instruction
+        if (!moveMaxInstr.startsWith("move.")) continue
+        if (moveMaxInstr.moveSize() != sizeMin) continue
+        val moveMaxOps = moveMaxInstr.moveOperands() ?: continue
+        if (moveMaxOps.first != slotMax || moveMaxOps.second != "d0") continue
+
+        val labelDoneLine = filtered[idx+8].trimmed
+        if (!labelDoneLine.startsWith("$labelDone:")) continue
+
+        // Found a clamp block; try to fold each bound if its slot has an immediate define
+        val defineMin = findDefine(slotMin, sizeMin, idx)
+        if (defineMin != null) {
+            val immMin = defineMin.second
+            val indentCmp = filtered[idx].value.takeWhile { it.isWhitespace() }
+            val indentMove = filtered[idx+2].value.takeWhile { it.isWhitespace() }
+            mods.add(Modification(filtered[idx].index, false, "${indentCmp}cmpi.$sizeMin  $immMin,d0"))
+            mods.add(Modification(filtered[idx+2].index, false, "${indentMove}move.$sizeMin  $immMin,d0"))
+            // If the slot is not read after the clamp block, the defining move is dead
+            val defineIdx = defineMin.first
+            if (!isSlotReadAfter(slotMin, filtered[idx+8].index + 1, allPretrimmed)) {
+                mods.add(Modification(defineIdx, true, null))
+            }
+        }
+        val defineMax = findDefine(slotMax, sizeMin, idx+5)
+        if (defineMax != null) {
+            val immMax = defineMax.second
+            val indentCmp2 = filtered[idx+5].value.takeWhile { it.isWhitespace() }
+            val indentMove2 = filtered[idx+7].value.takeWhile { it.isWhitespace() }
+            mods.add(Modification(filtered[idx+5].index, false, "${indentCmp2}cmpi.$sizeMin  $immMax,d0"))
+            mods.add(Modification(filtered[idx+7].index, false, "${indentMove2}move.$sizeMin  $immMax,d0"))
+            val defineIdxMax = defineMax.first
+            if (!isSlotReadAfter(slotMax, filtered[idx+8].index + 1, allPretrimmed)) {
+                mods.add(Modification(defineIdxMax, true, null))
+            }
+        }
+    }
+    return mods
 }
 
 /** True if this operand is a prog8 register-file slot (e.g. "p8_regfile+268", "p8_fregfile+12"). */
