@@ -15,10 +15,7 @@ import com.github.ajalt.clikt.parameters.types.int
 import prog8.ast.AstException
 import prog8.code.source.ImportFileSystem
 import prog8.code.source.ImportFileSystem.expandTilde
-import prog8.code.target.CompilationTargets
-import prog8.code.target.Cx16Target
-import prog8.code.target.VMTarget
-import prog8.code.target.getCompilationTargetByName
+import prog8.code.target.*
 import prog8.compiler.*
 import prog8.intermediate.IRFileReader
 import prog8.intermediate.Opcode
@@ -202,6 +199,13 @@ private fun compileMain(args: Array<String>): Boolean {
     if(varsHighBank!=null && slabsHighBank!=null && varsHighBank!=slabsHighBank) {
         System.err.println("Vars and slabs high memory bank must be the same.")
         return false
+    }
+
+    if(compilationTarget in setOf(Amiga500Target.NAME, Qemu68kTarget.NAME)) {
+        if(varsGolden || slabsGolden || varsHighBank!=null || slabsHighBank!=null) {
+            System.err.println("The -varsgolden/-varshigh/-slabsgolden/-slabshigh options are not available on the m68k target")
+            return false
+        }
     }
 
     if(startVm==true) {

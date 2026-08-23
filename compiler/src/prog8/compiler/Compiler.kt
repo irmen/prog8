@@ -96,6 +96,13 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
         }
     }
 
+    if(compTarget.cpu.is68k) {
+        if(args.varsGolden || args.slabsGolden || args.varsHighBank!=null || args.slabsHighBank!=null) {
+            System.err.println("The -varsgolden/-varshigh/-slabsgolden/-slabshigh options are not available on the m68k target")
+            return null
+        }
+    }
+
     try {
         var symbolTable: SymbolTable? = null
 
@@ -143,9 +150,11 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
             importedFiles = imported
 
             if(compilationOptions.romable) {
-                if (!compilationOptions.varsGolden && compilationOptions.varsHighBank==null)
+                val hasBss = compilationOptions.bssAddress != null || program.toplevelModule.bssAddress != null
+                val hasSlabs = compilationOptions.slabsAddress != null || program.toplevelModule.slabsAddress != null
+                if (!compilationOptions.varsGolden && compilationOptions.varsHighBank==null && !hasBss)
                     args.errors.err("When ROMable code is selected, variables should be moved to a RAM memory region using either -varsgolden or -varshigh option", program.toplevelModule.position)
-                if (!compilationOptions.slabsGolden && compilationOptions.slabsHighBank==null)
+                if (!compilationOptions.slabsGolden && compilationOptions.slabsHighBank==null && !hasSlabs)
                     args.errors.err("When ROMable code is selected, memory() blocks should be moved to a RAM memory region using either -slabsgolden or -slabshigh option", program.toplevelModule.position)
                 args.errors.report()
             }
@@ -379,6 +388,28 @@ internal fun determineProgramLoadAddress(program: Program, options: CompilationO
         errors.warn("program load address ${loadAddress.toHex()} is beyond default memtop address ${options.memtopAddress.toHex()}. " +
                 "Memtop has been adjusted to ${maxAddress.toHex()} to avoid assembler error. Set a valid %memtop yourself to get rid of this warning.", program.toplevelModule.position)
         options.memtopAddress = maxAddress
+    }
+
+    options.bssAddress = program.toplevelModule.bssAddress?.first
+    options.slabsAddress = program.toplevelModule.slabsAddress?.first
+
+    if(options.bssAddress != null && (options.varsGolden || options.varsHighBank != null)) {
+        val bssPos = program.toplevelModule.bssAddress?.second ?: program.toplevelModule.position
+        errors.err("cannot combine %bssaddress directive with -varsgolden or -varshigh option", bssPos)
+    }
+    if(options.slabsAddress != null && (options.slabsGolden || options.slabsHighBank != null)) {
+        val slabsPos = program.toplevelModule.slabsAddress?.second ?: program.toplevelModule.position
+        errors.err("cannot combine %slabsaddress directive with -slabsgolden or -slabshigh option", slabsPos)
+    }
+
+    val maxAddress = if(options.compTarget.POINTER_MEM_SIZE > 2u) 0xFFFFFFFFu else 0xFFFFu
+    options.bssAddress?.let {
+        if(it > maxAddress)
+            errors.err("bss address must be valid integer 0..${maxAddress.toHex()}", program.toplevelModule.bssAddress!!.second)
+    }
+    options.slabsAddress?.let {
+        if(it > maxAddress)
+            errors.err("slabs address must be valid integer 0..${maxAddress.toHex()}", program.toplevelModule.slabsAddress!!.second)
     }
 }
 

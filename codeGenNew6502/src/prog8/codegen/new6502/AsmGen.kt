@@ -1144,24 +1144,75 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
         emitRaw("; bss sections")
         emitRaw("PROG8_VARSHIGH_RAMBANK = ${options.varsHighBank ?: 1}")
 
-        val relocateVars = options.varsGolden || options.varsHighBank != null
-        val relocateSlabs = options.slabsGolden || options.slabsHighBank != null
+        var relocateVars = false
+        var relocateSlabs = false
+        var relocatedVarsStart = 0u
+        var relocatedVarsEnd = 0u
+        var relocatedSlabsStart = 0u
+        var relocatedSlabsEnd = 0u
 
-        if (relocateVars) {
+        if(options.bssAddress != null) {
+            relocateVars = true
+            relocatedVarsStart = options.bssAddress!!
+            relocatedVarsEnd = if(options.memtopAddress != 0u) options.memtopAddress else 0xFFFFu
+        } else if(options.varsGolden) {
+            relocateVars = true
+            relocatedVarsStart = options.compTarget.BSSGOLDENRAM_START
+            relocatedVarsEnd = options.compTarget.BSSGOLDENRAM_END
+        } else if(options.varsHighBank != null) {
+            relocateVars = true
+            relocatedVarsStart = options.compTarget.BSSHIGHRAM_START
+            relocatedVarsEnd = options.compTarget.BSSHIGHRAM_END
+        }
+
+        if(options.slabsAddress != null) {
+            relocateSlabs = true
+            relocatedSlabsStart = options.slabsAddress!!
+            relocatedSlabsEnd = if(options.memtopAddress != 0u) options.memtopAddress else 0xFFFFu
+        } else if(options.slabsGolden) {
+            relocateSlabs = true
+            relocatedSlabsStart = options.compTarget.BSSGOLDENRAM_START
+            relocatedSlabsEnd = options.compTarget.BSSGOLDENRAM_END
+        } else if(options.slabsHighBank != null) {
+            relocateSlabs = true
+            relocatedSlabsStart = options.compTarget.BSSHIGHRAM_START
+            relocatedSlabsEnd = options.compTarget.BSSHIGHRAM_END
+        }
+
+        // if both use same mechanism (golden/high) ensure shared values are synced
+        if(relocateVars && relocateSlabs) {
+            if(relocatedVarsStart==0u && relocatedSlabsStart!=0u) {
+                relocatedVarsStart = relocatedSlabsStart
+                relocatedVarsEnd = relocatedSlabsEnd
+            } else if(relocatedSlabsStart==0u && relocatedVarsStart!=0u) {
+                relocatedSlabsStart = relocatedVarsStart
+                relocatedSlabsEnd = relocatedVarsEnd
+            }
+        }
+
+        if (relocateVars && relocateSlabs && relocatedVarsStart != relocatedSlabsStart) {
+            // separate regions for vars and slabs (raw addresses differ)
+            emitLabel("prog8_program_end")
+            emitRaw("  * = ${relocatedVarsStart.toHex()}")
+            emitRaw("  .dsection BSS_NOCLEAR")
+            emitLabel("prog8_bss_section_start")
+            emitRaw("  .dsection BSS")
+            emitLine("    .cerror * > ${relocatedVarsEnd.toHex()}, \"too many variables/data for BSS section\"")
+            emitRaw("prog8_bss_section_size = * - prog8_bss_section_start")
+            emitRaw("  * = ${relocatedSlabsStart.toHex()}")
+            emitRaw("  .dsection BSS_SLABS")
+            emitLine("    .cerror * > ${relocatedSlabsEnd.toHex()}, \"too many data for BSS_SLABS section\"")
+        } else if (relocateVars) {
             if (!relocateSlabs)
                 emitRaw("  .dsection BSS_SLABS")
             emitLabel("prog8_program_end")
-            val relocatedStart = if (options.varsGolden) options.compTarget.BSSGOLDENRAM_START
-                                 else options.compTarget.BSSHIGHRAM_START
-            emitRaw("  * = ${relocatedStart.toHex()}")
+            emitRaw("  * = ${relocatedVarsStart.toHex()}")
             emitRaw("  .dsection BSS_NOCLEAR")
             emitLabel("prog8_bss_section_start")
             emitRaw("  .dsection BSS")
             if (relocateSlabs)
                 emitRaw("  .dsection BSS_SLABS")
-            val relocatedEnd = if (options.varsGolden) options.compTarget.BSSGOLDENRAM_END
-                               else options.compTarget.BSSHIGHRAM_END
-            emitLine("    .cerror * > ${relocatedEnd.toHex()}, \"too many variables/data for BSS section\"")
+            emitLine("    .cerror * > ${relocatedVarsEnd.toHex()}, \"too many variables/data for BSS section\"")
             emitRaw("prog8_bss_section_size = * - prog8_bss_section_start")
         } else {
             emitRaw("  .dsection BSS_NOCLEAR")
@@ -1172,13 +1223,9 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
                 emitRaw("  .dsection BSS_SLABS")
             emitLabel("prog8_program_end")
             if (relocateSlabs) {
-                val relocatedStart = if (options.slabsGolden) options.compTarget.BSSGOLDENRAM_START
-                                     else options.compTarget.BSSHIGHRAM_START
-                val relocatedEnd = if (options.slabsGolden) options.compTarget.BSSGOLDENRAM_END
-                                   else options.compTarget.BSSHIGHRAM_END
-                emitRaw("  * = ${relocatedStart.toHex()}")
+                emitRaw("  * = ${relocatedSlabsStart.toHex()}")
                 emitRaw("  .dsection BSS_SLABS")
-                emitLine("    .cerror * > ${relocatedEnd.toHex()}, \"too many data for BSS_SLABS section\"")
+                emitLine("    .cerror * > ${relocatedSlabsEnd.toHex()}, \"too many data for BSS_SLABS section\"")
             }
         }
 

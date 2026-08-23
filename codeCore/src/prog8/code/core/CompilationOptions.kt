@@ -17,6 +17,8 @@ class CompilationOptions(val output: OutputType,
                          // these are set later, based on command line arguments or options in the source code:
                          var loadAddress: UInt,
                          var memtopAddress: UInt,
+                         var bssAddress: UInt? = null,
+                         var slabsAddress: UInt? = null,
                          var warnSymbolShadowing: Boolean = false,
                          var warnImplicitTypeCast: Boolean = false,
                          var optimize: Boolean = false,
@@ -59,6 +61,8 @@ class CompilationOptions(val output: OutputType,
             private var compilerVersion: String = "unknown"
             private var loadAddress: UInt = compTarget.PROGRAM_LOAD_ADDRESS
             private var memtopAddress: UInt = compTarget.PROGRAM_MEMTOP_ADDRESS
+            private var bssAddress: UInt? = null
+            private var slabsAddress: UInt? = null
             private var warnSymbolShadowing: Boolean = false
             private var warnImplicitTypeCast: Boolean = false
             private var optimize: Boolean = false
@@ -90,6 +94,8 @@ class CompilationOptions(val output: OutputType,
             fun compilerVersion(compilerVersion: String) = apply { this.compilerVersion = compilerVersion }
             fun loadAddress(loadAddress: UInt) = apply { this.loadAddress = loadAddress }
             fun memtopAddress(memtopAddress: UInt) = apply { this.memtopAddress = memtopAddress }
+            fun bssAddress(bssAddress: UInt?) = apply { this.bssAddress = bssAddress }
+            fun slabsAddress(slabsAddress: UInt?) = apply { this.slabsAddress = slabsAddress }
             fun warnSymbolShadowing(warnSymbolShadowing: Boolean) = apply { this.warnSymbolShadowing = warnSymbolShadowing }
             fun warnImplicitTypeCast(warnImplicitTypeCast: Boolean) = apply { this.warnImplicitTypeCast = warnImplicitTypeCast }
             fun optimize(optimize: Boolean) = apply { this.optimize = optimize }
@@ -113,7 +119,7 @@ class CompilationOptions(val output: OutputType,
             fun build(): CompilationOptions {
                 return CompilationOptions(
                     output, launcher, zeropage, zpReserved, zpAllowed, floats, noSysInit, romable, compTarget, compilerVersion,
-                    loadAddress, memtopAddress, warnSymbolShadowing, warnImplicitTypeCast, optimize, asmQuiet, asmListfile,
+                    loadAddress, memtopAddress, bssAddress, slabsAddress, warnSymbolShadowing, warnImplicitTypeCast, optimize, asmQuiet, asmListfile,
                     includeSourcelines, dumpVariables, dumpSymbols, newCodegen, varsHighBank, varsGolden,
                     slabsHighBank, slabsGolden, breakpointCpuInstruction, ignoreFootguns, outputDir, quiet,
                     profilingInstrumentation, symbolDefs

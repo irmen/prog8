@@ -258,6 +258,22 @@ Directives
 	default launcher type is a CBM-BASIC program. But you have to specify this address yourself when
 	you don't use a CBM-BASIC launcher.
 
+.. index:: pair: Directives; %bssaddress
+.. data:: %bssaddress <address>
+
+	Level: module.
+	Global setting, set the memory address for the BSS area (uninitialized variables). Analogous to ``%address`` for program load address.
+	Mutually exclusive with the CLI options ``-varsgolden`` and ``-varshigh`` - use either the directive (raw address) or the CLI shorthand (target-aware), not both.
+	Not available on m68k targets (amiga500, qemu68k) - there it is an error.
+
+.. index:: pair: Directives; %slabsaddress
+.. data:: %slabsaddress <address>
+
+	Level: module.
+	Global setting, set the memory address for memory slabs (``memory()`` allocations). Analogous to ``%address`` for program load address.
+	Mutually exclusive with the CLI options ``-slabsgolden`` and ``-slabshigh`` - use either the directive or the CLI shorthand, not both.
+	Not available on m68k targets (amiga500, qemu68k) - there it is an error.
+
 
 .. index:: pair: Directives; %align
 .. data:: %align <interval>

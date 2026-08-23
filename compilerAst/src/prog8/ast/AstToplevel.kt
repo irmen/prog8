@@ -407,6 +407,22 @@ open class Module(final override val statements: MutableList<Statement>,
             Pair(address.args.single().int!!, address.position)
     }
 
+    val bssAddress: Pair<UInt, Position>? by lazy {
+        val address = (statements.singleOrNull { it is Directive && it.directive == "%bssaddress" } as? Directive)
+        if(address==null || address.args.single().int==null)
+            null
+        else
+            Pair(address.args.single().int!!, address.position)
+    }
+
+    val slabsAddress: Pair<UInt, Position>? by lazy {
+        val address = (statements.singleOrNull { it is Directive && it.directive == "%slabsaddress" } as? Directive)
+        if(address==null || address.args.single().int==null)
+            null
+        else
+            Pair(address.args.single().int!!, address.position)
+    }
+
     override fun linkParents(parent: Node) {
         require(parent is GlobalNamespace)
         this.parent = parent

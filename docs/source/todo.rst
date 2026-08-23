@@ -21,10 +21,6 @@ Future Things and Ideas
 - implement the signed remainder byte and word routines on 6502 (virtual target already has them working)
 - implement the signed divmod byte and word routines on 6502 (virtual target already has them working)
 - make a form of "manual generics" possible, see ``ideas/polymorphism.md`` (this is already done hardcoded for several of the builtin functions)
-- add new directives ``%bssaddress`` and ``%slabsaddress`` to set the memory address for the BSS area and memory slabs (analogous to ``%address`` for program load address).
-  Note: these should be mutually exclusive with the existing CLI options (``-varsgolden``, ``-varshigh``, ``-slabsgolden``, ``-slabshigh``)
-  because the CLI options are target-aware shorthands (set bank symbols, do bounds checking against predefined ranges)
-  while the directives are raw addresses — they'd conflict if both specified for the same area.  Update user docs about directives.
 - the c64 sprite multiplexer still needs adjustments to make it smooth, it lacks a proper raster event scheduler.
 - TODO: ``equalsSize`` in ``DataTypes.kt`` treats POINTER as WORD-sized (lines46-47). On 32-bit targets (m68k, virtual), POINTER is actually LONG (4 bytes).
   Status: not fixed. The helpers in ``codeCore`` are target-agnostic (no access to ``POINTER_MEM_SIZE``), so they cannot know the pointer width. All three call sites
@@ -60,7 +56,6 @@ IR/VM
   Flow: SimpleAst -> HLIR (Loops/Arrays) -> Lowering -> Current IR (Ops/Regs) -> Codegen.
   Don't adopt LLVM (too low-level) or QBE (too simple). Custom HLIR fits Kotlin best and preserves semantic intent.
   **Important**: HLIR's value for 6502 is minimal if the backend consumes only the lowered IR. For 6502 to benefit from HLIR, the backend would need to target HLIR directly (bypassing the lowering pass for applicable constructs), adding complexity. HLIR is primarily useful for non-6502 backends (68000) and the VM interpreter.
-  **Split word arrays** are a prime example: currently represented as two separate ``_lsb``/``_msb`` ubyte arrays in the IR, so a single ``words[i] += 50`` expands to 8 byte-level IR instructions (two LOADM, CONCAT, ADD, LSIGB, MSIGB, two STOREM). At the HLIR level this should remain a single word-array augmented assignment; the lowering pass can split it into ``_lsb``/``_msb`` ops (for 6502) or keep it as a word op (for 68000).
 
 **Missing VM Implementations (VirtualMachine.kt)**
 - ``IRInlineBinaryChunk`` and ``IRInlineAsmChunk`` - inline chunks cannot be loaded by the VM (VmProgramLoader.kt). Limitation of the current VM design: program is not loaded into memory as data
