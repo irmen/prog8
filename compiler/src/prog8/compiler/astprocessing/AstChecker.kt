@@ -2136,6 +2136,23 @@ internal class AstChecker(private val program: Program,
             if(!dt.isPointer && !dt.isUnsignedWord && !dt.isIterable) {
                 errors.err("cannot array index on this field type", arrayIndexedExpression.indexer.position)
             }
+            // check index out of bounds for struct field arrays via pointer
+            val constIdx = arrayIndexedExpression.indexer.constIndex()
+            if(constIdx!=null) {
+                val deref = arrayIndexedExpression.pointerderef!!
+                val target = deref.definingScope.lookup(deref.chain)
+                val arraysize: Int? = when(target) {
+                    is StructFieldRef -> target.field.arraySize
+                    is VarDecl -> target.arraysize?.constIndex()
+                    else -> null
+                }
+                if(arraysize!=null) {
+                    if(constIdx !in 0..<arraysize)
+                        errors.err("index out of bounds", arrayIndexedExpression.indexer.position)
+                } else if(constIdx < 0) {
+                    errors.err("index out of bounds", arrayIndexedExpression.indexer.position)
+                }
+            }
 //            else if(target is StructFieldRef) {
 //                if(!target.type.isPointer && !target.type.isUnsignedWord)
 //                    errors.err("cannot array index on this field type", arrayIndexedExpression.indexer.position)
