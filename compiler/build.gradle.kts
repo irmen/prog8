@@ -23,7 +23,7 @@ dependencies {
     testImplementation(testFixtures(project(":codeCore")))
     testImplementation(project(":intermediate"))
     testImplementation("io.kotest:kotest-runner-junit5")
-    testImplementation("com.github.irmen:ksim65:v2.1")
+    testImplementation("org.codeberg.irmen:ksim65:v2.2")
 }
 
 // Exclude transitive antlr4 dependency (we only need it in parser module)

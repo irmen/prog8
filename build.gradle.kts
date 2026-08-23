@@ -53,7 +53,7 @@ subprojects {
     // This manages all Kotest module versions centrally
     dependencies {
         testImplementation(platform("io.kotest:kotest-bom:6.2.3"))
-        // implementation("com.github.irmen:ksim65:v2.1")
+        // implementation("org.codeberg.irmen:ksim65:v2.2")
     }
 
     // Common sourceSets configuration
