@@ -7,8 +7,15 @@
 %import compression
 %import textio
 
+; load and display a zx0-compressed image.
+; you can create those with the special converter script that comes with prog8
+
 main {
     sub start() {
+
+        str imagefile = "?" * 60
+        txt.print("name of izx0 file to load: ")
+        void txt.input_chars(imagefile)
 
         ; open a 320x256, 5-plane screen
         long[] screentags = [
@@ -49,10 +56,10 @@ main {
             if myWindow!=0 {
 
                 ^^graphics.BitMap bm = intuition.GetScreenBitMap(myScreen)
-                if izx0.read("psygnosis.izx0", &bm.Planes) {
+                if izx0.read(imagefile, &bm.Planes) {
                     graphics.LoadRGB4(intuition.GetScreenViewPort(myScreen), izx0.palette, izx0.numColors as word)
+                    sys.wait(200)
                 }
-                sys.wait(200)
 
                 intuition.CloseWindow(myWindow)
             }

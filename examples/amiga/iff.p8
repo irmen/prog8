@@ -42,7 +42,9 @@ main {
             sys.exit(1)
         }
 
-        str imagefile = "PROGDIR:psygnosis.iff"
+        str imagefile = "?" * 60
+        txt.print("name of iff file to load: ")
+        void txt.input_chars(imagefile)
 
         ; open custom screen
         ^^intuition.Screen myScreen = intuition.OpenScreenTagList(0, screentags)
@@ -53,8 +55,11 @@ main {
             ^^intuition.Window myWindow = intuition.OpenWindowTagList(0, windowtags)
 
             if myWindow!=0 {
-                loadIFFimage(imagefile, myScreen)
-                sys.wait(200)
+                if loadIFFimage(imagefile, myScreen) {
+                    sys.wait(200)
+                } else {
+                    txt.print("error: could not load iff image\n")
+                }
 
                 intuition.CloseWindow(myWindow)
             }
@@ -65,7 +70,7 @@ main {
     }
 
 
-    sub loadIFFimage(str filename, ^^intuition.Screen scr) {
+    sub loadIFFimage(str filename, ^^intuition.Screen scr) -> bool {
         const ID_ILBM = $494C424D  ; 'ILBM'
         const ID_BMHD = $424D4844  ; 'BMHD'
         const ID_CMAP = $434D4150  ; 'CMAP'
@@ -82,6 +87,8 @@ main {
             ubyte xAspect, yAspect      ; Pixel aspect ratio
             word  pageWidth, pageHeight ; Source page size in pixels
         }
+
+        bool ok = false
 
         ^^iffparse.IFFHandle iff = iffparse.AllocIFF()
         if iff!=0 {
@@ -107,6 +114,7 @@ main {
                                         setPalette(cmap)
                                     }
                                     decode(header, bodyBuffer)
+                                    ok = true
                                 }
                                 exec.FreeVec(bodyBuffer)
                             }
@@ -118,6 +126,8 @@ main {
             }
             iffparse.FreeIFF(iff)
         }
+
+        return ok
 
         sub decode(^^BMHDheader hdr, ^^ubyte body) {
             long bytesPerRow = ((hdr.w + 15) / 16) * 2

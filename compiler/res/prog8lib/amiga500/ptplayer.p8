@@ -11,31 +11,41 @@
 
 ptplayer {
 
-    asmsub mt_install() -> bool @D0 {
+    asmsub install() -> bool @D0 {
         ; -- install playback interrupt handler routine
         %asm {{
             jmp  _mt_install
         }}
     }
 
-    asmsub mt_remove() {
+    asmsub remove() {
         ; -- remove playback interrupt handler routine
         %asm {{
             jmp  _mt_remove
         }}
     }
 
-    asmsub mt_init(pointer moduledata @A0) {
+    asmsub init(pointer moduledata @A0) {
         ; -- initialize a loaded protracker module for playback.  Module must be loaded into CHIP ram.
         %asm {{
             lea  $dff000,a6
             sub.l  a1,a1    ;; assume sample data is always inside the module
             clr.l  d0       ;; start at beginning
-            jmp  _mt_init
+            bsr  _mt_init
+            ;; reset note-trigger detection state
+            lea  vu_prevstarts(pc),a0
+            movem.l d1-d3,-(sp)
+            moveq  #0,d1
+            move.l d1,(a0)
+            move.l d1,4(a0)
+            move.l d1,8(a0)
+            move.l d1,12(a0)
+            movem.l (sp)+,d1-d3
+            rts
         }}
     }
 
-    asmsub mt_enable() {
+    asmsub enable() {
         ; -- enable module playback
         %asm {{
             move.b  #1,_mt_Enable
@@ -43,7 +53,7 @@ ptplayer {
         }}
     }
 
-    asmsub mt_disable() {
+    asmsub disable() {
         ; -- disable module playback
         %asm {{
             clr.b  _mt_Enable
@@ -51,11 +61,124 @@ ptplayer {
         }}
     }
 
-    asmsub mt_end() {
+    asmsub end() {
         ; -- disable all sound playbacks
         %asm {{
             lea  $dff000,a6
             jmp  _mt_end
+        }}
+    }
+
+    asmsub songname() -> pointer @A0 {
+        ; -- returns a pointer to the 20-byte song name of the current module (NULL if no module was initialized)
+        %asm {{
+            lea     mt_data(pc),a0
+            move.l  mt_mod(a0),a0
+            rts
+        }}
+    }
+
+    asmsub numpatterns() -> ubyte @D0 {
+        ; -- returns the number of patterns of the current module (highest arrangement entry + 1)
+        %asm {{
+            moveq   #0,d0
+            lea     mt_data(pc),a0
+            tst.l   mt_mod(a0)
+            beq     .done
+            move.l  mt_mod(a0),a1
+            lea     MTMOD_ARRANGEMENT(a1),a1        ; song arrangement list
+            moveq   #127,d1
+            moveq   #0,d0           ; highest pattern number
+        .1: cmp.b   (a1),d0
+            bhs     .2
+            move.b  (a1),d0
+        .2: addq.l  #1,a1
+            dbf     d1,.1
+            addq.b  #1,d0           ; number of patterns = highest + 1
+        .done:
+            rts
+        }}
+    }
+
+    asmsub currentpos() -> ubyte @D0, ubyte @D1, ubyte @D2 {
+        ; -- returns the current song position (index into the arrangement list),
+        ;    the pattern number currently being played,
+        ;    and the current row within that pattern (0-63)
+        %asm {{
+            moveq   #0,d0
+            moveq   #0,d1
+            moveq   #0,d2
+            lea     mt_data(pc),a0
+            tst.l   mt_mod(a0)
+            beq     .done
+            move.b  mt_SongPos(a0),d0       ; song position
+            move.l  mt_mod(a0),a1
+            lea     MTMOD_ARRANGEMENT(a1),a1        ; song arrangement list
+            move.b  (a1,d0.w),d1            ; current pattern number (like get_new_note does)
+            move.w  mt_PatternPos(a0),d2
+            lsr.w   #4,d2                   ; PatternPos is a byte offset, 16 bytes per row
+        .done:
+            rts
+        }}
+    }
+
+    asmsub volumes() -> ubyte @D0, ubyte @D1, ubyte @D2, ubyte @D3 {
+        ; -- returns the current volumes of the music channels (each byte is 0-64)
+        %asm {{
+            lea     mt_data(pc),a0
+            moveq   #0,d0
+            move.b  mt_chan1+n_volume+1(a0),d0      ; low byte of volume word (big-endian)
+            moveq   #0,d1
+            move.b  mt_chan2+n_volume+1(a0),d1
+            moveq   #0,d2
+            move.b  mt_chan3+n_volume+1(a0),d2
+            moveq   #0,d3
+            move.b  mt_chan4+n_volume+1(a0),d3
+            rts
+        }}
+    }
+
+    asmsub notestrike() clobbers (D4) -> bool @D0, bool @D1, bool @D2, bool @D3 {
+        ; -- returns true for each channel on which a new instrument was triggered
+        ; -- since the previous call of this routine (poll at least once per row, ~50 Hz)
+        %asm {{
+            lea     mt_data(pc),a1
+            lea     vu_prevstarts(pc),a0
+            moveq   #0,d0
+            moveq   #0,d1
+            moveq   #0,d2
+            moveq   #0,d3
+
+            move.l  mt_chan1+n_start(a1),d4
+            cmp.l   (a0)+,d4
+            beq     .2
+            move.l  d4,-(a0)
+            tst.l   d4
+            beq     .2
+            moveq   #1,d0
+        .2: move.l  mt_chan2+n_start(a1),d4
+            cmp.l   (a0)+,d4
+            beq     .3
+            move.l  d4,-(a0)
+            tst.l   d4
+            beq     .3
+            moveq   #1,d1
+        .3: move.l  mt_chan3+n_start(a1),d4
+            cmp.l   (a0)+,d4
+            beq     .4
+            move.l  d4,-(a0)
+            tst.l   d4
+            beq     .4
+            moveq   #1,d2
+        .4: move.l  mt_chan4+n_start(a1),d4
+            cmp.l   (a0),d4
+            beq     .done
+            move.l  d4,(a0)
+            tst.l   d4
+            beq     .done
+            moveq   #1,d3
+        .done:
+            rts
         }}
     }
 
@@ -332,6 +455,13 @@ CIATBHI		equ	$700
 CIAICR		equ	$d00
 CIACRA		equ	$e00
 CIACRB		equ	$f00
+
+; Protracker module layout
+MTMOD_SONGNAME	equ	0		; 20 bytes song title
+MTMOD_SAMPLEINFO equ	20		; 31*30 bytes sample info table
+MTMOD_SONGLEN	equ	950		; song length in positions
+MTMOD_ARRANGEMENT equ	952		; 128 bytes song arrangement list
+MTMOD_PATTERNS	equ	1084		; start of pattern data
 
 
 ; Sound effects structure, passed into _mt_playfx
@@ -4037,6 +4167,11 @@ _mt_SongEnd:
 	endc	; !MINIMAL
 
 	endc	; SDATA/!SDATA
+
+; --- note-trigger detection state (used by the notestrike accessor) ---
+	even
+vu_prevstarts:
+	ds.l	4
 
     }}
 

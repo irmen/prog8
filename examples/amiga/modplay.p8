@@ -4,7 +4,7 @@
 
 main {
     sub start() {
-        if ptplayer.mt_install() {
+        if ptplayer.install() {
             txt.print("ptplayer init ok\n")
 
             str modname = "?" * 60
@@ -23,26 +23,63 @@ main {
                 if mod!=0 {
                     txt.print("loading...\n")
                     if dos.Read(fh, mod, modSize)==modSize {
-                        ptplayer.mt_init(mod)
-                        ptplayer.mt_enable()
-                        txt.print("playing...\n")
-                        dos.Delay(1000)
-                        ptplayer.mt_disable()
+                        ptplayer.init(mod)
+
+                        txt.print("\nsong name: ")
+                        txt.print(ptplayer.songname())
+                        txt.print("\nnumber of patterns: ")
+                        txt.print_ub(ptplayer.numpatterns())
+                        txt.nl()
+                        txt.nl()
+
+                        txt.print("playing... (press CTRL+C to stop)\n")
+                        txt.cursor_off()
+
+                        ptplayer.enable()
+                        do {
+                            print_song_vars()
+                            dos.Delay(1)
+                        } until dos.CheckSignal(dos.SIGBREAKF_CTRL_C)!=0
+                        ptplayer.disable()
+
+                        txt.cursor_on()
+                        txt.nl()
+
                     } else {
                         txt.print("load error\n")
                     }
                     exec.FreeMem(mod, modSize)
                 }
 
-                ptplayer.mt_end()
+                ptplayer.end()
 
             } else {
                 txt.print("load error\n")
             }
 
-            ptplayer.mt_remove()
+            ptplayer.remove()
         } else {
             txt.print("ptplayer failed to init\n")
         }
+    }
+
+    sub print_song_vars() {
+        ubyte pos, pattern, row = ptplayer.currentpos()
+        ubyte vol1, vol2, vol3, vol4 = ptplayer.volumes()
+        bool note1, note2, note3, note4 = ptplayer.notestrike()
+        txt.print("\r  ")
+        txt.print_ub0(pos)
+        txt.print("  ")
+        txt.print_ub0(pattern)
+        txt.print("  ")
+        txt.print_ub0(row)
+        txt.print("  ")
+        txt.print_ub(note1 as ubyte)
+        txt.chrout(':')
+        txt.print_ub(note2 as ubyte)
+        txt.chrout(':')
+        txt.print_ub(note3 as ubyte)
+        txt.chrout(':')
+        txt.print_ub(note4 as ubyte)
     }
 }
