@@ -42,7 +42,7 @@ main {
             sys.exit(1)
         }
 
-        str imagefile = "PROGDIR:cara.iff"
+        str imagefile = "PROGDIR:psygnosis.iff"
 
         ; open custom screen
         ^^intuition.Screen myScreen = intuition.OpenScreenTagList(0, screentags)

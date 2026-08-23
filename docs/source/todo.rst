@@ -56,6 +56,7 @@ IR/VM
   Flow: SimpleAst -> HLIR (Loops/Arrays) -> Lowering -> Current IR (Ops/Regs) -> Codegen.
   Don't adopt LLVM (too low-level) or QBE (too simple). Custom HLIR fits Kotlin best and preserves semantic intent.
   **Important**: HLIR's value for 6502 is minimal if the backend consumes only the lowered IR. For 6502 to benefit from HLIR, the backend would need to target HLIR directly (bypassing the lowering pass for applicable constructs), adding complexity. HLIR is primarily useful for non-6502 backends (68000) and the VM interpreter.
+  Counted loops (``repeat`` / unused-``for`` / ``for x in A to 0 step -1``) are already handled for m68k via the ``dbra d7`` peephole in ``codeGenM68k/AsmOptimizer.kt:optimizeDbraRepeatLoops`` (hidden ``p8_regfile`` counter -> ``move.w #N-1,d7`` / ``dbra d7,label``, bounced if body uses ``d7`` or contains ``bsr``/``jsr``). No HLIR needed for those cases.
 
 **Missing VM Implementations (VirtualMachine.kt)**
 - ``IRInlineBinaryChunk`` and ``IRInlineAsmChunk`` - inline chunks cannot be loaded by the VM (VmProgramLoader.kt). Limitation of the current VM design: program is not loaded into memory as data

@@ -924,4 +924,111 @@ class TestInstructionSelectionOptimizations : FunSpec({
             betweenJsrAndBranch.any { it.contains("move") && it.contains("a0") && it.contains("p8_regfile") } shouldBe false
         }
     }
+
+    test("dbra peephole for repeat word loop 1000") {
+        val lines = mutableListOf(
+            "    move.w  #1000,p8_regfile+4",
+            "p8_label_gen_2:",
+            "    addq.w  #1,p8b_main.p8v_sum",
+            "    subq.w  #1,p8_regfile+4",
+            "    bne  p8_label_gen_2"
+        )
+        optimizeAssembly(lines)
+        lines.any { it.contains("dbra  d7,p8_label_gen_2") } shouldBe true
+        lines.any { it.contains("move.w  #999,d7") } shouldBe true
+        lines.any { it.contains("subq.w") } shouldBe false
+    }
+
+    test("dbra peephole for repeat byte loop 100") {
+        val lines = mutableListOf(
+            "    move.b  #100,p8_regfile+0",
+            "p8_label_gen_1:",
+            "    addq.w  #1,p8b_main.p8v_sum",
+            "    subq.b  #1,p8_regfile+0",
+            "    bne  p8_label_gen_1"
+        )
+        optimizeAssembly(lines)
+        lines.any { it.contains("dbra  d7,p8_label_gen_1") } shouldBe true
+        lines.any { it.contains("move.w  #99,d7") } shouldBe true
+        lines.any { it.contains("subq.b") } shouldBe false
+    }
+
+    test("dbra peephole for repeat 256 special case") {
+        val lines = mutableListOf(
+            "    move.b  #0,p8_regfile+0",
+            "p8_label_gen_1:",
+            "    addq.w  #1,p8b_main.p8v_sum",
+            "    subq.b  #1,p8_regfile+0",
+            "    bne  p8_label_gen_1"
+        )
+        optimizeAssembly(lines)
+        lines.any { it.contains("dbra  d7,p8_label_gen_1") } shouldBe true
+        lines.any { it.contains("move.w  #255,d7") } shouldBe true
+    }
+
+    test("dbra peephole does not trigger when body uses d7") {
+        val lines = mutableListOf(
+            "    move.w  #100,p8_regfile+4",
+            "p8_label_gen_2:",
+            "    move.w  d7,p8b_main.p8v_sum",
+            "    subq.w  #1,p8_regfile+4",
+            "    bne  p8_label_gen_2"
+        )
+        optimizeAssembly(lines)
+        lines.any { it.contains("dbra") } shouldBe false
+    }
+
+    test("dbra peephole does not trigger when body contains bsr call") {
+        val lines = mutableListOf(
+            "    move.w  #100,p8_regfile+4",
+            "p8_label_gen_2:",
+            "    bsr  some_sub",
+            "    subq.w  #1,p8_regfile+4",
+            "    bne  p8_label_gen_2"
+        )
+        optimizeAssembly(lines)
+        lines.any { it.contains("dbra") } shouldBe false
+    }
+
+    test("dbra peephole preserves label on init line") {
+        val lines = mutableListOf(
+            "outer:  move.w  #100,p8_regfile+4",
+            "p8_label_gen_2:",
+            "    addq.w  #1,p8b_main.p8v_sum",
+            "    subq.w  #1,p8_regfile+4",
+            "    bne  p8_label_gen_2"
+        )
+        optimizeAssembly(lines)
+        lines.any { it.contains("outer:") } shouldBe true
+        lines.any { it.contains("dbra  d7,p8_label_gen_2") } shouldBe true
+        lines.any { it.contains("move.w  #99,d7") } shouldBe true
+        lines.any { it.contains("move.w  #100,p8_regfile+4") } shouldBe false
+    }
+
+    test("dbra peephole preserves label on branch line") {
+        val lines = mutableListOf(
+            "    move.w  #100,p8_regfile+4",
+            "p8_label_gen_2:",
+            "    addq.w  #1,p8b_main.p8v_sum",
+            "    subq.w  #1,p8_regfile+4",
+            "exit:  bne  p8_label_gen_2"
+        )
+        optimizeAssembly(lines)
+        lines.any { it.contains("exit:") } shouldBe true
+        lines.any { it.contains("dbra  d7,p8_label_gen_2") } shouldBe true
+        lines.any { it.contains("subq.w") } shouldBe false
+    }
+
+    test("dbra peephole does not trigger when body reads the counter slot") {
+        val lines = mutableListOf(
+            "    move.w  #100,p8_regfile+4",
+            "p8_label_gen_2:",
+            "    move.w  p8_regfile+4,d0",
+            "    subq.w  #1,p8_regfile+4",
+            "    bne  p8_label_gen_2"
+        )
+        optimizeAssembly(lines)
+        lines.any { it.contains("dbra") } shouldBe false
+        lines.any { it.contains("move.w  p8_regfile+4,d0") } shouldBe true
+    }
 })

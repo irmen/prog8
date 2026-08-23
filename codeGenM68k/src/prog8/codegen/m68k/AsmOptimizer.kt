@@ -43,6 +43,13 @@ internal fun optimizeAssembly(lines: MutableList<String>) {
         by2 = runPass(optimizeRedundantTst(by2), 2, by2)
         by2 = runPass(optimizeMsigbSpill(by2, pretrimmed), 2, by2)
 
+        // DBRA peephole for repeat loops: move #N,p8_regfile+slot / label: body / subq #1,slot / bne label  ->  move #N-1,d7 / label: body / dbra d7,label
+        val dbraMods = optimizeDbraRepeatLoops(pretrimmed, lines)
+        if (dbraMods.isNotEmpty()) {
+            applyModifications(dbraMods, lines, pretrimmed)
+            modified = true
+        }
+
         if (!modified)
             break
     }
@@ -372,6 +379,98 @@ private fun optimizeMsigbSpill(linesBy: Sequence<List<TrimmedLine>>, allPretrimm
             mods.add(Modification(lines[0].index, true, null))
             mods.add(Modification(lines[1].index, false, "${indent2}move.b  $src0,d0"))
         }
+    }
+    return mods
+}
+
+private fun optimizeDbraRepeatLoops(pretrimmed: List<String>, lines: MutableList<String>): List<Modification> {
+    // repeat N { body } -> move.w #N-1,d7 / label: body / dbra d7,label
+    // Only for hidden p8_regfile slots (repeat counters), not user variables.
+    // Requires: body has no d7 dest, no bsr/jsr (calls clobber d7), and does not reference the counter slot.
+    val filtered = pretrimmed.withIndex()
+        .filter { it.value.isNotBlank() && !it.value.trimStart().startsWith(';') }
+        .map { TrimmedLine(lines[it.index], it.value.trimStart(), it.index) }
+
+    val mods = mutableListOf<Modification>()
+    val modified = mutableSetOf<Int>()
+
+    for (i in filtered.indices) {
+        if (filtered[i].index in modified) continue
+        val labelLine = filtered[i]
+        if (!labelLine.trimmed.endsWith(":")) continue
+        val label = labelLine.trimmed.removeSuffix(":").trim()
+        if (!label.startsWith("p8_label_gen_")) continue
+        if (i == 0) continue
+        val initLine = filtered[i - 1]
+        if (initLine.index in modified) continue
+        val initInstr = initLine.instruction
+        if (!initInstr.isMove()) continue
+        val (initSrc, initDst) = initInstr.moveOperands() ?: continue
+        if (!initSrc.startsWith("#")) continue
+        if (!initDst.isRegfileSlot()) continue
+        val initSize = initInstr.moveSize()
+        if (initSize != 'b' && initSize != 'w') continue
+        val initImmStr = initSrc.removePrefix("#")
+        val initImm = initImmStr.toIntOrNull() ?: continue
+
+        // find bne that targets this label within next 11 filtered lines
+        var branchIdx = -1
+        var branchLine: TrimmedLine? = null
+        for (j in i + 1 until minOf(filtered.size, i + 12)) {
+            val cand = filtered[j]
+            val instr = cand.instruction
+            if (instr.startsWith("bne ")) {
+                val tgt = instr.substringAfter("bne ").trim().substringBefore(';').trim()
+                if (tgt == label) {
+                    branchIdx = j
+                    branchLine = cand
+                    break
+                }
+            }
+        }
+        if (branchIdx == -1 || branchLine == null) continue
+        if (branchLine.index in modified) continue
+        if (branchIdx - 1 < 0) continue
+        val subqLine = filtered[branchIdx - 1]
+        if (subqLine.index in modified) continue
+        val subqInstr = subqLine.instruction
+        if (!subqInstr.startsWith("subq.")) continue
+        val subqSize = subqInstr.substringAfter("subq.").firstOrNull() ?: continue
+        // require same size (b->b, w->w); promotion from b init to w dbra is handled via new move.w
+        if (subqSize != initSize) continue
+        val subqParts = subqInstr.substringAfter(' ').trim().split(',', limit = 2).map { it.trim().substringBefore(';').trim() }
+        if (subqParts.size != 2) continue
+        if (subqParts[0] != "#1") continue
+        if (subqParts[1] != initDst) continue
+
+        // body between label+1 and subq-1 must not use d7, must not contain bsr/jsr,
+        // and must not read or write the loop-counter slot (the slot is no longer updated).
+        var bodyOk = true
+        for (k in i + 1 until branchIdx - 1) {
+            val bodyLine = filtered[k].trimmed
+            val bodyInstr = filtered[k].instruction
+            if (bodyInstr.contains("d7")) { bodyOk = false; break }
+            if (bodyInstr.startsWith("bsr ") || bodyInstr.startsWith("jsr ") || bodyInstr.contains(" bsr ") || bodyInstr.contains(" jsr ")) { bodyOk = false; break }
+            if (isSlotReferencedInLine(initDst, bodyLine)) { bodyOk = false; break }
+        }
+        if (!bodyOk) continue
+
+        val newImm = if (initImm == 0) {
+            if (initSize == 'b') 255 else 65535
+        } else initImm - 1
+
+        val initIndent = lines[initLine.index].takeWhile { it.isWhitespace() }
+        val initLabel = if (hasLabel(initLine.trimmed)) keepLabel(initLine.trimmed) + "\n" else ""
+        mods.add(Modification(initLine.index, false, "$initLabel${initIndent}move.w  #$newImm,d7"))
+        modified.add(initLine.index)
+
+        mods.add(Modification(subqLine.index, true, null))
+        modified.add(subqLine.index)
+
+        val branchIndent = lines[branchLine.index].takeWhile { it.isWhitespace() }
+        val branchLabel = if (hasLabel(branchLine.trimmed)) keepLabel(branchLine.trimmed) + "\n" else ""
+        mods.add(Modification(branchLine.index, false, "$branchLabel${branchIndent}dbra  d7,$label"))
+        modified.add(branchLine.index)
     }
     return mods
 }

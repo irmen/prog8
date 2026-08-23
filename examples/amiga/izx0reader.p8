@@ -49,7 +49,7 @@ main {
             if myWindow!=0 {
 
                 ^^graphics.BitMap bm = intuition.GetScreenBitMap(myScreen)
-                if izx0.read("cara.izx0", &bm.Planes) {
+                if izx0.read("psygnosis.izx0", &bm.Planes) {
                     graphics.LoadRGB4(intuition.GetScreenViewPort(myScreen), izx0.palette, izx0.numColors as word)
                 }
                 sys.wait(200)
