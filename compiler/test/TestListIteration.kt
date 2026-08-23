@@ -254,7 +254,7 @@ class TestListIteration: FunSpec({
                     ^^lists.Node current = lst.Head
                 }
             }
-        """, outputDir)
+        """, outputDir, writeAssembly=false)
         result shouldNotBe null
     }
 
@@ -272,7 +272,7 @@ class TestListIteration: FunSpec({
                     }
                 }
             }
-        """, outputDir)
+        """, outputDir, writeAssembly=false)
         result shouldNotBe null
     }
 
@@ -377,7 +377,7 @@ class TestListIteration: FunSpec({
                     }
                 }
             }
-        """, outputDir)
+        """, outputDir, writeAssembly=false)
         result shouldNotBe null
     }
 
@@ -395,7 +395,7 @@ class TestListIteration: FunSpec({
                     }
                 }
             }
-        """, outputDir)
+        """, outputDir, writeAssembly=false)
         result shouldNotBe null
     }
 
@@ -413,7 +413,7 @@ class TestListIteration: FunSpec({
                     }
                 }
             }
-        """, outputDir)
+        """, outputDir, writeAssembly=false)
         result shouldNotBe null
     }
 
@@ -429,7 +429,7 @@ class TestListIteration: FunSpec({
                     }
                 }
             }
-        """, outputDir)
+        """, outputDir, writeAssembly=false)
         result shouldNotBe null
     }
 
@@ -452,7 +452,7 @@ class TestListIteration: FunSpec({
                     }
                 }
             }
-        """, outputDir)
+        """, outputDir, writeAssembly=false)
         // This will fail struct instance check for msg1/msg2 direct, but we just check that iteration syntax itself is accepted
         // So we allow it to maybe fail for other reasons, but not for list iteration detection
         // We just verify that if it compiles, it is ok, otherwise check that error is not about list iteration

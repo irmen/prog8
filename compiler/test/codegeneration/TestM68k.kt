@@ -38,7 +38,7 @@ main {
     }
 }
 """
-        val result = compileText(Qemu68kTarget(), optimize = false, src, outputDir, writeAssembly = true)
+        val result = compileText(Qemu68kTarget(), optimize = false, src, outputDir, writeAssembly = true, assemble = false)
         result shouldNotBe null
     }
 
@@ -82,7 +82,7 @@ main {
     }
 }
 """
-        val result = compileText(Qemu68kTarget(), optimize = false, src, outputDir, writeAssembly = true)
+        val result = compileText(Qemu68kTarget(), optimize = false, src, outputDir, writeAssembly = true, assemble = false)
         result shouldNotBe null
 
         // Also verify that the mangled names don't contain a trailing size extension
@@ -134,7 +134,7 @@ main {
     }
 }
 """
-        val result = compileText(Qemu68kTarget(), optimize = false, src, outputDir, writeAssembly = true)
+        val result = compileText(Qemu68kTarget(), optimize = false, src, outputDir, writeAssembly = true, assemble = false)
         result shouldNotBe null
     }
 })

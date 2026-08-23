@@ -255,7 +255,8 @@ private fun compileMain(args: Array<String>): Boolean {
                     processedSymbols,
                     srcdirs,
                     outputPath,
-                    errors = ErrorReporter(txtcolors)
+                    errors = ErrorReporter(txtcolors),
+                    assemble = true
                 )
                 val compilationResult = compileProgram(compilerArgs)
 
@@ -343,7 +344,8 @@ private fun compileMain(args: Array<String>): Boolean {
                 absoluteSrcDirs,
                 outputPath,
                 cwd = Path.of(System.getProperty("user.dir")),
-                errors = ErrorReporter(txtcolors)
+                errors = ErrorReporter(txtcolors),
+                assemble = true
             )
             val response = compileViaDaemon(compilerArgs, plainText == true)
             if (response == null || !response.ok)
@@ -409,7 +411,8 @@ private fun compileMain(args: Array<String>): Boolean {
                     processedSymbols,
                     srcdirs,
                     outputPath,
-                    errors = ErrorReporter(txtcolors)
+                    errors = ErrorReporter(txtcolors),
+                    assemble = true
                 )
                 val result = compileProgram(compilerArgs)
 

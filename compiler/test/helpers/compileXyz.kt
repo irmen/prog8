@@ -17,6 +17,7 @@ internal fun compileFile(
     outputDir: Path,
     errors: IErrorReporter? = null,
     writeAssembly: Boolean = true,
+    assemble: Boolean = writeAssembly,
     varshigh: Int? = null,
     slabshigh: Int? = null,
     newCodegen: Boolean = false
@@ -41,7 +42,7 @@ internal fun compileFile(
         varsGolden = false,
         slabsHighBank = slabshigh,
         slabsGolden = false,
-        platform.name,
+        compilationTarget = platform.name,
         breakpointCpuInstruction = null,
         printAst1 = false,
         printAst2 = false,
@@ -50,6 +51,7 @@ internal fun compileFile(
         symbolDefs = emptyMap(),
         outputDir = outputDir,
         errors = errors ?: ErrorReporterForTests(),
+        assemble = assemble
     )
     return compileProgram(args)
 }
@@ -66,6 +68,7 @@ internal fun compileText(
     outputDir: Path,
     errors: IErrorReporter? = null,
     writeAssembly: Boolean = true,
+    assemble: Boolean = writeAssembly,
     varshigh: Int? = null,
     slabshigh: Int? = null,
     newCodegen: Boolean = false
@@ -74,5 +77,5 @@ internal fun compileText(
     // we don't assumeNotExists(filePath) - should be ok to just overwrite it
     filePath.toFile().writeText(sourceText)
     return compileFile(platform, optimize, filePath.parent, filePath.name, outputDir,
-        errors=errors, writeAssembly=writeAssembly, varshigh=varshigh, slabshigh=slabshigh, newCodegen=newCodegen)
+        errors=errors, writeAssembly=writeAssembly, assemble=assemble, varshigh=varshigh, slabshigh=slabshigh, newCodegen=newCodegen)
 }

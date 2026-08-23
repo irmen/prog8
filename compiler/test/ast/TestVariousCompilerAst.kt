@@ -311,7 +311,7 @@ main {
     }
 }
 """
-            compileText(Amiga500Target(), false, src, outputDir) shouldNotBe null
+            compileText(Amiga500Target(), false, src, outputDir, writeAssembly=false) shouldNotBe null
         }
 
         test("struct alias resolves for typecast") {
@@ -327,7 +327,7 @@ main {
     }
 }
 """
-            compileText(Amiga500Target(), false, src, outputDir) shouldNotBe null
+            compileText(Amiga500Target(), false, src, outputDir, writeAssembly=false) shouldNotBe null
         }
 
         test("struct alias chain resolves") {
@@ -342,7 +342,7 @@ main {
     }
 }
 """
-            compileText(Amiga500Target(), false, src, outputDir) shouldNotBe null
+            compileText(Amiga500Target(), false, src, outputDir, writeAssembly=false) shouldNotBe null
         }
 
         test("struct alias cycle is rejected") {

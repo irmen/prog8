@@ -86,12 +86,10 @@ internal class AssignmentAsmGen(
                 // Save float results (these use ldx/ldy/jsr which clobber flags)
                 floatResults.forEach { (returns, target) ->
                     val asmTarget = AsmAssignTarget.fromAstAssignment(target as PtAssignTarget, target.definingISub(), asmgen)
-                    if(returns.register.registerOrPair == RegisterOrPair.FAC1) {
-                        assignFAC1float(asmTarget)
-                    } else if(returns.register.registerOrPair == RegisterOrPair.FAC2) {
-                        assignFAC2float(asmTarget)
-                    } else {
-                        throw AssemblyError("float result must be in FAC1 or FAC2")
+                    when (returns.register.registerOrPair) {
+                        RegisterOrPair.FAC1 -> assignFAC1float(asmTarget)
+                        RegisterOrPair.FAC2 -> assignFAC2float(asmTarget)
+                        else -> throw AssemblyError("float result must be in FAC1 or FAC2")
                     }
                 }
 
@@ -5488,10 +5486,10 @@ $endLabel""")
                     val addr = target.memory!!.address
                     if(isConstReloadableAddress(addr)) {
                         // constant is reloaded after the pointer setup, so no leading lda is needed
-                        storeRegisterAInMemoryAddress(target.memory!!, 0)
+                        storeRegisterAInMemoryAddress(target.memory, 0)
                     } else {
                         asmgen.out("  lda  #0")
-                        storeRegisterAInMemoryAddress(target.memory!!)
+                        storeRegisterAInMemoryAddress(target.memory)
                     }
                 }
                 TargetStorageKind.ARRAY -> {
@@ -5541,10 +5539,10 @@ $endLabel""")
             TargetStorageKind.MEMORY -> {
                 val addr = target.memory!!.address
                 if(isConstReloadableAddress(addr)) {
-                    storeRegisterAInMemoryAddress(target.memory!!, byte)
+                    storeRegisterAInMemoryAddress(target.memory, byte)
                 } else {
                     asmgen.out("  lda  #${byte.toHex()}")
-                    storeRegisterAInMemoryAddress(target.memory!!)
+                    storeRegisterAInMemoryAddress(target.memory)
                 }
             }
             TargetStorageKind.ARRAY -> {

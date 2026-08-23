@@ -70,7 +70,8 @@ class CompilerArguments(val filepath: Path,
                         val sourceDirs: List<String> = emptyList(),
                         val outputDir: Path = Path(""),
                         val cwd: Path = Path("").absolute(),
-                        val errors: IErrorReporter = ErrorReporter(ErrorReporter.AnsiColors))
+                        val errors: IErrorReporter = ErrorReporter(ErrorReporter.AnsiColors),
+                        val assemble: Boolean = true)
 
 
 fun compileProgram(args: CompilerArguments): CompilationResult? {
@@ -274,7 +275,8 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                             symbolTable,
                             args.errors,
                             compilationOptions,
-                            program.generatedLabelSequenceNumber
+                            program.generatedLabelSequenceNumber,
+                            args.assemble
                         )
                     irInstructionCount = result.irInstructionCount
                     irRegisterCount = result.irRegisterCount
@@ -725,7 +727,8 @@ private fun createAssemblyAndAssemble(program: PtProgram,
                                       symbolTable: SymbolTable,
                                       errors: IErrorReporter,
                                       compilerOptions: CompilationOptions,
-                                      lastGeneratedLabelSequenceNr: Int
+                                      lastGeneratedLabelSequenceNr: Int,
+                                      assemble: Boolean = true
 ): AssemblyResult {
 
     val retainSSAforIR = true
@@ -765,7 +768,7 @@ private fun createAssemblyAndAssemble(program: PtProgram,
     val registerCount = assembly?.irRegisterCount ?: 0
 
     val success = if(assembly!=null && errors.noErrors()) {
-        assembly.assemble(compilerOptions, errors)
+        if(assemble) assembly.assemble(compilerOptions, errors) else true
     } else {
         false
     }

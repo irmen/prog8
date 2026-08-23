@@ -195,7 +195,7 @@ class TestCompilerOnExamplesCx16: FunSpec({
         listOf(
             ExampleSizes("vtui/testvtui", cx16SizeOptimized=3041, cx16SizeUnoptimized=3041),
             ExampleSizes("pcmaudio/play-adpcm", cx16SizeOptimized=36147, cx16SizeUnoptimized=36645),
-            ExampleSizes("pcmaudio/stream-wav", cx16SizeOptimized=5442, cx16SizeUnoptimized=7672),
+            ExampleSizes("pcmaudio/stream-wav", cx16SizeOptimized=5442, cx16SizeUnoptimized=7665),
             ExampleSizes("pcmaudio/stream-simple-aflow", cx16SizeOptimized=1842, cx16SizeUnoptimized=3612),
             ExampleSizes("pcmaudio/stream-simple-poll", cx16SizeOptimized=1556, cx16SizeUnoptimized=3322),
             ExampleSizes("pcmaudio/vumeter", cx16SizeOptimized=3862, cx16SizeUnoptimized=6221),
@@ -226,7 +226,7 @@ class TestCompilerOnExamplesCx16: FunSpec({
             ExampleSizes("colorbars", cx16SizeOptimized=1606, cx16SizeUnoptimized=1904),
             ExampleSizes("cxlogo", cx16SizeOptimized=599, cx16SizeUnoptimized=895),
             ExampleSizes("diskspeed", cx16SizeOptimized=6117, cx16SizeUnoptimized=8091),
-            ExampleSizes("fileseek", cx16SizeOptimized=2462, cx16SizeUnoptimized=4297),
+            ExampleSizes("fileseek", cx16SizeOptimized=2462, cx16SizeUnoptimized=4291),
             ExampleSizes("floatparse", cx16SizeOptimized=8303, cx16SizeUnoptimized=9171),
             ExampleSizes("interpolation", cx16SizeOptimized=3783, cx16SizeUnoptimized=4719),
             ExampleSizes("kefrenbars", cx16SizeOptimized=2386, cx16SizeUnoptimized=4625),
