@@ -637,7 +637,15 @@ internal class AssignmentAsmGen(
         assignRegisterByte(target, CpuRegister.A, false, true)
     }
 
-    private fun storeByteInAToAddressExpression(address: PtExpression, saveA: Boolean) {
+    private fun isConstReloadableAddress(address: PtExpression): Boolean {
+        // addresses for which storeByteInAToAddressExpression can reload a constant byte
+        // itself (after computing the pointer), avoiding a tax/txa round-trip through X
+        return address is PtBinaryExpression && address.operator=="+" &&
+                address.left is PtIdentifier && address.right.type.isUnsignedWord &&
+                (address.right is PtIdentifier || address.right is PtNumber)
+    }
+
+    private fun storeByteInAToAddressExpression(address: PtExpression, saveA: Boolean, byteValue: Int? = null) {
         if(address is PtBinaryExpression) {
             if(address.operator=="+") {
                 if (address.left is PtIdentifier && address.right.type.isUnsignedWord) {
@@ -646,32 +654,60 @@ internal class AssignmentAsmGen(
                     when(val index=address.right) {
                         is PtIdentifier -> {
                             val indexName = index.name
-                            asmgen.out("""
-                                tax
-                                lda  $pointer
-                                sta  P8ZP_SCRATCH_W2
-                                lda  $pointer+1
-                                clc
-                                adc  $indexName+1
-                                sta  P8ZP_SCRATCH_W2+1
-                                ldy  $indexName
-                                txa
-                                sta  (P8ZP_SCRATCH_W2),y""")
+                            if(byteValue!=null) {
+                                // the byte is a known constant: set up the pointer first, then load
+                                // the constant into A, so no tax/txa round-trip through X is needed
+                                asmgen.out("""
+                                    lda  $pointer
+                                    sta  P8ZP_SCRATCH_W2
+                                    lda  $pointer+1
+                                    clc
+                                    adc  $indexName+1
+                                    sta  P8ZP_SCRATCH_W2+1
+                                    ldy  $indexName
+                                    lda  #${byteValue.toHex()}
+                                    sta  (P8ZP_SCRATCH_W2),y""")
+                            } else {
+                                asmgen.out("""
+                                    tax
+                                    lda  $pointer
+                                    sta  P8ZP_SCRATCH_W2
+                                    lda  $pointer+1
+                                    clc
+                                    adc  $indexName+1
+                                    sta  P8ZP_SCRATCH_W2+1
+                                    ldy  $indexName
+                                    txa
+                                    sta  (P8ZP_SCRATCH_W2),y""")
+                            }
                             return
                         }
                         is PtNumber -> {
                             val indexValue = index.number.toInt().toString()
-                            asmgen.out("""
-                                tax
-                                lda  $pointer
-                                sta  P8ZP_SCRATCH_W2
-                                lda  $pointer+1
-                                clc
-                                adc  #>$indexValue
-                                sta  P8ZP_SCRATCH_W2+1
-                                ldy  #<$indexValue
-                                txa
-                                sta  (P8ZP_SCRATCH_W2),y""")
+                            if(byteValue!=null) {
+                                asmgen.out("""
+                                    lda  $pointer
+                                    sta  P8ZP_SCRATCH_W2
+                                    lda  $pointer+1
+                                    clc
+                                    adc  #>$indexValue
+                                    sta  P8ZP_SCRATCH_W2+1
+                                    ldy  #<$indexValue
+                                    lda  #${byteValue.toHex()}
+                                    sta  (P8ZP_SCRATCH_W2),y""")
+                            } else {
+                                asmgen.out("""
+                                    tax
+                                    lda  $pointer
+                                    sta  P8ZP_SCRATCH_W2
+                                    lda  $pointer+1
+                                    clc
+                                    adc  #>$indexValue
+                                    sta  P8ZP_SCRATCH_W2+1
+                                    ldy  #<$indexValue
+                                    txa
+                                    sta  (P8ZP_SCRATCH_W2),y""")
+                            }
                             return
                         }
                         else -> {}
@@ -2751,6 +2787,20 @@ internal class AssignmentAsmGen(
         return true
     }
 
+    private fun loadLowByteOfWordIntoA(expr: PtExpression) {
+        // loads only the low byte of a word expression into A (no high byte load)
+        when(expr) {
+            is PtIdentifier -> asmgen.out("  lda  ${asmgen.asmVariableName(expr)}")
+            is PtArrayIndexer -> {
+                val arrayVar = if(expr.splitWords) asmgen.asmVariableName(expr.variable!!) + "_lsb"
+                                else asmgen.asmVariableName(expr.variable!!)
+                asmgen.loadScaledArrayIndexIntoRegister(expr, CpuRegister.Y)
+                asmgen.out("  lda  $arrayVar,y")
+            }
+            else -> assignExpressionToRegister(expr, RegisterOrPair.AY, false)
+        }
+    }
+
     private fun assignBitwiseWithSimpleRightOperandByte(target: AsmAssignTarget, left: PtExpression, operator: String, right: PtExpression) {
         assignExpressionToRegister(left, RegisterOrPair.A, false)
         val operand = when(right) {
@@ -2768,6 +2818,14 @@ internal class AssignmentAsmGen(
     }
 
     private fun assignBitwiseWithSimpleRightOperandWord(target: AsmAssignTarget, left: PtExpression, operator: String, right: PtExpression) {
+        if(operator=="&" && right is PtNumber && right.number.toInt()==0x00ff) {
+            // masking a word with $00ff only keeps its low byte; loading the high
+            // byte would be dead code, so load just the low byte into A
+            loadLowByteOfWordIntoA(left)
+            asmgen.out("  ldy  #0")
+            assignRegisterpairWord(target, RegisterOrPair.AY)
+            return
+        }
         assignExpressionToRegister(left, RegisterOrPair.AY, false)
         when(right) {
             is PtNumber -> {
@@ -5355,7 +5413,14 @@ $endLabel""")
 
         when(target.kind) {
             TargetStorageKind.VARIABLE -> {
-                if (word ushr 8 == word and 255) {
+                if (asmgen.isTargetCpu(CpuType.CPU65C02) && word ushr 8 == 0) {
+                    // constant fits in a single byte (high byte is zero): zero the
+                    // high byte with stz instead of loading it into Y and storing it
+                    asmgen.out("""
+                    lda  #${(word and 255).toHex()}
+                    sta  ${target.asmVarname}
+                    stz  ${target.asmVarname}+1""")
+                } else if (word ushr 8 == word and 255) {
                     // lsb=msb
                     asmgen.out("""
                     lda  #${(word and 255).toHex()}
@@ -5420,8 +5485,14 @@ $endLabel""")
                     asmgen.out("  stz  ${target.asmVarname} ")
                 }
                 TargetStorageKind.MEMORY -> {
-                    asmgen.out("  lda  #0")
-                    storeRegisterAInMemoryAddress(target.memory!!)
+                    val addr = target.memory!!.address
+                    if(isConstReloadableAddress(addr)) {
+                        // constant is reloaded after the pointer setup, so no leading lda is needed
+                        storeRegisterAInMemoryAddress(target.memory!!, 0)
+                    } else {
+                        asmgen.out("  lda  #0")
+                        storeRegisterAInMemoryAddress(target.memory!!)
+                    }
                 }
                 TargetStorageKind.ARRAY -> {
                     val deref = target.array!!.pointerderef
@@ -5468,8 +5539,13 @@ $endLabel""")
                 asmgen.out("  lda  #${byte.toHex()} |  sta  ${target.asmVarname} ")
             }
             TargetStorageKind.MEMORY -> {
-                asmgen.out("  lda  #${byte.toHex()}")
-                storeRegisterAInMemoryAddress(target.memory!!)
+                val addr = target.memory!!.address
+                if(isConstReloadableAddress(addr)) {
+                    storeRegisterAInMemoryAddress(target.memory!!, byte)
+                } else {
+                    asmgen.out("  lda  #${byte.toHex()}")
+                    storeRegisterAInMemoryAddress(target.memory!!)
+                }
             }
             TargetStorageKind.ARRAY -> {
                 val deref = target.array!!.pointerderef
@@ -5756,15 +5832,15 @@ $endLabel""")
         }
     }
 
-    internal fun storeRegisterAInMemoryAddress(memoryAddress: PtMemoryByte) {
+    internal fun storeRegisterAInMemoryAddress(memoryAddress: PtMemoryByte, byteValue: Int? = null) {
         val addressExpr = memoryAddress.address
         val addressLv = addressExpr as? PtNumber
         val addressOf = addressExpr as? PtAddressOf
 
         fun storeViaExprEval() {
             when(addressExpr) {
-                is PtNumber, is PtIdentifier -> storeByteInAToAddressExpression(addressExpr, false)
-                else -> storeByteInAToAddressExpression(addressExpr, true)
+                is PtNumber, is PtIdentifier -> storeByteInAToAddressExpression(addressExpr, false, byteValue)
+                else -> storeByteInAToAddressExpression(addressExpr, true, byteValue)
             }
         }
 

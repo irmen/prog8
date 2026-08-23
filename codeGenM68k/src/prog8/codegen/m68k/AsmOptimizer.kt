@@ -364,7 +364,6 @@ private fun optimizeMsigbSpill(linesBy: Sequence<List<TrimmedLine>>, allPretrimm
         // src0 must be a plain memory operand (symbol)
         if (!src0.isSafeMemoryOperand()) continue
         // If the slot is read again later, keep the spill; otherwise we can remove it
-        val indent1 = lines[0].value.takeWhile { it.isWhitespace() }
         val indent2 = lines[1].value.takeWhile { it.isWhitespace() }
         if (isSlotReadAfter(dst0, lines[1].index + 1, allPretrimmed)) {
             // keep spill, just rewrite the byte load to read directly from the symbol
