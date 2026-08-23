@@ -799,7 +799,14 @@ class AsmGen6502Internal (
                                 lda  #$${hex.take(2)}
                                 sta  ${target.asmVarname}+3""")
                         }
-                        TargetStorageKind.ARRAY -> TODO("assign long to array  ${target.position}")
+                        TargetStorageKind.ARRAY -> {
+                            val deref = target.array!!.pointerderef
+                            if(deref!=null) {
+                                pointerGen.assignLong(IndexedPtrTarget(target), value.asConstInteger()!!)
+                            } else {
+                                TODO("assign long to array  ${target.position}")
+                            }
+                        }
                         TargetStorageKind.MEMORY -> throw AssemblyError("memory is bytes not long ${target.position}")
                         TargetStorageKind.REGISTER -> assignExpressionToRegister(value, target.register!!, true)
                         TargetStorageKind.POINTER -> pointerGen.assignLong(target.pointer!!, value.number.toInt())
@@ -822,7 +829,14 @@ class AsmGen6502Internal (
                             )
                         }
 
-                        TargetStorageKind.ARRAY -> TODO("assign long to array  ${target.position}")
+                        TargetStorageKind.ARRAY -> {
+                            val deref = target.array!!.pointerderef
+                            if(deref!=null) {
+                                pointerGen.assignLongVar(IndexedPtrTarget(target), asmSymbolName(value))
+                            } else {
+                                TODO("assign long to array  ${target.position}")
+                            }
+                        }
                         TargetStorageKind.MEMORY -> throw AssemblyError("memory is bytes not long ${target.position}")
                         TargetStorageKind.REGISTER -> assignExpressionToRegister(value, target.register!!, true)
                         TargetStorageKind.POINTER -> pointerGen.assignLongVar(target.pointer!!, asmSymbolName(value))
@@ -837,10 +851,23 @@ class AsmGen6502Internal (
                                     out("  lda  $valuesym |  sta  ${target.asmVarname}")
                                     signExtendLongVariable(target.asmVarname, value.value.type.base)
                                 }
-                                TargetStorageKind.ARRAY -> TODO("assign typecasted long to array  ${target.position}")
+                                TargetStorageKind.ARRAY -> {
+                                    val deref = target.array!!.pointerderef
+                                    if(deref!=null) {
+                                        // generic fallback: evaluate full long value into register then store via indexed pointer
+                                        assignmentAsmGen.assignExpressionToRegister(value, RegisterOrPair.R12R13, true)
+                                        assignmentAsmGen.assignRegisterLong(target, RegisterOrPair.R12R13)
+                                    } else {
+                                        TODO("assign typecasted long to array  ${target.position}")
+                                    }
+                                }
                                 TargetStorageKind.MEMORY -> throw AssemblyError("memory is bytes not long ${target.position}")
                                 TargetStorageKind.REGISTER -> assignExpressionToRegister(value, target.register!!, true)
-                                TargetStorageKind.POINTER -> TODO("assign typecasted long into pointer  ${target.position}")
+                                TargetStorageKind.POINTER -> {
+                                    // generic fallback for pointer
+                                    assignmentAsmGen.assignExpressionToRegister(value, RegisterOrPair.R12R13, true)
+                                    assignmentAsmGen.assignRegisterLong(target, RegisterOrPair.R12R13)
+                                }
                                 TargetStorageKind.VOID -> { /* do nothing */ }
                             }
                         } else if(value.value.type.isWord) {
@@ -853,7 +880,16 @@ class AsmGen6502Internal (
                                         sta  ${target.asmVarname}+1""")
                                     signExtendLongVariable(target.asmVarname, value.value.type.base)
                                 }
-                                TargetStorageKind.ARRAY -> TODO("assign typecasted long to array  ${target.position}")
+                                TargetStorageKind.ARRAY -> {
+                                    val deref = target.array!!.pointerderef
+                                    if(deref!=null) {
+                                        // generic fallback: evaluate full long value into register then store via indexed pointer
+                                        assignmentAsmGen.assignExpressionToRegister(value, RegisterOrPair.R12R13, true)
+                                        assignmentAsmGen.assignRegisterLong(target, RegisterOrPair.R12R13)
+                                    } else {
+                                        TODO("assign typecasted long to array  ${target.position}")
+                                    }
+                                }
                                 TargetStorageKind.MEMORY -> throw AssemblyError("memory is bytes not long ${target.position}")
                                 TargetStorageKind.REGISTER -> {
                                     require(target.register in CombinedLongRegisters)
@@ -865,7 +901,11 @@ class AsmGen6502Internal (
                                         sta  cx16.$startreg+1""")
                                     signExtendLongVariable("cx16.$startreg", value.value.type.base)
                                 }
-                                TargetStorageKind.POINTER -> TODO("assign typecasted long into pointer  ${target.position}")
+                                TargetStorageKind.POINTER -> {
+                                    // generic fallback for pointer
+                                    assignmentAsmGen.assignExpressionToRegister(value, RegisterOrPair.R12R13, true)
+                                    assignmentAsmGen.assignRegisterLong(target, RegisterOrPair.R12R13)
+                                }
                                 TargetStorageKind.VOID -> { /* do nothing */ }
                             }
                         } else if(value.value.type.isFloat) {
@@ -915,10 +955,23 @@ class AsmGen6502Internal (
                                         out("  sta  ${target.asmVarname}")
                                         signExtendLongVariable(target.asmVarname, value.value.type.base)
                                     }
-                                    TargetStorageKind.ARRAY -> TODO("assign typecasted long to array  ${target.position}")
+                                    TargetStorageKind.ARRAY -> {
+                                    val deref = target.array!!.pointerderef
+                                    if(deref!=null) {
+                                        // generic fallback: evaluate full long value into register then store via indexed pointer
+                                        assignmentAsmGen.assignExpressionToRegister(value, RegisterOrPair.R12R13, true)
+                                        assignmentAsmGen.assignRegisterLong(target, RegisterOrPair.R12R13)
+                                    } else {
+                                        TODO("assign typecasted long to array  ${target.position}")
+                                    }
+                                }
                                     TargetStorageKind.MEMORY -> throw AssemblyError("memory is bytes not long ${target.position}")
                                     TargetStorageKind.REGISTER -> assignExpressionToRegister(value, target.register!!, true)
-                                    TargetStorageKind.POINTER -> TODO("assign typecasted long into pointer  ${target.position}")
+                                    TargetStorageKind.POINTER -> {
+                                    // generic fallback for pointer
+                                    assignmentAsmGen.assignExpressionToRegister(value, RegisterOrPair.R12R13, true)
+                                    assignmentAsmGen.assignRegisterLong(target, RegisterOrPair.R12R13)
+                                }
                                     TargetStorageKind.VOID -> { /* do nothing */ }
                                 }
                             }
@@ -931,7 +984,16 @@ class AsmGen6502Internal (
                                             sty  ${target.asmVarname}+1""")
                                         signExtendLongVariable(target.asmVarname, value.value.type.base)
                                     }
-                                    TargetStorageKind.ARRAY -> TODO("assign typecasted long to array  ${target.position}")
+                                    TargetStorageKind.ARRAY -> {
+                                    val deref = target.array!!.pointerderef
+                                    if(deref!=null) {
+                                        // generic fallback: evaluate full long value into register then store via indexed pointer
+                                        assignmentAsmGen.assignExpressionToRegister(value, RegisterOrPair.R12R13, true)
+                                        assignmentAsmGen.assignRegisterLong(target, RegisterOrPair.R12R13)
+                                    } else {
+                                        TODO("assign typecasted long to array  ${target.position}")
+                                    }
+                                }
                                     TargetStorageKind.MEMORY -> throw AssemblyError("memory is bytes not long ${target.position}")
                                     TargetStorageKind.REGISTER -> {
                                         require(target.register in CombinedLongRegisters)
@@ -942,7 +1004,11 @@ class AsmGen6502Internal (
                                             sty  cx16.$startreg+1""")
                                         signExtendLongVariable("cx16.$startreg", value.value.type.base)
                                     }
-                                    TargetStorageKind.POINTER -> TODO("assign typecasted long into pointer  ${target.position}")
+                                    TargetStorageKind.POINTER -> {
+                                    // generic fallback for pointer
+                                    assignmentAsmGen.assignExpressionToRegister(value, RegisterOrPair.R12R13, true)
+                                    assignmentAsmGen.assignRegisterLong(target, RegisterOrPair.R12R13)
+                                }
                                     TargetStorageKind.VOID -> { /* do nothing */ }
                                 }
                             }

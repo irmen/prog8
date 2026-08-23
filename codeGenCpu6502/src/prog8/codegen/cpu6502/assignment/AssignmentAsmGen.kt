@@ -2264,6 +2264,12 @@ internal class AssignmentAsmGen(
     }
 
     private fun optimizedPlusMinLongExpr(expr: PtBinaryExpression, target: AsmAssignTarget): Boolean {
+        // Generic fallback for indexed pointer arrays: route to generic codegen (less efficient but avoids missing specialized cases)
+        if(target.kind==TargetStorageKind.ARRAY && target.array?.pointerderef!=null) {
+            asmgen.assignExpressionToRegister(expr, RegisterOrPair.R12R13, true)
+            assignRegisterLong(target, RegisterOrPair.R12R13)
+            return true
+        }
         val left = expr.left
         val right = expr.right
         when(right) {
@@ -4767,6 +4773,12 @@ $endLabel""")
                 else throw AssemblyError("only combined vreg allowed as long target ${target.position}")
             }
             TargetStorageKind.ARRAY -> {
+                val deref = target.array!!.pointerderef
+                if(deref!=null) {
+                    // indexed pointer array via struct (e.g. foo.longs[i])
+                    pointergen.assignLongReg(IndexedPtrTarget(target), pairedRegisters)
+                    return
+                }
                 asmgen.loadScaledArrayIndexIntoRegister(target.array!!, CpuRegister.Y)
                 val arrayVarName = asmgen.asmSymbolName(target.array.variable!!)
                 val startreg = pairedRegisters.startregname()
