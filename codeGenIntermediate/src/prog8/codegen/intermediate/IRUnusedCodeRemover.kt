@@ -89,7 +89,8 @@ class IRUnusedCodeRemover(
             val writeRegsCounts = mutableMapOf<RegisterNum, Int>()
             val writeFpRegsCounts = mutableMapOf<RegisterNum, Int>()
             val regsTypes = mutableMapOf<RegisterNum, IRDataType>()
-            ins.addUsedRegistersCounts(readRegsCounts, writeRegsCounts, readFpRegsCounts, writeFpRegsCounts, regsTypes, null, indexRegType)
+            val indexGuessRegs = mutableSetOf<RegisterNum>()
+            ins.addUsedRegistersCounts(readRegsCounts, writeRegsCounts, readFpRegsCounts, writeFpRegsCounts, regsTypes, indexGuessRegs, null, indexRegType)
             readRegs.addAll(readRegsCounts.keys.map { it.value })
             readFpRegs.addAll(readFpRegsCounts.keys.map { it.value })
         }

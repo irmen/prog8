@@ -1042,6 +1042,7 @@ data class IRInstruction(
         readFpRegsCounts: MutableMap<RegisterNum, Int>,
         writeFpRegsCounts: MutableMap<RegisterNum, Int>,
         regsTypes: MutableMap<RegisterNum, IRDataType>,
+        indexGuessRegs: MutableSet<RegisterNum>,
         chunk: IRCodeChunk?,
         indexRegType: IRDataType = IRDataType.BYTE
     ) {
@@ -1049,44 +1050,67 @@ data class IRInstruction(
         fun incWriteReg(reg: RegisterNum) = writeRegsCounts.merge(reg, 1, Int::plus)
         fun incReadFp(reg: RegisterNum) = readFpRegsCounts.merge(reg, 1, Int::plus)
         fun incWriteFp(reg: RegisterNum) = writeFpRegsCounts.merge(reg, 1, Int::plus)
-        fun setRegType(reg: RegisterNum, type: IRDataType) {
+
+        // For LOADX/STOREX/STOREZX the width of the index register is not encoded in the
+        // instruction itself; it is guessed from the target's pointer size (indexRegType).
+        // That guess can legitimately differ from the register's one-and-only allocated type
+        // (for instance a word loop counter that also serves as a loadx index). Index-register
+        // type recordings are therefore treated as guesses, tracked across the whole scan in
+        // indexGuessRegs: they never overwrite nor contradict a definitively-known type, and a
+        // definitive type always replaces an earlier guess.
+        fun setRegType(reg: RegisterNum, type: IRDataType, isIndexGuess: Boolean = false) {
             val existingType = regsTypes[reg]
-            if (existingType != null && existingType != type) {
+            if (existingType == null) {
+                regsTypes[reg] = type
+                if(isIndexGuess) indexGuessRegs.add(reg)
+            } else if (existingType != type) {
                 // POINTER is compatible with WORD or LONG (size depends on target)
                 val compatible = (existingType==IRDataType.POINTER && type in setOf(IRDataType.WORD, IRDataType.LONG)) ||
                         (type==IRDataType.POINTER && existingType in setOf(IRDataType.WORD, IRDataType.LONG))
-                if(!compatible)
-                    throw IllegalArgumentException("register $reg given multiple types! $existingType and $type while processing $this in $chunk")
-            } else
-                regsTypes[reg] = type
+                val existingIsGuess = reg in indexGuessRegs
+                when {
+                    compatible -> {}                     // keep first recording, as before
+                    isIndexGuess -> {}                   // never contradict a definitive type
+                    existingIsGuess -> {                 // definitive replaces earlier guess
+                        regsTypes[reg] = type
+                        indexGuessRegs.remove(reg)
+                    }
+                    else -> throw IllegalArgumentException("register $reg given multiple types! $existingType and $type while processing $this in $chunk")
+                }
+            }
         }
+
+        fun reg1IsIndexGuess() =
+                (this.type == IRDataType.FLOAT && opcode in setOf(Opcode.LOADX, Opcode.STOREX, Opcode.STOREZX)) ||
+                (opcode == Opcode.STOREZX)
 
         when (this.reg1direction) {
             OperandDirection.UNUSED -> {}
             OperandDirection.READ -> {
                 incReadReg(RegisterNum(this.reg1!!))
-                determineReg1Type(indexRegType)?.let { setRegType(RegisterNum(this.reg1), it) }
+                determineReg1Type(indexRegType)?.let { setRegType(RegisterNum(this.reg1), it, reg1IsIndexGuess()) }
             }
             OperandDirection.WRITE -> {
                 incWriteReg(RegisterNum(this.reg1!!))
-                determineReg1Type(indexRegType)?.let { setRegType(RegisterNum(this.reg1), it) }
+                determineReg1Type(indexRegType)?.let { setRegType(RegisterNum(this.reg1), it, reg1IsIndexGuess()) }
             }
             OperandDirection.READWRITE -> {
                 incReadReg(RegisterNum(this.reg1!!))
                 incWriteReg(RegisterNum(this.reg1))
-                determineReg1Type(indexRegType)?.let { setRegType(RegisterNum(this.reg1), it) }
+                determineReg1Type(indexRegType)?.let { setRegType(RegisterNum(this.reg1), it, reg1IsIndexGuess()) }
             }
         }
+        val reg2IsIndexGuess = opcode == Opcode.LOADX || opcode == Opcode.STOREX
         when (this.reg2direction) {
             OperandDirection.UNUSED -> {}
             OperandDirection.READ -> {
                 incReadReg(RegisterNum(this.reg2!!))
-                determineReg2Type(indexRegType)?.let { setRegType(RegisterNum(this.reg2), it) }
+                determineReg2Type(indexRegType)?.let { setRegType(RegisterNum(this.reg2), it, reg2IsIndexGuess) }
             }
             OperandDirection.READWRITE -> {
                 incReadReg(RegisterNum(this.reg2!!))
                 incWriteReg(RegisterNum(this.reg2))
-                determineReg2Type(indexRegType)?.let { setRegType(RegisterNum(this.reg2), it) }
+                determineReg2Type(indexRegType)?.let { setRegType(RegisterNum(this.reg2), it, reg2IsIndexGuess) }
             }
             else -> throw IllegalArgumentException("reg2 can only be read or readwrite")
         }

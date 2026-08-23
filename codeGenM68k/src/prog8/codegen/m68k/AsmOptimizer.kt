@@ -260,8 +260,8 @@ private fun optimizeTailCall(linesBy: Sequence<List<TrimmedLine>>): List<Modific
         } ?: continue
         if (secondInstr == "rts") {
             val target = firstInstr.substringAfter("$callMnemonic ").trim()
-            // Skip indirect calls like bsr (a0) or jsr (a6)
-            if (target.startsWith("("))
+            // Skip indirect/library calls like bsr (a0), jsr (a0) or jsr dos.VPrintf(a6)
+            if ('(' in target)
                 continue
             val indent = lines[0].value.takeWhile { it.isWhitespace() }
             if (hasLabel(lines[0].trimmed)) {
