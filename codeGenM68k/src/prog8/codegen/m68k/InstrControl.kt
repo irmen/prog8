@@ -664,16 +664,24 @@ private fun AsmGen.translateArgument(
             val value = forwardedImmediateCall.loads[RegId.IntReg(argReg.registerNum.value)]?.immediate
                 ?: error("missing forwarded immediate for call argument r${argReg.registerNum.value}")
             val s = dtSuffix(argReg.dt)
-            if (value == 0)
-                emitLine("clr$s  $hwReg")
-            else {
-                // use moveq (2 bytes, 4 cycles) when the value fits in its signed 8-bit range;
-                // for byte args the value is unsigned 0-255, so map 128-255 to -128--1 (low byte is the same)
-                val moveqValue = if (argReg.dt == IRDataType.BYTE && value in 128..255) value - 256 else value
-                if (moveqValue in -128..127)
-                    emitLine("moveq  #$moveqValue, $hwReg")
-                else
-                    emitLine("move$s  #$value, $hwReg")
+            if (hwReg.startsWith("a")) {
+                // address registers only accept movea/suba, not clr or moveq
+                when (value) {
+                    0 -> emitLine("suba.l  $hwReg, $hwReg")
+                    else -> emitLine("movea.l  #$value, $hwReg")
+                }
+            } else {
+                if (value == 0)
+                    emitLine("clr$s  $hwReg")
+                else {
+                    // use moveq (2 bytes, 4 cycles) when the value fits in its signed 8-bit range;
+                    // for byte args the value is unsigned 0-255, so map 128-255 to -128--1 (low byte is the same)
+                    val moveqValue = if (argReg.dt == IRDataType.BYTE && value in 128..255) value - 256 else value
+                    if (moveqValue in -128..127)
+                        emitLine("moveq  #$moveqValue, $hwReg")
+                    else
+                        emitLine("move$s  #$value, $hwReg")
+                }
             }
         } else {
             val source = regAddr(argReg.registerNum.value)
