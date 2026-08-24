@@ -219,6 +219,11 @@ class DataType private constructor(
 
     fun elementToArray(splitwords: Boolean = true): DataType {
         return if (base == BaseDataType.UWORD || base == BaseDataType.WORD || base == BaseDataType.STR) arrayFor(base, splitwords)
+        else if(base.isPointer) {
+            if(subType!=null) arrayOfPointersTo(subType)
+            else if(subTypeFromAntlr!=null) arrayOfPointersFromAntlrTo(sub, subTypeFromAntlr)
+            else arrayOfPointersTo(sub!!)
+        }
         else arrayFor(base, false)
     }
 
