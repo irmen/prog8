@@ -3558,7 +3558,7 @@ main {
     }
 
     test("functioncall deref chain assignment writes correct memory on VM") {
-        val src="""
+        val src=$$"""
 %zeropage basicsafe
 main {
     struct Thing {
@@ -3584,6 +3584,45 @@ main {
         VmRunner().runAndTestProgram(virtfile.readText(), true) { vm ->
             vm.memory.getUW(0x4400u).toInt() shouldBe 5678
             vm.memory.getUB(0x4402u).toInt() shouldBe 1
+        }
+    }
+
+    test("dereferenced expression assignment evaluates base exactly once") {
+        val src=$$"""
+%zeropage basicsafe
+main {
+    struct Box { ubyte value }
+
+    pointer boxptr
+    ubyte callCount
+
+    sub getBox() -> ^^Box {
+        callCount++
+        return boxptr as ^^Box
+    }
+
+    sub start() {
+        boxptr = $4600
+        callCount = 0
+        (getBox() as ^^Box).value = 10
+        (getBox() as ^^Box).value = 15
+        if callCount != 2 {
+            sys.exit(7)
+        }
+        if peek($4600 + offsetof(Box.value)) != 15 {
+            sys.exit(8)
+        }
+        ; marker: callCount exactly 2 (one per plain assignment) and value 15
+        pokew($4700, callCount)
+        poke($4702, peek($4600 + offsetof(Box.value)))
+        sys.exit(0)
+    }
+}"""
+        val result = compileText(VMTarget(), false, src, outputDir)!!
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
+        VmRunner().runAndTestProgram(virtfile.readText(), true) { vm ->
+            vm.memory.getUW(0x4700u).toInt() shouldBe 2
+            vm.memory.getUB(0x4702u).toInt() shouldBe 15
         }
     }
 

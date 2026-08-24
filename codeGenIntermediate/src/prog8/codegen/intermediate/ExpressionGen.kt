@@ -901,20 +901,24 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 }
             }
             BaseDataType.POINTER -> {
+                val pointerIrDt = codeGen.irType(cast.type)
                 when(valueDt.base) {
                     BaseDataType.BOOL, BaseDataType.UBYTE -> {
-                        // ubyte to pointer: zero extend
-                        actualResultReg2 = codeGen.registers.next(IRDataType.WORD)
-                        addInstr(result, IRInstruction(Opcode.EXT, type = IRDataType.BYTE, reg1 = actualResultReg2, reg2=tr.resultReg), null)
+                        actualResultReg2 = codeGen.registers.next(pointerIrDt)
+                        val op = if(pointerIrDt==IRDataType.LONG) Opcode.EXTL else Opcode.EXT
+                        addInstr(result, IRInstruction(op, type = IRDataType.BYTE, reg1 = actualResultReg2, reg2=tr.resultReg), null)
                     }
                     BaseDataType.BYTE -> {
-                        // byte to pointer: sign extend
-                        actualResultReg2 = codeGen.registers.next(IRDataType.WORD)
-                        addInstr(result, IRInstruction(Opcode.EXTS, type = IRDataType.BYTE, reg1 = actualResultReg2, reg2=tr.resultReg), null)
+                        actualResultReg2 = codeGen.registers.next(pointerIrDt)
+                        val op = if(pointerIrDt==IRDataType.LONG) Opcode.EXTLS else Opcode.EXTS
+                        addInstr(result, IRInstruction(op, type = IRDataType.BYTE, reg1 = actualResultReg2, reg2=tr.resultReg), null)
                     }
                     BaseDataType.WORD -> {
-                        // word to pointer: same size, just reinterpret
-                        actualResultReg2 = tr.resultReg
+                        actualResultReg2 = if(pointerIrDt==IRDataType.LONG) {
+                            val r = codeGen.registers.next(IRDataType.LONG)
+                            addInstr(result, IRInstruction(Opcode.EXT, type = IRDataType.WORD, reg1 = r, reg2=tr.resultReg), null)
+                            r
+                        } else tr.resultReg
                     }
                     else -> {
                         require(valueDt.isUnsignedWord || valueDt.isPointer || valueDt.isLong)

@@ -1455,22 +1455,24 @@ _after:
             errors.err("cannot assign through this expression, expected a pointer to a struct", base.position)
             return noModifications
         }
-        val tmpVar = VarDecl.createAuto(DataType.UWORD, base.position)
+        // use the target's natural pointer width for the hoisted address (uword on 6502, long on 32-bit targets)
+        val addressDt = if(program.target.POINTER_MEM_SIZE > 2u) DataType.LONG else DataType.UWORD
+        val tmpVar = VarDecl.createAuto(addressDt, base.position)
         val tmpIdent = IdentifierReference(listOf(tmpVar.name), base.position)
         // we only need the integer value of the pointer expression, so a redundant outer
         // pointer typecast can be stripped to avoid pointless double casts.
         val baseCast = base as? TypecastExpression
         val baseValue: Expression = if(baseCast!=null && (baseCast.type.isPointer || baseCast.type.isUnsignedWord)
                 && baseCast.expression.inferType(program).getOrUndef().isIntegerOrBool)
-            baseCast.expression.copy()
+            TypecastExpression(baseCast.expression.copy(), addressDt, false, base.position)
         else
-            TypecastExpression(base.copy(), DataType.UWORD, false, base.position)
+            TypecastExpression(base.copy(), addressDt, false, base.position)
         val tmpAssign = Assignment(
             AssignTarget(tmpIdent.copy(), null, null, null, false, position=tmpVar.position),
             baseValue,
             AssignmentOrigin.USERCODE, base.position)
 
-        // build the address of the final field; intermediate pointer fields in the chain are loaded via peekw
+        // build the address of the final field; intermediate pointer fields in the chain are loaded via peekw/peekl
         var address: Expression = tmpIdent.copy()
         var currentStruct: StructDecl = struct
         var fieldDt: DataType? = null
@@ -1494,8 +1496,9 @@ _after:
                     errors.err("cannot dereference field '$fieldName', expected a pointer to a struct", field.position)
                     return noModifications
                 }
-                val peekw = FunctionCallExpression(IdentifierReference(listOf("peekw"), field.position), mutableListOf(address), field.position)
-                address = TypecastExpression(peekw, DataType.UWORD, false, field.position)
+                val peekName = if(program.target.POINTER_MEM_SIZE > 2u) "peekl" else "peekw"
+                val peekCall = FunctionCallExpression(IdentifierReference(listOf(peekName), field.position), mutableListOf(address), field.position)
+                address = TypecastExpression(peekCall, addressDt, false, field.position)
                 currentStruct = nextStruct
             }
         }
@@ -1514,7 +1517,10 @@ _after:
             dt.isSignedWord -> { funcName="pokew"; pokeCast=DataType.UWORD; peekFuncName="peekw"; peekCast=DataType.WORD }
             dt.isLong -> { funcName="pokel"; pokeCast=null; peekFuncName="peekl"; peekCast=null }
             dt.isFloat -> { funcName="pokef"; pokeCast=null; peekFuncName="peekf"; peekCast=null }
-            dt.isPointer -> { funcName="pokew"; pokeCast=null; peekFuncName="peekw"; peekCast=dt }
+            dt.isPointer -> {
+                val ptrName = if(program.target.POINTER_MEM_SIZE > 2u) "l" else "w"
+                funcName="poke$ptrName"; pokeCast=null; peekFuncName="peek$ptrName"; peekCast=dt
+            }
             else -> {
                 errors.err("unsupported field datatype $dt for write through a pointer", target.position)
                 return noModifications

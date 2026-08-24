@@ -1020,6 +1020,9 @@ data class AssignTarget(
             arrayIndexedDereference !=null && other.arrayIndexedDereference !=null -> {
                 return arrayIndexedDereference!! isSameAs other.arrayIndexedDereference!!
             }
+            this.dotExpression != null && other.dotExpression != null -> {
+                return this.dotExpression!! isSameAs other.dotExpression!!
+            }
             this.multi != null && other.multi != null -> return this.multi == other.multi
             else -> return false
         }
