@@ -82,6 +82,11 @@ Tag         Effect
 @dirty      the variable won't be set to zero when entering the subroutine (note: it will still be set to zero once on program startup, like all other uninitialized variables). You'll usually have to make sure to assign a value yourself before using the variable! This is used to reduce overhead in certain scenarios. 🦶🔫 Footgun warning.
 ==========  ======
 
+.. note::
+    The ``@zp``, ``@requirezp`` and ``@nozp`` tags are only meaningful on the 6502 targets.
+    The m68k targets have no zero page; there these tags are accepted but ignored, and the
+    compiler notes their redundancy.
+
 .. _private-variables:
 .. index:: pair: Variables; Private
 .. index:: pair: Variables; Public
@@ -310,7 +315,11 @@ For instance ``3_000_000`` is a valid decimal number and so is ``%1001_0001`` a 
 A single character in single quotes such as ``'a'`` is translated into a byte integer,
 which is the PETSCII value for that character. You can prefix it with the desired encoding, like with strings, see :ref:`encodings`.
 
-*Endianness:* all integers are stored in *little endian* byte order, so the Least significant byte first and the Most significant byte last.
+.. _endianness:
+
+*Endianness:* on the 6502-family targets all integers are stored in *little endian* byte order: the Least Significant Byte first and the Most Significant Byte last.
+The m68k targets (amiga500, qemu68k) are the exception: the 68000 CPU is *big endian*, so there integers
+(and pointers, which are 4 bytes wide on those targets) are stored Most Significant Byte first.
 
 **bytes versus words versus longs:**
 

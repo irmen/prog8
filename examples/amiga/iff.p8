@@ -33,6 +33,7 @@ main {
             intuition.WA_Backdrop,     true,
             intuition.WA_Borderless,   true,
             intuition.WA_Activate,     true,
+            intuition.WA_RMBTrap,      true,
             intuition.WA_IDCMP,        intuition.IDCMP_MOUSEBUTTONS | intuition.IDCMP_RAWKEY,
             utility.TAG_DONE,        0
         ]

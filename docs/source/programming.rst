@@ -257,12 +257,17 @@ Directives
 	Global setting, set the program's start memory address. It's usually fixed at ``$0801`` because the
 	default launcher type is a CBM-BASIC program. But you have to specify this address yourself when
 	you don't use a CBM-BASIC launcher.
+	Not available on the m68k targets (amiga500, qemu68k) - there it is an error.
 
 .. index:: pair: Directives; %bssaddress
 .. data:: %bssaddress <address>
 
 	Level: module.
 	Global setting, set the memory address for the BSS area (uninitialized variables). Analogous to ``%address`` for program load address.
+	If ``%slabsaddress`` specifies the same address, both segments share one memory region:
+	the variables are placed first and the slabs follow immediately after them (this is also how
+	the ``-varsgolden``/``-varshigh`` options place them). Different addresses place the two segments
+	in two separate regions.
 	Mutually exclusive with the CLI options ``-varsgolden`` and ``-varshigh`` - use either the directive (raw address) or the CLI shorthand (target-aware), not both.
 	Not available on m68k targets (amiga500, qemu68k) - there it is an error.
 
@@ -271,6 +276,9 @@ Directives
 
 	Level: module.
 	Global setting, set the memory address for memory slabs (``memory()`` allocations). Analogous to ``%address`` for program load address.
+	If it specifies the same address as ``%bssaddress``, both segments share one memory region:
+	the variables are placed first and the slabs follow immediately after them.
+	Different addresses place the two segments in two separate regions.
 	Mutually exclusive with the CLI options ``-slabsgolden`` and ``-slabshigh`` - use either the directive or the CLI shorthand, not both.
 	Not available on m68k targets (amiga500, qemu68k) - there it is an error.
 
@@ -454,6 +462,7 @@ Directives
 	Global setting, selects the program launcher stub to use.
 	Only relevant when using the ``prg`` output type. The default is ``basic``,
 	or whatever the compilation target's configuration specifies (custom targets can set a different default via the ``launcher`` property).
+	Not available on the m68k targets (amiga500, qemu68k) - there it is an error.
 
 	- type ``basic`` : add a tiny C64 BASIC program, with a SYS statement calling into the machine code
 	- type ``none`` : no launcher logic is added at all
@@ -469,6 +478,7 @@ Directives
 	This memtop value is used for a check instruction for the assembler to see if the resulting program size
 	exceeds the given memtop address. This value is exclusive, so $a000 means that $a000 is the first address
 	that program can no longer use. Everything up to and including $9fff is still usable.
+	Not available on the m68k targets (amiga500, qemu68k) - there it is an error.
 
 
 .. index:: pair: Directives; %option
@@ -515,8 +525,10 @@ Directives
 	- type ``raw`` : no header at all, just the raw machine code data
 	- type ``prg`` : C64 program (with load address header)
 	- type ``xex`` : Atari xex program
-	- type ``library`` : loadable library file. See :ref:`loadable_library`.
+	- type ``library`` : loadable library file. See :ref:`loadable_library`. Only available on the 6502 targets.
 	- type ``elf`` : Linux/BSD program (used by select targets to run in a simulator like QEMU)
+
+	On the m68k targets only ``raw`` and ``elf`` are available.
 
 
 .. index:: pair: Directives; %zeropage
@@ -524,6 +536,8 @@ Directives
 
     Level: module.
     Global setting, select zeropage handling style. Defaults to ``kernalsafe``.
+    Only available on the 6502 targets: the m68k targets have no zero page, and there this
+    directive is ignored with a message.
 
     - style ``kernalsafe`` -- use the part of the ZP that is 'free' or only used by BASIC routines,
       and don't change anything else.  This allows full use of Kernal ROM routines (but not BASIC routines),
@@ -1286,7 +1300,8 @@ containment check:  ``in``
 
 address of:  ``&``,   ``&<``,   ``&>``,   ``&&``
     This is a prefix operator that can be applied to a string or array variable or literal value.
-    It results in the memory address (UWORD) of that string or array in memory:  ``uword a = &stringvar``
+    It results in the memory address of that string or array in memory (a UWORD on the 6502 targets,
+    a LONG on the 32-bit m68k targets):  ``uword a = &stringvar``
     Sometimes the compiler silently inserts this operator to make it easier for instance
     to pass strings or arrays as subroutine call arguments.
     This operator can also be used as a prefix to a variable's data type keyword to indicate that
@@ -1296,6 +1311,8 @@ address of:  ``&``,   ``&<``,   ``&>``,   ``&&``
     ``&<`` and ``&>`` are for use on split word arrays, they give you the address of the LSB byte array
     and MSB byte array separately, respectively.   Note that ``&<`` is just the same as ``&`` in this case.
     For more details on split word arrays, see :ref:`arrayvars`.
+    Split word arrays (and with them the ``&>`` operator) don't exist on the m68k targets; there ``&>``
+    is an error.
 
     **Typed pointer version:** the single ``&`` operator still returns an untyped uword address for
     backward compatibility reasons, so existing programs keep working. The *double ampersand* ``&&`` operator

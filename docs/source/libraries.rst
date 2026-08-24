@@ -189,7 +189,8 @@ Miscellaneous
     .. note::
         The arguments are in 'natural' left to right reading order that is first the msb then the lsb.
         Don't get confused by how the system actually stores this 16-bit word value in memory (which is
-        in little-endian format, so lsb first then msb)
+        in little-endian format, so lsb first then msb, on the 6502 targets; the m68k targets store it
+        big-endian, msb first)
 
 :index:`mklong` (msb, b2, b1, lsb)
     Efficiently create a long value from four bytes (the msb, second, first and finally the lsb). Avoids multiplication and shifting.
@@ -198,7 +199,8 @@ Miscellaneous
     .. note::
         The arguments are in 'natural' left to right reading order that is first the msb then the lsb.
         Don't get confused by how the system actually stores this 32-bit word value in memory (which is
-        in little-endian format, so lsb first then b1, b2 and finally the msb)
+        in little-endian format, so lsb first then b1, b2 and finally the msb, on the 6502 targets;
+        the m68k targets store it big-endian, msb first)
 
 :index:`mklong2` (msw, lsw)
     Efficiently create a long value from two words (the msw, and the lsw). Avoids multiplication and shifting.
@@ -207,7 +209,8 @@ Miscellaneous
     .. note::
         The arguments are in 'natural' left to right reading order that is first the msw then the lsw.
         Don't get confused by how the system actually stores this 32-bit word value in memory (which is
-        in little-endian format, so lsw first then the msw)
+        in little-endian format, so lsw first then the msw, on the 6502 targets; the m68k targets store
+        it big-endian, msw first)
 
 :index:`offsetof` (Struct.field)
     The offset in bytes of the given field in the struct. The first field will always have offset 0.
@@ -222,16 +225,20 @@ Miscellaneous
     If the memory location contains another value than 0 or 1, results are undefined.
 
 :index:`peekw` (address)
-    reads the word value at the given address in memory. Word is read as usual little-endian lsb/msb byte order.
+    reads the word value at the given address in memory. Word is read in the target's native byte order:
+    little-endian (lsb first) on the 6502 targets, big-endian (msb first) on the m68k targets.
+    To read addresses or pointers portably, use ``peekp`` instead (addresses are 16-bit words on
+    6502 targets but 32-bit longs on m68k targets).
     Caution: when using peekw to get words out of an array pointer, make sure the array is *not* a split word array
     (peekw requires the LSB and MSB of the word value to be consecutive in memory).
 
 :index:`peekp` (address)  **experimental, may change or be removed**
-    reads a pointer value at the given address in memory.
+    reads a pointer value at the given address in memory. This is the portable way to read an address:
     On 16-bit targets this reads 2 bytes (like peekw), on 32-bit targets this reads 4 bytes (like peekl).
 
 :index:`peekl` (address)
-    reads the signed long value at the given address in memory. Long is read as usual little-endian lsb/msb byte order.
+    reads the signed long value at the given address in memory. Long is read in the target's native byte order:
+    little-endian (lsb first) on the 6502 targets, big-endian (msb first) on the m68k targets.
 
 :index:`peekf` (address)
     reads the float value at the given address in memory. On CBM machines, this reads 5 bytes.
@@ -244,10 +251,13 @@ Miscellaneous
     Can also be written as pokebowl(addres, value), just for fun.
 
 :index:`pokew` (address, value)
-    writes the word value at the given address in memory, in usual little-endian lsb/msb byte order.
+    writes the word value at the given address in memory, in the target's native byte order:
+    little-endian (lsb first) on the 6502 targets, big-endian (msb first) on the m68k targets.
+    To write addresses or pointers portably, use ``pokep`` instead.
 
 :index:`pokel` (address, value)
-    writes the signed long value at the given address in memory, in usual little-endian lsb/msb byte order.
+    writes the signed long value at the given address in memory, in the target's native byte order:
+    little-endian (lsb first) on the 6502 targets, big-endian (msb first) on the m68k targets.
 
 :index:`pokef` (address, value)
     writes the float value at the given address in memory. On CBM machines, this writes 5 bytes.

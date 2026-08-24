@@ -614,6 +614,30 @@ The pointer chain processing is identical regardless of whether original syntax 
 The 6502 codegen uses ZP variables heavily.
 The fix doesn't require additional ZP scratch usage.
 
+### The new6502 and m68k Backends (no separate analysis needed)
+
+The newer codegen backends (`codeGenNew6502`, `codeGenM68k`) do NOT consume
+SimpleAST directly; both drive `IRCodeGen` (codeGenIntermediate) and lower
+the resulting IR instructions to assembly
+(`New6502CodeGenerator.kt:10-11`, `M68kCodeGenerator.kt:9-10`). They never
+see `PtPointerDeref`, so they automatically inherit section 7's conclusion:
+the frontend-only grammar/desugaring fix requires no changes there.
+
+Target-specific details worth noting:
+
+- On the m68k targets POINTER is 4 bytes (LONG): struct fields that are
+  pointers occupy 4 bytes, deref chain traversal moves LONGs, and array
+  indexing scales by 4 instead of 2. All of this is computed by the
+  already target-aware IR-level address arithmetic, so no action is needed
+  - just don't assume the 6502's 2-byte pointer width when reasoning about
+  generated offsets.
+- The poke-style writes produced by CodeDesugarer for the implemented
+  assignment-target forms must remain datatype-correct for LONG-sized
+  fields on m68k (verify during any follow-up work; the desugarer works
+  on datatypes generically so this should hold).
+- Unlike the old 6502 backend, there is no zeropage scratch pointer
+  involved anywhere in these backends.
+
 ---
 
 ## 9. Implementation Approach Options

@@ -261,10 +261,17 @@ One or more .p8 module files
 ``-slabsgolden``
     put memory() slabs in 'golden ram' memory area instead of at the end of the program.
     On the cx16 target this is $0400-07ff. This is unavailable on other systems.
+    When combined with ``-varsgolden``, both segments share this same memory area:
+    the variables are placed first and the slabs follow immediately after them.
+    Mixing a "golden ram" option with a "high memory" option for variables or slabs is an error.
 
-``-slabshigh``
+``-slabshigh <rambank>``
     put memory() slabs in high memory area instead of at the end of the program.
     On the cx16 target the value specifies the HIRAM bank to use, on other systems this value is ignored.
+    When combined with ``-varshigh``, both options must specify the same HIRAM bank number,
+    and both segments share that bank's memory area: the variables are placed first and
+    the slabs follow immediately after them.
+    Mixing a "golden ram" option with a "high memory" option for variables or slabs is an error.
 
 ``-nosourcelines``
     Do not include the original prog8 source code lines as comments in the generated assembly code file,
@@ -292,6 +299,8 @@ One or more .p8 module files
     Like ``-varshigh``, but places the variables in the "golden ram" area instead (e.g. $0400-$07FF on CX16, $1300-$1BDF on C128).
     Because this is in normal system memory, there are no bank switching issues.
     This mode is only available on the Commander X16 and the Commodore 128, and possibly on custom configured targets.
+    When combined with ``-slabsgolden``, both segments share this same memory area:
+    the variables are placed first and the slabs follow immediately after them.
 
 ``-varshigh <rambank>``
     Places uninitialized non-zeropage variables in a separate memory area, instead of inside the program itself.
@@ -308,6 +317,9 @@ One or more .p8 module files
     end of compilation shows precise details of where and how much memory is used by the variables
     (it's called 'BSS' section or Gap at the address mentioned above).
     Assembling the program will fail if there are too many variables to fit in a single high ram bank.
+    When combined with ``-slabshigh``, both options must specify the same HIRAM bank number,
+    and both segments share that bank's memory area: the variables are placed first and
+    the slabs follow immediately after them.
 
 ``-version``
     Just print the compiler version and copyright message, and exit.

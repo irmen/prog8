@@ -1,10 +1,11 @@
 
 Prog8 compiler v14.0-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit c5b17ae8 in branch new-codegens
+Prerelease version from git commit a4fb829b in branch new-codegens
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-amiga500.p8
 Compiler target: amiga500
+[93mWARN  [0mfile:///home/irmen/Projects/prog8/docs/import-all-amiga500.p8:1:54: floating-point code requires a 68020 or better CPU with an 68881/68882 FPU; assembler options set to -m68020 -m68881. This program will NOT run on an Amiga 500/600 or 1200 without fp coprocessor!
 
 
 BUILTIN FUNCTIONS
@@ -227,22 +228,22 @@ arexx  {
     const ubyte  RXSTPRI
     const long  RXTCCLS
     const long  RXTCOPN
-    ClearRexxMsg  (long msgptr @A0, long count @D0)@bank 29 = -$9c
+    ClearRexxMsg  (^^arexx.RexxMsg msgptr @A0, long count @D0)@bank 29 = -$9c
     CreateArgstring  (str string @A0, long length @D0) -> long @D0@bank 29 = -$7e
-    CreateRexxHostPort  (str basename @A0) -> long @D0@bank 29 = -$01e0
-    CreateRexxMsg  (long port @A0, str extension @A1, str host @D0) -> long @D0@bank 29 = -$90
+    CreateRexxHostPort  (str basename @A0) -> ^^exec.MsgPort @D0@bank 29 = -$01e0
+    CreateRexxMsg  (^^exec.MsgPort port @A0, str extension @A1, str host @D0) -> ^^arexx.RexxMsg @D0@bank 29 = -$90
     DeleteArgstring  (long argstring @A0)@bank 29 = -$84
-    DeleteRexxHostPort  (long port @A0)@bank 29 = -$01e6
-    DeleteRexxMsg  (long packet @A0)@bank 29 = -$96
-    FillRexxMsg  (long msgptr @A0, long count @D0, long mask @D1) -> bool @D0@bank 29 = -$a2
-    FreeRexxMsg  (long msgptr @A0)@bank 29 = -$01fe
-    GetRexxBufferFromMsg  (str var @A0, long msgptr @A2, str buffer @A1, long buffer_size @D0) -> long @D0@bank 29 = -$0204
-    GetRexxVarFromMsg  (str var @A0, long msgptr @A2, str value @A1) -> long @D0@bank 29 = -$01ec
-    IsRexxMsg  (long msgptr @A0) -> bool @D0@bank 29 = -$a8
-    LaunchRexxScript  (str script @A0, long replyport @A1, str extension @A2, long input @D1, long output @D2) -> long @D0@bank 29 = -$01f8
+    DeleteRexxHostPort  (^^exec.MsgPort port @A0)@bank 29 = -$01e6
+    DeleteRexxMsg  (^^arexx.RexxMsg packet @A0)@bank 29 = -$96
+    FillRexxMsg  (^^arexx.RexxMsg msgptr @A0, long count @D0, long mask @D1) -> bool @D0@bank 29 = -$a2
+    FreeRexxMsg  (^^arexx.RexxMsg msgptr @A0)@bank 29 = -$01fe
+    GetRexxBufferFromMsg  (str var @A0, ^^arexx.RexxMsg msgptr @A2, str buffer @A1, long buffer_size @D0) -> long @D0@bank 29 = -$0204
+    GetRexxVarFromMsg  (str var @A0, ^^arexx.RexxMsg msgptr @A2, str value @A1) -> long @D0@bank 29 = -$01ec
+    IsRexxMsg  (^^arexx.RexxMsg msgptr @A0) -> bool @D0@bank 29 = -$a8
+    LaunchRexxScript  (str script @A0, ^^exec.MsgPort replyport @A1, str extension @A2, long input @D1, long output @D2) -> ^^arexx.RexxMsg @D0@bank 29 = -$01f8
     LengthArgstring  (long argstring @A0) -> long @D0@bank 29 = -$8a
     LockRexxBase  (long resource @D0)@bank 29 = -$01c2
-    SetRexxVarFromMsg  (str var @A0, long msgptr @A2, str value @A1) -> long @D0@bank 29 = -$01f2
+    SetRexxVarFromMsg  (str var @A0, ^^arexx.RexxMsg msgptr @A2, str value @A1) -> long @D0@bank 29 = -$01f2
     UnlockRexxBase  (long resource @D0)@bank 29 = -$01c8
     closelib  ()
     openlib  () -> bool
@@ -842,7 +843,7 @@ LIBRARY MODULE NAME: dos
 ------------------------
 
 dos  {
-    struct DateStamp
+    struct DateStampStruct
     struct DosPacket
     struct ErrorString
     struct ExAllControl
@@ -1352,7 +1353,7 @@ dos  {
     const ubyte  TICKS_PER_SECOND
     const ubyte  reserve
     const ubyte  vsize
-    AbortPkt  (long port @D1, long pkt @D2)@bank 2 = -$0108
+    AbortPkt  (^^exec.MsgPort port @D1, ^^dos.DosPacket pkt @D2)@bank 2 = -$0108
     AddBuffers  (str name @D1, long number @D2) -> long @D0@bank 2 = -$02dc
     AddDosEntry  (long dlist @D1) -> long @D0@bank 2 = -$02a6
     AddPart  (str dirname @D1, str filename @D2, long size @D3) -> bool @D0@bank 2 = -$0372
@@ -1366,32 +1367,32 @@ dos  {
     ChangeMode  (long k_type @D1, long fh @D2, long newmode @D3) -> long @D0@bank 2 = -$01c2
     CheckSignal  (long mask @D1) -> long @D0@bank 2 = -$0318
     Cli  () -> long @D0@bank 2 = -$01ec
-    CliInitNewcli  (long dp @A0) -> long @D0@bank 2 = -$03a2
-    CliInitRun  (long dp @A0) -> long @D0@bank 2 = -$03a8
+    CliInitNewcli  (^^dos.DosPacket dp @A0) -> long @D0@bank 2 = -$03a2
+    CliInitRun  (^^dos.DosPacket dp @A0) -> long @D0@bank 2 = -$03a8
     Close  (long file @D1) -> long @D0@bank 2 = -$24
-    CompareDates  (long date1 @D1, long date2 @D2) -> long @D0@bank 2 = -$02e2
+    CompareDates  (^^dos.DateStampStruct date1 @D1, ^^dos.DateStampStruct date2 @D2) -> long @D0@bank 2 = -$02e2
     CreateDir  (str name @D1) -> long @D0@bank 2 = -$78
-    CreateNewProc  (long tags @D1) -> long @D0@bank 2 = -$01f2
-    CreateProc  (str name @D1, long pri @D2, long segList @D3, long stackSize @D4) -> long @D0@bank 2 = -$8a
+    CreateNewProc  (long tags @D1) -> ^^dos.Process @D0@bank 2 = -$01f2
+    CreateProc  (str name @D1, long pri @D2, long segList @D3, long stackSize @D4) -> ^^exec.MsgPort @D0@bank 2 = -$8a
     CurrentDir  (long lock @D1) -> long @D0@bank 2 = -$7e
-    DateStamp  (long date @D1) -> long @D0@bank 2 = -$c0
+    DateStamp  (^^dos.DateStampStruct date @D1) -> ^^dos.DateStampStruct @D0@bank 2 = -$c0
     DateToStr  (long datetime @D1) -> long @D0@bank 2 = -$02e8
     Delay  (long timeout @D1)@bank 2 = -$c6
     DeleteFile  (str name @D1) -> long @D0@bank 2 = -$48
     DeleteVar  (str name @D1, long flags @D2) -> long @D0@bank 2 = -$0390
-    DeviceProc  (str name @D1) -> long @D0@bank 2 = -$ae
-    DoPkt  (long port @D1, long action @D2, long arg1 @D3, long arg2 @D4, long arg3 @D5, long arg4 @D6, long arg5 @D7) -> long @D0@bank 2 = -$f0
+    DeviceProc  (str name @D1) -> ^^exec.MsgPort @D0@bank 2 = -$ae
+    DoPkt  (^^exec.MsgPort port @D1, long action @D2, long arg1 @D3, long arg2 @D4, long arg3 @D5, long arg4 @D6, long arg5 @D7) -> long @D0@bank 2 = -$f0
     DoShellMethodTagList  (long method @D0, long tags @A0) -> long @D0@bank 2 = -$0480
     DupLock  (long lock @D1) -> long @D0@bank 2 = -$60
     DupLockFromFH  (long fh @D1) -> long @D0@bank 2 = -$0174
     EndNotify  (long notify @D1)@bank 2 = -$037e
     ErrorOutput  () -> long @D0@bank 2 = -$046e
-    ErrorReport  (long code @D1, long k_type @D2, long arg1 @D3, long device @D4) -> long @D0@bank 2 = -$01e0
-    ExAll  (long lock @D1, long buffer @D2, long size @D3, long data @D4, long control @D5) -> long @D0@bank 2 = -$01b0
-    ExAllEnd  (long lock @D1, long buffer @D2, long size @D3, long data @D4, long control @D5)@bank 2 = -$03de
-    ExNext  (long lock @D1, long fileInfoBlock @D2) -> long @D0@bank 2 = -$6c
-    Examine  (long lock @D1, long fileInfoBlock @D2) -> long @D0@bank 2 = -$66
-    ExamineFH  (long fh @D1, long fib @D2) -> bool @D0@bank 2 = -$0186
+    ErrorReport  (long code @D1, long k_type @D2, long arg1 @D3, ^^exec.MsgPort device @D4) -> long @D0@bank 2 = -$01e0
+    ExAll  (long lock @D1, ^^dos.ExAllData buffer @D2, long size @D3, long data @D4, ^^dos.ExAllControl control @D5) -> long @D0@bank 2 = -$01b0
+    ExAllEnd  (long lock @D1, ^^dos.ExAllData buffer @D2, long size @D3, long data @D4, ^^dos.ExAllControl control @D5)@bank 2 = -$03de
+    ExNext  (long lock @D1, ^^dos.FileInfoBlock fileInfoBlock @D2) -> long @D0@bank 2 = -$6c
+    Examine  (long lock @D1, ^^dos.FileInfoBlock fileInfoBlock @D2) -> long @D0@bank 2 = -$66
+    ExamineFH  (long fh @D1, ^^dos.FileInfoBlock fib @D2) -> bool @D0@bank 2 = -$0186
     Execute  (str string @D1, long file @D2, long file2 @D3) -> long @D0@bank 2 = -$de
     Exit  (long returnCode @D1)@bank 2 = -$90
     FGetC  (long fh @D1) -> long @D0@bank 2 = -$0132
@@ -1403,7 +1404,7 @@ dos  {
     Fault  (long code @D1, str header @D2, str buffer @D3, long len @D4) -> bool @D0@bank 2 = -$01d4
     FilePart  (str path @D1) -> str @D0@bank 2 = -$0366
     FindArg  (str keyword @D1, str arg_template @D2) -> long @D0@bank 2 = -$0324
-    FindCliProc  (long num @D1) -> long @D0@bank 2 = -$0222
+    FindCliProc  (long num @D1) -> ^^dos.Process @D0@bank 2 = -$0222
     FindDosEntry  (long dlist @D1, str name @D2, long flags @D3) -> long @D0@bank 2 = -$02ac
     FindSegment  (str name @D1, long seg @D2, long system @D3) -> long @D0@bank 2 = -$030c
     FindVar  (str name @D1, long k_type @D2) -> long @D0@bank 2 = -$0396
@@ -1414,16 +1415,16 @@ dos  {
     FreeDosEntry  (long dlist @D1)@bank 2 = -$02be
     FreeDosObject  (long k_type @D1, long ptr @D2)@bank 2 = -$ea
     GetArgStr  () -> str @D0@bank 2 = -$0216
-    GetConsoleTask  () -> long @D0@bank 2 = -$01fe
+    GetConsoleTask  () -> ^^exec.MsgPort @D0@bank 2 = -$01fe
     GetCurrentDir  () -> long @D0@bank 2 = -$0402
     GetCurrentDirName  (str buf @D1, long len @D2) -> bool @D0@bank 2 = -$0234
     GetDeviceProc  (str name @D1, long dp @D2) -> long @D0@bank 2 = -$0282
-    GetFileSysTask  () -> long @D0@bank 2 = -$020a
+    GetFileSysTask  () -> ^^exec.MsgPort @D0@bank 2 = -$020a
     GetProgramDir  () -> long @D0@bank 2 = -$0258
     GetProgramName  (str buf @D1, long len @D2) -> bool @D0@bank 2 = -$0240
     GetPrompt  (str buf @D1, long len @D2) -> bool @D0@bank 2 = -$024c
     GetVar  (str name @D1, str buffer @D2, long size @D3, long flags @D4) -> long @D0@bank 2 = -$038a
-    Info  (long lock @D1, long parameterBlock @D2) -> long @D0@bank 2 = -$72
+    Info  (long lock @D1, ^^dos.InfoData parameterBlock @D2) -> long @D0@bank 2 = -$72
     Inhibit  (str name @D1, long onoff @D2) -> long @D0@bank 2 = -$02d6
     Input  () -> long @D0@bank 2 = -$36
     InternalLoadSeg  (long fh @D0, long table @A0, long funcarray @A1, long stack @A2) -> long @D0@bank 2 = -$02f4
@@ -1462,13 +1463,13 @@ dos  {
     Read  (long file @D1, long buffer @D2, long length @D3) -> long @D0@bank 2 = -$2a
     ReadArgs  (str arg_template @D1, long array @D2, long args @D3) -> long @D0@bank 2 = -$031e
     ReadItem  (str name @D1, long maxchars @D2, long cSource @D3) -> long @D0@bank 2 = -$032a
-    ReadLink  (long port @D1, long lock @D2, str path @D3, str buffer @D4, long size @D5) -> long @D0@bank 2 = -$01b6
+    ReadLink  (^^exec.MsgPort port @D1, long lock @D2, str path @D3, str buffer @D4, long size @D5) -> long @D0@bank 2 = -$01b6
     Relabel  (str drive @D1, str newname @D2) -> long @D0@bank 2 = -$02d0
     RemAssignList  (str name @D1, long lock @D2) -> long @D0@bank 2 = -$027c
     RemDosEntry  (long dlist @D1) -> bool @D0@bank 2 = -$02a0
     RemSegment  (long seg @D1) -> long @D0@bank 2 = -$0312
     Rename  (str oldName @D1, str newName @D2) -> long @D0@bank 2 = -$4e
-    ReplyPkt  (long dp @D1, long res1 @D2, long res2 @D3)@bank 2 = -$0102
+    ReplyPkt  (^^dos.DosPacket dp @D1, long res1 @D2, long res2 @D3)@bank 2 = -$0102
     RunCommand  (long seg @D1, long stack @D2, str paramptr @D3, long paramlen @D4) -> long @D0@bank 2 = -$01f8
     SameDevice  (long lock1 @D1, long lock2 @D2) -> bool @D0@bank 2 = -$03d8
     SameLock  (long lock1 @D1, long lock2 @D2) -> long @D0@bank 2 = -$01a4
@@ -1477,14 +1478,14 @@ dos  {
     SelectError  (long fh @D1) -> long @D0@bank 2 = -$0474
     SelectInput  (long fh @D1) -> long @D0@bank 2 = -$0126
     SelectOutput  (long fh @D1) -> long @D0@bank 2 = -$012c
-    SendPkt  (long dp @D1, long port @D2, long replyport @D3)@bank 2 = -$f6
+    SendPkt  (^^dos.DosPacket dp @D1, ^^exec.MsgPort port @D2, ^^exec.MsgPort replyport @D3)@bank 2 = -$f6
     SetArgStr  (str string @D1) -> str @D0@bank 2 = -$021c
     SetComment  (str name @D1, str comment @D2) -> long @D0@bank 2 = -$b4
-    SetConsoleTask  (long task @D1) -> long @D0@bank 2 = -$0204
+    SetConsoleTask  (^^exec.MsgPort task @D1) -> ^^exec.MsgPort @D0@bank 2 = -$0204
     SetCurrentDirName  (str name @D1) -> bool @D0@bank 2 = -$022e
-    SetFileDate  (str name @D1, long date @D2) -> long @D0@bank 2 = -$018c
+    SetFileDate  (str name @D1, ^^dos.DateStampStruct date @D2) -> long @D0@bank 2 = -$018c
     SetFileSize  (long fh @D1, long pos @D2, long mode @D3) -> long @D0@bank 2 = -$01c8
-    SetFileSysTask  (long task @D1) -> long @D0@bank 2 = -$0210
+    SetFileSysTask  (^^exec.MsgPort task @D1) -> ^^exec.MsgPort @D0@bank 2 = -$0210
     SetIoErr  (long result @D1) -> long @D0@bank 2 = -$01ce
     SetMode  (long fh @D1, long mode @D2) -> long @D0@bank 2 = -$01aa
     SetOwner  (str name @D1, long owner_info @D2) -> bool @D0@bank 2 = -$03e4
@@ -1510,7 +1511,7 @@ dos  {
     VPrintf  (str format @D1, long argarray @D2) -> long @D0@bank 2 = -$03ba
     VolumeRequestHook  (str vol @D1) -> long @D0@bank 2 = -$03f6
     WaitForChar  (long file @D1, long timeout @D2) -> long @D0@bank 2 = -$cc
-    WaitPkt  () -> long @D0@bank 2 = -$fc
+    WaitPkt  () -> ^^dos.DosPacket @D0@bank 2 = -$fc
     Write  (long file @D1, long buffer @D2, long length @D3) -> long @D0@bank 2 = -$30
     WriteChars  (str buf @D1, long buflen @D2) -> long @D0@bank 2 = -$03ae
 }
@@ -1901,16 +1902,16 @@ exec  {
     const ubyte  UNITF_INTASK
     AbortIO  (long ioRequest @A1)@bank 1 = -$01e0
     AddDevice  (long device @A1)@bank 1 = -$01b0
-    AddHead  (long list @A0, long node @A1)@bank 1 = -$f0
-    AddIntServer  (long intNumber @D0, long interrupt @A1)@bank 1 = -$a8
-    AddLibrary  (long library @A1)@bank 1 = -$018c
-    AddMemHandler  (long memhand @A1)@bank 1 = -$0306
+    AddHead  (^^exec.List list @A0, ^^exec.Node node @A1)@bank 1 = -$f0
+    AddIntServer  (long intNumber @D0, ^^exec.Interrupt interrupt @A1)@bank 1 = -$a8
+    AddLibrary  (^^exec.Library library @A1)@bank 1 = -$018c
+    AddMemHandler  (^^exec.Interrupt memhand @A1)@bank 1 = -$0306
     AddMemList  (long size @D0, long attributes @D1, long pri @D2, long base @A0, str name @A1)@bank 1 = -$026a
-    AddPort  (long port @A1)@bank 1 = -$0162
+    AddPort  (^^exec.MsgPort port @A1)@bank 1 = -$0162
     AddResource  (long resource @A1)@bank 1 = -$01e6
     AddSemaphore  (long sigSem @A1)@bank 1 = -$0258
-    AddTail  (long list @A0, long node @A1)@bank 1 = -$f6
-    AddTask  (long task @A1, long initPC @A2, long finalPC @A3) -> long @D0@bank 1 = -$011a
+    AddTail  (^^exec.List list @A0, ^^exec.Node node @A1)@bank 1 = -$f6
+    AddTask  (^^exec.Task task @A1, long initPC @A2, long finalPC @A3) -> long @D0@bank 1 = -$011a
     Alert  (long alertNum @D7)@bank 1 = -$6c
     AllocAbs  (long byteSize @D0, long location @A1) -> long @D0@bank 1 = -$cc
     AllocEntry  (long entry @A0) -> long @D0@bank 1 = -$de
@@ -1928,30 +1929,30 @@ exec  {
     CacheControl  (long cacheBits @D0, long cacheMask @D1) -> long @D0@bank 1 = -$0288
     CachePostDMA  (long address @A0, long length @A1, long flags @D0)@bank 1 = -$0300
     CachePreDMA  (long address @A0, long length @A1, long flags @D0) -> long @D0@bank 1 = -$02fa
-    Cause  (long interrupt @A1)@bank 1 = -$b4
+    Cause  (^^exec.Interrupt interrupt @A1)@bank 1 = -$b4
     CheckIO  (long ioRequest @A1) -> long @D0@bank 1 = -$01d4
     CloseDevice  (long ioRequest @A1)@bank 1 = -$01c2
-    CloseLibrary  (long library @A1)@bank 1 = -$019e
+    CloseLibrary  (^^exec.Library library @A1)@bank 1 = -$019e
     ColdReboot  ()@bank 1 = -$02d6
     CopyMem  (long source @A0, long dest @A1, long size @D0)@bank 1 = -$0270
     CopyMemQuick  (long source @A0, long dest @A1, long size @D0)@bank 1 = -$0276
-    CreateIORequest  (long port @A0, long size @D0) -> long @D0@bank 1 = -$028e
-    CreateMsgPort  () -> long @D0@bank 1 = -$029a
+    CreateIORequest  (^^exec.MsgPort port @A0, long size @D0) -> long @D0@bank 1 = -$028e
+    CreateMsgPort  () -> ^^exec.MsgPort @D0@bank 1 = -$029a
     CreatePool  (long requirements @D0, long puddleSize @D1, long threshSize @D2) -> long @D0@bank 1 = -$02b8
     Deallocate  (long freeList @A0, long memoryBlock @A1, long byteSize @D0)@bank 1 = -$c0
     Debug  (long flags @D0)@bank 1 = -$72
     DeleteIORequest  (long iorequest @A0)@bank 1 = -$0294
-    DeleteMsgPort  (long port @A0)@bank 1 = -$02a0
+    DeleteMsgPort  (^^exec.MsgPort port @A0)@bank 1 = -$02a0
     DeletePool  (long poolHeader @A0)@bank 1 = -$02be
     Disable  ()@bank 1 = -$78
     DoIO  (long ioRequest @A1) -> byte @D0@bank 1 = -$01c8
     Enable  ()@bank 1 = -$7e
-    Enqueue  (long list @A0, long node @A1)@bank 1 = -$010e
-    FindName  (long list @A0, str name @A1) -> long @D0@bank 1 = -$0114
-    FindPort  (str name @A1) -> long @D0@bank 1 = -$0186
+    Enqueue  (^^exec.List list @A0, ^^exec.Node node @A1)@bank 1 = -$010e
+    FindName  (^^exec.List list @A0, str name @A1) -> ^^exec.Node @D0@bank 1 = -$0114
+    FindPort  (str name @A1) -> ^^exec.MsgPort @D0@bank 1 = -$0186
     FindResident  (str name @A1) -> long @D0@bank 1 = -$60
     FindSemaphore  (str name @A1) -> long @D0@bank 1 = -$0252
-    FindTask  (str name @A1) -> long @D0@bank 1 = -$0126
+    FindTask  (str name @A1) -> ^^exec.Task @D0@bank 1 = -$0126
     Forbid  ()@bank 1 = -$84
     FreeEntry  (long entry @A0)@bank 1 = -$e4
     FreeMem  (long memoryBlock @A1, long byteSize @D0)@bank 1 = -$d2
@@ -1960,53 +1961,53 @@ exec  {
     FreeTrap  (long trapNum @D0)@bank 1 = -$015c
     FreeVec  (long memoryBlock @A1)@bank 1 = -$02b2
     GetCC  () -> long @D0@bank 1 = -$0210
-    GetMsg  (long port @A0) -> long @D0@bank 1 = -$0174
+    GetMsg  (^^exec.MsgPort port @A0) -> ^^exec.Message @D0@bank 1 = -$0174
     InitCode  (long startClass @D0, long version @D1)@bank 1 = -$48
     InitResident  (long resident @A1, long segList @D1) -> long @D0@bank 1 = -$66
     InitSemaphore  (long sigSem @A0)@bank 1 = -$022e
     InitStruct  (long initTable @A1, long k_memory @A2, long size @D0)@bank 1 = -$4e
-    Insert  (long list @A0, long node @A1, long pred @A2)@bank 1 = -$ea
+    Insert  (^^exec.List list @A0, ^^exec.Node node @A1, ^^exec.Node pred @A2)@bank 1 = -$ea
     MakeFunctions  (long target @A0, long functionArray @A1, long funcDispBase @A2)@bank 1 = -$5a
-    MakeLibrary  (long funcInit @A0, long structInit @A1, long libInit @A2, long dataSize @D0, long segList @D1) -> long @D0@bank 1 = -$54
+    MakeLibrary  (long funcInit @A0, long structInit @A1, long libInit @A2, long dataSize @D0, long segList @D1) -> ^^exec.Library @D0@bank 1 = -$54
     NewList  (^^exec.List list @A0)
-    NewMinList  (long minlist @A0)@bank 1 = -$033c
+    NewMinList  (^^exec.MinList minlist @A0)@bank 1 = -$033c
     ObtainQuickVector  (long interruptCode @A0) -> long @D0@bank 1 = -$0312
     ObtainSemaphore  (long sigSem @A0)@bank 1 = -$0234
-    ObtainSemaphoreList  (long sigSem @A0)@bank 1 = -$0246
+    ObtainSemaphoreList  (^^exec.List sigSem @A0)@bank 1 = -$0246
     ObtainSemaphoreShared  (long sigSem @A0)@bank 1 = -$02a6
-    OldOpenLibrary  (str libName @A1) -> long @D0@bank 1 = -$0198
+    OldOpenLibrary  (str libName @A1) -> ^^exec.Library @D0@bank 1 = -$0198
     OpenDevice  (str devName @A0, long unit @D0, long ioRequest @A1, long flags @D1) -> byte @D0@bank 1 = -$01bc
-    OpenLibrary  (str libName @A1, long version @D0) -> long @D0@bank 1 = -$0228
+    OpenLibrary  (str libName @A1, long version @D0) -> ^^exec.Library @D0@bank 1 = -$0228
     OpenResource  (str resName @A1) -> long @D0@bank 1 = -$01f2
     Permit  ()@bank 1 = -$8a
     Procure  (long sigSem @A0, long bidMsg @A1) -> long @D0@bank 1 = -$021c
-    PutMsg  (long port @A0, long message @A1)@bank 1 = -$016e
+    PutMsg  (^^exec.MsgPort port @A0, ^^exec.Message message @A1)@bank 1 = -$016e
     RawDoFmt  (str formatString @A0, long dataStream @A1, long putChProc @A2, long putChData @A3) -> long @D0@bank 1 = -$020a
     ReleaseSemaphore  (long sigSem @A0)@bank 1 = -$023a
-    ReleaseSemaphoreList  (long sigSem @A0)@bank 1 = -$024c
+    ReleaseSemaphoreList  (^^exec.List sigSem @A0)@bank 1 = -$024c
     RemDevice  (long device @A1)@bank 1 = -$01b6
-    RemHead  (long list @A0) -> long @D0@bank 1 = -$0102
-    RemIntServer  (long intNumber @D0, long interrupt @A1)@bank 1 = -$ae
-    RemLibrary  (long library @A1)@bank 1 = -$0192
-    RemMemHandler  (long memhand @A1)@bank 1 = -$030c
-    RemPort  (long port @A1)@bank 1 = -$0168
+    RemHead  (^^exec.List list @A0) -> ^^exec.Node @D0@bank 1 = -$0102
+    RemIntServer  (long intNumber @D0, ^^exec.Interrupt interrupt @A1)@bank 1 = -$ae
+    RemLibrary  (^^exec.Library library @A1)@bank 1 = -$0192
+    RemMemHandler  (^^exec.Interrupt memhand @A1)@bank 1 = -$030c
+    RemPort  (^^exec.MsgPort port @A1)@bank 1 = -$0168
     RemResource  (long resource @A1)@bank 1 = -$01ec
     RemSemaphore  (long sigSem @A1)@bank 1 = -$025e
-    RemTail  (long list @A0) -> long @D0@bank 1 = -$0108
-    RemTask  (long task @A1)@bank 1 = -$0120
-    Remove  (long node @A1)@bank 1 = -$fc
-    ReplyMsg  (long message @A1)@bank 1 = -$017a
+    RemTail  (^^exec.List list @A0) -> ^^exec.Node @D0@bank 1 = -$0108
+    RemTask  (^^exec.Task task @A1)@bank 1 = -$0120
+    Remove  (^^exec.Node node @A1)@bank 1 = -$fc
+    ReplyMsg  (^^exec.Message message @A1)@bank 1 = -$017a
     SendIO  (long ioRequest @A1)@bank 1 = -$01ce
     SetExcept  (long newSignals @D0, long signalSet @D1) -> long @D0@bank 1 = -$0138
-    SetFunction  (long library @A1, long funcOffset @A0, long newFunction @D0) -> long @D0@bank 1 = -$01a4
-    SetIntVector  (long intNumber @D0, long interrupt @A1) -> long @D0@bank 1 = -$a2
+    SetFunction  (^^exec.Library library @A1, long funcOffset @A0, long newFunction @D0) -> long @D0@bank 1 = -$01a4
+    SetIntVector  (long intNumber @D0, ^^exec.Interrupt interrupt @A1) -> ^^exec.Interrupt @D0@bank 1 = -$a2
     SetSR  (long newSR @D0, long mask @D1) -> long @D0@bank 1 = -$90
     SetSignal  (long newSignals @D0, long signalSet @D1) -> long @D0@bank 1 = -$0132
-    SetTaskPri  (long task @A1, long priority @D0) -> byte @D0@bank 1 = -$012c
-    Signal  (long task @A1, long signalSet @D0)@bank 1 = -$0144
+    SetTaskPri  (^^exec.Task task @A1, long priority @D0) -> byte @D0@bank 1 = -$012c
+    Signal  (^^exec.Task task @A1, long signalSet @D0)@bank 1 = -$0144
     StackSwap  (long newStack @A0)@bank 1 = -$02dc
     SumKickData  () -> long @D0@bank 1 = -$0264
-    SumLibrary  (long library @A1)@bank 1 = -$01aa
+    SumLibrary  (^^exec.Library library @A1)@bank 1 = -$01aa
     SuperState  () -> long @D0@bank 1 = -$96
     Supervisor  (long userFunction @A5) -> long @D0@bank 1 = -$1e
     TypeOfMem  (long address @A1) -> long @D0@bank 1 = -$0216
@@ -2014,7 +2015,7 @@ exec  {
     Vacate  (long sigSem @A0, long bidMsg @A1)@bank 1 = -$0222
     Wait  (long signalSet @D0) -> long @D0@bank 1 = -$013e
     WaitIO  (long ioRequest @A1) -> byte @D0@bank 1 = -$01da
-    WaitPort  (long port @A0) -> long @D0@bank 1 = -$0180
+    WaitPort  (^^exec.MsgPort port @A0) -> ^^exec.Message @D0@bank 1 = -$0180
 }
 
 
@@ -2776,169 +2777,362 @@ graphics  {
     const uword  V_SPRITES
     const ubyte  V_SUPERHIRES
     const uword  V_VP_HIDE
-    AddAnimOb  (long anOb @A0, long anKey @A1, long rp @A2)@bank 3 = -$9c
-    AddBob  (long bob @A0, long rp @A1)@bank 3 = -$60
-    AddFont  (long textFont @A1)@bank 3 = -$01e0
-    AddVSprite  (long vSprite @A0, long rp @A1)@bank 3 = -$66
-    AllocBitMap  (long sizex @D0, long sizey @D1, long depth @D2, long flags @D3, long friend_bitmap @A0) -> long @D0@bank 3 = -$0396
+    AddAnimOb  (long anOb @A0, long anKey @A1, ^^graphics.RastPort rp @A2)@bank 3 = -$9c
+    AddBob  (long bob @A0, ^^graphics.RastPort rp @A1)@bank 3 = -$60
+    AddFont  (^^graphics.TextFont textFont @A1)@bank 3 = -$01e0
+    AddVSprite  (long vSprite @A0, ^^graphics.RastPort rp @A1)@bank 3 = -$66
+    AllocBitMap  (long sizex @D0, long sizey @D1, long depth @D2, long flags @D3, ^^graphics.BitMap friend_bitmap @A0) -> ^^graphics.BitMap @D0@bank 3 = -$0396
     AllocDBufInfo  (long vp @A0) -> long @D0@bank 3 = -$03c6
     AllocRaster  (uword width @D0, uword height @D1) -> long @D0@bank 3 = -$01ec
-    AllocSpriteDataA  (long bm @A2, long tags @A1) -> long @D0@bank 3 = -$03fc
+    AllocSpriteDataA  (^^graphics.BitMap bm @A2, long tags @A1) -> long @D0@bank 3 = -$03fc
     AndRectRegion  (long region @A0, long rectangle @A1)@bank 3 = -$01f8
     AndRegionRegion  (long srcRegion @A0, long destRegion @A1) -> bool @D0@bank 3 = -$0270
-    Animate  (long anKey @A0, long rp @A1)@bank 3 = -$a2
-    AreaDraw  (long rp @A1, word x @D0, word y @D1) -> long @D0@bank 3 = -$0102
-    AreaEllipse  (long rp @A1, word xCenter @D0, word yCenter @D1, word a @D2, word b @D3) -> long @D0@bank 3 = -$ba
-    AreaEnd  (long rp @A1) -> long @D0@bank 3 = -$0108
-    AreaMove  (long rp @A1, word x @D0, word y @D1) -> long @D0@bank 3 = -$fc
-    AskFont  (long rp @A1, long textAttr @A0)@bank 3 = -$01da
-    AskSoftStyle  (long rp @A1) -> long @D0@bank 3 = -$54
-    AttachPalExtra  (long cm @A0, long vp @A1) -> long @D0@bank 3 = -$0342
-    AttemptLockLayerRom  (long layer @A5) -> bool @D0@bank 3 = -$028e
+    Animate  (long anKey @A0, ^^graphics.RastPort rp @A1)@bank 3 = -$a2
+    AreaDraw  (^^graphics.RastPort rp @A1, word x @D0, word y @D1) -> long @D0@bank 3 = -$0102
+    AreaEllipse  (^^graphics.RastPort rp @A1, word xCenter @D0, word yCenter @D1, word a @D2, word b @D3) -> long @D0@bank 3 = -$ba
+    AreaEnd  (^^graphics.RastPort rp @A1) -> long @D0@bank 3 = -$0108
+    AreaMove  (^^graphics.RastPort rp @A1, word x @D0, word y @D1) -> long @D0@bank 3 = -$fc
+    AskFont  (^^graphics.RastPort rp @A1, ^^graphics.TextAttr textAttr @A0)@bank 3 = -$01da
+    AskSoftStyle  (^^graphics.RastPort rp @A1) -> long @D0@bank 3 = -$54
+    AttachPalExtra  (^^graphics.ColorMap cm @A0, long vp @A1) -> long @D0@bank 3 = -$0342
+    AttemptLockLayerRom  (^^graphics.Layer layer @A5) -> bool @D0@bank 3 = -$028e
     BestModeIDA  (long tags @A0) -> long @D0@bank 3 = -$041a
     BitMapScale  (long bitScaleArgs @A0)@bank 3 = -$02a6
-    BltBitMap  (long srcBitMap @A0, word xSrc @D0, word ySrc @D1, long destBitMap @A1, word xDest @D2, word yDest @D3, word xSize @D4, word ySize @D5, ubyte minterm @D6, ubyte mask @D7, long tempA @A2) -> long @D0@bank 3 = -$1e
-    BltBitMapRastPort  (long srcBitMap @A0, word xSrc @D0, word ySrc @D1, long destRP @A1, word xDest @D2, word yDest @D3, word xSize @D4, word ySize @D5, ubyte minterm @D6)@bank 3 = -$025e
+    BltBitMap  (^^graphics.BitMap srcBitMap @A0, word xSrc @D0, word ySrc @D1, ^^graphics.BitMap destBitMap @A1, word xDest @D2, word yDest @D3, word xSize @D4, word ySize @D5, ubyte minterm @D6, ubyte mask @D7, long tempA @A2) -> long @D0@bank 3 = -$1e
+    BltBitMapRastPort  (^^graphics.BitMap srcBitMap @A0, word xSrc @D0, word ySrc @D1, ^^graphics.RastPort destRP @A1, word xDest @D2, word yDest @D3, word xSize @D4, word ySize @D5, ubyte minterm @D6)@bank 3 = -$025e
     BltClear  (long memBlock @A1, long byteCount @D0, long flags @D1)@bank 3 = -$012c
-    BltMaskBitMapRastPort  (long srcBitMap @A0, word xSrc @D0, word ySrc @D1, long destRP @A1, word xDest @D2, word yDest @D3, word xSize @D4, word ySize @D5, ubyte minterm @D6, long bltMask @A2)@bank 3 = -$027c
-    BltPattern  (long rp @A1, long mask @A0, word xMin @D0, word yMin @D1, word xMax @D2, word yMax @D3, uword maskBPR @D4)@bank 3 = -$0138
-    BltTemplate  (long source @A0, word xSrc @D0, word srcMod @D1, long destRP @A1, word xDest @D2, word yDest @D3, word xSize @D4, word ySize @D5)@bank 3 = -$24
+    BltMaskBitMapRastPort  (^^graphics.BitMap srcBitMap @A0, word xSrc @D0, word ySrc @D1, ^^graphics.RastPort destRP @A1, word xDest @D2, word yDest @D3, word xSize @D4, word ySize @D5, ubyte minterm @D6, long bltMask @A2)@bank 3 = -$027c
+    BltPattern  (^^graphics.RastPort rp @A1, long mask @A0, word xMin @D0, word yMin @D1, word xMax @D2, word yMax @D3, uword maskBPR @D4)@bank 3 = -$0138
+    BltTemplate  (long source @A0, word xSrc @D0, word srcMod @D1, ^^graphics.RastPort destRP @A1, word xDest @D2, word yDest @D3, word xSize @D4, word ySize @D5)@bank 3 = -$24
     CBump  (long copList @A1)@bank 3 = -$016e
     CMove  (long copList @A1, long destination @D0, word data @D1) -> long @D0@bank 3 = -$0174
     CWait  (long copList @A1, word v @D0, word h @D1) -> long @D0@bank 3 = -$017a
-    CalcIVG  (long v @A0, long vp @A1) -> uword @D0@bank 3 = -$033c
+    CalcIVG  (^^graphics.View v @A0, long vp @A1) -> uword @D0@bank 3 = -$033c
     ChangeExtSpriteA  (long vp @A0, long oldsprite @A1, long newsprite @A2, long tags @A3) -> long @D0@bank 3 = -$0402
     ChangeSprite  (long vp @A0, long sprite @A1, long newData @A2)@bank 3 = -$01a4
-    ChangeVPBitMap  (long vp @A0, long bm @A1, long db @A2)@bank 3 = -$03ae
-    ClearEOL  (long rp @A1)@bank 3 = -$2a
+    ChangeVPBitMap  (long vp @A0, ^^graphics.BitMap bm @A1, long db @A2)@bank 3 = -$03ae
+    ClearEOL  (^^graphics.RastPort rp @A1)@bank 3 = -$2a
     ClearRectRegion  (long region @A0, long rectangle @A1) -> bool @D0@bank 3 = -$020a
     ClearRegion  (long region @A0)@bank 3 = -$0210
-    ClearScreen  (long rp @A1)@bank 3 = -$30
-    ClipBlit  (long srcRP @A0, word xSrc @D0, word ySrc @D1, long destRP @A1, word xDest @D2, word yDest @D3, word xSize @D4, word ySize @D5, ubyte minterm @D6)@bank 3 = -$0228
-    CloseFont  (long textFont @A1)@bank 3 = -$4e
+    ClearScreen  (^^graphics.RastPort rp @A1)@bank 3 = -$30
+    ClipBlit  (^^graphics.RastPort srcRP @A0, word xSrc @D0, word ySrc @D1, ^^graphics.RastPort destRP @A1, word xDest @D2, word yDest @D3, word xSize @D4, word ySize @D5, ubyte minterm @D6)@bank 3 = -$0228
+    CloseFont  (^^graphics.TextFont textFont @A1)@bank 3 = -$4e
     CloseMonitor  (long monitorSpec @A0) -> bool @D0@bank 3 = -$02d0
     CoerceMode  (long vp @A0, long monitorid @D0, long flags @D1) -> long @D0@bank 3 = -$03a8
-    CopySBitMap  (long layer @A0)@bank 3 = -$01c2
+    CopySBitMap  (^^graphics.Layer layer @A0)@bank 3 = -$01c2
     DisownBlitter  ()@bank 3 = -$01ce
     DisposeRegion  (long region @A0)@bank 3 = -$0216
-    DoCollision  (long rp @A1)@bank 3 = -$6c
-    Draw  (long rp @A1, word x @D0, word y @D1)@bank 3 = -$f6
-    DrawEllipse  (long rp @A1, word xCenter @D0, word yCenter @D1, word a @D2, word b @D3)@bank 3 = -$b4
-    DrawGList  (long rp @A1, long vp @A0)@bank 3 = -$72
-    EraseRect  (long rp @A1, word xMin @D0, word yMin @D1, word xMax @D2, word yMax @D3)@bank 3 = -$032a
-    ExtendFont  (long font @A0, long fontTags @A1) -> long @D0@bank 3 = -$0330
-    FindColor  (long cm @A3, long r @D1, long g @D2, long b @D3, long maxcolor @D4) -> long @D0@bank 3 = -$03f0
+    DoCollision  (^^graphics.RastPort rp @A1)@bank 3 = -$6c
+    Draw  (^^graphics.RastPort rp @A1, word x @D0, word y @D1)@bank 3 = -$f6
+    DrawEllipse  (^^graphics.RastPort rp @A1, word xCenter @D0, word yCenter @D1, word a @D2, word b @D3)@bank 3 = -$b4
+    DrawGList  (^^graphics.RastPort rp @A1, long vp @A0)@bank 3 = -$72
+    EraseRect  (^^graphics.RastPort rp @A1, word xMin @D0, word yMin @D1, word xMax @D2, word yMax @D3)@bank 3 = -$032a
+    ExtendFont  (^^graphics.TextFont font @A0, long fontTags @A1) -> long @D0@bank 3 = -$0330
+    FindColor  (^^graphics.ColorMap cm @A3, long r @D1, long g @D2, long b @D3, long maxcolor @D4) -> long @D0@bank 3 = -$03f0
     FindDisplayInfo  (long displayID @D0) -> long @D0@bank 3 = -$02d6
-    Flood  (long rp @A1, long mode @D2, word x @D0, word y @D1) -> bool @D0@bank 3 = -$014a
-    FontExtent  (long font @A0, long fontExtent @A1)@bank 3 = -$02fa
-    FreeBitMap  (long bm @A0)@bank 3 = -$039c
-    FreeColorMap  (long colorMap @A0)@bank 3 = -$0240
+    Flood  (^^graphics.RastPort rp @A1, long mode @D2, word x @D0, word y @D1) -> bool @D0@bank 3 = -$014a
+    FontExtent  (^^graphics.TextFont font @A0, long fontExtent @A1)@bank 3 = -$02fa
+    FreeBitMap  (^^graphics.BitMap bm @A0)@bank 3 = -$039c
+    FreeColorMap  (^^graphics.ColorMap colorMap @A0)@bank 3 = -$0240
     FreeCopList  (long copList @A0)@bank 3 = -$0222
     FreeCprList  (long cprList @A0)@bank 3 = -$0234
     FreeDBufInfo  (long dbi @A1)@bank 3 = -$03cc
-    FreeGBuffers  (long anOb @A0, long rp @A1, bool flag @D0)@bank 3 = -$0258
+    FreeGBuffers  (long anOb @A0, ^^graphics.RastPort rp @A1, bool flag @D0)@bank 3 = -$0258
     FreeRaster  (long p @A0, uword width @D0, uword height @D1)@bank 3 = -$01f2
     FreeSprite  (word num @D0)@bank 3 = -$019e
     FreeSpriteData  (long sp @A2)@bank 3 = -$0408
     FreeVPortCopLists  (long vp @A0)@bank 3 = -$021c
-    GetAPen  (long rp @A0) -> long @D0@bank 3 = -$035a
-    GetBPen  (long rp @A0) -> long @D0@bank 3 = -$0360
-    GetBitMapAttr  (long bm @A0, long attrnum @D1) -> long @D0@bank 3 = -$03c0
-    GetColorMap  (long entries @D0) -> long @D0@bank 3 = -$023a
+    GetAPen  (^^graphics.RastPort rp @A0) -> long @D0@bank 3 = -$035a
+    GetBPen  (^^graphics.RastPort rp @A0) -> long @D0@bank 3 = -$0360
+    GetBitMapAttr  (^^graphics.BitMap bm @A0, long attrnum @D1) -> long @D0@bank 3 = -$03c0
+    GetColorMap  (long entries @D0) -> ^^graphics.ColorMap @D0@bank 3 = -$023a
     GetDisplayInfoData  (long handle @A0, long buf @A1, long size @D0, long tagID @D1, long displayID @D2) -> long @D0@bank 3 = -$02f4
-    GetDrMd  (long rp @A0) -> long @D0@bank 3 = -$0366
+    GetDrMd  (^^graphics.RastPort rp @A0) -> long @D0@bank 3 = -$0366
     GetExtSpriteA  (long ss @A2, long tags @A1) -> long @D0@bank 3 = -$03a2
-    GetGBuffers  (long anOb @A0, long rp @A1, bool flag @D0) -> bool @D0@bank 3 = -$a8
-    GetOutlinePen  (long rp @A0) -> long @D0@bank 3 = -$036c
-    GetRGB32  (long cm @A0, long firstcolor @D0, long ncolors @D1, long table @A1)@bank 3 = -$0384
-    GetRGB4  (long colorMap @A0, long entry @D0) -> long @D0@bank 3 = -$0246
-    GetRPAttrsA  (long rp @A0, long tags @A1)@bank 3 = -$0414
+    GetGBuffers  (long anOb @A0, ^^graphics.RastPort rp @A1, bool flag @D0) -> bool @D0@bank 3 = -$a8
+    GetOutlinePen  (^^graphics.RastPort rp @A0) -> long @D0@bank 3 = -$036c
+    GetRGB32  (^^graphics.ColorMap cm @A0, long firstcolor @D0, long ncolors @D1, long table @A1)@bank 3 = -$0384
+    GetRGB4  (^^graphics.ColorMap colorMap @A0, long entry @D0) -> long @D0@bank 3 = -$0246
+    GetRPAttrsA  (^^graphics.RastPort rp @A0, long tags @A1)@bank 3 = -$0414
     GetSprite  (long sprite @A0, word num @D0) -> word @D0@bank 3 = -$0198
     GetVPModeID  (long vp @A0) -> long @D0@bank 3 = -$0318
     GfxAssociate  (long associateNode @A0, long gfxNodePtr @A1)@bank 3 = -$02a0
     GfxFree  (long gfxNodePtr @A0)@bank 3 = -$029a
     GfxLookUp  (long associateNode @A0) -> long @D0@bank 3 = -$02be
     GfxNew  (long gfxNodeType @D0) -> long @D0@bank 3 = -$0294
-    InitArea  (long areaInfo @A0, long vectorBuffer @A1, word maxVectors @D0)@bank 3 = -$011a
-    InitBitMap  (long bitMap @A0, byte depth @D0, word width @D1, word height @D2)@bank 3 = -$0186
+    InitArea  (^^graphics.AreaInfo areaInfo @A0, long vectorBuffer @A1, word maxVectors @D0)@bank 3 = -$011a
+    InitBitMap  (^^graphics.BitMap bitMap @A0, byte depth @D0, word width @D1, word height @D2)@bank 3 = -$0186
     InitGMasks  (long anOb @A0)@bank 3 = -$ae
     InitGels  (long head @A0, long tail @A1, long gelsInfo @A2)@bank 3 = -$78
     InitMasks  (long vSprite @A0)@bank 3 = -$7e
-    InitRastPort  (long rp @A1)@bank 3 = -$c6
-    InitTmpRas  (long tmpRas @A0, long buffer @A1, long size @D0) -> long @D0@bank 3 = -$01d4
+    InitRastPort  (^^graphics.RastPort rp @A1)@bank 3 = -$c6
+    InitTmpRas  (^^graphics.TmpRas tmpRas @A0, long buffer @A1, long size @D0) -> ^^graphics.TmpRas @D0@bank 3 = -$01d4
     InitVPort  (long vp @A0)@bank 3 = -$cc
-    InitView  (long view @A1)@bank 3 = -$0168
+    InitView  (^^graphics.View view @A1)@bank 3 = -$0168
     LoadRGB32  (long vp @A0, long table @A1)@bank 3 = -$0372
     LoadRGB4  (long vp @A0, long colors @A1, word count @D0)@bank 3 = -$c0
-    LoadView  (long view @A1)@bank 3 = -$de
-    LockLayerRom  (long layer @A5)@bank 3 = -$01b0
-    MakeVPort  (long view @A0, long vp @A1) -> long @D0@bank 3 = -$d8
+    LoadView  (^^graphics.View view @A1)@bank 3 = -$de
+    LockLayerRom  (^^graphics.Layer layer @A5)@bank 3 = -$01b0
+    MakeVPort  (^^graphics.View view @A0, long vp @A1) -> long @D0@bank 3 = -$d8
     ModeNotAvailable  (long modeID @D0) -> long @D0@bank 3 = -$031e
-    Move  (long rp @A1, word x @D0, word y @D1)@bank 3 = -$f0
+    Move  (^^graphics.RastPort rp @A1, word x @D0, word y @D1)@bank 3 = -$f0
     MoveSprite  (long vp @A0, long sprite @A1, word x @D0, word y @D1)@bank 3 = -$01aa
-    MrgCop  (long view @A1) -> long @D0@bank 3 = -$d2
+    MrgCop  (^^graphics.View view @A1) -> long @D0@bank 3 = -$d2
     NewRegion  () -> long @D0@bank 3 = -$0204
     NextDisplayInfo  (long displayID @D0) -> long @D0@bank 3 = -$02dc
-    ObtainBestPenA  (long cm @A0, long r @D1, long g @D2, long b @D3, long tags @A1) -> long @D0@bank 3 = -$0348
-    ObtainPen  (long cm @A0, long n @D0, long r @D1, long g @D2, long b @D3, long f @D4) -> long @D0@bank 3 = -$03ba
-    OpenFont  (long textAttr @A0) -> long @D0@bank 3 = -$48
+    ObtainBestPenA  (^^graphics.ColorMap cm @A0, long r @D1, long g @D2, long b @D3, long tags @A1) -> long @D0@bank 3 = -$0348
+    ObtainPen  (^^graphics.ColorMap cm @A0, long n @D0, long r @D1, long g @D2, long b @D3, long f @D4) -> long @D0@bank 3 = -$03ba
+    OpenFont  (^^graphics.TextAttr textAttr @A0) -> ^^graphics.TextFont @D0@bank 3 = -$48
     OpenMonitor  (str monitorName @A1, long displayID @D0) -> long @D0@bank 3 = -$02ca
     OrRectRegion  (long region @A0, long rectangle @A1) -> bool @D0@bank 3 = -$01fe
     OrRegionRegion  (long srcRegion @A0, long destRegion @A1) -> bool @D0@bank 3 = -$0264
     OwnBlitter  ()@bank 3 = -$01c8
-    PolyDraw  (long rp @A1, word count @D0, long polyTable @A0)@bank 3 = -$0150
+    PolyDraw  (^^graphics.RastPort rp @A1, word count @D0, long polyTable @A0)@bank 3 = -$0150
     QBSBlit  (long blit @A1)@bank 3 = -$0126
     QBlit  (long blit @A1)@bank 3 = -$0114
-    ReadPixel  (long rp @A1, word x @D0, word y @D1) -> long @D0@bank 3 = -$013e
-    ReadPixelArray8  (long rp @A0, uword xstart @D0, uword ystart @D1, uword xstop @D2, uword ystop @D3, long array @A2, long temprp @A1) -> long @D0@bank 3 = -$030c
-    ReadPixelLine8  (long rp @A0, uword xstart @D0, uword ystart @D1, uword width @D2, long array @A2, long tempRP @A1) -> long @D0@bank 3 = -$0300
-    RectFill  (long rp @A1, word xMin @D0, word yMin @D1, word xMax @D2, word yMax @D3)@bank 3 = -$0132
-    ReleasePen  (long cm @A0, long n @D0)@bank 3 = -$03b4
-    RemFont  (long textFont @A1)@bank 3 = -$01e6
-    RemIBob  (long bob @A0, long rp @A1, long vp @A2)@bank 3 = -$84
+    ReadPixel  (^^graphics.RastPort rp @A1, word x @D0, word y @D1) -> long @D0@bank 3 = -$013e
+    ReadPixelArray8  (^^graphics.RastPort rp @A0, uword xstart @D0, uword ystart @D1, uword xstop @D2, uword ystop @D3, long array @A2, ^^graphics.RastPort temprp @A1) -> long @D0@bank 3 = -$030c
+    ReadPixelLine8  (^^graphics.RastPort rp @A0, uword xstart @D0, uword ystart @D1, uword width @D2, long array @A2, ^^graphics.RastPort tempRP @A1) -> long @D0@bank 3 = -$0300
+    RectFill  (^^graphics.RastPort rp @A1, word xMin @D0, word yMin @D1, word xMax @D2, word yMax @D3)@bank 3 = -$0132
+    ReleasePen  (^^graphics.ColorMap cm @A0, long n @D0)@bank 3 = -$03b4
+    RemFont  (^^graphics.TextFont textFont @A1)@bank 3 = -$01e6
+    RemIBob  (long bob @A0, ^^graphics.RastPort rp @A1, long vp @A2)@bank 3 = -$84
     RemVSprite  (long vSprite @A0)@bank 3 = -$8a
     ScalerDiv  (uword factor @D0, uword numerator @D1, uword denominator @D2) -> uword @D0@bank 3 = -$02ac
-    ScrollRaster  (long rp @A1, word dx @D0, word dy @D1, word xMin @D2, word yMin @D3, word xMax @D4, word yMax @D5)@bank 3 = -$018c
-    ScrollRasterBF  (long rp @A1, word dx @D0, word dy @D1, word xMin @D2, word yMin @D3, word xMax @D4, word yMax @D5)@bank 3 = -$03ea
+    ScrollRaster  (^^graphics.RastPort rp @A1, word dx @D0, word dy @D1, word xMin @D2, word yMin @D3, word xMax @D4, word yMax @D5)@bank 3 = -$018c
+    ScrollRasterBF  (^^graphics.RastPort rp @A1, word dx @D0, word dy @D1, word xMin @D2, word yMin @D3, word xMax @D4, word yMax @D5)@bank 3 = -$03ea
     ScrollVPort  (long vp @A0)@bank 3 = -$024c
-    SetABPenDrMd  (long rp @A1, long apen @D0, long bpen @D1, long drawmode @D2)@bank 3 = -$037e
-    SetAPen  (long rp @A1, ubyte pen @D0)@bank 3 = -$0156
-    SetBPen  (long rp @A1, ubyte pen @D0)@bank 3 = -$015c
+    SetABPenDrMd  (^^graphics.RastPort rp @A1, long apen @D0, long bpen @D1, long drawmode @D2)@bank 3 = -$037e
+    SetAPen  (^^graphics.RastPort rp @A1, ubyte pen @D0)@bank 3 = -$0156
+    SetBPen  (^^graphics.RastPort rp @A1, ubyte pen @D0)@bank 3 = -$015c
     SetChipRev  (long want @D0) -> long @D0@bank 3 = -$0378
     SetCollision  (long num @D0, long routine @A0, long gelsInfo @A1)@bank 3 = -$90
-    SetDrMd  (long rp @A1, ubyte drawMode @D0)@bank 3 = -$0162
-    SetFont  (long rp @A1, long textFont @A0) -> long @D0@bank 3 = -$42
-    SetMaxPen  (long rp @A0, long maxpen @D0)@bank 3 = -$03de
-    SetOutlinePen  (long rp @A0, long pen @D0) -> long @D0@bank 3 = -$03d2
+    SetDrMd  (^^graphics.RastPort rp @A1, ubyte drawMode @D0)@bank 3 = -$0162
+    SetFont  (^^graphics.RastPort rp @A1, ^^graphics.TextFont textFont @A0) -> long @D0@bank 3 = -$42
+    SetMaxPen  (^^graphics.RastPort rp @A0, long maxpen @D0)@bank 3 = -$03de
+    SetOutlinePen  (^^graphics.RastPort rp @A0, long pen @D0) -> long @D0@bank 3 = -$03d2
     SetRGB32  (long vp @A0, long n @D0, long r @D1, long g @D2, long b @D3)@bank 3 = -$0354
-    SetRGB32CM  (long cm @A0, long n @D0, long r @D1, long g @D2, long b @D3)@bank 3 = -$03e4
+    SetRGB32CM  (^^graphics.ColorMap cm @A0, long n @D0, long r @D1, long g @D2, long b @D3)@bank 3 = -$03e4
     SetRGB4  (long vp @A0, word index @D0, ubyte red @D1, ubyte green @D2, ubyte blue @D3)@bank 3 = -$0120
-    SetRGB4CM  (long colorMap @A0, word index @D0, ubyte red @D1, ubyte green @D2, ubyte blue @D3)@bank 3 = -$0276
-    SetRPAttrsA  (long rp @A0, long tags @A1)@bank 3 = -$040e
-    SetRast  (long rp @A1, ubyte pen @D0)@bank 3 = -$ea
-    SetSoftStyle  (long rp @A1, long style @D0, long enable @D1) -> long @D0@bank 3 = -$5a
-    SetWriteMask  (long rp @A0, long msk @D0) -> long @D0@bank 3 = -$03d8
-    SortGList  (long rp @A1)@bank 3 = -$96
-    StripFont  (long font @A0)@bank 3 = -$0336
-    SyncSBitMap  (long layer @A0)@bank 3 = -$01bc
-    Text  (long rp @A1, str string @A0, uword count @D0) -> long @D0@bank 3 = -$3c
-    TextExtent  (long rp @A1, str string @A0, word count @D0, long textExtent @A2) -> word @D0@bank 3 = -$02b2
-    TextFit  (long rp @A1, str string @A0, uword strLen @D0, long textExtent @A2, long constrainingExtent @A3, word strDirection @D1, uword constrainingBitWidth @D2, uword constrainingBitHeight @D3) -> long @D0@bank 3 = -$02b8
-    TextLength  (long rp @A1, str string @A0, uword count @D0) -> word @D0@bank 3 = -$36
+    SetRGB4CM  (^^graphics.ColorMap colorMap @A0, word index @D0, ubyte red @D1, ubyte green @D2, ubyte blue @D3)@bank 3 = -$0276
+    SetRPAttrsA  (^^graphics.RastPort rp @A0, long tags @A1)@bank 3 = -$040e
+    SetRast  (^^graphics.RastPort rp @A1, ubyte pen @D0)@bank 3 = -$ea
+    SetSoftStyle  (^^graphics.RastPort rp @A1, long style @D0, long enable @D1) -> long @D0@bank 3 = -$5a
+    SetWriteMask  (^^graphics.RastPort rp @A0, long msk @D0) -> long @D0@bank 3 = -$03d8
+    SortGList  (^^graphics.RastPort rp @A1)@bank 3 = -$96
+    StripFont  (^^graphics.TextFont font @A0)@bank 3 = -$0336
+    SyncSBitMap  (^^graphics.Layer layer @A0)@bank 3 = -$01bc
+    Text  (^^graphics.RastPort rp @A1, str string @A0, uword count @D0) -> long @D0@bank 3 = -$3c
+    TextExtent  (^^graphics.RastPort rp @A1, str string @A0, word count @D0, long textExtent @A2) -> word @D0@bank 3 = -$02b2
+    TextFit  (^^graphics.RastPort rp @A1, str string @A0, uword strLen @D0, long textExtent @A2, long constrainingExtent @A3, word strDirection @D1, uword constrainingBitWidth @D2, uword constrainingBitHeight @D3) -> long @D0@bank 3 = -$02b8
+    TextLength  (^^graphics.RastPort rp @A1, str string @A0, uword count @D0) -> word @D0@bank 3 = -$36
     UCopperListInit  (long uCopList @A0, word n @D0) -> long @D0@bank 3 = -$0252
-    UnlockLayerRom  (long layer @A5)@bank 3 = -$01b6
+    UnlockLayerRom  (^^graphics.Layer layer @A5)@bank 3 = -$01b6
     VBeamPos  () -> long @D0@bank 3 = -$0180
-    VideoControl  (long colorMap @A0, long tagarray @A1) -> bool @D0@bank 3 = -$02c4
+    VideoControl  (^^graphics.ColorMap colorMap @A0, long tagarray @A1) -> bool @D0@bank 3 = -$02c4
     WaitBOVP  (long vp @A0)@bank 3 = -$0192
     WaitBlit  ()@bank 3 = -$e4
     WaitTOF  ()@bank 3 = -$010e
-    WeighTAMatch  (long reqTextAttr @A0, long targetTextAttr @A1, long targetTags @A2) -> word @D0@bank 3 = -$0324
-    WriteChunkyPixels  (long rp @A0, uword xstart @D0, uword ystart @D1, uword xstop @D2, uword ystop @D3, long array @A2, long bytesperrow @D4)@bank 3 = -$0420
-    WritePixel  (long rp @A1, word x @D0, word y @D1) -> long @D0@bank 3 = -$0144
-    WritePixelArray8  (long rp @A0, uword xstart @D0, uword ystart @D1, uword xstop @D2, uword ystop @D3, long array @A2, long temprp @A1) -> long @D0@bank 3 = -$0312
-    WritePixelLine8  (long rp @A0, uword xstart @D0, uword ystart @D1, uword width @D2, long array @A2, long tempRP @A1) -> long @D0@bank 3 = -$0306
+    WeighTAMatch  (^^graphics.TextAttr reqTextAttr @A0, ^^graphics.TextAttr targetTextAttr @A1, long targetTags @A2) -> word @D0@bank 3 = -$0324
+    WriteChunkyPixels  (^^graphics.RastPort rp @A0, uword xstart @D0, uword ystart @D1, uword xstop @D2, uword ystop @D3, long array @A2, long bytesperrow @D4)@bank 3 = -$0420
+    WritePixel  (^^graphics.RastPort rp @A1, word x @D0, word y @D1) -> long @D0@bank 3 = -$0144
+    WritePixelArray8  (^^graphics.RastPort rp @A0, uword xstart @D0, uword ystart @D1, uword xstop @D2, uword ystop @D3, long array @A2, ^^graphics.RastPort temprp @A1) -> long @D0@bank 3 = -$0312
+    WritePixelLine8  (^^graphics.RastPort rp @A0, uword xstart @D0, uword ystart @D1, uword width @D2, long array @A2, ^^graphics.RastPort tempRP @A1) -> long @D0@bank 3 = -$0306
     XorRectRegion  (long region @A0, long rectangle @A1) -> bool @D0@bank 3 = -$022e
     XorRegionRegion  (long srcRegion @A0, long destRegion @A1) -> bool @D0@bank 3 = -$026a
+}
+
+
+LIBRARY MODULE NAME: icon
+-------------------------
+
+icon  {
+    struct DiskObject
+    const ubyte  ADZMACTION_Enter
+    const ubyte  ADZMACTION_Leave
+    const ubyte  AMCLASSICON_Copy
+    const ubyte  AMCLASSICON_Delete
+    const ubyte  AMCLASSICON_EjectDisk
+    const ubyte  AMCLASSICON_EmptyTrash
+    const ubyte  AMCLASSICON_FormatDisk
+    const ubyte  AMCLASSICON_Information
+    const ubyte  AMCLASSICON_LeaveOut
+    const ubyte  AMCLASSICON_Open
+    const ubyte  AMCLASSICON_PutAway
+    const ubyte  AMCLASSICON_Rename
+    const ubyte  AMCLASSICON_Selected
+    const ubyte  AMCLASSICON_Snapshot
+    const ubyte  AMCLASSICON_UnSnapshot
+    const ubyte  AMCLASSICON_Unselected
+    const ubyte  AMTYPE_APPICON
+    const ubyte  AMTYPE_APPMENUITEM
+    const ubyte  AMTYPE_APPWINDOW
+    const ubyte  AMTYPE_APPWINDOWZONE
+    const ubyte  AM_VERSION
+    const ubyte  CPACTION_Begin
+    const ubyte  CPACTION_Copy
+    const ubyte  CPACTION_End
+    const uword  DDFLAGS_SHOWALL
+    const uword  DDFLAGS_SHOWDEFAULT
+    const uword  DDFLAGS_SHOWICONS
+    const uword  DDFLAGS_SHOWMASK
+    const uword  DDFLAGS_SORTASC
+    const uword  DDFLAGS_SORTDEFAULT
+    const uword  DDFLAGS_SORTDESC
+    const uword  DDFLAGS_SORTMASK
+    const ubyte  DDVM_BYDATE
+    const ubyte  DDVM_BYDEFAULT
+    const ubyte  DDVM_BYICON
+    const ubyte  DDVM_BYNAME
+    const ubyte  DDVM_BYSIZE
+    const ubyte  DDVM_BYTYPE
+    const ubyte  DLACTION_BeginDiscard
+    const ubyte  DLACTION_BeginEmptyTrash
+    const ubyte  DLACTION_DeleteContents
+    const ubyte  DLACTION_DeleteObject
+    const ubyte  DLACTION_End
+    const uword  GADGBACKFILL
+    const uword  GFLG_GADGBACKFILL
+    const ubyte  ISMACTION_Ignore
+    const ubyte  ISMACTION_Select
+    const ubyte  ISMACTION_Stop
+    const ubyte  ISMACTION_Unselect
+    const long  NO_ICON_POSITION
+    const ubyte  SCHMSTATE_Cleanup
+    const ubyte  SCHMSTATE_Setup
+    const ubyte  SCHMSTATE_TryCleanup
+    const ubyte  TIACTION_Execute
+    const ubyte  TIACTION_NewDrawer
+    const ubyte  TIACTION_RelabelVolume
+    const ubyte  TIACTION_Rename
+    const ubyte  UPDATEWB_ObjectAdded
+    const ubyte  UPDATEWB_ObjectRemoved
+    const ubyte  WBAPPICON
+    const long  WBAPPICONA_NotifySelectState
+    const long  WBAPPICONA_PropagatePosition
+    const long  WBAPPICONA_RenderHook
+    const long  WBAPPICONA_SupportsCopy
+    const long  WBAPPICONA_SupportsDelete
+    const long  WBAPPICONA_SupportsEjectDisk
+    const long  WBAPPICONA_SupportsEmptyTrash
+    const long  WBAPPICONA_SupportsFormatDisk
+    const long  WBAPPICONA_SupportsInformation
+    const long  WBAPPICONA_SupportsLeaveOut
+    const long  WBAPPICONA_SupportsOpen
+    const long  WBAPPICONA_SupportsPutAway
+    const long  WBAPPICONA_SupportsRename
+    const long  WBAPPICONA_SupportsSnapshot
+    const long  WBAPPICONA_SupportsUnSnapshot
+    const long  WBAPPMENUA_CommandKeyString
+    const long  WBAPPMENUA_GetKey
+    const long  WBAPPMENUA_GetTitleKey
+    const long  WBAPPMENUA_UseKey
+    const long  WBA_Dummy
+    const long  WBCTRLA_AddHiddenDeviceName
+    const long  WBCTRLA_AddSetupCleanupHook
+    const long  WBCTRLA_DuplicateSearchPath
+    const long  WBCTRLA_FreeHiddenDeviceList
+    const long  WBCTRLA_FreeOpenDrawerList
+    const long  WBCTRLA_FreeProgramList
+    const long  WBCTRLA_FreeSearchPath
+    const long  WBCTRLA_FreeSelectedIconList
+    const long  WBCTRLA_GetCopyHook
+    const long  WBCTRLA_GetDefaultStackSize
+    const long  WBCTRLA_GetDeleteHook
+    const long  WBCTRLA_GetDiskInfoHook
+    const long  WBCTRLA_GetGlobalFlags
+    const long  WBCTRLA_GetHiddenDeviceList
+    const long  WBCTRLA_GetOpenDrawerList
+    const long  WBCTRLA_GetProgramList
+    const long  WBCTRLA_GetSelectedIconList
+    const long  WBCTRLA_GetTextInputHook
+    const long  WBCTRLA_GetTypeRestartTime
+    const long  WBCTRLA_IsOpen
+    const long  WBCTRLA_RedrawAppIcon
+    const long  WBCTRLA_RemSetupCleanupHook
+    const long  WBCTRLA_RemoveHiddenDeviceName
+    const long  WBCTRLA_SetCopyHook
+    const long  WBCTRLA_SetDefaultStackSize
+    const long  WBCTRLA_SetDeleteHook
+    const long  WBCTRLA_SetDiskInfoHook
+    const long  WBCTRLA_SetGlobalFlags
+    const long  WBCTRLA_SetTextInputHook
+    const long  WBCTRLA_SetTypeRestartTime
+    const ubyte  WBDEVICE
+    const ubyte  WBDISK
+    const ubyte  WBDRAWER
+    const long  WBDZA_Box
+    const long  WBDZA_Height
+    const long  WBDZA_Hook
+    const long  WBDZA_Left
+    const long  WBDZA_RelBottom
+    const long  WBDZA_RelHeight
+    const long  WBDZA_RelRight
+    const long  WBDZA_RelWidth
+    const long  WBDZA_Top
+    const long  WBDZA_Width
+    const long  WBF_BOUNDTEXTVIEW
+    const long  WBF_DRAWERPOSFREE
+    const long  WBF_DRAWERPOSHEAD
+    const long  WBF_DRAWERPOSMASK
+    const long  WBF_DRAWERPOSTAIL
+    const long  WBF_OLDDATESFIRST
+    const ubyte  WBGARBAGE
+    const ubyte  WBKICK
+    const long  WBOBJA_DrawerFlags
+    const long  WBOBJA_DrawerModes
+    const long  WBOBJA_DrawerPath
+    const long  WBOBJA_DrawerPathSize
+    const long  WBOBJA_FullPath
+    const long  WBOBJA_FullPathSize
+    const long  WBOBJA_Height
+    const long  WBOBJA_IsFake
+    const long  WBOBJA_IsLink
+    const long  WBOBJA_Left
+    const long  WBOBJA_Name
+    const long  WBOBJA_NameSize
+    const long  WBOBJA_State
+    const long  WBOBJA_Top
+    const long  WBOBJA_Type
+    const long  WBOBJA_Width
+    const long  WBOPENA_ArgLock
+    const long  WBOPENA_ArgName
+    const long  WBOPENA_Show
+    const long  WBOPENA_ViewBy
+    const ubyte  WBO_DRAWER
+    const ubyte  WBO_ICON
+    const ubyte  WBO_NONE
+    const ubyte  WBPROJECT
+    const ubyte  WBTOOL
+    const uword  WB_DISKMAGIC
+    const ubyte  WB_DISKREVISION
+    const ubyte  WB_DISKREVISIONMASK
+    const ubyte  WB_DISKVERSION
+    const ubyte  WORKBENCH_WORKBENCH_I
+    AddFreeList  (long freelist @A0, long mem @A1, long size @A2) -> bool @D0@bank 11 = -$48
+    BumpRevision  (str newname @A0, str oldname @A1) -> str @D0@bank 11 = -$6c
+    BumpRevisionLength  (str newname @A0, str oldname @A1, long maxLength @D0) -> str @D0@bank 11 = -$cc
+    ChangeToSelectedIconColor  (long cr @A0)@bank 11 = -$c6
+    DeleteDiskObject  (str name @A0) -> bool @D0@bank 11 = -$8a
+    DrawIconStateA  (^^graphics.RastPort rp @A0, ^^icon.DiskObject icon @A1, str label @A2, long leftOffset @D0, long topOffset @D1, long state @D2, long tags @A3)@bank 11 = -$a2
+    DupDiskObjectA  (^^icon.DiskObject diskObject @A0, long tags @A1) -> ^^icon.DiskObject @D0@bank 11 = -$96
+    FindToolType  (str toolTypeArray @A0, str typeName @A1) -> long @D0@bank 11 = -$60
+    FreeAlloc  (long free @A0, long len @A1, long k_type @A2) -> long @D0@bank 11 = -$72
+    FreeDiskObject  (^^icon.DiskObject diskobj @A0)@bank 11 = -$5a
+    FreeFree  (long fl @A0, long address @A1)@bank 11 = -$90
+    FreeFreeList  (long freelist @A0)@bank 11 = -$36
+    GetDefDiskObject  (long k_type @D0) -> ^^icon.DiskObject @D0@bank 11 = -$78
+    GetDiskObject  (str name @A0) -> ^^icon.DiskObject @D0@bank 11 = -$4e
+    GetDiskObjectNew  (str name @A0) -> ^^icon.DiskObject @D0@bank 11 = -$84
+    GetIconRectangleA  (^^graphics.RastPort rp @A0, ^^icon.DiskObject icon @A1, str label @A2, long rect @A3, long tags @A4) -> bool @D0@bank 11 = -$a8
+    GetIconTagList  (str name @A0, long tags @A1) -> ^^icon.DiskObject @D0@bank 11 = -$b4
+    IconControlA  (^^icon.DiskObject icon @A0, long tags @A1) -> long @D0@bank 11 = -$9c
+    LayoutIconA  (^^icon.DiskObject icon @A0, ^^intuition.Screen screen @A1, long tags @A2) -> bool @D0@bank 11 = -$c0
+    MatchToolValue  (str typeString @A0, str value @A1) -> bool @D0@bank 11 = -$66
+    NewDiskObject  (long k_type @D0) -> ^^icon.DiskObject @D0@bank 11 = -$ae
+    PutDefDiskObject  (^^icon.DiskObject diskObject @A0) -> bool @D0@bank 11 = -$7e
+    PutDiskObject  (str name @A0, ^^icon.DiskObject diskobj @A1) -> bool @D0@bank 11 = -$54
+    PutIconTagList  (str name @A0, ^^icon.DiskObject icon @A1, long tags @A2) -> bool @D0@bank 11 = -$ba
 }
 
 
@@ -2998,46 +3192,46 @@ iffparse  {
     const ubyte  IFFSLI_ROOT
     const ubyte  IFFSLI_TOP
     const long  IFF_RETURN2CLIENT
-    AllocIFF  () -> long @D0@bank 14 = -$1e
+    AllocIFF  () -> ^^iffparse.IFFHandle @D0@bank 14 = -$1e
     AllocLocalItem  (long k_type @D0, long id @D1, long ident @D2, long dataSize @D3) -> long @D0@bank 14 = -$ba
     CloseClipboard  (long clipHandle @A0)@bank 14 = -$fc
-    CloseIFF  (long iff @A0)@bank 14 = -$30
-    CollectionChunk  (long iff @A0, long k_type @D0, long id @D1) -> long @D0@bank 14 = -$8a
-    CollectionChunks  (long iff @A0, long propArray @A1, long numPairs @D0) -> long @D0@bank 14 = -$90
-    CurrentChunk  (long iff @A0) -> long @D0@bank 14 = -$ae
-    EntryHandler  (long iff @A0, long k_type @D0, long id @D1, long position @D2, long handler @A1, long object @A2) -> long @D0@bank 14 = -$66
-    ExitHandler  (long iff @A0, long k_type @D0, long id @D1, long position @D2, long handler @A1, long object @A2) -> long @D0@bank 14 = -$6c
-    FindCollection  (long iff @A0, long k_type @D0, long id @D1) -> long @D0@bank 14 = -$a2
-    FindLocalItem  (long iff @A0, long k_type @D0, long id @D1, long ident @D2) -> long @D0@bank 14 = -$d2
-    FindProp  (long iff @A0, long k_type @D0, long id @D1) -> long @D0@bank 14 = -$9c
-    FindPropContext  (long iff @A0) -> long @D0@bank 14 = -$a8
-    FreeIFF  (long iff @A0)@bank 14 = -$36
+    CloseIFF  (^^iffparse.IFFHandle iff @A0)@bank 14 = -$30
+    CollectionChunk  (^^iffparse.IFFHandle iff @A0, long k_type @D0, long id @D1) -> long @D0@bank 14 = -$8a
+    CollectionChunks  (^^iffparse.IFFHandle iff @A0, long propArray @A1, long numPairs @D0) -> long @D0@bank 14 = -$90
+    CurrentChunk  (^^iffparse.IFFHandle iff @A0) -> ^^iffparse.ContextNode @D0@bank 14 = -$ae
+    EntryHandler  (^^iffparse.IFFHandle iff @A0, long k_type @D0, long id @D1, long position @D2, ^^utility.Hook handler @A1, long object @A2) -> long @D0@bank 14 = -$66
+    ExitHandler  (^^iffparse.IFFHandle iff @A0, long k_type @D0, long id @D1, long position @D2, ^^utility.Hook handler @A1, long object @A2) -> long @D0@bank 14 = -$6c
+    FindCollection  (^^iffparse.IFFHandle iff @A0, long k_type @D0, long id @D1) -> ^^iffparse.CollectionItem @D0@bank 14 = -$a2
+    FindLocalItem  (^^iffparse.IFFHandle iff @A0, long k_type @D0, long id @D1, long ident @D2) -> long @D0@bank 14 = -$d2
+    FindProp  (^^iffparse.IFFHandle iff @A0, long k_type @D0, long id @D1) -> ^^iffparse.StoredProperty @D0@bank 14 = -$9c
+    FindPropContext  (^^iffparse.IFFHandle iff @A0) -> ^^iffparse.ContextNode @D0@bank 14 = -$a8
+    FreeIFF  (^^iffparse.IFFHandle iff @A0)@bank 14 = -$36
     FreeLocalItem  (long localItem @A0)@bank 14 = -$cc
     GoodID  (long id @D0) -> long @D0@bank 14 = -$0102
     GoodType  (long k_type @D0) -> long @D0@bank 14 = -$0108
     IDtoStr  (long id @D0, str buf @A0) -> str @D0@bank 14 = -$010e
-    InitIFF  (long iff @A0, long flags @D0, long streamHook @A1)@bank 14 = -$e4
-    InitIFFasClip  (long iff @A0)@bank 14 = -$f0
-    InitIFFasDOS  (long iff @A0)@bank 14 = -$ea
+    InitIFF  (^^iffparse.IFFHandle iff @A0, long flags @D0, ^^utility.Hook streamHook @A1)@bank 14 = -$e4
+    InitIFFasClip  (^^iffparse.IFFHandle iff @A0)@bank 14 = -$f0
+    InitIFFasDOS  (^^iffparse.IFFHandle iff @A0)@bank 14 = -$ea
     LocalItemData  (long localItem @A0) -> long @D0@bank 14 = -$c0
     OpenClipboard  (long unitNumber @D0) -> long @D0@bank 14 = -$f6
-    OpenIFF  (long iff @A0, long rwMode @D0) -> long @D0@bank 14 = -$24
-    ParentChunk  (long contextNode @A0) -> long @D0@bank 14 = -$b4
-    ParseIFF  (long iff @A0, long control @D0) -> long @D0@bank 14 = -$2a
-    PopChunk  (long iff @A0) -> long @D0@bank 14 = -$5a
-    PropChunk  (long iff @A0, long k_type @D0, long id @D1) -> long @D0@bank 14 = -$72
-    PropChunks  (long iff @A0, long propArray @A1, long numPairs @D0) -> long @D0@bank 14 = -$78
-    PushChunk  (long iff @A0, long k_type @D0, long id @D1, long size @D2) -> long @D0@bank 14 = -$54
-    ReadChunkBytes  (long iff @A0, long buf @A1, long numBytes @D0) -> long @D0@bank 14 = -$3c
-    ReadChunkRecords  (long iff @A0, long buf @A1, long bytesPerRecord @D0, long numRecords @D1) -> long @D0@bank 14 = -$48
-    SetLocalItemPurge  (long localItem @A0, long purgeHook @A1)@bank 14 = -$c6
-    StopChunk  (long iff @A0, long k_type @D0, long id @D1) -> long @D0@bank 14 = -$7e
-    StopChunks  (long iff @A0, long propArray @A1, long numPairs @D0) -> long @D0@bank 14 = -$84
-    StopOnExit  (long iff @A0, long k_type @D0, long id @D1) -> long @D0@bank 14 = -$96
-    StoreItemInContext  (long iff @A0, long localItem @A1, long contextNode @A2)@bank 14 = -$de
-    StoreLocalItem  (long iff @A0, long localItem @A1, long position @D0) -> long @D0@bank 14 = -$d8
-    WriteChunkBytes  (long iff @A0, long buf @A1, long numBytes @D0) -> long @D0@bank 14 = -$42
-    WriteChunkRecords  (long iff @A0, long buf @A1, long bytesPerRecord @D0, long numRecords @D1) -> long @D0@bank 14 = -$4e
+    OpenIFF  (^^iffparse.IFFHandle iff @A0, long rwMode @D0) -> long @D0@bank 14 = -$24
+    ParentChunk  (^^iffparse.ContextNode contextNode @A0) -> ^^iffparse.ContextNode @D0@bank 14 = -$b4
+    ParseIFF  (^^iffparse.IFFHandle iff @A0, long control @D0) -> long @D0@bank 14 = -$2a
+    PopChunk  (^^iffparse.IFFHandle iff @A0) -> long @D0@bank 14 = -$5a
+    PropChunk  (^^iffparse.IFFHandle iff @A0, long k_type @D0, long id @D1) -> long @D0@bank 14 = -$72
+    PropChunks  (^^iffparse.IFFHandle iff @A0, long propArray @A1, long numPairs @D0) -> long @D0@bank 14 = -$78
+    PushChunk  (^^iffparse.IFFHandle iff @A0, long k_type @D0, long id @D1, long size @D2) -> long @D0@bank 14 = -$54
+    ReadChunkBytes  (^^iffparse.IFFHandle iff @A0, long buf @A1, long numBytes @D0) -> long @D0@bank 14 = -$3c
+    ReadChunkRecords  (^^iffparse.IFFHandle iff @A0, long buf @A1, long bytesPerRecord @D0, long numRecords @D1) -> long @D0@bank 14 = -$48
+    SetLocalItemPurge  (long localItem @A0, ^^utility.Hook purgeHook @A1)@bank 14 = -$c6
+    StopChunk  (^^iffparse.IFFHandle iff @A0, long k_type @D0, long id @D1) -> long @D0@bank 14 = -$7e
+    StopChunks  (^^iffparse.IFFHandle iff @A0, long propArray @A1, long numPairs @D0) -> long @D0@bank 14 = -$84
+    StopOnExit  (^^iffparse.IFFHandle iff @A0, long k_type @D0, long id @D1) -> long @D0@bank 14 = -$96
+    StoreItemInContext  (^^iffparse.IFFHandle iff @A0, long localItem @A1, ^^iffparse.ContextNode contextNode @A2)@bank 14 = -$de
+    StoreLocalItem  (^^iffparse.IFFHandle iff @A0, long localItem @A1, long position @D0) -> long @D0@bank 14 = -$d8
+    WriteChunkBytes  (^^iffparse.IFFHandle iff @A0, long buf @A1, long numBytes @D0) -> long @D0@bank 14 = -$42
+    WriteChunkRecords  (^^iffparse.IFFHandle iff @A0, long buf @A1, long bytesPerRecord @D0, long numRecords @D1) -> long @D0@bank 14 = -$4e
     closelib  ()
     openlib  () -> bool
 }
@@ -4116,133 +4310,136 @@ intuition  {
     const ubyte  W_TRACTOR
     const long  ZOOMED
     const ubyte  ZOOMIMAGE
-    ActivateGadget  (long gadgets @A0, long window @A1, long requester @A2) -> bool @D0@bank 4 = -$01ce
-    ActivateWindow  (long window @A0)@bank 4 = -$01c2
+    ActivateGadget  (^^intuition.Gadget gadgets @A0, ^^intuition.Window window @A1, ^^intuition.Requester requester @A2) -> bool @D0@bank 4 = -$01ce
+    ActivateWindow  (^^intuition.Window window @A0)@bank 4 = -$01c2
     AddClass  (long classPtr @A0)@bank 4 = -$02ac
-    AddGList  (long window @A0, long gadget @A1, uword position @D0, word numGad @D1, long requester @A2) -> uword @D0@bank 4 = -$01b6
-    AddGadget  (long window @A0, long gadget @A1, uword position @D0) -> uword @D0@bank 4 = -$2a
+    AddGList  (^^intuition.Window window @A0, ^^intuition.Gadget gadget @A1, uword position @D0, word numGad @D1, ^^intuition.Requester requester @A2) -> uword @D0@bank 4 = -$01b6
+    AddGadget  (^^intuition.Window window @A0, ^^intuition.Gadget gadget @A1, uword position @D0) -> uword @D0@bank 4 = -$2a
     AllocRemember  (long rememberKey @A0, long size @D0, long flags @D1) -> long @D0@bank 4 = -$018c
-    AllocScreenBuffer  (long sc @A0, long bm @A1, long flags @D0) -> long @D0@bank 4 = -$0300
+    AllocScreenBuffer  (^^intuition.Screen sc @A0, ^^graphics.BitMap bm @A1, long flags @D0) -> long @D0@bank 4 = -$0300
     AlohaWorkbench  (long wbport @A0)@bank 4 = -$0192
-    AutoRequest  (long window @A0, long body @A1, long posText @A2, long negText @A3, long pFlag @D0, long nFlag @D1, uword width @D2, uword height @D3) -> bool @D0@bank 4 = -$015c
-    BeginRefresh  (long window @A0)@bank 4 = -$0162
-    BuildEasyRequestArgs  (long window @A0, long easyStruct @A1, long idcmp @D0, long args @A3) -> long @D0@bank 4 = -$0252
-    BuildSysRequest  (long window @A0, long body @A1, long posText @A2, long negText @A3, long flags @D0, uword width @D1, uword height @D2) -> long @D0@bank 4 = -$0168
-    ChangeScreenBuffer  (long sc @A0, long sb @A1) -> long @D0@bank 4 = -$030c
-    ChangeWindowBox  (long window @A0, word left @D0, word top @D1, word width @D2, word height @D3)@bank 4 = -$01e6
-    ClearDMRequest  (long window @A0) -> bool @D0@bank 4 = -$30
-    ClearMenuStrip  (long window @A0)@bank 4 = -$36
-    ClearPointer  (long window @A0)@bank 4 = -$3c
-    CloseScreen  (long screen @A0) -> bool @D0@bank 4 = -$42
-    CloseWindow  (long window @A0)@bank 4 = -$48
+    AutoRequest  (^^intuition.Window window @A0, ^^intuition.IntuiText body @A1, ^^intuition.IntuiText posText @A2, ^^intuition.IntuiText negText @A3, long pFlag @D0, long nFlag @D1, uword width @D2, uword height @D3) -> bool @D0@bank 4 = -$015c
+    BeginRefresh  (^^intuition.Window window @A0)@bank 4 = -$0162
+    BuildEasyRequestArgs  (^^intuition.Window window @A0, ^^intuition.EasyStruct easyStruct @A1, long idcmp @D0, long args @A3) -> ^^intuition.Window @D0@bank 4 = -$0252
+    BuildSysRequest  (^^intuition.Window window @A0, ^^intuition.IntuiText body @A1, ^^intuition.IntuiText posText @A2, ^^intuition.IntuiText negText @A3, long flags @D0, uword width @D1, uword height @D2) -> ^^intuition.Window @D0@bank 4 = -$0168
+    ChangeScreenBuffer  (^^intuition.Screen sc @A0, long sb @A1) -> long @D0@bank 4 = -$030c
+    ChangeWindowBox  (^^intuition.Window window @A0, word left @D0, word top @D1, word width @D2, word height @D3)@bank 4 = -$01e6
+    ClearDMRequest  (^^intuition.Window window @A0) -> bool @D0@bank 4 = -$30
+    ClearMenuStrip  (^^intuition.Window window @A0)@bank 4 = -$36
+    ClearPointer  (^^intuition.Window window @A0)@bank 4 = -$3c
+    CloseScreen  (^^intuition.Screen screen @A0) -> bool @D0@bank 4 = -$42
+    CloseWindow  (^^intuition.Window window @A0)@bank 4 = -$48
     CloseWorkBench  () -> long @D0@bank 4 = -$4e
     CurrentTime  (long seconds @A0, long micros @A1)@bank 4 = -$54
     DisplayAlert  (long alertNumber @D0, str string @A0, uword height @D1) -> bool @D0@bank 4 = -$5a
-    DisplayBeep  (long screen @A0)@bank 4 = -$60
+    DisplayBeep  (^^intuition.Screen screen @A0)@bank 4 = -$60
     DisposeObject  (long object @A0)@bank 4 = -$0282
-    DoGadgetMethodA  (long gad @A0, long win @A1, long req @A2, long message @A3) -> long @D0@bank 4 = -$032a
+    DoGadgetMethodA  (^^intuition.Gadget gad @A0, ^^intuition.Window win @A1, ^^intuition.Requester req @A2, long message @A3) -> long @D0@bank 4 = -$032a
     DoubleClick  (long sSeconds @D0, long sMicros @D1, long cSeconds @D2, long cMicros @D3) -> bool @D0@bank 4 = -$66
-    DrawBorder  (long rp @A0, long border @A1, word leftOffset @D0, word topOffset @D1)@bank 4 = -$6c
-    DrawImage  (long rp @A0, long image @A1, word leftOffset @D0, word topOffset @D1)@bank 4 = -$72
-    DrawImageState  (long rp @A0, long image @A1, word leftOffset @D0, word topOffset @D1, long state @D2, long drawInfo @A2)@bank 4 = -$026a
-    EasyRequestArgs  (long window @A0, long easyStruct @A1, long idcmpPtr @A2, long args @A3) -> long @D0@bank 4 = -$024c
-    EndRefresh  (long window @A0, long complete @D0)@bank 4 = -$016e
-    EndRequest  (long requester @A0, long window @A1)@bank 4 = -$78
-    EraseImage  (long rp @A0, long image @A1, word leftOffset @D0, word topOffset @D1)@bank 4 = -$0276
+    DrawBorder  (^^graphics.RastPort rp @A0, ^^intuition.Border border @A1, word leftOffset @D0, word topOffset @D1)@bank 4 = -$6c
+    DrawImage  (^^graphics.RastPort rp @A0, ^^intuition.Image image @A1, word leftOffset @D0, word topOffset @D1)@bank 4 = -$72
+    DrawImageState  (^^graphics.RastPort rp @A0, ^^intuition.Image image @A1, word leftOffset @D0, word topOffset @D1, long state @D2, ^^intuition.DrawInfo drawInfo @A2)@bank 4 = -$026a
+    EasyRequestArgs  (^^intuition.Window window @A0, ^^intuition.EasyStruct easyStruct @A1, long idcmpPtr @A2, long args @A3) -> long @D0@bank 4 = -$024c
+    EndRefresh  (^^intuition.Window window @A0, long complete @D0)@bank 4 = -$016e
+    EndRequest  (^^intuition.Requester requester @A0, ^^intuition.Window window @A1)@bank 4 = -$78
+    EraseImage  (^^graphics.RastPort rp @A0, ^^intuition.Image image @A1, word leftOffset @D0, word topOffset @D1)@bank 4 = -$0276
     FreeClass  (long classPtr @A0) -> bool @D0@bank 4 = -$02ca
     FreeRemember  (long rememberKey @A0, bool reallyForget @D0)@bank 4 = -$0198
-    FreeScreenBuffer  (long sc @A0, long sb @A1)@bank 4 = -$0306
-    FreeScreenDrawInfo  (long screen @A0, long drawInfo @A1)@bank 4 = -$02b8
-    FreeSysRequest  (long window @A0)@bank 4 = -$0174
-    GadgetMouse  (long gadget @A0, long gInfo @A1, long mousePoint @A2)@bank 4 = -$023a
+    FreeScreenBuffer  (^^intuition.Screen sc @A0, long sb @A1)@bank 4 = -$0306
+    FreeScreenDrawInfo  (^^intuition.Screen screen @A0, ^^intuition.DrawInfo drawInfo @A1)@bank 4 = -$02b8
+    FreeSysRequest  (^^intuition.Window window @A0)@bank 4 = -$0174
+    GadgetMouse  (^^intuition.Gadget gadget @A0, long gInfo @A1, long mousePoint @A2)@bank 4 = -$023a
     GetAttr  (long attrID @D0, long object @A0, long storagePtr @A1) -> long @D0@bank 4 = -$028e
     GetDefPrefs  (long preferences @A0, word size @D0) -> long @D0@bank 4 = -$7e
     GetDefaultPubScreen  (str nameBuffer @A0)@bank 4 = -$0246
     GetPrefs  (long preferences @A0, word size @D0) -> long @D0@bank 4 = -$84
-    GetScreenData  (long buffer @A0, uword size @D0, uword k_type @D1, long screen @A1) -> long @D0@bank 4 = -$01aa
-    GetScreenDrawInfo  (long screen @A0) -> long @D0@bank 4 = -$02b2
-    HelpControl  (long win @A0, long flags @D0)@bank 4 = -$033c
-    HideWindow  (long window @A0) -> bool @D0@bank 4 = -$0348
-    InitRequester  (long requester @A0)@bank 4 = -$8a
-    IntuiTextLength  (long iText @A0) -> long @D0@bank 4 = -$014a
+    GetScreenBitMap  (^^intuition.Screen screen @A0) -> ^^graphics.BitMap @A1
+    GetScreenData  (long buffer @A0, uword size @D0, uword k_type @D1, ^^intuition.Screen screen @A1) -> long @D0@bank 4 = -$01aa
+    GetScreenDrawInfo  (^^intuition.Screen screen @A0) -> ^^intuition.DrawInfo @D0@bank 4 = -$02b2
+    GetScreenRastPort  (^^intuition.Screen screen @A0) -> ^^graphics.RastPort @A1
+    GetScreenViewPort  (^^intuition.Screen screen @A0) -> long @A1
+    HelpControl  (^^intuition.Window win @A0, long flags @D0)@bank 4 = -$033c
+    HideWindow  (^^intuition.Window window @A0) -> bool @D0@bank 4 = -$0348
+    InitRequester  (^^intuition.Requester requester @A0)@bank 4 = -$8a
+    IntuiTextLength  (^^intuition.IntuiText iText @A0) -> long @D0@bank 4 = -$014a
     Intuition  (long iEvent @A0)@bank 4 = -$24
     IntuitionControlA  (long object @A0, long taglist @A1) -> long @D0@bank 4 = -$04bc
-    ItemAddress  (long menuStrip @A0, uword menuNumber @D0) -> long @D0@bank 4 = -$90
-    LendMenus  (long fromwindow @A0, long towindow @A1)@bank 4 = -$0324
+    ItemAddress  (^^intuition.Menu menuStrip @A0, uword menuNumber @D0) -> ^^intuition.MenuItem @D0@bank 4 = -$90
+    LendMenus  (^^intuition.Window fromwindow @A0, ^^intuition.Window towindow @A1)@bank 4 = -$0324
     LockIBase  (long dontknow @D0) -> long @D0@bank 4 = -$019e
-    LockPubScreen  (str name @A0) -> long @D0@bank 4 = -$01fe
-    LockPubScreenList  () -> long @D0@bank 4 = -$020a
+    LockPubScreen  (str name @A0) -> ^^intuition.Screen @D0@bank 4 = -$01fe
+    LockPubScreenList  () -> ^^exec.List @D0@bank 4 = -$020a
     MakeClass  (str classID @A0, str superClassID @A1, long superClassPtr @A2, uword instanceSize @D0, long flags @D1) -> long @D0@bank 4 = -$02a6
-    MakeScreen  (long screen @A0) -> long @D0@bank 4 = -$017a
-    ModifyIDCMP  (long window @A0, long flags @D0) -> bool @D0@bank 4 = -$96
-    ModifyProp  (long gadget @A0, long window @A1, long requester @A2, uword flags @D0, uword horizPot @D1, uword vertPot @D2, uword horizBody @D3, uword vertBody @D4)@bank 4 = -$9c
-    MoveScreen  (long screen @A0, word dx @D0, word dy @D1)@bank 4 = -$a2
-    MoveWindow  (long window @A0, word dx @D0, word dy @D1)@bank 4 = -$a8
-    MoveWindowInFrontOf  (long window @A0, long behindWindow @A1)@bank 4 = -$01e0
-    NewModifyProp  (long gadget @A0, long window @A1, long requester @A2, uword flags @D0, uword horizPot @D1, uword vertPot @D2, uword horizBody @D3, uword vertBody @D4, word numGad @D5)@bank 4 = -$01d4
+    MakeScreen  (^^intuition.Screen screen @A0) -> long @D0@bank 4 = -$017a
+    ModifyIDCMP  (^^intuition.Window window @A0, long flags @D0) -> bool @D0@bank 4 = -$96
+    ModifyProp  (^^intuition.Gadget gadget @A0, ^^intuition.Window window @A1, ^^intuition.Requester requester @A2, uword flags @D0, uword horizPot @D1, uword vertPot @D2, uword horizBody @D3, uword vertBody @D4)@bank 4 = -$9c
+    MoveScreen  (^^intuition.Screen screen @A0, word dx @D0, word dy @D1)@bank 4 = -$a2
+    MoveWindow  (^^intuition.Window window @A0, word dx @D0, word dy @D1)@bank 4 = -$a8
+    MoveWindowInFrontOf  (^^intuition.Window window @A0, ^^intuition.Window behindWindow @A1)@bank 4 = -$01e0
+    NewModifyProp  (^^intuition.Gadget gadget @A0, ^^intuition.Window window @A1, ^^intuition.Requester requester @A2, uword flags @D0, uword horizPot @D1, uword vertPot @D2, uword horizBody @D3, uword vertBody @D4, word numGad @D5)@bank 4 = -$01d4
     NewObjectA  (long classPtr @A0, str classID @A1, long tagList @A2) -> long @D0@bank 4 = -$027c
     NextObject  (long objectPtrPtr @A0) -> long @D0@bank 4 = -$029a
-    NextPubScreen  (long screen @A0, str namebuf @A1) -> str @D0@bank 4 = -$0216
-    ObtainGIRPort  (long gInfo @A0) -> long @D0@bank 4 = -$022e
-    OffGadget  (long gadget @A0, long window @A1, long requester @A2)@bank 4 = -$ae
-    OffMenu  (long window @A0, uword menuNumber @D0)@bank 4 = -$b4
-    OnGadget  (long gadget @A0, long window @A1, long requester @A2)@bank 4 = -$ba
-    OnMenu  (long window @A0, uword menuNumber @D0)@bank 4 = -$c0
+    NextPubScreen  (^^intuition.Screen screen @A0, str namebuf @A1) -> str @D0@bank 4 = -$0216
+    ObtainGIRPort  (long gInfo @A0) -> ^^graphics.RastPort @D0@bank 4 = -$022e
+    OffGadget  (^^intuition.Gadget gadget @A0, ^^intuition.Window window @A1, ^^intuition.Requester requester @A2)@bank 4 = -$ae
+    OffMenu  (^^intuition.Window window @A0, uword menuNumber @D0)@bank 4 = -$b4
+    OnGadget  (^^intuition.Gadget gadget @A0, ^^intuition.Window window @A1, ^^intuition.Requester requester @A2)@bank 4 = -$ba
+    OnMenu  (^^intuition.Window window @A0, uword menuNumber @D0)@bank 4 = -$c0
     OpenIntuition  ()@bank 4 = -$1e
-    OpenScreen  (long newScreen @A0) -> long @D0@bank 4 = -$c6
-    OpenScreenTagList  (long newScreen @A0, long tagList @A1) -> long @D0@bank 4 = -$0264
-    OpenWindow  (long newWindow @A0) -> long @D0@bank 4 = -$cc
-    OpenWindowTagList  (long newWindow @A0, long tagList @A1) -> long @D0@bank 4 = -$025e
+    OpenScreen  (^^intuition.NewScreen newScreen @A0) -> ^^intuition.Screen @D0@bank 4 = -$c6
+    OpenScreenTagList  (^^intuition.NewScreen newScreen @A0, long tagList @A1) -> ^^intuition.Screen @D0@bank 4 = -$0264
+    OpenWindow  (^^intuition.NewWindow newWindow @A0) -> ^^intuition.Window @D0@bank 4 = -$cc
+    OpenWindowTagList  (^^intuition.NewWindow newWindow @A0, long tagList @A1) -> ^^intuition.Window @D0@bank 4 = -$025e
     OpenWorkBench  () -> long @D0@bank 4 = -$d2
-    PointInImage  (long point @D0, long image @A0) -> bool @D0@bank 4 = -$0270
-    PrintIText  (long rp @A0, long iText @A1, word left @D0, word top @D1)@bank 4 = -$d8
-    PubScreenStatus  (long screen @A0, uword statusFlags @D0) -> uword @D0@bank 4 = -$0228
+    PointInImage  (long point @D0, ^^intuition.Image image @A0) -> bool @D0@bank 4 = -$0270
+    PrintIText  (^^graphics.RastPort rp @A0, ^^intuition.IntuiText iText @A1, word left @D0, word top @D1)@bank 4 = -$d8
+    PubScreenStatus  (^^intuition.Screen screen @A0, uword statusFlags @D0) -> uword @D0@bank 4 = -$0228
     QueryOverscan  (long displayID @A0, long rect @A1, word oScanType @D0) -> long @D0@bank 4 = -$01da
-    RefreshGList  (long gadgets @A0, long window @A1, long requester @A2, word numGad @D0)@bank 4 = -$01b0
-    RefreshGadgets  (long gadgets @A0, long window @A1, long requester @A2)@bank 4 = -$de
-    RefreshWindowFrame  (long window @A0)@bank 4 = -$01c8
-    ReleaseGIRPort  (long rp @A0)@bank 4 = -$0234
+    RefreshGList  (^^intuition.Gadget gadgets @A0, ^^intuition.Window window @A1, ^^intuition.Requester requester @A2, word numGad @D0)@bank 4 = -$01b0
+    RefreshGadgets  (^^intuition.Gadget gadgets @A0, ^^intuition.Window window @A1, ^^intuition.Requester requester @A2)@bank 4 = -$de
+    RefreshWindowFrame  (^^intuition.Window window @A0)@bank 4 = -$01c8
+    ReleaseGIRPort  (^^graphics.RastPort rp @A0)@bank 4 = -$0234
     RemakeDisplay  () -> long @D0@bank 4 = -$0180
     RemoveClass  (long classPtr @A0)@bank 4 = -$02c4
-    RemoveGList  (long remPtr @A0, long gadget @A1, word numGad @D0) -> uword @D0@bank 4 = -$01bc
-    RemoveGadget  (long window @A0, long gadget @A1) -> uword @D0@bank 4 = -$e4
-    ReportMouse  (bool flag @D0, long window @A0)@bank 4 = -$ea
-    Request  (long requester @A0, long window @A1) -> bool @D0@bank 4 = -$f0
-    ResetMenuStrip  (long window @A0, long menu @A1) -> bool @D0@bank 4 = -$02be
+    RemoveGList  (^^intuition.Window remPtr @A0, ^^intuition.Gadget gadget @A1, word numGad @D0) -> uword @D0@bank 4 = -$01bc
+    RemoveGadget  (^^intuition.Window window @A0, ^^intuition.Gadget gadget @A1) -> uword @D0@bank 4 = -$e4
+    ReportMouse  (bool flag @D0, ^^intuition.Window window @A0)@bank 4 = -$ea
+    Request  (^^intuition.Requester requester @A0, ^^intuition.Window window @A1) -> bool @D0@bank 4 = -$f0
+    ResetMenuStrip  (^^intuition.Window window @A0, ^^intuition.Menu menu @A1) -> bool @D0@bank 4 = -$02be
     RethinkDisplay  () -> long @D0@bank 4 = -$0186
-    ScreenDepth  (long screen @A0, long flags @D0, long reserved @A1)@bank 4 = -$0312
-    ScreenPosition  (long screen @A0, long flags @D0, long x1 @D1, long y1 @D2, long x2 @D3, long y2 @D4)@bank 4 = -$0318
-    ScreenToBack  (long screen @A0)@bank 4 = -$f6
-    ScreenToFront  (long screen @A0)@bank 4 = -$fc
-    ScrollWindowRaster  (long win @A1, word dx @D0, word dy @D1, word xMin @D2, word yMin @D3, word xMax @D4, word yMax @D5)@bank 4 = -$031e
+    ScreenDepth  (^^intuition.Screen screen @A0, long flags @D0, long reserved @A1)@bank 4 = -$0312
+    ScreenPosition  (^^intuition.Screen screen @A0, long flags @D0, long x1 @D1, long y1 @D2, long x2 @D3, long y2 @D4)@bank 4 = -$0318
+    ScreenToBack  (^^intuition.Screen screen @A0)@bank 4 = -$f6
+    ScreenToFront  (^^intuition.Screen screen @A0)@bank 4 = -$fc
+    ScrollWindowRaster  (^^intuition.Window win @A1, word dx @D0, word dy @D1, word xMin @D2, word yMin @D3, word xMax @D4, word yMax @D5)@bank 4 = -$031e
     SetAttrsA  (long object @A0, long tagList @A1) -> long @D0@bank 4 = -$0288
-    SetDMRequest  (long window @A0, long requester @A1) -> bool @D0@bank 4 = -$0102
+    SetDMRequest  (^^intuition.Window window @A0, ^^intuition.Requester requester @A1) -> bool @D0@bank 4 = -$0102
     SetDefaultPubScreen  (str name @A0)@bank 4 = -$021c
-    SetEditHook  (long hook @A0) -> long @D0@bank 4 = -$01ec
-    SetGadgetAttrsA  (long gadget @A0, long window @A1, long requester @A2, long tagList @A3) -> long @D0@bank 4 = -$0294
-    SetMenuStrip  (long window @A0, long menu @A1) -> bool @D0@bank 4 = -$0108
-    SetMouseQueue  (long window @A0, uword queueLength @D0) -> long @D0@bank 4 = -$01f2
-    SetPointer  (long window @A0, long k_pointer @A1, word height @D0, word width @D1, word xOffset @D2, word yOffset @D3)@bank 4 = -$010e
+    SetEditHook  (^^utility.Hook hook @A0) -> ^^utility.Hook @D0@bank 4 = -$01ec
+    SetGadgetAttrsA  (^^intuition.Gadget gadget @A0, ^^intuition.Window window @A1, ^^intuition.Requester requester @A2, long tagList @A3) -> long @D0@bank 4 = -$0294
+    SetMenuStrip  (^^intuition.Window window @A0, ^^intuition.Menu menu @A1) -> bool @D0@bank 4 = -$0108
+    SetMouseQueue  (^^intuition.Window window @A0, uword queueLength @D0) -> long @D0@bank 4 = -$01f2
+    SetPointer  (^^intuition.Window window @A0, long k_pointer @A1, word height @D0, word width @D1, word xOffset @D2, word yOffset @D3)@bank 4 = -$010e
     SetPrefs  (long preferences @A0, long size @D0, bool inform @D1) -> long @D0@bank 4 = -$0144
     SetPubScreenModes  (uword modes @D0) -> uword @D0@bank 4 = -$0222
-    SetWindowPointerA  (long win @A0, long taglist @A1)@bank 4 = -$0330
-    SetWindowTitles  (long window @A0, str windowTitle @A1, str screenTitle @A2)@bank 4 = -$0114
-    ShowTitle  (long screen @A0, bool showIt @D0)@bank 4 = -$011a
-    ShowWindow  (long window @A0, long other @A1) -> bool @D0@bank 4 = -$0342
-    SizeWindow  (long window @A0, word dx @D0, word dy @D1)@bank 4 = -$0120
-    SysReqHandler  (long window @A0, long idcmpPtr @A1, bool waitInput @D0) -> long @D0@bank 4 = -$0258
+    SetWindowPointerA  (^^intuition.Window win @A0, long taglist @A1)@bank 4 = -$0330
+    SetWindowTitles  (^^intuition.Window window @A0, str windowTitle @A1, str screenTitle @A2)@bank 4 = -$0114
+    ShowTitle  (^^intuition.Screen screen @A0, bool showIt @D0)@bank 4 = -$011a
+    ShowWindow  (^^intuition.Window window @A0, ^^intuition.Window other @A1) -> bool @D0@bank 4 = -$0342
+    SizeWindow  (^^intuition.Window window @A0, word dx @D0, word dy @D1)@bank 4 = -$0120
+    SysReqHandler  (^^intuition.Window window @A0, long idcmpPtr @A1, bool waitInput @D0) -> long @D0@bank 4 = -$0258
     TimedDisplayAlert  (long alertNumber @D0, str string @A0, uword height @D1, long time @A1) -> bool @D0@bank 4 = -$0336
     UnlockIBase  (long ibLock @A0)@bank 4 = -$01a4
-    UnlockPubScreen  (str name @A0, long screen @A1)@bank 4 = -$0204
+    UnlockPubScreen  (str name @A0, ^^intuition.Screen screen @A1)@bank 4 = -$0204
     UnlockPubScreenList  ()@bank 4 = -$0210
-    ViewAddress  () -> long @D0@bank 4 = -$0126
-    ViewPortAddress  (long window @A0) -> long @D0@bank 4 = -$012c
+    ViewAddress  () -> ^^graphics.View @D0@bank 4 = -$0126
+    ViewPortAddress  (^^intuition.Window window @A0) -> long @D0@bank 4 = -$012c
     WBenchToBack  () -> bool @D0@bank 4 = -$0150
     WBenchToFront  () -> bool @D0@bank 4 = -$0156
-    WindowLimits  (long window @A0, long widthMin @D0, long heightMin @D1, long widthMax @D2, long heightMax @D3) -> bool @D0@bank 4 = -$013e
-    WindowToBack  (long window @A0)@bank 4 = -$0132
-    WindowToFront  (long window @A0)@bank 4 = -$0138
-    ZipWindow  (long window @A0)@bank 4 = -$01f8
+    WindowLimits  (^^intuition.Window window @A0, long widthMin @D0, long heightMin @D1, long widthMax @D2, long heightMax @D3) -> bool @D0@bank 4 = -$013e
+    WindowToBack  (^^intuition.Window window @A0)@bank 4 = -$0132
+    WindowToFront  (^^intuition.Window window @A0)@bank 4 = -$0138
+    ZipWindow  (^^intuition.Window window @A0)@bank 4 = -$01f8
 }
 
 
@@ -4260,9 +4457,9 @@ LIBRARY MODULE NAME: lists
 --------------------------
 
 lists  {
-    struct FullNode
-    struct List
-    struct Node
+    FullNode   alias for: exec.Node
+    List   alias for: exec.MinList
+    Node   alias for: exec.MinNode
     add_head  (long listptr, long node)
     add_tail  (long listptr, long node)
     enqueue  (long listptr, long node)
@@ -4304,12 +4501,17 @@ LIBRARY MODULE NAME: ptplayer
 -----------------------------
 
 ptplayer  {
-    mt_disable  ()
-    mt_enable  ()
-    mt_end  ()
-    mt_init  (long moduledata @A0)
-    mt_install  () -> bool @D0
-    mt_remove  ()
+    currentpos  () -> ubyte @D0, ubyte @D1, ubyte @D2
+    disable  ()
+    enable  ()
+    end  ()
+    init  (long moduledata @A0)
+    install  () -> bool @D0
+    notestrike  () clobbers (D4) -> bool @D0, bool @D1, bool @D2, bool @D3
+    numpatterns  () -> ubyte @D0
+    remove  ()
+    songname  () -> long @A0
+    volumes  () -> ubyte @D0, ubyte @D1, ubyte @D2, ubyte @D3
 }
 
 
@@ -4494,30 +4696,30 @@ utility  {
     const ubyte  UTILITY_PACK_I
     AddNamedObject  (long nameSpace @A0, long object @A1) -> bool @D0@bank 9 = -$de
     AllocNamedObjectA  (str name @A0, long tagList @A1) -> long @D0@bank 9 = -$e4
-    AllocateTagItems  (long numTags @D0) -> long @D0@bank 9 = -$42
-    Amiga2Date  (long seconds @D0, long result @A0)@bank 9 = -$78
+    AllocateTagItems  (long numTags @D0) -> ^^utility.TagItem @D0@bank 9 = -$42
+    Amiga2Date  (long seconds @D0, ^^utility.ClockData result @A0)@bank 9 = -$78
     ApplyTagChanges  (long list @A0, long changeList @A1)@bank 9 = -$ba
     AttemptRemNamedObject  (long object @A0) -> long @D0@bank 9 = -$ea
-    CallHookPkt  (long hook @A0, long object @A2, long paramPacket @A1) -> long @D0@bank 9 = -$66
-    CheckDate  (long date @A0) -> long @D0@bank 9 = -$84
-    CloneTagItems  (long tagList @A0) -> long @D0@bank 9 = -$48
-    Date2Amiga  (long date @A0) -> long @D0@bank 9 = -$7e
+    CallHookPkt  (^^utility.Hook hook @A0, long object @A2, long paramPacket @A1) -> long @D0@bank 9 = -$66
+    CheckDate  (^^utility.ClockData date @A0) -> long @D0@bank 9 = -$84
+    CloneTagItems  (long tagList @A0) -> ^^utility.TagItem @D0@bank 9 = -$48
+    Date2Amiga  (^^utility.ClockData date @A0) -> long @D0@bank 9 = -$7e
     FilterTagChanges  (long changeList @A0, long originalList @A1, long apply @D0)@bank 9 = -$36
     FilterTagItems  (long tagList @A0, long filterArray @A1, long logic @D0) -> long @D0@bank 9 = -$60
     FindNamedObject  (long nameSpace @A0, str name @A1, long lastObject @A2) -> long @D0@bank 9 = -$f0
-    FindTagItem  (long tagVal @D0, long tagList @A0) -> long @D0@bank 9 = -$1e
+    FindTagItem  (long tagVal @D0, long tagList @A0) -> ^^utility.TagItem @D0@bank 9 = -$1e
     FreeNamedObject  (long object @A0)@bank 9 = -$f6
     FreeTagItems  (long tagList @A0)@bank 9 = -$4e
     GetTagData  (long tagValue @D0, long defaultVal @D1, long tagList @A0) -> long @D0@bank 9 = -$24
     GetUniqueID  () -> long @D0@bank 9 = -$010e
     MapTags  (long tagList @A0, long mapList @A1, long mapType @D0)@bank 9 = -$3c
     NamedObjectName  (long object @A0) -> str @D0@bank 9 = -$fc
-    NextTagItem  (long tagListPtr @A0) -> long @D0@bank 9 = -$30
+    NextTagItem  (long tagListPtr @A0) -> ^^utility.TagItem @D0@bank 9 = -$30
     PackBoolTags  (long initialFlags @D0, long tagList @A0, long boolMap @A1) -> long @D0@bank 9 = -$2a
     PackStructureTags  (long pack @A0, long packTable @A1, long tagList @A2) -> long @D0@bank 9 = -$d2
     RefreshTagItemClones  (long clone @A0, long original @A1)@bank 9 = -$54
     ReleaseNamedObject  (long object @A0)@bank 9 = -$0102
-    RemNamedObject  (long object @A0, long message @A1)@bank 9 = -$0108
+    RemNamedObject  (long object @A0, ^^exec.Message message @A1)@bank 9 = -$0108
     SDivMod32  (long dividend @D0, long divisor @D1) -> long @D0@bank 9 = -$96
     SDivMod64  (long hi @D1, long lo @D0, long divisor @D2) -> long @D0@bank 9 = -$01c2
     SMult32  (long arg1 @D0, long arg2 @D1) -> long @D0@bank 9 = -$8a

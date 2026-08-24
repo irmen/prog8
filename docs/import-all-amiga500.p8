@@ -5,6 +5,7 @@
 %import blitter
 %import copper
 %import iffparse
+%import icon
 %import compression
 %import coroutines
 %import custom

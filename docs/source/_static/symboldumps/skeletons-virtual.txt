@@ -1,6 +1,6 @@
 
 Prog8 compiler v14.0-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit c5b17ae8 in branch new-codegens
+Prerelease version from git commit a4fb829b in branch new-codegens
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-virtual.p8
@@ -277,6 +277,26 @@ lineclip  {
     clip  (word x1, word y1, word x2, word y2) -> bool, word, word, word, word
     inside  (word x, word y) -> bool
     set_cliprect  (word x1, word y1, word x2, word y2)
+}
+
+
+LIBRARY MODULE NAME: lists
+--------------------------
+
+lists  {
+    struct FullNode
+    struct List
+    struct Node
+    add_head  (long listptr, long node)
+    add_tail  (long listptr, long node)
+    enqueue  (long listptr, long node)
+    find_name  (long listptr, str name) -> long
+    init  (long listptr)
+    insert  (long listptr, long node, long pred)
+    is_empty  (long listptr) -> bool
+    remove  (long node)
+    remove_head  (long listptr) -> long
+    remove_tail  (long listptr) -> long
 }
 
 

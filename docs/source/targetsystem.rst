@@ -172,6 +172,10 @@ Footnotes for the Amiga 500
 The amiga500 target is **experimental**. It uses the M68k code generator backend and produces
 Amiga Hunk executable files via the vasm assembler.
 
+Unlike the 6502 targets, the 68000 CPU is **big endian**: multi-byte values (words, 32-bit longs and
+pointers) are stored Most Significant Byte first in memory. Pointers are 4 bytes wide on this target.
+See :ref:`the endianness notes <endianness>` in the variables chapter.
+
 The ``-emu`` flag uses **Vamos** from the `Amitools <https://github.com/cnvogelg/amitools>`_ package
 to run the compiled program. Vamos is a very limited Amiga runtime that runs on the host operating system
 directly - it is **not** a full Amiga emulator. Many AmigaOS library calls and features are not supported
@@ -276,6 +280,11 @@ registers and are just 16 memory-mapped word values that you *can* access direct
 IRQ Handling (general)
 ======================
 .. index:: single: Targets; IRQ Handling
+
+The IRQ facilities described here apply to the CBM 6502-based targets (c64, c128, pet32, cx16) only.
+The m68k targets do not provide them: the amiga500 has none of these routines (interrupt handling
+there is done via the AmigaOS, which is out of scope for these convenience routines) and the qemu68k
+simulator only offers the interrupt disable/enable helpers.
 
 Normally, the system's default IRQ handling is not interfered with.
 You can however install your own IRQ handler (for clean separation, it is advised to define it inside its own block).

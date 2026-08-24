@@ -7,6 +7,13 @@ Binary Loadable Libraries
 
 **also called 'Library Blobs'.**
 
+.. note::
+    Binary loadable libraries are a facility for the 6502-based targets only. They exist to work
+    around those systems' limited amount of RAM, by loading parts of a program on demand into a
+    fixed memory area. The m68k targets do not support them (``%output library`` is an error there)
+    and have no need for them: there is plenty of RAM available to simply create large programs
+    in one piece.
+
 Prog8 allows you to create binary library files that contain routines callable by other programs.
 Those programs can be written in Prog8, BASIC, or something else. They just LOAD the binary library
 file into memory, and call the routines.
