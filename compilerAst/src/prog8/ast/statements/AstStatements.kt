@@ -812,6 +812,7 @@ data class AssignTarget(
     val void: Boolean,
     var pointerDereference: PtrDereference? = null,
     var arrayIndexedDereference: ArrayIndexedPtrDereference? = null,
+    var dotExpression: Expression? = null,
     override val position: Position
 ) : Node {
     override lateinit var parent: Node
@@ -823,6 +824,7 @@ data class AssignTarget(
         memoryAddress?.linkParents(this)
         pointerDereference?.linkParents(this)
         arrayIndexedDereference?.linkParents(this)
+        dotExpression?.linkParents(this)
         multi?.forEach { it.linkParents(this) }
     }
 
@@ -884,6 +886,16 @@ data class AssignTarget(
                     else -> throw FatalAstException("invalid replacement for AssignTarget.arrayIndexedDereference: $replacement")
                 }
             }
+            node === dotExpression -> {
+                when (replacement) {
+                    is Expression -> dotExpression = replacement
+                    is IdentifierReference -> {
+                        dotExpression = null
+                        identifier = replacement
+                    }
+                    else -> throw FatalAstException("invalid replacement for AssignTarget.dotExpression: $replacement")
+                }
+            }
             node === multi -> throw FatalAstException("can't replace multi assign targets")
             else -> throw FatalAstException("invalid replace $node   $replacement")
         }
@@ -913,6 +925,7 @@ data class AssignTarget(
         void,
         pointerDereference?.copy(),
         arrayIndexedDereference?.copy(),
+        dotExpression?.copy(),
         position
     )
     override fun referencesIdentifier(nameInSource: List<String>): Boolean =
@@ -921,6 +934,7 @@ data class AssignTarget(
                 memoryAddress?.referencesIdentifier(nameInSource)==true ||
                 pointerDereference?.referencesIdentifier(nameInSource)==true ||
                 arrayIndexedDereference?.referencesIdentifier(nameInSource)==true ||
+                dotExpression?.referencesIdentifier(nameInSource)==true ||
                 multi?.any { it.referencesIdentifier(nameInSource)}==true
 
     fun inferType(program: Program): InferredTypes.InferredType {
@@ -934,6 +948,7 @@ data class AssignTarget(
             memoryAddress != null -> InferredTypes.knownFor(BaseDataType.UBYTE)
             pointerDereference != null -> pointerDereference!!.inferType(program)
             arrayIndexedDereference != null -> arrayIndexedDereference!!.inferType(program)
+            dotExpression != null -> dotExpression!!.inferType(program)
             else -> InferredTypes.unknown()   // a multi-target has no 1 particular type
         }
     }
@@ -947,6 +962,7 @@ data class AssignTarget(
             multi != null -> throw FatalAstException("cannot turn a multi-assign into a single source expression")
             pointerDereference != null -> pointerDereference!!.copy()
             arrayIndexedDereference != null -> arrayIndexedDereference!!.copy()
+            dotExpression != null -> dotExpression!!.copy()
             else -> throw FatalAstException("invalid assignment target")
         }
     }

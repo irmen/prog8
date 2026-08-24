@@ -243,6 +243,8 @@ assign_target:
     | arrayindexed                  #ArrayindexedTarget
     | directmemory                  #MemoryTarget
     | pointerdereference            #PointerDereferenceTarget
+    | '(' expression ')' ('.' identifier)+      #ParenDerefTarget
+    | functioncall ('.' identifier)+            #FunctioncallDerefTarget
     | VOID                          #VoidTarget
     ;
 

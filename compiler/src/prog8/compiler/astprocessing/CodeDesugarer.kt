@@ -1305,7 +1305,7 @@ _after:
                         val isAugmentedPattern = isAugmentedMemoryPattern(assignment.value, address, deref)
                         if(isAugmentedPattern) {
                             val memwrite = DirectMemoryWrite(address, deref.position)
-                            val target = AssignTarget(null, null, memwrite, null, false, null, null, deref.position)
+                            val target = AssignTarget(null, null, memwrite, null, false, position = deref.position)
                             val newValue = convertAugmentedValueToMemoryRead(assignment.value, deref, address)
                             val newAssignment = Assignment(target, newValue, assignment.origin, assignment.position)
                             newAssignment.isAugmentedMemoryAssign = true
@@ -1421,6 +1421,125 @@ _after:
         }
 
         return noModifications
+    }
+
+    override fun before(assignTarget: AssignTarget, parent: Node): Iterable<AstModification> {
+        if(assignTarget.dotExpression==null)
+            return noModifications
+        if(parent !is Assignment && parent !is ChainedAssignment)
+            errors.err("cannot use a dereferenced expression as assignment target here", assignTarget.position)
+        return noModifications
+    }
+
+    override fun before(assignment: Assignment, parent: Node): Iterable<AstModification> {
+        val target = assignment.target
+        val dotExpr = target.dotExpression ?: return noModifications
+
+        // decompose the '.' chain into the base expression and the field names
+        val fields = mutableListOf<IdentifierReference>()
+        var base = dotExpr
+        while(base is BinaryExpression && base.operator==".") {
+            val rightIdent = base.right as? IdentifierReference ?: return noModifications
+            fields.add(rightIdent)
+            base = base.left
+        }
+        fields.reverse()
+
+        // Evaluate the base expression exactly once into a temporary variable, so that the
+        // base is desugared in its own normal assignment context and the address computation
+        // works on an already-evaluated simple value.
+        // resolve the struct type of the base expression
+        val baseDt = base.inferType(program).getOrUndef()
+        val struct = if(baseDt.isPointer) baseDt.subType as? StructDecl else null
+        if(struct==null) {
+            errors.err("cannot assign through this expression, expected a pointer to a struct", base.position)
+            return noModifications
+        }
+        val tmpVar = VarDecl.createAuto(DataType.UWORD, base.position)
+        val tmpIdent = IdentifierReference(listOf(tmpVar.name), base.position)
+        // we only need the integer value of the pointer expression, so a redundant outer
+        // pointer typecast can be stripped to avoid pointless double casts.
+        val baseCast = base as? TypecastExpression
+        val baseValue: Expression = if(baseCast!=null && (baseCast.type.isPointer || baseCast.type.isUnsignedWord)
+                && baseCast.expression.inferType(program).getOrUndef().isIntegerOrBool)
+            baseCast.expression.copy()
+        else
+            TypecastExpression(base.copy(), DataType.UWORD, false, base.position)
+        val tmpAssign = Assignment(
+            AssignTarget(tmpIdent.copy(), null, null, null, false, position=tmpVar.position),
+            baseValue,
+            AssignmentOrigin.USERCODE, base.position)
+
+        // build the address of the final field; intermediate pointer fields in the chain are loaded via peekw
+        var address: Expression = tmpIdent.copy()
+        var currentStruct: StructDecl = struct
+        var fieldDt: DataType? = null
+        for((index, field) in fields.withIndex()) {
+            val fieldName = field.nameInSource.single()
+            fieldDt = currentStruct.getFieldType(fieldName)
+            if(fieldDt==null) {
+                errors.err("no such field '$fieldName' in struct '${currentStruct.name}'", field.position)
+                return noModifications
+            }
+            val offset = currentStruct.offsetof(fieldName, program.target)!!.toInt()
+            if(offset>0)
+                address = BinaryExpression(address, "+", NumericLiteral.optimalInteger(offset, field.position), field.position)
+            if(index < fields.size-1) {
+                if(!fieldDt.isPointer) {
+                    errors.err("cannot dereference non-pointer field '$fieldName'", field.position)
+                    return noModifications
+                }
+                val nextStruct = fieldDt.subType as? StructDecl
+                if(nextStruct==null) {
+                    errors.err("cannot dereference field '$fieldName', expected a pointer to a struct", field.position)
+                    return noModifications
+                }
+                val peekw = FunctionCallExpression(IdentifierReference(listOf("peekw"), field.position), mutableListOf(address), field.position)
+                address = TypecastExpression(peekw, DataType.UWORD, false, field.position)
+                currentStruct = nextStruct
+            }
+        }
+
+        // select the appropriate poke/peek routine pair for the field's datatype
+        val dt = fieldDt!!
+        val funcName: String
+        val pokeCast: DataType?
+        val peekFuncName: String
+        val peekCast: DataType?
+        when {
+            dt.isBool -> { funcName="pokebool"; pokeCast=null; peekFuncName="peekbool"; peekCast=null }
+            dt.isUnsignedByte -> { funcName="poke"; pokeCast=null; peekFuncName="peek"; peekCast=null }
+            dt.isSignedByte -> { funcName="poke"; pokeCast=DataType.UBYTE; peekFuncName="peek"; peekCast=DataType.BYTE }
+            dt.isUnsignedWord -> { funcName="pokew"; pokeCast=null; peekFuncName="peekw"; peekCast=null }
+            dt.isSignedWord -> { funcName="pokew"; pokeCast=DataType.UWORD; peekFuncName="peekw"; peekCast=DataType.WORD }
+            dt.isLong -> { funcName="pokel"; pokeCast=null; peekFuncName="peekl"; peekCast=null }
+            dt.isFloat -> { funcName="pokef"; pokeCast=null; peekFuncName="peekf"; peekCast=null }
+            dt.isPointer -> { funcName="pokew"; pokeCast=null; peekFuncName="peekw"; peekCast=dt }
+            else -> {
+                errors.err("unsupported field datatype $dt for write through a pointer", target.position)
+                return noModifications
+            }
+        }
+
+        // augmented assignment pattern: the value starts with (a copy of) the very same dotted chain,
+        // e.g. "(p).bar += 1". Replace that copy by a read of the field through the temporary address,
+        // so that everything is evaluated exactly once.
+        var valueExpr = assignment.value
+        val binValue = valueExpr as? BinaryExpression
+        if(binValue!=null && binValue.left isSameAs dotExpr) {
+            val peekCall = FunctionCallExpression(
+                IdentifierReference(listOf(peekFuncName), binValue.left.position),
+                mutableListOf(address.copy()), binValue.left.position)
+            val readExpr: Expression = if(peekCast==null) peekCall else TypecastExpression(peekCall, peekCast, false, peekCall.position)
+            valueExpr = BinaryExpression(readExpr, binValue.operator, binValue.right, binValue.position)
+        }
+        val value = if(pokeCast==null) valueExpr else TypecastExpression(valueExpr, pokeCast, false, valueExpr.position)
+
+        val pokeCall = FunctionCallStatement(
+            IdentifierReference(listOf(funcName), assignment.position),
+            mutableListOf(address, value), false, assignment.position)
+        val replacement = AnonymousScope(mutableListOf(tmpVar, tmpAssign, pokeCall), target.position)
+        return listOf(AstReplaceNode(assignment, replacement, parent))
     }
 
     override fun after(assignment: Assignment, parent: Node): Iterable<AstModification> {

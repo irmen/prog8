@@ -38,6 +38,12 @@ Structs and Pointers
         ^^Node thenode = &&np[2]
         thenode.field = 9999
 
+    Writing through a parenthesized casting expression or a function call does work however;
+    the compiler evaluates the expression once and stores through the computed address::
+
+        (np[2] as ^^Node).field = 9999
+        get_node(i).field = 9999
+
 
 Untyped pointers and the ``pointer`` type
 -----------------------------------------
@@ -167,6 +173,15 @@ Because it implies pointer dereferencing you can usually omit the explicit `^^`,
 
     if e1^^.ypos > 300
         e1^^.health -= 10
+
+You can also assign to a struct field through an arbitrary pointer expression by wrapping it in parentheses.
+This works with typecasts and with function calls that return a pointer::
+
+    (enemies[i] as ^^Enemy).health = 42
+    (get_enemy(index)).shield -= 10
+    get_enemy(index).next.target = 0
+
+The compiler evaluates the pointer expression exactly once and then stores the value through the computed address.
 
 
 .. note::

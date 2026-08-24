@@ -510,6 +510,7 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
             assignTarget.arrayindexed?.accept(this)
             assignTarget.pointerDereference?.accept(this)
             assignTarget.arrayIndexedDereference?.accept(this)
+            assignTarget.dotExpression?.accept(this)
             val multi = assignTarget.multi
             if (multi != null) {
                 multi.dropLast(1).forEach { target ->

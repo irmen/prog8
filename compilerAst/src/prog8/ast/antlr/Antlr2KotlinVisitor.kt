@@ -802,6 +802,33 @@ class Antlr2KotlinVisitor(val source: SourceCode, private val target: ICompilati
         }
     }
 
+    // (expr).field  or  (expr).field.sub  as assignment target.
+    // A parenthesized plain (scoped) identifier is flattened into just that scoped name,
+    // so that "(a).b.c" is represented exactly like "a.b.c".
+    // All other expressions go into the dotExpression field; the CodeDesugarer turns
+    // those into poke-style writes.
+    override fun visitParenDerefTarget(ctx: ParenDerefTargetContext): AssignTarget {
+        val inner = ctx.expression().accept(this)
+        val fieldNames = ctx.identifier().map { it.text }
+        if(inner is IdentifierReference) {
+            return AssignTarget(IdentifierReference(inner.nameInSource + fieldNames, ctx.toPosition()), null, null, null, false, position = ctx.toPosition())
+        }
+        var expr = inner as Expression
+        for(field in fieldNames) {
+            expr = BinaryExpression(expr, ".", IdentifierReference(listOf(field), ctx.toPosition()), ctx.toPosition())
+        }
+        return AssignTarget(null, null, null, null, false, dotExpression = expr, position = ctx.toPosition())
+    }
+
+    // func().field  as assignment target; the CodeDesugarer turns this into a poke-style write.
+    override fun visitFunctioncallDerefTarget(ctx: FunctioncallDerefTargetContext): AssignTarget {
+        var expr: Expression = ctx.functioncall().accept(this) as Expression
+        for(field in ctx.identifier()) {
+            expr = BinaryExpression(expr, ".", IdentifierReference(listOf(field.text), ctx.toPosition()), ctx.toPosition())
+        }
+        return AssignTarget(null, null, null, null, false, dotExpression = expr, position = ctx.toPosition())
+    }
+
     /**
      * Visits a pointer dereference expression.
      *

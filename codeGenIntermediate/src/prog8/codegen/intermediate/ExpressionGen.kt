@@ -901,9 +901,27 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 }
             }
             BaseDataType.POINTER -> {
-                require(valueDt.isUnsignedWord || valueDt.isPointer || valueDt.isLong)
-                actualResultReg2 = tr.resultReg
-                // no further conversion required, pointers are all just uword or long
+                when(valueDt.base) {
+                    BaseDataType.BOOL, BaseDataType.UBYTE -> {
+                        // ubyte to pointer: zero extend
+                        actualResultReg2 = codeGen.registers.next(IRDataType.WORD)
+                        addInstr(result, IRInstruction(Opcode.EXT, type = IRDataType.BYTE, reg1 = actualResultReg2, reg2=tr.resultReg), null)
+                    }
+                    BaseDataType.BYTE -> {
+                        // byte to pointer: sign extend
+                        actualResultReg2 = codeGen.registers.next(IRDataType.WORD)
+                        addInstr(result, IRInstruction(Opcode.EXTS, type = IRDataType.BYTE, reg1 = actualResultReg2, reg2=tr.resultReg), null)
+                    }
+                    BaseDataType.WORD -> {
+                        // word to pointer: same size, just reinterpret
+                        actualResultReg2 = tr.resultReg
+                    }
+                    else -> {
+                        require(valueDt.isUnsignedWord || valueDt.isPointer || valueDt.isLong)
+                        actualResultReg2 = tr.resultReg
+                        // no further conversion required, pointers are all just uwords or longs
+                    }
+                }
             }
             BaseDataType.ARRAY_POINTER -> {
                 TODO("typecast to array of pointers $valueDt -> ${cast.type}  ${cast.position}")

@@ -1592,7 +1592,7 @@ main {
         compileText(C64Target(), false, src, outputDir) shouldNotBe null
     }
 
-    xtest("array indexed assignment parses with and without explicit dereference after struct pointer [IGNORED because it's a parser error right now]") {
+    test("array indexed assignment without explicit dereference after struct pointer") {
         val src="""
 main {
 
@@ -1604,14 +1604,27 @@ main {
         ^^Node l1
 
         l1.s[0] = 4242
+    }
+}"""
+        compileText(VMTarget(), false, src, outputDir) shouldNotBe null
+        compileText(Cx16Target(), false, src, outputDir) shouldNotBe null
+    }
+
+    xtest("array indexed assignment WITH explicit dereference after struct pointer [IGNORED because it's still a parser error: ^^ cannot be followed by an index in an assignment target]") {
+        val src="""
+main {
+
+    sub start() {
+        struct Node {
+            ^^uword s
+        }
+
+        ^^Node l1
+
         l1^^.s[0] = 4242        ; TODO fix parse error
     }
 }"""
-        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
-        compileText(VMTarget(), false, src, outputDir, errors = errors) shouldBe null
-        errors.errors.size shouldBe 2
-        errors.errors[0] shouldContain "no support for"
-        errors.errors[1] shouldContain "no support for"
+        compileText(VMTarget(), false, src, outputDir) shouldBe null
     }
 
     xtest("a.b.c[i].value = X where pointer is struct gives good error message [IGNORED because it's a parser error right now]") {
@@ -3296,7 +3309,7 @@ main {
         compileText(Cx16Target(), false, src, outputDir) shouldNotBe null
     }
 
-    xtest("function call returning pointer - field access chaining as assignment target [nasty parser problem]") {
+    test("function call returning pointer - field access chaining as assignment target") {
         val src="""
 main {
     struct Thing {
@@ -3317,9 +3330,99 @@ main {
         getThing().next.port = 5678
     }
 }"""
-        // currently fails at parse stage, should eventually compile for both VM and 6502 without needing assembly generation
-        compileText(VMTarget(), false, src, outputDir, writeAssembly = false) shouldNotBe null
-        compileText(Cx16Target(), false, src, outputDir, writeAssembly = false) shouldNotBe null
+        // compiles for both VM and 6502 without needing assembly generation
+        compileText(VMTarget(), false, src, outputDir) shouldNotBe null
+        compileText(Cx16Target(), false, src, outputDir) shouldNotBe null
+        compileText(C64Target(), false, src, outputDir) shouldNotBe null
+    }
+
+    test("dereference-after-cast writes to every numeric field datatype compiles") {
+        val src="""
+%import floats
+
+main {
+    struct SBool { bool f }
+    struct SByte { byte f }
+    struct SUByte { ubyte f }
+    struct SWord { word f }
+    struct SUWord { uword f }
+    struct SLong { long f }
+    struct SFloat { float f }
+
+    sub start() {
+        uword[8] ptrs
+        ptrs[0] = $4510
+        ptrs[1] = $4518
+        ptrs[2] = $4520
+        ptrs[3] = $4528
+        ptrs[4] = $4530
+        ptrs[5] = $4540
+        ptrs[6] = $4550
+
+        (ptrs[0] as ^^SBool).f = true
+        (ptrs[1] as ^^SByte).f = -42
+        (ptrs[2] as ^^SUByte).f = 200
+        (ptrs[3] as ^^SWord).f = -1000
+        (ptrs[4] as ^^SUWord).f = 50000
+        (ptrs[5] as ^^SLong).f = 100000
+        (ptrs[6] as ^^SFloat).f = 3.14
+
+        ; augmented variants exercise the read-modify-write path per datatype
+        (ptrs[0] as ^^SBool).f = false
+        (ptrs[1] as ^^SByte).f += 10
+        (ptrs[3] as ^^SWord).f -= 500
+        (ptrs[4] as ^^SUWord).f |= $000f
+        (ptrs[2] as ^^SUByte).f++
+        (ptrs[2] as ^^SUByte).f--
+    }
+}"""
+        compileText(VMTarget(), false, src, outputDir) shouldNotBe null
+        compileText(Cx16Target(), false, src, outputDir) shouldNotBe null
+        compileText(C64Target(), false, src, outputDir) shouldNotBe null
+    }
+
+    test("postincrement and postdecrement through dereferenced expression compiles") {
+        val src="""
+main {
+    struct Counter {
+        uword n
+        ubyte small
+    }
+
+    sub start() {
+        uword[2] ptrs
+        ptrs[0] = $4560
+        ptrs[1] = $4568
+
+        (ptrs[0] as ^^Counter).n++
+        (ptrs[0] as ^^Counter).n--
+        (ptrs[1] as ^^Counter).small++
+        (ptrs[0] as ^^Counter).n += 3
+        (ptrs[0] as ^^Counter).n -= 1
+        (ptrs[1] as ^^Counter).small |= 2
+    }
+}"""
+        compileText(VMTarget(), false, src, outputDir) shouldNotBe null
+        compileText(Cx16Target(), false, src, outputDir) shouldNotBe null
+        compileText(C64Target(), false, src, outputDir) shouldNotBe null
+    }
+
+    test("parenthesized plain variable assignment target flattens to normal handling") {
+        val src="""
+main {
+    struct Foo {
+        ubyte bar
+    }
+
+    sub start() {
+        ^^Foo fp = $4570
+        (fp).bar = 55
+        (fp).bar += 2
+    }
+}"""
+        compileText(VMTarget(), false, src, outputDir) shouldNotBe null
+        compileText(Cx16Target(), false, src, outputDir) shouldNotBe null
+        compileText(C64Target(), false, src, outputDir) shouldNotBe null
     }
 
     test("function call returning pointer - field access chaining as value (RHS) works") {
@@ -3351,5 +3454,170 @@ main {
         // RHS value case already works for both VM and 6502 without needing assembly generation
         compileText(VMTarget(), false, src, outputDir, writeAssembly = false) shouldNotBe null
         compileText(Cx16Target(), false, src, outputDir, writeAssembly = false) shouldNotBe null
+    }
+
+    test("dereference-after-cast assignment parses for all targets") {
+        val src="""
+main {
+    struct Foo {
+        ubyte bar
+        uword big
+    }
+
+    sub start() {
+        uword[4] ptrs
+        ptrs[2] = $4300
+        (ptrs[2] as ^^Foo).bar = 42
+        (ptrs[2] as ^^Foo).big = 1234
+        ($4300 as ^^Foo).bar = 1
+    }
+}"""
+        compileText(VMTarget(), false, src, outputDir, writeAssembly = false) shouldNotBe null
+        compileText(C64Target(), false, src, outputDir, writeAssembly = false) shouldNotBe null
+        compileText(Cx16Target(), false, src, outputDir, writeAssembly = false) shouldNotBe null
+    }
+
+    test("functioncall deref chain as assignment target parses and compiles") {
+        val src="""
+main {
+    struct Thing {
+        uword port
+        ^^Thing next
+        bool flag
+    }
+
+    sub getThing() -> ^^Thing {
+        return 0
+    }
+
+    sub start() {
+        getThing().flag = true
+        getThing().next.flag = false
+        getThing().port = 1234
+    }
+}"""
+        compileText(VMTarget(), false, src, outputDir, writeAssembly = false) shouldNotBe null
+        compileText(C64Target(), false, src, outputDir, writeAssembly = false) shouldNotBe null
+        compileText(Cx16Target(), false, src, outputDir, writeAssembly = false) shouldNotBe null
+    }
+
+    test("dereference-after-cast assignments write correct memory on VM") {
+        val src=$$"""
+%zeropage basicsafe
+main {
+    struct Inner {
+        ubyte deep
+    }
+    struct Foo {
+        ubyte bar
+        ubyte baz
+        ^^Inner inner
+        uword big
+    }
+
+    sub start() {
+        uword[4] ptrs
+        ptrs[2] = $4300
+        ptrs[3] = $4310
+
+        ; plain write through dereference-after-cast
+        (ptrs[2] as ^^Foo).bar = 42
+
+        ; augmented write through dereference-after-cast
+        (ptrs[2] as ^^Foo).baz = 0
+        (ptrs[2] as ^^Foo).baz += 5
+
+        ; chained through intermediate pointer field
+        (ptrs[2] as ^^Foo).inner = ptrs[3]
+        ((ptrs[2] as ^^Foo).inner).deep = 77
+
+        ; word-sized field
+        (ptrs[2] as ^^Foo).big = 1234
+
+        ; verify the writes landed in raw memory, independent of struct layout details
+        if peek($4300 + offsetof(Foo.bar)) != 42 { sys.exit(7) }
+        if peek($4300 + offsetof(Foo.baz)) != 5 { sys.exit(8) }
+        if peekw($4300 + offsetof(Foo.inner)) != $4310 { sys.exit(9) }
+        if peek($4310 + offsetof(Inner.deep)) != 77 { sys.exit(10) }
+        if peekw($4300 + offsetof(Foo.big)) != 1234 { sys.exit(11) }
+
+        ; success marker (exit status is not observable through VmRunner)
+        pokew($4400, $c0ba)
+        sys.exit(0)
+    }
+}"""
+        val result = compileText(VMTarget(), false, src, outputDir)!!
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
+        VmRunner().runAndTestProgram(virtfile.readText(), true) { vm ->
+            vm.memory.getUB(0x4300u).toInt() shouldBe 42          // bar
+            vm.memory.getUB(0x4301u).toInt() shouldBe 5           // baz was 0, += 5
+            vm.memory.getUW(0x4302u).toInt() shouldBe 0x4310      // inner pointer field
+            vm.memory.getUB(0x4310u).toInt() shouldBe 77          // chained deep write
+            vm.memory.getUW(0x4400u).toInt() shouldBe 0xc0ba      // all in-program raw-memory checks passed
+        }
+    }
+
+    test("functioncall deref chain assignment writes correct memory on VM") {
+        val src="""
+%zeropage basicsafe
+main {
+    struct Thing {
+        uword port
+        bool flag
+    }
+
+    pointer theptr
+
+    sub getThing() -> ^^Thing {
+        return theptr as ^^Thing
+    }
+
+    sub start() {
+        theptr = $4400
+        getThing().port = 5678
+        getThing().flag = true
+        sys.exit(0)
+    }
+}"""
+        val result = compileText(VMTarget(), false, src, outputDir)!!
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
+        VmRunner().runAndTestProgram(virtfile.readText(), true) { vm ->
+            vm.memory.getUW(0x4400u).toInt() shouldBe 5678
+            vm.memory.getUB(0x4402u).toInt() shouldBe 1
+        }
+    }
+
+    test("assignment through dereferenced non-struct pointer gives error") {
+        val src="""
+main {
+    sub start() {
+        uword[4] ptrs
+        ptrs[2] = $4300
+        (ptrs[2]).bar = 42
+    }
+}"""
+        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        compileText(VMTarget(), false, src, outputDir, errors = errors) shouldBe null
+        errors.errors.size shouldBe 1
+        errors.errors[0] shouldContain "expected a pointer to a struct"
+    }
+
+    test("assignment through dereferenced expression with unknown field gives error") {
+        val src="""
+main {
+    struct Foo {
+        ubyte bar
+    }
+
+    sub start() {
+        uword[4] ptrs
+        ptrs[2] = $4300
+        (ptrs[2] as ^^Foo).nosuchfield = 42
+    }
+}"""
+        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        compileText(VMTarget(), false, src, outputDir, errors = errors) shouldBe null
+        errors.errors.size shouldBe 1
+        errors.errors[0] shouldContain "no such field"
     }
 })

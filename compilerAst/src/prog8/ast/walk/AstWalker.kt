@@ -569,6 +569,7 @@ abstract class AstWalker {
         assignTarget.memoryAddress?.accept(this, assignTarget)
         assignTarget.pointerDereference?.accept(this, assignTarget)
         assignTarget.arrayIndexedDereference?.accept(this, assignTarget)
+        assignTarget.dotExpression?.accept(this, assignTarget)
         assignTarget.multi?.forEach { it.accept(this, assignTarget) }
         track(after(assignTarget, parent), assignTarget, parent)
     }

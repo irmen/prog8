@@ -188,6 +188,7 @@ interface IAstVisitor {
         assignTarget.memoryAddress?.accept(this)
         assignTarget.pointerDereference?.accept(this)
         assignTarget.arrayIndexedDereference?.accept(this)
+        assignTarget.dotExpression?.accept(this)
         assignTarget.multi?.forEach { it.accept(this) }
     }
 

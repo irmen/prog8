@@ -4,6 +4,14 @@
 
 This document outlines the implementation plan to fix pointer dereference syntax limitations in Prog8.
 
+> **Status update (2026-08):** A targeted subset has been implemented on master:
+> assignment targets now accept parenthesized expressions and function calls followed by
+> a field chain, e.g. `(expr as ^^Struct).field = value` and `func().field = value`
+> (grammar rule `assign_target` alternatives `ParenDerefTarget` / `FunctioncallDerefTarget`,
+> desugared by CodeDesugarer into poke-style writes). The implicit-`^^` forms described
+> below (`ptr[idx].field = value`, `ptr^^.field[idx] = value`) are still unsupported and
+> require the larger redesign (Option B) described in this document.
+
 ### The Problem
 
 Currently, `^^` (pointer dereference) is required in grammar even when it's obvious from context:
