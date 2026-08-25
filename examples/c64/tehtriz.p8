@@ -105,16 +105,16 @@ waitkey:
 
     sub drop_down_immediately() {
         drawBlock(xpos, ypos, 32)
-        ubyte dropypos
-        for dropypos in ypos+1 to boardOffsetY+boardHeight-1 {
-            if not blocklogic.noCollision(xpos, dropypos) {
-                dropypos--   ; the furthest down that still fits
+        ubyte target = ypos
+        for ubyte cand in ypos+1 to boardOffsetY+boardHeight-1 {
+            if not blocklogic.noCollision(xpos, cand) {
                 break
             }
+            target = cand
         }
 
-        if dropypos>ypos {
-            ypos = dropypos
+        if target>ypos {
+            ypos = target
             sound.blockdrop()
             drawBlock(xpos, ypos, 160)
             checkForLines()

@@ -106,18 +106,24 @@ main {
 
                         if bmhd!=0 and bmhd.Data!=0 {
                             ^^BMHDheader header = bmhd.Data
-                            ; get size of BODY chunk and allocate ram to read it into
-                            ^^iffparse.ContextNode cn = iffparse.CurrentChunk(iff)
-                            pointer bodyBuffer = exec.AllocVec(cn.Size, exec.MEMF_PUBLIC)
-                            if bodyBuffer!=0 {
-                                if iffparse.ReadChunkBytes(iff, bodyBuffer, cn.Size) == cn.Size {
-                                    if cmap!=0 and cmap.Data!=0 {
-                                        setPalette(cmap)
+                            if header.w>320 or header.h>256 or header.nPlanes==0 or header.nPlanes>5 {
+                                ; unsupported dimensions for our 320x256x5 screen
+                            } else if header.compression!=0 and header.compression!=1 {
+                                ; unsupported compression (0=None, 1=ByteRun1)
+                            } else {
+                                ; get size of BODY chunk and allocate ram to read it into
+                                ^^iffparse.ContextNode cn = iffparse.CurrentChunk(iff)
+                                pointer bodyBuffer = exec.AllocVec(cn.Size, exec.MEMF_PUBLIC)
+                                if bodyBuffer!=0 {
+                                    if iffparse.ReadChunkBytes(iff, bodyBuffer, cn.Size) == cn.Size {
+                                        if cmap!=0 and cmap.Data!=0 {
+                                            setPalette(cmap)
+                                        }
+                                        decode(header, bodyBuffer)
+                                        ok = true
                                     }
-                                    decode(header, bodyBuffer)
-                                    ok = true
+                                    exec.FreeVec(bodyBuffer)
                                 }
-                                exec.FreeVec(bodyBuffer)
                             }
                         }
                     }
@@ -157,7 +163,10 @@ main {
                         1 -> {
                             body = compression.decode_rle(body, target, bytesPerRow as uword)
                         }
-                        ; any other compression values silently ignored
+                        else -> {
+                            ; should not happen - already validated above
+                            break
+                        }
                     }
                 }
             }

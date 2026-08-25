@@ -5,7 +5,6 @@
 %import textio
 %import utility
 %import compression
-%import textio
 
 ; load and display a zx0-compressed image.
 ; you can create those with the special converter script that comes with prog8
@@ -102,6 +101,13 @@ izx0 {
                     isAga = @(header + 10)
                     numColors = peekw(header + 12)
                     uword paletteSize = peekw(header + 14)
+
+                    if paletteSize>MAX_PALETTE_SIZE
+                        return false
+                    if numPlanes==0 or numPlanes>5
+                        return false
+                    if imageWidth>320 or imageHeight>256
+                        return false
 
                     ; palette follows the header
                     clearPalette()

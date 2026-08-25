@@ -623,12 +623,6 @@ The *unroll* loop is not really a loop, but looks like one. It actually duplicat
 the given number of times. It's meant to "unroll loops" - trade memory for speed by avoiding the actual repeat loop counting code.
 Only simple statements are allowed to be inside an unroll loop (assignments, function calls etc.).
 
-.. attention::
-    The value of the loop variable after executing the loop *is undefined* - you cannot rely
-    on it to be the last value in the range for instance! The value of the variable should only be used inside the for loop body.
-    (this is an optimization issue to avoid having to deal with mostly useless post-loop logic to adjust the loop variable's value)
-
-
 for loop
 ^^^^^^^^
 .. index:: pair: Loops; for loop
@@ -647,6 +641,11 @@ always ascending, while a signed step uses its runtime sign to select ascending 
 A zero step, or a step pointing away from the ``to`` value, produces an empty loop.  If adding the step
 would wrap the loop variable's fixed-width type, the loop terminates instead of continuing with the wrapped
 value.  Range expressions used outside a direct ``for`` loop still require a constant step.
+
+.. attention::
+    The value of the loop variable after executing the loop *is undefined* - you cannot rely
+    on it to be the last value in the range for instance! The value of the variable should only be used inside the for loop body.
+    (this is an optimization issue to avoid having to deal with mostly useless post-loop logic to adjust the loop variable's value)
 
 You can use a single statement, or a statement block like in the example below::
 

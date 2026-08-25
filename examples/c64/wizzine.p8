@@ -29,6 +29,8 @@ irq {
             c64.SPXYW[spri] = mkword(y, lsb(x))
             if msb(x)!=0
                 sys.set_carry()
+            else
+                sys.clear_carry()
             rol(c64.MSIGX)
         }
         c64.EXTCOL-=8

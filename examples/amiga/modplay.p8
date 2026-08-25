@@ -23,6 +23,7 @@ main {
                 if mod!=0 {
                     txt.print("loading...\n")
                     if dos.Read(fh, mod, modSize)==modSize {
+                        void dos.Close(fh)
                         ptplayer.init(mod)
 
                         txt.print("\nsong name: ")
