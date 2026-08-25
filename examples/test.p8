@@ -1,65 +1,50 @@
-%import lists
-%import textio
 %zeropage basicsafe
+%encoding iso
+%import textio
 
-main {
+main
+{
+    struct Point {
+        uword x
+        ubyte y
+    }
+
+    sub print_point(^^Point p) {
+        txt.chrout('(')
+        txt.print_uw(p.x)
+        txt.chrout(',')
+        txt.print_ub(p.y)
+        txt.chrout(')')
+    }
+
     sub start() {
-        reverseiter()
-        listiter()
-    }
+        txt.iso()
+        pointer buffer = memory("buffer", sizeof(Point), 1)
+        print_point(buffer)
+        (buffer as ^^Point).x = 160
+        (buffer as ^^Point).y = 120
+        print_point(buffer)         ; expected: (160,120)
 
-    sub reverseiter() {
-        for x in "hello" {
-            txt.chrout(x)
-        }
-
+        ; other ways to trigger the same codegen path: constant byte store via pointer+const
+        ; (6502 targets only, uword indexing is not supported on the virtual target)
+        uword @shared ptr_zp = memory("buf2", 8, 1)
+        uword @shared @nozp ptr_nozp = memory("buf3", 8, 1)
+        ptr_zp[3] = $80
+        @(ptr_zp+4) = $27
+        ptr_nozp[5] = $42
+        @(ptr_nozp+6) = $99
         txt.nl()
+        ; expected: 128 39 66 153
+        ; (with the bug, these printed the low byte of the buffer address instead)
+        txt.print_ub(ptr_zp[3])     ; $80 = 128
+        txt.spc()
+        txt.print_ub(@(ptr_zp+4))   ; $27 = 39
+        txt.spc()
+        txt.print_ub(ptr_nozp[5])   ; $42 = 66
+        txt.spc()
+        txt.print_ub(@(ptr_nozp+6)) ; $99 = 153
 
-        for x in "hello2" step -1 {
-            txt.chrout(x)
-        }
-        txt.nl()
-
-        for y in [11,22,33,44] {
-            txt.print_ub(y)
-            txt.spc()
-        }
-        txt.nl()
-
-        for y in [11,22,33,44] step -1 {
-            txt.print_ub(y)
-            txt.spc()
-        }
-        txt.nl()
+        ;sys.poweroff_system()
     }
 
-    struct MyNode {
-        ^^MyNode Succ
-        ^^MyNode Pred
-        ubyte value
-    }
-
-    struct MyList {
-        ^^MyNode Head
-        pointer Tail
-        ^^MyNode TailPred
-    }
-
-    sub listiter() {
-        ^^MyList mylist = []
-        ^^MyNode n1 = [0,0, 11]
-        ^^MyNode n2 = [0,0, 22]
-        ^^MyNode n3 = [0,0, 33]
-        lists.init(mylist)
-        lists.add_tail(mylist, n1)
-        lists.add_tail(mylist, n2)
-        lists.add_tail(mylist, n3)
-
-        for node in mylist {
-            txt.print_ulhex(node as long, true)
-            txt.spc()
-            txt.print_ub(node.value)
-            txt.nl()
-        }
-    }
 }

@@ -5896,6 +5896,25 @@ $endLabel""")
                     }
                 }
 
+                if(byteValue!=null) {
+                    // Constant byte value with reloadable address: need to load constant
+                    // after setting up pointer, not before. Handle the common
+                    // pointer+constant case efficiently.
+                    val ptrVar = result?.first as? PtIdentifier
+                    val offNum = result?.second as? PtNumber
+                    if(ptrVar!=null && offNum!=null) {
+                        val offset = offNum.number.toInt()
+                        if(asmgen.isZpVar(ptrVar)) {
+                            asmgen.out("  ldy  #$offset |  lda  #${byteValue.toHex()} |  sta  (${asmgen.asmSymbolName(ptrVar)}),y")
+                            return
+                        } else {
+                            asmgen.out("  lda  ${asmgen.asmSymbolName(ptrVar)} |  sta  P8ZP_SCRATCH_W2 |  lda  ${asmgen.asmSymbolName(ptrVar)}+1 |  sta  P8ZP_SCRATCH_W2+1 |  ldy  #$offset |  lda  #${byteValue.toHex()} |  sta  (P8ZP_SCRATCH_W2),y")
+                            return
+                        }
+                    }
+                    storeByteInAToAddressExpression(addressExpr, true, byteValue)
+                    return
+                }
                 if(!asmgen.tryOptimizedPointerAccessWithA(addressExpr, true))
                     storeViaExprEval()
             }

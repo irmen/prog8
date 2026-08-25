@@ -2269,18 +2269,18 @@ $repeatLabel""")
                     out("  sta  (${asmSymbolName(pointervar)}),y")
                 } else {
                     // copy the pointer var to zp first
-                    val saveA = evalBytevalueWillClobberA(ptrAndIndex.first) || evalBytevalueWillClobberA(ptrAndIndex.second)
-                    if(saveA) out("  pha")
+                    // assignExpressionToVariable always clobbers A, so always save it
+                    out("  pha")
                     if(ptrAndIndex.second.isSimple()) {
                         assignExpressionToVariable(ptrAndIndex.first, "P8ZP_SCRATCH_W2", DataType.UWORD)
                         assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.Y)
-                        if(saveA) out("  pla")
+                        out("  pla")
                         out("  sta  (P8ZP_SCRATCH_W2),y")
                     } else {
                         pushCpuStack(BaseDataType.UBYTE,  ptrAndIndex.second)
                         assignExpressionToVariable(ptrAndIndex.first, "P8ZP_SCRATCH_W2", DataType.UWORD)
                         restoreRegisterStack(CpuRegister.Y, true)
-                        if(saveA) out("  pla")
+                        out("  pla")
                         out("  sta  (P8ZP_SCRATCH_W2),y")
                     }
                 }

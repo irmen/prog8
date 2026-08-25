@@ -734,4 +734,51 @@ class TestExecution6502 : FunSpec({
         machine.assertMemory(0x02, 3)
         machine.assertMemory(0x03, 70)
     }
+
+    test("constant byte store via pointer plus constant offset") {
+        // regression: storing a constant byte to ptr[const] or @(ptr+const) never loaded the
+        // constant into A, so the low byte of the pointer (or other garbage) got stored instead
+        val src = $$"""
+            %option no_sysinit
+            %launcher none
+            %address $1000
+
+            main {
+                &ubyte poweroff = $f203
+                struct Point {
+                    uword x
+                    ubyte y
+                }
+
+                sub start() {
+                    uword @shared ptr_zp = $2000
+                    uword @shared @nozp ptr_nozp = $2100
+                    ptr_zp[3] = $80
+                    @(ptr_zp+4) = $27
+                    ptr_nozp[5] = $42
+                    @(ptr_nozp+6) = $99
+
+                    ; the originally reported scenario: field store via a cast pointer,
+                    ; which goes through a non-zeropage auto_heap_value temp
+                    pointer @shared buffer = $2200
+                    (buffer as ^^Point).x = 160
+                    (buffer as ^^Point).y = 120
+
+                    poweroff = 1
+                }
+            }
+        """.trimIndent()
+
+        for (optimize in listOf(false, true)) {
+            val compileResult = compileText(Cx16Target(), optimize, src, outputDir)
+            val machine = compileResult!!.simulate()
+            machine.assertMemory(0x2003, 0x80)   // ptr_zp[3] = $80
+            machine.assertMemory(0x2004, 0x27)   // @(ptr_zp+4) = $27
+            machine.assertMemory(0x2105, 0x42)   // ptr_nozp[5] = $42
+            machine.assertMemory(0x2106, 0x99)   // @(ptr_nozp+6) = $99
+            machine.assertMemory(0x2200, 160)    // Point.x lsb
+            machine.assertMemory(0x2201, 0)      // Point.x msb
+            machine.assertMemory(0x2202, 120)    // Point.y
+        }
+    }
 })
