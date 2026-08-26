@@ -77,13 +77,13 @@ Effort: small-medium. Unblocks #3.6. 6502 impact: removes `POINTER==WORD` alias 
 
 ### P1 - Low hanging fruits (continued)
 
-#### 3.4 Status flag / branch fusion
+#### 3.4 Status flag / branch fusion -- Completed
 
 Contract `IRInstructions.kt:52-91` says only `CMP/CMPI/SGN/BITTST/PUSHST/POPST` set flags (`OpcodesThatSetStatusbits:592`), so IR emits `cmpi #0 / bsteq` before every `if/while/for` (`IRCodeGen.kt:739,838`, `ExpressionGen.kt:272`). On 68000 `move/add/sub/and` already set Z/N.
 
-Options: (a) IR side: keep contract but teach `IRPeepholeOptimizer.kt:372` `removeNeedlessCompares` to honor `CpuType.statusBitsOnMultiByteOps` for m68k and delete `cmpi #0` after `loadm/addm`, (b) IR side: add composite `CMP+branch` or flag-effect annotations so m68k peephole can fuse `SGN+branch` into `tst; bmi` and `move; beq` into single `tst`. Also clean `ROL/ROR` vs `ROXL/ROXR` X/C handling (`IRInstructions.kt:69`, `InstrControl.kt:193`, `InstrBitwise.kt:291`).
+Implemented: added `OpcodesThatSetZeroFlagOnM68k` (`IRInstructions.kt:603`) - expanded Z/N set on m68k (LOAD/LOADM/LOADX/LOADI/INC/DEC/ADDR/ADD/SUB/AND/OR/XOR/INV/EXT/MUL/DIV/SHIFTx/LSIG/MSIG/CONCAT plus the strict set). All branch emission sites now gate on `CpuType.statusBitsOnMultiByteOps` (`IRCodeGen.kt:1519,1570`, `ExpressionGen.kt:276,1384`): on m68k a `CMPI #0` before `BSTEQ/BSTNE` is skipped when the previous instruction is in the expanded set and compares against zero; peephole `IRPeepholeOptimizer.kt:387` also uses the expanded set (gated via same flag at emission time). On 6502 `statusBitsOnMultiByteOps=false` so the pessimistic `CMPI` is always emitted. Further work (composite `CMP+branch`, `SGN+tst`, `ROL` X/C) left for follow-up.
 
-Effort: medium. #3.5a is already partially there for m68k (`honorsContract`). 6502 impact: none - `statusBitsOnMultiByteOps=false` on 6502, so pessimistic `CMP` before branch stays required; m68k peephole only.
+Effort: small (statusBits gate + expanded set). 6502 impact: none (guarded by `statusBitsOnMultiByteOps=false`).
 
 #### 3.5 Replace byte-slice ops with proper trunc/extract
 

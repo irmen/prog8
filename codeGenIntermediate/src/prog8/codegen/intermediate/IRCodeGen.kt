@@ -1519,7 +1519,7 @@ class IRCodeGen(
         val targetHonorsContract = options.compTarget.cpu.statusBitsOnMultiByteOps
         val skipCmpi = targetHonorsContract
                 && lastInstr != null
-                && lastInstr.opcode in OpcodesThatSetStatusbits
+                && lastInstr.opcode in OpcodesThatSetZeroFlagOnM68k
         if (!skipCmpi) {
             addInstr(result, IRInstruction(Opcode.CMPI, tr.dt, reg1 = tr.resultReg, immediate = 0), null)
         }
@@ -1570,7 +1570,7 @@ class IRCodeGen(
             val canSkipCmpi = isComparingWithZero
                     && options.compTarget.cpu.statusBitsOnMultiByteOps
                     && lastInstr != null
-                    && lastInstr.opcode in OpcodesThatSetStatusbits
+                    && lastInstr.opcode in OpcodesThatSetZeroFlagOnM68k
 
             if ((onTrueLabel != null || onTrueAddress != null) && (onFalseLabel == null && onFalseAddress == null)) {
                 var (opcode, useCmpi) = getIntegerComparisonBranch(condition.operator, false, signed)

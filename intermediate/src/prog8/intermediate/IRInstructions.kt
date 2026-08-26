@@ -596,6 +596,24 @@ val OpcodesThatSetStatusbits = setOf(
     Opcode.SGN        // sets Z, N, C based on sign of operand
 )
 
+// On m68k (statusBitsOnMultiByteOps=true) many more opcodes set Z/N for free
+// (MOVE, ADD, SUB, AND, OR, XOR, etc. set Z/N based on the full value). This
+// set is used by the IR generator and peephole to skip redundant CMPI #0
+// before a BSTEQ/BSTNE on m68k. On 6502 this set is NOT used.
+val OpcodesThatSetZeroFlagOnM68k = OpcodesThatSetStatusbits + setOf(
+    Opcode.LOAD, Opcode.LOADM, Opcode.LOADX, Opcode.LOADI, Opcode.LOADR,
+    Opcode.INC, Opcode.DEC, Opcode.NEG,
+    Opcode.ADDR, Opcode.ADD, Opcode.SUBR, Opcode.SUB,
+    Opcode.ANDR, Opcode.AND, Opcode.ORR, Opcode.OR, Opcode.XORR, Opcode.XOR,
+    Opcode.INV, Opcode.EXT, Opcode.EXTS, Opcode.EXTL, Opcode.EXTLS,
+    Opcode.MULR, Opcode.MUL, Opcode.MULSR, Opcode.MULS,
+    Opcode.DIVR, Opcode.DIV, Opcode.DIVSR, Opcode.DIVS,
+    Opcode.ASR, Opcode.LSR, Opcode.LSL,
+    Opcode.ASRN, Opcode.LSRN, Opcode.LSLN,
+    Opcode.ASRI, Opcode.LSRI, Opcode.LSLI,
+    Opcode.LSIGB, Opcode.LSIGW, Opcode.MSIGB, Opcode.MSIGW, Opcode.BSIGB, Opcode.MIDB, Opcode.CONCAT
+)
+
 val OpcodesThatDependOnCarry = setOf(
     Opcode.BSTCC,
     Opcode.BSTCS,

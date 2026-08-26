@@ -276,7 +276,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         val lastInstr = condTr.chunks.lastOrNull()?.instructions?.lastOrNull()
         val skipCmpi = codeGen.options.compTarget.cpu.statusBitsOnMultiByteOps
                 && lastInstr != null
-                && lastInstr.opcode in OpcodesThatSetStatusbits
+                && lastInstr.opcode in OpcodesThatSetZeroFlagOnM68k
         if (!skipCmpi) {
             addInstr(result, IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1=condTr.resultReg, immediate = 0), null)
         }
@@ -1384,7 +1384,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     val skipCmpi = rightConst.toInt() == 0
                             && codeGen.options.compTarget.cpu.statusBitsOnMultiByteOps
                             && lastInstr != null
-                            && lastInstr.opcode in OpcodesThatSetStatusbits
+                            && lastInstr.opcode in OpcodesThatSetZeroFlagOnM68k
                     if (!skipCmpi) {
                         addInstr(result, IRInstruction(Opcode.CMPI, leftTr.dt, reg1 = leftTr.resultReg, immediate = rightConst.toInt()), null)
                     }

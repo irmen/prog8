@@ -384,14 +384,10 @@ class IRPeepholeOptimizer(private val irprog: IRProgram, private val retainSSA: 
             if(idx>0 && idx<(indexedInstructions.size-1) && ins.opcode==Opcode.CMPI && ins.immediate==0) {
                 val previous = indexedInstructions[idx-1].value
                 if(previous.reg1==ins.reg1) {
-                    if (previous.opcode in OpcodesThatSetStatusbits) {
+                    if (previous.opcode in OpcodesThatSetZeroFlagOnM68k) {
                         chunk.instructions.removeAt(idx)
                         changed = true
                     }
-                    // Note: the OpcodesThatSetStatusbitsButNotCarry set is empty under
-                    // the strict contract (see IRInstructions.kt) so we don't need a
-                    // second branch here. Only CMP/CMPI/SGN/BITTST are recognized as
-                    // setting flags.
                 }
             }
         }
