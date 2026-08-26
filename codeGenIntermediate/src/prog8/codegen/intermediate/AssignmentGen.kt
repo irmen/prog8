@@ -588,30 +588,61 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                 addToResult(result, tr, -1, valueFpRegister)
             } else {
                 // determine if value needs extension or truncation to match target type
-                // extension happens for byte→word, byte→pointer, or word→long
-                val extendSourceDt = when {
-                    targetDt == valueDt -> null
-                    targetDt==IRDataType.WORD && valueDt==IRDataType.BYTE -> IRDataType.BYTE
-                    targetDt==IRDataType.POINTER && valueDt==IRDataType.BYTE -> IRDataType.BYTE
-                    targetDt==IRDataType.LONG && valueDt==IRDataType.WORD -> IRDataType.WORD
-                    targetDt==IRDataType.POINTER && valueDt in setOf(IRDataType.WORD, IRDataType.LONG) -> null
-                    valueDt==IRDataType.POINTER && targetDt in setOf(IRDataType.WORD, IRDataType.LONG) -> null
-                    valueDt==IRDataType.LONG && targetDt in setOf(IRDataType.WORD, IRDataType.POINTER) -> null
-                    else -> throw AssemblyError("assignment value and target dt mismatch")
+                // extension happens for byte→word, byte→long/pointer, or word→long/pointer
+                // dst implied by opcode: EXT B/W = b->w / w->l, EXTL B = b->l (single type specifier, see IRInstructions.kt:834)
+                val isPointerLong = codeGen.options.compTarget.POINTER_MEM_SIZE > 2u
+                val extendSourceDt: IRDataType?
+                val extendDestDt: IRDataType?
+                val extendSigned: Boolean
+                run {
+                    val valueIsSigned = assignment.value.type.isSigned
+                    when {
+                        targetDt == valueDt -> { extendSourceDt = null; extendDestDt = null; extendSigned = false }
+                        targetDt==IRDataType.WORD && valueDt==IRDataType.BYTE -> { extendSourceDt = IRDataType.BYTE; extendDestDt = IRDataType.WORD; extendSigned = valueIsSigned }
+                        targetDt==IRDataType.POINTER && valueDt==IRDataType.BYTE -> {
+                            if(isPointerLong) { extendSourceDt = IRDataType.BYTE; extendDestDt = IRDataType.LONG; extendSigned = valueIsSigned }
+                            else { extendSourceDt = IRDataType.BYTE; extendDestDt = IRDataType.WORD; extendSigned = valueIsSigned }
+                        }
+                        targetDt==IRDataType.LONG && valueDt==IRDataType.BYTE -> { extendSourceDt = IRDataType.BYTE; extendDestDt = IRDataType.LONG; extendSigned = valueIsSigned }
+                        targetDt==IRDataType.LONG && valueDt==IRDataType.WORD -> { extendSourceDt = IRDataType.WORD; extendDestDt = IRDataType.LONG; extendSigned = valueIsSigned }
+                        targetDt==IRDataType.POINTER && valueDt==IRDataType.WORD -> {
+                            if(isPointerLong) { extendSourceDt = IRDataType.WORD; extendDestDt = IRDataType.LONG; extendSigned = valueIsSigned }
+                            else { extendSourceDt = null; extendDestDt = null; extendSigned = false }
+                        }
+                        targetDt==IRDataType.POINTER && valueDt==IRDataType.LONG -> { extendSourceDt = null; extendDestDt = null; extendSigned = false }
+                        valueDt==IRDataType.POINTER && targetDt==IRDataType.WORD -> { extendSourceDt = null; extendDestDt = null; extendSigned = false } // truncation via LSIG elsewhere, or no op if same size
+                        valueDt==IRDataType.POINTER && targetDt==IRDataType.LONG -> {
+                            if(isPointerLong) { extendSourceDt = null; extendDestDt = null; extendSigned = false }
+                            else { extendSourceDt = IRDataType.WORD; extendDestDt = IRDataType.LONG; extendSigned = valueIsSigned }
+                        }
+                        valueDt==IRDataType.LONG && targetDt==IRDataType.WORD -> { extendSourceDt = null; extendDestDt = null; extendSigned = false }
+                        valueDt==IRDataType.LONG && targetDt==IRDataType.POINTER -> {
+                            if(isPointerLong) { extendSourceDt = null; extendDestDt = null; extendSigned = false }
+                            else { extendSourceDt = null; extendDestDt = null; extendSigned = false }
+                        }
+                        else -> throw AssemblyError("assignment value and target dt mismatch: $valueDt -> $targetDt")
+                    }
+                }
+                fun extOpcode(src: IRDataType, dest: IRDataType, signed: Boolean): Opcode = when {
+                    src==IRDataType.BYTE && dest==IRDataType.WORD -> if(signed) Opcode.EXTS else Opcode.EXT
+                    src==IRDataType.WORD && dest==IRDataType.LONG -> if(signed) Opcode.EXTS else Opcode.EXT
+                    src==IRDataType.BYTE && dest==IRDataType.LONG -> if(signed) Opcode.EXTLS else Opcode.EXTL
+                    else -> throw AssemblyError("unsupported extension $src -> $dest")
                 }
                 if (assignment.value is PtIrRegister) {
                     valueRegister = (assignment.value as PtIrRegister).register
                     if(extendSourceDt != null) {
-                        valueRegister = codeGen.registers.next(IRDataType.WORD)
-                        addInstr(result, IRInstruction(Opcode.EXT, extendSourceDt, reg1=valueRegister, reg2=(assignment.value as PtIrRegister).register), null)
+                        val opcode = extOpcode(extendSourceDt, extendDestDt!!, extendSigned)
+                        valueRegister = codeGen.registers.next(extendDestDt)
+                        addInstr(result, IRInstruction(opcode, extendSourceDt, reg1=valueRegister, reg2=(assignment.value as PtIrRegister).register), null)
                     }
                 } else {
                     val tr = exprGen.translateExpression(assignment.value)
                     valueRegister = tr.resultReg
                     addToResult(result, tr, valueRegister, -1)
                     if(extendSourceDt != null) {
-                        valueRegister = codeGen.registers.next(IRDataType.WORD)
-                        val opcode = if(assignment.value.type.isSigned) Opcode.EXTS else Opcode.EXT
+                        val opcode = extOpcode(extendSourceDt, extendDestDt!!, extendSigned)
+                        valueRegister = codeGen.registers.next(extendDestDt)
                         addInstr(result, IRInstruction(opcode, extendSourceDt, reg1=valueRegister, reg2=tr.resultReg), null)
                     }
                 }

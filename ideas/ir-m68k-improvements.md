@@ -41,7 +41,7 @@ Non-goals:
 | Pointer type | `POINTER` aliases `WORD` in `InstructionFormat` | `equalsSize` treats POINTER as WORD, scattered `POINTER_MEM_SIZE` branches | `IRInstructions.kt:699` `DataTypes.kt:48` `todo.rst:24` |
 | Byte slices | `LSIGB/MSIGB/LSIGW/BSIGB/MIDB/CONCAT` | Shifts/masks via `p8_regfile` byte lanes, big-endian `regAddrByte` | `IRInstructions.kt:326` `AsmGen.kt:193,205` |
 | Addressing | Only absolute / `(a0,d0.w)` / `(a0,off 0-65535)` | No `(An)+`, `-(An)`, `d16(An)` -> loops stay as `loadx+inc+cmp` | `InstrLoadStore.kt:104` |
-| Extension | `ext b->w`, `ext w->l` only | `byte->long` needs two `ext`, byte mul/div needs `and #$ff` widening | `IRInstructions.kt:194` `InstrArithmetic.kt:370,407` |
+| Extension | `ext b->w`, `ext w->l` + `extl b->l` (`extl` is `b->l` in 1 IR step) | `byte mul/div` still widens via `and #$ff` instead of `ext`/`extl`; `m68k` `extb.l` needs `M68000` 2-insn fallback | `IRInstructions.kt:194` `InstrArithmetic.kt:370` `AsmGen.kt:407` |
 | Div/mod | `divmodr` exists but `DIV+MOD` not fused | Two `divs.l` instead of one `divsl.l d1:d0` | `IRInstructions.kt:228` `PeepholeOptimizer` |
 | Float | Separate `fr` regfile, bounce via `fp0/fp1` + `p8_fregfile` | Every float op = 4 `fmove.s` through memory | `AsmGen.kt:172` `InstrLoadStore.kt:268` |
 
@@ -99,11 +99,13 @@ No `(An)+`, `-(An)`, `d16(An)` in IR. Pointer traversal is `LOADI/STOREI` + `ADD
 
 Effort: medium. 6502 impact: minimal - no `(An)+` on 6502, but HLIR `MEMCOPY` would let 6502 emit `lda (src),y / sta (dst),y / iny / bne` more efficiently.
 
-#### 3.7 Typed extension and widening
+#### 3.7 Typed extension and widening (single type specifier only - no `ext.b.l` syntax)
 
-Today `EXT/EXTS` are `b->w` and `w->l` only (`IRInstructions.kt:194-197,818`), `EXTL/EXTLS` `b->l`. `byte->long` needs two steps (`AsmGen.kt:407`). Byte `MULR/DIVR` (`InstrArithmetic.kt:370-397,459-518`) manually `and #$ff / extb.l` to widen. Fix: `EXT` with explicit `srcType/dstType` so backend can emit single `extb.l d0` on 68020 vs `ext.w; ext.l` on 68000, and define `mulu.b->w` style widening so IR not truncate.
+`IRInstruction` has a single `type` (src) `IRInstructions.kt:936`; dst is implied by `Opcode`: `EXT/EXTS B`=`b->w`, `EXT/EXTS W`=`w->l` (`IRInstructions.kt:834`), `EXTL/EXTLS B`=`b->l` in 1 IR step (`IRInstructions.kt:836`). The `b->l` "2 steps" is `M68000` machine fallback `ext.w; ext.l` (`AsmGen.kt:407` `emitSignExtendByteToLong`, `68020` has `extb.l`), not IR. Current cost is byte `MULR/DIVR` widening via `and #$ff` instead of `EXT`/`EXTL` (`InstrArithmetic.kt:370-397,459-518`).
 
-Effort: small. 6502 impact: none - 6502 lowers `EXT` to `lda #0 / sta hi`.
+Constraint: do not add a second type signifier (`ext.b.l` is forbidden). Fix under single-specifier rule: keep 4 opcodes, make `IRCodeGen.kt:721` `emitWidening` and all `ExpressionGen/BuiltinFuncGen` byte `MUL/DIV` paths always emit the correct `EXT`/`EXTL` (`b->l` via `EXTL`, not `EXT+EXT`); keep `IRPeepholeOptimizer.kt:894` collapse `ext.b+ext.w->extl.b` as safety net; define `mulu.b->w` widening via `EXT` so IR does not truncate.
+
+Effort: small. 6502 impact: none - 6502 lowers `EXT`/`EXTL` to `lda #0 / sta hi` (`InstrControl.kt:436`).
 
 #### 3.8 DIVMOD fusion and flag returns
 
