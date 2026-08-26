@@ -295,9 +295,13 @@ type identifier  type                     storage size       example var declara
 ``str[]``        array with string ptrs   2*x bytes + strs   ``str[] names = ["ally", "pete"]``  note: equivalent to a uword array.
 ``str``          string (PETSCII)         varies             ``str myvar = "hello."``
                                                              implicitly terminated by a 0-byte
-``^^type``       typed pointer            2 bytes            pointer types are explained in their own chapter :ref:`pointers`
+``^^type``       typed pointer            2 or 4 bytes      pointer types are explained in their own chapter :ref:`pointers`
 ``pointer``      untyped address          2 or 4 bytes       ``pointer ptr = $a000``.  See :ref:`pointers` for details.
 ===============  =======================  =================  =========================================
+
+.. note::
+    The actual size of pointer types (``^^type`` and ``pointer``) depends on the target's
+    :ref:`pointer size <pointer_size>`: 2 bytes on 6502 targets, 4 bytes on m68k and virtual targets.
 
 Integers (bytes, words, longs)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -319,7 +323,7 @@ which is the PETSCII value for that character. You can prefix it with the desire
 
 *Endianness:* on the 6502-family targets all integers are stored in *little endian* byte order: the Least Significant Byte first and the Most Significant Byte last.
 The m68k targets (amiga500, qemu68k) are the exception: the 68000 CPU is *big endian*, so there integers
-(and pointers, which are 4 bytes wide on those targets) are stored Most Significant Byte first.
+(and pointers, which are wider on those targets - see :ref:`pointer_size`) are stored Most Significant Byte first.
 
 **bytes versus words versus longs:**
 
@@ -527,12 +531,16 @@ This way you can set the second character on the second row from the top like th
 
 **Array indexing on a pointer variable:**
 
-An uword variable can be used in limited scenarios as a 'pointer' to a byte in memory at a specific,
-dynamic, location. You can use array indexing on a pointer variable to use it as a byte array at
+A variable that can hold a memory address can be used in limited scenarios as a 'pointer' to a byte in memory at a specific,
+dynamic, location. You can use array indexing on such a variable to use it as a byte array at
 a dynamic location in memory: currently this is equivalent to directly referencing the bytes in
-memory at the given index. In contrast to a real array variable, the index value can be the size of a word.
+memory at the given index. In contrast to a real array variable, the index value can be larger than an ubyte.
 Unlike array variables, negative indexing for pointer variables does *not* mean it will be counting from the end, because the size of the buffer is unknown.
 Instead, it simply addresses memory that lies *before* the pointer variable.
+
+Which variable types can be used for pointer indexing depends on the :ref:`pointer size <pointer_size>` of the target:
+``uword`` on 6502 targets, ``long`` (or ``pointer``) on m68k targets.
+
 See also :ref:`pointervars` and the chapter about it :ref:`pointers`.
 
 **LSB/MSB split word and str arrays:**
@@ -755,7 +763,7 @@ Direct access to memory locations ('peek' and 'poke')
 Usually specific memory locations are accessed through a memory-mapped variable, such as ``cbm.BGCOL0`` that is defined
 as the background color register at the memory address $d021 (on the c64 target).
 
-If you want to access any memory location directly (by using the address itself or via an uword pointer variable),
+If you want to access any memory location directly (by using the address itself or via a pointer variable),
 without defining a memory-mapped location, you can do so by enclosing the address in ``@(...)``::
 
     color = @($d020)  ; set the variable 'color' to the current c64 screen border color ("peek(53280)")
@@ -764,9 +772,11 @@ without defining a memory-mapped location, you can do so by enclosing the addres
 
 You can actually also use the array indexing notation for this. It will be silently converted into
 the direct memory access expression as explained above. Note that unlike regular arrays,
-the index is not limited to an ubyte value. You can use a full uword to index a pointer variable like this::
+the index is not limited to an ubyte value. You can use a larger integer type to index a pointer variable like this::
 
     pointervar[999] = 0     ; set memory byte to zero at location pointervar + 999.
+
+The variable type must be able to hold a :ref:`pointer <pointer_size>` for the target: ``uword`` on 6502 targets, ``long`` on m68k targets.
 
 More information about *typed pointers* can be found in the chapter :ref:`pointers`.
 

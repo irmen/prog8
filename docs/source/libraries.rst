@@ -315,8 +315,8 @@ sizeof (name)  ;  sizeof(datatype)  ;  sizeof(&name)  ;  sizeof(&&name)  ;  size
     For instance, for a variable of type uword, the sizeof is 2.
     For a 10 element array of floats, it is 50 (on the C64, where a float is 5 bytes).
     For a string, it returns the size of the string in memory (which includes the 0-byte terminator at the end).
-    For address-of expressions like ``&variable`` or ``&&variable``, it returns the size of a pointer (2 bytes).
-    For pointer types like ``^^float`` or ``^^MyStruct``, it returns the size of a pointer (2 bytes).
+    For address-of expressions like ``&variable`` or ``&&variable``, it returns the :ref:`pointer size <pointer_size>` for the target.
+    For pointer types like ``^^float`` or ``^^MyStruct``, it returns the :ref:`pointer size <pointer_size>` for the target.
     Note: usually you will be interested in the number of elements in an array, or the number of characters in the string; use ``len()`` for that.
 
 :index:`memory` (name, size, alignment)  ;  memory(name)

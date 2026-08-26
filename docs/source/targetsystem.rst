@@ -83,6 +83,21 @@ Memory Model
 ============
 .. index:: single: Targets; Memory model
 
+.. _pointer_size:
+
+Pointer size
+------------
+The size of a pointer (memory address) depends on the target's CPU architecture:
+
+- **6502-family targets** (c64, cx16, c128, pet32): **2 bytes** (16-bit address space, 64 KB)
+- **m68k targets** (amiga500, qemu68k): **4 bytes** (32-bit address space, 16 MB)
+- **virtual target**: **4 bytes** (32-bit address space, 16 MB)
+
+The ``pointer`` type keyword automatically takes the correct size for the target,
+making it the natural choice for variables that hold a memory address in portable code.
+On 6502 targets it is equivalent to ``uword``; on m68k and virtual targets it is equivalent to ``long``.
+Alternatively, you can use ``uword`` or ``long`` directly if you know the target in advance.
+
 Generic 6502 Physical address space layout
 ------------------------------------------
 
@@ -173,8 +188,8 @@ The amiga500 target is **experimental**. It uses the M68k code generator backend
 Amiga Hunk executable files via the vasm assembler.
 
 Unlike the 6502 targets, the 68000 CPU is **big endian**: multi-byte values (words, 32-bit longs and
-pointers) are stored Most Significant Byte first in memory. Pointers are 4 bytes wide on this target.
-See :ref:`the endianness notes <endianness>` in the variables chapter.
+pointers) are stored Most Significant Byte first in memory. See :ref:`pointer_size` and
+:ref:`the endianness notes <endianness>` in the variables chapter.
 
 The ``-emu`` flag uses **Vamos** from the `Amitools <https://github.com/cnvogelg/amitools>`_ package
 to run the compiled program. Vamos is a very limited Amiga runtime that runs on the host operating system

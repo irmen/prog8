@@ -102,12 +102,12 @@ Pointers and Structs
 *Legacy 'untyped' pointers:*
 
 - In Prog8 versions **before 12.0** there was no support for typed pointers, only 'untyped' ones:
-  Variables of the ``uword`` datatype can be used as a pointer to one of the possible 65536 memory locations,
+  A variable that can hold a :ref:`pointer <pointer_size>` for the target can be used as a pointer to a memory location,
   so the value it points to is always a single byte. This is similar to ``uint8_t*`` from C.
-  You have to deal with the uword manually if the object it points to is something different.
+  You have to deal with the pointer manually if the object it points to is something different.
 - Note that there is the ``peekw`` builtin function that *does* allow you to directly obtain the *word* value at the given memory location.
   So if you use this, you can use uword pointers as pointers to word values without much hassle.
-- "dereferencing" a uword pointer is done via array indexing ``ptr[index]`` (where index value can be 0-65535!) or via the memory read operator ``@(ptr)``, or ``peek/peekw(ptr)``.
+- "dereferencing" an untyped pointer is done via array indexing ``ptr[index]`` or via the memory read operator ``@(ptr)``, or ``peek/peekw(ptr)``.
 - Pointers don't have to be a variable, you can immediately access the value of a given memory location using ``@($d020)`` for instance.
   Reading is done by assigning it to a variable, writing is done by just assigning the new value to it.
 

@@ -2,8 +2,11 @@ package prog8tests.codegeneration
 
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.engine.spec.tempdir
+import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import prog8.code.target.Amiga500Target
 import prog8.code.target.Qemu68kTarget
+import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
 
 class TestM68k : FunSpec({
@@ -136,5 +139,130 @@ main {
 """
         val result = compileText(Qemu68kTarget(), optimize = false, src, outputDir, writeAssembly = true, assemble = false)
         result shouldNotBe null
+    }
+
+    test("long/pointer type casts and assignments on 32-bit target") {
+        val src = """
+            main {
+                sub start() {
+                    uword @shared uw = 12345
+                    long @shared lg
+                    ^^ubyte @shared typedptr
+
+                    lg = uw
+                    uw = lg as uword
+
+                    lg = typedptr
+                    typedptr = lg as ^^ubyte
+
+                    typedptr = uw as ^^ubyte
+                    uw = typedptr as uword
+
+                    lg = uw as ^^ubyte as long
+
+                    long @shared lresult = uw + 5
+                    uw = lresult as uword
+
+                    uw = subRetLong() as uword
+                    lg = subRetUword()
+                }
+                sub subRetLong() -> long {
+                    long @shared val_ = 99999
+                    return val_
+                }
+                sub subRetUword() -> uword {
+                    uword @shared val_ = 54321
+                    return val_
+                }
+            }"""
+        compileText(Qemu68kTarget(), false, src, outputDir, writeAssembly = false) shouldNotBe null
+        compileText(Qemu68kTarget(), true, src, outputDir, writeAssembly = false) shouldNotBe null
+        compileText(Amiga500Target(), false, src, outputDir, writeAssembly = false) shouldNotBe null
+        compileText(Amiga500Target(), true, src, outputDir, writeAssembly = false) shouldNotBe null
+    }
+
+    test("long/pointer indexing and type errors on 32-bit target") {
+        val src = """
+            main {
+                sub start() {
+                    long @shared lptr
+                    ubyte @shared idx
+
+                    lptr[10] = 42
+                    lptr[idx] = idx
+                    ubyte @shared a = lptr[10]
+                    ubyte @shared b = lptr[idx]
+                }
+            }"""
+        compileText(Qemu68kTarget(), false, src, outputDir, writeAssembly = false) shouldNotBe null
+        compileText(Qemu68kTarget(), true, src, outputDir, writeAssembly = false) shouldNotBe null
+
+        val srcUword = """
+            main {
+                sub start() {
+                    uword @shared uptr
+                    ubyte @shared dummy = uptr[10]
+                }
+            }"""
+        val errorsUword = ErrorReporterForTests()
+        compileText(Qemu68kTarget(), false, srcUword, outputDir, writeAssembly = false, errors = errorsUword) shouldBe null
+        errorsUword.errors.any { it.contains("indexing requires an iterable, address long, or pointer variable") } shouldBe true
+
+        val srcWord = """
+            main {
+                sub start() {
+                    word @shared wptr
+                    ubyte @shared dummy = wptr[10]
+                }
+            }"""
+        val errorsWord = ErrorReporterForTests()
+        compileText(Qemu68kTarget(), false, srcWord, outputDir, writeAssembly = false, errors = errorsWord) shouldBe null
+        errorsWord.errors.any { it.contains("indexing requires an iterable, address long, or pointer variable") } shouldBe true
+
+        val srcUbyte = """
+            main {
+                sub start() {
+                    ubyte @shared bptr
+                    ubyte @shared dummy = bptr[10]
+                }
+            }"""
+        val errorsUbyte = ErrorReporterForTests()
+        compileText(Qemu68kTarget(), false, srcUbyte, outputDir, writeAssembly = false, errors = errorsUbyte) shouldBe null
+        errorsUbyte.errors.any { it.contains("indexing requires an iterable, address long, or pointer variable") } shouldBe true
+
+        val srcByte = """
+            main {
+                sub start() {
+                    byte @shared bptr
+                    ubyte @shared dummy = bptr[10]
+                }
+            }"""
+        val errorsByte = ErrorReporterForTests()
+        compileText(Qemu68kTarget(), false, srcByte, outputDir, writeAssembly = false, errors = errorsByte) shouldBe null
+        errorsByte.errors.any { it.contains("indexing requires an iterable, address long, or pointer variable") } shouldBe true
+
+        val srcNarrow = """
+            main {
+                sub start() {
+                    long @shared lg = 999
+                    uword @shared uw
+                    uw = lg
+                }
+            }"""
+        val errorsNarrow = ErrorReporterForTests()
+        compileText(Qemu68kTarget(), false, srcNarrow, outputDir, writeAssembly = false, errors = errorsNarrow) shouldBe null
+        errorsNarrow.errors.any { it.contains("doesn't match target type") } shouldBe true
+    }
+
+    test("large constant index on long pointer compiles on qemu68k") {
+        val src = """
+            main {
+                sub start() {
+                    long @shared lptr
+                    lptr[999999] = 42
+                    ubyte @shared val_ = lptr[999999]
+                }
+            }"""
+        compileText(Qemu68kTarget(), false, src, outputDir, writeAssembly = false) shouldNotBe null
     }
 })

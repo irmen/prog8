@@ -61,9 +61,7 @@ Some implicit conversions were allowed too (such as putting ``str`` as the type 
 which would be changed to ``uword`` by the compiler).
 
 Since version 12.6 there now is a dedicated ``pointer`` type keyword that serves as an untyped address
-and automatically takes the size of memory addresses on the target system.
-On 6502-based systems (C64, CX16, C128, PET32) it is 2 bytes (equivalent to ``uword``).
-On the m68k target (qemu68k) it is 4 bytes (equivalent to ``long``).
+and automatically takes the :ref:`pointer size <pointer_size>` for the target.
 This is useful when writing code that is compiled for different targets,
 because you don't need to manually switch between ``uword`` and ``long`` via conditional compilation::
 
