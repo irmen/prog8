@@ -2227,6 +2227,9 @@ class IRCodeGen(
 
     internal fun loadIndexReg(index: PtExpression, itemsize: Int, wordIndex: Boolean, arrayIsSplitWords: Boolean): Pair<IRCodeChunks, Int> {
         // returns the code to load the Index into the register, which is also returned.
+        // The returned register is always canonicalized to the expected index width
+        // (WORD on 32-bit targets, BYTE on 8-bit) so that LOADX/STOREX/STOREZX never
+        // need to guess the index type later (see IRInstructions.addUsedRegistersCounts).
 
         require(index !is PtNumber) { "index should not be a constant number here, calling code should handle that in a more efficient way" }
 
@@ -2236,9 +2239,17 @@ class IRCodeGen(
             val tr = expressionEval.translateExpression(index)
             addToResult(result, tr, tr.resultReg, -1)
             var indexReg = tr.resultReg
-            if(tr.dt==IRDataType.BYTE) {
-                indexReg = registers.next(IRDataType.WORD)
-                addInstr(result, IRInstruction(Opcode.EXT, IRDataType.BYTE, reg1=indexReg, reg2=tr.resultReg), null)
+            var indexDt = tr.dt
+            if(indexDt != IRDataType.WORD) {
+                val newReg = registers.next(IRDataType.WORD)
+                when(indexDt) {
+                    IRDataType.BYTE -> addInstr(result, IRInstruction(Opcode.EXT, IRDataType.BYTE, reg1=newReg, reg2=tr.resultReg), null)
+                    IRDataType.WORD -> {} // already WORD
+                    IRDataType.LONG -> addInstr(result, IRInstruction(Opcode.LSIGW, IRDataType.LONG, reg1=newReg, reg2=tr.resultReg), null)
+                    else -> throw IllegalArgumentException("unexpected index dt $indexDt for wordIndex")
+                }
+                indexReg = newReg
+                indexDt = IRDataType.WORD
             }
             result += multiplyByConst(DataType.UWORD, indexReg, itemsize)
             return Pair(result, indexReg)
@@ -2249,12 +2260,24 @@ class IRCodeGen(
         addToResult(result, byteIndexTr, byteIndexTr.resultReg, -1)
 
         // LOADX/STOREX use word-sized indices on targets with 32-bit pointers.
-        // Widen byte indices before returning them, including for byte arrays.
         val indexRegType = if(options.compTarget.POINTER_MEM_SIZE > 2u) IRDataType.WORD else IRDataType.BYTE
         var indexReg = byteIndexTr.resultReg
-        if(indexRegType == IRDataType.WORD && byteIndexTr.dt == IRDataType.BYTE) {
-            indexReg = registers.next(IRDataType.WORD)
-            addInstr(result, IRInstruction(Opcode.EXT, IRDataType.BYTE, reg1=indexReg, reg2=byteIndexTr.resultReg), null)
+        var indexDt = byteIndexTr.dt
+        if(indexDt != indexRegType) {
+            val newReg = registers.next(indexRegType)
+            when {
+                indexRegType == IRDataType.WORD && indexDt == IRDataType.BYTE ->
+                    addInstr(result, IRInstruction(Opcode.EXT, IRDataType.BYTE, reg1=newReg, reg2=byteIndexTr.resultReg), null)
+                indexRegType == IRDataType.WORD && indexDt == IRDataType.LONG ->
+                    addInstr(result, IRInstruction(Opcode.LSIGW, IRDataType.LONG, reg1=newReg, reg2=byteIndexTr.resultReg), null)
+                indexRegType == IRDataType.BYTE && indexDt == IRDataType.WORD ->
+                    addInstr(result, IRInstruction(Opcode.LSIGB, IRDataType.WORD, reg1=newReg, reg2=byteIndexTr.resultReg), null)
+                indexRegType == IRDataType.BYTE && indexDt == IRDataType.LONG ->
+                    addInstr(result, IRInstruction(Opcode.LSIGB, IRDataType.LONG, reg1=newReg, reg2=byteIndexTr.resultReg), null)
+                else -> throw IllegalArgumentException("unexpected index conversion $indexDt -> $indexRegType")
+            }
+            indexReg = newReg
+            indexDt = indexRegType
         }
 
         if(itemsize==1 || arrayIsSplitWords)
