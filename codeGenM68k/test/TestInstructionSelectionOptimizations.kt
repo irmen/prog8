@@ -1075,4 +1075,77 @@ class TestInstructionSelectionOptimizations : FunSpec({
         lines.any { it.contains("dbra") } shouldBe false
         lines.any { it.contains("move.w  p8_regfile+4,d0") } shouldBe true
     }
+
+    // === on..goto / on..call dispatch fusion (LOADX+JUMPI/CALLI) ===
+
+    test("fuses LOADX+JUMPI on qemu68k (68020 memory-indirect jmp)") {
+        val lines = mutableListOf(
+            "    lea  mytable,a0",
+            "    move.l  (a0,d0.w),d0",
+            "    move.l  d0,p8_regfile+6",
+            "    jmp  ([p8_regfile+6])"
+        )
+        optimizeAssembly(lines)
+        lines.any { it.contains("move.l  (a0,d0.w), a0") } shouldBe true
+        lines.any { it.contains("move.l  d0,p8_regfile+6") } shouldBe false
+        lines.any { it.contains("jmp  ([p8_regfile+6])") } shouldBe false
+        lines.any { it.trim() == "jmp  (a0)" } shouldBe true
+    }
+
+    test("fuses LOADX+JUMPI on amiga500 (68000 movea reload)") {
+        val lines = mutableListOf(
+            "    lea  mytable,a0",
+            "    move.l  (a0,d0.w),d0",
+            "    move.l  d0,p8_regfile+6",
+            "    movea.l  p8_regfile+6,a0",
+            "    jmp  (a0)"
+        )
+        optimizeAssembly(lines)
+        lines.any { it.contains("move.l  (a0,d0.w), a0") } shouldBe true
+        lines.any { it.contains("move.l  d0,p8_regfile+6") } shouldBe false
+        lines.any { it.contains("movea.l  p8_regfile+6,a0") } shouldBe false
+        lines.count { it.trim() == "jmp  (a0)" } shouldBe 1
+    }
+
+    test("fuses LOADX+CALLI on qemu68k (68020 memory-indirect jsr)") {
+        val lines = mutableListOf(
+            "    lea  mytable,a0",
+            "    move.l  (a0,d0.w),d0",
+            "    move.l  d0,p8_regfile+6",
+            "    jsr  ([p8_regfile+6])"
+        )
+        optimizeAssembly(lines)
+        lines.any { it.contains("move.l  (a0,d0.w), a0") } shouldBe true
+        lines.any { it.contains("move.l  d0,p8_regfile+6") } shouldBe false
+        lines.any { it.contains("jsr  ([p8_regfile+6])") } shouldBe false
+        lines.any { it.trim() == "jsr  (a0)" } shouldBe true
+    }
+
+    test("fuses LOADX+CALLI on amiga500 (68000 movea reload)") {
+        val lines = mutableListOf(
+            "    lea  mytable,a0",
+            "    move.l  (a0,d0.w),d0",
+            "    move.l  d0,p8_regfile+6",
+            "    movea.l  p8_regfile+6,a0",
+            "    jsr  (a0)"
+        )
+        optimizeAssembly(lines)
+        lines.any { it.contains("move.l  (a0,d0.w), a0") } shouldBe true
+        lines.any { it.contains("move.l  d0,p8_regfile+6") } shouldBe false
+        lines.any { it.contains("movea.l  p8_regfile+6,a0") } shouldBe false
+        lines.any { it.trim() == "jsr  (a0)" } shouldBe true
+    }
+
+    test("does not fuse LOADX+JUMPI when spill slot is a jump target") {
+        val lines = mutableListOf(
+            "    lea  mytable,a0",
+            "    move.l  (a0,d0.w),d0",
+            "target:  move.l  d0,p8_regfile+6",
+            "    jmp  ([p8_regfile+6])"
+        )
+        optimizeAssembly(lines)
+        // spill has label, must be kept
+        lines.any { it.contains("move.l  d0,p8_regfile+6") } shouldBe true
+        lines.any { it.contains("move.l  (a0,d0.w), a0") } shouldBe false
+    }
 })

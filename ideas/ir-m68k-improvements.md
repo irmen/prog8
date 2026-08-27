@@ -99,11 +99,11 @@ Effort: medium. Depends on #3.10 for max benefit. 6502 impact: neutral - 6502 la
 
 #### 3.6 Post-increment / displacement / memcopy -- Completed (post-inc only)
 
-No `(An)+`, `-(An)`, `d16(An)` in IR. Pointer traversal is `LOADI/STOREI` + `ADDR`, loops are `loadx+inc+cmp`. Add `LOAD_INC/STORE_INC` or annotate sequential `LOADX`, or introduce higher-level `MEMCOPY` IR (`todo.rst:55` HLIR). Lets m68k emit `move.w (a0)+,d0` / `movem` and `AsmOptimizer.optimizeDbraRepeatLoops:386` gets `repeat N` semantics directly instead of pattern-matching `move #N / subq / bne`.
+No `(An)+`, `-(An)`, `d16(An)` in IR. Pointer traversal is `LOADI/STOREI` + `ADDR`, loops are `loadx+inc+cmp`. Add `LOAD_INC/STORE_INC` or annotate sequential `LOADX`; bulk `dst[i]=src[i]` loops should be AST-transformed to `sys.memcopy(src,dst,N)` (no new `MEMCOPY` IR - `sys.memcopy` already `movem` on m68k, `todo.rst:55` HLIR not needed, `AsMOptimizer.optimizeDbraRepeatLoops:386` currently pattern-matches `move #N/subq/bne`).
 
-Implemented (post-inc): added `LOADP_INC`/`STOREP_INC` (`IRInstructions.kt:103,359,766`, `Utils.kt:89` `([a-z_]+)`), VM `VirtualMachine.kt:266`, m68k `InstrLoadStore.kt:100` lowering to `move.s (a0)+`, 6502 `InstrLoadStore.kt:81` fallback via `$22`, peephole `IRPeepholeOptimizer.kt:60` `fusePointerPostInc` fusing `loadm+loadi/storei+incm` on same pointer variable -> single post-inc op. Displacement `d16(An)`, `-(An)` and `MEMCOPY` HLIR remain future work. Test `TestM68k.kt:271` verifies `loadp_inc`/`storep_inc` and `(a0)+`.
+Implemented (post-inc): added `LOADP_INC`/`STOREP_INC` (`IRInstructions.kt:103,359,766`, `Utils.kt:89` `([a-z_]+)`), VM `VirtualMachine.kt:266`, m68k `InstrLoadStore.kt:100` lowering to `move.s (a0)+`, 6502 `InstrLoadStore.kt:81` fallback via `$22`, peephole `IRPeepholeOptimizer.kt:60` `fusePointerPostInc` fusing `loadm+loadi/storei+incm` on same pointer variable -> single post-inc op. Displacement `d16(An)`, `-(An)` remain future work; bulk copy via AST `memcopy` transform. Test `TestM68k.kt:271` verifies `loadp_inc`/`storep_inc` and `(a0)+`.
 
-Effort: medium (post-inc small, rest medium). 6502 impact: minimal - `loadp_inc` lowers to `$22` indirect + `inc` fallback, no `(An)+` on 6502, but `MEMCOPY` HLIR still future.
+Effort: medium (post-inc small, rest medium). 6502 impact: minimal - `loadp_inc` lowers to `$22` indirect + `inc` fallback, no `(An)+` on 6502.
 
 #### 3.7 Typed extension and widening (single type specifier only - no `ext.b.l` syntax) -- Completed
 
@@ -137,6 +137,14 @@ Effort: large, but fully specified in `ideas/m68k-register-allocation.md:1-438`.
 
 6502 impact: old `codeGenCpu6502` unaffected. For `codeGenNew6502` the m68k design (D/A/FP files, `movem`) degrades to ZP placement - 6502 has only A/X/Y. Same uniform `CALL` convention (kill scratch, preserve callee-saved) removes need for call-graph packing, so per-sub vreg reuse shrinks `p8_regfile` BSS from program-wide to worst-sub. Small size win, no regression; full ZP-allocation design left to separate 6502 doc.
 
+#### 3.11 Jump-table dispatch (`on .. goto/call`, `%jmptable`) -- Completed
+
+`%jmptable` is 6502-only (`AstChecker.kt:1496` errors on `amiga500`/`qemu68k`, `docs/source/programming.rst:445` + `binlibrary.rst:136` note). `on .. goto`/`on .. call`/`when` lower to `LOADX`+`JUMPI/CALLI` via `CodeDesugarer.kt:880` (array + bounds check). On m68k this was `lea`/`move.l (a0,d0.w),d0`/`move.l d0,slot`/`movea.l slot,a0`/`jmp/jsr (a0)` (68000) or `jmp/jsr ([slot])` (68020) — extra spill/reload.
+
+Implemented ASM peephole `AsmOptimizer.kt:673` `optimizeFuseLoadxJumpi` (REGFILE-DEPENDENT) fusing to `lea`/`move.l (a0,d0.w),a0`/`jmp/jsr (a0)` for both `jmp` and `jsr`, both CPUs. Preserves unscaled `(a0,d0.w)` (index already `lsl.w #2` scaled before `LOADX`); no `*4` hardware scaling — left to `3.1`. Tests in `codeGenM68k/test/TestInstructionSelectionOptimizations.kt:1080` (4 fusion + 1 bail-out).
+
+Effort: small. 6502 impact: none (`codeGenCpu6502` has fixed `jmp` table, `codeGenNew6502` not affected).
+
 ---
 
 ## 4. Implementation order (low hanging fruits first)
@@ -144,9 +152,11 @@ Effort: large, but fully specified in `ideas/m68k-register-allocation.md:1-438`.
 1. #3.1 Scaled index + #3.2 Index type fix + #3.3 Pointer cleanup - independent, small, unblock others.
 2. #3.7 Typed EXT - small, immediate m68k `extb.l` win.
 3. #3.4 Status flag peephole for m68k (`honorsContract` path) - small.
-4. #3.5 Byte slices, #3.6 displacement/memcopy remaining, #3.9 Float - as follow-ups once values are in registers.
+4. #3.5 Byte slices, #3.6 displacement/memcopy remaining - as follow-ups once values are in registers.
 5. #3.8 DIVMOD fusion -- low priority (seldom: only explicit `divmod()` today) - defer.
 6. #3.10 True register allocation (deferred) - largest scope, do after all IR cleanups.
+7. #3.9 Float - depends on #3.10 `FP` residency, after #3.10.
+8. #3.11 Jump-table dispatch -- Completed (docs + ASM fusion, no IR change).
 
 ---
 
@@ -166,6 +176,7 @@ Effort: large, but fully specified in `ideas/m68k-register-allocation.md:1-438`.
 | #3.8 DIVMOD | None | Two helpers -> one |
 | #3.9 Float | None | None |
 | #3.10 Reg allocation | ZP placement only (no D/A/FP win) | Shrinks `p8_regfile` BSS, fixes call-graph soundness |
+| #3.11 Jump-table | None | Removes spill/reload for `on .. goto/call` |
 
 Overall: P0 items ship with explicit 6502 fallback (`asl` helper, `TODO` for scale 5). P1/P2 are either neutral or small wins on 6502; no item pessimizes 6502 beyond the cheap fallback. `TestExecution6502.simulate()` covers scaled word/long access.
 
@@ -205,6 +216,7 @@ Overall: P0 items ship with explicit 6502 fallback (`asl` helper, `TODO` for sca
 | m68k shifts, bit ops, `regAddrByte` | `codeGenM68k/src/prog8/codegen/m68k/InstrBitwise.kt` |
 | m68k regfile layout, `regAddr`, `cpu` | `codeGenM68k/src/prog8/codegen/m68k/AsmGen.kt` |
 | Peephole, `removeNeedlessCompares`, `collapseConversions` | `codeGenIntermediate/src/prog8/codegen/intermediate/IRPeepholeOptimizer.kt` |
-| Asm optimizer, `dbra`, `msigb` spill | `codeGenM68k/src/prog8/codegen/m68k/AsmOptimizer.kt` |
+| Asm optimizer, `dbra`, `msigb` spill, jump-table fusion | `codeGenM68k/src/prog8/codegen/m68k/AsmOptimizer.kt` |
+| Jump-table desugaring, `%jmptable` check | `compiler/src/prog8/compiler/astprocessing/CodeDesugarer.kt:880`, `AstChecker.kt:1496` |
 | Pointer size, memsizer | `codeCore/src/prog8/code/core/IMemSizer.kt`, `DataTypes.kt` |
 | Array limits, `AstChecker` | `compiler/src/prog8/compiler/astprocessing/AstChecker.kt:1107` |

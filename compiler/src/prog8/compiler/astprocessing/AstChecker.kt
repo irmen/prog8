@@ -1494,6 +1494,8 @@ internal class AstChecker(private val program: Program,
                     err("invalid encoding directive, expected one of $allowedEncodings")
             }
             "%jmptable" -> {
+                if(options.compTarget.cpu.is68k)
+                    err("%jmptable is not supported on M68K targets (library loading is 6502-only)")
                 if(directive.parent !is Block)
                     err("this directive may only occur in a block")
                 for(arg in directive.args) {

@@ -442,6 +442,10 @@ Directives
     and the actual implementation of those routines can be changed in later versions of the library
     without existing callers noticing anything.
 
+    *Note:* this directive is currently only supported on 6502 targets (c64, cx16, c128, pet32).
+    It is not available on M68K targets (amiga500, qemu68k) because loadable library support
+    has not been implemented for those platforms yet.
+
     This is usually put at the top of the main block so that it ends up at the beginning
     of the library file. *Note:* the compiler will still insert the required bootstrapping
     code in front of it, which in the case of a library, is the single JMP to the start routine

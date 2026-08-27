@@ -36,14 +36,15 @@ internal fun optimizeAssembly(lines: MutableList<String>) {
         }
 
         var by2 = getLinesBy(pretrimmed, lines, 2)
-        by2 = runPass(optimizeRedundantReload(by2), 2, by2)
-        by2 = runPass(optimizeBounceToGlobal(by2, pretrimmed), 2, by2)
+        by2 = runPass(optimizeRedundantReload(by2), 2, by2)  // REGFILE-DEPENDENT
+        by2 = runPass(optimizeBounceToGlobal(by2, pretrimmed), 2, by2)  // REGFILE-DEPENDENT
         by2 = runPass(optimizeJmpToNextLabel(by2), 2, by2)
         by2 = runPass(optimizeTailCall(by2), 2, by2)
         by2 = runPass(optimizeRedundantTst(by2), 2, by2)
-        by2 = runPass(optimizeMsigbSpill(by2, pretrimmed), 2, by2)
+        by2 = runPass(optimizeMsigbSpill(by2, pretrimmed), 2, by2)  // REGFILE-DEPENDENT
 
         // DBRA peephole for repeat loops: move #N,p8_regfile+slot / label: body / subq #1,slot / bne label  ->  move #N-1,d7 / label: body / dbra d7,label
+        // REGFILE-DEPENDENT
         val dbraMods = optimizeDbraRepeatLoops(pretrimmed, lines)
         if (dbraMods.isNotEmpty()) {
             applyModifications(dbraMods, lines, pretrimmed)
@@ -54,9 +55,16 @@ internal fun optimizeAssembly(lines: MutableList<String>) {
             break
     }
     // M3 is a full-file scan (not a 2-window peephole) and is idempotent; run once after the fixed-point loop
+    // REGFILE-DEPENDENT
     val clampMods = optimizeClampImmediate(pretrimmed, lines)
     if (clampMods.isNotEmpty()) {
         applyModifications(clampMods, lines, pretrimmed)
+    }
+    // M4: fuse LOADX+JUMPI - eliminate the register file store/reload between array load and indirect jump
+    // REGFILE-DEPENDENT
+    val fuseMods = optimizeFuseLoadxJumpi(pretrimmed, lines)
+    if (fuseMods.isNotEmpty()) {
+        applyModifications(fuseMods, lines, pretrimmed)
     }
 }
 
@@ -158,6 +166,10 @@ private fun String.isSafeMemoryOperand(): Boolean {
 // === peephole passes ===
 
 private fun optimizeRedundantReload(linesBy: Sequence<List<TrimmedLine>>): List<Modification> {
+    // REGFILE-DEPENDENT: this pattern is produced by the current regfile-based
+    // codegen (store to p8_regfile then immediately reload to d0). If values are
+    // kept in registers instead of spilled to p8_regfile, this peephole will
+    // rarely fire and can be removed or generalized.
     //  move.S  d0, MEM
     //  move.S  MEM, d0        ->  remove the second line
     //
@@ -186,6 +198,9 @@ private fun optimizeRedundantReload(linesBy: Sequence<List<TrimmedLine>>): List<
 }
 
 private fun optimizeBounceToGlobal(linesBy: Sequence<List<TrimmedLine>>, allPretrimmed: List<String>): List<Modification> {
+    // REGFILE-DEPENDENT: explicitly matches p8_regfile spill followed by copy
+    // to a global. Depends on the current strategy of spilling all intermediate
+    // values to p8_regfile. If regfile is refactored, this bounce disappears.
     //  move.S  d0, p8_regfile+OFF     ; spill result to regfile temp
     //  move.S  p8_regfile+OFF, GLOBAL ; copy temp -> global
     //  ->
@@ -348,6 +363,10 @@ private fun String.flagSettingDest(): String? {
 }
 
 private fun optimizeMsigbSpill(linesBy: Sequence<List<TrimmedLine>>, allPretrimmed: List<String>): List<Modification> {
+    // REGFILE-DEPENDENT: optimizes the spill of a word/long to p8_regfile
+    // followed by a byte read of its MSB. This spill is an artifact of the
+    // current regfile-based codegen and big-endian layout. If values stay in
+    // registers, the spill is never emitted.
     //  move.w/l  SYMBOL, p8_regfile+N   ; spill word/long to slot
     //  move.b    p8_regfile+N, d0       ; read MSB
     //  ->  move.b  SYMBOL, d0           ; big-endian: MSB is at SYMBOL+0, no spill needed
@@ -384,6 +403,10 @@ private fun optimizeMsigbSpill(linesBy: Sequence<List<TrimmedLine>>, allPretrimm
 }
 
 private fun optimizeDbraRepeatLoops(pretrimmed: List<String>, lines: MutableList<String>): List<Modification> {
+    // REGFILE-DEPENDENT: converts a loop counter kept in a hidden p8_regfile
+    // slot into a dbra using d7. Directly depends on the current use of
+    // p8_regfile for repeat counters. If loop counters are allocated to
+    // registers, this transformation is unnecessary.
     // repeat N { body } -> move.w #N-1,d7 / label: body / dbra d7,label
     // Only for hidden p8_regfile slots (repeat counters), not user variables.
     // Requires: body has no d7 dest, no bsr/jsr (calls clobber d7), and does not reference the counter slot.
@@ -476,6 +499,10 @@ private fun optimizeDbraRepeatLoops(pretrimmed: List<String>, lines: MutableList
 }
 
 private fun optimizeClampImmediate(allPretrimmed: List<String>, lines: MutableList<String>): List<Modification> {
+    // REGFILE-DEPENDENT: folds clamp bounds that were materialized as
+    // move #imm,p8_regfile+SLOT. Depends on the current codegen that spills
+    // clamp immediates to regfile slots before the compare block. If immediates
+    // are kept in registers or encoded as cmpi, this pattern disappears.
     // M3: fold clamp bounds that were materialized as move #imm,SLOT.
     // Only fold when we can identify the full clamp block, to avoid touching unrelated compares.
     // Pattern (filtered lines, b/w/l size must match):
@@ -600,10 +627,15 @@ private fun optimizeClampImmediate(allPretrimmed: List<String>, lines: MutableLi
     return mods
 }
 
+// REGFILE-DEPENDENT helper: identifies operands that refer to the current
+// p8_regfile spill area. If the regfile is refactored, this predicate and
+// all peepholes that use it must be updated.
 /** True if this operand is a prog8 register-file slot (e.g. "p8_regfile+268", "p8_fregfile+12"). */
 private fun String.isRegfileSlot(): Boolean =
     startsWith("p8_regfile+") || startsWith("p8_fregfile+")
 
+// REGFILE-DEPENDENT helper: scans for future reads of a regfile slot.
+// Used by bounce/msigb/clamp/fuse peepholes to decide if a spill can be removed.
 /**
  * Scans forward from [startIndex] to the next subroutine boundary (or end of file) and
  * returns true if [slot] is referenced in any instruction line in that range.
@@ -622,6 +654,7 @@ private fun isSlotReadAfter(slot: String, startIndex: Int, allPretrimmed: List<S
     return false
 }
 
+// REGFILE-DEPENDENT helper
 private fun isSlotReferencedInLine(slot: String, line: String): Boolean {
     var from = 0
     while (true) {
@@ -635,4 +668,123 @@ private fun isSlotReferencedInLine(slot: String, line: String): Boolean {
         }
         return true
     }
+}
+
+/**
+ * REGFILE-DEPENDENT: fuses the LOADX+JUMPI / LOADX+CALLI sequence for
+ * `on .. goto` / `on .. call` / `when` dispatch. The codegen emits an index
+ * load, table lookup into d0, spill to p8_regfile, reload to a0 and indirect
+ * jump/call. If the regfile is refactored so the table lookup can target a0
+ * (or an address register) directly, this spill/reload disappears and the
+ * peephole becomes dead code.
+ *
+ * Current codegen (byte index, 68000-style JUMPI/CALLI):
+ *   moveq   #0, d0
+ *   move.b  p8_regfile+N, d0     ; or move.w p8_regfile+N,d0 for word index
+ *   lea     table_label, a0
+ *   move.l  (a0,d0.w), d0        ; table lookup (unscaled, see scaled-indexing-IR.md)
+ *   move.l  d0, p8_regfile+M     ; spill (LOADX tail)
+ *   movea.l p8_regfile+M, a0     ; reload (JUMPI/CALLI head, 68000)
+ *   jmp/jsr (a0)
+ * or for 68020+ JUMPI/CALLI:
+ *   jmp/jsr ([p8_regfile+M])     ; memory-indirect
+ *
+ * Fused (preserves current unscaled semantics; no *4 scaling):
+ *   moveq   #0, d0
+ *   move.b  p8_regfile+N, d0
+ *   lea     table_label, a0
+ *   move.l  (a0,d0.w), a0
+ *   jmp/jsr (a0)
+ */
+private fun optimizeFuseLoadxJumpi(allPretrimmed: List<String>, lines: MutableList<String>): List<Modification> {
+    val filtered = allPretrimmed.withIndex()
+        .filter { it.value.isNotBlank() && !it.value.trimStart().startsWith(';') }
+        .map { TrimmedLine(lines[it.index], it.value.trimStart(), it.index) }
+
+    val mods = mutableListOf<Modification>()
+    val alreadyModified = mutableSetOf<Int>()
+
+    fun isLoadIndexed(instr: String): Boolean {
+        // matches "move.l  (a0,d0.w), d0" with flexible spacing
+        if (!instr.startsWith("move.l")) return false
+        if ("(a0,d0.w)" !in instr) return false
+        return instr.trim().endsWith(", d0") || instr.trim().endsWith(",d0")
+    }
+
+    fun isSpill(instr: String): String? {
+        // "move.l  d0, p8_regfile+M"
+        if (!instr.startsWith("move.l")) return null
+        val ops = instr.moveOperands() ?: return null
+        if (ops.first != "d0") return null
+        if (!ops.second.isRegfileSlot()) return null
+        return ops.second.removePrefix("p8_regfile+").substringBefore(',').substringBefore(' ').trim()
+    }
+
+    for (leaIdx in filtered.indices) {
+        if (filtered[leaIdx].index in alreadyModified) continue
+        val leaInstr = filtered[leaIdx].instruction
+        if (!leaInstr.startsWith("lea ")) continue
+        if (!leaInstr.endsWith(",a0")) continue
+
+        // The index is usually already in d0 at this point (scaled via lsl.w #2
+        // or zero-extended). Earlier peepholes may have removed the explicit
+        // reload of the scaled index from p8_regfile, so we do not require a
+        // preceding moveq/move.b or move.w pattern. We only verify the lea
+        // itself and the following LOADX+JUMPI spill/jump sequence.
+
+        // Need at least: lea, loadIndexed, spill, jump/reload
+        if (leaIdx + 2 >= filtered.size) continue
+        val loadIdx = leaIdx + 1
+        val spillIdx = leaIdx + 2
+        if (filtered[loadIdx].index in alreadyModified || filtered[spillIdx].index in alreadyModified) continue
+        if (!isLoadIndexed(filtered[loadIdx].instruction)) continue
+        val slotM = isSpill(filtered[spillIdx].instruction) ?: continue
+
+        // Check jump/call variant: 68000 uses movea reload + jmp/jsr (a0),
+        // 68020 uses memory-indirect jmp/jsr ([slot])
+        val nextIdx = leaIdx + 3
+        if (nextIdx >= filtered.size) continue
+        val nextInstr = filtered[nextIdx].instruction
+        val is68000Reload = nextInstr.startsWith("movea.l") && slotM in nextInstr && nextInstr.trim().endsWith(",a0")
+        val is68020MemIndirectJmp = nextInstr.startsWith("jmp") && "([p8_regfile+$slotM" in nextInstr.replace(" ", "")
+        val is68020MemIndirectJsr = nextInstr.startsWith("jsr") && "([p8_regfile+$slotM" in nextInstr.replace(" ", "")
+
+        if (is68000Reload) {
+            // Need jmp/jsr (a0) after the reload
+            if (nextIdx + 1 >= filtered.size) continue
+            val jmpIdx = nextIdx + 1
+            if (filtered[jmpIdx].index in alreadyModified) continue
+            val jmpInstr = filtered[jmpIdx].instruction
+            val isJmp = jmpInstr == "jmp  (a0)" || jmpInstr.replace(" ", "") == "jmp(a0)"
+            val isJsr = jmpInstr.startsWith("jsr") && "(a0)" in jmpInstr.replace(" ", "")
+            if (!isJmp && !isJsr) continue
+            // No labels on lea, load, spill, reload, jmp/jsr
+            if ((0..1).any { hasLabel(filtered[loadIdx + it].trimmed) }) continue
+            if (hasLabel(filtered[leaIdx].trimmed)) continue
+            if (hasLabel(filtered[spillIdx].trimmed) || hasLabel(filtered[nextIdx].trimmed) || hasLabel(filtered[jmpIdx].trimmed)) continue
+
+            val loadIndent = lines[filtered[loadIdx].index].takeWhile { it.isWhitespace() }
+            mods.add(Modification(filtered[loadIdx].index, false, "${loadIndent}move.l  (a0,d0.w), a0"))
+            mods.add(Modification(filtered[spillIdx].index, true, null))
+            mods.add(Modification(filtered[nextIdx].index, true, null))
+            alreadyModified.add(filtered[loadIdx].index)
+            alreadyModified.add(filtered[spillIdx].index)
+            alreadyModified.add(filtered[nextIdx].index)
+            // jmp/jsr stays as is
+        } else if (is68020MemIndirectJmp || is68020MemIndirectJsr) {
+            if (hasLabel(filtered[spillIdx].trimmed) || hasLabel(filtered[nextIdx].trimmed)) continue
+            if (hasLabel(filtered[leaIdx].trimmed) || hasLabel(filtered[loadIdx].trimmed)) continue
+            val loadIndent = lines[filtered[loadIdx].index].takeWhile { it.isWhitespace() }
+            val jmpIndent = lines[filtered[nextIdx].index].takeWhile { it.isWhitespace() }
+            val mnemonic = if (is68020MemIndirectJsr) "jsr" else "jmp"
+            mods.add(Modification(filtered[loadIdx].index, false, "${loadIndent}move.l  (a0,d0.w), a0"))
+            mods.add(Modification(filtered[spillIdx].index, true, null))
+            mods.add(Modification(filtered[nextIdx].index, false, "${jmpIndent}$mnemonic  (a0)"))
+            alreadyModified.add(filtered[loadIdx].index)
+            alreadyModified.add(filtered[spillIdx].index)
+            alreadyModified.add(filtered[nextIdx].index)
+        }
+    }
+
+    return mods
 }
