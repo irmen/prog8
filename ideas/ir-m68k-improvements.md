@@ -87,9 +87,11 @@ Implemented: added `OpcodesThatSetZeroFlagOnM68k` (`IRInstructions.kt:603`) - ex
 
 Effort: small (statusBits gate + expanded set). 6502 impact: none (guarded by `statusBitsOnMultiByteOps=false`).
 
-#### 3.5 Replace byte-slice ops with proper trunc/extract
+#### 3.5 Replace byte-slice ops with proper trunc/extract -- Completed (p8_regfile, no #3.10)
 
-`LSIGB/MSIGB/LSIGW/BSIGB/MIDB/CONCAT` (`IRInstructions.kt:326-333,516,892`, `AsmGen.kt:205-251`, `InstrControl.kt:327`) use memory-offset semantics for what on m68k is shifts/masks. With #3.10 (values in Dn) they become `move.b / lsr.w #8 / swap / and`. IR alternative: `TRUNC`/`EXTRACT` with shift/mask semantics, or keep opcodes but let register-allocated path emit `lsl/lsr/and` without `p8_regfile` round-trip. Already partly handled by `AsMOptimizer.optimizeMsigbSpill:350`.
+`LSIGB/MSIGB/LSIGW/BSIGB/MIDB/CONCAT` (`IRInstructions.kt:326-333,516,892`, `AsmGen.kt:205-251`, `InstrControl.kt:327`) use memory-offset semantics for what on m68k is shifts/masks. With #3.10 they become `move.b / lsr.w #8 / swap / and` in `Dn`.
+
+Implemented (without #3.10): `InstrControl.kt:205` `LSIGB`/`LSIGW` now via `regAddrByte` direct (`move.b p8_regfile+off,d0` with offset 1/3/2) instead of `move.w/l p8_regfile,d0`; `MSIGB/MSIGW/BSIGB/MIDB` already direct. `TestM68k.kt:306` `lsb/msb` on `qemu68k` verifies `move.b p8_regfile` and `TestInstructionSelectionOptimizations.kt:168` updated (4->6,2->4,1->2,2->3 `move.b`). Full `Dn` path still needs #3.10. `AsMOptimizer.optimizeMsigbSpill:350` kept for spill.
 
 Effort: medium. Depends on #3.10 for max benefit. 6502 impact: neutral - 6502 lacks wide registers so `LSIGB/CONCAT` keep memory-offset semantics; register path (`lsl/lsr/and`) only taken when allocated to Dn which 6502 rarely does. `AsMOptimizer.optimizeMsigbSpill:350` already handles 6502.
 

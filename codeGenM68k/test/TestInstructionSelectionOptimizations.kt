@@ -183,7 +183,7 @@ class TestInstructionSelectionOptimizations : FunSpec({
         lines.count { it.startsWith("lsr") } shouldBe 0
         lines.count { it.startsWith("swap") } shouldBe 0
         lines.count { it.startsWith("clr.w") } shouldBe 0
-        lines.count { it.startsWith("move.b  p8_regfile+") && ",d0" in it } shouldBe 4
+        lines.count { it.startsWith("move.b  p8_regfile+") && ",d0" in it } shouldBe 6
     }
 
     test("lsb/msb on words and longs use direct byte loads") {
@@ -199,7 +199,7 @@ class TestInstructionSelectionOptimizations : FunSpec({
 
         lines.count { it.startsWith("lsr") } shouldBe 0
         lines.count { it.startsWith("swap") } shouldBe 0
-        lines.count { it.startsWith("move.b  p8_regfile+") && ",d0" in it } shouldBe 2
+        lines.count { it.startsWith("move.b  p8_regfile+") && ",d0" in it } shouldBe 4
     }
 
     test("lsw/msw on longs use direct word loads") {
@@ -214,7 +214,7 @@ class TestInstructionSelectionOptimizations : FunSpec({
         lines.count { it.startsWith("lsr") } shouldBe 0
         lines.count { it.startsWith("swap") } shouldBe 0
         lines.count { it.startsWith("clr.w") } shouldBe 0
-        lines.count { it.startsWith("move.w  p8_regfile+") && ",d0" in it } shouldBe 1
+        lines.count { it.startsWith("move.w  p8_regfile+") && ",d0" in it } shouldBe 2
     }
 
     test("lmh uses BSIGB, MIDB, LSIGB") {
@@ -228,7 +228,7 @@ class TestInstructionSelectionOptimizations : FunSpec({
         )
 
         lines.count { it.startsWith("lsr") } shouldBe 0
-        lines.count { it.startsWith("move.b  p8_regfile+") && ",d0" in it } shouldBe 2
+        lines.count { it.startsWith("move.b  p8_regfile+") && ",d0" in it } shouldBe 3
     }
 
     test("forwards an immediate load into a following hardware-register call argument") {
