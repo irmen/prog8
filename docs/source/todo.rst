@@ -1,9 +1,6 @@
 TODO
 ====
 
-amiga: some examples have grown in size after the recent m68k optimizations?
-
-
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 - DataType.ARRAY_POINTER depends on the compilation target to be either a split word array or not. This is horrible because now we have to check with the compilation target everywhere to see if a DataType enumeration value is split word array, and PtVariable and PtArrayIndexer need an explicit boolean to tell us if this is the case. See ideas/remove_array_pointer_plan.md for the plan.

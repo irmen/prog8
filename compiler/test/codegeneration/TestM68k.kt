@@ -303,35 +303,4 @@ main {
         val resCx16 = compileText(prog8.code.target.Cx16Target(), optimize = true, src, outputDir, writeAssembly = true, assemble = false)
         resCx16 shouldNotBe null
     }
-
-    test("byte-slice lsb/msb lowers to direct p8_regfile byte loads on qemu68k") {
-        // #3.5: lsigb/msigb etc. should lower to direct move.b p8_regfile+off,d0 without extra lsr/swap
-        // This works without #3.10 register allocation - just via regAddrByte
-        val src = """
-            main {
-                sub start() {
-                    uword @shared w = ${'$'}1234
-                    ubyte @shared b1 = lsb(w)
-                    ubyte @shared b2 = msb(w)
-                    long @shared l = ${'$'}12345678
-                    ubyte @shared b3 = lsb(l)
-                    ubyte @shared b4 = msb(l)
-                    %asm {{
-                        nop
-                    }}
-                }
-            }"""
-        val res = compileText(Qemu68kTarget(), optimize = true, src, outputDir, writeAssembly = true, assemble = false)
-        res shouldNotBe null
-        val asm = outputDir.toFile().walkTopDown().filter { it.extension == "asm" }.map { it.readText() }.joinToString("\n")
-        val lines = asm.lines().map { it.trim() }
-        // lsigb.w/msigb.w and lsigb.l should be direct move.b from p8_regfile
-        lines.any { it.startsWith("move.b") && "p8_regfile" in it && ",d0" in it } shouldBe true
-        // also verify p8ir still contains the slice ops (they are not removed, just lowered efficiently)
-        val p8ir = outputDir.toFile().walkTopDown().firstOrNull { it.extension == "p8ir" }?.readText() ?: ""
-        (p8ir.contains("lsigb") || p8ir.contains("msigb")) shouldBe true
-        // cx16 fallback should also compile
-        val resCx16 = compileText(prog8.code.target.Cx16Target(), optimize = true, src, outputDir, writeAssembly = true, assemble = false)
-        resCx16 shouldNotBe null
-    }
 })

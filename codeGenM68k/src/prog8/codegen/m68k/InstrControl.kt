@@ -206,22 +206,15 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
             val dstReg = r1 ?: error("LSIGB needs reg1")
             val srcReg = r2 ?: error("LSIGB needs reg2")
             val type = insn.type ?: IRDataType.WORD
-            // Without #3.10 values are in p8_regfile, but we can still avoid loading the whole src.
-            // Low byte is at offset 1 for WORD, 3 for LONG (big-endian).
-            val offset = when(type) {
-                IRDataType.WORD -> 1
-                IRDataType.LONG -> 3
-                else -> 0
-            }
-            emitLine("move.b  ${regAddrByte(srcReg, offset)}, d0")
+            val s = dtSuffix(type)
+            emitLine("move$s  ${regAddr(srcReg)}, d0")
             emitLine("move.b  d0, ${regAddr(dstReg)}")
         }
 
         Opcode.LSIGW -> {
             val dstReg = r1 ?: error("LSIGW needs reg1")
             val srcReg = r2 ?: error("LSIGW needs reg2")
-            // Low word of LONG at offset 2 (big-endian)
-            emitLine("move.w  ${regAddrByte(srcReg, 2)}, d0")
+            emitLine("move.l  ${regAddr(srcReg)}, d0")
             emitLine("move.w  d0, ${regAddr(dstReg)}")
         }
 
