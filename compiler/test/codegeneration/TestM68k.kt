@@ -265,4 +265,42 @@ main {
             }"""
         compileText(Qemu68kTarget(), false, src, outputDir, writeAssembly = false) shouldNotBe null
     }
+
+    test("pointer post-increment fuses to (a0)+ on qemu68k") {
+        // #3.6: loadm+loadi+incm and loadm+storei+incm on same pointer variable
+        // should fuse to loadp_inc/storep_inc and lower to m68k (a0)+
+        val src = """
+            main {
+                sub start() {
+                    ubyte[4] @shared src = [1,2,3,4]
+                    ubyte[4] @shared dst = [0,0,0,0]
+                    pointer pSrc = &src
+                    pointer pDst = &dst
+                    ubyte i
+                    for i in 0 to 3 {
+                        @(pDst) = @(pSrc)
+                        pSrc++
+                        pDst++
+                    }
+                    ubyte @shared dummy = dst[0]
+                }
+            }"""
+        // without optimization the peephole is disabled, so no post-inc fusion
+        val resNoOpt = compileText(Qemu68kTarget(), optimize = false, src, outputDir, writeAssembly = true, assemble = false)
+        resNoOpt shouldNotBe null
+        // with optimization the IR should contain the new post-inc ops
+        val resOpt = compileText(Qemu68kTarget(), optimize = true, src, outputDir, writeAssembly = true, assemble = false)
+        resOpt shouldNotBe null
+        val p8ir = outputDir.toFile().walkTopDown().firstOrNull { it.extension == "p8ir" }?.readText() ?: ""
+        // check that the optimized IR uses the fused ops (single type specifier, no second type field)
+        (p8ir.contains("loadp_inc.b") || p8ir.contains("loadp_inc")) shouldBe true
+        (p8ir.contains("storep_inc.b") || p8ir.contains("storep_inc")) shouldBe true
+        // and that the m68k assembly uses post-increment addressing (a0)+
+        val asm = outputDir.toFile().walkTopDown().filter { it.extension == "asm" }.map { it.readText() }.joinToString("\n")
+        val lines = asm.lines().map { it.trim() }
+        lines.any { it.contains("(a0)+") } shouldBe true
+        // cx16 must still compile (fallback lowers loadp_inc to $22 indirect + inc)
+        val resCx16 = compileText(prog8.code.target.Cx16Target(), optimize = true, src, outputDir, writeAssembly = true, assemble = false)
+        resCx16 shouldNotBe null
+    }
 })

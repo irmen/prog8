@@ -661,6 +661,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
             Opcode.BREAKPOINT -> emitLine("illegal")
 
             Opcode.LOAD, Opcode.LOADM, Opcode.LOADR, Opcode.LOADX, Opcode.LOADHR, Opcode.LOADI,
+            Opcode.LOADP_INC, Opcode.STOREP_INC,
             Opcode.STOREM, Opcode.STOREX, Opcode.STOREZM, Opcode.STOREZI, Opcode.STOREIM, Opcode.STOREZX, Opcode.STOREHR, Opcode.STOREI,
             Opcode.LOADHFACZERO, Opcode.LOADHFACONE,
             Opcode.STOREHFACZERO, Opcode.STOREHFACONE ->

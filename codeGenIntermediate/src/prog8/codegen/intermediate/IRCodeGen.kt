@@ -2249,7 +2249,6 @@ class IRCodeGen(
                     else -> throw IllegalArgumentException("unexpected index dt $indexDt for wordIndex")
                 }
                 indexReg = newReg
-                indexDt = IRDataType.WORD
             }
             result += multiplyByConst(DataType.UWORD, indexReg, itemsize)
             return Pair(result, indexReg)
@@ -2277,7 +2276,6 @@ class IRCodeGen(
                 else -> throw IllegalArgumentException("unexpected index conversion $indexDt -> $indexRegType")
             }
             indexReg = newReg
-            indexDt = indexRegType
         }
 
         if(itemsize==1 || arrayIsSplitWords)

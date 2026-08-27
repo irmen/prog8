@@ -126,6 +126,120 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction) {
             indirectStore(r1 ?: error("STOREI needs reg1"), baseReg, offset, type)
         }
 
+        Opcode.LOADP_INC -> {
+            val dst = r1 ?: error("LOADP_INC needs reg1")
+            val ptrVar = resolveAddress(addr, label, offset)
+            // r1 = *ptrVar; ptrVar += sizeof(type)  (post-inc)
+            // Use $22/$23 as temp pointer
+            emitLine("lda  $ptrVar")
+            emitLine("sta  $$22")
+            emitLine("lda  ${ptrVar}+1")
+            emitLine("sta  $$23")
+            emitLine("ldy  #0")
+            when (type) {
+                IRDataType.BYTE -> {
+                    emitLine("lda  ($$22),y")
+                    emitLine("sta  ${regAddr(dst)}")
+                    emitLine("inc  $ptrVar")
+                    emitLine("bne  +")
+                    emitLine("inc  ${ptrVar}+1")
+                    emitLine("+")
+                }
+                IRDataType.WORD, IRDataType.POINTER -> {
+                    emitLine("lda  ($$22),y")
+                    emitLine("sta  ${regAddr(dst)}")
+                    emitLine("iny")
+                    emitLine("lda  ($$22),y")
+                    emitLine("sta  ${regAddr(dst)}+1")
+                    emitLine("lda  $ptrVar")
+                    emitLine("clc")
+                    emitLine("adc  #2")
+                    emitLine("sta  $ptrVar")
+                    emitLine("bcc  +")
+                    emitLine("inc  ${ptrVar}+1")
+                    emitLine("+")
+                }
+                IRDataType.LONG -> {
+                    // long not used on 6502 for pointer post-inc, fallback to 4-byte inc
+                    emitLine("lda  ($$22),y")
+                    emitLine("sta  ${regAddr(dst)}")
+                    emitLine("iny")
+                    emitLine("lda  ($$22),y")
+                    emitLine("sta  ${regAddr(dst)}+1")
+                    emitLine("iny")
+                    emitLine("lda  ($$22),y")
+                    emitLine("sta  ${regAddr(dst)}+2")
+                    emitLine("iny")
+                    emitLine("lda  ($$22),y")
+                    emitLine("sta  ${regAddr(dst)}+3")
+                    emitLine("lda  $ptrVar")
+                    emitLine("clc")
+                    emitLine("adc  #4")
+                    emitLine("sta  $ptrVar")
+                    emitLine("bcc  +")
+                    emitLine("inc  ${ptrVar}+1")
+                    emitLine("+")
+                }
+                else -> TODO("LOADP_INC for $type")
+            }
+        }
+
+        Opcode.STOREP_INC -> {
+            val src = r1 ?: error("STOREP_INC needs reg1")
+            val ptrVar = resolveAddress(addr, label, offset)
+            // *ptrVar = r1; ptrVar += sizeof(type)
+            emitLine("lda  $ptrVar")
+            emitLine("sta  $$22")
+            emitLine("lda  ${ptrVar}+1")
+            emitLine("sta  $$23")
+            emitLine("ldy  #0")
+            when (type) {
+                IRDataType.BYTE -> {
+                    emitLine("lda  ${regAddr(src)}")
+                    emitLine("sta  ($$22),y")
+                    emitLine("inc  $ptrVar")
+                    emitLine("bne  +")
+                    emitLine("inc  ${ptrVar}+1")
+                    emitLine("+")
+                }
+                IRDataType.WORD, IRDataType.POINTER -> {
+                    emitLine("lda  ${regAddr(src)}")
+                    emitLine("sta  ($$22),y")
+                    emitLine("iny")
+                    emitLine("lda  ${regAddr(src)}+1")
+                    emitLine("sta  ($$22),y")
+                    emitLine("lda  $ptrVar")
+                    emitLine("clc")
+                    emitLine("adc  #2")
+                    emitLine("sta  $ptrVar")
+                    emitLine("bcc  +")
+                    emitLine("inc  ${ptrVar}+1")
+                    emitLine("+")
+                }
+                IRDataType.LONG -> {
+                    emitLine("lda  ${regAddr(src)}")
+                    emitLine("sta  ($$22),y")
+                    emitLine("iny")
+                    emitLine("lda  ${regAddr(src)}+1")
+                    emitLine("sta  ($$22),y")
+                    emitLine("iny")
+                    emitLine("lda  ${regAddr(src)}+2")
+                    emitLine("sta  ($$22),y")
+                    emitLine("iny")
+                    emitLine("lda  ${regAddr(src)}+3")
+                    emitLine("sta  ($$22),y")
+                    emitLine("lda  $ptrVar")
+                    emitLine("clc")
+                    emitLine("adc  #4")
+                    emitLine("sta  $ptrVar")
+                    emitLine("bcc  +")
+                    emitLine("inc  ${ptrVar}+1")
+                    emitLine("+")
+                }
+                else -> TODO("STOREP_INC for $type")
+            }
+        }
+
         Opcode.LOADHFACZERO -> TODO("LOADHFACZERO (float)")
         Opcode.LOADHFACONE -> TODO("LOADHFACONE (float)")
         Opcode.STOREHFACZERO -> TODO("STOREHFACZERO (float)")

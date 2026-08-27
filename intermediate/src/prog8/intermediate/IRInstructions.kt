@@ -112,6 +112,8 @@ loadr       reg1, reg2                - load reg1 with value in register reg2,  
 loadhr      reg1, slot                - load cpu hardware register from calling convention slot (s0=A, s1=X, s2=Y, s3=AX, s4=AY, s5=XY, s6=FAC1, s7=FAC2) into reg1
 loadhfaczero       fpreg1             - load "cpu hardware register" fac0 into freg1.f
 loadhfacone        fpreg1             - load "cpu hardware register" fac1 into freg1.f
+loadp_inc   reg1,         address     - load reg1 with value in memory indirect via pointer variable at address, then post-increment the pointer variable by sizeof(type) (r1 = *a; a += sizeof(type), uses (a)+ on m68k)
+storep_inc  reg1,         address     - store reg1 to memory indirect via pointer variable at address, then post-increment the pointer variable by sizeof(type) (*a = r1; a += sizeof(type), uses (a)+ on m68k)
 storem      reg1,         address     - store reg1 at memory address
 storei      reg1, reg2,   value       - store reg1 in memory indirect, pointed to by reg2 + offsetvalue 0-65535 (often used to write a field from a pointer to a struct, or with offset=0 just straight to the pointer)
 storeim     value,        address     - store an immediate value (constant) at memory address (the constant goes in the value field, NOT via a register).
@@ -356,6 +358,8 @@ enum class Opcode {
     STOREI,
     STOREHFACZERO,
     STOREHFACONE,
+    LOADP_INC,
+    STOREP_INC,
 
     JUMP,
     JUMPI,
@@ -759,6 +763,8 @@ val instructionFormats = mutableMapOf(
     Opcode.STOREI to InstructionFormat.from("BWL,<r1,<r2,<i     | F,<fr1,<r1,<i"),
     Opcode.STOREHFACZERO  to InstructionFormat.from("F,<fr1"),
     Opcode.STOREHFACONE  to InstructionFormat.from("F,<fr1"),
+    Opcode.LOADP_INC  to InstructionFormat.from("BWL,>r1,<>a"),
+    Opcode.STOREP_INC to InstructionFormat.from("BWL,<r1,<>a"),
     Opcode.JUMP       to InstructionFormat.from("N,<a"),
     Opcode.JUMPI      to InstructionFormat.from("N,<r1"),
     Opcode.CALLI      to InstructionFormat.from("N,<r1"),

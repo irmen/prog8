@@ -186,6 +186,24 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction, suppressRegfileStore
             }
         }
 
+        Opcode.LOADP_INC -> {
+            val dst = r1 ?: error("LOADP_INC needs reg1")
+            // >r1,<>a  : r1 = *a; a += sizeof(type)
+            // a is pointer variable (LONG) in memory
+            emitLine("move.l  $target, a0")
+            emitLine("move$s  (a0)+, d0")
+            emitLine("move.l  a0, $target")
+            emitLine("move$s  d0, ${regAddr(dst)}")
+        }
+
+        Opcode.STOREP_INC -> {
+            val value = r1 ?: error("STOREP_INC needs reg1")
+            // <r1,<>a  : *a = r1; a += sizeof(type)
+            emitLine("move.l  $target, a0")
+            emitLine("move$s  ${regAddr(value)}, (a0)+")
+            emitLine("move.l  a0, $target")
+        }
+
         else -> error("Unknown load/store opcode: ${insn.opcode}")
     }
 }

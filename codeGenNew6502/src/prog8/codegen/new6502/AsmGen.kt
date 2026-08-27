@@ -762,6 +762,7 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
 
             Opcode.LOAD, Opcode.LOADM, Opcode.LOADR, Opcode.LOADX, Opcode.LOADHR, Opcode.LOADI,
             Opcode.STOREM, Opcode.STOREX, Opcode.STOREZM, Opcode.STOREZI, Opcode.STOREIM, Opcode.STOREZX, Opcode.STOREHR, Opcode.STOREI,
+            Opcode.LOADP_INC, Opcode.STOREP_INC,
             Opcode.LOADHFACZERO, Opcode.LOADHFACONE,
             Opcode.STOREHFACZERO, Opcode.STOREHFACONE -> translateLoadStore(insn)
 

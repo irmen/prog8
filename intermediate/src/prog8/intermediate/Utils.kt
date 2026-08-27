@@ -86,7 +86,7 @@ sealed interface ParsedIRLine {
     data class Label(val name: String) : ParsedIRLine
 }
 
-private val instructionPattern = Regex("""([a-z]+)(\.b|\.w|\.l|\.f|\.p)?(.*)""", RegexOption.IGNORE_CASE)
+private val instructionPattern = Regex("""([a-z_]+)(\.b|\.w|\.l|\.f|\.p)?(.*)""", RegexOption.IGNORE_CASE)
 private val labelPattern = Regex("""_([a-zA-Z\d\._]+):""")
 
 fun parseIRCodeLine(line: String): ParsedIRLine {

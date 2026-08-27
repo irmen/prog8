@@ -119,7 +119,7 @@ class VirtualMachine(irProgram: IRProgram) {
         var a = rnd_x1.toInt() xor rnd_c1.toInt() xor rnd_a1.toInt()
         rnd_a1 = a.toUByte()
         var sum = a + rnd_b1.toInt() // clc
-        var carry = if (sum > 255) 1 else 0
+        var carry: Int
         a = sum and 0xFF
         rnd_b1 = a.toUByte()
         carry = a and 1 // lsr carry
@@ -264,6 +264,8 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.LOADHFACZERO -> InsLOADHFACZERO(ins)
             Opcode.LOADHFACONE -> InsLOADHFACONE(ins)
             Opcode.LOADI -> InsLOADI(ins)
+            Opcode.LOADP_INC -> InsLOADP_INC(ins)
+            Opcode.STOREP_INC -> InsSTOREP_INC(ins)
             Opcode.STOREM -> InsSTOREM(ins)
             Opcode.STOREX -> InsSTOREX(ins)
             Opcode.STOREI-> InsSTOREI(ins)
@@ -606,6 +608,47 @@ class VirtualMachine(irProgram: IRProgram) {
                 }
             }
         }
+        nextPc()
+    }
+
+    private fun InsLOADP_INC(i: IRInstruction) {
+        val ptrVarAddr = i.address!!.value
+        val ptr = memory.getSL(ptrVarAddr).toUInt()
+        when(i.type!!) {
+            IRDataType.BYTE -> registers.setUB(i.reg1!!, memory.getUB(ptr))
+            IRDataType.WORD -> registers.setUW(i.reg1!!, memory.getUW(ptr))
+            IRDataType.POINTER -> registers.setUL(i.reg1!!, memory.getUL(ptr))
+            IRDataType.LONG -> registers.setSL(i.reg1!!, memory.getSL(ptr))
+            IRDataType.FLOAT -> throw IllegalStateException("LOADP_INC float not supported")
+        }
+        val inc = when(i.type!!) {
+            IRDataType.BYTE -> 1
+            IRDataType.WORD, IRDataType.POINTER -> if(i.type==IRDataType.POINTER && wordArrayIndex) 4 else 2
+            IRDataType.LONG -> 4
+            else -> 0
+        }
+        // pointer variable is LONG (32-bit)
+        memory.setSL(ptrVarAddr, (ptr + inc.toUInt()).toInt())
+        nextPc()
+    }
+
+    private fun InsSTOREP_INC(i: IRInstruction) {
+        val ptrVarAddr = i.address!!.value
+        val ptr = memory.getSL(ptrVarAddr).toUInt()
+        when(i.type!!) {
+            IRDataType.BYTE -> memory.setUB(ptr, registers.getUB(i.reg1!!))
+            IRDataType.WORD -> memory.setUW(ptr, registers.getUW(i.reg1!!))
+            IRDataType.POINTER -> memory.setUL(ptr, registers.getUL(i.reg1!!))
+            IRDataType.LONG -> memory.setSL(ptr, registers.getSL(i.reg1!!))
+            IRDataType.FLOAT -> throw IllegalStateException("STOREP_INC float not supported")
+        }
+        val inc = when(i.type!!) {
+            IRDataType.BYTE -> 1
+            IRDataType.WORD, IRDataType.POINTER -> if(i.type==IRDataType.POINTER && wordArrayIndex) 4 else 2
+            IRDataType.LONG -> 4
+            else -> 0
+        }
+        memory.setSL(ptrVarAddr, (ptr + inc.toUInt()).toInt())
         nextPc()
     }
 
