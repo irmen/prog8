@@ -180,7 +180,6 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction) {
                     emitLine("inc  ${ptrVar}+1")
                     emitLine("+")
                 }
-                else -> TODO("LOADP_INC for $type")
             }
         }
 
@@ -236,7 +235,6 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction) {
                     emitLine("inc  ${ptrVar}+1")
                     emitLine("+")
                 }
-                else -> TODO("STOREP_INC for $type")
             }
         }
 

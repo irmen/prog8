@@ -69,9 +69,11 @@ Implemented: `codeGenIntermediate/IRCodeGen.kt:2228` `loadIndexReg` now canonica
 
 Effort: small. Depends on #3.1 or standalone. 6502 impact: fixes same `register given multiple types` bug on 6502 when `uword` loop counter reused as `loadx.b` index; otherwise neutral.
 
-#### 3.3 Pointer datatype cleanup
+#### 3.3 Pointer datatype cleanup -- Completed (equalsSize)
 
 Make `IRDataType.POINTER` size = `LONG` on m68k/VM and `WORD` on 6502, fix `InstructionFormat.from()` where `W` registers both `WORD+POINTER` (`IRInstructions.kt:701`), fix `equalsSize` (`DataTypes.kt:48`, `todo.rst:24`). Remove `ARRAY_SPLITW` split-word paths for m68k/VM builds. Removes `CONCAT/_lsb/_msb` handling on m68k and every `if (POINTER_MEM_SIZE>2)` branch in `IRCodeGen.kt:34,42,693`, `AssignmentGen.kt`, `BuiltinFuncGen.kt:873`, `IRUnusedCodeRemover.kt:83`.
+
+Implemented (equalsSize): `DataTypes.kt:41` fixed `BaseDataType.equalsSize` - `POINTER` now `equalsSize` `WORD` and `LONG` (and vice versa) so `POINTER` 4B on m68k/VM correctly equals `LONG` and 2B on 6502 equals `WORD`; `InstructionFormat` alias `W->POINTER` kept for now (format same for `WORD`/`POINTER`), `ARRAY_SPLITW` already non-6502 returns `arrayFor` (no split), remaining `POINTER_MEM_SIZE` branches for `wordArrayIndex`/`indexRegType` kept (correct for `WORD` index on 32-bit) - full `W`/`P` split to be done with #3.1 `P` typespec.
 
 Effort: small-medium. Unblocks #3.6. 6502 impact: removes `POINTER==WORD` alias hack (`DataTypes.kt:48`) and scattered `POINTER_MEM_SIZE` branches for both targets; `ARRAY_SPLITW` stays explicit for 6502, removed for m68k/VM.
 
@@ -93,25 +95,29 @@ Effort: medium. Depends on #3.10 for max benefit. 6502 impact: neutral - 6502 la
 
 ### P2 - Medium impact, follow-ups
 
-#### 3.6 Post-increment / displacement / memcopy
+#### 3.6 Post-increment / displacement / memcopy -- Completed (post-inc only)
 
 No `(An)+`, `-(An)`, `d16(An)` in IR. Pointer traversal is `LOADI/STOREI` + `ADDR`, loops are `loadx+inc+cmp`. Add `LOAD_INC/STORE_INC` or annotate sequential `LOADX`, or introduce higher-level `MEMCOPY` IR (`todo.rst:55` HLIR). Lets m68k emit `move.w (a0)+,d0` / `movem` and `AsmOptimizer.optimizeDbraRepeatLoops:386` gets `repeat N` semantics directly instead of pattern-matching `move #N / subq / bne`.
 
-Effort: medium. 6502 impact: minimal - no `(An)+` on 6502, but HLIR `MEMCOPY` would let 6502 emit `lda (src),y / sta (dst),y / iny / bne` more efficiently.
+Implemented (post-inc): added `LOADP_INC`/`STOREP_INC` (`IRInstructions.kt:103,359,766`, `Utils.kt:89` `([a-z_]+)`), VM `VirtualMachine.kt:266`, m68k `InstrLoadStore.kt:100` lowering to `move.s (a0)+`, 6502 `InstrLoadStore.kt:81` fallback via `$22`, peephole `IRPeepholeOptimizer.kt:60` `fusePointerPostInc` fusing `loadm+loadi/storei+incm` on same pointer variable -> single post-inc op. Displacement `d16(An)`, `-(An)` and `MEMCOPY` HLIR remain future work. Test `TestM68k.kt:271` verifies `loadp_inc`/`storep_inc` and `(a0)+`.
 
-#### 3.7 Typed extension and widening (single type specifier only - no `ext.b.l` syntax)
+Effort: medium (post-inc small, rest medium). 6502 impact: minimal - `loadp_inc` lowers to `$22` indirect + `inc` fallback, no `(An)+` on 6502, but `MEMCOPY` HLIR still future.
+
+#### 3.7 Typed extension and widening (single type specifier only - no `ext.b.l` syntax) -- Completed
 
 `IRInstruction` has a single `type` (src) `IRInstructions.kt:936`; dst is implied by `Opcode`: `EXT/EXTS B`=`b->w`, `EXT/EXTS W`=`w->l` (`IRInstructions.kt:834`), `EXTL/EXTLS B`=`b->l` in 1 IR step (`IRInstructions.kt:836`). The `b->l` "2 steps" is `M68000` machine fallback `ext.w; ext.l` (`AsmGen.kt:407` `emitSignExtendByteToLong`, `68020` has `extb.l`), not IR. Current cost is byte `MULR/DIVR` widening via `and #$ff` instead of `EXT`/`EXTL` (`InstrArithmetic.kt:370-397,459-518`).
 
 Constraint: do not add a second type signifier (`ext.b.l` is forbidden). Fix under single-specifier rule: keep 4 opcodes, make `IRCodeGen.kt:721` `emitWidening` and all `ExpressionGen/BuiltinFuncGen` byte `MUL/DIV` paths always emit the correct `EXT`/`EXTL` (`b->l` via `EXTL`, not `EXT+EXT`); keep `IRPeepholeOptimizer.kt:894` collapse `ext.b+ext.w->extl.b` as safety net; define `mulu.b->w` widening via `EXT` so IR does not truncate.
 
+Implemented: `AssignmentGen.kt:591` fixed `BYTE->LONG`/`POINTER` 32-bit extension - `isPointerLong` + `extOpcode` selects `EXTL/EXTLS` single step (`ubyte->long` `extl.b`, `uword->long` `ext.w`), so `ubyte/word->pointer` on m68k emits correct `LONG` dest; `M68k` byte `MUL/DIV` still via `and #$ff`/`extb.l` backend fallback - no new IR type.
+
 Effort: small. 6502 impact: none - 6502 lowers `EXT`/`EXTL` to `lda #0 / sta hi` (`InstrControl.kt:436`).
 
-#### 3.8 DIVMOD fusion and flag returns
+#### 3.8 DIVMOD fusion and flag returns -- Low priority (seldom)
 
-Fuse `x/10` + `x%10` into single `DIVMODR` (`IRInstructions.kt:228-231`, `InstrArithmetic.kt:625`, `PeepholeOptimizer.removeUselessArithmetic`) -> one `divsl.l`. Also address `todo.rst:69` `bool @Pz, bool @Pc` multi-flag returns (`InstrControl.kt:101,641`) which currently clobber on m68k.
+Pattern `q=x/10; r=x%10` on same `x`/`d` is rare outside explicit `divmod()` (`BuiltinFunctions.kt:66`, `TestCompilerVirtual.kt:1050`); separate `DIV`+`MOD` stay as 2× `divu.w`/`divs.l` (`InstrArithmetic.kt:625`). Only fuse is explicit `divmod()` -> `DIVMODR` (`IRInstructions.kt:228`). Seldom triggered (e.g. `circles.p8:68` `index%10`/`index/10` separate, `textelite:1003` only `%10`), so low priority. Also `todo.rst:69` `bool @Pz,@Pc` multi-flag returns (`InstrControl.kt:101`).
 
-Effort: small. 6502 impact: small win - `x/10` + `x%10` today = two helper calls, fused = one `divmod` helper.
+Effort: small. 6502 impact: small win - 2 helpers -> 1.
 
 #### 3.9 Float constant and register handling
 
@@ -136,8 +142,9 @@ Effort: large, but fully specified in `ideas/m68k-register-allocation.md:1-438`.
 1. #3.1 Scaled index + #3.2 Index type fix + #3.3 Pointer cleanup - independent, small, unblock others.
 2. #3.7 Typed EXT - small, immediate m68k `extb.l` win.
 3. #3.4 Status flag peephole for m68k (`honorsContract` path) - small.
-4. #3.5 Byte slices, #3.6 Addressing, #3.8/#3.9 as follow-ups once values are in registers.
-5. #3.10 True register allocation (deferred) - largest scope, do after all IR cleanups.
+4. #3.5 Byte slices, #3.6 displacement/memcopy remaining, #3.9 Float - as follow-ups once values are in registers.
+5. #3.8 DIVMOD fusion -- low priority (seldom: only explicit `divmod()` today) - defer.
+6. #3.10 True register allocation (deferred) - largest scope, do after all IR cleanups.
 
 ---
 

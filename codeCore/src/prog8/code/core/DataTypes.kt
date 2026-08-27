@@ -38,15 +38,19 @@ enum class BaseDataType {
             else -> true
         }
 
-    fun equalsSize(other: BaseDataType) =
+    fun equalsSize(other: BaseDataType): Boolean = equalsSize(other, null)
+    fun equalsSize(other: BaseDataType, memsizer: IMemSizer?): Boolean =
         when {
             this == other -> true
             this.isArray && other.isArray -> true
             this.isByteOrBool -> other.isByteOrBool
-            this.isWord -> other.isWord || other.isPointer
-            this.isPointer -> other.isWord
-            // TODO: on 32-bit targets (m68k, virtual), POINTER is LONG (4 bytes) not WORD (2 bytes),
-            // so the above two lines are incorrect. Hasn't caused problems in practice so far.
+            this.isWord -> other.isWord || (other.isPointer && (memsizer == null || memsizer.POINTER_MEM_SIZE == 2u))
+            this.isLong -> other.isLong || (other.isPointer && memsizer?.POINTER_MEM_SIZE != null && memsizer.POINTER_MEM_SIZE != 2u)
+            this.isPointer -> when(memsizer?.POINTER_MEM_SIZE) {
+                null -> other.isWord || other.isPointer
+                2u -> other.isWord || other.isPointer
+                else -> other.isLong || other.isPointer
+            }
             this == STR && (other == UWORD || other == LONG) || (this == UWORD || this == LONG) && other == STR -> true
             this == STR && other.isArray -> true
             this.isArray && other == STR -> true
@@ -415,6 +419,7 @@ class DataType private constructor(
 
     fun largerSizeThan(other: DataType): Boolean = base.largerSizeThan(other.base)
     fun equalsSize(other: DataType): Boolean = base.equalsSize(other.base)
+    fun equalsSize(other: DataType, memsizer: IMemSizer): Boolean = base.equalsSize(other.base, memsizer)
 
     /**
      * Returns the memory size in bytes.

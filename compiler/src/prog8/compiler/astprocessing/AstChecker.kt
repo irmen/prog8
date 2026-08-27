@@ -2848,7 +2848,7 @@ internal class AstChecker(private val program: Program,
         else if(targetDatatype.isLong && options.compTarget.POINTER_MEM_SIZE > 2u && (sourceDatatype.isPassByRef || sourceDatatype.isPointer)) {
             // this is allowed: a pass-by-reference or pointer datatype into a long (untyped pointer value) on 32-bit targets.
         }
-        else if(sourceIsBitwiseOperatorExpression && targetDatatype.equalsSize(sourceDatatype)) {
+        else if(sourceIsBitwiseOperatorExpression && targetDatatype.equalsSize(sourceDatatype, options.compTarget)) {
             // this is allowed: bitwise operation between different types as long as they're the same size.
         }
         else if (targetDatatype.isPointer) {
