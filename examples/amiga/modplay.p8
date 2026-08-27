@@ -46,13 +46,15 @@ main {
                         txt.cursor_on()
                         txt.nl()
 
+                        ptplayer.end()
                     } else {
                         txt.print("load error\n")
+                        void dos.Close(fh)
                     }
                     exec.FreeMem(mod, modSize)
+                } else {
+                    void dos.Close(fh)
                 }
-
-                ptplayer.end()
 
             } else {
                 txt.print("load error\n")
