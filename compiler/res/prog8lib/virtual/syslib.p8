@@ -108,7 +108,7 @@ sys {
     }
 
     sub exit(ubyte returnvalue) {
-        ; -- immediately exit the program with a return code in the A register
+        ; -- exit the program with a return code. All active defers in the call chain are unwound program-wide (LIFO) before system cleanup. sys.reset_system() and poweroff_system() do not run defers.
         %ir {{
             loadm.b r99100,sys.exit.returnvalue
             syscall 1 (r99100.b)

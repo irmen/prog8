@@ -79,7 +79,7 @@ sys {
     }
 
     sub exit(ubyte returnvalue) {
-        ; -- immediately exit the program with a return code in the D0 register
+        ; -- exit the program with a return code in D0. When invoked from Prog8 via sys.exit(), all active defers in the call chain are unwound program-wide (LIFO) before system cleanup. sys.reset_system() does not run defers.
         %asm {{
             moveq.l  #0,d0
             move.b   sys.exit.returnvalue,d0

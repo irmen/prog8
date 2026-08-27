@@ -102,7 +102,7 @@ Language :index:`Features`
 - ``when`` statement to avoid if-else chains
 - ``on .. goto`` statement for fast jump tables
 - ``in`` expression for concise and efficient multi-value/containment test
-- ``defer`` statement to help write concise and robust subroutine cleanup logic
+- ``defer`` statement with program-wide unwinding to help write concise and robust resource cleanup logic
 - Several specialized built-in functions, such as ``lsb``, ``msb``, ``min``, ``max``, ``rol``, ``ror``
 - Various powerful built-in libraries to do I/O, number conversions, graphics and more
 - Floating point math is supported on most cbm-compatible compiler targets.

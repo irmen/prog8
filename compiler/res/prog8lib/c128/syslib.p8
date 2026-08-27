@@ -783,7 +783,7 @@ _larger
     }
 
     asmsub exit(ubyte returnvalue @A) {
-        ; -- immediately exit the program with a return code in the A register
+        ; -- exit the program with a return code in A. When invoked from Prog8 via sys.exit(), all active defers in the call chain are unwound program-wide (LIFO) before system cleanup. sys.reset_system()/poweroff_system() do not run defers.
         %asm {{
             sta  p8_sys_startup.cleanup_at_exit._exitcode
             ldx  prog8_lib.orig_stackpointer
@@ -793,7 +793,7 @@ _larger
     }
 
     asmsub exit2(ubyte resulta @A, ubyte resultx @X, ubyte resulty @Y) {
-        ; -- immediately exit the program with result values in the A, X and Y registers.
+        ; -- exit the program with result values in A, X and Y. When invoked from Prog8 via sys.exit2(), all active defers are unwound program-wide (LIFO) before system cleanup.
         %asm {{
             sta  p8_sys_startup.cleanup_at_exit._exitcode
             stx  p8_sys_startup.cleanup_at_exit._exitcodeX
@@ -805,7 +805,7 @@ _larger
     }
 
     asmsub exit3(ubyte resulta @A, ubyte resultx @X, ubyte resulty @Y, bool carry @Pc) {
-        ; -- immediately exit the program with result values in the A, X and Y registers, and the Carry flag in the status register.
+        ; -- exit the program with result values in A, X, Y and carry. When invoked from Prog8 via sys.exit3(), all active defers are unwound program-wide (LIFO) before system cleanup.
         %asm {{
             sta  p8_sys_startup.cleanup_at_exit._exitcode
             lda  #0

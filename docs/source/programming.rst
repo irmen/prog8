@@ -1753,8 +1753,13 @@ The ``defer`` keyword can be used to schedule a statement (or block of statement
 just before exiting of the current subroutine. That can be via a return statement or a jump to somewhere else,
 or just the normal ending of the subroutine. This is often useful to "not forget" to clean up stuff,
 and if the subroutine has multiple ways or places where it can exit, it saves you from repeating
-the cleanup code at every exit spot. Multiple defers can be scheduled in a single subroutine (up to a maximum of 8).
+the cleanup code at every exit spot. Multiple defers can be scheduled in a single subroutine (up to 8 on 6502/virtual, 16 on m68k).
 The defers are handled in reversed (LIFO) order. Return values are evaluated before any deferred code is executed.
+When ``sys.exit()`` (or ``sys.exit2()``/``sys.exit3()`` where available) is called from anywhere in the program, all active defers in the current call chain are executed
+in LIFO order across subroutines before the program terminates, so resources acquired in callers are also cleaned up.
+``sys.reset_system()`` and ``sys.poweroff_system()`` are hard system transitions and do not run defers.
+The runtime defer stack holds up to 32 active frames on 6502/virtual and 256 on m68k;
+exceeding this is a fatal error (program exits with status 1). A program that contains no ``defer`` statements has no runtime overhead for this mechanism.
 You write defers like so::
 
     sub example() -> bool {

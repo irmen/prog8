@@ -23,7 +23,7 @@ The language
 - There's usually a single statement per line. There is no statement separator.
 - Semicolon ``;`` is used to start a line comment.  Multi-line comments are also possible by enclosing it all in ``/*`` and ``*/``.
 - Ternary operator ``x ? value1 : value2`` is available in the form of an *if-expression*: ``if x [then] value1 else value2``
-- There's a Swift/Zig/Go style ``defer`` statement for delayed cleanup is available in the subroutine scope.
+- There's a ``defer`` statement for delayed cleanup that unwinds locally on ``return`` and program-wide on ``sys.exit()``.
 - Qualified names are searched from within the top level namespace (so you have to provide the full qualified name). Unqualified names are locally scoped.
 - A trailing comma is allowed optionally in array literals:  [1,2,3,]  is a valid array of values 1, 2 and 3.
 
