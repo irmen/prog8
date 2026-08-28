@@ -56,8 +56,7 @@ class CompilerArguments(val filepath: Path,
                         val dumpSymbols: Boolean,
                         val varsHighBank: Int?,
                         val varsGolden: Boolean,
-                        val slabsHighBank: Int?,
-                        val slabsGolden: Boolean,
+                        val varsAddress: UInt? = null,
                         val compilationTarget: String,
                         val breakpointCpuInstruction: String?,
                         val printAst1: Boolean,
@@ -90,7 +89,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
         getCompilationTargetByName(args.compilationTarget)
     }
 
-    if(args.varsGolden || args.slabsGolden) {
+    if(args.varsGolden) {
         if(compTarget.BSSGOLDENRAM_END-compTarget.BSSGOLDENRAM_START==0u) {
             System.err.println("The current compilation target doesn't support Golden Ram.")
             return null
@@ -98,8 +97,8 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
     }
 
     if(compTarget.cpu.is68k) {
-        if(args.varsGolden || args.slabsGolden || args.varsHighBank!=null || args.slabsHighBank!=null) {
-            System.err.println("The -varsgolden/-varshigh/-slabsgolden/-slabshigh options are not available on the m68k target")
+        if(args.varsGolden || args.varsHighBank!=null || args.varsAddress!=null) {
+            System.err.println("The -varsgolden/-varshigh/-varsaddress options are not available on the m68k target")
             return null
         }
     }
@@ -142,21 +141,24 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                 ignoreFootguns = args.ignoreFootguns
                 varsHighBank = args.varsHighBank
                 varsGolden = args.varsGolden
-                slabsHighBank = args.slabsHighBank
-                slabsGolden = args.slabsGolden
+                if(args.varsAddress!=null)
+                    varsAddress = args.varsAddress
                 outputDir = args.outputDir.normalize()
                 symbolDefs = args.symbolDefs
+            }
+            // apply custom target default for vars address now so it participates in the ROMable check
+            if(compilationOptions.varsAddress==null && compilationOptions.varsGolden==false && compilationOptions.varsHighBank==null) {
+                (compilationOptions.compTarget as? ConfigFileTarget)?.varsAddress?.let {
+                    compilationOptions.varsAddress = it
+                }
             }
             resultingProgram = program
             importedFiles = imported
 
             if(compilationOptions.romable) {
-                val hasBss = compilationOptions.bssAddress != null || program.toplevelModule.bssAddress != null
-                val hasSlabs = compilationOptions.slabsAddress != null || program.toplevelModule.slabsAddress != null
-                if (!compilationOptions.varsGolden && compilationOptions.varsHighBank==null && !hasBss)
-                    args.errors.err("When ROMable code is selected, variables should be moved to a RAM memory region using either -varsgolden or -varshigh option", program.toplevelModule.position)
-                if (!compilationOptions.slabsGolden && compilationOptions.slabsHighBank==null && !hasSlabs)
-                    args.errors.err("When ROMable code is selected, memory() blocks should be moved to a RAM memory region using either -slabsgolden or -slabshigh option", program.toplevelModule.position)
+                val hasVars = compilationOptions.varsAddress != null || program.toplevelModule.varsAddress != null || compilationOptions.varsGolden || compilationOptions.varsHighBank!=null
+                if (!hasVars)
+                    args.errors.err("When ROMable code is selected, variables and memory slabs should be moved to a RAM memory region using either -varsgolden, -varshigh or -varsaddress option or %varsaddress directive", program.toplevelModule.position)
                 args.errors.report()
             }
 
@@ -392,26 +394,33 @@ internal fun determineProgramLoadAddress(program: Program, options: CompilationO
         options.memtopAddress = maxAddress
     }
 
-    options.bssAddress = program.toplevelModule.bssAddress?.first
-    options.slabsAddress = program.toplevelModule.slabsAddress?.first
+    // determine final varsAddress precedence:
+    // 1. %varsaddress directive overrides everything
+    // 2. CLI -varsaddress / -varsgolden / -varshigh override target default
+    // 3. target config default vars_address
+    val sourceDirective = program.toplevelModule.varsAddress
+    val hasCliRelocation = options.varsGolden || options.varsHighBank != null
+    val targetDefaultAddress = (options.compTarget as? ConfigFileTarget)?.varsAddress
 
-    if(options.bssAddress != null && (options.varsGolden || options.varsHighBank != null)) {
-        val bssPos = program.toplevelModule.bssAddress?.second ?: program.toplevelModule.position
-        errors.err("cannot combine %bssaddress directive with -varsgolden or -varshigh option", bssPos)
+    val finalAddress = when {
+        sourceDirective != null -> sourceDirective.first
+        options.varsAddress != null -> options.varsAddress
+        hasCliRelocation -> null  // CLI golden/high takes precedence over target default
+        else -> targetDefaultAddress
     }
-    if(options.slabsAddress != null && (options.slabsGolden || options.slabsHighBank != null)) {
-        val slabsPos = program.toplevelModule.slabsAddress?.second ?: program.toplevelModule.position
-        errors.err("cannot combine %slabsaddress directive with -slabsgolden or -slabshigh option", slabsPos)
+    options.varsAddress = finalAddress
+
+    if(options.varsAddress != null && hasCliRelocation) {
+        val pos = sourceDirective?.second ?: program.toplevelModule.position
+        errors.err("cannot combine %varsaddress directive or -varsaddress option with -varsgolden or -varshigh option", pos)
     }
 
     val maxAddress = if(options.compTarget.POINTER_MEM_SIZE > 2u) 0xFFFFFFFFu else 0xFFFFu
-    options.bssAddress?.let {
-        if(it > maxAddress)
-            errors.err("bss address must be valid integer 0..${maxAddress.toHex()}", program.toplevelModule.bssAddress!!.second)
-    }
-    options.slabsAddress?.let {
-        if(it > maxAddress)
-            errors.err("slabs address must be valid integer 0..${maxAddress.toHex()}", program.toplevelModule.slabsAddress!!.second)
+    options.varsAddress?.let {
+        if(it > maxAddress) {
+            val pos = sourceDirective?.second ?: program.toplevelModule.position
+            errors.err("vars address must be valid integer 0..${maxAddress.toHex()}", pos)
+        }
     }
 }
 

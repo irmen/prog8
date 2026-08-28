@@ -259,28 +259,20 @@ Directives
 	you don't use a CBM-BASIC launcher.
 	Not available on the m68k targets (amiga500, qemu68k) - there it is an error.
 
-.. index:: pair: Directives; %bssaddress
-.. data:: %bssaddress <address>
+.. index:: pair: Directives; %varsaddress
+.. data:: %varsaddress <address>
 
 	Level: module.
-	Global setting, set the memory address for the BSS area (uninitialized variables). Analogous to ``%address`` for program load address.
-	If ``%slabsaddress`` specifies the same address, both segments share one memory region:
-	the variables are placed first and the slabs follow immediately after them (this is also how
-	the ``-varsgolden``/``-varshigh`` options place them). Different addresses place the two segments
-	in two separate regions.
-	Mutually exclusive with the CLI options ``-varsgolden`` and ``-varshigh`` - use either the directive (raw address) or the CLI shorthand (target-aware), not both.
+	Global setting, set the memory address for the BSS area (uninitialized variables) and memory slabs
+	(``memory()`` allocations) together - both segments are placed sequentially starting from this single address
+	(variables first, slabs immediately after them). Analogous to ``%address`` for program load address.
+	This is consistent with how the ``-varsgolden`` and ``-varshigh`` CLI options place both segments together
+	in golden/high RAM.
+	Mutually exclusive with the CLI options ``-varsgolden``, ``-varshigh`` and ``-varsaddress`` - use either the directive
+	(raw address) or the CLI shorthand (target-aware or raw), not both.
 	Not available on m68k targets (amiga500, qemu68k) - there it is an error.
-
-.. index:: pair: Directives; %slabsaddress
-.. data:: %slabsaddress <address>
-
-	Level: module.
-	Global setting, set the memory address for memory slabs (``memory()`` allocations). Analogous to ``%address`` for program load address.
-	If it specifies the same address as ``%bssaddress``, both segments share one memory region:
-	the variables are placed first and the slabs follow immediately after them.
-	Different addresses place the two segments in two separate regions.
-	Mutually exclusive with the CLI options ``-slabsgolden`` and ``-slabshigh`` - use either the directive or the CLI shorthand, not both.
-	Not available on m68k targets (amiga500, qemu68k) - there it is an error.
+	The custom compilation target configuration file can provide a default for this via the ``vars_address`` property,
+	just like ``load_address`` provides the default for ``%address``.
 
 
 .. index:: pair: Directives; %align

@@ -456,7 +456,7 @@ main {
 }"""
 
         val errors=ErrorReporterForTests()
-        compileText(C64Target(), false, src, outputDir, errors=errors, writeAssembly = false, varshigh=1, slabshigh=1) shouldBe null
+        compileText(C64Target(), false, src, outputDir, errors=errors, writeAssembly = false, varshigh=1) shouldBe null
         errors.errors.size shouldBe 3
         errors.errors[0] shouldContain "12:9: cannot write to a string or an array with initalization values (located in ROM"
         errors.errors[1] shouldContain "13:9: cannot write to a string or an array with initalization values (located in ROM"

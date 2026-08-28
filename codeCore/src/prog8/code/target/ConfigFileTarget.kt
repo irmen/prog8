@@ -29,6 +29,7 @@ class ConfigFileTarget(
     override val libraryPath: Path,
     override val customLauncher: List<String>,
     override val additionalAssemblerOptions: List<String>,
+    val varsAddress: UInt? = null,
     val ioAddresses: List<UIntRange>,
     val zpScratchB1: UInt,
     val zpScratchReg: UInt,
@@ -132,6 +133,8 @@ class ConfigFileTarget(
                 CbmPrgLauncherType.BASIC
             }
 
+            val varsAddress = props.getProperty("vars_address")?.let { parseInt(it) }
+
             return ConfigFileTarget(
                 configfile.nameWithoutExtension,
                 props.getProperty("supports_banked_calls", "false").toBoolean(),
@@ -148,6 +151,7 @@ class ConfigFileTarget(
                 libraryPath,
                 customLauncher,
                 if(assemblerOptionsStr=="") emptyList() else assemblerOptionsStr.split(" "),
+                varsAddress,
                 ioAddresses,
                 props.getInteger("zp_scratch_b1"),
                 props.getInteger("zp_scratch_reg"),

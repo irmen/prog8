@@ -4,6 +4,7 @@ import java.nio.file.Path
 import kotlin.io.path.Path
 
 
+@Suppress("unused")
 class CompilationOptions(val output: OutputType,
                          val launcher: CbmPrgLauncherType,
                          val zeropage: ZeropageType,
@@ -17,8 +18,7 @@ class CompilationOptions(val output: OutputType,
                          // these are set later, based on command line arguments or options in the source code:
                          var loadAddress: UInt,
                          var memtopAddress: UInt,
-                         var bssAddress: UInt? = null,
-                         var slabsAddress: UInt? = null,
+                         var varsAddress: UInt? = null,
                          var warnSymbolShadowing: Boolean = false,
                          var warnImplicitTypeCast: Boolean = false,
                          var optimize: Boolean = false,
@@ -30,8 +30,6 @@ class CompilationOptions(val output: OutputType,
                          var newCodegen: Boolean = false,
                          var varsHighBank: Int? = null,
                          var varsGolden: Boolean = false,
-                         var slabsHighBank: Int? = null,
-                         var slabsGolden: Boolean = false,
                          var breakpointCpuInstruction: String? = null,
                          var ignoreFootguns: Boolean = false,
                          var outputDir: Path = Path(""),
@@ -61,8 +59,7 @@ class CompilationOptions(val output: OutputType,
             private var compilerVersion: String = "unknown"
             private var loadAddress: UInt = compTarget.PROGRAM_LOAD_ADDRESS
             private var memtopAddress: UInt = compTarget.PROGRAM_MEMTOP_ADDRESS
-            private var bssAddress: UInt? = null
-            private var slabsAddress: UInt? = null
+            private var varsAddress: UInt? = null
             private var warnSymbolShadowing: Boolean = false
             private var warnImplicitTypeCast: Boolean = false
             private var optimize: Boolean = false
@@ -73,8 +70,6 @@ class CompilationOptions(val output: OutputType,
             private var dumpSymbols: Boolean = false
             private var varsHighBank: Int? = null
             private var varsGolden: Boolean = false
-            private var slabsHighBank: Int? = null
-            private var slabsGolden: Boolean = false
             private var breakpointCpuInstruction: String? = null
             private var ignoreFootguns: Boolean = false
             private var outputDir: Path = Path("")
@@ -94,8 +89,7 @@ class CompilationOptions(val output: OutputType,
             fun compilerVersion(compilerVersion: String) = apply { this.compilerVersion = compilerVersion }
             fun loadAddress(loadAddress: UInt) = apply { this.loadAddress = loadAddress }
             fun memtopAddress(memtopAddress: UInt) = apply { this.memtopAddress = memtopAddress }
-            fun bssAddress(bssAddress: UInt?) = apply { this.bssAddress = bssAddress }
-            fun slabsAddress(slabsAddress: UInt?) = apply { this.slabsAddress = slabsAddress }
+            fun varsAddress(varsAddress: UInt?) = apply { this.varsAddress = varsAddress }
             fun warnSymbolShadowing(warnSymbolShadowing: Boolean) = apply { this.warnSymbolShadowing = warnSymbolShadowing }
             fun warnImplicitTypeCast(warnImplicitTypeCast: Boolean) = apply { this.warnImplicitTypeCast = warnImplicitTypeCast }
             fun optimize(optimize: Boolean) = apply { this.optimize = optimize }
@@ -106,8 +100,6 @@ class CompilationOptions(val output: OutputType,
             fun dumpSymbols(dumpSymbols: Boolean) = apply { this.dumpSymbols = dumpSymbols }
             fun varsHighBank(varsHighBank: Int?) = apply { this.varsHighBank = varsHighBank }
             fun varsGolden(varsGolden: Boolean) = apply { this.varsGolden = varsGolden }
-            fun slabsHighBank(slabsHighBank: Int?) = apply { this.slabsHighBank = slabsHighBank }
-            fun slabsGolden(slabsGolden: Boolean) = apply { this.slabsGolden = slabsGolden }
             fun breakpointCpuInstruction(breakpointCpuInstruction: String?) = apply { this.breakpointCpuInstruction = breakpointCpuInstruction }
             fun ignoreFootguns(ignoreFootguns: Boolean) = apply { this.ignoreFootguns = ignoreFootguns }
             fun outputDir(outputDir: Path) = apply { this.outputDir = outputDir }
@@ -119,9 +111,9 @@ class CompilationOptions(val output: OutputType,
             fun build(): CompilationOptions {
                 return CompilationOptions(
                     output, launcher, zeropage, zpReserved, zpAllowed, floats, noSysInit, romable, compTarget, compilerVersion,
-                    loadAddress, memtopAddress, bssAddress, slabsAddress, warnSymbolShadowing, warnImplicitTypeCast, optimize, asmQuiet, asmListfile,
+                    loadAddress, memtopAddress, varsAddress, warnSymbolShadowing, warnImplicitTypeCast, optimize, asmQuiet, asmListfile,
                     includeSourcelines, dumpVariables, dumpSymbols, newCodegen, varsHighBank, varsGolden,
-                    slabsHighBank, slabsGolden, breakpointCpuInstruction, ignoreFootguns, outputDir, quiet,
+                    breakpointCpuInstruction, ignoreFootguns, outputDir, quiet,
                     profilingInstrumentation, symbolDefs
                 )
             }

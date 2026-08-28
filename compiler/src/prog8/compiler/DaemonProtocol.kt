@@ -19,8 +19,7 @@ internal data class DaemonRequest(
     val dumpSymbols: Boolean,
     val varsHighBank: Int?,
     val varsGolden: Boolean,
-    val slabsHighBank: Int?,
-    val slabsGolden: Boolean,
+    val varsAddress: UInt?,
     val compilationTarget: String,
     val breakpointCpuInstruction: String?,
     val printAst1: Boolean,
@@ -67,8 +66,7 @@ internal object DaemonProtocol {
         append(prop("dumpSymbols", req.dumpSymbols))
         append(prop("varsHighBank", req.varsHighBank))
         append(prop("varsGolden", req.varsGolden))
-        append(prop("slabsHighBank", req.slabsHighBank))
-        append(prop("slabsGolden", req.slabsGolden))
+        append(propLongOpt("varsAddress", req.varsAddress?.toLong()))
         append(prop("compilationTarget", req.compilationTarget))
         append(propOpt("breakpointCpuInstruction", req.breakpointCpuInstruction))
         append(prop("printAst1", req.printAst1))
@@ -134,8 +132,7 @@ internal object DaemonProtocol {
             dumpSymbols = map["dumpSymbols"] as Boolean,
             varsHighBank = (map["varsHighBank"] as? Number)?.toInt(),
             varsGolden = map["varsGolden"] as Boolean,
-            slabsHighBank = (map["slabsHighBank"] as? Number)?.toInt(),
-            slabsGolden = map["slabsGolden"] as Boolean,
+            varsAddress = (map["varsAddress"] as? Number)?.toLong()?.toUInt(),
             compilationTarget = map["compilationTarget"] as String,
             breakpointCpuInstruction = map["breakpointCpuInstruction"] as? String,
             printAst1 = map["printAst1"] as Boolean,
@@ -172,6 +169,7 @@ internal object DaemonProtocol {
     private fun prop(name: String, value: Int): String = "\"$name\":$value,"
     private fun prop(name: String, value: Long): String = "\"$name\":$value,"
     private fun prop(name: String, value: Int?): String = value?.let { "\"$name\":$it," } ?: "\"$name\":null,"
+    private fun propLongOpt(name: String, value: Long?): String = value?.let { "\"$name\":$it," } ?: "\"$name\":null,"
     private fun prop(name: String, value: Map<String, String>): String {
         val entries = value.entries.joinToString(",") { "${encodeJsonString(it.key)}:${encodeJsonString(it.value)}" }
         return "\"$name\":{$entries},"

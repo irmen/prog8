@@ -13,6 +13,7 @@ import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.choice
 import com.github.ajalt.clikt.parameters.types.int
 import prog8.ast.AstException
+import prog8.code.core.toHex
 import prog8.code.source.ImportFileSystem
 import prog8.code.source.ImportFileSystem.expandTilde
 import prog8.code.target.*
@@ -51,6 +52,15 @@ fun main(args: Array<String>) {
 
 fun pathFrom(stringPath: String, vararg rest: String): Path  = FileSystems.getDefault().getPath(stringPath, *rest)
 
+private fun parseAddressArg(value: String): UInt {
+    val v = value.trim()
+    return when {
+        v.startsWith("0x") -> v.drop(2).toUInt(16)
+        v.startsWith("$") -> v.drop(1).toUInt(16)
+        v.startsWith("%") -> v.drop(1).toUInt(2)
+        else -> v.toUInt()
+    }
+}
 
 private class CompilerCli : CliktCommand(name = "prog8c") {
     init {
@@ -82,14 +92,13 @@ private class CompilerCli : CliktCommand(name = "prog8c") {
     val printAst2 by option("-printast2", "--printast2", help = "print out the simplified AST that is used for code generation").flag()
     val quietAll by option("-quiet", "--quiet", help = "don't print compiler and assembler messages, except warnings and errors").flag()
     val quietAssembler by option("-quietasm", "--quietasm", help = "don't print assembler messages").flag()
-    val slabsGolden by option("-slabsgolden", "--slabsgolden", help = "put memory() slabs in golden ram").flag()
-    val slabsHighBank by option("-slabshigh", "--slabshigh", help = "put memory() slabs in high memory area").int()
     val dontIncludeSourcelines by option("-nosourcelines", "--nosourcelines", help = "do not include original Prog8 source lines in generated asm code").flag()
     val sourceDirs by option("-srcdirs", "--srcdirs", help = "extra paths to search for imported modules").multiple()
     val compilationTarget by option("-target", "--target", help = "target output of the compiler (one of ${CompilationTargets.joinToString(",")} or a custom target properties file)")
     val showTimings by option("-timings", "--timings", help = "show internal compiler timings").flag()
-    val varsGolden by option("-varsgolden", "--varsgolden", help = "put uninitialized variables in golden ram").flag()
-    val varsHighBank by option("-varshigh", "--varshigh", help = "put uninitialized variables in high memory area").int()
+    val varsGolden by option("-varsgolden", "--varsgolden", help = "put uninitialized variables and memory slabs in golden ram").flag()
+    val varsHighBank by option("-varshigh", "--varshigh", help = "put uninitialized variables and memory slabs in high memory area").int()
+    val varsAddressStr by option("-varsaddress", "--varsaddress", help = "put uninitialized variables and memory slabs at given address (e.g. $8000 or 32768)")
     val startVm by option("-vm", "--vm", help = "run a .p8ir IR source file in the embedded VM").flag()
     val vmTrace by option("-vmtrace", "--vmtrace", help = "trace VM execution instruction by instruction").flag()
     val traceImports by option("-traceimports", "--traceimports", help = "trace all module imports and loads").flag()
@@ -183,27 +192,30 @@ private fun compileMain(args: Array<String>): Boolean {
         return false
     }
 
-    if (varsGolden==true) {
-        if (varsHighBank!=null || slabsHighBank!=null) {
-            System.err.println("Either use varsgolden or varshigh (and slabsgolden or slabshigh), not both or mixed.")
-            return false
-        }
+    val varsAddress: UInt? = try {
+        varsAddressStr?.let { parseAddressArg(it) }
+    } catch(_: Exception) {
+        System.err.println("Invalid -varsaddress value: $varsAddressStr")
+        return false
     }
-    if (slabsGolden==true) {
-        if (varsHighBank!=null || slabsHighBank!=null) {
-            System.err.println("Either use golden or high ram, not both.")
-            return false
-        }
+    val maxCliAddress = if(compilationTarget in setOf(Amiga500Target.NAME, Qemu68kTarget.NAME, VMTarget.NAME)) 0xFFFFFFFFu else 0xFFFFu
+    if(varsAddress!=null && varsAddress > maxCliAddress) {
+        System.err.println("vars address must be valid integer 0..${maxCliAddress.toHex()}")
+        return false
     }
 
-    if(varsHighBank!=null && slabsHighBank!=null && varsHighBank!=slabsHighBank) {
-        System.err.println("Vars and slabs high memory bank must be the same.")
+    if(varsGolden==true && varsHighBank!=null) {
+        System.err.println("Either use -varsgolden or -varshigh, not both.")
+        return false
+    }
+    if(varsAddress!=null && (varsGolden==true || varsHighBank!=null)) {
+        System.err.println("Either use -varsaddress or -varsgolden/-varshigh, not both.")
         return false
     }
 
     if(compilationTarget in setOf(Amiga500Target.NAME, Qemu68kTarget.NAME)) {
-        if(varsGolden || slabsGolden || varsHighBank!=null || slabsHighBank!=null) {
-            System.err.println("The -varsgolden/-varshigh/-slabsgolden/-slabshigh options are not available on the m68k target")
+        if(varsGolden || varsHighBank!=null || varsAddress!=null) {
+            System.err.println("The -varsgolden/-varshigh/-varsaddress options are not available on the m68k target")
             return false
         }
     }
@@ -242,8 +254,7 @@ private fun compileMain(args: Array<String>): Boolean {
                     dumpSymbols == true,
                     varsHighBank,
                     varsGolden == true,
-                    slabsHighBank,
-                    slabsGolden == true,
+                    varsAddress,
                     compilationTarget!!,
                     breakpointCpuInstruction,
                     printAst1 == true,
@@ -330,8 +341,7 @@ private fun compileMain(args: Array<String>): Boolean {
                 dumpSymbols == true,
                 varsHighBank,
                 varsGolden == true,
-                slabsHighBank,
-                slabsGolden == true,
+                varsAddress,
                 compilationTarget!!,
                 breakpointCpuInstruction,
                 printAst1 == true,
@@ -398,8 +408,7 @@ private fun compileMain(args: Array<String>): Boolean {
                     dumpSymbols==true,
                     varsHighBank,
                     varsGolden == true,
-                    slabsHighBank,
-                    slabsGolden == true,
+                    varsAddress,
                     compilationTarget!!,
                     breakpointCpuInstruction,
                     printAst1 == true,
@@ -849,8 +858,7 @@ private fun communicateWithDaemon(channel: SocketChannel, compilerArgs: Compiler
             dumpSymbols = compilerArgs.dumpSymbols,
             varsHighBank = compilerArgs.varsHighBank,
             varsGolden = compilerArgs.varsGolden,
-            slabsHighBank = compilerArgs.slabsHighBank,
-            slabsGolden = compilerArgs.slabsGolden,
+            varsAddress = compilerArgs.varsAddress,
             compilationTarget = compilerArgs.compilationTarget,
             breakpointCpuInstruction = compilerArgs.breakpointCpuInstruction,
             printAst1 = compilerArgs.printAst1,

@@ -23,7 +23,7 @@ internal class StatementReorderer(
     // - consolidates multiple consecutive additions , subtractions, multiplications.
     // - swap byte pointer deref -> swap directmemory
 
-    private val directivesToMove = setOf("%output", "%launcher", "%zeropage", "%zpreserved", "%zpallowed", "%address", "%memtop", "%bssaddress", "%slabsaddress", "%option", "%encoding")
+    private val directivesToMove = setOf("%output", "%launcher", "%zeropage", "%zpreserved", "%zpallowed", "%address", "%memtop", "%varsaddress", "%option", "%encoding")
 
     override fun after(module: Module, parent: Node): Iterable<AstModification> {
         directivesToTheTop(module.statements)

@@ -45,11 +45,11 @@ internal class M68kAstChecker(private val errors: IErrorReporter, private val ta
             "%address" -> {
                 errors.err("the %address directive is not available on the m68k target", directive.position)
             }
-            "%bssaddress" -> {
-                errors.err("the %bssaddress directive is not available on the m68k target", directive.position)
+            "%varsaddress" -> {
+                errors.err("the %varsaddress directive is not available on the m68k target", directive.position)
             }
-            "%slabsaddress" -> {
-                errors.err("the %slabsaddress directive is not available on the m68k target", directive.position)
+            "%bssaddress", "%slabsaddress" -> {
+                errors.err("directive ${directive.directive} has been removed, use %varsaddress instead", directive.position)
             }
             "%memtop" -> {
                 errors.err("the %memtop directive is not available on the m68k target", directive.position)

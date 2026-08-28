@@ -175,7 +175,7 @@ class TestBankedSubroutines : FunSpec({
             }
         """.trimIndent()
         val errors = ErrorReporterForTests()
-        compileText(Cx16Target(), false, text, outputDir, errors = errors, writeAssembly = false, varshigh = 1, slabshigh = 1) shouldBe null
+        compileText(Cx16Target(), false, text, outputDir, errors = errors, writeAssembly = false, varshigh = 1) shouldBe null
         errors.errors.any { it.contains("variable bank extsub has no romable code-generation") } shouldBe true
     }
 

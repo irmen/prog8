@@ -1146,88 +1146,39 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
         emitRaw("PROG8_VARSHIGH_RAMBANK = ${options.varsHighBank ?: 1}")
 
         var relocateVars = false
-        var relocateSlabs = false
-        var relocatedVarsStart = 0u
-        var relocatedVarsEnd = 0u
-        var relocatedSlabsStart = 0u
-        var relocatedSlabsEnd = 0u
+        var relocatedStart = 0u
+        var relocatedEnd = 0u
 
-        if(options.bssAddress != null) {
+        if(options.varsAddress != null) {
             relocateVars = true
-            relocatedVarsStart = options.bssAddress!!
-            relocatedVarsEnd = if(options.memtopAddress != 0u) options.memtopAddress else 0xFFFFu
+            relocatedStart = options.varsAddress!!
+            relocatedEnd = if(options.memtopAddress != 0u) options.memtopAddress else 0xFFFFu
         } else if(options.varsGolden) {
             relocateVars = true
-            relocatedVarsStart = options.compTarget.BSSGOLDENRAM_START
-            relocatedVarsEnd = options.compTarget.BSSGOLDENRAM_END
+            relocatedStart = options.compTarget.BSSGOLDENRAM_START
+            relocatedEnd = options.compTarget.BSSGOLDENRAM_END
         } else if(options.varsHighBank != null) {
             relocateVars = true
-            relocatedVarsStart = options.compTarget.BSSHIGHRAM_START
-            relocatedVarsEnd = options.compTarget.BSSHIGHRAM_END
+            relocatedStart = options.compTarget.BSSHIGHRAM_START
+            relocatedEnd = options.compTarget.BSSHIGHRAM_END
         }
 
-        if(options.slabsAddress != null) {
-            relocateSlabs = true
-            relocatedSlabsStart = options.slabsAddress!!
-            relocatedSlabsEnd = if(options.memtopAddress != 0u) options.memtopAddress else 0xFFFFu
-        } else if(options.slabsGolden) {
-            relocateSlabs = true
-            relocatedSlabsStart = options.compTarget.BSSGOLDENRAM_START
-            relocatedSlabsEnd = options.compTarget.BSSGOLDENRAM_END
-        } else if(options.slabsHighBank != null) {
-            relocateSlabs = true
-            relocatedSlabsStart = options.compTarget.BSSHIGHRAM_START
-            relocatedSlabsEnd = options.compTarget.BSSHIGHRAM_END
-        }
-
-        // if both use same mechanism (golden/high) ensure shared values are synced
-        if(relocateVars && relocateSlabs) {
-            if(relocatedVarsStart==0u && relocatedSlabsStart!=0u) {
-                relocatedVarsStart = relocatedSlabsStart
-                relocatedVarsEnd = relocatedSlabsEnd
-            } else if(relocatedSlabsStart==0u && relocatedVarsStart!=0u) {
-                relocatedSlabsStart = relocatedVarsStart
-                relocatedSlabsEnd = relocatedVarsEnd
-            }
-        }
-
-        if (relocateVars && relocateSlabs && relocatedVarsStart != relocatedSlabsStart) {
-            // separate regions for vars and slabs (raw addresses differ)
+        if (relocateVars) {
             emitLabel("prog8_program_end")
-            emitRaw("  * = ${relocatedVarsStart.toHex()}")
+            emitRaw("  * = ${relocatedStart.toHex()}")
             emitRaw("  .dsection BSS_NOCLEAR")
             emitLabel("prog8_bss_section_start")
             emitRaw("  .dsection BSS")
-            emitLine("    .cerror * > ${relocatedVarsEnd.toHex()}, \"too many variables/data for BSS section\"")
-            emitRaw("prog8_bss_section_size = * - prog8_bss_section_start")
-            emitRaw("  * = ${relocatedSlabsStart.toHex()}")
             emitRaw("  .dsection BSS_SLABS")
-            emitLine("    .cerror * > ${relocatedSlabsEnd.toHex()}, \"too many data for BSS_SLABS section\"")
-        } else if (relocateVars) {
-            if (!relocateSlabs)
-                emitRaw("  .dsection BSS_SLABS")
-            emitLabel("prog8_program_end")
-            emitRaw("  * = ${relocatedVarsStart.toHex()}")
-            emitRaw("  .dsection BSS_NOCLEAR")
-            emitLabel("prog8_bss_section_start")
-            emitRaw("  .dsection BSS")
-            if (relocateSlabs)
-                emitRaw("  .dsection BSS_SLABS")
-            emitLine("    .cerror * > ${relocatedVarsEnd.toHex()}, \"too many variables/data for BSS section\"")
+            emitLine("    .cerror * > ${relocatedEnd.toHex()}, \"too many variables/data for BSS section\"")
             emitRaw("prog8_bss_section_size = * - prog8_bss_section_start")
         } else {
             emitRaw("  .dsection BSS_NOCLEAR")
             emitLabel("prog8_bss_section_start")
             emitRaw("  .dsection BSS")
             emitRaw("prog8_bss_section_size = * - prog8_bss_section_start")
-            if (!relocateSlabs)
-                emitRaw("  .dsection BSS_SLABS")
+            emitRaw("  .dsection BSS_SLABS")
             emitLabel("prog8_program_end")
-            if (relocateSlabs) {
-                emitRaw("  * = ${relocatedSlabsStart.toHex()}")
-                emitRaw("  .dsection BSS_SLABS")
-                emitLine("    .cerror * > ${relocatedSlabsEnd.toHex()}, \"too many data for BSS_SLABS section\"")
-            }
         }
 
         emitRaw("")

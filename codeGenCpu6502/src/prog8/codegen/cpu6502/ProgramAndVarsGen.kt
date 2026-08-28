@@ -224,26 +224,23 @@ internal class ProgramAndVarsGen(
     private fun footer() {
         asmgen.out("  .dsection STRUCTINSTANCES\n")
 
-        var relocateBssVars = false
-        var relocateBssSlabs = false
-        var relocatedBssStart = 0u
-        var relocatedBssEnd = 0u
-        var relocatedSlabsStart = 0u
-        var relocatedSlabsEnd = 0u
+        var relocateVars = false
+        var relocatedStart = 0u
+        var relocatedEnd = 0u
 
-        if(options.bssAddress != null) {
-            relocateBssVars = true
-            relocatedBssStart = options.bssAddress!!
-            relocatedBssEnd = if(options.memtopAddress != 0u) options.memtopAddress else 0xFFFFu
+        if(options.varsAddress != null) {
+            relocateVars = true
+            relocatedStart = options.varsAddress!!
+            relocatedEnd = if(options.memtopAddress != 0u) options.memtopAddress else 0xFFFFu
         } else if(options.varsGolden) {
             if(options.compTarget.BSSGOLDENRAM_START == 0u ||
                 options.compTarget.BSSGOLDENRAM_END == 0u ||
                 options.compTarget.BSSGOLDENRAM_END <= options.compTarget.BSSGOLDENRAM_START) {
                 throw AssemblyError("current compilation target hasn't got the golden ram area properly defined or it is simply not available")
             }
-            relocateBssVars = true
-            relocatedBssStart = options.compTarget.BSSGOLDENRAM_START
-            relocatedBssEnd = options.compTarget.BSSGOLDENRAM_END
+            relocateVars = true
+            relocatedStart = options.compTarget.BSSGOLDENRAM_START
+            relocatedEnd = options.compTarget.BSSGOLDENRAM_END
         }
         else if(options.varsHighBank!=null) {
             if(options.compTarget.BSSHIGHRAM_START == 0u ||
@@ -251,98 +248,33 @@ internal class ProgramAndVarsGen(
                 options.compTarget.BSSHIGHRAM_END <= options.compTarget.BSSHIGHRAM_START) {
                 throw AssemblyError("current compilation target hasn't got the high ram area properly defined or it is simply not available")
             }
-            if(options.slabsHighBank!=null && options.slabsAddress==null && options.varsHighBank!=options.slabsHighBank)
-                throw AssemblyError("slabs and vars high bank must be the same")
-            relocateBssVars = true
-            relocatedBssStart = options.compTarget.BSSHIGHRAM_START
-            relocatedBssEnd = options.compTarget.BSSHIGHRAM_END
-        }
-
-        if(options.slabsAddress != null) {
-            relocateBssSlabs = true
-            relocatedSlabsStart = options.slabsAddress!!
-            relocatedSlabsEnd = if(options.memtopAddress != 0u) options.memtopAddress else 0xFFFFu
-        } else if(options.slabsGolden) {
-            if(options.compTarget.BSSGOLDENRAM_START == 0u ||
-                options.compTarget.BSSGOLDENRAM_END == 0u ||
-                options.compTarget.BSSGOLDENRAM_END <= options.compTarget.BSSGOLDENRAM_START) {
-                throw AssemblyError("current compilation target hasn't got the golden ram area properly defined or it is simply not available")
-            }
-            relocateBssSlabs = true
-            relocatedSlabsStart = options.compTarget.BSSGOLDENRAM_START
-            relocatedSlabsEnd = options.compTarget.BSSGOLDENRAM_END
-        }
-        else if(options.slabsHighBank!=null) {
-            if(options.compTarget.BSSHIGHRAM_START == 0u ||
-                options.compTarget.BSSHIGHRAM_END == 0u ||
-                options.compTarget.BSSHIGHRAM_END <= options.compTarget.BSSHIGHRAM_START) {
-                throw AssemblyError("current compilation target hasn't got the high ram area properly defined or it is simply not available")
-            }
-            if(options.varsHighBank!=null && options.bssAddress==null && options.varsHighBank!=options.slabsHighBank)
-                throw AssemblyError("slabs and vars high bank must be the same")
-            relocateBssSlabs = true
-            relocatedSlabsStart = options.compTarget.BSSHIGHRAM_START
-            relocatedSlabsEnd = options.compTarget.BSSHIGHRAM_END
-        }
-
-        // if one side uses raw and the other uses golden/high, keep separate starts; if both use same mechanism they will be equal
-        // for backwards compatibility, when both vars and slabs use golden/high via shared region, ensure both starts/ends are equal
-        if(relocateBssVars && relocateBssSlabs) {
-            if(relocatedBssStart==0u && relocatedSlabsStart!=0u) {
-                relocatedBssStart = relocatedSlabsStart
-                relocatedBssEnd = relocatedSlabsEnd
-            } else if(relocatedSlabsStart==0u && relocatedBssStart!=0u) {
-                relocatedSlabsStart = relocatedBssStart
-                relocatedSlabsEnd = relocatedBssEnd
-            }
-            // if both raw with different addresses, keep them separate
+            relocateVars = true
+            relocatedStart = options.compTarget.BSSHIGHRAM_START
+            relocatedEnd = options.compTarget.BSSHIGHRAM_END
         }
 
         asmgen.out("; bss sections")
         asmgen.out("PROG8_VARSHIGH_RAMBANK = ${options.varsHighBank ?: 1}")
-        if(relocateBssVars && relocateBssSlabs && relocatedBssStart != relocatedSlabsStart) {
-            // separate regions for vars and slabs (raw addresses differ)
+        if(relocateVars) {
             asmgen.out("prog8_program_end\t; end of program label for progend()")
-            asmgen.out("  * = ${relocatedBssStart.toHex()}")
+            asmgen.out("  * = ${relocatedStart.toHex()}")
             asmgen.out("  .dsection BSS_NOCLEAR")
             asmgen.out("prog8_bss_section_start")
             asmgen.out("  .dsection BSS")
-            asmgen.out("  .cerror * > ${relocatedBssEnd.toHex()}, \"too many variables/data for BSS section\"")
-            asmgen.out("prog8_bss_section_size = * - prog8_bss_section_start")
-            asmgen.out("  * = ${relocatedSlabsStart.toHex()}")
             asmgen.out("  .dsection BSS_SLABS")
-            asmgen.out("  .cerror * > ${relocatedSlabsEnd.toHex()}, \"too many data for BSS_SLABS section\"")
-        } else if(relocateBssVars) {
-            if(!relocateBssSlabs)
-                asmgen.out("  .dsection BSS_SLABS")
-            asmgen.out("prog8_program_end\t; end of program label for progend()")
-            asmgen.out("  * = ${relocatedBssStart.toHex()}")
-            asmgen.out("  .dsection BSS_NOCLEAR")
-            asmgen.out("prog8_bss_section_start")
-            asmgen.out("  .dsection BSS")
-            if(relocateBssSlabs)
-                asmgen.out("  .dsection BSS_SLABS")
-            asmgen.out("  .cerror * > ${relocatedBssEnd.toHex()}, \"too many variables/data for BSS section\"")
+            asmgen.out("  .cerror * > ${relocatedEnd.toHex()}, \"too many variables/data for BSS section\"")
             asmgen.out("prog8_bss_section_size = * - prog8_bss_section_start")
         } else {
             asmgen.out("  .dsection BSS_NOCLEAR")
             asmgen.out("prog8_bss_section_start")
             asmgen.out("  .dsection BSS")
             asmgen.out("prog8_bss_section_size = * - prog8_bss_section_start")
-            if(!relocateBssSlabs)
-                asmgen.out("  .dsection BSS_SLABS")
+            asmgen.out("  .dsection BSS_SLABS")
             asmgen.out("prog8_program_end\t; end of program label for progend()")
-            if(relocateBssSlabs) {
-                val slabStart = if(relocatedSlabsStart!=0u) relocatedSlabsStart else relocatedBssStart
-                val slabEnd = if(relocatedSlabsEnd!=0u) relocatedSlabsEnd else relocatedBssEnd
-                asmgen.out("  * = ${slabStart.toHex()}")
-                asmgen.out("  .dsection BSS_SLABS")
-                asmgen.out("  .cerror * > ${slabEnd.toHex()}, \"too many data for BSS_SLABS section\"")
-            }
         }
 
-        val effectiveEnd = maxOf(relocatedBssEnd, relocatedSlabsEnd)
-        if(effectiveEnd >= options.memtopAddress)
+        val effectiveEnd = if(relocateVars) relocatedEnd else 0u
+        if(effectiveEnd >= options.memtopAddress && effectiveEnd != 0u)
             options.memtopAddress = effectiveEnd+1u
 
         asmgen.out("  ; memtop check")

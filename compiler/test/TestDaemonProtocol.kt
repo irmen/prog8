@@ -27,8 +27,7 @@ class TestDaemonProtocol : FunSpec({
             dumpSymbols = true,
             varsHighBank = 10,
             varsGolden = true,
-            slabsHighBank = 20,
-            slabsGolden = false,
+            varsAddress = 0x8000u,
             compilationTarget = "cx16",
             breakpointCpuInstruction = "NOP",
             printAst1 = true,
@@ -61,8 +60,7 @@ class TestDaemonProtocol : FunSpec({
         decoded.dumpSymbols shouldBe request.dumpSymbols
         decoded.varsHighBank shouldBe request.varsHighBank
         decoded.varsGolden shouldBe request.varsGolden
-        decoded.slabsHighBank shouldBe request.slabsHighBank
-        decoded.slabsGolden shouldBe request.slabsGolden
+        decoded.varsAddress shouldBe request.varsAddress
         decoded.compilationTarget shouldBe request.compilationTarget
         decoded.breakpointCpuInstruction shouldBe request.breakpointCpuInstruction
         decoded.printAst1 shouldBe request.printAst1
@@ -95,8 +93,7 @@ class TestDaemonProtocol : FunSpec({
             dumpSymbols = false,
             varsHighBank = null,
             varsGolden = false,
-            slabsHighBank = null,
-            slabsGolden = false,
+            varsAddress = null,
             compilationTarget = "c64",
             breakpointCpuInstruction = null,
             printAst1 = false,
@@ -114,7 +111,7 @@ class TestDaemonProtocol : FunSpec({
         val decoded = DaemonProtocol.decodeRequest(encoded)
 
         decoded.varsHighBank shouldBe null
-        decoded.slabsHighBank shouldBe null
+        decoded.varsAddress shouldBe null
         decoded.breakpointCpuInstruction shouldBe null
         decoded.newCodegen shouldBe false
     }
