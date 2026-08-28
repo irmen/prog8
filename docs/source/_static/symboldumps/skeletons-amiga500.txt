@@ -831,7 +831,7 @@ custom  {
     grab_system  ()
     left_button  () -> bool
     middle_button  () -> bool
-    return_system  ()
+    restore_system  ()
     right_button  () -> bool
     set_aga_color  (ubyte color_index @D0, long rgb24 @D1) clobbers (D0,D1,D2,D3,D4,A0)
     set_aga_color_nibbles  (ubyte color_index @D0, uword rgb_high_nibbles @D1, uword rgb_low_nibbles @D2) clobbers (D0,D1,D2,D3,A0)

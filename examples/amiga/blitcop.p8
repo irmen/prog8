@@ -143,7 +143,7 @@ main {
         while not custom.left_button() {
         }
 
-        custom.return_system()
+        custom.restore_system()
         exec.FreeMem(copper_list, 256)
         exec.FreeMem(bitplane, 10240)
     }

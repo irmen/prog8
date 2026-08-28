@@ -50,39 +50,37 @@ main {
 
         ; open custom screen
         ^^intuition.Screen myScreen = intuition.OpenScreenTagList(0, screentags)
-        if myScreen!=0 {
-            graphics.LoadRGB4(intuition.GetScreenViewPort(myScreen), palette, len(palette))
+        if myScreen==0
+            return
+        defer intuition.CloseScreen(myScreen)
+        graphics.LoadRGB4(intuition.GetScreenViewPort(myScreen), palette, len(palette))
 
-            ; now open a window to be able to set mouse cursor, handle mouse clicks, keyboard presses, etc.
-            windowtags[1] = myScreen
-            ^^intuition.Window myWindow = intuition.OpenWindowTagList(0, windowtags)
+        ; now open a window to be able to set mouse cursor, handle mouse clicks, keyboard presses, etc.
+        windowtags[1] = myScreen
+        ^^intuition.Window myWindow = intuition.OpenWindowTagList(0, windowtags)
+        if myWindow==0
+            return
+        defer intuition.CloseWindow(myWindow)
+        ^^graphics.RastPort rp = intuition.GetScreenRastPort(myScreen)
 
-            if myWindow!=0 {
-                ^^graphics.RastPort rp = intuition.GetScreenRastPort(myScreen)
+        ; draw graphics
+        graphics.SetRast(rp, 1)
 
-                ; draw graphics
-                graphics.SetRast(rp, 1)
-
-                for index in 0 to 31 {
-                    word radius = index *3 + 10
-                    graphics.SetAPen(rp, index)
-                    graphics.DrawEllipse(rp, 160, 128, radius, radius)
-                }
-
-                graphics.SetDrMd(rp, graphics.RP_JAM1)
-                graphics.SetAPen(rp, 2)
-                graphics.Move(rp, 20, 10)
-                str message = "Graphics screen using Prog8 !!"
-                void graphics.Text(rp, message, len(message))
-
-                ; slide screen up and down again
-                repeat 150  intuition.MoveScreen(myScreen, 0, -2)
-                sys.wait(100)
-                repeat 150  intuition.MoveScreen(myScreen, 0, 2)
-
-                intuition.CloseWindow(myWindow)
-            }
-            intuition.CloseScreen(myScreen)
+        for index in 0 to 31 {
+            word radius = index *3 + 10
+            graphics.SetAPen(rp, index)
+            graphics.DrawEllipse(rp, 160, 128, radius, radius)
         }
+
+        graphics.SetDrMd(rp, graphics.RP_JAM1)
+        graphics.SetAPen(rp, 2)
+        graphics.Move(rp, 20, 10)
+        str message = "Graphics screen using Prog8 !!"
+        void graphics.Text(rp, message, len(message))
+
+        ; slide screen up and down again
+        repeat 150  intuition.MoveScreen(myScreen, 0, -2)
+        sys.wait(100)
+        repeat 150  intuition.MoveScreen(myScreen, 0, 2)
     }
 }

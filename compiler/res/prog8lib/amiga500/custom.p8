@@ -5,16 +5,15 @@ custom {
     %option no_symbol_prefixing, ignore_unused
 
 
-    inline asmsub grab_system() {
+    asmsub grab_system() {
         ; take over the whole OS and system, to run hardware banging programs (games, demos, etc)
-        ; inline because it stores stuff on the stack.
         %asm {{
 
 exec_AttnFlags = 296
 gfx_ActiView = $22
 gfx_copinit = $26
 gfx_LOFlist = $32
-gfx_DisplayFlags = $dc
+VBlankFrequency = $212
 GfxLoadView    = -222
 GfxWaitTOF = -270
 IRQ1 = $64
@@ -29,28 +28,27 @@ IRQ7 = $7C
             jsr     exec.Forbid(a6)        ; Do not run other tasks
             btst.b  #0,exec_AttnFlags+1(a6)    ; Check if > 68000 processor
             beq.s   1$            ; On 68000 no VBR (always zero)
-            lea.l   _S_GetVBR(PC),a5    ; Function to call as supervisor
+            lea.l   .getvbr(PC),a5    ; Function to call as supervisor
             jsr     exec.Supervisor(a6)    ; Call supervisor function in A5
             move.l  d0,custom.cpuVBR        ; Store the returned VBR contents
 1$
+            cmp.b   #50,VBlankFrequency(a6)
+            seq.b   custom.isPAL
+
             move.l  sys.GfxBase,a6     ; A6 = Graphics base
-            btst.b  #0,gfx_DisplayFlags(a6) ; Check NTSC bit (bit 0)
-            bne.s   .isNTSC
-            move.b  #-1,custom.isPAL
-.isNTSC:
-            move.l  gfx_ActiView(a6),-(sp)    ; Store current View pointer
+            move.l  gfx_ActiView(a6),custom.savedView    ; Store current View pointer
             sub.l   a1,a1            ; NULL view = default settings
             jsr    GfxLoadView(a6)        ; Load the view
             jsr    GfxWaitTOF(a6)        ; Wait one screen refresh
             jsr    GfxWaitTOF(a6)        ; Wait a 2nd (in case of interlace)
 
             move.w  #$8000,d0        ; Value
-            move.w  custom.DMACONR,-(sp)    ; Store system DMA channels
-            or.w    d0,(sp)            ; SET/CLR set to SET
-            move.w  custom.INTENAR,-(sp)    ; Store system enabled interrupts
-            or.w    d0,(sp)            ; SET/CLR set to SET
-            move.w  custom.ADKCONR,-(sp)    ; Audio, disk and UART
-            or.w    d0,(sp)            ; SET/CLR set to SET
+            move.w  custom.DMACONR,custom.savedDMACON    ; Store system DMA channels
+            or.w    d0,custom.savedDMACON            ; SET/CLR set to SET
+            move.w  custom.INTENAR,custom.savedINTENA    ; Store system enabled interrupts
+            or.w    d0,custom.savedINTENA            ; SET/CLR set to SET
+            move.w  custom.ADKCONR,custom.savedADKCON    ; Audio, disk and UART
+            or.w    d0,custom.savedADKCON            ; SET/CLR set to SET
 
             btst.b  #14-8,custom.DMACONR    ; Dummy read
 3$          btst.b  #14-8,custom.DMACONR    ; Blitter still busy?
@@ -59,22 +57,55 @@ IRQ7 = $7C
             move.w  #$3FFF,custom.INTENA    ; Disable all interrupts
 
             move.l  custom.cpuVBR,a0         ; A0 = Pointer to vector base
-            move.l  IRQ1(a0),-(sp)        ; Store IRQ1 vector
-            move.l  IRQ3(a0),-(sp)        ; Store IRQ3 vector
-            move.l  IRQ4(a0),-(sp)        ; Store IRQ4 vector
-            bra.s   _skip
+            move.l  IRQ1(a0),custom.savedIRQ1        ; Store IRQ1 vector
+            move.l  IRQ3(a0),custom.savedIRQ3        ; Store IRQ3 vector
+            move.l  IRQ4(a0),custom.savedIRQ4        ; Store IRQ4 vector
+            bra.s   .skip
 
-_S_GetVBR:    dc.l    $4E7A0801            ; MOVEC VBR,d0  - privileged instruction
+.getvbr:    dc.l    $4E7A0801            ; MOVEC VBR,d0  - privileged instruction
             rte
 
-_skip:
+.skip:      rts
 
         }}
     }
 
-    pointer @shared cpuVBR     ; after calling grab_system: contains CPU VBR register
-    bool @shared isPAL         ; after calling grab_system: is true when system is PAL, or false if NTSC    TODO doesn't work yet
+    asmsub restore_system() {
+        ; restore the original OS and multitasking operation when the game/demo exits.
+        %asm {{
+            btst.b  #14-8,custom.DMACONR    ; Dummy read
+1$          btst.b  #14-8,custom.DMACONR   ; Blitter still busy?
+            bne.s   1$                      ; If yes, wait a bit
+            move.w  #$01FF,custom.DMACON    ; Disable all DMA
+            move.w  #$3FFF,custom.INTENA   ; Disable all interrupts
 
+            move.l  custom.cpuVBR,a0            ; A0 = Pointer to vector base
+            move.l  custom.savedIRQ4,d0      ; Restore IRQ4 vector
+            move.l  d0,IRQ4(a0)
+            move.l  custom.savedIRQ3,d0      ; Restore IRQ3 vector
+            move.l  d0,IRQ3(a0)
+            move.l  custom.savedIRQ1,d0      ; Restore IRQ1 vector
+            move.l  d0,IRQ1(a0)
+
+            move.l  sys.GfxBase,a6      ; A6 = Graphics base
+            move.l  gfx_copinit(a6),custom.COP1LC    ; Restore coplist pointer 1
+            move.l  gfx_LOFlist(a6),custom.COP2LC    ; Restore coplist pointer 2
+            clr.w   custom.COPJMP1       ; Make Copper use restored pointer
+
+            move.w  custom.savedADKCON,custom.ADKCON    ; Restore audio, disk and UART
+            move.w  custom.savedINTENA,custom.INTENA    ; Restore original interrupts
+            move.w  custom.savedDMACON,custom.DMACON    ; Restore original DMA
+
+            move.l  custom.savedView,a1        ; Get original view pointer
+            jsr     GfxLoadView(a6)        ; Restore the original view
+            jsr     GfxWaitTOF(a6)        ; Wait one screen refresh
+            jsr     GfxWaitTOF(a6)        ; Wait a 2nd (in case of interlace)
+
+            move.l  4.w,a6
+            jsr     exec.Permit(a6)        ; Re-enable multitasking
+            rts
+        }}
+    }
 
     asmsub waitvsync() {
         %asm {{
@@ -99,36 +130,18 @@ _skip:
         }}
     }
 
-    inline asmsub return_system() {
-        ; return to the original OS and multitasking operation when the game/demo exits.
-        ; inline because stuff was stored on the stack
-        %asm {{
-            btst.b  #14-8,custom.DMACONR    ; Dummy read
-1$          btst.b  #14-8,custom.DMACONR   ; Blitter still busy?
-            bne.s   1$                      ; If yes, wait a bit
-            move.w  #$01FF,custom.DMACON    ; Disable all DMA
-            move.w  #$3FFF,custom.INTENA   ; Disable all interrupts
 
-            move.l  custom.cpuVBR,a0            ; A0 = Pointer to vector base
-            move.l  (sp)+,IRQ4(a0)      ; Restore IRQ4 vector
-            move.l  (sp)+,IRQ3(a0)      ; Restore IRQ3 vector
-            move.l  (sp)+,IRQ1(a0)      ; Restore IRQ1 vector
+    pointer @shared cpuVBR     ; after calling grab_system: contains CPU VBR register
+    bool @shared isPAL         ; after calling grab_system: is true when system is PAL, false if NTSC
 
-            move.l  sys.GfxBase,a6      ; A6 = Graphics base
-            move.l  gfx_copinit(a6),custom.COP1LC    ; Restore coplist pointer 1
-            move.l  gfx_LOFlist(a6),custom.COP2LC    ; Restore coplist pointer 2
-            clr.w   custom.COPJMP1       ; Make Copper use restored pointer
+    private pointer @shared savedView       ; original graphics view pointer
+    private uword @shared savedDMACON       ; original DMA control with SET/CLR bit
+    private uword @shared savedINTENA       ; original interrupt enable with SET/CLR bit
+    private uword @shared savedADKCON       ; original ADK control with SET/CLR bit
+    private pointer @shared savedIRQ1          ; original IRQ1 vector
+    private pointer @shared savedIRQ3          ; original IRQ3 vector
+    private pointer @shared savedIRQ4          ; original IRQ4 vector
 
-            move.w  (sp)+,custom.ADKCON    ; Restore audio, disk and UART
-            move.w  (sp)+,custom.INTENA    ; Restore original interrupts
-            move.w  (sp)+,custom.DMACON    ; Restore original DMA
-
-            move.l  (sp)+,a1        ; Get original view pointer
-            jsr     GfxLoadView(a6)        ; Restore the original view
-            jsr     GfxWaitTOF(a6)        ; Wait one screen refresh
-            jsr     GfxWaitTOF(a6)        ; Wait a 2nd (in case of interlace)
-        }}
-    }
 
     ; ========== AGA palette utilities ==========
 

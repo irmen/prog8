@@ -25,6 +25,7 @@ main {
         ^^intuition.Window win = intuition.OpenWindow(nw)
         if win == 0
             return
+        defer intuition.CloseWindow(win)
 
         intuition.ActivateWindow(win)
 
@@ -112,7 +113,5 @@ main {
             drawText()
             dos.Delay(1)
         }
-
-        intuition.CloseWindow(win)
     }
 }

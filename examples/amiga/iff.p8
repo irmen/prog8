@@ -42,6 +42,7 @@ main {
             txt.print("requires iffparse.library\n")
             sys.exit(1)
         }
+        defer iffparse.closelib()
 
         str imagefile = "?" * 60
         txt.print("name of iff file to load: ")
@@ -49,25 +50,22 @@ main {
 
         ; open custom screen
         ^^intuition.Screen myScreen = intuition.OpenScreenTagList(0, screentags)
-        if myScreen!=0 {
+        if myScreen==0
+            return
+        defer void intuition.CloseScreen(myScreen)
 
-            ; now open a window to be able to set mouse cursor, handle mouse clicks, keyboard presses, etc.
-            windowtags[1] = myScreen
-            ^^intuition.Window myWindow = intuition.OpenWindowTagList(0, windowtags)
+        ; now open a window to be able to set mouse cursor, handle mouse clicks, keyboard presses, etc.
+        windowtags[1] = myScreen
+        ^^intuition.Window myWindow = intuition.OpenWindowTagList(0, windowtags)
+        if myWindow==0
+            return
+        defer intuition.CloseWindow(myWindow)
 
-            if myWindow!=0 {
-                if loadIFFimage(imagefile, myScreen) {
-                    sys.wait(200)
-                } else {
-                    txt.print("error: could not load iff image\n")
-                }
-
-                intuition.CloseWindow(myWindow)
-            }
-            void intuition.CloseScreen(myScreen)
+        if loadIFFimage(imagefile, myScreen) {
+            sys.wait(200)
+        } else {
+            txt.print("error: could not load iff image\n")
         }
-
-        iffparse.closelib()
     }
 
 
@@ -89,52 +87,57 @@ main {
             word  pageWidth, pageHeight ; Source page size in pixels
         }
 
-        bool ok = false
-
         ^^iffparse.IFFHandle iff = iffparse.AllocIFF()
-        if iff!=0 {
-            iff.Stream = dos.Open(filename, dos.MODE_OLDFILE)
-            if iff.Stream!=0 {
-                iffparse.InitIFFasDOS(iff)
-                if iffparse.OpenIFF(iff, iffparse.IFFF_READ) == 0 {
-                    void iffparse.PropChunk(iff, ID_ILBM, ID_BMHD)     ; extract image properties
-                    void iffparse.PropChunk(iff, ID_ILBM, ID_CMAP)     ; extract palette
-                    void iffparse.StopChunk(iff, ID_ILBM, ID_BODY)     ; stop at body data
-                    if iffparse.ParseIFF(iff, iffparse.IFFPARSE_SCAN) ==0 {
-                        ^^iffparse.StoredProperty bmhd = iffparse.FindProp(iff, ID_ILBM, ID_BMHD)
-                        ^^iffparse.StoredProperty cmap = iffparse.FindProp(iff, ID_ILBM, ID_CMAP)
+        if iff==0
+            return false
+        defer iffparse.FreeIFF(iff)
 
-                        if bmhd!=0 and bmhd.Data!=0 {
-                            ^^BMHDheader header = bmhd.Data
-                            if header.w>320 or header.h>256 or header.nPlanes==0 or header.nPlanes>5 {
-                                ; unsupported dimensions for our 320x256x5 screen
-                            } else if header.compression!=0 and header.compression!=1 {
-                                ; unsupported compression (0=None, 1=ByteRun1)
-                            } else {
-                                ; get size of BODY chunk and allocate ram to read it into
-                                ^^iffparse.ContextNode cn = iffparse.CurrentChunk(iff)
-                                pointer bodyBuffer = exec.AllocVec(cn.Size, exec.MEMF_PUBLIC)
-                                if bodyBuffer!=0 {
-                                    if iffparse.ReadChunkBytes(iff, bodyBuffer, cn.Size) == cn.Size {
-                                        if cmap!=0 and cmap.Data!=0 {
-                                            setPalette(cmap)
-                                        }
-                                        decode(header, bodyBuffer)
-                                        ok = true
-                                    }
-                                    exec.FreeVec(bodyBuffer)
-                                }
-                            }
-                        }
-                    }
-                    iffparse.CloseIFF(iff)
-                }
-                void dos.Close(iff.Stream)
-            }
-            iffparse.FreeIFF(iff)
+        iff.Stream = dos.Open(filename, dos.MODE_OLDFILE)
+        if iff.Stream==0
+            return false
+        defer void dos.Close(iff.Stream)
+
+        iffparse.InitIFFasDOS(iff)
+        if iffparse.OpenIFF(iff, iffparse.IFFF_READ) != 0
+            return false
+        defer iffparse.CloseIFF(iff)
+
+        void iffparse.PropChunk(iff, ID_ILBM, ID_BMHD)     ; extract image properties
+        void iffparse.PropChunk(iff, ID_ILBM, ID_CMAP)     ; extract palette
+        void iffparse.StopChunk(iff, ID_ILBM, ID_BODY)     ; stop at body data
+        if iffparse.ParseIFF(iff, iffparse.IFFPARSE_SCAN) !=0
+            return false
+
+        ^^iffparse.StoredProperty bmhd = iffparse.FindProp(iff, ID_ILBM, ID_BMHD)
+        ^^iffparse.StoredProperty cmap = iffparse.FindProp(iff, ID_ILBM, ID_CMAP)
+        if bmhd==0 or bmhd.Data==0
+            return false
+
+        ^^BMHDheader header = bmhd.Data
+        if header.w>320 or header.h>256 or header.nPlanes==0 or header.nPlanes>5 {
+            ; unsupported dimensions for our 320x256x5 screen
+            return false
+        }
+        if header.compression!=0 and header.compression!=1 {
+            ; unsupported compression (0=None, 1=ByteRun1)
+            return false
         }
 
-        return ok
+        ; get size of BODY chunk and allocate ram to read it into
+        ^^iffparse.ContextNode cn = iffparse.CurrentChunk(iff)
+        pointer bodyBuffer = exec.AllocVec(cn.Size, exec.MEMF_PUBLIC)
+        if bodyBuffer==0
+            return false
+        defer exec.FreeVec(bodyBuffer)
+
+        if iffparse.ReadChunkBytes(iff, bodyBuffer, cn.Size) != cn.Size
+            return false
+
+        if cmap!=0 and cmap.Data!=0 {
+            setPalette(cmap)
+        }
+        decode(header, bodyBuffer)
+        return true
 
         sub decode(^^BMHDheader hdr, ^^ubyte body) {
             long bytesPerRow = ((hdr.w + 15) / 16) * 2

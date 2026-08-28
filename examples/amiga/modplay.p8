@@ -12,7 +12,10 @@ main {
             void txt.input_chars(modname)
 
             pointer fh = dos.Open(modname, dos.MODE_OLDFILE)
-            if fh!=0 {
+            if fh==0 {
+                txt.print("load error\n")
+            } else {
+                defer void dos.Close(fh)
 
                 ; get filesize
                 void dos.Seek(fh, 0, dos.OFFSET_END)
@@ -20,10 +23,14 @@ main {
                 void dos.Seek(fh, 0, dos.OFFSET_BEGINNING)
 
                 pointer mod = exec.AllocMem(modSize, exec.MEMF_CHIP | exec.MEMF_PUBLIC)
-                if mod!=0 {
+                if mod==0 {
+                    txt.print("load error\n")
+                } else {
+                    defer exec.FreeMem(mod, modSize)
                     txt.print("loading...\n")
-                    if dos.Read(fh, mod, modSize)==modSize {
-                        void dos.Close(fh)
+                    if dos.Read(fh, mod, modSize)!=modSize {
+                        txt.print("load error\n")
+                    } else {
                         ptplayer.init(mod)
 
                         txt.print("\nsong name: ")
@@ -47,17 +54,8 @@ main {
                         txt.nl()
 
                         ptplayer.end()
-                    } else {
-                        txt.print("load error\n")
-                        void dos.Close(fh)
                     }
-                    exec.FreeMem(mod, modSize)
-                } else {
-                    void dos.Close(fh)
                 }
-
-            } else {
-                txt.print("load error\n")
             }
 
             ptplayer.remove()

@@ -59,7 +59,7 @@ main {
                 blue_offset = (blue_offset + 1) & 31     ; blue advances every 4th frame
         }
 
-        custom.return_system()
+        custom.restore_system()
         txt.print("Thank you for watching this amazing Prog8 raster bars demo.\n")
     }
 }

@@ -64,9 +64,9 @@ main {
     }
 
     sub drawDiscs(^^graphics.BitMap bitmap) {
-        for index in 0 to 99 {
-            uword x = 80 + (index % 10) * 159 / 9
-            uword y = 80 + (index / 10) * 95 / 9
+        for index in 0 to 20 {
+            uword x = 80 + (index % 10) * 159 / 2
+            uword y = 80 + (index / 10) * 95 / 2
             drawDisc(bitmap, x, y, DISC_RADIUS, (index & 31) as ubyte)
         }
     }

@@ -131,7 +131,7 @@ main {
             angle_z += ROT_Z_SPEED
         }
 
-        custom.return_system()
+        custom.restore_system()
         exec.FreeMem(copper_list, 512)
         exec.FreeMem(bitplane1, 10240)
         exec.FreeMem(bitplane2, 10240)
