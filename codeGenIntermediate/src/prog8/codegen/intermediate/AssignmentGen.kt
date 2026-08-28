@@ -12,35 +12,9 @@ import prog8.intermediate.*
 internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen: ExpressionGen) {
 
     private fun normalizeArrayIndex(result: MutableList<IRCodeChunkBase>, indexTr: ExpressionCodeResult): Pair<Int, DataType> {
-        val indexRegType = codeGen.options.compTarget.indexRegType
-        if(indexTr.dt == indexRegType)
-            return indexTr.resultReg to if(indexRegType==IRDataType.WORD) DataType.UWORD else DataType.UBYTE
-        // handle POINTER as its underlying size for the purpose of index canonicalization
-        val effectiveDt = if(indexTr.dt==IRDataType.POINTER) codeGen.options.compTarget.pointerIRType else indexTr.dt
-        if(effectiveDt == indexRegType)
-            return indexTr.resultReg to if(indexRegType==IRDataType.WORD) DataType.UWORD else DataType.UBYTE
-        val newReg = codeGen.registers.next(indexRegType)
-        when {
-            indexRegType==IRDataType.WORD && indexTr.dt==IRDataType.BYTE ->
-                addInstr(result, IRInstruction(Opcode.EXT, IRDataType.BYTE, reg1=newReg, reg2=indexTr.resultReg), null)
-            indexRegType==IRDataType.WORD && indexTr.dt==IRDataType.LONG ->
-                addInstr(result, IRInstruction(Opcode.LSIGW, IRDataType.LONG, reg1=newReg, reg2=indexTr.resultReg), null)
-            indexRegType==IRDataType.WORD && indexTr.dt==IRDataType.POINTER ->
-                addInstr(result, IRInstruction(Opcode.LSIGW, IRDataType.LONG, reg1=newReg, reg2=indexTr.resultReg), null)
-            indexRegType==IRDataType.BYTE && indexTr.dt==IRDataType.WORD ->
-                addInstr(result, IRInstruction(Opcode.LSIGB, IRDataType.WORD, reg1=newReg, reg2=indexTr.resultReg), null)
-            indexRegType==IRDataType.BYTE && indexTr.dt==IRDataType.LONG ->
-                addInstr(result, IRInstruction(Opcode.LSIGB, IRDataType.LONG, reg1=newReg, reg2=indexTr.resultReg), null)
-            indexRegType==IRDataType.BYTE && indexTr.dt==IRDataType.POINTER -> {
-                val ptrType = codeGen.options.compTarget.pointerIRType
-                if(ptrType==IRDataType.WORD)
-                    addInstr(result, IRInstruction(Opcode.LSIGB, IRDataType.WORD, reg1=newReg, reg2=indexTr.resultReg), null)
-                else
-                    addInstr(result, IRInstruction(Opcode.LSIGB, IRDataType.LONG, reg1=newReg, reg2=indexTr.resultReg), null)
-            }
-            else -> throw IllegalArgumentException("unexpected index conversion ${indexTr.dt} -> $indexRegType")
-        }
-        return newReg to if(indexRegType==IRDataType.WORD) DataType.UWORD else DataType.UBYTE
+        val indexReg = codeGen.canonicalizeIndexReg(result, indexTr)
+        val indexDt = if(codeGen.options.compTarget.indexRegType==IRDataType.WORD) DataType.UWORD else DataType.UBYTE
+        return indexReg to indexDt
     }
 
     internal fun translate(assignment: PtAssignment): IRCodeChunks {
@@ -724,15 +698,14 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                         val constAddress = memory!!.address as? PtNumber
                         if(constAddress!=null) {
                             val storeIns = when {
-                                zero -> IRInstruction(Opcode.STOREZM, targetDt, address=constAddress.number.toUInt().toAddress())
+                                false -> IRInstruction(Opcode.STOREZM, targetDt, address=constAddress.number.toUInt().toAddress())
                                 constInt != null -> {
                                     val v = when(targetDt) {
                                         IRDataType.BYTE -> constInt and 0xff
                                         IRDataType.WORD, IRDataType.POINTER -> constInt and 0xffff
                                         IRDataType.LONG -> constInt
-                                        else -> null
                                     }
-                                    if(v != null) IRInstruction(Opcode.STOREIM, targetDt, immediate = v, address=constAddress.number.toUInt().toAddress()) else null
+                                    IRInstruction(Opcode.STOREIM, targetDt, immediate = v, address=constAddress.number.toUInt().toAddress())
                                 }
                                 else -> null
                             } ?: IRInstruction(Opcode.STOREM, targetDt, reg1=valueRegister, address=constAddress.number.toUInt().toAddress())
@@ -2571,7 +2544,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
         return result
     }
 
-    private fun operatorDivideInplaceSplitArray(array: PtArrayIndexer, operand: PtExpression, signed: Boolean): IRCodeChunks? {
+    private fun operatorDivideInplaceSplitArray(array: PtArrayIndexer, operand: PtExpression, signed: Boolean): IRCodeChunks {
         val constIndex = array.index.asConstInteger()
         val constValue = operand.asConstInteger()
         val arrayName = array.variable!!.name
@@ -2738,7 +2711,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
         return result
     }
 
-    private fun operatorModuloInplaceSplitArray(array: PtArrayIndexer, operand: PtExpression, signed: Boolean): IRCodeChunks? {
+    private fun operatorModuloInplaceSplitArray(array: PtArrayIndexer, operand: PtExpression, signed: Boolean): IRCodeChunks {
         val constIndex = array.index.asConstInteger()
         val constValue = operand.asConstInteger()
         val arrayName = array.variable!!.name

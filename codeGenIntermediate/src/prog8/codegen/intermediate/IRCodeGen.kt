@@ -2239,13 +2239,14 @@ class IRCodeGen(
             val tr = expressionEval.translateExpression(index)
             addToResult(result, tr, tr.resultReg, -1)
             var indexReg = tr.resultReg
-            var indexDt = tr.dt
+            val indexDt = tr.dt
             if(indexDt != IRDataType.WORD) {
                 val newReg = registers.next(IRDataType.WORD)
                 when(indexDt) {
                     IRDataType.BYTE -> addInstr(result, IRInstruction(Opcode.EXT, IRDataType.BYTE, reg1=newReg, reg2=tr.resultReg), null)
                     IRDataType.WORD -> {} // already WORD
                     IRDataType.LONG -> addInstr(result, IRInstruction(Opcode.LSIGW, IRDataType.LONG, reg1=newReg, reg2=tr.resultReg), null)
+                    IRDataType.POINTER -> TODO("handle pointer-typed array index for word-indexed access at ${index.position}")
                     else -> throw IllegalArgumentException("unexpected index dt $indexDt for wordIndex")
                 }
                 indexReg = newReg
@@ -2261,7 +2262,7 @@ class IRCodeGen(
         // LOADX/STOREX use word-sized indices on targets with 32-bit pointers.
         val indexRegType = options.compTarget.indexRegType
         var indexReg = byteIndexTr.resultReg
-        var indexDt = byteIndexTr.dt
+        val indexDt = byteIndexTr.dt
         if(indexDt != indexRegType) {
             val newReg = registers.next(indexRegType)
             when {

@@ -1295,7 +1295,9 @@ main {
                 word @shared dummy
                 sub start() {
                     word[] arr = [1000,2000,3000,4000,5000]
-                    ubyte idx = 2
+                    ubyte idx
+                    cx16.r0L = 2
+                    idx = cx16.r0L
                     word v = arr[idx]
                     arr[idx] = 9999
                     arr[idx] = 0
@@ -1307,10 +1309,16 @@ main {
         val result = compileText(VMTarget(), optimize=false, src, outputDir, writeAssembly = true)
         result shouldNotBe null
         val ir = result!!.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir").readText()
-        // the index should have been canonicalized to WORD (EXT) on this 32-bit target
-        ir shouldContain "ext"
+        val mainStart = ir.substringAfter("<SUB NAME=\"main.start\"").substringBefore("</SUB>")
+        mainStart shouldContain "ext.b"
+        mainStart shouldContain "loadx.w"
+        mainStart shouldContain "storex.w"
+        mainStart shouldContain "storezx.w"
+        val irProgram = IRFileReader().read(ir)
+        irProgram.st.stripAllPrefixes()
+        val allocations = VmVariableAllocator(irProgram.st, irProgram.encoding, irProgram.options.compTarget).allocations
         VmRunner().runAndTestProgram(ir) { vm ->
-            // just verify it ran without crashing
+            vm.memory.getUW(allocations["main.dummy"]!!) shouldBe 0u
         }
     }
 
@@ -1322,20 +1330,29 @@ main {
                 ubyte @shared dummy
                 sub start() {
                     ubyte[] arr = [10,20,30,40,50]
-                    ubyte idx = 1
+                    ubyte idx
+                    cx16.r0L = 1
+                    idx = cx16.r0L
                     ubyte v = arr[idx]
                     arr[idx] = 99
-                    arr[idx] = 0
                     dummy = v
                 }
             }
         """.trimIndent()
         val result = compileText(VMTarget(), optimize=false, src, outputDir, writeAssembly = true)
         result shouldNotBe null
+        val ir = result!!.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir").readText()
+        val irProgram = IRFileReader().read(ir)
+        irProgram.st.stripAllPrefixes()
+        val allocations = VmVariableAllocator(irProgram.st, irProgram.encoding, irProgram.options.compTarget).allocations
+        VmRunner().runAndTestProgram(ir) { vm ->
+            vm.memory.getUB(allocations["main.dummy"]!!) shouldBe 20u
+        }
     }
 
-    test("word index on 8-bit target canonicalizes to byte for indexed access") {
-        // On 8-bit targets indexRegType is BYTE. A WORD index must be narrowed via LSIGB.
+    test("word index on 8-bit target compiles and assembles") {
+        // Variable word indices are rejected by the semantic checker for regular byte arrays
+        // on 6502 targets, so this is a smoke test that a constant word index compiles cleanly.
         val src = """
             %zeropage basicsafe
             %option no_sysinit
