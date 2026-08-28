@@ -4,6 +4,18 @@ import prog8.code.core.IErrorReporter
 import prog8.intermediate.*
 
 class IRPeepholeOptimizer(private val irprog: IRProgram, private val retainSSA: Boolean) {
+    // NOTE: Several peephole ideas have been deliberately NOT enabled or were reverted:
+    // - foldStoremLoadmToLoadr: goal was to avoid redundant memory traffic for `storem rX,addr ; loadm rY,addr`
+    //   by replacing the load with `loadr rY,rX` (keep value in register). Removed because on m68k/amiga
+    //   the regfile is memory, so keeping the store's source register live for the loadr forces an extra
+    //   spill (move.b d0,regfile ; move.b regfile,mem ; move.b regfile,regfile2) vs the original 2 moves
+    //   via memory (move.b d0,mem ; move.b mem,regfile). This increased textelite by ~344 bytes and other
+    //   amiga examples by 20-230 bytes. Re-enable only with a cost model that proves it shrinks the m68k
+    //   output (e.g. when source is already in regfile and not a call result in d0).
+    // - removeLoadrForwarding (goal: coalesce `load r1,#imm ; loadr r2,r1` chains and forward constants) was
+    //   previously disabled (half-assed) because it ignored cross-chunk liveness, call side-effects, and
+    //   indexRegType for LOADX/STOREX. It is now enabled with a conservative single-chunk
+    //   scope, side-effect barrier (OpcodesThatBranch + OpcodesWithSideEffects), and live-out check.
     fun optimize(optimizationsEnabled: Boolean, errors: IErrorReporter) {
         if(!optimizationsEnabled)
             return optimizeOnlyJoinChunks(retainSSA)
@@ -49,9 +61,11 @@ class IRPeepholeOptimizer(private val irprog: IRProgram, private val retainSSA: 
                         val changed = removeNops(chunk1, indexedInstructions)
                                 || replaceConcatZeroMsbWithExt(chunk1, indexedInstructions)
                                 || removeDoubleLoadsAndStores(chunk1, indexedInstructions)
+                                || removeDoubleLoadsAndStoresIndexed(chunk1, indexedInstructions)
                                 || foldLoadStoremToStoreim(chunk1, indexedInstructions)
+                                // foldStoremLoadmToLoadr (storem+loadm -> loadr) intentionally not called: see class comment
                                 || collapseConversions(chunk1, indexedInstructions)
-                                || deduplicateAddressComputations(chunk1, indexedInstructions)
+                                || deduplicateAddressComputations(chunk1)
                                 || removeUselessArithmetic(chunk1, indexedInstructions)
                                 || removeNeedlessCompares(chunk1, indexedInstructions)
                                 || removeWeirdBranches(chunk1, chunk2, indexedInstructions)
@@ -61,7 +75,6 @@ class IRPeepholeOptimizer(private val irprog: IRProgram, private val retainSSA: 
                                 || removeNeedlessLoads(chunk1, indexedInstructions)
                                 || collapseAdjacentLoadrChains(chunk1, indexedInstructions)
                                 || removeDeadStores(chunk1, indexedInstructions)
-                                // || removeLoadrForwarding(chunk1, indexedInstructions)  // DISABLED - needs debugging
                                 || removeSelfIdentityOps(chunk1, indexedInstructions)
                                 || simplifyShiftByZero(chunk1, indexedInstructions)
                                 || cancelAdjacentOps(chunk1, indexedInstructions)
@@ -973,6 +986,163 @@ jump p8_label_gen_2
         return changed
     }
 
+    private fun removeDoubleLoadsAndStoresIndexed(chunk: IRCodeChunk, indexedInstructions: List<IndexedValue<IRInstruction>>): Boolean {
+        // Coalesce indexed LOADX/STOREX/STOREZX pairs to the same array element with same index register
+        // within a single chunk when there is no intervening use of the value.
+        // Analogous to removeDoubleLoadsAndStores for non-indexed LOADM/STOREM but allows a gap as long
+        // as the value register is not read/written and the index register is not redefined, and no
+        // side-effecting instruction occurs between. Keeps the optimization single-chunk.
+        if(chunk.instructions.size < 2) return false
+
+        fun indexRegOf(ins: IRInstruction): Int? = when(ins.opcode) {
+            Opcode.LOADX -> if(ins.type==IRDataType.FLOAT) ins.reg1 else ins.reg2
+            Opcode.STOREX -> if(ins.type==IRDataType.FLOAT) ins.reg1 else ins.reg2
+            Opcode.STOREZX -> ins.reg1
+            else -> null
+        }
+        fun valueIntRegOf(ins: IRInstruction): Int? = when(ins.opcode) {
+            Opcode.LOADX, Opcode.STOREX -> if(ins.type==IRDataType.FLOAT) null else ins.reg1
+            else -> null
+        }
+        fun valueFpRegOf(ins: IRInstruction): RegisterNum? = when(ins.opcode) {
+            Opcode.LOADX, Opcode.STOREX -> if(ins.type==IRDataType.FLOAT) ins.fpReg1 else null
+            else -> null
+        }
+        fun labelKey(ins: IRInstruction): String {
+            return "${ins.type}:${ins.labelSymbol}:${ins.labelSymbolOffset}:${ins.address}"
+        }
+        fun readsReg(ins: IRInstruction, reg: Int): Boolean {
+            val fmt = instructionFormats[ins.opcode]?.get(ins.type) ?: instructionFormats[ins.opcode]?.get(null)
+            if(fmt!=null) {
+                if((fmt.reg1 == OperandDirection.READ || fmt.reg1 == OperandDirection.READWRITE) && ins.reg1 == reg) return true
+                if((fmt.reg2 == OperandDirection.READ || fmt.reg2 == OperandDirection.READWRITE) && ins.reg2 == reg) return true
+                if((fmt.reg3 == OperandDirection.READ || fmt.reg3 == OperandDirection.READWRITE) && ins.reg3 == reg) return true
+            }
+            ins.fcallArgs?.arguments?.forEach { if(it.reg.registerNum.value==reg && it.reg.dt!=IRDataType.FLOAT) return true }
+            return false
+        }
+        fun writesReg(ins: IRInstruction, reg: Int): Boolean {
+            val fmt = instructionFormats[ins.opcode]?.get(ins.type) ?: instructionFormats[ins.opcode]?.get(null)
+            if(fmt!=null) {
+                if((fmt.reg1 == OperandDirection.WRITE || fmt.reg1 == OperandDirection.READWRITE) && ins.reg1 == reg) return true
+                if((fmt.reg2 == OperandDirection.WRITE || fmt.reg2 == OperandDirection.READWRITE) && ins.reg2 == reg) return true
+                if((fmt.reg3 == OperandDirection.WRITE || fmt.reg3 == OperandDirection.READWRITE) && ins.reg3 == reg) return true
+            }
+            ins.fcallArgs?.returns?.forEach { if(it.registerNum.value==reg && it.dt!=IRDataType.FLOAT) return true }
+            return false
+        }
+        fun readsFpReg(ins: IRInstruction, fp: RegisterNum): Boolean {
+            val fmt = instructionFormats[ins.opcode]?.get(ins.type) ?: instructionFormats[ins.opcode]?.get(null)
+            if(fmt!=null) {
+                if((fmt.fpReg1 == OperandDirection.READ || fmt.fpReg1 == OperandDirection.READWRITE) && ins.fpReg1 == fp) return true
+                if((fmt.fpReg2 == OperandDirection.READ || fmt.fpReg2 == OperandDirection.READWRITE) && ins.fpReg2 == fp) return true
+            }
+            ins.fcallArgs?.arguments?.forEach { if(it.reg.registerNum==fp && it.reg.dt==IRDataType.FLOAT) return true }
+            return false
+        }
+        fun writesFpReg(ins: IRInstruction, fp: RegisterNum): Boolean {
+            val fmt = instructionFormats[ins.opcode]?.get(ins.type) ?: instructionFormats[ins.opcode]?.get(null)
+            if(fmt!=null) {
+                if((fmt.fpReg1 == OperandDirection.WRITE || fmt.fpReg1 == OperandDirection.READWRITE) && ins.fpReg1 == fp) return true
+                if((fmt.fpReg2 == OperandDirection.WRITE || fmt.fpReg2 == OperandDirection.READWRITE) && ins.fpReg2 == fp) return true
+            }
+            ins.fcallArgs?.returns?.forEach { if(it.registerNum==fp && it.dt==IRDataType.FLOAT) return true }
+            return false
+        }
+
+        val toRemove = mutableSetOf<Int>()
+
+        // Phase 1: LOADX -> STOREX redundant store (same value, same index, same address, no intervening value use)
+        for((currPos, currEntry) in indexedInstructions.withIndex()) {
+            val currIdx = currEntry.index
+            val currIns = currEntry.value
+            if(currIdx in toRemove) continue
+            if(currIns.opcode != Opcode.STOREX) continue
+            val currIndexReg = indexRegOf(currIns) ?: continue
+            val currValueReg = valueIntRegOf(currIns)
+            val currFpReg = valueFpRegOf(currIns)
+            val currKey = labelKey(currIns)
+            // search backwards for matching LOADX
+            for(prevPos in currPos - 1 downTo 0) {
+                val prevEntry = indexedInstructions[prevPos]
+                val prevIdx = prevEntry.index
+                val prevIns = prevEntry.value
+                if(prevIdx in toRemove) continue
+                if(prevIns.opcode != Opcode.LOADX) continue
+                if(prevIns.type != currIns.type) continue
+                if(labelKey(prevIns) != currKey) continue
+                if(indexRegOf(prevIns) != currIndexReg) continue
+                if(currValueReg != null) {
+                    if(valueIntRegOf(prevIns) != currValueReg) continue
+                } else if(currFpReg != null) {
+                    if(valueFpRegOf(prevIns) != currFpReg) continue
+                } else continue
+
+                var blocked = false
+                for(midPos in prevPos + 1 until currPos) {
+                    val midIns = indexedInstructions[midPos].value
+                    if(midIns.opcode in OpcodesWithSideEffects) { blocked = true; break }
+                    if(currValueReg != null) {
+                        if(writesReg(midIns, currValueReg) || readsReg(midIns, currValueReg)) { blocked = true; break }
+                        if(writesReg(midIns, currIndexReg)) { blocked = true; break }
+                    } else if(currFpReg != null) {
+                        if(writesFpReg(midIns, currFpReg) || readsFpReg(midIns, currFpReg)) { blocked = true; break }
+                        if(writesReg(midIns, currIndexReg)) { blocked = true; break }
+                    }
+                    // intervening indexed access to same location breaks direct coalescing (let closer pair handle it)
+                    if(labelKey(midIns) == currKey && midIns.opcode in setOf(Opcode.LOADX, Opcode.STOREX, Opcode.STOREZX)) {
+                        blocked = true; break
+                    }
+                }
+                if(!blocked) {
+                    toRemove.add(currIdx)
+                    break
+                }
+            }
+        }
+
+        // Phase 2: dead store for indexed ops - earlier STOREX/STOREZX overwritten by later STOREX/STOREZX with same location/index
+        for((currPos, currEntry) in indexedInstructions.withIndex()) {
+            val currIdx = currEntry.index
+            val currIns = currEntry.value
+            if(currIdx in toRemove) continue
+            if(currIns.opcode !in setOf(Opcode.STOREX, Opcode.STOREZX)) continue
+            val currIndexReg = indexRegOf(currIns) ?: continue
+            val currKey = labelKey(currIns)
+            for(prevPos in currPos - 1 downTo 0) {
+                val prevEntry = indexedInstructions[prevPos]
+                val prevIdx = prevEntry.index
+                val prevIns = prevEntry.value
+                if(prevIdx in toRemove) continue
+                if(prevIns.opcode !in setOf(Opcode.STOREX, Opcode.STOREZX)) continue
+                if(prevIns.type != currIns.type) {
+                    // require exact same type for indexed store coalescing
+                    continue
+                }
+                if(labelKey(prevIns) != currKey) continue
+                if(indexRegOf(prevIns) != currIndexReg) continue
+                var blocked = false
+                for(midPos in prevPos + 1 until currPos) {
+                    val midIns = indexedInstructions[midPos].value
+                    if(midIns.opcode in OpcodesWithSideEffects) { blocked = true; break }
+                    if(writesReg(midIns, currIndexReg)) { blocked = true; break }
+                    // any LOADX to same location is a read of memory - prevents dead store elimination
+                    if(midIns.opcode == Opcode.LOADX && labelKey(midIns) == currKey && indexRegOf(midIns) == currIndexReg) { blocked = true; break }
+                }
+                if(!blocked) {
+                    toRemove.add(prevIdx)
+                    break
+                }
+            }
+        }
+
+        if(toRemove.isEmpty()) return false
+        toRemove.sortedDescending().forEach { idx ->
+            if(idx < chunk.instructions.size) chunk.instructions.removeAt(idx)
+        }
+        return true
+    }
+
     private fun simplifyConstantReturns(chunk: IRCodeChunk, indexedInstructions: List<IndexedValue<IRInstruction>>): Boolean {
         //  use a RETURNI when a RETURNR is just returning a constant that was loaded into a register just before
         var changed = false
@@ -1067,7 +1237,7 @@ jump p8_label_gen_2
         return changed
     }
 
-    private fun deduplicateAddressComputations(chunk: IRCodeChunk, indexedInstructions: List<IndexedValue<IRInstruction>>): Boolean {
+    private fun deduplicateAddressComputations(chunk: IRCodeChunk): Boolean {
         // IR3: collapse repeated buf+i address computations inside one chunk.
         // Looks for the 4-instruction pattern that computes buf+i into a pointer:
         //   loadm.p  ptrReg, buf
@@ -1259,19 +1429,6 @@ jump p8_label_gen_2
         }
         return changed
     }
-
-    //private fun removeLoadrForwarding(chunk: IRCodeChunk, indexedInstructions: List<IndexedValue<IRInstruction>>): Boolean {
-        // Forward LOADR instructions to their original source.
-        // Example:
-        //   LOAD r1, #5
-        //   LOADR r2, r1     -> LOAD r2, #5
-        //   LOADR r3, r2     -> LOAD r3, #5
-        
-        // todo: This needs more careful implementation considering:
-        //     - Cross-chunk register usage
-        //     - Function call side effects
-        //     - Proper invalidation of register tracking
-    //}
 
     private fun optimizeLoopCounters(sub: IRSubroutine): Boolean {
         // M4: keep loop counter in register instead of round-tripping through memory.
