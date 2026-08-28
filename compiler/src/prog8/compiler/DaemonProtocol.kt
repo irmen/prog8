@@ -234,10 +234,12 @@ internal object DaemonProtocol {
 
     private fun parseStringValue(s: String, start: Int): Pair<String, Int> {
         check(s[start] == '"')
-        pos@ for (pos in (start + 1) until s.length) {
+        var pos = start + 1
+        while (pos < s.length) {
             when (s[pos]) {
-                '\\' -> continue@pos  // skip next char
+                '\\' -> pos += 2
                 '"' -> return unescapeJson(s.substring(start + 1, pos)) to (pos + 1)
+                else -> pos++
             }
         }
         error("unterminated string in JSON")

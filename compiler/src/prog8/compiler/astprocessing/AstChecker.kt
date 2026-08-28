@@ -2502,14 +2502,21 @@ internal class AstChecker(private val program: Program,
         if(uniqueFields.isEmpty())
             errors.err("struct must contain at least one field", struct.position)
 
+        fun validFieldType(field: StructField): Boolean {
+            val dt=field.type
+            if(dt.isArray && dt.subType!=null) {
+                errors.err("arrays of typed pointers are currently not supported, use untyped pointer for now at field '${field.name}'", struct.position)
+                return false
+            }
+            return dt.isBasic
+                || dt.base.isNumericOrBool
+                || dt.isPointer
+                || dt.isArray
+        }
+        
         struct.fields.forEach { field ->
-            val dt = field.type
-            val allowed = dt.isBasic
-                    || dt.base.isNumericOrBool
-                    || dt.isPointer
-                    || (dt.isArray && dt.sub!!.isNumericOrBool)
-            if(!allowed)
-                errors.err("only booleans, numeric and pointer fields allowed in a struct: '${field.name}'", struct.position)
+            if(!validFieldType(field))
+                errors.err("invalid struct field type at '${field.name}'", struct.position)
         }
     }
 

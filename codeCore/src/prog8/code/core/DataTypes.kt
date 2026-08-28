@@ -246,13 +246,27 @@ class DataType private constructor(
     // ============================================================================
 
     fun elementToArray(target: ICompilationTarget, splitwords: Boolean = true): DataType {
-        if(!target.cpu.is6502)
-            return arrayFor(base, target)
+        fun pointerArray(): DataType = 
+            if (subType != null) 
+                arrayOfPointersTo(subType)
+            else if (subTypeFromAntlr != null) 
+                arrayOfPointersFromAntlrTo(sub, subTypeFromAntlr)
+            else 
+                arrayOfPointersTo(sub!!)
+
+        if(!target.cpu.is6502) {
+            return if (base.isPointer) 
+                pointerArray()
+            else 
+                arrayFor(base, target)
+        }
         
-        if (splitwords && (base == BaseDataType.UWORD || base == BaseDataType.WORD || base == BaseDataType.STR))
-            return splitWordArrayFor(base)
+        return if (splitwords && (base == BaseDataType.UWORD || base == BaseDataType.WORD || base == BaseDataType.STR))
+            splitWordArrayFor(base)
+        else if(base.isPointer) 
+            pointerArray()
         else 
-            return arrayFor(base, target)
+            arrayFor(base, target)
     }
 
     fun elementType(): DataType =
