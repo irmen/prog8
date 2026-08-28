@@ -44,7 +44,6 @@ Romable (%option romable)
 IR/VM
 ^^^^^
 - encode indexed scaling into IR (so that m68k codegen can use scale factor addressing) see ideas/scaled-indexing-IR.md
-- implement more TODOs in AssignmentGen?
 - add even more optimizations in IRPeepholeOptimizer?
 - **Multi-Level IR Design**: Consider introducing a High-Level IR (HLIR) layer before the current low-level IR to preserve semantics like loop bounds, array indexing, and structure field access.
   The current IR is effectively "assembly with infinite registers."
