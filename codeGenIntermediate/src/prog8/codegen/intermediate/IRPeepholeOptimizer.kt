@@ -1005,7 +1005,7 @@ jump p8_label_gen_2
         //   lsigb.? rX,rA + ext.b  rY,rX -> loadr.? rY,rA ; and.? rY,#$ff
         // Only applied when the intermediate register is not read anywhere else in this chunk.
         if(chunk.instructions.size<2) return false
-        val readCounts = chunk.usedRegisters().readRegs.withDefault { 0 }
+        val readCounts = chunk.usedRegisters(irprog.options.compTarget.indexRegType).readRegs.withDefault { 0 }
 
         class Mod(val idx: Int, val replacement: IRInstruction?)   // null replacement = delete
         val mods = mutableListOf<Mod>()

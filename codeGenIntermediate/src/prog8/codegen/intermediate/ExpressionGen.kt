@@ -621,10 +621,11 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             } else {
                 val tr = translateExpression(arrayIx.index)
                 addToResult(result, tr, tr.resultReg, -1)
+                val indexReg = codeGen.canonicalizeIndexReg(result, tr)
                 result += IRCodeChunk(null, null).also {
                     val tmpRegMsb = codeGen.registers.next(IRDataType.BYTE)
-                    it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=tmpRegMsb, reg2 = tr.resultReg, labelSymbol= "${arrayVarSymbol}_msb")
-                    it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=resultRegister, reg2 = tr.resultReg, labelSymbol= "${arrayVarSymbol}_lsb")
+                    it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=tmpRegMsb, reg2 = indexReg, labelSymbol= "${arrayVarSymbol}_msb")
+                    it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=resultRegister, reg2 = indexReg, labelSymbol= "${arrayVarSymbol}_lsb")
                     it += IRInstruction(Opcode.CONCAT, IRDataType.BYTE, reg1=finalResultReg, reg2=tmpRegMsb, reg3=resultRegister)
                 }
             }

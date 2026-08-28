@@ -1,5 +1,6 @@
 package prog8.codegen.intermediate
 
+import prog8.intermediate.indexRegType
 import prog8.intermediate.*
 
 /*
@@ -71,7 +72,7 @@ object RegisterPacker {
     data class Interval(val register: Int, val start: Int, val end: Int, val type: IRDataType)
 
     fun pack(irProg: IRProgram) {
-        val indexRegType = if(irProg.options.compTarget.POINTER_MEM_SIZE > 2u) IRDataType.WORD else IRDataType.BYTE
+        val indexRegType = irProg.options.compTarget.indexRegType
         val allRegTypes = mutableMapOf<Int, IRDataType>()
         irProg.foreachCodeChunk { chunk ->
             for (instr in chunk.instructions) {
@@ -101,7 +102,7 @@ object RegisterPacker {
     // This avoids the strict per-instruction validation in usedRegisters() that POINTER↔LONG↔WORD
     // cross-type packing can trigger.
     fun rebuildTypeMap(irProg: IRProgram): Map<RegisterNum, IRDataType> {
-        val indexRegType = if(irProg.options.compTarget.POINTER_MEM_SIZE > 2u) IRDataType.WORD else IRDataType.BYTE
+        val indexRegType = irProg.options.compTarget.indexRegType
         val newTypes = mutableMapOf<RegisterNum, IRDataType>()
         irProg.foreachCodeChunk { chunk ->
             for (instr in chunk.instructions) {

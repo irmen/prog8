@@ -1284,6 +1284,76 @@ main {
         result shouldNotBe null
     }
 
+    test("indexed array with byte index on 32-bit target canonicalizes to word") {
+        // Regression for index-register type metadata: LOADX/STOREX/STOREZX index width is WORD
+        // on 32-bit targets. A BYTE index must be widened to WORD before the indexed op,
+        // otherwise metadata recomputation would report "register given multiple types".
+        val src = """
+            %zeropage basicsafe
+            %option no_sysinit
+            main {
+                word @shared dummy
+                sub start() {
+                    word[] arr = [1000,2000,3000,4000,5000]
+                    ubyte idx = 2
+                    word v = arr[idx]
+                    arr[idx] = 9999
+                    arr[idx] = 0
+                    v = arr[idx]
+                    dummy = v
+                }
+            }
+        """.trimIndent()
+        val result = compileText(VMTarget(), optimize=false, src, outputDir, writeAssembly = true)
+        result shouldNotBe null
+        val ir = result!!.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir").readText()
+        // the index should have been canonicalized to WORD (EXT) on this 32-bit target
+        ir shouldContain "ext"
+        VmRunner().runAndTestProgram(ir) { vm ->
+            // just verify it ran without crashing
+        }
+    }
+
+    test("byte array with byte index on 32-bit target") {
+        val src = """
+            %zeropage basicsafe
+            %option no_sysinit
+            main {
+                ubyte @shared dummy
+                sub start() {
+                    ubyte[] arr = [10,20,30,40,50]
+                    ubyte idx = 1
+                    ubyte v = arr[idx]
+                    arr[idx] = 99
+                    arr[idx] = 0
+                    dummy = v
+                }
+            }
+        """.trimIndent()
+        val result = compileText(VMTarget(), optimize=false, src, outputDir, writeAssembly = true)
+        result shouldNotBe null
+    }
+
+    test("word index on 8-bit target canonicalizes to byte for indexed access") {
+        // On 8-bit targets indexRegType is BYTE. A WORD index must be narrowed via LSIGB.
+        val src = """
+            %zeropage basicsafe
+            %option no_sysinit
+            main {
+                sub start() {
+                    ubyte[] arr = [10,20,30,40,50]
+                    uword idx = 3
+                    ubyte v = arr[idx]
+                    arr[idx] = 99
+                    arr[idx] = 0
+                    cx16.r0 = v
+                }
+            }
+        """.trimIndent()
+        val result = compileText(Cx16Target(), optimize=false, src, outputDir, writeAssembly = true)
+        result shouldNotBe null
+    }
+
     test("private_symbols with public override compiles and runs correctly") {
         val src = """
             %zeropage basicsafe

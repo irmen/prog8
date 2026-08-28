@@ -890,32 +890,36 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                     val varName = target.variable!!.name + if(msb) "_msb" else "_lsb"
                     if(isConstZeroValue) {
                         if(constIndex!=null) {
-                            val offsetReg = codeGen.registers.next(IRDataType.BYTE)
+                            val idxType = codeGen.options.compTarget.indexRegType
+                            val offsetReg = codeGen.registers.next(idxType)
                             result += IRCodeChunk(null, null).also {
-                                it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=offsetReg, immediate = constIndex)
+                                it += IRInstruction(Opcode.LOAD, idxType, reg1=offsetReg, immediate = constIndex)
                                 it += IRInstruction(Opcode.STOREZX, IRDataType.BYTE, reg1=offsetReg, labelSymbol = varName)
                             }
                         } else {
                             val indexTr = exprGen.translateExpression(target.index)
                             addToResult(result, indexTr, indexTr.resultReg, -1)
+                            val indexReg = codeGen.canonicalizeIndexReg(result, indexTr)
                             result += IRCodeChunk(null, null).also {
-                                it += IRInstruction(Opcode.STOREZX, IRDataType.BYTE, reg1=indexTr.resultReg, labelSymbol = varName)
+                                it += IRInstruction(Opcode.STOREZX, IRDataType.BYTE, reg1=indexReg, labelSymbol = varName)
                             }
                         }
                     } else {
                         val valueTr = exprGen.translateExpression(call.args[1])
                         addToResult(result, valueTr, valueTr.resultReg, -1)
                         if(constIndex!=null) {
-                            val offsetReg = codeGen.registers.next(IRDataType.BYTE)
+                            val idxType = codeGen.options.compTarget.indexRegType
+                            val offsetReg = codeGen.registers.next(idxType)
                             result += IRCodeChunk(null, null).also {
-                                it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=offsetReg, immediate = constIndex)
+                                it += IRInstruction(Opcode.LOAD, idxType, reg1=offsetReg, immediate = constIndex)
                                 it += IRInstruction(Opcode.STOREX, IRDataType.BYTE, reg1=valueTr.resultReg, reg2=offsetReg, labelSymbol = varName)
                             }
                         } else {
                             val indexTr = exprGen.translateExpression(target.index)
                             addToResult(result, indexTr, indexTr.resultReg, -1)
+                            val indexReg = codeGen.canonicalizeIndexReg(result, indexTr)
                             result += IRCodeChunk(null, null).also {
-                                it += IRInstruction(Opcode.STOREX, IRDataType.BYTE, reg1=valueTr.resultReg, reg2=indexTr.resultReg, labelSymbol = varName)
+                                it += IRInstruction(Opcode.STOREX, IRDataType.BYTE, reg1=valueTr.resultReg, reg2=indexReg, labelSymbol = varName)
                             }
                         }
                     }

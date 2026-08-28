@@ -3,6 +3,7 @@ TODO
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
+- Consider extending ``var xx = <value>`` type inference (recently added for for-loop counter variables) to all variable declarations. Investigate pros/cons: desired syntax (``var x = expr`` vs ``var x := expr``), interaction with existing ``ubyte``/``uword``/``word`` inference defaults, const vs var, scope and shadowing, error messages for ambiguous types, documentation, impact on block/sub scope, and whether ``var`` without initializer should be allowed.
 - DataType.ARRAY_POINTER depends on the compilation target to be either a split word array or not. This is horrible because now we have to check with the compilation target everywhere to see if a DataType enumeration value is split word array, and PtVariable and PtArrayIndexer need an explicit boolean to tell us if this is the case. See ideas/remove_array_pointer_plan.md for the plan.
 - m68k codegen: make use of scaling factors in the indexed instructions on 68020+ ? see ideas/scaled-indexing-IR.md
 - support arrays-of-structs, see ideas/arrays-of-structs.md
@@ -43,9 +44,6 @@ Romable (%option romable)
 IR/VM
 ^^^^^
 - encode indexed scaling into IR (so that m68k codegen can use scale factor addressing) see ideas/scaled-indexing-IR.md
-- **Index register width guessing in register type metadata**: ``LOADX``/``STOREX``/``STOREZX`` do not encode the width of their index register, so ``determineReg1Type``/``determineReg2Type`` (``IRInstructions.kt``) guess it from a caller-supplied ``indexRegType`` (byte on 16-bit-pointer targets, word on 32-bit-pointer ones). But the IR generator actually reuses registers of any width as index (e.g. a uword loop counter that doubles as a ``loadx.b`` index), so the guess can contradict the register's one-and-only allocated type from ``RegisterPool``. This currently throws "register given multiple types" when chunk metadata is recomputed (see ``setRegType``). Workaround in place: guessed typings are tracked in ``indexGuessRegs`` and never conflict with definitive ones. Cleaner alternatives (pick one):
-  - make ``IRCodeGen`` always widen the index to the canonical ``indexRegType`` right before emitting ``loadx``/``storex``/``storezx``, so the guess is always true; or
-  - stop recording guessed types altogether and thread the authoritative ``RegisterPool`` types into ``usedRegisters()`` so the metadata layer only reports facts. Note: the m68k regfile layout computation requires every used register to have a recorded type, so simply returning ``null`` for these cases breaks slot sizing.
 - maybe change all branch instructions to have 2 exits (label if branch condition true, and label if false) instead of 1, and get rid of the implicit "next code chunk" link between chunks.
 - implement more TODOs in AssignmentGen?
 - add even more optimizations in IRPeepholeOptimizer?

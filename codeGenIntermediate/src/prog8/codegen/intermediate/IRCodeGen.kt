@@ -31,7 +31,7 @@ class IRCodeGen(
         private set
 
     // on 32-bit targets, LOADX/STOREX/STOREZX use a word index register (0-32767) instead of a byte (0-255)
-    internal val wordArrayIndex: Boolean = options.compTarget.POINTER_MEM_SIZE > 2u
+    internal val wordArrayIndex: Boolean = options.compTarget.indexRegType == IRDataType.WORD
 
     /**
      * The IR data type to use for a memory address on the current target.
@@ -2259,7 +2259,7 @@ class IRCodeGen(
         addToResult(result, byteIndexTr, byteIndexTr.resultReg, -1)
 
         // LOADX/STOREX use word-sized indices on targets with 32-bit pointers.
-        val indexRegType = if(options.compTarget.POINTER_MEM_SIZE > 2u) IRDataType.WORD else IRDataType.BYTE
+        val indexRegType = options.compTarget.indexRegType
         var indexReg = byteIndexTr.resultReg
         var indexDt = byteIndexTr.dt
         if(indexDt != indexRegType) {
@@ -2283,6 +2283,37 @@ class IRCodeGen(
 
         result += multiplyByConst(if(indexRegType == IRDataType.WORD) DataType.UWORD else DataType.UBYTE, indexReg, itemsize)
         return Pair(result, indexReg)
+    }
+
+    internal fun canonicalizeIndexReg(result: MutableList<IRCodeChunkBase>, indexTr: ExpressionCodeResult): Int {
+        val indexRegType = options.compTarget.indexRegType
+        if(indexTr.dt == indexRegType)
+            return indexTr.resultReg
+        val effectiveDt = if(indexTr.dt==IRDataType.POINTER) options.compTarget.pointerIRType else indexTr.dt
+        if(effectiveDt == indexRegType)
+            return indexTr.resultReg
+        val newReg = registers.next(indexRegType)
+        when {
+            indexRegType==IRDataType.WORD && indexTr.dt==IRDataType.BYTE ->
+                addInstr(result, IRInstruction(Opcode.EXT, IRDataType.BYTE, reg1=newReg, reg2=indexTr.resultReg), null)
+            indexRegType==IRDataType.WORD && indexTr.dt==IRDataType.LONG ->
+                addInstr(result, IRInstruction(Opcode.LSIGW, IRDataType.LONG, reg1=newReg, reg2=indexTr.resultReg), null)
+            indexRegType==IRDataType.WORD && indexTr.dt==IRDataType.POINTER ->
+                addInstr(result, IRInstruction(Opcode.LSIGW, IRDataType.LONG, reg1=newReg, reg2=indexTr.resultReg), null)
+            indexRegType==IRDataType.BYTE && indexTr.dt==IRDataType.WORD ->
+                addInstr(result, IRInstruction(Opcode.LSIGB, IRDataType.WORD, reg1=newReg, reg2=indexTr.resultReg), null)
+            indexRegType==IRDataType.BYTE && indexTr.dt==IRDataType.LONG ->
+                addInstr(result, IRInstruction(Opcode.LSIGB, IRDataType.LONG, reg1=newReg, reg2=indexTr.resultReg), null)
+            indexRegType==IRDataType.BYTE && indexTr.dt==IRDataType.POINTER -> {
+                val ptrType = options.compTarget.pointerIRType
+                if(ptrType==IRDataType.WORD)
+                    addInstr(result, IRInstruction(Opcode.LSIGB, IRDataType.WORD, reg1=newReg, reg2=indexTr.resultReg), null)
+                else
+                    addInstr(result, IRInstruction(Opcode.LSIGB, IRDataType.LONG, reg1=newReg, reg2=indexTr.resultReg), null)
+            }
+            else -> throw IllegalArgumentException("unexpected index conversion ${indexTr.dt} -> $indexRegType")
+        }
+        return newReg
     }
 
     internal fun irType(type: DataType): IRDataType {

@@ -12,11 +12,35 @@ import prog8.intermediate.*
 internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen: ExpressionGen) {
 
     private fun normalizeArrayIndex(result: MutableList<IRCodeChunkBase>, indexTr: ExpressionCodeResult): Pair<Int, DataType> {
-        if(codeGen.options.compTarget.POINTER_MEM_SIZE <= 2u || indexTr.dt != IRDataType.BYTE)
-            return indexTr.resultReg to DataType.UBYTE
-        val indexReg = codeGen.registers.next(IRDataType.WORD)
-        addInstr(result, IRInstruction(Opcode.EXT, IRDataType.BYTE, reg1=indexReg, reg2=indexTr.resultReg), null)
-        return indexReg to DataType.UWORD
+        val indexRegType = codeGen.options.compTarget.indexRegType
+        if(indexTr.dt == indexRegType)
+            return indexTr.resultReg to if(indexRegType==IRDataType.WORD) DataType.UWORD else DataType.UBYTE
+        // handle POINTER as its underlying size for the purpose of index canonicalization
+        val effectiveDt = if(indexTr.dt==IRDataType.POINTER) codeGen.options.compTarget.pointerIRType else indexTr.dt
+        if(effectiveDt == indexRegType)
+            return indexTr.resultReg to if(indexRegType==IRDataType.WORD) DataType.UWORD else DataType.UBYTE
+        val newReg = codeGen.registers.next(indexRegType)
+        when {
+            indexRegType==IRDataType.WORD && indexTr.dt==IRDataType.BYTE ->
+                addInstr(result, IRInstruction(Opcode.EXT, IRDataType.BYTE, reg1=newReg, reg2=indexTr.resultReg), null)
+            indexRegType==IRDataType.WORD && indexTr.dt==IRDataType.LONG ->
+                addInstr(result, IRInstruction(Opcode.LSIGW, IRDataType.LONG, reg1=newReg, reg2=indexTr.resultReg), null)
+            indexRegType==IRDataType.WORD && indexTr.dt==IRDataType.POINTER ->
+                addInstr(result, IRInstruction(Opcode.LSIGW, IRDataType.LONG, reg1=newReg, reg2=indexTr.resultReg), null)
+            indexRegType==IRDataType.BYTE && indexTr.dt==IRDataType.WORD ->
+                addInstr(result, IRInstruction(Opcode.LSIGB, IRDataType.WORD, reg1=newReg, reg2=indexTr.resultReg), null)
+            indexRegType==IRDataType.BYTE && indexTr.dt==IRDataType.LONG ->
+                addInstr(result, IRInstruction(Opcode.LSIGB, IRDataType.LONG, reg1=newReg, reg2=indexTr.resultReg), null)
+            indexRegType==IRDataType.BYTE && indexTr.dt==IRDataType.POINTER -> {
+                val ptrType = codeGen.options.compTarget.pointerIRType
+                if(ptrType==IRDataType.WORD)
+                    addInstr(result, IRInstruction(Opcode.LSIGB, IRDataType.WORD, reg1=newReg, reg2=indexTr.resultReg), null)
+                else
+                    addInstr(result, IRInstruction(Opcode.LSIGB, IRDataType.LONG, reg1=newReg, reg2=indexTr.resultReg), null)
+            }
+            else -> throw IllegalArgumentException("unexpected index conversion ${indexTr.dt} -> $indexRegType")
+        }
+        return newReg to if(indexRegType==IRDataType.WORD) DataType.UWORD else DataType.UBYTE
     }
 
     internal fun translate(assignment: PtAssignment): IRCodeChunks {

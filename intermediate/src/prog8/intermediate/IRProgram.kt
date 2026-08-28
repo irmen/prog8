@@ -5,6 +5,9 @@ import prog8.code.core.*
 val IMemSizer.pointerIRType: IRDataType
     get() = if(POINTER_MEM_SIZE > 2u) IRDataType.LONG else IRDataType.WORD
 
+val IMemSizer.indexRegType: IRDataType
+    get() = if(POINTER_MEM_SIZE > 2u) IRDataType.WORD else IRDataType.BYTE
+
 /*
 
 Intermediate Represenation of the compiled program.
@@ -316,9 +319,8 @@ class IRProgram(val name: String,
         }
 
         // on 32-bit targets LOADX/STOREX/STOREZX use a word index register (0-32767) instead of a byte (0-255)
-        val indexRegType = if(options.compTarget.POINTER_MEM_SIZE > 2u) IRDataType.WORD else IRDataType.BYTE
+        val indexRegType = options.compTarget.indexRegType
 
-        val globalInitIndexGuessRegs = mutableSetOf<RegisterNum>()
         globalInits.instructions.forEach {
             it.addUsedRegistersCounts(
                 readRegsCounts,
@@ -326,7 +328,6 @@ class IRProgram(val name: String,
                 readFpRegsCounts,
                 writeFpRegsCounts,
                 regsTypes,
-                globalInitIndexGuessRegs,
                 globalInits,
                 indexRegType
             )
@@ -481,7 +482,7 @@ class IRProgram(val name: String,
      * which this strict check would reject. Use RegisterPacker.rebuildTypeMap() instead.
      */
     fun verifyRegisterTypes(registerTypes: Map<RegisterNum, IRDataType>) {
-        val indexRegType = if(options.compTarget.POINTER_MEM_SIZE > 2u) IRDataType.WORD else IRDataType.BYTE
+        val indexRegType = options.compTarget.indexRegType
         for(block in blocks) {
             for(bc in block.children) {
                 when(bc) {
@@ -609,8 +610,7 @@ class IRCodeChunk(label: String?, next: IRCodeChunkBase?): IRCodeChunkBase(label
         val readFpRegsCounts = mutableMapOf<RegisterNum, Int>().withDefault { 0 }
         val writeFpRegsCounts = mutableMapOf<RegisterNum, Int>().withDefault { 0 }
         val writeRegsCounts = mutableMapOf<RegisterNum, Int>().withDefault { 0 }
-        val indexGuessRegs = mutableSetOf<RegisterNum>()
-        instructions.forEach { it.addUsedRegistersCounts(readRegsCounts, writeRegsCounts, readFpRegsCounts, writeFpRegsCounts, regsTypes, indexGuessRegs, this, indexRegType) }
+        instructions.forEach { it.addUsedRegistersCounts(readRegsCounts, writeRegsCounts, readFpRegsCounts, writeFpRegsCounts, regsTypes, this, indexRegType) }
         return RegistersUsed(readRegsCounts, writeRegsCounts, readFpRegsCounts, writeFpRegsCounts, regsTypes)
     }
 
@@ -716,7 +716,6 @@ private fun registersUsedInAssembly(isIR: Boolean, assembly: String): RegistersU
     val writeFpRegsCounts = mutableMapOf<RegisterNum, Int>().withDefault { 0 }
 
     if(isIR) {
-        val indexGuessRegs = mutableSetOf<RegisterNum>()
         assembly.lineSequence().forEach { line ->
             val t = line.trim()
             if(t.isNotEmpty()) {
@@ -728,7 +727,6 @@ private fun registersUsedInAssembly(isIR: Boolean, assembly: String): RegistersU
                         readFpRegsCounts,
                         writeFpRegsCounts,
                         regsTypes,
-                        indexGuessRegs,
                         null
                     )
                     is ParsedIRLine.Label -> { /* labels can be skipped */ }
