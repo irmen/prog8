@@ -9,7 +9,7 @@ Future Things and Ideas
 - support arrays-of-structs, see ideas/arrays-of-structs.md
 - split up AssignmentAsmGen.kt in codeGenCpu6502 it is by far the largest file 6000+ lines
 - make enums strongly typed instead of just syntactic sugar for ints (see ideas/enum-strong-type.md for the plan)
-- symboldump: some sort of javadocs generated from the p8 source files (instead of just the function signatures). Use markdown for formatting, not html.
+- extend the ``-gendoc`` command to generate user reference documentation from Markdown docstrings; see ``ideas/markdown-docstrings-and-reference-docs.md`` for the plan.
 - if implementing unsigned longs: remove the (multiple?) "TODO "hack" to allow unsigned long constants to be used as values for signed longs, without needing a cast
 - struct/ptr: really fixing the pointer dereferencing issues (cursed hybrid between IdentifierReference, PtrDereferece and PtrIndexedDereference) may require getting rid of scoped identifiers altogether and treat '.' as a "scope or pointer following operator"
 - struct/ptr: support chaining pointer dereference without explicit ^^ on assignment targets, such as ``l1.s[0] = 4242`` and ``listarray[2].value = 123`` (implicit ``^^`` forms; see TestPointers xtests and ideas/NEW-POINTERDEREF-PLANS.md). Note: the LHS functioncall and parenthesized-expression cases (``func().field = a``, ``(expr as ^^T).field = a``) are now supported: the assign_target grammar rule accepts them and the CodeDesugarer rewrites them into poke-style writes.

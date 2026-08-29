@@ -12,6 +12,7 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.code.core.*
 import prog8.code.source.SourceCode
+import prog8.parser.CommentHandlingTokenStream
 
 import prog8.parser.Prog8ANTLRParser.*
 import prog8.parser.Prog8ANTLRVisitor
@@ -19,7 +20,8 @@ import kotlin.io.path.Path
 import kotlin.io.path.isRegularFile
 
 
-class Antlr2KotlinVisitor(val source: SourceCode, private val target: ICompilationTarget): AbstractParseTreeVisitor<Node>(), Prog8ANTLRVisitor<Node> {
+class Antlr2KotlinVisitor(val source: SourceCode, private val target: ICompilationTarget,
+                          private val tokens: CommentHandlingTokenStream): AbstractParseTreeVisitor<Node>(), Prog8ANTLRVisitor<Node> {
 
     // Cached resolved filename - computed once per visitor since it never changes during a single parse
     private var cachedFileName: String? = null
@@ -43,6 +45,9 @@ class Antlr2KotlinVisitor(val source: SourceCode, private val target: ICompilati
         }
     }
 
+    private fun leadingBlockComment(ctx: ParserRuleContext): String? =
+        tokens.leadingBlockCommentsBefore(ctx.start.tokenIndex).joinToString("\n").ifEmpty { null }
+
     override fun visitModule(ctx: ModuleContext): Module {
         val statements = ctx.module_element().mapTo(mutableListOf()) { it.accept(this) as Statement }
         return Module(statements, ctx.toPosition(), source)
@@ -52,7 +57,7 @@ class Antlr2KotlinVisitor(val source: SourceCode, private val target: ICompilati
         val name = getname(ctx.identifier())
         val address = (ctx.integerliteral()?.accept(this) as NumericLiteral?)?.number?.toUInt()
         val statements = ctx.block_statement().mapTo(mutableListOf()) { it.accept(this) as Statement }
-        return Block(name, address, statements, source.isFromLibrary, ctx.toPosition())
+        return Block(name, address, statements, source.isFromLibrary, ctx.toPosition(), leadingBlockComment(ctx))
     }
 
     override fun visitExpression(ctx: ExpressionContext): Expression {
@@ -247,6 +252,7 @@ class Antlr2KotlinVisitor(val source: SourceCode, private val target: ICompilati
             .sharedWithAsm("@shared" in tags)
             .splitwordarray(split)
             .zeropage(zp)
+            .comment(leadingBlockComment(ctx))
             .build()
     }
 
@@ -293,6 +299,7 @@ class Antlr2KotlinVisitor(val source: SourceCode, private val target: ICompilati
             .visibility(visibility)
             .type(VarDeclType.CONST)
             .value(actualValue)
+            .comment(leadingBlockComment(ctx))
             .build()
             .apply { hasExplicitInitializer = true }
     }
@@ -300,6 +307,7 @@ class Antlr2KotlinVisitor(val source: SourceCode, private val target: ICompilati
     override fun visitMemoryvardecl(ctx: MemoryvardeclContext): VarDecl {
         val vardecl = ctx.varinitializer().accept(this) as VarDecl
         vardecl.type = VarDeclType.MEMORY
+        vardecl.blockComment = leadingBlockComment(ctx) ?: vardecl.blockComment
         return vardecl
     }
 
@@ -625,7 +633,8 @@ class Antlr2KotlinVisitor(val source: SourceCode, private val target: ICompilati
             inline = ctx.INLINE() != null,
             visibility = visibility,
             statements = statements.statements,
-            position = ctx.toPosition()
+            position = ctx.toPosition(),
+            blockComment = leadingBlockComment(ctx)
         )
     }
 
@@ -676,7 +685,7 @@ class Antlr2KotlinVisitor(val source: SourceCode, private val target: ICompilati
             ad.asmParameterRegisters,
             ad.asmReturnvaluesRegisters,
             ad.asmClobbers, null, true, inline, false, visibility,
-            statements.statements, ctx.toPosition()
+            statements.statements, ctx.toPosition(), leadingBlockComment(ctx)
         )
     }
 
@@ -688,7 +697,7 @@ class Antlr2KotlinVisitor(val source: SourceCode, private val target: ICompilati
         val address = Subroutine.Address(constbank, varbank, addr)
         return Subroutine(subdecl.name, subdecl.parameters, subdecl.returntypes,
             subdecl.asmParameterRegisters, subdecl.asmReturnvaluesRegisters,
-            subdecl.asmClobbers, address, true, inline = false, visibility = visibilityFromTokens(ctx), statements = mutableListOf(), position = ctx.toPosition()
+            subdecl.asmClobbers, address, true, inline = false, visibility = visibilityFromTokens(ctx), statements = mutableListOf(), position = ctx.toPosition(), blockComment = leadingBlockComment(ctx)
         )
     }
 
@@ -871,7 +880,7 @@ class Antlr2KotlinVisitor(val source: SourceCode, private val target: ICompilati
         val name = getname(ctx.identifier())
         val fieldDefs = ctx.structfielddecl().map { getStructField(it) }
         val flattened = fieldDefs.flatMap { (dt, names, arrSize) -> names.map { StructField(dt, it, arrSize) }}
-        return StructDecl(name, flattened.toTypedArray(), visibilityFromTokens(ctx), ctx.toPosition())
+        return StructDecl(name, flattened.toTypedArray(), visibilityFromTokens(ctx), ctx.toPosition(), leadingBlockComment(ctx))
     }
 
     private data class StructFieldDef(val type: DataType, val names: List<String>, val arraySize: Int?)
@@ -913,7 +922,7 @@ class Antlr2KotlinVisitor(val source: SourceCode, private val target: ICompilati
         val members = members1.map {
             it.first to it.second?.number?.toInt()
         }.toTypedArray()
-        return Enumeration(name, largestType, members, visibilityFromTokens(ctx), ctx.toPosition())
+        return Enumeration(name, largestType, members, visibilityFromTokens(ctx), ctx.toPosition(), leadingBlockComment(ctx))
     }
 
 

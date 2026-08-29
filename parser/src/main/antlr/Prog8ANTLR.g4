@@ -19,7 +19,7 @@ package prog8.parser;
 EOL :  ('\r'? '\n' | '\r' | '\n')+ ;
 LINECOMMENT : EOL [ \t]* COMMENT -> channel(HIDDEN);
 COMMENT :  ';' ~[\r\n]* -> channel(HIDDEN) ;
-BLOCK_COMMENT : '/*' ( BLOCK_COMMENT | ~'*' | '*' ~'/' )*? '*/' -> skip ;
+BLOCK_COMMENT : '/*' ( BLOCK_COMMENT | ~'*' | '*' ~'/' )*? '*/' -> channel(HIDDEN) ;
 
 WS :  [ \t] -> skip ;
 // WS2 : '\\' EOL -> skip;

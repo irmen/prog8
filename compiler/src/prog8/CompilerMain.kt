@@ -75,6 +75,7 @@ private class CompilerCli : CliktCommand(name = "prog8c") {
     val checkSource by option("-check", "--check", help = "quickly check program for errors, no output will be produced").flag()
     val symbolDefs by option("-D", "--D", help = "define assembly symbol(s) with -D SYMBOL=VALUE").multiple()
     val dumpSymbols by option("-dumpsymbols", "--dumpsymbols", help = "print a dump of the variable declarations and subroutine signatures").flag()
+    val generateDocumentation by option("-gendoc", "--gendoc", help = "print AST nodes with documentation comments").flag()
     val dumpVariables by option("-dumpvars", "--dumpvars", help = "print a dump of the variables in the program").flag()
     val libSearch by option("-libsearch", "--libsearch", help = "search for a regex pattern in the embedded library files")
     val libDump by option("-libdump", "--libdump", help = "dump all the embedded library files into the specified output directory")
@@ -267,7 +268,8 @@ private fun compileMain(args: Array<String>): Boolean {
                     srcdirs,
                     outputPath,
                     errors = ErrorReporter(txtcolors),
-                    assemble = true
+                    assemble = true,
+                    generateDocumentation = generateDocumentation == true
                 )
                 val compilationResult = compileProgram(compilerArgs)
 
@@ -355,7 +357,8 @@ private fun compileMain(args: Array<String>): Boolean {
                 outputPath,
                 cwd = Path.of(System.getProperty("user.dir")),
                 errors = ErrorReporter(txtcolors),
-                assemble = true
+                assemble = true,
+                generateDocumentation = generateDocumentation == true
             )
             val response = compileViaDaemon(compilerArgs, plainText == true)
             if (response == null || !response.ok)
@@ -421,7 +424,8 @@ private fun compileMain(args: Array<String>): Boolean {
                     srcdirs,
                     outputPath,
                     errors = ErrorReporter(txtcolors),
-                    assemble = true
+                    assemble = true,
+                    generateDocumentation = generateDocumentation == true
                 )
                 val result = compileProgram(compilerArgs)
 
@@ -869,7 +873,8 @@ private fun communicateWithDaemon(channel: SocketChannel, compilerArgs: Compiler
             symbolDefs = compilerArgs.symbolDefs,
             sourceDirs = compilerArgs.sourceDirs,
             outputDir = compilerArgs.outputDir.toString(),
-            cwd = compilerArgs.cwd.toString()
+            cwd = compilerArgs.cwd.toString(),
+            generateDocumentation = compilerArgs.generateDocumentation
         )
 
         val requestJson = DaemonProtocol.encodeRequest(request)

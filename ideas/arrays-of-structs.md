@@ -9,7 +9,7 @@ the changes needed to support `structtype name[size]`.
 The feature is **explicitly gated** in the parser. Declaring an array of
 structures throws a hard error:
 
-- `compilerAst/src/prog8/ast/antlr/Antlr2KotlinVisitor.kt:234-235`
+- `compilerAst/src/prog8/ast/antlr/Antlr2KotlinVisitor.kt:239-240`
 
   ```kotlin
   } else if(baseDt.isStructInstance)
@@ -20,7 +20,7 @@ The recommended workaround today is `structtype[size]*` — an array of pointers
 to separately-allocated structs — because the pointer element size is fixed
 (2 bytes on 6502, 4 on m68k) and needs no struct-size stride.
 
-A second gate exists in `codeCore/src/prog8/code/core/DataTypes.kt:194-195`:
+A second gate exists in `codeCore/src/prog8/code/core/DataTypes.kt:202-204`:
 ```kotlin
 if(dt.isStructInstance)
     TODO("cannot use struct instance as a data type (yet) - use a pointer instead")
@@ -36,7 +36,7 @@ A surprising amount of the supporting machinery is already present:
   `elementType.isStructInstance`, so the AST node is ready.
 - **Index × struct-size math exists.** `ExpressionGen.kt:167,183` computes
   `offset = constIndex * struct.size` and `multiplyByConst(indexReg,
-  struct.size)` when resolving a struct field; `:1858-1866` handles
+  struct.size)` when resolving a struct field; `:1868-1888` handles
   "index * structsize + field" for struct field access. The element-base
   arithmetic for arrays of structs is essentially the same code.
 - **Array iteration uses element size.** `IRCodeGen.kt:776` computes
@@ -51,9 +51,9 @@ stride handling.
 ## Change overview
 
 ### 1. Parser / declaration
-- Remove (or relax) the `SyntaxError` at `Antlr2KotlinVisitor.kt:234-235` so a
+- Remove (or relax) the `SyntaxError` at `Antlr2KotlinVisitor.kt:239-240` so a
   struct `DataType` can flow into the array-type builder.
-- Also relax the `TODO` at `DataTypes.kt:194-195` so a struct instance can be
+- Also relax the `TODO` at `DataTypes.kt:202-204` so a struct instance can be
   used as a data type.
 - Allow `structtype name[size]` (and `const` / initialized forms).
 
@@ -109,14 +109,32 @@ stride handling.
   is trivial. Pointer / `loadIndexToD0` paths must use the struct stride.
 
 ### 9. Tests
-- Type tests (`elementType` for array-of-struct).
-- Codegen tests: declare, index, `arr[i].field`, assign, iterate, initialize.
-- VM execution tests for correct values after the above.
+
+Testing strategy: prefer generated-code assertions over simulation unless execution
+behavior is the only way to validate a case. M68k gates must not require the `vasm`
+assembler to be installed; verify via IR inspection or the existing backend unit
+harnesses that run without external toolchains.
+
+- Type tests (`elementType` for array-of-struct): `gradle :compiler:test` on the
+  `codeCore`/`compilerAst` datatype unit tests after the `DataType` model changes.
+- Codegen assertion tests (no execution): add Prog8 snippets that declare, index,
+  access `arr[i].field`, assign whole structs, iterate, and initialize arrays of
+  structs; assert on generated IR/assembly via the compiler test helpers
+  (parse assembly/IR into lines and check specific instructions/address math),
+  not on runtime output. Target `virtual` is fine for IR inspection.
+- 6502 stride gate: add a codegen test where `struct.size > 256` so the index math
+  requires 16-bit offset handling; assert the generated 6502 code uses a wide
+  offset (no 8-bit wrap) rather than running it in a simulator.
+- M68k gate: assert generated M68K IR/assembly uses stride = `struct.size` and that
+  element-base arithmetic is correct, using the backend unit tests that do not
+  invoke `vasm`.
+- Run `gradle build` (or at least `gradle :compiler:test`) as the final gate to
+  ensure no regressions in the existing array/struct handling.
 
 ## Bottom line
 
-The two hard blockers are the parser throw (`Antlr2KotlinVisitor.kt:234-235`)
-and the `TODO` in `DataTypes.kt:194-195`. The datatype/sizing path already
+The two hard blockers are the parser throw (`Antlr2KotlinVisitor.kt:239-240`)
+and the `TODO` in `DataTypes.kt:202-204`. The datatype/sizing path already
 multiplies by element size in the right places. The real work is: (a) make
 struct a legal array element type end-to-end, (b) ensure the *stride* is
 `struct.size` consistently in all index math (not just field access),

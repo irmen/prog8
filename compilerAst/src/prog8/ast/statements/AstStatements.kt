@@ -79,9 +79,10 @@ class BuiltinFunctionPlaceholder(
 //       however by making it a statement we can reuse the name lookup logic for them (a module *is* name scope that has to do lookups)
 class Block(override val name: String,
             val address: UInt?,
-            override val statements: MutableList<Statement>,
-            val isInLibrary: Boolean,
-            override val position: Position) : Statement(), INameScope {
+             override val statements: MutableList<Statement>,
+             val isInLibrary: Boolean,
+             override val position: Position,
+             val blockComment: String? = null) : Statement(), INameScope {
     override lateinit var parent: Node
 
     override fun copy() = throw NotImplementedError("no support for duplicating a Block")
@@ -284,7 +285,8 @@ class VarDecl(
     val alignment: UInt,
     val dirty: Boolean,
     val visibility: Visibility?,
-    override val position: Position) : Statement(), INamedStatement {
+    override val position: Position,
+    var blockComment: String? = null) : Statement(), INamedStatement {
     override lateinit var parent: Node
     var allowInitializeWithZero = true
     var hasExplicitInitializer = false
@@ -315,6 +317,7 @@ class VarDecl(
             private var dirty = false
             private var visibility: Visibility? = null
             private var hasExplicitInitializer = false
+            private var blockComment: String? = null
 
             fun names(vararg names: String): Builder = apply {
                 require(names.isNotEmpty()) { "at least one name is required" }
@@ -338,6 +341,7 @@ class VarDecl(
             fun dirty(d: Boolean) = apply { this.dirty = d }
             fun visibility(v: Visibility?) = apply { this.visibility = v }
             fun hasExplicitInitializer(h: Boolean) = apply { this.hasExplicitInitializer = h }
+            fun comment(c: String?) = apply { this.blockComment = c }
 
             fun copyFrom(v: VarDecl) = apply {
                 this.type = v.type
@@ -354,13 +358,14 @@ class VarDecl(
                 this.dirty = v.dirty
                 this.visibility = v.visibility
                 this.hasExplicitInitializer = v.hasExplicitInitializer
+                this.blockComment = v.blockComment
             }
 
             fun build(): VarDecl {
                 val finalName = name ?: throw IllegalStateException("name is required")
                 val v = VarDecl(
                     type, origin, datatype, zeropage, splitwordarray, arraysize, matrixNumCols,
-                    finalName, additionalNames, value, sharedWithAsm, alignment, dirty, visibility, position
+                     finalName, additionalNames, value, sharedWithAsm, alignment, dirty, visibility, position, blockComment
                 )
                 v.hasExplicitInitializer = hasExplicitInitializer
                 return v
@@ -517,7 +522,7 @@ class VarDecl(
     }
 }
 
-class StructDecl(override val name: String, val fields: Array<StructField>, val visibility: Visibility?, override val position: Position) : Statement(), INamedStatement, ISubType {
+class StructDecl(override val name: String, val fields: Array<StructField>, val visibility: Visibility?, override val position: Position, var blockComment: String? = null) : Statement(), INamedStatement, ISubType {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -526,7 +531,7 @@ class StructDecl(override val name: String, val fields: Array<StructField>, val 
 
     override fun replaceChildNode(node: Node, replacement: Node) = throw FatalAstException("can't replace here")
     override fun referencesIdentifier(nameInSource: List<String>) = false
-    override fun copy() = StructDecl(name, fields.clone(), visibility, position)
+    override fun copy() = StructDecl(name, fields.clone(), visibility, position, blockComment)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
     override fun memsize(sizer: IMemSizer): Int = fields.sumOf { field ->
@@ -614,7 +619,7 @@ class StructFieldRef(val pointer: IdentifierReference, val struct: StructDecl, v
 
 }
 
-class Enumeration(override val name: String, val type: BaseDataType, val members: Array<Pair<String, Int?>>, val visibility: Visibility?, override val position: Position) : Statement(), INamedStatement {
+class Enumeration(override val name: String, val type: BaseDataType, val members: Array<Pair<String, Int?>>, val visibility: Visibility?, override val position: Position, var blockComment: String? = null) : Statement(), INamedStatement {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -623,7 +628,7 @@ class Enumeration(override val name: String, val type: BaseDataType, val members
 
     override fun replaceChildNode(node: Node, replacement: Node) = throw FatalAstException("can't replace here")
     override fun referencesIdentifier(nameInSource: List<String>) = false
-    override fun copy(): Enumeration = Enumeration(name, type, members.toList().toTypedArray(), visibility, position)
+    override fun copy(): Enumeration = Enumeration(name, type, members.toList().toTypedArray(), visibility, position, blockComment)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 }
@@ -871,7 +876,7 @@ data class AssignTarget(
                     else -> throw FatalAstException("invalid replacement for AssignTarget.pointerDereference: $replacement")
                 }
             }
-            node === this.arrayIndexedDereference -> {
+            node === arrayIndexedDereference -> {
                 identifier = null
                 pointerDereference = null
                 arrayIndexedDereference = null
@@ -1241,7 +1246,8 @@ class Subroutine(override val name: String,
                  var hasBeenInlined: Boolean=false,
                  val visibility: Visibility?,
                  override val statements: MutableList<Statement>,
-                 override val position: Position) : Statement(), INameScope {
+                 override val position: Position,
+                 val blockComment: String? = null) : Statement(), INameScope {
     override lateinit var parent: Node
 
     override fun copy() = throw NotImplementedError("no support for duplicating a Subroutine")

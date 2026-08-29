@@ -26,6 +26,21 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
     private fun outputlni(s: Any) = outputln(indent(s.toString()))
     private fun outputi(s: Any) = output(indent(s.toString()))
 
+    private fun outputBlockComment(comment: String?) {
+        if(comment != null) {
+            val lines = comment.lines()
+            val commonIndent = lines.drop(1)
+                .filter { it.isNotBlank() }
+                .map { it.takeWhile { ch -> ch == ' ' || ch == '\t' }.length }
+                .minOrNull() ?: 0
+            output(lines.first())
+            output("\n")
+            lines.drop(1).forEach { line ->
+                outputln(indent(line.drop(commonIndent)))
+            }
+        }
+    }
+
     override fun visit(program: Program) {
         outputln("; ============ PROGRAM ${program.name} (FROM AST) ==============")
         super.visit(program)
@@ -45,6 +60,7 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
             outputln("; library block skipped: ${block.name}")
             return
         }
+        outputBlockComment(block.blockComment)
         val addr = if(block.address!=null) block.address.toHex() else ""
         outputln("${block.name} $addr {")
         scopelevel++
@@ -127,6 +143,10 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
         if(decl.origin==VarDeclOrigin.SUBROUTINEPARAM)
             return
 
+        if(decl.blockComment != null) {
+            outputBlockComment(decl.blockComment)
+            outputi("")
+        }
         if(decl.visibility == Visibility.PRIVATE)
             output("private ")
         else if(decl.visibility == Visibility.PUBLIC)
@@ -221,7 +241,10 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
     }
 
     override fun visit(subroutine: Subroutine) {
-        output("\n")
+        if(subroutine.blockComment != null)
+            outputBlockComment(subroutine.blockComment)
+        else
+            output("\n")
         outputi("")
         if(subroutine.visibility == Visibility.PRIVATE)
             output("private ")

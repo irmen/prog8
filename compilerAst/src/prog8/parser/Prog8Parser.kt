@@ -20,7 +20,7 @@ object Prog8Parser {
     fun parseModule(src: SourceCode, target: ICompilationTarget): Module {
         val lexer = Prog8ANTLRLexer(CharStreams.fromString(src.text, src.origin))
         lexer.removeErrorListeners()
-        val tokens = CommonTokenStream(lexer)
+        val tokens = CommentHandlingTokenStream(lexer)
 
         // Fast path: try SLL prediction mode first (faster on correct input)
         val sllErrorListener = CollectingErrorListener(src)
@@ -35,7 +35,7 @@ object Prog8Parser {
 
         if(!sllErrorListener.hasErrors()) {
             // SLL succeeded cleanly — use this tree
-            val visitor = Antlr2KotlinVisitor(src, target)
+            val visitor = Antlr2KotlinVisitor(src, target, tokens)
             val visitorResult = visitor.visit(parseTree)
             return visitorResult as Module
         }
@@ -54,7 +54,7 @@ object Prog8Parser {
             throw MultipleParseErrors(llErrorListener.getErrors())
         }
 
-        val visitor = Antlr2KotlinVisitor(src, target)
+        val visitor = Antlr2KotlinVisitor(src, target, tokens)
         val visitorResult = visitor.visit(llParseTree)
         return visitorResult as Module
     }

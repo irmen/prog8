@@ -221,7 +221,8 @@ internal class CompilerDaemon(private val socketPath: Path) {
             sourceDirs = sourceDirs,
             outputDir = resolvedOutputDir,
             cwd = clientCwd,
-            errors = errors
+            errors = errors,
+            generateDocumentation = generateDocumentation
         )
     }
 }

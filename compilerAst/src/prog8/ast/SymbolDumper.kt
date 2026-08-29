@@ -16,6 +16,46 @@ fun printSymbols(program: Program) {
     println()
 }
 
+fun printDocumentation(program: Program) {
+    DocumentationDumper().visit(program)
+}
+
+private class DocumentationDumper : IAstVisitor {
+    private fun printNode(kind: String, name: String, comment: String?, position: Position) {
+        if(comment?.startsWith("/**") == true) {
+            val documentation = comment.removePrefix("/**").removeSuffix("*/").trimIndent()
+            if(documentation.isBlank())
+                return
+            println("$kind $name $position")
+            println(documentation)
+            println()
+        }
+    }
+
+    override fun visit(block: Block) {
+        printNode("BLOCK", block.name, block.blockComment, block.position)
+        super.visit(block)
+    }
+
+    override fun visit(decl: VarDecl) {
+        printNode("VARIABLE", decl.name, decl.blockComment, decl.position)
+        super.visit(decl)
+    }
+
+    override fun visit(subroutine: Subroutine) {
+        printNode("SUBROUTINE", subroutine.name, subroutine.blockComment, subroutine.position)
+        super.visit(subroutine)
+    }
+
+    override fun visit(struct: StructDecl) {
+        printNode("STRUCT", struct.name, struct.blockComment, struct.position)
+    }
+
+    override fun visit(enum: Enumeration) {
+        printNode("ENUM", enum.name, enum.blockComment, enum.position)
+    }
+}
+
 
 private class SymbolDumper(val skipLibraries: Boolean): IAstVisitor {
     private val moduleOutputs = mutableMapOf<Module, MutableList<String>>()

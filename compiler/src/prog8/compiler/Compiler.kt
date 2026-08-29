@@ -70,7 +70,8 @@ class CompilerArguments(val filepath: Path,
                         val outputDir: Path = Path(""),
                         val cwd: Path = Path("").absolute(),
                         val errors: IErrorReporter = ErrorReporter(ErrorReporter.AnsiColors),
-                        val assemble: Boolean = true)
+                        val assemble: Boolean = true,
+                        val generateDocumentation: Boolean = false)
 
 
 fun compileProgram(args: CompilerArguments): CompilationResult? {
@@ -170,6 +171,13 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
             if(compilationOptions.dumpSymbols) {
                 // symbol dump was printed, skip rest of compilation
                 // (import files have no main block, so optimization would crash)
+                return CompilationResult(
+                    resultingProgram, null, null, compilationOptions, importedFiles
+                )
+            }
+
+            if(args.generateDocumentation && args.errors.noErrors()) {
+                printDocumentation(resultingProgram)
                 return CompilationResult(
                     resultingProgram, null, null, compilationOptions, importedFiles
                 )
