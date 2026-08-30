@@ -3946,62 +3946,49 @@ $endLabel""")
     }
 
     /**
-     * Compute the address of a struct-array element with a variable index into a zeropage pointer.
-     * Uses full 16-bit scaling so it works for indices whose offset exceeds 255 bytes.
+     * Compute 8-bit offset Y = idx*structSize + fieldOffset for a struct-array element.
+     * Assumes totalBytes <=256 so offset fits in Y. Uses A/Y and multiply_bytes when needed.
      */
-    internal fun computeStructArrayElementAddress(arrayDt: DataType, arraySymbol: String, indexExpr: PtExpression, destPtrVar: String = "P8ZP_SCRATCH_PTR") {
+    internal fun computeStructArrayOffsetY(arrayDt: DataType, indexExpr: PtExpression, fieldOffset: Int = 0) {
         require(arrayDt.sub == BaseDataType.STRUCT_INSTANCE) { "expected struct instance array $arrayDt" }
-
         val structSize = try {
             (arrayDt.subType as? StStruct)?.size?.toInt() ?: program.memsizer.memorySize(arrayDt.elementType(), 1)
         } catch(_: Exception) {
             program.memsizer.memorySize(arrayDt.elementType(), 1)
-        }.toUInt()
-
-        // load index as word
-        asmgen.assignExpressionToVariable(indexExpr, "P8ZP_SCRATCH_W1", DataType.UWORD)
-
-        // scale by struct size (preserve full 16 bits)
-        when(structSize) {
-            1u -> {}
-            2u -> asmgen.out("  asl  P8ZP_SCRATCH_W1 |  rol  P8ZP_SCRATCH_W1+1")
-            4u -> asmgen.out("  asl  P8ZP_SCRATCH_W1 |  rol  P8ZP_SCRATCH_W1+1 |  asl  P8ZP_SCRATCH_W1 |  rol  P8ZP_SCRATCH_W1+1")
-            8u -> asmgen.out("  asl  P8ZP_SCRATCH_W1 |  rol  P8ZP_SCRATCH_W1+1 |  asl  P8ZP_SCRATCH_W1 |  rol  P8ZP_SCRATCH_W1+1 |  asl  P8ZP_SCRATCH_W1 |  rol  P8ZP_SCRATCH_W1+1")
-            else -> {
-                if(structSize.toInt() in asmgen.optimizedWordMultiplications) {
-                    asmgen.out("""
-                        lda  P8ZP_SCRATCH_W1
-                        ldy  P8ZP_SCRATCH_W1+1
-                        jsr  prog8_math.mul_word_${structSize}
-                        sta  P8ZP_SCRATCH_W1
-                        sty  P8ZP_SCRATCH_W1+1""")
-                } else {
-                    asmgen.out("""
-                        lda  P8ZP_SCRATCH_W1
-                        ldy  P8ZP_SCRATCH_W1+1
-                        sta  prog8_math.multiply_words.multiplier
-                        sty  prog8_math.multiply_words.multiplier+1
-                        lda  #<$structSize
-                        ldy  #>$structSize
-                        jsr  prog8_math.multiply_words
-                        sta  P8ZP_SCRATCH_W1
-                        sty  P8ZP_SCRATCH_W1+1""")
-                }
-            }
         }
+        // load idx into A
+        asmgen.assignExpressionToRegister(indexExpr, RegisterOrPair.A)
+        when(structSize) {
+            1 -> {}
+            2 -> asmgen.out("  asl  a")
+            4 -> asmgen.out("  asl  a |  asl  a")
+            8 -> asmgen.out("  asl  a |  asl  a |  asl  a")
+            else -> asmgen.out("  ldy  #$structSize |  jsr  prog8_math.multiply_bytes")
+        }
+        if(fieldOffset!=0) {
+            asmgen.out("  clc |  adc  #$fieldOffset")
+        }
+        asmgen.out("  tay")
+    }
 
-        asmgen.out("""
-            lda  #<$arraySymbol
-            sta  $destPtrVar
-            lda  #>$arraySymbol
-            sta  $destPtrVar+1
-            clc
-            lda  $destPtrVar
-            adc  P8ZP_SCRATCH_W1
-            sta  $destPtrVar
-            lda  $destPtrVar+1
-            adc  P8ZP_SCRATCH_W1+1
-            sta  $destPtrVar+1""")
+    internal fun computeStructArrayOffsetA(arrayDt: DataType, indexExpr: PtExpression, fieldOffset: Int = 0) {
+        require(arrayDt.sub == BaseDataType.STRUCT_INSTANCE) { "expected struct instance array $arrayDt" }
+        val structSize = try {
+            (arrayDt.subType as? StStruct)?.size?.toInt() ?: program.memsizer.memorySize(arrayDt.elementType(), 1)
+        } catch(_: Exception) {
+            program.memsizer.memorySize(arrayDt.elementType(), 1)
+        }
+        asmgen.assignExpressionToRegister(indexExpr, RegisterOrPair.A)
+        when(structSize) {
+            1 -> {}
+            2 -> asmgen.out("  asl  a")
+            4 -> asmgen.out("  asl  a |  asl  a")
+            8 -> asmgen.out("  asl  a |  asl  a |  asl  a")
+            else -> asmgen.out("  ldy  #$structSize |  jsr  prog8_math.multiply_bytes")
+        }
+        if(fieldOffset!=0) {
+            asmgen.out("  clc |  adc  #$fieldOffset")
+        }
     }
 
     private fun assignAddressOf(target: AsmAssignTarget, sourceName: String, msb: Boolean, arrayDt: DataType?, arrayIndexExpr: PtExpression?) {
@@ -4109,10 +4096,11 @@ $endLabel""")
                             adc  P8ZP_SCRATCH_REG"""
                         )
                     } else if(subtype==BaseDataType.STRUCT_INSTANCE) {
-                        // Use the full 16-bit address computation helper. It evaluates the index itself,
-                        // so the earlier load into A is not needed for this path.
-                        computeStructArrayElementAddress(arrayDt, actualSourceName, arrayIndexExpr, "P8ZP_SCRATCH_PTR")
-                        asmgen.out("  lda  P8ZP_SCRATCH_PTR |  ldy  P8ZP_SCRATCH_PTR+1")
+                        computeStructArrayOffsetA(arrayDt, arrayIndexExpr, 0)
+                        asmgen.out("  sta  P8ZP_SCRATCH_REG")
+                        asmgen.out("  lda  #<$actualSourceName |  clc |  adc  P8ZP_SCRATCH_REG |  sta  P8ZP_SCRATCH_W1")
+                        asmgen.out("  lda  #>$actualSourceName |  adc  #0 |  sta  P8ZP_SCRATCH_W1+1")
+                        asmgen.out("  lda  P8ZP_SCRATCH_W1 |  ldy  P8ZP_SCRATCH_W1+1")
                         assignRegisterpairWord(target, RegisterOrPair.AY)
                         return
                     } else throw AssemblyError("weird type $subtype")
@@ -5929,10 +5917,11 @@ $endLabel""")
                     val arrayId = addressOf.identifier
                     val arrayDt = arrayId?.type
                     if(arrayDt?.sub == BaseDataType.STRUCT_INSTANCE) {
+                        val base = asmgen.asmSymbolName(arrayId)
                         if(byteValue==null) asmgen.out("  pha")
-                        computeStructArrayElementAddress(arrayDt, asmgen.asmSymbolName(arrayId), addressOf.arrayIndexExpr!!, "P8ZP_SCRATCH_PTR")
+                        computeStructArrayOffsetY(arrayDt, addressOf.arrayIndexExpr!!, 0)
                         if(byteValue==null) asmgen.out("  pla") else asmgen.out("  lda  #${byteValue.toHex()}")
-                        asmgen.out("  ldy  #0 |  sta  (P8ZP_SCRATCH_PTR),y")
+                        asmgen.out("  sta  $base,y")
                     } else {
                         TODO("address-of array element $addressOf")
                     }
@@ -5957,10 +5946,11 @@ $endLabel""")
                     val arrayDt = arrayId?.type
                     if(addrOf!=null && addrOf.isFromArrayElement && arrayDt?.sub == BaseDataType.STRUCT_INSTANCE && result.second is PtNumber) {
                         val offset = (result.second as PtNumber).number.toInt()
+                        val base = asmgen.asmSymbolName(arrayId)
                         if(byteValue==null) asmgen.out("  pha")
-                        computeStructArrayElementAddress(arrayDt, asmgen.asmSymbolName(arrayId), addrOf.arrayIndexExpr!!, "P8ZP_SCRATCH_PTR")
+                        computeStructArrayOffsetY(arrayDt, addrOf.arrayIndexExpr!!, offset)
                         if(byteValue==null) asmgen.out("  pla") else asmgen.out("  lda  #${byteValue.toHex()}")
-                        asmgen.out("  ldy  #$offset |  sta  (P8ZP_SCRATCH_PTR),y")
+                        asmgen.out("  sta  $base,y")
                         return
                     }
                     val addressOfIdentifier = addrOf?.identifier

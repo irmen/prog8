@@ -784,15 +784,14 @@ class Antlr2KotlinVisitor(val source: SourceCode, private val target: ICompilati
     }
 
     override fun visitStaticstructinitializer(ctx: StaticstructinitializerContext): StaticStructInitializer {
-        if(ctx.POINTER()==null)
-            throw SyntaxError("struct initializer requires '^^' before struct name", ctx.toPosition())
+        val isPointer = ctx.POINTER()!=null
         val struct = ctx.scoped_identifier().accept(this) as IdentifierReference
         val array = ctx.arrayliteral()
         val args = if(array==null) mutableListOf<Expression>() else {
             val arrayLiteral = array.accept(this) as ArrayLiteral
             arrayLiteral.value.toMutableList()
         }
-        return StaticStructInitializer(struct, args, ctx.toPosition())
+        return StaticStructInitializer(struct, args, ctx.toPosition(), isPointer)
     }
 
     private fun flattenArrayLiteral(expr: Expression): List<Expression> {

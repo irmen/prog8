@@ -228,12 +228,21 @@ You can copy one whole element to another with a single assignment; the compiler
 
     enemies[i] = enemies[j]
 
-Array-of-struct variables can also be statically initialized by nesting struct initializers inside an array literal::
+Array-of-struct variables can also be statically initialized by nesting struct initializers inside an array literal.
+The initializer elements are struct values, not pointer allocations, so you must not use ``^^``.
+You can write them with an explicit type or let the compiler infer it::
 
     Enemy[3] squad = [
-        ^^Enemy : [10, 20, 100, false],
-        ^^Enemy : [30, 40, 200, true],
-        ^^Enemy : [50, 60, 150, false]
+        Enemy : [10, 20, 100, false],
+        Enemy : [30, 40, 200, true],
+        Enemy : [50, 60, 150, false]
+    ]
+
+    ; inferred form (preferred)
+    Enemy[3] squad2 = [
+        [10, 20, 100, false],
+        [30, 40, 200, true],
+        [50, 60, 150, false]
     ]
 
 The struct size counts toward the same target size limits as other arrays.

@@ -2243,7 +2243,8 @@ class ArrayIndexedPtrDereference(
 
 class StaticStructInitializer(var structname: IdentifierReference,
                               val args: MutableList<Expression>,
-                              override val position: Position) : Expression() {
+                              override val position: Position,
+                              val isPointer: Boolean = true) : Expression() {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -2252,7 +2253,7 @@ class StaticStructInitializer(var structname: IdentifierReference,
         args.forEach { it.linkParents(this) }
     }
 
-    override fun copy() = StaticStructInitializer(structname.copy(), args.map { it.copy() }.toMutableList(), position)
+    override fun copy() = StaticStructInitializer(structname.copy(), args.map { it.copy() }.toMutableList(), position, isPointer)
     override val isSimple = args.all { it.isSimple }
     override fun isIORead(target: ICompilationTarget) = false
     override fun replaceChildNode(node: Node, replacement: Node) {

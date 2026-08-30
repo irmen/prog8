@@ -2250,10 +2250,11 @@ $repeatLabel""")
                         val arrayId = addrOf.identifier
                         val arrayDt = arrayId?.type
                         if(arrayDt?.sub == BaseDataType.STRUCT_INSTANCE) {
+                            val base = asmSymbolName(arrayId)
                             out("  pha")
-                            assignmentAsmGen.computeStructArrayElementAddress(arrayDt, asmSymbolName(arrayId), addrOf.arrayIndexExpr!!, "P8ZP_SCRATCH_PTR")
+                            assignmentAsmGen.computeStructArrayOffsetY(arrayDt, addrOf.arrayIndexExpr!!, constOffset)
                             out("  pla")
-                            out("  ldy  #$constOffset |  sta  (P8ZP_SCRATCH_PTR),y")
+                            out("  sta  $base,y")
                             return true
                         }
                         TODO("address-of array element ${addrOf.position}")
@@ -2305,8 +2306,9 @@ $repeatLabel""")
                     val arrayId = addrOf.identifier
                     val arrayDt = arrayId?.type
                     if(arrayDt?.sub == BaseDataType.STRUCT_INSTANCE) {
-                        assignmentAsmGen.computeStructArrayElementAddress(arrayDt, asmSymbolName(arrayId), addrOf.arrayIndexExpr!!, "P8ZP_SCRATCH_PTR")
-                        out("  ldy  #$constOffset |  lda  (P8ZP_SCRATCH_PTR),y")
+                        val base = asmSymbolName(arrayId)
+                        assignmentAsmGen.computeStructArrayOffsetY(arrayDt, addrOf.arrayIndexExpr!!, constOffset)
+                        out("  lda  $base,y")
                         return true
                     }
                     TODO("address-of array element ${addrOf.position}")

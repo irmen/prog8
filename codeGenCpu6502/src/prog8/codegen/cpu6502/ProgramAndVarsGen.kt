@@ -944,7 +944,7 @@ internal class ProgramAndVarsGen(
                     }
                 } else {
                     // initialized struct array: value contains StructInstance elements
-                    asmgen.out(varname)
+                    asmgen.out("$varname     ; array of ${value.size} ${struct.name} structs")
                     // expand struct field types for per-element handling
                     val expandedFieldTypes = struct.fields.flatMap { field ->
                         val arraySz = field.arraySize
@@ -956,7 +956,11 @@ internal class ProgramAndVarsGen(
                         val fieldValues = instance.initialValues
                         require(fieldValues.size==expandedFieldTypes.size) { "field count mismatch for $instanceName" }
                         for((fieldType, fieldVal) in expandedFieldTypes.zip(fieldValues)) {
-                            val num = (fieldVal as? StArrayElement.Number)?.value ?: throw AssemblyError("struct field value must be number for $varname")
+                            val num = when(fieldVal) {
+                                is StArrayElement.Number -> fieldVal.value
+                                is StArrayElement.BoolValue -> if(fieldVal.value) 1.0 else 0.0
+                                else -> throw AssemblyError("struct field value must be number for $varname (got $fieldVal)")
+                            }
                             when {
                                 fieldType.isByteOrBool -> asmgen.out("  .byte  ${num.toInt()}")
                                 fieldType.isWord -> asmgen.out("  .word  ${num.toInt()}")

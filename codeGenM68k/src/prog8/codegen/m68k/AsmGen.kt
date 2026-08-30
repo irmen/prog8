@@ -858,14 +858,14 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
             dt.isString && init is IRVariableInitializer.Str -> {
                 val bytes = program.encoding.encodeString(init.text, init.encoding)
                 val bytesStr = if(bytes.isNotEmpty()) bytes.joinToString(",") { it.toString(10) } + "," else ""
-                emitLine("    ALIGN  2")
-                emitLine("$label:")
+                emitLine("ALIGN  2")
+                emitRaw("$label:")
                 emitLine("dc.b  ${bytesStr}0", v.name)
             }
             dt.isArray && init is IRVariableInitializer.Array -> {
                 if(dt.sub==BaseDataType.STRUCT_INSTANCE) {
-                    emitLine("    ALIGN  2")
-                    emitLine("$label:")
+                    emitLine("ALIGN  2")
+                    emitRaw("$label:")
                     for(elt in init.elements) {
                         val sym = (elt as? IRStSymbolicReference.Symbol)?.name ?: error("expected struct instance symbol for ${v.name}")
                         val instanceName = sym.removePrefix("@")
@@ -906,18 +906,18 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
                     }
                     when (elemSize) {
                         1 -> {
-                            emitLine("    ALIGN  2")
-                            emitLine("$label:")
+                            emitLine("ALIGN  2")
+                            emitRaw("$label:")
                             emitLine("dc.b  ${values.joinToString(",")}", v.name)
                         }
                         2 -> {
-                            emitLine("    ALIGN  2")
-                            emitLine("$label:")
+                            emitLine("ALIGN  2")
+                            emitRaw("$label:")
                             emitLine("dc.w  ${values.joinToString(",")}", v.name)
                         }
                         4 -> {
-                            emitLine("    ALIGN  $elemSize")
-                            emitLine("$label:")
+                            emitLine("ALIGN  $elemSize")
+                            emitRaw("$label:")
                             emitLine("dc.l  ${values.joinToString(",")}", v.name)
                         }
                         else -> error("expected array element size 1,2 or 4 for ${v.name}")
@@ -937,29 +937,29 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
                 }
                 when(dt) {
                     DataType.BYTE, DataType.UBYTE, DataType.BOOL -> {
-                        emitLine("$label:")
+                        emitRaw("$label:")
                         emitLine("dc.b  $initValue", v.name)
                     }
                     DataType.WORD, DataType.UWORD -> {
-                        emitLine("    ALIGN  2")
-                        emitLine("$label:")
+                        emitLine("ALIGN  2")
+                        emitRaw("$label:")
                         emitLine("dc.w  $initValue", v.name)
                     }
                     DataType.LONG -> {
-                        emitLine("    ALIGN  4")
-                        emitLine("$label:")
+                        emitLine("ALIGN  4")
+                        emitRaw("$label:")
                         emitLine("dc.l  $initValue", v.name)
                     }
                     DataType.FLOAT -> {
-                        emitLine("    ALIGN  4")
-                        emitLine("$label:")
+                        emitLine("ALIGN  4")
+                        emitRaw("$label:")
                         emitLine("dc.s  $initFloat", v.name)
                     }
                     else -> TODO("initialization value for dt $dt variable ${v.name}")
                 }
             }
             else -> {
-                emitLine("$label:")
+                emitRaw("$label:")
                 emitLine("dc.b  0", v.name)
             }
         }

@@ -678,7 +678,7 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
     }
 
     override fun visit(initializer: StaticStructInitializer) {
-        output("^^")
+        if(initializer.isPointer) output("^^")
         initializer.structname.accept(this)
         output(" : ")
         outputListMembers(initializer.args.toTypedArray())

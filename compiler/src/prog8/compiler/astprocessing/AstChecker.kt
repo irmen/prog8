@@ -1190,6 +1190,14 @@ internal class AstChecker(private val program: Program,
                         dt.isFloatArray ->
                             if(arraySize > floatLimit)
                                 err("float array length must be 1-$floatLimit")
+                        dt.sub==BaseDataType.STRUCT_INSTANCE -> {
+                            val structSize = (dt.subType as? StructDecl)?.memsize(options.compTarget) ?: 0
+                            if(structSize>0) {
+                                val totalBytes = arraySize * structSize
+                                if(totalBytes > byteLimit || structSize > byteLimit)
+                                    err("array size $structSize exceeds target limit $byteLimit bytes")
+                            }
+                        }
                         else -> {}
                     }
                 }
@@ -1310,6 +1318,14 @@ internal class AstChecker(private val program: Program,
                     decl.datatype.isFloatArray -> {
                         if (length == 0 || length > floatLimit)
                             err("float array length must be 1-$floatLimit")
+                    }
+                    decl.datatype.sub==BaseDataType.STRUCT_INSTANCE -> {
+                        val structSize = (decl.datatype.subType as? StructDecl)?.memsize(options.compTarget) ?: 0
+                        if(structSize>0) {
+                            val totalBytes = length * structSize
+                            if(totalBytes==0 || totalBytes > byteLimit)
+                                err("array size $totalBytes exceeds target limit $byteLimit bytes")
+                        }
                     }
                     else -> {
                     }
@@ -1542,19 +1558,21 @@ internal class AstChecker(private val program: Program,
                 errors.err("initialization value contains non-constant elements", array.value[0].position)
             }
 
-            val elementDt = (array.parent as VarDecl).datatype.elementType()
-            if(elementDt.isPointer) {
-                // all elements in the initializer array should be of the same element type
-                array.value.forEach {
-                    val valueDt = it.inferType(program).getOrUndef()
-                    val isAcceptedPtrType = valueDt.isUnsignedWord || (options.compTarget.POINTER_MEM_SIZE > 2u && valueDt.isLong)
-                    if(!isAcceptedPtrType && valueDt != elementDt) {
-                        val expectedExtra = if(options.compTarget.POINTER_MEM_SIZE > 2u) "long" else "uword"
-                        errors.err("struct initializer element has invalid type, expected $elementDt or $expectedExtra but got $valueDt", it.position)
+            val parentDt = (array.parent as VarDecl).datatype
+            if(parentDt.isArray) {
+                val elementDt = parentDt.elementType()
+                if(elementDt.isPointer) {
+                    // all elements in the initializer array should be of the same element type
+                    array.value.forEach {
+                        val valueDt = it.inferType(program).getOrUndef()
+                        val isAcceptedPtrType = valueDt.isUnsignedWord || (options.compTarget.POINTER_MEM_SIZE > 2u && valueDt.isLong)
+                        if(!isAcceptedPtrType && valueDt != elementDt) {
+                            val expectedExtra = if(options.compTarget.POINTER_MEM_SIZE > 2u) "long" else "uword"
+                            errors.err("struct initializer element has invalid type, expected $elementDt or $expectedExtra but got $valueDt", it.position)
+                        }
                     }
                 }
             }
-
         } else if(array.parent is ForLoop) {
             if (!array.value.all { it.constValue(program) != null })
                 errors.err("array literal for iteration must contain constants. Try using a separate array variable instead?", array.position)
@@ -2906,6 +2924,16 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(initializer: StaticStructInitializer) {
+        // Check for incorrect pointer prefix on struct instance array initializers
+        if(initializer.isPointer) {
+            val parent = initializer.parent
+            if(parent is ArrayLiteral) {
+                val varDecl = parent.parent as? VarDecl
+                if(varDecl!=null && varDecl.datatype.sub==BaseDataType.STRUCT_INSTANCE) {
+                    errors.err("struct instance array must be initialized with struct values, not pointer initializers: use 'Type : [...]' without '^^' or inferred '[...]' instead of '^^Type : [...]'", initializer.position)
+                }
+            }
+        }
         val args = initializer.args
         if(args.isNotEmpty()) {
             args.forEach {

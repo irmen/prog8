@@ -66,15 +66,15 @@ private fun AsmGen.translateSyscallWordarrayContains(args: FunctionCallArgs) {
     emitLine("move.b  ${regAddrByte(regLen, 0)}, d1")
     emitLine("subq.w  #1, d1")
     emitLine("bmi  $labelDone       ; length was 0 -> not found")
-    emitLine("$labelLoop:")
+    emitRaw("$labelLoop:")
     emitLine("cmp.w  (a0)+, d0")
     emitLine("beq  $labelFound")
     emitLine("dbra  d1, $labelLoop")
     emitLine("move.b  #0, ${regAddrByte(resultReg, 0)}")
     emitLine("bra  $labelDone")
-    emitLine("$labelFound:")
+    emitRaw("$labelFound:")
     emitLine("move.b  #1, ${regAddrByte(resultReg, 0)}")
-    emitLine("$labelDone:")
+    emitRaw("$labelDone:")
 }
 
 private fun AsmGen.translateSyscallClamp(args: FunctionCallArgs, dt: IRDataType, signed: Boolean) {
@@ -95,11 +95,11 @@ private fun AsmGen.translateSyscallClamp(args: FunctionCallArgs, dt: IRDataType,
             emitLine("$bge  $labelCheckMax")
             emitLine("move.b  ${regAddr(minReg)}, d0")
             emitLine("bra  $labelDone")
-            emitLine("$labelCheckMax:")
+            emitRaw("$labelCheckMax:")
             emitLine("cmp.b  ${regAddr(maxReg)}, d0")
             emitLine("$ble  $labelDone")
             emitLine("move.b  ${regAddr(maxReg)}, d0")
-            emitLine("$labelDone:")
+            emitRaw("$labelDone:")
             emitLine("move.b  d0, ${regAddr(resultReg)}")
         }
         IRDataType.WORD -> {
@@ -108,11 +108,11 @@ private fun AsmGen.translateSyscallClamp(args: FunctionCallArgs, dt: IRDataType,
             emitLine("$bge  $labelCheckMax")
             emitLine("move.w  ${regAddr(minReg)}, d0")
             emitLine("bra  $labelDone")
-            emitLine("$labelCheckMax:")
+            emitRaw("$labelCheckMax:")
             emitLine("cmp.w  ${regAddr(maxReg)}, d0")
             emitLine("$ble  $labelDone")
             emitLine("move.w  ${regAddr(maxReg)}, d0")
-            emitLine("$labelDone:")
+            emitRaw("$labelDone:")
             emitLine("move.w  d0, ${regAddr(resultReg)}")
         }
         IRDataType.LONG -> {
@@ -121,11 +121,11 @@ private fun AsmGen.translateSyscallClamp(args: FunctionCallArgs, dt: IRDataType,
             emitLine("$bge  $labelCheckMax")
             emitLine("move.l  ${regAddr(minReg)}, d0")
             emitLine("bra  $labelDone")
-            emitLine("$labelCheckMax:")
+            emitRaw("$labelCheckMax:")
             emitLine("cmp.l  ${regAddr(maxReg)}, d0")
             emitLine("$ble  $labelDone")
             emitLine("move.l  ${regAddr(maxReg)}, d0")
-            emitLine("$labelDone:")
+            emitRaw("$labelDone:")
             emitLine("move.l  d0, ${regAddr(resultReg)}")
         }
         else -> emitLine("; clamp: unsupported dt $dt")

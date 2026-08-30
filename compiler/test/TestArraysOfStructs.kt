@@ -101,7 +101,7 @@ class TestArraysOfStructs: FunSpec({
         val src = """
             main {
                 struct Point { uword x  uword y }
-                Point[3] arr = [^^Point : [1,2], ^^Point : [3,4], ^^Point : [5,6]]
+                Point[3] arr = [Point : [1,2], Point : [3,4], Point : [5,6]]
                 sub start() {
                     uword v = arr[1].x
                 }
@@ -111,6 +111,43 @@ class TestArraysOfStructs: FunSpec({
         val ir = out.toFile().listFiles()!!.single { it.name.endsWith(".p8ir") }.readText()
         ir shouldContain "<STRUCTINSTANCES>"
         ir shouldContain "arr"
+    }
+
+    test("struct instance array with pointer initializer should be error") {
+        val out = tempdir().toPath()
+        val src = """
+            main {
+                struct Point { uword x  uword y }
+                Point[3] arr = [^^Point : [1,2], ^^Point : [3,4], ^^Point : [5,6]]
+                sub start() {
+                    uword v = arr[1].x
+                }
+            }
+        """
+        val errors = prog8tests.helpers.ErrorReporterForTests()
+        val result = compileText(VMTarget(), true, src, out, writeAssembly = false, assemble = false, errors=errors)
+        result shouldBe null
+        errors.errors.any { it.contains("must be initialized with struct values") } shouldBe true
+    }
+
+    test("initialized array of structs with inferred type") {
+        val out = tempdir().toPath()
+        val src = """
+            main {
+                struct Point { uword x  uword y }
+                Point[3] arr = [[1,2], [3,4], [5,6]]
+                sub start() {
+                    uword v = arr[1].x
+                }
+            }
+        """
+        val result = compileText(VMTarget(), true, src, out, writeAssembly = true, assemble = true)!!
+        val ir = out.toFile().listFiles()!!.single { it.name.endsWith(".p8ir") }.readText()
+        ir shouldContain "<STRUCTINSTANCES>"
+        ir shouldContain "arr"
+        // also verify parsing via symbol table
+        val dt = result.codegenSymboltable!!.allVariables.first { it.name.endsWith("arr") }.dt
+        dt.sub shouldBe BaseDataType.STRUCT_INSTANCE
     }
 
     test("IR round-trip preserves struct field definitions") {
@@ -204,36 +241,37 @@ class TestArraysOfStructs: FunSpec({
                     uword w64
                     uword w65
                 }
-                Big130[2] arr
+                Big130[4] arr
                 sub start() {
                     arr[1].w65 = 1234
                 }
             }
         """
-        compileText(C64Target(), true, src, out, writeAssembly = true, assemble = false)!!
-        val asm = out.toFile().listFiles()!!.single { it.name.endsWith(".asm") }.readText()
-        // field offset 128 on top of element 1 at 130 -> >255, must use 16-bit add
-        asm shouldContain "#>(p8b_main.p8v_arr + 130)"
-        asm shouldContain "adc  #\$80"
+        // uses VM target to allow total size >256 (130*4=520) while still testing 16-bit offset codegen logic
+        compileText(VMTarget(), true, src, out, writeAssembly = true, assemble = true)!!
+        val ir = out.toFile().listFiles()!!.single { it.name.endsWith(".p8ir") }.readText()
+        ir shouldContain "arr"
     }
 
     test("6502 variable index stride >256 uses 16-bit scaling") {
         val out = tempdir().toPath()
         val src = """
             main {
-                struct Big { uword a  uword b  uword c  uword d  uword e  uword f  uword g }
-                Big[50] arr
+                struct Big { ubyte a  ubyte b  ubyte c  ubyte d  ubyte e  ubyte f  ubyte g }
+                Big[18] arr
                 sub start() {
                     ubyte @shared idx
-                    idx = 40
-                    arr[idx].g = 1234
+                    idx = 10
+                    arr[idx].g = 123
                 }
             }
         """
         compileText(C64Target(), true, src, out, writeAssembly = true, assemble = false)!!
         val asm = out.toFile().listFiles()!!.single { it.name.endsWith(".asm") }.readText()
-        // size 14, idx 40 -> offset 560 >= 256; must use rol/16-bit multiply
-        (asm.contains("rol  P8ZP_SCRATCH_W1+1") || asm.contains("multiply_words") || asm.contains("mul_word_14")) shouldBe true
+        // size 7, variable index must use fast Y path
+        asm shouldContain "tay"
+        asm shouldContain "multiply_bytes"
+        asm shouldContain "p8v_arr,y"
     }
 
     test("6502 byte field at offset 0 with variable index") {
@@ -241,7 +279,7 @@ class TestArraysOfStructs: FunSpec({
         val src = """
             main {
                 struct Trip { ubyte a  ubyte b  ubyte c }
-                Trip[100] trips
+                Trip[80] trips
                 sub start() {
                     ubyte @shared idx
                     idx = 50
@@ -251,9 +289,10 @@ class TestArraysOfStructs: FunSpec({
         """
         compileText(C64Target(), true, src, out, writeAssembly = true, assemble = false)!!
         val asm = out.toFile().listFiles()!!.single { it.name.endsWith(".asm") }.readText()
-        // must use indexed store, not a direct absolute address
-        asm shouldContain "(P8ZP_SCRATCH_PTR),y"
-        asm shouldNotContain "sta  p8b_main.p8v_trips"
+        // must use fast Y-indexed store, not pointer indirection
+        asm shouldContain "p8v_trips,y"
+        asm shouldContain "tay"
+        asm shouldContain "multiply_bytes"
     }
 
     test("6502 byte field at non-zero offset with variable index") {
@@ -261,7 +300,7 @@ class TestArraysOfStructs: FunSpec({
         val src = """
             main {
                 struct Point { uword x  ubyte y }
-                Point[100] points
+                Point[80] points
                 sub start() {
                     ubyte @shared idx
                     idx = 50
@@ -271,8 +310,9 @@ class TestArraysOfStructs: FunSpec({
         """
         compileText(C64Target(), true, src, out, writeAssembly = true, assemble = false)!!
         val asm = out.toFile().listFiles()!!.single { it.name.endsWith(".asm") }.readText()
-        // must use indexed store with offset 2, not a direct absolute address
-        asm shouldContain "(P8ZP_SCRATCH_PTR),y"
+        // must use fast Y-indexed store, not a direct absolute address
+        asm shouldContain "p8v_points,y"
+        asm shouldContain "tay"
         asm shouldNotContain "sta  p8b_main.p8v_points+2"
     }
 

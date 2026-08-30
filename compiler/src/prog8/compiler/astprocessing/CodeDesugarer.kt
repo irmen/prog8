@@ -1726,23 +1726,28 @@ _after:
 
     override fun after(array: ArrayLiteral, parent: Node): Iterable<AstModification> {
 
-        fun convertArrayIntoStructInitializer(array: ArrayLiteral, struct: ISubType): StaticStructInitializer {
+        fun convertArrayIntoStructInitializer(array: ArrayLiteral, struct: ISubType, isPointer: Boolean): StaticStructInitializer {
             val structname = IdentifierReference(struct.scopedNameString.split("."), array.position)
-            return StaticStructInitializer(structname, array.value.toMutableList(), array.position)
+            return StaticStructInitializer(structname, array.value.toMutableList(), array.position, isPointer)
         }
 
         if(parent is VarDecl) {
-            if (parent.datatype.elementType().isPointer && parent.datatype.elementType().subType!=null) {
-                val struct = parent.datatype.elementType().subType as StructDecl
+            if(!parent.datatype.isArray) return noModifications
+            val elemDt = parent.datatype.elementType()
+            val isStructPointerElem = elemDt.isPointer && elemDt.subType!=null
+            val isStructInstanceElem = elemDt.isStructInstance && elemDt.subType!=null
+            if (isStructPointerElem || isStructInstanceElem) {
+                val struct = elemDt.subType as StructDecl
+                val isPointer = isStructPointerElem
                 val allremovals = mutableListOf<VarDecl>()
                 var changes = false
                 array.value.withIndex().forEach { (index, elt) ->
                     if(elt is ArrayLiteral) {
-                        array.value[index] = convertArrayIntoStructInitializer(elt, struct)
+                        array.value[index] = convertArrayIntoStructInitializer(elt, struct, isPointer)
                         changes = true
                     } else if(elt is IdentifierReference) {
                         val arrayvar = elt.targetVarDecl()!!.value as ArrayLiteral
-                        array.value[index] = convertArrayIntoStructInitializer(arrayvar, struct)
+                        array.value[index] = convertArrayIntoStructInitializer(arrayvar, struct, isPointer)
                         allremovals += elt.targetVarDecl()!!
                         changes = true
                     }
@@ -1758,7 +1763,7 @@ _after:
             val targetDt = parent.target.inferType(program).getOrUndef()
             if(targetDt.isPointer && targetDt.subType!=null) {
                 val struct = targetDt.subType as StructDecl
-                val initializser = convertArrayIntoStructInitializer(array, struct)
+                val initializser = convertArrayIntoStructInitializer(array, struct, true)
                 return listOf(AstReplaceNode(array, initializser, parent))
             }
         }

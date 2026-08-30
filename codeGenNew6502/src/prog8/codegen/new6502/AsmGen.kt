@@ -858,7 +858,7 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
         emitRaw("; float constants")
         for ((value, label) in floatConsts) {
             val bytes = target.getFloatAsmBytes(value)
-            emitLine("$label  .byte  $bytes", "float $value")
+            emitRaw("$label  .byte  $bytes    ; float $value")
         }
         emitRaw("")
     }
@@ -1007,7 +1007,7 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
                             emitLine(".byte  ${chunk.joinToString(", ")}")
                         }
                     }
-                    else -> emitLine("$label  .byte  ?")
+                    else -> emitRaw("$label  .byte  ?")
                 }
             }
 
@@ -1063,9 +1063,9 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
                     }
                     // Use .fill for zero-initialized arrays (no explicit init values)
                     if (!hasExplicitInit && values.all { it == "0" || it == $$"$00" }) {
-                        emitLine("$label  .fill  ${values.size}")
+                        emitRaw("$label  .fill  ${values.size}")
                     } else if (values.size <= 16) {
-                        emitLine("$label  $directive ${values.joinToString(",")}")
+                        emitRaw("$label  $directive ${values.joinToString(",")}")
                     } else {
                         emitLabel(label)
                         for (chunk in values.chunked(16)) {
@@ -1079,11 +1079,11 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
                 when (init) {
                     is IRVariableInitializer.Numeric -> {
                         val bytes = target.getFloatAsmBytes(init.value)
-                        emitLine("$label  .byte  $bytes  ; float ${init.value}")
+                        emitRaw("$label  .byte  $bytes  ; float ${init.value}")
                     }
                     else -> {
                         val bytes = List(target.FLOAT_MEM_SIZE.toInt()) { 0 }.joinToString(",") { $$"$00" }
-                        emitLine("$label  .byte  $bytes  ; float 0")
+                        emitRaw("$label  .byte  $bytes  ; float 0")
                     }
                 }
             }
@@ -1100,7 +1100,7 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
                     dt.isLong -> ".long"
                     else -> TODO("unexpected dt for var: $dt  ${v.name}")
                 }
-                emitLine("$label  $directive $value")
+                emitRaw("$label  $directive $value")
             }
         }
     }
@@ -1266,9 +1266,9 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
         }
 
         if (directive == ".fill") {
-            emitLine("$label  .fill  $count")
+            emitRaw("$label  .fill  $count")
         } else {
-            emitLine("$label  $directive  ?")
+            emitRaw("$label  $directive  ?")
         }
     }
 
