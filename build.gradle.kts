@@ -72,16 +72,20 @@ subprojects {
         // Enable JUnit 5 (required for Kotest)
         useJUnitPlatform()
 
+        val testConcurrency = project.findProperty("testConcurrency")?.toString()?.toIntOrNull()
+            ?: (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1)
+        project.findProperty("testMaxHeap")?.toString()?.let { maxHeapSize = it }
+
         // Enable concurrent test execution for Kotest
-        // Set parallelism to number of CPU cores
-        jvmArgs("-Dkotest.framework.parallelism=${Runtime.getRuntime().availableProcessors()}")
+        // Allow CI to override parallelism for memory-constrained runners
+        jvmArgs("-Dkotest.framework.parallelism=$testConcurrency")
 
         // Disable Kotest autoscan warning
         jvmArgs("-Dkotest.framework.classpath.scanning.autoscan.disable=true")
 
         // Enable Gradle's parallel test execution (runs multiple test classes concurrently)
         // Use 50% of available processors to avoid over-subscription
-        maxParallelForks = (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1)
+        maxParallelForks = testConcurrency
 
         // Allow filtering tests via -PtestFilter="*TestName*" from command line
         // Example: gradle test -PtestFilter="*TestLookup*"

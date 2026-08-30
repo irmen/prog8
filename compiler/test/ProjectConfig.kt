@@ -5,10 +5,14 @@ import io.kotest.core.spec.SpecExecutionOrder
 import io.kotest.core.test.TestCaseOrder
 import io.kotest.engine.concurrency.SpecExecutionMode
 
+private val testParallelism = System.getProperty("kotest.framework.parallelism")?.toIntOrNull()
+    ?.coerceAtLeast(1)
+    ?: (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1)
+
 object ProjectConfig : AbstractProjectConfig() {
     override val testCaseOrder = TestCaseOrder.Lexicographic
     override val specExecutionOrder = SpecExecutionOrder.Lexicographic
-    override val specExecutionMode = SpecExecutionMode.LimitedConcurrency(kotlin.math.max(1, Runtime.getRuntime().availableProcessors()/2))
+    override val specExecutionMode = SpecExecutionMode.LimitedConcurrency(testParallelism)
     // override fun listeners() = listOf(SystemOutToNullListener)
 }
 
