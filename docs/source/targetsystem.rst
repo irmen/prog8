@@ -6,7 +6,8 @@ Target system specification
 Prog8 targets the following hardware:
 
 - 8 bit MOS 6502/65c02/6510 CPU
-- 64 Kb addressable memory (RAM or ROM)
+- 32 bit Motorola 68000 CPU
+- 64 Kb addressable memory (RAM or ROM) on 6502 targets, 16 Mb on m68k and virtual targets
 - optional use of memory-mapped I/O registers
 - optional use of system ROM routines
 
@@ -16,10 +17,13 @@ Currently these machines can be selected as a compilation target (via the ``-tar
 - 'cx16': the `Commander X16 <https://www.commanderx16.com/>`_
 - 'c128': the Commodore 128
 - 'pet32': the Commodore PET 4032
-- 'virtual': a builtin virtual machine
+- 'qemu68k': Qemu M68k simulator (experimental)
+- 'amiga500': Amiga 500 (experimental)
+- 'virtual': a builtin virtual machine (32-bit pointers, 16 MB memory)
 - custom targets via a separate configuration file (see :ref:`customizable_target`)
 
 This chapter explains some relevant system details of the c64 and cx16 machines.
+Details about the m68k targets are in the :ref:`amiga500 footnotes <amiga500footnotes>` below.
 
 .. hint::
     If you only use standard Kernal and prog8 library routines,
@@ -71,10 +75,28 @@ The ``launcher`` property lets you set the default launcher type for all program
 without requiring a ``%launcher`` directive in every source file. Valid values are ``basic`` (CBM-BASIC SYS launcher)
 and ``none`` (no launcher). If omitted, the default is ``basic``.
 
+The optional ``pointer_size`` property sets the size of pointers in bytes. It defaults to ``2`` for compatibility
+with existing configuration files. The supported values are ``2`` and ``4``.
+
 
 Memory Model
 ============
 .. index:: single: Targets; Memory model
+
+.. _pointer_size:
+
+Pointer size
+------------
+The size of a pointer (memory address) depends on the target's CPU architecture:
+
+- **6502-family targets** (c64, cx16, c128, pet32): **2 bytes** (16-bit address space, 64 KB)
+- **m68k targets** (amiga500, qemu68k): **4 bytes** (32-bit address space, 16 MB)
+- **virtual target**: **4 bytes** (32-bit address space, 16 MB)
+
+The ``pointer`` type keyword automatically takes the correct size for the target,
+making it the natural choice for variables that hold a memory address in portable code.
+On 6502 targets it is equivalent to ``uword``; on m68k and virtual targets it is equivalent to ``long``.
+Alternatively, you can use ``uword`` or ``long`` directly if you know the target in advance.
 
 Generic 6502 Physical address space layout
 ------------------------------------------
@@ -157,6 +179,55 @@ Footnotes for the Commodore 128
     This gives about 41 Kb of contiguous RAM for Prog8 programs.
 
 
+Footnotes for the Amiga 500
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. _amiga500footnotes:
+.. index:: single: Targets; Amiga 500 notes
+
+The amiga500 target is **experimental**. It uses the M68k code generator backend and produces
+Amiga Hunk executable files via the vasm assembler.
+
+Unlike the 6502 targets, the 68000 CPU is **big endian**: multi-byte values (words, 32-bit longs and
+pointers) are stored Most Significant Byte first in memory. See :ref:`pointer_size` and
+:ref:`the endianness notes <endianness>` in the variables chapter.
+
+The ``-emu`` flag uses **Vamos** from the `Amitools <https://github.com/cnvogelg/amitools>`_ package
+to run the compiled program. Vamos is a very limited Amiga runtime that runs on the host operating system
+directly - it is **not** a full Amiga emulator. Many AmigaOS library calls and features are not supported
+or behave differently. For best results, copy the generated executable to a proper Amiga emulator such as
+`WinUAE <https://www.winuae.net/>`_ or `FS-UAE <https://fs-uae.net/>`_ and run it there instead.
+
+Blocks can opt-in to living in Amiga CHIP RAM via the ``%option amiga_chipram`` block-level option;
+see the :ref:`directives` for details on the ``%option`` directive.
+
+**Command-line arguments:**
+When a program is launched from the Amiga CLI (shell), command-line arguments are available via
+``sys.arguments``. This is a pointer to a null-terminated string containing the arguments. If the
+program is launched from Workbench (GUI), ``sys.arguments`` is NULL. Example::
+
+    %import textio
+    main {
+        sub start() {
+            if sys.arguments != 0 {
+                txt.print("Arguments: ")
+                txt.print(sys.arguments)
+                txt.print("\n")
+            } else {
+                txt.print("Launched from Workbench\n")
+            }
+        }
+    }
+
+Note: Do not use ``%option no_sysinit`` on amiga500 programs that need CLI argument handling,
+as the startup code is required to capture and process the arguments.
+
+**Icon library and Tooltypes:**
+Amiga programs launched from Workbench don't have an arguments string, but they can read
+configuration from their icon's Tooltypes using the ``icon`` module. Tooltypes are stored in the program's .info file and can be
+accessed via ``icon.GetDiskObject()``, ``icon.FindToolType()``, and ``icon.MatchToolValue()``.
+Note: Check that ``sys.IconBase`` is non-zero before using icon functions.
+
+
 Zero page usage by the Prog8 compiler
 -------------------------------------
 .. index:: single: Targets; Zero page usage
@@ -210,6 +281,13 @@ builtin functions (``set_carry()``, ``clear_carry()``, ``set_irqd()``,  ``clear_
 and read via the ``read_flags()`` function.  With the special status branch statements like ``if_cc``,
 ``if_cs`` etc you can branch directly on the status of the flags.
 
+.. note::
+   On M68k targets, ``set_carry()`` and ``clear_carry()`` also affect the X (extend) flag,
+   because the rotate instructions (``rol``, ``ror``) use the X bit as the rotate-carry
+   rather than the C bit that is used for comparisons.  ``set_carry``/``clear_carry`` manage
+   both bits to keep them in sync.  On 6502-based targets there is a single carry flag and
+   this distinction does not arise.
+
 The 16 'virtual' 16-bit registers that are defined on the Commander X16 machine are not real hardware
 registers and are just 16 memory-mapped word values that you *can* access directly from everywhere.
 
@@ -217,6 +295,11 @@ registers and are just 16 memory-mapped word values that you *can* access direct
 IRQ Handling (general)
 ======================
 .. index:: single: Targets; IRQ Handling
+
+The IRQ facilities described here apply to the CBM 6502-based targets (c64, c128, pet32, cx16) only.
+The m68k targets do not provide them: the amiga500 has none of these routines (interrupt handling
+there is done via the AmigaOS, which is out of scope for these convenience routines) and the qemu68k
+simulator only offers the interrupt disable/enable helpers.
 
 Normally, the system's default IRQ handling is not interfered with.
 You can however install your own IRQ handler (for clean separation, it is advised to define it inside its own block).

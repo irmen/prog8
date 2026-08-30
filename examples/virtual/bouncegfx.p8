@@ -4,7 +4,7 @@
 
 main  {
 
-    const ubyte MAX_PARTICLES = 128
+    const MAX_PARTICLES = 128
 
     sub start() {
         word[MAX_PARTICLES] particleX
@@ -30,8 +30,6 @@ main  {
         }
 
         sub fade() {
-            uword xx
-            uword yy
             for yy in 0 to 239 {
                 for xx in 0 to 319 {
                     ubyte pixel = sys.gfx_getpixel(xx, yy)

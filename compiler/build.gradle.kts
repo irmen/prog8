@@ -11,17 +11,19 @@ dependencies {
     implementation(project(":codeOptimizers"))
     implementation(project(":compilerAst"))
     implementation(project(":codeGenCpu6502"))
+    implementation(project(":codeGenNew6502"))
+    implementation(project(":codeGenM68k"))
     implementation(project(":codeGenIntermediate"))
     implementation(project(":intermediate"))
     implementation(project(":virtualmachine"))
-    implementation("org.jetbrains.kotlinx:kotlinx-cli:0.3.6")
+    implementation("com.github.ajalt.clikt:clikt:5.0.3")
     implementation("com.michael-bull.kotlin-result:kotlin-result-jvm:2.3.1")
 
     testImplementation(project(":codeCore"))
     testImplementation(testFixtures(project(":codeCore")))
     testImplementation(project(":intermediate"))
     testImplementation("io.kotest:kotest-runner-junit5")
-    testImplementation("com.github.irmen:ksim65:v2.1")
+    testImplementation("org.codeberg.irmen:ksim65:v2.2")
 }
 
 // Exclude transitive antlr4 dependency (we only need it in parser module)
@@ -41,7 +43,11 @@ application {
 tasks.shadowJar {
     archiveBaseName.set("prog8c")
     archiveVersion.set(version.toString())
-    duplicatesStrategy = DuplicatesStrategy.WARN
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+    mergeServiceFiles()
+    filesMatching("META-INF/LICENSE") {
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    }
     // minimize()
 }
 

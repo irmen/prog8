@@ -4,7 +4,6 @@
 
 main {
     sub start() {
-        ubyte i
         for i in 0 to 7 {
             c64.set_sprite_ptr(i, &spritedata.balloonsprite)           ; alternatively, set directly:  c64.SPRPTR[i] = $0a00 / 64
         }
@@ -30,6 +29,8 @@ irq {
             c64.SPXYW[spri] = mkword(y, lsb(x))
             if msb(x)!=0
                 sys.set_carry()
+            else
+                sys.clear_carry()
             rol(c64.MSIGX)
         }
         c64.EXTCOL-=8

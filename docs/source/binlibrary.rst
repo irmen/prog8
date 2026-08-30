@@ -7,6 +7,13 @@ Binary Loadable Libraries
 
 **also called 'Library Blobs'.**
 
+.. note::
+    Binary loadable libraries are a facility for the 6502-based targets only. They exist to work
+    around those systems' limited amount of RAM, by loading parts of a program on demand into a
+    fixed memory area. The m68k targets do not support them (``%output library`` is an error there)
+    and have no need for them: there is plenty of RAM available to simply create large programs
+    in one piece.
+
 Prog8 allows you to create binary library files that contain routines callable by other programs.
 Those programs can be written in Prog8, BASIC, or something else. They just LOAD the binary library
 file into memory, and call the routines.
@@ -97,7 +104,9 @@ From Prog8, declare it as a plain ``extsub`` (not ``@bank``)::
 
     extsub $A000 = lib_init()
 
-From BASIC::
+From BASIC:
+
+.. code-block:: text
 
     SYS $A000 : REM TO INITIALIZE VARIABLES, REQUIRED!
 
@@ -122,6 +131,11 @@ The following example library source shows a minimal ``start()``::
 Jump table
 ^^^^^^^^^^
 .. index:: single: Libraries; Jump table
+
+.. note::
+    The ``%jmptable`` directive described below is currently only supported on 6502 targets (c64, cx16, c128, pet32).
+    It is not available on M68K targets (amiga500, qemu68k) because loadable library support
+    has not been implemented for those platforms yet.
 
 For ease of use, libraries should probably have a fixed "jump table" where the offsets of the
 library routines stay the same across different versions of the library. Without needing new syntax,
@@ -148,7 +162,9 @@ Assuming the load address of the library is $A000:
 
 .. index:: single: Examples; Library from BASIC
 
-**From BASIC**::
+**From BASIC**:
+
+.. code-block:: text
 
     BLOAD "LIBRARY.BIN",8,1,$A000
     SYS $A000 : REM TO INITIALIZE VARIABLES, REQUIRED!
@@ -186,7 +202,9 @@ differences if you want to write portable code)::
 
 .. index:: single: Examples; Library from C
 
-**From C**::
+**From C**:
+
+.. code-block:: c
 
     #include <cbm.h>
 
@@ -207,7 +225,9 @@ differences if you want to write portable code)::
 
 .. index:: single: Examples; Library from Assembly
 
-**From Assembly**::
+**From Assembly**:
+
+.. code-block:: text
 
     ; add error handling as desired.
         ldy  #>libname

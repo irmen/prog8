@@ -161,7 +161,7 @@ Major breaking changes that require code modifications when upgrading:
     - **``peekw()``, ``pokew()``** — word memory access
     - **IRQ handling routines** for CX16
     - **Improved RNG** with seeded variants (``rndseed``, ``rndseedf``)
-    - **Assembly codegen completed** — all expression types supported
+    - **Assembly new6502codegen completed** — all expression types supported
 
 **v7.0–v7.8** — June 2024–February 2025
     - **Struct feature removed** — rewrite as separate variables
@@ -180,7 +180,7 @@ Major breaking changes that require code modifications when upgrading:
     - **``bool`` datatype introduced** — optimized true/false (0/1)
     - **BSS section** — uninitialized variables, reduced PRG size
     - **``divmod()``, ``divmodw()`` builtins**
-    - **Major codegen optimizations** — significantly smaller and faster code
+    - **Major new6502codegen optimizations** — significantly smaller and faster code
 
 **v9.0–v9.7** — June–December 2024
     - **``-target`` now required** (c64 no longer default)
@@ -255,6 +255,7 @@ Major breaking changes that require code modifications when upgrading:
     - **New experimental 6502 code generator** based on the IR, enabled with ``-newcodegen`` (experimental, generates pretty bad/buggy code still!)
     - **Embedded arrays in structs** — structs can now contain arrays as fields.
     - **``@bank`` accepts a subroutine name** — for dynamic / overlay banking with a bank manager
+    - **``%option private_symbols`` and ``public`` keyword** — new option to make all symbols private by default; use ``public`` to selectively expose them. See :ref:`private-symbols`.
     - **New library routines** — ``floats.mod()``; ``sys.MAX_LONG`` / ``sys.MIN_LONG``; PET32 ``petsnd`` playback functions, ``REST`` constant, ``set_gap()``, enharmonic flat note symbols; PET32 ``sys.set_irq()`` / ``sys.restore_irq()``; serial module: configurable baud rate.
     - **Breaking changes** — ``-nostdlib`` removed; ``bankmanager`` renamed to ``bankselector``; ``swap`` is now a statement.
 

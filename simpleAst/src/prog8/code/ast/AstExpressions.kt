@@ -146,7 +146,7 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
             is PtBool -> false
             is PtNumber -> false
             is PtPrefix -> value.hasSideEffects(target)
-            is PtRange -> from.hasSideEffects(target) || to.hasSideEffects(target)
+            is PtRange -> from.hasSideEffects(target) || to.hasSideEffects(target) || step.hasSideEffects(target)
             is PtString -> false
             is PtPointerDeref -> true
             is PtTypeCast -> value.hasSideEffects(target)
@@ -175,7 +175,7 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
             is PtBool -> true
             is PtNumber -> true
             is PtPrefix -> value.isSimple(zeroPageVarCheck)
-            is PtRange -> true
+            is PtRange -> from.isSimple() && to.isSimple() && step.isSimple()
             is PtString -> true
             is PtPointerDeref ->
                 if(zeroPageVarCheck==null || type.isFloat || !zeroPageVarCheck(startpointer.name))
@@ -190,32 +190,33 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
         }
     }
 
-    /*
     fun clone(): PtExpression {
         fun withClonedChildrenFrom(orig: PtExpression, clone: PtExpression): PtExpression {
             orig.children.forEach { clone.add((it as PtExpression).clone()) }
             return clone
         }
-        when(this) {
-            is PtAddressOf -> return withClonedChildrenFrom(this, PtAddressOf(position))
-            is PtArray -> return withClonedChildrenFrom(this, PtArray(type, position))
-            is PtArrayIndexer -> return withClonedChildrenFrom(this, PtArrayIndexer(type, position))
-            is PtBinaryExpression -> return withClonedChildrenFrom(this, PtBinaryExpression(operator, type, position))
-            is PtBuiltinFunctionCall -> return withClonedChildrenFrom(this, PtBuiltinFunctionCall(name, void, hasNoSideEffects, type, position))
-            is PtContainmentCheck -> return withClonedChildrenFrom(this, PtContainmentCheck(position))
-            is PtFunctionCall -> return withClonedChildrenFrom(this, PtFunctionCall(name, void, type, position))
-            is PtIdentifier -> return withClonedChildrenFrom(this, PtIdentifier(name, type, position))
-            is PtMachineRegister -> return withClonedChildrenFrom(this, PtMachineRegister(register, type, position))
-            is PtMemoryByte -> return withClonedChildrenFrom(this, PtMemoryByte(position))
-            is PtNumber -> return withClonedChildrenFrom(this, PtNumber(type, number, position))
-            is PtBool -> return withClonedChildrenFrom(this, PtBool(value, position))
-            is PtPrefix -> return withClonedChildrenFrom(this, PtPrefix(operator, type, position))
-            is PtRange -> return withClonedChildrenFrom(this, PtRange(type, position))
-            is PtString -> return withClonedChildrenFrom(this, PtString(value, encoding, position))
-            is PtTypeCast -> return withClonedChildrenFrom(this, PtTypeCast(type, position))
+        return when(this) {
+            is PtAddressOf -> withClonedChildrenFrom(this, PtAddressOf(type, typedResult, position, isMsbForSplitArray))
+            is PtArray -> withClonedChildrenFrom(this, PtArray(type, position))
+            is PtArrayIndexer -> withClonedChildrenFrom(this, PtArrayIndexer(type, splitWords,position))
+            is PtBinaryExpression -> TODO("clone: cannot clone ${this::class} (not a simple expression)")
+            is PtBranchCondExpression -> withClonedChildrenFrom(this, PtBranchCondExpression(condition, type, position))
+            is PtContainmentCheck -> TODO("clone: cannot clone ${this::class} (not a simple expression)")
+            is PtConstant -> withClonedChildrenFrom(this, PtConstant(name, type, value, memorySlab, position))
+            is PtFunctionCall -> withClonedChildrenFrom(this, PtFunctionCall(name, builtin, hasNoSideEffects, returntypes, position))
+            is PtIdentifier -> withClonedChildrenFrom(this, PtIdentifier(name, type, position))
+            is PtIrRegister -> withClonedChildrenFrom(this, PtIrRegister(register, type, position))
+            is PtMemoryByte -> withClonedChildrenFrom(this, PtMemoryByte(position))
+            is PtBool -> withClonedChildrenFrom(this, PtBool(value, position))
+            is PtNumber -> withClonedChildrenFrom(this, PtNumber(type.base, number, position))
+            is PtPrefix -> withClonedChildrenFrom(this, PtPrefix(operator, type, position))
+            is PtRange -> withClonedChildrenFrom(this, PtRange(type, position))
+            is PtString -> withClonedChildrenFrom(this, PtString(value, encoding, position))
+            is PtTypeCast -> withClonedChildrenFrom(this, PtTypeCast(type, implicit, position))
+            is PtIfExpression -> withClonedChildrenFrom(this, PtIfExpression(type, position))
+            is PtPointerDeref -> TODO("clone: cannot clone ${this::class} (not a simple expression)")
         }
     }
-    */
 }
 
 class PtAddressOf(type: DataType, val typedResult: Boolean, position: Position, val isMsbForSplitArray: Boolean=false) : PtExpression(type, position) {
@@ -231,18 +232,14 @@ class PtAddressOf(type: DataType, val typedResult: Boolean, position: Position, 
 }
 
 
-class PtArrayIndexer(elementType: DataType, position: Position): PtExpression(elementType, position) {
+class PtArrayIndexer(elementType: DataType, val splitWords: Boolean, position: Position): PtExpression(elementType, position) {
+    // splitWords is an explicit property because some array DataType enums might depend on the compilation target for being actually a split array or not
     val variable: PtIdentifier?
         get() = children[0] as? PtIdentifier
     val pointerderef: PtPointerDeref?
         get() = children[0] as? PtPointerDeref
     val index: PtExpression
         get() = children[1] as PtExpression
-    val splitWords: Boolean
-        get() = if(children[0] is PtPointerDeref)
-            true        // indexing on pointers is always split words
-        else
-            variable!!.type.isSplitWordArray
 
     init {
         require(elementType.isNumericOrBool || elementType.isPointer || elementType.isStructInstance) {
@@ -449,8 +446,8 @@ class PtRange(type: DataType, position: Position) : PtExpression(type, position)
         get() = children[0] as PtExpression
     val to: PtExpression
         get() = children[1] as PtExpression
-    val step: PtNumber
-        get() = children[2] as PtNumber
+    val step: PtExpression
+        get() = children[2] as PtExpression
 
     fun toConstantIntegerRange(): IntProgression? {
         fun makeRange(fromVal: Int, toVal: Int, stepVal: Int): IntProgression {
@@ -469,13 +466,16 @@ class PtRange(type: DataType, position: Position) : PtExpression(type, position)
             }
         }
 
+        if(step !is PtNumber)
+            return null
+
         val fromLv = from as? PtNumber
         val toLv = to as? PtNumber
         if(fromLv==null || toLv==null)
             return null
         val fromVal = fromLv.number.toInt()
         val toVal = toLv.number.toInt()
-        val stepVal = step.number.toInt()
+        val stepVal = step.asConstInteger()!!
         return makeRange(fromVal, toVal, stepVal)
     }
 }

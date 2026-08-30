@@ -34,11 +34,23 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
     override fun after(numLiteral: NumericLiteral, parent: Node): Iterable<AstModification> {
 
         if(numLiteral.type==BaseDataType.LONG) {
+            // Do not reduce LONG literals that are the direct value of a const long declaration.
+            // The declared type is long; shrinking the literal at the declaration site is unnecessary
+            // because IdentifierReference.constValue() re-casts it back to long on substitution.
+            val parentVarDecl = parent as? VarDecl
+            if(parentVarDecl!=null && parentVarDecl.type==VarDeclType.CONST && parentVarDecl.datatype.isLong) {
+                return noModifications
+            }
+
             // see if LONG values may be reduced to something smaller
             val smaller = NumericLiteral.optimalInteger(numLiteral.number.toInt(), numLiteral.position)
             if(smaller.type!=BaseDataType.LONG) {
-                if(parent !is Assignment || !parent.target.inferType(program).isLong) {
-                    // do NOT reduce the type if the target of the assignment is a long
+                if (parent !is Assignment) {
+                    return listOf(AstReplaceNode(numLiteral, smaller, parent))
+                }
+                // do NOT reduce the type if the target of the assignment is a long, or a pointer on a 32 bit target
+                val targetType = parent.target.inferType(program)
+                if (!targetType.isLong && program.target.POINTER_MEM_SIZE==2u && !targetType.isPointer) {
                     return listOf(AstReplaceNode(numLiteral, smaller, parent))
                 }
             }
@@ -47,7 +59,7 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
         if(parent is Assignment) {
             val iDt = parent.target.inferType(program)
             if(iDt.isKnown && !iDt.isBool && !(iDt issimpletype numLiteral.type)) {
-                val casted = numLiteral.cast(iDt.getOrUndef().base, true)
+                val casted = numLiteral.cast(iDt.getOrUndef().base, true, program.target)
                 if(casted.isValid) {
                     return listOf(AstReplaceNode(numLiteral, casted.valueOrZero(), parent))
                 }
@@ -111,10 +123,13 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
             if (leftPtrConst != null && rightOffsetConst != null) {
                 val ptrDt = leftDt.getOrUndef()
                 val subDt = ptrDt.sub
-                val scale = if(subDt is BaseDataType) program.memsizer.memorySize(subDt) else ptrDt.size(program.memsizer)
+                val scale = if(subDt is BaseDataType) program.target.memorySize(subDt) else ptrDt.size(program.target)
                 val offset = rightOffsetConst.number.toInt() * scale
                 val result = if (expr.operator == "+") leftPtrConst.number + offset else leftPtrConst.number - offset
-                return listOf(AstReplaceNode(expr, NumericLiteral(BaseDataType.UWORD, result, expr.position), parent))
+                val resultType = program.target.pointerBaseType
+                if(result < 0.0 || result > resultType.maxUnsignedValue)
+                    return noModifications
+                return listOf(AstReplaceNode(expr, NumericLiteral(resultType, result, expr.position), parent))
             }
         }
         // commutative pointer arithmetic: offset + ptr
@@ -124,10 +139,13 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
             if (rightPtrConst != null && leftOffsetConst != null) {
                 val ptrDt = rightDt.getOrUndef()
                 val subDt = ptrDt.sub
-                val scale = if(subDt is BaseDataType) program.memsizer.memorySize(subDt) else ptrDt.size(program.memsizer)
+                val scale = if(subDt is BaseDataType) program.target.memorySize(subDt) else ptrDt.size(program.target)
                 val offset = leftOffsetConst.number.toInt() * scale
                 val result = rightPtrConst.number + offset
-                return listOf(AstReplaceNode(expr, NumericLiteral(BaseDataType.UWORD, result, expr.position), parent))
+                val resultType = program.target.pointerBaseType
+                if(result < 0.0 || result > resultType.maxUnsignedValue)
+                    return noModifications
+                return listOf(AstReplaceNode(expr, NumericLiteral(resultType, result, expr.position), parent))
             }
         }
 
@@ -135,7 +153,7 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
         val leftconst = expr.left.constValue(program)
         val rightconst = expr.right.constValue(program)
 
-        if(expr.left.inferType(program).isStringLy) {
+        if(expr.left.inferType(program).isStringLy(program.target)) {
             if(expr.operator=="+" && expr.left is StringLiteral && expr.right is StringLiteral) {
                 // concatenate two strings.
                 val leftString = expr.left as StringLiteral
@@ -143,8 +161,8 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
                 val concatenated = if(leftString.encoding==rightString.encoding) {
                     leftString.value + rightString.value
                 } else {
-                    program.encoding.decodeString(
-                        program.encoding.encodeString(leftString.value, leftString.encoding) + program.encoding.encodeString(rightString.value, rightString.encoding),
+                    program.target.decodeString(
+                        program.target.encodeString(leftString.value, leftString.encoding) + program.target.encodeString(rightString.value, rightString.encoding),
                         leftString.encoding)
                 }
                 val concatStr = StringLiteral.create(concatenated, leftString.encoding, expr.position)
@@ -373,13 +391,13 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
         // otherwise infer it from the elements of the array
         val vardeclType = (array.parent as? VarDecl)?.datatype
         if(vardeclType!=null) {
-            val newArray = array.cast(vardeclType)
+            val newArray = array.cast(vardeclType, program.target)
             if (newArray != null && newArray != array)
                 return listOf(AstReplaceNode(array, newArray, parent))
         } else {
             val arrayDt = array.guessDatatype(program)
             if (arrayDt.isKnown) {
-                val newArray = array.cast(arrayDt.getOrUndef())
+                val newArray = array.cast(arrayDt.getOrUndef(), program.target)
                 if (newArray != null && newArray != array)
                     return listOf(AstReplaceNode(array, newArray, parent))
             }
@@ -466,14 +484,14 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
 
     override fun after(forLoop: ForLoop, parent: Node): Iterable<AstModification> {
         fun adjustRangeDt(rangeFrom: NumericLiteral, targetDt: BaseDataType, rangeTo: NumericLiteral, stepLiteral: NumericLiteral?, range: RangeExpression): RangeExpression? {
-            val fromCast = rangeFrom.cast(targetDt, true)
-            val toCast = rangeTo.cast(targetDt, true)
+            val fromCast = rangeFrom.cast(targetDt, true, program.target)
+            val toCast = rangeTo.cast(targetDt, true, program.target)
             if(!fromCast.isValid || !toCast.isValid)
                 return null
 
             val newStep =
                 if(stepLiteral!=null) {
-                    val stepCast = stepLiteral.cast(targetDt, true)
+                    val stepCast = stepLiteral.cast(targetDt, true, program.target)
                     if(stepCast.isValid)
                         stepCast.valueOrZero()
                     else
@@ -536,7 +554,7 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
 
     override fun after(decl: VarDecl, parent: Node): Iterable<AstModification> {
         if (decl.type == VarDeclType.CONST && decl.datatype.isPointer) {
-            val sizer = program.memsizer
+            val sizer = program.target
             if (decl.datatype.size(sizer) > 1) {
                 errors.err("due to internal compiler complexity, currently pointer variables with data type size > 1 cannot be const", decl.position)
             }
@@ -549,7 +567,7 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
                 return noModifications  // this is handled in the numericalvalue case
             }
             if(!(valueDt istype decl.datatype)) {
-                val cast = numval.cast(decl.datatype.base, true)
+                val cast = numval.cast(decl.datatype.base, true, program.target)
                 if (cast.isValid) {
                     return listOf(AstReplaceNode(numval, cast.valueOrZero(), decl))
                 }

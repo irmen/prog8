@@ -168,6 +168,7 @@ object SysCalls {
             when(it.reg.dt) {
                 IRDataType.BYTE -> vm.registers.getUB(it.reg.registerNum)
                 IRDataType.WORD -> vm.registers.getUW(it.reg.registerNum)
+                IRDataType.POINTER -> vm.registers.getUL(it.reg.registerNum)
                 IRDataType.LONG -> vm.registers.getSL(it.reg.registerNum)
                 IRDataType.FLOAT -> vm.registers.getFloat(it.reg.registerNum)
             }
@@ -192,6 +193,7 @@ object SysCalls {
         when(returns.dt) {
             IRDataType.BYTE -> vm.registers.setUB(returns.registerNum, vv.toInt().toUByte())
             IRDataType.WORD -> vm.registers.setUW(returns.registerNum, vv.toInt().toUShort())
+            IRDataType.POINTER -> vm.registers.setUL(returns.registerNum, vv.toUInt())
             IRDataType.LONG -> vm.registers.setSL(returns.registerNum, vv.toInt())
             IRDataType.FLOAT -> vm.registers.setFloat(returns.registerNum, vv)
         }
@@ -212,9 +214,9 @@ object SysCalls {
                 print(Char(char.toInt()))
             }
             Syscall.PRINT_S -> {
-                var addr: UInt = (getArgValues(callspec.arguments, vm).single() as UShort).toUInt()
+                var addr = getArgValues(callspec.arguments, vm).single() as Int
                 while(true) {
-                    val char = vm.memory.getUB(addr).toInt()
+                    val char = vm.memory.getUB(addr.toUInt()).toInt()
                     if(char==0)
                         break
                     print(Char(char))
@@ -239,7 +241,7 @@ object SysCalls {
                 val maxlenvalue = (maxlen as UByte).toInt()
                 if(maxlenvalue>0)
                     input = input.take(min(input.length, maxlenvalue))
-                vm.memory.setString((address as UShort).toUInt(), input, true)
+                vm.memory.setString((address as Int).toUInt(), input, true)
                 returnValue(callspec.returns.single(), input.length, vm)
             }
             Syscall.SLEEP -> {
@@ -270,14 +272,11 @@ object SysCalls {
             Syscall.WAITVSYNC -> vm.waitvsync()
             Syscall.PRINT_F -> {
                 val value = getArgValues(callspec.arguments, vm).single() as Double
-                if(value.toInt().toDouble()==value)
-                    print(value.toInt())
-                else
-                    print(value)
+                print(value)
             }
             Syscall.STR_TO_UWORD -> {
-                val stringAddr: UInt = (getArgValues(callspec.arguments, vm).single() as UShort).toUInt()
-                val string = vm.memory.getString(stringAddr).takeWhile { it.isDigit() }
+                val stringAddr = getArgValues(callspec.arguments, vm).single() as Int
+                val string = vm.memory.getString(stringAddr.toUInt()).takeWhile { it.isDigit() }
                 val value = try {
                     string.toUShort()
                 } catch(_: NumberFormatException) {
@@ -286,8 +285,8 @@ object SysCalls {
                 returnValue(callspec.returns.single(), value, vm)
             }
             Syscall.STR_TO_WORD -> {
-                val stringAddr: UInt = (getArgValues(callspec.arguments, vm).single() as UShort).toUInt()
-                val memstring = vm.memory.getString(stringAddr)
+                val stringAddr = getArgValues(callspec.arguments, vm).single() as Int
+                val memstring = vm.memory.getString(stringAddr.toUInt())
                 val match = Regex("^[+-]?\\d+").find(memstring) ?: return returnValue(callspec.returns.single(), 0, vm)
                 val value = try {
                     match.value.toShort()
@@ -297,7 +296,7 @@ object SysCalls {
                 return returnValue(callspec.returns.single(), value, vm)
             }
             Syscall.STR_TO_LONG -> {
-                val stringAddr: UInt = (getArgValues(callspec.arguments, vm).single() as UShort).toUInt()
+                val stringAddr = (getArgValues(callspec.arguments, vm).single() as Int).toUInt()
                 val memstring = vm.memory.getString(stringAddr)
                 val match = Regex("^[+-]?\\d+").find(memstring) ?: return returnValue(callspec.returns.single(), 0, vm)
                 val value = try {
@@ -308,8 +307,8 @@ object SysCalls {
                 return returnValue(callspec.returns.single(), value, vm)
             }
             Syscall.STR_TO_FLOAT -> {
-                val stringAddr: UInt = (getArgValues(callspec.arguments, vm).single() as UShort).toUInt()
-                val memstring = vm.memory.getString(stringAddr).replace(" ", "")
+                val stringAddr = getArgValues(callspec.arguments, vm).single() as Int
+                val memstring = vm.memory.getString(stringAddr.toUInt()).replace(" ", "")
                 val result = if(memstring.isEmpty())
                     0.0
                 else {
@@ -324,10 +323,10 @@ object SysCalls {
             }
             Syscall.COMPARE_STRINGS -> {
                 val (firstV, secondV) = getArgValues(callspec.arguments, vm)
-                val firstAddr: UInt = (firstV as UShort).toUInt()
-                val secondAddr: UInt = (secondV as UShort).toUInt()
-                val first = vm.memory.getString(firstAddr)
-                val second = vm.memory.getString(secondAddr)
+                val firstAddr = firstV as Int
+                val secondAddr = secondV as Int
+                val first = vm.memory.getString(firstAddr.toUInt())
+                val second = vm.memory.getString(secondAddr.toUInt())
                 val comparison = first.compareTo(second)
                 if(comparison==0)
                     returnValue(callspec.returns.single(), 0, vm)
@@ -338,10 +337,10 @@ object SysCalls {
             }
             Syscall.COMPARE_STRINGS_NOCASE -> {
                 val (firstV, secondV) = getArgValues(callspec.arguments, vm)
-                val firstAddr: UInt = (firstV as UShort).toUInt()
-                val secondAddr: UInt = (secondV as UShort).toUInt()
-                val first = vm.memory.getString(firstAddr)
-                val second = vm.memory.getString(secondAddr)
+                val firstAddr = firstV as Int
+                val secondAddr = secondV as Int
+                val first = vm.memory.getString(firstAddr.toUInt())
+                val second = vm.memory.getString(secondAddr.toUInt())
                 val comparison = first.compareTo(second, ignoreCase = true)
                 if(comparison==0)
                     returnValue(callspec.returns.single(), 0, vm)
@@ -352,11 +351,11 @@ object SysCalls {
             }
             Syscall.MEMCMP -> {
                 val (firstV, secondV, sizeV) = getArgValues(callspec.arguments, vm)
-                var firstAddr: UInt = (firstV as UShort).toUInt()
-                var secondAddr: UInt = (secondV as UShort).toUInt()
+                var firstAddr = firstV as Int
+                var secondAddr = secondV as Int
                 var size = (sizeV as UShort).toInt()
                 while(size>0) {
-                    val comparison = vm.memory.getUB(firstAddr).compareTo(vm.memory.getUB(secondAddr))
+                    val comparison = vm.memory.getUB(firstAddr.toUInt()).compareTo(vm.memory.getUB(secondAddr.toUInt()))
                     if(comparison<0)
                         return returnValue(callspec.returns.single(), -1, vm)
                     else if(comparison>0)
@@ -379,17 +378,17 @@ object SysCalls {
                 vm.randomSeed(seed1 as UShort, seed2 as UShort)
             }
             Syscall.RND -> {
-                returnValue(callspec.returns.single(), vm.randomGenerator.nextInt().toUByte(), vm)
+                returnValue(callspec.returns.single(), (vm.nextRandWord().toInt() and 255).toUByte(), vm)
             }
             Syscall.RNDW -> {
-                returnValue(callspec.returns.single(), vm.randomGenerator.nextInt().toUShort(), vm)
+                returnValue(callspec.returns.single(), vm.nextRandWord(), vm)
             }
             Syscall.RNDF -> {
                 returnValue(callspec.returns.single(), vm.randomGeneratorFloats.nextFloat(), vm)
             }
             Syscall.STRING_CONTAINS -> {
                 val (charV, addr) = getArgValues(callspec.arguments, vm)
-                val stringAddr: UInt = (addr as UShort).toUInt()
+                val stringAddr = (addr as Int).toUInt()
                 val char = (charV as UByte).toInt().toChar()
                 val string = vm.memory.getString(stringAddr)
                 returnValue(callspec.returns.single(), if(char in string) 1u else 0u, vm)
@@ -397,7 +396,7 @@ object SysCalls {
             Syscall.BYTEARRAY_CONTAINS -> {
                 val (value, arrayV, lengthV) = getArgValues(callspec.arguments, vm)
                 var length = lengthV as UByte
-                var array: UInt = (arrayV as UShort).toUInt()
+                var array = (arrayV as Int).toUInt()
                 while(length>0u) {
                     if(vm.memory.getUB(array)==value)
                         return returnValue(callspec.returns.single(), 1u, vm)
@@ -409,7 +408,7 @@ object SysCalls {
             Syscall.WORDARRAY_CONTAINS -> {
                 val (value, arrayV, lengthV) = getArgValues(callspec.arguments, vm)
                 var length = lengthV as UByte
-                var array: UInt = (arrayV as UShort).toUInt()
+                var array = (arrayV as Int).toUInt()
                 while(length>0u) {
                     if(vm.memory.getUW(array)==value)
                         return returnValue(callspec.returns.single(), 1u, vm)
@@ -421,7 +420,7 @@ object SysCalls {
             Syscall.SPLIT_WORDARRAY_CONTAINS -> {
                 val (value, arrayV, lengthV) = getArgValues(callspec.arguments, vm)
                 var length = lengthV as UByte
-                val array: UInt = (arrayV as UShort).toUInt()
+                val array = (arrayV as Int).toUInt()
                 val msbOffset = length.toUInt()
                 while(length > 0u) {
                     length--
@@ -436,7 +435,7 @@ object SysCalls {
             Syscall.LONGARRAY_CONTAINS -> {
                 val (value, arrayV, lengthV) = getArgValues(callspec.arguments, vm)
                 var length = lengthV as UByte
-                val array: UInt = (arrayV as UShort).toUInt()
+                val array = (arrayV as Int).toUInt()
                 while(length > 0u) {
                     length--
                     val el = vm.memory.getSL(array + length.toUInt() * 4u)
@@ -448,7 +447,7 @@ object SysCalls {
             Syscall.FLOATARRAY_CONTAINS -> {
                 val (value, arrayV, lengthV) = getArgValues(callspec.arguments, vm)
                 var length = lengthV as UByte
-                var array: UInt = (arrayV as UShort).toUInt()
+                var array = (arrayV as Int).toUInt()
                 while(length>0u) {
                     if(vm.memory.getFloat(array)==value)
                         return returnValue(callspec.returns.single(), 1u, vm)
@@ -515,70 +514,70 @@ object SysCalls {
             }
             Syscall.FLOAT_TO_STR -> {
                 val (buffer, number) = getArgValues(callspec.arguments, vm)
-                val bufferAddr = (buffer as UShort).toShort().toInt()
+                val bufferAddr = buffer as Int
                 val numf = number as Double
-                val numStr = if(numf.toInt().toDouble()==numf) numf.toInt().toString() else numf.toString()
+                val numStr = numf.toString()
                 vm.memory.setString(bufferAddr.toUInt(), numStr, true)
             }
             Syscall.MEMCOPY -> {
                 val (fromA, toA, countA) = getArgValues(callspec.arguments, vm)
-                val from: UInt = (fromA as UShort).toUInt()
-                val to: UInt = (toA as UShort).toUInt()
+                val from = fromA as Int
+                val to = toA as Int
                 val count = (countA as UShort).toInt()
                 for(offset in 0..<count) {
-                    vm.memory.setUB(to+offset.toUInt(), vm.memory.getUB(from+offset.toUInt()))
+                    vm.memory.setUB((to+offset).toUInt(), vm.memory.getUB((from+offset).toUInt()))
                 }
             }
             Syscall.MEMSET -> {
                 val (memA, numbytesA, valueA) = getArgValues(callspec.arguments, vm)
-                val mem: UInt = (memA as UShort).toUInt()
+                val mem = memA as Int
                 val numbytes = (numbytesA as UShort).toInt()
                 val value = valueA as UByte
                 for(i in 0..<numbytes) {
-                    vm.memory.setUB(mem + i.toUInt(), value)
+                    vm.memory.setUB((mem + i).toUInt(), value)
                 }
             }
             Syscall.MEMSETW -> {
                 val (memA, numwordsA, valueA) = getArgValues(callspec.arguments, vm)
-                val mem: UInt = (memA as UShort).toUInt()
+                val mem = memA as Int
                 val numwords = (numwordsA as UShort).toInt()
                 val value = valueA as UShort
                 for(i in 0..<numwords) {
-                    vm.memory.setUW(mem + (i*2).toUInt(), value)
+                    vm.memory.setUW((mem + i*2).toUInt(), value)
                 }
             }
             Syscall.STRINGCOPY -> {
                 val (sourceA, targetA, maxlength) = getArgValues(callspec.arguments, vm)
-                val source: UInt = (sourceA as UShort).toUInt()
-                val target: UInt = (targetA as UShort).toUInt()
-                val string = vm.memory.getString(source).take((maxlength as UByte).toInt())
-                vm.memory.setString(target, string, true)
+                val source = sourceA as Int
+                val target = targetA as Int
+                val string = vm.memory.getString(source.toUInt()).take((maxlength as UByte).toInt())
+                vm.memory.setString(target.toUInt(), string, true)
                 returnValue(callspec.returns.single(), string.length, vm)
             }
             Syscall.LOAD -> {
                 val (filenameA, addrA) = getArgValues(callspec.arguments, vm)
-                val filename = vm.memory.getString((filenameA as UShort).toUInt())
+                val filename = vm.memory.getString((filenameA as Int).toUInt())
                 if (File(filename).exists()) {
                     val data = File(filename).readBytes()
-                    val addr: UInt = if ((addrA as UShort) == 0.toUShort()) data[0].toUInt() + data[1].toUInt() * 256u else addrA.toUInt()
+                    val addr: UInt = if ((addrA as Int).toUInt() == 0u) data[0].toUInt() + data[1].toUInt() * 256u else (addrA as Int).toUInt()
                     for (i in 0..<data.size - 2) {
                         vm.memory.setUB(addr + i.toUInt(), data[i + 2].toUByte())
                     }
-                    returnValue(callspec.returns.single(), (addr + (data.size - 2).toUInt()).toUShort(), vm)
+                    returnValue(callspec.returns.single(), addr + (data.size - 2).toUInt(), vm)
                 } else {
                     returnValue(callspec.returns.single(), 0u, vm)
                 }
             }
             Syscall.LOAD_RAW -> {
                 val (filenameA, addrA) = getArgValues(callspec.arguments, vm)
-                val filename = vm.memory.getString((filenameA as UShort).toUInt())
+                val filename = vm.memory.getString((filenameA as Int).toUInt())
                 if (File(filename).exists()) {
                     val data = File(filename).readBytes()
-                    val addr: UInt = if ((addrA as UShort) == 0.toUShort()) data[0].toUInt() + data[1].toUInt() * 256u else addrA.toUInt()
+                    val addr: UInt = if ((addrA as Int).toUInt() == 0u) data[0].toUInt() + data[1].toUInt() * 256u else (addrA as Int).toUInt()
                     for (i in data.indices) {
                         vm.memory.setUB(addr + i.toUInt(), data[i].toUByte())
                     }
-                    returnValue(callspec.returns.single(), (addr + data.size.toUInt()).toUShort(), vm)
+                    returnValue(callspec.returns.single(), addr + data.size.toUInt(), vm)
                 } else {
                     returnValue(callspec.returns.single(), 0u, vm)
                 }
@@ -587,7 +586,7 @@ object SysCalls {
                 val (rawA, filenamePtr, startA, sizeA) = getArgValues(callspec.arguments, vm)
                 val raw = (rawA as UByte).toInt()
                 val size = (sizeA as UShort).toInt()
-                val startPtr: UInt = (startA as UShort).toUInt()
+                val startPtr: UInt = (startA as Int).toUInt()
                 val data: ByteArray
                 if(raw==0) {
                     // save with 2 byte PRG load address header
@@ -604,7 +603,7 @@ object SysCalls {
                         data[i] = vm.memory.getUB(startPtr + i.toUInt()).toByte()
                     }
                 }
-                val filename = vm.memory.getString((filenamePtr as UShort).toUInt())
+                val filename = vm.memory.getString((filenamePtr as Int).toUInt())
                 if (File(filename).exists())
                     returnValue(callspec.returns.single(), 0u, vm)
                 else {
@@ -613,14 +612,14 @@ object SysCalls {
                 }
             }
             Syscall.DELETE -> {
-                val filenamePtr = getArgValues(callspec.arguments, vm).single() as UShort
+                val filenamePtr = getArgValues(callspec.arguments, vm).single() as Int
                 val filename = vm.memory.getString(filenamePtr.toUInt())
                 File(filename).delete()
             }
             Syscall.RENAME -> {
                 val (origFilenamePtr, newFilenamePtr) = getArgValues(callspec.arguments, vm)
-                val origFilename = vm.memory.getString((origFilenamePtr as UShort).toUInt())
-                val newFilename = vm.memory.getString((newFilenamePtr as UShort).toUInt())
+                val origFilename = vm.memory.getString((origFilenamePtr as Int).toUInt())
+                val newFilename = vm.memory.getString((newFilenamePtr as Int).toUInt())
                 File(origFilename).renameTo(File(newFilename))
             }
             Syscall.DIRECTORY -> {
@@ -664,27 +663,27 @@ object SysCalls {
             Syscall.CURDIR -> {
                 val curdir = Path("").absolute().toString()
                 vm.memory.setString(0xfe00u, curdir, true)
-                return returnValue(callspec.returns.single(), 0xfe00, vm)
+                return returnValue(callspec.returns.single(), 0xfe00u, vm)
             }
             Syscall.MKDIR -> {
-                val namePtr = getArgValues(callspec.arguments, vm).single() as UShort
+                val namePtr = getArgValues(callspec.arguments, vm).single() as Int
                 val name = vm.memory.getString(namePtr.toUInt())
                 Path(name).createDirectory()
             }
             Syscall.RMDIR -> {
-                val namePtr = getArgValues(callspec.arguments, vm).single() as UShort
+                val namePtr = getArgValues(callspec.arguments, vm).single() as Int
                 val name = vm.memory.getString(namePtr.toUInt())
                 Path(name).deleteIfExists()
             }
             Syscall.CHDIR -> throw NotImplementedError("chdir is not possible in java/kotlin")
             Syscall.OPEN_FILE -> {
-                val namePtr = getArgValues(callspec.arguments, vm).single() as UShort
+                val namePtr = getArgValues(callspec.arguments, vm).single() as Int
                 val name = vm.memory.getString(namePtr.toUInt())
                 val success = vm.open_file_read(name)
                 return returnValue(callspec.returns.single(), success, vm)
             }
             Syscall.OPEN_FILE_WRITE -> {
-                val namePtr = getArgValues(callspec.arguments, vm).single() as UShort
+                val namePtr = getArgValues(callspec.arguments, vm).single() as Int
                 val name = vm.memory.getString(namePtr.toUInt())
                 val success = vm.open_file_write(name)
                 return returnValue(callspec.returns.single(), success, vm)
@@ -720,11 +719,11 @@ object SysCalls {
             }
             Syscall.GFX_TEXT -> {
                 val (xV, yV, textAddrV, colorV) = getArgValues(callspec.arguments, vm)
-                vm.gfx_text(xV as UShort, yV as UShort, textAddrV as UShort, colorV as UByte)
+                vm.gfx_text(xV as UShort, yV as UShort, (textAddrV as Int).toUInt(), colorV as UByte)
             }
             Syscall.I32_TO_STRING -> {
                 val (number, stringbuffer) = getArgValues(callspec.arguments, vm)
-                vm.memory.setString((stringbuffer as UShort).toUInt(), number.toString(), true)
+                vm.memory.setString((stringbuffer as Int).toUInt(), number.toString(), true)
             }
         }
     }

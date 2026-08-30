@@ -19,7 +19,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
         // try to statically convert a literal value into one of the desired type
         val literal = typecast.expression as? NumericLiteral
         if (literal != null && typecast.type.isBasic) {
-            val newLiteral = literal.cast(typecast.type.base, typecast.implicit)
+            val newLiteral = literal.cast(typecast.type.base, typecast.implicit, options.compTarget)
             if (newLiteral.isValid && newLiteral.valueOrZero() !== literal) {
                 mods += AstReplaceNode(typecast, newLiteral.valueOrZero(), parent)
             }
@@ -64,7 +64,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
         }
 
         val booleanCondition = ifElse.condition as? BinaryExpression
-        if(booleanCondition!=null && booleanCondition.operator=="&") {
+        if(booleanCondition!=null && booleanCondition.operator=="&" && options.compTarget.cpu.is6502) {
             val rightNum = booleanCondition.right as? NumericLiteral
             if (rightNum!=null && rightNum.type==BaseDataType.UWORD) {
                 if ((rightNum.number.toInt() and 0x00ff) == 0) {
@@ -246,7 +246,10 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
             }
             if (rightVal?.number == 1.0) {
                 if (rightDt != leftDt && !(leftDt.isPointer && rightDt.isUnsignedWord)) {
-                    val dt = if(leftDt.isPointer) BaseDataType.UWORD else leftDt.base
+                    val dt = when {
+                        leftDt.isPointer -> options.compTarget.pointerBaseType
+                        else -> leftDt.base
+                    }
                     if(!dt.isLong) {
                         val right = NumericLiteral(dt, rightVal.number, rightVal.position)
                         return listOf(AstReplaceNode(expr.right, right, expr))
@@ -255,7 +258,10 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
             }
             else if (rightVal?.number == 0.0) {
                 if (rightDt != leftDt && !(leftDt.isPointer && rightDt.isUnsignedWord)) {
-                    val dt = if(leftDt.isPointer) BaseDataType.UWORD else leftDt.base
+                    val dt = when {
+                        leftDt.isPointer -> options.compTarget.pointerBaseType
+                        else -> leftDt.base
+                    }
                     if(!dt.isLong) {
                         val right = NumericLiteral(dt, rightVal.number, rightVal.position)
                         return listOf(AstReplaceNode(expr.right, right, expr))
@@ -272,7 +278,10 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
             }
             if (rightVal?.number == 1.0) {
                 if(rightDt!=leftDt && !(leftDt.isPointer && rightDt.isUnsignedWord)) {
-                    val dt = if(leftDt.isPointer) BaseDataType.UWORD else leftDt.base
+                    val dt = when {
+                        leftDt.isPointer -> options.compTarget.pointerBaseType
+                        else -> leftDt.base
+                    }
                     if(!dt.isLong) {
                         val right = NumericLiteral(dt, rightVal.number, rightVal.position)
                         return listOf(AstReplaceNode(expr.right, right, expr))
@@ -281,7 +290,10 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
             }
             else if (rightVal?.number == 0.0) {
                 if(rightDt!=leftDt && !(leftDt.isPointer && rightDt.isUnsignedWord)) {
-                    val dt = if(leftDt.isPointer) BaseDataType.UWORD else leftDt.base
+                    val dt = when {
+                        leftDt.isPointer -> options.compTarget.pointerBaseType
+                        else -> leftDt.base
+                    }
                     if(!dt.isLong) {
                         val right = NumericLiteral(dt, rightVal.number, rightVal.position)
                         return listOf(AstReplaceNode(expr.right, right, expr))
@@ -540,7 +552,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                     }
                 }
 
-                if (bitwise.inferType(program).isWords) {
+                if (bitwise.inferType(program).isWords && options.compTarget.cpu.is6502) {
                     val andNum = (bitwise.right as? NumericLiteral)?.number?.toInt()
                     if (andNum!=null) {
                         if ((andNum and 0x00ff) == 0) {
@@ -579,7 +591,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
             return intValue >= 256 && (intValue and 0xFF) == 0
         }
 
-        if (leftDt.isUnsignedWord && rightVal!=null) {
+        if (leftDt.isUnsignedWord && rightVal!=null && options.compTarget.cpu.is6502) {
             if (expr.operator == ">" && rightVal.number == 255.0 || expr.operator == ">=" && rightVal.number == 256.0) {
                 // uword > 255  -->  msb(value)!=0
                 // uword >= 256 -->  msb(value)!=0
@@ -749,19 +761,25 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                     val cast = TypecastExpression(arg.expression, DataType.UBYTE, true, arg.position)
                     return listOf(AstReplaceNode(functionCallExpr, cast, parent))
                 }
-            } else if(arg is FunctionCallExpression && arg.target.nameInSource == listOf("msw")) {
-                // lsb(msw(longvar)) -->  @(&longvar+2)   ; get the bank byte from a long variable
+            } else if(options.compTarget.cpu.is6502 && arg is FunctionCallExpression && arg.target.nameInSource == listOf("msw")) {
+                // lsb(msw(longvar)) -->  @(&longvar+offset)   ; get the bank byte from a long variable
+                // The offset into the variable's memory depends on the target's endianness:
+                //   little-endian (6502, virtual): bits 16-23 are at offset +2
+                //   big-endian (m68k):           bits 16-23 are at offset +1
                 val longvar = arg.args[0] as? IdentifierReference
                 if(longvar!=null && longvar.inferType(program).isLong) {
+                    val offset = if (options.compTarget.cpu.isBigEndian) 1 else 2
                     val address = AddressOf(longvar, null, null, false, false, functionCallExpr.position)
-                    val plus2 = BinaryExpression(address, "+", NumericLiteral(BaseDataType.UWORD, 2.0, functionCallExpr.position), functionCallExpr.position)
-                    val memread = DirectMemoryRead(plus2, functionCallExpr.position)
+                    val offsetDt = options.compTarget.pointerBaseType
+                    val plus = BinaryExpression(address, "+", NumericLiteral(offsetDt, offset.toDouble(), functionCallExpr.position), functionCallExpr.position)
+                    val memread = DirectMemoryRead(plus, functionCallExpr.position)
                     return listOf(AstReplaceNode(functionCallExpr, memread, parent))
                 }
             } else {
-                if(arg is IdentifierReference && arg.nameInSource.size==2
+                if(!options.compTarget.cpu.isBigEndian
+                    && arg is IdentifierReference && arg.nameInSource.size==2
                     && arg.nameInSource[0]=="cx16" && arg.nameInSource[1].uppercase() in RegisterOrPair.names) {
-                    // lsb(cx16.r0) -> cx16.r0L
+                    // lsb(cx16.r0) -> cx16.r0L  (little-endian only; m68k byte order is reversed)
                     val highReg = IdentifierReference(listOf("cx16", arg.nameInSource[1]+'L'), arg.position)
                     return listOf(AstReplaceNode(functionCallExpr, highReg, parent))
                 }
@@ -790,19 +808,25 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                             NumericLiteral(valueDt.getOr(DataType.UBYTE).base, 0.0, arg.expression.position),
                             parent))
                 }
-            } else if(arg is FunctionCallExpression && arg.target.nameInSource == listOf("lsw")) {
-                // msb(lsw(longvar)) -->  @(&longvar+1)   ; get the second byte from a long variable
+            } else if(options.compTarget.cpu.is6502 && arg is FunctionCallExpression && arg.target.nameInSource == listOf("lsw")) {
+                // msb(lsw(longvar)) -->  @(&longvar+offset)   ; get the second byte from a long variable
+                // The offset into the variable's memory depends on the target's endianness:
+                //   little-endian (6502, virtual): bits  8-15 are at offset +1
+                //   big-endian (m68k):           bits  8-15 are at offset +2
                 val longvar = arg.args[0] as? IdentifierReference
                 if(longvar!=null && longvar.inferType(program).isLong) {
+                    val offset = if (options.compTarget.cpu.isBigEndian) 2 else 1
                     val address = AddressOf(longvar, null, null, false, false, functionCallExpr.position)
-                    val plus2 = BinaryExpression(address, "+", NumericLiteral(BaseDataType.UWORD, 1.0, functionCallExpr.position), functionCallExpr.position)
-                    val memread = DirectMemoryRead(plus2, functionCallExpr.position)
+                    val offsetDt = options.compTarget.pointerBaseType
+                    val plus = BinaryExpression(address, "+", NumericLiteral(offsetDt, offset.toDouble(), functionCallExpr.position), functionCallExpr.position)
+                    val memread = DirectMemoryRead(plus, functionCallExpr.position)
                     return listOf(AstReplaceNode(functionCallExpr, memread, parent))
                 }
             } else {
-                if(arg is IdentifierReference && arg.nameInSource.size==2
+                if(!options.compTarget.cpu.isBigEndian
+                    && arg is IdentifierReference && arg.nameInSource.size==2
                     && arg.nameInSource[0]=="cx16" && arg.nameInSource[1].uppercase() in RegisterOrPair.names) {
-                    // msb(cx16.r0) -> cx16.r0H
+                    // msb(cx16.r0) -> cx16.r0H  (little-endian only; m68k byte order is reversed)
                     val highReg = IdentifierReference(listOf("cx16", arg.nameInSource[1]+'H'), arg.position)
                     return listOf(AstReplaceNode(functionCallExpr, highReg, parent))
                 }
@@ -973,12 +997,16 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                         BaseDataType.UBYTE -> if (!expr.left.hasSideEffects(options.compTarget)) return NumericLiteral(BaseDataType.UBYTE, 0.0, expr.position) else return null
                         BaseDataType.BYTE -> return null        // is either 0 or -1 we cannot tell here
                         BaseDataType.UWORD, BaseDataType.WORD -> {
-                            // just use:  msb(value) as type
-                            val msb = FunctionCallExpression(IdentifierReference(listOf("msb"), expr.position), mutableListOf(expr.left), expr.position)
-                            return if(leftDt.isSignedWord)
-                                TypecastExpression(msb, DataType.BYTE, true, expr.position)
-                            else
-                                TypecastExpression(msb, DataType.UWORD, true, expr.position)
+                            // just use:  msb(value) as type - this is only cheaper on the 6502 where
+                            // the high byte is directly accessible; other CPUs shift by 8 in one instruction
+                            if (options.compTarget.cpu.is6502) {
+                                val msb = FunctionCallExpression(IdentifierReference(listOf("msb"), expr.position), mutableListOf(expr.left), expr.position)
+                                return if(leftDt.isSignedWord)
+                                    TypecastExpression(msb, DataType.BYTE, true, expr.position)
+                                else
+                                    TypecastExpression(msb, DataType.UWORD, true, expr.position)
+                            } else
+                                return null
                         }
                         else -> return null
                     }
@@ -986,7 +1014,10 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                 in powersOfTwoFloat -> {
                     val numshifts = powersOfTwoFloat.indexOf(cv)
                     if (leftDt.isInteger) {
-                        // division by a power of two => shift right (signed and unsigned)
+                        // division by a power of two => logical shift right
+                        // NOTE: technically this optimization is only 100% accurate on unsigned integers
+                        //       whereas shifthing signed integers can result in an off-by-1 rounding difference
+                        // (If you change the guard to only trigger this for unsigned integers the codegen will fall back to using division, which is slow but 100% accurate)                        
                         return BinaryExpression(expr.left, ">>", NumericLiteral.optimalInteger(numshifts, expr.position), expr.position)
                     }
                 }
@@ -1088,11 +1119,13 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                     return NumericLiteral(targetDt, 0.0, expr.position)
                 }
                 else if(amount==8) {
+                    if(!options.compTarget.cpu.is6502) return null
                     // shift left by 8 bits is just a byte operation: mkword(lsb(X), 0)
                     val lsb = FunctionCallExpression(IdentifierReference(listOf("lsb"), expr.position), mutableListOf(expr.left), expr.position)
                     return FunctionCallExpression(IdentifierReference(listOf("mkword"), expr.position), mutableListOf(lsb, NumericLiteral(BaseDataType.UBYTE, 0.0, expr.position)), expr.position)
                 }
                 else if (amount > 8) {
+                    if(!options.compTarget.cpu.is6502) return null
                     // same as above but with residual shifts.
                     val lsb = FunctionCallExpression(IdentifierReference(listOf("lsb"), expr.position), mutableListOf(expr.left), expr.position)
                     val shifted = BinaryExpression(lsb, "<<", NumericLiteral.optimalInteger(amount - 8, expr.position), expr.position)
@@ -1105,17 +1138,25 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                     return NumericLiteral(targetDt, 0.0, expr.position)
                 }
                 else if(amount==8) {
+                    if(!options.compTarget.cpu.is6502) return null
                     // shift left by 8 bits is just a byte operation: mkword(lsb(X), 0)
                     val lsb = FunctionCallExpression(IdentifierReference(listOf("lsb"), expr.position), mutableListOf(expr.left), expr.position)
                     val mkword =  FunctionCallExpression(IdentifierReference(listOf("mkword"), expr.position), mutableListOf(lsb, NumericLiteral(BaseDataType.UBYTE, 0.0, expr.position)), expr.position)
                     return TypecastExpression(mkword, DataType.WORD, true, expr.position)
                 }
                 else if (amount > 8) {
+                    if(!options.compTarget.cpu.is6502) return null
                     // same as above but with residual shifts.
                     val lsb = FunctionCallExpression(IdentifierReference(listOf("lsb"), expr.position), mutableListOf(expr.left), expr.position)
                     val shifted = BinaryExpression(lsb, "<<", NumericLiteral.optimalInteger(amount - 8, expr.position), expr.position)
                     val mkword = FunctionCallExpression(IdentifierReference(listOf("mkword"), expr.position), mutableListOf(shifted, NumericLiteral.optimalInteger(0, expr.position)), expr.position)
                     return TypecastExpression(mkword, DataType.WORD, true, expr.position)
+                }
+            }
+            BaseDataType.LONG -> {
+                if (amount >= 32) {
+                    errors.info("shift always results in 0", expr.position)
+                    return NumericLiteral(targetDt, 0.0, expr.position)
                 }
             }
             else -> {
@@ -1154,11 +1195,13 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                     return null
                 }
                 else if(amount==8) {
+                    if(!options.compTarget.cpu.is6502) return null
                     // shift right by 8 bits is just a byte operation: msb(X) as uword
                     val msb = FunctionCallExpression(IdentifierReference(listOf("msb"), expr.position), mutableListOf(expr.left), expr.position)
                     return TypecastExpression(msb, DataType.UWORD, true, expr.position)
                 }
                 else if (amount > 8) {
+                    if(!options.compTarget.cpu.is6502) return null
                     // same as above but with residual shifts.
                     val msb = FunctionCallExpression(IdentifierReference(listOf("msb"), expr.position), mutableListOf(expr.left), expr.position)
                     return TypecastExpression(BinaryExpression(msb, ">>", NumericLiteral.optimalInteger(amount - 8, expr.position), expr.position), DataType.UWORD, true, expr.position)
@@ -1170,11 +1213,13 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                     return null
                 }
                 else if(amount == 8) {
+                    if(!options.compTarget.cpu.is6502) return null
                     // shift right by 8 bits is just a byte operation: msb(X) as byte  (will get converted to word later)
                     val msb = FunctionCallExpression(IdentifierReference(listOf("msb"), expr.position), mutableListOf(expr.left), expr.position)
                     return TypecastExpression(msb, DataType.BYTE, true, expr.position)
                 }
                 else if(amount > 8) {
+                    if(!options.compTarget.cpu.is6502) return null
                     // same as above but with residual shifts. Take care to do signed shift.
                     val msb = FunctionCallExpression(IdentifierReference(listOf("msb"), expr.position), mutableListOf(expr.left), expr.position)
                     val signed = TypecastExpression(msb, DataType.BYTE, true, expr.position)

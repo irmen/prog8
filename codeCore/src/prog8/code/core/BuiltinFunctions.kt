@@ -24,7 +24,7 @@ class CallConvention(val params: List<ParamConvention>, val returns: ReturnConve
 class FParam(val name: String, vararg val possibleDatatypes: BaseDataType)
 
 
-private val IterableDatatypes = arrayOf(BaseDataType.STR, BaseDataType.ARRAY, BaseDataType.ARRAY_SPLITW)
+private val IterableDatatypes = arrayOf(BaseDataType.STR, BaseDataType.ARRAY, BaseDataType.ARRAY_SPLITW, BaseDataType.ARRAY_POINTER)
 private val IntegerDatatypes = arrayOf(BaseDataType.UBYTE, BaseDataType.BYTE, BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.LONG)
 private val NumericDatatypes = arrayOf(BaseDataType.UBYTE, BaseDataType.BYTE, BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.LONG, BaseDataType.FLOAT)
 
@@ -33,7 +33,7 @@ class FSignature(val pure: Boolean,      // does it have side effects?
                  val returnTypes: Array<BaseDataType>,
                  vararg val parameters: FParam) {
 
-    fun callConvention(actualParamTypes: List<BaseDataType>): CallConvention {
+    fun callConventionFor6502(actualParamTypes: List<BaseDataType>): CallConvention {
         val returns: ReturnConvention
         if(returnTypes.isEmpty())
             returns = ReturnConvention(null, null)
@@ -41,7 +41,7 @@ class FSignature(val pure: Boolean,      // does it have side effects?
             val returnType = returnTypes[0]
             returns = when (returnType) {
                 BaseDataType.UBYTE, BaseDataType.BYTE -> ReturnConvention(returnType, RegisterOrPair.A)
-                BaseDataType.UWORD, BaseDataType.WORD -> ReturnConvention(returnType, RegisterOrPair.AY)
+                BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.POINTER -> ReturnConvention(returnType, RegisterOrPair.AY)
                 BaseDataType.LONG -> ReturnConvention(returnType, RegisterOrPair.R14R15)
                 BaseDataType.FLOAT -> ReturnConvention(returnType, RegisterOrPair.FAC1)
                 in IterableDatatypes -> ReturnConvention(returnType, RegisterOrPair.AY)
@@ -49,7 +49,7 @@ class FSignature(val pure: Boolean,      // does it have side effects?
                     // return type depends on arg type
                     when (val paramType = actualParamTypes.first()) {
                         BaseDataType.UBYTE, BaseDataType.BYTE -> ReturnConvention(paramType, RegisterOrPair.A)
-                        BaseDataType.UWORD, BaseDataType.WORD -> ReturnConvention(paramType, RegisterOrPair.AY)
+                        BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.POINTER -> ReturnConvention(paramType, RegisterOrPair.AY)
                         BaseDataType.LONG -> ReturnConvention(returnType, RegisterOrPair.R14R15)
                         BaseDataType.FLOAT -> ReturnConvention(paramType, RegisterOrPair.FAC1)
                         in IterableDatatypes -> ReturnConvention(paramType, RegisterOrPair.AY)
@@ -109,8 +109,8 @@ val BuiltinFunctions: Map<String, FSignature> = mapOf(
     "prog8_lib_square_word"       to FSignature(true, arrayOf(BaseDataType.UWORD), FParam("value", BaseDataType.WORD, BaseDataType.UWORD)),
     "prog8_lib_square_long"       to FSignature(true, arrayOf(BaseDataType.LONG), FParam("value", BaseDataType.LONG)),
     "prog8_lib_structalloc"       to FSignature(true, arrayOf(BaseDataType.UWORD)),
-    "prog8_lib_copylong"          to FSignature(false, emptyArray(), FParam("pointer1", BaseDataType.UWORD), FParam("pointer2", BaseDataType.UWORD)),
-    "prog8_lib_copyfloat"         to FSignature(false, emptyArray(), FParam("pointer1", BaseDataType.UWORD), FParam("pointer2", BaseDataType.UWORD)),
+    "prog8_lib_copylong"          to FSignature(false, emptyArray(), FParam("pointer1", BaseDataType.POINTER, BaseDataType.UWORD, BaseDataType.LONG), FParam("pointer2", BaseDataType.POINTER, BaseDataType.UWORD, BaseDataType.LONG)),
+    "prog8_lib_copyfloat"         to FSignature(false, emptyArray(), FParam("pointer1", BaseDataType.POINTER, BaseDataType.UWORD, BaseDataType.LONG), FParam("pointer2", BaseDataType.POINTER, BaseDataType.UWORD, BaseDataType.LONG)),
     "abs"           to FSignature(true, arrayOf(BaseDataType.UNDEFINED), FParam("value", *NumericDatatypes)),
     "abs__byte"     to FSignature(true, arrayOf(BaseDataType.UBYTE), FParam("value", BaseDataType.BYTE)),
     "abs__word"     to FSignature(true, arrayOf(BaseDataType.UWORD), FParam("value", BaseDataType.WORD)),
@@ -158,33 +158,37 @@ val BuiltinFunctions: Map<String, FSignature> = mapOf(
     "max__word"     to FSignature(true, arrayOf(BaseDataType.WORD), FParam("val1", BaseDataType.WORD), FParam("val2", BaseDataType.WORD)),
     "max__uword"    to FSignature(true, arrayOf(BaseDataType.UWORD), FParam("val1", BaseDataType.UWORD), FParam("val2", BaseDataType.UWORD)),
     "max__long"     to FSignature(true, arrayOf(BaseDataType.LONG), FParam("val1", BaseDataType.LONG), FParam("val2", BaseDataType.LONG)),
-    "peek"          to FSignature(true, arrayOf(BaseDataType.UBYTE), FParam("address", BaseDataType.UWORD)),
-    "peekbool"      to FSignature(true, arrayOf(BaseDataType.BOOL), FParam("address", BaseDataType.UWORD)),
-    "peekw"         to FSignature(true, arrayOf(BaseDataType.UWORD), FParam("address", BaseDataType.UWORD)),
-    "peekl"         to FSignature(true, arrayOf(BaseDataType.LONG), FParam("address", BaseDataType.UWORD)),
-    "peekf"         to FSignature(true, arrayOf(BaseDataType.FLOAT), FParam("address", BaseDataType.UWORD)),
-    "poke"          to FSignature(false, emptyArray(), FParam("address", BaseDataType.UWORD), FParam("value", BaseDataType.UBYTE, BaseDataType.BYTE)),
-    "pokebool"      to FSignature(false, emptyArray(), FParam("address", BaseDataType.UWORD), FParam("value", BaseDataType.BOOL)),
-    "pokebowl"      to FSignature(false, emptyArray(), FParam("address", BaseDataType.UWORD), FParam("value", BaseDataType.BOOL)),
-    "pokew"         to FSignature(false, emptyArray(), FParam("address", BaseDataType.UWORD), FParam("value", BaseDataType.UWORD, BaseDataType.WORD)),
-    "pokel"         to FSignature(false, emptyArray(), FParam("address", BaseDataType.UWORD), FParam("value", BaseDataType.LONG)),
-    "pokef"         to FSignature(false, emptyArray(), FParam("address", BaseDataType.UWORD), FParam("value", BaseDataType.FLOAT)),
-    "pokemon"       to FSignature(false, arrayOf(BaseDataType.UBYTE), FParam("address", BaseDataType.UWORD), FParam("value", BaseDataType.UBYTE)),
+    "peek"          to FSignature(true, arrayOf(BaseDataType.UBYTE), FParam("address", BaseDataType.UWORD, BaseDataType.LONG, BaseDataType.POINTER)),
+    "peekbool"      to FSignature(true, arrayOf(BaseDataType.BOOL), FParam("address", BaseDataType.UWORD, BaseDataType.LONG, BaseDataType.POINTER)),
+    "peekw"         to FSignature(true, arrayOf(BaseDataType.UWORD), FParam("address", BaseDataType.UWORD, BaseDataType.LONG, BaseDataType.POINTER)),
+    "peekl"         to FSignature(true, arrayOf(BaseDataType.LONG), FParam("address", BaseDataType.UWORD, BaseDataType.LONG, BaseDataType.POINTER)),
+    "peekf"         to FSignature(true, arrayOf(BaseDataType.FLOAT), FParam("address", BaseDataType.UWORD, BaseDataType.LONG, BaseDataType.POINTER)),
+    "peekp"         to FSignature(true, arrayOf(BaseDataType.POINTER), FParam("address", BaseDataType.POINTER, BaseDataType.UWORD, BaseDataType.LONG)),
+    "poke"          to FSignature(false, emptyArray(), FParam("address", BaseDataType.UWORD, BaseDataType.LONG, BaseDataType.POINTER), FParam("value", BaseDataType.UBYTE, BaseDataType.BYTE)),
+    "pokebool"      to FSignature(false, emptyArray(), FParam("address", BaseDataType.UWORD, BaseDataType.LONG, BaseDataType.POINTER), FParam("value", BaseDataType.BOOL)),
+    "pokebowl"      to FSignature(false, emptyArray(), FParam("address", BaseDataType.UWORD, BaseDataType.LONG, BaseDataType.POINTER), FParam("value", BaseDataType.BOOL)),
+    "pokew"         to FSignature(false, emptyArray(), FParam("address", BaseDataType.UWORD, BaseDataType.LONG, BaseDataType.POINTER), FParam("value", BaseDataType.UWORD, BaseDataType.WORD)),
+    "pokel"         to FSignature(false, emptyArray(), FParam("address", BaseDataType.UWORD, BaseDataType.LONG, BaseDataType.POINTER), FParam("value", BaseDataType.LONG)),
+    "pokef"         to FSignature(false, emptyArray(), FParam("address", BaseDataType.UWORD, BaseDataType.LONG, BaseDataType.POINTER), FParam("value", BaseDataType.FLOAT)),
+    "pokep"         to FSignature(false, emptyArray(), FParam("address", BaseDataType.POINTER, BaseDataType.UWORD, BaseDataType.LONG), FParam("value", BaseDataType.POINTER)),
+    "pokemon"       to FSignature(false, arrayOf(BaseDataType.UBYTE), FParam("address", BaseDataType.UWORD, BaseDataType.LONG, BaseDataType.POINTER), FParam("value", BaseDataType.UBYTE)),
     "rsave"         to FSignature(false, emptyArray()),
     "rrestore"      to FSignature(false, emptyArray()),
-    "memory"        to FSignature(true,  arrayOf(BaseDataType.UWORD), FParam("name", BaseDataType.STR), FParam("size", BaseDataType.UWORD), FParam("alignment", BaseDataType.UWORD)),
-    "memory__ref"   to FSignature(true, arrayOf(BaseDataType.UWORD), FParam("name", BaseDataType.STR)),
-    "callfar"       to FSignature(false, arrayOf(BaseDataType.UWORD), FParam("bank", BaseDataType.UBYTE), FParam("address", BaseDataType.UWORD), FParam("arg", BaseDataType.UWORD)),
-    "callfar2"      to FSignature(false, arrayOf(BaseDataType.UWORD), FParam("bank", BaseDataType.UBYTE), FParam("address", BaseDataType.UWORD), FParam("argA", BaseDataType.UBYTE), FParam("argX", BaseDataType.UBYTE), FParam("argY", BaseDataType.UBYTE), FParam("argC", BaseDataType.BOOL)),
-    "call"          to FSignature(false, arrayOf(BaseDataType.UWORD), FParam("address", BaseDataType.UWORD)),
+    "memory"        to FSignature(true,  arrayOf(BaseDataType.POINTER), FParam("name", BaseDataType.STR), FParam("size", BaseDataType.UWORD), FParam("alignment", BaseDataType.UWORD)),
+    "memory__ref"   to FSignature(true, arrayOf(BaseDataType.POINTER), FParam("name", BaseDataType.STR)),
+    "callfar"       to FSignature(false, arrayOf(BaseDataType.UWORD), FParam("bank", BaseDataType.UBYTE), FParam("address", BaseDataType.POINTER), FParam("arg", BaseDataType.UWORD)),
+    "callfar2"      to FSignature(false, arrayOf(BaseDataType.UWORD), FParam("bank", BaseDataType.UBYTE), FParam("address", BaseDataType.POINTER), FParam("argA", BaseDataType.UBYTE), FParam("argX", BaseDataType.UBYTE), FParam("argY", BaseDataType.UBYTE), FParam("argC", BaseDataType.BOOL)),
+    "call"          to FSignature(false, arrayOf(BaseDataType.UWORD), FParam("address", BaseDataType.POINTER)),
     "push"          to FSignature(false, emptyArray(), FParam("value", BaseDataType.UBYTE, BaseDataType.BYTE, BaseDataType.BOOL)),
     "pushw"         to FSignature(false, emptyArray(), FParam("value", BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.POINTER)),
     "pushl"         to FSignature(false, emptyArray(), FParam("value", BaseDataType.LONG)),
     "pushf"         to FSignature(false, emptyArray(), FParam("value", BaseDataType.FLOAT)),
+    "pushp"         to FSignature(false, emptyArray(), FParam("value", BaseDataType.POINTER)),
     "pop"           to FSignature(false, arrayOf(BaseDataType.UBYTE)),
     "popw"          to FSignature(false, arrayOf(BaseDataType.UWORD)),
     "popl"          to FSignature(false, arrayOf(BaseDataType.LONG)),
     "popf"          to FSignature(false, arrayOf(BaseDataType.FLOAT)),
+    "popp"          to FSignature(false, arrayOf(BaseDataType.POINTER)),
 )
 
 val InplaceModifyingBuiltinFunctions = setOf(

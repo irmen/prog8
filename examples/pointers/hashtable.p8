@@ -11,7 +11,7 @@ main {
     sub start() {
         txt.lowercase()
         txt.print("Doubly Linked List with Hash Table Cache Demo\n")
-        txt.print("============================================\n\n")
+        txt.print("=============================================\n\n")
 
         ; Initialize the data structure
         cache.init()
@@ -221,10 +221,10 @@ cache {
 
 arena {
     ; Simple arena allocator
-    uword buffer = memory("arena", 8000, 0)
-    uword next = buffer
+    pointer buffer = memory("arena", 8000, 0)
+    pointer next = buffer
 
-    sub alloc(ubyte size) -> uword {
+    sub alloc(ubyte size) -> pointer {
         defer next += size
         return next
     }

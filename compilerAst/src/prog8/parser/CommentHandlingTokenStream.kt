@@ -2,22 +2,24 @@ package prog8.parser
 
 import org.antlr.v4.runtime.CommonTokenStream
 import org.antlr.v4.runtime.Lexer
+import org.antlr.v4.runtime.Token
 
-internal class CommentHandlingTokenStream(lexer: Lexer) : CommonTokenStream(lexer) {
+class CommentHandlingTokenStream(lexer: Lexer) : CommonTokenStream(lexer) {
 
-    data class Comment(val type: String, val line: Int, val comment: String)
-
-    fun commentTokens() : List<Comment> {
-        // extract the comments
-        val commentTokenChannel = Prog8ANTLRLexer.channelNames.indexOf("HIDDEN")
-        val theLexer = tokenSource as Lexer
-        return get(0, size())
-                .asSequence()
-                .filter { it.channel == commentTokenChannel }
-                .map {
-                    Comment(theLexer.vocabulary.getSymbolicName(it.type),
-                            it.line, it.text.substringAfter(';').trim())
-                }
-                .toList()
+    fun leadingBlockCommentsBefore(tokenIndex: Int): List<String> {
+        fill()
+        val comments = mutableListOf<String>()
+        var index = tokenIndex - 1
+        while(index >= 0) {
+            val token = get(index)
+            when {
+                token.channel == Token.HIDDEN_CHANNEL && token.type == Prog8ANTLRLexer.BLOCK_COMMENT ->
+                    comments.add(0, token.text)
+                token.channel == Token.HIDDEN_CHANNEL || token.type == Prog8ANTLRLexer.EOL -> Unit
+                else -> break
+            }
+            index--
+        }
+        return comments
     }
 }

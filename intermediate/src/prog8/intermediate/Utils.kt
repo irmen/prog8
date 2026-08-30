@@ -1,14 +1,10 @@
 package prog8.intermediate
 
-import prog8.Either
 import prog8.code.core.*
-import prog8.left
-import prog8.right
 
 
 fun DataType.irTypeString(length: UInt?): String {
     val lengthStr = if(length==0u) "" else length.toString()
-    // note: pointer types are all reduced to just an uword (untyped pointer / address)
     return when (this.base) {
         BaseDataType.BOOL -> "bool"
         BaseDataType.UBYTE -> "ubyte"
@@ -18,8 +14,12 @@ fun DataType.irTypeString(length: UInt?): String {
         BaseDataType.LONG -> "long"
         BaseDataType.FLOAT -> "float"
         BaseDataType.STR -> "ubyte[$lengthStr]"             // here string doesn't exist as a separate datatype anymore
-        BaseDataType.POINTER -> "uword"
-        BaseDataType.ARRAY_POINTER -> "uword"
+        BaseDataType.POINTER -> "pointer"
+        BaseDataType.ARRAY_POINTER -> {
+            val subTypeName = sub?.name?.lowercase() ?: subType?.scopedNameString
+                ?: throw IllegalArgumentException("ARRAY_POINTER missing subtype")
+            "^^$subTypeName[$lengthStr]"
+        }
         BaseDataType.STRUCT_INSTANCE -> {
             if(sub!=null)
                 sub!!.name.lowercase()
@@ -35,6 +35,7 @@ fun DataType.irTypeString(length: UInt?): String {
                 BaseDataType.LONG -> "long[$lengthStr]"
                 BaseDataType.BOOL -> "bool[$lengthStr]"
                 BaseDataType.FLOAT -> "float[$lengthStr]"
+                BaseDataType.STRUCT_INSTANCE -> if(subType!=null) "${subType!!.scopedNameString}[$lengthStr]" else "$subTypeFromAntlr[$lengthStr]"
                 else -> throw IllegalArgumentException("invalid sub type")
             }
         }
@@ -56,6 +57,7 @@ fun convertIRType(typestr: String): IRDataType? {
         ".w" -> IRDataType.WORD
         ".l" -> IRDataType.LONG
         ".f" -> IRDataType.FLOAT
+        ".p" -> IRDataType.POINTER
         else -> throw IRParseException("invalid type $typestr")
     }
 }
@@ -80,13 +82,18 @@ fun parseIRValue(value: String): Double {
 }
 
 
-private val instructionPattern = Regex("""([a-z]+)(\.b|\.w|\.l|\.f)?(.*)""", RegexOption.IGNORE_CASE)
+sealed interface ParsedIRLine {
+    data class Instruction(val value: IRInstruction) : ParsedIRLine
+    data class Label(val name: String) : ParsedIRLine
+}
+
+private val instructionPattern = Regex("""([a-z_]+)(\.b|\.w|\.l|\.f|\.p)?(.*)""", RegexOption.IGNORE_CASE)
 private val labelPattern = Regex("""_([a-zA-Z\d\._]+):""")
 
-fun parseIRCodeLine(line: String): Either<IRInstruction, String> {
+fun parseIRCodeLine(line: String): ParsedIRLine {
     val labelmatch = labelPattern.matchEntire(line.trim())
     if(labelmatch!=null)
-        return right(labelmatch.groupValues[1])     // it's a label.
+        return ParsedIRLine.Label(labelmatch.groupValues[1])
 
     val match = instructionPattern.matchEntire(line)
         ?: throw IRParseException("invalid IR instruction: $line")
@@ -131,7 +138,7 @@ fun parseIRCodeLine(line: String): Either<IRInstruction, String> {
     if(format.sysCall) {
         val call = parseCall(rest)
         val syscallNum = call.address?.toInt() ?: (call.target?.let { parseIRValue(it).toInt() } ?: throw IRParseException("Missing syscall number"))
-        return left(IRInstruction(Opcode.SYSCALL, immediate = syscallNum, fcallArgs = FunctionCallArgs(call.args, call.returns)))
+        return ParsedIRLine.Instruction(IRInstruction(Opcode.SYSCALL, immediate = syscallNum, fcallArgs = FunctionCallArgs(call.args, call.returns)))
     } else if (format.funcCall || opcode in setOf(Opcode.CALLFAR, Opcode.CALLFARVB)) {
         val call = parseCall(rest)
         val ir = when(opcode) {
@@ -140,7 +147,7 @@ fun parseIRCodeLine(line: String): Either<IRInstruction, String> {
             else ->
                 IRInstruction(Opcode.CALL, address = call.address?.toAddress(), labelSymbol = call.target, fcallArgs = FunctionCallArgs(call.args, call.returns))
         }
-        return left(ir)
+        return ParsedIRLine.Instruction(ir)
     } else {
         operands.forEach { oper ->
             if (oper[0] == '&')
@@ -225,7 +232,7 @@ fun parseIRCodeLine(line: String): Either<IRInstruction, String> {
                     if (immediateInt!=null && (immediateInt < -32768 || immediateInt > 65535))
                         throw IRParseException("immediate value out of range for word: $immediateInt")
                 }
-                IRDataType.LONG -> {
+                IRDataType.POINTER, IRDataType.LONG -> {
                     if (immediateInt!=null && (immediateInt.toLong() < -2147483648L || immediateInt.toLong() > 0x7fffffffL))
                         throw IRParseException("immediate value out of range for long: $immediateInt")
                 }
@@ -251,7 +258,7 @@ fun parseIRCodeLine(line: String): Either<IRInstruction, String> {
         }
     }
 
-    return left(IRInstruction(opcode, type, reg1, reg2, reg3, fpReg1, fpReg2, immediateInt, immediateFp, address?.toAddress(), labelSymbol = labelSymbol, symbolOffset = offset))
+    return ParsedIRLine.Instruction(IRInstruction(opcode, type, reg1, reg2, reg3, fpReg1, fpReg2, immediateInt, immediateFp, address?.toAddress(), labelSymbol = labelSymbol, symbolOffset = offset))
 }
 
 private fun isRegisterName(oper: String): Boolean {
@@ -299,6 +306,7 @@ private fun parseCall(rest: String): ParsedCall {
             "w" -> IRDataType.WORD
             "l" -> IRDataType.LONG
             "f" -> IRDataType.FLOAT
+            "p" -> IRDataType.POINTER
             else -> throw IRParseException("invalid type spec in $reg")
         }
         val (callingConventionSlot, statusflag) =
@@ -358,8 +366,9 @@ private fun parseCall(rest: String): ParsedCall {
         val parts = target.split(",", limit=2)
         immediate = parseIRValue(parts.first().drop(1)).toUInt()
         val restTarget = parts.getOrElse(1) { "" }
-        if(restTarget.startsWith('$') || restTarget[0].isDigit()) {
-            address = parseIRValue(restTarget).toUInt()
+        if(restTarget.startsWith('$') || restTarget.startsWith('-') || restTarget[0].isDigit()) {
+            val value = parseIRValue(restTarget)
+            address = if(value<0) value.toInt().toUInt() else value.toUInt()
         } else {
             actualTarget = restTarget
         }
@@ -396,21 +405,4 @@ internal fun parseRegisterOrStatusflag(sourceregs: String): RegisterOrStatusflag
         }
     }
     return RegisterOrStatusflag(reg, sf)
-}
-
-
-fun irType(type: DataType): IRDataType {
-    if(type.base.isPassByRef)
-        return IRDataType.WORD
-
-    return when(type.base) {
-        BaseDataType.BOOL,
-        BaseDataType.UBYTE,
-        BaseDataType.BYTE -> IRDataType.BYTE
-        BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.POINTER -> IRDataType.WORD
-        BaseDataType.LONG -> IRDataType.LONG
-        BaseDataType.FLOAT -> IRDataType.FLOAT
-        BaseDataType.STRUCT_INSTANCE -> throw AssemblyError("no support for struct instances yet so no IR datatype for $type")
-        else -> throw AssemblyError("no IR datatype for $type")
-    }
 }

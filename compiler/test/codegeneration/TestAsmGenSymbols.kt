@@ -21,10 +21,13 @@ import prog8.code.target.VMTarget
 import prog8.codegen.cpu6502.AsmGen6502Internal
 import prog8.compiler.astprocessing.AstChecker
 import prog8.compiler.astprocessing.SimplifiedAstMaker
-import prog8tests.helpers.*
+import prog8tests.helpers.DummyFunctions
+import prog8tests.helpers.ErrorReporterForTests
+import prog8tests.helpers.compileText
 
 class TestAsmGenSymbols: StringSpec({
     val outputDir = tempdir().toPath()
+    val target = VMTarget()
     
     fun createTestProgram(): Program {
         /*
@@ -35,7 +38,7 @@ class TestAsmGenSymbols: StringSpec({
 
     sub start () {
         uword localvar
-        uword tgt
+        pointer tgt
 
     locallabel:
         tgt = localvar
@@ -51,7 +54,7 @@ class TestAsmGenSymbols: StringSpec({
 
          */
         val varInSub = VarDecl.builder(DataType.UWORD, Position.DUMMY).names("localvar").build()
-        val var2InSub = VarDecl.builder(DataType.UWORD, Position.DUMMY).names("tgt").build()
+        val var2InSub = VarDecl.builder(DataType.pointer(BaseDataType.UBYTE), Position.DUMMY).names("tgt").build()
         val labelInSub = Label("locallabel", Position.DUMMY)
 
         val tgt = AssignTarget(
@@ -72,13 +75,13 @@ class TestAsmGenSymbols: StringSpec({
         val assign8 = Assignment(tgt, AddressOf(IdentifierReference(listOf("main","label_outside"), Position.DUMMY), null, null, false, false, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
 
         val statements = mutableListOf(varInSub, var2InSub, labelInSub, assign1, assign2, assign3, assign4, assign5, assign6, assign7, assign8)
-        val subroutine = Subroutine("start", mutableListOf(), mutableListOf(), emptyList(), emptyList(), emptySet(), null, false, false, false, false, statements, Position.DUMMY)
+        val subroutine = Subroutine("start", mutableListOf(), mutableListOf(), emptyList(), emptyList(), emptySet(), null, false, false, false, null, statements, Position.DUMMY)
         val labelInBlock = Label("label_outside", Position.DUMMY)
         val varInBlock = VarDecl.builder(DataType.UWORD, Position.DUMMY).names("var_outside").build()
         val block = Block("main", null, mutableListOf(labelInBlock, varInBlock, subroutine), false, Position.DUMMY)
 
         val module = Module(mutableListOf(block), Position.DUMMY, SourceCode.Generated("test"))
-        val program = Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder).addModule(module)
+        val program = Program("test", DummyFunctions, target).addModule(module)
 
         return program
     }
@@ -96,7 +99,7 @@ class TestAsmGenSymbols: StringSpec({
         val astchecker = AstChecker(program, errors, options)
         astchecker.visit(program)
         errors.report()
-        val ptProgram = SimplifiedAstMaker(program, errors).transform()
+        val ptProgram = SimplifiedAstMaker(program, errors, options).transform()
         val st = SymbolTableMaker(ptProgram, options).make()
         return AsmGen6502Internal(ptProgram, st, options, errors, 0)
     }
@@ -171,8 +174,8 @@ main {
         asmgen.asmSymbolName(listOf("prog8_lib","P8ZP_SCRATCH_W2")) shouldBe "P8ZP_SCRATCH_W2"
         val id1 = PtIdentifier("prog8_lib.P8ZP_SCRATCH_REG", DataType.UBYTE, Position.DUMMY)
         val id2 = PtIdentifier("prog8_lib.P8ZP_SCRATCH_W2", DataType.UWORD, Position.DUMMY)
-        id1.parent = PtProgram("test", DummyMemsizer, DummyStringEncoder)
-        id2.parent = PtProgram("test", DummyMemsizer, DummyStringEncoder)
+        id1.parent = PtProgram("test", VMTarget())
+        id2.parent = PtProgram("test", VMTarget())
         asmgen.asmSymbolName(id1) shouldBe "P8ZP_SCRATCH_REG"
         asmgen.asmSymbolName(id2) shouldBe "P8ZP_SCRATCH_W2"
     }
@@ -226,14 +229,14 @@ main {
         ubyte col = 10
         ubyte row = 20
         print_ub(nop.lda(42))
-        print_uw(nop.lda.asl)
+        print_ptr(nop.lda.asl)
 
         void ffalse(99)
         void ftrue(99)
     }
     
     sub print_ub(ubyte v) {}
-    sub print_uw(uword v) {}
+    sub print_ptr(long v) {}
 }
 """
         val result = compileText(C64Target(), false, text, outputDir, writeAssembly = true)

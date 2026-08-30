@@ -12,13 +12,16 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.code.core.*
 import prog8.code.source.SourceCode
+import prog8.parser.CommentHandlingTokenStream
+
 import prog8.parser.Prog8ANTLRParser.*
 import prog8.parser.Prog8ANTLRVisitor
 import kotlin.io.path.Path
 import kotlin.io.path.isRegularFile
 
 
-class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node>(), Prog8ANTLRVisitor<Node> {
+class Antlr2KotlinVisitor(val source: SourceCode, private val target: ICompilationTarget,
+                          private val tokens: CommentHandlingTokenStream): AbstractParseTreeVisitor<Node>(), Prog8ANTLRVisitor<Node> {
 
     // Cached resolved filename - computed once per visitor since it never changes during a single parse
     private var cachedFileName: String? = null
@@ -30,6 +33,21 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
         private val BRANCH_CONDITION_MAP = BranchCondition.entries.associateBy { "if_" + it.name.lowercase() }
     }
 
+    private fun visibilityFromTokens(ctx: ParserRuleContext): Visibility? {
+        val hasPrivate = ctx.getToken(PRIVATE, 0) != null
+        val hasPublic = ctx.getToken(PUBLIC, 0) != null
+        if (hasPrivate && hasPublic)
+            throw SyntaxError("cannot use both 'private' and 'public' on the same declaration", ctx.toPosition())
+        return when {
+            hasPrivate -> Visibility.PRIVATE
+            hasPublic -> Visibility.PUBLIC
+            else -> null
+        }
+    }
+
+    private fun leadingBlockComment(ctx: ParserRuleContext): String? =
+        tokens.leadingBlockCommentsBefore(ctx.start.tokenIndex).joinToString("\n").ifEmpty { null }
+
     override fun visitModule(ctx: ModuleContext): Module {
         val statements = ctx.module_element().mapTo(mutableListOf()) { it.accept(this) as Statement }
         return Module(statements, ctx.toPosition(), source)
@@ -39,14 +57,14 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
         val name = getname(ctx.identifier())
         val address = (ctx.integerliteral()?.accept(this) as NumericLiteral?)?.number?.toUInt()
         val statements = ctx.block_statement().mapTo(mutableListOf()) { it.accept(this) as Statement }
-        return Block(name, address, statements, source.isFromLibrary, ctx.toPosition())
+        return Block(name, address, statements, source.isFromLibrary, ctx.toPosition(), leadingBlockComment(ctx))
     }
 
     override fun visitExpression(ctx: ExpressionContext): Expression {
         if(ctx.sizeof_expression!=null) {
             // Handle pointer type argument: sizeof(^^float)
             if(ctx.sizeof_argument().pointertype()!=null)
-                return IdentifierReference(listOf("sys", "SIZEOF_POINTER"), ctx.toPosition())
+                return NumericLiteral.optimalInteger(target.POINTER_MEM_SIZE.toInt(), ctx.toPosition())
 
             // Handle address-of argument: sizeof(&var) or sizeof(&&var)
             val addressofCtx = ctx.sizeof_argument().addressof()
@@ -128,11 +146,10 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
     override fun visitAlias(ctx: AliasContext): Alias {
         val identifier = getname(ctx.identifier())
         if (ctx.basedatatype() != null || ctx.pointertype() != null) {
-            val typeText = if (ctx.basedatatype() != null) ctx.basedatatype().text else ctx.pointertype().text
             throw SyntaxError("type aliases are not supported", ctx.toPosition())
         }
         val target = ctx.scoped_identifier().accept(this) as IdentifierReference
-        return Alias(identifier, target, ctx.PRIVATE() != null, ctx.toPosition())
+        return Alias(identifier, target, visibilityFromTokens(ctx), ctx.toPosition())
     }
 
     override fun visitDefer(ctx: DeferContext): Defer {
@@ -174,7 +191,7 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
     }
 
     override fun visitVardecl(ctx: VardeclContext): VarDecl {
-        val isPrivate = ctx.PRIVATE() != null
+        val visibility = visibilityFromTokens(ctx)
         val tags = ctx.TAG().map { it.text }
         val validTags = arrayOf("@zp", "@requirezp", "@nozp", "@nosplit", "@shared", "@alignword", "@alignpage", "@align64", "@dirty")
         for(tag in tags) {
@@ -217,12 +234,12 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
 
         val baseDt = dataTypeFor(ctx.datatype()) ?: DataType.UNDEFINED
         val dt = if(!isArray) baseDt else {
-            if(baseDt.isPointer)
+            if(baseDt.isPointer) {
                 DataType.arrayOfPointersFromAntlrTo(baseDt.sub, baseDt.subTypeFromAntlr)
-            else if(baseDt.isStructInstance)
-                throw SyntaxError("array of structures not allowed (use array of pointers)", ctx.toPosition())
+            } else if(baseDt.isStructInstance)
+                DataType.arrayOfStructsFromAntlr(baseDt.subTypeFromAntlr ?: emptyList())
             else
-                DataType.arrayFor(baseDt.base, split!=SplitWish.NOSPLIT)
+                DataType.arrayFor(baseDt.base, target)       // str arrays become LONG[] on 32-bit targets via pointerBaseType
         }
 
         return VarDecl.builder(dt, ctx.toPosition())
@@ -230,11 +247,12 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
             .alignment(if(alignword) 2u else if(align64) 64u else if(alignpage) 256u else 0u)
             .arraysize(arraySize)
             .dirty("@dirty" in tags)
-            .isPrivate(isPrivate)
+            .visibility(visibility)
             .matrixNumCols(matrixNumCols)
             .sharedWithAsm("@shared" in tags)
             .splitwordarray(split)
             .zeropage(zp)
+            .comment(leadingBlockComment(ctx))
             .build()
     }
 
@@ -250,12 +268,27 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
     }
 
     override fun visitConstdecl(ctx: ConstdeclContext): VarDecl {
-        if(ctx.datatype()==null)  // semantic check instead of grammar rule to have a better error message
-            throw SyntaxError("datatype missing", ctx.identifierlist().toPosition())
-        val isPrivate = ctx.PRIVATE() != null
-        val datatype = dataTypeFor(ctx.datatype()) ?: DataType.LONG
-        val identifiers = ctx.identifierlist().identifier().map { getname(it) }
+        val visibility = visibilityFromTokens(ctx)
         val initialvalue = ctx.expression().accept(this) as Expression
+        val datatype = if(ctx.datatype()!=null) {
+            dataTypeFor(ctx.datatype()) ?: DataType.LONG
+        } else {
+            when(initialvalue) {
+                is NumericLiteral -> when(initialvalue.type) {
+                    BaseDataType.FLOAT -> DataType.FLOAT
+                    BaseDataType.BOOL -> DataType.BOOL
+                    else -> DataType.LONG
+                }
+                is FunctionCallExpression -> {
+                    if(initialvalue.target.nameInSource.singleOrNull() == "memory") {
+                        val replacement = target.pointerBaseType
+                        DataType.forDt(replacement)
+                    } else DataType.LONG
+                }
+                else -> DataType.LONG
+            }
+        }
+        val identifiers = ctx.identifierlist().identifier().map { getname(it) }
         val actualValue = if(initialvalue is NumericLiteral && datatype.base.largerSizeThan(initialvalue.type))
                 NumericLiteral(datatype.base, initialvalue.number, initialvalue.position)
             else
@@ -263,9 +296,10 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
 
         return VarDecl.builder(datatype, ctx.toPosition())
             .names(identifiers)
-            .isPrivate(isPrivate)
+            .visibility(visibility)
             .type(VarDeclType.CONST)
             .value(actualValue)
+            .comment(leadingBlockComment(ctx))
             .build()
             .apply { hasExplicitInitializer = true }
     }
@@ -273,6 +307,7 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
     override fun visitMemoryvardecl(ctx: MemoryvardeclContext): VarDecl {
         val vardecl = ctx.varinitializer().accept(this) as VarDecl
         vardecl.type = VarDeclType.MEMORY
+        vardecl.blockComment = leadingBlockComment(ctx) ?: vardecl.blockComment
         return vardecl
     }
 
@@ -580,7 +615,7 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
     }
 
     override fun visitSubroutine(ctx: SubroutineContext): Subroutine {
-        val isPrivate = ctx.PRIVATE() != null
+        val visibility = visibilityFromTokens(ctx)
         val name = getname(ctx.identifier())
         val parameters = ctx.sub_params()?.sub_param()?.mapTo(mutableListOf()) { it.accept(this) as SubroutineParameter } ?: mutableListOf()
         val returntypes = ctx.sub_return_part()?.datatype()?.mapTo(mutableListOf()) { dataTypeFor(it)!! } ?: mutableListOf()
@@ -596,9 +631,10 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
             asmAddress = null,
             isAsmSubroutine = false,
             inline = ctx.INLINE() != null,
-            isPrivate = isPrivate,
+            visibility = visibility,
             statements = statements.statements,
-            position = ctx.toPosition()
+            position = ctx.toPosition(),
+            blockComment = leadingBlockComment(ctx)
         )
     }
 
@@ -622,7 +658,7 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
             if(arrayIndices.size > 1) {
                 throw SyntaxError("2D arrays cannot be used as subroutine parameters", decl.toPosition())
             }
-            datatype = datatype.elementToArray()
+            datatype = datatype.elementToArray(target)
         }
 
         val identifiers = decl.identifierlist().identifier()
@@ -638,7 +674,7 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
     }
 
     override fun visitAsmsubroutine(ctx: AsmsubroutineContext): Subroutine {
-        val isPrivate = ctx.PRIVATE() != null
+        val visibility = visibilityFromTokens(ctx)
         val inline = ctx.INLINE()!=null
         val ad = asmSubDecl(ctx.asmsub_decl())
         val statements = ctx.statement_block().accept(this) as AnonymousScope
@@ -648,8 +684,8 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
             ad.returntypes,
             ad.asmParameterRegisters,
             ad.asmReturnvaluesRegisters,
-            ad.asmClobbers, null, true, inline, false, isPrivate,
-            statements.statements, ctx.toPosition()
+            ad.asmClobbers, null, true, inline, false, visibility,
+            statements.statements, ctx.toPosition(), leadingBlockComment(ctx)
         )
     }
 
@@ -661,7 +697,7 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
         val address = Subroutine.Address(constbank, varbank, addr)
         return Subroutine(subdecl.name, subdecl.parameters, subdecl.returntypes,
             subdecl.asmParameterRegisters, subdecl.asmReturnvaluesRegisters,
-            subdecl.asmClobbers, address, true, inline = false, isPrivate = ctx.PRIVATE() != null, statements = mutableListOf(), position = ctx.toPosition()
+            subdecl.asmClobbers, address, true, inline = false, visibility = visibilityFromTokens(ctx), statements = mutableListOf(), position = ctx.toPosition(), blockComment = leadingBlockComment(ctx)
         )
     }
 
@@ -696,9 +732,11 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
 
     override fun visitForloop(ctx: ForloopContext): ForLoop {
         val loopvar = ctx.scoped_identifier().accept(this) as IdentifierReference
-        val iterable = ctx.expression().accept(this) as Expression
+        val iterable = ctx.expression(0).accept(this) as Expression
         val scope = stmtBlockOrSingle(ctx.statement_block(), ctx.statement())
-        return ForLoop(loopvar, iterable, scope, ctx.toPosition())
+        val loopVarType = dataTypeFor(ctx.datatype())
+        val step = if(ctx.STEP()!=null && ctx.expression().size > 1) ctx.expression(1).accept(this) as Expression else null
+        return ForLoop(loopvar, iterable, scope, loopVarType, step, ctx.toPosition())
     }
 
     override fun visitWhileloop(ctx: WhileloopContext): WhileLoop {
@@ -746,15 +784,14 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
     }
 
     override fun visitStaticstructinitializer(ctx: StaticstructinitializerContext): StaticStructInitializer {
-        if(ctx.POINTER()==null)
-            throw SyntaxError("struct initializer requires '^^' before struct name", ctx.toPosition())
+        val isPointer = ctx.POINTER()!=null
         val struct = ctx.scoped_identifier().accept(this) as IdentifierReference
         val array = ctx.arrayliteral()
         val args = if(array==null) mutableListOf<Expression>() else {
             val arrayLiteral = array.accept(this) as ArrayLiteral
             arrayLiteral.value.toMutableList()
         }
-        return StaticStructInitializer(struct, args, ctx.toPosition())
+        return StaticStructInitializer(struct, args, ctx.toPosition(), isPointer)
     }
 
     private fun flattenArrayLiteral(expr: Expression): List<Expression> {
@@ -771,6 +808,42 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
             is ArrayIndexedPtrDereference -> AssignTarget(null, null, null, null, false, arrayIndexedDereference = deref, position = deref.position)
             else -> throw FatalAstException("weird dereference ${ctx.toPosition()}")
         }
+    }
+
+    // (expr).field  or  (expr).field.sub  as assignment target.
+    // A parenthesized plain (scoped) identifier is flattened into just that scoped name,
+    // so that "(a).b.c" is represented exactly like "a.b.c".
+    // All other expressions go into the dotExpression field; the CodeDesugarer turns
+    // those into poke-style writes.
+    override fun visitParenDerefTarget(ctx: ParenDerefTargetContext): AssignTarget {
+        val inner = ctx.expression().accept(this)
+        val fieldNames = ctx.identifier().map { it.text }
+        if(inner is IdentifierReference) {
+            return AssignTarget(IdentifierReference(inner.nameInSource + fieldNames, ctx.toPosition()), null, null, null, false, position = ctx.toPosition())
+        }
+        var expr = inner as Expression
+        for(field in fieldNames) {
+            expr = BinaryExpression(expr, ".", IdentifierReference(listOf(field), ctx.toPosition()), ctx.toPosition())
+        }
+        return AssignTarget(null, null, null, null, false, dotExpression = expr, position = ctx.toPosition())
+    }
+
+    // func().field  as assignment target; the CodeDesugarer turns this into a poke-style write.
+    override fun visitFunctioncallDerefTarget(ctx: FunctioncallDerefTargetContext): AssignTarget {
+        var expr: Expression = ctx.functioncall().accept(this) as Expression
+        for(field in ctx.identifier()) {
+            expr = BinaryExpression(expr, ".", IdentifierReference(listOf(field.text), ctx.toPosition()), ctx.toPosition())
+        }
+        return AssignTarget(null, null, null, null, false, dotExpression = expr, position = ctx.toPosition())
+    }
+
+    // array[index].field  as assignment target; the CodeDesugarer turns this into a poke-style write.
+    override fun visitArrayindexedDerefTarget(ctx: ArrayindexedDerefTargetContext): AssignTarget {
+        var expr: Expression = ctx.arrayindexed().accept(this) as ArrayIndexedExpression
+        for(field in ctx.identifier()) {
+            expr = BinaryExpression(expr, ".", IdentifierReference(listOf(field.text), ctx.toPosition()), ctx.toPosition())
+        }
+        return AssignTarget(null, null, null, null, false, dotExpression = expr, position = ctx.toPosition())
     }
 
     /**
@@ -815,7 +888,7 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
         val name = getname(ctx.identifier())
         val fieldDefs = ctx.structfielddecl().map { getStructField(it) }
         val flattened = fieldDefs.flatMap { (dt, names, arrSize) -> names.map { StructField(dt, it, arrSize) }}
-        return StructDecl(name, flattened.toTypedArray(), ctx.PRIVATE() != null, ctx.toPosition())
+        return StructDecl(name, flattened.toTypedArray(), visibilityFromTokens(ctx), ctx.toPosition(), leadingBlockComment(ctx))
     }
 
     private data class StructFieldDef(val type: DataType, val names: List<String>, val arraySize: Int?)
@@ -831,7 +904,7 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
                 throw SyntaxError("array field must have a specified size", ctx.toPosition())
             if(arrayIndices.size > 1)
                 throw SyntaxError("2D arrays are not allowed as struct fields", ctx.toPosition())
-            val dt = baseDt.elementToArray()
+            val dt = baseDt.elementToArray(target)
             val arrayIndexExpr = arrayIndices[0].accept(this) as ArrayIndex
             val size = (arrayIndexExpr.indexExpr as? NumericLiteral)?.number?.toInt()
                 ?: throw SyntaxError("array field size must be a constant integer expression", ctx.toPosition())
@@ -857,7 +930,7 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
         val members = members1.map {
             it.first to it.second?.number?.toInt()
         }.toTypedArray()
-        return Enumeration(name, largestType, members, ctx.PRIVATE() != null, ctx.toPosition())
+        return Enumeration(name, largestType, members, visibilityFromTokens(ctx), ctx.toPosition(), leadingBlockComment(ctx))
     }
 
 
@@ -961,7 +1034,7 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
             if(arrayIndices.size > 1) {
                 throw SyntaxError("2D arrays cannot be used as subroutine parameters", vardecl.toPosition())
             }
-            datatype = datatype.elementToArray()
+            datatype = datatype.elementToArray(target)
         }
         val (registerorpair, statusregister) = parseParamRegister(pctx.register, pctx.toPosition())
         val identifiers = vardecl.identifierlist().identifier()
@@ -1018,8 +1091,12 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
         if(dtctx==null)
             return null
         val base = baseDatatypeFor(dtctx.basedatatype())
-        if(base!=null)
+         if(base!=null) {
+            if(base==BaseDataType.POINTER) {
+                return DataType.forDt(target.pointerBaseType)
+            }
             return DataType.forDt(base)
+        }
         val pointer = pointerDatatypeFor(dtctx.pointertype())
         if(pointer!=null)
             return pointer

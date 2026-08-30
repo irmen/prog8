@@ -561,6 +561,28 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
     }
 
     internal fun inplacemodificationLongWithExpression(targetVar: String, operator: String, value: PtExpression) {
+        // Adding an unsigned byte to a long: skip zero-extending the byte into a
+        // full 4-byte long and just add it with carry propagation through the upper bytes.
+        // The byte shows up here as a (widened) long-typed cast of an ubyte expression,
+        // so detect it via the cast child type.
+        if(operator=="+" && value is PtTypeCast && value.value.type==DataType.UBYTE) {
+            assignmentAsmGen.assignExpressionToRegister(value.value, RegisterOrPair.A, false)
+            asmgen.out("""
+                clc
+                adc  $targetVar+0
+                sta  $targetVar+0
+                lda  $targetVar+1
+                adc  #0
+                sta  $targetVar+1
+                lda  $targetVar+2
+                adc  #0
+                sta  $targetVar+2
+                lda  $targetVar+3
+                adc  #0
+                sta  $targetVar+3
+                """)
+            return
+        }
         // it's not an expression so no need to preserve R14-R15
         if(value.type.isSigned) {
             assignmentAsmGen.assignExpressionToRegister(value, RegisterOrPair.R14R15, true)
@@ -931,8 +953,12 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                 }
                 else -> {
                     asmgen.out("""
-                        lda  #0
-                        sta  $variable
+                        lda  $variable+3
+                        bpl  +
+                        lda  #255
+                        bne  ++
++                       lda  #0
++                       sta  $variable
                         sta  $variable+1
                         sta  $variable+2
                         sta  $variable+3""")
@@ -1670,7 +1696,7 @@ $shortcutLabel:""")
             // use the already existing optimized codegen for regular assignments  x += array[index]
             val binexpr = PtBinaryExpression(operator, dt, value.position)
             binexpr.add(PtIdentifier(name, dt, value.position))
-            val arrayValue = PtArrayIndexer(value.type, value.position)
+            val arrayValue = PtArrayIndexer(value.type, valueVar.type.isSplitWordArray(program.memsizer), value.position)
             arrayValue.add(valueVar)
             arrayValue.add(value.index)
             binexpr.add(arrayValue)

@@ -1,10 +1,12 @@
 package prog8.vm
 
+// Push/pop word (2 bytes, little-endian). Used for UWORD/SWORD values.
 internal fun ArrayDeque<UByte>.pushw(value: UShort) {
     add((value and 255u).toUByte())
     add((value.toInt() ushr 8).toUByte())
 }
 
+// Push/pop long (4 bytes, little-endian). Used for LONG, ULONG, and POINTER values.
 internal fun ArrayDeque<UByte>.pushl(value: Int) {
     val uint = value.toUInt()
     add((uint and 255u).toUByte())
@@ -33,12 +35,14 @@ internal fun ArrayDeque<UByte>.pushf(value: Double) {
     add(bits.toUByte())
 }
 
+// Pop word (2 bytes). Used for UWORD/SWORD values.
 internal fun ArrayDeque<UByte>.popw(): UShort {
     val msb = removeLast()
     val lsb = removeLast()
     return ((msb.toInt() shl 8) + lsb.toInt()).toUShort()
 }
 
+// Pop long (4 bytes). Used for LONG, ULONG, and POINTER values.
 internal fun ArrayDeque<UByte>.popl(): Int {
     val b0 = removeLast().toUInt()
     val b1 = removeLast().toUInt()

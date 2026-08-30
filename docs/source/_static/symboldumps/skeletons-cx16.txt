@@ -1,5 +1,6 @@
 
-Prog8 compiler v12.3 by Irmen de Jong (irmen@razorvine.net)
+Prog8 compiler v14.0-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
+Prerelease version from git commit a4fb829b in branch new-codegens
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-cx16.p8
@@ -9,18 +10,18 @@ Compiler target: cx16
 BUILTIN FUNCTIONS
 -----------------
 abs  (ubyte|byte|uword|word|long|float value) -> undefined
-call  (uword address) -> uword
-callfar  (ubyte bank, uword address, uword arg) -> uword
-callfar2  (ubyte bank, uword address, ubyte argA, ubyte argX, ubyte argY, bool argC) -> uword
+call  (pointer address) -> uword
+callfar  (ubyte bank, pointer address, uword arg) -> uword
+callfar2  (ubyte bank, pointer address, ubyte argA, ubyte argX, ubyte argY, bool argC) -> uword
 clamp  (byte value, byte minimum, byte maximum) -> undefined
 cmp  (ubyte|byte|uword|word|long value1, ubyte|byte|uword|word|long|float value2)
 divmod  (ubyte|uword dividend, ubyte|uword divisor) -> undefined, undefined
-len  (str|array|array_splitw values) -> uword
+len  (str|array|array_splitw|array_pointer values) -> uword
 lmh  (long value) -> ubyte, ubyte, ubyte
 lsb  (uword|word|long value) -> ubyte
 lsw  (uword|word|long value) -> uword
 max  (byte val1, byte val2) -> undefined
-memory  (str name, uword size, uword alignment) -> uword
+memory  (str name, uword size, uword alignment) -> pointer
 min  (byte val1, byte val2) -> undefined
 mklong  (ubyte msb, ubyte b2, ubyte b1, ubyte lsb) -> long
 mklong2  (uword msw, uword lsw) -> long
@@ -28,25 +29,29 @@ mkword  (ubyte msb, ubyte lsb) -> uword
 msb  (uword|word|long value) -> ubyte
 msw  (uword|word|long value) -> uword
 offsetof  (ubyte field) -> ubyte
-peek  (uword address) -> ubyte
-peekbool  (uword address) -> bool
-peekf  (uword address) -> float
-peekl  (uword address) -> long
-peekw  (uword address) -> uword
-poke  (uword address, ubyte|byte value)
-pokebool  (uword address, bool value)
-pokebowl  (uword address, bool value)
-pokef  (uword address, float value)
-pokel  (uword address, long value)
-pokemon  (uword address, ubyte value) -> ubyte
-pokew  (uword address, uword|word value)
+peek  (uword|long|pointer address) -> ubyte
+peekbool  (uword|long|pointer address) -> bool
+peekf  (uword|long|pointer address) -> float
+peekl  (uword|long|pointer address) -> long
+peekp  (pointer|uword|long address) -> pointer
+peekw  (uword|long|pointer address) -> uword
+poke  (uword|long|pointer address, ubyte|byte value)
+pokebool  (uword|long|pointer address, bool value)
+pokebowl  (uword|long|pointer address, bool value)
+pokef  (uword|long|pointer address, float value)
+pokel  (uword|long|pointer address, long value)
+pokemon  (uword|long|pointer address, ubyte value) -> ubyte
+pokep  (pointer|uword|long address, pointer value)
+pokew  (uword|long|pointer address, uword|word value)
 pop  () -> ubyte
 popf  () -> float
 popl  () -> long
+popp  () -> pointer
 popw  () -> uword
 push  (ubyte|byte|bool value)
 pushf  (float value)
 pushl  (long value)
+pushp  (pointer value)
 pushw  (uword|word|pointer value)
 rol  (ubyte|uword|long item)
 rol2  (ubyte|uword|long item)
@@ -65,20 +70,8 @@ LIBRARY MODULE NAME: adpcm
 --------------------------
 
 adpcm  {
-    ubyte @requirezp  index
-    ubyte @requirezp  index_2
-    uword @requirezp  predict
-    uword @requirezp  predict_2
-    uword @requirezp  pstep
-    uword @requirezp  pstep_2
-    byte[]  t_index
-    uword[]  t_step
     decode_block_mono  (uword nibblesptr)
     decode_block_stereo  (uword nibblesptr)
-    decode_nibble  (ubyte nibble)
-    decode_nibble_second  (ubyte nibble)
-    init  (uword startPredict, ubyte startIndex)
-    init_second  (uword startPredict_2, ubyte startIndex_2)
 }
 
 
@@ -106,38 +99,24 @@ LIBRARY MODULE NAME: bmx
 ------------------------
 
 bmx  {
-    str  FILEID
     ubyte  bitsperpixel
     ubyte  border
     ubyte  compression
     ^^ubyte  error_message
-    ubyte[]  header
     uword  height
-    ubyte  old_drivenumber
     ^^ubyte @shared  palette_buffer_ptr
     uword  palette_entries
     ubyte  palette_start
     ubyte  vera_colordepth
     uword  width
-    build_header  ()
-    bytes_per_scanline  (uword w) -> uword
     close  ()
     continue_load  (ubyte vbank, uword vaddr) -> bool
     continue_load_only_palette  () -> bool
     continue_load_stamp  (ubyte vbank, uword vaddr, uword screenwidth) -> bool
     open  (ubyte drivenumber, str filename) -> bool
-    parse_header  () -> bool
-    read_bitmap  (ubyte vbank, uword vaddr) -> bool
-    read_bitmap_padded  (ubyte vbank, uword vaddr, uword screenwidth) -> bool
-    read_header  () -> bool
-    read_palette  () -> bool
-    read_scanline  (uword size)
     save  (ubyte drivenumber, str filename, ubyte vbank, uword vaddr, uword screenwidth) -> bool
     set_bpp  (ubyte bpp)
     set_vera_colordepth  (ubyte depth)
-    write_bitmap  (ubyte vbank, uword vaddr, uword screenwidth) -> bool
-    write_header  () -> bool
-    write_palette  () -> bool
 }
 
 
@@ -260,8 +239,8 @@ coroutines  {
     const ubyte  MAX_TASKS
     ubyte  active_task
     uword  supervisor
-    uword[]  tasklist
-    uword[]  userdatas
+    @nosplit uword[]  tasklist
+    @nosplit uword[]  userdatas
     add  (uword taskaddress, uword userdata) -> ubyte
     current  () -> ubyte
     kill  (ubyte taskid)
@@ -276,7 +255,7 @@ LIBRARY MODULE NAME: cx16logo
 -----------------------------
 
 cx16logo  {
-    uword[]  logo_lines
+    @nosplit uword[]  logo_lines
     logo  ()
     logo_at  (ubyte column, ubyte row)
 }
@@ -489,12 +468,8 @@ LIBRARY MODULE NAME: gfx_hires
 gfx_hires  {
     const uword  HEIGHT
     const uword  WIDTH
-    const uword  charset_addr
-    const ubyte  charset_bank
-    addr_mul_24_for_highres_4c  (uword yy @R2, uword xx @R3) clobbers (A,Y) -> uword @R0, uword @R1
     circle  (uword xcenter, uword ycenter, ubyte radius, ubyte color)
     clear_screen  (ubyte color)
-    cs_innerloop640  (ubyte color @A) clobbers (Y)
     disc  (uword xcenter, uword ycenter, ubyte radius, ubyte color)
     fill  (uword x, uword y, ubyte new_color, ubyte stack_rambank)
     fillrect  (uword xx, uword yy, uword rwidth, uword rheight, ubyte color)
@@ -529,9 +504,6 @@ LIBRARY MODULE NAME: gfx_lores
 gfx_lores  {
     const ubyte  HEIGHT
     const uword  WIDTH
-    const uword  charset_addr
-    const ubyte  charset_bank
-    bool  eor_mode
     circle  (uword xcenter, ubyte ycenter, ubyte radius, ubyte color)
     clear_screen  (ubyte color)
     disc  (uword xcenter, ubyte ycenter, ubyte radius, ubyte color)
@@ -568,8 +540,6 @@ LIBRARY MODULE NAME: graphics
 graphics  {
     const ubyte  HEIGHT
     const uword  WIDTH
-    ubyte  background_color
-    ubyte  stroke_color
     FB_cursor_position2  () clobbers (A,X,Y) = $feff
     circle  (uword xcenter, ubyte ycenter, ubyte radius)
     clear_screen  (ubyte pixelcolor, ubyte bgcolor)
@@ -595,6 +565,26 @@ lineclip  {
     clip  (word x1, word y1, word x2, word y2) -> bool, word, word, word, word
     inside  (word x, word y) -> bool
     set_cliprect  (word x1, word y1, word x2, word y2)
+}
+
+
+LIBRARY MODULE NAME: lists
+--------------------------
+
+lists  {
+    struct FullNode
+    struct List
+    struct Node
+    add_head  (uword listptr, uword node)
+    add_tail  (uword listptr, uword node)
+    enqueue  (uword listptr, uword node)
+    find_name  (uword listptr, str name) -> uword
+    init  (uword listptr)
+    insert  (uword listptr, uword node, uword pred)
+    is_empty  (uword listptr) -> bool
+    remove  (uword node)
+    remove_head  (uword listptr) -> uword
+    remove_tail  (uword listptr) -> uword
 }
 
 
@@ -656,16 +646,10 @@ monogfx  {
     const ubyte  MODE_INVERT
     const ubyte  MODE_NORMAL
     const ubyte  MODE_STIPPLE
-    const uword  charset_addr
-    const ubyte  charset_bank
     uword  height
-    bool  lores_mode
-    ubyte  mode
-    uword[] @shared  times40
     uword  width
     circle  (uword xcenter, uword ycenter, ubyte radius, bool draw)
     clear_screen  (bool draw)
-    cs_innerloop640  (bool draw @A) clobbers (Y)
     disc  (uword xcenter, uword ycenter, ubyte radius, bool draw)
     drawmode  (ubyte dm)
     enable_doublebuffer  ()
@@ -735,7 +719,7 @@ psg  {
     ubyte[]  envelope_releases
     ubyte[]  envelope_states
     ubyte[]  envelope_sustains
-    uword[]  envelope_volumes
+    @nosplit uword[]  envelope_volumes
     bool[]  voice_enabled
     envelope  (ubyte voice_num, ubyte maxvolume, ubyte attack, ubyte sustain, ubyte release)
     envelopes_irq  () -> bool
@@ -867,7 +851,6 @@ sprites  {
     flipx  (ubyte spritenum, bool flipped)
     flipy  (ubyte spritenum, bool flipped)
     get_data_ptr  (ubyte spritenum @A) -> ubyte @R1, uword @R0
-    get_data_ptr_internal  (ubyte spritenum)
     getx  (ubyte spritenum) -> word
     getxy  (ubyte spritenum) -> word, word
     gety  (ubyte spritenum) -> word
@@ -1321,17 +1304,17 @@ cx16  {
     FB_cursor_next_line  (uword x @R0) clobbers (A,X,Y) = $ff02
     FB_cursor_position  (uword x @R0, uword y @R1) clobbers (A,X,Y) = $feff
     FB_fill_pixels  (uword count @R0, uword pstep @R1, ubyte color @A) clobbers (A,X,Y) = $ff17
-    FB_filter_pixels  (uword pointer @R0, uword count @R1) clobbers (A,X,Y) = $ff1a
+    FB_filter_pixels  (uword ptr @R0, uword count @R1) clobbers (A,X,Y) = $ff1a
     FB_get_info  () clobbers (X,Y) -> byte @A, uword @R0, uword @R1 = $fef9
     FB_get_pixel  () clobbers (X,Y) -> ubyte @A = $ff05
-    FB_get_pixels  (uword pointer @R0, uword count @R1) clobbers (A,X,Y) = $ff08
+    FB_get_pixels  (uword ptr @R0, uword count @R1) clobbers (A,X,Y) = $ff08
     FB_init  () clobbers (A,X,Y) = $fef6
     FB_move_pixels  (uword sx @R0, uword sy @R1, uword tx @R2, uword ty @R3, uword count @R4) clobbers (A,X,Y) = $ff1d
     FB_set_8_pixels  (ubyte pattern @A, ubyte color @X) clobbers (A,X,Y) = $ff11
     FB_set_8_pixels_opaque  (ubyte pattern @R0, ubyte mask @A, ubyte color1 @X, ubyte color2 @Y) clobbers (A,X,Y) = $ff14
-    FB_set_palette  (uword pointer @R0, ubyte index @A, ubyte colorcount @X) clobbers (A,X,Y) = $fefc
+    FB_set_palette  (uword ptr @R0, ubyte index @A, ubyte colorcount @X) clobbers (A,X,Y) = $fefc
     FB_set_pixel  (ubyte color @A) clobbers (A,X,Y) = $ff0b
-    FB_set_pixels  (uword pointer @R0, uword count @R1) clobbers (A,X,Y) = $ff0e
+    FB_set_pixels  (uword ptr @R0, uword count @R1) clobbers (A,X,Y) = $ff0e
     GRAPH_clear  () clobbers (A,X,Y) = $ff23
     GRAPH_draw_image  (uword x @R0, uword y @R1, uword ptr @R2, uword width @R3, uword height @R4) clobbers (A,X,Y) = $ff38
     GRAPH_draw_line  (uword x1 @R0, uword y1 @R1, uword x2 @R2, uword y2 @R3) clobbers (A,X,Y) = $ff2c
@@ -1369,7 +1352,7 @@ cx16  {
     console_get_char  () clobbers (X,Y) -> ubyte @A = $fee1
     console_init  (uword x @R0, uword y @R1, uword width @R2, uword height @R3) clobbers (A,X,Y) = $fedb
     console_put_char  (ubyte character @A, bool wrapping @Pc) clobbers (A,X,Y) = $fede
-    console_put_image  (uword pointer @R0, uword width @R1, uword height @R2) clobbers (A,X,Y) = $fed8
+    console_put_image  (uword ptr @R0, uword width @R1, uword height @R2) clobbers (A,X,Y) = $fed8
     console_set_paging_message  (uword msgptr @R0) clobbers (A,X,Y) = $fed5
     disable_irq_handlers  ()
     disable_irqs  () clobbers (A)

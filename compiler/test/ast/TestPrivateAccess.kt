@@ -144,4 +144,109 @@ class TestPrivateAccess : FunSpec({
         compileText(VMTarget(), true, text, outputDir, errors = errors, writeAssembly = false)
         errors.errors.size shouldBe 0
     }
+
+    test("cannot use both private and public on same declaration") {
+        val text = """
+            main {
+                private public ubyte x = 10
+                sub start() {
+                }
+            }
+        """.trimIndent()
+        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        compileText(VMTarget(), true, text, outputDir, errors = errors) shouldBe null
+        errors.printedErrors.any { it.contains("cannot use both") } shouldBe true
+    }
+
+    test("public keyword is accepted in default mode (no-op)") {
+        val text = """
+            M {
+                public ubyte x = 10
+                public sub foo() {}
+                public struct S { ubyte f }
+                public enum E { A, B }
+            }
+            main {
+                sub start() {
+                    ubyte v = M.x
+                    M.foo()
+                }
+            }
+        """.trimIndent()
+        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        compileText(VMTarget(), true, text, outputDir, errors = errors, writeAssembly = false)
+        errors.errors.size shouldBe 0
+    }
+
+    test("private is allowed in private_symbols mode (redundant)") {
+        val text = """
+            %option private_symbols
+            M {
+                private ubyte x = 10
+            }
+            main {
+                sub start() {
+                }
+            }
+        """.trimIndent()
+        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        compileText(VMTarget(), true, text, outputDir, errors = errors, writeAssembly = false)
+        errors.errors.size shouldBe 0
+    }
+
+    test("module-level private_symbols makes all symbols private by default") {
+        val text = """
+            %option private_symbols
+            M {
+                ubyte x = 10
+                sub foo() {}
+            }
+            main {
+                sub start() {
+                    M.foo()
+                }
+            }
+        """.trimIndent()
+        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        compileText(VMTarget(), true, text, outputDir, errors = errors) shouldBe null
+        errors.errors.any { it.contains("is not public") } shouldBe true
+    }
+
+    test("public overrides module-level private_symbols") {
+        val text = """
+            %option private_symbols
+            M {
+                public ubyte x = 10
+                public sub foo() {}
+            }
+            main {
+                sub start() {
+                    ubyte v = M.x
+                    M.foo()
+                }
+            }
+        """.trimIndent()
+        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        compileText(VMTarget(), true, text, outputDir, errors = errors, writeAssembly = false)
+        errors.errors.size shouldBe 0
+    }
+
+    test("block-level private_symbols makes block symbols private by default") {
+        val text = """
+            M {
+                ubyte x = 10
+                sub foo() {}
+            }
+            main {
+                %option private_symbols
+                sub start() {
+                    ubyte v = M.x
+                    M.foo()
+                }
+            }
+        """.trimIndent()
+        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        compileText(VMTarget(), true, text, outputDir, errors = errors, writeAssembly = false)
+        errors.errors.size shouldBe 0
+    }
 })

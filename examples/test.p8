@@ -1,22 +1,17 @@
+%import textio
+%zeropage basicsafe
+
 main {
 
-    struct Thing {
-        uword port
-        ^^Thing next
-        bool flag
+    struct Enemy {
+        ubyte xpos, ypos
+        uword health
+        bool elite
     }
 
     sub start() {
-        ^^Thing @shared t
-
-        ; this compiles fine:
-        bool @shared derp1 = t.next.flag
-        ubyte @shared derp2 = t.next.flag as ubyte
-
-        bool @shared derp3 = (t.next).flag
-        ubyte @shared derp4 = (t.next).flag as ubyte
-
-        bool @shared derp5 = (t.port as ^^Thing).flag
-        ubyte @shared derp6 = (t.port as ^^Thing).flag as ubyte
+        Enemy[4] enemies          ; 4 Enemy instances in a contiguous block, initialized to zero
+        enemies[2] = enemies[3]
+        sys.memcopy(&enemies[3], &enemies[2], sizeof(Enemy))
     }
 }

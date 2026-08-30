@@ -14,10 +14,9 @@ import prog8.ast.statements.Subroutine
 import prog8.ast.statements.VarDecl
 import prog8.code.core.Position
 import prog8.code.source.SourceCode
+import prog8.code.target.VMTarget
 import prog8.parser.Prog8Parser
 import prog8tests.helpers.DummyFunctions
-import prog8tests.helpers.DummyMemsizer
-import prog8tests.helpers.DummyStringEncoder
 
 
 class TestIdentifierRef: FunSpec({
@@ -54,8 +53,9 @@ class TestIdentifierRef: FunSpec({
                     ww = &main
                 }
             } """)
-        val module = Prog8Parser.parseModule(src)
-        val program = Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
+        val target = VMTarget()
+        val module = Prog8Parser.parseModule(src, target)
+        val program = Program("test", DummyFunctions, target)
         program.addModule(module)
         val mstmts = (module.statements.single() as Block).statements
         val stmts = mstmts.filterIsInstance<Subroutine>().single().statements

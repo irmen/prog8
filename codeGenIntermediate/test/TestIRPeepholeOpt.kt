@@ -168,6 +168,64 @@ class TestIRPeepholeOpt: FunSpec({
         irProg.chunks().single().instructions.size shouldBe 4
     }
 
+    test("replace integer multiply by zero with load") {
+        val irProg = makeIRProgram(listOf(
+            IRInstruction(Opcode.MUL, IRDataType.BYTE, reg1=1, immediate = 0),
+            IRInstruction(Opcode.MULS, IRDataType.WORD, reg1=2, immediate = 0),
+            IRInstruction(Opcode.MULS, IRDataType.LONG, reg1=3, immediate = 0),
+            IRInstruction(Opcode.MUL, IRDataType.FLOAT, fpReg1=RegisterNum(4), immediateFp = 0.0),
+            IRInstruction(Opcode.RETURN)
+        ))
+        val opt = IRPeepholeOptimizer(irProg, false)
+        opt.optimize(true, ErrorReporterForTests())
+        val instr = irProg.chunks().single().instructions
+        instr.count { it.opcode == Opcode.LOAD } shouldBe 3
+        instr.count { it.opcode == Opcode.MUL } shouldBe 1
+    }
+
+    test("fold adjacent integer immediate multiplications") {
+        val irProg = makeIRProgram(listOf(
+            IRInstruction(Opcode.MUL, IRDataType.BYTE, reg1=1, immediate = 7),
+            IRInstruction(Opcode.MUL, IRDataType.BYTE, reg1=1, immediate = 9),
+            IRInstruction(Opcode.MULS, IRDataType.WORD, reg1=2, immediate = -3),
+            IRInstruction(Opcode.MULS, IRDataType.WORD, reg1=2, immediate = 4),
+            IRInstruction(Opcode.MULS, IRDataType.LONG, reg1=3, immediate = 100000),
+            IRInstruction(Opcode.MULS, IRDataType.LONG, reg1=3, immediate = 30000),
+            IRInstruction(Opcode.RETURN)
+        ))
+        val opt = IRPeepholeOptimizer(irProg, false)
+        opt.optimize(true, ErrorReporterForTests())
+        val instr = irProg.chunks().single().instructions
+        instr.size shouldBe 4
+        instr[0].immediate shouldBe 63
+        instr[1].immediate shouldBe 65524
+        instr[2].immediate shouldBe 3000000000L.toInt()
+    }
+
+    test("collapse adjacent integer and float loadr chains") {
+        val irProg = makeIRProgram(listOf(
+            IRInstruction(Opcode.LOADR, IRDataType.BYTE, reg1=2, reg2=1),
+            IRInstruction(Opcode.LOADR, IRDataType.BYTE, reg1=3, reg2=2),
+            IRInstruction(Opcode.LOADR, IRDataType.FLOAT, fpReg1=RegisterNum(5), fpReg2=RegisterNum(4)),
+            IRInstruction(Opcode.LOADR, IRDataType.FLOAT, fpReg1=RegisterNum(6), fpReg2=RegisterNum(5)),
+            IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1=3, address=MemoryAddress(100u)),
+            IRInstruction(Opcode.STOREM, IRDataType.FLOAT, fpReg1=RegisterNum(6), address=MemoryAddress(200u))
+        ))
+        val opt = IRPeepholeOptimizer(irProg, false)
+        opt.optimize(true, ErrorReporterForTests())
+        val instr = irProg.chunks().single().instructions
+        instr.map { Triple(it.opcode, it.reg1, it.fpReg1) } shouldBe listOf(
+            Triple(Opcode.LOADR, 3, null),
+            Triple(Opcode.LOADR, null, RegisterNum(6)),
+            Triple(Opcode.STOREM, 3, null),
+            Triple(Opcode.STOREM, null, RegisterNum(6))
+        )
+        instr[0].reg1 shouldBe 3
+        instr[0].reg2 shouldBe 1
+        instr[1].fpReg1 shouldBe RegisterNum(6)
+        instr[1].fpReg2 shouldBe RegisterNum(4)
+    }
+
     test("replace add/sub 1 by inc/dec") {
         // Use different registers for each test case to avoid dead store elimination removing them
         val irProg = makeIRProgram(listOf(
@@ -247,6 +305,62 @@ class TestIRPeepholeOpt: FunSpec({
         instr[3].immediate shouldBe 255
         instr[4].immediate shouldBe 65535
         instr[5].immediate shouldBe -1
+    }
+
+    test("combine adjacent immediate and/or operations") {
+        val irProg = makeIRProgram(listOf(
+            IRInstruction(Opcode.AND, IRDataType.BYTE, reg1=1, immediate = 0xf0),
+            IRInstruction(Opcode.AND, IRDataType.BYTE, reg1=1, immediate = 0xcc),
+            IRInstruction(Opcode.OR, IRDataType.WORD, reg1=2, immediate = 0x0010),
+            IRInstruction(Opcode.OR, IRDataType.WORD, reg1=2, immediate = 0x0003),
+        ))
+        val opt = IRPeepholeOptimizer(irProg, false)
+        opt.optimize(true, ErrorReporterForTests())
+        val instr = irProg.chunks().single().instructions
+        instr.size shouldBe 2
+        instr[0].opcode shouldBe Opcode.AND
+        instr[0].immediate shouldBe 0xc0
+        instr[1].opcode shouldBe Opcode.OR
+        instr[1].immediate shouldBe 0x0013
+    }
+
+    test("cancel identical adjacent immediate xor operations") {
+        val irProg = makeIRProgram(listOf(
+            IRInstruction(Opcode.XOR, IRDataType.BYTE, reg1=1, immediate = 3),
+            IRInstruction(Opcode.XOR, IRDataType.BYTE, reg1=1, immediate = 3),
+            IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=2, immediate = 42)
+        ))
+        val opt = IRPeepholeOptimizer(irProg, false)
+        opt.optimize(true, ErrorReporterForTests())
+        val instr = irProg.chunks().single().instructions
+        instr.size shouldBe 1
+        instr[0].opcode shouldBe Opcode.LOAD
+        instr[0].immediate shouldBe 42
+    }
+
+    test("fold adjacent immediate arithmetic with inc/dec") {
+        val irProg = makeIRProgram(listOf(
+            IRInstruction(Opcode.ADD, IRDataType.BYTE, reg1=1, immediate = 4),
+            IRInstruction(Opcode.INC, IRDataType.BYTE, reg1=1),
+            IRInstruction(Opcode.INC, IRDataType.BYTE, reg1=2),
+            IRInstruction(Opcode.ADD, IRDataType.BYTE, reg1=2, immediate = 4),
+            IRInstruction(Opcode.SUB, IRDataType.BYTE, reg1=3, immediate = 4),
+            IRInstruction(Opcode.DEC, IRDataType.BYTE, reg1=3),
+            IRInstruction(Opcode.DEC, IRDataType.BYTE, reg1=4),
+            IRInstruction(Opcode.SUB, IRDataType.BYTE, reg1=4, immediate = 4)
+        ))
+        val opt = IRPeepholeOptimizer(irProg, false)
+        opt.optimize(true, ErrorReporterForTests())
+        val instr = irProg.chunks().single().instructions
+        instr.size shouldBe 4
+        instr[0].opcode shouldBe Opcode.ADD
+        instr[0].immediate shouldBe 5
+        instr[1].opcode shouldBe Opcode.ADD
+        instr[1].immediate shouldBe 5
+        instr[2].opcode shouldBe Opcode.SUB
+        instr[2].immediate shouldBe 5
+        instr[3].opcode shouldBe Opcode.SUB
+        instr[3].immediate shouldBe 5
     }
 
     test("replace register arithmetic by immediate operations") {
@@ -329,6 +443,45 @@ class TestIRPeepholeOpt: FunSpec({
         instr[0].immediate shouldBe 42
     }
 
+    test("replace concat with ext after harmless instruction") {
+        val irProg = makeIRProgram(listOf(
+            IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=10, immediate=0),
+            IRInstruction(Opcode.INC, IRDataType.BYTE, reg1=20),
+            IRInstruction(Opcode.CONCAT, IRDataType.BYTE, reg1=1, reg2=10, reg3=11),
+            IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=99, immediate=42)
+        ))
+        val opt = IRPeepholeOptimizer(irProg, false)
+        opt.optimize(true, ErrorReporterForTests())
+        val instr = irProg.chunks().single().instructions
+        instr.any { it.opcode == Opcode.EXT && it.reg1 == 1 && it.reg2 == 11 } shouldBe true
+        instr.any { it.opcode == Opcode.CONCAT } shouldBe false
+    }
+
+    test("do not replace concat after intervening write") {
+        val irProg = makeIRProgram(listOf(
+            IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=10, immediate=0),
+            IRInstruction(Opcode.INC, IRDataType.BYTE, reg1=10),
+            IRInstruction(Opcode.CONCAT, IRDataType.BYTE, reg1=1, reg2=10, reg3=11),
+            IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=99, immediate=42)
+        ))
+        val opt = IRPeepholeOptimizer(irProg, false)
+        opt.optimize(true, ErrorReporterForTests())
+        irProg.chunks().single().instructions.any { it.opcode == Opcode.CONCAT } shouldBe true
+    }
+
+    test("do not replace concat across control flow") {
+        val c1 = IRCodeChunk("p8b_main.p8s_start", null)
+        c1 += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=10, immediate=0)
+        c1 += IRInstruction(Opcode.JUMP, labelSymbol="after")
+        c1 += IRInstruction(Opcode.CONCAT, IRDataType.BYTE, reg1=1, reg2=10, reg3=11)
+        c1 += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=99, immediate=42)
+        val c2 = IRCodeChunk("after", null)
+        val irProg = makeIRProgram(listOf(c1, c2))
+        val opt = IRPeepholeOptimizer(irProg, false)
+        opt.optimize(true, ErrorReporterForTests())
+        irProg.chunks().flatMap { it.instructions }.any { it.opcode == Opcode.CONCAT } shouldBe true
+    }
+
     test("cancel adjacent ops") {
         val irProg = makeIRProgram(listOf(
             IRInstruction(Opcode.INV, IRDataType.BYTE, reg1=1),
@@ -358,5 +511,123 @@ class TestIRPeepholeOpt: FunSpec({
         instr[1].reg2 shouldBe 44
         instr[2].opcode shouldBe Opcode.LOAD
         instr[2].immediate shouldBe 42
+    }
+
+    test("coalesce redundant LOADX/STOREX to same index is removed") {
+        val irProg = makeIRProgram(listOf(
+            IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=1, reg2=10, labelSymbol="myArray"),
+            IRInstruction(Opcode.INC, IRDataType.BYTE, reg1=99),
+            IRInstruction(Opcode.STOREX, IRDataType.BYTE, reg1=1, reg2=10, labelSymbol="myArray"),
+            IRInstruction(Opcode.RETURN)
+        ))
+        irProg.chunks().single().instructions.count { it.opcode==Opcode.STOREX } shouldBe 1
+        val opt = IRPeepholeOptimizer(irProg, false)
+        opt.optimize(true, ErrorReporterForTests())
+        val instr = irProg.chunks().single().instructions
+        instr.count { it.opcode==Opcode.STOREX } shouldBe 0
+        instr.count { it.opcode==Opcode.LOADX } shouldBe 1
+        instr.size shouldBe 3
+    }
+
+    test("do not coalesce LOADX/STOREX when index differs") {
+        val irProg = makeIRProgram(listOf(
+            IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=1, reg2=10, labelSymbol="myArray"),
+            IRInstruction(Opcode.STOREX, IRDataType.BYTE, reg1=1, reg2=11, labelSymbol="myArray"),
+            IRInstruction(Opcode.RETURN)
+        ))
+        val opt = IRPeepholeOptimizer(irProg, false)
+        opt.optimize(true, ErrorReporterForTests())
+        val instr = irProg.chunks().single().instructions
+        instr.count { it.opcode==Opcode.LOADX } shouldBe 1
+        instr.count { it.opcode==Opcode.STOREX } shouldBe 1
+    }
+
+    test("do not coalesce LOADX/STOREX with intervening read of value") {
+        val irProg = makeIRProgram(listOf(
+            IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=1, reg2=10, labelSymbol="myArray"),
+            IRInstruction(Opcode.ADDR, IRDataType.BYTE, reg1=1, reg2=2),
+            IRInstruction(Opcode.STOREX, IRDataType.BYTE, reg1=1, reg2=10, labelSymbol="myArray"),
+            IRInstruction(Opcode.RETURN)
+        ))
+        val opt = IRPeepholeOptimizer(irProg, false)
+        opt.optimize(true, ErrorReporterForTests())
+        val instr = irProg.chunks().single().instructions
+        instr.count { it.opcode==Opcode.STOREX } shouldBe 1
+    }
+
+    test("do not coalesce LOADX/STOREX across chunks single-chunk") {
+        val c1 = IRCodeChunk("p8b_main.p8s_start", null)
+        c1 += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=1, reg2=10, labelSymbol="myArray")
+        val c2 = IRCodeChunk("other", null)
+        c2 += IRInstruction(Opcode.STOREX, IRDataType.BYTE, reg1=1, reg2=10, labelSymbol="myArray")
+        c2 += IRInstruction(Opcode.RETURN)
+        val irProg = makeIRProgram(listOf(c1, c2))
+        val opt = IRPeepholeOptimizer(irProg, false)
+        opt.optimize(true, ErrorReporterForTests())
+        val all = irProg.chunks().flatMap { it.instructions }
+        all.count { it.opcode==Opcode.LOADX } shouldBe 1
+        all.count { it.opcode==Opcode.STOREX } shouldBe 1
+    }
+
+    test("do not fold storem+loadm same symbol different offsets") {
+        val irProg = makeIRProgram(listOf(
+            IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1=5, labelSymbol="myVar", symbolOffset=0),
+            IRInstruction(Opcode.LOADM, IRDataType.BYTE, reg1=6, labelSymbol="myVar", symbolOffset=1),
+            IRInstruction(Opcode.RETURN)
+        ))
+        val opt = IRPeepholeOptimizer(irProg, false)
+        opt.optimize(true, ErrorReporterForTests())
+        val instr = irProg.chunks().single().instructions
+        instr.count { it.opcode==Opcode.STOREM } shouldBe 1
+        instr.count { it.opcode==Opcode.LOADM } shouldBe 1
+        instr.count { it.opcode==Opcode.LOADR } shouldBe 0
+    }
+
+    test("do not fold storem+loadm across chunks single-chunk") {
+        val c1 = IRCodeChunk("p8b_main.p8s_start", null)
+        c1 += IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1=5, labelSymbol="myVar")
+        val c2 = IRCodeChunk("other", null)
+        c2 += IRInstruction(Opcode.LOADM, IRDataType.BYTE, reg1=6, labelSymbol="myVar")
+        c2 += IRInstruction(Opcode.RETURN)
+        val irProg = makeIRProgram(listOf(c1, c2))
+        val opt = IRPeepholeOptimizer(irProg, false)
+        opt.optimize(true, ErrorReporterForTests())
+        val all = irProg.chunks().flatMap { it.instructions }
+        all.count { it.opcode==Opcode.STOREM } shouldBe 1
+        all.count { it.opcode==Opcode.LOADM } shouldBe 1
+        all.count { it.opcode==Opcode.LOADR } shouldBe 0
+    }
+
+    test("do not fold storem+loadm different types") {
+        val irProg = makeIRProgram(listOf(
+            IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1=5, labelSymbol="myVar"),
+            IRInstruction(Opcode.LOADM, IRDataType.WORD, reg1=6, labelSymbol="myVar"),
+            IRInstruction(Opcode.RETURN)
+        ))
+        val opt = IRPeepholeOptimizer(irProg, false)
+        opt.optimize(true, ErrorReporterForTests())
+        val instr = irProg.chunks().single().instructions
+        instr.count { it.opcode==Opcode.STOREM } shouldBe 1
+        instr.count { it.opcode==Opcode.LOADM } shouldBe 1
+        instr.count { it.opcode==Opcode.LOADR } shouldBe 0
+    }
+
+    test("loadr forwarding does not delete live-out source") {
+        // r1 is live-out to next chunk, so LOAD r1 should be kept even though r1 has single use in first chunk.
+        // The forwarder is conservative: it keeps the source live when it may be needed in a successor chunk,
+        // preventing the previous bug where the source LOAD was deleted.
+        val c1 = IRCodeChunk("p8b_main.p8s_start", null)
+        c1 += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=1, immediate=42)
+        c1 += IRInstruction(Opcode.LOADR, IRDataType.BYTE, reg1=2, reg2=1)
+        c1 += IRInstruction(Opcode.JUMP, labelSymbol="next")
+        val c2 = IRCodeChunk("next", null)
+        c2 += IRInstruction(Opcode.LOADR, IRDataType.BYTE, reg1=3, reg2=1)
+        c2 += IRInstruction(Opcode.RETURN)
+        val irProg = makeIRProgram(listOf(c1, c2))
+        val opt = IRPeepholeOptimizer(irProg, false)
+        opt.optimize(true, ErrorReporterForTests())
+        val all = irProg.chunks().flatMap { it.instructions }
+        // LOAD r1 must be kept because r1 is live-out; whether LOADR is forwarded to LOAD r2 is secondary.
+        all.count { it.opcode == Opcode.LOAD && it.reg1==1 } shouldBe 1
     }
 })

@@ -3,6 +3,7 @@ package prog8.compiler
 import prog8.buildversion.BUILD_UNIX_TIME
 import prog8.code.core.IErrorReporter
 import prog8.code.source.ImportFileSystem
+import prog8.code.target.VMTarget
 import java.io.*
 import java.net.StandardProtocolFamily
 import java.net.UnixDomainSocketAddress
@@ -149,9 +150,9 @@ internal class CompilerDaemon(private val socketPath: Path) {
                         val name = Path.of(request.filepath).fileName.toString().substringBeforeLast('.')
                         val dir = if (d == ".") "" else "$d/"
                         listOf(
-                            "${dir}${name}.prg".takeIf { request.writeAssembly && request.compilationTarget != "virtual" },
-                            "${dir}${name}.asm".takeIf { request.writeAssembly && request.compilationTarget != "virtual" },
-                            "${dir}${name}.p8ir".takeIf { !request.writeAssembly || request.compilationTarget == "virtual" }
+                            "${dir}${name}.prg".takeIf { request.writeAssembly && request.compilationTarget != VMTarget.NAME },
+                            "${dir}${name}.asm".takeIf { request.writeAssembly && request.compilationTarget != VMTarget.NAME },
+                            "${dir}${name}.p8ir".takeIf { !request.writeAssembly || request.compilationTarget == VMTarget.NAME }
                         ).filterNotNull()
                     }
                 ).flatten()
@@ -202,12 +203,12 @@ internal class CompilerDaemon(private val socketPath: Path) {
             showTimings = showTimings,
             asmListfile = asmListfile,
             includeSourcelines = includeSourcelines,
+            newCodegen = newCodegen,
             dumpVariables = dumpVariables,
             dumpSymbols = dumpSymbols,
             varsHighBank = varsHighBank,
             varsGolden = varsGolden,
-            slabsHighBank = slabsHighBank,
-            slabsGolden = slabsGolden,
+            varsAddress = varsAddress,
             compilationTarget = compilationTarget,
             breakpointCpuInstruction = breakpointCpuInstruction,
             printAst1 = printAst1,
@@ -220,7 +221,8 @@ internal class CompilerDaemon(private val socketPath: Path) {
             sourceDirs = sourceDirs,
             outputDir = resolvedOutputDir,
             cwd = clientCwd,
-            errors = errors
+            errors = errors,
+            generateDocumentation = generateDocumentation
         )
     }
 }

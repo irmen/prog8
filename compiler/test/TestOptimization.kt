@@ -20,7 +20,10 @@ import prog8.code.core.Position
 import prog8.code.target.C64Target
 import prog8.code.target.Cx16Target
 import prog8.code.target.VMTarget
-import prog8tests.helpers.*
+import prog8tests.helpers.DummyFunctions
+import prog8tests.helpers.DummyMemsizer
+import prog8tests.helpers.ErrorReporterForTests
+import prog8tests.helpers.compileText
 
 
 class TestOptimization: FunSpec({
@@ -137,9 +140,10 @@ other {
     }
 
     test("generated constvalue from typecast inherits proper parent linkage") {
+        val target = VMTarget()
         val number = NumericLiteral(BaseDataType.UBYTE, 11.0, Position.DUMMY)
         val tc = TypecastExpression(number, DataType.BYTE, false, Position.DUMMY)
-        val program = Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
+        val program = Program("test", DummyFunctions, target)
         tc.linkParents(ParentSentinel)
         tc.parent shouldNotBe null
         number.parent shouldNotBe null
@@ -152,9 +156,10 @@ other {
     }
 
     test("generated constvalue from prefixexpr inherits proper parent linkage") {
+        val target = VMTarget()
         val number = NumericLiteral(BaseDataType.UBYTE, 11.0, Position.DUMMY)
         val pfx = PrefixExpression("-", number, Position.DUMMY)
-        val program = Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
+        val program = Program("test", DummyFunctions, target)
         pfx.linkParents(ParentSentinel)
         pfx.parent shouldNotBe null
         number.parent shouldNotBe null
@@ -791,7 +796,7 @@ main {
         arrayDecl.isArray shouldBe true
         arrayDecl.arraysize?.constIndex() shouldBe 6
         val arrayValue = arrayDecl.value as ArrayLiteral
-        arrayValue.type shouldBe InferredTypes.InferredType.known(DataType.arrayFor(BaseDataType.UBYTE))
+        arrayValue.type shouldBe InferredTypes.InferredType.known(DataType.arrayFor(BaseDataType.UBYTE, DummyMemsizer))
         arrayValue.value shouldBe listOf(
             NumericLiteral.optimalInteger(1, Position.DUMMY),
             NumericLiteral.optimalInteger(2, Position.DUMMY),
@@ -1321,7 +1326,7 @@ main {
         val src="""
 main {
     sub start() {
-        uword @shared bulletRef, enemyRef
+        pointer @shared bulletRef, enemyRef
         const ubyte BD_Y = 10
         const ubyte EN_Y = 11
 

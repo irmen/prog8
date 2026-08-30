@@ -1,10 +1,6 @@
 package prog8.intermediate
 
-import prog8.code.core.BaseDataType
-import prog8.code.core.DataType
-import prog8.code.core.InternalCompilerException
-import prog8.code.core.Position
-import prog8.code.core.toHex
+import prog8.code.core.*
 import prog8.code.source.ImportFileSystem
 import java.nio.file.Path
 import javax.xml.stream.XMLOutputFactory
@@ -107,6 +103,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
             if(block.options.noSymbolPrefixing) xml.writeAttribute("NOPREFIXING", "true")
             if(block.options.veraFxMuls) xml.writeAttribute("VERAFXMULS", "true")
             if(block.options.ignoreUnused) xml.writeAttribute("IGNOREUNUSED", "true")
+            if(block.options.amigaChipram) xml.writeAttribute("AMIGACHIPRAM", "true")
             xml.writeAttribute("LIBRARY", block.library.toString())
             xml.writeAttribute("POS", block.position.toString())
             xml.writeCharacters("\n")
@@ -172,7 +169,8 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
     }
 
     private fun writeCodeChunk(chunk: IRCodeChunk) {
-        val usedRegs = chunk.usedRegisters()
+        val indexRegType = irProgram.options.compTarget.indexRegType
+        val usedRegs = chunk.usedRegisters(indexRegType)
         val regs = StringBuilder()
         if(usedRegs.readRegs.any() || usedRegs.writeRegs.any()) {
             regs.append("\nINT REGS:\n")
@@ -287,6 +285,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
         writeInitializedVariables()
         writeStructInstancesNoInit()
         writeStructInstances()
+        writeStructDefs()
         writeConstants()
         writeMemoryMappedVariables()
         writeMemorySlabs()
@@ -296,7 +295,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
 
     private fun writeNoInitVar(variable: IRStStaticVariable) {
         val pname = variable.name
-        if(variable.dt.isSplitWordArray) {
+        if(variable.dt.isSplitWordArray(irProgram.options.compTarget)) {
             emitLine(buildString {
                 append("ubyte[${variable.length}] ${pname}_lsb zp=${variable.zpwish} split=true")
                 if(variable.align!=0u) append(" align=${variable.align}")
@@ -349,7 +348,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
     }
 
     private fun writeVarWithInit(variable: IRStStaticVariable) {
-        if(variable.dt.isSplitWordArray) {
+        if(variable.dt.isSplitWordArray(irProgram.options.compTarget)) {
             writeSplitWordArrayVariable(variable)
         } else {
             writeRegularVariableWithInit(variable)
@@ -468,6 +467,18 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
         xml.writeCharacters("\n")
     }
 
+    private fun writeStructDefs() {
+        val defs = irProgram.st.allStructDefs()
+        xml.writeStartElement("STRUCTDEFS")
+        xml.writeCharacters("\n")
+        for (def in defs) {
+            val fields = def.fields.joinToString(";") { "${it.type.irTypeString(it.arraySize?.toUInt())} ${it.name}" }
+            emitLine("${def.name} size=${def.size} fields=${fields}")
+        }
+        xml.writeEndElement()
+        xml.writeCharacters("\n")
+    }
+
     private fun writeConstants() {
         xml.writeStartElement("CONSTANTS")
         xml.writeCharacters("\n")
@@ -497,7 +508,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
             }
             else -> throw InternalCompilerException("weird dt $dt")
         }
-        emitLine("${constant.typeString} ${constant.name}=$value")
+        emitLine("${constant.typeString} ${constant.name}=$value" + if(constant.noPrefix) " noprefix" else "")
     }
 
     private fun writeMemoryMappedVariables() {

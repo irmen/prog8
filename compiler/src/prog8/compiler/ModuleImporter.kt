@@ -6,6 +6,7 @@ import prog8.ast.Program
 import prog8.ast.SyntaxError
 import prog8.ast.statements.Directive
 import prog8.ast.statements.DirectiveArg
+import prog8.code.core.ICompilationTarget
 import prog8.code.core.IErrorReporter
 import prog8.code.core.Position
 import prog8.code.sanitize
@@ -20,7 +21,7 @@ import kotlin.io.path.exists
 
 
 class ModuleImporter(private val program: Program,
-                     private val compilationTargetName: String,
+                     private val compTarget: ICompilationTarget,
                      val errors: IErrorReporter,
                      sourceDirs: List<String>,
                      libraryDirs: List<String>,
@@ -64,7 +65,7 @@ class ModuleImporter(private val program: Program,
     private fun printCompileInfo(programPath: Path) {
         if(!quiet && printCompileInfo) {
             println("Compiling program ${cwd.toAbsolutePath().relativize(programPath)}")
-            println("Compiler target: $compilationTargetName")
+            println("Compiler target: ${compTarget.name}")
         }
     }
 
@@ -76,7 +77,7 @@ class ModuleImporter(private val program: Program,
     }
 
     private fun importModule(src: SourceCode) : Module {
-        val moduleAst = Prog8Parser.parseModule(src)
+        val moduleAst = Prog8Parser.parseModule(src, compTarget)
 
         // Check if module already loaded (e.g., via symlink from different name)
         val existing = program.modules.firstOrNull { it.name == moduleAst.name }
@@ -123,7 +124,7 @@ class ModuleImporter(private val program: Program,
 
         // try internal library
         if(importedModule == null) {
-            val moduleResourceSrc = getModuleFromResource("$moduleName.p8", compilationTargetName, importingModule?.name ?: "~implicit~")
+            val moduleResourceSrc = getModuleFromResource("$moduleName.p8", compTarget.name, importingModule?.name ?: "~implicit~")
             moduleResourceSrc.onOk {
                 importedModule = importModule(it)
             }
@@ -155,7 +156,7 @@ class ModuleImporter(private val program: Program,
 
     private fun removeDirectivesFromImportedModule(importedModule: Module) {
         // Most global directives don't apply for imported modules, so remove them
-        val moduleLevelDirectives = listOf("%output", "%launcher", "%zeropage", "%zpreserved", "%zpallowed", "%address", "%memtop")
+        val moduleLevelDirectives = listOf("%output", "%launcher", "%zeropage", "%zpreserved", "%zpallowed", "%address", "%memtop", "%varsaddress")
         var directives = importedModule.statements.filterIsInstance<Directive>()
         importedModule.statements.removeAll(directives)
         directives = directives.filter{ it.directive !in moduleLevelDirectives }

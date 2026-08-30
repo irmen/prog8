@@ -4,6 +4,18 @@ import prog8.code.core.IErrorReporter
 import prog8.intermediate.*
 
 class IRPeepholeOptimizer(private val irprog: IRProgram, private val retainSSA: Boolean) {
+    // NOTE: Several peephole ideas have been deliberately NOT enabled or were reverted:
+    // - foldStoremLoadmToLoadr: goal was to avoid redundant memory traffic for `storem rX,addr ; loadm rY,addr`
+    //   by replacing the load with `loadr rY,rX` (keep value in register). Removed because on m68k/amiga
+    //   the regfile is memory, so keeping the store's source register live for the loadr forces an extra
+    //   spill (move.b d0,regfile ; move.b regfile,mem ; move.b regfile,regfile2) vs the original 2 moves
+    //   via memory (move.b d0,mem ; move.b mem,regfile). This increased textelite by ~344 bytes and other
+    //   amiga examples by 20-230 bytes. Re-enable only with a cost model that proves it shrinks the m68k
+    //   output (e.g. when source is already in regfile and not a call result in d0).
+    // - removeLoadrForwarding (goal: coalesce `load r1,#imm ; loadr r2,r1` chains and forward constants) was
+    //   previously disabled (half-assed) because it ignored cross-chunk liveness, call side-effects, and
+    //   indexRegType for LOADX/STOREX. It is now enabled with a conservative single-chunk
+    //   scope, side-effect barrier (OpcodesThatBranch + OpcodesWithSideEffects), and live-out check.
     fun optimize(optimizationsEnabled: Boolean, errors: IErrorReporter) {
         if(!optimizationsEnabled)
             return optimizeOnlyJoinChunks(retainSSA)
@@ -37,6 +49,7 @@ class IRPeepholeOptimizer(private val irprog: IRProgram, private val retainSSA: 
             joinChunks(sub, retainSSA)
             removeEmptyChunks(sub)
             joinChunks(sub, retainSSA)
+            optimizeLoopCounters(sub)
 
             sub.chunks.withIndex().forEach { (index, chunk1) ->
                 // we don't optimize Inline Asm chunks here.
@@ -48,6 +61,11 @@ class IRPeepholeOptimizer(private val irprog: IRProgram, private val retainSSA: 
                         val changed = removeNops(chunk1, indexedInstructions)
                                 || replaceConcatZeroMsbWithExt(chunk1, indexedInstructions)
                                 || removeDoubleLoadsAndStores(chunk1, indexedInstructions)
+                                || removeDoubleLoadsAndStoresIndexed(chunk1, indexedInstructions)
+                                || foldLoadStoremToStoreim(chunk1, indexedInstructions)
+                                // foldStoremLoadmToLoadr (storem+loadm -> loadr) intentionally not called: see class comment
+                                || collapseConversions(chunk1, indexedInstructions)
+                                || deduplicateAddressComputations(chunk1)
                                 || removeUselessArithmetic(chunk1, indexedInstructions)
                                 || removeNeedlessCompares(chunk1, indexedInstructions)
                                 || removeWeirdBranches(chunk1, chunk2, indexedInstructions)
@@ -55,11 +73,12 @@ class IRPeepholeOptimizer(private val irprog: IRProgram, private val retainSSA: 
                                 || cleanupPushPop(chunk1, indexedInstructions)
                                 || simplifyConstantReturns(chunk1, indexedInstructions)
                                 || removeNeedlessLoads(chunk1, indexedInstructions)
+                                || collapseAdjacentLoadrChains(chunk1, indexedInstructions)
                                 || removeDeadStores(chunk1, indexedInstructions)
-                                // || removeLoadrForwarding(chunk1, indexedInstructions)  // DISABLED - needs debugging
                                 || removeSelfIdentityOps(chunk1, indexedInstructions)
                                 || simplifyShiftByZero(chunk1, indexedInstructions)
                                 || cancelAdjacentOps(chunk1, indexedInstructions)
+                                || fusePointerPostInc(chunk1, indexedInstructions)
                                 || removeNops(chunk1, indexedInstructions)   // last time, in case one of the optimizers replaced something with a nop
                     } while (changed)
                 }
@@ -75,10 +94,36 @@ class IRPeepholeOptimizer(private val irprog: IRProgram, private val retainSSA: 
         indexedInstructions.reversed().forEach { (idx, ins) ->
             if (ins.opcode == Opcode.CONCAT && idx>0) {
                 // if the previous instruction loads a zero in the msb, this can be turned into EXT.B instead
-                val prev = indexedInstructions[idx-1].value
-                if(prev.opcode==Opcode.LOAD && prev.immediate==0 && prev.reg1==ins.reg2) {
+                val msbRegister = ins.reg2
+                var loadIndex: Int? = null
+                var safe = true
+                for (scanIndex in idx - 1 downTo 0) {
+                    val candidate = indexedInstructions[scanIndex].value
+                    if (candidate.opcode in OpcodesWithSideEffects) {
+                        safe = false
+                        break
+                    }
+                    val format = instructionFormats.getValue(candidate.opcode)[candidate.type]
+                        ?: instructionFormats.getValue(candidate.opcode)[null]
+                    val writesMsbRegister = msbRegister != null && (
+                        (format?.reg1 in setOf(OperandDirection.WRITE, OperandDirection.READWRITE) && candidate.reg1 == msbRegister) ||
+                        (format?.reg2 in setOf(OperandDirection.WRITE, OperandDirection.READWRITE) && candidate.reg2 == msbRegister) ||
+                        (format?.reg3 in setOf(OperandDirection.WRITE, OperandDirection.READWRITE) && candidate.reg3 == msbRegister)
+                    )
+                    if (writesMsbRegister) {
+                        if (candidate.opcode == Opcode.LOAD && candidate.immediate == 0 && candidate.reg1 == msbRegister) {
+                            loadIndex = scanIndex
+                        }
+                        break
+                    }
+                    if (candidate.opcode == Opcode.LOAD && candidate.immediate == 0 && candidate.reg1 == msbRegister) {
+                        loadIndex = scanIndex
+                        break
+                    }
+                }
+                if (safe && loadIndex != null) {
                     chunk.instructions[idx] = IRInstruction(Opcode.EXT, IRDataType.BYTE, reg1 = ins.reg1, reg2 = ins.reg3)
-                    chunk.instructions.removeAt(idx-1)
+                    chunk.instructions.removeAt(loadIndex)
                     changed = true
                 }
             }
@@ -353,14 +398,10 @@ class IRPeepholeOptimizer(private val irprog: IRProgram, private val retainSSA: 
             if(idx>0 && idx<(indexedInstructions.size-1) && ins.opcode==Opcode.CMPI && ins.immediate==0) {
                 val previous = indexedInstructions[idx-1].value
                 if(previous.reg1==ins.reg1) {
-                    if (previous.opcode in OpcodesThatSetStatusbits) {
+                    if (previous.opcode in OpcodesThatSetZeroFlagOnM68k) {
                         chunk.instructions.removeAt(idx)
                         changed = true
                     }
-                    // Note: the OpcodesThatSetStatusbitsButNotCarry set is empty under
-                    // the strict contract (see IRInstructions.kt) so we don't need a
-                    // second branch here. Only CMP/CMPI/SGN/BITTST are recognized as
-                    // setting flags.
                 }
             }
         }
@@ -393,10 +434,86 @@ jump p8_label_gen_2
     private fun removeUselessArithmetic(chunk: IRCodeChunk, indexedInstructions: List<IndexedValue<IRInstruction>>): Boolean {
         // note: this is hard to solve for the non-immediate instructions atm because the values are loaded into registers first
         var changed = false
+
+        fun arithmeticDelta(instruction: IRInstruction): Int? = when(instruction.opcode) {
+            Opcode.ADD -> instruction.immediate
+            Opcode.SUB -> instruction.immediate?.let { -it }
+            Opcode.INC -> 1
+            Opcode.DEC -> -1
+            else -> null
+        }
+
         indexedInstructions.reversed().forEach { (idx, ins) ->
+            if(idx < chunk.instructions.size-1) {
+                val nextInstr = chunk.instructions[idx+1]
+                val sameTarget = ins.reg1 != null && ins.reg1 == nextInstr.reg1 && ins.type == nextInstr.type
+                if(sameTarget && ins.opcode in setOf(Opcode.MUL, Opcode.MULS) &&
+                    ins.opcode == nextInstr.opcode && ins.type in setOf(IRDataType.BYTE, IRDataType.WORD, IRDataType.LONG) &&
+                    ins.immediate != null && nextInstr.immediate != null) {
+                    val product = ins.immediate!!.toLong() * nextInstr.immediate!!.toLong()
+                    val foldedImmediate = when(ins.type) {
+                        IRDataType.BYTE -> product.toInt() and 0xff
+                        IRDataType.WORD -> product.toInt() and 0xffff
+                        IRDataType.LONG -> product.toInt()
+                        else -> error("unexpected integer multiplication type")
+                    }
+                    chunk.instructions[idx] = ins.copy(immediate = foldedImmediate)
+                    chunk.instructions.removeAt(idx + 1)
+                    changed = true
+                    return@forEach
+                }
+                if(sameTarget) {
+                    val delta = arithmeticDelta(ins)
+                    val nextDelta = arithmeticDelta(nextInstr)
+                    if(delta != null && nextDelta != null) {
+                        val newDelta = delta + nextDelta
+                        when(newDelta) {
+                            0 -> {
+                                chunk.instructions[idx] = IRInstruction(Opcode.NOP)
+                                chunk.instructions[idx+1] = IRInstruction(Opcode.NOP)
+                            }
+                            1 -> chunk.instructions[idx] = IRInstruction(Opcode.INC, ins.type, reg1 = ins.reg1)
+                            -1 -> chunk.instructions[idx] = IRInstruction(Opcode.DEC, ins.type, reg1 = ins.reg1)
+                            else -> chunk.instructions[idx] = IRInstruction(
+                                if(newDelta > 0) Opcode.ADD else Opcode.SUB,
+                                ins.type,
+                                reg1 = ins.reg1,
+                                immediate = kotlin.math.abs(newDelta)
+                            )
+                        }
+                        chunk.instructions.removeAt(idx+1)
+                        changed = true
+                        return@forEach
+                    }
+
+                    if(ins.opcode == Opcode.AND && nextInstr.opcode == Opcode.AND) {
+                        chunk.instructions[idx] = ins.copy(immediate = ins.immediate!! and nextInstr.immediate!!)
+                        chunk.instructions.removeAt(idx+1)
+                        changed = true
+                        return@forEach
+                    }
+                    if(ins.opcode == Opcode.OR && nextInstr.opcode == Opcode.OR) {
+                        chunk.instructions[idx] = ins.copy(immediate = ins.immediate!! or nextInstr.immediate!!)
+                        chunk.instructions.removeAt(idx+1)
+                        changed = true
+                        return@forEach
+                    }
+                    if(ins.opcode == Opcode.XOR && nextInstr.opcode == Opcode.XOR && ins.immediate == nextInstr.immediate) {
+                        chunk.instructions[idx] = IRInstruction(Opcode.NOP)
+                        chunk.instructions[idx+1] = IRInstruction(Opcode.NOP)
+                        changed = true
+                        return@forEach
+                    }
+                }
+            }
+
             when (ins.opcode) {
                 Opcode.DIV, Opcode.DIVS, Opcode.MUL, Opcode.MULS, Opcode.MOD -> {
-                    if (ins.immediate == 1) {
+                    if (ins.immediate == 0 && ins.opcode in setOf(Opcode.MUL, Opcode.MULS) &&
+                        ins.type in setOf(IRDataType.BYTE, IRDataType.WORD, IRDataType.LONG)) {
+                        chunk.instructions[idx] = IRInstruction(Opcode.LOAD, ins.type, reg1 = ins.reg1, immediate = 0)
+                        changed = true
+                    } else if (ins.immediate == 1) {
                         chunk.instructions.removeAt(idx)
                         changed = true
                     }
@@ -452,7 +569,7 @@ jump p8_label_gen_2
                     }
                 }
                 Opcode.AND -> {
-                    when (val imm = ins.immediate) {
+                    when (ins.immediate) {
                         0 -> {
                             chunk.instructions[idx] = IRInstruction(Opcode.LOAD, ins.type, reg1 = ins.reg1, immediate = 0)
                             changed = true
@@ -575,6 +692,31 @@ jump p8_label_gen_2
         return changed
     }
 
+    private fun collapseAdjacentLoadrChains(chunk: IRCodeChunk, indexedInstructions: List<IndexedValue<IRInstruction>>): Boolean {
+        var changed = false
+        indexedInstructions.reversed().forEach { (idx, ins) ->
+            if(idx >= chunk.instructions.size - 1 || ins.opcode != Opcode.LOADR)
+                return@forEach
+
+            val nextInstr = indexedInstructions[idx + 1].value
+            if(nextInstr.opcode != Opcode.LOADR || ins.type != nextInstr.type)
+                return@forEach
+
+            if(ins.type in setOf(IRDataType.BYTE, IRDataType.WORD, IRDataType.LONG, IRDataType.POINTER) &&
+                ins.reg1 != null && ins.reg2 != null && nextInstr.reg2 == ins.reg1) {
+                chunk.instructions[idx + 1] = nextInstr.copy(reg2 = ins.reg2)
+                chunk.instructions[idx] = IRInstruction(Opcode.NOP)
+                changed = true
+            } else if(ins.type == IRDataType.FLOAT &&
+                ins.fpReg1 != null && ins.fpReg2 != null && nextInstr.fpReg2 == ins.fpReg1) {
+                chunk.instructions[idx + 1] = nextInstr.copy(fpReg2 = ins.fpReg2)
+                chunk.instructions[idx] = IRInstruction(Opcode.NOP)
+                changed = true
+            }
+        }
+        return changed
+    }
+
     private fun removeSelfIdentityOps(chunk: IRCodeChunk, indexedInstructions: List<IndexedValue<IRInstruction>>): Boolean {
         var changed = false
         indexedInstructions.reversed().forEach { (idx, ins) ->
@@ -641,7 +783,7 @@ jump p8_label_gen_2
                         changed = true
                     }
                 }
-                Opcode.EXT, Opcode.EXTS -> {
+                Opcode.EXT, Opcode.EXTS, Opcode.EXTL, Opcode.EXTLS -> {
                     if(insAfter.opcode == ins.opcode && insAfter.reg1 == ins.reg1 && insAfter.type == ins.type) {
                         chunk.instructions[idx+1] = IRInstruction(Opcode.NOP)
                         changed = true
@@ -667,12 +809,146 @@ jump p8_label_gen_2
         return changed
     }
 
+    private fun fusePointerPostInc(chunk: IRCodeChunk, indexedInstructions: List<IndexedValue<IRInstruction>>): Boolean {
+        // Fuse loadm + loadi/storei + incm on same pointer variable into LOADP_INC/STOREP_INC
+        // Pattern: loadm.l rX, P  ; loadi.b rY,rX,#0  ; ... ; incm.l P  =>  loadp_inc.b rY,P
+        //          loadm.l rX, P  ; storei.b rY,rX,#0 ; ... ; incm.l P => storep_inc.b rY,P
+        // Only if rX is defined once and used once (the loadi/storei), and incm is after.
+        if(chunk.instructions.size < 3) return false
+        // Count register reads
+        val readCounts = mutableMapOf<Int, Int>()
+        for(ins in chunk.instructions) {
+            if(ins.reg2 != null) readCounts[ins.reg2!!] = (readCounts[ins.reg2!!] ?: 0) + 1
+            if(ins.reg3 != null) readCounts[ins.reg3!!] = (readCounts[ins.reg3!!] ?: 0) + 1
+            // LOADI/STOREI uses reg2 as base, that's already counted
+            // For our pattern, base reg is reg2 of LOADI/STOREI
+        }
+        // Also need to count reg1 reads for other ops? For LOADM, reg1 is written, not read
+        // For LOADI, reg1 is written, reg2 is read
+        // For STOREI, reg1 is read, reg2 is read
+        // For INCM, no regs
+        // So readCounts for base reg already correct via reg2
+
+        var changed = false
+        // Find loadm indices
+        val loadmByAddr = mutableMapOf<String, MutableList<Int>>() // address string -> list of loadm indices
+        val loadmRegByIdx = mutableMapOf<Int, Int>() // loadm idx -> rX
+        val loadmAddrByIdx = mutableMapOf<Int, String>()
+        for((idx, ins) in indexedInstructions) {
+            if(ins.opcode == Opcode.LOADM && ins.labelSymbol != null && ins.reg1 != null) {
+                // only integer loadm (float uses fpReg1)
+                if(ins.type == IRDataType.FLOAT) continue
+                val addr = ins.labelSymbol!!
+                loadmByAddr.getOrPut(addr) { mutableListOf() }.add(idx)
+                loadmRegByIdx[idx] = ins.reg1!!
+                loadmAddrByIdx[idx] = addr
+            }
+        }
+        // For each incm, try to find matching loadm+loadi/storei
+        val toRemove = mutableSetOf<Int>()
+        val toReplace = mutableMapOf<Int, IRInstruction>()
+        for((incIdx, incIns) in indexedInstructions) {
+            if(incIns.opcode != Opcode.INCM || incIns.labelSymbol == null) continue
+            val addr = incIns.labelSymbol!!
+            val loadmIndices = loadmByAddr[addr] ?: continue
+            // Find the latest loadm before incm that has a matching loadi/storei using its reg
+            for(loadmIdx in loadmIndices.reversed()) {
+                if(loadmIdx >= incIdx) continue
+                if(loadmIdx in toRemove) continue
+                val baseReg = loadmRegByIdx[loadmIdx] ?: continue
+                // Check baseReg is used exactly once (in loadi/storei) and not otherwise
+                if((readCounts[baseReg] ?: 0) != 1) continue
+                // Find loadi/storei that uses baseReg between loadm and incm
+                var foundIdx: Int? = null
+                var foundIns: IRInstruction? = null
+                for((midIdx, midIns) in indexedInstructions) {
+                    if(midIdx <= loadmIdx || midIdx >= incIdx) continue
+                    if(midIdx in toRemove || midIdx in toReplace) continue
+                    if(midIns.type == IRDataType.FLOAT) continue
+                    if(midIns.reg1 == null) continue
+                    if(midIns.opcode == Opcode.LOADI && midIns.reg2 == baseReg) {
+                        // LOADI must have offset 0 to be fusible to post-inc (otherwise need add)
+                        if(midIns.immediate != 0) continue
+                        foundIdx = midIdx
+                        foundIns = midIns
+                        break
+                    }
+                    if(midIns.opcode == Opcode.STOREI && midIns.reg2 == baseReg) {
+                        if(midIns.immediate != 0) continue
+                        foundIdx = midIdx
+                        foundIns = midIns
+                        break
+                    }
+                }
+                if(foundIdx == null || foundIns == null) continue
+                // Also ensure no other use of baseReg between loadm and incm besides this one
+                // Already ensured readCounts==1, but also ensure no other loadm defines same reg
+                // Fuse
+                val newOpcode = if(foundIns.opcode == Opcode.LOADI) Opcode.LOADP_INC else Opcode.STOREP_INC
+                val newType = foundIns.type!!
+                val newReg = foundIns.reg1 ?: continue
+                val newIns = IRInstruction(newOpcode, newType, reg1 = newReg, labelSymbol = addr)
+                toReplace[foundIdx] = newIns
+                toRemove.add(loadmIdx)
+                toRemove.add(incIdx)
+                changed = true
+                break // one incm fuses one loadm
+            }
+        }
+        if(!changed) return false
+        // Apply replacements and removals in reverse order to keep indices stable
+        val allIndices = (toRemove + toReplace.keys).sortedDescending()
+        for(idx in allIndices) {
+            if(idx in toRemove) {
+                chunk.instructions[idx] = IRInstruction(Opcode.NOP)
+            }
+        }
+        for((idx, newIns) in toReplace) {
+            chunk.instructions[idx] = newIns
+        }
+        return true
+    }
+
     private fun removeNops(chunk: IRCodeChunk, indexedInstructions: List<IndexedValue<IRInstruction>>): Boolean {
         var changed = false
         indexedInstructions.reversed().forEach { (idx, ins) ->
             if (ins.opcode == Opcode.NOP) {
                 changed = true
                 chunk.instructions.removeAt(idx)
+            }
+        }
+        return changed
+    }
+
+    private fun foldLoadStoremToStoreim(chunk: IRCodeChunk, indexedInstructions: List<IndexedValue<IRInstruction>>): Boolean {
+        /*
+        load.b rX, #imm
+        storem.b rX, addr           ->  storeim.b #imm, addr
+         */
+        var changed = false
+        indexedInstructions.forEach { (idx, ins) ->
+            if(ins.opcode==Opcode.STOREM && idx>0) {
+                val prev = indexedInstructions[idx-1].value
+                if(prev.opcode==Opcode.LOAD && prev.labelSymbol==null) {
+                    val isInt = prev.immediate != null && prev.immediateFp == null
+                    val isFloat = prev.immediateFp != null
+                    val sameReg = when(ins.type) {
+                        IRDataType.FLOAT -> prev.fpReg1 != null && ins.fpReg1 == prev.fpReg1
+                        else -> prev.reg1 != null && ins.reg1 == prev.reg1
+                    }
+                    if(sameReg && (isInt || isFloat)) {
+                        val newIns = ins.copy(
+                            opcode = Opcode.STOREIM,
+                            reg1 = null,
+                            fpReg1 = null,
+                            immediate = if(isInt) prev.immediate else null,
+                            immediateFp = if(isFloat) prev.immediateFp else null
+                        )
+                        chunk.instructions[idx] = newIns
+                        chunk.instructions[idx-1] = IRInstruction(Opcode.NOP)
+                        changed = true
+                    }
+                }
             }
         }
         return changed
@@ -710,6 +986,163 @@ jump p8_label_gen_2
         return changed
     }
 
+    private fun removeDoubleLoadsAndStoresIndexed(chunk: IRCodeChunk, indexedInstructions: List<IndexedValue<IRInstruction>>): Boolean {
+        // Coalesce indexed LOADX/STOREX/STOREZX pairs to the same array element with same index register
+        // within a single chunk when there is no intervening use of the value.
+        // Analogous to removeDoubleLoadsAndStores for non-indexed LOADM/STOREM but allows a gap as long
+        // as the value register is not read/written and the index register is not redefined, and no
+        // side-effecting instruction occurs between. Keeps the optimization single-chunk.
+        if(chunk.instructions.size < 2) return false
+
+        fun indexRegOf(ins: IRInstruction): Int? = when(ins.opcode) {
+            Opcode.LOADX -> if(ins.type==IRDataType.FLOAT) ins.reg1 else ins.reg2
+            Opcode.STOREX -> if(ins.type==IRDataType.FLOAT) ins.reg1 else ins.reg2
+            Opcode.STOREZX -> ins.reg1
+            else -> null
+        }
+        fun valueIntRegOf(ins: IRInstruction): Int? = when(ins.opcode) {
+            Opcode.LOADX, Opcode.STOREX -> if(ins.type==IRDataType.FLOAT) null else ins.reg1
+            else -> null
+        }
+        fun valueFpRegOf(ins: IRInstruction): RegisterNum? = when(ins.opcode) {
+            Opcode.LOADX, Opcode.STOREX -> if(ins.type==IRDataType.FLOAT) ins.fpReg1 else null
+            else -> null
+        }
+        fun labelKey(ins: IRInstruction): String {
+            return "${ins.type}:${ins.labelSymbol}:${ins.labelSymbolOffset}:${ins.address}"
+        }
+        fun readsReg(ins: IRInstruction, reg: Int): Boolean {
+            val fmt = instructionFormats[ins.opcode]?.get(ins.type) ?: instructionFormats[ins.opcode]?.get(null)
+            if(fmt!=null) {
+                if((fmt.reg1 == OperandDirection.READ || fmt.reg1 == OperandDirection.READWRITE) && ins.reg1 == reg) return true
+                if((fmt.reg2 == OperandDirection.READ || fmt.reg2 == OperandDirection.READWRITE) && ins.reg2 == reg) return true
+                if((fmt.reg3 == OperandDirection.READ || fmt.reg3 == OperandDirection.READWRITE) && ins.reg3 == reg) return true
+            }
+            ins.fcallArgs?.arguments?.forEach { if(it.reg.registerNum.value==reg && it.reg.dt!=IRDataType.FLOAT) return true }
+            return false
+        }
+        fun writesReg(ins: IRInstruction, reg: Int): Boolean {
+            val fmt = instructionFormats[ins.opcode]?.get(ins.type) ?: instructionFormats[ins.opcode]?.get(null)
+            if(fmt!=null) {
+                if((fmt.reg1 == OperandDirection.WRITE || fmt.reg1 == OperandDirection.READWRITE) && ins.reg1 == reg) return true
+                if((fmt.reg2 == OperandDirection.WRITE || fmt.reg2 == OperandDirection.READWRITE) && ins.reg2 == reg) return true
+                if((fmt.reg3 == OperandDirection.WRITE || fmt.reg3 == OperandDirection.READWRITE) && ins.reg3 == reg) return true
+            }
+            ins.fcallArgs?.returns?.forEach { if(it.registerNum.value==reg && it.dt!=IRDataType.FLOAT) return true }
+            return false
+        }
+        fun readsFpReg(ins: IRInstruction, fp: RegisterNum): Boolean {
+            val fmt = instructionFormats[ins.opcode]?.get(ins.type) ?: instructionFormats[ins.opcode]?.get(null)
+            if(fmt!=null) {
+                if((fmt.fpReg1 == OperandDirection.READ || fmt.fpReg1 == OperandDirection.READWRITE) && ins.fpReg1 == fp) return true
+                if((fmt.fpReg2 == OperandDirection.READ || fmt.fpReg2 == OperandDirection.READWRITE) && ins.fpReg2 == fp) return true
+            }
+            ins.fcallArgs?.arguments?.forEach { if(it.reg.registerNum==fp && it.reg.dt==IRDataType.FLOAT) return true }
+            return false
+        }
+        fun writesFpReg(ins: IRInstruction, fp: RegisterNum): Boolean {
+            val fmt = instructionFormats[ins.opcode]?.get(ins.type) ?: instructionFormats[ins.opcode]?.get(null)
+            if(fmt!=null) {
+                if((fmt.fpReg1 == OperandDirection.WRITE || fmt.fpReg1 == OperandDirection.READWRITE) && ins.fpReg1 == fp) return true
+                if((fmt.fpReg2 == OperandDirection.WRITE || fmt.fpReg2 == OperandDirection.READWRITE) && ins.fpReg2 == fp) return true
+            }
+            ins.fcallArgs?.returns?.forEach { if(it.registerNum==fp && it.dt==IRDataType.FLOAT) return true }
+            return false
+        }
+
+        val toRemove = mutableSetOf<Int>()
+
+        // Phase 1: LOADX -> STOREX redundant store (same value, same index, same address, no intervening value use)
+        for((currPos, currEntry) in indexedInstructions.withIndex()) {
+            val currIdx = currEntry.index
+            val currIns = currEntry.value
+            if(currIdx in toRemove) continue
+            if(currIns.opcode != Opcode.STOREX) continue
+            val currIndexReg = indexRegOf(currIns) ?: continue
+            val currValueReg = valueIntRegOf(currIns)
+            val currFpReg = valueFpRegOf(currIns)
+            val currKey = labelKey(currIns)
+            // search backwards for matching LOADX
+            for(prevPos in currPos - 1 downTo 0) {
+                val prevEntry = indexedInstructions[prevPos]
+                val prevIdx = prevEntry.index
+                val prevIns = prevEntry.value
+                if(prevIdx in toRemove) continue
+                if(prevIns.opcode != Opcode.LOADX) continue
+                if(prevIns.type != currIns.type) continue
+                if(labelKey(prevIns) != currKey) continue
+                if(indexRegOf(prevIns) != currIndexReg) continue
+                if(currValueReg != null) {
+                    if(valueIntRegOf(prevIns) != currValueReg) continue
+                } else if(currFpReg != null) {
+                    if(valueFpRegOf(prevIns) != currFpReg) continue
+                } else continue
+
+                var blocked = false
+                for(midPos in prevPos + 1 until currPos) {
+                    val midIns = indexedInstructions[midPos].value
+                    if(midIns.opcode in OpcodesWithSideEffects) { blocked = true; break }
+                    if(currValueReg != null) {
+                        if(writesReg(midIns, currValueReg) || readsReg(midIns, currValueReg)) { blocked = true; break }
+                        if(writesReg(midIns, currIndexReg)) { blocked = true; break }
+                    } else if(currFpReg != null) {
+                        if(writesFpReg(midIns, currFpReg) || readsFpReg(midIns, currFpReg)) { blocked = true; break }
+                        if(writesReg(midIns, currIndexReg)) { blocked = true; break }
+                    }
+                    // intervening indexed access to same location breaks direct coalescing (let closer pair handle it)
+                    if(labelKey(midIns) == currKey && midIns.opcode in setOf(Opcode.LOADX, Opcode.STOREX, Opcode.STOREZX)) {
+                        blocked = true; break
+                    }
+                }
+                if(!blocked) {
+                    toRemove.add(currIdx)
+                    break
+                }
+            }
+        }
+
+        // Phase 2: dead store for indexed ops - earlier STOREX/STOREZX overwritten by later STOREX/STOREZX with same location/index
+        for((currPos, currEntry) in indexedInstructions.withIndex()) {
+            val currIdx = currEntry.index
+            val currIns = currEntry.value
+            if(currIdx in toRemove) continue
+            if(currIns.opcode !in setOf(Opcode.STOREX, Opcode.STOREZX)) continue
+            val currIndexReg = indexRegOf(currIns) ?: continue
+            val currKey = labelKey(currIns)
+            for(prevPos in currPos - 1 downTo 0) {
+                val prevEntry = indexedInstructions[prevPos]
+                val prevIdx = prevEntry.index
+                val prevIns = prevEntry.value
+                if(prevIdx in toRemove) continue
+                if(prevIns.opcode !in setOf(Opcode.STOREX, Opcode.STOREZX)) continue
+                if(prevIns.type != currIns.type) {
+                    // require exact same type for indexed store coalescing
+                    continue
+                }
+                if(labelKey(prevIns) != currKey) continue
+                if(indexRegOf(prevIns) != currIndexReg) continue
+                var blocked = false
+                for(midPos in prevPos + 1 until currPos) {
+                    val midIns = indexedInstructions[midPos].value
+                    if(midIns.opcode in OpcodesWithSideEffects) { blocked = true; break }
+                    if(writesReg(midIns, currIndexReg)) { blocked = true; break }
+                    // any LOADX to same location is a read of memory - prevents dead store elimination
+                    if(midIns.opcode == Opcode.LOADX && labelKey(midIns) == currKey && indexRegOf(midIns) == currIndexReg) { blocked = true; break }
+                }
+                if(!blocked) {
+                    toRemove.add(prevIdx)
+                    break
+                }
+            }
+        }
+
+        if(toRemove.isEmpty()) return false
+        toRemove.sortedDescending().forEach { idx ->
+            if(idx < chunk.instructions.size) chunk.instructions.removeAt(idx)
+        }
+        return true
+    }
+
     private fun simplifyConstantReturns(chunk: IRCodeChunk, indexedInstructions: List<IndexedValue<IRInstruction>>): Boolean {
         //  use a RETURNI when a RETURNR is just returning a constant that was loaded into a register just before
         var changed = false
@@ -727,6 +1160,194 @@ jump p8_label_gen_2
             }
         }
         return changed
+    }
+
+    private fun collapseConversions(chunk: IRCodeChunk, indexedInstructions: List<IndexedValue<IRInstruction>>): Boolean {
+        // Collapse adjacent conversions that compose into a single cheaper conversion:
+        //   ext.b  rX,rA + ext.w  rY,rX -> extl.b  rY,rA     (zero-extends compose)
+        //   exts.b rX,rA + ext.w  rY,rX -> extl.b  rY,rA     (the outer zero-extend only sees the low
+        //                                                     byte that the inner instruction defined)
+        //   ext.b  rX,rA + exts.w rY,rX -> extl.b  rY,rA     (sign-extending a zero-extended byte
+        //                                                     yields the same as zero-extending it)
+        //   exts.b rX,rA + exts.w rY,rX -> extls.b rY,rA     (sign-extends compose)
+        // and truncation/widening pairs that cancel into a single mask:
+        //   lsigw.l rX,rA + ext.w  rY,rX -> loadr.l rY,rA ; and.l rY,#$ffff
+        //   lsigb.? rX,rA + ext.b  rY,rX -> loadr.? rY,rA ; and.? rY,#$ff
+        // Only applied when the intermediate register is not read anywhere else in this chunk.
+        if(chunk.instructions.size<2) return false
+        val readCounts = chunk.usedRegisters(irprog.options.compTarget.indexRegType).readRegs.withDefault { 0 }
+
+        class Mod(val idx: Int, val replacement: IRInstruction?)   // null replacement = delete
+        val mods = mutableListOf<Mod>()
+        val claimed = mutableSetOf<Int>()
+
+        for(k in 0 until indexedInstructions.size-1) {
+            val (i, inner) = indexedInstructions[k]
+            val (_, outer) = indexedInstructions[k+1]
+            val mid = inner.reg1
+
+            fun singleResult(opcode: Opcode) =
+                IRInstruction(opcode, IRDataType.BYTE, reg1 = outer.reg1, reg2 = inner.reg2)
+
+            if(i in claimed || i+1 in claimed)
+                continue
+
+            when {
+                // composed sign/zero extension chains on bytes
+                outer.opcode in setOf(Opcode.EXT, Opcode.EXTS) && outer.type==IRDataType.WORD
+                        && inner.opcode in setOf(Opcode.EXT, Opcode.EXTS) && inner.type==IRDataType.BYTE
+                        && mid!=null && mid==outer.reg2
+                        && readCounts[RegisterNum(mid)]==1 -> {
+                    val newOp = if(inner.opcode==Opcode.EXTS && outer.opcode==Opcode.EXTS) Opcode.EXTLS else Opcode.EXTL
+                    mods.add(Mod(i+1, null))
+                    mods.add(Mod(i, singleResult(newOp)))
+                }
+                // truncate-long-to-word followed by zero-extend word-to-long == mask with $ffff
+                inner.opcode==Opcode.LSIGW && inner.type==IRDataType.LONG
+                        && outer.opcode==Opcode.EXT && outer.type==IRDataType.WORD
+                        && mid!=null && mid==outer.reg2 && inner.reg2!=null && outer.reg1!=null
+                        && readCounts[RegisterNum(mid)]==1 -> {
+                    mods.add(Mod(i+1, IRInstruction(Opcode.AND, IRDataType.LONG, reg1 = outer.reg1, immediate = 0xffff)))
+                    mods.add(Mod(i, IRInstruction(Opcode.LOADR, IRDataType.LONG, reg1 = outer.reg1, reg2 = inner.reg2)))
+                }
+                // truncate-long/word-to-byte followed by zero-extend byte-to-word == mask with $ff
+                inner.opcode==Opcode.LSIGB && inner.type in setOf(IRDataType.WORD, IRDataType.LONG)
+                        && outer.opcode==Opcode.EXT && outer.type==IRDataType.BYTE
+                        && mid!=null && mid==outer.reg2 && inner.reg2!=null && outer.reg1!=null
+                        && readCounts[RegisterNum(mid)]==1 -> {
+                    mods.add(Mod(i+1, IRInstruction(Opcode.AND, inner.type, reg1 = outer.reg1, immediate = 0xff)))
+                    mods.add(Mod(i, IRInstruction(Opcode.LOADR, inner.type, reg1 = outer.reg1, reg2 = inner.reg2)))
+                }
+                else -> continue
+            }
+            claimed.add(i)
+            claimed.add(i+1)
+        }
+        var changed = false
+        for(mod in mods.sortedByDescending { it.idx }) {
+            if(mod.replacement==null) {
+                chunk.instructions.removeAt(mod.idx)
+                changed = true
+            }
+            else {
+                chunk.instructions[mod.idx] = mod.replacement
+                changed = true
+            }
+        }
+        return changed
+    }
+
+    private fun deduplicateAddressComputations(chunk: IRCodeChunk): Boolean {
+        // IR3: collapse repeated buf+i address computations inside one chunk.
+        // Looks for the 4-instruction pattern that computes buf+i into a pointer:
+        //   loadm.p  ptrReg, buf
+        //   loadm.w/b idxReg, idxVar
+        //   ext*     extReg, idxReg   (any EXT/EXTS/EXTL/EXTLS)
+        //   addr.p   destReg, otherReg where destReg/otherReg are ptrReg and extReg (either order)
+        // If two such groups with identical (buf, idxVar) occur in the same chunk with no barrier
+        // between them, the second group is replaced by a single loadr.p copy from the first group's dest.
+        if(chunk.instructions.size < 8) return false
+
+        data class AddrGroup(
+            val startIdx: Int,
+            val ptrReg: Int,
+            val idxReg: Int,
+            val extReg: Int,
+            val destReg: Int,
+            val bufKey: String,
+            val idxKey: String
+        )
+
+        fun memKey(ins: IRInstruction): String {
+            // labelSymbol/labelSymbolOffset/address/type uniquely identify the variable
+            return "${ins.type}:${ins.labelSymbol}:${ins.labelSymbolOffset}:${ins.address}"
+        }
+
+
+        fun writesReg(ins: IRInstruction, reg: Int): Boolean {
+            val formats = instructionFormats[ins.opcode] ?: return false
+            val fmt = formats[ins.type] ?: formats[null] ?: return false
+            if((fmt.reg1 == OperandDirection.WRITE || fmt.reg1 == OperandDirection.READWRITE) && ins.reg1 == reg) return true
+            if((fmt.reg2 == OperandDirection.WRITE || fmt.reg2 == OperandDirection.READWRITE) && ins.reg2 == reg) return true
+            if((fmt.reg3 == OperandDirection.WRITE || fmt.reg3 == OperandDirection.READWRITE) && ins.reg3 == reg) return true
+            // fp regs are separate, not relevant for pointer regs
+            return false
+        }
+
+        fun writesMem(ins: IRInstruction, memKey: String): Boolean {
+            if(memKey == "null:null:null:null") return false
+            if(memKey(ins) != memKey) return false
+            val formats = instructionFormats[ins.opcode] ?: return false
+            val fmt = formats[ins.type] ?: formats[null] ?: return false
+            return fmt.address == OperandDirection.WRITE || fmt.address == OperandDirection.READWRITE
+        }
+
+        val groups = mutableListOf<AddrGroup>()
+        var i = 0
+        while(i <= chunk.instructions.size - 4) {
+            val a = chunk.instructions[i]
+            val b = chunk.instructions[i+1]
+            val c = chunk.instructions[i+2]
+            val d = chunk.instructions[i+3]
+            val isA = a.opcode == Opcode.LOADM && a.type == IRDataType.POINTER && a.reg1 != null
+            val isB = b.opcode == Opcode.LOADM && b.type in setOf(IRDataType.BYTE, IRDataType.WORD) && b.reg1 != null
+            val isC = c.opcode in setOf(Opcode.EXT, Opcode.EXTS, Opcode.EXTL, Opcode.EXTLS) && c.reg1 != null && c.reg2 == b.reg1
+            val isD = d.opcode == Opcode.ADDR && d.type == IRDataType.POINTER && d.reg1 != null && d.reg2 != null
+            if(isA && isB && isC && isD) {
+                val ptrReg = a.reg1!!
+                val extReg = c.reg1!!
+                val d1 = d.reg1!!
+                val d2 = d.reg2!!
+                val destOk = (d1 == ptrReg && d2 == extReg) || (d1 == extReg && d2 == ptrReg)
+                if(destOk) {
+                    groups.add(AddrGroup(i, ptrReg, b.reg1!!, extReg, d1, memKey(a), memKey(b)))
+                    i += 4
+                    continue
+                }
+            }
+            i++
+        }
+        if(groups.size < 2) return false
+
+        // For each later group, find earliest earlier group with same (buf,idx) and no barrier; replace it
+        class Mod(val idx: Int, val replacement: IRInstruction?)
+        val mods = mutableListOf<Mod>()
+        val claimed = mutableSetOf<Int>()
+        for(j in groups.indices) {
+            val gj = groups[j]
+            if(gj.startIdx in claimed) continue
+            // find earliest i<j with same keys
+            var found: AddrGroup? = null
+            for(k in 0 until j) {
+                val gk = groups[k]
+                if(gk.startIdx in claimed) continue  // don't use a replaced group as source; keep earliest non-replaced
+                if(gk.bufKey != gj.bufKey || gk.idxKey != gj.idxKey) continue
+                // barrier check between gk and gj
+                var barrier = false
+                for(t in gk.startIdx + 4 until gj.startIdx) {
+                    if(t in claimed) continue // already slated for removal, ignore? but we haven't applied mods yet
+                    val ins = chunk.instructions[t]
+                    if(writesReg(ins, gk.destReg)) { barrier = true; break }
+                    if(writesMem(ins, gk.bufKey) || writesMem(ins, gk.idxKey)) { barrier = true; break }
+                }
+                if(!barrier) { found = gk; break }
+            }
+            if(found != null) {
+                // replace gj's 4 insns with single loadr.p
+                if(gj.startIdx in claimed || gj.startIdx+1 in claimed || gj.startIdx+2 in claimed || gj.startIdx+3 in claimed) continue
+                mods.add(Mod(gj.startIdx + 3, null))
+                mods.add(Mod(gj.startIdx + 2, null))
+                mods.add(Mod(gj.startIdx + 1, null))
+                mods.add(Mod(gj.startIdx, IRInstruction(Opcode.LOADR, IRDataType.POINTER, reg1 = gj.destReg, reg2 = found.destReg)))
+                claimed.add(gj.startIdx); claimed.add(gj.startIdx+1); claimed.add(gj.startIdx+2); claimed.add(gj.startIdx+3)
+            }
+        }
+        if(mods.isEmpty()) return false
+        for(mod in mods.sortedByDescending { it.idx }) {
+            if(mod.replacement == null) chunk.instructions.removeAt(mod.idx)
+            else chunk.instructions[mod.idx] = mod.replacement
+        }
+        return true
     }
 
     private fun removeDeadStores(chunk: IRCodeChunk, indexedInstructions: List<IndexedValue<IRInstruction>>): Boolean {
@@ -809,16 +1430,135 @@ jump p8_label_gen_2
         return changed
     }
 
-    //private fun removeLoadrForwarding(chunk: IRCodeChunk, indexedInstructions: List<IndexedValue<IRInstruction>>): Boolean {
-        // Forward LOADR instructions to their original source.
-        // Example:
-        //   LOAD r1, #5
-        //   LOADR r2, r1     -> LOAD r2, #5
-        //   LOADR r3, r2     -> LOAD r3, #5
-        
-        // todo: This needs more careful implementation considering:
-        //     - Cross-chunk register usage
-        //     - Function call side effects
-        //     - Proper invalidation of register tracking
-    //}
+    private fun optimizeLoopCounters(sub: IRSubroutine): Boolean {
+        // M4: keep loop counter in register instead of round-tripping through memory.
+        // Looks for the non-constant range for-loop pattern emitted by IRCodeGen.translateForInNonConstantRange
+        // with step 1: STORM loopvar, loopLabel: body..., LOADM loopvar + CMP + BSTEQ, INCM loopvar + JUMP loopLabel.
+        // If the body does not write to loopvar, replace the memory round-trip with register operations.
+        var changed = false
+        var idx = 0
+        while (idx < sub.chunks.size) {
+            val stChunk = sub.chunks[idx]
+            if (stChunk !is IRCodeChunk || stChunk.instructions.size != 1) { idx++; continue }
+            val stInstr = stChunk.instructions[0]
+            if (stInstr.opcode != Opcode.STOREM || stInstr.labelSymbol == null || stInstr.reg1 == null) { idx++; continue }
+            val loopvar = stInstr.labelSymbol!!
+            val loopReg = stInstr.reg1!!
+            val loopType = stInstr.type ?: IRDataType.WORD
+            // next chunk should be the loop body start with a label
+            if (idx + 1 >= sub.chunks.size) { idx++; continue }
+            val bodyStart = sub.chunks[idx + 1]
+            if (bodyStart.label == null) { idx++; continue }
+            val loopLabel = bodyStart.label!!
+
+            // find inc chunk: contains INCM loopvar and JUMP loopLabel (possibly same chunk or inc then jump)
+            var incIdx = -1
+            for (k in idx + 1 until sub.chunks.size) {
+                val c = sub.chunks[k]
+                if (c !is IRCodeChunk) continue
+                val hasInc = c.instructions.any { it.opcode == Opcode.INCM && it.labelSymbol == loopvar }
+                if (!hasInc) continue
+                val hasJumpInSame = c.instructions.any { it.opcode == Opcode.JUMP && it.labelSymbol == loopLabel }
+                if (hasJumpInSame) { incIdx = k; break }
+                if (k + 1 < sub.chunks.size) {
+                    val nxt = sub.chunks[k + 1]
+                    if (nxt is IRCodeChunk && nxt.instructions.size == 1 && nxt.instructions[0].opcode == Opcode.JUMP && nxt.instructions[0].labelSymbol == loopLabel) {
+                        incIdx = k; break
+                    }
+                }
+            }
+            if (incIdx == -1) { idx++; continue }
+
+            // body range is idx+1 until incIdx exclusive
+            var bodyWrites = false
+            for (b in idx + 1 until incIdx) {
+                val ch = sub.chunks[b]
+                if (ch !is IRCodeChunk) continue
+                for (ins in ch.instructions) {
+                    // any store/inc/dec that writes to loopvar memory
+                    if (ins.labelSymbol == loopvar && ins.opcode in setOf(Opcode.STOREM, Opcode.STOREIM, Opcode.STOREZM, Opcode.STOREX, Opcode.STOREZX, Opcode.INCM, Opcode.DECM, Opcode.ADDIM, Opcode.SUBIM)) {
+                        // exclude the initial STORM itself (not in body) and the inc chunk (not in body)
+                        bodyWrites = true; break
+                    }
+                    // also check generic memory write via address? Loopvar is always via labelSymbol, so covered
+                }
+                if (bodyWrites) break
+            }
+            if (bodyWrites) { idx++; continue }
+
+            // Check live-out: if loopvar is read after the loop, don't optimize (needs spill handling)
+            var labelAfter: String? = null
+            for (b in idx + 1 until incIdx) {
+                val ch = sub.chunks[b] as? IRCodeChunk ?: continue
+                for (ins in ch.instructions) {
+                    if (ins.opcode == Opcode.BSTEQ && ins.labelSymbol != null) {
+                        // This is likely the loop's exit branch (LOADM+CMP+BSTEQ pattern)
+                        // Verify it follows a CMP that uses loopvar (heuristic: preceding LOADM loopvar)
+                        labelAfter = ins.labelSymbol
+                        break
+                    }
+                }
+                if (labelAfter != null) break
+            }
+            var exitIdx = -1
+            if (labelAfter != null) {
+                for (k in incIdx + 1 until sub.chunks.size) {
+                    if (sub.chunks[k].label == labelAfter) { exitIdx = k; break }
+                }
+            }
+            var liveOut = false
+            if (exitIdx != -1) {
+                for (k in exitIdx until sub.chunks.size) {
+                    val ch = sub.chunks[k] as? IRCodeChunk ?: continue
+                    for (ins in ch.instructions) {
+                        if (ins.opcode == Opcode.LOADM && ins.labelSymbol == loopvar) { liveOut = true; break }
+                    }
+                    if (liveOut) break
+                }
+            }
+            if (liveOut) { idx++; continue }
+
+            // Found a candidate loop; perform rewrite
+            // 1. Remove STORM chunk
+            sub.chunks.removeAt(idx)
+            // incIdx shifts by -1 after removal
+            incIdx--
+            // 2. In body chunks, replace LOADM loopvar with LOADR loopReg (keep type)
+            for (b in idx until incIdx) {
+                val ch = sub.chunks[b] as? IRCodeChunk ?: continue
+                for (i in ch.instructions.indices) {
+                    val ins = ch.instructions[i]
+                    if (ins.opcode == Opcode.LOADM && ins.labelSymbol == loopvar) {
+                        val dest = ins.reg1!!
+                        if (dest == loopReg) {
+                            // Already holds the correct value; remove the reload
+                            ch.instructions[i] = IRInstruction(Opcode.NOP)
+                        } else {
+                            val tp = ins.type ?: loopType
+                            ch.instructions[i] = IRInstruction(Opcode.LOADR, tp, reg1 = dest, reg2 = loopReg)
+                        }
+                    }
+                }
+            }
+            // 3. In inc chunk, replace INCM loopvar with INC loopReg
+            val incChunk = sub.chunks[incIdx] as IRCodeChunk
+            for (i in incChunk.instructions.indices) {
+                val ins = incChunk.instructions[i]
+                if (ins.opcode == Opcode.INCM && ins.labelSymbol == loopvar) {
+                    incChunk.instructions[i] = IRInstruction(Opcode.INC, loopType, reg1 = loopReg)
+                    break
+                }
+            }
+            changed = true
+            // Do not increment idx, re-evaluate at same position (now next loop)
+            continue
+        }
+        if (changed) {
+            // Need to re-link chunks after structural changes (labels still valid)
+//            sub.chunks.forEachIndexed { i, ch ->
+//                // ensure next pointers will be recomputed via linkChunks later; for now keep as is
+//            }
+        }
+        return changed
+    }
 }

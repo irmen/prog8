@@ -69,7 +69,7 @@ main {
             set_moon_pos(moon_x)
 
             ; draw new mountain etc.
-            const ubyte RIGHT_COLUMN = 39
+            const RIGHT_COLUMN = 39
             ubyte yy
             for yy in 0 to active_height-1 {
                 txt.setcc(RIGHT_COLUMN, yy, 32, 2)         ; clear top of screen

@@ -8,13 +8,24 @@ sealed interface IPtSubroutine {
     val name: String
     val scopedName: String
 
+    fun returnsWhatWhere(target: ICompilationTarget): List<Pair<RegisterOrStatusflag, DataType>> {
+        when(this) {
+            is PtAsmSub -> {
+                return returns
+            }
+            is PtSub -> {
+                return this.signature.returnsWhatWhere(target)
+            }
+        }
+    }
+
     fun returnsWhatWhere(): List<Pair<RegisterOrStatusflag, DataType>> {
         when(this) {
             is PtAsmSub -> {
                 return returns
             }
             is PtSub -> {
-                return this.signature.returnsWhatWhere()
+                return this.signature.returnsWhatWhere6502()
             }
         }
     }
@@ -98,7 +109,45 @@ class PtSubSignature(val returns: List<DataType>, position: Position): PtNode(po
             throw AssemblyError("returntype is not a bool, number or pointer  $position")
     }
 
-    fun returnsWhatWhere(): List<Pair<RegisterOrStatusflag, DataType>> {
+    fun returnsWhatWhere(target: ICompilationTarget): List<Pair<RegisterOrStatusflag, DataType>> {
+        return when(target.cpu) {
+            CpuType.CPU6502 -> returnsWhatWhere6502()
+            CpuType.CPU65C02 -> returnsWhatWhere6502()
+            CpuType.M68000, CpuType.M68020 -> returnsWhatWhereM68k()
+            CpuType.VIRTUAL -> returnsWhatWhereM68k()
+        }
+    }
+
+    private fun returnsWhatWhereM68k(): List<Pair<RegisterOrStatusflag, DataType>> {
+        if (returns.isEmpty()) return emptyList()
+
+        val availableDataRegs = mutableListOf(
+            RegisterOrPair.D0, RegisterOrPair.D1, RegisterOrPair.D2, RegisterOrPair.D3,
+            RegisterOrPair.D4, RegisterOrPair.D5, RegisterOrPair.D6, RegisterOrPair.D7
+        )
+        val availableFloatRegs = mutableListOf(
+            RegisterOrPair.FP0, RegisterOrPair.FP1, RegisterOrPair.FP2, RegisterOrPair.FP3,
+            RegisterOrPair.FP4, RegisterOrPair.FP5, RegisterOrPair.FP6, RegisterOrPair.FP7
+        )
+
+        return returns.map { type ->
+            when {
+                type.isFloat -> {
+                    val reg = availableFloatRegs.removeFirstOrNull()
+                        ?: throw AssemblyError("out of fp registers for return type $type $position")
+                    RegisterOrStatusflag(reg, null) to type
+                }
+                type.isNumericOrBool || type.isPointer -> {
+                    val reg = availableDataRegs.removeFirstOrNull()
+                        ?: throw AssemblyError("out of data registers for return type $type $position")
+                    RegisterOrStatusflag(reg, null) to type
+                }
+                else -> throw AssemblyError("unsupported return type $type $position")
+            }
+        }
+    }
+
+    fun returnsWhatWhere6502(): List<Pair<RegisterOrStatusflag, DataType>> {
         // for non-asm subroutines, determine the return registers based on the type of the return values
 
         fun cpuRegisterFor(returntype: DataType): RegisterOrStatusflag = when {
@@ -231,13 +280,9 @@ sealed interface IPtAssignment {
         get() = children.size>2
 }
 
-class PtAssignment(position: Position, val isVarInitializer: Boolean=false) : PtNode(position), IPtAssignment {
-    override fun copy(): PtNode = PtAssignment(position, isVarInitializer)
-}
+class PtAssignment(position: Position, val isVarInitializer: Boolean=false) : PtNode(position), IPtAssignment
 
-class PtAugmentedAssign(val operator: String, position: Position) : PtNode(position), IPtAssignment {
-    override fun copy(): PtNode = PtAugmentedAssign(operator, position)
-}
+class PtAugmentedAssign(val operator: String, position: Position) : PtNode(position), IPtAssignment
 
 
 class PtAssignTarget(val void: Boolean, position: Position) : PtNode(position) {
@@ -337,6 +382,7 @@ sealed interface IPtVariable {
 class PtVariable(
     name: String,
     override val type: DataType,
+    val isSplitWordArray: Boolean,          // because some array DataType enums might depend on the compilation target for being actually a split array or not 
     val zeropage: ZeropageWish,
     val align: UInt,
     val dirty: Boolean,
@@ -374,14 +420,16 @@ class PtVariable(
         private var dirty: Boolean = false
         private var value: PtExpression? = null
         private var arraySize: UInt? = null
+        private var isSplitWordArray: Boolean = false
 
         fun zeropage(z: ZeropageWish) = apply { zeropage = z }
+        fun splitwordarray(split: Boolean) = apply { isSplitWordArray = split }
         fun align(a: UInt) = apply { align = a }
         fun dirty(d: Boolean) = apply { dirty = d }
         fun value(v: PtExpression?) = apply { value = v }
         fun arraySize(s: UInt?) = apply { arraySize = s }
 
-        fun build() = PtVariable(name, type, zeropage, align, dirty, value, arraySize, position)
+        fun build() = PtVariable(name, type, isSplitWordArray, zeropage, align, dirty, value, arraySize, position)
     }
 }
 

@@ -8,6 +8,7 @@
 %import emudbg
 %import floats
 %import lineclip
+%import lists
 %import math
 %import monogfx
 %import prog8_lib

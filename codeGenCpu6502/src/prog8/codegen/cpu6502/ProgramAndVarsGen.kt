@@ -173,6 +173,7 @@ internal class ProgramAndVarsGen(
                         asmgen.out("  jsr  p8_sys_startup.init_system")
                     asmgen.out("  jsr  p8_sys_startup.init_system_phase2")
                 }
+                else -> error("Unsupported output type: ${compTarget.defaultOutputType}")
             }
 
             if (options.zeropage !in arrayOf(ZeropageType.BASICSAFE, ZeropageType.DONTUSE)) {
@@ -223,20 +224,23 @@ internal class ProgramAndVarsGen(
     private fun footer() {
         asmgen.out("  .dsection STRUCTINSTANCES\n")
 
-        var relocateBssVars = false
-        var relocateBssSlabs = false
-        var relocatedBssStart = 0u
-        var relocatedBssEnd = 0u
+        var relocateVars = false
+        var relocatedStart = 0u
+        var relocatedEnd = 0u
 
-        if(options.varsGolden) {
+        if(options.varsAddress != null) {
+            relocateVars = true
+            relocatedStart = options.varsAddress!!
+            relocatedEnd = if(options.memtopAddress != 0u) options.memtopAddress else 0xFFFFu
+        } else if(options.varsGolden) {
             if(options.compTarget.BSSGOLDENRAM_START == 0u ||
                 options.compTarget.BSSGOLDENRAM_END == 0u ||
                 options.compTarget.BSSGOLDENRAM_END <= options.compTarget.BSSGOLDENRAM_START) {
                 throw AssemblyError("current compilation target hasn't got the golden ram area properly defined or it is simply not available")
             }
-            relocateBssVars = true
-            relocatedBssStart = options.compTarget.BSSGOLDENRAM_START
-            relocatedBssEnd = options.compTarget.BSSGOLDENRAM_END
+            relocateVars = true
+            relocatedStart = options.compTarget.BSSGOLDENRAM_START
+            relocatedEnd = options.compTarget.BSSGOLDENRAM_END
         }
         else if(options.varsHighBank!=null) {
             if(options.compTarget.BSSHIGHRAM_START == 0u ||
@@ -244,67 +248,34 @@ internal class ProgramAndVarsGen(
                 options.compTarget.BSSHIGHRAM_END <= options.compTarget.BSSHIGHRAM_START) {
                 throw AssemblyError("current compilation target hasn't got the high ram area properly defined or it is simply not available")
             }
-            if(options.slabsHighBank!=null && options.varsHighBank!=options.slabsHighBank)
-                throw AssemblyError("slabs and vars high bank must be the same")
-            relocateBssVars = true
-            relocatedBssStart = options.compTarget.BSSHIGHRAM_START
-            relocatedBssEnd = options.compTarget.BSSHIGHRAM_END
-        }
-
-        if(options.slabsGolden) {
-            if(options.compTarget.BSSGOLDENRAM_START == 0u ||
-                options.compTarget.BSSGOLDENRAM_END == 0u ||
-                options.compTarget.BSSGOLDENRAM_END <= options.compTarget.BSSGOLDENRAM_START) {
-                throw AssemblyError("current compilation target hasn't got the golden ram area properly defined or it is simply not available")
-            }
-            relocateBssSlabs = true
-            relocatedBssStart = options.compTarget.BSSGOLDENRAM_START
-            relocatedBssEnd = options.compTarget.BSSGOLDENRAM_END
-        }
-        else if(options.slabsHighBank!=null) {
-            if(options.compTarget.BSSHIGHRAM_START == 0u ||
-                options.compTarget.BSSHIGHRAM_END == 0u ||
-                options.compTarget.BSSHIGHRAM_END <= options.compTarget.BSSHIGHRAM_START) {
-                throw AssemblyError("current compilation target hasn't got the high ram area properly defined or it is simply not available")
-            }
-            if(options.varsHighBank!=null && options.varsHighBank!=options.slabsHighBank)
-                throw AssemblyError("slabs and vars high bank must be the same")
-            relocateBssSlabs = true
-            relocatedBssStart = options.compTarget.BSSHIGHRAM_START
-            relocatedBssEnd = options.compTarget.BSSHIGHRAM_END
+            relocateVars = true
+            relocatedStart = options.compTarget.BSSHIGHRAM_START
+            relocatedEnd = options.compTarget.BSSHIGHRAM_END
         }
 
         asmgen.out("; bss sections")
         asmgen.out("PROG8_VARSHIGH_RAMBANK = ${options.varsHighBank ?: 1}")
-        if(relocateBssVars) {
-            if(!relocateBssSlabs)
-                asmgen.out("  .dsection BSS_SLABS")
+        if(relocateVars) {
             asmgen.out("prog8_program_end\t; end of program label for progend()")
-            asmgen.out("  * = ${relocatedBssStart.toHex()}")
+            asmgen.out("  * = ${relocatedStart.toHex()}")
             asmgen.out("  .dsection BSS_NOCLEAR")
             asmgen.out("prog8_bss_section_start")
             asmgen.out("  .dsection BSS")
-            if(relocateBssSlabs)
-                asmgen.out("  .dsection BSS_SLABS")
-            asmgen.out("  .cerror * > ${relocatedBssEnd.toHex()}, \"too many variables/data for BSS section\"")
+            asmgen.out("  .dsection BSS_SLABS")
+            asmgen.out("  .cerror * > ${relocatedEnd.toHex()}, \"too many variables/data for BSS section\"")
             asmgen.out("prog8_bss_section_size = * - prog8_bss_section_start")
         } else {
             asmgen.out("  .dsection BSS_NOCLEAR")
             asmgen.out("prog8_bss_section_start")
             asmgen.out("  .dsection BSS")
             asmgen.out("prog8_bss_section_size = * - prog8_bss_section_start")
-            if(!relocateBssSlabs)
-                asmgen.out("  .dsection BSS_SLABS")
+            asmgen.out("  .dsection BSS_SLABS")
             asmgen.out("prog8_program_end\t; end of program label for progend()")
-            if(relocateBssSlabs) {
-                asmgen.out("  * = ${relocatedBssStart.toHex()}")
-                asmgen.out("  .dsection BSS_SLABS")
-                asmgen.out("  .cerror * > ${relocatedBssEnd.toHex()}, \"too many data for BSS_SLABS section\"")
-            }
         }
 
-        if(relocatedBssEnd >= options.memtopAddress)
-            options.memtopAddress = relocatedBssEnd+1u
+        val effectiveEnd = if(relocateVars) relocatedEnd else 0u
+        if(effectiveEnd >= options.memtopAddress && effectiveEnd != 0u)
+            options.memtopAddress = effectiveEnd+1u
 
         asmgen.out("  ; memtop check")
         asmgen.out("  .cerror * >= ${options.memtopAddress.toHex()}, \"Program too long by \", * - ${(options.memtopAddress-1u).toHex()}, \" bytes, memtop=${options.memtopAddress.toHex()}\"")
@@ -448,7 +419,7 @@ internal class ProgramAndVarsGen(
         asmgen.out("${StStructInstanceBlockName}_bss  .block\n")
         instancesNoInit.forEach {
             val structtype: StStruct = symboltable.lookup(it.structName) as StStruct
-            asmgen.out("${it.name}    .fill  ${structtype.size}\n")
+            asmgen.out("${it.name}    .fill  ${structtype.size}    ; struct ${it.structName}\n")
         }
         asmgen.out("    .endblock\n")
         asmgen.out("    .send BSS\n")
@@ -644,7 +615,7 @@ internal class ProgramAndVarsGen(
             arrayVarsWithInitInZp.forEach {
                 val size = it.alloc.size
                 val name = asmgen.asmVariableName(it.name)
-                if(it.alloc.dt.isSplitWordArray) {
+                if(it.alloc.dt.isSplitWordArray(compTarget)) {
                     val halfSize = size / 2
                     if(halfSize>0) {
                         asmgen.out("""
@@ -723,7 +694,7 @@ internal class ProgramAndVarsGen(
             if (scopedName.startsWith("cx16.r"))
                 continue        // The 16 virtual registers of the cx16 are not actual variables in zp, they're memory mapped
             val variable = symboltable.flat.getValue(scopedName) as StStaticVariable
-            if(variable.dt.isSplitWordArray) {
+            if(variable.dt.isSplitWordArray(compTarget)) {
                 val lsbAddr = zpvar.address
                 val msbAddr = zpvar.address + (zpvar.size/2).toUInt()
                 asmgen.out("${scopedName.substringAfterLast('.')}_lsb \t= $lsbAddr \t; zp ${zpvar.dt} (lsbs)")
@@ -815,16 +786,17 @@ internal class ProgramAndVarsGen(
             dt.isSignedWord -> asmgen.out("${variable.name}\t.sint  ?")
             dt.isLong -> asmgen.out("${variable.name}\t.dint  ?")
             dt.isFloat -> asmgen.out("${variable.name}\t.fill  ${compTarget.FLOAT_MEM_SIZE}")
-            dt.isSplitWordArray -> {
+            dt.isSplitWordArray(compTarget) -> {
                 alignVar(variable.align)
                 val numbytesPerHalf = compTarget.memorySize(variable.dt, variable.length!!.toInt()) / 2
-                asmgen.out("${variable.name}_lsb\t.fill  $numbytesPerHalf")
-                asmgen.out("${variable.name}_msb\t.fill  $numbytesPerHalf")
+                asmgen.out("${variable.name}_lsb\t.fill  $numbytesPerHalf  ; split word array of ${variable.length} ${variable.dt.elementType()} (lsbs)")
+                asmgen.out("${variable.name}_msb\t.fill  $numbytesPerHalf  ; split word array of ${variable.length} ${variable.dt.elementType()} (msbs)")
             }
             dt.isArray -> {
                 alignVar(variable.align)
-                val numbytes = compTarget.memorySize(variable.dt, variable.length!!.toInt())
-                asmgen.out("${variable.name}\t.fill  $numbytes")
+                val amount = variable.length!!.toInt()
+                val elementSize = compTarget.memorySize(variable.dt.elementType(), null)
+                asmgen.out("${variable.name}\t.fill  $amount * $elementSize    ; array of $amount ${variable.dt.elementType()} ")
             }
             dt.isPointer -> asmgen.out("${variable.name}\t.word  ?")        // a pointer is just an uword address
             dt.isPointerArray -> {
@@ -906,7 +878,7 @@ internal class ProgramAndVarsGen(
                         asmgen.out("  .char  " + chunk.joinToString())
                 }
             }
-            dt.isSplitWordArray -> {
+            dt.isSplitWordArray(compTarget) -> {
                 if(dt.elementType().isUnsignedWord || dt.elementType().isPointer) {
                     val data = makeArrayFillDataUnsigned(dt, value, orNumberOfZeros)
                     asmgen.out("${varname}_words := ${data.joinToString()}")
@@ -959,6 +931,50 @@ internal class ProgramAndVarsGen(
                 asmgen.out(varname)
                 for (f in array.zip(floatFills))
                     asmgen.out("  .byte  ${f.second}  ; float ${f.first}")
+            }
+            dt.base==BaseDataType.ARRAY && dt.sub==BaseDataType.STRUCT_INSTANCE -> {
+                val struct = dt.subType as? StStruct ?: throw AssemblyError("struct type not found for $varname")
+                val structSize = struct.size.toInt()
+                if(value==null) {
+                    val totalBytes = (orNumberOfZeros ?: 0) * structSize
+                    if(totalBytes==0) {
+                        asmgen.out("$varname: .byte 0")
+                    } else {
+                        asmgen.out("$varname: .fill $totalBytes, 0")
+                    }
+                } else {
+                    // initialized struct array: value contains StructInstance elements
+                    asmgen.out("$varname     ; array of ${value.size} ${struct.name} structs")
+                    // expand struct field types for per-element handling
+                    val expandedFieldTypes = struct.fields.flatMap { field ->
+                        val arraySz = field.arraySize
+                        if(arraySz!=null) List(arraySz) { field.type } else listOf(field.type)
+                    }
+                    for(elt in value) {
+                        val instanceName = (elt as? StArrayElement.StructInstance)?.name ?: throw AssemblyError("expected struct instance in array init for $varname")
+                        val instance = symboltable.lookup(instanceName) as? StStructInstance ?: throw AssemblyError("struct instance $instanceName not found")
+                        val fieldValues = instance.initialValues
+                        require(fieldValues.size==expandedFieldTypes.size) { "field count mismatch for $instanceName" }
+                        for((fieldType, fieldVal) in expandedFieldTypes.zip(fieldValues)) {
+                            val num = when(fieldVal) {
+                                is StArrayElement.Number -> fieldVal.value
+                                is StArrayElement.BoolValue -> if(fieldVal.value) 1.0 else 0.0
+                                else -> throw AssemblyError("struct field value must be number for $varname (got $fieldVal)")
+                            }
+                            when {
+                                fieldType.isByteOrBool -> asmgen.out("  .byte  ${num.toInt()}")
+                                fieldType.isWord -> asmgen.out("  .word  ${num.toInt()}")
+                                fieldType.isLong -> asmgen.out("  .dword  ${num.toInt()}")
+                                fieldType.isFloat -> {
+                                    val bytes = compTarget.getFloatAsmBytes(num)
+                                    asmgen.out("  .byte  $bytes  ; float $num")
+                                }
+                                fieldType.isPointer -> asmgen.out("  .word  ${num.toInt()}  ; pointer")
+                                else -> throw AssemblyError("unsupported struct field type $fieldType")
+                            }
+                        }
+                    }
+                }
             }
             else -> throw AssemblyError("require array dt")
         }
@@ -1031,7 +1047,7 @@ internal class ProgramAndVarsGen(
                     is StArrayElement.Number -> "$" + it.value.toInt().toString(16).padStart(4, '0')
                     is StArrayElement.AddressOf -> {
                         val symbol = symboltable.lookup(it.symbol)!!
-                        if(symbol is StStaticVariable && symbol.dt.isSplitWordArray)
+                        if(symbol is StStaticVariable && symbol.dt.isSplitWordArray(compTarget))
                             asmgen.asmSymbolName(it.symbol+"_lsb")
                         else
                             asmgen.asmSymbolName(it.symbol)
@@ -1072,7 +1088,7 @@ internal class ProgramAndVarsGen(
                         is StArrayElement.Number -> "$" + it.value.toInt().toString(16).padStart(4, '0')
                         is StArrayElement.AddressOf -> {
                             val symbol = symboltable.lookup(it.symbol)!!
-                            if(symbol is StStaticVariable && symbol.dt.isSplitWordArray)
+                            if(symbol is StStaticVariable && symbol.dt.isSplitWordArray(compTarget))
                                 asmgen.asmSymbolName(it.symbol+"_lsb")
                             else
                                 asmgen.asmSymbolName(it.symbol)

@@ -1,0 +1,868 @@
+;; Auto-generated from dos_lib.sfd and dos_lib.i
+;; Library base: _DOSBase  in prog8: sys.DOSBase
+;; Bank: 2
+;; Functions: 161
+
+%import exec
+%import utility
+
+dos {
+    %option no_symbol_prefixing
+    extsub @bank 2   -30 = Open(str name @D1, long accessMode @D2) -> pointer @D0
+    extsub @bank 2   -36 = Close(pointer file @D1) -> long @D0
+    extsub @bank 2   -42 = Read(pointer file @D1, pointer buffer @D2, long length @D3) -> long @D0
+    extsub @bank 2   -48 = Write(pointer file @D1, pointer buffer @D2, long length @D3) -> long @D0
+    extsub @bank 2   -54 = Input() -> pointer @D0
+    extsub @bank 2   -60 = Output() -> pointer @D0
+    extsub @bank 2   -66 = Seek(pointer file @D1, long position @D2, long offset @D3) -> long @D0
+    extsub @bank 2   -72 = DeleteFile(str name @D1) -> long @D0
+    extsub @bank 2   -78 = Rename(str oldName @D1, str newName @D2) -> long @D0
+    extsub @bank 2   -84 = Lock(str name @D1, long k_type @D2) -> pointer @D0
+    extsub @bank 2   -90 = UnLock(pointer lock @D1)
+    extsub @bank 2   -96 = DupLock(pointer lock @D1) -> pointer @D0
+    extsub @bank 2   -102 = Examine(pointer lock @D1, ^^FileInfoBlock fileInfoBlock @D2) -> long @D0
+    extsub @bank 2   -108 = ExNext(pointer lock @D1, ^^FileInfoBlock fileInfoBlock @D2) -> long @D0
+    extsub @bank 2   -114 = Info(pointer lock @D1, ^^InfoData parameterBlock @D2) -> long @D0
+    extsub @bank 2   -120 = CreateDir(str name @D1) -> pointer @D0
+    extsub @bank 2   -126 = CurrentDir(pointer lock @D1) -> pointer @D0
+    extsub @bank 2   -132 = IoErr() -> long @D0
+    extsub @bank 2   -138 = CreateProc(str name @D1, long pri @D2, pointer segList @D3, long stackSize @D4) -> ^^exec.MsgPort @D0
+    extsub @bank 2   -144 = Exit(long returnCode @D1)
+    extsub @bank 2   -150 = LoadSeg(str name @D1) -> pointer @D0
+    extsub @bank 2   -156 = UnLoadSeg(pointer seglist @D1)
+    extsub @bank 2   -174 = DeviceProc(str name @D1) -> ^^exec.MsgPort @D0
+    extsub @bank 2   -180 = SetComment(str name @D1, str comment @D2) -> long @D0
+    extsub @bank 2   -186 = SetProtection(str name @D1, long protect @D2) -> long @D0
+    extsub @bank 2   -192 = DateStamp(^^DateStampStruct date @D1) -> ^^DateStampStruct @D0
+    extsub @bank 2   -198 = Delay(long timeout @D1)
+    extsub @bank 2   -204 = WaitForChar(pointer file @D1, long timeout @D2) -> long @D0
+    extsub @bank 2   -210 = ParentDir(pointer lock @D1) -> pointer @D0
+    extsub @bank 2   -216 = IsInteractive(pointer file @D1) -> long @D0
+    extsub @bank 2   -222 = Execute(str string @D1, pointer file @D2, pointer file2 @D3) -> long @D0
+    extsub @bank 2   -228 = AllocDosObject(long k_type @D1, pointer tags @D2) -> pointer @D0
+    extsub @bank 2   -234 = FreeDosObject(long k_type @D1, pointer ptr @D2)
+    extsub @bank 2   -240 = DoPkt(^^exec.MsgPort port @D1, long action @D2, long arg1 @D3, long arg2 @D4, long arg3 @D5, long arg4 @D6, long arg5 @D7) -> long @D0
+    extsub @bank 2   -246 = SendPkt(^^DosPacket dp @D1, ^^exec.MsgPort port @D2, ^^exec.MsgPort replyport @D3)
+    extsub @bank 2   -252 = WaitPkt() -> ^^DosPacket @D0
+    extsub @bank 2   -258 = ReplyPkt(^^DosPacket dp @D1, long res1 @D2, long res2 @D3)
+    extsub @bank 2   -264 = AbortPkt(^^exec.MsgPort port @D1, ^^DosPacket pkt @D2)
+    extsub @bank 2   -270 = LockRecord(pointer fh @D1, long offset @D2, long length @D3, long mode @D4, long timeout @D5) -> bool @D0
+    extsub @bank 2   -276 = LockRecords(pointer recArray @D1, long timeout @D2) -> bool @D0
+    extsub @bank 2   -282 = UnLockRecord(pointer fh @D1, long offset @D2, long length @D3) -> bool @D0
+    extsub @bank 2   -288 = UnLockRecords(pointer recArray @D1) -> bool @D0
+    extsub @bank 2   -294 = SelectInput(pointer fh @D1) -> pointer @D0
+    extsub @bank 2   -300 = SelectOutput(pointer fh @D1) -> pointer @D0
+    extsub @bank 2   -306 = FGetC(pointer fh @D1) -> long @D0
+    extsub @bank 2   -312 = FPutC(pointer fh @D1, long ch @D2) -> long @D0
+    extsub @bank 2   -318 = UnGetC(pointer fh @D1, long character @D2) -> long @D0
+    extsub @bank 2   -324 = FRead(pointer fh @D1, pointer block @D2, long blocklen @D3, long number @D4) -> long @D0
+    extsub @bank 2   -330 = FWrite(pointer fh @D1, pointer block @D2, long blocklen @D3, long number @D4) -> long @D0
+    extsub @bank 2   -336 = FGets(pointer fh @D1, str buf @D2, long buflen @D3) -> str @D0
+    extsub @bank 2   -342 = FPuts(pointer fh @D1, str k_str @D2) -> long @D0
+    extsub @bank 2   -348 = VFWritef(pointer fh @D1, str format @D2, pointer argarray @D3)
+    extsub @bank 2   -354 = VFPrintf(pointer fh @D1, str format @D2, pointer argarray @D3) -> long @D0
+    extsub @bank 2   -360 = Flush(pointer fh @D1) -> long @D0
+    extsub @bank 2   -366 = SetVBuf(pointer fh @D1, str buff @D2, long k_type @D3, long size @D4) -> long @D0
+    extsub @bank 2   -372 = DupLockFromFH(pointer fh @D1) -> pointer @D0
+    extsub @bank 2   -378 = OpenFromLock(pointer lock @D1) -> pointer @D0
+    extsub @bank 2   -384 = ParentOfFH(pointer fh @D1) -> pointer @D0
+    extsub @bank 2   -390 = ExamineFH(pointer fh @D1, ^^FileInfoBlock fib @D2) -> bool @D0
+    extsub @bank 2   -396 = SetFileDate(str name @D1, ^^DateStampStruct date @D2) -> long @D0
+    extsub @bank 2   -402 = NameFromLock(pointer lock @D1, str buffer @D2, long len @D3) -> long @D0
+    extsub @bank 2   -408 = NameFromFH(pointer fh @D1, str buffer @D2, long len @D3) -> long @D0
+    extsub @bank 2   -414 = SplitName(str name @D1, ubyte separator @D2, str buf @D3, word oldpos @D4, long size @D5) -> word @D0
+    extsub @bank 2   -420 = SameLock(pointer lock1 @D1, pointer lock2 @D2) -> long @D0
+    extsub @bank 2   -426 = SetMode(pointer fh @D1, long mode @D2) -> long @D0
+    extsub @bank 2   -432 = ExAll(pointer lock @D1, ^^ExAllData buffer @D2, long size @D3, long data @D4, ^^ExAllControl control @D5) -> long @D0
+    extsub @bank 2   -438 = ReadLink(^^exec.MsgPort port @D1, pointer lock @D2, str path @D3, str buffer @D4, long size @D5) -> long @D0
+    extsub @bank 2   -444 = MakeLink(str name @D1, long dest @D2, long soft @D3) -> long @D0
+    extsub @bank 2   -450 = ChangeMode(long k_type @D1, pointer fh @D2, long newmode @D3) -> long @D0
+    extsub @bank 2   -456 = SetFileSize(pointer fh @D1, long pos @D2, long mode @D3) -> long @D0
+    extsub @bank 2   -462 = SetIoErr(long result @D1) -> long @D0
+    extsub @bank 2   -468 = Fault(long code @D1, str header @D2, str buffer @D3, long len @D4) -> bool @D0
+    extsub @bank 2   -474 = PrintFault(long code @D1, str header @D2) -> bool @D0
+    extsub @bank 2   -480 = ErrorReport(long code @D1, long k_type @D2, long arg1 @D3, ^^exec.MsgPort device @D4) -> long @D0
+    extsub @bank 2   -492 = Cli() -> pointer @D0
+    extsub @bank 2   -498 = CreateNewProc(pointer tags @D1) -> ^^Process @D0
+    extsub @bank 2   -504 = RunCommand(pointer seg @D1, long stack @D2, str paramptr @D3, long paramlen @D4) -> long @D0
+    extsub @bank 2   -510 = GetConsoleTask() -> ^^exec.MsgPort @D0
+    extsub @bank 2   -516 = SetConsoleTask(^^exec.MsgPort task @D1) -> ^^exec.MsgPort @D0
+    extsub @bank 2   -522 = GetFileSysTask() -> ^^exec.MsgPort @D0
+    extsub @bank 2   -528 = SetFileSysTask(^^exec.MsgPort task @D1) -> ^^exec.MsgPort @D0
+    extsub @bank 2   -534 = GetArgStr() -> str @D0
+    extsub @bank 2   -540 = SetArgStr(str string @D1) -> str @D0
+    extsub @bank 2   -546 = FindCliProc(long num @D1) -> ^^Process @D0
+    extsub @bank 2   -552 = MaxCli() -> long @D0
+    extsub @bank 2   -558 = SetCurrentDirName(str name @D1) -> bool @D0
+    extsub @bank 2   -564 = GetCurrentDirName(str buf @D1, long len @D2) -> bool @D0
+    extsub @bank 2   -570 = SetProgramName(str name @D1) -> bool @D0
+    extsub @bank 2   -576 = GetProgramName(str buf @D1, long len @D2) -> bool @D0
+    extsub @bank 2   -582 = SetPrompt(str name @D1) -> bool @D0
+    extsub @bank 2   -588 = GetPrompt(str buf @D1, long len @D2) -> bool @D0
+    extsub @bank 2   -594 = SetProgramDir(pointer lock @D1) -> pointer @D0
+    extsub @bank 2   -600 = GetProgramDir() -> pointer @D0
+    extsub @bank 2   -606 = SystemTagList(str command @D1, pointer tags @D2) -> long @D0
+    extsub @bank 2   -612 = AssignLock(str name @D1, pointer lock @D2) -> long @D0
+    extsub @bank 2   -618 = AssignLate(str name @D1, str path @D2) -> bool @D0
+    extsub @bank 2   -624 = AssignPath(str name @D1, str path @D2) -> bool @D0
+    extsub @bank 2   -630 = AssignAdd(str name @D1, pointer lock @D2) -> bool @D0
+    extsub @bank 2   -636 = RemAssignList(str name @D1, pointer lock @D2) -> long @D0
+    extsub @bank 2   -642 = GetDeviceProc(str name @D1, pointer dp @D2) -> pointer @D0
+    extsub @bank 2   -648 = FreeDeviceProc(pointer dp @D1)
+    extsub @bank 2   -654 = LockDosList(long flags @D1) -> pointer @D0
+    extsub @bank 2   -660 = UnLockDosList(long flags @D1)
+    extsub @bank 2   -666 = AttemptLockDosList(long flags @D1) -> pointer @D0
+    extsub @bank 2   -672 = RemDosEntry(pointer dlist @D1) -> bool @D0
+    extsub @bank 2   -678 = AddDosEntry(pointer dlist @D1) -> long @D0
+    extsub @bank 2   -684 = FindDosEntry(pointer dlist @D1, str name @D2, long flags @D3) -> pointer @D0
+    extsub @bank 2   -690 = NextDosEntry(pointer dlist @D1, long flags @D2) -> pointer @D0
+    extsub @bank 2   -696 = MakeDosEntry(str name @D1, long k_type @D2) -> pointer @D0
+    extsub @bank 2   -702 = FreeDosEntry(pointer dlist @D1)
+    extsub @bank 2   -708 = IsFileSystem(str name @D1) -> bool @D0
+    extsub @bank 2   -714 = Format(str filesystem @D1, str volumename @D2, long dostype @D3) -> bool @D0
+    extsub @bank 2   -720 = Relabel(str drive @D1, str newname @D2) -> long @D0
+    extsub @bank 2   -726 = Inhibit(str name @D1, long onoff @D2) -> long @D0
+    extsub @bank 2   -732 = AddBuffers(str name @D1, long number @D2) -> long @D0
+    extsub @bank 2   -738 = CompareDates(^^DateStampStruct date1 @D1, ^^DateStampStruct date2 @D2) -> long @D0
+    extsub @bank 2   -744 = DateToStr(pointer datetime @D1) -> long @D0
+    extsub @bank 2   -750 = StrToDate(pointer datetime @D1) -> long @D0
+    extsub @bank 2   -756 = InternalLoadSeg(pointer fh @D0, pointer table @A0, pointer funcarray @A1, pointer stack @A2) -> pointer @D0
+    extsub @bank 2   -762 = InternalUnLoadSeg(pointer seglist @D1, pointer freefunc @A1) -> bool @D0
+    extsub @bank 2   -768 = NewLoadSeg(str file @D1, pointer tags @D2) -> pointer @D0
+    extsub @bank 2   -774 = AddSegment(str name @D1, pointer seg @D2, long system @D3) -> long @D0
+    extsub @bank 2   -780 = FindSegment(str name @D1, pointer seg @D2, long system @D3) -> pointer @D0
+    extsub @bank 2   -786 = RemSegment(pointer seg @D1) -> long @D0
+    extsub @bank 2   -792 = CheckSignal(long mask @D1) -> long @D0
+    extsub @bank 2   -798 = ReadArgs(str arg_template @D1, pointer array @D2, pointer args @D3) -> pointer @D0
+    extsub @bank 2   -804 = FindArg(str keyword @D1, str arg_template @D2) -> long @D0
+    extsub @bank 2   -810 = ReadItem(str name @D1, long maxchars @D2, pointer cSource @D3) -> long @D0
+    extsub @bank 2   -816 = StrToLong(str string @D1, pointer value @D2) -> long @D0
+    extsub @bank 2   -822 = MatchFirst(str pat @D1, pointer anchor @D2) -> long @D0
+    extsub @bank 2   -828 = MatchNext(pointer anchor @D1) -> long @D0
+    extsub @bank 2   -834 = MatchEnd(pointer anchor @D1)
+    extsub @bank 2   -840 = ParsePattern(str pat @D1, pointer patbuf @D2, long patbuflen @D3) -> long @D0
+    extsub @bank 2   -846 = MatchPattern(pointer patbuf @D1, str k_str @D2) -> bool @D0
+    extsub @bank 2   -858 = FreeArgs(pointer args @D1)
+    extsub @bank 2   -870 = FilePart(str path @D1) -> str @D0
+    extsub @bank 2   -876 = PathPart(str path @D1) -> str @D0
+    extsub @bank 2   -882 = AddPart(str dirname @D1, str filename @D2, long size @D3) -> bool @D0
+    extsub @bank 2   -888 = StartNotify(pointer notify @D1) -> bool @D0
+    extsub @bank 2   -894 = EndNotify(pointer notify @D1)
+    extsub @bank 2   -900 = SetVar(str name @D1, str buffer @D2, long size @D3, long flags @D4) -> bool @D0
+    extsub @bank 2   -906 = GetVar(str name @D1, str buffer @D2, long size @D3, long flags @D4) -> long @D0
+    extsub @bank 2   -912 = DeleteVar(str name @D1, long flags @D2) -> long @D0
+    extsub @bank 2   -918 = FindVar(str name @D1, long k_type @D2) -> pointer @D0
+    extsub @bank 2   -930 = CliInitNewcli(^^DosPacket dp @A0) -> long @D0
+    extsub @bank 2   -936 = CliInitRun(^^DosPacket dp @A0) -> long @D0
+    extsub @bank 2   -942 = WriteChars(str buf @D1, long buflen @D2) -> long @D0
+    extsub @bank 2   -948 = PutStr(str k_str @D1) -> long @D0
+    extsub @bank 2   -954 = VPrintf(str format @D1, pointer argarray @D2) -> long @D0
+    extsub @bank 2   -966 = ParsePatternNoCase(str pat @D1, pointer patbuf @D2, long patbuflen @D3) -> long @D0
+    extsub @bank 2   -972 = MatchPatternNoCase(pointer patbuf @D1, str k_str @D2) -> bool @D0
+    extsub @bank 2   -984 = SameDevice(pointer lock1 @D1, pointer lock2 @D2) -> bool @D0
+    extsub @bank 2   -990 = ExAllEnd(pointer lock @D1, ^^ExAllData buffer @D2, long size @D3, long data @D4, ^^ExAllControl control @D5)
+    extsub @bank 2   -996 = SetOwner(str name @D1, long owner_info @D2) -> bool @D0
+    extsub @bank 2   -1014 = VolumeRequestHook(str vol @D1) -> long @D0
+    extsub @bank 2   -1026 = GetCurrentDir() -> pointer @D0
+    extsub @bank 2   -1128 = PutErrStr(str k_str @D1) -> long @D0
+    extsub @bank 2   -1134 = ErrorOutput() -> long @D0
+    extsub @bank 2   -1140 = SelectError(pointer fh @D1) -> long @D0
+    extsub @bank 2   -1152 = DoShellMethodTagList(long method @D0, pointer tags @A0) -> pointer @D0
+    extsub @bank 2   -1158 = ScanStackToken(pointer seg @D1, long defaultstack @D2) -> long @D0
+
+    ; ---- struct definitions ----
+
+    struct DateStampStruct {  ; total size: 12
+        long Days  ; 0
+        long Minute  ; 4
+        long Tick  ; 8
+    }
+
+    struct DosPacket {  ; total size: 48
+        ^^exec.Message Link  ; 0
+        ^^exec.MsgPort Port  ; 4
+        long Type  ; 8
+        long Res1  ; 12
+        long Res2  ; 16
+        long Arg1  ; 20
+        long Arg2  ; 24
+        long Arg3  ; 28
+        long Arg4  ; 32
+        long Arg5  ; 36
+        long Arg6  ; 40
+        long Arg7  ; 44
+    }
+
+    struct ErrorString {  ; total size: 8
+        pointer Nums  ; 0
+        str Strings  ; 4
+    }
+
+    struct ExAllControl {  ; total size: 16
+        long Entries  ; 0
+        long LastKey  ; 4
+        str MatchString  ; 8
+        ^^utility.Hook MatchFunc  ; 12
+    }
+
+    struct ExAllData {  ; total size: 40
+        ^^ExAllData Next  ; 0
+        str Name  ; 4
+        long Type  ; 8
+        long Size  ; 12
+        long Prot  ; 16
+        long Days  ; 20
+        long Mins  ; 24
+        long Ticks  ; 28
+        str Comment  ; 32
+        uword OwnerUID  ; 36
+        uword OwnerGID  ; 38
+    }
+
+    struct FileHandle {  ; total size: 44
+        ^^exec.Message Link  ; 0
+        ^^exec.MsgPort Port  ; 4
+        ^^exec.MsgPort Type  ; 8
+        pointer Buf  ; 12
+        long Pos  ; 16
+        long End  ; 20
+        long Funcs  ; 24
+        long Func2  ; 28
+        long Func3  ; 32
+        long Args  ; 36
+        long Arg2  ; 40
+    }
+
+    struct FileInfoBlock {  ; total size: 260
+        long DiskKey  ; 0
+        long DirEntryType  ; 4
+        ubyte[108] FileName  ; 8
+        long Protection  ; 116
+        long EntryType  ; 120
+        long Size  ; 124
+        long NumBlocks  ; 128
+        long Days  ; 132
+        long Minute  ; 136
+        long Tick  ; 140
+        ubyte[80] Comment  ; 144
+        uword OwnerUID  ; 224
+        uword OwnerGID  ; 226
+        ubyte[32] Reserved  ; 228
+    }
+
+    struct FileLock {  ; total size: 20
+        pointer Link  ; 0
+        long Key  ; 4
+        long Access  ; 8
+        ^^exec.MsgPort Task  ; 12
+        pointer Volume  ; 16
+    }
+
+    struct InfoData {  ; total size: 36
+        long NumSoftErrors  ; 0
+        long UnitNumber  ; 4
+        long DiskState  ; 8
+        long NumBlocks  ; 12
+        long NumBlocksUsed  ; 16
+        long BytesPerBlock  ; 20
+        long DiskType  ; 24
+        pointer VolumeNode  ; 28
+        long InUse  ; 32
+    }
+
+    struct Process {  ; total size: 228
+        ^^exec.Node Succ  ; 0
+        ^^exec.Node Pred  ; 4
+        ubyte Type  ; 8
+        byte Pri  ; 9
+        str Name  ; 10
+        ubyte Flags  ; 14
+        ubyte State  ; 15
+        byte IDNestCnt  ; 16
+        byte TDNestCnt  ; 17
+        long SigAlloc  ; 18
+        long SigWait  ; 22
+        long SigRecvd  ; 26
+        long SigExcept  ; 30
+        uword TrapAlloc  ; 34
+        uword TrapAble  ; 36
+        pointer ExceptData  ; 38
+        pointer ExceptCode  ; 42
+        pointer TrapData  ; 46
+        pointer TrapCode  ; 50
+        pointer SPReg  ; 54
+        pointer SPLower  ; 58
+        pointer SPUpper  ; 62
+        pointer Switch  ; 66
+        pointer Launch  ; 70
+        ^^exec.Node Head  ; 74
+        ^^exec.Node Tail  ; 78
+        ^^exec.Node TailPred  ; 82
+        ubyte Process_List_Type  ; 86
+        ubyte Pad  ; 87
+        pointer UserData  ; 88
+        ^^exec.Node Node_Succ  ; 92
+        ^^exec.Node Node_Pred  ; 96
+        ubyte Node_Type  ; 100
+        byte Node_Pri  ; 101
+        str Node_Name  ; 102
+        ubyte MsgPort_Flags  ; 106
+        ubyte SigBit  ; 107
+        pointer SigTask  ; 108
+        ^^exec.Node List_Head  ; 112
+        ^^exec.Node List_Tail  ; 116
+        ^^exec.Node List_TailPred  ; 120
+        ubyte List_Type  ; 124
+        ubyte List_Pad  ; 125
+        word Process_Pad  ; 126
+        pointer SegList  ; 128
+        long StackSize  ; 132
+        pointer GlobVec  ; 136
+        long TaskNum  ; 140
+        pointer StackBase  ; 144
+        long Result2  ; 148
+        pointer CurrentDir  ; 152
+        pointer Cis  ; 156
+        pointer Cos  ; 160
+        pointer ConsoleTask  ; 164
+        pointer FileSystemTask  ; 168
+        pointer Cli  ; 172
+        pointer ReturnAddr  ; 176
+        pointer PktWait  ; 180
+        pointer WindowPtr  ; 184
+        pointer HomeDir  ; 188
+        long Process_Flags  ; 192
+        pointer ExitCode  ; 196
+        long ExitData  ; 200
+        str Arguments  ; 204
+        ^^exec.MinNode MinList_Head  ; 208
+        ^^exec.MinNode MinList_Tail  ; 212
+        ^^exec.MinNode MinList_TailPred  ; 216
+        long ShellPrivate  ; 220
+        pointer Ces  ; 224
+    }
+
+    struct StandardPacket {  ; total size: 68
+        ^^exec.Node Succ  ; 0
+        ^^exec.Node Pred  ; 4
+        ubyte Type  ; 8
+        byte Pri  ; 9
+        str Name  ; 10
+        ^^exec.MsgPort ReplyPort  ; 14
+        uword Length  ; 18
+        ^^exec.Message Link  ; 20
+        ^^exec.MsgPort Port  ; 24
+        long DosPacket_Type  ; 28
+        long Res1  ; 32
+        long Res2  ; 36
+        long Arg1  ; 40
+        long Arg2  ; 44
+        long Arg3  ; 48
+        long Arg4  ; 52
+        long Arg5  ; 56
+        long Arg6  ; 60
+        long Arg7  ; 64
+    }
+
+    ; ---- constants ----
+    const ubyte LEN_DATSTRING = $0010
+    const ubyte DTB_SUBST = 0
+    const ubyte DTF_SUBST = $0001
+    const ubyte DTB_FUTURE = 1
+    const ubyte DTF_FUTURE = $0002
+    const ubyte FORMAT_DOS = $0000
+    const ubyte FORMAT_INT = $0001
+    const ubyte FORMAT_USA = $0002
+    const ubyte FORMAT_CDN = $0003
+    const ubyte FORMAT_DEF = $0004
+    const long DOSTRUE = -1
+    const ubyte DOSFALSE = $0000
+    const uword MODE_OLDFILE = $03ed
+    const uword MODE_NEWFILE = $03ee
+    const uword MODE_READWRITE = $03ec
+    const long OFFSET_BEGINNING = -1
+    const ubyte OFFSET_CURRENT = $0000
+    const ubyte OFFSET_END = $0001
+    const ubyte BITSPERBYTE = $0008
+    const ubyte BYTESPERLONG = $0004
+    const ubyte BITSPERLONG = $0020
+    const long MAXINT = $7FFFFFFF
+    const long MININT = $80000000
+    const long SHARED_LOCK = -2
+    const long ACCESS_READ = -2
+    const long EXCLUSIVE_LOCK = -1
+    const long ACCESS_WRITE = -1
+    const ubyte TICKS_PER_SECOND = $0032
+    const ubyte FIBB_OTR_READ = 15
+    const uword FIBF_OTR_READ = $8000
+    const ubyte FIBB_OTR_WRITE = 14
+    const uword FIBF_OTR_WRITE = $4000
+    const ubyte FIBB_OTR_EXECUTE = 13
+    const uword FIBF_OTR_EXECUTE = $2000
+    const ubyte FIBB_OTR_DELETE = 12
+    const uword FIBF_OTR_DELETE = $1000
+    const ubyte FIBB_GRP_READ = 11
+    const uword FIBF_GRP_READ = $0800
+    const ubyte FIBB_GRP_WRITE = 10
+    const uword FIBF_GRP_WRITE = $0400
+    const ubyte FIBB_GRP_EXECUTE = 9
+    const uword FIBF_GRP_EXECUTE = $0200
+    const ubyte FIBB_GRP_DELETE = 8
+    const uword FIBF_GRP_DELETE = $0100
+    const ubyte FIBB_HOLD = 7
+    const ubyte FIBF_HOLD = $0080
+    const ubyte FIBB_SCRIPT = 6
+    const ubyte FIBF_SCRIPT = $0040
+    const ubyte FIBB_PURE = 5
+    const ubyte FIBF_PURE = $0020
+    const ubyte FIBB_ARCHIVE = 4
+    const ubyte FIBF_ARCHIVE = $0010
+    const ubyte FIBB_READ = 3
+    const ubyte FIBF_READ = $0008
+    const ubyte FIBB_WRITE = 2
+    const ubyte FIBF_WRITE = $0004
+    const ubyte FIBB_EXECUTE = 1
+    const ubyte FIBF_EXECUTE = $0002
+    const ubyte FIBB_DELETE = 0
+    const ubyte FIBF_DELETE = $0001
+    const ubyte FAULT_MAX = $0052
+    const ubyte ID_WRITE_PROTECTED = $0050
+    const ubyte ID_VALIDATING = $0051
+    const ubyte ID_VALIDATED = $0052
+    const long ID_NO_DISK_PRESENT = -1
+    const ubyte ID_UNREADABLE_DISK = $0042
+    const ubyte ID_NOT_REALLY_DOS = $004e
+    const ubyte ID_DOS_DISK = $0044
+    const ubyte ID_FFS_DISK = $0044
+    const ubyte ID_INTER_DOS_DISK = $0044
+    const ubyte ID_INTER_FFS_DISK = $0044
+    const ubyte ID_FASTDIR_DOS_DISK = $0044
+    const ubyte ID_FASTDIR_FFS_DISK = $0044
+    const ubyte ID_LONG_DOS_DISK = $0044
+    const ubyte ID_LONG_FFS_DISK = $0044
+    const ubyte ID_COMPLONG_FFS_DISK = $0044
+    const ubyte ID_KICKSTART_DISK = $004b
+    const ubyte ID_MSDOS_DISK = $004d
+    const ubyte ERROR_NO_FREE_STORE = $0067
+    const ubyte ERROR_TASK_TABLE_FULL = $0069
+    const ubyte ERROR_BAD_TEMPLATE = $0072
+    const ubyte ERROR_BAD_NUMBER = $0073
+    const ubyte ERROR_REQUIRED_ARG_MISSING = $0074
+    const ubyte ERROR_KEY_NEEDS_ARG = $0075
+    const ubyte ERROR_TOO_MANY_ARGS = $0076
+    const ubyte ERROR_UNMATCHED_QUOTES = $0077
+    const ubyte ERROR_LINE_TOO_LONG = $0078
+    const ubyte ERROR_FILE_NOT_OBJECT = $0079
+    const ubyte ERROR_INVALID_RESIDENT_LIBRARY = $007a
+    const ubyte ERROR_NO_DEFAULT_DIR = $00c9
+    const ubyte ERROR_OBJECT_IN_USE = $00ca
+    const ubyte ERROR_OBJECT_EXISTS = $00cb
+    const ubyte ERROR_DIR_NOT_FOUND = $00cc
+    const ubyte ERROR_OBJECT_NOT_FOUND = $00cd
+    const ubyte ERROR_BAD_STREAM_NAME = $00ce
+    const ubyte ERROR_OBJECT_TOO_LARGE = $00cf
+    const ubyte ERROR_ACTION_NOT_KNOWN = $00d1
+    const ubyte ERROR_INVALID_COMPONENT_NAME = $00d2
+    const ubyte ERROR_INVALID_LOCK = $00d3
+    const ubyte ERROR_OBJECT_WRONG_TYPE = $00d4
+    const ubyte ERROR_DISK_NOT_VALIDATED = $00d5
+    const ubyte ERROR_DISK_WRITE_PROTECTED = $00d6
+    const ubyte ERROR_RENAME_ACROSS_DEVICES = $00d7
+    const ubyte ERROR_DIRECTORY_NOT_EMPTY = $00d8
+    const ubyte ERROR_TOO_MANY_LEVELS = $00d9
+    const ubyte ERROR_DEVICE_NOT_MOUNTED = $00da
+    const ubyte ERROR_SEEK_ERROR = $00db
+    const ubyte ERROR_COMMENT_TOO_BIG = $00dc
+    const ubyte ERROR_DISK_FULL = $00dd
+    const ubyte ERROR_DELETE_PROTECTED = $00de
+    const ubyte ERROR_WRITE_PROTECTED = $00df
+    const ubyte ERROR_READ_PROTECTED = $00e0
+    const ubyte ERROR_NOT_A_DOS_DISK = $00e1
+    const ubyte ERROR_NO_DISK = $00e2
+    const ubyte ERROR_NO_MORE_ENTRIES = $00e8
+    const ubyte ERROR_IS_SOFT_LINK = $00e9
+    const ubyte ERROR_OBJECT_LINKED = $00ea
+    const ubyte ERROR_BAD_HUNK = $00eb
+    const ubyte ERROR_NOT_IMPLEMENTED = $00ec
+    const ubyte ERROR_RECORD_NOT_LOCKED = $00f0
+    const ubyte ERROR_LOCK_COLLISION = $00f1
+    const ubyte ERROR_LOCK_TIMEOUT = $00f2
+    const ubyte ERROR_UNLOCK_ERROR = $00f3
+    const ubyte RETURN_OK = $0000
+    const ubyte RETURN_WARN = $0005
+    const ubyte RETURN_ERROR = $000a
+    const ubyte RETURN_FAIL = $0014
+    const ubyte SIGBREAKB_CTRL_C = 12
+    const uword SIGBREAKF_CTRL_C = $1000
+    const ubyte SIGBREAKB_CTRL_D = 13
+    const uword SIGBREAKF_CTRL_D = $2000
+    const ubyte SIGBREAKB_CTRL_E = 14
+    const uword SIGBREAKF_CTRL_E = $4000
+    const ubyte SIGBREAKB_CTRL_F = 15
+    const uword SIGBREAKF_CTRL_F = $8000
+    const long LOCK_DIFFERENT = -1
+    const ubyte LOCK_SAME = $0000
+    const ubyte LOCK_SAME_VOLUME = $0001
+    const ubyte CHANGE_LOCK = $0000
+    const ubyte CHANGE_FH = $0001
+    const ubyte LINK_HARD = $0000
+    const ubyte LINK_SOFT = $0001
+    const long ITEM_EQUAL = -2
+    const long ITEM_ERROR = -1
+    const ubyte ITEM_NOTHING = $0000
+    const ubyte ITEM_UNQUOTED = $0001
+    const ubyte ITEM_QUOTED = $0002
+    const ubyte DOS_FILEHANDLE = $0000
+    const ubyte DOS_EXALLCONTROL = $0001
+    const ubyte DOS_FIB = $0002
+    const ubyte DOS_STDPKT = $0003
+    const ubyte DOS_CLI = $0004
+    const ubyte DOS_RDARGS = $0005
+    const ubyte reserve = $0004
+    const ubyte vsize = $0006
+    const ubyte APB_DOWILD = 0
+    const ubyte APF_DOWILD = $0001
+    const ubyte APB_ITSWILD = 1
+    const ubyte APF_ITSWILD = $0002
+    const ubyte APB_DODIR = 2
+    const ubyte APF_DODIR = $0004
+    const ubyte APB_DIDDIR = 3
+    const ubyte APF_DIDDIR = $0008
+    const ubyte APB_NOMEMERR = 4
+    const ubyte APF_NOMEMERR = $0010
+    const ubyte APB_DODOT = 5
+    const ubyte APF_DODOT = $0020
+    const ubyte APB_DirChanged = 6
+    const ubyte APF_DirChanged = $0040
+    const ubyte APB_FollowHLinks = 7
+    const ubyte APF_FollowHLinks = $0080
+    const ubyte DDB_PatternBit = 0
+    const ubyte DDF_PatternBit = $0001
+    const ubyte DDB_ExaminedBit = 1
+    const ubyte DDF_ExaminedBit = $0002
+    const ubyte DDB_Completed = 2
+    const ubyte DDF_Completed = $0004
+    const ubyte DDB_AllBit = 3
+    const ubyte DDF_AllBit = $0008
+    const ubyte DDB_SINGLE = 4
+    const ubyte DDF_SINGLE = $0010
+    const ubyte P_ANY = $80
+    const ubyte P_SINGLE = $81
+    const ubyte P_ORSTART = $82
+    const ubyte P_ORNEXT = $83
+    const ubyte P_OREND = $84
+    const ubyte P_NOT = $85
+    const ubyte P_NOTEND = $86
+    const ubyte P_NOTCLASS = $87
+    const ubyte P_CLASS = $88
+    const ubyte P_REPBEG = $89
+    const ubyte P_REPEND = $8A
+    const ubyte P_STOP = $8B
+    const ubyte COMPLEX_BIT = $0001
+    const ubyte EXAMINE_BIT = $0002
+    const uword ERROR_BUFFER_OVERFLOW = $012f
+    const uword ERROR_BREAK = $0130
+    const uword ERROR_NOT_EXECUTABLE = $0131
+    const ubyte PRB_FREESEGLIST = 0
+    const ubyte PRF_FREESEGLIST = $0001
+    const ubyte PRB_FREECURRDIR = 1
+    const ubyte PRF_FREECURRDIR = $0002
+    const ubyte PRB_FREECLI = 2
+    const ubyte PRF_FREECLI = $0004
+    const ubyte PRB_CLOSEINPUT = 3
+    const ubyte PRF_CLOSEINPUT = $0008
+    const ubyte PRB_CLOSEOUTPUT = 4
+    const ubyte PRF_CLOSEOUTPUT = $0010
+    const ubyte PRB_FREEARGS = 5
+    const ubyte PRF_FREEARGS = $0020
+    const ubyte PRB_CLOSEERROR = 6
+    const ubyte PRF_CLOSEERROR = $0040
+    const ubyte ACTION_NIL = $0000
+    const ubyte ACTION_STARTUP = $0000
+    const ubyte ACTION_GET_BLOCK = $0002
+    const ubyte ACTION_SET_MAP = $0004
+    const ubyte ACTION_DIE = $0005
+    const ubyte ACTION_EVENT = $0006
+    const ubyte ACTION_CURRENT_VOLUME = $0007
+    const ubyte ACTION_LOCATE_OBJECT = $0008
+    const ubyte ACTION_RENAME_DISK = $0009
+    const ubyte ACTION_WRITE = $0057
+    const ubyte ACTION_READ = $0052
+    const ubyte ACTION_FREE_LOCK = $000f
+    const ubyte ACTION_DELETE_OBJECT = $0010
+    const ubyte ACTION_RENAME_OBJECT = $0011
+    const ubyte ACTION_MORE_CACHE = $0012
+    const ubyte ACTION_COPY_DIR = $0013
+    const ubyte ACTION_WAIT_CHAR = $0014
+    const ubyte ACTION_SET_PROTECT = $0015
+    const ubyte ACTION_CREATE_DIR = $0016
+    const ubyte ACTION_EXAMINE_OBJECT = $0017
+    const ubyte ACTION_EXAMINE_NEXT = $0018
+    const ubyte ACTION_DISK_INFO = $0019
+    const ubyte ACTION_INFO = $001a
+    const ubyte ACTION_FLUSH = $001b
+    const ubyte ACTION_SET_COMMENT = $001c
+    const ubyte ACTION_PARENT = $001d
+    const ubyte ACTION_TIMER = $001e
+    const ubyte ACTION_INHIBIT = $001f
+    const ubyte ACTION_DISK_TYPE = $0020
+    const ubyte ACTION_DISK_CHANGE = $0021
+    const ubyte ACTION_SET_DATE = $0022
+    const uword ACTION_UNDISK_INFO = $0201
+    const uword ACTION_SCREEN_MODE = $03e2
+    const uword ACTION_READ_RETURN = $03e9
+    const uword ACTION_WRITE_RETURN = $03ea
+    const uword ACTION_SEEK = $03f0
+    const uword ACTION_FINDUPDATE = $03ec
+    const uword ACTION_FINDINPUT = $03ed
+    const uword ACTION_FINDOUTPUT = $03ee
+    const uword ACTION_END = $03ef
+    const uword ACTION_SET_FILE_SIZE = $03fe
+    const uword ACTION_WRITE_PROTECT = $03ff
+    const ubyte ACTION_SAME_LOCK = $0028
+    const uword ACTION_CHANGE_SIGNAL = $03e3
+    const uword ACTION_FORMAT = $03fc
+    const uword ACTION_MAKE_LINK = $03fd
+    const uword ACTION_READ_LINK = $0400
+    const uword ACTION_FH_FROM_LOCK = $0402
+    const uword ACTION_IS_FILESYSTEM = $0403
+    const uword ACTION_CHANGE_MODE = $0404
+    const uword ACTION_COPY_DIR_FH = $0406
+    const uword ACTION_PARENT_FH = $0407
+    const uword ACTION_EXAMINE_ALL = $0409
+    const uword ACTION_EXAMINE_FH = $040a
+    const uword ACTION_LOCK_RECORD = $07d8
+    const uword ACTION_FREE_RECORD = $07d9
+    const uword ACTION_ADD_NOTIFY = $1001
+    const uword ACTION_REMOVE_NOTIFY = $1002
+    const uword ACTION_EXAMINE_ALL_END = $040b
+    const uword ACTION_SET_OWNER = $040c
+    const uword ACTION_SERIALIZE_DISK = $1068
+    const ubyte RNB_WILDSTAR = 24
+    const long RNF_WILDSTAR = $01000000
+    const ubyte RNB_PRIVATE1 = 1
+    const ubyte RNF_PRIVATE1 = $0002
+    const long CMD_SYSTEM = -1
+    const long CMD_INTERNAL = -2
+    const long CMD_DISABLED = -999
+    const ubyte DLT_DEVICE = $0000
+    const ubyte DLT_DIRECTORY = $0001
+    const ubyte DLT_VOLUME = $0002
+    const ubyte DLT_LATE = $0003
+    const ubyte DLT_NONBINDING = $0004
+    const long DLT_PRIVATE = -1
+    const ubyte DVPB_UNLOCK = 0
+    const ubyte DVPF_UNLOCK = $0001
+    const ubyte DVPB_ASSIGN = 1
+    const ubyte DVPF_ASSIGN = $0002
+    const ubyte LDB_DEVICES = 2
+    const ubyte LDF_DEVICES = $0004
+    const ubyte LDB_VOLUMES = 3
+    const ubyte LDF_VOLUMES = $0008
+    const ubyte LDB_ASSIGNS = 4
+    const ubyte LDF_ASSIGNS = $0010
+    const ubyte LDB_ENTRY = 5
+    const ubyte LDF_ENTRY = $0020
+    const ubyte LDB_DELETE = 6
+    const ubyte LDF_DELETE = $0040
+    const ubyte LDB_READ = 0
+    const ubyte LDF_READ = $0001
+    const ubyte LDB_WRITE = 1
+    const ubyte LDF_WRITE = $0002
+    const ubyte REPORT_STREAM = $0000
+    const ubyte REPORT_TASK = $0001
+    const ubyte REPORT_LOCK = $0002
+    const ubyte REPORT_VOLUME = $0003
+    const ubyte REPORT_INSERT = $0004
+    const uword ABORT_DISK_ERROR = $0128
+    const uword ABORT_BUSY = $0120
+    const long RUN_EXECUTE = -1
+    const long RUN_SYSTEM = -2
+    const long RUN_SYSTEM_ASYNCH = -3
+    const ubyte ST_ROOT = $0001
+    const ubyte ST_USERDIR = $0002
+    const ubyte ST_SOFTLINK = $0003
+    const ubyte ST_LINKDIR = $0004
+    const long ST_FILE = -3
+    const long ST_LINKFILE = -4
+    const long ST_PIPEFILE = -5
+    const uword HUNK_UNIT = $03e7
+    const uword HUNK_NAME = $03e8
+    const uword HUNK_CODE = $03e9
+    const uword HUNK_DATA = $03ea
+    const uword HUNK_BSS = $03eb
+    const uword HUNK_RELOC32 = $03ec
+    const uword HUNK_RELOC16 = $03ed
+    const uword HUNK_RELOC8 = $03ee
+    const uword HUNK_EXT = $03ef
+    const uword HUNK_SYMBOL = $03f0
+    const uword HUNK_DEBUG = $03f1
+    const uword HUNK_END = $03f2
+    const uword HUNK_HEADER = $03f3
+    const uword HUNK_OVERLAY = $03f5
+    const uword HUNK_BREAK = $03f6
+    const uword HUNK_DREL32 = $03f7
+    const uword HUNK_DREL16 = $03f8
+    const uword HUNK_DREL8 = $03f9
+    const uword HUNK_LIB = $03fa
+    const uword HUNK_INDEX = $03fb
+    const uword HUNK_RELOC32SHORT = $03fc
+    const uword HUNK_RELRELOC32 = $03fd
+    const uword HUNK_ABSRELOC16 = $03fe
+    const ubyte HUNKB_ADVISORY = 29
+    const long HUNKF_ADVISORY = $20000000
+    const ubyte HUNKB_CHIP = 30
+    const long HUNKF_CHIP = $40000000
+    const ubyte HUNKB_FAST = 31
+    const long HUNKF_FAST = $80000000
+    const ubyte EXT_SYMB = $0000
+    const ubyte EXT_DEF = $0001
+    const ubyte EXT_ABS = $0002
+    const ubyte EXT_RES = $0003
+    const ubyte EXT_COMMONDEF = $0004
+    const ubyte EXT_REF32 = $0081
+    const ubyte EXT_COMMON = $0082
+    const ubyte EXT_REF16 = $0083
+    const ubyte EXT_REF8 = $0084
+    const ubyte EXT_DEXT32 = $0085
+    const ubyte EXT_DEXT16 = $0086
+    const ubyte EXT_DEXT8 = $0087
+    const ubyte EXT_RELREF32 = $0088
+    const ubyte EXT_RELCOMMON = $0089
+    const ubyte EXT_ABSREF16 = $008a
+    const ubyte EXT_ABSREF8 = $008b
+    const long SYS_Dummy = $80000020
+    const long NP_Dummy = $800003e8
+    const long ADO_Dummy = $800007d0
+    const ubyte ED_NAME = $0001
+    const ubyte ED_TYPE = $0002
+    const ubyte ED_SIZE = $0003
+    const ubyte ED_PROTECTION = $0004
+    const ubyte ED_DATE = $0005
+    const ubyte ED_COMMENT = $0006
+    const ubyte ED_OWNER = $0007
+    const ubyte DE_TABLESIZE = $0000
+    const ubyte DE_SIZEBLOCK = $0001
+    const ubyte DE_SECORG = $0002
+    const ubyte DE_NUMHEADS = $0003
+    const ubyte DE_SECSPERBLK = $0004
+    const ubyte DE_BLKSPERTRACK = $0005
+    const ubyte DE_RESERVEDBLKS = $0006
+    const ubyte DE_PREFAC = $0007
+    const ubyte DE_INTERLEAVE = $0008
+    const ubyte DE_LOWCYL = $0009
+    const ubyte DE_UPPERCYL = $000a
+    const ubyte DE_NUMBUFFERS = $000b
+    const ubyte DE_MEMBUFTYPE = $000c
+    const ubyte DE_BUFMEMTYPE = $000c
+    const ubyte DE_MAXTRANSFER = $000d
+    const ubyte DE_MASK = $000e
+    const ubyte DE_BOOTPRI = $000f
+    const ubyte DE_DOSTYPE = $0010
+    const ubyte DE_BAUD = $0011
+    const ubyte DE_CONTROL = $0012
+    const ubyte DE_BOOTBLOCKS = $0013
+    const ubyte ENVB_SCSIDIRECT = 16
+    const long ENVF_SCSIDIRECT = $00010000
+    const ubyte ENVB_SUPERFLOPPY = 17
+    const long ENVF_SUPERFLOPPY = $00020000
+    const ubyte ENVB_DISABLENSD = 18
+    const long ENVF_DISABLENSD = $00040000
+    const long NOTIFY_CLASS = $40000000
+    const uword NOTIFY_CODE = $1234
+    const ubyte NRB_SEND_MESSAGE = 0
+    const ubyte NRF_SEND_MESSAGE = $0001
+    const ubyte NRB_SEND_SIGNAL = 1
+    const ubyte NRF_SEND_SIGNAL = $0002
+    const ubyte NRB_WAIT_REPLY = 3
+    const ubyte NRF_WAIT_REPLY = $0008
+    const ubyte NRB_NOTIFY_INITIAL = 4
+    const ubyte NRF_NOTIFY_INITIAL = $0010
+    const ubyte NRB_MAGIC = 31
+    const long NRF_MAGIC = $80000000
+    const long NR_HANDLER_FLAGS = $ffff0000
+    const ubyte RDAB_STDIN = 0
+    const ubyte RDAF_STDIN = $0001
+    const ubyte RDAB_NOALLOC = 1
+    const ubyte RDAF_NOALLOC = $0002
+    const ubyte RDAB_NOPROMPT = 2
+    const ubyte RDAF_NOPROMPT = $0004
+    const ubyte MAX_TEMPLATE_ITEMS = $0064
+    const ubyte MAX_MULTIARGS = $0080
+    const ubyte REC_EXCLUSIVE = $0000
+    const ubyte REC_EXCLUSIVE_IMMED = $0001
+    const ubyte REC_SHARED = $0002
+    const ubyte REC_SHARED_IMMED = $0003
+    const long SHELL_DUMMY = $80000bb8
+    const ubyte DOS_STDIO_I = $0001
+    const ubyte BUF_LINE = $0000
+    const ubyte BUF_FULL = $0001
+    const ubyte BUF_NONE = $0002
+    const long ENDSTREAMCH = -1
+    const ubyte LV_VAR = $0000
+    const ubyte LV_ALIAS = $0001
+    const ubyte LVB_IGNORE = $0007
+    const ubyte LVF_IGNORE = $80
+    const ubyte GVB_GLOBAL_ONLY = 8
+    const uword GVF_GLOBAL_ONLY = $0100
+    const ubyte GVB_LOCAL_ONLY = 9
+    const uword GVF_LOCAL_ONLY = $0200
+    const ubyte GVB_BINARY_VAR = 10
+    const uword GVF_BINARY_VAR = $0400
+    const ubyte GVB_DONT_NULL_TERM = 11
+    const uword GVF_DONT_NULL_TERM = $0800
+    const ubyte GVB_SAVE_VAR = 12
+    const uword GVF_SAVE_VAR = $1000
+    const ubyte FORMAT_MAX = $0003
+    const long OFFSET_BEGINING = -1
+    const ubyte LOCK_SAME_HANDLER = $0001
+    const ubyte LDF_ALL = $001c
+    const uword HUNK_ABSRELOC32 = $03ec
+    const uword HUNK_RELRELOC16 = $03ed
+    const uword HUNK_RELRELOC8 = $03ee
+    const ubyte EXT_ABSREF32 = $0081
+    const ubyte EXT_ABSCOMMON = $0082
+    const ubyte EXT_RELREF16 = $0083
+    const ubyte EXT_RELREF8 = $0084
+    const long SYS_Input = $80000021
+    const long SYS_Output = $80000022
+    const long SYS_Asynch = $80000023
+    const long SYS_UserShell = $80000024
+    const long SYS_CustomShell = $80000025
+    const long SYS_Error = $80000026
+    const long SYS_ExecuteInputStream = $80000020
+    const long SYS_CmdStream = $80000028
+    const long NP_Seglist = $800003e9
+    const long NP_FreeSeglist = $800003ea
+    const long NP_Entry = $800003eb
+    const long NP_Input = $800003ec
+    const long NP_Output = $800003ed
+    const long NP_CloseInput = $800003ee
+    const long NP_CloseOutput = $800003ef
+    const long NP_Error = $800003f0
+    const long NP_CloseError = $800003f1
+    const long NP_CurrentDir = $800003f2
+    const long NP_StackSize = $800003f3
+    const long NP_Name = $800003f4
+    const long NP_Priority = $800003f5
+    const long NP_ConsoleTask = $800003f6
+    const long NP_WindowPtr = $800003f7
+    const long NP_HomeDir = $800003f8
+    const long NP_CopyVars = $800003f9
+    const long NP_Cli = $800003fa
+    const long NP_Path = $800003fb
+    const long NP_CommandName = $800003fc
+    const long NP_Arguments = $800003fd
+    const long NP_NotifyOnDeath = $800003fe
+    const long NP_Synchronous = $800003ff
+    const long NP_ExitCode = $80000400
+    const long NP_ExitData = $80000401
+    const long ADO_FH_Mode = $800007d1
+    const long ADO_DirLen = $800007d2
+    const long ADO_CommNameLen = $800007d3
+    const long ADO_CommFileLen = $800007d4
+    const long ADO_PromptLen = $800007d5
+    const long SHELL_FGETS_FULL = $80000bb9
+    const long SHELL_ADDH_LINE = $80000bba
+}
+;; End of auto-generated dos_lib.sfd

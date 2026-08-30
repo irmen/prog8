@@ -161,7 +161,7 @@ It's used to tell the compiler to put the block at a certain position in memory.
     Using qualified names ("dotted names") to reference symbols defined elsewhere
 
     Every symbol is 'public' and can be accessed from anywhere else, when given its *full* "dotted name".
-    You can use the ``private`` keyword to hide symbols from other blocks - see :ref:`private-symbols`.
+    You can use the ``private`` keyword to hide symbols from other blocks, or ``%option private_symbols`` to make all symbols private by default - see :ref:`private-symbols`.
     So, accessing a variable ``counter`` defined in subroutine ``worker`` in block ``main``,
     can be done from anywhere by using ``main.worker.counter``.
     Unlike most other programming languages, as soon as a name is scoped,
@@ -257,6 +257,22 @@ Directives
 	Global setting, set the program's start memory address. It's usually fixed at ``$0801`` because the
 	default launcher type is a CBM-BASIC program. But you have to specify this address yourself when
 	you don't use a CBM-BASIC launcher.
+	Not available on the m68k targets (amiga500, qemu68k) - there it is an error.
+
+.. index:: pair: Directives; %varsaddress
+.. data:: %varsaddress <address>
+
+	Level: module.
+	Global setting, set the memory address for the BSS area (uninitialized variables) and memory slabs
+	(``memory()`` allocations) together - both segments are placed sequentially starting from this single address
+	(variables first, slabs immediately after them). Analogous to ``%address`` for program load address.
+	This is consistent with how the ``-varsgolden`` and ``-varshigh`` CLI options place both segments together
+	in golden/high RAM.
+	Mutually exclusive with the CLI options ``-varsgolden``, ``-varshigh`` and ``-varsaddress`` - use either the directive
+	(raw address) or the CLI shorthand (target-aware or raw), not both.
+	Not available on m68k targets (amiga500, qemu68k) - there it is an error.
+	The custom compilation target configuration file can provide a default for this via the ``vars_address`` property,
+	just like ``load_address`` provides the default for ``%address``.
 
 
 .. index:: pair: Directives; %align
@@ -418,6 +434,10 @@ Directives
     and the actual implementation of those routines can be changed in later versions of the library
     without existing callers noticing anything.
 
+    *Note:* this directive is currently only supported on 6502 targets (c64, cx16, c128, pet32).
+    It is not available on M68K targets (amiga500, qemu68k) because loadable library support
+    has not been implemented for those platforms yet.
+
     This is usually put at the top of the main block so that it ends up at the beginning
     of the library file. *Note:* the compiler will still insert the required bootstrapping
     code in front of it, which in the case of a library, is the single JMP to the start routine
@@ -438,6 +458,7 @@ Directives
 	Global setting, selects the program launcher stub to use.
 	Only relevant when using the ``prg`` output type. The default is ``basic``,
 	or whatever the compilation target's configuration specifies (custom targets can set a different default via the ``launcher`` property).
+	Not available on the m68k targets (amiga500, qemu68k) - there it is an error.
 
 	- type ``basic`` : add a tiny C64 BASIC program, with a SYS statement calling into the machine code
 	- type ``none`` : no launcher logic is added at all
@@ -453,6 +474,7 @@ Directives
 	This memtop value is used for a check instruction for the assembler to see if the resulting program size
 	exceeds the given memtop address. This value is exclusive, so $a000 means that $a000 is the first address
 	that program can no longer use. Everything up to and including $9fff is still usable.
+	Not available on the m68k targets (amiga500, qemu68k) - there it is an error.
 
 
 .. index:: pair: Directives; %option
@@ -482,8 +504,12 @@ Directives
     - ``ignore_unused`` (block or module) suppress warnings about unused variables and subroutines. Instead, these will be silently stripped.
       This option is useful in library modules that contain many more routines beside the ones that you actually use.
     - ``verafxmuls`` (block, cx16 target only) uses Vera FX hardware word multiplication on the CommanderX16 for all word multiplications in this block. Warning: this may interfere with IRQs and other Vera operations, so use this only when you know what you're doing. It's safer to explicitly use ``verafx.muls()``.
+    - ``amiga_chipram`` (block, amiga500 target only) places the block's code in the ``code_c`` section, and its variables (initialized data and BSS, including memory slabs and struct instances) in the ``data_c`` and ``bss_c`` sections. These are Amiga CHIP RAM hunks, so they will be loaded in CHIP ram by the OS.
     - ``romable`` (module) *WORK-IN-PROGRESS/EXPERIMENTAL* make sure that the generated code is suitable for running in ROM (so no self-modifying code and such, which is normally used to generate smaller/more optimized code)
       See :ref:`romable` for more details.
+    - ``private_symbols`` (module or block) makes all symbols private by default within the module or block where this option is set.
+      This means symbols can only be accessed from within the same block, unless they are explicitly marked with the ``public`` keyword.
+      This is useful for enforcing encapsulation in larger programs or library modules. See :ref:`private-symbols` for more details.
 
 
 .. index:: pair: Directives; %output
@@ -495,7 +521,10 @@ Directives
 	- type ``raw`` : no header at all, just the raw machine code data
 	- type ``prg`` : C64 program (with load address header)
 	- type ``xex`` : Atari xex program
-	- type ``library`` : loadable library file. See :ref:`loadable_library`.
+	- type ``library`` : loadable library file. See :ref:`loadable_library`. Only available on the 6502 targets.
+	- type ``elf`` : Linux/BSD program (used by select targets to run in a simulator like QEMU)
+
+	On the m68k targets only ``raw`` and ``elf`` are available.
 
 
 .. index:: pair: Directives; %zeropage
@@ -503,6 +532,8 @@ Directives
 
     Level: module.
     Global setting, select zeropage handling style. Defaults to ``kernalsafe``.
+    Only available on the 6502 targets: the m68k targets have no zero page, and there this
+    directive is ignored with a message.
 
     - style ``kernalsafe`` -- use the part of the ZP that is 'free' or only used by BASIC routines,
       and don't change anything else.  This allows full use of Kernal ROM routines (but not BASIC routines),
@@ -564,7 +595,12 @@ The *for*-loop is used to let a variable iterate over a range of values. Iterati
 
     Usually a loop in descending order downto 0 or 1, produces more efficient assembly code than the same loop in ascending order.
 
-The loop variable must be declared separately as byte or word earlier, so that you can reuse it for multiple occasions.
+The loop variable is normally declared implicitly by the ``for`` statement. Its type is inferred from the element type of
+the expression being iterated over. Such a loop variable ends up as a regular variable in the surrounding scope, and a ``for`` loop
+does not introduce a new scope.
+If you need to reuse a loop variable in multiple loops, or need to declare it explicitly for another reason, you can declare
+it before the first loop. An existing declaration that can accept the loop values is reused; an incompatible declaration
+is an error.
 Iterating with a floating point variable is not supported. If you want to loop over a floating-point array, use a loop with an integer index variable instead.
 If the from value is already outside of the loop range, the whole for loop is skipped.
 
@@ -583,54 +619,77 @@ The *unroll* loop is not really a loop, but looks like one. It actually duplicat
 the given number of times. It's meant to "unroll loops" - trade memory for speed by avoiding the actual repeat loop counting code.
 Only simple statements are allowed to be inside an unroll loop (assignments, function calls etc.).
 
+for loop
+^^^^^^^^
+.. index:: pair: Loops; for loop
+
+The loop variable is normally declared implicitly by the loop. It is inferred as the element type of the expression being
+iterated over, which can be a range, an array, or a string. Floating-point arrays cannot be iterated over directly.
+The explicit form is also supported when you want to reuse a loop variable in multiple loops. The existing declaration must
+be able to accept values of the iterable's element type.
+You can also specify a type for the implicitly declared loop variable by writing the type name before the variable name.
+The expression that you loop over can be anything that supports iteration (such as ranges like ``0 to 100``,
+array variables and strings) *except* floating-point arrays (because a floating-point loop variable is not supported).
+For a range used directly by a ``for`` loop, the step may be an integer expression.  It is evaluated once
+at the start of the loop, so changing a variable used by the expression inside the loop does not change the
+step.  The signedness of the step determines how its runtime value is interpreted: an unsigned step is
+always ascending, while a signed step uses its runtime sign to select ascending or descending iteration.
+A zero step, or a step pointing away from the ``to`` value, produces an empty loop.  If adding the step
+would wrap the loop variable's fixed-width type, the loop terminates instead of continuing with the wrapped
+value.  Range expressions used outside a direct ``for`` loop still require a constant step.
+
 .. attention::
     The value of the loop variable after executing the loop *is undefined* - you cannot rely
     on it to be the last value in the range for instance! The value of the variable should only be used inside the for loop body.
     (this is an optimization issue to avoid having to deal with mostly useless post-loop logic to adjust the loop variable's value)
 
-
-for loop
-^^^^^^^^
-.. index:: pair: Loops; for loop
-
-The loop variable must be a byte or word variable, and it must be defined separately first.
-The expression that you loop over can be anything that supports iteration (such as ranges like ``0 to 100``,
-array variables and strings) *except* floating-point arrays (because a floating-point loop variable is not supported).
-Remember that a step value in a range must be a constant value.
-
 You can use a single statement, or a statement block like in the example below::
 
-    for <loopvar>  in  <expression>  [ step <amount> ]   {
+    for [type] <loopvar>  in  <expression>  [ step <amount> ]   {
         ; do something...
         break       ; break out of the loop
         continue    ; immediately next iteration
     }
 
-For example, this is a for loop using a byte variable ``i``, defined before, to loop over a certain range of numbers::
-
-    ubyte i
-
-    ...
+For example, this loop implicitly declares ``i`` with the element type of the range::
 
     for i in 20 to 155 {
         ; do something
     }
 
+You can specify a type for the loop variable to override the inferred type. This is useful when you want
+a wider type than the iterable's element type, or when you want to control the exact type used::
+
+    for uword i in [1, 2, 3, 4, 5] {
+        ; i is uword even though array elements are ubyte
+    }
+
+This is equivalent to declaring a new loop variable separately before the for loop. The two forms below
+have the same behavior::
+
+    uword i
+    for i in [1, 2, 3, 4, 5] {
+        ; ...
+    }
+
+    for uword i in [1, 2, 3, 4, 5] {
+        ; ...
+    }
+
+If a variable with the same name is already declared, use the untyped form to reuse it. A typed loop
+reports a conflicting variable declaration instead. When the same implicit loop variable is used in
+multiple consecutive for loops, all loops must use a compatible type::
+
+    for word w in arr1 { ... }
+    for long w in arr2 { ... }   ; error: type mismatch, w is already declared as word
+
 To loop over a decreasing or descending range, use the ``downto`` keyword::
-
-    ubyte i
-
-    ...
 
     for i in 155 downto 20 {        ; 155, 154, 153, ..., 20
         ; do something
     }
 
 Similarly, a descending range may be specified by using ``to`` in combination with a ``step`` that is ``< 0``::
-
-    ubyte i
-
-    ...
 
     for i in 155 to 20 step -1 {    ; 155, 154, 153, ..., 20
         ; do something
@@ -640,13 +699,71 @@ The following example is a loop over the values of the array ``fibonacci_numbers
 
     uword[] fibonacci_numbers = [0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377, 610, 987, 1597, 2584, 4181]
 
-    uword number
     for number in fibonacci_numbers {
         ; do something with number...
         break       ; break out of the loop early
     }
 
-See :ref:`range-expression` for all of the details.
+If the loop variable is declared explicitly, its type must be able to accept the iterable's element type::
+
+    uword number
+    for number in fibonacci_numbers {
+        ; do something with number...
+    }
+
+Reverse iteration
+~~~~~~~~~~~~~~~~~
+
+Arrays and strings can be iterated in reverse order with ``step -1``. The loop
+variable receives the elements from the last one to the first one::
+
+    for number in fibonacci_numbers step -1 {
+        ; 4181, 2584, 1597, ...
+    }
+
+    for character in "hello" step -1 {
+        ; 'o', 'l', 'l', 'e', 'h'
+    }
+
+For arrays and strings, the only supported explicit steps are ``1`` and ``-1``.
+The default is ``1``. Range expressions have their own step value, so a loop
+step cannot be added when the expression is already a range with a step.
+
+Linked-list iteration
+~~~~~~~~~~~~~~~~~~~~~
+
+A linked list can also be used as the expression in a ``for`` loop. The list
+structure must provide ``Head``, ``Tail`` and ``TailPred`` fields, with the
+first and third fields pointing to the node type. The node structure must have
+matching forward and backward links named either ``Succ`` and ``Pred``, or
+``Next`` and ``Prev``. Additional fields may be added to both structures.
+
+For example::
+
+    struct Node {
+        ^^Node Next
+        ^^Node Prev
+        ubyte value
+    }
+
+    struct List {
+        ^^Node Head
+        pointer Tail
+        ^^Node TailPred
+    }
+
+    ^^List items = memory("items", sizeof(List), 0)
+    for ^^Node node in items {
+        ; process node.value
+    }
+
+Use ``step -1`` to visit the nodes from the tail towards the head. The list
+must be initialized and linked correctly before iteration. On the ``amiga500``
+target, the ``exec`` module's ``List`` and ``Node`` structures and list
+routines use this same convention, so lists managed through ``exec.library``
+can be traversed directly with ``for`` loops.
+
+See :ref:`range-expression` for all of the details about range expressions.
 
 while loop
 ^^^^^^^^^^
@@ -1178,7 +1295,8 @@ containment check:  ``in``
 
 address of:  ``&``,   ``&<``,   ``&>``,   ``&&``
     This is a prefix operator that can be applied to a string or array variable or literal value.
-    It results in the memory address (UWORD) of that string or array in memory:  ``uword a = &stringvar``
+    It results in the memory address of that string or array in memory (a UWORD on the 6502 targets,
+    a LONG on the 32-bit m68k targets):  ``uword a = &stringvar``
     Sometimes the compiler silently inserts this operator to make it easier for instance
     to pass strings or arrays as subroutine call arguments.
     This operator can also be used as a prefix to a variable's data type keyword to indicate that
@@ -1188,6 +1306,8 @@ address of:  ``&``,   ``&<``,   ``&>``,   ``&&``
     ``&<`` and ``&>`` are for use on split word arrays, they give you the address of the LSB byte array
     and MSB byte array separately, respectively.   Note that ``&<`` is just the same as ``&`` in this case.
     For more details on split word arrays, see :ref:`arrayvars`.
+    Split word arrays (and with them the ``&>`` operator) don't exist on the m68k targets; there ``&>``
+    is an error.
 
     **Typed pointer version:** the single ``&`` operator still returns an untyped uword address for
     backward compatibility reasons, so existing programs keep working. The *double ampersand* ``&&`` operator
@@ -1244,9 +1364,19 @@ external subroutines. These last two are described in detail below.
 
 .. _private-symbols:
 
-Private symbols
-^^^^^^^^^^^^^^^
+Private and public symbols
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. index:: pair: Symbols; Private
+.. index:: pair: Symbols; Public
+
+By default, all symbols in a Prog8 program are accessible from any block.
+You can change this behavior in two ways:
+
+1. Use the ``private`` keyword on individual declarations to hide them from other blocks.
+2. Use ``%option private_symbols`` to make all symbols private by default, and use the ``public`` keyword to selectively expose them.
+
+The ``private`` keyword
+~~~~~~~~~~~~~~~~~~~~~~~
 
 You can use the ``private`` keyword to hide a symbol from outside its block.
 Accessing a private symbol from another block results in a compilation error.
@@ -1285,6 +1415,82 @@ The ``private`` keyword can be applied to the following declarations:
 - **aliases**::
 
     private alias MyReg = cx16.r0
+
+
+The ``public`` keyword and ``%option private_symbols``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``public`` keyword explicitly marks a symbol as accessible from other blocks.
+It can be applied to exactly the same declarations as ``private``.
+This is useful in combination with ``%option private_symbols``, which makes all
+symbols private by default.
+
+When ``%option private_symbols`` is set (at module or block level), all symbols
+within that scope are private unless explicitly marked ``public``.
+This enforces encapsulation and prevents accidental cross-block access.
+
+Example::
+
+    %option private_symbols
+
+    main {
+        sub start() {
+            helper.doStuff()      ; ok, doStuff() is public
+            helper.internal()     ; error! internal() is not public
+        }
+    }
+
+    helper {
+        public sub doStuff() {
+            ; accessible from other blocks
+        }
+
+        sub internal() {
+            ; only accessible within this block
+        }
+    }
+
+You can also apply ``%option private_symbols`` to a single block,
+making only that block's symbols private by default::
+
+    main {
+        sub start() {
+            other.doStuff()            ; ok, doStuff() is public
+            ubyte x = other.value      ; ok, value is public
+            ubyte y = other.internal   ; error! internal is not public
+        }
+    }
+
+    other {
+        %option private_symbols
+
+        public ubyte value = 42
+        public sub doStuff() {
+            ; accessible from other blocks
+        }
+
+        ubyte internal = 99
+        ; internal is only accessible within this block
+    }
+
+The ``public`` keyword is allowed even without ``%option private_symbols``
+(in which case it has no effect, since all symbols are already public by default).
+You cannot use both ``private`` and ``public`` on the same declaration.
+
+Visibility rules
+~~~~~~~~~~~~~~~~
+
+The visibility of a declaration is resolved as follows, in this order:
+
+1. A declaration marked ``private`` is inaccessible from every other block.
+2. A declaration marked ``public`` is accessible from other blocks.
+3. An unmarked declaration is private when ``private_symbols`` is enabled on
+   its defining block or its containing module; otherwise it is public.
+
+The option affects declarations in its scope only: a module-level option
+applies to all blocks in that module, while a block-level option applies only
+to declarations in that block. Fully qualified names do not bypass these
+rules.
 
 
 .. _reusevirtualregs_params:
@@ -1511,6 +1717,14 @@ So in the case above that could be::
     if_cs
         something()
 
+.. note::
+   Multiple status flag returns in a single multi-assign are not supported on the (experimental) m68k and new6502 codegens
+   (the regular 6502 codegen handles this case correctly).
+   For example, ``asmsub example() -> bool @Pz, bool @Pc`` followed by ``flag1, flag2 = example()`` will not
+   work correctly. The extraction of the first flag clobbers the CPU status register before the
+   second flag can be read. If you need multiple boolean returns, use regular register returns
+   (e.g. ``-> bool @D0, bool @D1`` on m68k, or ``-> bool @A, bool @X`` on 6502) instead of status flags.
+
 Notice that a call to a subroutine that returns multiple values cannot be used inside an expression,
 because expression terms always need to be a single value. You'll have to use a separate multi-assignment
 first and then use the result of that in the expression. However, also read the sidebar about a possible alternative.
@@ -1531,8 +1745,13 @@ The ``defer`` keyword can be used to schedule a statement (or block of statement
 just before exiting of the current subroutine. That can be via a return statement or a jump to somewhere else,
 or just the normal ending of the subroutine. This is often useful to "not forget" to clean up stuff,
 and if the subroutine has multiple ways or places where it can exit, it saves you from repeating
-the cleanup code at every exit spot. Multiple defers can be scheduled in a single subroutine (up to a maximum of 8).
+the cleanup code at every exit spot. Multiple defers can be scheduled in a single subroutine (up to 8 on 6502/virtual, 16 on m68k).
 The defers are handled in reversed (LIFO) order. Return values are evaluated before any deferred code is executed.
+When ``sys.exit()`` (or ``sys.exit2()``/``sys.exit3()`` where available) is called from anywhere in the program, all active defers in the current call chain are executed
+in LIFO order across subroutines before the program terminates, so resources acquired in callers are also cleaned up.
+``sys.reset_system()`` and ``sys.poweroff_system()`` are hard system transitions and do not run defers.
+The runtime defer stack holds up to 32 active frames on 6502/virtual and 256 on m68k;
+exceeding this is a fatal error (program exits with status 1). A program that contains no ``defer`` statements has no runtime overhead for this mechanism.
 You write defers like so::
 
     sub example() -> bool {

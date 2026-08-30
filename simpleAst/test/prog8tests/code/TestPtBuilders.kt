@@ -1,8 +1,8 @@
 package prog8tests.code
 
 import io.kotest.core.spec.style.FunSpec
-import io.kotest.matchers.shouldBe
 import io.kotest.matchers.collections.shouldHaveSize
+import io.kotest.matchers.shouldBe
 import prog8.code.ast.*
 import prog8.code.core.*
 
@@ -15,6 +15,7 @@ class TestPtBuilders : FunSpec({
             .align(2u)
             .dirty(true)
             .arraySize(10u)
+            .splitwordarray(true)
             .build()
 
         variable.name shouldBe "x"
@@ -24,6 +25,7 @@ class TestPtBuilders : FunSpec({
         variable.dirty shouldBe true
         variable.arraySize shouldBe 10u
         variable.position shouldBe pos
+        variable.isSplitWordArray shouldBe true
     }
 
     test("PtAsmSub builder") {

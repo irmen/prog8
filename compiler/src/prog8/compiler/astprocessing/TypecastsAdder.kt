@@ -55,8 +55,8 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                     // if the only difference in their array types is split vs non-split word arrays,
                     // we accept that (a cleanup of this is done elsewhere)
                     if(valueDt.getOrUndef().isWordArray && decl.datatype.isWordArray) {
-                        val valueIsSplit = valueDt.getOrUndef().isSplitWordArray
-                        val declIsSplit = decl.datatype.isSplitWordArray
+                        val valueIsSplit = valueDt.getOrUndef().isSplitWordArray(options.compTarget)
+                        val declIsSplit = decl.datatype.isSplitWordArray(options.compTarget)
                         if (valueIsSplit != declIsSplit) {
                             return noModifications
                         }
@@ -68,8 +68,17 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                     return noModifications
 
                 // uwords are allowed to be assigned to pointers as initialization value without a cast
-                if(decl.datatype.isPointer && valueDt.isUnsignedWord)
+                if(decl.datatype.isPointer && valueDt.isUnsignedWord) {
+                    if(options.compTarget.POINTER_MEM_SIZE > 2u) {
+                        // On 32-bit targets, widen the word value to long for the pointer assignment
+                        if(declValue is NumericLiteral) {
+                            val widened = NumericLiteral(BaseDataType.LONG, declValue.number, declValue.position)
+                            widened.parent = decl
+                            decl.value = widened
+                        }
+                    }
                     return noModifications
+                }
 
                 val modifications = mutableListOf<AstModification>()
                 addTypecastOrCastedValueModification(modifications, declValue, decl.datatype, decl)
@@ -196,23 +205,25 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                     }
                 }
 
-                // comparison of a pointer with a number will simply treat the pointer as the uword that it is
-                // this may require casting the other operand to uword as well
-                if(expr.operator in ComparisonOperators) {
+                // comparison of a pointer with a number treats the pointer as its numeric type
+                // (uword on 6502, long on m68k); the other operand gets cast to match.
+                 if(expr.operator in ComparisonOperators) {
+                    val pointerNumericType = options.compTarget.pointerType
+                    val pointerNumericBasetype = options.compTarget.pointerBaseType
                     val modifications = mutableListOf<AstModification>()
                     if(leftDt.isNumeric && rightDt.isPointer) {
-                        val cast = TypecastExpression(expr.right, DataType.UWORD, true, expr.right.position)
+                        val cast = TypecastExpression(expr.right, pointerNumericType, true, expr.right.position)
                         modifications += AstReplaceNode(expr.right, cast, expr)
-                        if(!leftDt.isUnsignedWord && leftDt isAssignableTo InferredTypes.knownFor(BaseDataType.UWORD)) {
-                            val cast2 = TypecastExpression(expr.left, DataType.UWORD, true, expr.left.position)
+                        if(leftDt.getOrUndef().base != pointerNumericBasetype && leftDt isAssignableTo InferredTypes.knownFor(pointerNumericBasetype)) {
+                            val cast2 = TypecastExpression(expr.left, pointerNumericType, true, expr.left.position)
                             modifications += AstReplaceNode(expr.left, cast2, expr)
                         }
                     }
                     else if(leftDt.isPointer && rightDt.isNumeric) {
-                        val cast = TypecastExpression(expr.left, DataType.UWORD, true, expr.left.position)
+                        val cast = TypecastExpression(expr.left, pointerNumericType, true, expr.left.position)
                         modifications += AstReplaceNode(expr.left, cast, expr)
-                        if(!rightDt.isUnsignedWord && rightDt isAssignableTo InferredTypes.knownFor(BaseDataType.UWORD)) {
-                            val cast2 = TypecastExpression(expr.right, DataType.UWORD, true, expr.right.position)
+                        if(rightDt.getOrUndef().base != pointerNumericBasetype && rightDt isAssignableTo InferredTypes.knownFor(pointerNumericBasetype)) {
+                            val cast2 = TypecastExpression(expr.right, pointerNumericType, true, expr.right.position)
                             modifications += AstReplaceNode(expr.right, cast2, expr)
                         }
                     }
@@ -221,12 +232,19 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
 
 
                 // pointer arithmetic
+                 val indexDt = options.compTarget.pointerType
                 if(leftDt.isPointer) {
-                    val cast = TypecastExpression(expr.right, DataType.UWORD, true, expr.right.position)
-                    return listOf(AstReplaceNode(expr.right, cast, expr))
+                    val rightDt = expr.right.inferType(program).getOrUndef()
+                    if(rightDt.base != indexDt.base) {
+                        val cast = TypecastExpression(expr.right, indexDt, true, expr.right.position)
+                        return listOf(AstReplaceNode(expr.right, cast, expr))
+                    }
                 } else if(rightDt.isPointer) {
-                    val cast = TypecastExpression(expr.left, DataType.UWORD, true, expr.left.position)
-                    return listOf(AstReplaceNode(expr.left, cast, expr))
+                    val leftDtType = expr.left.inferType(program).getOrUndef()
+                    if(leftDtType.base != indexDt.base) {
+                        val cast = TypecastExpression(expr.left, indexDt, true, expr.left.position)
+                        return listOf(AstReplaceNode(expr.left, cast, expr))
+                    }
                 }
             }
 
@@ -253,8 +271,8 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
             val valuetype = valueItype.getOrUndef()
             if (valuetype != targettype) {
                 if (valuetype isAssignableTo targettype) {
-                    if(valuetype.isIterable && targettype.isUnsignedWord)
-                        // special case, don't typecast STR/arrays to UWORD, we support those assignments "directly"
+                    if(valuetype.isIterable && targettype == options.compTarget.pointerType)
+                        // special case, don't typecast STR/arrays to pointer type, we support those assignments "directly"
                         return noModifications
                     val modifications = mutableListOf<AstModification>()
                     addTypecastOrCastedValueModification(modifications, assignment.value, targettype, assignment)
@@ -264,7 +282,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                     //errors.err("can't assign $valuetype to $targettype", assignment.position)
                 } else {
                     fun castLiteral(cvalue2: NumericLiteral): List<AstReplaceNode> {
-                        val cast = cvalue2.cast(targettype.base, true)
+                        val cast = cvalue2.cast(targettype.base, true, options.compTarget)
                         return if(cast.isValid)
                             listOf(AstReplaceNode(assignment.value, cast.valueOrZero(), assignment))
                         else
@@ -307,7 +325,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                 paramsPossibleDatatypes = BuiltinFunctions.getValue(sub.name).parameters.map {
                     it.possibleDatatypes.map { dt ->
                         if(dt.isArray)
-                            DataType.arrayFor(BaseDataType.BOOL, false)     // the builtin function signature doesn't tell us the element type....
+                            DataType.arrayFor(BaseDataType.BOOL, options.compTarget)     // the builtin function signature doesn't tell us the element type....
                         else if(dt.isPointer)
                             DataType.pointer(BaseDataType.UBYTE)
                         else
@@ -343,41 +361,41 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
 
     override fun after(memread: DirectMemoryRead, parent: Node): Iterable<AstModification> {
         // make sure the memory address is an uword or long or a pointer (to whatever type), otherwise cast
-        val dt = memread.addressExpression.inferType(program).getOr(DataType.UWORD)
+        val dt = memread.addressExpression.inferType(program).getOr(options.compTarget.pointerType)
         if(dt.isLong) {
             val constAddr = memread.addressExpression.constValue(program)?.number
-            if(constAddr==null || constAddr>=65536)
+            if(constAddr==null || constAddr > (if(options.compTarget.POINTER_MEM_SIZE > 2u) 4294967295.0 else 65535.0))
                 return noModifications
         }
         if(dt.isUndefined || dt.isUnsignedWord || dt.isPointer)
             return noModifications
 
         val modifications = mutableListOf<AstModification>()
-        val castedValue = (memread.addressExpression as? NumericLiteral)?.cast(BaseDataType.UWORD, true)?.valueOrZero()
+        val castedValue = (memread.addressExpression as? NumericLiteral)?.cast(options.compTarget.pointerBaseType, true, options.compTarget)?.valueOrZero()
         if(castedValue!=null)
             modifications += AstReplaceNode(memread.addressExpression, castedValue, memread)
         else
-            addTypecastOrCastedValueModification(modifications, memread.addressExpression, DataType.UWORD, memread)
+            addTypecastOrCastedValueModification(modifications, memread.addressExpression, options.compTarget.pointerType, memread)
         return modifications
     }
 
     override fun after(memwrite: DirectMemoryWrite, parent: Node): Iterable<AstModification> {
         // make sure the memory address is an uword or long or a pointer (to whatever type), otherwise cast
-        val dt = memwrite.addressExpression.inferType(program).getOr(DataType.UWORD)
+        val dt = memwrite.addressExpression.inferType(program).getOr(options.compTarget.pointerType)
         if(dt.isLong) {
             val constAddr = memwrite.addressExpression.constValue(program)?.number
-            if(constAddr==null || constAddr>=65536)
+            if(constAddr==null || constAddr > (if(options.compTarget.POINTER_MEM_SIZE > 2u) 4294967295.0 else 65535.0))
                 return noModifications
         }
         if(dt.isUndefined || dt.isUnsignedWord || dt.isPointer)
             return noModifications
 
         val modifications = mutableListOf<AstModification>()
-        val castedValue = (memwrite.addressExpression as? NumericLiteral)?.cast(BaseDataType.UWORD, true)?.valueOrZero()
+        val castedValue = (memwrite.addressExpression as? NumericLiteral)?.cast(options.compTarget.pointerBaseType, true, options.compTarget)?.valueOrZero()
         if(castedValue!=null)
             modifications += AstReplaceNode(memwrite.addressExpression, castedValue, memwrite)
         else
-            addTypecastOrCastedValueModification(modifications, memwrite.addressExpression, DataType.UWORD, memwrite)
+            addTypecastOrCastedValueModification(modifications, memwrite.addressExpression, options.compTarget.pointerType, memwrite)
         return modifications
     }
 
@@ -396,10 +414,16 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
             val returnDt = returnValue.inferType(program)
             if(!(returnDt istype subReturnType) && returnValue is NumericLiteral) {
                 // see if we might change the returnvalue into the expected type
-                val castedValue = returnValue.convertTypeKeepValue(subReturnType.base)
+                val castedValue = returnValue.castTypeKeepValue(subReturnType.base, options.compTarget)
                 if(castedValue.isValid) {
                     modifications += listOf(AstReplaceNode(returnValue, castedValue.valueOrZero(), returnStmt))
                     continue
+                }
+                // If the numeric literal is already the pointer's equivalent numeric type, no cast needed
+                 if(subReturnType.isPointer) {
+                    val ptrNumericType = options.compTarget.pointerBaseType
+                    if(returnValue.type == ptrNumericType)
+                        continue
                 }
             }
             if (returnDt istype subReturnType or returnDt.isNotAssignableTo(subReturnType))
@@ -410,7 +434,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                     val cast = TypecastExpression(returnValue, subReturnType, true, returnValue.position)
                     modifications += AstReplaceNode(returnValue, cast, returnStmt)
                 } else {
-                    val cast = returnValue.cast(subReturnType.base, true)
+                    val cast = returnValue.cast(subReturnType.base, true, options.compTarget)
                     if (cast.isValid) {
                         returnStmt.values[index] = cast.valueOrZero()
                     }
@@ -486,10 +510,10 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
 
             val modifications = mutableListOf<AstModification>()
 
-            // ubyte or uword combined with a pointer type -> cast BOTH to uword
+            // ubyte or uword combined with a pointer type -> cast BOTH to the pointer's numeric type
             if((trueDt.isPointer && falseDt.isInteger) || (falseDt.isPointer && trueDt.isInteger)) {
-                val leftCast = TypecastExpression(ifExpr.truevalue, DataType.UWORD, true, ifExpr.truevalue.position)
-                val rightCast = TypecastExpression(ifExpr.falsevalue, DataType.UWORD, true, ifExpr.falsevalue.position)
+                val leftCast = TypecastExpression(ifExpr.truevalue, options.compTarget.pointerType, true, ifExpr.truevalue.position)
+                val rightCast = TypecastExpression(ifExpr.falsevalue, options.compTarget.pointerType, true, ifExpr.falsevalue.position)
                 return listOf(
                     AstReplaceNode(ifExpr.truevalue, leftCast, ifExpr),
                     AstReplaceNode(ifExpr.falsevalue, rightCast, ifExpr)
@@ -547,9 +571,13 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
         varDt: DataType,
         parent: Node
     ): List<AstModification> {
+        val normalizedStep = normalizeRangeStep(range, parent, varDt)
 
         if(!varDt.isUndefined && fromDt==varDt && toDt==varDt) {
-            return noModifications
+            return if (normalizedStep === range.step)
+                noModifications
+            else
+                listOf(AstReplaceNode(range.step, normalizedStep, range))
         }
 
         if(fromConst!=null) {
@@ -561,12 +589,12 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                         // can we make the to value into the same smaller type?
                         val smallerTo = NumericLiteral.optimalInteger(toConst.number.toInt(), toConst.position)
                         if(smaller.type==smallerTo.type) {
-                            val newRange = RangeExpression(smaller, smallerTo, range.step, range.position)
+                            val newRange = RangeExpression(smaller, smallerTo, normalizedStep, range.position)
                             return listOf(AstReplaceNode(range, newRange, parent))
                         }
                     }
                 } else {
-                    val newRange = RangeExpression(smaller, range.to, range.step, range.position)
+                    val newRange = RangeExpression(smaller, range.to, normalizedStep, range.position)
                     return listOf(AstReplaceNode(range, newRange, parent))
                 }
             }
@@ -580,25 +608,27 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                         // can we make the from value into the same smaller type?
                         val smallerFrom = NumericLiteral.optimalInteger(fromConst.number.toInt(), fromConst.position)
                         if(smaller.type==smallerFrom.type) {
-                            val newRange = RangeExpression(smallerFrom, smaller, range.step, range.position)
+                            val newRange = RangeExpression(smallerFrom, smaller, normalizedStep, range.position)
                             return listOf(AstReplaceNode(range, newRange, parent))
                         }
                     }
                 } else {
-                    val newRange = RangeExpression(range.from, smaller, range.step, range.position)
+                    val newRange = RangeExpression(range.from, smaller, normalizedStep, range.position)
                     return listOf(AstReplaceNode(range, newRange, parent))
                 }
             }
         }
 
         val modifications = mutableListOf<AstModification>()
+        if (normalizedStep !== range.step)
+            modifications += AstReplaceNode(range.step, normalizedStep, range)
 
         if(!varDt.isUndefined) {
             // adjust from value
             if (fromDt!=varDt) {
                 if (!fromDt.isUndefined && !fromDt.isAssignableTo(varDt)) {
                     if(fromConst!=null) {
-                        val cast = fromConst.cast(varDt.base, true)
+                        val cast = fromConst.cast(varDt.base, true, options.compTarget)
                         if(cast.isValid)
                             modifications += AstReplaceNode(range.from, cast.valueOrZero(), range)
                         else
@@ -615,7 +645,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
             if (toDt!=varDt) {
                 if (!toDt.isUndefined && !toDt.isAssignableTo(varDt)) {
                     if(toConst!=null) {
-                        val cast = toConst.cast(varDt.base, true)
+                        val cast = toConst.cast(varDt.base, true, options.compTarget)
                         if(cast.isValid)
                             modifications += AstReplaceNode(range.to, cast.valueOrZero(), range)
                         else
@@ -636,6 +666,47 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
             addTypecastOrCastedValueModification(modifications, toChange, commonDt, range)
 
         return modifications
+    }
+
+    private fun normalizeRangeStep(range: RangeExpression, parent: Node, varDt: DataType): Expression {
+        if (parent !is ForLoop || range.step.constValue(program) != null)
+            return range.step
+
+        val stepDt = range.step.inferType(program).getOrUndef()
+        if (!stepDt.isInteger) {
+            errors.err("range step must be an integer", range.step.position)
+            return range.step
+        }
+        if (varDt.isUndefined || (!varDt.isInteger && !varDt.isPointer))
+            return range.step
+
+        val stepWidth = integerWidth(stepDt)
+        val loopvarWidth = integerWidth(varDt)
+        if (stepWidth == null || loopvarWidth == null)
+            return range.step
+        if (stepWidth > loopvarWidth) {
+            errors.err("incompatible range step type", range.step.position)
+            return range.step
+        }
+
+        val normalizedBase = when {
+            loopvarWidth == 1 -> if (stepDt.isSigned) BaseDataType.BYTE else BaseDataType.UBYTE
+            loopvarWidth == 2 -> if (stepDt.isSigned) BaseDataType.WORD else BaseDataType.UWORD
+            stepDt.isSigned -> BaseDataType.LONG
+            else -> BaseDataType.UWORD
+        }
+        if (stepDt.base == normalizedBase)
+            return range.step
+
+        return TypecastExpression(range.step, DataType.forDt(normalizedBase), true, range.step.position)
+    }
+
+    private fun integerWidth(dt: DataType): Int? = when {
+        dt.isByte -> 1
+        dt.isWord -> 2
+        dt.isLong -> 4
+        dt.isPointer -> options.compTarget.POINTER_MEM_SIZE.toInt()
+        else -> null
     }
 
     override fun after(arrayIndexedExpression: ArrayIndexedExpression, parent: Node): Iterable<AstModification> {
@@ -674,7 +745,9 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
         val modifications = mutableListOf<AstModification>()
         possibleDatatypes.zip(args).forEach {
             val possibleTargetDt = it.first.first()
-            val targetDt = if(possibleTargetDt.isPointer) DataType.UWORD else possibleTargetDt      // use UWORD instead of a pointer type (using words for pointers is allowed without further casting)
+            val targetDt = if(possibleTargetDt.isPointer) {
+                options.compTarget.pointerType
+            } else possibleTargetDt
             val argIdt = it.second.inferType(program)
             if (argIdt.isKnown && !targetDt.isStructInstance) {
                 val argDt = argIdt.getOrUndef()
@@ -686,9 +759,9 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                         addTypecastOrCastedValueModification(modifications, it.second, targetDt, parent)
                     } else if (array != null) {
                         addTypecastOrCastedValueModification(modifications, it.second, targetDt, parent)
-                    } else if(identifier!=null && targetDt.isUnsignedWord && argDt.isPassByRef) {
+                    } else if(identifier!=null && (targetDt.isUnsignedWord || targetDt.isLong) && argDt.isPassByRef) {
                         if(!identifier.isSubroutineParameter()) {
-                            // We allow STR/ARRAY values for UWORD or ^^UBYTE parameters, via typed AddressOf.
+                            // We allow STR/ARRAY values for UWORD/LONG (pointer-equivalent) parameters, via typed AddressOf.
                             if(!argDt.isString || it.second is IdentifierReference) {
                                 modifications += AstReplaceNode(
                                     identifier,
@@ -700,30 +773,33 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                     } else if(targetDt.isBool) {
                         addTypecastOrCastedValueModification(modifications, it.second, DataType.BOOL, parent)
                     } else if(!targetDt.isIterable && argDt isAssignableTo targetDt) {
-                        if(!argDt.isString || !targetDt.isUnsignedWord)
+                        if(!argDt.isString || !(targetDt.isUnsignedWord || targetDt.isLong))
                             addTypecastOrCastedValueModification(modifications, it.second, targetDt, parent)
                     }
                 }
             } else {
                 val identifier = it.second as? IdentifierReference
-                if(identifier!=null && targetDt.isUnsignedWord) {
+                if(identifier!=null && (targetDt.isUnsignedWord || targetDt.isLong)) {
                     val dt = identifier.inferType(program)
-                    if(dt.isArray || dt.isString) {
-                        // take the address of the identifier
-                        modifications += AstReplaceNode(
-                            identifier,
-                            AddressOf(identifier, null, null, false, false,it.second.position),
-                            parent
-                        )
-                    } else if(dt.isUnknown) {
-                        val subOrLabel = identifier.targetStatement()
-                        if(subOrLabel is Subroutine || subOrLabel is Label) {
-                            // take the address of the subroutine or label
-                            modifications += AstReplaceNode(
-                                identifier,
-                                AddressOf(identifier, null, null, false, false, it.second.position),
-                                parent
-                            )
+                    val addressOfExpr: AddressOf? = when {
+                        dt.isArray || dt.isString -> AddressOf(identifier, null, null, false, false, it.second.position)
+                        dt.isUnknown -> {
+                            val subOrLabel = identifier.targetStatement()
+                            if(subOrLabel is Subroutine || subOrLabel is Label)
+                                AddressOf(identifier, null, null, false, false, it.second.position)
+                            else null
+                        }
+                        else -> null
+                    }
+                    if(addressOfExpr!=null) {
+                        // On targets where untyped pointers are UWORD but the function expects LONG,
+                        // we need to add a typecast after the AddressOf wrapping.
+                        val addrofDt = addressOfExpr.inferType(program).getOrUndef()
+                        if(targetDt==DataType.LONG && addrofDt==DataType.UWORD) {
+                            val cast = TypecastExpression(addressOfExpr, DataType.LONG, true, it.second.position)
+                            modifications += AstReplaceNode(it.second, cast, parent)
+                        } else {
+                            modifications += AstReplaceNode(it.second, addressOfExpr, parent)
                         }
                     }
                 }
@@ -739,7 +815,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
         parent: Node
     ) {
         if (expressionToCast is ArrayLiteral && requiredType.isArray) {
-            val castedArray = expressionToCast.cast(requiredType)
+            val castedArray = expressionToCast.cast(requiredType, options.compTarget)
             if (castedArray != null && castedArray !== expressionToCast) {
                 modifications += AstReplaceNode(expressionToCast, castedArray, parent)
             }
@@ -753,17 +829,39 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
             return // don't allow any implicit cast to bool
 
         // uwords are allowed to be assigned to pointers without a cast
-        if(requiredType.isPointer && sourceDt.isUnsignedWord)
+        if(requiredType.isPointer && sourceDt.isUnsignedWord) {
+            if(options.compTarget.POINTER_MEM_SIZE > 2u) {
+                // On 32-bit targets, widen the word value to long for the pointer assignment
+                if(expressionToCast is NumericLiteral) {
+                    val widened = NumericLiteral(BaseDataType.LONG, expressionToCast.number, expressionToCast.position)
+                    modifications += AstReplaceNode(expressionToCast, widened, parent)
+                    return
+                }
+            } else {
+                return
+            }
+        }
+         // If source type is already the pointer's numeric equivalent type (LONG on m68k, UWORD on 6502), no cast is needed
+        if(requiredType.isPointer) {
+            val pointerNumericType = options.compTarget.pointerBaseType
+            if(sourceDt.base == pointerNumericType)
+                return
+        }
+
+        // Don't wrap NumericLiterals in TypecastExpressions — the SimplifiedAstMaker rejects them.
+        // Instead, let the AstChecker report any type mismatch.
+        if(expressionToCast is NumericLiteral && !requiredType.isNumericOrBool)
             return
-        if (requiredType.isUnsignedWord) {
-            // & (address-of) is allowed to be assigned to an uword without a cast
+        val isPointerHolderType = requiredType == options.compTarget.pointerType
+        if (isPointerHolderType) {
+            // & (address-of) is allowed to be assigned to a pointer-sized value without a cast
             if (expressionToCast is AddressOf) return
-            // casting a pointer to an uword is not needed
+            // casting a pointer to a pointer-sized value is not needed
             if (expressionToCast.inferType(program).isPointer) return
         }
 
         if(expressionToCast is NumericLiteral && expressionToCast.type!=BaseDataType.FLOAT && requiredType.isNumericOrBool) { // refuse to automatically truncate floats
-            val castedValue = expressionToCast.cast(requiredType.base, true)
+            val castedValue = expressionToCast.cast(requiredType.base, true, options.compTarget)
             if (castedValue.isValid) {
                 val signOriginal = sign(expressionToCast.number)
                 val signCasted = sign(castedValue.valueOrZero().number)

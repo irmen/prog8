@@ -132,14 +132,13 @@ sealed class PtNamedNode(initialName: String, position: Position): PtNode(positi
 
 class PtProgram(
     val name: String,
-    val memsizer: IMemSizer,
-    val encoding: IStringEncoding
+    val target: ICompilationTarget
 ) : PtNode(Position.DUMMY) {
+    val memsizer: IMemSizer get() = target
+    val encoding: IStringEncoding get() = target
+
     // Root node is never transformed - return self
     override fun copy(): PtNode = this
-
-//    fun allModuleDirectives(): Sequence<PtDirective> =
-//        children.asSequence().flatMap { it.children }.filterIsInstance<PtDirective>().distinct()
 
     fun allBlocks(): Sequence<PtBlock> =
         children.asSequence().filterIsInstance<PtBlock>()
@@ -153,7 +152,7 @@ class PtProgram(
     fun internString(string: PtString, st: SymbolTable): String {
         val internedStringsBlock = children.first { it is PtBlock && it.name == INTERNED_STRINGS_MODULENAME }
         val varname = "ptstring_${internedStringsBlock.children.size}"
-        val internedString = PtVariable(varname, DataType.STR, ZeropageWish.NOT_IN_ZEROPAGE, 0u, false, string, null, string.position)
+        val internedString = PtVariable(varname, DataType.STR, false, ZeropageWish.NOT_IN_ZEROPAGE, 0u, false, string, null, string.position)
         internedStringsBlock.add(internedString)
         val stEntry = StStaticVariable(internedString.scopedName, DataType.STR, string.value to string.encoding, null, string.value.length.toUInt()+1u,
             ZeropageWish.NOT_IN_ZEROPAGE, 0u, false, astNode=internedString)
@@ -173,7 +172,8 @@ class PtBlock(name: String,
                   val forceOutput: Boolean = false,
                   val noSymbolPrefixing: Boolean = false,
                   val veraFxMuls: Boolean = false,
-                  val ignoreUnused: Boolean = false)
+                  val ignoreUnused: Boolean = false,
+                  val amigaChipram: Boolean = false)
     
     override fun copy(): PtNode = PtBlock(name, library, source, options, position)
 }

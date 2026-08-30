@@ -149,7 +149,7 @@ class VarConstantValueTypeAdjuster(
 
     private fun canBeMadeConst(decl: VarDecl, usages: List<Node>): Boolean {
         if (decl.datatype.isPointer) {
-            if (decl.datatype.size(program.memsizer) > 1) return false
+            if (decl.datatype.size(program.target) > 1) return false
             val derefCount = usages.count {
                 val p = it.parent
                 val gp = p.parent
@@ -411,10 +411,13 @@ internal class ConstantIdentifierReplacer(
             if (targetNode is VarDecl && targetNode.type == VarDeclType.CONST) {
                 val pointerValue = targetNode.value?.constValue(program)
                 if (pointerValue != null) {
+                    val literalType = program.target.pointerBaseType
+                    if (pointerValue.number < 0.0 || pointerValue.number > literalType.maxUnsignedValue)
+                        return noModifications
                     return listOf(
                         AstReplaceNode(
                             identifier,
-                            NumericLiteral(BaseDataType.UWORD, pointerValue.number, identifier.position),
+                            NumericLiteral(literalType, pointerValue.number, identifier.position).also { it.linkParents(identifier) },
                             parent
                         )
                     )
@@ -452,10 +455,13 @@ internal class ConstantIdentifierReplacer(
                 )
             }
             cval.type.isPointer -> {
+                val literalType = program.target.pointerBaseType
+                if (cval.number < 0.0 || cval.number > literalType.maxUnsignedValue)
+                    return noModifications
                 return listOf(
                     AstReplaceNode(
                         identifier,
-                        NumericLiteral(BaseDataType.UWORD, cval.number, identifier.position),
+                        NumericLiteral(literalType, cval.number, identifier.position).also { it.linkParents(identifier) },
                         identifier.parent
                     )
                 )
@@ -599,7 +605,7 @@ internal class ConstantIdentifierReplacer(
                 if(declArraySize!=null && declArraySize!=rangeExpr.size())
                     errors.err("range expression size (${rangeExpr.size()}) doesn't match declared array size ($declArraySize)", decl.value?.position!!)
                 if(constRange!=null) {
-                    return ArrayLiteral(InferredTypes.InferredType.known(DataType.arrayFor(BaseDataType.FLOAT, false)),
+                    return ArrayLiteral(InferredTypes.InferredType.known(DataType.arrayFor(BaseDataType.FLOAT, program.target)),
                         constRange.map { NumericLiteral(BaseDataType.FLOAT, it.toDouble(), decl.value!!.position) }.toTypedArray(),
                         position = decl.value!!.position)
                 }

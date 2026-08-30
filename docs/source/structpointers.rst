@@ -38,10 +38,16 @@ Structs and Pointers
         ^^Node thenode = &&np[2]
         thenode.field = 9999
 
+    Writing through a parenthesized casting expression or a function call does work however;
+    the compiler evaluates the expression once and stores through the computed address::
 
-Legacy untyped pointers (uword)
--------------------------------
-.. index:: single: Pointers; legacy untyped
+        (np[2] as ^^Node).field = 9999
+        get_node(i).field = 9999
+
+
+Untyped pointers and the ``pointer`` type
+-----------------------------------------
+.. index:: single: Pointers; untyped
 
 Prior to version 12 of the language, the only pointer type available was a plain ``uword`` value (the memory address)
 which could be used as a pointer to an ``ubyte`` (the byte value at that memory address).
@@ -54,13 +60,20 @@ explicitly for what it actually pointed to, if that wasn't a simple byte.
 Some implicit conversions were allowed too (such as putting ``str`` as the type of a subroutine parameter,
 which would be changed to ``uword`` by the compiler).
 
-Since Prog8 version 12 there now are *typed pointers* that better express the intent and tell the compiler how to use the pointer;
-these are explained below.
+Since version 12.6 there now is a dedicated ``pointer`` type keyword that serves as an untyped address
+and automatically takes the :ref:`pointer size <pointer_size>` for the target.
+This is useful when writing code that is compiled for different targets,
+because you don't need to manually switch between ``uword`` and ``long`` via conditional compilation::
 
-*For backward compatibility reasons, this untyped uword pointer still exists in the language.*
-You can assign any other pointer type to an untyped pointer variable (uword) without the need for an explicit cast.
-You can assign an untyped pointer (uword) to a typed pointer variable without the need for an explicit cast.
+    pointer ptr = $a000
+    ; same program works on both 6502 and m68k targets
+    ; ptr is 2 bytes on C64, CX16, etc.
+    ; ptr is 4 bytes on qemu68k
 
+You can assign any other pointer type to an untyped pointer variable (``uword``, ``long``` or ``pointer``) without the need for an explicit cast.
+You can assign an untyped pointer to a typed pointer variable without the need for an explicit cast.
+Prog8 *typed pointers* better express the intent and better tell the compiler how to use the pointer. 
+These are preferred to be used in new code, and are explained below.
 
 
 Typed pointer to simple datatype
@@ -92,11 +105,6 @@ The ``str`` type in subroutine parameters and return values has always been a bi
 the string is actually passed by reference (it's address pointer is passed) instead of a ``str`` variable that is accessed by value.
 In previous Prog8 versions these were untyped uword pointers, but since version 12, these are now translated as ``^^ubyte``.
 Resulting assembly code should be equivalent still.
-
-.. note::
-    **Pointers to subroutines:**
-    While Prog8 allows you to take the address of a subroutine, it has no support yet for typed function pointers.
-    Calling a routine through a pointer with ``goto``, ``call()`` and such, only works with the raw uword address for now.
 
 
 Dereferencing a pointer, pointer arithmetic
@@ -143,12 +151,13 @@ dealing with all of them separately.  You first define the struct type like so::
 Allowed field datatypes: all numeric types (``byte``, ``ubyte``, ``word``, ``uword``, ``long``, ``float``),
 ``bool``, ``str``, typed pointers to those or to other structs, and inline 1D arrays of these element types.
 Not allowed: struct instances themselves (structs cannot be nested, use a pointer to the struct instead),
-arrays of typed pointers such as ``^^Enemy[4]`` (use untyped pointers instead), and 2D arrays.
+arrays of struct instances, arrays of typed pointers such as ``^^Enemy[4]`` (use untyped pointers instead), and 2D arrays.
 The typed pointer array and 2D array restrictions are limitations of the current compiler; they may or may not be lifted in a future version.
 
 Fields in a struct are 'packed' (meaning the values are placed back-to-back in memory), and placed in memory in order of declaration. This guarantees exact size and place of the fields.
 ``sizeof()`` knows how to calculate the combined size of a struct, and ``offsetof()`` can be used to get the byte offset of a given field in the struct.
-The size of a struct cannot exceed 1 memory page (256 bytes).
+The size of a struct cannot exceed 256 bytes on 6502-based targets (C64, CX16, C128, PET32 - one memory page).
+On 32-bit targets the limit is much larger: 32768 bytes on Amiga/Qemu68k and 65535 bytes on the virtual target.
 
 You can copy the whole contents of a struct to another one by assigning the dereferenced pointers::
 
@@ -167,20 +176,89 @@ Because it implies pointer dereferencing you can usually omit the explicit `^^`,
     if e1^^.ypos > 300
         e1^^.health -= 10
 
+You can also assign to a struct field through an arbitrary pointer expression by wrapping it in parentheses.
+This works with typecasts and with function calls that return a pointer::
+
+    (enemies[i] as ^^Enemy).health = 42
+    (get_enemy(index)).shield -= 10
+    get_enemy(index).next.target = 0
+
+The compiler evaluates the pointer expression exactly once and then stores the value through the computed address.
+
 
 .. note::
-    Structs are currently only supported as a *reference type* (they always have to be accessed through a pointer).
-    It is not yet possible to use them as a value type, or as memory-mapped types.
-    This means you cannot create an array of structs either - only arrays of pointers to structs.
-    There are a couple of simple case where the compiler does allow assignment of struct instances though, and it will
-    automatically copy all the fields for you. You are allowed to write::
+    Structs are primarily supported as a *reference type* accessed through a pointer.
+    However, you can also declare an *array of struct instances* (see below), and a plain struct instance
+    can be used as an lvalue in a few specific assignment cases.
+    It is not yet possible to use a struct as a standalone value type, or as a memory-mapped type.
+    The compiler replaces whole-struct assignments with a memory copy. You are allowed to write::
 
         ptr2^^ = ptr1^^
         ptr2^^ = ptr1[2]
         ptr2[2] = ptr1^^
+        arr[i] = arr[j]           ; array of struct instances
 
-    The compiler replaces this with a memory copy if these are pointers to a struct.
     In the future more cases may be supported.
+
+
+.. _structarrays:
+
+Arrays of struct instances
+--------------------------
+.. index:: pair: Structs; Arrays of instances
+
+You can declare an array that contains struct instances directly, rather than pointers to structs.
+The syntax places the array size between the struct type and the variable name::
+
+    struct Enemy {
+        ubyte xpos, ypos
+        uword health
+        bool elite
+    }
+
+    Enemy[10] enemies          ; 10 Enemy instances in a contiguous block
+
+Indexing works as expected and the fields are accessed with the dotted notation::
+
+    enemies[i].health = 100
+    enemies[i].elite = true
+    ubyte x = enemies[i].xpos
+
+You can copy one whole element to another with a single assignment; the compiler generates a memory copy::
+
+    enemies[i] = enemies[j]
+
+Array-of-struct variables can also be statically initialized by nesting struct initializers inside an array literal.
+The initializer elements are struct values, not pointer allocations, so you must not use ``^^``.
+You can write them with an explicit type or let the compiler infer it::
+
+    Enemy[3] squad = [
+        Enemy : [10, 20, 100, false],
+        Enemy : [30, 40, 200, true],
+        Enemy : [50, 60, 150, false]
+    ]
+
+    ; inferred form (preferred)
+    Enemy[3] squad2 = [
+        [10, 20, 100, false],
+        [30, 40, 200, true],
+        [50, 60, 150, false]
+    ]
+
+The struct size counts toward the same target size limits as other arrays.
+On 6502-family targets a struct cannot exceed 256 bytes, so the maximum number of elements in an
+array of structs is limited by that size (for example, at most 128 elements for a 2-byte struct, and
+fewer for larger structs). On 32-bit targets the per-array size limit is much larger.
+
+.. note::
+    Arrays of struct instances cannot be used as subroutine parameters (the same restriction applies
+    to most array types other than ``ubyte`` arrays and strings). Pass a typed pointer to the first
+    element instead, or use ``sys.memcopy`` if you need to pass a copy.
+
+.. note::
+    Arrays of struct instances are stored contiguously, so accessing fields with a variable index
+    is less efficient than accessing fields through a typed pointer. For performance-critical code,
+    prefer typed pointers to structs unless the contiguous array layout is required.
 
 .. note::
     Using structs instead of plain arrays usually results in more and less efficient code being generated.
@@ -216,6 +294,21 @@ If the struct contains inline arrays, you can initialize them by nesting another
 ``^^Node : []``
     (without values) Places a 'Node' instance in BSS variable space instead, which gets zeroed out at program startup.
     Returns the address of this empty struct.
+
+Initializing byte-array fields with a string
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. index:: pair: Structs; String initializer
+
+For a sized ``ubyte`` (or ``byte``) array field, a string literal may be used in place of an explicit
+byte array. The string is encoded using the current ``%encoding`` and then filled into the array using
+C-style semantics: if the encoded string is shorter than the array, the remaining bytes are filled with
+zero (the first zero acts as the implicit C string terminator); if it is exactly the array length, no
+extra terminator is added; and if it is longer than the array, a compilation error is reported.
+
+For example, given ``ubyte[4] name``, the initializers ``"abcd"``, ``"abc"`` and ``"a"`` are all
+accepted and produce ``[a,b,c,d]``, ``[a,b,c,0]`` and ``[a,0,0,0]`` respectively, while ``"abcde"``
+causes an error. The same applies to inferred-form initializers such as ``^^Node n = [1, "abc", true]``.
+
 
 The field values in a struct initializer must be constants. You can use numeric literals, ``address-of`` expressions,
 or ``memory()`` calls (either directly or via ``const`` variables).
@@ -257,17 +350,19 @@ However, it is possible to write a dynamic memory handling library yourself (it 
 If you ask such a library to give you a pointer to a piece of memory with size ``sizeof(Enemy)`` you can use that as
 a dynamic pointer to an Enemy struct.
 
-An example of how a super simple dynamic allocator could look like::
+An example of how a super simple dynamic allocator could look like follows. 
+Noe that the ``pointer`` type is used instead of ``uword`` so that the code also works correctly on targets 
+where memory addresses are wider than 2 bytes (such as the m68k target with 4-byte pointers)::
 
     ^^Node newnode = allocator.alloc(sizeof(Node))
     ...
 
     allocator {
         ; extremely trivial arena allocator
-        uword buffer = memory("arena", 2000, 0)
-        uword next = buffer
+        pointer buffer = memory("arena", 2000, 0)
+        pointer next = buffer
 
-        sub alloc(ubyte size) -> uword {
+        sub alloc(ubyte size) -> pointer {
             defer next += size
             return next
         }

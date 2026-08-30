@@ -114,7 +114,6 @@ main {
         ; at the correct char count to give to the starfield effect.
 
         uword @zp ptr
-        ubyte x
         for x in 0 to 39 {
             ubyte limit
             ubyte char = starfieldRow[x]

@@ -10,6 +10,7 @@
 %import floats
 %import graphics
 %import lineclip
+%import lists
 %import math
 %import petgfx
 %import prog8_lib

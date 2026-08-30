@@ -37,7 +37,6 @@ charset {
         copy_rom_charset()
 
         ; make all characters italic
-        ubyte c
         for c in 0 to 255 {
             uword ptr = CHARSET + c*$0008
             @(ptr) >>= 2

@@ -1,11 +1,8 @@
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.ints.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
-import prog8.code.core.BaseDataType
-import prog8.code.core.CompilationOptions
-import prog8.code.core.DataType
-import prog8.code.core.OutputType
-import prog8.code.core.ZeropageType
+import prog8.code.core.*
+import prog8.code.target.Amiga500Target
 import prog8.code.target.Cx16Target
 import prog8.intermediate.*
 import kotlin.io.path.*
@@ -300,6 +297,43 @@ storehr.b r1,s2
         instructions[1].type shouldBe IRDataType.BYTE
         instructions[1].reg1 shouldBe 1
         instructions[1].immediate shouldBe 2
+    }
+
+    test("test IR callfar round-trip with negative amiga LVO address") {
+        val target = Amiga500Target()
+        val tempdir = Path(System.getProperty("java.io.tmpdir"))
+        val options = CompilationOptions.builder(target)
+            .zeropage(ZeropageType.DONTUSE)
+            .noSysInit(true)
+            .compilerVersion("99.99")
+            .loadAddress(target.PROGRAM_LOAD_ADDRESS)
+            .memtopAddress(target.PROGRAM_MEMTOP_ADDRESS)
+            .outputDir(tempdir)
+            .quiet(true)
+            .build()
+        val program = IRProgram("unittest-callfar-lvo", IRSymbolTable(), options, target)
+        val block = IRBlock("main", library=false, IRBlock.Options(), Position("unittest", 1, 1, 1))
+        val sub = IRSubroutine("main.start", emptyList(), emptyList(), Position("unittest", 1, 1, 1))
+        val chunk = IRCodeChunk("main.start", null)
+        chunk.instructions += IRInstruction(
+            Opcode.CALLFAR,
+            immediate = 1,
+            address = MemoryAddress(0xfffffdd8u),
+            fcallArgs = FunctionCallArgs(emptyList(), emptyList())
+        )
+        sub += chunk
+        block += sub
+        program.addBlock(block)
+
+        val generatedFile = IRFileWriter(program, null).write()
+        val readProgram = IRFileReader().read(generatedFile)
+        generatedFile.deleteExisting()
+
+        val readSub = readProgram.blocks.single().children.single() as IRSubroutine
+        val instr = readSub.chunks.flatMap { it.instructions }.single()
+        instr.opcode shouldBe Opcode.CALLFAR
+        instr.immediate shouldBe 1
+        instr.address shouldBe MemoryAddress(0xfffffdd8u)
     }
 
     test("test IR reader parses block-level CHUNK (label and align)") {

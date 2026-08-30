@@ -17,8 +17,10 @@ internal fun compileFile(
     outputDir: Path,
     errors: IErrorReporter? = null,
     writeAssembly: Boolean = true,
+    assemble: Boolean = writeAssembly,
     varshigh: Int? = null,
-    slabshigh: Int? = null
+    varsAddress: UInt? = null,
+    newCodegen: Boolean = false
 ) : CompilationResult? {
     val filepath = fileDir.resolve(fileName)
     assumeReadableFile(filepath)
@@ -33,13 +35,13 @@ internal fun compileFile(
         showTimings = false,
         asmListfile = false,
         includeSourcelines = false,
+        newCodegen = newCodegen,
         dumpVariables = false,
         dumpSymbols = false,
         varsHighBank = varshigh,
         varsGolden = false,
-        slabsHighBank = slabshigh,
-        slabsGolden = false,
-        platform.name,
+        varsAddress = varsAddress,
+        compilationTarget = platform.name,
         breakpointCpuInstruction = null,
         printAst1 = false,
         printAst2 = false,
@@ -48,6 +50,7 @@ internal fun compileFile(
         symbolDefs = emptyMap(),
         outputDir = outputDir,
         errors = errors ?: ErrorReporterForTests(),
+        assemble = assemble
     )
     return compileProgram(args)
 }
@@ -64,12 +67,14 @@ internal fun compileText(
     outputDir: Path,
     errors: IErrorReporter? = null,
     writeAssembly: Boolean = true,
+    assemble: Boolean = writeAssembly,
     varshigh: Int? = null,
-    slabshigh: Int? = null
+    varsAddress: UInt? = null,
+    newCodegen: Boolean = false
 ) : CompilationResult? {
     val filePath = outputDir.resolve("on_the_fly_test_${sourceText.hashCode().toUInt().toString(16)}.p8")
     // we don't assumeNotExists(filePath) - should be ok to just overwrite it
     filePath.toFile().writeText(sourceText)
     return compileFile(platform, optimize, filePath.parent, filePath.name, outputDir,
-        errors=errors, writeAssembly=writeAssembly, varshigh=varshigh, slabshigh=slabshigh)
+        errors=errors, writeAssembly=writeAssembly, assemble=assemble, varshigh=varshigh, varsAddress=varsAddress, newCodegen=newCodegen)
 }

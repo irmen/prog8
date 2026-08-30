@@ -3,7 +3,7 @@
 ; be preserved across recursive calls, as opposed to queens.p8 where the
 ; recursive function only modifies global state.
 ;
-; Note: this program can be compiled for multiple target systems.
+; Note: this program can be compiled for the various CBM target systems.
 %import floats
 %import graphics
 %zeropage basicsafe

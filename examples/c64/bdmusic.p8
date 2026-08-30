@@ -18,7 +18,6 @@ sub start() {
     txt.clear_screen()
 
     repeat {
-        uword note
         for note in notes {
             ubyte note1 = lsb(note)
             ubyte note2 = msb(note)

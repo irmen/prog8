@@ -58,7 +58,6 @@ main{
         ubyte n = len(countries)
         do {
             ubyte newn=0
-            ubyte i
             for i in 1 to n-1 {
                 if strings.compare(countries[i-1].name, countries[i].name) > 0 {
                     swap(countries[i], countries[i-1])
@@ -74,7 +73,6 @@ main{
         ubyte n = len(countries)
         do {
             ubyte newn=0
-            ubyte i
             for i in 1 to n-1 {
                 if countries[i-1].population < countries[i].population {
                     swap(countries[i], countries[i-1])
@@ -90,7 +88,6 @@ main{
         ubyte n = len(countries)
         do {
             ubyte newn=0
-            ubyte i
             for i in 1 to n-1 {
                 if countries[i-1].area < countries[i].area {
                     swap(countries[i], countries[i-1])
@@ -118,4 +115,3 @@ main{
         }
     }
 }
-

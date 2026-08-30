@@ -21,7 +21,7 @@ syn region prog8Expression matchgroup=prog8AddressOp start="@(" end=")"
 syn match prog8Function "\(\<\(asm\)\?sub\>\s\+\)\@16<=\<\w\+\>"
 syn match prog8Function "\(extsub\s\+$\x\+\s\+=\s\+\)\@16<=\<\w\+\>"
 
-syn keyword prog8Statement break continue goto return asmsub sub inline extsub clobbers private
+syn keyword prog8Statement break continue goto return asmsub sub inline extsub clobbers private public
 syn match prog8Statement "\<\(asm\)\?sub\>"
 syn keyword prog8Conditional if else when then
 syn keyword prog8Conditional if_cs if_cc if_vs if_vc if_eq if_z if_ne if_nz
@@ -35,9 +35,9 @@ syn match prog8Directive "\(^\|\s\)%\(zpreserved\|zpallowed\|address\|encoding\|
 syn match prog8Directive "\(^\|\s\)%\(align\|asmbinary\|asminclude\|breakpoint\)\>"
 syn match prog8Directive "\(^\|\s\)%\(asm\|ir\)\>"
 
-syn match prog8Type "\<\%(u\?byte\|u\?word\|float\|str\|bool\|long\|\^\^\)\>"
+syn match prog8Type "\<\%(u\?byte\|u\?word\|float\|str\|bool\|long\|pointer\|\^\^\)\>"
 syn region prog8ArrayType matchgroup=prog8Type
-            \ start="\<\%(u\?byte\|u\?word\|float\|str\|bool\)\[" end="\]"
+            \ start="\<\%(u\?byte\|u\?word\|float\|str\|bool\|pointer\)\[" end="\]"
             \ transparent
 syn keyword prog8StorageClass const enum struct
 syn match prog8StorageClass "\(^\|\s\)\(@zp\|@bank\|@shared\|@nosplit\|@nozp\|@requirezp\|@align64\|@alignword\|@alignpage\|@dirty\)\>"

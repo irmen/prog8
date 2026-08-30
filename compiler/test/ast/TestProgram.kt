@@ -19,9 +19,8 @@ import prog8.code.ast.PtBlock
 import prog8.code.core.Position
 import prog8.code.source.SourceCode
 import prog8.code.target.C64Target
+import prog8.code.target.VMTarget
 import prog8tests.helpers.DummyFunctions
-import prog8tests.helpers.DummyMemsizer
-import prog8tests.helpers.DummyStringEncoder
 import prog8tests.helpers.compileText
 
 class TestProgram: FunSpec({
@@ -30,7 +29,8 @@ class TestProgram: FunSpec({
 
     context("Constructor") {
         test("withNameBuiltinsAndMemsizer") {
-            val program = Program("foo", DummyFunctions, DummyMemsizer, DummyStringEncoder)
+            val target = VMTarget()
+            val program = Program("foo", DummyFunctions, target)
             program.modules.size shouldBe PROG8_CONTAINER_MODULES.size
             program.modules[0].name shouldBe INTERNED_STRINGS_MODULENAME
             program.modules[0].program shouldBeSameInstanceAs program
@@ -40,7 +40,8 @@ class TestProgram: FunSpec({
 
     context("AddModule") {
         test("withEmptyModule") {
-            val program = Program("foo", DummyFunctions, DummyMemsizer, DummyStringEncoder)
+            val target = VMTarget()
+            val program = Program("foo", DummyFunctions, target)
             val m1 = Module(mutableListOf(), Position.DUMMY, SourceCode.Generated("bar"))
 
             val retVal = program.addModule(m1)
@@ -66,7 +67,8 @@ class TestProgram: FunSpec({
 
     context("MoveModuleToFront") {
         test("withInternedStringsModule") {
-            val program = Program("foo", DummyFunctions, DummyMemsizer, DummyStringEncoder)
+            val target = VMTarget()
+            val program = Program("foo", DummyFunctions, target)
             val m = program.modules[0]
             m.name shouldBe INTERNED_STRINGS_MODULENAME
 
@@ -76,14 +78,16 @@ class TestProgram: FunSpec({
         }
 
         test("withForeignModule") {
-            val program = Program("foo", DummyFunctions, DummyMemsizer, DummyStringEncoder)
+            val target = VMTarget()
+            val program = Program("foo", DummyFunctions, target)
             val m = Module(mutableListOf(), Position.DUMMY, SourceCode.Generated("bar"))
 
             shouldThrow<IllegalArgumentException> { program.moveModuleToFront(m) }
         }
 
         test("withFirstOfPreviouslyAddedModules") {
-            val program = Program("foo", DummyFunctions, DummyMemsizer, DummyStringEncoder)
+            val target = VMTarget()
+            val program = Program("foo", DummyFunctions, target)
             val m1 = Module(mutableListOf(), Position.DUMMY, SourceCode.Generated("bar"))
             val m2 = Module(mutableListOf(), Position.DUMMY, SourceCode.Generated("qmbl"))
             program.addModule(m1)
@@ -95,7 +99,8 @@ class TestProgram: FunSpec({
         }
 
         test("withSecondOfPreviouslyAddedModules") {
-            val program = Program("foo", DummyFunctions, DummyMemsizer, DummyStringEncoder)
+            val target = VMTarget()
+            val program = Program("foo", DummyFunctions, target)
             val m1 = Module(mutableListOf(), Position.DUMMY, SourceCode.Generated("bar"))
             val m2 = Module(mutableListOf(), Position.DUMMY, SourceCode.Generated("qmbl"))
             program.addModule(m1)
@@ -109,7 +114,8 @@ class TestProgram: FunSpec({
 
     context("Properties") {
         test("modules") {
-            val program = Program("foo", DummyFunctions, DummyMemsizer, DummyStringEncoder)
+            val target = VMTarget()
+            val program = Program("foo", DummyFunctions, target)
 
             val ms1 = program.modules
             val ms2 = program.modules

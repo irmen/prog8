@@ -706,7 +706,7 @@ main {
     sub start() {
         const uword mem1 = memory("mem1", 10, 0)
         const uword const1 = 1000
-        uword[3] arr = [mem1, const1, memory("mem2", 20, 0)]
+        pointer[3] arr = [mem1, const1, memory("mem2", 20, 0)]
     }
 }"""
         compileText(VMTarget(), false, src, outputDir, writeAssembly = true) shouldNotBe null
@@ -717,7 +717,7 @@ main {
         val src = """
 main {
     sub start() {
-        uword[3] arr = [memory("m1", 10, 0), memory("m2", 20, 0), memory("m3", 30, 0)]
+        pointer[3] arr = [memory("m1", 10, 0), memory("m2", 20, 0), memory("m3", 30, 0)]
     }
 }"""
         compileText(VMTarget(), false, src, outputDir, writeAssembly = true) shouldNotBe null
@@ -728,12 +728,12 @@ main {
         val src = """
 main {
     struct Mixed {
-        uword ptr
+        pointer ptr
         uword value
     }
     
     sub start() {
-        const uword m = memory("struct_mem", 100, 0)
+        const pointer m = memory("struct_mem", 100, 0)
         const uword v = 5000
         ^^Mixed m1 = [m, v]
         ^^Mixed m2 = [memory("mem2", 50, 0), 1234]
@@ -876,6 +876,120 @@ main {
         initValue.number.toInt() shouldBe 0x00200204
     }
 
+    test("untyped const integer defaults to long") {
+        val src = """
+main {
+    const A = 42
+    sub start() {}
+}"""
+        val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = false)!!
+        val st = result.compilerAst.allBlocks.first { it.name=="main" }.statements
+        val decl = st[0] as VarDecl
+        decl.datatype.base shouldBe BaseDataType.LONG
+        (decl.value as NumericLiteral).number shouldBe 42.0
+    }
+
+    test("untyped const float infers float type") {
+        val src = """
+main {
+    const PI = 3.14
+    sub start() {}
+}"""
+        val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = false)!!
+        val st = result.compilerAst.allBlocks.first { it.name=="main" }.statements
+        val decl = st[0] as VarDecl
+        decl.datatype.base shouldBe BaseDataType.FLOAT
+        (decl.value as NumericLiteral).number shouldBe 3.14
+    }
+
+    test("untyped const bool infers bool type") {
+        val src = """
+main {
+    const FLAG = true
+    sub start() {}
+}"""
+        val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = false)!!
+        val st = result.compilerAst.allBlocks.first { it.name=="main" }.statements
+        val decl = st[0] as VarDecl
+        decl.datatype.base shouldBe BaseDataType.BOOL
+        (decl.value as NumericLiteral).number shouldBe 1.0
+    }
+
+    test("untyped const memory() infers pointer type") {
+        val src = """
+main {
+    const M = memory("screen", 1000, 0)
+    sub start() {}
+}"""
+        compileText(VMTarget(), false, src, outputDir, writeAssembly = false) shouldNotBe null
+    }
+
+    test("untyped const integer chain defaults to long") {
+        val src = """
+main {
+    const A = 42
+    const B = A + 1
+    sub start() {}
+}"""
+        val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = false)!!
+        val st = result.compilerAst.allBlocks.first { it.name=="main" }.statements
+        val declA = st[0] as VarDecl
+        val declB = st[1] as VarDecl
+        declA.datatype.base shouldBe BaseDataType.LONG
+        declB.datatype.base shouldBe BaseDataType.LONG
+    }
+
+    test("untyped long const narrows to uword without loss") {
+        val src = """
+main {
+    const SIZE = 8191
+    sub start() {
+        uword @shared value = SIZE
+    }
+}
+"""
+        compileText(VMTarget(), false, src, outputDir, writeAssembly = false) shouldNotBe null
+    }
+
+    test("untyped const char literal defaults to long") {
+        val src = """
+main {
+    const CH = 'a'
+    sub start() {}
+}"""
+        val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = false)!!
+        val st = result.compilerAst.allBlocks.first { it.name=="main" }.statements
+        val decl = st[0] as VarDecl
+        decl.datatype.base shouldBe BaseDataType.LONG
+        (decl.value as NumericLiteral).number shouldBe 97.0
+    }
+
+    test("untyped const large integer defaults to long") {
+        val src = """
+main {
+    const LARGE = 1000000000
+    sub start() {}
+}"""
+        val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = false)!!
+        val st = result.compilerAst.allBlocks.first { it.name=="main" }.statements
+        val decl = st[0] as VarDecl
+        decl.datatype.base shouldBe BaseDataType.LONG
+        (decl.value as NumericLiteral).number shouldBe 1000000000.0
+    }
+
+    test("untyped const negative integer defaults to long") {
+        val src = """
+main {
+    const NEG = -5
+    sub start() {}
+}"""
+        val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = false)!!
+        val st = result.compilerAst.allBlocks.first { it.name=="main" }.statements
+        val decl = st[0] as VarDecl
+        decl.datatype.base shouldBe BaseDataType.LONG
+        (decl.value as NumericLiteral).number shouldBe -5.0
+    }
+
     test("mixed type bitwise operations promote to widest type") {
         // Regression test: ubyte | long was truncated to ubyte instead of promoting to long.
         // This caused MEMF_CHIP (ubyte) | MEMF_CLEAR (long) to lose the MEMF_CLEAR flag.
@@ -916,57 +1030,19 @@ main {
         xorValue.type shouldBe BaseDataType.LONG
         xorValue.number.toInt() shouldBe 0x00010002
     }
-
-    // TODO this test should be enabled again once new-codegen branch is merged
-    xtest("untyped const integer defaults to long") {
+    
+    test("explicit typed const still works unchanged") {
         val src = """
 main {
-    const A = 42
+    const ubyte X = 5
+    const float PI = 3.14
+    const bool FLAG = true
     sub start() {}
 }"""
         val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = false)!!
         val st = result.compilerAst.allBlocks.first { it.name=="main" }.statements
-        val decl = st[0] as VarDecl
-        decl.datatype.base shouldBe BaseDataType.LONG
-        (decl.value as NumericLiteral).number shouldBe 42.0
-    }
-
-    // TODO this test should be enabled again once new-codegen branch is merged
-    xtest("untyped const float infers float type") {
-        val src = """
-main {
-    const PI = 3.14
-    sub start() {}
-}"""
-        val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = false)!!
-        val st = result.compilerAst.allBlocks.first { it.name=="main" }.statements
-        val decl = st[0] as VarDecl
-        decl.datatype.base shouldBe BaseDataType.FLOAT
-        (decl.value as NumericLiteral).number shouldBe 3.14
-    }
-
-    // TODO this test should be enabled again once new-codegen branch is merged
-    xtest("untyped const bool infers bool type") {
-        val src = """
-main {
-    const FLAG = true
-    sub start() {}
-}"""
-        val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = false)!!
-        val st = result.compilerAst.allBlocks.first { it.name=="main" }.statements
-        val decl = st[0] as VarDecl
-        decl.datatype.base shouldBe BaseDataType.BOOL
-        (decl.value as NumericLiteral).number shouldBe 1.0
-    }
-
-    // TODO this test should be enabled again once new-codegen branch is merged
-    xtest("untyped const memory() infers pointer type") {
-        val src = """
-main {
-    const M = memory("screen", 1000, 0)
-    sub start() {}
-}"""
-        compileText(VMTarget(), false, src, outputDir, writeAssembly = false) shouldNotBe null
+        (st[0] as VarDecl).datatype.base shouldBe BaseDataType.UBYTE
+        (st[1] as VarDecl).datatype.base shouldBe BaseDataType.FLOAT
+        (st[2] as VarDecl).datatype.base shouldBe BaseDataType.BOOL
     }
 })
-

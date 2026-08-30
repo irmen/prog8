@@ -29,7 +29,7 @@ adpcm {
     ; The remaining bytes in the chunk are the IMA nibbles. The first 4 bytes, or 8 nibbles,
     ; belong to the left channel and -if it's stereo- the next 4 bytes belong to the right channel.
 
-    %option ignore_unused
+    %option ignore_unused, private_symbols
 
     byte[] t_index = [ -1, -1, -1, -1, 2, 4, 6, 8, -1, -1, -1, -1, 2, 4, 6, 8]
     uword[] t_step = [
@@ -53,7 +53,7 @@ adpcm {
     uword @requirezp pstep
     uword @requirezp pstep_2
 
-    sub decode_block_mono(uword @requirezp nibblesptr) {
+    public sub decode_block_mono(uword @requirezp nibblesptr) {
         ; Decodes one 256 byte block of adpcm data, into the Vera's PCM FIFO buffer.
         ; Decoded data is 16 bit mono PCM, 505 samples = 1010 bytes.
         init(peekw(nibblesptr), @(nibblesptr+2))
@@ -76,7 +76,7 @@ adpcm {
         }
     }
 
-    sub decode_block_stereo(uword @requirezp nibblesptr) {
+    public sub decode_block_stereo(uword @requirezp nibblesptr) {
         ; Decodes one 256 byte block of adpcm data, into the Vera's PCM FIFO buffer.
         ; Decoded data is 16 bit stereo PCM, 498 samples = 996 bytes.
         init(peekw(nibblesptr), @(nibblesptr+2))            ; left channel
@@ -155,6 +155,7 @@ adpcm {
             }}
         }
     }
+
 
     sub init(uword startPredict, ubyte startIndex) {
         ; initialize first decoding channel.

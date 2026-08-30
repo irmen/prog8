@@ -57,6 +57,21 @@ class IRFileReader {
             }
         }
     }
+    
+    private lateinit var options: CompilationOptions
+
+    private fun resolveStructPlaceholders(st: IRSymbolTable) {
+        // Replace IRSubtypePlaceholder subtypes (struct names read from IR text) with resolved
+        // subtypes backed by the actual IRStStructDef, so memory sizing and field lookups work.
+        for (node in st.allVariables()) {
+            val dt = node.dt
+            if (dt.subType is IRSubtypePlaceholder) {
+                val def = st.lookup((dt.subType as IRSubtypePlaceholder).scopedNameString) as? IRStStructDef
+                if (def != null)
+                    dt.subType = IRStructSubtype(def)
+            }
+        }
+    }
 
     private fun parseProgram(reader: XMLEventReader): IRProgram {
         require(reader.nextEvent().isStartDocument)
@@ -64,7 +79,7 @@ class IRFileReader {
         require(start.name.localPart=="PROGRAM") { "missing PROGRAM" }
         val programName = start.attributes.asSequence().single { it.name.localPart == "NAME" }.value
         val compilerVersion = start.attributes.asSequence().single { it.name.localPart == "COMPILERVERSION" }.value
-        val options = parseOptions(reader, compilerVersion)
+        options = parseOptions(reader, compilerVersion)
         val asmsymbols = parseAsmSymbols(reader)
 
         skipText(reader)
@@ -76,6 +91,7 @@ class IRFileReader {
         val variables = parseVariables(reader)
         val structsWithoutInit = parseStructInstancesNoInit(reader)
         val structs = parseStructInstances(reader)
+        val structDefs = parseStructDefs(reader)
         val constants = parseConstants(reader)
         val memorymapped = parseMemMapped(reader)
         val slabs = parseSlabs(reader)
@@ -96,6 +112,9 @@ class IRFileReader {
         slabs.forEach { st.add(it) }
         structs.forEach { st.add(it) }
         structsWithoutInit.forEach { st.add(it) }
+        structDefs.forEach { st.add(it) }
+
+        resolveStructPlaceholders(st)
 
         val program = IRProgram(programName, st, options, options.compTarget)
         program.addGlobalInits(initGlobals)
@@ -222,17 +241,19 @@ class IRFileReader {
     private fun parseConstant(line: String): IRStConstant {
         val match = IRFormat.CONSTANT.matchEntire(line) 
             ?: throw IRParseException("invalid CONSTANT: $line")
-        val (type, name, valueStr) = match.destructured
+        val (type, name, rawValue) = match.destructured
         if('.' !in name)
             throw IRParseException("unscoped name: $name")
         val dt = parseDatatype(type, false)
+        val noPrefix = rawValue.endsWith(" noprefix")
+        val valueStr = if(noPrefix) rawValue.removeSuffix(" noprefix") else rawValue
         val memorySlabName: String? = if(valueStr.startsWith("@$StMemorySlabBlockName.")) {
             valueStr.drop("$StMemorySlabBlockName.".length + 1)
         } else {
             null
         }
         val value: Double? = if(memorySlabName != null) null else parseIRValue(valueStr)
-        return IRStConstant(name, dt, value, memorySlabName)
+        return IRStConstant(name, dt, value, memorySlabName, noPrefix)
     }
 
     private fun parseVariables(reader: XMLEventReader): List<IRStStaticVariable> =
@@ -268,7 +289,7 @@ class IRFileReader {
 
     private fun parseInitValue(dt: DataType, value: String, arraysize: UInt?): IRVariableInitializer? {
         return when {
-            dt.isNumericOrBool -> IRVariableInitializer.Numeric(parseIRValue(value))
+            dt.isNumericOrBool || dt.isPointer -> IRVariableInitializer.Numeric(parseIRValue(value))
             dt.isBoolArray -> {
                 val elements = value.split(',').map {
                     IRStSymbolicReference.BoolValue(parseIRValue(it) != 0.0)
@@ -303,6 +324,45 @@ class IRFileReader {
         require(sizeStr[0]=="size")
         val size = sizeStr[1].toUInt()
         return IRStStructInstance(name, structName, emptyList(), size)
+    }
+
+    private fun parseStructDefs(reader: XMLEventReader): List<IRStStructDef> {
+        skipText(reader)
+        if(!reader.hasNext()) return emptyList()
+        val peek = reader.peek()
+        if(!peek.isStartElement || peek.asStartElement().name.localPart != "STRUCTDEFS")
+            return emptyList()
+        return parseSection(reader, "STRUCTDEFS") { line ->
+            val parts = line.split(' ', limit = 3)
+            val name = parts[0]
+            require(parts[1].startsWith("size="))
+            val size = parts[1].drop(5).toUInt()
+            val fields = if(parts.size > 2 && parts[2].startsWith("fields=")) {
+                val fieldsStr = parts[2].drop(7)
+                if(fieldsStr.isEmpty()) emptyList()
+                else fieldsStr.split(';').map { fieldSpec ->
+                    val spaceIdx = fieldSpec.lastIndexOf(' ')
+                    require(spaceIdx > 0) { "invalid struct field spec: $fieldSpec" }
+                    val typeStr = fieldSpec.substring(0, spaceIdx)
+                    val fieldName = fieldSpec.substring(spaceIdx + 1)
+                    val (type, arraySize) = parseStructFieldType(typeStr)
+                    IRStStructField(type, fieldName, arraySize)
+                }
+            } else emptyList()
+            IRStStructDef(name, fields, size)
+        }
+    }
+
+    private fun parseStructFieldType(typeStr: String): Pair<DataType, Int?> {
+        val bracketIdx = typeStr.indexOf('[')
+        return if(bracketIdx < 0) {
+            parseDatatype(typeStr, false) to null
+        } else {
+            require(typeStr.endsWith(']')) { "invalid array type $typeStr" }
+            val baseType = typeStr.substring(0, bracketIdx)
+            val size = typeStr.substring(bracketIdx + 1, typeStr.length - 1).toInt()
+            parseDatatype(baseType, true) to size
+        }
     }
 
     private fun parseStructInstances(reader: XMLEventReader): List<IRStStructInstance> =
@@ -412,14 +472,10 @@ class IRFileReader {
             text.lineSequence().forEach { line ->
                 if (line.isNotBlank() && !line.startsWith(';')) {
                     val result = parseIRCodeLine(line)
-                    result.fold(
-                        ifLeft = {
-                            chunk += it
-                        },
-                        ifRight = {
-                            throw IRParseException("code chunk should not contain a separate label line anymore, this should be the proper label of a new separate chunk")
-                        }
-                    )
+                    when (result) {
+                        is ParsedIRLine.Instruction -> chunk += result.value
+                        is ParsedIRLine.Label -> throw IRParseException("code chunk should not contain a separate label line anymore, this should be the proper label of a new separate chunk")
+                    }
                 }
             }
         }
@@ -452,7 +508,8 @@ class IRFileReader {
                 attrs.getOrDefault("FORCEOUTPUT", "false").toBoolean(),
                 attrs.getOrDefault("NOPREFIXING", "false").toBoolean(),
                 attrs.getOrDefault("VERAFXMULS", "false").toBoolean(),
-                attrs.getOrDefault("IGNOREUNUSED", "false").toBoolean()
+                attrs.getOrDefault("IGNOREUNUSED", "false").toBoolean(),
+                attrs.getOrDefault("AMIGACHIPRAM", "false").toBoolean()
             ),
             parsePosition(attrs.getValue("POS")))
         skipText(reader)
@@ -606,19 +663,19 @@ class IRFileReader {
                     "uword" -> DataType.arrayOfPointersTo(BaseDataType.UWORD)
                     "float" -> DataType.arrayOfPointersTo(BaseDataType.FLOAT)
                     "long" -> DataType.arrayOfPointersTo(BaseDataType.LONG)
-                    else -> DataType.arrayOfPointersTo(IRSubtypePlaceholder(type.drop(2)))
+                    else -> DataType.arrayOfPointersTo(IRSubtypePlaceholder(type.drop(1)))
                 }
             }
             return when(type) {
-                "bool" -> DataType.arrayFor(BaseDataType.BOOL, false)
-                "byte" -> DataType.arrayFor(BaseDataType.BYTE, false)
-                "ubyte", "str" -> DataType.arrayFor(BaseDataType.UBYTE, false)
-                "word" -> DataType.arrayFor(BaseDataType.WORD, false)
-                "uword" -> DataType.arrayFor(BaseDataType.UWORD, false)
-                "float" -> DataType.arrayFor(BaseDataType.FLOAT, false)
-                "long" -> DataType.arrayFor(BaseDataType.LONG, false)
+                "bool" -> DataType.arrayFor(BaseDataType.BOOL, options.compTarget)
+                "byte" -> DataType.arrayFor(BaseDataType.BYTE, options.compTarget)
+                "ubyte", "str" -> DataType.arrayFor(BaseDataType.UBYTE, options.compTarget)
+                "word" -> DataType.arrayFor(BaseDataType.WORD, options.compTarget)
+                "uword" -> DataType.arrayFor(BaseDataType.UWORD, options.compTarget)
+                "float" -> DataType.arrayFor(BaseDataType.FLOAT, options.compTarget)
+                "long" -> DataType.arrayFor(BaseDataType.LONG, options.compTarget)
                 else -> {
-                    throw IRParseException("invalid dt  $type")
+                    DataType.arrayOfStructs(IRSubtypePlaceholder(type))
                 }
             }
         } else {
@@ -632,8 +689,8 @@ class IRFileReader {
                     "uword" -> DataType.pointer(BaseDataType.UWORD)
                     "float" -> DataType.pointer(BaseDataType.FLOAT)
                     "long" -> DataType.pointer(BaseDataType.LONG)
-                    // note: 'str' should not occur anymore in IR. Should be 'uword'
-                    else -> DataType.pointer(IRSubtypePlaceholder(type.drop(2)))
+                    "str" -> error("'str' should not occur anymore in IR. Should be uword or ulong or ^^ubyte")
+                    else -> DataType.pointer(IRSubtypePlaceholder(type.drop(1)))
                 }
             }
             return when(type) {
@@ -644,7 +701,8 @@ class IRFileReader {
                 "uword" -> DataType.UWORD
                 "float" -> DataType.FLOAT
                 "long" -> DataType.LONG
-                // note: 'str' should not occur anymore in IR. Should be 'uword'
+                "pointer" -> DataType.pointer(BaseDataType.UBYTE)  // pointer-sized, resolved at runtime
+                "str" -> error("'str' should not occur anymore in IR. Should be uword or ulong or ^^ubyte")
                 else -> {
                     if('.' in type)
                         DataType.structInstance(IRSubtypePlaceholder(type))

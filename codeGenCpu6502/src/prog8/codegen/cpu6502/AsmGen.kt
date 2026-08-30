@@ -2,6 +2,8 @@ package prog8.codegen.cpu6502
 
 import com.github.michaelbull.result.fold
 import prog8.code.*
+import prog8.code.assembly.AssemblyProgram6502
+import prog8.code.assembly.IAssemblyProgram
 import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.code.source.ImportFileSystem
@@ -15,8 +17,7 @@ import kotlin.io.path.writeLines
 internal const val subroutineFloatEvalResultVar1 = "prog8_float_eval_result1"
 internal const val subroutineFloatEvalResultVar2 = "prog8_float_eval_result2"
 
-class AsmGen6502(val prefixSymbols: Boolean,
-                 private val lastGeneratedLabelSequenceNr: Int,
+class AsmGen6502(private val lastGeneratedLabelSequenceNr: Int,
                  private val preassignedCallSiteIds: Map<PtAsmSub, UByte> = emptyMap()
 ): ICodeGeneratorBackend {
     override fun generate(
@@ -25,7 +26,7 @@ class AsmGen6502(val prefixSymbols: Boolean,
         options: CompilationOptions,
         errors: IErrorReporter,
     ): IAssemblyProgram? {
-        val st = if(prefixSymbols) prefixSymbols(program, options, symbolTable) else symbolTable
+        val st = prefixSymbols(program, options, symbolTable)
         val asmgen = AsmGen6502Internal(program, st, options, errors, lastGeneratedLabelSequenceNr, preassignedCallSiteIds)
         return asmgen.compileToAssembly()
     }
@@ -99,7 +100,7 @@ class AsmGen6502Internal (
             if(options.dumpVariables)
                 dumpVariables()
 
-            return AssemblyProgram(program.name, options.outputDir, options.compTarget)
+            return AssemblyProgram6502(program.name, options.outputDir, options.compTarget)
         } else {
             errors.report()
             return null
@@ -295,7 +296,7 @@ class AsmGen6502Internal (
         }
         if (e is PtAddressOf && e.identifier != null && !e.isFromArrayElement && e.dereference == null) {
             var symbol = asmVariableName(e.identifier!!)
-            if (e.identifier!!.type.isSplitWordArray) {
+            if (e.identifier!!.type.isSplitWordArray(options.compTarget)) {
                 symbol = if (e.isMsbForSplitArray) symbol + "_msb" else symbol + "_lsb"
             }
             return Pair("#<$symbol", "#>$symbol")
@@ -441,6 +442,7 @@ class AsmGen6502Internal (
                         out("  tya |  pha")
                 }
             }
+            else -> throw AssemblyError("register not available on this target")
         }
     }
 
@@ -469,6 +471,7 @@ class AsmGen6502Internal (
                         out("  pla |  tay")
                 }
             }
+            else -> throw AssemblyError("register not available on this target")
         }
     }
 
@@ -549,6 +552,7 @@ class AsmGen6502Internal (
                     CpuRegister.A -> {}
                     CpuRegister.X -> out(" tax")
                     CpuRegister.Y -> out(" tay")
+                    else -> throw AssemblyError("register not available on this target")
                 }
             }
             expr.type.isLong -> {
@@ -558,6 +562,7 @@ class AsmGen6502Internal (
                     CpuRegister.A -> {}
                     CpuRegister.X -> out(" tax")
                     CpuRegister.Y -> out(" tay")
+                    else -> throw AssemblyError("register not available on this target")
                 }
             }
             expr.type.isFloat -> {
@@ -575,6 +580,7 @@ class AsmGen6502Internal (
                     CpuRegister.A -> {}
                     CpuRegister.X -> out(" tax")
                     CpuRegister.Y -> out(" tay")
+                    else -> throw AssemblyError("register not available on this target")
                 }
             }
             else -> throw AssemblyError("weird dt")
@@ -1937,7 +1943,7 @@ $repeatLabel""")
     private fun translate(ret: PtReturn) {
         val returnvalue = ret.children.singleOrNull() as? PtExpression      // could be a multi-value returning functioncall
         val sub = ret.definingSub()!!
-        val returnRegs = sub.returnsWhatWhere()
+        val returnRegs = sub.returnsWhatWhere(options.compTarget)
 
         if(returnvalue!=null) {
 
@@ -1950,7 +1956,7 @@ $repeatLabel""")
                 // Get the return register specs for the called function
                 val calledSub = symbolTable.lookup(fcall.name)
                 val calledReturnRegs = when(calledSub) {
-                    is StSub -> (calledSub.astNode!! as IPtSubroutine).returnsWhatWhere()
+                    is StSub -> (calledSub.astNode!! as IPtSubroutine).returnsWhatWhere(options.compTarget)
                     is StExtSub -> calledSub.returns.map { it.register to it.type }
                     else -> throw AssemblyError("unexpected subroutine type for multi-value return ${ret.position}")
                 }
@@ -1982,7 +1988,7 @@ $repeatLabel""")
             }
             else {
                 // all else take its address and assign that also to AY register pair
-                val addrOfDt = returnvalue.type.typeForAddressOf(false)
+                val addrOfDt = returnvalue.type.typeForUntypedAddressOf(false, program.memsizer)
                 val addrofValue = PtAddressOf(addrOfDt, false, returnvalue.position)
                 addrofValue.add(returnvalue)
                 addrofValue.parent = ret.parent
@@ -2157,6 +2163,13 @@ $repeatLabel""")
 
     internal fun jmp(asmLabel: String, indirect: Boolean=false, indexedX: Boolean=false) {
         if(indirect) {
+            // NOTE: `jmp (ptr)` / `jmp (ptr,x)` have the 6502 page-wrap bug
+            // on plain 6502: if the pointer's address ends in $FF, the
+            // high byte of the target is read from the same page instead
+            // of the next. 65C02 is fine. Latent: only misbehaves when the
+            // pointer variable (the operand, e.g. a computed-goto target)
+            // is placed at a $xxFF address. The new6502 codegen has the
+            // same hazard for its JUMPI/CALLI emitters.
             if(indexedX)
                 out("  jmp  ($asmLabel,x)")
             else
@@ -2234,12 +2247,22 @@ $repeatLabel""")
                 val constOffset = (ptrAndIndex.second as? PtNumber)?.number?.toInt()
                 if(addrOf!=null && constOffset!=null) {
                     if(addrOf.isFromArrayElement) {
+                        val arrayId = addrOf.identifier
+                        val arrayDt = arrayId?.type
+                        if(arrayDt?.sub == BaseDataType.STRUCT_INSTANCE) {
+                            val base = asmSymbolName(arrayId)
+                            out("  pha")
+                            assignmentAsmGen.computeStructArrayOffsetY(arrayDt, addrOf.arrayIndexExpr!!, constOffset)
+                            out("  pla")
+                            out("  sta  $base,y")
+                            return true
+                        }
                         TODO("address-of array element ${addrOf.position}")
                     } else if(addrOf.dereference!=null) {
                         throw AssemblyError("write &dereference, makes no sense at ${addrOf.position}")
                     } else {
                         var symbolName = asmSymbolName(addrOf.identifier!!)
-                        if(addrOf.identifier!!.type.isSplitWordArray) {
+                        if(addrOf.identifier!!.type.isSplitWordArray(options.compTarget)) {
                             symbolName = if(addrOf.isMsbForSplitArray) symbolName+"_msb" else symbolName+"_lsb"
                         }
                         out("  sta  $symbolName+${constOffset}")
@@ -2256,18 +2279,18 @@ $repeatLabel""")
                     out("  sta  (${asmSymbolName(pointervar)}),y")
                 } else {
                     // copy the pointer var to zp first
-                    val saveA = evalBytevalueWillClobberA(ptrAndIndex.first) || evalBytevalueWillClobberA(ptrAndIndex.second)
-                    if(saveA) out("  pha")
+                    // assignExpressionToVariable always clobbers A, so always save it
+                    out("  pha")
                     if(ptrAndIndex.second.isSimple()) {
                         assignExpressionToVariable(ptrAndIndex.first, "P8ZP_SCRATCH_W2", DataType.UWORD)
                         assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.Y)
-                        if(saveA) out("  pla")
+                        out("  pla")
                         out("  sta  (P8ZP_SCRATCH_W2),y")
                     } else {
                         pushCpuStack(BaseDataType.UBYTE,  ptrAndIndex.second)
                         assignExpressionToVariable(ptrAndIndex.first, "P8ZP_SCRATCH_W2", DataType.UWORD)
                         restoreRegisterStack(CpuRegister.Y, true)
-                        if(saveA) out("  pla")
+                        out("  pla")
                         out("  sta  (P8ZP_SCRATCH_W2),y")
                     }
                 }
@@ -2280,13 +2303,21 @@ $repeatLabel""")
             val constOffset = (ptrAndIndex.second as? PtNumber)?.number?.toInt()
             if(addrOf!=null && constOffset!=null) {
                 if(addrOf.isFromArrayElement) {
+                    val arrayId = addrOf.identifier
+                    val arrayDt = arrayId?.type
+                    if(arrayDt?.sub == BaseDataType.STRUCT_INSTANCE) {
+                        val base = asmSymbolName(arrayId)
+                        assignmentAsmGen.computeStructArrayOffsetY(arrayDt, addrOf.arrayIndexExpr!!, constOffset)
+                        out("  lda  $base,y")
+                        return true
+                    }
                     TODO("address-of array element ${addrOf.position}")
                 } else if(addrOf.dereference!=null) {
                     if(pointerGen.readByteByAddressOfDereference(addrOf, constOffset))
                         return true
                 } else {
                     var symbolName = asmSymbolName(addrOf.identifier!!)
-                    if(addrOf.identifier!!.type.isSplitWordArray) {
+                    if(addrOf.identifier!!.type.isSplitWordArray(options.compTarget)) {
                         symbolName = if(addrOf.isMsbForSplitArray) symbolName+"_msb" else symbolName+"_lsb"
                     }
                     out("  lda  $symbolName+${constOffset}")
@@ -2340,7 +2371,7 @@ $repeatLabel""")
                         throw AssemblyError("write &dereference, makes no sense at ${addrOf.position}")
                     } else {
                         var symbolName = asmSymbolName(addrOf.identifier!!)
-                        if(addrOf.identifier!!.type.isSplitWordArray) {
+                        if(addrOf.identifier!!.type.isSplitWordArray(options.compTarget)) {
                             symbolName = if(addrOf.isMsbForSplitArray) symbolName+"_msb" else symbolName+"_lsb"
                         }
                         out("  sta  $symbolName-${constOffset}")
@@ -2377,7 +2408,7 @@ $repeatLabel""")
                         TODO("read &dereference ${addrOf.position}")
                     } else {
                         var symbolName = asmSymbolName(addrOf.identifier!!)
-                        if(addrOf.identifier!!.type.isSplitWordArray) {
+                        if(addrOf.identifier!!.type.isSplitWordArray(options.compTarget)) {
                             symbolName = if(addrOf.isMsbForSplitArray) symbolName+"_msb" else symbolName+"_lsb"
                         }
                         out("  lda  $symbolName-${constOffset}")
@@ -2987,6 +3018,7 @@ $repeatLabel""")
                 CpuRegister.A -> {}
                 CpuRegister.X -> out("  txa")
                 CpuRegister.Y -> out("  tya")
+                else -> throw AssemblyError("register not available on this target")
             }
             signExtendAXlsb(if(signed) BaseDataType.BYTE else BaseDataType.UBYTE)
             out("""
@@ -3003,6 +3035,7 @@ $repeatLabel""")
                 CpuRegister.A -> out("  ldy  #$offset |  sta  ($zpPtrVar),y")
                 CpuRegister.X -> out("  txa |  ldy  #$offset |  sta  ($zpPtrVar),y")
                 CpuRegister.Y -> out("  tya |  ldy  #$offset |  sta  ($zpPtrVar),y")
+                else -> throw AssemblyError("register not available on this target")
             }
             return
         }
@@ -3019,6 +3052,7 @@ $repeatLabel""")
                 out("  tya")
                 if(isTargetCpu(CpuType.CPU65C02)) out("  sta  ($zpPtrVar)") else out("  ldy  #0 |  sta  ($zpPtrVar),y")
             }
+            else -> throw AssemblyError("register not available on this target")
         }
     }
 

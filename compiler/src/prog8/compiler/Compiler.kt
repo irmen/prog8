@@ -12,10 +12,7 @@ import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.code.optimize.optimizeSimplifiedAst
 import prog8.code.source.ImportFileSystem.expandTilde
-import prog8.code.target.ConfigFileTarget
-import prog8.code.target.Cx16Target
-import prog8.code.target.VMTarget
-import prog8.code.target.getCompilationTargetByName
+import prog8.code.target.*
 import prog8.codegen.vm.VmCodeGen
 import prog8.compiler.astprocessing.*
 import prog8.compiler.simpleastprocessing.profilingInstrumentation
@@ -27,7 +24,6 @@ import kotlin.io.path.Path
 import kotlin.io.path.absolute
 import kotlin.io.path.isRegularFile
 import kotlin.io.path.nameWithoutExtension
-import kotlin.system.exitProcess
 import kotlin.time.Duration
 import kotlin.time.DurationUnit
 import kotlin.time.measureTime
@@ -55,12 +51,12 @@ class CompilerArguments(val filepath: Path,
                         val showTimings: Boolean,
                         val asmListfile: Boolean,
                         val includeSourcelines: Boolean,
+                        val newCodegen: Boolean,
                         val dumpVariables: Boolean,
                         val dumpSymbols: Boolean,
                         val varsHighBank: Int?,
                         val varsGolden: Boolean,
-                        val slabsHighBank: Int?,
-                        val slabsGolden: Boolean,
+                        val varsAddress: UInt? = null,
                         val compilationTarget: String,
                         val breakpointCpuInstruction: String?,
                         val printAst1: Boolean,
@@ -73,7 +69,9 @@ class CompilerArguments(val filepath: Path,
                         val sourceDirs: List<String> = emptyList(),
                         val outputDir: Path = Path(""),
                         val cwd: Path = Path("").absolute(),
-                        val errors: IErrorReporter = ErrorReporter(ErrorReporter.AnsiColors))
+                        val errors: IErrorReporter = ErrorReporter(ErrorReporter.AnsiColors),
+                        val assemble: Boolean = true,
+                        val generateDocumentation: Boolean = false)
 
 
 fun compileProgram(args: CompilerArguments): CompilationResult? {
@@ -92,9 +90,16 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
         getCompilationTargetByName(args.compilationTarget)
     }
 
-    if(args.varsGolden || args.slabsGolden) {
+    if(args.varsGolden) {
         if(compTarget.BSSGOLDENRAM_END-compTarget.BSSGOLDENRAM_START==0u) {
             System.err.println("The current compilation target doesn't support Golden Ram.")
+            return null
+        }
+    }
+
+    if(compTarget.cpu.is68k) {
+        if(args.varsGolden || args.varsHighBank!=null || args.varsAddress!=null) {
+            System.err.println("The -varsgolden/-varshigh/-varsaddress options are not available on the m68k target")
             return null
         }
     }
@@ -130,31 +135,52 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                 profilingInstrumentation = args.profilingInstrumentation
                 asmListfile = args.asmListfile
                 includeSourcelines = args.includeSourcelines
+                newCodegen = args.newCodegen
                 dumpVariables = args.dumpVariables
                 dumpSymbols = args.dumpSymbols
                 breakpointCpuInstruction = args.breakpointCpuInstruction
                 ignoreFootguns = args.ignoreFootguns
                 varsHighBank = args.varsHighBank
                 varsGolden = args.varsGolden
-                slabsHighBank = args.slabsHighBank
-                slabsGolden = args.slabsGolden
+                if(args.varsAddress!=null)
+                    varsAddress = args.varsAddress
                 outputDir = args.outputDir.normalize()
                 symbolDefs = args.symbolDefs
+            }
+            // apply custom target default for vars address now so it participates in the ROMable check
+            if(compilationOptions.varsAddress==null && compilationOptions.varsGolden==false && compilationOptions.varsHighBank==null) {
+                (compilationOptions.compTarget as? ConfigFileTarget)?.varsAddress?.let {
+                    compilationOptions.varsAddress = it
+                }
             }
             resultingProgram = program
             importedFiles = imported
 
             if(compilationOptions.romable) {
-                if (!compilationOptions.varsGolden && compilationOptions.varsHighBank==null)
-                    args.errors.err("When ROMable code is selected, variables should be moved to a RAM memory region using either -varsgolden or -varshigh option", program.toplevelModule.position)
-                if (!compilationOptions.slabsGolden && compilationOptions.slabsHighBank==null)
-                    args.errors.err("When ROMable code is selected, memory() blocks should be moved to a RAM memory region using either -slabsgolden or -slabshigh option", program.toplevelModule.position)
+                val hasVars = compilationOptions.varsAddress != null || program.toplevelModule.varsAddress != null || compilationOptions.varsGolden || compilationOptions.varsHighBank!=null
+                if (!hasVars)
+                    args.errors.err("When ROMable code is selected, variables and memory slabs should be moved to a RAM memory region using either -varsgolden, -varshigh or -varsaddress option or %varsaddress directive", program.toplevelModule.position)
                 args.errors.report()
             }
 
 
             val processDuration = measureTime {
                 processAst(program, args.errors, compilationOptions)
+            }
+
+            if(compilationOptions.dumpSymbols) {
+                // symbol dump was printed, skip rest of compilation
+                // (import files have no main block, so optimization would crash)
+                return CompilationResult(
+                    resultingProgram, null, null, compilationOptions, importedFiles
+                )
+            }
+
+            if(args.generateDocumentation && args.errors.noErrors()) {
+                printDocumentation(resultingProgram)
+                return CompilationResult(
+                    resultingProgram, null, null, compilationOptions, importedFiles
+                )
             }
 
 //            println("*********** COMPILER AST RIGHT BEFORE OPTIMIZING *************")
@@ -196,7 +222,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                 }
 
                 val (intermediateAst, simplifiedAstDuration2) = measureTimedValue {
-                    val intermediateAst = SimplifiedAstMaker(program, args.errors).transform()
+                    val intermediateAst = SimplifiedAstMaker(program, args.errors, compilationOptions).transform()
                     val stMaker = SymbolTableMaker(intermediateAst, compilationOptions)
                     symbolTable = stMaker.make()
 
@@ -259,7 +285,8 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                             symbolTable,
                             args.errors,
                             compilationOptions,
-                            program.generatedLabelSequenceNumber
+                            program.generatedLabelSequenceNumber,
+                            args.assemble
                         )
                     irInstructionCount = result.irInstructionCount
                     irRegisterCount = result.irRegisterCount
@@ -369,9 +396,39 @@ internal fun determineProgramLoadAddress(program: Program, options: CompilationO
     options.memtopAddress = program.toplevelModule.memtopAddress?.first ?: options.compTarget.PROGRAM_MEMTOP_ADDRESS
 
     if(loadAddress>options.memtopAddress) {
+        val maxAddress = if(options.compTarget.POINTER_MEM_SIZE > 2u) 0xFFFFFFFFu else 0xFFFFu
         errors.warn("program load address ${loadAddress.toHex()} is beyond default memtop address ${options.memtopAddress.toHex()}. " +
-                $$"Memtop has been adjusted to $ffff to avoid assembler error. Set a valid %memtop yourself to get rid of this warning.", program.toplevelModule.position)
-        options.memtopAddress = 0xffffu
+                "Memtop has been adjusted to ${maxAddress.toHex()} to avoid assembler error. Set a valid %memtop yourself to get rid of this warning.", program.toplevelModule.position)
+        options.memtopAddress = maxAddress
+    }
+
+    // determine final varsAddress precedence:
+    // 1. %varsaddress directive overrides everything
+    // 2. CLI -varsaddress / -varsgolden / -varshigh override target default
+    // 3. target config default vars_address
+    val sourceDirective = program.toplevelModule.varsAddress
+    val hasCliRelocation = options.varsGolden || options.varsHighBank != null
+    val targetDefaultAddress = (options.compTarget as? ConfigFileTarget)?.varsAddress
+
+    val finalAddress = when {
+        sourceDirective != null -> sourceDirective.first
+        options.varsAddress != null -> options.varsAddress
+        hasCliRelocation -> null  // CLI golden/high takes precedence over target default
+        else -> targetDefaultAddress
+    }
+    options.varsAddress = finalAddress
+
+    if(options.varsAddress != null && hasCliRelocation) {
+        val pos = sourceDirective?.second ?: program.toplevelModule.position
+        errors.err("cannot combine %varsaddress directive or -varsaddress option with -varsgolden or -varshigh option", pos)
+    }
+
+    val maxAddress = if(options.compTarget.POINTER_MEM_SIZE > 2u) 0xFFFFFFFFu else 0xFFFFu
+    options.varsAddress?.let {
+        if(it > maxAddress) {
+            val pos = sourceDirective?.second ?: program.toplevelModule.position
+            errors.err("vars address must be valid integer 0..${maxAddress.toHex()}", pos)
+        }
     }
 }
 
@@ -416,10 +473,10 @@ fun parseMainModule(filepath: Path,
                     printCompileInfo: Boolean = true,
                      traceImports: Boolean = false): Triple<Program, CompilationOptions, List<Path>> {
     val bf = BuiltinFunctionsFacade(BuiltinFunctions)
-    val program = Program(filepath.nameWithoutExtension, bf, compTarget, compTarget)
+    val program = Program(filepath.nameWithoutExtension, bf, compTarget)
     bf.program = program
 
-    val importer = ModuleImporter(program, compTarget.name, errors, sourceDirs, libraryDirs, cwd, quiet, printCompileInfo, traceImports)
+    val importer = ModuleImporter(program, compTarget, errors, sourceDirs, libraryDirs, cwd, quiet, printCompileInfo, traceImports)
     val importedModuleResult = importer.importMainModule(filepath)
     importedModuleResult.onErr { throw it }
     errors.report()
@@ -428,6 +485,13 @@ fun parseMainModule(filepath: Path,
         .filter { it.isFromFilesystem }
         .map { Path(it.origin) }
     val compilerOptions = determineCompilationOptions(program, compTarget)
+
+    if(compTarget.name == Amiga500Target.NAME && compilerOptions.floats) {
+        errors.warn(
+            "floating-point code requires a 68020 or better CPU with an 68881/68882 FPU; assembler options set to -m68020 -m68881. This program will NOT run on an Amiga 500/600 or 1200 without fp coprocessor!",
+            program.toplevelModule.position
+        )
+    }
 
     // import the default modules
     importer.importImplicitLibraryModule("syslib")
@@ -470,6 +534,7 @@ internal fun determineCompilationOptions(program: Program, compTarget: ICompilat
     val floatsEnabled = "enable_floats" in allOptions
     var noSysInit = "no_sysinit" in allOptions
     val romable = "romable" in allOptions
+    val privateSymbols = "private_symbols" in allOptions
     var zpType: ZeropageType =
         if (zpoption == null)
             if (floatsEnabled) ZeropageType.FLOATSAFE else ZeropageType.KERNALSAFE
@@ -480,6 +545,10 @@ internal fun determineCompilationOptions(program: Program, compTarget: ICompilat
                 ZeropageType.KERNALSAFE
                 // error will be printed by the astchecker
             }
+
+    // On the non-6502 targets there's no zero page concept, so disable it
+    if(compTarget.cpu !in setOf(CpuType.CPU6502, CpuType.CPU65C02))
+        zpType = ZeropageType.DONTUSE
 
     val zpReserved = toplevelModule.statements
         .asSequence()
@@ -535,14 +604,23 @@ internal fun determineCompilationOptions(program: Program, compTarget: ICompilat
         .romable(romable)
         .compilerVersion(VERSION)
         .build()
+        .apply { this.privateSymbols = privateSymbols }
 }
 
 private fun processAst(program: Program, errors: IErrorReporter, compilerOptions: CompilationOptions) {
     program.preprocessAst(errors, compilerOptions)
     if(errors.noErrors() && compilerOptions.dumpSymbols) {
         printSymbols(program)
-        exitProcess(0)
+        return
     }
+
+    if(compilerOptions.compTarget.cpu.is68k) {
+        program.checkM68kSyntax(errors, compilerOptions.compTarget)
+        errors.report()
+    }
+
+    program.checkAsmSubRegisters(errors, compilerOptions.compTarget)
+    errors.report()
 
     program.checkPrivateAccess(errors)
     errors.report()
@@ -666,7 +744,8 @@ private fun createAssemblyAndAssemble(program: PtProgram,
                                       symbolTable: SymbolTable,
                                       errors: IErrorReporter,
                                       compilerOptions: CompilationOptions,
-                                      lastGeneratedLabelSequenceNr: Int
+                                      lastGeneratedLabelSequenceNr: Int,
+                                      assemble: Boolean = true
 ): AssemblyResult {
 
     val retainSSAforIR = true
@@ -686,7 +765,14 @@ private fun createAssemblyAndAssemble(program: PtProgram,
     errors.report()
 
     val asmgen = when {
-        compilerOptions.compTarget.cpu in arrayOf(CpuType.CPU6502, CpuType.CPU65C02) -> prog8.codegen.cpu6502.AsmGen6502(prefixSymbols = true, lastGeneratedLabelSequenceNr+1, asm6502CallIds)
+        compilerOptions.compTarget.cpu in arrayOf(CpuType.CPU6502, CpuType.CPU65C02) -> {
+            if(compilerOptions.newCodegen)
+                prog8.codegen.new6502.New6502CodeGenerator(retainSSAforIR, irCallIds)
+            else
+                prog8.codegen.cpu6502.AsmGen6502(lastGeneratedLabelSequenceNr+1, asm6502CallIds)
+        }
+        compilerOptions.compTarget.name == Qemu68kTarget.NAME -> prog8.codegen.m68k.M68kCodeGenerator(retainSSAforIR)
+        compilerOptions.compTarget.name == Amiga500Target.NAME -> prog8.codegen.m68k.M68kCodeGenerator(retainSSAforIR)
         compilerOptions.compTarget.name == VMTarget.NAME -> VmCodeGen(retainSSAforIR, irCallIds)
         else -> throw NotImplementedError("no code generator for cpu ${compilerOptions.compTarget.cpu}")
     }
@@ -699,10 +785,9 @@ private fun createAssemblyAndAssemble(program: PtProgram,
     val registerCount = assembly?.irRegisterCount ?: 0
 
     val success = if(assembly!=null && errors.noErrors()) {
-        assembly.assemble(compilerOptions, errors)
+        if(assemble) assembly.assemble(compilerOptions, errors) else true
     } else {
         false
     }
     return AssemblyResult(success, instructionCount, chunkCount, registerCount)
 }
-

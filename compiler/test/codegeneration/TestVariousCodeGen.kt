@@ -1,5 +1,6 @@
 package prog8tests.codegeneration
 
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.engine.spec.tempdir
@@ -12,13 +13,11 @@ import io.kotest.matchers.types.instanceOf
 import io.kotest.matchers.types.shouldBeInstanceOf
 import prog8.code.StNodeType
 import prog8.code.ast.*
+import prog8.code.core.AssemblyError
 import prog8.code.core.BaseDataType
 import prog8.code.core.DataType
 import prog8.code.target.*
-import prog8tests.helpers.ErrorReporterForTests
-import prog8tests.helpers.compileText
-import prog8tests.helpers.shouldContainInOrder
-import prog8tests.helpers.simulate
+import prog8tests.helpers.*
 import kotlin.io.path.readText
 
 class TestVariousCodeGen: FunSpec({
@@ -67,7 +66,7 @@ main {
         val text="""
 main {
     sub start() {
-        uword[3] seed
+        uword[3] @nosplit seed
         cx16.r0 = seed[0] + seed[1] + seed[2]
     }
 }"""
@@ -82,7 +81,7 @@ main {
         val seed = start.children[1] as PtVariable
         seed.name shouldBe "p8v_seed"
         seed.value shouldBe null
-        seed.type shouldBe DataType.arrayFor(BaseDataType.UWORD)
+        seed.type shouldBe DataType.arrayFor(BaseDataType.UWORD, DummyMemsizer)
         val assign = start.children[2] as PtAssignment
         assign.target.identifier!!.name shouldBe "cx16.r0"
         assign.value shouldBe instanceOf<PtBinaryExpression>()
@@ -413,6 +412,58 @@ main {
         compileText(Cx16Target(), false, src, outputDir, writeAssembly = true) shouldNotBe null
     }
 
+    test("dynamic byte and word for loops use legacy-6502-safe code") {
+        val src = """
+            main {
+                sub start() {
+                    byte b
+                    byte @shared bfrom = 1
+                    byte @shared bto = 5
+                    byte @shared bstep = 2
+                    for b in bfrom to bto step bstep {
+                        b++
+                    }
+
+                    uword w
+                    uword @shared wfrom = 1
+                    uword @shared wto = 5
+                    uword @shared wstep = 2
+                    for w in wfrom to wto step wstep {
+                        w++
+                    }
+                }
+            }
+        """.trimIndent()
+
+        listOf(C64Target(), C128Target(), PETTarget()).forEach { target ->
+            val result = compileText(target, false, src, outputDir, writeAssembly = true)!!
+            val asm = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".asm").readText()
+            asm.contains("for_modified") shouldBe false
+            asm.lines().map { it.trim() }.none { it == "stz" || it.startsWith("stz ") } shouldBe true
+            asm.lines().map { it.trim() }.none { it == "bra" || it.startsWith("bra ") } shouldBe true
+        }
+    }
+
+    test("dynamic long for loop step is rejected by the legacy backend") {
+        val src = """
+            main {
+                sub start() {
+                    long i
+                    for i in 0 to 10 step dynamicStep() {
+                    }
+                }
+
+                sub dynamicStep() -> long {
+                    return 1
+                }
+            }
+        """.trimIndent()
+
+        shouldThrow<AssemblyError> {
+            compileText(C64Target(), false, src, outputDir, writeAssembly = true)
+        }
+    }
+
     test("multiple status flags return values from asmsub") {
         val src="""
 main {
@@ -736,7 +787,7 @@ main {
     sub start() {
        str foo = "foo"
        str bar = "bar"
-       bool flag = true
+       bool @shared flag = true
        uword @shared foobar = if flag foo else bar
     }
 }"""
@@ -941,7 +992,7 @@ main {
                 sub start() {
                     str a = "hello"
                     str b = "world"
-                    bool flag = true
+                    bool @shared flag = true
                     ^^ubyte p = if flag then a else b
                 }
             }

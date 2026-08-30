@@ -1,0 +1,30 @@
+; all library modules for the qemu68k compiler target
+
+%import arexx
+%import buffers
+%import blitter
+%import copper
+%import iffparse
+%import icon
+%import compression
+%import coroutines
+%import custom
+%import conv
+%import floats
+%import lists
+%import lineclip
+%import math
+%import prog8_lib
+%import sorting
+%import strings
+%import syslib
+%import textio
+%import wavfile
+%import exec
+%import dos
+%import graphics
+%import intuition
+%import utility
+%import timer
+%import audio
+%import ptplayer

@@ -257,7 +257,7 @@ class StMemVar(name: String,
 
     init{
         require(!dt.isString)
-        if(dt.isStringly && !dt.isWord)
+        if(dt.isArray)
             requireNotNull(length)
     }
 }

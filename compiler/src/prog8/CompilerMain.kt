@@ -1,13 +1,22 @@
 package prog8
 
-import kotlinx.cli.*
+import com.github.ajalt.clikt.core.CliktCommand
+import com.github.ajalt.clikt.core.CliktError
+import com.github.ajalt.clikt.core.context
+import com.github.ajalt.clikt.core.parse
+import com.github.ajalt.clikt.parameters.arguments.argument
+import com.github.ajalt.clikt.parameters.arguments.multiple
+import com.github.ajalt.clikt.parameters.options.default
+import com.github.ajalt.clikt.parameters.options.flag
+import com.github.ajalt.clikt.parameters.options.multiple
+import com.github.ajalt.clikt.parameters.options.option
+import com.github.ajalt.clikt.parameters.types.choice
+import com.github.ajalt.clikt.parameters.types.int
 import prog8.ast.AstException
+import prog8.code.core.toHex
 import prog8.code.source.ImportFileSystem
 import prog8.code.source.ImportFileSystem.expandTilde
-import prog8.code.target.CompilationTargets
-import prog8.code.target.Cx16Target
-import prog8.code.target.VMTarget
-import prog8.code.target.getCompilationTargetByName
+import prog8.code.target.*
 import prog8.compiler.*
 import prog8.intermediate.IRFileReader
 import prog8.intermediate.Opcode
@@ -43,58 +52,79 @@ fun main(args: Array<String>) {
 
 fun pathFrom(stringPath: String, vararg rest: String): Path  = FileSystems.getDefault().getPath(stringPath, *rest)
 
+private fun parseAddressArg(value: String): UInt {
+    val v = value.trim()
+    return when {
+        v.startsWith("0x") -> v.drop(2).toUInt(16)
+        v.startsWith("$") -> v.drop(1).toUInt(16)
+        v.startsWith("%") -> v.drop(1).toUInt(2)
+        else -> v.toUInt()
+    }
+}
 
-private fun compileMain(args: Array<String>): Boolean {
-    val cli = ArgParser("prog8c", prefixStyle = ArgParser.OptionPrefixStyle.JVM)
-    val asmListfile by cli.option(ArgType.Boolean, fullName = "asmlist", description = "make the assembler produce a listing file as well")
-    val breakpointCpuInstruction by cli.option(ArgType.Choice(listOf("brk", "stp"), { it }), fullName = "breakinstr", description = "the CPU instruction to use as well for %breakpoint")
-    val bytes2float by cli.option(ArgType.String, fullName = "bytes2float", description = "convert a comma separated list of bytes from the target system to a float value. NOTE: you need to supply a target option too, and also still have to supply a dummy module file name as well!")
-    val checkSource by cli.option(ArgType.Boolean, fullName = "check", description = "quickly check program for errors, no output will be produced")
-    val symbolDefs by cli.option(ArgType.String, fullName = "D", description = "define assembly symbol(s) with -D SYMBOL=VALUE").multiple()
-    val dumpSymbols by cli.option(ArgType.Boolean, fullName = "dumpsymbols", description = "print a dump of the variable declarations and subroutine signatures")
-    val dumpVariables by cli.option(ArgType.Boolean, fullName = "dumpvars", description = "print a dump of the variables in the program")
-    val libSearch by cli.option(ArgType.String, fullName = "libsearch", description = "search for a regex pattern in the embedded library files")
-    val libDump by cli.option(ArgType.String, fullName = "libdump", description = "dump all the embedded library files into the specified output directory")
-    val startEmulator1 by cli.option(ArgType.Boolean, fullName = "emu", description = "auto-start emulator after successful compilation")
-    val startEmulator2 by cli.option(ArgType.Boolean, fullName = "emu2", description = "auto-start alternative emulator after successful compilation")
-    val float2bytes by cli.option(ArgType.String, fullName = "float2bytes", description = "convert floating point number to a list of bytes for the target system. NOTE: you need to supply a target option too, and also still have to supply a dummy module file name as well!")
-    val ignoreFootguns by cli.option(ArgType.Boolean, fullName = "ignorefootguns", description = "don't print warnings for 'footgun' issues:  'Yes I know I'm treading on mighty thin ice here'.")
-    val profilingInstrumentation by cli.option(ArgType.Boolean, fullName = "profiling", description = "add subroutine profiling instrumentation (cx16 only).")
-    val dontWriteAssembly by cli.option(ArgType.Boolean, fullName = "noasm", description="don't create assembly code")
-    val dontOptimize by cli.option(ArgType.Boolean, fullName = "noopt", description = "don't perform code optimizations")
-    val outputDir by cli.option(ArgType.String, fullName = "out", description = "directory for output files instead of current directory").default(".")
-    val plainText by cli.option(ArgType.Boolean, fullName = "plaintext", description = "output only plain text, no colors or fancy symbols")
-    val printAst1 by cli.option(ArgType.Boolean, fullName = "printast1", description = "print out the internal compiler AST")
-    val printAst2 by cli.option(ArgType.Boolean, fullName = "printast2", description = "print out the simplified AST that is used for code generation")
-    val quietAll by cli.option(ArgType.Boolean, fullName = "quiet", description = "don't print compiler and assembler messages, except warnings and errors")
-    val quietAssembler by cli.option(ArgType.Boolean, fullName = "quietasm", description = "don't print assembler messages")
-    val slabsGolden by cli.option(ArgType.Boolean, fullName = "slabsgolden", description = "put memory() slabs in 'golden ram' memory area instead of at the end of the program. On the cx16 target this is $0400-07ff. This is unavailable on other systems.")
-    val slabsHighBank by cli.option(ArgType.Int, fullName = "slabshigh", description = "put memory() slabs in high memory area instead of at the end of the program. On the cx16 target the value specifies the HIRAM bank to use, on other systems this value is ignored.")
-    val dontIncludeSourcelines by cli.option(ArgType.Boolean, fullName = "nosourcelines", description = "do not include original Prog8 source lines in generated asm code")
-    val sourceDirs by cli.option(ArgType.String, fullName="srcdirs", description = "list of extra paths, separated with ${File.pathSeparator}, to search in for imported modules. These are prepended to the module search path and have the highest priority.").multiple().delimiter(File.pathSeparator)
-    val compilationTarget by cli.option(ArgType.String, fullName = "target", description = "target output of the compiler (one of ${CompilationTargets.joinToString(",")} or a custom target properties file) (required)")
-    val showTimings by cli.option(ArgType.Boolean, fullName = "timings", description = "show internal compiler timings (for performance analysis)")
-    val varsGolden by cli.option(ArgType.Boolean, fullName = "varsgolden", description = "put uninitialized variables in 'golden ram' memory area instead of at the end of the program. On the cx16 target this is $0400-07ff. This is unavailable on other systems.")
-    val varsHighBank by cli.option(ArgType.Int, fullName = "varshigh", description = "put uninitialized variables in high memory area instead of at the end of the program. On the cx16 target the value specifies the HIRAM bank to use, on other systems this value is ignored.")
-    val startVm by cli.option(ArgType.Boolean, fullName = "vm", description = "run a .p8ir IR source file in the embedded VM")
-    val vmTrace by cli.option(ArgType.Boolean, fullName = "vmtrace", description = "trace VM execution instruction by instruction (use with -vm or -emu)")
-    val traceImports by cli.option(ArgType.Boolean, fullName = "traceimports", description = "trace all module imports and loads")
-    val warnSymbolShadowing by cli.option(ArgType.Boolean, fullName = "warnshadow", description="show assembler warnings about symbol shadowing")
-    val warnImplicitTypeCasts by cli.option(ArgType.Boolean, fullName = "warnimplicitcasts", description="show compiler warnings about implicit casts from a smaller to a larger type")
-    val watchMode by cli.option(ArgType.Boolean, fullName = "watch", description = "continuous compilation mode (watch for file changes)")
-    val version by cli.option(ArgType.Boolean, fullName = "version", description = "print compiler version and exit")
-    val compareIR by cli.option(ArgType.String, fullName = "compareir", description = "compare generated .p8ir file with existing .p8ir file")
-    val daemonMode by cli.option(ArgType.Boolean, fullName = "daemon", description = "use the prog8c compilation daemon (auto-starts it if not running)")
-    val moduleFiles by cli.argument(ArgType.String, fullName = "modules", description = "main module file(s) to compile").optional().multiple(999)
-
-    try {
-        cli.parse(args)
-    } catch (e: IllegalStateException) {
-        banner()
-        System.err.println(e.message)
-        return false
+private class CompilerCli : CliktCommand(name = "prog8c") {
+    init {
+        context {
+            helpOptionNames = setOf("-h", "-help", "--help")
+        }
     }
 
+    val asmListfile by option("-asmlist", "--asmlist", help = "make the assembler produce a listing file as well").flag()
+    val breakpointCpuInstruction by option("-breakinstr", "--breakinstr", help = "the CPU instruction to use as well for %breakpoint").choice("brk", "stp")
+    val bytes2float by option("-bytes2float", "--bytes2float", help = "convert a comma separated list of bytes from the target system to a float value")
+    val checkSource by option("-check", "--check", help = "quickly check program for errors, no output will be produced").flag()
+    val symbolDefs by option("-D", "--D", help = "define assembly symbol(s) with -D SYMBOL=VALUE").multiple()
+    val dumpSymbols by option("-dumpsymbols", "--dumpsymbols", help = "print a dump of the variable declarations and subroutine signatures").flag()
+    val generateDocumentation by option("-gendoc", "--gendoc", help = "print AST nodes with documentation comments").flag()
+    val dumpVariables by option("-dumpvars", "--dumpvars", help = "print a dump of the variables in the program").flag()
+    val libSearch by option("-libsearch", "--libsearch", help = "search for a regex pattern in the embedded library files")
+    val libDump by option("-libdump", "--libdump", help = "dump all the embedded library files into the specified output directory")
+    val startEmulator1 by option("-emu", "--emu", help = "auto-start emulator after successful compilation").flag()
+    val startEmulator2 by option("-emu2", "--emu2", help = "auto-start alternative emulator after successful compilation").flag()
+    val newCodegen by option("-newcodegen", "--newcodegen", help = "use experimental/alternative 6502 codegen based on IR instead of AST").flag()
+    val float2bytes by option("-float2bytes", "--float2bytes", help = "convert floating point number to a list of bytes for the target system")
+    val ignoreFootguns by option("-ignorefootguns", "--ignorefootguns", help = "don't print warnings for 'footgun' issues").flag()
+    val profilingInstrumentation by option("-profiling", "--profiling", help = "add subroutine profiling instrumentation (cx16 only)").flag()
+    val dontWriteAssembly by option("-noasm", "--noasm", help = "don't create assembly code").flag()
+    val dontOptimize by option("-noopt", "--noopt", help = "don't perform code optimizations").flag()
+    val outputDir by option("-out", "--out", help = "directory for output files instead of current directory").default(".")
+    val plainText by option("-plaintext", "--plaintext", help = "output only plain text, no colors or fancy symbols").flag()
+    val printAst1 by option("-printast1", "--printast1", help = "print out the internal compiler AST").flag()
+    val printAst2 by option("-printast2", "--printast2", help = "print out the simplified AST that is used for code generation").flag()
+    val quietAll by option("-quiet", "--quiet", help = "don't print compiler and assembler messages, except warnings and errors").flag()
+    val quietAssembler by option("-quietasm", "--quietasm", help = "don't print assembler messages").flag()
+    val dontIncludeSourcelines by option("-nosourcelines", "--nosourcelines", help = "do not include original Prog8 source lines in generated asm code").flag()
+    val sourceDirs by option("-srcdirs", "--srcdirs", help = "extra paths to search for imported modules").multiple()
+    val compilationTarget by option("-target", "--target", help = "target output of the compiler (one of ${CompilationTargets.joinToString(",")} or a custom target properties file)")
+    val showTimings by option("-timings", "--timings", help = "show internal compiler timings").flag()
+    val varsGolden by option("-varsgolden", "--varsgolden", help = "put uninitialized variables and memory slabs in golden ram").flag()
+    val varsHighBank by option("-varshigh", "--varshigh", help = "put uninitialized variables and memory slabs in high memory area").int()
+    val varsAddressStr by option("-varsaddress", "--varsaddress", help = "put uninitialized variables and memory slabs at given address (e.g. $8000 or 32768)")
+    val startVm by option("-vm", "--vm", help = "run a .p8ir IR source file in the embedded VM").flag()
+    val vmTrace by option("-vmtrace", "--vmtrace", help = "trace VM execution instruction by instruction").flag()
+    val traceImports by option("-traceimports", "--traceimports", help = "trace all module imports and loads").flag()
+    val warnSymbolShadowing by option("-warnshadow", "--warnshadow", help = "show assembler warnings about symbol shadowing").flag()
+    val warnImplicitTypeCasts by option("-warnimplicitcasts", "--warnimplicitcasts", help = "show compiler warnings about implicit casts").flag()
+    val watchMode by option("-watch", "--watch", help = "continuous compilation mode").flag()
+    val version by option("-version", "--version", help = "print compiler version and exit").flag()
+    val compareIR by option("-compareir", "--compareir", help = "compare generated .p8ir file with existing .p8ir file")
+    val daemonMode by option("-daemon", "--daemon", help = "use the prog8c compilation daemon").flag()
+    val moduleFiles by argument().multiple()
+
+    override fun run() = Unit
+}
+
+
+private fun compileMain(args: Array<String>): Boolean {
+    val cli = CompilerCli()
+    try {
+        cli.parse(args)
+    } catch (e: CliktError) {
+        cli.echoFormattedHelp(e)
+        return e.statusCode == 0
+    }
+
+    with(cli) {
     if(version==true) {
         banner()
         return true
@@ -127,9 +157,9 @@ private fun compileMain(args: Array<String>): Boolean {
         return false
     }
 
-    val srcdirs = sourceDirs.map { expandTilde(it) }
+    val srcdirs = sourceDirs.flatMap { it.split(File.pathSeparator) }.map { expandTilde(it) }
 
-    if(startVm==null) {
+    if(!startVm) {
         if(compilationTarget==null) {
             System.err.println("No compilation target specified")
             return false
@@ -163,22 +193,32 @@ private fun compileMain(args: Array<String>): Boolean {
         return false
     }
 
-    if (varsGolden==true) {
-        if (varsHighBank!=null || slabsHighBank!=null) {
-            System.err.println("Either use varsgolden or varshigh (and slabsgolden or slabshigh), not both or mixed.")
-            return false
-        }
+    val varsAddress: UInt? = try {
+        varsAddressStr?.let { parseAddressArg(it) }
+    } catch(_: Exception) {
+        System.err.println("Invalid -varsaddress value: $varsAddressStr")
+        return false
     }
-    if (slabsGolden==true) {
-        if (varsHighBank!=null || slabsHighBank!=null) {
-            System.err.println("Either use golden or high ram, not both.")
-            return false
-        }
+    val maxCliAddress = if(compilationTarget in setOf(Amiga500Target.NAME, Qemu68kTarget.NAME, VMTarget.NAME)) 0xFFFFFFFFu else 0xFFFFu
+    if(varsAddress!=null && varsAddress > maxCliAddress) {
+        System.err.println("vars address must be valid integer 0..${maxCliAddress.toHex()}")
+        return false
     }
 
-    if(varsHighBank!=null && slabsHighBank!=null && varsHighBank!=slabsHighBank) {
-        System.err.println("Vars and slabs high memory bank must be the same.")
+    if(varsGolden==true && varsHighBank!=null) {
+        System.err.println("Either use -varsgolden or -varshigh, not both.")
         return false
+    }
+    if(varsAddress!=null && (varsGolden==true || varsHighBank!=null)) {
+        System.err.println("Either use -varsaddress or -varsgolden/-varshigh, not both.")
+        return false
+    }
+
+    if(compilationTarget in setOf(Amiga500Target.NAME, Qemu68kTarget.NAME)) {
+        if(varsGolden || varsHighBank!=null || varsAddress!=null) {
+            System.err.println("The -varsgolden/-varshigh/-varsaddress options are not available on the m68k target")
+            return false
+        }
     }
 
     if(startVm==true) {
@@ -210,12 +250,12 @@ private fun compileMain(args: Array<String>): Boolean {
                     showTimings == true,
                     asmListfile == true,
                     dontIncludeSourcelines != true,
+                    newCodegen == true,
                     dumpVariables == true,
                     dumpSymbols == true,
                     varsHighBank,
                     varsGolden == true,
-                    slabsHighBank,
-                    slabsGolden == true,
+                    varsAddress,
                     compilationTarget!!,
                     breakpointCpuInstruction,
                     printAst1 == true,
@@ -227,7 +267,9 @@ private fun compileMain(args: Array<String>): Boolean {
                     processedSymbols,
                     srcdirs,
                     outputPath,
-                    errors = ErrorReporter(txtcolors)
+                    errors = ErrorReporter(txtcolors),
+                    assemble = true,
+                    generateDocumentation = generateDocumentation == true
                 )
                 val compilationResult = compileProgram(compilerArgs)
 
@@ -296,12 +338,12 @@ private fun compileMain(args: Array<String>): Boolean {
                 showTimings == true,
                 asmListfile == true,
                 dontIncludeSourcelines != true,
+                newCodegen == true,
                 dumpVariables == true,
                 dumpSymbols == true,
                 varsHighBank,
                 varsGolden == true,
-                slabsHighBank,
-                slabsGolden == true,
+                varsAddress,
                 compilationTarget!!,
                 breakpointCpuInstruction,
                 printAst1 == true,
@@ -314,7 +356,9 @@ private fun compileMain(args: Array<String>): Boolean {
                 absoluteSrcDirs,
                 outputPath,
                 cwd = Path.of(System.getProperty("user.dir")),
-                errors = ErrorReporter(txtcolors)
+                errors = ErrorReporter(txtcolors),
+                assemble = true,
+                generateDocumentation = generateDocumentation == true
             )
             val response = compileViaDaemon(compilerArgs, plainText == true)
             if (response == null || !response.ok)
@@ -362,12 +406,12 @@ private fun compileMain(args: Array<String>): Boolean {
                     showTimings == true,
                     asmListfile == true,
                     dontIncludeSourcelines != true,
+                    newCodegen == true,
                     dumpVariables == true,
                     dumpSymbols==true,
                     varsHighBank,
                     varsGolden == true,
-                    slabsHighBank,
-                    slabsGolden == true,
+                    varsAddress,
                     compilationTarget!!,
                     breakpointCpuInstruction,
                     printAst1 == true,
@@ -379,7 +423,9 @@ private fun compileMain(args: Array<String>): Boolean {
                     processedSymbols,
                     srcdirs,
                     outputPath,
-                    errors = ErrorReporter(txtcolors)
+                    errors = ErrorReporter(txtcolors),
+                    assemble = true,
+                    generateDocumentation = generateDocumentation == true
                 )
                 val result = compileProgram(compilerArgs)
 
@@ -421,6 +467,7 @@ private fun compileMain(args: Array<String>): Boolean {
     }
 
     return true
+    }
 }
 
 private fun banner() {
@@ -689,10 +736,13 @@ private fun compileViaDaemon(compilerArgs: CompilerArguments, plainText: Boolean
     val socketPath = CompilerDaemon.getDefaultSocketPath()
     var channel = connectToDaemon(socketPath)
     var wasExisting = true
+    // Suppress the informational daemon messages when output should be quiet,
+    // or when only a symbol/variable dump is requested (its output must not be polluted).
+    val silent = compilerArgs.quietAll || compilerArgs.dumpSymbols || compilerArgs.dumpVariables
 
     if (channel == null) {
         wasExisting = false
-        println("Starting prog8c daemon...")
+        if (!silent) println("Starting prog8c daemon...")
         if (!startDaemonProcess()) {
             System.err.println("Failed to start prog8c daemon")
             return null
@@ -702,9 +752,9 @@ private fun compileViaDaemon(compilerArgs: CompilerArguments, plainText: Boolean
             System.err.println("prog8c daemon did not start in time")
             return null
         }
-        println("prog8c daemon started.")
+        if (!silent) println("prog8c daemon started.")
     } else {
-        println("Using existing prog8c daemon at $socketPath")
+        if (!silent) println("Using existing prog8c daemon at $socketPath")
     }
 
     printCompileStart(compilerArgs)
@@ -713,7 +763,7 @@ private fun compileViaDaemon(compilerArgs: CompilerArguments, plainText: Boolean
 
     // Existing daemon rejected us (version mismatch) and has self-terminated.
     // Start a fresh daemon.
-    println("Starting new prog8c daemon (previous was stale)...")
+    if (!silent) println("Starting new prog8c daemon (previous was stale)...")
     if (!startDaemonProcess()) {
         System.err.println("Failed to start prog8c daemon")
         return null
@@ -723,7 +773,7 @@ private fun compileViaDaemon(compilerArgs: CompilerArguments, plainText: Boolean
         System.err.println("prog8c daemon did not start in time")
         return null
     }
-    println("prog8c daemon (new) started.")
+    if (!silent) println("prog8c daemon (new) started.")
 
     return communicateWithDaemon(channel, compilerArgs, plainText)
 }
@@ -807,12 +857,12 @@ private fun communicateWithDaemon(channel: SocketChannel, compilerArgs: Compiler
             showTimings = compilerArgs.showTimings,
             asmListfile = compilerArgs.asmListfile,
             includeSourcelines = compilerArgs.includeSourcelines,
+            newCodegen = compilerArgs.newCodegen,
             dumpVariables = compilerArgs.dumpVariables,
             dumpSymbols = compilerArgs.dumpSymbols,
             varsHighBank = compilerArgs.varsHighBank,
             varsGolden = compilerArgs.varsGolden,
-            slabsHighBank = compilerArgs.slabsHighBank,
-            slabsGolden = compilerArgs.slabsGolden,
+            varsAddress = compilerArgs.varsAddress,
             compilationTarget = compilerArgs.compilationTarget,
             breakpointCpuInstruction = compilerArgs.breakpointCpuInstruction,
             printAst1 = compilerArgs.printAst1,
@@ -823,7 +873,8 @@ private fun communicateWithDaemon(channel: SocketChannel, compilerArgs: Compiler
             symbolDefs = compilerArgs.symbolDefs,
             sourceDirs = compilerArgs.sourceDirs,
             outputDir = compilerArgs.outputDir.toString(),
-            cwd = compilerArgs.cwd.toString()
+            cwd = compilerArgs.cwd.toString(),
+            generateDocumentation = compilerArgs.generateDocumentation
         )
 
         val requestJson = DaemonProtocol.encodeRequest(request)

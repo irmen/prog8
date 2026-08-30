@@ -82,8 +82,14 @@ Tag         Effect
 @dirty      the variable won't be set to zero when entering the subroutine (note: it will still be set to zero once on program startup, like all other uninitialized variables). You'll usually have to make sure to assign a value yourself before using the variable! This is used to reduce overhead in certain scenarios. 🦶🔫 Footgun warning.
 ==========  ======
 
+.. note::
+    The ``@zp``, ``@requirezp`` and ``@nozp`` tags are only meaningful on the 6502 targets.
+    The m68k targets have no zero page; there these tags are accepted but ignored, and the
+    compiler notes their redundancy.
+
 .. _private-variables:
 .. index:: pair: Variables; Private
+.. index:: pair: Variables; Public
 
 You can use the ``private`` keyword (must come first, before the datatype and any tags) to make a variable or constant invisible from outside its block::
 
@@ -92,6 +98,16 @@ You can use the ``private`` keyword (must come first, before the datatype and an
     private const ubyte fixed_value = 99
 
 This makes the variable only accessible within the block where it's declared. Accessing it from another block will result in a compilation error.
+
+You can also use the ``public`` keyword to explicitly mark a variable or constant as accessible from other blocks.
+This is especially useful with ``%option private_symbols`` which makes all symbols private by default::
+
+    %option private_symbols
+
+    main {
+        public ubyte visible = 10
+        ubyte hidden = 20      ; only accessible within this block
+    }
 
 
 Variables can be defined inside any scope (blocks, subroutines etc.) See :ref:`blocks`.
@@ -149,9 +165,9 @@ This (re)initialization is also done on each subroutine entry for the variables 
 
 There may be certain scenarios where this initialization is redundant and/or where you want to avoid the overhead of it.
 In some cases, Prog8 itself can detect that a variable doesn't need a separate automatic initialization to zero, if
-it's trivial that it is not being read between the variable's declaration and the first assignment. For instance, when
-you declare a variable immediately before a for loop where it is the loop variable. However Prog8 is not yet very smart
-at detecting these redundant initializations. If you want to be sure, check the generated assembly output.
+it's trivial that it is not being read between the variable's declaration and the first assignment. This also applies
+to a loop variable introduced implicitly by a ``for`` statement. However Prog8 is not yet very smart at detecting these redundant
+initializations. If you want to be sure, check the generated assembly output.
 
 In any case, you can use the ``@dirty`` tag on the variable declaration to make the variable *not* being reinitialized
 when entering the subroutine (it will still be set to 0 once at program startup).
@@ -210,6 +226,20 @@ Variables on the other hand can't be optimized as much, need memory, and more co
 Note that a subset of the library routines in the ``math``, ``strings`` and ``floats`` modules are recognised in
 compile time expressions. For example, the compiler knows what ``math.sin8u(12)`` is and replaces it with the computed result.
 
+The type of a constant can be omitted. When omitted, the type is inferred from the initializer expression:
+- Integer literals default to ``long``
+- Float literals default to ``float``
+- Boolean literals default to ``bool``
+- ``memory()`` calls default to ``uword`` (or ``long`` on 32-bit targets)
+- All other expressions default to ``long``
+
+Examples::
+
+    const long SCREEN_WIDTH = 320    ; explicit type
+    const SCREEN_HEIGHT = 240        ; inferred as long
+    const PI = 3.14                  ; inferred as float
+    const DEBUG = true               ; inferred as bool
+
 Enums
 -----
 .. index:: single: Enums
@@ -238,35 +268,41 @@ Data Types
 
 Prog8 supports the following data types:
 
-===============  =======================  =================  =========================================
-type identifier  type                     storage size       example var declaration and literal value
-===============  =======================  =================  =========================================
-``byte``         signed byte              1 byte = 8 bits    ``byte myvar = -22``
-``ubyte``        unsigned byte            1 byte = 8 bits    ``ubyte myvar = $8f``,   ``ubyte c = 'a'``
-``bool``         boolean                  1 byte = 8 bits    ``bool myvar = true`` or ``bool myvar = false``
-``word``         signed word              2 bytes = 16 bits  ``word myvar = -12345``
-``uword``        unsigned word            2 bytes = 16 bits  ``uword myvar = $8fee``
-``long``         signed 32 bits integer   4 bytes            ``long large = $12345678``
-                                                             there is no unsigned long type at the moment.
-``float``        floating-point           5 bytes = 40 bits  ``float myvar = 1.2345``
-                                                             stored in 5-byte cbm MFLPT format
-``byte[x]``      signed byte array        x bytes            ``byte[4] myvar``
-``ubyte[x]``     unsigned byte array      x bytes            ``ubyte[4] myvar``
-``word[x]``      signed word array        2*x bytes          ``word[4] myvar``
-``uword[x]``     unsigned word array      2*x bytes          ``uword[4] myvar``
-``float[x]``     floating-point array     5*x bytes          ``float[4] myvar``.   The 5 bytes per float is on CBM targets.
-``bool[x]``      boolean array            x bytes            ``bool[4] myvar``  note: consider using bit flags in a byte or word instead to save space
-``byte[]``       signed byte array        depends on value   ``byte[] myvar = [1, 2, 3, 4]``
-``ubyte[]``      unsigned byte array      depends on value   ``ubyte[] myvar = [1, 2, 3, 4]``
-``word[]``       signed word array        depends on value   ``word[] myvar = [1, 2, 3, 4]``
-``uword[]``      unsigned word array      depends on value   ``uword[] myvar = [1, 2, 3, 4]``
-``float[]``      floating-point array     depends on value   ``float[] myvar = [1.1, 2.2, 3.3, 4.4]``
-``bool[]``       boolean array            depends on value   ``bool[] myvar = [true, false, true]``  note: consider using bit flags in a byte or word instead to save space
-``str[]``        array with string ptrs   2*x bytes + strs   ``str[] names = ["ally", "pete"]``  note: equivalent to a uword array.
-``str``          string (PETSCII)         varies             ``str myvar = "hello."``
-                                                             implicitly terminated by a 0-byte
-``^^type``       typed pointer            2 bytes            pointer types are explained in their own chapter :ref:`pointers`
-===============  =======================  =================  =========================================
+==================  =======================  ======================  =========================================
+type identifier     type                     storage size            example var declaration and literal value
+==================  =======================  ======================  =========================================
+``byte``            signed byte              1 byte = 8 bits         ``byte myvar = -22``
+``ubyte``           unsigned byte            1 byte = 8 bits         ``ubyte myvar = $8f``,   ``ubyte c = 'a'``
+``bool``            boolean                  1 byte = 8 bits         ``bool myvar = true`` or ``bool myvar = false``
+``word``            signed word              2 bytes = 16 bits       ``word myvar = -12345``
+``uword``           unsigned word            2 bytes = 16 bits       ``uword myvar = $8fee``
+``long``            signed 32 bits integer   4 bytes                 ``long large = $12345678``
+                                                                      there is no unsigned long type at the moment.
+``float``           floating-point           5 bytes = 40 bits       ``float myvar = 1.2345``
+                                                                      stored in 5-byte cbm MFLPT format
+``byte[x]``         signed byte array        x bytes                 ``byte[4] myvar``
+``ubyte[x]``        unsigned byte array      x bytes                 ``ubyte[4] myvar``
+``word[x]``         signed word array        2*x bytes               ``word[4] myvar``
+``uword[x]``        unsigned word array      2*x bytes               ``uword[4] myvar``
+``float[x]``        floating-point array     5*x bytes               ``float[4] myvar``.   The 5 bytes per float is on CBM targets.
+``bool[x]``         boolean array            x bytes                 ``bool[4] myvar``  note: consider using bit flags in a byte or word instead to save space
+``byte[]``          signed byte array        depends on value        ``byte[] myvar = [1, 2, 3, 4]``
+``ubyte[]``         unsigned byte array      depends on value        ``ubyte[] myvar = [1, 2, 3, 4]``
+``word[]``          signed word array        depends on value        ``word[] myvar = [1, 2, 3, 4]``
+``uword[]``         unsigned word array      depends on value        ``uword[] myvar = [1, 2, 3, 4]``
+``float[]``         floating-point array     depends on value        ``float[] myvar = [1.1, 2.2, 3.3, 4.4]``
+``bool[]``          boolean array            depends on value        ``bool[] myvar = [true, false, true]``  note: consider using bit flags in a byte or word instead to save space
+``str[]``           array with string ptrs   2*x bytes + strs        ``str[] names = ["ally", "pete"]``  note: equivalent to a uword array.
+``str``             string (PETSCII)         varies                  ``str myvar = "hello."``
+                                                                      implicitly terminated by a 0-byte
+``StructType[x]``   array of struct inst.    x * sizeof(struct)      ``Enemy[10] enemies``  see :ref:`structarrays`
+``^^type``          typed pointer            2 or 4 bytes            pointer types are explained in their own chapter :ref:`pointers`
+``pointer``         untyped address          2 or 4 bytes            ``pointer ptr = $a000``.  See :ref:`pointers` for details.
+==================  =======================  ======================  =========================================
+
+.. note::
+    The actual size of pointer types (``^^type`` and ``pointer``) depends on the target's
+    :ref:`pointer size <pointer_size>`: 2 bytes on 6502 targets, 4 bytes on m68k and virtual targets.
 
 Integers (bytes, words, longs)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -284,7 +320,11 @@ For instance ``3_000_000`` is a valid decimal number and so is ``%1001_0001`` a 
 A single character in single quotes such as ``'a'`` is translated into a byte integer,
 which is the PETSCII value for that character. You can prefix it with the desired encoding, like with strings, see :ref:`encodings`.
 
-*Endianness:* all integers are stored in *little endian* byte order, so the Least significant byte first and the Most significant byte last.
+.. _endianness:
+
+*Endianness:* on the 6502-family targets all integers are stored in *little endian* byte order: the Least Significant Byte first and the Most Significant Byte last.
+The m68k targets (amiga500, qemu68k) are the exception: the 68000 CPU is *big endian*, so there integers
+(and pointers, which are wider on those targets - see :ref:`pointer_size`) are stored Most Significant Byte first.
 
 **bytes versus words versus longs:**
 
@@ -390,6 +430,7 @@ or when adding more stuff to the array later. Here are some examples of arrays::
     uword[] others = [names, array]   ; array of pointers/addresses to other arrays
     bool[2] flags = [true, false]     ; array of two boolean values  (take up 1 byte each, like a byte array)
     ^^float[3] values                 ; array of three pointers to floats
+    Enemy[10] enemies                 ; array of 10 Enemy struct instances (see :ref:`pointers`)
     uword[2] memarr = [memory("m1",10,0), memory("m2",20,0)]  ; array of memory block addresses
 
     value = array[3]            ; the fourth value in the array (index is 0-based)
@@ -397,11 +438,15 @@ or when adding more stuff to the array later. Here are some examples of arrays::
     char = string[-2]           ; the second-to-last character in the string (Python-style indexing from the end)
 
 .. note::
-    To allow the 6502 CPU to efficiently access values in an array, the array should be small enough to be
-    indexable by a single byte index.
-    This means byte arrays should be <= 256 elements, word arrays <= 256 elements as well (if split, which
-    is the default. When not split, the maximum length is 128. See below for details about this distinction).
-    Float arrays should be <= 51 elements.
+    On the 6502-family targets (c64, c128, cx16, pet32, virtual) the 8-bit index register limits an array to be
+    indexable by a single byte. This means byte/string arrays are limited to 256 elements (255 characters for a
+    string, because of the terminating null byte), word arrays to 256 elements as well (if split, which is the
+    default; when not split the maximum length is 128; see below for details about this distinction), and
+    float arrays to 51 elements.
+    On the m68k targets (amiga500, qemu68k) the array and string size limit is **32768 bytes**. There the
+    byte/string array limit is 32768 elements (32767 characters for a string), the split word array limit is
+    32768 elements (16384 if not split), the long array limit is 8192 elements, and the float array limit is
+    8192 elements.
 
 Arrays can be initialized with a range expression or an array literal value.
 You can write out such an initializer value over several lines if you want to improve readability.
@@ -464,6 +509,10 @@ The combined array size is subject to the same limits as regular 1D arrays:
 - The ``@split`` tag works normally with 2D syntax.
 - The ``@nosplit`` tag can also be used on 2D word arrays if sequential storage is needed.
 
+These limits apply to the 6502-family targets. On the m68k targets (amiga500, qemu68k) the maximum total
+element count is 32768 bytes: byte/bool arrays up to 32768 elements, split word/str arrays up to 32768 elements,
+sequential word arrays up to 16384, long arrays up to 8192, and float arrays up to 8192 elements.
+
 **Not supported:**
 
 - 3D or higher-dimensional arrays are not supported.
@@ -484,19 +533,24 @@ This way you can set the second character on the second row from the top like th
 
 **Array indexing on a pointer variable:**
 
-An uword variable can be used in limited scenarios as a 'pointer' to a byte in memory at a specific,
-dynamic, location. You can use array indexing on a pointer variable to use it as a byte array at
+A variable that can hold a memory address can be used in limited scenarios as a 'pointer' to a byte in memory at a specific,
+dynamic, location. You can use array indexing on such a variable to use it as a byte array at
 a dynamic location in memory: currently this is equivalent to directly referencing the bytes in
-memory at the given index. In contrast to a real array variable, the index value can be the size of a word.
+memory at the given index. In contrast to a real array variable, the index value can be larger than an ubyte.
 Unlike array variables, negative indexing for pointer variables does *not* mean it will be counting from the end, because the size of the buffer is unknown.
 Instead, it simply addresses memory that lies *before* the pointer variable.
+
+Which variable types can be used for pointer indexing depends on the :ref:`pointer size <pointer_size>` of the target:
+``uword`` on 6502 targets, ``long`` (or ``pointer``) on m68k targets.
+
 See also :ref:`pointervars` and the chapter about it :ref:`pointers`.
 
 **LSB/MSB split word and str arrays:**
 
 As an optimization, (u)word arrays, pointer arrays, and str arrays are split by the compiler in memory as two separate arrays,
 one with the LSBs and one with the MSBs of the word values. This is more efficient to access by the 6502 cpu.
-It also allows a maximum length of 256 for word arrays, where normally it would have been 128.
+It also allows a maximum length of 256 for word arrays, where normally it would have been 128
+(on the m68k targets this split-word limit is 32768 instead).
 
 For normal prog8 array indexing, the compiler takes care of the distinction for you under water.
 *But for assembly code, or code that otherwise accesses the array elements directly, you have to be aware of the distinction from 'normal' arrays.*
@@ -532,7 +586,10 @@ Strings
 ^^^^^^^
 .. index:: pair: Data Types; Strings
 
-Strings are a sequence of characters enclosed in double quotes. The length is limited to 255 characters.
+Strings are a sequence of characters enclosed in double quotes. The length is limited to 255 characters
+on the 6502-family targets (the 256-byte array/string size limit minus the terminating null byte);
+on the m68k targets (amiga500, qemu68k) this limit is 32767 characters, matching those targets' 32768-byte
+array/string size limit.
 They're stored and treated much the same as a byte array,
 but they have some special properties because they are considered to be *text*.
 Strings (without encoding prefix) will be encoded (translated from ASCII/UTF-8) into bytes via the
@@ -656,8 +713,15 @@ from the starting value to (and including) the ending value::
     <start>  to  <end>   [ step  <step> ]
     <start>  downto  <end>   [ step  <step> ]
 
-You an provide a step value if you need something else than the default increment which is one (or,
-in case of downto, a decrement of one).  Unlike the start and end values, the step value must be a constant.
+You can provide a step value if you need something else than the default increment which is one (or,
+in case of downto, a decrement of one).  For a range used directly by a ``for`` loop, the step may be an
+integer expression.  It is evaluated once at the start of the loop.  The signedness of the step determines
+how its runtime value is interpreted: an unsigned step is always ascending, while a signed step uses its
+runtime sign to select ascending or descending iteration.  A zero step, or a step pointing away from the
+end value, produces an empty loop.  If adding the step would wrap the loop variable's fixed-width type,
+the loop terminates instead of continuing with the wrapped value.
+Range expressions used elsewhere, such as for array initialization or containment checks, still require a
+constant step.
 Because a step of minus one is so common you can just use
 the downto variant to avoid having to specify the step as well::
 
@@ -668,7 +732,7 @@ the downto variant to avoid having to specify the step as well::
     xx = 10
     aa to xx                 ; range of 5, 6, 7, 8, 9, 10
 
-    for  i  in  0 to 127  {
+    for i in 0 to 127 {
         ; i loops 0, 1, 2, ... 127
     }
 
@@ -701,7 +765,7 @@ Direct access to memory locations ('peek' and 'poke')
 Usually specific memory locations are accessed through a memory-mapped variable, such as ``cbm.BGCOL0`` that is defined
 as the background color register at the memory address $d021 (on the c64 target).
 
-If you want to access any memory location directly (by using the address itself or via an uword pointer variable),
+If you want to access any memory location directly (by using the address itself or via a pointer variable),
 without defining a memory-mapped location, you can do so by enclosing the address in ``@(...)``::
 
     color = @($d020)  ; set the variable 'color' to the current c64 screen border color ("peek(53280)")
@@ -710,9 +774,11 @@ without defining a memory-mapped location, you can do so by enclosing the addres
 
 You can actually also use the array indexing notation for this. It will be silently converted into
 the direct memory access expression as explained above. Note that unlike regular arrays,
-the index is not limited to an ubyte value. You can use a full uword to index a pointer variable like this::
+the index is not limited to an ubyte value. You can use a larger integer type to index a pointer variable like this::
 
     pointervar[999] = 0     ; set memory byte to zero at location pointervar + 999.
+
+The variable type must be able to hold a :ref:`pointer <pointer_size>` for the target: ``uword`` on 6502 targets, ``long`` on m68k targets.
 
 More information about *typed pointers* can be found in the chapter :ref:`pointers`.
 

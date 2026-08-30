@@ -149,6 +149,7 @@ interface IAstVisitor {
     fun visit(forLoop: ForLoop) {
         forLoop.loopVar.accept(this)
         forLoop.iterable.accept(this)
+        forLoop.step?.accept(this)
         forLoop.body.accept(this)
     }
 
@@ -187,6 +188,7 @@ interface IAstVisitor {
         assignTarget.memoryAddress?.accept(this)
         assignTarget.pointerDereference?.accept(this)
         assignTarget.arrayIndexedDereference?.accept(this)
+        assignTarget.dotExpression?.accept(this)
         assignTarget.multi?.forEach { it.accept(this) }
     }
 

@@ -254,6 +254,32 @@ _after:
             }
         }
 
+        if(outerFunc==listOf("pushp")) {
+            // pushp adapts to pointer size: pushw on 16-bit targets, pushl on 32-bit
+            val pushName = if(target.POINTER_MEM_SIZE > 2u) "pushl" else "pushw"
+            val newCall = FunctionCallStatement(
+                IdentifierReference(listOf(pushName), position),
+                functionCall.args, false, position
+            )
+            return listOf(AstReplaceNode(functionCall as Node, newCall, parent))
+        }
+        if(outerFunc==listOf("popp")) {
+            val popName = if(target.POINTER_MEM_SIZE > 2u) "popl" else "popw"
+            val newCall = FunctionCallExpression(
+                IdentifierReference(listOf(popName), position),
+                mutableListOf(), position
+            )
+            return listOf(AstReplaceNode(functionCall as Node, newCall, parent))
+        }
+        if(outerFunc==listOf("pokep")) {
+            val pokeName = if(target.POINTER_MEM_SIZE > 2u) "pokel" else "pokew"
+            val newCall = FunctionCallStatement(
+                IdentifierReference(listOf(pokeName), position),
+                functionCall.args, false, position
+            )
+            return listOf(AstReplaceNode(functionCall as Node, newCall, parent))
+        }
+
         return noModifications
     }
 
@@ -317,6 +343,14 @@ _after:
                 globalReservedSlabs[slabName] = reservation
             }
             return mods
+        }
+        if(functionCallExpr.target.nameInSource==listOf("peekp")) {
+            val peekName = if(target.POINTER_MEM_SIZE > 2u) "peekl" else "peekw"
+            val newCall = FunctionCallExpression(
+                IdentifierReference(listOf(peekName), functionCallExpr.position),
+                functionCallExpr.args.toMutableList(), functionCallExpr.position
+            )
+            return listOf(AstReplaceNode(functionCallExpr, newCall, parent))
         }
         return noModifications
     }
@@ -451,15 +485,19 @@ _after:
 
         val indexExpr = arrayIndexedExpression.indexer.indexExpr
         val arrayVar = arrayIndexedExpression.plainarrayvar!!.targetVarDecl()
-        if(arrayVar!=null && (arrayVar.datatype.isUnsignedWord || arrayVar.datatype.isPointer)) {
-            val wordIndex = TypecastExpression(indexExpr, DataType.UWORD, true, indexExpr.position)
+        // uword (16-bit) or long (32-bit) variables can hold a pointer value and can be indexed as such
+        val isUwordPointerHolder = arrayVar!=null && arrayVar.datatype.isUnsignedWord && target.POINTER_MEM_SIZE <= 2u
+        val isLongPointerHolder = arrayVar!=null && arrayVar.datatype.isLong && target.POINTER_MEM_SIZE > 2u
+        if(arrayVar!=null && (isUwordPointerHolder || isLongPointerHolder || arrayVar.datatype.isPointer)) {
+            val indexType = target.pointerType
+            val wordIndex = TypecastExpression(indexExpr, indexType, true, indexExpr.position)
             val address = BinaryExpression(
                 arrayIndexedExpression.plainarrayvar!!.copy(),
                 "+",
                 wordIndex,
                 arrayIndexedExpression.position
             )
-            if(arrayVar.datatype.isUnsignedWord || arrayVar.datatype.sub?.isByte==true) {
+            if(isUwordPointerHolder || isLongPointerHolder || arrayVar.datatype.sub?.isByte==true) {
                 return if (parent is AssignTarget) {
                     // assignment to array
                     val memwrite = DirectMemoryWrite(address, arrayIndexedExpression.position)
@@ -551,6 +589,7 @@ _after:
             return when {
                 leftDt issimpletype BaseDataType.STR && rightDt issimpletype BaseDataType.STR -> true
                 leftDt issimpletype BaseDataType.UWORD && rightDt issimpletype BaseDataType.STR || leftDt issimpletype BaseDataType.STR && rightDt issimpletype BaseDataType.UWORD -> true
+                leftDt issimpletype BaseDataType.LONG && rightDt issimpletype BaseDataType.STR || leftDt issimpletype BaseDataType.STR && rightDt issimpletype BaseDataType.LONG -> target.POINTER_MEM_SIZE > 2u
                 leftDt.isPointer && leftDt.getOrUndef().sub == BaseDataType.UBYTE -> rightDt issimpletype BaseDataType.STR
                 rightDt.isPointer && rightDt.getOrUndef().sub == BaseDataType.UBYTE -> leftDt issimpletype BaseDataType.STR
                 else -> false
@@ -666,11 +705,15 @@ _after:
                     val fieldName = fieldIdent.nameInSource.first()
                     val fieldDt = struct?.getFieldType(fieldName)
                     if(struct!=null && fieldDt!=null) {
-                        // (ptr).field  -->  peekXXX(ptr as uword + offsetof(Struct.field))
-                        val offset = struct.offsetof(fieldName, program.memsizer)!!.toInt()
-                        val ptrAsUword = TypecastExpression(expr.left.copy(), DataType.UWORD, true, expr.left.position)
-                        val address: Expression = if(offset==0) ptrAsUword
-                            else BinaryExpression(ptrAsUword, "+", NumericLiteral.optimalInteger(offset, expr.position), expr.position)
+                        // (ptr).field  -->  peekXXX(ptr as uword/long + offsetof(Struct.field))
+                        val offset = struct.offsetof(fieldName, program.target)!!.toInt()
+                        // cast to an integer type of the target's pointer size: keeps the '+' unscaled
+                        // if ptr is already a typecast (e.g. t.port as ^^Thing), unwrap to avoid
+                        // a WORD->POINTER->LONG chain that confuses the IR register allocator on 32-bit targets
+                        val ptrSrc = (expr.left as? TypecastExpression)?.expression ?: expr.left
+                        val ptrAsInt = TypecastExpression(ptrSrc.copy(), target.pointerType, true, ptrSrc.position)
+                        val address: Expression = if(offset==0) ptrAsInt
+                            else BinaryExpression(ptrAsInt, "+", NumericLiteral.optimalInteger(offset, expr.position), expr.position)
                         fun peekCall(func: String) =
                             FunctionCallExpression(IdentifierReference(listOf(func), expr.position), mutableListOf(address), expr.position)
                         val readExpr: Expression = when {
@@ -681,7 +724,11 @@ _after:
                             fieldDt.isSignedWord -> TypecastExpression(peekCall("peekw"), DataType.WORD, true, expr.position)
                             fieldDt.isLong -> peekCall("peekl")
                             fieldDt.isFloat -> peekCall("peekf")
-                            fieldDt.isPointer -> TypecastExpression(peekCall("peekw"), fieldDt, true, expr.position)
+                            fieldDt.isPointer -> {
+                                // pointer fields must be read with the target's pointer size
+                                val peekName = if(target.POINTER_MEM_SIZE > 2u) "peekl" else "peekw"
+                                TypecastExpression(peekCall(peekName), fieldDt, true, expr.position)
+                            }
                             else -> {
                                 errors.err("unsupported field type for pointer dereference", expr.position)
                                 return noModifications
@@ -779,7 +826,7 @@ _after:
                     val newValues = intRange.map {
                         val num = NumericLiteral(BaseDataType.LONG, it.toDouble(), values[0].position)
                         num.linkParents(whenChoice)
-                        val cast = num.cast(dt, true)
+                        val cast = num.cast(dt, true, target)
                         if (cast.isValid) cast.valueOrZero() else null
                     }
                     if(null !in newValues) {
@@ -807,7 +854,7 @@ _after:
                 var struct = firstDt.subType
                 for(name in identifier.nameInSource.drop(1)) {
                     if(struct==null) {
-                        errors.err("unknown field '${name}'", position = identifier.position)
+                        errors.err("cannot lookup fields through untyped pointers", position = identifier.position)
                         return noModifications
                     }
                     val fieldDt = struct.getFieldType(name)
@@ -836,13 +883,10 @@ _after:
             return noModifications
 
         val numlabels = ongoto.labels.size
-        val split = if(ongoto.isCall)
-            true    // for calls (indirect JSR), split array is always the optimal choice
-        else
-            target.cpu==CpuType.CPU6502    // for goto (indirect JMP), split array is optimal for 6502, but NOT for the 65C02 (it has a different JMP addressing mode available)
-        val arrayDt = DataType.arrayFor(BaseDataType.UWORD, split)
+        val elementDt = program.target.pointerBaseType
+        val arrayDt = DataType.arrayFor(elementDt, program.target)
         val labelArray = ArrayLiteral(InferredTypes.knownFor(arrayDt), ongoto.labels.toTypedArray(), ongoto.position)
-        val jumplistArray = VarDecl.createAutoOptionalSplit(labelArray)
+        val jumplistArray = VarDecl.createAutoOptionalSplit(labelArray, target)
 
         val indexValue: Expression
         val conditionVar: VarDecl?
@@ -892,8 +936,9 @@ _after:
     override fun after(deref: PtrDereference, parent: Node): Iterable<AstModification> {
         val isLHS = parent is AssignTarget
         val varDt = (deref.firstTarget() as? VarDecl)?.datatype
-        if(varDt?.isUnsignedWord==true || (varDt?.isPointer==true && varDt.sub?.isByte==true)) {
-            // replace  ptr^^   by  @(ptr)    when ptr is uword or ^^byte
+        val isRawAddressHolder = varDt?.isUnsignedWord==true || (target.POINTER_MEM_SIZE > 2u && varDt?.isLong==true)
+        if(isRawAddressHolder || (varDt?.isPointer==true && varDt.sub?.isByte==true)) {
+            // replace  ptr^^   by  @(ptr)    when ptr is raw address holder or ^^byte
             val identifier = IdentifierReference(deref.chain, deref.position)
             if(isLHS && varDt.sub==BaseDataType.UBYTE) {
                 val memwrite = DirectMemoryWrite(identifier, deref.position)
@@ -929,6 +974,177 @@ _after:
             }
         }
 
+        return noModifications
+    }
+
+    override fun after(forLoop: ForLoop, parent: Node): Iterable<AstModification> {
+        // Desugar list iteration and reverse array/string iteration (ideas/list-iteration.md Option A)
+        // - for x in list [step -1]  -> while cursor.Succ/Pred !=0 with next/prev saved
+        // - for x in array step -1  -> index loop len-1 downto 0
+        // - for c in string step -1 -> similar via index
+        val iterableDt = forLoop.iterable.inferType(program).getOrUndef()
+        val isList = isListIterable(iterableDt)
+        val isArray = iterableDt.isArray
+        val isString = iterableDt.isString
+        val stepVal = forLoop.step?.constValue(program)?.number
+        val isReverse = stepVal == -1.0
+        val isForward = forLoop.step==null || stepVal==1.0
+        if(!isList && !(isArray || isString)) return noModifications
+        if(isList) {
+            // only 1 / -1 already validated in AstChecker
+            if(!isForward && !isReverse) return noModifications
+            return desugarListForLoop(forLoop, parent, isReverse)
+        }
+        if((isArray || isString) && isReverse) {
+            // Keep this in desugaring: backend support would duplicate descending
+            // index handling for every array/string kind in every code generator,
+            // for a relatively uncommon use case.
+            return desugarReverseArrayStringForLoop(forLoop, parent, iterableDt)
+        }
+        // forward array/string with step 1 is handled by normal codegen, no desugaring
+        return noModifications
+    }
+
+    private fun isListIterable(dt: DataType): Boolean = ListIterationHelper.isListIterable(dt, program)
+    private fun structDeclFor(dt: DataType): StructDecl? = ListIterationHelper.structDeclFor(dt, program)
+    private fun desugarListForLoop(forLoop: ForLoop, parent: Node, reverse: Boolean): Iterable<AstModification> {
+        val pos = forLoop.position
+        // need list struct to know Head/TailPred field names and node link names
+        val iterableDt = forLoop.iterable.inferType(program).getOrUndef()
+        val listDecl = structDeclFor(iterableDt) ?: return noModifications
+        val nodeDecl = structDeclFor(listDecl.fields[0].type) ?: return noModifications
+        val linkSuccName = nodeDecl.fields[0].name // Succ or Next
+        val linkPredName = nodeDecl.fields[1].name // Pred or Prev
+        val linkName = if(reverse) linkPredName else linkSuccName
+        val headField = if(reverse) "TailPred" else "Head"
+        // Instead create a synthetic pointer variable in the enclosing scope - typed to the list's node
+        // For simplicity, create a new VarDecl for cursor in the same block as the for loop
+        val cursorDt = DataType.pointer(nodeDecl)
+        val loopVarName = forLoop.loopVar.nameInSource.singleOrNull() ?: return noModifications
+        // ensure loop var exists (implicit var may not have been created if AstChecker/Implicit pass missed it)
+        val existingLoopVar = forLoop.loopVar.targetVarDecl()
+        val loopVarDecl: VarDecl? = if(existingLoopVar==null) {
+            val effType = forLoop.loopVarType ?: DataType.pointer(nodeDecl)
+            VarDecl.builder(effType, pos).names(loopVarName).type(VarDeclType.VAR).build()
+        } else null
+        // make cursor/next names unique per for-loop position to avoid hoisting collisions in the same subroutine
+        val uniq = "${pos.line}_${pos.startCol}"
+        val cursorVar = VarDecl(VarDeclType.VAR, VarDeclOrigin.USERCODE, cursorDt, ZeropageWish.DONTCARE, SplitWish.DONTCARE, null, null, "list_cursor_${loopVarName}_${uniq}", emptyList(), null, false, 0u, false, null, pos)
+        // Build: cursor = iterable.Head (or TailPred) - use IdentifierReference with dotted name for struct field
+        val iterableRefCopy = forLoop.iterable.copy()
+        val iterableName = (iterableRefCopy as? IdentifierReference)?.nameInSource ?: return noModifications
+        val headAccess: Expression = IdentifierReference(iterableName + headField, pos)
+        val cursorAssign = Assignment(AssignTarget(IdentifierReference(listOf(cursorVar.name), pos), null, null, null, false, position=pos), headAccess, AssignmentOrigin.OPTIMIZER, pos)
+        // Stop at the embedded list sentinel rather than relying on a null link.
+        val sentinel: Expression = if(reverse) {
+            // AddressOf a pointer field is represented as the target's raw address.
+            AddressOf(IdentifierReference(iterableName + "Head", pos), null, null, false, false, pos)
+        } else {
+            AddressOf(IdentifierReference(iterableName + "Tail", pos), null, null, false, false, pos)
+        }
+        val condition = BinaryExpression(IdentifierReference(listOf(cursorVar.name), pos), "!=", sentinel, pos)
+        // use IdentifierReference with dotted access; later desugarer pass will convert pointer field access to PtrDereference
+        val linkFieldAccessForNext = IdentifierReference(listOf(cursorVar.name, linkName), pos)
+        // next/prev temp - also typed to node pointer for dereference
+        val nextDt = DataType.pointer(nodeDecl)
+        val nextVar = VarDecl(VarDeclType.VAR, VarDeclOrigin.USERCODE, nextDt, ZeropageWish.DONTCARE, SplitWish.DONTCARE, null, null, "list_next_${loopVarName}_${uniq}", emptyList(), null, false, 0u, false, null, pos)
+        val nextAssign = Assignment(AssignTarget(IdentifierReference(listOf(nextVar.name), pos), null, null, null, false, position=pos), linkFieldAccessForNext, AssignmentOrigin.OPTIMIZER, pos)
+        val loopVarAssign = Assignment(forLoop.loopVar.let { AssignTarget(it.copy(), null, null, null, false, position=pos) }, IdentifierReference(listOf(cursorVar.name), pos), AssignmentOrigin.OPTIMIZER, pos)
+        val cursorUpdate = Assignment(AssignTarget(IdentifierReference(listOf(cursorVar.name), pos), null, null, null, false, position=pos), IdentifierReference(listOf(nextVar.name), pos), AssignmentOrigin.OPTIMIZER, pos)
+        val whileBody = AnonymousScope(mutableListOf<Statement>(nextAssign, loopVarAssign).apply { addAll(forLoop.body.statements) }.apply { add(cursorUpdate) }, pos)
+        val whileLoop = WhileLoop(condition, whileBody, pos)
+        val stmts = mutableListOf<Statement>()
+        if(loopVarDecl!=null) stmts.add(loopVarDecl)
+        stmts.add(cursorVar)
+        stmts.add(nextVar)
+        stmts.add(cursorAssign)
+        stmts.add(whileLoop)
+        val replacement = AnonymousScope(stmts, pos)
+        // set parents
+        replacement.linkParents(parent)
+        return listOf(AstReplaceNode(forLoop, replacement, parent))
+    }
+    private fun desugarReverseArrayStringForLoop(forLoop: ForLoop, parent: Node, iterableDt: DataType): Iterable<AstModification> {
+        val pos = forLoop.position
+        // Create index variable - make unique per loop position to avoid hoisting collisions
+        val uniqRev = "${pos.line}_${pos.startCol}"
+        val idxName = "rev_idx_${forLoop.loopVar.nameInSource.single()}_${uniqRev}"
+        // Determine length: for array, use arraysize; for string, need runtime len? For now use while to find len for string via scanning (simplified: use 255 max? Better to use len via function? For now handle array only; for string fallback to not desugar and let IR handle? To keep simple, only handle array with known size; for string we generate scanning loop.
+        // If array with known size, init idx = len-1
+        val syntheticIterableName = "rev_str_${forLoop.loopVar.nameInSource.single()}_${uniqRev}"
+        val syntheticIterable: VarDecl?
+        val iterableRef: IdentifierReference
+        val arrayVar: VarDecl?
+        val originalIterable = forLoop.iterable
+        if(originalIterable is IdentifierReference) {
+            iterableRef = originalIterable.copy()
+            arrayVar = originalIterable.targetVarDecl()
+            syntheticIterable = null
+        } else if(iterableDt.isString && forLoop.iterable is StringLiteral) {
+            iterableRef = IdentifierReference(listOf(syntheticIterableName), pos)
+            arrayVar = null
+            syntheticIterable = VarDecl(
+                VarDeclType.VAR,
+                VarDeclOrigin.STRINGLITERAL,
+                DataType.STR,
+                ZeropageWish.DONTCARE,
+                SplitWish.DONTCARE,
+                null,
+                null,
+                syntheticIterableName,
+                emptyList(),
+                forLoop.iterable.copy() as StringLiteral,
+                false,
+                0u,
+                false,
+                null,
+                pos
+            )
+        } else {
+            return noModifications
+        }
+        if(iterableDt.isArray) {
+            if(arrayVar==null) return noModifications
+            val arrSize = arrayVar.arraysize?.indexExpr?.constValue(program)?.number?.toInt() ?: return noModifications
+            if(arrSize<=0) return noModifications
+            // Use byte idx when array small enough to avoid "array indexing is limited to byte size" on 6502 targets
+            val idxType = if (arrSize <= 255) DataType.UBYTE else DataType.UWORD
+            val wordIdxVar = VarDecl(VarDeclType.VAR, VarDeclOrigin.USERCODE, idxType, ZeropageWish.DONTCARE, SplitWish.DONTCARE, null, null, idxName, emptyList(), null, false, 0u, false, null, pos)
+            val wordIdxInit = Assignment(AssignTarget(IdentifierReference(listOf(idxName), pos), null, null, null, false, position=pos), NumericLiteral.optimalInteger(arrSize-1, pos), AssignmentOrigin.OPTIMIZER, pos)
+            val condition = BinaryExpression(IdentifierReference(listOf(idxName), pos), "<", NumericLiteral.optimalInteger(arrSize, pos), pos)
+            val elementAssign = Assignment(forLoop.loopVar.let { AssignTarget(it.copy(), null, null, null, false, position=pos) }, ArrayIndexedExpression(iterableRef.copy(), null, null, ArrayIndex(IdentifierReference(listOf(idxName), pos), pos), pos), AssignmentOrigin.OPTIMIZER, pos)
+            val idxDec = Assignment(AssignTarget(IdentifierReference(listOf(idxName), pos), null, null, null, false, position=pos), BinaryExpression(IdentifierReference(listOf(idxName), pos), "-", NumericLiteral.optimalInteger(1, pos), pos), AssignmentOrigin.OPTIMIZER, pos)
+            val whileBody = AnonymousScope(mutableListOf<Statement>(elementAssign).apply { addAll(forLoop.body.statements) }.apply { add(idxDec) }, pos)
+            val whileLoop = WhileLoop(condition, whileBody, pos)
+            val replacement = AnonymousScope(mutableListOf<Statement>(wordIdxVar, wordIdxInit, whileLoop), pos)
+            replacement.linkParents(parent)
+            return listOf(AstReplaceNode(forLoop, replacement, parent))
+        } else if(iterableDt.isString) {
+            // string reverse: need to compute len via scanning? Use while to find terminator length
+            // For now generate similar index loop but compute len first:
+            // word len=0; while s[len]!=0 { len++ }; len-- ; while len>=0 { c=s[len]; body; len-- }
+            val lenName = "str_len_${forLoop.loopVar.nameInSource.single()}_${uniqRev}"
+            val strIdxType = if (target.cpu.is6502) DataType.UBYTE else DataType.UWORD
+            val lenVar = VarDecl(VarDeclType.VAR, VarDeclOrigin.USERCODE, strIdxType, ZeropageWish.DONTCARE, SplitWish.DONTCARE, null, null, lenName, emptyList(), null, false, 0u, false, null, pos)
+            val idxVarWord = VarDecl(VarDeclType.VAR, VarDeclOrigin.USERCODE, strIdxType, ZeropageWish.DONTCARE, SplitWish.DONTCARE, null, null, idxName, emptyList(), null, false, 0u, false, null, pos)
+            val lenInit = Assignment(AssignTarget(IdentifierReference(listOf(lenName), pos), null, null, null, false, position=pos), NumericLiteral.optimalInteger(0, pos), AssignmentOrigin.OPTIMIZER, pos)
+            val lenCond = BinaryExpression(ArrayIndexedExpression(iterableRef.copy(), null, null, ArrayIndex(IdentifierReference(listOf(lenName), pos), pos), pos), "!=", NumericLiteral.optimalInteger(0, pos), pos)
+            val lenInc = Assignment(AssignTarget(IdentifierReference(listOf(lenName), pos), null, null, null, false, position=pos), BinaryExpression(IdentifierReference(listOf(lenName), pos), "+", NumericLiteral.optimalInteger(1, pos), pos), AssignmentOrigin.OPTIMIZER, pos)
+            val lenLoop = WhileLoop(lenCond, AnonymousScope(mutableListOf<Statement>(lenInc), pos), pos)
+            val idxInit = Assignment(AssignTarget(IdentifierReference(listOf(idxName), pos), null, null, null, false, position=pos), BinaryExpression(IdentifierReference(listOf(lenName), pos), "-", NumericLiteral.optimalInteger(1, pos), pos), AssignmentOrigin.OPTIMIZER, pos)
+            // unsigned wrap condition: idx < len (start len-1, wraps to 65535 after 0 and exits)
+            val cond = BinaryExpression(IdentifierReference(listOf(idxName), pos), "<", IdentifierReference(listOf(lenName), pos), pos)
+            val elementAssign = Assignment(forLoop.loopVar.let { AssignTarget(it.copy(), null, null, null, false, position=pos) }, ArrayIndexedExpression(iterableRef.copy(), null, null, ArrayIndex(IdentifierReference(listOf(idxName), pos), pos), pos), AssignmentOrigin.OPTIMIZER, pos)
+            val idxDec = Assignment(AssignTarget(IdentifierReference(listOf(idxName), pos), null, null, null, false, position=pos), BinaryExpression(IdentifierReference(listOf(idxName), pos), "-", NumericLiteral.optimalInteger(1, pos), pos), AssignmentOrigin.OPTIMIZER, pos)
+            val whileBody = AnonymousScope(mutableListOf<Statement>(elementAssign).apply { addAll(forLoop.body.statements) }.apply { add(idxDec) }, pos)
+            val whileLoop = WhileLoop(cond, whileBody, pos)
+            val replacementStatements = mutableListOf<Statement>()
+            if(syntheticIterable!=null) replacementStatements.add(syntheticIterable)
+            replacementStatements.addAll(listOf(lenVar, idxVarWord, lenInit, lenLoop, idxInit, whileLoop))
+            val replacement = AnonymousScope(replacementStatements, pos)
+            replacement.linkParents(parent)
+            return listOf(AstReplaceNode(forLoop, replacement, parent))
+        }
         return noModifications
     }
 
@@ -1029,23 +1245,24 @@ _after:
                     val ptrVar = deref.definingScope.lookup(ptrName) as? VarDecl
                     if(ptrVar!=null && (ptrVar.datatype.isPointer || ptrVar.datatype.isPointerArray)) {
                         val struct = ptrVar.datatype.subType!! as StructDecl
-                        val offsetNumber = NumericLiteral.optimalInteger(struct.offsetof(field.first, program.memsizer)!!.toInt(), deref.position)
+                        val offsetNumber = NumericLiteral.optimalInteger(struct.offsetof(field.first, program.target)!!.toInt(), deref.position)
                         val pointerIdentifier = IdentifierReference(ptrName, deref.position)
+                        val addrType = target.pointerType
                         val address: Expression
                         if(ptrVar.datatype.isPointer) {
-                            // pointer[idx].field = value       -->  pokeXXX(pointer as uword + idx*sizeof(Struct) + offsetof(Struct.field), value)
-                            val structSize = ptrVar.datatype.dereference().size(program.memsizer)
-                            val pointerAsUword = TypecastExpression(pointerIdentifier, DataType.UWORD, true, deref.position)
+                            // pointer[idx].field = value       -->  pokeXXX(pointer as uword/long + idx*sizeof(Struct) + offsetof(Struct.field), value)
+                            val structSize = ptrVar.datatype.dereference().size(program.target)
+                            val pointerAsAddr = TypecastExpression(pointerIdentifier, addrType, true, deref.position)
                             val idx = ptr.last().second!!.indexExpr
                             val scaledIndex = BinaryExpression(idx, "*", NumericLiteral(BaseDataType.UWORD, structSize.toDouble(), deref.position), deref.position)
-                            val structAddr = BinaryExpression(pointerAsUword, "+", scaledIndex, deref.position)
+                            val structAddr = BinaryExpression(pointerAsAddr, "+", scaledIndex, deref.position)
                             address = BinaryExpression(structAddr, "+", offsetNumber, deref.position)
                         }
                         else {
-                            // pointerarray[idx].field = value  -->  pokeXXX(pointerarray[idx] as uword + offsetof(Struct.field), value)
+                            // pointerarray[idx].field = value  -->  pokeXXX(pointerarray[idx] as uword/long + offsetof(Struct.field), value)
                             val index = ArrayIndexedExpression(pointerIdentifier, null, null, ptr.last().second!!, deref.position)
-                            val pointerAsUword = TypecastExpression(index, DataType.UWORD, true, deref.position)
-                            address = BinaryExpression(pointerAsUword, "+", offsetNumber, deref.position)
+                            val pointerAsAddr = TypecastExpression(index, addrType, true, deref.position)
+                            address = BinaryExpression(pointerAsAddr, "+", offsetNumber, deref.position)
                         }
 
                         // For augmented assignments, keep as DirectMemoryWrite so the IR codegen can optimize in-place.
@@ -1088,7 +1305,7 @@ _after:
                         val isAugmentedPattern = isAugmentedMemoryPattern(assignment.value, address, deref)
                         if(isAugmentedPattern) {
                             val memwrite = DirectMemoryWrite(address, deref.position)
-                            val target = AssignTarget(null, null, memwrite, null, false, null, null, deref.position)
+                            val target = AssignTarget(null, null, memwrite, null, false, position = deref.position)
                             val newValue = convertAugmentedValueToMemoryRead(assignment.value, deref, address)
                             val newAssignment = Assignment(target, newValue, assignment.origin, assignment.position)
                             newAssignment.isAugmentedMemoryAssign = true
@@ -1206,13 +1423,162 @@ _after:
         return noModifications
     }
 
+    override fun before(assignTarget: AssignTarget, parent: Node): Iterable<AstModification> {
+        if(assignTarget.dotExpression==null)
+            return noModifications
+        if(parent !is Assignment && parent !is ChainedAssignment)
+            errors.err("cannot use a dereferenced expression as assignment target here", assignTarget.position)
+        return noModifications
+    }
+
+    override fun before(assignment: Assignment, parent: Node): Iterable<AstModification> {
+        val target = assignment.target
+        val dotExpr = target.dotExpression ?: return noModifications
+
+        // decompose the '.' chain into the base expression and the field names
+        val fields = mutableListOf<IdentifierReference>()
+        var base = dotExpr
+        while(base is BinaryExpression && base.operator==".") {
+            val rightIdent = base.right as? IdentifierReference ?: return noModifications
+            fields.add(rightIdent)
+            base = base.left
+        }
+        fields.reverse()
+
+        // Evaluate the base expression exactly once into a temporary variable, so that the
+        // base is desugared in its own normal assignment context and the address computation
+        // works on an already-evaluated simple value.
+        // resolve the struct type of the base expression
+        val baseDt = base.inferType(program).getOrUndef()
+        // use the target's natural pointer width for the hoisted address (uword on 6502, long on 32-bit targets)
+        val addressDt = if(program.target.POINTER_MEM_SIZE > 2u) DataType.LONG else DataType.UWORD
+        val useTmpVar = baseDt.isPointer
+        val tmpVar = if(useTmpVar) VarDecl.createAuto(addressDt, base.position) else null
+        val tmpIdent = if(useTmpVar) IdentifierReference(listOf(tmpVar!!.name), base.position) else null
+        val struct: StructDecl?
+        val baseValue: Expression
+        when {
+            baseDt.isPointer -> {
+                struct = baseDt.subType as? StructDecl
+                if(struct==null) {
+                    errors.err("cannot assign through this expression, expected a pointer to a struct", base.position)
+                    return noModifications
+                }
+                // we only need the integer value of the pointer expression, so a redundant outer
+                // pointer typecast can be stripped to avoid pointless double casts.
+                val baseCast = base as? TypecastExpression
+                baseValue = if(baseCast!=null && (baseCast.type.isPointer || baseCast.type.isUnsignedWord)
+                        && baseCast.expression.inferType(program).getOrUndef().isIntegerOrBool)
+                    TypecastExpression(baseCast.expression.copy(), addressDt, false, base.position)
+                else
+                    TypecastExpression(base.copy(), addressDt, false, base.position)
+            }
+            baseDt.isStructInstance -> {
+                struct = baseDt.subType as? StructDecl
+                if(struct==null) {
+                    errors.err("cannot assign through this expression, expected a struct instance", base.position)
+                    return noModifications
+                }
+                // base is a struct instance lvalue in memory; take its address
+                baseValue = addressOfStructInstance(base, addressDt)
+            }
+            else -> {
+                errors.err("cannot assign through this expression, expected a pointer to a struct or a struct instance", base.position)
+                return noModifications
+            }
+        }
+        val tmpAssign = if(useTmpVar) Assignment(
+            AssignTarget(tmpIdent!!.copy(), null, null, null, false, position=tmpVar!!.position),
+            baseValue,
+            AssignmentOrigin.USERCODE, base.position) else null
+
+        // build the address of the final field; intermediate pointer fields in the chain are loaded via peekw/peekl
+        var address: Expression = if(useTmpVar) tmpIdent!!.copy() else baseValue
+        var currentStruct: StructDecl = struct
+        var fieldDt: DataType? = null
+        for((index, field) in fields.withIndex()) {
+            val fieldName = field.nameInSource.single()
+            fieldDt = currentStruct.getFieldType(fieldName)
+            if(fieldDt==null) {
+                errors.err("no such field '$fieldName' in struct '${currentStruct.name}'", field.position)
+                return noModifications
+            }
+            val offset = currentStruct.offsetof(fieldName, program.target)!!.toInt()
+            if(offset>0)
+                address = BinaryExpression(address, "+", NumericLiteral.optimalInteger(offset, field.position), field.position)
+            if(index < fields.size-1) {
+                if(!fieldDt.isPointer) {
+                    errors.err("cannot dereference non-pointer field '$fieldName'", field.position)
+                    return noModifications
+                }
+                val nextStruct = fieldDt.subType as? StructDecl
+                if(nextStruct==null) {
+                    errors.err("cannot dereference field '$fieldName', expected a pointer to a struct", field.position)
+                    return noModifications
+                }
+                val peekName = if(program.target.POINTER_MEM_SIZE > 2u) "peekl" else "peekw"
+                val peekCall = FunctionCallExpression(IdentifierReference(listOf(peekName), field.position), mutableListOf(address), field.position)
+                address = TypecastExpression(peekCall, addressDt, false, field.position)
+                currentStruct = nextStruct
+            }
+        }
+
+        // select the appropriate poke/peek routine pair for the field's datatype
+        val dt = fieldDt!!
+        val funcName: String
+        val pokeCast: DataType?
+        val peekFuncName: String
+        val peekCast: DataType?
+        when {
+            dt.isBool -> { funcName="pokebool"; pokeCast=null; peekFuncName="peekbool"; peekCast=null }
+            dt.isUnsignedByte -> { funcName="poke"; pokeCast=null; peekFuncName="peek"; peekCast=null }
+            dt.isSignedByte -> { funcName="poke"; pokeCast=DataType.UBYTE; peekFuncName="peek"; peekCast=DataType.BYTE }
+            dt.isUnsignedWord -> { funcName="pokew"; pokeCast=null; peekFuncName="peekw"; peekCast=null }
+            dt.isSignedWord -> { funcName="pokew"; pokeCast=DataType.UWORD; peekFuncName="peekw"; peekCast=DataType.WORD }
+            dt.isLong -> { funcName="pokel"; pokeCast=null; peekFuncName="peekl"; peekCast=null }
+            dt.isFloat -> { funcName="pokef"; pokeCast=null; peekFuncName="peekf"; peekCast=null }
+            dt.isPointer -> {
+                val ptrName = if(program.target.POINTER_MEM_SIZE > 2u) "l" else "w"
+                funcName="poke$ptrName"; pokeCast=null; peekFuncName="peek$ptrName"; peekCast=dt
+            }
+            else -> {
+                errors.err("unsupported field datatype $dt for write through a pointer", target.position)
+                return noModifications
+            }
+        }
+
+        // augmented assignment pattern: the value starts with (a copy of) the very same dotted chain,
+        // e.g. "(p).bar += 1". Replace that copy by a read of the field through the temporary address,
+        // so that everything is evaluated exactly once.
+        var valueExpr = assignment.value
+        val binValue = valueExpr as? BinaryExpression
+        if(binValue!=null && binValue.left isSameAs dotExpr) {
+            val peekCall = FunctionCallExpression(
+                IdentifierReference(listOf(peekFuncName), binValue.left.position),
+                mutableListOf(address.copy()), binValue.left.position)
+            val readExpr: Expression = if(peekCast==null) peekCall else TypecastExpression(peekCall, peekCast, false, peekCall.position)
+            valueExpr = BinaryExpression(readExpr, binValue.operator, binValue.right, binValue.position)
+        }
+        val value = if(pokeCast==null) valueExpr else TypecastExpression(valueExpr, pokeCast, false, valueExpr.position)
+
+        val pokeCall = FunctionCallStatement(
+            IdentifierReference(listOf(funcName), assignment.position),
+            mutableListOf(address, value), false, assignment.position)
+        return if(useTmpVar) {
+            val replacement = AnonymousScope(mutableListOf(tmpVar!!, tmpAssign!!, pokeCall), target.position)
+            listOf(AstReplaceNode(assignment, replacement, parent))
+        } else {
+            listOf(AstReplaceNode(assignment, pokeCall, parent))
+        }
+    }
+
     override fun after(assignment: Assignment, parent: Node): Iterable<AstModification> {
         val targetDt = assignment.target.inferType(program)
         val sourceDt = assignment.value.inferType(program)
         if(targetDt.isStructInstance && sourceDt.isStructInstance) {
             if(targetDt == sourceDt) {
                 // special case simple struct instance assignment via memory copy
-                val size = program.memsizer.memorySize(sourceDt.getOrUndef(), null)
+                val size = program.target.memorySize(sourceDt.getOrUndef(), null)
                 val structSizeNum = NumericLiteral.optimalInteger(size, assignment.position)
                 val deref = assignment.value as? PtrDereference
                 if(deref!=null) {
@@ -1267,6 +1633,19 @@ _after:
                                 mutableListOf(source, targetPtr, structSizeNum),
                                 false, assignment.position)
                             return listOf(AstReplaceNode(assignment, memcopy, parent))
+                        }
+                        // points[1] = points[2]  -->  memcopy(&points[2], &points[1], sizeof(struct))
+                        val targetIdx = assignment.target.arrayindexed
+                        if(targetIdx!=null) {
+                            val tIdxType = targetIdx.inferType(program)
+                            if(tIdxType.isStructInstance && tIdxType == idxType) {
+                                val source = AddressOf(sourceIdx.plainarrayvar!!.copy(), sourceIdx.indexer.copy(), null, false, true, assignment.position)
+                                val target = AddressOf(targetIdx.plainarrayvar!!.copy(), targetIdx.indexer.copy(), null, false, true, assignment.position)
+                                val memcopy = FunctionCallStatement(IdentifierReference(listOf("sys", "memcopy"), assignment.position),
+                                    mutableListOf(source, target, structSizeNum),
+                                    false, assignment.position)
+                                return listOf(AstReplaceNode(assignment, memcopy, parent))
+                            }
                         }
                     }
                 }
@@ -1347,23 +1726,28 @@ _after:
 
     override fun after(array: ArrayLiteral, parent: Node): Iterable<AstModification> {
 
-        fun convertArrayIntoStructInitializer(array: ArrayLiteral, struct: ISubType): StaticStructInitializer {
+        fun convertArrayIntoStructInitializer(array: ArrayLiteral, struct: ISubType, isPointer: Boolean): StaticStructInitializer {
             val structname = IdentifierReference(struct.scopedNameString.split("."), array.position)
-            return StaticStructInitializer(structname, array.value.toMutableList(), array.position)
+            return StaticStructInitializer(structname, array.value.toMutableList(), array.position, isPointer)
         }
 
         if(parent is VarDecl) {
-            if (parent.datatype.isPointerArray && parent.datatype.elementType().subType!=null) {
-                val struct = parent.datatype.elementType().subType as StructDecl
+            if(!parent.datatype.isArray) return noModifications
+            val elemDt = parent.datatype.elementType()
+            val isStructPointerElem = elemDt.isPointer && elemDt.subType!=null
+            val isStructInstanceElem = elemDt.isStructInstance && elemDt.subType!=null
+            if (isStructPointerElem || isStructInstanceElem) {
+                val struct = elemDt.subType as StructDecl
+                val isPointer = isStructPointerElem
                 val allremovals = mutableListOf<VarDecl>()
                 var changes = false
                 array.value.withIndex().forEach { (index, elt) ->
                     if(elt is ArrayLiteral) {
-                        array.value[index] = convertArrayIntoStructInitializer(elt, struct)
+                        array.value[index] = convertArrayIntoStructInitializer(elt, struct, isPointer)
                         changes = true
                     } else if(elt is IdentifierReference) {
                         val arrayvar = elt.targetVarDecl()!!.value as ArrayLiteral
-                        array.value[index] = convertArrayIntoStructInitializer(arrayvar, struct)
+                        array.value[index] = convertArrayIntoStructInitializer(arrayvar, struct, isPointer)
                         allremovals += elt.targetVarDecl()!!
                         changes = true
                     }
@@ -1379,11 +1763,26 @@ _after:
             val targetDt = parent.target.inferType(program).getOrUndef()
             if(targetDt.isPointer && targetDt.subType!=null) {
                 val struct = targetDt.subType as StructDecl
-                val initializser = convertArrayIntoStructInitializer(array, struct)
+                val initializser = convertArrayIntoStructInitializer(array, struct, true)
                 return listOf(AstReplaceNode(array, initializser, parent))
             }
         }
 
         return noModifications
+    }
+
+    private fun addressOfStructInstance(base: Expression, addressDt: DataType): Expression {
+        val addr = when(base) {
+            is IdentifierReference -> AddressOf(base.copy(), null, null, false, true, base.position)
+            is ArrayIndexedExpression -> AddressOf(
+                base.plainarrayvar?.copy(), base.indexer.copy(), null, false, true, base.position)
+            is TypecastExpression -> return addressOfStructInstance(base.expression, addressDt)
+            else -> {
+                errors.err("cannot take address of struct instance base expression $base", base.position)
+                // return a dummy to keep desugaring moving; AstChecker will catch the error later
+                AddressOf(IdentifierReference(listOf("_dummy"), base.position), null, null, false, true, base.position)
+            }
+        }
+        return TypecastExpression(addr, addressDt, false, base.position)
     }
 }

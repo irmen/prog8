@@ -148,7 +148,7 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
                 str
             }
             is PtVariable -> {
-                val split = if(node.type.isSplitWordArray) "" else "@nosplit"
+                val split = if(node.isSplitWordArray) "" else "@nosplit"
                 val align = when(node.align) {
                     0u -> ""
                     2u -> "@alignword"
@@ -184,7 +184,7 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
                 val reg = if(node.register!=null) "@${node.register}" else ""
                 "${node.type} ${node.name} $reg"
             }
-            is PtSubSignature -> "(signature)"
+            is PtSubSignature -> "(signature) -> ${node.returns}"
             is PtWhen -> "when"
             is PtWhenChoice -> {
                 if(node.isElse)

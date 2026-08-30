@@ -12,6 +12,8 @@
             <option value="$PROJECT_DIR$/codeCore" />
             <option value="$PROJECT_DIR$/codeGenCpu6502" />
             <option value="$PROJECT_DIR$/codeGenIntermediate" />
+            <option value="$PROJECT_DIR$/codeGenM68k" />
+            <option value="$PROJECT_DIR$/codeGenNew6502" />
             <option value="$PROJECT_DIR$/codeOptimizers" />
             <option value="$PROJECT_DIR$/compiler" />
             <option value="$PROJECT_DIR$/compilerAst" />

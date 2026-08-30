@@ -53,7 +53,8 @@ Source → parseMainModule() → processAst() → optimizeAst() → postprocessA
 
 ### Target Differences
 - **CPU instruction set differences**: Only the CommanderX16 target (cx16) can use 65C02 instructions such as STZ. The other targets (C64, C128, PET32) can only use original 6502 instructions.
-- When writing or understanding assembly code, load the `asm6502-coder` skill for 64tass syntax and conventions.
+- When writing or understanding 6502/65C02 assembly code, load the `asm6502-coder` skill for 64tass syntax and conventions.
+- When writing or understanding M68K assembly code (amiga500, qemu68k targets), load the `m68k-coder` skill for vasm mot syntax and conventions.
 
 
 ## DEBUGGING TIP: Use `-noopt` to isolate problems
@@ -199,7 +200,7 @@ When the task involves writing or understanding `.p8` (Prog8 source) or `.p8ir` 
 - **Before final verification**: Always run `gradle build` to ensure all tests pass
 - **After major refactoring**: Run `gradle build` to catch regressions
 - **When debugging test failures**: Use `gradle test --tests "*TestName*"` for specific tests
-- **When working on a standalone codegen module** (one that reads `.p8ir` files): Run `gradle :<module>:test --console=plain` instead of full `gradle build`. Compiler unit tests are irrelevant for IR-level changes. Do run full `gradle build` before final verification.
+- **When working on a standalone code gen module** (one that reads `.p8ir` files): Run `gradle :<module>:test --console=plain` instead of full `gradle build`. Compiler unit tests are irrelevant for IR-level changes. Do run full `gradle build` before final verification.
 
 ### Build command summary
 
@@ -242,6 +243,7 @@ When the task involves writing or understanding `.p8` (Prog8 source) or `.p8ir` 
 
 - Never assume your changes simply work, always test!
 - If the project does not have any testing tools, scripts, MCP tools, skills, etc. available for testing, ask the user whether testing should be skipped.
+- in prog8 code being tested, use '@shared' variables to avoid const-folding
 
 ### Automated Tests (gradle)
 Always use the `--console=plain` flag with these commands to avoid messing up the agent's text interface.
@@ -281,7 +283,7 @@ gradle :compiler:compileTestKotlin --info 2>&1 | grep "^e:"
 - Unit tests use KoTest (FunSpec style)
 - Tests are in the "compiler" module's `test` directory (and some other modules)
 - Test config is in root `build.gradle.kts`; tests run in parallel
-- **When writing test programs**, add at the top: `%zeropage basicsafe` and `%option no_sysinit`
+- **When writing test programs**, add at the top: `%zeropage basicsafe` and `%option no_sysinit` - the latter ONLY when NOT writing for the amiga500 or qemu68k targets
 - When a test fails, the output shows "There were failing tests. See the report at:" - **read that HTML report**
 
 ### Compiler Unit Test Snippets

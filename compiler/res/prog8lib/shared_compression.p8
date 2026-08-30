@@ -1,5 +1,5 @@
 ; data compression/decompression routines
-; This file contains the shared routines that work on all targets.
+; This file contains the shared routines that work on all 6502 targets.
 
 compression {
 

@@ -1,291 +1,139 @@
 ---
 name: asm6502-coder
-description: Writing or understanding 6502/65C02 assembly code using 64tass syntax, for use as stand alone .asm or inline within Prog8 programs
+description: Writing or understanding 6502/65C02 assembly in 64tass syntax, standalone or embedded in Prog8
 ---
 
-# 65(C)02 Assembly Coder Skill
+# 6502 Assembly Coder
 
-You are an expert MOS 6502 assembly development assistant. Keep responses concise and practical — prefer short, correct code examples over lengthy prose.
-You are working with **6502/65C02 assembly** using **64tass syntax**, in separate `*.asm` files or embedded in a Prog8 program (inside `%asm {{ }}` blocks or `asmsub` routines). Follow all rules below.
+Use 64tass syntax, not ca65 or another assembler. Keep answers concise and
+practical. This applies to standalone `.asm` files and Prog8 `%asm {{ }}` or
+`asmsub` blocks.
 
-## Assembler: 64tass Syntax
-### Formatting Rules
-- Labels start in the first column of the line.
-- Instructions are indented at least 4 spaces.
-- Two spaces between the instruction opcode and its operand (e.g., `lda  #1`, `sta  $d020`).
-- End-of-line comments are preceded by two spaces before the `;` (e.g., `sta  $d020  ; border color`).
-- If a comment is the only thing on a line, it starts in the first column (no indentation).
-- Opcodes and operands are written in lowercase (e.g., `lda`, not `LDA`; `$d020`, not `$D020`).
+## Syntax
 
-- **NOT ca65/cc65** or other assemblers. Key differences:
-- `.proc` / `.pend` for procedures (scoping)
-- `_label` for local labels (prefixed with underscore, scoped to `.proc`)
-- **Symbol aliases**: inside a `.proc`, use `_name = P8ZP_SCRATCH_B1` to give a scratch variable a descriptive name.
-- **Anonymous labels**: defined as `+` (forward) or `-` (backward) at the start of a line.
-  - **CRITICAL DISTINCTION**: Label **definitions** are always just a single `+` or `-`. Label **references** use `+`, `++`, `+++` to refer to the 1st, 2nd, 3rd upcoming forward label, and `-`, `--`, `---` for the 1st, 2nd, 3rd preceding backward label.
-  - `+` refers to the NEXT upcoming `+` label, `++` refers to the ONE AFTER that, etc.
-  - `-` refers to the MOST RECENT `-` label, `--` to the one before that, etc.
-  - When a `+` label is passed, the forward-reference count resets (so `++` then refers to the next one after that new label)
-  - Example:
-    ```asm
-    -   dex         ; backward label '-'
-        bne -       ; branch to most recent '-' (the dex above)
-        ldx #5
-    +   dex         ; forward label '+'
-        bne +       ; branch to this same '+' (forward)
-        sta $400
-    +   lda #0      ; second '+' label definition (just '+')
-        bne ++      ; branch to the '++' below (third forward '+')
-        rts
-    +   inc $d020   ; third forward label definition (just '+', referred to as '++')
-    ```
-- Data directives: `.byte`, `.word`, `.dword`, `.fill` (allocate space)
-- Equates: `label = value` (not `label .equ value` or `#define`)
-- **Number Literals**: Hex `$1234`, Binary `%10101010`, Decimal `123`.
-- Zero-page variables defined with `=`
-- `.text` for inline string data
-- **Conditional assembly**: `.if`, `.elsif`, `.else`, `.endif`
-- **Memory Sections**: `.section <name>`, `.send <name>` (common sections: `CODE`, `DATA`, `BSS`, `BSS_NOCLEAR`)
+- Labels begin in column 1. Instructions are indented at least four spaces.
+- Use lowercase opcodes and operands, two spaces between opcode and operand,
+  and two spaces before end-of-line comments.
+- Hex is `$1234`, binary is `%1010`, decimal is `123`.
+- Use `.byte`, `.word`, `.dword`, `.fill`, `.text`, and equates such as
+  `name = value`.
+- Sections use `.section name` and `.send name`.
+- Procedures use `.proc` and `.pend`; labels beginning with `_` are local to a
+  procedure.
+- Conditional assembly uses `.if`, `.elsif`, `.else`, and `.endif`.
 
-## Instructions
-- **Instructions like `rol`, `ror`, `asl`, `lsr` (and `inc`, `dec` on 65C02) require an explicit operand for accumulator**: write `rol a`, `inc a`, etc., not just `rol` or `inc`.
-- Standard 6502 addressing modes: implied, immediate (`#`), zero-page (`zp`), zero-page,X (`zp,x`), absolute (`abs`), absolute,X (`abs,x`), absolute,Y (`abs,y`), indirect (`(abs)`), indirect,X (`(zp,x)`), indirect,Y (`(zp),y`), relative (branches), accumulator
-- Branches: `bne`, `beq`, `bmi`, `bpl`, `bcs`, `bcc`, `bvs`, `bvc` (relative, max +127/-128 bytes)
-- Jumps: `jmp` (absolute or indirect), `jsr`/`rts` (subroutine call/return)
-- No `push`/`pop` mnemonics — use `pha`/`pla` (byte) and `txa`/`phx`/`plx`/`tay`/`phy`/`ply` for registers
+## Anonymous Labels
 
-### Instruction Side Effects (Flags)
-- **`Z` (Zero)**: Set if the result of an operation is 0.
-- **`N` (Negative)**: Set if bit 7 of the result is 1.
-- **`C` (Carry)**: Used for unsigned overflow and shifts. `cmp` sets `C` if `Register >= Operand`.
-- **`V` (Overflow)**: Set if a signed arithmetic operation overflowed.
-- **Commonly affected by**: `lda`, `ldx`, `ldy`, `inx`, `dex`, `tax`, `tay`, `txa`, `tya`, `and`, `ora`, `eor`, `asl`, `lsr`, `rol`, `ror`, `adc`, `sbc`, `cmp`, `cpx`, `cpy`, `bit`.
-- **Note**: `lda`, `ldx`, `ldy` do NOT affect the Carry flag. Only `adc`, `sbc`, `cmp`, and shift/rotate instructions affect Carry.
+Anonymous label definitions are always a single `+` or `-` in column 1.
+References use repeated signs:
 
-## 6502 vs 65C02
-- **CX16 target only**: can use WDC 65C02 instructions — `stz`, `phx`, `plx`, `phy`, `ply`, `bra`, `trb`, `tsb`, `stp`, `wai`, `inc a`, `dec a`, `bit #imm`, `bit zp,x`, `bit abs,x`, `jmp (abs,x)`, and `(zp)` indirect addressing mode (e.g., `lda (zp)`).
-- **C64, C128, PET32 targets**: original 6502 only — no `stz`, no `phx`/`plx`/`phy`/`ply`, no `bra` etc.
-- **Note**: The Rockwell/bit-manipulation instructions (`rmb`, `smb`, `bbr`, `bbs`) are **NOT** available.
-- Check the target before using 65C02-specific instructions
-- **6502 / 65C02 instruction reference table**: https://www.pagetable.com/c64ref/6502/?cpu=65c02&tab=4 (provides exact instruction details for all opcodes: operation, addressing modes, byte length, and cycle count).
+- `+` is the next upcoming `+` definition, `++` the second, `+++` the third.
+- `-` is the most recent `-` definition, `--` the preceding one, and so on.
+- Passing a `+` definition resets the forward-reference count.
 
-## Commander X16 Memory Map
+```asm
+-   dex
+    bne -       ; most recent '-' above
+    ldx #5
++   dex         ; first upcoming '+'
+    bne +       ; this '+'
+    sta $400
++   lda #0      ; second '+' definition
+    bne ++      ; next '+' after this one
+    rts
++   inc $d020   ; third '+' definition
 ```
-Bank    Offset      Content
-        $0000-$9EFF Fixed/System RAM
-        $9F00-$9FFF I/O Area (VIA, VERA, YM2151)
-$00-$FF:$A000-$BFFF Banked RAM (max 2 MiB, often 512 KiB) (256x8K banks)
-$00-$1F:$C000-$FFFF System ROM (512 KiB) (32x16K banks)
-```
-- Bank registers (in zeropage): `$00` selects the current RAM bank (0-255), `$01` selects the current ROM bank (0-31). For JSRFAR/banked calls from Prog8, use `extsub @bank ...` instead of manipulating these directly.
-- Full hardware specs at https://ayce.dev/emptyx16.html#emptyx16---x16-hardware-specs
 
-## Calling Convention / Register Conventions
-- **Accumulator (A)**: 8-bit, used for most arithmetic, data movement, return values
-- **X register**: 8-bit, often used for indexing, loop counters
-- **Y register**: 8-bit, often used for indirect addressing index
-- **Processor Status (P)**: flags — carry (C), zero (Z), negative/N (sign bit 7), overflow (V), decimal (D), interrupt (I), break (B)
-- **No caller-saved vs callee-saved convention** — list all modified registers in `clobbers (A, X, Y)` when writing `asmsub`
-- The CPU stack (SP, $0100-$01FF) is limited (usually ~128 bytes free). Do not overflow it
+## CPU Differences
 
-## Assembly within Prog8 Programs
+- `cx16` is the only Prog8 target that supports 65C02 instructions such as
+  `stz`, `phx`, `plx`, `phy`, `ply`, `bra`, `trb`, `tsb`, `wai`, `stp`, and
+  `bit #imm`. C64, C128, and PET32 use the original 6502.
+- Rockwell instructions (`rmb`, `smb`, `bbr`, `bbs`) are not available.
+- Use an explicit `a` for accumulator forms such as `rol a`, `lsr a`, `inc a`,
+  and `dec a`.
+- Branches are relative. Prog8's assembler invocation enables `--long-branch`
+  for out-of-range branches.
+- `lda`, `ldx`, and `ldy` do not affect carry. `cmp` sets carry for
+  `register >= operand`.
+- On NMOS 6502, `jmp ($xxff)` wraps the high-byte fetch within the page.
+- `BRK` skips the byte after its opcode. The byte is commonly a handler
+  signature.
+- `bit` memory forms set N and V from the operand and Z from `A AND operand`.
+  65C02 `bit #imm` sets only Z.
+- Decimal mode can persist into NMOS IRQ handlers. Use `cld` at handler entry
+  and explicitly control D before `adc` or `sbc`.
 
-### `%asm {{ }}` blocks
-- Embed arbitrary 64tass assembly directly in your Prog8 source
-- Access Prog8 symbols using their prefixed names (see below)
-- Can be placed inside subroutines or at block level
+## Prog8 Integration
 
-### `asmsub` (assembly subroutine)
-- For kernel (ROM) routines or low-level assembly
-- Parameters passed via registers: `@A`, `@X`, `@Y`, `@AX` (A low, X high), `@AY` (A low, Y high), `@R0`-`@R15`, `@FAC1`/`@FAC2` (float), `@Pc` (carry), `@Pz` (zero)
-- Return value: `-> type @register` — also via `@Pz`/`@Pc` for flags
-- Clobbers: `clobbers (A, X, Y)` — MUST list all modified registers
-- **CRITICAL**: Parameter names in `asmsub` are **documentation only**. You MUST use the actual registers in your assembly code, NOT the parameter names (unless you create aliases yourself).
-- Create symbolic aliases at assembly top for clarity: `x1 = cx16.r0`, `y1 = cx16.r0L`
-- Accessing Prog8 parameters if they were NOT mapped to registers: use `p8v_paramname`. (Mapping to registers is preferred for speed).
+`asmsub` parameter names are documentation only. Use the actual registers or
+define assembly aliases, and list every modified register in `clobbers`.
 
-Example:
 ```prog8
-asmsub line(uword x1 @R0, ubyte y1 @A, uword x2 @R1, ubyte y2 @Y) clobbers (A, X, Y) {
+asmsub increment(uword value @R0) clobbers (A, X) {
     %asm {{
-        x1 = cx16.r0
-        x2 = cx16.r1
-        lda  x1        ; use alias, not "_x1"
+        lda  cx16.r0L
+        clc
+        adc  #1
+        sta  cx16.r0L
     }}
 }
 ```
 
-### `asmsub` parameter annotation reference
-| Annotation | Register | Size |
-|------------|----------|------|
-| `@A` | Accumulator | 8-bit |
-| `@X` | X register | 8-bit |
-| `@Y` | Y register | 8-bit |
-| `@AX` | A (low) + X (high) | 16-bit |
-| `@AY` | A (low) + Y (high) | 16-bit |
-| `@R0`-`@R15` | cx16 virtual registers | 16-bit each |
-| `@FAC1`/`@FAC2` | Floating-point accumulators | 5-byte float |
-| `@Pc` | Carry flag | bool |
-| `@Pz` | Zero flag | bool |
+Annotations include `@A`, `@X`, `@Y`, `@AX`, `@AY`, `@R0`-`@R15`, `@FAC1`,
+`@FAC2`, `@Pc` (carry), and `@Pz` (zero). Unmapped parameters are accessed as
+`p8v_name`.
 
-## Accessing Prog8 Symbols from Assembly
-All Prog8 symbols are prefixed when accessed from assembly:
+Prog8 symbols use these prefixes: `p8v_` variables and parameters, `p8s_`
+subroutines, `p8b_` blocks, `p8c_` constants, `p8l_` labels, and `p8t_` struct
+types. Fully qualified names may look like
+`p8b_main.p8s_helper.p8v_local`. `%option no_symbol_prefixing` disables the
+prefixes. Split word arrays use `_lsb` and `_msb` symbols.
 
-| Prefix | Refers to | Example |
-|--------|-----------|---------|
-| `p8v_` | Variables, parameters | `p8v_myvar` |
-| `p8s_` | Subroutines | `p8s_mysub` |
-| `p8b_` | Blocks | `p8b_myblock` |
-| `p8c_` | Constants, enum members | `p8c_myconst`, `p8c_MyEnum_Member` |
-| `p8l_` | Labels | `p8l_mylabel` |
-| `p8t_` | Struct types | `p8t_MyStruct` |
-| `p8_` | Other symbols | |
+## Zeropage and Memory
 
-- **Fully qualified**: e.g., `p8b_myblock.p8v_myvar`, `p8b_myblock.p8s_mysub.p8v_localvar`
-- Within a `.proc` (subroutine) in your assembly, short names often work (assembler scoping)
-- **`%option no_symbol_prefixing`**: disables all prefixes. Stdlib modules (`cbm`, `cx16`, `txt`) use this — you can write `cbm.CHROUT` directly
-- **Split word arrays**: two separate byte arrays — append `_lsb` and `_msb` to the name: `p8v_myarray_lsb`, `p8v_myarray_msb`
+- Never hardcode zeropage addresses. Use `P8ZP_SCRATCH_B1`,
+  `P8ZP_SCRATCH_REG`, `P8ZP_SCRATCH_W1`, `P8ZP_SCRATCH_W2`, and
+  `P8ZP_SCRATCH_PTR`, or the appropriate `cx16.r0`-`cx16.r15` symbols.
+- Scratch variables are not necessarily consecutive. CX16 virtual registers
+  are consecutive and have `L` and `H` byte names.
+- Allocate additional temporary storage in BSS.
+- The hardware stack occupies `$0100-$01ff` and is limited. Do not overflow
+  it.
+- Prog8 words are little-endian: load the low byte first, then the high byte.
 
-## Zeropage Usage
-- Do NOT use arbitrary zeropage locations. Only use these predefined scratch variables:
-  - `P8ZP_SCRATCH_B1` (byte)
-  - `P8ZP_SCRATCH_REG` (byte)
-  - `P8ZP_SCRATCH_W1` (word)
-  - `P8ZP_SCRATCH_W2` (word)
-  - `P8ZP_SCRATCH_PTR` (word)
-- On CX16: virtual registers `cx16.r0`-`cx16.r15` are in zeropage (and their low/high bytes: `cx16.r0L`, `cx16.r0H`, etc.)
-- Virtual registers `cx16.r0`-`cx16.r15` are available on ALL targets, but only on CX16 in zeropage
-- Assume the scratch variables are not consecutive in zeropage. The CX16 virtual registers ARE consecutive in memory though.
-- For additional temporary storage, allocate regular variables in BSS
-- **CRITICAL: NEVER use hardcoded zeropage addresses** (like `$1e`, `$22`, `$7c`, etc.) to reference P8ZP_SCRATCH registers or cx16 virtual registers. Their addresses differ per compilation target. **ALWAYS** use the symbolic names (`P8ZP_SCRATCH_W1`, `cx16.r14`, `cx16.r14+1`, etc.) so the assembler resolves the correct address for the target.
-
-## Common 6502 Patterns
-
-### Common Branch Logic (Comparisons)
-| Logic | Unsigned | Signed |
-|-------|----------|--------|
-| `A == imm` | `cmp #imm`, `beq label` | (Same) |
-| `A != imm` | `cmp #imm`, `bne label` | (Same) |
-| `A < imm` | `cmp #imm`, `bcc label` | `sec`, `sbc #imm`, `bvc *+4`, `eor #$80`, `bmi label` |
-| `A >= imm` | `cmp #imm`, `bcs label` | `sec`, `sbc #imm`, `bvc *+4`, `eor #$80`, `bpl label` |
-| `A <= imm` | `beq label`, `bcc label` | (Use complex signed logic or reorder) |
-| `A > imm` | `beq +`, `bcs label`, `+` | (Use complex signed logic or reorder) |
-
-### Looping (downto with BNE)
-```asm
-        ldx #count
-loop    ; do work here
-        dex
-        bne loop        ; loop while X != 0 (runs 'count' times)
-```
-
-### Self-Modifying Code (SMC) — Avoid When Possible
-**Do NOT use self-modifying code unless absolutely necessary** — self-modifying code writes to the code segment at runtime, which means it **cannot run from ROM** and is generally fragile, hard to debug, and violates the expected behavior of modern tooling (emulators, debuggers, etc.). Prefer lookup tables, indirect jumps via a vector in RAM, or alternative algorithms that keep code in place.
-
-### Self-Modifying Code (SMC) Detection
-Look for `sta`, `stx`, or `sty` pointing into code labels:
-```asm
-        lda #$42
-        sta _target+1   ; Modifies the immediate operand of the LDA at _target
-        ...
-_target lda #$00        ; This #$00 will be replaced by #$42 at runtime
-```
-
-### Indirect indexed read (table of data)
-```asm
-        ldy #index
-        lda (ptr),y     ; read byte at address stored in zp ptr + Y
-```
-
-### 16-bit arithmetic (word add)
 ```asm
         clc
-        lda word1_lo
-        adc word2_lo
-        sta result_lo
-        lda word1_hi
-        adc word2_hi
-        sta result_hi
+        lda  word1
+        adc  word2
+        sta  result
+        lda  word1+1
+        adc  word2+1
+        sta  result+1
 ```
 
-### Calling a Prog8 subroutine from assembly
+## Common Patterns
+
 ```asm
-        jsr p8s_myblock.p8s_mysub
+        ldy  #index
+        lda  (ptr),y
+
+        jsr  p8s_main.p8s_helper
 ```
 
-### Reading a word variable
-```asm
-        lda p8v_myword          ; loads LSB
-        ldy p8v_myword+1        ; loads MSB (word variables are stored LSB-first)
-```
+Avoid self-modifying code unless it is explicitly required. It cannot run
+from ROM and complicates debugging and tooling. Prefer lookup tables, RAM
+vectors, or alternative algorithms.
 
-## CPU Quirks and Pitfalls
+## Tools
 
-### JMP ($xxFF) Page Wrap Bug (NMOS 6502)
-- **Problem**: On original 6502 CPUs, `jmp ($caff)` will fetch the LSB from `$caff` but the MSB from `$ca00` (instead of `$cb00`).
-- **Target**: Affects C64, C128, PET32.
-- **Solution**: Avoid placing indirect jump vectors on a page boundary, or use the CX16 (65C02) which fixed this bug.
+Prog8 invokes 64tass with `--ascii --case-sensitive --long-branch -Wall` plus
+the target output option such as `--cbm-prg`. For manual assembly:
 
-### BRK Instruction and the "Signature Byte"
-- **Behavior**: After a `BRK` instruction, the return address on the stack is incremented by **2**. This means the CPU skips the byte immediately following the `BRK` opcode.
-- **Usage**: This skipped byte is often used as a "signature" or parameter byte for the BRK handler.
-
-### BIT Instruction Flags
-- **Absolute/Zero-page**: `bit $1234` copies bit 7 of the memory value to the **N** flag and bit 6 to the **V** flag. The **Z** flag is set based on `A AND memory`.
-- **Immediate (65C02 only)**: `bit #$01` only affects the **Z** flag; it does **NOT** modify N or V.
-- **NMOS 6502**: Does **not** support `bit #imm`.
-
-### The "B" (Break) Flag
-- **Quirk**: The B flag (bit 4 of the status register) doesn't actually exist in the hardware status register. It only exists on the stack after a `PHP` or `BRK` instruction (set to 1) or a hardware IRQ/NMI (set to 0).
-- **Detection**: To tell if an interrupt was caused by `BRK` or a hardware IRQ, your handler must `pla`, `and #$10`, and check the result.
-
-### Decimal Mode Flag (D) Persistence
-- **Pitfall**: On NMOS 6502, the `D` flag is **not** cleared on interrupt. Always use `cld` in IRQ handlers. On 65C02, it is cleared automatically, but `cld` is still good practice.
-- **ADC/SBC**: Be extremely careful with arithmetic if you haven't explicitly set or cleared the `D` flag, as its state might be unknown.
-
-## Optimization Tips
-- **`stz` (65C02 only)**: Saves cycles and bytes compared to `lda #0`, `sta ...`.
-- **`bra` (65C02 only)**: Shorter and usually faster than `jmp`.
-- **Avoid `clc` before `bcc`**: `cmp` already sets the carry flag correctly for `bcc`/`bcs`.
-- **`inx` / `dex` vs `clc`+`adc #1`**: Incrementing/decrementing is faster and doesn't affect the carry flag.
-- **Zero-page usage**: Accessing variables in zeropage is 1 cycle faster and 1 byte shorter than absolute addressing.
-- **Cycle Counting**: Most instructions take 2-4 cycles. `jsr` takes 6, `rts` takes 6. Branches take 2 (no branch), 3 (branch taken), or 4 (branch taken across page boundary).
-
-## 64tass Macros
-Define macros for common tasks:
-```asm
-pushax  .macro
-        pha
-        txa
-        pha
-        .endm
-
-popax   .macro
-        pla
-        tax
-        pla
-        .endm
-```
-Call them with `#pushax` and `#popax`.
-
-## IRQ Handler Best Practices
-- **Clear the Decimal Flag (`cld`)**: On the original 6502, the decimal flag (`D`) is **not** automatically cleared when an interrupt occurs. If the interrupted code was in decimal mode, your handler will also run in decimal mode, causing arithmetic errors. Always call `cld` at the beginning of your handler. The 65C02 clears it automatically, but `cld` is still recommended for portability.
-
-## Invoking the Assembler (64tass)
-If you need to manually invoke `64tass` to assemble a generated `.asm` file, you should be aware of the default arguments that `prog8c` supplies to ensure compatibility with the generated code:
-
-- `--ascii`: **CRITICAL.** Prog8 generates character and string data in ASCII. Without this flag, `64tass` defaults to PETSCII, which will garble your strings.
-- `--case-sensitive`: Prog8 is case-sensitive and expects the assembler to be as well.
-- `--long-branch`: Enables automatic conversion of relative branches (`beq`, `bne`, etc.) to absolute jumps if the target is out of range. Prog8 relies on this.
-- `-Wno-implied-reg`: Suppresses warnings when the accumulator `a` is omitted from instructions like `rol`, `lsr`, etc. (though the skill recommends always using `rol a` for clarity).
-- `-Wall`: Enables all warnings.
-- `--cbm-prg` (or `--atari-xex` / `--nostart`): Sets the output format and adds the appropriate load address header.
-
-### Optional but Recommended for Debugging:
-- `--vice-labels --labels=labels.txt`: Generates a label file that can be loaded into the VICE monitor (`load_labels "labels.txt"`) to see your Prog8 symbol names while debugging.
-- `--list=listing.txt`: Generates a full assembly listing file with addresses and opcodes.
-
-### Example manual invocation:
 ```bash
-64tass --ascii --case-sensitive --long-branch -Wall --cbm-prg -o myprogram.prg myprogram.asm
+64tass --ascii --case-sensitive --long-branch -Wall --cbm-prg \
+    -o myprogram.prg myprogram.asm
 ```
+
+For debugging, add `--vice-labels --labels=labels.txt` and/or
+`--list=listing.txt`.

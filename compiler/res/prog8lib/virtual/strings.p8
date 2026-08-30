@@ -107,10 +107,10 @@ strings {
         ; Copy a string to another, overwriting that one.
         ; Returns the length of the string that was copied.
         %ir {{
-            loadm.w r99000,strings.copy.source
-            loadm.w r99001,strings.copy.target
+            loadm.l r99200,strings.copy.source
+            loadm.l r99201,strings.copy.target
             load.b r99100,#255
-            syscall 39 (r99000.w, r99001.w, r99100.b): r99100.b
+            syscall 39 (r99200.l, r99201.l, r99100.b): r99100.b
             returnr.b r99100
         }}
     }
@@ -119,10 +119,10 @@ strings {
         ; Copy a string to another, overwriting that one, but limited to the given length.
         ; Returns the length of the string that was copied.
         %ir {{
-            loadm.w r99000,strings.ncopy.source
-            loadm.w r99001,strings.ncopy.target
+            loadm.l r99200,strings.ncopy.source
+            loadm.l r99201,strings.ncopy.target
             loadm.b r99100,strings.ncopy.maxlength
-            syscall 39 (r99000.w, r99001.w, r99100.b): r99100.b
+            syscall 39 (r99200.l, r99201.l, r99100.b): r99100.b
             returnr.b r99100
         }}
     }
@@ -150,9 +150,9 @@ strings {
         ; Note that you can also directly compare strings and string values with each other using
         ; comparison operators ==, < etcetera (this will use strcmp automatically).
         %ir {{
-            loadm.w r99000,strings.compare.st1
-            loadm.w r99001,strings.compare.st2
-            syscall 16 (r99000.w, r99001.w) : r99100.b
+            loadm.l r99200,strings.compare.st1
+            loadm.l r99201,strings.compare.st2
+            syscall 16 (r99200.l, r99201.l) : r99100.b
             returnr.b r99100
         }}
     }
@@ -163,9 +163,9 @@ strings {
         ; Note that you can also directly compare strings and string values with each other using
         ; comparison operators ==, < etcetera (this will use strcmp automatically).
         %ir {{
-            loadm.w r99000,strings.compare_nocase.st1
-            loadm.w r99001,strings.compare_nocase.st2
-            syscall 58 (r99000.w, r99001.w) : r99100.b
+            loadm.l r99200,strings.compare_nocase.st1
+            loadm.l r99201,strings.compare_nocase.st2
+            syscall 58 (r99200.l, r99201.l) : r99100.b
             returnr.b r99100
         }}
     }
@@ -217,7 +217,7 @@ strings {
     alias compare_nocase_iso = strings.compare_nocase
 
     sub hash(str st) -> ubyte {
-        ; experimental 8 bit hashing function.
+        ; 8 bit hashing function.
         ; hash(-1)=179;  hash(i) = ROL hash(i-1)  XOR  string[i]
         ; On the English word list in /usr/share/dict/words it seems to have a pretty even distribution
         ubyte hashcode = 179
@@ -260,5 +260,40 @@ strings {
 
     sub isprint(ubyte character) -> bool {
         return character>=32 and character<=127 or character>=160
+    }
+
+    sub lstrip(str s) {
+        ; -- gets rid of whitespace and other non-visible characters at the start of the string (destructive)
+        ^^ubyte result = lstripped(s)
+        if result != s
+            void copy(result, s)
+    }
+
+    sub ltrim(str s) {
+        ; -- gets rid of whitespace characters at the start of the string (destructive)
+        ^^ubyte result = ltrimmed(s)
+        if result != s
+            void copy(result, s)
+    }
+
+    sub findstr(str haystack, str needle) -> ubyte {
+        ; searches for needle in haystack.
+        ; returns index in haystack where it first occurs, and Carry set,
+        ; or if needle doesn't occur in haystack it returns Carry clear and 255 (an invalid index.)
+        ubyte haystack_len = length(haystack)
+        ubyte needle_len = length(needle)
+        if needle_len <= haystack_len {
+            ubyte idx
+            haystack_len = haystack_len - needle_len + 1
+            repeat haystack_len {
+                if startswith(haystack+idx, needle) {
+                    sys.set_carry()
+                    return idx
+                }
+                idx++
+            }
+        }
+        sys.clear_carry()
+        return 255
     }
 }

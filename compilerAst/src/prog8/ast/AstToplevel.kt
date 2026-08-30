@@ -407,6 +407,14 @@ open class Module(final override val statements: MutableList<Statement>,
             Pair(address.args.single().int!!, address.position)
     }
 
+    val varsAddress: Pair<UInt, Position>? by lazy {
+        val address = (statements.singleOrNull { it is Directive && it.directive == "%varsaddress" } as? Directive)
+        if(address==null || address.args.single().int==null)
+            null
+        else
+            Pair(address.args.single().int!!, address.position)
+    }
+
     override fun linkParents(parent: Node) {
         require(parent is GlobalNamespace)
         this.parent = parent
@@ -434,9 +442,9 @@ open class Module(final override val statements: MutableList<Statement>,
     val textEncoding: Encoding by lazy {
         val encoding = statements.singleOrNull { it is Directive && it.directive == "%encoding" } as? Directive
         if(encoding!=null)
-            Encoding.entries.firstOrNull { it.prefix==encoding.args[0].string } ?: program.encoding.defaultEncoding       // invalid encoding will be noticed by ast checker error message
+            Encoding.entries.firstOrNull { it.prefix==encoding.args[0].string } ?: program.target.defaultEncoding       // invalid encoding will be noticed by ast checker error message
         else
-            program.encoding.defaultEncoding
+            program.target.defaultEncoding
     }
 
     val isLibrary get() = source.isFromLibrary

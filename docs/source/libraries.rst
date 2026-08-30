@@ -67,7 +67,7 @@ Math
     Returns quotient and remainder of the division as two ubyte or uword values.
     Performs the division only once. Using '/' and '%' separately
     would perform the division twice, so using divmod is much more efficient for this.
-    **Note:** Clobbers ``cx16.r15`` (the remainder is stored there for the word variant).
+    **Clobbers:** ``cx16.r15`` (stores the remainder there).
     The ``%`` operator on its own used to also clobber ``cx16.r15`` but now preserves it.
 
 :index:`gcd` (a, b)
@@ -103,6 +103,12 @@ CPU Stack
     Low-level function that is seldomly used in user code.
     Don't assume anything about the order in which the bytes are pushed - popw will make sense of them again.
 
+:index:`pushp` (value)  **experimental, may change or be removed**
+    pushes a pointer value on the CPU hardware stack.
+    On 2-byte pointer targets this is the same as pushw, on 32-bit pointer targets it acts as pushl.
+    Low-level function that is seldomly used in user code.
+    Don't assume anything about the order in which the bytes are pushed - popp will make sense of them again.
+
 :index:`pushl` (value)
     pushes a 32-bit value on the CPU hardware stack.
     Low-level function that is seldomly used in user code.
@@ -119,6 +125,11 @@ CPU Stack
 
 :index:`popw` ()
     pops a 16-bit word value off the CPU hardware stack that was pushed before by pushw, and returns it.
+    Low-level function that is seldomly used in user code.
+
+:index:`popp` ()   **experimental, may change or be removed**
+    pops a pointer value off the CPU hardware stack that was pushed before by pushp, and returns it.
+    On 2-byte pointer targets this is the same as popw, on 32-bit pointer targets it acts as popl.
     Low-level function that is seldomly used in user code.
 
 :index:`popl` ()
@@ -178,7 +189,8 @@ Miscellaneous
     .. note::
         The arguments are in 'natural' left to right reading order that is first the msb then the lsb.
         Don't get confused by how the system actually stores this 16-bit word value in memory (which is
-        in little-endian format, so lsb first then msb)
+        in little-endian format, so lsb first then msb, on the 6502 targets; the m68k targets store it
+        big-endian, msb first)
 
 :index:`mklong` (msb, b2, b1, lsb)
     Efficiently create a long value from four bytes (the msb, second, first and finally the lsb). Avoids multiplication and shifting.
@@ -187,7 +199,8 @@ Miscellaneous
     .. note::
         The arguments are in 'natural' left to right reading order that is first the msb then the lsb.
         Don't get confused by how the system actually stores this 32-bit word value in memory (which is
-        in little-endian format, so lsb first then b1, b2 and finally the msb)
+        in little-endian format, so lsb first then b1, b2 and finally the msb, on the 6502 targets;
+        the m68k targets store it big-endian, msb first)
 
 :index:`mklong2` (msw, lsw)
     Efficiently create a long value from two words (the msw, and the lsw). Avoids multiplication and shifting.
@@ -196,7 +209,8 @@ Miscellaneous
     .. note::
         The arguments are in 'natural' left to right reading order that is first the msw then the lsw.
         Don't get confused by how the system actually stores this 32-bit word value in memory (which is
-        in little-endian format, so lsw first then the msw)
+        in little-endian format, so lsw first then the msw, on the 6502 targets; the m68k targets store
+        it big-endian, msw first)
 
 :index:`offsetof` (Struct.field)
     The offset in bytes of the given field in the struct. The first field will always have offset 0.
@@ -211,12 +225,20 @@ Miscellaneous
     If the memory location contains another value than 0 or 1, results are undefined.
 
 :index:`peekw` (address)
-    reads the word value at the given address in memory. Word is read as usual little-endian lsb/msb byte order.
+    reads the word value at the given address in memory. Word is read in the target's native byte order:
+    little-endian (lsb first) on the 6502 targets, big-endian (msb first) on the m68k targets.
+    To read addresses or pointers portably, use ``peekp`` instead (addresses are 16-bit words on
+    6502 targets but 32-bit longs on m68k targets).
     Caution: when using peekw to get words out of an array pointer, make sure the array is *not* a split word array
     (peekw requires the LSB and MSB of the word value to be consecutive in memory).
 
+:index:`peekp` (address)  **experimental, may change or be removed**
+    reads a pointer value at the given address in memory. This is the portable way to read an address:
+    On 16-bit targets this reads 2 bytes (like peekw), on 32-bit targets this reads 4 bytes (like peekl).
+
 :index:`peekl` (address)
-    reads the signed long value at the given address in memory. Long is read as usual little-endian lsb/msb byte order.
+    reads the signed long value at the given address in memory. Long is read in the target's native byte order:
+    little-endian (lsb first) on the 6502 targets, big-endian (msb first) on the m68k targets.
 
 :index:`peekf` (address)
     reads the float value at the given address in memory. On CBM machines, this reads 5 bytes.
@@ -229,13 +251,20 @@ Miscellaneous
     Can also be written as pokebowl(addres, value), just for fun.
 
 :index:`pokew` (address, value)
-    writes the word value at the given address in memory, in usual little-endian lsb/msb byte order.
+    writes the word value at the given address in memory, in the target's native byte order:
+    little-endian (lsb first) on the 6502 targets, big-endian (msb first) on the m68k targets.
+    To write addresses or pointers portably, use ``pokep`` instead.
 
 :index:`pokel` (address, value)
-    writes the signed long value at the given address in memory, in usual little-endian lsb/msb byte order.
+    writes the signed long value at the given address in memory, in the target's native byte order:
+    little-endian (lsb first) on the 6502 targets, big-endian (msb first) on the m68k targets.
 
 :index:`pokef` (address, value)
     writes the float value at the given address in memory. On CBM machines, this writes 5 bytes.
+
+:index:`pokep` (address, value)  **experimental, may change or be removed**
+    writes the pointer value at the given address in memory.
+    On 16-bit targets this writes 2 bytes (like pokew), on 32-bit targets this writes 4 bytes (like pokel).
 
 :index:`pokemon` (address, value)
     Like poke(), but also returns the previous value in the given address.
@@ -246,6 +275,8 @@ Miscellaneous
     This uses the CPU's rotate semantics: bit 0 will be set to the current value of the Carry flag,
     while the highest bit will become the new Carry flag value.
     (essentially, it is a 9-bit or 17-bit rotation)
+    On M68k targets, the extend (X) bit substitutes the carry flag for rotates
+    (because M68k has separate C and X flags; ``set_carry`` and ``clear_carry`` manage both).
     Modifies in-place, doesn't return a value (so can't be used in an expression).
     You can rol a memory location directly by using the direct memory access syntax, so like ``rol(@($5000))``
     You can use ``if_cc`` or ``if_cs`` after a rol to act on the new carry bit, if required.
@@ -261,6 +292,8 @@ Miscellaneous
     This uses the CPU's rotate semantics: the highest bit will be set to the current value of the Carry flag,
     while bit 0 will become the new Carry flag value.
     (essentially, it is a 9-bit or 17-bit rotation)
+    On M68k targets, the extend (X) bit substitutes the carry flag for rotates
+    (because M68k has separate C and X flags; ``set_carry`` and ``clear_carry`` manage both).
     Modifies in-place, doesn't return a value (so can't be used in an expression).
     You can ror a memory location directly by using the direct memory access syntax, so like ``ror(@($5000))``
     You can use ``if_cc`` or ``if_cs`` after a ror to act on the new carry bit, if required.
@@ -282,8 +315,8 @@ sizeof (name)  ;  sizeof(datatype)  ;  sizeof(&name)  ;  sizeof(&&name)  ;  size
     For instance, for a variable of type uword, the sizeof is 2.
     For a 10 element array of floats, it is 50 (on the C64, where a float is 5 bytes).
     For a string, it returns the size of the string in memory (which includes the 0-byte terminator at the end).
-    For address-of expressions like ``&variable`` or ``&&variable``, it returns the size of a pointer (2 bytes).
-    For pointer types like ``^^float`` or ``^^MyStruct``, it returns the size of a pointer (2 bytes).
+    For address-of expressions like ``&variable`` or ``&&variable``, it returns the :ref:`pointer size <pointer_size>` for the target.
+    For pointer types like ``^^float`` or ``^^MyStruct``, it returns the :ref:`pointer size <pointer_size>` for the target.
     Note: usually you will be interested in the number of elements in an array, or the number of characters in the string; use ``len()`` for that.
 
 :index:`memory` (name, size, alignment)  ;  memory(name)
@@ -710,6 +743,9 @@ floats
     Floating point support is available on most cbm-compatible targets (except the C128 for now), and the virtual target.
     On the X16, make sure rom bank 4 is still active before doing floating point operations (it's the bank that contains the fp routines).
     On the C64, you have to make sure the Basic ROM is still banked in (same reason).
+    On the ``qemu68k`` and ``amiga500`` targets, floating point support requires a 68020 or better CPU with an 68881/68882 FPU.
+    For ``amiga500`` programs that use floats, the compiler automatically assembles with ``-m68020 -m68881``.
+    Such programs will not run on an Amiga 500/600 or 1200 without an FP coprocessor or a suitable upgraded/emulated CPU configuration.
 
 Provides definitions for the ROM/Kernal subroutines and utility routines dealing with floating point variables.
 
@@ -879,6 +915,100 @@ fully outside, or partially crossing the clipping rectangle. With ``inside`` you
     Clip the line segment from (x1,y1) to (x2,y2) against the current clipping rectangle set by ``set_cliprect``.
     Returns ``visible`` (boolean), plus the clipped coordinates (or (0,0)-(0,0) if not visible).
 
+
+lists
+^^^^^
+.. index:: pair: Libraries; lists
+
+Portable doubly linked lists modeled after Amiga Exec lists (``MinList``/``MinNode``).
+Available on all targets; on ``amiga500`` the types and routines simply forward to ``exec.library``.
+
+Three struct types are provided:
+
+- ``lists.Node`` - minimal node with ``Succ`` and ``Pred`` link pointers (``^^Node``)
+- ``lists.List`` - list header with ``Head``, ``Tail`` and ``TailPred`` pointers
+- ``lists.FullNode`` - extended node with ``Type``, ``Pri`` and ``Name`` fields for priority/name operations
+
+On ``amiga500`` these are aliases: ``Node = exec.MinNode``, ``List = exec.MinList``, ``FullNode = exec.Node``.
+
+A list header must be initialized once with ``init(listptr)`` (sets ``Head = &Tail``, ``Tail = 0``, ``TailPred = &Head``).
+The list can then be manipulated with:
+
+- ``init(listptr)``, ``is_empty(listptr) -> bool``
+- ``add_head(listptr, node)``, ``add_tail(listptr, node)``, ``insert(listptr, node, pred)`` (``pred=0`` inserts at head)
+- ``remove(node)``, ``remove_head(listptr) -> pointer``, ``remove_tail(listptr) -> pointer``
+- ``enqueue(listptr, node)`` - priority-sorted insertion by ``Pri`` (requires ``FullNode`` layout, FIFO for equal priorities)
+- ``find_name(listptr, name) -> pointer`` - linear search by ``Name`` (requires ``FullNode`` layout)
+
+Lists are directly iterable with ``for`` loops: ``for node in mylist`` iterates forward via ``Succ``,
+``for node in mylist step -1`` iterates backward via ``Pred``. The loop variable type (``^^Node`` or ``^^FullNode``) can be inferred.
+
+Custom node types are supported by making sure the link pointers are the first fields at offset 0.
+For the minimal list operations (``add_head``, ``add_tail``, ``insert``, ``remove``) only ``Succ``/``Pred`` are required;
+``enqueue`` and ``find_name`` require the full ``Type``/``Pri``/``Name`` layout of ``FullNode``.
+Example::
+
+    main {
+        struct MyNode {
+            ^^MyNode Succ       ; must be first field (offset 0)
+            ^^MyNode Pred       ; must be second field
+            ubyte    value      ; your own payload follows
+        }
+        struct MyList {
+            ^^MyNode Head
+            pointer  Tail
+            ^^MyNode TailPred
+        }
+
+        sub start() {
+            ^^MyList mylist = []                ; zero-initialized header
+            ^^MyNode n1 = [0, 0, 42]            ; Succ, Pred, value
+            ^^MyNode n2 = [0, 0, 99]
+            lists.init(mylist)
+            lists.add_tail(mylist, n1)
+            lists.add_tail(mylist, n2)
+            for n in mylist {
+                txt.print_ub(n.value)
+            }
+        }
+    }
+
+On ``amiga500`` the same holds. Define the list header with your node type so
+``for``-iteration infers the correct type, and include ``Type``/``Pri``/``Name``
+if you need the full ``exec.Node`` layout. The header can still be
+initialized with ``exec.NewList``::
+
+    main {
+        struct MyNode {
+            ^^MyNode Succ       ; offset 0
+            ^^MyNode Pred       ; offset 4
+            ubyte    Type       ; include for FullNode compatibility if needed
+            byte     Pri
+            str      Name
+            ubyte    value
+        }
+        struct MyList {
+            ^^MyNode Head
+            pointer  Tail
+            ^^MyNode TailPred
+        }
+        sub start() {
+            ^^MyList mylist = []
+            ^^MyNode n1 = [0, 0, 0, 0, 0, 11]
+            exec.NewList(mylist as ^^exec.List)
+            lists.add_tail(mylist as pointer, n1 as pointer)
+        }
+    }
+
+Allocator agnostic: the routines never allocate or free memory themselves,
+they only link the ``pointer`` values you pass in. Nodes and headers can
+come from static ``[]`` variables as above, from ``memory()`` slabs, or
+from any arena/bump allocator - e.g. ``arena_alloc(sizeof(MyNode)) as ^^MyNode``
+or ``exec.AllocMem`` on ``amiga500``. Just ensure the allocation is
+suitably aligned (even address on 6502, long-aligned on m68k).
+
+Read the :source:`lists source code <compiler/res/prog8lib/lists.p8>` and
+:source:`amiga lists source code <compiler/res/prog8lib/amiga500/lists.p8>` for details.
 
 math
 ^^^^
@@ -1623,6 +1753,12 @@ miscellaneous
 ``memsetw (address, numwords, wordvalue)``
     Efficiently set a part of memory to the given (u)word value.
     But the most efficient will always be to write a specialized fill routine in assembly yourself!
+    Note: on m68k targets (amiga500, qemu68k), the address must be word-aligned (even).
+
+``memsetl (address, numlongs, longvalue)``  (available on 32 bits targets only)
+    Efficiently set a part of memory to the given (u)long value.
+    But the most efficient will always be to write a specialized fill routine in assembly yourself!
+    Note: on m68k targets (amiga500, qemu68k), the address must be longword-aligned (divisible by 4).
 
 ``memcmp (address1, address2, size)``
     Compares two blocks of memory of up to 65535 bytes in size.
@@ -1689,6 +1825,10 @@ processor status flags
 
 ``clear_carry ()``
     Clears the CPU status register Carry flag.
+    On M68k targets, this also clears the X (extend) flag, because on such CPUs
+    the rotate instructions (``rol``, ``ror``) use the X bit as the rotate-carry
+    rather than the C bit.  On 6502-based targets this distinction does not exist
+    (there is only a single carry flag).
 
 ``clear_irqd ()``
     Clears the CPU status register Interrupt Disable flag.
@@ -1708,6 +1848,10 @@ processor status flags
 
 ``set_carry ()``
     Sets the CPU status register Carry flag.
+    On M68k targets, this also sets the X (extend) flag, because on such CPUs
+    the rotate instructions (``rol``, ``ror``) use the X bit as the rotate-carry
+    rather than the C bit.  On 6502-based targets this distinction does not exist
+    (there is only a single carry flag).
 
 ``set_irqd ()``
     Sets the CPU status register Interrupt Disable flag.

@@ -19,12 +19,15 @@ import prog8.code.target.VMTarget
 import prog8.compiler.CallGraph
 import prog8.parser.Prog8Parser.parseModule
 import prog8.vm.VmRunner
-import prog8tests.helpers.*
+import prog8tests.helpers.DummyFunctions
+import prog8tests.helpers.ErrorReporterForTests
+import prog8tests.helpers.compileText
 import kotlin.io.path.readText
 
 class TestCallgraph: FunSpec({
 
     val outputDir = tempdir().toPath()
+    val target = VMTarget()
 
     test("testGraphForEmptySubs") {
         val sourcecode = """
@@ -165,8 +168,8 @@ class TestCallgraph: FunSpec({
                     @(1000) = 0
                 }
             }"""
-        val module = parseModule(SourceCode.Text(source))
-        val program = Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
+        val module = parseModule(SourceCode.Text(source), target)
+        val program = Program("test", DummyFunctions, VMTarget())
         program.addModule(module)
         val callgraph = CallGraph(program)
         val blockMain = program.allBlocks.single { it.name=="main" }
@@ -200,8 +203,8 @@ class TestCallgraph: FunSpec({
                     start()
                 }
             }"""
-        val module = parseModule(SourceCode.Text(source))
-        val program = Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
+        val module = parseModule(SourceCode.Text(source), target)
+        val program = Program("test", DummyFunctions, VMTarget())
         program.addModule(module)
         val callgraph = CallGraph(program)
         val errors = ErrorReporterForTests()
@@ -224,8 +227,8 @@ class TestCallgraph: FunSpec({
                     uword @shared address = &start
                 }
             }"""
-        val module = parseModule(SourceCode.Text(source))
-        val program = Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
+        val module = parseModule(SourceCode.Text(source), target)
+        val program = Program("test", DummyFunctions, VMTarget())
         program.addModule(module)
         val callgraph = CallGraph(program)
         val errors = ErrorReporterForTests()
@@ -329,5 +332,31 @@ main {
 }"""
 
         compileText(VMTarget(), true, src, outputDir, writeAssembly = true) shouldNotBe null
+    }
+
+    test("pointer to nested struct does not create a recursive call") {
+        val src = """
+main {
+    sub start() {
+        load()
+    }
+
+    sub load() {
+        struct Header {
+            ubyte value
+        }
+
+        ^^Header header = ^^Header:[0]
+        decode(header)
+
+        sub decode(^^Header header) {
+        }
+    }
+}
+"""
+        val errors = ErrorReporterForTests(throwExceptionAtReportIfErrors = false, keepMessagesAfterReporting = true)
+        val result = compileText(VMTarget(), false, src, outputDir, errors = errors, writeAssembly = false)
+        result shouldNotBe null
+        errors.warnings.any { it.contains("recursive subroutine") } shouldBe false
     }
 })

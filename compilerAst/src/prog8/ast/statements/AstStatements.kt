@@ -79,9 +79,10 @@ class BuiltinFunctionPlaceholder(
 //       however by making it a statement we can reuse the name lookup logic for them (a module *is* name scope that has to do lookups)
 class Block(override val name: String,
             val address: UInt?,
-            override val statements: MutableList<Statement>,
-            val isInLibrary: Boolean,
-            override val position: Position) : Statement(), INameScope {
+             override val statements: MutableList<Statement>,
+             val isInLibrary: Boolean,
+             override val position: Position,
+             val blockComment: String? = null) : Statement(), INameScope {
     override lateinit var parent: Node
 
     override fun copy() = throw NotImplementedError("no support for duplicating a Block")
@@ -153,7 +154,7 @@ data class DirectiveArg(val string: String?, val int: UInt?, override val positi
     override fun referencesIdentifier(nameInSource: List<String>): Boolean = false
 }
 
-data class Alias(val alias: String, val target: IdentifierReference, val isPrivate: Boolean = false, override val position: Position) : Statement() {
+data class Alias(val alias: String, val target: IdentifierReference, val visibility: Visibility? = null, override val position: Position) : Statement() {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -161,7 +162,7 @@ data class Alias(val alias: String, val target: IdentifierReference, val isPriva
         target.parent = this
     }
 
-    override fun copy(): Statement = Alias(alias, target.copy(), isPrivate, position)
+    override fun copy(): Statement = Alias(alias, target.copy(), visibility, position)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
     override fun replaceChildNode(node: Node, replacement: Node) = throw FatalAstException("can't replace here")
@@ -264,6 +265,11 @@ enum class VarDeclType {
     MEMORY
 }
 
+enum class Visibility {
+    PUBLIC,
+    PRIVATE
+}
+
 class VarDecl(
     var type: VarDeclType,
     val origin: VarDeclOrigin,
@@ -278,8 +284,9 @@ class VarDecl(
     val sharedWithAsm: Boolean,
     val alignment: UInt,
     val dirty: Boolean,
-    val isPrivate: Boolean,
-    override val position: Position) : Statement(), INamedStatement {
+    val visibility: Visibility?,
+    override val position: Position,
+    var blockComment: String? = null) : Statement(), INamedStatement {
     override lateinit var parent: Node
     var allowInitializeWithZero = true
     var hasExplicitInitializer = false
@@ -308,8 +315,9 @@ class VarDecl(
             private var sharedWithAsm = false
             private var alignment = 0u
             private var dirty = false
-            private var isPrivate = false
+            private var visibility: Visibility? = null
             private var hasExplicitInitializer = false
+            private var blockComment: String? = null
 
             fun names(vararg names: String): Builder = apply {
                 require(names.isNotEmpty()) { "at least one name is required" }
@@ -331,8 +339,9 @@ class VarDecl(
             fun sharedWithAsm(s: Boolean) = apply { this.sharedWithAsm = s }
             fun alignment(a: UInt) = apply { this.alignment = a }
             fun dirty(d: Boolean) = apply { this.dirty = d }
-            fun isPrivate(p: Boolean) = apply { this.isPrivate = p }
+            fun visibility(v: Visibility?) = apply { this.visibility = v }
             fun hasExplicitInitializer(h: Boolean) = apply { this.hasExplicitInitializer = h }
+            fun comment(c: String?) = apply { this.blockComment = c }
 
             fun copyFrom(v: VarDecl) = apply {
                 this.type = v.type
@@ -347,15 +356,16 @@ class VarDecl(
                 this.sharedWithAsm = v.sharedWithAsm
                 this.alignment = v.alignment
                 this.dirty = v.dirty
-                this.isPrivate = v.isPrivate
+                this.visibility = v.visibility
                 this.hasExplicitInitializer = v.hasExplicitInitializer
+                this.blockComment = v.blockComment
             }
 
             fun build(): VarDecl {
                 val finalName = name ?: throw IllegalStateException("name is required")
                 val v = VarDecl(
                     type, origin, datatype, zeropage, splitwordarray, arraysize, matrixNumCols,
-                    finalName, additionalNames, value, sharedWithAsm, alignment, dirty, isPrivate, position
+                     finalName, additionalNames, value, sharedWithAsm, alignment, dirty, visibility, position, blockComment
                 )
                 v.hasExplicitInitializer = hasExplicitInitializer
                 return v
@@ -389,14 +399,14 @@ class VarDecl(
                 .build()
         }
 
-        fun createAuto(array: ArrayLiteral): VarDecl {
+        fun createAuto(array: ArrayLiteral, target: ICompilationTarget): VarDecl {
             val autoVarName = "auto_heap_value_${++autoHeapValueSequenceNumber}"
             var arrayDt = array.type.getOrElse { throw FatalAstException("unknown dt") }
-            if(arrayDt.isSplitWordArray) {
+            if(arrayDt.isSplitWordArray(target)) {
                 // autovars for array literals are NEVER stored as a split word array!
                 when(arrayDt.sub) {
-                    BaseDataType.WORD -> arrayDt = DataType.arrayFor(BaseDataType.WORD, false)
-                    BaseDataType.UWORD -> arrayDt = DataType.arrayFor(BaseDataType.UWORD, false)
+                    BaseDataType.WORD -> arrayDt = DataType.arrayFor(BaseDataType.WORD, target)
+                    BaseDataType.UWORD -> arrayDt = DataType.arrayFor(BaseDataType.UWORD, target)
                     else -> { }
                 }
             }
@@ -411,10 +421,10 @@ class VarDecl(
                 .build()
         }
 
-        fun createAutoOptionalSplit(array: ArrayLiteral): VarDecl {
+        fun createAutoOptionalSplit(array: ArrayLiteral, target: ICompilationTarget): VarDecl {
             val autoVarName = "auto_heap_value_${++autoHeapValueSequenceNumber}"
             val arrayDt = array.type.getOrElse { throw FatalAstException("unknown dt") }
-            val split = if(arrayDt.isSplitWordArray) SplitWish.DONTCARE else if(arrayDt.isWordArray) SplitWish.NOSPLIT else SplitWish.DONTCARE
+            val split = if(arrayDt.isSplitWordArray(target)) SplitWish.DONTCARE else if(arrayDt.isWordArray) SplitWish.NOSPLIT else SplitWish.DONTCARE
             val arraysize = ArrayIndex.forArray(array)
             return builder(arrayDt, array.position)
                 .names(autoVarName)
@@ -512,7 +522,7 @@ class VarDecl(
     }
 }
 
-class StructDecl(override val name: String, val fields: Array<StructField>, val isPrivate: Boolean, override val position: Position) : Statement(), INamedStatement, ISubType {
+class StructDecl(override val name: String, val fields: Array<StructField>, val visibility: Visibility?, override val position: Position, var blockComment: String? = null) : Statement(), INamedStatement, ISubType {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -521,7 +531,7 @@ class StructDecl(override val name: String, val fields: Array<StructField>, val 
 
     override fun replaceChildNode(node: Node, replacement: Node) = throw FatalAstException("can't replace here")
     override fun referencesIdentifier(nameInSource: List<String>) = false
-    override fun copy() = StructDecl(name, fields.clone(), isPrivate, position)
+    override fun copy() = StructDecl(name, fields.clone(), visibility, position, blockComment)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
     override fun memsize(sizer: IMemSizer): Int = fields.sumOf { field ->
@@ -544,6 +554,37 @@ class StructDecl(override val name: String, val fields: Array<StructField>, val 
             offset + sizer.memorySize(field.type, numElements)
         }
         return null
+    }
+
+    fun isNodeStruct(): Boolean {
+        if(fields.size < 2) return false
+        val f0 = fields[0]
+        val f1 = fields[1]
+        val namesOk = (f0.name=="Succ" && f1.name=="Pred") || (f0.name=="Next" && f1.name=="Prev")
+        if(!namesOk) return false
+        if(!f0.type.isPointer || !f1.type.isPointer) return false
+        val t0Name = (f0.type.subType as? StructDecl)?.name ?: f0.type.subTypeFromAntlr?.lastOrNull()
+        val t1Name = (f1.type.subType as? StructDecl)?.name ?: f1.type.subTypeFromAntlr?.lastOrNull()
+        return t0Name==name && t1Name==name
+    }
+
+    fun isListStruct(): Boolean {
+        if(fields.size < 3) return false
+        val h = fields[0]
+        val t = fields[1]
+        val tp = fields[2]
+        if(h.name!="Head" || t.name!="Tail" || tp.name!="TailPred") return false
+        if(!h.type.isPointer || !tp.type.isPointer) return false
+        if(h.type.subType==null && h.type.subTypeFromAntlr==null) return false
+        if(tp.type.subType==null && tp.type.subTypeFromAntlr==null) return false
+        val headNodeName = (h.type.subType as? StructDecl)?.name ?: h.type.subTypeFromAntlr?.lastOrNull() ?: return false
+        val tailPredNodeName = (tp.type.subType as? StructDecl)?.name ?: tp.type.subTypeFromAntlr?.lastOrNull() ?: return false
+        if(headNodeName!=tailPredNodeName) return false
+        // if node type is resolved, validate it is a node struct; otherwise rely on name match
+        val nodeDecl = h.type.subType as? StructDecl
+        if(nodeDecl!=null) return nodeDecl.isNodeStruct()
+        // unresolved - assume ok if names match (will be validated later when resolved)
+        return true
     }
 }
 
@@ -578,7 +619,7 @@ class StructFieldRef(val pointer: IdentifierReference, val struct: StructDecl, v
 
 }
 
-class Enumeration(override val name: String, val type: BaseDataType, val members: Array<Pair<String, Int?>>, val isPrivate: Boolean, override val position: Position) : Statement(), INamedStatement {
+class Enumeration(override val name: String, val type: BaseDataType, val members: Array<Pair<String, Int?>>, val visibility: Visibility?, override val position: Position, var blockComment: String? = null) : Statement(), INamedStatement {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -587,7 +628,7 @@ class Enumeration(override val name: String, val type: BaseDataType, val members
 
     override fun replaceChildNode(node: Node, replacement: Node) = throw FatalAstException("can't replace here")
     override fun referencesIdentifier(nameInSource: List<String>) = false
-    override fun copy(): Enumeration = Enumeration(name, type, members.toList().toTypedArray(), isPrivate, position)
+    override fun copy(): Enumeration = Enumeration(name, type, members.toList().toTypedArray(), visibility, position, blockComment)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 }
@@ -776,6 +817,7 @@ data class AssignTarget(
     val void: Boolean,
     var pointerDereference: PtrDereference? = null,
     var arrayIndexedDereference: ArrayIndexedPtrDereference? = null,
+    var dotExpression: Expression? = null,
     override val position: Position
 ) : Node {
     override lateinit var parent: Node
@@ -787,6 +829,7 @@ data class AssignTarget(
         memoryAddress?.linkParents(this)
         pointerDereference?.linkParents(this)
         arrayIndexedDereference?.linkParents(this)
+        dotExpression?.linkParents(this)
         multi?.forEach { it.linkParents(this) }
     }
 
@@ -833,7 +876,7 @@ data class AssignTarget(
                     else -> throw FatalAstException("invalid replacement for AssignTarget.pointerDereference: $replacement")
                 }
             }
-            node === this.arrayIndexedDereference -> {
+            node === arrayIndexedDereference -> {
                 identifier = null
                 pointerDereference = null
                 arrayIndexedDereference = null
@@ -846,6 +889,16 @@ data class AssignTarget(
                     is ArrayIndexedPtrDereference -> arrayIndexedDereference = replacement
                     is IdentifierReference -> identifier = replacement
                     else -> throw FatalAstException("invalid replacement for AssignTarget.arrayIndexedDereference: $replacement")
+                }
+            }
+            node === dotExpression -> {
+                when (replacement) {
+                    is Expression -> dotExpression = replacement
+                    is IdentifierReference -> {
+                        dotExpression = null
+                        identifier = replacement
+                    }
+                    else -> throw FatalAstException("invalid replacement for AssignTarget.dotExpression: $replacement")
                 }
             }
             node === multi -> throw FatalAstException("can't replace multi assign targets")
@@ -877,6 +930,7 @@ data class AssignTarget(
         void,
         pointerDereference?.copy(),
         arrayIndexedDereference?.copy(),
+        dotExpression?.copy(),
         position
     )
     override fun referencesIdentifier(nameInSource: List<String>): Boolean =
@@ -885,6 +939,7 @@ data class AssignTarget(
                 memoryAddress?.referencesIdentifier(nameInSource)==true ||
                 pointerDereference?.referencesIdentifier(nameInSource)==true ||
                 arrayIndexedDereference?.referencesIdentifier(nameInSource)==true ||
+                dotExpression?.referencesIdentifier(nameInSource)==true ||
                 multi?.any { it.referencesIdentifier(nameInSource)}==true
 
     fun inferType(program: Program): InferredTypes.InferredType {
@@ -898,6 +953,7 @@ data class AssignTarget(
             memoryAddress != null -> InferredTypes.knownFor(BaseDataType.UBYTE)
             pointerDereference != null -> pointerDereference!!.inferType(program)
             arrayIndexedDereference != null -> arrayIndexedDereference!!.inferType(program)
+            dotExpression != null -> dotExpression!!.inferType(program)
             else -> InferredTypes.unknown()   // a multi-target has no 1 particular type
         }
     }
@@ -911,6 +967,7 @@ data class AssignTarget(
             multi != null -> throw FatalAstException("cannot turn a multi-assign into a single source expression")
             pointerDereference != null -> pointerDereference!!.copy()
             arrayIndexedDereference != null -> arrayIndexedDereference!!.copy()
+            dotExpression != null -> dotExpression!!.copy()
             else -> throw FatalAstException("invalid assignment target")
         }
     }
@@ -967,6 +1024,9 @@ data class AssignTarget(
             }
             arrayIndexedDereference !=null && other.arrayIndexedDereference !=null -> {
                 return arrayIndexedDereference!! isSameAs other.arrayIndexedDereference!!
+            }
+            this.dotExpression != null && other.dotExpression != null -> {
+                return this.dotExpression!! isSameAs other.dotExpression!!
             }
             this.multi != null && other.multi != null -> return this.multi == other.multi
             else -> return false
@@ -1104,7 +1164,7 @@ class InlineAssembly(val assembly: String, val isIR: Boolean, override val posit
 
     companion object {
         private val returnJumpRegex = Regex("""[ \t](return|returnr|returni|jump|jumpi)\b""")
-        private val rtsRegex = Regex("""[ \t](rti|rts|jmp|bra)\b""")
+        private val rtsRegex = Regex("""[ \t](rti|rts|jmp|bra)\b""", RegexOption.IGNORE_CASE)
     }
 
     fun hasReturnOrRts(): Boolean =
@@ -1157,7 +1217,9 @@ class AnonymousScope(override val statements: MutableList<Statement>,
     }
 
     override fun replaceChildNode(node: Node, replacement: Node) {
-        require(replacement is Statement)
+        require(replacement is Statement) {
+            "anonymousScope can't be replaced by $replacement , must be a Statement"
+        }
         val idx = statements.indexOfFirst { it===node }
         statements[idx] = replacement
         replacement.parent = this
@@ -1182,9 +1244,10 @@ class Subroutine(override val name: String,
                  val isAsmSubroutine: Boolean,
                  var inline: Boolean,
                  var hasBeenInlined: Boolean=false,
-                 val isPrivate: Boolean,
+                 val visibility: Visibility?,
                  override val statements: MutableList<Statement>,
-                 override val position: Position) : Statement(), INameScope {
+                 override val position: Position,
+                 val blockComment: String? = null) : Statement(), INameScope {
     override lateinit var parent: Node
 
     override fun copy() = throw NotImplementedError("no support for duplicating a Subroutine")
@@ -1339,6 +1402,8 @@ class ConditionalBranch(var condition: BranchCondition,
 class ForLoop(var loopVar: IdentifierReference,
               var iterable: Expression,
               var body: AnonymousScope,
+              var loopVarType: DataType?,
+              var step: Expression?,
               override val position: Position) : Statement() {
     override lateinit var parent: Node
 
@@ -1346,6 +1411,7 @@ class ForLoop(var loopVar: IdentifierReference,
         this.parent=parent
         loopVar.linkParents(this)
         iterable.linkParents(this)
+        step?.linkParents(this)
         body.linkParents(this)
     }
 
@@ -1355,6 +1421,7 @@ class ForLoop(var loopVar: IdentifierReference,
         when {
             node===loopVar -> loopVar = replacement as IdentifierReference
             node===iterable -> iterable = replacement as Expression
+            node===step -> step = replacement as Expression
             node===body -> body = replacement as AnonymousScope
             else -> throw FatalAstException("invalid replace in $this at ${node.position}: $node -> $replacement")
         }
@@ -1363,13 +1430,22 @@ class ForLoop(var loopVar: IdentifierReference,
 
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
-    override fun toString() = "ForLoop(loopVar: $loopVar, iterable: $iterable, pos=$position)"
+    override fun toString(): String {
+        val typeStr = if (loopVarType != null) "type: $loopVarType, " else ""
+        val stepStr = if (step != null) ", step: $step" else ""
+        return "ForLoop(${typeStr}loopVar: $loopVar, iterable: $iterable$stepStr, pos=$position)"
+    }
     override fun referencesIdentifier(nameInSource: List<String>): Boolean =
         loopVar.referencesIdentifier(nameInSource) ||
                 iterable.referencesIdentifier(nameInSource) ||
+                (step?.referencesIdentifier(nameInSource)==true) ||
                 body.referencesIdentifier(nameInSource)
 
-    fun loopVarDt(program: Program) = loopVar.inferType(program)
+    fun loopVarDt(program: Program): InferredTypes.InferredType {
+        if (loopVarType != null)
+            return InferredTypes.knownFor(loopVarType!!)
+        return loopVar.inferType(program)
+    }
 
 }
 
@@ -1525,7 +1601,11 @@ class When(var condition: Expression,
 
     fun betterAsOnGoto(program: Program, compilerOptions: CompilationOptions): Boolean {
         // a when that has only goto's and the values 0,1,2,3,4... is better written as a on..goto
-        val sizeLimit = if(compilerOptions.compTarget.cpu == CpuType.CPU65C02) 4 else 6
+        val sizeLimit = when {
+            compilerOptions.compTarget.cpu == CpuType.CPU65C02 -> 4
+            compilerOptions.compTarget.cpu.is68k -> 5
+            else -> 6
+        }
         if(choices.size >= sizeLimit) {
             if (condition.inferType(program).isBytes) {
                 if (choices.all { (it.statements.statements.singleOrNull() as? Jump)?.target is IdentifierReference }) {

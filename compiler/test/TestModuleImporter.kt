@@ -15,6 +15,7 @@ import prog8.code.PROG8_CONTAINER_MODULES
 import prog8.code.core.IErrorReporter
 import prog8.code.source.ImportFileSystem
 import prog8.code.source.SourceCode
+import prog8.code.target.VMTarget
 import prog8.compiler.ModuleImporter
 import prog8.parser.MultipleParseErrors
 import prog8.parser.Prog8Parser
@@ -28,11 +29,11 @@ class TestModuleImporter: FunSpec({
     lateinit var program: Program
 
     beforeTest {
-        program = Program("foo", DummyFunctions, DummyMemsizer, DummyStringEncoder)
+        program = Program("foo", DummyFunctions, VMTarget())
     }
 
     fun makeImporter(errors: IErrorReporter? = null, searchIn: Iterable<String>) =
-        ModuleImporter(program, "blah", errors ?: ErrorReporterForTests(false), searchIn.toList(), emptyList(), Path(".").absolute(), false)
+        ModuleImporter(program, VMTarget(), errors ?: ErrorReporterForTests(false), searchIn.toList(), emptyList(), Path(".").absolute(), false)
 
     fun makeImporter(errors: IErrorReporter?, vararg searchIn: String): ModuleImporter {
         return makeImporter(errors, searchIn.asList())
@@ -196,7 +197,7 @@ class TestModuleImporter: FunSpec({
     context("ImportFromResourceModule") {
         test("neighbor directory search is skipped for modules loaded from internal library resources") {
             val importer = makeImporter(null)
-            val resourceModule = Prog8Parser.parseModule(ImportFileSystem.getResource("/prog8lib/cx16/textio.p8"))
+            val resourceModule = Prog8Parser.parseModule(ImportFileSystem.getResource("/prog8lib/cx16/textio.p8"), VMTarget())
             resourceModule.position.file shouldStartWith "library:"
 
             val (result, searched) = importer.getModuleFromFile("syslib", resourceModule)

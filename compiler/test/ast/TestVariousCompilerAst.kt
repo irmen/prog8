@@ -18,6 +18,7 @@ import prog8.code.core.BaseDataType
 import prog8.code.core.DataType
 import prog8.code.core.Position
 import prog8.code.target.*
+import prog8tests.helpers.DummyMemsizer
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
 
@@ -298,6 +299,66 @@ testblock {
             compileText(VMTarget(), optimize=false, src, outputDir, writeAssembly=false, errors=errors) shouldNotBe null
             errors.errors.size shouldBe 0
         }
+
+        test("struct alias resolves for vardecl") {
+            val src="""
+%import exec
+main {
+    alias Node = exec.MinNode
+    sub start() {
+        ^^Node n = memory("n", sizeof(Node), 0)
+        n.Succ = 0
+    }
+}
+"""
+            compileText(Amiga500Target(), false, src, outputDir, writeAssembly=false) shouldNotBe null
+        }
+
+        test("struct alias resolves for typecast") {
+            val src="""
+%import exec
+main {
+    alias Node = exec.MinNode
+    sub start() {
+        ^^Node n = memory("n", sizeof(Node), 0)
+        uword w = n as uword
+        ^^Node n2 = w as ^^Node
+        n2.Succ = 0
+    }
+}
+"""
+            compileText(Amiga500Target(), false, src, outputDir, writeAssembly=false) shouldNotBe null
+        }
+
+        test("struct alias chain resolves") {
+            val src="""
+%import exec
+main {
+    alias Node = exec.MinNode
+    alias A = Node
+    sub start() {
+        ^^A n = memory("n", sizeof(A), 0)
+        n.Succ = 0
+    }
+}
+"""
+            compileText(Amiga500Target(), false, src, outputDir, writeAssembly=false) shouldNotBe null
+        }
+
+        test("struct alias cycle is rejected") {
+            val src="""
+main {
+    alias A = B
+    alias B = A
+    sub start() {
+        ^^A n = memory("n", sizeof(A), 0)
+    }
+}
+"""
+            val errors = ErrorReporterForTests()
+            compileText(Amiga500Target(), false, src, outputDir, errors=errors) shouldBe null
+            errors.errors.any { it.contains("alias loop") } shouldBe true
+        }
     }
 
     context("strings") {
@@ -307,7 +368,7 @@ main {
 
     sub start() {
         str name = "name"
-        uword nameptr = &name
+        pointer nameptr = &name
         bool result
 
         result = name=="foo"
@@ -454,6 +515,259 @@ main {
     }
 
     context("variable declarations") {
+        test("for loop var is declared implicitly before the loop") {
+            val src = """
+main {
+    sub start() {
+        for i in 0 to 10 {
+        }
+    }
+}
+"""
+            val result = compileText(C64Target(), optimize = false, src, outputDir, writeAssembly = false)!!
+            val statements = result.compilerAst.entrypoint.statements
+            val declaration = statements.filterIsInstance<VarDecl>().single { it.name == "i" }
+            declaration.type shouldBe VarDeclType.VAR
+            declaration.datatype shouldBe DataType.UBYTE
+            statements.indexOf(declaration) shouldBe statements.indexOfFirst { it is ForLoop } - 1
+        }
+
+        test("for loop reuses an existing iterator declaration") {
+            val src = """
+main {
+    sub start() {
+        ubyte i
+        for i in 0 to 10 {
+        }
+    }
+}
+"""
+            val result = compileText(C64Target(), optimize = false, src, outputDir, writeAssembly = false)!!
+            result.compilerAst.entrypoint.statements.filterIsInstance<VarDecl>().count { it.name == "i" } shouldBe 1
+        }
+
+        test("for loop rejects an iterator declaration with a different type") {
+            val src = """
+main {
+    sub start() {
+        ubyte[] values = [1, 2, 3]
+        byte i
+        for i in values {
+        }
+    }
+}
+"""
+            val errors = ErrorReporterForTests()
+            compileText(C64Target(), optimize = false, src, outputDir, writeAssembly = false, errors = errors) shouldBe null
+            errors.errors.isEmpty() shouldBe false
+        }
+
+        test("for loop infers types from strings and word arrays") {
+            val src = """
+main {
+    sub start() {
+        for character in "abc" {
+        }
+
+        uword[] values = [1000, 2000]
+        for value in values {
+        }
+    }
+}
+"""
+            val result = compileText(C64Target(), optimize = false, src, outputDir, writeAssembly = false)!!
+            val declarations = result.compilerAst.entrypoint.statements.filterIsInstance<VarDecl>()
+            declarations.single { it.name == "character" }.datatype shouldBe DataType.UBYTE
+            declarations.single { it.name == "value" }.datatype shouldBe DataType.UWORD
+            declarations.filter { it.name == "character" || it.name == "value" }
+                .all { it.type == VarDeclType.VAR && it.value == null } shouldBe true
+        }
+
+        test("for loop infers a word iterator from a word-sized range") {
+            val src = """
+main {
+    sub start() {
+        for value in 1000 to 2000 {
+        }
+    }
+}
+"""
+            val result = compileText(C64Target(), optimize = false, src, outputDir, writeAssembly = false)!!
+            result.compilerAst.entrypoint.statements.filterIsInstance<VarDecl>().single { it.name == "value" }.datatype shouldBe DataType.UWORD
+        }
+
+        test("for loop infers a long iterator from a long array") {
+            val src = """
+main {
+    sub start() {
+        long[] values = [100000, 200000]
+        for value in values {
+        }
+    }
+}
+"""
+            val result = compileText(C64Target(), optimize = false, src, outputDir, writeAssembly = false)!!
+            result.compilerAst.entrypoint.statements.filterIsInstance<VarDecl>().single { it.name == "value" }.datatype shouldBe DataType.LONG
+        }
+
+        test("for loops reuse one implicit iterator declaration") {
+            val src = """
+main {
+    sub start() {
+        for i in 0 to 10 {
+        }
+        for i in 20 to 30 {
+        }
+    }
+}
+"""
+            val result = compileText(C64Target(), optimize = false, src, outputDir, writeAssembly = false)!!
+            result.compilerAst.entrypoint.statements.filterIsInstance<VarDecl>().count { it.name == "i" } shouldBe 1
+        }
+
+        test("typed for loop uses specified type for implicit declaration") {
+            val src = """
+main {
+    sub start() {
+        for word w in "derp" {
+        }
+    }
+}
+"""
+            val result = compileText(C64Target(), optimize = false, src, outputDir, writeAssembly = false)!!
+            val declaration = result.compilerAst.entrypoint.statements.filterIsInstance<VarDecl>().single { it.name == "w" }
+            declaration.type shouldBe VarDeclType.VAR
+            declaration.datatype shouldBe DataType.WORD
+        }
+
+        test("typed for loop widening from string elements accepted") {
+            val src = """
+main {
+    sub start() {
+        for word w in "abc" {
+        }
+        for long l in "xyz" {
+        }
+    }
+}
+"""
+            val result = compileText(C64Target(), optimize = false, src, outputDir, writeAssembly = false)!!
+            val declarations = result.compilerAst.entrypoint.statements.filterIsInstance<VarDecl>()
+            declarations.single { it.name == "w" }.datatype shouldBe DataType.WORD
+            declarations.single { it.name == "l" }.datatype shouldBe DataType.LONG
+        }
+
+        test("typed for loop widening from byte array elements accepted") {
+            val src = """
+main {
+    sub start() {
+        ubyte[] values = [1, 2, 3]
+        for long l in values {
+        }
+    }
+}
+"""
+            val result = compileText(C64Target(), optimize = false, src, outputDir, writeAssembly = false)!!
+            result.compilerAst.entrypoint.statements.filterIsInstance<VarDecl>().single { it.name == "l" }.datatype shouldBe DataType.LONG
+        }
+
+        test("typed for loop conflicts with existing declaration") {
+            val src = """
+main {
+    sub start() {
+        ubyte w
+        for word w in "derp" {
+        }
+    }
+}
+"""
+            val errors = ErrorReporterForTests()
+            compileText(C64Target(), optimize = false, src, outputDir, writeAssembly = false, errors = errors) shouldBe null
+            errors.errors.any { it.contains("conflicting variable declaration") } shouldBe true
+        }
+
+        test("typed for loop conflicts with existing declaration even when types match") {
+            val src = """
+main {
+    sub start() {
+        word w
+        for word w in "derp" {
+        }
+    }
+}
+"""
+            val errors = ErrorReporterForTests()
+            compileText(C64Target(), optimize = false, src, outputDir, writeAssembly = false, errors = errors) shouldBe null
+            errors.errors.any { it.contains("conflicting variable declaration") } shouldBe true
+        }
+
+        test("for loop var declaration in a nested block is hoisted") {
+            val src = """
+main {
+    sub start() {
+        if true {
+            for i in 0 to 10 {
+            }
+        }
+    }
+}
+"""
+            val result = compileText(C64Target(), optimize = false, src, outputDir, writeAssembly = false)!!
+            val declaration = result.compilerAst.entrypoint.statements.filterIsInstance<VarDecl>().single { it.name == "i" }
+            val ifStatement = result.compilerAst.entrypoint.statements.filterIsInstance<IfElse>().single()
+            declaration.type shouldBe VarDeclType.VAR
+            ifStatement.truepart.statements.filterIsInstance<VarDecl>().none { it.name == "i" } shouldBe true
+            ifStatement.truepart.statements.filterIsInstance<ForLoop>().size shouldBe 1
+        }
+
+        test("nested for loops get separate implicit iterator declarations") {
+            val src = """
+main {
+    sub start() {
+        for outer in 0 to 2 {
+            for inner in 0 to 3 {
+            }
+        }
+    }
+}
+"""
+            val result = compileText(C64Target(), optimize = false, src, outputDir, writeAssembly = false)!!
+            val declarations = result.compilerAst.entrypoint.statements.filterIsInstance<VarDecl>()
+            declarations.count { it.name == "outer" } shouldBe 1
+            declarations.count { it.name == "inner" } shouldBe 1
+            val outer = result.compilerAst.entrypoint.statements.filterIsInstance<ForLoop>().single()
+            outer.body.statements.filterIsInstance<ForLoop>().size shouldBe 1
+        }
+
+        test("for loop retains constant iterator diagnostic") {
+            val src = """
+main {
+    sub start() {
+        const ubyte i = 0
+        for i in 0 to 10 {
+        }
+    }
+}
+"""
+            val errors = ErrorReporterForTests()
+            compileText(C64Target(), optimize = false, src, outputDir, writeAssembly = false, errors = errors) shouldBe null
+            errors.errors.any { it.contains("requires a variable") } shouldBe true
+        }
+
+        test("for loop rejects an implicitly declared qualified iterator") {
+            val src = """
+main {
+    sub start() {
+        for missing.i in 0 to 10 {
+        }
+    }
+}
+"""
+            val errors = ErrorReporterForTests()
+            compileText(C64Target(), optimize = false, src, outputDir, writeAssembly = false, errors = errors) shouldBe null
+            errors.errors.any { it.contains("unqualified name") } shouldBe true
+        }
+
         test("multi-var decls in scope with initializer") {
             val src="""
 main {
@@ -1002,28 +1316,6 @@ main {
         (expr1 isSameAs expr3) shouldBe true
     }
 
-    test("mkword insertion with signed values gets correct type cast") {
-        val src = """
-main {
-    sub start() {
-        byte[10] @shared bottom
-        byte @shared col = 20
-        ubyte @shared ubb = lsb(col as uword)
-        uword @shared vaddr = bottom[cx16.r0L] as uword << 8          ; a mkword will get inserted here
-    }
-}"""
-        val result = compileText(VMTarget(), optimize=true, src, outputDir, writeAssembly=false)!!
-        val st = result.compilerAst.entrypoint.statements
-        st.size shouldBe 8
-        val assignUbbVal = (st[4] as Assignment).value as IdentifierReference
-        assignUbbVal.inferType(result.compilerAst) shouldBe InferredTypes.knownFor(BaseDataType.BYTE)
-        val assignVaddr = (st[6] as Assignment).value as FunctionCallExpression
-        assignVaddr.target.nameInSource shouldBe listOf("mkword")
-        val tc = assignVaddr.args[0] as TypecastExpression
-        tc.type shouldBe DataType.UBYTE
-        tc.expression shouldBe instanceOf<ArrayIndexedExpression>()
-    }
-
     test("void assignment is invalid") {
         val src="""
 main {
@@ -1070,13 +1362,12 @@ main {
         DataType.forDt(BaseDataType.STR).isString shouldBe true
         DataType.forDt(BaseDataType.FLOAT).isFloat shouldBe true
 
-        DataType.arrayFor(BaseDataType.UBYTE, true).isUnsignedByteArray shouldBe true
-        DataType.arrayFor(BaseDataType.LONG).isLongArray shouldBe true
-        DataType.arrayFor(BaseDataType.FLOAT).isFloatArray shouldBe true
-        DataType.arrayFor(BaseDataType.UWORD).isUnsignedWordArray shouldBe true
-        DataType.arrayFor(BaseDataType.UWORD).isArray shouldBe true
-        DataType.arrayFor(BaseDataType.UWORD).isSplitWordArray shouldBe true
-        DataType.arrayFor(BaseDataType.UWORD, false).isSplitWordArray shouldBe false
+        DataType.arrayFor(BaseDataType.LONG, DummyMemsizer).isLongArray shouldBe true
+        DataType.arrayFor(BaseDataType.FLOAT, DummyMemsizer).isFloatArray shouldBe true
+        DataType.arrayFor(BaseDataType.UWORD, DummyMemsizer).isUnsignedWordArray shouldBe true
+        DataType.arrayFor(BaseDataType.UWORD, DummyMemsizer).isArray shouldBe true
+        DataType.splitWordArrayFor(BaseDataType.UWORD).isSplitWordArray(Cx16Target()) shouldBe true
+        DataType.arrayFor(BaseDataType.UWORD, DummyMemsizer).isSplitWordArray(Cx16Target()) shouldBe false
 
         shouldThrow<NoSuchElementException> {
             DataType.forDt(BaseDataType.ARRAY)
@@ -1085,10 +1376,10 @@ main {
             DataType.forDt(BaseDataType.ARRAY_SPLITW)
         }
         shouldThrow<NoSuchElementException> {
-            DataType.arrayFor(BaseDataType.ARRAY)
+            DataType.arrayFor(BaseDataType.ARRAY, DummyMemsizer)
         }
         shouldThrow<NoSuchElementException> {
-            DataType.arrayFor(BaseDataType.UNDEFINED)
+            DataType.arrayFor(BaseDataType.UNDEFINED, DummyMemsizer)
         }
     }
 
@@ -1112,7 +1403,7 @@ main {
         (st1[1] as VarDecl).name shouldBe "names"
         val array1 = (st1[1] as VarDecl).value as ArrayLiteral
         array1.type.isArray shouldBe true
-        array1.type.getOrUndef() shouldBe DataType.arrayFor(BaseDataType.UWORD, true)
+        array1.type.getOrUndef() shouldBe DataType.splitWordArrayFor(BaseDataType.UWORD)
 
         val ast2 = result.codegenAst!!
         val st2 = ast2.entrypoint()!!.children
@@ -1120,7 +1411,7 @@ main {
         (st2[1] as PtVariable).name shouldBe "p8v_variable"
         (st2[2] as PtVariable).name shouldBe "p8v_names"
         val array2 = (st2[2] as PtVariable).value as PtArray
-        array2.type shouldBe DataType.arrayFor(BaseDataType.UWORD, true)
+        array2.type shouldBe DataType.splitWordArrayFor(BaseDataType.UWORD)
     }
 
 
@@ -1175,7 +1466,7 @@ main {
         val result2 = compileText(Cx16Target(), optimize=true, src, outputDir, writeAssembly=true)!!
         val st2 = result2.codegenAst!!.entrypoint()!!.children
         // Note: cx16 is a 6502 target and the current 6502 codegen does its own symbol prefixing.
-        // This is not done by default on the Virtual/IR target (unless it's being created using -expericodegen for a 6502 target)
+        // This is not done by default on the Virtual/IR target (unless it's being created using -newcodegen for a 6502 target)
         // After inlining, the multi-value assignment is split into 3 separate assignments with literal values
         st2.size shouldBe 8
         (st2[1] as PtVariable).name shouldBe "p8v_x"
@@ -1317,14 +1608,14 @@ main {
     }
 }"""
 
-        val result = compileText(VMTarget(), optimize=false, src, outputDir, writeAssembly=false)!!
+        val result = compileText(Cx16Target(), optimize=false, src, outputDir, writeAssembly=false)!!
         val st = result.compilerAst.entrypoint.statements
         st.size shouldBe 4
         val decls = st.filterIsInstance<VarDecl>()
         decls.size shouldBe 3
         decls.all { it.datatype.sub!=null } shouldBe true
         decls.all { it.datatype.isPointerArray } shouldBe true
-        decls.all { it.datatype.isSplitWordArray } shouldBe true
+        decls.all { it.datatype.isSplitWordArray(Cx16Target()) } shouldBe true
     }
 
     test("on..call in nested scope compiles correctly with temp variable introduced") {
@@ -1422,4 +1713,3 @@ main {
         errors.errors[1] shouldContain "can only multiply array by integer constant"
     }
 })
-

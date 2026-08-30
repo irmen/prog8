@@ -5,7 +5,6 @@ import prog8.code.core.BaseDataType
 import prog8.code.core.CompilationOptions
 import prog8.code.core.negativePowersOfTwoFloat
 import prog8.code.core.powersOfTwoFloat
-import prog8.code.target.VMTarget
 import kotlin.math.log2
 
 /**
@@ -22,7 +21,7 @@ internal object ExpressionOptimizers {
         walkAst(program) { node: PtNode, _: Int ->
             if (node is PtBinaryExpression) {
                 val constvalue = node.right.asConstValue()
-                if(node.operator=="<<" && constvalue==1.0 && options.compTarget.name!=VMTarget.NAME) {
+                if(node.operator=="<<" && constvalue==1.0 && options.compTarget.cpu.is6502) {
                     val typecast=node.left as? PtTypeCast
                     if(typecast!=null && typecast.type.isWord && typecast.value is PtIdentifier) {
                         val addition = node.parent as? PtBinaryExpression
@@ -396,6 +395,42 @@ internal object ExpressionOptimizers {
                     }
                 }
 
+                // Signed division by a power of two on the 6502: replace with a bias-corrected
+                // arithmetic shift. A plain arithmetic shift floors toward -inf, but integer
+                // division truncates toward zero, so for negative dividends we must add the
+                // remainder before shifting:  x / 2^n  ==  (x + ((x >> (W-1)) & (2^n - 1))) >> n
+                // (the 6502 codegen has no cheap signed DIV routine, so this avoids the slow div)
+// NOTE: this is not activated because it causes large 6502 code bloat.
+//                if (node.operator == "/" && rightConst != null && node.type.isSigned && options.compTarget.cpu.is6502 && !options.newCodegen) {
+//                    if (rightConst in powersOfTwoFloat && node.left.isSimple()) {
+//                        val numshifts = log2(rightConst)
+//                        val wordSize = if (node.type.isByte) 8 else if (node.type.isWord) 16 else 32
+//                        val mask = rightConst - 1.0   // 2^n - 1
+//                        // innerShift = left >> (W-1)   (sign broadcast)
+//                        val innerShift = PtBinaryExpression(">>", node.type, node.position)
+//                        val left1 = node.left.clone()
+//                        val left2 = node.left.clone()
+//                        innerShift.add(left1)
+//                        innerShift.add(PtNumber(BaseDataType.UBYTE, (wordSize - 1).toDouble(), node.position))
+//                        // andExpr = innerShift & mask
+//                        val andExpr = PtBinaryExpression("&", node.type, node.position)
+//                        andExpr.add(innerShift)
+//                        andExpr.add(PtNumber(node.type.base, mask, node.position))
+//                        // addExpr = left + andExpr   (left is also used by innerShift; reused as-is)
+//                        val addExpr = PtBinaryExpression("+", node.type, node.position)
+//                        addExpr.add(left2)
+//                        addExpr.add(andExpr)
+//                        // outerShift = addExpr >> n
+//                        val outerShift = PtBinaryExpression(">>", node.type, node.position)
+//                        outerShift.add(addExpr)
+//                        outerShift.add(PtNumber(BaseDataType.UBYTE, numshifts, node.position))
+//                        val index = node.parent.children.indexOf(node)
+//                        node.parent.setChild(index, outerShift)
+//                        outerShift.parent = node.parent
+//                        changes++
+//                    }
+//                }
+
                 // Modulo by power of two: x % 2^n -> x & (2^n - 1) (for unsigned integers only)
                 if (node.operator == "%" && rightConst != null && node.type.isUnsignedInteger) {
                     if (rightConst in powersOfTwoFloat) {
@@ -414,6 +449,43 @@ internal object ExpressionOptimizers {
                         val index = node.parent.children.indexOf(node)
                         node.parent.setChild(index, zero)
                         changes++
+                    }
+                }
+            }
+            else if (node is PtAugmentedAssign && (node.operator=="+=" || node.operator=="-=")) {
+                if(options.compTarget.cpu.is6502 && node.target.type.isByte) {
+                    // replace byte  x+=2 or x-=2  by x++ x++  or x-- x--  on 6502 only
+                    
+                    fun makeTarget(variable: PtIdentifier?, memory: PtMemoryByte?, origTarget: PtAssignTarget): PtAssignTarget {
+                        val tgt = PtAssignTarget(false, origTarget.position)
+                        if(variable!=null)
+                            tgt.add(PtIdentifier(variable.name, origTarget.identifier!!.type, origTarget.identifier!!.position))
+                        else {
+                            val membyte = PtMemoryByte(origTarget.position)
+                            membyte.add(memory!!.address)       // TODO copy of address expression?
+                            tgt.add(membyte)
+                        }
+                        return tgt
+                    }
+                    
+                    val targetIdentifier = node.target.identifier
+                    val targetMemory = node.target.memory
+                    if(targetIdentifier!=null || (targetMemory!=null && targetMemory.address.isSimple())) {
+                        val number = node.value.asConstInteger()
+                        if (number == 2) {
+                            val replacement = PtNodeGroup()
+                            val addOrSubOne1 = PtAugmentedAssign(node.operator, node.position)
+                            addOrSubOne1.add(makeTarget(targetIdentifier, targetMemory, node.target))
+                            addOrSubOne1.add(PtNumber(node.target.type.base, 1.0, node.position))
+                            val addOrSubOne2 = PtAugmentedAssign(node.operator, node.position)
+                            addOrSubOne2.add(makeTarget(targetIdentifier, targetMemory, node.target))
+                            addOrSubOne2.add(PtNumber(node.target.type.base, 1.0, node.position))
+                            replacement.add(addOrSubOne1)
+                            replacement.add(addOrSubOne2)
+                            val index = node.parent.children.indexOf(node)
+                            node.parent.setChild(index, replacement)
+                            changes++
+                        }
                     }
                 }
             }

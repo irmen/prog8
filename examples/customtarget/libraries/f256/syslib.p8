@@ -656,10 +656,7 @@ p8_sys_startup {
         ; Called automatically by the loader program logic.
         %asm {{
             sei
-            cld
-            clc
             ; TODO reset screen mode etc etc?
-            clv
             ; TODO what about IRQ handler?
             cli
             rts
@@ -674,6 +671,9 @@ p8_sys_startup {
             stz  f256.event.dest+1
             ;sta  f256.args.ext+0   ; check cc65 crt0.s for setup?
             ;stz  f256.args.ext+1
+            cld
+            clc
+            clv
             rts
         }}
     }

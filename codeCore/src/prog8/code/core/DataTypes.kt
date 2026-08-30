@@ -20,7 +20,7 @@ enum class BaseDataType {
     ARRAY_SPLITW,       // pass by reference, split word layout, subtype is the element type (restricted to word types)
     POINTER,            // typed pointer, subtype is whatever type is pointed to
     STRUCT_INSTANCE,    // the actual instance of a struct (not directly supported in the language yet, but we need its type)
-    ARRAY_POINTER,      // array of pointers (uwords), subtype is whatever type each element points to
+    ARRAY_POINTER,      // array of pointers (uwords or longs), subtype is whatever type each element points to
     UNDEFINED;
 
 
@@ -30,7 +30,7 @@ enum class BaseDataType {
             this.isByteOrBool -> false
             this.isWord -> other.isByteOrBool
             this == LONG -> other.isByteOrBool || other.isWord
-            this == STR && other == UWORD || this == UWORD && other == STR -> false
+            this == STR && (other == UWORD || other == LONG) || this == UWORD && other == STR -> false
             this.isArray && other.isArray -> false
             this.isArray -> other.isByteOrBool
             this == STR -> other.isByteOrBool
@@ -38,14 +38,20 @@ enum class BaseDataType {
             else -> true
         }
 
-    fun equalsSize(other: BaseDataType) =
+    fun equalsSize(other: BaseDataType): Boolean = equalsSize(other, null)
+    fun equalsSize(other: BaseDataType, memsizer: IMemSizer?): Boolean =
         when {
             this == other -> true
             this.isArray && other.isArray -> true
             this.isByteOrBool -> other.isByteOrBool
-            this.isWord -> other.isWord || other.isPointer
-            this.isPointer -> other.isWord
-            this == STR && other== UWORD || this== UWORD && other== STR -> true
+            this.isWord -> other.isWord || (other.isPointer && (memsizer == null || memsizer.POINTER_MEM_SIZE == 2u))
+            this.isLong -> other.isLong || (other.isPointer && memsizer?.POINTER_MEM_SIZE != null && memsizer.POINTER_MEM_SIZE != 2u)
+            this.isPointer -> when(memsizer?.POINTER_MEM_SIZE) {
+                null -> other.isWord || other.isPointer
+                2u -> other.isWord || other.isPointer
+                else -> other.isLong || other.isPointer
+            }
+            this == STR && (other == UWORD || other == LONG) || (this == UWORD || this == LONG) && other == STR -> true
             this == STR && other.isArray -> true
             this.isArray && other == STR -> true
             else -> false
@@ -68,6 +74,15 @@ val BaseDataType.isSignedWord get() = this == BaseDataType.WORD
 val BaseDataType.isLong get() = this == BaseDataType.LONG
 val BaseDataType.isFloat get() = this == BaseDataType.FLOAT
 val BaseDataType.isInteger get() = this in setOf(BaseDataType.UBYTE, BaseDataType.BYTE, BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.LONG)
+val BaseDataType.maxUnsignedValue: Double
+    get() = when (this) {
+        BaseDataType.UBYTE -> 255.0
+        BaseDataType.BYTE -> 127.0
+        BaseDataType.UWORD -> 65535.0
+        BaseDataType.WORD -> 32767.0
+        BaseDataType.LONG -> 2147483647.0
+        else -> Double.MAX_VALUE
+    }
 val BaseDataType.isIntegerOrBool get() = this in setOf(BaseDataType.UBYTE, BaseDataType.BYTE, BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.LONG, BaseDataType.BOOL)
 val BaseDataType.isWordOrByteOrBool get() = this in setOf(BaseDataType.UBYTE, BaseDataType.BYTE, BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.BOOL)
 val BaseDataType.isNumeric get() = this == BaseDataType.FLOAT || this.isInteger
@@ -80,7 +95,6 @@ val BaseDataType.isArray get() = this == BaseDataType.ARRAY || this == BaseDataT
 val BaseDataType.isPointer get() = this == BaseDataType.POINTER
 val BaseDataType.isStructInstance get() = this == BaseDataType.STRUCT_INSTANCE
 val BaseDataType.isPointerArray get() = this == BaseDataType.ARRAY_POINTER
-val BaseDataType.isSplitWordArray get() = this == BaseDataType.ARRAY_SPLITW || this == BaseDataType.ARRAY_POINTER       // pointer arrays are also always stored as split uwords
 val BaseDataType.isIterable get() =  this in setOf(BaseDataType.STR, BaseDataType.ARRAY, BaseDataType.ARRAY_SPLITW, BaseDataType.ARRAY_POINTER)
 val BaseDataType.isPassByRef get() = this.isIterable && !this.isPointer
 val BaseDataType.isPassByValue get() = !this.isIterable || this.isPointer
@@ -122,8 +136,10 @@ class DataType private constructor(
                 require(sub!=null || subType!=null || subTypeFromAntlr!=null)
             }
             base.isArray -> {
-                require(sub != null && subType==null && subTypeFromAntlr==null)
-                if(base.isSplitWordArray)
+                require(sub != null)
+                // subType and subTypeFromAntlr allowed for arrays with struct element types
+                // (from parser creating ARRAY(LONG) directly for 32-bit targets, or from VariousCleanups conversion)
+                if(base == BaseDataType.ARRAY_SPLITW)
                     require(sub == BaseDataType.UWORD || sub == BaseDataType.WORD)
             }
             base==BaseDataType.STR -> require(sub==BaseDataType.UBYTE) { "string subtype should be ubyte" }
@@ -139,7 +155,12 @@ class DataType private constructor(
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is DataType) return false
-        return base == other.base && sub == other.sub && (subType==other.subType || subType!!.sameas(other.subType!!))
+        if (base != other.base || sub != other.sub) return false
+        val st1 = subType
+        val st2 = other.subType
+        if (st1 == st2) return true
+        if (st1 == null || st2 == null) return false
+        return st1.sameas(st2)
     }
 
     override fun hashCode(): Int = Objects.hash(base, sub, subType)
@@ -174,32 +195,44 @@ class DataType private constructor(
             BaseDataType.FLOAT to DataType(BaseDataType.FLOAT, null, null),
             BaseDataType.BOOL to DataType(BaseDataType.BOOL, null, null),
             BaseDataType.STR to DataType(BaseDataType.STR, BaseDataType.UBYTE, null),
+            BaseDataType.POINTER to DataType(BaseDataType.POINTER, null, null),
             BaseDataType.UNDEFINED to DataType(BaseDataType.UNDEFINED, null, null)
         )
 
         fun forDt(dt: BaseDataType): DataType {
             if(dt.isStructInstance)
-                TODO("cannot use struct instance as a data type (yet) - use a pointer instead")
+                return DataType(BaseDataType.STRUCT_INSTANCE, null, null)
             return simpletypes.getValue(dt)
         }
 
-        fun arrayFor(elementDt: BaseDataType, splitwordarray: Boolean=true): DataType {
+        fun arrayFor(elementDt: BaseDataType, memsizer: IMemSizer): DataType {
+            // wether or not a word-array should be split-words, is determined later
             require(!elementDt.isPointer) { "use other array constructor for arrays of pointers" }
-            val actualElementDt = if(elementDt==BaseDataType.STR) BaseDataType.UWORD else elementDt      // array of strings is actually just an array of UWORD pointers
-            return if(splitwordarray && actualElementDt.isWord)
-                DataType(BaseDataType.ARRAY_SPLITW, actualElementDt, null)
-            else {
-                if(actualElementDt.isNumericOrBool)
-                    DataType(BaseDataType.ARRAY, actualElementDt, null)
-                else
-                    throw NoSuchElementException("invalid basic element dt $elementDt")
-            }
+            // On 32-bit targets (m68k, virtual), str arrays become arrays of LONG (4-byte pointers)
+            // via pointerBaseType. On 6502 targets they become arrays of UWORD (2-byte pointers).
+            val actualElementDt = if(elementDt==BaseDataType.STR) {
+                memsizer.pointerBaseType
+            } else elementDt
+            if(actualElementDt.isNumericOrBool)
+                return DataType(BaseDataType.ARRAY, actualElementDt, null)
+            else
+                throw NoSuchElementException("invalid basic element dt $elementDt")
+        }
+
+        fun splitWordArrayFor(elementDt: BaseDataType): DataType {
+            require(elementDt.isWord) { "split word array element type must be word" }
+            return DataType(BaseDataType.ARRAY_SPLITW, elementDt, null)
         }
 
         fun arrayOfPointersTo(sub: BaseDataType): DataType = DataType(BaseDataType.ARRAY_POINTER, sub, null)
         fun arrayOfPointersTo(structType: ISubType?): DataType = DataType(BaseDataType.ARRAY_POINTER, null, structType)
         fun arrayOfPointersFromAntlrTo(sub: BaseDataType?, identifier: List<String>?): DataType =
             DataType(BaseDataType.ARRAY_POINTER, sub, null, identifier)
+
+        // array of struct instances: sub is STRUCT_INSTANCE, subType carries the resolved struct
+        fun arrayOfStructs(structType: ISubType): DataType = DataType(BaseDataType.ARRAY, BaseDataType.STRUCT_INSTANCE, structType)
+        fun arrayOfStructsFromAntlr(struct: List<String>): DataType =
+            DataType(BaseDataType.ARRAY, BaseDataType.STRUCT_INSTANCE, null, subTypeFromAntlr = struct)
 
         fun pointer(base: BaseDataType): DataType = DataType(BaseDataType.POINTER, base, null)
         fun pointer(dt: DataType): DataType = if(dt.isBasic)
@@ -217,43 +250,74 @@ class DataType private constructor(
     // DataType Methods
     // ============================================================================
 
-    fun elementToArray(splitwords: Boolean = true): DataType {
-        return if (base == BaseDataType.UWORD || base == BaseDataType.WORD || base == BaseDataType.STR) arrayFor(base, splitwords)
-        else if(base.isPointer) {
-            if(subType!=null) arrayOfPointersTo(subType)
-            else if(subTypeFromAntlr!=null) arrayOfPointersFromAntlrTo(sub, subTypeFromAntlr)
-            else arrayOfPointersTo(sub!!)
+    fun elementToArray(target: ICompilationTarget, splitwords: Boolean = true): DataType {
+        fun pointerArray(): DataType =
+            if (subType != null)
+                arrayOfPointersTo(subType)
+            else if (subTypeFromAntlr != null)
+                arrayOfPointersFromAntlrTo(sub, subTypeFromAntlr)
+            else
+                arrayOfPointersTo(sub!!)
+
+        if(base == BaseDataType.STRUCT_INSTANCE) {
+            val st = subType
+            return if(st != null)
+                arrayOfStructs(st)
+            else
+                arrayOfStructsFromAntlr(subTypeFromAntlr!!)
         }
-        else arrayFor(base, false)
+
+        if(!target.cpu.is6502) {
+            return if (base.isPointer)
+                pointerArray()
+            else
+                arrayFor(base, target)
+        }
+
+        return if (splitwords && (base == BaseDataType.UWORD || base == BaseDataType.WORD || base == BaseDataType.STR))
+            splitWordArrayFor(base)
+        else if(base.isPointer)
+            pointerArray()
+        else
+            arrayFor(base, target)
     }
 
     fun elementType(): DataType =
         when {
             isPointerArray -> DataType(BaseDataType.POINTER, sub, subType)
-            base.isArray || base==BaseDataType.STR -> forDt(sub!!)
+            base.isArray || base==BaseDataType.STR -> {
+                if (sub == BaseDataType.STRUCT_INSTANCE && subType != null)
+                    return DataType(BaseDataType.STRUCT_INSTANCE, null, subType)
+                val dt = forDt(sub!!)
+                if (subType != null) DataType(BaseDataType.POINTER, null, subType) else dt
+            }
             else -> throw IllegalArgumentException("not an array")
         }
 
-    fun typeForAddressOf(msb: Boolean): DataType {
+    fun typeForUntypedAddressOf(msb: Boolean, mem: IMemSizer): DataType {
+        val untypedPointerType = if(mem.memorySize(BaseDataType.POINTER)>2) LONG else UWORD
         if (isUndefined)
-            return if(msb) pointer(BaseDataType.UBYTE) else UWORD
+            return if(msb) pointer(BaseDataType.UBYTE) else untypedPointerType
         else {
             if (isBasic)
                 return pointer(base)
             if (isString)
                 return pointer(BaseDataType.UBYTE)
             if (isPointer)
-                return UWORD
+                return untypedPointerType
             if (isArray) {
-                if (msb || isSplitWordArray)
+                val isSplit = base == BaseDataType.ARRAY_SPLITW ||
+                    (base == BaseDataType.ARRAY_POINTER && mem.memorySize(BaseDataType.POINTER) <= 2)
+                if (msb || isSplit)
                     return pointer(BaseDataType.UBYTE)
                 val elementDt = elementType()
-                require(elementDt.isBasic)
-                return pointer(elementDt)
+                if (elementDt.isBasic)
+                    return pointer(elementDt)
+                return untypedPointerType
             }
             if (subType != null)
                 return pointer(this)
-            return UWORD
+            return untypedPointerType
         }
     }
 
@@ -278,6 +342,7 @@ class DataType private constructor(
                 BaseDataType.UBYTE -> "ubyte[]"
                 BaseDataType.UWORD -> "uword[]"
                 BaseDataType.LONG -> "long[]"
+                BaseDataType.STRUCT_INSTANCE -> if (subType != null) "${subType!!.scopedNameString}[]" else "$subTypeFromAntlr[]"
                 else -> throw IllegalArgumentException("invalid sub type")
             }
         }
@@ -342,6 +407,7 @@ class DataType private constructor(
                 BaseDataType.WORD -> "@nosplit word["
                 BaseDataType.LONG -> "long["
                 BaseDataType.FLOAT -> "float["
+                BaseDataType.STRUCT_INSTANCE -> if (subType != null) "${subType!!.scopedNameString}[" else "$subTypeFromAntlr["
                 else -> throw IllegalArgumentException("invalid sub type")
             }
         }
@@ -366,9 +432,9 @@ class DataType private constructor(
             BaseDataType.BYTE -> targetType.base in setOf(BaseDataType.BYTE, BaseDataType.WORD, BaseDataType.LONG, BaseDataType.FLOAT)
             BaseDataType.UWORD -> targetType.base in setOf(BaseDataType.UWORD, BaseDataType.LONG, BaseDataType.FLOAT, BaseDataType.POINTER, BaseDataType.ARRAY_POINTER)
             BaseDataType.WORD -> targetType.base in setOf(BaseDataType.WORD, BaseDataType.LONG, BaseDataType.FLOAT)
-            BaseDataType.LONG -> targetType.base in setOf(BaseDataType.LONG, BaseDataType.FLOAT)
+            BaseDataType.LONG -> targetType.base in setOf(BaseDataType.LONG, BaseDataType.FLOAT, BaseDataType.POINTER, BaseDataType.ARRAY_POINTER)
             BaseDataType.FLOAT -> targetType.base in arrayOf(BaseDataType.FLOAT)
-            BaseDataType.STR -> targetType.base in setOf(BaseDataType.STR, BaseDataType.UWORD) || (targetType.isPointer && targetType.sub==BaseDataType.UBYTE)
+            BaseDataType.STR -> targetType.base in setOf(BaseDataType.STR, BaseDataType.UWORD, BaseDataType.LONG) || (targetType.isPointer && targetType.sub==BaseDataType.UBYTE)
             BaseDataType.ARRAY, BaseDataType.ARRAY_SPLITW -> targetType.base in setOf(BaseDataType.ARRAY, BaseDataType.ARRAY_SPLITW) && targetType.sub == sub
             BaseDataType.POINTER -> {
                 when {
@@ -377,13 +443,14 @@ class DataType private constructor(
                     else -> false
                 }
             }
+            BaseDataType.ARRAY_POINTER -> targetType.base in setOf(BaseDataType.ARRAY_POINTER, targetType.base == BaseDataType.ARRAY) && targetType.sub == sub
             BaseDataType.STRUCT_INSTANCE -> false        // we cannot deal with actual struct instances yet in any shape or form (only getting fields from it)
-            BaseDataType.ARRAY_POINTER -> false
             BaseDataType.UNDEFINED -> false
         }
 
     fun largerSizeThan(other: DataType): Boolean = base.largerSizeThan(other.base)
     fun equalsSize(other: DataType): Boolean = base.equalsSize(other.base)
+    fun equalsSize(other: DataType, memsizer: IMemSizer): Boolean = base.equalsSize(other.base, memsizer)
 
     /**
      * Returns the memory size in bytes.
@@ -439,10 +506,20 @@ class DataType private constructor(
     val isBool = base == BaseDataType.BOOL
     val isFloat = base == BaseDataType.FLOAT
     val isLong = base == BaseDataType.LONG
-    val isStringly = base == BaseDataType.STR || base == BaseDataType.UWORD || (base == BaseDataType.ARRAY && (sub == BaseDataType.UBYTE || sub == BaseDataType.BYTE))
-    val isSplitWordArray = base.isSplitWordArray
-    val isSplitUnsignedWordArray = base.isSplitWordArray && !base.isPointerArray && sub == BaseDataType.UWORD
-    val isSplitSignedWordArray = base.isSplitWordArray && !base.isPointerArray && sub == BaseDataType.WORD
+    fun isStringly(memsizer: IMemSizer): Boolean =
+        base == BaseDataType.STR ||
+        (memsizer.POINTER_MEM_SIZE == 2u && base == BaseDataType.UWORD) ||
+        (memsizer.POINTER_MEM_SIZE > 2u && base == BaseDataType.LONG) ||
+        (base == BaseDataType.ARRAY && (sub == BaseDataType.UBYTE || sub == BaseDataType.BYTE))
+    fun isSplitWordArray(memsizer: IMemSizer): Boolean  {
+        return if(base== BaseDataType.ARRAY_SPLITW)
+            true
+        else if(base==BaseDataType.ARRAY_POINTER)
+            memsizer.POINTER_MEM_SIZE<=2u
+        else false
+    }
+    val isSplitUnsignedWordArray = base == BaseDataType.ARRAY_SPLITW && sub == BaseDataType.UWORD
+    val isSplitSignedWordArray = base == BaseDataType.ARRAY_SPLITW && sub == BaseDataType.WORD
     val isIterable =  base.isIterable
     val isPassByRef = base.isPassByRef
     val isPassByValue = base.isPassByValue

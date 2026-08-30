@@ -8,6 +8,8 @@ include(
     ':virtualmachine',
     ':codeGenIntermediate',
     ':codeGenCpu6502',
+    ':codeGenM68k',
+    ':codeGenNew6502',
     ':compiler',
-    ':languageServer',
+    ':languageServer'
 )

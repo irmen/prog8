@@ -36,6 +36,7 @@
       <item>on</item>
       <item>or</item>
       <item>private</item>
+      <item>public</item>
       <item>repeat</item>
       <item>return</item>
       <item>step</item>
@@ -87,6 +88,7 @@
       <item>const</item>
       <item>float</item>
       <item>long</item>
+      <item>pointer</item>
       <item>str</item>
       <item>struct</item>
       <item>ubyte</item>
@@ -126,21 +128,25 @@
       <item>peekf</item>
       <item>peekl</item>
       <item>peekw</item>
+      <item>peekp</item>
       <item>poke</item>
       <item>pokebool</item>
       <item>pokef</item>
       <item>pokel</item>
       <item>pokew</item>
+      <item>pokep</item>
       <item>pop</item>
       <item>popf</item>
       <item>popl</item>
       <item>popw</item>
+      <item>popp</item>
       <item>psg</item>
       <item>psg2</item>
       <item>push</item>
       <item>pushf</item>
       <item>pushl</item>
       <item>pushw</item>
+      <item>pushp</item>
       <item>rol</item>
       <item>rol2</item>
       <item>ror</item>

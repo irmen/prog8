@@ -35,6 +35,12 @@ enum class CpuType(val statusBitsOnMultiByteOps: Boolean) {
 
     /** 8-bit CMOS 65C02. Same status-bit issue as plain 6502. */
     CPU65C02(false),
+    
+    /** 16/32 bit Motorola 68000. has single instructions that set status bits when dealing with multi byte operands */
+    M68000(true),
+
+    /** 32 bit Motorola 68020. has single instructions that set status bits when dealing with multi byte operands */
+    M68020(true),
 
     /**
      * Virtual machine target. We use `false` here so the IR generator always
@@ -44,6 +50,19 @@ enum class CpuType(val statusBitsOnMultiByteOps: Boolean) {
      * behavior consistent across all current targets.
      */
     VIRTUAL(false)
+    ;
+
+    /** True for the 6502-family targets (plain 6502 and 65C02). */
+    val is6502: Boolean
+        get() = this == CPU6502 || this == CPU65C02
+    val is68k: Boolean
+        get() = this == M68000 || this == M68020
+    /** True for targets that use the m68k-style hardware-register calling convention (D0-D7, A0-A6, FP0-FP7). */
+    val usesM68kConvention: Boolean
+        get() = is68k || this == VIRTUAL
+    /** True for big-endian targets. The 6502 family and the VM are little-endian. */
+    val isBigEndian: Boolean
+        get() = this == M68000 || this == M68020
 }
 
 interface ICompilationTarget: IStringEncoding, IMemSizer {
@@ -51,7 +70,7 @@ interface ICompilationTarget: IStringEncoding, IMemSizer {
 
     val FLOAT_MAX_NEGATIVE: Double
     val FLOAT_MAX_POSITIVE: Double
-    val FLOAT_MEM_SIZE: UInt
+    val ARRAY_SIZE_LIMIT: UInt
     val PROGRAM_LOAD_ADDRESS : UInt
     val PROGRAM_MEMTOP_ADDRESS: UInt
     val BSSHIGHRAM_START: UInt

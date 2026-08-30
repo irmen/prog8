@@ -14,12 +14,12 @@ internal data class DaemonRequest(
     val showTimings: Boolean,
     val asmListfile: Boolean,
     val includeSourcelines: Boolean,
+    val newCodegen: Boolean,
     val dumpVariables: Boolean,
     val dumpSymbols: Boolean,
     val varsHighBank: Int?,
     val varsGolden: Boolean,
-    val slabsHighBank: Int?,
-    val slabsGolden: Boolean,
+    val varsAddress: UInt?,
     val compilationTarget: String,
     val breakpointCpuInstruction: String?,
     val printAst1: Boolean,
@@ -30,7 +30,8 @@ internal data class DaemonRequest(
     val symbolDefs: Map<String, String>,
     val sourceDirs: List<String>,
     val outputDir: String,
-    val cwd: String
+    val cwd: String,
+    val generateDocumentation: Boolean = false
 )
 
 internal data class DaemonResponse(
@@ -61,12 +62,12 @@ internal object DaemonProtocol {
         append(prop("showTimings", req.showTimings))
         append(prop("asmListfile", req.asmListfile))
         append(prop("includeSourcelines", req.includeSourcelines))
+        append(prop("newCodegen", req.newCodegen))
         append(prop("dumpVariables", req.dumpVariables))
         append(prop("dumpSymbols", req.dumpSymbols))
         append(prop("varsHighBank", req.varsHighBank))
         append(prop("varsGolden", req.varsGolden))
-        append(prop("slabsHighBank", req.slabsHighBank))
-        append(prop("slabsGolden", req.slabsGolden))
+        append(propLongOpt("varsAddress", req.varsAddress?.toLong()))
         append(prop("compilationTarget", req.compilationTarget))
         append(propOpt("breakpointCpuInstruction", req.breakpointCpuInstruction))
         append(prop("printAst1", req.printAst1))
@@ -78,6 +79,7 @@ internal object DaemonProtocol {
         append(prop("sourceDirs", req.sourceDirs))
         append(prop("outputDir", req.outputDir))
         append(prop("cwd", req.cwd))
+        append(prop("generateDocumentation", req.generateDocumentation))
         append("null")  // placeholder, gets overwritten by trimEnd
         setLength(length - 5)
         append('}')
@@ -127,12 +129,12 @@ internal object DaemonProtocol {
             showTimings = map["showTimings"] as Boolean,
             asmListfile = map["asmListfile"] as Boolean,
             includeSourcelines = map["includeSourcelines"] as Boolean,
+            newCodegen = map["newCodegen"] as Boolean,
             dumpVariables = map["dumpVariables"] as Boolean,
             dumpSymbols = map["dumpSymbols"] as Boolean,
-            varsHighBank = map["varsHighBank"] as? Int,
+            varsHighBank = (map["varsHighBank"] as? Number)?.toInt(),
             varsGolden = map["varsGolden"] as Boolean,
-            slabsHighBank = map["slabsHighBank"] as? Int,
-            slabsGolden = map["slabsGolden"] as Boolean,
+            varsAddress = (map["varsAddress"] as? Number)?.toLong()?.toUInt(),
             compilationTarget = map["compilationTarget"] as String,
             breakpointCpuInstruction = map["breakpointCpuInstruction"] as? String,
             printAst1 = map["printAst1"] as Boolean,
@@ -143,7 +145,8 @@ internal object DaemonProtocol {
             symbolDefs = (map["symbolDefs"] as? Map<*, *>)?.mapKeys { it.key as String }?.mapValues { it.value as String } ?: emptyMap(),
             sourceDirs = (map["sourceDirs"] as? List<*>)?.map { it as String } ?: emptyList(),
             outputDir = map["outputDir"] as String,
-            cwd = map["cwd"] as String
+            cwd = map["cwd"] as String,
+            generateDocumentation = map["generateDocumentation"] as? Boolean ?: false
         )
     }
 
@@ -169,6 +172,7 @@ internal object DaemonProtocol {
     private fun prop(name: String, value: Int): String = "\"$name\":$value,"
     private fun prop(name: String, value: Long): String = "\"$name\":$value,"
     private fun prop(name: String, value: Int?): String = value?.let { "\"$name\":$it," } ?: "\"$name\":null,"
+    private fun propLongOpt(name: String, value: Long?): String = value?.let { "\"$name\":$it," } ?: "\"$name\":null,"
     private fun prop(name: String, value: Map<String, String>): String {
         val entries = value.entries.joinToString(",") { "${encodeJsonString(it.key)}:${encodeJsonString(it.value)}" }
         return "\"$name\":{$entries},"

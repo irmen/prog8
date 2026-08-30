@@ -293,7 +293,7 @@ abstract class AstWalker {
         }
     }
 
-    open fun applyModifications(): Int {
+    fun applyModifications(): Int {
         // Build conflict map for debugging - detect nodes affected by multiple modifications
         val nodeToModifications = mutableMapOf<Node, MutableList<AstModification>>()
         modifications.forEach { (mod: AstModification, _, _) ->
@@ -514,6 +514,7 @@ abstract class AstWalker {
         track(before(forLoop, parent), forLoop, parent)
         forLoop.loopVar.accept(this, forLoop)
         forLoop.iterable.accept(this, forLoop)
+        forLoop.step?.accept(this, forLoop)
         forLoop.body.accept(this, forLoop)
         track(after(forLoop, parent), forLoop, parent)
     }
@@ -568,6 +569,7 @@ abstract class AstWalker {
         assignTarget.memoryAddress?.accept(this, assignTarget)
         assignTarget.pointerDereference?.accept(this, assignTarget)
         assignTarget.arrayIndexedDereference?.accept(this, assignTarget)
+        assignTarget.dotExpression?.accept(this, assignTarget)
         assignTarget.multi?.forEach { it.accept(this, assignTarget) }
         track(after(assignTarget, parent), assignTarget, parent)
     }

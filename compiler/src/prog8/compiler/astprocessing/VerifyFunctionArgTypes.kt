@@ -83,9 +83,12 @@ internal class VerifyFunctionArgTypes(val program: Program, val options: Compila
 
     companion object {
 
-        private fun argTypeCompatible(argDt: DataType, paramDt: DataType): Boolean {
+        private fun argTypeCompatible(argDt: DataType, paramDt: DataType, target: ICompilationTarget): Boolean {
             if(argDt==paramDt)
                 return true
+
+            // on 32 bits platforms the pointer type is long, so long can be used as an (untyped) pointer
+            val is32bit = target.POINTER_MEM_SIZE > 2u
 
             // there are some exceptions that are considered compatible, such as STR <> UWORD,  UWORD <> pointer
             if(argDt.isUnsignedWord)
@@ -98,17 +101,39 @@ internal class VerifyFunctionArgTypes(val program: Program, val options: Compila
                     return true
             }
 
-            // if uword is passed, check if the parameter type is pointer to array element type
+            // if array is passed, check if the parameter type is pointer to array element type
             if(argDt.isArray && paramDt.isPointer) {
                 if(argDt.sub==paramDt.sub)
                     return true
+                // allow if element types have the same memory size (e.g. bool[] ↔ ^^ubyte, byte[] ↔ ^^ubyte, etc.)
+                val aSub = argDt.sub
+                val pSub = paramDt.sub
+                if(aSub!=null && pSub!=null) {
+                    val sameSize = (aSub.isByteOrBool && pSub.isByteOrBool) ||
+                                   (aSub.isWord && pSub.isWord) ||
+                                   (aSub.isLong && pSub.isLong)
+                    if(sameSize)
+                        return true
+                }
             }
 
             // if expected is UWORD and actual is any pointer, we allow it (uword is untyped pointer, for backwards compatibility)
             if(paramDt.isUnsignedWord && argDt.isPointer)
                 return true
 
-            if(paramDt.isString && (argDt.isPointer && argDt.sub==BaseDataType.UBYTE))
+            // if expected is any pointer and actual is long, we allow it (long is untyped 32-bit pointer)
+            if(paramDt.isPointer && argDt.base==BaseDataType.LONG && is32bit)
+                return true
+
+            // if expected is LONG and actual is an array, we allow it (address of array is a long on 32-bit targets)
+            if(paramDt.isLong && argDt.isArray && is32bit)
+                return true
+
+            // if expected is LONG and actual is any pointer, we allow it (pointer is a long on m68k)
+            if(paramDt.isLong && argDt.isPointer && is32bit)
+                return true
+
+            if(paramDt.isString && ((argDt.isPointer && argDt.sub==BaseDataType.UBYTE) || (argDt.isLong && is32bit)))
                 return true
 
             return false
@@ -130,7 +155,7 @@ internal class VerifyFunctionArgTypes(val program: Program, val options: Compila
             if (target is Subroutine) {
                 val consideredParamTypes: List<DataType> = target.parameters.map { it.type }
                 require(argtypes.size == consideredParamTypes.size)
-                val mismatch = argtypes.zip(consideredParamTypes).indexOfFirst { !argTypeCompatible(it.first, it.second) }
+                val mismatch = argtypes.zip(consideredParamTypes).indexOfFirst { !argTypeCompatible(it.first, it.second, program.target) }
                 if(mismatch>=0) {
                     val actual = argtypes[mismatch]
                     val expected = consideredParamTypes[mismatch]
@@ -138,7 +163,7 @@ internal class VerifyFunctionArgTypes(val program: Program, val options: Compila
                         if (expected.sub?.isWord == true) {
                             val arg = call.args[mismatch]
                             val argArray = if(arg is AddressOf) arg.identifier else arg
-                            return if(argArray?.inferType(program)?.getOrUndef()?.isSplitWordArray==true)
+                            return if(argArray?.inferType(program)?.getOrUndef()?.isSplitWordArray(program.target)==true)
                                 Pair("argument ${mismatch + 1} cannot pass address to a split words array where a word pointer argument is expected, use a @nosplit word array instead", call.args[mismatch].position)
                             else
                                 Pair("argument ${mismatch + 1} type mismatch, was: $actual expected: $expected", call.args[mismatch].position)
@@ -147,7 +172,7 @@ internal class VerifyFunctionArgTypes(val program: Program, val options: Compila
                             val addrOf = call.args[mismatch] as? AddressOf
                             if(addrOf!=null) {
                                 val identType = addrOf.identifier?.inferType(program)?.getOrUndef()
-                                if(identType?.isSplitWordArray==true) {
+                                if(identType?.isSplitWordArray(program.target)==true) {
                                     return Pair("argument ${mismatch + 1} type mismatch, was: $actual (because arg is a split word array) expected: $expected", call.args[mismatch].position)
                                 }
                             }
@@ -183,7 +208,7 @@ internal class VerifyFunctionArgTypes(val program: Program, val options: Compila
                         if(it.isArray)
                             pair.first.isArray
                         else
-                            argTypeCompatible(pair.first, DataType.forDt(it))
+                            argTypeCompatible(pair.first, DataType.forDt(it), program.target)
                     }
                     if (!anyCompatible) {
                         val actual = pair.first

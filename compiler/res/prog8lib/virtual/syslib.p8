@@ -43,10 +43,10 @@ sys {
         ; -- kill the program by jumping into the debugger/monitor (if available). Status code is in register A, a pointer to the death message is in X,Y.
         str @shared warning = iso:"\n\nPROGRAM DIED: "
         %ir {{
-            load.w r99000,sys.die.warning
-            syscall 3 (r99000.w)
-            loadm.w r99000,sys.die.message
-            syscall 3 (r99000.w)
+            load.l r99200,sys.die.warning
+            syscall 3 (r99200.l)
+            loadm.l r99200,sys.die.message
+            syscall 3 (r99200.l)
             load.b r99100,10
             syscall 2 (r99100.b)
         }}
@@ -68,47 +68,47 @@ sys {
         }}
     }
 
-    sub memcopy(uword source, uword tgt, uword count)  {
+    sub memcopy(pointer source, pointer tgt, uword count)  {
         %ir {{
-            loadm.w r99000,sys.memcopy.source
-            loadm.w r99001,sys.memcopy.tgt
+            loadm.l r99200,sys.memcopy.source
+            loadm.l r99201,sys.memcopy.tgt
             loadm.w r99002,sys.memcopy.count
-            syscall 36 (r99000.w, r99001.w, r99002.w)
+            syscall 36 (r99200.l, r99201.l, r99002.w)
         }}
     }
 
-    sub memset(uword mem, uword numbytes, ubyte value)  {
+    sub memset(pointer mem, uword numbytes, ubyte value)  {
         %ir {{
-            loadm.w r99000,sys.memset.mem
+            loadm.l r99200,sys.memset.mem
             loadm.w r99001,sys.memset.numbytes
             loadm.b r99100,sys.memset.value
-            syscall 37 (r99000.w, r99001.w, r99100.b)
+            syscall 37 (r99200.l, r99001.w, r99100.b)
         }}
     }
 
-    sub memsetw(uword mem, uword numwords, uword value)  {
+    sub memsetw(pointer mem, uword numwords, uword value)  {
         %ir {{
-            loadm.w r99000,sys.memsetw.mem
+            loadm.l r99200,sys.memsetw.mem
             loadm.w r99001,sys.memsetw.numwords
             loadm.w r99002,sys.memsetw.value
-            syscall 38 (r99000.w, r99001.w, r99002.w)
+            syscall 38 (r99200.l, r99001.w, r99002.w)
         }}
     }
 
-    sub memcmp(uword address1, uword address2, uword size) -> byte {
+    sub memcmp(pointer address1, pointer address2, uword size) -> byte {
         ; Compares two blocks of memory of up to 65535 bytes in size
         ; Returns -1 (255), 0 or 1, meaning: block 1 sorts before, equal or after block 2.
         %ir {{
-            loadm.w r99000,sys.memcmp.address1
-            loadm.w r99001,sys.memcmp.address2
+            loadm.l r99200,sys.memcmp.address1
+            loadm.l r99201,sys.memcmp.address2
             loadm.w r99002,sys.memcmp.size
-            syscall 47 (r99000.w, r99001.w, r99002.w) : r99100.b
+            syscall 47 (r99200.l, r99201.l, r99002.w) : r99100.b
             returnr.b r99100
         }}
     }
 
     sub exit(ubyte returnvalue) {
-        ; -- immediately exit the program with a return code in the A register
+        ; -- exit the program with a return code. All active defers in the call chain are unwound program-wide (LIFO) before system cleanup. sys.reset_system() and poweroff_system() do not run defers.
         %ir {{
             loadm.b r99100,sys.exit.returnvalue
             syscall 1 (r99100.b)
@@ -191,26 +191,12 @@ sys {
         %ir {{
             loadm.w r99000,sys.gfx_text.xx
             loadm.w r99001,sys.gfx_text.yy
-            loadm.w r99002,sys.gfx_text.textptr
+            loadm.l r99200,sys.gfx_text.textptr
             loadm.b r99100,sys.gfx_text.color
-            syscall 66 (r99000.w, r99001.w, r99002.w, r99100.b)
+            syscall 66 (r99000.w, r99001.w, r99200.l, r99100.b)
         }}
     }
 
-
-    sub push_returnaddress(uword w) {
-        ; note: this actually doesn't do anything useful on the VM because the code execution doesn't use the simulated cpu stack
-        %ir {{
-            loadm.w r99000,sys.push_returnaddress.w
-            push.w r99000
-        }}
-    }
-
-    sub get_as_returnaddress(uword address) -> uword {
-        ; return the address like JSR would push onto the stack:  address-1,  MSB first then LSB
-        address--
-        return mkword(lsb(address), msb(address))
-    }
 
     sub read_flags() -> ubyte {
         ; "simulate" the 6502 status register a little bit
@@ -253,155 +239,156 @@ cx16 {
 
     ; the sixteen virtual 16-bit registers that the Commander X16 has defined in the zeropage
     ; they are on the VirtualMachine as well, but their location in memory is different
-    &uword r0  = $ff02
-    &uword r1  = $ff04
-    &uword r2  = $ff06
-    &uword r3  = $ff08
-    &uword r4  = $ff0a
-    &uword r5  = $ff0c
-    &uword r6  = $ff0e
-    &uword r7  = $ff10
-    &uword r8  = $ff12
-    &uword r9  = $ff14
-    &uword r10 = $ff16
-    &uword r11 = $ff18
-    &uword r12 = $ff1a
-    &uword r13 = $ff1c
-    &uword r14 = $ff1e
-    &uword r15 = $ff20
+    ; (placed at a high address to avoid collision with the linear variable allocator)
+    &uword r0  = $ff0000
+    &uword r1  = $ff0002
+    &uword r2  = $ff0004
+    &uword r3  = $ff0006
+    &uword r4  = $ff0008
+    &uword r5  = $ff000a
+    &uword r6  = $ff000c
+    &uword r7  = $ff000e
+    &uword r8  = $ff0010
+    &uword r9  = $ff0012
+    &uword r10 = $ff0014
+    &uword r11 = $ff0016
+    &uword r12 = $ff0018
+    &uword r13 = $ff001a
+    &uword r14 = $ff001c
+    &uword r15 = $ff001e
 
     ; signed word versions
-    &word r0s  = $ff02
-    &word r1s  = $ff04
-    &word r2s  = $ff06
-    &word r3s  = $ff08
-    &word r4s  = $ff0a
-    &word r5s  = $ff0c
-    &word r6s  = $ff0e
-    &word r7s  = $ff10
-    &word r8s  = $ff12
-    &word r9s  = $ff14
-    &word r10s = $ff16
-    &word r11s = $ff18
-    &word r12s = $ff1a
-    &word r13s = $ff1c
-    &word r14s = $ff1e
-    &word r15s = $ff20
+    &word r0s  = $ff0000
+    &word r1s  = $ff0002
+    &word r2s  = $ff0004
+    &word r3s  = $ff0006
+    &word r4s  = $ff0008
+    &word r5s  = $ff000a
+    &word r6s  = $ff000c
+    &word r7s  = $ff000e
+    &word r8s  = $ff0010
+    &word r9s  = $ff0012
+    &word r10s = $ff0014
+    &word r11s = $ff0016
+    &word r12s = $ff0018
+    &word r13s = $ff001a
+    &word r14s = $ff001c
+    &word r15s = $ff001e
 
     ; signed long versions
-    &long r0r1sl  = $ff02
-    &long r2r3sl  = $ff06
-    &long r4r5sl  = $ff0a
-    &long r6r7sl  = $ff0e
-    &long r8r9sl  = $ff12
-    &long r10r11sl = $ff16
-    &long r12r13sl = $ff1a
-    &long r14r15sl = $ff1e
+    &long r0r1sl  = $ff0000
+    &long r2r3sl  = $ff0004
+    &long r4r5sl  = $ff0008
+    &long r6r7sl  = $ff000c
+    &long r8r9sl  = $ff0010
+    &long r10r11sl = $ff0014
+    &long r12r13sl = $ff0018
+    &long r14r15sl = $ff001c
 
     ; ubyte versions (low and high bytes)
-    &ubyte r0L  = $ff02
-    &ubyte r1L  = $ff04
-    &ubyte r2L  = $ff06
-    &ubyte r3L  = $ff08
-    &ubyte r4L  = $ff0a
-    &ubyte r5L  = $ff0c
-    &ubyte r6L  = $ff0e
-    &ubyte r7L  = $ff10
-    &ubyte r8L  = $ff12
-    &ubyte r9L  = $ff14
-    &ubyte r10L = $ff16
-    &ubyte r11L = $ff18
-    &ubyte r12L = $ff1a
-    &ubyte r13L = $ff1c
-    &ubyte r14L = $ff1e
-    &ubyte r15L = $ff20
+    &ubyte r0L  = $ff0000
+    &ubyte r1L  = $ff0002
+    &ubyte r2L  = $ff0004
+    &ubyte r3L  = $ff0006
+    &ubyte r4L  = $ff0008
+    &ubyte r5L  = $ff000a
+    &ubyte r6L  = $ff000c
+    &ubyte r7L  = $ff000e
+    &ubyte r8L  = $ff0010
+    &ubyte r9L  = $ff0012
+    &ubyte r10L = $ff0014
+    &ubyte r11L = $ff0016
+    &ubyte r12L = $ff0018
+    &ubyte r13L = $ff001a
+    &ubyte r14L = $ff001c
+    &ubyte r15L = $ff001e
 
-    &ubyte r0H  = $ff03
-    &ubyte r1H  = $ff05
-    &ubyte r2H  = $ff07
-    &ubyte r3H  = $ff09
-    &ubyte r4H  = $ff0b
-    &ubyte r5H  = $ff0d
-    &ubyte r6H  = $ff0f
-    &ubyte r7H  = $ff11
-    &ubyte r8H  = $ff13
-    &ubyte r9H  = $ff15
-    &ubyte r10H = $ff17
-    &ubyte r11H = $ff19
-    &ubyte r12H = $ff1b
-    &ubyte r13H = $ff1d
-    &ubyte r14H = $ff1f
-    &ubyte r15H = $ff21
+    &ubyte r0H  = $ff0001
+    &ubyte r1H  = $ff0003
+    &ubyte r2H  = $ff0005
+    &ubyte r3H  = $ff0007
+    &ubyte r4H  = $ff0009
+    &ubyte r5H  = $ff000b
+    &ubyte r6H  = $ff000d
+    &ubyte r7H  = $ff000f
+    &ubyte r8H  = $ff0011
+    &ubyte r9H  = $ff0013
+    &ubyte r10H = $ff0015
+    &ubyte r11H = $ff0017
+    &ubyte r12H = $ff0019
+    &ubyte r13H = $ff001b
+    &ubyte r14H = $ff001d
+    &ubyte r15H = $ff001f
 
     ; signed byte versions (low and high bytes)
-    &byte r0sL  = $ff02
-    &byte r1sL  = $ff04
-    &byte r2sL  = $ff06
-    &byte r3sL  = $ff08
-    &byte r4sL  = $ff0a
-    &byte r5sL  = $ff0c
-    &byte r6sL  = $ff0e
-    &byte r7sL  = $ff10
-    &byte r8sL  = $ff12
-    &byte r9sL  = $ff14
-    &byte r10sL = $ff16
-    &byte r11sL = $ff18
-    &byte r12sL = $ff1a
-    &byte r13sL = $ff1c
-    &byte r14sL = $ff1e
-    &byte r15sL = $ff20
+    &byte r0sL  = $ff0000
+    &byte r1sL  = $ff0002
+    &byte r2sL  = $ff0004
+    &byte r3sL  = $ff0006
+    &byte r4sL  = $ff0008
+    &byte r5sL  = $ff000a
+    &byte r6sL  = $ff000c
+    &byte r7sL  = $ff000e
+    &byte r8sL  = $ff0010
+    &byte r9sL  = $ff0012
+    &byte r10sL = $ff0014
+    &byte r11sL = $ff0016
+    &byte r12sL = $ff0018
+    &byte r13sL = $ff001a
+    &byte r14sL = $ff001c
+    &byte r15sL = $ff001e
 
-    &byte r0sH  = $ff03
-    &byte r1sH  = $ff05
-    &byte r2sH  = $ff07
-    &byte r3sH  = $ff09
-    &byte r4sH  = $ff0b
-    &byte r5sH  = $ff0d
-    &byte r6sH  = $ff0f
-    &byte r7sH  = $ff11
-    &byte r8sH  = $ff13
-    &byte r9sH  = $ff15
-    &byte r10sH = $ff17
-    &byte r11sH = $ff19
-    &byte r12sH = $ff1b
-    &byte r13sH = $ff1d
-    &byte r14sH = $ff1f
-    &byte r15sH = $ff21
+    &byte r0sH  = $ff0001
+    &byte r1sH  = $ff0003
+    &byte r2sH  = $ff0005
+    &byte r3sH  = $ff0007
+    &byte r4sH  = $ff0009
+    &byte r5sH  = $ff000b
+    &byte r6sH  = $ff000d
+    &byte r7sH  = $ff000f
+    &byte r8sH  = $ff0011
+    &byte r9sH  = $ff0013
+    &byte r10sH = $ff0015
+    &byte r11sH = $ff0017
+    &byte r12sH = $ff0019
+    &byte r13sH = $ff001b
+    &byte r14sH = $ff001d
+    &byte r15sH = $ff001f
 
     ; boolean versions
-    &bool r0bL  = $ff02
-    &bool r1bL  = $ff04
-    &bool r2bL  = $ff06
-    &bool r3bL  = $ff08
-    &bool r4bL  = $ff0a
-    &bool r5bL  = $ff0c
-    &bool r6bL  = $ff0e
-    &bool r7bL  = $ff10
-    &bool r8bL  = $ff12
-    &bool r9bL  = $ff14
-    &bool r10bL = $ff16
-    &bool r11bL = $ff18
-    &bool r12bL = $ff1a
-    &bool r13bL = $ff1c
-    &bool r14bL = $ff1e
-    &bool r15bL = $ff20
+    &bool r0bL  = $ff0000
+    &bool r1bL  = $ff0002
+    &bool r2bL  = $ff0004
+    &bool r3bL  = $ff0006
+    &bool r4bL  = $ff0008
+    &bool r5bL  = $ff000a
+    &bool r6bL  = $ff000c
+    &bool r7bL  = $ff000e
+    &bool r8bL  = $ff0010
+    &bool r9bL  = $ff0012
+    &bool r10bL = $ff0014
+    &bool r11bL = $ff0016
+    &bool r12bL = $ff0018
+    &bool r13bL = $ff001a
+    &bool r14bL = $ff001c
+    &bool r15bL = $ff001e
 
-    &bool r0bH  = $ff03
-    &bool r1bH  = $ff05
-    &bool r2bH  = $ff07
-    &bool r3bH  = $ff09
-    &bool r4bH  = $ff0b
-    &bool r5bH  = $ff0d
-    &bool r6bH  = $ff0f
-    &bool r7bH  = $ff11
-    &bool r8bH  = $ff13
-    &bool r9bH  = $ff15
-    &bool r10bH = $ff17
-    &bool r11bH = $ff19
-    &bool r12bH = $ff1b
-    &bool r13bH = $ff1d
-    &bool r14bH = $ff1f
-    &bool r15bH = $ff21
+    &bool r0bH  = $ff0001
+    &bool r1bH  = $ff0003
+    &bool r2bH  = $ff0005
+    &bool r3bH  = $ff0007
+    &bool r4bH  = $ff0009
+    &bool r5bH  = $ff000b
+    &bool r6bH  = $ff000d
+    &bool r7bH  = $ff000f
+    &bool r8bH  = $ff0011
+    &bool r9bH  = $ff0013
+    &bool r10bH = $ff0015
+    &bool r11bH = $ff0017
+    &bool r12bH = $ff0019
+    &bool r13bH = $ff001b
+    &bool r14bH = $ff001d
+    &bool r15bH = $ff001f
 
 
     sub save_virtual_registers() {
@@ -446,8 +433,8 @@ cx16 {
 
     private sub print_error (str message) {
         %ir {{
-            loadm.w r99000,cx16.print_error.message
-            syscall 3 (r99000.w)
+            loadm.l r99200,cx16.print_error.message
+            syscall 3 (r99200.l)
         }}
     }
 

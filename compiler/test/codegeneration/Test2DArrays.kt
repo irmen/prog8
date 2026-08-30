@@ -89,14 +89,13 @@ class Test2DArrays: FunSpec({
             main {
                 sub start() {
                     ubyte[3][4] m
-                    uword @shared addr = &m
+                    pointer @shared addr = &m
                 }
             }"""
         )
         for(src in sources) {
             val result = compileText(VMTarget(), false, src, outputDir) ?: fail("Compilation failed for source:\n$src")
-            val resultc64 =
-                compileText(C64Target(), false, src, outputDir) ?: fail("Compilation failed for source:\n$src")
+            val resultc64 = compileText(C64Target(), false, src, outputDir) ?: fail("Compilation failed for source:\n$src")
         }
         // Also verify optimized compilation
         compileText(VMTarget(), true, sources[0], outputDir) shouldNotBe null

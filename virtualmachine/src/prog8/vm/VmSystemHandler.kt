@@ -31,8 +31,8 @@ internal fun VirtualMachine.gfx_getpixel(x: UShort, y: UShort): UByte {
     }
 }
 
-internal fun VirtualMachine.gfx_text(xx: UShort, yy: UShort, textptr: UShort, color: UByte) {
-    val text = memory.getString(textptr.toUInt())
+internal fun VirtualMachine.gfx_text(xx: UShort, yy: UShort, textptr: UInt, color: UByte) {
+    val text = memory.getString(textptr)
     window?.drawText(xx.toInt(), yy.toInt(), text, color.toInt())
 }
 
@@ -56,7 +56,11 @@ internal fun VirtualMachine.waitvsync() {
 }
 
 internal fun VirtualMachine.randomSeed(seed1: UShort, seed2: UShort) {
-    randomGenerator = Random(((seed1.toUInt() shl 16) or seed2.toUInt()).toInt())
+    // same layout as 6502 math.asm rndseed and m68k shared_m68k_math.p8 rndseed
+    rnd_x1 = (seed1 and 255u).toUByte()
+    rnd_c1 = (seed1.toUInt() shr 8).toUByte()
+    rnd_a1 = (seed2 and 255u).toUByte()
+    rnd_b1 = (seed2.toUInt() shr 8).toUByte()
 }
 
 internal fun VirtualMachine.randomSeedFloat(seed: Double) {

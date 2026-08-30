@@ -16,12 +16,14 @@ The language
 - It is meant to sit well above low level assembly code, but still allows that low level access to the system it runs on.
   Via language features, or even simply by using inline hand-written assembly code.
 - Prog8 is targeting very CPU and memory constrained 8-bit systems, this reflects many design choices to work within those limitations
-   (single digit Megahertz cpu clock speeds, and memory capacity counted in Kilobytes)
+   (single digit Megahertz cpu clock speeds, and memory capacity counted in Kilobytes).
+   In addition it also supports the 32-bit Motorola 68000 CPU (with the Amiga as the intended machine),
+   where the 32-bit registers and 16 Mb address space lift most of those constraints.
 - Identifiers and string literals can contain non-ASCII characters so for example ``knäckebröd`` and ``見せしめ`` are valid identifiers.
 - There's usually a single statement per line. There is no statement separator.
 - Semicolon ``;`` is used to start a line comment.  Multi-line comments are also possible by enclosing it all in ``/*`` and ``*/``.
 - Ternary operator ``x ? value1 : value2`` is available in the form of an *if-expression*: ``if x [then] value1 else value2``
-- There's a Swift/Zig/Go style ``defer`` statement for delayed cleanup is available in the subroutine scope.
+- There's a ``defer`` statement for delayed cleanup that unwinds locally on ``return`` and program-wide on ``sys.exit()``.
 - Qualified names are searched from within the top level namespace (so you have to provide the full qualified name). Unqualified names are locally scoped.
 - A trailing comma is allowed optionally in array literals:  [1,2,3,]  is a valid array of values 1, 2 and 3.
 
@@ -63,7 +65,8 @@ Variables
 - There is no dynamic memory management in the language; all variables are statically allocated.
   (but user written libraries are possible that provide that indirectly).
 - Variables can be declared everywhere inside the code but all variable declarations in a subroutine
-  are moved to the top of the subroutine. A for loop, or if/else blocks do not introduce a new scope.
+  are moved to the top of the subroutine. An implicitly declared for-loop variable is first inserted immediately
+  before its loop and is then handled in the same way. A for loop, or if/else blocks do not introduce a new scope.
   A subroutine (also nested ones) *do* introduce a new scope.
 - All variables are initialized at the start of the program. There is no random garbage in them: they are zero or any other initialization value you provide.
 - This also means you can run a Prog8 program multiple times without having to reload it from disk, unlike programs produced by most other compilers targeting these 8 bit platforms.
@@ -99,12 +102,12 @@ Pointers and Structs
 *Legacy 'untyped' pointers:*
 
 - In Prog8 versions **before 12.0** there was no support for typed pointers, only 'untyped' ones:
-  Variables of the ``uword`` datatype can be used as a pointer to one of the possible 65536 memory locations,
+  A variable that can hold a :ref:`pointer <pointer_size>` for the target can be used as a pointer to a memory location,
   so the value it points to is always a single byte. This is similar to ``uint8_t*`` from C.
-  You have to deal with the uword manually if the object it points to is something different.
+  You have to deal with the pointer manually if the object it points to is something different.
 - Note that there is the ``peekw`` builtin function that *does* allow you to directly obtain the *word* value at the given memory location.
   So if you use this, you can use uword pointers as pointers to word values without much hassle.
-- "dereferencing" a uword pointer is done via array indexing ``ptr[index]`` (where index value can be 0-65535!) or via the memory read operator ``@(ptr)``, or ``peek/peekw(ptr)``.
+- "dereferencing" an untyped pointer is done via array indexing ``ptr[index]`` or via the memory read operator ``@(ptr)``, or ``peek/peekw(ptr)``.
 - Pointers don't have to be a variable, you can immediately access the value of a given memory location using ``@($d020)`` for instance.
   Reading is done by assigning it to a variable, writing is done by just assigning the new value to it.
 

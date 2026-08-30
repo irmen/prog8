@@ -21,8 +21,8 @@ graphics {
     const ubyte HEIGHT = 240
 
 
-    ubyte stroke_color = 1
-    ubyte background_color = 0
+    private ubyte stroke_color = 1
+    private ubyte background_color = 0
 
     sub enable_bitmap_mode() {
         ; enable bitmap screen, erase it and set colors to black/white.

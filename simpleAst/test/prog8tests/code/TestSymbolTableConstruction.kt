@@ -12,8 +12,7 @@ import prog8.code.core.DataType
 import prog8.code.core.Position
 import prog8.code.core.ZeropageWish
 import prog8.code.source.SourceCode
-import prog8tests.helpers.DummyMemsizer
-import prog8tests.helpers.DummyStringEncoder
+import prog8.code.target.VMTarget
 
 /**
  * Tests for SymbolTable construction and structural integrity.
@@ -32,14 +31,14 @@ class TestSymbolTableConstruction: FunSpec({
     // ============================================================================
 
     fun makeSimpleSymbolTable(): SymbolTable {
-        val astProgram = PtProgram("test", DummyMemsizer, DummyStringEncoder)
+        val astProgram = PtProgram("test", VMTarget())
         val astBlock = PtBlock("block1", false, SourceCode.Generated("block1"), PtBlock.Options(), Position.DUMMY)
         astProgram.add(astBlock)
         return SymbolTable(astProgram)
     }
 
     fun makeSymbolTableWithDuplicates(): Pair<SymbolTable, StStaticVariable> {
-        val astProgram = PtProgram("test", DummyMemsizer, DummyStringEncoder)
+        val astProgram = PtProgram("test", VMTarget())
         val astBlock = PtBlock("block1", false, SourceCode.Generated("block1"), PtBlock.Options(), Position.DUMMY)
         astProgram.add(astBlock)
         val st = SymbolTable(astProgram)
@@ -59,7 +58,7 @@ class TestSymbolTableConstruction: FunSpec({
     // ============================================================================
 
     test("empty symboltable creation") {
-        val astNode = PtProgram("test", DummyMemsizer, DummyStringEncoder)
+        val astNode = PtProgram("test", VMTarget())
         val st = SymbolTable(astNode)
         st.name shouldBe "test"
         st.type shouldBe StNodeType.GLOBAL
@@ -75,7 +74,7 @@ class TestSymbolTableConstruction: FunSpec({
     }
 
     test("symboltable with multiple modules") {
-        val astProgram = PtProgram("test", DummyMemsizer, DummyStringEncoder)
+        val astProgram = PtProgram("test", VMTarget())
         val astBlock1 = PtBlock("block1", false, SourceCode.Generated("block1"), PtBlock.Options(), Position.DUMMY)
         val astBlock2 = PtBlock("block2", false, SourceCode.Generated("block2"), PtBlock.Options(), Position.DUMMY)
         astProgram.add(astBlock1)
@@ -100,7 +99,7 @@ class TestSymbolTableConstruction: FunSpec({
     }
 
     test("duplicate struct instance insertion is handled") {
-        val astProgram = PtProgram("test", DummyMemsizer, DummyStringEncoder)
+        val astProgram = PtProgram("test", VMTarget())
         val astBlock = PtBlock("block1", false, SourceCode.Generated("block1"), PtBlock.Options(), Position.DUMMY)
         astProgram.add(astBlock)
         val st = SymbolTable(astProgram)
@@ -119,7 +118,7 @@ class TestSymbolTableConstruction: FunSpec({
     }
 
     test("duplicate memory slab insertion is handled") {
-        val astProgram = PtProgram("test", DummyMemsizer, DummyStringEncoder)
+        val astProgram = PtProgram("test", VMTarget())
         val astBlock = PtBlock("block1", false, SourceCode.Generated("block1"), PtBlock.Options(), Position.DUMMY)
         astProgram.add(astBlock)
         val st = SymbolTable(astProgram)
@@ -138,7 +137,7 @@ class TestSymbolTableConstruction: FunSpec({
     }
 
     test("duplicate label insertion is handled") {
-        val astProgram = PtProgram("test", DummyMemsizer, DummyStringEncoder)
+        val astProgram = PtProgram("test", VMTarget())
         val astBlock = PtBlock("block1", false, SourceCode.Generated("block1"), PtBlock.Options(), Position.DUMMY)
         astProgram.add(astBlock)
         val st = SymbolTable(astProgram)
@@ -218,7 +217,7 @@ class TestSymbolTableConstruction: FunSpec({
 // ================================================================================
 
 private fun makeStWithVariables(): SymbolTable {
-    val astProgram = PtProgram("test", DummyMemsizer, DummyStringEncoder)
+    val astProgram = PtProgram("test", VMTarget())
     val astBlock = PtBlock("block1", false, SourceCode.Generated("block1"), PtBlock.Options(), Position.DUMMY)
     astProgram.add(astBlock)
     val st = SymbolTable(astProgram)
@@ -235,7 +234,7 @@ private fun makeStWithVariables(): SymbolTable {
 }
 
 private fun makeStWithMemVars(): SymbolTable {
-    val astProgram = PtProgram("test", DummyMemsizer, DummyStringEncoder)
+    val astProgram = PtProgram("test", VMTarget())
     val astBlock = PtBlock("block1", false, SourceCode.Generated("block1"), PtBlock.Options(), Position.DUMMY)
     astProgram.add(astBlock)
     val st = SymbolTable(astProgram)
@@ -250,7 +249,7 @@ private fun makeStWithMemVars(): SymbolTable {
 }
 
 private fun makeStWithSlabs(): SymbolTable {
-    val astProgram = PtProgram("test", DummyMemsizer, DummyStringEncoder)
+    val astProgram = PtProgram("test", VMTarget())
     val astBlock = PtBlock("block1", false, SourceCode.Generated("block1"), PtBlock.Options(), Position.DUMMY)
     astProgram.add(astBlock)
     val st = SymbolTable(astProgram)
@@ -265,7 +264,7 @@ private fun makeStWithSlabs(): SymbolTable {
 }
 
 private fun makeStWithStructInstances(): SymbolTable {
-    val astProgram = PtProgram("test", DummyMemsizer, DummyStringEncoder)
+    val astProgram = PtProgram("test", VMTarget())
     val astBlock = PtBlock("block1", false, SourceCode.Generated("block1"), PtBlock.Options(), Position.DUMMY)
     astProgram.add(astBlock)
     val st = SymbolTable(astProgram)
@@ -280,7 +279,7 @@ private fun makeStWithStructInstances(): SymbolTable {
 }
 
 private fun makeStWithStructs(): SymbolTable {
-    val astProgram = PtProgram("test", DummyMemsizer, DummyStringEncoder)
+    val astProgram = PtProgram("test", VMTarget())
     val astBlock = PtBlock("block1", false, SourceCode.Generated("block1"), PtBlock.Options(), Position.DUMMY)
     astProgram.add(astBlock)
     val st = SymbolTable(astProgram)

@@ -5,14 +5,14 @@ import prog8.code.SymbolTableMaker
 import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.code.source.SourceCode
+import prog8.code.target.Cx16Target
 import prog8.code.target.VMTarget
 import prog8.codegen.vm.VmAssemblyProgram
 import prog8.codegen.vm.VmCodeGen
 import prog8.intermediate.IRSubroutine
 import prog8.intermediate.Opcode
 import prog8.intermediate.toAddress
-import prog8tests.helpers.DummyMemsizer
-import prog8tests.helpers.DummyStringEncoder
+
 import prog8tests.helpers.ErrorReporterForTests
 
 class TestVmCodeGen: FunSpec({
@@ -40,13 +40,15 @@ class TestVmCodeGen: FunSpec({
 //        xx += cx16.r0
 //    }
 //}
+        val compTarget = VMTarget()
         val codegen = VmCodeGen(false)
-        val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
+        val program = PtProgram("test", VMTarget())
         val block = PtBlock("main", false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
         val sub = PtSub("start", emptyList(), emptyList(), Position.DUMMY)
         sub.add(PtVariable(
             "pi",
             DataType.UBYTE,
+            false,
             ZeropageWish.DONTCARE,
             0u,
             false,
@@ -56,7 +58,8 @@ class TestVmCodeGen: FunSpec({
         ))
         sub.add(PtVariable(
             "particleX",
-            DataType.arrayFor(BaseDataType.UBYTE),
+            DataType.arrayFor(BaseDataType.UBYTE, compTarget),
+            false,
             ZeropageWish.DONTCARE,
             0u,
             false,
@@ -66,7 +69,8 @@ class TestVmCodeGen: FunSpec({
         ))
         sub.add(PtVariable(
             "particleDX",
-            DataType.arrayFor(BaseDataType.UBYTE),
+            DataType.arrayFor(BaseDataType.UBYTE, compTarget),
+            false,
             ZeropageWish.DONTCARE,
             0u,
             false,
@@ -77,6 +81,7 @@ class TestVmCodeGen: FunSpec({
         sub.add(PtVariable(
             "xx",
             DataType.WORD,
+            false,
             ZeropageWish.DONTCARE,
             0u,
             false,
@@ -87,17 +92,17 @@ class TestVmCodeGen: FunSpec({
 
         val assign = PtAugmentedAssign("+=", Position.DUMMY)
         val target = PtAssignTarget(false, Position.DUMMY).also {
-            val targetIdx = PtArrayIndexer(DataType.UBYTE, Position.DUMMY).also { idx ->
+            val targetIdx = PtArrayIndexer(DataType.UBYTE, false, Position.DUMMY).also { idx ->
                 idx.add(PtIdentifier("main.start.particleX",
-                    DataType.arrayFor(BaseDataType.UBYTE),
+                    DataType.arrayFor(BaseDataType.UBYTE, compTarget),
                     Position.DUMMY))
                 idx.add(PtNumber(BaseDataType.UBYTE, 2.0, Position.DUMMY))
             }
             it.add(targetIdx)
         }
-        val value = PtArrayIndexer(DataType.UBYTE, Position.DUMMY)
+        val value = PtArrayIndexer(DataType.UBYTE, false, Position.DUMMY)
         value.add(PtIdentifier("main.start.particleDX",
-            DataType.arrayFor(BaseDataType.UBYTE),
+            DataType.arrayFor(BaseDataType.UBYTE, compTarget),
             Position.DUMMY))
         value.add(PtNumber(BaseDataType.UBYTE, 2.0, Position.DUMMY))
         assign.add(target)
@@ -152,11 +157,11 @@ class TestVmCodeGen: FunSpec({
 // Pattern: @(ptr+offset) = @(ptr+offset) + val   i.e.  ptr[offset] += val
 // Non-zero offsets are used to avoid potential optimization of the address expression.
         val codegen = VmCodeGen(false)
-        val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
+        val program = PtProgram("test", VMTarget())
         val block = PtBlock("main", false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
         val sub = PtSub("start", emptyList(), emptyList(), Position.DUMMY)
-        sub.add(PtVariable("ptr", DataType.pointer(BaseDataType.UBYTE), ZeropageWish.DONTCARE, 0u, false, null, null, Position.DUMMY))
-        sub.add(PtVariable("val", DataType.UBYTE, ZeropageWish.DONTCARE, 0u, false, null, null, Position.DUMMY))
+        sub.add(PtVariable("ptr", DataType.pointer(BaseDataType.UBYTE), false, ZeropageWish.DONTCARE, 0u, false, null, null, Position.DUMMY))
+        sub.add(PtVariable("val", DataType.UBYTE, false, ZeropageWish.DONTCARE, 0u, false, null, null, Position.DUMMY))
 
         fun makeMemByteAssign(op: String, offset: Int): PtAugmentedAssign {
             // Use non-zero offset to avoid optimization
@@ -229,12 +234,13 @@ class TestVmCodeGen: FunSpec({
 //    }
 //}
         val codegen = VmCodeGen(false)
-        val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
+        val program = PtProgram("test", VMTarget())
         val block = PtBlock("main", false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
         val sub = PtSub("start", emptyList(), emptyList(), Position.DUMMY)
         sub.add(PtVariable(
             "f1",
             DataType.FLOAT,
+            false,
             ZeropageWish.DONTCARE,
             0u,
             false,
@@ -301,12 +307,13 @@ class TestVmCodeGen: FunSpec({
 //    }
 //}
         val codegen = VmCodeGen(false)
-        val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
+        val program = PtProgram("test", VMTarget())
         val block = PtBlock("main", false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
         val sub = PtSub("start", emptyList(), emptyList(), Position.DUMMY)
         sub.add(PtVariable(
             "f1",
             DataType.FLOAT,
+            false,
             ZeropageWish.DONTCARE,
             0u,
             false,
@@ -369,12 +376,13 @@ class TestVmCodeGen: FunSpec({
 //    }
 //}
         val codegen = VmCodeGen(false)
-        val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
+        val program = PtProgram("test", VMTarget())
         val block = PtBlock("main", false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
         val sub = PtSub("start", emptyList(), emptyList(), Position.DUMMY)
         sub.add(PtVariable(
             "f1",
             DataType.FLOAT,
+            false,
             ZeropageWish.DONTCARE,
             0u,
             false,
@@ -425,12 +433,13 @@ class TestVmCodeGen: FunSpec({
 //    }
 //}
         val codegen = VmCodeGen(false)
-        val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
+        val program = PtProgram("test", VMTarget())
         val block = PtBlock("main", false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
         val sub = PtSub("start", emptyList(), emptyList(), Position.DUMMY)
         sub.add(PtVariable(
             "sb1",
             DataType.BYTE,
+            false,
             ZeropageWish.DONTCARE,
             0u,
             false,
@@ -497,12 +506,13 @@ class TestVmCodeGen: FunSpec({
 //    }
 //}
         val codegen = VmCodeGen(false)
-        val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
+        val program = PtProgram("test", VMTarget())
         val block = PtBlock("main", false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
         val sub = PtSub("start", emptyList(), emptyList(), Position.DUMMY)
         sub.add(PtVariable(
             "sb1",
             DataType.BYTE,
+            false,
             ZeropageWish.DONTCARE,
             0u,
             false,
@@ -565,12 +575,13 @@ class TestVmCodeGen: FunSpec({
 //    }
 //}
         val codegen = VmCodeGen(false)
-        val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
+        val program = PtProgram("test", VMTarget())
         val block = PtBlock("main", false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
         val sub = PtSub("start", emptyList(), emptyList(), Position.DUMMY)
         sub.add(PtVariable(
             "ub1",
             DataType.BYTE,
+            false,
             ZeropageWish.DONTCARE,
             0u,
             false,
@@ -614,7 +625,7 @@ class TestVmCodeGen: FunSpec({
 //    }
 //}
         val codegen = VmCodeGen(false)
-        val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
+        val program = PtProgram("test", VMTarget())
         val block = PtBlock("main", false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
         val extsub = PtAsmSub("routine", PtAsmSub.Address(null, null, 0x5000u), setOf(CpuRegister.Y), emptyList(), emptyList(), false, Position.DUMMY)
         block.add(extsub)
@@ -639,10 +650,10 @@ class TestVmCodeGen: FunSpec({
 
     test("ir codegen for target 'virtual' produces no prefixed names") {
         val codegen = VmCodeGen(false)
-        val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
+        val program = PtProgram("test", VMTarget())
         val block = PtBlock("main", false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
         val sub = PtSub("start", emptyList(), emptyList(), Position.DUMMY)
-        sub.add(PtVariable("x", DataType.UBYTE, ZeropageWish.DONTCARE, 0u, false, null, null, Position.DUMMY))
+        sub.add(PtVariable("x", DataType.UBYTE, false, ZeropageWish.DONTCARE, 0u, false, null, null, Position.DUMMY))
         block.add(sub)
         program.add(block)
 
@@ -664,4 +675,39 @@ class TestVmCodeGen: FunSpec({
         val irVar = irProg.st.allVariables().single()
         irVar.name shouldBe "main.start.x"
     }
+
+    test("ir codegen for target 'cx16' via newcodegen produces prefixed names") {
+        val codegen = VmCodeGen(false)
+        val program = PtProgram("test", VMTarget())
+        val block = PtBlock("main", false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
+        val sub = PtSub("start", emptyList(), emptyList(), Position.DUMMY)
+        sub.add(PtVariable("x", DataType.UBYTE, false, ZeropageWish.DONTCARE, 0u, false, null, null, Position.DUMMY))
+        block.add(sub)
+        program.add(block)
+
+        val target = Cx16Target()
+        val options = CompilationOptions.builder(target)
+            .output(OutputType.RAW)
+            .zeropage(ZeropageType.DONTUSE)
+            .floats(true)
+            .compilerVersion("99.99")
+            .newCodegen(true)
+            .build()
+        val st = SymbolTableMaker(program, options).make()
+        val errors = ErrorReporterForTests()
+        val result = codegen.generate(program, st, options, errors) as VmAssemblyProgram
+        val irProg = result.irProgram
+
+        // Block label should be prefixed
+        val irBlock = irProg.blocks.first()
+        irBlock.label shouldBe "p8b_main"
+
+        // Subroutine label should be fully scoped and prefixed
+        val irSub = irBlock.children.single() as IRSubroutine
+        irSub.label shouldBe "p8b_main.p8s_start"
+
+        // Variable in IR symbol table should be fully scoped and prefixed
+        val irVar = irProg.st.allVariables().single()
+        irVar.name shouldBe "p8b_main.p8s_start.p8v_x"
+    }    
 })

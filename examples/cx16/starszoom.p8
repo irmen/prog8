@@ -50,8 +50,10 @@ main {
                 ; added a rotation and radius-based angle offset for a tunnel/spiral effect
                 ubyte a = (star * CIRCLE_SKIP) + rotation + (msb(radius[star]) / 2)
                 word r_px = msb(radius[star])
-                word dx = (math.cos8(a) as word * r_px) / 128
-                word dy = (math.sin8(a) as word * r_px) / 128
+
+                ; instead of (slow) /128, we simply shift 7 bits (and take the roundoff error)
+                word dx = (math.cos8(a) as word * r_px) >>7
+                word dy = (math.sin8(a) as word * r_px) >>7
 
                 word sx_w = dx + 160
                 word sy_w = dy + 120

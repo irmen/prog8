@@ -5,11 +5,11 @@ import prog8.code.core.Statusflag
 import prog8.code.core.toHex
 
 /**
- * Inline value class representing a 16-bit memory address (0-$ffff).
+ * Inline value class representing a memory address (up to 32-bit).
  */
 @JvmInline
 value class MemoryAddress(val value: UInt) {
-    init { require(value <= 0xffffu) { "address out of range: $value" } }
+    init { require(value <= 0xffffffffu) { "address out of range: $value" } }
     override fun toString(): String = "$" + value.toString(16).padStart(2, '0')
     fun toHex(): String = "$" + value.toString(16)
     operator fun plus(other: UInt): MemoryAddress = MemoryAddress(value + other)
@@ -34,18 +34,18 @@ value class RegisterNum(val value: Int): Comparable<RegisterNum> {
 }
 
 /*
-
+ 
 Intermediate Representation instructions for the IR Virtual machine.
 --------------------------------------------------------------------
 
 Specs of the virtual machine this will run on:
 Program to execute is not stored in the system memory, it's just a separate list of instructions.
-100K virtual registers, 16 bits wide, can also be used as 8 bits. r0-r99999
+100K virtual registers, can be used as 8, 16 or 32 bits. r0-r99999
     reserved 99000 - 99099 : WORD registers for syscall arguments and response value(s)
     reserved 99100 - 99199 : BYTE registers for syscall arguments and response value(s)
     reseverd 99200 - 99299 : LONG registers for syscall arguments and response value(s)
 100K virtual floating point registers (64 bits double precision)  fr0-fr99999
-65536 bytes of memory. Thus memory pointers (addresses) are limited to 16 bits.
+16 MB of memory (on the virtual target). On other targets, memory size and pointer width are target-specific.
 Value stack, max 128 entries of 1 byte each.
 
 Status flags: Carry, Zero, Negative, Overflow.
@@ -65,6 +65,12 @@ Status bit contract (see CpuType.statusBitsOnMultiByteOps for the rationale):
   - The shift/rotate operations (ASR, LSR, LSL, ROL, ROR) and their memory variants
     set the CARRY flag (the bit shifted out becomes the new carry) for use by
     ROXL/ROXR (rotate through carry). They do NOT set Z or N.
+    
+    Note for M68k backends: M68k has separate C (carry/CCR bit 0) and X (extend/CCR bit 4)
+    bits. On M68k, the X bit serves as the "rotate carry" for ROXL/ROXR, while C is
+    used for comparisons. ROL/ROR on M68k are implemented as "clear X + roxl/roxr"
+    (logical rotate: inject 0 via X=0), while ROXL/ROXR use roxl/roxr directly
+    (rotate through X). CLC/SEC manage both C and X to keep them in sync.
 
   - ALL other instructions (LOAD, LOADM, LOADX, LOADR, LOADI, INC, INCM, DEC, DECM,
     NEG, NEGM, ADD, SUB, MUL, DIV, AND, OR, XOR, INV, BITSET, BITCLR, BITTOG,
@@ -86,7 +92,7 @@ See CpuType.statusBitsOnMultiByteOps for the per-CPU configuration.
 
 Instruction set is mostly a load/store architecture, there are few instructions operating on memory directly.
 
-Value types: integers (.b=byte=8 bits, .w=word=16 bits, .l=long=32 bits) and float (.f=64 bits). Omitting it defaults to b if the instruction requires a type.
+Value types: integers (.b=byte=8 bits, .w=word=16 bits, .l=long=32 bits), float (.f=64 bits), and pointer (.p=target specific pointer width: 2 bytes on 6502, 4 bytes on m68k and virtual). Omitting it defaults to b if the instruction requires a type.
 There is no distinction between signed and unsigned for many instructions. Instead, a different instruction is used if a distinction should be made (for example div and divs).
 Floating point operations are just 'f' typed regular instructions, however there are a few unique fp conversion instructions.
 
@@ -101,17 +107,20 @@ All have type b or w or l or f.
 load        reg1,         value       - load immediate value into register. If you supply a symbol, loads the *address* of the symbol! (variable values are loaded from memory via the loadm instruction)
 loadm       reg1,         address     - load reg1 with value at memory address
 loadi       reg1, reg2,   value       - load reg1 with value in memory indirect, pointed to by reg2 + offsetvalue 0-65535 (often used to read a field from a pointer to a struct, or with offset=0 just straight from the pointer)
-loadx       reg1, reg2,   address     - load reg1 with value at memory address indexed by value in reg2 (0-255, a byte)
+loadx       reg1, reg2,   address     - load reg1 with value at memory address indexed by value in reg2 (a byte 0-255 on 8-bit targets, a word 0-32767 on 32-bit targets)
 loadr       reg1, reg2                - load reg1 with value in register reg2,  "reg1 = reg2"
 loadhr      reg1, slot                - load cpu hardware register from calling convention slot (s0=A, s1=X, s2=Y, s3=AX, s4=AY, s5=XY, s6=FAC1, s7=FAC2) into reg1
 loadhfaczero       fpreg1             - load "cpu hardware register" fac0 into freg1.f
 loadhfacone        fpreg1             - load "cpu hardware register" fac1 into freg1.f
+loadp_inc   reg1,         address     - load reg1 with value in memory indirect via pointer variable at address, then post-increment the pointer variable by sizeof(type) (r1 = *a; a += sizeof(type), uses (a)+ on m68k)
+storep_inc  reg1,         address     - store reg1 to memory indirect via pointer variable at address, then post-increment the pointer variable by sizeof(type) (*a = r1; a += sizeof(type), uses (a)+ on m68k)
 storem      reg1,         address     - store reg1 at memory address
 storei      reg1, reg2,   value       - store reg1 in memory indirect, pointed to by reg2 + offsetvalue 0-65535 (often used to write a field from a pointer to a struct, or with offset=0 just straight to the pointer)
+storeim     value,        address     - store an immediate value (constant) at memory address (the constant goes in the value field, NOT via a register).
 storezi     reg1,         value       - store zero at memory pointed to by reg1 + offsetvalue 0-65535  (just like storei, but a shorthand to store a constant 0)
-storex      reg1, reg2,   address     - store reg1 at memory address, indexed by value in reg2 (0-255, a byte)
+storex      reg1, reg2,   address     - store reg1 at memory address, indexed by value in reg2 (a byte 0-255 on 8-bit targets, a word 0-32767 on 32-bit targets)
 storezm                   address     - store zero at memory address
-storezx     reg1,         address     - store zero at memory address, indexed by value in reg1 (0-255, a byte)
+storezx     reg1,         address     - store zero at memory address, indexed by value in reg1 (a byte 0-255 on 8-bit targets, a word 0-32767 on 32-bit targets)
 storehr     reg1, slot                - store reg1 into cpu hardware register for calling convention slot (s0=A, s1=X, s2=Y, s3=AX, s4=AY, s5=XY, s6=FAC1, s7=FAC2)
 storehfaczero        fpreg1           - store fpreg1.f into "cpu register" fac0
 storehfacone         fpreg1           - store fpreg1.f into "cpu register" fac1
@@ -130,7 +139,10 @@ call   label(argument register list) [: resultreg.type]
                                         If the arguments should be passed in CPU registers, they'll have a @REGISTER postfix.
                                         For example: call $ffd2(r5.b@A)
                                         Always preceded by parameter setup
-callfar             bank,  address      Call a subroutine at the given memory address, in the given RAM/ROM bank (switches both banks at the same time)
+callfar             bank,  address      Call a subroutine at the given memory address, in the given RAM/ROM bank (switches both banks at the same time).
+                                        On the amiga target, this is repurposed for automatic Amiga library LVO calls:
+                                        bank = library number (1=exec,2=dos,3=graphics,4=intuition,...),
+                                        address = negative LVO offset (displayed as signed decimal in the IR text).
 callfarvb   reg1           address      Call a subroutine at the given memory address, in the RAM/ROM bank in reg1.b  (switches both banks at the same time)
 syscall   number (argument register list) [: resultreg.type]
                                       - do a systemcall identified by number, result value(s) are pushed on value stack by the syscall code so
@@ -183,6 +195,8 @@ All have type b or w or l or f. Note: result types are the same as operand types
 
 exts        reg1, reg2                      - reg1 = signed extension of reg2 (byte to word, or word to long)  (note: unlike M68k, exts.b -> word and exts.w -> long.)
 ext         reg1, reg2                      - reg1 = unsigned extension of reg2 (which in practice just means clearing the MSB / MSW) (note: unlike M68k, ext.b -> word and ext.w -> long. )
+extls       reg1, reg2                      - reg1 = signed extension of reg2 from byte directly to long (single step, no intermediate word register)
+extl        reg1, reg2                      - reg1 = unsigned extension of reg2 from byte directly to long (single step, no intermediate word register)
 inc         reg1                            - reg1 = reg1+1
 incm                           address      - memory at address += 1
 dec         reg1                            - reg1 = reg1-1
@@ -213,10 +227,10 @@ modr        reg1, reg2                      - remainder (modulo) of unsigned div
 mod         reg1,              value        - remainder (modulo) of unsigned division reg1 %= value  note: division by zero yields max signed int $ff/$ffff
 modsr       reg1, reg2                      - remainder (modulo) of signed division reg1 %= reg2  note: division by zero yields max signed long
 mods       reg1,              value        - remainder (modulo) of signed division reg1 %= value  note: division by zero yields max signed long
-divmodr     reg1, reg2                      - unsigned division reg1/reg2, storing division and remainder on value stack (so need to be POPped off)
-divmod      reg1,              value        - unsigned division reg1/value, storing division and remainder on value stack (so need to be POPped off)
-sdivmodr    reg1, reg2                      - signed division reg1/reg2, storing division and remainder on value stack (so need to be POPped off)
-sdivmod     reg1,              value        - signed division reg1/value, storing division and remainder on value stack (so need to be POPped off)
+divmodr     reg1, reg2                      - unsigned division reg1/reg2, storing quotient in reg1 and remainder in reg2
+divmod      reg1, reg2, value               - unsigned division reg1/value, storing quotient in reg1 and remainder in reg2
+sdivmodr    reg1, reg2                      - signed division reg1/reg2, storing quotient in reg1 and remainder in reg2
+sdivmod     reg1, reg2, value               - signed division reg1/value, storing quotient in reg1 and remainder in reg2
 sqrt        reg1, reg2                      - reg1 is the square root of reg2 (reg2 can be l.1, .w or .b, result type in reg1 is .w or .b)  you can also use it with floating point types, fpreg1 and fpreg2 (result is also .f)
 square      reg1, reg2                      - reg1 is the square of reg2 (reg2 can be .w or .b, result type in reg1 is always .b)  you can also use it with floating point types, fpreg1 and fpreg2 (result is also .f)
 sgn         reg1, reg2                      - reg1.b is the sign of reg2 (or fpreg1, if sgn.f) (0.b, 1.b or -1.b)
@@ -247,20 +261,23 @@ lsln        reg1, reg2                       - reg1 = multi-shift reg1 left by r
 asrnm       reg1,        address             - multi-shift memory right by reg1 bits (signed) + Carry is undefined
 lsrnm       reg1,        address             - multi-shift memory right by reg1 bits + Carry is undefined
 lslnm       reg1,        address             - multi-shift memory left by reg1 bits + Carry is undefined
+asri        reg1,            value          - reg1 = multi-shift reg1 right by value bits (signed, immediate count) + Carry is undefined
+lsri        reg1,            value          - reg1 = multi-shift reg1 right by value bits (immediate count) + Carry is undefined
+lsli        reg1,            value          - reg1 = multi-shift reg1 left by value bits (immediate count) + Carry is undefined
 asr         reg1                             - shift reg1 right by 1 bits (signed) + set Carry to shifted bit
 lsr         reg1                             - shift reg1 right by 1 bits + set Carry to shifted bit
 lsl         reg1                             - shift reg1 left by 1 bits + set Carry to shifted bit
 lsrm                     address             - shift memory right by 1 bits + set Carry to shifted bit
 asrm                     address             - shift memory right by 1 bits (signed) + set Carry to shifted bit
 lslm                     address             - shift memory left by 1 bits + set Carry to shifted bit
-ror         reg1                             - rotate reg1 right by 1 bits, not using carry  + set Carry to shifted bit
-roxr        reg1                             - rotate reg1 right by 1 bits, using carry  + set Carry to shifted bit  (maps to 6502 CPU instruction ror)
-rol         reg1                             - rotate reg1 left by 1 bits, not using carry  + set Carry to shifted bit
-roxl        reg1                             - rotate reg1 left by 1 bits, using carry,  + set Carry to shifted bit  (maps to 6502 CPU instruction rol)
-rorm                     address             - rotate memory right by 1 bits, not using carry  + set Carry to shifted bit
-roxrm                    address             - rotate memory right by 1 bits, using carry  + set Carry to shifted bit    (maps to 6502 CPU instruction ror)
-rolm                     address             - rotate memory left by 1 bits, not using carry  + set Carry to shifted bit
-roxlm                    address             - rotate memory left by 1 bits, using carry,  + set Carry to shifted bit    (maps to 6502 CPU instruction rol)
+ror         reg1                             - rotate reg1 right by 1 bits, not using carry (logical rotate, inject 0 into MSB) + set Carry to shifted bit
+roxr        reg1                             - rotate reg1 right by 1 bits, using carry (inject carry into MSB) + set Carry to shifted bit  (maps to 6502 ror; M68k uses X as rotate-carry)
+rol         reg1                             - rotate reg1 left by 1 bits, not using carry (logical rotate, inject 0 into LSB) + set Carry to shifted bit
+roxl        reg1                             - rotate reg1 left by 1 bits, using carry (inject carry into LSB) + set Carry to shifted bit  (maps to 6502 rol; M68k uses X as rotate-carry)
+rorm                     address             - rotate memory right by 1 bits, not using carry (logical rotate) + set Carry to shifted bit
+roxrm                    address             - rotate memory right by 1 bits, using carry + set Carry to shifted bit    (maps to 6502 ror; M68k uses X as rotate-carry)
+rolm                     address             - rotate memory left by 1 bits, not using carry (logical rotate) + set Carry to shifted bit
+roxlm                    address             - rotate memory left by 1 bits, using carry + set Carry to shifted bit    (maps to 6502 rol; M68k uses X as rotate-carry)
 
 SINGLE-BIT MANIPULATIONS
 -------------------------
@@ -335,11 +352,14 @@ enum class Opcode {
     STOREX,
     STOREZM,
     STOREZI,
+    STOREIM,
     STOREZX,
     STOREHR,
     STOREI,
     STOREHFACZERO,
     STOREHFACONE,
+    LOADP_INC,
+    STOREP_INC,
 
     JUMP,
     JUMPI,
@@ -414,6 +434,8 @@ enum class Opcode {
     CMPI,
     EXT,
     EXTS,
+    EXTL,
+    EXTLS,
 
     ANDR,
     AND,
@@ -432,6 +454,9 @@ enum class Opcode {
     LSRNM,
     LSLN,
     LSLNM,
+    ASRI,
+    LSRI,
+    LSLI,
     ASR,
     ASRM,
     LSR,
@@ -482,6 +507,16 @@ enum class Opcode {
     POP,
     PUSHST,
     POPST,
+    // Byte/word extraction from larger registers.
+    // IMPORTANT: the destination register (reg1) has a DIFFERENT data type
+    // than the source register (reg2). reg1 is always BYTE or WORD, while
+    // reg2 is WORD or LONG (determined by the instruction's type field).
+    //   LSIGB: least significant byte  (reg1=BYTE, reg2=type from insn)
+    //   LSIGW: least significant word  (reg1=WORD, reg2=LONG)
+    //   MSIGB: most significant byte   (reg1=BYTE, reg2=type from insn)
+    //   MSIGW: most significant word   (reg1=WORD, reg2=LONG)
+    //   BSIGB: "bits 16-23" byte of long (reg1=BYTE, reg2=LONG)
+    //   MIDB:  "bits 8-15" byte of long (reg1=BYTE, reg2=LONG)
     LSIGB,
     LSIGW,
     MSIGB,
@@ -565,6 +600,24 @@ val OpcodesThatSetStatusbits = setOf(
     Opcode.SGN        // sets Z, N, C based on sign of operand
 )
 
+// On m68k (statusBitsOnMultiByteOps=true) many more opcodes set Z/N for free
+// (MOVE, ADD, SUB, AND, OR, XOR, etc. set Z/N based on the full value). This
+// set is used by the IR generator and peephole to skip redundant CMPI #0
+// before a BSTEQ/BSTNE on m68k. On 6502 this set is NOT used.
+val OpcodesThatSetZeroFlagOnM68k = OpcodesThatSetStatusbits + setOf(
+    Opcode.LOAD, Opcode.LOADM, Opcode.LOADX, Opcode.LOADI, Opcode.LOADR,
+    Opcode.INC, Opcode.DEC, Opcode.NEG,
+    Opcode.ADDR, Opcode.ADD, Opcode.SUBR, Opcode.SUB,
+    Opcode.ANDR, Opcode.AND, Opcode.ORR, Opcode.OR, Opcode.XORR, Opcode.XOR,
+    Opcode.INV, Opcode.EXT, Opcode.EXTS, Opcode.EXTL, Opcode.EXTLS,
+    Opcode.MULR, Opcode.MUL, Opcode.MULSR, Opcode.MULS,
+    Opcode.DIVR, Opcode.DIV, Opcode.DIVSR, Opcode.DIVS,
+    Opcode.ASR, Opcode.LSR, Opcode.LSL,
+    Opcode.ASRN, Opcode.LSRN, Opcode.LSLN,
+    Opcode.ASRI, Opcode.LSRI, Opcode.LSLI,
+    Opcode.LSIGB, Opcode.LSIGW, Opcode.MSIGB, Opcode.MSIGW, Opcode.BSIGB, Opcode.MIDB, Opcode.CONCAT
+)
+
 val OpcodesThatDependOnCarry = setOf(
     Opcode.BSTCC,
     Opcode.BSTCS,
@@ -592,10 +645,6 @@ val OpcodesWithSideEffects = OpcodesThatBranch + setOf(
     Opcode.POP,
     Opcode.PUSHST,
     Opcode.POPST,
-    Opcode.DIVMOD,
-    Opcode.DIVMODR,
-    Opcode.SDIVMOD,
-    Opcode.SDIVMODR,
     Opcode.BREAKPOINT
 )
 
@@ -604,7 +653,8 @@ enum class IRDataType {
     BYTE,
     WORD,
     FLOAT,
-    LONG        // 32 bits integer
+    LONG,        // 32 bits integer
+    POINTER      // pointer (size depends on target)
 }
 
 enum class OperandDirection {
@@ -669,8 +719,10 @@ data class InstructionFormat(val datatype: IRDataType?,
                     result[null] = InstructionFormat(null, reg1, reg2, reg3, fpreg1, fpreg2, address, immediate, funcCall, sysCall)
                 if('B' in typespec)
                     result[IRDataType.BYTE] = InstructionFormat(IRDataType.BYTE, reg1, reg2, reg3, fpreg1, fpreg2, address, immediate, funcCall, sysCall)
-                if('W' in typespec)
+                if('W' in typespec) {
                     result[IRDataType.WORD] = InstructionFormat(IRDataType.WORD, reg1, reg2, reg3, fpreg1, fpreg2, address, immediate, funcCall, sysCall)
+                    result[IRDataType.POINTER] = InstructionFormat(IRDataType.POINTER, reg1, reg2, reg3, fpreg1, fpreg2, address, immediate, funcCall, sysCall)
+                }
                 if('L' in typespec)
                     result[IRDataType.LONG] = InstructionFormat(IRDataType.LONG, reg1, reg2, reg3, fpreg1, fpreg2, address, immediate, funcCall, sysCall)
                 if('F' in typespec)
@@ -697,19 +749,22 @@ val instructionFormats = mutableMapOf(
     Opcode.LOADM      to InstructionFormat.from("BWL,>r1,<a     | F,>fr1,<a"),
     Opcode.LOADX      to InstructionFormat.from("BWL,>r1,<r2,<a | F,>fr1,<r1,<a"),
     Opcode.LOADR      to InstructionFormat.from("BWL,>r1,<r2    | F,>fr1,<fr2"),
-    Opcode.LOADHR     to InstructionFormat.from("BWL,>r1,<i | F,>fr1,<i"),
-    Opcode.LOADI  to InstructionFormat.from("BWL,>r1,<r2,<i | F,>fr1,<r1,<i"),
+    Opcode.LOADHR     to InstructionFormat.from("BWL,>r1,<i     | F,>fr1,<i"),
+    Opcode.LOADI  to InstructionFormat.from("BWL,>r1,<r2,<i     | F,>fr1,<r1,<i"),
     Opcode.LOADHFACZERO to InstructionFormat.from("F,>fr1"),
     Opcode.LOADHFACONE  to InstructionFormat.from("F,>fr1"),
     Opcode.STOREM     to InstructionFormat.from("BWL,<r1,>a     | F,<fr1,>a"),
     Opcode.STOREX     to InstructionFormat.from("BWL,<r1,<r2,>a | F,<fr1,<r1,>a"),
     Opcode.STOREZM    to InstructionFormat.from("BWL,>a         | F,>a"),
     Opcode.STOREZI    to InstructionFormat.from("BWL,<r1,<i     | F,<r1,<i"),
+    Opcode.STOREIM    to InstructionFormat.from("BWL,<i,>a      | F,<i,>a"),
     Opcode.STOREZX    to InstructionFormat.from("BWL,<r1,>a     | F,<r1,>a"),
-    Opcode.STOREHR    to InstructionFormat.from("BWL,<r1,<i | F,<fr1,<i"),
-    Opcode.STOREI to InstructionFormat.from("BWL,<r1,<r2,<i | F,<fr1,<r1,<i"),
+    Opcode.STOREHR    to InstructionFormat.from("BWL,<r1,<i     | F,<fr1,<i"),
+    Opcode.STOREI to InstructionFormat.from("BWL,<r1,<r2,<i     | F,<fr1,<r1,<i"),
     Opcode.STOREHFACZERO  to InstructionFormat.from("F,<fr1"),
     Opcode.STOREHFACONE  to InstructionFormat.from("F,<fr1"),
+    Opcode.LOADP_INC  to InstructionFormat.from("BWL,>r1,<>a"),
+    Opcode.STOREP_INC to InstructionFormat.from("BWL,<r1,<>a"),
     Opcode.JUMP       to InstructionFormat.from("N,<a"),
     Opcode.JUMPI      to InstructionFormat.from("N,<r1"),
     Opcode.CALLI      to InstructionFormat.from("N,<r1"),
@@ -753,34 +808,39 @@ val instructionFormats = mutableMapOf(
     Opcode.SUBR       to InstructionFormat.from("BWL,<>r1,<r2  | F,<>fr1,<fr2"),
     Opcode.SUB        to InstructionFormat.from("BWL,<>r1,<i   | F,<>fr1,<i"),
     Opcode.SUBM       to InstructionFormat.from("BWL,<r1,<>a   | F,<fr1,<>a"),
+    Opcode.MULR       to InstructionFormat.from("BWL,<>r1,<r2   | F,<>fr1,<fr2"),
+    Opcode.MUL        to InstructionFormat.from("BWL,<>r1,<i    | F,<>fr1,<i"),
+    Opcode.MULM       to InstructionFormat.from("BWL,<r1,<>a    | F,<fr1,<>a"),
     Opcode.SUBIM      to InstructionFormat.from("BWL,<i,<>a    | F,<i,<>a"),
-    Opcode.MULR       to InstructionFormat.from("BW,<>r1,<r2  | F,<>fr1,<fr2"),
-    Opcode.MUL        to InstructionFormat.from("BW,<>r1,<i   | F,<>fr1,<i"),
-    Opcode.MULM       to InstructionFormat.from("BW,<r1,<>a   | F,<fr1,<>a"),
+    Opcode.MULR       to InstructionFormat.from("BWL,<>r1,<r2  | F,<>fr1,<fr2"),
+    Opcode.MUL        to InstructionFormat.from("BWL,<>r1,<i   | F,<>fr1,<i"),
+    Opcode.MULM       to InstructionFormat.from("BWL,<r1,<>a   | F,<fr1,<>a"),
     Opcode.MULSR      to InstructionFormat.from("BWL,<>r1,<r2  | F,<>fr1,<fr2"),
     Opcode.MULS       to InstructionFormat.from("BWL,<>r1,<i   | F,<>fr1,<i"),
     Opcode.MULSM      to InstructionFormat.from("BWL,<r1,<>a   | F,<fr1,<>a"),
-    Opcode.DIVR       to InstructionFormat.from("BW,<>r1,<r2  | F,<>fr1,<fr2"),
-    Opcode.DIV        to InstructionFormat.from("BW,<>r1,<i   | F,<>fr1,<i"),
-    Opcode.DIVM       to InstructionFormat.from("BW,<r1,<>a   | F,<fr1,<>a"),
+    Opcode.DIVR       to InstructionFormat.from("BWL,<>r1,<r2   | F,<>fr1,<fr2"),
+    Opcode.DIV        to InstructionFormat.from("BWL,<>r1,<i    | F,<>fr1,<i"),
+    Opcode.DIVM       to InstructionFormat.from("BWL,<r1,<>a    | F,<fr1,<>a"),
     Opcode.DIVSR      to InstructionFormat.from("BWL,<>r1,<r2  | F,<>fr1,<fr2"),
     Opcode.DIVS       to InstructionFormat.from("BWL,<>r1,<i   | F,<>fr1,<i"),
     Opcode.DIVSM      to InstructionFormat.from("BWL,<r1,<>a   | F,<fr1,<>a"),
     Opcode.SQRT       to InstructionFormat.from("BWL,>r1,<r2   | F,>fr1,<fr2"),
     Opcode.SQUARE     to InstructionFormat.from("BWL,>r1,<r2   | F,>fr1,<fr2"),
     Opcode.SGN        to InstructionFormat.from("BWL,>r1,<r2   | F,>r1,<fr1"),
-    Opcode.MODR       to InstructionFormat.from("BW,<>r1,<r2"),
-    Opcode.MOD        to InstructionFormat.from("BW,<>r1,<i"),
+    Opcode.MODR       to InstructionFormat.from("BWL,<>r1,<r2"),
+    Opcode.MOD        to InstructionFormat.from("BWL,<>r1,<i"),
     Opcode.MODSR      to InstructionFormat.from("BWL,<>r1,<r2"),
     Opcode.MODS       to InstructionFormat.from("BWL,<>r1,<i"),
-    Opcode.DIVMODR    to InstructionFormat.from("BW,<>r1,<r2"),
-    Opcode.DIVMOD     to InstructionFormat.from("BW,<>r1,<i"),
-    Opcode.SDIVMODR   to InstructionFormat.from("BW,<>r1,<r2"),
-    Opcode.SDIVMOD    to InstructionFormat.from("BW,<>r1,<i"),
+    Opcode.DIVMODR    to InstructionFormat.from("BWL,<>r1,<>r2"),
+    Opcode.DIVMOD     to InstructionFormat.from("BWL,<>r1,>r2,<i"),
+    Opcode.SDIVMODR   to InstructionFormat.from("BWL,<>r1,<>r2"),
+    Opcode.SDIVMOD    to InstructionFormat.from("BWL,<>r1,>r2,<i"),
     Opcode.CMP        to InstructionFormat.from("BWL,<r1,<r2"),
     Opcode.CMPI       to InstructionFormat.from("BWL,<r1,<i"),
     Opcode.EXT        to InstructionFormat.from("BWL,>r1,<r2"),
     Opcode.EXTS       to InstructionFormat.from("BWL,>r1,<r2"),
+    Opcode.EXTL       to InstructionFormat.from("B,>r1,<r2"),
+    Opcode.EXTLS      to InstructionFormat.from("B,>r1,<r2"),
     Opcode.ANDR       to InstructionFormat.from("BWL,<>r1,<r2"),
     Opcode.AND        to InstructionFormat.from("BWL,<>r1,<i"),
     Opcode.ANDM       to InstructionFormat.from("BWL,<r1,<>a"),
@@ -798,6 +858,9 @@ val instructionFormats = mutableMapOf(
     Opcode.LSRNM      to InstructionFormat.from("BWL,<r1,<>a"),
     Opcode.LSLN       to InstructionFormat.from("BWL,<>r1,<r2"),
     Opcode.LSLNM      to InstructionFormat.from("BWL,<r1,<>a"),
+    Opcode.ASRI       to InstructionFormat.from("BWL,<>r1,<i"),
+    Opcode.LSRI       to InstructionFormat.from("BWL,<>r1,<i"),
+    Opcode.LSLI       to InstructionFormat.from("BWL,<>r1,<i"),
     Opcode.ASR        to InstructionFormat.from("BWL,<>r1"),
     Opcode.ASRM       to InstructionFormat.from("BWL,<>a"),
     Opcode.LSR        to InstructionFormat.from("BWL,<>r1"),
@@ -886,12 +949,13 @@ data class IRInstruction(
     val fpReg2: RegisterNum?=null,      // 0-99999
     val immediate: Int?=null,   // 0-$ff or $ffff or $ffffffff
     val immediateFp: Double?=null,
-    val address: MemoryAddress? = null,    // 0-$ffff
+    val address: MemoryAddress? = null,    // 0-$ffffff (or $ffffffff)
     val labelSymbol: String?=null,          // symbolic label name as alternative to address (so only for Branch/jump/call Instructions!)
     private val symbolOffset: Int? = null,     // offset to add on labelSymbol (used to index into an array variable)
     var branchTarget: IRCodeChunkBase? = null,    // Will be linked after loading in IRProgram.linkChunks()! This is the chunk that the branch labelSymbol points to.
     val fcallArgs: FunctionCallArgs? = null       // will be set for the CALL and SYSCALL instructions.
 ) {
+    var extSubName: String? = null      // optional external subroutine name (for asm comments mainly). NOT part of serialization.
     // reg1 and fpreg1 can be IN/OUT/INOUT (all others are readonly INPUT)
     // This knowledge is useful in IL assembly optimizers to see how registers are used.
     val reg1direction: OperandDirection
@@ -958,7 +1022,7 @@ data class IRInstruction(
                 when (type) {
                     IRDataType.BYTE -> require(immediate in -128..255) { "immediate value out of range for byte: $immediate" }
                     IRDataType.WORD -> require(immediate in -32768..65535) { "immediate value out of range for word: $immediate" }
-                    IRDataType.LONG -> require(immediate in -2147483648..2147483647) { "immediate value out of range for long: $immediate" }
+                    IRDataType.LONG, IRDataType.POINTER -> require(immediate in -2147483648..2147483647) { "immediate value out of range for long: $immediate" }
                     IRDataType.FLOAT, null -> {}
                 }
             }
@@ -1002,46 +1066,58 @@ data class IRInstruction(
         readFpRegsCounts: MutableMap<RegisterNum, Int>,
         writeFpRegsCounts: MutableMap<RegisterNum, Int>,
         regsTypes: MutableMap<RegisterNum, IRDataType>,
-        chunk: IRCodeChunk?
+        chunk: IRCodeChunk?,
+        indexRegType: IRDataType = IRDataType.BYTE
     ) {
         fun incReadReg(reg: RegisterNum) = readRegsCounts.merge(reg, 1, Int::plus)
         fun incWriteReg(reg: RegisterNum) = writeRegsCounts.merge(reg, 1, Int::plus)
         fun incReadFp(reg: RegisterNum) = readFpRegsCounts.merge(reg, 1, Int::plus)
         fun incWriteFp(reg: RegisterNum) = writeFpRegsCounts.merge(reg, 1, Int::plus)
+
+        // For LOADX/STOREX/STOREZX the width of the index register is not encoded in the
+        // instruction itself; it is inferred from the target's pointer size (indexRegType).
+        // IR generation now guarantees the index register has the canonical width
+        // (see IMemSizer.indexRegType and IRCodeGen.canonicalizeIndexReg), so the
+        // inference is correct by construction and no guessing suppression is needed.
         fun setRegType(reg: RegisterNum, type: IRDataType) {
             val existingType = regsTypes[reg]
-            if (existingType != null && existingType != type)
-                throw IllegalArgumentException("register $reg given multiple types! $existingType and $type in $chunk")
-            else
+            if (existingType == null) {
                 regsTypes[reg] = type
+            } else if (existingType != type) {
+                // POINTER is compatible with WORD or LONG (size depends on target)
+                val compatible = (existingType==IRDataType.POINTER && type in setOf(IRDataType.WORD, IRDataType.LONG)) ||
+                        (type==IRDataType.POINTER && existingType in setOf(IRDataType.WORD, IRDataType.LONG))
+                if(!compatible)
+                    throw IllegalArgumentException("register $reg given multiple types! $existingType and $type while processing $this in $chunk")
+            }
         }
 
         when (this.reg1direction) {
             OperandDirection.UNUSED -> {}
             OperandDirection.READ -> {
                 incReadReg(RegisterNum(this.reg1!!))
-                determineReg1Type()?.let { setRegType(RegisterNum(this.reg1), it) }
+                determineReg1Type(indexRegType)?.let { setRegType(RegisterNum(this.reg1), it) }
             }
             OperandDirection.WRITE -> {
                 incWriteReg(RegisterNum(this.reg1!!))
-                determineReg1Type()?.let { setRegType(RegisterNum(this.reg1), it) }
+                determineReg1Type(indexRegType)?.let { setRegType(RegisterNum(this.reg1), it) }
             }
             OperandDirection.READWRITE -> {
                 incReadReg(RegisterNum(this.reg1!!))
                 incWriteReg(RegisterNum(this.reg1))
-                determineReg1Type()?.let { setRegType(RegisterNum(this.reg1), it) }
+                determineReg1Type(indexRegType)?.let { setRegType(RegisterNum(this.reg1), it) }
             }
         }
         when (this.reg2direction) {
             OperandDirection.UNUSED -> {}
             OperandDirection.READ -> {
                 incReadReg(RegisterNum(this.reg2!!))
-                determineReg2Type()?.let { setRegType(RegisterNum(this.reg2), it) }
+                determineReg2Type(indexRegType)?.let { setRegType(RegisterNum(this.reg2), it) }
             }
             OperandDirection.READWRITE -> {
                 incReadReg(RegisterNum(this.reg2!!))
                 incWriteReg(RegisterNum(this.reg2))
-                determineReg2Type()?.let { setRegType(RegisterNum(this.reg2), it) }
+                determineReg2Type(indexRegType)?.let { setRegType(RegisterNum(this.reg2), it) }
             }
             else -> throw IllegalArgumentException("reg2 can only be read or readwrite")
         }
@@ -1086,27 +1162,30 @@ data class IRInstruction(
         }
     }
 
-    private fun determineReg1Type(): IRDataType? {
+    private fun determineReg1Type(indexRegType: IRDataType): IRDataType? {
         if(type==IRDataType.FLOAT) {
-            // some float instructions have an integer (byte or word) register as well in reg1
+            // some float instructions have an integer (byte, word, or pointer) register as well in reg1
             return when (opcode) {
                 Opcode.FFROMUB,
                 Opcode.FFROMSB,
                 Opcode.FTOUB,
                 Opcode.FTOSB,
                 Opcode.FCOMP,
+                Opcode.SGN -> IRDataType.BYTE
                 Opcode.LOADX,
                 Opcode.STOREX,
-                Opcode.STOREZX,
-                Opcode.SGN -> IRDataType.BYTE
+                Opcode.STOREZX -> indexRegType
                 Opcode.FFROMSL, Opcode.FTOSL -> IRDataType.LONG
+                // LOADI/STOREI with float type: reg1 holds the memory address (pointer)
+                Opcode.LOADI, Opcode.STOREI -> IRDataType.POINTER
                 else -> IRDataType.WORD
             }
         }
         if(type==IRDataType.WORD) {
             // some word instructions have byte reg1
             when (opcode) {
-                Opcode.SGN, Opcode.STOREZX, Opcode.SQRT -> return IRDataType.BYTE
+                Opcode.SGN, Opcode.SQRT -> return IRDataType.BYTE
+                Opcode.STOREZX -> return indexRegType
                 Opcode.EXT, Opcode.EXTS, Opcode.CONCAT -> return IRDataType.LONG
                 else -> {}
             }
@@ -1117,12 +1196,18 @@ data class IRInstruction(
             if(opcode==Opcode.SQRT)
                 return IRDataType.WORD
             if(opcode==Opcode.STOREZX)
-                return IRDataType.BYTE
+                return indexRegType
         }
-        if(opcode in setOf(Opcode.JUMPI, Opcode.CALLI, Opcode.STOREZI, Opcode.LSIGW, Opcode.MSIGW))
+        if(type==IRDataType.BYTE && opcode==Opcode.STOREZX)
+            return indexRegType
+        if(opcode in setOf(Opcode.JUMPI, Opcode.CALLI, Opcode.STOREZI))
+            return IRDataType.POINTER
+        if(opcode in setOf(Opcode.LSIGW, Opcode.MSIGW))
             return IRDataType.WORD
         if(opcode==Opcode.EXT || opcode==Opcode.EXTS)
             return if (type == IRDataType.BYTE) IRDataType.WORD else null
+        if(opcode==Opcode.EXTL || opcode==Opcode.EXTLS)
+            return IRDataType.LONG
         if(opcode==Opcode.CONCAT)
             return if (type == IRDataType.BYTE) IRDataType.WORD else null
         if(opcode in setOf(Opcode.ASRNM, Opcode.LSRNM, Opcode.LSLNM, Opcode.SQRT, Opcode.LSIGB, Opcode.MSIGB, Opcode.BSIGB, Opcode.MIDB))
@@ -1130,11 +1215,11 @@ data class IRInstruction(
         return this.type
     }
 
-    private fun determineReg2Type(): IRDataType? {
+    private fun determineReg2Type(indexRegType: IRDataType): IRDataType? {
         if(opcode==Opcode.LOADX || opcode==Opcode.STOREX)
-            return IRDataType.BYTE
+            return indexRegType
         if(opcode==Opcode.LOADI || opcode==Opcode.STOREI)
-            return IRDataType.WORD
+            return IRDataType.POINTER
         if(opcode==Opcode.ASRN || opcode==Opcode.LSRN || opcode==Opcode.LSLN)
             return IRDataType.BYTE
         return this.type
@@ -1152,6 +1237,7 @@ data class IRInstruction(
             IRDataType.WORD -> append(".w ")
             IRDataType.LONG -> append(".l ")
             IRDataType.FLOAT -> append(".f ")
+            IRDataType.POINTER -> append(".p ")
             else -> append(" ")
         }
 
@@ -1162,7 +1248,13 @@ data class IRInstruction(
                     if (immediate != null) {
                         append("#${immediate.toHex()},")
                     }
-                    address?.let { append(it.toHex()) }
+                    address?.let {
+                        if (it.value > 0x7fffffffu) {
+                            append(it.value.toInt().toString())     // negative decimal for Amiga LVO
+                        } else {
+                            append(it.toHex())
+                        }
+                    }
                 }
                 else -> {
                     if (labelSymbol != null) {
@@ -1190,6 +1282,7 @@ data class IRInstruction(
                     IRDataType.WORD -> append("${location}r${it.reg.registerNum.value}.w$cpuReg,")
                     IRDataType.LONG -> append("${location}r${it.reg.registerNum.value}.l$cpuReg,")
                     IRDataType.FLOAT -> append("${location}fr${it.reg.registerNum.value}.f$cpuReg,")
+                    IRDataType.POINTER -> append("${location}r${it.reg.registerNum.value}.p$cpuReg,")
                 }
             }
             if(last() == ',') {
@@ -1212,6 +1305,7 @@ data class IRInstruction(
                             IRDataType.WORD -> append("r${returnspec.registerNum.value}.w")
                             IRDataType.LONG -> append("r${returnspec.registerNum.value}.l")
                             IRDataType.FLOAT -> append("fr${returnspec.registerNum.value}.f")
+                            IRDataType.POINTER -> append("r${returnspec.registerNum.value}.p")
                         }
                     } else {
                         when (returnspec.dt) {
@@ -1219,6 +1313,7 @@ data class IRInstruction(
                             IRDataType.WORD -> append("r${returnspec.registerNum.value}.w@$cpuReg")
                             IRDataType.LONG -> append("r${returnspec.registerNum.value}.l@$cpuReg")
                             IRDataType.FLOAT -> append("fr${returnspec.registerNum.value}.f@$cpuReg")
+                            IRDataType.POINTER -> append("r${returnspec.registerNum.value}.p@$cpuReg")
                         }
                     }
                 }
@@ -1273,5 +1368,4 @@ data class IRInstruction(
             setLength(length - 1)
     }.trimEnd()
 }
-
 

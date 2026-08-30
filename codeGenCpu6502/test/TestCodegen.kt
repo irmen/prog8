@@ -12,10 +12,9 @@ import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.code.source.SourceCode
 import prog8.code.target.C64Target
+import prog8.code.target.VMTarget
 import prog8.codegen.cpu6502.AsmGen6502
 import prog8.codegen.cpu6502.VariableAllocator
-import prog8tests.helpers.DummyMemsizer
-import prog8tests.helpers.DummyStringEncoder
 import prog8tests.helpers.ErrorReporterForTests
 import java.nio.file.Files
 import kotlin.io.path.Path
@@ -46,13 +45,15 @@ class TestCodegen: FunSpec({
 //        xx += cx16.r0
 //    }
 //}
-        val codegen = AsmGen6502(prefixSymbols = false, 0)
-        val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
+        val compTarget = C64Target()
+        val codegen = AsmGen6502(0)
+        val program = PtProgram("test", VMTarget())
         val block = PtBlock("main",false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
         val sub = PtSub("start", emptyList(), emptyList(), Position.DUMMY)
         sub.add(PtVariable(
             "pi",
             DataType.UBYTE,
+            false,
             ZeropageWish.DONTCARE,
             0u,
             false,
@@ -62,7 +63,8 @@ class TestCodegen: FunSpec({
         ))
         sub.add(PtVariable(
             "particleX",
-            DataType.arrayFor(BaseDataType.UBYTE),
+            DataType.arrayFor(BaseDataType.UBYTE, compTarget),
+            false,
             ZeropageWish.DONTCARE,
             0u,
             false,
@@ -72,7 +74,8 @@ class TestCodegen: FunSpec({
         ))
         sub.add(PtVariable(
             "particleDX",
-            DataType.arrayFor(BaseDataType.UBYTE),
+            DataType.arrayFor(BaseDataType.UBYTE, compTarget),
+            false,
             ZeropageWish.DONTCARE,
             0u,
             false,
@@ -83,6 +86,7 @@ class TestCodegen: FunSpec({
         sub.add(PtVariable(
             "xx",
             DataType.WORD,
+            false,
             ZeropageWish.DONTCARE,
             0u,
             false,
@@ -93,14 +97,14 @@ class TestCodegen: FunSpec({
 
         val assign = PtAugmentedAssign("+=", Position.DUMMY)
         val target = PtAssignTarget(false, Position.DUMMY).also {
-            val targetIdx = PtArrayIndexer(DataType.UBYTE, Position.DUMMY).also { idx ->
-                idx.add(PtIdentifier("main.start.particleX", DataType.arrayFor(BaseDataType.UBYTE), Position.DUMMY))
+            val targetIdx = PtArrayIndexer(DataType.UBYTE, false, Position.DUMMY).also { idx ->
+                idx.add(PtIdentifier("main.start.particleX", DataType.arrayFor(BaseDataType.UBYTE, compTarget), Position.DUMMY))
                 idx.add(PtNumber(BaseDataType.UBYTE, 2.0, Position.DUMMY))
             }
             it.add(targetIdx)
         }
-        val value = PtArrayIndexer(DataType.UBYTE, Position.DUMMY)
-        value.add(PtIdentifier("main.start.particleDX", DataType.arrayFor(BaseDataType.UBYTE), Position.DUMMY))
+        val value = PtArrayIndexer(DataType.UBYTE, false, Position.DUMMY)
+        value.add(PtIdentifier("main.start.particleDX", DataType.arrayFor(BaseDataType.UBYTE, compTarget), Position.DUMMY))
         value.add(PtNumber(BaseDataType.UBYTE, 2.0, Position.DUMMY))
         assign.add(target)
         assign.add(value)
@@ -166,7 +170,7 @@ class TestCodegen: FunSpec({
     }
 
     test("memory mapped zp var is correctly considered to be zp var") {
-        val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
+        val program = PtProgram("test", VMTarget())
         val st = SymbolTable(program)
         st.add(StMemVar("zpmemvar", DataType.WORD, 0x20u, null, null))
         st.add(StMemVar("normalmemvar", DataType.WORD, 0x9000u, null, null))

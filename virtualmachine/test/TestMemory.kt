@@ -55,6 +55,16 @@ class TestMemory: FunSpec({
         mem.getSL(1000u) shouldBe 0
     }
 
+    test("unsigned long access") {
+        val mem = Memory()
+        mem.setUL(1000u, 123456789u)
+        mem.getUL(1000u) shouldBe 123456789u
+        mem.setUL(1000u, 0xFF00FF00u)
+        mem.getUL(1000u) shouldBe 0xFF00FF00u
+        mem.setUL(1000u, 0u)
+        mem.getUL(1000u) shouldBe 0u
+    }
+
     test("32 bits float access") {
         val mem = Memory()
         mem.getFloat(1000u) shouldNotBe 0.0
@@ -78,10 +88,10 @@ class TestMemory: FunSpec({
     test("illegal address") {
         val mem = Memory()
         shouldThrow<ArrayIndexOutOfBoundsException> {
-            mem.getUB(9999999u)
+            mem.getUB(99999999u)
         }
         shouldThrow<ArrayIndexOutOfBoundsException> {
-            mem.setUB(9999999u, 0u)
+            mem.setUB(99999999u, 0u)
         }
     }
 })

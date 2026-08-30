@@ -32,7 +32,7 @@ class TestBuiltinFunctions: FunSpec({
         func.pure shouldBe true
         func.returnTypes shouldBe arrayOf(BaseDataType.BYTE)
 
-        val conv = func.callConvention(listOf(BaseDataType.UBYTE))
+        val conv = func.callConventionFor6502(listOf(BaseDataType.UBYTE))
         conv.params.size shouldBe 1
         conv.params[0].dt shouldBe BaseDataType.UBYTE
         conv.params[0].reg shouldBe RegisterOrPair.A
@@ -47,7 +47,7 @@ class TestBuiltinFunctions: FunSpec({
         func.pure shouldBe false
         func.returnTypes.size shouldBe 0
 
-        val conv = func.callConvention(listOf(BaseDataType.UWORD, BaseDataType.UWORD))
+        val conv = func.callConventionFor6502(listOf(BaseDataType.UWORD, BaseDataType.UWORD))
         conv.params.size shouldBe 2
         conv.returns.dt shouldBe null
         conv.returns.reg shouldBe null
@@ -57,7 +57,7 @@ class TestBuiltinFunctions: FunSpec({
         val func = BuiltinFunctions.getValue("poke")
         func.parameters.size shouldBe 2
         func.parameters[0].name shouldBe "address"
-        func.parameters[0].possibleDatatypes shouldBe arrayOf(BaseDataType.UWORD)
+        func.parameters[0].possibleDatatypes shouldBe arrayOf(BaseDataType.UWORD, BaseDataType.LONG, BaseDataType.POINTER)
         func.parameters[1].name shouldBe "value"
         func.parameters[1].possibleDatatypes shouldBe arrayOf(BaseDataType.UBYTE, BaseDataType.BYTE)
         func.pure shouldBe false

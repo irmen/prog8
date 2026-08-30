@@ -148,6 +148,9 @@ Command line options
 
 .. index:: pair: Usage; Command line options
 
+Options accept either a single dash or a double dash. For example, ``-target c64``
+and ``--target c64`` are equivalent.
+
 One or more .p8 module files
     Specify the main module file(s) to compile.
     Every file specified is a separate program.
@@ -206,9 +209,8 @@ One or more .p8 module files
     (for the machine code monitor) are immediately loaded into the emulator (if it supports them)
 
 ``-newcodegen``
-    Use the experimental IR-based 6502 code generator instead of the default AST-based one
-    (applies to c64, c128, cx16, pet32 only). **Do not use for production code yet.**
-    A full experimental m68k code generator will follow in a later version.
+    Use new 6502 code generation backend (*incomplete/experimental*). This generates 6502 assembly code based on IR instead of the AST.
+    **Do not use for production code yet.**
 
 ``-float2bytes <number>``
     convert floating point number to a list of bytes for the specified target system.
@@ -256,14 +258,6 @@ One or more .p8 module files
 ``-quietasm``
     Don't print assembler messages
 
-``-slabsgolden``
-    put memory() slabs in 'golden ram' memory area instead of at the end of the program.
-    On the cx16 target this is $0400-07ff. This is unavailable on other systems.
-
-``-slabshigh``
-    put memory() slabs in high memory area instead of at the end of the program.
-    On the cx16 target the value specifies the HIRAM bank to use, on other systems this value is ignored.
-
 ``-nosourcelines``
     Do not include the original prog8 source code lines as comments in the generated assembly code file,
     mixed in between the actual generated assembly code. The default behavior is to include the source lines.
@@ -278,7 +272,7 @@ One or more .p8 module files
 ``-target <compilation target>``
     Sets the target output of the compiler. This option is required.
     ``c64`` = Commodore 64, ``c128`` = Commodore 128, ``cx16`` = Commander X16, ``pet32`` - Commodore PET model 4032,
-    ``virtual`` = builtin virtual machine.
+    ``qemu68k`` = Qemu M68k (experimental), ``amiga500`` = Amiga 500 (experimental), ``virtual`` = builtin virtual machine.
     You can also specify a file name as target, prog8 will then try to read the target
     machine's configuration and properties from that configuration file instead of using one of the built-in targets.
     See :ref:`customizable_target` for details about this.
@@ -286,26 +280,35 @@ One or more .p8 module files
 ``-timings``
     Show a more detailed breakdown of the time taken in various compiler phases, for performance analysis of the compiler itself.
 
+``-varsaddress <address>``
+    Put uninitialized non-zeropage variables and memory slabs (``memory()`` allocations) at the given raw address
+    (e.g. ``$A000`` or ``40960``). Both segments are placed sequentially starting from this single address
+    (variables first, slabs immediately after). This is the raw-address counterpart to the ``%varsaddress`` directive
+    and the ``vars_address`` target config property. Mutually exclusive with ``-varsgolden`` and ``-varshigh``.
+
 ``-varsgolden``
-    Like ``-varshigh``, but places the variables in the "golden ram" area instead (e.g. $0400-$07FF on CX16, $1300-$1BDF on C128).
+    Like ``-varshigh``, but places the variables *and* memory slabs together in the "golden ram" area
+    instead (e.g. $0400-$07FF on CX16, $1300-$1BDF on C128).
     Because this is in normal system memory, there are no bank switching issues.
     This mode is only available on the Commander X16 and the Commodore 128, and possibly on custom configured targets.
+    Both segments share this same memory area: the variables are placed first and the slabs follow immediately after them.
 
 ``-varshigh <rambank>``
-    Places uninitialized non-zeropage variables in a separate memory area, instead of inside the program itself.
+    Places uninitialized non-zeropage variables *and* memory slabs together in a separate memory area, instead of inside the program itself.
     This increases the amount of system ram available for program code.
     The size of the increase depends on the program but can be several hundreds of bytes or more.
-    The location of the memory area for these variables depends on the compilation target machine:
+    The location of the memory area for these variables and slabs depends on the compilation target machine:
 
     c64: $C000 - $CFFF   ; 4 kB, and the specified rambank number is ignored
 
     cx16: $A000 - $BFFF  ; 8 kB in the specified HIRAM bank (note: no auto bank switching is done, you must make sure yourself that this HIRAM bank is active when accessing these variables!)
 
     If you use this option, you can no longer use the part of the above memory area that is
-    allotted to the variables, for your own purposes. The output of the 64tass assembler step at the
+    allotted to the variables/slabs, for your own purposes. The output of the 64tass assembler step at the
     end of compilation shows precise details of where and how much memory is used by the variables
-    (it's called 'BSS' section or Gap at the address mentioned above).
-    Assembling the program will fail if there are too many variables to fit in a single high ram bank.
+    and slabs (it's called 'BSS' section or Gap at the address mentioned above).
+    Assembling the program will fail if there are too many variables/slabs to fit in a single high ram bank.
+    Both segments share that bank's memory area: the variables are placed first and the slabs follow immediately after them.
 
 ``-version``
     Just print the compiler version and copyright message, and exit.
@@ -440,7 +443,9 @@ Troubleshooting
 Compilation errors or warnings
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 When there are warnings or errors during compilation of your program, no output files will be produced,
-and the error messages will be printed on the screen like this::
+and the error messages will be printed on the screen like this:
+
+.. code-block:: text
 
     ERROR file:///home/user/code/test.p8:13:9: undefined symbol: zzz
 
@@ -540,11 +545,14 @@ A bunch of example programs can be found in the :source:`examples` directory of 
 
 There are cross-platform examples that can be compiled for various systems unaltered,
 and there are also examples specific to certain computers (C64, X16, etcetera).
-So for instance, to compile and run the Commodore 64 rasterbars example program, use this command::
+So for instance, to compile and run the Commodore 64 rasterbars example program, use this command:
+
+.. code-block:: bash
 
     $ java -jar prog8c.jar -target c64 -emu examples/c64/rasterbars.p8
 
-or::
+or:
+
+.. code-block:: bash
 
     $ /path/to/prog8c -target c64 -emu examples/c64/rasterbars.p8
-

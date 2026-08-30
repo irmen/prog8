@@ -1,0 +1,868 @@
+/*
+ * Control flow IR instruction translations for the M68k code generator.
+ *
+ * Status flag returns (Pc/Pz/Pv/Pn) are handled by the IR's branch-based pattern
+ * (bsteq/bstneg/bstvs). The backend skips status flag returns in translateCall/translateReturnValue
+ * and trusts the IR to emit the appropriate branch instructions.
+ *
+ * PUSHST/POPST: save/restore CCR via the stack (Scc moves CCR to D0).
+ *
+ * Handles: JUMP, JUMPI, CALL, CALLI, CALLFAR, CALLFARVB, SYSCALL,
+ * RETURN, RETURNR, RETURNI, PUSH, POP, PUSHST, POPST,
+ * CLC, SEC, CLI, SEI, ALIGN,
+ * byte/word extraction (LSIGB, LSIGW, MSIGB, MSIGW, BSIGB, MIDB),
+ * sign extension (EXT, EXTS), and sign (SGN).
+ */
+
+package prog8.codegen.m68k
+
+import prog8.code.core.CpuType
+import prog8.code.core.toHex
+import prog8.code.target.Amiga500Target
+import prog8.intermediate.*
+
+internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall: ImmediateCallOptimization? = null) {
+    val r1 = insn.reg1
+    val r2 = insn.reg2
+    val imm = insn.immediate
+    val addr = insn.address
+    val label = insn.labelSymbol
+
+    when (insn.opcode) {
+        Opcode.JUMP -> {
+            val labelTarget = label?.let { fixNameSymbols(it) }
+            if (labelTarget != null) {
+                // PC-relative branch; vasm picks the optimal size and falls back to jmp if out of range
+                emitLine("bra  $labelTarget")
+            } else {
+                val target = addr?.value?.toHex() ?: error("JUMP needs target")
+                emitLine("jmp  $target")
+            }
+        }
+
+        Opcode.JUMPI -> {
+            val reg = r1 ?: error("JUMPI needs reg1")
+            if(program.options.compTarget.cpu >= CpuType.M68020) {
+                // 68020+ supports memory-indirect addressing: fetch the target address from memory directly.
+                emitLine("jmp  ([${regAddr(reg)}])")
+            } else {
+                emitLine("movea.l  ${regAddr(reg).removeSuffix("+0")}, a0")
+                emitLine("jmp  (a0)")
+            }
+        }
+
+        Opcode.CALL -> {
+            val fnLabel = label?.let { fixNameSymbols(it) } ?: addr?.value?.toHex() ?: error("CALL needs label or address")
+            val args = insn.fcallArgs
+            translateCall(fnLabel, args, forwardedImmediateCall)
+        }
+
+        Opcode.CALLI -> {
+            val reg = r1 ?: error("CALLI needs reg1")
+            if(program.options.compTarget.cpu >= CpuType.M68020) {
+                // 68020+ supports memory-indirect addressing: fetch the target address from memory directly.
+                emitLine("jsr  ([${regAddr(reg)}])")
+            } else {
+                emitLine("movea.l  ${regAddr(reg).removeSuffix("+0")}, a0")
+                emitLine("jsr  (a0)")
+            }
+        }
+
+        Opcode.CALLFAR -> {
+            // On the amiga target, CALLFAR is repurposed to encode automatic library LVO calls:
+            // bank = library number (1=exec, 2=dos, 3=graphics, 4=intuition, ...)
+            // address = negative LVO offset (the offset into the library's jump table)
+            // extSubName = symbolic function name, emitted as the displacement in jsr Symbol(a6)
+            if(program.options.compTarget.name.contains("amiga")) {
+                val offset = insn.address!!.value.toInt()
+                require(offset<0) { "amiga libcall offsets should all be <0" }
+                val bank = insn.immediate!!
+                if(bank==1) {
+                    // exec.library is always at 4.w
+                    emitLine("move.l  4.w,a6")
+                } else {
+                    val library = Amiga500Target.LibraryNumbers.getValue(bank)
+                    val baseVar = "sys.${library}Base"
+                    emitLine("move.l  $baseVar,a6")
+                }
+
+                val fcallArgs = insn.fcallArgs!!
+                for(arg in fcallArgs.arguments)
+                    translateArgument(arg)
+                if(insn.extSubName!=null) {
+                    emitLine("jsr  ${insn.extSubName}(a6)")    // do the actual call (symbolic ref)
+                } else {
+                    emitLine("jsr  $offset(a6)")    // do the actual call
+                }
+                // Skip status flag returns: handled by IR branch pattern.
+                // In multi-assign context (returns.size > 1), also skip slot-based returns:
+                // the IR generates LOADHR for them.
+                // In single-return context, process slot returns normally.
+                // LIMITATION: multiple status flag returns in one multi-assign are not supported
+                // (codegen limitation: first flag extraction clobbers flags before second can be read).
+                val isMultiReturn = fcallArgs.returns.size > 1
+                for(ret in fcallArgs.returns) {
+                    if (ret.statusflag != null)
+                        continue
+                    if (isMultiReturn)
+                        continue
+                    translateReturnValue(ret)
+                }
+            }
+            else  error("CALLFAR not applicable on this M68k")
+        }
+
+        Opcode.CALLFARVB -> {
+            error("CALLFARVB not applicable on M68k")
+        }
+
+        Opcode.SYSCALL -> {
+            val num = imm ?: 0
+            val args = insn.fcallArgs
+            if (args != null)
+                translateSyscall(num, args)
+            else
+                emitLine("; syscall #$num   (no args)")
+        }
+
+        Opcode.RETURN -> emitLine("rts")
+
+        Opcode.RETURNR -> {
+            val type = insn.type ?: IRDataType.BYTE
+            if (type == IRDataType.FLOAT) {
+                val fpReg = insn.fpReg1 ?: error("RETURNR.f needs fpReg1")
+                emitLine("fmove.s  ${floatRegFileAddr(fpReg)}, $FP_ACC")
+            } else {
+                val reg = r1 ?: error("RETURNR needs reg1")
+                val s = dtSuffix(type)
+                emitLine("move$s  ${regAddr(reg)}, d0")
+            }
+            emitLine("rts")
+        }
+
+        Opcode.RETURNI -> {
+            val value = imm ?: 0
+            val type = insn.type ?: IRDataType.BYTE
+            val s = dtSuffix(type)
+            if (value in -128..127)
+                emitLine("moveq  #$value, d0")
+            else
+                emitLine("move$s  #$value, d0")
+            emitLine("rts")
+        }
+
+        // === Stack operations ===
+
+        Opcode.PUSH -> {
+            val reg = r1 ?: error("PUSH needs reg1")
+            val type = insn.type ?: IRDataType.BYTE
+            val s = dtSuffix(type)
+            emitLine("move$s  ${regAddr(reg)}, -(sp)")
+        }
+
+        Opcode.POP -> {
+            val reg = r1 ?: error("POP needs reg1")
+            val type = insn.type ?: IRDataType.BYTE
+            val s = dtSuffix(type)
+            emitLine("move$s  (sp)+, ${regAddr(reg)}")
+        }
+
+        // === Status flag stack ops via Scc ===
+
+        Opcode.PUSHST -> {
+            // Move CCR to D0 (low byte), then push as byte.
+            if(program.options.compTarget.cpu == CpuType.M68000)
+                error("the 68000 cpu cannot save/restore the status bits using a nonprivileged instruction. This is required to implement the 'PUSHST/POPST' IR opcodes. Compile for 68010 or higher cpu or change the code such that PUSHST/POPST are no longer used (sometimes complicated rol/ror operations need it)")
+            emitLine("move  ccr, d0")
+            emitLine("move.b  d0, -(sp)")
+        }
+
+        Opcode.POPST -> {
+            // Pop byte into D0, then restore CCR
+            if(program.options.compTarget.cpu == CpuType.M68000)
+                error("the 68000 cpu cannot save/restore the status bits using a nonprivileged instruction. This is required to implement the 'PUSHST/POPST' IR opcodes. Compile for 68010 or higher cpu or change the code such that PUSHST/POPST are no longer used (sometimes complicated rol/ror operations need it)")
+            emitLine("move.b  (sp)+, d0")
+            emitLine("move  d0, ccr")
+        }
+
+        // === Flag manipulation ===
+
+        // On M68k, X (extend/CCR bit 4) serves as the rotate-carry,
+        // while C (carry/CCR bit 0) is used for comparisons.
+        // CLC/SEC must manage both to keep them in sync.
+        Opcode.CLC -> emitLine($$"andi  #$ee, ccr")   // clear C and X
+        Opcode.SEC -> emitLine($$"ori  #$11, ccr")    // set C and X
+        Opcode.CLI -> emitLine($$"andi  #$fb, ccr")
+        Opcode.SEI -> emitLine($$"ori  #$04, ccr")
+
+        Opcode.ALIGN -> {
+            val alignment = imm ?: 2
+            emitLine("ALIGN  $alignment")
+        }
+
+        // === Byte/word extraction (no Scc needed) ===
+
+        Opcode.LSIGB -> {
+            val dstReg = r1 ?: error("LSIGB needs reg1")
+            val srcReg = r2 ?: error("LSIGB needs reg2")
+            val type = insn.type ?: IRDataType.WORD
+            val s = dtSuffix(type)
+            emitLine("move$s  ${regAddr(srcReg)}, d0")
+            emitLine("move.b  d0, ${regAddr(dstReg)}")
+        }
+
+        Opcode.LSIGW -> {
+            val dstReg = r1 ?: error("LSIGW needs reg1")
+            val srcReg = r2 ?: error("LSIGW needs reg2")
+            emitLine("move.l  ${regAddr(srcReg)}, d0")
+            emitLine("move.w  d0, ${regAddr(dstReg)}")
+        }
+
+        Opcode.MSIGB -> {
+            val dstReg = r1 ?: error("MSIGB needs reg1")
+            val srcReg = r2 ?: error("MSIGB needs reg2")
+            // Big-endian: MSB is at byte offset 0 for both word and long.
+            emitLine("move.b  ${regAddrByte(srcReg, 0)}, d0")
+            emitLine("move.b  d0, ${regAddr(dstReg)}")
+        }
+
+        Opcode.MSIGW -> {
+            val dstReg = r1 ?: error("MSIGW needs reg1")
+            val srcReg = r2 ?: error("MSIGW needs reg2")
+            // Big-endian: word 0 (offset+0) is most significant. Extract directly.
+            emitLine("move.w  ${regAddrByte(srcReg, 0)}, d0")
+            emitLine("move.w  d0, ${regAddr(dstReg)}")
+        }
+
+        Opcode.BSIGB -> {
+            val dstReg = r1 ?: error("BSIGB needs reg1")
+            val srcReg = r2 ?: error("BSIGB needs reg2")
+            // Big-endian: bits 16-23 are at byte offset 1 of a long.
+            emitLine("move.b  ${regAddrByte(srcReg, 1)}, d0")
+            emitLine("move.b  d0, ${regAddr(dstReg)}")
+        }
+
+        Opcode.MIDB -> {
+            val dstReg = r1 ?: error("MIDB needs reg1")
+            val srcReg = r2 ?: error("MIDB needs reg2")
+            // Big-endian: bits 8-15 are at byte offset 2 of a long.
+            emitLine("move.b  ${regAddrByte(srcReg, 2)}, d0")
+            emitLine("move.b  d0, ${regAddr(dstReg)}")
+        }
+
+        // === Sign/zero extension ===
+
+        Opcode.EXT -> {
+            val dstReg = r1 ?: error("EXT needs reg1")
+            val srcReg = r2 ?: error("EXT needs reg2")
+            val type = insn.type ?: IRDataType.WORD
+            when (type) {
+                IRDataType.BYTE -> {
+                    // zero-extend byte to word
+                    emitLine("moveq  #0, d0")
+                    emitLine("move.b  ${regAddr(srcReg)}, d0")
+                    emitLine("move.w  d0, ${regAddr(dstReg)}")
+                }
+                IRDataType.WORD -> {
+                    // zero-extend word to long
+                    emitLine("moveq  #0, d0")
+                    emitLine("move.w  ${regAddr(srcReg)}, d0")
+                    emitLine("move.l  d0, ${regAddr(dstReg)}")
+                }
+                IRDataType.LONG -> {
+                    // no extension needed
+                    emitLine("move.l  ${regAddr(srcReg)}, d0")
+                    emitLine("move.l  d0, ${regAddr(dstReg)}")
+                }
+                else -> TODO("EXT for ${type.name}")
+            }
+        }
+
+        Opcode.EXTS -> {
+            val dstReg = r1 ?: error("EXTS needs reg1")
+            val srcReg = r2 ?: error("EXTS needs reg2")
+            val type = insn.type ?: IRDataType.WORD
+            when (type) {
+                IRDataType.BYTE -> {
+                    // sign-extend byte to word
+                    emitLine("move.b  ${regAddr(srcReg)}, d0")
+                    emitLine("ext.w  d0")
+                    emitLine("move.w  d0, ${regAddr(dstReg)}")
+                }
+                IRDataType.WORD -> {
+                    // sign-extend word to long
+                    emitLine("move.w  ${regAddr(srcReg)}, d0")
+                    emitLine("ext.l  d0")
+                    emitLine("move.l  d0, ${regAddr(dstReg)}")
+                }
+                IRDataType.LONG -> {
+                    // no extension needed
+                    emitLine("move.l  ${regAddr(srcReg)}, d0")
+                    emitLine("move.l  d0, ${regAddr(dstReg)}")
+                }
+                else -> TODO("EXTS for ${type.name}")
+            }
+        }
+
+        Opcode.EXTL -> {
+            val dstReg = r1 ?: error("EXTL needs reg1")
+            val srcReg = r2 ?: error("EXTL needs reg2")
+            // zero-extend byte to long: move.b only writes the low byte, so clear d0 first
+            emitLine("moveq  #0, d0")
+            emitLine("move.b  ${regAddr(srcReg)}, d0")
+            emitLine("move.l  d0, ${regAddr(dstReg)}")
+        }
+
+        Opcode.EXTLS -> {
+            val dstReg = r1 ?: error("EXTLS needs reg1")
+            val srcReg = r2 ?: error("EXTLS needs reg2")
+            // sign-extend byte to long
+            emitLine("move.b  ${regAddr(srcReg)}, d0")
+            emitSignExtendByteToLong("d0")
+            emitLine("move.l  d0, ${regAddr(dstReg)}")
+        }
+
+        // === Concatenation ===
+
+        Opcode.CONCAT -> {
+            val dstReg = r1 ?: error("CONCAT needs reg1")
+            val srcReg2 = r2 ?: error("CONCAT needs reg2")
+            val srcReg3 = insn.reg3 ?: error("CONCAT needs reg3")
+            val type = insn.type ?: IRDataType.BYTE
+            when (type) {
+                IRDataType.BYTE -> {
+                    // r1 = WORD(r2 as MSB, r3 as LSB)
+                    emitLine("move.b  ${regAddr(srcReg2)}, d0")
+                    emitLine("lsl.w  #8, d0")
+                    emitLine("or.b  ${regAddr(srcReg3)}, d0")
+                    emitLine("move.w  d0, ${regAddr(dstReg)}")
+                }
+                IRDataType.WORD -> {
+                    // r1 = LONG(r2 as MSW, r3 as LSW)
+                    emitLine("move.w  ${regAddr(srcReg2)}, d0")
+                    emitLine("swap  d0")
+                    emitLine("clr.w  d0")
+                    emitLine("or.w  ${regAddr(srcReg3)}, d0")
+                    emitLine("move.l  d0, ${regAddr(dstReg)}")
+                }
+                else -> TODO("CONCAT for ${type.name}")
+            }
+        }
+
+        // === Math ===
+
+        Opcode.SGN -> {
+            val dstReg = r1 ?: error("SGN needs reg1")
+            if (insn.type == IRDataType.FLOAT) {
+                val srcFp = insn.fpReg1 ?: error("SGN.f needs fpReg1")
+                emitLine("ftst.s  ${floatRegFileAddr(srcFp)}")
+                emitLine("fslt  d0")
+                emitLine("fsgt  d1")
+                emitLine("neg.b  d1")
+                emitLine("or.b  d1, d0")
+                emitLine("move.b  d0, ${regAddr(dstReg)}")
+            } else {
+                val srcReg = r2 ?: error("SGN needs reg2")
+                val type = insn.type ?: IRDataType.BYTE
+                val s = dtSuffix(type)
+                val zeroLabel = makeLabel("sgn_zero")
+                val doneLabel = makeLabel("sgn_done")
+                emitLine("move$s  ${regAddr(srcReg)}, d0")
+                emitLine("tst$s  d0")
+                emitLine("beq  $zeroLabel")
+                emitLine("smi  d1")
+                emitLine("bmi  $doneLabel")
+                emitLine("moveq  #1, d1")
+                emitLine("bra  $doneLabel")
+                emitLabel(zeroLabel)
+                emitLine("moveq  #0, d1")
+                emitLabel(doneLabel)
+                emitLine("move.b  d1, ${regAddr(dstReg)}")
+            }
+        }
+
+        // === Floating point operations via 68881/68882 FPU ===
+
+        Opcode.FFROMUB -> {
+            val fpDst = insn.fpReg1 ?: error("FFROMUB needs fpReg1")
+            val srcReg = r1 ?: error("FFROMUB needs reg1")
+            emitLine("move.b  ${regAddr(srcReg)}, d0")
+            emitLine($$"and.l  #\$ff, d0")
+            emitLine("fmove.l  d0, $FP_ACC")
+            emitLine("fmove.s  $FP_ACC, ${floatRegFileAddr(fpDst)}")
+        }
+
+        Opcode.FFROMSB -> {
+            val fpDst = insn.fpReg1 ?: error("FFROMSB needs fpReg1")
+            val srcReg = r1 ?: error("FFROMSB needs reg1")
+            emitLine("move.b  ${regAddr(srcReg)}, d0")
+            emitSignExtendByteToLong("d0")
+            emitLine("fmove.l  d0, $FP_ACC")
+            emitLine("fmove.s  $FP_ACC, ${floatRegFileAddr(fpDst)}")
+        }
+
+        Opcode.FFROMUW -> {
+            val fpDst = insn.fpReg1 ?: error("FFROMUW needs fpReg1")
+            val srcReg = r1 ?: error("FFROMUW needs reg1")
+            emitLine("move.w  ${regAddr(srcReg)}, d0")
+            emitLine($$"and.l  #\$ffff, d0")
+            emitLine("fmove.l  d0, $FP_ACC")
+            emitLine("fmove.s  $FP_ACC, ${floatRegFileAddr(fpDst)}")
+        }
+
+        Opcode.FFROMSW -> {
+            val fpDst = insn.fpReg1 ?: error("FFROMSW needs fpReg1")
+            val srcReg = r1 ?: error("FFROMSW needs reg1")
+            emitLine("move.w  ${regAddr(srcReg)}, d0")
+            emitLine("ext.l  d0")
+            emitLine("fmove.l  d0, $FP_ACC")
+            emitLine("fmove.s  $FP_ACC, ${floatRegFileAddr(fpDst)}")
+        }
+
+        Opcode.FFROMSL -> {
+            val fpDst = insn.fpReg1 ?: error("FFROMSL needs fpReg1")
+            val srcReg = r1 ?: error("FFROMSL needs reg1")
+            emitLine("move.l  ${regAddr(srcReg)}, d0")
+            emitLine("fmove.l  d0, $FP_ACC")
+            emitLine("fmove.s  $FP_ACC, ${floatRegFileAddr(fpDst)}")
+        }
+
+        Opcode.FTOUB -> {
+            val dstReg = r1 ?: error("FTOUB needs reg1")
+            val fpSrc = insn.fpReg1 ?: error("FTOUB needs fpReg1")
+            emitLine("fmove.s  ${floatRegFileAddr(fpSrc)}, $FP_ACC")
+            emitLine("fmove.b  $FP_ACC, d0")
+            emitLine("and.l  #\$ff, d0")
+            emitLine("move.b  d0, ${regAddr(dstReg)}")
+        }
+
+        Opcode.FTOSB -> {
+            val dstReg = r1 ?: error("FTOSB needs reg1")
+            val fpSrc = insn.fpReg1 ?: error("FTOSB needs fpReg1")
+            emitLine("fmove.s  ${floatRegFileAddr(fpSrc)}, $FP_ACC")
+            emitLine("fmove.b  $FP_ACC, d0")
+            emitLine("move.b  d0, ${regAddr(dstReg)}")
+        }
+
+        Opcode.FTOUW -> {
+            val dstReg = r1 ?: error("FTOUW needs reg1")
+            val fpSrc = insn.fpReg1 ?: error("FTOUW needs fpReg1")
+            emitLine("fmove.s  ${floatRegFileAddr(fpSrc)}, $FP_ACC")
+            emitLine("fmove.w  $FP_ACC, d0")
+            emitLine("move.w  d0, ${regAddr(dstReg)}")
+        }
+
+        Opcode.FTOSW -> {
+            val dstReg = r1 ?: error("FTOSW needs reg1")
+            val fpSrc = insn.fpReg1 ?: error("FTOSW needs fpReg1")
+            emitLine("fmove.s  ${floatRegFileAddr(fpSrc)}, $FP_ACC")
+            emitLine("fmove.w  $FP_ACC, d0")
+            emitLine("move.w  d0, ${regAddr(dstReg)}")
+        }
+
+        Opcode.FTOSL -> {
+            val dstReg = r1 ?: error("FTOSL needs reg1")
+            val fpSrc = insn.fpReg1 ?: error("FTOSL needs fpReg1")
+            emitLine("fmove.s  ${floatRegFileAddr(fpSrc)}, $FP_ACC")
+            emitLine("fmove.l  $FP_ACC, d0")
+            emitLine("move.l  d0, ${regAddr(dstReg)}")
+        }
+
+        Opcode.FABS -> {
+            val dst = insn.fpReg1 ?: error("FABS needs fpReg1")
+            val src = insn.fpReg2 ?: error("FABS needs fpReg2")
+            emitLine("fmove.s  ${floatRegFileAddr(src)}, $FP_ACC")
+            emitLine("fabs  $FP_ACC, $FP_ACC")
+            emitLine("fmove.s  $FP_ACC, ${floatRegFileAddr(dst)}")
+        }
+
+        Opcode.FSIN -> {
+            val dst = insn.fpReg1 ?: error("FSIN needs fpReg1")
+            val src = insn.fpReg2 ?: error("FSIN needs fpReg2")
+            emitLine("fmove.s  ${floatRegFileAddr(src)}, $FP_ACC")
+            emitLine("fsin  $FP_ACC, $FP_ACC")
+            emitLine("fmove.s  $FP_ACC, ${floatRegFileAddr(dst)}")
+        }
+
+        Opcode.FCOS -> {
+            val dst = insn.fpReg1 ?: error("FCOS needs fpReg1")
+            val src = insn.fpReg2 ?: error("FCOS needs fpReg2")
+            emitLine("fmove.s  ${floatRegFileAddr(src)}, $FP_ACC")
+            emitLine("fcos  $FP_ACC, $FP_ACC")
+            emitLine("fmove.s  $FP_ACC, ${floatRegFileAddr(dst)}")
+        }
+
+        Opcode.FTAN -> {
+            val dst = insn.fpReg1 ?: error("FTAN needs fpReg1")
+            val src = insn.fpReg2 ?: error("FTAN needs fpReg2")
+            emitLine("fmove.s  ${floatRegFileAddr(src)}, $FP_ACC")
+            emitLine("ftan  $FP_ACC, $FP_ACC")
+            emitLine("fmove.s  $FP_ACC, ${floatRegFileAddr(dst)}")
+        }
+
+        Opcode.FATAN -> {
+            val dst = insn.fpReg1 ?: error("FATAN needs fpReg1")
+            val src = insn.fpReg2 ?: error("FATAN needs fpReg2")
+            emitLine("fmove.s  ${floatRegFileAddr(src)}, $FP_ACC")
+            emitLine("fatan  $FP_ACC, $FP_ACC")
+            emitLine("fmove.s  $FP_ACC, ${floatRegFileAddr(dst)}")
+        }
+
+        Opcode.FPOW -> {
+            val dst = insn.fpReg1 ?: error("FPOW needs fpReg1")
+            val src = insn.fpReg2 ?: error("FPOW needs fpReg2")
+            emitLine("fmove.s  ${floatRegFileAddr(src)}, $FP_ACC")
+            emitLine("fpow  $FP_ACC, $FP_ACC")
+            emitLine("fmove.s  $FP_ACC, ${floatRegFileAddr(dst)}")
+        }
+
+        Opcode.FLN -> {
+            val dst = insn.fpReg1 ?: error("FLN needs fpReg1")
+            val src = insn.fpReg2 ?: error("FLN needs fpReg2")
+            emitLine("fmove.s  ${floatRegFileAddr(src)}, $FP_ACC")
+            emitLine("flogn  $FP_ACC, $FP_ACC")
+            emitLine("fmove.s  $FP_ACC, ${floatRegFileAddr(dst)}")
+        }
+
+        Opcode.FLOG -> {
+            val dst = insn.fpReg1 ?: error("FLOG needs fpReg1")
+            val src = insn.fpReg2 ?: error("FLOG needs fpReg2")
+            emitLine("fmove.s  ${floatRegFileAddr(src)}, $FP_ACC")
+            emitLine("flog2  $FP_ACC, $FP_ACC")
+            emitLine("fmove.s  $FP_ACC, ${floatRegFileAddr(dst)}")
+        }
+
+        Opcode.FROUND -> {
+            val dst = insn.fpReg1 ?: error("FROUND needs fpReg1")
+            val src = insn.fpReg2 ?: error("FROUND needs fpReg2")
+            emitLine("fmove.s  ${floatRegFileAddr(src)}, $FP_ACC")
+            emitLine("fround  $FP_ACC, $FP_ACC")
+            emitLine("fmove.s  $FP_ACC, ${floatRegFileAddr(dst)}")
+        }
+
+        Opcode.FFLOOR -> {
+            val dst = insn.fpReg1 ?: error("FFLOOR needs fpReg1")
+            val src = insn.fpReg2 ?: error("FFLOOR needs fpReg2")
+            emitLine("fmove.s  ${floatRegFileAddr(src)}, $FP_ACC")
+            emitLine("ffloor  $FP_ACC, $FP_ACC")
+            emitLine("fmove.s  $FP_ACC, ${floatRegFileAddr(dst)}")
+        }
+
+        Opcode.FCEIL -> {
+            // 68881 has no fceil; implement as: if x == int(x) then x else x > 0 ? int(x)+1 : int(x)
+            val dst = insn.fpReg1 ?: error("FCEIL needs fpReg1")
+            val src = insn.fpReg2 ?: error("FCEIL needs fpReg2")
+            val isIntLabel = makeLabel("fceil_is_int")
+            val doneLabel = makeLabel("fceil_done")
+            val posLabel = makeLabel(".fceil_pos")
+            emitLine("fmove.s  ${floatRegFileAddr(src)}, $FP_ACC")
+            emitLine("fmove.s  $FP_ACC, $FP_SRC")
+            emitLine("fintrz  $FP_SRC, $FP_SRC")  // truncate toward zero
+            emitLine("fcmp  $FP_ACC, $FP_SRC")
+            emitLine("fbeq  $isIntLabel")              // if equal, already integer
+            emitLine("ftst  $FP_ACC")
+            emitLine("fbgt  $posLabel")                // if >0, need to add 1
+            emitLine("bra  $doneLabel")
+            emitLabel(posLabel)
+            emitLine("fadd.s  #1.0, $FP_SRC")
+            emitLine("bra  $doneLabel")
+            emitLabel(isIntLabel)
+            // dst already holds the integer (from fintrz)
+            emitLabel(doneLabel)
+            emitLine("fmove.s  $FP_SRC, ${floatRegFileAddr(dst)}")
+        }
+
+        Opcode.FCOMP -> {
+            val dstReg = r1 ?: error("FCOMP needs reg1 (int output)")
+            val fr1 = insn.fpReg1 ?: error("FCOMP needs fpReg1")
+            val fr2 = insn.fpReg2 ?: error("FCOMP needs fpReg2")
+            val eqLabel = makeLabel("fcomp_eq")
+            val doneLabel = makeLabel("fcomp_done")
+            val gtLabel = makeLabel("fcomp_gt")
+            emitLine("fmove.s  ${floatRegFileAddr(fr1)}, $FP_ACC")
+            emitLine("fcmp.s  ${floatRegFileAddr(fr2)}, $FP_ACC")
+            emitLine("fbeq  $eqLabel")
+            emitLine("fbgt  $gtLabel")
+            emitLine("moveq  #-1, d0")
+            emitLine("bra  $doneLabel")
+            emitLabel(gtLabel)
+            emitLine("moveq  #1, d0")
+            emitLine("bra  $doneLabel")
+            emitLabel(eqLabel)
+            emitLine("moveq  #0, d0")
+            emitLabel(doneLabel)
+            emitLine("move.b  d0, ${regAddr(dstReg)}")
+        }
+
+        Opcode.LOADHFACZERO, Opcode.LOADHFACONE, Opcode.STOREHFACZERO, Opcode.STOREHFACONE ->
+            error("${insn.opcode} should have been handled by translateLoadStore")
+
+        else -> error("Unknown control opcode: ${insn.opcode}")
+    }
+}
+
+// === CALL translation with argument handling ===
+
+private fun AsmGen.translateCall(fnLabel: String, args: FunctionCallArgs?, forwardedImmediateCall: ImmediateCallOptimization? = null) {
+    if (fnLabel == "sys.memcopy" && emitInlineMemcopyCall(args!!, forwardedImmediateCall))
+        return
+
+    if (args != null) {
+        // Emit non-constant arguments first (from regfile), then constant immediates
+        // just before the BSR/JSR to avoid clobbering the constant registers while
+        // evaluating non-const arguments (e.g. address calculations that may use D0/A0 as scratch).
+        val (forwarded, nonForwarded) = if (forwardedImmediateCall != null) {
+            args.arguments.partition { arg ->
+                val regId = if (arg.reg.dt == IRDataType.FLOAT) RegId.FloatReg(arg.reg.registerNum) else RegId.IntReg(arg.reg.registerNum.value)
+                regId in forwardedImmediateCall.loads
+            }
+        } else {
+            emptyList<FunctionCallArgs.ArgumentSpec>() to args.arguments
+        }
+        for (arg in nonForwarded) {
+            translateArgument(arg, fnLabel, forwardedImmediateCall)
+        }
+        for (arg in forwarded) {
+            translateArgument(arg, fnLabel, forwardedImmediateCall)
+        }
+    }
+
+    // Check if this call targets an inline asmsub — emit its body directly instead of jsr
+    val inlineTarget = program.allAsmSubs().find { it.label == fnLabel && it.isInline }
+    if (inlineTarget != null) {
+        emitRaw(inlineTarget.asmChunk.assembly)
+    } else {
+        // PC-relative call; vasm picks the optimal size and falls back to jsr if out of range
+        emitLine("bsr  $fnLabel")
+    }
+
+    // Move return values back to virtual registers.
+    // Skip status flag returns: always handled by IR's bsteq/bstneg/bstvs branch pattern.
+    // In multi-assign context (returns.size > 1), also skip slot-based returns:
+    // the IR generates LOADHR for them, and emitting here would clobber CPU flags
+    // before the branch pattern can read them.
+    // In single-return expression context, process all slot returns normally
+    // (the IR doesn't generate LOADHR for single-return calls).
+    // LIMITATION: multiple status flag returns in one multi-assign (e.g. -> bool @Pz, bool @Pc)
+    // are not supported - codegen limitation: the first flag's extraction clobbers the state for subsequent flags.
+    if (args != null) {
+        val isMultiReturn = args.returns.size > 1
+        for (ret in args.returns) {
+            if (ret.statusflag != null)
+                continue
+            if (isMultiReturn)
+                continue
+            translateReturnValue(ret)
+        }
+    }
+}
+
+private fun AsmGen.emitInlineMemcopyCall(args: FunctionCallArgs, forwardedImmediateCall: ImmediateCallOptimization?): Boolean {
+    if (args.arguments.size != 3) return false
+    val fwd = forwardedImmediateCall ?: return false
+    val srcArg = args.arguments[0]
+    val tgtArg = args.arguments[1]
+    val countArg = args.arguments[2]
+    // size must be a constant immediate forwarded to the call; non-constant -> always call
+    val countRegId = RegId.IntReg(countArg.reg.registerNum.value)
+    val countLoad = fwd.loads[countRegId] ?: return false
+    val count = countLoad.immediate ?: return false
+    if (count <= 0) return true
+
+    // Only use .w/.l if we can 100% prove both pointers are aligned.
+    // At codegen we only know immediates; computed addresses (e.g. &arr[i]) are not immediate
+    // so we conservatively fall back to byte copies. A future IR alignment analysis could prove more.
+    val srcRegId = RegId.IntReg(srcArg.reg.registerNum.value)
+    val tgtRegId = RegId.IntReg(tgtArg.reg.registerNum.value)
+    val srcImm = fwd.loads[srcRegId]?.immediate
+    val tgtImm = fwd.loads[tgtRegId]?.immediate
+    val bothEven = srcImm != null && tgtImm != null && srcImm % 2 == 0 && tgtImm % 2 == 0
+    val bothLongAligned = srcImm != null && tgtImm != null && srcImm % 4 == 0 && tgtImm % 4 == 0
+    val useLong = bothLongAligned && count % 4 == 0
+    val useWord = bothEven && count % 2 == 0
+    // Heuristics: inline small copies; use a dbra loop for the medium "small" range
+    // to keep code size reasonable. The call to memcopy/CopyMem wins for large copies.
+    val threshold = when {
+        useLong -> 64
+        useWord -> 32
+        else -> 16
+    }
+    if (count > threshold) return false
+    // Load pointers into a0/a1 (benefit from forwarded immediates)
+    translateArgument(srcArg, "sys.memcopy", fwd)
+    translateArgument(tgtArg, "sys.memcopy", fwd)
+    // count is constant, no need to load d0
+    // For larger small counts, a dbra loop is smaller than unrolled moves.
+    // Threshold: a dbra loop needs ~10 bytes setup (move.w #count,dN + label + dbra),
+    // so it wins over more than ~5 unrolled moves of the same size.
+    val unrolledLimit = 5
+    when {
+        useLong -> {
+            val longs = count / 4
+            emitRaw("        ; inline memcopy $count bytes as $longs longwords")
+            if (longs <= unrolledLimit) {
+                repeat(longs) { emitLine("move.l  (a0)+,(a1)+") }
+            } else {
+                emitInlineCopyLoop(longs, 4)
+            }
+        }
+        useWord -> {
+            val words = count / 2
+            emitRaw("        ; inline memcopy $count bytes as $words words")
+            if (words <= unrolledLimit) {
+                repeat(words) { emitLine("move.w  (a0)+,(a1)+") }
+            } else {
+                emitInlineCopyLoop(words, 2)
+            }
+        }
+        else -> {
+            emitRaw("        ; inline memcopy $count bytes")
+            if (count <= unrolledLimit) {
+                repeat(count) { emitLine("move.b  (a0)+,(a1)+") }
+            } else {
+                emitInlineCopyLoop(count, 1)
+            }
+        }
+    }
+    return true
+}
+
+private fun AsmGen.emitInlineCopyLoop(iterations: Int, size: Int) {
+    val loopLabel = makeLabel("memcpy_inline")
+    val moveInsn = when (size) {
+        4 -> "move.l"
+        2 -> "move.w"
+        else -> "move.b"
+    }
+    emitLine("moveq  #$iterations, d0")
+    emitLabel(loopLabel)
+    emitLine("$moveInsn  (a0)+,(a1)+")
+    emitLine("dbra  d0,$loopLabel")
+}
+
+private fun AsmGen.translateArgument(
+    arg: FunctionCallArgs.ArgumentSpec,
+    fnLabel: String? = null,
+    forwardedImmediateCall: ImmediateCallOptimization? = null
+) {
+    val argReg = arg.reg
+
+    // If the argument has a calling convention slot, load it into that hardware register
+    val slot = argReg.callingConventionSlot
+    if (slot != null) {
+        val hwReg = m68kSlotRegister(slot)
+        if (argReg.dt == IRDataType.FLOAT) {
+            val forwarded = forwardedImmediateCall?.loads?.get(RegId.FloatReg(argReg.registerNum))
+            if (forwarded != null) {
+                val value = forwarded.immediateFp
+                    ?: error("missing forwarded float immediate for call argument fr${argReg.registerNum.value}")
+                emitFloadConstantTo(hwReg, value)
+            } else {
+                emitLine("fmove.s  ${floatRegFileAddr(argReg.registerNum)}, $hwReg")
+            }
+        } else {
+            val regIdInt = RegId.IntReg(argReg.registerNum.value)
+            val forwardedLoad = forwardedImmediateCall?.loads?.get(regIdInt)
+            if (forwardedLoad != null) {
+                val value = forwardedLoad.immediate
+                    ?: error("missing forwarded immediate for call argument r${argReg.registerNum.value}")
+                val s = dtSuffix(argReg.dt)
+                if (hwReg.startsWith("a")) {
+                    // address registers only accept movea/suba, not clr or moveq
+                    when (value) {
+                        0 -> emitLine("suba.l  $hwReg, $hwReg")
+                        else -> emitLine("movea.l  #$value, $hwReg")
+                    }
+                } else {
+                    if (value == 0)
+                        emitLine("clr$s  $hwReg")
+                    else {
+                        // use moveq (2 bytes, 4 cycles) when the value fits in its signed 8-bit range;
+                        // for byte args the value is unsigned 0-255, so map 128-255 to -128--1 (low byte is the same)
+                        val moveqValue = if (argReg.dt == IRDataType.BYTE && value in 128..255) value - 256 else value
+                        if (moveqValue in -128..127)
+                            emitLine("moveq  #$moveqValue, $hwReg")
+                        else
+                            emitLine("move$s  #$value, $hwReg")
+                    }
+                }
+            } else {
+                val source = regAddr(argReg.registerNum.value)
+                if (hwReg.startsWith("a") && argReg.dt in setOf(IRDataType.LONG, IRDataType.POINTER)) {
+                    // loading a pointer into an address register; movea.l is the proper form and skips the +0 offset
+                    emitLine("movea.l  ${source.removeSuffix("+0")}, $hwReg")
+                } else {
+                    val s = dtSuffix(argReg.dt)
+                    emitLine("move$s  $source, $hwReg")
+                }
+            }
+        }
+    } else {
+        // Store to the callee's parameter variable (if this is a named param)
+        if (arg.name.isNotEmpty() && fnLabel != null) {
+            val paramVarName = "$fnLabel.${arg.name}"
+            val target = fixNameSymbols(paramVarName)
+            when (argReg.dt) {
+                IRDataType.FLOAT -> {
+                    val fRegVal = floatRegFileAddr(argReg.registerNum)
+                    emitLine("fmove.s  $fRegVal, $FP_ACC")
+                    emitLine("fmove.s  $FP_ACC, $target")
+                }
+                else -> {
+                    val regVal = regAddr(argReg.registerNum.value)
+                    val s = dtSuffix(argReg.dt)
+                    emitLine("move$s  $regVal, $target")
+                }
+            }
+        }
+    }
+}
+
+private fun AsmGen.translateReturnValue(ret: FunctionCallArgs.RegSpec) {
+    val retReg = ret.registerNum
+
+    // Status flag returns are handled by the IR's branch-based pattern (bsteq/bstneg/bstvs).
+    // Do NOT emit Scc here - it would clobber the flags before the branch can read them.
+    if (ret.statusflag != null) {
+        return
+    }
+
+    // Otherwise, return value is in a hardware register
+    val slot = ret.callingConventionSlot
+    if (slot != null) {
+        val hwReg = m68kSlotRegister(slot)
+        if (ret.dt == IRDataType.FLOAT) {
+            emitLine("fmove.s  $hwReg, ${floatRegFileAddr(RegisterNum(retReg.value))}")
+        } else {
+            val s = dtSuffix(ret.dt)
+            emitLine("move$s  $hwReg, ${regAddr(retReg.value)}")
+        }
+    } else {
+        // Default: return value in d0 (standard m68k calling convention)
+        // All non-float returns go through d0-d7 (not a0-a6) because the calling convention
+        // expects values in data registers. Using A0 for pointers would be inconsistent:
+        // callers read return values from data regs unless the slot annotation says otherwise.
+        // Slightly inefficient: m68k pointers ideally live in address registers, but returning
+        // them in d0 is simpler and avoids ambiguity. Explicit @A0 can be used for hot paths.
+        if (ret.dt == IRDataType.FLOAT) {
+            emitLine("fmove.s  $FP_ACC, ${floatRegFileAddr(RegisterNum(retReg.value))}")
+        } else {
+            val s = dtSuffix(ret.dt)
+            emitLine("move$s  d0, ${regAddr(retReg.value)}")
+        }
+    }
+}
+
+// === Slot to M68k hardware register mapping ===
+
+// Slots 0..7 are the 6502/cx16-style scalar registers (A, X, Y, AX, AY, XY,
+// FAC1, FAC2) used by target-independent builtins (e.g. divmod returns its
+// quotient in AY). Map them onto distinct M68k hardware registers so the
+// backend can emit code for them.
+fun m68kSlotRegister(slot: CallingConventionSlot): String = when (slot.value) {
+    in 0..7 -> error("slots 0-7 should never be used on the M68K they are 6502 cpu registers")
+    in 10..17 -> "d${slot.value - 10}"     // M68k slots: D0-D7
+    in 18..24 -> "a${slot.value - 18}"     // M68k slots: A0-A6
+    in 25..32 -> "fp${slot.value - 25}"    // M68k slots: FP0-FP7
+    else -> error("unknown calling convention slot: $slot")
+}

@@ -391,8 +391,10 @@ There are a few things to note:
   so those arrays *are* mutable as usual.
 - the same holds for memory blocks allocated using the ``memory`` function; nothing changes for them.
 - the memory region for variables and memory blocks (BSS sections) should be explicitly placed in RAM memory.
-  You can do this with the ``-varsgolden`` or ``-varshigh``, and ``-slabsgolden`` or ``-slabshigh`` command line options.
-  Maybe in the future an option will be added to choose a memory address for those manually.
+  You can do this with the ``%varsaddress`` module directive (or the ``-varsaddress`` CLI option, or the ``vars_address`` target config property),
+  which directly specifies the memory address to use for both variables and slabs together, or with the target-aware
+  ``-varsgolden`` or ``-varshigh`` command line options. Do not mix both mechanisms: use either the raw address
+  directive/option or the golden/high RAM shorthand, not both.
 
 .. note::
     The ROMable code generation is still quite experimental. Problems may still surface, and perhaps

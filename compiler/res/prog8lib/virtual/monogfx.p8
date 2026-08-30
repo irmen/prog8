@@ -13,10 +13,11 @@ monogfx {
     ; read-only control variables:
     uword width = 0
     uword height = 0
-    ubyte mode
     const ubyte MODE_NORMAL  = %00000000
     const ubyte MODE_STIPPLE = %00000001
     const ubyte MODE_INVERT  = %00000010
+
+    private ubyte mode
 
     sub lores() {
         ; enable 320*240 bitmap mode

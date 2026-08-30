@@ -36,7 +36,7 @@ main {
                 txt.print("? ")
 
                 if ask_yes_no()=='y' {
-                    txt.print("\nYay, I knew it!\n")
+                    txt.print("\n\n***Yay, I knew it!***\n")
                     txt.print("Let's go for another round.\n\n")
                 }
                 else
@@ -71,7 +71,7 @@ main {
             ; note that we make copies of the animal name and question strings to store them later
             txt.print("\nI give up. What is the animal? ")
             ubyte new_animal_length = txt.input_chars(new_animal)
-            uword new_animal_copy = arena.alloc(new_animal_length+1)
+            pointer new_animal_copy = arena.alloc(new_animal_length+1)
             void strings.copy(new_animal, new_animal_copy)
             txt.print("\nWhat yes/no question would best tell a ")
             txt.print(new_animal)
@@ -79,7 +79,7 @@ main {
             txt.print(active.animal)
             txt.print("? ")
             ubyte question_length = txt.input_chars(userinput)
-            uword question_copy = arena.alloc(question_length+1)
+            pointer question_copy = arena.alloc(question_length+1)
             void strings.copy(userinput, question_copy)
             txt.print("\nIn case of the ")
             txt.print(new_animal)
@@ -104,7 +104,11 @@ main {
                 active.negative = new_animal_node
             }
 
+            db.num_animals++
             txt.print("\nI've learned about that new animal now!\n")
+            txt.print("I now know about ")
+            txt.print_uw(db.num_animals)
+            txt.print(" animals.\n")
             txt.print("Let's go for another round.\n\n")
         }
     }
@@ -122,6 +126,7 @@ db {
     }
 
     ^^Node first
+    uword num_animals
 
     sub init() {
         first = ^^Node: ["does it swim", 0, 0, 0]
@@ -130,15 +135,17 @@ db {
         first.positive = ^^Node: [0, "dolphin", 0, 0]
         question.negative = ^^Node: [0, "horse", 0, 0]
         question.positive = ^^Node: [0, "eagle", 0, 0]
+
+        num_animals = 3
     }
 }
 
 arena {
     ; extremely trivial arena allocator (that never frees)
-    uword buffer = memory("arena", 10000, 0)
-    uword next = buffer
+    pointer buffer = memory("arena", 10000, 0)
+    pointer next = buffer
 
-    sub alloc(ubyte size) -> uword {
+    sub alloc(ubyte size) -> pointer {
         defer next += size
         return next
     }

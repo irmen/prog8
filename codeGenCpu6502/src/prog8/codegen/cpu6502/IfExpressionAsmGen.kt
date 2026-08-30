@@ -723,7 +723,7 @@ internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, privat
             is PtAddressOf -> {
                 val identifier = e.identifier!!
                 var varname = asmgen.asmVariableName(identifier)
-                if (identifier.type.isSplitWordArray) {
+                if (identifier.type.isSplitWordArray(asmgen.options.compTarget)) {
                     varname += if (e.isMsbForSplitArray) "_msb" else "_lsb"
                 }
                 asmgen.out("  lda  #<$varname | ora  #>$varname | bne  $falseLabel")
@@ -774,7 +774,7 @@ internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, privat
             is PtAddressOf -> {
                 val identifier = e.identifier!!
                 var varname = asmgen.asmVariableName(identifier)
-                if (identifier.type.isSplitWordArray) {
+                if (identifier.type.isSplitWordArray(asmgen.options.compTarget)) {
                     varname += if (e.isMsbForSplitArray) "_msb" else "_lsb"
                 }
                 asmgen.out("  lda  #<$varname | ora  #>$varname | beq  $falseLabel")
@@ -1124,7 +1124,7 @@ internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, privat
                     asmgen.out("  cpy  #0")
                 } else {
                     var varname = asmgen.asmVariableName(e.identifier!!)
-                    if(e.identifier!!.type.isSplitWordArray) {
+                    if(e.identifier!!.type.isSplitWordArray(asmgen.options.compTarget)) {
                         varname += if(e.isMsbForSplitArray) "_msb" else "_lsb"
                     }
                     asmgen.out("  lda  #>$varname")
@@ -1156,7 +1156,7 @@ internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, privat
             } else if (e is PtAddressOf && !e.isFromArrayElement) {
                 val identifier = e.identifier!!
                 var varname = asmgen.asmVariableName(identifier)
-                if (identifier.type.isSplitWordArray) {
+                if (identifier.type.isSplitWordArray(asmgen.options.compTarget)) {
                     varname += if (e.isMsbForSplitArray) "_msb" else "_lsb"
                 }
                 block("#<$varname", "#>$varname")

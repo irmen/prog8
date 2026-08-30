@@ -500,8 +500,11 @@ class ArrayIndexedExpression(var plainarrayvar: IdentifierReference?,
         if(plainarrayvar!=null) {
             val target = plainarrayvar!!.targetStatement()
             if(target is VarDecl) {
+                // uword (16-bit) or long (32-bit) variables can hold a pointer value, so indexing them reads a byte from that address
+                val isUwordPointerHolder = program.target.POINTER_MEM_SIZE <= 2u && target.datatype.isUnsignedWord
+                val isLongPointerHolder = program.target.POINTER_MEM_SIZE > 2u && target.datatype.isLong
                 return when {
-                    target.datatype.isString || target.datatype.isUnsignedWord -> InferredTypes.knownFor(BaseDataType.UBYTE)
+                    target.datatype.isString || isUwordPointerHolder || isLongPointerHolder -> InferredTypes.knownFor(BaseDataType.UBYTE)
                     target.datatype.isArray -> InferredTypes.knownFor(target.datatype.elementType())
                     target.datatype.isPointer -> InferredTypes.knownFor(target.datatype.dereference())
                     else -> InferredTypes.knownFor(target.datatype)
@@ -595,7 +598,7 @@ class TypecastExpression(var expression: Expression, var type: DataType, val imp
             return null
         val cv = expression.constValue(program) ?: return null
         cv.linkParents(parent)
-        val cast = cv.cast(type.base, implicit)
+        val cast = cv.cast(type.base, implicit, program.target)
         return if(cast.isValid) {
             val newval = cast.valueOrZero()
             newval.linkParents(parent)
@@ -673,14 +676,16 @@ data class AddressOf(var identifier: IdentifierReference?, var arrayIndex: Array
                         if (index != null) {
                             address += when {
                                 target.datatype.isInteger -> index
-                                target.datatype.isPointer || target.datatype.isArray -> index * targetVar.datatype.size(program.memsizer)
+                                target.datatype.isPointer || target.datatype.isArray -> index * targetVar.datatype.size(program.target)
                                 else -> throw FatalAstException("need array or ptr")
                             }
                         } else
                             return null
                     }
-                    val addressType = if(targetVar.datatype.isLong) BaseDataType.LONG else BaseDataType.UWORD
-                    return NumericLiteral(addressType, address, position)
+                    val addressType = program.target.pointerBaseType
+                    if(address < 0.0 || address > addressType.maxUnsignedValue)
+                        return null
+                    return NumericLiteral(addressType, address, position).also { it.linkParents(this) }
                 }
             }
         }
@@ -688,21 +693,27 @@ data class AddressOf(var identifier: IdentifierReference?, var arrayIndex: Array
         val targetAsmAddress = (target as? Subroutine)?.asmAddress
         if (targetAsmAddress != null) {
             val constAddress = targetAsmAddress.address.constValue(program) ?: return null
-            return NumericLiteral(BaseDataType.UWORD, constAddress.number, position)
+            val address = constAddress.number
+            val addressType = program.target.pointerBaseType
+            if(address < 0.0 || address > addressType.maxUnsignedValue)
+                return null
+            return NumericLiteral(addressType, address, position).also { it.linkParents(this) }
         }
         return null
     }
     override fun referencesIdentifier(nameInSource: List<String>) = identifier?.nameInSource==nameInSource || arrayIndex?.referencesIdentifier(nameInSource)==true || dereference?.referencesIdentifier(nameInSource)==true
     override fun inferType(program: Program): InferredTypes.InferredType {
-        if(!typed)
-            return InferredTypes.knownFor(BaseDataType.UWORD)   // orignal pre-v12 untyped AddressOf
+        if(!typed) {
+            val untypedPointerType = if(program.target.memorySize(BaseDataType.POINTER)>2) BaseDataType.LONG else BaseDataType.UWORD
+            return InferredTypes.knownFor(untypedPointerType)
+        }
         if(identifier!=null) {
             val type = identifier!!.inferType(program).getOrUndef()
-            val addrofDt = type.typeForAddressOf(msb)
+            val addrofDt = type.typeForUntypedAddressOf(msb, program.target)
             return if(addrofDt.isUndefined) InferredTypes.unknown() else InferredTypes.knownFor(addrofDt)
         } else if(dereference!=null) {
             val type = dereference!!.inferType(program).getOrUndef()
-            val addrofDt = type.typeForAddressOf(msb)
+            val addrofDt = type.typeForUntypedAddressOf(msb, program.target)
             return if(addrofDt.isUndefined) InferredTypes.unknown() else InferredTypes.knownFor(addrofDt)
         } else
             throw FatalAstException("invalid addressof")
@@ -898,13 +909,13 @@ class NumericLiteral(val type: BaseDataType,    // only numerical types allowed 
         }
     }
 
-    fun cast(targettype: BaseDataType, implicit: Boolean): ValueAfterCast {
-        val result = internalCast(targettype, implicit)
+    fun cast(targettype: BaseDataType, implicit: Boolean, target: ICompilationTarget): ValueAfterCast {
+        val result = internalCast(targettype, implicit, target)
         result.linkParent(this.parent)
         return result
     }
 
-    private fun internalCast(targettype: BaseDataType, implicit: Boolean): ValueAfterCast {
+    private fun internalCast(targettype: BaseDataType, implicit: Boolean, target: ICompilationTarget): ValueAfterCast {
         // NOTE: do not add targettype.isPointer checks to the other numeric types in the 'when' block below,
         // like in the UBYTE case. It causes an endless loop in the compiler.
 
@@ -935,8 +946,10 @@ class NumericLiteral(val type: BaseDataType,    // only numerical types allowed 
                     return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
                 if(targettype==BaseDataType.LONG)
                     return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
-                if(targettype.isPointer)
-                    return ValueAfterCast(true, null, NumericLiteral(BaseDataType.UWORD, number, position))
+                if(targettype.isPointer) {
+                    val ptrType = target.pointerBaseType
+                    return ValueAfterCast(true, null, NumericLiteral(ptrType, number, position))
+                }
             }
             BaseDataType.BYTE -> {
                 if(targettype==BaseDataType.UBYTE) {
@@ -969,7 +982,7 @@ class NumericLiteral(val type: BaseDataType,    // only numerical types allowed 
                     return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
                 if(targettype==BaseDataType.LONG)
                     return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
-                // note: do not reduce a number casted to a pointer, back to a number...
+                // note: DO NOT reduce a number casted to a pointer, back to a number... that will introduce casting loops
             }
             BaseDataType.WORD -> {
                 if(targettype==BaseDataType.BYTE && number >= -128 && number <=127)
@@ -1022,7 +1035,7 @@ class NumericLiteral(val type: BaseDataType,    // only numerical types allowed 
                             else
                                 ValueAfterCast(true, null, NumericLiteral(targettype, converted, position))
                         }
-                        BaseDataType.LONG if number in 0.0..2.147483647E9 -> {
+                        BaseDataType.LONG if number in 0.0..2147483647.0 -> {
                             val converted = number.toInt().toDouble()
                             return if(implicit && converted!=number)
                                 ValueAfterCast(false, "refused truncating of float to avoid loss of precision", this)
@@ -1065,46 +1078,46 @@ class NumericLiteral(val type: BaseDataType,    // only numerical types allowed 
         return ValueAfterCast(false, "no ${implicit}cast available from $type to $targettype for value $number", null)
     }
 
-    fun convertTypeKeepValue(targetDt: BaseDataType): ValueAfterCast {
+    fun castTypeKeepValue(targetDt: BaseDataType, target: ICompilationTarget): ValueAfterCast {
         if(type==targetDt)
             return ValueAfterCast(true, null, this)
 
         when(type) {
             BaseDataType.UBYTE -> {
                 when(targetDt) {
-                    BaseDataType.BYTE -> if(number<=127.0) return cast(targetDt, false)
-                    BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.LONG, BaseDataType.FLOAT -> return cast(targetDt, false)
-                    BaseDataType.POINTER -> return cast(targetDt, false)
+                    BaseDataType.BYTE -> if(number<=127.0) return cast(targetDt, false, target)
+                    BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.LONG, BaseDataType.FLOAT -> return cast(targetDt, false, target)
+                    BaseDataType.POINTER -> return cast(targetDt, false, target)
                     else -> {}
                 }
             }
             BaseDataType.BYTE -> {
                 when(targetDt) {
-                    BaseDataType.UBYTE, BaseDataType.UWORD -> if(number>=0.0) return cast(targetDt, false)
-                    BaseDataType.WORD, BaseDataType.LONG, BaseDataType.FLOAT -> return cast(targetDt, false)
+                    BaseDataType.UBYTE, BaseDataType.UWORD -> if(number>=0.0) return cast(targetDt, false, target)
+                    BaseDataType.WORD, BaseDataType.LONG, BaseDataType.FLOAT -> return cast(targetDt, false, target)
                     else -> {}
                 }
             }
             BaseDataType.UWORD -> {
                 when(targetDt) {
-                    BaseDataType.UBYTE -> if(number<=255.0) return cast(targetDt, false)
-                    BaseDataType.BYTE -> if(number<=127.0) return cast(targetDt, false)
-                    BaseDataType.WORD -> if(number<=32767.0) return cast(targetDt, false)
-                    BaseDataType.LONG, BaseDataType.FLOAT -> return cast(targetDt, false)
-                    BaseDataType.POINTER -> return cast(targetDt, false)
+                    BaseDataType.UBYTE -> if(number<=255.0) return cast(targetDt, false, target)
+                    BaseDataType.BYTE -> if(number<=127.0) return cast(targetDt, false, target)
+                    BaseDataType.WORD -> if(number<=32767.0) return cast(targetDt, false, target)
+                    BaseDataType.LONG, BaseDataType.FLOAT -> return cast(targetDt, false, target)
+                    BaseDataType.POINTER -> return cast(targetDt, false, target)
                     else -> {}
                 }
             }
             BaseDataType.WORD -> {
                 when(targetDt) {
-                    BaseDataType.UBYTE -> if(number in 0.0..255.0) return cast(targetDt, false)
-                    BaseDataType.BYTE -> if(number in -128.0..127.0) return cast(targetDt, false)
-                    BaseDataType.UWORD -> if(number in 0.0..32767.0) return cast(targetDt, false)
-                    BaseDataType.LONG, BaseDataType.FLOAT -> return cast(targetDt, false)
+                    BaseDataType.UBYTE -> if(number in 0.0..255.0) return cast(targetDt, false, target)
+                    BaseDataType.BYTE -> if(number in -128.0..127.0) return cast(targetDt, false, target)
+                    BaseDataType.UWORD -> if(number in 0.0..32767.0) return cast(targetDt, false, target)
+                    BaseDataType.LONG, BaseDataType.FLOAT -> return cast(targetDt, false, target)
                     else -> {}
                 }
             }
-            BaseDataType.LONG, BaseDataType.FLOAT -> return cast(targetDt, false)
+            BaseDataType.LONG, BaseDataType.FLOAT -> return cast(targetDt, false, target)
             else -> {}
         }
         return ValueAfterCast(false, "no type conversion possible from $type to $targetDt", null)
@@ -1151,7 +1164,7 @@ class CharLiteral private constructor(val value: Char,
     override fun constValue(program: Program): NumericLiteral? {
         if(encoding== Encoding.DEFAULT) // will be determined at a later stage, hopefully
             return null
-        val bytevalue = program.encoding.encodeString(value.toString(), encoding).single()
+        val bytevalue = program.target.encodeString(value.toString(), encoding).single()
         return NumericLiteral(BaseDataType.UBYTE, bytevalue.toDouble(), position)
     }
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
@@ -1262,7 +1275,7 @@ class ArrayLiteral(val type: InferredTypes.InferredType,     // inferred because
                 return if(!loopvarDt.isNumericOrBool)
                     InferredTypes.unknown()
                 else
-                    InferredTypes.knownFor(loopvarDt.getOrUndef().elementToArray())
+                    InferredTypes.knownFor(loopvarDt.getOrUndef().elementToArray(program.target))
             }
         }
 
@@ -1276,31 +1289,35 @@ class ArrayLiteral(val type: InferredTypes.InferredType,     // inferred because
             val unique = dts.toSet()
             if(unique.size==1) {
                 val dt = unique.single()
-                return if(dt.subType!=null)
-                    InferredTypes.knownFor(DataType.arrayOfPointersTo(dt.subType!!))
-                else
-                    InferredTypes.knownFor(DataType.arrayOfPointersTo(dt.sub!!))
+                if(dt.subType!=null) {
+                    val parentDecl = parent as? VarDecl
+                    if(parentDecl!=null && parentDecl.datatype.base==BaseDataType.ARRAY_POINTER)
+                        return InferredTypes.knownFor(DataType.arrayOfPointersTo(dt.subType!!))
+                    return InferredTypes.knownFor(DataType.arrayOfStructs(dt.subType!!))
+                } else
+                    return InferredTypes.knownFor(DataType.arrayOfPointersTo(dt.sub!!))
             }
         }
         return when {
-            dts.any { it.isFloat } -> InferredTypes.knownFor(DataType.arrayFor(BaseDataType.FLOAT))
-            dts.any { it.isString } -> InferredTypes.knownFor(DataType.arrayFor(BaseDataType.UWORD))
-            dts.any { it.isSignedWord } -> InferredTypes.knownFor(DataType.arrayFor(BaseDataType.WORD))
-            dts.any { it.isUnsignedWord } -> InferredTypes.knownFor(DataType.arrayFor(BaseDataType.UWORD))
-            dts.any { it.isSignedByte } -> InferredTypes.knownFor(DataType.arrayFor(BaseDataType.BYTE))
+            dts.any { it.isFloat } -> InferredTypes.knownFor(DataType.arrayFor(BaseDataType.FLOAT, program.target))
+            dts.any { it.isString } -> InferredTypes.knownFor(DataType.arrayFor(BaseDataType.STR, program.target))
+            dts.any { it.isLong } -> InferredTypes.knownFor(DataType.arrayFor(BaseDataType.LONG, program.target))
+            dts.any { it.isSignedWord } -> InferredTypes.knownFor(DataType.arrayFor(BaseDataType.WORD, program.target))
+            dts.any { it.isUnsignedWord } -> InferredTypes.knownFor(DataType.arrayFor(BaseDataType.UWORD, program.target))
+            dts.any { it.isSignedByte } -> InferredTypes.knownFor(DataType.arrayFor(BaseDataType.BYTE, program.target))
             dts.any { it.isBool } -> {
                 if(dts.all { it.isBool})
-                    InferredTypes.knownFor(DataType.arrayFor(BaseDataType.BOOL))
+                    InferredTypes.knownFor(DataType.arrayFor(BaseDataType.BOOL, program.target))
                 else
                     InferredTypes.unknown()
             }
-            dts.any { it.isUnsignedByte } -> InferredTypes.knownFor(DataType.arrayFor(BaseDataType.UBYTE))
-            dts.any { it.isArray } -> InferredTypes.knownFor(DataType.arrayFor(BaseDataType.UWORD))
+            dts.any { it.isUnsignedByte } -> InferredTypes.knownFor(DataType.arrayFor(BaseDataType.UBYTE, program.target))
+            dts.any { it.isArray } -> InferredTypes.knownFor(DataType.arrayFor(BaseDataType.UWORD, program.target))
             else -> InferredTypes.unknown()
         }
     }
 
-    fun cast(targettype: DataType): ArrayLiteral? {
+    fun cast(targettype: DataType, target: ICompilationTarget): ArrayLiteral? {
         if(type istype targettype)
             return this
         if(targettype.isArray) {
@@ -1324,7 +1341,7 @@ class ArrayLiteral(val type: InferredTypes.InferredType,     // inferred because
                     if(!elementType.isNumericOrBool)
                         return null     // only a numeric or boolean array can be casted to another value
                     value.map {
-                        val cast = (it as NumericLiteral).cast(elementType.base, true)
+                        val cast = (it as NumericLiteral).cast(elementType.base, true, target)
                         if(cast.isValid)
                             cast.valueOrZero()
                         else
@@ -1339,7 +1356,7 @@ class ArrayLiteral(val type: InferredTypes.InferredType,     // inferred because
                         is AddressOf -> it
                         is IdentifierReference -> it
                         is NumericLiteral -> {
-                            val numcast = it.cast(elementType.base, true)
+                            val numcast = it.cast(elementType.base, true, target)
                             if(numcast.isValid)
                                 numcast.valueOrZero()
                             else
@@ -1395,18 +1412,18 @@ class RangeExpression(var from: Expression,
         val toDt=to.inferType(program)
         return when {
             !fromDt.isKnown || !toDt.isKnown -> InferredTypes.unknown()
-            fromDt istype DataType.UBYTE && toDt istype DataType.UBYTE -> InferredTypes.knownFor(DataType.arrayFor(BaseDataType.UBYTE))
-            fromDt istype DataType.UWORD && toDt istype DataType.UWORD -> InferredTypes.knownFor(DataType.arrayFor(BaseDataType.UWORD))
+            fromDt istype DataType.UBYTE && toDt istype DataType.UBYTE -> InferredTypes.knownFor(DataType.arrayFor(BaseDataType.UBYTE, program.target))
+            fromDt istype DataType.UWORD && toDt istype DataType.UWORD -> InferredTypes.knownFor(DataType.arrayFor(BaseDataType.UWORD, program.target))
             fromDt istype DataType.STR && toDt istype DataType.STR -> InferredTypes.knownFor(BaseDataType.STR)
-            fromDt istype DataType.WORD || toDt istype DataType.WORD -> InferredTypes.knownFor(DataType.arrayFor(BaseDataType.WORD))
-            fromDt istype DataType.BYTE || toDt istype DataType.BYTE -> InferredTypes.knownFor(DataType.arrayFor(BaseDataType.BYTE))
+            fromDt istype DataType.WORD || toDt istype DataType.WORD -> InferredTypes.knownFor(DataType.arrayFor(BaseDataType.WORD, program.target))
+            fromDt istype DataType.BYTE || toDt istype DataType.BYTE -> InferredTypes.knownFor(DataType.arrayFor(BaseDataType.BYTE, program.target))
             else -> {
                 val fdt = fromDt.getOrUndef()
                 val tdt = toDt.getOrUndef()
                 if(fdt.largerSizeThan(tdt))
-                    InferredTypes.knownFor(fdt.elementToArray())
+                    InferredTypes.knownFor(fdt.elementToArray(program.target))
                 else
-                    InferredTypes.knownFor(tdt.elementToArray())
+                    InferredTypes.knownFor(tdt.elementToArray(program.target))
             }
         }
     }
@@ -1458,7 +1475,11 @@ class MemorySlabRef(val slabName: String, override val position: Position) : Exp
     override val isSimple = true
     override fun copy() = MemorySlabRef(slabName, position)
     override fun constValue(program: Program): NumericLiteral? = null
-    override fun inferType(program: Program): InferredTypes.InferredType = InferredTypes.knownFor(BaseDataType.UWORD)
+    override fun inferType(program: Program): InferredTypes.InferredType {
+         // The address type depends on the target's pointer size.
+        // On 32-bit targets like m68k, this is LONG; on 8-bit targets (6502), it's UWORD.
+        return InferredTypes.knownFor(program.target.pointerBaseType)
+    }
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
     override fun linkParents(parent: Node) { this.parent = parent }
@@ -1582,7 +1603,7 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
         val value = vardecl.value?.constValue(program)
         if(value==null || value.type==vardecl.datatype.base)
             return value
-        val casted = value.cast(vardecl.datatype.base, true)
+        val casted = value.cast(vardecl.datatype.base, true, program.target)
         return if(casted.isValid)
             casted.valueOrZero()
         else
@@ -1796,7 +1817,7 @@ class ContainmentCheck(var element: Expression,
                         val stringval = iterable as StringLiteral
                         if(stringval.encoding== Encoding.DEFAULT)   // will be set at a later stage, hopefully
                             return null
-                        val exists = program.encoding.encodeString(stringval.value, stringval.encoding).contains(elementConst.number.toInt().toUByte() )
+                        val exists = program.target.encodeString(stringval.value, stringval.encoding).contains(elementConst.number.toInt().toUByte() )
                         return NumericLiteral.fromBoolean(exists, position)
                     }
                 }
@@ -1868,8 +1889,14 @@ class IfExpression(var condition: Expression, var truevalue: Expression, var fal
     override fun inferType(program: Program): InferredTypes.InferredType {
         val t1 = truevalue.inferType(program)
         val t2 = falsevalue.inferType(program)
-        if(t1==t2) return t1
-        if(t1.isPointer && t2.isUnsignedWord || t1.isUnsignedWord && t2.isPointer) return InferredTypes.knownFor(BaseDataType.UWORD)
+        if(t1==t2) {
+            if(t1.isString) {
+                // even when the values are STR, the type of the expression is a pointer because you cannot pass strings around by value
+                return InferredTypes.knownFor(DataType.pointer(BaseDataType.UBYTE))
+            }
+            return t1
+        }
+        if(t1.isPointer && t2.isUnsignedWord || t1.isUnsignedWord && t2.isPointer) return InferredTypes.knownFor(program.target.pointerBaseType)
         return InferredTypes.unknown()
     }
 
@@ -1916,7 +1943,7 @@ class BranchConditionExpression(var condition: BranchCondition, var truevalue: E
         val t1 = truevalue.inferType(program)
         val t2 = falsevalue.inferType(program)
         if(t1==t2) return t1
-        if(t1.isPointer && t2.isUnsignedWord || t1.isUnsignedWord && t2.isPointer) return InferredTypes.knownFor(BaseDataType.UWORD)
+        if(t1.isPointer && t2.isUnsignedWord || t1.isUnsignedWord && t2.isPointer) return InferredTypes.knownFor(program.target.pointerBaseType)
         return InferredTypes.unknown()
     }
 
@@ -2216,7 +2243,8 @@ class ArrayIndexedPtrDereference(
 
 class StaticStructInitializer(var structname: IdentifierReference,
                               val args: MutableList<Expression>,
-                              override val position: Position) : Expression() {
+                              override val position: Position,
+                              val isPointer: Boolean = true) : Expression() {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -2225,7 +2253,7 @@ class StaticStructInitializer(var structname: IdentifierReference,
         args.forEach { it.linkParents(this) }
     }
 
-    override fun copy() = StaticStructInitializer(structname.copy(), args.map { it.copy() }.toMutableList(), position)
+    override fun copy() = StaticStructInitializer(structname.copy(), args.map { it.copy() }.toMutableList(), position, isPointer)
     override val isSimple = args.all { it.isSimple }
     override fun isIORead(target: ICompilationTarget) = false
     override fun replaceChildNode(node: Node, replacement: Node) {

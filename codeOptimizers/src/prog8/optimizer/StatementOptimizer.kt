@@ -37,7 +37,10 @@ class StatementOptimizer(private val program: Program,
                 }
                 "pokew" -> {
                     val addrOfIdentifier = (functionCallStatement.args[0] as? AddressOf)?.identifier
-                    if(addrOfIdentifier!=null && (addrOfIdentifier.inferType(program).isWords || addrOfIdentifier.inferType(program).isPointer)) {
+                    val dt = addrOfIdentifier?.inferType(program)
+                    // a pointer variable is 2 bytes only on word-pointer targets; on 4-byte-pointer
+                    // targets the pokew->assignment rewrite is incorrect, handled by the pokel branch instead
+                    if(addrOfIdentifier!=null && dt!=null && (dt.isWords || (dt.isPointer && options.compTarget.POINTER_MEM_SIZE == 2u))) {
                         // pokew(&wordvar, x) --> wordvar=x
                         val target = AssignTarget(addrOfIdentifier, null, null, null, false, position = functionCallStatement.position)
                         val assign = Assignment(target, functionCallStatement.args[1], AssignmentOrigin.OPTIMIZER, functionCallStatement.position)
@@ -46,8 +49,9 @@ class StatementOptimizer(private val program: Program,
                 }
                 "pokel" -> {
                     val addrOfIdentifier = (functionCallStatement.args[0] as? AddressOf)?.identifier
-                    if(addrOfIdentifier!=null && addrOfIdentifier.inferType(program).isLong) {
-                        // pokel(&longvar, x) --> longvar=x
+                    val dt = addrOfIdentifier?.inferType(program)
+                    if(addrOfIdentifier!=null && dt!=null && (dt.isLong || (dt.isPointer && options.compTarget.POINTER_MEM_SIZE == 4u))) {
+                        // pokel(&longvar, x) --> longvar=x   (a 4-byte pointer var is also handled here)
                         val target = AssignTarget(addrOfIdentifier, null, null, null, false, position = functionCallStatement.position)
                         val assign = Assignment(target, functionCallStatement.args[1], AssignmentOrigin.OPTIMIZER, functionCallStatement.position)
                         return listOf(AstReplaceNode(functionCallStatement, assign, parent))
@@ -67,7 +71,8 @@ class StatementOptimizer(private val program: Program,
 
         // printing a literal string of just 2 or 1 characters is replaced by directly outputting those characters
         // only do this optimization if the arg is a known-constant string literal instead of a user defined variable.
-        if(functionCallStatement.target.nameInSource==listOf("txt", "print")) {
+        // only on 6502 targets.
+        if(options.compTarget.cpu.is6502 && functionCallStatement.target.nameInSource==listOf("txt", "print")) {
             val arg = functionCallStatement.args.single()
             val stringVar: IdentifierReference? = if(arg is AddressOf) {
                 if(arg.arrayIndex==null) {
@@ -311,23 +316,27 @@ class StatementOptimizer(private val program: Program,
                         return listOf(AstSwapOperands(rExpr))
                     }
 
-                    val rNum = (rExpr.right as? NumericLiteral)?.number
-                    if(rNum!=null) {
-                        if ((op1 == "+" || op1 == "-") && (op2 == "+" || op2 == "-")) {
-                            // A = A op1 (B op2 N)  --->  A = A op1 B  ;  A = A secondOp N
-                            // only valid for additive operators (op2 must be + or -).
-                            // secondOp keeps the combined expression equivalent:
-                            //   A+(B+N)=A+N,  A+(B-N)=A-N,  A-(B+N)=A-N,  A-(B-N)=A+N
-                            val secondOp = if (op1 == "+") op2 else if (op2 == "+") "-" else "+"
-                            val expr2 = BinaryExpression(binExpr.left, binExpr.operator, rExpr.left, binExpr.position)
-                            val opConstant = Assignment(
+                    if(options.compTarget.cpu.is6502) {
+                        val rNum = (rExpr.right as? NumericLiteral)?.number
+                        if (rNum != null) {
+                            if ((op1 == "+" || op1 == "-") && (op2 == "+" || op2 == "-")) {
+                                // A = A op1 (B op2 N)  --->  A = A op1 B  ;  A = A secondOp N
+                                // only valid for additive operators (op2 must be + or -).
+                                // secondOp keeps the combined expression equivalent:
+                                //   A+(B+N)=A+N,  A+(B-N)=A-N,  A-(B+N)=A-N,  A-(B-N)=A+N
+                                val secondOp = if (op1 == "+") op2 else if (op2 == "+") "-" else "+"
+                                val expr2 =
+                                    BinaryExpression(binExpr.left, binExpr.operator, rExpr.left, binExpr.position)
+                                val opConstant = Assignment(
                                     assignment.target.copy(),
                                     BinaryExpression(binExpr.left.copy(), secondOp, rExpr.right, binExpr.position),
                                     AssignmentOrigin.OPTIMIZER, assignment.position
-                            )
-                            return listOf(
+                                )
+                                return listOf(
                                     AstReplaceNode(binExpr, expr2, binExpr.parent),
-                                    AstInsert.after(assignment, opConstant, parent as IStatementContainer))
+                                    AstInsert.after(assignment, opConstant, parent as IStatementContainer)
+                                )
+                            }
                         }
                     }
                 }
@@ -403,7 +412,7 @@ class StatementOptimizer(private val program: Program,
             }
 
             // pointer arithmetic for 6502 target
-            if (options.compTarget.cpu != CpuType.VIRTUAL) {
+            if (options.compTarget.cpu.is6502) {
                 if(bexpr.operator=="+" && !bexpr.right.isSimple && !assignment.isAugmentable) {
                     if(targetIDt.isUnsignedWord || targetIDt.getOrUndef().isPointerToByte) {
                         val leftDt = bexpr.left.inferType(program).getOrUndef()
@@ -447,33 +456,6 @@ class StatementOptimizer(private val program: Program,
                     val and255 = BinaryExpression(fcall.args[0], "&", NumericLiteral(BaseDataType.UWORD, 255.0, fcall.position), fcall.position)
                     val newAssign = Assignment(assignment.target, and255, AssignmentOrigin.OPTIMIZER, fcall.position)
                     return listOf(AstReplaceNode(assignment, newAssign, parent))
-                }
-            }
-        }
-
-        // xx+=2 -> xx++ xx++
-        // note: ideally this optimization should be done by the code generator, but doing it there
-        // requires doing it multiple times (because lots of different things can be incremented/decremented)
-        if(assignment.target.identifier!=null
-            || assignment.target.arrayindexed?.isSimple==true
-            || assignment.target.memoryAddress?.addressExpression?.isSimple==true) {
-            if(assignment.value.inferType(program).isBytes && assignment.isAugmentable) {
-                val binExpr = assignment.value as? BinaryExpression
-                if(binExpr!=null) {
-                    if(binExpr.operator in "+-") {
-                        val value = binExpr.right.constValue(program)?.number?.toInt()
-                        if(value!=null && value==2) {
-                            val stmts = mutableListOf<Statement>()
-                            repeat(value) {
-                                val incrdecr = Assignment(assignment.target.copy(),
-                                    BinaryExpression(assignment.target.toExpression(), binExpr.operator, NumericLiteral.optimalInteger(1, assignment.position), assignment.position),
-                                    AssignmentOrigin.OPTIMIZER, assignment.position)
-                                stmts.add(incrdecr)
-                            }
-                            val incrdecrs = AnonymousScope(stmts, assignment.position)
-                            return listOf(AstReplaceNode(assignment, incrdecrs, parent))
-                        }
-                    }
                 }
             }
         }

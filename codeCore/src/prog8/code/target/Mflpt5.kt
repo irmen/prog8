@@ -9,7 +9,7 @@ data class Mflpt5(val b0: UByte, val b1: UByte, val b2: UByte, val b3: UByte, va
     companion object {
         const val FLOAT_MAX_POSITIVE = 1.7014118345e+38         // bytes: 255,127,255,255,255
         const val FLOAT_MAX_NEGATIVE = -1.7014118345e+38        // bytes: 255,255,255,255,255
-        const val FLOAT_MEM_SIZE = 5
+        const val FLOAT_MEM_SIZE = 5u
 
         val zero = Mflpt5(0u, 0u, 0u, 0u, 0u)
         fun fromNumber(num: Number): Mflpt5 {

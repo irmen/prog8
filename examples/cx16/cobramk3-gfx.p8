@@ -149,18 +149,19 @@ matrix_math {
         word wcosc = math.cos8(az)
         word wsinc = math.sin8(az)
 
-        word wcosa_sinb = wcosa*wsinb  >> 7
-        word wsina_sinb = wsina*wsinb  >> 7
+        ; instead of (slow) /128, we simply shift 7 bits (and take the roundoff error)
+        word wcosa_sinb = wcosa*wsinb >> 7
+        word wsina_sinb = wsina*wsinb >> 7
 
-        word Axx = wcosa*wcosb  >> 7
-        word Axy = (wcosa_sinb*wsinc - wsina*wcosc)  >> 7
-        word Axz = (wcosa_sinb*wcosc + wsina*wsinc)  >> 7
-        word Ayx = wsina*wcosb  >> 7
-        word Ayy = (wsina_sinb*wsinc + wcosa*wcosc)  >> 7
-        word Ayz = (wsina_sinb*wcosc - wcosa*wsinc)  >> 7
+        word Axx = wcosa*wcosb >> 7
+        word Axy = (wcosa_sinb*wsinc - wsina*wcosc) >> 7
+        word Axz = (wcosa_sinb*wcosc + wsina*wsinc) >> 7
+        word Ayx = wsina*wcosb >> 7
+        word Ayy = (wsina_sinb*wsinc + wcosa*wcosc) >> 7
+        word Ayz = (wsina_sinb*wcosc - wcosa*wsinc) >> 7
         word Azx = -wsinb
-        word Azy = wcosb*wsinc  >> 7
-        word Azz = wcosb*wcosc  >> 7
+        word Azy = wcosb*wsinc >> 7
+        word Azz = wcosb*wcosc >> 7
 
         ubyte @zp i
         for i in 0 to shipdata.totalNumberOfPoints-1 {
@@ -187,6 +188,7 @@ matrix_math {
         edgePointsIdx++
         ubyte p3 = shipdata.facesPoints[edgePointsIdx]
 
+        ; instead of (slow) /128, we simply shift 7 bits (and take the roundoff error)
         word p1x = rotatedx[p1] >> 7
         word p1y = rotatedy[p1] >> 7
         word p2x = rotatedx[p2] >> 7

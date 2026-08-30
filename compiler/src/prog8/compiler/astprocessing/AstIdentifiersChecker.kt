@@ -120,8 +120,12 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
             errors.err("builtin function cannot be redefined", struct.position)
         else if(struct.name in keywords)
             errors.err("struct name cannot be a keyword", struct.position)
-        
-        
+
+        struct.fields.forEach { field ->
+            if(field.type.isArray && field.type.sub==BaseDataType.STRUCT_INSTANCE)
+                errors.err("arrays of struct instances are currently not supported as struct fields at '${field.name}'", struct.position)
+        }
+
         super.visit(struct)
     }
 
@@ -225,12 +229,13 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
                     }
                     continue
                 }
-                
+
                 if (field.isArray) {
-                    // Expecting array for array field
-                    if (arg !is ArrayLiteral) {
-                         errors.err("Array field '${field.name}' must be initialized with an array literal", arg.position)
-                    }
+                    // Expecting array (or, for sized ubyte/byte arrays, a string literal) for array field
+                    if (arg is ArrayLiteral) continue
+                    if (arg is StringLiteral && field.type.isByteArray)
+                        continue
+                    errors.err("Array field '${field.name}' must be initialized with an array literal (or a string literal for ubyte/byte arrays)", arg.position)
                 } else {
                     // Expecting scalar for scalar field
                     if (arg is ArrayLiteral) {
@@ -266,8 +271,10 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
                     }
                 }
                 is VarDecl -> {
-                    if(target.type!=VarDeclType.VAR || !target.datatype.isUnsignedWord)
-                        errors.err("wrong address variable datatype, expected uword", call.target.position)
+                    val isAddressType = target.datatype.isUnsignedWord ||
+                        (compTarget.POINTER_MEM_SIZE > 2u && target.datatype.isLong)
+                    if(target.type!=VarDeclType.VAR || !isAddressType)
+                        errors.err("wrong address variable datatype, expected ${if(compTarget.POINTER_MEM_SIZE > 2u) "long" else "uword"}", call.target.position)
                 }
                 is Alias -> {
                     val actualtarget = target.target.targetStatement(program.builtinFunctions)

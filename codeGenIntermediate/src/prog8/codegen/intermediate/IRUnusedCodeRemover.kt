@@ -1,6 +1,7 @@
 package prog8.codegen.intermediate
 
 import prog8.code.core.IErrorReporter
+import prog8.intermediate.indexRegType
 import prog8.intermediate.*
 
 
@@ -11,9 +12,13 @@ class IRUnusedCodeRemover(
     fun optimize(): Int {
         var numRemoved = removeUnusedSubroutines() + removeUnusedAsmSubroutines()
 
-        // remove empty blocks
+        // remove empty blocks (but keep blocks with %option force_output,
+        // and also blocks that contain labels -- labels are addressable symbols,
+        // and blocks that still have variables in the symbol table -- a block with variables is not truly empty)
         irprog.blocks.reversed().forEach { block ->
-            if(block.isEmpty()) {
+            val hasLabels = block.children.any { it.label != null }
+            val hasVariables = irprog.st.allVariables().any { it.name.startsWith(block.label + ".") }
+            if(!hasLabels && !hasVariables && block.isEmpty() && !block.options.forceOutput) {
                 irprog.blocks.remove(block)
                 pruneSymboltable(block.label)
                 numRemoved++
@@ -76,6 +81,7 @@ class IRUnusedCodeRemover(
         }
 
         // remove stray loads
+        val indexRegType = irprog.options.compTarget.indexRegType
         val readRegs = mutableSetOf<Int>()
         val readFpRegs = mutableSetOf<Int>()
         instructions.forEach { ins ->
@@ -84,7 +90,7 @@ class IRUnusedCodeRemover(
             val writeRegsCounts = mutableMapOf<RegisterNum, Int>()
             val writeFpRegsCounts = mutableMapOf<RegisterNum, Int>()
             val regsTypes = mutableMapOf<RegisterNum, IRDataType>()
-            ins.addUsedRegistersCounts(readRegsCounts, writeRegsCounts, readFpRegsCounts, writeFpRegsCounts, regsTypes, null)
+            ins.addUsedRegistersCounts(readRegsCounts, writeRegsCounts, readFpRegsCounts, writeFpRegsCounts, regsTypes, null, indexRegType)
             readRegs.addAll(readRegsCounts.keys.map { it.value })
             readFpRegs.addAll(readFpRegsCounts.keys.map { it.value })
         }
@@ -312,7 +318,7 @@ class IRUnusedCodeRemover(
             // don't remove stuff in library modules or with %forceoutput
             // TODO this is needed to keep the subroutine body of sqrt_long from being wiped !??!   Sounds like the bad solution to the problem: why is the *body* being cleared , making an empty sqrt_long subrotuine end up in the p8ir output (and eventually in the .asm, which crashes the resulting program) 
             // TODO this causes other stuff to end up in the output IR that is not used......
-            // note: this wasn't a problem on the virtual target, but it is a problem when using the expericodegen target (because on the virtual target, the VM simply executes the SQRT instruction directly without needing a library routine)
+            // note: this wasn't a problem on the virtual target, but it is a problem when using the newcodegen targets (because on the virtual target, the VM simply executes the SQRT instruction directly without needing a library routine)
             val block = irprog.blocks.first { b -> b.children.any { it === sub } }
             if (block.library || block.options.forceOutput)
                 return@foreachSub

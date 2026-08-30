@@ -26,6 +26,21 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
     private fun outputlni(s: Any) = outputln(indent(s.toString()))
     private fun outputi(s: Any) = output(indent(s.toString()))
 
+    private fun outputBlockComment(comment: String?) {
+        if(comment != null) {
+            val lines = comment.lines()
+            val commonIndent = lines.drop(1)
+                .filter { it.isNotBlank() }
+                .map { it.takeWhile { ch -> ch == ' ' || ch == '\t' }.length }
+                .minOrNull() ?: 0
+            output(lines.first())
+            output("\n")
+            lines.drop(1).forEach { line ->
+                outputln(indent(line.drop(commonIndent)))
+            }
+        }
+    }
+
     override fun visit(program: Program) {
         outputln("; ============ PROGRAM ${program.name} (FROM AST) ==============")
         super.visit(program)
@@ -45,6 +60,7 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
             outputln("; library block skipped: ${block.name}")
             return
         }
+        outputBlockComment(block.blockComment)
         val addr = if(block.address!=null) block.address.toHex() else ""
         outputln("${block.name} $addr {")
         scopelevel++
@@ -127,8 +143,14 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
         if(decl.origin==VarDeclOrigin.SUBROUTINEPARAM)
             return
 
-        if(decl.isPrivate)
+        if(decl.blockComment != null) {
+            outputBlockComment(decl.blockComment)
+            outputi("")
+        }
+        if(decl.visibility == Visibility.PRIVATE)
             output("private ")
+        else if(decl.visibility == Visibility.PUBLIC)
+            output("public ")
 
         when(decl.type) {
             VarDeclType.VAR -> {}
@@ -190,8 +212,10 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
     }
 
     override fun visit(struct: StructDecl) {
-        if(struct.isPrivate)
+        if(struct.visibility == Visibility.PRIVATE)
             output("private ")
+        else if(struct.visibility == Visibility.PUBLIC)
+            output("public ")
         outputln("struct ${struct.name} {")
         for(member in struct.fields) {
             val arraySuffix = if(member.isArray) "[${member.arraySize}]" else ""
@@ -201,8 +225,10 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
     }
 
     override fun visit(enum: Enumeration) {
-        if(enum.isPrivate)
+        if(enum.visibility == Visibility.PRIVATE)
             output("private ")
+        else if(enum.visibility == Visibility.PUBLIC)
+            output("public ")
         output("enum ${enum.name} { ")
         for(member in enum.members) {
             output(member.first)
@@ -215,10 +241,15 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
     }
 
     override fun visit(subroutine: Subroutine) {
-        output("\n")
+        if(subroutine.blockComment != null)
+            outputBlockComment(subroutine.blockComment)
+        else
+            output("\n")
         outputi("")
-        if(subroutine.isPrivate)
+        if(subroutine.visibility == Visibility.PRIVATE)
             output("private ")
+        else if(subroutine.visibility == Visibility.PUBLIC)
+            output("public ")
         if(subroutine.inline)
             output("inline ")
         if(subroutine.isAsmSubroutine) {
@@ -430,9 +461,15 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
 
     override fun visit(forLoop: ForLoop) {
         output("for ")
+        if (forLoop.loopVarType != null)
+            output(forLoop.loopVarType!!.sourceString() + " ")
         forLoop.loopVar.accept(this)
         output(" in ")
         forLoop.iterable.accept(this)
+        if(forLoop.step!=null) {
+            output(" step ")
+            forLoop.step!!.accept(this)
+        }
         output(" ")
         forLoop.body.accept(this)
     }
@@ -496,6 +533,7 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
             assignTarget.arrayindexed?.accept(this)
             assignTarget.pointerDereference?.accept(this)
             assignTarget.arrayIndexedDereference?.accept(this)
+            assignTarget.dotExpression?.accept(this)
             val multi = assignTarget.multi
             if (multi != null) {
                 multi.dropLast(1).forEach { target ->
@@ -591,8 +629,10 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
     }
 
     override fun visit(alias: Alias) {
-        if(alias.isPrivate)
+        if(alias.visibility == Visibility.PRIVATE)
             output("private ")
+        else if(alias.visibility == Visibility.PUBLIC)
+            output("public ")
         output("alias ${alias.alias} = ${alias.target.nameInSource.joinToString(".")}")
     }
 
@@ -638,7 +678,7 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
     }
 
     override fun visit(initializer: StaticStructInitializer) {
-        output("^^")
+        if(initializer.isPointer) output("^^")
         initializer.structname.accept(this)
         output(" : ")
         outputListMembers(initializer.args.toTypedArray())

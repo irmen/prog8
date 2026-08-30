@@ -62,7 +62,7 @@ fun prefixSymbols(program: PtProgram, options: CompilationOptions, st: SymbolTab
                     }
                 }
                 var lookupName = node.name
-                if(node.type.isSplitWordArray && (lookupName.endsWith("_lsb") || lookupName.endsWith("_msb"))) {
+                if(node.type.isSplitWordArray(program.target) && (lookupName.endsWith("_lsb") || lookupName.endsWith("_msb"))) {
                     lookupName = lookupName.dropLast(4)
                 }
                 val stNode = st.lookup(lookupName) ?:
@@ -103,7 +103,7 @@ fun prefixSymbols(program: PtProgram, options: CompilationOptions, st: SymbolTab
         }
         else if (node is PtIdentifier) {
             var lookupName = node.name
-            if(node.type.isSplitWordArray && (lookupName.endsWith("_lsb") || lookupName.endsWith("_msb"))) {
+            if(node.type.isSplitWordArray(program.target) && (lookupName.endsWith("_lsb") || lookupName.endsWith("_msb"))) {
                 lookupName = lookupName.dropLast(4)
             }
             val stNode = st.lookup(lookupName) ?: throw AssemblyError("unknown identifier $node")
@@ -259,7 +259,7 @@ fun PtVariable.prefixVariable(parent: PtNode, st: SymbolTable): PtVariable {
                 else -> throw AssemblyError("weird array value element $elt")
             }
         }
-        val result = PtVariable(name, type, zeropage, align, dirty, newValue, arraySize, position)
+        val result = PtVariable(name, type, isSplitWordArray, zeropage, align, dirty, newValue, arraySize, position)
         result.parent = parent
         result
     }

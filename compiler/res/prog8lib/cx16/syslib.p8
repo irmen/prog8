@@ -498,17 +498,17 @@ extsub $ff41 = GRAPH_put_next_char(ubyte character @A)  clobbers(A,X,Y)     ; al
 ; framebuffer
 extsub $fef6 = FB_init()  clobbers(A,X,Y)
 extsub $fef9 = FB_get_info()  clobbers(X,Y) -> byte @A, uword @R0, uword @R1    ; width=r0, height=r1
-extsub $fefc = FB_set_palette(uword pointer @R0, ubyte index @A, ubyte colorcount @X)  clobbers(A,X,Y)      ; note: palette array must be @nosplit
+extsub $fefc = FB_set_palette(uword ptr @R0, ubyte index @A, ubyte colorcount @X)  clobbers(A,X,Y)      ; note: palette array must be @nosplit
 extsub $feff = FB_cursor_position(uword x @R0, uword y @R1)  clobbers(A,X,Y)
 extsub $ff02 = FB_cursor_next_line(uword x @R0)  clobbers(A,X,Y)
 extsub $ff05 = FB_get_pixel()  clobbers(X,Y) -> ubyte @A
-extsub $ff08 = FB_get_pixels(uword pointer @R0, uword count @R1)  clobbers(A,X,Y)
+extsub $ff08 = FB_get_pixels(uword ptr @R0, uword count @R1)  clobbers(A,X,Y)
 extsub $ff0b = FB_set_pixel(ubyte color @A)  clobbers(A,X,Y)
-extsub $ff0e = FB_set_pixels(uword pointer @R0, uword count @R1)  clobbers(A,X,Y)
+extsub $ff0e = FB_set_pixels(uword ptr @R0, uword count @R1)  clobbers(A,X,Y)
 extsub $ff11 = FB_set_8_pixels(ubyte pattern @A, ubyte color @X)  clobbers(A,X,Y)
 extsub $ff14 = FB_set_8_pixels_opaque(ubyte pattern @R0, ubyte mask @A, ubyte color1 @X, ubyte color2 @Y)  clobbers(A,X,Y)
 extsub $ff17 = FB_fill_pixels(uword count @R0, uword pstep @R1, ubyte color @A)  clobbers(A,X,Y)
-extsub $ff1a = FB_filter_pixels(uword pointer @ R0, uword count @R1)  clobbers(A,X,Y)
+extsub $ff1a = FB_filter_pixels(uword ptr @ R0, uword count @R1)  clobbers(A,X,Y)
 extsub $ff1d = FB_move_pixels(uword sx @R0, uword sy @R1, uword tx @R2, uword ty @R3, uword count @R4)  clobbers(A,X,Y)
 
 ; misc
@@ -526,7 +526,7 @@ extsub $feed = memory_decompress(uword input @R0, uword output @R1)  clobbers(A,
 extsub $fedb = console_init(uword x @R0, uword y @R1, uword width @R2, uword height @R3)  clobbers(A,X,Y)
 extsub $fede = console_put_char(ubyte character @A, bool wrapping @Pc)  clobbers(A,X,Y)
 extsub $fee1 = console_get_char()  clobbers(X,Y) -> ubyte @A
-extsub $fed8 = console_put_image(uword pointer @R0, uword width @R1, uword height @R2)  clobbers(A,X,Y)
+extsub $fed8 = console_put_image(uword ptr @R0, uword width @R1, uword height @R2)  clobbers(A,X,Y)
 extsub $fed5 = console_set_paging_message(uword msgptr @R0)  clobbers(A,X,Y)
 extsub $fecf = entropy_get() -> ubyte @A, ubyte @X, ubyte @Y
 ;; extsub $fea8 = extapi16(ubyte callnumber @A) clobbers (A,X,Y)    ; not useful yet because is for 65816 cpu
@@ -1947,7 +1947,7 @@ _larger
     }
 
     asmsub exit(ubyte returnvalue @A) {
-        ; -- immediately exit the program with a return code in the A register
+        ; -- exit the program with a return code in A. When invoked from Prog8 via sys.exit(), all active defers in the call chain are unwound program-wide (LIFO) before system cleanup. sys.reset_system()/poweroff_system() do not run defers.
         %asm {{
             sta  p8_sys_startup.cleanup_at_exit._exitcode
             ldx  prog8_lib.orig_stackpointer
@@ -1957,7 +1957,7 @@ _larger
     }
 
     asmsub exit2(ubyte resulta @A, ubyte resultx @X, ubyte resulty @Y) {
-        ; -- immediately exit the program with result values in the A, X and Y registers.
+        ; -- exit the program with result values in A, X and Y. When invoked from Prog8 via sys.exit2(), all active defers are unwound program-wide (LIFO) before system cleanup.
         %asm {{
             sta  p8_sys_startup.cleanup_at_exit._exitcode
             stx  p8_sys_startup.cleanup_at_exit._exitcodeX
@@ -1969,7 +1969,7 @@ _larger
     }
 
     asmsub exit3(ubyte resulta @A, ubyte resultx @X, ubyte resulty @Y, bool carry @Pc) {
-        ; -- immediately exit the program with result values in the A, X and Y registers, and the Carry flag in the status register.
+        ; -- exit the program with result values in A, X, Y and carry. When invoked from Prog8 via sys.exit3(), all active defers are unwound program-wide (LIFO) before system cleanup.
         %asm {{
             sta  p8_sys_startup.cleanup_at_exit._exitcode
             lda  #0

@@ -4,35 +4,41 @@ import prog8.code.core.BaseDataType
 import prog8.code.core.DataType
 import prog8.code.core.IMemSizer
 
-internal class NormalMemSizer(val floatsize: Int): IMemSizer {
+internal class NormalMemSizer(override val FLOAT_MEM_SIZE: UInt, override val POINTER_MEM_SIZE: UInt): IMemSizer {
 
+    private val pointerSize = POINTER_MEM_SIZE.toInt()
+    private val floatSize = FLOAT_MEM_SIZE.toInt()
+    
     override fun memorySize(dt: DataType, numElements: Int?): Int {
         if(dt.isPointerArray)
-            return 2 * numElements!!        // array of pointers is just array of uwords
+            return pointerSize * numElements!!        // array of pointers
         else if(dt.isArray) {
-            if(numElements==null) return 2      // treat it as a pointer size
+            if(numElements==null) return pointerSize      // treat it as a pointer size
             return when(dt.sub) {
                 BaseDataType.BOOL, BaseDataType.UBYTE, BaseDataType.BYTE -> numElements
-                BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.STR -> numElements * 2
+                BaseDataType.UWORD, BaseDataType.WORD  -> numElements * 2
+                BaseDataType.STR, BaseDataType.POINTER -> numElements * pointerSize
                 BaseDataType.LONG -> numElements * 4
-                BaseDataType.FLOAT-> numElements * floatsize
+                BaseDataType.FLOAT-> numElements * floatSize
+                BaseDataType.STRUCT_INSTANCE -> numElements * (dt.subType?.memsize(this) ?: throw IllegalArgumentException("struct instance array has unresolved subtype"))
                 BaseDataType.UNDEFINED -> throw IllegalArgumentException("undefined has no memory size")
                 else -> throw IllegalArgumentException("invalid sub type")
             }
         }
         else if (dt.isString) {
             return numElements        // treat it as the size of the given string with the length
-                ?: 2    // treat it as the size to store a string pointer
+                ?: pointerSize    // treat it as the size to store a string pointer
         }
 
         return when {
             dt.isByteOrBool -> 1 * (numElements ?: 1)
-            dt.isFloat -> floatsize * (numElements ?: 1)
+            dt.isFloat -> floatSize * (numElements ?: 1)
             dt.isLong -> 4 * (numElements ?: 1)
-            dt.isPointer -> 2  // pointer is just a uword
-            dt.isStructInstance -> dt.subType?.memsize(this) ?: 0
+            dt.isWord -> 2 * (numElements ?: 1)
+            dt.isPointer -> pointerSize * (numElements ?: 1)
+            dt.isStructInstance -> dt.subType?.memsize(this) ?: throw IllegalArgumentException("struct instance has unresolved subtype")
             dt.isUndefined -> throw IllegalArgumentException("undefined has no memory size")
-            else -> 2 * (numElements ?: 1)
+            else -> throw IllegalArgumentException("invalid dt $dt")
         }
     }
 

@@ -388,7 +388,7 @@ $label .byte  0    ; modified"""
                     }
                 val src = if(value.type.isPassByRef) {
                     if(value is PtIdentifier || value is PtPointerDeref) {
-                        val addr = PtAddressOf(value.type.typeForAddressOf(false), false, value.position)
+                        val addr = PtAddressOf(value.type.typeForUntypedAddressOf(false, program.memsizer), false, value.position)
                         addr.add(value)
                         addr.parent = scope as PtNode
                         AsmAssignSource.fromAstSource(addr, program, asmgen).adjustSignedUnsigned(target)

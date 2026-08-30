@@ -3,7 +3,6 @@ package prog8.codegen.intermediate
 import prog8.code.*
 import prog8.code.ast.PtStructField
 import prog8.intermediate.*
-import kotlin.collections.flatMap
 
 /**
  * Converter object for transforming SymbolTable nodes to IR symbol table nodes.
@@ -112,13 +111,14 @@ private class StToIrConverter(val romable: Boolean) {
                 constant.name
             }
         }
+        val noPrefix = constant.astNode?.definingBlock()?.options?.noSymbolPrefixing == true
         if(constant.value != null)
-            return IRStConstant(scopedName, constant.dt, constant.value)
+            return IRStConstant(scopedName, constant.dt, constant.value, noPrefix = noPrefix)
         else if(constant.memorySlab != null) {
             // For memory() constants, store reference to slab name
             // The actual address will be resolved during code generation
             val slabName = constant.memorySlab!!.name
-            return IRStConstant(scopedName, constant.dt, null, slabName)
+            return IRStConstant(scopedName, constant.dt, null, slabName, noPrefix)
         }
         else
             TODO("constant without value or memory slab: $constant")

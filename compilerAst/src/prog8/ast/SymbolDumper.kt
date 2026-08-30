@@ -16,6 +16,46 @@ fun printSymbols(program: Program) {
     println()
 }
 
+fun printDocumentation(program: Program) {
+    DocumentationDumper().visit(program)
+}
+
+private class DocumentationDumper : IAstVisitor {
+    private fun printNode(kind: String, name: String, comment: String?, position: Position) {
+        if(comment?.startsWith("/**") == true) {
+            val documentation = comment.removePrefix("/**").removeSuffix("*/").trimIndent()
+            if(documentation.isBlank())
+                return
+            println("$kind $name $position")
+            println(documentation)
+            println()
+        }
+    }
+
+    override fun visit(block: Block) {
+        printNode("BLOCK", block.name, block.blockComment, block.position)
+        super.visit(block)
+    }
+
+    override fun visit(decl: VarDecl) {
+        printNode("VARIABLE", decl.name, decl.blockComment, decl.position)
+        super.visit(decl)
+    }
+
+    override fun visit(subroutine: Subroutine) {
+        printNode("SUBROUTINE", subroutine.name, subroutine.blockComment, subroutine.position)
+        super.visit(subroutine)
+    }
+
+    override fun visit(struct: StructDecl) {
+        printNode("STRUCT", struct.name, struct.blockComment, struct.position)
+    }
+
+    override fun visit(enum: Enumeration) {
+        printNode("ENUM", enum.name, enum.blockComment, enum.position)
+    }
+}
+
 
 private class SymbolDumper(val skipLibraries: Boolean): IAstVisitor {
     private val moduleOutputs = mutableMapOf<Module, MutableList<String>>()
@@ -69,13 +109,7 @@ private class SymbolDumper(val skipLibraries: Boolean): IAstVisitor {
     override fun visit(block: Block) {
         val statements = block.statements
             .filter{ it is Subroutine || it is Alias || it is VarDecl || it is StructDecl || it is Enumeration }
-            .filter {
-                when (it) {
-                    is VarDecl -> !it.isPrivate
-                    is Subroutine -> !it.isPrivate
-                    else -> true
-                }
-            }
+            .filter { isVisible(it, block) }
         val vars = statements.filterIsInstance<VarDecl>()
         val subsAndAliases = statements.filter { it is Subroutine || it is Alias }
         val structs = statements.filterIsInstance<StructDecl>()
@@ -119,7 +153,7 @@ private class SymbolDumper(val skipLibraries: Boolean): IAstVisitor {
         if(decl.origin==VarDeclOrigin.SUBROUTINEPARAM)
             return
 
-        if(decl.isPrivate)
+        if(!isVisible(decl, decl.definingBlock))
             return
 
         when(decl.type) {
@@ -151,7 +185,7 @@ private class SymbolDumper(val skipLibraries: Boolean): IAstVisitor {
     }
 
     override fun visit(subroutine: Subroutine) {
-        if(subroutine.isPrivate)
+        if(!isVisible(subroutine, subroutine.definingBlock))
             return
 
         if(subroutine.isAsmSubroutine) {
@@ -216,15 +250,37 @@ private class SymbolDumper(val skipLibraries: Boolean): IAstVisitor {
     }
 
     override fun visit(alias: Alias) {
+        if(!isVisible(alias, alias.definingBlock))
+            return
         output("${alias.alias}   alias for: ${alias.target.nameInSource.joinToString(".")}\n")
     }
 
     override fun visit(struct: StructDecl) {
+        if(!isVisible(struct, struct.definingBlock))
+            return
         output("struct ${struct.name}\n")
     }
 
     override fun visit(enum: Enumeration) {
+        if(!isVisible(enum, enum.definingBlock))
+            return
         output("enum ${enum.name}\n")
+    }
+
+    private fun isVisible(statement: Statement, block: Block): Boolean {
+        val visibility = when (statement) {
+            is Alias -> statement.visibility
+            is VarDecl -> statement.visibility
+            is StructDecl -> statement.visibility
+            is Enumeration -> statement.visibility
+            is Subroutine -> statement.visibility
+            else -> null
+        }
+        if (visibility == Visibility.PRIVATE)
+            return false
+        if (visibility == Visibility.PUBLIC)
+            return true
+        return "private_symbols" !in block.options() && "private_symbols" !in currentModule.options()
     }
 
     private fun formatSignature(sig: FSignature): String {

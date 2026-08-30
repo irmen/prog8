@@ -8,7 +8,7 @@
 ; an example that displays and then moves many sprites at once.
 
 main {
-    const long SPRITE_DATA = $12000
+    const SPRITE_DATA = $12000
     const ubyte SPRITE_PALETTE_OFFSET = 1      ; sprite palette at color index 16
 
     const ubyte NUM_DRAGONS = 25

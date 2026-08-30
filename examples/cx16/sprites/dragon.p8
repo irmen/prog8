@@ -8,7 +8,7 @@
 ; an example that displays and moves a single dragon (actually 2 sprites).
 
 main {
-    const long SPRITE_DATA = $12000
+    const SPRITE_DATA = $12000
     const ubyte SPRITE_PALETTE_OFFSET = 1       ; sprite palette at color index 16
 
     sub start() {

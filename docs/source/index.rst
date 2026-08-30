@@ -8,11 +8,13 @@ Prog8 documentation - |version|
 |
 |
 
-Prog8 is a compiled programming language targeting the 8-bit 6502 CPU family.
+Prog8 is a compiled programming language targeting the 8-bit 6502 CPU family,
+as well as the 32-bit Motorola 68000 CPU.
 It aims to provide many conveniences over raw assembly code (even when using a macro assembler),
 while still being low level enough to create high performance programs.
 
-Supported target systems are Commodores (C64, C128, PET), Commander X16, and others.
+Supported target systems are Commodores (C64, C128, PET), Commander X16,
+the Commodore Amiga (32-bit 68000, via the amiga500 target), the Qemu M68k simulator (qemu68k), and others.
 
 Get the compiler here :ref:`downloading`.
 

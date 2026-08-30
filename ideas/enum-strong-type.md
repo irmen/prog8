@@ -37,6 +37,16 @@ Currently, `Enumeration` nodes in the `compilerAst` are lowered into standard co
 ### Underlying Integer Type
 The enum's underlying integer type is inferred from the member values, reusing the existing logic in `Antlr2KotlinVisitor.kt` that computes the `largestType` across all members. No new syntax needed — if a member exceeds 255 the type automatically widens from `ubyte` to `uword`, matching current behavior.
 
+### Cons
+
+- **Breaking change for existing code**: Every `Priority::LOW` passed to a `ubyte` param, stored in a `ubyte` variable, or used in arithmetic/comparison now requires `as ubyte` (or `as Priority` the other way). Stdlib and user programs that treated enums as plain constants will not compile without mass edits. The verbosity outweighs the safety gain for Prog8's target domain (small 8-bit programs where enums are often just named numbers).
+- **Limited practical safety gain**: Enums in Prog8 are currently small, non-exhaustive constant sets used for readability, not for exhaustive `when` checking or domain separation. Cross-enum mix-ups are rare in practice; the stricter checker would mostly catch intentional `ubyte` reuse.
+- **Array and generic friction**: `const arr = [Priority::LOW, Priority::HIGH]` type-checks as `Priority[]` but erases to `ubyte[]`; mixed-enum literals, `sizeof(Priority::LOW)` (should be `sizeof(Priority)`), and stdlib helpers that take `ubyte[]` now all need casts or overloads.
+- **Compiler complexity for modest benefit**: Adds a new `ISubType` (`EnumSubType`), preserves `Enumeration` nodes through `processAst()`, and adds erasure + `isAssignableTo` branches in `TypeChecker`/`AstChecker`. Extra `stripPrefixes`/type-prefix branching and `legacy_enums` plumbing increases test matrix for a feature that is erased before `SimpleAST`/`IR`.
+- **Tooling and docs churn**: `AstToSourceTextConverter` (`-printast1`), language-server hover/type info, and reference docs must be updated to show `Priority` vs `ubyte`. Constant-folding messages become `expected Priority but got ubyte` which is noisier for beginners.
+- **Migration and flag fragmentation**: A module-level `%option legacy_enums` avoids breakage but fragments the ecosystem: some modules strict, some legacy; imported modules with different flags must be reasoned about, and the `if("legacy_enums" !in allOptions)` guard must be threaded through every check.
+- **Alternative is cheaper**: The same class of bugs can be caught with a `-Wenum-conversion` warning (or `isAssignableTo` warning) without breaking builds, keeping enums as syntactic sugar. Strong typing can remain opt-in per enum (`enum strict Priority { ... }`) rather than global.
+
 ### Risk & Mitigations
 - **Existing Code Compatibility**: Existing programs relying on implicit enum-to-integer conversion will break. This is intentional to improve type safety.
     - *Mitigation*: Provide clear compiler error messages when implicit conversion fails, and document the new explicit casting requirement.

@@ -2,6 +2,12 @@ package prog8.intermediate
 
 import prog8.code.core.*
 
+val IMemSizer.pointerIRType: IRDataType
+    get() = if(POINTER_MEM_SIZE > 2u) IRDataType.LONG else IRDataType.WORD
+
+val IMemSizer.indexRegType: IRDataType
+    get() = if(POINTER_MEM_SIZE > 2u) IRDataType.WORD else IRDataType.BYTE
+
 /*
 
 Intermediate Represenation of the compiled program.
@@ -63,6 +69,7 @@ class IRProgram(val name: String,
     val asmSymbols = mutableMapOf<String, String>()
     val globalInits = IRCodeChunk(null, null)
     val blocks = mutableListOf<IRBlock>()
+    var wasPackingApplied = false
 
     fun allSubs(): Sequence<IRSubroutine> = blocks.asSequence().flatMap { it.children.filterIsInstance<IRSubroutine>() }
     fun allAsmSubs(): Sequence<IRAsmSubroutine> = blocks.asSequence().flatMap { it.children.filterIsInstance<IRAsmSubroutine>() }
@@ -275,7 +282,7 @@ class IRProgram(val name: String,
         }
     }
 
-    fun registersUsed(): RegistersUsed {
+    fun registersUsed(permissive: Boolean = wasPackingApplied): RegistersUsed {
         val readRegsCounts = mutableMapOf<RegisterNum, Int>().withDefault { 0 }
         val regsTypes = mutableMapOf<RegisterNum, IRDataType>()
         val readFpRegsCounts = mutableMapOf<RegisterNum, Int>().withDefault { 0 }
@@ -287,15 +294,32 @@ class IRProgram(val name: String,
             usedRegisters.writeRegs.forEach{ (reg, count) -> writeRegsCounts[reg] = writeRegsCounts.getValue(reg) + count }
             usedRegisters.readFpRegs.forEach{ (reg, count) -> readFpRegsCounts[reg] = readFpRegsCounts.getValue(reg) + count }
             usedRegisters.writeFpRegs.forEach{ (reg, count) -> writeFpRegsCounts[reg] = writeFpRegsCounts.getValue(reg) + count }
+        if(permissive) {
+            // After register packing, the same slot number may be used with different types
+            // in different subroutines (the packer's globalSlotTypes mechanism ensures type
+            // consistency within each subroutine). Use putIfAbsent for cross-subroutine types.
             usedRegisters.regsTypes.forEach{ (reg, type) ->
-                val existingType = regsTypes[reg]
-                if (existingType!=null) {
-                    if (existingType != type)
-                        throw IllegalArgumentException("register $reg given multiple types! $existingType and $type  ${this.name}<--${child.label ?: child}")
-                } else
-                    regsTypes[reg] = type
+                regsTypes.putIfAbsent(reg, type)
+            }
+        } else {
+                usedRegisters.regsTypes.forEach{ (reg, type) ->
+                    val existingType = regsTypes[reg]
+                    if (existingType!=null) {
+                        if (existingType != type) {
+                            // POINTER is compatible with WORD or LONG (size depends on target)
+                            val compatible = (existingType==IRDataType.POINTER && type in setOf(IRDataType.WORD, IRDataType.LONG)) ||
+                                    (type==IRDataType.POINTER && existingType in setOf(IRDataType.WORD, IRDataType.LONG))
+                            if(!compatible)
+                                throw IllegalArgumentException("register $reg given multiple types! $existingType and $type  ${this.name}<--${child.label ?: child}")
+                        }
+                    } else
+                        regsTypes[reg] = type
+                }
             }
         }
+
+        // on 32-bit targets LOADX/STOREX/STOREZX use a word index register (0-32767) instead of a byte (0-255)
+        val indexRegType = options.compTarget.indexRegType
 
         globalInits.instructions.forEach {
             it.addUsedRegistersCounts(
@@ -304,7 +328,8 @@ class IRProgram(val name: String,
                 readFpRegsCounts,
                 writeFpRegsCounts,
                 regsTypes,
-                globalInits
+                globalInits,
+                indexRegType
             )
         }
 
@@ -312,10 +337,10 @@ class IRProgram(val name: String,
             block.children.forEach { child ->
                 when(child) {
                     is IRAsmSubroutine -> addUsed(child.usedRegisters(), child)
-                    is IRCodeChunk -> addUsed(child.usedRegisters(), child)
-                    is IRInlineAsmChunk -> addUsed(child.usedRegisters(), child)
-                    is IRInlineBinaryChunk -> addUsed(child.usedRegisters(), child)
-                    is IRSubroutine -> child.chunks.forEach { chunk -> addUsed(chunk.usedRegisters(), child) }
+                    is IRCodeChunk -> addUsed(child.usedRegisters(indexRegType), child)
+                    is IRInlineAsmChunk -> addUsed(child.usedRegisters(indexRegType), child)
+                    is IRInlineBinaryChunk -> addUsed(child.usedRegisters(indexRegType), child)
+                    is IRSubroutine -> child.chunks.forEach { chunk -> addUsed(chunk.usedRegisters(indexRegType), child) }
                 }
             }
         }
@@ -328,18 +353,18 @@ class IRProgram(val name: String,
             var chunk = IRCodeChunk(asmChunk.label, null)
             asmChunk.assembly.lineSequence().filter{it.isNotBlank()}.forEach {
                 val parsed = parseIRCodeLine(it.trim())
-                parsed.fold(
-                    ifLeft = { instruction -> chunk += instruction },
-                    ifRight = { label ->
+                when (parsed) {
+                    is ParsedIRLine.Instruction -> chunk += parsed.value
+                    is ParsedIRLine.Label -> {
                         val lastChunk = chunk
                         if(chunk.isNotEmpty() || chunk.label!=null)
                             chunks += chunk
-                        chunk = IRCodeChunk(label, null)
+                        chunk = IRCodeChunk(parsed.name, null)
                         val lastInstr = lastChunk.instructions.lastOrNull()
                         if(lastInstr==null || lastInstr.opcode !in OpcodesThatBranchUnconditionally)
                             lastChunk.next = chunk
                     }
-                )
+                }
             }
             if(chunk.isNotEmpty() || chunk.label!=null)
                 chunks += chunk
@@ -449,17 +474,25 @@ class IRProgram(val name: String,
     }
 
 
+    /**
+     * Verify each register has a consistent type across all uses.
+     *
+     * Cannot be used after register packing: the packer may assign the same slot to
+     * differently-typed (but POINTER-compatible) registers in different subroutines,
+     * which this strict check would reject. Use RegisterPacker.rebuildTypeMap() instead.
+     */
     fun verifyRegisterTypes(registerTypes: Map<RegisterNum, IRDataType>) {
+        val indexRegType = options.compTarget.indexRegType
         for(block in blocks) {
             for(bc in block.children) {
                 when(bc) {
                     is IRAsmSubroutine -> bc.usedRegisters().validate(registerTypes, null)
-                    is IRCodeChunk -> bc.usedRegisters().validate(registerTypes, bc)
-                    is IRInlineAsmChunk -> bc.usedRegisters().validate(registerTypes, bc)
-                    is IRInlineBinaryChunk -> bc.usedRegisters().validate(registerTypes, bc)
+                    is IRCodeChunk -> bc.usedRegisters(indexRegType).validate(registerTypes, bc)
+                    is IRInlineAsmChunk -> bc.usedRegisters(indexRegType).validate(registerTypes, bc)
+                    is IRInlineBinaryChunk -> bc.usedRegisters(indexRegType).validate(registerTypes, bc)
                     is IRSubroutine -> {
                         for(sc in bc.chunks) {
-                            sc.usedRegisters().validate(registerTypes, sc)
+                            sc.usedRegisters(indexRegType).validate(registerTypes, sc)
                         }
                     }
                 }
@@ -480,7 +513,8 @@ class IRBlock(
                   val forceOutput: Boolean = false,
                   val noSymbolPrefixing: Boolean = false,
                   val veraFxMuls: Boolean = false,
-                  val ignoreUnused: Boolean = false)
+                  val ignoreUnused: Boolean = false,
+                  val amigaChipram: Boolean = false)
 
     operator fun plusAssign(sub: IRSubroutine) { children += sub }
     operator fun plusAssign(sub: IRAsmSubroutine) { children += sub }
@@ -563,20 +597,20 @@ sealed class IRCodeChunkBase(override val label: String?, var next: IRCodeChunkB
 
     abstract override fun isEmpty(): Boolean
     abstract override fun isNotEmpty(): Boolean
-    abstract fun usedRegisters(): RegistersUsed
+    abstract fun usedRegisters(indexRegType: IRDataType = IRDataType.BYTE): RegistersUsed
 }
 
 class IRCodeChunk(label: String?, next: IRCodeChunkBase?): IRCodeChunkBase(label, next) {
 
     override fun isEmpty() = instructions.isEmpty()
     override fun isNotEmpty() = instructions.isNotEmpty()
-    override fun usedRegisters(): RegistersUsed {
+    override fun usedRegisters(indexRegType: IRDataType): RegistersUsed {
         val readRegsCounts = mutableMapOf<RegisterNum, Int>().withDefault { 0 }
         val regsTypes = mutableMapOf<RegisterNum, IRDataType>()
         val readFpRegsCounts = mutableMapOf<RegisterNum, Int>().withDefault { 0 }
-        val writeRegsCounts = mutableMapOf<RegisterNum, Int>().withDefault { 0 }
         val writeFpRegsCounts = mutableMapOf<RegisterNum, Int>().withDefault { 0 }
-        instructions.forEach { it.addUsedRegistersCounts(readRegsCounts, writeRegsCounts, readFpRegsCounts, writeFpRegsCounts, regsTypes, this) }
+        val writeRegsCounts = mutableMapOf<RegisterNum, Int>().withDefault { 0 }
+        instructions.forEach { it.addUsedRegistersCounts(readRegsCounts, writeRegsCounts, readFpRegsCounts, writeFpRegsCounts, regsTypes, this, indexRegType) }
         return RegistersUsed(readRegsCounts, writeRegsCounts, readFpRegsCounts, writeFpRegsCounts, regsTypes)
     }
 
@@ -616,7 +650,7 @@ class IRInlineAsmChunk(label: String?,
         require(!assembly.endsWith('\n') && !assembly.endsWith('\r')) { "inline assembly should be trimmed" }
     }
 
-    override fun usedRegisters() = registersUsed
+    override fun usedRegisters(indexRegType: IRDataType) = registersUsed
 }
 
 class IRInlineBinaryChunk(label: String?,
@@ -625,7 +659,7 @@ class IRInlineBinaryChunk(label: String?,
     // note: no instructions, data is in the property
     override fun isEmpty() = data.isEmpty()
     override fun isNotEmpty() = data.isNotEmpty()
-    override fun usedRegisters() = RegistersUsed(emptyMap(), emptyMap(), emptyMap(), emptyMap(), emptyMap())
+    override fun usedRegisters(indexRegType: IRDataType) = RegistersUsed(emptyMap(), emptyMap(), emptyMap(), emptyMap(), emptyMap())
 }
 
 typealias IRCodeChunks = List<IRCodeChunkBase>
@@ -635,6 +669,14 @@ internal class IRSubtypePlaceholder(override val scopedNameString: String, val s
     override fun memsize(sizer: IMemSizer) = size
     override fun sameas(other: ISubType): Boolean = false
     override fun getFieldType(name: String): DataType? = null
+}
+
+
+internal class IRStructSubtype(val def: IRStStructDef): ISubType {
+    override val scopedNameString: String get() = def.name
+    override fun memsize(sizer: IMemSizer) = def.size.toInt()
+    override fun sameas(other: ISubType) = other is IRStructSubtype && other.def.name == def.name
+    override fun getFieldType(name: String): DataType? = def.fields.firstOrNull { it.name == name }?.type
 }
 
 
@@ -663,8 +705,13 @@ class RegistersUsed(
 // can't do this check because %ir {{ .. }} segments may contain registers that the compiler doesn't know about yet.
 //            if(allowedType==null)
 //                throw IllegalArgumentException("Reg type mismatch for register $reg type $type: no type known.  CodeChunk=$chunk label ${chunk?.label}")
-            if(allowedType!=null && allowedType!=type)
-                throw IllegalArgumentException("Reg type mismatch for register $reg type $type: expected ${allowed[reg]}. CodeChunk=$chunk label ${chunk?.label}")
+            if(allowedType!=null && allowedType!=type) {
+                // POINTER is compatible with WORD or LONG (size depends on target)
+                val compatible = (allowedType==IRDataType.POINTER && type in setOf(IRDataType.WORD, IRDataType.LONG)) ||
+                        (type==IRDataType.POINTER && allowedType in setOf(IRDataType.WORD, IRDataType.LONG))
+                if(!compatible)
+                    throw IllegalArgumentException("Reg type mismatch for register $reg type $type: expected ${allowed[reg]}. CodeChunk=$chunk label ${chunk?.label}")
+            }
         }
     }
 }
@@ -681,17 +728,17 @@ private fun registersUsedInAssembly(isIR: Boolean, assembly: String): RegistersU
             val t = line.trim()
             if(t.isNotEmpty()) {
                 val result = parseIRCodeLine(t)
-                result.fold(
-                    ifLeft = { it.addUsedRegistersCounts(
+                when (result) {
+                    is ParsedIRLine.Instruction -> result.value.addUsedRegistersCounts(
                         readRegsCounts,
                         writeRegsCounts,
                         readFpRegsCounts,
                         writeFpRegsCounts,
                         regsTypes,
                         null
-                    ) },
-                    ifRight = { /* labels can be skipped */ }
-                )
+                    )
+                    is ParsedIRLine.Label -> { /* labels can be skipped */ }
+                }
             }
         }
     }

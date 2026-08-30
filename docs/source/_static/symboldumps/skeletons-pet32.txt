@@ -1,5 +1,6 @@
 
-Prog8 compiler v12.3 by Irmen de Jong (irmen@razorvine.net)
+Prog8 compiler v14.0-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
+Prerelease version from git commit a4fb829b in branch new-codegens
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-pet32.p8
@@ -9,18 +10,18 @@ Compiler target: pet32
 BUILTIN FUNCTIONS
 -----------------
 abs  (ubyte|byte|uword|word|long|float value) -> undefined
-call  (uword address) -> uword
-callfar  (ubyte bank, uword address, uword arg) -> uword
-callfar2  (ubyte bank, uword address, ubyte argA, ubyte argX, ubyte argY, bool argC) -> uword
+call  (pointer address) -> uword
+callfar  (ubyte bank, pointer address, uword arg) -> uword
+callfar2  (ubyte bank, pointer address, ubyte argA, ubyte argX, ubyte argY, bool argC) -> uword
 clamp  (byte value, byte minimum, byte maximum) -> undefined
 cmp  (ubyte|byte|uword|word|long value1, ubyte|byte|uword|word|long|float value2)
 divmod  (ubyte|uword dividend, ubyte|uword divisor) -> undefined, undefined
-len  (str|array|array_splitw values) -> uword
+len  (str|array|array_splitw|array_pointer values) -> uword
 lmh  (long value) -> ubyte, ubyte, ubyte
 lsb  (uword|word|long value) -> ubyte
 lsw  (uword|word|long value) -> uword
 max  (byte val1, byte val2) -> undefined
-memory  (str name, uword size, uword alignment) -> uword
+memory  (str name, uword size, uword alignment) -> pointer
 min  (byte val1, byte val2) -> undefined
 mklong  (ubyte msb, ubyte b2, ubyte b1, ubyte lsb) -> long
 mklong2  (uword msw, uword lsw) -> long
@@ -28,25 +29,29 @@ mkword  (ubyte msb, ubyte lsb) -> uword
 msb  (uword|word|long value) -> ubyte
 msw  (uword|word|long value) -> uword
 offsetof  (ubyte field) -> ubyte
-peek  (uword address) -> ubyte
-peekbool  (uword address) -> bool
-peekf  (uword address) -> float
-peekl  (uword address) -> long
-peekw  (uword address) -> uword
-poke  (uword address, ubyte|byte value)
-pokebool  (uword address, bool value)
-pokebowl  (uword address, bool value)
-pokef  (uword address, float value)
-pokel  (uword address, long value)
-pokemon  (uword address, ubyte value) -> ubyte
-pokew  (uword address, uword|word value)
+peek  (uword|long|pointer address) -> ubyte
+peekbool  (uword|long|pointer address) -> bool
+peekf  (uword|long|pointer address) -> float
+peekl  (uword|long|pointer address) -> long
+peekp  (pointer|uword|long address) -> pointer
+peekw  (uword|long|pointer address) -> uword
+poke  (uword|long|pointer address, ubyte|byte value)
+pokebool  (uword|long|pointer address, bool value)
+pokebowl  (uword|long|pointer address, bool value)
+pokef  (uword|long|pointer address, float value)
+pokel  (uword|long|pointer address, long value)
+pokemon  (uword|long|pointer address, ubyte value) -> ubyte
+pokep  (pointer|uword|long address, pointer value)
+pokew  (uword|long|pointer address, uword|word value)
 pop  () -> ubyte
 popf  () -> float
 popl  () -> long
+popp  () -> pointer
 popw  () -> uword
 push  (ubyte|byte|bool value)
 pushf  (float value)
 pushl  (long value)
+pushp  (pointer value)
 pushw  (uword|word|pointer value)
 rol  (ubyte|uword|long item)
 rol2  (ubyte|uword|long item)
@@ -201,8 +206,8 @@ coroutines  {
     const ubyte  MAX_TASKS
     ubyte  active_task
     uword  supervisor
-    uword[]  tasklist
-    uword[]  userdatas
+    @nosplit uword[]  tasklist
+    @nosplit uword[]  userdatas
     add  (uword taskaddress, uword userdata) -> ubyte
     current  () -> ubyte
     kill  (ubyte taskid)
@@ -217,7 +222,7 @@ LIBRARY MODULE NAME: cx16logo
 -----------------------------
 
 cx16logo  {
-    uword[]  logo_lines
+    @nosplit uword[]  logo_lines
     logo  ()
     logo_at  (ubyte column, ubyte row)
 }
@@ -342,6 +347,26 @@ lineclip  {
     clip  (word x1, word y1, word x2, word y2) -> bool, word, word, word, word
     inside  (word x, word y) -> bool
     set_cliprect  (word x1, word y1, word x2, word y2)
+}
+
+
+LIBRARY MODULE NAME: lists
+--------------------------
+
+lists  {
+    struct FullNode
+    struct List
+    struct Node
+    add_head  (uword listptr, uword node)
+    add_tail  (uword listptr, uword node)
+    enqueue  (uword listptr, uword node)
+    find_name  (uword listptr, str name) -> uword
+    init  (uword listptr)
+    insert  (uword listptr, uword node, uword pred)
+    is_empty  (uword listptr) -> bool
+    remove  (uword node)
+    remove_head  (uword listptr) -> uword
+    remove_tail  (uword listptr) -> uword
 }
 
 

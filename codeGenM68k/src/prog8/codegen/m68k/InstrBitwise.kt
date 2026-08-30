@@ -1,0 +1,444 @@
+/*
+ * Bitwise and logical IR instruction translations for the M68k code generator.
+ *
+ * Handles: AND, OR, XOR (register/imm/memory), INV (bitwise not),
+ * shifts (LSL, LSR, ASR) by constant or variable count,
+ * rotates (ROL, ROR, ROXL, ROXR) and bit manipulation (BITTST, BITSET, BITCLR, BITTOG).
+ *
+ * M68k has native .B/.W/.L support for all logical operations,
+ * including immediate and register-count shifts.
+ * Rotates ROL/ROR are true rotates (bit wraps around, no carry involvement for entry).
+ * ROXL/ROXR rotate through the extend (X/C) bit.
+ */
+
+package prog8.codegen.m68k
+
+import prog8.intermediate.IRDataType
+import prog8.intermediate.IRInstruction
+import prog8.intermediate.Opcode
+
+internal fun AsmGen.translateBitwise(insn: IRInstruction) {
+    val type = insn.type ?: IRDataType.BYTE
+    val r1 = insn.reg1
+    val r2 = insn.reg2
+    val imm = insn.immediate
+    val addr = insn.address
+    val label = insn.labelSymbol
+    val offset = insn.labelSymbolOffset
+
+    when (insn.opcode) {
+        Opcode.ANDR -> {
+            val r2val = r2 ?: error("ANDR needs reg2")
+            andRegisters(r1 ?: error("ANDR needs reg1"), r2val, type)
+        }
+        Opcode.AND -> {
+            val value = imm ?: error("AND needs immediate")
+            andImmediate(r1 ?: error("AND needs reg1"), value, type)
+        }
+        Opcode.ANDM -> {
+            val sourceAddress = resolveAddress(addr, label, offset)
+            andMemory(r1 ?: error("ANDM needs reg1"), sourceAddress, type)
+        }
+
+        Opcode.ORR -> {
+            val r2val = r2 ?: error("ORR needs reg2")
+            orRegisters(r1 ?: error("ORR needs reg1"), r2val, type)
+        }
+        Opcode.OR -> {
+            val value = imm ?: error("OR needs immediate")
+            orImmediate(r1 ?: error("OR needs reg1"), value, type)
+        }
+        Opcode.ORM -> {
+            val sourceAddress = resolveAddress(addr, label, offset)
+            orMemory(r1 ?: error("ORM needs reg1"), sourceAddress, type)
+        }
+
+        Opcode.XORR -> {
+            val r2val = r2 ?: error("XORR needs reg2")
+            xorRegisters(r1 ?: error("XORR needs reg1"), r2val, type)
+        }
+        Opcode.XOR -> {
+            val value = imm ?: error("XOR needs immediate")
+            xorImmediate(r1 ?: error("XOR needs reg1"), value, type)
+        }
+        Opcode.XORM -> {
+            val sourceAddress = resolveAddress(addr, label, offset)
+            xorMemory(r1 ?: error("XORM needs reg1"), sourceAddress, type)
+        }
+
+        Opcode.INV -> invertRegister(r1 ?: error("INV needs reg1"), type)
+        Opcode.INVM -> invertMemory(resolveAddress(addr, label, offset), type)
+
+        Opcode.ASRN -> {
+            val countReg = r2 ?: error("ASRN needs reg2 for shift count")
+            arithmeticShiftRightVar(r1 ?: error("ASRN needs reg1"), countReg, type)
+        }
+        Opcode.LSRN -> {
+            val countReg = r2 ?: error("LSRN needs reg2 for shift count")
+            logicalShiftRightVar(r1 ?: error("LSRN needs reg1"), countReg, type)
+        }
+        Opcode.LSLN -> {
+            val countReg = r2 ?: error("LSLN needs reg2 for shift count")
+            logicalShiftLeftVar(r1 ?: error("LSLN needs reg1"), countReg, type)
+        }
+
+        Opcode.ASRNM -> shiftMemoryVar(resolveAddress(addr, label, offset), r1 ?: error("ASRNM needs reg1"), type, isArithmetic = true)
+        Opcode.LSRNM -> shiftMemoryVar(resolveAddress(addr, label, offset), r1 ?: error("LSRNM needs reg1"), type, isArithmetic = false)
+        Opcode.LSLNM -> shiftMemoryLeftVar(resolveAddress(addr, label, offset), r1 ?: error("LSLNM needs reg1"), type)
+
+        // Immediate-count shifts (LSLI/LSRI/ASRI): the count is a literal in insn.immediate.
+        Opcode.ASRI -> shiftRegister(r1 ?: error("ASRI needs reg1"), imm ?: error("ASRI needs immediate count"), type, isArithmetic = true, isLeft = false)
+        Opcode.LSRI -> shiftRegister(r1 ?: error("LSRI needs reg1"), imm ?: error("LSRI needs immediate count"), type, isArithmetic = false, isLeft = false)
+        Opcode.LSLI -> shiftRegister(r1 ?: error("LSLI needs reg1"), imm ?: error("LSLI needs immediate count"), type, isArithmetic = false, isLeft = true)
+
+        Opcode.ASR -> shiftRegister(r1 ?: error("ASR needs reg1"), 1, type, isArithmetic = true, isLeft = false)
+        Opcode.ASRM -> memoryShiftRotate(resolveAddress(addr, label, offset), 1, type, isArithmetic = true, isLeft = false, isRotate = false, throughCarry = false)
+        Opcode.LSR -> shiftRegister(r1 ?: error("LSR needs reg1"), 1, type, isArithmetic = false, isLeft = false)
+        Opcode.LSRM -> memoryShiftRotate(resolveAddress(addr, label, offset), 1, type, isArithmetic = false, isLeft = false, isRotate = false, throughCarry = false)
+        Opcode.LSL -> shiftRegister(r1 ?: error("LSL needs reg1"), 1, type, isArithmetic = false, isLeft = true)
+        Opcode.LSLM -> memoryShiftRotate(resolveAddress(addr, label, offset), 1, type, isArithmetic = false, isLeft = true, isRotate = false, throughCarry = false)
+
+        Opcode.ROR -> rotateRight(r1 ?: error("ROR needs reg1"), type)
+        Opcode.RORM -> memoryShiftRotate(resolveAddress(addr, label, offset), 1, type, isArithmetic = false, isLeft = false, isRotate = true, throughCarry = false)
+        Opcode.ROL -> rotateLeft(r1 ?: error("ROL needs reg1"), type)
+        Opcode.ROLM -> memoryShiftRotate(resolveAddress(addr, label, offset), 1, type, isArithmetic = false, isLeft = true, isRotate = true, throughCarry = false)
+        Opcode.ROXR -> rotateRightThroughCarry(r1 ?: error("ROXR needs reg1"), type)
+        Opcode.ROXRM -> memoryShiftRotate(resolveAddress(addr, label, offset), 1, type, isArithmetic = false, isLeft = false, isRotate = true, throughCarry = true)
+        Opcode.ROXL -> rotateLeftThroughCarry(r1 ?: error("ROXL needs reg1"), type)
+        Opcode.ROXLM -> memoryShiftRotate(resolveAddress(addr, label, offset), 1, type, isArithmetic = false, isLeft = true, isRotate = true, throughCarry = true)
+
+        Opcode.BITTST -> {
+            val bit = imm ?: error("BITTST needs bit number")
+            bitTest(r1 ?: error("BITTST needs reg1"), bit, type)
+        }
+        Opcode.BITSET -> {
+            val bit = imm ?: error("BITSET needs bit number")
+            bitSet(r1 ?: error("BITSET needs reg1"), bit, type)
+        }
+        Opcode.BITCLR -> {
+            val bit = imm ?: error("BITCLR needs bit number")
+            bitClear(r1 ?: error("BITCLR needs reg1"), bit, type)
+        }
+        Opcode.BITTOG -> {
+            val bit = imm ?: error("BITTOG needs bit number")
+            bitToggle(r1 ?: error("BITTOG needs reg1"), bit, type)
+        }
+
+        else -> error("Unknown bitwise opcode: ${insn.opcode}")
+    }
+}
+
+// === AND ===
+
+private fun AsmGen.andRegisters(dstReg: Int, srcReg: Int, type: IRDataType) {
+    val s = dtSuffix(type)
+    emitLine("move$s  ${regAddr(srcReg)}, d0")
+    emitLine("and$s  d0, ${regAddr(dstReg)}")
+}
+
+private fun AsmGen.andImmediate(dstReg: Int, value: Int, type: IRDataType) {
+    val s = dtSuffix(type)
+    val mask = when (type) {
+        IRDataType.BYTE -> value and 0xff
+        IRDataType.WORD -> value and 0xffff
+        IRDataType.LONG -> value
+        else -> error("unsupported type for AND immediate")
+    }
+    emitLine("andi$s  #$mask, ${regAddr(dstReg)}")
+}
+
+private fun AsmGen.andMemory(dstReg: Int, sourceAddress: String, type: IRDataType) {
+    val s = dtSuffix(type)
+    emitLine("move$s  ${regAddr(dstReg)}, d0")
+    emitLine("and$s  d0, $sourceAddress")
+}
+
+// === OR ===
+
+private fun AsmGen.orRegisters(dstReg: Int, srcReg: Int, type: IRDataType) {
+    val s = dtSuffix(type)
+    emitLine("move$s  ${regAddr(srcReg)}, d0")
+    emitLine("or$s  d0, ${regAddr(dstReg)}")
+}
+
+private fun AsmGen.orImmediate(dstReg: Int, value: Int, type: IRDataType) {
+    val s = dtSuffix(type)
+    val mask = when (type) {
+        IRDataType.BYTE -> value and 0xff
+        IRDataType.WORD -> value and 0xffff
+        IRDataType.LONG -> value
+        else -> error("unsupported type for OR immediate")
+    }
+    emitLine("ori$s  #$mask, ${regAddr(dstReg)}")
+}
+
+private fun AsmGen.orMemory(dstReg: Int, sourceAddress: String, type: IRDataType) {
+    val s = dtSuffix(type)
+    emitLine("move$s  ${regAddr(dstReg)}, d0")
+    emitLine("or$s  d0, $sourceAddress")
+}
+
+// === XOR ===
+
+private fun AsmGen.xorRegisters(dstReg: Int, srcReg: Int, type: IRDataType) {
+    val s = dtSuffix(type)
+    emitLine("move$s  ${regAddr(srcReg)}, d0")
+    emitLine("eor$s  d0, ${regAddr(dstReg)}")
+}
+
+private fun AsmGen.xorImmediate(dstReg: Int, value: Int, type: IRDataType) {
+    val s = dtSuffix(type)
+    val mask = when (type) {
+        IRDataType.BYTE -> value and 0xff
+        IRDataType.WORD -> value and 0xffff
+        IRDataType.LONG -> value
+        else -> error("unsupported type for XOR immediate")
+    }
+    emitLine("eori$s  #$mask, ${regAddr(dstReg)}")
+}
+
+private fun AsmGen.xorMemory(dstReg: Int, sourceAddress: String, type: IRDataType) {
+    val s = dtSuffix(type)
+    emitLine("move$s  ${regAddr(dstReg)}, d0")
+    emitLine("eor$s  d0, $sourceAddress")
+}
+
+// === Invert ===
+
+private fun AsmGen.invertRegister(reg: Int, type: IRDataType) {
+    val s = dtSuffix(type)
+    emitLine("not$s  ${regAddr(reg)}")
+}
+
+private fun AsmGen.invertMemory(target: String, type: IRDataType) {
+    val s = dtSuffix(type)
+    emitLine("not$s  $target")
+}
+
+// === Shift/rotate size helpers ===
+
+private fun AsmGen.shiftOpcode(isLeft: Boolean, isArithmetic: Boolean, isRotate: Boolean = false): String {
+    if (isRotate) {
+        // Always use roxl/roxr (never rol/ror). X is managed as rotate-carry.
+        return if (isLeft) "roxl" else "roxr"
+    }
+    return if (isLeft) {
+        "lsl"
+    } else {
+        if (isArithmetic) "asr" else "lsr"
+    }
+}
+
+// === Shifts by 1 (constant count 1) ===
+
+// Emit a .w count=1 memory-form shift/rotate. The absolute form (`op.w addr`)
+// is one instruction and optimal, but the QEMU 68020 emulation has a bug where
+// `asr.w` with absolute addressing zero-extends the 16-bit operand before the
+// shift instead of sign-extending it, producing a logical shift result for
+// negative values. The 68000 (vamos) and the `(a0)` / register forms are
+// unaffected. Workaround for the qemu68k target only: load the address into
+// a0 and use `(a0)` addressing. A0 is a scratch address register in the m68k
+// codegen, so this is safe.
+private fun AsmGen.emitMemoryWordShiftOrRotate(op: String, address: String) {
+    if (target.name == "qemu68k") {
+        emitLine("lea  $address, a0")
+        emitLine("$op.w  (a0)")
+    } else {
+        emitLine("$op.w  $address")
+    }
+}
+
+private fun AsmGen.shiftRegister(reg: Int, count: Int, type: IRDataType, isArithmetic: Boolean, isLeft: Boolean) {
+    val s = dtSuffix(type)
+    val op = shiftOpcode(isLeft, isArithmetic)
+    if (isLeft && type == IRDataType.LONG && count == 16) {
+        // x << 16 for long: `swap; clr.w`. Left shift by 16 has the same
+        // result for signed and unsigned long: the sign bit lives in the
+        // top half, which is replaced by the bottom half; the bottom
+        // half is always cleared.
+        emitLine("move.l  ${regAddr(reg)}, d0")
+        emitLine("swap  d0")
+        emitLine("clr.w  d0")
+        emitLine("move.l  d0, ${regAddr(reg)}")
+        return
+    }
+    if (type == IRDataType.WORD && count == 1) {
+        // m68k memory shift/rotate is supported for .w count=1; collapse the
+        // d0 round-trip into a single memory form
+        emitMemoryWordShiftOrRotate(op, regAddr(reg))
+        return
+    }
+    if (count in 1..8) {
+        emitLine("move$s  ${regAddr(reg)}, d0")
+        emitLine("$op$s  #$count, d0")
+        emitLine("move$s  d0, ${regAddr(reg)}")
+    } else {
+        // m68k immediate-shift range is 1..8; for larger counts the count
+        // has to go into a data register first. `move.w` preserves the
+        // count up to 32767 (Prog8 shift counts are 0..255, so this is
+        // always safe).
+        emitLine("move.w  #$count, d1")
+        emitLine("move$s  ${regAddr(reg)}, d0")
+        emitLine("$op$s  d1, d0")
+        emitLine("move$s  d0, ${regAddr(reg)}")
+    }
+}
+
+private fun AsmGen.memoryShiftRotate(target: String, count: Int, type: IRDataType, isArithmetic: Boolean, isLeft: Boolean, isRotate: Boolean, throughCarry: Boolean) {
+    // For logical rotates (ROL/ROR), clear X before roxl/roxr
+    // so the injected bit is 0 (logical rotate, not through-carry).
+    if (isRotate && !throughCarry) {
+        emitLine($$"andi  #$ef, ccr")
+    }
+    // On 68k, shift/rotate instructions can operate directly on memory operands
+    // (only for .w size, and shift/rotate count must be 1)
+    if (type == IRDataType.WORD && count == 1) {
+        val op = shiftOpcode(isLeft, isArithmetic, isRotate)
+        emitMemoryWordShiftOrRotate(op, target)
+        return
+    }
+    val s = dtSuffix(type)
+    val op = shiftOpcode(isLeft, isArithmetic, isRotate)
+    emitLine("move$s  $target, d0")
+    emitLine("$op$s  #$count, d0")
+    emitLine("move$s  d0, $target")
+}
+
+// === Variable-count shifts ===
+
+private fun AsmGen.logicalShiftLeftVar(reg: Int, countReg: Int, type: IRDataType) {
+    val s = dtSuffix(type)
+    emitLine("move.b  ${regAddr(countReg)}, d1")
+    emitLine("move$s  ${regAddr(reg)}, d0")
+    emitLine("lsl$s  d1, d0")
+    emitLine("move$s  d0, ${regAddr(reg)}")
+}
+
+private fun AsmGen.logicalShiftRightVar(reg: Int, countReg: Int, type: IRDataType) {
+    val s = dtSuffix(type)
+    emitLine("move.b  ${regAddr(countReg)}, d1")
+    emitLine("move$s  ${regAddr(reg)}, d0")
+    emitLine("lsr$s  d1, d0")
+    emitLine("move$s  d0, ${regAddr(reg)}")
+}
+
+private fun AsmGen.arithmeticShiftRightVar(reg: Int, countReg: Int, type: IRDataType) {
+    val s = dtSuffix(type)
+    emitLine("move.b  ${regAddr(countReg)}, d1")
+    emitLine("move$s  ${regAddr(reg)}, d0")
+    emitLine("asr$s  d1, d0")
+    emitLine("move$s  d0, ${regAddr(reg)}")
+}
+
+// === Memory variable-count shifts ===
+
+private fun AsmGen.shiftMemoryVar(target: String, countReg: Int, type: IRDataType, isArithmetic: Boolean) {
+    val s = dtSuffix(type)
+    val op = if (isArithmetic) "asr" else "lsr"
+    emitLine("move.b  ${regAddr(countReg)}, d1")
+    emitLine("move$s  $target, d0")
+    emitLine("$op$s  d1, d0")
+    emitLine("move$s  d0, $target")
+}
+
+private fun AsmGen.shiftMemoryLeftVar(target: String, countReg: Int, type: IRDataType) {
+    val s = dtSuffix(type)
+    emitLine("move.b  ${regAddr(countReg)}, d1")
+    emitLine("move$s  $target, d0")
+    emitLine("lsl$s  d1, d0")
+    emitLine("move$s  d0, $target")
+}
+
+// === Rotates ===
+// On M68k, the X (extend/CCR bit 4) bit serves as the "carry for rotates",
+// while C (carry/CCR bit 0) is used for comparisons.
+// This maps naturally: ROL/ROR IR (logical rotate) = clear X + roxl/roxr,
+// ROXL/ROXR IR (rotate through carry) = roxl/roxr directly.
+// CLC/SEC manage both C+X to keep them in sync.
+
+private fun AsmGen.rotateLeft(reg: Int, type: IRDataType) {
+    // IR ROL: logical rotate left (inject 0 into LSB)
+    if (type == IRDataType.WORD) {
+        emitLine($$"andi  #$ef, ccr")       // clear X (and leave C alone)
+        emitMemoryWordShiftOrRotate("roxl", regAddr(reg))
+        return
+    }
+    val s = dtSuffix(type)
+    emitLine("move$s  ${regAddr(reg)}, d0")
+    emitLine($$"andi  #$ef, ccr")       // clear X (and leave C alone)
+    emitLine("roxl$s  #1, d0")           // rotate through X: X=0 -> bit 0 gets 0
+    emitLine("move$s  d0, ${regAddr(reg)}")
+}
+
+private fun AsmGen.rotateRight(reg: Int, type: IRDataType) {
+    // IR ROR: logical rotate right (inject 0 into MSB)
+    if (type == IRDataType.WORD) {
+        emitLine($$"andi  #$ef, ccr")       // clear X (and leave C alone)
+        emitMemoryWordShiftOrRotate("roxr", regAddr(reg))
+        return
+    }
+    val s = dtSuffix(type)
+    emitLine("move$s  ${regAddr(reg)}, d0")
+    emitLine($$"andi  #$ef, ccr")       // clear X (and leave C alone)
+    emitLine("roxr$s  #1, d0")           // rotate through X: X=0 -> MSB gets 0
+    emitLine("move$s  d0, ${regAddr(reg)}")
+}
+
+// === Rotates through carry (extend) ===
+
+private fun AsmGen.rotateLeftThroughCarry(reg: Int, type: IRDataType) {
+    // IR ROXL: rotate left through carry (on M68k, X serves as rotate-carry)
+    if (type == IRDataType.WORD) {
+        emitMemoryWordShiftOrRotate("roxl", regAddr(reg))
+        return
+    }
+    val s = dtSuffix(type)
+    emitLine("move$s  ${regAddr(reg)}, d0")
+    emitLine("roxl$s  #1, d0")
+    emitLine("move$s  d0, ${regAddr(reg)}")
+}
+
+private fun AsmGen.rotateRightThroughCarry(reg: Int, type: IRDataType) {
+    // IR ROXR: rotate right through carry (on M68k, X serves as rotate-carry)
+    if (type == IRDataType.WORD) {
+        emitMemoryWordShiftOrRotate("roxr", regAddr(reg))
+        return
+    }
+    val s = dtSuffix(type)
+    emitLine("move$s  ${regAddr(reg)}, d0")
+    emitLine("roxr$s  #1, d0")
+    emitLine("move$s  d0, ${regAddr(reg)}")
+}
+
+// === Bit manipulation ===
+
+private fun AsmGen.bitOpMem(op: String, reg: Int, bit: Int, type: IRDataType) {
+    // The register slot is big-endian in memory, so the target bit lives in
+    // byte (size-1-bit/8) at bit position (bit % 8). A byte-sized bit op with
+    // an immediate bit number operates on that byte directly, no d0 round-trip.
+    val size = when(type) {
+        IRDataType.BYTE -> 1
+        IRDataType.WORD -> 2
+        IRDataType.LONG -> 4
+        else -> error("bit op on unsupported type $type")
+    }
+    val byteOffset = size - 1 - bit / 8
+    val bitInByte = bit % 8
+    emitLine("$op  #$bitInByte, ${regAddrByte(reg, byteOffset)}")
+}
+
+private fun AsmGen.bitTest(reg: Int, bit: Int, type: IRDataType) {
+    bitOpMem("btst", reg, bit, type)
+}
+
+private fun AsmGen.bitSet(reg: Int, bit: Int, type: IRDataType) {
+    bitOpMem("bset", reg, bit, type)
+}
+
+private fun AsmGen.bitClear(reg: Int, bit: Int, type: IRDataType) {
+    bitOpMem("bclr", reg, bit, type)
+}
+
+private fun AsmGen.bitToggle(reg: Int, bit: Int, type: IRDataType) {
+    bitOpMem("bchg", reg, bit, type)
+}

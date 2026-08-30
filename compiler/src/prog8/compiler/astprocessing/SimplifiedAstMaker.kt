@@ -25,8 +25,9 @@ import kotlin.math.log2
 /**
  *  Convert 'old' compiler-AST into the 'new' simplified AST with baked types.
  */
-class SimplifiedAstMaker(private val program: Program, private val errors: IErrorReporter) {
+class SimplifiedAstMaker(private val program: Program, private val errors: IErrorReporter, private val compilationOptions: CompilationOptions) {
     private val slabDefs = mutableMapOf<String, StMemorySlab>()
+    private val addrType = compilationOptions.compTarget.pointerType
     fun transform(): PtProgram {
         // Pre-collect all memory slab reservations from the entire program
         val collector = object : IAstVisitor {
@@ -40,8 +41,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
 
         val ptProgram = PtProgram(
             program.name,
-            program.memsizer,
-            program.encoding
+            program.target
         )
 
         // note: modules are not represented any longer in this Ast. All blocks have been moved into the top scope.
@@ -270,7 +270,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
                         // pointer arithmetic: add or subract the size of the struct times the argument
                         val leftDt = expr.left.inferType(program).getOrUndef()
                         require(leftDt.isPointer && !expr.right.inferType(program).isPointer)
-                        val structSize = leftDt.size(program.memsizer)
+                        val structSize = leftDt.size(program.target)
                         val constValue = augmentedValue.constValue(program)
                         if(constValue!=null) {
                             val total = constValue.number*structSize
@@ -359,6 +359,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
         var veraFxMuls = false
         var noSymbolPrefixing = false
         var ignoreUnused = false
+        var amigaChipram = false
         val directives = srcBlock.statements.filterIsInstance<Directive>()
         for (directive in directives.filter { it.directive == "%option" }) {
             for (arg in directive.args) {
@@ -367,17 +368,21 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
                     "ignore_unused" -> ignoreUnused = true
                     "force_output" -> forceOutput = true
                     "merge" -> { /* ignore this one */ }
+                    "private_symbols" -> { /* handled before simplification */ }
                     "verafxmuls" -> veraFxMuls = true
+                    "amiga_chipram" -> amigaChipram = true
                     else -> throw FatalAstException("weird directive option: ${arg.string}")
                 }
             }
         }
 
 
+        val firstStmt = srcBlock.statements.firstOrNull()
+        val firstIsLabel = firstStmt is Label
         val (vardecls, statements) = srcBlock.statements.partition { it is VarDecl || it is MemorySlabReservation }
         val src = srcBlock.definingModule.source
         val block = PtBlock(srcBlock.name, srcBlock.isInLibrary, src,
-            PtBlock.Options(srcBlock.address, forceOutput, noSymbolPrefixing, veraFxMuls, ignoreUnused),
+            PtBlock.Options(srcBlock.address, forceOutput, noSymbolPrefixing, veraFxMuls, ignoreUnused, amigaChipram),
             srcBlock.position)
 
         for(directive in directives.filter { it.directive == "%jmptable" }) {
@@ -388,9 +393,15 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
             block.add(table)
         }
 
+        if (firstIsLabel) {
+            // Keep the first label at the top, where the source put it
+            block.add(transformStatement(firstStmt))
+        }
         makeScopeVarsDecls(vardecls).forEach { block.add(it) }
-        for (stmt in statements)
+        for (stmt in statements) {
+            if (firstIsLabel && stmt === firstStmt) continue
             block.add(transformStatement(stmt))
+        }
         recombineMemorySlabAssignments(block)
         return block
     }
@@ -701,7 +712,10 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
         val asmAddr = if(srcSub.asmAddress==null) null else {
             val constAddr = srcSub.asmAddress!!.address.constValue(program)
                 ?: throw FatalAstException("extsub address should be a constant")
-            PtAsmSub.Address(srcSub.asmAddress!!.constbank, varbank, constAddr.number.toUInt())
+            if(constAddr.number<0) {
+                require(compilationOptions.compTarget.name.contains("amiga")) { "extsub address should be positive" }
+            }
+            PtAsmSub.Address(srcSub.asmAddress!!.constbank, varbank, constAddr.number.toInt().toUInt())
         }
         val sub = PtAsmSub(srcSub.name,
             asmAddr,
@@ -742,9 +756,9 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
 
     private fun transformSub(srcSub: Subroutine): PtSub {
         val (vardecls, statements) = srcSub.statements.partition { it is VarDecl || it is MemorySlabReservation }
-        // if a sub returns 'str', replace with uword.  Simplified AST and I.R. don't contain 'str' datatype anymore.
+        // if a sub returns 'str', replace with uword/long.  Simplified AST and I.R. don't contain 'str' datatype anymore.
         val returnTypes = srcSub.returntypes.map {
-            if(it.isString) DataType.UWORD else it
+            if(it.isString) addrType else it
         }
         // do not bother about the 'inline' hint of the source subroutine.
         val sub = PtSub(srcSub.name,srcSub.position)
@@ -780,6 +794,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
                 return PtVariable(
                     srcVar.name,
                     srcVar.datatype,
+                    srcVar.datatype.isSplitWordArray(compilationOptions.compTarget),
                     srcVar.zeropage,
                     srcVar.alignment,
                     srcVar.dirty,
@@ -806,7 +821,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
                     }
                     is MemorySlabRef -> {
                         val slab = slabDefs[constVal.slabName] ?: throw FatalAstException("referenced memory slab '${constVal.slabName}' not defined at ${constVal.position}")
-                        return PtConstant(srcVar.name, srcVar.datatype, null, slab, srcVar.position)
+                        return PtConstant(srcVar.name, addrType, null, slab, srcVar.position)
                     }
                     else ->
                         throw FatalAstException("const value must be a number, address-of, or memory reference, not $constVal at ${srcVar.position}")
@@ -846,7 +861,10 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
     }
 
     private fun transform(src: AddressOf): PtAddressOf {
-        val addr = PtAddressOf(src.inferType(program).getOrUndef(), src.typed, src.position, src.msb)
+        var inferredType = src.inferType(program).getOrUndef()
+        if(inferredType.base == BaseDataType.UWORD)
+            inferredType = addrType
+        val addr = PtAddressOf(inferredType, src.typed, src.position, src.msb)
         if(src.identifier!=null)
             addr.add(transform(src.identifier!!))
         if (src.arrayIndex != null)
@@ -862,28 +880,32 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
             if (!dt.isArray && !dt.isString && !dt.isPointer)
                 throw FatalAstException("array indexing can only be used on array, string or pointer variables ${srcArr.position}")
             val eltType = srcArr.inferType(program).getOrElse { throw FatalAstException("unknown dt") }
-            val array = PtArrayIndexer(eltType, srcArr.position)
-            array.add(transform(srcArr.plainarrayvar!!))
+            val arrayvar = transform(srcArr.plainarrayvar!!)
+            val array = PtArrayIndexer(eltType, arrayvar.type.isSplitWordArray(compilationOptions.compTarget), srcArr.position)
+            array.add(arrayvar)
             array.add(transformExpression(srcArr.indexer.indexExpr))
             return array
         }
         if(srcArr.pointerderef!=null) {
             val dt = srcArr.pointerderef!!.inferType(program)
-            if(dt.isUnsignedWord) {
-                val array = PtArrayIndexer(DataType.UBYTE, srcArr.position)
-                array.add(transform(srcArr.pointerderef!!))
+            if(dt.isUnsignedWord || (compilationOptions.compTarget.POINTER_MEM_SIZE > 2u && dt.isLong)) {
+                val arrayVar = transform(srcArr.pointerderef!!)
+                val array = PtArrayIndexer(DataType.UBYTE, arrayVar.type.isSplitWordArray(compilationOptions.compTarget), srcArr.position)
+                array.add(arrayVar)
                 array.add(transformExpression(srcArr.indexer.indexExpr))
                 return array
             } else if(dt.isPointer) {
                 val eltType = dt.getOrUndef().dereference()
-                val array = PtArrayIndexer(eltType, srcArr.position)
-                array.add(transform(srcArr.pointerderef!!))
+                val arrayVar = transform(srcArr.pointerderef!!)
+                val array = PtArrayIndexer(eltType, arrayVar.type.isSplitWordArray(compilationOptions.compTarget), srcArr.position)
+                array.add(arrayVar)
                 array.add(transformExpression(srcArr.indexer.indexExpr))
                 return array
             } else if(dt.isArray) {
                 val eltType = dt.getOrUndef().elementType()
-                val array = PtArrayIndexer(eltType, srcArr.position)
-                array.add(transform(srcArr.pointerderef!!))
+                val arrayVar = transform(srcArr.pointerderef!!)
+                val array = PtArrayIndexer(eltType, arrayVar.type.isSplitWordArray(compilationOptions.compTarget), srcArr.position)
+                array.add(arrayVar)
                 array.add(transformExpression(srcArr.indexer.indexExpr))
                 return array
             } else
@@ -912,7 +934,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
 
     private fun transform(ref: MemorySlabRef): PtConstant {
         val slab = slabDefs[ref.slabName] ?: throw FatalAstException("referenced memory slab '${ref.slabName}' not defined at ${ref.position}")
-        return PtConstant(ref.slabName, DataType.UWORD, null, slab, ref.position)
+        return PtConstant(ref.slabName, addrType, null, slab, ref.position)
     }
 
     private fun transform(srcExpr: BinaryExpression): PtExpression {
@@ -976,15 +998,17 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
     }
 
     private fun transformWithPointerArithmetic(expr: BinaryExpression): PtExpression {
+        
         val operator = expr.operator
         require(operator=="+" || operator=="-")
         // below where '+' is used, you can substitute '-'.
         // pointer arithmetic:  ptr + value
         val leftDt = expr.left.inferType(program).getOrUndef()
         val rightDt = expr.right.inferType(program).getOrUndef()
+        val offsType = addrType.base   // use the target-appropriate offset type (UWORD on 6502, LONG on m68k)
 
         if(leftDt.isPointer && !rightDt.isPointer) {
-            val structSize = leftDt.size(program.memsizer)
+            val structSize = leftDt.size(program.target)
             val constValue = expr.right.constValue(program)
             if(constValue!=null) {
                 // ptr + constvalue * structsize
@@ -994,13 +1018,13 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
                 else {
                     val plusorminus = PtBinaryExpression(operator, leftDt, expr.position)
                     plusorminus.add(transformExpression(expr.left))
-                    plusorminus.add(PtNumber(BaseDataType.UWORD, total, expr.position))
+                    plusorminus.add(PtNumber(offsType, total, expr.position))
                     return plusorminus
                 }
             } else {
                 if(structSize==1) {
                     // ptr +/- right, just keep it as it is
-                    val plus = PtBinaryExpression(operator, DataType.UWORD, expr.position)
+                    val plus = PtBinaryExpression(operator, leftDt, expr.position)
                     plus.add(transformExpression(expr.left))
                     plus.add(transformExpression(expr.right))
                     return plus
@@ -1009,14 +1033,14 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
                     val offset: PtExpression
                     if(structSize in powersOfTwoInt) {
                         // don't multiply simply shift
-                        offset = PtBinaryExpression("<<", DataType.UWORD, expr.position)
+                        offset = PtBinaryExpression("<<", addrType, expr.position)
                         offset.add(transformExpression(expr.right))
                         offset.add(PtNumber(BaseDataType.UBYTE, log2(structSize.toDouble()), expr.position))
                     }
                     else {
-                        offset = PtBinaryExpression("*", DataType.UWORD, expr.position)
+                        offset = PtBinaryExpression("*", addrType, expr.position)
                         offset.add(transformExpression(expr.right))
-                        offset.add(PtNumber(BaseDataType.UWORD, structSize.toDouble(), expr.position))
+                        offset.add(PtNumber(offsType, structSize.toDouble(), expr.position))
                     }
                     val plusorminus = PtBinaryExpression(operator, leftDt, expr.position)
                     plusorminus.add(transformExpression(expr.left))
@@ -1025,7 +1049,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
                 }
             }
         } else if(!leftDt.isPointer && rightDt.isPointer) {
-            val structSize = rightDt.size(program.memsizer)
+            val structSize = rightDt.size(program.target)
             val constValue = expr.left.constValue(program)
             if(constValue!=null) {
                 // ptr + constvalue * structsize
@@ -1035,13 +1059,13 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
                 else {
                     val plusorminus = PtBinaryExpression(operator, rightDt, expr.position)
                     plusorminus.add(transformExpression(expr.right))
-                    plusorminus.add(PtNumber(BaseDataType.UWORD, total, expr.position))
+                    plusorminus.add(PtNumber(offsType, total, expr.position))
                     return plusorminus
                 }
             } else {
                 if(structSize==1) {
                     // ptr +/- left, just keep it as it is
-                    val plus = PtBinaryExpression(operator, DataType.UWORD, expr.position)
+                    val plus = PtBinaryExpression(operator, rightDt, expr.position)
                     plus.add(transformExpression(expr.left))
                     plus.add(transformExpression(expr.right))
                     return plus
@@ -1050,14 +1074,14 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
                     val offset: PtExpression
                     if(structSize in powersOfTwoInt) {
                         // don't multiply simply shift
-                        offset = PtBinaryExpression("<<", DataType.UWORD, expr.position)
+                        offset = PtBinaryExpression("<<", addrType, expr.position)
                         offset.add(transformExpression(expr.left))
-                        offset.add(PtNumber(BaseDataType.UWORD, log2(structSize.toDouble()), expr.position))
+                        offset.add(PtNumber(BaseDataType.UBYTE, log2(structSize.toDouble()), expr.position))
                     }
                     else {
-                        offset = PtBinaryExpression("*", DataType.UWORD, expr.position)
+                        offset = PtBinaryExpression("*", addrType, expr.position)
                         offset.add(transformExpression(expr.left))
-                        offset.add(PtNumber(BaseDataType.UWORD, structSize.toDouble(), expr.position))
+                        offset.add(PtNumber(offsType, structSize.toDouble(), expr.position))
                     }
                     val plusorminus = PtBinaryExpression(operator, rightDt, expr.position)
                     plusorminus.add(offset)
@@ -1166,18 +1190,18 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
     private fun transform(srcRange: RangeExpression): PtRange {
         require(srcRange.from.inferType(program)==srcRange.to.inferType(program))
         var type = srcRange.inferType(program).getOrElse { throw FatalAstException("unknown dt") }
-        if(type.isSplitWordArray) {
+        if(type.isSplitWordArray(compilationOptions.compTarget)) {
             // ranges are never a split word array!
             when(type.sub) {
-                BaseDataType.WORD -> type = DataType.arrayFor(BaseDataType.WORD, false)
-                BaseDataType.UWORD -> type = DataType.arrayFor(BaseDataType.UWORD, false)
+                BaseDataType.WORD -> type = DataType.arrayFor(BaseDataType.WORD, program.target)
+                BaseDataType.UWORD -> type = DataType.arrayFor(BaseDataType.UWORD, program.target)
                 else -> { }
             }
         }
         val range=PtRange(type, srcRange.position)
         range.add(transformExpression(srcRange.from))
         range.add(transformExpression(srcRange.to))
-        range.add(transformExpression(srcRange.step) as PtNumber)
+        range.add(transformExpression(srcRange.step))
         return range
     }
 
@@ -1185,8 +1209,12 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
         PtString(srcString.value, srcString.encoding, srcString.position)
 
     private fun transform(srcCast: TypecastExpression): PtTypeCast {
+        val inner = transformExpression(srcCast.expression)
+        require(inner !is PtNumber) {
+            "numeric literal typecast should have been resolved at the compiler Ast level, not at simplified Ast: ${srcCast}"
+        }
         val cast = PtTypeCast(srcCast.type, srcCast.implicit, srcCast.position)
-        cast.add(transformExpression(srcCast.expression))
+        cast.add(inner)
         require(cast.type!=cast.value.type) {
             "bogus typecast shouldn't occur at ${srcCast.position}" }
         return cast

@@ -31,8 +31,21 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                     VarDeclType.VAR -> {
                         if(decl.isArray) {
                             // using a array of words as initializer to a pointer array is fine
-                            if (!valueDt.isSplitWordArray || !decl.datatype.isPointerArray)
-                                errors.err("value has incompatible type ($valueType) for the variable (${decl.datatype})", decl.value!!.position)
+                            val ok = valueDt.isSplitWordArray(options.compTarget) && decl.datatype.isPointerArray ||
+                                    valueDt.isWordArray && decl.datatype.isPointerArray && decl.splitwordarray == SplitWish.DONTCARE ||
+                                    decl.datatype.isLongArray && (valueDt.isPointerArray || valueDt.isWordArray)
+                            if (!ok) {
+                                val splitNote = when {
+                                    valueDt.isSplitWordArray(options.compTarget) && decl.datatype.isSplitWordArray(options.compTarget) ->
+                                        " (both the value and the variable are split word arrays)"
+                                    valueDt.isSplitWordArray(options.compTarget) ->
+                                        " (the value is a split word array)"
+                                    decl.datatype.isSplitWordArray(options.compTarget) ->
+                                        " (the variable is a split word array)"
+                                    else -> ""
+                                }
+                                errors.err("value has incompatible type ($valueType) for the variable (${decl.datatype})$splitNote", decl.value!!.position)
+                            }
                         } else if(!decl.datatype.isString) {
                             if (valueDt.largerSizeThan(decl.datatype)) {
                                 val constValue = decl.value?.constValue(program)
@@ -81,25 +94,37 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
 
         // check splitting of word arrays
         if(decl.splitwordarray != SplitWish.DONTCARE && !decl.datatype.isWordArray && !decl.datatype.isPointerArray) {
-            if(decl.origin != VarDeclOrigin.ARRAYLITERAL)
-                errors.err("@nosplit is for word or pointer arrays only", decl.position)
+            if(decl.origin != VarDeclOrigin.ARRAYLITERAL) {
+                if(decl.datatype.isLongArray) {
+                    errors.info("@nosplit is redundant here", decl.position)
+                }
+                else
+                    errors.err("@nosplit is for word or pointer arrays only", decl.position)
+            }
         }
 
         if(decl.datatype.isWordArray) {
             var changeDataType: DataType?
             when(decl.splitwordarray) {
                 SplitWish.DONTCARE -> {
-                    changeDataType = if(decl.datatype.isSplitWordArray) null else {
+                    changeDataType = if(decl.datatype.isSplitWordArray(options.compTarget)) {
+                        if(options.compTarget.POINTER_MEM_SIZE > 2u)
+                            DataType.arrayFor(decl.datatype.elementType().base, options.compTarget)
+                        else
+                            null
+                    } else {
                         val eltDt = decl.datatype.elementType()
                         if(eltDt.isPointer)
                             TODO("convert array of pointers to split words array type  ${decl.position}")
+                        else if((eltDt.isWord || eltDt.isUnsignedWord) && options.compTarget.POINTER_MEM_SIZE == 2u)
+                            DataType.splitWordArrayFor(eltDt.base)
                         else
-                            DataType.arrayFor(eltDt.base)
+                            null
                     }
                 }
                 SplitWish.NOSPLIT -> {
-                    changeDataType = if(decl.datatype.isSplitWordArray && !decl.datatype.elementType().isPointer)
-                        DataType.arrayFor(decl.datatype.elementType().base, false)
+                    changeDataType = if(decl.datatype.isSplitWordArray(options.compTarget) && !decl.datatype.elementType().isPointer)
+                        DataType.arrayFor(decl.datatype.elementType().base, options.compTarget)
                     else null
                 }
             }
@@ -118,7 +143,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
 
         // handle @nosplit on pointer arrays: convert to regular non-split word array
         if(decl.datatype.isPointerArray && decl.splitwordarray == SplitWish.NOSPLIT) {
-            val newDt = DataType.arrayFor(BaseDataType.UWORD, false)  // false = not split (sequential)
+            val newDt = DataType.arrayFor(BaseDataType.UWORD, options.compTarget)  // non-split
             var value = decl.value
             if(value is ArrayLiteral && !(value.type istype newDt)) {
                 value = ArrayLiteral(InferredTypes.knownFor(newDt), value.value, value.position)
@@ -129,6 +154,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                 .build()
             return listOf(AstReplaceNode(decl, newDecl, parent))
         }
+
         return noModifications
     }
 
@@ -151,7 +177,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
         val number = typecast.expression as? NumericLiteral
         if(number!=null) {
             if(typecast.type.isBasic) {
-                val value = number.cast(typecast.type.base, typecast.implicit)
+                val value = number.cast(typecast.type.base, typecast.implicit, options.compTarget)
                 if (value.isValid)
                     return listOf(AstReplaceNode(typecast, value.valueOrZero(), parent))
             }
@@ -242,7 +268,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
             if(rightConst != null && rightConst.number.toInt() in -128..255 && expr.right.inferType(program).isWords) {
                 val cast = expr.left as? TypecastExpression
                 if(cast != null && cast.type.isWord && cast.expression.inferType(program).isBytes) {
-                    val small = rightConst.cast(cast.expression.inferType(program).getOrUndef().base, true)
+                    val small = rightConst.cast(cast.expression.inferType(program).getOrUndef().base, true, options.compTarget)
                     if(small.isValid) {
                         return listOf(
                             AstReplaceNode(expr.left, cast.expression, expr),
@@ -256,7 +282,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                 if(leftConst != null && leftConst.number.toInt() in -128..255 && expr.left.inferType(program).isWords) {
                     val cast = expr.right as? TypecastExpression
                     if(cast != null && cast.type.isWord && cast.expression.inferType(program).isBytes) {
-                        val small = leftConst.cast(cast.expression.inferType(program).getOrUndef().base, true)
+                        val small = leftConst.cast(cast.expression.inferType(program).getOrUndef().base, true, options.compTarget)
                         if(small.isValid) {
                             return listOf(
                                 AstReplaceNode(expr.right, cast.expression, expr),
@@ -323,7 +349,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
 
                     // replace x==1 or x==2 or x==3  with a containment check  x in [1,2,3]
                     val valueCopies = values.sortedBy { it.number }.map { it.copy() }
-                    val arrayType = DataType.arrayFor(elementType.base)
+                    val arrayType = DataType.arrayFor(elementType.base, options.compTarget)
                     val valuesArray = ArrayLiteral(InferredTypes.InferredType.known(arrayType), valueCopies.toTypedArray(), expr.position)
                     val containment = ContainmentCheck(needle, valuesArray, expr.position)
                     return listOf(AstReplaceNode(expr, containment, parent))
@@ -364,18 +390,18 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                     }
                 }
                 if (rightConstVal?.number == 1.0) {
-                    if (rightDt != leftDt && !(leftDt.isPointer && rightDt.isUnsignedWord)) {
-                        val dt = if(leftDt.isPointer) BaseDataType.UWORD else leftDt.base
-                        if(dt.isNumeric && !dt.isLong && dt!=BaseDataType.UNDEFINED) {
+                    if (rightDt != leftDt && !(leftDt.isPointer && rightDt.base == options.compTarget.pointerBaseType)) {
+                        val dt = if(leftDt.isPointer) options.compTarget.pointerBaseType else leftDt.base
+                        if(dt.isNumeric && dt!=BaseDataType.UNDEFINED && (!dt.isLong || leftDt.isPointer)) {
                             val right = NumericLiteral(dt, rightConstVal.number, rightConstVal.position)
                             return listOf(AstReplaceNode(expr.right, right, expr))
                         }
                     }
                 }
                 else if (rightConstVal?.number == 0.0) {
-                    if (rightDt != leftDt && !(leftDt.isPointer && rightDt.isUnsignedWord)) {
-                        val dt = if(leftDt.isPointer) BaseDataType.UWORD else leftDt.base
-                        if(dt.isNumeric && !dt.isLong && dt!=BaseDataType.UNDEFINED) {
+                    if (rightDt != leftDt && !(leftDt.isPointer && rightDt.base == options.compTarget.pointerBaseType)) {
+                        val dt = if(leftDt.isPointer) options.compTarget.pointerBaseType else leftDt.base
+                        if(dt.isNumeric && dt!=BaseDataType.UNDEFINED && (!dt.isLong || leftDt.isPointer)) {
                             val right = NumericLiteral(dt, rightConstVal.number, rightConstVal.position)
                             return listOf(AstReplaceNode(expr.right, right, expr))
                         }
@@ -390,18 +416,18 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                     }
                 }
                 if (rightConstVal?.number == 1.0) {
-                    if(rightDt!=leftDt && !(leftDt.isPointer && rightDt.isUnsignedWord)) {
-                        val dt = if(leftDt.isPointer) BaseDataType.UWORD else leftDt.base
-                        if(!dt.isLong && dt!=BaseDataType.UNDEFINED) {
+                    if(rightDt!=leftDt && !(leftDt.isPointer && rightDt.base == options.compTarget.pointerBaseType)) {
+                        val dt = if(leftDt.isPointer) options.compTarget.pointerBaseType else leftDt.base
+                        if(dt!=BaseDataType.UNDEFINED && (!dt.isLong || leftDt.isPointer)) {
                             val right = NumericLiteral(dt, rightConstVal.number, rightConstVal.position)
                             return listOf(AstReplaceNode(expr.right, right, expr))
                         }
                     }
                 }
                 else if (rightConstVal?.number == 0.0) {
-                    if(rightDt!=leftDt && !(leftDt.isPointer && rightDt.isUnsignedWord)) {
-                        val dt = if(leftDt.isPointer) BaseDataType.UWORD else leftDt.base
-                        if(!dt.isLong && dt!=BaseDataType.UNDEFINED) {
+                    if(rightDt!=leftDt && !(leftDt.isPointer && rightDt.base == options.compTarget.pointerBaseType)) {
+                        val dt = if(leftDt.isPointer) options.compTarget.pointerBaseType else leftDt.base
+                        if(dt!=BaseDataType.UNDEFINED && (!dt.isLong || leftDt.isPointer)) {
                             val right = NumericLiteral(dt, rightConstVal.number, rightConstVal.position)
                             return listOf(AstReplaceNode(expr.right, right, expr))
                         }
@@ -440,7 +466,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
             if(stringVal.value.isEmpty())
                 return replaceWithFalse()
             if(stringVal.value.length==1) {
-                val string = program.encoding.encodeString(stringVal.value, stringVal.encoding)
+                val string = program.target.encodeString(stringVal.value, stringVal.encoding)
                 return replaceWithEquals(NumericLiteral(BaseDataType.UBYTE, string[0].toDouble(), stringVal.position))
             }
             return noModifications
@@ -655,8 +681,8 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
         val ident = IdentifierReference(deref.chain, deref.position)
         val target = deref.definingScope.lookup(ident.nameInSource)
         when (target) {
-            is VarDecl -> require(target.datatype.isPointer || target.datatype.isUnsignedWord)
-            is StructFieldRef -> require(target.type.isPointer || target.type.isUnsignedWord)
+            is VarDecl -> require(target.datatype.isPointer || target.datatype == options.compTarget.pointerType)
+            is StructFieldRef -> require(target.type.isPointer || target.type == options.compTarget.pointerType)
             else -> throw FatalAstException("requires pointer or uword dereference target at ${deref.position}")
         }
         return ident

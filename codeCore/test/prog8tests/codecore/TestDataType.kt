@@ -2,22 +2,28 @@ package prog8tests.codecore
 
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
-import io.kotest.matchers.booleans.shouldBeFalse
-import io.kotest.matchers.booleans.shouldBeTrue
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import prog8.code.core.*
+import prog8.code.target.Amiga500Target
+import prog8.code.target.Cx16Target
+import prog8.code.target.VMTarget
+
 
 /**
  * Unit tests for DataType and BaseDataType classes in codeCore.
  * Focus on type predicates, relationships, and key operations.
  */
 class TestDataType: FunSpec({
+    val tgt = Cx16Target()
 
     val dummyMemSizer = object : IMemSizer {
+        override val FLOAT_MEM_SIZE: UInt = 4u
+        override val POINTER_MEM_SIZE: UInt = 2u
+
         override fun memorySize(dt: DataType, numElements: Int?): Int {
             if (dt.isPointerArray) return 2 * numElements!!
-            if (dt.isArray || dt.isSplitWordArray) {
+            if (dt.isArray || dt.isSplitWordArray(this)) {
                 require(numElements != null)
                 return when (dt.sub) {
                     BaseDataType.BOOL, BaseDataType.BYTE, BaseDataType.UBYTE -> numElements
@@ -45,61 +51,69 @@ class TestDataType: FunSpec({
     // ============================================================================
 
     test("isByte extension") {
-        BaseDataType.UBYTE.isByte.shouldBeTrue()
-        BaseDataType.BYTE.isByte.shouldBeTrue()
-        BaseDataType.UWORD.isByte.shouldBeFalse()
-        BaseDataType.WORD.isByte.shouldBeFalse()
+        BaseDataType.UBYTE.isByte shouldBe true
+        BaseDataType.BYTE.isByte shouldBe true
+        BaseDataType.UWORD.isByte shouldBe false
+        BaseDataType.WORD.isByte shouldBe false
     }
 
     test("isByteOrBool extension") {
-        BaseDataType.UBYTE.isByteOrBool.shouldBeTrue()
-        BaseDataType.BYTE.isByteOrBool.shouldBeTrue()
-        BaseDataType.BOOL.isByteOrBool.shouldBeTrue()
-        BaseDataType.UWORD.isByteOrBool.shouldBeFalse()
+        BaseDataType.UBYTE.isByteOrBool shouldBe true
+        BaseDataType.BYTE.isByteOrBool shouldBe true
+        BaseDataType.BOOL.isByteOrBool shouldBe true
+        BaseDataType.UWORD.isByteOrBool shouldBe false
     }
 
     test("isWord extension") {
-        BaseDataType.UWORD.isWord.shouldBeTrue()
-        BaseDataType.WORD.isWord.shouldBeTrue()
-        BaseDataType.UBYTE.isWord.shouldBeFalse()
+        BaseDataType.UWORD.isWord shouldBe true
+        BaseDataType.WORD.isWord shouldBe true
+        BaseDataType.UBYTE.isWord shouldBe false
     }
 
     test("isInteger extension") {
-        BaseDataType.UBYTE.isInteger.shouldBeTrue()
-        BaseDataType.WORD.isInteger.shouldBeTrue()
-        BaseDataType.LONG.isInteger.shouldBeTrue()
-        BaseDataType.FLOAT.isInteger.shouldBeFalse()
+        BaseDataType.UBYTE.isInteger shouldBe true
+        BaseDataType.WORD.isInteger shouldBe true
+        BaseDataType.LONG.isInteger shouldBe true
+        BaseDataType.FLOAT.isInteger shouldBe false
     }
 
     test("isNumeric extension") {
-        BaseDataType.UBYTE.isNumeric.shouldBeTrue()
-        BaseDataType.FLOAT.isNumeric.shouldBeTrue()
-        BaseDataType.BOOL.isNumeric.shouldBeFalse()
+        BaseDataType.UBYTE.isNumeric shouldBe true
+        BaseDataType.FLOAT.isNumeric shouldBe true
+        BaseDataType.BOOL.isNumeric shouldBe false
     }
 
     test("isSigned extension") {
-        BaseDataType.BYTE.isSigned.shouldBeTrue()
-        BaseDataType.WORD.isSigned.shouldBeTrue()
-        BaseDataType.LONG.isSigned.shouldBeTrue()
-        BaseDataType.UBYTE.isSigned.shouldBeFalse()
+        BaseDataType.BYTE.isSigned shouldBe true
+        BaseDataType.WORD.isSigned shouldBe true
+        BaseDataType.LONG.isSigned shouldBe true
+        BaseDataType.UBYTE.isSigned shouldBe false
     }
 
     test("isArray extension") {
-        BaseDataType.ARRAY.isArray.shouldBeTrue()
-        BaseDataType.ARRAY_SPLITW.isArray.shouldBeTrue()
-        BaseDataType.ARRAY_POINTER.isArray.shouldBeTrue()
-        BaseDataType.UBYTE.isArray.shouldBeFalse()
+        BaseDataType.ARRAY.isArray shouldBe true
+        BaseDataType.ARRAY_SPLITW.isArray shouldBe true
+        BaseDataType.ARRAY_POINTER.isArray shouldBe true
+        BaseDataType.UBYTE.isArray shouldBe false
     }
 
     test("isPointer extension") {
-        BaseDataType.POINTER.isPointer.shouldBeTrue()
-        BaseDataType.UBYTE.isPointer.shouldBeFalse()
+        BaseDataType.POINTER.isPointer shouldBe true
+        BaseDataType.UBYTE.isPointer shouldBe false
     }
 
     test("isSplitWordArray extension") {
-        BaseDataType.ARRAY_SPLITW.isSplitWordArray.shouldBeTrue()
-        BaseDataType.ARRAY_POINTER.isSplitWordArray.shouldBeTrue()
-        BaseDataType.ARRAY.isSplitWordArray.shouldBeFalse()
+        DataType.splitWordArrayFor(BaseDataType.UWORD).isSplitWordArray(Cx16Target()) shouldBe true
+        DataType.splitWordArrayFor(BaseDataType.UWORD).isSplitWordArray(VMTarget()) shouldBe true
+        DataType.splitWordArrayFor(BaseDataType.UWORD).isSplitWordArray(Amiga500Target()) shouldBe true
+
+        DataType.arrayOfPointersTo(BaseDataType.UWORD).isSplitWordArray(Cx16Target()) shouldBe true
+        DataType.arrayOfPointersTo(BaseDataType.UWORD).isSplitWordArray(VMTarget()) shouldBe false
+        DataType.arrayOfPointersTo(BaseDataType.UWORD).isSplitWordArray(Amiga500Target()) shouldBe false
+
+        DataType.arrayFor(BaseDataType.UWORD, Cx16Target()).isSplitWordArray(Cx16Target()) shouldBe false
+        DataType.arrayFor(BaseDataType.UWORD, VMTarget()).isSplitWordArray(VMTarget()) shouldBe false
+        DataType.arrayFor(BaseDataType.UWORD, Amiga500Target()).isSplitWordArray(Amiga500Target()) shouldBe false
     }
 
     // ============================================================================
@@ -113,20 +127,20 @@ class TestDataType: FunSpec({
         DataType.forDt(BaseDataType.FLOAT) shouldBe DataType.FLOAT
     }
 
-    test("DataType.forDt throws for struct instance") {
-        shouldThrow<NotImplementedError> {
-            DataType.forDt(BaseDataType.STRUCT_INSTANCE)
-        }
+    test("DataType.forDt supports struct instance") {
+        val dt = DataType.forDt(BaseDataType.STRUCT_INSTANCE)
+        dt.base shouldBe BaseDataType.STRUCT_INSTANCE
+        dt.isStructInstance shouldBe true
     }
 
     test("DataType.arrayFor creates array types") {
-        val ubyteArray = DataType.arrayFor(BaseDataType.UBYTE)
+        val ubyteArray = DataType.arrayFor(BaseDataType.UBYTE, tgt)
         ubyteArray.base shouldBe BaseDataType.ARRAY
         ubyteArray.sub shouldBe BaseDataType.UBYTE
 
-        val wordArraySplit = DataType.arrayFor(BaseDataType.WORD)
-        wordArraySplit.base shouldBe BaseDataType.ARRAY_SPLITW
-        wordArraySplit.sub shouldBe BaseDataType.WORD
+        val wordArray = DataType.arrayFor(BaseDataType.WORD, tgt)
+        wordArray.base shouldBe BaseDataType.ARRAY
+        wordArray.sub shouldBe BaseDataType.WORD
     }
 
     test("DataType.pointer creates pointer types") {
@@ -140,45 +154,45 @@ class TestDataType: FunSpec({
     // ============================================================================
 
     test("DataType.isBasic property") {
-        DataType.UBYTE.isBasic.shouldBeTrue()
-        DataType.WORD.isBasic.shouldBeTrue()
-        DataType.STR.isBasic.shouldBeFalse()
-        DataType.arrayFor(BaseDataType.UBYTE).isBasic.shouldBeFalse()
+        DataType.UBYTE.isBasic shouldBe true
+        DataType.WORD.isBasic shouldBe true
+        DataType.STR.isBasic shouldBe false
+        DataType.arrayFor(BaseDataType.UBYTE, tgt).isBasic shouldBe false
     }
 
     test("DataType.isByte property") {
-        DataType.UBYTE.isByte.shouldBeTrue()
-        DataType.BYTE.isByte.shouldBeTrue()
-        DataType.WORD.isByte.shouldBeFalse()
+        DataType.UBYTE.isByte shouldBe true
+        DataType.BYTE.isByte shouldBe true
+        DataType.WORD.isByte shouldBe false
     }
 
     test("DataType.isNumeric property") {
-        DataType.UBYTE.isNumeric.shouldBeTrue()
-        DataType.FLOAT.isNumeric.shouldBeTrue()
-        DataType.BOOL.isNumeric.shouldBeFalse()
-        DataType.STR.isNumeric.shouldBeFalse()
+        DataType.UBYTE.isNumeric shouldBe true
+        DataType.FLOAT.isNumeric shouldBe true
+        DataType.BOOL.isNumeric shouldBe false
+        DataType.STR.isNumeric shouldBe false
     }
 
     test("DataType.isArray property") {
-        DataType.arrayFor(BaseDataType.UBYTE).isArray.shouldBeTrue()
-        DataType.UBYTE.isArray.shouldBeFalse()
+        DataType.arrayFor(BaseDataType.UBYTE, tgt).isArray shouldBe true
+        DataType.UBYTE.isArray shouldBe false
     }
 
     test("DataType.isPointer property") {
-        DataType.pointer(BaseDataType.UBYTE).isPointer.shouldBeTrue()
-        DataType.UBYTE.isPointer.shouldBeFalse()
+        DataType.pointer(BaseDataType.UBYTE).isPointer shouldBe true
+        DataType.UBYTE.isPointer shouldBe false
     }
 
     test("DataType.isString property") {
-        DataType.STR.isString.shouldBeTrue()
-        DataType.UBYTE.isString.shouldBeFalse()
+        DataType.STR.isString shouldBe true
+        DataType.UBYTE.isString shouldBe false
     }
 
     test("DataType.isPassByRef property") {
-        DataType.STR.isPassByRef.shouldBeTrue()
-        DataType.arrayFor(BaseDataType.UBYTE).isPassByRef.shouldBeTrue()
-        DataType.UBYTE.isPassByRef.shouldBeFalse()
-        DataType.pointer(BaseDataType.UBYTE).isPassByRef.shouldBeFalse()
+        DataType.STR.isPassByRef shouldBe true
+        DataType.arrayFor(BaseDataType.UBYTE, tgt).isPassByRef shouldBe true
+        DataType.UBYTE.isPassByRef shouldBe false
+        DataType.pointer(BaseDataType.UBYTE).isPassByRef shouldBe false
     }
 
     // ============================================================================
@@ -186,8 +200,8 @@ class TestDataType: FunSpec({
     // ============================================================================
 
     test("DataType.elementType returns element type for arrays") {
-        DataType.arrayFor(BaseDataType.UBYTE).elementType() shouldBe DataType.UBYTE
-        DataType.arrayFor(BaseDataType.WORD).elementType() shouldBe DataType.WORD
+        DataType.arrayFor(BaseDataType.UBYTE, tgt).elementType() shouldBe DataType.UBYTE
+        DataType.arrayFor(BaseDataType.WORD, tgt).elementType() shouldBe DataType.WORD
         DataType.STR.elementType() shouldBe DataType.UBYTE
     }
 
@@ -226,31 +240,31 @@ class TestDataType: FunSpec({
     }
 
     test("BaseDataType.largerSizeThan") {
-        BaseDataType.WORD.largerSizeThan(BaseDataType.UBYTE).shouldBeTrue()
-        BaseDataType.LONG.largerSizeThan(BaseDataType.WORD).shouldBeTrue()
-        BaseDataType.UBYTE.largerSizeThan(BaseDataType.WORD).shouldBeFalse()
-        BaseDataType.STR.largerSizeThan(BaseDataType.UBYTE).shouldBeTrue()
-        BaseDataType.STR.largerSizeThan(BaseDataType.BOOL).shouldBeTrue()
-        BaseDataType.STR.largerSizeThan(BaseDataType.UWORD).shouldBeFalse()
-        BaseDataType.STR.largerSizeThan(BaseDataType.WORD).shouldBeFalse()
-        BaseDataType.STR.largerSizeThan(BaseDataType.POINTER).shouldBeFalse()
-        BaseDataType.STR.largerSizeThan(BaseDataType.LONG).shouldBeFalse()
-        BaseDataType.POINTER.largerSizeThan(BaseDataType.UBYTE).shouldBeTrue()
-        BaseDataType.POINTER.largerSizeThan(BaseDataType.BOOL).shouldBeTrue()
-        BaseDataType.POINTER.largerSizeThan(BaseDataType.UWORD).shouldBeFalse()
-        BaseDataType.POINTER.largerSizeThan(BaseDataType.STR).shouldBeFalse()
+        BaseDataType.WORD.largerSizeThan(BaseDataType.UBYTE) shouldBe true
+        BaseDataType.LONG.largerSizeThan(BaseDataType.WORD) shouldBe true
+        BaseDataType.UBYTE.largerSizeThan(BaseDataType.WORD) shouldBe false
+        BaseDataType.STR.largerSizeThan(BaseDataType.UBYTE) shouldBe true
+        BaseDataType.STR.largerSizeThan(BaseDataType.BOOL) shouldBe true
+        BaseDataType.STR.largerSizeThan(BaseDataType.UWORD) shouldBe false
+        BaseDataType.STR.largerSizeThan(BaseDataType.WORD) shouldBe false
+        BaseDataType.STR.largerSizeThan(BaseDataType.POINTER) shouldBe false
+        BaseDataType.STR.largerSizeThan(BaseDataType.LONG) shouldBe false
+        BaseDataType.POINTER.largerSizeThan(BaseDataType.UBYTE) shouldBe true
+        BaseDataType.POINTER.largerSizeThan(BaseDataType.BOOL) shouldBe true
+        BaseDataType.POINTER.largerSizeThan(BaseDataType.UWORD) shouldBe false
+        BaseDataType.POINTER.largerSizeThan(BaseDataType.STR) shouldBe false
     }
 
     test("BaseDataType.equalsSize") {
-        BaseDataType.UBYTE.equalsSize(BaseDataType.UBYTE).shouldBeTrue()
-        BaseDataType.UBYTE.equalsSize(BaseDataType.BYTE).shouldBeTrue()
-        BaseDataType.WORD.equalsSize(BaseDataType.UWORD).shouldBeTrue()
-        BaseDataType.UBYTE.equalsSize(BaseDataType.WORD).shouldBeFalse()
-        BaseDataType.STR.equalsSize(BaseDataType.STR).shouldBeTrue()
-        BaseDataType.STR.equalsSize(BaseDataType.UWORD).shouldBeTrue()
-        BaseDataType.STR.equalsSize(BaseDataType.BYTE).shouldBeFalse()
-        BaseDataType.POINTER.equalsSize(BaseDataType.UWORD).shouldBeTrue()
-        BaseDataType.POINTER.equalsSize(BaseDataType.STR).shouldBeFalse()
+        BaseDataType.UBYTE.equalsSize(BaseDataType.UBYTE) shouldBe true
+        BaseDataType.UBYTE.equalsSize(BaseDataType.BYTE) shouldBe true
+        BaseDataType.WORD.equalsSize(BaseDataType.UWORD) shouldBe true
+        BaseDataType.UBYTE.equalsSize(BaseDataType.WORD) shouldBe false
+        BaseDataType.STR.equalsSize(BaseDataType.STR) shouldBe true
+        BaseDataType.STR.equalsSize(BaseDataType.UWORD) shouldBe true
+        BaseDataType.STR.equalsSize(BaseDataType.BYTE) shouldBe false
+        BaseDataType.POINTER.equalsSize(BaseDataType.UWORD) shouldBe true
+        BaseDataType.POINTER.equalsSize(BaseDataType.STR) shouldBe false
     }
 
     // ============================================================================
@@ -258,39 +272,39 @@ class TestDataType: FunSpec({
     // ============================================================================
 
     test("bool assignability") {
-        DataType.BOOL.isAssignableTo(DataType.BOOL).shouldBeTrue()
-        DataType.BOOL.isAssignableTo(DataType.UBYTE).shouldBeFalse()
+        DataType.BOOL.isAssignableTo(DataType.BOOL) shouldBe true
+        DataType.BOOL.isAssignableTo(DataType.UBYTE) shouldBe false
     }
 
     test("ubyte assignability") {
-        DataType.UBYTE.isAssignableTo(DataType.UBYTE).shouldBeTrue()
-        DataType.UBYTE.isAssignableTo(DataType.UWORD).shouldBeTrue()
-        DataType.UBYTE.isAssignableTo(DataType.LONG).shouldBeTrue()
-        DataType.UBYTE.isAssignableTo(DataType.FLOAT).shouldBeTrue()
+        DataType.UBYTE.isAssignableTo(DataType.UBYTE) shouldBe true
+        DataType.UBYTE.isAssignableTo(DataType.UWORD) shouldBe true
+        DataType.UBYTE.isAssignableTo(DataType.LONG) shouldBe true
+        DataType.UBYTE.isAssignableTo(DataType.FLOAT) shouldBe true
     }
 
     test("byte assignability") {
-        DataType.BYTE.isAssignableTo(DataType.BYTE).shouldBeTrue()
-        DataType.BYTE.isAssignableTo(DataType.WORD).shouldBeTrue()
-        DataType.BYTE.isAssignableTo(DataType.LONG).shouldBeTrue()
+        DataType.BYTE.isAssignableTo(DataType.BYTE) shouldBe true
+        DataType.BYTE.isAssignableTo(DataType.WORD) shouldBe true
+        DataType.BYTE.isAssignableTo(DataType.LONG) shouldBe true
     }
 
     test("uword assignability") {
-        DataType.UWORD.isAssignableTo(DataType.UWORD).shouldBeTrue()
-        DataType.UWORD.isAssignableTo(DataType.LONG).shouldBeTrue()
-        DataType.UWORD.isAssignableTo(DataType.FLOAT).shouldBeTrue()
+        DataType.UWORD.isAssignableTo(DataType.UWORD) shouldBe true
+        DataType.UWORD.isAssignableTo(DataType.LONG) shouldBe true
+        DataType.UWORD.isAssignableTo(DataType.FLOAT) shouldBe true
     }
 
     test("string assignability") {
-        DataType.STR.isAssignableTo(DataType.STR).shouldBeTrue()
-        DataType.STR.isAssignableTo(DataType.UWORD).shouldBeTrue()
+        DataType.STR.isAssignableTo(DataType.STR) shouldBe true
+        DataType.STR.isAssignableTo(DataType.UWORD) shouldBe true
     }
 
     test("pointer assignability") {
         val ptr = DataType.pointer(BaseDataType.UBYTE)
-        ptr.isAssignableTo(DataType.UWORD).shouldBeTrue()
-        ptr.isAssignableTo(DataType.LONG).shouldBeTrue()
-        ptr.isAssignableTo(DataType.pointer(BaseDataType.UBYTE)).shouldBeTrue()
+        ptr.isAssignableTo(DataType.UWORD) shouldBe true
+        ptr.isAssignableTo(DataType.LONG) shouldBe true
+        ptr.isAssignableTo(DataType.pointer(BaseDataType.UBYTE)) shouldBe true
     }
 
     // ============================================================================
@@ -305,7 +319,7 @@ class TestDataType: FunSpec({
     }
 
     test("DataType.toString for arrays") {
-        DataType.arrayFor(BaseDataType.UBYTE).toString() shouldBe "ubyte[]"
-        DataType.arrayFor(BaseDataType.WORD).toString() shouldBe "word[] (split)"
+        DataType.arrayFor(BaseDataType.UBYTE, tgt).toString() shouldBe "ubyte[]"
+        DataType.arrayFor(BaseDataType.WORD, tgt).toString() shouldBe "word[]"
     }
 })

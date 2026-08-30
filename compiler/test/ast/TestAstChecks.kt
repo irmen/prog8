@@ -189,7 +189,7 @@ main {
         """
         val errors = ErrorReporterForTests()
         compileText(VMTarget(), true, text, outputDir, writeAssembly = false, errors=errors) shouldBe null
-        errors.errors.size shouldBe 2
+        errors.errors.size shouldBe 1
         errors.errors[0] shouldContain "pointer arrays cannot be memory-mapped"
     }
 
@@ -305,6 +305,34 @@ main {
 }"""
         compileText(C64Target(), false, src, outputDir, writeAssembly = false) shouldNotBe null
         compileText(C64Target(), true, src, outputDir, writeAssembly = false) shouldNotBe null
+    }
+
+    test("typed for loop with untyped existing variable is ok") {
+        val src = """
+main {
+    sub start() {
+        ubyte w
+        for w in "derp" {
+        }
+    }
+}
+"""
+        compileText(C64Target(), false, src, outputDir, writeAssembly = false) shouldNotBe null
+    }
+
+    test("typed for loop allows widening iterable elements") {
+        val src = """
+main {
+    sub start() {
+        ubyte[] values = [1, 2, 3]
+        for word w in values {
+        }
+        for long l in values {
+        }
+    }
+}
+"""
+        compileText(C64Target(), false, src, outputDir, writeAssembly = false) shouldNotBe null
     }
 
     test("reg params cannot be statusflag") {

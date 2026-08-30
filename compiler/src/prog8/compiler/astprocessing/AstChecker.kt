@@ -5,6 +5,7 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
 import prog8.code.core.*
+import prog8.code.target.Amiga500Target
 import prog8.code.target.C128Target
 import prog8.code.target.Cx16Target
 import prog8.code.target.VMTarget
@@ -19,7 +20,7 @@ import kotlin.math.floor
  */
 internal class AstChecker(private val program: Program,
                           private val errors: IErrorReporter,
-                          private val compilerOptions: CompilationOptions
+                          private val options: CompilationOptions
 ) : IAstVisitor {
 
     override fun visit(program: Program) {
@@ -38,13 +39,13 @@ internal class AstChecker(private val program: Program,
             } else {
                 if (startSub.parameters.isNotEmpty() || startSub.returntypes.isNotEmpty())
                     errors.err("program entrypoint subroutine can't have parameters and/or return values", startSub.position)
-                if (startSub.isPrivate)
+                if (startSub.visibility == Visibility.PRIVATE)
                     errors.err("program entrypoint subroutine 'start' cannot be private", startSub.position)
             }
         }
 
-        if(compilerOptions.floats) {
-            if (compilerOptions.zeropage !in arrayOf(ZeropageType.FLOATSAFE, ZeropageType.BASICSAFE, ZeropageType.DONTUSE ))
+        if(options.floats) {
+            if (options.zeropage !in arrayOf(ZeropageType.FLOATSAFE, ZeropageType.BASICSAFE, ZeropageType.DONTUSE ))
                 errors.err("when floats are enabled, zero page type should be 'floatsafe' or 'basicsafe' or 'dontuse'", program.toplevelModule.position)
         }
 
@@ -60,7 +61,7 @@ internal class AstChecker(private val program: Program,
         val directives = module.statements.filterIsInstance<Directive>().groupBy { it.directive }
         directives.filter { it.value.size > 1 }.forEach{ entry ->
             when(entry.key) {
-                "%output", "%launcher", "%zeropage", "%address", "%memtop", "%encoding" ->
+                "%output", "%launcher", "%zeropage", "%address", "%memtop", "%varsaddress", "%encoding" ->
                     entry.value.forEach { errors.err("directive can just occur once", it.position) }
             }
         }
@@ -121,10 +122,18 @@ internal class AstChecker(private val program: Program,
 
     private fun checkPrivateTypeAccess(type: DataType, position: Position, currentBlock: Block) {
         val struct = type.subType
-        if(struct is StructDecl && struct.isPrivate) {
+        if(struct is StructDecl) {
             val structBlock = struct.definingBlock
-            if(currentBlock !== structBlock)
-                errors.err("cannot access private struct '${struct.scopedName.joinToString(".")}' from outside its block", position)
+            val hasPrivateSymbolsOption = "private_symbols" in structBlock.options()
+                    || (structBlock.parent is Module && "private_symbols" in (structBlock.parent as Module).options())
+
+            if(hasPrivateSymbolsOption) {
+                if(struct.visibility != Visibility.PUBLIC && currentBlock !== structBlock)
+                    errors.err("cannot access struct '${struct.scopedName.joinToString(".")}' from outside its block (not public)", position)
+            } else {
+                if(struct.visibility == Visibility.PRIVATE && currentBlock !== structBlock)
+                    errors.err("cannot access private struct '${struct.scopedName.joinToString(".")}' from outside its block", position)
+            }
         }
     }
 
@@ -140,7 +149,8 @@ internal class AstChecker(private val program: Program,
                     errors.err("invalid statement in unroll loop", it.position)
             }
             if (iterations * unrollLoop.body.statements.size > 256) {
-                errors.warn("large number of unrolls, potential code size issue", unrollLoop.position)
+                if(!options.compTarget.cpu.is68k)
+                    errors.warn("large number of unrolls, potential code size issue", unrollLoop.position)
             }
         }
         super.visit(unrollLoop)
@@ -180,8 +190,12 @@ internal class AstChecker(private val program: Program,
                         // you can return a string or array or pointer when an uword (pointer) is returned
                     } else if(valueDt issimpletype BaseDataType.UWORD && expectedDt.isString) {
                         // you can return an uword pointer when the return type is a string
-                    } else if((valueDataType.isUnsignedWord || valueDataType.isByte) && expectedDt.isPointer) {
-                        // you can return an uword/ubyte/byte value when a pointer is required
+                    } else if(expectedDt.isLong && options.compTarget.POINTER_MEM_SIZE>2u && (valueDataType.isIterable || valueDataType.isPointer)) {
+                        // you can return a string or array or pointer when a long (pointer) is returned on 32-bit targets
+                    } else if((valueDataType.isUnsignedWord || valueDataType.isByte || valueDataType.isLong) && expectedDt.isPointer) {
+                        // you can return an uword/ubyte/byte/long value when a pointer is required
+                        if(options.compTarget.POINTER_MEM_SIZE>2u && !valueDataType.isLong)
+                            errors.err("incompatible return value type $valueDt for $expectedDt (use explicit typecast?)", actual.position)
                     } else {
                         errors.err("return value type $valueDt doesn't match subroutine return type $expectedDt", actual.position)
                     }
@@ -219,24 +233,42 @@ internal class AstChecker(private val program: Program,
         fun checkUnsignedLoopDownto0(range: RangeExpression?) {
             if(range==null)
                 return
-            val step = range.step.constValue(program)?.number ?: 1.0
-            if(step < -1.0) {
+            val stepConst = range.step.constValue(program)?.number ?: return
+            if(stepConst < -1.0) {
                 val limit = range.to.constValue(program)?.number
                 if(limit==0.0 && range.from.constValue(program)==null)
                     errors.err("for unsigned loop variable it's not possible to count down with step != -1 from a non-const value to exactly zero due to value wrapping", forLoop.position)
             }
         }
 
+        // step validation for non-range iterables (AST desugaring, see ideas/list-iteration.md)
+        if(forLoop.step != null) {
+            if(forLoop.iterable is RangeExpression) {
+                errors.err("step on for-loop cannot be combined with range step - use 'to/downto ... step ...' inside the range", forLoop.position)
+            } else {
+                val stepVal = forLoop.step!!.constValue(program)?.number
+                if(stepVal==null) {
+                    errors.err("step for non-range iterable must be a constant 1 or -1", forLoop.position)
+                } else if(stepVal != 1.0 && stepVal != -1.0) {
+                    errors.err("step for non-range iterable must be 1 or -1 (arrays, strings and lists have no stride)", forLoop.position)
+                }
+            }
+        }
+
         val iterableDt = forLoop.iterable.inferType(program).getOrUndef()
+        val isTypedForLoop = forLoop.loopVarType != null
+        val isList = isListIterable(iterableDt)
 
         if(forLoop.iterable is IFunctionCall) {
             errors.err("can not loop over function call return value", forLoop.position)
-        } else if(!(iterableDt.isIterable) && forLoop.iterable !is RangeExpression) {
+        } else if(!(iterableDt.isIterable) && forLoop.iterable !is RangeExpression && !isList) {
             errors.err("can only loop over an iterable type", forLoop.position)
         } else {
             val loopvar = forLoop.loopVar.targetVarDecl()
             if(loopvar==null || loopvar.type== VarDeclType.CONST) {
                 errors.err("for loop requires a variable to loop with", forLoop.position)
+            } else if(isList) {
+                validateListForLoop(forLoop, loopvar, iterableDt, isTypedForLoop)
             } else {
                 when (loopvar.datatype.base) {
                     BaseDataType.UBYTE -> {
@@ -253,7 +285,7 @@ internal class AstChecker(private val program: Program,
                     BaseDataType.UWORD -> {
                         if (!iterableDt.isUnsignedByte && !iterableDt.isUnsignedWord && !iterableDt.isString &&
                             !iterableDt.isUnsignedByteArray && !iterableDt.isUnsignedWordArray &&
-                            !iterableDt.isSplitWordArray
+                            !iterableDt.isSplitWordArray(options.compTarget)
                         )
                             errors.err("uword loop variable can only loop over unsigned bytes, words or strings", forLoop.position)
 
@@ -268,13 +300,15 @@ internal class AstChecker(private val program: Program,
                     BaseDataType.WORD -> {
                         if (!iterableDt.isSignedByte && !iterableDt.isSignedWord &&
                             !iterableDt.isSignedByteArray && !iterableDt.isUnsignedByteArray &&
-                            !iterableDt.isSignedWordArray && !iterableDt.isUnsignedWordArray
+                            !iterableDt.isSignedWordArray && !iterableDt.isUnsignedWordArray &&
+                            !(isTypedForLoop && iterableDt.isString)
                         )
                             errors.err("word loop variable can only loop over bytes or words", forLoop.position)
                     }
 
                     BaseDataType.LONG -> {
-                        errors.warn("for loop using a long counter could be very slow", forLoop.position)
+                        if(!options.compTarget.cpu.is68k)
+                            errors.warn("for loop using a long counter could be very slow", forLoop.position)
                     }
 
                     BaseDataType.FLOAT -> {
@@ -286,7 +320,7 @@ internal class AstChecker(private val program: Program,
 
                     BaseDataType.POINTER -> {
                         if (!iterableDt.isUnsignedWord) {
-                            if (iterableDt.isPointerArray || iterableDt.isUnsignedWordArray) {
+                            if (iterableDt.isPointerArray || iterableDt.isUnsignedWordArray || iterableDt.isLongArray) {
                                 val elementDt = iterableDt.elementType()
                                 if(loopvar.datatype != elementDt) {
                                     if(!elementDt.isUnsignedWord)
@@ -325,6 +359,55 @@ internal class AstChecker(private val program: Program,
         super.visit(forLoop)
     }
 
+    private fun isListIterable(dt: DataType): Boolean = ListIterationHelper.isListIterable(dt, program)
+    private fun structDeclFor(dt: DataType): StructDecl? = ListIterationHelper.structDeclFor(dt, program)
+    private fun isNodeStruct(decl: StructDecl): Boolean = decl.isNodeStruct()
+
+    private fun validateListForLoop(forLoop: ForLoop, loopvar: VarDecl, iterableDt: DataType, isTyped: Boolean) {
+        // loop var must be pointer to node
+        if(!loopvar.datatype.isPointer) {
+            errors.err("for loop over list requires a pointer variable (^^Node)", forLoop.position)
+            return
+        }
+        val listDecl = structDeclFor(iterableDt) ?: run {
+            errors.err("unable to resolve list type", forLoop.position)
+            return
+        }
+        val expectedNodeDecl = structDeclFor(listDecl.fields[0].type) ?: run {
+            errors.err("list Head field must be a typed pointer", forLoop.position)
+            return
+        }
+        // if explicit type given on for (^^Type var), forLoop.loopVarType holds it, but loopvar.datatype is the actual var's type.
+        // We validate that loopvar's type is compatible with expected node type, or if explicit type differs, validate that explicit node is also a valid node.
+        val loopVarNodeDecl = structDeclFor(loopvar.datatype)
+        if(loopVarNodeDecl==null) {
+            errors.err("loop variable must be a typed pointer to a node struct with Succ/Pred", forLoop.position)
+            return
+        }
+        if(!isNodeStruct(loopVarNodeDecl)) {
+            errors.err("loop variable's struct must have Succ/Pred (or Next/Prev) pointer fields at offset 0", forLoop.position)
+            return
+        }
+        // if explicit for type differs from list's node, we allow it as reinterpretation but still require valid node layout (already checked)
+        // otherwise enforce that loop var type matches list's node type when not explicitly typed differently
+        if(!isTyped) {
+            // inferred case: require exact match to list's node type
+            if(loopVarNodeDecl.name != expectedNodeDecl.name) {
+                errors.err("loop variable type ^^${loopVarNodeDecl.name} does not match list's node type ^^${expectedNodeDecl.name} - use explicit 'for ^^${expectedNodeDecl.name} ${forLoop.loopVar.nameInSource.single()}' or declare variable as ^^${expectedNodeDecl.name}", forLoop.position)
+            }
+        } else {
+            // explicit typed loop: check that explicit type matches loopvar's declared type
+            val explicitDt = forLoop.loopVarType!!
+            val explicitDecl = structDeclFor(explicitDt)
+            if(explicitDecl!=null && explicitDecl.name != loopVarNodeDecl.name) {
+                errors.err("explicit for loop type ^^${explicitDecl.name} does not match loop variable's declared type ^^${loopVarNodeDecl.name}", forLoop.position)
+            }
+            if(explicitDecl!=null && !isNodeStruct(explicitDecl)) {
+                errors.err("explicit loop type must be a node struct with Succ/Pred", forLoop.position)
+            }
+        }
+    }
+
     override fun visit(jump: Jump) {
         val ident = jump.target as? IdentifierReference
         if(ident!=null) {
@@ -338,12 +421,15 @@ internal class AstChecker(private val program: Program,
             }
         } else {
             val addr = jump.target.constValue(program)?.number
-            if (addr != null && addr !in 0.0..65535.0)
-                errors.err("goto address must be uword", jump.position)
+            val maxAddr = if(options.compTarget.POINTER_MEM_SIZE > 2u) 4294967295.0 else 65535.0
+            if (addr != null && addr !in 0.0..maxAddr)
+                errors.err("goto address must fit in a pointer", jump.position)
 
             val addressDt = jump.target.inferType(program).getOrUndef()
-            if(!(addressDt.isUnsignedByte || addressDt.isUnsignedWord))
-                errors.err("goto address must be uword", jump.position)
+            val validAddrType = addressDt.isUnsignedByte || addressDt.isUnsignedWord ||
+                    (options.compTarget.POINTER_MEM_SIZE > 2u && addressDt.isLong)
+            if(!validAddrType)
+                errors.err("goto address must fit in a pointer", jump.position)
         }
         super.visit(jump)
     }
@@ -360,7 +446,8 @@ internal class AstChecker(private val program: Program,
 
         val addr = block.address
         if (addr!=null) {
-            if (addr > 65535u)
+            val maxAddr = if(options.compTarget.POINTER_MEM_SIZE > 2u) 0xffffffffu else 65535u
+            if (addr > maxAddr)
                 errors.err($$"block address must be valid integer 0..$ffff", block.position)
         }
 
@@ -641,7 +728,7 @@ internal class AstChecker(private val program: Program,
                 if (p.registerOrPair !in Cx16VirtualRegisters && p.registerOrPair !in CombinedLongRegisters)
                     errors.err("can only use R0-R15 as register param for normal subroutines", p.position)
                 else {
-                    if(!compilerOptions.ignoreFootguns)
+                    if(!options.ignoreFootguns)
                         errors.warn("\uD83D\uDCA3 footgun: reusing R0-R15 as parameters risks overwriting due to clobbering or no callstack", subroutine.position)
                     if(!p.type.isInteger && !p.type.isBool && !p.type.isPointer) {
                         errors.err("can only use register param when type is boolean, integer or pointer", p.position)
@@ -696,11 +783,13 @@ internal class AstChecker(private val program: Program,
         if (iterations != null) {
             require(floor(iterations.number)==iterations.number)
             if (iterations.number.toInt() > 65536) 
-                errors.warn("repeat using a long counter could be very slow", iterations.position)
+                if(!options.compTarget.cpu.is68k)
+                    errors.warn("repeat using a long counter could be very slow", iterations.position)
         }
         
         if(repeatLoop.iterations?.inferType(program)?.isLong==true) {
-            errors.warn("repeat using a long counter could be very slow", repeatLoop.iterations!!.position)
+            if(!options.compTarget.cpu.is68k)
+                errors.warn("repeat using a long counter could be very slow", repeatLoop.iterations!!.position)
         }
 
         val ident = repeatLoop.iterations as? IdentifierReference
@@ -834,9 +923,10 @@ internal class AstChecker(private val program: Program,
     override fun visit(assignTarget: AssignTarget) {
         super.visit(assignTarget)
 
-        val memAddr = assignTarget.memoryAddress?.addressExpression?.constValue(program)?.number?.toInt()
+        val memAddr = assignTarget.memoryAddress?.addressExpression?.constValue(program)?.number?.toLong()
         if (memAddr != null) {
-            if (memAddr !in 0..<65536)
+            val maxAddr = if(options.compTarget.POINTER_MEM_SIZE > 2u) 0xFFFFFFFFL else 0xFFFFL
+            if (memAddr !in 0..maxAddr)
                 errors.err("address out of range", assignTarget.position)
         }
 
@@ -897,7 +987,7 @@ internal class AstChecker(private val program: Program,
             }
         }
 
-        if(compilerOptions.romable) {
+        if(options.romable) {
             if (assignTarget.multi != null)
                 assignTarget.multi?.forEach { checkRomTarget(it) }
             else
@@ -913,7 +1003,7 @@ internal class AstChecker(private val program: Program,
         }
 
         if(addressOf.msb) {
-            if(variable!=null && !variable.datatype.isSplitWordArray)
+            if(variable!=null && !variable.datatype.isSplitWordArray(options.compTarget))
                 errors.err("$> can only be used on split word arrays", addressOf.position)
         }
 
@@ -974,6 +1064,20 @@ internal class AstChecker(private val program: Program,
         fun err(msg: String) = errors.err(msg, decl.position)
         fun valueerr(msg: String) = errors.err(msg, decl.value?.position ?: decl.position)
 
+        fun incompatibleTypeError(valueDt: InferredTypes.InferredType, variableDt: DataType): String {
+            val value = valueDt.getOrUndef()
+            val splitNote = when {
+                value.isSplitWordArray(options.compTarget) && variableDt.isSplitWordArray(options.compTarget) ->
+                    " (both the value and the variable are split word arrays)"
+                value.isSplitWordArray(options.compTarget) ->
+                    " (the value is a split word array)"
+                variableDt.isSplitWordArray(options.compTarget) ->
+                    " (the variable is a split word array)"
+                else -> ""
+            }
+            return "initialization value has incompatible type ($valueDt) for the variable ($variableDt)$splitNote"
+        }
+
         // the initializer value can't refer to the variable itself (recursive definition)
         if(decl.value?.referencesIdentifier(listOf(decl.name)) == true || decl.arraysize?.indexExpr?.referencesIdentifier(listOf(decl.name)) == true)
             err("recursive var declaration")
@@ -987,10 +1091,10 @@ internal class AstChecker(private val program: Program,
         }
 
         // FLOATS enabled?
-        if(!compilerOptions.floats && decl.type != VarDeclType.CONST && decl.type != VarDeclType.MEMORY && (decl.datatype.isFloat || decl.datatype.isFloatArray)) {
+        if(!options.floats && decl.type != VarDeclType.CONST && decl.type != VarDeclType.MEMORY && (decl.datatype.isFloat || decl.datatype.isFloatArray)) {
             err("floating point used, but that is not enabled via options")
         }
-        else if(compilerOptions.compTarget.name == C128Target.NAME && decl.type != VarDeclType.CONST && (decl.datatype.isFloat || decl.datatype.isFloatArray)) {
+        else if(options.compTarget.name == C128Target.NAME && decl.type != VarDeclType.CONST && (decl.datatype.isFloat || decl.datatype.isFloatArray)) {
             err("c128 target does not support floating point numbers yet")
         }
 
@@ -1066,29 +1170,42 @@ internal class AstChecker(private val program: Program,
                 if(arraysize!=null) {
                     val arraySize = arraysize.constIndex() ?: 1
                     val dt = decl.datatype
+                    val byteLimit = options.compTarget.ARRAY_SIZE_LIMIT.toInt()
+                    val wordLimit = byteLimit / 2
+                    val longLimit = byteLimit / 4
+                    val floatLimit = byteLimit / options.compTarget.FLOAT_MEM_SIZE.toInt()
                     when {
                         dt.isString || dt.isByteArray || dt.isBoolArray ->
-                            if(arraySize > 256)
-                                err("byte array length must be 1-256")
-                        dt.isSplitWordArray ->
-                            if(arraySize > 256)
-                                err("split word array length must be 1-256")
+                            if(arraySize > byteLimit)
+                                err("byte array length must be 1-$byteLimit")
+                        dt.isSplitWordArray(options.compTarget) ->
+                            if(arraySize > byteLimit)
+                                err("split word array length must be 1-$byteLimit")
                         dt.isWordArray ->
-                            if(arraySize > 128)
-                                err("regular word array length must be 1-128, use split array to get to 256")
+                            if(arraySize > wordLimit)
+                                err("regular word array length must be 1-$wordLimit, use split array to get to $byteLimit")
                         dt.isLongArray ->
-                            if(arraySize > 64)
-                                err("long array length must be 1-64")
+                            if(arraySize > longLimit)
+                                err("long array length must be 1-$longLimit")
                         dt.isFloatArray ->
-                            if(arraySize > 51)
-                                err("float array length must be 1-51")
+                            if(arraySize > floatLimit)
+                                err("float array length must be 1-$floatLimit")
+                        dt.sub==BaseDataType.STRUCT_INSTANCE -> {
+                            val structSize = (dt.subType as? StructDecl)?.memsize(options.compTarget) ?: 0
+                            if(structSize>0) {
+                                val totalBytes = arraySize * structSize
+                                if(totalBytes > byteLimit || structSize > byteLimit)
+                                    err("array size $structSize exceeds target limit $byteLimit bytes")
+                            }
+                        }
                         else -> {}
                     }
                 }
                 val numvalue = decl.value?.constValue(program)
                 if(numvalue!=null) {
-                    if (!numvalue.type.isInteger || numvalue.number.toInt() < 0 || numvalue.number.toInt() > 65535) {
-                        valueerr($$"memory address must be valid integer 0..$ffff")
+                    val maxAddr = if(options.compTarget.POINTER_MEM_SIZE > 2u) 0xFFFFFFFFu else 0xFFFFu
+                    if (!numvalue.type.isInteger || numvalue.number.toLong() < 0L || numvalue.number.toLong() > maxAddr.toLong()) {
+                        valueerr("memory address must be valid integer 0..\$${maxAddr.toString(16)}")
                     }
                 } else {
                     valueerr("value of memory mapped variable can only be a constant number, maybe use an address pointer type instead?")
@@ -1104,19 +1221,27 @@ internal class AstChecker(private val program: Program,
                     if(!iDt.getOrUndef().isWordArray)
                         valueerr("initialization value for pointer array must be a word array")
                 }
+                else if(decl.datatype.isLongArray && decl.datatype.subType!=null) {
+                    // long[] with struct subtype (from parser creating ARRAY(LONG) for 32-bit targets)
+                    // accept pointer array values as initializer
+                    if(!iDt.getOrUndef().isPointerArray && !iDt.getOrUndef().isWordArray)
+                        valueerr(incompatibleTypeError(iDt, decl.datatype))
+                }
                 else if(decl.isArray) {
                     val eltDt = decl.datatype.elementType()
                     if(!(iDt istype eltDt) && iDt.isKnown)
-                        valueerr("initialization value has incompatible type ($iDt) for the variable (${decl.datatype})")
+                        valueerr(incompatibleTypeError(iDt, decl.datatype))
                 } else if(!decl.datatype.isString) {
                     if(!(iDt.isBool && decl.datatype.isUnsignedByte || iDt issimpletype BaseDataType.UBYTE && decl.datatype.isBool)) {
                         // pointer variables can be initialized with a compatible pointer or with a uword
                         if(decl.datatype.isPointer) {
-                            if (!iDt.isAssignableTo(decl.datatype))
-                                valueerr("initialization value has incompatible type ($iDt) for the variable (${decl.datatype})")
+                            if(options.compTarget.POINTER_MEM_SIZE>2u && iDt.getOrUndef().isWord)
+                                valueerr("incompatible value type for pointer: $iDt (use explicit typecast?)")
+                            else if (!iDt.isAssignableTo(decl.datatype))
+                                valueerr(incompatibleTypeError(iDt, decl.datatype))
                         }
                         else
-                            valueerr("initialization value has incompatible type ($iDt) for the variable (${decl.datatype})")
+                            valueerr(incompatibleTypeError(iDt, decl.datatype))
                     }
                 }
             }
@@ -1169,37 +1294,49 @@ internal class AstChecker(private val program: Program,
             if(length==null)
                 err("array length must be known at compile-time")
             else {
+                val byteLimit = options.compTarget.ARRAY_SIZE_LIMIT.toInt()
+                val wordLimit = byteLimit / 2
+                val longLimit = byteLimit / 4
+                val floatLimit = byteLimit / options.compTarget.FLOAT_MEM_SIZE.toInt()
                 when  {
                     decl.datatype.isString || decl.datatype.isByteArray || decl.datatype.isBoolArray -> {
-                        if (length == 0 || length > 256)
-                            err("string and byte array length must be 1-256")
+                        if (length == 0 || length > byteLimit)
+                            err("string and byte array length must be 1-$byteLimit")
                     }
-                    decl.datatype.isSplitWordArray -> {
-                        if (length == 0 || length > 256)
-                            err("split word array length must be 1-256")
+                    decl.datatype.isSplitWordArray(options.compTarget) -> {
+                        if (length == 0 || length > byteLimit)
+                            err("split word array length must be 1-$byteLimit")
                     }
                     decl.datatype.isWordArray -> {
-                        if (length == 0 || length > 128)
-                            err("regular word array length must be 1-128, use split array to get to 256")
+                        if (length == 0 || length > wordLimit)
+                            err("regular word array length must be 1-$wordLimit, use split array to get to $byteLimit")
                     }
                     decl.datatype.isLongArray -> {
-                        if (length == 0 || length > 64)
-                            err("long array length must be 1-64")
+                        if (length == 0 || length > longLimit)
+                            err("long array length must be 1-$longLimit")
                     }
                     decl.datatype.isFloatArray -> {
-                        if (length == 0 || length > 51)
-                            err("float array length must be 1-51")
+                        if (length == 0 || length > floatLimit)
+                            err("float array length must be 1-$floatLimit")
+                    }
+                    decl.datatype.sub==BaseDataType.STRUCT_INSTANCE -> {
+                        val structSize = (decl.datatype.subType as? StructDecl)?.memsize(options.compTarget) ?: 0
+                        if(structSize>0) {
+                            val totalBytes = length * structSize
+                            if(totalBytes==0 || totalBytes > byteLimit)
+                                err("array size $totalBytes exceeds target limit $byteLimit bytes")
+                        }
                     }
                     else -> {
                     }
                 }
             }
 
-            if(decl.datatype.isSplitWordArray && decl.type==VarDeclType.MEMORY)
+            if(decl.datatype.isSplitWordArray(options.compTarget) && decl.type==VarDeclType.MEMORY)
                 err("memory mapped word arrays cannot be split, should have @nosplit")
         }
 
-        if(decl.datatype.isSplitWordArray) {
+        if(decl.datatype.isSplitWordArray(options.compTarget)) {
             if (!decl.datatype.isWordArray && !decl.datatype.isPointerArray) {
                 errors.err("split can only be used on word and pointer arrays", decl.position)
             }
@@ -1231,7 +1368,7 @@ internal class AstChecker(private val program: Program,
                 errors.err("string variables cannot be @dirty", decl.position)
             else {
                 if(decl.value==null) {
-                    if(!compilerOptions.ignoreFootguns)
+                    if(!options.ignoreFootguns)
                         errors.warn("\uD83D\uDCA3 footgun: dirty variable, initial value will be undefined", decl.position)
                 }
                 else
@@ -1295,6 +1432,15 @@ internal class AstChecker(private val program: Program,
                 if(directive.args.size!=1 || directive.args[0].int == null)
                     err("invalid address directive, expected numeric address argument")
             }
+            "%varsaddress" -> {
+                if(directive.parent !is Module)
+                    err("this directive may only occur at module level")
+                if(directive.args.size!=1 || directive.args[0].int == null)
+                    err("invalid address directive, expected numeric address argument")
+            }
+            "%bssaddress", "%slabsaddress" -> {
+                err("directive ${directive.directive} has been removed, use %varsaddress instead")
+            }
             "%memtop" -> {
                 if(directive.parent !is Module)
                     err("this directive may only occur at module level")
@@ -1338,18 +1484,20 @@ internal class AstChecker(private val program: Program,
                     err("this directive may only occur in a block or at module level")
                 if(directive.args.isEmpty())
                     err("missing option directive argument(s)")
-                else if(directive.args.map{it.string in setOf("enable_floats", "force_output", "no_sysinit", "merge", "verafxmuls", "no_symbol_prefixing", "ignore_unused", "romable")}.any { !it })
+                else if(directive.args.map{it.string in setOf("enable_floats", "force_output", "no_sysinit", "merge", "verafxmuls", "no_symbol_prefixing", "ignore_unused", "romable", "amiga_chipram", "private_symbols")}.any { !it })
                     err("invalid option directive argument(s)")
                 if(directive.parent is Block) {
-                    if(directive.args.any {it.string !in setOf("force_output", "merge", "verafxmuls", "no_symbol_prefixing", "ignore_unused")})
+                    if(directive.args.any {it.string !in setOf("force_output", "merge", "verafxmuls", "no_symbol_prefixing", "ignore_unused", "amiga_chipram", "private_symbols")})
                         err("using an option that is not valid for blocks")
                 }
                 if(directive.parent is Module) {
-                    if(directive.args.any {it.string !in setOf("enable_floats", "no_sysinit", "no_symbol_prefixing", "ignore_unused", "romable")})
+                    if(directive.args.any {it.string !in setOf("enable_floats", "no_sysinit", "no_symbol_prefixing", "ignore_unused", "romable", "private_symbols")})
                         err("using an option that is not valid for modules")
                 }
-                if(directive.args.any { it.string=="verafxmuls" } && compilerOptions.compTarget.name != Cx16Target.NAME)
+                if(directive.args.any { it.string=="verafxmuls" } && options.compTarget.name != Cx16Target.NAME)
                     err("verafx option is only valid on cx16 target")
+                if(directive.args.any { it.string=="amiga_chipram" } && options.compTarget.name != Amiga500Target.NAME)
+                    err("amiga_chipram option is only valid on amiga500 target")
             }
             "%encoding" -> {
                 if(directive.parent !is Module)
@@ -1359,6 +1507,8 @@ internal class AstChecker(private val program: Program,
                     err("invalid encoding directive, expected one of $allowedEncodings")
             }
             "%jmptable" -> {
+                if(options.compTarget.cpu.is68k)
+                    err("%jmptable is not supported on M68K targets (library loading is 6502-only)")
                 if(directive.parent !is Block)
                     err("this directive may only occur in a block")
                 for(arg in directive.args) {
@@ -1392,7 +1542,7 @@ internal class AstChecker(private val program: Program,
 
     override fun visit(array: ArrayLiteral) {
         if(array.type.isKnown) {
-            if (!compilerOptions.floats && (array.type issimpletype BaseDataType.FLOAT || array.type.isFloatArray)) {
+            if (!options.floats && (array.type issimpletype BaseDataType.FLOAT || array.type.isFloatArray)) {
                 errors.err("floating point used, but that is not enabled via options", array.position)
             }
             val arrayspec = ArrayIndex.forArray(array)
@@ -1408,17 +1558,21 @@ internal class AstChecker(private val program: Program,
                 errors.err("initialization value contains non-constant elements", array.value[0].position)
             }
 
-            val elementDt = (array.parent as VarDecl).datatype.elementType()
-            if(elementDt.isPointer) {
-                // all elements in the initializer array should be of the same element type
-                array.value.forEach {
-                    val valueDt = it.inferType(program).getOrUndef()
-                    if(!valueDt.isUnsignedWord && valueDt != elementDt) {
-                        errors.err("struct initializer element has invalid type, expected $elementDt or uword but got $valueDt", it.position)
+            val parentDt = (array.parent as VarDecl).datatype
+            if(parentDt.isArray) {
+                val elementDt = parentDt.elementType()
+                if(elementDt.isPointer) {
+                    // all elements in the initializer array should be of the same element type
+                    array.value.forEach {
+                        val valueDt = it.inferType(program).getOrUndef()
+                        val isAcceptedPtrType = valueDt.isUnsignedWord || (options.compTarget.POINTER_MEM_SIZE > 2u && valueDt.isLong)
+                        if(!isAcceptedPtrType && valueDt != elementDt) {
+                            val expectedExtra = if(options.compTarget.POINTER_MEM_SIZE > 2u) "long" else "uword"
+                            errors.err("struct initializer element has invalid type, expected $elementDt or $expectedExtra but got $valueDt", it.position)
+                        }
                     }
                 }
             }
-
         } else if(array.parent is ForLoop) {
             if (!array.value.all { it.constValue(program) != null })
                 errors.err("array literal for iteration must contain constants. Try using a separate array variable instead?", array.position)
@@ -1429,7 +1583,7 @@ internal class AstChecker(private val program: Program,
 
     override fun visit(char: CharLiteral) {
         try {  // just *try* if it can be encoded, don't actually do it
-            compilerOptions.compTarget.encodeString(char.value.toString(), char.encoding)
+            options.compTarget.encodeString(char.value.toString(), char.encoding)
         } catch (cx: CharConversionException) {
             errors.err(cx.message ?: "can't encode character", char.position)
         }
@@ -1441,7 +1595,7 @@ internal class AstChecker(private val program: Program,
         checkValueTypeAndRangeString(DataType.STR, string)
 
         try {  // just *try* if it can be encoded, don't actually do it
-            val bytes = compilerOptions.compTarget.encodeString(string.value, string.encoding)
+            val bytes = options.compTarget.encodeString(string.value, string.encoding)
             if(0u in bytes)
                 errors.info("a character in the string encodes as 0-byte, which will terminate the string prematurely", string.position)
         } catch (cx: CharConversionException) {
@@ -1581,7 +1735,7 @@ internal class AstChecker(private val program: Program,
                                 )
                         }
                     } else
-                        errors.err("cannot find struct type", expr.left.position)
+                        errors.err("cannot find struct type '${rightIdentifier.nameInSource.joinToString(".")}'", expr.left.position)
                 }
             } else if(rightIndexer!=null) {
                 val leftDt = expr.left.inferType(program)
@@ -1599,7 +1753,7 @@ internal class AstChecker(private val program: Program,
                                 errors.err("field '$fieldName' is not an array field, cannot index it", rightIndexer.position)
                         }
                     } else {
-                        errors.err("cannot find struct type", expr.left.position)
+                        errors.err("cannot find struct type $leftDt", expr.left.position)
                     }
                 } else {
                     errors.err("at the moment it is not possible to chain array syntax on pointers like  ...p1[x].p2[y]... use separate expressions for the time being", expr.right.position)
@@ -1670,13 +1824,13 @@ internal class AstChecker(private val program: Program,
             errors.err("invalid right operand type", expr.right.position)
         if(leftDt!=rightDt) {
             if(leftDt.isPointer) {
-                if(!rightDt.isUnsignedWord) {
-                    errors.err("pointer arithmetic requires unsigned word operand", expr.right.position)
+                if(!rightDt.isUnsignedWord && !rightDt.isLong) {
+                    errors.err("pointer arithmetic requires unsigned word or long operand", expr.right.position)
                 }
             }
             else if(rightDt.isPointer) {
-                if(!leftDt.isUnsignedWord) {
-                    errors.err("pointer arithmetic requires unsigned word operand", expr.left.position)
+                if(!leftDt.isUnsignedWord && !leftDt.isLong) {
+                    errors.err("pointer arithmetic requires unsigned word or long operand", expr.left.position)
                 }
             }
             else if(leftDt.isString && rightDt.isInteger && expr.operator=="*") {
@@ -1694,8 +1848,12 @@ internal class AstChecker(private val program: Program,
                 // exception allowed: shifting a word by a byte, long by a word or byte
             } else if((expr.operator in BitwiseOperators) && (leftDt.isInteger && rightDt.isInteger)) {
                 // exception allowed: bitwise operations with any integers
-            } else if((leftDt.isUnsignedWord && rightDt.isString) || (leftDt.isString && rightDt.isUnsignedWord)) {
-                // exception allowed: comparing uword (pointer) with string
+            } else if(options.compTarget.POINTER_MEM_SIZE==2u && (leftDt.isUnsignedWord && rightDt.isString) || (leftDt.isString && rightDt.isUnsignedWord)) {
+                // exception allowed on 16 bits pointers: comparing uword (pointer) with string
+            } else if(options.compTarget.POINTER_MEM_SIZE>2u && ((leftDt.isPointer || leftDt.isLong) && rightDt.isString) || ((rightDt.isPointer || rightDt.isLong) && leftDt.isString)) {
+                // exception allowed on 32 bits pointers: comparing pointer (or long, which is the pointer type on 32 bits) with string
+            } else if(options.compTarget.POINTER_MEM_SIZE>2u && ((leftDt.isLong && rightDt.isPointer) || (leftDt.isPointer && rightDt.isLong))) {
+                // exception allowed on 32 bits pointers: comparing long (untyped pointer) with pointer
             } else {
                 errors.err("left and right operands aren't the same type: $leftDt vs $rightDt", expr.position)
             }
@@ -1767,20 +1925,25 @@ internal class AstChecker(private val program: Program,
         val cv = typecast.expression.constValue(program)
         if(cv != null) {
             if(typecast.type.isBasic) {
-                val castResult = cv.cast(typecast.type.base, typecast.implicit)
+                val castResult = cv.cast(typecast.type.base, typecast.implicit, options.compTarget)
                 if (castResult.isValid)
                     throw FatalAstException("cast should have been performed in const eval already")
                 errors.err(castResult.whyFailed!!, typecast.expression.position)
             } else if (typecast.type.isPointer) {
-                if(!(typecast.expression.inferType(program).isUnsignedWord))
-                    errors.err("can only cast uword to pointer", typecast.position)
+                val irtype = typecast.expression.inferType(program)
+                if(!(irtype.isUnsignedWord || irtype.isLong))
+                    errors.err("can only cast uword or long to pointer", typecast.position)
             } else
                 errors.err("invalid type cast", typecast.position)
         }
 
         if(typecast.implicit && typecast.type.isLong && typecast.expression.inferType(program).isPointer) {
-            errors.err("cannot use a pointer as a long, a pointer is an unsigned word", typecast.position)
+            if(options.compTarget.POINTER_MEM_SIZE<=2u)
+                errors.err("cannot use a pointer as a long, a pointer is an unsigned word", typecast.position)
         }
+
+        if(typecast.implicit && typecast.type.isPointer && !typecast.expression.inferType(program).isLong && !typecast.expression.inferType(program).getOrUndef().isPassByRef && options.compTarget.POINTER_MEM_SIZE>2u)
+            errors.err("explicit typecast is needed to convert a non-long value to a pointer", typecast.position)
 
         super.visit(typecast)
     }
@@ -1793,15 +1956,22 @@ internal class AstChecker(private val program: Program,
         val from = range.from.constValue(program)
         val to = range.to.constValue(program)
         val stepLv = range.step.constValue(program)
+        val isForIterable = range.parent is ForLoop && (range.parent as ForLoop).iterable === range
         if(stepLv==null) {
-            err("range step must be a constant integer")
-            return
-        } else if (!stepLv.type.isInteger || stepLv.number.toInt() == 0) {
+            if(!isForIterable) {
+                err("range step must be a constant integer")
+                return
+            }
+            if(!range.step.inferType(program).isInteger) {
+                err("range step must be an integer != 0")
+                return
+            }
+        } else if(!stepLv.type.isInteger || stepLv.number.toInt() == 0) {
             err("range step must be an integer != 0")
             return
         }
-        val step = stepLv.number.toInt()
-        if(from!=null && to != null) {
+        if(from!=null && to!=null && stepLv!=null) {
+            val step = stepLv.number.toInt()
             when {
                 from.type.isInteger && to.type.isInteger -> {
                     val fromValue = from.number.toInt()
@@ -1978,13 +2148,13 @@ internal class AstChecker(private val program: Program,
                         errors.err("can't call this indirectly, just use normal function call syntax", args[0].position)
                 }
             }
-            if(!compilerOptions.floats) {
+            if(!options.floats) {
                 if (target.name == "peekf" || target.name == "pokef")
                     errors.err("floating point used, but that is not enabled via options", position)
             }
 
             if(target.name=="callfar" || target.name=="callfar2") {
-                if(!compilerOptions.compTarget.supportsBankedCalls) {
+                if(!options.compTarget.supportsBankedCalls) {
                     errors.err("banked subroutine call is not supported on the selected compilation target", position)
                 }
             }
@@ -1999,10 +2169,10 @@ internal class AstChecker(private val program: Program,
         if(target is Subroutine) {
             val bank = target.asmAddress?.constbank
             val varbank = target.asmAddress?.varbank
-            if ((bank != null || varbank != null) && !compilerOptions.compTarget.supportsBankedCalls) {
+            if ((bank != null || varbank != null) && !options.compTarget.supportsBankedCalls) {
                 errors.err("banked subroutine call is not supported on the selected compilation target", position)
             }
-            if (varbank != null && compilerOptions.romable) {
+            if (varbank != null && options.romable) {
                 errors.err("variable bank extsub has no romable code-generation for the required jsrfar call, stick to constant bank, or create a system-ram trampoline", position)
             }
 
@@ -2048,7 +2218,7 @@ internal class AstChecker(private val program: Program,
                 // Multiple float return values are not supported on 6502 targets because the ROM
                 // float routines use FAC1/FAC2 as operand registers which would clobber earlier return values.
                 // The virtual target has no such limitation.
-                if(compilerOptions.compTarget !is VMTarget) {
+                if(options.compTarget !is VMTarget) {
                     if(target.returntypes.count { it.isFloat }>1) {
                         errors.err("can only have a single float value in a multi-value result on 6502 targets", target.position)
                     }
@@ -2094,11 +2264,16 @@ internal class AstChecker(private val program: Program,
         
         val target = arrayIndexedExpression.plainarrayvar?.targetStatement(program.builtinFunctions)
         if(target is VarDecl) {
-            if (!target.datatype.isIterable && !target.datatype.isUnsignedWord && !target.datatype.isPointer)
+            // uword (16-bit) or long (32-bit) variables can hold a pointer value and can be indexed as such
+            val isUwordPointerHolder = options.compTarget.POINTER_MEM_SIZE <= 2u && target.datatype.isUnsignedWord
+            val isLongPointerHolder = options.compTarget.POINTER_MEM_SIZE > 2u && target.datatype.isLong
+            if (!target.datatype.isIterable && !target.datatype.isPointer && !isUwordPointerHolder && !isLongPointerHolder) {
+                val addressType = if(options.compTarget.POINTER_MEM_SIZE > 2u) "long" else "uword"
                 errors.err(
-                    "indexing requires an iterable, address uword, or pointer variable",
+                    "indexing requires an iterable, address $addressType, or pointer variable",
                     arrayIndexedExpression.position
                 )
+            }
             val indexVariable = arrayIndexedExpression.indexer.indexExpr as? IdentifierReference
             if (indexVariable != null) {
                 if (indexVariable.targetVarDecl()?.datatype?.isSigned == true) {
@@ -2133,7 +2308,8 @@ internal class AstChecker(private val program: Program,
 
         if(arrayIndexedExpression.pointerderef!=null) {
             val dt = arrayIndexedExpression.pointerderef!!.inferType(program)
-            if(!dt.isPointer && !dt.isUnsignedWord && !dt.isIterable) {
+            val isLongPtrHolder = options.compTarget.POINTER_MEM_SIZE > 2u && dt.isLong
+            if(!dt.isPointer && !dt.isUnsignedWord && !dt.isIterable && !isLongPtrHolder) {
                 errors.err("cannot array index on this field type", arrayIndexedExpression.indexer.position)
             }
             // check index out of bounds for struct field arrays via pointer
@@ -2169,12 +2345,23 @@ internal class AstChecker(private val program: Program,
 //            }
         }
 
-        // check index value 0..255 if the index variable is not a pointer
+        // Check the index expression type against the target's addressing capabilities.
+        // (The earlier block above already validates the array variable and rejects signed
+        //  index *variables*; here we validate the index *expression* value width.)
+        // On the 6502 family the index register is 8-bit, so the index must be a byte.
+        // On the 68000 family array indexing uses a signed 16-bit displacement (d16, An),
+        // so an unsigned word (or byte) index is the maximum that can be encoded.
         val dtxNum = arrayIndexedExpression.indexer.indexExpr.inferType(program)
         if(dtxNum.isKnown) {
             val arrayVarDt = arrayIndexedExpression.plainarrayvar?.inferType(program)
-            if (arrayVarDt!=null && !arrayVarDt.isPointer && !(dtxNum issimpletype BaseDataType.UBYTE) && !(dtxNum issimpletype BaseDataType.BYTE))
-                errors.err("array indexing is limited to byte size 0..255", arrayIndexedExpression.position)
+            if (arrayVarDt!=null && !arrayVarDt.isPointer) {
+                if (options.compTarget.cpu.is6502) {
+                    if (!(dtxNum issimpletype BaseDataType.UBYTE) && !(dtxNum issimpletype BaseDataType.BYTE))
+                        errors.err("array indexing is limited to byte size 0..255", arrayIndexedExpression.position)
+                } else if (!(dtxNum.isUnsignedWord || dtxNum.isBytes || dtxNum.isWords)) {
+                    errors.err("array indexing on the 68000 requires an unsigned word index", arrayIndexedExpression.position)
+                }
+            }
         }
 
         super.visit(arrayIndexedExpression)
@@ -2204,7 +2391,7 @@ internal class AstChecker(private val program: Program,
         if(whenStmt.condition.constValue(program)!=null)
             errors.warn("when-value is a constant and will always result in the same choice", whenStmt.condition.position)
 
-        if(whenStmt.betterAsOnGoto(program, compilerOptions))
+        if(whenStmt.betterAsOnGoto(program, options))
             errors.info("when statement can be replaced with on..goto", whenStmt.position)
 
         super.visit(whenStmt)
@@ -2265,10 +2452,8 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(memread: DirectMemoryRead) {
-        if(memread.addressExpression.inferType(program).isLong)
-            errors.err("long address not yet supported", memread.addressExpression.position)
-        else if(!allowedMemoryAccessAddressExpression(memread.addressExpression, program))
-            errors.err("invalid address type for memory access, expected ^^ubyte or just uword", memread.position)
+        if(!allowedMemoryAccessAddressExpression(memread.addressExpression, program))
+            errors.err("invalid address type for memory access", memread.position)
 
         val pointervar = memread.addressExpression as? IdentifierReference
         if(pointervar!=null)
@@ -2288,6 +2473,8 @@ internal class AstChecker(private val program: Program,
 
     private fun allowedMemoryAccessAddressExpression(addressExpression: Expression, program: Program): Boolean {
         val dt = addressExpression.inferType(program)
+        if(dt.isLong && program.target.POINTER_MEM_SIZE>2u)
+            return true
         if(dt.isUnsignedWord || (dt.isPointer && dt.getOrUndef().sub?.isByteOrBool==true))
             return true
         val tc = addressExpression as? TypecastExpression
@@ -2300,10 +2487,8 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(memwrite: DirectMemoryWrite) {
-        if(memwrite.addressExpression.inferType(program).isLong)
-            errors.err("long address not yet supported", memwrite.addressExpression.position)
-        else if(!allowedMemoryAccessAddressExpression(memwrite.addressExpression, program))
-            errors.err("invalid address type for memory access, expected ^^ubyte or just uword", memwrite.position)
+        if(!allowedMemoryAccessAddressExpression(memwrite.addressExpression, program))
+            errors.err("invalid address type for memory access", memwrite.position)
 
         val pointervar = memwrite.addressExpression as? IdentifierReference
         if(pointervar!=null)
@@ -2316,7 +2501,7 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(inlineAssembly: InlineAssembly) {
-        if(inlineAssembly.isIR && compilerOptions.compTarget.name != VMTarget.NAME)
+        if(inlineAssembly.isIR && options.compTarget.name != VMTarget.NAME)
             errors.err("%asm containing IR code cannot be translated to 6502 assembly", inlineAssembly.position)
     }
 
@@ -2324,9 +2509,10 @@ internal class AstChecker(private val program: Program,
         val uniqueFields = struct.fields.mapTo(mutableSetOf()) { it.name }
         if(uniqueFields.size!=struct.fields.size)
             errors.err("duplicate field names in struct", struct.position)
-        val memsize = struct.memsize(program.memsizer)
-        if(memsize>256)
-            errors.err("struct contains too many fields, max struct size is 256 bytes (actual: $memsize)", struct.position)
+        val memsize = struct.memsize(program.target)
+        val maxStructSize = options.compTarget.ARRAY_SIZE_LIMIT.toInt()
+        if(memsize>maxStructSize)
+            errors.err("struct contains too many fields, max struct size is $maxStructSize bytes (actual: $memsize)", struct.position)
 
         if(uniqueFields.isEmpty())
             errors.err("struct must contain at least one field", struct.position)
@@ -2335,6 +2521,10 @@ internal class AstChecker(private val program: Program,
             val dt=field.type
             if(dt.isArray && dt.subType!=null) {
                 errors.err("arrays of typed pointers are currently not supported, use untyped pointer for now at field '${field.name}'", struct.position)
+                return false
+            }
+            if(dt.isArray && dt.sub==BaseDataType.STRUCT_INSTANCE) {
+                errors.err("arrays of struct instances are currently not supported as struct fields at '${field.name}'", struct.position)
                 return false
             }
             return dt.isBasic
@@ -2409,6 +2599,7 @@ internal class AstChecker(private val program: Program,
         if(value.type.isUnknown)
             return false
 
+        val byteLimit = options.compTarget.ARRAY_SIZE_LIMIT.toInt()
         when {
             targetDt.isString -> return err("string value expected")
             targetDt.isBoolArray -> {
@@ -2419,14 +2610,14 @@ internal class AstChecker(private val program: Program,
                     val arraySpecSize = arrayspec.constIndex()
                     val arraySize = value.value.size
                     if(arraySpecSize!=null && arraySpecSize>0) {
-                        if(arraySpecSize>256)
-                            return err("boolean array length must be 1-256")
+                        if(arraySpecSize>byteLimit)
+                            return err("boolean array length must be 1-$byteLimit")
                         val expectedSize = arrayspec.constIndex() ?: return err("array size specifier must be constant integer value")
                         if (arraySize != expectedSize)
                             return err("array size mismatch (expecting $expectedSize, got $arraySize)")
                         return true
                     }
-                    return err("invalid boolean array size, must be 1-256")
+                    return err("invalid boolean array size, must be 1-$byteLimit")
                 }
                 return err("invalid boolean array initialization value ${value.type}, expected $targetDt")
             }
@@ -2438,14 +2629,14 @@ internal class AstChecker(private val program: Program,
                     val arraySpecSize = arrayspec.constIndex()
                     val arraySize = value.value.size
                     if(arraySpecSize!=null && arraySpecSize>0) {
-                        if(arraySpecSize>256)
-                            return err("byte array length must be 1-256")
+                        if(arraySpecSize>byteLimit)
+                            return err("byte array length must be 1-$byteLimit")
                         val expectedSize = arrayspec.constIndex() ?: return err("array size specifier must be constant integer value")
                         if (arraySize != expectedSize)
                             return err("array size mismatch (expecting $expectedSize, got $arraySize)")
                         return true
                     }
-                    return err("invalid byte array size, must be 1-256")
+                    return err("invalid byte array size, must be 1-$byteLimit")
                 }
                 return err("invalid byte array initialization value ${value.type}, expected $targetDt")
             }
@@ -2456,7 +2647,7 @@ internal class AstChecker(private val program: Program,
                         return false
                     val arraySpecSize = arrayspec.constIndex()
                     val arraySize = value.value.size
-                    val maxLength = if(targetDt.isSplitWordArray) 256 else 128
+                    val maxLength = if(targetDt.isSplitWordArray(options.compTarget)) byteLimit else byteLimit / 2
                     if(arraySpecSize!=null && arraySpecSize>0) {
                         if(arraySpecSize>maxLength)
                             return err("array length must be 1-$maxLength")
@@ -2472,7 +2663,7 @@ internal class AstChecker(private val program: Program,
             targetDt.isPointerArray -> {
                 val arraySpecSize = arrayspec.constIndex()
                 val arraySize = value.value.size
-                val maxLength = if(targetDt.isSplitWordArray) 256 else 128
+                val maxLength = if(targetDt.isSplitWordArray(options.compTarget)) byteLimit else byteLimit / 2
                 if(arraySpecSize!=null && arraySpecSize>0) {
                     if(arraySpecSize>maxLength)
                         return err("array length must be 1-$maxLength")
@@ -2490,18 +2681,19 @@ internal class AstChecker(private val program: Program,
                         return false
                     val arraySize = value.value.size
                     val arraySpecSize = arrayspec.constIndex()
+                    val maxLength = byteLimit / options.compTarget.FLOAT_MEM_SIZE.toInt()
                     if(arraySpecSize!=null && arraySpecSize>0) {
-                        if(arraySpecSize>51)
-                            return err("float array length must be 1-51")
+                        if(arraySpecSize>maxLength)
+                            return err("float array length must be 1-$maxLength")
                         val expectedSize = arrayspec.constIndex() ?: return err("array size specifier must be constant integer value")
                         if (arraySize != expectedSize)
                             return err("array size mismatch (expecting $expectedSize, got $arraySize)")
                     } else
-                        return err("invalid float array size, must be 1-51")
+                        return err("invalid float array size, must be 1-$maxLength")
 
                     // check if the floating point values are all within range
                     val doubles = value.value.map { it.constValue(program)?.number!! }.toDoubleArray()
-                    if(doubles.any { it < compilerOptions.compTarget.FLOAT_MAX_NEGATIVE || it > compilerOptions.compTarget.FLOAT_MAX_POSITIVE })
+                    if(doubles.any { it < options.compTarget.FLOAT_MAX_NEGATIVE || it > options.compTarget.FLOAT_MAX_POSITIVE })
                         return err("floating point value overflow")
                     return true
                 }
@@ -2553,7 +2745,7 @@ internal class AstChecker(private val program: Program,
             }
             targetDt.isFloat -> {
                 val number=value.number
-                if (number > compilerOptions.compTarget.FLOAT_MAX_POSITIVE || number < compilerOptions.compTarget.FLOAT_MAX_NEGATIVE)
+                if (number > options.compTarget.FLOAT_MAX_POSITIVE || number < options.compTarget.FLOAT_MAX_NEGATIVE)
                     return err("value '$number' out of range")
             }
             targetDt.isLong -> {
@@ -2567,7 +2759,8 @@ internal class AstChecker(private val program: Program,
                 return checkValueTypeAndRange(targetDt.elementType(), value)
             }
             targetDt.isPointer -> {
-                return value.type==BaseDataType.UWORD
+                return (value.type==BaseDataType.UWORD && options.compTarget.POINTER_MEM_SIZE==2u)
+                    || (value.type==BaseDataType.LONG && options.compTarget.POINTER_MEM_SIZE==4u)
             }
             targetDt.isStructInstance -> {
                 return err("assigning this value to struct instance not supported")
@@ -2591,7 +2784,7 @@ internal class AstChecker(private val program: Program,
                 is IdentifierReference -> it.nameInSource.hashCode() and 0xffff
                 is TypecastExpression if it.type.isBasic -> {
                     val constVal = it.expression.constValue(program)
-                    val cast = constVal?.cast(it.type.base, true)
+                    val cast = constVal?.cast(it.type.base, true, options.compTarget)
                     if(cast==null || !cast.isValid)
                         -9999999
                     else
@@ -2663,7 +2856,7 @@ internal class AstChecker(private val program: Program,
             targetDatatype.isUnsignedByte -> sourceDatatype.isUnsignedByte
             targetDatatype.isSignedWord -> sourceDatatype.isSignedWord || sourceDatatype.isByte
             targetDatatype.isUnsignedWord -> sourceDatatype.isUnsignedWord || sourceDatatype.isUnsignedByte
-            targetDatatype.isLong -> sourceDatatype.isLong
+            targetDatatype.isLong -> sourceDatatype.isLong || sourceDatatype.isPointer || sourceDatatype.isWord || sourceDatatype.isByte
             targetDatatype.isFloat -> sourceDatatype.isNumeric
             targetDatatype.isString -> sourceDatatype.isString
             else -> false
@@ -2680,7 +2873,10 @@ internal class AstChecker(private val program: Program,
         else if(targetDatatype.isUnsignedWord && (sourceDatatype.isPassByRef || sourceDatatype.isPointer)) {
             // this is allowed: a pass-by-reference or pointer datatype into an uword (untyped pointer value).
         }
-        else if(sourceIsBitwiseOperatorExpression && targetDatatype.equalsSize(sourceDatatype)) {
+        else if(targetDatatype.isLong && options.compTarget.POINTER_MEM_SIZE > 2u && (sourceDatatype.isPassByRef || sourceDatatype.isPointer)) {
+            // this is allowed: a pass-by-reference or pointer datatype into a long (untyped pointer value) on 32-bit targets.
+        }
+        else if(sourceIsBitwiseOperatorExpression && targetDatatype.equalsSize(sourceDatatype, options.compTarget)) {
             // this is allowed: bitwise operation between different types as long as they're the same size.
         }
         else if (targetDatatype.isPointer) {
@@ -2689,9 +2885,13 @@ internal class AstChecker(private val program: Program,
                     errors.err("cannot assign different pointer type, expected $targetDatatype or uword but got $sourceDatatype", position)
             } else if(sourceDatatype.isString && targetDatatype.sub?.isByte==true) {
                 // assigning a string to a byte pointer is allowed.
-            } else if(!sourceDatatype.isUnsignedWord && !sourceDatatype.isStructInstance)
+            } else if(options.compTarget.POINTER_MEM_SIZE>2u) {
+                // On 32-bit targets, only long or identical pointer types can be assigned to pointers
+                if(!sourceDatatype.isLong && !sourceDatatype.isStructInstance)
+                    errors.err("incompatible value type, can only assign long or identical pointer type (use explicit typecast?)", position)
+            } else if(!sourceDatatype.isUnsignedWord && !sourceDatatype.isLong && !sourceDatatype.isStructInstance)
                 if(!(sourceDatatype isAssignableTo targetDatatype))
-                    errors.err("incompatible value type, can only assign uword or correct pointer type", position)
+                    errors.err("incompatible value type, can only assign uword, long, or correct pointer type", position)
         }
         else if(targetDatatype.isString && sourceDatatype.isUnsignedWord)
             errors.err("can't assign uword to str. If the source is a string pointer and you actually want to overwrite the target string, use an explicit strings.copy(src,tgt) instead.", position)
@@ -2724,6 +2924,16 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(initializer: StaticStructInitializer) {
+        // Check for incorrect pointer prefix on struct instance array initializers
+        if(initializer.isPointer) {
+            val parent = initializer.parent
+            if(parent is ArrayLiteral) {
+                val varDecl = parent.parent as? VarDecl
+                if(varDecl!=null && varDecl.datatype.sub==BaseDataType.STRUCT_INSTANCE) {
+                    errors.err("struct instance array must be initialized with struct values, not pointer initializers: use 'Type : [...]' without '^^' or inferred '[...]' instead of '^^Type : [...]'", initializer.position)
+                }
+            }
+        }
         val args = initializer.args
         if(args.isNotEmpty()) {
             args.forEach {

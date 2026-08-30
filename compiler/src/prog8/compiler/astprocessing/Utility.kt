@@ -1,14 +1,14 @@
 package prog8.compiler.astprocessing
 
-import prog8.ast.FatalAstException
 import prog8.code.ast.PtExpression
 import prog8.code.ast.PtFunctionCall
 import prog8.code.ast.PtNode
 import prog8.code.ast.PtTypeCast
 import prog8.code.core.DataType
+import prog8.code.core.ICompilationTarget
 
 
-internal fun makePushPopFunctionCalls(value: PtExpression): Pair<PtFunctionCall, PtExpression> {
+internal fun makePushPopFunctionCalls(value: PtExpression, target: ICompilationTarget): Pair<PtFunctionCall, PtExpression> {
     var popTypecast: DataType? = null
     var pushTypecast: DataType? = null
     var pushWord = false
@@ -34,7 +34,15 @@ internal fun makePushPopFunctionCalls(value: PtExpression): Pair<PtFunctionCall,
         value.type.isLong -> pushLong = true
         value.type.isPassByRef -> pushWord = true
         value.type.isFloat -> pushFloat = true
-        else -> throw FatalAstException("unsupported return value type ${value.type} with defer")
+        value.type.isPointer -> {
+            if (target.POINTER_MEM_SIZE > 2u) {
+                pushLong = true
+            } else {
+                pushWord = true
+            }
+            pushTypecast = DataType.UWORD
+            popTypecast = value.type
+        }
     }
 
     val pushFunc = if(pushFloat) "pushf" else if(pushWord) "pushw" else if (pushLong) "pushl" else "push"
@@ -48,10 +56,10 @@ internal fun makePushPopFunctionCalls(value: PtExpression): Pair<PtFunctionCall,
     } else {
         pushCall.add(value)
     }
+    val popReturnDt = if(pushWord) DataType.UWORD else if(pushLong) DataType.LONG else if(pushFloat) DataType.FLOAT else DataType.UBYTE
     val popCall = if(popTypecast!=null) {
         PtTypeCast(popTypecast, true, value.position).also {
-            val returnDt = if(pushWord) DataType.UWORD else if(pushLong) DataType.LONG else if(pushFloat) DataType.FLOAT else DataType.UBYTE
-            it.add(PtFunctionCall(popFunc, true, false, arrayOf(returnDt), value.position))
+            it.add(PtFunctionCall(popFunc, true, false, arrayOf(popReturnDt), value.position))
         }
     } else
         PtFunctionCall(popFunc, true, false, arrayOf(value.type), value.position)

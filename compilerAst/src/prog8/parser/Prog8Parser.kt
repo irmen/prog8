@@ -4,6 +4,7 @@ import org.antlr.v4.runtime.*
 import org.antlr.v4.runtime.atn.PredictionMode
 import prog8.ast.Module
 import prog8.ast.antlr.Antlr2KotlinVisitor
+import prog8.code.core.ICompilationTarget
 import prog8.code.core.Position
 import prog8.code.source.SourceCode
 
@@ -16,10 +17,10 @@ class MultipleParseErrors(val errors: List<ParseError>) : Exception(
 
 object Prog8Parser {
 
-    fun parseModule(src: SourceCode): Module {
+    fun parseModule(src: SourceCode, target: ICompilationTarget): Module {
         val lexer = Prog8ANTLRLexer(CharStreams.fromString(src.text, src.origin))
         lexer.removeErrorListeners()
-        val tokens = CommonTokenStream(lexer)
+        val tokens = CommentHandlingTokenStream(lexer)
 
         // Fast path: try SLL prediction mode first (faster on correct input)
         val sllErrorListener = CollectingErrorListener(src)
@@ -34,7 +35,7 @@ object Prog8Parser {
 
         if(!sllErrorListener.hasErrors()) {
             // SLL succeeded cleanly — use this tree
-            val visitor = Antlr2KotlinVisitor(src)
+            val visitor = Antlr2KotlinVisitor(src, target, tokens)
             val visitorResult = visitor.visit(parseTree)
             return visitorResult as Module
         }
@@ -53,11 +54,10 @@ object Prog8Parser {
             throw MultipleParseErrors(llErrorListener.getErrors())
         }
 
-        val visitor = Antlr2KotlinVisitor(src)
+        val visitor = Antlr2KotlinVisitor(src, target, tokens)
         val visitorResult = visitor.visit(llParseTree)
         return visitorResult as Module
     }
-
 
     class CollectingErrorListener(private val src: SourceCode): BaseErrorListener() {
         private val errors = mutableListOf<ParseError>()

@@ -19,7 +19,7 @@ package prog8.parser;
 EOL :  ('\r'? '\n' | '\r' | '\n')+ ;
 LINECOMMENT : EOL [ \t]* COMMENT -> channel(HIDDEN);
 COMMENT :  ';' ~[\r\n]* -> channel(HIDDEN) ;
-BLOCK_COMMENT : '/*' ( BLOCK_COMMENT | ~'*' | '*' ~'/' )*? '*/' -> skip ;
+BLOCK_COMMENT : '/*' ( BLOCK_COMMENT | ~'*' | '*' ~'/' )*? '*/' -> channel(HIDDEN) ;
 
 WS :  [ \t] -> skip ;
 // WS2 : '\\' EOL -> skip;
@@ -30,10 +30,12 @@ GOTO: 'goto';
 CALL: 'call';
 INLINE: 'inline';
 PRIVATE: 'private';
+PUBLIC: 'public';
 STEP: 'step';
 ELSE: 'else';
 THEN: 'then';
 ENUM: 'enum';
+POINTERSTR: 'pointer';
 
 UNICODEDNAME :  [\p{Letter}]([\p{Letter}\p{Mark}\p{Digit}_] | '::')* ;           // match unicode properties
 UNDERSCORENAME :  '_' UNICODEDNAME ;           // match unicode properties
@@ -90,9 +92,9 @@ block: identifier integerliteral? EOL? '{' EOL? (block_statement | EOL)* '}';
 // and can appear at block level or inside subroutines (local enums/aliases).
 block_statement:
     directive
+    | subroutinedeclaration
     | variabledeclaration
     | structdeclaration
-    | subroutinedeclaration
     | inlineasm
     | labeldef
     | alias
@@ -103,6 +105,7 @@ block_statement:
 statement :
     directive
     | ongoto
+    | subroutinedeclaration
     | variabledeclaration
     | structdeclaration
     | assignment
@@ -112,7 +115,6 @@ statement :
     | functioncall_stmt
     | if_stmt
     | branch_stmt
-    | subroutinedeclaration
     | inlineasm
     | returnstmt
     | forloop
@@ -152,7 +154,7 @@ statement :
     ;
 
 
-enum :  PRIVATE? ENUM identifier '{' EOL? enum_member? (',' EOL? enum_member)* ','? EOL? '}' ;       // you can split the values over several lines, trailing comma allowed
+enum :  PRIVATE? PUBLIC? ENUM identifier '{' EOL? enum_member? (',' EOL? enum_member)* ','? EOL? '}' ;       // you can split the values over several lines, trailing comma allowed
 
 enum_member :  identifier ('=' integerliteral)?  ;
 
@@ -168,7 +170,7 @@ variabledeclaration :
 
 
 structdeclaration:
-    PRIVATE? STRUCT identifier '{' EOL? (structfielddecl | EOL)+ '}'
+    PRIVATE? PUBLIC? STRUCT identifier '{' EOL? (structfielddecl | EOL)+ '}'
     ;
 
 structfielddecl: datatype (arrayindex arrayindex? | EMPTYARRAYSIG)? identifierlist;
@@ -181,7 +183,7 @@ subroutinedeclaration :
     | extsubroutine
     ;
 
-alias: PRIVATE? 'alias' identifier '=' (scoped_identifier | basedatatype | pointertype) ;
+alias: PRIVATE? PUBLIC? 'alias' identifier '=' (scoped_identifier | basedatatype | pointertype) ;
 
 defer: 'defer' (statement | statement_block) ;
 
@@ -197,7 +199,7 @@ directivenamelist: '(' EOL? scoped_identifier (',' EOL? scoped_identifier)* ','?
 
 directivearg : stringliteral | identifier | integerliteral ;
 
-vardecl: PRIVATE? datatype (arrayindex arrayindex? | EMPTYARRAYSIG)? TAG* identifierlist ;
+vardecl: PRIVATE? PUBLIC? datatype (arrayindex arrayindex? | EMPTYARRAYSIG)? TAG* identifierlist ;
 // grammar allows [] and [][] so the visitor can give user-friendly error messages for invalid combinations
 
 identifierlist: identifier (',' identifier)* ;
@@ -207,12 +209,12 @@ varinitializer :
     | vardecl '=' tuple_expression
     ;
 
-constdecl: PRIVATE? 'const' datatype? identifierlist '=' expression ;
+constdecl: PRIVATE? PUBLIC? 'const' datatype? identifierlist '=' expression ;
 // datatype is optional in the grammar so the visitor can give "datatype missing" instead of a cryptic parse error
 
 memoryvardecl: ADDRESS_OF varinitializer;
 
-basedatatype:  'ubyte' | 'byte' | 'uword' | 'word' | 'long' | 'float' | 'str' | 'bool' ;
+basedatatype:  'ubyte' | 'byte' | 'uword' | 'word' | 'long' | 'float' | 'str' | 'bool' | 'pointer' ;
 
 datatype: pointertype | basedatatype | structtype=scoped_identifier;
 
@@ -241,6 +243,9 @@ assign_target:
     | arrayindexed                  #ArrayindexedTarget
     | directmemory                  #MemoryTarget
     | pointerdereference            #PointerDereferenceTarget
+    | '(' expression ')' ('.' identifier)+      #ParenDerefTarget
+    | functioncall ('.' identifier)+            #FunctioncallDerefTarget
+    | arrayindexed ('.' identifier)+            #ArrayindexedDerefTarget
     | VOID                          #VoidTarget
     ;
 
@@ -315,7 +320,7 @@ breakstmt : 'break';
 
 continuestmt: 'continue';
 
-identifier :  UNICODEDNAME | UNDERSCORENAME | ON | CALL | INLINE | PRIVATE | STEP ;              // due to the way antlr creates tokens, need to list the tokens here explicitly that we want to allow as identifiers too
+identifier :  UNICODEDNAME | UNDERSCORENAME | ON | CALL | INLINE | PRIVATE | STEP | POINTERSTR ;              // due to the way antlr creates tokens, need to list the tokens here explicitly that we want to allow as identifiers too
 
 scoped_identifier :  identifier ('.' identifier)* ;
 
@@ -344,7 +349,7 @@ literalvalue :
 inlineasm :  directivename EOL? INLINEASMBLOCK;         // directive name should be '%asm' or '%ir'
 
 subroutine :
-    PRIVATE? INLINE? 'sub' identifier '(' sub_params? ')' sub_return_part? EOL? (statement_block EOL?)
+    PRIVATE? PUBLIC? INLINE? 'sub' identifier '(' sub_params? ')' sub_return_part? EOL? (statement_block EOL?)
     ;
 
 sub_return_part : '->' datatype (',' datatype)*  ;
@@ -361,11 +366,11 @@ sub_params :  sub_param (',' EOL? sub_param)* ;
 sub_param: vardecl ('@' register=UNICODEDNAME)? ;
 
 asmsubroutine :
-    PRIVATE? INLINE? 'asmsub' asmsub_decl EOL? (statement_block EOL?)
+    PRIVATE? PUBLIC? INLINE? 'asmsub' asmsub_decl EOL? (statement_block EOL?)
     ;
 
 extsubroutine :
-    PRIVATE? 'extsub' (TAG (constbank=integerliteral | varbank=scoped_identifier))? address=expression '=' asmsub_decl
+    PRIVATE? PUBLIC? 'extsub' (TAG (constbank=integerliteral | varbank=scoped_identifier))? address=expression '=' asmsub_decl
     ;
 
 asmsub_signature : '(' asmsub_params? ')' asmsub_clobbers? asmsub_returns? ;
@@ -374,15 +379,15 @@ asmsub_decl : identifier asmsub_signature ;
 
 asmsub_params :  asmsub_param (',' EOL? asmsub_param)* ;
 
-asmsub_param :  vardecl '@' register=UNICODEDNAME ;      // A,X,Y,AX,AY,XY,Pc,Pz,Pn,Pv allowed
+asmsub_param :  vardecl '@' register=UNICODEDNAME ;      // 6502: A,X,Y,AX,AY,XY,Pc,Pz,Pn,Pv | m68k: D0-D7,A0-A6,FP0-FP7 | cx16: R0-R15,R0R1-R14R15
 
 asmsub_clobbers : 'clobbers' '(' clobber? ')' ;
 
-clobber :  UNICODEDNAME (',' UNICODEDNAME)* ;       // A,X,Y allowed
+clobber :  UNICODEDNAME (',' UNICODEDNAME)* ;       // 6502: A,X,Y | m68k: D0-D7,A0-A6,FP0-FP7
 
 asmsub_returns :  '->' asmsub_return (',' EOL? asmsub_return)* ;
 
-asmsub_return :  datatype '@' register=UNICODEDNAME ;     // A,X,Y,AX,AY,XY,Pc,Pz,Pn,Pv allowed
+asmsub_return :  datatype '@' register=UNICODEDNAME ;     // 6502: A,X,Y,AX,AY,XY,Pc,Pz,Pn,Pv | m68k: D0-D7,A0-A6,FP0-FP7 | cx16: R0-R15,R0R1-R14R15
 
 
 if_stmt :  'if' expression EOL? (statement | statement_block) EOL? else_part?  ; // statement is constrained later
@@ -409,7 +414,7 @@ branch_stmt : branchcondition EOL? (statement | statement_block) EOL? else_part?
 branchcondition: 'if_cs' | 'if_cc' | 'if_eq' | 'if_z' | 'if_ne' | 'if_nz' | 'if_pl' | 'if_pos' | 'if_mi' | 'if_neg' | 'if_vs' | 'if_vc' ;
 
 
-forloop :  'for' scoped_identifier 'in' expression EOL? (statement | statement_block) ;
+forloop :  'for' datatype? scoped_identifier 'in' expression (STEP expression)? EOL? (statement | statement_block) ;
 
 whileloop:  'while' expression EOL? (statement | statement_block) ;
 
