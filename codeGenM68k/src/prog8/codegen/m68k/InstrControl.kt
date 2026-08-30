@@ -658,9 +658,86 @@ private fun AsmGen.translateCall(fnLabel: String, args: FunctionCallArgs?, forwa
 }
 
 private fun AsmGen.emitInlineMemcopyCall(args: FunctionCallArgs, forwardedImmediateCall: ImmediateCallOptimization?): Boolean {
-    // TODO stub to emit inline copy code if a call to memcopy is too much overhead
-    //      will return true if it has emitted a inline optimized version and no call to memcopy should be done anymore 
-    return false
+    if (args.arguments.size != 3) return false
+    val fwd = forwardedImmediateCall ?: return false
+    val srcArg = args.arguments[0]
+    val tgtArg = args.arguments[1]
+    val countArg = args.arguments[2]
+    // size must be a constant immediate forwarded to the call; non-constant -> always call
+    val countRegId = RegId.IntReg(countArg.reg.registerNum.value)
+    val countLoad = fwd.loads[countRegId] ?: return false
+    val count = countLoad.immediate ?: return false
+    if (count <= 0) return true
+
+    // Only use .w/.l if we can 100% prove both pointers are aligned.
+    // At codegen we only know immediates; computed addresses (e.g. &arr[i]) are not immediate
+    // so we conservatively fall back to byte copies. A future IR alignment analysis could prove more.
+    val srcRegId = RegId.IntReg(srcArg.reg.registerNum.value)
+    val tgtRegId = RegId.IntReg(tgtArg.reg.registerNum.value)
+    val srcImm = fwd.loads[srcRegId]?.immediate
+    val tgtImm = fwd.loads[tgtRegId]?.immediate
+    val bothEven = srcImm != null && tgtImm != null && srcImm % 2 == 0 && tgtImm % 2 == 0
+    val bothLongAligned = srcImm != null && tgtImm != null && srcImm % 4 == 0 && tgtImm % 4 == 0
+    val useLong = bothLongAligned && count % 4 == 0
+    val useWord = bothEven && count % 2 == 0
+    // Heuristics: inline small copies; use a dbra loop for the medium "small" range
+    // to keep code size reasonable. The call to memcopy/CopyMem wins for large copies.
+    val threshold = when {
+        useLong -> 64
+        useWord -> 32
+        else -> 16
+    }
+    if (count > threshold) return false
+    // Load pointers into a0/a1 (benefit from forwarded immediates)
+    translateArgument(srcArg, "sys.memcopy", fwd)
+    translateArgument(tgtArg, "sys.memcopy", fwd)
+    // count is constant, no need to load d0
+    // For larger small counts, a dbra loop is smaller than unrolled moves.
+    // Threshold: a dbra loop needs ~10 bytes setup (move.w #count,dN + label + dbra),
+    // so it wins over more than ~5 unrolled moves of the same size.
+    val unrolledLimit = 5
+    when {
+        useLong -> {
+            val longs = count / 4
+            emitRaw("        ; inline memcopy $count bytes as $longs longwords")
+            if (longs <= unrolledLimit) {
+                repeat(longs) { emitLine("move.l  (a0)+,(a1)+") }
+            } else {
+                emitInlineCopyLoop(longs, 4)
+            }
+        }
+        useWord -> {
+            val words = count / 2
+            emitRaw("        ; inline memcopy $count bytes as $words words")
+            if (words <= unrolledLimit) {
+                repeat(words) { emitLine("move.w  (a0)+,(a1)+") }
+            } else {
+                emitInlineCopyLoop(words, 2)
+            }
+        }
+        else -> {
+            emitRaw("        ; inline memcopy $count bytes")
+            if (count <= unrolledLimit) {
+                repeat(count) { emitLine("move.b  (a0)+,(a1)+") }
+            } else {
+                emitInlineCopyLoop(count, 1)
+            }
+        }
+    }
+    return true
+}
+
+private fun AsmGen.emitInlineCopyLoop(iterations: Int, size: Int) {
+    val loopLabel = makeLabel("memcpy_inline")
+    val moveInsn = when (size) {
+        4 -> "move.l"
+        2 -> "move.w"
+        else -> "move.b"
+    }
+    emitLine("moveq  #$iterations, d0")
+    emitLabel(loopLabel)
+    emitLine("$moveInsn  (a0)+,(a1)+")
+    emitLine("dbra  d0,$loopLabel")
 }
 
 private fun AsmGen.translateArgument(

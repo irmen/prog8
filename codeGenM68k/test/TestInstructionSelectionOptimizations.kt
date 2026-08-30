@@ -490,6 +490,109 @@ class TestInstructionSelectionOptimizations : FunSpec({
         lines.count { it == "fmove.s  p8_fregfile+0,fp0" } shouldBe 1
     }
 
+    // === sys.memcopy inlining ===
+
+    fun memcopyArgs(): FunctionCallArgs {
+        return FunctionCallArgs(
+            listOf(
+                FunctionCallArgs.ArgumentSpec("", null, FunctionCallArgs.RegSpec(IRDataType.LONG, RegisterNum(1), CallingConventionSlot(18), null)),
+                FunctionCallArgs.ArgumentSpec("", null, FunctionCallArgs.RegSpec(IRDataType.LONG, RegisterNum(2), CallingConventionSlot(19), null)),
+                FunctionCallArgs.ArgumentSpec("", null, FunctionCallArgs.RegSpec(IRDataType.LONG, RegisterNum(3), CallingConventionSlot(10), null))
+            ),
+            emptyList()
+        )
+    }
+
+    fun generateMemcopyAsm(outputDir: Path, srcImm: UInt?, tgtImm: UInt?, countImm: UInt?): List<String> {
+        val args = memcopyArgs()
+        val instructions = mutableListOf<IRInstruction>()
+        if (srcImm != null)
+            instructions.add(IRInstruction(Opcode.LOAD, IRDataType.LONG, reg1 = 1, immediate = srcImm.toInt()))
+        if (tgtImm != null)
+            instructions.add(IRInstruction(Opcode.LOAD, IRDataType.LONG, reg1 = 2, immediate = tgtImm.toInt()))
+        if (countImm != null)
+            instructions.add(IRInstruction(Opcode.LOAD, IRDataType.LONG, reg1 = 3, immediate = countImm.toInt()))
+        instructions.add(IRInstruction(Opcode.CALL, labelSymbol = "sys.memcopy", fcallArgs = args))
+        return generateAsm(outputDir, instructions)
+    }
+
+    test("inlines sys.memcopy for small constant byte counts") {
+        val lines = generateMemcopyAsm(tempRoot.resolve("test-m68k-memcopy-byte"), 0x1000u, 0x2000u, 5u)
+
+        lines.any { it == "bsr  sys.memcopy" } shouldBe false
+        lines.count { it == "move.b  (a0)+,(a1)+" } shouldBe 5
+        lines.any { it.endsWith("inline memcopy 5 bytes") } shouldBe true
+    }
+
+    test("inlines sys.memcopy with long moves when both pointers are long-aligned") {
+        val lines = generateMemcopyAsm(tempRoot.resolve("test-m68k-memcopy-word"), 0x1000u, 0x2000u, 8u)
+
+        lines.any { it == "bsr  sys.memcopy" } shouldBe false
+        lines.count { it == "move.l  (a0)+,(a1)+" } shouldBe 2
+        lines.count { it == "move.b  (a0)+,(a1)+" } shouldBe 0
+    }
+
+    test("uses dbra long loop for long counts above unrolled limit") {
+        val lines = generateMemcopyAsm(tempRoot.resolve("test-m68k-memcopy-long-loop"), 0x1000u, 0x2000u, 36u)
+
+        lines.any { it == "bsr  sys.memcopy" } shouldBe false
+        lines.count { it == "move.l  (a0)+,(a1)+" } shouldBe 1
+        lines.any { it.contains("dbra") } shouldBe true
+    }
+
+    test("calls sys.memcopy when long count exceeds inline threshold") {
+        val lines = generateMemcopyAsm(tempRoot.resolve("test-m68k-memcopy-long-threshold"), 0x1000u, 0x2000u, 68u)
+
+        lines.any { it == "bsr  sys.memcopy" } shouldBe true
+        lines.count { it == "move.l  (a0)+,(a1)+" } shouldBe 0
+    }
+
+    test("falls back to byte loop when source pointer is odd") {
+        val lines = generateMemcopyAsm(tempRoot.resolve("test-m68k-memcopy-unaligned"), 0x1001u, 0x2000u, 8u)
+
+        lines.any { it == "bsr  sys.memcopy" } shouldBe false
+        lines.count { it == "move.b  (a0)+,(a1)+" } shouldBe 1
+        lines.any { it.contains("dbra") } shouldBe true
+    }
+
+    test("uses dbra byte loop for byte counts above unrolled limit") {
+        val lines = generateMemcopyAsm(tempRoot.resolve("test-m68k-memcopy-byte-loop"), 0x1001u, 0x2000u, 12u)
+
+        lines.any { it == "bsr  sys.memcopy" } shouldBe false
+        lines.count { it == "move.b  (a0)+,(a1)+" } shouldBe 1
+        lines.any { it.contains("dbra") } shouldBe true
+    }
+
+    test("calls sys.memcopy when byte count exceeds inline threshold") {
+        val lines = generateMemcopyAsm(tempRoot.resolve("test-m68k-memcopy-large"), 0x1000u, 0x2000u, 17u)
+
+        lines.any { it == "bsr  sys.memcopy" } shouldBe true
+        lines.count { it == "move.b  (a0)+,(a1)+" } shouldBe 0
+    }
+
+    test("calls sys.memcopy when count is not a forwarded immediate") {
+        val args = memcopyArgs()
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-memcopy-variable"),
+            listOf(
+                IRInstruction(Opcode.LOAD, IRDataType.LONG, reg1 = 1, immediate = 0x1000),
+                IRInstruction(Opcode.LOAD, IRDataType.LONG, reg1 = 2, immediate = 0x2000),
+                // no LOAD for r3, count comes from elsewhere (simulated by loading from a made-up value)
+                IRInstruction(Opcode.LOADM, IRDataType.LONG, reg1 = 3, labelSymbol = "p8b_test.p8v_count"),
+                IRInstruction(Opcode.CALL, labelSymbol = "sys.memcopy", fcallArgs = args)
+            )
+        )
+
+        lines.any { it == "bsr  sys.memcopy" } shouldBe true
+    }
+
+    test("inlines sys.memcopy zero bytes as no-op") {
+        val lines = generateMemcopyAsm(tempRoot.resolve("test-m68k-memcopy-zero"), 0x1000u, 0x2000u, 0u)
+
+        lines.any { it == "bsr  sys.memcopy" } shouldBe false
+        lines.count { it == "move.b  (a0)+,(a1)+" } shouldBe 0
+    }
+
     test("does not partially forward a mixed-argument call when a float arg has no immediate load") {
         val args = FunctionCallArgs(
             listOf(
