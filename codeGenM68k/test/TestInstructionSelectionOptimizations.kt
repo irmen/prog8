@@ -294,7 +294,8 @@ class TestInstructionSelectionOptimizations : FunSpec({
             )
         )
 
-        lines.any { it == "move.w  p8_regfile+0,d0" } shouldBe true
+        lines.any { it == "move.w  #384,d0" } shouldBe true
+        lines.any { it == "move.w  p8_regfile+0,d0" } shouldBe false
     }
 
     test("retains immediate loads for named call arguments") {
@@ -505,7 +506,7 @@ class TestInstructionSelectionOptimizations : FunSpec({
             )
         )
 
-        lines.any { it == "move.w  p8_regfile+0,d0" } shouldBe true
+        lines.any { it == "move.w  #384,d0" } shouldBe true
         lines.any { it == "fmove.s  p8_fregfile+0,fp0" } shouldBe true
     }
 
@@ -585,7 +586,8 @@ class TestInstructionSelectionOptimizations : FunSpec({
             )
         )
 
-        lines.any { it == "move.w  p8_regfile+0,d0" } shouldBe true
+        lines.any { it == "move.w  #384,d0" } shouldBe true
+        lines.any { it == "move.w  p8_regfile+0,d0" } shouldBe false
     }
 
     test("retains the register-file store when the value is read via a backward jump") {

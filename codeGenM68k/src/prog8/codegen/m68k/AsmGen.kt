@@ -555,22 +555,33 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
                 if (deadStoreSuppressionAllowed) optimization
                 else optimization.copy(deadRegisters = emptySet())
             callOptimizations[index] = effectiveOptimization
-            var loadIndex = index - 1
-            while (loadIndex >= 0) {
-                val load = chunk.instructions[loadIndex]
-                val loadReg = load.reg1
-                val loadFpReg = load.fpReg1
-                val regId = if (load.opcode != Opcode.LOAD)
-                    break
-                else if (loadReg != null && load.immediate != null)
-                    RegId.IntReg(loadReg)
-                else if (loadFpReg != null && load.immediateFp != null)
-                    RegId.FloatReg(loadFpReg)
-                else
-                    break
-                if (regId in effectiveOptimization.deadRegisters)
-                    deadLoadIndices.add(loadIndex)
-                loadIndex--
+            // Mark the defining LOAD immediates for dead registers as dead (to suppress their regfile store).
+            // These may be non-contiguous with the CALL, so search for each dead reg's defining LOAD.
+            for (regId in effectiveOptimization.deadRegisters) {
+                val forwardedLoad = effectiveOptimization.loads[regId] ?: continue
+                // Find the chunk-local index of this exact LOAD instruction
+                for (loadIndex in index - 1 downTo 0) {
+                    val load = chunk.instructions[loadIndex]
+                    if (load === forwardedLoad) {
+                        deadLoadIndices.add(loadIndex)
+                        break
+                    }
+                    // Also match by reg and immediate value in case of different object identity
+                    val isMatch = when (regId) {
+                        is RegId.IntReg -> load.opcode == Opcode.LOAD && load.reg1 == regId.num && load.immediate == forwardedLoad.immediate
+                        is RegId.FloatReg -> load.opcode == Opcode.LOAD && load.fpReg1 == regId.num && load.immediateFp == forwardedLoad.immediateFp
+                    }
+                    if (isMatch) {
+                        deadLoadIndices.add(loadIndex)
+                        break
+                    }
+                    // If we hit another write to the same register, the forwarded LOAD is not in this chunk
+                    val writesSameReg = when (regId) {
+                        is RegId.IntReg -> load.reg1 == regId.num && load.reg1direction == OperandDirection.WRITE
+                        is RegId.FloatReg -> load.fpReg1 == regId.num && load.fpReg1direction == OperandDirection.WRITE
+                    }
+                    if (writesSameReg) break
+                }
             }
         }
         for (index in chunk.instructions.indices) {
@@ -617,30 +628,33 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
             return null
 
         val loads = mutableMapOf<RegId, IRInstruction>()
-        var index = callIndex - 1
-        while (index >= chunkStartIndex) {
-            val load = instructions[index]
-            val loadReg = load.reg1
-            val loadFpReg = load.fpReg1
-            val regId = if (load.opcode != Opcode.LOAD)
-                break
-            else if (loadReg != null && load.immediate != null)
-                RegId.IntReg(loadReg)
-            else if (loadFpReg != null && load.immediateFp != null)
-                RegId.FloatReg(loadFpReg)
-            else
-                break
-            loads.putIfAbsent(regId, load)
-            index--
+        // For each call argument, find the most recent LOAD immediate that defines it,
+        // allowing gaps and non-LOAD instructions between the LOAD and the CALL,
+        // as long as there's no intervening write to that register.
+        for (arg in args.arguments) {
+            val regId = if (arg.reg.dt == IRDataType.FLOAT) RegId.FloatReg(arg.reg.registerNum) else RegId.IntReg(arg.reg.registerNum.value)
+            // search backwards for the defining LOAD immediate
+            for (idx in callIndex - 1 downTo chunkStartIndex) {
+                val insn = instructions[idx]
+                // If this instruction writes to the same register, it's the defining write
+                val writesThisReg = when (regId) {
+                    is RegId.IntReg -> insn.reg1 == regId.num && insn.reg1direction == OperandDirection.WRITE
+                    is RegId.FloatReg -> insn.fpReg1 == regId.num && insn.fpReg1direction == OperandDirection.WRITE
+                }
+                if (writesThisReg) {
+                    if (insn.opcode == Opcode.LOAD) {
+                        val isImmediateInt = insn.reg1 != null && insn.immediate != null && regId is RegId.IntReg && insn.reg1 == regId.num
+                        val isImmediateFloat = insn.fpReg1 != null && insn.immediateFp != null && regId is RegId.FloatReg && insn.fpReg1 == regId.num
+                        if ((isImmediateInt || isImmediateFloat) && insn.type == arg.reg.dt) {
+                            loads[regId] = insn
+                        }
+                    }
+                    break // found the defining write, whether immediate or not
+                }
+            }
         }
 
-        if (!args.arguments.all {
-                val arg = it.reg
-                val regId = if (arg.dt == IRDataType.FLOAT) RegId.FloatReg(arg.registerNum) else RegId.IntReg(arg.registerNum.value)
-                val load = loads[regId]
-                load != null && load.type == arg.dt
-            })
-            return null
+        if (loads.isEmpty()) return null
 
         val deadRegisters = loads.keys.filterTo(mutableSetOf()) {
             !isRegisterReadElsewhere(instructions, callIndex, it)

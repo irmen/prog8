@@ -604,8 +604,25 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
 // === CALL translation with argument handling ===
 
 private fun AsmGen.translateCall(fnLabel: String, args: FunctionCallArgs?, forwardedImmediateCall: ImmediateCallOptimization? = null) {
+    if (fnLabel == "sys.memcopy" && emitInlineMemcopyCall(args!!, forwardedImmediateCall))
+        return
+
     if (args != null) {
-        for (arg in args.arguments) {
+        // Emit non-constant arguments first (from regfile), then constant immediates
+        // just before the BSR/JSR to avoid clobbering the constant registers while
+        // evaluating non-const arguments (e.g. address calculations that may use D0/A0 as scratch).
+        val (forwarded, nonForwarded) = if (forwardedImmediateCall != null) {
+            args.arguments.partition { arg ->
+                val regId = if (arg.reg.dt == IRDataType.FLOAT) RegId.FloatReg(arg.reg.registerNum) else RegId.IntReg(arg.reg.registerNum.value)
+                regId in forwardedImmediateCall.loads
+            }
+        } else {
+            emptyList<FunctionCallArgs.ArgumentSpec>() to args.arguments
+        }
+        for (arg in nonForwarded) {
+            translateArgument(arg, fnLabel, forwardedImmediateCall)
+        }
+        for (arg in forwarded) {
             translateArgument(arg, fnLabel, forwardedImmediateCall)
         }
     }
@@ -640,6 +657,12 @@ private fun AsmGen.translateCall(fnLabel: String, args: FunctionCallArgs?, forwa
     }
 }
 
+private fun AsmGen.emitInlineMemcopyCall(args: FunctionCallArgs, forwardedImmediateCall: ImmediateCallOptimization?): Boolean {
+    // TODO stub to emit inline copy code if a call to memcopy is too much overhead
+    //      will return true if it has emitted a inline optimized version and no call to memcopy should be done anymore 
+    return false
+}
+
 private fun AsmGen.translateArgument(
     arg: FunctionCallArgs.ArgumentSpec,
     fnLabel: String? = null,
@@ -660,37 +683,41 @@ private fun AsmGen.translateArgument(
             } else {
                 emitLine("fmove.s  ${floatRegFileAddr(argReg.registerNum)}, $hwReg")
             }
-        } else if (forwardedImmediateCall != null) {
-            val value = forwardedImmediateCall.loads[RegId.IntReg(argReg.registerNum.value)]?.immediate
-                ?: error("missing forwarded immediate for call argument r${argReg.registerNum.value}")
-            val s = dtSuffix(argReg.dt)
-            if (hwReg.startsWith("a")) {
-                // address registers only accept movea/suba, not clr or moveq
-                when (value) {
-                    0 -> emitLine("suba.l  $hwReg, $hwReg")
-                    else -> emitLine("movea.l  #$value, $hwReg")
-                }
-            } else {
-                if (value == 0)
-                    emitLine("clr$s  $hwReg")
-                else {
-                    // use moveq (2 bytes, 4 cycles) when the value fits in its signed 8-bit range;
-                    // for byte args the value is unsigned 0-255, so map 128-255 to -128--1 (low byte is the same)
-                    val moveqValue = if (argReg.dt == IRDataType.BYTE && value in 128..255) value - 256 else value
-                    if (moveqValue in -128..127)
-                        emitLine("moveq  #$moveqValue, $hwReg")
-                    else
-                        emitLine("move$s  #$value, $hwReg")
-                }
-            }
         } else {
-            val source = regAddr(argReg.registerNum.value)
-            if (hwReg.startsWith("a") && argReg.dt in setOf(IRDataType.LONG, IRDataType.POINTER)) {
-                // loading a pointer into an address register; movea.l is the proper form and skips the +0 offset
-                emitLine("movea.l  ${source.removeSuffix("+0")}, $hwReg")
-            } else {
+            val regIdInt = RegId.IntReg(argReg.registerNum.value)
+            val forwardedLoad = forwardedImmediateCall?.loads?.get(regIdInt)
+            if (forwardedLoad != null) {
+                val value = forwardedLoad.immediate
+                    ?: error("missing forwarded immediate for call argument r${argReg.registerNum.value}")
                 val s = dtSuffix(argReg.dt)
-                emitLine("move$s  $source, $hwReg")
+                if (hwReg.startsWith("a")) {
+                    // address registers only accept movea/suba, not clr or moveq
+                    when (value) {
+                        0 -> emitLine("suba.l  $hwReg, $hwReg")
+                        else -> emitLine("movea.l  #$value, $hwReg")
+                    }
+                } else {
+                    if (value == 0)
+                        emitLine("clr$s  $hwReg")
+                    else {
+                        // use moveq (2 bytes, 4 cycles) when the value fits in its signed 8-bit range;
+                        // for byte args the value is unsigned 0-255, so map 128-255 to -128--1 (low byte is the same)
+                        val moveqValue = if (argReg.dt == IRDataType.BYTE && value in 128..255) value - 256 else value
+                        if (moveqValue in -128..127)
+                            emitLine("moveq  #$moveqValue, $hwReg")
+                        else
+                            emitLine("move$s  #$value, $hwReg")
+                    }
+                }
+            } else {
+                val source = regAddr(argReg.registerNum.value)
+                if (hwReg.startsWith("a") && argReg.dt in setOf(IRDataType.LONG, IRDataType.POINTER)) {
+                    // loading a pointer into an address register; movea.l is the proper form and skips the +0 offset
+                    emitLine("movea.l  ${source.removeSuffix("+0")}, $hwReg")
+                } else {
+                    val s = dtSuffix(argReg.dt)
+                    emitLine("move$s  $source, $hwReg")
+                }
             }
         }
     } else {
