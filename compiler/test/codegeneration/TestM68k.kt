@@ -291,12 +291,13 @@ main {
         // with optimization the IR should contain the new post-inc ops
         val resOpt = compileText(Qemu68kTarget(), optimize = true, src, outputDir, writeAssembly = true, assemble = false)
         resOpt shouldNotBe null
-        val p8ir = outputDir.toFile().walkTopDown().firstOrNull { it.extension == "p8ir" }?.readText() ?: ""
+        val optimized = resOpt!!
+        val p8ir = optimized.compilationOptions.outputDir.resolve("${optimized.compilerAst.name}.p8ir").toFile().readText()
         // check that the optimized IR uses the fused ops (single type specifier, no second type field)
         (p8ir.contains("loadp_inc.b") || p8ir.contains("loadp_inc")) shouldBe true
         (p8ir.contains("storep_inc.b") || p8ir.contains("storep_inc")) shouldBe true
         // and that the m68k assembly uses post-increment addressing (a0)+
-        val asm = outputDir.toFile().walkTopDown().filter { it.extension == "asm" }.map { it.readText() }.joinToString("\n")
+        val asm = optimized.compilationOptions.outputDir.resolve("${optimized.compilerAst.name}.asm").toFile().readText()
         val lines = asm.lines().map { it.trim() }
         lines.any { it.contains("(a0)+") } shouldBe true
         // cx16 must still compile (fallback lowers loadp_inc to $22 indirect + inc)
