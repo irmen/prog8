@@ -12,7 +12,31 @@ import prog8tests.helpers.CapturingSerialIO
 import prog8tests.helpers.compileText
 import prog8tests.helpers.simulate
 import java.io.ByteArrayOutputStream
+import java.io.OutputStream
 import java.io.PrintStream
+
+private class BoundedOutputStream(private val maxSize: Int): OutputStream() {
+    private val output = ByteArrayOutputStream(maxSize)
+    var overflowed = false
+        private set
+
+    override fun write(value: Int) {
+        if(output.size() < maxSize)
+            output.write(value)
+        else
+            overflowed = true
+    }
+
+    override fun write(bytes: ByteArray, offset: Int, length: Int) {
+        val remaining = maxSize - output.size()
+        if(remaining > 0)
+            output.write(bytes, offset, minOf(length, remaining))
+        if(length > remaining)
+            overflowed = true
+    }
+
+    override fun toString(): String = output.toString()
+}
 
 
 class TestRng: FunSpec({
@@ -234,17 +258,17 @@ main {
         val result = compileText(VMTarget(), true, src, outputDir, writeAssembly=true)!!
         val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir").toFile()
 
-        val stdout = ByteArrayOutputStream()
+        val stdout = BoundedOutputStream(expectedOutput.toByteArray().size)
         val originalOut = System.out
         System.setOut(PrintStream(stdout))
         try {
-            VmRunner().runProgram(virtfile.readText(), false)
+            VmRunner().runProgram(virtfile.readText(), true)
         } finally {
             System.setOut(originalOut)
         }
 
         val output = stdout.toString().replace("\r\n", "\n")
-        val relevant = output.substringBefore("\nProgram exit!")
-        relevant shouldBe expectedOutput
+        stdout.overflowed shouldBe false
+        output shouldBe expectedOutput
     }
 })

@@ -31,7 +31,7 @@ jobs:
         run: ./gradlew compileKotlin compileTestKotlin --console=plain
 
       - name: Test
-        run: ./gradlew test --continue --console=plain
+        run: ./gradlew test --continue --max-workers=3 -PtestConcurrency=2 -PtestMaxHeap=8g --console=plain
 
       - name: Package
         run: |
@@ -52,4 +52,3 @@ jobs:
         with:
           name: test-results
           path: compiler/build/test-results/test/
-
