@@ -268,36 +268,37 @@ Data Types
 
 Prog8 supports the following data types:
 
-===============  =======================  =================  =========================================
-type identifier  type                     storage size       example var declaration and literal value
-===============  =======================  =================  =========================================
-``byte``         signed byte              1 byte = 8 bits    ``byte myvar = -22``
-``ubyte``        unsigned byte            1 byte = 8 bits    ``ubyte myvar = $8f``,   ``ubyte c = 'a'``
-``bool``         boolean                  1 byte = 8 bits    ``bool myvar = true`` or ``bool myvar = false``
-``word``         signed word              2 bytes = 16 bits  ``word myvar = -12345``
-``uword``        unsigned word            2 bytes = 16 bits  ``uword myvar = $8fee``
-``long``         signed 32 bits integer   4 bytes            ``long large = $12345678``
-                                                             there is no unsigned long type at the moment.
-``float``        floating-point           5 bytes = 40 bits  ``float myvar = 1.2345``
-                                                             stored in 5-byte cbm MFLPT format
-``byte[x]``      signed byte array        x bytes            ``byte[4] myvar``
-``ubyte[x]``     unsigned byte array      x bytes            ``ubyte[4] myvar``
-``word[x]``      signed word array        2*x bytes          ``word[4] myvar``
-``uword[x]``     unsigned word array      2*x bytes          ``uword[4] myvar``
-``float[x]``     floating-point array     5*x bytes          ``float[4] myvar``.   The 5 bytes per float is on CBM targets.
-``bool[x]``      boolean array            x bytes            ``bool[4] myvar``  note: consider using bit flags in a byte or word instead to save space
-``byte[]``       signed byte array        depends on value   ``byte[] myvar = [1, 2, 3, 4]``
-``ubyte[]``      unsigned byte array      depends on value   ``ubyte[] myvar = [1, 2, 3, 4]``
-``word[]``       signed word array        depends on value   ``word[] myvar = [1, 2, 3, 4]``
-``uword[]``      unsigned word array      depends on value   ``uword[] myvar = [1, 2, 3, 4]``
-``float[]``      floating-point array     depends on value   ``float[] myvar = [1.1, 2.2, 3.3, 4.4]``
-``bool[]``       boolean array            depends on value   ``bool[] myvar = [true, false, true]``  note: consider using bit flags in a byte or word instead to save space
-``str[]``        array with string ptrs   2*x bytes + strs   ``str[] names = ["ally", "pete"]``  note: equivalent to a uword array.
-``str``          string (PETSCII)         varies             ``str myvar = "hello."``
-                                                             implicitly terminated by a 0-byte
-``^^type``       typed pointer            2 or 4 bytes      pointer types are explained in their own chapter :ref:`pointers`
-``pointer``      untyped address          2 or 4 bytes       ``pointer ptr = $a000``.  See :ref:`pointers` for details.
-===============  =======================  =================  =========================================
+==================  =======================  ======================  =========================================
+type identifier     type                     storage size            example var declaration and literal value
+==================  =======================  ======================  =========================================
+``byte``            signed byte              1 byte = 8 bits         ``byte myvar = -22``
+``ubyte``           unsigned byte            1 byte = 8 bits         ``ubyte myvar = $8f``,   ``ubyte c = 'a'``
+``bool``            boolean                  1 byte = 8 bits         ``bool myvar = true`` or ``bool myvar = false``
+``word``            signed word              2 bytes = 16 bits       ``word myvar = -12345``
+``uword``           unsigned word            2 bytes = 16 bits       ``uword myvar = $8fee``
+``long``            signed 32 bits integer   4 bytes                 ``long large = $12345678``
+                                                                      there is no unsigned long type at the moment.
+``float``           floating-point           5 bytes = 40 bits       ``float myvar = 1.2345``
+                                                                      stored in 5-byte cbm MFLPT format
+``byte[x]``         signed byte array        x bytes                 ``byte[4] myvar``
+``ubyte[x]``        unsigned byte array      x bytes                 ``ubyte[4] myvar``
+``word[x]``         signed word array        2*x bytes               ``word[4] myvar``
+``uword[x]``        unsigned word array      2*x bytes               ``uword[4] myvar``
+``float[x]``        floating-point array     5*x bytes               ``float[4] myvar``.   The 5 bytes per float is on CBM targets.
+``bool[x]``         boolean array            x bytes                 ``bool[4] myvar``  note: consider using bit flags in a byte or word instead to save space
+``byte[]``          signed byte array        depends on value        ``byte[] myvar = [1, 2, 3, 4]``
+``ubyte[]``         unsigned byte array      depends on value        ``ubyte[] myvar = [1, 2, 3, 4]``
+``word[]``          signed word array        depends on value        ``word[] myvar = [1, 2, 3, 4]``
+``uword[]``         unsigned word array      depends on value        ``uword[] myvar = [1, 2, 3, 4]``
+``float[]``         floating-point array     depends on value        ``float[] myvar = [1.1, 2.2, 3.3, 4.4]``
+``bool[]``          boolean array            depends on value        ``bool[] myvar = [true, false, true]``  note: consider using bit flags in a byte or word instead to save space
+``str[]``           array with string ptrs   2*x bytes + strs        ``str[] names = ["ally", "pete"]``  note: equivalent to a uword array.
+``str``             string (PETSCII)         varies                  ``str myvar = "hello."``
+                                                                      implicitly terminated by a 0-byte
+``StructType[x]``   array of struct inst.    x * sizeof(struct)      ``Enemy[10] enemies``  see :ref:`structarrays`
+``^^type``          typed pointer            2 or 4 bytes            pointer types are explained in their own chapter :ref:`pointers`
+``pointer``         untyped address          2 or 4 bytes            ``pointer ptr = $a000``.  See :ref:`pointers` for details.
+==================  =======================  ======================  =========================================
 
 .. note::
     The actual size of pointer types (``^^type`` and ``pointer``) depends on the target's
@@ -429,6 +430,7 @@ or when adding more stuff to the array later. Here are some examples of arrays::
     uword[] others = [names, array]   ; array of pointers/addresses to other arrays
     bool[2] flags = [true, false]     ; array of two boolean values  (take up 1 byte each, like a byte array)
     ^^float[3] values                 ; array of three pointers to floats
+    Enemy[10] enemies                 ; array of 10 Enemy struct instances (see :ref:`pointers`)
     uword[2] memarr = [memory("m1",10,0), memory("m2",20,0)]  ; array of memory block addresses
 
     value = array[3]            ; the fourth value in the array (index is 0-based)

@@ -116,7 +116,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                         val eltDt = decl.datatype.elementType()
                         if(eltDt.isPointer)
                             TODO("convert array of pointers to split words array type  ${decl.position}")
-                        else if(options.compTarget.POINTER_MEM_SIZE == 2u)
+                        else if((eltDt.isWord || eltDt.isUnsignedWord) && options.compTarget.POINTER_MEM_SIZE == 2u)
                             DataType.splitWordArrayFor(eltDt.base)
                         else
                             null

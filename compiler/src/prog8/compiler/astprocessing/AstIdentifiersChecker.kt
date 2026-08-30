@@ -9,10 +9,7 @@ import prog8.ast.expressions.StaticStructInitializer
 import prog8.ast.expressions.StringLiteral
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
-import prog8.code.core.BuiltinFunctions
-import prog8.code.core.ICompilationTarget
-import prog8.code.core.IErrorReporter
-import prog8.code.core.Position
+import prog8.code.core.*
 import prog8.code.target.VMTarget
 
 /**
@@ -123,8 +120,12 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
             errors.err("builtin function cannot be redefined", struct.position)
         else if(struct.name in keywords)
             errors.err("struct name cannot be a keyword", struct.position)
-        
-        
+
+        struct.fields.forEach { field ->
+            if(field.type.isArray && field.type.sub==BaseDataType.STRUCT_INSTANCE)
+                errors.err("arrays of struct instances are currently not supported as struct fields at '${field.name}'", struct.position)
+        }
+
         super.visit(struct)
     }
 

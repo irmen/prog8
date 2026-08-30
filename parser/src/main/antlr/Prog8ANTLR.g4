@@ -245,6 +245,7 @@ assign_target:
     | pointerdereference            #PointerDereferenceTarget
     | '(' expression ')' ('.' identifier)+      #ParenDerefTarget
     | functioncall ('.' identifier)+            #FunctioncallDerefTarget
+    | arrayindexed ('.' identifier)+            #ArrayindexedDerefTarget
     | VOID                          #VoidTarget
     ;
 

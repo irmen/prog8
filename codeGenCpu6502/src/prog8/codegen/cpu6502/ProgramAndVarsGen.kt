@@ -419,7 +419,7 @@ internal class ProgramAndVarsGen(
         asmgen.out("${StStructInstanceBlockName}_bss  .block\n")
         instancesNoInit.forEach {
             val structtype: StStruct = symboltable.lookup(it.structName) as StStruct
-            asmgen.out("${it.name}    .fill  ${structtype.size}\n")
+            asmgen.out("${it.name}    .fill  ${structtype.size}    ; struct ${it.structName}\n")
         }
         asmgen.out("    .endblock\n")
         asmgen.out("    .send BSS\n")
@@ -789,13 +789,14 @@ internal class ProgramAndVarsGen(
             dt.isSplitWordArray(compTarget) -> {
                 alignVar(variable.align)
                 val numbytesPerHalf = compTarget.memorySize(variable.dt, variable.length!!.toInt()) / 2
-                asmgen.out("${variable.name}_lsb\t.fill  $numbytesPerHalf")
-                asmgen.out("${variable.name}_msb\t.fill  $numbytesPerHalf")
+                asmgen.out("${variable.name}_lsb\t.fill  $numbytesPerHalf  ; split word array of ${variable.length} ${variable.dt.elementType()} (lsbs)")
+                asmgen.out("${variable.name}_msb\t.fill  $numbytesPerHalf  ; split word array of ${variable.length} ${variable.dt.elementType()} (msbs)")
             }
             dt.isArray -> {
                 alignVar(variable.align)
-                val numbytes = compTarget.memorySize(variable.dt, variable.length!!.toInt())
-                asmgen.out("${variable.name}\t.fill  $numbytes")
+                val amount = variable.length!!.toInt()
+                val elementSize = compTarget.memorySize(variable.dt.elementType(), null)
+                asmgen.out("${variable.name}\t.fill  $amount * $elementSize    ; array of $amount ${variable.dt.elementType()} ")
             }
             dt.isPointer -> asmgen.out("${variable.name}\t.word  ?")        // a pointer is just an uword address
             dt.isPointerArray -> {
@@ -930,6 +931,46 @@ internal class ProgramAndVarsGen(
                 asmgen.out(varname)
                 for (f in array.zip(floatFills))
                     asmgen.out("  .byte  ${f.second}  ; float ${f.first}")
+            }
+            dt.base==BaseDataType.ARRAY && dt.sub==BaseDataType.STRUCT_INSTANCE -> {
+                val struct = dt.subType as? StStruct ?: throw AssemblyError("struct type not found for $varname")
+                val structSize = struct.size.toInt()
+                if(value==null) {
+                    val totalBytes = (orNumberOfZeros ?: 0) * structSize
+                    if(totalBytes==0) {
+                        asmgen.out("$varname: .byte 0")
+                    } else {
+                        asmgen.out("$varname: .fill $totalBytes, 0")
+                    }
+                } else {
+                    // initialized struct array: value contains StructInstance elements
+                    asmgen.out(varname)
+                    // expand struct field types for per-element handling
+                    val expandedFieldTypes = struct.fields.flatMap { field ->
+                        val arraySz = field.arraySize
+                        if(arraySz!=null) List(arraySz) { field.type } else listOf(field.type)
+                    }
+                    for(elt in value) {
+                        val instanceName = (elt as? StArrayElement.StructInstance)?.name ?: throw AssemblyError("expected struct instance in array init for $varname")
+                        val instance = symboltable.lookup(instanceName) as? StStructInstance ?: throw AssemblyError("struct instance $instanceName not found")
+                        val fieldValues = instance.initialValues
+                        require(fieldValues.size==expandedFieldTypes.size) { "field count mismatch for $instanceName" }
+                        for((fieldType, fieldVal) in expandedFieldTypes.zip(fieldValues)) {
+                            val num = (fieldVal as? StArrayElement.Number)?.value ?: throw AssemblyError("struct field value must be number for $varname")
+                            when {
+                                fieldType.isByteOrBool -> asmgen.out("  .byte  ${num.toInt()}")
+                                fieldType.isWord -> asmgen.out("  .word  ${num.toInt()}")
+                                fieldType.isLong -> asmgen.out("  .dword  ${num.toInt()}")
+                                fieldType.isFloat -> {
+                                    val bytes = compTarget.getFloatAsmBytes(num)
+                                    asmgen.out("  .byte  $bytes  ; float $num")
+                                }
+                                fieldType.isPointer -> asmgen.out("  .word  ${num.toInt()}  ; pointer")
+                                else -> throw AssemblyError("unsupported struct field type $fieldType")
+                            }
+                        }
+                    }
+                }
             }
             else -> throw AssemblyError("require array dt")
         }

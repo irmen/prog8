@@ -863,36 +863,65 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
                 emitLine("dc.b  ${bytesStr}0", v.name)
             }
             dt.isArray && init is IRVariableInitializer.Array -> {
-                val elemDt = dt.elementType()
-                val elemSize = if(elemDt.isByte || elemDt.isBool) 1 else if(elemDt.isLong) 4 else {
-                    // on 32-bit targets, arrays of string pointers (stored as uword[]) need 4 bytes per element
-                    if(target.POINTER_MEM_SIZE > 2u && init.elements.any { it is IRStSymbolicReference.Symbol } && elemDt.isWord) target.POINTER_MEM_SIZE.toInt()
-                    else target.memorySize(elemDt.base)
-                }
-                val values = init.elements.map { elt ->
-                    when(elt) {
-                        is IRStSymbolicReference.Numeric -> elt.value.toInt().toString()
-                        is IRStSymbolicReference.Symbol -> fixNameSymbols(elt.name)
-                        is IRStSymbolicReference.BoolValue -> if(elt.value) "1" else "0"
+                if(dt.sub==BaseDataType.STRUCT_INSTANCE) {
+                    emitLine("    ALIGN  2")
+                    emitLine("$label:")
+                    for(elt in init.elements) {
+                        val sym = (elt as? IRStSymbolicReference.Symbol)?.name ?: error("expected struct instance symbol for ${v.name}")
+                        val instanceName = sym.removePrefix("@")
+                        val instance = program.st.lookup(instanceName) as? IRStStructInstance ?: error("struct instance $instanceName not found for ${v.name}")
+                        for(fieldVal in instance.values) {
+                            val valueStr = when(val ref = fieldVal.value) {
+                                is IRStSymbolicReference.Numeric -> ref.value.toInt().toString()
+                                is IRStSymbolicReference.Symbol -> fixNameSymbols(ref.name)
+                                is IRStSymbolicReference.BoolValue -> if(ref.value) "1" else "0"
+                            }
+                            when(fieldVal.dt) {
+                                BaseDataType.UBYTE, BaseDataType.BOOL -> emitLine("dc.b  $valueStr")
+                                BaseDataType.BYTE -> emitLine("dc.b  $valueStr")
+                                BaseDataType.UWORD, BaseDataType.WORD -> emitLine("dc.w  $valueStr")
+                                BaseDataType.LONG -> emitLine("dc.l  $valueStr")
+                                BaseDataType.FLOAT -> {
+                                    val bytes = target.getFloatAsmBytes(valueStr.toDouble())
+                                    emitLine("dc.b  $bytes")
+                                }
+                                BaseDataType.POINTER -> emitLine("dc.l  $valueStr")
+                                else -> error("unsupported struct field type ${fieldVal.dt} for ${v.name}")
+                            }
+                        }
                     }
-                }
-                when (elemSize) {
-                    1 -> {
-                        emitLine("    ALIGN  2")
-                        emitLine("$label:")
-                        emitLine("dc.b  ${values.joinToString(",")}", v.name)
+                } else {
+                    val elemDt = dt.elementType()
+                    val elemSize = if(elemDt.isByte || elemDt.isBool) 1 else if(elemDt.isLong) 4 else {
+                        // on 32-bit targets, arrays of string pointers (stored as uword[]) need 4 bytes per element
+                        if(target.POINTER_MEM_SIZE > 2u && init.elements.any { it is IRStSymbolicReference.Symbol } && elemDt.isWord) target.POINTER_MEM_SIZE.toInt()
+                        else target.memorySize(elemDt.base)
                     }
-                    2 -> {
-                        emitLine("    ALIGN  2")
-                        emitLine("$label:")
-                        emitLine("dc.w  ${values.joinToString(",")}", v.name)
+                    val values = init.elements.map { elt ->
+                        when(elt) {
+                            is IRStSymbolicReference.Numeric -> elt.value.toInt().toString()
+                            is IRStSymbolicReference.Symbol -> fixNameSymbols(elt.name)
+                            is IRStSymbolicReference.BoolValue -> if(elt.value) "1" else "0"
+                        }
                     }
-                    4 -> {
-                        emitLine("    ALIGN  $elemSize")
-                        emitLine("$label:")
-                        emitLine("dc.l  ${values.joinToString(",")}", v.name)
+                    when (elemSize) {
+                        1 -> {
+                            emitLine("    ALIGN  2")
+                            emitLine("$label:")
+                            emitLine("dc.b  ${values.joinToString(",")}", v.name)
+                        }
+                        2 -> {
+                            emitLine("    ALIGN  2")
+                            emitLine("$label:")
+                            emitLine("dc.w  ${values.joinToString(",")}", v.name)
+                        }
+                        4 -> {
+                            emitLine("    ALIGN  $elemSize")
+                            emitLine("$label:")
+                            emitLine("dc.l  ${values.joinToString(",")}", v.name)
+                        }
+                        else -> error("expected array element size 1,2 or 4 for ${v.name}")
                     }
-                    else -> error("expected array element size 1,2 or 4 for ${v.name}")
                 }
             }
             dt.isNumeric || dt.isBool -> {
@@ -1026,7 +1055,11 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
                     emitRaw("    ALIGN  $alignment")
                 }
                 emitLabel(fixNameSymbols(v.name))
-                emitLine("ds.b  $size")
+                val typeComment = if(v.dt.isArray) {
+                    "array of ${v.length} ${v.dt.elementType()}"
+                } else 
+                    v.dt.toString()
+                emitLine("ds.b  $size    ; $typeComment")
             }
         }
 
@@ -1037,7 +1070,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
             for (si in structs) {
                 emitRaw("    ALIGN  2")
                 emitLabel(fixNameSymbols(si.name))
-                emitLine("ds.b  ${si.size}")
+                emitLine("ds.b  ${si.size}     ; struct ${si.structName}")
             }
         }
 
@@ -1071,12 +1104,14 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         emitSlabs(normalSlabs)
 
         // register file (always at the end of BSS variables)
+        emitRaw("    ; flat integer virtual register file:")
         emitRaw("    ALIGN  4")
         emitLabel(REGFILE_LABEL)
         emitLine("ds.b  ${regFileLayout.totalSize}")
 
         // float register file
         if (floatRegFileLayout.totalSize > 0) {
+            emitRaw("    ; flat float virtual register file:")
             emitRaw("    ALIGN  4")
             emitLabel(FLOAT_REGFILE_LABEL)
             emitLine("ds.b  ${floatRegFileLayout.totalSize}")

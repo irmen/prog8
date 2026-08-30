@@ -3945,6 +3945,65 @@ $endLabel""")
         }
     }
 
+    /**
+     * Compute the address of a struct-array element with a variable index into a zeropage pointer.
+     * Uses full 16-bit scaling so it works for indices whose offset exceeds 255 bytes.
+     */
+    internal fun computeStructArrayElementAddress(arrayDt: DataType, arraySymbol: String, indexExpr: PtExpression, destPtrVar: String = "P8ZP_SCRATCH_PTR") {
+        require(arrayDt.sub == BaseDataType.STRUCT_INSTANCE) { "expected struct instance array $arrayDt" }
+
+        val structSize = try {
+            (arrayDt.subType as? StStruct)?.size?.toInt() ?: program.memsizer.memorySize(arrayDt.elementType(), 1)
+        } catch(_: Exception) {
+            program.memsizer.memorySize(arrayDt.elementType(), 1)
+        }.toUInt()
+
+        // load index as word
+        asmgen.assignExpressionToVariable(indexExpr, "P8ZP_SCRATCH_W1", DataType.UWORD)
+
+        // scale by struct size (preserve full 16 bits)
+        when(structSize) {
+            1u -> {}
+            2u -> asmgen.out("  asl  P8ZP_SCRATCH_W1 |  rol  P8ZP_SCRATCH_W1+1")
+            4u -> asmgen.out("  asl  P8ZP_SCRATCH_W1 |  rol  P8ZP_SCRATCH_W1+1 |  asl  P8ZP_SCRATCH_W1 |  rol  P8ZP_SCRATCH_W1+1")
+            8u -> asmgen.out("  asl  P8ZP_SCRATCH_W1 |  rol  P8ZP_SCRATCH_W1+1 |  asl  P8ZP_SCRATCH_W1 |  rol  P8ZP_SCRATCH_W1+1 |  asl  P8ZP_SCRATCH_W1 |  rol  P8ZP_SCRATCH_W1+1")
+            else -> {
+                if(structSize.toInt() in asmgen.optimizedWordMultiplications) {
+                    asmgen.out("""
+                        lda  P8ZP_SCRATCH_W1
+                        ldy  P8ZP_SCRATCH_W1+1
+                        jsr  prog8_math.mul_word_${structSize}
+                        sta  P8ZP_SCRATCH_W1
+                        sty  P8ZP_SCRATCH_W1+1""")
+                } else {
+                    asmgen.out("""
+                        lda  P8ZP_SCRATCH_W1
+                        ldy  P8ZP_SCRATCH_W1+1
+                        sta  prog8_math.multiply_words.multiplier
+                        sty  prog8_math.multiply_words.multiplier+1
+                        lda  #<$structSize
+                        ldy  #>$structSize
+                        jsr  prog8_math.multiply_words
+                        sta  P8ZP_SCRATCH_W1
+                        sty  P8ZP_SCRATCH_W1+1""")
+                }
+            }
+        }
+
+        asmgen.out("""
+            lda  #<$arraySymbol
+            sta  $destPtrVar
+            lda  #>$arraySymbol
+            sta  $destPtrVar+1
+            clc
+            lda  $destPtrVar
+            adc  P8ZP_SCRATCH_W1
+            sta  $destPtrVar
+            lda  $destPtrVar+1
+            adc  P8ZP_SCRATCH_W1+1
+            sta  $destPtrVar+1""")
+    }
+
     private fun assignAddressOf(target: AsmAssignTarget, sourceName: String, msb: Boolean, arrayDt: DataType?, arrayIndexExpr: PtExpression?) {
         var actualSourceName = sourceName
         var actualMsb = msb
@@ -4049,6 +4108,13 @@ $endLabel""")
                             clc
                             adc  P8ZP_SCRATCH_REG"""
                         )
+                    } else if(subtype==BaseDataType.STRUCT_INSTANCE) {
+                        // Use the full 16-bit address computation helper. It evaluates the index itself,
+                        // so the earlier load into A is not needed for this path.
+                        computeStructArrayElementAddress(arrayDt, actualSourceName, arrayIndexExpr, "P8ZP_SCRATCH_PTR")
+                        asmgen.out("  lda  P8ZP_SCRATCH_PTR |  ldy  P8ZP_SCRATCH_PTR+1")
+                        assignRegisterpairWord(target, RegisterOrPair.AY)
+                        return
                     } else throw AssemblyError("weird type $subtype")
                     asmgen.out("""
                         ldy  #>$actualSourceName
@@ -5860,7 +5926,16 @@ $endLabel""")
             }
             addressOf != null -> {
                 if(addressOf.isFromArrayElement) {
-                    TODO("address-of array element $addressOf")
+                    val arrayId = addressOf.identifier
+                    val arrayDt = arrayId?.type
+                    if(arrayDt?.sub == BaseDataType.STRUCT_INSTANCE) {
+                        if(byteValue==null) asmgen.out("  pha")
+                        computeStructArrayElementAddress(arrayDt, asmgen.asmSymbolName(arrayId), addressOf.arrayIndexExpr!!, "P8ZP_SCRATCH_PTR")
+                        if(byteValue==null) asmgen.out("  pla") else asmgen.out("  lda  #${byteValue.toHex()}")
+                        asmgen.out("  ldy  #0 |  sta  (P8ZP_SCRATCH_PTR),y")
+                    } else {
+                        TODO("address-of array element $addressOf")
+                    }
                 } else if(addressOf.dereference!=null) {
                     throw AssemblyError("write &dereference, makes no sense at ${addressOf.position}")
                 } else {
@@ -5877,11 +5952,21 @@ $endLabel""")
             addressExpr is PtBinaryExpression -> {
                 val result = asmgen.pointerViaIndexRegisterPossible(addressExpr)
                 if(result!=null) {
-                    val addressOfIdentifier = (result.first as? PtAddressOf)?.identifier
+                    val addrOf = result.first as? PtAddressOf
+                    val arrayId = addrOf?.identifier
+                    val arrayDt = arrayId?.type
+                    if(addrOf!=null && addrOf.isFromArrayElement && arrayDt?.sub == BaseDataType.STRUCT_INSTANCE && result.second is PtNumber) {
+                        val offset = (result.second as PtNumber).number.toInt()
+                        if(byteValue==null) asmgen.out("  pha")
+                        computeStructArrayElementAddress(arrayDt, asmgen.asmSymbolName(arrayId), addrOf.arrayIndexExpr!!, "P8ZP_SCRATCH_PTR")
+                        if(byteValue==null) asmgen.out("  pla") else asmgen.out("  lda  #${byteValue.toHex()}")
+                        asmgen.out("  ldy  #$offset |  sta  (P8ZP_SCRATCH_PTR),y")
+                        return
+                    }
+                    val addressOfIdentifier = addrOf?.identifier
                     if(addressOfIdentifier!=null) {
                         var varname = asmgen.asmVariableName(addressOfIdentifier)
                         if(addressOfIdentifier.type.isSplitWordArray(program.memsizer)) {
-                            val addrOf = result.first as PtAddressOf
                             varname = if(addrOf.isMsbForSplitArray) varname+"_msb" else varname+"_lsb"
                         }
                         if(result.second is PtNumber) {

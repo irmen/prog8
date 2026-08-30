@@ -285,6 +285,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
         writeInitializedVariables()
         writeStructInstancesNoInit()
         writeStructInstances()
+        writeStructDefs()
         writeConstants()
         writeMemoryMappedVariables()
         writeMemorySlabs()
@@ -461,6 +462,18 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
                 }
                 append(values.joinToString(",") { "${it.first}:${it.second}" })
             })
+        }
+        xml.writeEndElement()
+        xml.writeCharacters("\n")
+    }
+
+    private fun writeStructDefs() {
+        val defs = irProgram.st.allStructDefs()
+        xml.writeStartElement("STRUCTDEFS")
+        xml.writeCharacters("\n")
+        for (def in defs) {
+            val fields = def.fields.joinToString(";") { "${it.type.irTypeString(it.arraySize?.toUInt())} ${it.name}" }
+            emitLine("${def.name} size=${def.size} fields=${fields}")
         }
         xml.writeEndElement()
         xml.writeCharacters("\n")

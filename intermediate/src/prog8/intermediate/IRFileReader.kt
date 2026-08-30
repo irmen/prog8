@@ -60,6 +60,19 @@ class IRFileReader {
     
     private lateinit var options: CompilationOptions
 
+    private fun resolveStructPlaceholders(st: IRSymbolTable) {
+        // Replace IRSubtypePlaceholder subtypes (struct names read from IR text) with resolved
+        // subtypes backed by the actual IRStStructDef, so memory sizing and field lookups work.
+        for (node in st.allVariables()) {
+            val dt = node.dt
+            if (dt.subType is IRSubtypePlaceholder) {
+                val def = st.lookup((dt.subType as IRSubtypePlaceholder).scopedNameString) as? IRStStructDef
+                if (def != null)
+                    dt.subType = IRStructSubtype(def)
+            }
+        }
+    }
+
     private fun parseProgram(reader: XMLEventReader): IRProgram {
         require(reader.nextEvent().isStartDocument)
         val start = reader.nextEvent().asStartElement()
@@ -78,6 +91,7 @@ class IRFileReader {
         val variables = parseVariables(reader)
         val structsWithoutInit = parseStructInstancesNoInit(reader)
         val structs = parseStructInstances(reader)
+        val structDefs = parseStructDefs(reader)
         val constants = parseConstants(reader)
         val memorymapped = parseMemMapped(reader)
         val slabs = parseSlabs(reader)
@@ -98,6 +112,9 @@ class IRFileReader {
         slabs.forEach { st.add(it) }
         structs.forEach { st.add(it) }
         structsWithoutInit.forEach { st.add(it) }
+        structDefs.forEach { st.add(it) }
+
+        resolveStructPlaceholders(st)
 
         val program = IRProgram(programName, st, options, options.compTarget)
         program.addGlobalInits(initGlobals)
@@ -307,6 +324,45 @@ class IRFileReader {
         require(sizeStr[0]=="size")
         val size = sizeStr[1].toUInt()
         return IRStStructInstance(name, structName, emptyList(), size)
+    }
+
+    private fun parseStructDefs(reader: XMLEventReader): List<IRStStructDef> {
+        skipText(reader)
+        if(!reader.hasNext()) return emptyList()
+        val peek = reader.peek()
+        if(!peek.isStartElement || peek.asStartElement().name.localPart != "STRUCTDEFS")
+            return emptyList()
+        return parseSection(reader, "STRUCTDEFS") { line ->
+            val parts = line.split(' ', limit = 3)
+            val name = parts[0]
+            require(parts[1].startsWith("size="))
+            val size = parts[1].drop(5).toUInt()
+            val fields = if(parts.size > 2 && parts[2].startsWith("fields=")) {
+                val fieldsStr = parts[2].drop(7)
+                if(fieldsStr.isEmpty()) emptyList()
+                else fieldsStr.split(';').map { fieldSpec ->
+                    val spaceIdx = fieldSpec.lastIndexOf(' ')
+                    require(spaceIdx > 0) { "invalid struct field spec: $fieldSpec" }
+                    val typeStr = fieldSpec.substring(0, spaceIdx)
+                    val fieldName = fieldSpec.substring(spaceIdx + 1)
+                    val (type, arraySize) = parseStructFieldType(typeStr)
+                    IRStStructField(type, fieldName, arraySize)
+                }
+            } else emptyList()
+            IRStStructDef(name, fields, size)
+        }
+    }
+
+    private fun parseStructFieldType(typeStr: String): Pair<DataType, Int?> {
+        val bracketIdx = typeStr.indexOf('[')
+        return if(bracketIdx < 0) {
+            parseDatatype(typeStr, false) to null
+        } else {
+            require(typeStr.endsWith(']')) { "invalid array type $typeStr" }
+            val baseType = typeStr.substring(0, bracketIdx)
+            val size = typeStr.substring(bracketIdx + 1, typeStr.length - 1).toInt()
+            parseDatatype(baseType, true) to size
+        }
     }
 
     private fun parseStructInstances(reader: XMLEventReader): List<IRStStructInstance> =
@@ -619,7 +675,7 @@ class IRFileReader {
                 "float" -> DataType.arrayFor(BaseDataType.FLOAT, options.compTarget)
                 "long" -> DataType.arrayFor(BaseDataType.LONG, options.compTarget)
                 else -> {
-                    throw IRParseException("invalid dt  $type")
+                    DataType.arrayOfStructs(IRSubtypePlaceholder(type))
                 }
             }
         } else {

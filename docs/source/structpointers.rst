@@ -151,7 +151,7 @@ dealing with all of them separately.  You first define the struct type like so::
 Allowed field datatypes: all numeric types (``byte``, ``ubyte``, ``word``, ``uword``, ``long``, ``float``),
 ``bool``, ``str``, typed pointers to those or to other structs, and inline 1D arrays of these element types.
 Not allowed: struct instances themselves (structs cannot be nested, use a pointer to the struct instead),
-arrays of typed pointers such as ``^^Enemy[4]`` (use untyped pointers instead), and 2D arrays.
+arrays of struct instances, arrays of typed pointers such as ``^^Enemy[4]`` (use untyped pointers instead), and 2D arrays.
 The typed pointer array and 2D array restrictions are limitations of the current compiler; they may or may not be lifted in a future version.
 
 Fields in a struct are 'packed' (meaning the values are placed back-to-back in memory), and placed in memory in order of declaration. This guarantees exact size and place of the fields.
@@ -187,18 +187,69 @@ The compiler evaluates the pointer expression exactly once and then stores the v
 
 
 .. note::
-    Structs are currently only supported as a *reference type* (they always have to be accessed through a pointer).
-    It is not yet possible to use them as a value type, or as memory-mapped types.
-    This means you cannot create an array of structs either - only arrays of pointers to structs.
-    There are a couple of simple case where the compiler does allow assignment of struct instances though, and it will
-    automatically copy all the fields for you. You are allowed to write::
+    Structs are primarily supported as a *reference type* accessed through a pointer.
+    However, you can also declare an *array of struct instances* (see below), and a plain struct instance
+    can be used as an lvalue in a few specific assignment cases.
+    It is not yet possible to use a struct as a standalone value type, or as a memory-mapped type.
+    The compiler replaces whole-struct assignments with a memory copy. You are allowed to write::
 
         ptr2^^ = ptr1^^
         ptr2^^ = ptr1[2]
         ptr2[2] = ptr1^^
+        arr[i] = arr[j]           ; array of struct instances
 
-    The compiler replaces this with a memory copy if these are pointers to a struct.
     In the future more cases may be supported.
+
+
+.. _structarrays:
+
+Arrays of struct instances
+--------------------------
+.. index:: pair: Structs; Arrays of instances
+
+You can declare an array that contains struct instances directly, rather than pointers to structs.
+The syntax places the array size between the struct type and the variable name::
+
+    struct Enemy {
+        ubyte xpos, ypos
+        uword health
+        bool elite
+    }
+
+    Enemy[10] enemies          ; 10 Enemy instances in a contiguous block
+
+Indexing works as expected and the fields are accessed with the dotted notation::
+
+    enemies[i].health = 100
+    enemies[i].elite = true
+    ubyte x = enemies[i].xpos
+
+You can copy one whole element to another with a single assignment; the compiler generates a memory copy::
+
+    enemies[i] = enemies[j]
+
+Array-of-struct variables can also be statically initialized by nesting struct initializers inside an array literal::
+
+    Enemy[3] squad = [
+        ^^Enemy : [10, 20, 100, false],
+        ^^Enemy : [30, 40, 200, true],
+        ^^Enemy : [50, 60, 150, false]
+    ]
+
+The struct size counts toward the same target size limits as other arrays.
+On 6502-family targets a struct cannot exceed 256 bytes, so the maximum number of elements in an
+array of structs is limited by that size (for example, at most 128 elements for a 2-byte struct, and
+fewer for larger structs). On 32-bit targets the per-array size limit is much larger.
+
+.. note::
+    Arrays of struct instances cannot be used as subroutine parameters (the same restriction applies
+    to most array types other than ``ubyte`` arrays and strings). Pass a typed pointer to the first
+    element instead, or use ``sys.memcopy`` if you need to pass a copy.
+
+.. note::
+    Arrays of struct instances are stored contiguously, so accessing fields with a variable index
+    is less efficient than accessing fields through a typed pointer. For performance-critical code,
+    prefer typed pointers to structs unless the contiguous array layout is required.
 
 .. note::
     Using structs instead of plain arrays usually results in more and less efficient code being generated.

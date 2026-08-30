@@ -201,7 +201,7 @@ class DataType private constructor(
 
         fun forDt(dt: BaseDataType): DataType {
             if(dt.isStructInstance)
-                TODO("cannot use struct instance as a data type (yet) - use a pointer instead")
+                return DataType(BaseDataType.STRUCT_INSTANCE, null, null)
             return simpletypes.getValue(dt)
         }
 
@@ -229,6 +229,11 @@ class DataType private constructor(
         fun arrayOfPointersFromAntlrTo(sub: BaseDataType?, identifier: List<String>?): DataType =
             DataType(BaseDataType.ARRAY_POINTER, sub, null, identifier)
 
+        // array of struct instances: sub is STRUCT_INSTANCE, subType carries the resolved struct
+        fun arrayOfStructs(structType: ISubType): DataType = DataType(BaseDataType.ARRAY, BaseDataType.STRUCT_INSTANCE, structType)
+        fun arrayOfStructsFromAntlr(struct: List<String>): DataType =
+            DataType(BaseDataType.ARRAY, BaseDataType.STRUCT_INSTANCE, null, subTypeFromAntlr = struct)
+
         fun pointer(base: BaseDataType): DataType = DataType(BaseDataType.POINTER, base, null)
         fun pointer(dt: DataType): DataType = if(dt.isBasic)
                 DataType(BaseDataType.POINTER, dt.base, null)
@@ -246,26 +251,34 @@ class DataType private constructor(
     // ============================================================================
 
     fun elementToArray(target: ICompilationTarget, splitwords: Boolean = true): DataType {
-        fun pointerArray(): DataType = 
-            if (subType != null) 
+        fun pointerArray(): DataType =
+            if (subType != null)
                 arrayOfPointersTo(subType)
-            else if (subTypeFromAntlr != null) 
+            else if (subTypeFromAntlr != null)
                 arrayOfPointersFromAntlrTo(sub, subTypeFromAntlr)
-            else 
+            else
                 arrayOfPointersTo(sub!!)
 
+        if(base == BaseDataType.STRUCT_INSTANCE) {
+            val st = subType
+            return if(st != null)
+                arrayOfStructs(st)
+            else
+                arrayOfStructsFromAntlr(subTypeFromAntlr!!)
+        }
+
         if(!target.cpu.is6502) {
-            return if (base.isPointer) 
+            return if (base.isPointer)
                 pointerArray()
-            else 
+            else
                 arrayFor(base, target)
         }
-        
+
         return if (splitwords && (base == BaseDataType.UWORD || base == BaseDataType.WORD || base == BaseDataType.STR))
             splitWordArrayFor(base)
-        else if(base.isPointer) 
+        else if(base.isPointer)
             pointerArray()
-        else 
+        else
             arrayFor(base, target)
     }
 
@@ -273,6 +286,8 @@ class DataType private constructor(
         when {
             isPointerArray -> DataType(BaseDataType.POINTER, sub, subType)
             base.isArray || base==BaseDataType.STR -> {
+                if (sub == BaseDataType.STRUCT_INSTANCE && subType != null)
+                    return DataType(BaseDataType.STRUCT_INSTANCE, null, subType)
                 val dt = forDt(sub!!)
                 if (subType != null) DataType(BaseDataType.POINTER, null, subType) else dt
             }
@@ -327,6 +342,7 @@ class DataType private constructor(
                 BaseDataType.UBYTE -> "ubyte[]"
                 BaseDataType.UWORD -> "uword[]"
                 BaseDataType.LONG -> "long[]"
+                BaseDataType.STRUCT_INSTANCE -> if (subType != null) "${subType!!.scopedNameString}[]" else "$subTypeFromAntlr[]"
                 else -> throw IllegalArgumentException("invalid sub type")
             }
         }
@@ -391,6 +407,7 @@ class DataType private constructor(
                 BaseDataType.WORD -> "@nosplit word["
                 BaseDataType.LONG -> "long["
                 BaseDataType.FLOAT -> "float["
+                BaseDataType.STRUCT_INSTANCE -> if (subType != null) "${subType!!.scopedNameString}[" else "$subTypeFromAntlr["
                 else -> throw IllegalArgumentException("invalid sub type")
             }
         }

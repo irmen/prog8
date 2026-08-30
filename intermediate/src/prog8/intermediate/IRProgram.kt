@@ -672,6 +672,14 @@ internal class IRSubtypePlaceholder(override val scopedNameString: String, val s
 }
 
 
+internal class IRStructSubtype(val def: IRStStructDef): ISubType {
+    override val scopedNameString: String get() = def.name
+    override fun memsize(sizer: IMemSizer) = def.size.toInt()
+    override fun sameas(other: ISubType) = other is IRStructSubtype && other.def.name == def.name
+    override fun getFieldType(name: String): DataType? = def.fields.firstOrNull { it.name == name }?.type
+}
+
+
 class RegistersUsed(
     // register num -> number of uses
     val readRegs: Map<RegisterNum, Int>,

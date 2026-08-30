@@ -2505,6 +2505,10 @@ internal class AstChecker(private val program: Program,
                 errors.err("arrays of typed pointers are currently not supported, use untyped pointer for now at field '${field.name}'", struct.position)
                 return false
             }
+            if(dt.isArray && dt.sub==BaseDataType.STRUCT_INSTANCE) {
+                errors.err("arrays of struct instances are currently not supported as struct fields at '${field.name}'", struct.position)
+                return false
+            }
             return dt.isBasic
                 || dt.base.isNumericOrBool
                 || dt.isPointer

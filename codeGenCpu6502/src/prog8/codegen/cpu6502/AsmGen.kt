@@ -2247,6 +2247,15 @@ $repeatLabel""")
                 val constOffset = (ptrAndIndex.second as? PtNumber)?.number?.toInt()
                 if(addrOf!=null && constOffset!=null) {
                     if(addrOf.isFromArrayElement) {
+                        val arrayId = addrOf.identifier
+                        val arrayDt = arrayId?.type
+                        if(arrayDt?.sub == BaseDataType.STRUCT_INSTANCE) {
+                            out("  pha")
+                            assignmentAsmGen.computeStructArrayElementAddress(arrayDt, asmSymbolName(arrayId), addrOf.arrayIndexExpr!!, "P8ZP_SCRATCH_PTR")
+                            out("  pla")
+                            out("  ldy  #$constOffset |  sta  (P8ZP_SCRATCH_PTR),y")
+                            return true
+                        }
                         TODO("address-of array element ${addrOf.position}")
                     } else if(addrOf.dereference!=null) {
                         throw AssemblyError("write &dereference, makes no sense at ${addrOf.position}")
@@ -2293,6 +2302,13 @@ $repeatLabel""")
             val constOffset = (ptrAndIndex.second as? PtNumber)?.number?.toInt()
             if(addrOf!=null && constOffset!=null) {
                 if(addrOf.isFromArrayElement) {
+                    val arrayId = addrOf.identifier
+                    val arrayDt = arrayId?.type
+                    if(arrayDt?.sub == BaseDataType.STRUCT_INSTANCE) {
+                        assignmentAsmGen.computeStructArrayElementAddress(arrayDt, asmSymbolName(arrayId), addrOf.arrayIndexExpr!!, "P8ZP_SCRATCH_PTR")
+                        out("  ldy  #$constOffset |  lda  (P8ZP_SCRATCH_PTR),y")
+                        return true
+                    }
                     TODO("address-of array element ${addrOf.position}")
                 } else if(addrOf.dereference!=null) {
                     if(pointerGen.readByteByAddressOfDereference(addrOf, constOffset))

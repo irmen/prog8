@@ -237,7 +237,7 @@ class Antlr2KotlinVisitor(val source: SourceCode, private val target: ICompilati
             if(baseDt.isPointer) {
                 DataType.arrayOfPointersFromAntlrTo(baseDt.sub, baseDt.subTypeFromAntlr)
             } else if(baseDt.isStructInstance)
-                throw SyntaxError("array of structures not allowed (use array of pointers)", ctx.toPosition())
+                DataType.arrayOfStructsFromAntlr(baseDt.subTypeFromAntlr ?: emptyList())
             else
                 DataType.arrayFor(baseDt.base, target)       // str arrays become LONG[] on 32-bit targets via pointerBaseType
         }
@@ -832,6 +832,15 @@ class Antlr2KotlinVisitor(val source: SourceCode, private val target: ICompilati
     // func().field  as assignment target; the CodeDesugarer turns this into a poke-style write.
     override fun visitFunctioncallDerefTarget(ctx: FunctioncallDerefTargetContext): AssignTarget {
         var expr: Expression = ctx.functioncall().accept(this) as Expression
+        for(field in ctx.identifier()) {
+            expr = BinaryExpression(expr, ".", IdentifierReference(listOf(field.text), ctx.toPosition()), ctx.toPosition())
+        }
+        return AssignTarget(null, null, null, null, false, dotExpression = expr, position = ctx.toPosition())
+    }
+
+    // array[index].field  as assignment target; the CodeDesugarer turns this into a poke-style write.
+    override fun visitArrayindexedDerefTarget(ctx: ArrayindexedDerefTargetContext): AssignTarget {
+        var expr: Expression = ctx.arrayindexed().accept(this) as ArrayIndexedExpression
         for(field in ctx.identifier()) {
             expr = BinaryExpression(expr, ".", IdentifierReference(listOf(field.text), ctx.toPosition()), ctx.toPosition())
         }

@@ -127,10 +127,10 @@ class TestDataType: FunSpec({
         DataType.forDt(BaseDataType.FLOAT) shouldBe DataType.FLOAT
     }
 
-    test("DataType.forDt throws for struct instance") {
-        shouldThrow<NotImplementedError> {
-            DataType.forDt(BaseDataType.STRUCT_INSTANCE)
-        }
+    test("DataType.forDt supports struct instance") {
+        val dt = DataType.forDt(BaseDataType.STRUCT_INSTANCE)
+        dt.base shouldBe BaseDataType.STRUCT_INSTANCE
+        dt.isStructInstance shouldBe true
     }
 
     test("DataType.arrayFor creates array types") {

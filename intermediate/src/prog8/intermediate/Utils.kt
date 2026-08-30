@@ -35,6 +35,7 @@ fun DataType.irTypeString(length: UInt?): String {
                 BaseDataType.LONG -> "long[$lengthStr]"
                 BaseDataType.BOOL -> "bool[$lengthStr]"
                 BaseDataType.FLOAT -> "float[$lengthStr]"
+                BaseDataType.STRUCT_INSTANCE -> if(subType!=null) "${subType!!.scopedNameString}[$lengthStr]" else "$subTypeFromAntlr[$lengthStr]"
                 else -> throw IllegalArgumentException("invalid sub type")
             }
         }

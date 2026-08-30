@@ -263,6 +263,13 @@ class VmProgramLoader {
                                 memory.setSL(addr, 0)
                                 addr += 4u
                             }
+                            dt.sub == BaseDataType.STRUCT_INSTANCE -> {
+                                val elemSize = dt.subType?.memsize(program.options.compTarget) ?: 0
+                                repeat(elemSize) {
+                                    memory.setUB(addr, 0u)
+                                    addr++
+                                }
+                            }
                             else -> throw IRParseException("invalid dt")
                         }
                     }
@@ -455,7 +462,34 @@ class VmProgramLoader {
                 }
             }
 
-            else -> throw IRParseException("invalid dt")
+            variable.dt.base==BaseDataType.ARRAY && variable.dt.sub==BaseDataType.STRUCT_INSTANCE -> {
+                for (elt in iElts) {
+                    val sym = (elt as? IRStSymbolicReference.Symbol)?.name ?: throw IRParseException("expected struct instance symbol for struct array init")
+                    val instanceName = sym.removePrefix("@")
+                    val instance = program.st.lookup(instanceName) as? IRStStructInstance ?: throw IRParseException("struct instance $instanceName not found for array init")
+                    for (fieldVal in instance.values) {
+                        val value: Double = when(val ref = fieldVal.value) {
+                            is IRStSymbolicReference.BoolValue -> if(ref.value) 1.0 else 0.0
+                            is IRStSymbolicReference.Numeric -> ref.value
+                            is IRStSymbolicReference.Symbol -> {
+                                val s = SymbolNames.stripPrefixes(ref.name)
+                                val a = symbolAddresses[s] ?: throw IRParseException("symbol $s not found")
+                                a.toDouble()
+                            }
+                        }
+                        when {
+                            fieldVal.dt.isByteOrBool -> { memory.setUB(address, value.toInt().toUByte()); address++ }
+                            fieldVal.dt.isWord -> { memory.setUW(address, value.toInt().toUShort()); address += 2u }
+                            fieldVal.dt.isPointer -> { memory.setUL(address, value.toUInt()); address += program.options.compTarget.POINTER_MEM_SIZE }
+                            fieldVal.dt==BaseDataType.LONG -> { memory.setSL(address, value.toInt()); address += 4u }
+                            fieldVal.dt==BaseDataType.FLOAT -> { memory.setFloat(address, value); address += program.options.compTarget.FLOAT_MEM_SIZE }
+                            else -> throw IRParseException("invalid dt for struct field")
+                        }
+                    }
+                }
+            }
+
+            else -> throw IRParseException("invalid dt ${variable.name} sub=${variable.dt.sub} length=${variable.length}")
         }
     }
 

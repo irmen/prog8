@@ -1450,30 +1450,50 @@ _after:
         // works on an already-evaluated simple value.
         // resolve the struct type of the base expression
         val baseDt = base.inferType(program).getOrUndef()
-        val struct = if(baseDt.isPointer) baseDt.subType as? StructDecl else null
-        if(struct==null) {
-            errors.err("cannot assign through this expression, expected a pointer to a struct", base.position)
-            return noModifications
-        }
         // use the target's natural pointer width for the hoisted address (uword on 6502, long on 32-bit targets)
         val addressDt = if(program.target.POINTER_MEM_SIZE > 2u) DataType.LONG else DataType.UWORD
-        val tmpVar = VarDecl.createAuto(addressDt, base.position)
-        val tmpIdent = IdentifierReference(listOf(tmpVar.name), base.position)
-        // we only need the integer value of the pointer expression, so a redundant outer
-        // pointer typecast can be stripped to avoid pointless double casts.
-        val baseCast = base as? TypecastExpression
-        val baseValue: Expression = if(baseCast!=null && (baseCast.type.isPointer || baseCast.type.isUnsignedWord)
-                && baseCast.expression.inferType(program).getOrUndef().isIntegerOrBool)
-            TypecastExpression(baseCast.expression.copy(), addressDt, false, base.position)
-        else
-            TypecastExpression(base.copy(), addressDt, false, base.position)
-        val tmpAssign = Assignment(
-            AssignTarget(tmpIdent.copy(), null, null, null, false, position=tmpVar.position),
+        val useTmpVar = baseDt.isPointer
+        val tmpVar = if(useTmpVar) VarDecl.createAuto(addressDt, base.position) else null
+        val tmpIdent = if(useTmpVar) IdentifierReference(listOf(tmpVar!!.name), base.position) else null
+        val struct: StructDecl?
+        val baseValue: Expression
+        when {
+            baseDt.isPointer -> {
+                struct = baseDt.subType as? StructDecl
+                if(struct==null) {
+                    errors.err("cannot assign through this expression, expected a pointer to a struct", base.position)
+                    return noModifications
+                }
+                // we only need the integer value of the pointer expression, so a redundant outer
+                // pointer typecast can be stripped to avoid pointless double casts.
+                val baseCast = base as? TypecastExpression
+                baseValue = if(baseCast!=null && (baseCast.type.isPointer || baseCast.type.isUnsignedWord)
+                        && baseCast.expression.inferType(program).getOrUndef().isIntegerOrBool)
+                    TypecastExpression(baseCast.expression.copy(), addressDt, false, base.position)
+                else
+                    TypecastExpression(base.copy(), addressDt, false, base.position)
+            }
+            baseDt.isStructInstance -> {
+                struct = baseDt.subType as? StructDecl
+                if(struct==null) {
+                    errors.err("cannot assign through this expression, expected a struct instance", base.position)
+                    return noModifications
+                }
+                // base is a struct instance lvalue in memory; take its address
+                baseValue = addressOfStructInstance(base, addressDt)
+            }
+            else -> {
+                errors.err("cannot assign through this expression, expected a pointer to a struct or a struct instance", base.position)
+                return noModifications
+            }
+        }
+        val tmpAssign = if(useTmpVar) Assignment(
+            AssignTarget(tmpIdent!!.copy(), null, null, null, false, position=tmpVar!!.position),
             baseValue,
-            AssignmentOrigin.USERCODE, base.position)
+            AssignmentOrigin.USERCODE, base.position) else null
 
         // build the address of the final field; intermediate pointer fields in the chain are loaded via peekw/peekl
-        var address: Expression = tmpIdent.copy()
+        var address: Expression = if(useTmpVar) tmpIdent!!.copy() else baseValue
         var currentStruct: StructDecl = struct
         var fieldDt: DataType? = null
         for((index, field) in fields.withIndex()) {
@@ -1544,8 +1564,12 @@ _after:
         val pokeCall = FunctionCallStatement(
             IdentifierReference(listOf(funcName), assignment.position),
             mutableListOf(address, value), false, assignment.position)
-        val replacement = AnonymousScope(mutableListOf(tmpVar, tmpAssign, pokeCall), target.position)
-        return listOf(AstReplaceNode(assignment, replacement, parent))
+        return if(useTmpVar) {
+            val replacement = AnonymousScope(mutableListOf(tmpVar!!, tmpAssign!!, pokeCall), target.position)
+            listOf(AstReplaceNode(assignment, replacement, parent))
+        } else {
+            listOf(AstReplaceNode(assignment, pokeCall, parent))
+        }
     }
 
     override fun after(assignment: Assignment, parent: Node): Iterable<AstModification> {
@@ -1609,6 +1633,19 @@ _after:
                                 mutableListOf(source, targetPtr, structSizeNum),
                                 false, assignment.position)
                             return listOf(AstReplaceNode(assignment, memcopy, parent))
+                        }
+                        // points[1] = points[2]  -->  memcopy(&points[2], &points[1], sizeof(struct))
+                        val targetIdx = assignment.target.arrayindexed
+                        if(targetIdx!=null) {
+                            val tIdxType = targetIdx.inferType(program)
+                            if(tIdxType.isStructInstance && tIdxType == idxType) {
+                                val source = AddressOf(sourceIdx.plainarrayvar!!.copy(), sourceIdx.indexer.copy(), null, false, true, assignment.position)
+                                val target = AddressOf(targetIdx.plainarrayvar!!.copy(), targetIdx.indexer.copy(), null, false, true, assignment.position)
+                                val memcopy = FunctionCallStatement(IdentifierReference(listOf("sys", "memcopy"), assignment.position),
+                                    mutableListOf(source, target, structSizeNum),
+                                    false, assignment.position)
+                                return listOf(AstReplaceNode(assignment, memcopy, parent))
+                            }
                         }
                     }
                 }
@@ -1727,5 +1764,20 @@ _after:
         }
 
         return noModifications
+    }
+
+    private fun addressOfStructInstance(base: Expression, addressDt: DataType): Expression {
+        val addr = when(base) {
+            is IdentifierReference -> AddressOf(base.copy(), null, null, false, true, base.position)
+            is ArrayIndexedExpression -> AddressOf(
+                base.plainarrayvar?.copy(), base.indexer.copy(), null, false, true, base.position)
+            is TypecastExpression -> return addressOfStructInstance(base.expression, addressDt)
+            else -> {
+                errors.err("cannot take address of struct instance base expression $base", base.position)
+                // return a dummy to keep desugaring moving; AstChecker will catch the error later
+                AddressOf(IdentifierReference(listOf("_dummy"), base.position), null, null, false, true, base.position)
+            }
+        }
+        return TypecastExpression(addr, addressDt, false, base.position)
     }
 }

@@ -582,7 +582,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
 
     private fun translate(arrayIx: PtArrayIndexer): ExpressionCodeResult {
         if(arrayIx.type.isStructInstance)
-            throw AssemblyError("cannot translate POINTER[x] resulting in a struct instance; this is likely part of a larger expression POINTER[x].field and that has to be translated earlier as a whole")
+            throw AssemblyError("cannot translate array[x] resulting in a struct instance; this is likely part of a larger expression array[x].field and that has to be translated earlier as a whole")
 
         val eltSize = codeGen.program.memsizer.memorySize(arrayIx.type, null)
         val vmDt = codeGen.irType(arrayIx.type)

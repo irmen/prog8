@@ -1289,10 +1289,13 @@ class ArrayLiteral(val type: InferredTypes.InferredType,     // inferred because
             val unique = dts.toSet()
             if(unique.size==1) {
                 val dt = unique.single()
-                return if(dt.subType!=null)
-                    InferredTypes.knownFor(DataType.arrayOfPointersTo(dt.subType!!))
-                else
-                    InferredTypes.knownFor(DataType.arrayOfPointersTo(dt.sub!!))
+                if(dt.subType!=null) {
+                    val parentDecl = parent as? VarDecl
+                    if(parentDecl!=null && parentDecl.datatype.base==BaseDataType.ARRAY_POINTER)
+                        return InferredTypes.knownFor(DataType.arrayOfPointersTo(dt.subType!!))
+                    return InferredTypes.knownFor(DataType.arrayOfStructs(dt.subType!!))
+                } else
+                    return InferredTypes.knownFor(DataType.arrayOfPointersTo(dt.sub!!))
             }
         }
         return when {
