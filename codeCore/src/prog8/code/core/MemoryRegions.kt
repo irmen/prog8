@@ -33,6 +33,26 @@ abstract class Zeropage(options: CompilationOptions): MemoryAllocator(options) {
     val allocatedVariables = mutableMapOf<String, VarAllocation>()
     val free = mutableSetOf<UInt>()     // subclasses must set this to the appropriate free locations.
 
+
+    /**
+     * Report a warning for every scratch byte that is excluded from allocation by a %zpreserved
+     * or %zpallowed directive. The compiler's code generators always use these fixed scratch
+     * locations internally (P8ZP_SCRATCH_*), so a %zpreserved/%zpallowed range that excludes one
+     * of them would let the compiler overwrite memory the user explicitly wants to protect.
+     */
+    fun checkScratchConflicts(errors: IErrorReporter) {
+        if(options.zeropage== ZeropageType.DONTUSE)
+            return
+
+        val scratchBytes = listOf(SCRATCH_B1, SCRATCH_REG, SCRATCH_W1, SCRATCH_W1 + 1u, SCRATCH_W2, SCRATCH_W2 + 1u, SCRATCH_PTR, SCRATCH_PTR + 1u)
+        for(byte in scratchBytes) {
+            val preserved = options.zpReserved.any { byte in it }
+            val allowed = options.zpAllowed.any { byte in it }
+            if(preserved || !allowed)
+                errors.warn("zero-page address $${byte.toString(16)} is a fixed scratch location used by the compiler (P8ZP_SCRATCH_*), but it is excluded by a %zpreserved or %zpallowed directive", Position.DUMMY)
+        }
+    }
+
     fun removeReservedFromFreePool() {
         for (reserved in options.zpReserved)
             reserve(reserved)

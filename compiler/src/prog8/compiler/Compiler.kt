@@ -214,6 +214,8 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
 
                 // re-initialize memory areas with final compilationOptions
                 compilationOptions.compTarget.initializeMemoryAreas(compilationOptions)
+                if(compilationOptions.compTarget.cpu.is6502)
+                    compilationOptions.compTarget.zeropage.checkScratchConflicts(args.errors)
 
                 if (args.printAst1) {
                     println("\n*********** COMPILER AST *************")

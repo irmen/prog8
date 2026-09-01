@@ -27,6 +27,7 @@ Future Things and Ideas
 - support typed pointer arrays as struct fields, curretly requires untyped pointers arrays.
 - support arrays-of-struct-instances as struct fields (e.g. ``struct Outer { Inner[4] inners }``). Currently rejected with an error.
 - support immediate struct instance variables (e.g. ``Enemy e``) instead of only ``^^Enemy`` pointers and ``Enemy[]`` arrays. Attempted Aug 2026 and rolled back — requires value-type IR (currently ``STRUCT_INSTANCE`` is pointer-only, see ``DataTypes.kt:22`` and ``IRCodeGen.kt:2332``; field access assumes ``^^Struct`` indirection). Far-off; use ``^^Enemy`` or ``Enemy[N]``.
+- consider making the fixed zero-page scratch locations (``P8ZP_SCRATCH_B1``/``_REG``/``_W1``/``_W2``/``_PTR``) dynamic rather than hardcoded per target. Right now they live at fixed per-target addresses and are always reserved; a ``%zpreserved``/``%zpallowed`` range that excludes them only produces a warning (the codegen would still overwrite that memory). Relocating scratch to an available low-address byte (or making it configurable) when not in conflict would let ``%zpreserved``/``%zpallowed`` fully protect the desired areas. See ``MemoryRegions.kt`` (``Zeropage.scratchBytes``/``checkScratchConflicts``) and the per-target ``*Zeropage`` classes.
 
 
 Romable (%option romable)

@@ -582,6 +582,15 @@ Directives
     Global setting, can occur multiple times. It allows you to reserve or 'block' a part of the zeropage so
     that it will not be used by the compiler.
 
+.. note::
+    The compiler itself always needs a few fixed 'scratch' locations in the zeropage
+    (``P8ZP_SCRATCH_B1``, ``P8ZP_SCRATCH_REG``, ``P8ZP_SCRATCH_W1``, ``P8ZP_SCRATCH_W2`` and
+    ``P8ZP_SCRATCH_PTR``, together with their adjacent bytes) to perform address computations and
+    store temporary values. These locations live at fixed, target-specific, addresses and cannot
+    be relocated. If a ``%zpreserved`` or ``%zpallowed`` directive excludes any of these scratch
+    bytes, the compiler reports a warning, because it would otherwise silently overwrite memory that
+    you explicitly wanted to protect.
+
 
 Loops
 -----
