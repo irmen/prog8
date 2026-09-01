@@ -169,6 +169,18 @@ internal fun String.hasInstr(mnemonic: String): Boolean {
     return false
 }
 
+private fun replaceMnemonic(raw: String, oldMnemonic: String, newMnemonic: String): String {
+    val trimmed = raw.trimStart()
+    val instruction = trimmed.instructionPart()
+    if(!instruction.startsWith(oldMnemonic))
+        return raw.replaceFirst(oldMnemonic, newMnemonic)
+    val instrStartInTrimmed = trimmed.indexOf(instruction)
+    if(instrStartInTrimmed<0) return raw.replaceFirst(oldMnemonic, newMnemonic)
+    val leadingLen = raw.length - trimmed.length
+    val idxInRaw = leadingLen + instrStartInTrimmed
+    return raw.substring(0, idxInRaw) + newMnemonic + raw.substring(idxInRaw + oldMnemonic.length)
+}
+
 /** Extracts the instruction part of a trimmed assembly line, skipping any label prefix.
  *  For "mylabel: lda  #1" returns "lda  #1". For "lda  #1" returns "lda  #1". */
 private fun String.instructionPart(): String {
@@ -673,7 +685,8 @@ private fun optimizeJsrRtsAndOtherCombinations(linesByFour: Sequence<List<Trimme
             }
             else if (tfirst.hasInstr("jsr") && tsecond.hasInstr("rts")) {
                 if(!tfirst.contains("floats.pushFAC") && !tfirst.contains("floats.popFAC")) {       // these 2 routines depend on being called with JSR!!
-                    mods += Modification(lines[0].index, false, lines[0].value.replace("jsr", "jmp"))
+                    val replacement = replaceMnemonic(lines[0].value, "jsr", "jmp")
+                    mods += Modification(lines[0].index, false, replacement)
                     mods += Modification(lines[1].index, true, null)
                 }
             }
@@ -750,7 +763,7 @@ private fun optimizeJsrRtsAndOtherCombinations(linesByFour: Sequence<List<Trimme
             val firstMnemonic = tfirst.take(3)
             branchInversions[firstMnemonic]?.let { invertedBranch ->
                 if (sameLabel(tfirst, tsecond, tthird)) {
-                    val branch = lines[1].value.replace("jmp", invertedBranch)
+                    val branch = replaceMnemonic(lines[1].value, "jmp", invertedBranch)
                     mods.add(Modification(lines[0].index, true, null))
                     mods.add(Modification(lines[1].index, false, branch))
                 }
