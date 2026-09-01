@@ -111,6 +111,18 @@ It's easy to compile yourself, but a recent precompiled .exe (only for Windows) 
 *You need at least version 1.58.0 of this assembler.*
 If you are on Linux, there's probably a "64tass" package in the repositories, but check if it is a recent enough version.
 
+For the **m68k targets** (``amiga500`` and ``qemu68k``), the following additional tools are required when assembling programs:
+
+`vasm <http://sun.hasenbraten.de/vasm/>`_ - cross assembler. Prog8 uses the ``vasmm68k_mot`` executable, which must be installed somewhere on your shell's search path.
+
+`vlink <http://sun.hasenbraten.de/vlink/>`_ - linker. This is required for the ``qemu68k`` target, which produces ELF executables. The ``amiga500`` target produces Amiga Hunk executables directly with vasm.
+
+The ``-emu`` option has these additional optional dependencies for the m68k targets:
+
+`QEMU <https://www.qemu.org/>`_ - install the ``qemu-system-m68k`` executable to run ``qemu68k`` programs.
+
+`Amitools <https://github.com/cnvogelg/amitools>`_ - install the ``vamos`` executable to run ``amiga500`` programs.
+
 A **Java runtime (jre or jdk), version 17 or newer** is required to run the prog8 compiler itself.
 If you're scared of Oracle's licensing terms, get one of the versions of another vendor. Even Microsoft provides their own version.
 Other OpenJDK builds can be found at `Adoptium <https://adoptium.net/temurin/releases>`_ .

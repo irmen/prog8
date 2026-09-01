@@ -4833,7 +4833,7 @@ $endLabel""")
                     pointergen.assignLongReg(IndexedPtrTarget(target), pairedRegisters)
                     return
                 }
-                asmgen.loadScaledArrayIndexIntoRegister(target.array!!, CpuRegister.Y)
+                asmgen.loadScaledArrayIndexIntoRegister(target.array, CpuRegister.Y)
                 val arrayVarName = asmgen.asmSymbolName(target.array.variable!!)
                 val startreg = pairedRegisters.startregname()
                 // Unrolled copy to preserve array index in Y

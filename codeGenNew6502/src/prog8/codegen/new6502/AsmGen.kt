@@ -123,6 +123,9 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
             return false
         }
 
+        if (options.dumpVariables)
+            dumpVariables(program) { name -> zpAllocator.getAllocation(name)?.address }
+
         if (!options.quiet)
             println("Assembly written to $asmFile")
 

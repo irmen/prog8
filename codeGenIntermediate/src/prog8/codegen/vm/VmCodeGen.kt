@@ -9,6 +9,7 @@ import prog8.code.core.IErrorReporter
 import prog8.codegen.intermediate.IRCodeGen
 import prog8.intermediate.IRFileWriter
 import prog8.intermediate.IRProgram
+import prog8.intermediate.dumpVariables
 
 class VmCodeGen(val retainSSA: Boolean,
                 private val preassignedCallSiteIds: Map<String, UByte> = emptyMap()
@@ -23,6 +24,9 @@ class VmCodeGen(val retainSSA: Boolean,
         val irProgram = irCodeGen.generate()
 
         irProgram.verifyRegisterTypes(irCodeGen.registerTypes())
+
+        if (options.dumpVariables)
+            dumpVariables(irProgram)
 
         return VmAssemblyProgram(irProgram.name, irProgram)
     }

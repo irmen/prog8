@@ -8,6 +8,7 @@ import prog8.code.core.CompilationOptions
 import prog8.code.core.IErrorReporter
 import prog8.codegen.intermediate.IRCodeGen
 import prog8.intermediate.IRFileWriter
+import prog8.intermediate.dumpVariables
 
 class M68kCodeGenerator(val retainSSA: Boolean): ICodeGeneratorBackend {
     override fun generate(
@@ -20,6 +21,9 @@ class M68kCodeGenerator(val retainSSA: Boolean): ICodeGeneratorBackend {
         val irCodeGen = IRCodeGen(program, symbolTable, options, errors, retainSSA)
         val irProgram = irCodeGen.generate()
         irProgram.verifyRegisterTypes(irCodeGen.registerTypes())
+
+        if (options.dumpVariables)
+            dumpVariables(irProgram)
 
         IRFileWriter(irProgram, null).write()
 
