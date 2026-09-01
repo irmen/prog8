@@ -5,7 +5,6 @@ Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 - Consider extending ``var xx = <value>`` type inference (recently added for for-loop counter variables) to all variable declarations. Investigate pros/cons: desired syntax (``var x = expr`` vs ``var x := expr``), interaction with existing ``ubyte``/``uword``/``word`` inference defaults, const vs var, scope and shadowing, error messages for ambiguous types, documentation, impact on block/sub scope, and whether ``var`` without initializer should be allowed.
 - DataType.ARRAY_POINTER depends on the compilation target to be either a split word array or not. This is horrible because now we have to check with the compilation target everywhere to see if a DataType enumeration value is split word array, and PtVariable and PtArrayIndexer need an explicit boolean to tell us if this is the case. See ideas/remove_array_pointer_plan.md for the plan.
-- struct-array field access: fold ``arr[i].field`` (``arr:Struct[Sz]``) from ``EXT+MUL #Sz + ADDR + ADD #fieldOff + LOADI`` (5 IR ops) to single ``LOADX/STOREX arr+fieldOff,S=Sz`` — reuses existing ``,S=N`` + ``+off`` encoding; see ideas/better-addressing-IR.md (deferred part)
 - split up AssignmentAsmGen.kt in codeGenCpu6502 it is by far the largest file 6000+ lines
 - make enums strongly typed instead of just syntactic sugar for ints (see ideas/enum-strong-type.md for the plan)
 - extend the ``-gendoc`` command to generate user reference documentation from Markdown docstrings; see ``ideas/markdown-docstrings-and-reference-docs.md`` for the plan.

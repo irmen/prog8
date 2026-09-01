@@ -235,7 +235,64 @@ Variables referenced by inline assembly, external code, `@shared`, or a stored
 pointer should remain static unless the compiler can prove that the reference
 does not escape.
 
-## 10. Effects on Other Targets
+## 10. Defer, sys.exit(), and Stack Unwinding
+
+Mechanical stack unwinding on M68K is straightforward: the epilogue restores the
+caller's frame pointer and stack pointer with `unlk a5`, and `rts` pops the
+return address. No unwind tables or exception-style metadata are required.
+
+`defer` handling and `sys.exit()` unwinding are already solved at the AST level
+by `DeferProcessor` (`compiler/src/prog8/compiler/astprocessing/DeferProcessor.kt`):
+
+- Each subroutine with `defer` pushes a handler ID onto a global
+  `defer_handler_stack` on entry and pops it before returning.
+- Every `sys.exit()` call is augmented to invoke `defer_unwind_all`, which walks
+  the handler stack and runs active defers in LIFO order before the actual
+  system exit.
+- `sys.poweroff_system()` and `sys.reset_system()` intentionally do **not** run
+  defers and therefore need no unwinding at all.
+
+Because defer unwinding happens through this explicit handler stack rather than
+by physically walking the machine stack, introducing A5-based locals does not
+change the `sys.exit()` story.
+
+The real complication is that deferred code can reference the subroutine's own
+local variables:
+
+```prog8
+sub foo() {
+    ubyte x = 5
+    x = 10
+    defer txt.print_ub(x)     ; must see x == 10
+}
+```
+
+`DeferProcessor` currently emits a separate `prog8_invoke_defers` subroutine
+(inside the parent subroutine, later flattened to block scope). With static
+locals that subroutine can still access `foo.x`; with stack-based locals it
+would receive its own fresh frame and lose access to the parent's `-4(a5)`
+slot.
+
+Possible approaches:
+
+1. **Inline defer code at every exit point.** The deferred statements are
+   emitted directly into the parent subroutine's epilogue path, before
+   `unlk a5`. This is simple and correct but duplicates code at every return
+   and jump-out point.
+2. **Keep defer-referenced locals static.** Variables whose addresses are taken,
+   that are referenced by inline assembly, or that are referenced by `defer`
+   stay in static storage; everything else can move to the stack. This matches
+   the address-escape rule in Section 9.
+3. **Pass the parent frame pointer to the handler.** The handler subroutine
+   receives the parent's A5 value and uses it to access parent locals. This is
+   awkward because the handler itself may need a frame, requiring two frame
+   pointers.
+
+For a first implementation, option 1 (inlining) or option 2 (hybrid static
+locals) is recommended. Option 3 adds calling-convention complexity that is not
+justified until the rest of the stack model is stable.
+
+## 11. Effects on Other Targets
 
 The 6502 targets remain unchanged:
 
@@ -247,7 +304,7 @@ The IR and frontend changes must therefore be conditional on the compilation
 target or represented in a way that the 6502 code generators can continue to
 lower without seeing frame storage.
 
-## 11. Benefits
+## 12. Benefits
 
 - Recursive M68K subroutines become possible.
 - Subroutines become reentrant and safer for callbacks and task-like use.
@@ -255,13 +312,16 @@ lower without seeing frame storage.
 - Multiple simultaneous invocations receive independent local state.
 - The M68K backend gets a conventional, efficient local-access mechanism.
 
-## 12. Risks and Open Questions
+## 13. Risks and Open Questions
 
 - Stack exhaustion becomes a runtime possibility.
 - Prologues, epilogues, argument marshalling, and selective initialization add
   code size and execution cost.
 - The internal normal-subroutine calling convention must change.
 - Address-taking and pointer lifetime rules need to be defined.
+- `defer` code must be able to access the parent subroutine's locals; the
+  current handler-subroutine design needs to be replaced or restricted when
+  locals live on the stack (see Section 10).
 - Inline assembly must respect A5 reservation.
 - Frame layout must cooperate with register allocation and spill slots.
 - Zero initialization may require additional analysis and generated code.
@@ -269,7 +329,7 @@ lower without seeing frame storage.
 - Existing assembly or code that assumes parameter variables have static symbols
   may need to remain explicitly static.
 
-## 13. Suggested Implementation Order
+## 14. Suggested Implementation Order
 
 1. Define the M68K frame-slot metadata and A5-based layout rules.
 2. Keep all parameters static temporarily and implement ordinary local frames
@@ -278,7 +338,9 @@ lower without seeing frame storage.
 4. Add selective frame initialization.
 5. Add VM activation records and recursion tests.
 6. Add address-escape diagnostics and inline-assembly validation.
-7. Add liveness-based frame-slot reuse and frame-size reporting.
+7. Decide on the `defer` implementation strategy (inline handlers or hybrid
+   static locals) and integrate it with the stack frame model.
+8. Add liveness-based frame-slot reuse and frame-size reporting.
 
 The parameter-passing change should be treated as a required part of the final
 design, not as an optional optimization. Without it, stack locals improve

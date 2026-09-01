@@ -563,6 +563,8 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
     }
 
     private fun funcPoke(call: PtFunctionCall, dt: IRDataType): ExpressionCodeResult {
+        // Try struct-array field folding: pokew(&arr[idx]+fieldOff, value) -> STOREX arr+fieldOff,S=structSize
+        tryFoldStructArrayPoke(call, dt)?.let { return it }
         val result = mutableListOf<IRCodeChunkBase>()
         if(codeGen.isZero(call.args[1])) {
             if (call.args[0] is PtNumber) {
@@ -972,5 +974,41 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             else -> throw AssemblyError("weird target for setlsb/setmsb: $target")
         }
         return ExpressionCodeResult(result, IRDataType.WORD, -1, -1)
+    }
+
+    private fun tryFoldStructArrayPoke(call: PtFunctionCall, dt: IRDataType): ExpressionCodeResult? {
+        // Detect pokew(&arr[idx]+fieldOff, value) where arr is struct array with variable idx
+        // and fold to single STOREX/STOREZX with scale=structSize.
+        val info = extractStructArrayIndexInfo(call.args[0], codeGen) ?: return null
+        val isZero = codeGen.isZero(call.args[1])
+        val result = mutableListOf<IRCodeChunkBase>()
+        val (idxCode, indexReg) = codeGen.loadIndexReg(info.idxExpr, info.structSize, codeGen.wordArrayIndex, false)
+        result += idxCode
+        return if(isZero) {
+            result += IRCodeChunk(null, null).also {
+                if(info.fieldOffset==0)
+                    it += IRInstruction(Opcode.STOREZX, dt, reg1=indexReg, labelSymbol=info.arrayName, scale=info.structSize)
+                else
+                    it += IRInstruction(Opcode.STOREZX, dt, reg1=indexReg, labelSymbol=info.arrayName, symbolOffset=info.fieldOffset, scale=info.structSize)
+            }
+            ExpressionCodeResult(result, IRDataType.BYTE, -1, -1)
+        } else {
+            val valueTr = exprGen.translateExpression(call.args[1])
+            addToResult(result, valueTr, valueTr.resultReg, valueTr.resultFpReg)
+            result += IRCodeChunk(null, null).also {
+                if(dt==IRDataType.FLOAT) {
+                    if(info.fieldOffset==0)
+                        it += IRInstruction(Opcode.STOREX, dt, reg1=indexReg, fpReg1=RegisterNum(valueTr.resultFpReg), labelSymbol=info.arrayName, scale=info.structSize)
+                    else
+                        it += IRInstruction(Opcode.STOREX, dt, reg1=indexReg, fpReg1=RegisterNum(valueTr.resultFpReg), labelSymbol=info.arrayName, symbolOffset=info.fieldOffset, scale=info.structSize)
+                } else {
+                    if(info.fieldOffset==0)
+                        it += IRInstruction(Opcode.STOREX, dt, reg1=valueTr.resultReg, reg2=indexReg, labelSymbol=info.arrayName, scale=info.structSize)
+                    else
+                        it += IRInstruction(Opcode.STOREX, dt, reg1=valueTr.resultReg, reg2=indexReg, labelSymbol=info.arrayName, symbolOffset=info.fieldOffset, scale=info.structSize)
+                }
+            }
+            ExpressionCodeResult(result, IRDataType.BYTE, -1, -1)
+        }
     }
 }

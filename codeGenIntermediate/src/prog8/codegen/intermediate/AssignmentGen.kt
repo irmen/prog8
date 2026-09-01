@@ -675,6 +675,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                     return result
                 }
                 memory != null -> {
+                    if(tryFoldStructArrayDirectWrite(memory!!.address, zero, valueRegister, targetDt, result)) return result
                     require(targetDt == IRDataType.BYTE) { "must be byte type ${memory!!.position}"}
                     if(zero) {
                         if(memory!!.address is PtNumber) {
@@ -3020,5 +3021,24 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
             }
         }
         return result
+    }
+
+    private fun tryFoldStructArrayDirectWrite(addressExpr: PtExpression, zero: Boolean, valueReg: Int, targetDt: IRDataType, result: MutableList<IRCodeChunkBase>): Boolean {
+        val info = extractStructArrayIndexInfo(addressExpr, codeGen) ?: return false
+        val (idxCode, indexReg) = codeGen.loadIndexReg(info.idxExpr, info.structSize, codeGen.wordArrayIndex, false)
+        result += idxCode
+        if(zero) {
+            result += IRCodeChunk(null, null).also {
+                if(info.fieldOffset==0) it += IRInstruction(Opcode.STOREZX, targetDt, reg1=indexReg, labelSymbol=info.arrayName, scale=info.structSize)
+                else it += IRInstruction(Opcode.STOREZX, targetDt, reg1=indexReg, labelSymbol=info.arrayName, symbolOffset=info.fieldOffset, scale=info.structSize)
+            }
+        } else {
+            if(valueReg<0) return false
+            result += IRCodeChunk(null, null).also {
+                if(info.fieldOffset==0) it += IRInstruction(Opcode.STOREX, targetDt, reg1=valueReg, reg2=indexReg, labelSymbol=info.arrayName, scale=info.structSize)
+                else it += IRInstruction(Opcode.STOREX, targetDt, reg1=valueReg, reg2=indexReg, labelSymbol=info.arrayName, symbolOffset=info.fieldOffset, scale=info.structSize)
+            }
+        }
+        return true
     }
 }

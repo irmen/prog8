@@ -1870,29 +1870,49 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
 
         if(left.type.isStructInstance) {
 
-            // indexing on a pointer directly
-            // fetch pointer address, determine struct and field, add index * structsize
+            // indexing on a struct array: left is struct instance element
+            val struct = left.type.subType!! as StStruct
+            field = struct.getField(right.name, codeGen.program.memsizer)
+            val fieldVmDt = codeGen.irType(field.first)
+            val fieldOffset = field.second.toInt()
             if(left.variable!=null) {
-                val pointerTr = translateExpression(left.variable!!)
-                result += pointerTr.chunks
-                pointerReg = pointerTr.resultReg
+                val constindex = left.index as? PtNumber
+                if(constindex!=null) {
+                    // const index: keep pointer+loadi path (extraFieldOffset folded into loadi)
+                    val pointerTr = translateExpression(left.variable!!)
+                    result += pointerTr.chunks
+                    pointerReg = pointerTr.resultReg
+                    extraFieldOffset = struct.size.toInt() * constindex.number.toInt()
+                } else if(left.variable!!.type.isArray) {
+                    // variable index: fold to single LOADX with scale=structSize, disp=fieldOffset
+                    // only for known array symbols (not generic pointer derefs)
+                    val (chunks, indexReg) = codeGen.loadIndexReg(left.index, struct.size.toInt(), codeGen.wordArrayIndex, false)
+                    result += chunks
+                    if (fieldVmDt == IRDataType.FLOAT) {
+                        val fpReg = codeGen.registers.next(IRDataType.FLOAT)
+                        addInstr(result, IRInstruction(Opcode.LOADX, fieldVmDt, fpReg1 = RegisterNum(fpReg), reg1 = indexReg, labelSymbol = left.variable!!.name, symbolOffset = fieldOffset, scale = struct.size.toInt()), null)
+                        return ExpressionCodeResult(result, fieldVmDt, -1, fpReg)
+                    } else {
+                        val r = codeGen.registers.next(fieldVmDt)
+                        addInstr(result, IRInstruction(Opcode.LOADX, fieldVmDt, reg1 = r, reg2 = indexReg, labelSymbol = left.variable!!.name, symbolOffset = fieldOffset, scale = struct.size.toInt()), null)
+                        return ExpressionCodeResult(result, fieldVmDt, r, -1)
+                    }
+                } else {
+                    // variable index on a pointer variable: compute pointer + index*structSize, then LOADI
+                    val pointerTr = translateExpression(left.variable!!)
+                    result += pointerTr.chunks
+                    pointerReg = pointerTr.resultReg
+                    val (chunks, indexReg) = codeGen.loadIndexReg(left.index, struct.size.toInt(), true, false)
+                    result += chunks
+                    if(struct.size.toInt()!=1)
+                        result += codeGen.multiplyByConst(DataType.UWORD, indexReg, struct.size.toInt())
+                    addInstr(result, IRInstruction(Opcode.ADDR, IRDataType.POINTER, reg1 = pointerReg, reg2 = indexReg), null)
+                }
             } else if(left.pointerderef!=null) {
                 TODO("get pointer from deref $left  ${left.position}")
             } else {
                 throw AssemblyError("weird arrayindexer $left  ${left.position}")
             }
-            val struct = left.type.subType!! as StStruct
-            val constindex = left.index as? PtNumber
-            if(constindex!=null) {
-                extraFieldOffset = struct.size.toInt() * constindex.number.toInt()
-            } else {
-                val (chunks, indexReg) = codeGen.loadIndexReg(left.index, struct.size.toInt(), true, false)
-                result += chunks
-                if(struct.size.toInt()!=1)
-                    result += codeGen.multiplyByConst(DataType.UWORD, indexReg, struct.size.toInt())
-                addInstr(result, IRInstruction(Opcode.ADDR, IRDataType.POINTER, reg1 = pointerReg, reg2 = indexReg), null)
-            }
-            field = struct.getField(right.name, codeGen.program.memsizer)
 
         } else {
 
