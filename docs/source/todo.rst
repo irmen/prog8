@@ -5,7 +5,7 @@ Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 - Consider extending ``var xx = <value>`` type inference (recently added for for-loop counter variables) to all variable declarations. Investigate pros/cons: desired syntax (``var x = expr`` vs ``var x := expr``), interaction with existing ``ubyte``/``uword``/``word`` inference defaults, const vs var, scope and shadowing, error messages for ambiguous types, documentation, impact on block/sub scope, and whether ``var`` without initializer should be allowed.
 - DataType.ARRAY_POINTER depends on the compilation target to be either a split word array or not. This is horrible because now we have to check with the compilation target everywhere to see if a DataType enumeration value is split word array, and PtVariable and PtArrayIndexer need an explicit boolean to tell us if this is the case. See ideas/remove_array_pointer_plan.md for the plan.
-- m68k codegen: make use of scaling factors in the indexed instructions on 68020+ ? see ideas/scaled-indexing-IR.md
+- m68k codegen: make use of scaling factors in the indexed instructions on 68020+ ? see ideas/better-addressing-IR.md
 - split up AssignmentAsmGen.kt in codeGenCpu6502 it is by far the largest file 6000+ lines
 - make enums strongly typed instead of just syntactic sugar for ints (see ideas/enum-strong-type.md for the plan)
 - extend the ``-gendoc`` command to generate user reference documentation from Markdown docstrings; see ``ideas/markdown-docstrings-and-reference-docs.md`` for the plan.
@@ -44,14 +44,8 @@ Romable (%option romable)
 
 IR/VM
 ^^^^^
-- encode indexed scaling into IR (so that m68k codegen can use scale factor addressing) see ideas/scaled-indexing-IR.md
-- **Multi-Level IR Design**: Consider introducing a High-Level IR (HLIR) layer before the current low-level IR to preserve semantics like loop bounds, array indexing, and structure field access.
-  The current IR is effectively "assembly with infinite registers."
-  Recommendation when adding non-6502 targets: Implement a custom HLIR using Kotlin sealed classes (inspired by MLIR dialects but lighter weight).
-  Flow: SimpleAst -> HLIR (Loops/Arrays) -> Lowering -> Current IR (Ops/Regs) -> Codegen.
-  Don't adopt LLVM (too low-level) or QBE (too simple). Custom HLIR fits Kotlin best and preserves semantic intent.
-  **Important**: HLIR's value for 6502 is minimal if the backend consumes only the lowered IR. For 6502 to benefit from HLIR, the backend would need to target HLIR directly (bypassing the lowering pass for applicable constructs), adding complexity. HLIR is primarily useful for non-6502 backends (68000) and the VM interpreter.
-  Counted loops (``repeat`` / unused-``for`` / ``for x in A to 0 step -1``) are already handled for m68k via the ``dbra d7`` peephole in ``codeGenM68k/AsmOptimizer.kt:optimizeDbraRepeatLoops`` (hidden ``p8_regfile`` counter -> ``move.w #N-1,d7`` / ``dbra d7,label``, bounced if body uses ``d7`` or contains ``bsr``/``jsr``). No HLIR needed for those cases.
+- encode indexed scaling into IR (so that m68k codegen can use scale factor addressing) see ideas/better-addressing-IR.md
+- improve IR loop handling to emit ``m68k`` ``dbra`` directly without ``p8_regfile`` peephole see ideas/better-loop-IR.md
 
 **Missing VM Implementations (VirtualMachine.kt)**
 - ``IRInlineBinaryChunk`` and ``IRInlineAsmChunk`` - inline chunks cannot be loaded by the VM (VmProgramLoader.kt). Limitation of the current VM design: program is not loaded into memory as data
