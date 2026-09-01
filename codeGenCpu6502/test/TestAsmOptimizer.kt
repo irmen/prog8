@@ -160,6 +160,20 @@ class TestAsmOptimizer: FunSpec({
         lines shouldBe listOf("  jsr  floats.pushFAC", "  rts", "  nop", "  nop")
     }
 
+    test("optimizeJsrRts: three consecutive jsr only tail jsr+rts becomes jmp") {
+        val lines = mutableListOf("  jsr  \$4000", "  jsr  \$5000", "  jsr  \$6000", "  rts", "  nop", "  nop")
+        optimize(lines)
+        lines shouldBe listOf("  jsr  \$4000", "  jsr  \$5000", "  jmp  \$6000", "  nop", "  nop")
+    }
+
+    test("optimizeJsrRts: single line with embedded newlines only tail converted defensively") {
+        val lines = mutableListOf("  jsr  \$4000\n  jsr  \$5000\n  jsr  \$6000", "  rts", "  nop", "  nop")
+        optimize(lines)
+        // Before fix this became jmp/jmp/jmp via replace("jsr","jmp"); after fix only one jmp via replaceMnemonic
+        val jmpCount = lines.joinToString("\n").split("jmp").size - 1
+        jmpCount shouldBe 1
+    }
+
     // --- optimizeUselessPushPopStack ---
 
     test("optimizeUselessPushPop: removes phy+ldy+pla") {
