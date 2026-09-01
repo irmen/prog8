@@ -107,7 +107,7 @@ All have type b or w or l or f.
 load        reg1,         value       - load immediate value into register. If you supply a symbol, loads the *address* of the symbol! (variable values are loaded from memory via the loadm instruction)
 loadm       reg1,         address     - load reg1 with value at memory address
 loadi       reg1, reg2,   value       - load reg1 with value in memory indirect, pointed to by reg2 + offsetvalue 0-65535 (often used to read a field from a pointer to a struct, or with offset=0 just straight from the pointer)
-loadx       reg1, reg2,   address     - load reg1 with value at memory address indexed by value in reg2 (a byte 0-255 on 8-bit targets, a word 0-32767 on 32-bit targets)
+loadx       reg1, reg2,   address [,S=scale] - load reg1 with value at effective address (address + offset) + reg2*scale  (offset is symbolOffset, scale defaults to 1). Text form example: loadx.b r5,r2,arr,S=2  or  loadx.b r5,r3,arr+4,S=12 for struct-array field. Index is element index (not byte offset): byte 0-255 on 8-bit targets, word 0-32767 on 32-bit targets. Scale encodes element size / struct size (1..65535).
 loadr       reg1, reg2                - load reg1 with value in register reg2,  "reg1 = reg2"
 loadhr      reg1, slot                - load cpu hardware register from calling convention slot (s0=A, s1=X, s2=Y, s3=AX, s4=AY, s5=XY, s6=FAC1, s7=FAC2) into reg1
 loadhfaczero       fpreg1             - load "cpu hardware register" fac0 into freg1.f
@@ -118,9 +118,9 @@ storem      reg1,         address     - store reg1 at memory address
 storei      reg1, reg2,   value       - store reg1 in memory indirect, pointed to by reg2 + offsetvalue 0-65535 (often used to write a field from a pointer to a struct, or with offset=0 just straight to the pointer)
 storeim     value,        address     - store an immediate value (constant) at memory address (the constant goes in the value field, NOT via a register).
 storezi     reg1,         value       - store zero at memory pointed to by reg1 + offsetvalue 0-65535  (just like storei, but a shorthand to store a constant 0)
-storex      reg1, reg2,   address     - store reg1 at memory address, indexed by value in reg2 (a byte 0-255 on 8-bit targets, a word 0-32767 on 32-bit targets)
+storex      reg1, reg2,   address [,S=scale] - store reg1 at effective address (address + offset) + reg2*scale  (same scaling as loadx). Text form: storx.b r1,r2,arr,S=2 . Index is element index.
 storezm                   address     - store zero at memory address
-storezx     reg1,         address     - store zero at memory address, indexed by value in reg1 (a byte 0-255 on 8-bit targets, a word 0-32767 on 32-bit targets)
+storezx     reg1,         address [,S=scale] - store zero at effective address (address + offset) + reg1*scale  (same scaling as loadx). Index is element index: byte 0-255 or word 0-32767. Text form: storezx.b r1,arr,S=4 .
 storehr     reg1, slot                - store reg1 into cpu hardware register for calling convention slot (s0=A, s1=X, s2=Y, s3=AX, s4=AY, s5=XY, s6=FAC1, s7=FAC2)
 storehfaczero        fpreg1           - store fpreg1.f into "cpu register" fac0
 storehfacone         fpreg1           - store fpreg1.f into "cpu register" fac1
@@ -953,7 +953,8 @@ data class IRInstruction(
     val labelSymbol: String?=null,          // symbolic label name as alternative to address (so only for Branch/jump/call Instructions!)
     private val symbolOffset: Int? = null,     // offset to add on labelSymbol (used to index into an array variable)
     var branchTarget: IRCodeChunkBase? = null,    // Will be linked after loading in IRProgram.linkChunks()! This is the chunk that the branch labelSymbol points to.
-    val fcallArgs: FunctionCallArgs? = null       // will be set for the CALL and SYSCALL instructions.
+    val fcallArgs: FunctionCallArgs? = null,       // will be set for the CALL and SYSCALL instructions.
+    val scale: Int = 1        // scaling factor for LOADX/STOREX/STOREZX: effective address = base + index*scale + disp
 ) {
     var extSubName: String? = null      // optional external subroutine name (for asm comments mainly). NOT part of serialization.
     // reg1 and fpreg1 can be IN/OUT/INOUT (all others are readonly INPUT)
@@ -1034,6 +1035,12 @@ data class IRInstruction(
                 require(immediate != null || immediateFp != null) { "missing immediate value" }
         }
         // address range is validated by MemoryAddress init block
+        require(scale >= 1) { "scale must be >=1, got $scale" }
+        if(opcode in setOf(Opcode.LOADX, Opcode.STOREX, Opcode.STOREZX)) {
+            require(scale in 1..65535) { "scale out of range for $opcode: $scale" }
+        } else {
+            require(scale == 1) { "scale only allowed for LOADX/STOREX/STOREZX, got $scale for $opcode" }
+        }
 
         reg1direction = format.reg1
         reg2direction = format.reg2
@@ -1363,8 +1370,12 @@ data class IRInstruction(
                 if(labelSymbolOffset!=null)
                     append("+$labelSymbolOffset")
             }
+            if(opcode in setOf(Opcode.LOADX, Opcode.STOREX, Opcode.STOREZX) && scale != 1) {
+                if(isNotEmpty() && last() != ' ') append(',')
+                append("S=$scale")
+            }
         }
-        if(last() == ',')
+        if(isNotEmpty() && last() == ',')
             setLength(length - 1)
     }.trimEnd()
 }

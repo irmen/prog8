@@ -653,18 +653,19 @@ class VirtualMachine(irProgram: IRProgram) {
     }
 
     private fun InsLOADX(i: IRInstruction) {
+        val scale = i.scale.toUInt()
         when (i.type!!) {
             IRDataType.FLOAT -> {
                 val index = if(wordArrayIndex) registers.getUW(i.reg1!!).toUInt() else registers.getUB(i.reg1!!).toUInt()
-                registers.setFloat(i.fpReg1!!, memory.getFloat(i.address!!.value + index))
+                registers.setFloat(i.fpReg1!!, memory.getFloat(i.address!!.value + index * scale))
             }
             else -> {
                 val index = if(wordArrayIndex) registers.getUW(i.reg2!!).toUInt() else registers.getUB(i.reg2!!).toUInt()
                 when (i.type!!) {
-                    IRDataType.BYTE -> registers.setUB(i.reg1!!, memory.getUB(i.address!!.value + index))
-                    IRDataType.WORD -> registers.setUW(i.reg1!!, memory.getUW(i.address!!.value + index))
-                    IRDataType.POINTER -> registers.setUL(i.reg1!!, memory.getUL(i.address!!.value + index))
-                    IRDataType.LONG -> registers.setSL(i.reg1!!, memory.getSL(i.address!!.value + index))
+                    IRDataType.BYTE -> registers.setUB(i.reg1!!, memory.getUB(i.address!!.value + index * scale))
+                    IRDataType.WORD -> registers.setUW(i.reg1!!, memory.getUW(i.address!!.value + index * scale))
+                    IRDataType.POINTER -> registers.setUL(i.reg1!!, memory.getUL(i.address!!.value + index * scale))
+                    IRDataType.LONG -> registers.setSL(i.reg1!!, memory.getSL(i.address!!.value + index * scale))
                     IRDataType.FLOAT -> throw IllegalStateException("unreachable")
                 }
             }
@@ -729,18 +730,19 @@ class VirtualMachine(irProgram: IRProgram) {
     }
 
     private fun InsSTOREX(i: IRInstruction) {
+        val scale = i.scale.toUInt()
         when (i.type!!) {
             IRDataType.FLOAT -> {
                 val index = if(wordArrayIndex) registers.getUW(i.reg1!!).toUInt() else registers.getUB(i.reg1!!).toUInt()
-                memory.setFloat(i.address!!.value + index, registers.getFloat(i.fpReg1!!))
+                memory.setFloat(i.address!!.value + index * scale, registers.getFloat(i.fpReg1!!))
             }
             else -> {
                 val index = if(wordArrayIndex) registers.getUW(i.reg2!!).toUInt() else registers.getUB(i.reg2!!).toUInt()
                 when (i.type!!) {
-                    IRDataType.BYTE -> memory.setUB(i.address!!.value + index, registers.getUB(i.reg1!!))
-                    IRDataType.WORD -> memory.setUW(i.address!!.value + index, registers.getUW(i.reg1!!))
-                    IRDataType.POINTER -> memory.setUL(i.address!!.value + index, registers.getUL(i.reg1!!))
-                    IRDataType.LONG -> memory.setSL(i.address!!.value + index, registers.getSL(i.reg1!!))
+                    IRDataType.BYTE -> memory.setUB(i.address!!.value + index * scale, registers.getUB(i.reg1!!))
+                    IRDataType.WORD -> memory.setUW(i.address!!.value + index * scale, registers.getUW(i.reg1!!))
+                    IRDataType.POINTER -> memory.setUL(i.address!!.value + index * scale, registers.getUL(i.reg1!!))
+                    IRDataType.LONG -> memory.setSL(i.address!!.value + index * scale, registers.getSL(i.reg1!!))
                     IRDataType.FLOAT -> throw IllegalStateException("unreachable")
                 }
             }
@@ -787,12 +789,13 @@ class VirtualMachine(irProgram: IRProgram) {
 
     private fun InsSTOREZX(i: IRInstruction) {
         val index = if(wordArrayIndex) registers.getUW(i.reg1!!).toUInt() else registers.getUB(i.reg1!!).toUInt()
+        val scale = i.scale.toUInt()
         when (i.type!!) {
-            IRDataType.BYTE -> memory.setUB(i.address!!.value + index, 0u)
-            IRDataType.WORD -> memory.setUW(i.address!!.value + index, 0u)
-            IRDataType.POINTER -> memory.setUL(i.address!!.value + index, 0u)
-            IRDataType.LONG -> memory.setSL(i.address!!.value + index, 0)
-            IRDataType.FLOAT -> memory.setFloat(i.address!!.value + index, 0.0)
+            IRDataType.BYTE -> memory.setUB(i.address!!.value + index * scale, 0u)
+            IRDataType.WORD -> memory.setUW(i.address!!.value + index * scale, 0u)
+            IRDataType.POINTER -> memory.setUL(i.address!!.value + index * scale, 0u)
+            IRDataType.LONG -> memory.setSL(i.address!!.value + index * scale, 0)
+            IRDataType.FLOAT -> memory.setFloat(i.address!!.value + index * scale, 0.0)
         }
         nextPc()
     }

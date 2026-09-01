@@ -441,9 +441,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
         fun loadIndex(): Int {
             val tr = exprGen.translateExpression(array.index)
             addToResult(result, tr, tr.resultReg, -1)
-            val (indexReg, indexDt) = normalizeArrayIndex(result, tr)
-            if(!array.splitWords && eltSize>1)
-                result += codeGen.multiplyByConst(indexDt, indexReg, eltSize)
+            val (indexReg, _) = normalizeArrayIndex(result, tr)
             return indexReg
         }
 
@@ -517,9 +515,9 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                     val indexReg = loadIndex()
                     val register = codeGen.registers.next(vmDt)
                     result += IRCodeChunk(null, null).also {
-                        it += IRInstruction(Opcode.LOADX, vmDt, reg1 = register, reg2 = indexReg, labelSymbol = arrayVariableName)
+                        it += IRInstruction(Opcode.LOADX, vmDt, reg1 = register, reg2 = indexReg, labelSymbol = arrayVariableName, scale = eltSize)
                         it += IRInstruction(Opcode.NEG, vmDt, reg1 = register)
-                        it += IRInstruction(Opcode.STOREX, vmDt, reg1 = register, reg2 = indexReg, labelSymbol = arrayVariableName)
+                        it += IRInstruction(Opcode.STOREX, vmDt, reg1 = register, reg2 = indexReg, labelSymbol = arrayVariableName, scale = eltSize)
                     }
                 }
             }
@@ -531,9 +529,9 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                     val indexReg = loadIndex()
                     val register = codeGen.registers.next(vmDt)
                     result += IRCodeChunk(null, null).also {
-                        it += IRInstruction(Opcode.LOADX, vmDt, reg1 = register, reg2 = indexReg, labelSymbol = arrayVariableName)
+                        it += IRInstruction(Opcode.LOADX, vmDt, reg1 = register, reg2 = indexReg, labelSymbol = arrayVariableName, scale = eltSize)
                         it += IRInstruction(Opcode.INV, vmDt, reg1 = register)
-                        it += IRInstruction(Opcode.STOREX, vmDt, reg1 = register, reg2 = indexReg, labelSymbol = arrayVariableName)
+                        it += IRInstruction(Opcode.STOREX, vmDt, reg1 = register, reg2 = indexReg, labelSymbol = arrayVariableName, scale = eltSize)
                     }
                 }
             }
@@ -786,6 +784,8 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
             } else {
                 val (code, indexReg) = codeGen.loadIndexReg(targetArray.index, eltSize, true, targetArray.splitWords)
                 result += code
+                if(eltSize!=1)
+                    result += codeGen.multiplyByConst(DataType.UWORD, indexReg, eltSize)
                 addInstr(result, IRInstruction(Opcode.ADDR, IRDataType.POINTER, reg1=pointerReg, reg2=indexReg), null)
             }
             codeGen.storeValueAtPointersLocation(result, pointerReg, 0u, targetIdent.type.dereference(), true, -1)
@@ -796,6 +796,8 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
             } else {
                 val (code, indexReg) = codeGen.loadIndexReg(targetArray.index, eltSize, true, targetArray.splitWords)
                 result += code
+                if(eltSize!=1)
+                    result += codeGen.multiplyByConst(DataType.UWORD, indexReg, eltSize)
                 addInstr(result, IRInstruction(Opcode.ADDR, IRDataType.POINTER, reg1=pointerReg, reg2=indexReg), null)
             }
             val realValueReg = if(targetDt == IRDataType.FLOAT) valueFpRegister else valueRegister
@@ -829,13 +831,14 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
             } else {
                 val (code, indexReg) = codeGen.loadIndexReg(targetArray.index, eltSize, codeGen.wordArrayIndex, targetArray.splitWords)
                 result += code
+                val scaleZX = if(targetArray.splitWords) 1 else eltSize
                 result += IRCodeChunk(null, null).also {
                     if(targetArray.splitWords) {
                         it += IRInstruction(Opcode.STOREZX, IRDataType.BYTE, reg1 = indexReg, labelSymbol = variable+"_lsb")
                         it += IRInstruction(Opcode.STOREZX, IRDataType.BYTE, reg1 = indexReg, labelSymbol = variable+"_msb")
                     }
                     else
-                        it += IRInstruction(Opcode.STOREZX, targetDt, reg1=indexReg, labelSymbol = variable)
+                        it += IRInstruction(Opcode.STOREZX, targetDt, reg1=indexReg, labelSymbol = variable, scale = scaleZX)
                 }
             }
         } else {
@@ -850,7 +853,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                     val (code, indexReg) = codeGen.loadIndexReg(targetArray.index, eltSize, codeGen.wordArrayIndex, targetArray.splitWords)
                     result += code
                     result += IRCodeChunk(null, null).also {
-                        it += IRInstruction(Opcode.STOREX, targetDt, reg1 = indexReg, fpReg1 = RegisterNum(valueFpRegister), labelSymbol = variable)
+                        it += IRInstruction(Opcode.STOREX, targetDt, reg1 = indexReg, fpReg1 = RegisterNum(valueFpRegister), labelSymbol = variable, scale = eltSize)
                     }
                 }
             } else {
@@ -879,7 +882,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                             it += IRInstruction(Opcode.STOREX, IRDataType.BYTE, reg1 = lsbmsbReg, reg2=indexReg, immediate = arrayLength, labelSymbol = "${variable}_msb")
                         }
                         else
-                            it += IRInstruction(Opcode.STOREX, targetDt, reg1 = valueRegister, reg2=indexReg, labelSymbol = variable)
+                            it += IRInstruction(Opcode.STOREX, targetDt, reg1 = valueRegister, reg2=indexReg, labelSymbol = variable, scale = eltSize)
                     }
                 }
             }
@@ -918,6 +921,8 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
             // index is an expression
             val (code, indexReg) = codeGen.loadIndexReg(targetArray.index, eltSize, true, targetArray.splitWords)
             result += code
+            if(eltSize!=1)
+                result += codeGen.multiplyByConst(DataType.UWORD, indexReg, eltSize)
             addInstr(result, IRInstruction(Opcode.ADDR, IRDataType.POINTER, reg1 = pointerReg, reg2 = indexReg), null)
             if(zero) {
                 addInstr(result, IRInstruction(Opcode.STOREZI, targetDt, reg1 = pointerReg, immediate = 0), null)

@@ -647,13 +647,14 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         fun indexByExpression() {
             val (code, indexReg) = codeGen.loadIndexReg(arrayIx.index, eltSize, codeGen.wordArrayIndex, arrayIx.splitWords)
             result += code
+            val scale = if(arrayIx.splitWords) 1 else eltSize
             if(vmDt==IRDataType.FLOAT) {
                 resultFpRegister = codeGen.registers.next(IRDataType.FLOAT)
-                addInstr(result, IRInstruction(Opcode.LOADX, IRDataType.FLOAT, fpReg1 = RegisterNum(resultFpRegister), reg1=indexReg, labelSymbol = arrayVarSymbol), null)
+                addInstr(result, IRInstruction(Opcode.LOADX, IRDataType.FLOAT, fpReg1 = RegisterNum(resultFpRegister), reg1=indexReg, labelSymbol = arrayVarSymbol, scale = scale), null)
             }
             else {
                 resultRegister = codeGen.registers.next(vmDt)
-                addInstr(result, IRInstruction(Opcode.LOADX, vmDt, reg1=resultRegister, reg2=indexReg, labelSymbol = arrayVarSymbol), null)
+                addInstr(result, IRInstruction(Opcode.LOADX, vmDt, reg1=resultRegister, reg2=indexReg, labelSymbol = arrayVarSymbol, scale = scale), null)
             }
         }
 
@@ -682,6 +683,8 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         else {
             val (code, indexWordReg) = codeGen.loadIndexReg(index, eltSize, true, false)
             result += code
+            if(eltSize!=1)
+                result += codeGen.multiplyByConst(DataType.UWORD, indexWordReg, eltSize)
             addInstr(result, IRInstruction(Opcode.ADDR, IRDataType.POINTER, reg1=pointerReg, reg2=indexWordReg), null)
         }
 
@@ -1885,6 +1888,8 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             } else {
                 val (chunks, indexReg) = codeGen.loadIndexReg(left.index, struct.size.toInt(), true, false)
                 result += chunks
+                if(struct.size.toInt()!=1)
+                    result += codeGen.multiplyByConst(DataType.UWORD, indexReg, struct.size.toInt())
                 addInstr(result, IRInstruction(Opcode.ADDR, IRDataType.POINTER, reg1 = pointerReg, reg2 = indexReg), null)
             }
             field = struct.getField(right.name, codeGen.program.memsizer)

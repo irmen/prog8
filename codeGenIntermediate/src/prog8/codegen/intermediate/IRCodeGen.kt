@@ -774,19 +774,18 @@ class IRCodeGen(
                     else -> {
                         val arrElementDt = iterable.type.elementType()
                         val elementSize = program.memsizer.memorySize(arrElementDt, null)
-                        val lengthBytes = iterableLength!! * elementSize
                         val arrElementIR = irType(arrElementDt)
                         addInstr(result, IRInstruction(Opcode.LOAD, indexRegType, reg1=indexReg, immediate = 0), null)
                         val loopChunk = IRCodeChunk(loopLabel, null)
-                        loopChunk += IRInstruction(Opcode.LOADX, arrElementIR, reg1=tmpReg, reg2=indexReg, labelSymbol=iterable.name)
+                        loopChunk += IRInstruction(Opcode.LOADX, arrElementIR, reg1=tmpReg, reg2=indexReg, labelSymbol=iterable.name, scale = elementSize)
                         val (storeReg, storeDt) = emitWidening(loopChunk, tmpReg, arrElementIR)
                         loopChunk += IRInstruction(Opcode.STOREM, storeDt, reg1=storeReg, labelSymbol = loopvarSymbol)
                         result += loopChunk
                         result += translateNode(forLoop.statements)
-                        result += addConstToReg(indexReg, elementSize, indexRegType)
+                        result += addConstToReg(indexReg, 1, indexRegType)
                         result += IRCodeChunk(null, null).also {
-                            if(lengthBytes!=256 || indexRegType==IRDataType.WORD || elementSize!=1)
-                                it += IRInstruction(Opcode.CMPI, indexRegType, reg1=indexReg, immediate = lengthBytes)
+                            if(iterableLength!=256 || indexRegType==IRDataType.WORD)
+                                it += IRInstruction(Opcode.CMPI, indexRegType, reg1=indexReg, immediate = iterableLength!!)
                             it += IRInstruction(Opcode.BSTNE, labelSymbol = loopLabel)
                         }
                     }
@@ -2251,7 +2250,7 @@ class IRCodeGen(
                 }
                 indexReg = newReg
             }
-            result += multiplyByConst(DataType.UWORD, indexReg, itemsize)
+            // no pre-scaling - scale is encoded in the LOADX/STOREX instruction
             return Pair(result, indexReg)
         }
 
@@ -2279,10 +2278,7 @@ class IRCodeGen(
             indexReg = newReg
         }
 
-        if(itemsize==1 || arrayIsSplitWords)
-            return Pair(result, indexReg)
-
-        result += multiplyByConst(if(indexRegType == IRDataType.WORD) DataType.UWORD else DataType.UBYTE, indexReg, itemsize)
+        // no pre-scaling - scale is encoded in the LOADX/STOREX instruction
         return Pair(result, indexReg)
     }
 

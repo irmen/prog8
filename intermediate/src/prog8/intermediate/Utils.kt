@@ -116,8 +116,19 @@ fun parseIRCodeLine(line: String): ParsedIRLine {
             formats.getValue(type)
         }
 
-    // parse the operands
-    val operands = if(rest.isBlank()) emptyList() else rest.split(",").map{ it.trim() }.toMutableList()
+    // parse the operands, detect optional ,S=N suffix for scaled indexing
+    val operandsRaw = if(rest.isBlank()) emptyList() else rest.split(",").map{ it.trim() }.toMutableList()
+    var scale = 1
+    val operands = operandsRaw.toMutableList()
+    if(opcode in setOf(Opcode.LOADX, Opcode.STOREX, Opcode.STOREZX) && operands.isNotEmpty()) {
+        val last = operands.last()
+        if(last.startsWith("S=", ignoreCase = true)) {
+            val scaleStr = last.substring(2)
+            scale = scaleStr.toIntOrNull() ?: throw IRParseException("invalid scale suffix $last")
+            if(scale < 1) throw IRParseException("scale must be >=1")
+            operands.removeAt(operands.lastIndex)
+        }
+    }
     var reg1: Int? = null
     var reg2: Int? = null
     var reg3: Int? = null
@@ -258,7 +269,7 @@ fun parseIRCodeLine(line: String): ParsedIRLine {
         }
     }
 
-    return ParsedIRLine.Instruction(IRInstruction(opcode, type, reg1, reg2, reg3, fpReg1, fpReg2, immediateInt, immediateFp, address?.toAddress(), labelSymbol = labelSymbol, symbolOffset = offset))
+    return ParsedIRLine.Instruction(IRInstruction(opcode, type, reg1, reg2, reg3, fpReg1, fpReg2, immediateInt, immediateFp, address?.toAddress(), labelSymbol = labelSymbol, symbolOffset = offset, scale = scale))
 }
 
 private fun isRegisterName(oper: String): Boolean {

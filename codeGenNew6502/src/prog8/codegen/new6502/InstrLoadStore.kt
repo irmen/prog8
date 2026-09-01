@@ -71,6 +71,8 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction) {
         Opcode.LOADX -> {
             val idxReg = r2 ?: error("LOADX needs reg2")
             val baseAddress = resolveAddress(addr, label, offset)
+            val scale = insn.scale
+            scaleIndexRegIfNeeded(idxReg, scale)
             indexedLoad(r1 ?: error("LOADX needs reg1"), idxReg, baseAddress, type)
         }
 
@@ -92,6 +94,8 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction) {
         Opcode.STOREX -> {
             val r2val = r2 ?: error("STOREX needs reg2")
             val target = resolveAddress(addr, label, offset)
+            val scale = insn.scale
+            scaleIndexRegIfNeeded(r2val, scale)
             storeExchange(r1 ?: error("STOREX needs reg1"), r2val, target, type)
         }
 
@@ -113,7 +117,9 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction) {
 
         Opcode.STOREZX -> {
             val target = resolveAddress(addr, label, offset)
-            zeroMemoryIndexed(r1 ?: error("STOREZX needs reg1"), target, type)
+            val scale = insn.scale
+            scaleIndexRegIfNeeded(r1 ?: error("STOREZX needs reg1"), scale)
+            zeroMemoryIndexed(r1, target, type)
         }
 
         Opcode.STOREHR -> {
@@ -247,6 +253,102 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction) {
     }
 }
 
+private fun AsmGen.scaleIndexRegIfNeeded(idxReg: Int, scale: Int) {
+    if(scale==1) return
+    when(scale) {
+        2 -> {
+            emitLine("asl  ${regAddrLo(idxReg)}")
+        }
+        4 -> {
+            emitLine("asl  ${regAddrLo(idxReg)}")
+            emitLine("asl  ${regAddrLo(idxReg)}")
+        }
+        else -> {
+            // generic scale fallback: use the existing 8-bit multiply helper (A * Y -> A)
+            emitLine("lda  ${regAddrLo(idxReg)}")
+            emitLine("ldy  #$scale")
+            emitLine("jsr  prog8_lib.multiply_bytes")
+            emitLine("sta  ${regAddrLo(idxReg)}")
+        }
+    }
+}
+
+private fun AsmGen.emitFloatIndexScaled(idxReg: Int, scale: Int, ptr: String) {
+    // index is element index; scale by element size (float = 5 or 8, etc.) then add to ptr
+    if(scale==1) {
+        emitLine("lda  ${regAddrLo(idxReg)}")
+        emitLine("clc")
+        emitLine("adc  $ptr")
+        emitLine("sta  $ptr")
+        emitLine("bcc  +")
+        emitLine("inc  ${ptr}+1")
+        emitLabel("+")
+        return
+    }
+    // generic scale: idx*scale -> A, then add to ptr
+    // use simple multiply for small scales; for float Mflpt 5 we do *5 = *4+*1
+    when(scale) {
+        2 -> {
+            emitLine("lda  ${regAddrLo(idxReg)}")
+            emitLine("asl  a")
+            emitLine("clc")
+            emitLine("adc  $ptr")
+            emitLine("sta  $ptr")
+            emitLine("bcc  +")
+            emitLine("inc  ${ptr}+1")
+            emitLabel("+")
+        }
+        4 -> {
+            emitLine("lda  ${regAddrLo(idxReg)}")
+            emitLine("asl  a")
+            emitLine("asl  a")
+            emitLine("clc")
+            emitLine("adc  $ptr")
+            emitLine("sta  $ptr")
+            emitLine("bcc  +")
+            emitLine("inc  ${ptr}+1")
+            emitLabel("+")
+        }
+        5 -> {
+            emitLine("lda  ${regAddrLo(idxReg)}")
+            emitLine("sta  P8ZP_SCRATCH_REG") // temp
+            emitLine("asl  a")
+            emitLine("asl  a") // *4
+            emitLine("clc")
+            emitLine("adc  P8ZP_SCRATCH_REG") // *5
+            emitLine("clc")
+            emitLine("adc  $ptr")
+            emitLine("sta  $ptr")
+            emitLine("bcc  +")
+            emitLine("inc  ${ptr}+1")
+            emitLabel("+")
+        }
+        8 -> {
+            emitLine("lda  ${regAddrLo(idxReg)}")
+            emitLine("asl  a")
+            emitLine("asl  a")
+            emitLine("asl  a")
+            emitLine("clc")
+            emitLine("adc  $ptr")
+            emitLine("sta  $ptr")
+            emitLine("bcc  +")
+            emitLine("inc  ${ptr}+1")
+            emitLabel("+")
+        }
+        else -> {
+            emitLine("lda  ${regAddrLo(idxReg)}")
+            emitLine("ldy  #$scale")
+            emitLine("jsr  prog8_lib.multiply_bytes")
+            emitLine("clc")
+            emitLine("adc  $ptr")
+            emitLine("sta  $ptr")
+            emitLine("bcc  +")
+            emitLine("inc  ${ptr}+1")
+            emitLabel("+")
+        }
+    }
+}
+
 private fun AsmGen.translateFloatLoadStore(insn: IRInstruction) {
     val fpReg1 = insn.fpReg1
     val fpReg2 = insn.fpReg2
@@ -374,19 +476,14 @@ private fun AsmGen.translateFloatLoadStore(insn: IRInstruction) {
             val idxReg = r1 ?: error("LOADX.f needs reg1 (index)")
             val baseAddress = resolveAddress(addr, label, offset)
             val fpReg = fpReg1 ?: error("LOADX.f needs fpReg1")
+            val scale = insn.scale
             val ptr = ZP_TEMP
             emitLine("lda  #<$baseAddress")
             emitLine("sta  $ptr")
             emitLine("lda  #>$baseAddress")
             emitLine("sta  ${ptr}+1")
-            emitLine("lda  ${regAddrLo(idxReg)}")
-            // Note: index is already pre-multiplied by 5 (element size) in the IR codegen.
-            emitLine("clc")
-            emitLine("adc  $ptr")
-            emitLine("sta  $ptr")
-            emitLine("bcc  +")
-            emitLine("inc  ${ptr}+1")
-            emitLabel("+")
+            // index is element index; scale by element size via helper
+            emitFloatIndexScaled(idxReg, scale, ptr)
             emitLine("lda  $ptr")
             emitLine("ldy  ${ptr}+1")
             emitLine("jsr  floats.MOVFM")
@@ -439,19 +536,13 @@ private fun AsmGen.translateFloatLoadStore(insn: IRInstruction) {
             val idxReg = r1 ?: error("STOREX.f needs reg1 (index)")
             val baseAddress = resolveAddress(addr, label, offset)
             val fpReg = fpReg1 ?: error("STOREX.f needs fpReg1")
+            val scale = insn.scale
             val ptr = ZP_TEMP
             emitLine("lda  #<$baseAddress")
             emitLine("sta  $ptr")
             emitLine("lda  #>$baseAddress")
             emitLine("sta  ${ptr}+1")
-            emitLine("lda  ${regAddrLo(idxReg)}")
-            // Note: index is already pre-multiplied by 5 (element size) in the IR codegen.
-            emitLine("clc")
-            emitLine("adc  $ptr")
-            emitLine("sta  $ptr")
-            emitLine("bcc  +")
-            emitLine("inc  ${ptr}+1")
-            emitLabel("+")
+            emitFloatIndexScaled(idxReg, scale, ptr)
             emitLine("lda  #<${fpRegAddr(fpReg.value)}")
             emitLine("ldy  #>${fpRegAddr(fpReg.value)}")
             emitLine("jsr  floats.MOVFM")
@@ -496,19 +587,13 @@ private fun AsmGen.translateFloatLoadStore(insn: IRInstruction) {
         Opcode.STOREZX -> {
             val idxReg = r1 ?: error("STOREZX.f needs reg1 (index)")
             val baseAddress = resolveAddress(addr, label, offset)
+            val scale = insn.scale
             val ptr = ZP_TEMP
             emitLine("lda  #<$baseAddress")
             emitLine("sta  $ptr")
             emitLine("lda  #>$baseAddress")
             emitLine("sta  ${ptr}+1")
-            emitLine("lda  ${regAddrLo(idxReg)}")
-            // Note: index is already pre-multiplied by 5 (element size) in the IR codegen.
-            emitLine("clc")
-            emitLine("adc  $ptr")
-            emitLine("sta  $ptr")
-            emitLine("bcc  +")
-            emitLine("inc  ${ptr}+1")
-            emitLabel("+")
+            emitFloatIndexScaled(idxReg, scale, ptr)
             val n = floatMemSize - 1
             emitLine("ldy  #$n")
             emitLine("lda  #0")

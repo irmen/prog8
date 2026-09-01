@@ -1,5 +1,6 @@
 package prog8.codegen.m68k
 
+import prog8.code.core.CpuType
 import prog8.intermediate.CallingConventionSlot
 import prog8.intermediate.IRDataType
 import prog8.intermediate.IRInstruction
@@ -83,10 +84,28 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction, suppressRegfileStore
         Opcode.LOADX -> {
             val dst = r1 ?: error("LOADX needs reg1")
             val idx = r2 ?: error("LOADX needs reg2")
+            val scale = insn.scale
             loadIndexToD0(idx)
+            if(scale!=1) {
+                if(program.options.compTarget.cpu >= CpuType.M68020) {
+                    if(scale!=2 && scale!=4 && scale!=8) emitLine("muls.w  #$scale, d0")
+                } else {
+                    when(scale) {
+                        2 -> emitLine("add.w  d0,d0")
+                        4 -> emitLine("lsl.w  #2, d0")
+                        else -> emitLine("muls.w  #$scale, d0")
+                    }
+                }
+            }
             emitLine("lea  $target, a0")
             val sx = dtSuffix(type)
-            emitLine("move$sx  (a0,d0.w), d0")
+            val indexMode = when {
+                program.options.compTarget.cpu >= CpuType.M68020 && scale==2 -> "(a0,d0.w*2)"
+                program.options.compTarget.cpu >= CpuType.M68020 && scale==4 -> "(a0,d0.w*4)"
+                program.options.compTarget.cpu >= CpuType.M68020 && scale==8 -> "(a0,d0.w*8)"
+                else -> "(a0,d0.w)"
+            }
+            emitLine("move$sx  $indexMode, d0")
             emitLine("move$sx  d0, ${regAddr(dst)}")
         }
 
@@ -130,11 +149,29 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction, suppressRegfileStore
         Opcode.STOREX -> {
             val value = r1 ?: error("STOREX needs reg1")
             val idx = r2 ?: error("STOREX needs reg2")
+            val scale = insn.scale
             loadIndexToD0(idx)
+            if(scale!=1) {
+                if(program.options.compTarget.cpu >= CpuType.M68020) {
+                    if(scale!=2 && scale!=4 && scale!=8) emitLine("muls.w  #$scale, d0")
+                } else {
+                    when(scale) {
+                        2 -> emitLine("add.w  d0,d0")
+                        4 -> emitLine("lsl.w  #2, d0")
+                        else -> emitLine("muls.w  #$scale, d0")
+                    }
+                }
+            }
             emitLine("lea  $target, a0")
             val sx = dtSuffix(type)
             emitLine("move$sx  ${regAddr(value)}, d1")
-            emitLine("move$sx  d1, (a0,d0.w)")
+            val indexMode = when {
+                program.options.compTarget.cpu >= CpuType.M68020 && scale==2 -> "(a0,d0.w*2)"
+                program.options.compTarget.cpu >= CpuType.M68020 && scale==4 -> "(a0,d0.w*4)"
+                program.options.compTarget.cpu >= CpuType.M68020 && scale==8 -> "(a0,d0.w*8)"
+                else -> "(a0,d0.w)"
+            }
+            emitLine("move$sx  d1, $indexMode")
         }
 
         Opcode.STOREZM -> {
@@ -158,9 +195,27 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction, suppressRegfileStore
 
         Opcode.STOREZX -> {
             val idx = r1 ?: error("STOREZX needs reg1")
+            val scale = insn.scale
             loadIndexToD0(idx)
+            if(scale!=1) {
+                if(program.options.compTarget.cpu >= CpuType.M68020) {
+                    if(scale!=2 && scale!=4 && scale!=8) emitLine("muls.w  #$scale, d0")
+                } else {
+                    when(scale) {
+                        2 -> emitLine("add.w  d0,d0")
+                        4 -> emitLine("lsl.w  #2, d0")
+                        else -> emitLine("muls.w  #$scale, d0")
+                    }
+                }
+            }
             emitLine("lea  $target, a0")
-            emitLine("clr$s  (a0,d0.w)")
+            val indexMode = when {
+                program.options.compTarget.cpu >= CpuType.M68020 && scale==2 -> "(a0,d0.w*2)"
+                program.options.compTarget.cpu >= CpuType.M68020 && scale==4 -> "(a0,d0.w*4)"
+                program.options.compTarget.cpu >= CpuType.M68020 && scale==8 -> "(a0,d0.w*8)"
+                else -> "(a0,d0.w)"
+            }
+            emitLine("clr$s  $indexMode")
         }
 
         Opcode.STOREHR -> {
@@ -236,12 +291,21 @@ private fun AsmGen.translateFloatLoadStore(insn: IRInstruction, target: String, 
 
         Opcode.STOREZX -> {
             val idx = r1 ?: error("STOREZX.f needs reg1 (index)")
+            val scale = insn.scale
             // full-width d0.l indexing requires zero-extending the word index to 32 bits
             emitLine("moveq  #0, d0")
             emitLine("move.w  ${regAddr(idx)}, d0")
+            if(scale!=1) {
+                when(scale) {
+                    2 -> emitLine("add.l  d0,d0")
+                    4 -> emitLine("lsl.l  #2, d0")
+                    8 -> emitLine("lsl.l  #3, d0")
+                    else -> emitLine("muls.w  #$scale, d0")
+                }
+            }
             emitLine("lea  $target, a0")
             emitLine("fmovecr  #\$0f, fp0")
-            emitLine("fmove.s  fp0, (0, a0, d0.l)", "index pre-scaled")
+            emitLine("fmove.s  fp0, (0, a0, d0.l)")
         }
 
         Opcode.STOREHFACZERO -> {
@@ -295,11 +359,20 @@ private fun AsmGen.translateFloatLoadStore(insn: IRInstruction, target: String, 
 
                 Opcode.LOADX -> {
                     val idx = r1 ?: error("LOADX.f needs reg1 (index)")
+                    val scale = insn.scale
                     // full-width d0.l indexing requires zero-extending the word index to 32 bits
                     emitLine("moveq  #0, d0")
                     emitLine("move.w  ${regAddr(idx)}, d0")
+                    if(scale!=1) {
+                        when(scale) {
+                            2 -> emitLine("add.l  d0,d0")
+                            4 -> emitLine("lsl.l  #2, d0")
+                            8 -> emitLine("lsl.l  #3, d0")
+                            else -> emitLine("muls.w  #$scale, d0")
+                        }
+                    }
                     emitLine("lea  $target, a0")
-                    emitLine("fmove.s  (0, a0, d0.l), $FP_ACC", "index pre-scaled")
+                    emitLine("fmove.s  (0, a0, d0.l), $FP_ACC")
                     emitLine("fmove.s  $FP_ACC, ${floatRegFileAddr(fp1)}")
                 }
 
@@ -326,12 +399,21 @@ private fun AsmGen.translateFloatLoadStore(insn: IRInstruction, target: String, 
 
                 Opcode.STOREX -> {
                     val idx = r1 ?: error("STOREX.f needs reg1 (index)")
+                    val scale = insn.scale
                     // full-width d0.l indexing requires zero-extending the word index to 32 bits
                     emitLine("moveq  #0, d0")
                     emitLine("move.w  ${regAddr(idx)}, d0")
+                    if(scale!=1) {
+                        when(scale) {
+                            2 -> emitLine("add.l  d0,d0")
+                            4 -> emitLine("lsl.l  #2, d0")
+                            8 -> emitLine("lsl.l  #3, d0")
+                            else -> emitLine("muls.w  #$scale, d0")
+                        }
+                    }
                     emitLine("lea  $target, a0")
                     emitLine("fmove.s  ${floatRegFileAddr(fp1)}, $FP_ACC")
-                    emitLine("fmove.s  $FP_ACC, (0, a0, d0.l)", "index pre-scaled")
+                    emitLine("fmove.s  $FP_ACC, (0, a0, d0.l)")
                 }
 
                 Opcode.STOREHR -> {

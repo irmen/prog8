@@ -5,6 +5,7 @@ import prog8.code.SymbolTable
 import prog8.code.ast.*
 import prog8.code.core.AssemblyError
 import prog8.code.core.BaseDataType
+import prog8.code.core.DataType
 import prog8.intermediate.*
 
 
@@ -872,6 +873,8 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                     } else {
                         val (code, indexWordReg) = codeGen.loadIndexReg(target.index, eltSize, true, false)
                         result += code
+                        if(eltSize!=1)
+                            result += codeGen.multiplyByConst(DataType.UWORD, indexWordReg, eltSize)
                         addInstr(result, IRInstruction(Opcode.ADDR, IRDataType.POINTER, reg1 = pointerTr.resultReg, reg2 = indexWordReg), null)
                         if(elementByteOffset > 0)
                             addInstr(result, IRInstruction(Opcode.ADD, IRDataType.POINTER, reg1 = pointerTr.resultReg, immediate = elementByteOffset), null)
@@ -940,12 +943,9 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                         } else {
                             val (code, indexReg) = codeGen.loadIndexReg(target.index, eltSize, codeGen.wordArrayIndex, false)
                             result += code
-                            val indexDt = if(codeGen.wordArrayIndex) IRDataType.WORD else IRDataType.BYTE
                             result += IRCodeChunk(null, null).also {
                                 val offset = byteOffset(eltSize)
-                                if(offset > 0)
-                                    it += IRInstruction(Opcode.ADD, indexDt, reg1 = indexReg, immediate = offset)
-                                it += IRInstruction(Opcode.STOREZX, IRDataType.BYTE, reg1=indexReg, labelSymbol = targetVariable.name)
+                                it += IRInstruction(Opcode.STOREZX, IRDataType.BYTE, reg1=indexReg, labelSymbol = targetVariable.name, symbolOffset = if(offset!=0) offset else null, scale = eltSize)
                             }
                         }
                     } else {
@@ -961,12 +961,9 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                         } else {
                             val (code, indexReg) = codeGen.loadIndexReg(target.index, eltSize, codeGen.wordArrayIndex, false)
                             result += code
-                            val indexDt = if(codeGen.wordArrayIndex) IRDataType.WORD else IRDataType.BYTE
                             result += IRCodeChunk(null, null).also {
                                 val offset = byteOffset(eltSize)
-                                if(offset > 0)
-                                    it += IRInstruction(Opcode.ADD, indexDt, reg1 = indexReg, immediate = offset)
-                                it += IRInstruction(Opcode.STOREX, IRDataType.BYTE, reg1=valueTr.resultReg, reg2=indexReg, labelSymbol = targetVariable.name)
+                                it += IRInstruction(Opcode.STOREX, IRDataType.BYTE, reg1=valueTr.resultReg, reg2=indexReg, labelSymbol = targetVariable.name, symbolOffset = if(offset!=0) offset else null, scale = eltSize)
                             }
                         }
                     }
