@@ -2028,7 +2028,11 @@ $repeatLabel""")
         if(asm.isIR)
             throw AssemblyError("%asm containing IR code cannot be translated to 6502 assembly")
         else
-            out(asm.assembly)
+            // User-supplied assembly should be passed through verbatim. It may contain
+            // characters such as '|' (64tass bitwise OR) that out() would otherwise
+            // misinterpret as a statement separator, and the user's indentation/spacing
+            // should be preserved rather than re-tabbed.
+            assembly.add(asm.assembly.trim('\r', '\n'))
     }
 
     private fun translate(incbin: PtIncludeBinary) {
