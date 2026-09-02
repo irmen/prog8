@@ -694,6 +694,54 @@ main {
         lines.any { it.startsWith("jsr") && it.contains("p8s_test") } shouldBe true
     }
 
+    test("inline asm pipe operator is preserved as bitwise OR") {
+        val src="""
+%zeropage basicsafe
+%option no_sysinit
+main {
+    sub start() {
+        %asm {{
+            lda  #%00010000 | $1234>>16
+        }}
+    }
+}"""
+        val result = compileText(C64Target(), false, src, outputDir, writeAssembly = true)!!
+        val asm = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".asm").readText()
+        val lines = asm.lines().map { it.trim() }
+        // the '|' must remain on the same line as the lda, not be split into a second line
+        lines.any { it == "lda  #%00010000 | $1234>>16" } shouldBe true
+        lines.any { it == "$1234>>16" } shouldBe false
+    }
+
+    test("subroutine with register-mapped parameter is not inlined") {
+        val src= $$"""
+%zeropage basicsafe
+%option no_sysinit
+main {
+    sub start() {
+        PlayVideo_STD(mkword($10, $20))
+    }
+
+    sub PlayVideo_STD(uword params @R0) {
+        TrampolineCallSTD($a000)
+    }
+
+    asmsub TrampolineCallSTD(uword addr @AY) clobbers(A, Y) {
+        %asm {{
+            rts
+        }}
+    }
+}"""
+        val result = compileText(C64Target(), false, src, outputDir, writeAssembly = true)!!
+        val asm = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".asm").readText()
+        val lines = asm.lines().map { it.trim() }
+        // the R0 argument setup must be preserved because the inlined body doesn't
+        // explicitly reference the register-mapped parameter
+        lines.any { it == "sta  cx16.r0" } shouldBe true
+        lines.any { it == "sty  cx16.r0+1" } shouldBe true
+        lines.any { it.startsWith("jsr") && it.contains("p8s_PlayVideo_STD") } shouldBe true
+    }
+
     test("if not without else is not swapped") {
         val src="""
 main {
