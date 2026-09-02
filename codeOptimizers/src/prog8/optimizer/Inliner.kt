@@ -139,7 +139,7 @@ class Inliner(private val program: Program, private val options: CompilationOpti
                     stmt.target is NumericLiteral
             }
 
-            if (!subroutine.isAsmSubroutine && subroutine.parameters.size <= 1) {
+            if (!subroutine.isAsmSubroutine && subroutine.parameters.size <= 1 && subroutine.parameters.all { it.registerOrPair == null }) {
                 val containsSubsOrVariables = subroutine.statements.any { it is Subroutine || (it is VarDecl && it.origin != VarDeclOrigin.SUBROUTINEPARAM) }
                 if (!containsSubsOrVariables) {
                     val functionalStatements = subroutine.statements.filter { it !is VarDecl || it.origin != VarDeclOrigin.SUBROUTINEPARAM }
@@ -252,6 +252,10 @@ class Inliner(private val program: Program, private val options: CompilationOpti
 
         if (sub.parameters.size > 1) {
             return false to "subroutines with more than 1 parameter cannot be inlined in this compiler version"
+        }
+
+        if (sub.parameters.any { it.registerOrPair != null }) {
+            return false to "subroutines with register-mapped parameters cannot be inlined"
         }
 
         if (sub.parameters.size == 1) {
