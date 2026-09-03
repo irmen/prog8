@@ -1,7 +1,7 @@
 plugins {
     kotlin("jvm")
     id("application")
-    id("com.peterabeles.gversion") version "1.10.3"
+    id("com.peterabeles.gversion") version "1.11.0"
 }
 
 dependencies {

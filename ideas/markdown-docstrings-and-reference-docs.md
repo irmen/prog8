@@ -1,5 +1,7 @@
 # Markdown Docstrings and Reference Documentation
 
+**Status: TODO / not implemented.** Listed as an active item in `docs/source/todo.rst`.
+
 ## Goal
 
 Generate user-facing reference documentation from Markdown documentation comments in Prog8 source files, while integrating the generated pages with the existing Sphinx/reStructuredText documentation.

@@ -212,6 +212,13 @@ class VirtualMachine(irProgram: IRProgram) {
                     pcChunk = nextChunk
                     pcIndex = 0
                 }
+                is IRLoopChunk -> {
+                    // loops should have been expanded; enter its body
+                    val firstBody = nextChunk.body.firstOrNull() as? IRCodeChunk
+                        ?: throw IllegalArgumentException("VM cannot run empty loop $nextChunk")
+                    pcChunk = firstBody
+                    pcIndex = 0
+                }
                 null -> {
                     exit(0)   // end of program reached
                 }
@@ -232,6 +239,13 @@ class VirtualMachine(irProgram: IRProgram) {
         when (val target = i.branchTarget) {
             is IRCodeChunk -> {
                 pcChunk = target
+                pcIndex = 0
+            }
+            is IRLoopChunk -> {
+                // Loops should have been expanded by VmProgramLoader; if still present, enter its first body chunk
+                val firstBody = target.body.firstOrNull() as? IRCodeChunk
+                    ?: throw IllegalArgumentException("vm cannot branch to empty loop $target")
+                pcChunk = firstBody
                 pcIndex = 0
             }
             null -> {

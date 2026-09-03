@@ -8,7 +8,7 @@ Future Things and Ideas
 - extend the ``-gendoc`` command to generate user reference documentation from Markdown docstrings; see ``ideas/markdown-docstrings-and-reference-docs.md`` for the plan.
 - add documentation for more library modules instead of just linking to the source code
 - struct/ptr: really fixing the pointer dereferencing issues (cursed hybrid between IdentifierReference, PtrDereferece and PtrIndexedDereference) may require getting rid of scoped identifiers altogether and treat '.' as a "scope or pointer following operator"
-- struct/ptr: support chaining pointer dereference without explicit ^^ on assignment targets, such as ``l1.s[0] = 4242`` and ``listarray[2].value = 123`` (implicit ``^^`` forms; see TestPointers xtests and ideas/NEW-POINTERDEREF-PLANS.md). Note: the LHS functioncall and parenthesized-expression cases (``func().field = a``, ``(expr as ^^T).field = a``) are now supported: the assign_target grammar rule accepts them and the CodeDesugarer rewrites them into poke-style writes.
+- struct/ptr: support chaining pointer dereference without explicit ^^ on assignment targets, such as ``l1.s[0] = 4242`` and ``listarray[2].value = 123`` (implicit ``^^`` forms; see TestPointers xtests and ideas/new-pointer-deref-plans.md). Note: the LHS functioncall and parenthesized-expression cases (``func().field = a``, ``(expr as ^^T).field = a``) are now supported: the assign_target grammar rule accepts them and the CodeDesugarer rewrites them into poke-style writes.
 - add float support to the configurable compiler targets. Restrictions: just have "cbm-style floats" as an option (to that it can slot into the current float codegen), where "all" you have to specify is the addresses of AYINT and GIVAYF and FADDT and all their friends.
 - Change scoping rules for qualified symbols so that they don't always start from the root but behave like other programming languages (look in local scope first), maybe only when qualified symbol starts with '.' such as: .local.value = 33, or the other way around? i.e. require new syntax to explicitly look up from global scope. That would give a backwards compatible solution. See ideas/scoping-qualified-symbols.md for a brevity-focused exploration (opt-in `.a.b` local-first, `a.b` stays global; `::a.b` reserved for future flip).
 - implement the signed remainder byte and word routines on 6502 (virtual target already has them working)
@@ -30,6 +30,9 @@ Won't do's or deferred
 - Won't do soon: when implementing unsigned longs: remove the (multiple?) "TODO "hack" to allow unsigned long constants to be used as values for signed longs, without needing a cast
 - Won't do: ``var x = <value>`` type inference for ordinary variables will not be added: it hides the explicit size/cost that is central to Prog8's simple retro vibe, and has ambiguous literal/tag/scope interactions. Inference stays limited to ``const`` (compile-time, no allocation) and ``for`` loop counters (type fixed by the iterable).
 - Won't do: make enums strongly typed instead of just syntactic sugar for ints (see ideas/enum-strong-type.md for the plan)
+- Deferred: implement a true m68k register allocator that keeps virtual registers in hardware registers (D0-D7/A0-A6/FP0-FP7) instead of the flat ``p8_regfile`` memory block. See ideas/m68k-register-allocation.md for the design.
+- Preparatory work for the deferred m68k register allocator: add recursive IR traversal, centralized register effects, call-effect metadata, allocation hints, and an IR dataflow verifier. See ideas/m68k-register-allocation-preparation.md.
+- Deferred: implement a stack-based memory model for m68k locals and parameters to make subroutines reentrant and recursive. See ideas/m68k-stack-memory-model.md for the design.
 
 Romable (%option romable)
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -45,7 +48,6 @@ Romable (%option romable)
 
 IR/VM
 ^^^^^
-- improve IR loop handling to emit ``m68k`` ``dbra`` directly without ``p8_regfile`` peephole, see ideas/better-loop-IR.md
 
 **Missing VM Implementations (VirtualMachine.kt)**
 - ``IRInlineBinaryChunk`` and ``IRInlineAsmChunk`` - inline chunks cannot be loaded by the VM (VmProgramLoader.kt). Limitation of the current VM design: program is not loaded into memory as data

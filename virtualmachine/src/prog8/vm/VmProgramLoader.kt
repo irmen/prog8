@@ -40,6 +40,85 @@ class VmProgramLoader {
             }
         }
 
+        var nextLoopReg = 50000
+        // --- expand IRLoopChunks in place into linear IRCodeChunk sequences for VM ---
+        fun expandLoopsInList(chunks: MutableList<IRCodeChunkBase>) {
+            var idx = 0
+            while(idx < chunks.size) {
+                val chunk = chunks[idx]
+                if(chunk is IRLoopChunk) {
+                    val used = chunk.usedRegisters(irProgram.options.compTarget.indexRegType)
+                    val usedNums = (used.readRegs.keys + used.writeRegs.keys).map { it.value }.toSet()
+                    var loopReg = nextLoopReg
+                    while(loopReg in usedNums || loopReg in 99000..99300) loopReg++
+                    nextLoopReg = loopReg + 1
+                    val initVal = if(chunk.trip==65536) 0 else chunk.trip
+                    val header = IRCodeChunk(null, null)
+                    header += IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1=loopReg, immediate=initVal)
+                    // recursively expand nested loops inside body first
+                    expandLoopsInList(chunk.body)
+                    val loopStart = IRCodeChunk(chunk.label, null)
+                    val tail = IRCodeChunk(null, null)
+                    tail += IRInstruction(Opcode.DEC, IRDataType.WORD, reg1=loopReg)
+                    tail += IRInstruction(Opcode.CMPI, IRDataType.WORD, reg1=loopReg, immediate=0)
+                    tail += IRInstruction(Opcode.BSTNE, labelSymbol=chunk.label!!)
+                    // replace loop chunk with header + loopStart + body + tail
+                    chunks.removeAt(idx)
+                    val replacement = mutableListOf<IRCodeChunkBase>()
+                    replacement += header
+                    replacement += loopStart
+                    replacement.addAll(chunk.body)
+                    replacement += tail
+                    replacement.reversed().forEach { chunks.add(idx, it) }
+                    idx += 2 + chunk.body.size + 1 // header + loopStart + body + tail
+                } else {
+                    idx++
+                }
+            }
+        }
+        // expand loops at block level and inside subroutines
+        irProgram.blocks.forEach { block ->
+            // expand loops that are direct children of block (rare)
+            val blockLoops = block.children.filterIsInstance<IRLoopChunk>()
+            if(blockLoops.isNotEmpty()) {
+                // use helper via temporary mutable list view
+                val mutable = block.children
+                // collect indices
+                var i=0
+                while(i<mutable.size) {
+                    val el = mutable[i]
+                    if(el is IRLoopChunk) {
+                        expandLoopsInList(el.body)
+                        val used = el.usedRegisters(irProgram.options.compTarget.indexRegType)
+                        val usedNums = (used.readRegs.keys + used.writeRegs.keys).map { it.value }.toSet()
+                        var loopReg=nextLoopReg
+                        while(loopReg in usedNums || loopReg in 99000..99300) loopReg++
+                        nextLoopReg = loopReg + 1
+                        val initVal = if(el.trip==65536) 0 else el.trip
+                        val header = IRCodeChunk(null, null)
+                        header += IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1=loopReg, immediate=initVal)
+                        val loopStart = IRCodeChunk(el.label, null)
+                        val tail = IRCodeChunk(null, null)
+                        tail += IRInstruction(Opcode.DEC, IRDataType.WORD, reg1=loopReg)
+                        tail += IRInstruction(Opcode.CMPI, IRDataType.WORD, reg1=loopReg, immediate=0)
+                        tail += IRInstruction(Opcode.BSTNE, labelSymbol=el.label!!)
+                        mutable.removeAt(i)
+                        mutable.add(i, tail)
+                        el.body.reversed().forEach { mutable.add(i, it) }
+                        mutable.add(i, loopStart)
+                        mutable.add(i, header)
+                        i += 2 + el.body.size + 1 // header + loopStart + body + tail
+                    } else i++
+                }
+            }
+            block.children.filterIsInstance<IRSubroutine>().forEach { sub ->
+                expandLoopsInList(sub.chunks)
+            }
+        }
+        // relink after expanding loops so next pointers are correct
+        irProgram.linkChunks()
+        irProgram.validate()
+
         if(irProgram.globalInits.isNotEmpty())
             programChunks += irProgram.globalInits
 
@@ -57,6 +136,45 @@ class VmProgramLoader {
             }
         }
 
+        // helper to expand IRLoopChunk into dec/bne sequence for VM execution (fallback for any remaining loops during flat list building)
+        fun expandLoop(loop: IRLoopChunk, out: MutableList<IRCodeChunk>) {
+            // allocate a fresh WORD register not used by the body
+            val used = loop.usedRegisters(irProgram.options.compTarget.indexRegType)
+            val usedNums = (used.readRegs.keys + used.writeRegs.keys).map { it.value }.toSet()
+            var loopReg = nextLoopReg
+            while(loopReg in usedNums || loopReg in 99000..99300) loopReg++
+            nextLoopReg = loopReg + 1
+            // handle trip up to 65536: WORD register, 65536 wraps to 0
+            val initVal = if(loop.trip==65536) 0 else loop.trip
+            val header = IRCodeChunk(null, null)
+            header += IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1=loopReg, immediate=initVal)
+            out += header
+            val loopStart = IRCodeChunk(loop.label, null)
+            out += loopStart
+            // expand body (recursively handle nested loops)
+            fun addBodyChunk(chunk: IRCodeChunkBase) {
+                when(chunk) {
+                    is IRLoopChunk -> expandLoop(chunk, out)
+                    is IRCodeChunk -> out += chunk
+                    is IRInlineAsmChunk -> {
+                        val asmText = chunk.assembly.trim()
+                        when (asmText) {
+                            "clc" -> out.lastOrNull()?.instructions?.add(IRInstruction(Opcode.CLC))
+                            "sec" -> out.lastOrNull()?.instructions?.add(IRInstruction(Opcode.SEC))
+                            else -> throw IRParseException("encountered unconverted inline assembly chunk in loop")
+                        }
+                    }
+                    is IRInlineBinaryChunk -> throw IRParseException("inline binary data not yet supported in the VM")
+                }
+            }
+            loop.body.forEach { addBodyChunk(it) }
+            val tail = IRCodeChunk(null, null)
+            tail += IRInstruction(Opcode.DEC, IRDataType.WORD, reg1=loopReg)
+            tail += IRInstruction(Opcode.CMPI, IRDataType.WORD, reg1=loopReg, immediate=0)
+            tail += IRInstruction(Opcode.BSTNE, labelSymbol=loop.label!!)
+            out += tail
+        }
+
         // load rest of the program into the list
         val chunkReplacements = mutableListOf<Pair<IRCodeChunkBase, IRCodeChunk>>()
         irProgram.blocks.forEach { block ->
@@ -67,6 +185,7 @@ class VmProgramLoader {
                 when(child) {
                     is IRAsmSubroutine -> throw IRParseException("vm does not support asmsubs (use normal sub): ${child.label}")
                     is IRCodeChunk -> programChunks += child
+                    is IRLoopChunk -> expandLoop(child, programChunks)
                     is IRInlineAsmChunk -> {
                         val asmText = child.assembly.trim()
                         when (asmText) {
@@ -89,6 +208,7 @@ class VmProgramLoader {
                                     }
                                 }
                                 is IRInlineBinaryChunk -> throw IRParseException("inline binary data not yet supported in the VM")
+                                is IRLoopChunk -> expandLoop(subChunk, programChunks)
                                 is IRCodeChunk -> programChunks += subChunk
                             }
                         }

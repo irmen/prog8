@@ -1,5 +1,7 @@
 # M68K Stack Memory Model
 
+**Status: not implemented / design only.** Listed as "Deferred" in `docs/source/todo.rst`.
+
 This document describes a possible M68K-target-only memory model in which
 ordinary subroutine locals live in an activation record on the machine stack.
 The 6502 targets retain the existing statically allocated local-variable model.

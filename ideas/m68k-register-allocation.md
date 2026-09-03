@@ -1,5 +1,7 @@
 # M68k Register Allocation and Calling Convention Design
 
+**Status: not implemented / design only.** Listed as "Deferred" in `docs/source/todo.rst`.
+
 This document describes the design for a **true register allocator** for the
 m68k code generation backend (`codeGenM68k`). It supersedes the earlier
 memory-slot packing approach in `codeGenIntermediate/RegisterPacker.kt`, which

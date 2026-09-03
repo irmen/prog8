@@ -75,18 +75,45 @@ class IRProgram(val name: String,
     fun allAsmSubs(): Sequence<IRAsmSubroutine> = blocks.asSequence().flatMap { it.children.filterIsInstance<IRAsmSubroutine>() }
     fun foreachSub(operation: (sub: IRSubroutine) -> Unit) = allSubs().forEach { operation(it) }
     fun foreachCodeChunk(operation: (chunk: IRCodeChunkBase) -> Unit) {
-        allSubs().flatMap { it.chunks }.forEach { operation(it) }
-        allAsmSubs().forEach { operation(it.asmChunk) }
-        operation(globalInits)
+        fun recurse(chunk: IRCodeChunkBase) {
+            operation(chunk)
+            if(chunk is IRLoopChunk) chunk.body.forEach { recurse(it) }
+        }
+        allSubs().flatMap { it.chunks }.forEach { recurse(it) }
+        allAsmSubs().forEach { recurse(it.asmChunk) }
+        recurse(globalInits)
+        // Note: globalInits body never contains loops, but handle uniformly via recurse
+        // globalInits is itself counted above via recurse
+    }
+
+    // helper to count instructions including inside loops
+    private fun countInstructionsRecursive(chunk: IRCodeChunkBase): Int {
+        return when(chunk) {
+            is IRLoopChunk -> chunk.body.sumOf { countInstructionsRecursive(it) }
+            else -> chunk.instructions.size
+        }
+    }
+    private fun countChunksRecursive(chunk: IRCodeChunkBase): Int {
+        return when(chunk) {
+            is IRLoopChunk -> 1 + chunk.body.sumOf { countChunksRecursive(it) }
+            else -> 1
+        }
     }
 
     fun countCodeElements(): Pair<Int, Int> {
         var numInstr = 0
         var numChunks = 0
-        foreachCodeChunk { chunk ->
-            numChunks++
-            numInstr += chunk.instructions.size
+        // count via top-level chunks recursively
+        allSubs().flatMap { it.chunks }.forEach { chunk ->
+            numChunks += countChunksRecursive(chunk)
+            numInstr += countInstructionsRecursive(chunk)
         }
+        allAsmSubs().forEach { chunk ->
+            numChunks += countChunksRecursive(chunk.asmChunk)
+            numInstr += countInstructionsRecursive(chunk.asmChunk)
+        }
+        numChunks += countChunksRecursive(globalInits)
+        numInstr += countInstructionsRecursive(globalInits)
         return Pair(numInstr, numChunks)
     }
 
@@ -97,16 +124,28 @@ class IRProgram(val name: String,
     }
 
     fun getChunkWithLabel(label: String): IRCodeChunkBase {
+        fun search(chunk: IRCodeChunkBase): IRCodeChunkBase? {
+            if(chunk.label==label) return chunk
+            if(chunk is IRLoopChunk) {
+                for(c in chunk.body) {
+                    val found = search(c)
+                    if(found!=null) return found
+                }
+            }
+            return null
+        }
         for(sub in allSubs()) {
             for(chunk in sub.chunks) {
-                if(chunk.label==label)
-                    return chunk
+                val found = search(chunk)
+                if(found!=null) return found
             }
         }
         for(sub in allAsmSubs()) {
-            if(sub.asmChunk.label==label)
-                return sub.asmChunk
+            val found = search(sub.asmChunk)
+            if(found!=null) return found
         }
+        val foundGlobal = search(globalInits)
+        if(foundGlobal!=null) return foundGlobal
         throw NoSuchElementException("no chunk with label '$label'")
     }
 
@@ -124,19 +163,27 @@ class IRProgram(val name: String,
     }
 
     fun linkChunks() {
+        fun collectLabels(chunk: IRCodeChunkBase, map: MutableMap<String?, IRCodeChunkBase>) {
+            map[chunk.label] = chunk
+            if(chunk is IRLoopChunk) {
+                chunk.body.forEach { collectLabels(it, map) }
+            }
+        }
         fun getLabeledChunks(): Map<String?, IRCodeChunkBase> {
             val result = mutableMapOf<String?, IRCodeChunkBase>()
             blocks.forEach { block ->
                 block.children.forEach { child ->
                     when(child) {
-                        is IRAsmSubroutine -> result[child.label] = child.asmChunk
-                        is IRCodeChunk -> result[child.label] = child
-                        is IRInlineAsmChunk -> result[child.label] = child
-                        is IRInlineBinaryChunk -> result[child.label] = child
+                        is IRAsmSubroutine -> collectLabels(child.asmChunk, result)
+                        is IRCodeChunk -> collectLabels(child, result)
+                        is IRInlineAsmChunk -> collectLabels(child, result)
+                        is IRInlineBinaryChunk -> collectLabels(child, result)
+                        is IRLoopChunk -> collectLabels(child, result)
                         is IRSubroutine -> {
-                            result.putAll(child.chunks.associateBy { it.label })
+                            child.chunks.forEach { collectLabels(it, result) }
                             if (child.chunks.isNotEmpty()) {
                                 result[child.label] = child.chunks.first()
+                                // also map loop bodies inside first chunk if needed already via collectLabels
                             }
                         }
                     }
@@ -160,6 +207,7 @@ class IRProgram(val name: String,
                             is IRCodeChunk -> globalInits.next = child
                             is IRInlineAsmChunk -> globalInits.next = child
                             is IRInlineBinaryChunk -> globalInits.next = child
+                            is IRLoopChunk -> globalInits.next = child
                             is IRSubroutine -> {
                                 if(child.chunks.isNotEmpty())
                                     globalInits.next = child.chunks.first()
@@ -196,6 +244,31 @@ class IRProgram(val name: String,
         fun linkBaseChunk(chunk: IRCodeChunkBase, next: IRCodeChunkBase?) {
             when (chunk) {
                 is IRCodeChunk -> linkCodeChunk(chunk, next)
+                is IRLoopChunk -> {
+                    chunk.next = next
+                    // link body chunks sequentially (internal); last body chunk's next stays null (loop back-edge emitted by backend)
+                    chunk.body.withIndex().forEach { (idx, bodyChunk) ->
+                        val nextBody = if(idx < chunk.body.size - 1) chunk.body[idx+1] else null
+                        linkBaseChunk(bodyChunk, nextBody)
+                    }
+                    // resolve branch targets for instructions inside body (including nested loops' bodies recursively)
+                    fun resolveBody(bc: IRCodeChunkBase) {
+                        if(bc is IRLoopChunk) {
+                            bc.body.forEach { resolveBody(it) }
+                        } else {
+                            bc.instructions.forEach {
+                                if(it.opcode in OpcodesThatBranch && it.opcode!=Opcode.JUMPI && it.opcode!=Opcode.RETURN && it.opcode!=Opcode.RETURNR && it.opcode!=Opcode.RETURNI && it.labelSymbol!=null) {
+                                    if(it.labelSymbol.startsWith('$') || it.labelSymbol.first().isDigit()) {
+                                        requireNotNull(it.address)
+                                    } else {
+                                        if(it.branchTarget==null) it.branchTarget = labeledChunks[it.labelSymbol] ?: throw AssemblyError("Missing jump/call target: ${it.labelSymbol}")
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    chunk.body.forEach { resolveBody(it) }
+                }
                 is IRInlineAsmChunk -> {
                     val lastInstr = chunk.instructions.lastOrNull()
                     if (lastInstr == null || lastInstr.opcode !in OpcodesThatBranchUnconditionally)
@@ -224,6 +297,7 @@ class IRProgram(val name: String,
                     is IRCodeChunk -> linkBaseChunk(child, next)
                     is IRInlineAsmChunk -> linkBaseChunk(child, next)
                     is IRInlineBinaryChunk -> linkBaseChunk(child, next)
+                    is IRLoopChunk -> linkBaseChunk(child, next)
                     is IRSubroutine -> linkSubroutineChunks(child)
                 }
             }
@@ -233,6 +307,27 @@ class IRProgram(val name: String,
 
     fun validate() {
         fun validateChunk(chunk: IRCodeChunkBase, sub: IRSubroutine?, emptyChunkIsAllowed: Boolean) {
+            if (chunk is IRLoopChunk) {
+                require(chunk.label!=null) { "loop chunk needs label" }
+                require(chunk.trip in 1..65536)
+                chunk.body.forEach { validateChunk(it, null, false) }
+                // loop's next is validated like normal chunk linking (outside)
+                chunk.instructions.forEach { instr ->
+                    if(instr.labelSymbol!=null && instr.opcode in OpcodesThatBranch) {
+                        if(instr.opcode==Opcode.JUMPI) {
+                            val symbol = st.lookup(instr.labelSymbol) ?: throw AssemblyError("Missing jump target symbol: ${instr.labelSymbol}")
+                            when(symbol) {
+                                is IRStStaticVariable -> require(symbol.dt.isUnsignedWord)
+                                is IRStMemVar -> require(symbol.dt.isUnsignedWord)
+                                else -> throw AssemblyError("Invalid jump target symbol type: ${instr.labelSymbol}")
+                            }
+                        }
+                        else if(!instr.labelSymbol.startsWith('$') && !instr.labelSymbol.first().isDigit())
+                            require(instr.branchTarget != null) { "branching instruction to label should have branchTarget set" }
+                    }
+                }
+                return
+            }
             if (chunk is IRCodeChunk) {
                 if(!emptyChunkIsAllowed)
                     require(chunk.instructions.isNotEmpty() || chunk.label != null)
@@ -278,6 +373,8 @@ class IRProgram(val name: String,
                     }
                     sub.chunks.forEach { validateChunk(it, sub, false) }
                 }
+                // also validate any top-level loop chunks in blocks (unlikely but handle)
+                block.children.filterIsInstance<IRLoopChunk>().forEach { validateChunk(it, null, false) }
             }
         }
     }
@@ -340,6 +437,7 @@ class IRProgram(val name: String,
                     is IRCodeChunk -> addUsed(child.usedRegisters(indexRegType), child)
                     is IRInlineAsmChunk -> addUsed(child.usedRegisters(indexRegType), child)
                     is IRInlineBinaryChunk -> addUsed(child.usedRegisters(indexRegType), child)
+                    is IRLoopChunk -> addUsed(child.usedRegisters(indexRegType), child)
                     is IRSubroutine -> child.chunks.forEach { chunk -> addUsed(chunk.usedRegisters(indexRegType), child) }
                 }
             }
@@ -402,6 +500,24 @@ class IRProgram(val name: String,
                     new.reversed().forEach { sub.chunks.add(index, it) }
                 }
                 chunkReplacementsInSub.clear()
+            }
+            // also handle inline asm inside loop bodies
+            fun convertLoopBody(loop: IRLoopChunk) {
+                val replacements = mutableListOf<Pair<IRCodeChunkBase, IRCodeChunks>>()
+                loop.body.filterIsInstance<IRInlineAsmChunk>().forEach { asmchunk ->
+                    if(asmchunk.isIR) replacements += asmchunk to convert(asmchunk)
+                }
+                replacements.reversed().forEach { (old, new) ->
+                    val index = loop.body.indexOf(old)
+                    loop.body.removeAt(index)
+                    new.reversed().forEach { loop.body.add(index, it) }
+                }
+                // recurse into nested loops
+                loop.body.filterIsInstance<IRLoopChunk>().forEach { convertLoopBody(it) }
+            }
+            block.children.filterIsInstance<IRLoopChunk>().forEach { convertLoopBody(it) }
+            block.children.filterIsInstance<IRSubroutine>().forEach { sub ->
+                sub.chunks.filterIsInstance<IRLoopChunk>().forEach { convertLoopBody(it) }
             }
         }
     }
@@ -490,6 +606,7 @@ class IRProgram(val name: String,
                     is IRCodeChunk -> bc.usedRegisters(indexRegType).validate(registerTypes, bc)
                     is IRInlineAsmChunk -> bc.usedRegisters(indexRegType).validate(registerTypes, bc)
                     is IRInlineBinaryChunk -> bc.usedRegisters(indexRegType).validate(registerTypes, bc)
+                    is IRLoopChunk -> bc.usedRegisters(indexRegType).validate(registerTypes, bc)
                     is IRSubroutine -> {
                         for(sc in bc.chunks) {
                             sc.usedRegisters(indexRegType).validate(registerTypes, sc)
@@ -521,6 +638,7 @@ class IRBlock(
     operator fun plusAssign(asm: IRInlineAsmChunk) { children += asm }
     operator fun plusAssign(binary: IRInlineBinaryChunk) { children += binary }
     operator fun plusAssign(irCodeChunk: IRCodeChunk) { children += irCodeChunk }
+    operator fun plusAssign(loop: IRLoopChunk) { children += loop }
 
     fun isEmpty(): Boolean = children.isEmpty() || children.all { it.isEmpty() }
     fun isNotEmpty(): Boolean = !isEmpty()
@@ -660,6 +778,38 @@ class IRInlineBinaryChunk(label: String?,
     override fun isEmpty() = data.isEmpty()
     override fun isNotEmpty() = data.isNotEmpty()
     override fun usedRegisters(indexRegType: IRDataType) = RegistersUsed(emptyMap(), emptyMap(), emptyMap(), emptyMap(), emptyMap())
+}
+
+class IRLoopChunk(label: String, val trip: Int, val body: MutableList<IRCodeChunkBase>, next: IRCodeChunkBase? = null): IRCodeChunkBase(label, next) {
+    init {
+        require(trip in 1..65536) { "IRLoopChunk trip out of range 1..65536: $trip" }
+        require(label.isNotBlank()) { "IRLoopChunk requires a label" }
+    }
+    // IRLoopChunk itself carries no direct IRInstructions; its body holds them
+    override fun isEmpty() = body.isEmpty() || body.all { it.isEmpty() }
+    override fun isNotEmpty() = !isEmpty()
+    override fun usedRegisters(indexRegType: IRDataType): RegistersUsed {
+        // NOTE: an alternative design is to report a synthetic target-specific loop
+        // register here (m68k d7, new6502 Y) so the register allocator avoids using it
+        // inside the body. The current backends instead save/restore the physical loop
+        // register around body operations, because new6502 uses Y extensively as a
+        // scratch register and m68k helper routines called by the backend clobber d7
+        // regardless of IR state.
+        val readRegsCounts = mutableMapOf<RegisterNum, Int>().withDefault { 0 }
+        val regsTypes = mutableMapOf<RegisterNum, IRDataType>()
+        val readFpRegsCounts = mutableMapOf<RegisterNum, Int>().withDefault { 0 }
+        val writeRegsCounts = mutableMapOf<RegisterNum, Int>().withDefault { 0 }
+        val writeFpRegsCounts = mutableMapOf<RegisterNum, Int>().withDefault { 0 }
+        body.forEach { chunk ->
+            val used = chunk.usedRegisters(indexRegType)
+            used.readRegs.forEach { (reg, count) -> readRegsCounts[reg] = readRegsCounts.getValue(reg) + count }
+            used.writeRegs.forEach { (reg, count) -> writeRegsCounts[reg] = writeRegsCounts.getValue(reg) + count }
+            used.readFpRegs.forEach { (reg, count) -> readFpRegsCounts[reg] = readFpRegsCounts.getValue(reg) + count }
+            used.writeFpRegs.forEach { (reg, count) -> writeFpRegsCounts[reg] = writeFpRegsCounts.getValue(reg) + count }
+            used.regsTypes.forEach { (reg, type) -> regsTypes.putIfAbsent(reg, type) }
+        }
+        return RegistersUsed(readRegsCounts, writeRegsCounts, readFpRegsCounts, writeFpRegsCounts, regsTypes)
+    }
 }
 
 typealias IRCodeChunks = List<IRCodeChunkBase>

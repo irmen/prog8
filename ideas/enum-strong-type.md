@@ -1,6 +1,7 @@
 # Requirements
 
-> **Status 2026-09: Rejected as default.** Enums will remain syntactic sugar for integer constants. Strong typing hides explicit size/cost and breaks the simple retro vibe for little safety gain (see Vibe Assessment below). Consider only a non-breaking warning (`-Wenum-conversion`) or opt-in `enum strict` if ever revisited.
+> **Status 2026-09: Rejected / won't do.** Listed as "Won't do" in `docs/source/todo.rst`.
+> Enums will remain syntactic sugar for integer constants. Strong typing hides explicit size/cost and breaks the simple retro vibe for little safety gain (see Vibe Assessment below). Consider only a non-breaking warning (`-Wenum-conversion`) or opt-in `enum strict` if ever revisited.
 
 ### Overview & Goals
 The goal is to transition Prog8 enums from being merely syntactic sugar for integer constants into a first-class, strongly typed data type in the Prog8 language. This will improve type safety by preventing erroneous assignments or comparisons between different enums or between enums and raw integers.

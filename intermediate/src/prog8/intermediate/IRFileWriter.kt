@@ -139,6 +139,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
                     is IRCodeChunk -> writeCodeChunk(child)
                     is IRInlineAsmChunk -> writeInlineAsm(child)
                     is IRInlineBinaryChunk -> writeInlineBytes(child)
+                    is IRLoopChunk -> writeLoopChunk(child)
                     is IRSubroutine -> {
                         xml.writeStartElement("SUB")
                         xml.writeAttribute("NAME", child.label)
@@ -156,6 +157,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
                                 is IRInlineAsmChunk -> writeInlineAsm(chunk)
                                 is IRInlineBinaryChunk -> writeInlineBytes(chunk)
                                 is IRCodeChunk -> writeCodeChunk(chunk)
+                                is IRLoopChunk -> writeLoopChunk(chunk)
                             }
                         }
                         xml.writeEndElement()
@@ -207,6 +209,24 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
             xml.writeCharacters("\n")
         }
         xml.writeEndElement()
+        xml.writeEndElement()
+        xml.writeCharacters("\n")
+    }
+
+    private fun writeLoopChunk(loop: IRLoopChunk) {
+        xml.writeStartElement("LOOP")
+        xml.writeAttribute("LABEL", loop.label!!)
+        xml.writeAttribute("TRIP", loop.trip.toString())
+        xml.writeCharacters("\n")
+        loop.body.forEach { chunk ->
+            numChunks++
+            when(chunk) {
+                is IRInlineAsmChunk -> writeInlineAsm(chunk)
+                is IRInlineBinaryChunk -> writeInlineBytes(chunk)
+                is IRCodeChunk -> writeCodeChunk(chunk)
+                is IRLoopChunk -> writeLoopChunk(chunk)
+            }
+        }
         xml.writeEndElement()
         xml.writeCharacters("\n")
     }

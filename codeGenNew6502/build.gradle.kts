@@ -1,7 +1,7 @@
 plugins {
     kotlin("jvm")
     id("application")
-    id("com.peterabeles.gversion") version "1.10.3"
+    id("com.peterabeles.gversion") version "1.11.0"
 }
 
 dependencies {
@@ -46,7 +46,7 @@ dependencies {
     implementation(project(":codeCore"))
     implementation(project(":intermediate"))
     implementation("com.michael-bull.kotlin-result:kotlin-result-jvm:2.3.1")
-    implementation("com.github.ajalt.clikt:clikt:5.0.3")
+    implementation("com.github.ajalt.clikt:clikt:5.1.0")
 
     // Test dependencies - Kotest BOM is provided by root build.gradle.kts
     testImplementation("io.kotest:kotest-runner-junit5")

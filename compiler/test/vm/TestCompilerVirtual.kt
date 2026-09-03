@@ -249,13 +249,13 @@ main {
         var result = compileText(target, true, src, outputDir, writeAssembly = true)!!
         var virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         VmRunner().runAndTestProgram(virtfile.readText()) { vm ->
-            vm.stepCount shouldBe 58
+            vm.stepCount shouldBe 47
         }
 
         result = compileText(target, false, src, outputDir, writeAssembly = true)!!
         virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         VmRunner().runAndTestProgram(virtfile.readText()) { vm ->
-            vm.stepCount shouldBe 58
+            vm.stepCount shouldBe 47
         }
     }
 
@@ -607,6 +607,55 @@ main {
         val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         VmRunner().runAndTestProgram(virtfile.readText()) { vm ->
             vm.memory.getUW(0xff0000u) shouldBe 3837u      // $ff0000 = cx16.r0
+        }
+    }
+
+    test("IRLoopChunk repeat 5 executes 5 times and preserves trip") {
+        val src="""
+main {
+    sub start() {
+        ubyte @shared counter = 0
+        repeat 5 {
+            counter++
+        }
+    }
+}"""
+        val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = true)!!
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
+        val irText = virtfile.readText()
+        // IRLoopChunk should be serialized as <LOOP TRIP="5">
+        irText shouldContain """TRIP="5""""
+        irText shouldNotContain "p8_regfile"
+        val irProgram = IRFileReader().read(virtfile)
+        irProgram.st.stripAllPrefixes()
+        val allocations = VmVariableAllocator(irProgram.st, irProgram.encoding, irProgram.options.compTarget).allocations
+        VmRunner().runAndTestProgram(irText) { vm ->
+            vm.memory.getUB(allocations["main.start.counter"]!!) shouldBe 5u
+        }
+        // also verify nested loops don't clobber
+        val nestedSrc="""
+main {
+    sub start() {
+        ubyte @shared outer = 0
+        ubyte @shared inner = 0
+        repeat 3 {
+            outer++
+            repeat 2 {
+                inner++
+            }
+        }
+    }
+}"""
+        val nestedResult = compileText(VMTarget(), true, nestedSrc, outputDir, writeAssembly = true)!!
+        val nestedVirt = nestedResult.compilationOptions.outputDir.resolve(nestedResult.compilerAst.name + ".p8ir").readText()
+        nestedVirt shouldContain """TRIP="3""""
+        nestedVirt shouldContain """TRIP="2""""
+        val nestedIr = IRFileReader().read(nestedVirt)
+        nestedIr.st.stripAllPrefixes()
+        val nestedAlloc = VmVariableAllocator(nestedIr.st, nestedIr.encoding, nestedIr.options.compTarget).allocations
+        VmRunner().runAndTestProgram(nestedVirt) { vm ->
+            vm.memory.getUB(nestedAlloc["main.start.outer"]!!) shouldBe 3u
+            vm.memory.getUB(nestedAlloc["main.start.inner"]!!) shouldBe 6u
         }
     }
 

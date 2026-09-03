@@ -519,6 +519,7 @@ class IRFileReader {
                 "ASMSUB" -> block += parseAsmSubroutine(reader)
                 "ASM" -> block += parseInlineAssembly(reader)
                 "BYTES" -> block += parseBinaryBytes(reader)
+                "LOOP" -> block += parseLoopChunk(reader)
                 "CB" -> {
                     val chunk = parseCodeBlock(reader)
                     if(chunk.isNotEmpty() || chunk.label==null)
@@ -532,6 +533,31 @@ class IRFileReader {
         }
         require(reader.nextEvent().isEndElement)
         return block
+    }
+
+    private fun parseLoopChunk(reader: XMLEventReader): IRLoopChunk {
+        skipText(reader)
+        val start = reader.nextEvent().asStartElement()
+        require(start.name.localPart=="LOOP") { "missing LOOP" }
+        val attrs = start.attributes.asSequence().associate { it.name.localPart to it.value }
+        val label = attrs.getValue("LABEL")
+        val trip = attrs.getValue("TRIP").toInt()
+        val body = mutableListOf<IRCodeChunkBase>()
+        skipText(reader)
+        while(reader.peek().isStartElement) {
+            val elem = reader.peek().asStartElement().name.localPart
+            val chunk: IRCodeChunkBase = when(elem) {
+                "CHUNK" -> parseCodeBlock(reader)
+                "BYTES" -> parseBinaryBytes(reader)
+                "ASM" -> parseInlineAssembly(reader)
+                "LOOP" -> parseLoopChunk(reader)
+                else -> throw IRParseException("invalid line in LOOP: ${reader.peek()}")
+            }
+            body += chunk
+            skipText(reader)
+        }
+        require(reader.nextEvent().isEndElement)
+        return IRLoopChunk(label, trip, body, null)
     }
 
     private fun parseSubroutine(reader: XMLEventReader): IRSubroutine {
@@ -552,6 +578,7 @@ class IRFileReader {
                 "CHUNK" -> parseCodeBlock(reader)
                 "BYTES" -> parseBinaryBytes(reader)
                 "ASM" -> parseInlineAssembly(reader)
+                "LOOP" -> parseLoopChunk(reader)
                 else -> throw IRParseException("invalid line in SUB: ${reader.peek()}")
             }
             skipText(reader)

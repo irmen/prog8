@@ -1,5 +1,7 @@
 # Implementation Plan: Remove `ARRAY_POINTER` from Type System
 
+**Status: TODO / not implemented.** Listed as an active item in `docs/source/todo.rst`.
+
 ## Overview
 
 **Goal**: Remove the target-dependent `ARRAY_POINTER` type and replace it with `ARRAY` using a pointer element type, making the type system target-independent.

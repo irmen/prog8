@@ -1,5 +1,7 @@
 # Scoping for qualified symbols - brevity
 
+**Status: TODO / not implemented.** Listed as an active item in `docs/source/todo.rst`.
+
 ## Problem we are solving
 
 Prog8 supports nested subroutines, and symbols in an outer scope must currently be reached by their fully qualified global name (`main.outer.inner.counter`). That is verbose, especially when the same prefix repeats many times inside a deep sub. The existing `alias` statement solves brevity, but it requires a separate declaration for every symbol and quickly becomes noisy when several outer symbols are used.

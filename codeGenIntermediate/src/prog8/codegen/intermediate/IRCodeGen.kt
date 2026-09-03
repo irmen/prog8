@@ -369,7 +369,7 @@ class IRCodeGen(
                 if(sub.chunks.isNotEmpty()) {
                     val first = sub.chunks.first()
                     if(first.label==null) {
-                        val replacement = when(first) {
+                        val replacement: IRCodeChunkBase = when(first) {
                             is IRCodeChunk -> {
                                 val replacement = IRCodeChunk(sub.label, first.next)
                                 replacement.instructions += first.instructions
@@ -378,12 +378,12 @@ class IRCodeGen(
                             }
                             is IRInlineAsmChunk -> IRInlineAsmChunk(sub.label, first.assembly, first.isIR, first.next)
                             is IRInlineBinaryChunk -> IRInlineBinaryChunk(sub.label, first.data, first.next)
+                            is IRLoopChunk -> IRLoopChunk(sub.label, first.trip, first.body, first.next)
                         }
                         sub.chunks.removeAt(0)
                         sub.chunks.add(0, replacement)
                     } else if(first.label != sub.label) {
-                        val next = first as? IRCodeChunk
-                        sub.chunks.add(0, IRCodeChunk(sub.label, next))
+                        sub.chunks.add(0, IRCodeChunk(sub.label, first))
                     }
                 }
             }
@@ -620,7 +620,7 @@ class IRCodeGen(
             val newFirst = IRCodeChunk(label, first)
             return listOf(newFirst) + chunks
         }
-        val labeledFirstChunk = when(first) {
+        val labeledFirstChunk: IRCodeChunkBase = when(first) {
             is IRCodeChunk -> {
                 val newChunk = IRCodeChunk(label, first.next)
                 newChunk.instructions += first.instructions
@@ -632,6 +632,10 @@ class IRCodeGen(
             }
             is IRInlineBinaryChunk -> {
                 IRInlineBinaryChunk(label, first.data, first.next)
+            }
+            is IRLoopChunk -> {
+                // transplant label: create wrapper chunk that falls through to loop
+                IRCodeChunk(label, first)
             }
         }
         return listOf(labeledFirstChunk) + chunks.drop(1)
@@ -998,6 +1002,15 @@ class IRCodeGen(
         return result
     }
 
+    private fun isLoopVarUsed(forLoop: PtForLoop, loopvarSymbol: String): Boolean {
+        fun recurse(node: PtNode): Boolean {
+            if(node is PtIdentifier && node.name == loopvarSymbol) return true
+            for(child in node.children) if(recurse(child)) return true
+            return false
+        }
+        return recurse(forLoop.statements)
+    }
+
     private fun translateForInConstantRange(forLoop: PtForLoop, loopvar: StNode): IRCodeChunks {
         val loopLabel = createLabelName()
         require(forLoop.variable.name == loopvar.scopedNameString)
@@ -1013,6 +1026,14 @@ class IRCodeGen(
             throw AssemblyError("empty range")
         if(iterable.step==0)
             throw AssemblyError("step 0")
+        // Eligibility for counted IR loop: constant bounds, step +-1, loop var not read inside body, trip 1..65536 (spec 8.6)
+        if(iterable.step==1 || iterable.step==-1) {
+            val trip = iterable.count()
+            if(trip in 1..65536 && !isLoopVarUsed(forLoop, loopvarSymbol)) {
+                val bodyChunks = translateNode(forLoop.statements).toMutableList()
+                return listOf(IRLoopChunk(loopLabel, trip, bodyChunks, null))
+            }
+        }
         val rangeEndExclusiveUntyped = iterable.last + iterable.step
         val rangeEndExclusiveWrapped =
             when (loopvarDtIr) {
@@ -1722,58 +1743,40 @@ class IRCodeGen(
 
 
     private fun translate(repeat: PtRepeatLoop): IRCodeChunks {
-        when (repeat.count.asConstInteger()) {
-            0 -> return emptyList()
-            1 -> return translateGroup(repeat.children)
-            256 -> {
-                // 256 iterations can still be done with just a byte counter if you set it to zero as starting value.
-                repeat.setChild(0, PtNumber(BaseDataType.UBYTE, 0.0, repeat.count.position))
+        val constRepeats = repeat.count.asConstInteger()
+        if(constRepeats!=null) {
+            when(constRepeats) {
+                0 -> return emptyList()
+                1 -> return translateGroup(repeat.children)
             }
+            require(constRepeats in 1..65536) { "repeat count out of range 1..65536: $constRepeats" }
+            val repeatLabel = createLabelName()
+            val bodyChunks = translateNode(repeat.statements).toMutableList()
+            // Preserve counted trip as IR loop; backend will emit optimal dbra/dey loop
+            val loop = IRLoopChunk(repeatLabel, constRepeats, bodyChunks, null)
+            return listOf(loop)
         }
 
         val repeatLabel = createLabelName()
         val skipRepeatLabel = createLabelName()
-        val constRepeats = repeat.count.asConstInteger()
         val result = mutableListOf<IRCodeChunkBase>()
-        // The DEC instruction only sets Z correctly for BYTE (or for the full multi-byte
-        // value if the target honors the multi-byte status-bits contract, e.g. M68000).
-        // On 8-bit targets we must emit an explicit CMPI #0 before the BSTNE branch
-        // because DEC only sets Z based on the last byte.
-        // See CpuType.statusBitsOnMultiByteOps for the rationale.
         val needsExplicitCmpi = !options.compTarget.cpu.statusBitsOnMultiByteOps
-        if(constRepeats==65536) {
-            // make use of the word wrap around to count to 65536
-            val resultRegister = registers.next(IRDataType.WORD)
-            addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1=resultRegister, immediate = 0), null)
-            result += labelFirstChunk(translateNode(repeat.statements), repeatLabel)
-            result += IRCodeChunk(null, null).also {
-                it += IRInstruction(Opcode.DEC, IRDataType.WORD, reg1 = resultRegister)
-                if (needsExplicitCmpi) {
-                    it += IRInstruction(Opcode.CMPI, IRDataType.WORD, reg1 = resultRegister, immediate = 0)
-                }
-                it += IRInstruction(Opcode.BSTNE, labelSymbol = repeatLabel)
+        val irDt = irType(repeat.count.type)
+        val countTr = expressionEval.translateExpression(repeat.count)
+        addToResult(result, countTr, countTr.resultReg, -1)
+        if (repeat.count.asConstValue() == null) {
+            if (needsExplicitCmpi) {
+                addInstr(result, IRInstruction(Opcode.CMPI, irDt, reg1 = countTr.resultReg, immediate = 0), null)
             }
-        } else {
-            val irDt = irType(repeat.count.type)
-            val countTr = expressionEval.translateExpression(repeat.count)
-            addToResult(result, countTr, countTr.resultReg, -1)
-            if (repeat.count.asConstValue() == null) {
-                // check if the counter is already zero. On 8-bit targets we need an
-                // explicit CMPI #0 because the previous load (from expressionEval) does
-                // not reliably set Z for multi-byte values.
-                if (needsExplicitCmpi) {
-                    addInstr(result, IRInstruction(Opcode.CMPI, irDt, reg1 = countTr.resultReg, immediate = 0), null)
-                }
-                addInstr(result, IRInstruction(Opcode.BSTEQ, labelSymbol = skipRepeatLabel), null)
+            addInstr(result, IRInstruction(Opcode.BSTEQ, labelSymbol = skipRepeatLabel), null)
+        }
+        result += labelFirstChunk(translateNode(repeat.statements), repeatLabel)
+        result += IRCodeChunk(null, null).also {
+            it += IRInstruction(Opcode.DEC, irDt, reg1 = countTr.resultReg)
+            if (needsExplicitCmpi) {
+                it += IRInstruction(Opcode.CMPI, irDt, reg1 = countTr.resultReg, immediate = 0)
             }
-            result += labelFirstChunk(translateNode(repeat.statements), repeatLabel)
-            result += IRCodeChunk(null, null).also {
-                it += IRInstruction(Opcode.DEC, irDt, reg1 = countTr.resultReg)
-                if (needsExplicitCmpi) {
-                    it += IRInstruction(Opcode.CMPI, irDt, reg1 = countTr.resultReg, immediate = 0)
-                }
-                it += IRInstruction(Opcode.BSTNE, labelSymbol = repeatLabel)
-            }
+            it += IRInstruction(Opcode.BSTNE, labelSymbol = repeatLabel)
         }
         result += IRCodeChunk(skipRepeatLabel, null)
         return result
@@ -2008,7 +2011,6 @@ class IRCodeGen(
                     }
                 }
                 is PtStructDecl -> { /* do nothing, should be found in the symbol table */ }
-                is PtMemorySlabReservation -> { /* do nothing, should be found in the symbol table */ }
                 else -> TODO("weird block child node $child  ${child.position}")
             }
         }
@@ -2243,7 +2245,6 @@ class IRCodeGen(
                 val newReg = registers.next(IRDataType.WORD)
                 when(indexDt) {
                     IRDataType.BYTE -> addInstr(result, IRInstruction(Opcode.EXT, IRDataType.BYTE, reg1=newReg, reg2=tr.resultReg), null)
-                    IRDataType.WORD -> {} // already WORD
                     IRDataType.LONG -> addInstr(result, IRInstruction(Opcode.LSIGW, IRDataType.LONG, reg1=newReg, reg2=tr.resultReg), null)
                     IRDataType.POINTER -> TODO("handle pointer-typed array index for word-indexed access at ${index.position}")
                     else -> throw IllegalArgumentException("unexpected index dt $indexDt for wordIndex")

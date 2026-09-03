@@ -1074,45 +1074,28 @@ class TestInstructionSelectionOptimizations : FunSpec({
         }
     }
 
-    test("dbra peephole for repeat word loop 1000") {
-        val lines = mutableListOf(
-            "    move.w  #1000,p8_regfile+4",
-            "p8_label_gen_2:",
-            "    addq.w  #1,p8b_main.p8v_sum",
-            "    subq.w  #1,p8_regfile+4",
-            "    bne  p8_label_gen_2"
-        )
-        optimizeAssembly(lines)
-        lines.any { it.contains("dbra  d7,p8_label_gen_2") } shouldBe true
+    test("dbra via IRLoopChunk for repeat word loop 1000") {
+        val body = IRCodeChunk(null, null).also { it += IRInstruction(Opcode.INCM, IRDataType.WORD, labelSymbol="p8b_main.p8v_sum") }
+        val loop = IRLoopChunk("p8_label_gen_2", 1000, mutableListOf(body))
+        val lines = generateAsmChunks(tempRoot, listOf(loop))
         lines.any { it.contains("move.w  #999,d7") } shouldBe true
-        lines.any { it.contains("subq.w") } shouldBe false
+        lines.any { it.contains("dbra  d7,p8_label_gen_2") } shouldBe true
     }
 
-    test("dbra peephole for repeat byte loop 100") {
-        val lines = mutableListOf(
-            "    move.b  #100,p8_regfile+0",
-            "p8_label_gen_1:",
-            "    addq.w  #1,p8b_main.p8v_sum",
-            "    subq.b  #1,p8_regfile+0",
-            "    bne  p8_label_gen_1"
-        )
-        optimizeAssembly(lines)
-        lines.any { it.contains("dbra  d7,p8_label_gen_1") } shouldBe true
+    test("dbra via IRLoopChunk for repeat byte loop 100") {
+        val body = IRCodeChunk(null, null).also { it += IRInstruction(Opcode.INCM, IRDataType.WORD, labelSymbol="p8b_main.p8v_sum") }
+        val loop = IRLoopChunk("p8_label_gen_1", 100, mutableListOf(body))
+        val lines = generateAsmChunks(tempRoot, listOf(loop))
         lines.any { it.contains("move.w  #99,d7") } shouldBe true
-        lines.any { it.contains("subq.b") } shouldBe false
+        lines.any { it.contains("dbra  d7,p8_label_gen_1") } shouldBe true
     }
 
-    test("dbra peephole for repeat 256 special case") {
-        val lines = mutableListOf(
-            "    move.b  #0,p8_regfile+0",
-            "p8_label_gen_1:",
-            "    addq.w  #1,p8b_main.p8v_sum",
-            "    subq.b  #1,p8_regfile+0",
-            "    bne  p8_label_gen_1"
-        )
-        optimizeAssembly(lines)
-        lines.any { it.contains("dbra  d7,p8_label_gen_1") } shouldBe true
+    test("dbra via IRLoopChunk for repeat 256 special case") {
+        val body = IRCodeChunk(null, null).also { it += IRInstruction(Opcode.INCM, IRDataType.WORD, labelSymbol="p8b_main.p8v_sum") }
+        val loop = IRLoopChunk("p8_label_gen_1", 256, mutableListOf(body))
+        val lines = generateAsmChunks(tempRoot, listOf(loop))
         lines.any { it.contains("move.w  #255,d7") } shouldBe true
+        lines.any { it.contains("dbra  d7,p8_label_gen_1") } shouldBe true
     }
 
     test("dbra peephole does not trigger when body uses d7") {
@@ -1139,33 +1122,65 @@ class TestInstructionSelectionOptimizations : FunSpec({
         lines.any { it.contains("dbra") } shouldBe false
     }
 
-    test("dbra peephole preserves label on init line") {
-        val lines = mutableListOf(
-            "outer:  move.w  #100,p8_regfile+4",
-            "p8_label_gen_2:",
-            "    addq.w  #1,p8b_main.p8v_sum",
-            "    subq.w  #1,p8_regfile+4",
-            "    bne  p8_label_gen_2"
-        )
-        optimizeAssembly(lines)
+    test("dbra via IRLoopChunk preserves label on init line") {
+        val body = IRCodeChunk(null, null).also { it += IRInstruction(Opcode.INCM, IRDataType.WORD, labelSymbol="p8b_main.p8v_sum") }
+        val outerChunk = IRCodeChunk("outer", null)
+        val loop = IRLoopChunk("p8_label_gen_2", 100, mutableListOf(body))
+        val lines = generateAsmChunks(tempRoot, listOf(outerChunk, loop))
         lines.any { it.contains("outer:") } shouldBe true
         lines.any { it.contains("dbra  d7,p8_label_gen_2") } shouldBe true
         lines.any { it.contains("move.w  #99,d7") } shouldBe true
-        lines.any { it.contains("move.w  #100,p8_regfile+4") } shouldBe false
     }
 
-    test("dbra peephole preserves label on branch line") {
-        val lines = mutableListOf(
-            "    move.w  #100,p8_regfile+4",
-            "p8_label_gen_2:",
-            "    addq.w  #1,p8b_main.p8v_sum",
-            "    subq.w  #1,p8_regfile+4",
-            "exit:  bne  p8_label_gen_2"
-        )
-        optimizeAssembly(lines)
-        lines.any { it.contains("exit:") } shouldBe true
+    test("dbra via IRLoopChunk preserves label on loop") {
+        val body = IRCodeChunk(null, null).also { it += IRInstruction(Opcode.INCM, IRDataType.WORD, labelSymbol="p8b_main.p8v_sum") }
+        val loop = IRLoopChunk("p8_label_gen_2", 100, mutableListOf(body))
+        val lines = generateAsmChunks(tempRoot, listOf(loop))
+        lines.any { it.contains("p8_label_gen_2:") } shouldBe true
         lines.any { it.contains("dbra  d7,p8_label_gen_2") } shouldBe true
-        lines.any { it.contains("subq.w") } shouldBe false
+    }
+
+    test("IRLoopChunk saves d7 around sqrt helper call") {
+        val body = IRCodeChunk(null, null).also {
+            it += IRInstruction(Opcode.SQRT, IRDataType.BYTE, reg1=1, reg2=2)
+        }
+        val loop = IRLoopChunk("p8_label_gen_2", 5, mutableListOf(body))
+        val lines = generateAsmChunks(tempRoot, listOf(loop))
+        lines.any { it.contains("dbra  d7,p8_label_gen_2") } shouldBe true
+        lines.any { it.contains("move.w  d7,-(sp)") } shouldBe true
+        lines.any { it.contains("move.w  (sp)+,d7") } shouldBe true
+    }
+
+    test("IRLoopChunk saves d7 around long multiply helper on 68000") {
+        val target = Amiga500Target()
+        val options = CompilationOptions.builder(target)
+            .output(OutputType.RAW)
+            .zeropage(ZeropageType.FLOATSAFE)
+            .floats(false)
+            .compilerVersion("test")
+            .memtopAddress(0xffffu)
+            .optimize(true)
+            .build()
+        val program = IRProgram("test", IRSymbolTable(), options, DummyStringEncoder)
+        val outputDir = tempRoot.resolve("test-m68k-loop-longmul")
+        program.options.outputDir = outputDir
+        val sub = IRSubroutine("test.start", emptyList(), emptyList(), Position.DUMMY)
+        val body = IRCodeChunk(null, null).also {
+            it += IRInstruction(Opcode.MUL, IRDataType.LONG, reg1=1, immediate=3)
+        }
+        sub.chunks.add(IRLoopChunk("p8_label_gen_2", 5, mutableListOf(body)))
+        val block = IRBlock("test", false, IRBlock.Options(), Position.DUMMY)
+        block.children.add(sub)
+        program.blocks.add(block)
+
+        outputDir.toFile().deleteRecursively()
+        outputDir.toFile().mkdirs()
+        AsmGen(program, target).generate()
+        val asmFile = outputDir.resolve("test.asm")
+        val lines = asmFile.readText().lines().map { it.trim() }
+        lines.any { it.contains("bsr  p8_umult32") } shouldBe true
+        lines.any { it.contains("move.w  d7,-(sp)") } shouldBe true
+        lines.any { it.contains("move.w  (sp)+,d7") } shouldBe true
     }
 
     test("dbra peephole does not trigger when body reads the counter slot") {

@@ -1,5 +1,9 @@
 # Manual Generic Subroutines
 
+**Status: deferred / won't do soon.** This proposal is not currently planned for
+implementation. Several builtin functions already use hardcoded specialization
+instead. See `docs/source/todo.rst` under "Won't do's or deferred".
+
 ## Overview
 
 Prog8 could support a limited form of polymorphism for subroutines by

@@ -1,6 +1,7 @@
 package prog8.codegen.intermediate
 
 import prog8.code.core.IErrorReporter
+import prog8.code.core.Position
 import prog8.intermediate.*
 
 class IRPeepholeOptimizer(private val irprog: IRProgram, private val retainSSA: Boolean) {
@@ -84,9 +85,33 @@ class IRPeepholeOptimizer(private val irprog: IRProgram, private val retainSSA: 
                 }
             }
             removeEmptyChunks(sub)
+            optimizeLoopBodies(sub, retainSSA)
         }
 
         irprog.linkChunks()  // re-link
+    }
+
+    private fun optimizeLoopBodies(sub: IRSubroutine, retainSSA: Boolean) {
+        var loopId = 0
+        fun recurse(loop: IRLoopChunk) {
+            loop.body.filterIsInstance<IRLoopChunk>().forEach { recurse(it) }
+            val bodySub = IRSubroutine("${sub.label}.loop${loopId++}", emptyList(), emptyList(), Position.DUMMY)
+            bodySub.chunks += loop.body
+            joinChunks(bodySub, retainSSA)
+            removeEmptyChunks(bodySub)
+            joinChunks(bodySub, retainSSA)
+            bodySub.chunks.forEach { chunk ->
+                if (chunk is IRCodeChunk) {
+                    do {
+                        val indexed = chunk.instructions.withIndex().map { IndexedValue(it.index, it.value) }
+                        val changed = fusePointerPostInc(chunk, indexed) || removeNops(chunk, indexed)
+                    } while (changed)
+                }
+            }
+            loop.body.clear()
+            loop.body += bodySub.chunks
+        }
+        sub.chunks.filterIsInstance<IRLoopChunk>().forEach { recurse(it) }
     }
 
     private fun replaceConcatZeroMsbWithExt(chunk: IRCodeChunk, indexedInstructions: List<IndexedValue<IRInstruction>>): Boolean {
@@ -264,6 +289,7 @@ class IRPeepholeOptimizer(private val irprog: IRProgram, private val retainSSA: 
                         chunks += candidate
                     }
                 }
+                is IRLoopChunk -> chunks += candidate
             }
         }
         sub.chunks.clear()

@@ -1,7 +1,6 @@
 package prog8.codegen.intermediate
 
 import prog8.code.core.IErrorReporter
-import prog8.intermediate.indexRegType
 import prog8.intermediate.*
 
 
@@ -242,6 +241,11 @@ class IRUnusedCodeRemover(
             val new = mutableSetOf<IRCodeChunkBase>()
             reachable.forEach {
                 it.next?.let { next -> new += next }
+                if (it is IRLoopChunk) {
+                    // A reachable counted loop makes every body chunk reachable too.
+                    // The body is no longer represented by next pointers in the outer list.
+                    new += it.body
+                }
                 it.instructions.forEach { instr ->
                     if (instr.branchTarget == null)
                         instr.labelSymbol?.let { label ->
@@ -333,6 +337,9 @@ class IRUnusedCodeRemover(
                                     chunk.instructions.clear()
                                     numRemoved++
                                 }
+                            }
+                            is IRLoopChunk -> {
+                                // keep loop at subroutine entry; don't remove
                             }
                             is IRInlineAsmChunk, is IRInlineBinaryChunk -> {
                                 sub.chunks[index] = IRCodeChunk(chunk.label, chunk.next)

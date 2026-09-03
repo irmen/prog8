@@ -107,6 +107,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
 
     private var labelSeqCounter = 0
     private var lastSourceLine = -1
+    private var loopNestingDepth = 0
     val dataFloatConstants = mutableListOf<Pair<String, Double>>()
 
     fun makeLabel(prefix: String): String {
@@ -440,6 +441,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
                         if (cl != null) emitLabel(cl)
                         translateChunk(element)
                     }
+                    is IRLoopChunk -> translateLoopChunk(element)
                     is IRInlineAsmChunk -> emitRaw(element.assembly)
                     is IRInlineBinaryChunk -> {
                         val bytes = element.data.joinToString(",") { "$${it.toString(16).padStart(2, '0')}" }
@@ -481,6 +483,10 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
                         emitLabel(chunkLabel)
                     translateChunk(chunk, livenessInstructions, instructionOffset, deadStoreSuppressionAllowed)
                     instructionOffset += chunk.instructions.size
+                }
+                is IRLoopChunk -> {
+                    translateLoopChunk(chunk)
+                    // loops contain no top-level instructions accounted in liveness offset
                 }
                 is IRInlineAsmChunk -> {
                     val cl = chunk.label?.let { fixNameSymbols(it) }
@@ -536,11 +542,50 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         return REGFILE_LABEL in chunk.assembly || FLOAT_REGFILE_LABEL in chunk.assembly
     }
 
+    private fun translateLoopChunk(loop: IRLoopChunk) {
+        // Preserve counted loop as efficient m68k dbra.
+        // Use d7 as loop register; handle nesting via stack save/restore.
+        val label = fixNameSymbols(loop.label!!)
+        val tripMinusOne = if(loop.trip==65536) 65535 else loop.trip-1
+        val needsSave = loopNestingDepth > 0
+        if(needsSave) emitLine("move.w  d7,-(sp)", "save outer loop counter")
+        emitLine("move.w  #$tripMinusOne,d7")
+        emitLabel(label)
+        loopNestingDepth++
+        for(chunk in loop.body) {
+            when(chunk) {
+                is IRCodeChunk -> {
+                    val cl = chunk.label?.let { fixNameSymbols(it) }
+                    if(cl!=null && cl!=label) emitLabel(cl)
+                    translateChunk(chunk, preserveLoopCounter = true)
+                }
+                is IRLoopChunk -> translateLoopChunk(chunk)
+                is IRInlineAsmChunk -> {
+                    val cl = chunk.label?.let { fixNameSymbols(it) }
+                    if(cl!=null) emitLabel(cl)
+                    emitLine("move.w  d7,-(sp)", "save loop counter around inline assembly")
+                    emitRaw(chunk.assembly)
+                    emitLine("move.w  (sp)+,d7", "restore loop counter after inline assembly")
+                }
+                is IRInlineBinaryChunk -> {
+                    val cl = chunk.label?.let { fixNameSymbols(it) }
+                    if(cl!=null) emitLabel(cl)
+                    val bytes = chunk.data.joinToString(",") { "$${it.toString(16).padStart(2, '0')}" }
+                    emitLine("dc.b  $bytes")
+                }
+            }
+        }
+        loopNestingDepth--
+        emitLine("dbra  d7,$label")
+        if(needsSave) emitLine("move.w  (sp)+,d7", "restore outer loop counter")
+    }
+
     private fun translateChunk(
         chunk: IRCodeChunk,
         livenessInstructions: List<IRInstruction> = chunk.instructions,
         instructionOffset: Int = 0,
-        deadStoreSuppressionAllowed: Boolean = true
+        deadStoreSuppressionAllowed: Boolean = true,
+        preserveLoopCounter: Boolean = false
     ) {
         emitSourceComment(chunk.sourceLinesPositions)
         val callOptimizations = mutableMapOf<Int, ImmediateCallOptimization>()
@@ -586,12 +631,36 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         }
         for (index in chunk.instructions.indices) {
             val insn = chunk.instructions[index]
+            val clobbersLoopCounter = preserveLoopCounter && mayClobberLoopCounter(insn)
+            if (clobbersLoopCounter)
+                emitLine("move.w  d7,-(sp)", "save loop counter around call")
             translateInstruction(
                 insn,
                 callOptimizations[index],
                 index in deadLoadIndices
             )
+            if (clobbersLoopCounter)
+                emitLine("move.w  (sp)+,d7", "restore loop counter after call")
         }
+    }
+
+    private fun mayClobberLoopCounter(insn: IRInstruction): Boolean {
+        if (insn.opcode in setOf(Opcode.CALL, Opcode.CALLI, Opcode.CALLFAR, Opcode.CALLFARVB, Opcode.SYSCALL))
+            return true
+        if (insn.opcode == Opcode.SQRT)
+            return true
+        if (insn.type == IRDataType.LONG && cpu < CpuType.M68020) {
+            if (insn.opcode in setOf(
+                    Opcode.MUL, Opcode.MULR, Opcode.MULM,
+                    Opcode.MULS, Opcode.MULSR, Opcode.MULSM,
+                    Opcode.DIV, Opcode.DIVR, Opcode.DIVM,
+                    Opcode.DIVS, Opcode.DIVSR, Opcode.DIVSM,
+                    Opcode.MOD, Opcode.MODS,
+                    Opcode.DIVMOD, Opcode.DIVMODR, Opcode.SDIVMOD, Opcode.SDIVMODR
+                ))
+                return true
+        }
+        return false
     }
 
     private fun isRegisterReadElsewhere(instructions: List<IRInstruction>, callIndex: Int, register: RegId): Boolean {
