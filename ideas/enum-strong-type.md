@@ -1,5 +1,7 @@
 # Requirements
 
+> **Status 2026-09: Rejected as default.** Enums will remain syntactic sugar for integer constants. Strong typing hides explicit size/cost and breaks the simple retro vibe for little safety gain (see Vibe Assessment below). Consider only a non-breaking warning (`-Wenum-conversion`) or opt-in `enum strict` if ever revisited.
+
 ### Overview & Goals
 The goal is to transition Prog8 enums from being merely syntactic sugar for integer constants into a first-class, strongly typed data type in the Prog8 language. This will improve type safety by preventing erroneous assignments or comparisons between different enums or between enums and raw integers.
 
@@ -36,6 +38,10 @@ Currently, `Enumeration` nodes in the `compilerAst` are lowered into standard co
 
 ### Underlying Integer Type
 The enum's underlying integer type is inferred from the member values, reusing the existing logic in `Antlr2KotlinVisitor.kt` that computes the `largestType` across all members. No new syntax needed — if a member exceeds 255 the type automatically widens from `ubyte` to `uword`, matching current behavior.
+
+### Vibe Assessment (2026-09): Nay
+
+Consistent with the `var x = <value>` rejection in `docs/source/todo.rst:6`: Prog8 is an explicit, size-aware retro language (`ubyte` vs `uword` vs `long` has direct RAM/code-size cost). Enums as plain `const ubyte` groups (`docs/source/variables.rst:249`) fit that - zero cost, zero ceremony, hardware names stay usable as `ubyte`. Strong typing turns the simplest type into the most complex (new `ISubType`, preserved `Enumeration` nodes, erasure, flag plumbing) for a domain where exhaustive checking is rare and intentional `ubyte` reuse is common. Keep sugar by default; if needed, prefer a warning over a breakage.
 
 ### Cons
 
