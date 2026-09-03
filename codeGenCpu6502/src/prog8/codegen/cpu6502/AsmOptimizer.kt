@@ -1,9 +1,6 @@
 package prog8.codegen.cpu6502
 
-import prog8.code.GENERATED_LABEL_PREFIX
-import prog8.code.StConstant
-import prog8.code.StMemVar
-import prog8.code.SymbolTable
+import prog8.code.*
 import prog8.code.core.ICompilationTarget
 
 // note: see https://wiki.nesdev.org/w/index.php/6502_assembly_optimisations
@@ -40,6 +37,15 @@ internal fun optimizeAssembly(lines: MutableList<String>, machine: ICompilationT
         linesByFour = runPass(optimizeUselessPushPopStack(linesByFour), 4, linesByFour)
         linesByFour = runPass(optimizeUnneededTempvarInAdd(linesByFour), 4, linesByFour)
         linesByFour = runPass(optimizeTSBtoRegularOr(linesByFour), 4, linesByFour)
+
+        var linesByFive = getLinesBy(pretrimmed, lines, 5)
+        linesByFive = runPass(optimizeFoldIndexOffset(linesByFive, symbolTable), 5, linesByFive)
+
+        var linesBySix = getLinesBy(pretrimmed, lines, 6)
+        linesBySix = runPass(optimizeFoldIndexOffsetSplitWord(linesBySix, symbolTable), 6, linesBySix)
+
+        var linesBySeven = getLinesBy(pretrimmed, lines, 7)
+        linesBySeven = runPass(optimizeFoldIndexOffsetNonSplitWord(linesBySeven, symbolTable), 7, linesBySeven)
 
         var linesByFourteen = getLinesBy(pretrimmed, lines, 14)
         linesByFourteen = runPass(optimizeSameAssignments(linesByFourteen, machine, symbolTable), 14, linesByFourteen)
@@ -884,6 +890,207 @@ private fun optimizeUnneededTempvarInAdd(linesByFour: Sequence<List<TrimmedLine>
                 mods.add(Modification(lines[3].index, true, null))
             }
         }
+    }
+
+    return mods
+}
+
+private fun withLabel(line: TrimmedLine, newInstruction: String): String {
+    val label = keeplabelPretrimmed(line.value)
+    return if (label.isEmpty()) newInstruction else "$label ${newInstruction.trimStart()}"
+}
+
+private fun scaleConstant(constStr: String, scale: Int): String {
+    val value = if (constStr.startsWith("$"))
+        constStr.substring(1).toInt(16)
+    else
+        constStr.toInt()
+    val scaled = value * scale
+    return if (constStr.startsWith("$"))
+        "$${scaled.toString(16).padStart(2, '0')}"
+    else
+        scaled.toString()
+}
+
+private fun isArrayByteSizedAndSmall(name: String, symbolTable: SymbolTable): Boolean {
+    val symbol = symbolTable.flat[name]
+    return when (symbol) {
+        is StStaticVariable -> {
+            val len = symbol.length
+            (symbol.dt.isByteArray || symbol.dt.isString) && len != null && len <= 256u
+        }
+        is StMemVar -> {
+            val len = symbol.length
+            symbol.dt.isByteArray && len != null && len <= 256u
+        }
+        else -> false
+    }
+}
+
+private fun isArrayWordSizedAndSmall(name: String, symbolTable: SymbolTable): Boolean {
+    val symbol = symbolTable.flat[name]
+    return when (symbol) {
+        is StStaticVariable -> {
+            val len = symbol.length
+            symbol.dt.isWordArray && len != null && len <= 256u
+        }
+        is StMemVar -> {
+            val len = symbol.length
+            symbol.dt.isWordArray && len != null && len <= 256u
+        }
+        else -> false
+    }
+}
+
+private fun optimizeFoldIndexOffset(
+    linesByFive: Sequence<List<TrimmedLine>>,
+    symbolTable: SymbolTable
+): List<Modification> {
+    val mods = mutableListOf<Modification>()
+
+    for (lines in linesByFive) {
+        val first = lines[0].instruction
+        val second = lines[1].instruction
+        val third = lines[2].instruction
+        val fourth = lines[3].instruction
+        val fifth = lines[4].instruction
+
+        if (!first.startsWith("lda ") || second != "clc" || !third.startsWith("adc "))
+            continue
+        if (fourth != "tay" && fourth != "tax")
+            continue
+
+        val reg = fourth[2]
+        val constOperand = third.extractOperandTrimmed()
+        if (!constOperand.startsWith("#"))
+            continue
+        val constValue = constOperand.substring(1)
+
+        val fifthOperand = fifth.extractOperandTrimmed()
+        if (!fifthOperand.endsWith(",$reg") || fifthOperand.startsWith("("))
+            continue
+
+        val addrPart = fifthOperand.dropLast(2)
+        if (!isArrayByteSizedAndSmall(addrPart, symbolTable)) continue
+
+        val mnemonic = fifth.take(3)
+        val varName = first.extractOperandTrimmed()
+        mods.add(Modification(lines[0].index, false, withLabel(lines[0], "  ld$reg  $varName")))
+        mods.add(Modification(lines[1].index, true, null))
+        mods.add(Modification(lines[2].index, true, null))
+        mods.add(Modification(lines[3].index, true, null))
+        mods.add(Modification(lines[4].index, false, withLabel(lines[4], "  $mnemonic  $addrPart+$constValue,$reg")))
+    }
+
+    return mods
+}
+
+private fun optimizeFoldIndexOffsetSplitWord(
+    linesBySix: Sequence<List<TrimmedLine>>,
+    symbolTable: SymbolTable
+): List<Modification> {
+    val mods = mutableListOf<Modification>()
+
+    for (lines in linesBySix) {
+        val first = lines[0].instruction
+        val second = lines[1].instruction
+        val third = lines[2].instruction
+        val fourth = lines[3].instruction
+        val fifth = lines[4].instruction
+        val sixth = lines[5].instruction
+
+        if (!first.startsWith("lda ") || second != "clc" || !third.startsWith("adc "))
+            continue
+        if (fourth != "tay" && fourth != "tax")
+            continue
+
+        val reg = fourth[2]
+        val constOperand = third.extractOperandTrimmed()
+        if (!constOperand.startsWith("#"))
+            continue
+        val constValue = constOperand.substring(1)
+
+        val fifthOp = fifth.extractOperandTrimmed()
+        val sixthOp = sixth.extractOperandTrimmed()
+        if (!fifthOp.endsWith(",$reg") || fifthOp.startsWith("("))
+            continue
+        if (!sixthOp.endsWith(",$reg") || sixthOp.startsWith("("))
+            continue
+
+        val lsbAddr = fifthOp.dropLast(2)
+        val msbAddr = sixthOp.dropLast(2)
+        if (!lsbAddr.endsWith("_lsb") || !msbAddr.endsWith("_msb"))
+            continue
+        val baseName = lsbAddr.dropLast(4)
+        if (msbAddr != baseName + "_msb")
+            continue
+
+        if (!isArrayWordSizedAndSmall(baseName, symbolTable))
+            continue
+
+        val lsbMnemonic = fifth.take(3)
+        val msbMnemonic = sixth.take(3)
+        val varName = first.extractOperandTrimmed()
+
+        mods.add(Modification(lines[0].index, false, withLabel(lines[0], "  ld$reg  $varName")))
+        mods.add(Modification(lines[1].index, true, null))
+        mods.add(Modification(lines[2].index, true, null))
+        mods.add(Modification(lines[3].index, true, null))
+        mods.add(Modification(lines[4].index, false, withLabel(lines[4], "  $lsbMnemonic  $lsbAddr+$constValue,$reg")))
+        mods.add(Modification(lines[5].index, false, withLabel(lines[5], "  $msbMnemonic  $msbAddr+$constValue,$reg")))
+    }
+
+    return mods
+}
+
+private fun optimizeFoldIndexOffsetNonSplitWord(
+    linesBySeven: Sequence<List<TrimmedLine>>,
+    symbolTable: SymbolTable
+): List<Modification> {
+    val mods = mutableListOf<Modification>()
+
+    for (lines in linesBySeven) {
+        val first = lines[0].instruction
+        val second = lines[1].instruction
+        val third = lines[2].instruction
+        val fourth = lines[3].instruction
+        val fifth = lines[4].instruction
+        val sixth = lines[5].instruction
+        val seventh = lines[6].instruction
+
+        if (!first.startsWith("lda ") || second != "clc" || !third.startsWith("adc "))
+            continue
+        if (fourth != "asl  a" || (fifth != "tay" && fifth != "tax"))
+            continue
+
+        val reg = fifth[2]
+        val constOperand = third.extractOperandTrimmed()
+        if (!constOperand.startsWith("#"))
+            continue
+        val constValue = constOperand.substring(1)
+        val scaledConst = scaleConstant(constValue, 2)
+
+        val sixthOp = sixth.extractOperandTrimmed()
+        val seventhOp = seventh.extractOperandTrimmed()
+        if (!sixthOp.endsWith(",$reg") || sixthOp.startsWith("("))
+            continue
+        if (!seventhOp.endsWith(",$reg") || seventhOp.startsWith("("))
+            continue
+
+        val baseAddr = sixthOp.dropLast(2)
+        if (seventhOp != "$baseAddr+1,$reg")
+            continue
+
+        if (!isArrayWordSizedAndSmall(baseAddr, symbolTable))
+            continue
+
+        val lowMnemonic = sixth.take(3)
+        val highMnemonic = seventh.take(3)
+
+        mods.add(Modification(lines[1].index, true, null))
+        mods.add(Modification(lines[2].index, true, null))
+        mods.add(Modification(lines[5].index, false, withLabel(lines[5], "  $lowMnemonic  $baseAddr+$scaledConst,$reg")))
+        mods.add(Modification(lines[6].index, false, withLabel(lines[6], "  $highMnemonic  $baseAddr+1+$scaledConst,$reg")))
     }
 
     return mods

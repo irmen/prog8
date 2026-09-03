@@ -5,6 +5,7 @@ import io.kotest.matchers.shouldBe
 import prog8.code.StMemVar
 import prog8.code.SymbolTable
 import prog8.code.ast.PtProgram
+import prog8.code.core.BaseDataType
 import prog8.code.core.DataType
 import prog8.code.target.C64Target
 import prog8.code.target.VMTarget
@@ -21,13 +22,16 @@ class TestAsmOptimizer: FunSpec({
     // Non-IO addresses in typical C64 RAM range
     symbolTable.add(StMemVar("myvar", DataType.UBYTE, 0x0300u, null, null))
     symbolTable.add(StMemVar("var", DataType.UBYTE, 0x0301u, null, null))
-    symbolTable.add(StMemVar("var1", DataType.UWORD, 0x0302u, null, null))
-    symbolTable.add(StMemVar("var2", DataType.UWORD, 0x0304u, null, null))
-    symbolTable.add(StMemVar("ptr", DataType.UWORD, 0x0306u, null, null))
+    symbolTable.add(StMemVar("array", DataType.arrayFor(BaseDataType.UBYTE, machine), 0x0302u, 16u, null))
+    symbolTable.add(StMemVar("wordarray", DataType.arrayFor(BaseDataType.UWORD, machine), 0x0310u, 32u, null))
+    symbolTable.add(StMemVar("nswordarray", DataType.arrayFor(BaseDataType.UWORD, machine), 0x0320u, 32u, null))
+    symbolTable.add(StMemVar("var1", DataType.UWORD, 0x0400u, null, null))
+    symbolTable.add(StMemVar("var2", DataType.UWORD, 0x0402u, null, null))
+    symbolTable.add(StMemVar("ptr", DataType.UWORD, 0x0404u, null, null))
     symbolTable.add(StMemVar("P8ZP_SCRATCH_PTR", DataType.UWORD, 0x02u, null, null))
     symbolTable.add(StMemVar("P8ZP_SCRATCH_W1", DataType.UWORD, 0x04u, null, null))
-    symbolTable.add(StMemVar("A1", DataType.UWORD, 0x0310u, null, null))
-    symbolTable.add(StMemVar("A2", DataType.UWORD, 0x0312u, null, null))
+    symbolTable.add(StMemVar("A1", DataType.UWORD, 0x0410u, null, null))
+    symbolTable.add(StMemVar("A2", DataType.UWORD, 0x0412u, null, null))
 
     fun optimize(lines: MutableList<String>) {
         optimizeAssembly(lines, machine, symbolTable)
@@ -281,6 +285,179 @@ class TestAsmOptimizer: FunSpec({
         optimize(lines)
         lines shouldBe listOf("  sta  myvar", "  lda  #42", "  ldy  #1", "  sta  myvar+1", "  rts",
             "  nop", "  nop", "  nop", "  nop", "  nop", "  nop", "  nop", "  nop")
+    }
+
+    // --- optimizeFoldIndexOffset (byte arrays) ---
+
+    test("optimizeFoldIndexOffset: folds byte array lda+clc+adc+tay+lda to ldy+lda") {
+        val lines = mutableListOf(
+            "  lda  myvar", "  clc", "  adc  #3", "  tay", "  lda  array,y",
+            "  rts", "  nop", "  nop", "  nop", "  nop"
+        )
+        optimize(lines)
+        lines[0] shouldBe "  ldy  myvar"
+        lines[1] shouldBe "  lda  array+3,y"
+        lines.size shouldBe 7
+    }
+
+    test("optimizeFoldIndexOffset: folds with x register") {
+        val lines = mutableListOf(
+            "  lda  var", "  clc", "  adc  #5", "  tax", "  lda  array,x",
+            "  rts", "  nop", "  nop", "  nop", "  nop"
+        )
+        optimize(lines)
+        lines[0] shouldBe "  ldx  var"
+        lines[1] shouldBe "  lda  array+5,x"
+        lines.size shouldBe 7
+    }
+
+    test("optimizeFoldIndexOffset: works with sta instead of lda") {
+        val lines = mutableListOf(
+            "  lda  myvar", "  clc", "  adc  #1", "  tay", "  sta  array,y",
+            "  rts", "  nop", "  nop", "  nop", "  nop"
+        )
+        optimize(lines)
+        lines[0] shouldBe "  ldy  myvar"
+        lines[1] shouldBe "  sta  array+1,y"
+        lines.size shouldBe 7
+    }
+
+    test("optimizeFoldIndexOffset: does not fold indirect indexed (ptr),y") {
+        val lines = mutableListOf(
+            "  lda  myvar", "  clc", "  adc  #3", "  tay", "  lda  (ptr),y",
+            "  rts", "  nop", "  nop", "  nop", "  nop"
+        )
+        optimize(lines)
+        lines.size shouldBe 10
+    }
+
+    test("optimizeFoldIndexOffset: preserves hex constant format") {
+        val lines = mutableListOf(
+            "  lda  myvar", "  clc", "  adc  #$0f", "  tay", "  lda  array,y",
+            "  rts", "  nop", "  nop", "  nop", "  nop"
+        )
+        optimize(lines)
+        lines[0] shouldBe "  ldy  myvar"
+        lines[1] shouldBe "  lda  array+$0f,y"
+        lines.size shouldBe 7
+    }
+
+    test("optimizeFoldIndexOffset: does not fold when 5th op is not absolute indexed") {
+        val lines = mutableListOf(
+            "  lda  myvar", "  clc", "  adc  #3", "  tay", "  nop",
+            "  rts", "  nop", "  nop", "  nop", "  nop"
+        )
+        optimize(lines)
+        lines.size shouldBe 10
+    }
+
+    test("optimizeFoldIndexOffset: works with cmp instruction") {
+        val lines = mutableListOf(
+            "  lda  myvar", "  clc", "  adc  #7", "  tay", "  cmp  array,y",
+            "  rts", "  nop", "  nop", "  nop", "  nop"
+        )
+        optimize(lines)
+        lines[0] shouldBe "  ldy  myvar"
+        lines[1] shouldBe "  cmp  array+7,y"
+        lines.size shouldBe 7
+    }
+
+    test("optimizeFoldIndexOffset: preserves label on first instruction") {
+        val lines = mutableListOf(
+            "mylabel: lda  myvar", "  clc", "  adc  #3", "  tay", "  lda  array,y",
+            "  rts", "  nop", "  nop", "  nop", "  nop"
+        )
+        optimize(lines)
+        lines[0] shouldBe "mylabel: ldy  myvar"
+        lines[1] shouldBe "  lda  array+3,y"
+        lines.size shouldBe 7
+    }
+
+    // --- optimizeFoldIndexOffsetSplitWord (split word arrays) ---
+
+    test("optimizeFoldIndexOffsetSplitWord: folds split word array access with y") {
+        val lines = mutableListOf(
+            "  lda  var", "  clc", "  adc  #3", "  tay",
+            "  lda  wordarray_lsb,y", "  ldx  wordarray_msb,y",
+            "  rts", "  nop", "  nop", "  nop"
+        )
+        optimize(lines)
+        lines[0] shouldBe "  ldy  var"
+        lines[1] shouldBe "  lda  wordarray_lsb+3,y"
+        lines[2] shouldBe "  ldx  wordarray_msb+3,y"
+        lines.size shouldBe 7
+    }
+
+    test("optimizeFoldIndexOffsetSplitWord: folds split word array access with x") {
+        val lines = mutableListOf(
+            "  lda  var", "  clc", "  adc  #3", "  tax",
+            "  lda  wordarray_lsb,x", "  ldx  wordarray_msb,x",
+            "  rts", "  nop", "  nop", "  nop"
+        )
+        optimize(lines)
+        lines[0] shouldBe "  ldx  var"
+        lines[1] shouldBe "  lda  wordarray_lsb+3,x"
+        lines[2] shouldBe "  ldx  wordarray_msb+3,x"
+        lines.size shouldBe 7
+    }
+
+    test("optimizeFoldIndexOffsetSplitWord: does not fold mismatched registers") {
+        val lines = mutableListOf(
+            "  lda  var", "  clc", "  adc  #3", "  tay",
+            "  lda  wordarray_lsb,y", "  ldx  wordarray_msb,x",
+            "  rts", "  nop", "  nop", "  nop"
+        )
+        optimize(lines)
+        lines.size shouldBe 10
+    }
+
+    test("optimizeFoldIndexOffsetSplitWord: does not fold non-lsb-msb pair") {
+        val lines = mutableListOf(
+            "  lda  var", "  clc", "  adc  #3", "  tay",
+            "  lda  wordarray_lsb,y", "  ldx  other,y",
+            "  rts", "  nop", "  nop", "  nop"
+        )
+        optimize(lines)
+        lines.size shouldBe 10
+    }
+
+    // --- optimizeFoldIndexOffsetNonSplitWord (non-split word arrays) ---
+
+    test("optimizeFoldIndexOffsetNonSplitWord: folds non-split word array access") {
+        val lines = mutableListOf(
+            "  lda  var", "  clc", "  adc  #3", "  asl  a", "  tay",
+            "  lda  nswordarray,y", "  ldx  nswordarray+1,y",
+            "  rts", "  nop"
+        )
+        optimize(lines)
+        lines[0] shouldBe "  lda  var"
+        lines[1] shouldBe "  asl  a"
+        lines[2] shouldBe "  tay"
+        lines[3] shouldBe "  lda  nswordarray+6,y"
+        lines[4] shouldBe "  ldx  nswordarray+1+6,y"
+        lines.size shouldBe 7
+    }
+
+    test("optimizeFoldIndexOffsetNonSplitWord: scales hex constants") {
+        val lines = mutableListOf(
+            "  lda  var", "  clc", "  adc  #$02", "  asl  a", "  tay",
+            "  lda  nswordarray,y", "  ldx  nswordarray+1,y",
+            "  rts", "  nop"
+        )
+        optimize(lines)
+        lines[3] shouldBe "  lda  nswordarray+$04,y"
+        lines[4] shouldBe "  ldx  nswordarray+1+$04,y"
+        lines.size shouldBe 7
+    }
+
+    test("optimizeFoldIndexOffsetNonSplitWord: does not fold without asl a") {
+        val lines = mutableListOf(
+            "  lda  var", "  clc", "  adc  #3", "  tay",
+            "  lda  nswordarray,y", "  ldx  nswordarray+1,y",
+            "  rts", "  nop", "  nop"
+        )
+        optimize(lines)
+        lines.size shouldBe 9
     }
 
     // --- Edge cases ---

@@ -35,6 +35,7 @@
 - ANTLR4 version 4.13 is used for the parser implementation.
 - Dependent library versions can be found in 'build.gradle.kts' and in the IntelliJ IDEA configuration files in .idea/libraries
 - The compiler main entrypoint is in the "compiler" module, in src/prog8/CompilerMain.kt
+- **Codebase knowledge graph**: For a structured overview of modules, their dependencies, key entities, the end-to-end compilation pipeline, the standard library layout, and the test structure, consult `docs/CODEBASE-KNOWLEDGE-GRAPH.md`. Read it when you need to understand how the compiler fits together before diving into specific files.
 
 ## Compilation Flow (High-Level)
 ```
