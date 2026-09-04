@@ -603,27 +603,25 @@ private fun extractIrMetrics(program: prog8.intermediate.IRProgram): IrMetrics {
     val readRegs = mutableSetOf<Int>()
     val writeRegs = mutableSetOf<Int>()
     
-    // Count chunks and instructions from all subroutines
+    // Count chunks and instructions from all subroutines (loop-aware via shared traversal)
     program.allSubs().forEach { sub ->
-        sub.chunks.forEach { chunk ->
-            chunks++
-            instructions += chunk.instructions.size
-            
-            // Extract register usage from each chunk
-            chunk.instructions.forEach { ins ->
-                ins.reg1?.let { readRegs.add(it) }
-                ins.reg2?.let { readRegs.add(it) }
-                ins.reg3?.let { 
-                    if (ins.opcode == Opcode.CONCAT || ins.opcode == Opcode.EXT || 
-                        ins.opcode == Opcode.EXTS) {
-                        readRegs.add(it)
-                    } else {
-                        writeRegs.add(it)
-                    }
+        sub.forEachChunk { chunks++ }
+        sub.forEachInstruction { ins ->
+            instructions++
+
+            // Extract register usage from each instruction
+            ins.reg1?.let { readRegs.add(it) }
+            ins.reg2?.let { readRegs.add(it) }
+            ins.reg3?.let {
+                if (ins.opcode == Opcode.CONCAT || ins.opcode == Opcode.EXT ||
+                    ins.opcode == Opcode.EXTS) {
+                    readRegs.add(it)
+                } else {
+                    writeRegs.add(it)
                 }
-                ins.fpReg1?.let { readRegs.add(it.value) }
-                ins.fpReg2?.let { readRegs.add(it.value) }
             }
+            ins.fpReg1?.let { readRegs.add(it.value) }
+            ins.fpReg2?.let { readRegs.add(it.value) }
         }
     }
     
@@ -641,12 +639,10 @@ private fun extractIrMetrics(program: prog8.intermediate.IRProgram): IrMetrics {
 private fun extractCodeInstructions(program: prog8.intermediate.IRProgram): List<String> {
     val code = mutableListOf<String>()
     
-    // Get all instructions from all subroutines
+    // Get all instructions from all subroutines (loop-aware via shared traversal)
     program.allSubs().forEach { sub ->
-        sub.chunks.forEach { chunk ->
-            chunk.instructions.forEach { ins ->
-                code.add(ins.toString())
-            }
+        sub.forEachInstruction { ins ->
+            code.add(ins.toString())
         }
     }
     

@@ -1,6 +1,5 @@
 package prog8.codegen.intermediate
 
-import prog8.intermediate.indexRegType
 import prog8.intermediate.*
 
 /*
@@ -74,13 +73,11 @@ object RegisterPacker {
     fun pack(irProg: IRProgram) {
         val indexRegType = irProg.options.compTarget.indexRegType
         val allRegTypes = mutableMapOf<Int, IRDataType>()
-        irProg.foreachCodeChunk { chunk ->
-            for (instr in chunk.instructions) {
-                val (written, read) = getRegisterAccess(instr)
-                for (r in written + read) {
-                    val dt = getRegisterType(instr, r, indexRegType)
-                    allRegTypes.putIfAbsent(r, dt)
-                }
+        irProg.forEachInstruction { instr ->
+            val (written, read) = getRegisterAccess(instr)
+            for (r in written + read) {
+                val dt = getRegisterType(instr, r, indexRegType)
+                allRegTypes.putIfAbsent(r, dt)
             }
         }
         val beforeCount = allRegTypes.size
@@ -104,20 +101,18 @@ object RegisterPacker {
     fun rebuildTypeMap(irProg: IRProgram): Map<RegisterNum, IRDataType> {
         val indexRegType = irProg.options.compTarget.indexRegType
         val newTypes = mutableMapOf<RegisterNum, IRDataType>()
-        irProg.foreachCodeChunk { chunk ->
-            for (instr in chunk.instructions) {
-                for ((reg, regNum) in listOf(instr.reg1 to 1, instr.reg2 to 2, instr.reg3 to 3)) {
-                    if (reg != null)
-                        newTypes.putIfAbsent(RegisterNum(reg), determineIntRegType(instr, regNum, indexRegType))
-                }
-                instr.fpReg1?.let { fpr -> newTypes.putIfAbsent(RegisterNum(fpr.value), IRDataType.FLOAT) }
-                instr.fpReg2?.let { fpr -> newTypes.putIfAbsent(RegisterNum(fpr.value), IRDataType.FLOAT) }
-                instr.fcallArgs?.let { fc ->
-                    for (a in fc.arguments)
-                        newTypes.putIfAbsent(RegisterNum(a.reg.registerNum.value), a.reg.dt)
-                    for (r in fc.returns)
-                        newTypes.putIfAbsent(RegisterNum(r.registerNum.value), IRDataType.BYTE)
-                }
+        irProg.forEachInstruction { instr ->
+            for ((reg, regNum) in listOf(instr.reg1 to 1, instr.reg2 to 2, instr.reg3 to 3)) {
+                if (reg != null)
+                    newTypes.putIfAbsent(RegisterNum(reg), determineIntRegType(instr, regNum, indexRegType))
+            }
+            instr.fpReg1?.let { fpr -> newTypes.putIfAbsent(RegisterNum(fpr.value), IRDataType.FLOAT) }
+            instr.fpReg2?.let { fpr -> newTypes.putIfAbsent(RegisterNum(fpr.value), IRDataType.FLOAT) }
+            instr.fcallArgs?.let { fc ->
+                for (a in fc.arguments)
+                    newTypes.putIfAbsent(RegisterNum(a.reg.registerNum.value), a.reg.dt)
+                for (r in fc.returns)
+                    newTypes.putIfAbsent(RegisterNum(r.registerNum.value), IRDataType.BYTE)
             }
         }
         return newTypes
