@@ -65,19 +65,6 @@ class TestInstructionSelectionOptimizations : FunSpec({
         lines.count { it == "adda.l  #65535,a0" } shouldBe 1
     }
 
-    test("annotates direct static field accesses") {
-        val lines = generateAsm(
-            tempRoot.resolve("test-m68k-field-comments"),
-            listOf(
-                IRInstruction(Opcode.LOADM, IRDataType.WORD, reg1 = 1, labelSymbol = "p8b_ship.p8v_cash"),
-                IRInstruction(Opcode.STOREM, IRDataType.WORD, reg1 = 1, labelSymbol = "p8b_ship.p8v_cash")
-            )
-        )
-
-        lines.any { it.endsWith("; p8b_ship.p8v_cash") } shouldBe true
-        lines.count { it.endsWith("; p8b_ship.p8v_cash") } shouldBe 2
-    }
-
     test("uses moveq for zero extension and only representable immediate returns") {
         val lines = generateAsm(
             tempRoot.resolve("test-m68k-control"),

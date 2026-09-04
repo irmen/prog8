@@ -164,6 +164,14 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
         output.appendLine(code)
     }
 
+    private fun emitInlineBinaryData(data: Collection<UByte>) {
+        val hexBytes = data.map { asmHexByte(it.toInt()) }
+        for(chunk in hexBytes.chunked(32)) {
+            if(chunk.isNotEmpty())
+                emitRaw("    .byte  ${chunk.joinToString(", ")}")
+        }
+    }
+
     // === register helpers ===
     // Virtual register file layout: variable-size registers at p8_regfile + offset[reg]
 
@@ -610,7 +618,7 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
                     }
                     is IRLoopChunk -> translateLoopChunk(element)
                     is IRInlineAsmChunk -> emitRaw(element.assembly)
-                    is IRInlineBinaryChunk -> emitRaw("    .byte  ${element.data.joinToString(",") { asmHexByte(it.toInt()) }}")
+                    is IRInlineBinaryChunk -> emitInlineBinaryData(element.data)
                 }
             }
             val endDirective = if (block.options.forceOutput) ".bend" else ".pend"
@@ -663,7 +671,7 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
                 is IRInlineBinaryChunk -> {
                     val cl = chunk.label
                     if (cl != null) emitLabel(cl)
-                    emitRaw("    .byte  ${chunk.data.joinToString(",") { asmHexByte(it.toInt()) }}")
+                    emitInlineBinaryData(chunk.data)
                 }
             }
         }
@@ -763,7 +771,7 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
                 is IRInlineBinaryChunk -> {
                     val cl = chunk.label
                     if (cl != null) emitRaw("    $cl:")
-                    emitRaw("    .byte  ${chunk.data.joinToString(",") { asmHexByte(it.toInt()) }}")
+                    emitInlineBinaryData(chunk.data)
                 }
             }
         }
@@ -833,7 +841,7 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
                 is IRInlineBinaryChunk -> {
                     val cl = chunk.label
                     if(cl!=null) emitLabel(cl)
-                    emitRaw("    .byte  ${chunk.data.joinToString(",") { asmHexByte(it.toInt()) }}")
+                    emitInlineBinaryData(chunk.data)
                 }
             }
         }
@@ -1083,24 +1091,37 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
 
         when {
             dt.isSplitWordArray(target) -> {
-                // _lsb / _msb halves via helper array
+                // Emit _lsb/_msb halves directly as chunked .byte lines.
+                // (Avoids a single giant := helper-array line for large arrays.)
                 val numElements = v.length?.toInt() ?: 0
-                val halfBytes = numElements   // each element is 1 byte per half
-                val values: List<String> = when (init) {
-                    is IRVariableInitializer.Array -> init.elements.map {
-                        when (it) {
-                            is IRStSymbolicReference.Numeric -> it.value.toInt().toString()
-                            is IRStSymbolicReference.BoolValue -> if (it.value) "1" else "0"
-                            is IRStSymbolicReference.Symbol -> fixNameSymbols(it.name)
-                        }
-                    }
-                    else -> List(halfBytes) { "0" }
+                val elements = when (init) {
+                    is IRVariableInitializer.Array -> init.elements
+                    else -> List(numElements) { IRStSymbolicReference.Numeric(0.0) }
                 }
-                val parts = values.joinToString(",")
-                val arrLabel = label.replace(".", "_") + "_init_words"
-                emitRaw("$arrLabel := $parts")
-                emitLine("${label}_lsb  .byte  <$arrLabel")
-                emitLine("${label}_msb  .byte  >$arrLabel")
+                val lsbValues = elements.map {
+                    when (it) {
+                        is IRStSymbolicReference.Numeric -> (it.value.toInt() and 0xFF).toString()
+                        is IRStSymbolicReference.BoolValue -> if (it.value) "1" else "0"
+                        is IRStSymbolicReference.Symbol -> "<${fixNameSymbols(it.name)}"
+                    }
+                }
+                val msbValues = elements.map {
+                    when (it) {
+                        is IRStSymbolicReference.Numeric -> ((it.value.toInt() shr 8) and 0xFF).toString()
+                        is IRStSymbolicReference.BoolValue -> "0"
+                        is IRStSymbolicReference.Symbol -> ">${fixNameSymbols(it.name)}"
+                    }
+                }
+                emitLabel("${label}_lsb")
+                for (chunk in lsbValues.chunked(32)) {
+                    if(chunk.isNotEmpty())
+                        emitLine(".byte  ${chunk.joinToString(", ")}")
+                }
+                emitLabel("${label}_msb")
+                for (chunk in msbValues.chunked(32)) {
+                    if(chunk.isNotEmpty())
+                        emitLine(".byte  ${chunk.joinToString(", ")}")
+                }
             }
 
             dt.isString -> {

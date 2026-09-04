@@ -149,27 +149,58 @@ asmsub via slot annotations.
 The asmsub argument/return slots (D0–D2, FP0–FP1) are deliberately in the
 **caller-saved** set, matching their volatile nature.
 
-**D0, D1, A0, A1 are pure scratch — never allocated to a vreg.** These four
-registers combine two roles, both of which mean "never holds a long-lived
-value across an instruction": (a) transient scratch *within* a single IR
-opcode's expansion (accumulator, index, pointer, second operand), and (b) the
-CALL/return boundary (§2.7). A vreg is therefore only ever allocated to D2–D6,
-A2–A4, or FP0–FP7 (minus the reserved registers of §2.5), or spilled. This is a
-deliberate simplification, not a limitation discovered later:
+**This split is the industry-standard M68k convention, not a Prog8
+invention.** The System V ABI and GCC/LLVM use exactly this division:
+D0/D1/A0/A1 (and FP0/FP1) caller-saved scratch, D2–D7/A2–A6 (and FP2–FP7)
+callee-saved. The only deliberate deviations are the reserved registers of
+§2.5 (D7 loop counter, A5 frame pointer, A6 AmigaOS library base in place of
+SVR4's A6-as-frame-pointer), which are target-specific necessities. Keep the
+split as-is; do not make the caller-saved registers callee-saved and do not
+abolish their scratch role — both would diverge from SVR4/GCC and add
+complexity for no conformance benefit.
+
+**D0, D1, A0, A1 are scratch for the translators, but the allocator MAY use
+them for call-free vregs.** These four registers combine two roles: (a)
+transient scratch *within* a single IR opcode's expansion (accumulator, index,
+pointer, second operand), and (b) the CALL/return boundary (§2.7). Both roles
+mean "never holds a value live across a `CALL`". That is the only hard
+constraint. Within it, the allocator may *also* allocate a vreg to a
+caller-saved register when that vreg's **entire live range contains no
+`CALL`** — such a vreg never needs the callee to preserve the register, so it
+enjoys the caller-saved "free to use, nobody saves it" property. This is
+standard practice (GCC/LLVM allocate caller-saved registers to short-lived,
+call-free values) and it widens the effective pool for the common case at no
+convention cost. A vreg whose live range *does* cross a `CALL` is placed in a
+callee-saved register (D2–D6, A2–A4, FP2–FP7) or spilled, per §2.4.
+
+Keeping these registers scratch for the *translators* (independent of whether
+the allocator uses them for call-free vregs) is a deliberate simplification,
+not a limitation discovered later:
 
 - It formalizes existing reality — the translators already grab d0/d1/a0
   blindly (`loadRegOrZeroExtendToD0`, `loadPointerToA0`, `loadIndexToD0`), and
-  returns already go through d0.
+  returns already go through d0. A scratch register used within one opcode
+  never crosses a `CALL`, so it cannot conflict with an allocated vreg that
+  also never crosses a `CALL`.
 - It removes the need for any allocator-aware scratch reservation protocol: a
-  translator may always *use* d0/d1/a0/a1 freely, because they never hold an
-  allocated value. Multi-scratch expansions (e.g. STOREX needing index+base+
-  value simultaneously) are automatically safe.
+  translator may always *use* d0/d1/a0/a1 freely for a within-opcode temporary,
+  because such a temporary never overlaps a call-crossing live range.
+  Multi-scratch expansions (e.g. STOREX needing index+base+value
+  simultaneously) are automatically safe.
 - It gives class-mismatched indexed/indirect operands a uniform fallback: move
   the value to a0/a1 (pointer) or d0/d1 (index/accumulator) first.
 
-The cost is a smaller allocatable pool — 5 data (D2–D6), 3 address (A2–A4),
-8 FP — which is exactly the register-pressure question the Stage-2 success
-metrics must measure on real programs.
+The one correctness rule the allocator must enforce: **a vreg allocated to a
+caller-saved register must be spilled or moved to a callee-saved register
+before any `CALL` it is live across.** The allocator already models "CALL
+kills caller-saved" (§2.4), so this is a placement constraint, not new
+machinery.
+
+The allocatable pool is therefore: 5 callee-saved data (D2–D6), 3 callee-saved
+address (A2–A4), 6 callee-saved FP (FP2–FP7) — plus the caller-saved D0/D1/
+A0/A1/FP0/FP1 usable only for call-free live ranges. Whether this is enough is
+exactly the register-pressure question the Stage-2 success metrics must
+measure on real programs.
 
 ### 2.4 What a CALL means for liveness
 
@@ -310,20 +341,33 @@ The liveness results drive three decisions:
   registers.
 
 The disabled `RegisterPacker` (`codeGenIntermediate/RegisterPacker.kt`)
-contains reusable analysis machinery (CFG building, gen/kill dataflow, interval
-construction, greedy coloring), but **do not reuse its interference model**: it
-derives conflicts from instruction-level register aliasing and judges interval
-overlap against a flat concatenation of chunks in layout order — which is not
-an execution order once loops exist (a value live in a loop header overlaps
-values whose intervals lie "later" in layout order but execute on an earlier
-iteration). That is the actual root cause of the TextElite failure (two
-genuinely-overlapping registers packed into one slot; symptom was an infinite
-loop printing spaces), not the dataflow, which converges correctly for the CFG
-as built. Second suspect to debug if validation fails: `buildCFG` edge
-construction (calls, early returns, fall-through, jump tables).
+contains analysis machinery that is worth reusing as a starting point. Each
+component needs scrutiny before reuse:
 
-Validate liveness against nested loops, conditionals, early returns, and
-jump-table dispatch before trusting the allocator.
+**Likely reusable:**
+- **gen/kill dataflow** — standard iterative fixed-point; converges correctly
+  given a correct CFG.
+- **Interval construction** — backward-scan per chunk.
+- **Greedy coloring** — standard algorithm.
+- **IR rewrite** — mechanical regnum replacement.
+
+**Needs validation before reuse:**
+- **CFG edge construction** (`buildCFG`) — must be validated against calls,
+  early returns, fall-through, and jump-table dispatch. The dataflow
+  converges correctly *given a correct CFG*, but whether the CFG itself
+  captures all control-flow shapes correctly is unproven.
+
+**Do not reuse:**
+- **Interference model** — derives conflicts from instruction-level register
+  aliasing and judges interval overlap against a flat concatenation of chunks
+  in layout order. Layout order is not execution order once loops exist (a
+  value live in a loop header overlaps values whose intervals lie "later" in
+  layout order but execute on an earlier iteration). Replace with a
+  liveness-derived interference graph: an edge between any two vregs that are
+  simultaneously live at any program point.
+
+Validate the new interference model against nested loops, conditionals, early
+returns, and jump-table dispatch before trusting the allocator.
 
 ### 3.2 Interprocedural (NOT required)
 
@@ -345,9 +389,39 @@ The allocator is class-aware because the m68k has distinct register files:
 - **FPU registers (FPn):** `float` values (32-bit 68881 singles).
 
 Each class has its own interference graph (or a class-tagged unified graph),
-sized by the available registers in that class after removing the reserved
-registers of §2.5: 5 D (D2–D6), 3 A (A2–A4), 8 FP (FP0–FP7), given that
-D0/D1/A0/A1 are reserved as pure scratch (§2.3).
+sized by the available callee-saved registers in that class after removing the
+reserved registers of §2.5: 5 D (D2–D6), 3 A (A2–A4), 6 FP (FP2–FP7). The
+caller-saved D0/D1/A0/A1 and FP0/FP1 are additionally allocatable, but only for
+vregs whose live range crosses no `CALL` (§2.3).
+
+### 4.0 Expected demand per class (where the pressure actually is)
+
+The three classes are not under equal pressure, and this shapes both the pool
+sizing and what the empirical gate (§7.1 #6) must measure.
+
+- **Data (D2–D6) is the bottleneck.** Every integer intermediate, array index,
+  loop variable, and general arithmetic value competes for these 5 callee-saved
+  registers (plus caller-saved D0/D1 for call-free ranges, §2.3). If any pool
+  is too small, it is this one.
+- **Address (A2–A4) is rarely pressured.** Two different "pointer" populations
+  must not be conflated:
+  - *Short-lived pointer temporaries* (very common): the POINTER-typed IR
+    values produced by array indexing, struct field access, and `&var`
+    (`ADDR .p`, `ADD .p +offset`, `LOADI .p`). These are computed, used once
+    for a `(a0)` / `(a0,d0.w)` access, then dead. Per §2.3 they flow through
+    the pure-scratch A0/A1 and never enter the allocatable A2–A4 pool, so their
+    frequency is irrelevant to ADDRESS-pool sizing.
+  - *Long-lived pointer variables* (uncommon in typical Prog8 code): a
+    user-declared `^^type`/`pointer` value kept and dereferenced repeatedly is
+    the only real candidate for an A2–A4 allocation (so `(a2)`/`(a2,d3.w)`
+    works in place, §4.1). Most subroutines have zero or one of these, so 3
+    address registers is comfortable headroom.
+- **FPU (FP0–FP7) is likely over-provisioned.** Float usage in typical Prog8
+  programs is rarer still than pointer usage, so 8 FPU registers will almost
+  never be a constraint.
+
+Consequence: the empirical gate (§7.1 #6) should focus its measurement on the
+data pool, not the address or FP pools. See §7.1 #6.
 
 ### 4.1 Class requirements flow from translator to allocator
 
@@ -562,9 +636,10 @@ hardcoded scratch register outside the D0/D1/A0/A1 set.
    callee-saved split, the reserved set (§2.5), return-value locations (§2.7),
    asmsub arg slots.
 2. **Implement/repair intraprocedural liveness and interference** (§3.1: reuse
-   the packer's CFG/dataflow machinery with the interference model fixed to be
-   liveness-derived; validate on nested loops, conditionals, early returns,
-   switches).
+    the packer's gen/kill dataflow, interval construction, and greedy coloring;
+    validate CFG edge construction against nested loops, conditionals, early
+    returns, and jump tables; replace the interference model with a
+    liveness-derived one).
 3. **Class-aware greedy colouring**: map vregs → physical D/A/FP registers,
    treating `CALL` as killing caller-saved registers.
 4. **Wire the mapping into `operand()` / `storeOperand()` / `fpOperand()`.**
@@ -577,13 +652,19 @@ hardcoded scratch register outside the D0/D1/A0/A1 set.
 7. **Pin the return-value boundary (§2.7):** callee moves results to D0/FP0
    before `rts`; the caller consumes them from there.
 8. **Enforce the asmsub/extsub clobber policy (§2.6).**
-9. **Decide the fate of `ImmediateCallOptimization`** (`AsmGen.kt`). This pass
-   does cross-instruction immediate forwarding into calls by reasoning about
-   which regfile slots are dead — a second, overlapping liveness analysis that
-   does not go through `operand()`. Either reimplement it on top of the
-   allocator's liveness (it becomes a call-argument register-assignment
-   problem) or restrict it to spilled operands. Leaving it untouched guarantees
-   it conflicts with the allocator.
+ 9. **Restrict `ImmediateCallOptimization` to spilled operands** (`AsmGen.kt`).
+    This pass does cross-instruction immediate forwarding into calls by
+    reasoning about which regfile slots are dead — a second, overlapping
+    liveness analysis that does not go through `operand()`. Leaving it
+    untouched guarantees it conflicts with the allocator. **Decision (taken):
+    restrict it to spilled operands** — it only applies to vregs the allocator
+    has spilled (those that actually live in `p8_regfile`/stack); register-
+    allocated arguments are handled by the allocator's own call-boundary
+    marshalling instead. This keeps the pass (and the inline-memcopy path that
+    depends on it) working during allocator bring-up with minimal change. The
+    eventual goal is to delete it entirely: when the register-parameter calling
+    convention lands (§2.1 evolution), fold immediate-forwarding into the
+    call-boundary marshalling on allocator liveness (Stage 3 teardown).
  10. **Optionally reset `RegisterPool` per subroutine** to allow vreg reuse
      (§5).
 
@@ -615,15 +696,22 @@ delegable:
    edges at call points; and since D0/D1/A0/A1 are never vreg-allocated
    (§2.3), decide whether they appear in the interference graph at all or are
    handled purely by CALL-boundary marshalling.
-5. **Fate of `ImmediateCallOptimization` (Stage 2 step 9).** An explicit
-   either/or — reimplement on allocator liveness, or restrict to spilled
-   operands. A human decision, not delegable.
-6. **Empirical validation gate (human judgment, stays open by design).** "Are
-   5 D / 3 A / 8 FP enough registers?" (§2.3 cost) and "does liveness survive
-   the TextElite corpus?" (§3.1) are hypotheses to *measure*, not tasks. An
-   agent can run the measurement, but a human judges the result and decides
-   whether to revisit the scratch-reservation tradeoff if register pressure is
-   too high.
+ 5. **Fate of `ImmediateCallOptimization` (Stage 2 step 9) — DECIDED.**
+    Restrict it to spilled operands for allocator bring-up; delete it and fold
+    immediate-forwarding into call-boundary marshalling when the
+    register-parameter convention lands. See Stage 2 step 9.
+ 6. **Empirical validation gate (human judgment, stays open by design).**
+     "Are the per-class pools big enough?" (§2.3 cost) and "does liveness
+     survive programs with complex control flow?" (§3.1) are hypotheses to
+     *measure*, not tasks. Per the demand analysis (§4.0) the measurement
+     should focus on the **data pool (D2–D6)** — the address pool (A2–A4) and
+     FP pool (FP0–FP7) are expected to have ample headroom because long-lived
+     pointer and float variables are uncommon in typical Prog8 code. An agent
+     can run the measurement, but a human judges the result and decides whether
+     the pool is adequate. Note the caller-saved D0/D1/A0/A1 are already
+     allocatable for call-free live ranges (§2.3), which relieves data-register
+     pressure for the common case; the measurement determines whether that
+     suffices or whether the convention itself needs revisiting.
 
 ### Stage 3 — teardown of the old mitigation layer
 
@@ -644,7 +732,7 @@ produces (spill-then-reload bounces, immediate forwarding that matches literal
 
 ### Success metrics (tie back to §0)
 
-For a set of representative programs (the m68k examples, TextElite):
+For a set of representative programs (the m68k examples, and real-world programs with complex control flow):
 
 - Fraction of vreg operand references that resolve to CPU registers vs
   `p8_regfile` — should be the large majority; regfile BSS size should shrink
@@ -668,7 +756,7 @@ structure) covering:
 - Simple non-overlapping vregs coalesced into one hardware register.
 - Overlapping live ranges forced into different registers.
 - Cross-chunk liveness (vreg live across multiple code chunks).
-- Nested loops and conditionals (the old TextElite failure case).
+- Nested loops and conditionals (layout-order vs execution-order intervals).
 - Early returns / multiple exit points (prologue/epilogue symmetry).
 - Value live across a `CALL` kept in a callee-saved register or spilled.
 - Caller-saved register correctly spilled around a call.

@@ -6,8 +6,6 @@ import prog8.intermediate.IRDataType
 import prog8.intermediate.IRInstruction
 import prog8.intermediate.Opcode
 
-private fun staticSymbolComment(label: String?): String = label ?: ""
-
 /**
  * Load an array index into d0 for use with `(a0,d0.w)` addressing.
  * Word indices can be loaded directly; byte indices must be zero-extended
@@ -72,7 +70,7 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction, suppressRegfileStore
 
         Opcode.LOADM -> {
             val dst = r1 ?: error("LOADM needs reg1")
-            emitLine("move${dtSuffix(type)}  $target, ${regAddr(dst)}", staticSymbolComment(label))
+            emitLine("move${dtSuffix(type)}  $target, ${regAddr(dst)}")
         }
 
         Opcode.LOADR -> {
@@ -135,15 +133,15 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction, suppressRegfileStore
 
         Opcode.STOREM -> {
             val src = r1 ?: error("STOREM needs reg1")
-            emitLine("move${dtSuffix(type)}  ${regAddr(src)}, $target", staticSymbolComment(label))
+            emitLine("move${dtSuffix(type)}  ${regAddr(src)}, $target")
         }
 
         Opcode.STOREIM -> {
             val value = imm ?: error("STOREIM needs immediate value")
             if(value == 0)
-                emitLine("clr$s  $target", staticSymbolComment(label))
+                emitLine("clr$s  $target")
             else
-                emitLine("move$s  #$value, $target", staticSymbolComment(label))
+                emitLine("move$s  #$value, $target")
         }
 
         Opcode.STOREX -> {
@@ -175,7 +173,7 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction, suppressRegfileStore
         }
 
         Opcode.STOREZM -> {
-            emitLine("clr${dtSuffix(type)}  $target", staticSymbolComment(label))
+            emitLine("clr${dtSuffix(type)}  $target")
         }
 
         Opcode.STOREZI -> {

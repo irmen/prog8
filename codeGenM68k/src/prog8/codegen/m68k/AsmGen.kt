@@ -444,8 +444,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
                     is IRLoopChunk -> translateLoopChunk(element)
                     is IRInlineAsmChunk -> emitRaw(element.assembly)
                     is IRInlineBinaryChunk -> {
-                        val bytes = element.data.joinToString(",") { "$${it.toString(16).padStart(2, '0')}" }
-                        emitLine("dc.b  $bytes")
+                        emitInlineBinaryData(element.data)
                     }
                 }
             }
@@ -496,8 +495,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
                 is IRInlineBinaryChunk -> {
                     val cl = chunk.label?.let { fixNameSymbols(it) }
                     if (cl != null) emitLabel(cl)
-                    val bytes = chunk.data.joinToString(",") { "$${it.toString(16).padStart(2, '0')}" }
-                    emitLine("dc.b  $bytes")
+                    emitInlineBinaryData(chunk.data)
                 }
             }
         }
@@ -570,8 +568,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
                 is IRInlineBinaryChunk -> {
                     val cl = chunk.label?.let { fixNameSymbols(it) }
                     if(cl!=null) emitLabel(cl)
-                    val bytes = chunk.data.joinToString(",") { "$${it.toString(16).padStart(2, '0')}" }
-                    emitLine("dc.b  $bytes")
+                    emitInlineBinaryData(chunk.data)
                 }
             }
         }
@@ -933,6 +930,26 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
     private fun chipramBlockLabels(): Set<String> =
         program.blocks.filter { it.options.amigaChipram }.map { it.label }.toSet()
 
+    private fun emitChunkedDc(directive: String, values: List<String>, comment: String = "", maxPerLine: Int = 32) {
+        if(values.isEmpty())
+            return
+        var first = true
+        for(chunk in values.chunked(maxPerLine)) {
+            val text = "$directive  ${chunk.joinToString(",")}"
+            if(first && comment.isNotEmpty()) {
+                emitLine(text, comment)
+                first = false
+            } else {
+                emitLine(text)
+            }
+        }
+    }
+
+    private fun emitInlineBinaryData(data: Collection<UByte>) {
+        val hexBytes = data.map { "$${it.toString(16).padStart(2, '0')}" }
+        emitChunkedDc("dc.b", hexBytes)
+    }
+
     private fun emitInitializedVariable(v: IRStStaticVariable) {
         val dt = v.dt
         val label = fixNameSymbols(v.name)
@@ -940,10 +957,10 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         when {
             dt.isString && init is IRVariableInitializer.Str -> {
                 val bytes = program.encoding.encodeString(init.text, init.encoding)
-                val bytesStr = if(bytes.isNotEmpty()) bytes.joinToString(",") { it.toString(10) } + "," else ""
+                val values = bytes.map { it.toString(10) } + "0"
                 emitLine("ALIGN  2")
                 emitRaw("$label:")
-                emitLine("dc.b  ${bytesStr}0", v.name)
+                emitChunkedDc("dc.b", values, v.name)
             }
             dt.isArray && init is IRVariableInitializer.Array -> {
                 if(dt.sub==BaseDataType.STRUCT_INSTANCE) {
@@ -991,17 +1008,17 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
                         1 -> {
                             emitLine("ALIGN  2")
                             emitRaw("$label:")
-                            emitLine("dc.b  ${values.joinToString(",")}", v.name)
+                            emitChunkedDc("dc.b", values, v.name)
                         }
                         2 -> {
                             emitLine("ALIGN  2")
                             emitRaw("$label:")
-                            emitLine("dc.w  ${values.joinToString(",")}", v.name)
+                            emitChunkedDc("dc.w", values, v.name)
                         }
                         4 -> {
                             emitLine("ALIGN  $elemSize")
                             emitRaw("$label:")
-                            emitLine("dc.l  ${values.joinToString(",")}", v.name)
+                            emitChunkedDc("dc.l", values, v.name)
                         }
                         else -> error("expected array element size 1,2 or 4 for ${v.name}")
                     }

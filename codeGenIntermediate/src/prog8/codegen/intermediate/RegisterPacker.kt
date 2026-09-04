@@ -3,28 +3,44 @@ package prog8.codegen.intermediate
 import prog8.intermediate.*
 
 /*
- * Graph-coloring register allocator (present form: a MEMORY-SLOT packer, not a
- * hardware-register allocator).
+ * ============================================================================
+ * PROTOTYPE - NOT FOR PRODUCTION USE
+ * ============================================================================
  *
- * What it does today:
- *   - Per subroutine, it builds a CFG, computes intraprocedural liveness,
- *     derives live intervals, builds a conflict graph, and greedily colors
- *     virtual registers into SHARED MEMORY SLOTS in the flat `p8_regfile` BSS
- *     block (coalescing vregs whose live ranges do not overlap).
- *   - Slots are drawn from a single GLOBAL pool (startSlot = maxReg + 1) shared
- *     by all subroutines, because the regfile is one shared memory block.
- *   - It does NOT model CALL clobbering (no caller/callee-saved interference
- *     edges), so packing a caller and its callee into the same slot lets the
- *     callee overwrite the caller's value. Combined with the flat shared
- *     regfile this is unsound, which is why this packer is DISABLED in
- *     production (its only call site in IRCodeGen.generate() is commented out);
- *     it currently runs only under TestRegisterPacker.
+ * This is a PROTOTYPE memory-slot packer and the intended reusable foundation
+ * for a future hardware-register allocator targeting the m68k backend. It is
+ * NOT a complete or production-ready register allocator in its current form.
+ * It is DISABLED in production: its only call site in IRCodeGen.generate() is
+ * commented out, and it currently runs only under TestRegisterPacker.
  *
- * Reuse: the liveness / interval / conflict-graph / coloring / rewrite machinery
- * here is the reusable foundation for the true m68k hardware-register allocator
- * described in m68k-register-allocation.md. That design repoints the color step
- * at real D/A/FP registers, adds CALL-aware interference (kill caller-saved,
- * preserve callee-saved), and adds spilling + prologue/epilogue emission.
+ * What this prototype demonstrates:
+ *   - A working graph-coloring register allocator skeleton: CFG construction,
+ *     intraprocedural liveness analysis (gen/kill fixed-point), live interval
+ *     derivation, conflict-graph construction, greedy coloring, and IR rewrite.
+ *   - Coalescing of virtual registers into shared memory slots in the flat
+ *     `p8_regfile` BSS block (vregs with non-overlapping live ranges share a
+ *     slot).
+ *
+ * What this prototype DOES NOT do (and why it is not production-ready):
+ *   - No hardware-register allocation: slots are memory addresses in a flat
+ *     BSS regfile, not physical D/A/FP registers.
+ *   - No CALL clobbering: a callee packed into the same slot as a caller's
+ *     live value silently overwrites it (see bug 3 below).
+ *   - No register classes: no distinction between DATA, ADDRESS, and FPU
+ *     registers (required by the m68k backend).
+ *   - No spilling, prologue/epilogue emission, or CALL-aware interference.
+ *   - Known-unsound liveness for complex control flow (nested loops,
+ *     conditionals, early returns) - see bug 2 below.
+ *
+ * Intended reuse path (per ideas/m68k-register-allocation.md):
+ *   - Stage 1: Make the m68k backend's instruction selection location-agnostic
+ *     (operand() indirection returning "d3" if allocated, "p8_regfile+N" if
+ *     spilled) - prerequisite bulk work, no behavior change.
+ *   - Stage 2: Replace this packer's interference model with a correct one
+ *     (CALL-aware, class-constrained) and point the coloring step at real
+ *     D2-D6 / A2-A4 / FP2-FP7 registers. Six open design decisions remain
+ *     in Stage 2 (see design doc section 7.1).
+ *   - Stage 3: Delete subsumed peephole optimizations, update test assertions.
  */
 
 /*
