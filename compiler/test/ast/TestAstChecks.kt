@@ -694,4 +694,55 @@ main {
         compileText(VMTarget(), false, src, outputDir, errors) shouldBe null
         errors.printedErrors.any { it.contains("2D arrays are not allowed as struct fields") } shouldBe true
     }
+
+    test("variable declaration followed by statement on same line should give error") {
+        val src = """
+            main {
+                sub start() {
+                    ubyte length foo(42)
+                }
+                sub foo(ubyte x) {
+                    x++
+                }
+            }
+        """.trimIndent()
+        val errors = ErrorReporterForTests()
+        compileText(VMTarget(), false, src, outputDir, errors) shouldBe null
+        errors.errors.size shouldBe 1
+        errors.errors[0] shouldContain "must be on its own line"
+    }
+
+    test("variable declaration followed by statement on next line is fine") {
+        val src = """
+            main {
+                sub start() {
+                    ubyte length
+                    length = 42
+                    foo(length)
+                }
+                sub foo(ubyte x) {
+                    x++
+                }
+            }
+        """.trimIndent()
+        val errors = ErrorReporterForTests()
+        compileText(VMTarget(), false, src, outputDir, errors, false) shouldNotBe null
+        errors.errors.size shouldBe 0
+    }
+
+    test("two statements on same line is fine if first one is not a variable declaration") {
+        val src = """
+            main {
+                sub start() {
+                    foo(1) foo(2)
+                }
+                sub foo(ubyte x) {
+                    cx16.r0 = x
+                }
+            }
+        """.trimIndent()
+        val errors = ErrorReporterForTests()
+        compileText(VMTarget(), false, src, outputDir, errors, false) shouldNotBe null
+        errors.errors.size shouldBe 0
+    }
 })

@@ -538,6 +538,8 @@ internal fun determineCompilationOptions(program: Program, compTarget: ICompilat
 }
 
 private fun processAst(program: Program, errors: IErrorReporter, compilerOptions: CompilationOptions) {
+    program.checkVarDeclsOnOwnLine(errors)
+    errors.report()
     program.preprocessAst(errors, compilerOptions)
     if(errors.noErrors() && compilerOptions.dumpSymbols) {
         printSymbols(program)
