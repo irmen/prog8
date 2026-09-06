@@ -21,31 +21,37 @@ internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
         Opcode.INC -> {
             val reg = r1 ?: error("INC needs reg1")
             emitLine("addq${dtSuffix(type)}  #1, ${regAddr(reg)}")
+            invalidateD0CacheForSlot(reg)
         }
 
         Opcode.INCM -> {
             val target = resolveAddress(addr, label, offset)
             emitLine("addq${dtSuffix(type)}  #1, $target")
+            invalidateD0CacheForAddress(target)
         }
 
         Opcode.DEC -> {
             val reg = r1 ?: error("DEC needs reg1")
             emitLine("subq${dtSuffix(type)}  #1, ${regAddr(reg)}")
+            invalidateD0CacheForSlot(reg)
         }
 
         Opcode.DECM -> {
             val target = resolveAddress(addr, label, offset)
             emitLine("subq${dtSuffix(type)}  #1, $target")
+            invalidateD0CacheForAddress(target)
         }
 
         Opcode.NEG -> {
             val reg = r1 ?: error("NEG needs reg1")
             emitLine("neg${dtSuffix(type)}  ${regAddr(reg)}")
+            invalidateD0CacheForSlot(reg)
         }
 
         Opcode.NEGM -> {
             val target = resolveAddress(addr, label, offset)
             emitLine("neg${dtSuffix(type)}  $target")
+            invalidateD0CacheForAddress(target)
         }
 
         Opcode.ADDR -> {
@@ -53,6 +59,7 @@ internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
             val srcReg = r2 ?: error("ADDR needs reg2")
             loadRegOrZeroExtendToD0(srcReg, type)
             emitLine("add${dtSuffix(type)}  d0, ${regAddr(dstReg)}")
+            invalidateD0CacheForSlot(dstReg)
         }
 
         Opcode.ADD -> {
@@ -63,14 +70,16 @@ internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
             } else {
                 emitLine("add${dtSuffix(type)}  #${immVal(value, type)}, ${regAddr(reg)}")
             }
+            invalidateD0CacheForSlot(reg)
         }
 
         Opcode.ADDM -> {
             val reg = r1 ?: error("ADDM needs reg1")
             val target = resolveAddress(addr, label, offset)
             val sv = dtSuffix(type)
-            emitLine("move$sv  ${regAddr(reg)}, d0")
+            emitLoadD0(reg, type)
             emitLine("add$sv  d0, $target")
+            invalidateD0CacheForAddress(target)
         }
 
         Opcode.ADDIM -> {
@@ -95,6 +104,7 @@ internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
                     }
                 }
             }
+            invalidateD0CacheForAddress(target)
         }
 
         Opcode.SUBR -> {
@@ -102,6 +112,7 @@ internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
             val srcReg = r2 ?: error("SUBR needs reg2")
             loadRegOrZeroExtendToD0(srcReg, type)
             emitLine("sub${dtSuffix(type)}  d0, ${regAddr(dstReg)}")
+            invalidateD0CacheForSlot(dstReg)
         }
 
         Opcode.SUB -> {
@@ -112,16 +123,18 @@ internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
             } else {
                 emitLine("sub${dtSuffix(type)}  #${immVal(value, type)}, ${regAddr(reg)}")
             }
+            invalidateD0CacheForSlot(reg)
         }
 
         Opcode.SUBM -> {
             val reg = r1 ?: error("SUBM needs reg1")
             val target = resolveAddress(addr, label, offset)
             val sv = dtSuffix(type)
-            emitLine("move$sv  ${regAddr(reg)}, d0")
+            emitLoadD0(reg, type)
             emitLine("sub$sv  d0, $target")
+            invalidateD0CacheForAddress(target)
         }
-        
+
         Opcode.SUBIM -> {
             val value = imm ?: error("SUBIM needs immediate")
             val target = resolveAddress(addr, label, offset)
@@ -144,6 +157,7 @@ internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
                     }
                 }
             }
+            invalidateD0CacheForAddress(target)
         }
 
         // --- Multiply (unsigned) ---
@@ -281,18 +295,21 @@ internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
             when (type) {
                 IRDataType.BYTE -> {
                     emitLine("move.b  ${regAddr(srcReg)}, math._sqrt_ub.value", "sqrt byte")
+                    invalidateD0Cache()
                     emitLine("bsr  math._sqrt_ub")
-                    emitLine("move.b  d0, ${regAddr(dstReg)}")
+                    emitStoreD0(dstReg, IRDataType.BYTE)
                 }
                 IRDataType.WORD -> {
                     emitLine("move.w  ${regAddr(srcReg)}, math._sqrt_uw.value", "sqrt word")
+                    invalidateD0Cache()
                     emitLine("bsr  math._sqrt_uw")
-                    emitLine("move.b  d0, ${regAddr(dstReg)}")
+                    emitStoreD0(dstReg, IRDataType.BYTE)
                 }
                 IRDataType.LONG, IRDataType.POINTER -> {
                     emitLine("move.l  ${regAddr(srcReg)}, math._sqrt_l.value", "sqrt long")
+                    invalidateD0Cache()
                     emitLine("bsr  math._sqrt_l")
-                    emitLine("move.w  d0, ${regAddr(dstReg)}")
+                    emitStoreD0(dstReg, IRDataType.WORD)
                 }
             }
         }
@@ -301,20 +318,24 @@ internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
             val srcReg = r2 ?: error("SQUARE needs reg2")
             when (type) {
                 IRDataType.BYTE -> {
-                    emitLine("move.b  ${regAddr(srcReg)}, d0")
+                    emitLoadD0(srcReg, IRDataType.BYTE)
                     emitLine($$"and.l  #\$ff, d0", "zero extend")
+                    invalidateD0Cache()
                     emitLine("mulu.w  d0, d0")
-                    emitLine("move.b  d0, ${regAddr(dstReg)}")
+                    invalidateD0Cache()
+                    emitStoreD0(dstReg, IRDataType.BYTE)
                 }
                 IRDataType.WORD -> {
-                    emitLine("move.w  ${regAddr(srcReg)}, d0")
+                    emitLoadD0(srcReg, IRDataType.WORD)
                     emitLine("mulu.w  d0, d0")
-                    emitLine("move.w  d0, ${regAddr(dstReg)}")
+                    invalidateD0Cache()
+                    emitStoreD0(dstReg, IRDataType.WORD)
                 }
                 IRDataType.LONG, IRDataType.POINTER -> {
-                    emitLine("move.l  ${regAddr(srcReg)}, d0")
+                    emitLoadD0(srcReg, IRDataType.LONG)
                     emitLine("mulu.l  d0, d0")
-                    emitLine("move.l  d0, ${regAddr(dstReg)}")
+                    invalidateD0Cache()
+                    emitStoreD0(dstReg, IRDataType.LONG)
                 }
             }
         }
@@ -323,7 +344,7 @@ internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
             val leftReg = insn.reg1 ?: error("CMP needs reg1")
             val rightReg = insn.reg2 ?: error("CMP needs reg2")
             val s = dtSuffix(type)
-            emitLine("move$s  ${regAddr(leftReg)}, d0")
+            emitLoadD0(leftReg, type)
             emitLine("cmp$s  ${regAddr(rightReg)}, d0")
         }
 
@@ -348,21 +369,27 @@ internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
 private fun AsmGen.emitLongMathCall(dstReg: Int, srcReg: Int?, imm: Int?, target: String?, routine: String, resultReg: String) {
     when {
         srcReg != null -> {
-            emitLine("move.l  ${regAddr(dstReg)}, d0")
+            emitLoadD0(dstReg, IRDataType.LONG)
             emitLine("move.l  ${regAddr(srcReg)}, d1")
         }
         imm != null -> {
-            emitLine("move.l  ${regAddr(dstReg)}, d0")
+            emitLoadD0(dstReg, IRDataType.LONG)
             emitLine("move.l  #$imm, d1")
         }
         target != null -> {
-            emitLine("move.l  $target, d0")
+            emitLoadD0FromAddress(target, IRDataType.LONG)
             emitLine("move.l  ${regAddr(dstReg)}, d1")
         }
     }
+    invalidateD0Cache()
     emitLine("bsr  $routine")
     val storeTarget = target ?: regAddr(dstReg)
-    emitLine("move.l  $resultReg, $storeTarget")
+    if (resultReg == "d0") {
+        emitStoreD0ToAddress(storeTarget, IRDataType.LONG)
+    } else {
+        invalidateD0CacheForAddress(storeTarget)
+        emitLine("move.l  $resultReg, $storeTarget")
+    }
 }
 
 private fun AsmGen.emitMulOp(dstReg: Int, srcReg: Int?, type: IRDataType, unsigned: Boolean, imm: Int?, target: String?) {
@@ -372,28 +399,35 @@ private fun AsmGen.emitMulOp(dstReg: Int, srcReg: Int?, type: IRDataType, unsign
             // No .b multiply on M68k: zero-extend to word, mulu.w/muls.w, store low byte
             when {
                 srcReg != null -> {
-                    emitLine("move.b  ${regAddr(dstReg)}, d0")
+                    emitLoadD0(dstReg, IRDataType.BYTE)
                     if (unsigned) emitLine($$"and.l  #$ff, d0") else emitSignExtendByteToLong("d0")
+                    invalidateD0Cache()
                     emitLine("move.w  d0, d2")
-                    emitLine("move.b  ${regAddr(srcReg)}, d0")
+                    emitLoadD0(srcReg, IRDataType.BYTE)
                     if (unsigned) emitLine($$"and.l  #$ff, d0") else emitSignExtendByteToLong("d0")
+                    invalidateD0Cache()
                     emitLine("$op.w  d2, d0")
-                    emitLine("move.b  d0, ${regAddr(dstReg)}")
+                    invalidateD0Cache()
+                    emitStoreD0(dstReg, IRDataType.BYTE)
                 }
                 imm != null -> {
-                    emitLine("move.b  ${regAddr(dstReg)}, d0")
+                    emitLoadD0(dstReg, IRDataType.BYTE)
                     if (unsigned) emitLine($$"and.l  #$ff, d0") else emitSignExtendByteToLong("d0")
+                    invalidateD0Cache()
                     emitLine("$op.w  #${imm.and(0xffff)}, d0")
-                    emitLine("move.b  d0, ${regAddr(dstReg)}")
+                    invalidateD0Cache()
+                    emitStoreD0(dstReg, IRDataType.BYTE)
                 }
                 target != null -> {
                     emitLine("move.b  $target, d1")
                     if (unsigned) emitLine($$"and.l  #$ff, d1") else emitSignExtendByteToLong("d1")
                     emitLine("move.w  d1, d2")
-                    emitLine("move.b  ${regAddr(dstReg)}, d0")
+                    emitLoadD0(dstReg, IRDataType.BYTE)
                     if (unsigned) emitLine($$"and.l  #$ff, d0") else emitSignExtendByteToLong("d0")
+                    invalidateD0Cache()
                     emitLine("$op.w  d2, d0")
-                    emitLine("move.b  d0, $target")
+                    invalidateD0Cache()
+                    emitStoreD0ToAddress(target, IRDataType.BYTE)
                 }
             }
         }
@@ -403,19 +437,22 @@ private fun AsmGen.emitMulOp(dstReg: Int, srcReg: Int?, type: IRDataType, unsign
             // destination must be a data register, not memory
             when {
                 srcReg != null -> {
-                    emitLine("move.w  ${regAddr(dstReg)}, d0")
+                    emitLoadD0(dstReg, IRDataType.WORD)
                     emitLine("$op.w  ${regAddr(srcReg)}, d0")
-                    emitLine("move.w  d0, ${regAddr(dstReg)}")
+                    invalidateD0Cache()
+                    emitStoreD0(dstReg, IRDataType.WORD)
                 }
                 imm != null -> {
-                    emitLine("move.w  ${regAddr(dstReg)}, d0")
+                    emitLoadD0(dstReg, IRDataType.WORD)
                     emitLine("$op.w  #${imm.and(0xffff)}, d0")
-                    emitLine("move.w  d0, ${regAddr(dstReg)}")
+                    invalidateD0Cache()
+                    emitStoreD0(dstReg, IRDataType.WORD)
                 }
                 target != null -> {
-                    emitLine("move.w  ${regAddr(dstReg)}, d0")
+                    emitLoadD0(dstReg, IRDataType.WORD)
                     emitLine("$op.w  $target, d0")
-                    emitLine("move.w  d0, $target")
+                    invalidateD0Cache()
+                    emitStoreD0ToAddress(target, IRDataType.WORD)
                 }
             }
         }
@@ -429,21 +466,24 @@ private fun AsmGen.emitMulOp(dstReg: Int, srcReg: Int?, type: IRDataType, unsign
                 // 68020+ mulu.l/muls.l (32x32→64, lower 32 are result)
                 // destination must be a data register, not memory
                 when {
-                srcReg != null -> {
-                    emitLine("move.l  ${regAddr(dstReg)}, d0")
-                    emitLine("$op.l  ${regAddr(srcReg)}, d0")
-                    emitLine("move.l  d0, ${regAddr(dstReg)}")
-                }
-                imm != null -> {
-                    emitLine("move.l  ${regAddr(dstReg)}, d0")
-                    emitLine("$op.l  #${imm}, d0")
-                    emitLine("move.l  d0, ${regAddr(dstReg)}")
-                }
-                target != null -> {
-                    emitLine("move.l  ${regAddr(dstReg)}, d0")
-                    emitLine("$op.l  $target, d0")
-                    emitLine("move.l  d0, $target")
-                }
+                    srcReg != null -> {
+                        emitLoadD0(dstReg, IRDataType.LONG)
+                        emitLine("$op.l  ${regAddr(srcReg)}, d0")
+                        invalidateD0Cache()
+                        emitStoreD0(dstReg, IRDataType.LONG)
+                    }
+                    imm != null -> {
+                        emitLoadD0(dstReg, IRDataType.LONG)
+                        emitLine("$op.l  #${imm}, d0")
+                        invalidateD0Cache()
+                        emitStoreD0(dstReg, IRDataType.LONG)
+                    }
+                    target != null -> {
+                        emitLoadD0(dstReg, IRDataType.LONG)
+                        emitLine("$op.l  $target, d0")
+                        invalidateD0Cache()
+                        emitStoreD0ToAddress(target, IRDataType.LONG)
+                    }
                 }
             }
         }
@@ -459,26 +499,32 @@ private fun AsmGen.emitDivOp(dstReg: Int, srcReg: Int?, type: IRDataType, unsign
             // No .b divide on M68k: extend to word, divu.w/divs.w, take quotient from low byte
             when {
                 srcReg != null -> {
-                    emitLine("move.b  ${regAddr(dstReg)}, d0")
+                    emitLoadD0(dstReg, IRDataType.BYTE)
                     if (unsigned) emitLine($$"and.l  #$ff, d0") else emitSignExtendByteToLong("d0")
+                    invalidateD0Cache()
                     emitLine("move.b  ${regAddr(srcReg)}, d1")
                     if (unsigned) emitLine($$"and.l  #$ff, d1") else emitSignExtendByteToLong("d1")
                     emitLine("$op.w  d1, d0")
-                    emitLine("move.b  d0, ${regAddr(dstReg)}", "quotient in low byte")
+                    invalidateD0Cache()
+                    emitStoreD0(dstReg, IRDataType.BYTE)
                 }
                 imm != null -> {
-                    emitLine("move.b  ${regAddr(dstReg)}, d0")
+                    emitLoadD0(dstReg, IRDataType.BYTE)
                     if (unsigned) emitLine($$"and.l  #$ff, d0") else emitSignExtendByteToLong("d0")
+                    invalidateD0Cache()
                     emitLine("$op.w  #${imm.and(0xffff)}, d0")
-                    emitLine("move.b  d0, ${regAddr(dstReg)}", "quotient")
+                    invalidateD0Cache()
+                    emitStoreD0(dstReg, IRDataType.BYTE)
                 }
                 target != null -> {
-                    emitLine("move.b  $target, d0")
+                    emitLoadD0FromAddress(target, IRDataType.BYTE)
                     if (unsigned) emitLine($$"and.l  #$ff, d0") else emitSignExtendByteToLong("d0")
+                    invalidateD0Cache()
                     emitLine("move.b  ${regAddr(dstReg)}, d1")
                     if (unsigned) emitLine($$"and.l  #$ff, d1") else emitSignExtendByteToLong("d1")
                     emitLine("$op.w  d1, d0")
-                    emitLine("move.b  d0, $target", "quotient")
+                    invalidateD0Cache()
+                    emitStoreD0ToAddress(target, IRDataType.BYTE)
                 }
             }
         }
@@ -490,27 +536,40 @@ private fun AsmGen.emitDivOp(dstReg: Int, srcReg: Int?, type: IRDataType, unsign
             // extend explicitly here (this is what was wrong: signed dividends ended up
             // zero-extended, e.g. -1000 became +64536).
             fun loadDividend() {
-                emitLine("move.w  ${regAddr(dstReg)}, d0")
-                if (unsigned) emitLine($$"and.l  #$ffff, d0", "zero-extend upper word for divu.w")
-                else emitLine("ext.l  d0", "sign-extend upper word for divs.w (signed 32-bit dividend)")
+                emitLoadD0(dstReg, IRDataType.WORD)
+                if (unsigned) {
+                    emitLine($$"and.l  #$ffff, d0", "zero-extend upper word for divu.w")
+                    invalidateD0Cache()
+                } else {
+                    emitLine("ext.l  d0", "sign-extend upper word for divs.w (signed 32-bit dividend)")
+                    invalidateD0Cache()
+                }
             }
             when {
                 srcReg != null -> {
                     loadDividend()
                     emitLine("$op.w  ${regAddr(srcReg)}, d0")
-                    emitLine("move.w  d0, ${regAddr(dstReg)}", "quotient in low word")
+                    invalidateD0Cache()
+                    emitStoreD0(dstReg, IRDataType.WORD)
                 }
                 imm != null -> {
                     loadDividend()
                     emitLine("$op.w  #${imm.and(0xffff)}, d0")
-                    emitLine("move.w  d0, ${regAddr(dstReg)}", "quotient")
+                    invalidateD0Cache()
+                    emitStoreD0(dstReg, IRDataType.WORD)
                 }
                 target != null -> {
-                    emitLine("move.w  $target, d0")
-                    if (unsigned) emitLine($$"and.l  #$ffff, d0", "zero-extend upper word for divu.w")
-                    else emitLine("ext.l  d0", "sign-extend upper word for divs.w (signed 32-bit dividend)")
+                    emitLoadD0FromAddress(target, IRDataType.WORD)
+                    if (unsigned) {
+                        emitLine($$"and.l  #$ffff, d0", "zero-extend upper word for divu.w")
+                        invalidateD0Cache()
+                    } else {
+                        emitLine("ext.l  d0", "sign-extend upper word for divs.w (signed 32-bit dividend)")
+                        invalidateD0Cache()
+                    }
                     emitLine("$op.w  ${regAddr(dstReg)}, d0")
-                    emitLine("move.w  d0, $target", "quotient")
+                    invalidateD0Cache()
+                    emitStoreD0ToAddress(target, IRDataType.WORD)
                 }
             }
         }
@@ -524,19 +583,22 @@ private fun AsmGen.emitDivOp(dstReg: Int, srcReg: Int?, type: IRDataType, unsign
                 // 68020+ divu.l/divs.l (32/32→32)
                 when {
                     srcReg != null -> {
-                        emitLine("move.l  ${regAddr(dstReg)}, d0")
+                        emitLoadD0(dstReg, IRDataType.LONG)
                         emitLine("$op.l  ${regAddr(srcReg)}, d0")
-                        emitLine("move.l  d0, ${regAddr(dstReg)}", "quotient")
+                        invalidateD0Cache()
+                        emitStoreD0(dstReg, IRDataType.LONG)
                     }
                     imm != null -> {
-                        emitLine("move.l  ${regAddr(dstReg)}, d0")
+                        emitLoadD0(dstReg, IRDataType.LONG)
                         emitLine("$op.l  #${imm}, d0")
-                        emitLine("move.l  d0, ${regAddr(dstReg)}", "quotient")
+                        invalidateD0Cache()
+                        emitStoreD0(dstReg, IRDataType.LONG)
                     }
                     target != null -> {
-                        emitLine("move.l  $target, d0")
+                        emitLoadD0FromAddress(target, IRDataType.LONG)
                         emitLine("$op.l  ${regAddr(dstReg)}, d0")
-                        emitLine("move.l  d0, $target", "quotient")
+                        invalidateD0Cache()
+                        emitStoreD0ToAddress(target, IRDataType.LONG)
                     }
                 }
             }
@@ -553,21 +615,26 @@ private fun AsmGen.emitModOp(dstReg: Int, srcReg: Int?, type: IRDataType, unsign
             // divu.w gives quotient low word, remainder high word. Swap to get remainder.
             when {
                 srcReg != null -> {
-                    emitLine("move.b  ${regAddr(dstReg)}, d0")
+                    emitLoadD0(dstReg, IRDataType.BYTE)
                     if (unsigned) emitLine($$"and.l  #$ff, d0") else emitSignExtendByteToLong("d0")
+                    invalidateD0Cache()
                     emitLine("move.b  ${regAddr(srcReg)}, d1")
                     if (unsigned) emitLine($$"and.l  #$ff, d1") else emitSignExtendByteToLong("d1")
                     emitLine("$opDiv.w  d1, d0")
+                    invalidateD0Cache()
                 }
                 imm != null -> {
-                    emitLine("move.b  ${regAddr(dstReg)}, d0")
+                    emitLoadD0(dstReg, IRDataType.BYTE)
                     if (unsigned) emitLine($$"and.l  #$ff, d0") else emitSignExtendByteToLong("d0")
+                    invalidateD0Cache()
                     emitLine("$opDiv.w  #${imm.and(0xffff)}, d0")
+                    invalidateD0Cache()
                 }
             }
             // After divu.w/divs.w: quotient in lower word, remainder in upper word of d0.
             emitLine("swap  d0", "remainder to low word")
-            emitLine("move.b  d0, ${regAddr(dstReg)}", "remainder")
+            invalidateD0Cache()
+            emitStoreD0(dstReg, IRDataType.BYTE)
         }
 
         IRDataType.WORD -> {
@@ -576,22 +643,30 @@ private fun AsmGen.emitModOp(dstReg: Int, srcReg: Int?, type: IRDataType, unsign
             // must be ZERO-extended. A plain `move.w` does not extend the upper word, so
             // extend explicitly (signed dividends were wrongly zero-extended before).
             fun loadDividend() {
-                emitLine("move.w  ${regAddr(dstReg)}, d0")
-                if (unsigned) emitLine($$"and.l  #$ffff, d0", "zero-extend upper word for divu.w")
-                else emitLine("ext.l  d0", "sign-extend upper word for divs.w (signed 32-bit dividend)")
+                emitLoadD0(dstReg, IRDataType.WORD)
+                if (unsigned) {
+                    emitLine($$"and.l  #$ffff, d0", "zero-extend upper word for divu.w")
+                    invalidateD0Cache()
+                } else {
+                    emitLine("ext.l  d0", "sign-extend upper word for divs.w (signed 32-bit dividend)")
+                    invalidateD0Cache()
+                }
             }
             when {
                 srcReg != null -> {
                     loadDividend()
                     emitLine("$opDiv.w  ${regAddr(srcReg)}, d0")
+                    invalidateD0Cache()
                 }
                 imm != null -> {
                     loadDividend()
                     emitLine("$opDiv.w  #${imm.and(0xffff)}, d0")
+                    invalidateD0Cache()
                 }
             }
             emitLine("swap  d0", "remainder to low word")
-            emitLine("move.w  d0, ${regAddr(dstReg)}", "remainder")
+            invalidateD0Cache()
+            emitStoreD0(dstReg, IRDataType.WORD)
         }
 
         IRDataType.LONG -> {
@@ -604,14 +679,18 @@ private fun AsmGen.emitModOp(dstReg: Int, srcReg: Int?, type: IRDataType, unsign
                 val opLong = if (unsigned) "divul.l" else "divsl.l"
                 when {
                     srcReg != null -> {
-                        emitLine("move.l  ${regAddr(dstReg)}, d0", "dividend")
+                        emitLoadD0(dstReg, IRDataType.LONG)
                         emitLine("$opLong  ${regAddr(srcReg)}, d1:d0")
+                        invalidateD0Cache()
+                        invalidateD0CacheForSlot(dstReg)
                         emitLine("move.l  d1, ${regAddr(dstReg)}", "remainder")
                     }
                     imm != null -> {
-                        emitLine("move.l  ${regAddr(dstReg)}, d0", "dividend")
+                        emitLoadD0(dstReg, IRDataType.LONG)
                         emitLine("move.l  #${imm}, d2", "divisor")
                         emitLine("$opLong  d2, d1:d0")
+                        invalidateD0Cache()
+                        invalidateD0CacheForSlot(dstReg)
                         emitLine("move.l  d1, ${regAddr(dstReg)}", "remainder")
                     }
                 }
@@ -627,8 +706,9 @@ private fun AsmGen.emitDivModOp(dstReg: Int, remainderReg: Int, type: IRDataType
     when (type) {
         IRDataType.BYTE -> {
             val opDiv = if (unsigned) "divu.w" else "divs.w"
-            emitLine("move.b  ${regAddr(dstReg)}, d0")
+            emitLoadD0(dstReg, IRDataType.BYTE)
             if (unsigned) emitLine($$"and.l  #$ff, d0") else emitSignExtendByteToLong("d0")
+            invalidateD0Cache()
             if(imm!=null) {
                 if (unsigned)
                     emitLine("move.l  #${imm.and(0xff)}, d1")
@@ -640,48 +720,62 @@ private fun AsmGen.emitDivModOp(dstReg: Int, remainderReg: Int, type: IRDataType
                 if (unsigned) emitLine($$"and.l  #$ff, d1") else emitSignExtendByteToLong("d1")
             }
             emitLine("$opDiv  d1, d0")
-            emitLine("move.b  d0, ${regAddr(dstReg)}", "quotient")
-            emitLine("swap  d0")
-            emitLine("move.b  d0, ${regAddr(remainderReg)}", "remainder")
+            invalidateD0Cache()
+            emitStoreD0(dstReg, IRDataType.BYTE)
+            emitLine("swap  d0", "remainder to low word")
+            invalidateD0Cache()
+            emitStoreD0(remainderReg, IRDataType.BYTE)
         }
 
         IRDataType.WORD -> {
             val opDiv = if (unsigned) "divu.w" else "divs.w"
-            if (unsigned) emitLine("moveq  #0, d0", "clear upper word for divu.w")
-            emitLine("move.w  ${regAddr(dstReg)}, d0")
-            if (!unsigned) emitLine("ext.l  d0", "sign-extend for divs.w")
+            if (unsigned) {
+                emitLine("moveq  #0, d0", "clear upper word for divu.w")
+                invalidateD0Cache()
+            }
+            emitLoadD0(dstReg, IRDataType.WORD)
+            if (!unsigned) {
+                emitLine("ext.l  d0", "sign-extend for divs.w")
+                invalidateD0Cache()
+            }
             if(imm!=null) {
                 emitLine("$opDiv  #${imm.and(0xffff)}, d0")
             } else {
                 emitLine("$opDiv  ${regAddr(remainderReg)}, d0")
             }
-            emitLine("move.w  d0, ${regAddr(dstReg)}", "quotient")
-            emitLine("swap  d0")
-            emitLine("move.w  d0, ${regAddr(remainderReg)}", "remainder")
+            invalidateD0Cache()
+            emitStoreD0(dstReg, IRDataType.WORD)
+            emitLine("swap  d0", "remainder to low word")
+            invalidateD0Cache()
+            emitStoreD0(remainderReg, IRDataType.WORD)
         }
 
         IRDataType.LONG -> {
             if(program.options.compTarget.cpu < CpuType.M68020) {
                 // 68000: no divul.l/divsl.l; use a helper routine (utility.library or software fallback)
                 val routine = if (unsigned) "p8_udivmod32" else "p8_sdivmod32"
-                emitLine("move.l  ${regAddr(dstReg)}, d0", "dividend")
+                emitLoadD0(dstReg, IRDataType.LONG)
                 if(imm!=null) {
                     emitLine("move.l  #${imm}, d1", "divisor")
                 } else {
                     emitLine("move.l  ${regAddr(remainderReg)}, d1", "divisor")
                 }
+                invalidateD0Cache()
                 emitLine("bsr  $routine")
-                emitLine("move.l  d0, ${regAddr(dstReg)}", "quotient")
+                emitStoreD0(dstReg, IRDataType.LONG)
+                invalidateD0CacheForSlot(remainderReg)
                 emitLine("move.l  d1, ${regAddr(remainderReg)}", "remainder")
             } else {
-                emitLine("move.l  ${regAddr(dstReg)}, d0", "dividend")
+                emitLoadD0(dstReg, IRDataType.LONG)
                 if(imm!=null) {
                     emitLine("move.l  #${imm}, d1", "divisor")
                 } else {
                     emitLine("move.l  ${regAddr(remainderReg)}, d1", "divisor")
                 }
                 emitLine("$opLong  d1, d0")
-                emitLine("move.l  d0, ${regAddr(dstReg)}", "quotient")
+                invalidateD0Cache()
+                emitStoreD0(dstReg, IRDataType.LONG)
+                invalidateD0CacheForSlot(remainderReg)
                 emitLine("move.l  d1, ${regAddr(remainderReg)}", "remainder")
             }
         }

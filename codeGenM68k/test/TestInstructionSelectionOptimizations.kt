@@ -1255,6 +1255,63 @@ class TestInstructionSelectionOptimizations : FunSpec({
         lines.any { it.contains("move.l  (a0,d0.w), a0") } shouldBe false
     }
 
+    // === D0 peephole cache ===
+
+    test("skips redundant d0 load when the value is already cached") {
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-d0-cache-skip"),
+            listOf(
+                IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1 = 3, reg2 = 1),
+                IRInstruction(Opcode.ADDM, IRDataType.WORD, reg1 = 1, labelSymbol = "p8b_test.p8v_value")
+            )
+        )
+
+        // ADDR loads r1 into d0 and leaves it there; ADDM reuses the cached r1.
+        lines.count { it.startsWith("move.w  p8_regfile+") && it.endsWith(",d0") } shouldBe 1
+    }
+
+    test("re-emits d0 load after the cached slot is written directly") {
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-d0-cache-invalidate-slot"),
+            listOf(
+                IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1 = 3, reg2 = 1),
+                IRInstruction(Opcode.INC, IRDataType.WORD, reg1 = 1),
+                IRInstruction(Opcode.ADDM, IRDataType.WORD, reg1 = 1, labelSymbol = "p8b_test.p8v_value")
+            )
+        )
+
+        // ADDR caches r1; INC writes r1 directly; ADDM must reload.
+        lines.count { it.startsWith("move.w  p8_regfile+") && it.endsWith(",d0") } shouldBe 2
+    }
+
+    test("re-emits d0 load after d0 is clobbered by another register load") {
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-d0-cache-invalidate-d0"),
+            listOf(
+                IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1 = 3, reg2 = 1),
+                IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1 = 4, reg2 = 2),
+                IRInstruction(Opcode.ADDM, IRDataType.WORD, reg1 = 1, labelSymbol = "p8b_test.p8v_value")
+            )
+        )
+
+        // ADDR caches r1, second ADDR overwrites d0 with r2; ADDM must reload r1.
+        lines.count { it.startsWith("move.w  p8_regfile+") && it.endsWith(",d0") } shouldBe 3
+    }
+
+    test("d0 cache is invalidated at chunk boundaries") {
+        val chunk1 = IRCodeChunk(null, null)
+        chunk1.instructions.add(IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1 = 3, reg2 = 1))
+        val chunk2 = IRCodeChunk("test.next", null)
+        chunk2.instructions.add(IRInstruction(Opcode.ADDM, IRDataType.WORD, reg1 = 1, labelSymbol = "p8b_test.p8v_value"))
+        val lines = generateAsmChunks(
+            tempRoot.resolve("test-m68k-d0-cache-boundary"),
+            listOf(chunk1, chunk2)
+        )
+
+        // ADDR in chunk1 caches r1, but chunk2 is a new basic block.
+        lines.count { it.startsWith("move.w  p8_regfile+") && it.endsWith(",d0") } shouldBe 2
+    }
+
     // === extb.l gate robustification ===
 
     test("M68020 sign-extends byte to long with extb.l") {

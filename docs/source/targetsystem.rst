@@ -24,7 +24,7 @@ Currently these machines can be selected as a compilation target (via the ``-tar
 - custom targets via a separate configuration file (see :ref:`customizable_target`)
 
 This chapter explains some relevant system details of the c64 and cx16 machines.
-Details about the m68k targets are in the :ref:`amiga500 footnotes <amiga500footnotes>` below.
+Details about the m68k targets are in the :ref:`amiga footnotes <amiga500footnotes>` below.
 
 .. hint::
     If you only use standard Kernal and prog8 library routines,
@@ -180,15 +180,18 @@ Footnotes for the Commodore 128
     This gives about 41 Kb of contiguous RAM for Prog8 programs.
 
 
-Footnotes for the Amiga 500
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Footnotes for the Amiga targets
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. _amiga500footnotes:
 .. index:: single: Targets; Amiga 500 notes
 
-The amiga500 target is **experimental**. It uses the M68k code generator backend and produces
-Amiga Hunk executable files via the vasm assembler.
+The amiga500 and amiga1200 targets are **experimental**. They use the M68k code generator
+backend and produce Amiga Hunk executable files via the vasm assembler.
+The amiga500 targets a plain 68000 CPU; the amiga1200 targets a 68020 CPU (which enables
+some extra instructions) and assembles with the 68881 FPU enabled. Everything else in this
+section applies to both.
 
-Unlike the 6502 targets, the 68000 CPU is **big endian**: multi-byte values (words, 32-bit longs and
+Unlike the 6502 targets, the 68000/68020 CPU is **big endian**: multi-byte values (words, 32-bit longs and
 pointers) are stored Most Significant Byte first in memory. See :ref:`pointer_size` and
 :ref:`the endianness notes <endianness>` in the variables chapter.
 
@@ -219,7 +222,7 @@ program is launched from Workbench (GUI), ``sys.arguments`` is NULL. Example::
         }
     }
 
-Note: Do not use ``%option no_sysinit`` on amiga500 programs that need CLI argument handling,
+Note: Do not use ``%option no_sysinit`` on amiga500/amiga1200 programs that need CLI argument handling,
 as the startup code is required to capture and process the arguments.
 
 **Icon library and Tooltypes:**

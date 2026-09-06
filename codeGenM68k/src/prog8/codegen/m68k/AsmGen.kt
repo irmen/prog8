@@ -110,6 +110,131 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
     private var loopNestingDepth = 0
     val dataFloatConstants = mutableListOf<Pair<String, Double>>()
 
+    // -------------------------------------------------------------------------
+    // D0 peephole cache (transitional optimization)
+    //
+    // A cheap local optimization that avoids redundant `move mem,d0` reloads.
+    // It is NOT a register allocator. When a real allocator is added it will
+    // keep values in D0-D7/A0-Ax itself, making this cache obsolete.
+    //
+    // WHY IT EXISTS / WHAT IT ACTUALLY WINS
+    //   The codegen funnels every virtual-register operand through d0
+    //   (`move p8_regfile+N,d0` ... op ... `move d0,p8_regfile+M`). The cache
+    //   remembers "d0 currently holds virtual register rX of type T" and skips
+    //   a reload when the very same value is read again with no d0-clobbering
+    //   instruction in between.
+    //
+    //   Measured effect (vs the pre-cache commit 687d86d36), same .p8ir input:
+    //     - DEFAULT (optimized) builds: about 0.2-1.2% smaller .text on the
+    //       amiga examples (3d -96 B, textelite -56 B, window3d -120 B);
+    //       fibonacci/primes/numbergame are byte-identical.
+    //     - `-noopt` builds: about 2.0-2.5% smaller .text.
+    //   The default-build win is small on purpose: the post-pass
+    //   AsmOptimizer.optimizeRedundantReload already deletes the *adjacent*
+    //   `move d0,MEM`/`move MEM,d0` pair (the dominant case), so this cache
+    //   only adds the *non-adjacent* reloads that a 2-line peephole cannot see
+    //   (e.g. one value stored to d0 then re-read several times across a run of
+    //   intervening ALU ops). If a program shows no delta, that is why.
+    //
+    // CORRECTNESS INVARIANT (read carefully, the obvious one is wrong)
+    //   It is tempting to say "the cache is safe because move.x mem,d0 does not
+    //   set CCR". That is FALSE on m68k: move.x to a data register DOES set N/Z
+    //   (only movea leaves CCR alone). The cache is safe for a subtler reason:
+    //   no emitted sequence ever consumes the N/Z flags left by a `move ...,d0`.
+    //   Every flag-dependent decision (branches, scc) is preceded by an explicit
+    //   `tst`/`cmp` that re-establishes CCR. So skipping the load is fine, and
+    //   we must never reorder anything around it. Keep it that way: if a future
+    //   change makes codegen rely on the flags of a d0 load, this cache breaks.
+    //
+    // MAINTENANCE COST / HOW TO KEEP IT SOUND
+    //   The cache is only as correct as its invalidation. The rule: ANY emitted
+    //   instruction that (a) writes d0, or (b) writes the cached register's
+    //   regfile slot, or (c) is a branch target / control-flow boundary, MUST
+    //   invalidate (invalidateD0Cache / invalidateD0CacheForSlot /
+    //   invalidateD0CacheForAddress). When in doubt, invalidate. Two latent bugs
+    //   found after the initial commit illustrate the failure modes, both in
+    //   multi-path sequences with internal labels:
+    //     - translateSyscallClamp: internal `labelCheckMax:`/`labelDone:` are
+    //       branch targets where d0 differs per incoming path; they now
+    //       invalidate so a load after the label is never wrongly skipped.
+    //     - SGN: a raw `move.b d1, regAddr(dst)` bypassed emitStoreD0, leaving a
+    //       stale cache entry if dst==src; it now calls invalidateD0CacheForSlot.
+    //   Both were unreachable only because the register packer is disabled
+    //   (prototype) and clamp's three args are simultaneously live; do not rely
+    //   on that. Treat every internal label as a cache barrier.
+    // -------------------------------------------------------------------------
+    private var d0CacheReg: Int = -1          // -1 means empty
+    private var d0CacheType: IRDataType? = null
+
+    fun invalidateD0Cache() {
+        d0CacheReg = -1
+        d0CacheType = null
+    }
+
+    fun invalidateD0CacheForSlot(reg: Int) {
+        if (d0CacheReg == reg)
+            invalidateD0Cache()
+    }
+
+    // Invalidate the cache when a memory operand that may be a register-file
+    // slot is written directly (e.g. addq #1, p8_regfile+N). Variables that
+    // are not part of the register file are ignored.
+    fun invalidateD0CacheForAddress(address: String) {
+        if (!address.startsWith(REGFILE_LABEL))
+            return
+        val suffix = address.removePrefix(REGFILE_LABEL)
+        val offset = when {
+            suffix.isEmpty() -> 0
+            suffix.startsWith("+") -> suffix.removePrefix("+").toIntOrNull() ?: return
+            else -> return
+        }
+        val reg = regNumForOffset(offset) ?: return
+        invalidateD0CacheForSlot(reg)
+    }
+
+    // Load a virtual register into d0, skipping the move if d0 already holds
+    // the same register at the same type. The type matters because a byte load
+    // may leave stale upper bits that a later long consumer cannot trust.
+    fun emitLoadD0(reg: Int, type: IRDataType) {
+        if (d0CacheReg == reg && d0CacheType == type)
+            return
+        emitLine("move${dtSuffix(type)}  ${regAddr(reg)}, d0")
+        d0CacheReg = reg
+        d0CacheType = type
+    }
+
+    // Store d0 to a virtual register and update the cache to reflect that d0
+    // still holds that value.
+    fun emitStoreD0(reg: Int, type: IRDataType) {
+        emitLine("move${dtSuffix(type)}  d0, ${regAddr(reg)}")
+        d0CacheReg = reg
+        d0CacheType = type
+    }
+
+    // Load from an arbitrary address into d0. If the address is a register-file
+    // slot, use the cache; otherwise emit a direct move and clear the cache.
+    fun emitLoadD0FromAddress(address: String, type: IRDataType) {
+        val reg = regNumForAddress(address)
+        if (reg != null) {
+            emitLoadD0(reg, type)
+        } else {
+            invalidateD0Cache()
+            emitLine("move${dtSuffix(type)}  $address, d0")
+        }
+    }
+
+    // Store d0 to an arbitrary address. If the address is a register-file slot,
+    // update the cache; otherwise clear it.
+    fun emitStoreD0ToAddress(address: String, type: IRDataType) {
+        val reg = regNumForAddress(address)
+        if (reg != null) {
+            emitStoreD0(reg, type)
+        } else {
+            invalidateD0Cache()
+            emitLine("move${dtSuffix(type)}  d0, $address")
+        }
+    }
+
     fun makeLabel(prefix: String): String {
         val label = "${prefix}_$labelSeqCounter"
         labelSeqCounter++
@@ -191,6 +316,23 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         return "$REGFILE_LABEL+$offset"
     }
 
+    private fun regNumForOffset(offset: Int): Int? =
+        regFileLayout.offsets.entries.find { it.value == offset }?.key
+
+    // Resolve a register-file address string ("p8_regfile" or "p8_regfile+N")
+    // back to a virtual register number, or null if it is not a regfile slot.
+    fun regNumForAddress(address: String): Int? {
+        if (!address.startsWith(REGFILE_LABEL))
+            return null
+        val suffix = address.removePrefix(REGFILE_LABEL)
+        val offset = when {
+            suffix.isEmpty() -> 0
+            suffix.startsWith("+") -> suffix.removePrefix("+").toIntOrNull() ?: return null
+            else -> return null
+        }
+        return regNumForOffset(offset)
+    }
+
     fun regAddrByte(reg: Int, byteOffset: Int): String {
         val offset = regFileLayout.offsets[reg] ?: error("register r$reg has no layout info")
         return "$REGFILE_LABEL+${offset + byteOffset}"
@@ -209,10 +351,14 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
             IRDataType.FLOAT -> target.FLOAT_MEM_SIZE.toInt()
         }
         if (sizeOf(regType) < sizeOf(requiredType)) {
+            // Zero-extend: clear d0 (clobbers any cached value) and load the narrow part.
             emitLine("moveq  #0, d0")
-            emitLine("move${dtSuffix(regType)}  ${regAddr(reg)}, d0")
+            invalidateD0Cache()
+            emitLoadD0(reg, regType)
+            // d0 now holds the zero-extended wider value.
+            d0CacheType = requiredType
         } else {
-            emitLine("move${dtSuffix(requiredType)}  ${regAddr(reg)}, d0")
+            emitLoadD0(reg, requiredType)
         }
     }
 
@@ -490,6 +636,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
                 is IRInlineAsmChunk -> {
                     val cl = chunk.label?.let { fixNameSymbols(it) }
                     if (cl != null && cl != subLabel && cl != subUnscoped) emitLabel(cl)
+                    invalidateD0Cache()
                     emitRaw(chunk.assembly)
                 }
                 is IRInlineBinaryChunk -> {
@@ -543,6 +690,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
     private fun translateLoopChunk(loop: IRLoopChunk) {
         // Preserve counted loop as efficient m68k dbra.
         // Use d7 as loop register; handle nesting via stack save/restore.
+        invalidateD0Cache()                 // loop entry is a control-flow target
         val label = fixNameSymbols(loop.label!!)
         val tripMinusOne = if(loop.trip==65536) 65535 else loop.trip-1
         val needsSave = loopNestingDepth > 0
@@ -561,6 +709,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
                 is IRInlineAsmChunk -> {
                     val cl = chunk.label?.let { fixNameSymbols(it) }
                     if(cl!=null) emitLabel(cl)
+                    invalidateD0Cache()
                     emitLine("move.w  d7,-(sp)", "save loop counter around inline assembly")
                     emitRaw(chunk.assembly)
                     emitLine("move.w  (sp)+,d7", "restore loop counter after inline assembly")
@@ -584,6 +733,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         deadStoreSuppressionAllowed: Boolean = true,
         preserveLoopCounter: Boolean = false
     ) {
+        invalidateD0Cache()                 // new basic block / branch target
         emitSourceComment(chunk.sourceLinesPositions)
         val callOptimizations = mutableMapOf<Int, ImmediateCallOptimization>()
         val deadLoadIndices = mutableSetOf<Int>()

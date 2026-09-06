@@ -133,8 +133,9 @@ internal fun AsmGen.translateBitwise(insn: IRInstruction) {
 
 private fun AsmGen.andRegisters(dstReg: Int, srcReg: Int, type: IRDataType) {
     val s = dtSuffix(type)
-    emitLine("move$s  ${regAddr(srcReg)}, d0")
+    emitLoadD0(srcReg, type)
     emitLine("and$s  d0, ${regAddr(dstReg)}")
+    invalidateD0CacheForSlot(dstReg)
 }
 
 private fun AsmGen.andImmediate(dstReg: Int, value: Int, type: IRDataType) {
@@ -146,20 +147,23 @@ private fun AsmGen.andImmediate(dstReg: Int, value: Int, type: IRDataType) {
         else -> error("unsupported type for AND immediate")
     }
     emitLine("andi$s  #$mask, ${regAddr(dstReg)}")
+    invalidateD0CacheForSlot(dstReg)
 }
 
 private fun AsmGen.andMemory(dstReg: Int, sourceAddress: String, type: IRDataType) {
     val s = dtSuffix(type)
-    emitLine("move$s  ${regAddr(dstReg)}, d0")
+    emitLoadD0(dstReg, type)
     emitLine("and$s  d0, $sourceAddress")
+    invalidateD0CacheForAddress(sourceAddress)
 }
 
 // === OR ===
 
 private fun AsmGen.orRegisters(dstReg: Int, srcReg: Int, type: IRDataType) {
     val s = dtSuffix(type)
-    emitLine("move$s  ${regAddr(srcReg)}, d0")
+    emitLoadD0(srcReg, type)
     emitLine("or$s  d0, ${regAddr(dstReg)}")
+    invalidateD0CacheForSlot(dstReg)
 }
 
 private fun AsmGen.orImmediate(dstReg: Int, value: Int, type: IRDataType) {
@@ -171,20 +175,23 @@ private fun AsmGen.orImmediate(dstReg: Int, value: Int, type: IRDataType) {
         else -> error("unsupported type for OR immediate")
     }
     emitLine("ori$s  #$mask, ${regAddr(dstReg)}")
+    invalidateD0CacheForSlot(dstReg)
 }
 
 private fun AsmGen.orMemory(dstReg: Int, sourceAddress: String, type: IRDataType) {
     val s = dtSuffix(type)
-    emitLine("move$s  ${regAddr(dstReg)}, d0")
+    emitLoadD0(dstReg, type)
     emitLine("or$s  d0, $sourceAddress")
+    invalidateD0CacheForAddress(sourceAddress)
 }
 
 // === XOR ===
 
 private fun AsmGen.xorRegisters(dstReg: Int, srcReg: Int, type: IRDataType) {
     val s = dtSuffix(type)
-    emitLine("move$s  ${regAddr(srcReg)}, d0")
+    emitLoadD0(srcReg, type)
     emitLine("eor$s  d0, ${regAddr(dstReg)}")
+    invalidateD0CacheForSlot(dstReg)
 }
 
 private fun AsmGen.xorImmediate(dstReg: Int, value: Int, type: IRDataType) {
@@ -196,12 +203,14 @@ private fun AsmGen.xorImmediate(dstReg: Int, value: Int, type: IRDataType) {
         else -> error("unsupported type for XOR immediate")
     }
     emitLine("eori$s  #$mask, ${regAddr(dstReg)}")
+    invalidateD0CacheForSlot(dstReg)
 }
 
 private fun AsmGen.xorMemory(dstReg: Int, sourceAddress: String, type: IRDataType) {
     val s = dtSuffix(type)
-    emitLine("move$s  ${regAddr(dstReg)}, d0")
+    emitLoadD0(dstReg, type)
     emitLine("eor$s  d0, $sourceAddress")
+    invalidateD0CacheForAddress(sourceAddress)
 }
 
 // === Invert ===
@@ -209,11 +218,13 @@ private fun AsmGen.xorMemory(dstReg: Int, sourceAddress: String, type: IRDataTyp
 private fun AsmGen.invertRegister(reg: Int, type: IRDataType) {
     val s = dtSuffix(type)
     emitLine("not$s  ${regAddr(reg)}")
+    invalidateD0CacheForSlot(reg)
 }
 
 private fun AsmGen.invertMemory(target: String, type: IRDataType) {
     val s = dtSuffix(type)
     emitLine("not$s  $target")
+    invalidateD0CacheForAddress(target)
 }
 
 // === Shift/rotate size helpers ===
@@ -257,31 +268,32 @@ private fun AsmGen.shiftRegister(reg: Int, count: Int, type: IRDataType, isArith
         // result for signed and unsigned long: the sign bit lives in the
         // top half, which is replaced by the bottom half; the bottom
         // half is always cleared.
-        emitLine("move.l  ${regAddr(reg)}, d0")
+        emitLoadD0(reg, IRDataType.LONG)
         emitLine("swap  d0")
         emitLine("clr.w  d0")
-        emitLine("move.l  d0, ${regAddr(reg)}")
+        emitStoreD0(reg, IRDataType.LONG)
         return
     }
     if (type == IRDataType.WORD && count == 1) {
         // m68k memory shift/rotate is supported for .w count=1; collapse the
         // d0 round-trip into a single memory form
         emitMemoryWordShiftOrRotate(op, regAddr(reg))
+        invalidateD0CacheForSlot(reg)
         return
     }
     if (count in 1..8) {
-        emitLine("move$s  ${regAddr(reg)}, d0")
+        emitLoadD0(reg, type)
         emitLine("$op$s  #$count, d0")
-        emitLine("move$s  d0, ${regAddr(reg)}")
+        emitStoreD0(reg, type)
     } else {
         // m68k immediate-shift range is 1..8; for larger counts the count
         // has to go into a data register first. `move.w` preserves the
         // count up to 32767 (Prog8 shift counts are 0..255, so this is
         // always safe).
         emitLine("move.w  #$count, d1")
-        emitLine("move$s  ${regAddr(reg)}, d0")
+        emitLoadD0(reg, type)
         emitLine("$op$s  d1, d0")
-        emitLine("move$s  d0, ${regAddr(reg)}")
+        emitStoreD0(reg, type)
     }
 }
 
@@ -296,13 +308,14 @@ private fun AsmGen.memoryShiftRotate(target: String, count: Int, type: IRDataTyp
     if (type == IRDataType.WORD && count == 1) {
         val op = shiftOpcode(isLeft, isArithmetic, isRotate)
         emitMemoryWordShiftOrRotate(op, target)
+        invalidateD0CacheForAddress(target)
         return
     }
     val s = dtSuffix(type)
     val op = shiftOpcode(isLeft, isArithmetic, isRotate)
-    emitLine("move$s  $target, d0")
+    emitLoadD0FromAddress(target, type)
     emitLine("$op$s  #$count, d0")
-    emitLine("move$s  d0, $target")
+    emitStoreD0ToAddress(target, type)
 }
 
 // === Variable-count shifts ===
@@ -310,25 +323,25 @@ private fun AsmGen.memoryShiftRotate(target: String, count: Int, type: IRDataTyp
 private fun AsmGen.logicalShiftLeftVar(reg: Int, countReg: Int, type: IRDataType) {
     val s = dtSuffix(type)
     emitLine("move.b  ${regAddr(countReg)}, d1")
-    emitLine("move$s  ${regAddr(reg)}, d0")
+    emitLoadD0(reg, type)
     emitLine("lsl$s  d1, d0")
-    emitLine("move$s  d0, ${regAddr(reg)}")
+    emitStoreD0(reg, type)
 }
 
 private fun AsmGen.logicalShiftRightVar(reg: Int, countReg: Int, type: IRDataType) {
     val s = dtSuffix(type)
     emitLine("move.b  ${regAddr(countReg)}, d1")
-    emitLine("move$s  ${regAddr(reg)}, d0")
+    emitLoadD0(reg, type)
     emitLine("lsr$s  d1, d0")
-    emitLine("move$s  d0, ${regAddr(reg)}")
+    emitStoreD0(reg, type)
 }
 
 private fun AsmGen.arithmeticShiftRightVar(reg: Int, countReg: Int, type: IRDataType) {
     val s = dtSuffix(type)
     emitLine("move.b  ${regAddr(countReg)}, d1")
-    emitLine("move$s  ${regAddr(reg)}, d0")
+    emitLoadD0(reg, type)
     emitLine("asr$s  d1, d0")
-    emitLine("move$s  d0, ${regAddr(reg)}")
+    emitStoreD0(reg, type)
 }
 
 // === Memory variable-count shifts ===
@@ -337,17 +350,17 @@ private fun AsmGen.shiftMemoryVar(target: String, countReg: Int, type: IRDataTyp
     val s = dtSuffix(type)
     val op = if (isArithmetic) "asr" else "lsr"
     emitLine("move.b  ${regAddr(countReg)}, d1")
-    emitLine("move$s  $target, d0")
+    emitLoadD0FromAddress(target, type)
     emitLine("$op$s  d1, d0")
-    emitLine("move$s  d0, $target")
+    emitStoreD0ToAddress(target, type)
 }
 
 private fun AsmGen.shiftMemoryLeftVar(target: String, countReg: Int, type: IRDataType) {
     val s = dtSuffix(type)
     emitLine("move.b  ${regAddr(countReg)}, d1")
-    emitLine("move$s  $target, d0")
+    emitLoadD0FromAddress(target, type)
     emitLine("lsl$s  d1, d0")
-    emitLine("move$s  d0, $target")
+    emitStoreD0ToAddress(target, type)
 }
 
 // === Rotates ===
@@ -362,13 +375,14 @@ private fun AsmGen.rotateLeft(reg: Int, type: IRDataType) {
     if (type == IRDataType.WORD) {
         emitLine($$"andi  #$ef, ccr")       // clear X (and leave C alone)
         emitMemoryWordShiftOrRotate("roxl", regAddr(reg))
+        invalidateD0CacheForSlot(reg)
         return
     }
     val s = dtSuffix(type)
-    emitLine("move$s  ${regAddr(reg)}, d0")
+    emitLoadD0(reg, type)
     emitLine($$"andi  #$ef, ccr")       // clear X (and leave C alone)
     emitLine("roxl$s  #1, d0")           // rotate through X: X=0 -> bit 0 gets 0
-    emitLine("move$s  d0, ${regAddr(reg)}")
+    emitStoreD0(reg, type)
 }
 
 private fun AsmGen.rotateRight(reg: Int, type: IRDataType) {
@@ -376,13 +390,14 @@ private fun AsmGen.rotateRight(reg: Int, type: IRDataType) {
     if (type == IRDataType.WORD) {
         emitLine($$"andi  #$ef, ccr")       // clear X (and leave C alone)
         emitMemoryWordShiftOrRotate("roxr", regAddr(reg))
+        invalidateD0CacheForSlot(reg)
         return
     }
     val s = dtSuffix(type)
-    emitLine("move$s  ${regAddr(reg)}, d0")
+    emitLoadD0(reg, type)
     emitLine($$"andi  #$ef, ccr")       // clear X (and leave C alone)
     emitLine("roxr$s  #1, d0")           // rotate through X: X=0 -> MSB gets 0
-    emitLine("move$s  d0, ${regAddr(reg)}")
+    emitStoreD0(reg, type)
 }
 
 // === Rotates through carry (extend) ===
@@ -391,24 +406,26 @@ private fun AsmGen.rotateLeftThroughCarry(reg: Int, type: IRDataType) {
     // IR ROXL: rotate left through carry (on M68k, X serves as rotate-carry)
     if (type == IRDataType.WORD) {
         emitMemoryWordShiftOrRotate("roxl", regAddr(reg))
+        invalidateD0CacheForSlot(reg)
         return
     }
     val s = dtSuffix(type)
-    emitLine("move$s  ${regAddr(reg)}, d0")
+    emitLoadD0(reg, type)
     emitLine("roxl$s  #1, d0")
-    emitLine("move$s  d0, ${regAddr(reg)}")
+    emitStoreD0(reg, type)
 }
 
 private fun AsmGen.rotateRightThroughCarry(reg: Int, type: IRDataType) {
     // IR ROXR: rotate right through carry (on M68k, X serves as rotate-carry)
     if (type == IRDataType.WORD) {
         emitMemoryWordShiftOrRotate("roxr", regAddr(reg))
+        invalidateD0CacheForSlot(reg)
         return
     }
     val s = dtSuffix(type)
-    emitLine("move$s  ${regAddr(reg)}, d0")
+    emitLoadD0(reg, type)
     emitLine("roxr$s  #1, d0")
-    emitLine("move$s  d0, ${regAddr(reg)}")
+    emitStoreD0(reg, type)
 }
 
 // === Bit manipulation ===

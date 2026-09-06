@@ -34,10 +34,11 @@ private fun AsmGen.translateSyscallStringCompare(args: FunctionCallArgs) {
     val reg1 = args.arguments[0].reg.registerNum.value
     val reg2 = args.arguments[1].reg.registerNum.value
     val resultReg = args.returns[0].registerNum.value
-    loadStringArg(reg1, args.arguments[0].reg.dt, "d0")
+    emitLoadD0(reg1, args.arguments[0].reg.dt)
     loadStringArg(reg2, args.arguments[1].reg.dt, "d1")
+    invalidateD0Cache()         // d0 is caller-saved across the subroutine call
     emitLine("bsr  prog8_lib.strcmp")
-    emitLine("move.b  d0, ${regAddrByte(resultReg, 0)}")
+    emitStoreD0(resultReg, IRDataType.BYTE)
 }
 
 // Load a string pointer argument (16 or 32 bits) into the given data register,
@@ -60,7 +61,7 @@ private fun AsmGen.translateSyscallWordarrayContains(args: FunctionCallArgs) {
     val labelFound = makeLabel(".wac_found")
     val labelDone = makeLabel(".wac_done")
 
-    emitLine("move.w  ${regAddr(regElem)}, d0")
+    emitLoadD0(regElem, IRDataType.WORD)
     emitLine("move.l  ${regAddr(regArr)}, a0")
     emitLine("moveq.l  #0, d1")
     emitLine("move.b  ${regAddrByte(regLen, 0)}, d1")
@@ -90,43 +91,49 @@ private fun AsmGen.translateSyscallClamp(args: FunctionCallArgs, dt: IRDataType,
 
     when (dt) {
         IRDataType.BYTE -> {
-            emitLine("move.b  ${regAddr(valueReg)}, d0")
+            emitLoadD0(valueReg, IRDataType.BYTE)
             emitLine("cmp.b  ${regAddr(minReg)}, d0")
             emitLine("$bge  $labelCheckMax")
-            emitLine("move.b  ${regAddr(minReg)}, d0")
+            emitLoadD0(minReg, IRDataType.BYTE)
             emitLine("bra  $labelDone")
             emitRaw("$labelCheckMax:")
+            invalidateD0Cache()             // branch target: d0 still holds valueReg, not minReg
             emitLine("cmp.b  ${regAddr(maxReg)}, d0")
             emitLine("$ble  $labelDone")
-            emitLine("move.b  ${regAddr(maxReg)}, d0")
+            emitLoadD0(maxReg, IRDataType.BYTE)
             emitRaw("$labelDone:")
-            emitLine("move.b  d0, ${regAddr(resultReg)}")
+            invalidateD0Cache()             // branch target: d0 differs per incoming path
+            emitStoreD0(resultReg, IRDataType.BYTE)
         }
         IRDataType.WORD -> {
-            emitLine("move.w  ${regAddr(valueReg)}, d0")
+            emitLoadD0(valueReg, IRDataType.WORD)
             emitLine("cmp.w  ${regAddr(minReg)}, d0")
             emitLine("$bge  $labelCheckMax")
-            emitLine("move.w  ${regAddr(minReg)}, d0")
+            emitLoadD0(minReg, IRDataType.WORD)
             emitLine("bra  $labelDone")
             emitRaw("$labelCheckMax:")
+            invalidateD0Cache()             // branch target: d0 still holds valueReg, not minReg
             emitLine("cmp.w  ${regAddr(maxReg)}, d0")
             emitLine("$ble  $labelDone")
-            emitLine("move.w  ${regAddr(maxReg)}, d0")
+            emitLoadD0(maxReg, IRDataType.WORD)
             emitRaw("$labelDone:")
-            emitLine("move.w  d0, ${regAddr(resultReg)}")
+            invalidateD0Cache()             // branch target: d0 differs per incoming path
+            emitStoreD0(resultReg, IRDataType.WORD)
         }
         IRDataType.LONG -> {
-            emitLine("move.l  ${regAddr(valueReg)}, d0")
+            emitLoadD0(valueReg, IRDataType.LONG)
             emitLine("cmp.l  ${regAddr(minReg)}, d0")
             emitLine("$bge  $labelCheckMax")
-            emitLine("move.l  ${regAddr(minReg)}, d0")
+            emitLoadD0(minReg, IRDataType.LONG)
             emitLine("bra  $labelDone")
             emitRaw("$labelCheckMax:")
+            invalidateD0Cache()             // branch target: d0 still holds valueReg, not minReg
             emitLine("cmp.l  ${regAddr(maxReg)}, d0")
             emitLine("$ble  $labelDone")
-            emitLine("move.l  ${regAddr(maxReg)}, d0")
+            emitLoadD0(maxReg, IRDataType.LONG)
             emitRaw("$labelDone:")
-            emitLine("move.l  d0, ${regAddr(resultReg)}")
+            invalidateD0Cache()             // branch target: d0 differs per incoming path
+            emitStoreD0(resultReg, IRDataType.LONG)
         }
         else -> emitLine("; clamp: unsupported dt $dt")
     }

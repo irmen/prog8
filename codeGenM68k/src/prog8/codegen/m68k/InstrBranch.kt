@@ -32,14 +32,14 @@ internal fun AsmGen.translateBranch(insn: IRInstruction) {
     }
 
     when (insn.opcode) {
-        Opcode.BSTCC -> emitLine("bcc  $label")
-        Opcode.BSTCS -> emitLine("bcs  $label")
-        Opcode.BSTEQ -> emitLine("beq  $label")
-        Opcode.BSTNE -> emitLine("bne  $label")
-        Opcode.BSTNEG -> emitLine("bmi  $label")
-        Opcode.BSTPOS -> emitLine("bpl  $label")
-        Opcode.BSTVC -> emitLine("bvc  $label")
-        Opcode.BSTVS -> emitLine("bvs  $label")
+        Opcode.BSTCC -> emitBranch("bcc", label)
+        Opcode.BSTCS -> emitBranch("bcs", label)
+        Opcode.BSTEQ -> emitBranch("beq", label)
+        Opcode.BSTNE -> emitBranch("bne", label)
+        Opcode.BSTNEG -> emitBranch("bmi", label)
+        Opcode.BSTPOS -> emitBranch("bpl", label)
+        Opcode.BSTVC -> emitBranch("bvc", label)
+        Opcode.BSTVS -> emitBranch("bvs", label)
 
         // Unsigned integer comparison branches
         Opcode.BGT -> cmpBranchUnsignedImm(insn, label, "bhi")
@@ -78,7 +78,7 @@ private fun AsmGen.cmpBranchUnsignedImm(insn: IRInstruction, label: String, bran
         emitLine("tst$s  ${regAddr(reg)}")
     else
         emitLine("cmpi$s  #$imm, ${regAddr(reg)}")
-    emitLine("$branchOp  $label")
+    emitBranch(branchOp, label)
 }
 
 // === Unsigned comparisons: register vs register ===
@@ -88,9 +88,9 @@ private fun AsmGen.cmpBranchUnsignedReg(insn: IRInstruction, label: String, bran
     val reg1 = insn.reg1 ?: error("branch needs reg1")
     val reg2 = insn.reg2 ?: error("reg branch needs reg2")
     val s = dtSuffix(type)
-    emitLine("move$s  ${regAddr(reg1)}, d0")
+    emitLoadD0(reg1, type)
     emitLine("cmp$s  ${regAddr(reg2)}, d0")
-    emitLine("$branchOp  $label")
+    emitBranch(branchOp, label)
 }
 
 // === Signed comparisons: register vs immediate ===
@@ -106,7 +106,7 @@ private fun AsmGen.cmpBranchSignedImm(insn: IRInstruction, label: String, branch
         emitLine("tst$s  ${regAddr(reg)}")
     else
         emitLine("cmpi$s  #$imm, ${regAddr(reg)}")
-    emitLine("$branchOp  $label")
+    emitBranch(branchOp, label)
 }
 
 // === Signed comparisons: register vs register ===
@@ -116,7 +116,12 @@ private fun AsmGen.cmpBranchSignedReg(insn: IRInstruction, label: String, branch
     val reg1 = insn.reg1 ?: error("branch needs reg1")
     val reg2 = insn.reg2 ?: error("reg branch needs reg2")
     val s = dtSuffix(type)
-    emitLine("move$s  ${regAddr(reg1)}, d0")
+    emitLoadD0(reg1, type)
     emitLine("cmp$s  ${regAddr(reg2)}, d0")
+    emitBranch(branchOp, label)
+}
+
+private fun AsmGen.emitBranch(branchOp: String, label: String) {
+    invalidateD0Cache()
     emitLine("$branchOp  $label")
 }
