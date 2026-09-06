@@ -17,8 +17,9 @@ Currently these machines can be selected as a compilation target (via the ``-tar
 - 'cx16': the `Commander X16 <https://www.commanderx16.com/>`_
 - 'c128': the Commodore 128
 - 'pet32': the Commodore PET 4032
-- 'qemu68k': Qemu M68k simulator (experimental)
 - 'amiga500': Amiga 500 (experimental)
+- 'amiga1200': Amiga 1200 (experimental, 68020 CPU with optional FPU)
+- 'qemu68k': Qemu M68k simulator (experimental)
 - 'virtual': a builtin virtual machine (32-bit pointers, 16 MB memory)
 - custom targets via a separate configuration file (see :ref:`customizable_target`)
 
@@ -90,7 +91,7 @@ Pointer size
 The size of a pointer (memory address) depends on the target's CPU architecture:
 
 - **6502-family targets** (c64, cx16, c128, pet32): **2 bytes** (16-bit address space, 64 KB)
-- **m68k targets** (amiga500, qemu68k): **4 bytes** (32-bit address space, 16 MB)
+- **m68k targets** (amiga500, amiga1200, qemu68k): **4 bytes** (32-bit address space, 16 MB)
 - **virtual target**: **4 bytes** (32-bit address space, 16 MB)
 
 The ``pointer`` type keyword automatically takes the correct size for the target,

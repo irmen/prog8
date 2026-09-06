@@ -163,7 +163,7 @@ object RegisterPacker {
             if (chunk.instructions.isEmpty())
                 continue
 
-            var liveSet = liveOut[chunk]?.toMutableSet() ?: mutableSetOf()
+            val liveSet = liveOut[chunk]?.toMutableSet() ?: mutableSetOf()
             val lastUse = mutableMapOf<Int, Int>()
 
             // Scan backward through instructions

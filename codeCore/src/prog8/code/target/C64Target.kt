@@ -31,7 +31,7 @@ class C64Target: ICompilationTarget,
 
     override val FLOAT_MAX_POSITIVE = Mflpt5.FLOAT_MAX_POSITIVE
     override val FLOAT_MAX_NEGATIVE = Mflpt5.FLOAT_MAX_NEGATIVE
-    override val FLOAT_MEM_SIZE = Mflpt5.FLOAT_MEM_SIZE.toUInt()
+    override val FLOAT_MEM_SIZE = Mflpt5.FLOAT_MEM_SIZE
     override val POINTER_MEM_SIZE = 2u
     override val ARRAY_SIZE_LIMIT = 256u
     override val PROGRAM_LOAD_ADDRESS = 0x0801u
@@ -101,6 +101,7 @@ val CompilationTargets = listOf(
     PETTarget.NAME,
     Qemu68kTarget.NAME,
     Amiga500Target.NAME,
+    Amiga1200Target.NAME,
     VMTarget.NAME
 )
 
@@ -111,6 +112,7 @@ fun getCompilationTargetByName(name: String) = when(name.lowercase()) {
     PETTarget.NAME -> PETTarget()
     Qemu68kTarget.NAME -> Qemu68kTarget()
     Amiga500Target.NAME -> Amiga500Target()
+    Amiga1200Target.NAME -> Amiga1200Target()
     VMTarget.NAME -> VMTarget()
     else -> throw IllegalArgumentException("invalid compilation target")
 }

@@ -775,6 +775,7 @@ private fun createAssemblyAndAssemble(program: PtProgram,
         }
         compilerOptions.compTarget.name == Qemu68kTarget.NAME -> prog8.codegen.m68k.M68kCodeGenerator(retainSSAforIR)
         compilerOptions.compTarget.name == Amiga500Target.NAME -> prog8.codegen.m68k.M68kCodeGenerator(retainSSAforIR)
+        compilerOptions.compTarget.name == Amiga1200Target.NAME -> prog8.codegen.m68k.M68kCodeGenerator(retainSSAforIR)
         compilerOptions.compTarget.name == VMTarget.NAME -> VmCodeGen(retainSSAforIR, irCallIds)
         else -> throw NotImplementedError("no code generator for cpu ${compilerOptions.compTarget.cpu}")
     }

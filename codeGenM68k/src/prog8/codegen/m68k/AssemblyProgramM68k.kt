@@ -5,6 +5,7 @@ import prog8.code.core.CompilationOptions
 import prog8.code.core.CpuType
 import prog8.code.core.IErrorReporter
 import prog8.code.core.OutputType
+import prog8.code.target.Amiga1200Target
 import prog8.code.target.Amiga500Target
 import java.nio.file.Files
 import java.nio.file.Path
@@ -55,36 +56,7 @@ class AssemblyProgramM68k(override val name: String, private val outputDir: Path
         }
         val assemblerCpu = if(options.compTarget.name == "amiga500" && options.floats) "68020" else cpu
 
-        val loadAddr = options.compTarget.PROGRAM_LOAD_ADDRESS.toInt()
         when(options.output) {
-            OutputType.RAW -> {
-                val rawFile = outputDir.resolve("$name.bin")
-                val listFile = outputDir.resolve("$name.lis")
-                val assembleCmd = mutableListOf(
-                    "vasmm68k_mot",
-                    "-m$assemblerCpu",
-                    "-m68881",  // enable FPU
-                    "-Fbin",
-                    "-opt-speed",
-                    "-warnunaligned",
-                    "-ldots",
-                    "-spaces",
-                    "-join=0x${loadAddr.toString(16)}",
-                    "-o", rawFile.toString(),
-                    assemblyFile.toString()
-                )
-                if (options.asmListfile)
-                    assembleCmd.addAll(listOf("-L", listFile.toString()))
-                if (options.asmQuiet)
-                    assembleCmd.add("-quiet")
-                // clean up any leftover ELF/obj files from previous builds
-                Files.deleteIfExists(outputDir.resolve("$name.elf"))
-                Files.deleteIfExists(outputDir.resolve("$name.o"))
-                val ok = runProcess(assembleCmd, options.quiet, "vasm")
-                if(ok && !options.quiet)
-                    println("Executable written to '$rawFile'")
-                return ok
-            }
             OutputType.ELF -> {
                 // Step 1: assemble to ELF object file
                 val objFile = outputDir.resolve("$name.o")
@@ -161,8 +133,8 @@ class AssemblyProgramM68k(override val name: String, private val outputDir: Path
                                 cmd.add("-quiet")
                         }
                     }
-                    else -> {
-                        // assume at least an amiga 1200 with 68020 and optional FPU
+                    is Amiga1200Target -> {
+                        // amiga 1200 with 68020 and optional FPU
                         mutableListOf(
                             "vasmm68k_mot",
                             "-m$assemblerCpu",
@@ -172,6 +144,7 @@ class AssemblyProgramM68k(override val name: String, private val outputDir: Path
                             "-warnunaligned",
                             "-ldots",
                             "-spaces",
+                            "-nosym",       // no debug symbols
                             "-o", exefile.toString(),
                             assemblyFile.toString()
                         ).also { cmd ->
@@ -183,6 +156,7 @@ class AssemblyProgramM68k(override val name: String, private val outputDir: Path
                                 cmd.add("-quiet")
                         }
                     }
+                    else -> error("unsupported target for AMIGAHUNK output: ${options.compTarget.name}")
                 }
                 if (!runProcess(assembleCmd, options.quiet, "vasm"))
                     return false

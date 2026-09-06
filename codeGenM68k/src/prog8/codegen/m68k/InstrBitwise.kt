@@ -13,6 +13,7 @@
 
 package prog8.codegen.m68k
 
+import prog8.code.target.Qemu68kTarget
 import prog8.intermediate.IRDataType
 import prog8.intermediate.IRInstruction
 import prog8.intermediate.Opcode
@@ -240,7 +241,7 @@ private fun AsmGen.shiftOpcode(isLeft: Boolean, isArithmetic: Boolean, isRotate:
 // a0 and use `(a0)` addressing. A0 is a scratch address register in the m68k
 // codegen, so this is safe.
 private fun AsmGen.emitMemoryWordShiftOrRotate(op: String, address: String) {
-    if (target.name == "qemu68k") {
+    if (target.name == Qemu68kTarget.NAME) {
         emitLine("lea  $address, a0")
         emitLine("$op.w  (a0)")
     } else {

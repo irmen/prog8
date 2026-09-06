@@ -105,7 +105,8 @@ What does Prog8 provide?
 - "c64": Commodore-64  (6502 like CPU)
 - "c128": Commodore-128  (6502 like CPU - the Z80 cpu mode is not supported)
 - "pet32": Commodore PET (limited support)
-- "amiga500": Commodore Amiga 500  (32-bit 68000 CPU - the intended machine for the m68k code generator backend)
+- "amiga500": Commodore Amiga 500  (16/32-bit 68000 CPU)
+- "amiga1200": Commodore Amiga 1200  (32-bit 68020 CPU with optional FPU)
 - "qemu68k": Qemu M68k simulator (experimental)
 - via external configurable targets: Atari 800 XL, Neo6502, NES, C64 OS, Foenix F256, ...
 - If you only use standard kernal and prog8 library routines, it is possible to compile the *exact same program* for different machines (just change the compiler target flag)

@@ -24,6 +24,7 @@ symboldumps:
 	prog8c -daemon -target virtual import-all-virtual.p8 -dumpsymbols > source/_static/symboldumps/skeletons-virtual.txt
 	prog8c -daemon -target qemu68k import-all-qemu68k.p8 -dumpsymbols > source/_static/symboldumps/skeletons-qemu68k.txt
 	prog8c -daemon -target amiga500 import-all-amiga500.p8 -dumpsymbols > source/_static/symboldumps/skeletons-amiga500.txt
+	prog8c -daemon -target amiga1200 import-all-amiga1200.p8 -dumpsymbols > source/_static/symboldumps/skeletons-amiga1200.txt
 
 
 # Catch-all target: route all unknown targets to Sphinx using the new

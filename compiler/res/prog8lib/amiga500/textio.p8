@@ -4,6 +4,7 @@
 %option ignore_unused
 
 txt {
+    %option ignore_unused
     asmsub chrout(ubyte char @D0) clobbers(D0,D1,D2,D3,A0,A6) {
         %asm {{
             move.l  sys.DOSBase,a6

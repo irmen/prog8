@@ -199,7 +199,7 @@ private fun compileMain(args: Array<String>): Boolean {
         System.err.println("Invalid -varsaddress value: $varsAddressStr")
         return false
     }
-    val maxCliAddress = if(compilationTarget in setOf(Amiga500Target.NAME, Qemu68kTarget.NAME, VMTarget.NAME)) 0xFFFFFFFFu else 0xFFFFu
+    val maxCliAddress = if(compilationTarget in setOf(Amiga500Target.NAME, Amiga1200Target.NAME, Qemu68kTarget.NAME, VMTarget.NAME)) 0xFFFFFFFFu else 0xFFFFu
     if(varsAddress!=null && varsAddress > maxCliAddress) {
         System.err.println("vars address must be valid integer 0..${maxCliAddress.toHex()}")
         return false
@@ -214,7 +214,7 @@ private fun compileMain(args: Array<String>): Boolean {
         return false
     }
 
-    if(compilationTarget in setOf(Amiga500Target.NAME, Qemu68kTarget.NAME)) {
+    if(compilationTarget in setOf(Amiga500Target.NAME, Amiga1200Target.NAME, Qemu68kTarget.NAME)) {
         if(varsGolden || varsHighBank!=null || varsAddress!=null) {
             System.err.println("The -varsgolden/-varshigh/-varsaddress options are not available on the m68k target")
             return false

@@ -19,8 +19,7 @@ class TestInstructionSelectionOptimizations : FunSpec({
 
     val tempRoot = tempdir().toPath()
 
-    fun generateAsmChunks(outputDir: Path, chunks: List<IRCodeChunkBase>): List<String> {
-        val target = Qemu68kTarget()
+    fun generateAsmChunks(outputDir: Path, chunks: List<IRCodeChunkBase>, target: ICompilationTarget = Qemu68kTarget()): List<String> {
         val options = CompilationOptions.builder(target)
             .output(OutputType.RAW)
             .zeropage(ZeropageType.FLOATSAFE)
@@ -46,10 +45,10 @@ class TestInstructionSelectionOptimizations : FunSpec({
         return asmFile.readText().lines().map { it.trim() }
     }
 
-    fun generateAsm(outputDir: Path, instructions: List<IRInstruction>): List<String> {
+    fun generateAsm(outputDir: Path, instructions: List<IRInstruction>, target: ICompilationTarget = Qemu68kTarget()): List<String> {
         val chunk = IRCodeChunk(null, null)
         chunk.instructions.addAll(instructions)
-        return generateAsmChunks(outputDir, listOf(chunk))
+        return generateAsmChunks(outputDir, listOf(chunk), target)
     }
 
     test("uses quick address adjustments and preserves large offsets") {
@@ -1254,5 +1253,30 @@ class TestInstructionSelectionOptimizations : FunSpec({
         // spill has label, must be kept
         lines.any { it.contains("move.l  d0,p8_regfile+6") } shouldBe true
         lines.any { it.contains("move.l  (a0,d0.w), a0") } shouldBe false
+    }
+
+    // === extb.l gate robustification ===
+
+    test("M68020 sign-extends byte to long with extb.l") {
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-extbl-qemu"),
+            listOf(IRInstruction(Opcode.EXTLS, IRDataType.BYTE, reg1 = 1, reg2 = 2))
+        )
+
+        lines.count { it == "extb.l  d0" } shouldBe 1
+        lines.count { it == "ext.w  d0" } shouldBe 0
+        lines.count { it == "ext.l  d0" } shouldBe 0
+    }
+
+    test("M68000 sign-extends byte to long with ext.w plus ext.l") {
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-extbl-amiga"),
+            listOf(IRInstruction(Opcode.EXTLS, IRDataType.BYTE, reg1 = 1, reg2 = 2)),
+            target = Amiga500Target()
+        )
+
+        lines.count { it == "extb.l  d0" } shouldBe 0
+        lines.count { it == "ext.w  d0" } shouldBe 1
+        lines.count { it == "ext.l  d0" } shouldBe 1
     }
 })

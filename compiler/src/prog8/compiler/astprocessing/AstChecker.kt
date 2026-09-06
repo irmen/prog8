@@ -5,10 +5,7 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
 import prog8.code.core.*
-import prog8.code.target.Amiga500Target
-import prog8.code.target.C128Target
-import prog8.code.target.Cx16Target
-import prog8.code.target.VMTarget
+import prog8.code.target.*
 import prog8.compiler.builtinFunctionReturnTypes
 import java.io.CharConversionException
 import java.io.File
@@ -1496,8 +1493,8 @@ internal class AstChecker(private val program: Program,
                 }
                 if(directive.args.any { it.string=="verafxmuls" } && options.compTarget.name != Cx16Target.NAME)
                     err("verafx option is only valid on cx16 target")
-                if(directive.args.any { it.string=="amiga_chipram" } && options.compTarget.name != Amiga500Target.NAME)
-                    err("amiga_chipram option is only valid on amiga500 target")
+                if(directive.args.any { it.string=="amiga_chipram" } && options.compTarget.name != Amiga500Target.NAME && options.compTarget.name != Amiga1200Target.NAME)
+                    err("amiga_chipram option is only valid on amiga targets")
             }
             "%encoding" -> {
                 if(directive.parent !is Module)

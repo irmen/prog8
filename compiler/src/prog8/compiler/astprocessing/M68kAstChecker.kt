@@ -56,8 +56,9 @@ internal class M68kAstChecker(private val errors: IErrorReporter, private val ta
             }
             "%output" -> {
                 val arg = directive.args.singleOrNull()?.string?.uppercase()
-                if (arg != null && arg != "RAW" && arg != "ELF") {
-                    errors.err("output types other than 'raw' and 'elf' are not available on the m68k target", directive.position)
+                val allowed = target.defaultOutputType.name
+                if (arg != null && arg != allowed) {
+                    errors.err("output type '$arg' is not available on the ${target.name} target; only '${allowed.lowercase()}' is (which is also the default)", directive.position)
                 }
             }
             "%option" -> {

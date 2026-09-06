@@ -316,10 +316,10 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         emitDataSection()
         emitBssSection()
 
-        if(target.name=="amiga500") {
+        if(program.options.output == OutputType.AMIGAHUNK) {
             emitRaw("prog8_program_end:     ; end of the program")
         } else {
-            // label prog8_program_end is defined by the linker script
+            // label prog8_program_end is defined by the linker script (ELF)
         }
 
         val options = program.options
@@ -406,7 +406,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
     // extb.l is a 68020+ instruction; on the 68000 use the two-step EXT sequence
     // (ext.w then ext.l) which is functionally equivalent.
     internal fun AsmGen.emitSignExtendByteToLong(reg: String) {
-        if (cpu == CpuType.M68000) {
+        if (cpu <= CpuType.M68000) {
             emitLine("ext.w  $reg")
             emitLine("ext.l  $reg")
         } else {
@@ -423,7 +423,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
 
         for (block in program.blocks) {
             val blockLabel = fixNameSymbols(block.label)
-            val chipram = target.name == "amiga500" && block.options.amigaChipram
+            val chipram = target.name in setOf("amiga500", "amiga1200") && block.options.amigaChipram
             if (chipram) {
                 emitRaw("    SECTION code_c,code,chip   ; amiga CHIP ram code")
             }
@@ -801,7 +801,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
     // === data section ===
 
     private fun emitDataSection() {
-        val chipramBlocks = if (target.name == "amiga500") chipramBlockLabels() else emptySet()
+        val chipramBlocks = if (target.name in setOf("amiga500", "amiga1200")) chipramBlockLabels() else emptySet()
         val initdVars: List<IRStStaticVariable> = program.st.allVariables().filter { !it.inBss }.toList()
         val (chipramVars: List<IRStStaticVariable>, normalVars: List<IRStStaticVariable>) =
             if (chipramBlocks.isNotEmpty()) {
@@ -1107,7 +1107,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
 
 
     private fun emitBssSection() {
-        val chipramBlocks = if (target.name == "amiga500") chipramBlockLabels() else emptySet()
+        val chipramBlocks = if (target.name in setOf("amiga500", "amiga1200")) chipramBlockLabels() else emptySet()
 
         // 1. Map variables to their sizes and actual M68k alignment requirements
         val allBssVars: List<IRStStaticVariable> = program.st.allVariables().filter { it.inBss }.toList()
