@@ -1,11 +1,10 @@
 %import syslib
 %import conv
 %import math
-%import monogfx
+%import textio
 %import verafx
-%import floats
 
-; TODO add all other Elite's ships, show their name, advance to next ship on keypress
+; This is the version that uses the VeraFX line drawing helper routine, and runs in 320x240 in 256 colors
 
 main {
     sub start()  {
@@ -16,28 +15,24 @@ main {
         uword frame_count
         uword fps
 
-        monogfx.lores()
-        monogfx.text_charset(1)
-        monogfx.clear_screen(false)
+        cx16.set_screen_mode(128)
+        cx16.GRAPH_set_colors(1,0,0)
+        cx16.GRAPH_clear()
+        txt.home()
+
         print_ship_name()
-        monogfx.enable_doublebuffer()
         last_time = cbm.RDTIM16()
         frame_count = 0
         fps = 0
-        monogfx.clear_screen(false)
-        print_ship_name()
 
         repeat {
             matrix_math.rotate_vertices(msb(anglex), msb(angley), msb(anglez))
 
-            ; We use verafx to clear the screen during animation, instead of
-            ; the regular routine. This speeds up the frame rate a bit.
-            verafx.clear(0, monogfx.buffer_back + 320*16/8, 0, 320/8*220/4)
-            ; monogfx.clear_screen(false)
-
+            ; Erase by redrawing: instead of clearing the whole screen (70k bytes in 8bpp!),
+            ; just redraw the previous frame's edges in the background color and then draw
+            ; the new frame. This only touches the line pixels and is much faster.
+            erase_previous_frame()
             draw_lines_hiddenremoval()
-            ; draw_lines()
-            monogfx.swap_buffers(true)
 
             ; FPS counter - updated every second
             frame_count++
@@ -47,10 +42,11 @@ main {
                 fps = frame_count
                 frame_count = 0
                 last_time = current_time
-                ; clear previous FPS text area and draw new value
-                monogfx.fillrect(268, 0, 52, 8, false)
-                monogfx.text(268, 0, true, "fps:")
-                monogfx.text(298, 0, true, conv.str_uw(fps))
+                ; draw new value over the old one
+                txt.plot(30, 5)
+                txt.print("fps: ")
+                txt.print(conv.str_uw(fps))
+                txt.print("  ")
             }
 
             anglex += 317
@@ -60,36 +56,37 @@ main {
     }
 
     sub print_ship_name() {
-        monogfx.text(20, 0, true, "3d ship model: ")
-        monogfx.text(140, 0, true, shipdata.shipName)
+        txt.plot(2, 2)
+        txt.print("3d ship model: ")
+        txt.print(shipdata.shipName)
 
-        monogfx.text(60, 8, true, conv.str_ub(shipdata.totalNumberOfPoints))
-        monogfx.text(80, 8, true, "vertices,")
+        txt.plot(7, 3)
+        txt.print(conv.str_ub(shipdata.totalNumberOfPoints))
+        txt.print(" vertices,")
 
-        monogfx.text(160, 8, true, conv.str_ub(shipdata.totalNumberOfEdges))
-        monogfx.text(180, 8, true, "edges,")
+        txt.plot(20, 3)
+        txt.print(conv.str_ub(shipdata.totalNumberOfEdges))
+        txt.print(" edges,")
 
-        monogfx.text(240, 8, true, conv.str_ub(shipdata.totalNumberOfFaces))
-        monogfx.text(260, 8, true, "faces")
+        txt.plot(30, 3)
+        txt.print(conv.str_ub(shipdata.totalNumberOfFaces))
+        txt.print(" faces")
+
+        txt.plot(20, 25)
+        txt.print("256 colors, verafx")
     }
 
 
     const uword screen_width = 320
     const ubyte screen_height = 240
 
-    sub draw_lines() {
-        ; simple routine that draw all edges, exactly once, but no hidden line removal.
-        ubyte @zp i
-        for i in shipdata.totalNumberOfEdges -1 downto 0 {
-            ubyte @zp vFrom = shipdata.edgesFrom[i]
-            ubyte @zp vTo = shipdata.edgesTo[i]
-            monogfx.line(matrix_math.screenx[vFrom] as uword,
-                matrix_math.screeny[vFrom] as uword,
-                matrix_math.screenx[vTo] as uword,
-                matrix_math.screeny[vTo] as uword,
-                true)
-        }
-    }
+    ; endpoints of the edges drawn last frame (for erase-by-redraw), plus how many there were
+    uword[shipdata.totalNumberOfEdges] prev_x1
+    ubyte[shipdata.totalNumberOfEdges] prev_y1
+    uword[shipdata.totalNumberOfEdges] prev_x2
+    ubyte[shipdata.totalNumberOfEdges] prev_y2
+    ubyte @zp num_drawn = 0
+    ubyte line_color
 
     sub draw_lines_hiddenremoval() {
         ; determine visibility of each face
@@ -98,24 +95,46 @@ main {
             matrix_math.face_visible[faceNumber] = not matrix_math.facing_away_fast_but_imprecise(matrix_math.facePointIdx[faceNumber])
         }
 
-        ; draw every edge that belongs to at least one visible face
+        ; draw every edge that belongs to at least one visible face (in the draw color),
+        ; recording its endpoints so it can be erased again next frame.
+        num_drawn = 0
         ubyte @zp edgeIdx
         for edgeIdx in 0 to shipdata.totalNumberOfEdges-1 {
             if matrix_math.face_visible[matrix_math.edgeFaceA[edgeIdx]] or
                     (matrix_math.edgeFaceB[edgeIdx] != 255 and matrix_math.face_visible[matrix_math.edgeFaceB[edgeIdx]]) {
-                draw_edge(edgeIdx)
+                draw_and_record(edgeIdx, line_color)
             }
+        }
+        line_color++
+    }
+
+    sub draw_and_record(ubyte edgeidx, ubyte color) {
+        ubyte vFrom = shipdata.edgesFrom[edgeidx]
+        ubyte vTo = shipdata.edgesTo[edgeidx]
+        uword @zp x1 = matrix_math.screenx[vFrom] as uword
+        ubyte @zp y1 = matrix_math.screeny[vFrom] as ubyte
+        uword @zp x2 = matrix_math.screenx[vTo] as uword
+        ubyte @zp y2 = matrix_math.screeny[vTo] as ubyte
+        verafx.line(x1, y1, x2, y2, color)
+        if color!=0 {
+            ; remember the endpoints so we can erase this edge next frame
+            prev_x1[num_drawn] = x1
+            prev_y1[num_drawn] = y1
+            prev_x2[num_drawn] = x2
+            prev_y2[num_drawn] = y2
+            num_drawn++
         }
     }
 
-    sub draw_edge(ubyte edgeidx) {
-        ubyte vFrom = shipdata.edgesFrom[edgeidx]
-        ubyte vTo = shipdata.edgesTo[edgeidx]
-        monogfx.line(matrix_math.screenx[vFrom] as uword,
-            matrix_math.screeny[vFrom] as uword,
-            matrix_math.screenx[vTo] as uword,
-            matrix_math.screeny[vTo] as uword,
-            true)
+    sub erase_previous_frame() {
+        ; guard against the first frame where nothing has been drawn yet
+        ; (num_drawn-1 would underflow to 255 when num_drawn is 0)
+        if num_drawn==0
+            return
+        ubyte @zp i
+        for i in 0 to num_drawn-1 {
+            verafx.line(prev_x1[i], prev_y1[i], prev_x2[i], prev_y2[i], 0)
+        }
     }
 }
 
@@ -171,7 +190,7 @@ matrix_math {
             rotatedz[i] = Azx*shipdata.xcoor[i] + Azy*shipdata.ycoor[i] + Azz*shipdata.zcoor[i]
 
             ; perspective projection, done once per vertex instead of once per edge
-            word persp = 170 + rotatedz[i]/256
+            word persp = 180 + rotatedz[i]/256
             if persp < 32
                 persp = 32
             screenx[i] = rotatedx[i] / persp + 160 as uword
@@ -198,38 +217,38 @@ matrix_math {
         return (p2x-p3x)*(p1y-p3y) - (p2y-p3y)*(p1x-p3x) > 0
     }
 
-    sub facing_away_slow_but_precise(ubyte edgePointsIdx) -> bool {
-        ; determine visibility by calculating the dot product of surface normal and view vector
-        ubyte p1 = shipdata.facesPoints[edgePointsIdx]
-        edgePointsIdx++
-        ubyte p2 = shipdata.facesPoints[edgePointsIdx]
-        edgePointsIdx++
-        ubyte p3 = shipdata.facesPoints[edgePointsIdx]
-
-        ; Calculate two edge vectors of the triangle  (scaled by 2)
-        word v1x = (rotatedx[p2] - rotatedx[p1]) >> 7
-        word v1y = (rotatedy[p2] - rotatedy[p1]) >> 7
-        word v1z = (rotatedz[p2] - rotatedz[p1]) >> 7
-        word v2x = (rotatedx[p3] - rotatedx[p1]) >> 7
-        word v2y = (rotatedy[p3] - rotatedy[p1]) >> 7
-        word v2z = (rotatedz[p3] - rotatedz[p1]) >> 7
-
-        ; Calculate surface normal using cross product: N = V1 x V2     (scaled by 4)
-        ; Note: because of lack of precision in the 16 bit word math, we need to use floating point math here.... :-(
-        ; Elite had a more optimized version of this algorithm that still used fixed point integer math only...
-        float normalx = (v1y * v2z - v1z * v2y) as float
-        float normaly = (v1z * v2x - v1x * v2z) as float
-        float normalz = (v1x * v2y - v1y * v2x) as float
-
-        ; Calculate view vector from camera (0,0,-170) to point p1   (scaled by 4)
-        float viewx = rotatedx[p1]/(256/4) - 0          as float        ; from camera x to point x
-        float viewy = rotatedy[p1]/(256/4) - 0          as float        ; from camera y to point y
-        float viewz = rotatedz[p1]/(256/4) - (-170*4)   as float        ; from camera z to point z
-
-        ; Calculate dot product of normal and view vector
-        ; If dot product is negative, the face is pointing away from the camera
-        return normalx * viewx + normaly * viewy + normalz * viewz < 0
-    }
+;    sub facing_away_slow_but_precise(ubyte edgePointsIdx) -> bool {
+;        ; determine visibility by calculating the dot product of surface normal and view vector
+;        ubyte p1 = shipdata.facesPoints[edgePointsIdx]
+;        edgePointsIdx++
+;        ubyte p2 = shipdata.facesPoints[edgePointsIdx]
+;        edgePointsIdx++
+;        ubyte p3 = shipdata.facesPoints[edgePointsIdx]
+;
+;        ; Calculate two edge vectors of the triangle  (scaled by 2)
+;        word v1x = (rotatedx[p2] - rotatedx[p1]) >> 7
+;        word v1y = (rotatedy[p2] - rotatedy[p1]) >> 7
+;        word v1z = (rotatedz[p2] - rotatedz[p1]) >> 7
+;        word v2x = (rotatedx[p3] - rotatedx[p1]) >> 7
+;        word v2y = (rotatedy[p3] - rotatedy[p1]) >> 7
+;        word v2z = (rotatedz[p3] - rotatedz[p1]) >> 7
+;
+;        ; Calculate surface normal using cross product: N = V1 x V2     (scaled by 4)
+;        ; Note: because of lack of precision in the 16 bit word math, we need to use floating point math here.... :-(
+;        ; Elite had a more optimized version of this algorithm that still used fixed point integer math only...
+;        float normalx = (v1y * v2z - v1z * v2y) as float
+;        float normaly = (v1z * v2x - v1x * v2z) as float
+;        float normalz = (v1x * v2y - v1y * v2x) as float
+;
+;        ; Calculate view vector from camera (0,0,-170) to point p1   (scaled by 4)
+;        float viewx = rotatedx[p1]/(256/4) - 0          as float        ; from camera x to point x
+;        float viewy = rotatedy[p1]/(256/4) - 0          as float        ; from camera y to point y
+;        float viewz = rotatedz[p1]/(256/4) - (-170*4)   as float        ; from camera z to point z
+;
+;        ; Calculate dot product of normal and view vector
+;        ; If dot product is negative, the face is pointing away from the camera
+;        return normalx * viewx + normaly * viewy + normalz * viewz < 0
+;    }
 }
 
 shipdata {

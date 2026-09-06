@@ -2,6 +2,7 @@
 ; - fast 32 bit cached writes (clear, copy)
 ; - transparent write setting
 ; - hardware 16 bits multiplications
+; - hardware accelerated line drawing (8 bpp screen mode only!)
 ;
 ; Docs:
 ; https://github.com/X16Community/x16-docs/blob/fb63156cca2d6de98be0577aacbe4ddef458f896/X16%20Reference%20-%2010%20-%20VERA%20FX%20Reference.md
@@ -186,6 +187,147 @@ verafx {
             stz  cx16.VERA_FX_MULT    ; $9F2C  reset multiply bit
             stz  cx16.VERA_CTRL       ; reset DCSEL
             rts
+        }}
+    }
+
+    sub line(uword x1, ubyte y1, uword x2, ubyte y2, ubyte color) {
+        ; Use the Vera FX line draw helper to draw a line very fast in a 320x240 256 color (8 bpp) bitmap screen
+        ; (the default cx16 screen mode 128, as used by the gfx_lores module, with the bitmap at vram address 0).
+        ; WARNING: ONLY WORKS IN 8 BPP SCREEN MODE! The helper has a hardware bug in 4 bpp mode.
+        ; No bounds checking or clipping is done, all coordinates must lie within the screen (0..319, 0..239).
+        ; Also resets the address increments of DATA0 and DATA1 to 0 afterwards.
+        ; The line is always drawn from top to bottom (y1<=y2 after sorting), this avoids the negative
+        ; (decrement) y-increments that the helper handles poorly. x can go either left or right.
+        ubyte @zp octant
+        uword @zp dx
+        uword @zp dy
+        if y1>y2 {
+            cx16.r0 = x1
+            x1 = x2
+            x2 = cx16.r0
+            octant = y1
+            y1 = y2
+            y2 = octant
+        }
+        dy = y2
+        dy -= y1
+        uword @zp length
+        if x2>=x1 {
+            dx = x2-x1
+            length = dx
+            octant = 0              ; x goes right
+        } else {
+            dx = x1-x2
+            length = dx
+            octant = 1              ; x goes left
+        }
+        if dy>length {
+            octant |= 2
+            length = dy
+            dy = dx
+        }
+        ; slope in 0.9 fixed point format for the FX increment register (1.0 = $200), rounded to nearest.
+        ; Computed as (dy/length in 0.8 fixed point) << 1, which stays within 16 bits:
+        ; dy<=239 so dy<<8 <= 61240, and dy<=length so the quotient is <=256, doubled to <=512.
+        uword slope = 0
+        if length!=0 {
+            slope = (((dy << 8) + (length>>1)) / length) << 1
+        }
+        length++
+        ubyte remainder_pixels = lsb(length) & 7
+        ubyte full_octets = lsb(length>>3)
+
+        ; 4 "octants" (y1<=y2 always after the sorting above, so the line always goes down):
+        ;   octant 0 = right/down, shallow slope (dx>=dy): always step +1 in x, sometimes step +320 in y
+        ;   octant 1 = left/down, shallow slope:           always step -1 in x, sometimes step +320 in y
+        ;   octant 2 = right/down, steep slope (dy>dx):    always step +320 in y, sometimes step +1 in x
+        ;   octant 3 = left/down, steep slope:             always step +320 in y, sometimes step -1 in x
+        ; address increment values: +1 = $10, -1 = $18 (decrement), +320 = $e0
+        ubyte[4] @shared always_incr_table = [ $10, $18, $e0, $e0 ]
+        ubyte[4] @shared sometimes_incr_table = [ $e0, $e0, $10, $18 ]
+
+        %asm {{
+            ; set up the FX line draw helper and the start address in ADDR1
+            lda  #(2<<1)
+            sta  cx16.VERA_CTRL         ; dcsel = 2
+            lda  #%00000001
+            sta  cx16.VERA_FX_CTRL      ; addr1 mode = line draw helper (8 bpp)
+            lda  #(3<<1)
+            sta  cx16.VERA_CTRL         ; dcsel = 3
+            lda  slope
+            sta  cx16.VERA_FX_X_INCR    ; (writing X_INCR also centers the subpixel position and resets overflow)
+            lda  slope+1
+            sta  cx16.VERA_FX_X_INCR+1
+            ; ADDR0 provides the 'sometimes' increment for the helper
+            stz  cx16.VERA_CTRL         ; addrsel = 0
+            ldx  octant
+            lda  sometimes_incr_table,x
+            sta  cx16.VERA_ADDR_H
+            ; ADDR1 = start pixel, gets the 'always' increment
+            lda  #1
+            sta  cx16.VERA_CTRL         ; addrsel = 1 (bit 0)
+            lda  x1
+            sta  cx16.VERA_ADDR_L
+            lda  x1+1
+            sta  cx16.VERA_ADDR_M
+            lda  always_incr_table,x
+            sta  cx16.VERA_ADDR_H
+
+            ; add the y-offset to the start address in ADDR1
+            ldy  y1
+            lda  cx16.VERA_ADDR_L
+            clc
+            adc  times320_lo,y
+            sta  cx16.VERA_ADDR_L
+            lda  cx16.VERA_ADDR_M
+            adc  times320_mid,y
+            sta  cx16.VERA_ADDR_M
+            lda  cx16.VERA_ADDR_H
+            and  #$01
+            adc  times320_hi,y
+            sta  P8ZP_SCRATCH_B1
+            lda  cx16.VERA_ADDR_H
+            and  #$f8
+            ora  P8ZP_SCRATCH_B1
+            sta  cx16.VERA_ADDR_H
+
+            ; draw the line: first the remainder pixels one at a time, then unrolled 8 pixels at a time
+            ldy  remainder_pixels
+            beq  +
+            lda  color
+-           sta  cx16.VERA_DATA1
+            dey
+            bne  -
++           ldy  full_octets
+            beq  _done
+            lda  color
+-           sta  cx16.VERA_DATA1
+            sta  cx16.VERA_DATA1
+            sta  cx16.VERA_DATA1
+            sta  cx16.VERA_DATA1
+            sta  cx16.VERA_DATA1
+            sta  cx16.VERA_DATA1
+            sta  cx16.VERA_DATA1
+            sta  cx16.VERA_DATA1
+            dey
+            bne  -
+_done
+            ; reset the FX registers back to normal
+            lda  #(2<<1)
+            sta  cx16.VERA_CTRL     ; dcsel = 2
+            stz  cx16.VERA_FX_CTRL  ; addr1 mode = normal again
+            lda  #1
+            sta  cx16.VERA_CTRL     ; addrsel = 1 (bit 0)
+            stz  cx16.VERA_ADDR_H   ; reset ADDR1 (DATA1) address increment
+            stz  cx16.VERA_CTRL     ; addrsel = 0
+            stz  cx16.VERA_ADDR_H   ; reset ADDR0 (DATA0) address increment
+            rts
+
+            ; multiplication by 320 lookup table (used to add the y-offset to the start address above)
+times320 := 320*range(240)
+times320_lo     .byte <times320
+times320_mid    .byte >times320
+times320_hi     .byte `times320
         }}
     }
 

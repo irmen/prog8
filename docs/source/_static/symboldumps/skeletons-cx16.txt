@@ -1,6 +1,6 @@
 
 Prog8 compiler v14.0-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit a4fb829b in branch new-codegens
+Prerelease version from git commit db32b81d in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-cx16.p8
@@ -1649,6 +1649,7 @@ verafx  {
     available  () -> bool
     clear  (ubyte vbank, uword vaddr, ubyte data, uword num_longwords)
     copy  (ubyte srcbank, uword srcaddr, ubyte tgtbank, uword tgtaddr, uword num_longwords)
+    line  (uword x1, ubyte y1, uword x2, ubyte y2, ubyte color)
     muls  (word value1 @R0, word value2 @R1) clobbers (X) -> long @R0R1
     muls16  (word value1 @R0, word value2 @R1) clobbers (X) -> word @AY
     mult16  (uword value1 @R0, uword value2 @R1) clobbers (X) -> uword @AY
@@ -1675,4 +1676,5 @@ wavfile  {
     ubyte  wavefmt
     parse_header  (^^ubyte wav_data) -> bool
 }
+
 

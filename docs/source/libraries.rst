@@ -1909,6 +1909,13 @@ Available for the Cx16 target. Routines that use the Vera FX logic to accelerate
     Sometimes this is also called "blitting".
     This routine is about 50% faster as a regular byte-by-byte copy.
 
+``line``
+    Very quickly draw a line between two points using the Vera FX line draw helper.
+    It only works in the 320x240 256 color (8 bpp) bitmap screen mode (the default cx16 screen mode 128,
+    as used by the ``gfx_lores`` module, with the bitmap at vram address 0).
+    WARNING: it does NOT work in 4 bpp screen modes, because the helper has a hardware bug there.
+    No bounds checking or clipping is performed, all coordinates must lie within the screen (0..319, 0..239).
+
 ``muls``
     The VeraFX signed word 16*16 to 32 multiplier is accessible via the ``muls`` routine.
     It is about 4 to 5 times faster than the default 6502 cpu routine for word multiplication.
