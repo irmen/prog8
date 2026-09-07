@@ -245,7 +245,7 @@ class TestCompilerOnExamplesCx16: FunSpec({
             ExampleSizes("spotlight", cx16SizeOptimized=908, cx16SizeUnoptimized=1364),
             ExampleSizes("starszoom", cx16SizeOptimized=2399, cx16SizeUnoptimized=4709),
             ExampleSizes("test_gfx_hires", cx16SizeOptimized=4834, cx16SizeUnoptimized=7454),
-            ExampleSizes("test_gfx_lores", cx16SizeOptimized=5899, cx16SizeUnoptimized=7127),
+            ExampleSizes("test_gfx_lores", cx16SizeOptimized=5899, cx16SizeUnoptimized=7115),
             ExampleSizes("testmonogfx", cx16SizeOptimized=10244, cx16SizeUnoptimized=11467),
             ExampleSizes("textspotlight", cx16SizeOptimized=3431, cx16SizeUnoptimized=3788),
         ),

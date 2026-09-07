@@ -31,7 +31,7 @@ Won't do's or deferred
 - Won't do: ``var x = <value>`` type inference for ordinary variables will not be added: it hides the explicit size/cost that is central to Prog8's simple retro vibe, and has ambiguous literal/tag/scope interactions. Inference stays limited to ``const`` (compile-time, no allocation) and ``for`` loop counters (type fixed by the iterable).
 - Won't do: make enums strongly typed instead of just syntactic sugar for ints (see ideas/enum-strong-type.md for the plan)
 - Deferred: implement a true m68k register allocator that keeps virtual registers in hardware registers (D0-D7/A0-A6/FP0-FP7) instead of the flat ``p8_regfile`` memory block. See ideas/m68k-register-allocation.md for the design.
-- Preparatory work for the deferred m68k register allocator: add recursive IR traversal, centralized register effects, call-effect metadata, allocation hints, and an IR dataflow verifier. See ideas/m68k-register-allocation-preparation.md.
+- Preparatory work for the deferred m68k register allocator: centralized register effects, call-effect metadata, allocation hints, and an IR dataflow verifier. See ideas/m68k-register-allocation-preparation.md.
 - Deferred: implement a stack-based memory model for m68k locals and parameters to make subroutines reentrant and recursive. See ideas/m68k-stack-memory-model.md for the design.
 
 Romable (%option romable)
