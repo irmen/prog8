@@ -10,6 +10,8 @@ import prog8.code.core.InternalCompilerException
 
 private  fun isEmptyReturn(stmt: Statement): Boolean = stmt is Return && stmt.values.isEmpty()
 
+private class CannotInlineException : Exception()
+
 /**
  * The Inliner performs subroutine inlining on the AST.
  *
@@ -86,6 +88,13 @@ class Inliner(private val program: Program, private val options: CompilationOpti
             }
 
             fun isBodyInlineable(stmt: Assignment): Boolean {
+                // Never auto-inline a sub that assigns directly to one of its parameters.
+                // Substituting the call argument into the assignment target would either
+                // crash (literal argument has no identifier to assign to) or change semantics
+                // (assigning to the caller's variable instead of the local parameter copy).
+                val targetName = stmt.target.identifier?.nameInSource?.lastOrNull()
+                if (targetName != null && subroutine.parameters.any { it.name == targetName })
+                    return false
                 return if (stmt.value.isSimple) {
                     val targetInline =
                         if (stmt.target.identifier != null) {
@@ -262,6 +271,14 @@ class Inliner(private val program: Program, private val options: CompilationOpti
             if (!arg.isSimple) {
                 return false to "argument is too complex to inline (might have side effects)"
             }
+            // Refuse to inline a sub that assigns directly to its parameter.
+            // Substituting the argument into the target would crash for a literal
+            // argument, or wrongly modify the caller's variable for a variable argument
+            // (parameters are passed by value, so the sub only modifies its local copy).
+            val paramName = sub.parameters[0].name
+            val bodyStmt = sub.statements.firstOrNull { it !is VarDecl || it.origin != VarDeclOrigin.SUBROUTINEPARAM }
+            if ((bodyStmt as? Assignment)?.target?.identifier?.nameInSource?.lastOrNull() == paramName)
+                return false to "cannot inline subroutine that assigns to its parameter"
         }
         
         if (options.compTarget.cpu.is6502) {
@@ -307,8 +324,9 @@ class Inliner(private val program: Program, private val options: CompilationOpti
         fun inlineFunctionBody(toInline: Return): Iterable<AstModification> {
             // call site is an expression, so we have to have a Return here in the inlined sub to provide the values
             return if (toInline.values.size == 1 && functionCallExpr !== toInline.values[0]) {
+                val substitutedReturn = substituteParameters(sub, functionCallExpr, toInline.values[0]) as? Expression
+                    ?: return noModifications
                 sub.hasBeenInlined = true
-                val substitutedReturn = substituteParameters(sub, functionCallExpr, toInline.values[0]) as Expression
                 listOf(AstReplaceNode(functionCallExpr, substitutedReturn, parent))
             } else
                 noModifications
@@ -329,7 +347,8 @@ class Inliner(private val program: Program, private val options: CompilationOpti
 
         fun possiblyShortCircuitFunctionCall(toInline: Return): Iterable<AstModification> {
             // Substitute parameters in the return values first
-            val substitutedReturn = substituteParameters(sub, origNode as IFunctionCall, toInline) as Return
+            val substitutedReturn = substituteParameters(sub, origNode as IFunctionCall, toInline) as? Return
+                ?: return noModifications
             val functionCalls = substitutedReturn.values.filterIsInstance<FunctionCallExpression>()
 
             if (functionCalls.isEmpty()) {
@@ -356,7 +375,8 @@ class Inliner(private val program: Program, private val options: CompilationOpti
         }
 
         fun possiblyInlineFunctionBody(toInline: Statement): Iterable<AstModification> {
-            val inlinedStatement = substituteParameters(sub, origNode as IFunctionCall, toInline) as Statement
+            val inlinedStatement = substituteParameters(sub, origNode as IFunctionCall, toInline) as? Statement
+                ?: return noModifications
 
             return if (origNode !== toInline) {
                 sub.hasBeenInlined = true
@@ -428,7 +448,8 @@ class Inliner(private val program: Program, private val options: CompilationOpti
             return noModifications
 
         // Substitute parameters in all return values
-        val substitutedReturn = substituteParameters(sub, fcall, toInline) as Return
+        val substitutedReturn = substituteParameters(sub, fcall, toInline) as? Return
+            ?: return noModifications
 
         // Create multiple single assignments, skipping void targets (they discard the value)
         val newAssignments = multiTargets.zip(substitutedReturn.values)
@@ -455,7 +476,7 @@ class Inliner(private val program: Program, private val options: CompilationOpti
         return listOf(AstReplaceNode(assignment, scope, parent))
     }
 
-    private fun substituteParameters(sub: Subroutine, fcall: IFunctionCall, node: Node): Node {
+    private fun substituteParameters(sub: Subroutine, fcall: IFunctionCall, node: Node): Node? {
         val paramVarDecls = sub.parameters.map { param ->
             sub.statements.filterIsInstance<VarDecl>().find { it.origin == VarDeclOrigin.SUBROUTINEPARAM && it.name == param.name }
                 ?: throw FatalAstException("parameter ${param.name} not found in subroutine ${sub.name}")
@@ -478,7 +499,7 @@ class Inliner(private val program: Program, private val options: CompilationOpti
                 is ArrayIndexedExpression -> ArrayIndexedExpression(
                     n.plainarrayvar?.let {
                         val subId = substitute(it)
-                        if (subId !is IdentifierReference) throw FatalAstException("parameter substituted by ${subId::class.simpleName} but an identifier reference was expected")
+                        if (subId !is IdentifierReference) throw CannotInlineException()
                         subId
                     },
                     n.nestedArray?.let { substitute(it) as ArrayIndexedExpression },
@@ -492,7 +513,7 @@ class Inliner(private val program: Program, private val options: CompilationOpti
                     val newTarget = n.target.copy()
                     newTarget.identifier = n.target.identifier?.let {
                         val subId = substitute(it)
-                        if (subId !is IdentifierReference) throw FatalAstException("parameter substituted by ${subId::class.simpleName} but an identifier reference was expected")
+                        if (subId !is IdentifierReference) throw CannotInlineException()
                         subId
                     }
                     newTarget.memoryAddress = n.target.memoryAddress?.let { DirectMemoryWrite(substitute(it.addressExpression) as Expression, it.position) }
@@ -515,7 +536,7 @@ class Inliner(private val program: Program, private val options: CompilationOpti
                 }
                 is FunctionCallExpression -> FunctionCallExpression(
                     substitute(n.target).let {
-                        if (it !is IdentifierReference) throw FatalAstException("parameter substituted by ${it::class.simpleName} but an identifier reference was expected")
+                        if (it !is IdentifierReference) throw CannotInlineException()
                         it
                     },
                     n.args.map { substitute(it) as Expression }.toMutableList(),
@@ -523,7 +544,7 @@ class Inliner(private val program: Program, private val options: CompilationOpti
                 )
                 is FunctionCallStatement -> FunctionCallStatement(
                     substitute(n.target).let {
-                        if (it !is IdentifierReference) throw FatalAstException("parameter substituted by ${it::class.simpleName} but an identifier reference was expected")
+                        if (it !is IdentifierReference) throw CannotInlineException()
                         it
                     },
                     n.args.map { substitute(it) as Expression }.toMutableList(),
@@ -539,7 +560,7 @@ class Inliner(private val program: Program, private val options: CompilationOpti
                 is AddressOf -> AddressOf(
                     n.identifier?.let {
                         val subId = substitute(it)
-                        if (subId !is IdentifierReference) throw FatalAstException("parameter substituted by ${subId::class.simpleName} but an identifier reference was expected")
+                        if (subId !is IdentifierReference) throw CannotInlineException()
                         subId
                     },
                     n.arrayIndex?.let { substitute(it) as ArrayIndex },
@@ -552,6 +573,10 @@ class Inliner(private val program: Program, private val options: CompilationOpti
             }
         }
 
-        return substitute(node)
+        return try {
+            substitute(node)
+        } catch (_: CannotInlineException) {
+            null
+        }
     }
 }

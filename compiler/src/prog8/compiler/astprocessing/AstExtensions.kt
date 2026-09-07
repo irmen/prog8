@@ -5,10 +5,7 @@ import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
-import prog8.ast.walk.AstModification
-import prog8.ast.walk.AstRemove
-import prog8.ast.walk.AstReplaceNode
-import prog8.ast.walk.AstWalker
+import prog8.ast.walk.*
 import prog8.code.core.*
 import java.io.CharConversionException
 
@@ -24,8 +21,47 @@ internal fun invalidNumberOfArgsError(errors: IErrorReporter, pos: Position, num
         errors.err("invalid number of arguments: expected $expected but got $numArgs", pos)
 }
 
-internal fun Program.checkValid(errors: IErrorReporter, compilerOptions: CompilationOptions) {
-    // semantic analysis to see if the program is valid.
+internal fun Program.checkVarDeclsOnOwnLine(errors: IErrorReporter) {
+    // A variable declaration directly followed by another statement on the same
+    // source line (e.g. `ubyte length foo(42)`) parses as two statements, but it is
+    // almost certainly a missing '=' or newline and very confusing, so report it.
+    // This must run on the freshly parsed tree: later passes split off initializer
+    // assignments and remove unused variables, which destroys the original adjacency.
+    fun checkStatements(statements: List<Statement>) {
+        for (i in 0 until statements.size - 1) {
+            val cur = statements[i] as? VarDecl ?: continue
+            if (cur.origin != VarDeclOrigin.USERCODE) continue
+            val next = statements[i + 1]
+            val curPos = cur.position
+            val nextPos = next.position
+            if (curPos.file == nextPos.file && curPos.line != 0 && curPos.line == nextPos.line && nextPos.startCol > curPos.endCol) {
+                errors.err("variable declaration must be on its own line (did you forget '=' or a newline?)", nextPos)
+            }
+        }
+    }
+
+    val checker = object : IAstVisitor {
+        override fun visit(block: Block) {
+            checkStatements(block.statements)
+            super.visit(block)
+        }
+        override fun visit(subroutine: Subroutine) {
+            checkStatements(subroutine.statements)
+            super.visit(subroutine)
+        }
+        override fun visit(scope: AnonymousScope) {
+            checkStatements(scope.statements)
+            super.visit(scope)
+        }
+        override fun visit(decl: VarDecl) {
+            // Do not traverse into the declaration: its value can still be an
+            // ExpressionTuple at this stage, which cannot be visited.
+        }
+    }
+    checker.visit(this)
+}
+
+internal fun Program.checkValid(errors: IErrorReporter, compilerOptions: CompilationOptions) {    // semantic analysis to see if the program is valid.
     val parentChecker = ParentNodeChecker()
     parentChecker.visit(this)
     val checker = AstChecker(this, errors, compilerOptions)
