@@ -403,7 +403,7 @@ branchcondition_expression:  branchcondition THEN? expression EOL? ELSE EOL? exp
 // but it is needed for now to not have to rewrite all of Prog8's dependence on how the IdentifierReference now works (fully qualified identifier string inside)
 // in the future this probably has to be reworked completely to split up the scoped identifier names and just rely on the '.' operator exclusively,
 // but that also requires rewriting al name lookup code.  Ah well, we'll cross that bridge when we get there.
-pointerdereference:  (prefix = scoped_identifier '.')? derefchain ('.' field = identifier)? ;           // TODO  this doesn't look pretty when dealing with the difference between a final ^^ at the end or not
+pointerdereference:  (prefix = scoped_identifier '.')? derefchain ('.' field = identifier fieldindex = arrayindex?)? ;           // TODO  this doesn't look pretty when dealing with the difference between a final ^^ at the end or not
 
 derefchain :  singlederef ('.' singlederef)* ;
 

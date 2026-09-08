@@ -1610,21 +1610,141 @@ main {
         compileText(Cx16Target(), false, src, outputDir) shouldNotBe null
     }
 
-    xtest("array indexed assignment WITH explicit dereference after struct pointer [IGNORED because it's still a parser error: ^^ cannot be followed by an index in an assignment target]") {
-        val src="""
+    test("array indexed assignment with explicit dereference before index writes correct memory on VM") {
+        val src=$$"""
+%zeropage basicsafe
 main {
+    struct Node {
+        ^^uword s
+    }
 
     sub start() {
-        struct Node {
-            ^^uword s
-        }
+        uword[4] backing
+        ^^Node l1 = memory("node", 8, 0)
+        l1.s = &backing
+        l1^^.s[0] = 4242
+        l1^^.s[1] = 1111
+        uword a = l1^^.s[0]
+        uword b = l1^^.s[1]
 
-        ^^Node l1
+        ; verify the writes landed, independent of struct layout details
+        if a != 4242 { sys.exit(7) }
+        if b != 1111 { sys.exit(8) }
+        if backing[0] != 4242 { sys.exit(9) }
+        if backing[1] != 1111 { sys.exit(10) }
 
-        l1^^.s[0] = 4242        ; TODO fix parse error
+        ; success marker (exit status is not observable through VmRunner)
+        pokew($4400, $c0ba)
+        sys.exit(0)
     }
 }"""
-        compileText(VMTarget(), false, src, outputDir) shouldBe null
+        val result = compileText(VMTarget(), false, src, outputDir)!!
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
+        VmRunner().runAndTestProgram(virtfile.readText(), true) { vm ->
+            vm.memory.getUW(0x4400u).toInt() shouldBe 0xc0ba      // all in-program checks passed
+        }
+    }
+
+    test("explicit dereference with indexed base pointer and array fields writes correct memory on VM") {
+        val src=$$"""
+%zeropage basicsafe
+main {
+    struct Node {
+        ^^uword s
+        uword[4] vals
+    }
+
+    sub start() {
+        uword[4] backing
+        ^^Node l1 = memory("node", 16, 0)
+        ^^Node arena = memory("arena", 32, 0)
+        ; set the s fields via raw poke (avoids implicit indexed-base writes)
+        pokel(l1, &backing)
+        pokel(arena, &backing)
+        pokel(arena + 1, &backing)
+
+        ; array-typed field through explicit deref
+        l1^^.vals[0] = 100
+        l1^^.vals[3] = 400
+        ; indexed base pointer
+        arena[1]^^.s[2] = 5555
+        ; plain explicit form plus augassign plus reads
+        l1^^.s[0] = 10
+        l1^^.s[0] += 5
+        uword a = l1^^.s[0]
+        uword b = l1^^.vals[3]
+        uword c = arena[1]^^.s[2]
+
+        ; verify the writes landed, independent of struct layout details
+        if a != 15 { sys.exit(7) }
+        if b != 400 { sys.exit(8) }
+        if c != 5555 { sys.exit(9) }
+        if backing[0] != 15 { sys.exit(10) }
+        if backing[2] != 5555 { sys.exit(11) }
+
+        ; success marker (exit status is not observable through VmRunner)
+        pokew($4400, $c0ba)
+        sys.exit(0)
+    }
+}"""
+        val result = compileText(VMTarget(), false, src, outputDir)!!
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
+        VmRunner().runAndTestProgram(virtfile.readText(), true) { vm ->
+            vm.memory.getUW(0x4400u).toInt() shouldBe 0xc0ba      // all in-program checks passed
+        }
+    }
+
+    test("explicit dereference through pointer array with indexed field writes correct memory on VM") {
+        val src=$$"""
+%zeropage basicsafe
+main {
+    struct Node {
+        ^^uword s
+    }
+
+    sub start() {
+        uword[4] backing
+        ^^Node n0 = memory("n0", 8, 0)
+        n0.s = &backing
+        ^^Node[4] parr
+        parr[0] = n0
+        parr[0]^^.s[1] = 7777
+        uword v = parr[0]^^.s[1]
+
+        ; verify the writes landed, independent of struct layout details
+        if v != 7777 { sys.exit(7) }
+        if backing[1] != 7777 { sys.exit(8) }
+
+        ; success marker (exit status is not observable through VmRunner)
+        pokew($4400, $c0ba)
+        sys.exit(0)
+    }
+}"""
+        val result = compileText(VMTarget(), false, src, outputDir)!!
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
+        VmRunner().runAndTestProgram(virtfile.readText(), true) { vm ->
+            vm.memory.getUW(0x4400u).toInt() shouldBe 0xc0ba      // all in-program checks passed
+        }
+    }
+
+    test("indexing a scalar struct field through explicit dereference gives error") {
+        val src="""
+main {
+    struct Node {
+        ^^uword s
+        uword count
+    }
+    sub start() {
+        ^^Node l1
+        l1^^.count[0] = 1
+        l1^^.nosuch[0] = 2
+    }
+}"""
+        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        compileText(VMTarget(), false, src, outputDir, errors = errors, writeAssembly = false) shouldBe null
+        errors.errors.size shouldBe 2
+        errors.errors[0] shouldContain "9:9: cannot index field 'count' of struct 'Node', it is not a pointer or array"
+        errors.errors[1] shouldContain "10:9: no such field 'nosuch' in struct 'Node'"
     }
 
     test("a.b.c[i].value = X where pointer is struct compiles") {

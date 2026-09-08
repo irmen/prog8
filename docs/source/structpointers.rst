@@ -19,22 +19,17 @@ Structs and Pointers
     priority over other variables to be placed into zeropage.
 
 .. note::
-    Due to a limitation in the language parser, an explicit pointer dereferencing
-    operator directly before an index on an assignment target is currently unsupported.
-    For example, this assignment syntax doesn't parse correctly::
-
-        ^^Node  l1
-        l1^^.s[0] = 9999          ; cannot use this syntax as assignment target right now
-
-    To work around this, use the implicit form (no ``^^`` before the index),
-    or break up the expression in multiple steps (which can be beneficial too when you are assigning multiple fields
-    because it will save a pointer calculation for every assignment)::
+    Indexed field access through a pointer works for reading and writing,
+    with either implicit or explicit pointer dereferencing::
 
         ^^Node  np
         np[2].field = 9999
+        np[2]^^.field = 9999
         ubyte value = np[2].field
 
-        ; alternatively, split up:
+    To save a repeated pointer calculation when assigning multiple fields,
+    break up the expression in multiple steps::
+
         ^^Node thenode = &&np[2]
         thenode.field = 9999
 

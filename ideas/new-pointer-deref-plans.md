@@ -1,15 +1,11 @@
 # Pointer Dereference Grammar Improvements
 
-**Status: partially implemented.** Listed as an active item in `docs/source/todo.rst`.
-
-Already implemented on master: assignment targets accept parenthesized expressions
-and function calls followed by a field chain, e.g. `(expr as ^^Struct).field = value`
-and `func().field = value`. These are handled by `assign_target` alternatives
-`ParenDerefTarget` / `FunctioncallDerefTarget` and desugared by `CodeDesugarer`
-into poke-style writes.
-
-Still pending: implicit `^^` for indexed/field assignment targets such as
-`ptr[idx].field = value` and `ptr.field = value`.
+**Status: implemented.** Both implicit `^^` (`listarray[2].value = 123`) and explicit
+`^^` before an index (`l1^^.s[0] = 4242`) on assignment targets now work: the grammar
+accepts an optional index on the `pointerdereference` trailer, and `CodeDesugarer`
+lowers it to poke-style writes (reads to peek calls). The comprehensive Option B
+redesign below was not needed and remains documented for the long-term
+"cursed hybrid" cleanup only.
 
 ## Problem
 
@@ -57,11 +53,11 @@ after desugaring, so no backend changes are required.
 
 ## Skipped tests
 
-Two tests in `compiler/test/TestPointers.kt` remain skipped (`xtest`) until the
-redesign is implemented:
+Both `xtest`s in `compiler/test/TestPointers.kt` are now enabled as regular tests:
 
-- `array indexed assignment parses with and without explicit dereference after struct pointer`
-- `a.b.c[i].value = X where pointer is struct gives good error message`
+- `array indexed assignment with explicit dereference before index writes correct memory on VM`
+- `a.b.c[i].value = X where pointer is struct compiles` (rewritten from the old
+  error-message expectation, which no longer matches)
 
 ## Workaround
 

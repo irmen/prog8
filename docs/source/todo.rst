@@ -7,13 +7,13 @@ Future Things and Ideas
 - split up AssignmentAsmGen.kt in codeGenCpu6502 it is by far the largest file 6000+ lines
 - extend the ``-gendoc`` command to generate user reference documentation from Markdown docstrings; see ``ideas/markdown-docstrings-and-reference-docs.md`` for the plan.
 - add documentation for more library modules instead of just linking to the source code
-- struct/ptr: support explicit ^^ before an index on assignment targets, e.g. ``l1^^.s[0] = 4242`` (still a parse error; see the remaining TestPointers xtest). Implicit ^^ forms (``listarray[2].value = 123``, ``a.b.c[i].value = X``, ``l1.s[0] = 4242``) and LHS ``func().field = a`` / ``(expr as ^^T).field = a`` already compile via the dotExpression poke-style desugar, covered by enabled tests. Remaining work: the explicit-^^ grammar fix, plus a VM execution test confirming the implicit-^^ write stores/loads correctly. See ideas/new-pointer-deref-plans.md (Option B notes now partially outdated).
 - add float support to the configurable compiler targets. Restrictions: just have "cbm-style floats" as an option (to that it can slot into the current float codegen), where "all" you have to specify is the addresses of AYINT and GIVAYF and FADDT and all their friends.
 - Change scoping rules for qualified symbols so that they don't always start from the root but behave like other programming languages (look in local scope first), maybe only when qualified symbol starts with '.' such as: .local.value = 33, or the other way around? i.e. require new syntax to explicitly look up from global scope. That would give a backwards compatible solution. See ideas/scoping-qualified-symbols.md for a brevity-focused exploration (opt-in `.a.b` local-first, `a.b` stays global; `::a.b` reserved for future flip).
 - implement the signed remainder byte and word routines on 6502 old codegen (virtual, m68k and IR-based codegens already have them working)
 - implement the signed divmod byte and word routines on 6502 old codegen (virtual, m68k and IR-based codegens already have them working)
 - the c64 sprite multiplexer still needs adjustments to make it smooth, it lacks a proper raster event scheduler.
 - support typed pointer arrays as struct fields, curretly requires untyped pointers arrays.
+- struct/ptr: implicit indexed-base field write miscompiles: ``arena[1].s = X`` where ``arena`` is ``^^Node`` stores at the wrong address (likely missing struct-size scaling for the pointer base in the dotExpression write path), while the read-back and the explicit ``arena[1]^^.s[i]`` / raw ``pokel`` forms agree with each other. Verified on the virtual target.
 
 Won't do's or deferred
 ^^^^^^^^^^^^^^^^^^^^^^

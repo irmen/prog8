@@ -2169,7 +2169,16 @@ class ArrayIndexedPtrDereference(
                     if(field==null) {
                         return InferredTypes.knownFor(DataType.structInstance(sub))
                     } else {
-                        val fieldDt= sub.getFieldType(field.first)!!
+                        val fieldDt = sub.getFieldType(field.first) ?: return InferredTypes.unknown()
+                        if(field.second!=null) {
+                            // the index is on the final field, e.g. arena[1]^^.s[i]:
+                            // the result is an element of the field, not the field itself
+                            return when {
+                                fieldDt.isPointer -> InferredTypes.knownFor(fieldDt.dereference())
+                                fieldDt.isArray -> InferredTypes.knownFor(fieldDt.elementType())
+                                else -> InferredTypes.unknown()
+                            }
+                        }
                         return if(derefLast)
                             InferredTypes.knownFor(fieldDt.dereference())
                         else
@@ -2183,6 +2192,21 @@ class ArrayIndexedPtrDereference(
                         InferredTypes.knownFor(target.datatype.dereference())
                     else
                         InferredTypes.knownFor(target.datatype)
+                }
+            }
+        }
+
+        if(chain.size>1 && chain.last().second!=null) {
+            // e.g. l1^^.s[i]: the index is on the final field; resolve the struct via the prefix
+            val prefixTarget = definingScope.lookup(chain.dropLast(1).map { it.first })
+            if(prefixTarget is VarDecl && (prefixTarget.datatype.isPointer || prefixTarget.datatype.isPointerArray)) {
+                val fieldDt = (prefixTarget.datatype.subType as? StructDecl)?.getFieldType(chain.last().first)
+                if(fieldDt!=null) {
+                    return when {
+                        fieldDt.isPointer -> InferredTypes.knownFor(fieldDt.dereference())
+                        fieldDt.isArray -> InferredTypes.knownFor(fieldDt.elementType())
+                        else -> InferredTypes.unknown()
+                    }
                 }
             }
         }

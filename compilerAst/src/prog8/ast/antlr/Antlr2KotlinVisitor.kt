@@ -871,8 +871,12 @@ class Antlr2KotlinVisitor(val source: SourceCode, private val target: ICompilati
         // Step 3: Merge prefix with derefchain - prefix elements have no array index
         val fullChain = prefixNames.map { it to (null as ArrayIndex?) } + derefs
 
-        // Step 4: Add optional field identifier (if present)
-        val finalChain = if (ctx.field != null) fullChain + (ctx.field.text to null) else fullChain
+        // Step 4: Add optional field identifier (if present), with optional array index
+        // (e.g. l1^^.s[0] as assignment target)
+        val finalChain = if (ctx.field != null) {
+            val fieldIndex = ctx.fieldindex?.accept(this) as ArrayIndex?
+            fullChain + (ctx.field.text to fieldIndex)
+        } else fullChain
 
         // Step 5: Create appropriate AST node based on whether there are array indices
         return if (finalChain.all { it.second == null }) {

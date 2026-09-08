@@ -1150,9 +1150,93 @@ _after:
         return noModifications
     }
 
+    /**
+     * Computes the memory address for an indexed final field dereference such as `l1^^.s[i]`
+     * (explicit ^^ with the index on the last field element).
+     * Returns the address expression plus the element datatype, or null if this isn't such a shape
+     * (caller falls through silently) or after reporting a proper error for an invalid shape.
+     */
+    private fun indexedFinalFieldAddress(deref: ArrayIndexedPtrDereference): Pair<Expression, DataType>? {
+        val field = deref.chain.last()
+        val fieldIdx = field.second?.indexExpr ?: return null
+        val ptr = deref.chain.dropLast(1)
+        if(ptr.isEmpty())
+            return null
+        val ptrVar = deref.definingScope.lookup(ptr.map { it.first }) as? VarDecl
+            ?: return null
+        if(!ptrVar.datatype.isPointer && !ptrVar.datatype.isPointerArray)
+            return null
+        val struct = ptrVar.datatype.subType as? StructDecl
+        if(struct==null) {
+            errors.err("cannot index field '${field.first}' here, expected a pointer to a struct", deref.position)
+            return null
+        }
+        val fieldDt = struct.getFieldType(field.first)
+        if(fieldDt==null) {
+            errors.err("no such field '${field.first}' in struct '${struct.name}'", deref.position)
+            return null
+        }
+        val addrType = target.pointerType
+        val structBase: Expression = if(ptrVar.datatype.isPointer) {
+            val pointerIdentifier = IdentifierReference(ptr.map { it.first }, deref.position)
+            val pointerAsAddr = TypecastExpression(pointerIdentifier, addrType, true, deref.position)
+            val ptrIdx = if(ptr.size==1) ptr[0].second?.indexExpr else null
+            if(ptrIdx!=null) {
+                // p[i]^^.s[j]: scale the pointer index by the struct size
+                val structSize = ptrVar.datatype.dereference().size(target)
+                val scaled = BinaryExpression(ptrIdx, "*", NumericLiteral(BaseDataType.UWORD, structSize.toDouble(), deref.position), deref.position)
+                BinaryExpression(pointerAsAddr, "+", scaled, deref.position)
+            } else pointerAsAddr
+        } else {
+            // parr[i]^^.s[j]: load the pointer from the array first
+            if(ptr.size!=1 || ptr[0].second==null)
+                return null
+            val pointerIdentifier = IdentifierReference(ptr.map { it.first }, deref.position)
+            val index = ArrayIndexedExpression(pointerIdentifier, null, null, ptr[0].second!!, deref.position)
+            TypecastExpression(index, addrType, true, deref.position)
+        }
+        val offset = struct.offsetof(field.first, target)
+        if(offset==null) {
+            errors.err("no such field '${field.first}' in struct '${struct.name}'", deref.position)
+            return null
+        }
+        var fieldAddr: Expression = structBase
+        if(offset>0u)
+            fieldAddr = BinaryExpression(fieldAddr, "+", NumericLiteral.optimalInteger(offset.toInt(), deref.position), deref.position)
+        return when {
+            fieldDt.isPointer -> {
+                // the field is itself a pointer: load it, then index into what it points to
+                val elemDt = fieldDt.dereference()
+                if(!elemDt.isNumericOrBool) {
+                    errors.err("cannot index into field '${field.first}' of struct '${struct.name}' here", deref.position)
+                    return null
+                }
+                val peekName = if(target.POINTER_MEM_SIZE > 2u) "peekl" else "peekw"
+                val peekCall = FunctionCallExpression(IdentifierReference(listOf(peekName), deref.position), mutableListOf(fieldAddr), deref.position)
+                val fieldPtr = TypecastExpression(peekCall, addrType, false, deref.position)
+                val elemSize = elemDt.size(target)
+                val scaledIdx = BinaryExpression(fieldIdx, "*", NumericLiteral(BaseDataType.UWORD, elemSize.toDouble(), deref.position), deref.position)
+                BinaryExpression(fieldPtr, "+", scaledIdx, deref.position) to elemDt
+            }
+            fieldDt.isArray -> {
+                val elemDt = fieldDt.elementType()
+                if(!elemDt.isNumericOrBool) {
+                    errors.err("cannot index into field '${field.first}' of struct '${struct.name}' here", deref.position)
+                    return null
+                }
+                val elemSize = elemDt.size(target)
+                val scaledIdx = BinaryExpression(fieldIdx, "*", NumericLiteral(BaseDataType.UWORD, elemSize.toDouble(), deref.position), deref.position)
+                BinaryExpression(fieldAddr, "+", scaledIdx, deref.position) to elemDt
+            }
+            else -> {
+                errors.err("cannot index field '${field.first}' of struct '${struct.name}', it is not a pointer or array", deref.position)
+                null
+            }
+        }
+    }
+
     override fun after(deref: ArrayIndexedPtrDereference, parent: Node): Iterable<AstModification> {
         // get rid of the ArrayIndexedPtrDereference AST node, replace it with other AST nodes that are equivalent
-
         /**
          * Build the chain from a BinaryExpression with "." operator (e.g., "ptr[ idx].field").
          * Returns null if the expression doesn't match this pattern.
@@ -1237,12 +1321,64 @@ _after:
             }
         }
 
+        /**
+          * Check if a value expression represents an augmented assignment pattern for a memory target.
+          * E.g., @(addr) = @(addr) + 1  or  @(addr) = ~@(addr)
+          */
+        fun isAugmentedMemoryPattern(value: Expression, addr: Expression, origDeref: ArrayIndexedPtrDereference): Boolean {
+            fun Expression.referencesSameAddress(a: Expression, od: ArrayIndexedPtrDereference): Boolean {
+                if(this is DirectMemoryRead)
+                    return this.addressExpression isSameAs a
+                if(this is ArrayIndexedPtrDereference)
+                    return this.chain == od.chain && this.derefLast == od.derefLast
+                // Handle "ptr[idx].field" represented as BinaryExpression with "." operator
+                if(this is BinaryExpression && this.operator==".") {
+                    // Check if this corresponds to the same chain as origDeref
+                    // Build the chain from the binary expression and compare
+                    val chain = buildChainFromDotExpression(this)
+                    return chain != null && chain == od.chain
+                }
+                return false
+            }
+            if(value is BinaryExpression) {
+                if(value.left.referencesSameAddress(addr, origDeref)) return true
+                if(value.operator in CommutativeOperators && value.right.referencesSameAddress(addr, origDeref)) return true
+                if(value.operator in "+-" && value.right is BinaryExpression) {
+                    val rightBin = value.right as BinaryExpression
+                    if(rightBin.left.referencesSameAddress(addr, origDeref) || rightBin.right.referencesSameAddress(addr, origDeref)) return true
+                }
+            }
+            if(value is PrefixExpression) {
+                return value.expression.referencesSameAddress(addr, origDeref)
+            }
+            return false
+        }
+
         if(parent is AssignTarget) {
             if(!deref.derefLast) {
                 val assignment = parent.parent as Assignment
                 val field = deref.chain.last()
                 val ptr = deref.chain.dropLast(1)
-                if(field.second==null && ptr.last().second!=null) {
+
+                fun lowerToPokeCall(address: Expression, assignTarget: AssignTarget): Iterable<AstModification> {
+                    val isAugmentedPattern = isAugmentedMemoryPattern(assignment.value, address, deref)
+                    if(isAugmentedPattern) {
+                        val memwrite = DirectMemoryWrite(address, deref.position)
+                        val target = AssignTarget(null, null, memwrite, null, false, position = deref.position)
+                        val newValue = convertAugmentedValueToMemoryRead(assignment.value, deref, address)
+                        val newAssignment = Assignment(target, newValue, assignment.origin, assignment.position)
+                        newAssignment.isAugmentedMemoryAssign = true
+                        return listOf(AstReplaceNode(assignment, newAssignment, assignment.parent))
+                    }
+
+                    val (pokeFunc, valueCast) = pokeFunc(assignTarget.inferType(program).getOrUndef())
+                    val value = if(valueCast==null) assignment.value else TypecastExpression(assignment.value, valueCast, true, assignment.value.position)
+                    val pokeCall = FunctionCallStatement(IdentifierReference(listOf(pokeFunc), assignment.position),
+                        mutableListOf(address, value), false, assignment.position)
+                    return listOf(AstReplaceNode(assignment, pokeCall, assignment.parent))
+                }
+
+                if(field.second==null && ptr.lastOrNull()?.second!=null) {
                     val ptrName = ptr.map { it.first }
                     val ptrVar = deref.definingScope.lookup(ptrName) as? VarDecl
                     if(ptrVar!=null && (ptrVar.datatype.isPointer || ptrVar.datatype.isPointerArray)) {
@@ -1271,39 +1407,6 @@ _after:
                         // Also convert matching pointer dereferences in the value to DirectMemoryRead for proper recognition.
                         // Check for augmented pattern: value references the same memory location as the address.
 
-                        /**
-                         * Check if a value expression represents an augmented assignment pattern for a memory target.
-                         * E.g., @(addr) = @(addr) + 1  or  @(addr) = ~@(addr)
-                         */
-                        fun isAugmentedMemoryPattern(value: Expression, addr: Expression, origDeref: ArrayIndexedPtrDereference): Boolean {
-                            fun Expression.referencesSameAddress(a: Expression, od: ArrayIndexedPtrDereference): Boolean {
-                                if(this is DirectMemoryRead)
-                                    return this.addressExpression isSameAs a
-                                if(this is ArrayIndexedPtrDereference)
-                                    return this.chain == od.chain && this.derefLast == od.derefLast
-                                // Handle "ptr[idx].field" represented as BinaryExpression with "." operator
-                                if(this is BinaryExpression && this.operator==".") {
-                                    // Check if this corresponds to the same chain as origDeref
-                                    // Build the chain from the binary expression and compare
-                                    val chain = buildChainFromDotExpression(this)
-                                    return chain != null && chain == od.chain
-                                }
-                                return false
-                            }
-                            if(value is BinaryExpression) {
-                                if(value.left.referencesSameAddress(addr, origDeref)) return true
-                                if(value.operator in CommutativeOperators && value.right.referencesSameAddress(addr, origDeref)) return true
-                                if(value.operator in "+-" && value.right is BinaryExpression) {
-                                    val rightBin = value.right as BinaryExpression
-                                    if(rightBin.left.referencesSameAddress(addr, origDeref) || rightBin.right.referencesSameAddress(addr, origDeref)) return true
-                                }
-                            }
-                            if(value is PrefixExpression) {
-                                return value.expression.referencesSameAddress(addr, origDeref)
-                            }
-                            return false
-                        }
-
                         val isAugmentedPattern = isAugmentedMemoryPattern(assignment.value, address, deref)
                         if(isAugmentedPattern) {
                             val memwrite = DirectMemoryWrite(address, deref.position)
@@ -1314,14 +1417,34 @@ _after:
                             return listOf(AstReplaceNode(assignment, newAssignment, assignment.parent))
                         }
 
-                        val (pokeFunc, valueCast) = pokeFunc(parent.inferType(program).getOrUndef())
-                        val value = if(valueCast==null) assignment.value else TypecastExpression(assignment.value, valueCast, true, assignment.value.position)
-                        val pokeCall = FunctionCallStatement(IdentifierReference(listOf(pokeFunc), assignment.position),
-                            mutableListOf(address, value), false, assignment.position)
-                        return listOf(AstReplaceNode(assignment, pokeCall, assignment.parent))
+                        return lowerToPokeCall(address, parent)
                     }
                 }
+                if(field.second!=null && ptr.isNotEmpty()) {
+                    // l1^^.s[i], p[i]^^.s[j]: the index is on the final field
+                    val addrElem = indexedFinalFieldAddress(deref) ?: return noModifications
+                    return lowerToPokeCall(addrElem.first, parent)
+                }
             }
+        }
+
+        if(parent is Assignment && !deref.derefLast && deref.chain.last().second!=null && parent.value.isSameAs(deref)) {
+            // x = l1^^.s[i]: read through an indexed final field
+            val addrElem = indexedFinalFieldAddress(deref) ?: return noModifications
+            val (address, elemDt) = addrElem
+            val (peekFunc, cast) = when {
+                elemDt.isBool -> "peekbool" to null
+                elemDt.isUnsignedByte -> "peek" to null
+                elemDt.isSignedByte -> "peek" to DataType.BYTE
+                elemDt.isUnsignedWord -> "peekw" to null
+                elemDt.isSignedWord -> "peekw" to DataType.WORD
+                elemDt.isLong -> "peekl" to null
+                elemDt.isFloat -> "peekf" to null
+                else -> return noModifications  // guarded in helper; unreachable
+            }
+            val peekCall = FunctionCallExpression(IdentifierReference(listOf(peekFunc), deref.position), mutableListOf(address), deref.position)
+            val replacement: Expression = if(cast==null) peekCall else TypecastExpression(peekCall, cast, true, deref.position)
+            return listOf(AstReplaceNode(parent.value, replacement, parent))
         }
 
 
