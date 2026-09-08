@@ -19,20 +19,20 @@ Structs and Pointers
     priority over other variables to be placed into zeropage.
 
 .. note::
-    Due to a few limitations in the language parser, some pointer related syntax is currently unsupported.
-    The compiler tries its best to give a descriptive error message but sometimes there is still a
-    parser limitation that has to be worked around at the moment. For example, this assignment syntax doesn't parse correctly::
+    Due to a limitation in the language parser, an explicit pointer dereferencing
+    operator directly before an index on an assignment target is currently unsupported.
+    For example, this assignment syntax doesn't parse correctly::
 
-        ^^Node  np
-        np[2].field = 9999          ; cannot use this syntax as assignment target right now
-        ubyte value = np[2].field   ; note that using it as expression value works fine
+        ^^Node  l1
+        l1^^.s[0] = 9999          ; cannot use this syntax as assignment target right now
 
-    To work around this you'll have to explicitly write the pointer dereferencing operator,
+    To work around this, use the implicit form (no ``^^`` before the index),
     or break up the expression in multiple steps (which can be beneficial too when you are assigning multiple fields
     because it will save a pointer calculation for every assignment)::
 
         ^^Node  np
-        np[2]^^.field = 9999
+        np[2].field = 9999
+        ubyte value = np[2].field
 
         ; alternatively, split up:
         ^^Node thenode = &&np[2]

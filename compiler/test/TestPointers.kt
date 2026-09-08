@@ -1627,7 +1627,7 @@ main {
         compileText(VMTarget(), false, src, outputDir) shouldBe null
     }
 
-    xtest("a.b.c[i].value = X where pointer is struct gives good error message [IGNORED because it's a parser error right now]") {
+    test("a.b.c[i].value = X where pointer is struct compiles") {
         val src="""
 main {
     sub start() {
@@ -1648,10 +1648,8 @@ other {
     }
 }"""
         val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
-        compileText(VMTarget(), false, src, outputDir, errors = errors) shouldBe null
-        errors.errors.size shouldBe 2
-        errors.errors[0] shouldContain "no support for"
-        errors.errors[1] shouldContain "no support for"
+        compileText(VMTarget(), false, src, outputDir, errors = errors) shouldNotBe null
+        errors.errors.size shouldBe 0
     }
 
     test("mix of pointer dereference patterns in same program") {
@@ -2220,7 +2218,7 @@ main {
         errors.errors[1] shouldContain "10:24: cannot assign different pointer type, expected ^^ubyte or uword but got ^^uword"
     }
 
-    xtest("passing nosplit array of structpointers to a subroutine in various forms should be param type ptr to struct") {
+    test("passing nosplit array of structpointers to a subroutine in various forms gives type mismatch errors") {
         val src="""
 main {
     struct Node {
@@ -2228,11 +2226,11 @@ main {
     }
 
     sub start() {
-        ^^Node[10] @nosplit nodearray       ; not actually possible to store this array but required for the address-ofs below
-        func(nodearray[0])
-        func(&&nodearray)   ; error because datatype internally is registered as a split pointer array
-        func(&nodearray)
-        func(nodearray)     ; error because datatype internally is registered as a split pointer array
+        ^^Node[10] @nosplit nodearray       ; converted to a regular uword array (see VariousCleanups)
+        func(nodearray[0])                  ; ok: uword element accepted as ^^Node param
+        func(&&nodearray)                   ; error: ^^uword is not ^^Node
+        func(&nodearray)                    ; ok: uword address accepted as ^^Node param
+        func(nodearray)                     ; error: ^^uword is not ^^Node
     }
 
     sub func(^^Node n) {
@@ -2242,12 +2240,11 @@ main {
 
         val errors=ErrorReporterForTests(keepMessagesAfterReporting = true)
         compileText(VMTarget(), false, src, outputDir, errors=errors, writeAssembly = false) shouldBe null
-        errors.errors.size shouldBe 3
+        errors.errors.size shouldBe 2
         errors.warnings.size shouldBe 0
         errors.infos.size shouldBe 0
-        errors.errors[0] shouldContain "pointer arrays can only be split"
-        errors.errors[1] shouldContain "was: ^^ubyte (because arg is a split word array) expected: ^^main.Node"
-        errors.errors[2] shouldContain "was: ^^ubyte (because arg is a split word array) expected: ^^main.Node"
+        errors.errors[0] shouldContain "10:14: argument 1 type mismatch, was: ^^uword expected: ^^main.Node"
+        errors.errors[1] shouldContain "12:14: argument 1 type mismatch, was: ^^uword expected: ^^main.Node"
     }
 
     test("passing split array of structpointers to a subroutine in various forms should be param type ptr to ubyte (the lsb part of the split array)") {
