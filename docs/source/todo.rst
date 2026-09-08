@@ -13,7 +13,6 @@ Future Things and Ideas
 - implement the signed divmod byte and word routines on 6502 old codegen (virtual, m68k and IR-based codegens already have them working)
 - the c64 sprite multiplexer still needs adjustments to make it smooth, it lacks a proper raster event scheduler.
 - support typed pointer arrays as struct fields, curretly requires untyped pointers arrays.
-- struct/ptr: implicit indexed-base field write miscompiles: ``arena[1].s = X`` where ``arena`` is ``^^Node`` stores at the wrong address (likely missing struct-size scaling for the pointer base in the dotExpression write path), while the read-back and the explicit ``arena[1]^^.s[i]`` / raw ``pokel`` forms agree with each other. Verified on the virtual target.
 
 Won't do's or deferred
 ^^^^^^^^^^^^^^^^^^^^^^

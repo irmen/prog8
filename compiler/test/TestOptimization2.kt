@@ -342,6 +342,30 @@ main {
         hasVoidCall shouldBe false
     }
 
+    test("poke with indexed pointer address is not rewritten to plain assignment") {
+        // pokel(&&arena[1], x) --> arena=x is only valid for a plain variable address;
+        // indexed/dereferenced addresses must keep their index (used to miscompile
+        // implicit indexed-base struct field writes such as arena[1].s = X).
+        val src = """
+main {
+    struct Node {
+        ^^uword s
+    }
+    sub start() {
+        uword[4] backing
+        ^^Node arena = memory("arena", 16, 0)
+        arena[1].s = &backing
+    }
+}"""
+        val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = false)!!
+        val startSub = result.compilerAst.entrypoint
+
+        // the pokel call must have survived the optimizer
+        val pokes = startSub.statements.filterIsInstance<FunctionCallStatement>()
+            .filter { it.target.nameInSource.single() == "pokel" }
+        pokes.size shouldBe 1
+    }
+
     xtest("inline void call with two parameters") {
         // Tests that void calls with two parameters are inlined when args are simple
         val src = """

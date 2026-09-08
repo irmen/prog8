@@ -27,8 +27,10 @@ class StatementOptimizer(private val program: Program,
 
             when (functionName) {
                 "poke" -> {
-                    val addrOfIdentifier = (functionCallStatement.args[0] as? AddressOf)?.identifier
-                    if(addrOfIdentifier!=null && addrOfIdentifier.inferType(program).isBytes) {
+                    val addrOf = functionCallStatement.args[0] as? AddressOf
+                    val addrOfIdentifier = addrOf?.identifier
+                    // only a plain variable address can be rewritten; &var[i] must keep its index
+                    if(addrOf!=null && addrOf.arrayIndex==null && addrOf.dereference==null && addrOfIdentifier!=null && addrOfIdentifier.inferType(program).isBytes) {
                         // poke(&bytevar, x) --> bytevar=x
                         val target = AssignTarget(addrOfIdentifier, null, null, null, false, position = functionCallStatement.position)
                         val assign = Assignment(target, functionCallStatement.args[1], AssignmentOrigin.OPTIMIZER, functionCallStatement.position)
@@ -36,11 +38,13 @@ class StatementOptimizer(private val program: Program,
                     }
                 }
                 "pokew" -> {
-                    val addrOfIdentifier = (functionCallStatement.args[0] as? AddressOf)?.identifier
+                    val addrOf = functionCallStatement.args[0] as? AddressOf
+                    val addrOfIdentifier = addrOf?.identifier
                     val dt = addrOfIdentifier?.inferType(program)
                     // a pointer variable is 2 bytes only on word-pointer targets; on 4-byte-pointer
                     // targets the pokew->assignment rewrite is incorrect, handled by the pokel branch instead
-                    if(addrOfIdentifier!=null && dt!=null && (dt.isWords || (dt.isPointer && options.compTarget.POINTER_MEM_SIZE == 2u))) {
+                    // (and &var[i] must keep its index, so only plain addresses qualify)
+                    if(addrOf!=null && addrOf.arrayIndex==null && addrOf.dereference==null && addrOfIdentifier!=null && dt!=null && (dt.isWords || (dt.isPointer && options.compTarget.POINTER_MEM_SIZE == 2u))) {
                         // pokew(&wordvar, x) --> wordvar=x
                         val target = AssignTarget(addrOfIdentifier, null, null, null, false, position = functionCallStatement.position)
                         val assign = Assignment(target, functionCallStatement.args[1], AssignmentOrigin.OPTIMIZER, functionCallStatement.position)
@@ -48,9 +52,11 @@ class StatementOptimizer(private val program: Program,
                     }
                 }
                 "pokel" -> {
-                    val addrOfIdentifier = (functionCallStatement.args[0] as? AddressOf)?.identifier
+                    val addrOf = functionCallStatement.args[0] as? AddressOf
+                    val addrOfIdentifier = addrOf?.identifier
                     val dt = addrOfIdentifier?.inferType(program)
-                    if(addrOfIdentifier!=null && dt!=null && (dt.isLong || (dt.isPointer && options.compTarget.POINTER_MEM_SIZE == 4u))) {
+                    // only a plain variable address can be rewritten; &var[i] must keep its index
+                    if(addrOf!=null && addrOf.arrayIndex==null && addrOf.dereference==null && addrOfIdentifier!=null && dt!=null && (dt.isLong || (dt.isPointer && options.compTarget.POINTER_MEM_SIZE == 4u))) {
                         // pokel(&longvar, x) --> longvar=x   (a 4-byte pointer var is also handled here)
                         val target = AssignTarget(addrOfIdentifier, null, null, null, false, position = functionCallStatement.position)
                         val assign = Assignment(target, functionCallStatement.args[1], AssignmentOrigin.OPTIMIZER, functionCallStatement.position)
@@ -58,8 +64,10 @@ class StatementOptimizer(private val program: Program,
                     }
                 }
                 "pokef" -> {
-                    val addrOfIdentifier = (functionCallStatement.args[0] as? AddressOf)?.identifier
-                    if(addrOfIdentifier!=null && addrOfIdentifier.inferType(program).isFloat) {
+                    val addrOf = functionCallStatement.args[0] as? AddressOf
+                    val addrOfIdentifier = addrOf?.identifier
+                    // only a plain variable address can be rewritten; &var[i] must keep its index
+                    if(addrOf!=null && addrOf.arrayIndex==null && addrOf.dereference==null && addrOfIdentifier!=null && addrOfIdentifier.inferType(program).isFloat) {
                         // pokef(&floatvar, x) --> floatvar=x
                         val target = AssignTarget(addrOfIdentifier, null, null, null, false, position = functionCallStatement.position)
                         val assign = Assignment(target, functionCallStatement.args[1], AssignmentOrigin.OPTIMIZER, functionCallStatement.position)
@@ -353,8 +361,10 @@ class StatementOptimizer(private val program: Program,
 
         val memwriteAddr = assignment.target.memoryAddress
         if(memwriteAddr!=null) {
-            val addrOfIdentifier = (memwriteAddr.addressExpression as? AddressOf)?.identifier
-            if(addrOfIdentifier!=null && (addrOfIdentifier.inferType(program).isBytes || addrOfIdentifier.inferType(program).isBool)) {
+            val addrOf = memwriteAddr.addressExpression as? AddressOf
+            val addrOfIdentifier = addrOf?.identifier
+            // only a plain variable address can be rewritten; &var[i] must keep its index
+            if(addrOf!=null && addrOf.arrayIndex==null && addrOf.dereference==null && addrOfIdentifier!=null && (addrOfIdentifier.inferType(program).isBytes || addrOfIdentifier.inferType(program).isBool)) {
                 // @(&bytevar) = x --> bytevar = x
                 val target = AssignTarget(addrOfIdentifier, null, null, null, false, position = assignment.position)
                 val assign = Assignment(target, assignment.value, AssignmentOrigin.OPTIMIZER, assignment.position)

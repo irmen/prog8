@@ -1727,6 +1727,43 @@ main {
         }
     }
 
+    test("implicit indexed-base field write stores to correct address on VM") {
+        val src=$$"""
+%zeropage basicsafe
+main {
+    struct Node {
+        ^^uword s
+        uword[4] vals
+    }
+
+    sub start() {
+        uword[4] backing
+        uword[4] backing2
+        ^^Node arena = memory("arena", 32, 0)
+        arena.s = &backing
+        arena[1].s = &backing2
+        arena[1]^^.s[0] = 5555
+        arena[1]^^.vals[1] = 777
+        uword a = arena[1]^^.s[0]
+        uword b = arena[1]^^.vals[1]
+
+        ; verify the writes landed, independent of struct layout details
+        if a != 5555 { sys.exit(7) }
+        if b != 777 { sys.exit(8) }
+        if backing2[0] != 5555 { sys.exit(9) }
+
+        ; success marker (exit status is not observable through VmRunner)
+        pokew($4400, $c0ba)
+        sys.exit(0)
+    }
+}"""
+        val result = compileText(VMTarget(), false, src, outputDir)!!
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
+        VmRunner().runAndTestProgram(virtfile.readText(), true) { vm ->
+            vm.memory.getUW(0x4400u).toInt() shouldBe 0xc0ba      // all in-program checks passed
+        }
+    }
+
     test("indexing a scalar struct field through explicit dereference gives error") {
         val src="""
 main {
