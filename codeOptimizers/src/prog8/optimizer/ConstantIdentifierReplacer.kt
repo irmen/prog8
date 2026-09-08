@@ -11,7 +11,6 @@ import prog8.compiler.CallGraph
 //   (also check range literal operands types before they get expanded into arrays for instance)
 class VarConstantValueTypeAdjuster(
     private val program: Program,
-    private val options: CompilationOptions,
     private val errors: IErrorReporter
 ) : AstWalker() {
 
@@ -486,7 +485,7 @@ internal class ConstantIdentifierReplacer(
 
     override fun after(decl: VarDecl, parent: Node): Iterable<AstModification> {
         // the initializer value can't refer to the variable itself (recursive definition)
-        if(decl.value?.referencesIdentifier(listOf(decl.name)) == true || decl.arraysize?.indexExpr?.referencesIdentifier(listOf(decl.name)) == true) {
+        if(decl.value?.referencesIdentifier(listOf(decl.name)) == true || decl.arraysize?.indexExpr?.referencesIdentifier(listOf(decl.name)) == true || decl.matrixNumCols?.referencesIdentifier(listOf(decl.name)) == true) {
             errors.err("recursive var declaration", decl.position)
             return noModifications
         }

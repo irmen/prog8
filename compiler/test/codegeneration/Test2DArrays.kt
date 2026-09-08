@@ -6,6 +6,8 @@ import io.kotest.engine.spec.tempdir
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
+import prog8.code.ast.PtVariable
+import prog8.code.ast.walkAst
 import prog8.code.target.C64Target
 import prog8.code.target.VMTarget
 import prog8tests.helpers.ErrorReporterForTests
@@ -148,6 +150,44 @@ class Test2DArrays: FunSpec({
         val virtfile = result2.compilationOptions.outputDir.resolve(result2.compilerAst.name + ".p8ir")
         val ir = virtfile.readText()
         ir.shouldContainInOrder("m")  // Should contain the array reference
+    }
+
+    test("2D array dimensions with const identifiers flatten to correct total size in Simple AST") {
+        // Mirrors examples/test.p8: const dims must be folded during processAst(),
+        // Simple AST should only contain the consolidated 1D sizes.
+        val src = """
+            main {
+                const WIDTH=5
+                const HEIGHT=8
+
+                sub start() {
+                    ubyte[WIDTH] @shared tokens
+                    bool[2][4] @shared matrix1
+                    bool[2][HEIGHT] @shared matrix2
+                    bool[WIDTH][HEIGHT] @shared matrix3
+                }
+            }"""
+        val result = compileText(VMTarget(), false, src, outputDir) ?: fail("Compilation failed")
+        val expected = mapOf(
+            "tokens" to 5u,
+            "matrix1" to 8u,
+            "matrix2" to 16u,
+            "matrix3" to 40u
+        )
+        // 1. Check Simple AST (PtVariable.arraySize is the flattened rows*cols total)
+        val ptVars = mutableMapOf<String, UInt?>()
+        walkAst(result.codegenAst!!) { node, _ ->
+            if(node is PtVariable)
+                ptVars[node.name.substringAfterLast('.').removePrefix("p8v_")] = node.arraySize
+            true
+        }
+        for((name, size) in expected)
+            ptVars[name] shouldBe size
+        // 2. Check Simple AST symbol table lengths agree
+        for((name, size) in expected) {
+            val stVar = result.codegenSymboltable!!.allVariables.first { it.name.endsWith(name) }
+            stVar.length shouldBe size
+        }
     }
 
     test("invalid 2D array usage produces compile errors") {

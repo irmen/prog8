@@ -214,16 +214,16 @@ class Antlr2KotlinVisitor(val source: SourceCode, private val target: ICompilati
         
         val (arraySize, matrixNumCols) = if(arrayIndices.size == 2) {
             // 2D array: [rows][cols]
+            // Keep dimensions as general expressions; they are folded to constants later
+            // during processAst() (ConstantIdentifierReplacer + ConstantFoldingOptimizer),
+            // just like 1D array sizes. AstChecker validates they are compile-time constants.
             val rowIndex = arrayIndices[0].accept(this) as ArrayIndex
             val colIndex = arrayIndices[1].accept(this) as ArrayIndex
-            val rows = rowIndex.indexExpr as? NumericLiteral
-            val cols = colIndex.indexExpr as? NumericLiteral
-            if(rows == null || cols == null) {
-                throw SyntaxError("2D array dimensions must be constant expressions", ctx.toPosition())
-            }
-            val totalElements = (rows.number.toInt() * cols.number.toInt())
-            val totalSize = ArrayIndex(NumericLiteral.optimalNumeric(totalElements, ctx.toPosition()), ctx.toPosition())
-            Pair(totalSize, colIndex.indexExpr)
+            val rowsExpr = rowIndex.indexExpr
+            val colsExpr = colIndex.indexExpr
+            val totalExpr = BinaryExpression(rowsExpr, "*", colsExpr.copy(), ctx.toPosition())
+            val totalSize = ArrayIndex(totalExpr, ctx.toPosition())
+            Pair(totalSize, colsExpr)
         } else if(arrayIndices.isNotEmpty()) {
             // 1D array
             val arrayIndex = arrayIndices[0].accept(this) as ArrayIndex

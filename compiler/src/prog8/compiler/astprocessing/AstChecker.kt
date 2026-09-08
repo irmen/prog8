@@ -1076,7 +1076,7 @@ internal class AstChecker(private val program: Program,
         }
 
         // the initializer value can't refer to the variable itself (recursive definition)
-        if(decl.value?.referencesIdentifier(listOf(decl.name)) == true || decl.arraysize?.indexExpr?.referencesIdentifier(listOf(decl.name)) == true)
+        if(decl.value?.referencesIdentifier(listOf(decl.name)) == true || decl.arraysize?.indexExpr?.referencesIdentifier(listOf(decl.name)) == true || decl.matrixNumCols?.referencesIdentifier(listOf(decl.name)) == true)
             err("recursive var declaration")
 
         // CONST can only occur on simple types (byte, word, float) and pointers
@@ -1287,10 +1287,24 @@ internal class AstChecker(private val program: Program,
                 }
             }
 
+            if(decl.is2DArray && decl.matrixNumCols?.constValue(program)==null)
+                err("2D array dimensions must be constant expressions")
             val length = decl.arraysize?.constIndex()
             if(length==null)
                 err("array length must be known at compile-time")
             else {
+                if(decl.is2DArray) {
+                    val numCols = decl.matrixNumCols?.constValue(program)?.number?.toInt()
+                    if(numCols==null) {
+                        // already reported above
+                    } else if(numCols<=0)
+                        err("2D array dimensions must be positive")
+                    else {
+                        val numRows = length / numCols
+                        if(numRows<=0 || length % numCols != 0)
+                            err("2D array dimensions must be positive")
+                    }
+                }
                 val byteLimit = options.compTarget.ARRAY_SIZE_LIMIT.toInt()
                 val wordLimit = byteLimit / 2
                 val longLimit = byteLimit / 4

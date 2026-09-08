@@ -160,16 +160,23 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
 
         output(decl.datatype.sourceString())
         if(decl.is2DArray) {
-            // Output as [rows][cols]
+            // Output as [rows][cols]. Note: datatype.sourceString() already ends with "[",
+            // and the shared `if(decl.isArray) output("]")` below closes the final bracket.
             val totalSize = decl.arraysize?.indexExpr
             val numCols = decl.matrixNumCols
             if(totalSize is NumericLiteral && numCols is NumericLiteral) {
                 val numRows = totalSize.number.toInt() / numCols.number.toInt()
-                output("[$numRows]")
-                output("[${numCols.number.toInt()}]")
+                output("$numRows][${numCols.number.toInt()}")
+            } else if(totalSize is BinaryExpression && totalSize.operator=="*" && numCols!=null) {
+                // pre-folding form: total is rows*cols
+                totalSize.left.accept(this)
+                output("][")
+                numCols.accept(this)
             } else {
                 // Fallback: just output what we have
                 decl.arraysize?.indexExpr?.accept(this)
+                output("][")
+                decl.matrixNumCols?.accept(this)
             }
         } else if(decl.arraysize!=null) {
             decl.arraysize!!.indexExpr.accept(this)

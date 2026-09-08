@@ -42,6 +42,7 @@ interface IAstVisitor {
     fun visit(decl: VarDecl) {
         decl.value?.accept(this)
         decl.arraysize?.accept(this)
+        decl.matrixNumCols?.accept(this)
     }
 
     fun visit(struct: StructDecl) {

@@ -8,7 +8,7 @@ import prog8.code.core.IErrorReporter
 
 
 fun Program.constantFold(errors: IErrorReporter, options: CompilationOptions) {
-    val valuetypefixer = VarConstantValueTypeAdjuster(this, options, errors)
+    val valuetypefixer = VarConstantValueTypeAdjuster(this, errors)
     valuetypefixer.visit(this)
     if(errors.noErrors()) {
         valuetypefixer.applyModifications()

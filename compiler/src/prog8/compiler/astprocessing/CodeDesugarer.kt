@@ -457,6 +457,8 @@ _after:
             }
 
             val numCols = targetVarDecl.matrixNumCols ?: return noModifications
+            if(numCols.constValue(program)==null)
+                return noModifications    // not a constant (yet); AstChecker will report it
             val innerIndex = nested.indexer.indexExpr
 
             // Calculate: row * numCols + col

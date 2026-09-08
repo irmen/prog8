@@ -455,6 +455,16 @@ class VarDecl(
     }
 
     override fun replaceChildNode(node: Node, replacement: Node) {
+        if(node===matrixNumCols && replacement is Expression) {
+            matrixNumCols = replacement
+            replacement.linkParents(this)
+            return
+        }
+        if(node===arraysize && replacement is ArrayIndex) {
+            arraysize = replacement
+            replacement.linkParents(this)
+            return
+        }
         require(replacement is Expression && (value==null || node===value))
         value = replacement     // note: any datatype differences between the value and the decl itself, will be fixed by a separate ast walker step
         replacement.linkParents(this)

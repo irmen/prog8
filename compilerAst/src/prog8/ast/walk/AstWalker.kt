@@ -375,6 +375,7 @@ abstract class AstWalker {
         track(before(decl, parent), decl, parent)
         decl.value?.accept(this, decl)
         decl.arraysize?.accept(this)
+        decl.matrixNumCols?.accept(this, decl)
         track(after(decl, parent), decl, parent)
     }
 

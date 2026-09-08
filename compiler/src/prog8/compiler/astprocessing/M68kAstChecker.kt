@@ -88,6 +88,7 @@ internal class M68kAstChecker(private val errors: IErrorReporter, private val ta
         }
         decl.value?.accept(this)
         decl.arraysize?.accept(this)
+        decl.matrixNumCols?.accept(this)
     }
 
     override fun visit(subroutine: Subroutine) {
