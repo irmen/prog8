@@ -91,8 +91,7 @@ class SymbolExtractor {
 
     private fun visitVariableInternal(varDecl: VarDecl): DocumentSymbol {
         val range = varDecl.position.toLspRange()
-        val selectionRange = range
-        
+
         // Constants are VarDecls with type CONST
         val symbolKind = if (varDecl.type == VarDeclType.CONST) {
             SymbolKind.Constant
@@ -104,7 +103,7 @@ class SymbolExtractor {
             varDecl.name,
             symbolKind,
             range,
-            selectionRange
+            range
         )
     }
 
@@ -115,13 +114,12 @@ class SymbolExtractor {
 
     private fun visitStructInternal(struct: StructDecl): DocumentSymbol {
         val range = struct.position.toLspRange()
-        val selectionRange = range
 
         val structSymbol = DocumentSymbol(
             struct.name,
             SymbolKind.Struct,
             range,
-            selectionRange
+            range
         )
         structSymbol.children = mutableListOf() // Initialize children list
 

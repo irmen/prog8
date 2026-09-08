@@ -177,7 +177,7 @@ main {
     }
 
     test("multi-assign from extsub") {
-        val src="""
+        val src= $$"""
 main {
     sub start() {
         bool @shared flag
@@ -190,9 +190,9 @@ main {
         void, void, void = test3()
     }
 
-    extsub ${'$'}8000 = test(ubyte arg @A) -> bool @Pc
-    extsub ${'$'}8002 = test2(uword arg @AY, uword arg2 @R1, bool flag @Pc, byte value @X) -> ubyte @A, bool @Pc
-    extsub ${'$'}8003 = test3() -> uword @R1, bool @Pc, ubyte @X
+    extsub $8000 = test(ubyte arg @A) -> bool @Pc
+    extsub $8002 = test2(uword arg @AY, uword arg2 @R1, bool flag @Pc, byte value @X) -> ubyte @A, bool @Pc
+    extsub $8003 = test3() -> uword @R1, bool @Pc, ubyte @X
 }"""
 
         compileText(C64Target(), false, src, outputDir, writeAssembly = true) shouldNotBe null
@@ -227,10 +227,10 @@ main {
     }
 
     test("extsub with (non)const addresses") {
-        val src="""
+        val src= $$"""
 main {
-    const uword address = ${'$'}2000
-    uword nonconst = ${'$'}3000
+    const uword address = $2000
+    uword nonconst = $3000
 
     extsub address = foo1()
     extsub address+3 = foo2()

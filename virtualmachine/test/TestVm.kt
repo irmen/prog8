@@ -136,12 +136,12 @@ class TestVm: FunSpec( {
 
     test("vm machine float bits") {
         val cx16machine = Cx16Target()
-        cx16machine.getFloatAsmBytes(Math.PI) shouldBe "\$82, \$49, \$0f, \$da, \$a2"
+        cx16machine.getFloatAsmBytes(Math.PI) shouldBe $$"$82, $49, $0f, $da, $a2"
         val c64machine = C64Target()
-        c64machine.getFloatAsmBytes(Math.PI) shouldBe "\$82, \$49, \$0f, \$da, \$a2"
+        c64machine.getFloatAsmBytes(Math.PI) shouldBe $$"$82, $49, $0f, $da, $a2"
 
         val vm = VMTarget()
-        vm.getFloatAsmBytes(Math.PI) shouldBe "\$40, \$09, \$21, \$fb, \$54, \$44, \$2d, \$18"
+        vm.getFloatAsmBytes(Math.PI) shouldBe $$"$40, $09, $21, $fb, $54, $44, $2d, $18"
     }
 
     test("vm signed long division") {

@@ -403,7 +403,7 @@ class TestInstructionSelectionOptimizations : FunSpec({
             )
         )
 
-        lines.any { it == "fmovecr  #\$32,fp0" } shouldBe true
+        lines.any { it == $$"fmovecr  #$32,fp0" } shouldBe true
         lines.any { it == "fmove.s  fp0,p8_fregfile+0" } shouldBe false
         lines.any { it == "fmove.s  p8_fregfile+0,fp0" } shouldBe false
     }
@@ -427,7 +427,7 @@ class TestInstructionSelectionOptimizations : FunSpec({
             )
         )
 
-        lines.any { it == "fmovecr  #\$34,fp1" } shouldBe true
+        lines.any { it == $$"fmovecr  #$34,fp1" } shouldBe true
         lines.any { it == "fmove.s  fp0,p8_fregfile+0" } shouldBe false
         lines.any { it == "fmove.s  p8_fregfile+0,fp1" } shouldBe false
     }
@@ -451,7 +451,7 @@ class TestInstructionSelectionOptimizations : FunSpec({
 
         lines.any { it == "move.w  #384,d0" } shouldBe true
         lines.any { it == "move.w  #384,p8_regfile+0" } shouldBe false
-        lines.any { it == "fmovecr  #\$32,fp0" } shouldBe true
+        lines.any { it == $$"fmovecr  #$32,fp0" } shouldBe true
         lines.any { it == "fmove.s  fp0,p8_fregfile+0" } shouldBe false
         lines.any { it == "fmove.s  p8_fregfile+0,fp0" } shouldBe false
     }

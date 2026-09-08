@@ -23,31 +23,31 @@ class TestConversions: FunSpec({
     }
 
     test("toHex for 16-255 (hex with $)") {
-        16.toHex() shouldBe "\$10"
-        255.toHex() shouldBe "\$ff"
+        16.toHex() shouldBe $$"$10"
+        255.toHex() shouldBe $$"$ff"
     }
 
     test("toHex for 256-65535 (4 digit hex)") {
-        256.toHex() shouldBe "\$0100"
-        65535.toHex() shouldBe "\$ffff"
+        256.toHex() shouldBe $$"$0100"
+        65535.toHex() shouldBe $$"$ffff"
     }
 
     test("toHex for larger numbers (8 digit hex)") {
-        65536.toHex() shouldBe "\$00010000"
-        0x12345678.toHex() shouldBe "\$12345678"
+        65536.toHex() shouldBe $$"$00010000"
+        0x12345678.toHex() shouldBe $$"$12345678"
     }
 
     test("toHex for negative numbers") {
         (-1).toHex() shouldBe "-1"
-        (-255).toHex() shouldBe "-\$ff"
-        Int.MIN_VALUE.toHex() shouldBe "\$80000000"
+        (-255).toHex() shouldBe $$"-$ff"
+        Int.MIN_VALUE.toHex() shouldBe $$"$80000000"
     }
 
     test("UInt.toHex") {
         0u.toHex() shouldBe "0"
         15u.toHex() shouldBe "15"
-        255u.toHex() shouldBe "\$ff"
-        65535u.toHex() shouldBe "\$ffff"
+        255u.toHex() shouldBe $$"$ff"
+        65535u.toHex() shouldBe $$"$ffff"
     }
 
     // ============================================================================

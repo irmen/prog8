@@ -697,7 +697,6 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                         val constAddress = memory!!.address as? PtNumber
                         if(constAddress!=null) {
                             val storeIns = when {
-                                false -> IRInstruction(Opcode.STOREZM, targetDt, address=constAddress.number.toUInt().toAddress())
                                 constInt != null -> {
                                     val v = when(targetDt) {
                                         IRDataType.BYTE -> constInt and 0xff

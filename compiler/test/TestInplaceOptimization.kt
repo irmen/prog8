@@ -117,14 +117,14 @@ class TestInplaceOptimization: FunSpec({
     }
 
     test("memory multiply in-place with variable address") {
-        val src = """
+        val src = $$"""
             %zeropage basicsafe
             %option no_sysinit
             main {
                 uword @shared ptr
                 ubyte @shared result
                 sub start() {
-                    ptr = ${'$'}c000
+                    ptr = $c000
                     @(ptr) = 5
                     @(ptr) *= 3
                     result = @(ptr)
@@ -139,14 +139,14 @@ class TestInplaceOptimization: FunSpec({
     }
 
     test("memory divide in-place with variable address") {
-        val src = """
+        val src = $$"""
             %zeropage basicsafe
             %option no_sysinit
             main {
                 uword @shared ptr
                 ubyte @shared result
                 sub start() {
-                    ptr = ${'$'}c000
+                    ptr = $c000
                     @(ptr) = 20
                     @(ptr) /= 3
                     result = @(ptr)
@@ -161,14 +161,14 @@ class TestInplaceOptimization: FunSpec({
     }
 
     test("memory modulo in-place with variable address") {
-        val src = """
+        val src = $$"""
             %zeropage basicsafe
             %option no_sysinit
             main {
                 uword @shared ptr
                 ubyte @shared result
                 sub start() {
-                    ptr = ${'$'}c000
+                    ptr = $c000
                     @(ptr) = 20
                     @(ptr) %= 6
                     result = @(ptr)
@@ -183,14 +183,14 @@ class TestInplaceOptimization: FunSpec({
     }
 
     test("memory shift right in-place with variable address") {
-        val src = """
+        val src = $$"""
             %zeropage basicsafe
             %option no_sysinit
             main {
                 uword @shared ptr
                 ubyte @shared result
                 sub start() {
-                    ptr = ${'$'}c000
+                    ptr = $c000
                     @(ptr) = 16
                     @(ptr) >>= 1
                     result = @(ptr)
@@ -205,14 +205,14 @@ class TestInplaceOptimization: FunSpec({
     }
 
     test("memory shift left in-place with variable address") {
-        val src = """
+        val src = $$"""
             %zeropage basicsafe
             %option no_sysinit
             main {
                 uword @shared ptr
                 ubyte @shared result
                 sub start() {
-                    ptr = ${'$'}c000
+                    ptr = $c000
                     @(ptr) = 4
                     @(ptr) <<= 1
                     result = @(ptr)

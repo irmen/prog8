@@ -121,7 +121,7 @@ class TestC64Zeropage: FunSpec({
         zp.hasWordAvailable() shouldBe true
         var result = zp.allocate("", DataType.FLOAT, null, null, errors)
         result.expectError { "expect allocation error: in regular zp there aren't 5 sequential bytes free" }
-        (0 until zp.availableBytes()).forEach {
+        repeat((0 until zp.availableBytes()).count()) {
             val alloc = zp.allocate("", DataType.UBYTE, null, null, errors)
             alloc.getOrElse { throw it }
         }
@@ -151,14 +151,14 @@ class TestC64Zeropage: FunSpec({
         loc shouldBeGreaterThan 3u
         loc shouldNotBeIn zp.free
         val num = zp.availableBytes() / 2
-        (0..num).forEach {
+        repeat((0..num).count()) {
             zp.allocate("", DataType.UWORD, null, null, errors)
         }
         zp.availableBytes() shouldBe 5
         // can't allocate because no more sequential bytes, only fragmented
         result = zp.allocate("", DataType.UWORD, null, null, errors)
         result.expectError { "should give allocation error" }
-        (0..10).forEach {
+        repeat((0..10).count()) {
             zp.allocate("", DataType.UBYTE, null, null, errors)
         }
         zp.availableBytes() shouldBe 0
@@ -206,7 +206,7 @@ class TestC64Zeropage: FunSpec({
         result.onErr { error(it.toString()) }
         zp.availableBytes() shouldBe 203  // 207 - 4
         // Allocate several LONGs
-        (1..10).forEach {
+        repeat((1..10).count()) {
             zp.allocate("", DataType.LONG, null, null, errors).onErr { error(it.toString()) }
         }
         zp.availableBytes() shouldBe 163  // 203 - 40
@@ -407,7 +407,7 @@ class TestCx16Zeropage: FunSpec({
         result.onErr { error(it.toString()) }
         zp.availableBytes() shouldBe 210  // 214 - 4
         // Allocate several LONGs
-        (1..10).forEach {
+        repeat((1..10).count()) {
             zp.allocate("", DataType.LONG, null, null, errors).onErr { error(it.toString()) }
         }
         zp.availableBytes() shouldBe 170  // 210 - 40

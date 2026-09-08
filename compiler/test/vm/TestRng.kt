@@ -108,20 +108,20 @@ main {
     // Expected seed values: seeds for twist (3 seeds, 6 iterations each) and tweakseed (10 iterations, 3 values each)
     val expectedOutput =
         "twist() rng test\n" +
-        "seed 23114: \$b494 \$6829 \$d052 \$a0a5 \$404b \$8096\n" +
-        "seed 584: \$0490 \$0820 \$1040 \$2080 \$4000 \$8000\n" +
-        "seed 46931: \$6ea7 \$dc4e \$b89d \$703b \$e076 \$c0ed\n" +
+        $$"seed 23114: $b494 $6829 $d052 $a0a5 $404b $8096\n" +
+        $$"seed 584: $0490 $0820 $1040 $2080 $4000 $8000\n" +
+        $$"seed 46931: $6ea7 $dc4e $b89d $703b $e076 $c0ed\n" +
         "\ntweakseed test\n" +
-        "\$5a4a \$0248 \$b753\n" +
-        "\$0248 \$b753 \$13e5\n" +
-        "\$b753 \$13e5 \$cd80\n" +
-        "\$13e5 \$cd80 \$98b8\n" +
-        "\$cd80 \$98b8 \$7a1d\n" +
-        "\$98b8 \$7a1d \$e055\n" +
-        "\$7a1d \$e055 \$f32a\n" +
-        "\$e055 \$f32a \$4d9c\n" +
-        "\$f32a \$4d9c \$211b\n" +
-        "\$4d9c \$211b \$61e1\n"
+        $$"$5a4a $0248 $b753\n" +
+        $$"$0248 $b753 $13e5\n" +
+        $$"$b753 $13e5 $cd80\n" +
+        $$"$13e5 $cd80 $98b8\n" +
+        $$"$cd80 $98b8 $7a1d\n" +
+        $$"$98b8 $7a1d $e055\n" +
+        $$"$7a1d $e055 $f32a\n" +
+        $$"$e055 $f32a $4d9c\n" +
+        $$"$f32a $4d9c $211b\n" +
+        $$"$4d9c $211b $61e1\n"
 
     test("rngtest runs on cx16 simulator and produces correct output") {
         val cx16src = $$"""

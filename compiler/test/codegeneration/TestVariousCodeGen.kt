@@ -145,17 +145,17 @@ main {
     }
 
     test("shifting by word value is ok") {
-        val text="""
+        val text= $$"""
 main {
     sub start() {
         ubyte @shared c = 1
-        @(15000 + c<<${'$'}0003) = 42
-        @(15000 + (c<<${'$'}0003)) = 42
-        @(15000 + c*${'$'}0008) = 42       ; *8 becomes a shift after opt
+        @(15000 + c<<$0003) = 42
+        @(15000 + (c<<$0003)) = 42
+        @(15000 + c*$0008) = 42       ; *8 becomes a shift after opt
 
-        uword @shared qq = 15000 + c<<${'$'}0003
-        qq = 15000 + (c<<${'$'}0003)
-        qq = 16000 + c*${'$'}0008
+        uword @shared qq = 15000 + c<<$0003
+        qq = 15000 + (c<<$0003)
+        qq = 16000 + c*$0008
     }
 }"""
         compileText(C64Target(), true, text, outputDir, writeAssembly = true) shouldNotBe null
@@ -356,10 +356,10 @@ main {
     }
 
     test("syslib correctly available for raw outputs") {
-        val text = """
+        val text = $$"""
 %output raw
 %launcher none
-%address ${'$'}2000
+%address $2000
 
 main {
     sub start() {
@@ -789,19 +789,19 @@ main {
     }
 
     test("bit instruction is used for testing bits 6 and 7 of a byte") {
-        val text = """
+        val text = $$"""
 main {
     sub start() {   
-        if cx16.r0L & ${'$'}80 != 0
+        if cx16.r0L & $80 != 0
             return
-        if cx16.r1L & ${'$'}80 == 0
+        if cx16.r1L & $80 == 0
             return
-        if cx16.r2L & ${'$'}40 != 0
+        if cx16.r2L & $40 != 0
             return
-        if cx16.r3L & ${'$'}40 == 0
+        if cx16.r3L & $40 == 0
             return
-        cx16.r9L = if cx16.r4L & ${'$'}80 != 0  11 else 22
-        cx16.r10L = if cx16.r5L & ${'$'}40 == 0  11 else 22
+        cx16.r9L = if cx16.r4L & $80 != 0  11 else 22
+        cx16.r10L = if cx16.r5L & $40 == 0  11 else 22
     } 
 }"""
         val result = compileText(C64Target(), true, text, outputDir, writeAssembly = true)!!

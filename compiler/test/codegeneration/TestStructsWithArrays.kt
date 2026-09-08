@@ -176,7 +176,7 @@ class TestStructsWithArrays : FunSpec({
     }
 
     test("string literal too long for ubyte array field errors") {
-        val src = $$"""
+        val src = """
             %encoding iso
             main {
                 sub start() {
@@ -257,7 +257,7 @@ class TestStructsWithArrays : FunSpec({
     }
 
     test("string literal with high bytes errors on signed byte array field") {
-        val src = $$"""
+        val src = """
             %encoding iso
             main {
                 struct Node {
@@ -312,7 +312,7 @@ class TestStructsWithArrays : FunSpec({
     }
 
     test("string literal too long for signed byte array field errors") {
-        val src = $$"""
+        val src = """
             %encoding iso
             main {
                 sub start() {

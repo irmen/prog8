@@ -929,11 +929,8 @@ class FunctionCallArgs(
             require(callingConventionSlot==null || statusflag==null) { "at most one of callingConventionSlot and statusflag can be non-null" }
         }
     }
-    class ArgumentSpec(val name: String, val address: UInt?, val reg: RegSpec) {
-        init {
-            // UInt is always non-negative
-        }
-    }
+    
+    class ArgumentSpec(val name: String, val address: UInt?, val reg: RegSpec)
 }
 
 data class IRInstruction(
@@ -1050,7 +1047,7 @@ data class IRInstruction(
             val callRegisters = fcallArgs?.arguments?.map { it.reg.registerNum } ?: emptyList()
             val returnRegisters = fcallArgs?.returns?.map { it.registerNum } ?: emptyList()
 
-            val reused = callRegisters.intersect(returnRegisters)
+            val reused = callRegisters.toSet().intersect(returnRegisters.toSet())
             if(reused.isNotEmpty()) {
                 for(r in reused) {
                     val argType = fcallArgs!!.arguments.single { it.reg.registerNum==r }.reg.dt

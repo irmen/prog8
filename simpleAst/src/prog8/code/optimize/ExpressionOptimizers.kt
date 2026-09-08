@@ -220,16 +220,14 @@ internal object ExpressionOptimizers {
                         }
                         // x | -1 -> -1 (all bits set = absorbing element for OR)
                         else if (Helpers.isAllOnesForType(right, node.type)) {
-                            val allOnes = right
                             val index = node.parent.children.indexOf(node)
-                            node.parent.setChild(index, allOnes)
+                            node.parent.setChild(index, right)
                             changes++
                         }
                         // -1 | x -> -1
                         else if (Helpers.isAllOnesForType(left, node.type)) {
-                            val allOnes = left
                             val index = node.parent.children.indexOf(node)
-                            node.parent.setChild(index, allOnes)
+                            node.parent.setChild(index, left)
                             changes++
                         }
                         // x | x -> x (idempotent, without side effects)
@@ -349,14 +347,13 @@ internal object ExpressionOptimizers {
                     else if (node.operator == "+") {
                         val rightBinExpr = right as? PtBinaryExpression
                         if (rightBinExpr != null && rightBinExpr.operator == "*") {
-                            val x = left
-                            val y = Helpers.determineYForFactoring(x, rightBinExpr)
+                            val y = Helpers.determineYForFactoring(left, rightBinExpr)
                             if (y != null) {
                                 val factor = PtBinaryExpression("+", left.type, node.position)
                                 factor.add(y)
                                 factor.add(PtNumber(left.type.base, 1.0, node.position))
                                 val replacement = PtBinaryExpression("*", node.type, node.position)
-                                replacement.add(x)
+                                replacement.add(left)
                                 replacement.add(factor)
                                 val index = node.parent.children.indexOf(node)
                                 node.parent.setChild(index, replacement)

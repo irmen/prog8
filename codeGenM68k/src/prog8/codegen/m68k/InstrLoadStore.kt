@@ -102,7 +102,6 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction, suppressRegfileStore
                 }
             }
             emitLine("lea  $target, a0")
-            val sx = dtSuffix(type)
             val indexMode = when {
                 program.options.compTarget.cpu >= CpuType.M68020 && scale==2 -> "(a0,d0.w*2)"
                 program.options.compTarget.cpu >= CpuType.M68020 && scale==4 -> "(a0,d0.w*4)"
@@ -288,7 +287,7 @@ private fun AsmGen.translateFloatLoadStore(insn: IRInstruction, target: String, 
 
     when (insn.opcode) {
         Opcode.STOREZM -> {
-            emitLine("fmovecr  #\$0f, fp0")
+            emitLine($$"fmovecr  #$0f, fp0")
             emitLine("fmove.s  fp0, $target")
             invalidateD0CacheForAddress(target)
         }
@@ -298,7 +297,7 @@ private fun AsmGen.translateFloatLoadStore(insn: IRInstruction, target: String, 
             val off = imm ?: 0
             loadPointerToA0(base)
             if (off != 0) addIndirectOffset(off)
-            emitLine("fmovecr  #\$0f, fp0")
+            emitLine($$"fmovecr  #$0f, fp0")
             emitLine("fmove.s  fp0, (a0)")
         }
 
@@ -319,12 +318,12 @@ private fun AsmGen.translateFloatLoadStore(insn: IRInstruction, target: String, 
                 }
             }
             emitLine("lea  $target, a0")
-            emitLine("fmovecr  #\$0f, fp0")
+            emitLine($$"fmovecr  #$0f, fp0")
             emitLine("fmove.s  fp0, (0, a0, d0.l)")
         }
 
         Opcode.STOREHFACZERO -> {
-            emitLine("fmovecr  #\$0f, fp0")
+            emitLine($$"fmovecr  #$0f, fp0")
             emitLine("fmove.s  fp0, $target")
             invalidateD0CacheForAddress(target)
         }
@@ -455,7 +454,7 @@ private fun AsmGen.translateFloatLoadStore(insn: IRInstruction, target: String, 
                 }
 
                 Opcode.LOADHFACZERO -> {
-                    emitLine("fmovecr  #\$0f, $FP_ACC")
+                    emitLine($$"fmovecr  #$0f, $$FP_ACC")
                     emitLine("fmove.s  $FP_ACC, ${floatRegFileAddr(fp1)}")
                 }
                 Opcode.LOADHFACONE -> {

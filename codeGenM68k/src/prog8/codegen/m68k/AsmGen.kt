@@ -57,25 +57,25 @@ internal data class ImmediateCallOptimization(
  * loading from the constant pool (lea + fmove.s).
  */
 internal fun nativeFloatConst(value: Double): String? = when (value) {
-    0.0 -> "\$0f"               // 0.0
-    1.0 -> "\$32"               // 10^0 = 1.0
-    10.0 -> "\$33"              // 10^1
-    100.0 -> "\$34"             // 10^2
-    10000.0 -> "\$35"           // 10^4
-    1.0e8 -> "\$36"             // 10^8
-    1.0e16 -> "\$37"            // 10^16
-    1.0e32 -> "\$38"            // 10^32
-    1.0e64 -> "\$39"            // 10^64
-    1.0e128 -> "\$3a"           // 10^128
-    1.0e256 -> "\$3b"           // 10^256
-    1.0e512 -> "\$3c"           // 10^512
-    kotlin.math.PI -> "\$00"    // pi
-    kotlin.math.E -> "\$0c"     // e
-    kotlin.math.ln(2.0) -> "\$30"        // ln(2)
-    kotlin.math.ln(10.0) -> "\$31"       // ln(10)
-    kotlin.math.log10(kotlin.math.E) -> "\$0d"   // log2(e)
-    kotlin.math.log10(2.0) -> "\$0b"     // log10(2)
-    kotlin.math.log10(kotlin.math.E) -> "\$0e"   // log10(e)
+    0.0 -> $$"$0f"               // 0.0
+    1.0 -> $$"$32"               // 10^0 = 1.0
+    10.0 -> $$"$33"              // 10^1
+    100.0 -> $$"$34"             // 10^2
+    10000.0 -> $$"$35"           // 10^4
+    1.0e8 -> $$"$36"             // 10^8
+    1.0e16 -> $$"$37"            // 10^16
+    1.0e32 -> $$"$38"            // 10^32
+    1.0e64 -> $$"$39"            // 10^64
+    1.0e128 -> $$"$3a"           // 10^128
+    1.0e256 -> $$"$3b"           // 10^256
+    1.0e512 -> $$"$3c"           // 10^512
+    kotlin.math.PI -> $$"$00"    // pi
+    kotlin.math.E -> $$"$0c"     // e
+    kotlin.math.ln(2.0) -> $$"$30"        // ln(2)
+    kotlin.math.ln(10.0) -> $$"$31"       // ln(10)
+    kotlin.math.log10(kotlin.math.E) -> $$"$0d"   // log2(e)
+    kotlin.math.log10(2.0) -> $$"$0b"     // log10(2)
+    kotlin.math.log10(kotlin.math.E) -> $$"$0e"   // log10(e)
     else -> null
 }
 

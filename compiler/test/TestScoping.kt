@@ -282,18 +282,18 @@ class TestScoping: FunSpec({
     }
 
     test("various good goto targets") {
-        val text="""
+        val text= $$"""
             main {
                 sub start() {
                     uword address = $4000
                     
-                    goto ${'$'}c000
+                    goto $c000
                     goto address        ; indirect jump
                     goto main.routine
                     goto main.jumplabel
                     
                     if_cc
-                        goto ${'$'}c000
+                        goto $c000
                     if_cc
                         goto address        ; indirect jump
                     if_cc

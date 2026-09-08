@@ -29,28 +29,28 @@ class TestNumbers: FunSpec({
         10.toHex() shouldBe "10"
         10.99.toHex() shouldBe "10"
         15.toHex() shouldBe "15"
-        16.toHex() shouldBe "\$10"
-        255.toHex() shouldBe "\$ff"
-        256.toHex() shouldBe "\$0100"
-        20060.toHex() shouldBe "\$4e5c"
-        50050.toHex() shouldBe "\$c382"
-        65535.toHex() shouldBe "\$ffff"
-        65535L.toHex() shouldBe "\$ffff"
+        16.toHex() shouldBe $$"$10"
+        255.toHex() shouldBe $$"$ff"
+        256.toHex() shouldBe $$"$0100"
+        20060.toHex() shouldBe $$"$4e5c"
+        50050.toHex() shouldBe $$"$c382"
+        65535.toHex() shouldBe $$"$ffff"
+        65535L.toHex() shouldBe $$"$ffff"
         0.toHex() shouldBe "0"
         (-1).toHex() shouldBe "-1"
         (-1.234).toHex() shouldBe "-1"
         (-10).toHex() shouldBe "-10"
         (-10.99).toHex() shouldBe "-10"
         (-15).toHex() shouldBe "-15"
-        (-16).toHex() shouldBe "-\$10"
-        (-255).toHex() shouldBe "-\$ff"
-        (-256).toHex() shouldBe "-\$0100"
-        (-20060).toHex() shouldBe "-\$4e5c"
-        (-50050).toHex() shouldBe "-\$c382"
-        (-65535).toHex() shouldBe "-\$ffff"
-        (-65535L).toHex() shouldBe "-\$ffff"
-        (65536).toHex() shouldBe "\$00010000"
-        (-65536).toHex() shouldBe "-\$00010000"
+        (-16).toHex() shouldBe $$"-$10"
+        (-255).toHex() shouldBe $$"-$ff"
+        (-256).toHex() shouldBe $$"-$0100"
+        (-20060).toHex() shouldBe $$"-$4e5c"
+        (-50050).toHex() shouldBe $$"-$c382"
+        (-65535).toHex() shouldBe $$"-$ffff"
+        (-65535L).toHex() shouldBe $$"-$ffff"
+        (65536).toHex() shouldBe $$"$00010000"
+        (-65536).toHex() shouldBe $$"-$00010000"
     }
 
     test("testFloatToMflpt5") {
@@ -160,11 +160,11 @@ class TestNumbers: FunSpec({
     }
 
     test("out of range number assignments") {
-        val src="""
+        val src= $$"""
             main {
                 sub start() {
-                    uword @shared qq = ${'$'}2ff33
-                    cx16.r0 = ${'$'}1fc0f
+                    uword @shared qq = $2ff33
+                    cx16.r0 = $1fc0f
                     cx16.r0L = 1234
                 }
             }
@@ -182,11 +182,11 @@ class TestNumbers: FunSpec({
     }
 
     test("large numeric literals still ok if actual value is small") {
-        val src="""
+        val src= $$"""
             main {
                 sub start() {
                     cx16.r1L = %000000000001
-                    cx16.r2L = ${'$'}000000000001
+                    cx16.r2L = $000000000001
                 }
             }
         """
@@ -195,11 +195,11 @@ class TestNumbers: FunSpec({
     }
 
     test("big numbers okay in const expressions if result fits") {
-        val src="""
+        val src= $$"""
             main {
                 sub start() {
-                    uword @shared qq = ${'$'}2ff33 >> 4
-                    cx16.r0 = ${'$'}1fc0f >> 4
+                    uword @shared qq = $2ff33 >> 4
+                    cx16.r0 = $1fc0f >> 4
                 }
             }
         """

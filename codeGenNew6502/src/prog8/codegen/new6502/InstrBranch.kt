@@ -45,7 +45,7 @@ internal fun AsmGen.translateBranch(insn: IRInstruction) {
     val ls = insn.labelSymbol
 
     val label: String = when {
-        target != null && target.label != null -> target.label!!
+        target?.label != null -> target.label!!
         ls != null -> ls
         else -> "unknown_target"
     }

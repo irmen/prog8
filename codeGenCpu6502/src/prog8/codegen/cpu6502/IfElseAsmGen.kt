@@ -940,11 +940,10 @@ internal class IfElseAsmGen(private val program: PtProgram,
                 val baseVarname = asmgen.asmVariableName(e.variable!!)
                 val constIndex = e.index.asConstInteger()
                 if (constIndex != null) {
-                    val idx = constIndex
                     if (e.splitWords) {
-                        require(idx < 256)
+                        require(constIndex < 256)
                         val suffix = if (long) "_3" else "_msb"
-                        asmgen.out("  lda  $baseVarname$suffix+$idx")
+                        asmgen.out("  lda  $baseVarname$suffix+$constIndex")
                         return
                     }
                 }

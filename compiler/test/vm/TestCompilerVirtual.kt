@@ -782,7 +782,7 @@ main  {
     }
 
     test("deeply scoped variable references") {
-        val src= $"""
+        val src= """
 main {
     sub start() {
         main.sub1.sub2.sub3.variable = 100

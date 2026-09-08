@@ -969,9 +969,10 @@ main {
         """, false, Position.DUMMY).names
         names1 shouldBe emptySet()
 
-        val names2 = InlineAssembly("""
+        val names2 = InlineAssembly(
+            $$"""
 label:   lda #<value
-         sta ${'$'}ea
+         sta $ea
          sta 123
 label2: 
          sta  othervalue    ; but not these in the comments
@@ -996,15 +997,15 @@ main {
     }
 
     test("pointervariable indexing allowed with >255") {
-        val src="""
+        val src= $$"""
 main {
     sub start() {
-        uword pointer = ${'$'}2000
-        @(pointer+${'$'}1000) = 123
-        ubyte @shared ub = @(pointer+${'$'}1000)
-        pointer[${'$'}1000] = 99
-        ub = pointer[${'$'}1000]
-        uword index = ${'$'}1000
+        uword pointer = $2000
+        @(pointer+$1000) = 123
+        ubyte @shared ub = @(pointer+$1000)
+        pointer[$1000] = 99
+        ub = pointer[$1000]
+        uword index = $1000
         pointer[index] = 55
         ub = pointer[index]
     }

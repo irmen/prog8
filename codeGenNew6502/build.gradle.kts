@@ -70,14 +70,14 @@ tasks.startScripts {
 }
 
 tasks.register<Exec>("fixFilePermissions") {
-    // When running on macOS or Linux the start script
-    // needs executable permissions to run.
+    description = "When running on macOS or Linux the start script needs executable permissions to run, we set those here"
 
     onlyIf { !System.getProperty("os.name").lowercase().contains("windows") }
     commandLine("chmod", "+x", "${tasks.installDist.get().destinationDir}/bin/prog8-newgen")
 }
 
 tasks.register<JavaExec>("debugRun") {
+    description = "start with remote debugging"
     mainClass.set(serverMainClassName)
     classpath(sourceSets.main.get().runtimeClasspath)
     standardInput = System.`in`
@@ -86,19 +86,6 @@ tasks.register<JavaExec>("debugRun") {
     doLast {
         println("Using debug port $debugPort")
     }
-}
-
-tasks.register<CreateStartScripts>("debugStartScripts") {
-    applicationName = "prog8-newgen"
-    mainClass.set(serverMainClassName)
-    outputDir = tasks.installDist.get().destinationDir.toPath().resolve("bin").toFile()
-    classpath = tasks.startScripts.get().classpath
-    defaultJvmOpts = listOf(debugArgs)
-}
-
-tasks.register<Sync>("installDebugDist") {
-    dependsOn("installDist")
-    finalizedBy("debugStartScripts")
 }
 
 tasks.installDist {

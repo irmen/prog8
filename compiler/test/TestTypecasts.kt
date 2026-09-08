@@ -169,7 +169,7 @@ main {
     }
 
     test("correct evaluation of words in boolean expressions") {
-        val text = """
+        val text = $$"""
             main {
                 sub start() {
                     uword camg
@@ -183,7 +183,7 @@ main {
                     ww++
                     ww = ($0004 & camg)
                     ubyte @shared value
-                    bool @shared collected = (value >= $33) or (value >= $66) or (value >= $99) or (value >= ${'$'}CC)
+                    bool @shared collected = (value >= $33) or (value >= $66) or (value >= $99) or (value >= $CC)
                 }
             }"""
         val result = compileText(C64Target(), false, text, outputDir, writeAssembly = true)!!
@@ -956,15 +956,15 @@ main {
     }
 
     test("bitwise operator on signed values") {
-        val src = """
+        val src = $$"""
 main {
     sub start() {
         word[10] xpos
 
-        xpos[4] &= ${'$'}fff8            
-        xpos[5] &= ${'$'}fff8 as word    
-        xpos[6] = xpos[4] & ${'$'}fff8   
-        xpos[7] = xpos[4] & ${'$'}fff8 as word   
+        xpos[4] &= $fff8            
+        xpos[5] &= $fff8 as word    
+        xpos[6] = xpos[4] & $fff8   
+        xpos[7] = xpos[4] & $fff8 as word   
 
         xpos[4] &= $7000            
         xpos[5] &= $7000 as word    

@@ -2022,7 +2022,7 @@ import prog8.codegen.cpu6502.assignment.*
                 "            lda  $imm",
                 "            jmp  $done",
                 "$keep       tya",
-                "$done"
+                done
             ).joinToString("\n"))
         } else {
             val keep = asmgen.makeLabel("clampkeep")
@@ -2030,7 +2030,7 @@ import prog8.codegen.cpu6502.assignment.*
                 "            cmp  $imm",
                 "            bcc  $keep",
                 "            lda  $imm",
-                "$keep"
+                keep
             ).joinToString("\n"))
         }
     }
@@ -2052,7 +2052,7 @@ import prog8.codegen.cpu6502.assignment.*
                 "            lda  $imm",
                 "            jmp  $done",
                 "$keep       tya",
-                "$done"
+                done
             ).joinToString("\n"))
         } else {
             val keep = asmgen.makeLabel("clampkeep")
@@ -2060,7 +2060,7 @@ import prog8.codegen.cpu6502.assignment.*
                 "            cmp  $imm",
                 "            bcs  $keep",
                 "            lda  $imm",
-                "$keep"
+                keep
             ).joinToString("\n"))
         }
     }

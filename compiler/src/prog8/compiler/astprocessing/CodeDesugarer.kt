@@ -636,7 +636,7 @@ _after:
                     return listOf(AstReplaceNode(expr, combined, parent))
                 }
                 val ri = expr.right as? ArrayIndexedExpression
-                if(ri!=null && ri.plainarrayvar!=null) {
+                if(ri?.plainarrayvar != null) {
                     val leftIdent = expr.left as IdentifierReference
                     val leftVar = leftIdent.targetVarDecl()
                     if(leftVar != null && leftVar.datatype.isPointer && leftVar.datatype.subType != null) {
@@ -1049,7 +1049,7 @@ _after:
         val nextDt = DataType.pointer(nodeDecl)
         val nextVar = VarDecl(VarDeclType.VAR, VarDeclOrigin.USERCODE, nextDt, ZeropageWish.DONTCARE, SplitWish.DONTCARE, null, null, "list_next_${loopVarName}_${uniq}", emptyList(), null, false, 0u, false, null, pos)
         val nextAssign = Assignment(AssignTarget(IdentifierReference(listOf(nextVar.name), pos), null, null, null, false, position=pos), linkFieldAccessForNext, AssignmentOrigin.OPTIMIZER, pos)
-        val loopVarAssign = Assignment(forLoop.loopVar.let { AssignTarget(it.copy(), null, null, null, false, position=pos) }, IdentifierReference(listOf(cursorVar.name), pos), AssignmentOrigin.OPTIMIZER, pos)
+        val loopVarAssign = Assignment(AssignTarget(forLoop.loopVar.copy(), null, null, null, false, position=pos), IdentifierReference(listOf(cursorVar.name), pos), AssignmentOrigin.OPTIMIZER, pos)
         val cursorUpdate = Assignment(AssignTarget(IdentifierReference(listOf(cursorVar.name), pos), null, null, null, false, position=pos), IdentifierReference(listOf(nextVar.name), pos), AssignmentOrigin.OPTIMIZER, pos)
         val whileBody = AnonymousScope(mutableListOf<Statement>(nextAssign, loopVarAssign).apply { addAll(forLoop.body.statements) }.apply { add(cursorUpdate) }, pos)
         val whileLoop = WhileLoop(condition, whileBody, pos)
@@ -1112,7 +1112,7 @@ _after:
             val wordIdxVar = VarDecl(VarDeclType.VAR, VarDeclOrigin.USERCODE, idxType, ZeropageWish.DONTCARE, SplitWish.DONTCARE, null, null, idxName, emptyList(), null, false, 0u, false, null, pos)
             val wordIdxInit = Assignment(AssignTarget(IdentifierReference(listOf(idxName), pos), null, null, null, false, position=pos), NumericLiteral.optimalInteger(arrSize-1, pos), AssignmentOrigin.OPTIMIZER, pos)
             val condition = BinaryExpression(IdentifierReference(listOf(idxName), pos), "<", NumericLiteral.optimalInteger(arrSize, pos), pos)
-            val elementAssign = Assignment(forLoop.loopVar.let { AssignTarget(it.copy(), null, null, null, false, position=pos) }, ArrayIndexedExpression(iterableRef.copy(), null, null, ArrayIndex(IdentifierReference(listOf(idxName), pos), pos), pos), AssignmentOrigin.OPTIMIZER, pos)
+            val elementAssign = Assignment(AssignTarget(forLoop.loopVar.copy(), null, null, null, false, position=pos), ArrayIndexedExpression(iterableRef.copy(), null, null, ArrayIndex(IdentifierReference(listOf(idxName), pos), pos), pos), AssignmentOrigin.OPTIMIZER, pos)
             val idxDec = Assignment(AssignTarget(IdentifierReference(listOf(idxName), pos), null, null, null, false, position=pos), BinaryExpression(IdentifierReference(listOf(idxName), pos), "-", NumericLiteral.optimalInteger(1, pos), pos), AssignmentOrigin.OPTIMIZER, pos)
             val whileBody = AnonymousScope(mutableListOf<Statement>(elementAssign).apply { addAll(forLoop.body.statements) }.apply { add(idxDec) }, pos)
             val whileLoop = WhileLoop(condition, whileBody, pos)
@@ -1134,7 +1134,7 @@ _after:
             val idxInit = Assignment(AssignTarget(IdentifierReference(listOf(idxName), pos), null, null, null, false, position=pos), BinaryExpression(IdentifierReference(listOf(lenName), pos), "-", NumericLiteral.optimalInteger(1, pos), pos), AssignmentOrigin.OPTIMIZER, pos)
             // unsigned wrap condition: idx < len (start len-1, wraps to 65535 after 0 and exits)
             val cond = BinaryExpression(IdentifierReference(listOf(idxName), pos), "<", IdentifierReference(listOf(lenName), pos), pos)
-            val elementAssign = Assignment(forLoop.loopVar.let { AssignTarget(it.copy(), null, null, null, false, position=pos) }, ArrayIndexedExpression(iterableRef.copy(), null, null, ArrayIndex(IdentifierReference(listOf(idxName), pos), pos), pos), AssignmentOrigin.OPTIMIZER, pos)
+            val elementAssign = Assignment(AssignTarget(forLoop.loopVar.copy(), null, null, null, false, position=pos), ArrayIndexedExpression(iterableRef.copy(), null, null, ArrayIndex(IdentifierReference(listOf(idxName), pos), pos), pos), AssignmentOrigin.OPTIMIZER, pos)
             val idxDec = Assignment(AssignTarget(IdentifierReference(listOf(idxName), pos), null, null, null, false, position=pos), BinaryExpression(IdentifierReference(listOf(idxName), pos), "-", NumericLiteral.optimalInteger(1, pos), pos), AssignmentOrigin.OPTIMIZER, pos)
             val whileBody = AnonymousScope(mutableListOf<Statement>(elementAssign).apply { addAll(forLoop.body.statements) }.apply { add(idxDec) }, pos)
             val whileLoop = WhileLoop(cond, whileBody, pos)
@@ -1738,16 +1738,15 @@ _after:
             val isStructInstanceElem = elemDt.isStructInstance && elemDt.subType!=null
             if (isStructPointerElem || isStructInstanceElem) {
                 val struct = elemDt.subType as StructDecl
-                val isPointer = isStructPointerElem
                 val allremovals = mutableListOf<VarDecl>()
                 var changes = false
                 array.value.withIndex().forEach { (index, elt) ->
                     if(elt is ArrayLiteral) {
-                        array.value[index] = convertArrayIntoStructInitializer(elt, struct, isPointer)
+                        array.value[index] = convertArrayIntoStructInitializer(elt, struct, isStructPointerElem)
                         changes = true
                     } else if(elt is IdentifierReference) {
                         val arrayvar = elt.targetVarDecl()!!.value as ArrayLiteral
-                        array.value[index] = convertArrayIntoStructInitializer(arrayvar, struct, isPointer)
+                        array.value[index] = convertArrayIntoStructInitializer(arrayvar, struct, isStructPointerElem)
                         allremovals += elt.targetVarDecl()!!
                         changes = true
                     }

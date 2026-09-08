@@ -158,11 +158,11 @@ class Inliner(private val program: Program, private val options: CompilationOpti
                         if (subroutine !== program.entrypoint) {
                             val bodyStmt = functionalStatements.firstOrNull()
                             val isAutoInlineable =
-                                when (val stmt = bodyStmt) {
-                                    is Return -> isBodyInlineable(stmt)
-                                    is Assignment -> isBodyInlineable(stmt)
-                                    is FunctionCallStatement -> isBodyInlineable(stmt)
-                                    is Jump -> isBodyInlineable(stmt)
+                                when (bodyStmt) {
+                                    is Return -> isBodyInlineable(bodyStmt)
+                                    is Assignment -> isBodyInlineable(bodyStmt)
+                                    is FunctionCallStatement -> isBodyInlineable(bodyStmt)
+                                    is Jump -> isBodyInlineable(bodyStmt)
                                     else -> false
                                 }
                             if (isAutoInlineable && !isRecursive(subroutine))
@@ -336,8 +336,8 @@ class Inliner(private val program: Program, private val options: CompilationOpti
             // cannot inline assembly directly in the Ast here as an Asm node is not an expression... it will be done later.
             noModifications
         } else {
-            when (val toInline = bodyStmt) {
-                is Return -> inlineFunctionBody(toInline)
+            when (bodyStmt) {
+                is Return -> inlineFunctionBody(bodyStmt)
                 else -> noModifications
             }
         }
@@ -400,9 +400,9 @@ class Inliner(private val program: Program, private val options: CompilationOpti
                 sub.hasBeenInlined=true
                 listOf(AstReplaceNode(origNode, bodyStmt.copy(), parent))
             } else {
-                when (val toInline = bodyStmt) {
-                    is Return -> possiblyShortCircuitFunctionCall(toInline)
-                    else -> possiblyInlineFunctionBody(toInline)
+                when (bodyStmt) {
+                    is Return -> possiblyShortCircuitFunctionCall(bodyStmt)
+                    else -> possiblyInlineFunctionBody(bodyStmt)
                 }
             }
         }

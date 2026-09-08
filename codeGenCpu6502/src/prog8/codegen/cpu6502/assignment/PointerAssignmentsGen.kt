@@ -219,12 +219,14 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
     internal fun inplaceFloatNegate(target: PtrTarget, scope: IPtSubroutine?) {
         val (zpPtrVar, offset) = deref(target.pointer)
         // flip sign bit in second byte of 5-byte float
-        asmgen.out("""
-                ldy  #$offset
+        asmgen.out(
+            $$"""
+                ldy  #$$offset
                 iny
-                lda  ($zpPtrVar),y
-                eor  #${'$'}80
-                sta  ($zpPtrVar),y""")
+                lda  ($$zpPtrVar),y
+                eor  #$80
+                sta  ($$zpPtrVar),y"""
+        )
     }
 
 

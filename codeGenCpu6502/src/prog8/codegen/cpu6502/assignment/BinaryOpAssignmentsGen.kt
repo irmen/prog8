@@ -904,7 +904,7 @@ internal class BinaryOpAssignmentsGen(
 
             // Handle when left is PtAddressOf of a split word array
             val leftAddressOf = left as? PtAddressOf
-            if(leftAddressOf!=null && leftAddressOf.identifier!=null && !leftAddressOf.isFromArrayElement && leftAddressOf.dereference==null) {
+            if(leftAddressOf?.identifier != null && !leftAddressOf.isFromArrayElement && leftAddressOf.dereference==null) {
                 if(leftAddressOf.identifier!!.type.isSplitWordArray(program.memsizer)) {
                     var symbol = asmgen.asmVariableName(leftAddressOf.identifier!!)
                     symbol = if(leftAddressOf.isMsbForSplitArray) symbol+"_msb" else symbol+"_lsb"

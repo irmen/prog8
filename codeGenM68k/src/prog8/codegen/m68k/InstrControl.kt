@@ -407,7 +407,7 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
             val fpDst = insn.fpReg1 ?: error("FFROMUB needs fpReg1")
             val srcReg = r1 ?: error("FFROMUB needs reg1")
             emitLoadD0(srcReg, IRDataType.BYTE)
-            emitLine($$"and.l  #\$ff, d0")
+            emitLine($$"and.l  #$ff, d0")
             invalidateD0Cache()
             emitLine("fmove.l  d0, $FP_ACC")
             emitLine("fmove.s  $FP_ACC, ${floatRegFileAddr(fpDst)}")
@@ -426,7 +426,7 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
             val fpDst = insn.fpReg1 ?: error("FFROMUW needs fpReg1")
             val srcReg = r1 ?: error("FFROMUW needs reg1")
             emitLoadD0(srcReg, IRDataType.WORD)
-            emitLine($$"and.l  #\$ffff, d0")
+            emitLine($$"and.l  #$ffff, d0")
             invalidateD0Cache()
             emitLine("fmove.l  d0, $FP_ACC")
             emitLine("fmove.s  $FP_ACC, ${floatRegFileAddr(fpDst)}")
@@ -455,7 +455,7 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
             emitLine("fmove.s  ${floatRegFileAddr(fpSrc)}, $FP_ACC")
             invalidateD0Cache()
             emitLine("fmove.b  $FP_ACC, d0")
-            emitLine("and.l  #\$ff, d0")
+            emitLine($$"and.l  #$ff, d0")
             emitStoreD0(dstReg, IRDataType.BYTE)
         }
 

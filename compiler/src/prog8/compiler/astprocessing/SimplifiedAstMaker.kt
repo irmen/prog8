@@ -426,7 +426,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
             val targetIdent = target?.children?.getOrNull(0) as? PtIdentifier
             if (targetIdent == null || targetIdent.name != varNode.name) { i++; continue }
             val value = assignNode.children.getOrNull(1) as? PtConstant
-            if (value == null || value.memorySlab == null) { i++; continue }
+            if (value?.memorySlab == null) { i++; continue }
             val constant = PtConstant(varNode.name, varNode.type, null, value.memorySlab, varNode.position)
             container.removeChildAt(i)
             container.removeChildAt(i)

@@ -559,7 +559,7 @@ object SysCalls {
                 val filename = vm.memory.getString((filenameA as Int).toUInt())
                 if (File(filename).exists()) {
                     val data = File(filename).readBytes()
-                    val addr: UInt = if ((addrA as Int).toUInt() == 0u) data[0].toUInt() + data[1].toUInt() * 256u else (addrA as Int).toUInt()
+                    val addr: UInt = if ((addrA as Int).toUInt() == 0u) data[0].toUInt() + data[1].toUInt() * 256u else addrA.toUInt()
                     for (i in 0..<data.size - 2) {
                         vm.memory.setUB(addr + i.toUInt(), data[i + 2].toUByte())
                     }
@@ -573,7 +573,7 @@ object SysCalls {
                 val filename = vm.memory.getString((filenameA as Int).toUInt())
                 if (File(filename).exists()) {
                     val data = File(filename).readBytes()
-                    val addr: UInt = if ((addrA as Int).toUInt() == 0u) data[0].toUInt() + data[1].toUInt() * 256u else (addrA as Int).toUInt()
+                    val addr: UInt = if ((addrA as Int).toUInt() == 0u) data[0].toUInt() + data[1].toUInt() * 256u else addrA.toUInt()
                     for (i in data.indices) {
                         vm.memory.setUB(addr + i.toUInt(), data[i].toUByte())
                     }

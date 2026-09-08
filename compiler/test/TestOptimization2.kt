@@ -928,10 +928,10 @@ main {
     }
 
     test("identity folding with side effects (volatility)") {
-        val src = """
+        val src = $$"""
             main {
                 sub start() {
-                    bool @shared b = peek(${'$'}d012) == peek(${'$'}d012)
+                    bool @shared b = peek($d012) == peek($d012)
                 }
             }
         """.trimIndent()

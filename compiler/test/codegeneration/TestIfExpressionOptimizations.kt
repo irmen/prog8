@@ -111,10 +111,10 @@ test("if-expression bitwise AND optimization (BIT instruction)") {
         // Signed long comparison uses sbc with lowercase hex literals and signed branch sequence
         asm.shouldContainInOrder(
             "sec",
-            "lda", "p8v_l", "sbc", "#\$40",
-            "lda", "p8v_l+1", "sbc", "#\$0d",
-            "lda", "p8v_l+2", "sbc", "#\$03",
-            "lda", "p8v_l+3", "sbc", "#\$00",
+            "lda", "p8v_l", "sbc", $$"#$40",
+            "lda", "p8v_l+1", "sbc", $$"#$0d",
+            "lda", "p8v_l+2", "sbc", $$"#$03",
+            "lda", "p8v_l+3", "sbc", $$"#$00",
             "bvc", "eor", "#128", "bpl", "ifexpr_false"
         )
     }
@@ -150,10 +150,10 @@ test("if-expression bitwise AND optimization (BIT instruction)") {
         val asm = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".asm").readText()
         // 100000 = $0186a0 -> $a0, $86, $01, $00
         asm.shouldContainInOrder(
-            "lda", "p8v_l", "cmp", "#\$a0", "bne", "ifexpr_false",
-            "lda", "p8v_l+1", "cmp", "#\$86", "bne", "ifexpr_false",
-            "lda", "p8v_l+2", "cmp", "#\$01", "bne", "ifexpr_false",
-            "lda", "p8v_l+3", "cmp", "#\$00", "bne", "ifexpr_false"
+            "lda", "p8v_l", "cmp", $$"#$a0", "bne", "ifexpr_false",
+            "lda", "p8v_l+1", "cmp", $$"#$86", "bne", "ifexpr_false",
+            "lda", "p8v_l+2", "cmp", $$"#$01", "bne", "ifexpr_false",
+            "lda", "p8v_l+3", "cmp", $$"#$00", "bne", "ifexpr_false"
         )
     }
 
