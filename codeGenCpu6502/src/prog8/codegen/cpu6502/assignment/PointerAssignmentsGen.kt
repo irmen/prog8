@@ -228,10 +228,11 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
     }
 
 
-    internal fun deref(pointer: PtPointerDeref, addOffsetToPointer: Boolean=false): Pair<String, UByte> {
+    internal fun deref(pointer: PtPointerDeref, addOffsetToPointer: Boolean=false, loadPointerFieldValue: Boolean=false): Pair<String, UByte> {
         // walk the pointer deref chain and leaves the final pointer value in a ZP var
         // this will often be the temp var P8ZP_SCRATCH_PTR but can also be the original pointer variable if it is already in zeropage and there is nothing to add to it
         // returns the ZP var to use as a pointer, and a Y register offset (which can be zero)
+        // loadPointerFieldValue: for addOffsetToPointer=true, also load the value if the final field is a pointer-typed field (rather than returning its address).
 
         fun addFieldOffsetToScratchPointer(fieldoffset: UInt) {
             if(fieldoffset==0u)
@@ -276,8 +277,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
             if(addOffsetToPointer) {
                 asmgen.assignExpressionToVariable(pointer.startpointer, "P8ZP_SCRATCH_PTR", DataType.UWORD)
                 addFieldOffsetToScratchPointer(field.second.toUInt())
-                // if the target field is a pointer (or array indexed through a pointer), use its value as the base address
-                if(pointer.derefLast || field.first.isPointer)
+                if(pointer.derefLast || (loadPointerFieldValue && field.first.isPointer))
                     updateScratchPointer()
                 return "P8ZP_SCRATCH_PTR" to 0u
             } else {
@@ -327,8 +327,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
         } else {
             if(addOffsetToPointer) {
                 addFieldOffsetToScratchPointer(fieldinfo.second.toUInt())
-                // if the target field is a pointer, use its value as the base address
-                if(fieldinfo.first.isPointer)
+                if(loadPointerFieldValue && fieldinfo.first.isPointer)
                     updateScratchPointer()
                 return "P8ZP_SCRATCH_PTR" to 0u
             } else
@@ -361,7 +360,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
         }
         // save scaled index to W2, compute base (field-corrected) into P8ZP_SCRATCH_PTR, then add
         asmgen.out("  lda  P8ZP_SCRATCH_W1 |  sta  P8ZP_SCRATCH_W2 |  lda  P8ZP_SCRATCH_W1+1 |  sta  P8ZP_SCRATCH_W2+1")
-        val (basePtr, _) = deref(target.pointer, addOffsetToPointer = true)
+        val (basePtr, _) = deref(target.pointer, addOffsetToPointer = true, loadPointerFieldValue = true)
         if(basePtr != "P8ZP_SCRATCH_PTR") {
             // deref returned the original zp pointer variable; copy it so we don't mutate it
             asmgen.out("""
@@ -454,7 +453,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                     inplaceByteInc(target, amount)
                 } else {
                     if (target.dt.isByte) inplaceByteAdd(target, value)
-                    else if (target.dt.isWord) inplaceWordAdd(target, value)
+                    else if (target.dt.isWord || target.dt.isPointer) inplaceWordAdd(target, value)
                     else if (target.dt.isFloat) inplaceFloatAddOrMul(target, "FADD", value)
                     else if (target.dt.isLong) inplaceLongAdd(target, value)
                     else throw AssemblyError("weird dt ${target.dt} ${target.position}")
@@ -466,7 +465,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                     inplaceByteDec(target, amount)
                 } else {
                     if (target.dt.isByte) inplaceByteSub(target, value)
-                    else if (target.dt.isWord) inplaceWordSub(target, value)
+                    else if (target.dt.isWord || target.dt.isPointer) inplaceWordSub(target, value)
                     else if (target.dt.isFloat) inplaceFloatSubOrDiv(target, "FSUB", value)
                     else if (target.dt.isLong) inplaceLongSub(target, value)
                     else throw AssemblyError("weird dt ${target.position}")

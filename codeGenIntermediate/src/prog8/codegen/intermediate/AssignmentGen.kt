@@ -253,6 +253,8 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
 
             codeGen.storeValueAtPointersLocation(inplaceInstrs, addressReg, fieldOffset, pointerDeref.type, false, oldvalueReg)
             chunks = inplaceInstrs
+        } else if(array?.pointerderef != null) {
+            chunks = fallbackAssign(augAssign)
         } else {
             chunks = when (augAssign.operator) {
                 "+=" -> operatorPlusInplace(symbol, array, constAddress, memTarget, targetDt, value)

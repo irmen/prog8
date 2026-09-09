@@ -377,7 +377,7 @@ internal class AssignmentAsmGen(
                                 throw AssemblyError("weird array element type for pointer indexed read $elementDt")
                         }
                     } else {
-                        val (zpPtrVar, _) = pointergen.deref(pointerDeref, addOffsetToPointer = true)
+                        val (zpPtrVar, _) = pointergen.deref(pointerDeref, addOffsetToPointer = true, loadPointerFieldValue = true)
 
                         when {
                             elementDt.isByteOrBool -> {
