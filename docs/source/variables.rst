@@ -417,7 +417,8 @@ set it all to the same value, or maybe even simply assign the individual element
 
 Note that the various keywords for the data type and variable type (``byte``, ``word``, ``const``, etc.)
 can't be used as *identifiers* elsewhere. You can't make a variable, block or subroutine with the name ``byte``
-for instance.
+for instance. The same applies to the names of the builtin functions (such as ``memory``, ``mkword``,
+``peek`` and ``poke``): they cannot be redefined as a variable, block, subroutine, struct or label.
 
 Using the ``in`` operator you can easily check if a value is present in an array,
 example: ``if choice in [1,2,3,4] {....}``

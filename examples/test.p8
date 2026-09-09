@@ -1,32 +1,20 @@
-%import textio
-%zeropage basicsafe
-
 main {
-    struct Node {
-        bool flag
-        ^^uword uptr
-    }
     sub start() {
-        ^^Node @shared n = [true, 4000]
+        cx16.r1 = private.foo()
+        cx16.r2 = mkword.foo()
+    }
+}
 
-        ; expected output: 12345 9999
+private {
+    sub foo() -> uword {
+        cx16.r0++
+        return cx16.r0
+    }
+}
 
-        pokew(4000 + 3*2, 12345)
-        txt.print_uw(n.uptr[3])
-        txt.spc()
-
-        n.uptr[3] = 9999
-        txt.print_uw(n.uptr[3])
-        txt.nl()
-
-        ; expected output: 9999 11111
-        ^^uword @shared normalptr = 4000
-        txt.print_uw(normalptr[3])
-        txt.spc()
-        normalptr[3] = 11111
-        txt.print_uw(normalptr[3])
-        txt.nl()
-
-        ;sys.poweroff_system()
+mkword {
+    sub foo() -> uword {
+        cx16.r0++
+        return cx16.r0
     }
 }
