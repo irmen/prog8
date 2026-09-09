@@ -62,6 +62,61 @@ class TestExecution6502 : FunSpec({
         machine.assertMemory(0x02, 42)
     }
 
+    test("indexed pointer fields in structs") {
+        val src = $$"""
+            %option no_sysinit
+            %launcher none
+            %address $1000
+            %zeropage basicsafe
+
+            main {
+                struct Node {
+                    bool flag
+                    ^^uword uptr
+                }
+                struct Wrapper {
+                    bool z
+                    ^^Node node
+                }
+                ^^Node @shared n = [true, 4000]
+                ^^Node @shared inner = [true, 4500]
+                ^^Wrapper @shared w = [false, 4000]
+                &ubyte poweroff = $f203
+                &uword slot_low = $0300
+                &uword slot_hi = $0302
+                uword index
+
+                sub start() {
+                    n.uptr[3] = 9999
+                    n.uptr[1] = 7777
+                    n.uptr[9] = 5555
+                    slot_low = n.uptr[3]
+                    index = 1
+                    n.uptr[index] = 1111
+                    slot_hi = n.uptr[1]
+                    w.node = inner
+                    w.node.uptr[2] = 1234
+                    poweroff = 1
+                }
+            }
+        """.trimIndent()
+
+        val compileResult = compileText(Cx16Target(), false, src, outputDir)
+        val machine = compileResult!!.simulate()
+        machine.assertMemory(0x0300, 9999 and 0xff)
+        machine.assertMemory(0x0301, 9999 shr 8)
+        machine.assertMemory(0x0302, 1111 and 0xff)
+        machine.assertMemory(0x0303, 1111 shr 8)
+        machine.assertMemory(4000+6, 9999 and 0xff)
+        machine.assertMemory(4000+7, 9999 shr 8)
+        machine.assertMemory(4000+2, 1111 and 0xff)
+        machine.assertMemory(4000+3, 1111 shr 8)
+        machine.assertMemory(4000+18, 5555 and 0xff)
+        machine.assertMemory(4000+19, 5555 shr 8)
+        machine.assertMemory(4500+4, 1234 and 0xff)
+        machine.assertMemory(4500+5, 1234 shr 8)
+    }
+
     test("serial output") {
         val src = $$"""
             %encoding iso

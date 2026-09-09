@@ -276,7 +276,8 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
             if(addOffsetToPointer) {
                 asmgen.assignExpressionToVariable(pointer.startpointer, "P8ZP_SCRATCH_PTR", DataType.UWORD)
                 addFieldOffsetToScratchPointer(field.second.toUInt())
-                if(pointer.derefLast)
+                // if the target field is a pointer (or array indexed through a pointer), use its value as the base address
+                if(pointer.derefLast || field.first.isPointer)
                     updateScratchPointer()
                 return "P8ZP_SCRATCH_PTR" to 0u
             } else {
@@ -326,6 +327,9 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
         } else {
             if(addOffsetToPointer) {
                 addFieldOffsetToScratchPointer(fieldinfo.second.toUInt())
+                // if the target field is a pointer, use its value as the base address
+                if(fieldinfo.first.isPointer)
+                    updateScratchPointer()
                 return "P8ZP_SCRATCH_PTR" to 0u
             } else
                 return "P8ZP_SCRATCH_PTR" to fieldinfo.second

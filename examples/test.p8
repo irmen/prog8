@@ -1,22 +1,32 @@
+%import textio
+%zeropage basicsafe
+
 main {
-
-    struct Thing {
-        uword port
-        ^^Thing next
+    struct Node {
         bool flag
+        ^^uword uptr
     }
-
     sub start() {
-        ^^Thing @shared t
+        ^^Node @shared n = [true, 4000]
 
-        ; this compiles fine:
-        bool @shared derp1 = t.next.flag
-        ubyte @shared derp2 = t.next.flag as ubyte
+        ; expected output: 12345 9999
 
-        bool @shared derp3 = (t.next).flag
-        ubyte @shared derp4 = (t.next).flag as ubyte
+        pokew(4000 + 3*2, 12345)
+        txt.print_uw(n.uptr[3])
+        txt.spc()
 
-        bool @shared derp5 = (t.port as ^^Thing).flag
-        ubyte @shared derp6 = (t.port as ^^Thing).flag as ubyte
+        n.uptr[3] = 9999
+        txt.print_uw(n.uptr[3])
+        txt.nl()
+
+        ; expected output: 9999 11111
+        ^^uword @shared normalptr = 4000
+        txt.print_uw(normalptr[3])
+        txt.spc()
+        normalptr[3] = 11111
+        txt.print_uw(normalptr[3])
+        txt.nl()
+
+        ;sys.poweroff_system()
     }
 }
