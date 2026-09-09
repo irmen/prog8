@@ -1403,20 +1403,6 @@ _after:
                             address = BinaryExpression(pointerAsAddr, "+", offsetNumber, deref.position)
                         }
 
-                        // For augmented assignments, keep as DirectMemoryWrite so the IR codegen can optimize in-place.
-                        // Also convert matching pointer dereferences in the value to DirectMemoryRead for proper recognition.
-                        // Check for augmented pattern: value references the same memory location as the address.
-
-                        val isAugmentedPattern = isAugmentedMemoryPattern(assignment.value, address, deref)
-                        if(isAugmentedPattern) {
-                            val memwrite = DirectMemoryWrite(address, deref.position)
-                            val target = AssignTarget(null, null, memwrite, null, false, position = deref.position)
-                            val newValue = convertAugmentedValueToMemoryRead(assignment.value, deref, address)
-                            val newAssignment = Assignment(target, newValue, assignment.origin, assignment.position)
-                            newAssignment.isAugmentedMemoryAssign = true
-                            return listOf(AstReplaceNode(assignment, newAssignment, assignment.parent))
-                        }
-
                         return lowerToPokeCall(address, parent)
                     }
                 }
@@ -1428,8 +1414,8 @@ _after:
             }
         }
 
-        if(parent is Assignment && !deref.derefLast && deref.chain.last().second!=null && parent.value.isSameAs(deref)) {
-            // x = l1^^.s[i]: read through an indexed final field
+        if(parent !is AssignTarget && !deref.derefLast && deref.chain.last().second!=null) {
+            // l1^^.s[i]: read through an indexed final field, in any expression context
             val addrElem = indexedFinalFieldAddress(deref) ?: return noModifications
             val (address, elemDt) = addrElem
             val (peekFunc, cast) = when {
@@ -1444,7 +1430,7 @@ _after:
             }
             val peekCall = FunctionCallExpression(IdentifierReference(listOf(peekFunc), deref.position), mutableListOf(address), deref.position)
             val replacement: Expression = if(cast==null) peekCall else TypecastExpression(peekCall, cast, true, deref.position)
-            return listOf(AstReplaceNode(parent.value, replacement, parent))
+            return listOf(AstReplaceNode(deref, replacement, parent))
         }
 
 

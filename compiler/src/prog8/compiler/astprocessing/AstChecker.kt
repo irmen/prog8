@@ -2929,7 +2929,7 @@ internal class AstChecker(private val program: Program,
 
     override fun visit(deref: ArrayIndexedPtrDereference) {
         if(deref.parent !is AssignTarget)
-            errors.err("no support for getting the target value of pointer array indexing like this yet. Split the expression by using an intermediate variable.", deref.position) // this may never occur anymore since more ArrayIndexedPtrDereference got rewritten
+            errors.err("no support for getting the target value of pointer array indexing like this yet. Split the expression by using an intermediate variable.", deref.position) // fallback for unsupported ArrayIndexedPtrDereference patterns not rewritten by CodeDesugarer
 
         super.visit(deref)
     }

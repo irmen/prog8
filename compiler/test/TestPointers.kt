@@ -19,6 +19,7 @@ import prog8.vm.VmRunner
 import prog8tests.helpers.DummyMemsizer
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
+import prog8tests.helpers.simulate
 import kotlin.io.path.readText
 
 
@@ -1762,6 +1763,81 @@ main {
         VmRunner().runAndTestProgram(virtfile.readText(), true) { vm ->
             vm.memory.getUW(0x4400u).toInt() shouldBe 0xc0ba      // all in-program checks passed
         }
+    }
+
+    test("explicit dereference read works in arbitrary expressions on VM") {
+        val src=$$"""
+main {
+    struct Node {
+        ^^uword s
+        uword[4] vals
+    }
+
+    sub start() {
+        uword[4] backing
+        ^^Node n0 = memory("n0", 8, 0)
+        n0.s = &backing
+        n0^^.s[0] = 1111
+        n0^^.s[1] = 2222
+        n0^^.vals[2] = 3333
+
+        ; reads inside if conditions, arithmetic, and as function arguments
+        if n0^^.s[0] != 1111 { sys.exit(1) }
+        uword sum = n0^^.s[0] + n0^^.s[1]
+        if sum != 3333 { sys.exit(2) }
+        if n0^^.s[1] - 2000 != 222 { sys.exit(3) }
+        if n0^^.vals[2] != 3333 { sys.exit(4) }
+        cx16.r0 = n0^^.s[0]
+
+        ; success marker
+        pokew($4400, $c0ba)
+        sys.exit(0)
+    }
+}"""
+        val result = compileText(VMTarget(), false, src, outputDir)!!
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
+        VmRunner().runAndTestProgram(virtfile.readText(), true) { vm ->
+            vm.memory.getUW(0x4400u).toInt() shouldBe 0xc0ba      // all in-program checks passed
+        }
+    }
+
+    test("explicit dereference read works in arbitrary expressions on cx16") {
+        val src=$$"""
+%option no_sysinit
+%launcher none
+%address $1000
+main {
+    &ubyte poweroff = $f203
+    &ubyte marker = $02
+
+    struct Node {
+        ^^uword s
+    }
+
+    sub start() {
+        uword[4] backing
+        ^^Node n0 = memory("n0", 8, 0)
+        n0.s = &backing
+        n0^^.s[0] = 1111
+        n0^^.s[1] = 2222
+
+        marker = 1
+        if n0^^.s[0] == 1111 {
+            marker = 2
+            if n0^^.s[0] + n0^^.s[1] == 3333 {
+                marker = 3
+                if n0^^.s[1] - 2000 == 222 {
+                    marker = $c0
+                }
+            }
+        }
+
+        poweroff = 1
+    }
+}"""
+        val result = compileText(Cx16Target(), false, src, outputDir)!!
+        val machine = result.simulate()
+        machine.assertMemory(0x02, 0xc0)
     }
 
     test("indexing a scalar struct field through explicit dereference gives error") {

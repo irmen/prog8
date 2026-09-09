@@ -27,6 +27,13 @@ Structs and Pointers
         np[2]^^.field = 9999
         ubyte value = np[2].field
 
+    This also works when the struct field itself is a pointer or array that you index::
+
+        struct Node { ^^uword s }
+        ^^Node np
+        np[2]^^.s[0] = 9999
+        uword value = np[2]^^.s[0]
+
     To save a repeated pointer calculation when assigning multiple fields,
     break up the expression in multiple steps::
 
