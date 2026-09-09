@@ -30,15 +30,21 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
     }
 
     override fun visit(block: Block) {
-        val existing = blocks[block.name]
-        if(existing!=null) {
-            if (block.isInLibrary)
-                nameError(existing.name, existing.position, block)
+        if(block.name in BuiltinFunctions)
+            errors.err("builtin function cannot be redefined", block.position)
+        else if(block.name in keywords)
+            errors.err("block name cannot be a keyword", block.position)
+        else {
+            val existing = blocks[block.name]
+            if(existing!=null) {
+                if (block.isInLibrary)
+                    nameError(existing.name, existing.position, block)
+                else
+                    nameError(block.name, block.position, existing)
+            }
             else
-                nameError(block.name, block.position, existing)
+                blocks[block.name] = block
         }
-        else
-            blocks[block.name] = block
 
         super.visit(block)
     }

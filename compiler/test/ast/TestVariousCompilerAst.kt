@@ -1691,6 +1691,33 @@ main {
         errors.errors[3] shouldContain "builtin function cannot be redefined"
     }
 
+    test("block names cannot be builtin functions") {
+        val src="""
+main {
+    sub start() {
+        cx16.r0++
+    }
+}
+
+memory {
+    sub foo() -> uword {
+        return 1
+    }
+}
+
+mkword {
+    sub foo() -> uword {
+        return 2
+    }
+}
+"""
+        val errors = ErrorReporterForTests()
+        compileText(VMTarget(), optimize=false, src, outputDir, errors=errors) shouldBe null
+        errors.errors.size shouldBe 2
+        errors.errors[0] shouldContain "builtin function cannot be redefined"
+        errors.errors[1] shouldContain "builtin function cannot be redefined"
+    }
+
     test("string and array multiplication require integer multiplicand") {
         val src="""
 main {

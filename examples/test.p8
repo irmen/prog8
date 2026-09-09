@@ -1,11 +1,20 @@
 main {
-    const WIDTH=5
-    const HEIGHT=8
-
     sub start() {
-        ubyte[WIDTH] @shared tokens
-        bool[2][4] @shared matrix1
-        bool[2][HEIGHT] @shared matrix2
-        bool[WIDTH][HEIGHT] @shared matrix3
+        cx16.r1 = memory.foo()
+        cx16.r2 = mkword.foo()
+    }
+}
+
+memory {
+    sub foo() -> uword {
+        cx16.r0++
+        return cx16.r0
+    }
+}
+
+mkword {
+    sub foo() -> uword {
+        cx16.r0++
+        return cx16.r0
     }
 }
