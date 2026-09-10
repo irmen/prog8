@@ -1,20 +1,14 @@
 main {
+    const uword STACK_SIZE = 10
+    struct Stack {
+        uword[STACK_SIZE] stack1
+        uword[20] stack2
+        uword top
+    }
+
     sub start() {
-        cx16.r1 = private.foo()
-        cx16.r2 = mkword.foo()
-    }
-}
-
-private {
-    sub foo() -> uword {
-        cx16.r0++
-        return cx16.r0
-    }
-}
-
-mkword {
-    sub foo() -> uword {
-        cx16.r0++
-        return cx16.r0
+        ^^Stack st = []
+        st.stack1[5] = 9999
+        st.stack2[5] = 8888
     }
 }
