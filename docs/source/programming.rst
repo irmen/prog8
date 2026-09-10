@@ -651,6 +651,9 @@ value.  Range expressions used outside a direct ``for`` loop still require a con
     The value of the loop variable after executing the loop *is undefined* - you cannot rely
     on it to be the last value in the range for instance! The value of the variable should only be used inside the for loop body.
     (this is an optimization issue to avoid having to deal with mostly useless post-loop logic to adjust the loop variable's value)
+    Do not modify the loop variable inside the loop body. The compiler assumes exclusive
+    control over the loop variable; changing it can cause incorrect iteration counts or
+    infinite loops. If you need to alter the iteration, use a ``while`` loop instead.
 
 You can use a single statement, or a statement block like in the example below::
 

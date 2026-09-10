@@ -13,6 +13,9 @@ Future Things and Ideas
 - implement the signed divmod byte and word routines on 6502 old codegen (virtual, m68k and IR-based codegens already have them working)
 - the c64 sprite multiplexer still needs adjustments to make it smooth, it lacks a proper raster event scheduler.
 - support typed pointer arrays as struct fields, curretly requires untyped pointers arrays.
+- allow aliasing a whole enum (``alias myEnum = MyEnum``) so that ``myEnum::Member`` works just like ``MyEnum::Member``; currently only aliasing individual enum members is supported. See ideas/alias-enums.md for the plan.
+- evaluate the feature suggestions in ideas/language-features.md (named struct initializers, %assert, arena allocator stdlib, cx16 banked data library).
+- restructure the word/long FOR loop codegen (increment-then-compare instead of compare-then-increment) for smaller and sometimes faster code. See ideas/optimize-for.md for the plan.
 
 Won't do's or deferred
 ^^^^^^^^^^^^^^^^^^^^^^
