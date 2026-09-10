@@ -1107,7 +1107,7 @@ main {
     ; curly braces without newline
     sub start () { foo() derp() other() }
     sub foo() { cx16.r0++ }
-    asmsub derp() { %asm {{ nop rts }} %ir {{ load.b r0,#1 return }} }
+    asmsub derp() { %asm {{ nop rts }} %ir {{ load.b r0.b,#1.b return }} }
 
     ; curly braces on next line
     sub other()
@@ -1131,7 +1131,7 @@ main {
     {
         %ir
         {{
-            load.b r0,#1
+            load.b r0.b,#1.b
             return
         }}
     }

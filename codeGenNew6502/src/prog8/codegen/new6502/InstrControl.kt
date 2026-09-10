@@ -28,20 +28,13 @@ import prog8.code.core.toHex
 import prog8.intermediate.*
 
 internal fun AsmGen.translateControl(insn: IRInstruction) {
-    val r1 = insn.reg1
-    val r2 = insn.reg2
-    val imm = insn.immediate
-    val addr = insn.address
-    val label = insn.labelSymbol
-
     when (insn.opcode) {
         Opcode.JUMP -> {
-            val target = label ?: addr?.value?.toHex() ?: error("JUMP needs target")
-            emitUnconditionalBranch(target)
+            emitUnconditionalBranch(targetLabel(insn))
         }
 
         Opcode.JUMPI -> {
-            val reg = r1 ?: error("JUMPI needs reg1")
+            val reg = (insn.requireTarget() as CodeReference.Indirect).pointer.intNumber
             // NOTE: `jmp (ptr)` has the 6502 page-wrap bug on plain 6502
             // (if the pointer's address ends in $FF the high byte is read
             // from the same page instead of the next). 65C02 is fine.
@@ -52,13 +45,17 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
         }
 
         Opcode.CALL -> {
-            val fnLabel = label ?: addr?.value?.toHex() ?: error("CALL needs label or address")
-            val args = insn.fcallArgs
-            translateCall(fnLabel, args)
+            val site = insn.requireCallSite()
+            val fnLabel = when (val ref = site.codeReference) {
+                is CodeReference.Label -> ref.name
+                is CodeReference.Absolute -> ref.address.value.toHex()
+                else -> error("CALL needs a direct label or address target")
+            }
+            translateCall(fnLabel, site)
         }
 
         Opcode.CALLI -> {
-            val reg = r1 ?: error("CALLI needs reg1")
+            val reg = ((insn.requireCallSite().target as CallTarget.Direct).reference as CodeReference.Indirect).pointer.intNumber
             // NOTE: same 6502 page-wrap pitfall as JUMPI above: `jmp (ptr)`
             // misbehaves on plain 6502 if the pointer (here a register in
             // p8_regfile) lands at $xxFF. 65C02 is fine. Same hazard exists
@@ -72,67 +69,40 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
         }
 
         Opcode.CALLFAR -> {
-            val target = label ?: (addr?.value ?: 0u).toHex()
-            val bank = imm ?: 0
+            val site = insn.requireCallSite()
+            val bankedTarget = site.target as? CallTarget.Banked
+                ?: error("CALLFAR amiga library calls are not supported on 6502 targets")
+            val target = codeReferenceLabel(bankedTarget.reference)
+            val bank = bankedTarget.bank
             val jsrfar = jsrfarRoutine()
-            val args = insn.fcallArgs
-            if (args != null) {
-                for ((index, arg) in args.arguments.withIndex()) {
-                    if (arg.reg.callingConventionSlot == null)
-                        translateArgument(arg, index, null)
-                }
-                val slotArgs = args.arguments.withIndex().filter { it.value.reg.callingConventionSlot != null }
-                val orderedSlotArgs = slotArgs.sortedWith(compareBy<IndexedValue<FunctionCallArgs.ArgumentSpec>> {
-                    val slot = it.value.reg.callingConventionSlot!!.value
-                    when (slot) {
-                        3, 4, 5 -> 0
-                        2 -> 1
-                        1 -> 2
-                        0 -> 3
-                        6, 7 -> 4
-                        else -> 5
-                    }
-                }.thenByDescending { -it.index })
-                for ((index, arg) in orderedSlotArgs) {
+            for ((index, arg) in site.arguments.withIndex()) {
+                if (arg.hardwareSlot == null)
                     translateArgument(arg, index, null)
-                }
+            }
+            for ((index, arg) in site.arguments.inSlotLoadOrder()) {
+                translateArgument(arg, index, null)
             }
             emitLine("jsr  $jsrfar")
             emitLine(".word  $target")
             emitLine(".byte  $bank")
-            if (args != null) {
-                for (ret in args.returns) {
-                    translateReturnValue(ret)
-                }
+            for (ret in site.results) {
+                translateReturnValue(ret)
             }
         }
 
         Opcode.CALLFARVB -> {
-            val target = label ?: (addr?.value ?: 0u).toHex()
-            val bankReg = r1 ?: error("CALLFARVB needs reg1")
+            val site = insn.requireCallSite()
+            val bankedTarget = site.target as CallTarget.BankedVariable
+            val target = codeReferenceLabel(bankedTarget.reference)
+            val bankReg = bankedTarget.bankRegister.intNumber
             val jsrfar = jsrfarRoutine()
             val patchLabel = makeLabel("callfarvb_patch")
-            val args = insn.fcallArgs
-            if (args != null) {
-                for ((index, arg) in args.arguments.withIndex()) {
-                    if (arg.reg.callingConventionSlot == null)
-                        translateArgument(arg, index, null)
-                }
-                val slotArgs = args.arguments.withIndex().filter { it.value.reg.callingConventionSlot != null }
-                val orderedSlotArgs = slotArgs.sortedWith(compareBy<IndexedValue<FunctionCallArgs.ArgumentSpec>> {
-                    val slot = it.value.reg.callingConventionSlot!!.value
-                    when (slot) {
-                        3, 4, 5 -> 0
-                        2 -> 1
-                        1 -> 2
-                        0 -> 3
-                        6, 7 -> 4
-                        else -> 5
-                    }
-                }.thenByDescending { -it.index })
-                for ((index, arg) in orderedSlotArgs) {
+            for ((index, arg) in site.arguments.withIndex()) {
+                if (arg.hardwareSlot == null)
                     translateArgument(arg, index, null)
-                }
+            }
+            for ((index, arg) in site.arguments.inSlotLoadOrder()) {
+                translateArgument(arg, index, null)
             }
             emitLine("lda  ${regAddrLo(bankReg)}")
             emitLine("sta  ${patchLabel}+2")
@@ -140,31 +110,29 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
             emitLabel(patchLabel)
             emitLine(".word  $target")
             emitLine(".byte  0")
-            if (args != null) {
-                for (ret in args.returns) {
-                    translateReturnValue(ret)
-                }
+            for (ret in site.results) {
+                translateReturnValue(ret)
             }
         }
 
         Opcode.SYSCALL -> {
-            val args = insn.fcallArgs
-            translateSyscall(insn, args)
+            translateSyscall(insn)
         }
 
         Opcode.RETURN -> {
             emitLine("rts")
         }
 
+
         Opcode.RETURNR -> {
             val type = insn.type ?: IRDataType.BYTE
             if (type == IRDataType.FLOAT) {
-                val fpReg = insn.fpReg1 ?: error("RETURNR.f needs fpReg1")
+                val fpReg = insn.requireFloatSourceA().floatNumber
                 emitLine("lda  #<${fpRegAddr(fpReg.value)}")
                 emitLine("ldy  #>${fpRegAddr(fpReg.value)}")
                 emitLine("jsr  floats.MOVFM")
             } else {
-                val reg = r1 ?: error("RETURNR needs reg1")
+                val reg = insn.requireIntSourceA().intNumber
                 when (type) {
                     IRDataType.BYTE -> {
                         emitLine("lda  ${regAddrLo(reg)}")
@@ -191,13 +159,13 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
         Opcode.RETURNI -> {
             val type = insn.type ?: IRDataType.BYTE
             if (type == IRDataType.FLOAT) {
-                val value = insn.immediateFp ?: error("RETURNI.f needs immediateFp")
+                val value = insn.requireImmediateFloat()
                 val constLabel = getFloatConstLabel(value)
                 emitLine("lda  #<$constLabel")
                 emitLine("ldy  #>$constLabel")
                 emitLine("jsr  floats.MOVFM")
             } else {
-                val value = imm ?: error("RETURNI needs immediate")
+                val value = insn.requireImmediateInt()
                 when (type) {
                     IRDataType.BYTE -> {
                         emitLine("lda  #${value and 0xff}")
@@ -224,13 +192,13 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
         Opcode.PUSH -> {
             val type = insn.type ?: IRDataType.BYTE
             if (type == IRDataType.FLOAT) {
-                val fpReg = insn.fpReg1 ?: error("PUSH.f needs fpReg1")
+                val fpReg = insn.requireFloatSourceA().floatNumber
                 emitLine("lda  #<${fpRegAddr(fpReg.value)}")
                 emitLine("ldy  #>${fpRegAddr(fpReg.value)}")
                 emitLine("jsr  floats.MOVFM")
                 emitLine("jsr  floats.pushFAC1")
             } else {
-                val reg = r1 ?: error("PUSH needs reg1")
+                val reg = insn.requireIntSourceA().intNumber
                 when (type) {
                     IRDataType.BYTE -> {
                         emitLine("lda  ${regAddrLo(reg)}")
@@ -261,14 +229,14 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
         Opcode.POP -> {
             val type = insn.type ?: IRDataType.BYTE
             if (type == IRDataType.FLOAT) {
-                val fpReg = insn.fpReg1 ?: error("POP.f needs fpReg1")
+                val fpReg = insn.requireFloatDest().floatNumber
                 emitLine("clc")
                 emitLine("jsr  floats.popFAC")
                 emitLine("ldx  #<${fpRegAddr(fpReg.value)}")
                 emitLine("ldy  #>${fpRegAddr(fpReg.value)}")
                 emitLine("jsr  floats.MOVMF")
             } else {
-                val reg = r1 ?: error("POP needs reg1")
+                val reg = insn.requireIntDest().intNumber
                 when (type) {
                     IRDataType.BYTE -> {
                         emitLine("pla")
@@ -310,22 +278,22 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
         Opcode.SEI -> emitLine("sei")
 
         Opcode.ALIGN -> {
-            val alignment = imm ?: 256
+            val alignment = insn.requireImmediateInt()
             if (alignment > 1) {
                 emitLine(".align  ${alignment.toUInt().toHex()}")
             }
         }
 
         Opcode.LSIGB -> {
-            val dest = r1 ?: error("LSIGB needs reg1")
-            val src = r2 ?: error("LSIGB needs reg2")
+            val dest = insn.requireIntDest().intNumber
+            val src = insn.requireIntSourceA().intNumber
             emitLine("lda  ${regAddrLo(src)}")
             emitLine("sta  ${regAddrLo(dest)}")
         }
 
         Opcode.LSIGW -> {
-            val dest = r1 ?: error("LSIGW needs reg1")
-            val src = r2 ?: error("LSIGW needs reg2")
+            val dest = insn.requireIntDest().intNumber
+            val src = insn.requireIntSourceA().intNumber
             emitLine("lda  ${regAddrLo(src)}")
             emitLine("sta  ${regAddrLo(dest)}")
             emitLine("lda  ${regAddrHi(src)}")
@@ -333,8 +301,8 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
         }
 
         Opcode.MSIGB -> {
-            val dest = r1 ?: error("MSIGB needs reg1")
-            val src = r2 ?: error("MSIGB needs reg2")
+            val dest = insn.requireIntDest().intNumber
+            val src = insn.requireIntSourceA().intNumber
             val type = insn.type ?: IRDataType.WORD
             when (type) {
                 IRDataType.WORD -> {
@@ -350,8 +318,8 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
         }
 
         Opcode.MSIGW -> {
-            val dest = r1 ?: error("MSIGW needs reg1")
-            val src = r2 ?: error("MSIGW needs reg2")
+            val dest = insn.requireIntDest().intNumber
+            val src = insn.requireIntSourceA().intNumber
             // dest is WORD (bytes 0-1 only), no need to zero bytes 2-3
             emitLine("lda  ${regAddrByte(src, 2)}")
             emitLine("sta  ${regAddrLo(dest)}")
@@ -360,57 +328,57 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
         }
 
         Opcode.BSIGB -> {
-            val dest = r1 ?: error("BSIGB needs reg1")
-            val src = r2 ?: error("BSIGB needs reg2")
+            val dest = insn.requireIntDest().intNumber
+            val src = insn.requireIntSourceA().intNumber
             emitLine("lda  ${regAddrByte(src, 2)}")
             emitLine("sta  ${regAddrLo(dest)}")
         }
 
         Opcode.MIDB -> {
-            val dest = r1 ?: error("MIDB needs reg1")
-            val src = r2 ?: error("MIDB needs reg2")
+            val dest = insn.requireIntDest().intNumber
+            val src = insn.requireIntSourceA().intNumber
             emitLine("lda  ${regAddrHi(src)}")
             emitLine("sta  ${regAddrLo(dest)}")
         }
 
         Opcode.CONCAT -> {
             val type = insn.type ?: IRDataType.BYTE
-            val r1 = r1 ?: error("CONCAT needs reg1")
-            val r2 = r2 ?: error("CONCAT needs reg2")
-            val r3 = insn.reg3 ?: error("CONCAT needs reg3")
+            val dest = insn.requireIntDest().intNumber
+            val msb = insn.requireIntSourceA().intNumber
+            val lsb = insn.requireSrcB().intNumber
             when (type) {
                 IRDataType.BYTE -> {
-                    // r1 = WORD(r2 as MSB, r3 as LSB)
-                    emitLine("lda  ${regAddrLo(r2)}")
-                    emitLine("sta  ${regAddrHi(r1)}")
-                    emitLine("lda  ${regAddrLo(r3)}")
-                    emitLine("sta  ${regAddrLo(r1)}")
+                    // dest = WORD(msb, lsb)
+                    emitLine("lda  ${regAddrLo(msb)}")
+                    emitLine("sta  ${regAddrHi(dest)}")
+                    emitLine("lda  ${regAddrLo(lsb)}")
+                    emitLine("sta  ${regAddrLo(dest)}")
                 }
                 IRDataType.WORD -> {
-                    // r1 = LONG(r2 as MSW, r3 as LSW)
-                    // Save r2 (msw) first in case r1 overlaps with r2 or r2==r3
-                    emitLine("lda  ${regAddrLo(r2)}")
+                    // dest = LONG(msb as MSW, lsb as LSW)
+                    // Save msb first in case dest overlaps with msb or msb==lsb
+                    emitLine("lda  ${regAddrLo(msb)}")
                     emitLine("sta  $ZP_TEMP")
-                    emitLine("lda  ${regAddrHi(r2)}")
+                    emitLine("lda  ${regAddrHi(msb)}")
                     emitLine("sta  ${ZP_TEMP}+1")
-                    // Copy r3 (lsw) to r1+0, r1+1
-                    emitLine("lda  ${regAddrLo(r3)}")
-                    emitLine("sta  ${regAddrLo(r1)}")
-                    emitLine("lda  ${regAddrHi(r3)}")
-                    emitLine("sta  ${regAddrHi(r1)}")
-                    // Copy saved msw to r1+2, r1+3
+                    // Copy lsb (lsw) to dest+0, dest+1
+                    emitLine("lda  ${regAddrLo(lsb)}")
+                    emitLine("sta  ${regAddrLo(dest)}")
+                    emitLine("lda  ${regAddrHi(lsb)}")
+                    emitLine("sta  ${regAddrHi(dest)}")
+                    // Copy saved msw to dest+2, dest+3
                     emitLine("lda  $ZP_TEMP")
-                    emitLine("sta  ${regAddrByte(r1, 2)}")
+                    emitLine("sta  ${regAddrByte(dest, 2)}")
                     emitLine("lda  ${ZP_TEMP}+1")
-                    emitLine("sta  ${regAddrByte(r1, 3)}")
+                    emitLine("sta  ${regAddrByte(dest, 3)}")
                 }
                 else -> TODO("CONCAT ${type.name}")
             }
         }
 
         Opcode.EXT -> {
-            val reg = r1 ?: error("EXT needs reg1")
-            val srcReg = r2 ?: error("EXT needs reg2")
+            val reg = insn.requireIntDest().intNumber
+            val srcReg = insn.requireIntSourceA().intNumber
             if (reg != srcReg) {
                 emitLine("lda  ${regAddrLo(srcReg)}")
                 emitLine("sta  ${regAddrLo(reg)}")
@@ -419,8 +387,8 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
         }
 
         Opcode.EXTS -> {
-            val dest = r1 ?: error("EXTS needs reg1")
-            val src = r2 ?: error("EXTS needs reg2")
+            val dest = insn.requireIntDest().intNumber
+            val src = insn.requireIntSourceA().intNumber
             emitLine("lda  ${regAddrLo(src)}")
             emitLine("sta  ${regAddrLo(dest)}")
             emitLine("and  #128")
@@ -434,8 +402,8 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
         }
 
         Opcode.EXTL -> {
-            val dest = r1 ?: error("EXTL needs reg1")
-            val src = r2 ?: error("EXTL needs reg2")
+            val dest = insn.requireIntDest().intNumber
+            val src = insn.requireIntSourceA().intNumber
             if (dest != src) {
                 emitLine("lda  ${regAddrLo(src)}")
                 emitLine("sta  ${regAddrLo(dest)}")
@@ -446,8 +414,8 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
         }
 
         Opcode.EXTLS -> {
-            val dest = r1 ?: error("EXTLS needs reg1")
-            val src = r2 ?: error("EXTLS needs reg2")
+            val dest = insn.requireIntDest().intNumber
+            val src = insn.requireIntSourceA().intNumber
             emitLine("lda  ${regAddrLo(src)}")
             emitLine("sta  ${regAddrLo(dest)}")
             emitLine("and  #128")
@@ -508,61 +476,33 @@ internal fun AsmGen.translateControl(insn: IRInstruction) {
 
 // === Call handling ===
 
-private fun AsmGen.translateCall(fnLabel: String, args: FunctionCallArgs?) {
-    // Check if this is an inline ASMSUB - must be inlined at call site, not called with jsr
-    val inlineAsmSub = findInlineAsmSub(fnLabel)
-    if (inlineAsmSub != null) {
-        // Inline the assembly body directly at the call site (no jsr, no rts)
-        if (args != null) {
-            // Process non-slot arguments first
-            for ((index, arg) in args.arguments.withIndex()) {
-                if (arg.reg.callingConventionSlot == null)
-                    translateArgument(arg, index, fnLabel)
-            }
-            // Process slot arguments
-            val slotArgs = args.arguments.withIndex().filter { it.value.reg.callingConventionSlot != null }
-            val orderedSlotArgs = slotArgs.sortedWith(compareBy<IndexedValue<FunctionCallArgs.ArgumentSpec>> {
-                val slot = it.value.reg.callingConventionSlot!!.value
-                when (slot) {
-                    3, 4, 5 -> 0
-                    2 -> 1
-                    1 -> 2
-                    0 -> 3
-                    6, 7 -> 4
-                    else -> 5
-                }
-            }.thenByDescending { -it.index })
-            for ((index, arg) in orderedSlotArgs) {
-                translateArgument(arg, index, fnLabel)
-            }
-        }
-        emitRaw("    ; inlined: $fnLabel")
-        inlineAsmSub.asmChunk.assembly.lineSequence().forEach { line ->
-            if (line.isNotBlank()) emitRaw("    $line")
-        }
-        emitRaw("    ; end inlined: $fnLabel")
-        if (args != null) {
-            for (ret in args.returns) {
-                translateReturnValue(ret)
-            }
-        }
-        return
-    }
+/** the label (or fixed address) a static code reference denotes */
+internal fun codeReferenceLabel(reference: CodeReference): String = when (reference) {
+    is CodeReference.Label -> if (reference.offset != 0) "${reference.name}+${reference.offset}" else reference.name
+    is CodeReference.Absolute -> reference.address.value.toHex()
+    is CodeReference.Indirect -> error("code reference must be a static one, not $reference")
+}
 
-    if (args != null) {
-        // Process non-slot arguments first (they use A as temp to store to memory/registers)
-        for ((index, arg) in args.arguments.withIndex()) {
-            if (arg.reg.callingConventionSlot == null)
-                translateArgument(arg, index, fnLabel)
-        }
-        // Process slot arguments in optimal order to avoid register clobbering.
-        // Order matches old 6502 codegen: paired regs first (AX/AY/XY), then single regs (Y, X, A),
-        // then float regs, then status flags. This ensures that loading a paired register
-        // (which clobbers two hardware regs) doesn't overwrite a value needed for a later argument.
-        val slotArgs = args.arguments.withIndex().filter { it.value.reg.callingConventionSlot != null }
-        val orderedSlotArgs = slotArgs.sortedWith(compareBy<IndexedValue<FunctionCallArgs.ArgumentSpec>> {
-            val slot = it.value.reg.callingConventionSlot!!.value
-            when (slot) {
+/** the calling convention slot this argument is passed in, if it is passed in a cpu hardware register */
+internal val CallArgument.hardwareSlot: CallingConventionSlot?
+    get() = (location as? CallLocation.HardwareRegister)?.slot
+
+/** the calling convention slot this result is delivered in, if it is delivered in a cpu hardware register */
+internal val CallResult.hardwareSlot: CallingConventionSlot?
+    get() = (location as? CallLocation.HardwareRegister)?.slot
+
+/**
+ * The slot-based arguments, in the order they must be loaded to avoid register clobbering.
+ * Order matches the old 6502 codegen: paired regs first (AX/AY/XY), then single regs (Y, X, A),
+ * then float regs, then status flags. This ensures that loading a paired register
+ * (which clobbers two hardware regs) doesn't overwrite a value needed for a later argument.
+ * Within each group the original argument order is kept.
+ */
+private fun List<CallArgument>.inSlotLoadOrder(): List<IndexedValue<CallArgument>> =
+    withIndex()
+        .filter { it.value.hardwareSlot != null }
+        .sortedWith(compareBy<IndexedValue<CallArgument>> {
+            when (it.value.hardwareSlot!!.value) {
                 3, 4, 5 -> 0  // paired CPU regs (AX, AY, XY) - load first
                 2 -> 1        // Y - load before X and A
                 1 -> 2        // X - load before A
@@ -570,34 +510,59 @@ private fun AsmGen.translateCall(fnLabel: String, args: FunctionCallArgs?) {
                 6, 7 -> 4     // float regs (FAC1, FAC2)
                 else -> 5     // status flags
             }
-        }.thenByDescending {
-            // Within each group, process in original index order (stable sort)
-            -it.index
-        })
-        for ((index, arg) in orderedSlotArgs) {
+        }.thenBy { it.index })
+
+private fun AsmGen.translateCall(fnLabel: String, site: CallSite) {
+    // Check if this is an inline ASMSUB - must be inlined at call site, not called with jsr
+    val inlineAsmSub = findInlineAsmSub(fnLabel)
+    if (inlineAsmSub != null) {
+        // Inline the assembly body directly at the call site (no jsr, no rts)
+        // Process non-slot arguments first
+        for ((index, arg) in site.arguments.withIndex()) {
+            if (arg.hardwareSlot == null)
+                translateArgument(arg, index, fnLabel)
+        }
+        // Process slot arguments
+        for ((index, arg) in site.arguments.inSlotLoadOrder()) {
             translateArgument(arg, index, fnLabel)
         }
+        emitRaw("    ; inlined: $fnLabel")
+        inlineAsmSub.asmChunk.assembly.lineSequence().forEach { line ->
+            if (line.isNotBlank()) emitRaw("    $line")
+        }
+        emitRaw("    ; end inlined: $fnLabel")
+        for (ret in site.results) {
+            translateReturnValue(ret)
+        }
+        return
+    }
+
+    // Process non-slot arguments first (they use A as temp to store to memory/registers)
+    for ((index, arg) in site.arguments.withIndex()) {
+        if (arg.hardwareSlot == null)
+            translateArgument(arg, index, fnLabel)
+    }
+    for ((index, arg) in site.arguments.inSlotLoadOrder()) {
+        translateArgument(arg, index, fnLabel)
     }
 
     emitLine("jsr  $fnLabel")
 
     // Move return values back to virtual registers.
     // Skip status flag returns: always handled by IR's branch pattern (bsteq/bmi etc).
-    // In multi-assign context (returns.size > 1), also skip slot-based returns:
+    // In multi-assign context (results.size > 1), also skip slot-based returns:
     // the IR generates LOADHR for them.
     // In single-return expression context, process slot returns normally
     // (the IR doesn't generate LOADHR for single-return calls).
     // LIMITATION: multiple status flag returns in one multi-assign (e.g. -> bool @Pz, bool @Pc)
     // are not supported - codegen limitation: the first flag's extraction clobbers the state for subsequent flags.
-    if (args != null) {
-        val isMultiReturn = args.returns.size > 1
-        for (ret in args.returns) {
-            if (ret.statusflag != null)
-                continue
-            if (isMultiReturn)
-                continue
-            translateReturnValue(ret)
-        }
+    val isMultiReturn = site.results.size > 1
+    for (ret in site.results) {
+        if (ret.location is CallLocation.StatusFlag)
+            continue
+        if (isMultiReturn)
+            continue
+        translateReturnValue(ret)
     }
 }
 
@@ -616,12 +581,11 @@ fun IRProgram.findInlineAsmSub(label: String): IRAsmSubroutine? {
     return null
 }
 
-private fun AsmGen.translateArgument(arg: FunctionCallArgs.ArgumentSpec, argIndex: Int = -1, fnLabel: String? = null) {
-    val regSpec = arg.reg
-    val slot = regSpec.callingConventionSlot
-    val regNum = regSpec.registerNum.value
+private fun AsmGen.translateArgument(arg: CallArgument, argIndex: Int = -1, fnLabel: String? = null) {
+    val source = arg.source
+    val regNum = source.register.num
 
-    when (slot?.value) {
+    when (arg.hardwareSlot?.value) {
         0 -> {
             emitLine("lda  ${regAddrLo(regNum)}")
         }
@@ -657,160 +621,108 @@ private fun AsmGen.translateArgument(arg: FunctionCallArgs.ArgumentSpec, argInde
             emitLine("jsr  floats.MOVAF")
         }
         null -> {
-            val flag = regSpec.statusflag
-            if (flag != null) {
-                // Status flag argument - load value and set the appropriate flag
-                when (flag) {
-                    Statusflag.Pc -> {
-                        emitLine("lda  ${regAddrLo(regNum)}")
-                        emitLine("cmp  #0")
-                        emitLine("beq  +")
-                        emitLine("sec")
-                        emitLabel("+")
-                    }
+            when (val location = arg.location) {
+                is CallLocation.StatusFlag -> {
+                    // Status flag argument - load value and set the appropriate flag
+                    when (location.flag) {
+                        Statusflag.Pc -> {
+                            emitLine("lda  ${regAddrLo(regNum)}")
+                            emitLine("cmp  #0")
+                            emitLine("beq  +")
+                            emitLine("sec")
+                            emitLabel("+")
+                        }
 
-                    Statusflag.Pv -> TODO("status flag Pv for argument")
-                    else -> TODO("status flag $flag")
-                }
-                return
-            }
-            val address = arg.address
-            if (address != null) {
-                when (regSpec.dt) {
-                    IRDataType.BYTE -> {
-                        emitLine("lda  ${regAddrLo(regNum)}")
-                        emitLine("sta  ${address.toHex()}")
-                    }
-                    IRDataType.WORD, IRDataType.POINTER -> {
-                        emitLine("lda  ${regAddrLo(regNum)}")
-                        emitLine("sta  ${address.toHex()}")
-                        emitLine("lda  ${regAddrHi(regNum)}")
-                        emitLine("sta  ${address.toHex()}+1")
-                    }
-                    IRDataType.LONG -> {
-                        val a = address.toHex()
-                        val base = regAddrByte(regNum, 0)
-                        emitLine("ldy  #3")
-                        emitLine("-  lda  $base,y")
-                        emitLine("sta  $a,y")
-                        emitLine("dey")
-                        emitLine("bpl  -")
-                    }
-                    IRDataType.FLOAT -> {
-                        emitLine("lda  #<${fpRegAddr(regNum)}")
-                        emitLine("ldy  #>${fpRegAddr(regNum)}")
-                        emitLine("jsr  floats.MOVFM")
-                        emitLine("ldx  #<${address.toHex()}")
-                        emitLine("ldy  #>${address.toHex()}")
-                        emitLine("jsr  floats.MOVMF")
+                        Statusflag.Pv -> TODO("status flag Pv for argument")
+                        else -> TODO("status flag ${location.flag}")
                     }
                 }
-            } else {
-                val name = arg.name
-                if (name.isNotEmpty()) {
-                    // Check if this argument maps to an asmsub's cx16 virtual register parameter
-                    val asmTarget = if (fnLabel != null && argIndex >= 0)
-                        this.asmSubParamTarget(fnLabel, argIndex) else null
-                    if (asmTarget != null) {
-                        when (regSpec.dt) {
-                            IRDataType.BYTE -> {
-                                emitLine("lda  ${regAddrLo(regNum)}")
-                                emitLine("sta  $asmTarget")
-                            }
-                            IRDataType.WORD, IRDataType.POINTER -> {
-                                emitLine("lda  ${regAddrLo(regNum)}")
-                                emitLine("sta  $asmTarget")
-                                emitLine("lda  ${regAddrHi(regNum)}")
-                                emitLine("sta  ${asmTarget}+1")
-                            }
-                            IRDataType.LONG -> {
-                                val base = regAddrByte(regNum, 0)
-                                emitLine("ldy  #3")
-                                emitLine("-  lda  $base,y")
-                                emitLine("sta  $asmTarget,y")
-                                emitLine("dey")
-                                emitLine("bpl  -")
-                            }
-                            IRDataType.FLOAT -> {
-                                emitLine("lda  #<${fpRegAddr(regNum)}")
-                                emitLine("ldy  #>${fpRegAddr(regNum)}")
-                                emitLine("jsr  floats.MOVFM")
-                                emitLine("ldx  #<$asmTarget")
-                                emitLine("ldy  #>$asmTarget")
-                                emitLine("jsr  floats.MOVMF")
-                            }
-                        }
+                is CallLocation.ParameterMemory -> {
+                    val address = location.address
+                    if (address != null) {
+                        storeArgumentTo(address.toHex(), regNum, source.type)
                     } else {
-                        // The slot is null, so this is NOT an extsub parameter (extsub
-                        // parameters have a non-null callingConventionSlot for A/X/Y register
-                        // passing). The parameter is accessed by name in the inline asm
-                        // (e.g. `lda #<value` inside a regular sub's %asm body), and the
-                        // parameter has been pre-allocated a fixed memory address by
-                        // SubParamAllocator. We store the argument to that address here.
-                        // For an asmsub cx16 virtual register parameter the name would be
-                        // like "cx16.r0" and is resolved to that register's address.
-                        //
-                        // Note: the previous code had separate branches for parameter
-                        // names "x", "y", "a" that tried to put the value in the X/Y/A
-                        // register. Those branches were dead code (for extsub the slot IS
-                        // set so we never reach this null branch) and harmful (any regular
-                        // sub with a parameter literally named "x", "y" or "a" hit the
-                        // TODO). They've been removed.
-                        // Named parameter - store to the resolved symbol
-                        // CX16 virtual register names (cx16.r0, etc.) are used directly
-                        // as the target; other named params are resolved relative to the function label.
-                        val target = if (name.startsWith("cx16."))
-                            resolveSymbolRef(name)
-                        else
-                            resolveSymbolRef(if (fnLabel != null) "$fnLabel.$name" else name)
-                        when (regSpec.dt) {
-                            IRDataType.BYTE -> {
-                                emitLine("lda  ${regAddrLo(regNum)}")
-                                emitLine("sta  $target")
-                            }
-                            IRDataType.WORD, IRDataType.POINTER -> {
-                                emitLine("lda  ${regAddrLo(regNum)}")
-                                emitLine("sta  $target")
-                                emitLine("lda  ${regAddrHi(regNum)}")
-                                emitLine("sta  ${target}+1")
-                            }
-                            IRDataType.LONG -> {
-                                val base = regAddrByte(regNum, 0)
-                                emitLine("ldy  #3")
-                                emitLine("-  lda  $base,y")
-                                emitLine("sta  $target,y")
-                                emitLine("dey")
-                                emitLine("bpl  -")
-                            }
-                            IRDataType.FLOAT -> {
-                                emitLine("lda  #<${fpRegAddr(regNum)}")
-                                emitLine("ldy  #>${fpRegAddr(regNum)}")
-                                emitLine("jsr  floats.MOVFM")
-                                emitLine("ldx  #<$target")
-                                emitLine("ldy  #>$target")
-                                emitLine("jsr  floats.MOVMF")
-                            }
+                        // Check if this argument maps to an asmsub's cx16 virtual register parameter
+                        val asmTarget = if (fnLabel != null && argIndex >= 0)
+                            this.asmSubParamTarget(fnLabel, argIndex) else null
+                        if (asmTarget != null) {
+                            storeArgumentTo(asmTarget, regNum, source.type)
+                        } else {
+                            // The argument is not passed in a cpu hardware register, so this is NOT
+                            // an extsub parameter (extsub parameters have a HardwareRegister location
+                            // for A/X/Y register passing). The parameter is accessed by name in the
+                            // inline asm (e.g. `lda #<value` inside a regular sub's %asm body), and the
+                            // parameter has been pre-allocated a fixed memory address by
+                            // SubParamAllocator. We store the argument to that address here.
+                            // For an asmsub cx16 virtual register parameter the name is like "cx16.r0"
+                            // and is resolved to that register's address; other named params are
+                            // resolved relative to the function label.
+                            val name = location.name
+                            val target = if (name.startsWith("cx16."))
+                                resolveSymbolRef(name)
+                            else
+                                resolveSymbolRef(if (fnLabel != null) "$fnLabel.$name" else name)
+                            storeArgumentTo(target, regNum, source.type)
                         }
                     }
-                } else {
+                }
+                CallLocation.Default -> {
                     // Syscall argument - value is already in the register file,
                     // the syscall handler reads it from there.
                 }
+                is CallLocation.HardwareRegister -> throw IllegalStateException("slot already handled")
             }
+        }
+        else -> TODO("calling convention slot ${arg.hardwareSlot} on 6502")
+    }
+}
+
+/** store an argument that lives in virtual register [regNum] to a fixed memory location */
+private fun AsmGen.storeArgumentTo(target: String, regNum: Int, type: IRDataType) {
+    when (type) {
+        IRDataType.BYTE -> {
+            emitLine("lda  ${regAddrLo(regNum)}")
+            emitLine("sta  $target")
+        }
+        IRDataType.WORD, IRDataType.POINTER -> {
+            emitLine("lda  ${regAddrLo(regNum)}")
+            emitLine("sta  $target")
+            emitLine("lda  ${regAddrHi(regNum)}")
+            emitLine("sta  ${target}+1")
+        }
+        IRDataType.LONG -> {
+            val base = regAddrByte(regNum, 0)
+            emitLine("ldy  #3")
+            emitLine("-  lda  $base,y")
+            emitLine("sta  $target,y")
+            emitLine("dey")
+            emitLine("bpl  -")
+        }
+        IRDataType.FLOAT -> {
+            emitLine("lda  #<${fpRegAddr(regNum)}")
+            emitLine("ldy  #>${fpRegAddr(regNum)}")
+            emitLine("jsr  floats.MOVFM")
+            emitLine("ldx  #<$target")
+            emitLine("ldy  #>$target")
+            emitLine("jsr  floats.MOVMF")
         }
     }
 }
 
-private fun AsmGen.translateReturnValue(ret: FunctionCallArgs.RegSpec) {
+private fun AsmGen.translateReturnValue(ret: CallResult) {
     // Status flag returns are handled by the IR's branch pattern.
     // Do not extract them here - the IR emits bsteq/bmi etc after the call.
-    if (ret.statusflag != null) {
+    if (ret.location is CallLocation.StatusFlag) {
         return
     }
-    val slot = ret.callingConventionSlot
-    val regNum = ret.registerNum.value
+    val destination = ret.destination
+    if (destination == null) {
+        emitLine("; uncaptured return value at ${ret.location}")
+        return
+    }
+    val regNum = destination.register.num
 
-    when (slot?.value) {
+    when (ret.hardwareSlot?.value) {
         0 -> {
             emitLine("sta  ${regAddrLo(regNum)}")
         }
@@ -846,70 +758,73 @@ private fun AsmGen.translateReturnValue(ret: FunctionCallArgs.RegSpec) {
             emitLine("jsr  floats.MOVMF")
         }
         null -> {
-            if (regNum >= 0) {
-                when (ret.dt) {
-                    IRDataType.BYTE -> {
-                        emitLine("sta  ${regAddrLo(regNum)}")
-                    }
-                    IRDataType.WORD, IRDataType.POINTER -> {
-                        emitLine("sta  ${regAddrLo(regNum)}")
-                        emitLine("sty  ${regAddrHi(regNum)}")
-                    }
-                    IRDataType.LONG -> {
-                        emitLine("lda  cx16.r14")
-                        emitLine("sta  ${regAddrLo(regNum)}")
-                        emitLine("lda  cx16.r14+1")
-                        emitLine("sta  ${regAddrHi(regNum)}")
-                        emitLine("lda  cx16.r15")
-                        emitLine("sta  ${regAddrByte(regNum, 2)}")
-                        emitLine("lda  cx16.r15+1")
-                        emitLine("sta  ${regAddrByte(regNum, 3)}")
-                    }
-                    IRDataType.FLOAT -> {
-                        emitLine("ldx  #<${fpRegAddr(regNum)}")
-                        emitLine("ldy  #>${fpRegAddr(regNum)}")
-                        emitLine("jsr  floats.MOVMF")
-                    }
+            when (destination.type) {
+                IRDataType.BYTE -> {
+                    emitLine("sta  ${regAddrLo(regNum)}")
                 }
-            } else {
-                emitLine("; return value to r$regNum (slot/flag not set)")
+                IRDataType.WORD, IRDataType.POINTER -> {
+                    emitLine("sta  ${regAddrLo(regNum)}")
+                    emitLine("sty  ${regAddrHi(regNum)}")
+                }
+                IRDataType.LONG -> {
+                    emitLine("lda  cx16.r14")
+                    emitLine("sta  ${regAddrLo(regNum)}")
+                    emitLine("lda  cx16.r14+1")
+                    emitLine("sta  ${regAddrHi(regNum)}")
+                    emitLine("lda  cx16.r15")
+                    emitLine("sta  ${regAddrByte(regNum, 2)}")
+                    emitLine("lda  cx16.r15+1")
+                    emitLine("sta  ${regAddrByte(regNum, 3)}")
+                }
+                IRDataType.FLOAT -> {
+                    emitLine("ldx  #<${fpRegAddr(regNum)}")
+                    emitLine("ldy  #>${fpRegAddr(regNum)}")
+                    emitLine("jsr  floats.MOVMF")
+                }
             }
         }
+        else -> TODO("calling convention slot ${ret.hardwareSlot} on 6502")
     }
 }
 
 // === Syscall handling ===
 
-private fun AsmGen.translateSyscall(insn: IRInstruction, args: FunctionCallArgs?) {
-    val syscallNum = insn.immediate ?: error("SYSCALL must have immediate(syscall number)")
-    val argsNonNull = args ?: error("SYSCALL $syscallNum requires arguments")
+private fun CallSite.argumentOperand(index: Int, what: String): RegisterOperand =
+    arguments.getOrNull(index)?.source ?: error("syscall needs $what as argument $index")
+
+private fun CallSite.argumentRegister(index: Int, what: String): Int =
+    argumentOperand(index, what).register.num
+
+private fun AsmGen.translateSyscall(insn: IRInstruction) {
+    val site = insn.requireCallSite()
+    val syscallNum = (site.target as CallTarget.SystemCall).number
     when (syscallNum) {
-        IMSyscall.CLAMP_UBYTE.number -> translateSyscallClampUbyte(argsNonNull)
-        IMSyscall.CLAMP_BYTE.number -> translateSyscallClampByte(argsNonNull)
-        IMSyscall.CLAMP_UWORD.number -> translateSyscallClampUword(argsNonNull)
-        IMSyscall.CLAMP_WORD.number -> translateSyscallClampWord(argsNonNull)
-        IMSyscall.CLAMP_LONG.number -> translateSyscallClampLong(argsNonNull)
-        IMSyscall.COMPARE_STRINGS.number -> translateSyscallStringCompare(argsNonNull)
-        IMSyscall.STRING_CONTAINS.number -> translateSyscallStringContains(argsNonNull)
-        IMSyscall.BYTEARRAY_CONTAINS.number -> translateSyscallBytearrayContains(argsNonNull)
-        IMSyscall.WORDARRAY_CONTAINS.number -> translateSyscallWordarrayContains(argsNonNull)
-        IMSyscall.SPLIT_WORDARRAY_CONTAINS.number -> translateSyscallSplitWordarrayContains(argsNonNull)
-        IMSyscall.LONGARRAY_CONTAINS.number -> translateSyscallLongarrayContains(argsNonNull)
-        IMSyscall.FLOATARRAY_CONTAINS.number -> translateSyscallFloatarrayContains(argsNonNull)
-        IMSyscall.CALLFAR.number -> translateSyscallCallfar(argsNonNull)
-        IMSyscall.CALLFAR2.number -> translateSyscallCallfar2(argsNonNull)
-        IMSyscall.MEMCOPY.number -> translateSyscallMemcopy(argsNonNull)
+        IMSyscall.CLAMP_UBYTE.number -> translateSyscallClampUbyte(site)
+        IMSyscall.CLAMP_BYTE.number -> translateSyscallClampByte(site)
+        IMSyscall.CLAMP_UWORD.number -> translateSyscallClampUword(site)
+        IMSyscall.CLAMP_WORD.number -> translateSyscallClampWord(site)
+        IMSyscall.CLAMP_LONG.number -> translateSyscallClampLong(site)
+        IMSyscall.COMPARE_STRINGS.number -> translateSyscallStringCompare(site)
+        IMSyscall.STRING_CONTAINS.number -> translateSyscallStringContains(site)
+        IMSyscall.BYTEARRAY_CONTAINS.number -> translateSyscallBytearrayContains(site)
+        IMSyscall.WORDARRAY_CONTAINS.number -> translateSyscallWordarrayContains(site)
+        IMSyscall.SPLIT_WORDARRAY_CONTAINS.number -> translateSyscallSplitWordarrayContains(site)
+        IMSyscall.LONGARRAY_CONTAINS.number -> translateSyscallLongarrayContains(site)
+        IMSyscall.FLOATARRAY_CONTAINS.number -> translateSyscallFloatarrayContains(site)
+        IMSyscall.CALLFAR.number -> translateSyscallCallfar(site)
+        IMSyscall.CALLFAR2.number -> translateSyscallCallfar2(site)
+        IMSyscall.MEMCOPY.number -> translateSyscallMemcopy(site)
         else -> TODO("unknown SYSCALL number $syscallNum")
     }
-    for (ret in argsNonNull.returns) {
+    for (ret in site.results) {
         translateReturnValue(ret)
     }
 }
 
-private fun AsmGen.translateSyscallClampUbyte(args: FunctionCallArgs) {
-    val regValue = args.arguments.getOrNull(0)?.reg?.registerNum?.value ?: error("need value reg")
-    val regMin = args.arguments.getOrNull(1)?.reg?.registerNum?.value ?: error("need min reg")
-    val regMax = args.arguments.getOrNull(2)?.reg?.registerNum?.value ?: error("need max reg")
+private fun AsmGen.translateSyscallClampUbyte(site: CallSite) {
+    val regValue = site.argumentRegister(0, "value reg")
+    val regMin = site.argumentRegister(1, "min reg")
+    val regMax = site.argumentRegister(2, "max reg")
     emitLine("lda  ${regAddrLo(regMin)}")
     emitLine("sta  P8ZP_SCRATCH_W1")
     emitLine("lda  ${regAddrLo(regMax)}")
@@ -919,10 +834,10 @@ private fun AsmGen.translateSyscallClampUbyte(args: FunctionCallArgs) {
     emitLine("sta  ${regAddrLo(regValue)}")
 }
 
-private fun AsmGen.translateSyscallClampByte(args: FunctionCallArgs) {
-    val regValue = args.arguments.getOrNull(0)?.reg?.registerNum?.value ?: error("need value reg")
-    val regMin = args.arguments.getOrNull(1)?.reg?.registerNum?.value ?: error("need min reg")
-    val regMax = args.arguments.getOrNull(2)?.reg?.registerNum?.value ?: error("need max reg")
+private fun AsmGen.translateSyscallClampByte(site: CallSite) {
+    val regValue = site.argumentRegister(0, "value reg")
+    val regMin = site.argumentRegister(1, "min reg")
+    val regMax = site.argumentRegister(2, "max reg")
     emitLine("lda  ${regAddrLo(regMin)}")
     emitLine("sta  P8ZP_SCRATCH_W1")
     emitLine("lda  ${regAddrLo(regMax)}")
@@ -932,10 +847,10 @@ private fun AsmGen.translateSyscallClampByte(args: FunctionCallArgs) {
     emitLine("sta  ${regAddrLo(regValue)}")
 }
 
-private fun AsmGen.translateSyscallClampUword(args: FunctionCallArgs) {
-    val regValue = args.arguments.getOrNull(0)?.reg?.registerNum?.value ?: error("need value reg")
-    val regMin = args.arguments.getOrNull(1)?.reg?.registerNum?.value ?: error("need min reg")
-    val regMax = args.arguments.getOrNull(2)?.reg?.registerNum?.value ?: error("need max reg")
+private fun AsmGen.translateSyscallClampUword(site: CallSite) {
+    val regValue = site.argumentRegister(0, "value reg")
+    val regMin = site.argumentRegister(1, "min reg")
+    val regMax = site.argumentRegister(2, "max reg")
     // min in P8ZP_SCRATCH_W1, max in P8ZP_SCRATCH_W2, value in AY, result in AY
     emitLine("lda  ${regAddrLo(regMin)}")
     emitLine("sta  P8ZP_SCRATCH_W1")
@@ -952,10 +867,10 @@ private fun AsmGen.translateSyscallClampUword(args: FunctionCallArgs) {
     emitLine("sty  ${regAddrHi(regValue)}")
 }
 
-private fun AsmGen.translateSyscallClampWord(args: FunctionCallArgs) {
-    val regValue = args.arguments.getOrNull(0)?.reg?.registerNum?.value ?: error("need value reg")
-    val regMin = args.arguments.getOrNull(1)?.reg?.registerNum?.value ?: error("need min reg")
-    val regMax = args.arguments.getOrNull(2)?.reg?.registerNum?.value ?: error("need max reg")
+private fun AsmGen.translateSyscallClampWord(site: CallSite) {
+    val regValue = site.argumentRegister(0, "value reg")
+    val regMin = site.argumentRegister(1, "min reg")
+    val regMax = site.argumentRegister(2, "max reg")
     emitLine("lda  ${regAddrLo(regMin)}")
     emitLine("sta  P8ZP_SCRATCH_W1")
     emitLine("lda  ${regAddrHi(regMin)}")
@@ -971,10 +886,10 @@ private fun AsmGen.translateSyscallClampWord(args: FunctionCallArgs) {
     emitLine("sty  ${regAddrHi(regValue)}")
 }
 
-private fun AsmGen.translateSyscallClampLong(args: FunctionCallArgs) {
-    val regValue = args.arguments.getOrNull(0)?.reg?.registerNum?.value ?: error("need value reg")
-    val regMin = args.arguments.getOrNull(1)?.reg?.registerNum?.value ?: error("need min reg")
-    val regMax = args.arguments.getOrNull(2)?.reg?.registerNum?.value ?: error("need max reg")
+private fun AsmGen.translateSyscallClampLong(site: CallSite) {
+    val regValue = site.argumentRegister(0, "value reg")
+    val regMin = site.argumentRegister(1, "min reg")
+    val regMax = site.argumentRegister(2, "max reg")
     // value in R14:R15, min in R10:R11, max in R12:R13, result in R14:R15
     emitLine("lda  ${regAddrLo(regMin)}")
     emitLine("sta  cx16.r10L")
@@ -1003,10 +918,10 @@ private fun AsmGen.translateSyscallClampLong(args: FunctionCallArgs) {
     emitLine("jsr  prog8_lib.func_clamp_long")
 }
 
-private fun AsmGen.translateSyscallMemcopy(args: FunctionCallArgs) {
-    val regSrc = args.arguments.getOrNull(0)?.reg?.registerNum?.value ?: error("need src reg")
-    val regDst = args.arguments.getOrNull(1)?.reg?.registerNum?.value ?: error("need dst reg")
-    val regCount = args.arguments.getOrNull(2)?.reg?.registerNum?.value ?: error("need count reg")
+private fun AsmGen.translateSyscallMemcopy(site: CallSite) {
+    val regSrc = site.argumentRegister(0, "src reg")
+    val regDst = site.argumentRegister(1, "dst reg")
+    val regCount = site.argumentRegister(2, "count reg")
     // use existing library routine: memcopy_small
     // P8ZP_SCRATCH_W1 = source, P8ZP_SCRATCH_W2 = dest, Y = count (0 = 256)
     emitLine("lda  ${regAddrLo(regSrc)}")
@@ -1026,10 +941,10 @@ private fun AsmGen.translateSyscallMemcopy(args: FunctionCallArgs) {
     emitLabel("+")
 }
 
-private fun AsmGen.translateSyscallCallfar(args: FunctionCallArgs) {
-    val regBank = args.arguments[0].reg.registerNum.value
-    val regAddress = args.arguments[1].reg.registerNum.value
-    val regArg = args.arguments[2].reg.registerNum.value
+private fun AsmGen.translateSyscallCallfar(site: CallSite) {
+    val regBank = site.argumentRegister(0, "bank reg")
+    val regAddress = site.argumentRegister(1, "address reg")
+    val regArg = site.argumentRegister(2, "argument reg")
     val jsrfar = jsrfarRoutine()
     val label = makeLabel("callfar_patch")
     emitLine("lda  ${regAddrLo(regBank)}")
@@ -1046,13 +961,13 @@ private fun AsmGen.translateSyscallCallfar(args: FunctionCallArgs) {
     emitLine(".byte  0")
 }
 
-private fun AsmGen.translateSyscallCallfar2(args: FunctionCallArgs) {
-    val regBank = args.arguments[0].reg.registerNum.value
-    val regAddress = args.arguments[1].reg.registerNum.value
-    val regA = args.arguments[2].reg.registerNum.value
-    val regX = args.arguments[3].reg.registerNum.value
-    val regY = args.arguments[4].reg.registerNum.value
-    val regCarry = args.arguments[5].reg.registerNum.value
+private fun AsmGen.translateSyscallCallfar2(site: CallSite) {
+    val regBank = site.argumentRegister(0, "bank reg")
+    val regAddress = site.argumentRegister(1, "address reg")
+    val regA = site.argumentRegister(2, "A reg")
+    val regX = site.argumentRegister(3, "X reg")
+    val regY = site.argumentRegister(4, "Y reg")
+    val regCarry = site.argumentRegister(5, "carry reg")
     val jsrfar = jsrfarRoutine()
     val label = makeLabel("callfar2_patch")
     emitLine("lda  ${regAddrLo(regBank)}")
@@ -1080,9 +995,9 @@ private fun AsmGen.translateSyscallCallfar2(args: FunctionCallArgs) {
     emitLine(".byte  0")
 }
 
-private fun AsmGen.translateSyscallStringCompare(args: FunctionCallArgs) {
-    val regStr1 = args.arguments[0].reg.registerNum.value
-    val regStr2 = args.arguments[1].reg.registerNum.value
+private fun AsmGen.translateSyscallStringCompare(site: CallSite) {
+    val regStr1 = site.argumentRegister(0, "string 1 reg")
+    val regStr2 = site.argumentRegister(1, "string 2 reg")
     emitLine("lda  ${regAddrLo(regStr2)}")
     emitLine("sta  P8ZP_SCRATCH_W2")
     emitLine("lda  ${regAddrHi(regStr2)}")
@@ -1092,10 +1007,10 @@ private fun AsmGen.translateSyscallStringCompare(args: FunctionCallArgs) {
     emitLine("jsr  prog8_lib.strcmp_mem")
 }
 
-private fun AsmGen.translateSyscallBytearrayContains(args: FunctionCallArgs) {
-    val regElem = args.arguments[0].reg.registerNum.value
-    val regArr = args.arguments[1].reg.registerNum.value
-    val regLen = args.arguments[2].reg.registerNum.value
+private fun AsmGen.translateSyscallBytearrayContains(site: CallSite) {
+    val regElem = site.argumentRegister(0, "element reg")
+    val regArr = site.argumentRegister(1, "array reg")
+    val regLen = site.argumentRegister(2, "length reg")
     emitLine("lda  ${regAddrLo(regLen)}")
     emitLine("sta  P8ZP_SCRATCH_W2")
     emitLine("lda  ${regAddrLo(regArr)}")
@@ -1107,10 +1022,10 @@ private fun AsmGen.translateSyscallBytearrayContains(args: FunctionCallArgs) {
     emitLine("jsr  prog8_lib.containment_bytearray")
 }
 
-private fun AsmGen.translateSyscallWordarrayContains(args: FunctionCallArgs) {
-    val regElem = args.arguments[0].reg.registerNum.value
-    val regArr = args.arguments[1].reg.registerNum.value
-    val regLen = args.arguments[2].reg.registerNum.value
+private fun AsmGen.translateSyscallWordarrayContains(site: CallSite) {
+    val regElem = site.argumentRegister(0, "element reg")
+    val regArr = site.argumentRegister(1, "array reg")
+    val regLen = site.argumentRegister(2, "length reg")
     emitLine("lda  ${regAddrLo(regArr)}")
     emitLine("ldy  ${regAddrHi(regArr)}")
     emitLine("sta  P8ZP_SCRATCH_W2")
@@ -1123,10 +1038,10 @@ private fun AsmGen.translateSyscallWordarrayContains(args: FunctionCallArgs) {
     emitLine("jsr  prog8_lib.containment_linearwordarray")
 }
 
-private fun AsmGen.translateSyscallSplitWordarrayContains(args: FunctionCallArgs) {
-    val regElem = args.arguments[0].reg.registerNum.value
-    val regArr = args.arguments[1].reg.registerNum.value
-    val regLen = args.arguments[2].reg.registerNum.value
+private fun AsmGen.translateSyscallSplitWordarrayContains(site: CallSite) {
+    val regElem = site.argumentRegister(0, "element reg")
+    val regArr = site.argumentRegister(1, "array reg")
+    val regLen = site.argumentRegister(2, "length reg")
     emitLine("lda  ${regAddrLo(regArr)}")
     emitLine("ldy  ${regAddrHi(regArr)}")
     emitLine("sta  P8ZP_SCRATCH_W2")
@@ -1139,10 +1054,10 @@ private fun AsmGen.translateSyscallSplitWordarrayContains(args: FunctionCallArgs
     emitLine("jsr  prog8_lib.containment_splitwordarray")
 }
 
-private fun AsmGen.translateSyscallLongarrayContains(args: FunctionCallArgs) {
-    val regVal = args.arguments[0].reg.registerNum.value
-    val regArr = args.arguments[1].reg.registerNum.value
-    val regLen = args.arguments[2].reg.registerNum.value
+private fun AsmGen.translateSyscallLongarrayContains(site: CallSite) {
+    val regVal = site.argumentRegister(0, "value reg")
+    val regArr = site.argumentRegister(1, "array reg")
+    val regLen = site.argumentRegister(2, "length reg")
     val labelFound = makeLabel("lac_found")
     val labelNotFound = makeLabel("lac_notfound")
     val labelLoop = makeLabel("lac_loop")
@@ -1198,9 +1113,9 @@ private fun AsmGen.translateSyscallLongarrayContains(args: FunctionCallArgs) {
     emitLabel(labelDone)
 }
 
-private fun AsmGen.translateSyscallStringContains(args: FunctionCallArgs) {
-    val regChar = args.arguments[0].reg.registerNum.value
-    val regStr = args.arguments[1].reg.registerNum.value
+private fun AsmGen.translateSyscallStringContains(site: CallSite) {
+    val regChar = site.argumentRegister(0, "character reg")
+    val regStr = site.argumentRegister(1, "string reg")
     val labelFound = makeLabel("sc_found")
     val labelNotFound = makeLabel("sc_notfound")
     val labelDone = makeLabel("sc_done")
@@ -1226,10 +1141,10 @@ private fun AsmGen.translateSyscallStringContains(args: FunctionCallArgs) {
     emitLabel(labelDone)
 }
 
-private fun AsmGen.translateSyscallFloatarrayContains(args: FunctionCallArgs) {
-    val regNeedleFp = args.arguments.getOrNull(0)?.reg?.registerNum?.value ?: error("need needle fp reg")
-    val regArr = args.arguments.getOrNull(1)?.reg?.registerNum?.value ?: error("need array reg")
-    val regLen = args.arguments.getOrNull(2)?.reg?.registerNum?.value ?: error("need length reg")
+private fun AsmGen.translateSyscallFloatarrayContains(site: CallSite) {
+    val regNeedleFp = site.argumentRegister(0, "needle fp reg")
+    val regArr = site.argumentRegister(1, "array reg")
+    val regLen = site.argumentRegister(2, "length reg")
     // Load needle value from fp register into FAC1
     emitLine("lda  #<${fpRegAddr(regNeedleFp)}")
     emitLine("ldy  #>${fpRegAddr(regNeedleFp)}")
@@ -1247,8 +1162,8 @@ private fun AsmGen.translateSyscallFloatarrayContains(args: FunctionCallArgs) {
 // === Float operations ===
 
 private fun AsmGen.translateFloatFromInt(insn: IRInstruction) {
-    val r1 = insn.reg1 ?: error("${insn.opcode} needs reg1 (int input)")
-    val fpReg = insn.fpReg1 ?: error("${insn.opcode} needs fpReg1 (float output)")
+    val r1 = insn.requireIntSourceA().intNumber
+    val fpReg = insn.requireFloatDest().floatNumber
     when (insn.opcode) {
         Opcode.FFROMUB -> {
             emitLine("ldy  ${regAddrLo(r1)}")
@@ -1277,8 +1192,8 @@ private fun AsmGen.translateFloatFromInt(insn: IRInstruction) {
 }
 
 private fun AsmGen.translateFloatToInt(insn: IRInstruction) {
-    val r1 = insn.reg1 ?: error("${insn.opcode} needs reg1 (int output)")
-    val fpReg = insn.fpReg1 ?: error("${insn.opcode} needs fpReg1 (float input)")
+    val r1 = insn.requireIntDest().intNumber
+    val fpReg = insn.requireFloatSourceA().floatNumber
     emitLine("lda  #<${fpRegAddr(fpReg.value)}")
     emitLine("ldy  #>${fpRegAddr(fpReg.value)}")
     when (insn.opcode) {
@@ -1310,8 +1225,8 @@ private fun AsmGen.translateFloatToInt(insn: IRInstruction) {
 }
 
 private fun AsmGen.translateFloatUnary(insn: IRInstruction, routine: String) {
-    val src = insn.fpReg2 ?: error("${insn.opcode} needs fpReg2 (float input)")
-    val dst = insn.fpReg1 ?: error("${insn.opcode} needs fpReg1 (float output)")
+    val src = insn.requireFloatSourceA().floatNumber
+    val dst = insn.requireFloatDest().floatNumber
     emitLine("lda  #<${fpRegAddr(src.value)}")
     emitLine("ldy  #>${fpRegAddr(src.value)}")
     emitLine("jsr  floats.MOVFM")
@@ -1322,9 +1237,9 @@ private fun AsmGen.translateFloatUnary(insn: IRInstruction, routine: String) {
 }
 
 private fun AsmGen.translateFloatPower(insn: IRInstruction) {
-    val src = insn.fpReg2 ?: error("FPOW needs fpReg2")
-    val dst = insn.fpReg1 ?: error("FPOW needs fpReg1")
-    // FPOW: fr1 = fr1 ^ fr2
+    val src = insn.requireFloatSourceA().floatNumber
+    val dst = insn.requireFloatDest().floatNumber
+    // FPOW: dst = dst ^ src
     // KERNAL FPWRT: FAC1 = FAC2 ^ FAC1
     // Need FAC2=fr1, FAC1=fr2
     emitLine("lda  #<${fpRegAddr(dst.value)}")
@@ -1341,8 +1256,8 @@ private fun AsmGen.translateFloatPower(insn: IRInstruction) {
 }
 
 private fun AsmGen.translateFloatCeil(insn: IRInstruction) {
-    val src = insn.fpReg2 ?: error("FCEIL needs fpReg2")
-    val dst = insn.fpReg1 ?: error("FCEIL needs fpReg1")
+    val src = insn.requireFloatSourceA().floatNumber
+    val dst = insn.requireFloatDest().floatNumber
     // ceil(x) = -floor(-x)
     emitLine("lda  #<${fpRegAddr(src.value)}")
     emitLine("ldy  #>${fpRegAddr(src.value)}")
@@ -1356,8 +1271,8 @@ private fun AsmGen.translateFloatCeil(insn: IRInstruction) {
 }
 
 private fun AsmGen.translateFloatFromSignedLong(insn: IRInstruction) {
-    val r1 = insn.reg1 ?: error("FFROMSL needs reg1 (long input)")
-    val fpReg = insn.fpReg1 ?: error("FFROMSL needs fpReg1 (float output)")
+    val r1 = insn.requireIntSourceA().intNumber
+    val fpReg = insn.requireFloatDest().floatNumber
     val regAddr = regAddr(r1)
     // Convert 4-byte signed long to float by splitting into high and low words.
     // float = (float)(signed high_word) * 65536.0 + (float)(unsigned low_word)
@@ -1387,8 +1302,8 @@ private fun AsmGen.translateFloatFromSignedLong(insn: IRInstruction) {
 }
 
 private fun AsmGen.translateFloatToSignedLong(insn: IRInstruction) {
-    val r1 = insn.reg1 ?: error("FTOSL needs reg1 (long output)")
-    val fpReg = insn.fpReg1 ?: error("FTOSL needs fpReg1 (float input)")
+    val r1 = insn.requireIntDest().intNumber
+    val fpReg = insn.requireFloatSourceA().floatNumber
     val regAddr = regAddr(r1)
     val facho = "floats.FAC_ADDR+1"    // first mantissa byte after exponent
     // Load float from FP register into FAC1
@@ -1413,9 +1328,9 @@ private fun AsmGen.translateFloatToSignedLong(insn: IRInstruction) {
 }
 
 private fun AsmGen.translateFloatCompare(insn: IRInstruction) {
-    val r1 = insn.reg1 ?: error("FCOMP needs reg1 (int output)")
-    val fr1 = insn.fpReg1 ?: error("FCOMP needs fpReg1")
-    val fr2 = insn.fpReg2 ?: error("FCOMP needs fpReg2")
+    val r1 = insn.requireIntDest().intNumber
+    val fr1 = insn.requireFloatSourceA().floatNumber
+    val fr2 = insn.requireSrcB().floatNumber
     // Compare fr1 with fr2 using subtraction instead of KERNAL FCOMP.
     // KERNAL FCOMP on some CX16 ROM versions gives wrong results for certain value pairs.
     // Using FSUBT + SIGN is more reliable: compute fr1 - fr2, then check SIGN.
@@ -1431,8 +1346,8 @@ private fun AsmGen.translateFloatCompare(insn: IRInstruction) {
 }
 
 private fun AsmGen.translateIntSqrt(insn: IRInstruction) {
-    val src = insn.reg2 ?: error("SQRT needs reg2")
-    val dst = insn.reg1 ?: error("SQRT needs reg1")
+    val src = insn.requireIntSourceA().intNumber
+    val dst = insn.requireIntDest().intNumber
     when (insn.type) {
         IRDataType.BYTE -> {
             emitLine("lda  ${regAddr(src)}")
@@ -1459,8 +1374,8 @@ private fun AsmGen.translateIntSqrt(insn: IRInstruction) {
 }
 
 private fun AsmGen.translateIntSquare(insn: IRInstruction) {
-    val src = insn.reg2 ?: error("SQUARE needs reg2")
-    val dst = insn.reg1 ?: error("SQUARE needs reg1")
+    val src = insn.requireIntSourceA().intNumber
+    val dst = insn.requireIntDest().intNumber
     when (insn.type) {
         IRDataType.BYTE -> {
             emitLine("lda  ${regAddr(src)}")
@@ -1485,9 +1400,9 @@ private fun AsmGen.translateIntSquare(insn: IRInstruction) {
 }
 
 private fun AsmGen.translateFloatSquare(insn: IRInstruction) {
-    val src = insn.fpReg2 ?: error("SQUARE.f needs fpReg2")
-    val dst = insn.fpReg1 ?: error("SQUARE.f needs fpReg1")
-    // fr1 = fr2^2 = fr2 * fr2
+    val src = insn.requireFloatSourceA().floatNumber
+    val dst = insn.requireFloatDest().floatNumber
+    // dst = src^2 = src * src
     emitLine("lda  #<${fpRegAddr(src.value)}")
     emitLine("ldy  #>${fpRegAddr(src.value)}")
     emitLine("jsr  floats.MOVFM")
@@ -1502,9 +1417,9 @@ private fun AsmGen.translateFloatSquare(insn: IRInstruction) {
 }
 
 private fun AsmGen.translateFloatSign(insn: IRInstruction) {
-    val r1 = insn.reg1 ?: error("SGN.f needs reg1 (int output)")
-    val fpReg = insn.fpReg1 ?: error("SGN.f needs fpReg1 (float input)")
-    // SGN: reg1 = sign(fr1) as integer (-1, 0, 1)
+    val r1 = insn.requireIntDest().intNumber
+    val fpReg = insn.requireFloatSourceA().floatNumber
+    // SGN: dest = sign(src) as integer (-1, 0, 1)
     emitLine("lda  #<${fpRegAddr(fpReg.value)}")
     emitLine("ldy  #>${fpRegAddr(fpReg.value)}")
     emitLine("jsr  floats.MOVFM")

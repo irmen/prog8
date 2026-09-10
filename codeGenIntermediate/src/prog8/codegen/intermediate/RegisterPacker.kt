@@ -84,26 +84,22 @@ import prog8.intermediate.*
 
 object RegisterPacker {
 
-    data class Interval(val register: Int, val start: Int, val end: Int, val type: IRDataType)
+    data class Interval(val register: VirtualRegister, val start: Int, val end: Int, val type: IRDataType)
 
     fun pack(irProg: IRProgram) {
-        val indexRegType = irProg.options.compTarget.indexRegType
-        val allRegTypes = mutableMapOf<Int, IRDataType>()
+        val allRegTypes = mutableMapOf<VirtualRegister, IRDataType>()
         irProg.forEachInstruction { instr ->
-            val (written, read) = getRegisterAccess(instr)
-            for (r in written + read) {
-                val dt = getRegisterType(instr, r, indexRegType)
-                allRegTypes.putIfAbsent(r, dt)
-            }
+            for (access in instr.registerAccesses)
+                allRegTypes.putIfAbsent(access.register, access.type)
         }
         val beforeCount = allRegTypes.size
 
         // Start packing slots after the highest original register number to avoid
         // collisions between packed slot numbers and original (non-packed) register numbers.
-        val maxReg = allRegTypes.keys.maxOrNull() ?: 0
+        val maxReg = allRegTypes.keys.maxOfOrNull { it.num } ?: 0
         val startSlot = maxReg + 1
-        val globalSlotTypes = mutableMapOf<Int, IRDataType>()
-        irProg.foreachSub { sub -> packSubroutine(sub, allRegTypes, globalSlotTypes, startSlot, indexRegType) }
+        val globalSlotTypes = mutableMapOf<VirtualRegister, IRDataType>()
+        irProg.foreachSub { sub -> packSubroutine(irProg, sub, allRegTypes, globalSlotTypes, startSlot) }
 
         val afterTypes = rebuildTypeMap(irProg)
         val afterCount = afterTypes.size
@@ -114,31 +110,20 @@ object RegisterPacker {
     // Rebuild the register type map after packing, using the same type determination as the packer.
     // This avoids the strict per-instruction validation in usedRegisters() that POINTER↔LONG↔WORD
     // cross-type packing can trigger.
-    fun rebuildTypeMap(irProg: IRProgram): Map<RegisterNum, IRDataType> {
-        val indexRegType = irProg.options.compTarget.indexRegType
-        val newTypes = mutableMapOf<RegisterNum, IRDataType>()
+    fun rebuildTypeMap(irProg: IRProgram): Map<VirtualRegister, IRDataType> {
+        val newTypes = mutableMapOf<VirtualRegister, IRDataType>()
         irProg.forEachInstruction { instr ->
-            for ((reg, regNum) in listOf(instr.reg1 to 1, instr.reg2 to 2, instr.reg3 to 3)) {
-                if (reg != null)
-                    newTypes.putIfAbsent(RegisterNum(reg), determineIntRegType(instr, regNum, indexRegType))
-            }
-            instr.fpReg1?.let { fpr -> newTypes.putIfAbsent(RegisterNum(fpr.value), IRDataType.FLOAT) }
-            instr.fpReg2?.let { fpr -> newTypes.putIfAbsent(RegisterNum(fpr.value), IRDataType.FLOAT) }
-            instr.fcallArgs?.let { fc ->
-                for (a in fc.arguments)
-                    newTypes.putIfAbsent(RegisterNum(a.reg.registerNum.value), a.reg.dt)
-                for (r in fc.returns)
-                    newTypes.putIfAbsent(RegisterNum(r.registerNum.value), IRDataType.BYTE)
-            }
+            for (access in instr.registerAccesses)
+                newTypes.putIfAbsent(access.register, access.type)
         }
         return newTypes
     }
 
-    private fun packSubroutine(sub: IRSubroutine, allRegTypes: Map<Int, IRDataType>, globalSlotTypes: MutableMap<Int, IRDataType>, startSlot: Int, indexRegType: IRDataType) {
+    private fun packSubroutine(irProg: IRProgram, sub: IRSubroutine, allRegTypes: Map<VirtualRegister, IRDataType>, globalSlotTypes: MutableMap<VirtualRegister, IRDataType>, startSlot: Int) {
         if (sub.chunks.isEmpty())
             return
 
-        val successors = buildCFG(sub)
+        val successors = buildCFG(sub, irProg)
         val (_, liveOut) = computeLiveness(sub, successors)
 
         val codeChunks = sub.chunks.filterIsInstance<IRCodeChunk>()
@@ -154,8 +139,8 @@ object RegisterPacker {
             globalIdx += chunk.instructions.size
         }
 
-        val registerIntervals = mutableMapOf<Int, MutableList<Interval>>()
-        val registerTypes = mutableMapOf<Int, IRDataType>()
+        val registerIntervals = mutableMapOf<VirtualRegister, MutableList<Interval>>()
+        val registerTypes = mutableMapOf<VirtualRegister, IRDataType>()
 
         for (chunk in codeChunks) {
             val range = chunkRanges[chunk]!!
@@ -164,33 +149,37 @@ object RegisterPacker {
                 continue
 
             val liveSet = liveOut[chunk]?.toMutableSet() ?: mutableSetOf()
-            val lastUse = mutableMapOf<Int, Int>()
+            val lastUse = mutableMapOf<VirtualRegister, Int>()
 
             // Scan backward through instructions
             for (i in chunk.instructions.indices.reversed()) {
                 val instr = chunk.instructions[i]
                 val globalI = chunkStart + i
-                val (written, read) = getRegisterAccess(instr)
+                val accesses = instr.registerAccesses
 
-                // Process READ first so types are set before WRITE processing
-                for (r in read) {
-                    val dt = getRegisterType(instr, r, indexRegType)
-                    registerTypes.putIfAbsent(r, dt)
-                    if (r !in liveSet) {
-                        lastUse[r] = globalI
-                        liveSet.add(r)
+                // Process READ (USE / USE_DEF) first so types are set before WRITE processing
+                for (access in accesses) {
+                    if (access.direction != OperandDirection.DEF) {
+                        val r = access.register
+                        registerTypes.putIfAbsent(r, access.type)
+                        if (r !in liveSet) {
+                            lastUse[r] = globalI
+                            liveSet.add(r)
+                        }
                     }
                 }
 
-                // Process WRITTEN registers: end their live range (start of interval going forward)
-                for (r in written) {
-                    if (r in liveSet) {
-                        val end = lastUse.getOrElse(r) { globalI }
-                        val actualType = getRegisterType(instr, r, indexRegType)
-                        registerIntervals.getOrPut(r) { mutableListOf() }
-                            .add(Interval(r, globalI, end, actualType))
-                        liveSet.remove(r)
-                        lastUse.remove(r)
+                // Process WRITTEN (DEF / USE_DEF) registers: end their live range (start of interval going forward)
+                for (access in accesses) {
+                    if (access.direction != OperandDirection.USE) {
+                        val r = access.register
+                        if (r in liveSet) {
+                            val end = lastUse.getOrElse(r) { globalI }
+                            registerIntervals.getOrPut(r) { mutableListOf() }
+                                .add(Interval(r, globalI, end, access.type))
+                            liveSet.remove(r)
+                            lastUse.remove(r)
+                        }
                     }
                 }
             }
@@ -212,7 +201,7 @@ object RegisterPacker {
         // gap to the next use (otherwise another register packed to the same slot
         // would clobber it between intervals).
         val mergedIntervals = mutableListOf<Interval>()
-        val skipRegs = mutableSetOf<Int>()
+        val skipRegs = mutableSetOf<VirtualRegister>()
         for ((reg, intervals) in registerIntervals) {
             val sorted = intervals.sortedBy { it.start }
             var current = sorted.first()
@@ -230,43 +219,33 @@ object RegisterPacker {
             mergedIntervals.removeAll { it.register in skipRegs }
         }
 
-        val conflictGraph = buildConflictGraph(sub, indexRegType)
+        val conflictGraph = buildConflictGraph(sub)
         val packing = greedyColor(mergedIntervals, conflictGraph, allRegTypes, globalSlotTypes, startSlot)
 
         if (packing.isNotEmpty())
             rewrite(sub, packing)
     }
 
-    private fun buildConflictGraph(sub: IRSubroutine, indexRegType: IRDataType): Map<Int, Set<Int>> {
-        val conflicts = mutableMapOf<Int, MutableSet<Int>>()
+    private fun buildConflictGraph(sub: IRSubroutine): Map<VirtualRegister, Set<VirtualRegister>> {
+        val conflicts = mutableMapOf<VirtualRegister, MutableSet<VirtualRegister>>()
         for (chunk in sub.chunks.filterIsInstance<IRCodeChunk>()) {
-            val typeRegs = mutableMapOf<IRDataType, MutableSet<Int>>()
+            val typeRegs = mutableMapOf<IRDataType, MutableSet<VirtualRegister>>()
             for (instr in chunk.instructions) {
-                for ((reg, regNum) in listOf(instr.reg1 to 1, instr.reg2 to 2, instr.reg3 to 3)) {
-                    if (reg != null) {
-                        val dt = determineIntRegType(instr, regNum, indexRegType)
-                        typeRegs.getOrPut(dt) { mutableSetOf() }.add(reg)
-                    }
-                }
-                instr.fpReg1?.let { fpr -> typeRegs.getOrPut(IRDataType.FLOAT) { mutableSetOf() }.add(fpr.value) }
-                instr.fpReg2?.let { fpr -> typeRegs.getOrPut(IRDataType.FLOAT) { mutableSetOf() }.add(fpr.value) }
+                val accesses = instr.registerAccesses
+                for (access in accesses)
+                    typeRegs.getOrPut(access.type) { mutableSetOf() }.add(access.register)
 
-                instr.fcallArgs?.let { fc ->
-                    for (arg in fc.arguments) {
-                        val r = arg.reg.registerNum.value
-                        typeRegs.getOrPut(arg.reg.dt) { mutableSetOf() }.add(r)
+                // Registers accessed together within a single instruction must not share a slot
+                // (generalizes the old reg1/reg2-only conflict rule to every register access of
+                // the instruction, now that they are all enumerable via registerAccesses).
+                val regsInInstr = accesses.map { it.register }.distinct()
+                for (i in regsInInstr.indices) {
+                    for (j in i + 1 until regsInInstr.size) {
+                        val r1 = regsInInstr[i]
+                        val r2 = regsInInstr[j]
+                        conflicts.getOrPut(r1) { mutableSetOf() }.add(r2)
+                        conflicts.getOrPut(r2) { mutableSetOf() }.add(r1)
                     }
-                    for (ret in fc.returns) {
-                        val r = ret.registerNum.value
-                        typeRegs.getOrPut(ret.dt) { mutableSetOf() }.add(r)
-                    }
-                }
-
-                val r1 = instr.reg1
-                val r2 = instr.reg2
-                if (r1 != null && r2 != null) {
-                    conflicts.getOrPut(r1) { mutableSetOf() }.add(r2)
-                    conflicts.getOrPut(r2) { mutableSetOf() }.add(r1)
                 }
             }
             // Add conflicts between registers with incompatible types in the same chunk
@@ -291,7 +270,7 @@ object RegisterPacker {
         return conflicts
     }
 
-    private fun buildCFG(sub: IRSubroutine): Map<IRCodeChunkBase, List<IRCodeChunkBase>> {
+    private fun buildCFG(sub: IRSubroutine, irProg: IRProgram): Map<IRCodeChunkBase, List<IRCodeChunkBase>> {
         val successors = mutableMapOf<IRCodeChunkBase, MutableList<IRCodeChunkBase>>()
 
         val conditionals = setOf(
@@ -315,13 +294,13 @@ object RegisterPacker {
                     chunk.next?.let { succ.add(it) }
                 }
                 if (endsWithConditional) {
-                    lastInstr.branchTarget?.let { target ->
+                    lastInstr.codeTarget?.let { irProg.resolveCodeTarget(it) }?.let { target ->
                         if (!succ.contains(target))
                             succ.add(target)
                     }
                 } else if (lastInstr?.opcode == Opcode.JUMP) {
                     succ.clear()
-                    lastInstr.branchTarget?.let { succ.add(it) }
+                    lastInstr.codeTarget?.let { irProg.resolveCodeTarget(it) }?.let { succ.add(it) }
                 }
             } else {
                 chunk.next?.let { succ.add(it) }
@@ -336,22 +315,23 @@ object RegisterPacker {
     private fun computeLiveness(
         sub: IRSubroutine,
         successors: Map<IRCodeChunkBase, List<IRCodeChunkBase>>
-    ): Pair<Map<IRCodeChunk, Set<Int>>, Map<IRCodeChunk, Set<Int>>> {
+    ): Pair<Map<IRCodeChunk, Set<VirtualRegister>>, Map<IRCodeChunk, Set<VirtualRegister>>> {
 
-        val liveIn = mutableMapOf<IRCodeChunk, MutableSet<Int>>()
-        val liveOut = mutableMapOf<IRCodeChunk, MutableSet<Int>>()
-        val gen = mutableMapOf<IRCodeChunk, MutableSet<Int>>()
-        val kill = mutableMapOf<IRCodeChunk, MutableSet<Int>>()
+        val liveIn = mutableMapOf<IRCodeChunk, MutableSet<VirtualRegister>>()
+        val liveOut = mutableMapOf<IRCodeChunk, MutableSet<VirtualRegister>>()
+        val gen = mutableMapOf<IRCodeChunk, MutableSet<VirtualRegister>>()
+        val kill = mutableMapOf<IRCodeChunk, MutableSet<VirtualRegister>>()
 
         for (chunk in sub.chunks) {
             if (chunk !is IRCodeChunk)
                 continue
 
-            val genSet = mutableSetOf<Int>()
-            val killSet = mutableSetOf<Int>()
+            val genSet = mutableSetOf<VirtualRegister>()
+            val killSet = mutableSetOf<VirtualRegister>()
 
             for (instr in chunk.instructions) {
-                val (written, read) = getRegisterAccess(instr)
+                val written = instr.definitions
+                val read = instr.uses
                 for (r in read) {
                     if (r !in killSet)
                         genSet.add(r)
@@ -376,7 +356,7 @@ object RegisterPacker {
                 if (chunk !is IRCodeChunk)
                     continue
 
-                val newLiveOut = mutableSetOf<Int>()
+                val newLiveOut = mutableSetOf<VirtualRegister>()
                 for (succ in successors[chunk].orEmpty()) {
                     if (succ is IRCodeChunk)
                         newLiveOut.addAll(liveIn[succ].orEmpty())
@@ -387,7 +367,7 @@ object RegisterPacker {
                     changed = true
                 }
 
-                val newLiveIn = mutableSetOf<Int>()
+                val newLiveIn = mutableSetOf<VirtualRegister>()
                 newLiveIn.addAll(gen[chunk].orEmpty())
                 newLiveIn.addAll(liveOut[chunk].orEmpty() - kill[chunk].orEmpty())
 
@@ -401,153 +381,35 @@ object RegisterPacker {
         return liveIn to liveOut
     }
 
-    private fun getRegisterAccess(instr: IRInstruction): Pair<Set<Int>, Set<Int>> {
-        val written = mutableSetOf<Int>()
-        val read = mutableSetOf<Int>()
-
-        for ((reg, dir) in listOf(
-            instr.reg1 to instr.reg1direction,
-            instr.reg2 to instr.reg2direction,
-            instr.reg3 to instr.reg3direction
-        )) {
-            when (dir) {
-                OperandDirection.READ -> reg?.let { read.add(it) }
-                OperandDirection.WRITE -> reg?.let { written.add(it) }
-                OperandDirection.READWRITE -> { reg?.let { read.add(it); written.add(it) } }
-                OperandDirection.UNUSED -> {}
-            }
-        }
-
-        for ((fpReg, dir) in listOf(
-            instr.fpReg1 to instr.fpReg1direction,
-            instr.fpReg2 to instr.fpReg2direction
-        )) {
-            when (dir) {
-                OperandDirection.READ -> fpReg?.let { read.add(it.value) }
-                OperandDirection.WRITE -> fpReg?.let { written.add(it.value) }
-                OperandDirection.READWRITE -> { fpReg?.let { read.add(it.value); written.add(it.value) } }
-                OperandDirection.UNUSED -> {}
-            }
-        }
-
-        val fcallArgs = instr.fcallArgs
-        if (fcallArgs != null) {
-            for (arg in fcallArgs.arguments)
-                read.add(arg.reg.registerNum.value)
-            for (ret in fcallArgs.returns)
-                written.add(ret.registerNum.value)
-        }
-
-        return written to read
-    }
-
-    private fun getRegisterType(instr: IRInstruction, register: Int, indexRegType: IRDataType): IRDataType {
-        if (instr.fpReg1?.value == register || instr.fpReg2?.value == register)
-            return IRDataType.FLOAT
-
-        return when {
-            instr.reg1 == register -> determineIntRegType(instr, 1, indexRegType)
-            instr.reg2 == register -> determineIntRegType(instr, 2, indexRegType)
-            instr.reg3 == register -> determineIntRegType(instr, 3, indexRegType)
-            else -> {
-                // fcallArgs registers use their own type from the RegSpec, not instr.type
-                val fcallArgs = instr.fcallArgs
-                if (fcallArgs != null) {
-                    for (arg in fcallArgs.arguments)
-                        if (arg.reg.registerNum.value == register)
-                            return arg.reg.dt
-                    for (ret in fcallArgs.returns)
-                        if (ret.registerNum.value == register)
-                            return ret.dt
-                }
-                instr.type ?: IRDataType.BYTE
-            }
-        }
-    }
-
-    private fun determineIntRegType(instr: IRInstruction, regNum: Int, indexRegType: IRDataType): IRDataType {
-        val opcode = instr.opcode
-        val type = instr.type
-
-        if (type == IRDataType.FLOAT) {
-            return when (opcode) {
-                Opcode.FFROMUB, Opcode.FFROMSB, Opcode.FTOUB, Opcode.FTOSB,
-                Opcode.FCOMP, Opcode.SGN -> IRDataType.BYTE
-                Opcode.LOADX, Opcode.STOREX, Opcode.STOREZX -> indexRegType
-                Opcode.FFROMSL, Opcode.FTOSL -> IRDataType.LONG
-                Opcode.LOADI, Opcode.STOREI -> IRDataType.POINTER
-                else -> IRDataType.WORD
-            }
-        }
-
-        if (type == IRDataType.WORD && regNum == 1) {
-            return when (opcode) {
-                Opcode.SGN, Opcode.SQRT -> IRDataType.BYTE
-                Opcode.STOREZX -> indexRegType
-                Opcode.EXT, Opcode.EXTS, Opcode.CONCAT -> IRDataType.LONG
-                else -> type
-            }
-        }
-
-        if (type == IRDataType.LONG && regNum == 1) {
-            return when (opcode) {
-                Opcode.SGN -> IRDataType.BYTE
-                Opcode.SQRT -> IRDataType.WORD
-                Opcode.STOREZX -> indexRegType
-                else -> type
-            }
-        }
-
-        if (regNum == 2 || regNum == 3) {
-            return when (opcode) {
-                Opcode.LOADX, Opcode.STOREX -> indexRegType
-                Opcode.LOADI, Opcode.STOREI -> IRDataType.POINTER
-                Opcode.ASRN, Opcode.LSRN, Opcode.LSLN -> IRDataType.BYTE
-                else -> type ?: IRDataType.BYTE
-            }
-        }
-
-        if (regNum == 1) {
-            if (opcode in setOf(Opcode.JUMPI, Opcode.CALLI, Opcode.STOREZI))
-                return IRDataType.POINTER
-            if (opcode in setOf(Opcode.LSIGW, Opcode.MSIGW))
-                return IRDataType.WORD
-            if (opcode in setOf(Opcode.ASRNM, Opcode.LSRNM, Opcode.LSLNM, Opcode.SQRT, Opcode.LSIGB, Opcode.MSIGB, Opcode.BSIGB, Opcode.MIDB))
-                return IRDataType.BYTE
-            if (type == IRDataType.BYTE && opcode in setOf(Opcode.EXT, Opcode.EXTS, Opcode.CONCAT))
-                return IRDataType.WORD
-            if (type == IRDataType.BYTE && opcode == Opcode.STOREZX)
-                return indexRegType
-        }
-        return type ?: IRDataType.BYTE
-    }
-
     private fun greedyColor(
         intervals: List<Interval>,
-        conflictGraph: Map<Int, Set<Int>>,
-        allRegTypes: Map<Int, IRDataType>,
-        slotTypes: MutableMap<Int, IRDataType>,
+        conflictGraph: Map<VirtualRegister, Set<VirtualRegister>>,
+        allRegTypes: Map<VirtualRegister, IRDataType>,
+        slotTypes: MutableMap<VirtualRegister, IRDataType>,
         startSlot: Int
-    ): Map<Int, Int> {
+    ): Map<VirtualRegister, VirtualRegister> {
         if (intervals.isEmpty())
             return emptyMap()
 
-        val packing = mutableMapOf<Int, Int>()
+        val packing = mutableMapOf<VirtualRegister, VirtualRegister>()
         // Reserve slots for non-packed registers
-        val packedRegNums = intervals.map { it.register }.toSet()
-        for ((regNum, type) in allRegTypes) {
-            if (regNum !in packedRegNums)
-                slotTypes.putIfAbsent(regNum, type)
+        val packedRegs = intervals.map { it.register }.toSet()
+        for ((reg, type) in allRegTypes) {
+            if (reg !in packedRegs)
+                slotTypes.putIfAbsent(reg, type)
         }
 
         val sorted = intervals.sortedWith(compareBy<Interval> { it.type.ordinal }.thenBy { it.start })
-        val activeSlots = mutableMapOf<Int, Pair<Int, Int>>()
+        val activeSlots = mutableMapOf<VirtualRegister, Pair<VirtualRegister, Int>>()
 
         for (interval in sorted) {
             activeSlots.entries.removeAll { it.value.second < interval.start }
 
-            var slot = startSlot
+            var slotNum = startSlot
+            var slot: VirtualRegister
             while (true) {
+                // a packed slot stays in the same register file (int/float) as the register it replaces
+                slot = if (interval.register is VirtualRegister.FloatReg) VirtualRegister.float(slotNum) else VirtualRegister.int(slotNum)
                 if (slot !in activeSlots) {
                     val existingType = slotTypes[slot]
                     if (existingType == null || existingType == interval.type || typesCompatible(existingType, interval.type)) {
@@ -555,7 +417,7 @@ object RegisterPacker {
                             break
                     }
                 }
-                slot++
+                slotNum++
             }
 
             packing[interval.register] = slot
@@ -572,12 +434,12 @@ object RegisterPacker {
     }
 
     private fun conflictsWithRegister(
-        slot: Int,
-        regNum: Int,
-        conflictGraph: Map<Int, Set<Int>>,
-        packing: Map<Int, Int>
+        slot: VirtualRegister,
+        register: VirtualRegister,
+        conflictGraph: Map<VirtualRegister, Set<VirtualRegister>>,
+        packing: Map<VirtualRegister, VirtualRegister>
     ): Boolean {
-        val conflictingRegs = conflictGraph[regNum] ?: return false
+        val conflictingRegs = conflictGraph[register] ?: return false
         for (cr in conflictingRegs) {
             val crSlot = packing[cr]
             if (crSlot != null && crSlot == slot)
@@ -588,70 +450,17 @@ object RegisterPacker {
         return false
     }
 
-    private fun rewrite(sub: IRSubroutine, packing: Map<Int, Int>) {
+    private fun rewrite(sub: IRSubroutine, packing: Map<VirtualRegister, VirtualRegister>) {
         for (chunk in sub.chunks) {
             if (chunk !is IRCodeChunk)
                 continue
 
             for (i in chunk.instructions.indices) {
                 val instr = chunk.instructions[i]
-
-                val newReg1 = if (instr.reg1 != null) (packing[instr.reg1] ?: instr.reg1) else null
-                val newReg2 = if (instr.reg2 != null) (packing[instr.reg2] ?: instr.reg2) else null
-                val newReg3 = if (instr.reg3 != null) (packing[instr.reg3] ?: instr.reg3) else null
-                val oldFpReg1 = instr.fpReg1
-                val newFpReg1 = if (oldFpReg1 != null && oldFpReg1.value in packing)
-                    RegisterNum(packing[oldFpReg1.value]!!) else oldFpReg1
-                val oldFpReg2 = instr.fpReg2
-                val newFpReg2 = if (oldFpReg2 != null && oldFpReg2.value in packing)
-                    RegisterNum(packing[oldFpReg2.value]!!) else oldFpReg2
-                val oldFcallArgs = instr.fcallArgs
-                val newFcallArgs = if (oldFcallArgs != null)
-                    remapFcallArgs(oldFcallArgs, packing) else oldFcallArgs
-
-                val anyChange = newReg1 != instr.reg1 || newReg2 != instr.reg2 || newReg3 != instr.reg3
-                        || newFpReg1 != instr.fpReg1 || newFpReg2 != instr.fpReg2
-                        || newFcallArgs != instr.fcallArgs
-
-                if (anyChange) {
-                    chunk.instructions[i] = instr.copy(
-                        reg1 = newReg1,
-                        reg2 = newReg2,
-                        reg3 = newReg3,
-                        fpReg1 = newFpReg1,
-                        fpReg2 = newFpReg2,
-                        fcallArgs = newFcallArgs
-                    )
-                }
+                val newInstr = instr.mapRegisters { vr -> packing[vr] ?: vr }
+                if (newInstr != instr)
+                    chunk.instructions[i] = newInstr
             }
         }
-    }
-
-    private fun remapFcallArgs(args: FunctionCallArgs, packing: Map<Int, Int>): FunctionCallArgs {
-        var changed = false
-
-        val newArgs = args.arguments.map { arg ->
-            val newRegNum = packing[arg.reg.registerNum.value]
-            if (newRegNum != null && newRegNum != arg.reg.registerNum.value) {
-                changed = true
-                FunctionCallArgs.ArgumentSpec(
-                    arg.name, arg.address,
-                    FunctionCallArgs.RegSpec(arg.reg.dt, RegisterNum(newRegNum), arg.reg.callingConventionSlot, arg.reg.statusflag)
-                )
-            } else arg
-        }
-
-        val newReturns = args.returns.map { ret ->
-            val newRegNum = packing[ret.registerNum.value]
-            if (newRegNum != null && newRegNum != ret.registerNum.value) {
-                changed = true
-                FunctionCallArgs.RegSpec(ret.dt, RegisterNum(newRegNum), ret.callingConventionSlot, ret.statusflag)
-            } else ret
-        }
-
-        return if (changed)
-            FunctionCallArgs(newArgs, newReturns)
-        else
-            args
     }
 }

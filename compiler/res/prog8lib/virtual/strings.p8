@@ -107,11 +107,11 @@ strings {
         ; Copy a string to another, overwriting that one.
         ; Returns the length of the string that was copied.
         %ir {{
-            loadm.l r99200,strings.copy.source
-            loadm.l r99201,strings.copy.target
-            load.b r99100,#255
-            syscall 39 (r99200.l, r99201.l, r99100.b): r99100.b
-            returnr.b r99100
+            loadm.l r99200.l,[strings.copy.source]
+            loadm.l r99201.l,[strings.copy.target]
+            load.b r99100.b,#255.b
+            syscall 39 (r99200.l, r99201.l, r99100.b): r99101.b
+            returnr.b r99101.b
         }}
     }
 
@@ -119,11 +119,11 @@ strings {
         ; Copy a string to another, overwriting that one, but limited to the given length.
         ; Returns the length of the string that was copied.
         %ir {{
-            loadm.l r99200,strings.ncopy.source
-            loadm.l r99201,strings.ncopy.target
-            loadm.b r99100,strings.ncopy.maxlength
-            syscall 39 (r99200.l, r99201.l, r99100.b): r99100.b
-            returnr.b r99100
+            loadm.l r99200.l,[strings.ncopy.source]
+            loadm.l r99201.l,[strings.ncopy.target]
+            loadm.b r99100.b,[strings.ncopy.maxlength]
+            syscall 39 (r99200.l, r99201.l, r99100.b): r99101.b
+            returnr.b r99101.b
         }}
     }
 
@@ -150,10 +150,10 @@ strings {
         ; Note that you can also directly compare strings and string values with each other using
         ; comparison operators ==, < etcetera (this will use strcmp automatically).
         %ir {{
-            loadm.l r99200,strings.compare.st1
-            loadm.l r99201,strings.compare.st2
+            loadm.l r99200.l,[strings.compare.st1]
+            loadm.l r99201.l,[strings.compare.st2]
             syscall 16 (r99200.l, r99201.l) : r99100.b
-            returnr.b r99100
+            returnr.b r99100.b
         }}
     }
 
@@ -163,10 +163,10 @@ strings {
         ; Note that you can also directly compare strings and string values with each other using
         ; comparison operators ==, < etcetera (this will use strcmp automatically).
         %ir {{
-            loadm.l r99200,strings.compare_nocase.st1
-            loadm.l r99201,strings.compare_nocase.st2
+            loadm.l r99200.l,[strings.compare_nocase.st1]
+            loadm.l r99201.l,[strings.compare_nocase.st2]
             syscall 58 (r99200.l, r99201.l) : r99100.b
-            returnr.b r99100
+            returnr.b r99100.b
         }}
     }
 

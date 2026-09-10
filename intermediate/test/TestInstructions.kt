@@ -1,5 +1,4 @@
 import io.kotest.assertions.throwables.shouldThrow
-import io.kotest.assertions.throwables.shouldThrowWithMessage
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import prog8.intermediate.*
@@ -8,142 +7,162 @@ import prog8.intermediate.*
 class TestInstructions: FunSpec({
 
     test("simple") {
-        val ins = IRInstruction(Opcode.NOP)
+        val ins = IRInstructions.simple(Opcode.NOP)
         ins.opcode shouldBe Opcode.NOP
         ins.type shouldBe null
-        ins.reg1direction shouldBe OperandDirection.UNUSED
-        ins.fpReg1direction shouldBe OperandDirection.UNUSED
-        ins.reg1 shouldBe null
-        ins.reg2 shouldBe null
-        ins.address shouldBe null
+        ins.dest shouldBe null
+        ins.srcA shouldBe null
+        ins.memory shouldBe null
         ins.immediate shouldBe null
-        ins.immediateFp shouldBe null
-        ins.labelSymbol shouldBe null
+        ins.target shouldBe null
+        ins.callSite shouldBe null
+        ins.registerAccesses shouldBe emptyList()
         ins.toString() shouldBe "nop"
     }
 
-    test("with value") {
-        val ins = IRInstruction(Opcode.ADD, IRDataType.BYTE, reg1=42, immediate = 0, address = 99u.toAddress())
+    test("with immediate value") {
+        val ins = IRInstructions.binaryImmediate(Opcode.ADD, IRDataType.BYTE, destination = 42, value = 0)
         ins.opcode shouldBe Opcode.ADD
         ins.type shouldBe IRDataType.BYTE
-        ins.reg1direction shouldBe OperandDirection.READWRITE
-        ins.fpReg1direction shouldBe OperandDirection.UNUSED
-        ins.reg1 shouldBe 42
-        ins.reg2 shouldBe null
-        ins.address shouldBe 99u.toAddress()
-        ins.immediate shouldBe 0
-        ins.immediateFp shouldBe null
-        ins.labelSymbol shouldBe null
-        ins.toString() shouldBe "add.b r42,#0,$63"
+        ins.requireDest().registerNumber shouldBe 42
+        ins.requireDest().direction shouldBe OperandDirection.USE_DEF
+        ins.requireImmediate() shouldBe ImmediateOperand.Integer(0, IRDataType.BYTE)
+        ins.toString() shouldBe "add.b r42.b,#0.b"
     }
 
-    test("with label") {
-        val ins = IRInstruction(Opcode.ADD, IRDataType.WORD, reg1=11, immediate = 0, labelSymbol = "a.b.c")
-        ins.opcode shouldBe Opcode.ADD
-        ins.type shouldBe IRDataType.WORD
-        ins.reg1direction shouldBe OperandDirection.READWRITE
-        ins.fpReg1direction shouldBe OperandDirection.UNUSED
-        ins.reg1 shouldBe 11
-        ins.reg2 shouldBe null
-        ins.address shouldBe null
-        ins.immediate shouldBe 0
-        ins.immediateFp shouldBe null
-        ins.labelSymbol shouldBe "a.b.c"
-        ins.toString() shouldBe "add.w r11,#0,a.b.c"
+    test("with symbol address") {
+        val ins = IRInstructions.loadAddress(IRDataType.WORD, 11, "a.b.c")
+        ins.opcode shouldBe Opcode.LOAD
+        ins.requireImmediate() shouldBe ImmediateOperand.SymbolAddress("a.b.c", 0, IRDataType.WORD)
+        ins.toString() shouldBe "load.w r11.w,#a.b.c"
+
+        val withOffset = IRInstructions.loadAddress(IRDataType.WORD, 11, "a.b.c", 4)
+        withOffset.toString() shouldBe "load.w r11.w,#a.b.c+4"
     }
 
     test("with output registers") {
-        val ins = IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1=11, reg2=22)
-        ins.opcode shouldBe Opcode.ADDR
-        ins.type shouldBe IRDataType.WORD
-        ins.reg1direction shouldBe OperandDirection.READWRITE
-        ins.reg2direction shouldBe OperandDirection.READ
-        ins.fpReg1direction shouldBe OperandDirection.UNUSED
-        ins.fpReg2direction shouldBe OperandDirection.UNUSED
-        ins.reg1 shouldBe 11
-        ins.reg2 shouldBe 22
-        ins.address shouldBe null
-        ins.immediate shouldBe null
-        ins.immediateFp shouldBe null
-        ins.labelSymbol shouldBe null
-        ins.toString() shouldBe "addr.w r11,r22"
+        val ins = IRInstructions.binary(Opcode.ADDR, IRDataType.WORD, destination = 11, source = 22)
+        ins.requireDest().direction shouldBe OperandDirection.USE_DEF
+        ins.requireSrcA().direction shouldBe OperandDirection.USE
+        ins.uses shouldBe setOf(VirtualRegister.int(11), VirtualRegister.int(22))
+        ins.definitions shouldBe setOf(VirtualRegister.int(11))
+        ins.toString() shouldBe "addr.w r11.w,r22.w"
 
-        val ins2 = IRInstruction(Opcode.SQRT, IRDataType.BYTE, reg1=11, reg2=22)
-        ins2.opcode shouldBe Opcode.SQRT
-        ins2.type shouldBe IRDataType.BYTE
-        ins2.reg1direction shouldBe OperandDirection.WRITE
-        ins2.reg2direction shouldBe OperandDirection.READ
-        ins2.fpReg1direction shouldBe OperandDirection.UNUSED
-        ins2.fpReg2direction shouldBe OperandDirection.UNUSED
-        ins2.reg1 shouldBe 11
-        ins2.reg2 shouldBe 22
-        ins.address shouldBe null
-        ins.immediate shouldBe null
-        ins.immediateFp shouldBe null
-        ins2.labelSymbol shouldBe null
-        ins2.toString() shouldBe "sqrt.b r11,r22"
+        val ins2 = IRInstructions.binary(Opcode.SQRT, IRDataType.BYTE, destination = 11, source = 22)
+        ins2.requireDest().direction shouldBe OperandDirection.DEF
+        ins2.requireSrcA().direction shouldBe OperandDirection.USE
+        ins2.definitions shouldBe setOf(VirtualRegister.int(11))
+        ins2.toString() shouldBe "sqrt.b r11.b,r22.b"
     }
 
     test("with float regs") {
-        val ins = IRInstruction(Opcode.FSIN, IRDataType.FLOAT, fpReg1 = RegisterNum(1), fpReg2 = RegisterNum(2))
-        ins.opcode shouldBe Opcode.FSIN
+        val ins = IRInstructions.binary(Opcode.FSIN, IRDataType.FLOAT, destination = 1, source = 2)
         ins.type shouldBe IRDataType.FLOAT
-        ins.reg1direction shouldBe OperandDirection.UNUSED
-        ins.reg2direction shouldBe OperandDirection.UNUSED
-        ins.fpReg1direction shouldBe OperandDirection.WRITE
-        ins.fpReg2direction shouldBe OperandDirection.READ
-        ins.fpReg1 shouldBe RegisterNum(1)
-        ins.fpReg2 shouldBe RegisterNum(2)
-        ins.reg1 shouldBe null
-        ins.reg2 shouldBe null
-        ins.address shouldBe null
-        ins.immediate shouldBe null
-        ins.immediateFp shouldBe null
-        ins.labelSymbol shouldBe null
-        ins.toString() shouldBe "fsin.f fr1,fr2"
+        ins.requireDest().register shouldBe VirtualRegister.float(1)
+        ins.requireSrcA().register shouldBe VirtualRegister.float(2)
+        ins.toString() shouldBe "fsin.f fr1.f,fr2.f"
     }
 
+    test("typed binary factory infers conversion instruction types") {
+        val sign = IRInstructions.binary(
+            Opcode.SGN,
+            IRInstructions.operandFor(Opcode.SGN, IRDataType.WORD, InstructionSlot.DEST, 1),
+            IRInstructions.operandFor(Opcode.SGN, IRDataType.WORD, InstructionSlot.SRC_A, 2)
+        )
+        sign.type shouldBe IRDataType.WORD
+        sign.requireDest().type shouldBe IRDataType.BYTE
+        sign.requireSrcA().type shouldBe IRDataType.WORD
+
+        val floatFromByte = IRInstructions.binary(
+            Opcode.FFROMUB,
+            IRInstructions.operandFor(Opcode.FFROMUB, IRDataType.FLOAT, InstructionSlot.DEST, 1),
+            IRInstructions.operandFor(Opcode.FFROMUB, IRDataType.FLOAT, InstructionSlot.SRC_A, 2)
+        )
+        floatFromByte.type shouldBe IRDataType.FLOAT
+        floatFromByte.requireDest().register shouldBe VirtualRegister.float(1)
+        floatFromByte.requireSrcA().type shouldBe IRDataType.BYTE
+    }
 
     test("missing type should fail") {
         shouldThrow<IllegalArgumentException> {
-            IRInstruction(Opcode.ADD, reg1=42, address=99u.toAddress())
+            IRInstruction(Opcode.ADD, dest = IRInstructions.operandFor(Opcode.ADD, IRDataType.BYTE, InstructionSlot.DEST, 42))
         }
     }
 
     test("missing registers should fail") {
-        shouldThrowWithMessage<IllegalArgumentException>("missing reg1") {
-            IRInstruction(Opcode.ADD, IRDataType.BYTE, immediate = 0, address=99u.toAddress())
+        shouldThrow<IllegalArgumentException> {
+            IRInstruction(Opcode.ADD, IRDataType.BYTE, immediate = ImmediateOperand.Integer(0, IRDataType.BYTE))
         }
     }
 
-    test("missing address should fail") {
-        shouldThrowWithMessage<IllegalArgumentException>("missing an address or labelsymbol") {
+    test("missing memory operand should fail") {
+        shouldThrow<IllegalArgumentException> {
             IRInstruction(Opcode.INCM, IRDataType.BYTE)
         }
     }
 
-    test("all instructionformats") {
-        instructionFormats.size shouldBe Opcode.entries.size
-        Opcode.entries.forEach {
-            val fmt = instructionFormats.getValue(it)
-            fmt.values.forEach { format ->
-                require(format.reg2==OperandDirection.UNUSED || format.reg2==OperandDirection.READ || format.reg2==OperandDirection.WRITE || format.reg2==OperandDirection.READWRITE) {"reg2 can only be used as input, output, or readwrite"}
-                require(format.fpReg2==OperandDirection.UNUSED || format.fpReg2==OperandDirection.READ || format.fpReg2==OperandDirection.WRITE || format.fpReg2==OperandDirection.READWRITE) {"fpReg2 can only be used as input, output, or readwrite"}
-            }
+    test("wrong operand kind should fail") {
+        shouldThrow<IllegalArgumentException> {
+            // LOADM needs a direct memory reference, not an indirect one
+            IRInstructions.loadMemory(Opcode.LOADM, IRDataType.BYTE, 1, IRMemory.indirect(2, 4))
+        }
+        shouldThrow<IllegalArgumentException> {
+            // an immediate that doesn't fit the type
+            IRInstructions.binaryImmediate(Opcode.ADD, IRDataType.BYTE, destination = 1, value = 9999)
         }
     }
 
-    test("with symbol offset") {
-        val i1 = IRInstruction(Opcode.ADDM, IRDataType.BYTE, reg1 = 1, labelSymbol = "symbol", symbolOffset = 99)
-        i1.labelSymbol shouldBe "symbol"
-        i1.labelSymbolOffset shouldBe 99
+    test("baseline instruction shapes") {
+        val loadx = IRInstructions.loadMemory(
+            Opcode.LOADX, IRDataType.WORD, 1,
+            IRMemory.indexed("main.items", 2, IRDataType.WORD, scale = 2, displacement = 4)
+        )
+        loadx.toString() shouldBe "loadx.w r1.w,[main.items+4+r2.w*2]"
 
-        val i2 = IRInstruction(Opcode.ADDM, IRDataType.BYTE, reg1 = 1, labelSymbol = "symbol", symbolOffset = 0)
-        i2.labelSymbol shouldBe "symbol"
-        i2.labelSymbolOffset shouldBe null
+        val loadi = IRInstructions.loadMemory(Opcode.LOADI, IRDataType.BYTE, 3, IRMemory.indirect(4, 8))
+        loadi.toString() shouldBe "loadi.b r3.b,[r4.p+8]"
 
-        shouldThrowWithMessage<IllegalArgumentException>("labelsymbol offset inconsistency") {
-            IRInstruction(Opcode.ADDR, IRDataType.BYTE, reg1 = 1, reg2 = 2, symbolOffset = 99)
-        }
+        val loadhr = IRInstructions.hardwareLoad(IRDataType.WORD, 5, CallingConventionSlot(10))
+        loadhr.toString() shouldBe "loadhr.w r5.w,s10.w"
+
+        val calli = IRInstructions.call(Opcode.CALLI, CallSite(CallTarget.Direct(codeIndirect(6))))
+        calli.toString() shouldBe "calli (r6.p)()"
+    }
+
+    test("with symbol offset in a memory reference") {
+        val i1 = IRInstructions.memoryOp(Opcode.ADDM, IRDataType.BYTE, IRMemory.direct("symbol", 99), source = 1)
+        val memory = i1.requireMemory() as MemoryReference.Direct
+        memory.symbolName shouldBe "symbol"
+        memory.displacement shouldBe 99
+        i1.toString() shouldBe "addm.b r1.b,[symbol+99]"
+
+        val i2 = IRInstructions.memoryOp(Opcode.ADDM, IRDataType.BYTE, IRMemory.direct("symbol"), source = 1)
+        (i2.requireMemory() as MemoryReference.Direct).displacement shouldBe 0
+        i2.toString() shouldBe "addm.b r1.b,[symbol]"
+    }
+
+    test("register accounting uses distinct integer and float identities") {
+        val reads = mutableMapOf<VirtualRegister, Int>()
+        val writes = mutableMapOf<VirtualRegister, Int>()
+        val types = mutableMapOf<VirtualRegister, IRDataType>()
+        IRInstructions.binary(Opcode.ADDR, IRDataType.WORD, 5, 6).addUsedRegistersCounts(reads, writes, types, null)
+        IRInstructions.binary(Opcode.FSIN, IRDataType.FLOAT, 5, 6).addUsedRegistersCounts(reads, writes, types, null)
+        reads.keys shouldBe setOf(
+            VirtualRegister.int(5), VirtualRegister.int(6),
+            VirtualRegister.float(6)
+        )
+        writes.keys shouldBe setOf(VirtualRegister.int(5), VirtualRegister.float(5))
+        types shouldBe mapOf(
+            VirtualRegister.int(5) to IRDataType.WORD,
+            VirtualRegister.int(6) to IRDataType.WORD
+        )
+    }
+
+    test("instructions can be retargeted") {
+        val jump = IRInstructions.jump(codeLabel("main.first"))
+        jump.withTarget(codeLabel("main.second")).requireTarget() shouldBe CodeReference.Label("main.second")
+
+        val call = IRInstructions.call(CallSite(CallTarget.Direct(codeLabel("main.first"))))
+        call.withTarget(codeLabel("main.second")).requireCallSite().codeReference shouldBe CodeReference.Label("main.second")
     }
 })

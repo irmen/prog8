@@ -51,12 +51,27 @@ class TestInstructionSelectionOptimizations : FunSpec({
         return generateAsmChunks(outputDir, listOf(chunk), target)
     }
 
+    fun hwArg(register: Int, type: IRDataType, slot: Int): CallArgument =
+        Calls.argument(register, type, CallLocation.HardwareRegister(CallingConventionSlot(slot)))
+
+    fun hwResult(register: Int, type: IRDataType, slot: Int): CallResult =
+        Calls.result(register, type, CallLocation.HardwareRegister(CallingConventionSlot(slot)))
+
+    fun flagResult(register: Int, flag: Statusflag): CallResult =
+        Calls.result(register, IRDataType.BYTE, CallLocation.StatusFlag(flag))
+
+    fun callSite(
+        label: String,
+        arguments: List<CallArgument> = emptyList(),
+        results: List<CallResult> = emptyList()
+    ): CallSite = CallSite(CallTarget.Direct(codeLabel(label)), arguments, results)
+
     test("uses quick address adjustments and preserves large offsets") {
         val lines = generateAsm(
             tempRoot.resolve("test-m68k-offsets"),
             listOf(
-                IRInstruction(Opcode.STOREZI, IRDataType.FLOAT, reg1 = 1, immediate = 1),
-                IRInstruction(Opcode.STOREZI, IRDataType.FLOAT, reg1 = 1, immediate = 65535)
+                IRInstructions.storeZero(Opcode.STOREZI, IRDataType.FLOAT, IRMemory.indirect(1, 1)),
+                IRInstructions.storeZero(Opcode.STOREZI, IRDataType.FLOAT, IRMemory.indirect(1, 65535))
             )
         )
 
@@ -68,10 +83,10 @@ class TestInstructionSelectionOptimizations : FunSpec({
         val lines = generateAsm(
             tempRoot.resolve("test-m68k-control"),
             listOf(
-                IRInstruction(Opcode.EXT, IRDataType.BYTE, reg1 = 2, reg2 = 1),
-                IRInstruction(Opcode.EXT, IRDataType.WORD, reg1 = 3, reg2 = 2),
-                IRInstruction(Opcode.RETURNI, IRDataType.BYTE, immediate = 42),
-                IRInstruction(Opcode.RETURNI, IRDataType.BYTE, immediate = 255)
+                IRInstructions.binary(Opcode.EXT, IRDataType.BYTE, 2, 1),
+                IRInstructions.binary(Opcode.EXT, IRDataType.WORD, 3, 2),
+                IRInstructions.returnImmediate(IRDataType.BYTE, 42),
+                IRInstructions.returnImmediate(IRDataType.BYTE, 255)
             )
         )
 
@@ -83,7 +98,7 @@ class TestInstructionSelectionOptimizations : FunSpec({
     test("compares a virtual register directly against memory") {
         val lines = generateAsm(
             tempRoot.resolve("test-m68k-compare"),
-            listOf(IRInstruction(Opcode.CMP, IRDataType.BYTE, reg1 = 1, reg2 = 2))
+            listOf(IRInstructions.compare(IRDataType.BYTE, 1, 2))
         )
 
         lines.any { it == "move.b  p8_regfile+0,d0" } shouldBe true
@@ -96,8 +111,8 @@ class TestInstructionSelectionOptimizations : FunSpec({
         val lines = generateAsm(
             tempRoot.resolve("test-m68k-byte-mod"),
             listOf(
-                IRInstruction(Opcode.MODR, IRDataType.BYTE, reg1 = 1, reg2 = 2),
-                IRInstruction(Opcode.MODSR, IRDataType.BYTE, reg1 = 3, reg2 = 4)
+                IRInstructions.binary(Opcode.MODR, IRDataType.BYTE, 1, 2),
+                IRInstructions.binary(Opcode.MODSR, IRDataType.BYTE, 3, 4)
             )
         )
 
@@ -111,8 +126,8 @@ class TestInstructionSelectionOptimizations : FunSpec({
         val lines = generateAsm(
             tempRoot.resolve("test-m68k-mul-memsrc"),
             listOf(
-                IRInstruction(Opcode.MULR, IRDataType.WORD, reg1 = 1, reg2 = 2),
-                IRInstruction(Opcode.MULR, IRDataType.LONG, reg1 = 3, reg2 = 4)
+                IRInstructions.binary(Opcode.MULR, IRDataType.WORD, 1, 2),
+                IRInstructions.binary(Opcode.MULR, IRDataType.LONG, 3, 4)
             )
         )
 
@@ -126,8 +141,8 @@ class TestInstructionSelectionOptimizations : FunSpec({
         val lines = generateAsm(
             tempRoot.resolve("test-m68k-indirect"),
             listOf(
-                IRInstruction(Opcode.JUMPI, reg1 = 1),
-                IRInstruction(Opcode.CALLI, reg1 = 2)
+                IRInstructions.jumpIndirect(1),
+                IRInstructions.call(Opcode.CALLI, CallSite(CallTarget.Direct(codeIndirect(2))))
             )
         )
 
@@ -140,8 +155,8 @@ class TestInstructionSelectionOptimizations : FunSpec({
         val lines = generateAsm(
             tempRoot.resolve("test-m68k-divmod-word"),
             listOf(
-                IRInstruction(Opcode.DIVMODR, IRDataType.WORD, reg1 = 1, reg2 = 2),
-                IRInstruction(Opcode.SDIVMODR, IRDataType.WORD, reg1 = 3, reg2 = 4)
+                IRInstructions.divmodRegister(Opcode.DIVMODR, IRDataType.WORD, 1, 2),
+                IRInstructions.divmodRegister(Opcode.SDIVMODR, IRDataType.WORD, 3, 4)
             )
         )
 
@@ -155,14 +170,14 @@ class TestInstructionSelectionOptimizations : FunSpec({
         val lines = generateAsm(
             tempRoot.resolve("test-m68k-extract"),
             listOf(
-                IRInstruction(Opcode.MSIGB, IRDataType.WORD, reg1 = 1, reg2 = 2),
-                IRInstruction(Opcode.MSIGB, IRDataType.LONG, reg1 = 3, reg2 = 4),
-                IRInstruction(Opcode.LSIGB, IRDataType.WORD, reg1 = 5, reg2 = 6),
-                IRInstruction(Opcode.LSIGB, IRDataType.LONG, reg1 = 7, reg2 = 8),
-                IRInstruction(Opcode.MSIGW, IRDataType.LONG, reg1 = 9, reg2 = 10),
-                IRInstruction(Opcode.LSIGW, IRDataType.LONG, reg1 = 11, reg2 = 12),
-                IRInstruction(Opcode.BSIGB, IRDataType.LONG, reg1 = 13, reg2 = 14),
-                IRInstruction(Opcode.MIDB, IRDataType.LONG, reg1 = 15, reg2 = 16)
+                IRInstructions.binary(Opcode.MSIGB, IRDataType.WORD, 1, 2),
+                IRInstructions.binary(Opcode.MSIGB, IRDataType.LONG, 3, 4),
+                IRInstructions.binary(Opcode.LSIGB, IRDataType.WORD, 5, 6),
+                IRInstructions.binary(Opcode.LSIGB, IRDataType.LONG, 7, 8),
+                IRInstructions.binary(Opcode.MSIGW, IRDataType.LONG, 9, 10),
+                IRInstructions.binary(Opcode.LSIGW, IRDataType.LONG, 11, 12),
+                IRInstructions.binary(Opcode.BSIGB, IRDataType.LONG, 13, 14),
+                IRInstructions.binary(Opcode.MIDB, IRDataType.LONG, 15, 16)
             )
         )
 
@@ -176,10 +191,10 @@ class TestInstructionSelectionOptimizations : FunSpec({
         val lines = generateAsm(
             tempRoot.resolve("test-m68k-lsb-msb"),
             listOf(
-                IRInstruction(Opcode.LSIGB, IRDataType.WORD, reg1 = 1, reg2 = 2),
-                IRInstruction(Opcode.LSIGB, IRDataType.LONG, reg1 = 3, reg2 = 4),
-                IRInstruction(Opcode.MSIGB, IRDataType.WORD, reg1 = 5, reg2 = 6),
-                IRInstruction(Opcode.MSIGB, IRDataType.LONG, reg1 = 7, reg2 = 8)
+                IRInstructions.binary(Opcode.LSIGB, IRDataType.WORD, 1, 2),
+                IRInstructions.binary(Opcode.LSIGB, IRDataType.LONG, 3, 4),
+                IRInstructions.binary(Opcode.MSIGB, IRDataType.WORD, 5, 6),
+                IRInstructions.binary(Opcode.MSIGB, IRDataType.LONG, 7, 8)
             )
         )
 
@@ -192,8 +207,8 @@ class TestInstructionSelectionOptimizations : FunSpec({
         val lines = generateAsm(
             tempRoot.resolve("test-m68k-lsw-msw"),
             listOf(
-                IRInstruction(Opcode.LSIGW, IRDataType.LONG, reg1 = 1, reg2 = 2),
-                IRInstruction(Opcode.MSIGW, IRDataType.LONG, reg1 = 3, reg2 = 4)
+                IRInstructions.binary(Opcode.LSIGW, IRDataType.LONG, 1, 2),
+                IRInstructions.binary(Opcode.MSIGW, IRDataType.LONG, 3, 4)
             )
         )
 
@@ -207,9 +222,9 @@ class TestInstructionSelectionOptimizations : FunSpec({
         val lines = generateAsm(
             tempRoot.resolve("test-m68k-lmh"),
             listOf(
-                IRInstruction(Opcode.BSIGB, IRDataType.LONG, reg1 = 1, reg2 = 2),
-                IRInstruction(Opcode.MIDB, IRDataType.LONG, reg1 = 3, reg2 = 4),
-                IRInstruction(Opcode.LSIGB, IRDataType.LONG, reg1 = 5, reg2 = 6)
+                IRInstructions.binary(Opcode.BSIGB, IRDataType.LONG, 1, 2),
+                IRInstructions.binary(Opcode.MIDB, IRDataType.LONG, 3, 4),
+                IRInstructions.binary(Opcode.LSIGB, IRDataType.LONG, 5, 6)
             )
         )
 
@@ -218,21 +233,12 @@ class TestInstructionSelectionOptimizations : FunSpec({
     }
 
     test("forwards an immediate load into a following hardware-register call argument") {
-        val args = FunctionCallArgs(
-            listOf(
-                FunctionCallArgs.ArgumentSpec(
-                    "",
-                    null,
-                    FunctionCallArgs.RegSpec(IRDataType.WORD, RegisterNum(1), CallingConventionSlot(10), null)
-                )
-            ),
-            emptyList()
-        )
+        val site = callSite("copper.move", arguments = listOf(hwArg(1, IRDataType.WORD, 10)))
         val lines = generateAsm(
             tempRoot.resolve("test-m68k-call-forward"),
             listOf(
-                IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1 = 1, immediate = 384),
-                IRInstruction(Opcode.CALL, labelSymbol = "copper.move", fcallArgs = args)
+                IRInstructions.load(IRDataType.WORD, 1, 384),
+                IRInstructions.call(site)
             )
         )
 
@@ -242,19 +248,13 @@ class TestInstructionSelectionOptimizations : FunSpec({
     }
 
     test("forwards all immediate loads for a multi-argument call") {
-        val args = FunctionCallArgs(
-            listOf(
-                FunctionCallArgs.ArgumentSpec("", null, FunctionCallArgs.RegSpec(IRDataType.WORD, RegisterNum(1), CallingConventionSlot(10), null)),
-                FunctionCallArgs.ArgumentSpec("", null, FunctionCallArgs.RegSpec(IRDataType.WORD, RegisterNum(2), CallingConventionSlot(11), null))
-            ),
-            emptyList()
-        )
+        val site = callSite("copper.move", arguments = listOf(hwArg(1, IRDataType.WORD, 10), hwArg(2, IRDataType.WORD, 11)))
         val lines = generateAsm(
             tempRoot.resolve("test-m68k-call-forward-multi"),
             listOf(
-                IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1 = 1, immediate = 384),
-                IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1 = 2, immediate = 1220),
-                IRInstruction(Opcode.CALL, labelSymbol = "copper.move", fcallArgs = args)
+                IRInstructions.load(IRDataType.WORD, 1, 384),
+                IRInstructions.load(IRDataType.WORD, 2, 1220),
+                IRInstructions.call(site)
             )
         )
 
@@ -265,18 +265,12 @@ class TestInstructionSelectionOptimizations : FunSpec({
     }
 
     test("does not partially forward a multi-argument call") {
-        val args = FunctionCallArgs(
-            listOf(
-                FunctionCallArgs.ArgumentSpec("", null, FunctionCallArgs.RegSpec(IRDataType.WORD, RegisterNum(1), CallingConventionSlot(10), null)),
-                FunctionCallArgs.ArgumentSpec("", null, FunctionCallArgs.RegSpec(IRDataType.WORD, RegisterNum(2), CallingConventionSlot(11), null))
-            ),
-            emptyList()
-        )
+        val site = callSite("copper.move", arguments = listOf(hwArg(1, IRDataType.WORD, 10), hwArg(2, IRDataType.WORD, 11)))
         val lines = generateAsm(
             tempRoot.resolve("test-m68k-call-forward-atomic"),
             listOf(
-                IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1 = 1, immediate = 384),
-                IRInstruction(Opcode.CALL, labelSymbol = "copper.move", fcallArgs = args)
+                IRInstructions.load(IRDataType.WORD, 1, 384),
+                IRInstructions.call(site)
             )
         )
 
@@ -285,17 +279,15 @@ class TestInstructionSelectionOptimizations : FunSpec({
     }
 
     test("retains immediate loads for named call arguments") {
-        val args = FunctionCallArgs(
-            listOf(
-                FunctionCallArgs.ArgumentSpec("value", null, FunctionCallArgs.RegSpec(IRDataType.BYTE, RegisterNum(1), null, null))
-            ),
-            emptyList()
+        val site = callSite(
+            "callee",
+            arguments = listOf(Calls.argument(1, IRDataType.BYTE, CallLocation.ParameterMemory("value")))
         )
         val lines = generateAsm(
             tempRoot.resolve("test-m68k-call-named-argument"),
             listOf(
-                IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = 1, immediate = 42),
-                IRInstruction(Opcode.CALL, labelSymbol = "callee", fcallArgs = args)
+                IRInstructions.load(IRDataType.BYTE, 1, 42),
+                IRInstructions.call(site)
             )
         )
 
@@ -304,16 +296,13 @@ class TestInstructionSelectionOptimizations : FunSpec({
     }
 
     test("retains the register-file store when the value is used after the call") {
-        val args = FunctionCallArgs(
-            listOf(FunctionCallArgs.ArgumentSpec("", null, FunctionCallArgs.RegSpec(IRDataType.WORD, RegisterNum(1), CallingConventionSlot(10), null))),
-            emptyList()
-        )
+        val site = callSite("copper.move", arguments = listOf(hwArg(1, IRDataType.WORD, 10)))
         val lines = generateAsm(
             tempRoot.resolve("test-m68k-call-forward-live"),
             listOf(
-                IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1 = 1, immediate = 384),
-                IRInstruction(Opcode.CALL, labelSymbol = "copper.move", fcallArgs = args),
-                IRInstruction(Opcode.STOREM, IRDataType.WORD, reg1 = 1, labelSymbol = "p8b_test.p8v_value")
+                IRInstructions.load(IRDataType.WORD, 1, 384),
+                IRInstructions.call(site),
+                IRInstructions.storeMemory(Opcode.STOREM, IRDataType.WORD, 1, IRMemory.direct("p8b_test.p8v_value"))
             )
         )
 
@@ -322,19 +311,13 @@ class TestInstructionSelectionOptimizations : FunSpec({
     }
 
     test("uses moveq for forwarded small immediate call arguments") {
-        val args = FunctionCallArgs(
-            listOf(
-                FunctionCallArgs.ArgumentSpec("", null, FunctionCallArgs.RegSpec(IRDataType.WORD, RegisterNum(1), CallingConventionSlot(10), null)),
-                FunctionCallArgs.ArgumentSpec("", null, FunctionCallArgs.RegSpec(IRDataType.BYTE, RegisterNum(2), CallingConventionSlot(11), null))
-            ),
-            emptyList()
-        )
+        val site = callSite("copper.wait", arguments = listOf(hwArg(1, IRDataType.WORD, 10), hwArg(2, IRDataType.BYTE, 11)))
         val lines = generateAsm(
             tempRoot.resolve("test-m68k-call-forward-moveq"),
             listOf(
-                IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1 = 1, immediate = 100),
-                IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = 2, immediate = 48),
-                IRInstruction(Opcode.CALL, labelSymbol = "copper.wait", fcallArgs = args)
+                IRInstructions.load(IRDataType.WORD, 1, 100),
+                IRInstructions.load(IRDataType.BYTE, 2, 48),
+                IRInstructions.call(site)
             )
         )
 
@@ -345,17 +328,12 @@ class TestInstructionSelectionOptimizations : FunSpec({
     }
 
     test("maps byte values 128-255 to signed moveq range for forwarded arguments") {
-        val args = FunctionCallArgs(
-            listOf(
-                FunctionCallArgs.ArgumentSpec("", null, FunctionCallArgs.RegSpec(IRDataType.BYTE, RegisterNum(1), CallingConventionSlot(10), null))
-            ),
-            emptyList()
-        )
+        val site = callSite("copper.wait", arguments = listOf(hwArg(1, IRDataType.BYTE, 10)))
         val lines = generateAsm(
             tempRoot.resolve("test-m68k-call-forward-moveq-signed"),
             listOf(
-                IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = 1, immediate = 200),
-                IRInstruction(Opcode.CALL, labelSymbol = "copper.wait", fcallArgs = args)
+                IRInstructions.load(IRDataType.BYTE, 1, 200),
+                IRInstructions.call(site)
             )
         )
 
@@ -364,17 +342,12 @@ class TestInstructionSelectionOptimizations : FunSpec({
     }
 
     test("keeps move.w for forwarded immediates that do not fit moveq range") {
-        val args = FunctionCallArgs(
-            listOf(
-                FunctionCallArgs.ArgumentSpec("", null, FunctionCallArgs.RegSpec(IRDataType.WORD, RegisterNum(1), CallingConventionSlot(10), null))
-            ),
-            emptyList()
-        )
+        val site = callSite("copper.move", arguments = listOf(hwArg(1, IRDataType.WORD, 10)))
         val lines = generateAsm(
             tempRoot.resolve("test-m68k-call-forward-nomoveq"),
             listOf(
-                IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1 = 1, immediate = 384),
-                IRInstruction(Opcode.CALL, labelSymbol = "copper.move", fcallArgs = args)
+                IRInstructions.load(IRDataType.WORD, 1, 384),
+                IRInstructions.call(site)
             )
         )
 
@@ -385,21 +358,12 @@ class TestInstructionSelectionOptimizations : FunSpec({
     // === Floating-point immediate call-argument forwarding and dead-store removal ===
 
     test("forwards an immediate float load into a following FPU hardware-register call argument") {
-        val args = FunctionCallArgs(
-            listOf(
-                FunctionCallArgs.ArgumentSpec(
-                    "",
-                    null,
-                    FunctionCallArgs.RegSpec(IRDataType.FLOAT, RegisterNum(1), CallingConventionSlot(25), null)
-                )
-            ),
-            emptyList()
-        )
+        val site = callSite("math.func", arguments = listOf(hwArg(1, IRDataType.FLOAT, 25)))
         val lines = generateAsm(
             tempRoot.resolve("test-m68k-call-forward-float"),
             listOf(
-                IRInstruction(Opcode.LOAD, IRDataType.FLOAT, fpReg1 = RegisterNum(1), immediateFp = 1.0),
-                IRInstruction(Opcode.CALL, labelSymbol = "math.func", fcallArgs = args)
+                IRInstructions.loadFloat(1, 1.0),
+                IRInstructions.call(site)
             )
         )
 
@@ -409,21 +373,12 @@ class TestInstructionSelectionOptimizations : FunSpec({
     }
 
     test("forwards an immediate float load into a different FPU register and drops the dead fregfile store") {
-        val args = FunctionCallArgs(
-            listOf(
-                FunctionCallArgs.ArgumentSpec(
-                    "",
-                    null,
-                    FunctionCallArgs.RegSpec(IRDataType.FLOAT, RegisterNum(1), CallingConventionSlot(26), null)
-                )
-            ),
-            emptyList()
-        )
+        val site = callSite("math.func", arguments = listOf(hwArg(1, IRDataType.FLOAT, 26)))
         val lines = generateAsm(
             tempRoot.resolve("test-m68k-call-forward-float-fp1"),
             listOf(
-                IRInstruction(Opcode.LOAD, IRDataType.FLOAT, fpReg1 = RegisterNum(1), immediateFp = 100.0),
-                IRInstruction(Opcode.CALL, labelSymbol = "math.func", fcallArgs = args)
+                IRInstructions.loadFloat(1, 100.0),
+                IRInstructions.call(site)
             )
         )
 
@@ -433,19 +388,13 @@ class TestInstructionSelectionOptimizations : FunSpec({
     }
 
     test("forwards both integer and float immediate loads for a mixed-argument call") {
-        val args = FunctionCallArgs(
-            listOf(
-                FunctionCallArgs.ArgumentSpec("", null, FunctionCallArgs.RegSpec(IRDataType.WORD, RegisterNum(1), CallingConventionSlot(10), null)),
-                FunctionCallArgs.ArgumentSpec("", null, FunctionCallArgs.RegSpec(IRDataType.FLOAT, RegisterNum(2), CallingConventionSlot(25), null))
-            ),
-            emptyList()
-        )
+        val site = callSite("mixed.func", arguments = listOf(hwArg(1, IRDataType.WORD, 10), hwArg(2, IRDataType.FLOAT, 25)))
         val lines = generateAsm(
             tempRoot.resolve("test-m68k-call-forward-mixed"),
             listOf(
-                IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1 = 1, immediate = 384),
-                IRInstruction(Opcode.LOAD, IRDataType.FLOAT, fpReg1 = RegisterNum(2), immediateFp = 1.0),
-                IRInstruction(Opcode.CALL, labelSymbol = "mixed.func", fcallArgs = args)
+                IRInstructions.load(IRDataType.WORD, 1, 384),
+                IRInstructions.loadFloat(2, 1.0),
+                IRInstructions.call(site)
             )
         )
 
@@ -457,18 +406,13 @@ class TestInstructionSelectionOptimizations : FunSpec({
     }
 
     test("retains the fregfile store when a forwarded float value is used after the call") {
-        val args = FunctionCallArgs(
-            listOf(
-                FunctionCallArgs.ArgumentSpec("", null, FunctionCallArgs.RegSpec(IRDataType.FLOAT, RegisterNum(1), CallingConventionSlot(25), null))
-            ),
-            emptyList()
-        )
+        val site = callSite("math.func", arguments = listOf(hwArg(1, IRDataType.FLOAT, 25)))
         val lines = generateAsm(
             tempRoot.resolve("test-m68k-call-forward-float-live"),
             listOf(
-                IRInstruction(Opcode.LOAD, IRDataType.FLOAT, fpReg1 = RegisterNum(1), immediateFp = 1.0),
-                IRInstruction(Opcode.CALL, labelSymbol = "math.func", fcallArgs = args),
-                IRInstruction(Opcode.STOREM, IRDataType.FLOAT, fpReg1 = RegisterNum(1), labelSymbol = "p8b_test.p8v_value")
+                IRInstructions.loadFloat(1, 1.0),
+                IRInstructions.call(site),
+                IRInstructions.storeMemory(Opcode.STOREM, IRDataType.FLOAT, 1, IRMemory.direct("p8b_test.p8v_value"))
             )
         )
 
@@ -478,27 +422,24 @@ class TestInstructionSelectionOptimizations : FunSpec({
 
     // === sys.memcopy inlining ===
 
-    fun memcopyArgs(): FunctionCallArgs {
-        return FunctionCallArgs(
-            listOf(
-                FunctionCallArgs.ArgumentSpec("", null, FunctionCallArgs.RegSpec(IRDataType.LONG, RegisterNum(1), CallingConventionSlot(18), null)),
-                FunctionCallArgs.ArgumentSpec("", null, FunctionCallArgs.RegSpec(IRDataType.LONG, RegisterNum(2), CallingConventionSlot(19), null)),
-                FunctionCallArgs.ArgumentSpec("", null, FunctionCallArgs.RegSpec(IRDataType.LONG, RegisterNum(3), CallingConventionSlot(10), null))
-            ),
-            emptyList()
+    fun memcopySite(): CallSite = callSite(
+        "sys.memcopy",
+        arguments = listOf(
+            hwArg(1, IRDataType.LONG, 18),
+            hwArg(2, IRDataType.LONG, 19),
+            hwArg(3, IRDataType.LONG, 10)
         )
-    }
+    )
 
     fun generateMemcopyAsm(outputDir: Path, srcImm: UInt?, tgtImm: UInt?, countImm: UInt?): List<String> {
-        val args = memcopyArgs()
         val instructions = mutableListOf<IRInstruction>()
         if (srcImm != null)
-            instructions.add(IRInstruction(Opcode.LOAD, IRDataType.LONG, reg1 = 1, immediate = srcImm.toInt()))
+            instructions.add(IRInstructions.load(IRDataType.LONG, 1, srcImm.toInt()))
         if (tgtImm != null)
-            instructions.add(IRInstruction(Opcode.LOAD, IRDataType.LONG, reg1 = 2, immediate = tgtImm.toInt()))
+            instructions.add(IRInstructions.load(IRDataType.LONG, 2, tgtImm.toInt()))
         if (countImm != null)
-            instructions.add(IRInstruction(Opcode.LOAD, IRDataType.LONG, reg1 = 3, immediate = countImm.toInt()))
-        instructions.add(IRInstruction(Opcode.CALL, labelSymbol = "sys.memcopy", fcallArgs = args))
+            instructions.add(IRInstructions.load(IRDataType.LONG, 3, countImm.toInt()))
+        instructions.add(IRInstructions.call(memcopySite()))
         return generateAsm(outputDir, instructions)
     }
 
@@ -557,15 +498,14 @@ class TestInstructionSelectionOptimizations : FunSpec({
     }
 
     test("calls sys.memcopy when count is not a forwarded immediate") {
-        val args = memcopyArgs()
         val lines = generateAsm(
             tempRoot.resolve("test-m68k-memcopy-variable"),
             listOf(
-                IRInstruction(Opcode.LOAD, IRDataType.LONG, reg1 = 1, immediate = 0x1000),
-                IRInstruction(Opcode.LOAD, IRDataType.LONG, reg1 = 2, immediate = 0x2000),
+                IRInstructions.load(IRDataType.LONG, 1, 0x1000),
+                IRInstructions.load(IRDataType.LONG, 2, 0x2000),
                 // no LOAD for r3, count comes from elsewhere (simulated by loading from a made-up value)
-                IRInstruction(Opcode.LOADM, IRDataType.LONG, reg1 = 3, labelSymbol = "p8b_test.p8v_count"),
-                IRInstruction(Opcode.CALL, labelSymbol = "sys.memcopy", fcallArgs = args)
+                IRInstructions.loadMemory(Opcode.LOADM, IRDataType.LONG, 3, IRMemory.direct("p8b_test.p8v_count")),
+                IRInstructions.call(memcopySite())
             )
         )
 
@@ -580,18 +520,12 @@ class TestInstructionSelectionOptimizations : FunSpec({
     }
 
     test("does not partially forward a mixed-argument call when a float arg has no immediate load") {
-        val args = FunctionCallArgs(
-            listOf(
-                FunctionCallArgs.ArgumentSpec("", null, FunctionCallArgs.RegSpec(IRDataType.WORD, RegisterNum(1), CallingConventionSlot(10), null)),
-                FunctionCallArgs.ArgumentSpec("", null, FunctionCallArgs.RegSpec(IRDataType.FLOAT, RegisterNum(2), CallingConventionSlot(25), null))
-            ),
-            emptyList()
-        )
+        val site = callSite("mixed.func", arguments = listOf(hwArg(1, IRDataType.WORD, 10), hwArg(2, IRDataType.FLOAT, 25)))
         val lines = generateAsm(
             tempRoot.resolve("test-m68k-call-forward-mixed-atomic"),
             listOf(
-                IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1 = 1, immediate = 384),
-                IRInstruction(Opcode.CALL, labelSymbol = "mixed.func", fcallArgs = args)
+                IRInstructions.load(IRDataType.WORD, 1, 384),
+                IRInstructions.call(site)
             )
         )
 
@@ -603,7 +537,7 @@ class TestInstructionSelectionOptimizations : FunSpec({
         val lines = generateAsm(
             tempRoot.resolve("test-m68k-pointer-a0"),
             listOf(
-                IRInstruction(Opcode.STOREZI, IRDataType.WORD, reg1 = 1, immediate = 1)
+                IRInstructions.storeZero(Opcode.STOREZI, IRDataType.WORD, IRMemory.indirect(1, 1))
             )
         )
 
@@ -613,9 +547,9 @@ class TestInstructionSelectionOptimizations : FunSpec({
 
     test("ADDR.P zero-extends a word source") {
         val chunk = IRCodeChunk(null, null)
-        chunk.instructions.add(IRInstruction(Opcode.LOAD, IRDataType.POINTER, reg1 = 1, immediate = 0x10000))
-        chunk.instructions.add(IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1 = 2, immediate = 10))
-        chunk.instructions.add(IRInstruction(Opcode.ADDR, IRDataType.POINTER, reg1 = 1, reg2 = 2))
+        chunk.instructions.add(IRInstructions.load(IRDataType.POINTER, 1, 0x10000))
+        chunk.instructions.add(IRInstructions.load(IRDataType.WORD, 2, 10))
+        chunk.instructions.add(IRInstructions.binary(Opcode.ADDR, IRDataType.POINTER, 1, 2))
         val lines = generateAsmChunks(
             tempRoot.resolve("test-m68k-addr-p-word-src"),
             listOf(chunk)
@@ -628,9 +562,9 @@ class TestInstructionSelectionOptimizations : FunSpec({
 
     test("ADDR.P does not zero-extend a long source") {
         val chunk = IRCodeChunk(null, null)
-        chunk.instructions.add(IRInstruction(Opcode.LOAD, IRDataType.POINTER, reg1 = 1, immediate = 0x10000))
-        chunk.instructions.add(IRInstruction(Opcode.LOAD, IRDataType.LONG, reg1 = 2, immediate = 10))
-        chunk.instructions.add(IRInstruction(Opcode.ADDR, IRDataType.POINTER, reg1 = 1, reg2 = 2))
+        chunk.instructions.add(IRInstructions.load(IRDataType.POINTER, 1, 0x10000))
+        chunk.instructions.add(IRInstructions.load(IRDataType.LONG, 2, 10))
+        chunk.instructions.add(IRInstructions.binary(Opcode.ADDR, IRDataType.POINTER, 1, 2))
         val lines = generateAsmChunks(
             tempRoot.resolve("test-m68k-addr-p-long-src"),
             listOf(chunk)
@@ -642,9 +576,9 @@ class TestInstructionSelectionOptimizations : FunSpec({
 
     test("SUBR.P zero-extends a word source") {
         val chunk = IRCodeChunk(null, null)
-        chunk.instructions.add(IRInstruction(Opcode.LOAD, IRDataType.POINTER, reg1 = 1, immediate = 0x10000))
-        chunk.instructions.add(IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1 = 2, immediate = 10))
-        chunk.instructions.add(IRInstruction(Opcode.SUBR, IRDataType.POINTER, reg1 = 1, reg2 = 2))
+        chunk.instructions.add(IRInstructions.load(IRDataType.POINTER, 1, 0x10000))
+        chunk.instructions.add(IRInstructions.load(IRDataType.WORD, 2, 10))
+        chunk.instructions.add(IRInstructions.binary(Opcode.SUBR, IRDataType.POINTER, 1, 2))
         val lines = generateAsmChunks(
             tempRoot.resolve("test-m68k-subr-p-word-src"),
             listOf(chunk)
@@ -656,22 +590,13 @@ class TestInstructionSelectionOptimizations : FunSpec({
     }
 
     test("does not forward across an intervening instruction") {
-        val args = FunctionCallArgs(
-            listOf(
-                FunctionCallArgs.ArgumentSpec(
-                    "",
-                    null,
-                    FunctionCallArgs.RegSpec(IRDataType.WORD, RegisterNum(1), CallingConventionSlot(10), null)
-                )
-            ),
-            emptyList()
-        )
+        val site = callSite("copper.move", arguments = listOf(hwArg(1, IRDataType.WORD, 10)))
         val lines = generateAsm(
             tempRoot.resolve("test-m68k-call-forward-boundary"),
             listOf(
-                IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1 = 1, immediate = 384),
-                IRInstruction(Opcode.NOP),
-                IRInstruction(Opcode.CALL, labelSymbol = "copper.move", fcallArgs = args)
+                IRInstructions.load(IRDataType.WORD, 1, 384),
+                IRInstructions.simple(Opcode.NOP),
+                IRInstructions.call(site)
             )
         )
 
@@ -680,24 +605,15 @@ class TestInstructionSelectionOptimizations : FunSpec({
     }
 
     test("retains the register-file store when the value is read via a backward jump") {
-        val args = FunctionCallArgs(
-            listOf(
-                FunctionCallArgs.ArgumentSpec(
-                    "",
-                    null,
-                    FunctionCallArgs.RegSpec(IRDataType.WORD, RegisterNum(1), CallingConventionSlot(10), null)
-                )
-            ),
-            emptyList()
-        )
+        val site = callSite("copper.move", arguments = listOf(hwArg(1, IRDataType.WORD, 10)))
         val loopHead = IRCodeChunk("test.start.loop", null)
         loopHead.instructions.add(
-            IRInstruction(Opcode.STOREM, IRDataType.WORD, reg1 = 1, labelSymbol = "p8b_test.p8v_out")
+            IRInstructions.storeMemory(Opcode.STOREM, IRDataType.WORD, 1, IRMemory.direct("p8b_test.p8v_out"))
         )
         val loopBody = IRCodeChunk(null, null)
-        loopBody.instructions.add(IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1 = 1, immediate = 384))
-        loopBody.instructions.add(IRInstruction(Opcode.CALL, labelSymbol = "copper.move", fcallArgs = args))
-        loopBody.instructions.add(IRInstruction(Opcode.JUMP, labelSymbol = "test.start.loop"))
+        loopBody.instructions.add(IRInstructions.load(IRDataType.WORD, 1, 384))
+        loopBody.instructions.add(IRInstructions.call(site))
+        loopBody.instructions.add(IRInstructions.jump(codeLabel("test.start.loop")))
         val lines = generateAsmChunks(
             tempRoot.resolve("test-m68k-call-forward-backjump"),
             listOf(loopHead, loopBody)
@@ -708,22 +624,13 @@ class TestInstructionSelectionOptimizations : FunSpec({
     }
 
     test("suppresses the register-file stores inside a loop when the registers are only used by the call") {
-        val args = FunctionCallArgs(
-            listOf(
-                FunctionCallArgs.ArgumentSpec(
-                    "",
-                    null,
-                    FunctionCallArgs.RegSpec(IRDataType.WORD, RegisterNum(1), CallingConventionSlot(10), null)
-                )
-            ),
-            emptyList()
-        )
+        val site = callSite("copper.move", arguments = listOf(hwArg(1, IRDataType.WORD, 10)))
         val loopHead = IRCodeChunk("test.start.loop", null)
-        loopHead.instructions.add(IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1 = 2, immediate = 1))
+        loopHead.instructions.add(IRInstructions.load(IRDataType.WORD, 2, 1))
         val loopBody = IRCodeChunk(null, null)
-        loopBody.instructions.add(IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1 = 1, immediate = 384))
-        loopBody.instructions.add(IRInstruction(Opcode.CALL, labelSymbol = "copper.move", fcallArgs = args))
-        loopBody.instructions.add(IRInstruction(Opcode.JUMP, labelSymbol = "test.start.loop"))
+        loopBody.instructions.add(IRInstructions.load(IRDataType.WORD, 1, 384))
+        loopBody.instructions.add(IRInstructions.call(site))
+        loopBody.instructions.add(IRInstructions.jump(codeLabel("test.start.loop")))
         val lines = generateAsmChunks(
             tempRoot.resolve("test-m68k-call-forward-loop-singleuse"),
             listOf(loopHead, loopBody)
@@ -734,19 +641,10 @@ class TestInstructionSelectionOptimizations : FunSpec({
     }
 
     test("retains the register-file store when the value is read by a later inline asm chunk") {
-        val args = FunctionCallArgs(
-            listOf(
-                FunctionCallArgs.ArgumentSpec(
-                    "",
-                    null,
-                    FunctionCallArgs.RegSpec(IRDataType.WORD, RegisterNum(1), CallingConventionSlot(10), null)
-                )
-            ),
-            emptyList()
-        )
+        val site = callSite("copper.move", arguments = listOf(hwArg(1, IRDataType.WORD, 10)))
         val chunk = IRCodeChunk(null, null)
-        chunk.instructions.add(IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1 = 1, immediate = 384))
-        chunk.instructions.add(IRInstruction(Opcode.CALL, labelSymbol = "copper.move", fcallArgs = args))
+        chunk.instructions.add(IRInstructions.load(IRDataType.WORD, 1, 384))
+        chunk.instructions.add(IRInstructions.call(site))
         val inlineAsm = IRInlineAsmChunk(null, "move.w  p8_regfile+0,d1", false, null)
         val lines = generateAsmChunks(
             tempRoot.resolve("test-m68k-call-forward-inlineasm"),
@@ -758,19 +656,10 @@ class TestInstructionSelectionOptimizations : FunSpec({
     }
 
     test("still suppresses the register-file store when an inline asm chunk does not read the register file") {
-        val args = FunctionCallArgs(
-            listOf(
-                FunctionCallArgs.ArgumentSpec(
-                    "",
-                    null,
-                    FunctionCallArgs.RegSpec(IRDataType.WORD, RegisterNum(1), CallingConventionSlot(10), null)
-                )
-            ),
-            emptyList()
-        )
+        val site = callSite("copper.move", arguments = listOf(hwArg(1, IRDataType.WORD, 10)))
         val chunk = IRCodeChunk(null, null)
-        chunk.instructions.add(IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1 = 1, immediate = 384))
-        chunk.instructions.add(IRInstruction(Opcode.CALL, labelSymbol = "copper.move", fcallArgs = args))
+        chunk.instructions.add(IRInstructions.load(IRDataType.WORD, 1, 384))
+        chunk.instructions.add(IRInstructions.call(site))
         val inlineAsm = IRInlineAsmChunk(null, "move.w  custom.INTREQR,d1", false, null)
         val lines = generateAsmChunks(
             tempRoot.resolve("test-m68k-call-forward-inlineasm-harmless"),
@@ -783,10 +672,10 @@ class TestInstructionSelectionOptimizations : FunSpec({
 
     test("removes jmp to immediately following label") {
         val chunk1 = IRCodeChunk(null, null)
-        chunk1.instructions.add(IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = 1, immediate = 42))
-        chunk1.instructions.add(IRInstruction(Opcode.JUMP, labelSymbol = "test.end"))
+        chunk1.instructions.add(IRInstructions.load(IRDataType.BYTE, 1, 42))
+        chunk1.instructions.add(IRInstructions.jump(codeLabel("test.end")))
         val chunk2 = IRCodeChunk("test.end", null)
-        chunk2.instructions.add(IRInstruction(Opcode.RETURN))
+        chunk2.instructions.add(IRInstructions.returnVoid())
         val lines = generateAsmChunks(
             tempRoot.resolve("test-m68k-jmp-to-next-label"),
             listOf(chunk1, chunk2)
@@ -798,11 +687,11 @@ class TestInstructionSelectionOptimizations : FunSpec({
 
     test("removes jmp to immediately following label but keeps label on jmp line") {
         val chunk1 = IRCodeChunk(null, null)
-        chunk1.instructions.add(IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = 1, immediate = 42))
+        chunk1.instructions.add(IRInstructions.load(IRDataType.BYTE, 1, 42))
         val chunk2 = IRCodeChunk("test.mid", null)
-        chunk2.instructions.add(IRInstruction(Opcode.JUMP, labelSymbol = "test.end"))
+        chunk2.instructions.add(IRInstructions.jump(codeLabel("test.end")))
         val chunk3 = IRCodeChunk("test.end", null)
-        chunk3.instructions.add(IRInstruction(Opcode.RETURN))
+        chunk3.instructions.add(IRInstructions.returnVoid())
         val lines = generateAsmChunks(
             tempRoot.resolve("test-m68k-jmp-to-next-label-with-label"),
             listOf(chunk1, chunk2, chunk3)
@@ -817,10 +706,10 @@ class TestInstructionSelectionOptimizations : FunSpec({
         // When bsr+rts is followed immediately by the target label, both bsr and rts are removed
         // (optimizeJmpToNextLabel removes the bra that optimizeTailCall created)
         val chunk1 = IRCodeChunk(null, null)
-        chunk1.instructions.add(IRInstruction(Opcode.CALL, labelSymbol = "test.target"))
-        chunk1.instructions.add(IRInstruction(Opcode.RETURN))
+        chunk1.instructions.add(IRInstructions.call(callSite("test.target")))
+        chunk1.instructions.add(IRInstructions.returnVoid())
         val chunk2 = IRCodeChunk("test.target", null)
-        chunk2.instructions.add(IRInstruction(Opcode.RETURN))
+        chunk2.instructions.add(IRInstructions.returnVoid())
         val lines = generateAsmChunks(
             tempRoot.resolve("test-m68k-tail-call"),
             listOf(chunk1, chunk2)
@@ -838,12 +727,12 @@ class TestInstructionSelectionOptimizations : FunSpec({
     test("optimizes bsr+rts to bra when target is not immediately following") {
         // When there's code between the bsr+rts and the target label, the bra is kept
         val chunk1 = IRCodeChunk(null, null)
-        chunk1.instructions.add(IRInstruction(Opcode.CALL, labelSymbol = "test.target"))
-        chunk1.instructions.add(IRInstruction(Opcode.RETURN))
+        chunk1.instructions.add(IRInstructions.call(callSite("test.target")))
+        chunk1.instructions.add(IRInstructions.returnVoid())
         val chunk2 = IRCodeChunk(null, null)
-        chunk2.instructions.add(IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = 1, immediate = 99))
+        chunk2.instructions.add(IRInstructions.load(IRDataType.BYTE, 1, 99))
         val chunk3 = IRCodeChunk("test.target", null)
-        chunk3.instructions.add(IRInstruction(Opcode.RETURN))
+        chunk3.instructions.add(IRInstructions.returnVoid())
         val lines = generateAsmChunks(
             tempRoot.resolve("test-m68k-tail-call-with-gap"),
             listOf(chunk1, chunk2, chunk3)
@@ -859,14 +748,14 @@ class TestInstructionSelectionOptimizations : FunSpec({
 
     test("optimizes bsr+rts to bra but keeps label on bsr line") {
         val chunk1 = IRCodeChunk(null, null)
-        chunk1.instructions.add(IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = 1, immediate = 42))
+        chunk1.instructions.add(IRInstructions.load(IRDataType.BYTE, 1, 42))
         val chunk2 = IRCodeChunk("test.caller", null)
-        chunk2.instructions.add(IRInstruction(Opcode.CALL, labelSymbol = "test.target"))
-        chunk2.instructions.add(IRInstruction(Opcode.RETURN))
+        chunk2.instructions.add(IRInstructions.call(callSite("test.target")))
+        chunk2.instructions.add(IRInstructions.returnVoid())
         val chunk3 = IRCodeChunk(null, null)
-        chunk3.instructions.add(IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = 2, immediate = 99))
+        chunk3.instructions.add(IRInstructions.load(IRDataType.BYTE, 2, 99))
         val chunk4 = IRCodeChunk("test.target", null)
-        chunk4.instructions.add(IRInstruction(Opcode.RETURN))
+        chunk4.instructions.add(IRInstructions.returnVoid())
         val lines = generateAsmChunks(
             tempRoot.resolve("test-m68k-tail-call-with-label"),
             listOf(chunk1, chunk2, chunk3, chunk4)
@@ -936,17 +825,10 @@ class TestInstructionSelectionOptimizations : FunSpec({
         // Bug fix: single-return expression calls with @A0-A6/@FP0-FP7 returns
         // should emit the store instruction because the IR doesn't generate LOADHR
         // for single-return calls.
-        val args = FunctionCallArgs(
-            emptyList(),
-            listOf(
-                FunctionCallArgs.RegSpec(IRDataType.POINTER, RegisterNum(0), CallingConventionSlot(18), null)
-            )
-        )
+        val site = callSite("test.asmsub", results = listOf(hwResult(0, IRDataType.POINTER, 18)))
         val lines = generateAsm(
             tempRoot.resolve("test-m68k-single-return-a0"),
-            listOf(
-                IRInstruction(Opcode.CALL, labelSymbol = "test.asmsub", fcallArgs = args)
-            )
+            listOf(IRInstructions.call(site))
         )
         // Should emit a store from a0 to virtual register
         lines.any { it.contains("move.l") && it.contains("a0") && it.contains("p8_regfile") } shouldBe true
@@ -955,17 +837,10 @@ class TestInstructionSelectionOptimizations : FunSpec({
     test("single-return expression call with @FP0 (slot 25) emits store instruction") {
         // Bug fix: single-return expression calls with float register returns
         // should emit the store instruction.
-        val args = FunctionCallArgs(
-            emptyList(),
-            listOf(
-                FunctionCallArgs.RegSpec(IRDataType.FLOAT, RegisterNum(0), CallingConventionSlot(25), null)
-            )
-        )
+        val site = callSite("test.asmsub", results = listOf(hwResult(0, IRDataType.FLOAT, 25)))
         val lines = generateAsm(
             tempRoot.resolve("test-m68k-single-return-fp0"),
-            listOf(
-                IRInstruction(Opcode.CALL, labelSymbol = "test.asmsub", fcallArgs = args)
-            )
+            listOf(IRInstructions.call(site))
         )
         // Should emit fmove.s from fp0 to virtual register
         lines.any { it.contains("fmove.s") && it.contains("fp0") } shouldBe true
@@ -975,18 +850,13 @@ class TestInstructionSelectionOptimizations : FunSpec({
         // Bug fix: in multi-assign context, slot returns should be skipped because
         // the IR generates LOADHR for them. Emitting move here would clobber CPU flags
         // before the IR's branch pattern can read them.
-        val args = FunctionCallArgs(
-            emptyList(),
-            listOf(
-                FunctionCallArgs.RegSpec(IRDataType.BYTE, RegisterNum(0), CallingConventionSlot(10), null),
-                FunctionCallArgs.RegSpec(IRDataType.BYTE, RegisterNum(1), null, Statusflag.Pz)
-            )
+        val site = callSite(
+            "test.asmsub",
+            results = listOf(hwResult(0, IRDataType.BYTE, 10), flagResult(1, Statusflag.Pz))
         )
         val lines = generateAsm(
             tempRoot.resolve("test-m68k-multi-assign-d0-pz"),
-            listOf(
-                IRInstruction(Opcode.CALL, labelSymbol = "test.asmsub", fcallArgs = args)
-            )
+            listOf(IRInstructions.call(site))
         )
         // Find the bsr line
         val jsrIndex = lines.indexOfFirst { it.startsWith("bsr") && it.contains("test.asmsub") }
@@ -1003,23 +873,13 @@ class TestInstructionSelectionOptimizations : FunSpec({
     test("CALLFAR multi-assign with slot + flag return does not emit move between jsr and branch") {
         // Bug fix: CALLFAR in multi-assign context should also skip slot returns.
         // CALLFAR only works for amiga targets, so we need a separate helper.
-        val args = FunctionCallArgs(
-            emptyList(),
-            listOf(
-                FunctionCallArgs.RegSpec(IRDataType.POINTER, RegisterNum(0), CallingConventionSlot(18), null),
-                FunctionCallArgs.RegSpec(IRDataType.BYTE, RegisterNum(1), null, Statusflag.Pz)
-            )
+        // For amiga CALLFAR the target is an automatic library call: library number 1 (exec.library)
+        // and a negative LVO offset into its jump table.
+        val callfarSite = CallSite(
+            CallTarget.AmigaLibrary(library = 1, lvo = -30, name = "test.libfunc"),
+            results = listOf(hwResult(0, IRDataType.POINTER, 18), flagResult(1, Statusflag.Pz))
         )
-        // For amiga CALLFAR, address is the LVO offset (negative as Int, but stored as UInt bits)
-        // -30 as Int = 0xFFFFFFE2 as UInt bits
-        val negativeOffset = (-30).toUInt()
-        val callfarInsn = IRInstruction(
-            Opcode.CALLFAR,
-            labelSymbol = "test.libfunc",
-            fcallArgs = args,
-            address = MemoryAddress(negativeOffset),
-            immediate = 1  // bank number (1=exec.library)
-        ).apply { extSubName = "test.libfunc" }
+        val callfarInsn = IRInstructions.call(Opcode.CALLFAR, callfarSite)
 
         val target = Amiga500Target()
         val options = CompilationOptions.builder(target)
@@ -1061,7 +921,7 @@ class TestInstructionSelectionOptimizations : FunSpec({
     }
 
     test("dbra via IRLoopChunk for repeat word loop 1000") {
-        val body = IRCodeChunk(null, null).also { it += IRInstruction(Opcode.INCM, IRDataType.WORD, labelSymbol="p8b_main.p8v_sum") }
+        val body = IRCodeChunk(null, null).also { it += IRInstructions.memoryOp(Opcode.INCM, IRDataType.WORD, IRMemory.direct("p8b_main.p8v_sum")) }
         val loop = IRLoopChunk("p8_label_gen_2", 1000, mutableListOf(body))
         val lines = generateAsmChunks(tempRoot, listOf(loop))
         lines.any { it.contains("move.w  #999,d7") } shouldBe true
@@ -1069,7 +929,7 @@ class TestInstructionSelectionOptimizations : FunSpec({
     }
 
     test("dbra via IRLoopChunk for repeat byte loop 100") {
-        val body = IRCodeChunk(null, null).also { it += IRInstruction(Opcode.INCM, IRDataType.WORD, labelSymbol="p8b_main.p8v_sum") }
+        val body = IRCodeChunk(null, null).also { it += IRInstructions.memoryOp(Opcode.INCM, IRDataType.WORD, IRMemory.direct("p8b_main.p8v_sum")) }
         val loop = IRLoopChunk("p8_label_gen_1", 100, mutableListOf(body))
         val lines = generateAsmChunks(tempRoot, listOf(loop))
         lines.any { it.contains("move.w  #99,d7") } shouldBe true
@@ -1077,7 +937,7 @@ class TestInstructionSelectionOptimizations : FunSpec({
     }
 
     test("dbra via IRLoopChunk for repeat 256 special case") {
-        val body = IRCodeChunk(null, null).also { it += IRInstruction(Opcode.INCM, IRDataType.WORD, labelSymbol="p8b_main.p8v_sum") }
+        val body = IRCodeChunk(null, null).also { it += IRInstructions.memoryOp(Opcode.INCM, IRDataType.WORD, IRMemory.direct("p8b_main.p8v_sum")) }
         val loop = IRLoopChunk("p8_label_gen_1", 256, mutableListOf(body))
         val lines = generateAsmChunks(tempRoot, listOf(loop))
         lines.any { it.contains("move.w  #255,d7") } shouldBe true
@@ -1109,7 +969,7 @@ class TestInstructionSelectionOptimizations : FunSpec({
     }
 
     test("dbra via IRLoopChunk preserves label on init line") {
-        val body = IRCodeChunk(null, null).also { it += IRInstruction(Opcode.INCM, IRDataType.WORD, labelSymbol="p8b_main.p8v_sum") }
+        val body = IRCodeChunk(null, null).also { it += IRInstructions.memoryOp(Opcode.INCM, IRDataType.WORD, IRMemory.direct("p8b_main.p8v_sum")) }
         val outerChunk = IRCodeChunk("outer", null)
         val loop = IRLoopChunk("p8_label_gen_2", 100, mutableListOf(body))
         val lines = generateAsmChunks(tempRoot, listOf(outerChunk, loop))
@@ -1119,7 +979,7 @@ class TestInstructionSelectionOptimizations : FunSpec({
     }
 
     test("dbra via IRLoopChunk preserves label on loop") {
-        val body = IRCodeChunk(null, null).also { it += IRInstruction(Opcode.INCM, IRDataType.WORD, labelSymbol="p8b_main.p8v_sum") }
+        val body = IRCodeChunk(null, null).also { it += IRInstructions.memoryOp(Opcode.INCM, IRDataType.WORD, IRMemory.direct("p8b_main.p8v_sum")) }
         val loop = IRLoopChunk("p8_label_gen_2", 100, mutableListOf(body))
         val lines = generateAsmChunks(tempRoot, listOf(loop))
         lines.any { it.contains("p8_label_gen_2:") } shouldBe true
@@ -1128,7 +988,7 @@ class TestInstructionSelectionOptimizations : FunSpec({
 
     test("IRLoopChunk saves d7 around sqrt helper call") {
         val body = IRCodeChunk(null, null).also {
-            it += IRInstruction(Opcode.SQRT, IRDataType.BYTE, reg1=1, reg2=2)
+            it += IRInstructions.binary(Opcode.SQRT, IRDataType.BYTE, 1, 2)
         }
         val loop = IRLoopChunk("p8_label_gen_2", 5, mutableListOf(body))
         val lines = generateAsmChunks(tempRoot, listOf(loop))
@@ -1152,7 +1012,7 @@ class TestInstructionSelectionOptimizations : FunSpec({
         program.options.outputDir = outputDir
         val sub = IRSubroutine("test.start", emptyList(), emptyList(), Position.DUMMY)
         val body = IRCodeChunk(null, null).also {
-            it += IRInstruction(Opcode.MUL, IRDataType.LONG, reg1=1, immediate=3)
+            it += IRInstructions.binaryImmediate(Opcode.MUL, IRDataType.LONG, 1, 3)
         }
         sub.chunks.add(IRLoopChunk("p8_label_gen_2", 5, mutableListOf(body)))
         val block = IRBlock("test", false, IRBlock.Options(), Position.DUMMY)
@@ -1261,8 +1121,8 @@ class TestInstructionSelectionOptimizations : FunSpec({
         val lines = generateAsm(
             tempRoot.resolve("test-m68k-d0-cache-skip"),
             listOf(
-                IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1 = 3, reg2 = 1),
-                IRInstruction(Opcode.ADDM, IRDataType.WORD, reg1 = 1, labelSymbol = "p8b_test.p8v_value")
+                IRInstructions.binary(Opcode.ADDR, IRDataType.WORD, 3, 1),
+                IRInstructions.memoryOp(Opcode.ADDM, IRDataType.WORD, IRMemory.direct("p8b_test.p8v_value"), source = 1)
             )
         )
 
@@ -1274,9 +1134,9 @@ class TestInstructionSelectionOptimizations : FunSpec({
         val lines = generateAsm(
             tempRoot.resolve("test-m68k-d0-cache-invalidate-slot"),
             listOf(
-                IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1 = 3, reg2 = 1),
-                IRInstruction(Opcode.INC, IRDataType.WORD, reg1 = 1),
-                IRInstruction(Opcode.ADDM, IRDataType.WORD, reg1 = 1, labelSymbol = "p8b_test.p8v_value")
+                IRInstructions.binary(Opcode.ADDR, IRDataType.WORD, 3, 1),
+                IRInstructions.unary(Opcode.INC, IRDataType.WORD, 1),
+                IRInstructions.memoryOp(Opcode.ADDM, IRDataType.WORD, IRMemory.direct("p8b_test.p8v_value"), source = 1)
             )
         )
 
@@ -1288,9 +1148,9 @@ class TestInstructionSelectionOptimizations : FunSpec({
         val lines = generateAsm(
             tempRoot.resolve("test-m68k-d0-cache-invalidate-d0"),
             listOf(
-                IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1 = 3, reg2 = 1),
-                IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1 = 4, reg2 = 2),
-                IRInstruction(Opcode.ADDM, IRDataType.WORD, reg1 = 1, labelSymbol = "p8b_test.p8v_value")
+                IRInstructions.binary(Opcode.ADDR, IRDataType.WORD, 3, 1),
+                IRInstructions.binary(Opcode.ADDR, IRDataType.WORD, 4, 2),
+                IRInstructions.memoryOp(Opcode.ADDM, IRDataType.WORD, IRMemory.direct("p8b_test.p8v_value"), source = 1)
             )
         )
 
@@ -1300,9 +1160,9 @@ class TestInstructionSelectionOptimizations : FunSpec({
 
     test("d0 cache is invalidated at chunk boundaries") {
         val chunk1 = IRCodeChunk(null, null)
-        chunk1.instructions.add(IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1 = 3, reg2 = 1))
+        chunk1.instructions.add(IRInstructions.binary(Opcode.ADDR, IRDataType.WORD, 3, 1))
         val chunk2 = IRCodeChunk("test.next", null)
-        chunk2.instructions.add(IRInstruction(Opcode.ADDM, IRDataType.WORD, reg1 = 1, labelSymbol = "p8b_test.p8v_value"))
+        chunk2.instructions.add(IRInstructions.memoryOp(Opcode.ADDM, IRDataType.WORD, IRMemory.direct("p8b_test.p8v_value"), source = 1))
         val lines = generateAsmChunks(
             tempRoot.resolve("test-m68k-d0-cache-boundary"),
             listOf(chunk1, chunk2)
@@ -1312,12 +1172,95 @@ class TestInstructionSelectionOptimizations : FunSpec({
         lines.count { it.startsWith("move.w  p8_regfile+") && it.endsWith(",d0") } shouldBe 2
     }
 
+    // === centralized MemoryReference lowering (Direct/Indexed/Indirect) ===
+
+    test("indexed memory lowering scales the index in the addressing mode on 68020") {
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-indexed-68020"),
+            listOf(
+                IRInstructions.loadMemory(Opcode.LOADX, IRDataType.WORD, 6, IRMemory.indexed("arr", 3, IRDataType.WORD, 2, 4)),
+                IRInstructions.storeMemory(Opcode.STOREX, IRDataType.WORD, 8, IRMemory.indexed("arr", 3, IRDataType.WORD, 4)),
+                IRInstructions.storeZero(Opcode.STOREZX, IRDataType.BYTE, IRMemory.indexed("arr", 3, IRDataType.WORD, 8))
+            )
+        )
+
+        lines.any { it == "lea  arr+4,a0" } shouldBe true
+        lines.any { it == "move.w  (a0,d0.w*2),d0" } shouldBe true
+        // the stored value is staged in d1 because a0/d0 hold the effective address
+        lines.any { it == "move.w  d1,(a0,d0.w*4)" } shouldBe true
+        lines.any { it == "clr.b  (a0,d0.w*8)" } shouldBe true
+    }
+
+    test("indexed memory lowering scales the index by hand on 68000") {
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-indexed-68000"),
+            listOf(
+                IRInstructions.loadMemory(Opcode.LOADX, IRDataType.WORD, 6, IRMemory.indexed("arr", 3, IRDataType.WORD, 2)),
+                IRInstructions.storeMemory(Opcode.STOREX, IRDataType.WORD, 8, IRMemory.indexed("arr", 3, IRDataType.WORD, 4)),
+                IRInstructions.storeZero(Opcode.STOREZX, IRDataType.BYTE, IRMemory.indexed("arr", 3, IRDataType.WORD, 8))
+            ),
+            target = Amiga500Target()
+        )
+
+        lines.any { it == "add.w  d0,d0" } shouldBe true
+        lines.any { it == "lsl.w  #2,d0" } shouldBe true
+        lines.any { it == "muls.w  #8,d0" } shouldBe true
+        lines.count { it.contains("(a0,d0.w*") } shouldBe 0
+    }
+
+    test("indirect memory lowering picks displacement addressing or explicit pointer adjustment") {
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-indirect-displacement"),
+            listOf(
+                IRInstructions.loadMemory(Opcode.LOADI, IRDataType.WORD, 9, IRMemory.indirect(4, 0)),
+                IRInstructions.storeMemory(Opcode.STOREI, IRDataType.BYTE, 11, IRMemory.indirect(4, 6)),
+                IRInstructions.loadMemory(Opcode.LOADI, IRDataType.BYTE, 10, IRMemory.indirect(4, 40000))
+            )
+        )
+
+        lines.any { it.startsWith("movea.l  p8_regfile") && it.endsWith(",a0") } shouldBe true
+        lines.any { it == "move.w  (a0),d0" } shouldBe true
+        lines.any { it.endsWith(",(6,a0)") } shouldBe true
+        // displacements beyond the signed 16-bit range need an explicit adda
+        lines.any { it == "adda.l  #40000,a0" } shouldBe true
+    }
+
+    test("float indexed memory lowering uses full width d0.l indexing") {
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-indexed-float"),
+            listOf(
+                IRInstructions.loadMemory(Opcode.LOADX, IRDataType.FLOAT, 1, IRMemory.indexed("arr", 2, IRDataType.WORD, 4)),
+                IRInstructions.storeMemory(Opcode.STOREX, IRDataType.FLOAT, 1, IRMemory.indexed("arr", 2, IRDataType.WORD, 8))
+            )
+        )
+
+        lines.any { it == "lsl.l  #2,d0" } shouldBe true
+        lines.any { it == "lsl.l  #3,d0" } shouldBe true
+        lines.any { it == "fmove.s  (0,a0,d0.l),fp0" } shouldBe true
+        lines.any { it == "fmove.s  fp0,(0,a0,d0.l)" } shouldBe true
+    }
+
+    test("direct memory lowering resolves symbol displacements and absolute addresses") {
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-direct-memory"),
+            listOf(
+                IRInstructions.loadMemory(Opcode.LOADM, IRDataType.WORD, 12, IRMemory.direct("var", 4)),
+                IRInstructions.storeMemory(Opcode.STOREM, IRDataType.WORD, 12, IRMemory.direct(0xdff180u)),
+                IRInstructions.storeImmediate(IRDataType.WORD, 1234, IRMemory.direct("var"))
+            )
+        )
+
+        lines.any { it == "move.w  var+4,p8_regfile+0" } shouldBe true
+        lines.any { it == "move.w  p8_regfile+0,\$00dff180" } shouldBe true
+        lines.any { it == "move.w  #1234,var" } shouldBe true
+    }
+
     // === extb.l gate robustification ===
 
     test("M68020 sign-extends byte to long with extb.l") {
         val lines = generateAsm(
             tempRoot.resolve("test-m68k-extbl-qemu"),
-            listOf(IRInstruction(Opcode.EXTLS, IRDataType.BYTE, reg1 = 1, reg2 = 2))
+            listOf(IRInstructions.binary(Opcode.EXTLS, IRDataType.BYTE, 1, 2))
         )
 
         lines.count { it == "extb.l  d0" } shouldBe 1
@@ -1328,7 +1271,7 @@ class TestInstructionSelectionOptimizations : FunSpec({
     test("M68000 sign-extends byte to long with ext.w plus ext.l") {
         val lines = generateAsm(
             tempRoot.resolve("test-m68k-extbl-amiga"),
-            listOf(IRInstruction(Opcode.EXTLS, IRDataType.BYTE, reg1 = 1, reg2 = 2)),
+            listOf(IRInstructions.binary(Opcode.EXTLS, IRDataType.BYTE, 1, 2)),
             target = Amiga500Target()
         )
 

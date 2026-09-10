@@ -61,9 +61,12 @@ register-oriented. Root cause, and the constraint it imposes:
 
 **The backend's instruction selection is hardwired to memory operands.** Every
 IR instruction translator (`InstrArithmetic`, `InstrBitwise`, `InstrControl`,
-`InstrLoadStore`, `InstrBranch`, `InstrSyscall` — roughly 320 call sites of
-`regAddr()` / `floatRegFileAddr()` across ~4,100 lines) emits each vreg as an
-*absolute memory operand*:
+`InstrLoadStore`, `InstrBranch`, `InstrSyscall`) emits each vreg as an
+*absolute memory operand*. (Structured-IR status: translators now consume typed
+`dest`/`srcA`/`memory`/`target`/`callSite` operands and memory lowering is
+centralized in `AsmGen.resolveMemory()` — that part of Stage 1 is done. What
+remains is the vreg side, still lowered via `regAddr()`/`floatRegFileAddr()`
+to the `p8_regfile` spill area:)
 
 ```
 INC   ->  addq.b #1, p8_regfile+N
@@ -200,7 +203,11 @@ The allocatable pool is therefore: 5 callee-saved data (D2–D6), 3 callee-saved
 address (A2–A4), 6 callee-saved FP (FP2–FP7) — plus the caller-saved D0/D1/
 A0/A1/FP0/FP1 usable only for call-free live ranges. Whether this is enough is
 exactly the register-pressure question the Stage-2 success metrics must
-measure on real programs.
+measure on real programs. (Open contradiction: `m68k-reg-problems.md` §1 shows
+translator scratch use of D0/D1/A0/A1/FP0/FP1 conflicts with allocating
+call-free vregs there — Stage 2 must not size pools or pressure estimates on
+the above until that choice, reserve scratch vs allocator-aware scratch, is
+settled.)
 
 ### 2.4 What a CALL means for liveness
 
@@ -321,7 +328,14 @@ operand model, a worse design.)
 ### 3.1 Intraprocedural (required)
 
 A standard per-subroutine register allocator needs correct liveness *within*
-each subroutine:
+each subroutine. Structured-IR input (already available): derive gen/kill from
+`IRInstruction.registerAccesses` with `OperandDirection` (USE/DEF/USE_DEF),
+via the `uses`/`definitions` sets keyed on `VirtualRegister` — `IntReg` and
+`FloatReg` are strictly separate (`r5 != fr5`), so no shared `RegisterNum`
+maps. `registerAccesses` already aggregates the registers inside `memory`
+(`Indexed`/`Indirect`), `target` (`Indirect` pointer) and `callSite`
+(arguments/results/bank/pointer). Use `RegisterOperand.allocationHint`
+(`PREFER_DATA`/`PREFER_ADDRESS`) as the class-constraint input for §4:
 
 1. Build a CFG of the subroutine's code chunks.
 2. Compute liveness via gen/kill + iterative dataflow → `liveIn`/`liveOut` per
@@ -569,26 +583,35 @@ Each is small, contained, and verifiable on its own.
 ### Stage 1 — location-agnostic instruction selection (prerequisite; the bulk of the work)
 
 Replace every use of `regAddr(reg)` / `floatRegFileAddr(reg)` in *operand
-position* with a single indirection on `AsmGen`:
+position* with a single indirection on `AsmGen` that takes the typed operand
+(no `Int` vreg numbers — int/float are distinct `VirtualRegister`s):
 
 ```kotlin
-fun operand(reg: Int): String        // "d3" if allocated, "p8_regfile+N" if spilled
-fun storeOperand(reg: Int): String   // same, for destinations
-fun fpOperand(fpReg: Int): String    // "fp2" / "p8_fregfile+N"
+fun operand(op: RegisterOperand): String         // "d3" if allocated, "p8_regfile+N" if spilled
+fun storeOperand(op: RegisterOperand): String    // same, for destinations
 ```
 
-All ~320 translator call sites then emit e.g. `add${s} d0, ${operand(dst)}`
+(`fpOperand()` is subsumed: a `FloatReg` operand routes to `fpN` /
+`p8_fregfile+N` via the same lookup.) Memory operands already go through the
+centralized `resolveMemory(MemoryReference)` — only the vreg side still needs
+this indirection.
+
+All translator call sites then emit e.g. `add${s} d0, ${operand(dst)}`
 without knowing or caring where the value resides. Initially the mapping is
 empty and every query returns the regfile address — **stage 1 is behavior
 neutral by construction**, which is exactly what makes it safe to land and
 review on its own. Notes:
 
 - The sites that genuinely require memory (address-of `&`, byte sub-access via
-  `regAddrByte`, inline-asm chunk references to `p8_regfile`) keep calling
-  `regAddr()` directly. These define the "must be spilled" set for the
-  allocator essentially for free.
+  `regAddrByte`, inline-asm chunk references to `p8_regfile`) keep lowering
+  through the regfile path directly. These define the "must be spilled" set
+  for the allocator essentially for free: any vreg used in such a position
+  (not identified by a call count) must be memory-resident at that point.
 - The vreg side of `LOADHR`/`STOREHR` also goes through `operand()` so they
   degrade to register moves or no-ops under allocation (§2.8).
+- Model `CALL` boundaries through `CallSite.effects`
+  (`CallEffects.memoryEffect`/`statusEffect`) plus the `callSite` register
+  accesses (arguments/results), not via ad-hoc per-opcode kill lists.
 
 **Indexed/indirect opcodes are a separate, non-mechanical sub-task.** Most
 translators fit the "swap `regAddr` for `operand()`" pattern, but a minority do
@@ -642,7 +665,8 @@ hardcoded scratch register outside the D0/D1/A0/A1 set.
     liveness-derived one).
 3. **Class-aware greedy colouring**: map vregs → physical D/A/FP registers,
    treating `CALL` as killing caller-saved registers.
-4. **Wire the mapping into `operand()` / `storeOperand()` / `fpOperand()`.**
+4. **Wire the mapping into `operand()` / `storeOperand()`** (typed
+   `RegisterOperand` lookup; float vregs resolve through the same entry point).
    Register-to-register code (`add.l d1, d0`) now falls out of the existing
    translators with no per-opcode special cases — this is the payoff of
    Stage 1.
@@ -676,12 +700,12 @@ designing rather than executing. These must be decided before Stage 2 is
 delegable:
 
 1. **`operand()` / `storeOperand()` width semantics.** The signature is shown
-   (`fun operand(reg: Int): String`) but the width-marshalling is unspecified:
+   (`fun operand(op: RegisterOperand): String`) but the width-marshalling is unspecified:
    when a vreg is register-resident but used at a different width (byte vreg in
    a word op), does `operand()` zero/sign-extend, and into *which* register?
    Today `loadRegOrZeroExtendToD0` does this against d0; under allocation the
    extension has to target a defined register. This is the most-encountered
-   decision across the ~320 call sites.
+   decision across the translator call sites.
 2. **The class-constraint mechanism (§4.1 says *what*, not *how*).** We know
    index→DATA and pointer→ADDRESS, but not how the translator *communicates*
    the constraint to the allocator: a per-vreg constraint recorded in a

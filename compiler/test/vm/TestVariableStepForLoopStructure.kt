@@ -17,6 +17,7 @@ import prog8.code.ast.walkAst
 import prog8.code.target.VMTarget
 import prog8.intermediate.IRFileReader
 import prog8.intermediate.Opcode
+import prog8.intermediate.symbolName
 import prog8tests.helpers.compileText
 import kotlin.io.path.readText
 
@@ -81,8 +82,8 @@ class TestVariableStepForLoopStructure: FunSpec({
             .flatMap { it.instructions }
             .toList()
 
-        instructions.count { it.opcode == Opcode.CALL && it.labelSymbol?.substringAfterLast('.') == "unsigned_step" } shouldBe 1
-        instructions.count { it.opcode == Opcode.CALL && it.labelSymbol?.substringAfterLast('.') == "signed_step" } shouldBe 1
+        instructions.count { it.opcode == Opcode.CALL && it.labelTarget?.substringAfterLast('.') == "unsigned_step" } shouldBe 1
+        instructions.count { it.opcode == Opcode.CALL && it.labelTarget?.substringAfterLast('.') == "signed_step" } shouldBe 1
         instructions.map { it.opcode } shouldContain Opcode.BGTR
         instructions.map { it.opcode } shouldContain Opcode.BGTSR
         instructions.count { it.opcode == Opcode.ADDR } shouldBe 2
@@ -136,17 +137,17 @@ class TestVariableStepForLoopStructure: FunSpec({
         val irPath = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         val chunks = IRFileReader().read(irPath.readText()).allSubs().flatMap { it.chunks }.toList()
         val loopvarSymbol = chunks.flatMap { it.instructions }
-            .first { it.opcode == Opcode.STOREM && it.labelSymbol?.substringAfterLast('.') == "i" }
-            .labelSymbol
+            .first { it.opcode == Opcode.STOREM && it.memory?.symbolName?.substringAfterLast('.') == "i" }
+            .memory?.symbolName
         val tailChunks = chunks.filter { chunk ->
             chunk.label != null &&
-            chunk.instructions.count { it.opcode == Opcode.STOREM && it.labelSymbol == loopvarSymbol } == 1 &&
+            chunk.instructions.count { it.opcode == Opcode.STOREM && it.memory?.symbolName == loopvarSymbol } == 1 &&
                 chunk.instructions.count { it.opcode == Opcode.JUMP } == 1
         }
 
         tailChunks.size shouldBe 1
         val tailLabel = tailChunks.single().label
         tailLabel shouldNotBe null
-        chunks.flatMap { it.instructions }.count { it.opcode == Opcode.JUMP && it.labelSymbol == tailLabel } shouldBe 2
+        chunks.flatMap { it.instructions }.count { it.opcode == Opcode.JUMP && it.labelTarget == tailLabel } shouldBe 2
     }
 })

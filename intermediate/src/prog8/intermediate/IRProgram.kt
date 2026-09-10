@@ -107,8 +107,17 @@ class IRProgram(val name: String,
 
     fun countUsedRegisters(): Int {
         val used = registersUsed()
-        return (used.readRegs.keys + used.writeRegs.keys).size +
-               (used.readFpRegs.keys + used.writeFpRegs.keys).size
+        return (used.readRegs.keys + used.writeRegs.keys).size
+    }
+
+    /** label -> code chunk, filled in by linkChunks() */
+    var linkedCodeTargets: Map<String, IRCodeChunkBase> = emptyMap()
+        private set
+
+    /** the code chunk that a code reference points to (null if it is not a static label) */
+    fun resolveCodeTarget(reference: CodeReference): IRCodeChunkBase? = when(reference) {
+        is CodeReference.Label -> linkedCodeTargets[reference.name]
+        is CodeReference.Absolute, is CodeReference.Indirect -> null
     }
 
     fun getChunkWithLabel(label: String): IRCodeChunkBase {
@@ -134,11 +143,20 @@ class IRProgram(val name: String,
     }
 
     fun linkChunks() {
-        fun collectLabels(chunk: IRCodeChunkBase, map: MutableMap<String?, IRCodeChunkBase>) {
-            chunk.forEachChunkRecursive { map[it.label] = it }
+        fun addLabel(label: String?, chunk: IRCodeChunkBase, map: MutableMap<String, IRCodeChunkBase>) {
+            if (label == null)
+                return
+            val previous = map.putIfAbsent(label, chunk)
+            require(previous == null || previous === chunk) { "duplicate code chunk label: $label" }
         }
-        fun getLabeledChunks(): Map<String?, IRCodeChunkBase> {
-            val result = mutableMapOf<String?, IRCodeChunkBase>()
+
+        fun collectLabels(chunk: IRCodeChunkBase, map: MutableMap<String, IRCodeChunkBase>) {
+            chunk.forEachChunkRecursive { addLabel(it.label, it, map) }
+        }
+
+        fun getLabeledChunks(): Map<String, IRCodeChunkBase> {
+            val result = mutableMapOf<String, IRCodeChunkBase>()
+            collectLabels(globalInits, result)
             blocks.forEach { block ->
                 block.children.forEach { child ->
                     when(child) {
@@ -150,18 +168,23 @@ class IRProgram(val name: String,
                         is IRSubroutine -> {
                             child.chunks.forEach { collectLabels(it, result) }
                             if (child.chunks.isNotEmpty()) {
-                                result[child.label] = child.chunks.first()
-                                // also map loop bodies inside first chunk if needed already via collectLabels
+                                addLabel(child.label, child.chunks.first(), result)
                             }
                         }
                     }
                 }
             }
-            result.remove(null)
             return result
         }
 
         val labeledChunks = getLabeledChunks()
+        linkedCodeTargets = labeledChunks
+
+        fun verifyCodeTarget(instruction: IRInstruction) {
+            val label = instruction.labelTarget ?: return
+            if(resolveCodeTarget(instruction.codeTarget!!) == null)
+                throw AssemblyError("Missing jump/call target: $label")
+        }
 
         if(globalInits.isNotEmpty()) {
             if(globalInits.next==null) {
@@ -196,17 +219,8 @@ class IRProgram(val name: String,
                 chunk.next = null
             }
 
-            // link all jump and branching instructions to their target
-            chunk.instructions.forEach {
-                if(it.opcode in OpcodesThatBranch && it.opcode!=Opcode.JUMPI && it.opcode!=Opcode.RETURN && it.opcode!=Opcode.RETURNR && it.opcode!=Opcode.RETURNI && it.labelSymbol!=null) {
-                    if(it.labelSymbol.startsWith('$') || it.labelSymbol.first().isDigit()) {
-                        // it's a call to an address (extsub most likely)
-                        requireNotNull(it.address)
-                    } else {
-                        it.branchTarget = labeledChunks[it.labelSymbol] ?: throw AssemblyError("Missing jump/call target: ${it.labelSymbol}")
-                    }
-                }
-            }
+            // verify that all jump and branching instructions have a resolvable target
+            chunk.instructions.forEach { verifyCodeTarget(it) }
         }
 
         fun linkBaseChunk(chunk: IRCodeChunkBase, next: IRCodeChunkBase?) {
@@ -224,15 +238,7 @@ class IRProgram(val name: String,
                         if(bc is IRLoopChunk) {
                             bc.body.forEach { resolveBody(it) }
                         } else {
-                            bc.instructions.forEach {
-                                if(it.opcode in OpcodesThatBranch && it.opcode!=Opcode.JUMPI && it.opcode!=Opcode.RETURN && it.opcode!=Opcode.RETURNR && it.opcode!=Opcode.RETURNI && it.labelSymbol!=null) {
-                                    if(it.labelSymbol.startsWith('$') || it.labelSymbol.first().isDigit()) {
-                                        requireNotNull(it.address)
-                                    } else {
-                                        if(it.branchTarget==null) it.branchTarget = labeledChunks[it.labelSymbol] ?: throw AssemblyError("Missing jump/call target: ${it.labelSymbol}")
-                                    }
-                                }
-                            }
+                            bc.instructions.forEach { verifyCodeTarget(it) }
                         }
                     }
                     chunk.body.forEach { resolveBody(it) }
@@ -274,26 +280,19 @@ class IRProgram(val name: String,
     }
 
     fun validate() {
+        fun validateCodeTarget(instr: IRInstruction) {
+            val label = instr.labelTarget ?: return
+            if(instr.opcode in OpcodesThatBranch)
+                require(resolveCodeTarget(instr.codeTarget!!) != null) { "branching instruction to label $label should have a resolvable target chunk" }
+        }
+
         fun validateChunk(chunk: IRCodeChunkBase, sub: IRSubroutine?, emptyChunkIsAllowed: Boolean) {
             if (chunk is IRLoopChunk) {
                 require(chunk.label!=null) { "loop chunk needs label" }
                 require(chunk.trip in 1..65536)
                 chunk.body.forEach { validateChunk(it, null, false) }
                 // loop's next is validated like normal chunk linking (outside)
-                chunk.instructions.forEach { instr ->
-                    if(instr.labelSymbol!=null && instr.opcode in OpcodesThatBranch) {
-                        if(instr.opcode==Opcode.JUMPI) {
-                            val symbol = st.lookup(instr.labelSymbol) ?: throw AssemblyError("Missing jump target symbol: ${instr.labelSymbol}")
-                            when(symbol) {
-                                is IRStStaticVariable -> require(symbol.dt.isUnsignedWord)
-                                is IRStMemVar -> require(symbol.dt.isUnsignedWord)
-                                else -> throw AssemblyError("Invalid jump target symbol type: ${instr.labelSymbol}")
-                            }
-                        }
-                        else if(!instr.labelSymbol.startsWith('$') && !instr.labelSymbol.first().isDigit())
-                            require(instr.branchTarget != null) { "branching instruction to label should have branchTarget set" }
-                    }
-                }
+                chunk.instructions.forEach { validateCodeTarget(it) }
                 return
             }
             if (chunk is IRCodeChunk) {
@@ -312,20 +311,7 @@ class IRProgram(val name: String,
                 if(chunk is IRInlineAsmChunk)
                     require(!chunk.isIR) { "inline IR-asm should have been converted into regular code chunk"}
             }
-            chunk.instructions.forEach { instr ->
-                if(instr.labelSymbol!=null && instr.opcode in OpcodesThatBranch) {
-                    if(instr.opcode==Opcode.JUMPI) {
-                        val symbol = st.lookup(instr.labelSymbol) ?: throw AssemblyError("Missing jump target symbol: ${instr.labelSymbol}")
-                        when(symbol) {
-                            is IRStStaticVariable -> require(symbol.dt.isUnsignedWord)
-                            is IRStMemVar -> require(symbol.dt.isUnsignedWord)
-                            else -> throw AssemblyError("Invalid jump target symbol type: ${instr.labelSymbol}")
-                        }
-                    }
-                    else if(!instr.labelSymbol.startsWith('$') && !instr.labelSymbol.first().isDigit())
-                        require(instr.branchTarget != null) { "branching instruction to label should have branchTarget set" }
-                }
-            }
+            chunk.instructions.forEach { validateCodeTarget(it) }
         }
 
         validateChunk(globalInits, null, true)
@@ -348,17 +334,13 @@ class IRProgram(val name: String,
     }
 
     fun registersUsed(permissive: Boolean = wasPackingApplied): RegistersUsed {
-        val readRegsCounts = mutableMapOf<RegisterNum, Int>().withDefault { 0 }
-        val regsTypes = mutableMapOf<RegisterNum, IRDataType>()
-        val readFpRegsCounts = mutableMapOf<RegisterNum, Int>().withDefault { 0 }
-        val writeRegsCounts = mutableMapOf<RegisterNum, Int>().withDefault { 0 }
-        val writeFpRegsCounts = mutableMapOf<RegisterNum, Int>().withDefault { 0 }
+        val readRegsCounts = mutableMapOf<VirtualRegister, Int>().withDefault { 0 }
+        val writeRegsCounts = mutableMapOf<VirtualRegister, Int>().withDefault { 0 }
+        val regsTypes = mutableMapOf<VirtualRegister, IRDataType>()
 
         fun addUsed(usedRegisters: RegistersUsed, child: IIRBlockElement) {
             usedRegisters.readRegs.forEach{ (reg, count) -> readRegsCounts[reg] = readRegsCounts.getValue(reg) + count }
             usedRegisters.writeRegs.forEach{ (reg, count) -> writeRegsCounts[reg] = writeRegsCounts.getValue(reg) + count }
-            usedRegisters.readFpRegs.forEach{ (reg, count) -> readFpRegsCounts[reg] = readFpRegsCounts.getValue(reg) + count }
-            usedRegisters.writeFpRegs.forEach{ (reg, count) -> writeFpRegsCounts[reg] = writeFpRegsCounts.getValue(reg) + count }
         if(permissive) {
             // After register packing, the same slot number may be used with different types
             // in different subroutines (the packer's globalSlotTypes mechanism ensures type
@@ -383,9 +365,6 @@ class IRProgram(val name: String,
             }
         }
 
-        // on 32-bit targets LOADX/STOREX/STOREZX use a word index register (0-32767) instead of a byte (0-255)
-        val indexRegType = options.compTarget.indexRegType
-
         // Aggregate via uniform traversal. Loop containers themselves carry no
         // instructions; only leaf chunks contribute, so nested bodies are
         // counted exactly once. Inline-asm chunks contribute via their parsed
@@ -393,9 +372,9 @@ class IRProgram(val name: String,
         forEachChunk { chunk ->
             if(chunk is IRLoopChunk)
                 return@forEachChunk
-            addUsed(chunk.usedRegisters(indexRegType), chunk)
+            addUsed(chunk.usedRegisters(), chunk)
         }
-        return RegistersUsed(readRegsCounts, writeRegsCounts, readFpRegsCounts, writeFpRegsCounts, regsTypes)
+        return RegistersUsed(readRegsCounts, writeRegsCounts, regsTypes)
     }
 
     fun convertAsmChunks() {
@@ -550,12 +529,11 @@ class IRProgram(val name: String,
      * differently-typed (but POINTER-compatible) registers in different subroutines,
      * which this strict check would reject. Use RegisterPacker.rebuildTypeMap() instead.
      */
-    fun verifyRegisterTypes(registerTypes: Map<RegisterNum, IRDataType>) {
-        val indexRegType = options.compTarget.indexRegType
+    fun verifyRegisterTypes(registerTypes: Map<VirtualRegister, IRDataType>) {
         forEachChunk { chunk ->
             if(chunk is IRLoopChunk)
                 return@forEachChunk
-            chunk.usedRegisters(indexRegType).validate(registerTypes, chunk)
+            chunk.usedRegisters().validate(registerTypes, chunk)
         }
     }
 }
@@ -671,7 +649,7 @@ sealed class IRCodeChunkBase(override val label: String?, var next: IRCodeChunkB
 
     abstract override fun isEmpty(): Boolean
     abstract override fun isNotEmpty(): Boolean
-    abstract fun usedRegisters(indexRegType: IRDataType = IRDataType.BYTE): RegistersUsed
+    abstract fun usedRegisters(): RegistersUsed
 
     /**
      * Visit this chunk and, for [IRLoopChunk], all nested body chunks
@@ -688,14 +666,12 @@ class IRCodeChunk(label: String?, next: IRCodeChunkBase?): IRCodeChunkBase(label
 
     override fun isEmpty() = instructions.isEmpty()
     override fun isNotEmpty() = instructions.isNotEmpty()
-    override fun usedRegisters(indexRegType: IRDataType): RegistersUsed {
-        val readRegsCounts = mutableMapOf<RegisterNum, Int>().withDefault { 0 }
-        val regsTypes = mutableMapOf<RegisterNum, IRDataType>()
-        val readFpRegsCounts = mutableMapOf<RegisterNum, Int>().withDefault { 0 }
-        val writeFpRegsCounts = mutableMapOf<RegisterNum, Int>().withDefault { 0 }
-        val writeRegsCounts = mutableMapOf<RegisterNum, Int>().withDefault { 0 }
-        instructions.forEach { it.addUsedRegistersCounts(readRegsCounts, writeRegsCounts, readFpRegsCounts, writeFpRegsCounts, regsTypes, this, indexRegType) }
-        return RegistersUsed(readRegsCounts, writeRegsCounts, readFpRegsCounts, writeFpRegsCounts, regsTypes)
+    override fun usedRegisters(): RegistersUsed {
+        val readRegsCounts = mutableMapOf<VirtualRegister, Int>().withDefault { 0 }
+        val writeRegsCounts = mutableMapOf<VirtualRegister, Int>().withDefault { 0 }
+        val regsTypes = mutableMapOf<VirtualRegister, IRDataType>()
+        instructions.forEach { it.addUsedRegistersCounts(readRegsCounts, writeRegsCounts, regsTypes, this) }
+        return RegistersUsed(readRegsCounts, writeRegsCounts, regsTypes)
     }
 
     operator fun plusAssign(ins: IRInstruction) {
@@ -734,7 +710,7 @@ class IRInlineAsmChunk(label: String?,
         require(!assembly.endsWith('\n') && !assembly.endsWith('\r')) { "inline assembly should be trimmed" }
     }
 
-    override fun usedRegisters(indexRegType: IRDataType) = registersUsed
+    override fun usedRegisters() = registersUsed
 }
 
 class IRInlineBinaryChunk(label: String?,
@@ -743,7 +719,7 @@ class IRInlineBinaryChunk(label: String?,
     // note: no instructions, data is in the property
     override fun isEmpty() = data.isEmpty()
     override fun isNotEmpty() = data.isNotEmpty()
-    override fun usedRegisters(indexRegType: IRDataType) = RegistersUsed(emptyMap(), emptyMap(), emptyMap(), emptyMap(), emptyMap())
+    override fun usedRegisters() = RegistersUsed(emptyMap(), emptyMap(), emptyMap())
 }
 
 class IRLoopChunk(label: String, val trip: Int, val body: MutableList<IRCodeChunkBase>, next: IRCodeChunkBase? = null): IRCodeChunkBase(label, next) {
@@ -754,27 +730,23 @@ class IRLoopChunk(label: String, val trip: Int, val body: MutableList<IRCodeChun
     // IRLoopChunk itself carries no direct IRInstructions; its body holds them
     override fun isEmpty() = body.isEmpty() || body.all { it.isEmpty() }
     override fun isNotEmpty() = !isEmpty()
-    override fun usedRegisters(indexRegType: IRDataType): RegistersUsed {
+    override fun usedRegisters(): RegistersUsed {
         // NOTE: an alternative design is to report a synthetic target-specific loop
         // register here (m68k d7, new6502 Y) so the register allocator avoids using it
         // inside the body. The current backends instead save/restore the physical loop
         // register around body operations, because new6502 uses Y extensively as a
         // scratch register and m68k helper routines called by the backend clobber d7
         // regardless of IR state.
-        val readRegsCounts = mutableMapOf<RegisterNum, Int>().withDefault { 0 }
-        val regsTypes = mutableMapOf<RegisterNum, IRDataType>()
-        val readFpRegsCounts = mutableMapOf<RegisterNum, Int>().withDefault { 0 }
-        val writeRegsCounts = mutableMapOf<RegisterNum, Int>().withDefault { 0 }
-        val writeFpRegsCounts = mutableMapOf<RegisterNum, Int>().withDefault { 0 }
+        val readRegsCounts = mutableMapOf<VirtualRegister, Int>().withDefault { 0 }
+        val writeRegsCounts = mutableMapOf<VirtualRegister, Int>().withDefault { 0 }
+        val regsTypes = mutableMapOf<VirtualRegister, IRDataType>()
         body.forEach { chunk ->
-            val used = chunk.usedRegisters(indexRegType)
+            val used = chunk.usedRegisters()
             used.readRegs.forEach { (reg, count) -> readRegsCounts[reg] = readRegsCounts.getValue(reg) + count }
             used.writeRegs.forEach { (reg, count) -> writeRegsCounts[reg] = writeRegsCounts.getValue(reg) + count }
-            used.readFpRegs.forEach { (reg, count) -> readFpRegsCounts[reg] = readFpRegsCounts.getValue(reg) + count }
-            used.writeFpRegs.forEach { (reg, count) -> writeFpRegsCounts[reg] = writeFpRegsCounts.getValue(reg) + count }
             used.regsTypes.forEach { (reg, type) -> regsTypes.putIfAbsent(reg, type) }
         }
-        return RegistersUsed(readRegsCounts, writeRegsCounts, readFpRegsCounts, writeFpRegsCounts, regsTypes)
+        return RegistersUsed(readRegsCounts, writeRegsCounts, regsTypes)
     }
 }
 
@@ -797,25 +769,37 @@ internal class IRStructSubtype(val def: IRStStructDef): ISubType {
 
 
 class RegistersUsed(
-    // register num -> number of uses
-    val readRegs: Map<RegisterNum, Int>,
-    val writeRegs: Map<RegisterNum, Int>,
-    val readFpRegs: Map<RegisterNum, Int>,
-    val writeFpRegs: Map<RegisterNum, Int>,
-    val regsTypes: Map<RegisterNum, IRDataType>
+    // virtual register -> number of uses
+    val readRegs: Map<VirtualRegister, Int>,
+    val writeRegs: Map<VirtualRegister, Int>,
+    val regsTypes: Map<VirtualRegister, IRDataType>
 ) {
 
     override fun toString(): String {
-        return "read=$readRegs, write=$writeRegs, readFp=$readFpRegs, writeFp=$writeFpRegs, types=$regsTypes"
+        return "read=$readRegs, write=$writeRegs, types=$regsTypes"
     }
 
-    fun isEmpty() = readRegs.isEmpty() && writeRegs.isEmpty() && readFpRegs.isEmpty() && writeFpRegs.isEmpty()
+    fun isEmpty() = readRegs.isEmpty() && writeRegs.isEmpty()
     fun isNotEmpty() = !isEmpty()
 
-    fun used(register: RegisterNum) = register in readRegs || register in writeRegs
-    fun usedFp(fpRegister: RegisterNum) = fpRegister in readFpRegs || fpRegister in writeFpRegs
+    fun used(register: VirtualRegister) = register in readRegs || register in writeRegs
+    fun used(register: RegisterNum) = used(VirtualRegister.IntReg(register))
+    fun usedFp(fpRegister: RegisterNum) = used(VirtualRegister.FloatReg(fpRegister))
 
-    fun validate(allowed: Map<RegisterNum, IRDataType>, chunk: IRCodeChunkBase?) {
+    fun typeOf(register: VirtualRegister) = regsTypes[register]
+
+    /** the integer registers that are read, by register number */
+    val intRegsRead: Map<RegisterNum, Int> get() = readRegs.filterKeys { it is VirtualRegister.IntReg }.mapKeys { it.key.number }
+    /** the integer registers that are written, by register number */
+    val intRegsWritten: Map<RegisterNum, Int> get() = writeRegs.filterKeys { it is VirtualRegister.IntReg }.mapKeys { it.key.number }
+    /** the float registers that are read, by register number */
+    val floatRegsRead: Map<RegisterNum, Int> get() = readRegs.filterKeys { it is VirtualRegister.FloatReg }.mapKeys { it.key.number }
+    /** the float registers that are written, by register number */
+    val floatRegsWritten: Map<RegisterNum, Int> get() = writeRegs.filterKeys { it is VirtualRegister.FloatReg }.mapKeys { it.key.number }
+    /** the data types of the integer registers that are used, by register number */
+    val intRegsTypes: Map<RegisterNum, IRDataType> get() = regsTypes.filterKeys { it is VirtualRegister.IntReg }.mapKeys { it.key.number }
+
+    fun validate(allowed: Map<VirtualRegister, IRDataType>, chunk: IRCodeChunkBase?) {
         for((reg, type) in regsTypes) {
             val allowedType = allowed[reg]
 // can't do this check because %ir {{ .. }} segments may contain registers that the compiler doesn't know about yet.
@@ -833,30 +817,20 @@ class RegistersUsed(
 }
 
 private fun registersUsedInAssembly(isIR: Boolean, assembly: String): RegistersUsed {
-    val readRegsCounts = mutableMapOf<RegisterNum, Int>().withDefault { 0 }
-    val regsTypes = mutableMapOf<RegisterNum, IRDataType>()
-    val readFpRegsCounts = mutableMapOf<RegisterNum, Int>().withDefault { 0 }
-    val writeRegsCounts = mutableMapOf<RegisterNum, Int>().withDefault { 0 }
-    val writeFpRegsCounts = mutableMapOf<RegisterNum, Int>().withDefault { 0 }
+    val readRegsCounts = mutableMapOf<VirtualRegister, Int>()
+    val writeRegsCounts = mutableMapOf<VirtualRegister, Int>()
+    val regsTypes = mutableMapOf<VirtualRegister, IRDataType>()
 
     if(isIR) {
         assembly.lineSequence().forEach { line ->
             val t = line.trim()
             if(t.isNotEmpty()) {
-                val result = parseIRCodeLine(t)
-                when (result) {
-                    is ParsedIRLine.Instruction -> result.value.addUsedRegistersCounts(
-                        readRegsCounts,
-                        writeRegsCounts,
-                        readFpRegsCounts,
-                        writeFpRegsCounts,
-                        regsTypes,
-                        null
-                    )
+                when (val result = parseIRCodeLine(t)) {
+                    is ParsedIRLine.Instruction -> result.value.addUsedRegistersCounts(readRegsCounts, writeRegsCounts, regsTypes, null)
                     is ParsedIRLine.Label -> { /* labels can be skipped */ }
                 }
             }
         }
     }
-    return RegistersUsed(readRegsCounts, writeRegsCounts, readFpRegsCounts, writeFpRegsCounts, regsTypes)
+    return RegistersUsed(readRegsCounts, writeRegsCounts, regsTypes)
 }

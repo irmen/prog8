@@ -96,12 +96,38 @@ Value types: integers (.b=byte=8 bits, .w=word=16 bits, .l=long=32 bits), float 
 There is no distinction between signed and unsigned for many instructions. Instead, a different instruction is used if a distinction should be made (for example div and divs).
 Floating point operations are just 'f' typed regular instructions, however there are a few unique fp conversion instructions.
 
-NOTE: Labels in source text should always start with an underscore.
+Standalone label definitions start with an underscore; structured code references omit it.
 
+
+CANONICAL TEXT FORMAT
+---------------------
+Instructions are written as:  opcode[.type] operand,operand,...
+The operands are written in the canonical slot order of the instruction's OpcodeSchema
+(destinations first, then sources, then immediate/memory/target). Operand syntax:
+
+    r5.w            integer register 5, used as a word
+    fr5.f           floating point register 5
+    #$1234.w        immediate value (with its data type)
+    #main.items     the address of a symbol (optionally with +offset)
+    [main.items]    memory at a symbol (optionally [main.items+4])
+    [$d020]         memory at a fixed address
+    [r2.p+8]        memory pointed to by a register, with a displacement
+    [main.items+4+r2.w*2]     memory at symbol + displacement + index register * scale
+    s10.w           cpu hardware register, addressed by calling convention slot
+    main.label      a code location (branch/jump/call target), optionally main.label+4
+    (r2.p)          an indirect code location (address in a register)
+
+Calls are written as:  call target(argument,...) : result,... !memory=effect,status=effect
+where an argument is [name=]register[@slot|@statusflag] and a result is
+register[@slot|@statusflag] or just @slot / @statusflag when the result isn't captured.
+The effect suffix is omitted only when both effects are UNKNOWN.
 
 
 LOAD/STORE
 ----------
+The following descriptions use historical positional names solely to describe instruction
+semantics. They are not accepted as IRFORMAT=2 text; use the canonical syntax above.
+
 All have type b or w or l or f.
 
 load        reg1,         value       - load immediate value into register. If you supply a symbol, loads the *address* of the symbol! (variable values are loaded from memory via the loadm instruction)
@@ -657,720 +683,132 @@ enum class IRDataType {
     POINTER      // pointer (size depends on target)
 }
 
-enum class OperandDirection {
-    UNUSED,
-    READ,
-    WRITE,
-    READWRITE
-}
-
-data class InstructionFormat(val datatype: IRDataType?,
-                             val reg1: OperandDirection,
-                             val reg2: OperandDirection,
-                             val reg3: OperandDirection,
-                             val fpReg1: OperandDirection,
-                             val fpReg2: OperandDirection,
-                             val address: OperandDirection,
-                             val immediate: Boolean,
-                             val funcCall: Boolean,
-                             val sysCall: Boolean) {
-    companion object {
-        fun from(spec: String): Map<IRDataType?, InstructionFormat> {
-            val result = mutableMapOf<IRDataType?, InstructionFormat>()
-            for(part in spec.split('|').map{ it.trim() }) {
-                var reg1 = OperandDirection.UNUSED
-                var reg2 = OperandDirection.UNUSED
-                var reg3 = OperandDirection.UNUSED
-                var fpreg1 = OperandDirection.UNUSED
-                var fpreg2 = OperandDirection.UNUSED
-                var address = OperandDirection.UNUSED
-                var immediate = false
-                val splits = part.splitToSequence(',').iterator()
-                val typespec = splits.next()
-                var funcCall = false
-                var sysCall = false
-                while(splits.hasNext()) {
-                    when(splits.next()) {
-                        "<r1" -> reg1 = OperandDirection.READ
-                        ">r1" -> reg1 = OperandDirection.WRITE
-                        "<>r1" -> reg1 = OperandDirection.READWRITE
-                        "<r2" -> reg2 = OperandDirection.READ
-                        ">r2" -> reg2 = OperandDirection.WRITE
-                        "<>r2" -> reg2 = OperandDirection.READWRITE
-                        "<r3" -> reg3 = OperandDirection.READ
-                        "<fr1" -> fpreg1 = OperandDirection.READ
-                        ">fr1" -> fpreg1 = OperandDirection.WRITE
-                        "<>fr1" -> fpreg1 = OperandDirection.READWRITE
-                        "<fr2" -> fpreg2 = OperandDirection.READ
-                        ">fr2" -> fpreg2 = OperandDirection.WRITE
-                        "<>fr2" -> fpreg2 = OperandDirection.READWRITE
-                        ">i", "<>i" -> throw IllegalArgumentException("can't write into an immediate value")
-                        "<i" -> immediate = true
-                        "<a" -> address = OperandDirection.READ
-                        ">a" -> address = OperandDirection.WRITE
-                        "<>a" -> address = OperandDirection.READWRITE
-                        "call" -> funcCall = true
-                        "syscall" -> sysCall = true
-                        else -> throw IllegalArgumentException(spec)
-                    }
-                }
-
-                if(typespec=="N")
-                    result[null] = InstructionFormat(null, reg1, reg2, reg3, fpreg1, fpreg2, address, immediate, funcCall, sysCall)
-                if('B' in typespec)
-                    result[IRDataType.BYTE] = InstructionFormat(IRDataType.BYTE, reg1, reg2, reg3, fpreg1, fpreg2, address, immediate, funcCall, sysCall)
-                if('W' in typespec) {
-                    result[IRDataType.WORD] = InstructionFormat(IRDataType.WORD, reg1, reg2, reg3, fpreg1, fpreg2, address, immediate, funcCall, sysCall)
-                    result[IRDataType.POINTER] = InstructionFormat(IRDataType.POINTER, reg1, reg2, reg3, fpreg1, fpreg2, address, immediate, funcCall, sysCall)
-                }
-                if('L' in typespec)
-                    result[IRDataType.LONG] = InstructionFormat(IRDataType.LONG, reg1, reg2, reg3, fpreg1, fpreg2, address, immediate, funcCall, sysCall)
-                if('F' in typespec)
-                    result[IRDataType.FLOAT] = InstructionFormat(IRDataType.FLOAT, reg1, reg2, reg3, fpreg1, fpreg2, address, immediate, funcCall, sysCall)
-            }
-            return result
-        }
-    }
-}
-
-/*
-  <X  =  X is not modified (readonly value)
-  >X  =  X is overwritten with output value (write value)
-  <>X =  X is modified (read + written)
-  where X is one of:
-     r0... = integer register
-     fr0... = fp register
-     a = memory address
-     i = immediate value
+/**
+ * A single IR instruction with structured, typed operands.
+ *
+ * The operands an instruction has are declared by its [OpcodeSchema]; the schema also declares
+ * the role, direction (use/def) and data type of every operand. There are no positional
+ * "reg1/reg2/address/immediate" fields: every operand is a typed value that knows what it is.
  */
-val instructionFormats = mutableMapOf(
-    Opcode.NOP        to InstructionFormat.from("N"),
-    Opcode.LOAD       to InstructionFormat.from("BWL,>r1,<i     | F,>fr1,<i"),
-    Opcode.LOADM      to InstructionFormat.from("BWL,>r1,<a     | F,>fr1,<a"),
-    Opcode.LOADX      to InstructionFormat.from("BWL,>r1,<r2,<a | F,>fr1,<r1,<a"),
-    Opcode.LOADR      to InstructionFormat.from("BWL,>r1,<r2    | F,>fr1,<fr2"),
-    Opcode.LOADHR     to InstructionFormat.from("BWL,>r1,<i     | F,>fr1,<i"),
-    Opcode.LOADI  to InstructionFormat.from("BWL,>r1,<r2,<i     | F,>fr1,<r1,<i"),
-    Opcode.LOADHFACZERO to InstructionFormat.from("F,>fr1"),
-    Opcode.LOADHFACONE  to InstructionFormat.from("F,>fr1"),
-    Opcode.STOREM     to InstructionFormat.from("BWL,<r1,>a     | F,<fr1,>a"),
-    Opcode.STOREX     to InstructionFormat.from("BWL,<r1,<r2,>a | F,<fr1,<r1,>a"),
-    Opcode.STOREZM    to InstructionFormat.from("BWL,>a         | F,>a"),
-    Opcode.STOREZI    to InstructionFormat.from("BWL,<r1,<i     | F,<r1,<i"),
-    Opcode.STOREIM    to InstructionFormat.from("BWL,<i,>a      | F,<i,>a"),
-    Opcode.STOREZX    to InstructionFormat.from("BWL,<r1,>a     | F,<r1,>a"),
-    Opcode.STOREHR    to InstructionFormat.from("BWL,<r1,<i     | F,<fr1,<i"),
-    Opcode.STOREI to InstructionFormat.from("BWL,<r1,<r2,<i     | F,<fr1,<r1,<i"),
-    Opcode.STOREHFACZERO  to InstructionFormat.from("F,<fr1"),
-    Opcode.STOREHFACONE  to InstructionFormat.from("F,<fr1"),
-    Opcode.LOADP_INC  to InstructionFormat.from("BWL,>r1,<>a"),
-    Opcode.STOREP_INC to InstructionFormat.from("BWL,<r1,<>a"),
-    Opcode.JUMP       to InstructionFormat.from("N,<a"),
-    Opcode.JUMPI      to InstructionFormat.from("N,<r1"),
-    Opcode.CALLI      to InstructionFormat.from("N,<r1"),
-    Opcode.CALL       to InstructionFormat.from("N,call"),
-    Opcode.CALLFAR    to InstructionFormat.from("N,<i,<a"),
-    Opcode.CALLFARVB  to InstructionFormat.from("N,<r1,<a"),
-    Opcode.SYSCALL    to InstructionFormat.from("N,syscall"),
-    Opcode.RETURN     to InstructionFormat.from("N"),
-    Opcode.RETURNR    to InstructionFormat.from("BWL,<r1        | F,<fr1"),
-    Opcode.RETURNI    to InstructionFormat.from("BWL,<i         | F,<i"),
-    Opcode.BSTCC      to InstructionFormat.from("N,<a"),
-    Opcode.BSTCS      to InstructionFormat.from("N,<a"),
-    Opcode.BSTEQ      to InstructionFormat.from("N,<a"),
-    Opcode.BSTNE      to InstructionFormat.from("N,<a"),
-    Opcode.BSTNEG     to InstructionFormat.from("N,<a"),
-    Opcode.BSTPOS     to InstructionFormat.from("N,<a"),
-    Opcode.BSTVC      to InstructionFormat.from("N,<a"),
-    Opcode.BSTVS      to InstructionFormat.from("N,<a"),
-    Opcode.BGTR       to InstructionFormat.from("BWL,<r1,<r2,<a"),
-    Opcode.BGT        to InstructionFormat.from("BWL,<r1,<i,<a"),
-    Opcode.BLT        to InstructionFormat.from("BWL,<r1,<i,<a"),
-    Opcode.BGTSR      to InstructionFormat.from("BWL,<r1,<r2,<a"),
-    Opcode.BGTS       to InstructionFormat.from("BWL,<r1,<i,<a"),
-    Opcode.BLTS       to InstructionFormat.from("BWL,<r1,<i,<a"),
-    Opcode.BGER       to InstructionFormat.from("BWL,<r1,<r2,<a"),
-    Opcode.BGE        to InstructionFormat.from("BWL,<r1,<i,<a"),
-    Opcode.BLE        to InstructionFormat.from("BWL,<r1,<i,<a"),
-    Opcode.BGESR      to InstructionFormat.from("BWL,<r1,<r2,<a"),
-    Opcode.BGES       to InstructionFormat.from("BWL,<r1,<i,<a"),
-    Opcode.BLES       to InstructionFormat.from("BWL,<r1,<i,<a"),
-    Opcode.INC        to InstructionFormat.from("BWL,<>r1      | F,<>fr1"),
-    Opcode.INCM       to InstructionFormat.from("BWL,<>a       | F,<>a"),
-    Opcode.DEC        to InstructionFormat.from("BWL,<>r1      | F,<>fr1"),
-    Opcode.DECM       to InstructionFormat.from("BWL,<>a       | F,<>a"),
-    Opcode.NEG        to InstructionFormat.from("BWL,<>r1      | F,<>fr1"),
-    Opcode.NEGM       to InstructionFormat.from("BWL,<>a       | F,<>a"),
-    Opcode.ADDR       to InstructionFormat.from("BWL,<>r1,<r2  | F,<>fr1,<fr2"),
-    Opcode.ADD        to InstructionFormat.from("BWL,<>r1,<i   | F,<>fr1,<i"),
-    Opcode.ADDM       to InstructionFormat.from("BWL,<r1,<>a   | F,<fr1,<>a"),
-    Opcode.ADDIM      to InstructionFormat.from("BWL,<i,<>a    | F,<i,<>a"),
-    Opcode.SUBR       to InstructionFormat.from("BWL,<>r1,<r2  | F,<>fr1,<fr2"),
-    Opcode.SUB        to InstructionFormat.from("BWL,<>r1,<i   | F,<>fr1,<i"),
-    Opcode.SUBM       to InstructionFormat.from("BWL,<r1,<>a   | F,<fr1,<>a"),
-    Opcode.MULR       to InstructionFormat.from("BWL,<>r1,<r2   | F,<>fr1,<fr2"),
-    Opcode.MUL        to InstructionFormat.from("BWL,<>r1,<i    | F,<>fr1,<i"),
-    Opcode.MULM       to InstructionFormat.from("BWL,<r1,<>a    | F,<fr1,<>a"),
-    Opcode.SUBIM      to InstructionFormat.from("BWL,<i,<>a    | F,<i,<>a"),
-    Opcode.MULSR      to InstructionFormat.from("BWL,<>r1,<r2  | F,<>fr1,<fr2"),
-    Opcode.MULS       to InstructionFormat.from("BWL,<>r1,<i   | F,<>fr1,<i"),
-    Opcode.MULSM      to InstructionFormat.from("BWL,<r1,<>a   | F,<fr1,<>a"),
-    Opcode.DIVR       to InstructionFormat.from("BWL,<>r1,<r2   | F,<>fr1,<fr2"),
-    Opcode.DIV        to InstructionFormat.from("BWL,<>r1,<i    | F,<>fr1,<i"),
-    Opcode.DIVM       to InstructionFormat.from("BWL,<r1,<>a    | F,<fr1,<>a"),
-    Opcode.DIVSR      to InstructionFormat.from("BWL,<>r1,<r2  | F,<>fr1,<fr2"),
-    Opcode.DIVS       to InstructionFormat.from("BWL,<>r1,<i   | F,<>fr1,<i"),
-    Opcode.DIVSM      to InstructionFormat.from("BWL,<r1,<>a   | F,<fr1,<>a"),
-    Opcode.SQRT       to InstructionFormat.from("BWL,>r1,<r2   | F,>fr1,<fr2"),
-    Opcode.SQUARE     to InstructionFormat.from("BWL,>r1,<r2   | F,>fr1,<fr2"),
-    Opcode.SGN        to InstructionFormat.from("BWL,>r1,<r2   | F,>r1,<fr1"),
-    Opcode.MODR       to InstructionFormat.from("BWL,<>r1,<r2"),
-    Opcode.MOD        to InstructionFormat.from("BWL,<>r1,<i"),
-    Opcode.MODSR      to InstructionFormat.from("BWL,<>r1,<r2"),
-    Opcode.MODS       to InstructionFormat.from("BWL,<>r1,<i"),
-    Opcode.DIVMODR    to InstructionFormat.from("BWL,<>r1,<>r2"),
-    Opcode.DIVMOD     to InstructionFormat.from("BWL,<>r1,>r2,<i"),
-    Opcode.SDIVMODR   to InstructionFormat.from("BWL,<>r1,<>r2"),
-    Opcode.SDIVMOD    to InstructionFormat.from("BWL,<>r1,>r2,<i"),
-    Opcode.CMP        to InstructionFormat.from("BWL,<r1,<r2"),
-    Opcode.CMPI       to InstructionFormat.from("BWL,<r1,<i"),
-    Opcode.EXT        to InstructionFormat.from("BWL,>r1,<r2"),
-    Opcode.EXTS       to InstructionFormat.from("BWL,>r1,<r2"),
-    Opcode.EXTL       to InstructionFormat.from("B,>r1,<r2"),
-    Opcode.EXTLS      to InstructionFormat.from("B,>r1,<r2"),
-    Opcode.ANDR       to InstructionFormat.from("BWL,<>r1,<r2"),
-    Opcode.AND        to InstructionFormat.from("BWL,<>r1,<i"),
-    Opcode.ANDM       to InstructionFormat.from("BWL,<r1,<>a"),
-    Opcode.ORR        to InstructionFormat.from("BWL,<>r1,<r2"),
-    Opcode.OR         to InstructionFormat.from("BWL,<>r1,<i"),
-    Opcode.ORM        to InstructionFormat.from("BWL,<r1,<>a"),
-    Opcode.XORR       to InstructionFormat.from("BWL,<>r1,<r2"),
-    Opcode.XOR        to InstructionFormat.from("BWL,<>r1,<i"),
-    Opcode.XORM       to InstructionFormat.from("BWL,<r1,<>a"),
-    Opcode.INV        to InstructionFormat.from("BWL,<>r1"),
-    Opcode.INVM       to InstructionFormat.from("BWL,<>a"),
-    Opcode.ASRN       to InstructionFormat.from("BWL,<>r1,<r2"),
-    Opcode.ASRNM      to InstructionFormat.from("BWL,<r1,<>a"),
-    Opcode.LSRN       to InstructionFormat.from("BWL,<>r1,<r2"),
-    Opcode.LSRNM      to InstructionFormat.from("BWL,<r1,<>a"),
-    Opcode.LSLN       to InstructionFormat.from("BWL,<>r1,<r2"),
-    Opcode.LSLNM      to InstructionFormat.from("BWL,<r1,<>a"),
-    Opcode.ASRI       to InstructionFormat.from("BWL,<>r1,<i"),
-    Opcode.LSRI       to InstructionFormat.from("BWL,<>r1,<i"),
-    Opcode.LSLI       to InstructionFormat.from("BWL,<>r1,<i"),
-    Opcode.ASR        to InstructionFormat.from("BWL,<>r1"),
-    Opcode.ASRM       to InstructionFormat.from("BWL,<>a"),
-    Opcode.LSR        to InstructionFormat.from("BWL,<>r1"),
-    Opcode.LSRM       to InstructionFormat.from("BWL,<>a"),
-    Opcode.LSL        to InstructionFormat.from("BWL,<>r1"),
-    Opcode.LSLM       to InstructionFormat.from("BWL,<>a"),
-    Opcode.ROR        to InstructionFormat.from("BWL,<>r1"),
-    Opcode.RORM       to InstructionFormat.from("BWL,<>a"),
-    Opcode.ROXR       to InstructionFormat.from("BWL,<>r1"),
-    Opcode.ROXRM      to InstructionFormat.from("BWL,<>a"),
-    Opcode.ROL        to InstructionFormat.from("BWL,<>r1"),
-    Opcode.ROLM       to InstructionFormat.from("BWL,<>a"),
-    Opcode.ROXL       to InstructionFormat.from("BWL,<>r1"),
-    Opcode.ROXLM      to InstructionFormat.from("BWL,<>a"),
-    Opcode.BITTST     to InstructionFormat.from("BWL,<r1,<i"),
-    Opcode.BITSET     to InstructionFormat.from("BWL,<>r1,<i"),
-    Opcode.BITCLR     to InstructionFormat.from("BWL,<>r1,<i"),
-    Opcode.BITTOG     to InstructionFormat.from("BWL,<>r1,<i"),
-
-    Opcode.FFROMUB    to InstructionFormat.from("F,>fr1,<r1"),
-    Opcode.FFROMSB    to InstructionFormat.from("F,>fr1,<r1"),
-    Opcode.FFROMUW    to InstructionFormat.from("F,>fr1,<r1"),
-    Opcode.FFROMSW    to InstructionFormat.from("F,>fr1,<r1"),
-    Opcode.FFROMSL    to InstructionFormat.from("F,>fr1,<r1"),
-    Opcode.FTOUB      to InstructionFormat.from("F,>r1,<fr1"),
-    Opcode.FTOSB      to InstructionFormat.from("F,>r1,<fr1"),
-    Opcode.FTOUW      to InstructionFormat.from("F,>r1,<fr1"),
-    Opcode.FTOSW      to InstructionFormat.from("F,>r1,<fr1"),
-    Opcode.FTOSL      to InstructionFormat.from("F,>r1,<fr1"),
-    Opcode.FPOW       to InstructionFormat.from("F,<>fr1,<fr2"),
-    Opcode.FABS       to InstructionFormat.from("F,>fr1,<fr2"),
-    Opcode.FCOMP      to InstructionFormat.from("F,>r1,<fr1,<fr2"),
-    Opcode.FSIN       to InstructionFormat.from("F,>fr1,<fr2"),
-    Opcode.FCOS       to InstructionFormat.from("F,>fr1,<fr2"),
-    Opcode.FTAN       to InstructionFormat.from("F,>fr1,<fr2"),
-    Opcode.FATAN      to InstructionFormat.from("F,>fr1,<fr2"),
-    Opcode.FLN        to InstructionFormat.from("F,>fr1,<fr2"),
-    Opcode.FLOG       to InstructionFormat.from("F,>fr1,<fr2"),
-    Opcode.FROUND     to InstructionFormat.from("F,>fr1,<fr2"),
-    Opcode.FFLOOR     to InstructionFormat.from("F,>fr1,<fr2"),
-    Opcode.FCEIL      to InstructionFormat.from("F,>fr1,<fr2"),
-
-    Opcode.LSIGB      to InstructionFormat.from("WL,>r1,<r2"),
-    Opcode.LSIGW      to InstructionFormat.from("L,>r1,<r2"),
-    Opcode.MSIGB      to InstructionFormat.from("WL,>r1,<r2"),
-    Opcode.MSIGW      to InstructionFormat.from("L,>r1,<r2"),
-    Opcode.BSIGB      to InstructionFormat.from("L,>r1,<r2"),
-    Opcode.MIDB       to InstructionFormat.from("L,>r1,<r2"),
-    Opcode.PUSH       to InstructionFormat.from("BWL,<r1       | F,<fr1"),
-    Opcode.POP        to InstructionFormat.from("BWL,>r1       | F,>fr1"),
-    Opcode.PUSHST     to InstructionFormat.from("N"),
-    Opcode.POPST      to InstructionFormat.from("N"),
-    Opcode.CONCAT     to InstructionFormat.from("BW,>r1,<r2,<r3"),
-    Opcode.CLC        to InstructionFormat.from("N"),
-    Opcode.SEC        to InstructionFormat.from("N"),
-    Opcode.CLI        to InstructionFormat.from("N"),
-    Opcode.SEI        to InstructionFormat.from("N"),
-    Opcode.BREAKPOINT to InstructionFormat.from("N"),
-    Opcode.ALIGN      to InstructionFormat.from("N,<i"),
-)
-
-
-class FunctionCallArgs(
-    var arguments: List<ArgumentSpec>,
-    val returns: List<RegSpec>
-) {
-    class RegSpec(val dt: IRDataType, val registerNum: RegisterNum, val callingConventionSlot: CallingConventionSlot?, val statusflag: Statusflag?) {
-        init {
-            require(callingConventionSlot==null || statusflag==null) { "at most one of callingConventionSlot and statusflag can be non-null" }
-        }
-    }
-    
-    class ArgumentSpec(val name: String, val address: UInt?, val reg: RegSpec)
-}
-
 data class IRInstruction(
     val opcode: Opcode,
-    val type: IRDataType?=null,
-    val reg1: Int?=null,        // 0-99999
-    val reg2: Int?=null,        // 0-99999
-    val reg3: Int?=null,        // 0-99999
-    val fpReg1: RegisterNum?=null,      // 0-99999
-    val fpReg2: RegisterNum?=null,      // 0-99999
-    val immediate: Int?=null,   // 0-$ff or $ffff or $ffffffff
-    val immediateFp: Double?=null,
-    val address: MemoryAddress? = null,    // 0-$ffffff (or $ffffffff)
-    val labelSymbol: String?=null,          // symbolic label name as alternative to address (so only for Branch/jump/call Instructions!)
-    private val symbolOffset: Int? = null,     // offset to add on labelSymbol (used to index into an array variable)
-    var branchTarget: IRCodeChunkBase? = null,    // Will be linked after loading in IRProgram.linkChunks()! This is the chunk that the branch labelSymbol points to.
-    val fcallArgs: FunctionCallArgs? = null,       // will be set for the CALL and SYSCALL instructions.
-    val scale: Int = 1        // scaling factor for LOADX/STOREX/STOREZX: effective address = base + index*scale + disp
+    val type: IRDataType? = null,
+    val dest: RegisterOperand? = null,
+    val destB: RegisterOperand? = null,
+    val srcA: RegisterOperand? = null,
+    val srcB: RegisterOperand? = null,
+    val immediate: ImmediateOperand? = null,
+    val hardwareSlot: HardwareSlotOperand? = null,
+    val memory: MemoryReference? = null,
+    val target: CodeReference? = null,
+    val callSite: CallSite? = null
 ) {
-    var extSubName: String? = null      // optional external subroutine name (for asm comments mainly). NOT part of serialization.
-    // reg1 and fpreg1 can be IN/OUT/INOUT (all others are readonly INPUT)
-    // This knowledge is useful in IL assembly optimizers to see how registers are used.
-    val reg1direction: OperandDirection
-    val reg2direction: OperandDirection
-    val reg3direction: OperandDirection
-    val fpReg1direction: OperandDirection
-    val fpReg2direction: OperandDirection
-    val labelSymbolOffset = if(symbolOffset==0) null else symbolOffset
-
     init {
-        if(labelSymbol!=null) {
-            require(labelSymbol.first() != '_') { "label/symbol should not start with underscore $labelSymbol" }
-            require(labelSymbol.all { it.isJavaIdentifierStart() || it.isJavaIdentifierPart() || it=='.' }) {
-                "label/symbol contains invalid character $labelSymbol"
-            }
-        }
-        if(labelSymbolOffset!=null) require(labelSymbolOffset>0 && labelSymbol!=null) {"labelsymbol offset inconsistency"}
-        require(reg1==null || reg1 in 0..99999) {"reg1 out of bounds"}
-        require(reg2==null || reg2 in 0..99999) {"reg2 out of bounds"}
-        require(reg3==null || reg3 in 0..99999) {"reg3 out of bounds"}
-        // fpReg1/fpReg2 ranges are validated by RegisterNum init block
-        // enforce SSA discipline: output register must differ from input registers
-        // (fpRegs are exempt because float ops always use the same register type and there's no aliasing concern;
-        //  LOADI is also exempt because it saves intermediary registers in pointer chain dereferencing)
-        if(reg1!=null && reg2!=null) require(reg1!=reg2 || opcode==Opcode.LOADI) {"reg1 must not be same as reg2"}
-        if(reg1!=null && reg3!=null) require(reg1!=reg3) {"reg1 must not be same as reg3"}
-        if(reg2!=null && reg3!=null) require(reg2!=reg3) {"reg2 must not be same as reg3"}
-
-        val formats = instructionFormats.getValue(opcode)
-        require (type != null || formats.containsKey(null)) { "missing type" }
-
-        val format = formats.getOrElse(type) { throw IllegalArgumentException("type $type invalid for $opcode") }
-        if(format.reg1!=OperandDirection.UNUSED) require(reg1!=null) { "missing reg1" }
-        if(format.reg2!=OperandDirection.UNUSED) require(reg2!=null) { "missing reg2" }
-        if(format.reg3!=OperandDirection.UNUSED) require(reg3!=null) { "missing reg3" }
-        if(format.fpReg1!=OperandDirection.UNUSED) require(fpReg1!=null) { "missing fpReg1" }
-        if(format.fpReg2!=OperandDirection.UNUSED) require(fpReg2!=null) { "missing fpReg2" }
-        if(format.reg1==OperandDirection.UNUSED) require(reg1==null) { "invalid reg1" }
-        if(format.reg2==OperandDirection.UNUSED) require(reg2==null) { "invalid reg2" }
-        if(format.reg3==OperandDirection.UNUSED) require(reg3==null) { "invalid reg3" }
-        if(format.fpReg1==OperandDirection.UNUSED) require(fpReg1==null) { "invalid fpReg1" }
-        if(format.fpReg2==OperandDirection.UNUSED) require(fpReg2==null) { "invalid fpReg2" }
-        if(format.immediate) {
-            if(type==IRDataType.FLOAT) {
-                if(opcode !in setOf(Opcode.LOAD, Opcode.LOADI, Opcode.STOREI, Opcode.STOREZI, Opcode.LOADHR, Opcode.STOREHR))
-                    requireNotNull(immediateFp) { "missing immediate fp value" }
-            }
-            else
-                require(immediate!=null || labelSymbol!=null) {"missing immediate value or labelsymbol"}
-        }
-        if(opcode in setOf(Opcode.LOADI, Opcode.STOREI, Opcode.STOREZI)) {
-            require(immediate != null) {
-                "missing immediate value for $opcode" }
-        }
-        if(type!=IRDataType.FLOAT)
-            require(fpReg1==null && fpReg2==null) {"int instruction can't use fp reg"}
-        if(format.address!=OperandDirection.UNUSED)
-            require(address!=null || labelSymbol!=null) {
-                "missing an address or labelsymbol"}
-        if(format.immediate && (immediate!=null || immediateFp!=null)) {
-            if(opcode in setOf(Opcode.LOADI, Opcode.STOREI, Opcode.STOREZI)) {
-                require(immediate in 0..65535) { "immediate value out of range for loadi/storei/storezi: $immediate" }
-            } else if(opcode!=Opcode.SYSCALL) {
-                when (type) {
-                    IRDataType.BYTE -> require(immediate in -128..255) { "immediate value out of range for byte: $immediate" }
-                    IRDataType.WORD -> require(immediate in -32768..65535) { "immediate value out of range for word: $immediate" }
-                    IRDataType.LONG, IRDataType.POINTER -> require(immediate in -2147483648..2147483647) { "immediate value out of range for long: $immediate" }
-                    IRDataType.FLOAT, null -> {}
-                }
-            }
-        }
-        if(format.immediate) {
-            if(opcode==Opcode.LOAD)
-                require(immediate != null || immediateFp != null || labelSymbol!=null) { "missing immediate value or labelsymbol" }
-            else
-                require(immediate != null || immediateFp != null) { "missing immediate value" }
-        }
-        // address range is validated by MemoryAddress init block
-        require(scale >= 1) { "scale must be >=1, got $scale" }
-        if(opcode in setOf(Opcode.LOADX, Opcode.STOREX, Opcode.STOREZX)) {
-            require(scale in 1..65535) { "scale out of range for $opcode: $scale" }
-        } else {
-            require(scale == 1) { "scale only allowed for LOADX/STOREX/STOREZX, got $scale for $opcode" }
-        }
-
-        reg1direction = format.reg1
-        reg2direction = format.reg2
-        reg3direction = format.reg3
-        fpReg1direction = format.fpReg1
-        fpReg2direction = format.fpReg2
-
-        if(opcode==Opcode.SYSCALL) {
-            requireNotNull(immediate) { "syscall needs immediate integer for the syscall number" }
-            val callRegisters = fcallArgs?.arguments?.map { it.reg.registerNum } ?: emptyList()
-            val returnRegisters = fcallArgs?.returns?.map { it.registerNum } ?: emptyList()
-
-            val reused = callRegisters.toSet().intersect(returnRegisters.toSet())
-            if(reused.isNotEmpty()) {
-                for(r in reused) {
-                    val argType = fcallArgs!!.arguments.single { it.reg.registerNum==r }.reg.dt
-                    val returnType = fcallArgs.returns.single { it.registerNum==r }.dt
-                    if (argType!=IRDataType.FLOAT && returnType!=IRDataType.FLOAT) {
-                        if(argType!=returnType)
-                            throw AssemblyError("syscall cannot reuse argument register as return register with different type $this")
-                    }
-                }
-            }
-        }
+        OpcodeSchemas.validate(this)
     }
 
-    fun addUsedRegistersCounts(
-        readRegsCounts: MutableMap<RegisterNum, Int>,
-        writeRegsCounts: MutableMap<RegisterNum, Int>,
-        readFpRegsCounts: MutableMap<RegisterNum, Int>,
-        writeFpRegsCounts: MutableMap<RegisterNum, Int>,
-        regsTypes: MutableMap<RegisterNum, IRDataType>,
-        chunk: IRCodeChunk?,
-        indexRegType: IRDataType = IRDataType.BYTE
-    ) {
-        fun incReadReg(reg: RegisterNum) = readRegsCounts.merge(reg, 1, Int::plus)
-        fun incWriteReg(reg: RegisterNum) = writeRegsCounts.merge(reg, 1, Int::plus)
-        fun incReadFp(reg: RegisterNum) = readFpRegsCounts.merge(reg, 1, Int::plus)
-        fun incWriteFp(reg: RegisterNum) = writeFpRegsCounts.merge(reg, 1, Int::plus)
+    val schema: OpcodeSchema
+        get() = OpcodeSchemas.get(opcode, type)
 
-        // For LOADX/STOREX/STOREZX the width of the index register is not encoded in the
-        // instruction itself; it is inferred from the target's pointer size (indexRegType).
-        // IR generation now guarantees the index register has the canonical width
-        // (see IMemSizer.indexRegType and IRCodeGen.canonicalizeIndexReg), so the
-        // inference is correct by construction and no guessing suppression is needed.
-        fun setRegType(reg: RegisterNum, type: IRDataType) {
-            val existingType = regsTypes[reg]
+    /** all register accesses of this instruction, including the ones inside memory references and call sites */
+    val registerAccesses: List<RegisterOperand>
+        get() = buildList {
+            dest?.let { add(it) }
+            destB?.let { add(it) }
+            srcA?.let { add(it) }
+            srcB?.let { add(it) }
+            memory?.let { addAll(it.registers) }
+            (target as? CodeReference.Indirect)?.let { add(it.pointer) }
+            callSite?.let { addAll(it.registerAccesses) }
+        }
+
+    /** the registers that are read by this instruction */
+    val uses: Set<VirtualRegister>
+        get() = registerAccesses.filter { it.direction != OperandDirection.DEF }.mapTo(mutableSetOf()) { it.register }
+
+    /** the registers that are written by this instruction */
+    val definitions: Set<VirtualRegister>
+        get() = registerAccesses.filter { it.direction != OperandDirection.USE }.mapTo(mutableSetOf()) { it.register }
+
+    val memoryEffect: MemoryEffect
+        get() = callSite?.effects?.memoryEffect ?: schema.memoryEffect
+
+    val statusEffect: StatusEffect
+        get() = callSite?.effects?.statusEffect ?: schema.statusEffect
+
+    val controlFlow: ControlFlowEffect
+        get() = schema.controlFlow
+
+    /** the code location this instruction transfers control to (branch/jump/call), if it is a static one */
+    val codeTarget: CodeReference?
+        get() = target ?: callSite?.codeReference
+
+    /** the label this instruction branches/jumps/calls to, if any */
+    val labelTarget: String?
+        get() = (codeTarget as? CodeReference.Label)?.name
+
+    /** replace every virtual register in this instruction (registers keep their type, role and direction) */
+    fun mapRegisters(transform: (VirtualRegister) -> VirtualRegister): IRInstruction {
+        fun map(operand: RegisterOperand?) = operand?.withRegister(transform(operand.register))
+        return copy(
+            dest = map(dest),
+            destB = map(destB),
+            srcA = map(srcA),
+            srcB = map(srcB),
+            memory = memory?.mapRegisters(transform),
+            target = (target as? CodeReference.Indirect)?.let { it.copy(pointer = it.pointer.withRegister(transform(it.pointer.register))) } ?: target,
+            callSite = callSite?.mapRegisters(transform)
+        )
+    }
+
+    /** transform the memory reference of this instruction (if it has one) */
+    fun mapMemoryReferences(transform: (MemoryReference) -> MemoryReference): IRInstruction =
+        if (memory == null) this else copy(memory = transform(memory))
+
+    /** set the code location this instruction transfers control to */
+    fun withTarget(reference: CodeReference): IRInstruction = when {
+        target != null -> copy(target = reference)
+        callSite != null -> copy(callSite = callSite.withTarget(reference))
+        else -> throw IllegalArgumentException("$opcode has no code target")
+    }
+
+    /**
+     * Count the register reads and writes of this instruction, and record the data type of every
+     * integer register that is used. Float registers always have the float type so they're not recorded.
+     */
+    fun addUsedRegistersCounts(
+        readRegsCounts: MutableMap<VirtualRegister, Int>,
+        writeRegsCounts: MutableMap<VirtualRegister, Int>,
+        regsTypes: MutableMap<VirtualRegister, IRDataType>,
+        chunk: IRCodeChunk?
+    ) {
+        fun setRegType(register: VirtualRegister, type: IRDataType) {
+            if (type == IRDataType.FLOAT)
+                return
+            val existingType = regsTypes[register]
             if (existingType == null) {
-                regsTypes[reg] = type
+                regsTypes[register] = type
             } else if (existingType != type) {
                 // POINTER is compatible with WORD or LONG (size depends on target)
-                val compatible = (existingType==IRDataType.POINTER && type in setOf(IRDataType.WORD, IRDataType.LONG)) ||
-                        (type==IRDataType.POINTER && existingType in setOf(IRDataType.WORD, IRDataType.LONG))
-                if(!compatible)
-                    throw IllegalArgumentException("register $reg given multiple types! $existingType and $type while processing $this in $chunk")
+                val compatible = (existingType == IRDataType.POINTER && type in setOf(IRDataType.WORD, IRDataType.LONG)) ||
+                        (type == IRDataType.POINTER && existingType in setOf(IRDataType.WORD, IRDataType.LONG))
+                if (!compatible)
+                    throw IllegalArgumentException("register $register given multiple types! $existingType and $type while processing $this in $chunk")
             }
         }
 
-        when (this.reg1direction) {
-            OperandDirection.UNUSED -> {}
-            OperandDirection.READ -> {
-                incReadReg(RegisterNum(this.reg1!!))
-                determineReg1Type(indexRegType)?.let { setRegType(RegisterNum(this.reg1), it) }
-            }
-            OperandDirection.WRITE -> {
-                incWriteReg(RegisterNum(this.reg1!!))
-                determineReg1Type(indexRegType)?.let { setRegType(RegisterNum(this.reg1), it) }
-            }
-            OperandDirection.READWRITE -> {
-                incReadReg(RegisterNum(this.reg1!!))
-                incWriteReg(RegisterNum(this.reg1))
-                determineReg1Type(indexRegType)?.let { setRegType(RegisterNum(this.reg1), it) }
-            }
-        }
-        when (this.reg2direction) {
-            OperandDirection.UNUSED -> {}
-            OperandDirection.READ -> {
-                incReadReg(RegisterNum(this.reg2!!))
-                determineReg2Type(indexRegType)?.let { setRegType(RegisterNum(this.reg2), it) }
-            }
-            OperandDirection.READWRITE -> {
-                incReadReg(RegisterNum(this.reg2!!))
-                incWriteReg(RegisterNum(this.reg2))
-                determineReg2Type(indexRegType)?.let { setRegType(RegisterNum(this.reg2), it) }
-            }
-            else -> throw IllegalArgumentException("reg2 can only be read or readwrite")
-        }
-        when (this.reg3direction) {
-            OperandDirection.UNUSED -> {}
-            OperandDirection.READ -> {
-                incReadReg(RegisterNum(this.reg3!!))
-                determineReg3Type()?.let { setRegType(RegisterNum(this.reg3), it) }
-            }
-            else -> throw IllegalArgumentException("reg3 can only be read")
-        }
-        when (this.fpReg1direction) {
-            OperandDirection.UNUSED -> {}
-            OperandDirection.READ -> incReadFp(this.fpReg1!!)
-            OperandDirection.WRITE -> incWriteFp(this.fpReg1!!)
-            OperandDirection.READWRITE -> { incReadFp(this.fpReg1!!); incWriteFp(this.fpReg1) }
-        }
-        when (this.fpReg2direction) {
-            OperandDirection.UNUSED -> {}
-            OperandDirection.READ -> incReadFp(this.fpReg2!!)
-            OperandDirection.READWRITE -> { incReadFp(this.fpReg2!!); incWriteFp(this.fpReg2) }
-            else -> throw IllegalArgumentException("fpReg2 can only be read or readwrite")
-        }
-
-        if(fcallArgs!=null) {
-            fcallArgs.returns.forEach {
-                if (it.dt == IRDataType.FLOAT)
-                    incWriteFp(it.registerNum)
-                else {
-                    incWriteReg(it.registerNum)
-                    setRegType(it.registerNum, it.dt)
+        for (access in registerAccesses) {
+            when (access.direction) {
+                OperandDirection.USE -> readRegsCounts.merge(access.register, 1, Int::plus)
+                OperandDirection.DEF -> writeRegsCounts.merge(access.register, 1, Int::plus)
+                OperandDirection.USE_DEF -> {
+                    readRegsCounts.merge(access.register, 1, Int::plus)
+                    writeRegsCounts.merge(access.register, 1, Int::plus)
                 }
             }
-            fcallArgs.arguments.forEach {
-                if(it.reg.dt==IRDataType.FLOAT)
-                    incReadFp(it.reg.registerNum)
-                else {
-                    incReadReg(it.reg.registerNum)
-                    setRegType(it.reg.registerNum, it.reg.dt)
-                }
-            }
+            setRegType(access.register, access.type)
         }
     }
 
-    private fun determineReg1Type(indexRegType: IRDataType): IRDataType? {
-        if(type==IRDataType.FLOAT) {
-            // some float instructions have an integer (byte, word, or pointer) register as well in reg1
-            return when (opcode) {
-                Opcode.FFROMUB,
-                Opcode.FFROMSB,
-                Opcode.FTOUB,
-                Opcode.FTOSB,
-                Opcode.FCOMP,
-                Opcode.SGN -> IRDataType.BYTE
-                Opcode.LOADX,
-                Opcode.STOREX,
-                Opcode.STOREZX -> indexRegType
-                Opcode.FFROMSL, Opcode.FTOSL -> IRDataType.LONG
-                // LOADI/STOREI with float type: reg1 holds the memory address (pointer)
-                Opcode.LOADI, Opcode.STOREI -> IRDataType.POINTER
-                else -> IRDataType.WORD
-            }
-        }
-        if(type==IRDataType.WORD) {
-            // some word instructions have byte reg1
-            when (opcode) {
-                Opcode.SGN, Opcode.SQRT -> return IRDataType.BYTE
-                Opcode.STOREZX -> return indexRegType
-                Opcode.EXT, Opcode.EXTS, Opcode.CONCAT -> return IRDataType.LONG
-                else -> {}
-            }
-        }
-        if(type==IRDataType.LONG) {
-            if(opcode==Opcode.SGN)
-                return IRDataType.BYTE
-            if(opcode==Opcode.SQRT)
-                return IRDataType.WORD
-            if(opcode==Opcode.STOREZX)
-                return indexRegType
-        }
-        if(type==IRDataType.BYTE && opcode==Opcode.STOREZX)
-            return indexRegType
-        if(opcode in setOf(Opcode.JUMPI, Opcode.CALLI, Opcode.STOREZI))
-            return IRDataType.POINTER
-        if(opcode in setOf(Opcode.LSIGW, Opcode.MSIGW))
-            return IRDataType.WORD
-        if(opcode==Opcode.EXT || opcode==Opcode.EXTS)
-            return if (type == IRDataType.BYTE) IRDataType.WORD else null
-        if(opcode==Opcode.EXTL || opcode==Opcode.EXTLS)
-            return IRDataType.LONG
-        if(opcode==Opcode.CONCAT)
-            return if (type == IRDataType.BYTE) IRDataType.WORD else null
-        if(opcode in setOf(Opcode.ASRNM, Opcode.LSRNM, Opcode.LSLNM, Opcode.SQRT, Opcode.LSIGB, Opcode.MSIGB, Opcode.BSIGB, Opcode.MIDB))
-            return IRDataType.BYTE
-        return this.type
-    }
-
-    private fun determineReg2Type(indexRegType: IRDataType): IRDataType? {
-        if(opcode==Opcode.LOADX || opcode==Opcode.STOREX)
-            return indexRegType
-        if(opcode==Opcode.LOADI || opcode==Opcode.STOREI)
-            return IRDataType.POINTER
-        if(opcode==Opcode.ASRN || opcode==Opcode.LSRN || opcode==Opcode.LSLN)
-            return IRDataType.BYTE
-        return this.type
-    }
-
-    private fun determineReg3Type(): IRDataType? {
-        return this.type
-    }
-
-    override fun toString(): String = buildString {
-        append(opcode.name.lowercase())
-
-        when(type) {
-            IRDataType.BYTE -> append(".b ")
-            IRDataType.WORD -> append(".w ")
-            IRDataType.LONG -> append(".l ")
-            IRDataType.FLOAT -> append(".f ")
-            IRDataType.POINTER -> append(".p ")
-            else -> append(" ")
-        }
-
-        if(this@IRInstruction.fcallArgs!=null) {
-            when (opcode) {
-                Opcode.SYSCALL -> append(immediate!!.toHex())
-                Opcode.CALLFAR -> {
-                    if (immediate != null) {
-                        append("#${immediate.toHex()},")
-                    }
-                    address?.let {
-                        if (it.value > 0x7fffffffu) {
-                            append(it.value.toInt().toString())     // negative decimal for Amiga LVO
-                        } else {
-                            append(it.toHex())
-                        }
-                    }
-                }
-                else -> {
-                    if (labelSymbol != null) {
-                        append(labelSymbol)
-                        if (labelSymbolOffset != null)
-                            append("+$labelSymbolOffset")
-                    }
-                    address?.let { append(it.toHex()) }    // romcall
-                }
-            }
-            append("(")
-            fcallArgs.arguments.forEach {
-                val location = if(it.address==null) {
-                    if(it.name.isBlank()) "" else it.name+"="
-                } else "${it.address}="
-
-                val cpuReg = when {
-                    it.reg.callingConventionSlot != null -> "@s${it.reg.callingConventionSlot.value}"
-                    it.reg.statusflag != null -> "@"+it.reg.statusflag.toString()
-                    else -> ""
-                }
-
-                when(it.reg.dt) {
-                    IRDataType.BYTE -> append("${location}r${it.reg.registerNum.value}.b$cpuReg,")
-                    IRDataType.WORD -> append("${location}r${it.reg.registerNum.value}.w$cpuReg,")
-                    IRDataType.LONG -> append("${location}r${it.reg.registerNum.value}.l$cpuReg,")
-                    IRDataType.FLOAT -> append("${location}fr${it.reg.registerNum.value}.f$cpuReg,")
-                    IRDataType.POINTER -> append("${location}r${it.reg.registerNum.value}.p$cpuReg,")
-                }
-            }
-            if(last() == ',') {
-                setLength(length - 1)
-            }
-            append(")")
-            val returns = fcallArgs.returns
-            if(returns.isNotEmpty()) {
-                append(":")
-                returns.forEachIndexed { index, returnspec ->
-                    if (index > 0) append(",")
-                    val cpuReg = when {
-                        returnspec.callingConventionSlot != null -> "s${returnspec.callingConventionSlot.value}"
-                        returnspec.statusflag != null -> returnspec.statusflag.toString()
-                        else -> ""
-                    }
-                    if (cpuReg.isEmpty()) {
-                        when (returnspec.dt) {
-                            IRDataType.BYTE -> append("r${returnspec.registerNum.value}.b")
-                            IRDataType.WORD -> append("r${returnspec.registerNum.value}.w")
-                            IRDataType.LONG -> append("r${returnspec.registerNum.value}.l")
-                            IRDataType.FLOAT -> append("fr${returnspec.registerNum.value}.f")
-                            IRDataType.POINTER -> append("r${returnspec.registerNum.value}.p")
-                        }
-                    } else {
-                        when (returnspec.dt) {
-                            IRDataType.BYTE -> append("r${returnspec.registerNum.value}.b@$cpuReg")
-                            IRDataType.WORD -> append("r${returnspec.registerNum.value}.w@$cpuReg")
-                            IRDataType.LONG -> append("r${returnspec.registerNum.value}.l@$cpuReg")
-                            IRDataType.FLOAT -> append("fr${returnspec.registerNum.value}.f@$cpuReg")
-                            IRDataType.POINTER -> append("r${returnspec.registerNum.value}.p@$cpuReg")
-                        }
-                    }
-                }
-            }
-        } else {
-            // Output operands in dest-then-source order for human readability (matches assembly convention)
-            val formats = instructionFormats.getValue(opcode)
-            val format = formats.getOrElse(type) { formats.getValue(null) }
-
-            // Pass 1: WRITE destinations
-            if (format.reg1 == OperandDirection.WRITE) reg1?.let { append("r$it,") }
-            if (format.reg2 == OperandDirection.WRITE) reg2?.let { append("r$it,") }
-            if (format.reg3 == OperandDirection.WRITE) reg3?.let { append("r$it,") }
-            if (format.fpReg1 == OperandDirection.WRITE) fpReg1?.let { append("fr${it.value},") }
-            if (format.fpReg2 == OperandDirection.WRITE) fpReg2?.let { append("fr${it.value},") }
-
-            // Pass 2: READWRITE (in-place) destinations
-            if (format.reg1 == OperandDirection.READWRITE) reg1?.let { append("r$it,") }
-            if (format.reg2 == OperandDirection.READWRITE) reg2?.let { append("r$it,") }
-            if (format.reg3 == OperandDirection.READWRITE) reg3?.let { append("r$it,") }
-            if (format.fpReg1 == OperandDirection.READWRITE) fpReg1?.let { append("fr${it.value},") }
-            if (format.fpReg2 == OperandDirection.READWRITE) fpReg2?.let { append("fr${it.value},") }
-
-            // Pass 3: READ sources — float (values) before int (addresses) for readability
-            if (format.fpReg1 == OperandDirection.READ) fpReg1?.let { append("fr${it.value},") }
-            if (format.fpReg2 == OperandDirection.READ) fpReg2?.let { append("fr${it.value},") }
-            if (format.reg1 == OperandDirection.READ) reg1?.let { append("r$it,") }
-            if (format.reg2 == OperandDirection.READ) reg2?.let { append("r$it,") }
-            if (format.reg3 == OperandDirection.READ) reg3?.let { append("r$it,") }
-
-            immediate?.let {
-                when (opcode) {
-                    Opcode.LOADHR, Opcode.STOREHR -> append("s$it,")
-                    Opcode.BITTST, Opcode.BITSET, Opcode.BITCLR, Opcode.BITTOG -> append("$it,")
-                    else -> append("#${it.toHex()},")
-                }
-            }
-            immediateFp?.let {
-                append("#${it},")
-            }
-            address?.let {
-                append(it.toHex())
-                append(",")
-            }
-            labelSymbol?.let {
-                append(it)
-                if(labelSymbolOffset!=null)
-                    append("+$labelSymbolOffset")
-            }
-            if(opcode in setOf(Opcode.LOADX, Opcode.STOREX, Opcode.STOREZX) && scale != 1) {
-                if(isNotEmpty() && last() != ' ') append(',')
-                append("S=$scale")
-            }
-        }
-        if(isNotEmpty() && last() == ',')
-            setLength(length - 1)
-    }.trimEnd()
+    override fun toString(): String = IRTextCodec.print(this)
 }
-

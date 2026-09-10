@@ -122,9 +122,9 @@ class TestZeropageAllocator : FunSpec({
 
         val instructions = mutableListOf<IRInstruction>()
         repeat(10) {
-            instructions.add(IRInstruction(Opcode.LOADM, IRDataType.BYTE, reg1=0, labelSymbol="main.high"))
+            instructions.add(IRInstructions.loadMemory(Opcode.LOADM, IRDataType.BYTE, 0, IRMemory.direct("main.high")))
         }
-        instructions.add(IRInstruction(Opcode.LOADM, IRDataType.BYTE, reg1=0, labelSymbol="main.low"))
+        instructions.add(IRInstructions.loadMemory(Opcode.LOADM, IRDataType.BYTE, 0, IRMemory.direct("main.low")))
 
         val (program, target) = createTestProgram(
             vars = listOf(lowFreqVar, highFreqVar),
@@ -142,8 +142,8 @@ class TestZeropageAllocator : FunSpec({
 
         val instructions = mutableListOf<IRInstruction>()
         repeat(5) {
-            instructions.add(IRInstruction(Opcode.LOADM, IRDataType.BYTE, reg1=0, labelSymbol="main.bytevar"))
-            instructions.add(IRInstruction(Opcode.LOADM, IRDataType.WORD, reg1=0, labelSymbol="main.wordvar"))
+            instructions.add(IRInstructions.loadMemory(Opcode.LOADM, IRDataType.BYTE, 0, IRMemory.direct("main.bytevar")))
+            instructions.add(IRInstructions.loadMemory(Opcode.LOADM, IRDataType.WORD, 0, IRMemory.direct("main.wordvar")))
         }
 
         val (program, target) = createTestProgram(

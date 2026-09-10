@@ -7,8 +7,10 @@ import prog8.code.ast.PtProgram
 import prog8.code.core.CompilationOptions
 import prog8.code.core.IErrorReporter
 import prog8.codegen.intermediate.IRCodeGen
+import prog8.intermediate.IRDataType
 import prog8.intermediate.IRFileWriter
 import prog8.intermediate.IRProgram
+import prog8.intermediate.VirtualRegister
 import prog8.intermediate.dumpVariables
 
 class VmCodeGen(val retainSSA: Boolean,
@@ -23,7 +25,11 @@ class VmCodeGen(val retainSSA: Boolean,
         val irCodeGen = IRCodeGen(program, symbolTable, options, errors, retainSSA, preassignedCallSiteIds)
         val irProgram = irCodeGen.generate()
 
-        irProgram.verifyRegisterTypes(irCodeGen.registerTypes())
+        val virtualRegisterTypes = irCodeGen.registerTypes().entries.associate { (num, type) ->
+            val register: VirtualRegister = if (type == IRDataType.FLOAT) VirtualRegister.float(num.value) else VirtualRegister.int(num.value)
+            register to type
+        }
+        irProgram.verifyRegisterTypes(virtualRegisterTypes)
 
         if (options.dumpVariables)
             dumpVariables(irProgram)

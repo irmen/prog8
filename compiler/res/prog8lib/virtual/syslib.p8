@@ -43,11 +43,11 @@ sys {
         ; -- kill the program by jumping into the debugger/monitor (if available). Status code is in register A, a pointer to the death message is in X,Y.
         str @shared warning = iso:"\n\nPROGRAM DIED: "
         %ir {{
-            load.l r99200,sys.die.warning
+            load.l r99200.l,#sys.die.warning
             syscall 3 (r99200.l)
-            loadm.l r99200,sys.die.message
+            loadm.l r99200.l,[sys.die.message]
             syscall 3 (r99200.l)
-            load.b r99100,10
+            load.b r99100.b,#10.b
             syscall 2 (r99100.b)
         }}
         exit(code)
@@ -56,7 +56,7 @@ sys {
     sub wait(uword jiffies) {
         ; --- wait approximately the given number of jiffies (1/60th seconds)
         %ir {{
-            loadm.w r99000,sys.wait.jiffies
+            loadm.w r99000.w,[sys.wait.jiffies]
             syscall 13 (r99000.w)
         }}
     }
@@ -70,27 +70,27 @@ sys {
 
     sub memcopy(pointer source, pointer tgt, uword count)  {
         %ir {{
-            loadm.l r99200,sys.memcopy.source
-            loadm.l r99201,sys.memcopy.tgt
-            loadm.w r99002,sys.memcopy.count
+            loadm.l r99200.l,[sys.memcopy.source]
+            loadm.l r99201.l,[sys.memcopy.tgt]
+            loadm.w r99002.w,[sys.memcopy.count]
             syscall 36 (r99200.l, r99201.l, r99002.w)
         }}
     }
 
     sub memset(pointer mem, uword numbytes, ubyte value)  {
         %ir {{
-            loadm.l r99200,sys.memset.mem
-            loadm.w r99001,sys.memset.numbytes
-            loadm.b r99100,sys.memset.value
+            loadm.l r99200.l,[sys.memset.mem]
+            loadm.w r99001.w,[sys.memset.numbytes]
+            loadm.b r99100.b,[sys.memset.value]
             syscall 37 (r99200.l, r99001.w, r99100.b)
         }}
     }
 
     sub memsetw(pointer mem, uword numwords, uword value)  {
         %ir {{
-            loadm.l r99200,sys.memsetw.mem
-            loadm.w r99001,sys.memsetw.numwords
-            loadm.w r99002,sys.memsetw.value
+            loadm.l r99200.l,[sys.memsetw.mem]
+            loadm.w r99001.w,[sys.memsetw.numwords]
+            loadm.w r99002.w,[sys.memsetw.value]
             syscall 38 (r99200.l, r99001.w, r99002.w)
         }}
     }
@@ -99,18 +99,18 @@ sys {
         ; Compares two blocks of memory of up to 65535 bytes in size
         ; Returns -1 (255), 0 or 1, meaning: block 1 sorts before, equal or after block 2.
         %ir {{
-            loadm.l r99200,sys.memcmp.address1
-            loadm.l r99201,sys.memcmp.address2
-            loadm.w r99002,sys.memcmp.size
+            loadm.l r99200.l,[sys.memcmp.address1]
+            loadm.l r99201.l,[sys.memcmp.address2]
+            loadm.w r99002.w,[sys.memcmp.size]
             syscall 47 (r99200.l, r99201.l, r99002.w) : r99100.b
-            returnr.b r99100
+            returnr.b r99100.b
         }}
     }
 
     sub exit(ubyte returnvalue) {
         ; -- exit the program with a return code. All active defers in the call chain are unwound program-wide (LIFO) before system cleanup. sys.reset_system() and poweroff_system() do not run defers.
         %ir {{
-            loadm.b r99100,sys.exit.returnvalue
+            loadm.b r99100.b,[sys.exit.returnvalue]
             syscall 1 (r99100.b)
         }}
     }
@@ -157,42 +157,42 @@ sys {
 
     sub gfx_enable(ubyte mode) {
         %ir {{
-            loadm.b r99100,sys.gfx_enable.mode
+            loadm.b r99100.b,[sys.gfx_enable.mode]
             syscall 8 (r99100.b)
         }}
     }
 
     sub gfx_clear(ubyte color) {
         %ir {{
-            loadm.b r99100,sys.gfx_clear.color
+            loadm.b r99100.b,[sys.gfx_clear.color]
             syscall 9 (r99100.b)
         }}
     }
 
     sub gfx_plot(uword xx, uword yy, ubyte color) {
         %ir {{
-            loadm.w r99000,sys.gfx_plot.xx
-            loadm.w r99001,sys.gfx_plot.yy
-            loadm.b r99100,sys.gfx_plot.color
+            loadm.w r99000.w,[sys.gfx_plot.xx]
+            loadm.w r99001.w,[sys.gfx_plot.yy]
+            loadm.b r99100.b,[sys.gfx_plot.color]
             syscall 10 (r99000.w, r99001.w, r99100.b)
         }}
     }
 
     sub gfx_getpixel(uword xx, uword yy) -> ubyte {
         %ir {{
-            loadm.w r99000,sys.gfx_getpixel.xx
-            loadm.w r99001,sys.gfx_getpixel.yy
+            loadm.w r99000.w,[sys.gfx_getpixel.xx]
+            loadm.w r99001.w,[sys.gfx_getpixel.yy]
             syscall 17 (r99000.w, r99001.w): r99100.b
-            returnr.b r99100
+            returnr.b r99100.b
         }}
     }
 
     sub gfx_text(uword xx, uword yy, str textptr, ubyte color) {
         %ir {{
-            loadm.w r99000,sys.gfx_text.xx
-            loadm.w r99001,sys.gfx_text.yy
-            loadm.l r99200,sys.gfx_text.textptr
-            loadm.b r99100,sys.gfx_text.color
+            loadm.w r99000.w,[sys.gfx_text.xx]
+            loadm.w r99001.w,[sys.gfx_text.yy]
+            loadm.l r99200.l,[sys.gfx_text.textptr]
+            loadm.b r99100.b,[sys.gfx_text.color]
             syscall 66 (r99000.w, r99001.w, r99200.l, r99100.b)
         }}
     }
@@ -433,7 +433,7 @@ cx16 {
 
     private sub print_error (str message) {
         %ir {{
-            loadm.l r99200,cx16.print_error.message
+            loadm.l r99200.l,[cx16.print_error.message]
             syscall 3 (r99200.l)
         }}
     }

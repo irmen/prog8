@@ -162,7 +162,7 @@ class IRCodeGen(
                     is IRVariableInitializer.Numeric -> {
                         val dt = irType(variable.dt)
                         val chunk = IRCodeChunk(null, null)
-                        chunk += IRInstruction(Opcode.STOREIM, dt, immediate = initValue.value.toInt(), labelSymbol = variable.name)
+                        chunk += IRInstructions.storeImmediate(dt, initValue.value.toInt(), IRMemory.direct(variable.name))
                         irProg.addGlobalInits(chunk)
                         // replace with uninitialized version so it goes to NOINIT section
                         replacements += IRStStaticVariable(
@@ -282,15 +282,15 @@ class IRCodeGen(
             val sourceReg = registers.next(addressDt)
             val destReg = registers.next(addressDt)
             val countReg = registers.next(IRDataType.WORD)
-            chunk += IRInstruction(Opcode.LOAD, addressDt, reg1 = sourceReg, labelSymbol = shadowName)
-            chunk += IRInstruction(Opcode.LOAD, addressDt, reg1 = destReg, labelSymbol = variable.name)
-            chunk += IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1 = countReg, immediate = initBytes.size)
+            chunk += IRInstructions.loadAddress(addressDt, sourceReg, shadowName)
+            chunk += IRInstructions.loadAddress(addressDt, destReg, variable.name)
+            chunk += IRInstructions.load(IRDataType.WORD, countReg, initBytes.size)
             val args = listOf(
-                FunctionCallArgs.ArgumentSpec("", null, FunctionCallArgs.RegSpec(addressDt, RegisterNum(sourceReg), null, null)),
-                FunctionCallArgs.ArgumentSpec("", null, FunctionCallArgs.RegSpec(addressDt, RegisterNum(destReg), null, null)),
-                FunctionCallArgs.ArgumentSpec("", null, FunctionCallArgs.RegSpec(IRDataType.WORD, RegisterNum(countReg), null, null))
+                Calls.argument(sourceReg, addressDt),
+                Calls.argument(destReg, addressDt),
+                Calls.argument(countReg, IRDataType.WORD)
             )
-            chunk += IRInstruction(Opcode.SYSCALL, immediate = IMSyscall.MEMCOPY.number, fcallArgs = FunctionCallArgs(args, emptyList()))
+            chunk += IRInstructions.syscall(IMSyscall.MEMCOPY.number, args, emptyList())
         }
 
         if(chunk.isNotEmpty())
@@ -398,9 +398,14 @@ class IRCodeGen(
         irProg.foreachCodeChunk { chunk ->
             chunk.instructions.withIndex().forEach {
                 (idx, instr) ->
-                    val symbolExpr = instr.labelSymbol
+                    val symbolExpr = instr.memory?.symbolName ?: (instr.immediate as? ImmediateOperand.SymbolAddress)?.symbol
                     if(symbolExpr!=null) {
-                        val index = instr.labelSymbolOffset ?: 0
+                        val index = when(val mem = instr.memory) {
+                            is MemoryReference.Direct -> mem.displacement
+                            is MemoryReference.Indexed -> mem.displacement
+                            is MemoryReference.Indirect -> 0
+                            null -> (instr.immediate as ImmediateOperand.SymbolAddress).offset
+                        }
                         val target = symbolTable.flat[symbolExpr]
                         if (target is StMemVar) {
                             replacements.add(Triple(chunk, idx, target.address+index.toUInt()))
@@ -411,24 +416,21 @@ class IRCodeGen(
 
         replacements.forEach {
             val old = it.first.instructions[it.second]
-            val formats = instructionFormats.getValue(old.opcode)
-            val format = formats.getOrElse(old.type) { throw IllegalArgumentException("type ${old.type} invalid for ${old.opcode}") }
-            val addressUsed = format.address != OperandDirection.UNUSED
-            val immediateValue = if(addressUsed) old.immediate else if(format.immediate) it.third.toInt() else null
-            val addressValue: UInt? = if(addressUsed) it.third else null
-
-            it.first.instructions[it.second] = IRInstruction(
-                old.opcode,
-                old.type,
-                old.reg1,
-                old.reg2,
-                old.reg3,
-                old.fpReg1,
-                old.fpReg2,
-                immediate = immediateValue,
-                immediateFp = old.immediateFp,
-                address = addressValue?.toAddress()
-            )
+            val address = it.third
+            val newInstr = if(old.memory!=null) {
+                // keep index register, scale and any other operands intact; only the symbolic base changes
+                old.mapMemoryReferences { mem ->
+                    when(mem) {
+                        is MemoryReference.Direct -> MemoryReference.Direct(AddressBase.Absolute(address.toAddress()))
+                        is MemoryReference.Indexed -> MemoryReference.Indexed(AddressBase.Absolute(address.toAddress()), mem.index, mem.scale)
+                        is MemoryReference.Indirect -> mem
+                    }
+                }
+            } else {
+                val symbolType = (old.immediate as ImmediateOperand.SymbolAddress).type
+                old.copy(immediate = ImmediateOperand.Integer(address.toInt(), symbolType))
+            }
+            it.first.instructions[it.second] = newInstr
         }
     }
 
@@ -452,12 +454,12 @@ class IRCodeGen(
             is PtLabel -> listOf(IRCodeChunk(node.name, null))
             is PtBreakpoint -> {
                 val chunk = IRCodeChunk(null, null)
-                chunk += IRInstruction(Opcode.BREAKPOINT)
+                chunk += IRInstructions.simple(Opcode.BREAKPOINT)
                 listOf(chunk)
             }
             is PtAlign -> {
                 val chunk = IRCodeChunk(null, null)
-                chunk += IRInstruction(Opcode.ALIGN, immediate = node.align.toInt())
+                chunk += IRInstructions.align(node.align.toInt())
                 listOf(chunk)
             }
             is PtConditionalBranch -> translate(node)
@@ -525,7 +527,7 @@ class IRCodeGen(
                 val tr = expressionEval.translateExpression(goto.target)
                 result += tr.chunks
                 result += IRCodeChunk(null, null).also {
-                    it += IRInstruction(Opcode.JUMPI, reg1=tr.resultReg)
+                    it += IRInstructions.jumpIndirect(tr.resultReg)
                 }
                 result += IRCodeChunk(skipJumpLabel, null)
             }
@@ -541,7 +543,7 @@ class IRCodeGen(
         result += translateNode(branch.trueScope)
         if(branch.falseScope.children.isNotEmpty()) {
             val endLabel = createLabelName()
-            addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol = endLabel), null)
+            addInstr(result, IRInstructions.jump(codeLabel(endLabel)), null)
             val chunks = translateNode(branch.falseScope)
             result += labelFirstChunk(chunks, elseLabel)
             result += IRCodeChunk(endLabel, null)
@@ -552,57 +554,45 @@ class IRCodeGen(
     }
 
     internal fun IRBranchInstr(condition: BranchCondition, label: String?=null, address: UInt?=null): IRInstruction {
-        if(label!=null)
-            return when(condition) {
-                BranchCondition.CS -> IRInstruction(Opcode.BSTCS, labelSymbol = label)
-                BranchCondition.CC -> IRInstruction(Opcode.BSTCC, labelSymbol = label)
-                BranchCondition.EQ, BranchCondition.Z -> IRInstruction(Opcode.BSTEQ, labelSymbol = label)
-                BranchCondition.NE, BranchCondition.NZ -> IRInstruction(Opcode.BSTNE, labelSymbol = label)
-                BranchCondition.MI, BranchCondition.NEG -> IRInstruction(Opcode.BSTNEG, labelSymbol = label)
-                BranchCondition.PL, BranchCondition.POS -> IRInstruction(Opcode.BSTPOS, labelSymbol = label)
-                BranchCondition.VC -> IRInstruction(Opcode.BSTVC, labelSymbol = label)
-                BranchCondition.VS -> IRInstruction(Opcode.BSTVS, labelSymbol = label)
-            }
-        else if(address!=null) {
-            return when(condition) {
-                BranchCondition.CS -> IRInstruction(Opcode.BSTCS, address = address.toAddress())
-                BranchCondition.CC -> IRInstruction(Opcode.BSTCC, address = address.toAddress())
-                BranchCondition.EQ, BranchCondition.Z -> IRInstruction(Opcode.BSTEQ, address = address.toAddress())
-                BranchCondition.NE, BranchCondition.NZ -> IRInstruction(Opcode.BSTNE, address = address.toAddress())
-                BranchCondition.MI, BranchCondition.NEG -> IRInstruction(Opcode.BSTNEG, address = address.toAddress())
-                BranchCondition.PL, BranchCondition.POS -> IRInstruction(Opcode.BSTPOS, address = address.toAddress())
-                BranchCondition.VC -> IRInstruction(Opcode.BSTVC, address = address.toAddress())
-                BranchCondition.VS -> IRInstruction(Opcode.BSTVS, address = address.toAddress())
-            }
+        val target = branchTarget(label, address)
+        val opcode = when(condition) {
+            BranchCondition.CS -> Opcode.BSTCS
+            BranchCondition.CC -> Opcode.BSTCC
+            BranchCondition.EQ, BranchCondition.Z -> Opcode.BSTEQ
+            BranchCondition.NE, BranchCondition.NZ -> Opcode.BSTNE
+            BranchCondition.MI, BranchCondition.NEG -> Opcode.BSTNEG
+            BranchCondition.PL, BranchCondition.POS -> Opcode.BSTPOS
+            BranchCondition.VC -> Opcode.BSTVC
+            BranchCondition.VS -> Opcode.BSTVS
         }
-        else throw AssemblyError("need label or address for branch")
+        return IRInstructions.branch(opcode, target)
     }
 
     private fun IRInvertedBranchInstr(condition: BranchCondition, label: String?=null, address: UInt?=null): IRInstruction {
-        if(label!=null)
-            return when(condition) {
-                BranchCondition.CS -> IRInstruction(Opcode.BSTCC, labelSymbol = label)
-                BranchCondition.CC -> IRInstruction(Opcode.BSTCS, labelSymbol = label)
-                BranchCondition.EQ, BranchCondition.Z -> IRInstruction(Opcode.BSTNE, labelSymbol = label)
-                BranchCondition.NE, BranchCondition.NZ -> IRInstruction(Opcode.BSTEQ, labelSymbol = label)
-                BranchCondition.MI, BranchCondition.NEG -> IRInstruction(Opcode.BSTPOS, labelSymbol = label)
-                BranchCondition.PL, BranchCondition.POS -> IRInstruction(Opcode.BSTNEG, labelSymbol = label)
-                BranchCondition.VC -> IRInstruction(Opcode.BSTVS, labelSymbol = label)
-                BranchCondition.VS -> IRInstruction(Opcode.BSTVC, labelSymbol = label)
-            }
-        else if(address!=null) {
-            return when(condition) {
-                BranchCondition.CS -> IRInstruction(Opcode.BSTCC, address = address.toAddress())
-                BranchCondition.CC -> IRInstruction(Opcode.BSTCS, address = address.toAddress())
-                BranchCondition.EQ, BranchCondition.Z -> IRInstruction(Opcode.BSTNE, address = address.toAddress())
-                BranchCondition.NE, BranchCondition.NZ -> IRInstruction(Opcode.BSTEQ, address = address.toAddress())
-                BranchCondition.MI, BranchCondition.NEG -> IRInstruction(Opcode.BSTPOS, address = address.toAddress())
-                BranchCondition.PL, BranchCondition.POS -> IRInstruction(Opcode.BSTNEG, address = address.toAddress())
-                BranchCondition.VC -> IRInstruction(Opcode.BSTVS, address = address.toAddress())
-                BranchCondition.VS -> IRInstruction(Opcode.BSTVC, address = address.toAddress())
-            }
+        val target = branchTarget(label, address)
+        val opcode = when(condition) {
+            BranchCondition.CS -> Opcode.BSTCC
+            BranchCondition.CC -> Opcode.BSTCS
+            BranchCondition.EQ, BranchCondition.Z -> Opcode.BSTNE
+            BranchCondition.NE, BranchCondition.NZ -> Opcode.BSTEQ
+            BranchCondition.MI, BranchCondition.NEG -> Opcode.BSTPOS
+            BranchCondition.PL, BranchCondition.POS -> Opcode.BSTNEG
+            BranchCondition.VC -> Opcode.BSTVS
+            BranchCondition.VS -> Opcode.BSTVC
         }
-        else throw AssemblyError("need label or address for branch")
+        return IRInstructions.branch(opcode, target)
+    }
+
+    private fun branchTarget(label: String?, address: UInt?): CodeReference = when {
+        label!=null -> codeLabel(label)
+        address!=null -> codeAddress(address)
+        else -> throw AssemblyError("need label or address for branch")
+    }
+
+    private fun branchTarget(label: String?, address: MemoryAddress?): CodeReference = when {
+        label!=null -> codeLabel(label)
+        address!=null -> codeAddress(address)
+        else -> throw AssemblyError("need label or address for branch")
     }
 
     private fun labelFirstChunk(chunks: IRCodeChunks, label: String): IRCodeChunks {
@@ -660,8 +650,8 @@ class IRCodeGen(
                     // no statements for this choice value, jump to the end immediately
                     choice.values.children.map { v -> v as PtNumber }.sortedBy { v -> v.number }.forEach { value ->
                         result += IRCodeChunk(null, null).also { chunk ->
-                            chunk += IRInstruction(Opcode.CMPI, valueDt, reg1=valueTr.resultReg, immediate = value.number.toInt())
-                            chunk += IRInstruction(Opcode.BSTEQ, labelSymbol = endLabel)
+                            chunk += IRInstructions.compareImmediate(valueDt, valueTr.resultReg, value.number.toInt())
+                            chunk += IRInstructions.branch(Opcode.BSTEQ, codeLabel(endLabel))
                         }
                     }
                 } else {
@@ -676,8 +666,8 @@ class IRCodeGen(
                     }
                     choice.values.children.map { v -> v as PtNumber }.sortedBy { v -> v.number }.forEach { value ->
                         result += IRCodeChunk(null, null).also { chunk ->
-                            chunk += IRInstruction(Opcode.CMPI, valueDt, reg1=valueTr.resultReg, immediate = value.number.toInt())
-                            chunk += IRInstruction(Opcode.BSTEQ, labelSymbol = branchLabel)
+                            chunk += IRInstructions.compareImmediate(valueDt, valueTr.resultReg, value.number.toInt())
+                            chunk += IRInstructions.branch(Opcode.BSTEQ, codeLabel(branchLabel))
                         }
                     }
                 }
@@ -685,12 +675,12 @@ class IRCodeGen(
         }
 
         if(choices.isNotEmpty())
-            addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol = endLabel), null)
+            addInstr(result, IRInstructions.jump(codeLabel(endLabel)), null)
 
         choices.forEach { (label, choice) ->
             result += labelFirstChunk(translateNode(choice.statements), label)
             if(!choice.isOnlyGotoOrReturn())
-                addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol = endLabel), null)
+                addInstr(result, IRInstructions.jump(codeLabel(endLabel)), null)
         }
 
         result += IRCodeChunk(endLabel, null)
@@ -727,70 +717,70 @@ class IRCodeGen(
                     if(!needsWidening) return Pair(srcReg, srcDt)
                     if(loopvarDt == IRDataType.LONG && srcDt == IRDataType.BYTE) {
                         val longReg = registers.next(IRDataType.LONG)
-                        chunk += IRInstruction(Opcode.EXTL, srcDt, reg1=longReg, reg2=srcReg)
+                        chunk += IRInstructions.binary(Opcode.EXTL, srcDt, longReg, srcReg)
                         return Pair(longReg, IRDataType.LONG)
                     }
                     val wordReg = registers.next(IRDataType.WORD)
-                    chunk += IRInstruction(Opcode.EXT, srcDt, reg1=wordReg, reg2=srcReg)
+                    chunk += IRInstructions.binary(Opcode.EXT, srcDt, wordReg, srcReg)
                     return Pair(wordReg, loopvarDt)
                 }
 
                 when {
                     iterable.type.isString -> {
-                        addInstr(result, IRInstruction(Opcode.LOAD, indexRegType, reg1 = indexReg, immediate = 0), null)
+                        addInstr(result, IRInstructions.load(indexRegType, indexReg, 0), null)
                         val loopChunk = IRCodeChunk(loopLabel, null)
-                        loopChunk += IRInstruction(Opcode.LOADX, elementDt, reg1 = tmpReg, reg2 = indexReg, labelSymbol = iterable.name)
+                        loopChunk += IRInstructions.loadMemory(Opcode.LOADX, elementDt, tmpReg, IRMemory.indexed(iterable.name, indexReg, options.compTarget.indexRegType))
                         if(!options.compTarget.cpu.statusBitsOnMultiByteOps)
-                            loopChunk += IRInstruction(Opcode.CMPI, elementDt, reg1 = tmpReg, immediate = 0)
-                        loopChunk += IRInstruction(Opcode.BSTEQ, labelSymbol = endLabel)
+                            loopChunk += IRInstructions.compareImmediate(elementDt, tmpReg, 0)
+                        loopChunk += IRInstructions.branch(Opcode.BSTEQ, codeLabel(endLabel))
                         val (storeReg, storeDt) = emitWidening(loopChunk, tmpReg, elementDt)
-                        loopChunk += IRInstruction(Opcode.STOREM, storeDt, reg1 = storeReg, labelSymbol = loopvarSymbol)
+                        loopChunk += IRInstructions.storeMemory(Opcode.STOREM, storeDt, storeReg, IRMemory.direct(loopvarSymbol))
                         result += loopChunk
                         result += translateNode(forLoop.statements)
                         val jumpChunk = IRCodeChunk(null, null)
-                        jumpChunk += IRInstruction(Opcode.INC, indexRegType, reg1 = indexReg)
-                        jumpChunk += IRInstruction(Opcode.JUMP, labelSymbol = loopLabel)
+                        jumpChunk += IRInstructions.unary(Opcode.INC, indexRegType, indexReg)
+                        jumpChunk += IRInstructions.jump(codeLabel(loopLabel))
                         result += jumpChunk
                         result += IRCodeChunk(endLabel, null)
                     }
                     iterable.type.isSplitWordArray(options.compTarget) -> {
                         if(elementDt!=IRDataType.WORD && elementDt!=IRDataType.POINTER)
                             throw AssemblyError("weird dt $elementDt")
-                        addInstr(result, IRInstruction(Opcode.LOAD, indexRegType, reg1=indexReg, immediate = 0), null)
+                        addInstr(result, IRInstructions.load(indexRegType, indexReg, 0), null)
                         val loopChunk = IRCodeChunk(loopLabel, null)
                         val tmpRegLsb = registers.next(IRDataType.BYTE)
                         val tmpRegMsb = registers.next(IRDataType.BYTE)
                         val concatReg = registers.next(IRDataType.WORD)
-                        loopChunk += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=tmpRegMsb, reg2=indexReg, labelSymbol=iterable.name+"_msb")
-                        loopChunk += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=tmpRegLsb, reg2=indexReg, labelSymbol=iterable.name+"_lsb")
-                        loopChunk += IRInstruction(Opcode.CONCAT, IRDataType.BYTE, reg1=concatReg, reg2=tmpRegMsb, reg3=tmpRegLsb)
+                        loopChunk += IRInstructions.loadMemory(Opcode.LOADX, IRDataType.BYTE, tmpRegMsb, IRMemory.indexed(iterable.name+"_msb", indexReg, options.compTarget.indexRegType))
+                        loopChunk += IRInstructions.loadMemory(Opcode.LOADX, IRDataType.BYTE, tmpRegLsb, IRMemory.indexed(iterable.name+"_lsb", indexReg, options.compTarget.indexRegType))
+                        loopChunk += IRInstructions.concat(IRDataType.BYTE, concatReg, tmpRegMsb, tmpRegLsb)
                         val (storeReg, storeDt) = emitWidening(loopChunk, concatReg, IRDataType.WORD)
-                        loopChunk += IRInstruction(Opcode.STOREM, storeDt, reg1=storeReg, labelSymbol = loopvarSymbol)
+                        loopChunk += IRInstructions.storeMemory(Opcode.STOREM, storeDt, storeReg, IRMemory.direct(loopvarSymbol))
                         result += loopChunk
                         result += translateNode(forLoop.statements)
                         result += IRCodeChunk(null, null).also {
-                            it += IRInstruction(Opcode.INC, indexRegType, reg1=indexReg)
+                            it += IRInstructions.unary(Opcode.INC, indexRegType, indexReg)
                             if(iterableLength!=256 || indexRegType==IRDataType.WORD)
-                                it += IRInstruction(Opcode.CMPI, indexRegType, reg1=indexReg, immediate = iterableLength)
-                            it += IRInstruction(Opcode.BSTNE, labelSymbol = loopLabel)
+                                it += IRInstructions.compareImmediate(indexRegType, indexReg, iterableLength!!)
+                            it += IRInstructions.branch(Opcode.BSTNE, codeLabel(loopLabel))
                         }
                     }
                     else -> {
                         val arrElementDt = iterable.type.elementType()
                         val elementSize = program.memsizer.memorySize(arrElementDt, null)
                         val arrElementIR = irType(arrElementDt)
-                        addInstr(result, IRInstruction(Opcode.LOAD, indexRegType, reg1=indexReg, immediate = 0), null)
+                        addInstr(result, IRInstructions.load(indexRegType, indexReg, 0), null)
                         val loopChunk = IRCodeChunk(loopLabel, null)
-                        loopChunk += IRInstruction(Opcode.LOADX, arrElementIR, reg1=tmpReg, reg2=indexReg, labelSymbol=iterable.name, scale = elementSize)
+                        loopChunk += IRInstructions.loadMemory(Opcode.LOADX, arrElementIR, tmpReg, IRMemory.indexed(iterable.name, indexReg, options.compTarget.indexRegType, scale=elementSize))
                         val (storeReg, storeDt) = emitWidening(loopChunk, tmpReg, arrElementIR)
-                        loopChunk += IRInstruction(Opcode.STOREM, storeDt, reg1=storeReg, labelSymbol = loopvarSymbol)
+                        loopChunk += IRInstructions.storeMemory(Opcode.STOREM, storeDt, storeReg, IRMemory.direct(loopvarSymbol))
                         result += loopChunk
                         result += translateNode(forLoop.statements)
                         result += addConstToReg(indexReg, 1, indexRegType)
                         result += IRCodeChunk(null, null).also {
                             if(iterableLength!=256 || indexRegType==IRDataType.WORD)
-                                it += IRInstruction(Opcode.CMPI, indexRegType, reg1=indexReg, immediate = iterableLength!!)
-                            it += IRInstruction(Opcode.BSTNE, labelSymbol = loopLabel)
+                                it += IRInstructions.compareImmediate(indexRegType, indexReg, iterableLength!!)
+                            it += IRInstructions.branch(Opcode.BSTNE, codeLabel(loopLabel))
                         }
                     }
                 }
@@ -820,31 +810,31 @@ class IRCodeGen(
             // downto 0 optimization (byte)
             val fromTr = expressionEval.translateExpression(iterable.from)
             addToResult(result, fromTr, fromTr.resultReg, -1)
-            addInstr(result, IRInstruction(Opcode.STOREM, loopvarDtIr, reg1=fromTr.resultReg, labelSymbol=loopvarSymbol), null)
+            addInstr(result, IRInstructions.storeMemory(Opcode.STOREM, loopvarDtIr, fromTr.resultReg, IRMemory.direct(loopvarSymbol)), null)
             result += labelFirstChunk(translateNode(forLoop.statements), loopLabel)
             result += addConstMem(loopvarDtIr, null, loopvarSymbol, -1)
             result += IRCodeChunk(null, null).also {
-                it += IRInstruction(Opcode.LOADM, loopvarDtIr, reg1 = fromTr.resultReg, labelSymbol = loopvarSymbol)
-                it += IRInstruction(Opcode.CMPI, loopvarDtIr, reg1 = fromTr.resultReg, immediate = 255)
-                it += IRInstruction(Opcode.BSTNE, labelSymbol = loopLabel)
+                it += IRInstructions.loadMemory(Opcode.LOADM, loopvarDtIr, fromTr.resultReg, IRMemory.direct(loopvarSymbol))
+                it += IRInstructions.compareImmediate(loopvarDtIr, fromTr.resultReg, 255)
+                it += IRInstructions.branch(Opcode.BSTNE, codeLabel(loopLabel))
             }
         }
         else if(step==-1 && iterable.to.asConstInteger()==1) {
             // downto 1 optimization (byte and word)
             val fromTr = expressionEval.translateExpression(iterable.from)
             addToResult(result, fromTr, fromTr.resultReg, -1)
-            addInstr(result, IRInstruction(Opcode.STOREM, loopvarDtIr, reg1=fromTr.resultReg, labelSymbol=loopvarSymbol), null)
+            addInstr(result, IRInstructions.storeMemory(Opcode.STOREM, loopvarDtIr, fromTr.resultReg, IRMemory.direct(loopvarSymbol)), null)
             result += labelFirstChunk(translateNode(forLoop.statements), loopLabel)
             result += addConstMem(loopvarDtIr, null, loopvarSymbol, -1)
             result += IRCodeChunk(null, null).also {
-                it += IRInstruction(Opcode.LOADM, loopvarDtIr, reg1 = fromTr.resultReg, labelSymbol = loopvarSymbol)
+                it += IRInstructions.loadMemory(Opcode.LOADM, loopvarDtIr, fromTr.resultReg, IRMemory.direct(loopvarSymbol))
                 // Emit explicit CMPI #0 before the BSTNE branch on 8-bit targets where
                 // LOADM doesn't reliably set Z for multi-byte results. Skip on targets
                 // that honor the contract (e.g. M68000). See CpuType.statusBitsOnMultiByteOps.
                 if(!options.compTarget.cpu.statusBitsOnMultiByteOps) {
-                    it += IRInstruction(Opcode.CMPI, loopvarDtIr, reg1 = fromTr.resultReg, immediate = 0)
+                    it += IRInstructions.compareImmediate(loopvarDtIr, fromTr.resultReg, 0)
                 }
-                it += IRInstruction(Opcode.BSTNE, labelSymbol = loopLabel)
+                it += IRInstructions.branch(Opcode.BSTNE, codeLabel(loopLabel))
             }
         }
         else {
@@ -860,45 +850,45 @@ class IRCodeGen(
 
             val precheckInstruction = if(loopvarDt.isSigned) {
                 if(step>0)
-                    IRInstruction(Opcode.BGTSR, loopvarDtIr, fromTr.resultReg, toTr.resultReg, labelSymbol=labelAfterFor)
+                    IRInstructions.branchRegister(Opcode.BGTSR, loopvarDtIr, fromTr.resultReg, toTr.resultReg, codeLabel(labelAfterFor))
                 else
-                    IRInstruction(Opcode.BGTSR, loopvarDtIr, toTr.resultReg, fromTr.resultReg, labelSymbol=labelAfterFor)
+                    IRInstructions.branchRegister(Opcode.BGTSR, loopvarDtIr, toTr.resultReg, fromTr.resultReg, codeLabel(labelAfterFor))
             } else {
                 if(step>0)
-                    IRInstruction(Opcode.BGTR, loopvarDtIr, fromTr.resultReg, toTr.resultReg, labelSymbol=labelAfterFor)
+                    IRInstructions.branchRegister(Opcode.BGTR, loopvarDtIr, fromTr.resultReg, toTr.resultReg, codeLabel(labelAfterFor))
                 else
-                    IRInstruction(Opcode.BGTR, loopvarDtIr, toTr.resultReg, fromTr.resultReg, labelSymbol=labelAfterFor)
+                    IRInstructions.branchRegister(Opcode.BGTR, loopvarDtIr, toTr.resultReg, fromTr.resultReg, codeLabel(labelAfterFor))
             }
             addInstr(result, precheckInstruction, null)
 
-            addInstr(result, IRInstruction(Opcode.STOREM, loopvarDtIr, reg1=fromTr.resultReg, labelSymbol=loopvarSymbol), null)
+            addInstr(result, IRInstructions.storeMemory(Opcode.STOREM, loopvarDtIr, fromTr.resultReg, IRMemory.direct(loopvarSymbol)), null)
             result += labelFirstChunk(translateNode(forLoop.statements), loopLabel)
             if(step==1 || step==-1) {
                 // if endvalue == loopvar, stop loop, else iterate
                 result += IRCodeChunk(null, null).also {
-                    it += IRInstruction(Opcode.LOADM, loopvarDtIr, reg1 = fromTr.resultReg, labelSymbol = loopvarSymbol)
-                    it += IRInstruction(Opcode.CMP, loopvarDtIr, reg1=toTr.resultReg, reg2=fromTr.resultReg)
-                    it += IRInstruction(Opcode.BSTEQ, labelSymbol = labelAfterFor)
+                    it += IRInstructions.loadMemory(Opcode.LOADM, loopvarDtIr, fromTr.resultReg, IRMemory.direct(loopvarSymbol))
+                    it += IRInstructions.compare(loopvarDtIr, toTr.resultReg, fromTr.resultReg)
+                    it += IRInstructions.branch(Opcode.BSTEQ, codeLabel(labelAfterFor))
                 }
                 result += addConstMem(loopvarDtIr, null, loopvarSymbol, step)
-                addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol = loopLabel), null)
+                addInstr(result, IRInstructions.jump(codeLabel(loopLabel)), null)
             } else {
                 // ind/dec index, then:
                 // ascending: if endvalue >= loopvar, iterate
                 // descending: if loopvar >= endvalue, iterate
                 val previousReg = registers.next(loopvarDtIr)
-                addInstr(result, IRInstruction(Opcode.LOADM, loopvarDtIr, reg1 = previousReg, labelSymbol = loopvarSymbol), null)
+                addInstr(result, IRInstructions.loadMemory(Opcode.LOADM, loopvarDtIr, previousReg, IRMemory.direct(loopvarSymbol)), null)
                 result += addConstMem(loopvarDtIr, null, loopvarSymbol, step)
-                addInstr(result, IRInstruction(Opcode.LOADM, loopvarDtIr, reg1=fromTr.resultReg, labelSymbol = loopvarSymbol), null)
+                addInstr(result, IRInstructions.loadMemory(Opcode.LOADM, loopvarDtIr, fromTr.resultReg, IRMemory.direct(loopvarSymbol)), null)
                 val compareOpcode = if(loopvarDt.isSigned) Opcode.BGTSR else Opcode.BGTR
                 if(step > 0) {
-                    addInstr(result, IRInstruction(compareOpcode, loopvarDtIr, reg1 = previousReg, reg2 = fromTr.resultReg, labelSymbol = labelAfterFor), null)
-                    addInstr(result, IRInstruction(compareOpcode, loopvarDtIr, reg1 = fromTr.resultReg, reg2 = toTr.resultReg, labelSymbol = labelAfterFor), null)
+                    addInstr(result, IRInstructions.branchRegister(compareOpcode, loopvarDtIr, previousReg, fromTr.resultReg, codeLabel(labelAfterFor)), null)
+                    addInstr(result, IRInstructions.branchRegister(compareOpcode, loopvarDtIr, fromTr.resultReg, toTr.resultReg, codeLabel(labelAfterFor)), null)
                 } else {
-                    addInstr(result, IRInstruction(compareOpcode, loopvarDtIr, reg1 = fromTr.resultReg, reg2 = previousReg, labelSymbol = labelAfterFor), null)
-                    addInstr(result, IRInstruction(compareOpcode, loopvarDtIr, reg1 = toTr.resultReg, reg2 = fromTr.resultReg, labelSymbol = labelAfterFor), null)
+                    addInstr(result, IRInstructions.branchRegister(compareOpcode, loopvarDtIr, fromTr.resultReg, previousReg, codeLabel(labelAfterFor)), null)
+                    addInstr(result, IRInstructions.branchRegister(compareOpcode, loopvarDtIr, toTr.resultReg, fromTr.resultReg, codeLabel(labelAfterFor)), null)
                 }
-                addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol = loopLabel), null)
+                addInstr(result, IRInstructions.jump(codeLabel(loopLabel)), null)
             }
             result += IRCodeChunk(labelAfterFor, null)
         }
@@ -936,19 +926,19 @@ class IRCodeGen(
             stepTr.dt == loopvarDtIr -> stepTr.resultReg
             stepTr.dt == IRDataType.WORD && loopvarDtIr == IRDataType.LONG && !iterable.step.type.isSigned -> {
                 val widenedReg = registers.next(IRDataType.LONG)
-                addInstr(result, IRInstruction(Opcode.EXT, IRDataType.WORD, reg1=widenedReg, reg2=stepTr.resultReg), null)
+                addInstr(result, IRInstructions.binary(Opcode.EXT, IRDataType.WORD, widenedReg, stepTr.resultReg), null)
                 widenedReg
             }
             else -> throw AssemblyError("unexpected normalized loop step ${stepTr.dt} for $loopvarDtIr")
         }
 
         // step == 0 => empty loop
-        addInstr(result, IRInstruction(Opcode.CMPI, loopvarDtIr, reg1=stepReg, immediate=0), null)
-        addInstr(result, IRInstruction(Opcode.BSTEQ, labelSymbol=labelAfterFor), null)
+        addInstr(result, IRInstructions.compareImmediate(loopvarDtIr, stepReg, 0), null)
+        addInstr(result, IRInstructions.branch(Opcode.BSTEQ, codeLabel(labelAfterFor)), null)
 
         // Determine direction from step sign
         if(signedStep)
-            addInstr(result, IRInstruction(Opcode.BSTNEG, labelSymbol=labelDescending!!), null)
+            addInstr(result, IRInstructions.branch(Opcode.BSTNEG, codeLabel(labelDescending!!)), null)
 
         val precheckOpcode = if(loopvarDt.isSigned) Opcode.BGTSR else Opcode.BGTR
 
@@ -957,46 +947,46 @@ class IRCodeGen(
         val nextReg = registers.next(loopvarDtIr)
 
         if(signedStep)
-            addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=directionReg!!, immediate=0), null)
-        addInstr(result, IRInstruction(precheckOpcode, loopvarDtIr, reg1=fromTr.resultReg, reg2=toTr.resultReg, labelSymbol=labelAfterFor), null)
-        addInstr(result, IRInstruction(Opcode.STOREM, loopvarDtIr, reg1=fromTr.resultReg, labelSymbol=loopvarSymbol), null)
-        addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol=loopLabel), null)
+            addInstr(result, IRInstructions.load(IRDataType.BYTE, directionReg!!, 0), null)
+        addInstr(result, IRInstructions.branchRegister(precheckOpcode, loopvarDtIr, fromTr.resultReg, toTr.resultReg, codeLabel(labelAfterFor)), null)
+        addInstr(result, IRInstructions.storeMemory(Opcode.STOREM, loopvarDtIr, fromTr.resultReg, IRMemory.direct(loopvarSymbol)), null)
+        addInstr(result, IRInstructions.jump(codeLabel(loopLabel)), null)
 
         if(signedStep) {
             result += IRCodeChunk(labelDescending!!, null)
-            addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=directionReg!!, immediate=1), null)
-            addInstr(result, IRInstruction(precheckOpcode, loopvarDtIr, reg1=toTr.resultReg, reg2=fromTr.resultReg, labelSymbol=labelAfterFor), null)
-            addInstr(result, IRInstruction(Opcode.STOREM, loopvarDtIr, reg1=fromTr.resultReg, labelSymbol=loopvarSymbol), null)
+            addInstr(result, IRInstructions.load(IRDataType.BYTE, directionReg!!, 1), null)
+            addInstr(result, IRInstructions.branchRegister(precheckOpcode, loopvarDtIr, toTr.resultReg, fromTr.resultReg, codeLabel(labelAfterFor)), null)
+            addInstr(result, IRInstructions.storeMemory(Opcode.STOREM, loopvarDtIr, fromTr.resultReg, IRMemory.direct(loopvarSymbol)), null)
         }
 
         result += labelFirstChunk(translateNode(forLoop.statements), loopLabel)
-        addInstr(result, IRInstruction(Opcode.LOADM, loopvarDtIr, reg1=currentReg, labelSymbol=loopvarSymbol), null)
-        addInstr(result, IRInstruction(Opcode.LOADR, loopvarDtIr, reg1=nextReg, reg2=currentReg), null)
-        addInstr(result, IRInstruction(Opcode.ADDR, loopvarDtIr, reg1=nextReg, reg2=stepReg), null)
+        addInstr(result, IRInstructions.loadMemory(Opcode.LOADM, loopvarDtIr, currentReg, IRMemory.direct(loopvarSymbol)), null)
+        addInstr(result, IRInstructions.move(loopvarDtIr, nextReg, currentReg), null)
+        addInstr(result, IRInstructions.binary(Opcode.ADDR, loopvarDtIr, nextReg, stepReg), null)
 
         if(signedStep) {
-            addInstr(result, IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1=directionReg!!, immediate=0), null)
-            addInstr(result, IRInstruction(Opcode.BSTNE, labelSymbol=labelDescendingTail!!), null)
+            addInstr(result, IRInstructions.compareImmediate(IRDataType.BYTE, directionReg!!, 0), null)
+            addInstr(result, IRInstructions.branch(Opcode.BSTNE, codeLabel(labelDescendingTail!!)), null)
         }
 
         // Ascending: wrapping makes next smaller than current; otherwise
         // next must not exceed the upper bound.
-        addInstr(result, IRInstruction(precheckOpcode, loopvarDtIr, reg1=currentReg, reg2=nextReg, labelSymbol=labelAfterFor), null)
-        addInstr(result, IRInstruction(precheckOpcode, loopvarDtIr, reg1=nextReg, reg2=toTr.resultReg, labelSymbol=labelAfterFor), null)
-        addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol=labelStoreNext), null)
+        addInstr(result, IRInstructions.branchRegister(precheckOpcode, loopvarDtIr, currentReg, nextReg, codeLabel(labelAfterFor)), null)
+        addInstr(result, IRInstructions.branchRegister(precheckOpcode, loopvarDtIr, nextReg, toTr.resultReg, codeLabel(labelAfterFor)), null)
+        addInstr(result, IRInstructions.jump(codeLabel(labelStoreNext)), null)
 
         if(signedStep) {
             result += IRCodeChunk(labelDescendingTail!!, null)
             // Descending: wrapping makes next larger than current; otherwise
             // next must not fall below the lower bound.
-            addInstr(result, IRInstruction(precheckOpcode, loopvarDtIr, reg1=nextReg, reg2=currentReg, labelSymbol=labelAfterFor), null)
-            addInstr(result, IRInstruction(precheckOpcode, loopvarDtIr, reg1=toTr.resultReg, reg2=nextReg, labelSymbol=labelAfterFor), null)
-            addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol=labelStoreNext), null)
+            addInstr(result, IRInstructions.branchRegister(precheckOpcode, loopvarDtIr, nextReg, currentReg, codeLabel(labelAfterFor)), null)
+            addInstr(result, IRInstructions.branchRegister(precheckOpcode, loopvarDtIr, toTr.resultReg, nextReg, codeLabel(labelAfterFor)), null)
+            addInstr(result, IRInstructions.jump(codeLabel(labelStoreNext)), null)
         }
 
         result += IRCodeChunk(labelStoreNext, null)
-        addInstr(result, IRInstruction(Opcode.STOREM, loopvarDtIr, reg1=nextReg, labelSymbol=loopvarSymbol), null)
-        addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol=loopLabel), null)
+        addInstr(result, IRInstructions.storeMemory(Opcode.STOREM, loopvarDtIr, nextReg, IRMemory.direct(loopvarSymbol)), null)
+        addInstr(result, IRInstructions.jump(codeLabel(loopLabel)), null)
 
         result += IRCodeChunk(labelAfterFor, null)
         return result
@@ -1044,18 +1034,18 @@ class IRCodeGen(
         val result = mutableListOf<IRCodeChunkBase>()
         val indexReg = registers.next(loopvarDtIr)
         val chunk = IRCodeChunk(null, null)
-        chunk += IRInstruction(Opcode.STOREIM, loopvarDtIr, immediate = iterable.first, labelSymbol=loopvarSymbol)
+        chunk += IRInstructions.storeImmediate(loopvarDtIr, iterable.first, IRMemory.direct(loopvarSymbol))
         result += chunk
         result += labelFirstChunk(translateNode(forLoop.statements), loopLabel)
         val chunk2 = addConstMem(loopvarDtIr, null, loopvarSymbol, iterable.step)
         if(loopvarDtIr==IRDataType.BYTE && iterable.step==-1 && iterable.last==0) {
             // downto 0 optimization (byte)
             if(loopvarDt.isSignedByte || iterable.first<=127) {
-                chunk2 += IRInstruction(Opcode.BSTPOS, labelSymbol = loopLabel)
+                chunk2 += IRInstructions.branch(Opcode.BSTPOS, codeLabel(loopLabel))
             } else {
-                chunk2 += IRInstruction(Opcode.LOADM, loopvarDtIr, reg1 = indexReg, labelSymbol = loopvarSymbol)
-                chunk2 += IRInstruction(Opcode.CMPI, loopvarDtIr, reg1 = indexReg, immediate = rangeEndExclusiveWrapped)
-                chunk2 += IRInstruction(Opcode.BSTNE, labelSymbol = loopLabel)
+                chunk2 += IRInstructions.loadMemory(Opcode.LOADM, loopvarDtIr, indexReg, IRMemory.direct(loopvarSymbol))
+                chunk2 += IRInstructions.compareImmediate(loopvarDtIr, indexReg, rangeEndExclusiveWrapped)
+                chunk2 += IRInstructions.branch(Opcode.BSTNE, codeLabel(loopLabel))
             }
         }
         else if(iterable.step==-1 && iterable.last==1) {
@@ -1064,16 +1054,16 @@ class IRCodeGen(
             // reliably set Z; we must explicitly test the loop var. Skip the explicit
             // CMPI on targets that honor the contract (e.g. M68000).
             // See CpuType.statusBitsOnMultiByteOps.
-            chunk2 += IRInstruction(Opcode.LOADM, loopvarDtIr, reg1 = indexReg, labelSymbol = loopvarSymbol)
+            chunk2 += IRInstructions.loadMemory(Opcode.LOADM, loopvarDtIr, indexReg, IRMemory.direct(loopvarSymbol))
             if(!options.compTarget.cpu.statusBitsOnMultiByteOps) {
-                chunk2 += IRInstruction(Opcode.CMPI, loopvarDtIr, reg1 = indexReg, immediate = 0)
+                chunk2 += IRInstructions.compareImmediate(loopvarDtIr, indexReg, 0)
             }
-            chunk2 += IRInstruction(Opcode.BSTNE, labelSymbol = loopLabel)
+            chunk2 += IRInstructions.branch(Opcode.BSTNE, codeLabel(loopLabel))
         } else {
             // downto some other value
-            chunk2 += IRInstruction(Opcode.LOADM, loopvarDtIr, reg1 = indexReg, labelSymbol = loopvarSymbol)
-            chunk2 += IRInstruction(Opcode.CMPI, loopvarDtIr, reg1 = indexReg, immediate = rangeEndExclusiveWrapped)
-            chunk2 += IRInstruction(Opcode.BSTNE, labelSymbol = loopLabel)
+            chunk2 += IRInstructions.loadMemory(Opcode.LOADM, loopvarDtIr, indexReg, IRMemory.direct(loopvarSymbol))
+            chunk2 += IRInstructions.compareImmediate(loopvarDtIr, indexReg, rangeEndExclusiveWrapped)
+            chunk2 += IRInstructions.branch(Opcode.BSTNE, codeLabel(loopLabel))
         }
         result += chunk2
         return result
@@ -1084,77 +1074,72 @@ class IRCodeGen(
         when(value) {
             0 -> { /* do nothing */ }
             1 -> {
-                code += IRInstruction(Opcode.INC, dt, reg1=reg)
+                code += IRInstructions.unary(Opcode.INC, dt, reg)
             }
             2 -> {
-                code += IRInstruction(Opcode.INC, dt, reg1=reg)
-                code += IRInstruction(Opcode.INC, dt, reg1=reg)
+                code += IRInstructions.unary(Opcode.INC, dt, reg)
+                code += IRInstructions.unary(Opcode.INC, dt, reg)
             }
             -1 -> {
-                code += IRInstruction(Opcode.DEC, dt, reg1=reg)
+                code += IRInstructions.unary(Opcode.DEC, dt, reg)
             }
             -2 -> {
-                code += IRInstruction(Opcode.DEC, dt, reg1=reg)
-                code += IRInstruction(Opcode.DEC, dt, reg1=reg)
+                code += IRInstructions.unary(Opcode.DEC, dt, reg)
+                code += IRInstructions.unary(Opcode.DEC, dt, reg)
             }
             else -> {
                 code += if(value>0) {
-                    IRInstruction(Opcode.ADD, dt, reg1 = reg, immediate = value)
+                    IRInstructions.binaryImmediate(Opcode.ADD, dt, reg, value)
                 } else {
-                    IRInstruction(Opcode.SUB, dt, reg1 = reg, immediate = -value)
+                    IRInstructions.binaryImmediate(Opcode.SUB, dt, reg, -value)
                 }
             }
         }
         return code
     }
 
+    /** the memory reference for an in-place operation on either a known absolute address or a symbol */
+    private fun mem(knownAddress: UInt?, symbol: String?): MemoryReference =
+        if(knownAddress!=null) IRMemory.direct(knownAddress.toAddress()) else IRMemory.direct(symbol!!)
+
     private fun addConstMem(dt: IRDataType, knownAddress: UInt?, symbol: String?, value: Int): IRCodeChunk {
         val code = IRCodeChunk(null, null)
         val is6502 = options.compTarget.cpu.is6502
+        fun mem() = mem(knownAddress, symbol)
         when(value) {
             0 -> { /* do nothing */ }
             1 -> {
-                code += if(knownAddress!=null)
-                    IRInstruction(Opcode.INCM, dt, address = knownAddress.toAddress())
-                else
-                    IRInstruction(Opcode.INCM, dt, labelSymbol = symbol)
+                code += IRInstructions.memoryOp(Opcode.INCM, dt, mem())
             }
             2 -> {
                 if(is6502) {
                     if(knownAddress!=null) {
-                        code += IRInstruction(Opcode.INCM, dt, address = knownAddress.toAddress())
-                        code += IRInstruction(Opcode.INCM, dt, address = knownAddress.toAddress())
+                        code += IRInstructions.memoryOp(Opcode.INCM, dt, IRMemory.direct(knownAddress.toAddress()))
+                        code += IRInstructions.memoryOp(Opcode.INCM, dt, IRMemory.direct(knownAddress.toAddress()))
                     } else {
-                        code += IRInstruction(Opcode.INCM, dt, labelSymbol = symbol)
-                        code += IRInstruction(Opcode.INCM, dt, labelSymbol = symbol)
+                        val symbolName = symbol!!
+                        code += IRInstructions.memoryOp(Opcode.INCM, dt, IRMemory.direct(symbolName))
+                        code += IRInstructions.memoryOp(Opcode.INCM, dt, IRMemory.direct(symbolName))
                     }
                 } else {
-                    if(knownAddress!=null)
-                        code += IRInstruction(Opcode.ADDIM, dt, immediate = 2, address = knownAddress.toAddress())
-                    else
-                        code += IRInstruction(Opcode.ADDIM, dt, immediate = 2, labelSymbol = symbol)
+                    code += IRInstructions.memoryOpImmediate(Opcode.ADDIM, dt, mem(), 2)
                 }
             }
             -1 -> {
-                code += if(knownAddress!=null)
-                    IRInstruction(Opcode.DECM, dt, address = knownAddress.toAddress())
-                else
-                    IRInstruction(Opcode.DECM, dt, labelSymbol = symbol)
+                code += IRInstructions.memoryOp(Opcode.DECM, dt, mem())
             }
             -2 -> {
                 if(is6502) {
                     if(knownAddress!=null) {
-                        code += IRInstruction(Opcode.DECM, dt, address = knownAddress.toAddress())
-                        code += IRInstruction(Opcode.DECM, dt, address = knownAddress.toAddress())
+                        code += IRInstructions.memoryOp(Opcode.DECM, dt, IRMemory.direct(knownAddress.toAddress()))
+                        code += IRInstructions.memoryOp(Opcode.DECM, dt, IRMemory.direct(knownAddress.toAddress()))
                     } else {
-                        code += IRInstruction(Opcode.DECM, dt, labelSymbol = symbol)
-                        code += IRInstruction(Opcode.DECM, dt, labelSymbol = symbol)
+                        val symbolName = symbol!!
+                        code += IRInstructions.memoryOp(Opcode.DECM, dt, IRMemory.direct(symbolName))
+                        code += IRInstructions.memoryOp(Opcode.DECM, dt, IRMemory.direct(symbolName))
                     }
                 } else {
-                    if(knownAddress!=null)
-                        code += IRInstruction(Opcode.SUBIM, dt, immediate = 2, address = knownAddress.toAddress())
-                    else
-                        code += IRInstruction(Opcode.SUBIM, dt, immediate = 2, labelSymbol = symbol)
+                    code += IRInstructions.memoryOpImmediate(Opcode.SUBIM, dt, mem(), 2)
                 }
             }
             else -> {
@@ -1162,30 +1147,18 @@ class IRCodeGen(
                     // float loop variables are not currently supported; keep the load+addm/subm form
                     val valueReg = registers.next(dt)
                     if(value>0) {
-                        code += IRInstruction(Opcode.LOAD, dt, reg1=valueReg, immediate = value)
-                        code += if(knownAddress!=null)
-                            IRInstruction(Opcode.ADDM, dt, reg1=valueReg, address = knownAddress.toAddress())
-                        else
-                            IRInstruction(Opcode.ADDM, dt, reg1=valueReg, labelSymbol = symbol)
+                        code += IRInstructions.load(dt, valueReg, value)
+                        code += IRInstructions.memoryOp(Opcode.ADDM, dt, mem(), valueReg)
                     }
                     else {
-                        code += IRInstruction(Opcode.LOAD, dt, reg1=valueReg, immediate = -value)
-                        code += if(knownAddress!=null)
-                            IRInstruction(Opcode.SUBM, dt, reg1=valueReg, address = knownAddress.toAddress())
-                        else
-                            IRInstruction(Opcode.SUBM, dt, reg1=valueReg, labelSymbol = symbol)
+                        code += IRInstructions.load(dt, valueReg, -value)
+                        code += IRInstructions.memoryOp(Opcode.SUBM, dt, mem(), valueReg)
                     }
                 } else {
                     if(value>0) {
-                        code += if(knownAddress!=null)
-                            IRInstruction(Opcode.ADDIM, dt, immediate = value, address = knownAddress.toAddress())
-                        else
-                            IRInstruction(Opcode.ADDIM, dt, immediate = value, labelSymbol = symbol)
+                        code += IRInstructions.memoryOpImmediate(Opcode.ADDIM, dt, mem(), value)
                     } else {
-                        code += if(knownAddress!=null)
-                            IRInstruction(Opcode.SUBIM, dt, immediate = -value, address = knownAddress.toAddress())
-                        else
-                            IRInstruction(Opcode.SUBIM, dt, immediate = -value, labelSymbol = symbol)
+                        code += IRInstructions.memoryOpImmediate(Opcode.SUBIM, dt, mem(), -value)
                     }
                 }
             }
@@ -1198,9 +1171,9 @@ class IRCodeGen(
         if(factor==1.0)
             return code
         code += if(factor==0.0) {
-            IRInstruction(Opcode.LOAD, IRDataType.FLOAT, fpReg1 = RegisterNum(fpReg), immediateFp = 0.0)
+            IRInstructions.loadFloat(fpReg, 0.0)
         } else {
-            IRInstruction(Opcode.MULS, IRDataType.FLOAT, fpReg1 = RegisterNum(fpReg), immediateFp = factor)
+            IRInstructions.binaryImmediateFloat(Opcode.MULS, fpReg, factor)
         }
         return code
     }
@@ -1210,17 +1183,11 @@ class IRCodeGen(
         if(factor==1.0)
             return code
         if(factor==0.0) {
-            code += if(knownAddress!=null)
-                IRInstruction(Opcode.STOREZM, IRDataType.FLOAT, address = knownAddress.toAddress())
-            else
-                IRInstruction(Opcode.STOREZM, IRDataType.FLOAT, labelSymbol = symbol)
+            code += IRInstructions.storeZero(Opcode.STOREZM, IRDataType.FLOAT, mem(knownAddress, symbol))
         } else {
             val factorReg = registers.next(IRDataType.FLOAT)
-            code += IRInstruction(Opcode.LOAD, IRDataType.FLOAT, fpReg1=RegisterNum(factorReg), immediateFp = factor)
-            code += if(knownAddress!=null)
-                IRInstruction(Opcode.MULSM, IRDataType.FLOAT, fpReg1 = RegisterNum(factorReg), address = knownAddress.toAddress())
-            else
-                IRInstruction(Opcode.MULSM, IRDataType.FLOAT, fpReg1 = RegisterNum(factorReg), labelSymbol = symbol)
+            code += IRInstructions.loadFloat(factorReg, factor)
+            code += IRInstructions.memoryOp(Opcode.MULSM, IRDataType.FLOAT, mem(knownAddress, symbol), factorReg)
         }
         return code
     }
@@ -1233,17 +1200,17 @@ class IRCodeGen(
         val pow2 = powersOfTwoInt.indexOf(factor)
         if(pow2==1) {
             // just shift 1 bit
-            code += IRInstruction(Opcode.LSL, irdt, reg1=reg)
+            code += IRInstructions.unary(Opcode.LSL, irdt, reg)
         }
         else if(pow2>=1) {
             // just shift multiple bits
-            code += IRInstruction(Opcode.LSLI, irdt, reg1=reg, immediate = pow2)
+            code += IRInstructions.binaryImmediate(Opcode.LSLI, irdt, reg, pow2)
         } else {
             code += if (factor == 0) {
-                IRInstruction(Opcode.LOAD, irdt, reg1=reg, immediate = 0)
+                IRInstructions.load(irdt, reg, 0)
             } else {
                 val opcode = if(dt.isSigned) Opcode.MULS else Opcode.MUL
-                IRInstruction(opcode, irdt, reg1=reg, immediate = factor)
+                IRInstructions.binaryImmediate(opcode, irdt, reg, factor)
             }
         }
         return code
@@ -1256,34 +1223,22 @@ class IRCodeGen(
         val pow2 = powersOfTwoInt.indexOf(factor)
         if(pow2==1) {
             // just shift 1 bit
-            code += if(knownAddress!=null)
-                IRInstruction(Opcode.LSLM, dt, address = knownAddress.toAddress())
-            else
-                IRInstruction(Opcode.LSLM, dt, labelSymbol = symbol)
+            code += IRInstructions.memoryOp(Opcode.LSLM, dt, mem(knownAddress, symbol))
         }
         else if(pow2>=1) {
             // just shift multiple bits
             val pow2reg = registers.next(IRDataType.BYTE)
-            code += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=pow2reg, immediate = pow2)
-            code += if(knownAddress!=null)
-                IRInstruction(Opcode.LSLNM, dt, reg1=pow2reg, address = knownAddress.toAddress())
-            else
-                IRInstruction(Opcode.LSLNM, dt, reg1=pow2reg, labelSymbol = symbol)
+            code += IRInstructions.load(IRDataType.BYTE, pow2reg, pow2)
+            code += IRInstructions.memoryOp(Opcode.LSLNM, dt, mem(knownAddress, symbol), pow2reg)
         } else {
             if (factor == 0) {
-                code += if(knownAddress!=null)
-                    IRInstruction(Opcode.STOREZM, dt, address = knownAddress.toAddress())
-                else
-                    IRInstruction(Opcode.STOREZM, dt, labelSymbol = symbol)
+                code += IRInstructions.storeZero(Opcode.STOREZM, dt, mem(knownAddress, symbol))
             }
             else {
                 val factorReg = registers.next(dt)
-                code += IRInstruction(Opcode.LOAD, dt, reg1=factorReg, immediate = factor)
+                code += IRInstructions.load(dt, factorReg, factor)
                 val opcode = if(signed) Opcode.MULSM else Opcode.MULM
-                code += if(knownAddress!=null)
-                    IRInstruction(opcode, dt, reg1=factorReg, address = knownAddress.toAddress())
-                else
-                    IRInstruction(opcode, dt, reg1=factorReg, labelSymbol = symbol)
+                code += IRInstructions.memoryOp(opcode, dt, mem(knownAddress, symbol), factorReg)
             }
         }
         return code
@@ -1294,9 +1249,9 @@ class IRCodeGen(
         if(factor==1.0)
             return code
         code += if(factor==0.0) {
-            IRInstruction(Opcode.LOAD, IRDataType.FLOAT, fpReg1 = RegisterNum(fpReg), immediateFp = Double.MAX_VALUE)
+            IRInstructions.loadFloat(fpReg, Double.MAX_VALUE)
         } else {
-            IRInstruction(Opcode.DIVS, IRDataType.FLOAT, fpReg1 = RegisterNum(fpReg), immediateFp = factor)
+            IRInstructions.binaryImmediateFloat(Opcode.DIVS, fpReg, factor)
         }
         return code
     }
@@ -1307,18 +1262,12 @@ class IRCodeGen(
             return code
         if(factor==0.0) {
             val maxvalueReg = registers.next(IRDataType.FLOAT)
-            code += IRInstruction(Opcode.LOAD, IRDataType.FLOAT, fpReg1 = RegisterNum(maxvalueReg), immediateFp = Double.MAX_VALUE)
-            code += if(knownAddress!=null)
-                IRInstruction(Opcode.STOREM, IRDataType.FLOAT, fpReg1 = RegisterNum(maxvalueReg), address = knownAddress.toAddress())
-            else
-                IRInstruction(Opcode.STOREM, IRDataType.FLOAT, fpReg1 = RegisterNum(maxvalueReg), labelSymbol = symbol)
+            code += IRInstructions.loadFloat(maxvalueReg, Double.MAX_VALUE)
+            code += IRInstructions.storeMemory(Opcode.STOREM, IRDataType.FLOAT, maxvalueReg, mem(knownAddress, symbol))
         } else {
             val factorReg = registers.next(IRDataType.FLOAT)
-            code += IRInstruction(Opcode.LOAD, IRDataType.FLOAT, fpReg1=RegisterNum(factorReg), immediateFp = factor)
-            code += if(knownAddress!=null)
-                IRInstruction(Opcode.DIVSM, IRDataType.FLOAT, fpReg1 = RegisterNum(factorReg), address = knownAddress.toAddress())
-            else
-                IRInstruction(Opcode.DIVSM, IRDataType.FLOAT, fpReg1 = RegisterNum(factorReg), labelSymbol = symbol)
+            code += IRInstructions.loadFloat(factorReg, factor)
+            code += IRInstructions.memoryOp(Opcode.DIVSM, IRDataType.FLOAT, mem(knownAddress, symbol), factorReg)
         }
         return code
     }
@@ -1331,12 +1280,12 @@ class IRCodeGen(
         if(pow2>=0 && !signed) {
             // unsigned division by a power of two: logical shift right (correct)
             if(pow2==1) {
-                code += IRInstruction(Opcode.LSR, dt, reg1=reg)
+                code += IRInstructions.unary(Opcode.LSR, dt, reg)
             } else if(dt == IRDataType.LONG && pow2 == 16) {
                 // x / 65536 for unsigned long == x >> 16 == MSIGW(x)
-                code += IRInstruction(Opcode.MSIGW, dt, reg1=reg, reg2=reg)
+                code += IRInstructions.binary(Opcode.MSIGW, dt, reg, reg)
             } else {
-                code += IRInstruction(Opcode.LSRI, dt, reg1 = reg, immediate = pow2)
+                code += IRInstructions.binaryImmediate(Opcode.LSRI, dt, reg, pow2)
             }
             return code
         }
@@ -1351,12 +1300,12 @@ class IRCodeGen(
         // regular div (also used for signed division by a power of two on non-6502 targets: >> floors,
         // whereas / truncates toward zero for negative dividends, so a plain shift is wrong)
         code += if (factor == 0) {
-            IRInstruction(Opcode.LOAD, dt, reg1=reg, immediate = 0xffff)
+            IRInstructions.load(dt, reg, 0xffff)
         } else {
             if(signed)
-                IRInstruction(Opcode.DIVS, dt, reg1=reg, immediate = factor)
+                IRInstructions.binaryImmediate(Opcode.DIVS, dt, reg, factor)
             else
-                IRInstruction(Opcode.DIV, dt, reg1=reg, immediate = factor)
+                IRInstructions.binaryImmediate(Opcode.DIV, dt, reg, factor)
         }
         return code
     }
@@ -1370,17 +1319,17 @@ class IRCodeGen(
             // unsigned division by a power of two: logical shift right (correct)
             if(pow2==1) {
                 code += if(knownAddress!=null)
-                    IRInstruction(Opcode.LSRM, dt, address = knownAddress.toAddress())
+                    IRInstructions.memoryOp(Opcode.LSRM, dt, IRMemory.direct(knownAddress.toAddress()))
                 else
-                    IRInstruction(Opcode.LSRM, dt, labelSymbol = symbol)
+                    IRInstructions.memoryOp(Opcode.LSRM, dt, IRMemory.direct(symbol!!))
             }
             else {
                 val pow2reg = registers.next(IRDataType.BYTE)
-                code += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=pow2reg, immediate = pow2)
+                code += IRInstructions.load(IRDataType.BYTE, pow2reg, pow2)
                 code += if(knownAddress!=null)
-                            IRInstruction(Opcode.LSRNM, dt, reg1 = pow2reg, address = knownAddress.toAddress())
+                            IRInstructions.memoryOp(Opcode.LSRNM, dt, IRMemory.direct(knownAddress.toAddress()), pow2reg)
                         else
-                            IRInstruction(Opcode.LSRNM, dt, reg1 = pow2reg, labelSymbol = symbol)
+                            IRInstructions.memoryOp(Opcode.LSRNM, dt, IRMemory.direct(symbol!!), pow2reg)
             }
             return code
         }
@@ -1392,40 +1341,40 @@ class IRCodeGen(
 //                // signed division by a power of two: bias-corrected shift (much cheaper than a DIVS routine on the 6502)
 //                val reg = registers.next(dt)
 //                code += if(knownAddress!=null)
-//                    IRInstruction(Opcode.LOADM, dt, reg1 = reg, address = knownAddress.toAddress())
+//                    IRInstructions.loadMemory(Opcode.LOADM, dt, reg, IRMemory.direct(knownAddress.toAddress()))
 //                else
-//                    IRInstruction(Opcode.LOADM, dt, reg1 = reg, labelSymbol = symbol)
+//                    IRInstructions.loadMemory(Opcode.LOADM, dt, reg, IRMemory.direct(symbol))
 //                emitSignedDivByPow2Shift(code, dt, reg, pow2)
 //                code += if(knownAddress!=null)
-//                    IRInstruction(Opcode.STOREM, dt, reg1 = reg, address = knownAddress.toAddress())
+//                    IRInstructions.storeMemory(Opcode.STOREM, dt, reg, IRMemory.direct(knownAddress.toAddress()))
 //                else
-//                    IRInstruction(Opcode.STOREM, dt, reg1 = reg, labelSymbol = symbol)
+//                    IRInstructions.storeMemory(Opcode.STOREM, dt, reg, IRMemory.direct(symbol))
 //                return code
 //            }
 
             // regular div
             if (factor == 0) {
                 val reg = registers.next(dt)
-                code += IRInstruction(Opcode.LOAD, dt, reg1=reg, immediate = 0xffff)
+                code += IRInstructions.load(dt, reg, 0xffff)
                 code += if(knownAddress!=null)
-                    IRInstruction(Opcode.STOREM, dt, reg1=reg, address = knownAddress.toAddress())
+                    IRInstructions.storeMemory(Opcode.STOREM, dt, reg, IRMemory.direct(knownAddress.toAddress()))
                 else
-                    IRInstruction(Opcode.STOREM, dt, reg1=reg, labelSymbol = symbol)
+                    IRInstructions.storeMemory(Opcode.STOREM, dt, reg, IRMemory.direct(symbol!!))
             }
             else {
                 val factorReg = registers.next(dt)
-                code += IRInstruction(Opcode.LOAD, dt, reg1=factorReg, immediate = factor)
+                code += IRInstructions.load(dt, factorReg, factor)
                 code += if(signed) {
                     if(knownAddress!=null)
-                        IRInstruction(Opcode.DIVSM, dt, reg1 = factorReg, address = knownAddress.toAddress())
+                        IRInstructions.memoryOp(Opcode.DIVSM, dt, IRMemory.direct(knownAddress.toAddress()), factorReg)
                     else
-                        IRInstruction(Opcode.DIVSM, dt, reg1 = factorReg, labelSymbol = symbol)
+                        IRInstructions.memoryOp(Opcode.DIVSM, dt, IRMemory.direct(symbol!!), factorReg)
                 }
                 else {
                     if(knownAddress!=null)
-                        IRInstruction(Opcode.DIVM, dt, reg1 = factorReg, address = knownAddress.toAddress())
+                        IRInstructions.memoryOp(Opcode.DIVM, dt, IRMemory.direct(knownAddress.toAddress()), factorReg)
                     else
-                        IRInstruction(Opcode.DIVM, dt, reg1 = factorReg, labelSymbol = symbol)
+                        IRInstructions.memoryOp(Opcode.DIVM, dt, IRMemory.direct(symbol!!), factorReg)
                 }
             }
             return code
@@ -1448,13 +1397,13 @@ class IRCodeGen(
         val wm1Reg = registers.next(IRDataType.BYTE)
         val nReg = registers.next(IRDataType.BYTE)
         val mask = (1 shl pow2) - 1
-        code += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = wm1Reg, immediate = wordSize - 1)
-        code += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = nReg, immediate = pow2)
-        code += IRInstruction(Opcode.LOADR, dt, reg1 = signReg, reg2 = reg)       // signReg = x
-        code += IRInstruction(Opcode.ASRN, dt, reg1 = signReg, reg2 = wm1Reg)     // signReg = x >> (W-1)
-        code += IRInstruction(Opcode.AND, dt, reg1 = signReg, immediate = mask)   // signReg = correction
-        code += IRInstruction(Opcode.ADDR, dt, reg1 = reg, reg2 = signReg)        // reg = x + correction
-        code += IRInstruction(Opcode.ASRN, dt, reg1 = reg, reg2 = nReg)          // reg = result
+        code += IRInstructions.load(IRDataType.BYTE, wm1Reg, wordSize - 1)
+        code += IRInstructions.load(IRDataType.BYTE, nReg, pow2)
+        code += IRInstructions.move(dt, signReg, reg)       // signReg = x
+        code += IRInstructions.binary(Opcode.ASRN, dt, signReg, wm1Reg)     // signReg = x >> (W-1)
+        code += IRInstructions.binaryImmediate(Opcode.AND, dt, signReg, mask)   // signReg = correction
+        code += IRInstructions.binary(Opcode.ADDR, dt, reg, signReg)        // reg = x + correction
+        code += IRInstructions.binary(Opcode.ASRN, dt, reg, nReg)          // reg = result
     }*/
 
     private fun translate(ifElse: PtIfElse): IRCodeChunks {
@@ -1473,7 +1422,7 @@ class IRCodeGen(
             translateCondition(ifElse.condition, null, afterIfLabel, result)
             val tr = expressionEval.translateExpression(goto.target)
             result += tr.chunks
-            addInstr(result, IRInstruction(Opcode.JUMPI, reg1 = tr.resultReg), null)
+            addInstr(result, IRInstructions.jumpIndirect(tr.resultReg), null)
             result += IRCodeChunk(afterIfLabel, null)
         } else {
             val address = goto.target.asConstInteger()?.toUInt()?.toAddress()
@@ -1541,16 +1490,16 @@ class IRCodeGen(
                 && lastInstr != null
                 && lastInstr.opcode in OpcodesThatSetZeroFlagOnM68k
         if (!skipCmpi) {
-            addInstr(result, IRInstruction(Opcode.CMPI, tr.dt, reg1 = tr.resultReg, immediate = 0), null)
+            addInstr(result, IRInstructions.compareImmediate(tr.dt, tr.resultReg, 0), null)
         }
 
         if ((onTrueLabel != null || onTrueAddress != null) && (onFalseLabel != null || onFalseAddress != null)) {
-            addInstr(result, IRInstruction(Opcode.BSTNE, labelSymbol = onTrueLabel, address = onTrueAddress), null)
-            addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol = onFalseLabel, address = onFalseAddress), null)
+            addInstr(result, IRInstructions.branch(Opcode.BSTNE, branchTarget(onTrueLabel, onTrueAddress)), null)
+            addInstr(result, IRInstructions.jump(branchTarget(onFalseLabel, onFalseAddress)), null)
         } else if (onTrueLabel != null || onTrueAddress != null) {
-            addInstr(result, IRInstruction(Opcode.BSTNE, labelSymbol = onTrueLabel, address = onTrueAddress), null)
+            addInstr(result, IRInstructions.branch(Opcode.BSTNE, branchTarget(onTrueLabel, onTrueAddress)), null)
         } else if (onFalseLabel != null || onFalseAddress != null) {
-            addInstr(result, IRInstruction(Opcode.BSTEQ, labelSymbol = onFalseLabel, address = onFalseAddress), null)
+            addInstr(result, IRInstructions.branch(Opcode.BSTEQ, branchTarget(onFalseLabel, onFalseAddress)), null)
         }
     }
 
@@ -1561,14 +1510,14 @@ class IRCodeGen(
             val bitPos = Integer.numberOfTrailingZeros(bitmask)
             val leftTr = expressionEval.translateExpression(expr)
             addToResult(result, leftTr, leftTr.resultReg, -1)
-            addInstr(result, IRInstruction(Opcode.BITTST, leftTr.dt, reg1 = leftTr.resultReg, immediate = bitPos), null)
+            addInstr(result, bitTest(leftTr.dt, leftTr.resultReg, bitPos), null)
             if ((onTrueLabel != null || onTrueAddress != null) && (onFalseLabel == null && onFalseAddress == null)) {
-                addInstr(result, IRInstruction(getBitBranchOpcode(testBitSet), labelSymbol = onTrueLabel, address = onTrueAddress), null)
+                addInstr(result, IRInstructions.branch(getBitBranchOpcode(testBitSet), branchTarget(onTrueLabel, onTrueAddress)), null)
             } else if ((onFalseLabel != null || onFalseAddress != null) && (onTrueLabel == null && onTrueAddress == null)) {
-                addInstr(result, IRInstruction(getBitBranchOpcode(!testBitSet), labelSymbol = onFalseLabel, address = onFalseAddress), null)
+                addInstr(result, IRInstructions.branch(getBitBranchOpcode(!testBitSet), branchTarget(onFalseLabel, onFalseAddress)), null)
             } else if ((onTrueLabel != null || onTrueAddress != null) && (onFalseLabel != null || onFalseAddress != null)) {
-                addInstr(result, IRInstruction(getBitBranchOpcode(testBitSet), labelSymbol = onTrueLabel, address = onTrueAddress), null)
-                addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol = onFalseLabel, address = onFalseAddress), null)
+                addInstr(result, IRInstructions.branch(getBitBranchOpcode(testBitSet), branchTarget(onTrueLabel, onTrueAddress)), null)
+                addInstr(result, IRInstructions.jump(branchTarget(onFalseLabel, onFalseAddress)), null)
             }
             return
         }
@@ -1604,7 +1553,7 @@ class IRCodeGen(
                 var (opcode, useCmpi) = getIntegerComparisonBranch(condition.operator, false, signed)
                 if (canSkipCmpi && (opcode == Opcode.BSTEQ || opcode == Opcode.BSTNE)) useCmpi = false
                 emitIntegerComparisonBranch(result, opcode, useCmpi, branchDt, leftTr.resultReg, number, onTrueLabel, onTrueAddress)
-                addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol = onFalseLabel, address = onFalseAddress), null)
+                addInstr(result, IRInstructions.jump(branchTarget(onFalseLabel, onFalseAddress)), null)
             }
         } else {
             val rightTr = expressionEval.translateExpression(condition.right)
@@ -1618,7 +1567,7 @@ class IRCodeGen(
             } else if ((onTrueLabel != null || onTrueAddress != null) && (onFalseLabel != null || onFalseAddress != null)) {
                 val res = getIntegerComparisonRegBranch(condition.operator, false, signed, leftTr.resultReg, rightTr.resultReg)
                 emitIntegerComparisonRegBranch(result, res.opcode, res.useCmp, branchDt, res.leftReg, res.rightReg, onTrueLabel, onTrueAddress)
-                addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol = onFalseLabel, address = onFalseAddress), null)
+                addInstr(result, IRInstructions.jump(branchTarget(onFalseLabel, onFalseAddress)), null)
             }
         }
     }
@@ -1629,7 +1578,7 @@ class IRCodeGen(
         val rightTr = expressionEval.translateExpression(condition.right)
         addToResult(result, rightTr, -1, rightTr.resultFpReg)
         val compResultReg = registers.next(IRDataType.BYTE)
-        addInstr(result, IRInstruction(Opcode.FCOMP, IRDataType.FLOAT, reg1 = compResultReg, fpReg1 = RegisterNum(leftTr.resultFpReg), fpReg2 = RegisterNum(rightTr.resultFpReg)), null)
+        addInstr(result, IRInstructions.floatCompare(compResultReg, leftTr.resultFpReg, rightTr.resultFpReg), null)
 
         if ((onTrueLabel != null || onTrueAddress != null) && (onFalseLabel == null && onFalseAddress == null)) {
             val (opcode, useCmpi) = getFloatComparisonBranch(condition.operator, false)
@@ -1640,7 +1589,7 @@ class IRCodeGen(
         } else if ((onTrueLabel != null || onTrueAddress != null) && (onFalseLabel != null || onFalseAddress != null)) {
             val (opcode, useCmpi) = getFloatComparisonBranch(condition.operator, false)
             emitIntegerComparisonBranch(result, opcode, useCmpi, IRDataType.BYTE, compResultReg, 0, onTrueLabel, onTrueAddress)
-            addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol = onFalseLabel, address = onFalseAddress), null)
+            addInstr(result, IRInstructions.jump(branchTarget(onFalseLabel, onFalseAddress)), null)
         }
     }
 
@@ -1702,24 +1651,24 @@ class IRCodeGen(
     private fun emitIntegerComparisonBranch(result: MutableList<IRCodeChunkBase>, opcode: Opcode, useCmpi: Boolean, dt: IRDataType, reg: Int, immediate: Int, label: String?, address: MemoryAddress?) {
         if (useCmpi) {
             result += IRCodeChunk(null, null).also {
-                it += IRInstruction(Opcode.CMPI, dt, reg1 = reg, immediate = immediate)
-                it += IRInstruction(opcode, labelSymbol = label, address = address)
+                it += IRInstructions.compareImmediate(dt, reg, immediate)
+                it += IRInstructions.branch(opcode, branchTarget(label, address))
             }
         } else if (opcode in setOf(Opcode.BSTEQ, Opcode.BSTNE, Opcode.BSTPOS, Opcode.BSTNEG, Opcode.BSTCS, Opcode.BSTCC, Opcode.BSTVS, Opcode.BSTVC)) {
-            addInstr(result, IRInstruction(opcode, labelSymbol = label, address = address), null)
+            addInstr(result, IRInstructions.branch(opcode, branchTarget(label, address)), null)
         } else {
-            addInstr(result, IRInstruction(opcode, dt, reg1 = reg, immediate = immediate, labelSymbol = label, address = address), null)
+            addInstr(result, IRInstructions.branchImmediate(opcode, dt, reg, immediate, branchTarget(label, address)), null)
         }
     }
 
     private fun emitIntegerComparisonRegBranch(result: MutableList<IRCodeChunkBase>, opcode: Opcode, useCmp: Boolean, dt: IRDataType, leftReg: Int, rightReg: Int, label: String?, address: MemoryAddress?) {
         if (useCmp) {
             result += IRCodeChunk(null, null).also {
-                it += IRInstruction(Opcode.CMP, dt, reg1 = leftReg, reg2 = rightReg)
-                it += IRInstruction(opcode, labelSymbol = label, address = address)
+                it += IRInstructions.compare(dt, leftReg, rightReg)
+                it += IRInstructions.branch(opcode, branchTarget(label, address))
             }
         } else {
-            addInstr(result, IRInstruction(opcode, dt, reg1 = leftReg, reg2 = rightReg, labelSymbol = label, address = address), null)
+            addInstr(result, IRInstructions.branchRegister(opcode, dt, leftReg, rightReg, branchTarget(label, address)), null)
         }
     }
 
@@ -1731,7 +1680,7 @@ class IRCodeGen(
             val elseLabel = createLabelName()
             translateCondition(ifElse.condition, null, elseLabel, result)
             result += translateNode(ifElse.ifScope)
-            addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol = afterIfLabel), null)
+            addInstr(result, IRInstructions.jump(codeLabel(afterIfLabel)), null)
             result += labelFirstChunk(translateNode(ifElse.elseScope), elseLabel)
         } else {
             translateCondition(ifElse.condition, null, afterIfLabel, result)
@@ -1766,17 +1715,17 @@ class IRCodeGen(
         addToResult(result, countTr, countTr.resultReg, -1)
         if (repeat.count.asConstValue() == null) {
             if (needsExplicitCmpi) {
-                addInstr(result, IRInstruction(Opcode.CMPI, irDt, reg1 = countTr.resultReg, immediate = 0), null)
+                addInstr(result, IRInstructions.compareImmediate(irDt, countTr.resultReg, 0), null)
             }
-            addInstr(result, IRInstruction(Opcode.BSTEQ, labelSymbol = skipRepeatLabel), null)
+            addInstr(result, IRInstructions.branch(Opcode.BSTEQ, codeLabel(skipRepeatLabel)), null)
         }
         result += labelFirstChunk(translateNode(repeat.statements), repeatLabel)
         result += IRCodeChunk(null, null).also {
-            it += IRInstruction(Opcode.DEC, irDt, reg1 = countTr.resultReg)
+            it += IRInstructions.unary(Opcode.DEC, irDt, countTr.resultReg)
             if (needsExplicitCmpi) {
-                it += IRInstruction(Opcode.CMPI, irDt, reg1 = countTr.resultReg, immediate = 0)
+                it += IRInstructions.compareImmediate(irDt, countTr.resultReg, 0)
             }
-            it += IRInstruction(Opcode.BSTNE, labelSymbol = repeatLabel)
+            it += IRInstructions.branch(Opcode.BSTNE, codeLabel(repeatLabel))
         }
         result += IRCodeChunk(skipRepeatLabel, null)
         return result
@@ -1786,14 +1735,14 @@ class IRCodeGen(
         val result = mutableListOf<IRCodeChunkBase>()
         val chunk = IRCodeChunk(null, null)
         if(jump.target.asConstInteger()!=null) {
-            chunk += IRInstruction(Opcode.JUMP, address = jump.target.asConstInteger()?.toUInt()?.toAddress())
+            chunk += IRInstructions.jump(codeAddress(jump.target.asConstInteger()!!.toUInt().toAddress()))
             result += chunk
             return result
         } else {
             val identifier = jump.target as? PtIdentifier
             if (identifier != null && !isIndirectJump(jump)) {
                 // jump to label
-                chunk += IRInstruction(Opcode.JUMP, labelSymbol = identifier.name)
+                chunk += IRInstructions.jump(codeLabel(identifier.name))
                 result += chunk
                 return result
             }
@@ -1801,7 +1750,7 @@ class IRCodeGen(
             val tr = expressionEval.translateExpression(jump.target)
             result += tr.chunks
             result += IRCodeChunk(null, null).also {
-                it += IRInstruction(Opcode.JUMPI, reg1=tr.resultReg)
+                it += IRInstructions.jumpIndirect(tr.resultReg)
             }
             return result
         }
@@ -1858,13 +1807,13 @@ class IRCodeGen(
                         // For float returns, use FAC1/FAC2
                         val tempFpReg = registers.next(IRDataType.FLOAT)
                         when(fromReg.registerOrPair) {
-                            RegisterOrPair.FAC1 -> addInstr(result, IRInstruction(Opcode.LOADHFACZERO, IRDataType.FLOAT, fpReg1 = RegisterNum(tempFpReg)), null)
-                            RegisterOrPair.FAC2 -> addInstr(result, IRInstruction(Opcode.LOADHFACONE, IRDataType.FLOAT, fpReg1 = RegisterNum(tempFpReg)), null)
+                            RegisterOrPair.FAC1 -> addInstr(result, IRInstructions.unary(Opcode.LOADHFACZERO, IRDataType.FLOAT, tempFpReg), null)
+                            RegisterOrPair.FAC2 -> addInstr(result, IRInstructions.unary(Opcode.LOADHFACONE, IRDataType.FLOAT, tempFpReg), null)
                             else -> throw AssemblyError("unexpected FP return register ${fromReg}")
                         }
                         when(toReg.registerOrPair) {
-                            RegisterOrPair.FAC1 -> addInstr(result, IRInstruction(Opcode.STOREHFACZERO, IRDataType.FLOAT, fpReg1 = RegisterNum(tempFpReg)), null)
-                            RegisterOrPair.FAC2 -> addInstr(result, IRInstruction(Opcode.STOREHFACONE, IRDataType.FLOAT, fpReg1 = RegisterNum(tempFpReg)), null)
+                            RegisterOrPair.FAC1 -> addInstr(result, storeHwFac(Opcode.STOREHFACZERO, tempFpReg), null)
+                            RegisterOrPair.FAC2 -> addInstr(result, storeHwFac(Opcode.STOREHFACONE, tempFpReg), null)
                             else -> throw AssemblyError("unexpected FP return register ${toReg}")
                         }
                     } else {
@@ -1874,7 +1823,7 @@ class IRCodeGen(
                         result += setCpuRegister(toReg, irType(toType), tempReg, -1)
                     }
                 }
-                addInstr(result, IRInstruction(Opcode.RETURN), null)
+                addInstr(result, IRInstructions.returnVoid(), null)
                 return result
             }
 
@@ -1903,31 +1852,31 @@ class IRCodeGen(
                     result += setCpuRegister(register.first, irType(register.second), tr.resultReg, -1)
                 }
             }
-            addInstr(result, IRInstruction(Opcode.RETURN), null)
+            addInstr(result, IRInstructions.returnVoid(), null)
             return result
         }
 
         val value = ret.children.singleOrNull()
         if(value==null) {
-            addInstr(result, IRInstruction(Opcode.RETURN), null)
+            addInstr(result, IRInstructions.returnVoid(), null)
         } else {
             value as PtExpression
             if(value.type.isFloat) {
                 if(value is PtNumber) {
-                    addInstr(result, IRInstruction(Opcode.RETURNI, IRDataType.FLOAT, immediateFp = value.number), null)
+                    addInstr(result, IRInstructions.returnImmediateFloat(value.number), null)
                 } else {
                     val tr = expressionEval.translateExpression(value)
                     addToResult(result, tr, -1, tr.resultFpReg)
-                    addInstr(result, IRInstruction(Opcode.RETURNR, IRDataType.FLOAT, fpReg1 = RegisterNum(tr.resultFpReg)), null)
+                    addInstr(result, IRInstructions.returnRegister(IRDataType.FLOAT, tr.resultFpReg), null)
                 }
             }
             else {
                 if(value.asConstInteger()!=null) {
-                    addInstr(result, IRInstruction(Opcode.RETURNI, irType(value.type), immediate = value.asConstInteger()), null)
+                    addInstr(result, IRInstructions.returnImmediate(irType(value.type), value.asConstInteger()!!), null)
                 } else {
                     val tr = expressionEval.translateExpression(value)
                     addToResult(result, tr, tr.resultReg, -1)
-                    addInstr(result, IRInstruction(Opcode.RETURNR, irType(value.type), reg1 = tr.resultReg), null)
+                    addInstr(result, IRInstructions.returnRegister(irType(value.type), tr.resultReg), null)
                 }
             }
         }
@@ -1951,7 +1900,7 @@ class IRCodeGen(
                 is PtVariable, is PtConstant, is PtMemMapped, is PtMemorySlabReservation -> { /* vars should be looked up via symbol table */ }
                 is PtAlign -> {
                     val chunk = IRCodeChunk(null, null)
-                    chunk += IRInstruction(Opcode.ALIGN, immediate = child.align.toInt())
+                    chunk += IRInstructions.align(child.align.toInt())
                     irBlock += chunk
                 }
                 is PtSub -> {
@@ -2006,7 +1955,7 @@ class IRCodeGen(
                     irBlock += IRCodeChunk(null, null).also {
                         for(addr in child.children) {
                             addr as PtIdentifier
-                            it += IRInstruction(Opcode.JUMP, labelSymbol = addr.name)
+                            it += IRInstructions.jump(codeLabel(addr.name))
                         }
                     }
                 }
@@ -2105,12 +2054,10 @@ class IRCodeGen(
 
     internal fun makeSyscall(syscall: IMSyscall, params: List<Pair<IRDataType, Int>>, returns: Pair<IRDataType, Int>?, label: String?=null): IRCodeChunk {
         return IRCodeChunk(label, null).also {
-            val args = params.map { (dt, reg)->
-                FunctionCallArgs.ArgumentSpec("", null, FunctionCallArgs.RegSpec(dt, RegisterNum(reg), null, null))
-            }
+            val args = params.map { (dt, reg)-> Calls.argument(reg, dt) }
             // for now, syscalls have 0 or 1 return value
-            val returnSpec = if(returns==null) emptyList() else listOf(FunctionCallArgs.RegSpec(returns.first, RegisterNum(returns.second), null, null))
-            it += IRInstruction(Opcode.SYSCALL, immediate = syscall.number, fcallArgs = FunctionCallArgs(args, returnSpec))
+            val results = if(returns==null) emptyList() else listOf(Calls.result(returns.second, returns.first))
+            it += IRInstructions.syscall(syscall.number, args, results)
         }
     }
 
@@ -2122,27 +2069,27 @@ class IRCodeGen(
         else null to null
         val m68kSlot = slot?.takeIf { it.value >= 10 }
         if (m68kSlot != null) {
-            chunk += IRInstruction(Opcode.STOREHR, paramDt, reg1=resultReg, immediate=m68kSlot.value)
+            chunk += IRInstructions.hardwareStore(paramDt, resultReg, m68kSlot)
         } else when(registerOrFlag.registerOrPair) {
-            RegisterOrPair.A -> chunk += IRInstruction(Opcode.STOREHR, IRDataType.BYTE, reg1=resultReg, immediate=0)
-            RegisterOrPair.X -> chunk += IRInstruction(Opcode.STOREHR, IRDataType.BYTE, reg1=resultReg, immediate=1)
-            RegisterOrPair.Y -> chunk += IRInstruction(Opcode.STOREHR, IRDataType.BYTE, reg1=resultReg, immediate=2)
-            RegisterOrPair.AX -> chunk += IRInstruction(Opcode.STOREHR, IRDataType.WORD, reg1=resultReg, immediate=3)
-            RegisterOrPair.AY -> chunk += IRInstruction(Opcode.STOREHR, IRDataType.WORD, reg1=resultReg, immediate=4)
-            RegisterOrPair.XY -> chunk += IRInstruction(Opcode.STOREHR, IRDataType.WORD, reg1=resultReg, immediate=5)
-            RegisterOrPair.FAC1 -> chunk += IRInstruction(Opcode.STOREHFACZERO, IRDataType.FLOAT, fpReg1 = RegisterNum(resultFpReg))
-            RegisterOrPair.FAC2 -> chunk += IRInstruction(Opcode.STOREHFACONE, IRDataType.FLOAT, fpReg1 = RegisterNum(resultFpReg))
+            RegisterOrPair.A -> chunk += IRInstructions.hardwareStore(IRDataType.BYTE, resultReg, CallingConventionSlot(0))
+            RegisterOrPair.X -> chunk += IRInstructions.hardwareStore(IRDataType.BYTE, resultReg, CallingConventionSlot(1))
+            RegisterOrPair.Y -> chunk += IRInstructions.hardwareStore(IRDataType.BYTE, resultReg, CallingConventionSlot(2))
+            RegisterOrPair.AX -> chunk += IRInstructions.hardwareStore(IRDataType.WORD, resultReg, CallingConventionSlot(3))
+            RegisterOrPair.AY -> chunk += IRInstructions.hardwareStore(IRDataType.WORD, resultReg, CallingConventionSlot(4))
+            RegisterOrPair.XY -> chunk += IRInstructions.hardwareStore(IRDataType.WORD, resultReg, CallingConventionSlot(5))
+            RegisterOrPair.FAC1 -> chunk += storeHwFac(Opcode.STOREHFACZERO, resultFpReg)
+            RegisterOrPair.FAC2 -> chunk += storeHwFac(Opcode.STOREHFACONE, resultFpReg)
             in Cx16VirtualRegisters -> {
-                chunk += IRInstruction(Opcode.STOREM, paramDt, reg1=resultReg, labelSymbol = "cx16.${registerOrFlag.registerOrPair.toString().lowercase()}")
+                chunk += IRInstructions.storeMemory(Opcode.STOREM, paramDt, resultReg, IRMemory.direct("cx16.${registerOrFlag.registerOrPair.toString().lowercase()}"))
             }
             in CombinedLongRegisters -> {
                 require(paramDt==IRDataType.LONG)
                 val startreg = registerOrFlag.registerOrPair!!.startregname()
-                chunk += IRInstruction(Opcode.STOREM, paramDt, reg1=resultReg, labelSymbol = "cx16.${startreg}")
+                chunk += IRInstructions.storeMemory(Opcode.STOREM, paramDt, resultReg, IRMemory.direct("cx16.${startreg}"))
             }
             null -> when(registerOrFlag.statusflag) {
                 // TODO: do the statusflag argument as last
-                Statusflag.Pc -> chunk += IRInstruction(Opcode.LSR, paramDt, reg1=resultReg)
+                Statusflag.Pc -> chunk += IRInstructions.unary(Opcode.LSR, paramDt, resultReg)
                 else -> throw AssemblyError("unsupported statusflag as param")
             }
             else -> throw AssemblyError("unsupported register arg $registerOrFlag")
@@ -2159,28 +2106,28 @@ class IRCodeGen(
         else null to null
         val m68kSlot2 = slot2?.takeIf { it.value >= 10 }
         if (m68kSlot2 != null) {
-            chunk += IRInstruction(Opcode.LOADHR, irType, reg1=tempReg, immediate=m68kSlot2.value)
+            chunk += IRInstructions.hardwareLoad(irType, tempReg, m68kSlot2)
         } else when(registerOrFlag.registerOrPair) {
-            RegisterOrPair.A -> chunk += IRInstruction(Opcode.LOADHR, IRDataType.BYTE, reg1=tempReg, immediate=0)
-            RegisterOrPair.X -> chunk += IRInstruction(Opcode.LOADHR, IRDataType.BYTE, reg1=tempReg, immediate=1)
-            RegisterOrPair.Y -> chunk += IRInstruction(Opcode.LOADHR, IRDataType.BYTE, reg1=tempReg, immediate=2)
-            RegisterOrPair.AX -> chunk += IRInstruction(Opcode.LOADHR, IRDataType.WORD, reg1=tempReg, immediate=3)
-            RegisterOrPair.AY -> chunk += IRInstruction(Opcode.LOADHR, IRDataType.WORD, reg1=tempReg, immediate=4)
-            RegisterOrPair.XY -> chunk += IRInstruction(Opcode.LOADHR, IRDataType.WORD, reg1=tempReg, immediate=5)
-            RegisterOrPair.FAC1 -> chunk += IRInstruction(Opcode.LOADHFACZERO, IRDataType.FLOAT, fpReg1 = RegisterNum(tempReg))
-            RegisterOrPair.FAC2 -> chunk += IRInstruction(Opcode.LOADHFACONE, IRDataType.FLOAT, fpReg1 = RegisterNum(tempReg))
+            RegisterOrPair.A -> chunk += IRInstructions.hardwareLoad(IRDataType.BYTE, tempReg, CallingConventionSlot(0))
+            RegisterOrPair.X -> chunk += IRInstructions.hardwareLoad(IRDataType.BYTE, tempReg, CallingConventionSlot(1))
+            RegisterOrPair.Y -> chunk += IRInstructions.hardwareLoad(IRDataType.BYTE, tempReg, CallingConventionSlot(2))
+            RegisterOrPair.AX -> chunk += IRInstructions.hardwareLoad(IRDataType.WORD, tempReg, CallingConventionSlot(3))
+            RegisterOrPair.AY -> chunk += IRInstructions.hardwareLoad(IRDataType.WORD, tempReg, CallingConventionSlot(4))
+            RegisterOrPair.XY -> chunk += IRInstructions.hardwareLoad(IRDataType.WORD, tempReg, CallingConventionSlot(5))
+            RegisterOrPair.FAC1 -> chunk += IRInstructions.unary(Opcode.LOADHFACZERO, IRDataType.FLOAT, tempReg)
+            RegisterOrPair.FAC2 -> chunk += IRInstructions.unary(Opcode.LOADHFACONE, IRDataType.FLOAT, tempReg)
             in Cx16VirtualRegisters -> {
-                chunk += IRInstruction(Opcode.LOADM, irType, reg1=tempReg, labelSymbol = "cx16.${registerOrFlag.registerOrPair.toString().lowercase()}")
+                chunk += IRInstructions.loadMemory(Opcode.LOADM, irType, tempReg, IRMemory.direct("cx16.${registerOrFlag.registerOrPair.toString().lowercase()}"))
             }
             in CombinedLongRegisters -> {
                 require(fromType.isLong)
                 val startreg = registerOrFlag.registerOrPair!!.startregname()
-                chunk += IRInstruction(Opcode.LOADM, IRDataType.LONG, reg1=tempReg, labelSymbol = "cx16.${startreg}")
+                chunk += IRInstructions.loadMemory(Opcode.LOADM, IRDataType.LONG, tempReg, IRMemory.direct("cx16.${startreg}"))
             }
             null -> when(registerOrFlag.statusflag) {
                 Statusflag.Pc -> {
-                    chunk += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=tempReg, immediate = 0)
-                    chunk += IRInstruction(Opcode.ROXL, IRDataType.BYTE, reg1=tempReg)
+                    chunk += IRInstructions.load(IRDataType.BYTE, tempReg, 0)
+                    chunk += IRInstructions.unary(Opcode.ROXL, IRDataType.BYTE, tempReg)
                 }
                 else -> throw AssemblyError("unsupported statusflag ${registerOrFlag.statusflag}")
             }
@@ -2202,11 +2149,11 @@ class IRCodeGen(
         if(offset<=0u) {
             val irdt = irType(type)
             val instr = if(type.isFloat) {
-                if (valueIsZero) IRInstruction(Opcode.STOREZI, IRDataType.FLOAT, reg1 = addressReg, immediate = 0)
-                else IRInstruction(Opcode.STOREI, IRDataType.FLOAT, fpReg1 = RegisterNum(existingValueRegister), reg1 = addressReg, immediate = 0)
+                if (valueIsZero) IRInstructions.storeZero(Opcode.STOREZI, IRDataType.FLOAT, IRMemory.indirect(addressReg, 0))
+                else IRInstructions.storeMemory(Opcode.STOREI, IRDataType.FLOAT, existingValueRegister, IRMemory.indirect(addressReg, 0))
             } else {
-                if (valueIsZero) IRInstruction(Opcode.STOREZI, irdt, reg1 = addressReg, immediate = 0)
-                else IRInstruction(Opcode.STOREI, irdt, reg1 = existingValueRegister, reg2 = addressReg, immediate = 0)
+                if (valueIsZero) IRInstructions.storeZero(Opcode.STOREZI, irdt, IRMemory.indirect(addressReg, 0))
+                else IRInstructions.storeMemory(Opcode.STOREI, irdt, existingValueRegister, IRMemory.indirect(addressReg, 0))
             }
             addInstr(result, instr, null)
             return
@@ -2216,12 +2163,12 @@ class IRCodeGen(
         val valueRegister = existingValueRegister
         val irdt = irType(type)
         if(valueIsZero && valueRegister<0) {
-            addInstr(result, IRInstruction(Opcode.STOREZI, irdt, reg1 = addressReg, immediate = offset.toInt()), null)
+            addInstr(result, IRInstructions.storeZero(Opcode.STOREZI, irdt, IRMemory.indirect(addressReg, offset.toInt())), null)
         } else {
             val instr = if (type.isFloat)
-                IRInstruction(Opcode.STOREI, IRDataType.FLOAT, fpReg1 = RegisterNum(valueRegister), reg1 = addressReg, immediate = offset.toInt())
+                IRInstructions.storeMemory(Opcode.STOREI, IRDataType.FLOAT, valueRegister, IRMemory.indirect(addressReg, offset.toInt()))
             else
-                IRInstruction(Opcode.STOREI, irdt, reg1 = valueRegister, reg2 = addressReg, immediate = offset.toInt())
+                IRInstructions.storeMemory(Opcode.STOREI, irdt, valueRegister, IRMemory.indirect(addressReg, offset.toInt()))
             addInstr(result, instr, null)
         }
     }
@@ -2244,8 +2191,8 @@ class IRCodeGen(
             if(indexDt != IRDataType.WORD) {
                 val newReg = registers.next(IRDataType.WORD)
                 when(indexDt) {
-                    IRDataType.BYTE -> addInstr(result, IRInstruction(Opcode.EXT, IRDataType.BYTE, reg1=newReg, reg2=tr.resultReg), null)
-                    IRDataType.LONG -> addInstr(result, IRInstruction(Opcode.LSIGW, IRDataType.LONG, reg1=newReg, reg2=tr.resultReg), null)
+                    IRDataType.BYTE -> addInstr(result, IRInstructions.binary(Opcode.EXT, IRDataType.BYTE, newReg, tr.resultReg), null)
+                    IRDataType.LONG -> addInstr(result, IRInstructions.binary(Opcode.LSIGW, IRDataType.LONG, newReg, tr.resultReg), null)
                     IRDataType.POINTER -> TODO("handle pointer-typed array index for word-indexed access at ${index.position}")
                     else -> throw IllegalArgumentException("unexpected index dt $indexDt for wordIndex")
                 }
@@ -2267,13 +2214,13 @@ class IRCodeGen(
             val newReg = registers.next(indexRegType)
             when {
                 indexRegType == IRDataType.WORD && indexDt == IRDataType.BYTE ->
-                    addInstr(result, IRInstruction(Opcode.EXT, IRDataType.BYTE, reg1=newReg, reg2=byteIndexTr.resultReg), null)
+                    addInstr(result, IRInstructions.binary(Opcode.EXT, IRDataType.BYTE, newReg, byteIndexTr.resultReg), null)
                 indexRegType == IRDataType.WORD && indexDt == IRDataType.LONG ->
-                    addInstr(result, IRInstruction(Opcode.LSIGW, IRDataType.LONG, reg1=newReg, reg2=byteIndexTr.resultReg), null)
+                    addInstr(result, IRInstructions.binary(Opcode.LSIGW, IRDataType.LONG, newReg, byteIndexTr.resultReg), null)
                 indexRegType == IRDataType.BYTE && indexDt == IRDataType.WORD ->
-                    addInstr(result, IRInstruction(Opcode.LSIGB, IRDataType.WORD, reg1=newReg, reg2=byteIndexTr.resultReg), null)
+                    addInstr(result, IRInstructions.binary(Opcode.LSIGB, IRDataType.WORD, newReg, byteIndexTr.resultReg), null)
                 indexRegType == IRDataType.BYTE && indexDt == IRDataType.LONG ->
-                    addInstr(result, IRInstruction(Opcode.LSIGB, IRDataType.LONG, reg1=newReg, reg2=byteIndexTr.resultReg), null)
+                    addInstr(result, IRInstructions.binary(Opcode.LSIGB, IRDataType.LONG, newReg, byteIndexTr.resultReg), null)
                 else -> throw IllegalArgumentException("unexpected index conversion $indexDt -> $indexRegType")
             }
             indexReg = newReg
@@ -2293,21 +2240,21 @@ class IRCodeGen(
         val newReg = registers.next(indexRegType)
         when {
             indexRegType==IRDataType.WORD && indexTr.dt==IRDataType.BYTE ->
-                addInstr(result, IRInstruction(Opcode.EXT, IRDataType.BYTE, reg1=newReg, reg2=indexTr.resultReg), null)
+                addInstr(result, IRInstructions.binary(Opcode.EXT, IRDataType.BYTE, newReg, indexTr.resultReg), null)
             indexRegType==IRDataType.WORD && indexTr.dt==IRDataType.LONG ->
-                addInstr(result, IRInstruction(Opcode.LSIGW, IRDataType.LONG, reg1=newReg, reg2=indexTr.resultReg), null)
+                addInstr(result, IRInstructions.binary(Opcode.LSIGW, IRDataType.LONG, newReg, indexTr.resultReg), null)
             indexRegType==IRDataType.WORD && indexTr.dt==IRDataType.POINTER ->
-                addInstr(result, IRInstruction(Opcode.LSIGW, IRDataType.LONG, reg1=newReg, reg2=indexTr.resultReg), null)
+                addInstr(result, IRInstructions.binary(Opcode.LSIGW, IRDataType.LONG, newReg, indexTr.resultReg), null)
             indexRegType==IRDataType.BYTE && indexTr.dt==IRDataType.WORD ->
-                addInstr(result, IRInstruction(Opcode.LSIGB, IRDataType.WORD, reg1=newReg, reg2=indexTr.resultReg), null)
+                addInstr(result, IRInstructions.binary(Opcode.LSIGB, IRDataType.WORD, newReg, indexTr.resultReg), null)
             indexRegType==IRDataType.BYTE && indexTr.dt==IRDataType.LONG ->
-                addInstr(result, IRInstruction(Opcode.LSIGB, IRDataType.LONG, reg1=newReg, reg2=indexTr.resultReg), null)
+                addInstr(result, IRInstructions.binary(Opcode.LSIGB, IRDataType.LONG, newReg, indexTr.resultReg), null)
             indexRegType==IRDataType.BYTE && indexTr.dt==IRDataType.POINTER -> {
                 val ptrType = options.compTarget.pointerIRType
                 if(ptrType==IRDataType.WORD)
-                    addInstr(result, IRInstruction(Opcode.LSIGB, IRDataType.WORD, reg1=newReg, reg2=indexTr.resultReg), null)
+                    addInstr(result, IRInstructions.binary(Opcode.LSIGB, IRDataType.WORD, newReg, indexTr.resultReg), null)
                 else
-                    addInstr(result, IRInstruction(Opcode.LSIGB, IRDataType.LONG, reg1=newReg, reg2=indexTr.resultReg), null)
+                    addInstr(result, IRInstructions.binary(Opcode.LSIGB, IRDataType.LONG, newReg, indexTr.resultReg), null)
             }
             else -> throw IllegalArgumentException("unexpected index conversion ${indexTr.dt} -> $indexRegType")
         }

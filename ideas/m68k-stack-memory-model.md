@@ -18,6 +18,16 @@ The current IR represents memory variables with fixed addresses. In particular:
 - `IRSubroutine` describes parameters, returns, and code chunks, but has no
   frame-size or local-slot metadata.
 
+Structured-IR restriction (now merged in this branch): `MemoryReference` only
+knows `Direct`/`Indexed`/`Indirect`, and `AddressBase` only knows
+`Symbol`/`Absolute` (`intermediate/src/prog8/intermediate/IROperands.kt`).
+`Direct`/`Indexed` require `displacement >= 0`, so a frame slot such as
+`-N(A5)` cannot be expressed at all. Likewise `CallSite` /
+`CallLocation.ParameterMemory(name, address)` (`IRCalls.kt`) assumes a static
+symbol name or absolute address, `IRSubroutine` has no `frameSize` or slot
+metadata, `IRTextCodec` has no frame-slot syntax, and `VmProgramLoader`/VM
+resolve every symbolic base to an absolute address before execution.
+
 The M68K backend therefore uses static storage for normal subroutine parameters
 and locals. Its current internal calling convention has the caller write
 arguments into the callee's parameter variables before `jsr`.
@@ -207,26 +217,43 @@ existing AmigaOS ABI.
 ## 7. IR Changes
 
 The IR should describe storage symbolically rather than naming A5 directly.
-Possible additions include:
+Minimal proposal for the structured IR:
 
-- A stack-variable or frame-slot storage class
-- A frame offset and data type for each frame object
-- `frameSize` on `IRSubroutine`
-- A list or mask describing saved callee registers
-- Metadata describing incoming parameter locations
-- A list of frame objects requiring zero initialization
+- New `AddressBase.FrameSlot(val offset: Int)` variant (alternative name:
+  `IRFrameSlot` storage class if symbol-table-level marking is preferred, as
+  mentioned in Section 4). The offset is the frame-relative byte offset
+  assigned by the frame-layout pass; the data type/size continues to come
+  from the instruction's `IRDataType` and the variable declaration, plus an
+  optional slot list on `IRSubroutine` for size/alignment/zero-init metadata.
+- New `frameSize: Int` (default 0) on `IRSubroutine`, set by the frame-layout
+  pass. A zero `frameSize` means "no frame", so all existing IR stays valid.
+- Mapping: the M68K backend lowers `Direct(FrameSlot(offset), ...)` to a
+  signed A5 displacement (`-N(A5)`); the VM lowers the same slot to the
+  current activation record (per-call storage allocated on call, discarded
+  on return). Neither backend hard-codes A5 in the IR itself.
+- `CallLocation.ParameterMemory` needs a frame-slot form alongside its
+  current static `(name, address)` form (extra optional slot/offset, or a
+  separate `CallLocation.FrameSlot` variant), otherwise callers keep
+  assuming statically addressable parameter variables.
+- `OpcodeSchema` validation: memory-slot schemas keep accepting `Symbol`
+  and `Absolute` unchanged, and additionally accept a `FrameSlot` base for
+  `Direct` access. The `displacement >= 0` rule stays for symbol/absolute
+  bases; only the `FrameSlot` base allows negative frame-relative offsets.
+  `Indexed`/`Indirect` over a frame base are rejected in v1.
+- `IRTextCodec` syntax: needs a distinct round-trippable printed form for
+  the new base, for example `Direct(FrameSlot(-8))` printed as `[frame-8]`.
+  Symbol (`[main.var]`) and absolute (`[$1234]`) printing stays unchanged.
+- `VmProgramLoader`: `pass2replaceLabelsByProgIndex` /
+  `resolvedSymbolInstruction` currently fold every symbolic base into an
+  absolute address and assert nothing stays unresolved. Frame-relative
+  references must be excluded from that resolution and stay symbolic; the VM
+  resolves them against the active frame at execution time. If VM frame
+  support is deferred, the loader must explicitly reject frame-based IR
+  instead of miscompiling it as static storage.
 
-The serialized IR should identify the target and storage class clearly. Existing
-6502 IR must continue to use absolute/static storage.
-
-The IR should not encode `-4(a5)`. Instead, it should encode a frame-relative
-slot. The M68K backend maps that slot to A5, while the VM maps it to the current
-activation record.
-
-Whether prologue and epilogue operations are explicit IR instructions or are
-generated from `IRSubroutine` metadata is an implementation choice. Backend-
-generated prologues are preferable initially because saved-register selection,
-instruction forms, and frame-pointer choice are backend details.
+Static/absolute addressing (globals, `@shared`, slabs, all 6502 IR) is
+unaffected: existing `Symbol`/`Absolute` bases, their codec syntax, and
+their loader resolution keep working exactly as today.
 
 ## 8. Backend Changes
 
@@ -329,6 +356,13 @@ locals) is recommended. Option 3 adds calling-convention complexity that is not
 justified until the rest of the stack model is stable.
 
 ## 12. Effects on Other Targets
+
+Static/absolute addressing stays unchanged everywhere it exists today:
+block-level variables, globals, `@shared` variables, memory slabs, and all
+6502 IR keep using `AddressBase.Symbol`/`Absolute` with the current loader
+resolution. Only ordinary M68K subroutine locals/parameters move to the new
+`FrameSlot` base. The A5 frame-pointer / A6 library-base reservation from
+Section 2 remains in force.
 
 The 6502 targets remain unchanged:
 

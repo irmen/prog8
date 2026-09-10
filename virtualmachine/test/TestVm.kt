@@ -47,9 +47,9 @@ class TestVm: FunSpec( {
         val startSub = IRSubroutine("testmain.testsub", emptyList(), emptyList(), Position.DUMMY)
         val code = IRCodeChunk(startSub.label, null)
         code += IRInstruction(Opcode.NOP)
-        code += IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1=1, immediate=12345)
-        code += IRInstruction(Opcode.STOREM, IRDataType.WORD, reg1=1, address=1000u.toAddress())
-        code += IRInstruction(Opcode.RETURN)
+        code += IRInstructions.load(IRDataType.WORD, 1, 12345)
+        code += IRInstructions.storeMemory(Opcode.STOREM, IRDataType.WORD, 1, IRMemory.direct(1000u))
+        code += IRInstructions.returnVoid()
         startSub += code
         block += startSub
         program.addBlock(block)
@@ -92,7 +92,7 @@ class TestVm: FunSpec( {
     test("vmrunner") {
         val runner = VmRunner()
         val irSource="""<?xml version="1.0" encoding="utf-8"?>
-<PROGRAM NAME="test" COMPILERVERSION="99.99">
+<PROGRAM NAME="test" COMPILERVERSION="99.99" IRFORMAT="2">
 <OPTIONS>
 </OPTIONS>
 
@@ -150,10 +150,10 @@ class TestVm: FunSpec( {
         val startSub = IRSubroutine("main.test", emptyList(), emptyList(), Position.DUMMY)
         val code = IRCodeChunk(startSub.label, null)
 
-        code += IRInstruction(Opcode.LOADR, IRDataType.LONG, reg1=1, reg2=3)
-        code += IRInstruction(Opcode.LOADR, IRDataType.LONG, reg1=2, reg2=4)
-        code += IRInstruction(Opcode.DIVSR, IRDataType.LONG, reg1=1, reg2=2)
-        code += IRInstruction(Opcode.RETURN)
+        code += IRInstructions.move(IRDataType.LONG, 1, 3)
+        code += IRInstructions.move(IRDataType.LONG, 2, 4)
+        code += IRInstructions.binary(Opcode.DIVSR, IRDataType.LONG, 1, 2)
+        code += IRInstructions.returnVoid()
 
         startSub += code
         block += startSub
@@ -172,9 +172,9 @@ class TestVm: FunSpec( {
         val startSub = IRSubroutine("main.test", emptyList(), emptyList(), Position.DUMMY)
         val code = IRCodeChunk(startSub.label, null)
 
-        code += IRInstruction(Opcode.LOADR, IRDataType.LONG, reg1=1, reg2=2)
-        code += IRInstruction(Opcode.MODS, IRDataType.LONG, reg1=1, immediate=7)
-        code += IRInstruction(Opcode.RETURN)
+        code += IRInstructions.move(IRDataType.LONG, 1, 2)
+        code += IRInstructions.binaryImmediate(Opcode.MODS, IRDataType.LONG, 1, 7)
+        code += IRInstructions.returnVoid()
 
         startSub += code
         block += startSub
@@ -192,9 +192,9 @@ class TestVm: FunSpec( {
         val startSub = IRSubroutine("main.test", emptyList(), emptyList(), Position.DUMMY)
         val code = IRCodeChunk(startSub.label, null)
 
-        code += IRInstruction(Opcode.LOADR, IRDataType.LONG, reg1=1, reg2=2)
-        code += IRInstruction(Opcode.DIVS, IRDataType.LONG, reg1=1, immediate=8)
-        code += IRInstruction(Opcode.RETURN)
+        code += IRInstructions.move(IRDataType.LONG, 1, 2)
+        code += IRInstructions.binaryImmediate(Opcode.DIVS, IRDataType.LONG, 1, 8)
+        code += IRInstructions.returnVoid()
 
         startSub += code
         block += startSub
@@ -212,10 +212,10 @@ class TestVm: FunSpec( {
         val startSub = IRSubroutine("main.test", emptyList(), emptyList(), Position.DUMMY)
         val code = IRCodeChunk(startSub.label, null)
 
-        code += IRInstruction(Opcode.LOADR, IRDataType.LONG, reg1=1, reg2=3)
-        code += IRInstruction(Opcode.LOADR, IRDataType.LONG, reg1=2, reg2=4)
-        code += IRInstruction(Opcode.DIVSR, IRDataType.LONG, reg1=1, reg2=2)
-        code += IRInstruction(Opcode.RETURN)
+        code += IRInstructions.move(IRDataType.LONG, 1, 3)
+        code += IRInstructions.move(IRDataType.LONG, 2, 4)
+        code += IRInstructions.binary(Opcode.DIVSR, IRDataType.LONG, 1, 2)
+        code += IRInstructions.returnVoid()
 
         startSub += code
         block += startSub
@@ -234,11 +234,11 @@ class TestVm: FunSpec( {
         val startSub = IRSubroutine("main.test", emptyList(), emptyList(), Position.DUMMY)
         val code = IRCodeChunk(startSub.label, null)
 
-        // BWL: memory[registers[reg2] + offset] -> registers[reg1]
-        code += IRInstruction(Opcode.LOADI, IRDataType.WORD, reg1=1, reg2=2, immediate=10)
-        // FLOAT: memory[registers[reg1] + offset] -> registers[fpReg1]
-        code += IRInstruction(Opcode.LOADI, IRDataType.FLOAT, fpReg1=RegisterNum(3), reg1=2, immediate=20)
-        code += IRInstruction(Opcode.RETURN)
+        // BWL: memory[pointer register + displacement] -> destination register
+        code += IRInstructions.loadMemory(Opcode.LOADI, IRDataType.WORD, 1, IRMemory.indirect(2, 10))
+        // FLOAT: memory[pointer register + displacement] -> float destination register
+        code += IRInstructions.loadMemory(Opcode.LOADI, IRDataType.FLOAT, 3, IRMemory.indirect(2, 20))
+        code += IRInstructions.returnVoid()
 
         startSub += code
         block += startSub
@@ -260,11 +260,11 @@ class TestVm: FunSpec( {
         val startSub = IRSubroutine("main.test", emptyList(), emptyList(), Position.DUMMY)
         val code = IRCodeChunk(startSub.label, null)
 
-        // BWL: memory[address + registers[reg2]] -> registers[reg1]
-        code += IRInstruction(Opcode.LOADX, IRDataType.WORD, reg1=1, reg2=2, address=1000u.toAddress())
-        // FLOAT: memory[address + registers[reg1]] -> registers[fpReg1]
-        code += IRInstruction(Opcode.LOADX, IRDataType.FLOAT, fpReg1=RegisterNum(3), reg1=2, address=2000u.toAddress())
-        code += IRInstruction(Opcode.RETURN)
+        // BWL: memory[base + index register * scale] -> destination register
+        code += IRInstructions.loadMemory(Opcode.LOADX, IRDataType.WORD, 1, IRMemory.indexed(1000u, 2, IRDataType.WORD))
+        // FLOAT: memory[base + index register * scale] -> float destination register
+        code += IRInstructions.loadMemory(Opcode.LOADX, IRDataType.FLOAT, 3, IRMemory.indexed(2000u, 2, IRDataType.WORD))
+        code += IRInstructions.returnVoid()
 
         startSub += code
         block += startSub
@@ -286,11 +286,11 @@ class TestVm: FunSpec( {
         val startSub = IRSubroutine("main.test", emptyList(), emptyList(), Position.DUMMY)
         val code = IRCodeChunk(startSub.label, null)
 
-        // BWL: registers[reg1] -> memory[registers[reg2] + offset]
-        code += IRInstruction(Opcode.STOREI, IRDataType.WORD, reg1=1, reg2=2, immediate=10)
-        // FLOAT: registers[fpReg1] -> memory[registers[reg1] + offset]
-        code += IRInstruction(Opcode.STOREI, IRDataType.FLOAT, fpReg1=RegisterNum(3), reg1=2, immediate=20)
-        code += IRInstruction(Opcode.RETURN)
+        // BWL: source register -> memory[pointer register + displacement]
+        code += IRInstructions.storeMemory(Opcode.STOREI, IRDataType.WORD, 1, IRMemory.indirect(2, 10))
+        // FLOAT: float source register -> memory[pointer register + displacement]
+        code += IRInstructions.storeMemory(Opcode.STOREI, IRDataType.FLOAT, 3, IRMemory.indirect(2, 20))
+        code += IRInstructions.returnVoid()
 
         startSub += code
         block += startSub
@@ -312,11 +312,11 @@ class TestVm: FunSpec( {
         val startSub = IRSubroutine("main.test", emptyList(), emptyList(), Position.DUMMY)
         val code = IRCodeChunk(startSub.label, null)
 
-        // BWL: registers[reg1] -> memory[address + registers[reg2]]
-        code += IRInstruction(Opcode.STOREX, IRDataType.WORD, reg1=1, reg2=2, address=1000u.toAddress())
-        // FLOAT: registers[fpReg1] -> memory[address + registers[reg1]]
-        code += IRInstruction(Opcode.STOREX, IRDataType.FLOAT, fpReg1=RegisterNum(3), reg1=2, address=2000u.toAddress())
-        code += IRInstruction(Opcode.RETURN)
+        // BWL: source register -> memory[base + index register * scale]
+        code += IRInstructions.storeMemory(Opcode.STOREX, IRDataType.WORD, 1, IRMemory.indexed(1000u, 2, IRDataType.WORD))
+        // FLOAT: float source register -> memory[base + index register * scale]
+        code += IRInstructions.storeMemory(Opcode.STOREX, IRDataType.FLOAT, 3, IRMemory.indexed(2000u, 2, IRDataType.WORD))
+        code += IRInstructions.returnVoid()
 
         startSub += code
         block += startSub
@@ -338,8 +338,8 @@ class TestVm: FunSpec( {
         val startSub = IRSubroutine("main.test", emptyList(), emptyList(), Position.DUMMY)
         val code = IRCodeChunk(startSub.label, null)
 
-        code += IRInstruction(Opcode.LSR, IRDataType.LONG, reg1=1)
-        code += IRInstruction(Opcode.RETURN)
+        code += IRInstructions.unary(Opcode.LSR, IRDataType.LONG, 1)
+        code += IRInstructions.returnVoid()
 
         startSub += code
         block += startSub

@@ -177,10 +177,11 @@ sub  str_w  (word value) -> str {
 sub  str_l  (long value) -> str {
     ; ---- convert the (signed) long into decimal string form, without left padding 0's
     %ir {{
-        loadm.l r99200,conv.str_l.value
-        load.w r99000,conv.string_out
-        syscall 60 (r99200.l, r99000.w) : r99000.w
-        returnr.w r99000
+        loadm.l r99200.l,[conv.str_l.value]
+        load.l r99201.l,#conv.string_out
+        syscall 60 (r99200.l, r99201.l)
+        load.w r99000.w,#conv.string_out
+        returnr.w r99000.w
     }}
 }
 
@@ -244,9 +245,9 @@ sub  str2uword(str string) -> uword {
     ;    the number may NOT be preceded by a + sign and may NOT contain spaces
     ;    (any non-digit character will terminate the number string that is parsed)
     %ir {{
-        loadm.l r99200,conv.str2uword.string
+        loadm.l r99200.l,[conv.str2uword.string]
         syscall 11 (r99200.l) : r99000.w
-        returnr.w r99000
+        returnr.w r99000.w
     }}
 }
 
@@ -255,9 +256,9 @@ sub  str2word(str string) -> word {
     ;    the number may be preceded by a + or - sign but may NOT contain spaces
     ;    (any non-digit character will terminate the number string that is parsed)
     %ir {{
-        loadm.l r99200,conv.str2word.string
+        loadm.l r99200.l,[conv.str2word.string]
         syscall 12 (r99200.l) : r99000.w
-        returnr.w r99000
+        returnr.w r99000.w
     }}
 }
 

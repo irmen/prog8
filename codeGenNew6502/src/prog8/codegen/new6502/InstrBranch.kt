@@ -36,19 +36,11 @@
 
 package prog8.codegen.new6502
 
-import prog8.intermediate.IRDataType
-import prog8.intermediate.IRInstruction
-import prog8.intermediate.Opcode
+import prog8.intermediate.*
+import prog8.code.core.toHex
 
 internal fun AsmGen.translateBranch(insn: IRInstruction) {
-    val target = insn.branchTarget
-    val ls = insn.labelSymbol
-
-    val label: String = when {
-        target?.label != null -> target.label!!
-        ls != null -> ls
-        else -> "unknown_target"
-    }
+    val label = targetLabel(insn)
 
     when (insn.opcode) {
         Opcode.BSTCC -> emitLine("bcc  $label")
@@ -80,14 +72,22 @@ internal fun AsmGen.translateBranch(insn: IRInstruction) {
     }
 }
 
+/** the label (or fixed address) a branch instruction targets */
+internal fun AsmGen.targetLabel(insn: IRInstruction): String =
+    when (val target = insn.requireTarget()) {
+        is CodeReference.Label -> if (target.offset != 0) "${target.name}+${target.offset}" else target.name
+        is CodeReference.Absolute -> target.address.value.toHex()
+        is CodeReference.Indirect -> error("$insn: branch target cannot be indirect")
+    }
+
 private fun AsmGen.translateCmpBranchUnsigned(insn: IRInstruction, label: String,
                                               greaterThan: Boolean = false,
                                               greaterOrEqual: Boolean = false,
                                               lessThan: Boolean = false,
                                               lessOrEqual: Boolean = false) {
     val type = insn.type ?: IRDataType.BYTE
-    val reg = insn.reg1 ?: error("branch needs reg1")
-    val imm = insn.immediate ?: error("unsigned branch needs immediate")
+    val reg = insn.requireIntSourceA().intNumber
+    val imm = insn.requireImmediateInt()
 
     when (type) {
         IRDataType.BYTE -> {
@@ -161,8 +161,8 @@ private fun AsmGen.translateCmpBranchLongUnsigned(insn: IRInstruction, label: St
                                                   greaterOrEqual: Boolean,
                                                   lessThan: Boolean,
                                                   lessOrEqual: Boolean) {
-    val reg = insn.reg1 ?: error("branch needs reg1")
-    val imm = insn.immediate ?: error("branch needs immediate")
+    val reg = insn.requireIntSourceA().intNumber
+    val imm = insn.requireImmediateInt()
     when {
         greaterThan -> {
             // a > imm -> imm < a: swap operands
@@ -227,8 +227,8 @@ private fun AsmGen.translateCmpBranchRegUnsigned(insn: IRInstruction, label: Str
                                                  greaterThan: Boolean = false,
                                                  greaterOrEqual: Boolean = false) {
     val type = insn.type ?: IRDataType.BYTE
-    val reg1 = insn.reg1 ?: error("branch needs reg1")
-    val reg2 = insn.reg2 ?: error("reg branch needs reg2")
+    val reg1 = insn.requireIntSourceA().intNumber
+    val reg2 = insn.requireSrcB().intNumber
 
     when (type) {
         IRDataType.BYTE -> {
@@ -301,8 +301,8 @@ private fun AsmGen.translateCmpBranchSigned(insn: IRInstruction, label: String,
                                             lessThan: Boolean = false,
                                             lessOrEqual: Boolean = false) {
     val type = insn.type ?: IRDataType.BYTE
-    val reg = insn.reg1 ?: error("branch needs reg1")
-    val imm = insn.immediate ?: error("signed branch needs immediate")
+    val reg = insn.requireIntSourceA().intNumber
+    val imm = insn.requireImmediateInt()
 
     when (type) {
         IRDataType.BYTE -> {
@@ -488,8 +488,8 @@ private fun AsmGen.translateCmpBranchRegSigned(insn: IRInstruction, label: Strin
                                                lessThan: Boolean = false,
                                                lessOrEqual: Boolean = false) {
     val type = insn.type ?: IRDataType.BYTE
-    val reg1 = insn.reg1 ?: error("branch needs reg1")
-    val reg2 = insn.reg2 ?: error("reg branch needs reg2")
+    val reg1 = insn.requireIntSourceA().intNumber
+    val reg2 = insn.requireSrcB().intNumber
 
     when (type) {
         IRDataType.BYTE -> {

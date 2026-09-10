@@ -59,7 +59,7 @@ some_block {
 other_block {
     sub  redherring  (uword buffer)  {
         %ir {{
-            loadm.w r99000,other_block.redherring.buffer
+            loadm.w r99000.w,[other_block.redherring.buffer]
         }}
     }
 }

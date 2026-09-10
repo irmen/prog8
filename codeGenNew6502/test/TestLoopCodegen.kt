@@ -50,7 +50,7 @@ class TestLoopCodegen : FunSpec({
 
     test("IRLoopChunk uses Y as counter") {
         val body = IRCodeChunk(null, null).also {
-            it += IRInstruction(Opcode.INCM, IRDataType.BYTE, labelSymbol = "p8b_main.p8v_sum")
+            it += IRInstructions.memoryOp(Opcode.INCM, IRDataType.BYTE, IRMemory.direct("p8b_main.p8v_sum"))
         }
         val loop = IRLoopChunk("p8_label_gen_1", 5, mutableListOf(body))
         val lines = generateAsmForLoop(loop)
@@ -61,7 +61,7 @@ class TestLoopCodegen : FunSpec({
 
     test("IRLoopChunk preserves Y around body chunk that uses Y") {
         val body = IRCodeChunk(null, null).also {
-            it += IRInstruction(Opcode.STOREI, IRDataType.BYTE, reg1 = 2, reg2 = 3, immediate = 0)
+            it += IRInstructions.storeMemory(Opcode.STOREI, IRDataType.BYTE, 2, IRMemory.indirect(3))
         }
         val loop = IRLoopChunk("p8_label_gen_1", 5, mutableListOf(body))
         val lines = generateAsmForLoop(loop)

@@ -8,14 +8,26 @@ internal const val FP_ACC = "fp0"   // primary FPU scratch / accumulator
 internal const val FP_SRC = "fp1"   // secondary FPU scratch / source operand
 
 /**
- * Identity of a virtual register for call-argument forwarding, distinguishing
- * the integer register file (rN) from the floating-point register file (frN).
- * The two namespaces are independent, so the same numeric value can refer to
- * both an integer and a floating-point register.
+ * The virtual register that an instruction writes into its primary destination slot,
+ * but only when that slot is a pure definition (not a read-modify-write). This is the
+ * "defining write" used by the call-argument forwarding analysis.
  */
-internal sealed interface RegId {
-    data class IntReg(val num: Int) : RegId
-    data class FloatReg(val num: RegisterNum) : RegId
+internal fun IRInstruction.exclusiveDestination(): VirtualRegister? =
+    dest?.takeIf { it.direction == OperandDirection.DEF }?.register
+
+/**
+ * The immediate value a LOAD instruction puts into [register], or null when this
+ * instruction isn't a plain immediate load of that register. Symbol addresses are
+ * not forwardable, only plain integer and float constants are.
+ */
+internal fun IRInstruction.forwardableImmediateFor(register: VirtualRegister, type: IRDataType): ImmediateOperand? {
+    if (opcode != Opcode.LOAD || this.type != type || exclusiveDestination() != register)
+        return null
+    return when (immediate) {
+        is ImmediateOperand.Integer -> if (register.isFloat) null else immediate
+        is ImmediateOperand.FloatValue -> if (register.isFloat) immediate else null
+        else -> null
+    }
 }
 
 /**
@@ -44,8 +56,8 @@ internal sealed interface RegId {
  * depend on liveness and is still applied in those cases.
  */
 internal data class ImmediateCallOptimization(
-    val loads: Map<RegId, IRInstruction>,
-    val deadRegisters: Set<RegId>
+    val loads: Map<VirtualRegister, IRInstruction>,
+    val deadRegisters: Set<VirtualRegister>
 )
 
 /**
@@ -280,8 +292,12 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         IRDataType.POINTER -> target.POINTER_MEM_SIZE.toInt()
     }
 
+    // intRegsTypes is a derived (recomputed) view on RegistersUsed, so cache it: it is
+    // consulted for every register operand that needs its natural width.
+    private val intRegTypes: Map<RegisterNum, IRDataType> by lazy { regsUsed.intRegsTypes }
+
     private val regFileLayout: RegFileLayout by lazy {
-        val allRegs = regsUsed.regsTypes
+        val allRegs = intRegTypes
         val offsets = mutableMapOf<Int, Int>()
         var currentOffset = 0
         for ((regNum, regType) in allRegs.entries.sortedBy { it.key.value }) {
@@ -297,7 +313,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
     private val floatRegFileLayout: RegFileLayout by lazy {
         val used = regsUsed
         val allFpRegs = mutableMapOf<RegisterNum, IRDataType>()
-        for (reg in used.readFpRegs.keys + used.writeFpRegs.keys) {
+        for (reg in used.floatRegsRead.keys + used.floatRegsWritten.keys) {
             allFpRegs[reg] = IRDataType.FLOAT
         }
         val offsets = mutableMapOf<Int, Int>()
@@ -339,7 +355,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
     }
 
     /** Returns the IR data type of the given integer virtual register. */
-    fun regType(reg: Int): IRDataType = regsUsed.regsTypes[RegisterNum(reg)] ?: IRDataType.BYTE
+    fun regType(reg: Int): IRDataType = intRegTypes[RegisterNum(reg)] ?: IRDataType.BYTE
 
     /** Load a virtual register into d0, zero-extending if its natural width is smaller than [requiredType]. */
     fun loadRegOrZeroExtendToD0(reg: Int, requiredType: IRDataType) {
@@ -413,14 +429,106 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
 
     fun constLabel(name: String): String = "p8c_${fixNameSymbols(name)}"
 
-    fun resolveAddress(addr: MemoryAddress?, label: String?, offset: Int? = null): String {
-        return when {
-            label != null -> {
-                val resolved = resolveSymbolRef(label)
-                if (offset != null && offset != 0) "$resolved+$offset" else resolved
+    /**
+     * Load an array index into d0 for use with `(a0,d0.w)` addressing.
+     * Word indices can be loaded directly; byte indices must be zero-extended
+     * because `move.w` from a byte regfile slot would read the adjacent byte too.
+     */
+    private fun loadIndexToD0(idx: Int) {
+        if (regType(idx) == IRDataType.BYTE) {
+            invalidateD0Cache()                 // moveq clobbers d0
+            emitLine("moveq  #0, d0")
+            emitLoadD0(idx, IRDataType.BYTE)    // cache as byte; consumer widens
+        } else {
+            emitLoadD0(idx, IRDataType.WORD)    // cache as word; consumer widens
+        }
+    }
+
+    private fun addIndirectOffset(offset: Int) {
+        when (offset) {
+            in 1..8 -> emitLine("addq.l  #$offset, a0")
+            in -8..-1 -> emitLine("subq.l  #${-offset}, a0")
+            else -> emitLine("adda.l  #$offset, a0")
+        }
+    }
+
+    private fun resolveMemoryBase(base: AddressBase, displacement: Int): String {
+        val resolved = when (base) {
+            is AddressBase.Symbol -> resolveSymbolRef(base.name)
+            is AddressBase.Absolute -> base.address.value.toHex()
+        }
+        return if (displacement != 0) "$resolved+$displacement" else resolved
+    }
+
+    /**
+     * Centralized lowering of a MemoryReference (Direct/Indexed/Indirect) into the effective
+     * m68k operand/addressing-mode text, emitting whatever setup instructions the mode requires
+     * (lea for a symbol/index base, index register loading/scaling, or a pointer load into a0).
+     * This replaces the old ad-hoc decoding of address/labelSymbol/symbolOffset/reg2/scale fields
+     * that used to be duplicated across every load/store opcode and the memory-operand arithmetic ops.
+     * [forFloat] selects the FPU indexed/indirect addressing conventions (32-bit d0.l index,
+     * unconditional addIndirectOffset) used by the float load/store opcodes.
+     */
+    fun resolveMemory(memory: MemoryReference, forFloat: Boolean = false): String {
+        return when (memory) {
+            is MemoryReference.Direct -> resolveMemoryBase(memory.base, memory.displacement)
+            is MemoryReference.Indexed -> {
+                val idx = memory.index.intNumber
+                val scale = memory.scale
+                val baseAddr = resolveMemoryBase(memory.base, memory.displacement)
+                if (forFloat) {
+                    // full-width d0.l indexing requires zero-extending the word index to 32 bits
+                    invalidateD0Cache()                 // moveq clobbers d0
+                    emitLine("moveq  #0, d0")
+                    emitLoadD0(idx, IRDataType.WORD)    // cache as word; d0.l widens it
+                    if (scale != 1) {
+                        invalidateD0Cache()             // scaling transforms d0
+                        when (scale) {
+                            2 -> emitLine("add.l  d0,d0")
+                            4 -> emitLine("lsl.l  #2, d0")
+                            8 -> emitLine("lsl.l  #3, d0")
+                            else -> emitLine("muls.w  #$scale, d0")
+                        }
+                    }
+                    emitLine("lea  $baseAddr, a0")
+                    "(0, a0, d0.l)"
+                } else {
+                    loadIndexToD0(idx)
+                    if (scale != 1) {
+                        invalidateD0Cache()             // scaling transforms d0
+                        if (program.options.compTarget.cpu >= CpuType.M68020) {
+                            if (scale != 2 && scale != 4 && scale != 8) emitLine("muls.w  #$scale, d0")
+                        } else {
+                            when (scale) {
+                                2 -> emitLine("add.w  d0,d0")
+                                4 -> emitLine("lsl.w  #2, d0")
+                                else -> emitLine("muls.w  #$scale, d0")
+                            }
+                        }
+                    }
+                    emitLine("lea  $baseAddr, a0")
+                    when {
+                        program.options.compTarget.cpu >= CpuType.M68020 && scale == 2 -> "(a0,d0.w*2)"
+                        program.options.compTarget.cpu >= CpuType.M68020 && scale == 4 -> "(a0,d0.w*4)"
+                        program.options.compTarget.cpu >= CpuType.M68020 && scale == 8 -> "(a0,d0.w*8)"
+                        else -> "(a0,d0.w)"
+                    }
+                }
             }
-            addr != null -> addr.value.toHex()
-            else -> "0"
+            is MemoryReference.Indirect -> {
+                loadPointerToA0(memory.pointer.intNumber)
+                val off = memory.displacement
+                if (forFloat) {
+                    if (off != 0) addIndirectOffset(off)
+                    "(a0)"
+                } else {
+                    when {
+                        off < -32768 || off > 32767 -> { addIndirectOffset(off); "(a0)" }
+                        off == 0 -> "(a0)"
+                        else -> "($off,a0)"
+                    }
+                }
+            }
         }
     }
 
@@ -682,7 +790,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
     private fun inlineAsmMayReadRegisters(chunk: IRInlineAsmChunk): Boolean {
         if (chunk.isIR) {
             val used = chunk.usedRegisters()
-            return used.readRegs.isNotEmpty() || used.readFpRegs.isNotEmpty()
+            return used.readRegs.isNotEmpty()
         }
         return REGFILE_LABEL in chunk.assembly || FLOAT_REGFILE_LABEL in chunk.assembly
     }
@@ -741,7 +849,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
             val insn = chunk.instructions[index]
             if (insn.opcode != Opcode.CALL)
                 continue
-            val optimization = immediateLoadsForCall(livenessInstructions, instructionOffset + index, instructionOffset, insn.fcallArgs)
+            val optimization = immediateLoadsForCall(livenessInstructions, instructionOffset + index, instructionOffset, insn.callSite)
                 ?: continue
             val effectiveOptimization =
                 if (deadStoreSuppressionAllowed) optimization
@@ -749,8 +857,8 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
             callOptimizations[index] = effectiveOptimization
             // Mark the defining LOAD immediates for dead registers as dead (to suppress their regfile store).
             // These may be non-contiguous with the CALL, so search for each dead reg's defining LOAD.
-            for (regId in effectiveOptimization.deadRegisters) {
-                val forwardedLoad = effectiveOptimization.loads[regId] ?: continue
+            for (register in effectiveOptimization.deadRegisters) {
+                val forwardedLoad = effectiveOptimization.loads[register] ?: continue
                 // Find the chunk-local index of this exact LOAD instruction
                 for (loadIndex in index - 1 downTo 0) {
                     val load = chunk.instructions[loadIndex]
@@ -759,20 +867,12 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
                         break
                     }
                     // Also match by reg and immediate value in case of different object identity
-                    val isMatch = when (regId) {
-                        is RegId.IntReg -> load.opcode == Opcode.LOAD && load.reg1 == regId.num && load.immediate == forwardedLoad.immediate
-                        is RegId.FloatReg -> load.opcode == Opcode.LOAD && load.fpReg1 == regId.num && load.immediateFp == forwardedLoad.immediateFp
-                    }
-                    if (isMatch) {
+                    if (load.opcode == Opcode.LOAD && load.dest?.register == register && load.immediate == forwardedLoad.immediate) {
                         deadLoadIndices.add(loadIndex)
                         break
                     }
                     // If we hit another write to the same register, the forwarded LOAD is not in this chunk
-                    val writesSameReg = when (regId) {
-                        is RegId.IntReg -> load.reg1 == regId.num && load.reg1direction == OperandDirection.WRITE
-                        is RegId.FloatReg -> load.fpReg1 == regId.num && load.fpReg1direction == OperandDirection.WRITE
-                    }
-                    if (writesSameReg) break
+                    if (load.exclusiveDestination() == register) break
                 }
             }
         }
@@ -810,26 +910,12 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         return false
     }
 
-    private fun isRegisterReadElsewhere(instructions: List<IRInstruction>, callIndex: Int, register: RegId): Boolean {
+    private fun isRegisterReadElsewhere(instructions: List<IRInstruction>, callIndex: Int, register: VirtualRegister): Boolean {
         for (index in instructions.indices) {
             if (index == callIndex)
                 continue
-            val insn = instructions[index]
-            when (register) {
-                is RegId.IntReg -> {
-                    if ((insn.reg1 == register.num && insn.reg1direction in setOf(OperandDirection.READ, OperandDirection.READWRITE)) ||
-                        (insn.reg2 == register.num && insn.reg2direction in setOf(OperandDirection.READ, OperandDirection.READWRITE)) ||
-                        (insn.reg3 == register.num && insn.reg3direction in setOf(OperandDirection.READ, OperandDirection.READWRITE)) ||
-                        insn.fcallArgs?.arguments?.any { it.reg.dt != IRDataType.FLOAT && it.reg.registerNum.value == register.num } == true)
-                        return true
-                }
-                is RegId.FloatReg -> {
-                    if ((insn.fpReg1 == register.num && insn.fpReg1direction in setOf(OperandDirection.READ, OperandDirection.READWRITE)) ||
-                        (insn.fpReg2 == register.num && insn.fpReg2direction in setOf(OperandDirection.READ, OperandDirection.READWRITE)) ||
-                        insn.fcallArgs?.arguments?.any { it.reg.dt == IRDataType.FLOAT && it.reg.registerNum == register.num } == true)
-                        return true
-                }
-            }
+            if (register in instructions[index].uses)
+                return true
         }
         return false
     }
@@ -838,33 +924,24 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         instructions: List<IRInstruction>,
         callIndex: Int,
         chunkStartIndex: Int,
-        args: FunctionCallArgs?
+        callSite: CallSite?
     ): ImmediateCallOptimization? {
-        if (args == null || args.arguments.isEmpty() || args.arguments.any { it.reg.callingConventionSlot == null })
+        if (callSite == null || callSite.arguments.isEmpty() || callSite.arguments.any { it.location !is CallLocation.HardwareRegister })
             return null
 
-        val loads = mutableMapOf<RegId, IRInstruction>()
+        val loads = mutableMapOf<VirtualRegister, IRInstruction>()
         // For each call argument, find the most recent LOAD immediate that defines it,
         // allowing gaps and non-LOAD instructions between the LOAD and the CALL,
         // as long as there's no intervening write to that register.
-        for (arg in args.arguments) {
-            val regId = if (arg.reg.dt == IRDataType.FLOAT) RegId.FloatReg(arg.reg.registerNum) else RegId.IntReg(arg.reg.registerNum.value)
+        for (arg in callSite.arguments) {
+            val register = arg.source.register
             // search backwards for the defining LOAD immediate
             for (idx in callIndex - 1 downTo chunkStartIndex) {
                 val insn = instructions[idx]
                 // If this instruction writes to the same register, it's the defining write
-                val writesThisReg = when (regId) {
-                    is RegId.IntReg -> insn.reg1 == regId.num && insn.reg1direction == OperandDirection.WRITE
-                    is RegId.FloatReg -> insn.fpReg1 == regId.num && insn.fpReg1direction == OperandDirection.WRITE
-                }
-                if (writesThisReg) {
-                    if (insn.opcode == Opcode.LOAD) {
-                        val isImmediateInt = insn.reg1 != null && insn.immediate != null && regId is RegId.IntReg && insn.reg1 == regId.num
-                        val isImmediateFloat = insn.fpReg1 != null && insn.immediateFp != null && regId is RegId.FloatReg && insn.fpReg1 == regId.num
-                        if ((isImmediateInt || isImmediateFloat) && insn.type == arg.reg.dt) {
-                            loads[regId] = insn
-                        }
-                    }
+                if (insn.exclusiveDestination() == register) {
+                    if (insn.forwardableImmediateFor(register, arg.source.type) != null)
+                        loads[register] = insn
                     break // found the defining write, whether immediate or not
                 }
             }

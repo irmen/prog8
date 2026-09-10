@@ -1,3 +1,4 @@
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.ints.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
@@ -8,9 +9,17 @@ import prog8.intermediate.*
 import kotlin.io.path.*
 
 class TestIRFileInOut: FunSpec({
+    test("IR reader requires format 2") {
+        shouldThrow<IRParseException> {
+            IRFileReader().read("""<?xml version="1.0"?><PROGRAM NAME="test" COMPILERVERSION="99.99"/>""")
+        }.message shouldBe "missing IRFORMAT"
+        shouldThrow<IRParseException> {
+            IRFileReader().read("""<?xml version="1.0"?><PROGRAM NAME="test" COMPILERVERSION="99.99" IRFORMAT="1"/>""")
+        }.message shouldBe "unsupported IR format: 1"
+    }
+
     test("test IR writer") {
         val target = Cx16Target()
-        val tempdir = Path(System.getProperty("java.io.tmpdir"))
         val options = CompilationOptions.builder(target)
             .output(OutputType.RAW)
             .zeropage(ZeropageType.DONTUSE)
@@ -18,14 +27,14 @@ class TestIRFileInOut: FunSpec({
             .compilerVersion("99.99")
             .loadAddress(target.PROGRAM_LOAD_ADDRESS)
             .memtopAddress(0xffffu)
-            .outputDir(tempdir)
+            .outputDir(Path(""))
             .build()
         val program = IRProgram("unittest-irwriter", IRSymbolTable(), options, target)
-        val writer = IRFileWriter(program, null)
+        val writer = IRFileWriter(program, Path("intermediate-irwriter-test-output.p8ir"))
         val generatedFile = writer.write()
         val lines = generatedFile.readLines()
         lines[0] shouldBe "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
-        lines[1] shouldBe "<PROGRAM NAME=\"unittest-irwriter\" COMPILERVERSION=\"99.99\">"
+        lines[1] shouldBe "<PROGRAM NAME=\"unittest-irwriter\" COMPILERVERSION=\"99.99\" IRFORMAT=\"2\">"
         lines.last() shouldBe "</PROGRAM>"
         generatedFile.deleteExisting()
         lines.size shouldBeGreaterThan 20
@@ -33,7 +42,7 @@ class TestIRFileInOut: FunSpec({
 
     test("test IR reader") {
         val source="""<?xml version="1.0" encoding="utf-8"?>
-<PROGRAM NAME="test-ir-reader" COMPILERVERSION="99.99">
+<PROGRAM NAME="test-ir-reader" COMPILERVERSION="99.99" IRFORMAT="2">
 <OPTIONS>
 compTarget=virtual
 output=PRG
@@ -76,7 +85,7 @@ ubyte main.thing=42
 
 <INITGLOBALS>
 <CHUNK><REGS>dummy</REGS><CODE>
-load.b r1,#42
+load.b r1.b,#42.b
 </CODE></CHUNK>
 </INITGLOBALS>
 
@@ -96,7 +105,7 @@ return
 uword sys.wait.jiffies
 </PARAMS>
 <ASM LABEL="sys.wait" IR="true" POS="[library:/prog8lib/virtual/syslib.p8: line 17 col 10-13]">
-            loadm.w r0,sys.wait.jiffies
+            loadm.w r0.w,[sys.wait.jiffies]
 </ASM>
 <CHUNK><REGS>dummy</REGS><CODE>
 return
@@ -105,10 +114,7 @@ return
 </BLOCK>
 </PROGRAM>
 """
-        val tempfile = createTempFile(suffix = ".p8ir")
-        tempfile.writeText(source)
-        val program = IRFileReader().read(tempfile)
-        tempfile.deleteExisting()
+        val program = IRFileReader().read(source)
         program.name shouldBe "test-ir-reader"
         program.blocks.size shouldBe 2
         program.st.allVariables().count() shouldBe 3
@@ -123,7 +129,7 @@ return
 
     test("test IR reader with struct containing pointer fields") {
         val source="""<?xml version="1.0" encoding="utf-8"?>
-<PROGRAM NAME="test-struct-pointer" COMPILERVERSION="99.99">
+<PROGRAM NAME="test-struct-pointer" COMPILERVERSION="99.99" IRFORMAT="2">
 <OPTIONS>
 compTarget=virtual
 output=PRG
@@ -171,16 +177,13 @@ re.State testinst size=8 values=uword:$0100,^^re.State:0,^^re.State:0,uword:0
 <PARAMS>
 </PARAMS>
 <CHUNK LABEL="main.start"><REGS>dummy</REGS><CODE>
-load.b r1,#0
+load.b r1.b,#0.b
 </CODE></CHUNK>
 </SUB>
 </BLOCK>
 </PROGRAM>
 """
-        val tempfile = createTempFile(suffix = ".p8ir")
-        tempfile.writeText(source)
-        val program = IRFileReader().read(tempfile)
-        tempfile.deleteExisting()
+        val program = IRFileReader().read(source)
         program.name shouldBe "test-struct-pointer"
         val struct = program.st.allStructInstances().first()
         struct.name shouldBe "testinst"
@@ -191,7 +194,6 @@ load.b r1,#0
         // regression test: struct field floats used to be serialized via .toInt().toHex()
         // which truncated the decimal portion (e.g. 1463.87 became 1463.0 in the loaded VM memory)
         val target = Cx16Target()
-        val tempdir = Path(System.getProperty("java.io.tmpdir"))
         val options = CompilationOptions.builder(target)
             .output(OutputType.RAW)
             .zeropage(ZeropageType.DONTUSE)
@@ -199,7 +201,7 @@ load.b r1,#0
             .compilerVersion("99.99")
             .loadAddress(target.PROGRAM_LOAD_ADDRESS)
             .memtopAddress(0xffffu)
-            .outputDir(tempdir)
+            .outputDir(Path(""))
             .build()
         val program = IRProgram("unittest-float-struct", IRSymbolTable(), options, target)
         val structName = "main.Country"
@@ -222,7 +224,7 @@ load.b r1,#0
             ),
             8u
         ))
-        val writer = IRFileWriter(program, null)
+        val writer = IRFileWriter(program, Path("intermediate-float-struct-test-output.p8ir"))
         val generatedFile = writer.write()
         val program2 = IRFileReader().read(generatedFile)
         generatedFile.deleteExisting()
@@ -236,7 +238,7 @@ load.b r1,#0
 
     test("test IR reader parses loadhr/storehr sN immediate encoding") {
         val source="""<?xml version="1.0" encoding="utf-8"?>
-<PROGRAM NAME="test-sn-immediate" COMPILERVERSION="99.99">
+<PROGRAM NAME="test-sn-immediate" COMPILERVERSION="99.99" IRFORMAT="2">
 <OPTIONS>
 compTarget=virtual
 output=PRG
@@ -275,70 +277,119 @@ loadAddress=$0000
 <PARAMS>
 </PARAMS>
 <CHUNK LABEL="main.start"><REGS>dummy</REGS><CODE>
-loadhr.b r1,s0
-storehr.b r1,s2
+loadhr.b r1.b,s0.b
+storehr.b r1.b,s2.b
 </CODE></CHUNK>
 </SUB>
 </BLOCK>
 </PROGRAM>
 """
-        val tempfile = createTempFile(suffix = ".p8ir")
-        tempfile.writeText(source)
-        val program = IRFileReader().read(tempfile)
-        tempfile.deleteExisting()
+        val program = IRFileReader().read(source)
         val sub = program.blocks.single().children.single() as IRSubroutine
         val instructions = sub.chunks.flatMap { it.instructions }
         instructions.size shouldBe 2
         instructions[0].opcode shouldBe Opcode.LOADHR
         instructions[0].type shouldBe IRDataType.BYTE
-        instructions[0].reg1 shouldBe 1
-        instructions[0].immediate shouldBe 0
+        instructions[0].requireDest().registerNumber shouldBe 1
+        instructions[0].requireHardwareSlot() shouldBe HardwareSlotOperand(CallingConventionSlot(0), IRDataType.BYTE)
         instructions[1].opcode shouldBe Opcode.STOREHR
         instructions[1].type shouldBe IRDataType.BYTE
-        instructions[1].reg1 shouldBe 1
-        instructions[1].immediate shouldBe 2
+        instructions[1].requireSrcA().registerNumber shouldBe 1
+        instructions[1].requireHardwareSlot() shouldBe HardwareSlotOperand(CallingConventionSlot(2), IRDataType.BYTE)
     }
 
     test("test IR callfar round-trip with negative amiga LVO address") {
         val target = Amiga500Target()
-        val tempdir = Path(System.getProperty("java.io.tmpdir"))
         val options = CompilationOptions.builder(target)
             .zeropage(ZeropageType.DONTUSE)
             .noSysInit(true)
             .compilerVersion("99.99")
             .loadAddress(target.PROGRAM_LOAD_ADDRESS)
             .memtopAddress(target.PROGRAM_MEMTOP_ADDRESS)
-            .outputDir(tempdir)
+            .outputDir(Path(""))
             .quiet(true)
             .build()
         val program = IRProgram("unittest-callfar-lvo", IRSymbolTable(), options, target)
         val block = IRBlock("main", library=false, IRBlock.Options(), Position("unittest", 1, 1, 1))
         val sub = IRSubroutine("main.start", emptyList(), emptyList(), Position("unittest", 1, 1, 1))
         val chunk = IRCodeChunk("main.start", null)
-        chunk.instructions += IRInstruction(
+        chunk.instructions += IRInstructions.call(
             Opcode.CALLFAR,
-            immediate = 1,
-            address = MemoryAddress(0xfffffdd8u),
-            fcallArgs = FunctionCallArgs(emptyList(), emptyList())
+            CallSite(CallTarget.AmigaLibrary(1, -552))
         )
         sub += chunk
         block += sub
         program.addBlock(block)
 
-        val generatedFile = IRFileWriter(program, null).write()
+        val generatedFile = IRFileWriter(program, Path("intermediate-callfar-test-output.p8ir")).write()
         val readProgram = IRFileReader().read(generatedFile)
         generatedFile.deleteExisting()
 
         val readSub = readProgram.blocks.single().children.single() as IRSubroutine
         val instr = readSub.chunks.flatMap { it.instructions }.single()
         instr.opcode shouldBe Opcode.CALLFAR
-        instr.immediate shouldBe 1
-        instr.address shouldBe MemoryAddress(0xfffffdd8u)
+        instr.requireCallSite().target shouldBe CallTarget.AmigaLibrary(1, -552)
+    }
+
+    test("test IR file round-trip retains structured call details") {
+        val target = Cx16Target()
+        val options = CompilationOptions.builder(target)
+            .output(OutputType.RAW)
+            .zeropage(ZeropageType.DONTUSE)
+            .noSysInit(true)
+            .compilerVersion("99.99")
+            .loadAddress(target.PROGRAM_LOAD_ADDRESS)
+            .memtopAddress(0xffffu)
+            .outputDir(Path(""))
+            .build()
+        val program = IRProgram("unittest-structured-calls", IRSymbolTable(), options, target)
+        val block = IRBlock("main", library = false, IRBlock.Options(), Position.DUMMY)
+        val start = IRSubroutine("main.start", emptyList(), emptyList(), Position.DUMMY)
+        val startChunk = IRCodeChunk("main.start", null)
+        startChunk += IRInstructions.call(
+            CallSite(
+                CallTarget.Direct(codeLabel("main.callee")),
+                arguments = listOf(Calls.argument(1, IRDataType.BYTE, CallLocation.ParameterMemory("main.callee.arg")))
+            )
+        )
+        startChunk += IRInstructions.call(
+            CallSite(
+                CallTarget.Direct(codeAddress(0xffd2u), "kernal.chrout"),
+                arguments = listOf(Calls.argument(1, IRDataType.BYTE, CallLocation.HardwareRegister(CallingConventionSlot(0)))),
+                results = listOf(
+                    Calls.result(2, IRDataType.BYTE, CallLocation.HardwareRegister(CallingConventionSlot(0))),
+                    CallResult(null, CallLocation.StatusFlag(Statusflag.Pc))
+                ),
+                effects = CallEffects(MemoryEffect.READ, StatusEffect.READS)
+            )
+        )
+        startChunk += IRInstructions.returnVoid()
+        start += startChunk
+        val callee = IRSubroutine("main.callee", emptyList(), emptyList(), Position.DUMMY)
+        val calleeChunk = IRCodeChunk("main.callee", null)
+        calleeChunk += IRInstructions.returnVoid()
+        callee += calleeChunk
+        block += start
+        block += callee
+        program.addBlock(block)
+
+        val generatedFile = IRFileWriter(program, Path("intermediate-structured-calls-test-output.p8ir")).write()
+        val readProgram = IRFileReader().read(generatedFile)
+        generatedFile.deleteExisting()
+
+        val calls = (readProgram.blocks.single().children[0] as IRSubroutine)
+            .chunks.flatMap { it.instructions }.filter { it.opcode == Opcode.CALL }
+        calls[0].requireCallSite().arguments.single().location shouldBe CallLocation.ParameterMemory("main.callee.arg")
+        val asmCall = calls[1].requireCallSite()
+        (asmCall.target as CallTarget.Direct).externalName shouldBe "kernal.chrout"
+        asmCall.results[0].location shouldBe CallLocation.HardwareRegister(CallingConventionSlot(0))
+        asmCall.results[1] shouldBe CallResult(null, CallLocation.StatusFlag(Statusflag.Pc))
+        asmCall.effects shouldBe CallEffects(MemoryEffect.READ, StatusEffect.READS)
     }
 
     test("test IR reader parses block-level CHUNK (label and align)") {
         val source="""<?xml version="1.0" encoding="utf-8"?>
-<PROGRAM NAME="test-block-level-chunk" COMPILERVERSION="99.99">
+<PROGRAM NAME="test-block-level-chunk" COMPILERVERSION="99.99" IRFORMAT="2">
 <OPTIONS>
 compTarget=virtual
 output=PRG
@@ -374,7 +425,7 @@ loadAddress=$0000
 
 <BLOCK NAME="main" ADDRESS="" LIBRARY="false" POS="[test.p8: line 1 col 1-2]">
 <CHUNK><REGS><![CDATA[]]></REGS><CODE>
-align #$100
+align #$100.l
 </CODE></CHUNK>
 <CHUNK LABEL="main.mylabel"><REGS><![CDATA[]]></REGS><CODE>
 </CODE></CHUNK>
@@ -388,10 +439,7 @@ return
 </BLOCK>
 </PROGRAM>
 """
-        val tempfile = createTempFile(suffix = ".p8ir")
-        tempfile.writeText(source)
-        val program = IRFileReader().read(tempfile)
-        tempfile.deleteExisting()
+        val program = IRFileReader().read(source)
         val block = program.blocks.single()
         // 1 align chunk + 1 label chunk + 1 sub
         block.children.size shouldBe 3
@@ -399,7 +447,7 @@ return
         alignChunk.label shouldBe null
         alignChunk.instructions.size shouldBe 1
         alignChunk.instructions[0].opcode shouldBe Opcode.ALIGN
-        alignChunk.instructions[0].immediate shouldBe 256
+        alignChunk.instructions[0].requireImmediateInt() shouldBe 256
         val labelChunk = block.children[1] as IRCodeChunk
         labelChunk.label shouldBe "main.mylabel"
     }

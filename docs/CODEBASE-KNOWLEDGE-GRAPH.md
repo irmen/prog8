@@ -193,13 +193,29 @@ Package `prog8.intermediate.*`.
 | Entity | Kind | Purpose |
 |--------|------|---------|
 | `IRProgram` | class | Top-level IR program (holds subroutines, chunks, instructions) |
-| `IRInstructions.kt` | file | IR instruction/operand model (`@JvmInline` value classes) |
+| `IRInstructions.kt` | file | `IRInstruction` model with structured, typed operands; exposes register `uses` and `definitions` |
+| `IROperands.kt` | file | Structured operand types for registers, immediates, memory references, code references, and operand access roles |
+| `IRCalls.kt` | file | Structured call sites: targets, typed arguments/results, locations, and call effects |
+| `OpcodeSchema.kt` | file | **Semantic source of truth** for opcode slots, operand roles/directions/types, memory/status/control-flow effects |
+| `IRTextCodec.kt` | object | Canonical text parser/printer driven by `OpcodeSchema`; round-trips structured IR operands |
 | `IRSymbolTable` | class | IR-side symbol table |
 | `CallingConventionSlot` | class | Slot-based calling convention (registers/stack) |
 | `IMSyscall` | enum | IR-level syscall identifiers |
 | `IRFormat` | class | Serialization format constants |
-| `IRFileReader`, `IRFileWriter` | classes | `.p8ir` file read/write |
+| `IRFileReader`, `IRFileWriter` | classes | `.p8ir` file read/write; emit/read `IRFORMAT=2` |
 | `VariableDump`, `Utils` | helpers | Variable dumping, utilities |
+
+`IRInstruction` deliberately uses structured operands rather than positional nullable
+`reg1/reg2/address/immediate` fields. `OpcodeSchema` is the semantic source of truth:
+it validates the instruction shape and defines each operand's role, direction (`USE`,
+`DEF`, or `USE_DEF`), type rule, and effects. Structured memory references and `CallSite`
+values carry their own nested register accesses, so `IRInstruction.uses` and
+`IRInstruction.definitions` include registers used/defined through memory and calls.
+The IR-consuming backends (`codeGenNew6502`, `codeGenM68k`, and the VM) consume these
+typed uses/definitions together with structured memory and call operands, rather than
+reconstructing semantics from positional fields. The `.p8ir` reader accepts only
+`IRFORMAT=2`; this format is intentionally incompatible with the older positional format,
+not a backward-compatible extension.
 
 ### 4.7 `codeGenIntermediate` (IR code generator - incl. virtual backend)
 Package `prog8.codegen.intermediate.*`, `prog8.codegen.vm.*`.

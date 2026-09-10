@@ -1,6 +1,8 @@
 package prog8.vm
 
-import prog8.intermediate.FunctionCallArgs
+import prog8.intermediate.CallArgument
+import prog8.intermediate.CallResult
+import prog8.intermediate.CallSite
 import prog8.intermediate.IRDataType
 import java.io.File
 import kotlin.io.path.*
@@ -163,19 +165,19 @@ enum class Syscall {
 }
 
 object SysCalls {
-    private fun getArgValues(argspec: List<FunctionCallArgs.ArgumentSpec>, vm: VirtualMachine): List<Comparable<Nothing>> {
+    private fun getArgValues(argspec: List<CallArgument>, vm: VirtualMachine): List<Comparable<Nothing>> {
         return argspec.map {
-            when(it.reg.dt) {
-                IRDataType.BYTE -> vm.registers.getUB(it.reg.registerNum)
-                IRDataType.WORD -> vm.registers.getUW(it.reg.registerNum)
-                IRDataType.POINTER -> vm.registers.getUL(it.reg.registerNum)
-                IRDataType.LONG -> vm.registers.getSL(it.reg.registerNum)
-                IRDataType.FLOAT -> vm.registers.getFloat(it.reg.registerNum)
+            when(it.source.type) {
+                IRDataType.BYTE -> vm.registers.getUB(it.source.registerNumber)
+                IRDataType.WORD -> vm.registers.getUW(it.source.registerNumber)
+                IRDataType.POINTER -> vm.registers.getUL(it.source.registerNumber)
+                IRDataType.LONG -> vm.registers.getSL(it.source.registerNumber)
+                IRDataType.FLOAT -> vm.registers.getFloat(it.source.registerNumber)
             }
         }
     }
 
-    private fun returnValue(returns: FunctionCallArgs.RegSpec, value: Comparable<Nothing>, vm: VirtualMachine) {
+    private fun returnValue(returns: CallResult, value: Comparable<Nothing>, vm: VirtualMachine) {
         // NOTE: currently syscalls can only return A SINGLE VALUE using this routine!
         // HACKY WORKAROUND: you can use a single UWORD return value to encode two bytes (LSB + MSB), or a single LONG to encode two words (MSW + LSW) and then split those in the calling IR code. It is NOT POSSIBLE to return two longs like this!
         val vv: Double = when(value) {
@@ -190,16 +192,17 @@ object SysCalls {
             is Boolean -> if(value) 1.0 else 0.0
             else -> (value as Number).toDouble()
         }
-        when(returns.dt) {
-            IRDataType.BYTE -> vm.registers.setUB(returns.registerNum, vv.toInt().toUByte())
-            IRDataType.WORD -> vm.registers.setUW(returns.registerNum, vv.toInt().toUShort())
-            IRDataType.POINTER -> vm.registers.setUL(returns.registerNum, vv.toUInt())
-            IRDataType.LONG -> vm.registers.setSL(returns.registerNum, vv.toInt())
-            IRDataType.FLOAT -> vm.registers.setFloat(returns.registerNum, vv)
+        val dest = requireNotNull(returns.destination) { "syscall result needs a destination register" }
+        when(dest.type) {
+            IRDataType.BYTE -> vm.registers.setUB(dest.registerNumber, vv.toInt().toUByte())
+            IRDataType.WORD -> vm.registers.setUW(dest.registerNumber, vv.toInt().toUShort())
+            IRDataType.POINTER -> vm.registers.setUL(dest.registerNumber, vv.toUInt())
+            IRDataType.LONG -> vm.registers.setSL(dest.registerNumber, vv.toInt())
+            IRDataType.FLOAT -> vm.registers.setFloat(dest.registerNumber, vv)
         }
     }
 
-    fun call(call: Syscall, callspec: FunctionCallArgs, vm: VirtualMachine) {
+    fun call(call: Syscall, callspec: CallSite, vm: VirtualMachine) {
 
         when(call) {
             Syscall.RESET -> {
@@ -242,7 +245,7 @@ object SysCalls {
                 if(maxlenvalue>0)
                     input = input.take(min(input.length, maxlenvalue))
                 vm.memory.setString((address as Int).toUInt(), input, true)
-                returnValue(callspec.returns.single(), input.length, vm)
+                returnValue(callspec.results.single(), input.length, vm)
             }
             Syscall.SLEEP -> {
                 val duration = getArgValues(callspec.arguments, vm).single() as UShort
@@ -263,7 +266,7 @@ object SysCalls {
             Syscall.GFX_GETPIXEL -> {
                 val (x,y) = getArgValues(callspec.arguments, vm)
                 val color = vm.gfx_getpixel(x as UShort, y as UShort)
-                returnValue(callspec.returns.single(), color, vm)
+                returnValue(callspec.results.single(), color, vm)
             }
             Syscall.WAIT -> {
                 val time = getArgValues(callspec.arguments, vm).single() as UShort
@@ -282,29 +285,29 @@ object SysCalls {
                 } catch(_: NumberFormatException) {
                     0u
                 }
-                returnValue(callspec.returns.single(), value, vm)
+                returnValue(callspec.results.single(), value, vm)
             }
             Syscall.STR_TO_WORD -> {
                 val stringAddr = getArgValues(callspec.arguments, vm).single() as Int
                 val memstring = vm.memory.getString(stringAddr.toUInt())
-                val match = Regex("^[+-]?\\d+").find(memstring) ?: return returnValue(callspec.returns.single(), 0, vm)
+                val match = Regex("^[+-]?\\d+").find(memstring) ?: return returnValue(callspec.results.single(), 0, vm)
                 val value = try {
                     match.value.toShort()
                 } catch(_: NumberFormatException) {
                     0
                 }
-                return returnValue(callspec.returns.single(), value, vm)
+                return returnValue(callspec.results.single(), value, vm)
             }
             Syscall.STR_TO_LONG -> {
                 val stringAddr = (getArgValues(callspec.arguments, vm).single() as Int).toUInt()
                 val memstring = vm.memory.getString(stringAddr)
-                val match = Regex("^[+-]?\\d+").find(memstring) ?: return returnValue(callspec.returns.single(), 0, vm)
+                val match = Regex("^[+-]?\\d+").find(memstring) ?: return returnValue(callspec.results.single(), 0, vm)
                 val value = try {
                     match.value.toInt()
                 } catch(_: NumberFormatException) {
                     0
                 }
-                return returnValue(callspec.returns.single(), value, vm)
+                return returnValue(callspec.results.single(), value, vm)
             }
             Syscall.STR_TO_FLOAT -> {
                 val stringAddr = getArgValues(callspec.arguments, vm).single() as Int
@@ -319,7 +322,7 @@ object SysCalls {
                         0.0
                     }
                 }
-                returnValue(callspec.returns.single(), result, vm)
+                returnValue(callspec.results.single(), result, vm)
             }
             Syscall.COMPARE_STRINGS -> {
                 val (firstV, secondV) = getArgValues(callspec.arguments, vm)
@@ -329,11 +332,11 @@ object SysCalls {
                 val second = vm.memory.getString(secondAddr.toUInt())
                 val comparison = first.compareTo(second)
                 if(comparison==0)
-                    returnValue(callspec.returns.single(), 0, vm)
+                    returnValue(callspec.results.single(), 0, vm)
                 else if(comparison<0)
-                    returnValue(callspec.returns.single(), -1, vm)
+                    returnValue(callspec.results.single(), -1, vm)
                 else
-                    returnValue(callspec.returns.single(), 1, vm)
+                    returnValue(callspec.results.single(), 1, vm)
             }
             Syscall.COMPARE_STRINGS_NOCASE -> {
                 val (firstV, secondV) = getArgValues(callspec.arguments, vm)
@@ -343,11 +346,11 @@ object SysCalls {
                 val second = vm.memory.getString(secondAddr.toUInt())
                 val comparison = first.compareTo(second, ignoreCase = true)
                 if(comparison==0)
-                    returnValue(callspec.returns.single(), 0, vm)
+                    returnValue(callspec.results.single(), 0, vm)
                 else if(comparison<0)
-                    returnValue(callspec.returns.single(), -1, vm)
+                    returnValue(callspec.results.single(), -1, vm)
                 else
-                    returnValue(callspec.returns.single(), 1, vm)
+                    returnValue(callspec.results.single(), 1, vm)
             }
             Syscall.MEMCMP -> {
                 val (firstV, secondV, sizeV) = getArgValues(callspec.arguments, vm)
@@ -357,14 +360,14 @@ object SysCalls {
                 while(size>0) {
                     val comparison = vm.memory.getUB(firstAddr.toUInt()).compareTo(vm.memory.getUB(secondAddr.toUInt()))
                     if(comparison<0)
-                        return returnValue(callspec.returns.single(), -1, vm)
+                        return returnValue(callspec.results.single(), -1, vm)
                     else if(comparison>0)
-                        return returnValue(callspec.returns.single(), 1, vm)
+                        return returnValue(callspec.results.single(), 1, vm)
                     firstAddr++
                     secondAddr++
                     size--
                 }
-                return returnValue(callspec.returns.single(), 0, vm)
+                return returnValue(callspec.results.single(), 0, vm)
             }
             Syscall.RNDFSEED -> {
                 val seed = getArgValues(callspec.arguments, vm).single() as Double
@@ -378,20 +381,20 @@ object SysCalls {
                 vm.randomSeed(seed1 as UShort, seed2 as UShort)
             }
             Syscall.RND -> {
-                returnValue(callspec.returns.single(), (vm.nextRandWord().toInt() and 255).toUByte(), vm)
+                returnValue(callspec.results.single(), (vm.nextRandWord().toInt() and 255).toUByte(), vm)
             }
             Syscall.RNDW -> {
-                returnValue(callspec.returns.single(), vm.nextRandWord(), vm)
+                returnValue(callspec.results.single(), vm.nextRandWord(), vm)
             }
             Syscall.RNDF -> {
-                returnValue(callspec.returns.single(), vm.randomGeneratorFloats.nextFloat(), vm)
+                returnValue(callspec.results.single(), vm.randomGeneratorFloats.nextFloat(), vm)
             }
             Syscall.STRING_CONTAINS -> {
                 val (charV, addr) = getArgValues(callspec.arguments, vm)
                 val stringAddr = (addr as Int).toUInt()
                 val char = (charV as UByte).toInt().toChar()
                 val string = vm.memory.getString(stringAddr)
-                returnValue(callspec.returns.single(), if(char in string) 1u else 0u, vm)
+                returnValue(callspec.results.single(), if(char in string) 1u else 0u, vm)
             }
             Syscall.BYTEARRAY_CONTAINS -> {
                 val (value, arrayV, lengthV) = getArgValues(callspec.arguments, vm)
@@ -399,11 +402,11 @@ object SysCalls {
                 var array = (arrayV as Int).toUInt()
                 while(length>0u) {
                     if(vm.memory.getUB(array)==value)
-                        return returnValue(callspec.returns.single(), 1u, vm)
+                        return returnValue(callspec.results.single(), 1u, vm)
                     array++
                     length--
                 }
-                returnValue(callspec.returns.single(), 0u, vm)
+                returnValue(callspec.results.single(), 0u, vm)
             }
             Syscall.WORDARRAY_CONTAINS -> {
                 val (value, arrayV, lengthV) = getArgValues(callspec.arguments, vm)
@@ -411,11 +414,11 @@ object SysCalls {
                 var array = (arrayV as Int).toUInt()
                 while(length>0u) {
                     if(vm.memory.getUW(array)==value)
-                        return returnValue(callspec.returns.single(), 1u, vm)
+                        return returnValue(callspec.results.single(), 1u, vm)
                     array += 2u
                     length--
                 }
-                returnValue(callspec.returns.single(), 0u, vm)
+                returnValue(callspec.results.single(), 0u, vm)
             }
             Syscall.SPLIT_WORDARRAY_CONTAINS -> {
                 val (value, arrayV, lengthV) = getArgValues(callspec.arguments, vm)
@@ -428,9 +431,9 @@ object SysCalls {
                     val hi = vm.memory.getUB(array + msbOffset + length)
                     val word = (hi.toUInt() shl 8 or lo.toUInt()).toUShort()
                     if(word == value)
-                        return returnValue(callspec.returns.single(), 1u, vm)
+                        return returnValue(callspec.results.single(), 1u, vm)
                 }
-                returnValue(callspec.returns.single(), 0u, vm)
+                returnValue(callspec.results.single(), 0u, vm)
             }
             Syscall.LONGARRAY_CONTAINS -> {
                 val (value, arrayV, lengthV) = getArgValues(callspec.arguments, vm)
@@ -440,9 +443,9 @@ object SysCalls {
                     length--
                     val el = vm.memory.getSL(array + length.toUInt() * 4u)
                     if(el == value)
-                        return returnValue(callspec.returns.single(), 1u, vm)
+                        return returnValue(callspec.results.single(), 1u, vm)
                 }
-                returnValue(callspec.returns.single(), 0u, vm)
+                returnValue(callspec.results.single(), 0u, vm)
             }
             Syscall.FLOATARRAY_CONTAINS -> {
                 val (value, arrayV, lengthV) = getArgValues(callspec.arguments, vm)
@@ -450,11 +453,11 @@ object SysCalls {
                 var array = (arrayV as Int).toUInt()
                 while(length>0u) {
                     if(vm.memory.getFloat(array)==value)
-                        return returnValue(callspec.returns.single(), 1u, vm)
+                        return returnValue(callspec.results.single(), 1u, vm)
                     array += vm.machine.FLOAT_MEM_SIZE
                     length--
                 }
-                returnValue(callspec.returns.single(), 0u, vm)
+                returnValue(callspec.results.single(), 0u, vm)
             }
             Syscall.CLAMP_BYTE -> {
                 val (valueU, minimumU, maximumU) = getArgValues(callspec.arguments, vm)
@@ -462,7 +465,7 @@ object SysCalls {
                 val minimum = (minimumU as UByte).toByte().toInt()
                 val maximum = (maximumU as UByte).toByte().toInt()
                 val result = min(max(value, minimum), maximum)
-                returnValue(callspec.returns.single(), result, vm)
+                returnValue(callspec.results.single(), result, vm)
             }
             Syscall.CLAMP_UBYTE -> {
                 val (valueU, minimumU, maximumU) = getArgValues(callspec.arguments, vm)
@@ -470,7 +473,7 @@ object SysCalls {
                 val minimum = (minimumU as UByte).toInt()
                 val maximum = (maximumU as UByte).toInt()
                 val result = min(max(value, minimum), maximum)
-                returnValue(callspec.returns.single(), result, vm)
+                returnValue(callspec.results.single(), result, vm)
             }
             Syscall.CLAMP_WORD -> {
                 val (valueU, minimumU, maximumU) = getArgValues(callspec.arguments, vm)
@@ -478,7 +481,7 @@ object SysCalls {
                 val minimum = (minimumU as UShort).toShort().toInt()
                 val maximum = (maximumU as UShort).toShort().toInt()
                 val result = min(max(value, minimum), maximum)
-                returnValue(callspec.returns.single(), result, vm)
+                returnValue(callspec.results.single(), result, vm)
             }
             Syscall.CLAMP_UWORD -> {
                 val (valueU, minimumU, maximumU) = getArgValues(callspec.arguments, vm)
@@ -486,7 +489,7 @@ object SysCalls {
                 val minimum = (minimumU as UShort).toInt()
                 val maximum = (maximumU as UShort).toInt()
                 val result = min(max(value, minimum), maximum)
-                returnValue(callspec.returns.single(), result, vm)
+                returnValue(callspec.results.single(), result, vm)
             }
             Syscall.CLAMP_LONG -> {
                 val (valueU, minimumU, maximumU) = getArgValues(callspec.arguments, vm)
@@ -494,7 +497,7 @@ object SysCalls {
                 val minimum = minimumU as Int
                 val maximum = maximumU as Int
                 val result = min(max(value, minimum), maximum)
-                returnValue(callspec.returns.single(), result, vm)
+                returnValue(callspec.results.single(), result, vm)
             }
             Syscall.UNUSED1 -> throw NotImplementedError("unused1 syscall")
             Syscall.ATAN -> {
@@ -507,10 +510,10 @@ object SysCalls {
                 if(radians<0)
                     radians+=2*PI
                 val result = floor(radians/2.0/PI*256.0)
-                returnValue(callspec.returns.single(), result, vm)
+                returnValue(callspec.results.single(), result, vm)
             }
             Syscall.MUL16_LAST_UPPER -> {
-                returnValue(callspec.returns.single(), vm.mul16LastUpper, vm)
+                returnValue(callspec.results.single(), vm.mul16LastUpper, vm)
             }
             Syscall.FLOAT_TO_STR -> {
                 val (buffer, number) = getArgValues(callspec.arguments, vm)
@@ -552,7 +555,7 @@ object SysCalls {
                 val target = targetA as Int
                 val string = vm.memory.getString(source.toUInt()).take((maxlength as UByte).toInt())
                 vm.memory.setString(target.toUInt(), string, true)
-                returnValue(callspec.returns.single(), string.length, vm)
+                returnValue(callspec.results.single(), string.length, vm)
             }
             Syscall.LOAD -> {
                 val (filenameA, addrA) = getArgValues(callspec.arguments, vm)
@@ -563,9 +566,9 @@ object SysCalls {
                     for (i in 0..<data.size - 2) {
                         vm.memory.setUB(addr + i.toUInt(), data[i + 2].toUByte())
                     }
-                    returnValue(callspec.returns.single(), addr + (data.size - 2).toUInt(), vm)
+                    returnValue(callspec.results.single(), addr + (data.size - 2).toUInt(), vm)
                 } else {
-                    returnValue(callspec.returns.single(), 0u, vm)
+                    returnValue(callspec.results.single(), 0u, vm)
                 }
             }
             Syscall.LOAD_RAW -> {
@@ -577,9 +580,9 @@ object SysCalls {
                     for (i in data.indices) {
                         vm.memory.setUB(addr + i.toUInt(), data[i].toUByte())
                     }
-                    returnValue(callspec.returns.single(), addr + data.size.toUInt(), vm)
+                    returnValue(callspec.results.single(), addr + data.size.toUInt(), vm)
                 } else {
-                    returnValue(callspec.returns.single(), 0u, vm)
+                    returnValue(callspec.results.single(), 0u, vm)
                 }
             }
             Syscall.SAVE -> {
@@ -605,10 +608,10 @@ object SysCalls {
                 }
                 val filename = vm.memory.getString((filenamePtr as Int).toUInt())
                 if (File(filename).exists())
-                    returnValue(callspec.returns.single(), 0u, vm)
+                    returnValue(callspec.results.single(), 0u, vm)
                 else {
                     File(filename).writeBytes(data)
-                    returnValue(callspec.returns.single(), 1u, vm)
+                    returnValue(callspec.results.single(), 1u, vm)
                 }
             }
             Syscall.DELETE -> {
@@ -629,12 +632,12 @@ object SysCalls {
                 directory.listDirectoryEntries().sorted().forEach {
                     println("${it.toFile().length()}\t${it.normalize()}")
                 }
-                returnValue(callspec.returns.single(), 1u, vm)
+                returnValue(callspec.results.single(), 1u, vm)
             }
             Syscall.GETGONSOLESIZE -> {
                 // no arguments, returns size encoded IN ONE WORD (MSB=lines, LSB=columns)
                 if(System.console()==null) {
-                    return returnValue(callspec.returns.single(), 30*256 + 80, vm)    // just return some defaults in this case 80*30
+                    return returnValue(callspec.results.single(), 30*256 + 80, vm)    // just return some defaults in this case 80*30
                 }
 
                 val linesS = System.getenv("LINES")
@@ -642,7 +645,7 @@ object SysCalls {
                 if(linesS!=null && columnsS!=null) {
                     val lines = linesS.toInt()
                     val columns = columnsS.toInt()
-                    return returnValue(callspec.returns.single(), lines*256 + columns, vm)
+                    return returnValue(callspec.results.single(), lines*256 + columns, vm)
                 }
 
                 try {
@@ -652,18 +655,18 @@ object SysCalls {
                         val response = process.inputStream.bufferedReader().lineSequence().iterator()
                         val width = response.next().toInt()
                         val height = response.next().toInt()
-                        return returnValue(callspec.returns.single(), height*256 + width, vm)
+                        return returnValue(callspec.results.single(), height*256 + width, vm)
                     }
                 } catch (_: Exception) {
                     // don't know what happened...
                 }
-                return returnValue(callspec.returns.single(), 30*256 + 80, vm)    // just return some defaults in this case 80*30
+                return returnValue(callspec.results.single(), 30*256 + 80, vm)    // just return some defaults in this case 80*30
             }
 
             Syscall.CURDIR -> {
                 val curdir = Path("").absolute().toString()
                 vm.memory.setString(0xfe00u, curdir, true)
-                return returnValue(callspec.returns.single(), 0xfe00u, vm)
+                return returnValue(callspec.results.single(), 0xfe00u, vm)
             }
             Syscall.MKDIR -> {
                 val namePtr = getArgValues(callspec.arguments, vm).single() as Int
@@ -680,42 +683,42 @@ object SysCalls {
                 val namePtr = getArgValues(callspec.arguments, vm).single() as Int
                 val name = vm.memory.getString(namePtr.toUInt())
                 val success = vm.open_file_read(name)
-                return returnValue(callspec.returns.single(), success, vm)
+                return returnValue(callspec.results.single(), success, vm)
             }
             Syscall.OPEN_FILE_WRITE -> {
                 val namePtr = getArgValues(callspec.arguments, vm).single() as Int
                 val name = vm.memory.getString(namePtr.toUInt())
                 val success = vm.open_file_write(name)
-                return returnValue(callspec.returns.single(), success, vm)
+                return returnValue(callspec.results.single(), success, vm)
             }
             Syscall.READ_FILE_BYTE -> {
                 val (success, byte) = vm.read_file_byte()
                 return if(success)
-                    returnValue(callspec.returns.single(), 0x0100 or byte.toInt(), vm)
+                    returnValue(callspec.results.single(), 0x0100 or byte.toInt(), vm)
                 else
-                    returnValue(callspec.returns.single(), 0x0000, vm)
+                    returnValue(callspec.results.single(), 0x0000, vm)
             }
             Syscall.WRITE_FILE_BYTE -> {
                 val byte = getArgValues(callspec.arguments, vm).single() as UByte
                 return if(vm.write_file_byte(byte))
-                    returnValue(callspec.returns.single(), 1, vm)
+                    returnValue(callspec.results.single(), 1, vm)
                 else
-                    returnValue(callspec.returns.single(), 0, vm)
+                    returnValue(callspec.results.single(), 0, vm)
             }
             Syscall.CLOSE_FILE -> vm.close_file_read()
             Syscall.CLOSE_FILE_WRITE -> vm.close_file_write()
             Syscall.SEEK_FILE -> {
                 val position = getArgValues(callspec.arguments, vm).single() as Int
                 val success = vm.seek_file(position)
-                returnValue(callspec.returns.single(), success, vm)
+                returnValue(callspec.results.single(), success, vm)
             }
             Syscall.TELL_FILE_POS -> {
                 val position = vm.tell_file_pos()
-                returnValue(callspec.returns.single(), position, vm)
+                returnValue(callspec.results.single(), position, vm)
             }
             Syscall.TELL_FILE_SIZE -> {
                 val size = vm.tell_file_size()
-                returnValue(callspec.returns.single(), size, vm)
+                returnValue(callspec.results.single(), size, vm)
             }
             Syscall.GFX_TEXT -> {
                 val (xV, yV, textAddrV, colorV) = getArgValues(callspec.arguments, vm)

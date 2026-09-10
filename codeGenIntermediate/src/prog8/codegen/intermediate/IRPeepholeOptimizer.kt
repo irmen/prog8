@@ -119,7 +119,7 @@ class IRPeepholeOptimizer(private val irprog: IRProgram, private val retainSSA: 
         indexedInstructions.reversed().forEach { (idx, ins) ->
             if (ins.opcode == Opcode.CONCAT && idx>0) {
                 // if the previous instruction loads a zero in the msb, this can be turned into EXT.B instead
-                val msbRegister = ins.reg2
+                val msbRegister = ins.srcA?.register
                 var loadIndex: Int? = null
                 var safe = true
                 for (scanIndex in idx - 1 downTo 0) {
@@ -128,26 +128,20 @@ class IRPeepholeOptimizer(private val irprog: IRProgram, private val retainSSA: 
                         safe = false
                         break
                     }
-                    val format = instructionFormats.getValue(candidate.opcode)[candidate.type]
-                        ?: instructionFormats.getValue(candidate.opcode)[null]
-                    val writesMsbRegister = msbRegister != null && (
-                        (format?.reg1 in setOf(OperandDirection.WRITE, OperandDirection.READWRITE) && candidate.reg1 == msbRegister) ||
-                        (format?.reg2 in setOf(OperandDirection.WRITE, OperandDirection.READWRITE) && candidate.reg2 == msbRegister) ||
-                        (format?.reg3 in setOf(OperandDirection.WRITE, OperandDirection.READWRITE) && candidate.reg3 == msbRegister)
-                    )
+                    val writesMsbRegister = msbRegister != null && msbRegister in candidate.definitions
                     if (writesMsbRegister) {
-                        if (candidate.opcode == Opcode.LOAD && candidate.immediate == 0 && candidate.reg1 == msbRegister) {
+                        if (candidate.opcode == Opcode.LOAD && candidate.immediate?.integerValue == 0 && candidate.dest?.register == msbRegister) {
                             loadIndex = scanIndex
                         }
                         break
                     }
-                    if (candidate.opcode == Opcode.LOAD && candidate.immediate == 0 && candidate.reg1 == msbRegister) {
+                    if (candidate.opcode == Opcode.LOAD && candidate.immediate?.integerValue == 0 && candidate.dest?.register == msbRegister) {
                         loadIndex = scanIndex
                         break
                     }
                 }
                 if (safe && loadIndex != null) {
-                    chunk.instructions[idx] = IRInstruction(Opcode.EXT, IRDataType.BYTE, reg1 = ins.reg1, reg2 = ins.reg3)
+                    chunk.instructions[idx] = IRInstructions.binary(Opcode.EXT, IRDataType.BYTE, ins.requireDest().registerNumber, ins.requireSrcB().registerNumber)
                     chunk.instructions.removeAt(loadIndex)
                     changed = true
                 }
@@ -209,16 +203,17 @@ class IRPeepholeOptimizer(private val irprog: IRProgram, private val retainSSA: 
 
         sub.chunks.forEach { chunk ->
             chunk.instructions.withIndex().forEach { (idx, instr) ->
-                instr.labelSymbol?.let {
-                    if(instr.opcode in OpcodesThatBranch) {
+                if(instr.opcode in OpcodesThatBranch) {
+                    val label = instr.labelTarget
+                    if(label != null) {
                         replaceLabels.forEach { (from, to) ->
-                            if (it == from) {
-                                chunk.instructions[idx] = instr.copy(labelSymbol = to)
+                            if (label == from) {
+                                chunk.instructions[idx] = instr.withTarget(codeLabel(to))
                             }
                             else {
                                 val actualPrefix = "$from."
-                                if (it.startsWith(actualPrefix))
-                                    chunk.instructions[idx] = instr.copy(labelSymbol = "$to.")
+                                if (label.startsWith(actualPrefix))
+                                    chunk.instructions[idx] = instr.withTarget(codeLabel("$to."))
                             }
                         }
                     }
@@ -304,11 +299,13 @@ class IRPeepholeOptimizer(private val irprog: IRProgram, private val retainSSA: 
                 if(idx < chunk.instructions.size-1) {
                     val insAfter = chunk.instructions[idx+1]
                     if(insAfter.opcode == Opcode.POP) {
-                        if(ins.reg1==insAfter.reg1) {
+                        val srcReg = ins.requireSrcA()
+                        val destReg = insAfter.requireDest()
+                        if(srcReg.register==destReg.register) {
                             chunk.instructions.removeAt(idx)
                             chunk.instructions.removeAt(idx)
                         } else {
-                            chunk.instructions[idx] = IRInstruction(Opcode.LOADR, ins.type, reg1=insAfter.reg1, reg2=ins.reg1)
+                            chunk.instructions[idx] = IRInstructions.move(destReg, srcReg)
                             chunk.instructions.removeAt(idx+1)
                         }
                         changed = true
@@ -366,11 +363,11 @@ class IRPeepholeOptimizer(private val irprog: IRProgram, private val retainSSA: 
     private fun removeWeirdBranches(chunk: IRCodeChunk, nextChunk: IRCodeChunkBase?, indexedInstructions: List<IndexedValue<IRInstruction>>): Boolean {
         var changed = false
         indexedInstructions.reversed().forEach { (idx, ins) ->
-            val labelSymbol = ins.labelSymbol
+            val labelSymbol = ins.labelTarget
 
             // remove jump/branch to label immediately below (= next chunk if it has that label)
             if(ins.opcode== Opcode.JUMP && labelSymbol!=null) {
-                if(idx==chunk.instructions.size-1 && ins.branchTarget===nextChunk) {
+                if(idx==chunk.instructions.size-1 && irprog.resolveCodeTarget(ins.codeTarget!!)===nextChunk) {
                     chunk.instructions.removeAt(idx)
                     changed = true
                 }
@@ -397,14 +394,6 @@ class IRPeepholeOptimizer(private val irprog: IRProgram, private val retainSSA: 
             // replace call + return --> jump
             // This can no longer be done here on the IR level, with the current CALL opcode that encodes the full subroutine call setup.
             // If machine code is ever generated from this IR, *that* should possibly optimize the JSR + RTS into a JMP.
-//            if(idx>0 && ins.opcode==Opcode.RETURN) {
-//                val previous = chunk.instructions[idx-1]
-//                if(previous.opcode==Opcode.CALL) {
-//                    chunk.instructions[idx-1] = IRInstruction(Opcode.JUMP, address = previous.address, labelSymbol = previous.labelSymbol, branchTarget = previous.branchTarget)
-//                    chunk.instructions.removeAt(idx)
-//                    changed = true
-//                }
-//            }
         }
         return changed
     }
@@ -421,9 +410,9 @@ class IRPeepholeOptimizer(private val irprog: IRProgram, private val retainSSA: 
         if (!targetHonorsContract) return false
         var changed = false
         indexedInstructions.reversed().forEach { (idx, ins) ->
-            if(idx>0 && idx<(indexedInstructions.size-1) && ins.opcode==Opcode.CMPI && ins.immediate==0) {
+            if(idx>0 && idx<(indexedInstructions.size-1) && ins.opcode==Opcode.CMPI && ins.immediate?.integerValue==0) {
                 val previous = indexedInstructions[idx-1].value
-                if(previous.reg1==ins.reg1) {
+                if(previous.dest?.register==ins.srcA?.register) {
                     if (previous.opcode in OpcodesThatSetZeroFlagOnM68k) {
                         chunk.instructions.removeAt(idx)
                         changed = true
@@ -446,8 +435,8 @@ jump p8_label_gen_2
                 val previous = indexedInstructions[idx-1].value
                 val previous2 = indexedInstructions[idx-2].value
                 if(previous.opcode==Opcode.LOADR && previous2.opcode in OpcodesThatLoad) {
-                    if(previous.reg2==previous2.reg1) {
-                        chunk.instructions[idx-2] = previous2.copy(reg1=previous.reg1)
+                    if(previous.srcA?.register==previous2.dest?.register) {
+                        chunk.instructions[idx-2] = previous2.copy(dest = previous2.dest!!.withRegister(previous.dest!!.register))
                         chunk.instructions.removeAt(idx-1)
                         changed=true
                     }
@@ -462,8 +451,8 @@ jump p8_label_gen_2
         var changed = false
 
         fun arithmeticDelta(instruction: IRInstruction): Int? = when(instruction.opcode) {
-            Opcode.ADD -> instruction.immediate
-            Opcode.SUB -> instruction.immediate?.let { -it }
+            Opcode.ADD -> instruction.immediate?.integerValue
+            Opcode.SUB -> instruction.immediate?.integerValue?.let { -it }
             Opcode.INC -> 1
             Opcode.DEC -> -1
             else -> null
@@ -472,18 +461,18 @@ jump p8_label_gen_2
         indexedInstructions.reversed().forEach { (idx, ins) ->
             if(idx < chunk.instructions.size-1) {
                 val nextInstr = chunk.instructions[idx+1]
-                val sameTarget = ins.reg1 != null && ins.reg1 == nextInstr.reg1 && ins.type == nextInstr.type
+                val sameTarget = ins.dest != null && ins.dest?.register == nextInstr.dest?.register && ins.type == nextInstr.type
                 if(sameTarget && ins.opcode in setOf(Opcode.MUL, Opcode.MULS) &&
                     ins.opcode == nextInstr.opcode && ins.type in setOf(IRDataType.BYTE, IRDataType.WORD, IRDataType.LONG) &&
-                    ins.immediate != null && nextInstr.immediate != null) {
-                    val product = ins.immediate!!.toLong() * nextInstr.immediate!!.toLong()
+                    ins.immediate?.integerValue != null && nextInstr.immediate?.integerValue != null) {
+                    val product = ins.immediate!!.integerValue!!.toLong() * nextInstr.immediate!!.integerValue!!.toLong()
                     val foldedImmediate = when(ins.type) {
                         IRDataType.BYTE -> product.toInt() and 0xff
                         IRDataType.WORD -> product.toInt() and 0xffff
                         IRDataType.LONG -> product.toInt()
                         else -> error("unexpected integer multiplication type")
                     }
-                    chunk.instructions[idx] = ins.copy(immediate = foldedImmediate)
+                    chunk.instructions[idx] = ins.copy(immediate = ImmediateOperand.Integer(foldedImmediate, ins.type!!))
                     chunk.instructions.removeAt(idx + 1)
                     changed = true
                     return@forEach
@@ -495,16 +484,16 @@ jump p8_label_gen_2
                         val newDelta = delta + nextDelta
                         when(newDelta) {
                             0 -> {
-                                chunk.instructions[idx] = IRInstruction(Opcode.NOP)
-                                chunk.instructions[idx+1] = IRInstruction(Opcode.NOP)
+                                chunk.instructions[idx] = IRInstructions.simple(Opcode.NOP)
+                                chunk.instructions[idx+1] = IRInstructions.simple(Opcode.NOP)
                             }
-                            1 -> chunk.instructions[idx] = IRInstruction(Opcode.INC, ins.type, reg1 = ins.reg1)
-                            -1 -> chunk.instructions[idx] = IRInstruction(Opcode.DEC, ins.type, reg1 = ins.reg1)
-                            else -> chunk.instructions[idx] = IRInstruction(
+                            1 -> chunk.instructions[idx] = IRInstructions.unary(Opcode.INC, ins.type!!, ins.dest!!.registerNumber)
+                            -1 -> chunk.instructions[idx] = IRInstructions.unary(Opcode.DEC, ins.type!!, ins.dest!!.registerNumber)
+                            else -> chunk.instructions[idx] = IRInstructions.binaryImmediate(
                                 if(newDelta > 0) Opcode.ADD else Opcode.SUB,
-                                ins.type,
-                                reg1 = ins.reg1,
-                                immediate = kotlin.math.abs(newDelta)
+                                ins.type!!,
+                                ins.dest!!.registerNumber,
+                                kotlin.math.abs(newDelta)
                             )
                         }
                         chunk.instructions.removeAt(idx+1)
@@ -513,20 +502,20 @@ jump p8_label_gen_2
                     }
 
                     if(ins.opcode == Opcode.AND && nextInstr.opcode == Opcode.AND) {
-                        chunk.instructions[idx] = ins.copy(immediate = ins.immediate!! and nextInstr.immediate!!)
+                        chunk.instructions[idx] = ins.copy(immediate = ImmediateOperand.Integer(ins.immediate!!.integerValue!! and nextInstr.immediate!!.integerValue!!, ins.type!!))
                         chunk.instructions.removeAt(idx+1)
                         changed = true
                         return@forEach
                     }
                     if(ins.opcode == Opcode.OR && nextInstr.opcode == Opcode.OR) {
-                        chunk.instructions[idx] = ins.copy(immediate = ins.immediate!! or nextInstr.immediate!!)
+                        chunk.instructions[idx] = ins.copy(immediate = ImmediateOperand.Integer(ins.immediate!!.integerValue!! or nextInstr.immediate!!.integerValue!!, ins.type!!))
                         chunk.instructions.removeAt(idx+1)
                         changed = true
                         return@forEach
                     }
-                    if(ins.opcode == Opcode.XOR && nextInstr.opcode == Opcode.XOR && ins.immediate == nextInstr.immediate) {
-                        chunk.instructions[idx] = IRInstruction(Opcode.NOP)
-                        chunk.instructions[idx+1] = IRInstruction(Opcode.NOP)
+                    if(ins.opcode == Opcode.XOR && nextInstr.opcode == Opcode.XOR && ins.immediate?.integerValue == nextInstr.immediate?.integerValue) {
+                        chunk.instructions[idx] = IRInstructions.simple(Opcode.NOP)
+                        chunk.instructions[idx+1] = IRInstructions.simple(Opcode.NOP)
                         changed = true
                         return@forEach
                     }
@@ -535,57 +524,61 @@ jump p8_label_gen_2
 
             when (ins.opcode) {
                 Opcode.DIV, Opcode.DIVS, Opcode.MUL, Opcode.MULS, Opcode.MOD -> {
-                    if (ins.immediate == 0 && ins.opcode in setOf(Opcode.MUL, Opcode.MULS) &&
+                    val imm = ins.immediate?.integerValue
+                    if (imm == 0 && ins.opcode in setOf(Opcode.MUL, Opcode.MULS) &&
                         ins.type in setOf(IRDataType.BYTE, IRDataType.WORD, IRDataType.LONG)) {
-                        chunk.instructions[idx] = IRInstruction(Opcode.LOAD, ins.type, reg1 = ins.reg1, immediate = 0)
+                        chunk.instructions[idx] = IRInstructions.load(ins.type!!, ins.dest!!.registerNumber, 0)
                         changed = true
-                    } else if (ins.immediate == 1) {
+                    } else if (imm == 1) {
                         chunk.instructions.removeAt(idx)
                         changed = true
                     }
                 }
                 Opcode.ADD, Opcode.SUB -> {
-                    if (ins.immediate == 1) {
-                        chunk.instructions[idx] = IRInstruction(
+                    val imm = ins.immediate?.integerValue
+                    if (imm == 1) {
+                        chunk.instructions[idx] = IRInstructions.unary(
                             if (ins.opcode == Opcode.ADD) Opcode.INC else Opcode.DEC,
-                            ins.type,
-                            ins.reg1
+                            ins.type!!,
+                            ins.dest!!.registerNumber
                         )
                         changed = true
-                    } else if (ins.immediate == 0) {
+                    } else if (imm == 0) {
                         chunk.instructions.removeAt(idx)
                         changed = true
                     }
 
                     if(!changed && idx < chunk.instructions.size-1) {
                         val nextInstr = chunk.instructions[idx+1]
-                        if(nextInstr.reg1==ins.reg1) {
+                        if(nextInstr.dest?.register==ins.dest?.register) {
                             when (nextInstr.opcode) {
                                 Opcode.INC -> {
                                     // INC after ADD or SUB
-                                    val newValue = if (ins.opcode == Opcode.ADD) ins.immediate!! + 1 else ins.immediate!! - 1
-                                    chunk.instructions[idx] = IRInstruction(ins.opcode, ins.type, reg1 = ins.reg1, immediate = newValue)
+                                    val newValue = if (ins.opcode == Opcode.ADD) imm!! + 1 else imm!! - 1
+                                    chunk.instructions[idx] = IRInstructions.binaryImmediate(ins.opcode, ins.type!!, ins.dest!!.registerNumber, newValue)
                                     chunk.instructions.removeAt(idx + 1)
                                     changed = true
                                 }
                                 Opcode.DEC -> {
                                     // DEC after ADD or SUB
-                                    val newValue = if (ins.opcode == Opcode.ADD) ins.immediate!! - 1 else ins.immediate!! + 1
-                                    chunk.instructions[idx] = IRInstruction(ins.opcode, ins.type, reg1 = ins.reg1, immediate = newValue)
+                                    val newValue = if (ins.opcode == Opcode.ADD) imm!! - 1 else imm!! + 1
+                                    chunk.instructions[idx] = IRInstructions.binaryImmediate(ins.opcode, ins.type!!, ins.dest!!.registerNumber, newValue)
                                     chunk.instructions.removeAt(idx + 1)
                                     changed = true
                                 }
                                 Opcode.ADD -> {
                                     // ADD after ADD or SUB
-                                    val newValue = if (ins.opcode == Opcode.ADD) ins.immediate!! + nextInstr.immediate!! else ins.immediate!! - nextInstr.immediate!!
-                                    chunk.instructions[idx] = IRInstruction(ins.opcode, ins.type, reg1 = ins.reg1, immediate = newValue)
+                                    val nextImm = nextInstr.immediate!!.integerValue!!
+                                    val newValue = if (ins.opcode == Opcode.ADD) imm!! + nextImm else imm!! - nextImm
+                                    chunk.instructions[idx] = IRInstructions.binaryImmediate(ins.opcode, ins.type!!, ins.dest!!.registerNumber, newValue)
                                     chunk.instructions.removeAt(idx + 1)
                                     changed = true
                                 }
                                 Opcode.SUB -> {
                                     // SUB after ADD or SUB
-                                    val newValue = if (ins.opcode == Opcode.ADD) ins.immediate!! - nextInstr.immediate!! else ins.immediate!! + nextInstr.immediate!!
-                                    chunk.instructions[idx] = IRInstruction(ins.opcode, ins.type, reg1 = ins.reg1, immediate = newValue)
+                                    val nextImm = nextInstr.immediate!!.integerValue!!
+                                    val newValue = if (ins.opcode == Opcode.ADD) imm!! - nextImm else imm!! + nextImm
+                                    chunk.instructions[idx] = IRInstructions.binaryImmediate(ins.opcode, ins.type!!, ins.dest!!.registerNumber, newValue)
                                     chunk.instructions.removeAt(idx + 1)
                                     changed = true
                                 }
@@ -595,9 +588,10 @@ jump p8_label_gen_2
                     }
                 }
                 Opcode.AND -> {
-                    when (ins.immediate) {
+                    val imm = ins.immediate?.integerValue
+                    when (imm) {
                         0 -> {
-                            chunk.instructions[idx] = IRInstruction(Opcode.LOAD, ins.type, reg1 = ins.reg1, immediate = 0)
+                            chunk.instructions[idx] = IRInstructions.load(ins.type!!, ins.dest!!.registerNumber, 0)
                             changed = true
                         }
                         255 if ins.type == IRDataType.BYTE -> {
@@ -615,22 +609,22 @@ jump p8_label_gen_2
                     }
                     // convert AND with all-ones-except-one-bit into BITCLR
                     if(!changed) {
-                        val imm = ins.immediate ?: return@forEach
+                        val immv = imm ?: return@forEach
                         val clearedBits = when(ins.type) {
-                            IRDataType.BYTE -> imm xor 0xFF
-                            IRDataType.WORD -> imm xor 0xFFFF
-                            IRDataType.LONG -> imm xor -1
+                            IRDataType.BYTE -> immv xor 0xFF
+                            IRDataType.WORD -> immv xor 0xFFFF
+                            IRDataType.LONG -> immv xor -1
                             else -> 0
                         }
                         if(clearedBits > 0 && clearedBits and (clearedBits - 1) == 0) {
                             val bitPos = Integer.numberOfTrailingZeros(clearedBits)
-                            chunk.instructions[idx] = IRInstruction(Opcode.BITCLR, ins.type, reg1 = ins.reg1, immediate = bitPos)
+                            chunk.instructions[idx] = IRInstructions.binaryImmediate(Opcode.BITCLR, ins.type!!, ins.dest!!.registerNumber, bitPos)
                             changed = true
                         }
                     }
                 }
                 Opcode.OR -> {
-                    val imm = ins.immediate
+                    val imm = ins.immediate?.integerValue
                     if (imm == null) return@forEach
                     if (imm == 0) {
                         chunk.instructions.removeAt(idx)
@@ -638,18 +632,18 @@ jump p8_label_gen_2
                     } else if ((imm == 255 && ins.type == IRDataType.BYTE) ||
                                (imm == 65535 && ins.type == IRDataType.WORD) ||
                                (imm == -1 && ins.type == IRDataType.LONG)) {
-                        chunk.instructions[idx] = IRInstruction(Opcode.LOAD, ins.type, reg1 = ins.reg1, immediate = imm)
+                        chunk.instructions[idx] = IRInstructions.load(ins.type!!, ins.dest!!.registerNumber, imm)
                         changed = true
                     }
                     // convert OR with power-of-2 into BITSET
                     if(!changed && imm > 0 && imm and (imm - 1) == 0) {
                         val bitPos = Integer.numberOfTrailingZeros(imm)
-                        chunk.instructions[idx] = IRInstruction(Opcode.BITSET, ins.type, reg1 = ins.reg1, immediate = bitPos)
+                        chunk.instructions[idx] = IRInstructions.binaryImmediate(Opcode.BITSET, ins.type!!, ins.dest!!.registerNumber, bitPos)
                         changed = true
                     }
                 }
                 Opcode.XOR -> {
-                    val imm = ins.immediate
+                    val imm = ins.immediate?.integerValue
                     if (imm == null) return@forEach
                     if (imm == 0) {
                         chunk.instructions.removeAt(idx)
@@ -658,7 +652,7 @@ jump p8_label_gen_2
                     // convert XOR with power-of-2 into BITTOG
                     if(!changed && imm > 0 && imm and (imm - 1) == 0) {
                         val bitPos = Integer.numberOfTrailingZeros(imm)
-                        chunk.instructions[idx] = IRInstruction(Opcode.BITTOG, ins.type, reg1 = ins.reg1, immediate = bitPos)
+                        chunk.instructions[idx] = IRInstructions.binaryImmediate(Opcode.BITTOG, ins.type!!, ins.dest!!.registerNumber, bitPos)
                         changed = true
                     }
                 }
@@ -667,35 +661,37 @@ jump p8_label_gen_2
 
             fun optimizeImmediateLoad(replacementOpcode: Opcode, isCommutative: Boolean) {
 
-                fun getImmediateLoad(reg: Int): Pair<Int, Int>? {
+                fun getImmediateLoad(reg: VirtualRegister): Pair<Int, Int>? {
                     // look if the given register gets an immediate value 1 or 2 istructions back
                     // returns (index of load instruction, immediate value) or null.
                     if(idx>=1) {
                         val previous = indexedInstructions[idx-1].value
-                        if(previous.opcode==Opcode.LOAD && previous.reg1==reg && previous.immediate!=null)
-                            return idx-1 to previous.immediate!!
+                        if(previous.opcode==Opcode.LOAD && previous.dest?.register==reg && previous.immediate?.integerValue!=null)
+                            return idx-1 to previous.immediate!!.integerValue!!
                     }
                     if(idx>=2) {
                         val previous = indexedInstructions[idx-2].value
-                        if(previous.opcode==Opcode.LOAD && previous.reg1==reg && previous.immediate!=null)
-                            return idx - 2 to previous.immediate!!
+                        if(previous.opcode==Opcode.LOAD && previous.dest?.register==reg && previous.immediate?.integerValue!=null)
+                            return idx - 2 to previous.immediate!!.integerValue!!
                     }
                     return null
                 }
 
-                if(ins.reg1!=null) {
+                val destOperand = ins.dest
+                val srcOperand = ins.srcA
+                if(destOperand!=null) {
                     if (isCommutative) {
-                        val immediate1 = getImmediateLoad(ins.reg1!!)
+                        val immediate1 = getImmediateLoad(destOperand.register)
                         if (immediate1 != null) {
-                            chunk.instructions[idx] = IRInstruction(replacementOpcode, ins.type, reg1 = ins.reg2, immediate = immediate1.second)
+                            chunk.instructions[idx] = IRInstructions.binaryImmediate(replacementOpcode, ins.type!!, srcOperand!!.registerNumber, immediate1.second)
                             chunk.instructions.removeAt(immediate1.first)
                             changed = true
                             return
                         }
                     }
-                    val immediate2 = getImmediateLoad(ins.reg2!!)
+                    val immediate2 = getImmediateLoad(srcOperand!!.register)
                     if (immediate2 != null) {
-                        chunk.instructions[idx] = IRInstruction(replacementOpcode, ins.type, reg1 = ins.reg1, immediate = immediate2.second)
+                        chunk.instructions[idx] = IRInstructions.binaryImmediate(replacementOpcode, ins.type!!, destOperand.registerNumber, immediate2.second)
                         chunk.instructions.removeAt(immediate2.first)
                         changed = true
                     }
@@ -728,15 +724,9 @@ jump p8_label_gen_2
             if(nextInstr.opcode != Opcode.LOADR || ins.type != nextInstr.type)
                 return@forEach
 
-            if(ins.type in setOf(IRDataType.BYTE, IRDataType.WORD, IRDataType.LONG, IRDataType.POINTER) &&
-                ins.reg1 != null && ins.reg2 != null && nextInstr.reg2 == ins.reg1) {
-                chunk.instructions[idx + 1] = nextInstr.copy(reg2 = ins.reg2)
-                chunk.instructions[idx] = IRInstruction(Opcode.NOP)
-                changed = true
-            } else if(ins.type == IRDataType.FLOAT &&
-                ins.fpReg1 != null && ins.fpReg2 != null && nextInstr.fpReg2 == ins.fpReg1) {
-                chunk.instructions[idx + 1] = nextInstr.copy(fpReg2 = ins.fpReg2)
-                chunk.instructions[idx] = IRInstruction(Opcode.NOP)
+            if(nextInstr.srcA?.register == ins.dest?.register) {
+                chunk.instructions[idx + 1] = nextInstr.copy(srcA = nextInstr.srcA!!.withRegister(ins.srcA!!.register))
+                chunk.instructions[idx] = IRInstructions.simple(Opcode.NOP)
                 changed = true
             }
         }
@@ -748,20 +738,20 @@ jump p8_label_gen_2
         indexedInstructions.reversed().forEach { (idx, ins) ->
             when(ins.opcode) {
                 Opcode.LOADR -> {
-                    if((ins.reg1 != null && ins.reg1 == ins.reg2) || (ins.fpReg1 != null && ins.fpReg1 == ins.fpReg2)) {
-                        chunk.instructions[idx] = IRInstruction(Opcode.NOP)
+                    if(ins.dest?.register == ins.srcA?.register) {
+                        chunk.instructions[idx] = IRInstructions.simple(Opcode.NOP)
                         changed = true
                     }
                 }
                 Opcode.ANDR, Opcode.ORR -> {
-                    if(ins.reg1 == ins.reg2) {
-                        chunk.instructions[idx] = IRInstruction(Opcode.NOP)
+                    if(ins.dest?.register == ins.srcA?.register) {
+                        chunk.instructions[idx] = IRInstructions.simple(Opcode.NOP)
                         changed = true
                     }
                 }
                 Opcode.XORR -> {
-                    if(ins.reg1 == ins.reg2) {
-                        chunk.instructions[idx] = IRInstruction(Opcode.LOAD, ins.type, reg1 = ins.reg1, immediate = 0)
+                    if(ins.dest?.register == ins.srcA?.register) {
+                        chunk.instructions[idx] = IRInstructions.load(ins.type!!, ins.dest!!.registerNumber, 0)
                         changed = true
                     }
                 }
@@ -774,10 +764,10 @@ jump p8_label_gen_2
     private fun simplifyShiftByZero(chunk: IRCodeChunk, indexedInstructions: List<IndexedValue<IRInstruction>>): Boolean {
         var changed = false
         indexedInstructions.reversed().forEach { (idx, ins) ->
-            if(idx>0 && ins.opcode in setOf(Opcode.LSLN, Opcode.LSRN, Opcode.ASRN) && ins.reg2 != null) {
+            if(idx>0 && ins.opcode in setOf(Opcode.LSLN, Opcode.LSRN, Opcode.ASRN) && ins.srcA != null) {
                 val prev = indexedInstructions[idx-1].value
-                if(prev.opcode == Opcode.LOAD && prev.reg1 == ins.reg2 && prev.immediate == 0) {
-                    chunk.instructions[idx] = IRInstruction(Opcode.NOP)
+                if(prev.opcode == Opcode.LOAD && prev.dest?.register == ins.srcA?.register && prev.immediate?.integerValue == 0) {
+                    chunk.instructions[idx] = IRInstructions.simple(Opcode.NOP)
                     chunk.instructions.removeAt(idx-1)
                     changed = true
                 }
@@ -795,37 +785,36 @@ jump p8_label_gen_2
 
             when(ins.opcode) {
                 Opcode.INV -> {
-                    if(insAfter.opcode == Opcode.INV && insAfter.reg1 == ins.reg1) {
-                        chunk.instructions[idx] = IRInstruction(Opcode.NOP)
-                        chunk.instructions[idx+1] = IRInstruction(Opcode.NOP)
+                    if(insAfter.opcode == Opcode.INV && insAfter.dest?.register == ins.dest?.register) {
+                        chunk.instructions[idx] = IRInstructions.simple(Opcode.NOP)
+                        chunk.instructions[idx+1] = IRInstructions.simple(Opcode.NOP)
                         changed = true
                     }
                 }
                 Opcode.NEG -> {
-                    val sameReg = (ins.reg1 != null && ins.reg1 == insAfter.reg1) || (ins.fpReg1 != null && ins.fpReg1 == insAfter.fpReg1)
-                    if(insAfter.opcode == Opcode.NEG && sameReg) {
-                        chunk.instructions[idx] = IRInstruction(Opcode.NOP)
-                        chunk.instructions[idx+1] = IRInstruction(Opcode.NOP)
+                    if(insAfter.opcode == Opcode.NEG && insAfter.dest?.register == ins.dest?.register) {
+                        chunk.instructions[idx] = IRInstructions.simple(Opcode.NOP)
+                        chunk.instructions[idx+1] = IRInstructions.simple(Opcode.NOP)
                         changed = true
                     }
                 }
                 Opcode.EXT, Opcode.EXTS, Opcode.EXTL, Opcode.EXTLS -> {
-                    if(insAfter.opcode == ins.opcode && insAfter.reg1 == ins.reg1 && insAfter.type == ins.type) {
-                        chunk.instructions[idx+1] = IRInstruction(Opcode.NOP)
+                    if(insAfter.opcode == ins.opcode && insAfter.dest?.register == ins.dest?.register && insAfter.type == ins.type) {
+                        chunk.instructions[idx+1] = IRInstructions.simple(Opcode.NOP)
                         changed = true
                     }
                 }
                 Opcode.INC -> {
-                    if(insAfter.opcode == Opcode.DEC && insAfter.reg1 == ins.reg1) {
-                        chunk.instructions[idx] = IRInstruction(Opcode.NOP)
-                        chunk.instructions[idx+1] = IRInstruction(Opcode.NOP)
+                    if(insAfter.opcode == Opcode.DEC && insAfter.dest?.register == ins.dest?.register) {
+                        chunk.instructions[idx] = IRInstructions.simple(Opcode.NOP)
+                        chunk.instructions[idx+1] = IRInstructions.simple(Opcode.NOP)
                         changed = true
                     }
                 }
                 Opcode.DEC -> {
-                    if(insAfter.opcode == Opcode.INC && insAfter.reg1 == ins.reg1) {
-                        chunk.instructions[idx] = IRInstruction(Opcode.NOP)
-                        chunk.instructions[idx+1] = IRInstruction(Opcode.NOP)
+                    if(insAfter.opcode == Opcode.INC && insAfter.dest?.register == ins.dest?.register) {
+                        chunk.instructions[idx] = IRInstructions.simple(Opcode.NOP)
+                        chunk.instructions[idx+1] = IRInstructions.simple(Opcode.NOP)
                         changed = true
                     }
                 }
@@ -841,41 +830,30 @@ jump p8_label_gen_2
         //          loadm.l rX, P  ; storei.b rY,rX,#0 ; ... ; incm.l P => storep_inc.b rY,P
         // Only if rX is defined once and used once (the loadi/storei), and incm is after.
         if(chunk.instructions.size < 3) return false
-        // Count register reads
-        val readCounts = mutableMapOf<Int, Int>()
+        // Count register uses
+        val readCounts = mutableMapOf<VirtualRegister, Int>()
         for(ins in chunk.instructions) {
-            if(ins.reg2 != null) readCounts[ins.reg2!!] = (readCounts[ins.reg2!!] ?: 0) + 1
-            if(ins.reg3 != null) readCounts[ins.reg3!!] = (readCounts[ins.reg3!!] ?: 0) + 1
-            // LOADI/STOREI uses reg2 as base, that's already counted
-            // For our pattern, base reg is reg2 of LOADI/STOREI
+            ins.uses.forEach { reg -> readCounts[reg] = (readCounts[reg] ?: 0) + 1 }
         }
-        // Also need to count reg1 reads for other ops? For LOADM, reg1 is written, not read
-        // For LOADI, reg1 is written, reg2 is read
-        // For STOREI, reg1 is read, reg2 is read
-        // For INCM, no regs
-        // So readCounts for base reg already correct via reg2
 
         var changed = false
         // Find loadm indices
         val loadmByAddr = mutableMapOf<String, MutableList<Int>>() // address string -> list of loadm indices
-        val loadmRegByIdx = mutableMapOf<Int, Int>() // loadm idx -> rX
-        val loadmAddrByIdx = mutableMapOf<Int, String>()
+        val loadmRegByIdx = mutableMapOf<Int, VirtualRegister>() // loadm idx -> rX
         for((idx, ins) in indexedInstructions) {
-            if(ins.opcode == Opcode.LOADM && ins.labelSymbol != null && ins.reg1 != null) {
-                // only integer loadm (float uses fpReg1)
-                if(ins.type == IRDataType.FLOAT) continue
-                val addr = ins.labelSymbol!!
+            if(ins.opcode == Opcode.LOADM && ins.type != IRDataType.FLOAT) {
+                // only integer loadm (float uses a float register, not fusible into a pointer)
+                val addr = ins.memory?.symbolName ?: continue
                 loadmByAddr.getOrPut(addr) { mutableListOf() }.add(idx)
-                loadmRegByIdx[idx] = ins.reg1!!
-                loadmAddrByIdx[idx] = addr
+                loadmRegByIdx[idx] = ins.requireDest().register
             }
         }
         // For each incm, try to find matching loadm+loadi/storei
         val toRemove = mutableSetOf<Int>()
         val toReplace = mutableMapOf<Int, IRInstruction>()
         for((incIdx, incIns) in indexedInstructions) {
-            if(incIns.opcode != Opcode.INCM || incIns.labelSymbol == null) continue
-            val addr = incIns.labelSymbol!!
+            if(incIns.opcode != Opcode.INCM) continue
+            val addr = incIns.memory?.symbolName ?: continue
             val loadmIndices = loadmByAddr[addr] ?: continue
             // Find the latest loadm before incm that has a matching loadi/storei using its reg
             for(loadmIdx in loadmIndices.reversed()) {
@@ -891,16 +869,17 @@ jump p8_label_gen_2
                     if(midIdx <= loadmIdx || midIdx >= incIdx) continue
                     if(midIdx in toRemove || midIdx in toReplace) continue
                     if(midIns.type == IRDataType.FLOAT) continue
-                    if(midIns.reg1 == null) continue
-                    if(midIns.opcode == Opcode.LOADI && midIns.reg2 == baseReg) {
+                    val indirect = midIns.memory as? MemoryReference.Indirect ?: continue
+                    if(indirect.pointer.register != baseReg) continue
+                    if(midIns.opcode == Opcode.LOADI) {
                         // LOADI must have offset 0 to be fusible to post-inc (otherwise need add)
-                        if(midIns.immediate != 0) continue
+                        if(indirect.displacement != 0) continue
                         foundIdx = midIdx
                         foundIns = midIns
                         break
                     }
-                    if(midIns.opcode == Opcode.STOREI && midIns.reg2 == baseReg) {
-                        if(midIns.immediate != 0) continue
+                    if(midIns.opcode == Opcode.STOREI) {
+                        if(indirect.displacement != 0) continue
                         foundIdx = midIdx
                         foundIns = midIns
                         break
@@ -910,10 +889,11 @@ jump p8_label_gen_2
                 // Also ensure no other use of baseReg between loadm and incm besides this one
                 // Already ensured readCounts==1, but also ensure no other loadm defines same reg
                 // Fuse
-                val newOpcode = if(foundIns.opcode == Opcode.LOADI) Opcode.LOADP_INC else Opcode.STOREP_INC
                 val newType = foundIns.type!!
-                val newReg = foundIns.reg1 ?: continue
-                val newIns = IRInstruction(newOpcode, newType, reg1 = newReg, labelSymbol = addr)
+                val newIns = if(foundIns.opcode == Opcode.LOADI)
+                    IRInstructions.loadMemory(Opcode.LOADP_INC, newType, foundIns.requireDest().registerNumber, IRMemory.direct(addr))
+                else
+                    IRInstructions.storeMemory(Opcode.STOREP_INC, newType, foundIns.requireSrcA().registerNumber, IRMemory.direct(addr))
                 toReplace[foundIdx] = newIns
                 toRemove.add(loadmIdx)
                 toRemove.add(incIdx)
@@ -926,7 +906,7 @@ jump p8_label_gen_2
         val allIndices = (toRemove + toReplace.keys).sortedDescending()
         for(idx in allIndices) {
             if(idx in toRemove) {
-                chunk.instructions[idx] = IRInstruction(Opcode.NOP)
+                chunk.instructions[idx] = IRInstructions.simple(Opcode.NOP)
             }
         }
         for((idx, newIns) in toReplace) {
@@ -955,24 +935,19 @@ jump p8_label_gen_2
         indexedInstructions.forEach { (idx, ins) ->
             if(ins.opcode==Opcode.STOREM && idx>0) {
                 val prev = indexedInstructions[idx-1].value
-                if(prev.opcode==Opcode.LOAD && prev.labelSymbol==null) {
-                    val isInt = prev.immediate != null && prev.immediateFp == null
-                    val isFloat = prev.immediateFp != null
-                    val sameReg = when(ins.type) {
-                        IRDataType.FLOAT -> prev.fpReg1 != null && ins.fpReg1 == prev.fpReg1
-                        else -> prev.reg1 != null && ins.reg1 == prev.reg1
-                    }
-                    if(sameReg && (isInt || isFloat)) {
-                        val newIns = ins.copy(
-                            opcode = Opcode.STOREIM,
-                            reg1 = null,
-                            fpReg1 = null,
-                            immediate = if(isInt) prev.immediate else null,
-                            immediateFp = if(isFloat) prev.immediateFp else null
-                        )
-                        chunk.instructions[idx] = newIns
-                        chunk.instructions[idx-1] = IRInstruction(Opcode.NOP)
-                        changed = true
+                if(prev.opcode==Opcode.LOAD && prev.immediate !is ImmediateOperand.SymbolAddress) {
+                    val sameReg = ins.srcA?.register == prev.dest?.register
+                    if(sameReg) {
+                        val newIns = when(val immediate = prev.immediate) {
+                            is ImmediateOperand.Integer -> IRInstructions.storeImmediate(ins.type!!, immediate.value, ins.requireMemory())
+                            is ImmediateOperand.FloatValue -> IRInstructions.storeImmediateFloat(immediate.value, ins.requireMemory())
+                            else -> null
+                        }
+                        if(newIns != null) {
+                            chunk.instructions[idx] = newIns
+                            chunk.instructions[idx-1] = IRInstructions.simple(Opcode.NOP)
+                            changed = true
+                        }
                     }
                 }
             }
@@ -987,11 +962,7 @@ jump p8_label_gen_2
                 val prev = indexedInstructions[idx-1].value
                 if(prev.opcode==Opcode.LOADM) {
                     // loadm.X rX,something | storem.X rX,something ?? -> get rid of the store.
-                    if(ins.labelSymbol!=null && ins.labelSymbol==prev.labelSymbol && ins.labelSymbolOffset==prev.labelSymbolOffset) {
-                        changed=true
-                        chunk.instructions.removeAt(idx)
-                    }
-                    else if(ins.address!=null && ins.address==prev.address) {
+                    if(ins.memory == prev.memory) {
                         changed=true
                         chunk.instructions.removeAt(idx)
                     }
@@ -1020,60 +991,15 @@ jump p8_label_gen_2
         // side-effecting instruction occurs between. Keeps the optimization single-chunk.
         if(chunk.instructions.size < 2) return false
 
-        fun indexRegOf(ins: IRInstruction): Int? = when(ins.opcode) {
-            Opcode.LOADX -> if(ins.type==IRDataType.FLOAT) ins.reg1 else ins.reg2
-            Opcode.STOREX -> if(ins.type==IRDataType.FLOAT) ins.reg1 else ins.reg2
-            Opcode.STOREZX -> ins.reg1
+        fun indexRegOf(ins: IRInstruction): VirtualRegister? = (ins.memory as? MemoryReference.Indexed)?.index?.register
+        fun valueRegOf(ins: IRInstruction): VirtualRegister? = when(ins.opcode) {
+            Opcode.LOADX -> ins.dest?.register
+            Opcode.STOREX -> ins.srcA?.register
             else -> null
         }
-        fun valueIntRegOf(ins: IRInstruction): Int? = when(ins.opcode) {
-            Opcode.LOADX, Opcode.STOREX -> if(ins.type==IRDataType.FLOAT) null else ins.reg1
-            else -> null
-        }
-        fun valueFpRegOf(ins: IRInstruction): RegisterNum? = when(ins.opcode) {
-            Opcode.LOADX, Opcode.STOREX -> if(ins.type==IRDataType.FLOAT) ins.fpReg1 else null
-            else -> null
-        }
-        fun labelKey(ins: IRInstruction): String {
-            return "${ins.type}:${ins.labelSymbol}:${ins.labelSymbolOffset}:${ins.address}"
-        }
-        fun readsReg(ins: IRInstruction, reg: Int): Boolean {
-            val fmt = instructionFormats[ins.opcode]?.get(ins.type) ?: instructionFormats[ins.opcode]?.get(null)
-            if(fmt!=null) {
-                if((fmt.reg1 == OperandDirection.READ || fmt.reg1 == OperandDirection.READWRITE) && ins.reg1 == reg) return true
-                if((fmt.reg2 == OperandDirection.READ || fmt.reg2 == OperandDirection.READWRITE) && ins.reg2 == reg) return true
-                if((fmt.reg3 == OperandDirection.READ || fmt.reg3 == OperandDirection.READWRITE) && ins.reg3 == reg) return true
-            }
-            ins.fcallArgs?.arguments?.forEach { if(it.reg.registerNum.value==reg && it.reg.dt!=IRDataType.FLOAT) return true }
-            return false
-        }
-        fun writesReg(ins: IRInstruction, reg: Int): Boolean {
-            val fmt = instructionFormats[ins.opcode]?.get(ins.type) ?: instructionFormats[ins.opcode]?.get(null)
-            if(fmt!=null) {
-                if((fmt.reg1 == OperandDirection.WRITE || fmt.reg1 == OperandDirection.READWRITE) && ins.reg1 == reg) return true
-                if((fmt.reg2 == OperandDirection.WRITE || fmt.reg2 == OperandDirection.READWRITE) && ins.reg2 == reg) return true
-                if((fmt.reg3 == OperandDirection.WRITE || fmt.reg3 == OperandDirection.READWRITE) && ins.reg3 == reg) return true
-            }
-            ins.fcallArgs?.returns?.forEach { if(it.registerNum.value==reg && it.dt!=IRDataType.FLOAT) return true }
-            return false
-        }
-        fun readsFpReg(ins: IRInstruction, fp: RegisterNum): Boolean {
-            val fmt = instructionFormats[ins.opcode]?.get(ins.type) ?: instructionFormats[ins.opcode]?.get(null)
-            if(fmt!=null) {
-                if((fmt.fpReg1 == OperandDirection.READ || fmt.fpReg1 == OperandDirection.READWRITE) && ins.fpReg1 == fp) return true
-                if((fmt.fpReg2 == OperandDirection.READ || fmt.fpReg2 == OperandDirection.READWRITE) && ins.fpReg2 == fp) return true
-            }
-            ins.fcallArgs?.arguments?.forEach { if(it.reg.registerNum==fp && it.reg.dt==IRDataType.FLOAT) return true }
-            return false
-        }
-        fun writesFpReg(ins: IRInstruction, fp: RegisterNum): Boolean {
-            val fmt = instructionFormats[ins.opcode]?.get(ins.type) ?: instructionFormats[ins.opcode]?.get(null)
-            if(fmt!=null) {
-                if((fmt.fpReg1 == OperandDirection.WRITE || fmt.fpReg1 == OperandDirection.READWRITE) && ins.fpReg1 == fp) return true
-                if((fmt.fpReg2 == OperandDirection.WRITE || fmt.fpReg2 == OperandDirection.READWRITE) && ins.fpReg2 == fp) return true
-            }
-            ins.fcallArgs?.returns?.forEach { if(it.registerNum==fp && it.dt==IRDataType.FLOAT) return true }
-            return false
+        fun locationKey(ins: IRInstruction): Any? {
+            val mem = ins.memory as? MemoryReference.Indexed ?: return null
+            return Triple(ins.type, mem.base, mem.displacement)
         }
 
         val toRemove = mutableSetOf<Int>()
@@ -1085,9 +1011,8 @@ jump p8_label_gen_2
             if(currIdx in toRemove) continue
             if(currIns.opcode != Opcode.STOREX) continue
             val currIndexReg = indexRegOf(currIns) ?: continue
-            val currValueReg = valueIntRegOf(currIns)
-            val currFpReg = valueFpRegOf(currIns)
-            val currKey = labelKey(currIns)
+            val currValueReg = valueRegOf(currIns) ?: continue
+            val currKey = locationKey(currIns)
             // search backwards for matching LOADX
             for(prevPos in currPos - 1 downTo 0) {
                 val prevEntry = indexedInstructions[prevPos]
@@ -1096,27 +1021,18 @@ jump p8_label_gen_2
                 if(prevIdx in toRemove) continue
                 if(prevIns.opcode != Opcode.LOADX) continue
                 if(prevIns.type != currIns.type) continue
-                if(labelKey(prevIns) != currKey) continue
+                if(locationKey(prevIns) != currKey) continue
                 if(indexRegOf(prevIns) != currIndexReg) continue
-                if(currValueReg != null) {
-                    if(valueIntRegOf(prevIns) != currValueReg) continue
-                } else if(currFpReg != null) {
-                    if(valueFpRegOf(prevIns) != currFpReg) continue
-                } else continue
+                if(valueRegOf(prevIns) != currValueReg) continue
 
                 var blocked = false
                 for(midPos in prevPos + 1 until currPos) {
                     val midIns = indexedInstructions[midPos].value
                     if(midIns.opcode in OpcodesWithSideEffects) { blocked = true; break }
-                    if(currValueReg != null) {
-                        if(writesReg(midIns, currValueReg) || readsReg(midIns, currValueReg)) { blocked = true; break }
-                        if(writesReg(midIns, currIndexReg)) { blocked = true; break }
-                    } else if(currFpReg != null) {
-                        if(writesFpReg(midIns, currFpReg) || readsFpReg(midIns, currFpReg)) { blocked = true; break }
-                        if(writesReg(midIns, currIndexReg)) { blocked = true; break }
-                    }
+                    if(currValueReg in midIns.definitions || currValueReg in midIns.uses) { blocked = true; break }
+                    if(currIndexReg in midIns.definitions) { blocked = true; break }
                     // intervening indexed access to same location breaks direct coalescing (let closer pair handle it)
-                    if(labelKey(midIns) == currKey && midIns.opcode in setOf(Opcode.LOADX, Opcode.STOREX, Opcode.STOREZX)) {
+                    if(locationKey(midIns) == currKey && midIns.opcode in setOf(Opcode.LOADX, Opcode.STOREX, Opcode.STOREZX)) {
                         blocked = true; break
                     }
                 }
@@ -1134,7 +1050,7 @@ jump p8_label_gen_2
             if(currIdx in toRemove) continue
             if(currIns.opcode !in setOf(Opcode.STOREX, Opcode.STOREZX)) continue
             val currIndexReg = indexRegOf(currIns) ?: continue
-            val currKey = labelKey(currIns)
+            val currKey = locationKey(currIns)
             for(prevPos in currPos - 1 downTo 0) {
                 val prevEntry = indexedInstructions[prevPos]
                 val prevIdx = prevEntry.index
@@ -1145,15 +1061,15 @@ jump p8_label_gen_2
                     // require exact same type for indexed store coalescing
                     continue
                 }
-                if(labelKey(prevIns) != currKey) continue
+                if(locationKey(prevIns) != currKey) continue
                 if(indexRegOf(prevIns) != currIndexReg) continue
                 var blocked = false
                 for(midPos in prevPos + 1 until currPos) {
                     val midIns = indexedInstructions[midPos].value
                     if(midIns.opcode in OpcodesWithSideEffects) { blocked = true; break }
-                    if(writesReg(midIns, currIndexReg)) { blocked = true; break }
+                    if(currIndexReg in midIns.definitions) { blocked = true; break }
                     // any LOADX to same location is a read of memory - prevents dead store elimination
-                    if(midIns.opcode == Opcode.LOADX && labelKey(midIns) == currKey && indexRegOf(midIns) == currIndexReg) { blocked = true; break }
+                    if(midIns.opcode == Opcode.LOADX && locationKey(midIns) == currKey && indexRegOf(midIns) == currIndexReg) { blocked = true; break }
                 }
                 if(!blocked) {
                     toRemove.add(prevIdx)
@@ -1177,10 +1093,16 @@ jump p8_label_gen_2
                 if(idx>0) {
                     val insBefore = chunk.instructions[idx-1]
                     if(insBefore.opcode == Opcode.LOAD && insBefore.immediate!=null) {
-                        val constvalue = insBefore.immediate!!
-                        chunk.instructions[idx] = IRInstruction(Opcode.RETURNI, ins.type, immediate = constvalue)
-                        chunk.instructions.removeAt(idx-1)
-                        changed = true
+                        val newIns = when(val imm = insBefore.immediate!!) {
+                            is ImmediateOperand.Integer -> IRInstructions.returnImmediate(ins.type!!, imm.value)
+                            is ImmediateOperand.FloatValue -> IRInstructions.returnImmediateFloat(imm.value)
+                            is ImmediateOperand.SymbolAddress -> null
+                        }
+                        if(newIns != null) {
+                            chunk.instructions[idx] = newIns
+                            chunk.instructions.removeAt(idx-1)
+                            changed = true
+                        }
                     }
                 }
             }
@@ -1201,7 +1123,7 @@ jump p8_label_gen_2
         //   lsigb.? rX,rA + ext.b  rY,rX -> loadr.? rY,rA ; and.? rY,#$ff
         // Only applied when the intermediate register is not read anywhere else in this chunk.
         if(chunk.instructions.size<2) return false
-        val readCounts = chunk.usedRegisters(irprog.options.compTarget.indexRegType).readRegs.withDefault { 0 }
+        val readCounts = chunk.usedRegisters().readRegs.withDefault { 0 }
 
         class Mod(val idx: Int, val replacement: IRInstruction?)   // null replacement = delete
         val mods = mutableListOf<Mod>()
@@ -1210,10 +1132,10 @@ jump p8_label_gen_2
         for(k in 0 until indexedInstructions.size-1) {
             val (i, inner) = indexedInstructions[k]
             val (_, outer) = indexedInstructions[k+1]
-            val mid = inner.reg1
+            val mid = inner.dest?.register
 
             fun singleResult(opcode: Opcode) =
-                IRInstruction(opcode, IRDataType.BYTE, reg1 = outer.reg1, reg2 = inner.reg2)
+                IRInstructions.binary(opcode, IRDataType.BYTE, outer.requireDest().registerNumber, inner.requireSrcA().registerNumber)
 
             if(i in claimed || i+1 in claimed)
                 continue
@@ -1222,8 +1144,8 @@ jump p8_label_gen_2
                 // composed sign/zero extension chains on bytes
                 outer.opcode in setOf(Opcode.EXT, Opcode.EXTS) && outer.type==IRDataType.WORD
                         && inner.opcode in setOf(Opcode.EXT, Opcode.EXTS) && inner.type==IRDataType.BYTE
-                        && mid!=null && mid==outer.reg2
-                        && readCounts[RegisterNum(mid)]==1 -> {
+                        && mid!=null && mid==outer.srcA?.register
+                        && readCounts.getValue(mid)==1 -> {
                     val newOp = if(inner.opcode==Opcode.EXTS && outer.opcode==Opcode.EXTS) Opcode.EXTLS else Opcode.EXTL
                     mods.add(Mod(i+1, null))
                     mods.add(Mod(i, singleResult(newOp)))
@@ -1231,18 +1153,18 @@ jump p8_label_gen_2
                 // truncate-long-to-word followed by zero-extend word-to-long == mask with $ffff
                 inner.opcode==Opcode.LSIGW && inner.type==IRDataType.LONG
                         && outer.opcode==Opcode.EXT && outer.type==IRDataType.WORD
-                        && mid!=null && mid==outer.reg2 && inner.reg2!=null && outer.reg1!=null
-                        && readCounts[RegisterNum(mid)]==1 -> {
-                    mods.add(Mod(i+1, IRInstruction(Opcode.AND, IRDataType.LONG, reg1 = outer.reg1, immediate = 0xffff)))
-                    mods.add(Mod(i, IRInstruction(Opcode.LOADR, IRDataType.LONG, reg1 = outer.reg1, reg2 = inner.reg2)))
+                        && mid!=null && mid==outer.srcA?.register && inner.srcA!=null && outer.dest!=null
+                        && readCounts.getValue(mid)==1 -> {
+                    mods.add(Mod(i+1, IRInstructions.binaryImmediate(Opcode.AND, IRDataType.LONG, outer.requireDest().registerNumber, 0xffff)))
+                    mods.add(Mod(i, IRInstructions.move(IRDataType.LONG, outer.requireDest().registerNumber, inner.requireSrcA().registerNumber)))
                 }
                 // truncate-long/word-to-byte followed by zero-extend byte-to-word == mask with $ff
                 inner.opcode==Opcode.LSIGB && inner.type in setOf(IRDataType.WORD, IRDataType.LONG)
                         && outer.opcode==Opcode.EXT && outer.type==IRDataType.BYTE
-                        && mid!=null && mid==outer.reg2 && inner.reg2!=null && outer.reg1!=null
-                        && readCounts[RegisterNum(mid)]==1 -> {
-                    mods.add(Mod(i+1, IRInstruction(Opcode.AND, inner.type, reg1 = outer.reg1, immediate = 0xff)))
-                    mods.add(Mod(i, IRInstruction(Opcode.LOADR, inner.type, reg1 = outer.reg1, reg2 = inner.reg2)))
+                        && mid!=null && mid==outer.srcA?.register && inner.srcA!=null && outer.dest!=null
+                        && readCounts.getValue(mid)==1 -> {
+                    mods.add(Mod(i+1, IRInstructions.binaryImmediate(Opcode.AND, inner.type!!, outer.requireDest().registerNumber, 0xff)))
+                    mods.add(Mod(i, IRInstructions.move(inner.type!!, outer.requireDest().registerNumber, inner.requireSrcA().registerNumber)))
                 }
                 else -> continue
             }
@@ -1274,38 +1196,27 @@ jump p8_label_gen_2
         // between them, the second group is replaced by a single loadr.p copy from the first group's dest.
         if(chunk.instructions.size < 8) return false
 
+        data class MemKey(val type: IRDataType?, val base: AddressBase, val displacement: Int)
+
         data class AddrGroup(
             val startIdx: Int,
             val ptrReg: Int,
             val idxReg: Int,
             val extReg: Int,
             val destReg: Int,
-            val bufKey: String,
-            val idxKey: String
+            val bufKey: MemKey,
+            val idxKey: MemKey
         )
 
-        fun memKey(ins: IRInstruction): String {
-            // labelSymbol/labelSymbolOffset/address/type uniquely identify the variable
-            return "${ins.type}:${ins.labelSymbol}:${ins.labelSymbolOffset}:${ins.address}"
+        fun memKey(ins: IRInstruction): MemKey? {
+            // type/base/displacement uniquely identify the variable
+            val mem = ins.memory as? MemoryReference.Direct ?: return null
+            return MemKey(ins.type, mem.base, mem.displacement)
         }
 
-
-        fun writesReg(ins: IRInstruction, reg: Int): Boolean {
-            val formats = instructionFormats[ins.opcode] ?: return false
-            val fmt = formats[ins.type] ?: formats[null] ?: return false
-            if((fmt.reg1 == OperandDirection.WRITE || fmt.reg1 == OperandDirection.READWRITE) && ins.reg1 == reg) return true
-            if((fmt.reg2 == OperandDirection.WRITE || fmt.reg2 == OperandDirection.READWRITE) && ins.reg2 == reg) return true
-            if((fmt.reg3 == OperandDirection.WRITE || fmt.reg3 == OperandDirection.READWRITE) && ins.reg3 == reg) return true
-            // fp regs are separate, not relevant for pointer regs
-            return false
-        }
-
-        fun writesMem(ins: IRInstruction, memKey: String): Boolean {
-            if(memKey == "null:null:null:null") return false
-            if(memKey(ins) != memKey) return false
-            val formats = instructionFormats[ins.opcode] ?: return false
-            val fmt = formats[ins.type] ?: formats[null] ?: return false
-            return fmt.address == OperandDirection.WRITE || fmt.address == OperandDirection.READWRITE
+        fun writesMem(ins: IRInstruction, key: MemKey): Boolean {
+            if(memKey(ins) != key) return false
+            return ins.memoryEffect == MemoryEffect.WRITE || ins.memoryEffect == MemoryEffect.READ_WRITE
         }
 
         val groups = mutableListOf<AddrGroup>()
@@ -1315,20 +1226,24 @@ jump p8_label_gen_2
             val b = chunk.instructions[i+1]
             val c = chunk.instructions[i+2]
             val d = chunk.instructions[i+3]
-            val isA = a.opcode == Opcode.LOADM && a.type == IRDataType.POINTER && a.reg1 != null
-            val isB = b.opcode == Opcode.LOADM && b.type in setOf(IRDataType.BYTE, IRDataType.WORD) && b.reg1 != null
-            val isC = c.opcode in setOf(Opcode.EXT, Opcode.EXTS, Opcode.EXTL, Opcode.EXTLS) && c.reg1 != null && c.reg2 == b.reg1
-            val isD = d.opcode == Opcode.ADDR && d.type == IRDataType.POINTER && d.reg1 != null && d.reg2 != null
+            val isA = a.opcode == Opcode.LOADM && a.type == IRDataType.POINTER && a.dest != null
+            val isB = b.opcode == Opcode.LOADM && b.type in setOf(IRDataType.BYTE, IRDataType.WORD) && b.dest != null
+            val isC = c.opcode in setOf(Opcode.EXT, Opcode.EXTS, Opcode.EXTL, Opcode.EXTLS) && c.dest != null && c.srcA?.register == b.dest?.register
+            val isD = d.opcode == Opcode.ADDR && d.type == IRDataType.POINTER && d.dest != null && d.srcA != null
             if(isA && isB && isC && isD) {
-                val ptrReg = a.reg1!!
-                val extReg = c.reg1!!
-                val d1 = d.reg1!!
-                val d2 = d.reg2!!
+                val ptrReg = a.requireDest().register
+                val extReg = c.requireDest().register
+                val d1 = d.requireDest().register
+                val d2 = d.requireSrcA().register
                 val destOk = (d1 == ptrReg && d2 == extReg) || (d1 == extReg && d2 == ptrReg)
                 if(destOk) {
-                    groups.add(AddrGroup(i, ptrReg, b.reg1!!, extReg, d1, memKey(a), memKey(b)))
-                    i += 4
-                    continue
+                    val bufKey = memKey(a)
+                    val idxKey = memKey(b)
+                    if(bufKey != null && idxKey != null) {
+                        groups.add(AddrGroup(i, ptrReg.num, b.requireDest().registerNumber, extReg.num, d1.num, bufKey, idxKey))
+                        i += 4
+                        continue
+                    }
                 }
             }
             i++
@@ -1353,7 +1268,7 @@ jump p8_label_gen_2
                 for(t in gk.startIdx + 4 until gj.startIdx) {
                     if(t in claimed) continue // already slated for removal, ignore? but we haven't applied mods yet
                     val ins = chunk.instructions[t]
-                    if(writesReg(ins, gk.destReg)) { barrier = true; break }
+                    if(VirtualRegister.int(gk.destReg) in ins.definitions) { barrier = true; break }
                     if(writesMem(ins, gk.bufKey) || writesMem(ins, gk.idxKey)) { barrier = true; break }
                 }
                 if(!barrier) { found = gk; break }
@@ -1364,7 +1279,7 @@ jump p8_label_gen_2
                 mods.add(Mod(gj.startIdx + 3, null))
                 mods.add(Mod(gj.startIdx + 2, null))
                 mods.add(Mod(gj.startIdx + 1, null))
-                mods.add(Mod(gj.startIdx, IRInstruction(Opcode.LOADR, IRDataType.POINTER, reg1 = gj.destReg, reg2 = found.destReg)))
+                mods.add(Mod(gj.startIdx, IRInstructions.move(IRDataType.POINTER, gj.destReg, found.destReg)))
                 claimed.add(gj.startIdx); claimed.add(gj.startIdx+1); claimed.add(gj.startIdx+2); claimed.add(gj.startIdx+3)
             }
         }
@@ -1382,9 +1297,9 @@ jump p8_label_gen_2
         //   LOAD r1, #5      <- dead store (r1 overwritten before use)
         //   LOAD r1, #10
         //   USE r1
-        
+
         // Track for each register: (index of last write, whether value was read since)
-        val pendingWrites = mutableMapOf<Int, Pair<Int, Boolean>>()  // reg -> (writeIdx, wasRead)
+        val pendingWrites = mutableMapOf<VirtualRegister, Pair<Int, Boolean>>()  // reg -> (writeIdx, wasRead)
         val deadStores = mutableSetOf<Int>()
 
         indexedInstructions.forEach { (idx, ins) ->
@@ -1394,49 +1309,30 @@ jump p8_label_gen_2
                 pendingWrites.clear()
                 return@forEach
             }
-            val formats = instructionFormats.getValue(ins.opcode)
-            val format = formats[ins.type] ?: formats[null]
+            // Reads and writes are taken from ALL operand slots (including the index and pointer
+            // registers inside a memory reference), so a value that is only read through a
+            // secondary slot is never mistaken for a dead store.
+            val accesses = ins.registerAccesses
 
-            // First, check if this instruction READS any registers
-            if(format?.reg1 == OperandDirection.READ || format?.reg1 == OperandDirection.READWRITE) {
-                val reg = ins.reg1 ?: ins.fpReg1?.value
-                if(reg != null) {
-                    val existing = pendingWrites[reg]
-                    if(existing != null) {
-                        pendingWrites[reg] = existing.first to true
-                    }
-                }
-            }
-            if(format?.reg2 == OperandDirection.READ || format?.reg2 == OperandDirection.READWRITE) {
-                val reg = ins.reg2 ?: ins.fpReg2?.value
-                if(reg != null) {
-                    val existing = pendingWrites[reg]
-                    if(existing != null) {
-                        pendingWrites[reg] = existing.first to true
-                    }
-                }
-            }
-            if(format?.reg3 == OperandDirection.READ || format?.reg3 == OperandDirection.READWRITE) {
-                val reg = ins.reg3
-                if(reg != null) {
-                    val existing = pendingWrites[reg]
-                    if(existing != null) {
-                        pendingWrites[reg] = existing.first to true
-                    }
+            // First, mark the registers that this instruction READS
+            for(access in accesses) {
+                if(access.direction != OperandDirection.DEF) {
+                    val existing = pendingWrites[access.register]
+                    if(existing != null)
+                        pendingWrites[access.register] = existing.first to true
                 }
             }
 
-            // Then, check if this instruction WRITES to any registers
-            if(format?.reg1 == OperandDirection.WRITE || format?.reg1 == OperandDirection.READWRITE) {
-                val reg = ins.reg1 ?: ins.fpReg1?.value
-                if(reg != null) {
+            // Then, record the registers that this instruction WRITES
+            for(access in accesses) {
+                if(access.direction != OperandDirection.USE) {
                     // Check if previous write to this reg was dead (never read before this overwrite)
-                    val existing = pendingWrites[reg]
+                    val existing = pendingWrites[access.register]
                     if(existing != null && !existing.second) {
                         deadStores.add(existing.first)
                     }
                     // Record this new write as pending (not yet read)
-                    pendingWrites[reg] = idx to false
+                    pendingWrites[access.register] = idx to false
                 }
             }
         }
@@ -1467,9 +1363,11 @@ jump p8_label_gen_2
             val stChunk = sub.chunks[idx]
             if (stChunk !is IRCodeChunk || stChunk.instructions.size != 1) { idx++; continue }
             val stInstr = stChunk.instructions[0]
-            if (stInstr.opcode != Opcode.STOREM || stInstr.labelSymbol == null || stInstr.reg1 == null) { idx++; continue }
-            val loopvar = stInstr.labelSymbol!!
-            val loopReg = stInstr.reg1!!
+            if (stInstr.opcode != Opcode.STOREM || stInstr.srcA == null) { idx++; continue }
+            val loopvarSymbol = stInstr.memory?.symbolName
+            if (loopvarSymbol == null) { idx++; continue }
+            val loopvar = loopvarSymbol
+            val loopReg = stInstr.requireSrcA().register
             val loopType = stInstr.type ?: IRDataType.WORD
             // next chunk should be the loop body start with a label
             if (idx + 1 >= sub.chunks.size) { idx++; continue }
@@ -1482,13 +1380,13 @@ jump p8_label_gen_2
             for (k in idx + 1 until sub.chunks.size) {
                 val c = sub.chunks[k]
                 if (c !is IRCodeChunk) continue
-                val hasInc = c.instructions.any { it.opcode == Opcode.INCM && it.labelSymbol == loopvar }
+                val hasInc = c.instructions.any { it.opcode == Opcode.INCM && it.memory?.symbolName == loopvar }
                 if (!hasInc) continue
-                val hasJumpInSame = c.instructions.any { it.opcode == Opcode.JUMP && it.labelSymbol == loopLabel }
+                val hasJumpInSame = c.instructions.any { it.opcode == Opcode.JUMP && it.labelTarget == loopLabel }
                 if (hasJumpInSame) { incIdx = k; break }
                 if (k + 1 < sub.chunks.size) {
                     val nxt = sub.chunks[k + 1]
-                    if (nxt is IRCodeChunk && nxt.instructions.size == 1 && nxt.instructions[0].opcode == Opcode.JUMP && nxt.instructions[0].labelSymbol == loopLabel) {
+                    if (nxt is IRCodeChunk && nxt.instructions.size == 1 && nxt.instructions[0].opcode == Opcode.JUMP && nxt.instructions[0].labelTarget == loopLabel) {
                         incIdx = k; break
                     }
                 }
@@ -1502,7 +1400,7 @@ jump p8_label_gen_2
                 if (ch !is IRCodeChunk) continue
                 for (ins in ch.instructions) {
                     // any store/inc/dec that writes to loopvar memory
-                    if (ins.labelSymbol == loopvar && ins.opcode in setOf(Opcode.STOREM, Opcode.STOREIM, Opcode.STOREZM, Opcode.STOREX, Opcode.STOREZX, Opcode.INCM, Opcode.DECM, Opcode.ADDIM, Opcode.SUBIM)) {
+                    if (ins.memory?.symbolName == loopvar && ins.opcode in setOf(Opcode.STOREM, Opcode.STOREIM, Opcode.STOREZM, Opcode.STOREX, Opcode.STOREZX, Opcode.INCM, Opcode.DECM, Opcode.ADDIM, Opcode.SUBIM)) {
                         // exclude the initial STORM itself (not in body) and the inc chunk (not in body)
                         bodyWrites = true; break
                     }
@@ -1517,10 +1415,10 @@ jump p8_label_gen_2
             for (b in idx + 1 until incIdx) {
                 val ch = sub.chunks[b] as? IRCodeChunk ?: continue
                 for (ins in ch.instructions) {
-                    if (ins.opcode == Opcode.BSTEQ && ins.labelSymbol != null) {
+                    if (ins.opcode == Opcode.BSTEQ && ins.labelTarget != null) {
                         // This is likely the loop's exit branch (LOADM+CMP+BSTEQ pattern)
                         // Verify it follows a CMP that uses loopvar (heuristic: preceding LOADM loopvar)
-                        labelAfter = ins.labelSymbol
+                        labelAfter = ins.labelTarget
                         break
                     }
                 }
@@ -1537,7 +1435,7 @@ jump p8_label_gen_2
                 for (k in exitIdx until sub.chunks.size) {
                     val ch = sub.chunks[k] as? IRCodeChunk ?: continue
                     for (ins in ch.instructions) {
-                        if (ins.opcode == Opcode.LOADM && ins.labelSymbol == loopvar) { liveOut = true; break }
+                        if (ins.opcode == Opcode.LOADM && ins.memory?.symbolName == loopvar) { liveOut = true; break }
                     }
                     if (liveOut) break
                 }
@@ -1554,14 +1452,14 @@ jump p8_label_gen_2
                 val ch = sub.chunks[b] as? IRCodeChunk ?: continue
                 for (i in ch.instructions.indices) {
                     val ins = ch.instructions[i]
-                    if (ins.opcode == Opcode.LOADM && ins.labelSymbol == loopvar) {
-                        val dest = ins.reg1!!
+                    if (ins.opcode == Opcode.LOADM && ins.memory?.symbolName == loopvar) {
+                        val dest = ins.requireDest().register
                         if (dest == loopReg) {
                             // Already holds the correct value; remove the reload
-                            ch.instructions[i] = IRInstruction(Opcode.NOP)
+                            ch.instructions[i] = IRInstructions.simple(Opcode.NOP)
                         } else {
                             val tp = ins.type ?: loopType
-                            ch.instructions[i] = IRInstruction(Opcode.LOADR, tp, reg1 = dest, reg2 = loopReg)
+                            ch.instructions[i] = IRInstructions.move(tp, dest.num, loopReg.num)
                         }
                     }
                 }
@@ -1570,8 +1468,8 @@ jump p8_label_gen_2
             val incChunk = sub.chunks[incIdx] as IRCodeChunk
             for (i in incChunk.instructions.indices) {
                 val ins = incChunk.instructions[i]
-                if (ins.opcode == Opcode.INCM && ins.labelSymbol == loopvar) {
-                    incChunk.instructions[i] = IRInstruction(Opcode.INC, loopType, reg1 = loopReg)
+                if (ins.opcode == Opcode.INCM && ins.memory?.symbolName == loopvar) {
+                    incChunk.instructions[i] = IRInstructions.unary(Opcode.INC, loopType, loopReg.num)
                     break
                 }
             }

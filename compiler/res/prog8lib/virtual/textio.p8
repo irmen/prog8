@@ -9,8 +9,8 @@ sub width() -> ubyte {
     ; syscall 46 returns size encoded in a single uword: MSB=rows, LSB=columns
     %ir {{
         syscall 46 (): r99000.w
-        lsigb.w r99100,r99000
-        returnr.b r99100
+        lsigb.w r99100.b,r99000.w
+        returnr.b r99100.b
     }}
 }
 
@@ -18,8 +18,8 @@ sub height() -> ubyte {
     ; syscall 46 returns size encoded in a single uword: MSB=rows, LSB=columns
     %ir {{
         syscall 46 (): r99000.w
-        msigb.w r99100,r99000
-        returnr.b r99100
+        msigb.w r99100.b,r99000.w
+        returnr.b r99100.b
     }}
 }
 
@@ -31,7 +31,7 @@ sub size() -> ubyte, ubyte {
 sub  clear_screen() {
     str @shared sequence = "\x1b[2J\x1B[H"
     %ir {{
-        load.l r99200,txt.clear_screen.sequence
+        load.l r99200.l,#txt.clear_screen.sequence
         syscall 3 (r99200.l)
     }}
 }
@@ -85,7 +85,7 @@ sub color (ubyte txtcol) {
 
 sub chrout(ubyte char) {
     %ir {{
-        loadm.b r99100,txt.chrout.char
+        loadm.b r99100.b,[txt.chrout.char]
         syscall 2 (r99100.b)
     }}
 }
@@ -96,7 +96,7 @@ sub bell() {
 
 sub  print (str text) {
     %ir {{
-        loadm.l r99200,txt.print.text
+        loadm.l r99200.l,[txt.print.text]
         syscall 3 (r99200.l)
     }}
 }
@@ -176,7 +176,7 @@ sub  print_w  (word value) {
 sub  print_l  (long value) {
     ; ---- print the (signed) long in decimal form, without left padding 0's
     %ir {{
-        loadm.l r99200,txt.print_l.value
+        loadm.l r99200.l,[txt.print_l.value]
         syscall 59 (r99200.l)
     }}
 }
@@ -185,10 +185,10 @@ sub  input_chars  (str buffer) -> ubyte  {
     ; ---- Input a string (max. 80 chars) from the keyboard. Returns length of input. (string is terminated with a 0 byte as well)
     ;      It assumes the keyboard is selected as I/O channel!
     %ir {{
-        loadm.l r99200,txt.input_chars.buffer
-        load.b r99100,#80
-        syscall 6 (r99200.l, r99100.b): r99100.b
-        returnr.b r99100
+        loadm.l r99200.l,[txt.input_chars.buffer]
+        load.b r99100.b,#80.b
+        syscall 6 (r99200.l, r99100.b): r99101.b
+        returnr.b r99101.b
     }}
 }
 

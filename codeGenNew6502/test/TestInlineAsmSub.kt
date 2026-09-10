@@ -1,6 +1,7 @@
 package prog8tests.codegen.new6502
 
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.engine.spec.tempdir
 import io.kotest.matchers.shouldBe
 import prog8.code.core.*
 import prog8.code.target.Cx16Target
@@ -8,11 +9,12 @@ import prog8.codegen.new6502.AsmGen
 import prog8.intermediate.*
 import prog8tests.helpers.ErrorReporterForTests
 import java.nio.file.Path
-import kotlin.io.path.Path
 import kotlin.io.path.exists
 import kotlin.io.path.readText
 
 class TestInlineAsmSub : FunSpec({
+
+    val tempRoot = tempdir().toPath()
 
     fun buildTestProgramWithInlineAsmSub(
         inline: Boolean,
@@ -46,7 +48,7 @@ class TestInlineAsmSub : FunSpec({
 
         // Create the main subroutine that calls the asmsub
         val callChunk = IRCodeChunk(null, null)
-        callChunk.instructions.add(IRInstruction(Opcode.CALL, labelSymbol = "main.test"))
+        callChunk.instructions.add(IRInstructions.call(CallSite(CallTarget.Direct(codeLabel("main.test")))))
         val mainSub = IRSubroutine("main.start", emptyList(), emptyList(), Position.DUMMY)
         mainSub.chunks.add(callChunk)
 
@@ -68,7 +70,7 @@ class TestInlineAsmSub : FunSpec({
 
     test("inline asmsub is inlined at call site, no jsr") {
         val (program, target) = buildTestProgramWithInlineAsmSub(inline = true)
-        val outputDir = Path("/tmp/test-inline-asmsub-new")
+        val outputDir = tempRoot.resolve("test-inline-asmsub-new")
         outputDir.toFile().deleteRecursively()
         outputDir.toFile().mkdirs()
         program.options.outputDir = outputDir
@@ -86,7 +88,7 @@ class TestInlineAsmSub : FunSpec({
 
     test("regular asmsub is called via jsr, not inlined") {
         val (program, target) = buildTestProgramWithInlineAsmSub(inline = false, asmBody = "lda #99\nrts")
-        val outputDir = Path("/tmp/test-regular-asmsub-new")
+        val outputDir = tempRoot.resolve("test-regular-asmsub-new")
         outputDir.toFile().deleteRecursively()
         outputDir.toFile().mkdirs()
         program.options.outputDir = outputDir

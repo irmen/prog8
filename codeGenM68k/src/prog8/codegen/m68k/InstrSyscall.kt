@@ -7,35 +7,43 @@
 
 package prog8.codegen.m68k
 
-import prog8.intermediate.FunctionCallArgs
+import prog8.intermediate.CallSite
 import prog8.intermediate.IMSyscall
 import prog8.intermediate.IRDataType
+import prog8.intermediate.RegisterOperand
+import prog8.intermediate.intNumber
 
 
 // === SYSCALL dispatch ===
 
-internal fun AsmGen.translateSyscall(num: Int, args: FunctionCallArgs) {
+internal fun AsmGen.translateSyscall(num: Int, site: CallSite) {
     when (num) {
-        IMSyscall.WORDARRAY_CONTAINS.number -> translateSyscallWordarrayContains(args)
-        IMSyscall.COMPARE_STRINGS.number -> translateSyscallStringCompare(args)
-        IMSyscall.CLAMP_BYTE.number -> translateSyscallClamp(args, IRDataType.BYTE, true)
-        IMSyscall.CLAMP_UBYTE.number -> translateSyscallClamp(args, IRDataType.BYTE, false)
-        IMSyscall.CLAMP_WORD.number -> translateSyscallClamp(args, IRDataType.WORD, true)
-        IMSyscall.CLAMP_UWORD.number -> translateSyscallClamp(args, IRDataType.WORD, false)
-        IMSyscall.CLAMP_LONG.number -> translateSyscallClamp(args, IRDataType.LONG, true)
+        IMSyscall.WORDARRAY_CONTAINS.number -> translateSyscallWordarrayContains(site)
+        IMSyscall.COMPARE_STRINGS.number -> translateSyscallStringCompare(site)
+        IMSyscall.CLAMP_BYTE.number -> translateSyscallClamp(site, IRDataType.BYTE, true)
+        IMSyscall.CLAMP_UBYTE.number -> translateSyscallClamp(site, IRDataType.BYTE, false)
+        IMSyscall.CLAMP_WORD.number -> translateSyscallClamp(site, IRDataType.WORD, true)
+        IMSyscall.CLAMP_UWORD.number -> translateSyscallClamp(site, IRDataType.WORD, false)
+        IMSyscall.CLAMP_LONG.number -> translateSyscallClamp(site, IRDataType.LONG, true)
         else -> TODO("syscall $num on m68k")
     }
 }
 
+private fun CallSite.argument(index: Int): RegisterOperand =
+    arguments.getOrNull(index)?.source ?: error("syscall is missing argument $index")
+
+private fun CallSite.resultRegister(index: Int): RegisterOperand =
+    results.getOrNull(index)?.destination ?: error("syscall is missing result $index")
+
 // Compare two strings by delegating to the library routine prog8_lib.strcmp,
 // which already implements an efficient case-sensitive comparison that
 // correctly handles 32 bits pointers (the pointer type on M68k targets).
-private fun AsmGen.translateSyscallStringCompare(args: FunctionCallArgs) {
-    val reg1 = args.arguments[0].reg.registerNum.value
-    val reg2 = args.arguments[1].reg.registerNum.value
-    val resultReg = args.returns[0].registerNum.value
-    emitLoadD0(reg1, args.arguments[0].reg.dt)
-    loadStringArg(reg2, args.arguments[1].reg.dt, "d1")
+private fun AsmGen.translateSyscallStringCompare(site: CallSite) {
+    val arg1 = site.argument(0)
+    val arg2 = site.argument(1)
+    val resultReg = site.resultRegister(0).intNumber
+    emitLoadD0(arg1.intNumber, arg1.type)
+    loadStringArg(arg2.intNumber, arg2.type, "d1")
     invalidateD0Cache()         // d0 is caller-saved across the subroutine call
     emitLine("bsr  prog8_lib.strcmp")
     emitStoreD0(resultReg, IRDataType.BYTE)
@@ -51,11 +59,11 @@ private fun AsmGen.loadStringArg(reg: Int, dt: IRDataType, dreg: String) {
     }
 }
 
-private fun AsmGen.translateSyscallWordarrayContains(args: FunctionCallArgs) {
-    val regElem = args.arguments[0].reg.registerNum.value
-    val regArr = args.arguments[1].reg.registerNum.value
-    val regLen = args.arguments[2].reg.registerNum.value
-    val resultReg = args.returns[0].registerNum.value
+private fun AsmGen.translateSyscallWordarrayContains(site: CallSite) {
+    val regElem = site.argument(0).intNumber
+    val regArr = site.argument(1).intNumber
+    val regLen = site.argument(2).intNumber
+    val resultReg = site.resultRegister(0).intNumber
 
     val labelLoop = makeLabel(".wac_loop")
     val labelFound = makeLabel(".wac_found")
@@ -78,11 +86,11 @@ private fun AsmGen.translateSyscallWordarrayContains(args: FunctionCallArgs) {
     emitRaw("$labelDone:")
 }
 
-private fun AsmGen.translateSyscallClamp(args: FunctionCallArgs, dt: IRDataType, signed: Boolean) {
-    val valueReg = args.arguments[0].reg.registerNum.value
-    val minReg = args.arguments[1].reg.registerNum.value
-    val maxReg = args.arguments[2].reg.registerNum.value
-    val resultReg = args.returns[0].registerNum.value
+private fun AsmGen.translateSyscallClamp(site: CallSite, dt: IRDataType, signed: Boolean) {
+    val valueReg = site.argument(0).intNumber
+    val minReg = site.argument(1).intNumber
+    val maxReg = site.argument(2).intNumber
+    val resultReg = site.resultRegister(0).intNumber
 
     val labelCheckMax = makeLabel(".clamp_max")
     val labelDone = makeLabel(".clamp_done")

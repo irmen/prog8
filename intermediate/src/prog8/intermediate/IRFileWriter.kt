@@ -64,6 +64,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
         xml.writeStartElement("PROGRAM")
         xml.writeAttribute("NAME", irProgram.name)
         xml.writeAttribute("COMPILERVERSION", irProgram.options.compilerVersion)
+        xml.writeAttribute("IRFORMAT", IR_FORMAT_VERSION.toString())
         xml.writeCharacters("\n")
         writeOptions()
         writeAsmSymbols()
@@ -80,7 +81,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
         out.close()
 
         val used = irProgram.registersUsed()
-        val numberUsed = (used.readRegs.keys + used.writeRegs.keys).size + (used.readFpRegs.keys + used.writeFpRegs.keys).size
+        val numberUsed = (used.readRegs.keys + used.writeRegs.keys).size
         if(!irProgram.options.quiet)
             println("($numInstr instructions in $numChunks chunks, $numberUsed registers)")
         return outfile
@@ -171,26 +172,29 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
     }
 
     private fun writeCodeChunk(chunk: IRCodeChunk) {
-        val indexRegType = irProgram.options.compTarget.indexRegType
-        val usedRegs = chunk.usedRegisters(indexRegType)
+        val usedRegs = chunk.usedRegisters()
         val regs = StringBuilder()
-        if(usedRegs.readRegs.any() || usedRegs.writeRegs.any()) {
+        val intRead = usedRegs.intRegsRead.toSortedMap()
+        val intWritten = usedRegs.intRegsWritten.toSortedMap()
+        val floatRead = usedRegs.floatRegsRead.toSortedMap()
+        val floatWritten = usedRegs.floatRegsWritten.toSortedMap()
+        if(intRead.any() || intWritten.any()) {
             regs.append("\nINT REGS:\n")
-            if (usedRegs.readRegs.any())
-                regs.append(" read: ${usedRegs.readRegs.toSortedMap().map { (reg, amount) -> "r$reg=${amount}" }}\n")
-            if (usedRegs.writeRegs.any())
-                regs.append(" write: ${usedRegs.writeRegs.toSortedMap().map { (reg, amount) -> "r$reg=${amount}" }}\n")
+            if (intRead.any())
+                regs.append(" read: ${intRead.map { (reg, amount) -> "$reg=${amount}" }}\n")
+            if (intWritten.any())
+                regs.append(" write: ${intWritten.map { (reg, amount) -> "$reg=${amount}" }}\n")
             regs.append(" types:\n")
-            for ((regnum, type) in usedRegs.regsTypes.toSortedMap()) {
-                regs.append("  r$regnum -> $type\n")
+            for ((regnum, type) in usedRegs.intRegsTypes.toSortedMap()) {
+                regs.append("  $regnum -> $type\n")
             }
         }
-        if(usedRegs.readFpRegs.any() || usedRegs.writeFpRegs.any()) {
+        if(floatRead.any() || floatWritten.any()) {
             regs.append("\nFP REGS:\n")
-            if(usedRegs.readFpRegs.any())
-                regs.append(" read: ${usedRegs.readFpRegs.toSortedMap().map { (reg, amount) -> "fr$reg=${amount}" }}\n")
-            if(usedRegs.writeFpRegs.any())
-                regs.append(" write: ${usedRegs.writeFpRegs.toSortedMap().map { (reg, amount) -> "fr$reg=${amount}" }}\n")
+            if(floatRead.any())
+                regs.append(" read: ${floatRead.map { (reg, amount) -> "fr${reg.value}=${amount}" }}\n")
+            if(floatWritten.any())
+                regs.append(" write: ${floatWritten.map { (reg, amount) -> "fr${reg.value}=${amount}" }}\n")
         }
 
         xml.writeStartElement("CHUNK")

@@ -2,6 +2,10 @@ package prog8.vm
 
 import prog8.intermediate.IRDataType
 import prog8.intermediate.IRInstruction
+import prog8.intermediate.requireDest
+import prog8.intermediate.requireImmediateInt
+import prog8.intermediate.requireSrcA
+import prog8.intermediate.requireSrcB
 
 // Note: statusbitsNZ() was removed as part of the strict status-bits contract cleanup.
 // The VM no longer sets Z/N on arithmetic or load operations; only CMP, CMPI, SGN,
@@ -503,10 +507,12 @@ internal fun arithFloat(left: Double, operator: String, right: Double): Double =
 }
 
 internal fun VirtualMachine.getBranchOperands(i: IRInstruction): Pair<Int, Int> {
+    val left = i.requireSrcA().registerNumber
+    val right = i.requireSrcB().registerNumber
     return when(i.type) {
-        IRDataType.BYTE -> Pair(registers.getSB(i.reg1!!).toInt(), registers.getSB(i.reg2!!).toInt())
-        IRDataType.WORD -> Pair(registers.getSW(i.reg1!!).toInt(), registers.getSW(i.reg2!!).toInt())
-        IRDataType.LONG, IRDataType.POINTER -> Pair(registers.getSL(i.reg1!!), registers.getSL(i.reg2!!))
+        IRDataType.BYTE -> Pair(registers.getSB(left).toInt(), registers.getSB(right).toInt())
+        IRDataType.WORD -> Pair(registers.getSW(left).toInt(), registers.getSW(right).toInt())
+        IRDataType.LONG, IRDataType.POINTER -> Pair(registers.getSL(left), registers.getSL(right))
         IRDataType.FLOAT -> {
             throw IllegalArgumentException("can't use float here")
         }
@@ -515,10 +521,12 @@ internal fun VirtualMachine.getBranchOperands(i: IRInstruction): Pair<Int, Int> 
 }
 
 internal fun VirtualMachine.getBranchOperandsImm(i: IRInstruction): Pair<Int, Int> {
+    val left = i.requireSrcA().registerNumber
+    val right = i.requireImmediateInt()
     return when(i.type) {
-        IRDataType.BYTE -> Pair(registers.getSB(i.reg1!!).toInt(), i.immediate!!)
-        IRDataType.WORD -> Pair(registers.getSW(i.reg1!!).toInt(), i.immediate!!)
-        IRDataType.LONG, IRDataType.POINTER -> Pair(registers.getSL(i.reg1!!), i.immediate!!)
+        IRDataType.BYTE -> Pair(registers.getSB(left).toInt(), right)
+        IRDataType.WORD -> Pair(registers.getSW(left).toInt(), right)
+        IRDataType.LONG, IRDataType.POINTER -> Pair(registers.getSL(left), right)
         IRDataType.FLOAT -> {
             throw IllegalArgumentException("can't use float here")
         }
@@ -527,10 +535,12 @@ internal fun VirtualMachine.getBranchOperandsImm(i: IRInstruction): Pair<Int, In
 }
 
 internal fun VirtualMachine.getBranchOperandsU(i: IRInstruction): Pair<UInt, UInt> {
+    val left = i.requireSrcA().registerNumber
+    val right = i.requireSrcB().registerNumber
     return when(i.type) {
-        IRDataType.BYTE -> Pair(registers.getUB(i.reg1!!).toUInt(), registers.getUB(i.reg2!!).toUInt())
-        IRDataType.WORD -> Pair(registers.getUW(i.reg1!!).toUInt(), registers.getUW(i.reg2!!).toUInt())
-        IRDataType.LONG, IRDataType.POINTER -> Pair(registers.getSL(i.reg1!!).toUInt(), registers.getSL(i.reg2!!).toUInt())
+        IRDataType.BYTE -> Pair(registers.getUB(left).toUInt(), registers.getUB(right).toUInt())
+        IRDataType.WORD -> Pair(registers.getUW(left).toUInt(), registers.getUW(right).toUInt())
+        IRDataType.LONG, IRDataType.POINTER -> Pair(registers.getSL(left).toUInt(), registers.getSL(right).toUInt())
         IRDataType.FLOAT -> {
             throw IllegalArgumentException("can't use float here")
         }
@@ -539,10 +549,12 @@ internal fun VirtualMachine.getBranchOperandsU(i: IRInstruction): Pair<UInt, UIn
 }
 
 internal fun VirtualMachine.getBranchOperandsImmU(i: IRInstruction): Pair<UInt, UInt> {
+    val left = i.requireSrcA().registerNumber
+    val right = i.requireImmediateInt().toUInt()
     return when(i.type) {
-        IRDataType.BYTE -> Pair(registers.getUB(i.reg1!!).toUInt(), i.immediate!!.toUInt())
-        IRDataType.WORD -> Pair(registers.getUW(i.reg1!!).toUInt(), i.immediate!!.toUInt())
-        IRDataType.LONG, IRDataType.POINTER -> Pair(registers.getSL(i.reg1!!).toUInt(), i.immediate!!.toUInt())
+        IRDataType.BYTE -> Pair(registers.getUB(left).toUInt(), right)
+        IRDataType.WORD -> Pair(registers.getUW(left).toUInt(), right)
+        IRDataType.LONG, IRDataType.POINTER -> Pair(registers.getSL(left).toUInt(), right)
         IRDataType.FLOAT -> {
             throw IllegalArgumentException("can't use float here")
         }
@@ -551,10 +563,12 @@ internal fun VirtualMachine.getBranchOperandsImmU(i: IRInstruction): Pair<UInt, 
 }
 
 internal fun VirtualMachine.getLogicalOperandsU(i: IRInstruction): Pair<UInt, UInt> {
+    val left = i.requireDest().registerNumber
+    val right = i.requireSrcA().registerNumber
     return when(i.type) {
-        IRDataType.BYTE -> Pair(registers.getUB(i.reg1!!).toUInt(), registers.getUB(i.reg2!!).toUInt())
-        IRDataType.WORD -> Pair(registers.getUW(i.reg1!!).toUInt(), registers.getUW(i.reg2!!).toUInt())
-        IRDataType.LONG, IRDataType.POINTER -> Pair(registers.getSL(i.reg1!!).toUInt(), registers.getSL(i.reg2!!).toUInt())
+        IRDataType.BYTE -> Pair(registers.getUB(left).toUInt(), registers.getUB(right).toUInt())
+        IRDataType.WORD -> Pair(registers.getUW(left).toUInt(), registers.getUW(right).toUInt())
+        IRDataType.LONG, IRDataType.POINTER -> Pair(registers.getSL(left).toUInt(), registers.getSL(right).toUInt())
         IRDataType.FLOAT -> {
             throw IllegalArgumentException("can't use float here")
         }
@@ -563,20 +577,23 @@ internal fun VirtualMachine.getLogicalOperandsU(i: IRInstruction): Pair<UInt, UI
 }
 
 internal fun VirtualMachine.getLogicalOperandU(i: IRInstruction): UInt {
+    val reg = i.requireDest().registerNumber
     return when(i.type) {
-        IRDataType.BYTE -> registers.getUB(i.reg1!!).toUInt()
-        IRDataType.WORD -> registers.getUW(i.reg1!!).toUInt()
-        IRDataType.LONG, IRDataType.POINTER -> registers.getSL(i.reg1!!).toUInt()
+        IRDataType.BYTE -> registers.getUB(reg).toUInt()
+        IRDataType.WORD -> registers.getUW(reg).toUInt()
+        IRDataType.LONG, IRDataType.POINTER -> registers.getSL(reg).toUInt()
         IRDataType.FLOAT -> throw IllegalArgumentException("can't use float here")
         null -> throw IllegalArgumentException("need type for logical instruction")
     }
 }
 
 internal fun VirtualMachine.getLogicalOperandsS(i: IRInstruction): Pair<Int, Int> {
+    val left = i.requireDest().registerNumber
+    val right = i.requireSrcA().registerNumber
     return when(i.type) {
-        IRDataType.BYTE -> Pair(registers.getSB(i.reg1!!).toInt(), registers.getSB(i.reg2!!).toInt())
-        IRDataType.WORD -> Pair(registers.getSW(i.reg1!!).toInt(), registers.getSW(i.reg2!!).toInt())
-        IRDataType.LONG, IRDataType.POINTER -> Pair(registers.getSL(i.reg1!!), registers.getSL(i.reg2!!))
+        IRDataType.BYTE -> Pair(registers.getSB(left).toInt(), registers.getSB(right).toInt())
+        IRDataType.WORD -> Pair(registers.getSW(left).toInt(), registers.getSW(right).toInt())
+        IRDataType.LONG, IRDataType.POINTER -> Pair(registers.getSL(left), registers.getSL(right))
         IRDataType.FLOAT -> {
             throw IllegalArgumentException("can't use float here")
         }
@@ -585,10 +602,11 @@ internal fun VirtualMachine.getLogicalOperandsS(i: IRInstruction): Pair<Int, Int
 }
 
 internal fun VirtualMachine.getLogicalOperandS(i: IRInstruction): Int {
+    val reg = i.requireDest().registerNumber
     return when(i.type) {
-        IRDataType.BYTE -> registers.getSB(i.reg1!!).toInt()
-        IRDataType.WORD -> registers.getSW(i.reg1!!).toInt()
-        IRDataType.LONG, IRDataType.POINTER -> registers.getSL(i.reg1!!)
+        IRDataType.BYTE -> registers.getSB(reg).toInt()
+        IRDataType.WORD -> registers.getSW(reg).toInt()
+        IRDataType.LONG, IRDataType.POINTER -> registers.getSL(reg)
         IRDataType.FLOAT -> throw IllegalArgumentException("can't use float here")
         null -> throw IllegalArgumentException("need type for logical instruction")
     }

@@ -8,7 +8,9 @@ import prog8.code.ast.PtProgram
 import prog8.code.core.CompilationOptions
 import prog8.code.core.IErrorReporter
 import prog8.codegen.intermediate.IRCodeGen
+import prog8.intermediate.IRDataType
 import prog8.intermediate.IRFileWriter
+import prog8.intermediate.VirtualRegister
 
 class New6502CodeGenerator(val retainSSA: Boolean,
                     private val preassignedCallSiteIds: Map<String, UByte> = emptyMap()
@@ -24,8 +26,13 @@ class New6502CodeGenerator(val retainSSA: Boolean,
         // but you can also use the Intermediate Representation to build a codegen on:
         val irCodeGen = IRCodeGen(program, symbolTable, options, errors, retainSSA, preassignedCallSiteIds)
         val irProgram = irCodeGen.generate()
-        if (!irCodeGen.wasPackingApplied)
-            irProgram.verifyRegisterTypes(irCodeGen.registerTypes())
+        if (!irCodeGen.wasPackingApplied) {
+            val virtualRegisterTypes = irCodeGen.registerTypes().entries.associate { (num, type) ->
+                val register: VirtualRegister = if (type == IRDataType.FLOAT) VirtualRegister.float(num.value) else VirtualRegister.int(num.value)
+                register to type
+            }
+            irProgram.verifyRegisterTypes(virtualRegisterTypes)
+        }
 
         IRFileWriter(irProgram, null).write()
 

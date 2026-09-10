@@ -17,18 +17,21 @@
 
 package prog8.codegen.m68k
 
+import prog8.intermediate.CodeReference
 import prog8.intermediate.IRDataType
 import prog8.intermediate.IRInstruction
 import prog8.intermediate.Opcode
+import prog8.intermediate.intNumber
+import prog8.intermediate.requireImmediateInt
+import prog8.intermediate.requireSrcA
+import prog8.intermediate.requireSrcB
+import prog8.intermediate.requireTarget
 
 internal fun AsmGen.translateBranch(insn: IRInstruction) {
-    val target = insn.branchTarget
-    val ls = insn.labelSymbol
-
-    val label: String = when {
-        target?.label != null -> fixNameSymbols(target.label!!)
-        ls != null -> fixNameSymbols(ls)
-        else -> "unknown_target"
+    val label: String = when (val target = insn.requireTarget()) {
+        is CodeReference.Label -> fixNameSymbols(target.name)
+        is CodeReference.Absolute -> target.address.toHex()
+        is CodeReference.Indirect -> error("branch needs a static target")
     }
 
     when (insn.opcode) {
@@ -69,8 +72,8 @@ internal fun AsmGen.translateBranch(insn: IRInstruction) {
 
 private fun AsmGen.cmpBranchUnsignedImm(insn: IRInstruction, label: String, branchOp: String) {
     val type = insn.type ?: IRDataType.BYTE
-    val reg = insn.reg1 ?: error("branch needs reg1")
-    val imm = insn.immediate ?: error("unsigned branch needs immediate")
+    val reg = insn.requireSrcA().intNumber
+    val imm = insn.requireImmediateInt()
     val s = dtSuffix(type)
     // cmpi.x #imm, <ea> and tst.x <ea> accept memory operands, so the
     // register-file load into d0 is redundant
@@ -85,11 +88,11 @@ private fun AsmGen.cmpBranchUnsignedImm(insn: IRInstruction, label: String, bran
 
 private fun AsmGen.cmpBranchUnsignedReg(insn: IRInstruction, label: String, branchOp: String) {
     val type = insn.type ?: IRDataType.BYTE
-    val reg1 = insn.reg1 ?: error("branch needs reg1")
-    val reg2 = insn.reg2 ?: error("reg branch needs reg2")
+    val left = insn.requireSrcA().intNumber
+    val right = insn.requireSrcB().intNumber
     val s = dtSuffix(type)
-    emitLoadD0(reg1, type)
-    emitLine("cmp$s  ${regAddr(reg2)}, d0")
+    emitLoadD0(left, type)
+    emitLine("cmp$s  ${regAddr(right)}, d0")
     emitBranch(branchOp, label)
 }
 
@@ -97,8 +100,8 @@ private fun AsmGen.cmpBranchUnsignedReg(insn: IRInstruction, label: String, bran
 
 private fun AsmGen.cmpBranchSignedImm(insn: IRInstruction, label: String, branchOp: String) {
     val type = insn.type ?: IRDataType.BYTE
-    val reg = insn.reg1 ?: error("branch needs reg1")
-    val imm = insn.immediate ?: error("signed branch needs immediate")
+    val reg = insn.requireSrcA().intNumber
+    val imm = insn.requireImmediateInt()
     val s = dtSuffix(type)
     // cmpi.x #imm, <ea> and tst.x <ea> accept memory operands, so the
     // register-file load into d0 is redundant
@@ -113,11 +116,11 @@ private fun AsmGen.cmpBranchSignedImm(insn: IRInstruction, label: String, branch
 
 private fun AsmGen.cmpBranchSignedReg(insn: IRInstruction, label: String, branchOp: String) {
     val type = insn.type ?: IRDataType.BYTE
-    val reg1 = insn.reg1 ?: error("branch needs reg1")
-    val reg2 = insn.reg2 ?: error("reg branch needs reg2")
+    val left = insn.requireSrcA().intNumber
+    val right = insn.requireSrcB().intNumber
     val s = dtSuffix(type)
-    emitLoadD0(reg1, type)
-    emitLine("cmp$s  ${regAddr(reg2)}, d0")
+    emitLoadD0(left, type)
+    emitLine("cmp$s  ${regAddr(right)}, d0")
     emitBranch(branchOp, label)
 }
 

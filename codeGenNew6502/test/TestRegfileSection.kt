@@ -1,6 +1,7 @@
 package prog8tests.codegen.new6502
 
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.engine.spec.tempdir
 import io.kotest.matchers.shouldBe
 import prog8.code.core.*
 import prog8.code.target.Cx16Target
@@ -8,7 +9,6 @@ import prog8.codegen.new6502.AsmGen
 import prog8.intermediate.*
 import prog8tests.helpers.ErrorReporterForTests
 import java.nio.file.Path
-import kotlin.io.path.Path
 import kotlin.io.path.exists
 import kotlin.io.path.readText
 
@@ -29,6 +29,8 @@ import kotlin.io.path.readText
  * as (and after) the dirty variables.
  */
 class TestRegfileSection : FunSpec({
+
+    val tempRoot = tempdir().toPath()
 
     fun buildTestProgram(
         vars: List<IRStStaticVariable>,
@@ -86,10 +88,10 @@ class TestRegfileSection : FunSpec({
                 // Use register r1, which lives at offset 0 in the variable-size
                 // regfile layout. If the label is misplaced this access overlaps
                 // the dirty vars that share the same BSS_NOCLEAR section.
-                IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = 1, immediate = 0)
+                IRInstructions.load(IRDataType.BYTE, 1, 0)
             )
         )
-        val outputDir = Path("/tmp/test-regfile-section-1")
+        val outputDir = tempRoot.resolve("test-regfile-section-1")
         outputDir.toFile().deleteRecursively()
         outputDir.toFile().mkdirs()
         program.options.outputDir = outputDir
@@ -149,11 +151,11 @@ class TestRegfileSection : FunSpec({
                 makeDirtyVar("main.dirtyvar1", DataType.UBYTE)
             ),
             instructions = listOf(
-                IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = 1, immediate = 0),
-                IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1 = 2, immediate = 0)
+                IRInstructions.load(IRDataType.BYTE, 1, 0),
+                IRInstructions.load(IRDataType.WORD, 2, 0)
             )
         )
-        val outputDir = Path("/tmp/test-regfile-section-2")
+        val outputDir = tempRoot.resolve("test-regfile-section-2")
         outputDir.toFile().deleteRecursively()
         outputDir.toFile().mkdirs()
         program.options.outputDir = outputDir

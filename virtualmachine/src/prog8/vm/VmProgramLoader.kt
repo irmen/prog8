@@ -47,21 +47,21 @@ class VmProgramLoader {
             while(idx < chunks.size) {
                 val chunk = chunks[idx]
                 if(chunk is IRLoopChunk) {
-                    val used = chunk.usedRegisters(irProgram.options.compTarget.indexRegType)
-                    val usedNums = (used.readRegs.keys + used.writeRegs.keys).map { it.value }.toSet()
+                    val used = chunk.usedRegisters()
+                    val usedNums = (used.intRegsRead.keys + used.intRegsWritten.keys).map { it.value }.toSet()
                     var loopReg = nextLoopReg
                     while(loopReg in usedNums || loopReg in 99000..99300) loopReg++
                     nextLoopReg = loopReg + 1
                     val initVal = if(chunk.trip==65536) 0 else chunk.trip
                     val header = IRCodeChunk(null, null)
-                    header += IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1=loopReg, immediate=initVal)
+                    header += IRInstructions.load(IRDataType.WORD, loopReg, initVal)
                     // recursively expand nested loops inside body first
                     expandLoopsInList(chunk.body)
                     val loopStart = IRCodeChunk(chunk.label, null)
                     val tail = IRCodeChunk(null, null)
-                    tail += IRInstruction(Opcode.DEC, IRDataType.WORD, reg1=loopReg)
-                    tail += IRInstruction(Opcode.CMPI, IRDataType.WORD, reg1=loopReg, immediate=0)
-                    tail += IRInstruction(Opcode.BSTNE, labelSymbol=chunk.label!!)
+                    tail += IRInstructions.unary(Opcode.DEC, IRDataType.WORD, loopReg)
+                    tail += IRInstructions.compareImmediate(IRDataType.WORD, loopReg, 0)
+                    tail += IRInstructions.branch(Opcode.BSTNE, codeLabel(chunk.label!!))
                     // replace loop chunk with header + loopStart + body + tail
                     chunks.removeAt(idx)
                     val replacement = mutableListOf<IRCodeChunkBase>()
@@ -89,19 +89,19 @@ class VmProgramLoader {
                     val el = mutable[i]
                     if(el is IRLoopChunk) {
                         expandLoopsInList(el.body)
-                        val used = el.usedRegisters(irProgram.options.compTarget.indexRegType)
-                        val usedNums = (used.readRegs.keys + used.writeRegs.keys).map { it.value }.toSet()
+                        val used = el.usedRegisters()
+                        val usedNums = (used.intRegsRead.keys + used.intRegsWritten.keys).map { it.value }.toSet()
                         var loopReg=nextLoopReg
                         while(loopReg in usedNums || loopReg in 99000..99300) loopReg++
                         nextLoopReg = loopReg + 1
                         val initVal = if(el.trip==65536) 0 else el.trip
                         val header = IRCodeChunk(null, null)
-                        header += IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1=loopReg, immediate=initVal)
+                        header += IRInstructions.load(IRDataType.WORD, loopReg, initVal)
                         val loopStart = IRCodeChunk(el.label, null)
                         val tail = IRCodeChunk(null, null)
-                        tail += IRInstruction(Opcode.DEC, IRDataType.WORD, reg1=loopReg)
-                        tail += IRInstruction(Opcode.CMPI, IRDataType.WORD, reg1=loopReg, immediate=0)
-                        tail += IRInstruction(Opcode.BSTNE, labelSymbol=el.label!!)
+                        tail += IRInstructions.unary(Opcode.DEC, IRDataType.WORD, loopReg)
+                        tail += IRInstructions.compareImmediate(IRDataType.WORD, loopReg, 0)
+                        tail += IRInstructions.branch(Opcode.BSTNE, codeLabel(el.label!!))
                         mutable.removeAt(i)
                         mutable.add(i, tail)
                         el.body.reversed().forEach { mutable.add(i, it) }
@@ -129,8 +129,8 @@ class VmProgramLoader {
                 val previous = programChunks.lastOrNull()
                 val chunk = IRCodeChunk(null, previous)
                 placeholders[Pair(chunk, 0)] = "main.start"
-                chunk += IRInstruction(Opcode.JUMP, labelSymbol = "main.start")
-                // note: labelSymbol "main.start" doesn't need stripping since it's not prefixed
+                chunk += IRInstructions.jump(codeLabel("main.start"))
+                // note: the "main.start" label doesn't need stripping since it's not prefixed
                 previous?.let { p -> p.next = chunk }
                 programChunks += chunk
             }
@@ -139,15 +139,15 @@ class VmProgramLoader {
         // helper to expand IRLoopChunk into dec/bne sequence for VM execution (fallback for any remaining loops during flat list building)
         fun expandLoop(loop: IRLoopChunk, out: MutableList<IRCodeChunk>) {
             // allocate a fresh WORD register not used by the body
-            val used = loop.usedRegisters(irProgram.options.compTarget.indexRegType)
-            val usedNums = (used.readRegs.keys + used.writeRegs.keys).map { it.value }.toSet()
+            val used = loop.usedRegisters()
+            val usedNums = (used.intRegsRead.keys + used.intRegsWritten.keys).map { it.value }.toSet()
             var loopReg = nextLoopReg
             while(loopReg in usedNums || loopReg in 99000..99300) loopReg++
             nextLoopReg = loopReg + 1
             // handle trip up to 65536: WORD register, 65536 wraps to 0
             val initVal = if(loop.trip==65536) 0 else loop.trip
             val header = IRCodeChunk(null, null)
-            header += IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1=loopReg, immediate=initVal)
+            header += IRInstructions.load(IRDataType.WORD, loopReg, initVal)
             out += header
             val loopStart = IRCodeChunk(loop.label, null)
             out += loopStart
@@ -159,8 +159,8 @@ class VmProgramLoader {
                     is IRInlineAsmChunk -> {
                         val asmText = chunk.assembly.trim()
                         when (asmText) {
-                            "clc" -> out.lastOrNull()?.instructions?.add(IRInstruction(Opcode.CLC))
-                            "sec" -> out.lastOrNull()?.instructions?.add(IRInstruction(Opcode.SEC))
+                            "clc" -> out.lastOrNull()?.instructions?.add(IRInstructions.simple(Opcode.CLC))
+                            "sec" -> out.lastOrNull()?.instructions?.add(IRInstructions.simple(Opcode.SEC))
                             else -> throw IRParseException("encountered unconverted inline assembly chunk in loop")
                         }
                     }
@@ -169,9 +169,9 @@ class VmProgramLoader {
             }
             loop.body.forEach { addBodyChunk(it) }
             val tail = IRCodeChunk(null, null)
-            tail += IRInstruction(Opcode.DEC, IRDataType.WORD, reg1=loopReg)
-            tail += IRInstruction(Opcode.CMPI, IRDataType.WORD, reg1=loopReg, immediate=0)
-            tail += IRInstruction(Opcode.BSTNE, labelSymbol=loop.label!!)
+            tail += IRInstructions.unary(Opcode.DEC, IRDataType.WORD, loopReg)
+            tail += IRInstructions.compareImmediate(IRDataType.WORD, loopReg, 0)
+            tail += IRInstructions.branch(Opcode.BSTNE, codeLabel(loop.label!!))
             out += tail
         }
 
@@ -189,8 +189,8 @@ class VmProgramLoader {
                     is IRInlineAsmChunk -> {
                         val asmText = child.assembly.trim()
                         when (asmText) {
-                            "clc" -> programChunks.lastOrNull()?.instructions?.add(IRInstruction(Opcode.CLC))
-                            "sec" -> programChunks.lastOrNull()?.instructions?.add(IRInstruction(Opcode.SEC))
+                            "clc" -> programChunks.lastOrNull()?.instructions?.add(IRInstructions.simple(Opcode.CLC))
+                            "sec" -> programChunks.lastOrNull()?.instructions?.add(IRInstructions.simple(Opcode.SEC))
                             else -> throw IRParseException("encountered unconverted inline assembly chunk")
                         }
                     }
@@ -202,8 +202,8 @@ class VmProgramLoader {
                                 is IRInlineAsmChunk -> {
                                     val asmText = subChunk.assembly.trim()
                                     when (asmText) {
-                                        "clc" -> programChunks.lastOrNull()?.instructions?.add(IRInstruction(Opcode.CLC))
-                                        "sec" -> programChunks.lastOrNull()?.instructions?.add(IRInstruction(Opcode.SEC))
+                                        "clc" -> programChunks.lastOrNull()?.instructions?.add(IRInstructions.simple(Opcode.CLC))
+                                        "sec" -> programChunks.lastOrNull()?.instructions?.add(IRInstructions.simple(Opcode.SEC))
                                         else -> throw IRParseException("encountered unconverted inline assembly chunk")
                                     }
                                 }
@@ -223,13 +223,53 @@ class VmProgramLoader {
 
         (programChunks + irProgram.globalInits).forEach {
             it.instructions.forEach { ins ->
-                if (ins.labelSymbol != null && ins.opcode !in OpcodesThatBranch)
-                    requireNotNull(ins.address) { "instruction with labelSymbol for a var should have value set to the memory address" }
+                if (ins.opcode !in OpcodesThatBranch) {
+                    val stillUnresolved = ins.memory?.symbolName != null || ins.immediate is ImmediateOperand.SymbolAddress
+                    require(!stillUnresolved) { "instruction still references symbol '${placeholderSymbol(ins)}' that should have been resolved to a memory address: $ins" }
+                }
             }
         }
 
         return programChunks to artificialLabelAddresses
     }
+
+    /** the symbol name that an instruction still references unresolved (memory base, or address-of immediate), if any */
+    private fun placeholderSymbol(instr: IRInstruction): String? = when {
+        instr.memory?.symbolName != null -> instr.memory!!.symbolName
+        instr.immediate is ImmediateOperand.SymbolAddress -> (instr.immediate as ImmediateOperand.SymbolAddress).symbol
+        else -> null
+    }
+
+    /** the offset to add to that symbol's address (array indexing, "symbol+42") */
+    private fun placeholderOffset(instr: IRInstruction): Int = when {
+        instr.memory != null -> when(val m = instr.memory!!) {
+            is MemoryReference.Direct -> m.displacement
+            is MemoryReference.Indexed -> m.displacement
+            is MemoryReference.Indirect -> 0
+        }
+        instr.immediate is ImmediateOperand.SymbolAddress -> (instr.immediate as ImmediateOperand.SymbolAddress).offset
+        else -> 0
+    }
+
+    /** patch the resolved, final (base+offset already folded in) address into the instruction's memory or immediate operand */
+    private fun resolvedSymbolInstruction(instr: IRInstruction, fullAddress: UInt): IRInstruction =
+        if (instr.memory != null)
+            instr.mapMemoryReferences { mem ->
+                when (mem) {
+                    is MemoryReference.Direct -> MemoryReference.Direct(AddressBase.Absolute(fullAddress.toAddress()))
+                    is MemoryReference.Indexed -> MemoryReference.Indexed(AddressBase.Absolute(fullAddress.toAddress()), mem.index, mem.scale)
+                    is MemoryReference.Indirect -> mem
+                }
+            }
+        else {
+            // the resolved address must adopt the data type that the instruction's schema prescribes,
+            // not the (default POINTER) type the unresolved symbol reference happened to carry.
+            val immediate = if (instr.type == IRDataType.FLOAT)
+                ImmediateOperand.FloatValue(fullAddress.toDouble())
+            else
+                ImmediateOperand.Integer(fullAddress.toInt(), instr.type ?: (instr.immediate as ImmediateOperand.SymbolAddress).type)
+            instr.copy(immediate = immediate)
+        }
 
     private fun phase2relinkReplacedChunks(
         replacements: List<Pair<IRCodeChunkBase, IRCodeChunk>>,
@@ -240,11 +280,10 @@ class VmProgramLoader {
                 if(chunk.next === old) {
                     chunk.next = new
                 }
-                chunk.instructions.forEach { ins ->
-                    if(ins.branchTarget === old) {
-                        ins.branchTarget = new
-                    } else if(ins.branchTarget==null && ins.labelSymbol==new.label) {
-                        ins.branchTarget = new
+                chunk.instructions.forEachIndexed { index, ins ->
+                    val target = ins.codeTarget
+                    if(target is CodeReference.Label && (target.name == old.label || target.name == new.label)) {
+                        chunk.instructions[index] = ins.withTarget(codeLabel(new.label ?: old.label ?: target.name))
                     }
                 }
             }
@@ -256,7 +295,9 @@ class VmProgramLoader {
             chunk.instructions.withIndex().forEach { (index, ins) ->
                 if(ins.opcode == Opcode.SYSCALL) {
                     // convert IR Syscall to VM Syscall
-                    val vmSyscall = when(ins.immediate!!) {
+                    val callSite = ins.requireCallSite()
+                    val syscallNumber = (callSite.target as CallTarget.SystemCall).number
+                    val vmSyscall = when(syscallNumber) {
                         IMSyscall.COMPARE_STRINGS.number -> Syscall.COMPARE_STRINGS
                         IMSyscall.STRING_CONTAINS.number -> Syscall.STRING_CONTAINS
                         IMSyscall.BYTEARRAY_CONTAINS.number -> Syscall.BYTEARRAY_CONTAINS
@@ -276,10 +317,10 @@ class VmProgramLoader {
                     }
 
                     if(vmSyscall!=null)
-                        chunk.instructions[index] = ins.copy(immediate = vmSyscall.ordinal)
+                        chunk.instructions[index] = ins.copy(callSite = callSite.copy(target = CallTarget.SystemCall(vmSyscall.ordinal)))
                 }
 
-                val label = ins.labelSymbol
+                val label = placeholderSymbol(ins)
                 if (label != null && (ins.opcode !in OpcodesThatBranch)) {
                     placeholders[Pair(chunk, index)] = SymbolNames.stripPrefixes(label)
                 }
@@ -296,48 +337,48 @@ class VmProgramLoader {
             val (chunk, line) = ref
             val replacement = variableAddresses[label]
             val instr = chunk.instructions[line]
-            val offset = (instr.labelSymbolOffset ?: 0).toUInt()
+            val offset = placeholderOffset(instr).toUInt()
             if(replacement==null) {
                 // it could be an address + index:   symbol+42
                 if(offset>0u) {
                     val address = variableAddresses.getValue(label) + offset
-                    chunk.instructions[line] = instr.copy(address = address.toAddress())
+                    chunk.instructions[line] = resolvedSymbolInstruction(instr, address)
                 } else {
                     // placeholder is not a variable, so it must be a label of a code chunk instead
                     val target: IRCodeChunk? = chunks.firstOrNull { SymbolNames.stripPrefixes(it.label ?: "")==label }
                     if(target==null)
                         throw IRParseException("label '$label' not found in variables nor labels. VM cannot reference other things such as blocks, and constants should have been replaced by their value")
-                    else if(instr.opcode in OpcodesThatBranch)
-                        chunk.instructions[line] = instr.copy(branchTarget = target, address = null)
-                    else {
+                    else if(instr.opcode in OpcodesThatBranch) {
+                        // the instruction's code target already correctly refers to this label; nothing more to patch.
+                    } else {
                         var address: UInt? = artificialLabelAddresses[label]
                         if(address==null) {
                             // generate an artificial address
                             address = 0x1000000u + artificialLabelAddresses.size.toUInt()
                             artificialLabelAddresses[label] = address
                         }
-                        chunk.instructions[line] = instr.copy(address=address.toAddress(), branchTarget = target)
+                        chunk.instructions[line] = resolvedSymbolInstruction(instr, address)
                     }
                 }
             } else {
-                chunk.instructions[line] = instr.copy(address = (replacement + offset).toAddress())
+                chunk.instructions[line] = resolvedSymbolInstruction(instr, replacement + offset)
             }
         }
 
         subroutines.forEach {
             it.value.chunks.forEach { chunk ->
-                chunk.instructions.withIndex().forEach { (_, ins) ->
+                chunk.instructions.withIndex().forEach { (index, ins) ->
                     if(ins.opcode==Opcode.CALL) {
-                        val fcallspec = ins.fcallArgs!!
-                        val argsWithAddresses = fcallspec.arguments.map { arg ->
-                            if(arg.address!=null)
-                                arg
-                            else {
-                                val address = ins.address?.value ?: variableAddresses.getValue(SymbolNames.stripPrefixes(ins.labelSymbol!!) + "." + SymbolNames.stripPrefixes(arg.name))
-                                FunctionCallArgs.ArgumentSpec(arg.name, address, arg.reg)
-                            }
+                        val callSite = ins.requireCallSite()
+                        val fixedAddress = (ins.codeTarget as? CodeReference.Absolute)?.address?.value
+                        val argsWithAddresses = callSite.arguments.map { arg ->
+                            val loc = arg.location
+                            if(loc is CallLocation.ParameterMemory && loc.address==null) {
+                                val address = fixedAddress ?: variableAddresses.getValue(SymbolNames.stripPrefixes(ins.labelTarget!!) + "." + SymbolNames.stripPrefixes(loc.name))
+                                arg.copy(location = loc.copy(address = address.toAddress()))
+                            } else arg
                         }
-                        fcallspec.arguments = argsWithAddresses
+                        chunk.instructions[index] = ins.copy(callSite = callSite.copy(arguments = argsWithAddresses))
                     }
                 }
             }

@@ -15,119 +15,111 @@
 
 package prog8.codegen.new6502
 
-import prog8.intermediate.IRDataType
-import prog8.intermediate.IRInstruction
-import prog8.intermediate.Opcode
+import prog8.intermediate.*
 
 internal fun AsmGen.translateBitwise(insn: IRInstruction) {
     val type = insn.type ?: IRDataType.BYTE
-    val r1 = insn.reg1          // nullable - memory-only ops (INVM, ASRM, etc.) have no reg1
-    val r2 = insn.reg2
-    val imm = insn.immediate
-    val addr = insn.address
-    val label = insn.labelSymbol
-    val offset = insn.labelSymbolOffset
 
     when (insn.opcode) {
         Opcode.ANDR -> {
-            val r2val = r2 ?: error("ANDR needs reg2")
-            andRegisters(r1 ?: error("ANDR needs reg1"), r2val, type)
+            val dst = insn.requireIntDest().intNumber
+            val src = insn.requireIntSourceA().intNumber
+            andRegisters(dst, src, type)
         }
         Opcode.AND -> {
-            val value = imm ?: error("AND needs immediate")
-            andImmediate(r1 ?: error("AND needs reg1"), value, type)
+            val dst = insn.requireIntDest().intNumber
+            val value = insn.requireImmediateInt()
+            andImmediate(dst, value, type)
         }
         Opcode.ANDM -> {
-            val sourceAddress = resolveAddress(addr, label, offset)
-            andMemory(r1 ?: error("ANDM needs reg1"), sourceAddress, type)
+            val src = insn.requireIntSourceA().intNumber
+            val sourceAddress = resolveAddress(insn.requireMemory())
+            andMemory(src, sourceAddress, type)
         }
 
         Opcode.ORR -> {
-            val r2val = r2 ?: error("ORR needs reg2")
-            orRegisters(r1 ?: error("ORR needs reg1"), r2val, type)
+            val dst = insn.requireIntDest().intNumber
+            val src = insn.requireIntSourceA().intNumber
+            orRegisters(dst, src, type)
         }
         Opcode.OR -> {
-            val value = imm ?: error("OR needs immediate")
-            orImmediate(r1 ?: error("OR needs reg1"), value, type)
+            val dst = insn.requireIntDest().intNumber
+            val value = insn.requireImmediateInt()
+            orImmediate(dst, value, type)
         }
         Opcode.ORM -> {
-            val sourceAddress = resolveAddress(addr, label, offset)
-            orMemory(r1 ?: error("ORM needs reg1"), sourceAddress, type)
+            val src = insn.requireIntSourceA().intNumber
+            val sourceAddress = resolveAddress(insn.requireMemory())
+            orMemory(src, sourceAddress, type)
         }
 
         Opcode.XORR -> {
-            val r2val = r2 ?: error("XORR needs reg2")
-            xorRegisters(r1 ?: error("XORR needs reg1"), r2val, type)
+            val dst = insn.requireIntDest().intNumber
+            val src = insn.requireIntSourceA().intNumber
+            xorRegisters(dst, src, type)
         }
         Opcode.XOR -> {
-            val value = imm ?: error("XOR needs immediate")
-            xorImmediate(r1 ?: error("XOR needs reg1"), value, type)
+            val dst = insn.requireIntDest().intNumber
+            val value = insn.requireImmediateInt()
+            xorImmediate(dst, value, type)
         }
         Opcode.XORM -> {
-            val sourceAddress = resolveAddress(addr, label, offset)
-            xorMemory(r1 ?: error("XORM needs reg1"), sourceAddress, type)
+            val src = insn.requireIntSourceA().intNumber
+            val sourceAddress = resolveAddress(insn.requireMemory())
+            xorMemory(src, sourceAddress, type)
         }
 
-        Opcode.INV -> invertRegister(r1 ?: error("INV needs reg1"), type)
-        Opcode.INVM -> invertMemory(resolveAddress(addr, label, offset), type)
+        Opcode.INV -> invertRegister(insn.requireIntDest().intNumber, type)
+        Opcode.INVM -> invertMemory(resolveAddress(insn.requireMemory()), type)
 
-        // Shift by register count (ASRN/LSRN/LSLN: r2 = shift count register)
+        // Shift by register count (ASRN/LSRN/LSLN: srcA = shift count register)
         Opcode.ASRN -> {
-            val countReg = r2 ?: error("ASRN needs reg2 for shift count")
-            arithmeticShiftRightVar(r1 ?: error("ASRN needs reg1"), countReg, type)
+            val dst = insn.requireIntDest().intNumber
+            val countReg = insn.requireIntSourceA().intNumber
+            arithmeticShiftRightVar(dst, countReg, type)
         }
         Opcode.LSRN -> {
-            val countReg = r2 ?: error("LSRN needs reg2 for shift count")
-            logicalShiftRightVar(r1 ?: error("LSRN needs reg1"), countReg, type)
+            val dst = insn.requireIntDest().intNumber
+            val countReg = insn.requireIntSourceA().intNumber
+            logicalShiftRightVar(dst, countReg, type)
         }
         Opcode.LSLN -> {
-            val countReg = r2 ?: error("LSLN needs reg2 for shift count")
-            logicalShiftLeftVar(r1 ?: error("LSLN needs reg1"), countReg, type)
+            val dst = insn.requireIntDest().intNumber
+            val countReg = insn.requireIntSourceA().intNumber
+            logicalShiftLeftVar(dst, countReg, type)
         }
 
-        // Shift memory by register count (ASRNM/LSRNM/LSLNM: r1 = count reg, addr = target)
-        Opcode.ASRNM -> shiftMemoryVar(resolveAddress(addr, label, offset), r1 ?: error("ASRNM needs reg1"), type, isArithmetic = true)
-        Opcode.LSRNM -> shiftMemoryVar(resolveAddress(addr, label, offset), r1 ?: error("LSRNM needs reg1"), type, isArithmetic = false)
-        Opcode.LSLNM -> shiftMemoryLeftVar(resolveAddress(addr, label, offset), r1 ?: error("LSLNM needs reg1"), type)
+        // Shift memory by register count (ASRNM/LSRNM/LSLNM: srcA = count reg, memory = target)
+        Opcode.ASRNM -> shiftMemoryVar(resolveAddress(insn.requireMemory()), insn.requireIntSourceA().intNumber, type, isArithmetic = true)
+        Opcode.LSRNM -> shiftMemoryVar(resolveAddress(insn.requireMemory()), insn.requireIntSourceA().intNumber, type, isArithmetic = false)
+        Opcode.LSLNM -> shiftMemoryLeftVar(resolveAddress(insn.requireMemory()), insn.requireIntSourceA().intNumber, type)
 
         // Shift by 1 (ASR/LSR/LSL: single-bit shift, no count operand)
-        Opcode.ASR -> arithmeticShiftRight(r1 ?: error("ASR needs reg1"), 1, type)
-        Opcode.ASRM -> arithmeticShiftRightMemory(resolveAddress(addr, label, offset), 1, type)
-        Opcode.LSR -> logicalShiftRight(r1 ?: error("LSR needs reg1"), 1, type)
-        Opcode.LSRM -> logicalShiftRightMemory(resolveAddress(addr, label, offset), 1, type)
-        Opcode.LSL -> logicalShiftLeft(r1 ?: error("LSL needs reg1"), 1, type)
-        Opcode.LSLM -> logicalShiftLeftMemory(resolveAddress(addr, label, offset), 1, type)
+        Opcode.ASR -> arithmeticShiftRight(insn.requireIntDest().intNumber, 1, type)
+        Opcode.ASRM -> arithmeticShiftRightMemory(resolveAddress(insn.requireMemory()), 1, type)
+        Opcode.LSR -> logicalShiftRight(insn.requireIntDest().intNumber, 1, type)
+        Opcode.LSRM -> logicalShiftRightMemory(resolveAddress(insn.requireMemory()), 1, type)
+        Opcode.LSL -> logicalShiftLeft(insn.requireIntDest().intNumber, 1, type)
+        Opcode.LSLM -> logicalShiftLeftMemory(resolveAddress(insn.requireMemory()), 1, type)
 
         // Immediate-count shifts (LSLI/LSRI/ASRI): unroll the count into N 1-bit shifts
-        Opcode.ASRI -> arithmeticShiftRight(r1 ?: error("ASRI needs reg1"), imm ?: error("ASRI needs immediate count"), type)
-        Opcode.LSRI -> logicalShiftRight(r1 ?: error("LSRI needs reg1"), imm ?: error("LSRI needs immediate count"), type)
-        Opcode.LSLI -> logicalShiftLeft(r1 ?: error("LSLI needs reg1"), imm ?: error("LSLI needs immediate count"), type)
+        Opcode.ASRI -> arithmeticShiftRight(insn.requireIntDest().intNumber, insn.requireImmediateInt(), type)
+        Opcode.LSRI -> logicalShiftRight(insn.requireIntDest().intNumber, insn.requireImmediateInt(), type)
+        Opcode.LSLI -> logicalShiftLeft(insn.requireIntDest().intNumber, insn.requireImmediateInt(), type)
 
-        Opcode.ROR -> rotateRight(r1 ?: error("ROR needs reg1"), type)
-        Opcode.RORM -> rotateRightMemory(resolveAddress(addr, label, offset), type)
-        Opcode.ROL -> rotateLeft(r1 ?: error("ROL needs reg1"), type)
-        Opcode.ROLM -> rotateLeftMemory(resolveAddress(addr, label, offset), type)
-        Opcode.ROXR -> rotateRightThroughCarry(r1 ?: error("ROXR needs reg1"), type)
-        Opcode.ROXRM -> rotateRightThroughCarryMemory(resolveAddress(addr, label, offset), type)
-        Opcode.ROXL -> rotateLeftThroughCarry(r1 ?: error("ROXL needs reg1"), type)
-        Opcode.ROXLM -> rotateLeftThroughCarryMemory(resolveAddress(addr, label, offset), type)
+        Opcode.ROR -> rotateRight(insn.requireIntDest().intNumber, type)
+        Opcode.RORM -> rotateRightMemory(resolveAddress(insn.requireMemory()), type)
+        Opcode.ROL -> rotateLeft(insn.requireIntDest().intNumber, type)
+        Opcode.ROLM -> rotateLeftMemory(resolveAddress(insn.requireMemory()), type)
+        Opcode.ROXR -> rotateRightThroughCarry(insn.requireIntDest().intNumber, type)
+        Opcode.ROXRM -> rotateRightThroughCarryMemory(resolveAddress(insn.requireMemory()), type)
+        Opcode.ROXL -> rotateLeftThroughCarry(insn.requireIntDest().intNumber, type)
+        Opcode.ROXLM -> rotateLeftThroughCarryMemory(resolveAddress(insn.requireMemory()), type)
 
-        Opcode.BITTST -> {
-            val bit = imm ?: error("BITTST needs bit number")
-            bitTest(r1 ?: error("BITTST needs reg1"), bit)
-        }
-        Opcode.BITSET -> {
-            val bit = imm ?: error("BITSET needs bit number")
-            bitSet(r1 ?: error("BITSET needs reg1"), bit)
-        }
-        Opcode.BITCLR -> {
-            val bit = imm ?: error("BITCLR needs bit number")
-            bitClear(r1 ?: error("BITCLR needs reg1"), bit)
-        }
-        Opcode.BITTOG -> {
-            val bit = imm ?: error("BITTOG needs bit number")
-            bitToggle(r1 ?: error("BITTOG needs reg1"), bit)
-        }
+        Opcode.BITTST -> bitTest(insn.requireIntSourceA().intNumber, insn.requireImmediateInt())
+        Opcode.BITSET -> bitSet(insn.requireIntDest().intNumber, insn.requireImmediateInt())
+        Opcode.BITCLR -> bitClear(insn.requireIntDest().intNumber, insn.requireImmediateInt())
+        Opcode.BITTOG -> bitToggle(insn.requireIntDest().intNumber, insn.requireImmediateInt())
 
         else -> error("Unknown bitwise opcode: ${insn.opcode}")
     }

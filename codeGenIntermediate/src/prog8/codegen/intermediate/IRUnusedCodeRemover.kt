@@ -37,7 +37,7 @@ class IRUnusedCodeRemover(
         blockVars.forEach { stVar ->
             irprog.allSubs().flatMap { it.chunks }.forEach { chunk ->
                 chunk.instructions.forEach { ins ->
-                    if(ins.labelSymbol == stVar.name) {
+                    if(ins.referencedSymbol() == stVar.name) {
                         return  // symbol occurs in an instruction
                     }
                 }
@@ -74,42 +74,26 @@ class IRUnusedCodeRemover(
     private fun removeBlockInits(code: IRProgram, blockLabel: String) {
         val instructions = code.globalInits.instructions
         instructions.toTypedArray().forEach {ins ->
-            if(ins.labelSymbol?.startsWith(blockLabel)==true) {
+            if(ins.referencedSymbol()?.startsWith(blockLabel)==true) {
                 instructions.remove(ins)
             }
         }
 
         // remove stray loads
-        val indexRegType = irprog.options.compTarget.indexRegType
-        val readRegs = mutableSetOf<Int>()
-        val readFpRegs = mutableSetOf<Int>()
+        val readRegs = mutableSetOf<VirtualRegister>()
         instructions.forEach { ins ->
-            val readRegsCounts = mutableMapOf<RegisterNum, Int>()
-            val readFpRegsCounts = mutableMapOf<RegisterNum, Int>()
-            val writeRegsCounts = mutableMapOf<RegisterNum, Int>()
-            val writeFpRegsCounts = mutableMapOf<RegisterNum, Int>()
-            val regsTypes = mutableMapOf<RegisterNum, IRDataType>()
-            ins.addUsedRegistersCounts(readRegsCounts, writeRegsCounts, readFpRegsCounts, writeFpRegsCounts, regsTypes, null, indexRegType)
-            readRegs.addAll(readRegsCounts.keys.map { it.value })
-            readFpRegs.addAll(readFpRegsCounts.keys.map { it.value })
+            val readRegsCounts = mutableMapOf<VirtualRegister, Int>()
+            val writeRegsCounts = mutableMapOf<VirtualRegister, Int>()
+            val regsTypes = mutableMapOf<VirtualRegister, IRDataType>()
+            ins.addUsedRegistersCounts(readRegsCounts, writeRegsCounts, regsTypes, null)
+            readRegs.addAll(readRegsCounts.keys)
         }
         instructions.toTypedArray().forEach { ins ->
             if(ins.opcode in arrayOf(Opcode.LOAD, Opcode.LOADR, Opcode.LOADM)) {
-                val reg1 = ins.reg1
-                val fpReg1 = ins.fpReg1
-                if(reg1!=null) {
-                    if(reg1 !in readRegs) {
-                        if(ins.labelSymbol!=null)
-                            code.st.removeIfExists(ins.labelSymbol!!)
-                        instructions.remove(ins)
-                    }
-                }
-                else if(fpReg1!=null) {
-                    if(fpReg1.value !in readFpRegs) {
-                        if(ins.labelSymbol!=null)
-                            code.st.removeIfExists(ins.labelSymbol!!)
-                        instructions.remove(ins)
-                    }
+                val dest = ins.dest
+                if(dest != null && dest.register !in readRegs) {
+                    ins.referencedSymbol()?.let { code.st.removeIfExists(it) }
+                    instructions.remove(ins)
                 }
             }
         }
@@ -192,8 +176,8 @@ class IRUnusedCodeRemover(
         // check if asmsub is linked or called from another regular subroutine
         irprog.foreachCodeChunk { chunk ->
             chunk.instructions.forEach {
-                it.labelSymbol?.let { label -> allSubs[label]?.let { cc -> linkedAsmSubs += cc } }
-                // note: branchTarget can't yet point to another IRAsmSubroutine, so do nothing when it's set
+                it.referencedSymbol()?.let { label -> allSubs[label]?.let { cc -> linkedAsmSubs += cc } }
+                // note: codeTarget can't yet point to another IRAsmSubroutine, so do nothing when it's set
             }
         }
 
@@ -247,16 +231,20 @@ class IRUnusedCodeRemover(
                     new += it.body
                 }
                 it.instructions.forEach { instr ->
-                    if (instr.branchTarget == null)
-                        instr.labelSymbol?.let { label ->
+                    val codeTarget = instr.codeTarget
+                    if (codeTarget == null) {
+                        instr.referencedSymbol()?.let { label ->
                             val chunk = allLabeledChunks[label] ?: allLabeledChunks[label.substringBeforeLast('.')]
                             if(chunk!=null)
                                 new+=chunk
-                            else
-                                allLabeledChunks[label]?.let { c -> new += c }
                         }
-                    else
-                        new += instr.branchTarget!!
+                    }
+                    else {
+                        val chunk = irprog.resolveCodeTarget(codeTarget)
+                            ?: codeTarget.labelName?.let { label -> allLabeledChunks[label] }
+                        if(chunk!=null)
+                            new += chunk
+                    }
                 }
             }
             reachable += new
@@ -292,10 +280,14 @@ class IRUnusedCodeRemover(
         irprog.foreachCodeChunk { chunk ->
             chunk.next?.let { next -> linkedChunks += next }
             chunk.instructions.forEach {
-                if(it.branchTarget==null) {
-                    it.labelSymbol?.let { label -> allLabeledChunks[label]?.let { cc -> linkedChunks += cc } }
+                val codeTarget = it.codeTarget
+                if(codeTarget==null) {
+                    it.referencedSymbol()?.let { label -> allLabeledChunks[label]?.let { cc -> linkedChunks += cc } }
                 } else {
-                    linkedChunks += it.branchTarget!!
+                    val target = irprog.resolveCodeTarget(codeTarget)
+                        ?: codeTarget.labelName?.let { label -> allLabeledChunks[label] }
+                    if(target!=null)
+                        linkedChunks += target
                 }
             }
             if (chunk.label in entrypointNames)
@@ -305,8 +297,8 @@ class IRUnusedCodeRemover(
         // make sure that chunks that are only used as a prefix of a label, are also marked as linked
         linkedChunks.toList().forEach { chunk ->
             chunk.instructions.forEach {
-                if(it.labelSymbol!=null) {
-                    val chunkName = it.labelSymbol!!.substringBeforeLast('.')
+                it.referencedSymbol()?.let { symbol ->
+                    val chunkName = symbol.substringBeforeLast('.')
                     allLabeledChunks[chunkName]?.let { c -> linkedChunks += c }
                 }
             }

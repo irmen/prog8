@@ -317,7 +317,7 @@ main {
 main {
   sub start() {
     %ir {{
-        incm.b $2000
+        incm.b [$2000]
         return
     }}
   }
@@ -326,7 +326,7 @@ main {
         val result = compileText(target, false, src, outputDir, writeAssembly = true)!!
         val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         val irSrc = virtfile.readText()
-        irSrc.shouldContainInOrder("incm.b $2000")
+        irSrc.shouldContainInOrder("incm.b [$2000]")
         irSrc.shouldNotContain("</ASM>")
         VmRunner().runProgram(irSrc, false)
     }
@@ -372,14 +372,14 @@ other {
         val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         val irSrc = virtfile.readText()
         // the &main must be encoded as a LOAD with the block name as label symbol
-        irSrc.shouldContain("load.p r1,main")
+        irSrc.shouldContain("load.p r1.p,#main")
         // and the block must have an address that a 6502 backend can resolve
         irSrc.shouldContain($$"""<BLOCK NAME="main" ADDRESS="$1000"""")
         // the other block's subroutine must contain the LOAD
         val irProgram = IRFileReader().read(virtfile)
         val otherSub = irProgram.blocks.single { it.label == "other" }.children.single() as IRSubroutine
         val loadInstr = otherSub.chunks.flatMap { it.instructions }.single { it.opcode == Opcode.LOAD }
-        loadInstr.labelSymbol shouldBe "main"
+        (loadInstr.immediate as ImmediateOperand.SymbolAddress).symbol shouldBe "main"
     }
 
     test("nesting with overlapping names is ok (doesn't work for 64tass)") {
@@ -454,7 +454,7 @@ main {
         val instructions = start.chunks.flatMap { c->c.instructions }
 
         // Find LOADM for 'flag' variable - use contains match since scoped name may vary
-        val loadmIdx = instructions.indexOfFirst { it.opcode == Opcode.LOADM && it.labelSymbol?.contains("flag") == true }
+        val loadmIdx = instructions.indexOfFirst { it.opcode == Opcode.LOADM && it.memory?.symbolName?.contains("flag") == true }
         loadmIdx shouldBeGreaterThan -1
 
         // The VIRTUAL target has statusBitsOnMultiByteOps=false, so the IR generator
@@ -463,7 +463,7 @@ main {
         // explicit compare so the result is correct for any register width (BYTE/WORD/LONG).
         val nextInstr = instructions[loadmIdx + 1]
         nextInstr.opcode shouldBe Opcode.CMPI
-        nextInstr.immediate shouldBe 0
+        nextInstr.immediate?.integerValue shouldBe 0
     }
 
     test("if-statement always emits explicit CMPI when condition sets flags (strict status-bits contract)") {
@@ -485,14 +485,14 @@ main {
         val instructions = start.chunks.flatMap { c->c.instructions }
 
         // Find LOADM for 'flag' variable - use contains match since scoped name may vary
-        val loadmIdx = instructions.indexOfFirst { it.opcode == Opcode.LOADM && it.labelSymbol?.contains("flag") == true }
+        val loadmIdx = instructions.indexOfFirst { it.opcode == Opcode.LOADM && it.memory?.symbolName?.contains("flag") == true }
         loadmIdx shouldBeGreaterThan -1
 
         // Strict contract: the CMPI is always present, never optimized away.
         // See CpuType.statusBitsOnMultiByteOps for the rationale.
         val nextInstr = instructions[loadmIdx + 1]
         nextInstr.opcode shouldBe Opcode.CMPI
-        nextInstr.immediate shouldBe 0
+        nextInstr.immediate?.integerValue shouldBe 0
     }
 
     test("if-expression omits CMPI since CALL now sets flags") {
@@ -510,7 +510,7 @@ main {
         val instructions = start.chunks.flatMap { c->c.instructions }
 
         // Should NOT contain CMPI #0 after function call anymore (since CALL effectively sets flags now)
-        val cmpiInstr = instructions.find { it.opcode == Opcode.CMPI && it.immediate == 0 }
+        val cmpiInstr = instructions.find { it.opcode == Opcode.CMPI && it.immediate?.integerValue == 0 }
         cmpiInstr shouldBe null
     }
 

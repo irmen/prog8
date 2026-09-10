@@ -95,7 +95,7 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
     private data class RegFileLayout(val offsets: Map<Int, Int>, val totalSize: Int)
 
     private val regFileLayout: RegFileLayout by lazy {
-        val allRegs = regsUsed.regsTypes
+        val allRegs = regsUsed.intRegsTypes
         val offsets = mutableMapOf<Int, Int>()
         var currentOffset = 0
         for ((regNum, type) in allRegs.entries.sortedBy { it.key.value }) {
@@ -264,7 +264,7 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
     // === FP register file layout ===
 
     private val fpRegFileLayout: RegFileLayout by lazy {
-        val allFpNums = (regsUsed.readFpRegs.keys + regsUsed.writeFpRegs.keys).map { it.value }.distinct().sorted()
+        val allFpNums = (regsUsed.floatRegsRead.keys + regsUsed.floatRegsWritten.keys).map { it.value }.distinct().sorted()
         val offsets = mutableMapOf<Int, Int>()
         var currentOffset = 0
         val floatSize = target.FLOAT_MEM_SIZE.toInt()
@@ -865,10 +865,9 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
 
     private fun translateInstruction(insn: IRInstruction) {
         emitRaw("        ; $insn")
-        if (insn.opcode == Opcode.LOADHR || insn.opcode == Opcode.STOREHR) {
+        insn.hardwareSlot?.let { hw ->
             val slotNames = mapOf(0 to "A", 1 to "X", 2 to "Y", 3 to "AX", 4 to "AY", 5 to "XY")
-            val slot = insn.immediate
-            slot?.let { slotNames[it]?.let { name -> emitRaw("        ; slot s$it == $name") } }
+            slotNames[hw.slot.value]?.let { name -> emitRaw("        ; slot ${hw.slot} == $name") }
         }
         when (insn.opcode) {
             Opcode.NOP -> {}

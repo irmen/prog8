@@ -600,8 +600,8 @@ data class IrMetrics(val instructions: Int, val chunks: Int, val registers: Int)
 private fun extractIrMetrics(program: prog8.intermediate.IRProgram): IrMetrics {
     var instructions = 0
     var chunks = 0
-    val readRegs = mutableSetOf<Int>()
-    val writeRegs = mutableSetOf<Int>()
+    val readRegs = mutableSetOf<prog8.intermediate.VirtualRegister>()
+    val writeRegs = mutableSetOf<prog8.intermediate.VirtualRegister>()
     
     // Count chunks and instructions from all subroutines (loop-aware via shared traversal)
     program.allSubs().forEach { sub ->
@@ -610,26 +610,15 @@ private fun extractIrMetrics(program: prog8.intermediate.IRProgram): IrMetrics {
             instructions++
 
             // Extract register usage from each instruction
-            ins.reg1?.let { readRegs.add(it) }
-            ins.reg2?.let { readRegs.add(it) }
-            ins.reg3?.let {
-                if (ins.opcode == Opcode.CONCAT || ins.opcode == Opcode.EXT ||
-                    ins.opcode == Opcode.EXTS) {
-                    readRegs.add(it)
-                } else {
-                    writeRegs.add(it)
-                }
-            }
-            ins.fpReg1?.let { readRegs.add(it.value) }
-            ins.fpReg2?.let { readRegs.add(it.value) }
+            readRegs.addAll(ins.uses)
+            writeRegs.addAll(ins.definitions)
         }
     }
     
     // Also count global init chunks
     program.globalInits.instructions.forEach { ins ->
-        ins.reg1?.let { readRegs.add(it) }
-        ins.reg2?.let { readRegs.add(it) }
-        ins.reg3?.let { writeRegs.add(it) }
+        readRegs.addAll(ins.uses)
+        writeRegs.addAll(ins.definitions)
     }
     
     val registers = readRegs.size + writeRegs.size

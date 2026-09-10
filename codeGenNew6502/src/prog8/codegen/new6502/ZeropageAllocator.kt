@@ -96,7 +96,9 @@ class ZeropageAllocator(
         val varNames = allVars.associateBy { it.name }
 
         fun scoreInstruction(insn: IRInstruction) {
-            val label = insn.labelSymbol ?: return
+            val label = insn.memory?.symbolName
+                ?: (insn.immediate as? ImmediateOperand.SymbolAddress)?.symbol
+                ?: return
             if (label !in varNames) return
             val weight = when {
                 insn.type == IRDataType.WORD -> 2

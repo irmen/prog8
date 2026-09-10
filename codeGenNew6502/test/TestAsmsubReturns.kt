@@ -1,6 +1,7 @@
 package prog8tests.codegen.new6502
 
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.engine.spec.tempdir
 import io.kotest.matchers.ints.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
 import prog8.code.core.*
@@ -9,14 +10,15 @@ import prog8.codegen.new6502.AsmGen
 import prog8.intermediate.*
 import prog8tests.helpers.ErrorReporterForTests
 import java.nio.file.Path
-import kotlin.io.path.Path
 import kotlin.io.path.exists
 import kotlin.io.path.readText
 
 class TestAsmsubReturns : FunSpec({
 
+    val tempRoot = tempdir().toPath()
+
     fun buildTestProgramWithCall(
-        returns: List<FunctionCallArgs.RegSpec>
+        results: List<CallResult>
     ): Pair<IRProgram, ICompilationTarget> {
         val target = Cx16Target()
         val options = CompilationOptions.builder(target)
@@ -30,10 +32,11 @@ class TestAsmsubReturns : FunSpec({
         val st = IRSymbolTable()
         val program = IRProgram("test", st, options, DummyStringEncoder)
 
-        // Convert FunctionCallArgs.RegSpec to IRAsmParam for the asmsub definition
-        val asmParams = returns.map { ret ->
+        // Derive the asmsub's return declarations from the structured call results
+        val asmParams = results.map { ret ->
+            val location = ret.location
             val regOrFlag = RegisterOrStatusflag(
-                registerOrPair = when (ret.callingConventionSlot?.value) {
+                registerOrPair = when ((location as? CallLocation.HardwareRegister)?.slot?.value) {
                     0 -> RegisterOrPair.A
                     1 -> RegisterOrPair.X
                     2 -> RegisterOrPair.Y
@@ -44,14 +47,15 @@ class TestAsmsubReturns : FunSpec({
                     7 -> RegisterOrPair.FAC2
                     else -> null
                 },
-                statusflag = ret.statusflag
+                statusflag = (location as? CallLocation.StatusFlag)?.flag
             )
-            val dt = when (ret.dt) {
+            val dt = when (ret.type) {
                 IRDataType.BYTE -> DataType.forDt(BaseDataType.BOOL)
                 IRDataType.WORD -> DataType.forDt(BaseDataType.UWORD)
                 IRDataType.POINTER -> DataType.forDt(BaseDataType.POINTER)
                 IRDataType.LONG -> DataType.forDt(BaseDataType.LONG)
                 IRDataType.FLOAT -> DataType.forDt(BaseDataType.FLOAT)
+                null -> DataType.forDt(BaseDataType.BOOL)
             }
             IRAsmSubroutine.IRAsmParam(regOrFlag, dt)
         }
@@ -70,9 +74,9 @@ class TestAsmsubReturns : FunSpec({
         )
 
         // Create the main subroutine that calls the asmsub
-        val callArgs = FunctionCallArgs(emptyList(), returns)
+        val callSite = CallSite(CallTarget.Direct(codeLabel("main.testsub")), emptyList(), results)
         val callChunk = IRCodeChunk(null, null)
-        callChunk.instructions.add(IRInstruction(Opcode.CALL, labelSymbol = "main.testsub", fcallArgs = callArgs))
+        callChunk.instructions.add(IRInstructions.call(callSite))
         val mainSub = IRSubroutine("main.start", emptyList(), emptyList(), Position.DUMMY)
         mainSub.chunks.add(callChunk)
 
@@ -95,12 +99,12 @@ class TestAsmsubReturns : FunSpec({
     test("multi-assign with @A + @Pz does not extract status flag in backend") {
         // Bug fix: the IR now emits branch patterns for status flags,
         // so the backend should NOT extract them with php/pla/and sequences.
-        val returns = listOf(
-            FunctionCallArgs.RegSpec(IRDataType.BYTE, RegisterNum(0), CallingConventionSlot(0), null),
-            FunctionCallArgs.RegSpec(IRDataType.BYTE, RegisterNum(1), null, Statusflag.Pz)
+        val results = listOf(
+            Calls.result(0, IRDataType.BYTE, CallLocation.HardwareRegister(CallingConventionSlot(0))),
+            Calls.result(1, IRDataType.BYTE, CallLocation.StatusFlag(Statusflag.Pz))
         )
-        val (program, target) = buildTestProgramWithCall(returns)
-        val outputDir = Path("/tmp/test-new6502-multi-assign-pz")
+        val (program, target) = buildTestProgramWithCall(results)
+        val outputDir = tempRoot.resolve("test-new6502-multi-assign-pz")
         outputDir.toFile().deleteRecursively()
         outputDir.toFile().mkdirs()
         program.options.outputDir = outputDir
@@ -122,12 +126,12 @@ class TestAsmsubReturns : FunSpec({
 
     test("multi-assign with @A + @Pn does not extract status flag in backend") {
         // Bug fix: same as Pz test but for Pn (negative flag)
-        val returns = listOf(
-            FunctionCallArgs.RegSpec(IRDataType.BYTE, RegisterNum(0), CallingConventionSlot(0), null),
-            FunctionCallArgs.RegSpec(IRDataType.BYTE, RegisterNum(1), null, Statusflag.Pn)
+        val results = listOf(
+            Calls.result(0, IRDataType.BYTE, CallLocation.HardwareRegister(CallingConventionSlot(0))),
+            Calls.result(1, IRDataType.BYTE, CallLocation.StatusFlag(Statusflag.Pn))
         )
-        val (program, target) = buildTestProgramWithCall(returns)
-        val outputDir = Path("/tmp/test-new6502-multi-assign-pn")
+        val (program, target) = buildTestProgramWithCall(results)
+        val outputDir = tempRoot.resolve("test-new6502-multi-assign-pn")
         outputDir.toFile().deleteRecursively()
         outputDir.toFile().mkdirs()
         program.options.outputDir = outputDir
@@ -147,11 +151,11 @@ class TestAsmsubReturns : FunSpec({
     test("single-return expression call with @A emits store instruction") {
         // Single-return expression calls should still emit the store instruction
         // because the IR doesn't generate LOADHR for single-return calls.
-        val returns = listOf(
-            FunctionCallArgs.RegSpec(IRDataType.BYTE, RegisterNum(0), CallingConventionSlot(0), null)
+        val results = listOf(
+            Calls.result(0, IRDataType.BYTE, CallLocation.HardwareRegister(CallingConventionSlot(0)))
         )
-        val (program, target) = buildTestProgramWithCall(returns)
-        val outputDir = Path("/tmp/test-new6502-single-return-a")
+        val (program, target) = buildTestProgramWithCall(results)
+        val outputDir = tempRoot.resolve("test-new6502-single-return-a")
         outputDir.toFile().deleteRecursively()
         outputDir.toFile().mkdirs()
         program.options.outputDir = outputDir

@@ -79,6 +79,10 @@ class IRFileReader {
         require(start.name.localPart=="PROGRAM") { "missing PROGRAM" }
         val programName = start.attributes.asSequence().single { it.name.localPart == "NAME" }.value
         val compilerVersion = start.attributes.asSequence().single { it.name.localPart == "COMPILERVERSION" }.value
+        val irFormat = start.attributes.asSequence().singleOrNull { it.name.localPart == "IRFORMAT" }?.value
+            ?: throw IRParseException("missing IRFORMAT")
+        if(irFormat != IR_FORMAT_VERSION.toString())
+            throw IRParseException("unsupported IR format: $irFormat")
         options = parseOptions(reader, compilerVersion)
         val asmsymbols = parseAsmSymbols(reader)
 

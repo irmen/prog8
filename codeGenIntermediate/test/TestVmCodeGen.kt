@@ -11,6 +11,8 @@ import prog8.codegen.vm.VmAssemblyProgram
 import prog8.codegen.vm.VmCodeGen
 import prog8.intermediate.IRSubroutine
 import prog8.intermediate.Opcode
+import prog8.intermediate.codeAddress
+import prog8.intermediate.requireCallSite
 import prog8.intermediate.toAddress
 
 import prog8tests.helpers.ErrorReporterForTests
@@ -208,12 +210,12 @@ class TestVmCodeGen: FunSpec({
         andrCount shouldBe 1
         xorrCount shouldBe 1
 
-        // Verify that the immediate-only variants are NOT used with reg2
-        val wrongAdd = instructions.any { it.opcode == Opcode.ADD && it.reg2 != null }
-        val wrongSub = instructions.any { it.opcode == Opcode.SUB && it.reg2 != null }
-        val wrongOr = instructions.any { it.opcode == Opcode.OR && it.reg2 != null }
-        val wrongAnd = instructions.any { it.opcode == Opcode.AND && it.reg2 != null }
-        val wrongXor = instructions.any { it.opcode == Opcode.XOR && it.reg2 != null }
+        // Verify that the immediate-only variants are NOT used with a register source
+        val wrongAdd = instructions.any { it.opcode == Opcode.ADD && it.srcA != null }
+        val wrongSub = instructions.any { it.opcode == Opcode.SUB && it.srcA != null }
+        val wrongOr = instructions.any { it.opcode == Opcode.OR && it.srcA != null }
+        val wrongAnd = instructions.any { it.opcode == Opcode.AND && it.srcA != null }
+        val wrongXor = instructions.any { it.opcode == Opcode.XOR && it.srcA != null }
 
         (wrongAdd || wrongSub || wrongOr || wrongAnd || wrongXor) shouldBe false
     }
@@ -645,7 +647,7 @@ class TestVmCodeGen: FunSpec({
         irChunks[0].instructions.size shouldBe 1
         val callInstr = irChunks[0].instructions[0]
         callInstr.opcode shouldBe Opcode.CALL
-        callInstr.address shouldBe 0x5000u.toAddress()
+        callInstr.requireCallSite().codeReference shouldBe codeAddress(0x5000u.toAddress())
     }
 
     test("ir codegen for target 'virtual' produces no prefixed names") {

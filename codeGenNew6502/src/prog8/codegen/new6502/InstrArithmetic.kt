@@ -21,160 +21,128 @@
 package prog8.codegen.new6502
 
 import prog8.code.core.AssemblyError
-import prog8.intermediate.IRDataType
-import prog8.intermediate.IRInstruction
-import prog8.intermediate.Opcode
+import prog8.intermediate.*
 
 internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
     val type = insn.type ?: IRDataType.BYTE
-    val r1 = insn.reg1          // nullable - INCM/DECM/NEGM have no reg1
-    val r2 = insn.reg2
-    val imm = insn.immediate
-    val addr = insn.address
-    val label = insn.labelSymbol
-    val offset = insn.labelSymbolOffset
 
-    // FLOAT operations use fpReg1/fpReg2 instead of reg1/reg2
+    // FLOAT operations use the float register file instead of the integer one
     if (type == IRDataType.FLOAT) {
         translateFloatArithmetic(insn)
         return
     }
 
     when (insn.opcode) {
-        Opcode.INC -> incrementRegister(r1 ?: error("INC needs reg1"), type)
-        Opcode.INCM -> incrementMemory(resolveAddress(addr, label, offset), type)
-        Opcode.DEC -> decrementRegister(r1 ?: error("DEC needs reg1"), type)
-        Opcode.DECM -> decrementMemory(resolveAddress(addr, label, offset), type)
-        Opcode.NEG -> negateRegister(r1 ?: error("NEG needs reg1"), type)
-        Opcode.NEGM -> negateMemory(resolveAddress(addr, label, offset), type)
+        Opcode.INC -> incrementRegister(insn.requireIntDest().intNumber, type)
+        Opcode.INCM -> incrementMemory(resolveAddress(insn.requireMemory()), type)
+        Opcode.DEC -> decrementRegister(insn.requireIntDest().intNumber, type)
+        Opcode.DECM -> decrementMemory(resolveAddress(insn.requireMemory()), type)
+        Opcode.NEG -> negateRegister(insn.requireIntDest().intNumber, type)
+        Opcode.NEGM -> negateMemory(resolveAddress(insn.requireMemory()), type)
 
         Opcode.ADDR -> {
-            val r2val = r2 ?: error("ADDR needs reg2")
-            addRegisters(r1 ?: error("ADDR needs reg1"), r2val, type)
+            addRegisters(insn.requireIntDest().intNumber, insn.requireIntSourceA().intNumber, type)
         }
         Opcode.ADD -> {
-            val value = imm ?: error("ADD needs immediate")
-            addImmediate(r1 ?: error("ADD needs reg1"), value, type)
+            addImmediate(insn.requireIntDest().intNumber, insn.requireImmediateInt(), type)
         }
         Opcode.ADDM -> {
-            val target = resolveAddress(addr, label, offset)
-            addMemory(r1 ?: error("ADDM needs reg1"), target, type)
+            val target = resolveAddress(insn.requireMemory())
+            addMemory(insn.requireIntSourceA().intNumber, target, type)
         }
         Opcode.ADDIM -> {
-            val target = resolveAddress(addr, label, offset)
-            addMemoryImm(imm ?: error("ADDIM needs immediate"), target, type)
+            val target = resolveAddress(insn.requireMemory())
+            addMemoryImm(insn.requireImmediateInt(), target, type)
         }
 
         Opcode.SUBR -> {
-            val r2val = r2 ?: error("SUBR needs reg2")
-            subRegisters(r1 ?: error("SUBR needs reg1"), r2val, type)
+            subRegisters(insn.requireIntDest().intNumber, insn.requireIntSourceA().intNumber, type)
         }
         Opcode.SUB -> {
-            val value = imm ?: error("SUB needs immediate")
-            subImmediate(r1 ?: error("SUB needs reg1"), value, type)
+            subImmediate(insn.requireIntDest().intNumber, insn.requireImmediateInt(), type)
         }
         Opcode.SUBM -> {
-            val target = resolveAddress(addr, label, offset)
-            subMemory(r1 ?: error("SUBM needs reg1"), target, type)
+            val target = resolveAddress(insn.requireMemory())
+            subMemory(insn.requireIntSourceA().intNumber, target, type)
         }
         Opcode.SUBIM -> {
-            val target = resolveAddress(addr, label, offset)
-            subMemoryImm(imm ?: error("SUBIM needs imm"), target, type)
+            val target = resolveAddress(insn.requireMemory())
+            subMemoryImm(insn.requireImmediateInt(), target, type)
         }
 
         Opcode.MULR -> {
-            val r2val = r2 ?: error("MULR needs reg2")
-            mulRegisters(r1 ?: error("MULR needs reg1"), r2val, type)
+            mulRegisters(insn.requireIntDest().intNumber, insn.requireIntSourceA().intNumber, type)
         }
         Opcode.MUL -> {
-            val value = imm ?: error("MUL needs immediate")
-            mulImmediate(r1 ?: error("MUL needs reg1"), value, type)
+            mulImmediate(insn.requireIntDest().intNumber, insn.requireImmediateInt(), type)
         }
         Opcode.MULM -> {
-            val target = resolveAddress(addr, label, offset)
-            mulMemory(r1 ?: error("MULM needs reg1"), target, type)
+            val target = resolveAddress(insn.requireMemory())
+            mulMemory(insn.requireIntSourceA().intNumber, target, type)
         }
         Opcode.MULSR -> {
-            val r2val = r2 ?: error("MULSR needs reg2")
-            mulSignedRegisters(r1 ?: error("MULSR needs reg1"), r2val, type)
+            mulSignedRegisters(insn.requireIntDest().intNumber, insn.requireIntSourceA().intNumber, type)
         }
         Opcode.MULS -> {
-            val value = imm ?: error("MULS needs immediate")
-            mulSignedImmediate(r1 ?: error("MULS needs reg1"), value, type)
+            mulSignedImmediate(insn.requireIntDest().intNumber, insn.requireImmediateInt(), type)
         }
         Opcode.MULSM -> {
-            val target = resolveAddress(addr, label, offset)
-            mulSignedMemory(r1 ?: error("MULSM needs reg1"), target, type)
+            val target = resolveAddress(insn.requireMemory())
+            mulSignedMemory(insn.requireIntSourceA().intNumber, target, type)
         }
 
         Opcode.DIVR -> {
-            val r2val = r2 ?: error("DIVR needs reg2")
-            divRegisters(r1 ?: error("DIVR needs reg1"), r2val, type)
+            divRegisters(insn.requireIntDest().intNumber, insn.requireIntSourceA().intNumber, type)
         }
         Opcode.DIV -> {
-            val value = imm ?: error("DIV needs immediate")
-            divImmediate(r1 ?: error("DIV needs reg1"), value, type)
+            divImmediate(insn.requireIntDest().intNumber, insn.requireImmediateInt(), type)
         }
         Opcode.DIVM -> {
-            val target = resolveAddress(addr, label, offset)
-            divMemory(r1 ?: error("DIVM needs reg1"), target, type)
+            val target = resolveAddress(insn.requireMemory())
+            divMemory(insn.requireIntSourceA().intNumber, target, type)
         }
         Opcode.DIVSR -> {
-            val r2val = r2 ?: error("DIVSR needs reg2")
-            divSignedRegisters(r1 ?: error("DIVSR needs reg1"), r2val, type)
+            divSignedRegisters(insn.requireIntDest().intNumber, insn.requireIntSourceA().intNumber, type)
         }
         Opcode.DIVS -> {
-            val value = imm ?: error("DIVS needs immediate")
-            divSignedImmediate(r1 ?: error("DIVS needs reg1"), value, type)
+            divSignedImmediate(insn.requireIntDest().intNumber, insn.requireImmediateInt(), type)
         }
         Opcode.DIVSM -> {
-            val target = resolveAddress(addr, label, offset)
-            divSignedMemory(r1 ?: error("DIVSM needs reg1"), target, type)
+            val target = resolveAddress(insn.requireMemory())
+            divSignedMemory(insn.requireIntSourceA().intNumber, target, type)
         }
 
         Opcode.MODR -> {
-            val r2val = r2 ?: error("MODR needs reg2")
-            modRegisters(r1 ?: error("MODR needs reg1"), r2val, type)
+            modRegisters(insn.requireIntDest().intNumber, insn.requireIntSourceA().intNumber, type)
         }
         Opcode.MOD -> {
-            val value = imm ?: error("MOD needs immediate")
-            modImmediate(r1 ?: error("MOD needs reg1"), value, type)
+            modImmediate(insn.requireIntDest().intNumber, insn.requireImmediateInt(), type)
         }
         Opcode.MODSR -> {
-            val r2val = r2 ?: error("MODSR needs reg2")
-            modSignedRegisters(r1 ?: error("MODSR needs reg1"), r2val, type)
+            modSignedRegisters(insn.requireIntDest().intNumber, insn.requireIntSourceA().intNumber, type)
         }
         Opcode.MODS -> {
-            val value = imm ?: error("MODS needs immediate")
-            modSignedImmediate(r1 ?: error("MODS needs reg1"), value, type)
+            modSignedImmediate(insn.requireIntDest().intNumber, insn.requireImmediateInt(), type)
         }
 
         Opcode.DIVMODR -> {
-            val r2val = r2 ?: error("DIVMODR needs reg2")
-            divModRegisters(r1 ?: error("DIVMODR needs reg1"), r2val, type)
+            divModRegisters(insn.requireIntDest().intNumber, insn.requireDestB().intNumber, type)
         }
         Opcode.DIVMOD -> {
-            val value = imm ?: error("DIVMOD needs immediate")
-            val r2val = r2 ?: error("DIVMOD needs reg2")
-            divModImmediate(r1 ?: error("DIVMOD needs reg1"), r2val, value, type)
+            divModImmediate(insn.requireIntDest().intNumber, insn.requireDestB().intNumber, insn.requireImmediateInt(), type)
         }
         Opcode.SDIVMODR -> {
-            val r2val = r2 ?: error("SDIVMODR needs reg2")
-            sdivModRegisters(r1 ?: error("SDIVMODR needs reg1"), r2val, type)
+            sdivModRegisters(insn.requireIntDest().intNumber, insn.requireDestB().intNumber, type)
         }
         Opcode.SDIVMOD -> {
-            val value = imm ?: error("SDIVMOD needs immediate")
-            val r2val = r2 ?: error("SDIVMOD needs reg2")
-            sdivModImmediate(r1 ?: error("SDIVMOD needs reg1"), r2val, value, type)
+            sdivModImmediate(insn.requireIntDest().intNumber, insn.requireDestB().intNumber, insn.requireImmediateInt(), type)
         }
 
         Opcode.CMP -> {
-            val r2val = r2 ?: error("CMP needs reg2")
-            compareRegisters(r1 ?: error("CMP needs reg1"), r2val, type)
+            compareRegisters(insn.requireIntSourceA().intNumber, insn.requireSrcB().intNumber, type)
         }
         Opcode.CMPI -> {
-            val value = imm ?: error("CMPI needs immediate")
-            compareImmediate(r1 ?: error("CMPI needs reg1"), value, type)
+            compareImmediate(insn.requireIntSourceA().intNumber, insn.requireImmediateInt(), type)
         }
 
         else -> error("Unknown arithmetic opcode: ${insn.opcode}")
@@ -1304,17 +1272,10 @@ internal fun AsmGen.compareImmediate(r1: Int, value: Int, type: IRDataType) {
 // === Float arithmetic ===
 
 internal fun AsmGen.translateFloatArithmetic(insn: IRInstruction) {
-    val fr1 = insn.fpReg1
-    val fr2 = insn.fpReg2
-    val immFp = insn.immediateFp
-    val addr = insn.address
-    val label = insn.labelSymbol
-    val offset = insn.labelSymbolOffset
-
     when (insn.opcode) {
         Opcode.INC -> {
             // fr1 += 1.0
-            val fpReg = fr1 ?: error("INC.f needs fpReg1")
+            val fpReg = insn.requireFloatDest().floatNumber
             emitLine("lda  #<${fpRegAddr(fpReg.value)}")
             emitLine("ldy  #>${fpRegAddr(fpReg.value)}")
             emitLine("jsr  floats.MOVFM")
@@ -1330,7 +1291,7 @@ internal fun AsmGen.translateFloatArithmetic(insn: IRInstruction) {
         Opcode.DEC -> {
             // fr1 -= 1.0
             // NOTE: FSUB does FAC1 = memory - FAC1, so we must use push/pop + FSUBT instead
-            val fpReg = fr1 ?: error("DEC.f needs fpReg1")
+            val fpReg = insn.requireFloatDest().floatNumber
             emitLine("lda  #<${fpRegAddr(fpReg.value)}")
             emitLine("ldy  #>${fpRegAddr(fpReg.value)}")
             emitLine("jsr  floats.MOVFM")
@@ -1349,7 +1310,7 @@ internal fun AsmGen.translateFloatArithmetic(insn: IRInstruction) {
 
         Opcode.NEG -> {
             // fr1 = -fr1
-            val fpReg = fr1 ?: error("NEG.f needs fpReg1")
+            val fpReg = insn.requireFloatDest().floatNumber
             emitLine("lda  #<${fpRegAddr(fpReg.value)}")
             emitLine("ldy  #>${fpRegAddr(fpReg.value)}")
             emitLine("jsr  floats.MOVFM")
@@ -1361,8 +1322,8 @@ internal fun AsmGen.translateFloatArithmetic(insn: IRInstruction) {
 
         Opcode.ADDR -> {
             // fr1 += fr2
-            val dstReg = fr1 ?: error("ADDR.f needs fpReg1")
-            val srcReg = fr2 ?: error("ADDR.f needs fpReg2")
+            val dstReg = insn.requireFloatDest().floatNumber
+            val srcReg = insn.requireFloatSourceA().floatNumber
             if (useC64PushPopOperands) {
                 // On C64/PET32, FAC2 must be loaded last via CONUPK for correct arisgn setup
                 emitLine("lda  #<${fpRegAddr(srcReg.value)}")
@@ -1388,8 +1349,8 @@ internal fun AsmGen.translateFloatArithmetic(insn: IRInstruction) {
 
         Opcode.SUBR -> {
             // fr1 -= fr2  =>  FSUBT = FAC2 - FAC1, need FAC2=fr1, FAC1=fr2
-            val dstReg = fr1 ?: error("SUBR.f needs fpReg1")
-            val srcReg = fr2 ?: error("SUBR.f needs fpReg2")
+            val dstReg = insn.requireFloatDest().floatNumber
+            val srcReg = insn.requireFloatSourceA().floatNumber
             if (useC64PushPopOperands) {
                 emitLine("lda  #<${fpRegAddr(dstReg.value)}")
                 emitLine("ldy  #>${fpRegAddr(dstReg.value)}")
@@ -1414,8 +1375,8 @@ internal fun AsmGen.translateFloatArithmetic(insn: IRInstruction) {
 
         Opcode.MULR -> {
             // fr1 *= fr2
-            val dstReg = fr1 ?: error("MULR.f needs fpReg1")
-            val srcReg = fr2 ?: error("MULR.f needs fpReg2")
+            val dstReg = insn.requireFloatDest().floatNumber
+            val srcReg = insn.requireFloatSourceA().floatNumber
             if (useC64PushPopOperands) {
                 emitLine("lda  #<${fpRegAddr(srcReg.value)}")
                 emitLine("ldy  #>${fpRegAddr(srcReg.value)}")
@@ -1440,8 +1401,8 @@ internal fun AsmGen.translateFloatArithmetic(insn: IRInstruction) {
 
         Opcode.DIVR, Opcode.DIVSR -> {
             // fr1 /= fr2  =>  FDIVT = FAC2 / FAC1, need FAC2=fr1, FAC1=fr2
-            val dstReg = fr1 ?: error("DIVR.f needs fpReg1")
-            val srcReg = fr2 ?: error("DIVR.f needs fpReg2")
+            val dstReg = insn.requireFloatDest().floatNumber
+            val srcReg = insn.requireFloatSourceA().floatNumber
             if (useC64PushPopOperands) {
                 emitLine("lda  #<${fpRegAddr(dstReg.value)}")
                 emitLine("ldy  #>${fpRegAddr(dstReg.value)}")
@@ -1465,8 +1426,8 @@ internal fun AsmGen.translateFloatArithmetic(insn: IRInstruction) {
         }
 
         Opcode.ADD, Opcode.MUL, Opcode.MULS -> {
-            val dstReg = fr1 ?: error("${insn.opcode}.f needs fpReg1")
-            val value = immFp ?: error("${insn.opcode}.f needs immediateFp")
+            val dstReg = insn.requireFloatDest().floatNumber
+            val value = insn.requireImmediateFloat()
             val constLabel = getFloatConstLabel(value)
             emitLine("lda  #<${fpRegAddr(dstReg.value)}")
             emitLine("ldy  #>${fpRegAddr(dstReg.value)}")
@@ -1486,8 +1447,8 @@ internal fun AsmGen.translateFloatArithmetic(insn: IRInstruction) {
 
         Opcode.SUB -> {
             // NOTE: FSUB does FAC1 = memory - FAC1, so we must use push/pop + FSUBT instead
-            val dstReg = fr1 ?: error("SUB.f needs fpReg1")
-            val value = immFp ?: error("SUB.f needs immediateFp")
+            val dstReg = insn.requireFloatDest().floatNumber
+            val value = insn.requireImmediateFloat()
             val constLabel = getFloatConstLabel(value)
             emitLine("lda  #<${fpRegAddr(dstReg.value)}")
             emitLine("ldy  #>${fpRegAddr(dstReg.value)}")
@@ -1506,8 +1467,8 @@ internal fun AsmGen.translateFloatArithmetic(insn: IRInstruction) {
 
         Opcode.DIV, Opcode.DIVS -> {
             // NOTE: FDIV does FAC1 = memory / FAC1, so we must use push/pop + FDIVT instead
-            val dstReg = fr1 ?: error("${insn.opcode}.f needs fpReg1")
-            val value = immFp ?: error("${insn.opcode}.f needs immediateFp")
+            val dstReg = insn.requireFloatDest().floatNumber
+            val value = insn.requireImmediateFloat()
             val constLabel = getFloatConstLabel(value)
             emitLine("lda  #<${fpRegAddr(dstReg.value)}")
             emitLine("ldy  #>${fpRegAddr(dstReg.value)}")
@@ -1525,8 +1486,8 @@ internal fun AsmGen.translateFloatArithmetic(insn: IRInstruction) {
         }
 
         Opcode.ADDM -> {
-            val srcReg = fr1 ?: error("ADDM.f needs fpReg1")
-            val target = resolveAddress(addr, label, offset)
+            val srcReg = insn.requireFloatSourceA().floatNumber
+            val target = resolveAddress(insn.requireMemory())
             if (useC64PushPopOperands) {
                 emitLine("lda  #<$target")
                 emitLine("ldy  #>$target")
@@ -1550,8 +1511,8 @@ internal fun AsmGen.translateFloatArithmetic(insn: IRInstruction) {
         }
 
         Opcode.SUBM -> {
-            val srcReg = fr1 ?: error("SUBM.f needs fpReg1")
-            val target = resolveAddress(addr, label, offset)
+            val srcReg = insn.requireFloatSourceA().floatNumber
+            val target = resolveAddress(insn.requireMemory())
             if (useC64PushPopOperands) {
                 emitLine("lda  #<$target")
                 emitLine("ldy  #>$target")
@@ -1575,7 +1536,7 @@ internal fun AsmGen.translateFloatArithmetic(insn: IRInstruction) {
         }
 
         Opcode.INCM -> {
-            val target = resolveAddress(addr, label, offset)
+            val target = resolveAddress(insn.requireMemory())
             emitLine("lda  #<$target")
             emitLine("ldy  #>$target")
             emitLine("jsr  floats.MOVFM")
@@ -1589,7 +1550,7 @@ internal fun AsmGen.translateFloatArithmetic(insn: IRInstruction) {
         }
 
         Opcode.DECM -> {
-            val target = resolveAddress(addr, label, offset)
+            val target = resolveAddress(insn.requireMemory())
             emitLine("lda  #<$target")
             emitLine("ldy  #>$target")
             emitLine("jsr  floats.MOVFM")
@@ -1607,7 +1568,7 @@ internal fun AsmGen.translateFloatArithmetic(insn: IRInstruction) {
         }
 
         Opcode.NEGM -> {
-            val target = resolveAddress(addr, label, offset)
+            val target = resolveAddress(insn.requireMemory())
             emitLine("lda  #<$target")
             emitLine("ldy  #>$target")
             emitLine("jsr  floats.MOVFM")
@@ -1618,8 +1579,8 @@ internal fun AsmGen.translateFloatArithmetic(insn: IRInstruction) {
         }
 
         Opcode.MULM, Opcode.MULSM -> {
-            val srcReg = fr1 ?: error("${insn.opcode}.f needs fpReg1")
-            val target = resolveAddress(addr, label, offset)
+            val srcReg = insn.requireFloatSourceA().floatNumber
+            val target = resolveAddress(insn.requireMemory())
             if (useC64PushPopOperands) {
                 emitLine("lda  #<$target")
                 emitLine("ldy  #>$target")
@@ -1643,8 +1604,8 @@ internal fun AsmGen.translateFloatArithmetic(insn: IRInstruction) {
         }
 
         Opcode.DIVM, Opcode.DIVSM -> {
-            val srcReg = fr1 ?: error("${insn.opcode}.f needs fpReg1")
-            val target = resolveAddress(addr, label, offset)
+            val srcReg = insn.requireFloatSourceA().floatNumber
+            val target = resolveAddress(insn.requireMemory())
             if (useC64PushPopOperands) {
                 emitLine("lda  #<$target")
                 emitLine("ldy  #>$target")
@@ -1672,8 +1633,8 @@ internal fun AsmGen.translateFloatArithmetic(insn: IRInstruction) {
 
         Opcode.MULSR -> {
             // fr1 *= fr2  (signed - same as unsigned for floats)
-            val dstReg = fr1 ?: error("MULSR.f needs fpReg1")
-            val srcReg = fr2 ?: error("MULSR.f needs fpReg2")
+            val dstReg = insn.requireFloatDest().floatNumber
+            val srcReg = insn.requireFloatSourceA().floatNumber
             if (useC64PushPopOperands) {
                 emitLine("lda  #<${fpRegAddr(srcReg.value)}")
                 emitLine("ldy  #>${fpRegAddr(srcReg.value)}")

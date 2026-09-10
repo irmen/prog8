@@ -24,31 +24,9 @@ fun main(args: Array<String>) {
         program.options.asmListfile = true
     val target = program.options.compTarget
 
-    // compute metrics (matching IRFileWriter counting)
-    val used = program.registersUsed()
-    val numRegs = (used.readRegs.keys + used.writeRegs.keys).size + (used.readFpRegs.keys + used.writeFpRegs.keys).size
-    var numChunks = 0
-    var numInstr = 0
-    for (block in program.blocks) {
-        for (child in block.children) {
-            when (child) {
-                is prog8.intermediate.IRSubroutine -> {
-                    for (chunk in child.chunks) {
-                        numChunks++
-                        if (chunk is prog8.intermediate.IRCodeChunk)
-                            numInstr += chunk.instructions.size
-                    }
-                }
-                is prog8.intermediate.IRCodeChunk -> {
-                    // counted in numInstr but NOT in numChunks (matches IRFileWriter)
-                    numInstr += child.instructions.size
-                }
-                else -> {}
-            }
-        }
-    }
-    // globalInits: counted in numInstr but NOT in numChunks (matches IRFileWriter)
-    numInstr += program.globalInits.instructions.size
+    // program metrics, via the canonical IRProgram counters
+    val numRegs = program.countUsedRegisters()
+    val (numInstr, numChunks) = program.countCodeElements()
     System.err.println("Loaded IR program: ${program.name}")
     System.err.println("Target system and CPU: ${target.name} / ${target.cpu}")
     System.err.println("($numInstr instructions in $numChunks chunks, $numRegs registers)")

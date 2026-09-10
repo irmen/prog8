@@ -9,7 +9,7 @@ class AddimSubimTest : FunSpec({
     fun runProgram(): VirtualMachine {
         val source = $$"""
 <?xml version="1.0" encoding="utf-8"?>
-<PROGRAM NAME="addim_subim_test" COMPILERVERSION="12.3-SNAPSHOT">
+<PROGRAM NAME="addim_subim_test" COMPILERVERSION="12.3-SNAPSHOT" IRFORMAT="2">
 <OPTIONS>
 compTarget=virtual
 output=PRG
@@ -54,31 +54,31 @@ outputDir=/tmp
 <PARAMS>
 </PARAMS>
 <CHUNK LABEL="main.start"><REGS><![CDATA[]]></REGS><CODE>
-load.b r1, #100
-storem.b r1, $2000
-addim.b #20, $2000
-subim.b #30, $2000
-load.b r2, #200
-storem.b r2, $2001
-addim.b #100, $2001
-load.w r3, #1000
-storem.w r3, $2002
-addim.w #200, $2002
-subim.w #300, $2002
-load.w r4, #100
-storem.w r4, $2004
-subim.w #200, $2004
-load.l r5, #100000
-storem.l r5, $2006
-addim.l #20000, $2006
-subim.l #30000, $2006
-load.l r6, #100
-storem.l r6, $200A
-subim.l #200, $200A
-load.f fr7, #1.5
-storem.f fr7, $200E
-addim.f #2.0, $200E
-subim.f #0.5, $200E
+load.b r1.b,#100.b
+storem.b r1.b,[$2000]
+addim.b #20.b,[$2000]
+subim.b #30.b,[$2000]
+load.b r2.b,#200.b
+storem.b r2.b,[$2001]
+addim.b #100.b,[$2001]
+load.w r3.w,#1000.w
+storem.w r3.w,[$2002]
+addim.w #200.w,[$2002]
+subim.w #300.w,[$2002]
+load.w r4.w,#100.w
+storem.w r4.w,[$2004]
+subim.w #200.w,[$2004]
+load.l r5.l,#100000.l
+storem.l r5.l,[$2006]
+addim.l #20000.l,[$2006]
+subim.l #30000.l,[$2006]
+load.l r6.l,#100.l
+storem.l r6.l,[$200A]
+subim.l #200.l,[$200A]
+load.f fr7.f,#1.5.f
+storem.f fr7.f,[$200E]
+addim.f #2.0.f,[$200E]
+subim.f #0.5.f,[$200E]
 return
 </CODE></CHUNK>
 </SUB>
