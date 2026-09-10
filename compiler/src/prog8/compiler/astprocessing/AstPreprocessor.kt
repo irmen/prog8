@@ -417,10 +417,16 @@ class AstPreprocessor(val program: Program,
         val tgt = alias.target.targetStatement(program.builtinFunctions)
 
         if(tgt==null) {
+            // The target may refer to an enum member that hasn't been desugared into consts yet.
+            // Defer the error in that case; a later iteration will resolve it after desugaring.
+            if(refersToNotYetDesugaredEnumMember(alias))
+                return noModifications
             errors.undefined(alias.target.nameInSource, position = alias.target.position)
         } else {
             if(alias.alias == alias.target.nameInSource.first()) {
                 errors.err("alias loop", alias.position)
+            } else if(tgt is Enumeration) {
+                errors.err("cannot alias an enum '${alias.target.nameInSource.joinToString(".")}', alias individual members instead (e.g. ${alias.target.nameInSource.joinToString(".")}::Member)", alias.position)
             } else if(tgt is Alias) {
                 var chainedAlias = alias
                 var chainedTargetName = alias.target
@@ -458,6 +464,23 @@ class AstPreprocessor(val program: Program,
         }
 
         return noModifications
+    }
+
+    private fun refersToNotYetDesugaredEnumMember(alias: Alias): Boolean {
+        val nameInSource = alias.target.nameInSource
+        if(nameInSource.isEmpty())
+            return false
+        val last = nameInSource.last()
+        if("::" !in last)
+            return false
+        val parts = last.split("::", limit = 2)
+        if(parts.size != 2 || parts[0].isEmpty() || parts[1].isEmpty())
+            return false
+        val enumName = parts[0]
+        val memberName = parts[1]
+        val enumPath = nameInSource.dropLast(1) + enumName
+        val enumNode = alias.definingScope.lookup(enumPath) as? Enumeration ?: return false
+        return enumNode.members.any { it.first == memberName }
     }
 
     override fun after(typecast: TypecastExpression, parent: Node): Iterable<AstModification> {

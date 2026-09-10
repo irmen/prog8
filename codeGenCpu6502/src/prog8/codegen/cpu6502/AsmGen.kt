@@ -1504,7 +1504,7 @@ $repeatLabel""")
             }
             else if(swap.target1.pointerDeref!=null && swap.target2.pointerDeref!=null) {
                 val v1 = swap.target1.pointerDeref!!
-                val v2 = swap.target1.pointerDeref!!
+                val v2 = swap.target2.pointerDeref!!
                 if(v1.derefLast && v1.chain.isEmpty() && v2.derefLast && v2.chain.isEmpty() && isZpVar(v1.startpointer) && isZpVar(v2.startpointer)) {
                     // optimized case where v1 and v2 are both already zeropage pointer variables
                     val name1 = asmVariableName(v1.startpointer)

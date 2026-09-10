@@ -664,6 +664,61 @@ main {
     }
 
 
+    test("alias to enum member works") {
+        val src = """
+main {
+    enum Priority { LOW, NORMAL, HIGH, EXTREME }
+
+    alias myNormal = Priority::NORMAL
+    alias chainedNormal = myNormal
+
+    sub start() {
+        ubyte @shared value1 = Priority::NORMAL
+        ubyte @shared value2 = myNormal
+        ubyte @shared value3 = chainedNormal
+    }
+}"""
+        val result = compileText(Cx16Target(), false, src, outputDir, writeAssembly = false)!!
+        val start = result.compilerAst.allBlocks.first { it.name == "main" }.statements.filterIsInstance<prog8.ast.statements.Subroutine>().first { it.name == "start" }
+        val assignments = start.statements.filterIsInstance<Assignment>()
+        val value1 = (assignments[0].value as? NumericLiteral)?.number
+        val value2 = (assignments[1].value as? NumericLiteral)?.number
+        val value3 = (assignments[2].value as? NumericLiteral)?.number
+        value1 shouldBe 1.0
+        value2 shouldBe 1.0
+        value3 shouldBe 1.0
+    }
+
+    test("alias to whole enum gives error") {
+        val src = """
+main {
+    enum Priority { LOW, NORMAL, HIGH, EXTREME }
+    alias myEnum = Priority
+
+    sub start() {
+    }
+}"""
+        val errors = ErrorReporterForTests()
+        compileText(Cx16Target(), false, src, outputDir, writeAssembly = false, errors = errors) shouldBe null
+        errors.errors.size shouldBe 1
+        errors.errors[0] shouldContain "cannot alias an enum"
+    }
+
+    test("alias to nonexistent enum member gives undefined error") {
+        val src = """
+main {
+    enum Priority { LOW, NORMAL, HIGH, EXTREME }
+    alias myBad = Priority::NONEXISTENT
+
+    sub start() {
+    }
+}"""
+        val errors = ErrorReporterForTests()
+        compileText(Cx16Target(), false, src, outputDir, writeAssembly = false, errors = errors) shouldBe null
+        errors.errors.size shouldBe 1
+        errors.errors[0] shouldContain "undefined symbol: Priority::NONEXISTENT"
+    }
+
     test("double colon in name only allowed in desugared enum members 2") {
         val src = """
 main {

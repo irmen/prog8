@@ -1718,6 +1718,39 @@ mkword {
         errors.errors[1] shouldContain "builtin function cannot be redefined"
     }
 
+    test("block names cannot be builtin functions or keywords") {
+        val src="""
+main {
+    sub start() {
+    }
+}
+
+private {
+    sub foo() -> uword {
+        return 1
+    }
+}
+
+memory {
+    sub foo() -> uword {
+        return 1
+    }
+}
+
+mkword {
+    sub foo() -> uword {
+        return 2
+    }
+}
+"""
+        val errors = ErrorReporterForTests()
+        compileText(VMTarget(), optimize=false, src, outputDir, errors=errors) shouldBe null
+        errors.errors.size shouldBe 3
+        errors.errors[0] shouldContain "name cannot be a keyword"
+        errors.errors[1] shouldContain "builtin function cannot be redefined"
+        errors.errors[2] shouldContain "builtin function cannot be redefined"
+    }
+
     test("string and array multiplication require integer multiplicand") {
         val src="""
 main {

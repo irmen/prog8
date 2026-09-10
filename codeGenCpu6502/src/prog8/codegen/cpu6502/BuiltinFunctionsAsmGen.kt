@@ -33,8 +33,8 @@ import prog8.codegen.cpu6502.assignment.*
         return when (fcall.name) {
             "msw" -> funcMsw(fcall, firstReturnRegister ?: RegisterOrPair.AY)
             "lsw" -> funcLsw(fcall, firstReturnRegister ?: RegisterOrPair.AY)
-            "msb" -> funcMsb(fcall, firstReturnRegister ?: RegisterOrPair.A)
-            "msb__long" -> funcMsbLong(fcall, firstReturnRegister ?: RegisterOrPair.A)
+            "msb" -> funcMsb(fcall, false, firstReturnRegister ?: RegisterOrPair.A)
+            "msb__long" -> funcMsb(fcall, true, firstReturnRegister ?: RegisterOrPair.A)
             "lsb" -> funcLsb(fcall, false, firstReturnRegister ?: RegisterOrPair.A)
             "lsb__long" -> funcLsb(fcall,true, firstReturnRegister ?: RegisterOrPair.A)
             "mkword" -> funcMkword(fcall, firstReturnRegister ?: RegisterOrPair.AY)
@@ -2527,55 +2527,36 @@ import prog8.codegen.cpu6502.assignment.*
         return arrayOf(RegisterOrPair.AY)
     }
 
-    private fun funcMsbLong(fcall: PtFunctionCall, resultReg: RegisterOrPair): Array<RegisterOrPair> {
+    private fun funcMsb(fcall: PtFunctionCall, fromLong: Boolean, resultReg: RegisterOrPair): Array<RegisterOrPair> {
         val arg = fcall.args.single()
-        if (!arg.type.isLong)
-            throw AssemblyError("msb__long requires long argument")
-        if (arg is PtNumber)
-            throw AssemblyError("msb(const) should have been const-folded away")
-
-        if (arg is PtIdentifier) {
-            val sourceName = asmgen.asmVariableName(arg)
-            when(resultReg) {
-                RegisterOrPair.A -> asmgen.out("  lda  $sourceName+3")
-                RegisterOrPair.X -> asmgen.out("  ldx  $sourceName+3")
-                RegisterOrPair.Y -> asmgen.out("  ldy  $sourceName+3")
-                else -> throw AssemblyError("invalid register for msb long: $resultReg  ${arg.position}")
-            }
-        } else if(arg is PtArrayIndexer) {
-            TODO("msb of long array element ${fcall.position}")
+        if(fromLong) {
+            if (!arg.type.isLong)
+                throw AssemblyError("msb__long requires long argument")
         } else {
-            asmgen.assignExpressionToRegister(arg, RegisterOrPair.R14R15, arg.type.isSigned)
-            when(resultReg) {
-                RegisterOrPair.A -> asmgen.out("  lda  cx16.r14+3")
-                RegisterOrPair.X -> asmgen.out("  ldx  cx16.r14+3")
-                RegisterOrPair.Y -> asmgen.out("  ldy  cx16.r14+3")
-                else -> throw AssemblyError("invalid register for msb long: $resultReg  ${arg.position}")
-            }
+            if (!arg.type.isWord && !arg.type.isPointer)
+                throw AssemblyError("msb requires word argument")
         }
-
-        return arrayOf(resultReg)
-    }
-
-    private fun funcMsb(fcall: PtFunctionCall, resultReg: RegisterOrPair): Array<RegisterOrPair> {
-        val arg = fcall.args.single()
-        if (!arg.type.isWord)
-            throw AssemblyError("msb requires word argument")
         if (arg is PtNumber)
             throw AssemblyError("msb(const) should have been const-folded away")
+
+        val offset = if(fromLong) 3 else 1
+
         if (arg is PtIdentifier) {
             val sourceName = asmgen.asmVariableName(arg)
             when(resultReg) {
-                RegisterOrPair.A -> asmgen.out("  lda  $sourceName+1")
-                RegisterOrPair.X -> asmgen.out("  ldx  $sourceName+1")
-                RegisterOrPair.Y -> asmgen.out("  ldy  $sourceName+1")
-                RegisterOrPair.AX -> asmgen.out("  lda  $sourceName+1 |  ldx  #0")
-                RegisterOrPair.AY -> asmgen.out("  lda  $sourceName+1 |  ldy  #0")
-                RegisterOrPair.XY -> asmgen.out("  ldx  $sourceName+1 |  ldy  #0")
-                else -> throw AssemblyError("invalid register for msb: $resultReg  ${arg.position}")
+                RegisterOrPair.A -> asmgen.out("  lda  $sourceName+$offset")
+                RegisterOrPair.X -> asmgen.out("  ldx  $sourceName+$offset")
+                RegisterOrPair.Y -> asmgen.out("  ldy  $sourceName+$offset")
+                RegisterOrPair.AX -> asmgen.out("  lda  $sourceName+$offset |  ldx  #0")
+                RegisterOrPair.AY -> asmgen.out("  lda  $sourceName+$offset |  ldy  #0")
+                RegisterOrPair.XY -> asmgen.out("  ldx  $sourceName+$offset |  ldy  #0")
+                else -> throw AssemblyError("invalid register for msb${if(fromLong) " long" else ""}: $resultReg  ${arg.position}")
             }
         } else {
             if(arg is PtArrayIndexer) {
+                if(fromLong)
+                    TODO("msb of long array element ${fcall.position}")
+
                 // just read the msb byte out of the word array
                 if(arg.splitWords) {
                     if(arg.variable==null)
@@ -2597,15 +2578,15 @@ import prog8.codegen.cpu6502.assignment.*
                         RegisterOrPair.AX -> {
                             asmgen.loadScaledArrayIndexIntoRegister(arg, CpuRegister.Y)
                             asmgen.out("  lda  $arrayVar,y |  ldx  #0")
-                        } 
+                        }
                         RegisterOrPair.AY -> {
                             asmgen.loadScaledArrayIndexIntoRegister(arg, CpuRegister.Y)
                             asmgen.out("  lda  $arrayVar,y |  ldy  #0")
-                        } 
+                        }
                         RegisterOrPair.XY -> {
                             asmgen.loadScaledArrayIndexIntoRegister(arg, CpuRegister.X)
                             asmgen.out("  ldy  $arrayVar,x |  ldx  #0")
-                        } 
+                        }
                         else -> throw AssemblyError("invalid register for msb: $resultReg  ${arg.position}")
                     }
                 } else {
@@ -2641,6 +2622,14 @@ import prog8.codegen.cpu6502.assignment.*
                         else -> throw AssemblyError("invalid register for msb: $resultReg  ${arg.position}")
                     }
                 }
+            } else if(fromLong) {
+                asmgen.assignExpressionToRegister(arg, RegisterOrPair.R14R15, arg.type.isSigned)
+                when(resultReg) {
+                    RegisterOrPair.A -> asmgen.out("  lda  cx16.r14+$offset")
+                    RegisterOrPair.X -> asmgen.out("  ldx  cx16.r14+$offset")
+                    RegisterOrPair.Y -> asmgen.out("  ldy  cx16.r14+$offset")
+                    else -> throw AssemblyError("invalid register for msb long: $resultReg  ${arg.position}")
+                }
             } else {
                 asmgen.assignExpressionToRegister(arg, RegisterOrPair.AY)
                 asmgen.out("  tya")
@@ -2655,7 +2644,7 @@ import prog8.codegen.cpu6502.assignment.*
         if(fromLong) {
             if (!arg.type.isLong) throw AssemblyError("lsb__long requires long")
         } else {
-            if (!arg.type.isWord) throw AssemblyError("lsb requires word")
+            if (!arg.type.isWord && !arg.type.isPointer) throw AssemblyError("lsb requires word")
         }
         if (arg is PtNumber)
             throw AssemblyError("lsb(const) should have been const-folded away")

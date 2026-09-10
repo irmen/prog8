@@ -11,6 +11,7 @@ import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
 import prog8.code.core.*
 import prog8.code.target.VMTarget
+import prog8.parser.Prog8Keywords
 
 /**
  * This checks for naming conflicts, not for correct symbol references yet.
@@ -85,41 +86,8 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
         super.visit(decl)
     }
 
-    private val keywords = setOf(
-        "void",
-        "on",
-        "in",
-        "to",
-        "if",
-        "downto",
-        "else",
-        "step",
-        "call",
-        "goto",
-        "inline",
-        "struct",
-        "then",
-        "alias",
-        "defer",
-        "const",
-        "sizeof",
-        "as",
-        "return",
-        "break",
-        "continue",
-        "true",
-        "false",
-        "sub",
-        "asmsub",
-        "extsub",
-        "clobbers",
-        "while",
-        "do",
-        "until",
-        "repeat",
-        "unroll",
-        "when"
-    )
+    // the set of reserved keywords in the prog8 language
+    private val keywords: Set<String> by lazy { Prog8Keywords.reservedWords }
 
     override fun visit(struct: StructDecl) {
         if(struct.name in BuiltinFunctions)
@@ -131,7 +99,6 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
             if(field.type.isArray && field.type.sub==BaseDataType.STRUCT_INSTANCE)
                 errors.err("arrays of struct instances are currently not supported as struct fields at '${field.name}'", struct.position)
         }
-
         super.visit(struct)
     }
 

@@ -62,6 +62,63 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
         }
     }
 
+    private fun inplaceModificationIndexedPointerField(target: AsmAssignTarget, operator: String, value: AsmAssignSource) {
+        val array = target.array!!
+        val elementDt = target.datatype
+        if(!elementDt.isByteOrBool && !elementDt.isWord)
+            throw AssemblyError("inplace modification indexed pointer field for type $elementDt not supported")
+        val indexedTarget = IndexedPtrTarget(target)
+        val ptr = ptrgen.indexedEffectiveAddress(indexedTarget)
+
+        val elementTemp = asmgen.createTempVarReused(elementDt.base, false, array)
+        if(elementDt.isByteOrBool) {
+            asmgen.out("""
+                ldy  #0
+                lda  ($ptr),y
+                sta  $elementTemp""")
+        } else {
+            asmgen.out("""
+                ldy  #0
+                lda  ($ptr),y
+                sta  $elementTemp
+                iny
+                lda  ($ptr),y
+                sta  $elementTemp+1""")
+        }
+
+        // save the computed address on the hardware stack so later code can't clobber it
+        asmgen.out("""
+            lda  $ptr
+            pha
+            lda  $ptr+1
+            pha""")
+
+        // reuse the existing variable-target logic to modify the temp
+        val tempTarget = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, elementDt, null, target.position, variableAsmName = elementTemp)
+        inplaceModification(tempTarget, operator, value)
+
+        // restore the address and store the temp back
+        asmgen.out("""
+            pla
+            sta  $ptr+1
+            pla
+            sta  $ptr""")
+        if(elementDt.isByteOrBool) {
+            asmgen.out("""
+                ldy  #0
+                lda  $elementTemp
+                sta  ($ptr),y""")
+        } else {
+            asmgen.out("""
+                ldy  #0
+                lda  $elementTemp
+                sta  ($ptr),y
+                iny
+                lda  $elementTemp+1
+                sta  ($ptr),y""")
+        }
+    }
+
     private fun inplaceModification(target: AsmAssignTarget, operator: String, value: AsmAssignSource) {
 
         // the asm-gen code can deal with situations where you want to assign a byte into a word.
@@ -247,7 +304,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             TargetStorageKind.ARRAY -> {
                 val deref = target.array!!.pointerderef
                 if(deref!=null) {
-                    TODO("inplace modification array indexed pointer deref ${target.position}")
+                    inplaceModificationIndexedPointerField(target, operator, value)
                     return
                 }
                 val targetArrayVar = target.array.variable!!
