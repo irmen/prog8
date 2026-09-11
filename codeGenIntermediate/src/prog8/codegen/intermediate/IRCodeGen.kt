@@ -861,9 +861,44 @@ class IRCodeGen(
             }
             addInstr(result, precheckInstruction, null)
 
-            addInstr(result, IRInstructions.storeMemory(Opcode.STOREM, loopvarDtIr, fromTr.resultReg, IRMemory.direct(loopvarSymbol)), null)
+            // For step +-1 on scalar integer types, transform to an increment-then-compare
+            // against an end-exclusive value computed once in a typed register. This mirrors
+            // the 6502 backend optimization and eliminates the trailing JUMP and the extra
+            // LOADM per iteration. Pointer loop variables keep the original shape.
+            val useEndExclusive = (step==1 || step==-1) && loopvarDtIr != IRDataType.POINTER
+            if(useEndExclusive) {
+                // Emit the end-bump and the initial store each in their own labeled chunk.
+                // This prevents chunk joining from merging them, which would break M4's
+                // single-instruction store pattern.
+                val endBumpLabel = createLabelName()
+                result += IRCodeChunk(endBumpLabel, null).also {
+                    it += if(step==1)
+                        IRInstructions.unary(Opcode.INC, loopvarDtIr, toTr.resultReg)
+                    else
+                        IRInstructions.unary(Opcode.DEC, loopvarDtIr, toTr.resultReg)
+                }
+                val storeLabel = createLabelName()
+                result += IRCodeChunk(storeLabel, null).also {
+                    it += IRInstructions.storeMemory(Opcode.STOREM, loopvarDtIr, fromTr.resultReg, IRMemory.direct(loopvarSymbol))
+                }
+            } else {
+                addInstr(result, IRInstructions.storeMemory(Opcode.STOREM, loopvarDtIr, fromTr.resultReg, IRMemory.direct(loopvarSymbol)), null)
+            }
             result += labelFirstChunk(translateNode(forLoop.statements), loopLabel)
-            if(step==1 || step==-1) {
+            if(useEndExclusive) {
+                // Keep the increment and compare in separate labeled/unlabeled chunks so M4 can
+                // recognize the new tail shape after chunk joining.
+                val incLabel = createLabelName()
+                result += IRCodeChunk(incLabel, null).also {
+                    it.instructions += addConstMem(loopvarDtIr, null, loopvarSymbol, step).instructions
+                }
+                val cmpLabel = createLabelName()
+                result += IRCodeChunk(cmpLabel, null).also {
+                    it += IRInstructions.loadMemory(Opcode.LOADM, loopvarDtIr, fromTr.resultReg, IRMemory.direct(loopvarSymbol))
+                    it += IRInstructions.compare(loopvarDtIr, toTr.resultReg, fromTr.resultReg)
+                    it += IRInstructions.branch(Opcode.BSTNE, codeLabel(loopLabel))
+                }
+            } else if(step==1 || step==-1) {
                 // if endvalue == loopvar, stop loop, else iterate
                 result += IRCodeChunk(null, null).also {
                     it += IRInstructions.loadMemory(Opcode.LOADM, loopvarDtIr, fromTr.resultReg, IRMemory.direct(loopvarSymbol))
@@ -1040,7 +1075,10 @@ class IRCodeGen(
         val chunk2 = addConstMem(loopvarDtIr, null, loopvarSymbol, iterable.step)
         if(loopvarDtIr==IRDataType.BYTE && iterable.step==-1 && iterable.last==0) {
             // downto 0 optimization (byte)
-            if(loopvarDt.isSignedByte || iterable.first<=127) {
+            // Only rely on DECM setting status bits on targets where it actually does (6502 hardware,
+            // or targets that honor the strict multi-byte status-bits contract). On the VM DECM
+            // leaves flags untouched, so BSTPOS would read stale state and loop forever.
+            if((loopvarDt.isSignedByte || iterable.first<=127) && (options.compTarget.cpu.is6502 || options.compTarget.cpu.statusBitsOnMultiByteOps)) {
                 chunk2 += IRInstructions.branch(Opcode.BSTPOS, codeLabel(loopLabel))
             } else {
                 chunk2 += IRInstructions.loadMemory(Opcode.LOADM, loopvarDtIr, indexReg, IRMemory.direct(loopvarSymbol))

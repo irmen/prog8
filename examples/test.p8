@@ -1,20 +1,23 @@
+%import textio
+%zeropage basicsafe
+
 main {
     sub start() {
-        cx16.r1 = memory.foo()
-        cx16.r2 = mkword.foo()
-    }
-}
+        long total
+        cx16.r1 = 2000
+        cx16.r2 = 1000
 
-memory {
-    sub foo() -> uword {
-        cx16.r0++
-        return cx16.r0
-    }
-}
+        for cx16.r0 in 1000 to cx16.r1 {
+            total += cx16.r0
+        }
+        txt.print_l(total)
+        txt.nl()
 
-mkword {
-    sub foo() -> uword {
-        cx16.r0++
-        return cx16.r0
+
+        for cx16.r0 in 2000 downto cx16.r2 {
+            total += cx16.r0
+        }
+        txt.print_l(total)
+        txt.nl()
     }
 }

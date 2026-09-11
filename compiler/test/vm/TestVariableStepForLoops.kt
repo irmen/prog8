@@ -448,4 +448,387 @@ class TestVariableStepForLoops: FunSpec({
             memory.getUW(allocations["main.result"]!!) shouldBe 321u
         }
     }
+
+    test("constant unsigned byte downto 0") {
+        runVm("""
+            %zeropage basicsafe
+            %option no_sysinit
+            main {
+                ubyte @shared count
+                ubyte @shared result
+                sub start() {
+                    ubyte i
+                    for i in 5 downto 0 {
+                        count++
+                        result += i
+                    }
+                }
+            }
+        """) { memory, allocations ->
+            memory.getUB(allocations["main.count"]!!) shouldBe 6u
+            memory.getUB(allocations["main.result"]!!) shouldBe 15u
+        }
+    }
+
+    test("constant unsigned byte 0 downto 0") {
+        runVm("""
+            %zeropage basicsafe
+            %option no_sysinit
+            main {
+                ubyte @shared count
+                ubyte @shared result
+                sub start() {
+                    ubyte i
+                    for i in 0 downto 0 {
+                        count++
+                        result += i
+                    }
+                }
+            }
+        """) { memory, allocations ->
+            memory.getUB(allocations["main.count"]!!) shouldBe 1u
+            memory.getUB(allocations["main.result"]!!) shouldBe 0u
+        }
+    }
+
+    test("constant signed byte downto 0") {
+        runVm("""
+            %zeropage basicsafe
+            %option no_sysinit
+            main {
+                byte @shared count
+                byte @shared result
+                sub start() {
+                    byte i
+                    for i in 2 downto 0 {
+                        count++
+                        result += i
+                    }
+                }
+            }
+        """) { memory, allocations ->
+            memory.getSB(allocations["main.count"]!!) shouldBe 3
+            memory.getSB(allocations["main.result"]!!) shouldBe 3
+        }
+    }
+
+    test("non-constant uword ascending boundary 65535") {
+        runVm("""
+            %zeropage basicsafe
+            %option no_sysinit
+            main {
+                uword @shared count
+                uword @shared first
+                uword @shared last
+                sub start() {
+                    uword @shared a = 65534
+                    uword @shared b = 65535
+                    uword i
+                    for i in a to b {
+                        if count == 0
+                            first = i
+                        last = i
+                        count++
+                    }
+                }
+            }
+        """) { memory, allocations ->
+            memory.getUW(allocations["main.count"]!!) shouldBe 2u
+            memory.getUW(allocations["main.first"]!!) shouldBe 65534u
+            memory.getUW(allocations["main.last"]!!) shouldBe 65535u
+        }
+    }
+
+    test("non-constant uword descending boundary 0") {
+        runVm("""
+            %zeropage basicsafe
+            %option no_sysinit
+            main {
+                uword @shared count
+                uword @shared first
+                uword @shared last
+                sub start() {
+                    uword @shared a = 1
+                    uword @shared b = 0
+                    uword i
+                    for i in a downto b {
+                        if count == 0
+                            first = i
+                        last = i
+                        count++
+                    }
+                }
+            }
+        """) { memory, allocations ->
+            memory.getUW(allocations["main.count"]!!) shouldBe 2u
+            memory.getUW(allocations["main.first"]!!) shouldBe 1u
+            memory.getUW(allocations["main.last"]!!) shouldBe 0u
+        }
+    }
+
+    test("non-constant word ascending signed") {
+        runVm("""
+            %zeropage basicsafe
+            %option no_sysinit
+            main {
+                word @shared count
+                word @shared sum
+                sub start() {
+                    word @shared a = -2
+                    word @shared b = 2
+                    word i
+                    for i in a to b {
+                        count++
+                        sum += i
+                    }
+                }
+            }
+        """) { memory, allocations ->
+            memory.getSW(allocations["main.count"]!!) shouldBe 5
+            memory.getSW(allocations["main.sum"]!!) shouldBe 0
+        }
+    }
+
+    test("non-constant word descending signed boundary") {
+        runVm("""
+            %zeropage basicsafe
+            %option no_sysinit
+            main {
+                word @shared count
+                word @shared first
+                word @shared last
+                sub start() {
+                    word @shared a = -32767
+                    word @shared b = -32768
+                    word i
+                    for i in a downto b {
+                        if count == 0
+                            first = i
+                        last = i
+                        count++
+                    }
+                }
+            }
+        """) { memory, allocations ->
+            memory.getSW(allocations["main.count"]!!) shouldBe 2
+            memory.getSW(allocations["main.first"]!!) shouldBe -32767
+            memory.getSW(allocations["main.last"]!!) shouldBe -32768
+        }
+    }
+
+    test("non-constant ubyte ascending boundary") {
+        runVm("""
+            %zeropage basicsafe
+            %option no_sysinit
+            main {
+                ubyte @shared count
+                ubyte @shared first
+                ubyte @shared last
+                sub start() {
+                    ubyte @shared a = 254
+                    ubyte @shared b = 255
+                    ubyte i
+                    for i in a to b {
+                        if count == 0
+                            first = i
+                        last = i
+                        count++
+                    }
+                }
+            }
+        """) { memory, allocations ->
+            memory.getUB(allocations["main.count"]!!) shouldBe 2u
+            memory.getUB(allocations["main.first"]!!) shouldBe 254u
+            memory.getUB(allocations["main.last"]!!) shouldBe 255u
+        }
+    }
+
+    test("non-constant ubyte descending boundary") {
+        runVm("""
+            %zeropage basicsafe
+            %option no_sysinit
+            main {
+                ubyte @shared count
+                ubyte @shared first
+                ubyte @shared last
+                sub start() {
+                    ubyte @shared a = 1
+                    ubyte @shared b = 0
+                    ubyte i
+                    for i in a downto b {
+                        if count == 0
+                            first = i
+                        last = i
+                        count++
+                    }
+                }
+            }
+        """) { memory, allocations ->
+            memory.getUB(allocations["main.count"]!!) shouldBe 2u
+            memory.getUB(allocations["main.first"]!!) shouldBe 1u
+            memory.getUB(allocations["main.last"]!!) shouldBe 0u
+        }
+    }
+
+    test("non-constant byte descending signed") {
+        runVm("""
+            %zeropage basicsafe
+            %option no_sysinit
+            main {
+                byte @shared count
+                byte @shared sum
+                sub start() {
+                    byte @shared a = 1
+                    byte @shared b = -1
+                    byte i
+                    for i in a downto b {
+                        count++
+                        sum += i
+                    }
+                }
+            }
+        """) { memory, allocations ->
+            memory.getSB(allocations["main.count"]!!) shouldBe 3
+            memory.getSB(allocations["main.sum"]!!) shouldBe 0
+        }
+    }
+
+    test("non-constant from equals to") {
+        runVm("""
+            %zeropage basicsafe
+            %option no_sysinit
+            main {
+                ubyte @shared count
+                ubyte @shared value
+                sub start() {
+                    ubyte @shared a = 7
+                    ubyte @shared b = 7
+                    ubyte i
+                    for i in a to b {
+                        count++
+                        value = i
+                    }
+                }
+            }
+        """) { memory, allocations ->
+            memory.getUB(allocations["main.count"]!!) shouldBe 1u
+            memory.getUB(allocations["main.value"]!!) shouldBe 7u
+        }
+    }
+
+    test("non-constant empty range ascending") {
+        runVm("""
+            %zeropage basicsafe
+            %option no_sysinit
+            main {
+                ubyte @shared count
+                sub start() {
+                    ubyte @shared a = 10
+                    ubyte @shared b = 0
+                    ubyte i
+                    for i in a to b {
+                        count++
+                    }
+                }
+            }
+        """) { memory, allocations ->
+            memory.getUB(allocations["main.count"]!!) shouldBe 0u
+        }
+    }
+
+    test("non-constant empty range descending") {
+        runVm("""
+            %zeropage basicsafe
+            %option no_sysinit
+            main {
+                ubyte @shared count
+                sub start() {
+                    ubyte @shared a = 0
+                    ubyte @shared b = 10
+                    ubyte i
+                    for i in a downto b {
+                        count++
+                    }
+                }
+            }
+        """) { memory, allocations ->
+            memory.getUB(allocations["main.count"]!!) shouldBe 0u
+        }
+    }
+
+    test("non-constant long ascending boundary") {
+        runVm("""
+            %zeropage basicsafe
+            %option no_sysinit
+            main {
+                long @shared count
+                long @shared first
+                long @shared last
+                sub start() {
+                    long @shared a = 2147483646
+                    long @shared b = 2147483647
+                    long i
+                    for i in a to b {
+                        if count == 0
+                            first = i
+                        last = i
+                        count++
+                    }
+                }
+            }
+        """) { memory, allocations ->
+            memory.getSL(allocations["main.count"]!!) shouldBe 2
+            memory.getSL(allocations["main.first"]!!) shouldBe 2147483646
+            memory.getSL(allocations["main.last"]!!) shouldBe 2147483647
+        }
+    }
+
+    test("non-constant long descending boundary") {
+        runVm("""
+            %zeropage basicsafe
+            %option no_sysinit
+            main {
+                long @shared count
+                long @shared first
+                long @shared last
+                sub start() {
+                    long @shared a = -2147483647
+                    long @shared b = -2147483648
+                    long i
+                    for i in a downto b {
+                        if count == 0
+                            first = i
+                        last = i
+                        count++
+                    }
+                }
+            }
+        """) { memory, allocations ->
+            memory.getSL(allocations["main.count"]!!) shouldBe 2
+            memory.getSL(allocations["main.first"]!!) shouldBe -2147483647
+            memory.getSL(allocations["main.last"]!!) shouldBe -2147483648
+        }
+    }
+
+    test("non-constant pointer step 1 keeps working") {
+        runVm("""
+            %zeropage basicsafe
+            %option no_sysinit
+            main {
+                pointer @shared result
+                sub start() {
+                    pointer @shared a = 0
+                    pointer @shared b = 4
+                    pointer i
+                    pointer sum = 0
+                    for i in a to b {
+                        sum += i
+                    }
+                    result = sum
+                }
+            }
+        """) { memory, allocations ->
+            memory.getUW(allocations["main.result"]!!) shouldBe 10u
+        }
+    }
 })
