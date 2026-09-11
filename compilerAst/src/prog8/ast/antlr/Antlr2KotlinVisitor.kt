@@ -891,11 +891,11 @@ class Antlr2KotlinVisitor(val source: SourceCode, private val target: ICompilati
     override fun visitStructdeclaration(ctx: StructdeclarationContext): StructDecl {
         val name = getname(ctx.identifier())
         val fieldDefs = ctx.structfielddecl().map { getStructField(it) }
-        val flattened = fieldDefs.flatMap { (dt, names, arrSize) -> names.map { StructField(dt, it, arrSize) }}
+        val flattened = fieldDefs.flatMap { (dt, names, arrSize) -> names.map { StructField(dt, it, arrSize?.copy()) }}
         return StructDecl(name, flattened.toTypedArray(), visibilityFromTokens(ctx), ctx.toPosition(), leadingBlockComment(ctx))
     }
 
-    private data class StructFieldDef(val type: DataType, val names: List<String>, val arraySize: Int?)
+    private data class StructFieldDef(val type: DataType, val names: List<String>, val arraySize: ArrayIndex?)
 
     private fun getStructField(ctx: StructfielddeclContext): StructFieldDef {
         val identifiers = ctx.identifierlist()?.identifier() ?: emptyList()
@@ -910,9 +910,7 @@ class Antlr2KotlinVisitor(val source: SourceCode, private val target: ICompilati
                 throw SyntaxError("2D arrays are not allowed as struct fields", ctx.toPosition())
             val dt = baseDt.elementToArray(target)
             val arrayIndexExpr = arrayIndices[0].accept(this) as ArrayIndex
-            val size = (arrayIndexExpr.indexExpr as? NumericLiteral)?.number?.toInt()
-                ?: throw SyntaxError("array field size must be a constant integer expression", ctx.toPosition())
-            dt to size
+            dt to arrayIndexExpr
         } else {
             baseDt to null
         }

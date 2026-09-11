@@ -46,6 +46,7 @@ interface IAstVisitor {
     }
 
     fun visit(struct: StructDecl) {
+        struct.fields.forEach { it.arraySize?.accept(this) }
     }
 
     fun visit(field: StructFieldRef) {

@@ -225,8 +225,13 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
             output("public ")
         outputln("struct ${struct.name} {")
         for(member in struct.fields) {
-            val arraySuffix = if(member.isArray) "[${member.arraySize}]" else ""
-            outputlni(  "    ${member.type}$arraySuffix ${member.name}")
+            outputi("    ${member.type}")
+            if(member.isArray) {
+                output("[")
+                member.arraySize?.indexExpr?.accept(this)
+                output("]")
+            }
+            outputln(" ${member.name}")
         }
         outputlni("}")
     }

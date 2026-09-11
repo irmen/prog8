@@ -381,6 +381,7 @@ abstract class AstWalker {
 
     fun visit(struct: StructDecl, parent: Node) {
         track(before(struct, parent), struct, parent)
+        struct.fields.forEach { it.arraySize?.accept(this) }
         track(after(struct, parent), struct, parent)
     }
 

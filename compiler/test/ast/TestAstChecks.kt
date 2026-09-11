@@ -723,6 +723,73 @@ main {
         errors.printedErrors.any { it.contains("2D arrays are not allowed as struct fields") } shouldBe true
     }
 
+    test("struct field array size can be const expression") {
+        val src = """
+            main {
+                const ubyte SIZE = 5
+                struct Node {
+                    ubyte[SIZE] data
+                    uword top
+                }
+                sub start() {
+                    ^^Node n = [ [1,2,3,4,5], 9999 ]
+                }
+            }
+        """.trimIndent()
+        val errors = ErrorReporterForTests()
+        compileText(VMTarget(), false, src, outputDir, errors, false)
+        errors.errors shouldBe emptyList()
+    }
+
+    test("struct field array size can be folded constant expression") {
+        val src = """
+            main {
+                const ubyte BASE = 3
+                struct Node {
+                    ubyte[BASE*2] data
+                }
+                sub start() {
+                    ^^Node n = [ [1,2,3,4,5,6] ]
+                }
+            }
+        """.trimIndent()
+        val errors = ErrorReporterForTests()
+        compileText(VMTarget(), false, src, outputDir, errors, false)
+        errors.errors shouldBe emptyList()
+    }
+
+    test("struct field array size rejects non-constant expression") {
+        val src = """
+            main {
+                uword dyn
+                struct Node {
+                    uword[dyn] data
+                }
+                sub start() {
+                    dyn = 5
+                }
+            }
+        """.trimIndent()
+        val errors = ErrorReporterForTests()
+        compileText(VMTarget(), false, src, outputDir, errors) shouldBe null
+        errors.errors.any { it.contains("array length must be known at compile-time") } shouldBe true
+    }
+
+    test("struct field array size rejects zero size") {
+        val src = """
+            main {
+                const ubyte SIZE = 0
+                struct Node {
+                    ubyte[SIZE] data
+                }
+                sub start() { }
+            }
+        """.trimIndent()
+        val errors = ErrorReporterForTests()
+        compileText(VMTarget(), false, src, outputDir, errors) shouldBe null
+        errors.errors.any { it.contains("array length must be positive") } shouldBe true
+    }
+
     test("variable declaration followed by statement on same line should give error") {
         val src = """
             main {

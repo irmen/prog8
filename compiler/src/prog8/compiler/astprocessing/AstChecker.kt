@@ -2329,7 +2329,7 @@ internal class AstChecker(private val program: Program,
                 val deref = arrayIndexedExpression.pointerderef!!
                 val target = deref.definingScope.lookup(deref.chain)
                 val arraysize: Int? = when(target) {
-                    is StructFieldRef -> target.field.arraySize
+                    is StructFieldRef -> target.field.constSize()
                     is VarDecl -> target.arraysize?.constIndex()
                     else -> null
                 }
@@ -2543,10 +2543,17 @@ internal class AstChecker(private val program: Program,
                 || dt.isPointer
                 || dt.isArray
         }
-        
+
         struct.fields.forEach { field ->
             if(!validFieldType(field))
                 errors.err("invalid struct field type at '${field.name}'", struct.position)
+            if(field.isArray) {
+                val size = field.constSize()
+                if(size==null)
+                    errors.err("array length must be known at compile-time", field.arraySize?.position ?: struct.position)
+                else if(size<=0)
+                    errors.err("array length must be positive", field.arraySize?.position ?: struct.position)
+            }
         }
     }
 
@@ -2968,7 +2975,7 @@ internal class AstChecker(private val program: Program,
             val struct = initializer.structname.targetStructDecl()
             if(struct!=null) {
                 val expectedFieldCount = struct.fields.size
-                val expectedFlattenedElements = struct.fields.sumOf { it.arraySize ?: 1 }
+                val expectedFlattenedElements = struct.fields.sumOf { it.constSize() ?: 1 }
                 val flattenedArgs = args.flattenArgs()
                 
                 if (args.size != expectedFieldCount) {

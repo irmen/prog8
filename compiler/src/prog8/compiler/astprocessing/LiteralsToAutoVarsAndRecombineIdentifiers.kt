@@ -43,7 +43,9 @@ internal class LiteralsToAutoVarsAndRecombineIdentifiers(private val program: Pr
                     else -> null
                 }
                 if(baseDt != null) {
-                    val arraySize = field.arraySize!!
+                    val arraySize = field.arraySize?.indexExpr?.constValue(program)?.number?.toInt()
+                    if(arraySize == null)
+                        return noModifications
                     val encoded = program.target.encodeString(string.value, string.encoding)
                     if(encoded.size > arraySize) {
                         errors.err("string literal (${encoded.size} bytes) does not fit in ${baseDt.name.lowercase()} array field '${field.name}' of size $arraySize", string.position)

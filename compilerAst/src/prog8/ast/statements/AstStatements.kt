@@ -537,20 +537,37 @@ class StructDecl(override val name: String, val fields: Array<StructField>, val 
 
     override fun linkParents(parent: Node) {
         this.parent = parent
+        fields.forEach { it.arraySize?.linkParents(this) }
     }
 
-    override fun replaceChildNode(node: Node, replacement: Node) = throw FatalAstException("can't replace here")
-    override fun referencesIdentifier(nameInSource: List<String>) = false
-    override fun copy() = StructDecl(name, fields.clone(), visibility, position, blockComment)
+    override fun replaceChildNode(node: Node, replacement: Node) {
+        require(replacement is ArrayIndex)
+        val field = fields.firstOrNull { it.arraySize === node }
+            ?: throw FatalAstException("invalid replace in $this at ${node.position}: $node -> $replacement")
+        field.arraySize = replacement
+        replacement.linkParents(this)
+    }
+    override fun referencesIdentifier(nameInSource: List<String>) = fields.any { it.arraySize?.referencesIdentifier(nameInSource)==true }
+    override fun copy() = StructDecl(name, fields.map { it.copy() }.toTypedArray(), visibility, position, blockComment)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
     override fun memsize(sizer: IMemSizer): Int = fields.sumOf { field ->
         if(field.isArray)
-            sizer.memorySize(field.type, field.arraySize!!)
+            sizer.memorySize(field.type, field.constSize() ?: 1)
         else
             sizer.memorySize(field.type, 1)
     }
-    override fun sameas(other: ISubType): Boolean = other is StructDecl && other.name==name && other.fields.contentEquals(fields)
+    override fun sameas(other: ISubType): Boolean {
+        if(other !is StructDecl || other.name!=name || other.fields.size!=fields.size)
+            return false
+        return fields.zip(other.fields).all { (a, b) ->
+            a.name==b.name && a.type==b.type && when {
+                a.arraySize==null && b.arraySize==null -> true
+                a.arraySize!=null && b.arraySize!=null -> a.arraySize!! isSameAs b.arraySize!!
+                else -> false
+            }
+        }
+    }
 
     override fun getFieldType(name: String): DataType? = fields.firstOrNull { it.name==name }?.type
     fun getField(name: String): StructField? = fields.firstOrNull { it.name==name }
@@ -560,7 +577,7 @@ class StructDecl(override val name: String, val fields: Array<StructField>, val 
         fields.fold(0) { offset, field ->
             if (field.name == fieldname)
                 return offset.toUByte()
-            val numElements = if(field.isArray) field.arraySize!! else 1
+            val numElements = if(field.isArray) field.constSize() ?: 1 else 1
             offset + sizer.memorySize(field.type, numElements)
         }
         return null
@@ -599,8 +616,10 @@ class StructDecl(override val name: String, val fields: Array<StructField>, val 
 }
 
 
-data class StructField(val type: DataType, val name: String, val arraySize: Int? = null) {
+data class StructField(val type: DataType, val name: String, var arraySize: ArrayIndex? = null) {
     val isArray: Boolean get() = arraySize != null
+    fun constSize(): Int? = arraySize?.constIndex()
+    fun copy(): StructField = StructField(type, name, arraySize?.copy())
 }
 
 
