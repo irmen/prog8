@@ -1,14 +1,12 @@
-main {
-    const uword STACK_SIZE = 10
-    struct Stack {
-        uword[STACK_SIZE] stack1
-        uword[20] stack2
-        uword top
-    }
+%import textio
+%zeropage basicsafe
 
+main {
     sub start() {
-        ^^Stack st = []
-        st.stack1[5] = 9999
-        st.stack2[5] = 8888
+
+        for cx16.r0L in 5 downto 0 {
+            txt.print_ub(cx16.r0L)
+            txt.spc()
+        }
     }
 }

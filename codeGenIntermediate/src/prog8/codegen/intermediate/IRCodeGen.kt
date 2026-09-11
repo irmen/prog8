@@ -888,7 +888,10 @@ class IRCodeGen(
         val chunk2 = addConstMem(loopvarDtIr, null, loopvarSymbol, iterable.step)
         if(loopvarDtIr==IRDataType.BYTE && iterable.step==-1 && iterable.last==0) {
             // downto 0 optimization (byte)
-            if(loopvarDt.isSignedByte || iterable.first<=127) {
+            // Only rely on DECM setting status bits on targets where it actually does (6502 hardware,
+            // or targets that honor the strict multi-byte status-bits contract). On the VM DECM
+            // leaves flags untouched, so BSTPOS would read stale state and loop forever.
+            if((loopvarDt.isSignedByte || iterable.first<=127) && (options.compTarget.cpu.is6502 || options.compTarget.cpu.statusBitsOnMultiByteOps)) {
                 chunk2 += IRInstruction(Opcode.BSTPOS, labelSymbol = loopLabel)
             } else {
                 chunk2 += IRInstruction(Opcode.LOADM, loopvarDtIr, reg1 = indexReg, labelSymbol = loopvarSymbol)
