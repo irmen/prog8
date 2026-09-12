@@ -6,16 +6,11 @@ If this folder doesn't yet exist, simply create it.
 After installing this file, restart the IDE.
 
 The exact location of that folder varies per operating system and
-IDE version, but for me it is this one currently this on Linux:
+IDE version. Replace <VERSION> with your installed IDE version
+(for example 2025.2 or 2026.1). Typical locations:
 
-  $HOME/.config/JetBrains/IntelliJIdea2024.3/filetypes/
-  
-For PyCharm on Mac OS, it is:
+  Linux:   $HOME/.config/JetBrains/IntelliJIdea<VERSION>/filetypes/
+  macOS:   $HOME/Library/Application Support/JetBrains/PyCharm<VERSION>/filetypes/
+  Windows: %USERPROFILE%\AppData\Roaming\JetBrains\PyCharm<VERSION>\filetypes\
 
-  $HOME/Library/Application Support/JetBrains/PyCharm2024.3/filetypes/
-
-And on Windows it is:
-
-  %USERPROFILE%\AppData\Roaming\JetBrains\PyCharm2024.3\filetypes\
-
-etcetera.
+Other JetBrains products use the same pattern (Rider, CLion, etcetera).

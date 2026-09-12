@@ -131,8 +131,8 @@ Package `prog8.code.*`, `prog8.code.target.*`.
 | `DataTypes` | object | Prog8 data types (u8/u16/u32/str/... width, signed, floats) |
 | `ICompilationTarget` | interface | Target abstraction: memory regions, floats, zeropage, launchEmulator |
 | `CompilationTargets` (+ `getCompilationTargetByName`) | helpers | Registry of named targets |
-| `C64Target`, `C128Target`, `PETTarget`, `Cx16Target`, `VMTarget`, `Amiga500Target`, `Qemu68kTarget`, `ConfigFileTarget` | classes | Concrete targets (via `target/*.kt`) |
-| `*Zeropage` (C64/C128/CX16/PET/Configurable) | classes | Per-target zeropage layout (`target/zp/*`) |
+| `C64Target`, `C128Target`, `PETTarget`, `Cx16Target`, `VMTarget`, `Amiga500Target`, `Amiga1200Target`, `Qemu68kTarget`, `ConfigFileTarget` | classes | Concrete targets (via `target/*.kt`) |
+| `*Zeropage` (C64/C128/CX16/PET/Configurable, plus Amiga1200's inline zp) | classes | Per-target zeropage layout (`target/zp/*`) |
 | `encodings/*` (`Encoder`, PetsciiEncoding, IsoEncoding, Cp437Encoding, AtasciiEncoding, KatakanaEncoding, C64osEncoding) | classes | Text encoding/decoding per target |
 | `MemoryRegions`, `NormalMemSizer`, `IMemSizer` | classes | Memory size/layout determination |
 | `Mflpt5.kt` | class | 5-byte floating point format (target-dependent) |
@@ -251,7 +251,7 @@ Package `prog8.codegen.new6502.*`. Entry `Main.kt` -> `prog8-newgen`. Reads `.p8
 | `StderrErrorReporter` | Error reporting for standalone mode |
 
 ### 4.10 `codeGenM68k` (M68K backend - standalone)
-Package `prog8.codegen.m68k.*`. Entry `Main.kt` -> `prog8-m68kgen`. Reads `.p8ir` (both `amiga500` and `qemu68k` targets).
+Package `prog8.codegen.m68k.*`. Entry `Main.kt` -> `prog8-m68kgen`. Reads `.p8ir` (the `amiga500`, `amiga1200` and `qemu68k` targets).
 | Entity | Purpose |
 |--------|---------|
 | `M68kCodeGenerator` | Orchestrates IR -> M68K asm |
@@ -302,7 +302,7 @@ Location: `compiler/res/prog8lib/`. These files are **embedded into the compiler
 
 ### Layout
 - **Implicit default modules** (always imported): `syslib`, `prog8_math`, `prog8_lib`, plus `verafx` on cx16 when `%option verafxmuls`.
-- **Target-specific folders** override per target: `c64/`, `c128/`, `cx16/`, `pet32/`, `amiga500/`, `qemu68k/`, `virtual/`.
+- **Target-specific folders** override per target: `c64/`, `c128/`, `cx16/`, `pet32/`, `amiga500/`, `amiga1200/`, `qemu68k/`, `virtual/`.
 - **Shared** `.p8`/`.asm` files at top level: `prog8_lib`, `prog8_math`, `math`, `strings`, `conv`, `bcd`, `buffers`, `compression`, `coroutines`, `lists`, `sorting`, `wavfile`, plus `shared_*` suffix files reused across targets.
 
 ### Representative target module sets

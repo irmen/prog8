@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE language>
-<language name="Prog8" version="12.2" kateversion="5.62" section="Scripts" extensions="*.p8;*.prog8" mimetype="application/x-prog8;text" author="Irmen de Jong" license="MIT">
+<language name="Prog8" version="14.0" kateversion="5.62" section="Scripts" extensions="*.p8;*.prog8" mimetype="application/x-prog8;text" author="Irmen de Jong" license="MIT">
   <highlighting>
     <list name="keywords">
       <item>alias</item>
@@ -8,8 +8,10 @@
       <item>as</item>
       <item>asmsub</item>
       <item>break</item>
+      <item>call</item>
       <item>clobbers</item>
       <item>continue</item>
+      <item>defer</item>
       <item>do</item>
       <item>downto</item>
       <item>else</item>
@@ -41,6 +43,7 @@
       <item>return</item>
       <item>step</item>
       <item>sub</item>
+      <item>swap</item>
       <item>then</item>
       <item>to</item>
       <item>true</item>
@@ -65,6 +68,7 @@
       <item>%memtop</item>
       <item>%option</item>
       <item>%output</item>
+      <item>%varsaddress</item>
       <item>%zeropage</item>
       <item>%zpallowed</item>
       <item>%zpreserved</item>
@@ -79,7 +83,6 @@
       <item>@nozp</item>
       <item>@requirezp</item>
       <item>@shared</item>
-      <item>@split</item>
       <item>@zp</item>
     </list>
     <list name="types">
@@ -107,7 +110,6 @@
       <item>cmp</item>
       <item>conv</item>
       <item>cx16</item>
-      <item>defer</item>
       <item>diskio</item>
       <item>divmod</item>
       <item>floats</item>
@@ -120,6 +122,8 @@
       <item>memory</item>
       <item>min</item>
       <item>mkword</item>
+      <item>mklong</item>
+      <item>mklong2</item>
       <item>msb</item>
       <item>msw</item>
       <item>offsetof</item>
@@ -131,8 +135,10 @@
       <item>peekp</item>
       <item>poke</item>
       <item>pokebool</item>
+      <item>pokebowl</item>
       <item>pokef</item>
       <item>pokel</item>
+      <item>pokemon</item>
       <item>pokew</item>
       <item>pokep</item>
       <item>pop</item>
@@ -152,16 +158,17 @@
       <item>ror</item>
       <item>ror2</item>
       <item>rrestore</item>
-      <item>rrestorex</item>
       <item>rsave</item>
-      <item>rsavex</item>
+      <item>set_carry</item>
+      <item>set_irqd</item>
+      <item>clear_carry</item>
+      <item>clear_irqd</item>
       <item>setlsb</item>
       <item>setmsb</item>
       <item>sgn</item>
       <item>sizeof</item>
       <item>sqrt</item>
       <item>strings</item>
-      <item>swap</item>
       <item>sys</item>
       <item>txt</item>
       <item>verafx</item>

@@ -21,17 +21,17 @@ syn region prog8Expression matchgroup=prog8AddressOp start="@(" end=")"
 syn match prog8Function "\(\<\(asm\)\?sub\>\s\+\)\@16<=\<\w\+\>"
 syn match prog8Function "\(extsub\s\+$\x\+\s\+=\s\+\)\@16<=\<\w\+\>"
 
-syn keyword prog8Statement break continue goto return asmsub sub inline extsub clobbers private public
+syn keyword prog8Statement break continue goto return asmsub sub inline extsub clobbers private public on call swap defer alias
 syn match prog8Statement "\<\(asm\)\?sub\>"
 syn keyword prog8Conditional if else when then
 syn keyword prog8Conditional if_cs if_cc if_vs if_vc if_eq if_z if_ne if_nz
 syn keyword prog8Conditional if_pl if_pos if_mi if_neg
 syn keyword prog8Repeat for while in do until repeat unroll
 syn match prog8Label "\<\w\+\>:"
-syn keyword prog8Operator and or to downto as void
+syn keyword prog8Operator and or to downto as void not xor step
 
-syn match prog8Directive "\(^\|\s\)%\(output\|launcher\|zeropage\)\>"
-syn match prog8Directive "\(^\|\s\)%\(zpreserved\|zpallowed\|address\|encoding\|import\|option\)\>"
+syn match prog8Directive "\(^\|\s\)%\(output\|launcher\|zeropage\|memtop\)\>"
+syn match prog8Directive "\(^\|\s\)%\(zpreserved\|zpallowed\|address\|encoding\|import\|option\|varsaddress\|jmptable\)\>"
 syn match prog8Directive "\(^\|\s\)%\(align\|asmbinary\|asminclude\|breakpoint\)\>"
 syn match prog8Directive "\(^\|\s\)%\(asm\|ir\)\>"
 

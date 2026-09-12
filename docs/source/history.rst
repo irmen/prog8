@@ -62,6 +62,9 @@ Summary of Major Language Milestones
 +-----------+-------------------------------------------------------------+
 | 12.3      | Deterministic module search order, -srcdirs priority        |
 +-----------+-------------------------------------------------------------+
+| 14.0      | **32-bit m68k targets** (amiga500, amiga1200, qemu68k),     |
+|           | **32-bit virtual machine**                                  |
++-----------+-------------------------------------------------------------+
 
 
 Breaking Changes Summary
@@ -83,6 +86,7 @@ Major breaking changes that require code modifications when upgrading:
 - **v12.1**: Combined virtual register renames (``R0R1_32`` → ``R0R1``, etc.)
 - **v12.2**: ``swap()`` is now a statement (not a function), ``math.crc16()`` and ``math.crc16_start()`` require new parameters, ``private`` is now a reserved keyword
 - **v12.3**: Deterministic module search order, filesystem priority over internal resources
+- **v14.0**: ``list`` module renamed to ``lists``, ``-expericodegen`` option renamed to ``-newcodegen``, virtual target VM switched to 32-bit registers
 
 
 2019–2022 — Early Development (Python to Kotlin Transition)
@@ -258,6 +262,15 @@ Major breaking changes that require code modifications when upgrading:
     - **``%option private_symbols`` and ``public`` keyword** — new option to make all symbols private by default; use ``public`` to selectively expose them. See :ref:`private-symbols`.
     - **New library routines** — ``floats.mod()``; ``sys.MAX_LONG`` / ``sys.MIN_LONG``; PET32 ``petsnd`` playback functions, ``REST`` constant, ``set_gap()``, enharmonic flat note symbols; PET32 ``sys.set_irq()`` / ``sys.restore_irq()``; serial module: configurable baud rate.
     - **Breaking changes** — ``-nostdlib`` removed; ``bankmanager`` renamed to ``bankselector``; ``swap`` is now a statement.
+
+
+**v14.0** — upcoming
+    - **32-bit Motorola 68000/68020 (m68k) support** — a brand new, IR-based code generator targeting the 68000 CPU family. This brings 32-bit compilation targets to Prog8 for the first time.
+    - **New compilation targets** — ``amiga500`` (68000), ``amiga1200`` (68020 with optional FPU), and ``qemu68k`` (Qemu m68k simulator). These targets are experimental and still under active development.
+    - **32-bit virtual machine** — the ``virtual`` target's VM has been upgraded from its 8-bit origins to use 32-bit registers (m68k style), aligning it with the new m68k targets and making it a suitable execution platform for testing 32-bit code.
+    - **``pointer`` type alias** — a plain untyped address type that is 2 bytes (a ``uword``) on the 8-bit targets and 4 bytes (a ``long``) on the 32-bit m68k and virtual targets. See :ref:`pointers`.
+    - **``verafx`` line routine** — new verafx-accelerated line drawing routine and the ``cobramk3`` example that uses it.
+    - **``defer`` is now program-wide** — deferred blocks are also unwound when the program exits, or when ``return``/``exit()`` is used from the ``start()`` subroutine. Very useful to let programs cleanly return to the OS without forgetting to free resources.
 
 
 *This document summarizes major and minor releases. Bugfix releases (e.g., v12.0.1, v12.1.1) are omitted for brevity.*
