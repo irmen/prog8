@@ -75,45 +75,7 @@ Use cases: libraries that promise struct layouts/sizes to user code or to
 assembly, guarding the 256-byte struct limit early, and sanity-checking
 derived constants (`STACK_SIZE * 2 < 512`).
 
-## 3. Arena/slab allocator stdlib module
-
-This is not a new idea - it is deduplicating an existing pattern. Six
-examples (`pointers/binarytree.p8`, `pointers/animalgame.p8`,
-`pointers/fountain-cx16.p8`, `pointers/fountain-virtual.p8`,
-`pointers/hashtable.p8`, `pointers/sortedlist.p8`) each carry a copy of the
-same ~8-line block:
-
-```prog8
-arena {
-    ; extremely trivial arena allocator (that never frees)
-    pointer buffer = memory("arena", 4000, 0)
-    pointer next = buffer
-
-    sub alloc(ubyte size) -> pointer {
-        defer next += size
-        return next
-    }
-}
-```
-
-A `prog8lib/arena.p8` module would replace those copies and add the safety
-bits every example skipped:
-
-- `init(slab_addr, size)` instead of the hardcoded `buffer`, so the caller
-  still picks slab name/size via `memory()` but shares the routines
-- overflow check in `alloc()` (return 0 when the slab is exhausted); the
-  examples currently walk off the end unchecked
-- `reset()` (set `next` back to the slab start) for cheap "free everything"
-  between game states (levels, screens), which is the realistic lifetime
-  model on these machines
-- optional alignment (bump size up to even) so word/struct consumers work
-  on m68k targets too
-
-Not dynamic memory management in the language (that stays out of scope by
-design), just a sanctioned pattern with the sharp edges filed off. Once
-the module exists, the six examples should be simplified to use it.
-
-## 4. Banked data access library (cx16)
+## 3. Banked data access library (cx16)
 
 Banked *code* (`callfar`) is wired in, and the kernal primitives are already
 exposed in `syslib.p8`:

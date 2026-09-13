@@ -414,6 +414,52 @@ If you just want to decode the data in memory you can use a few low-level routin
 Look at the :source:`adpcm source code <compiler/res/prog8lib/cx16/adpcm.p8>` to find out what other routines are available.
 
 
+arena
+^^^^^
+.. index:: pair: Libraries; arena
+
+Simple arena/bump allocator over one static, caller-provided memory slab.
+Each compilation target imports the same ``arena`` module name, but the
+per-target implementation selects the appropriate size type.
+
+Typical use::
+
+    %import arena
+
+    arena.init(memory("arena", 4000, 0), 4000)
+    ^^Node node = arena.alloc(sizeof(Node))
+
+On 6502 targets:
+
+``sub init(pointer base_addr, uword size)``
+    Initializes the arena over the range ``[base_addr, base_addr + size)``.
+    The slab and each allocation can be at most 64 KB. Odd sizes are
+    allocated exactly as requested; no even-address rounding is performed.
+
+``sub alloc(uword size) -> pointer``
+    Allocates ``size`` bytes from the arena. It returns 0 when ``size``
+    is 0 or the slab does not have enough space left.
+
+On m68k and virtual targets:
+
+``sub init(pointer base_addr, long size)``
+    Initializes the arena over the range ``[base_addr, base_addr + size)``.
+    The long size allows slabs larger than 64 KB.
+
+``sub alloc(long size) -> pointer``
+    Allocates ``size`` bytes from the arena. Odd sizes are rounded up to an
+    even address so word, long, and struct accesses stay aligned. It returns
+    0 when ``size`` is 0 or the slab does not have enough space left.
+
+``sub reset()``
+    Discards all allocations and makes the slab available again from its start.
+    The module tracks only one slab at a time; initializing it again replaces
+    the previously tracked range.
+
+Read the :source:`word-sized arena source code <compiler/res/prog8lib/shared_word_arena.p8>`
+and :source:`long-sized arena source code <compiler/res/prog8lib/shared_long_arena.p8>` for details.
+
+
 bcd
 ^^^
 .. index:: pair: Libraries; bcd
@@ -1003,7 +1049,7 @@ initialized with ``exec.NewList``::
 Allocator agnostic: the routines never allocate or free memory themselves,
 they only link the ``pointer`` values you pass in. Nodes and headers can
 come from static ``[]`` variables as above, from ``memory()`` slabs, or
-from any arena/bump allocator - e.g. ``arena_alloc(sizeof(MyNode)) as ^^MyNode``
+from any arena/bump allocator - e.g. ``arena.alloc(sizeof(MyNode)) as ^^MyNode``
 or ``exec.AllocMem`` on ``amiga500``. Just ensure the allocation is
 suitably aligned (even address on 6502, long-aligned on m68k).
 

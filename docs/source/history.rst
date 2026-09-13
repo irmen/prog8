@@ -271,6 +271,7 @@ Major breaking changes that require code modifications when upgrading:
     - **``pointer`` type alias** — a plain untyped address type that is 2 bytes (a ``uword``) on the 8-bit targets and 4 bytes (a ``long``) on the 32-bit m68k and virtual targets. See :ref:`pointers`.
     - **``verafx`` line routine** — new verafx-accelerated line drawing routine and the ``cobramk3`` example that uses it.
     - **``defer`` is now program-wide** — deferred blocks are also unwound when the program exits, or when ``return``/``exit()`` is used from the ``start()`` subroutine. Very useful to let programs cleanly return to the OS without forgetting to free resources.
+    - added ``arena`` memory allocation library
 
 
 *This document summarizes major and minor releases. Bugfix releases (e.g., v12.0.1, v12.1.1) are omitted for brevity.*

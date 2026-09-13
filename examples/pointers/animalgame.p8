@@ -5,12 +5,15 @@
 
 %import textio
 %import strings
+%import arena
 
 main {
 
     str userinput = "?"*80      ; buffer for user input
 
     sub start() {
+        arena.init(memory("arena", 10000, 0), 10000)
+
         db.init()
 
         txt.lowercase()
@@ -140,13 +143,3 @@ db {
     }
 }
 
-arena {
-    ; extremely trivial arena allocator (that never frees)
-    pointer buffer = memory("arena", 10000, 0)
-    pointer next = buffer
-
-    sub alloc(ubyte size) -> pointer {
-        defer next += size
-        return next
-    }
-}

@@ -14,7 +14,7 @@ Future Things and Ideas
 - the c64 sprite multiplexer still needs adjustments to make it smooth, it lacks a proper raster event scheduler.
 - support typed pointer arrays as struct fields, curretly requires untyped pointers arrays.
 - allow aliasing a whole enum (``alias myEnum = MyEnum``) so that ``myEnum::Member`` works just like ``MyEnum::Member``; currently only aliasing individual enum members is supported. See ideas/alias-enums.md for the plan.
-- evaluate the feature suggestions in ideas/language-features.md (named struct initializers, %assert, arena allocator stdlib, cx16 banked data library).
+- evaluate the feature suggestions in ideas/language-features.md (named struct initializers, %assert, cx16 banked data library).
 
 Won't do's or deferred
 ^^^^^^^^^^^^^^^^^^^^^^

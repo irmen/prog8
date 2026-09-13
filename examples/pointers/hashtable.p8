@@ -5,10 +5,13 @@
 
 %import strings
 %import textio
+%import arena
 %zeropage basicsafe
 
 main {
     sub start() {
+        arena.init(memory("arena", 8000, 0), 8000)
+
         txt.lowercase()
         txt.print("Doubly Linked List with Hash Table Cache Demo\n")
         txt.print("=============================================\n\n")
@@ -219,13 +222,3 @@ cache {
     }
 }
 
-arena {
-    ; Simple arena allocator
-    pointer buffer = memory("arena", 8000, 0)
-    pointer next = buffer
-
-    sub alloc(ubyte size) -> pointer {
-        defer next += size
-        return next
-    }
-}

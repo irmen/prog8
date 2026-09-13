@@ -2,10 +2,13 @@
 
 %import math
 %import textio
+%import arena
 %zeropage basicsafe
 
 main {
     sub start() {
+        arena.init(memory("arena", 2000, 0), 2000)
+
         txt.print("empty list:\n")
         printlist()
 
@@ -79,14 +82,3 @@ slist {
     }
 }
 
-
-arena {
-    ; extremely trivial arena allocator (that never frees)
-    pointer buffer = memory("arena", 2000, 0)
-    pointer next = buffer
-
-    sub alloc(ubyte size) -> pointer {
-        defer next += size
-        return next
-    }
-}

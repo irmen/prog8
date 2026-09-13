@@ -352,28 +352,24 @@ However, it is possible to write a dynamic memory handling library yourself (it 
 If you ask such a library to give you a pointer to a piece of memory with size ``sizeof(Enemy)`` you can use that as
 a dynamic pointer to an Enemy struct.
 
-An example of how a super simple dynamic allocator could look like follows. 
-Noe that the ``pointer`` type is used instead of ``uword`` so that the code also works correctly on targets 
-where memory addresses are wider than 2 bytes (such as the m68k target with 4-byte pointers)::
+For this pattern, use the standard ``arena`` library module. Create a static
+memory slab, pass it directly to the initializer, and then allocate from it::
 
-    ^^Node newnode = allocator.alloc(sizeof(Node))
+    %import arena
+
+    arena.init(memory("arena", 2000, 0), 2000)
+
+    ^^Node newnode = arena.alloc(sizeof(Node))
     ...
+    arena.reset()
 
-    allocator {
-        ; extremely trivial arena allocator
-        pointer buffer = memory("arena", 2000, 0)
-        pointer next = buffer
-
-        sub alloc(ubyte size) -> pointer {
-            defer next += size
-            return next
-        }
-
-        sub freeall() {
-            ; cannot free individual allocations only the whole arena at once
-            next = buffer
-        }
-    }
+Each compilation target selects the appropriate ``arena`` implementation:
+6502 targets use ``uword`` sizes without even-address rounding, while m68k
+and virtual targets use ``long`` sizes and round odd allocations up to an
+even address. ``arena.alloc()`` returns 0 when the slab is exhausted. The
+module tracks only one slab at a time; calling ``arena.init()`` again
+discards any previous allocations. Individual allocations cannot be freed;
+``arena.reset()`` makes the whole slab available again.
 
 
 Address-Of: untyped vs typed

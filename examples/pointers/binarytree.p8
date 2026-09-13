@@ -3,11 +3,14 @@
 ; no balancing is done and memory is not freed when elements are removed.
 
 %import textio
+%import arena
 %zeropage basicsafe
 
 main {
 
     sub start() {
+        arena.init(memory("arena", 2000, 0), 2000)
+
         uword value
         for value in [321, 719, 194, 550, 187, 203, 520, 562, 221, 676, 97, 852, 273, 326, 589, 606, 275, 794, 63, 716]
             btree.add(value)
@@ -223,14 +226,3 @@ btree {
     }
 }
 
-
-arena {
-    ; extremely trivial arena allocator (that never frees)
-    pointer buffer = memory("arena", 2000, 0)
-    pointer next = buffer
-
-    sub alloc(ubyte size) -> pointer {
-        defer next += size
-        return next
-    }
-}
