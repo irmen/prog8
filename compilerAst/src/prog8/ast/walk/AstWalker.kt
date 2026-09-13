@@ -355,6 +355,7 @@ abstract class AstWalker {
 
     fun visit(directive: Directive, parent: Node) {
         track(before(directive, parent), directive, parent)
+        directive.args.forEach { it.expr?.accept(this, it) }
         track(after(directive, parent), directive, parent)
     }
 

@@ -1466,6 +1466,34 @@ internal class AstChecker(private val program: Program,
                 if(directive.args[0].string == (directive.parent as? Module)?.name)
                     err("invalid import directive, cannot import itself")
             }
+            "%assert" -> {
+                if(directive.args.isEmpty() || directive.args.size>2)
+                    err("invalid assert directive, expected a constant expression and an optional message string")
+                else {
+                    // note: plain integer/identifier args are parsed as int/string directive args instead of expressions
+                    val value = when {
+                        directive.args[0].expr!=null -> directive.args[0].expr!!.constValue(program)
+                        directive.args[0].int!=null -> NumericLiteral.optimalInteger(directive.args[0].int!!.toInt(), directive.args[0].position)
+                        directive.args[0].string!=null -> {
+                            val ref = IdentifierReference(listOf(directive.args[0].string!!), directive.args[0].position)
+                            ref.linkParents(directive)
+                            ref.constValue(program)
+                        }
+                        else -> null
+                    }
+                    if(value==null)
+                        errors.err("assert expression is not a compile-time constant", directive.args[0].position)
+                    else if(value.number==0.0) {
+                        val msg = directive.args.getOrNull(1)?.string
+                        if(msg!=null)
+                            errors.err("assertion failed: $msg", directive.position)
+                        else
+                            errors.err("assertion failed", directive.position)
+                    }
+                    if(directive.args.size==2 && directive.args[1].string==null)
+                        err("invalid assert directive, second argument should be a message string")
+                }
+            }
             "%breakpoint" -> {
                 if(directive.parent !is INameScope && directive.parent !is AnonymousScope || directive.parent is Module)
                     err("this directive can't be used here")

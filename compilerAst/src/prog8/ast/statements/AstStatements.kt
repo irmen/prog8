@@ -138,20 +138,31 @@ data class Directive(val directive: String, val args: List<DirectiveArg>, overri
 
     override fun replaceChildNode(node: Node, replacement: Node) = throw FatalAstException("can't replace here")
     override fun copy() = Directive(directive, args.map { it.copy() }, position)
-    override fun referencesIdentifier(nameInSource: List<String>): Boolean = false
+    override fun referencesIdentifier(nameInSource: List<String>): Boolean = args.any { it.referencesIdentifier(nameInSource) }
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 }
 
-data class DirectiveArg(val string: String?, val int: UInt?, override val position: Position) : Node {
+class DirectiveArg(val string: String?, val int: UInt?, override val position: Position, expr: Expression? = null) : Node {
     override lateinit var parent: Node
+
+    var expr: Expression? = expr
+        private set
 
     override fun linkParents(parent: Node) {
         this.parent = parent
+        expr?.linkParents(this)
     }
-    override fun replaceChildNode(node: Node, replacement: Node) = throw FatalAstException("can't replace here")
-    override fun copy() = DirectiveArg(string, int, position)
-    override fun referencesIdentifier(nameInSource: List<String>): Boolean = false
+    override fun replaceChildNode(node: Node, replacement: Node) {
+        if(node===expr && replacement is Expression) {
+            expr = replacement
+            replacement.linkParents(this)
+            return
+        }
+        throw FatalAstException("can't replace here")
+    }
+    override fun copy() = DirectiveArg(string, int, position, expr?.copy())
+    override fun referencesIdentifier(nameInSource: List<String>): Boolean = expr?.referencesIdentifier(nameInSource) ?: false
 }
 
 data class Alias(val alias: String, val target: IdentifierReference, val visibility: Visibility? = null, override val position: Position) : Statement() {

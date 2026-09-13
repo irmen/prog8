@@ -24,6 +24,7 @@ interface IAstVisitor {
     }
 
     fun visit(directive: Directive) {
+        directive.args.forEach { it.expr?.accept(this) }
     }
 
     fun visit(alias: Alias) {

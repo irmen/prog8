@@ -383,6 +383,20 @@ Directives
         }
 
 
+.. index:: pair: Directives; %assert
+.. data:: %assert <constant expression> [, "message"]
+
+    Level: any.
+    Compile-time assertion. The expression is evaluated during compilation and must be a
+    compile-time constant (it can use constants, ``sizeof()``, and constant arithmetic).
+    If the expression is false (zero), compilation fails with an error, showing the
+    optional message if given. If it is true (non-zero), the directive does nothing and
+    no code is generated for it. Useful to sanity-check struct sizes, derived constants,
+    or other compile-time assumptions::
+
+        %assert sizeof(Enemy) <= 32, "enemy struct grew too large"
+
+
 .. index:: pair: Directives; %breakpoint
 .. data:: %breakpoint!  or  %breakpoint
 

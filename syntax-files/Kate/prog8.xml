@@ -59,6 +59,7 @@
       <item>%asm</item>
       <item>%asmbinary</item>
       <item>%asminclude</item>
+      <item>%assert</item>
       <item>%breakpoint</item>
       <item>%encoding</item>
       <item>%import</item>

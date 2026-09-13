@@ -197,7 +197,7 @@ directivename: '%' UNICODEDNAME;
 
 directivenamelist: '(' EOL? scoped_identifier (',' EOL? scoped_identifier)* ','? EOL?')' ;
 
-directivearg : stringliteral | identifier | integerliteral ;
+directivearg : stringliteral | identifier | integerliteral | expression ;
 
 vardecl: PRIVATE? PUBLIC? datatype (arrayindex arrayindex? | EMPTYARRAYSIG)? TAG* identifierlist ;
 // grammar allows [] and [][] so the visitor can give user-friendly error messages for invalid combinations

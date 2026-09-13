@@ -59,23 +59,7 @@ the type system and IR symbol table.
 - Codegen path afterwards is unchanged: the flattened value list looks
   identical to positional init.
 
-## 2. `%assert` compile-time check
-
-```prog8
-%assert sizeof(Enemy) <= 32, "enemy struct grew too large"
-```
-
-Evaluated during compilation (`processAst`), emits the message as an error
-if the constant expression is false. Essentially free to implement: constant
-folding already evaluates such expressions; it is a check on top of
-`constValue()`, similar to how the compiler validates array bounds at
-compile time.
-
-Use cases: libraries that promise struct layouts/sizes to user code or to
-assembly, guarding the 256-byte struct limit early, and sanity-checking
-derived constants (`STACK_SIZE * 2 < 512`).
-
-## 3. Banked data access library (cx16)
+## 2. Banked data access library (cx16)
 
 Banked *code* (`callfar`) is wired in, and the kernal primitives are already
 exposed in `syslib.p8`:

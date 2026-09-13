@@ -187,7 +187,12 @@ class Antlr2KotlinVisitor(val source: SourceCode, private val target: ICompilati
             return DirectiveArg(str.text.substring(1, str.text.length-1), integer, ctx.toPosition())
         }
         val identifier = ctx.identifier()?.accept(this) as IdentifierReference?
-        return DirectiveArg(identifier?.nameInSource?.single(), integer, identifier?.position ?: ctx.toPosition())
+        if(identifier!=null)
+            return DirectiveArg(identifier.nameInSource.single(), integer, identifier.position)
+        val expression = ctx.expression()
+        if(expression!=null)
+            return DirectiveArg(null, null, ctx.toPosition(), expression.accept(this) as Expression)
+        return DirectiveArg(null, integer, ctx.toPosition())
     }
 
     override fun visitVardecl(ctx: VardeclContext): VarDecl {

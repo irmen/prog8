@@ -132,6 +132,7 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
             when {
                 arg.int!=null -> output(arg.int.toString())
                 arg.string!=null -> output(arg.string)
+                arg.expr!=null -> arg.expr!!.accept(this)
             }
             if(arg!==directive.args.last())
                 output(",")
