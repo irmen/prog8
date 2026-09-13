@@ -6,7 +6,7 @@ main {
         long total
 
         for iw in 1000 to 2000 {
-            total += iw
+            total += iwz
         }
         txt.print_l(total)
         txt.nl()

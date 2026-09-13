@@ -17,6 +17,7 @@ dependencies {
     implementation(project(":intermediate"))
     implementation(project(":virtualmachine"))
     implementation("com.github.ajalt.clikt:clikt:5.1.0")
+    implementation("com.github.ajalt.mordant:mordant:3.0.2")
     implementation("com.michael-bull.kotlin-result:kotlin-result-jvm:2.3.1")
 
     testImplementation(project(":codeCore"))

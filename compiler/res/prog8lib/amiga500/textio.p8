@@ -228,17 +228,17 @@ txt {
     }
 
     sub width() -> ubyte {
-        ; TODO use console Query WIndow Size escape sequence
+        ; TODO use console Query Window Size escape sequence
         return 80
     }
 
     sub height() -> ubyte {
-        ; TODO use console Query WIndow Size escape sequence
+        ; TODO use console Query Window Size escape sequence
         return 25
     }
 
     sub size() -> ubyte, ubyte {
-        ; TODO use console Query WIndow Size escape sequence
+        ; TODO use console Query Window Size escape sequence
         return width(), height()
     }
 

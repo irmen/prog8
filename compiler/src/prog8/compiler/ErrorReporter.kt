@@ -62,8 +62,9 @@ internal class ErrorReporter(val colors: IConsoleColors): IErrorReporter {
                 MessageSeverity.WARNING -> System.out
                 MessageSeverity.ERROR -> System.err
             }
-            val msg = "${it.position.toClickableStr()} ${it.message}".trim()
-            if(msg !in alreadyReportedMessages) {
+            val posStr = it.position.toClickableStr()
+            val msg = it.message
+            if("$posStr $msg".trim() !in alreadyReportedMessages) {
                 when(it.severity) {
                     MessageSeverity.ERROR -> {
                         System.out.flush()
@@ -85,9 +86,14 @@ internal class ErrorReporter(val colors: IConsoleColors): IErrorReporter {
                         numInfos++
                     }
                 }
+                if(posStr.isNotEmpty()) {
+                    colors.position(printer)
+                    printer.print("$posStr ")
+                    colors.normal(printer)
+                }
                 val filtered = colors.filtered(msg)
                 printer.println(filtered)
-                alreadyReportedMessages.add(filtered)
+                alreadyReportedMessages.add("$posStr $filtered".trim())
             }
         }
         System.out.flush()
@@ -110,6 +116,7 @@ internal class ErrorReporter(val colors: IConsoleColors): IErrorReporter {
         fun error(printer: PrintStream)
         fun warning(printer: PrintStream)
         fun info(printer: PrintStream)
+        fun position(printer: PrintStream)
         fun normal(printer: PrintStream)
         fun filtered(msg: String): String
     }
@@ -118,6 +125,7 @@ internal class ErrorReporter(val colors: IConsoleColors): IErrorReporter {
         override fun error(printer: PrintStream) = printer.print("\u001b[91m")      // red
         override fun warning(printer: PrintStream) = printer.print("\u001b[93m")    // yellow
         override fun info(printer: PrintStream) = printer.print("\u001b[92m")       // green
+        override fun position(printer: PrintStream) = printer.print("\u001b[90m")   // gray
         override fun normal(printer: PrintStream) = printer.print("\u001B[0m")
         override fun filtered(msg: String): String = msg
     }
@@ -126,6 +134,7 @@ internal class ErrorReporter(val colors: IConsoleColors): IErrorReporter {
         override fun error(printer: PrintStream) {}
         override fun warning(printer: PrintStream) {}
         override fun info(printer: PrintStream) {}
+        override fun position(printer: PrintStream) {}
         override fun normal(printer: PrintStream) {}
         override fun filtered(msg: String): String = msg.filter { !it.isSurrogate() }
     }

@@ -19,7 +19,6 @@ import prog8.code.source.ImportFileSystem.expandTilde
 import prog8.code.target.*
 import prog8.compiler.*
 import prog8.intermediate.IRFileReader
-import prog8.intermediate.Opcode
 import java.io.*
 import java.net.ConnectException
 import java.net.StandardProtocolFamily
@@ -125,21 +124,25 @@ private fun compileMain(args: Array<String>): Boolean {
     }
 
     with(cli) {
+    // Single presenter for all user-facing output in this invocation.
+    // It only wraps a real Mordant Terminal on an interactive console;
+    // everywhere else it is plain println output with no native code involved.
+    val presenter = createPresenter(plainText==true)
     if(version==true) {
-        banner()
+        banner(presenter)
         return true
     }
 
     if(quietAll!=true)
-        banner()
+        banner(presenter)
 
     if(libDump!=null) {
-        scanLibraryFiles(libDump, null)
+        scanLibraryFiles(libDump, null, plainText==true)
         return true
     }
 
     if(libSearch!=null) {
-        scanLibraryFiles(null, libSearch)
+        scanLibraryFiles(null, libSearch, plainText==true)
         return true
     }
 
@@ -147,13 +150,13 @@ private fun compileMain(args: Array<String>): Boolean {
     outputPath.createDirectories()
 
     if(profilingInstrumentation==true && compilationTarget!=Cx16Target.NAME) {
-        System.err.println("Profiling instrumentation is only available on the cx16 target.")
+        presenter.printErrorLine("Profiling instrumentation is only available on the cx16 target.")
         return false
     }
 
     val faultyOption = moduleFiles.firstOrNull { it.startsWith('-') }
     if(faultyOption!=null) {
-        System.err.println("Unknown command line option given: $faultyOption")
+        presenter.printErrorLine("Unknown command line option given: $faultyOption")
         return false
     }
 
@@ -161,14 +164,14 @@ private fun compileMain(args: Array<String>): Boolean {
 
     if(!startVm) {
         if(compilationTarget==null) {
-            System.err.println("No compilation target specified")
+            presenter.printErrorLine("No compilation target specified")
             return false
         }
 
         if (compilationTarget !in CompilationTargets) {
             val configfile = expandTilde(Path(compilationTarget!!))
             if(!configfile.isReadable()) {
-                System.err.println("Invalid compilation target: $compilationTarget")
+                presenter.printErrorLine("Invalid compilation target: $compilationTarget")
                 return false
             }
         }
@@ -184,39 +187,39 @@ private fun compileMain(args: Array<String>): Boolean {
     }
 
     if(moduleFiles.isEmpty()) {
-        System.err.println("No module file(s) specified")
+        presenter.printErrorLine("No module file(s) specified")
         return false
     }
 
     if(varsHighBank==0 && compilationTarget==Cx16Target.NAME) {
-        System.err.println("On the Commander X16, HIRAM bank 0 is used by the kernal and can't be used.")
+        presenter.printErrorLine("On the Commander X16, HIRAM bank 0 is used by the kernal and can't be used.")
         return false
     }
 
     val varsAddress: UInt? = try {
         varsAddressStr?.let { parseAddressArg(it) }
     } catch(_: Exception) {
-        System.err.println("Invalid -varsaddress value: $varsAddressStr")
+        presenter.printErrorLine("Invalid -varsaddress value: $varsAddressStr")
         return false
     }
     val maxCliAddress = if(compilationTarget in setOf(Amiga500Target.NAME, Amiga1200Target.NAME, Qemu68kTarget.NAME, VMTarget.NAME)) 0xFFFFFFFFu else 0xFFFFu
     if(varsAddress!=null && varsAddress > maxCliAddress) {
-        System.err.println("vars address must be valid integer 0..${maxCliAddress.toHex()}")
+        presenter.printErrorLine("vars address must be valid integer 0..${maxCliAddress.toHex()}")
         return false
     }
 
     if(varsGolden==true && varsHighBank!=null) {
-        System.err.println("Either use -varsgolden or -varshigh, not both.")
+        presenter.printErrorLine("Either use -varsgolden or -varshigh, not both.")
         return false
     }
     if(varsAddress!=null && (varsGolden==true || varsHighBank!=null)) {
-        System.err.println("Either use -varsaddress or -varsgolden/-varshigh, not both.")
+        presenter.printErrorLine("Either use -varsaddress or -varsgolden/-varshigh, not both.")
         return false
     }
 
     if(compilationTarget in setOf(Amiga500Target.NAME, Amiga1200Target.NAME, Qemu68kTarget.NAME)) {
         if(varsGolden || varsHighBank!=null || varsAddress!=null) {
-            System.err.println("The -varsgolden/-varshigh/-varsaddress options are not available on the m68k target")
+            presenter.printErrorLine("The -varsgolden/-varshigh/-varsaddress options are not available on the m68k target")
             return false
         }
     }
@@ -226,7 +229,7 @@ private fun compileMain(args: Array<String>): Boolean {
         return true
     }
 
-    val processedSymbols = processSymbolDefs(symbolDefs) ?: return false
+    val processedSymbols = processSymbolDefs(symbolDefs, presenter) ?: return false
 
     if(watchMode==true) {
         val watchservice = FileSystems.getDefault().newWatchService()
@@ -315,7 +318,7 @@ private fun compileMain(args: Array<String>): Boolean {
                 event.reset()
             }
 
-            println("\u001b[H\u001b[2J")      // clear the screen
+            presenter.clearScreen()
         }
 
     } else if (daemonMode == true) {
@@ -451,7 +454,7 @@ private fun compileMain(args: Array<String>): Boolean {
             val programPath = Path.of(programNameInPath.toString().removeSuffix(".prg"))
 
             if (compareIR != null) {
-                compareIrFiles(outputPath.resolve("${compilationResult.compilerAst.name}.p8ir"), Path(compareIR!!))
+                compareIrFiles(outputPath.resolve("${compilationResult.compilerAst.name}.p8ir"), Path(compareIR!!), presenter)
             }
 
             if (startEmulator1 == true) {
@@ -470,12 +473,14 @@ private fun compileMain(args: Array<String>): Boolean {
     }
 }
 
-private fun banner() {
-    println("\nProg8 compiler v${prog8.buildversion.VERSION} by Irmen de Jong (irmen@razorvine.net)")
+private fun banner(presenter: Presenter) {
+    presenter.printlnLine("")
+    presenter.printlnLine("Prog8 compiler v${prog8.buildversion.VERSION} by Irmen de Jong (irmen@razorvine.net)")
     if('-' in prog8.buildversion.VERSION) {
-        println("Prerelease version from git commit ${prog8.buildversion.GIT_SHA.take(8)} in branch ${prog8.buildversion.GIT_BRANCH}")
+        presenter.printlnLine("Prerelease version from git commit ${prog8.buildversion.GIT_SHA.take(8)} in branch ${prog8.buildversion.GIT_BRANCH}")
     }
-    println("This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html\n")
+    presenter.printlnLine("This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html")
+    presenter.printlnLine("")
 }
 
 fun convertFloatToBytes(number: String, target: String) {
@@ -493,13 +498,13 @@ fun convertBytesToFloat(bytelist: String, target: String) {
     println("floating point value on '$target': $number")
 }
 
-private fun processSymbolDefs(symbolDefs: List<String>): Map<String, String>? {
+private fun processSymbolDefs(symbolDefs: List<String>, presenter: Presenter): Map<String, String>? {
     val result = mutableMapOf<String, String>()
     val defPattern = """(.+)\s*=\s*(.+)""".toRegex()
     for(def in symbolDefs) {
         val match = defPattern.matchEntire(def.trim())
         if(match==null) {
-            System.err.println("invalid symbol definition (expected NAME=VALUE): $def")
+            presenter.printErrorLine("invalid symbol definition (expected NAME=VALUE): $def")
             return null
         }
         val (_, name, value) = match.groupValues
@@ -514,13 +519,13 @@ fun runVm(irFilename: String, quiet: Boolean, traceEnabled: Boolean = false) {
     vmdef.launchEmulatorWithTrace(irFile, quiet, traceEnabled)
 }
 
-private fun compareIrFiles(newFile: Path, baselineFile: Path) {
+private fun compareIrFiles(newFile: Path, baselineFile: Path, presenter: Presenter) {
     if (!baselineFile.toFile().exists()) {
-        System.err.println("Compare error: baseline file not found: $baselineFile")
+        presenter.printErrorLine("Compare error: baseline file not found: $baselineFile")
         return
     }
     if (!newFile.toFile().exists()) {
-        System.err.println("Compare error: generated file not found: $newFile")
+        presenter.printErrorLine("Compare error: generated file not found: $newFile")
         return
     }
 
@@ -532,53 +537,55 @@ private fun compareIrFiles(newFile: Path, baselineFile: Path) {
     val baselineMetrics = extractIrMetrics(baselineProgram)
     val newMetrics = extractIrMetrics(newProgram)
 
-    println("\nIR File Comparison: ${newFile.fileName} vs ${baselineFile.fileName}")
-    println("=".repeat(70))
-    
-    println("\nSummary:")
-    println("  Instructions:  ${formatMetric(newMetrics.instructions, baselineMetrics.instructions)}")
-    println("  Chunks:        ${formatMetric(newMetrics.chunks, baselineMetrics.chunks)}")
-    println("  Registers:     ${formatMetric(newMetrics.registers, baselineMetrics.registers)}")
-    println("  File size:     ${formatMetric(newFile.toFile().length(), baselineFile.toFile().length())}")
-    
+    presenter.printlnLine("")
+    presenter.printlnLine("IR File Comparison: ${newFile.fileName} vs ${baselineFile.fileName}")
+    presenter.printMetricsTable(listOf(
+        MetricsRow("Instructions", newMetrics.instructions.toString(), baselineMetrics.instructions.toString(), metricDelta(newMetrics.instructions, baselineMetrics.instructions)),
+        MetricsRow("Chunks", newMetrics.chunks.toString(), baselineMetrics.chunks.toString(), metricDelta(newMetrics.chunks, baselineMetrics.chunks)),
+        MetricsRow("Registers", newMetrics.registers.toString(), baselineMetrics.registers.toString(), metricDelta(newMetrics.registers, baselineMetrics.registers)),
+        MetricsRow("File size", "${newFile.toFile().length()} bytes", "${baselineFile.toFile().length()} bytes", metricDelta(newFile.toFile().length(), baselineFile.toFile().length()))
+    ))
+
     // Compare instruction sequences
     val baselineCode = extractCodeInstructions(baselineProgram)
     val newCode = extractCodeInstructions(newProgram)
-    
+
     if (baselineCode == newCode) {
-        println("\n✓ No code differences (generated IR instructions are identical).")
+        presenter.printlnLine("")
+        presenter.printlnLine(presenter.styleOk("✓ No code differences (generated IR instructions are identical)."))
     } else {
         val differences = findCodeDifferences(baselineCode, newCode)
-        println("\n✗ Found ${differences.size} instruction difference(s) in code chunks.")
-        
+        presenter.printlnLine("")
+        presenter.printlnLine(presenter.styleFail("✗ Found ${differences.size} instruction difference(s) in code chunks."))
+
         // Show first few differences
         if (differences.isNotEmpty()) {
-            println("\nFirst differences:")
+            presenter.printlnLine("")
+            presenter.printlnLine("First differences:")
             differences.take(10).forEach { (index, baselineIns, newIns) ->
-                println("  [$index] $baselineIns  →  $newIns")
+                presenter.printlnLine("  [$index] $baselineIns  →  $newIns")
             }
             if (differences.size > 10) {
-                println("  ... and ${differences.size - 10} more differences")
+                presenter.printlnLine("  ... and ${differences.size - 10} more differences")
             }
         }
-        println("\n  (Use 'diff' command on the .p8ir files for detailed comparison)")
+        presenter.printlnLine("")
+        presenter.printlnLine("  (Use 'diff' command on the .p8ir files for detailed comparison)")
     }
-    println()
+    presenter.printlnLine("")
 }
 
-private fun formatMetric(newVal: Int, baselineVal: Int): String {
-    val delta = newVal - baselineVal
-    val pct = if (baselineVal != 0) (delta * 100.0 / baselineVal) else 0.0
-    val deltaStr = if (delta == 0) "(no change)" else if (delta > 0) "(+${delta}, +${pct.toInt()}%)" else "(${delta}, ${pct.toInt()}%)"
-    return "$newVal (new) vs $baselineVal (baseline)  $deltaStr"
-}
-
-private fun formatMetric(newVal: Long, baselineVal: Long): String {
+private fun metricDelta(newVal: Long, baselineVal: Long): String {
     val delta = newVal - baselineVal
     val pct = if (baselineVal != 0L) (delta * 100.0 / baselineVal) else 0.0
-    val deltaStr = if (delta == 0L) "(no change)" else if (delta > 0L) "(+${delta}, +${pct.toInt()}%)" else "(${delta}, ${pct.toInt()}%)"
-    return "$newVal bytes (new) vs $baselineVal bytes (baseline)  $deltaStr"
+    return when {
+        delta == 0L -> "no change"
+        delta > 0L -> "+$delta (+${pct.toInt()}%)"
+        else -> "$delta (${pct.toInt()}%)"
+    }
 }
+
+private fun metricDelta(newVal: Int, baselineVal: Int): String = metricDelta(newVal.toLong(), baselineVal.toLong())
 
 data class InstructionDiff(val index: Int, val baseline: String, val new: String)
 
@@ -640,42 +647,43 @@ private fun extractCodeInstructions(program: prog8.intermediate.IRProgram): List
 
 
 
-private fun scanLibraryFiles(dump: String?, searchPattern: String?) {
+private const val maxLibsearchHits = 100
+
+private fun scanLibraryFiles(dump: String?, searchPattern: String?, plainText: Boolean) {
+    val presenter = createPresenter(plainText)
     val libraryPrefix = "/prog8lib"
 
     val dumpPath = if(dump!=null) pathFrom(dump) else null
     val pattern = searchPattern?.toRegex(RegexOption.IGNORE_CASE)
     if(pattern!=null) {
-        println("You can also have a look in the documentation for the libraries at https://prog8.readthedocs.io/en/latest/libraries.html")
-        println("The library source files are available in the Github repository at https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib")
-        println("Searching for pattern '$searchPattern' in embedded library files.\n")
+        presenter.printlnLine("You can also have a look in the documentation for the libraries at https://prog8.readthedocs.io/en/latest/libraries.html")
+        presenter.printlnLine("The library source files are available in the Github repository at https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib")
+        presenter.printlnLine("Searching for pattern '$searchPattern' in embedded library files.")
+        presenter.printlnLine("")
     }
     if(dumpPath!=null) {
-        println("Dumping embedded library files into $dumpPath\n")
+        presenter.printlnLine("Dumping embedded library files into $dumpPath")
+        presenter.printlnLine("")
         dumpPath.createDirectories()
         val license = dumpPath / "${libraryPrefix.drop(1)}-${prog8.buildversion.VERSION}/LICENSE.txt"
         license.parent.createDirectories()
         license.writeText("These library files belong to the Prog8 compiler project, see https://github.com/irmen/prog8/\n" +
         "They are licensed under the GNU GPL 3.0 software license, see https://www.gnu.org/licenses/gpl.html\n")
-        println("Note: the exported library source files have the same software license as the compiler itself.\n")
+        presenter.printlnLine("Note: the exported library source files have the same software license as the compiler itself.")
+        presenter.printlnLine("")
     }
 
-    fun search(path: Path, currentPattern: Regex, maxHits: Int = Int.MAX_VALUE): Int {
-        val hits = mutableListOf<String>()
+    fun search(path: Path, currentPattern: Regex, maxHits: Int = Int.MAX_VALUE): List<Triple<String, Int, String>> {
+        val hits = mutableListOf<Triple<String, Int, String>>()
         path.useLines { lines ->
             lines.forEachIndexed { index, line ->
                 if (currentPattern.containsMatchIn(line)) {
-                    hits.add("${(index + 1).toString().padStart(6)}:  ${line.trimStart()}")
+                    hits.add(Triple(path.absolutePathString().drop(libraryPrefix.length+1), index + 1, line.trimStart()))
                     if (hits.size >= maxHits) return@useLines
                 }
             }
         }
-        if (hits.isNotEmpty()) {
-            println("Found in Library file '${path.absolutePathString().drop(libraryPrefix.length+1)}':")
-            hits.forEach(::println)
-            println()
-        }
-        return hits.size
+        return hits
     }
 
     fun dump(path: Path) {
@@ -692,21 +700,26 @@ private fun scanLibraryFiles(dump: String?, searchPattern: String?) {
         val allFiles = Files.walk(dir).use { paths -> paths.filter { Files.isRegularFile(it) }.toList() }
         if (searchPattern != null) {
             val p = pattern!!
-            var totalHits = 0
-            allFiles.forEach { totalHits += search(it, p) }
-            if (totalHits == 0 && searchPattern.length >= 2 && searchPattern.none { it in "\\.[]{}()^$|?*+" }) {
+            val allHits = mutableListOf<Triple<String, Int, String>>()
+            for (file in allFiles) {
+                val remaining = maxLibsearchHits - allHits.size
+                if (remaining <= 0) break
+                allHits += search(file, p, remaining)
+            }
+            if (allHits.isEmpty() && searchPattern.length >= 2 && searchPattern.none { it in "\\.[]{}()^$|?*+" }) {
                 val fuzzyPatternString = searchPattern.map { Regex.escape(it.toString()) }.joinToString(".{0,3}?")
                 val fuzzyPattern = fuzzyPatternString.toRegex(RegexOption.IGNORE_CASE)
-                println("No exact matches found. Trying fuzzy search...\n")
-                var totalFuzzyHits = 0
+                presenter.printlnLine("No exact matches found. Trying fuzzy search...")
+                presenter.printlnLine("")
                 for (file in allFiles) {
-                    val remaining = 100 - totalFuzzyHits
+                    val remaining = maxLibsearchHits - allHits.size
                     if (remaining <= 0) break
-                    totalFuzzyHits += search(file, fuzzyPattern, remaining)
+                    allHits += search(file, fuzzyPattern, remaining)
                 }
-                if (totalFuzzyHits >= 100) {
-                    println("... (stopped after 100 hits)")
-                }
+            }
+            presenter.printHitsTable(allHits)
+            if (allHits.size >= maxLibsearchHits) {
+                presenter.printlnLine("... (showing first $maxLibsearchHits hits, use a more specific pattern to narrow results)")
             }
         } else if (dumpPath != null) {
             allFiles.forEach { dump(it) }
