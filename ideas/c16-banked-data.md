@@ -19,47 +19,7 @@ Items already implemented or already tracked elsewhere in `todo.rst` /
   in `todo.rst`.
 - pointer dereference grammar cleanup: see `ideas/new-pointer-deref-plans.md`.
 
-## 1. Named struct-field initializers
-
-Allow struct initialization by field name instead of position only:
-
-```prog8
-struct Enemy {
-    ubyte hp
-    ubyte x
-    ubyte y
-    ubyte frame
-    ubyte bank
-}
-
-^^Enemy e = ^^Enemy:[hp=100, x=10]   ; rest zero-initialized
-```
-
-Today only positional init exists: `^^Enemy e = ^^Enemy:[100, 10, 0, 0, 0]`.
-That gets brittle as structs grow (regression risk when fields are added or
-reordered, and unreadable for structs with many mostly-zero fields).
-
-**Semantics for unspecified fields: zero-fill.** Matches the language's
-existing "everything is zero-initialized" guarantee (globals at start,
-locals on sub entry, BSS sections). Unspecified fields behave exactly like
-any other variable the user didn't initialize. Requiring all fields to be
-named is possible but user-hostile for wide structs; type-level defaults
-(`ubyte hp = 100` in the declaration) are a much larger feature involving
-the type system and IR symbol table.
-
-**Implementation sketch:**
-
-- Grammar: `staticstructinitializer: POINTER? scoped_identifier ':' arrayliteral`
-  currently only accepts positional array literals. Needs a named-arg
-  alternative (either inside the array literal or a new production).
-- `AstChecker.checkValueTypeAndRangeStaticStructInitializer` already
-  validates positional count vs. field count; named init would instead
-  map names to fields, reject duplicates/unknown names, and fill the gaps
-  with `defaultZero(field.type)`.
-- Codegen path afterwards is unchanged: the flattened value list looks
-  identical to positional init.
-
-## 2. Banked data access library (cx16)
+## 1. Banked data access library (cx16)
 
 Banked *code* (`callfar`) is wired in, and the kernal primitives are already
 exposed in `syslib.p8`:

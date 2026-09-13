@@ -628,6 +628,8 @@ private fun processAst(program: Program, errors: IErrorReporter, compilerOptions
 
     program.checkPrivateAccess(errors)
     errors.report()
+    program.flattenNamedStructInitializers(errors)
+    errors.report()
     program.checkIdentifiers(errors, compilerOptions)
     errors.report()
     program.charLiteralsToUByteLiterals(compilerOptions.compTarget, errors)

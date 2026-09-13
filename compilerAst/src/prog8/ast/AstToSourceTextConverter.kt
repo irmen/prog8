@@ -694,7 +694,17 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
         if(initializer.isPointer) output("^^")
         initializer.structname.accept(this)
         output(" : ")
-        outputListMembers(initializer.args.toTypedArray())
+        if(initializer.namedArgs.isNotEmpty()) {
+            output("[")
+            initializer.namedArgs.forEachIndexed { index, (name, expr) ->
+                output("$name=")
+                expr.accept(this)
+                if(index < initializer.namedArgs.size - 1) output(", ")
+            }
+            output("]")
+        } else {
+            outputListMembers(initializer.args.toTypedArray())
+        }
     }
 
     override fun visit(swap: Swap) {

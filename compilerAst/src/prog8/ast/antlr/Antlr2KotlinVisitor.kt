@@ -792,12 +792,25 @@ class Antlr2KotlinVisitor(val source: SourceCode, private val target: ICompilati
         val isPointer = ctx.POINTER()!=null
         val struct = ctx.scoped_identifier().accept(this) as IdentifierReference
         val array = ctx.arrayliteral()
-        val args = if(array==null) mutableListOf<Expression>() else {
+        val namedList = ctx.namedstructinitlist()
+        return if(array!=null) {
             val arrayLiteral = array.accept(this) as ArrayLiteral
-            arrayLiteral.value.toMutableList()
+            StaticStructInitializer(struct, arrayLiteral.value.toMutableList(), ctx.toPosition(), isPointer)
+        } else if(namedList!=null) {
+            val namedArgs = namedList.namedstructinitfield().mapTo(mutableListOf()) {
+                getname(it.identifier()) to (it.expression().accept(this) as Expression)
+            }
+            StaticStructInitializer(struct, mutableListOf(), ctx.toPosition(), isPointer, namedArgs)
+        } else {
+            StaticStructInitializer(struct, mutableListOf(), ctx.toPosition(), isPointer)
         }
-        return StaticStructInitializer(struct, args, ctx.toPosition(), isPointer)
     }
+
+    override fun visitNamedstructinitlist(ctx: NamedstructinitlistContext): Node =
+        throw FatalAstException("named struct initializer list should not be visited directly")
+
+    override fun visitNamedstructinitfield(ctx: NamedstructinitfieldContext): Node =
+        ctx.expression().accept(this)
 
     private fun flattenArrayLiteral(expr: Expression): List<Expression> {
         return if (expr is ArrayLiteral) {

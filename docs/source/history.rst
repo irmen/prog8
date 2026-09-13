@@ -270,6 +270,7 @@ Major breaking changes that require code modifications when upgrading:
     - **32-bit virtual machine** — the ``virtual`` target's VM has been upgraded from its 8-bit origins to use 32-bit registers (m68k style), aligning it with the new m68k targets and making it a suitable execution platform for testing 32-bit code.
     - **``pointer`` type alias** — a plain untyped address type that is 2 bytes (a ``uword``) on the 8-bit targets and 4 bytes (a ``long``) on the 32-bit m68k and virtual targets. See :ref:`pointers`.
     - **``%assert`` directive** — compile-time assertions for constant expressions.
+    - **Named struct-field initializers** — struct pointer initializers can now use explicit field names (``^^Enemy:[hp=100, x=10]``), in any order, with omitted fields zero-initialized.
     - **``verafx`` line routine** — new verafx-accelerated line drawing routine and the ``cobramk3`` example that uses it.
     - **``defer`` is now program-wide** — deferred blocks are also unwound when the program exits, or when ``return``/``exit()`` is used from the ``start()`` subroutine. Very useful to let programs cleanly return to the OS without forgetting to free resources.
     - added ``arena`` memory allocation library

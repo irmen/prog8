@@ -289,6 +289,20 @@ You write a static struct initialization expression like this:
     statically places an instance of struct 'Node' in memory, with its fields set to 1, "one", 1000 etcetera and returns the address of this struct.
     The values in the initialization array must correspond exactly with the first to last declared fields in the struct type.
 
+Named field initializers
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+For a more readable initializer, you can specify field names instead of relying
+on declaration order::
+
+    ^^Node : [name="one", flag=true, id=1, array=1000, perc=1.111]
+
+Named fields may be written in any order. Fields that are not specified are
+initialized to zero. This also applies to inline array fields, which are filled
+with zeroes. Each field may be specified only once, and every name must refer
+to a field in the struct. Named and positional values cannot be mixed in the
+same initializer.
+
 If the struct contains inline arrays, you can initialize them by nesting another list inside the initialization list:
 
 ``^^Node : [1, [10, 20, 30, 40], 1000]``

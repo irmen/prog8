@@ -434,4 +434,8 @@ when_choice:  (expression_list | ELSE ) '->' (statement | statement_block ) ;
 // Compiles efficiently to 6502 jump tables. NOT a design flaw - fits the retro platform.
 ongoto: ON expression kind=(GOTO | CALL) directivenamelist EOL? else_part? ;
 
-staticstructinitializer: POINTER? scoped_identifier ':' arrayliteral ;
+staticstructinitializer: POINTER? scoped_identifier ':' (arrayliteral | namedstructinitlist) ;
+
+namedstructinitlist: '[' EOL? namedstructinitfield (',' EOL? namedstructinitfield)* ','? EOL? ']' ;
+
+namedstructinitfield: identifier '=' expression ;

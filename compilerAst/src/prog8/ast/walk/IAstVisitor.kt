@@ -80,6 +80,7 @@ interface IAstVisitor {
     fun visit(initializer: StaticStructInitializer) {
         initializer.structname.accept(this)
         initializer.args.forEach { it.accept(this) }
+        initializer.namedArgs.forEach { it.second.accept(this) }
     }
 
     fun visit(functionCallStatement: FunctionCallStatement) {

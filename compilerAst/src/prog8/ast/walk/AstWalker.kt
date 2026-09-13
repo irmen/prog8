@@ -395,6 +395,7 @@ abstract class AstWalker {
         track(before(iniitializer, parent), iniitializer, parent)
         iniitializer.structname.accept(this, iniitializer)
         iniitializer.args.forEach { it.accept(this, iniitializer) }
+        iniitializer.namedArgs.forEach { it.second.accept(this, iniitializer) }
         track(after(iniitializer, parent), iniitializer, parent)
     }
 

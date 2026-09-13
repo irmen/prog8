@@ -2268,24 +2268,31 @@ class ArrayIndexedPtrDereference(
 class StaticStructInitializer(var structname: IdentifierReference,
                               val args: MutableList<Expression>,
                               override val position: Position,
-                              val isPointer: Boolean = true) : Expression() {
+                              val isPointer: Boolean = true,
+                              val namedArgs: MutableList<Pair<String, Expression>> = mutableListOf()) : Expression() {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
         this.parent = parent
         structname.linkParents(this)
         args.forEach { it.linkParents(this) }
+        namedArgs.forEach { it.second.linkParents(this) }
     }
 
-    override fun copy() = StaticStructInitializer(structname.copy(), args.map { it.copy() }.toMutableList(), position, isPointer)
-    override val isSimple = args.all { it.isSimple }
+    override fun copy() = StaticStructInitializer(structname.copy(), args.map { it.copy() }.toMutableList(), position, isPointer, namedArgs.map { it.first to it.second.copy() }.toMutableList())
+    override val isSimple = args.all { it.isSimple } && namedArgs.all { it.second.isSimple }
     override fun isIORead(target: ICompilationTarget) = false
     override fun replaceChildNode(node: Node, replacement: Node) {
-        if(node===structname)
+        if(node===structname) {
             structname=replacement as IdentifierReference
-        else {
-            val idx = args.indexOfFirst { it===node }
-            args[idx] = replacement as Expression
+        } else {
+            val argIdx = args.indexOfFirst { it===node }
+            if(argIdx>=0) {
+                args[argIdx] = replacement as Expression
+            } else {
+                val namedIdx = namedArgs.indexOfFirst { it.second===node }
+                namedArgs[namedIdx] = namedArgs[namedIdx].first to (replacement as Expression)
+            }
         }
         replacement.parent = this
     }
@@ -2296,7 +2303,7 @@ class StaticStructInitializer(var structname: IdentifierReference,
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
 
-    override fun referencesIdentifier(nameInSource: List<String>): Boolean = structname.referencesIdentifier(nameInSource) || args.any{it.referencesIdentifier(nameInSource)}
+    override fun referencesIdentifier(nameInSource: List<String>): Boolean = structname.referencesIdentifier(nameInSource) || args.any{it.referencesIdentifier(nameInSource)} || namedArgs.any{it.second.referencesIdentifier(nameInSource)}
 
     override fun inferType(program: Program): InferredTypes.InferredType {
         val struct = structname.targetStructDecl()
