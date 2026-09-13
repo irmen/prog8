@@ -1456,16 +1456,15 @@ $loopLabel""")
 $loopLabel""")
         asmgen.translate(stmt.statements)
         asmgen.out("""
-            lda  $varname
-            cmp  #<${range.last}
+            inc  $varname
             bne  +
-            lda  $varname+1
-            cmp  #>${range.last}
-            beq  $endLabel
-+           inc  $varname
+            inc  $varname+1
++           lda  $varname
+            cmp  #<${range.last+1}
             bne  $loopLabel
-            inc  $varname+1""")
-        asmgen.jmp(loopLabel)
+            lda  $varname+1
+            cmp  #>${range.last+1}
+            bne  $loopLabel""")
         asmgen.out(endLabel)
         asmgen.loopEndLabels.removeLast()
     }
@@ -1486,24 +1485,21 @@ $loopLabel""")
         if(range.last==0) {
             asmgen.out("""
                 lda  $varname
-                bne  ++
-                lda  $varname+1
-                beq  $endLabel""")
-        } else {
-            asmgen.out("""
-                lda  $varname
-                cmp  #<${range.last}
                 bne  +
                 lda  $varname+1
-                cmp  #>${range.last}
                 beq  $endLabel""")
         }
         asmgen.out("""
 +           lda  $varname
             bne  +
             dec  $varname+1
-+           dec  $varname""")
-        asmgen.jmp(loopLabel)
++           dec  $varname
+            lda  $varname
+            cmp  #<${range.last-1}
+            bne  $loopLabel
+            lda  $varname+1
+            cmp  #>${range.last-1}
+            bne  $loopLabel""")
         asmgen.out(endLabel)
         asmgen.loopEndLabels.removeLast()
     }
@@ -1515,7 +1511,7 @@ $loopLabel""")
         asmgen.loopEndLabels.add(endLabel)
         val varname = asmgen.asmVariableName(stmt.variable)
         val from = range.first.toLongHex()
-        val to = range.last.toLongHex()
+        val toPlus1 = (range.last + 1).toLongHex()
         asmgen.out("""
             lda  #$${from.substring(6, 8)}
             sta  $varname
@@ -1528,26 +1524,25 @@ $loopLabel""")
 $loopLabel""")
         asmgen.translate(stmt.statements)
         asmgen.out("""
-            lda  $varname
-            cmp  #$${to.substring(6, 8)}
+            inc  $varname
             bne  +
-            lda  $varname+1
-            cmp  #$${to.substring(4, 6)}
-            bne  +
-            lda  $varname+2
-            cmp  #$${to.substring(2, 4)}
-            bne  +
-            lda  $varname+3
-            cmp  #$${to.take(2)}
-            beq  $endLabel
-+           inc  $varname
-            bne  $loopLabel
             inc  $varname+1
-            bne  $loopLabel
+            bne  +
             inc  $varname+2
+            bne  +
+            inc  $varname+3
++           lda  $varname
+            cmp  #$${toPlus1.substring(6, 8)}
             bne  $loopLabel
-            inc  $varname+3""")
-        asmgen.jmp(loopLabel)
+            lda  $varname+1
+            cmp  #$${toPlus1.substring(4, 6)}
+            bne  $loopLabel
+            lda  $varname+2
+            cmp  #$${toPlus1.substring(2, 4)}
+            bne  $loopLabel
+            lda  $varname+3
+            cmp  #$${toPlus1.take(2)}
+            bne  $loopLabel""")
         asmgen.out(endLabel)
         asmgen.loopEndLabels.removeLast()
     }
@@ -1559,7 +1554,7 @@ $loopLabel""")
         asmgen.loopEndLabels.add(endLabel)
         val varname = asmgen.asmVariableName(stmt.variable)
         val from = range.first.toLongHex()
-        val to = range.last.toLongHex()
+        val toMinus1 = (range.last - 1).toLongHex()
         asmgen.out("""
             lda  #$${from.substring(6, 8)}
             sta  $varname
@@ -1581,20 +1576,6 @@ $loopLabel""")
                 bne  ++
                 lda  $varname+3
                 beq  $endLabel""")
-        } else {
-            asmgen.out("""
-                lda  $varname
-                cmp  #$${to.substring(6, 8)}
-                bne  +
-                lda  $varname+1
-                cmp  #$${to.substring(4, 6)}
-                bne  +
-                lda  $varname+2
-                cmp  #$${to.substring(2, 4)}
-                bne  +
-                lda  $varname+3
-                cmp  #$${to.take(2)}
-                beq  $endLabel""")
         }
         asmgen.out("""
 +           lda  $varname
@@ -1606,8 +1587,19 @@ $loopLabel""")
             dec  $varname+3
 +           dec  $varname+2
 +           dec  $varname+1
-+           dec  $varname""")
-        asmgen.jmp(loopLabel)
++           dec  $varname
+            lda  $varname
+            cmp  #$${toMinus1.substring(6, 8)}
+            bne  $loopLabel
+            lda  $varname+1
+            cmp  #$${toMinus1.substring(4, 6)}
+            bne  $loopLabel
+            lda  $varname+2
+            cmp  #$${toMinus1.substring(2, 4)}
+            bne  $loopLabel
+            lda  $varname+3
+            cmp  #$${toMinus1.take(2)}
+            bne  $loopLabel""")
         asmgen.out(endLabel)
         asmgen.loopEndLabels.removeLast()
     }

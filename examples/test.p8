@@ -4,18 +4,28 @@
 main {
     sub start() {
         long total
-        cx16.r1 = 2000
-        cx16.r2 = 1000
 
-        for cx16.r0 in 1000 to cx16.r1 {
-            total += cx16.r0
+        for iw in 1000 to 2000 {
+            total += iw
         }
         txt.print_l(total)
         txt.nl()
 
 
-        for cx16.r0 in 2000 downto cx16.r2 {
-            total += cx16.r0
+        for iw in 2000 downto 1000 {
+            total += iw
+        }
+        txt.print_l(total)
+        txt.nl()
+
+        for i in 88888 to 99999 {
+            total += i
+        }
+        txt.print_l(total)
+        txt.nl()
+
+        for i in 88888 downto 77777 {
+            total -= i
         }
         txt.print_l(total)
         txt.nl()
