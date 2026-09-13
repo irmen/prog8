@@ -2228,8 +2228,9 @@ internal class AstChecker(private val program: Program,
             if(target.returntypes.size>1) {
                 // Multiple float return values are not supported on 6502 targets because the ROM
                 // float routines use FAC1/FAC2 as operand registers which would clobber earlier return values.
-                // The virtual target has no such limitation.
-                if(options.compTarget !is VMTarget) {
+                // The virtual and m68k targets use the m68k-style hardware-register calling convention
+                // (FP0-FP7), so they have no such limitation.
+                if(options.compTarget.cpu.is6502) {
                     if(target.returntypes.count { it.isFloat }>1) {
                         errors.err("can only have a single float value in a multi-value result on 6502 targets", target.position)
                     }

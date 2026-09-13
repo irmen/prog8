@@ -98,7 +98,11 @@ class ImplicitForIteratorDecls(
         }
 
         if (names.size != 1) {
-            errors.err("implicit for loop var must be an unqualified name", forLoop.position)
+            if(names.size==2 && names[0]=="cx16" && names[1].startsWith("r")) {
+                errors.err("cx16 virtual registers are not available on this compilation target", forLoop.loopVar.position)
+            } else {
+                errors.err("implicit for loop var must be an unqualified name", forLoop.loopVar.position)
+            }
             return emptyList()
         }
 
