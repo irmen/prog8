@@ -105,8 +105,7 @@ via `@shared` assignments like the existing test at `:667`):
 
 ### 3. Docs
 
-- `docs/source/programming.rst:127-134`: state that an enum can be aliased
-  as a whole and used via `<alias>::<member>`.
+- `docs/source/programming.rst:127-133` (alias section) and `1437-1444` (enum section): state that an enum can be aliased as a whole and used via `<alias>::<member>`.
 - `docs/source/history.rst`: add a release-notes entry.
 
 ## Edge cases

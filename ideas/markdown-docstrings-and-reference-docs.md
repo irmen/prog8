@@ -2,6 +2,10 @@
 
 **Status: TODO / not implemented.** Listed as an active item in `docs/source/todo.rst`.
 
+> Note (Sep 2026): the `-gendoc` compiler flag already exists (`compiler/src/prog8/CompilerMain.kt:77`) and prints AST nodes with documentation comments (`compiler/src/prog8/compiler/Compiler.kt:179`). The missing piece is the actual Markdown generator that replaces/extends that temporary stdout output with real reference files and Sphinx integration.
+>
+> **Bug to fix before this plan is usable:** `/** ... */` documentation comments currently cause a parse error when placed before a subroutine **inside** a block (`main { /** ... */ sub foo() {} }`). They only work before top-level block declarations and (apparently) block-level subroutines. The grammar/visitor must be fixed so doc comments can precede any `Block`, `VarDecl`, `Subroutine`, `StructDecl`, or `Enumeration` regardless of nesting. Until then, `-gendoc` cannot be used for library routines that live inside a block/module.
+
 ## Goal
 
 Generate user-facing reference documentation from Markdown documentation comments in Prog8 source files, while integrating the generated pages with the existing Sphinx/reStructuredText documentation.
@@ -32,11 +36,12 @@ For library modules, the documentation comment attached to the first `Block` nod
 
 ## Compiler Responsibilities
 
-- Preserve hidden-channel block comments during lexing.
-- Attach leading documentation comments to `Block`, `VarDecl`, and `Subroutine` AST nodes.
+- Preserve hidden-channel block comments during lexing (the lexer already puts `BLOCK_COMMENT` on a hidden channel; verify the visitor reads them).
+- Attach leading documentation comments to `Block`, `VarDecl`, and `Subroutine` AST nodes (`blockComment` fields already exist on these classes; `Antlr2KotlinVisitor.kt` already populates them at lines 315, 642, and 705).
+- **Fix parser support for doc comments on nested declarations.** Today a `/**` comment before a subroutine inside a block causes a parse error. The grammar/visitor must accept doc comments before any declaration that has a `blockComment` field.
 - Keep ordinary block comments available to the AST printer but exclude them from generated documentation.
-- Provide `-gendoc` as a flag with no additional parameters.
-- Make `-gendoc` inspect the compiler AST before optimization and code generation.
+- `-gendoc` already exists; ensure it inspects the compiler AST before optimization and code generation.
+- Decide whether `-gendoc` should continue printing to stdout or write generated Markdown files directly.
 - Print only nodes with a non-blank comment body beginning with `/**`.
 - Include the node kind, name, source position, and normalized Markdown body in the temporary diagnostic output.
 
@@ -77,7 +82,7 @@ This allows Sphinx to render generated `.md` pages alongside the existing `.rst`
 
 ## Validation
 
-- Add compiler tests for documentation comments on blocks, variables, and normal, assembly, and external subroutines.
+- Add compiler tests for documentation comments on blocks, variables, and normal, assembly, and external subroutines - including subroutines nested inside blocks, which currently fail to parse.
 - Verify ordinary `/* ... */` comments and blank `/** ... */` comments are omitted by `-gendoc`.
 - Verify multiline Markdown is deindented correctly.
 - Verify generated Markdown builds successfully with Sphinx and MyST.
@@ -86,7 +91,7 @@ This allows Sphinx to render generated `.md` pages alongside the existing `.rst`
 
 ## Open Decisions
 
-- Whether `-gendoc` should continue printing to stdout or write generated Markdown files directly.
+- Whether `-gendoc` should write generated Markdown files directly (the current implementation only prints diagnostic output to stdout).
 - Whether documentation should include library modules by default.
 - Whether private declarations should be omitted or included in a separate section.
 - Whether documentation comments should be copied through AST transformations and into later compiler representations.

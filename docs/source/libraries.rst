@@ -402,6 +402,10 @@ Use ffmpeg or `adpcm-xq <https://github.com/dbry/adpcm-xq>`_ like so (example):
 ``ffmpeg -i source.mp3 -ar 16000 -ac 1 -c:a adpcm_ima_wav -block_size 256 -map_metadata -1 -bitexact out.wav``
 or with adpcm_xq: ``adpcm-xq -4 -b8 -n  uncompressed.wav output.wav``
 
+Possible pre-filter step to improve encoded sound quality (note that the filter parameters depend on the sample rate! Ask google what the correct parameters should be for different sample rates!):
+``ffmpeg -i input.wav -af "highpass=f=50, lowpass=f=10000, acompressor=threshold=-12dB:ratio=3:attack=8:release=60, loudnorm=I=-16:TP=-1.5, aresample=22050" intermediate.wav```
+
+    
 ``sub decode_block_mono(uword nibblesptr)``
     Decodes one 256 byte block of adpcm data, into the Vera's PCM FIFO buffer.
     Decoded data is 16 bit mono PCM, 505 samples = 1010 bytes.
