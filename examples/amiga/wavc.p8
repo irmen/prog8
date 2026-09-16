@@ -18,18 +18,16 @@ main {
     ubyte[HEADERSIZE] wav_buffer
 
     ; The ADPCM decoder operates on fixed 256-byte input blocks.
-    ; It is critical that the output buffer is large enough, because the decoder
-    ; does not bounds-check its writes:
-    ;   - decode_block_mono()  writes up to 1010 bytes.
-    ;   - decode_block_stereo() writes up to 996 bytes.
     const uword ADPCM_BLOCK_SIZE = 256
-    const uword PCM_BLOCK_BUFFER_SIZE = 1024       ; >= 1010, safe for mono and stereo
-    ubyte[ADPCM_BLOCK_SIZE] adpcm_block
-    ubyte[PCM_BLOCK_BUFFER_SIZE] pcm_block
 
-    ; General-purpose copy buffer for PCM pass-through.
+    ; General-purpose copy buffer for PCM pass-through and ADPCM input chunks.
     const long BUFFERSIZE = 32768
     ubyte[BUFFERSIZE] copy_buffer
+
+    ; Accumulation buffer for decoded PCM output. Flushed to disk when full.
+    ; Must be at least as large as one decoded block (1010 bytes).
+    const long OUTPUT_BUFFERSIZE = 32768
+    ubyte[OUTPUT_BUFFERSIZE] output_buffer
 
     sub start() {
         txt.print("wavc - wav file converter\n")
@@ -129,30 +127,58 @@ main {
         txt.print("decoding ")
         txt.print_l(blocks)
         txt.print(" ADPCM blocks...\n")
-        long block = 0
         long total_written = 0
-        while block < blocks {
-            long read_n = dos.Read(file, &adpcm_block, ADPCM_BLOCK_SIZE as long)
-            if read_n != (ADPCM_BLOCK_SIZE as long) {
-                txt.print("\nerror reading ADPCM block\n")
+        long output_offset = 0
+        pointer outputptr = &output_buffer
+        long remaining = wavfile.data_size
+        while remaining > 0 {
+            long chunk = remaining
+            if chunk > BUFFERSIZE
+                chunk = BUFFERSIZE
+            long read_n = dos.Read(file, &copy_buffer, chunk)
+            if read_n != chunk {
+                txt.print("\nerror reading ADPCM chunk\n")
                 return false
             }
-            long decoded_size
-            if wavfile.nchannels == 1 {
-                adpcm.decode_block_mono(&adpcm_block, &pcm_block)
-                decoded_size = 1010 as long
-            } else {
-                adpcm.decode_block_stereo(&adpcm_block, &pcm_block)
-                decoded_size = 996 as long
+            long blocks_in_chunk = chunk / (ADPCM_BLOCK_SIZE as long)
+            long block_in_chunk = 0
+            pointer chunkptr = &copy_buffer
+            while block_in_chunk < blocks_in_chunk {
+                long decoded_size
+                if wavfile.nchannels == 1
+                    decoded_size = 1010 as long
+                else
+                    decoded_size = 996 as long
+                if output_offset + decoded_size > OUTPUT_BUFFERSIZE {
+                    long write_n = dos.Write(outfile, &output_buffer, output_offset)
+                    txt.chrout('.')
+                    txt.flush()
+                    if write_n != output_offset {
+                        txt.print("\nerror writing the output file\n")
+                        return false
+                    }
+                    total_written += write_n
+                    output_offset = 0
+                    outputptr = &output_buffer
+                }
+                if wavfile.nchannels == 1
+                    adpcm.decode_block_mono(chunkptr, outputptr)
+                else
+                    adpcm.decode_block_stereo(chunkptr, outputptr)
+                output_offset += decoded_size
+                outputptr += decoded_size
+                chunkptr += ADPCM_BLOCK_SIZE as long
+                block_in_chunk++
             }
-            long write_n = dos.Write(outfile, &pcm_block, decoded_size)
-            if write_n != decoded_size {
+            remaining -= chunk
+        }
+        if output_offset > 0 {
+            long flush_n = dos.Write(outfile, &output_buffer, output_offset)
+            if flush_n != output_offset {
                 txt.print("\nerror writing the output file\n")
                 return false
             }
-            total_written += write_n
-            block++
-            txt.chrout('.')
+            total_written += flush_n
         }
         txt.nl()
 

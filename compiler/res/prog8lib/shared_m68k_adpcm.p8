@@ -51,20 +51,41 @@ adpcm {
         outptr[1] = (predict >> 8) as ubyte
         outptr += 2
         nibblesptr += 4
-        ubyte nibble
-        repeat 252 {
-            nibble = @(nibblesptr)
-            ; note: when calling decode_nibble(), the upper nibble in the argument needs to be zero
-            decode_nibble(nibble & 15)     ; first word
-            outptr[0] = predict as ubyte
-            outptr[1] = (predict >> 8) as ubyte
-            outptr += 2
-            decode_nibble(nibble>>4)       ; second word
-            outptr[0] = predict as ubyte
-            outptr[1] = (predict >> 8) as ubyte
-            outptr += 2
-            nibblesptr++
-        }
+        decode_block_mono_loop(nibblesptr, outptr)
+    }
+
+    private asmsub decode_block_mono_loop(pointer nibblesptr @A0, pointer outptr @A1) clobbers (D0, D1, D3, D5, D6, D7, A0, A1, A2) {
+        ; Decodes the remaining 252 bytes (504 samples) of a mono block in 68000 assembly.
+        ; On entry: A0 -> input nibbles, A1 -> output (already past the header sample).
+        ; Keeps predict in D7 and rowindex in D6 for the whole loop.
+        %asm {{
+        lea     p8b_adpcm.p8v_deltas_table,a2
+        moveq   #0,d6
+        move.b  p8b_adpcm.p8v_rowindex,d6
+        move.w  p8b_adpcm.p8v_predict,d7
+        moveq   #0,d3
+        move.w  #251,d3
+.loop:
+        move.b  (a0)+,d0
+        move.b  d0,d5
+        and.w   #$000f,d0
+        bsr     p8b_adpcm.p8s_decode_nibble_reg
+        move.b  d7,(a1)+
+        move.w  d7,d1
+        lsr.w   #8,d1
+        move.b  d1,(a1)+
+        move.b  d5,d0
+        lsr.b   #4,d0
+        bsr     p8b_adpcm.p8s_decode_nibble_reg
+        move.b  d7,(a1)+
+        move.w  d7,d1
+        lsr.w   #8,d1
+        move.b  d1,(a1)+
+        dbra    d3,.loop
+        move.w  d7,p8b_adpcm.p8v_predict
+        move.b  d6,p8b_adpcm.p8v_rowindex
+        rts
+        }}
     }
 
     public sub decode_block_stereo(pointer nibblesptr, pointer outptr) {
@@ -80,43 +101,135 @@ adpcm {
         outptr[3] = (predict_2 >> 8) as ubyte
         outptr += 4
         nibblesptr += 8
-        ubyte nibble
-        pointer leftptr
-        pointer rightptr
-        repeat 31 {
-            leftptr = outptr
-            rightptr = outptr + 2
-            ; decode 8 left samples (4 bytes, 2 nibbles each)
-            repeat 4 {
-                nibble = @(nibblesptr)
-                ; note: when calling decode_nibble(), the upper nibble in the argument needs to be zero
-                decode_nibble(nibble & 15)     ; first word
-                leftptr[0] = predict as ubyte
-                leftptr[1] = (predict >> 8) as ubyte
-                leftptr += 4
-                decode_nibble(nibble>>4)       ; second word
-                leftptr[0] = predict as ubyte
-                leftptr[1] = (predict >> 8) as ubyte
-                leftptr += 4
-                nibblesptr++
-            }
-            ; decode 8 right samples (4 bytes, 2 nibbles each)
-            repeat 4 {
-                nibble = @(nibblesptr)
-                decode_nibble_second(nibble & 15)     ; first word
-                rightptr[0] = predict_2 as ubyte
-                rightptr[1] = (predict_2 >> 8) as ubyte
-                rightptr += 4
-                decode_nibble_second(nibble>>4)       ; second word
-                rightptr[0] = predict_2 as ubyte
-                rightptr[1] = (predict_2 >> 8) as ubyte
-                rightptr += 4
-                nibblesptr++
-            }
-            outptr += 32
-        }
+        decode_block_stereo_loop(nibblesptr, outptr)
     }
 
+    private asmsub decode_nibble_second_reg(ubyte nibble @D0) clobbers (D0, D1) {
+        ; Decode a single nibble for the second channel, register-only variant.
+        ; In:  D0.b = nibble (0..15), D5 = predict_2, D4 = row_2, A2 = deltas_table base.
+        ; Out: D5 = updated predict_2, D4 = updated row_2.  A2 is preserved.
+        %asm {{
+        add.w   d0,d0                ; d0 = nibble*2
+        moveq   #0,d1
+        move.b  d4,d1                ; d1 = row
+        lsl.w   #5,d1                ; d1 = row*32
+        add.w   d0,d1                ; d1 = byte offset into delta part
+        move.w  32(a2,d1.w),d1       ; d1 = signed delta
+        add.w   d1,d5                ; predict_2 += delta (16-bit wraparound)
+        move.w  (a2,d0.w),d1         ; d1 = row step -1..8
+        moveq   #0,d0
+        move.b  d4,d0                ; d0 = row
+        add.w   d1,d0                ; d0 = new row -1..96
+        bmi.s   .clamp_low
+        cmpi.w  #88,d0
+        bgt.s   .clamp_high
+        move.b  d0,d4
+        rts
+.clamp_low:
+        clr.b   d4
+        moveq   #0,d0
+        rts
+.clamp_high:
+        move.b  #88,d4
+        moveq   #88,d0
+        rts
+        }}
+    }
+
+    private asmsub decode_nibble_reg(ubyte nibble @D0) clobbers (D0, D1) {
+        ; Decode a single nibble for the first channel, register-only variant.
+        ; In:  D0.b = nibble (0..15), D7 = predict, D6 = row, A2 = deltas_table base.
+        ; Out: D7 = updated predict, D6 = updated row.  A2 is preserved.
+        %asm {{
+        add.w   d0,d0                ; d0 = nibble*2
+        moveq   #0,d1
+        move.b  d6,d1                ; d1 = row
+        lsl.w   #5,d1                ; d1 = row*32
+        add.w   d0,d1                ; d1 = byte offset into delta part
+        move.w  32(a2,d1.w),d1       ; d1 = signed delta
+        add.w   d1,d7                ; predict += delta (16-bit wraparound)
+        move.w  (a2,d0.w),d1         ; d1 = row step -1..8
+        moveq   #0,d0
+        move.b  d6,d0                ; d0 = row
+        add.w   d1,d0                ; d0 = new row -1..96
+        bmi.s   .clamp_low
+        cmpi.w  #88,d0
+        bgt.s   .clamp_high
+        move.b  d0,d6
+        rts
+.clamp_low:
+        clr.b   d6
+        moveq   #0,d0
+        rts
+.clamp_high:
+        move.b  #88,d6
+        moveq   #88,d0
+        rts
+        }}
+    }
+
+    private asmsub decode_block_stereo_loop(pointer nibblesptr @A0, pointer outptr @A1) clobbers (D0, D1, D2, D3, D4, D5, D6, D7, A0, A1, A2, A3, A4) {
+        ; Decodes the remaining 248 bytes (496 stereo samples) of a stereo block in 68000 assembly.
+        ; On entry: A0 -> input nibbles after 8-byte header, A1 -> output after 4-byte header samples.
+        ; Keeps left predict/row in D7/D6 and right predict/row in D5/D4.
+        %asm {{
+        lea     p8b_adpcm.p8v_deltas_table,a2
+        moveq   #0,d4
+        move.b  p8b_adpcm.p8v_rowindex_2,d4
+        move.w  p8b_adpcm.p8v_predict_2,d5
+        moveq   #0,d6
+        move.b  p8b_adpcm.p8v_rowindex,d6
+        move.w  p8b_adpcm.p8v_predict,d7
+        lea     248(a0),a3
+.outer:
+        lea     2(a1),a4
+        moveq   #3,d2
+.lleft:
+        move.b  (a0)+,d3
+        move.b  d3,d0
+        and.w   #$000f,d0
+        bsr.s   p8b_adpcm.p8s_decode_nibble_reg
+        move.b  d7,(a1)
+        move.w  d7,d1
+        lsr.w   #8,d1
+        move.b  d1,(1,a1)
+        move.b  d3,d0
+        lsr.b   #4,d0
+        bsr.s   p8b_adpcm.p8s_decode_nibble_reg
+        move.b  d7,(4,a1)
+        move.w  d7,d1
+        lsr.w   #8,d1
+        move.b  d1,(5,a1)
+        addq.l  #8,a1
+        dbra    d2,.lleft
+        moveq   #3,d2
+.lright:
+        move.b  (a0)+,d3
+        move.b  d3,d0
+        and.w   #$000f,d0
+        bsr     p8b_adpcm.p8s_decode_nibble_second_reg
+        move.b  d5,(a4)
+        move.w  d5,d1
+        lsr.w   #8,d1
+        move.b  d1,(1,a4)
+        move.b  d3,d0
+        lsr.b   #4,d0
+        bsr     p8b_adpcm.p8s_decode_nibble_second_reg
+        move.b  d5,(4,a4)
+        move.w  d5,d1
+        lsr.w   #8,d1
+        move.b  d1,(5,a4)
+        addq.l  #8,a4
+        dbra    d2,.lright
+        cmpa.l  a3,a0
+        bne.s   .outer
+        move.w  d7,p8b_adpcm.p8v_predict
+        move.b  d6,p8b_adpcm.p8v_rowindex
+        move.w  d5,p8b_adpcm.p8v_predict_2
+        move.b  d4,p8b_adpcm.p8v_rowindex_2
+        rts
+        }}
+    }
 
     sub read_le_uword(pointer addr) -> uword {
         ; read a 16-bit little-endian value from memory (ADPCM wav data is LE)
@@ -135,23 +248,13 @@ adpcm {
         rowindex_2 = startIndex_2
     }
 
-    sub decode_nibble(ubyte nibble) {
-        ; Decoder for a single nibble for the first channel. (value of 'nibble' needs to be strictly 0-15 !)
-        ; This is the hotspot of the decoder algorithm.
-        predict += deltas_table[(rowindex as uword << 4) + nibble] as uword
-        rowindex = clamp(rowindex as word + t_rowdelta[nibble], 0, 88) as ubyte
-    }
-
-    sub decode_nibble_second(ubyte nibble) {
-        ; Decoder for a single nibble for the second channel. (value of 'nibble' needs to be strictly 0-15 !)
-        ; This is the hotspot of the decoder algorithm.
-        predict_2 += deltas_table[(rowindex_2 as uword << 4) + nibble] as uword
-        rowindex_2 = clamp(rowindex_2 as word + t_rowdelta[nibble], 0, 88) as ubyte
-    }
-
-    private word[] t_rowdelta = [-1,-1,-1,-1,2,4,6,8,-1,-1,-1,-1,2,4,6,8]
-
+    ; NOTE: this is a single combined table:
+    ; the first 16 words are the row step lookup (t_rowdelta),
+    ; the remaining 89*16 words are the delta table.
+    ; The decode_block_*_loop asmsubs rely on this order (deltas read at 32(a0,d1.w)).
     word[] deltas_table = [
+    ; row steps for the 16 possible nibbles (t_rowdelta):
+    -1,-1,-1,-1,2,4,6,8,-1,-1,-1,-1,2,4,6,8,
     0, 1, 3, 4, 7, 8, 10, 11, 0, -1, -3, -4, -7, -8, -10, -11,
     1, 3, 5, 7, 9, 11, 13, 15, -1, -3, -5, -7, -9, -11, -13, -15,
     1, 3, 5, 7, 10, 12, 14, 16, -1, -3, -5, -7, -10, -12, -14, -16,
