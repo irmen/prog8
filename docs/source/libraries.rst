@@ -386,8 +386,8 @@ Grouped per compilation target.
 Library modules
 ---------------
 
-adpcm  (cx16 only)
-^^^^^^^^^^^^^^^^^^
+adpcm  (cx16, m68k)
+^^^^^^^^^^^^^^^^^^^
 Routines to decode IMA-ADPCM compressed audio sample data. This is a lossy compression that reduces the
 data size by a factor of 4. Reference info about the compression `here <https://wiki.multimedia.cx/index.php/IMA_ADPCM>`_ and
 `here <https://wiki.multimedia.cx/index.php/Microsoft_IMA_ADPCM>`_ .
@@ -405,7 +405,8 @@ or with adpcm_xq: ``adpcm-xq -4 -b8 -n  uncompressed.wav output.wav``
 Possible pre-filter step to improve encoded sound quality (note that the filter parameters depend on the sample rate! Ask google what the correct parameters should be for different sample rates!):
 ``ffmpeg -i input.wav -af "highpass=f=50, lowpass=f=10000, acompressor=threshold=-12dB:ratio=3:attack=8:release=60, loudnorm=I=-16:TP=-1.5, aresample=22050" intermediate.wav```
 
-    
+On the cx16 target the decoded samples are written directly to the Vera's PCM FIFO buffer:
+
 ``sub decode_block_mono(uword nibblesptr)``
     Decodes one 256 byte block of adpcm data, into the Vera's PCM FIFO buffer.
     Decoded data is 16 bit mono PCM, 505 samples = 1010 bytes.
@@ -414,8 +415,22 @@ Possible pre-filter step to improve encoded sound quality (note that the filter 
     Decodes one 256 byte block of adpcm data, into the Vera's PCM FIFO buffer.
     Decoded data is 16 bit stereo PCM, 498 samples = 996 bytes.
 
+On the m68k targets (amiga500, amiga1200, qemu68k) the decoded samples are written to a
+caller-provided memory buffer instead:
+
+``sub decode_block_mono(pointer nibblesptr, pointer outptr)``
+    Decodes one 256 byte block of adpcm data into the memory buffer at ``outptr``.
+    The output buffer must hold at least 1010 bytes; the decoder does not bounds-check its writes.
+    Decoded data is 16 bit mono PCM, 505 samples = 1010 bytes (little-endian).
+
+``sub decode_block_stereo(pointer nibblesptr, pointer outptr)``
+    Decodes one 256 byte block of adpcm data into the memory buffer at ``outptr``.
+    The output buffer must hold at least 996 bytes; the decoder does not bounds-check its writes.
+    Decoded data is 16 bit stereo PCM, 498 samples = 996 bytes (little-endian, interleaved).
+
 If you just want to decode the data in memory you can use a few low-level routines directly to decode single nibbles etc.
-Look at the :source:`adpcm source code <compiler/res/prog8lib/cx16/adpcm.p8>` to find out what other routines are available.
+Look at the :source:`adpcm source code <compiler/res/prog8lib/cx16/adpcm.p8>` (cx16)
+or :source:`m68k adpcm source code <compiler/res/prog8lib/shared_m68k_adpcm.p8>` to find out what other routines are available.
 
 
 arena

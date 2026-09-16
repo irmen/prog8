@@ -1,5 +1,6 @@
 ; all library modules for the qemu68k compiler target
 
+%import adpcm
 %import arexx
 %import buffers
 %import blitter

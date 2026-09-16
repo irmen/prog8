@@ -1,5 +1,6 @@
 ; all library modules for the amiga1200 compiler target
 
+%import adpcm
 %import arexx
 %import buffers
 %import blitter

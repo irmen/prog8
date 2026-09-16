@@ -1,6 +1,9 @@
 TODO
 ====
 
+BUG: amiga-defer-bug.p8 seemd to show that the defers are not correctly handled on exit
+
+
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 - DataType.ARRAY_POINTER depends on the compilation target to be either a split word array or not. This is horrible because now we have to check with the compilation target everywhere to see if a DataType enumeration value is split word array, and PtVariable and PtArrayIndexer need an explicit boolean to tell us if this is the case. See ideas/remove_array_pointer_plan.md for the plan.
@@ -65,6 +68,7 @@ Libraries
 
 Optimizations
 ^^^^^^^^^^^^^
+- Investigate the actual benefit of the manually unrolled loops and temporary buffers in the 6502 cx16/adpcm.p8 library. The m68k version uses simple loops and direct buffer writes, and it is unclear how much the 6502 unrolling really helps versus its code-size cost.
 - new6502 codegen: use virtual-register liveness or write tracking to remove the retained register-file store when an immediate value is forwarded directly into all arguments of a call. (m68k codegen already implements this optimization.)
 - Port more benchmarks from https://thred.github.io/c-bench-64/  to prog8 and see how it stacks up. (see benchmark-c/ directory)
 - Compilation speed: try to join multiple modifications in 1 result in the AST processors instead of returning it straight away every time
