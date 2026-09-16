@@ -81,18 +81,18 @@ main {
         floats.print(duration_secs)
         txt.print(" seconds (approx)\n")
         float src_per_second = adpcm_size as float / duration_secs
-        txt.print_uw(src_per_second as uword)
+        floats.print(src_per_second)
         txt.print(" adpcm data bytes/sec\n")
         float words_per_second = pcm_words_per_block * (num_adpcm_blocks as float) / duration_secs
         when wavfile.nchannels {
             1 -> {
-                txt.print_uw(words_per_second as uword)
+                floats.print(words_per_second)
                 txt.print(" decoded mono pcm words/sec (max hz)\n")
             }
             2 -> {
-                txt.print_uw(words_per_second as uword)
+                floats.print(words_per_second)
                 txt.print(" decoded pcm words/sec\n")
-                txt.print_uw(words_per_second/2 as uword)
+                floats.print(words_per_second/2)
                 txt.print(" decoded stereo audio frames/sec (max hz)\n")
             }
         }

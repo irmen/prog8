@@ -18,6 +18,8 @@
 - When using sub-agents to implement features, act as a coordinator only
 - Use the best model for the task - premium models for complex tasks (like coding) and mid-tier models for simpler tasks, like documentation
 - After completing features (large or small), always run commands like lint, type check and next build to check code quality
+  (exception: if the change is only whitespace or code comments, a build or test run is not necessary)
+- `gradle build` already runs the full test suite; don't run a separate full `gradle test` before it, to avoid lengthy double test runs (targeted `--tests` filters to find failing tests are fine)
 
 ## Project Overview
 - This project is a compiler for the Prog8 programming language.

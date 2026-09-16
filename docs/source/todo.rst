@@ -69,6 +69,7 @@ Optimizations
 - Port more benchmarks from https://thred.github.io/c-bench-64/  to prog8 and see how it stacks up. (see benchmark-c/ directory)
 - Compilation speed: try to join multiple modifications in 1 result in the AST processors instead of returning it straight away every time
 - various optimizers skip stuff if compTarget.name==VMTarget.NAME.  Once new 6502 codegen is done from IR code, those 6502 only optimizations should probably be removed
+- 6502 codegen: inline ``clamp()`` on word/uword when both bounds are compile-time constants (numeric literals or fixed label addresses), instead of always lowering to the software-stack ``func_clamp_uword`` call. Ubyte clamps with constant bounds are already inlined this way (``BuiltinFunctionsAsmGen.funcClamp``). Signed word variants need the signed compare sequence
 
 
 Dead Code Elimination bug in 64tass, for nested subroutines
