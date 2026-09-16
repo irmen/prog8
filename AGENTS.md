@@ -13,7 +13,7 @@
 
 ## CHANGE / EDIT MODE
 
-- Never implement features yourself when possible - use sub-agents!
+- Use a subagent for larger chunks of work
 - Identify changes from the plan that can be implemented in parallel, and use sub-agents to implement the features efficiently
 - When using sub-agents to implement features, act as a coordinator only
 - Use the best model for the task - premium models for complex tasks (like coding) and mid-tier models for simpler tasks, like documentation

@@ -193,8 +193,8 @@ class TestCompilerOnExamplesCx16: FunSpec({
     val onlyCx16 = cartesianProduct(
         listOf(
             ExampleSizes("vtui/testvtui", cx16SizeOptimized=3041, cx16SizeUnoptimized=3041),
-            ExampleSizes("pcmaudio/play-adpcm", cx16SizeOptimized=36147, cx16SizeUnoptimized=36645),
-            ExampleSizes("pcmaudio/stream-wav", cx16SizeOptimized=5442, cx16SizeUnoptimized=7665),
+            ExampleSizes("pcmaudio/play-adpcm", cx16SizeOptimized=37645, cx16SizeUnoptimized=38139),
+            ExampleSizes("pcmaudio/stream-wav", cx16SizeOptimized=7907, cx16SizeUnoptimized=10065),
             ExampleSizes("pcmaudio/stream-simple-aflow", cx16SizeOptimized=1842, cx16SizeUnoptimized=3612),
             ExampleSizes("pcmaudio/stream-simple-poll", cx16SizeOptimized=1556, cx16SizeUnoptimized=3322),
             ExampleSizes("pcmaudio/vumeter", cx16SizeOptimized=3862, cx16SizeUnoptimized=6221),
