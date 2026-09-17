@@ -1,8 +1,16 @@
 adpcm {
 
-    ; IMA ADPCM decoder.  Supports mono and stereo streams. M68k 32 bits big endian version.
+    ; IMA ADPCM decoder, 68000 version, by Irmen de Jong, irmen@razorvine.net
+    ; Supports mono and stereo streams.
     ; https://wiki.multimedia.cx/index.php/IMA_ADPCM
     ; https://wiki.multimedia.cx/index.php/Microsoft_IMA_ADPCM
+    ;
+    ; OUTPUT FORMAT: the decoded PCM samples are 16-bit signed values in BIG-ENDIAN
+    ; byte order (the m68k native order, so the output can be fed straight to Paula
+    ; or other m68k audio code without byte swapping). Mono output is a plain
+    ; sequence of samples; stereo output is interleaved L,R,L,R,... pairs.
+    ; If you need little-endian samples instead (for example to write a .wav file),
+    ; you have to byte-swap every 16-bit sample yourself.
 
     ; IMA ADPCM encodes two 16-bit PCM audio samples in 1 byte (1 word per nibble)
     ; thus compressing the audio data by a factor of 4.
@@ -34,6 +42,44 @@ adpcm {
     ; The remaining bytes in the chunk are the IMA nibbles. The first 4 bytes, or 8 nibbles,
     ; belong to the left channel and -if it's stereo- the next 4 bytes belong to the right channel.
 
+    ; PERFORMANCE NOTES (plain 68000):
+    ; The hot loops are built around two lookup tables and keep all state in registers:
+    ; 1. deltas_table: 89*16 precomputed signed deltas (step/8 + step/4? + step/2? + step?,
+    ;    negated when nibble bit 3 is set). One indexed word read per sample, no arithmetic.
+    ; 2. next_state_table: the index update (index += t_index[nibble], clamped to 0..88)
+    ;    is folded into a transition table, so there is NO clamping code in the hot loop
+    ;    at all: no compares, no branches. Sentinel rows -1 and 89..96 make the table
+    ;    total; they are unreachable from normal rows and from valid block headers.
+    ; 3. The state register holds (rowindex+1)*32 and the next_state_table entries are
+    ;    pre-multiplied by 32, so the state update is a single move.w (a3,d1.w),d6 with
+    ;    no shifts. The SAME offset ((rowindex+1)*32 + nibble*2) also addresses the delta
+    ;    table (biased by -32), so one add serves both table lookups per sample.
+    ; 4. Input is read with move.l (4 bytes = 8 samples per load) and swap exposes both
+    ;    16-bit halves; the mono loop needs only 63 dbra iterations per 256-byte block.
+    ; 5. Output is stored big-endian with a single move.w per sample, no byte swapping.
+    ;
+    ; Compared to a small-table decoder (89-entry step table + 16-entry index table,
+    ; e.g. Kalmalyzer's adpcm-68k): no per-sample delta computation, no index clamping
+    ; (their spl/ext/and + cmp/bls sequence costs ~25 cycles/sample), one shared table
+    ; offset instead of two separately computed ones, and no predictor clamping to
+    ; [-32768,32767] (another ~35 cycles/sample in theirs; we deliberately wrap the
+    ; 16-bit predictor instead, matching the 6502 decoder and ffmpeg on real files).
+    ; Net result: ~64-78 cycles/sample here vs ~112+ cycles/sample there.
+    ;
+    ; NOT APPLIED (only useful on 68020/040/060; this code targets the plain 68000):
+    ; - scaled indexing such as (a2,d1.l*4): would remove the explicit nibble*2 add.
+    ; - a packed 8-byte transition entry (delta.l + nextstate.l fetched in one move.l):
+    ;   halves the table reads but needs (a2,d1.l*8) scaled indexing and a ~12 KB table;
+    ;   the extra memory bandwidth costs more on a 68000 than the saved read wins.
+    ; - output batching (accumulate 2-4 samples in a register, one move.l store):
+    ;   profitable on 040/060 where 32-bit shifts take a few cycles, but on 68000
+    ;   lsl.l #8 costs 24 cycles, more than the stores it saves.
+    ; - bfextu bitfield nibble extraction (68020+) instead of and/lsr sequences.
+    ; - extb.l (68020+) for cheap byte extraction from the loaded longword.
+    ; - deeper loop unrolling: on 68020+ the instruction cache makes this attractive,
+    ;   on the cacheless 68000 it only saves the dbra (~10 cycles per 8 samples)
+    ;   at a large code size cost.
+
     %option merge, ignore_unused, private_symbols
 
     uword predict       ; decoded 16 bit pcm sample for first channel.
@@ -45,97 +91,124 @@ adpcm {
         ; Decodes one 256 byte block of mono adpcm data into a memory buffer.
         ; The input buffer (nibblesptr) must hold at least 256 bytes.
         ; The output buffer (outptr) must hold at least 1010 bytes.
-        ; Decoded data is 16 bit mono PCM, 505 samples = 1010 bytes (little-endian).
+        ; Decoded data is 16 bit mono PCM, 505 samples = 1010 bytes (big-endian).
         init(read_le_uword(nibblesptr), @(nibblesptr+2))
-        outptr[0] = predict as ubyte
-        outptr[1] = (predict >> 8) as ubyte
+        outptr[0] = (predict >> 8) as ubyte
+        outptr[1] = predict as ubyte
         outptr += 2
         nibblesptr += 4
         decode_block_mono_loop(nibblesptr, outptr)
     }
 
-    private asmsub decode_block_mono_loop(pointer nibblesptr @A0, pointer outptr @A1) clobbers (D0, D1, D2, D3, D6, D7, A0, A1, A2) {
-        ; Decodes the remaining 252 bytes (504 samples) of a mono block in 68000 assembly.
-        ; On entry: A0 -> input nibbles, A1 -> output (already past the header sample).
-        ; Keeps predict in D7 and rowindex in D6 for the whole loop.
+    private asmsub decode_block_mono_loop(pointer nibblesptr @A0, pointer outptr @A1) clobbers (D0, D1, D2, D3, D4, D6, D7, A0, A1, A2, A3) {
+        ; Decode 252 nibbles (63 longwords) using four-byte input unrolling.
+        ; D7 = predict, D6 = (rowindex+1)*32, D4 = loaded longword, D3 = temp word.
+        ; One table offset serves both the delta lookup and the pre-scaled next-state lookup.
         %asm {{
-        lea     p8b_adpcm.p8v_deltas_table,a2
+        lea     p8b_adpcm.p8v_deltas_table-32,a2
+        lea     p8b_adpcm.p8v_next_state_table,a3
         moveq   #0,d6
         move.b  p8b_adpcm.p8v_rowindex,d6
+        addq.w  #1,d6
+        lsl.w   #5,d6          ; S = (rowindex + 1) * 32
         move.w  p8b_adpcm.p8v_predict,d7
-        moveq   #0,d2
-        move.w  #251,d2
+        move.w  #62,d2
 .loop:
-        move.b  (a0)+,d0
-        bsr     p8b_adpcm.p8s_decode_byte_mono_reg
-        dbra    d2,.loop
-        move.w  d7,p8b_adpcm.p8v_predict
-        move.b  d6,p8b_adpcm.p8v_rowindex
-        rts
-        }}
-    }
-
-    private asmsub decode_byte_mono_reg(ubyte value @D0, pointer outptr @A1) clobbers (D0, D1, D3, D6, D7, A1) {
-        ; Decode both nibbles in one call for the first channel.
-        ; In: D0.b = packed nibbles, D7 = predict, D6 = row, A1 = output.
-        %asm {{
-        moveq   #0,d3
-        move.b  d0,d3
+        move.l  (a0)+,d4
+        swap    d4
+        move.w  d4,d3
+        lsr.w   #8,d3
+        ; byte 0
+        move.b  d3,d0
         and.w   #$000f,d0
         add.w   d0,d0
-        moveq   #0,d1
-        move.b  d6,d1
-        lsl.w   #5,d1
+        move.w  d6,d1
         add.w   d0,d1
-        move.w  32(a2,d1.w),d1
-        add.w   d1,d7
-        move.w  (a2,d0.w),d1
-        moveq   #0,d0
-        move.b  d6,d0
-        add.w   d1,d0
-        bmi.s   .clamp_low
-        cmpi.w  #88,d0
-        bgt.s   .clamp_high
-        move.b  d0,d6
-        bra.s   .write_low
-.clamp_low:
-        clr.b   d6
-        bra.s   .write_low
-.clamp_high:
-        move.b  #88,d6
-.write_low:
-        move.b  d7,(a1)+
-        move.w  d7,d1
-        lsr.w   #8,d1
-        move.b  d1,(a1)+
+        move.w  (a2,d1.w),d0
+        add.w   d0,d7
+        move.w  (a3,d1.w),d6
+        move.w  d7,(a1)+
         move.w  d3,d0
         lsr.w   #4,d0
+        and.w   #$000f,d0
         add.w   d0,d0
-        moveq   #0,d1
-        move.b  d6,d1
-        lsl.w   #5,d1
+        move.w  d6,d1
         add.w   d0,d1
-        move.w  32(a2,d1.w),d1
-        add.w   d1,d7
-        move.w  (a2,d0.w),d1
-        moveq   #0,d0
-        move.b  d6,d0
-        add.w   d1,d0
-        bmi.s   .clamp_low2
-        cmpi.w  #88,d0
-        bgt.s   .clamp_high2
-        move.b  d0,d6
-        bra.s   .write_high
-.clamp_low2:
-        clr.b   d6
-        bra.s   .write_high
-.clamp_high2:
-        move.b  #88,d6
-.write_high:
-        move.b  d7,(a1)+
-        move.w  d7,d1
-        lsr.w   #8,d1
-        move.b  d1,(a1)+
+        move.w  (a2,d1.w),d0
+        add.w   d0,d7
+        move.w  (a3,d1.w),d6
+        move.w  d7,(a1)+
+        move.w  d4,d3
+        ; byte 1
+        move.b  d3,d0
+        and.w   #$000f,d0
+        add.w   d0,d0
+        move.w  d6,d1
+        add.w   d0,d1
+        move.w  (a2,d1.w),d0
+        add.w   d0,d7
+        move.w  (a3,d1.w),d6
+        move.w  d7,(a1)+
+        move.w  d3,d0
+        lsr.w   #4,d0
+        and.w   #$000f,d0
+        add.w   d0,d0
+        move.w  d6,d1
+        add.w   d0,d1
+        move.w  (a2,d1.w),d0
+        add.w   d0,d7
+        move.w  (a3,d1.w),d6
+        move.w  d7,(a1)+
+        swap    d4
+        move.w  d4,d3
+        lsr.w   #8,d3
+        ; byte 2
+        move.b  d3,d0
+        and.w   #$000f,d0
+        add.w   d0,d0
+        move.w  d6,d1
+        add.w   d0,d1
+        move.w  (a2,d1.w),d0
+        add.w   d0,d7
+        move.w  (a3,d1.w),d6
+        move.w  d7,(a1)+
+        move.w  d3,d0
+        lsr.w   #4,d0
+        and.w   #$000f,d0
+        add.w   d0,d0
+        move.w  d6,d1
+        add.w   d0,d1
+        move.w  (a2,d1.w),d0
+        add.w   d0,d7
+        move.w  (a3,d1.w),d6
+        move.w  d7,(a1)+
+        move.w  d4,d3
+        ; byte 3
+        move.b  d3,d0
+        and.w   #$000f,d0
+        add.w   d0,d0
+        move.w  d6,d1
+        add.w   d0,d1
+        move.w  (a2,d1.w),d0
+        add.w   d0,d7
+        move.w  (a3,d1.w),d6
+        move.w  d7,(a1)+
+        move.w  d3,d0
+        lsr.w   #4,d0
+        and.w   #$000f,d0
+        add.w   d0,d0
+        move.w  d6,d1
+        add.w   d0,d1
+        move.w  (a2,d1.w),d0
+        add.w   d0,d7
+        move.w  (a3,d1.w),d6
+        move.w  d7,(a1)+
+        dbra    d2,.loop
+        move.w  d7,p8b_adpcm.p8v_predict
+        move.w  d6,d1
+        lsr.w   #5,d1
+        subq.w  #1,d1
+        move.b  d1,p8b_adpcm.p8v_rowindex
         rts
         }}
     }
@@ -144,181 +217,243 @@ adpcm {
         ; Decodes one 256 byte block of stereo adpcm data into a memory buffer.
         ; The input buffer (nibblesptr) must hold at least 256 bytes.
         ; The output buffer (outptr) must hold at least 996 bytes.
-        ; Decoded data is 16 bit stereo PCM, 498 samples = 996 bytes (little-endian, interleaved).
-        init(read_le_uword(nibblesptr), @(nibblesptr+2))            ; left channel
-        outptr[0] = predict as ubyte
-        outptr[1] = (predict >> 8) as ubyte
-        init_second(read_le_uword(nibblesptr+4), @(nibblesptr+6))   ; right channel
-        outptr[2] = predict_2 as ubyte
-        outptr[3] = (predict_2 >> 8) as ubyte
+        ; Decoded data is 16 bit stereo PCM, 498 samples = 996 bytes (big-endian,
+        ; interleaved L,R,L,R,...).
+        init(read_le_uword(nibblesptr), @(nibblesptr+2))
+        outptr[0] = (predict >> 8) as ubyte
+        outptr[1] = predict as ubyte
+        init_second(read_le_uword(nibblesptr+4), @(nibblesptr+6))
+        outptr[2] = (predict_2 >> 8) as ubyte
+        outptr[3] = predict_2 as ubyte
         outptr += 4
         nibblesptr += 8
         decode_block_stereo_loop(nibblesptr, outptr)
     }
 
-    private asmsub decode_byte_stereo_reg(ubyte value @D0, pointer outptr @A1) clobbers (D0, D1, D3, D6, D7, A1) {
-        ; Decode both nibbles in one call for the first stereo channel.
-        ; In: D0.b = packed nibbles, D7 = predict, D6 = row, A1 = output.
+    private asmsub decode_block_stereo_loop(pointer nibblesptr @A0, pointer outptr @A1) clobbers (D0, D1, D2, D3, D4, D5, D6, D7, A0, A1, A2, A3, A4, A5) {
+        ; Decode 248 nibbles in 31 outer iterations, each processing 4 left bytes
+        ; then 4 right bytes.  D7/D6 = left predict/(rowindex+1)*32, D5/D3 = right,
+        ; D4 = loaded longword, D2 = temp word, A5 = outer loop counter.
+        ; Left samples go to (a1)/4(a1) and right samples to 2(a1)/6(a1) via a4,
+        ; producing interleaved L,R output directly with no separate interleave pass.
         %asm {{
+        lea     p8b_adpcm.p8v_deltas_table-32,a2
+        lea     p8b_adpcm.p8v_next_state_table,a3
         moveq   #0,d3
-        move.b  d0,d3
-        and.w   #$000f,d0
-        add.w   d0,d0
-        moveq   #0,d1
-        move.b  d6,d1
-        lsl.w   #5,d1
-        add.w   d0,d1
-        move.w  32(a2,d1.w),d1
-        add.w   d1,d7
-        move.w  (a2,d0.w),d1
-        moveq   #0,d0
-        move.b  d6,d0
-        add.w   d1,d0
-        bmi.s   .clamp_low
-        cmpi.w  #88,d0
-        bgt.s   .clamp_high
-        move.b  d0,d6
-        bra.s   .write_low
-.clamp_low:
-        clr.b   d6
-        bra.s   .write_low
-.clamp_high:
-        move.b  #88,d6
-.write_low:
-        move.b  d7,(a1)
-        move.w  d7,d1
-        lsr.w   #8,d1
-        move.b  d1,(1,a1)
-        move.w  d3,d0
-        lsr.w   #4,d0
-        add.w   d0,d0
-        moveq   #0,d1
-        move.b  d6,d1
-        lsl.w   #5,d1
-        add.w   d0,d1
-        move.w  32(a2,d1.w),d1
-        add.w   d1,d7
-        move.w  (a2,d0.w),d1
-        moveq   #0,d0
-        move.b  d6,d0
-        add.w   d1,d0
-        bmi.s   .clamp_low2
-        cmpi.w  #88,d0
-        bgt.s   .clamp_high2
-        move.b  d0,d6
-        bra.s   .write_high
-.clamp_low2:
-        clr.b   d6
-        bra.s   .write_high
-.clamp_high2:
-        move.b  #88,d6
-.write_high:
-        move.b  d7,(4,a1)
-        move.w  d7,d1
-        lsr.w   #8,d1
-        move.b  d1,(5,a1)
-        addq.l  #8,a1
-        rts
-        }}
-    }
-
-    private asmsub decode_byte_stereo_second_reg(ubyte value @D0, pointer outptr @A4) clobbers (D0, D1, D3, D4, D5, A4) {
-        ; Decode both nibbles in one call for the second stereo channel.
-        ; In: D0.b = packed nibbles, D5 = predict_2, D4 = row_2, A4 = output.
-        %asm {{
-        moveq   #0,d3
-        move.b  d0,d3
-        and.w   #$000f,d0
-        add.w   d0,d0
-        moveq   #0,d1
-        move.b  d4,d1
-        lsl.w   #5,d1
-        add.w   d0,d1
-        move.w  32(a2,d1.w),d1
-        add.w   d1,d5
-        move.w  (a2,d0.w),d1
-        moveq   #0,d0
-        move.b  d4,d0
-        add.w   d1,d0
-        bmi.s   .clamp_low
-        cmpi.w  #88,d0
-        bgt.s   .clamp_high
-        move.b  d0,d4
-        bra.s   .write_low
-.clamp_low:
-        clr.b   d4
-        bra.s   .write_low
-.clamp_high:
-        move.b  #88,d4
-.write_low:
-        move.b  d5,(a4)
-        move.w  d5,d1
-        lsr.w   #8,d1
-        move.b  d1,(1,a4)
-        move.w  d3,d0
-        lsr.w   #4,d0
-        add.w   d0,d0
-        moveq   #0,d1
-        move.b  d4,d1
-        lsl.w   #5,d1
-        add.w   d0,d1
-        move.w  32(a2,d1.w),d1
-        add.w   d1,d5
-        move.w  (a2,d0.w),d1
-        moveq   #0,d0
-        move.b  d4,d0
-        add.w   d1,d0
-        bmi.s   .clamp_low2
-        cmpi.w  #88,d0
-        bgt.s   .clamp_high2
-        move.b  d0,d4
-        bra.s   .write_high
-.clamp_low2:
-        clr.b   d4
-        bra.s   .write_high
-.clamp_high2:
-        move.b  #88,d4
-.write_high:
-        move.b  d5,(4,a4)
-        move.w  d5,d1
-        lsr.w   #8,d1
-        move.b  d1,(5,a4)
-        addq.l  #8,a4
-        rts
-        }}
-    }
-
-    private asmsub decode_block_stereo_loop(pointer nibblesptr @A0, pointer outptr @A1) clobbers (D0, D1, D2, D3, D4, D5, D6, D7, A0, A1, A2, A3, A4) {
-        ; Decodes the remaining 248 bytes (496 stereo samples) of a stereo block in 68000 assembly.
-        ; On entry: A0 -> input nibbles after 8-byte header, A1 -> output after 4-byte header samples.
-        ; Keeps left predict/row in D7/D6 and right predict/row in D5/D4.
-        %asm {{
-        lea     p8b_adpcm.p8v_deltas_table,a2
-        moveq   #0,d4
-        move.b  p8b_adpcm.p8v_rowindex_2,d4
+        move.b  p8b_adpcm.p8v_rowindex_2,d3
+        addq.w  #1,d3
+        lsl.w   #5,d3          ; S_right = (rowindex_2 + 1) * 32
         move.w  p8b_adpcm.p8v_predict_2,d5
         moveq   #0,d6
         move.b  p8b_adpcm.p8v_rowindex,d6
+        addq.w  #1,d6
+        lsl.w   #5,d6          ; S_left = (rowindex + 1) * 32
         move.w  p8b_adpcm.p8v_predict,d7
-        lea     248(a0),a3
-.outer:
+        suba.l  a5,a5
+        move.w  #31,a5
+.loop:
         lea     2(a1),a4
-        moveq   #3,d2
-.lleft:
-        move.b  (a0)+,d0
-        bsr     p8b_adpcm.p8s_decode_byte_stereo_reg
-        dbra    d2,.lleft
-        moveq   #3,d2
-.lright:
-        move.b  (a0)+,d0
-        bsr     p8b_adpcm.p8s_decode_byte_stereo_second_reg
-        dbra    d2,.lright
-        cmpa.l  a3,a0
-        bne.s   .outer
+        ; left group: 4 bytes -> 8 samples
+        move.l  (a0)+,d4
+        swap    d4
+        move.w  d4,d2
+        lsr.w   #8,d2
+        ; byte 0
+        move.b  d2,d0
+        and.w   #$000f,d0
+        add.w   d0,d0
+        move.w  d6,d1
+        add.w   d0,d1
+        move.w  (a2,d1.w),d0
+        add.w   d0,d7
+        move.w  (a3,d1.w),d6
+        move.w  d7,(a1)
+        move.w  d2,d0
+        lsr.w   #4,d0
+        and.w   #$000f,d0
+        add.w   d0,d0
+        move.w  d6,d1
+        add.w   d0,d1
+        move.w  (a2,d1.w),d0
+        add.w   d0,d7
+        move.w  (a3,d1.w),d6
+        move.w  d7,4(a1)
+        addq.l  #8,a1
+        move.w  d4,d2
+        ; byte 1
+        move.b  d2,d0
+        and.w   #$000f,d0
+        add.w   d0,d0
+        move.w  d6,d1
+        add.w   d0,d1
+        move.w  (a2,d1.w),d0
+        add.w   d0,d7
+        move.w  (a3,d1.w),d6
+        move.w  d7,(a1)
+        move.w  d2,d0
+        lsr.w   #4,d0
+        and.w   #$000f,d0
+        add.w   d0,d0
+        move.w  d6,d1
+        add.w   d0,d1
+        move.w  (a2,d1.w),d0
+        add.w   d0,d7
+        move.w  (a3,d1.w),d6
+        move.w  d7,4(a1)
+        addq.l  #8,a1
+        swap    d4
+        move.w  d4,d2
+        lsr.w   #8,d2
+        ; byte 2
+        move.b  d2,d0
+        and.w   #$000f,d0
+        add.w   d0,d0
+        move.w  d6,d1
+        add.w   d0,d1
+        move.w  (a2,d1.w),d0
+        add.w   d0,d7
+        move.w  (a3,d1.w),d6
+        move.w  d7,(a1)
+        move.w  d2,d0
+        lsr.w   #4,d0
+        and.w   #$000f,d0
+        add.w   d0,d0
+        move.w  d6,d1
+        add.w   d0,d1
+        move.w  (a2,d1.w),d0
+        add.w   d0,d7
+        move.w  (a3,d1.w),d6
+        move.w  d7,4(a1)
+        addq.l  #8,a1
+        move.w  d4,d2
+        ; byte 3
+        move.b  d2,d0
+        and.w   #$000f,d0
+        add.w   d0,d0
+        move.w  d6,d1
+        add.w   d0,d1
+        move.w  (a2,d1.w),d0
+        add.w   d0,d7
+        move.w  (a3,d1.w),d6
+        move.w  d7,(a1)
+        move.w  d2,d0
+        lsr.w   #4,d0
+        and.w   #$000f,d0
+        add.w   d0,d0
+        move.w  d6,d1
+        add.w   d0,d1
+        move.w  (a2,d1.w),d0
+        add.w   d0,d7
+        move.w  (a3,d1.w),d6
+        move.w  d7,4(a1)
+        addq.l  #8,a1
+        ; right group: 4 bytes -> 8 samples
+        move.l  (a0)+,d4
+        swap    d4
+        move.w  d4,d2
+        lsr.w   #8,d2
+        ; byte 0
+        move.b  d2,d0
+        and.w   #$000f,d0
+        add.w   d0,d0
+        move.w  d3,d1
+        add.w   d0,d1
+        move.w  (a2,d1.w),d0
+        add.w   d0,d5
+        move.w  (a3,d1.w),d3
+        move.w  d5,(a4)
+        move.w  d2,d0
+        lsr.w   #4,d0
+        and.w   #$000f,d0
+        add.w   d0,d0
+        move.w  d3,d1
+        add.w   d0,d1
+        move.w  (a2,d1.w),d0
+        add.w   d0,d5
+        move.w  (a3,d1.w),d3
+        move.w  d5,4(a4)
+        addq.l  #8,a4
+        move.w  d4,d2
+        ; byte 1
+        move.b  d2,d0
+        and.w   #$000f,d0
+        add.w   d0,d0
+        move.w  d3,d1
+        add.w   d0,d1
+        move.w  (a2,d1.w),d0
+        add.w   d0,d5
+        move.w  (a3,d1.w),d3
+        move.w  d5,(a4)
+        move.w  d2,d0
+        lsr.w   #4,d0
+        and.w   #$000f,d0
+        add.w   d0,d0
+        move.w  d3,d1
+        add.w   d0,d1
+        move.w  (a2,d1.w),d0
+        add.w   d0,d5
+        move.w  (a3,d1.w),d3
+        move.w  d5,4(a4)
+        addq.l  #8,a4
+        swap    d4
+        move.w  d4,d2
+        lsr.w   #8,d2
+        ; byte 2
+        move.b  d2,d0
+        and.w   #$000f,d0
+        add.w   d0,d0
+        move.w  d3,d1
+        add.w   d0,d1
+        move.w  (a2,d1.w),d0
+        add.w   d0,d5
+        move.w  (a3,d1.w),d3
+        move.w  d5,(a4)
+        move.w  d2,d0
+        lsr.w   #4,d0
+        and.w   #$000f,d0
+        add.w   d0,d0
+        move.w  d3,d1
+        add.w   d0,d1
+        move.w  (a2,d1.w),d0
+        add.w   d0,d5
+        move.w  (a3,d1.w),d3
+        move.w  d5,4(a4)
+        addq.l  #8,a4
+        move.w  d4,d2
+        ; byte 3
+        move.b  d2,d0
+        and.w   #$000f,d0
+        add.w   d0,d0
+        move.w  d3,d1
+        add.w   d0,d1
+        move.w  (a2,d1.w),d0
+        add.w   d0,d5
+        move.w  (a3,d1.w),d3
+        move.w  d5,(a4)
+        move.w  d2,d0
+        lsr.w   #4,d0
+        and.w   #$000f,d0
+        add.w   d0,d0
+        move.w  d3,d1
+        add.w   d0,d1
+        move.w  (a2,d1.w),d0
+        add.w   d0,d5
+        move.w  (a3,d1.w),d3
+        move.w  d5,4(a4)
+        addq.l  #8,a4
+        subq.l  #1,a5
+        cmpa.l  #0,a5          ; subq on an address register does not set flags
+        bne     .loop
         move.w  d7,p8b_adpcm.p8v_predict
-        move.b  d6,p8b_adpcm.p8v_rowindex
+        move.w  d6,d1
+        lsr.w   #5,d1
+        subq.w  #1,d1
+        move.b  d1,p8b_adpcm.p8v_rowindex
         move.w  d5,p8b_adpcm.p8v_predict_2
-        move.b  d4,p8b_adpcm.p8v_rowindex_2
+        move.w  d3,d1
+        lsr.w   #5,d1
+        subq.w  #1,d1
+        move.b  d1,p8b_adpcm.p8v_rowindex_2
         rts
         }}
     }
@@ -340,13 +475,13 @@ adpcm {
         rowindex_2 = startIndex_2
     }
 
-    ; NOTE: this is a single combined table:
-    ; the first 16 words are the row step lookup (t_rowdelta),
-    ; the remaining 89*16 words are the delta table.
-    ; The decode_block_*_loop asmsubs rely on this order (deltas read at 32(a0,d1.w)).
+    ; IMA ADPCM delta table: 89 step sizes * 16 nibbles = 1424 signed 16-bit values.
+    ; Delta = step/8 + (bit2? step) + (bit1? step/2) + (bit0? step/4), negated if nibble bit 3 set.
+    ; Stored as interleaved signed 16-bit words; index into it is (index<<4)|nibble.
+    ; Note: deltas for large steps exceed +32767; they are stored two's-complement
+    ; (e.g. +36862 as -28674). The 16-bit wrapping add in the decoder treats these the
+    ; same as their unsigned representation.
     word[] deltas_table = [
-    ; row steps for the 16 possible nibbles (t_rowdelta):
-    -1,-1,-1,-1,2,4,6,8,-1,-1,-1,-1,2,4,6,8,
     0, 1, 3, 4, 7, 8, 10, 11, 0, -1, -3, -4, -7, -8, -10, -11,
     1, 3, 5, 7, 9, 11, 13, 15, -1, -3, -5, -7, -9, -11, -13, -15,
     1, 3, 5, 7, 10, 12, 14, 16, -1, -3, -5, -7, -10, -12, -14, -16,
@@ -436,6 +571,210 @@ adpcm {
     3385, 10156, 16928, 23699, 30471, -28294, -21522, -14751, -3385, -10156, -16928, -23699, -30471, 28294, 21522, 14751,
     3724, 11172, 18621, 26069, -32018, -24570, -17121, -9673, -3724, -11172, -18621, -26069, 32018, 24570, 17121, 9673,
     4095, 12286, 20478, 28669, -28674, -20483, -12291, -4100, -4095, -12286, -20478, -28669, 28674, 20483, 12291, 4100
+    ]
+
+    ; Pre-scaled next-state table for fast-path ADPCM decoding.
+    ; 98 logical rows (-1 sentinel low, 0..88 normal, 89..96 sentinel high) x 16 nibbles.
+    ; Each word is the next state's register value directly: (next rowindex + 1) * 32.
+    ; Indexed by the same offset as the delta lookup: (rowindex+1)*32 + nibble*2.
+    ; Sentinel rows self-loop and are unreachable from normal rows.
+    word[] next_state_table = [
+        ; logical row -1
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ; logical row 0
+        32, 32, 32, 32, 96, 160, 224, 288, 32, 32, 32, 32, 96, 160, 224, 288,
+        ; logical row 1
+        32, 32, 32, 32, 128, 192, 256, 320, 32, 32, 32, 32, 128, 192, 256, 320,
+        ; logical row 2
+        64, 64, 64, 64, 160, 224, 288, 352, 64, 64, 64, 64, 160, 224, 288, 352,
+        ; logical row 3
+        96, 96, 96, 96, 192, 256, 320, 384, 96, 96, 96, 96, 192, 256, 320, 384,
+        ; logical row 4
+        128, 128, 128, 128, 224, 288, 352, 416, 128, 128, 128, 128, 224, 288, 352, 416,
+        ; logical row 5
+        160, 160, 160, 160, 256, 320, 384, 448, 160, 160, 160, 160, 256, 320, 384, 448,
+        ; logical row 6
+        192, 192, 192, 192, 288, 352, 416, 480, 192, 192, 192, 192, 288, 352, 416, 480,
+        ; logical row 7
+        224, 224, 224, 224, 320, 384, 448, 512, 224, 224, 224, 224, 320, 384, 448, 512,
+        ; logical row 8
+        256, 256, 256, 256, 352, 416, 480, 544, 256, 256, 256, 256, 352, 416, 480, 544,
+        ; logical row 9
+        288, 288, 288, 288, 384, 448, 512, 576, 288, 288, 288, 288, 384, 448, 512, 576,
+        ; logical row 10
+        320, 320, 320, 320, 416, 480, 544, 608, 320, 320, 320, 320, 416, 480, 544, 608,
+        ; logical row 11
+        352, 352, 352, 352, 448, 512, 576, 640, 352, 352, 352, 352, 448, 512, 576, 640,
+        ; logical row 12
+        384, 384, 384, 384, 480, 544, 608, 672, 384, 384, 384, 384, 480, 544, 608, 672,
+        ; logical row 13
+        416, 416, 416, 416, 512, 576, 640, 704, 416, 416, 416, 416, 512, 576, 640, 704,
+        ; logical row 14
+        448, 448, 448, 448, 544, 608, 672, 736, 448, 448, 448, 448, 544, 608, 672, 736,
+        ; logical row 15
+        480, 480, 480, 480, 576, 640, 704, 768, 480, 480, 480, 480, 576, 640, 704, 768,
+        ; logical row 16
+        512, 512, 512, 512, 608, 672, 736, 800, 512, 512, 512, 512, 608, 672, 736, 800,
+        ; logical row 17
+        544, 544, 544, 544, 640, 704, 768, 832, 544, 544, 544, 544, 640, 704, 768, 832,
+        ; logical row 18
+        576, 576, 576, 576, 672, 736, 800, 864, 576, 576, 576, 576, 672, 736, 800, 864,
+        ; logical row 19
+        608, 608, 608, 608, 704, 768, 832, 896, 608, 608, 608, 608, 704, 768, 832, 896,
+        ; logical row 20
+        640, 640, 640, 640, 736, 800, 864, 928, 640, 640, 640, 640, 736, 800, 864, 928,
+        ; logical row 21
+        672, 672, 672, 672, 768, 832, 896, 960, 672, 672, 672, 672, 768, 832, 896, 960,
+        ; logical row 22
+        704, 704, 704, 704, 800, 864, 928, 992, 704, 704, 704, 704, 800, 864, 928, 992,
+        ; logical row 23
+        736, 736, 736, 736, 832, 896, 960, 1024, 736, 736, 736, 736, 832, 896, 960, 1024,
+        ; logical row 24
+        768, 768, 768, 768, 864, 928, 992, 1056, 768, 768, 768, 768, 864, 928, 992, 1056,
+        ; logical row 25
+        800, 800, 800, 800, 896, 960, 1024, 1088, 800, 800, 800, 800, 896, 960, 1024, 1088,
+        ; logical row 26
+        832, 832, 832, 832, 928, 992, 1056, 1120, 832, 832, 832, 832, 928, 992, 1056, 1120,
+        ; logical row 27
+        864, 864, 864, 864, 960, 1024, 1088, 1152, 864, 864, 864, 864, 960, 1024, 1088, 1152,
+        ; logical row 28
+        896, 896, 896, 896, 992, 1056, 1120, 1184, 896, 896, 896, 896, 992, 1056, 1120, 1184,
+        ; logical row 29
+        928, 928, 928, 928, 1024, 1088, 1152, 1216, 928, 928, 928, 928, 1024, 1088, 1152, 1216,
+        ; logical row 30
+        960, 960, 960, 960, 1056, 1120, 1184, 1248, 960, 960, 960, 960, 1056, 1120, 1184, 1248,
+        ; logical row 31
+        992, 992, 992, 992, 1088, 1152, 1216, 1280, 992, 992, 992, 992, 1088, 1152, 1216, 1280,
+        ; logical row 32
+        1024, 1024, 1024, 1024, 1120, 1184, 1248, 1312, 1024, 1024, 1024, 1024, 1120, 1184, 1248, 1312,
+        ; logical row 33
+        1056, 1056, 1056, 1056, 1152, 1216, 1280, 1344, 1056, 1056, 1056, 1056, 1152, 1216, 1280, 1344,
+        ; logical row 34
+        1088, 1088, 1088, 1088, 1184, 1248, 1312, 1376, 1088, 1088, 1088, 1088, 1184, 1248, 1312, 1376,
+        ; logical row 35
+        1120, 1120, 1120, 1120, 1216, 1280, 1344, 1408, 1120, 1120, 1120, 1120, 1216, 1280, 1344, 1408,
+        ; logical row 36
+        1152, 1152, 1152, 1152, 1248, 1312, 1376, 1440, 1152, 1152, 1152, 1152, 1248, 1312, 1376, 1440,
+        ; logical row 37
+        1184, 1184, 1184, 1184, 1280, 1344, 1408, 1472, 1184, 1184, 1184, 1184, 1280, 1344, 1408, 1472,
+        ; logical row 38
+        1216, 1216, 1216, 1216, 1312, 1376, 1440, 1504, 1216, 1216, 1216, 1216, 1312, 1376, 1440, 1504,
+        ; logical row 39
+        1248, 1248, 1248, 1248, 1344, 1408, 1472, 1536, 1248, 1248, 1248, 1248, 1344, 1408, 1472, 1536,
+        ; logical row 40
+        1280, 1280, 1280, 1280, 1376, 1440, 1504, 1568, 1280, 1280, 1280, 1280, 1376, 1440, 1504, 1568,
+        ; logical row 41
+        1312, 1312, 1312, 1312, 1408, 1472, 1536, 1600, 1312, 1312, 1312, 1312, 1408, 1472, 1536, 1600,
+        ; logical row 42
+        1344, 1344, 1344, 1344, 1440, 1504, 1568, 1632, 1344, 1344, 1344, 1344, 1440, 1504, 1568, 1632,
+        ; logical row 43
+        1376, 1376, 1376, 1376, 1472, 1536, 1600, 1664, 1376, 1376, 1376, 1376, 1472, 1536, 1600, 1664,
+        ; logical row 44
+        1408, 1408, 1408, 1408, 1504, 1568, 1632, 1696, 1408, 1408, 1408, 1408, 1504, 1568, 1632, 1696,
+        ; logical row 45
+        1440, 1440, 1440, 1440, 1536, 1600, 1664, 1728, 1440, 1440, 1440, 1440, 1536, 1600, 1664, 1728,
+        ; logical row 46
+        1472, 1472, 1472, 1472, 1568, 1632, 1696, 1760, 1472, 1472, 1472, 1472, 1568, 1632, 1696, 1760,
+        ; logical row 47
+        1504, 1504, 1504, 1504, 1600, 1664, 1728, 1792, 1504, 1504, 1504, 1504, 1600, 1664, 1728, 1792,
+        ; logical row 48
+        1536, 1536, 1536, 1536, 1632, 1696, 1760, 1824, 1536, 1536, 1536, 1536, 1632, 1696, 1760, 1824,
+        ; logical row 49
+        1568, 1568, 1568, 1568, 1664, 1728, 1792, 1856, 1568, 1568, 1568, 1568, 1664, 1728, 1792, 1856,
+        ; logical row 50
+        1600, 1600, 1600, 1600, 1696, 1760, 1824, 1888, 1600, 1600, 1600, 1600, 1696, 1760, 1824, 1888,
+        ; logical row 51
+        1632, 1632, 1632, 1632, 1728, 1792, 1856, 1920, 1632, 1632, 1632, 1632, 1728, 1792, 1856, 1920,
+        ; logical row 52
+        1664, 1664, 1664, 1664, 1760, 1824, 1888, 1952, 1664, 1664, 1664, 1664, 1760, 1824, 1888, 1952,
+        ; logical row 53
+        1696, 1696, 1696, 1696, 1792, 1856, 1920, 1984, 1696, 1696, 1696, 1696, 1792, 1856, 1920, 1984,
+        ; logical row 54
+        1728, 1728, 1728, 1728, 1824, 1888, 1952, 2016, 1728, 1728, 1728, 1728, 1824, 1888, 1952, 2016,
+        ; logical row 55
+        1760, 1760, 1760, 1760, 1856, 1920, 1984, 2048, 1760, 1760, 1760, 1760, 1856, 1920, 1984, 2048,
+        ; logical row 56
+        1792, 1792, 1792, 1792, 1888, 1952, 2016, 2080, 1792, 1792, 1792, 1792, 1888, 1952, 2016, 2080,
+        ; logical row 57
+        1824, 1824, 1824, 1824, 1920, 1984, 2048, 2112, 1824, 1824, 1824, 1824, 1920, 1984, 2048, 2112,
+        ; logical row 58
+        1856, 1856, 1856, 1856, 1952, 2016, 2080, 2144, 1856, 1856, 1856, 1856, 1952, 2016, 2080, 2144,
+        ; logical row 59
+        1888, 1888, 1888, 1888, 1984, 2048, 2112, 2176, 1888, 1888, 1888, 1888, 1984, 2048, 2112, 2176,
+        ; logical row 60
+        1920, 1920, 1920, 1920, 2016, 2080, 2144, 2208, 1920, 1920, 1920, 1920, 2016, 2080, 2144, 2208,
+        ; logical row 61
+        1952, 1952, 1952, 1952, 2048, 2112, 2176, 2240, 1952, 1952, 1952, 1952, 2048, 2112, 2176, 2240,
+        ; logical row 62
+        1984, 1984, 1984, 1984, 2080, 2144, 2208, 2272, 1984, 1984, 1984, 1984, 2080, 2144, 2208, 2272,
+        ; logical row 63
+        2016, 2016, 2016, 2016, 2112, 2176, 2240, 2304, 2016, 2016, 2016, 2016, 2112, 2176, 2240, 2304,
+        ; logical row 64
+        2048, 2048, 2048, 2048, 2144, 2208, 2272, 2336, 2048, 2048, 2048, 2048, 2144, 2208, 2272, 2336,
+        ; logical row 65
+        2080, 2080, 2080, 2080, 2176, 2240, 2304, 2368, 2080, 2080, 2080, 2080, 2176, 2240, 2304, 2368,
+        ; logical row 66
+        2112, 2112, 2112, 2112, 2208, 2272, 2336, 2400, 2112, 2112, 2112, 2112, 2208, 2272, 2336, 2400,
+        ; logical row 67
+        2144, 2144, 2144, 2144, 2240, 2304, 2368, 2432, 2144, 2144, 2144, 2144, 2240, 2304, 2368, 2432,
+        ; logical row 68
+        2176, 2176, 2176, 2176, 2272, 2336, 2400, 2464, 2176, 2176, 2176, 2176, 2272, 2336, 2400, 2464,
+        ; logical row 69
+        2208, 2208, 2208, 2208, 2304, 2368, 2432, 2496, 2208, 2208, 2208, 2208, 2304, 2368, 2432, 2496,
+        ; logical row 70
+        2240, 2240, 2240, 2240, 2336, 2400, 2464, 2528, 2240, 2240, 2240, 2240, 2336, 2400, 2464, 2528,
+        ; logical row 71
+        2272, 2272, 2272, 2272, 2368, 2432, 2496, 2560, 2272, 2272, 2272, 2272, 2368, 2432, 2496, 2560,
+        ; logical row 72
+        2304, 2304, 2304, 2304, 2400, 2464, 2528, 2592, 2304, 2304, 2304, 2304, 2400, 2464, 2528, 2592,
+        ; logical row 73
+        2336, 2336, 2336, 2336, 2432, 2496, 2560, 2624, 2336, 2336, 2336, 2336, 2432, 2496, 2560, 2624,
+        ; logical row 74
+        2368, 2368, 2368, 2368, 2464, 2528, 2592, 2656, 2368, 2368, 2368, 2368, 2464, 2528, 2592, 2656,
+        ; logical row 75
+        2400, 2400, 2400, 2400, 2496, 2560, 2624, 2688, 2400, 2400, 2400, 2400, 2496, 2560, 2624, 2688,
+        ; logical row 76
+        2432, 2432, 2432, 2432, 2528, 2592, 2656, 2720, 2432, 2432, 2432, 2432, 2528, 2592, 2656, 2720,
+        ; logical row 77
+        2464, 2464, 2464, 2464, 2560, 2624, 2688, 2752, 2464, 2464, 2464, 2464, 2560, 2624, 2688, 2752,
+        ; logical row 78
+        2496, 2496, 2496, 2496, 2592, 2656, 2720, 2784, 2496, 2496, 2496, 2496, 2592, 2656, 2720, 2784,
+        ; logical row 79
+        2528, 2528, 2528, 2528, 2624, 2688, 2752, 2816, 2528, 2528, 2528, 2528, 2624, 2688, 2752, 2816,
+        ; logical row 80
+        2560, 2560, 2560, 2560, 2656, 2720, 2784, 2848, 2560, 2560, 2560, 2560, 2656, 2720, 2784, 2848,
+        ; logical row 81
+        2592, 2592, 2592, 2592, 2688, 2752, 2816, 2848, 2592, 2592, 2592, 2592, 2688, 2752, 2816, 2848,
+        ; logical row 82
+        2624, 2624, 2624, 2624, 2720, 2784, 2848, 2848, 2624, 2624, 2624, 2624, 2720, 2784, 2848, 2848,
+        ; logical row 83
+        2656, 2656, 2656, 2656, 2752, 2816, 2848, 2848, 2656, 2656, 2656, 2656, 2752, 2816, 2848, 2848,
+        ; logical row 84
+        2688, 2688, 2688, 2688, 2784, 2848, 2848, 2848, 2688, 2688, 2688, 2688, 2784, 2848, 2848, 2848,
+        ; logical row 85
+        2720, 2720, 2720, 2720, 2816, 2848, 2848, 2848, 2720, 2720, 2720, 2720, 2816, 2848, 2848, 2848,
+        ; logical row 86
+        2752, 2752, 2752, 2752, 2848, 2848, 2848, 2848, 2752, 2752, 2752, 2752, 2848, 2848, 2848, 2848,
+        ; logical row 87
+        2784, 2784, 2784, 2784, 2848, 2848, 2848, 2848, 2784, 2784, 2784, 2784, 2848, 2848, 2848, 2848,
+        ; logical row 88
+        2816, 2816, 2816, 2816, 2848, 2848, 2848, 2848, 2816, 2816, 2816, 2816, 2848, 2848, 2848, 2848,
+        ; logical row 89
+        2880, 2880, 2880, 2880, 2880, 2880, 2880, 2880, 2880, 2880, 2880, 2880, 2880, 2880, 2880, 2880,
+        ; logical row 90
+        2912, 2912, 2912, 2912, 2912, 2912, 2912, 2912, 2912, 2912, 2912, 2912, 2912, 2912, 2912, 2912,
+        ; logical row 91
+        2944, 2944, 2944, 2944, 2944, 2944, 2944, 2944, 2944, 2944, 2944, 2944, 2944, 2944, 2944, 2944,
+        ; logical row 92
+        2976, 2976, 2976, 2976, 2976, 2976, 2976, 2976, 2976, 2976, 2976, 2976, 2976, 2976, 2976, 2976,
+        ; logical row 93
+        3008, 3008, 3008, 3008, 3008, 3008, 3008, 3008, 3008, 3008, 3008, 3008, 3008, 3008, 3008, 3008,
+        ; logical row 94
+        3040, 3040, 3040, 3040, 3040, 3040, 3040, 3040, 3040, 3040, 3040, 3040, 3040, 3040, 3040, 3040,
+        ; logical row 95
+        3072, 3072, 3072, 3072, 3072, 3072, 3072, 3072, 3072, 3072, 3072, 3072, 3072, 3072, 3072, 3072,
+        ; logical row 96
+        3104, 3104, 3104, 3104, 3104, 3104, 3104, 3104, 3104, 3104, 3104, 3104, 3104, 3104, 3104, 3104,
     ]
 
 }

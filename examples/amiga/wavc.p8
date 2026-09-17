@@ -95,16 +95,19 @@ main {
             txt.print("error: ADPCM block size must be 256 bytes\n")
             return false
         }
-        if (wavfile.data_size & 255) != 0 {
-            txt.print("error: ADPCM data size is not a multiple of the block size\n")
-            return false
-        }
         if wavfile.nchannels != 1 and wavfile.nchannels != 2 {
             txt.print("error: only mono and stereo ADPCM are supported\n")
             return false
         }
 
         long blocks = wavfile.data_size / ADPCM_BLOCK_SIZE as long
+        long remainder = wavfile.data_size % ADPCM_BLOCK_SIZE as long
+        if remainder != 0 {
+            ; the decoder only handles full blocks; drop the partial final block
+            txt.print("note: skipping partial final block of ")
+            txt.print_l(remainder)
+            txt.print(" bytes\n")
+        }
         long pcm_data_size
         if wavfile.nchannels == 1
             pcm_data_size = blocks * 1010 as long
@@ -165,6 +168,8 @@ main {
                     adpcm.decode_block_mono(chunkptr, outputptr)
                 else
                     adpcm.decode_block_stereo(chunkptr, outputptr)
+                ; the decoder produces big-endian samples; wav needs little-endian
+                swap_sample_bytes(outputptr, decoded_size as uword)
                 output_offset += decoded_size
                 outputptr += decoded_size
                 chunkptr += ADPCM_BLOCK_SIZE as long
@@ -238,6 +243,16 @@ main {
         txt.print_l(total_written)
         txt.print(" bytes of PCM to out.wav\n")
         return true
+    }
+
+    sub swap_sample_bytes(pointer buf, uword length) {
+        ; swap the bytes of every 16-bit word in the buffer (big-endian to little-endian)
+        uword i
+        for i in 0 to length-1 step 2 {
+            ubyte tmp = buf[i]
+            buf[i] = buf[i+1]
+            buf[i+1] = tmp
+        }
     }
 
     sub patch_header_sizes(pointer outfile, long riff_size, long data_size) -> bool {
