@@ -1982,6 +1982,16 @@ $repeatLabel""")
                 return
             }
 
+            if(sub.signature.returns.isEmpty()) {
+                // a void subroutine may return the result of a void function call (e.g. "return voidfunc(args)"):
+                // perform the call for its side effects, then return
+                val fcall = ret.children.single() as? PtFunctionCall
+                    ?: throw AssemblyError("void subroutine can only return the result of a void function call ${ret.position}")
+                functioncallAsmGen.translateFunctionCall(fcall)
+                out("  rts")
+                return
+            }
+
             val returnDt = sub.signature.returns.single()
             if (returnDt.isNumericOrBool || returnDt.isPointer) {
                 assignExpressionToRegister(returnvalue, returnRegs.single().first.registerOrPair!!, returnDt.isSigned)

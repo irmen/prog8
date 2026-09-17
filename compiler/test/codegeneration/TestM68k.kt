@@ -13,6 +13,39 @@ class TestM68k : FunSpec({
 
     val outputDir = tempdir().toPath()
 
+    test("void subroutine returning the result of a void function call compiles") {
+        // Regression test: "return voidfunc(args)" inside a void subroutine is valid Prog8.
+        // The optimizer only rewrites this to "voidfunc(args); return" when it can inline the
+        // caller, so in general it reaches the IR codegen as a Return whose value expression is a
+        // void function call. The m68k/IR backend must translate the call for its side effects and
+        // then return void instead of dying with 'no IR datatype for undefined'.
+        val src = """
+main {
+    ubyte flag
+
+    sub start() {
+        flag = 1
+        benchmark(flag)
+    }
+
+    sub benchmark(ubyte f) {
+        when f {
+            1 -> return helper(f)
+            else -> {
+            }
+        }
+    }
+
+    sub helper(ubyte x) {
+    }
+}
+"""
+        compileText(Amiga500Target(), optimize = false, src, outputDir, writeAssembly = true, assemble = false) shouldNotBe null
+        compileText(Amiga500Target(), optimize = true, src, outputDir, writeAssembly = true, assemble = false) shouldNotBe null
+        compileText(Qemu68kTarget(), optimize = false, src, outputDir, writeAssembly = true, assemble = false) shouldNotBe null
+        compileText(Qemu68kTarget(), optimize = true, src, outputDir, writeAssembly = true, assemble = false) shouldNotBe null
+    }
+
     test("module sub returning uword computed from a long expression assembles on qemu68k") {
         // Regression test for a m68k backend bug: a module-level sub whose return
         // type is uword, but whose return expression is a 'long' value cast to uword,

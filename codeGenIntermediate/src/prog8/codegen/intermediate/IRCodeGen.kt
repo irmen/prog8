@@ -1895,7 +1895,14 @@ class IRCodeGen(
         }
 
         val value = ret.children.singleOrNull()
-        if(value==null) {
+        if(ret.numReturnValues()==0) {
+            // a void subroutine may return the result of a void function call (e.g. "return voidfunc(args)"):
+            // translate the call for its side effects, then return void
+            val callValue = value as? PtExpression
+            if(callValue!=null)
+                result += expressionEval.translateExpression(callValue).chunks
+            addInstr(result, IRInstructions.returnVoid(), null)
+        } else if(value==null) {
             addInstr(result, IRInstructions.returnVoid(), null)
         } else {
             value as PtExpression

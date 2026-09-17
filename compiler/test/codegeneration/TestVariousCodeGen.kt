@@ -24,6 +24,36 @@ class TestVariousCodeGen: FunSpec({
 
     val outputDir = tempdir().toPath()
 
+    test("void subroutine returning the result of a void function call compiles on 6502") {
+        // Regression test: "return voidfunc(args)" inside a void subroutine is valid Prog8.
+        // The optimizer only rewrites this to "voidfunc(args); return" when it can inline the
+        // caller, so in general it reaches the 6502 codegen as a Return whose value expression is a
+        // void function call. The 6502 backend must call it for its side effects and then return.
+        val text = """
+main {
+    ubyte flag
+
+    sub start() {
+        flag = 1
+        benchmark(flag)
+    }
+
+    sub benchmark(ubyte f) {
+        when f {
+            1 -> return helper(f)
+            else -> {
+            }
+        }
+    }
+
+    sub helper(ubyte x) {
+    }
+}
+"""
+        compileText(Cx16Target(), false, text, outputDir, writeAssembly = true) shouldNotBe null
+        compileText(Cx16Target(), true, text, outputDir, writeAssembly = true) shouldNotBe null
+    }
+
     test("nested scoping") {
         val text="""
 main {
