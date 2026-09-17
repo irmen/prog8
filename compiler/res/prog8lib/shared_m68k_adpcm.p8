@@ -54,7 +54,7 @@ adpcm {
         decode_block_mono_loop(nibblesptr, outptr)
     }
 
-    private asmsub decode_block_mono_loop(pointer nibblesptr @A0, pointer outptr @A1) clobbers (D0, D1, D3, D5, D6, D7, A0, A1, A2) {
+    private asmsub decode_block_mono_loop(pointer nibblesptr @A0, pointer outptr @A1) clobbers (D0, D1, D2, D3, D6, D7, A0, A1, A2) {
         ; Decodes the remaining 252 bytes (504 samples) of a mono block in 68000 assembly.
         ; On entry: A0 -> input nibbles, A1 -> output (already past the header sample).
         ; Keeps predict in D7 and rowindex in D6 for the whole loop.
@@ -63,27 +63,79 @@ adpcm {
         moveq   #0,d6
         move.b  p8b_adpcm.p8v_rowindex,d6
         move.w  p8b_adpcm.p8v_predict,d7
-        moveq   #0,d3
-        move.w  #251,d3
+        moveq   #0,d2
+        move.w  #251,d2
 .loop:
         move.b  (a0)+,d0
-        move.b  d0,d5
-        and.w   #$000f,d0
-        bsr     p8b_adpcm.p8s_decode_nibble_reg
-        move.b  d7,(a1)+
-        move.w  d7,d1
-        lsr.w   #8,d1
-        move.b  d1,(a1)+
-        move.b  d5,d0
-        lsr.b   #4,d0
-        bsr     p8b_adpcm.p8s_decode_nibble_reg
-        move.b  d7,(a1)+
-        move.w  d7,d1
-        lsr.w   #8,d1
-        move.b  d1,(a1)+
-        dbra    d3,.loop
+        bsr     p8b_adpcm.p8s_decode_byte_mono_reg
+        dbra    d2,.loop
         move.w  d7,p8b_adpcm.p8v_predict
         move.b  d6,p8b_adpcm.p8v_rowindex
+        rts
+        }}
+    }
+
+    private asmsub decode_byte_mono_reg(ubyte value @D0, pointer outptr @A1) clobbers (D0, D1, D3, D6, D7, A1) {
+        ; Decode both nibbles in one call for the first channel.
+        ; In: D0.b = packed nibbles, D7 = predict, D6 = row, A1 = output.
+        %asm {{
+        moveq   #0,d3
+        move.b  d0,d3
+        and.w   #$000f,d0
+        add.w   d0,d0
+        moveq   #0,d1
+        move.b  d6,d1
+        lsl.w   #5,d1
+        add.w   d0,d1
+        move.w  32(a2,d1.w),d1
+        add.w   d1,d7
+        move.w  (a2,d0.w),d1
+        moveq   #0,d0
+        move.b  d6,d0
+        add.w   d1,d0
+        bmi.s   .clamp_low
+        cmpi.w  #88,d0
+        bgt.s   .clamp_high
+        move.b  d0,d6
+        bra.s   .write_low
+.clamp_low:
+        clr.b   d6
+        bra.s   .write_low
+.clamp_high:
+        move.b  #88,d6
+.write_low:
+        move.b  d7,(a1)+
+        move.w  d7,d1
+        lsr.w   #8,d1
+        move.b  d1,(a1)+
+        move.w  d3,d0
+        lsr.w   #4,d0
+        add.w   d0,d0
+        moveq   #0,d1
+        move.b  d6,d1
+        lsl.w   #5,d1
+        add.w   d0,d1
+        move.w  32(a2,d1.w),d1
+        add.w   d1,d7
+        move.w  (a2,d0.w),d1
+        moveq   #0,d0
+        move.b  d6,d0
+        add.w   d1,d0
+        bmi.s   .clamp_low2
+        cmpi.w  #88,d0
+        bgt.s   .clamp_high2
+        move.b  d0,d6
+        bra.s   .write_high
+.clamp_low2:
+        clr.b   d6
+        bra.s   .write_high
+.clamp_high2:
+        move.b  #88,d6
+.write_high:
+        move.b  d7,(a1)+
+        move.w  d7,d1
+        lsr.w   #8,d1
+        move.b  d1,(a1)+
         rts
         }}
     }
@@ -104,66 +156,134 @@ adpcm {
         decode_block_stereo_loop(nibblesptr, outptr)
     }
 
-    private asmsub decode_nibble_second_reg(ubyte nibble @D0) clobbers (D0, D1) {
-        ; Decode a single nibble for the second channel, register-only variant.
-        ; In:  D0.b = nibble (0..15), D5 = predict_2, D4 = row_2, A2 = deltas_table base.
-        ; Out: D5 = updated predict_2, D4 = updated row_2.  A2 is preserved.
+    private asmsub decode_byte_stereo_reg(ubyte value @D0, pointer outptr @A1) clobbers (D0, D1, D3, D6, D7, A1) {
+        ; Decode both nibbles in one call for the first stereo channel.
+        ; In: D0.b = packed nibbles, D7 = predict, D6 = row, A1 = output.
         %asm {{
-        add.w   d0,d0                ; d0 = nibble*2
+        moveq   #0,d3
+        move.b  d0,d3
+        and.w   #$000f,d0
+        add.w   d0,d0
         moveq   #0,d1
-        move.b  d4,d1                ; d1 = row
-        lsl.w   #5,d1                ; d1 = row*32
-        add.w   d0,d1                ; d1 = byte offset into delta part
-        move.w  32(a2,d1.w),d1       ; d1 = signed delta
-        add.w   d1,d5                ; predict_2 += delta (16-bit wraparound)
-        move.w  (a2,d0.w),d1         ; d1 = row step -1..8
+        move.b  d6,d1
+        lsl.w   #5,d1
+        add.w   d0,d1
+        move.w  32(a2,d1.w),d1
+        add.w   d1,d7
+        move.w  (a2,d0.w),d1
         moveq   #0,d0
-        move.b  d4,d0                ; d0 = row
-        add.w   d1,d0                ; d0 = new row -1..96
-        bmi.s   .clamp_low
-        cmpi.w  #88,d0
-        bgt.s   .clamp_high
-        move.b  d0,d4
-        rts
-.clamp_low:
-        clr.b   d4
-        moveq   #0,d0
-        rts
-.clamp_high:
-        move.b  #88,d4
-        moveq   #88,d0
-        rts
-        }}
-    }
-
-    private asmsub decode_nibble_reg(ubyte nibble @D0) clobbers (D0, D1) {
-        ; Decode a single nibble for the first channel, register-only variant.
-        ; In:  D0.b = nibble (0..15), D7 = predict, D6 = row, A2 = deltas_table base.
-        ; Out: D7 = updated predict, D6 = updated row.  A2 is preserved.
-        %asm {{
-        add.w   d0,d0                ; d0 = nibble*2
-        moveq   #0,d1
-        move.b  d6,d1                ; d1 = row
-        lsl.w   #5,d1                ; d1 = row*32
-        add.w   d0,d1                ; d1 = byte offset into delta part
-        move.w  32(a2,d1.w),d1       ; d1 = signed delta
-        add.w   d1,d7                ; predict += delta (16-bit wraparound)
-        move.w  (a2,d0.w),d1         ; d1 = row step -1..8
-        moveq   #0,d0
-        move.b  d6,d0                ; d0 = row
-        add.w   d1,d0                ; d0 = new row -1..96
+        move.b  d6,d0
+        add.w   d1,d0
         bmi.s   .clamp_low
         cmpi.w  #88,d0
         bgt.s   .clamp_high
         move.b  d0,d6
-        rts
+        bra.s   .write_low
 .clamp_low:
         clr.b   d6
-        moveq   #0,d0
-        rts
+        bra.s   .write_low
 .clamp_high:
         move.b  #88,d6
-        moveq   #88,d0
+.write_low:
+        move.b  d7,(a1)
+        move.w  d7,d1
+        lsr.w   #8,d1
+        move.b  d1,(1,a1)
+        move.w  d3,d0
+        lsr.w   #4,d0
+        add.w   d0,d0
+        moveq   #0,d1
+        move.b  d6,d1
+        lsl.w   #5,d1
+        add.w   d0,d1
+        move.w  32(a2,d1.w),d1
+        add.w   d1,d7
+        move.w  (a2,d0.w),d1
+        moveq   #0,d0
+        move.b  d6,d0
+        add.w   d1,d0
+        bmi.s   .clamp_low2
+        cmpi.w  #88,d0
+        bgt.s   .clamp_high2
+        move.b  d0,d6
+        bra.s   .write_high
+.clamp_low2:
+        clr.b   d6
+        bra.s   .write_high
+.clamp_high2:
+        move.b  #88,d6
+.write_high:
+        move.b  d7,(4,a1)
+        move.w  d7,d1
+        lsr.w   #8,d1
+        move.b  d1,(5,a1)
+        addq.l  #8,a1
+        rts
+        }}
+    }
+
+    private asmsub decode_byte_stereo_second_reg(ubyte value @D0, pointer outptr @A4) clobbers (D0, D1, D3, D4, D5, A4) {
+        ; Decode both nibbles in one call for the second stereo channel.
+        ; In: D0.b = packed nibbles, D5 = predict_2, D4 = row_2, A4 = output.
+        %asm {{
+        moveq   #0,d3
+        move.b  d0,d3
+        and.w   #$000f,d0
+        add.w   d0,d0
+        moveq   #0,d1
+        move.b  d4,d1
+        lsl.w   #5,d1
+        add.w   d0,d1
+        move.w  32(a2,d1.w),d1
+        add.w   d1,d5
+        move.w  (a2,d0.w),d1
+        moveq   #0,d0
+        move.b  d4,d0
+        add.w   d1,d0
+        bmi.s   .clamp_low
+        cmpi.w  #88,d0
+        bgt.s   .clamp_high
+        move.b  d0,d4
+        bra.s   .write_low
+.clamp_low:
+        clr.b   d4
+        bra.s   .write_low
+.clamp_high:
+        move.b  #88,d4
+.write_low:
+        move.b  d5,(a4)
+        move.w  d5,d1
+        lsr.w   #8,d1
+        move.b  d1,(1,a4)
+        move.w  d3,d0
+        lsr.w   #4,d0
+        add.w   d0,d0
+        moveq   #0,d1
+        move.b  d4,d1
+        lsl.w   #5,d1
+        add.w   d0,d1
+        move.w  32(a2,d1.w),d1
+        add.w   d1,d5
+        move.w  (a2,d0.w),d1
+        moveq   #0,d0
+        move.b  d4,d0
+        add.w   d1,d0
+        bmi.s   .clamp_low2
+        cmpi.w  #88,d0
+        bgt.s   .clamp_high2
+        move.b  d0,d4
+        bra.s   .write_high
+.clamp_low2:
+        clr.b   d4
+        bra.s   .write_high
+.clamp_high2:
+        move.b  #88,d4
+.write_high:
+        move.b  d5,(4,a4)
+        move.w  d5,d1
+        lsr.w   #8,d1
+        move.b  d1,(5,a4)
+        addq.l  #8,a4
         rts
         }}
     }
@@ -185,41 +305,13 @@ adpcm {
         lea     2(a1),a4
         moveq   #3,d2
 .lleft:
-        move.b  (a0)+,d3
-        move.b  d3,d0
-        and.w   #$000f,d0
-        bsr.s   p8b_adpcm.p8s_decode_nibble_reg
-        move.b  d7,(a1)
-        move.w  d7,d1
-        lsr.w   #8,d1
-        move.b  d1,(1,a1)
-        move.b  d3,d0
-        lsr.b   #4,d0
-        bsr.s   p8b_adpcm.p8s_decode_nibble_reg
-        move.b  d7,(4,a1)
-        move.w  d7,d1
-        lsr.w   #8,d1
-        move.b  d1,(5,a1)
-        addq.l  #8,a1
+        move.b  (a0)+,d0
+        bsr     p8b_adpcm.p8s_decode_byte_stereo_reg
         dbra    d2,.lleft
         moveq   #3,d2
 .lright:
-        move.b  (a0)+,d3
-        move.b  d3,d0
-        and.w   #$000f,d0
-        bsr     p8b_adpcm.p8s_decode_nibble_second_reg
-        move.b  d5,(a4)
-        move.w  d5,d1
-        lsr.w   #8,d1
-        move.b  d1,(1,a4)
-        move.b  d3,d0
-        lsr.b   #4,d0
-        bsr     p8b_adpcm.p8s_decode_nibble_second_reg
-        move.b  d5,(4,a4)
-        move.w  d5,d1
-        lsr.w   #8,d1
-        move.b  d1,(5,a4)
-        addq.l  #8,a4
+        move.b  (a0)+,d0
+        bsr     p8b_adpcm.p8s_decode_byte_stereo_second_reg
         dbra    d2,.lright
         cmpa.l  a3,a0
         bne.s   .outer
