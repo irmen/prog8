@@ -1094,8 +1094,61 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
                     return plusorminus
                 }
             }
+        } else if(leftDt.isPointer && rightDt.isPointer) {
+            // ptrA - ptrB : the number of elements of the pointed-to type between the two pointers (C-style)
+            if(operator != "-") {
+                errors.err("unsupported pointer arithmetic at ${expr.position}", expr.position)
+                return PtNumber(offsType, 0.0, expr.position)
+            }
+            val structSize = leftDt.size(program.target)
+            val difference = PtBinaryExpression("-", addrType, expr.position)
+            val addrLeft = PtTypeCast(addrType, true, expr.left.position)
+            addrLeft.add(transformExpression(expr.left))
+            val addrRight = PtTypeCast(addrType, true, expr.right.position)
+            addrRight.add(transformExpression(expr.right))
+            difference.add(addrLeft)
+            difference.add(addrRight)
+            return if(structSize == 1)
+                difference
+            else {
+                // Scale the byte difference down in a *signed* type so a negative distance
+                // uses arithmetic shift / signed division; cast back to the address type afterwards.
+                // NB: the 6502 backend only supports pointer casts to the (unsigned) address type,
+                // so first cast to the address type and then reinterpret as signed.
+                val signedDiffType = if(addrType.base == BaseDataType.UWORD) DataType.WORD else addrType
+                fun signedAddrOf(expr: Expression, position: Position): PtExpression {
+                    val transformed = transformExpression(expr)
+                    val toAddr = PtTypeCast(addrType, true, position)
+                    toAddr.add(transformed)
+                    if(signedDiffType == addrType)
+                        return toAddr
+                    val toSigned = PtTypeCast(signedDiffType, true, position)
+                    toSigned.add(toAddr)
+                    return toSigned
+                }
+                val signedDifference = PtBinaryExpression("-", signedDiffType, expr.position)
+                signedDifference.add(signedAddrOf(expr.left, expr.left.position))
+                signedDifference.add(signedAddrOf(expr.right, expr.right.position))
+                val scaled: PtExpression = if(structSize in powersOfTwoInt) {
+                    val shift = PtBinaryExpression(">>", signedDiffType, expr.position)
+                    shift.add(signedDifference)
+                    shift.add(PtNumber(BaseDataType.UBYTE, log2(structSize.toDouble()), expr.position))
+                    shift
+                } else {
+                    val divide = PtBinaryExpression("/", signedDiffType, expr.position)
+                    divide.add(signedDifference)
+                    divide.add(PtNumber(signedDiffType.base, structSize.toDouble(), expr.position))
+                    divide
+                }
+                if(signedDiffType != addrType) {
+                    val cast = PtTypeCast(addrType, true, expr.position)
+                    cast.add(scaled)
+                    cast
+                } else scaled
+            }
         } else {
-            throw FatalAstException("weird pointer arithmetic ${expr.position}")
+            errors.err("unsupported pointer arithmetic at ${expr.position}", expr.position)
+            return PtNumber(offsType, 0.0, expr.position)
         }
     }
 

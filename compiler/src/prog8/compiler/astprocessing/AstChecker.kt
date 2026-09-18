@@ -1835,6 +1835,15 @@ internal class AstChecker(private val program: Program,
             }
         }
 
+        // typed pointer + typed pointer makes no sense
+        if(expr.operator=="+" && leftDt.isPointer && rightDt.isPointer) {
+            errors.err("cannot add two pointers; perhaps cast one of them to the numeric address type first", expr.position)
+        }
+        // typed pointer - typed pointer only if same type
+        if(expr.operator=="-" && leftDt.isPointer && rightDt.isPointer && leftDt!=rightDt) {
+            errors.err("cannot subtract pointers of different types: $leftDt vs $rightDt", expr.position)
+        }
+
         when(expr.operator){
             "/", "%" -> {
                 val constvalRight = expr.right.constValue(program)
@@ -1863,12 +1872,12 @@ internal class AstChecker(private val program: Program,
             errors.err("invalid right operand type", expr.right.position)
         if(leftDt!=rightDt) {
             if(leftDt.isPointer) {
-                if(!rightDt.isUnsignedWord && !rightDt.isLong) {
+                if(!rightDt.isUnsignedWord && !rightDt.isLong && !rightDt.isPointer) {
                     errors.err("pointer arithmetic requires unsigned word or long operand", expr.right.position)
                 }
             }
             else if(rightDt.isPointer) {
-                if(!leftDt.isUnsignedWord && !leftDt.isLong) {
+                if(!leftDt.isUnsignedWord && !leftDt.isLong && !leftDt.isPointer) {
                     errors.err("pointer arithmetic requires unsigned word or long operand", expr.left.position)
                 }
             }

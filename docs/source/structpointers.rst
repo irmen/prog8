@@ -135,6 +135,13 @@ That special pointer arithmetic is also performed for pointers to struct types:
 the compiler knows the memory storage size of the whole struct type and advances or rewinds
 the pointer value (memory address) by the appropriate number of bytes (X times the size of the struct). More info about structs can be found below.
 
+You can subtract two pointers of the **same** type from each other. The result is the number of elements between them (C-style),
+using the same scaling rules as adding or subtracting an integer. The result has the target's address type (``uword`` on 16-bit targets, ``long`` on 32-bit targets).
+For example, if ``^^uword p1`` points at address ``$2000`` and ``^^uword p2`` points at address ``$2006``, then ``p2 - p1`` is ``3`` (because each ``uword`` is 2 bytes).
+Adding two pointers together is not supported. Other arithmetic operators such as ``*``, ``/``, ``%`` and bitwise operators are also not supported on typed pointers; cast to an unsigned word or long first if you need those operations.
+
+Untyped pointers (plain ``pointer`` or ``uword``/``long`` used as an address) do not use this scaling at all; arithmetic on them is plain numeric address arithmetic.
+
 
 Structs
 -------

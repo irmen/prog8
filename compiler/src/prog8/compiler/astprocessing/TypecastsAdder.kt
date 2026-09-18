@@ -188,6 +188,9 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
 
                 if((expr.operator!="<<" && expr.operator!=">>") || !leftDt.isInteger || !rightDt.isBytes) {
                     // determine common datatype and add typecast as required to make left and right equal types
+                    // don't do this for pointer - pointer, that has its own semantics
+                    if(leftDt.isPointer && rightDt.isPointer)
+                        return noModifications
                     val (commonDt, toFix) = BinaryExpression.commonDatatype(leftDt.getOrUndef(), rightDt.getOrUndef(), expr.left, expr.right)
                     if(toFix!=null) {
                         if(commonDt.isBool) {
@@ -235,13 +238,13 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                  val indexDt = options.compTarget.pointerType
                 if(leftDt.isPointer) {
                     val rightDt = expr.right.inferType(program).getOrUndef()
-                    if(rightDt.base != indexDt.base) {
+                    if(!rightDt.isPointer && rightDt.base != indexDt.base) {
                         val cast = TypecastExpression(expr.right, indexDt, true, expr.right.position)
                         return listOf(AstReplaceNode(expr.right, cast, expr))
                     }
                 } else if(rightDt.isPointer) {
                     val leftDtType = expr.left.inferType(program).getOrUndef()
-                    if(leftDtType.base != indexDt.base) {
+                    if(!leftDtType.isPointer && leftDtType.base != indexDt.base) {
                         val cast = TypecastExpression(expr.left, indexDt, true, expr.left.position)
                         return listOf(AstReplaceNode(expr.left, cast, expr))
                     }

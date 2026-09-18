@@ -1339,6 +1339,7 @@ address of:  ``&``,   ``&<``,   ``&>``,   ``&&``
     backward compatibility reasons, so existing programs keep working. The *double ampersand* ``&&`` operator
     however returns a *typed* pointer to the value. The semantics are slightly different because adding or subtracting
     a number from a typed pointer uses *pointer arithmetic* that takes the size of the value that it points to into account.
+    Subtracting two typed pointers of the same type from each other yields the number of elements between them; adding two pointers is not allowed.
 
 
 type cast:  ``as``

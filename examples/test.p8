@@ -1,15 +1,8 @@
-%import textio
-%zeropage basicsafe
-
 main {
     sub start() {
-
-        struct Enemy {
-            long z
-            bool flag
-            ubyte g
-        }
-
-        %assert sizeof(Enemy)<40, "enemy struct too large"
+        ^^ubyte begin = $a000
+        ^^ubyte end = $a005
+        uword sum = end + begin
+        uword length = end - begin
     }
 }

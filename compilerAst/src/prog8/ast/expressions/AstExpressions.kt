@@ -219,6 +219,10 @@ class BinaryExpression(
                     // x - pointer  is not pointer arithmetic like pointer-x or pointer+x, it's invalid, but return untyped pointer uword here
                     InferredTypes.knownFor(BaseDataType.UWORD)
                 }
+                else if(operator=="-" && leftDt.isPointer && rightDt.isPointer) {
+                    // ptrA - ptrB : the number of elements of the pointed-to type between the two pointers (C-style), as a target-sized address/count type
+                    InferredTypes.knownFor(program.target.pointerType.base)
+                }
                 else {
                     try {
                         val dt = InferredTypes.knownFor(
