@@ -22,7 +22,7 @@ sprites {
     const ubyte COLORS_16 = 0
     const ubyte COLORS_256 = 128
     const uword VERA_SPRITEREGS = $fc00     ; $1fc00
-    uword @zp sprite_reg
+    private uword @zp sprite_reg
 
     sub init(ubyte spritenum,
              ubyte databank, uword dataaddr,

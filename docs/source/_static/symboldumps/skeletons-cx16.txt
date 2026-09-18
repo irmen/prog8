@@ -1,6 +1,6 @@
 
-Prog8 compiler v14.0-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit db32b81d in branch master
+Prog8 compiler v14.0-BETA1 by Irmen de Jong (irmen@razorvine.net)
+Prerelease version from git commit ddfdd909 in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-cx16.p8
@@ -846,7 +846,6 @@ sprites  {
     const ubyte  SIZE_64
     const ubyte  SIZE_8
     const uword  VERA_SPRITEREGS
-    uword @zp  sprite_reg
     data  (ubyte spritenum, ubyte bank, uword addr)
     flipx  (ubyte spritenum, bool flipped)
     flipy  (ubyte spritenum, bool flipped)

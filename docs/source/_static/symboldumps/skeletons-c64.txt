@@ -1,6 +1,6 @@
 
-Prog8 compiler v14.0-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit a4fb829b in branch new-codegens
+Prog8 compiler v14.0-BETA1 by Irmen de Jong (irmen@razorvine.net)
+Prerelease version from git commit ddfdd909 in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-c64.p8
@@ -1083,6 +1083,154 @@ txt  {
 }
 
 
+LIBRARY MODULE NAME: vera
+-------------------------
+
+vera  {
+    &uword  VERA_ADDR
+    &ubyte  VERA_ADDR_H
+    &ubyte  VERA_ADDR_L
+    &ubyte  VERA_ADDR_M
+    &ubyte  VERA_AUDIO_CTRL
+    &ubyte  VERA_AUDIO_DATA
+    &ubyte  VERA_AUDIO_RATE
+    const uword  VERA_BASE
+    &ubyte  VERA_CTRL
+    &ubyte  VERA_DATA0
+    &ubyte  VERA_DATA1
+    &ubyte  VERA_DC_BORDER
+    &ubyte  VERA_DC_HSCALE
+    &ubyte  VERA_DC_HSTART
+    &ubyte  VERA_DC_HSTOP
+    &ubyte  VERA_DC_VER0
+    &ubyte  VERA_DC_VER1
+    &ubyte  VERA_DC_VER2
+    &ubyte  VERA_DC_VER3
+    &ubyte  VERA_DC_VIDEO
+    &ubyte  VERA_DC_VSCALE
+    &ubyte  VERA_DC_VSTART
+    &ubyte  VERA_DC_VSTOP
+    &ubyte  VERA_FX_ACCUM
+    &ubyte  VERA_FX_ACCUM_RESET
+    &ubyte  VERA_FX_CACHE_H
+    &ubyte  VERA_FX_CACHE_L
+    &ubyte  VERA_FX_CACHE_M
+    &ubyte  VERA_FX_CACHE_U
+    &ubyte  VERA_FX_CTRL
+    &ubyte  VERA_FX_MAPBASE
+    &ubyte  VERA_FX_MULT
+    &uword  VERA_FX_POLY_FILL
+    &ubyte  VERA_FX_POLY_FILL_H
+    &ubyte  VERA_FX_POLY_FILL_L
+    &ubyte  VERA_FX_TILEBASE
+    &uword  VERA_FX_X_INCR
+    &ubyte  VERA_FX_X_INCR_H
+    &ubyte  VERA_FX_X_INCR_L
+    &uword  VERA_FX_X_POS
+    &ubyte  VERA_FX_X_POS_H
+    &ubyte  VERA_FX_X_POS_L
+    &ubyte  VERA_FX_X_POS_S
+    &uword  VERA_FX_Y_INCR
+    &ubyte  VERA_FX_Y_INCR_H
+    &ubyte  VERA_FX_Y_INCR_L
+    &uword  VERA_FX_Y_POS
+    &ubyte  VERA_FX_Y_POS_H
+    &ubyte  VERA_FX_Y_POS_L
+    &ubyte  VERA_FX_Y_POS_S
+    &ubyte  VERA_IEN
+    &ubyte  VERA_IRQLINE_L
+    &ubyte  VERA_ISR
+    &ubyte  VERA_L0_CONFIG
+    &uword  VERA_L0_HSCROLL
+    &ubyte  VERA_L0_HSCROLL_H
+    &ubyte  VERA_L0_HSCROLL_L
+    &ubyte  VERA_L0_MAPBASE
+    &ubyte  VERA_L0_TILEBASE
+    &uword  VERA_L0_VSCROLL
+    &ubyte  VERA_L0_VSCROLL_H
+    &ubyte  VERA_L0_VSCROLL_L
+    &ubyte  VERA_L1_CONFIG
+    &uword  VERA_L1_HSCROLL
+    &ubyte  VERA_L1_HSCROLL_H
+    &ubyte  VERA_L1_HSCROLL_L
+    &ubyte  VERA_L1_MAPBASE
+    &ubyte  VERA_L1_TILEBASE
+    &uword  VERA_L1_VSCROLL
+    &ubyte  VERA_L1_VSCROLL_H
+    &ubyte  VERA_L1_VSCROLL_L
+    &ubyte  VERA_SCANLINE_L
+    &ubyte  VERA_SPI_CTRL
+    &ubyte  VERA_SPI_DATA
+    reset  ()
+    restore_vera_context  () clobbers (A)
+    restore_virtual_registers  () clobbers (A,Y)
+    save_vera_context  () clobbers (A)
+    save_virtual_registers  () clobbers (A,Y)
+    vaddr  (ubyte bank @A, uword address @R0, ubyte addrsel @R1, byte autoIncrOrDecrByOne @Y) clobbers (A)
+    vaddr_autodecr  (ubyte bank @A, uword address @R0, ubyte addrsel @R1, uword autoDecrAmount @R2) clobbers (A,Y)
+    vaddr_autoincr  (ubyte bank @A, uword address @R0, ubyte addrsel @R1, uword autoIncrAmount @R2) clobbers (A,Y)
+    vaddr_clone  (ubyte port @A) clobbers (A,X,Y)
+    vpeek  (ubyte bank @A, uword address @XY) -> ubyte @A
+    vpoke  (ubyte bank @A, uword address @R0, ubyte value @Y) clobbers (A)
+    vpoke_and  (ubyte bank @A, uword address @R0, ubyte value @Y) clobbers (A)
+    vpoke_mask  (ubyte bank @A, uword address @R0, ubyte mask @X, ubyte value @Y) clobbers (A)
+    vpoke_or  (ubyte bank @A, uword address @R0, ubyte value @Y) clobbers (A)
+    vpoke_xor  (ubyte bank @A, uword address @R0, ubyte value @Y) clobbers (A)
+}
+
+vera_sprites  {
+    const ubyte  COLORS_16
+    const ubyte  COLORS_256
+    const ubyte  SIZE_16
+    const ubyte  SIZE_32
+    const ubyte  SIZE_64
+    const ubyte  SIZE_8
+    const uword  VERA_SPRITEREGS
+    data  (ubyte spritenum, ubyte bank, uword addr)
+    flipx  (ubyte spritenum, bool flipped)
+    flipy  (ubyte spritenum, bool flipped)
+    get_data_ptr  (ubyte spritenum @A) -> ubyte @R1, uword @R0
+    getx  (ubyte spritenum) -> word
+    getxy  (ubyte spritenum) -> word, word
+    gety  (ubyte spritenum) -> word
+    hide  (ubyte spritenum)
+    init  (ubyte spritenum, ubyte databank, uword dataaddr, ubyte width_flag, ubyte height_flag, ubyte colors_flag, ubyte palette_offset)
+    move  (ubyte spritenum, word dx, word dy)
+    movex  (ubyte spritenum, word dx)
+    movey  (ubyte spritenum, word dy)
+    pos  (ubyte spritenum, word xpos, word ypos)
+    pos_batch  (ubyte first_spritenum, ubyte num_sprites, uword xpositions_ptr, uword ypositions_ptr)
+    pos_batch_nosplit  (ubyte first_spritenum, ubyte num_sprites, uword xpositions_ptr, uword ypositions_ptr)
+    reset  (ubyte spritenum_start, ubyte count)
+    set_palette_offset  (ubyte spritenum, ubyte offset)
+    setx  (ubyte spritenum, word xpos)
+    sety  (ubyte spritenum, word ypos)
+    show  (ubyte spritenum)
+    zdepth  (ubyte spritenum, ubyte depth)
+}
+
+vera_palette  {
+    channel8to4  (ubyte channelvalue) -> ubyte
+    color8to4  (uword colorpointer) -> uword
+    fade_step  (ubyte index, uword target_rgb) -> bool
+    fade_step_colors  (ubyte startindex, ubyte endindex, uword target_colors) -> bool
+    fade_step_multi  (ubyte startindex, ubyte endindex, uword target_rgb) -> bool
+    get_color  (ubyte index) -> uword
+    set_all_black  ()
+    set_all_white  ()
+    set_c64ntsc  ()
+    set_c64pepto  ()
+    set_color  (ubyte index, uword color)
+    set_default16  ()
+    set_grayscale  (ubyte startindex)
+    set_rgb  (uword palette_words_ptr, uword num_colors, ubyte startindex)
+    set_rgb8  (uword palette_bytes_ptr, uword num_colors, ubyte startindex)
+    set_rgb_be  (uword palette_ptr, uword num_colors, ubyte startindex)
+    set_rgb_be_nosplit  (uword palette_ptr, uword num_colors, ubyte startindex)
+    set_rgb_nosplit  (uword palette_words_ptr, uword num_colors, ubyte startindex)
+}
+
+
 LIBRARY MODULE NAME: wavfile
 ----------------------------
 
@@ -1102,4 +1250,5 @@ wavfile  {
     ubyte  wavefmt
     parse_header  (^^ubyte wav_data) -> bool
 }
+
 

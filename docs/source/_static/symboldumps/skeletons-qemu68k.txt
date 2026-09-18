@@ -1,6 +1,6 @@
 
 Prog8 compiler v14.0-BETA1 by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit 59a796e4 in branch master
+Prerelease version from git commit ddfdd909 in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-qemu68k.p8
@@ -70,16 +70,8 @@ LIBRARY MODULE NAME: adpcm
 --------------------------
 
 adpcm  {
-    @nosplit word[]  deltas_table
-    uword  predict
-    uword  predict_2
-    ubyte  rowindex
-    ubyte  rowindex_2
     decode_block_mono  (long nibblesptr, long outptr)
     decode_block_stereo  (long nibblesptr, long outptr)
-    init  (uword startPredict, ubyte startIndex)
-    init_second  (uword startPredict_2, ubyte startIndex_2)
-    read_le_uword  (long addr) -> uword
 }
 
 

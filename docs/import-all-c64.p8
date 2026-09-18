@@ -19,5 +19,6 @@
 %import syslib
 %import test_stack
 %import textio
+%import vera
 %import wavfile
 
