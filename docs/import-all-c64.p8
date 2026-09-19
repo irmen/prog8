@@ -20,5 +20,8 @@
 %import test_stack
 %import textio
 %import vera
+%import vera_gfx
+%import vera_palette
+%import vera_sprites
 %import wavfile
 

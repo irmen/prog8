@@ -1,9 +1,12 @@
 ; a preliminary demo for the VERA64 support libraries
 
-%import vera
 %import math
 %import textio
-%zeropage basicsafe
+%import vera
+%import vera_gfx
+%import vera_palette
+%import vera_sprites
+
 %option no_sysinit
 
 main {

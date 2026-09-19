@@ -1,6 +1,6 @@
 
 Prog8 compiler v14.0-BETA1 by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit ddfdd909 in branch master
+Prerelease version from git commit 773f1f22 in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-c64.p8
@@ -1178,6 +1178,81 @@ vera  {
     vpoke_xor  (ubyte bank @A, uword address @R0, ubyte value @Y) clobbers (A)
 }
 
+verafx  {
+    available  () -> bool
+    clear  (ubyte vbank, uword vaddr, ubyte data, uword num_longwords)
+    copy  (ubyte srcbank, uword srcaddr, ubyte tgtbank, uword tgtaddr, uword num_longwords)
+    line  (uword x1, ubyte y1, uword x2, ubyte y2, ubyte color)
+    muls  (word value1 @R0, word value2 @R1) clobbers (X) -> long @R0R1
+    muls16  (word value1 @R0, word value2 @R1) clobbers (X) -> word @AY
+    mult16  (uword value1 @R0, uword value2 @R1) clobbers (X) -> uword @AY
+    transparency  (bool enable)
+}
+
+
+LIBRARY MODULE NAME: vera_gfx
+-----------------------------
+
+vera_gfx  {
+    const ubyte  HEIGHT
+    const uword  WIDTH
+    circle  (uword xcenter, ubyte ycenter, ubyte radius, ubyte color)
+    clear_screen  (ubyte color)
+    copy_petscii_charset  ()
+    disc  (uword xcenter, ubyte ycenter, ubyte radius, ubyte color)
+    drawmode_eor  (bool enabled)
+    fill  (uword x, ubyte y, ubyte new_color, ubyte stack_rambank)
+    fillrect  (uword xx, ubyte yy, uword rwidth, ubyte rheight, ubyte color)
+    horizontal_line  (uword xx, ubyte yy, uword length, ubyte color)
+    init  ()
+    line  (uword x1, ubyte y1, uword x2, ubyte y2, ubyte color)
+    next_pixel  (ubyte color @A)
+    next_pixels  (uword pixels @AY, uword amount @R0) clobbers (A,X,Y)
+    pget  (uword x @AX, ubyte y @Y) -> ubyte @A
+    plot  (uword x @AX, ubyte y @Y, ubyte color @R0)
+    position  (uword x @AX, ubyte y @Y)
+    rect  (uword xx, ubyte yy, uword rwidth, ubyte rheight, ubyte color)
+    safe_circle  (uword xcenter, uword ycenter, ubyte radius, ubyte color)
+    safe_disc  (uword xcenter, uword ycenter, ubyte radius, ubyte color)
+    safe_fillrect  (uword xx, ubyte yy, uword rwidth, ubyte rheight, ubyte color)
+    safe_horizontal_line  (uword xx, ubyte yy, uword length, ubyte color)
+    safe_plot  (uword xx, ubyte yy, ubyte color)
+    safe_rect  (uword xx, ubyte yy, uword rwidth, ubyte rheight, ubyte color)
+    safe_vertical_line  (uword xx, ubyte yy, ubyte lheight, ubyte color)
+    set_8_pixels_from_bits  (ubyte bits @R0, ubyte oncolor @A, ubyte offcolor @Y) clobbers (X)
+    text  (uword xx, ubyte yy, ubyte color, str textptr)
+    vertical_line  (uword xx, ubyte yy, ubyte lheight, ubyte color)
+}
+
+
+LIBRARY MODULE NAME: vera_palette
+---------------------------------
+
+vera_palette  {
+    channel8to4  (ubyte channelvalue) -> ubyte
+    color8to4  (uword colorpointer) -> uword
+    fade_step  (ubyte index, uword target_rgb) -> bool
+    fade_step_colors  (ubyte startindex, ubyte endindex, uword target_colors) -> bool
+    fade_step_multi  (ubyte startindex, ubyte endindex, uword target_rgb) -> bool
+    get_color  (ubyte index) -> uword
+    set_all_black  ()
+    set_all_white  ()
+    set_c64ntsc  ()
+    set_c64pepto  ()
+    set_color  (ubyte index, uword color)
+    set_default16  ()
+    set_grayscale  (ubyte startindex)
+    set_rgb  (uword palette_words_ptr, uword num_colors, ubyte startindex)
+    set_rgb8  (uword palette_bytes_ptr, uword num_colors, ubyte startindex)
+    set_rgb_be  (uword palette_ptr, uword num_colors, ubyte startindex)
+    set_rgb_be_nosplit  (uword palette_ptr, uword num_colors, ubyte startindex)
+    set_rgb_nosplit  (uword palette_words_ptr, uword num_colors, ubyte startindex)
+}
+
+
+LIBRARY MODULE NAME: vera_sprites
+---------------------------------
+
 vera_sprites  {
     const ubyte  COLORS_16
     const ubyte  COLORS_256
@@ -1207,27 +1282,6 @@ vera_sprites  {
     sety  (ubyte spritenum, word ypos)
     show  (ubyte spritenum)
     zdepth  (ubyte spritenum, ubyte depth)
-}
-
-vera_palette  {
-    channel8to4  (ubyte channelvalue) -> ubyte
-    color8to4  (uword colorpointer) -> uword
-    fade_step  (ubyte index, uword target_rgb) -> bool
-    fade_step_colors  (ubyte startindex, ubyte endindex, uword target_colors) -> bool
-    fade_step_multi  (ubyte startindex, ubyte endindex, uword target_rgb) -> bool
-    get_color  (ubyte index) -> uword
-    set_all_black  ()
-    set_all_white  ()
-    set_c64ntsc  ()
-    set_c64pepto  ()
-    set_color  (ubyte index, uword color)
-    set_default16  ()
-    set_grayscale  (ubyte startindex)
-    set_rgb  (uword palette_words_ptr, uword num_colors, ubyte startindex)
-    set_rgb8  (uword palette_bytes_ptr, uword num_colors, ubyte startindex)
-    set_rgb_be  (uword palette_ptr, uword num_colors, ubyte startindex)
-    set_rgb_be_nosplit  (uword palette_ptr, uword num_colors, ubyte startindex)
-    set_rgb_nosplit  (uword palette_words_ptr, uword num_colors, ubyte startindex)
 }
 
 

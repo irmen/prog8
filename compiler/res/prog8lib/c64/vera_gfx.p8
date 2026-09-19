@@ -1,27 +1,53 @@
-; optimized graphics routines for just the single screen mode: lores 320*240, 256c  (8bpp)
-; bitmap image needs to start at VRAM address $00000.
-; This is compatible with the CX16's screen mode 128.
-
-
 %import syslib
-%import verafx
 %import buffers
+%import vera
 
-gfx_lores {
+%option ignore_unused
+
+vera_gfx {
+    ; optimized graphics routines for just the single screen mode: lores 320*240, 256c  (8bpp)
+    ; bitmap image needs to start at VRAM address $00000.
+
     %option ignore_unused
 
     const uword WIDTH = 320
     const ubyte HEIGHT = 240
 
-    sub graphics_mode() {
-        ; enable 320x240 256c bitmap graphics mode. Just make use the kernal's mode 128, but clear it to black.
-        cx16.set_screen_mode(128)
+    sub init() {
+        ; 320x240 8bpp bitmap on layer 1, bitmap at vram $00000, set via direct vera register pokes
+        vera.VERA_CTRL = 0
+        vera.VERA_DC_VIDEO = (vera.VERA_DC_VIDEO & %11001100) | %00100001     ; layer 1 only, force VGA output (a vera reset leaves output mode 0=disabled)
+        vera.VERA_DC_HSCALE = 64
+        vera.VERA_DC_VSCALE = 64
+        vera.VERA_L1_CONFIG = %00000111     ; bitmap mode, 8 bpp
+        vera.VERA_L1_MAPBASE = 0
+        vera.VERA_L1_TILEBASE = 0           ; bitmap base $00000
+        vera.VERA_L1_HSCROLL = 0
+        vera.VERA_L1_VSCROLL = 0
+
         clear_screen(0)
+
+        copy_petscii_charset()
+
         drawmode_eor(false)
     }
 
-    sub text_mode() {
-        cx16.set_screen_mode(0)
+    sub copy_petscii_charset() {
+        ; copy the c64 petscii charset (all 256 characters) from the CHARGEN rom to Vera VRAM at $1f000 - $1f800
+        ; this makes text() work; the charset is stored at vram bank 1, address $f000 (= $1f000)
+        ; (a temporary ram copy must be made first, because the vera registers are inaccessible while the chargen rom is mapped in)
+        uword chargen_copy = memory("vera_chargen_copy", 256*8, 0)
+        sys.set_irqd()
+        c64.banks(%011)             ; enable CHAREN, so the character rom is visible at $d000
+        sys.memcopy($d000, chargen_copy, 256*8)
+        c64.banks(%111)             ; enable I/O (and thus the vera) again
+        sys.clear_irqd()
+
+        vera.vaddr(1, $f000, 0, 1)      ; set up the vera data0 address with auto increment of 1 (so we can just write data0)
+        repeat 256*8 {
+            vera.VERA_DATA0 = @(chargen_copy)
+            chargen_copy++
+        }
     }
 
     sub drawmode_eor(bool enabled) {
@@ -36,50 +62,51 @@ gfx_lores {
             ; use verafx cache writes to quickly clear the screen
             const ubyte vbank = 0
             const uword vaddr = 0
-            cx16.VERA_CTRL = 0
-            cx16.VERA_ADDR_H = vbank | %00110000       ; 4-byte increment
-            cx16.VERA_ADDR_M = msb(vaddr)
-            cx16.VERA_ADDR_L = lsb(vaddr)
-            cx16.VERA_CTRL = 6<<1       ; dcsel = 6, fill the 32 bits cache
-            cx16.VERA_FX_CACHE_L = color
-            cx16.VERA_FX_CACHE_M = color
-            cx16.VERA_FX_CACHE_H = color
-            cx16.VERA_FX_CACHE_U = color
-            cx16.VERA_CTRL = 2<<1       ; dcsel = 2
-            cx16.VERA_FX_MULT = 0
-            cx16.VERA_FX_CTRL = %01000000    ; cache write enable
+            vera.VERA_CTRL = 0
+            vera.VERA_ADDR_H = vbank | %00110000       ; 4-byte increment
+            vera.VERA_ADDR_M = msb(vaddr)
+            vera.VERA_ADDR_L = lsb(vaddr)
+            vera.VERA_CTRL = 6<<1       ; dcsel = 6, fill the 32 bits cache
+            vera.VERA_FX_CACHE_L = color
+            vera.VERA_FX_CACHE_M = color
+            vera.VERA_FX_CACHE_H = color
+            vera.VERA_FX_CACHE_U = color
+            vera.VERA_CTRL = 2<<1       ; dcsel = 2
+            vera.VERA_FX_MULT = 0
+            vera.VERA_FX_CTRL = %01000000    ; cache write enable
             repeat 320/4/4 {
                 %asm {{
                     ldy  #240
--                   stz  cx16.VERA_DATA0
-                    stz  cx16.VERA_DATA0
-                    stz  cx16.VERA_DATA0
-                    stz  cx16.VERA_DATA0
+                    lda  #0
+-                   sta  vera.VERA_DATA0
+                    sta  vera.VERA_DATA0
+                    sta  vera.VERA_DATA0
+                    sta  vera.VERA_DATA0
                     dey
                     bne  -
                 }}
             }
-            cx16.VERA_FX_CTRL = 0       ; cache write disable
-            cx16.VERA_CTRL = 0
+            vera.VERA_FX_CTRL = 0       ; cache write disable
+            vera.VERA_CTRL = 0
             return
         }
         ; fallback to cpu clear
-        cx16.VERA_CTRL=0
-        cx16.VERA_ADDR=0
-        cx16.VERA_ADDR_H = 1<<4    ; 1 pixel auto increment
+        vera.VERA_CTRL=0
+        vera.VERA_ADDR=0
+        vera.VERA_ADDR_H = 1<<4    ; 1 pixel auto increment
         repeat HEIGHT {
             %asm {{
                 lda  p8v_color
                 ldy  #p8c_WIDTH/8
 -               .rept 8
-                sta  cx16.VERA_DATA0
+                sta  vera.VERA_DATA0
                 .endrept
                 dey
                 bne  -
             }}
         }
-        cx16.VERA_ADDR=0
-        cx16.VERA_ADDR_H = 0
+        vera.VERA_ADDR=0
+        vera.VERA_ADDR_H = 0
     }
 
     sub rect(uword xx, ubyte yy, uword rwidth, ubyte rheight, ubyte color) {
@@ -153,16 +180,16 @@ gfx_lores {
             return
         position(xx, yy)
         ; set vera auto-increment to 1 pixel
-        cx16.VERA_ADDR_H = cx16.VERA_ADDR_H & %00000111 | (1<<4)
+        vera.VERA_ADDR_H = vera.VERA_ADDR_H & %00000111 | (1<<4)
         if eor_mode {
-            cx16.vaddr_clone(0)      ; also setup port 1, for reading
+            vera.vaddr_clone(0)      ; also setup port 1, for reading
             %asm {{
                 ldx  p8v_length+1
                 beq  +
                 ldy  #0
 -               lda  p8v_color
-                eor  cx16.VERA_DATA1
-                sta  cx16.VERA_DATA0
+                eor  vera.VERA_DATA1
+                sta  vera.VERA_DATA0
                 iny
                 bne  -
                 dex
@@ -170,8 +197,8 @@ gfx_lores {
 +               ldy  p8v_length     ; remaining
                 beq  +
 -               lda  p8v_color
-                eor  cx16.VERA_DATA1
-                sta  cx16.VERA_DATA0
+                eor  vera.VERA_DATA1
+                sta  vera.VERA_DATA0
                 dey
                 bne  -
 +
@@ -182,14 +209,14 @@ gfx_lores {
                 ldx  p8v_length+1
                 beq  +
                 ldy  #0
--               sta  cx16.VERA_DATA0
+-               sta  vera.VERA_DATA0
                 iny
                 bne  -
                 dex
                 bne  -
 +               ldy  p8v_length     ; remaining
                 beq  +
--               sta  cx16.VERA_DATA0
+-               sta  vera.VERA_DATA0
                 dey
                 bne  -
 +
@@ -220,15 +247,15 @@ gfx_lores {
             return
         position(xx, yy)
         ; set vera auto-increment to 320 pixel increment (=next line)
-        cx16.VERA_ADDR_H = cx16.VERA_ADDR_H & %00000111 | (14<<4)
+        vera.VERA_ADDR_H = vera.VERA_ADDR_H & %00000111 | (14<<4)
         if eor_mode {
-            cx16.vaddr_clone(0)      ; also setup port 1, for reading
+            vera.vaddr_clone(0)      ; also setup port 1, for reading
             %asm {{
                 ldy  p8v_lheight
                 beq  +
 -               lda  p8v_color
-                eor  cx16.VERA_DATA1
-                sta  cx16.VERA_DATA0
+                eor  vera.VERA_DATA1
+                sta  vera.VERA_DATA0
                 dey
                 bne  -
 +
@@ -237,7 +264,7 @@ gfx_lores {
             %asm {{
                 ldy  p8v_lheight
                 lda  p8v_color
--               sta  cx16.VERA_DATA0
+-               sta  vera.VERA_DATA0
                 dey
                 bne  -
             }}
@@ -307,7 +334,7 @@ gfx_lores {
         cx16.r0  = x1    ; ensure zeropage
         cx16.r2  = x2    ; ensure zeropage
 
-        cx16.VERA_CTRL = 0
+        vera.VERA_CTRL = 0
         if dx >= dy {
             d = dx >> 1   ; Initialize error to DX/2 for shallow lines
             if positive_ix {
@@ -375,22 +402,22 @@ gfx_lores {
             clc
             lda  times320_lo,y
             adc  cx16.r0L
-            sta  cx16.VERA_ADDR_L
+            sta  vera.VERA_ADDR_L
             lda  times320_mid,y
             adc  cx16.r0H
-            sta  cx16.VERA_ADDR_M
+            sta  vera.VERA_ADDR_M
             lda  #0
             adc  times320_hi,y
-            sta  cx16.VERA_ADDR_H
+            sta  vera.VERA_ADDR_H
 
             lda  p8v_eor_mode
             bne  +
             lda  cx16.r4L
-            sta  cx16.VERA_DATA0
+            sta  vera.VERA_DATA0
             rts
 +           lda  cx16.r4L
-            eor  cx16.VERA_DATA0
-            sta  cx16.VERA_DATA0
+            eor  vera.VERA_DATA0
+            sta  vera.VERA_DATA0
             rts
         }}
     }
@@ -592,22 +619,22 @@ gfx_lores {
         %asm {{
             clc
             adc  times320_lo,y
-            sta  cx16.VERA_ADDR_L
+            sta  vera.VERA_ADDR_L
             txa
             adc  times320_mid,y
-            sta  cx16.VERA_ADDR_M
+            sta  vera.VERA_ADDR_M
             lda  #0
             adc  times320_hi,y
-            sta  cx16.VERA_ADDR_H
+            sta  vera.VERA_ADDR_H
 
             lda  p8v_eor_mode
             bne  +
             lda  cx16.r0L
-            sta  cx16.VERA_DATA0
+            sta  vera.VERA_DATA0
             rts
 +           lda  cx16.r0L
-            eor  cx16.VERA_DATA0
-            sta  cx16.VERA_DATA0
+            eor  vera.VERA_DATA0
+            sta  vera.VERA_DATA0
             rts
         }}
     }
@@ -625,7 +652,7 @@ gfx_lores {
         ; returns the color of the pixel
         %asm {{
             jsr  p8s_position
-            lda  cx16.VERA_DATA0
+            lda  vera.VERA_DATA0
             rts
         }}
     }
@@ -649,7 +676,7 @@ gfx_lores {
         word x2
         byte dy
         cx16.r10L = new_color
-        stack.init(stack_rambank)
+        stack.init()
 
         sub push_stack(word sxl, word sxr, word sy, byte sdy) {
             cx16.r0s = sy+sdy
@@ -703,22 +730,22 @@ skip:
         sub set_vera_address(bool decr) {
             ; set both data0 and data1 addresses
             position(xx as uword, lsb(yy))
-            cx16.r0 = cx16.VERA_ADDR
-            cx16.r1L = cx16.VERA_ADDR_H & 1 | if decr %00011000 else %00010000
-            cx16.VERA_ADDR_H = cx16.r1L
-            cx16.VERA_CTRL = 1
-            cx16.VERA_ADDR = cx16.r0
-            cx16.VERA_ADDR_H = cx16.r1L
-            cx16.VERA_CTRL = 0
+            cx16.r0 = vera.VERA_ADDR
+            cx16.r1L = vera.VERA_ADDR_H & 1 | if decr %00011000 else %00010000
+            vera.VERA_ADDR_H = cx16.r1L
+            vera.VERA_CTRL = 1
+            vera.VERA_ADDR = cx16.r0
+            vera.VERA_ADDR_H = cx16.r1L
+            vera.VERA_CTRL = 0
         }
 
         sub fill_scanline_left_8bpp() -> bool {
             set_vera_address(true)
             cx16.r9s = xx
             while xx >= 0 {
-                if cx16.VERA_DATA0 != cx16.r11L
+                if vera.VERA_DATA0 != cx16.r11L
                     break
-                cx16.VERA_DATA1 = cx16.r10L
+                vera.VERA_DATA1 = cx16.r10L
                 xx--
             }
             return xx==cx16.r9s
@@ -727,19 +754,12 @@ skip:
         sub fill_scanline_right_8bpp() {
             set_vera_address(false)
             while xx <= WIDTH-1 {
-                if cx16.VERA_DATA0 != cx16.r11L
+                if vera.VERA_DATA0 != cx16.r11L
                     break
-                cx16.VERA_DATA1 = cx16.r10L
+                vera.VERA_DATA1 = cx16.r10L
                 xx++
             }
         }
-    }
-
-    sub text_charset(ubyte charset) {
-        ; -- select the text charset to use with the text() routine
-        ;    the charset number is the same as for the cx16.screen_set_charset() ROM function.
-        ;    1 = ISO charset, 2 = PETSCII uppercase+graphs, 3= PETSCII uppercase+lowercase etc. etc.
-        cx16.screen_set_charset(charset, 0)
     }
 
     private const ubyte charset_bank = $1
@@ -754,20 +774,20 @@ skip:
 
         while @(textptr)!=0 {
             chardataptr = charset_addr + (@(textptr) as uword)*8
-            cx16.vaddr(charset_bank, chardataptr, 1, 1)
+            vera.vaddr(charset_bank, chardataptr, 1, 1)
             repeat 8 {
-                position(xx,yy)
+                position(xx,lsb(yy))
                 yy++
                 %asm {{
                     ldx  p8v_color
-                    lda  cx16.VERA_DATA1
+                    lda  vera.VERA_DATA1
                     sta  P8ZP_SCRATCH_B1
                     ldy  #8
 -                   asl  P8ZP_SCRATCH_B1
                     bcc  +
-                    stx  cx16.VERA_DATA0    ; write a pixel
-                    bra  ++
-+                   lda  cx16.VERA_DATA0    ; don't write a pixel, but do advance to the next address
+                    stx  vera.VERA_DATA0    ; write a pixel
+                    bcs  ++
++                   lda  vera.VERA_DATA0    ; don't write a pixel, but do advance to the next address
 +                   dey
                     bne  -
                 }}
@@ -782,13 +802,13 @@ skip:
         %asm {{
             clc
             adc  times320_lo,y
-            sta  cx16.VERA_ADDR_L
+            sta  vera.VERA_ADDR_L
             txa
             adc  times320_mid,y
-            sta  cx16.VERA_ADDR_M
+            sta  vera.VERA_ADDR_M
             lda  #%00010000         ; auto increment on
             adc  times320_hi,y
-            sta  cx16.VERA_ADDR_H
+            sta  vera.VERA_ADDR_H
             rts
         }}
     }
@@ -798,7 +818,7 @@ skip:
         ;    for 8 bpp screens this will plot 1 pixel.
         ;    for 2 bpp screens it will plot 4 pixels at once (color = bit pattern).
         %asm {{
-            sta  cx16.VERA_DATA0
+            sta  vera.VERA_DATA0
         }}
     }
 
@@ -813,7 +833,7 @@ skip:
             beq  +
             ldy  #0
 -           lda  (P8ZP_SCRATCH_W1),y
-            sta  cx16.VERA_DATA0
+            sta  vera.VERA_DATA0
             iny
             bne  -
             inc  P8ZP_SCRATCH_W1+1       ; next page of 256 pixels
@@ -824,7 +844,7 @@ skip:
             beq  +
             ldy  #0
 -           lda  (P8ZP_SCRATCH_W1),y
-            sta  cx16.VERA_DATA0
+            sta  vera.VERA_DATA0
             iny
             dex
             bne  -
@@ -838,9 +858,9 @@ skip:
             ldx  #8
 -           asl  cx16.r0
             bcc  +
-            sta  cx16.VERA_DATA0
-            bra  ++
-+           sty  cx16.VERA_DATA0
+            sta  vera.VERA_DATA0
+            bcs  ++
++           sty  vera.VERA_DATA0
 +           dex
             bne  -
             rts
