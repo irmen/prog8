@@ -755,9 +755,8 @@ skip:
         while @(textptr)!=0 {
             chardataptr = charset_addr + (@(textptr) as uword)*8
             cx16.vaddr(charset_bank, chardataptr, 1, 1)
+            position(xx, yy)
             repeat 8 {
-                position(xx,yy)
-                yy++
                 %asm {{
                     ldx  p8v_color
                     lda  cx16.VERA_DATA1
@@ -771,9 +770,22 @@ skip:
 +                   dey
                     bne  -
                 }}
+                ; advance to next row (320 bytes minus the 8 pixels already stepped)
+                %asm {{
+                    stz  cx16.VERA_CTRL
+                    clc
+                    lda  cx16.VERA_ADDR_L
+                    adc  #<(320-8)
+                    sta  cx16.VERA_ADDR_L
+                    lda  cx16.VERA_ADDR_M
+                    adc  #>(320-8)
+                    sta  cx16.VERA_ADDR_M
+                    lda  cx16.VERA_ADDR_H
+                    adc  #0
+                    sta  cx16.VERA_ADDR_H
+                }}
             }
             xx+=8
-            yy-=8
             textptr++
         }
     }
