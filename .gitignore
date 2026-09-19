@@ -45,4 +45,5 @@ compiler/lib/
 .gradle
 sd*.img
 *.d64
-
+AsyncIO/
+AsyncIO.info

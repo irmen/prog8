@@ -2,6 +2,7 @@
 
 %import adpcm
 %import arexx
+%import asyncio
 %import buffers
 %import blitter
 %import copper

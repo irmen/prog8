@@ -39,6 +39,7 @@ sys {
     pointer @shared UtilityBase
     pointer @shared RexxSysBase     ; loaded from disk on demand
     pointer @shared IFFParseBase    ; loaded from disk on demand
+    pointer @shared AsyncIOBase     ; loaded from disk on demand
     pointer @shared TimerBase       ; opened on demand
 
     ^^ubyte @shared arguments       ; CLI argument string (null-terminated), or NULL if Workbench launch

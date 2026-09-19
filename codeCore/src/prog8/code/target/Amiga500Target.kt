@@ -58,7 +58,9 @@ class Amiga500Target: ICompilationTarget,
             33 to "AmigaGuide",
             34 to "ARexx",
             35 to "BattClock",
-            36 to "BattMem"
+            36 to "BattMem",
+            // from here, non-standard libraries are listed
+            100 to "AsyncIO",
         )
     }
 

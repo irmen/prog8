@@ -84,13 +84,37 @@ audio {
     private ^^IOAudio CtrlIO2 = []
     private ^^IOAudio CtrlIO3 = []
 
+    ; Second write-request per channel for gapless streaming (see play_queued).
+    ; One IOAudio block cannot hold two outstanding CMD_WRITEs, so each channel
+    ; gets an alternate request block with its own reply port; the two are used
+    ; ping-pong fashion and audio.device queues them back-to-back.
+    ^^IOAudio StreamIO0 = []
+    ^^IOAudio StreamIO1 = []
+    ^^IOAudio StreamIO2 = []
+    ^^IOAudio StreamIO3 = []
+
+    private ^^exec.MsgPort sport0 = []
+    private ^^exec.MsgPort sport1 = []
+    private ^^exec.MsgPort sport2 = []
+    private ^^exec.MsgPort sport3 = []
+
+    ; per-channel streaming bookkeeping: number of outstanding writes (0..2),
+    ; and which request block takes the next play / the next wait (oldest first).
+    private ubyte[4] queued
+    private bool[4] play_alt
+    private bool[4] wait_alt
+
     ; ---- high level audio interface ----
 
     sub init() -> bool {
         ; -- Initialize the audio device on all 4 channels.
         ubyte[1] channel_matrix = [15]      ; allocate all 4 channels at once
-        for ubyte channel in 0 to 3
+        for ubyte channel in 0 to 3 {
             active_channels[channel] = false
+            queued[channel] = 0
+            play_alt[channel] = false
+            wait_alt[channel] = false
+        }
         return opendevice(channel_matrix, 1, 0)
     }
 
@@ -104,6 +128,10 @@ audio {
 
     sub play(ubyte channel, ^^byte samples, long num_samples, uword sample_rate, ubyte volume, uword cycles) {
         ; -- Play a sample asynchronously on the given channel (0-3), with the given parameters.
+        ; If chunks were queued earlier with play_queued, those are waited for first,
+        ; so this never reuses an IOAudio block that still has a write in flight.
+        while queued[channel]>0
+            wait_queued(channel)
         ^^IOAudio io = get_io(channel)
         io.Command = exec.CMD_WRITE
         io.Flags = ADIOF_PERVOL
@@ -113,15 +141,79 @@ audio {
         io.Volume = volume
         io.Cycles = cycles
         BeginIO(io)  ; not exec.DoIO/SendIO: those clear io_Flags, wiping ADIOF_PERVOL!
+        queued[channel] = 1
+        play_alt[channel] = true   ; primary block is now in flight, next play uses the alternate
         active_channels[channel] = true
         ; sound now plays asynchronously.
     }
 
+    sub play_queued(ubyte channel, ^^byte samples, long num_samples, uword sample_rate, ubyte volume, uword cycles) {
+        ; -- Queue a sample chunk for gapless streaming on the given channel (0-3).
+        ; Unlike play(), this may be called while the previous chunk is still playing:
+        ; audio.device queues the CMD_WRITE and starts it the moment the previous
+        ; chunk ends, so back-to-back calls produce continuous audio with no gaps.
+        ; Each channel has two request slots; if both are full this waits for the
+        ; oldest chunk to finish first (which returns instantly in a healthy stream).
+        ; NOTE: the NDK requires ioa_Length to be even (2..131072), so an odd
+        ; length is rounded down by one sample and lengths below 2 are ignored.
+        if (num_samples & 1) != 0
+            num_samples = num_samples-1
+        if num_samples<2
+            return
+        if queued[channel]==2
+            wait_queued(channel)
+        ^^IOAudio io = get_queued_io(channel, play_alt[channel])
+        play_alt[channel] = not play_alt[channel]
+        io.Command = exec.CMD_WRITE
+        io.Flags = ADIOF_PERVOL
+        io.Data = samples
+        io.IOAudio_Length = num_samples
+        io.Period = period(sample_rate)
+        io.Volume = volume
+        io.Cycles = cycles
+        BeginIO(io)  ; not exec.DoIO/SendIO: those clear io_Flags, wiping ADIOF_PERVOL!
+        queued[channel] = queued[channel]+1
+        active_channels[channel] = true
+        ; chunk plays (or stays queued) asynchronously.
+    }
+
     sub wait_channel(ubyte channel) {
-        ; wait for the current sound on this channel to finish playing.
-        if active_channels[channel] {
-            void exec.WaitIO(get_io(channel))
+        ; wait for the current sound(s) on this channel to finish playing.
+        while queued[channel]>0
+            wait_queued(channel)
+    }
+
+    sub wait_queued(ubyte channel) {
+        ; -- Wait for the oldest outstanding queued chunk on this channel.
+        if queued[channel]==0
+            return
+        reap_oldest(channel, false)
+    }
+
+    private sub get_queued_io(ubyte channel, bool alt) -> ^^IOAudio {
+        ; request block taking the next play/wait on this channel (primary or alternate).
+        if not alt
+            return get_io(channel)
+        when channel {
+            0 -> return StreamIO0
+            1 -> return StreamIO1
+            2 -> return StreamIO2
+            else -> return StreamIO3
+        }
+    }
+
+    private sub reap_oldest(ubyte channel, bool abort) {
+        ; reap the oldest outstanding write on this channel (optionally abort it first).
+        ^^IOAudio io = get_queued_io(channel, wait_alt[channel])
+        if abort
+            exec.AbortIO(io)
+        void exec.WaitIO(io)
+        wait_alt[channel] = not wait_alt[channel]
+        queued[channel] = queued[channel]-1
+        if queued[channel]==0 {
             active_channels[channel] = false
+            play_alt[channel] = false
+            wait_alt[channel] = false
         }
     }
 
@@ -135,7 +227,8 @@ audio {
 
     sub stop(ubyte channel) {
         ; -- Abort the sound currently playing on this channel (ADCMD_FINISH).
-        ; The sound stops immediately; blocks until the aborted write request has completed.
+        ; Aborts immediately and reaps every outstanding write, oldest first,
+        ; so no queued chunk can play out afterwards.
         if not active_channels[channel]
             return
         ^^IOAudio ctrl = get_ctrl(channel)
@@ -143,8 +236,8 @@ audio {
         ctrl.Flags = 0
         BeginIO(ctrl)
         void exec.WaitIO(ctrl)                ; reap the control request
-        void exec.WaitIO(get_io(channel))     ; reap the aborted write request
-        active_channels[channel] = false
+        while queued[channel]>0
+            reap_oldest(channel, true)
     }
 
     sub stop_all() {
@@ -211,6 +304,16 @@ audio {
         CtrlIO2^^ = AudioIO2^^
         CtrlIO3^^ = AudioIO3^^
 
+        ; Clone the alternate streaming request blocks (with their own reply ports)
+        StreamIO0^^ = AudioIO0^^
+        StreamIO1^^ = AudioIO1^^
+        StreamIO2^^ = AudioIO2^^
+        StreamIO3^^ = AudioIO3^^
+        StreamIO0.ReplyPort = init_msgport(sport0)
+        StreamIO1.ReplyPort = init_msgport(sport1)
+        StreamIO2.ReplyPort = init_msgport(sport2)
+        StreamIO3.ReplyPort = init_msgport(sport3)
+
         return true
 
         private sub init_msgport(^^exec.MsgPort port) -> ^^exec.MsgPort {
@@ -235,6 +338,14 @@ audio {
         port = AudioIO2.ReplyPort
         exec.FreeSignal(port.SigBit as byte)
         port = AudioIO3.ReplyPort
+        exec.FreeSignal(port.SigBit as byte)
+        port = StreamIO0.ReplyPort
+        exec.FreeSignal(port.SigBit as byte)
+        port = StreamIO1.ReplyPort
+        exec.FreeSignal(port.SigBit as byte)
+        port = StreamIO2.ReplyPort
+        exec.FreeSignal(port.SigBit as byte)
+        port = StreamIO3.ReplyPort
         exec.FreeSignal(port.SigBit as byte)
         AudioIO0.Type = 0
         AudioIO1.Type = 0

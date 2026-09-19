@@ -3,6 +3,7 @@ package prog8.code.optimize
 import prog8.code.ast.*
 import prog8.code.core.DataType
 import prog8.code.core.IErrorReporter
+import prog8.code.core.Position
 
 /**
  * Control flow optimizations.
@@ -111,7 +112,11 @@ internal object ControlFlowOptimizers {
             val choice1 = node.choices.children[0] as PtWhenChoice
             val choice2 = node.choices.children[1] as PtWhenChoice
             
-            errors.info("when can be simplified into an if-else", node.position)
+            // Only report for real user-written when statements; the defer-dispatch
+            // machinery generates synthetic whens with a DUMMY position, and telling the
+            // user to simplify a when they never wrote is confusing noise.
+            if (node.position !== Position.DUMMY)
+                errors.info("when can be simplified into an if-else", node.position)
             val truescope: PtNodeGroup
             val elsescope: PtNodeGroup
             val comparisonValue: PtNumber
