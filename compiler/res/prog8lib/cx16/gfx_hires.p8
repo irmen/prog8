@@ -832,68 +832,69 @@ set_byte:
         cx16.screen_set_charset(charset, 0)
     }
 
+    private inline asmsub vera_addr_inc(ubyte amount @A) clobbers(A) {
+        ; -- add amount to the current VERA address register (port 0)
+        %asm {{
+            stz  cx16.VERA_CTRL
+            clc
+            adc  cx16.VERA_ADDR_L
+            sta  cx16.VERA_ADDR_L
+            lda  cx16.VERA_ADDR_M
+            adc  #0
+            sta  cx16.VERA_ADDR_M
+            lda  cx16.VERA_ADDR_H
+            adc  #0
+            sta  cx16.VERA_ADDR_H
+        }}
+    }
+
+    private inline asmsub vera_addr_next() clobbers(A) {
+        ; -- increment the current VERA address register (port 0) by one.
+        ;    This is smaller and faster than vera_addr_inc(1) because it skips
+        ;    the high bytes when there is no carry.
+        %asm {{
+            stz  cx16.VERA_CTRL
+            inc  cx16.VERA_ADDR_L
+            bne  +
+            inc  cx16.VERA_ADDR_M
+            bne  +
+            inc  cx16.VERA_ADDR_H
++       }}
+    }
+
     sub text(uword @zp xx, uword yy, ubyte color, str sctextptr) {
         ; -- Write some text at the given pixel position. The text string must be in screencode encoding (not petscii!).
         ;    You must also have called text_charset() first to select and prepare the character set to use.
         uword chardataptr
-        ubyte[8] @shared char_bitmap_bytes_left
-        ubyte[8] @shared char_bitmap_bytes_right
+        ubyte[4] @shared mask4c = [%00111111, %11001111, %11110011, %11111100]
+        ubyte[4] @shared colorshift
 
-        ; we're going to use a few cx16 registers to make sure every variable is in zeropage in the inner loop.
-        cx16.r11L = color
+        ; prepare the color-shifted values for each pixel group once per call.
+        cx16.r11L = color & 3
+        colorshift[0] = cx16.r11L << 6
+        colorshift[1] = cx16.r11L << 4
+        colorshift[2] = cx16.r11L << 2
+        colorshift[3] = cx16.r11L
+
         while @(sctextptr)!=0 {
             chardataptr = charset_addr + (@(sctextptr) as uword)*8
-            cx16.vaddr(charset_bank, chardataptr, 1, 1)  ; for reading the chardata from Vera data channel 1
-            position(xx, yy)              ; only calculated once, we update vera address in the loop instead
+            cx16.vaddr(charset_bank, chardataptr, 1, 1)   ; read chardata from vera data channel 1
+            position(xx, yy)
             cx16.VERA_ADDR_H &= $0f     ; no auto increment
+            cx16.r7 = xx
             repeat 8 {
-                cx16.r10L = cx16.VERA_DATA1  ; get the next 8 horizontal character bits
-                cx16.r7 = xx
+                cx16.r10L = cx16.VERA_DATA1   ; get the next 8 horizontal character bits
                 repeat 8 {
                     cx16.r10L <<= 1
                     if_cs {
-                        cx16.r2L = cx16.r7L & 3       ; xbits
-                        when cx16.r11L & 3 {
-                            1 -> cx16.r12L = gfx_hires.plot.shiftedleft_4c_1[cx16.r2L]
-                            2 -> cx16.r12L = gfx_hires.plot.shiftedleft_4c_2[cx16.r2L]
-                            3 -> cx16.r12L = gfx_hires.plot.shiftedleft_4c_3[cx16.r2L]
-                            else -> cx16.r12L = 0
-                        }
-                        cx16.VERA_DATA0 = cx16.VERA_DATA0 & gfx_hires.plot.mask4c[cx16.r2L] | cx16.r12L
+                        cx16.r2L = cx16.r7L & 3
+                        cx16.VERA_DATA0 = (cx16.VERA_DATA0 & mask4c[cx16.r2L]) | colorshift[cx16.r2L]
                     }
                     cx16.r7++
-                    if (cx16.r7 & 3) == 0 {
-                        ; increment the pixel address by one
-                        %asm {{
-                            stz  cx16.VERA_CTRL
-                            clc
-                            lda  cx16.VERA_ADDR_L
-                            adc  #1
-                            sta  cx16.VERA_ADDR_L
-                            lda  cx16.VERA_ADDR_M
-                            adc  #0
-                            sta  cx16.VERA_ADDR_M
-                            lda  cx16.VERA_ADDR_H
-                            adc  #0
-                            sta  cx16.VERA_ADDR_H
-                        }}
-                    }
+                    if (cx16.r7 & 3) == 0
+                        vera_addr_next()
                 }
-
-                ; increment pixel address to the next line
-                %asm {{
-                    stz  cx16.VERA_CTRL
-                    clc
-                    lda  cx16.VERA_ADDR_L
-                    adc  #(640-8)/4
-                    sta  cx16.VERA_ADDR_L
-                    lda  cx16.VERA_ADDR_M
-                    adc  #0
-                    sta  cx16.VERA_ADDR_M
-                    lda  cx16.VERA_ADDR_H
-                    adc  #0
-                    sta  cx16.VERA_ADDR_H
-                }}
+                vera_addr_inc(158)   ; advance to next row (160 bytes minus the 2 bytes already stepped)
             }
             xx+=8
             sctextptr++
