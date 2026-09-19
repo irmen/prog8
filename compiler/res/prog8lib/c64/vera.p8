@@ -1,3 +1,6 @@
+%import syslib
+%import buffers
+
 %option ignore_unused
 
 vera {
@@ -435,6 +438,359 @@ asmsub restore_vera_context() clobbers(A) {
     }}
 }
 
+}
+
+verafx {
+    ; Partial Vera FX support:
+    ; - fast 32 bit cached writes (clear, copy)
+    ; - transparent write setting
+    ; - hardware 16 bits multiplications
+    ; - hardware accelerated line drawing (8 bpp screen mode only!)
+    ;
+    ; Docs:
+    ; https://github.com/X16Community/x16-docs/blob/fb63156cca2d6de98be0577aacbe4ddef458f896/X16%20Reference%20-%2010%20-%20VERA%20FX%20Reference.md
+    ; https://docs.google.com/document/d/1q34uWOiM3Be2pnaHRVgSdHySI-qsiQWPTo_gfE54PTg
+
+    %option no_symbol_prefixing, ignore_unused
+
+    sub available() -> bool {
+        ; returns true if Vera FX is available (Vera V0.3.1 or later), false if not.
+        cx16.r0L = vera.VERA_CTRL
+        cx16.r0H = 0
+        vera.VERA_CTRL = $7e
+        if vera.VERA_DC_VER0 == $56 {
+            ; Vera version number is valid. Vera fx is available on Vera version 0.3.1 and later.
+            if vera.VERA_DC_VER1>0
+                cx16.r0H = 1
+            else
+                cx16.r0H = mkword(vera.VERA_DC_VER2, vera.VERA_DC_VER3) >= $0301 as ubyte
+        }
+        vera.VERA_CTRL = cx16.r0L
+        return cx16.r0H as bool
+    }
+
+    sub clear(ubyte vbank, uword vaddr, ubyte data, uword num_longwords) {
+        ; use cached 4-byte write to quickly clear a portion of the video memory to a given byte value
+        ; this routine is around 3 times faster as gfx_hires/gfx_lores.clear_screen()
+        vera.VERA_CTRL = 0
+        vera.VERA_ADDR_H = vbank | %00110000       ; 4-byte increment
+        vera.VERA_ADDR_M = msb(vaddr)
+        vera.VERA_ADDR_L = lsb(vaddr)
+        vera.VERA_CTRL = 6<<1       ; dcsel = 6, fill the 32 bits cache
+        vera.VERA_FX_CACHE_L = data
+        vera.VERA_FX_CACHE_M = data
+        vera.VERA_FX_CACHE_H = data
+        vera.VERA_FX_CACHE_U = data
+        vera.VERA_CTRL = 2<<1       ; dcsel = 2
+        vera.VERA_FX_MULT = 0
+        vera.VERA_FX_CTRL = %01000000    ; cache write enable
+
+        cx16.r0 = num_longwords>>3
+        if cx16.r0H==0 {
+            repeat cx16.r0L {
+                unroll 8 vera.VERA_DATA0=0       ; write 8*4 bytes at a time, unrolled
+            }
+        } else {
+            repeat cx16.r0 {
+                unroll 8 vera.VERA_DATA0=0       ; write 8*4 bytes at a time, unrolled
+            }
+        }
+
+        repeat lsb(num_longwords) & 7 {
+            vera.VERA_DATA0=0       ; write 4 bytes at a time (remaining longs)
+        }
+
+        vera.VERA_FX_CTRL = 0       ; cache write disable
+        vera.VERA_CTRL = 0
+    }
+
+    sub copy(ubyte srcbank, uword srcaddr, ubyte tgtbank, uword tgtaddr, uword num_longwords) {
+        ; use cached 4-byte writes to quickly copy a portion of the video memory to somewhere else
+        ; this routine is about 50% faster as a plain byte-by-byte copy
+        vera.VERA_CTRL = 1
+        vera.VERA_ADDR_H = srcbank | %00010000       ; source: 1-byte increment
+        vera.VERA_ADDR_M = msb(srcaddr)
+        vera.VERA_ADDR_L = lsb(srcaddr)
+        vera.VERA_CTRL = 0
+        vera.VERA_ADDR_H = tgtbank | %00110000       ; target: 4-byte increment
+        vera.VERA_ADDR_M = msb(tgtaddr)
+        vera.VERA_ADDR_L = lsb(tgtaddr)
+        vera.VERA_CTRL = 2<<1       ; dcsel = 2
+        vera.VERA_FX_MULT = 0
+        vera.VERA_FX_CTRL = %01100000    ; cache write enable + cache fill enable
+
+        cx16.r0 = num_longwords>>1
+
+        if cx16.r0H==0 {
+            repeat cx16.r0L {
+                unroll 2 %asm {{
+                    lda  vera.VERA_DATA1
+                    lda  vera.VERA_DATA1
+                    lda  vera.VERA_DATA1
+                    lda  vera.VERA_DATA1
+                    lda  #0
+                    sta  vera.VERA_DATA0
+                }}
+            }
+        } else {
+            repeat cx16.r0 {
+                unroll 2 %asm {{
+                    lda  vera.VERA_DATA1
+                    lda  vera.VERA_DATA1
+                    lda  vera.VERA_DATA1
+                    lda  vera.VERA_DATA1
+                    lda  #0
+                    sta  vera.VERA_DATA0
+                }}
+            }
+        }
+
+        if lsb(num_longwords) & 1 == 1 {
+            %asm {{
+                lda  vera.VERA_DATA1
+                lda  vera.VERA_DATA1
+                lda  vera.VERA_DATA1
+                lda  vera.VERA_DATA1
+                lda  #0
+                sta  vera.VERA_DATA0
+            }}
+        }
+
+        vera.VERA_FX_CTRL = 0    ; cache write disable
+        vera.VERA_CTRL = 0
+    }
+
+
+    asmsub mult16(uword value1 @R0, uword value2 @R1) clobbers(X) -> uword @AY {
+        ; Returns the lower 16 bits unsigned result of R0*R1 in AY
+        ; Note: only the lower 16 bits!   (the upper 16 bits are not valid for unsigned word multiplications, only for signed)
+        ; Verafx doesn't support unsigned values like this for full 32 bit result.
+        ; Note: clobbers VRAM $1f9bc - $1f9bf (inclusive)
+        %asm {{
+            jmp  muls16
+        }}
+    }
+
+    asmsub muls16(word value1 @R0, word value2 @R1) clobbers(X) -> word @AY {
+        ; Returns just the lower 16 bits signed result of the multiplication in cx16.AY.
+        ; Note: clobbers R0, R1, and VRAM $1f9bc - $1f9bf (inclusive)
+        %asm {{
+            jsr  muls
+            lda  cx16.r0L
+            ldy  cx16.r0H
+            rts
+        }}
+    }
+
+
+    asmsub muls(word value1 @R0, word value2 @R1) clobbers(X) -> long @R0R1 {
+        ; Returns the 32 bits signed result in R0:R1  (lower word, upper word).
+        ; Vera Fx multiplication support only works on signed values!
+        ; Note: clobbers VRAM $1f9bc - $1f9bf (inclusive)
+        %asm {{
+            lda  #(2 << 1)
+            sta  vera.VERA_CTRL        ; $9F25
+            lda  #0
+            sta  vera.VERA_FX_CTRL     ; $9F29 (mainly to reset Addr1 Mode to 0)
+            lda  #%00010000
+            sta  vera.VERA_FX_MULT     ; $9F2C
+            lda  #(6 << 1)
+            sta  vera.VERA_CTRL        ; $9F25
+            lda  cx16.r0
+            sta  vera.VERA_FX_CACHE_L  ; $9F29
+            lda  cx16.r0+1
+            sta  vera.VERA_FX_CACHE_M  ; $9F2A
+            lda  cx16.r1
+            sta  vera.VERA_FX_CACHE_H  ; $9F2B
+            lda  cx16.r1+1
+            sta  vera.VERA_FX_CACHE_U  ; $9F2C
+            lda  vera.VERA_FX_ACCUM_RESET   ; $9F29 (DCSEL=6)
+
+            ; Set the ADDR0 pointer to $1f9bc and write our multiplication result there
+            ; (these are the 4 bytes just before the PSG registers start)
+            lda  #(2 << 1)
+            sta  vera.VERA_CTRL
+            lda  #%01000000           ; Cache Write Enable
+            sta  vera.VERA_FX_CTRL
+            lda  #$bc
+            sta  vera.VERA_ADDR_L
+            lda  #$f9
+            sta  vera.VERA_ADDR_M
+            lda  #$01
+            sta  vera.VERA_ADDR_H     ; no increment
+            lda  #0
+            sta  vera.VERA_DATA0      ; multiply and write out result
+            lda  #%00010001           ; $01 with Increment 1
+            sta  vera.VERA_ADDR_H     ; so we can read out the result
+            lda  vera.VERA_DATA0      ; store the lower 16 bits of the result in R0
+            ldy  vera.VERA_DATA0
+            sta  cx16.r0L
+            sty  cx16.r0H
+            lda  vera.VERA_DATA0      ; store the upper 16 bits of the result in R1
+            ldy  vera.VERA_DATA0      ; store the upper 16 bits of the result in R1
+            sta  cx16.r1L
+            sty  cx16.r1H
+            lda  #0
+            sta  vera.VERA_FX_CTRL    ; Cache write disable
+            sta  vera.VERA_FX_MULT    ; $9F2C  reset multiply bit
+            sta  vera.VERA_CTRL       ; reset DCSEL
+            rts
+        }}
+    }
+
+    sub line(uword x1, ubyte y1, uword x2, ubyte y2, ubyte color) {
+        ; Use the Vera FX line draw helper to draw a line very fast in a 320x240 256 color (8 bpp) bitmap screen
+        ; (the default cx16 screen mode 128, as used by the gfx_lores module, with the bitmap at vram address 0).
+        ; WARNING: ONLY WORKS IN 8 BPP SCREEN MODE! The helper has a hardware bug in 4 bpp mode.
+        ; No bounds checking or clipping is done, all coordinates must lie within the screen (0..319, 0..239).
+        ; Also resets the address increments of DATA0 and DATA1 to 0 afterwards.
+        ; The line is always drawn from top to bottom (y1<=y2 after sorting), this avoids the negative
+        ; (decrement) y-increments that the helper handles poorly. x can go either left or right.
+        ubyte @zp octant
+        uword @zp dx
+        uword @zp dy
+        if y1>y2 {
+            cx16.r0 = x1
+            x1 = x2
+            x2 = cx16.r0
+            octant = y1
+            y1 = y2
+            y2 = octant
+        }
+        dy = y2
+        dy -= y1
+        uword @zp length
+        if x2>=x1 {
+            dx = x2-x1
+            length = dx
+            octant = 0              ; x goes right
+        } else {
+            dx = x1-x2
+            length = dx
+            octant = 1              ; x goes left
+        }
+        if dy>length {
+            octant |= 2
+            length = dy
+            dy = dx
+        }
+        ; slope in 0.9 fixed point format for the FX increment register (1.0 = $200), rounded to nearest.
+        ; Computed as (dy/length in 0.8 fixed point) << 1, which stays within 16 bits:
+        ; dy<=239 so dy<<8 <= 61240, and dy<=length so the quotient is <=256, doubled to <=512.
+        uword slope = 0
+        if length!=0 {
+            slope = (((dy << 8) + (length>>1)) / length) << 1
+        }
+        length++
+        ubyte remainder_pixels = lsb(length) & 7
+        ubyte full_octets = lsb(length>>3)
+
+        ; 4 "octants" (y1<=y2 always after the sorting above, so the line always goes down):
+        ;   octant 0 = right/down, shallow slope (dx>=dy): always step +1 in x, sometimes step +320 in y
+        ;   octant 1 = left/down, shallow slope:           always step -1 in x, sometimes step +320 in y
+        ;   octant 2 = right/down, steep slope (dy>dx):    always step +320 in y, sometimes step +1 in x
+        ;   octant 3 = left/down, steep slope:             always step +320 in y, sometimes step -1 in x
+        ; address increment values: +1 = $10, -1 = $18 (decrement), +320 = $e0
+        ubyte[4] @shared always_incr_table = [ $10, $18, $e0, $e0 ]
+        ubyte[4] @shared sometimes_incr_table = [ $e0, $e0, $10, $18 ]
+
+        %asm {{
+            ; set up the FX line draw helper and the start address in ADDR1
+            lda  #(2<<1)
+            sta  vera.VERA_CTRL         ; dcsel = 2
+            lda  #%00000001
+            sta  vera.VERA_FX_CTRL      ; addr1 mode = line draw helper (8 bpp)
+            lda  #(3<<1)
+            sta  vera.VERA_CTRL         ; dcsel = 3
+            lda  slope
+            sta  vera.VERA_FX_X_INCR    ; (writing X_INCR also centers the subpixel position and resets overflow)
+            lda  slope+1
+            sta  vera.VERA_FX_X_INCR+1
+            ; ADDR0 provides the 'sometimes' increment for the helper
+            lda  #0
+            sta  vera.VERA_CTRL         ; addrsel = 0
+            ldx  octant
+            lda  sometimes_incr_table,x
+            sta  vera.VERA_ADDR_H
+            ; ADDR1 = start pixel, gets the 'always' increment
+            lda  #1
+            sta  vera.VERA_CTRL         ; addrsel = 1 (bit 0)
+            lda  x1
+            sta  vera.VERA_ADDR_L
+            lda  x1+1
+            sta  vera.VERA_ADDR_M
+            lda  always_incr_table,x
+            sta  vera.VERA_ADDR_H
+
+            ; add the y-offset to the start address in ADDR1
+            ldy  y1
+            lda  vera.VERA_ADDR_L
+            clc
+            adc  times320_lo,y
+            sta  vera.VERA_ADDR_L
+            lda  vera.VERA_ADDR_M
+            adc  times320_mid,y
+            sta  vera.VERA_ADDR_M
+            lda  vera.VERA_ADDR_H
+            and  #$01
+            adc  times320_hi,y
+            sta  P8ZP_SCRATCH_B1
+            lda  vera.VERA_ADDR_H
+            and  #$f8
+            ora  P8ZP_SCRATCH_B1
+            sta  vera.VERA_ADDR_H
+
+            ; draw the line: first the remainder pixels one at a time, then unrolled 8 pixels at a time
+            ldy  remainder_pixels
+            beq  +
+            lda  color
+-           sta  vera.VERA_DATA1
+            dey
+            bne  -
++           ldy  full_octets
+            beq  _done
+            lda  color
+-           sta  vera.VERA_DATA1
+            sta  vera.VERA_DATA1
+            sta  vera.VERA_DATA1
+            sta  vera.VERA_DATA1
+            sta  vera.VERA_DATA1
+            sta  vera.VERA_DATA1
+            sta  vera.VERA_DATA1
+            sta  vera.VERA_DATA1
+            dey
+            bne  -
+_done
+            ; reset the FX registers back to normal
+            lda  #(2<<1)
+            sta  vera.VERA_CTRL     ; dcsel = 2
+            ldx  #0
+            stx  vera.VERA_FX_CTRL  ; addr1 mode = normal again
+            lda  #1
+            sta  vera.VERA_CTRL     ; addrsel = 1 (bit 0)
+            stx  vera.VERA_ADDR_H   ; reset ADDR1 (DATA1) address increment
+            stx  vera.VERA_CTRL     ; addrsel = 0
+            stx  vera.VERA_ADDR_H   ; reset ADDR0 (DATA0) address increment
+            rts
+
+            ; multiplication by 320 lookup table (used to add the y-offset to the start address above)
+times320 := 320*range(240)
+times320_lo     .byte <times320
+times320_mid    .byte >times320
+times320_hi     .byte `times320
+        }}
+    }
+
+    sub transparency(bool enable) {
+        ; Set transparent write mode for VeraFX cached writes and also for normal writes to DATA0/DATA.
+        ; If enabled, pixels with value 0 do not modify VRAM when written (so they are "transparent")
+        vera.VERA_CTRL = 2<<1       ; dcsel = 2
+        if enable
+            vera.VERA_FX_CTRL |= %10000000
+        else
+            vera.VERA_FX_CTRL &= %01111111
+        vera.VERA_CTRL = 0
+    }
 }
 
 vera_sprites {
@@ -933,4 +1289,877 @@ vera_palette {
         vera.VERA_ADDR_H = %00010001
         vera.VERA_ADDR = $fa00+(index *$0002)
     }
+}
+
+vera_gfx {
+    ; optimized graphics routines for just the single screen mode: lores 320*240, 256c  (8bpp)
+    ; bitmap image needs to start at VRAM address $00000.
+
+    %option ignore_unused
+
+    const uword WIDTH = 320
+    const ubyte HEIGHT = 240
+
+    sub init() {
+        ; 320x240 8bpp bitmap on layer 1, bitmap at vram $00000, set via direct vera register pokes
+        vera.VERA_CTRL = 0
+        vera.VERA_DC_VIDEO = (vera.VERA_DC_VIDEO & %11001100) | %00100001     ; layer 1 only, force VGA output (a vera reset leaves output mode 0=disabled)
+        vera.VERA_DC_HSCALE = 64
+        vera.VERA_DC_VSCALE = 64
+        vera.VERA_L1_CONFIG = %00000111     ; bitmap mode, 8 bpp
+        vera.VERA_L1_MAPBASE = 0
+        vera.VERA_L1_TILEBASE = 0           ; bitmap base $00000
+        vera.VERA_L1_HSCROLL = 0
+        vera.VERA_L1_VSCROLL = 0
+
+        clear_screen(0)
+
+        copy_petscii_charset()
+
+        drawmode_eor(false)
+    }
+
+    sub copy_petscii_charset() {
+        ; copy the c64 petscii charset (all 256 characters) from the CHARGEN rom to Vera VRAM at $1f000 - $1f800
+        ; this makes text() work; the charset is stored at vram bank 1, address $f000 (= $1f000)
+        ; (a temporary ram copy must be made first, because the vera registers are inaccessible while the chargen rom is mapped in)
+        uword chargen_copy = memory("vera_chargen_copy", 256*8, 0)
+        sys.set_irqd()
+        c64.banks(%011)             ; enable CHAREN, so the character rom is visible at $d000
+        sys.memcopy($d000, chargen_copy, 256*8)
+        c64.banks(%111)             ; enable I/O (and thus the vera) again
+        sys.clear_irqd()
+
+        vera.vaddr(1, $f000, 0, 1)      ; set up the vera data0 address with auto increment of 1 (so we can just write data0)
+        repeat 256*8 {
+            vera.VERA_DATA0 = @(chargen_copy)
+            chargen_copy++
+        }
+    }
+
+    sub drawmode_eor(bool enabled) {
+        ; with EOR drawing mode you can have non destructive drawing (2*EOR=restore original)
+        eor_mode = enabled
+    }
+
+    private bool eor_mode
+
+    sub clear_screen(ubyte color) {
+        if verafx.available() {
+            ; use verafx cache writes to quickly clear the screen
+            const ubyte vbank = 0
+            const uword vaddr = 0
+            vera.VERA_CTRL = 0
+            vera.VERA_ADDR_H = vbank | %00110000       ; 4-byte increment
+            vera.VERA_ADDR_M = msb(vaddr)
+            vera.VERA_ADDR_L = lsb(vaddr)
+            vera.VERA_CTRL = 6<<1       ; dcsel = 6, fill the 32 bits cache
+            vera.VERA_FX_CACHE_L = color
+            vera.VERA_FX_CACHE_M = color
+            vera.VERA_FX_CACHE_H = color
+            vera.VERA_FX_CACHE_U = color
+            vera.VERA_CTRL = 2<<1       ; dcsel = 2
+            vera.VERA_FX_MULT = 0
+            vera.VERA_FX_CTRL = %01000000    ; cache write enable
+            repeat 320/4/4 {
+                %asm {{
+                    ldy  #240
+                    lda  #0
+-                   sta  vera.VERA_DATA0
+                    sta  vera.VERA_DATA0
+                    sta  vera.VERA_DATA0
+                    sta  vera.VERA_DATA0
+                    dey
+                    bne  -
+                }}
+            }
+            vera.VERA_FX_CTRL = 0       ; cache write disable
+            vera.VERA_CTRL = 0
+            return
+        }
+        ; fallback to cpu clear
+        vera.VERA_CTRL=0
+        vera.VERA_ADDR=0
+        vera.VERA_ADDR_H = 1<<4    ; 1 pixel auto increment
+        repeat HEIGHT {
+            %asm {{
+                lda  p8v_color
+                ldy  #p8c_WIDTH/8
+-               .rept 8
+                sta  vera.VERA_DATA0
+                .endrept
+                dey
+                bne  -
+            }}
+        }
+        vera.VERA_ADDR=0
+        vera.VERA_ADDR_H = 0
+    }
+
+    sub rect(uword xx, ubyte yy, uword rwidth, ubyte rheight, ubyte color) {
+        if rwidth==0 or rheight==0
+            return
+        horizontal_line(xx, yy, rwidth, color)
+        if rheight==1
+            return
+        horizontal_line(xx, yy+rheight-1, rwidth, color)
+        vertical_line(xx, yy+1, rheight-2, color)
+        if rwidth==1
+            return
+        vertical_line(xx+rwidth-1, yy+1, rheight-2, color)
+    }
+
+    sub safe_rect(uword xx, ubyte yy, uword rwidth, ubyte rheight, ubyte color) {
+        ; does bounds checking and clipping
+        safe_horizontal_line(xx, yy, rwidth, color)
+        if rheight==1
+            return
+        uword bottomyy = yy as uword + rheight -1
+        if bottomyy<HEIGHT
+            safe_horizontal_line(xx, lsb(bottomyy), rwidth, color)
+        safe_vertical_line(xx, yy+1, rheight-2, color)
+        if rwidth==1
+            return
+        safe_vertical_line(xx+rwidth-1, yy+1, rheight-2, color)
+    }
+
+    sub fillrect(uword xx, ubyte yy, uword rwidth, ubyte rheight, ubyte color) {
+        ; Draw a filled rectangle of the given size and color.
+        ; To fill the whole screen, use clear_screen(color) instead - it is much faster.
+        if rwidth==0
+            return
+        repeat rheight {
+            horizontal_line(xx, yy, rwidth, color)
+            yy++
+        }
+    }
+
+    sub safe_fillrect(uword xx, ubyte yy, uword rwidth, ubyte rheight, ubyte color) {
+        ; Draw a filled rectangle of the given size and color.
+        ; To fill the whole screen, use clear_screen(color) instead - it is much faster.
+        ; This safe version does bounds checking and clipping.
+        if xx>=WIDTH or yy>=HEIGHT
+            return
+        if msb(xx)&$80!=0 {
+            rwidth += xx
+            xx = 0
+        }
+        if xx>=WIDTH
+            return
+        if xx+rwidth>WIDTH
+            rwidth = WIDTH-xx
+        if rwidth>WIDTH
+            return
+
+        if yy as uword + rheight > HEIGHT
+            rheight = HEIGHT-yy
+        if rheight>HEIGHT
+            return
+
+        repeat rheight {
+            horizontal_line(xx, yy, rwidth, color)
+            yy++
+        }
+    }
+
+    sub horizontal_line(uword xx, ubyte yy, uword length, ubyte color) {
+        if length==0
+            return
+        position(xx, yy)
+        ; set vera auto-increment to 1 pixel
+        vera.VERA_ADDR_H = vera.VERA_ADDR_H & %00000111 | (1<<4)
+        if eor_mode {
+            vera.vaddr_clone(0)      ; also setup port 1, for reading
+            %asm {{
+                ldx  p8v_length+1
+                beq  +
+                ldy  #0
+-               lda  p8v_color
+                eor  vera.VERA_DATA1
+                sta  vera.VERA_DATA0
+                iny
+                bne  -
+                dex
+                bne  -
++               ldy  p8v_length     ; remaining
+                beq  +
+-               lda  p8v_color
+                eor  vera.VERA_DATA1
+                sta  vera.VERA_DATA0
+                dey
+                bne  -
++
+            }}
+        } else {
+            %asm {{
+                lda  p8v_color
+                ldx  p8v_length+1
+                beq  +
+                ldy  #0
+-               sta  vera.VERA_DATA0
+                iny
+                bne  -
+                dex
+                bne  -
++               ldy  p8v_length     ; remaining
+                beq  +
+-               sta  vera.VERA_DATA0
+                dey
+                bne  -
++
+            }}
+        }
+    }
+
+    sub safe_horizontal_line(uword xx, ubyte yy, uword length, ubyte color) {
+        ; does bounds checking and clipping
+        if yy>=HEIGHT
+            return
+        if msb(xx)&$80!=0 {
+            length += xx
+            xx = 0
+        }
+        if xx>=WIDTH
+            return
+        if xx+length>WIDTH
+            length = WIDTH-xx
+        if length>WIDTH
+            return
+
+        horizontal_line(xx, yy, length, color)
+    }
+
+    sub vertical_line(uword xx, ubyte yy, ubyte lheight, ubyte color) {
+        if lheight==0
+            return
+        position(xx, yy)
+        ; set vera auto-increment to 320 pixel increment (=next line)
+        vera.VERA_ADDR_H = vera.VERA_ADDR_H & %00000111 | (14<<4)
+        if eor_mode {
+            vera.vaddr_clone(0)      ; also setup port 1, for reading
+            %asm {{
+                ldy  p8v_lheight
+                beq  +
+-               lda  p8v_color
+                eor  vera.VERA_DATA1
+                sta  vera.VERA_DATA0
+                dey
+                bne  -
++
+            }}
+        } else {
+            %asm {{
+                ldy  p8v_lheight
+                lda  p8v_color
+-               sta  vera.VERA_DATA0
+                dey
+                bne  -
+            }}
+        }
+    }
+
+    sub safe_vertical_line(uword xx, ubyte yy, ubyte lheight, ubyte color) {
+        ; does bounds checking and clipping
+        if yy>=HEIGHT
+            return
+        if msb(xx)&$80!=0 or xx>=WIDTH
+            return
+        if yy as uword + lheight > HEIGHT
+            lheight = HEIGHT-yy
+        if lheight>HEIGHT
+            return
+
+        vertical_line(xx, yy, lheight, color)
+    }
+
+    sub line(uword x1, ubyte y1, uword x2, ubyte y2, ubyte color) {
+        ; Bresenham algorithm.
+        ; This code special-cases various quadrant loops to allow simple ++ and -- operations.
+        ; NOTE:  this is about twice as fast as the kernal routine GRAPH_draw_line
+        ;        it trades memory for speed (uses inline plot routine and multiplication lookup tables)
+        ;
+        ; NOTE:  is currently still a regular 6502 routine, could likely be made much faster with the VeraFX line helper.
+
+        cx16.r4L = color   ; cache color in r4L for internal_line_plot
+        cx16.r3L = y2    ; ensure zeropage
+        cx16.r1L = y1    ; ensure zeropage
+
+        if cx16.r1L > cx16.r3L {
+            ; make sure dy is always positive to have only 4 instead of 8 special cases
+            cx16.r0 = x1
+            x1 = x2
+            x2 = cx16.r0
+            cx16.r0L = cx16.r1L
+            cx16.r1L = cx16.r3L
+            cx16.r3L = cx16.r0L
+        }
+        word @zp dx = x2 as word
+        word @zp dy = cx16.r3L
+        dx -= x1
+        dy -= cx16.r1L
+
+        if dx==0 {
+            vertical_line(x1, cx16.r1L, lsb(dy)+1, color)
+            return
+        }
+        if dy==0 {
+            if x1>x2
+                x1=x2
+            horizontal_line(x1, cx16.r1L, abs(dx) as uword +1, color)
+            return
+        }
+
+        bool positive_ix = true
+        if dx < 0 {
+            dx = -dx
+            positive_ix = false
+        }
+        word @zp dx2 = dx*2
+        word @zp dy2 = dy*2
+        word @zp d        ; error term (initialized below based on shallow/steep)
+
+        cx16.r0  = x1    ; ensure zeropage
+        cx16.r2  = x2    ; ensure zeropage
+
+        vera.VERA_CTRL = 0
+        if dx >= dy {
+            d = dx >> 1   ; Initialize error to DX/2 for shallow lines
+            if positive_ix {
+                repeat {
+                    internal_line_plot()
+                    if cx16.r0==cx16.r2
+                        return
+                    cx16.r0++
+                    d += dy2
+                    if d > dx {
+                        cx16.r1L++
+                        d -= dx2
+                    }
+                }
+            } else {
+                repeat {
+                    internal_line_plot()
+                    if cx16.r0==cx16.r2
+                        return
+                    cx16.r0--
+                    d += dy2
+                    if d > dx {
+                        cx16.r1L++
+                        d -= dx2
+                    }
+                }
+            }
+        }
+        else {
+            d = dy >> 1   ; Initialize error to DY/2 for steep lines
+            if positive_ix {
+                repeat {
+                    internal_line_plot()
+                    if cx16.r1L == cx16.r3L
+                        return
+                    cx16.r1L++
+                    d += dx2
+                    if d > dy {
+                        cx16.r0++
+                        d -= dy2
+                    }
+                }
+            } else {
+                repeat {
+                    internal_line_plot()
+                    if cx16.r1L == cx16.r3L
+                        return
+                    cx16.r1L++
+                    d += dx2
+                    if d > dy {
+                        cx16.r0--
+                        d -= dy2
+                    }
+                }
+            }
+        }
+    }
+
+    private asmsub internal_line_plot() {
+        ; Internal plot routine for line algorithm.
+        ; Uses: x in cx16.r0, y in cx16.r1L, color in cx16.r4L
+        ; Checks eor_mode flag for XOR vs normal drawing.
+        %asm {{
+            ldy  cx16.r1L
+            clc
+            lda  times320_lo,y
+            adc  cx16.r0L
+            sta  vera.VERA_ADDR_L
+            lda  times320_mid,y
+            adc  cx16.r0H
+            sta  vera.VERA_ADDR_M
+            lda  #0
+            adc  times320_hi,y
+            sta  vera.VERA_ADDR_H
+
+            lda  p8v_eor_mode
+            bne  +
+            lda  cx16.r4L
+            sta  vera.VERA_DATA0
+            rts
++           lda  cx16.r4L
+            eor  vera.VERA_DATA0
+            sta  vera.VERA_DATA0
+            rts
+        }}
+    }
+
+    sub circle(uword @zp xcenter, ubyte @zp ycenter, ubyte radius, ubyte color) {
+        ; Warning: NO BOUNDS CHECKS. Make sure circle fits in the screen.
+        ; Midpoint algorithm.
+        if radius==0
+            return
+
+        ubyte @zp xx = radius
+        ubyte @zp yy = 0
+        word @zp decisionOver2 = (1 as word)-xx
+        ; R14 = internal plot X
+        ; R15 = internal plot Y
+
+        while xx>=yy {
+            cx16.r14 = xcenter + xx
+            cx16.r15 = ycenter + yy
+            plotq()
+            cx16.r14 = xcenter - xx
+            plotq()
+            cx16.r14 = xcenter + xx
+            cx16.r15 = ycenter - yy
+            plotq()
+            cx16.r14 = xcenter - xx
+            plotq()
+            cx16.r14 = xcenter + yy
+            cx16.r15 = ycenter + xx
+            plotq()
+            cx16.r14 = xcenter - yy
+            plotq()
+            cx16.r14 = xcenter + yy
+            cx16.r15 = ycenter - xx
+            plotq()
+            cx16.r14 = xcenter - yy
+            plotq()
+
+            yy++
+            if decisionOver2>=0 {
+                xx--
+                decisionOver2 -= xx*$0002
+            }
+            decisionOver2 += yy*$0002
+            decisionOver2++
+        }
+
+        sub plotq() {
+            ; cx16.r14 = x, cx16.r15 = y, color=color.
+            plot(cx16.r14, cx16.r15L, color)
+        }
+    }
+
+    sub safe_circle(uword @zp xcenter, uword @zp ycenter, ubyte radius, ubyte color) {
+        ; This version does bounds checks and clipping, but is a lot slower.
+        ; Midpoint algorithm.
+        if radius==0
+            return
+
+        ubyte @zp xx = radius
+        ubyte @zp yy = 0
+        word @zp decisionOver2 = (1 as word)-xx
+        ; R14 = internal plot X
+        ; R15 = internal plot Y
+
+        while xx>=yy {
+            cx16.r14 = xcenter + xx
+            cx16.r15 = ycenter + yy
+            plotq()
+            cx16.r14 = xcenter - xx
+            plotq()
+            cx16.r14 = xcenter + xx
+            cx16.r15 = ycenter - yy
+            plotq()
+            cx16.r14 = xcenter - xx
+            plotq()
+            cx16.r14 = xcenter + yy
+            cx16.r15 = ycenter + xx
+            plotq()
+            cx16.r14 = xcenter - yy
+            plotq()
+            cx16.r14 = xcenter + yy
+            cx16.r15 = ycenter - xx
+            plotq()
+            cx16.r14 = xcenter - yy
+            plotq()
+
+            yy++
+            if decisionOver2>=0 {
+                xx--
+                decisionOver2 -= xx*$0002
+            }
+            decisionOver2 += yy*$0002
+            decisionOver2++
+        }
+
+        sub plotq() {
+            ; cx16.r14 = x, cx16.r15 = y, color=color.
+            if cx16.r15 < HEIGHT
+                safe_plot(cx16.r14, cx16.r15L, color)
+        }
+    }
+
+    sub disc(uword @zp xcenter, ubyte @zp ycenter, ubyte @zp radius, ubyte color) {
+        ; Warning: NO BOUNDS CHECKS. Make sure circle fits in the screen.
+        ; Midpoint algorithm, filled
+        if radius==0
+            return
+        ubyte @zp yy = 0
+        word @zp decisionOver2 = (1 as word)-radius
+        ubyte pendingRadius
+        ubyte pendingWidth
+        bool hasPending = false
+        while radius>=yy {
+            horizontal_line(xcenter-radius, ycenter+yy, radius*$0002+1, color)
+            horizontal_line(xcenter-radius, ycenter-yy, radius*$0002+1, color)
+            if hasPending and pendingRadius != radius {
+                if pendingRadius != pendingWidth {
+                    horizontal_line(xcenter-pendingWidth, ycenter+pendingRadius, pendingWidth*$0002+1, color)
+                    horizontal_line(xcenter-pendingWidth, ycenter-pendingRadius, pendingWidth*$0002+1, color)
+                }
+                hasPending = false
+            }
+            if not hasPending {
+                pendingRadius = radius
+                hasPending = true
+            }
+            pendingWidth = yy
+            yy++
+            if decisionOver2>=0 {
+                radius--
+                decisionOver2 -= radius*$0002
+            }
+            decisionOver2 += yy*$0002
+            decisionOver2++
+        }
+        if hasPending and pendingRadius != pendingWidth {
+            horizontal_line(xcenter-pendingWidth, ycenter+pendingRadius, pendingWidth*$0002+1, color)
+            horizontal_line(xcenter-pendingWidth, ycenter-pendingRadius, pendingWidth*$0002+1, color)
+        }
+    }
+
+    sub safe_disc(uword @zp xcenter, uword @zp ycenter, ubyte @zp radius, ubyte color) {
+        ; This version does bounds checks and clipping, but is a lot slower.
+        ; Midpoint algorithm, filled
+        if radius==0
+            return
+        ubyte @zp yy = 0
+        word @zp decisionOver2 = (1 as word)-radius
+        ubyte pendingRadius
+        ubyte pendingWidth
+        bool hasPending = false
+
+        while radius>=yy {
+            uword liney = ycenter+yy
+            if msb(liney)==0
+                safe_horizontal_line(xcenter-radius, lsb(liney), radius*$0002+1, color)
+            liney = ycenter-yy
+            if msb(liney)==0
+                safe_horizontal_line(xcenter-radius, lsb(liney), radius*$0002+1, color)
+
+            if hasPending and pendingRadius != radius {
+                if pendingRadius != pendingWidth {
+                    liney = ycenter+pendingRadius
+                    if msb(liney)==0
+                        safe_horizontal_line(xcenter-pendingWidth, lsb(liney), pendingWidth*$0002+1, color)
+                    liney = ycenter-pendingRadius
+                    if msb(liney)==0
+                        safe_horizontal_line(xcenter-pendingWidth, lsb(liney), pendingWidth*$0002+1, color)
+                }
+                hasPending = false
+            }
+            if not hasPending {
+                pendingRadius = radius
+                hasPending = true
+            }
+            pendingWidth = yy
+
+            yy++
+            if decisionOver2>=0 {
+                radius--
+                decisionOver2 -= radius*$0002
+            }
+            decisionOver2 += yy*$0002
+            decisionOver2++
+        }
+        if hasPending and pendingRadius != pendingWidth {
+            uword flushLiney = ycenter+pendingRadius
+            if msb(flushLiney)==0
+                safe_horizontal_line(xcenter-pendingWidth, lsb(flushLiney), pendingWidth*$0002+1, color)
+            flushLiney = ycenter-pendingRadius
+            if msb(flushLiney)==0
+                safe_horizontal_line(xcenter-pendingWidth, lsb(flushLiney), pendingWidth*$0002+1, color)
+        }
+    }
+
+    asmsub plot(uword x @AX, ubyte y @Y, ubyte color @R0) {
+        ; x in r0,  y in r1,   color.
+        %asm {{
+            clc
+            adc  times320_lo,y
+            sta  vera.VERA_ADDR_L
+            txa
+            adc  times320_mid,y
+            sta  vera.VERA_ADDR_M
+            lda  #0
+            adc  times320_hi,y
+            sta  vera.VERA_ADDR_H
+
+            lda  p8v_eor_mode
+            bne  +
+            lda  cx16.r0L
+            sta  vera.VERA_DATA0
+            rts
++           lda  cx16.r0L
+            eor  vera.VERA_DATA0
+            sta  vera.VERA_DATA0
+            rts
+        }}
+    }
+
+    sub safe_plot(uword xx, ubyte yy, ubyte color) {
+        ; A plot that does bounds checks to see if the pixel is inside the screen.
+        if msb(xx)&$80!=0
+            return
+        if xx >= WIDTH or yy >= HEIGHT
+            return
+        plot(xx, yy, color)
+    }
+
+    asmsub pget(uword x @AX, ubyte y @Y) -> ubyte @A {
+        ; returns the color of the pixel
+        %asm {{
+            jsr  p8s_position
+            lda  vera.VERA_DATA0
+            rts
+        }}
+    }
+
+    sub fill(uword x, ubyte y, ubyte new_color, ubyte stack_rambank) {
+        ; reuse a few virtual registers in ZP for variables
+        &ubyte fillm = &cx16.r7L
+        &ubyte seedm = &cx16.r8L
+        &ubyte cmask = &cx16.r8H
+        &ubyte vub   = &cx16.r13L
+        &ubyte nvub  = &cx16.r13H
+        ubyte[4] amask = [$c0,$30,$0c,$03] ; array of cmask bytes
+
+        ; Non-recursive scanline flood fill.
+        ; based loosely on code found here https://www.codeproject.com/Articles/6017/QuickFill-An-efficient-flood-fill-algorithm
+        ; with the fixes applied to the seedfill_4 routine as mentioned in the comments.
+        ; Also see https://lodev.org/cgtutor/floodfill.html
+        word @zp xx = x as word
+        word @zp yy = y as word
+        word x1
+        word x2
+        byte dy
+        cx16.r10L = new_color
+        stack.init()
+
+        sub push_stack(word sxl, word sxr, word sy, byte sdy) {
+            cx16.r0s = sy+sdy
+            if cx16.r0s>=0 and cx16.r0s<=HEIGHT-1 {
+                stack.push_w(sxl as uword)
+                stack.push_w(sxr as uword)
+                stack.push_w(sy as uword)
+                stack.push_b(sdy as ubyte)
+            }
+        }
+        sub pop_stack() {
+            dy = stack.pop_b() as byte
+            yy = stack.pop_w() as word
+            x2 = stack.pop_w() as word
+            x1 = stack.pop_w() as word
+            yy+=dy
+        }
+        cx16.r11L = pget(xx as uword, lsb(yy))        ; old_color
+        if cx16.r11L == cx16.r10L
+            return
+        if xx<0 or xx>WIDTH-1 or yy<0 or yy>HEIGHT-1
+            return
+        push_stack(xx, xx, yy, 1)
+        push_stack(xx, xx, yy + 1, -1)
+        word left = 0
+        while not stack.isempty() {
+            pop_stack()
+            xx = x1
+            if fill_scanline_left_8bpp() goto skip
+            left = xx + 1
+            if left < x1
+                push_stack(left, x1 - 1, yy, -dy)
+            xx = x1 + 1
+
+            do {
+                fill_scanline_right_8bpp()
+                push_stack(left, xx - 1, yy, dy)
+                if xx > x2 + 1
+                    push_stack(x2 + 1, xx - 1, yy, -dy)
+skip:
+                xx++
+                while xx <= x2 {
+                    if pget(xx as uword, lsb(yy)) == cx16.r11L
+                        break
+                    xx++
+                }
+                left = xx
+            } until xx>x2
+        }
+
+        sub set_vera_address(bool decr) {
+            ; set both data0 and data1 addresses
+            position(xx as uword, lsb(yy))
+            cx16.r0 = vera.VERA_ADDR
+            cx16.r1L = vera.VERA_ADDR_H & 1 | if decr %00011000 else %00010000
+            vera.VERA_ADDR_H = cx16.r1L
+            vera.VERA_CTRL = 1
+            vera.VERA_ADDR = cx16.r0
+            vera.VERA_ADDR_H = cx16.r1L
+            vera.VERA_CTRL = 0
+        }
+
+        sub fill_scanline_left_8bpp() -> bool {
+            set_vera_address(true)
+            cx16.r9s = xx
+            while xx >= 0 {
+                if vera.VERA_DATA0 != cx16.r11L
+                    break
+                vera.VERA_DATA1 = cx16.r10L
+                xx--
+            }
+            return xx==cx16.r9s
+        }
+
+        sub fill_scanline_right_8bpp() {
+            set_vera_address(false)
+            while xx <= WIDTH-1 {
+                if vera.VERA_DATA0 != cx16.r11L
+                    break
+                vera.VERA_DATA1 = cx16.r10L
+                xx++
+            }
+        }
+    }
+
+    private const ubyte charset_bank = $1
+    private const uword charset_addr = $f000       ; in bank 1, so $1f000
+
+    sub text(uword @zp xx, ubyte yy, ubyte color, str textptr) {
+        ; -- Write some text at the given pixel position. The text string must be in an encoding approprite for the charset.
+        ;    You must also have called text_charset() first to select and prepare the character set to use.
+        uword chardataptr
+        ubyte[8] @shared char_bitmap_bytes_left
+        ubyte[8] @shared char_bitmap_bytes_right
+
+        while @(textptr)!=0 {
+            chardataptr = charset_addr + (@(textptr) as uword)*8
+            vera.vaddr(charset_bank, chardataptr, 1, 1)
+            repeat 8 {
+                position(xx,lsb(yy))
+                yy++
+                %asm {{
+                    ldx  p8v_color
+                    lda  vera.VERA_DATA1
+                    sta  P8ZP_SCRATCH_B1
+                    ldy  #8
+-                   asl  P8ZP_SCRATCH_B1
+                    bcc  +
+                    stx  vera.VERA_DATA0    ; write a pixel
+                    bcs  ++
++                   lda  vera.VERA_DATA0    ; don't write a pixel, but do advance to the next address
++                   dey
+                    bne  -
+                }}
+            }
+            xx+=8
+            yy-=8
+            textptr++
+        }
+    }
+
+    asmsub position(uword x @AX, ubyte y @Y) {
+        %asm {{
+            clc
+            adc  times320_lo,y
+            sta  vera.VERA_ADDR_L
+            txa
+            adc  times320_mid,y
+            sta  vera.VERA_ADDR_M
+            lda  #%00010000         ; auto increment on
+            adc  times320_hi,y
+            sta  vera.VERA_ADDR_H
+            rts
+        }}
+    }
+
+    inline asmsub next_pixel(ubyte color @A) {
+        ; -- sets the next pixel byte to the graphics chip.
+        ;    for 8 bpp screens this will plot 1 pixel.
+        ;    for 2 bpp screens it will plot 4 pixels at once (color = bit pattern).
+        %asm {{
+            sta  vera.VERA_DATA0
+        }}
+    }
+
+    asmsub next_pixels(uword pixels @AY, uword amount @R0) clobbers(A, X, Y)  {
+        ; -- sets the next bunch of pixels from a prepared array of bytes.
+        ;    for 8 bpp screens this will plot 1 pixel per byte.
+        ;    for 2 bpp screens it will plot 4 pixels at once (colors are the bit patterns per byte).
+        %asm {{
+            sta  P8ZP_SCRATCH_W1
+            sty  P8ZP_SCRATCH_W1+1
+            ldx  cx16.r0+1
+            beq  +
+            ldy  #0
+-           lda  (P8ZP_SCRATCH_W1),y
+            sta  vera.VERA_DATA0
+            iny
+            bne  -
+            inc  P8ZP_SCRATCH_W1+1       ; next page of 256 pixels
+            dex
+            bne  -
+
++           ldx  cx16.r0           ; remaining pixels
+            beq  +
+            ldy  #0
+-           lda  (P8ZP_SCRATCH_W1),y
+            sta  vera.VERA_DATA0
+            iny
+            dex
+            bne  -
++           rts
+        }}
+    }
+
+    asmsub set_8_pixels_from_bits(ubyte bits @R0, ubyte oncolor @A, ubyte offcolor @Y) clobbers(X) {
+        ; this is only useful in 256 color mode where one pixel equals one byte value.
+        %asm {{
+            ldx  #8
+-           asl  cx16.r0
+            bcc  +
+            sta  vera.VERA_DATA0
+            bcs  ++
++           sty  vera.VERA_DATA0
++           dex
+            bne  -
+            rts
+        }}
+    }
+
+    %asm {{
+; multiplication by 320 lookup table
+times320 := 320*range(240)
+
+times320_lo     .byte <times320
+times320_mid    .byte >times320
+times320_hi     .byte `times320
+    }}
 }

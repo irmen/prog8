@@ -11,24 +11,22 @@ main {
     const ubyte SPRITE_NUM = 2
 
     sub start() {
-        txt.print("\n*** vera64 sprite demo ***\n")
+        txt.print("\n*** vera64 demo ***\n")
         txt.print("vera base address: ")
         txt.print_uwhex(vera.VERA_BASE,true)
-        txt.print("\nresetting vera and setting lores screen\n")
 
         vera.reset()
-        init_bitmap_screen()            ; 320x240 8bpp via direct vera register pokes
-
-        txt.print("setting some custom colors\n")
-        txt.print("and animating a big sprite...\n")
+        vera_gfx.init()
+        drawgfx()
 
         vera_palette.set_color(10, $0f8d)     ; palette index 10 = some pink color
         vera_palette.set_color(11, $0163)     ; palette index 11 = some dark green color
 
         ; fill 64x64 4bpp sprite data (2048 bytes) with pixel value 5
         vera.vaddr_autoincr(1, SPRITE_ADDR, 0, 1)
-        repeat 2048 {
+        repeat 2048/2 {
             vera.VERA_DATA0 = $AB
+            vera.VERA_DATA0 = $BA
         }
 
         vera_sprites.init(SPRITE_NUM, 1, SPRITE_ADDR, vera_sprites.SIZE_64, vera_sprites.SIZE_64, vera_sprites.COLORS_16, 0)
@@ -44,18 +42,22 @@ main {
         }
     }
 
-    sub init_bitmap_screen() {
-        ; 320x240 8bpp bitmap on layer 1, bitmap at vram $00000, set via direct vera register pokes
-        vera.VERA_CTRL = 0
-        vera.VERA_DC_VIDEO = (vera.VERA_DC_VIDEO & %11001100) | %00100001     ; layer 1 only, force VGA output (a vera reset leaves output mode 0=disabled)
-        vera.VERA_DC_HSCALE = 64
-        vera.VERA_DC_VSCALE = 64
-        vera.VERA_L1_CONFIG = %00000111     ; bitmap mode, 8 bpp
-        vera.VERA_L1_MAPBASE = 0
-        vera.VERA_L1_TILEBASE = 0           ; bitmap base $00000
-        vera.VERA_L1_HSCROLL_L = 0
-        vera.VERA_L1_HSCROLL_H = 0
-        vera.VERA_L1_VSCROLL_L = 0
-        vera.VERA_L1_VSCROLL_H = 0
+    sub drawgfx() {
+        for radius in 100 downto 10 step -10 {
+            vera_gfx.disc(160, 120, radius, radius)
+        }
+
+        for x in 0 to 319 step 10 {
+            verafx.line(x, 0, 319-x, 239, lsb(x))
+        }
+
+        for y in 0 to 239 step 10 {
+            verafx.line(0, y, 319, 239-y, y)
+        }
+
+        for x in 20 to 80 step 10 {
+            vera_gfx.text(x, lsb(x), lsb(x), sc:"hello from vera64 and prog8")
+        }
     }
+
 }
