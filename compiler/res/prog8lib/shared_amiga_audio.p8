@@ -248,6 +248,31 @@ audio {
         stop(3)
     }
 
+    sub stop_channels(ubyte mask) {
+        ; -- Stop the given channels (bitmask 0-15): follow-up CMD_WRITEs
+        ; queue up instead of playing, until start_channels() starts them.
+        if mask==0
+            return
+        ^^IOAudio ctrl = CtrlIO0
+        ctrl.Command = exec.CMD_STOP
+        ctrl.Unit = mask
+        ctrl.Flags = 0
+        exec.DoIO(ctrl)
+        ctrl.Unit = 1        ; restore the default channel-0 binding
+    }
+
+    sub start_channels(ubyte mask) {
+        ; -- Start the given channels (bitmask 0-15) simultaneously, so writes queued on them begin at the same tick
+        if mask==0
+            return
+        ^^IOAudio ctrl = CtrlIO0
+        ctrl.Command = exec.CMD_START
+        ctrl.Unit = mask
+        ctrl.Flags = 0
+        exec.DoIO(ctrl)
+        ctrl.Unit = 1        ; restore the default channel-0 binding
+    }
+
     sub set_freqvol(ubyte channel, uword samplerate, ubyte volume) {
         ; -- Change the playback rate and volume of the sound currently playing on this channel (ADCMD_PERVOL).
         ; Takes effect immediately. Both are always set together: ADCMD_PERVOL has no way to change just one.

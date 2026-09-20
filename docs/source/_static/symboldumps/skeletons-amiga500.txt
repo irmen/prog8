@@ -1,6 +1,6 @@
 
-Prog8 compiler v14.0-BETA1 by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit ddfdd909 in branch master
+Prog8 compiler v14.0-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
+Prerelease version from git commit 6de6a81d in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-amiga500.p8
@@ -259,6 +259,34 @@ arexx  {
 }
 
 
+LIBRARY MODULE NAME: asyncio
+----------------------------
+
+asyncio  {
+    const long  MODE_APPEND
+    const long  MODE_CURRENT
+    const long  MODE_END
+    const long  MODE_READ
+    const long  MODE_START
+    const long  MODE_WRITE
+    CloseAsync  (long file @A0) -> long @D0@bank 100 = -$2a
+    FGetsAsync  (long file @A0, long buffer @A1, long size @D0) -> str @D0@bank 100 = -$5a
+    FGetsLenAsync  (long file @A0, long buffer @A1, long size @D0, long length @A2) -> str @D0@bank 100 = -$60
+    OpenAsync  (str fileName @A0, long mode @D0, long bufferSize @D1) -> long @D0@bank 100 = -$1e
+    OpenAsyncFromFH  (long handle @A0, long mode @D0, long bufferSize @D1) -> long @D0@bank 100 = -$24
+    PeekAsync  (long file @A0, long buffer @A1, long numBytes @D0) -> long @D0@bank 100 = -$66
+    ReadAsync  (long file @A0, long buffer @A1, long numBytes @D0) -> long @D0@bank 100 = -$36
+    ReadCharAsync  (long file @A0) -> long @D0@bank 100 = -$42
+    ReadLineAsync  (long file @A0, long buffer @A1, long size @D0) -> long @D0@bank 100 = -$4e
+    SeekAsync  (long file @A0, long position @D0, long mode @D1) -> long @D0@bank 100 = -$30
+    WriteAsync  (long file @A0, long buffer @A1, long numBytes @D0) -> long @D0@bank 100 = -$3c
+    WriteCharAsync  (long file @A0, ubyte ch @D0) -> long @D0@bank 100 = -$48
+    WriteLineAsync  (long file @A0, str line @A1) -> long @D0@bank 100 = -$54
+    closelib  ()
+    openlib  () -> bool
+}
+
+
 LIBRARY MODULE NAME: audio
 --------------------------
 
@@ -289,6 +317,10 @@ audio  {
     ^^audio.IOAudio  AudioIO1
     ^^audio.IOAudio  AudioIO2
     ^^audio.IOAudio  AudioIO3
+    ^^audio.IOAudio  StreamIO0
+    ^^audio.IOAudio  StreamIO1
+    ^^audio.IOAudio  StreamIO2
+    ^^audio.IOAudio  StreamIO3
     clock  () clobbers (A6) -> long @D0
     closedevice  ()
     closedown  ()
@@ -298,12 +330,14 @@ audio  {
     opendevice  (long channelPrefs, ubyte prefsLen, byte precedence) -> bool
     period  (uword samplerate) -> uword
     play  (ubyte channel, ^^byte samples, long num_samples, uword sample_rate, ubyte volume, uword cycles)
+    play_queued  (ubyte channel, ^^byte samples, long num_samples, uword sample_rate, ubyte volume, uword cycles)
     sample_rate  (uword per) -> uword
     set_freqvol  (ubyte channel, uword samplerate, ubyte volume)
     stop  (ubyte channel)
     stop_all  ()
     wait_all  ()
     wait_channel  (ubyte channel)
+    wait_queued  (ubyte channel)
 }
 
 
@@ -4546,6 +4580,7 @@ LIBRARY MODULE NAME: syslib
 ---------------------------
 
 sys  {
+    long @shared  AsyncIOBase
     long @shared  DOSBase
     long @shared  GfxBase
     long @shared  IFFParseBase
@@ -4665,6 +4700,67 @@ timer  {
     getsystime  () -> long, long
     opendevice  () -> bool
     setsystime  (long secs, long micro)
+}
+
+
+LIBRARY MODULE NAME: trackdisk
+------------------------------
+
+trackdisk  {
+    struct DriveGeometry
+    const ubyte  DRIVE3_5
+    const ubyte  DRIVE3_5_150RPM
+    const ubyte  DRIVE5_25
+    const ubyte  NUMSECS
+    const ubyte  NUMUNITS
+    const ubyte  TDERR_BadDriveType
+    const ubyte  TDERR_BadHdrSum
+    const ubyte  TDERR_BadSecHdr
+    const ubyte  TDERR_BadSecID
+    const ubyte  TDERR_BadSecPreamble
+    const ubyte  TDERR_BadSecSum
+    const ubyte  TDERR_BadUnitNum
+    const ubyte  TDERR_DiskChanged
+    const ubyte  TDERR_DriveInUse
+    const ubyte  TDERR_NoMem
+    const ubyte  TDERR_NoSecHdr
+    const ubyte  TDERR_NotSpecified
+    const ubyte  TDERR_PostReset
+    const ubyte  TDERR_SeekError
+    const ubyte  TDERR_TooFewSecs
+    const ubyte  TDERR_WriteProt
+    const uword  TD_ADDCHANGEINT
+    const uword  TD_CHANGENUM
+    const uword  TD_CHANGESTATE
+    const uword  TD_EJECT
+    const uword  TD_FORMAT
+    const uword  TD_GETDRIVETYPE
+    const uword  TD_GETGEOMETRY
+    const uword  TD_GETNUMTRACKS
+    const ubyte  TD_LABELSIZE
+    const uword  TD_MOTOR
+    const uword  TD_PROTSTATUS
+    const uword  TD_RAWREAD
+    const uword  TD_RAWWRITE
+    const uword  TD_REMCHANGEINT
+    const uword  TD_REMOVE
+    const ubyte  TD_SECSHIFT
+    const uword  TD_SECTOR
+    const uword  TD_SEEK
+    const long  TRACK_BYTES
+    ^^exec.IOStdReq @shared  TrackIO
+    changestate  () -> bool
+    closedevice  ()
+    getdrivetype  () -> long
+    getgeometry  (^^trackdisk.DriveGeometry geom) -> byte
+    getnumtracks  () -> ubyte
+    motor  (bool on) -> byte
+    opendevice  (long unit) -> bool
+    protstatus  () -> bool
+    read  (long buffer, long length, long offset) -> byte
+    seek  (long offset) -> byte
+    update  () -> byte
+    write  (long buffer, long length, long offset) -> byte
 }
 
 
