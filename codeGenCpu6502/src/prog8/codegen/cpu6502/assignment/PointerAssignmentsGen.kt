@@ -337,6 +337,18 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
         }
     }
 
+    internal fun derefUsesScratchPointer(pointer: PtPointerDeref, addOffsetToPointer: Boolean=false): Boolean {
+        // determine if deref() would need to keep the effective address in the shared
+        // scratch pointer P8ZP_SCRATCH_PTR, which a subsequent evaluation of a source
+        // expression could then clobber. Only if it doesn't, may the pointer itself (if
+        // located in the zeropage) keep being used for the read-modify-write.
+        if(pointer.chain.isEmpty())
+            return !allocator.isZpVar(pointer.startpointer.name)
+        if(pointer.chain.size > 1 || addOffsetToPointer)
+            return true
+        return !(allocator.isZpVar(pointer.startpointer.name) && !pointer.derefLast)
+    }
+
     internal fun indexedEffectiveAddress(target: IndexedPtrTarget): String {
         val eltSize = asmgen.program.memsizer.memorySize(target.elementDt, null)
         // generic: evaluate index as word, scale by element size, add field-corrected base pointer

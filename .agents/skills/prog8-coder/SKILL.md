@@ -138,3 +138,9 @@ Use `if_cs`, `if_cc`, `if_z`, and `if_nz` for direct CPU-flag branches.
 - When running `gradle` tests, grep for `SUCCESSFUL` to check if all tests
   passed, and `FAILED` to check for failures. Gradle does not print individual
   `PASSED` lines by default.
+- Do not write compiler unit tests that depend on the `vasm` assembler: it is
+  not always installed (CI only installs `64tass`). For m68k codegen tests
+  (`amiga500`, `qemu68k` targets) pass `writeAssembly = true, assemble = false`
+  to the `compileText`/`compileFile` helpers. This still generates the codegen
+  AST to assert on, but skips assembling, so no vasm is needed. If a test's
+  assertions cannot be made from the AST alone, drop the test.

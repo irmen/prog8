@@ -182,6 +182,50 @@ mylabel_inside:
         compileText(target, false, src, outputDir, writeAssembly = true) shouldNotBe null
     }
 
+    test("augmented assignment with constant 2 on pointer field") {
+        // regression: the INC/DEC optimization condition was not properly parenthesized,
+        // so any operator combined with a const value of 2 took the INC/DEC path (e.g. p.val >>= 2 became p.val -= 2)
+        val src = """
+main {
+    struct Node {
+        uword val
+        ^^Node next
+    }
+
+    sub start() {
+        ^^Node p = ^^Node: [0, 0]
+        p.val = 500
+        p.val >>= 2
+        main.shift_result = p.val
+        p.val <<= 2
+        main.shiftl_result = p.val
+        p.val += 2
+        main.add_result = p.val
+        p.val -= 2
+        main.sub_result = p.val
+    }
+
+    uword @shared shift_result
+    uword @shared shiftl_result
+    uword @shared add_result
+    uword @shared sub_result
+}"""
+        val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = true)!!
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
+        val irContent = virtfile.readText()
+
+        val irProgram = IRFileReader().read(irContent)
+        irProgram.st.stripAllPrefixes()
+        val allocations = VmVariableAllocator(irProgram.st, irProgram.encoding, irProgram.options.compTarget).allocations
+
+        VmRunner().runAndTestProgram(irContent) { vm ->
+            vm.memory.getUW(allocations["main.shift_result"]!!) shouldBe 125u
+            vm.memory.getUW(allocations["main.shiftl_result"]!!) shouldBe 500u
+            vm.memory.getUW(allocations["main.add_result"]!!) shouldBe 502u
+            vm.memory.getUW(allocations["main.sub_result"]!!) shouldBe 500u
+        }
+    }
+
     test("case sensitive symbols") {
         val src = """
 main {

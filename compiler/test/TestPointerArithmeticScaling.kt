@@ -192,7 +192,7 @@ class TestPointerArithmeticScaling : FunSpec({
                 }
             }
         """.trimIndent()
-        val result = compileText(Amiga500Target(), false, src, outputDir, writeAssembly = true)!!
+        val result = compileText(Amiga500Target(), false, src, outputDir, writeAssembly = true, assemble = false)!!
 
         val binExpr = result.compilerAst.entrypoint.statements
             .filterIsInstance<Assignment>()
@@ -379,7 +379,7 @@ class TestPointerArithmeticScaling : FunSpec({
         """.trimIndent()
 
         listOf(Amiga500Target(), VMTarget()).forEach { target ->
-            val result = compileText(target, false, src, outputDir, writeAssembly = true)!!
+            val result = compileText(target, false, src, outputDir, writeAssembly = true, assemble = false)!!
             val assignments = result.codegenAst!!.entrypoint()!!.children
                 .filterIsInstance<PtAssignment>()
             val plus = assignments.filter { it.target.identifier?.name?.endsWith("plus") == true }.last().value as PtBinaryExpression

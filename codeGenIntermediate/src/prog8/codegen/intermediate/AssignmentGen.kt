@@ -222,7 +222,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
             val (addressReg, fieldOffset) = codeGen.evaluatePointerAddressIntoReg(inplaceInstrs, pointerDeref)
             val oldvalueReg = codeGen.registers.next(targetDt)
 
-            if((augAssign.operator=="+=" || augAssign.operator=="-=") && value.asConstInteger()==1 || value.asConstInteger()==2) {
+            if((augAssign.operator=="+=" || augAssign.operator=="-=") && (value.asConstInteger()==1 || value.asConstInteger()==2)) {
                 // INC/DEC optimization instead of ADD/SUB
 
                 loadfield(inplaceInstrs, addressReg, fieldOffset, targetDt, oldvalueReg)
@@ -819,7 +819,6 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
         valueFpRegister: Int
     ) {
         val fixedIndex = targetArray.index.asConstInteger()
-        val arrayLength = codeGen.symbolTable.getLength(variable)
         if(zero) {
             if(fixedIndex!=null) {
                 val chunk = IRCodeChunk(null, null).also {

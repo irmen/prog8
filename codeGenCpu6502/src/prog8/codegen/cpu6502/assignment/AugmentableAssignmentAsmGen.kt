@@ -119,6 +119,96 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
         }
     }
 
+    private fun inplaceModificationPointerField(target: AsmAssignTarget, operator: String, value: AsmAssignSource) {
+        // the pointer to the target field is materialized in the shared scratch pointer
+        // P8ZP_SCRATCH_PTR because the pointer variable isn't in the zeropage (or the
+        // deref chain is too complex). Evaluating the source value may clobber that
+        // scratch pointer, so we operate on a temporary variable and preserve the
+        // address on the hardware stack, mirroring inplaceModificationIndexedPointerField.
+        val elementDt = target.datatype
+        if(!elementDt.isByteOrBool && !elementDt.isWord && !elementDt.isLong)
+            throw AssemblyError("inplace modification of pointer field for type $elementDt not supported ${target.position}")
+        val ptrTarget = PtrTarget(target)
+        val (zpPtrVar, offset) = ptrgen.deref(ptrTarget.pointer)
+        require(zpPtrVar=="P8ZP_SCRATCH_PTR")
+
+        val elementTemp = asmgen.createTempVarReused(elementDt.base, false, target.origAstTarget ?: target.pointer!!)
+        if(elementDt.isByteOrBool) {
+            asmgen.out("""
+                ldy  #$offset
+                lda  ($zpPtrVar),y
+                sta  $elementTemp""")
+        } else if(elementDt.isWord) {
+            asmgen.out("""
+                ldy  #$offset
+                lda  ($zpPtrVar),y
+                sta  $elementTemp
+                iny
+                lda  ($zpPtrVar),y
+                sta  $elementTemp+1""")
+        } else {
+            asmgen.out("""
+                ldy  #$offset
+                lda  ($zpPtrVar),y
+                sta  $elementTemp
+                iny
+                lda  ($zpPtrVar),y
+                sta  $elementTemp+1
+                iny
+                lda  ($zpPtrVar),y
+                sta  $elementTemp+2
+                iny
+                lda  ($zpPtrVar),y
+                sta  $elementTemp+3""")
+        }
+
+        // save the computed address on the hardware stack so later code can't clobber it
+        asmgen.out("""
+            lda  $zpPtrVar
+            pha
+            lda  $zpPtrVar+1
+            pha""")
+
+        // reuse the existing variable-target logic to modify the temp
+        val tempTarget = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, elementDt, null, target.position, variableAsmName = elementTemp)
+        inplaceModification(tempTarget, operator, value)
+
+        // restore the address and store the temp back
+        asmgen.out("""
+            pla
+            sta  $zpPtrVar+1
+            pla
+            sta  $zpPtrVar""")
+        if(elementDt.isByteOrBool) {
+            asmgen.out("""
+                ldy  #$offset
+                lda  $elementTemp
+                sta  ($zpPtrVar),y""")
+        } else if(elementDt.isWord) {
+            asmgen.out("""
+                ldy  #$offset
+                lda  $elementTemp
+                sta  ($zpPtrVar),y
+                iny
+                lda  $elementTemp+1
+                sta  ($zpPtrVar),y""")
+        } else {
+            asmgen.out("""
+                ldy  #$offset
+                lda  $elementTemp
+                sta  ($zpPtrVar),y
+                iny
+                lda  $elementTemp+1
+                sta  ($zpPtrVar),y
+                iny
+                lda  $elementTemp+2
+                sta  ($zpPtrVar),y
+                iny
+                lda  $elementTemp+3
+                sta  ($zpPtrVar),y""")
+        }
+    }
+
     private fun inplaceModification(target: AsmAssignTarget, operator: String, value: AsmAssignSource) {
 
         // the asm-gen code can deal with situations where you want to assign a byte into a word.
@@ -611,7 +701,19 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     }
                 }
             }
-            TargetStorageKind.POINTER -> ptrgen.inplaceModification(PtrTarget(target), operator, value)
+            TargetStorageKind.POINTER -> {
+                // if the effective target address ends up in the shared scratch pointer
+                // P8ZP_SCRATCH_PTR, evaluating the source value could clobber it. In that
+                // case operate on a protected temporary value instead.
+                val usesOffsetPointer = target.datatype.isFloat || operator in setOf("*", "/", "%")
+                val needsProtectedPtr = ptrgen.derefUsesScratchPointer(target.pointer!!, usesOffsetPointer)
+                if (value.kind in setOf(SourceStorageKind.EXPRESSION, SourceStorageKind.REGISTER)
+                        && needsProtectedPtr
+                        && (target.datatype.isByteOrBool || target.datatype.isWord || target.datatype.isLong))
+                    inplaceModificationPointerField(target, operator, value)
+                else
+                    ptrgen.inplaceModification(PtrTarget(target), operator, value)
+            }
             TargetStorageKind.REGISTER -> throw AssemblyError("no asm gen for reg in-place modification")
             TargetStorageKind.VOID -> { /* do nothing */ }
         }
