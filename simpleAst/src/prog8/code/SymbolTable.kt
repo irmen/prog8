@@ -267,11 +267,18 @@ class StStruct(
     name: String,
     val fields: List<PtStructField>,
     val size: UInt,
-    astNode: PtStructDecl?
+    astNode: PtStructDecl?,
+    val isUnion: Boolean = false
 ) : StNode(name, StNodeType.STRUCT, astNode), ISubType {
 
     fun getField(name: String, sizer: IMemSizer): Pair<DataType, UByte> {
         // returns type and byte offset of the given field
+        if(isUnion) {
+            val field = fields.firstOrNull { it.name == name }
+            if(field!=null)
+                return field.type to 0u
+            throw NoSuchElementException("field $name not found in struct ${this.name}")
+        }
         var offset = 0
         for(field in fields) {
             if(name==field.name) {
@@ -288,7 +295,7 @@ class StStruct(
 
     override fun memsize(sizer: IMemSizer): Int = size.toInt()
     override fun sameas(other: ISubType): Boolean {
-        if(other is StStruct && size == other.size && fields == other.fields) {
+        if(other is StStruct && size == other.size && fields == other.fields && isUnion == other.isUnion) {
             if(scopedNameString == other.scopedNameString)
                 return true
 

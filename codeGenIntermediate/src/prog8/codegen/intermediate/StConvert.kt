@@ -10,7 +10,7 @@ import prog8.intermediate.*
  */
 private class StToIrConverter(val romable: Boolean) {
     fun convert(struct: StStruct): IRStStructDef =
-        IRStStructDef(struct.scopedNameString, makeIrStructFieldsFrom(struct.fields), struct.size)
+        IRStStructDef(struct.scopedNameString, makeIrStructFieldsFrom(struct.fields), struct.size, struct.isUnion)
 
     private fun makeIrStructFieldsFrom(fields: List<PtStructField>): List<IRStStructField> =
         fields.map { IRStStructField(it.type, it.name, it.arraySize) }
@@ -76,7 +76,7 @@ private class StToIrConverter(val romable: Boolean) {
 
         val name = if('.' in variable.name) variable.name else variable.scopedNameString
         val hasInit = initValue != null
-        val inBss = !hasInit || (romable && hasInit)
+        val inBss = !hasInit || romable
         val readonly = romable && hasInit
         return IRStStaticVariable(name, variable.dt, initValue, variable.length, variable.zpwish, variable.align, variable.dirty, inBss, readonly)
     }

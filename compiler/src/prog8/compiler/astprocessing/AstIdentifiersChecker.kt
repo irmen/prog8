@@ -191,6 +191,14 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
     override fun visit(initializer: StaticStructInitializer) {
         val struct = initializer.structname.targetStructDecl()
         if (struct != null) {
+            if (struct.isUnion) {
+                if (initializer.args.isNotEmpty())
+                    errors.err("union cannot be statically initialized with values, use [] for zero initialization", initializer.position)
+                if (initializer.namedArgs.isNotEmpty())
+                    errors.err("named-field initialization is not supported for unions", initializer.position)
+                return
+            }
+
             // Strict field-by-field type/structure check
             for ((idx, field) in struct.fields.withIndex()) {
                 if (idx >= initializer.args.size) break

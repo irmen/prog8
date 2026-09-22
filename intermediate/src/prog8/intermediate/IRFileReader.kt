@@ -341,19 +341,27 @@ class IRFileReader {
             val name = parts[0]
             require(parts[1].startsWith("size="))
             val size = parts[1].drop(5).toUInt()
-            val fields = if(parts.size > 2 && parts[2].startsWith("fields=")) {
-                val fieldsStr = parts[2].drop(7)
-                if(fieldsStr.isEmpty()) emptyList()
-                else fieldsStr.split(';').map { fieldSpec ->
-                    val spaceIdx = fieldSpec.lastIndexOf(' ')
-                    require(spaceIdx > 0) { "invalid struct field spec: $fieldSpec" }
-                    val typeStr = fieldSpec.substring(0, spaceIdx)
-                    val fieldName = fieldSpec.substring(spaceIdx + 1)
-                    val (type, arraySize) = parseStructFieldType(typeStr)
-                    IRStStructField(type, fieldName, arraySize)
+            var isUnion = false
+            val fields = if(parts.size > 2) {
+                var remainder = parts[2]
+                if(remainder == "union=true" || remainder.endsWith(" union=true")) {
+                    isUnion = true
+                    remainder = if(remainder == "union=true") "" else remainder.removeSuffix(" union=true")
                 }
+                if(remainder.startsWith("fields=")) {
+                    val fieldsStr = remainder.drop(7)
+                    if(fieldsStr.isEmpty()) emptyList()
+                    else fieldsStr.split(';').map { fieldSpec ->
+                        val spaceIdx = fieldSpec.lastIndexOf(' ')
+                        require(spaceIdx > 0) { "invalid struct field spec: $fieldSpec" }
+                        val typeStr = fieldSpec.substring(0, spaceIdx)
+                        val fieldName = fieldSpec.substring(spaceIdx + 1)
+                        val (type, arraySize) = parseStructFieldType(typeStr)
+                        IRStStructField(type, fieldName, arraySize)
+                    }
+                } else emptyList()
             } else emptyList()
-            IRStStructDef(name, fields, size)
+            IRStStructDef(name, fields, size, isUnion)
         }
     }
 

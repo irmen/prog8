@@ -329,4 +329,33 @@ class TestStructsWithArrays : FunSpec({
         result shouldBe null
         errors.errors.any { it.contains("does not fit in byte array field 'name'") } shouldBe true
     }
+
+    test("array of union instances behaves correctly") {
+        val src = """
+%option no_sysinit
+main {
+    union U {
+        uword w
+        ubyte b
+    }
+    U[2] arr
+
+    sub start() {
+        arr[0].w = $1234
+        arr[1].w = $5678
+        cx16.r0 = arr[0].w
+        cx16.r1 = arr[1].w
+    }
+}"""
+        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = true, errors = errors)
+        if (result == null) {
+            throw Exception("Compilation failed: ${errors.errors}")
+        }
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
+        VmRunner().runAndTestProgram(virtfile.toFile().readText(), false) { vm ->
+            vm.memory.getUW(0xff0000u) shouldBe 0x1234u
+            vm.memory.getUW(0xff0002u) shouldBe 0x5678u
+        }
+    }
 })

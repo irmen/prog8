@@ -2563,8 +2563,12 @@ internal class AstChecker(private val program: Program,
         if(memsize>maxStructSize)
             errors.err("struct contains too many fields, max struct size is $maxStructSize bytes (actual: $memsize)", struct.position)
 
-        if(uniqueFields.isEmpty())
-            errors.err("struct must contain at least one field", struct.position)
+        if(uniqueFields.isEmpty()) {
+            if(struct.isUnion)
+                errors.err("union must have at least one field", struct.position)
+            else
+                errors.err("struct must contain at least one field", struct.position)
+        }
 
         fun validFieldType(field: StructField): Boolean {
             val dt=field.type

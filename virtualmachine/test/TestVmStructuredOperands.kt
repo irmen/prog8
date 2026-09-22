@@ -14,7 +14,7 @@ class TestVmStructuredOperands : FunSpec({
     fun runProgram(): VirtualMachine {
         val source = $$"""
 <?xml version="1.0" encoding="utf-8"?>
-<PROGRAM NAME="structured_operands_test" COMPILERVERSION="12.3-SNAPSHOT" IRFORMAT="2">
+<PROGRAM NAME="structured_operands_test" COMPILERVERSION="12.3-SNAPSHOT" IRFORMAT="3">
 <OPTIONS>
 compTarget=virtual
 output=PRG

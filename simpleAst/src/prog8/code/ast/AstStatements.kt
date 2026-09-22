@@ -482,7 +482,7 @@ class PtMemorySlabReservation(val slabName: String, val size: UInt, val align: U
 }
 
 
-class PtStructDecl(name: String, val fields: List<PtStructField>, position: Position) : PtNamedNode(name, position) {
+class PtStructDecl(name: String, val fields: List<PtStructField>, position: Position, val isUnion: Boolean = false) : PtNamedNode(name, position) {
 
     companion object {
         fun builder(name: String, position: Position) = Builder(name, position)
@@ -490,10 +490,12 @@ class PtStructDecl(name: String, val fields: List<PtStructField>, position: Posi
 
     class Builder(val name: String, val position: Position) {
         private var fields: MutableList<PtStructField> = mutableListOf()
+        private var isUnion: Boolean = false
         fun fields(f: Iterable<PtStructField>) = apply { fields = f.toMutableList() }
         fun fields(vararg f: PtStructField) = apply { fields = f.toMutableList() }
         fun addField(type: DataType, name: String, arraySize: Int? = null) = apply { fields.add(PtStructField(type, name, arraySize)) }
-        fun build() = PtStructDecl(name, fields, position)
+        fun isUnion(value: Boolean) = apply { isUnion = value }
+        fun build() = PtStructDecl(name, fields, position, isUnion)
     }
 }
 

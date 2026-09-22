@@ -273,6 +273,7 @@ Major breaking changes that require code modifications when upgrading:
     - **Named struct-field initializers** — struct pointer initializers can now use explicit field names (``^^Enemy:[hp=100, x=10]``), in any order, with omitted fields zero-initialized.
     - **``verafx`` line routine** — new verafx-accelerated line drawing routine and the ``cobramk3`` example that uses it.
     - **``defer`` is now program-wide** — deferred blocks are also unwound when the program exits, or when ``return``/``exit()`` is used from the ``start()`` subroutine. Very useful to let programs cleanly return to the OS without forgetting to free resources.
+    - **Union types** — ``union Name { ... }`` declarations where every field shares offset 0 and storage size equals the largest field; only zero-initialization (``[]``) is allowed, values must be written at runtime through typed pointers.
     - added ``arena`` memory allocation library
 
 

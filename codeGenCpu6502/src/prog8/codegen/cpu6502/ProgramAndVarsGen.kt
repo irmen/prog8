@@ -396,24 +396,25 @@ internal class ProgramAndVarsGen(
 
         asmgen.out("; struct types")
         symboltable.allStructTypes().distinctBy { it.name }.forEach { structtype ->
-            val paramFields = structtype.fields.filter { !it.isArray }
-            val structargs = paramFields.indices.joinToString(",") { "f$it" }
-            asmgen.out("${structtype.scopedNameString}    .struct $structargs\n")
-            var paramIdx = 0
-            for(field in structtype.fields) {
-                val type = asmTypeString(field.type)
-                if(field.isArray) {
-                    val anonymous = List(field.arraySize!!) { "?" }.joinToString(",")
-                    asmgen.out("p8v_${field.name}  $type  $anonymous")
-                } else {
-                    asmgen.out("p8v_${field.name}  $type  \\f$paramIdx")
-                    paramIdx++
-                }
+            if(structtype.isUnion) {
+                // NB: .union takes no constructor parameters, unlike .struct
+                asmgen.out("${structtype.scopedNameString}    .union\n")
+                emitStructDefFields(structtype) { "?" }
+                asmgen.out("    .endunion\n")
+            } else {
+                val paramFields = structtype.fields.filter { !it.isArray }
+                val structargs = paramFields.indices.joinToString(",") { "f$it" }
+                asmgen.out("${structtype.scopedNameString}    .struct $structargs\n")
+                var paramIdx = 0
+                emitStructDefFields(structtype) { "\\f${paramIdx++}" }
+                asmgen.out("    .endstruct\n")
             }
-            asmgen.out("    .endstruct\n")
         }
 
-        val (instancesNoInit, instances) = symboltable.allStructInstances().partition { it.initialValues.isEmpty() }
+        val (instancesNoInit, instances) = symboltable.allStructInstances().partition {
+            val structtype = symboltable.lookup(it.structName) as StStruct
+            it.initialValues.isEmpty() || structtype.isUnion
+        }
         asmgen.out("; struct instances without initialization values, as BSS zeroed at startup\n")
         asmgen.out("    .section BSS\n")
         asmgen.out("${StStructInstanceBlockName}_bss  .block\n")
@@ -452,6 +453,27 @@ internal class ProgramAndVarsGen(
         }
         asmgen.out("    .endblock\n")
         asmgen.out("    .send STRUCTINSTANCES\n")
+    }
+
+    private fun emitStructDefFields(structtype: StStruct, scalarValue: () -> String) {
+        for(field in structtype.fields) {
+            val effectiveDt = if(field.isArray) field.type.elementType() else field.type
+            if(effectiveDt.isFloat) {
+                val floatSize = compTarget.FLOAT_MEM_SIZE.toInt()
+                if(field.isArray)
+                    asmgen.out("p8v_${field.name}  .fill  ${floatSize*field.arraySize!!}, ?")
+                else
+                    asmgen.out("p8v_${field.name}  .fill $floatSize, ${scalarValue()}")
+            } else {
+                val type = asmTypeString(field.type)
+                if(field.isArray) {
+                    val anonymous = List(field.arraySize!!) { "?" }.joinToString(",")
+                    asmgen.out("p8v_${field.name}  $type  $anonymous")
+                } else {
+                    asmgen.out("p8v_${field.name}  $type  ${scalarValue()}")
+                }
+            }
+        }
     }
 
     internal fun translateAsmSubroutine(sub: PtAsmSub) {

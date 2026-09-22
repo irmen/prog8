@@ -258,7 +258,7 @@ private class SymbolDumper(val skipLibraries: Boolean): IAstVisitor {
     override fun visit(struct: StructDecl) {
         if(!isVisible(struct, struct.definingBlock))
             return
-        output("struct ${struct.name}\n")
+        output("${if(struct.isUnion) "union" else "struct"} ${struct.name}\n")
     }
 
     override fun visit(enum: Enumeration) {

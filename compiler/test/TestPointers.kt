@@ -223,6 +223,66 @@ main {
         compileText(Cx16Target(), false, src, outputDir) shouldNotBe null
     }
 
+    test("union sizeof is max field size and offsetof is zero for every field") {
+        val src = """
+%zeropage basicsafe
+%option no_sysinit
+main {
+    union U {
+        ubyte b
+        uword w
+    }
+
+    sub start() {
+        const ubyte sz = sizeof(U)
+        const ubyte off_b = offsetof(U.b)
+        const ubyte off_w = offsetof(U.w)
+    }
+}"""
+        val result = compileText(Cx16Target(), false, src, outputDir, writeAssembly = false)!!
+        val st = result.compilerAst.entrypoint.statements
+        val consts = st.filterIsInstance<VarDecl>().filter { it.type == VarDeclType.CONST }
+        consts.size shouldBe 3
+        (consts[0].value as NumericLiteral).number shouldBe 2.0
+        (consts[1].value as NumericLiteral).number shouldBe 0.0
+        (consts[2].value as NumericLiteral).number shouldBe 0.0
+    }
+
+    test("float fields in struct and union type definitions get correct 5 byte size in assembly") {
+        val src = """
+%zeropage basicsafe
+%option no_sysinit
+main {
+    struct P {
+        float x
+        ubyte y
+    }
+    union U {
+        float f
+        uword w
+    }
+
+    sub start() {
+        ^^P p = ^^P : [1.5, 42]
+        p^^.y = 2
+    }
+}"""
+        listOf(false, true).forEach { newCodegen ->
+            withClue("newCodegen=$newCodegen") {
+                val result = compileText(C64Target(), false, src, outputDir, newCodegen = newCodegen)!!
+                val asm = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".asm").readText()
+                val lines = asm.lines().map { it.trim().replace(Regex("\\s+"), " ") }
+                lines.any { it == "p8v_x .fill 5, \\f0" } shouldBe true
+                lines.any { it == "p8v_y .byte \\f1" } shouldBe true
+                lines.any { it == "p8v_f .fill 5, ?" } shouldBe true
+                if(!newCodegen) {
+                    // only the legacy backend initializes instances via .dstruct
+                    lines.any { it.contains(".dstruct") && it.contains("[$81, $40, $00, $00, $00],42") } shouldBe true
+                }
+            }
+        }
+    }
+
     test("pointer walking using simple dot notation should be equivalent to explicit dereference chain") {
         val src="""
 main {

@@ -497,7 +497,8 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
         xml.writeCharacters("\n")
         for (def in defs) {
             val fields = def.fields.joinToString(";") { "${it.type.irTypeString(it.arraySize?.toUInt())} ${it.name}" }
-            emitLine("${def.name} size=${def.size} fields=${fields}")
+            val unionFlag = if(def.isUnion) " union=true" else ""
+            emitLine("${def.name} size=${def.size} fields=${fields}${unionFlag}")
         }
         xml.writeEndElement()
         xml.writeCharacters("\n")

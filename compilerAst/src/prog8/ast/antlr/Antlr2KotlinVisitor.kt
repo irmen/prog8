@@ -913,6 +913,13 @@ class Antlr2KotlinVisitor(val source: SourceCode, private val target: ICompilati
         return StructDecl(name, flattened.toTypedArray(), visibilityFromTokens(ctx), ctx.toPosition(), leadingBlockComment(ctx))
     }
 
+    override fun visitUniondeclaration(ctx: UniondeclarationContext): StructDecl {
+        val name = getname(ctx.identifier())
+        val fieldDefs = ctx.structfielddecl().map { getStructField(it) }
+        val flattened = fieldDefs.flatMap { (dt, names, arrSize) -> names.map { StructField(dt, it, arrSize?.copy()) }}
+        return StructDecl(name, flattened.toTypedArray(), visibilityFromTokens(ctx), ctx.toPosition(), leadingBlockComment(ctx), isUnion = true)
+    }
+
     private data class StructFieldDef(val type: DataType, val names: List<String>, val arraySize: ArrayIndex?)
 
     private fun getStructField(ctx: StructfielddeclContext): StructFieldDef {

@@ -936,34 +936,56 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
         if (structs.isEmpty()) return
         emitRaw("; struct type definitions")
         for (sd in structs) {
-            val paramFields = sd.fields.filter { it.arraySize == null }
-            val structargs = paramFields.indices.joinToString(",") { "f$it" }
-            emitRaw("${fixNameSymbols(sd.name)}  .struct $structargs")
-            var paramIdx = 0
-            for (field in sd.fields) {
-                val type = when {
-                    field.type.isBool || field.type.isUnsignedByte -> ".byte"
-                    field.type.isSignedByte -> ".char"
-                    field.type.isUnsignedWord || field.type.isPointer -> ".word"
-                    field.type.isSignedWord -> ".sint"
-                    field.type.isLong -> ".dint"
-                    field.type.isFloat -> ".byte"
-                    else -> ".byte"
+            if(sd.isUnion) {
+                // NB: .union takes no constructor parameters, unlike .struct
+                emitRaw("${fixNameSymbols(sd.name)}  .union")
+                emitStructDefFields(sd) { "?" }
+                emitRaw("    .endunion")
+            } else {
+                val paramFields = sd.fields.filter { it.arraySize == null }
+                val structargs = paramFields.indices.joinToString(",") { "f$it" }
+                emitRaw("${fixNameSymbols(sd.name)}  .struct $structargs")
+                var paramIdx = 0
+                emitStructDefFields(sd) { "\\f${paramIdx++}" }
+                emitRaw("    .endstruct")
+            }
+            emitRaw("")
+        }
+        emitRaw("")
+    }
+
+    private fun emitStructDefFields(sd: IRStStructDef, scalarValue: () -> String) {
+        for (field in sd.fields) {
+            val fieldName = "p8v_${field.name}"
+            val arrSize = field.arraySize
+            val effectiveDt = if(arrSize != null) field.type.elementType() else field.type
+            if (effectiveDt.isFloat) {
+                val floatSize = target.FLOAT_MEM_SIZE.toInt()
+                if (arrSize != null) {
+                    emitRaw("  $fieldName .fill ${floatSize*arrSize}, ?")
+                } else {
+                    emitRaw("  $fieldName .fill $floatSize, ${scalarValue()}")
                 }
-                val fieldName = "p8v_${field.name}"
-                val arrSize = field.arraySize
+            } else {
+                val type = structDefFieldAsmType(effectiveDt)
                 if (arrSize != null) {
                     val anon = List(arrSize) { "?" }.joinToString(",")
                     emitRaw("  $fieldName $type $anon")
                 } else {
-                    emitRaw("  $fieldName $type \\f$paramIdx")
-                    paramIdx++
+                    emitRaw("  $fieldName $type ${scalarValue()}")
                 }
             }
-            emitRaw("    .endstruct")
-            emitRaw("")
         }
-        emitRaw("")
+    }
+
+    private fun structDefFieldAsmType(type: DataType): String = when {
+        type.isBool || type.isUnsignedByte -> ".byte"
+        type.isSignedByte -> ".char"
+        type.isUnsignedWord || type.isPointer -> ".word"
+        type.isSignedWord -> ".sint"
+        type.isLong -> ".dint"
+        type.isFloat -> ".byte"
+        else -> ".byte"
     }
 
     private fun emitFloatConstants() {
@@ -1028,7 +1050,10 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
 
         // struct instances without init values -> BSS (zeroed at startup)
         val allInstances = program.st.allStructInstances().toList()
-        val (instancesNoInit, instancesWithInit) = allInstances.partition { it.values.isEmpty() }
+        val (instancesNoInit, instancesWithInit) = allInstances.partition {
+            val def = program.st.lookup(it.structName) as IRStStructDef
+            it.values.isEmpty() || def.isUnion
+        }
         if (instancesNoInit.isNotEmpty()) {
             emitRaw("    .section BSS")
             emitRaw("prog8_struct_instances_bss  .block")

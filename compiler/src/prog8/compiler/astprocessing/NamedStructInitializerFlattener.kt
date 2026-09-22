@@ -14,7 +14,7 @@ import prog8.code.core.BaseDataType
 import prog8.code.core.IErrorReporter
 import prog8.code.core.Position
 
-internal class NamedStructInitializerFlattener(private val program: Program, private val errors: IErrorReporter) : AstWalker() {
+internal class NamedStructInitializerFlattener(private val errors: IErrorReporter) : AstWalker() {
 
     override fun after(initializer: StaticStructInitializer, parent: Node): Iterable<AstModification> {
         if(initializer.namedArgs.isEmpty())
@@ -25,6 +25,10 @@ internal class NamedStructInitializerFlattener(private val program: Program, pri
             // Struct name not resolvable yet; leave named args for later error reporting.
             return noModifications
         }
+
+        // Unions do not support named-field initialization; the checker rejects those.
+        if(struct.isUnion)
+            return noModifications
 
         val seen = mutableSetOf<String>()
         for((name, expr) in initializer.namedArgs) {
@@ -67,5 +71,5 @@ internal class NamedStructInitializerFlattener(private val program: Program, pri
 }
 
 internal fun Program.flattenNamedStructInitializers(errors: IErrorReporter) {
-    NamedStructInitializerFlattener(this, errors).visit(this)
+    NamedStructInitializerFlattener(errors).visit(this)
 }

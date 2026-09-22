@@ -837,7 +837,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
             if(it.isArray && size==null)
                 errors.err("array length must be known at compile-time", it.arraySize?.position ?: struct.position)
             PtStructField(it.type, it.name, size)
-        }, struct.position)
+        }, struct.position, struct.isUnion)
     }
 
     private fun transform(srcWhen: When): PtWhen {

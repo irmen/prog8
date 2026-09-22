@@ -224,7 +224,7 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
             output("private ")
         else if(struct.visibility == Visibility.PUBLIC)
             output("public ")
-        outputln("struct ${struct.name} {")
+        outputln("${if(struct.isUnion) "union" else "struct"} ${struct.name} {")
         for(member in struct.fields) {
             outputi("    ${member.type}")
             if(member.isArray) {

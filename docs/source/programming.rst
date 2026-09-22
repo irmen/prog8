@@ -1435,6 +1435,15 @@ The ``private`` keyword can be applied to the following declarations:
         byte y
     }
 
+- **unions**::
+
+    private union Value {
+        ubyte byte_val
+        uword word_val
+    }
+
+    See :ref:`unions` for details on union types.
+
 - **enums**::
 
     private enum Color { red, green, blue }

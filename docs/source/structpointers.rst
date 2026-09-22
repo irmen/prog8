@@ -280,6 +280,62 @@ fewer for larger structs). On 32-bit targets the per-array size limit is much la
     Try to put the most often accessed field as the first field to potentially gain a rather substantial boost in code efficiency.
 
 
+.. _unions:
+
+Unions
+------
+.. index:: pair: Unions; Definition
+
+A union is like a struct, but every field starts at byte offset 0.
+The fields overlap in memory, so writing to one field overwrites the others.
+The storage size of a union is the size of its largest field, not the sum of all fields.
+
+You define a union type like this::
+
+    union Value {
+        ubyte byte_val
+        uword word_val
+        float float_val
+    }
+
+Allowed field datatypes are the same as for structs: all numeric types, ``bool``, ``str``, typed pointers to those or to other structs, and inline 1D arrays of these element types.
+Not allowed are struct instances themselves, unions themselves, arrays of struct instances, arrays of typed pointers such as ``^^Value[4]``, and 2D arrays.
+So neither structs nor unions can be nested inside another struct or union; use a typed pointer to them instead.
+``sizeof(Value)`` returns the size of the largest field, and ``offsetof(Value.field)`` is always ``0`` for every field.
+A union type can be used wherever a struct type is used: typed pointers, pointer arrays, arrays of union instances, subroutine parameters, and return values.
+Whole-union copy semantics are the same as for structs: assigning one dereferenced union pointer to another copies ``sizeof(Value)`` bytes.
+
+When to use a union
+^^^^^^^^^^^^^^^^^^^
+Unions are for interpreting the same memory bytes in more than one way.
+Typical uses:
+
+- **Type punning:** read or write the same bytes through different views, e.g. set the low byte with the 1-byte view and then read the 2-byte view::
+
+      v.byte_val = 42
+      chk = v.word_val      ; sees the overlapping bytes
+
+- **Hardware or memory-mapped registers:** one location that the hardware interprets as a byte or a word depending on how it is accessed.
+- **Overlays:** reinterpret a buffer, such as the raw bytes of a ``float``, for debugging or serialization, or reuse the same scratch space between different phases of a program.
+
+Note that unions do not (yet) help save space inside structs, because nesting a union (or struct) as a field is not allowed; see above.
+
+Because all fields overlap, static initialization with values is not allowed.
+The only valid initializer is the empty form ``[]``, which places a zero-initialized union instance in BSS::
+
+    ^^Value v = []         ; zero-initialized union instance
+
+Values must be written at runtime through the pointer::
+
+    v.byte_val = 42
+    ; v.word_val and v.float_val now see the overlapping bytes
+
+.. note::
+    Unions, like structs, cannot yet be declared as a local instance - you always access
+    a union through a typed pointer, as shown above. See the note in the structs section
+    for the current limitations around using structs (and now unions) as standalone values.
+
+
 Static initialization of structs
 ================================
 .. index:: pair: Structs; Static initialization

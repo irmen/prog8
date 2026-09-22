@@ -1753,5 +1753,76 @@ main {
         irContent shouldContain "bstvc"
     }
 
+    test("union zero-init via memory, write byte and read overlapping word") {
+        val src = """
+main {
+    union U {
+        uword w
+        ubyte b
+    }
+
+    sub start() {
+        ^^U u = memory("u", sizeof(U), 0)
+        u.w = 0
+        u.b = $42
+        cx16.r0 = u.w
+    }
+}"""
+        val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = true)!!
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
+        VmRunner().runAndTestProgram(virtfile.readText(), false) { vm ->
+            vm.memory.getUW(0xff0000u) shouldBe 0x0042u
+        }
+    }
+
+    test("union copy via pointer dereference") {
+        val src = """
+main {
+    union U {
+        uword w
+        ubyte[2] bytes
+    }
+
+    sub start() {
+        ^^U u1 = memory("u1", sizeof(U), 0)
+        ^^U u2 = memory("u2", sizeof(U), 0)
+        u1.bytes[0] = $78
+        u1.bytes[1] = $56
+        u2^^ = u1^^
+        cx16.r0 = u2.w
+    }
+}"""
+        val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = true)!!
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
+        VmRunner().runAndTestProgram(virtfile.readText(), false) { vm ->
+            vm.memory.getUW(0xff0000u) shouldBe 0x5678u
+        }
+    }
+
+    test("union in array of instances") {
+        val src = """
+main {
+    union U {
+        uword w
+        ubyte b
+    }
+
+    U[2] arr
+
+    sub start() {
+        arr[0].b = $42
+        arr[1].b = $77
+        cx16.r0 = arr[0].w
+        cx16.r1 = arr[1].w
+    }
+}"""
+        val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = true)!!
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
+        VmRunner().runAndTestProgram(virtfile.readText(), false) { vm ->
+            vm.memory.getUW(0xff0000u) shouldBe 0x0042u
+            vm.memory.getUW(0xff0002u) shouldBe 0x0077u
+        }
+    }
+
 
 })

@@ -891,4 +891,103 @@ class TestExecution6502 : FunSpec({
             machine.assertMemory(0x2202, 120)    // Point.y
         }
     }
+
+    test("union zero-init via memory, write byte and read overlapping word") {
+        val src = $$"""
+            %option no_sysinit
+            %launcher none
+            %address $1000
+
+            main {
+                &ubyte poweroff = $f203
+                &uword result = $02
+
+                union U {
+                    uword w
+                    ubyte b
+                }
+
+                sub start() {
+                    ^^U u = memory("u", sizeof(U), 0)
+                    u.b = $42
+                    result = u.w
+                    poweroff = 1
+                }
+            }
+        """.trimIndent()
+
+        val compileResult = compileText(Cx16Target(), false, src, outputDir)
+        val machine = compileResult!!.simulate()
+        machine.assertMemory(0x02, 0x42)
+        machine.assertMemory(0x03, 0x00)
+    }
+
+    test("union copy via pointer dereference") {
+        val src = $$"""
+            %option no_sysinit
+            %launcher none
+            %address $1000
+
+            main {
+                &ubyte poweroff = $f203
+                &uword result = $02
+
+                union U {
+                    uword w
+                    ubyte[2] bytes
+                }
+
+                sub start() {
+                    ^^U u1 = memory("u1", sizeof(U), 0)
+                    ^^U u2 = memory("u2", sizeof(U), 0)
+                    u1.bytes[0] = $78
+                    u1.bytes[1] = $56
+                    u2^^ = u1^^
+                    result = u2.w
+                    poweroff = 1
+                }
+            }
+        """.trimIndent()
+
+        val compileResult = compileText(Cx16Target(), false, src, outputDir)
+        val machine = compileResult!!.simulate()
+        machine.assertMemory(0x02, 0x78)
+        machine.assertMemory(0x03, 0x56)
+    }
+
+    test("union in array of instances") {
+        val src = $$"""
+            %option no_sysinit
+            %launcher none
+            %address $1000
+
+            main {
+                &ubyte poweroff = $f203
+                &uword result0 = $02
+                &uword result1 = $04
+
+                union U {
+                    uword w
+                    ubyte b
+                }
+
+                U[2] arr
+
+                sub start() {
+                    arr[0].b = $42
+                    arr[1].b = $77
+                    result0 = arr[0].w
+                    result1 = arr[1].w
+                    poweroff = 1
+                }
+            }
+        """.trimIndent()
+
+        val compileResult = compileText(Cx16Target(), false, src, outputDir)
+        val machine = compileResult!!.simulate()
+        machine.assertMemory(0x02, 0x42)
+        machine.assertMemory(0x03, 0x00)
+        machine.assertMemory(0x04, 0x77)
+        machine.assertMemory(0x05, 0x00)
+    }
 })

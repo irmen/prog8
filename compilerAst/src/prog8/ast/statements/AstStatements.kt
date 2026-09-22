@@ -543,7 +543,7 @@ class VarDecl(
     }
 }
 
-class StructDecl(override val name: String, val fields: Array<StructField>, val visibility: Visibility?, override val position: Position, var blockComment: String? = null) : Statement(), INamedStatement, ISubType {
+class StructDecl(override val name: String, val fields: Array<StructField>, val visibility: Visibility?, override val position: Position, var blockComment: String? = null, val isUnion: Boolean = false) : Statement(), INamedStatement, ISubType {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -559,17 +559,24 @@ class StructDecl(override val name: String, val fields: Array<StructField>, val 
         replacement.linkParents(this)
     }
     override fun referencesIdentifier(nameInSource: List<String>) = fields.any { it.arraySize?.referencesIdentifier(nameInSource)==true }
-    override fun copy() = StructDecl(name, fields.map { it.copy() }.toTypedArray(), visibility, position, blockComment)
+    override fun copy() = StructDecl(name, fields.map { it.copy() }.toTypedArray(), visibility, position, blockComment, isUnion)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
-    override fun memsize(sizer: IMemSizer): Int = fields.sumOf { field ->
+    override fun memsize(sizer: IMemSizer): Int = if(isUnion) {
+        fields.maxOfOrNull { field ->
+            if(field.isArray)
+                sizer.memorySize(field.type, field.constSize() ?: 1)
+            else
+                sizer.memorySize(field.type, 1)
+        } ?: 0
+    } else fields.sumOf { field ->
         if(field.isArray)
             sizer.memorySize(field.type, field.constSize() ?: 1)
         else
             sizer.memorySize(field.type, 1)
     }
     override fun sameas(other: ISubType): Boolean {
-        if(other !is StructDecl || other.name!=name || other.fields.size!=fields.size)
+        if(other !is StructDecl || other.name!=name || other.fields.size!=fields.size || other.isUnion!=isUnion)
             return false
         return fields.zip(other.fields).all { (a, b) ->
             a.name==b.name && a.type==b.type && when {
@@ -585,6 +592,9 @@ class StructDecl(override val name: String, val fields: Array<StructField>, val 
     override val scopedNameString by lazy { scopedName.joinToString(".") }
 
     fun offsetof(fieldname: String, sizer: IMemSizer): UByte? {
+        if(isUnion) {
+            return if(fields.any { it.name == fieldname }) 0.toUByte() else null
+        }
         fields.fold(0) { offset, field ->
             if (field.name == fieldname)
                 return offset.toUByte()
@@ -595,7 +605,7 @@ class StructDecl(override val name: String, val fields: Array<StructField>, val 
     }
 
     fun isNodeStruct(): Boolean {
-        if(fields.size < 2) return false
+        if(isUnion || fields.size < 2) return false
         val f0 = fields[0]
         val f1 = fields[1]
         val namesOk = (f0.name=="Succ" && f1.name=="Pred") || (f0.name=="Next" && f1.name=="Prev")
@@ -607,7 +617,7 @@ class StructDecl(override val name: String, val fields: Array<StructField>, val 
     }
 
     fun isListStruct(): Boolean {
-        if(fields.size < 3) return false
+        if(isUnion || fields.size < 3) return false
         val h = fields[0]
         val t = fields[1]
         val tp = fields[2]

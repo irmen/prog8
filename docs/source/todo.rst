@@ -3,7 +3,6 @@ TODO
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
-- add unions to the language, see ideas/unions.md
 - m68k codegen: emit struct/union type definitions (VASM ``equ`` symbols for ``size`` and field offsets, e.g. ``p8b_main_p8t_MyUnion_size equ 2``) so inline assembly can reference struct/union field labels and sizes. Currently only the 64tass-based backends emit these (``.struct``/``.union``). Follow-up from ideas/unions.md.
 - DataType.ARRAY_POINTER depends on the compilation target to be either a split word array or not. This is horrible because now we have to check with the compilation target everywhere to see if a DataType enumeration value is split word array, and PtVariable and PtArrayIndexer need an explicit boolean to tell us if this is the case. See ideas/remove_array_pointer_plan.md for the plan.
 - extend the ``-gendoc`` command to generate user reference documentation from Markdown docstrings; see ``ideas/markdown-docstrings-and-reference-docs.md`` for the plan.
@@ -51,6 +50,9 @@ IR/VM
 - ``IRInlineBinaryChunk`` and ``IRInlineAsmChunk`` - inline chunks cannot be loaded by the VM (VmProgramLoader.kt). Limitation of the current VM design: program is not loaded into memory as data
 - VM label address loading - ``VmProgramLoader.kt`` throws when it cannot resolve a label address as a value (``"vm cannot yet load a label address as a value"``).
 - ``prefixScopedName`` (``codeGenIntermediate/src/prog8/codegen/intermediate/SymbolPrefixer.kt:206``) hardcodes ``p8s_`` for all middle path parts of a dotted scoped name. This is wrong for structs in the path: ``main.MyStruct.field`` produces ``p8s_MyStruct`` (subroutine prefix) instead of ``p8t_MyStruct`` (struct prefix). Fix: look up each middle part in the symbol table and apply ``typePrefixChar()`` per part. Pre-existing bug carried over from the 6502 new6502codegen (``AsmGen.kt``).
+
+**Known bugs in the new 6502 codegen (-newcodegen)**
+- Three pre-existing bugs affect only the experimental IR-based 6502 backend: a compiler crash on float ``ADDIM``/``SUBIM`` opcodes, a "not defined symbol" assembly failure for BSS struct instances (``^^S : []``), and silent data corruption of float/long fields in initialized struct instances. Details, triggers and fix directions are in ``todo-bugs-new6502.md`` (repo root).
 
 **Source line tracking in new codegen backends**
 - Improve source line tracking across the IR into the generated assembly code in the new codegen backends (new6502, m68k). Currently, the IR preserves some source position information, but this is not consistently propagated through to the final assembly output. Better tracking would improve debugging experience (e.g., in monitor/debugger tools) and make it easier to correlate generated assembly back to the original Prog8 source code. Consider adding source location metadata to IR instructions and ensuring code generators emit appropriate ``.line`` directives or comments in the assembly output.

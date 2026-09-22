@@ -1238,4 +1238,82 @@ main {
         compileText(VMTarget(), false, "main { ^^byte p sub start() { uword x = sizeof(p^^) } }", outputDir, writeAssembly = false) shouldBe null
     }
 
+    test("union declaration parses at block level") {
+        val src = SourceCode.Text("""
+            main {
+                union U {
+                    ubyte b
+                }
+            }
+        """.trimIndent())
+        val module = parseModule(src, c64Target)
+        val mainBlock = module.statements.filterIsInstance<Block>().single()
+        val unionDecl = mainBlock.statements.filterIsInstance<StructDecl>().single()
+        unionDecl.name shouldBe "U"
+        unionDecl.isUnion shouldBe true
+        unionDecl.fields.size shouldBe 1
+    }
+
+    test("union declaration parses at statement level inside a subroutine") {
+        val src = SourceCode.Text("""
+            main {
+                sub start() {
+                    union U {
+                        ubyte b
+                    }
+                }
+            }
+        """.trimIndent())
+        val module = parseModule(src, c64Target)
+        val mainBlock = module.statements.filterIsInstance<Block>().single()
+        val sub = mainBlock.statements.filterIsInstance<Subroutine>().single()
+        val unionDecl = sub.statements.filterIsInstance<StructDecl>().single()
+        unionDecl.name shouldBe "U"
+        unionDecl.isUnion shouldBe true
+    }
+
+    test("union declaration visibility public and private") {
+        val srcPublic = SourceCode.Text("""
+            main {
+                public union U {
+                    ubyte b
+                }
+            }
+        """.trimIndent())
+        val modulePublic = parseModule(srcPublic, c64Target)
+        val mainBlockPublic = modulePublic.statements.filterIsInstance<Block>().single()
+        val unionPublic = mainBlockPublic.statements.filterIsInstance<StructDecl>().single()
+        unionPublic.visibility shouldBe Visibility.PUBLIC
+
+        val srcPrivate = SourceCode.Text("""
+            main {
+                private union U {
+                    ubyte b
+                }
+            }
+        """.trimIndent())
+        val modulePrivate = parseModule(srcPrivate, c64Target)
+        val mainBlockPrivate = modulePrivate.statements.filterIsInstance<Block>().single()
+        val unionPrivate = mainBlockPrivate.statements.filterIsInstance<StructDecl>().single()
+        unionPrivate.visibility shouldBe Visibility.PRIVATE
+    }
+
+    test("malformed union declaration hits error recovery like malformed struct") {
+        val src = SourceCode.Text("""
+            main {
+                sub start() {
+                    union {
+                    }
+                }
+            }
+        """.trimIndent())
+        val ex = shouldThrow<MultipleParseErrors> {
+            parseModule(src, c64Target)
+        }
+        // identical to malformed `struct {`: the recovery error plus the same
+        // pre-existing follow-on error for the leftover block
+        ex.errors.size shouldBe 2
+        ex.errors[0].message shouldContain "Expected union name after 'union'"
+    }
+
 })

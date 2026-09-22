@@ -640,6 +640,67 @@ main {
         errors.errors[0] shouldContain "struct must contain at least one field"
     }
 
+    test("empty union declaration should give error") {
+        val src = """
+%zeropage basicsafe
+%option no_sysinit
+main {
+    union U {
+    }
+    sub start() { }
+}"""
+        val errors = ErrorReporterForTests()
+        compileText(Cx16Target(), false, src, outputDir, errors, false)
+        errors.errors.size shouldBe 1
+        errors.errors[0] shouldContain "union must have at least one field"
+    }
+
+    test("union initializer with values is rejected") {
+        val src = """
+%zeropage basicsafe
+%option no_sysinit
+main {
+    union U { ubyte b }
+    sub start() {
+        ^^U u = [1]
+    }
+}"""
+        val errors = ErrorReporterForTests()
+        compileText(Cx16Target(), false, src, outputDir, errors, false)
+        errors.errors.any { it.contains("union cannot be statically initialized with values") } shouldBe true
+    }
+
+    test("union named-field initialization is rejected") {
+        val src = """
+%zeropage basicsafe
+%option no_sysinit
+main {
+    union U { ubyte b }
+    sub start() {
+        ^^U u = ^^U:[b=1]
+    }
+}"""
+        val errors = ErrorReporterForTests()
+        compileText(Cx16Target(), false, src, outputDir, errors, false)
+        errors.errors.any { it.contains("named-field initialization is not supported for unions") } shouldBe true
+    }
+
+    test("unknown field on union gives normal error") {
+        val src = """
+%zeropage basicsafe
+%option no_sysinit
+main {
+    union U { ubyte b }
+    sub start() {
+        ^^U u = []
+        u.x = 1
+    }
+}"""
+        val errors = ErrorReporterForTests()
+        compileText(Cx16Target(), false, src, outputDir, errors, false)
+        errors.errors.any { it.contains("unknown field 'x'") } shouldBe true
+    }
+
     test("comma in array index should give friendly error") {
         val src = """
             main {

@@ -87,11 +87,18 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                 StSub(node.name, params, node.signature.returns, node)
             }
             is PtStructDecl -> {
-                val size = node.fields.sumOf { field ->
-                    if(field.isArray) program.memsizer.memorySize(field.type, field.arraySize!!)
-                    else program.memsizer.memorySize(field.type, 1)
+                val size = if(node.isUnion) {
+                    node.fields.maxOfOrNull { field ->
+                        if(field.isArray) program.memsizer.memorySize(field.type, field.arraySize!!)
+                        else program.memsizer.memorySize(field.type, 1)
+                    } ?: 0
+                } else {
+                    node.fields.sumOf { field ->
+                        if(field.isArray) program.memsizer.memorySize(field.type, field.arraySize!!)
+                        else program.memsizer.memorySize(field.type, 1)
+                    }
                 }
-                StStruct(node.name, node.fields, size.toUInt(), node)
+                StStruct(node.name, node.fields, size.toUInt(), node, node.isUnion)
             }
             is PtMemorySlabReservation -> {
                 val slab = StMemorySlab("memory_${node.slabName}", node.size, node.align, node)
@@ -145,7 +152,7 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                 stVar
             }
             is PtFunctionCall if node.builtin && node.name=="prog8_lib_structalloc" -> {
-                val instance = handleStructAllocation(node, scope)
+                val instance = handleStructAllocation(node)
                 if(instance!=null) {
                     scope.first().add(instance)
                 }
@@ -168,7 +175,7 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
         }
     }
 
-    private fun handleStructAllocation(node: PtFunctionCall, scope: ArrayDeque<StNode>): StStructInstance? {
+    private fun handleStructAllocation(node: PtFunctionCall): StStructInstance? {
         require(node.builtin)
         val struct = node.type.subType as? StStruct ?: return null
         val initialValues = node.args.map {
@@ -198,7 +205,7 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
     }
 
     private fun handleStructallocAsArrayElement(call: PtFunctionCall, scope: ArrayDeque<StNode>): StArrayElement {
-        val instance = handleStructAllocation(call, scope)
+        val instance = handleStructAllocation(call)
         return if(instance==null) {
             val label = SymbolTable.labelnameForStructInstance(call)
             if (call.args.isEmpty())

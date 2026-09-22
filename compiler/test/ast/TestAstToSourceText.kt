@@ -1,10 +1,12 @@
 package prog8tests.ast
 
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import prog8.ast.AstToSourceTextConverter
 import prog8.ast.Module
 import prog8.ast.Program
+import prog8.ast.statements.StructDecl
 import prog8.code.PROG8_CONTAINER_MODULES
 import prog8.code.source.SourceCode
 import prog8.code.target.VMTarget
@@ -123,6 +125,28 @@ class TestAstToSourceText: FunSpec({
         """)
         val (txt, _) = roundTrip(parseModule(orig, target))
         txt shouldContain Regex("ubyte +@zp +@shared +qq")
+    }
+
+    test("union declaration produces StructDecl with isUnion and round-trips") {
+        val orig = SourceCode.Text("""
+            main {
+                union U {
+                    ubyte b
+                    uword w
+                }
+            }
+        """.trimIndent())
+        val module = parseModule(orig, target)
+        val mainBlock = module.statements.filterIsInstance<prog8.ast.statements.Block>().single()
+        val unionDecl = mainBlock.statements.filterIsInstance<StructDecl>().single()
+        unionDecl.isUnion shouldBe true
+        unionDecl.name shouldBe "U"
+
+        val (txt, parsedAgain) = roundTrip(module)
+        txt shouldContain Regex("union +U")
+        val roundTrippedBlock = parsedAgain.statements.filterIsInstance<prog8.ast.statements.Block>().single()
+        val roundTrippedUnion = roundTrippedBlock.statements.filterIsInstance<StructDecl>().single()
+        roundTrippedUnion.isUnion shouldBe true
     }
 
 })

@@ -25,6 +25,7 @@ WS :  [ \t] -> skip ;
 // WS2 : '\\' EOL -> skip;
 VOID: 'void';
 STRUCT: 'struct';
+UNION: 'union';
 ON: 'on';
 GOTO: 'goto';
 CALL: 'call';
@@ -95,6 +96,7 @@ block_statement:
     | subroutinedeclaration
     | variabledeclaration
     | structdeclaration
+    | uniondeclaration
     | inlineasm
     | labeldef
     | alias
@@ -108,6 +110,7 @@ statement :
     | subroutinedeclaration
     | variabledeclaration
     | structdeclaration
+    | uniondeclaration
     | assignment
     | augassignment
     | unconditionaljump
@@ -149,6 +152,8 @@ statement :
       { notifyErrorListeners("Expected enum name after 'enum'"); }
     | STRUCT '{'
       { notifyErrorListeners("Expected struct name after 'struct'"); }
+    | UNION '{'
+      { notifyErrorListeners("Expected union name after 'union'"); }
     | ON (GOTO | CALL)
       { notifyErrorListeners("Missing expression: expected index after 'on'"); }
     ;
@@ -171,6 +176,10 @@ variabledeclaration :
 
 structdeclaration:
     PRIVATE? PUBLIC? STRUCT identifier '{' EOL? (structfielddecl | EOL)+ '}'
+    ;
+
+uniondeclaration:
+    PRIVATE? PUBLIC? UNION identifier '{' EOL? (structfielddecl | EOL)+ '}'
     ;
 
 structfielddecl: datatype (arrayindex arrayindex? | EMPTYARRAYSIG)? identifierlist;

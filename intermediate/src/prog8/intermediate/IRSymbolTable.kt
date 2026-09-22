@@ -160,7 +160,7 @@ sealed class IRStSymbolicReference {
     }
 }
 
-class IRStStructDef(name: String, val fields: List<IRStStructField>, val size: UInt): IRStNode(name, IRStNodeType.STRUCT)
+class IRStStructDef(name: String, val fields: List<IRStStructField>, val size: UInt, val isUnion: Boolean = false): IRStNode(name, IRStNodeType.STRUCT)
 
 data class IRStStructField(val type: DataType, val name: String, val arraySize: Int? = null) 
 

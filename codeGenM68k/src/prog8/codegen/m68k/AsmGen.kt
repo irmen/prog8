@@ -1036,7 +1036,10 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
             } else {
                 emptyList<IRStStaticVariable>() to initdVars
             }
-        val structInstancesWithInit: List<IRStStructInstance> = program.st.allStructInstances().filter { it.values.isNotEmpty() }.toList()
+        val structInstancesWithInit: List<IRStStructInstance> = program.st.allStructInstances().filter {
+            val def = program.st.lookup(it.structName) as IRStStructDef
+            it.values.isNotEmpty() && !def.isUnion
+        }.toList()
         val (chipramStructs: List<IRStStructInstance>, normalStructs: List<IRStStructInstance>) =
             if (chipramBlocks.isNotEmpty()) {
                 structInstancesWithInit.partition { it.name.substringBefore('.') in chipramBlocks }
@@ -1344,7 +1347,10 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
             } else {
                 emptyList<IRStStaticVariable>() to allBssVars
             }
-        val allStructsNoInit: List<IRStStructInstance> = program.st.allStructInstances().filter { it.values.isEmpty() }.toList()
+        val allStructsNoInit: List<IRStStructInstance> = program.st.allStructInstances().filter {
+            val def = program.st.lookup(it.structName) as IRStStructDef
+            it.values.isEmpty() || def.isUnion
+        }.toList()
         val (chipramStructsNoInit: List<IRStStructInstance>, normalStructsNoInit: List<IRStStructInstance>) =
             if (chipramBlocks.isNotEmpty()) {
                 allStructsNoInit.partition { it.name.substringBefore('.') in chipramBlocks }

@@ -6,10 +6,12 @@ import prog8.code.core.*
 import prog8.code.target.Amiga500Target
 import prog8.code.target.Cx16Target
 import prog8.intermediate.*
-import kotlin.io.path.*
+import kotlin.io.path.Path
+import kotlin.io.path.deleteExisting
+import kotlin.io.path.readLines
 
 class TestIRFileInOut: FunSpec({
-    test("IR reader requires format 2") {
+    test("IR reader requires format 3") {
         shouldThrow<IRParseException> {
             IRFileReader().read("""<?xml version="1.0"?><PROGRAM NAME="test" COMPILERVERSION="99.99"/>""")
         }.message shouldBe "missing IRFORMAT"
@@ -34,7 +36,7 @@ class TestIRFileInOut: FunSpec({
         val generatedFile = writer.write()
         val lines = generatedFile.readLines()
         lines[0] shouldBe "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
-        lines[1] shouldBe "<PROGRAM NAME=\"unittest-irwriter\" COMPILERVERSION=\"99.99\" IRFORMAT=\"2\">"
+        lines[1] shouldBe "<PROGRAM NAME=\"unittest-irwriter\" COMPILERVERSION=\"99.99\" IRFORMAT=\"3\">"
         lines.last() shouldBe "</PROGRAM>"
         generatedFile.deleteExisting()
         lines.size shouldBeGreaterThan 20
@@ -42,7 +44,7 @@ class TestIRFileInOut: FunSpec({
 
     test("test IR reader") {
         val source="""<?xml version="1.0" encoding="utf-8"?>
-<PROGRAM NAME="test-ir-reader" COMPILERVERSION="99.99" IRFORMAT="2">
+<PROGRAM NAME="test-ir-reader" COMPILERVERSION="99.99" IRFORMAT="3">
 <OPTIONS>
 compTarget=virtual
 output=PRG
@@ -129,7 +131,7 @@ return
 
     test("test IR reader with struct containing pointer fields") {
         val source="""<?xml version="1.0" encoding="utf-8"?>
-<PROGRAM NAME="test-struct-pointer" COMPILERVERSION="99.99" IRFORMAT="2">
+<PROGRAM NAME="test-struct-pointer" COMPILERVERSION="99.99" IRFORMAT="3">
 <OPTIONS>
 compTarget=virtual
 output=PRG
@@ -238,7 +240,7 @@ load.b r1.b,#0.b
 
     test("test IR reader parses loadhr/storehr sN immediate encoding") {
         val source="""<?xml version="1.0" encoding="utf-8"?>
-<PROGRAM NAME="test-sn-immediate" COMPILERVERSION="99.99" IRFORMAT="2">
+<PROGRAM NAME="test-sn-immediate" COMPILERVERSION="99.99" IRFORMAT="3">
 <OPTIONS>
 compTarget=virtual
 output=PRG
@@ -389,7 +391,7 @@ storehr.b r1.b,s2.b
 
     test("test IR reader parses block-level CHUNK (label and align)") {
         val source="""<?xml version="1.0" encoding="utf-8"?>
-<PROGRAM NAME="test-block-level-chunk" COMPILERVERSION="99.99" IRFORMAT="2">
+<PROGRAM NAME="test-block-level-chunk" COMPILERVERSION="99.99" IRFORMAT="3">
 <OPTIONS>
 compTarget=virtual
 output=PRG
@@ -450,5 +452,36 @@ return
         alignChunk.instructions[0].requireImmediateInt() shouldBe 256
         val labelChunk = block.children[1] as IRCodeChunk
         labelChunk.label shouldBe "main.mylabel"
+    }
+
+    test("test IR union round-trip preserves isUnion and size") {
+        val target = Cx16Target()
+        val options = CompilationOptions.builder(target)
+            .output(OutputType.RAW)
+            .zeropage(ZeropageType.DONTUSE)
+            .noSysInit(true)
+            .compilerVersion("99.99")
+            .loadAddress(target.PROGRAM_LOAD_ADDRESS)
+            .memtopAddress(0xffffu)
+            .outputDir(Path(""))
+            .build()
+        val program = IRProgram("unittest-union-roundtrip", IRSymbolTable(), options, target)
+        val structName = "main.MyUnion"
+        val fields = listOf(
+            IRStStructField(DataType.forDt(BaseDataType.UBYTE), "byteField"),
+            IRStStructField(DataType.forDt(BaseDataType.UWORD), "wordField")
+        )
+        program.st.add(IRStStructDef(structName, fields, 2u, true))
+        program.st.add(IRStStructInstance("main.myUnion", structName, emptyList(), 2u))
+        val writer = IRFileWriter(program, Path("intermediate-union-roundtrip-test-output.p8ir"))
+        val generatedFile = writer.write()
+        val program2 = IRFileReader().read(generatedFile)
+        generatedFile.deleteExisting()
+        val def = program2.st.lookup(structName) as IRStStructDef
+        def.isUnion shouldBe true
+        def.size shouldBe 2u
+        def.fields.size shouldBe 2
+        val instance = program2.st.lookup("main.myUnion") as IRStStructInstance
+        instance.size shouldBe 2u
     }
 })

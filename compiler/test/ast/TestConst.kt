@@ -585,6 +585,31 @@ main {
         compileText(Cx16Target(), false, src, outputDir, writeAssembly = true) shouldNotBe null
     }
 
+    test("const union sizes and offsets") {
+        val src = """
+%zeropage basicsafe
+%option no_sysinit
+main {
+    union U {
+        ubyte b
+        uword w
+    }
+
+    sub start() {
+        const ubyte sz = sizeof(U)
+        const ubyte off_b = offsetof(U.b)
+        const ubyte off_w = offsetof(U.w)
+    }
+}"""
+        val result = compileText(Cx16Target(), false, src, outputDir, writeAssembly = false)!!
+        val st = result.compilerAst.entrypoint.statements
+        val consts = st.filterIsInstance<VarDecl>().filter { it.type == VarDeclType.CONST }
+        consts.size shouldBe 3
+        (consts[0].value as NumericLiteral).number shouldBe 2.0
+        (consts[1].value as NumericLiteral).number shouldBe 0.0
+        (consts[2].value as NumericLiteral).number shouldBe 0.0
+    }
+
     test("enum") {
         val src = """
 main {
