@@ -12,11 +12,11 @@ main {
     }
 
     sub start() {
-        txt.print_ub(sizeof(Together))  ; 5
+        txt.print_ub(sizeof(Together))          ; 5
         txt.nl()
-        txt.print_ub(offsetof(Together.u)) ; 0
+        txt.print_ub(offsetof(Together.u))      ; 0
         txt.nl()
-        txt.print_ub(offsetof(Together.b)) ; 0
+        txt.print_ub(offsetof(Together.b))      ; 0
         txt.nl()
 
         ^^Together t = 4000

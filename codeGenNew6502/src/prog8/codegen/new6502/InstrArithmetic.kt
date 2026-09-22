@@ -1535,6 +1535,41 @@ internal fun AsmGen.translateFloatArithmetic(insn: IRInstruction) {
             emitLine("jsr  floats.MOVMF")
         }
 
+        Opcode.ADDIM -> {
+            val value = insn.requireImmediateFloat()
+            val constLabel = getFloatConstLabel(value)
+            val target = resolveAddress(insn.requireMemory())
+            emitLine("lda  #<$target")
+            emitLine("ldy  #>$target")
+            emitLine("jsr  floats.MOVFM")
+            emitLine("lda  #<$constLabel")
+            emitLine("ldy  #>$constLabel")
+            emitLine("jsr  floats.FADD")
+            emitLine("ldx  #<$target")
+            emitLine("ldy  #>$target")
+            emitLine("jsr  floats.MOVMF")
+        }
+
+        Opcode.SUBIM -> {
+            // NOTE: FSUB does FAC1 = memory - FAC1, so we must use push/pop + FSUBT instead
+            val value = insn.requireImmediateFloat()
+            val constLabel = getFloatConstLabel(value)
+            val target = resolveAddress(insn.requireMemory())
+            emitLine("lda  #<$target")
+            emitLine("ldy  #>$target")
+            emitLine("jsr  floats.MOVFM")
+            emitLine("jsr  floats.pushFAC1")
+            emitLine("lda  #<$constLabel")
+            emitLine("ldy  #>$constLabel")
+            emitLine("jsr  floats.MOVFM")
+            emitLine("sec")
+            emitLine("jsr  floats.popFAC")
+            emitLine("jsr  floats.FSUBT")
+            emitLine("ldx  #<$target")
+            emitLine("ldy  #>$target")
+            emitLine("jsr  floats.MOVMF")
+        }
+
         Opcode.INCM -> {
             val target = resolveAddress(insn.requireMemory())
             emitLine("lda  #<$target")

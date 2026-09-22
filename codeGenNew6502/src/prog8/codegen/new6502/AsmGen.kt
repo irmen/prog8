@@ -31,6 +31,7 @@
 
 package prog8.codegen.new6502
 
+import prog8.code.StStructInstanceBlockName
 import prog8.code.core.*
 import prog8.codegen.new6502.optimization.PeepholeOptimizer
 import prog8.intermediate.*
@@ -227,7 +228,25 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
             name.startsWith('>') -> ">" to name.drop(1)
             else -> "" to name
         }
-        return "$prefix${fixNameSymbols(rest)}"
+        val node = program.st.lookup(rest)
+        return when (node) {
+            is IRStStructInstance -> "$prefix${structInstanceRef(node, rest)}"
+            else -> "$prefix${fixNameSymbols(rest)}"
+        }
+    }
+
+    private fun structInstanceRef(node: IRStStructInstance, name: String): String {
+        // Uninitialized instances (empty initializer, or unions) are emitted into
+        // the prog8_struct_instances_bss block, but the IR bakes in the plain
+        // prog8_struct_instances prefix into every reference. Rewrite those to
+        // match the emitted block label.
+        val def = program.st.lookup(node.structName) as IRStStructDef
+        val fixed = fixNameSymbols(name)
+        return if (node.values.isEmpty() || def.isUnion) {
+            "${StStructInstanceBlockName}_bss.${fixed.substringAfter('.')}"
+        } else {
+            fixed
+        }
     }
 
     fun resolveSymbolRef(name: String): String {
@@ -235,8 +254,8 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
         return when (node) {
             is IRStConstant -> constLabel(name)
             is IRStStaticVariable, is IRStMemVar,
-            is IRStMemorySlab,
-            is IRStStructInstance -> fixNameSymbols(name)
+            is IRStMemorySlab -> fixNameSymbols(name)
+            is IRStStructInstance -> structInstanceRef(node, name)
             else -> name      // external/library symbol, keep as-is
         }
     }
@@ -1078,13 +1097,17 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
                 for (fieldValue in si.values) {
                     when (val fv = fieldValue.value) {
                         is IRStSymbolicReference.Numeric -> {
-                            val v = fv.value.toInt()
-                            val size = when (fieldValue.dt) {
-                                BaseDataType.UBYTE, BaseDataType.BYTE, BaseDataType.BOOL -> ".byte"
-                                BaseDataType.UWORD, BaseDataType.WORD -> ".word"
-                                else -> ".word"
+                            // FLOAT is 5 MFLPT bytes (6502), LONG is 4 bytes; both would
+                            // be truncated if emitted as a 2-byte .word, corrupting the
+                            // instance layout.
+                            when (fieldValue.dt) {
+                                BaseDataType.FLOAT -> emitLine("    .byte  [${target.getFloatAsmBytes(fv.value)}]    ; float ${fv.value}")
+                                BaseDataType.LONG -> emitLine("    .dint  ${fv.value.toLong()}")
+                                BaseDataType.BYTE -> emitLine("    .char  ${fv.value.toInt()}")
+                                BaseDataType.UBYTE, BaseDataType.BOOL -> emitLine("    .byte  ${fv.value.toInt()}")
+                                BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.STR, BaseDataType.POINTER -> emitLine("    .word  ${fv.value.toInt()}")
+                                else -> error("unsupported datatype for struct instance field value: ${fieldValue.dt}")
                             }
-                            emitLine("  $size $v")
                         }
                         is IRStSymbolicReference.Symbol -> {
                             emitLine("    .word  ${fixNameSymbols(fv.name)}")
