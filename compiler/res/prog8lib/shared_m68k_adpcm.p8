@@ -59,12 +59,10 @@ adpcm {
     ; 5. Output is stored big-endian with a single move.w per sample, no byte swapping.
     ;
     ; Compared to a small-table decoder (89-entry step table + 16-entry index table,
-    ; e.g. Kalmalyzer's adpcm-68k): no per-sample delta computation, no index clamping
-    ; (their spl/ext/and + cmp/bls sequence costs ~25 cycles/sample), one shared table
-    ; offset instead of two separately computed ones, and no predictor clamping to
-    ; [-32768,32767] (another ~35 cycles/sample in theirs; we deliberately wrap the
-    ; 16-bit predictor instead, matching the 6502 decoder and ffmpeg on real files).
-    ; Net result: ~64-78 cycles/sample here vs ~112+ cycles/sample there.
+     ; e.g. Kalmalyzer's adpcm-68k): no per-sample delta computation, no index clamping
+     ; (their spl/ext/and + cmp/bls sequence costs ~25 cycles/sample), one shared table
+     ; offset instead of two separately computed ones. Predictor values are saturated
+     ; to the signed 16-bit range to match the canonical IMA-ADPCM decoder behavior.
     ;
     ; NOT APPLIED (only useful on 68020/040/060; this code targets the plain 68000):
     ; - scaled indexing such as (a2,d1.l*4): would remove the explicit nibble*2 add.
@@ -126,6 +124,13 @@ adpcm {
         add.w   d0,d1
         move.w  (a2,d1.w),d0
         add.w   d0,d7
+        bvc.s   .m1_no_clip
+        bmi.s   .m1_positive
+        move.w  #$8000,d7
+        bra.s   .m1_no_clip
+.m1_positive
+        move.w  #$7fff,d7
+.m1_no_clip
         move.w  (a3,d1.w),d6
         move.w  d7,(a1)+
         move.w  d3,d0
@@ -136,6 +141,13 @@ adpcm {
         add.w   d0,d1
         move.w  (a2,d1.w),d0
         add.w   d0,d7
+        bvc.s   .m2_no_clip
+        bmi.s   .m2_positive
+        move.w  #$8000,d7
+        bra.s   .m2_no_clip
+.m2_positive
+        move.w  #$7fff,d7
+.m2_no_clip
         move.w  (a3,d1.w),d6
         move.w  d7,(a1)+
         move.w  d4,d3
@@ -147,6 +159,13 @@ adpcm {
         add.w   d0,d1
         move.w  (a2,d1.w),d0
         add.w   d0,d7
+        bvc.s   .m3_no_clip
+        bmi.s   .m3_positive
+        move.w  #$8000,d7
+        bra.s   .m3_no_clip
+.m3_positive
+        move.w  #$7fff,d7
+.m3_no_clip
         move.w  (a3,d1.w),d6
         move.w  d7,(a1)+
         move.w  d3,d0
@@ -157,6 +176,13 @@ adpcm {
         add.w   d0,d1
         move.w  (a2,d1.w),d0
         add.w   d0,d7
+        bvc.s   .m4_no_clip
+        bmi.s   .m4_positive
+        move.w  #$8000,d7
+        bra.s   .m4_no_clip
+.m4_positive
+        move.w  #$7fff,d7
+.m4_no_clip
         move.w  (a3,d1.w),d6
         move.w  d7,(a1)+
         swap    d4
@@ -170,6 +196,13 @@ adpcm {
         add.w   d0,d1
         move.w  (a2,d1.w),d0
         add.w   d0,d7
+        bvc.s   .m5_no_clip
+        bmi.s   .m5_positive
+        move.w  #$8000,d7
+        bra.s   .m5_no_clip
+.m5_positive
+        move.w  #$7fff,d7
+.m5_no_clip
         move.w  (a3,d1.w),d6
         move.w  d7,(a1)+
         move.w  d3,d0
@@ -180,6 +213,13 @@ adpcm {
         add.w   d0,d1
         move.w  (a2,d1.w),d0
         add.w   d0,d7
+        bvc.s   .m6_no_clip
+        bmi.s   .m6_positive
+        move.w  #$8000,d7
+        bra.s   .m6_no_clip
+.m6_positive
+        move.w  #$7fff,d7
+.m6_no_clip
         move.w  (a3,d1.w),d6
         move.w  d7,(a1)+
         move.w  d4,d3
@@ -191,6 +231,13 @@ adpcm {
         add.w   d0,d1
         move.w  (a2,d1.w),d0
         add.w   d0,d7
+        bvc.s   .m7_no_clip
+        bmi.s   .m7_positive
+        move.w  #$8000,d7
+        bra.s   .m7_no_clip
+.m7_positive
+        move.w  #$7fff,d7
+.m7_no_clip
         move.w  (a3,d1.w),d6
         move.w  d7,(a1)+
         move.w  d3,d0
@@ -201,6 +248,13 @@ adpcm {
         add.w   d0,d1
         move.w  (a2,d1.w),d0
         add.w   d0,d7
+        bvc.s   .m8_no_clip
+        bmi.s   .m8_positive
+        move.w  #$8000,d7
+        bra.s   .m8_no_clip
+.m8_positive
+        move.w  #$7fff,d7
+.m8_no_clip
         move.w  (a3,d1.w),d6
         move.w  d7,(a1)+
         dbra    d2,.loop

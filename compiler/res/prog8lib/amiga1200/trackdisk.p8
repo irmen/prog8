@@ -4,7 +4,7 @@
 trackdisk {
     %option no_symbol_prefixing, ignore_unused
 
-    sub opendevice(long unit) -> bool {
+    sub opendevice(ubyte unit) -> bool {
         ; open a trackdisk unit (0-3 = DF0:-DF3:)
         ^^exec.MsgPort tdPort = exec.CreateMsgPort()
         if tdPort == 0 return false

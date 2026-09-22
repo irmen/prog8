@@ -4,6 +4,7 @@ TODO
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 - add unions to the language, see ideas/unions.md
+- m68k codegen: emit struct/union type definitions (VASM ``equ`` symbols for ``size`` and field offsets, e.g. ``p8b_main_p8t_MyUnion_size equ 2``) so inline assembly can reference struct/union field labels and sizes. Currently only the 64tass-based backends emit these (``.struct``/``.union``). Follow-up from ideas/unions.md.
 - DataType.ARRAY_POINTER depends on the compilation target to be either a split word array or not. This is horrible because now we have to check with the compilation target everywhere to see if a DataType enumeration value is split word array, and PtVariable and PtArrayIndexer need an explicit boolean to tell us if this is the case. See ideas/remove_array_pointer_plan.md for the plan.
 - extend the ``-gendoc`` command to generate user reference documentation from Markdown docstrings; see ``ideas/markdown-docstrings-and-reference-docs.md`` for the plan.
 - add documentation for more library modules instead of just linking to the source code

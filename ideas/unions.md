@@ -65,6 +65,11 @@ File: `compilerAst/src/prog8/ast/statements/AstStatements.kt` (line 546)
   - Otherwise keep sequential offset computation.
 - Update `sameas()` to include the union flag.
 - Update `copy()` to preserve the flag.
+- Guard `isNodeStruct()` and `isListStruct()` with `!isUnion`: these heuristics fire on
+  field NAMES (`Succ`/`Pred`, `Next`/`Prev`, `Head`/`Tail`), not on the type being a struct.
+  Without the guard, a union with matching pointer field names would be misdetected as a
+  memory-manager node/list struct and get special treatment in `AstChecker` and
+  `ListIterationHelper`.
 
 ### 4. Validation
 
@@ -91,6 +96,18 @@ File: `compiler/src/prog8/compiler/BuiltinFunctions.kt` (lines 118, 130)
 - `offsetof` and `sizeof` are fixed automatically once `StructDecl.offsetof()` and `memsize()` are updated.
 - No code changes required.
 
+### 6. AST text consumers
+
+File: `compilerAst/src/prog8/ast/AstToSourceTextConverter.kt` (line 222)
+
+- `visit(struct: StructDecl)` prints `"struct ${struct.name} {"`; emit `"union ..."` when
+  `isUnion` is true so AST-to-source round-trips stay valid.
+
+File: `compilerAst/src/prog8/ast/SymbolDumper.kt` (line 260)
+
+- `visit(struct: StructDecl)` prints `"struct ${struct.name}"` for skeleton dumps; emit
+  `"union ..."` when `isUnion` is true.
+
 ## Simple AST / symbol table
 
 File: `simpleAst/src/prog8/code/SymbolTableMaker.kt` (line 89)
@@ -101,11 +118,15 @@ File: `simpleAst/src/prog8/code/SymbolTable.kt` (line 266)
 
 - Add `isUnion: Boolean` to `StStruct`.
 - Update `getField()` to return offset `0` for every field when `isUnion` is true.
-- Update `sameas()` to include the flag.
+- Update `sameas()` to include the flag: without it, a struct and a union with identical
+  fields and size would be considered the same type, which breaks pointer-type compatibility
+  and cast validation.
 
 File: `simpleAst/src/prog8/code/ast/AstStatements.kt`
 
-- Add `isUnion` to `PtStructDecl` (if it does not already carry a generic flag bag).
+- `PtStructDecl` has NO generic flag bag; add an explicit `isUnion: Boolean`
+  constructor field (default `false`) and propagate it through `SymbolTableMaker`
+  into `StStruct`.
 
 ## Intermediate representation
 
@@ -121,11 +142,14 @@ File: `intermediate/src/prog8/intermediate/IRProgram.kt` (line 763)
 File: `intermediate/src/prog8/intermediate/IRFileWriter.kt` (line 494)
 
 - Serialize `union=true` in the `STRUCTDEFS` line.
-- IR file format version bump is required if the reader is strict.
+- IR file format version bump IS required (not conditional): the writer emits a new token
+  and the current reader parses `name size=.. fields=..` strictly, so bump the format
+  version and make the reader tolerate the optional trailing `union=true` flag. This
+  preserves reading old `.p8ir` files while new files require a new reader.
 
 File: `intermediate/src/prog8/intermediate/IRFileReader.kt` (line 333)
 
-- Parse the optional `union=true` flag.
+- Parse the optional trailing `union=true` flag.
 
 ## Backend changes
 
@@ -135,6 +159,10 @@ File: `codeGenCpu6502/src/prog8/codegen/cpu6502/ProgramAndVarsGen.kt` (line 360)
 
 - In `structInstances2asm()`:
   - Emit `.union`/`.endunion` type definitions for unions (same reason struct definitions are emitted: so inline assembly can reference `#p8t_MyUnion.p8v_field` and `size(p8t_MyUnion)`).
+  - NOTE: `.union` cannot reuse the `.struct` emission path. 64tass `.struct` takes named
+    constructor parameters (`\f$paramIdx`, see the current `paramFields`/`structargs` code);
+    `.union` takes NO parameters. Emit `.union` / `p8v_field  <type>  ?` per field (arrays keep
+    the `?` placeholder list) / `.endunion`.
   - All union instances are emitted without init values into BSS (`.fill ${size}`).
   - `.dunion` is not needed because static initialization is disallowed.
 - Remove or skip union instances from the initialized `STRUCTINSTANCES` section.
@@ -162,6 +190,16 @@ File: `codeGenM68k/src/prog8/codegen/m68k/AsmGen.kt` (lines 1039, 1393)
 
 ## Tests
 
+### Parser tests
+
+- `compiler/test/ast/TestProg8Parser.kt`:
+  - A union declaration parses at block level (mirror the existing struct parse test).
+  - A union declaration parses at statement level inside a block.
+  - `public` and `private` visibility prefixes on a union parse correctly.
+  - The malformed `union {` input hits the error-recovery path with the same errors as
+    malformed `struct {` (recovery error plus the pre-existing follow-on error for the leftover block).
+- `compiler/test/ast/TestAstToSourceText.kt` (or the visitor test in use): the `Antlr2KotlinVisitor` produces a `StructDecl` with `isUnion = true` for a parsed union.
+
 ### Unit tests
 
 - `compiler/test/TestPointers.kt`:
@@ -171,6 +209,8 @@ File: `codeGenM68k/src/prog8/codegen/m68k/AsmGen.kt` (lines 1039, 1393)
   - Arrays of union instances behave correctly.
 - `compiler/test/ast/TestConst.kt`:
   - `sizeof`/`offsetof` on unions are compile-time constants.
+- `compiler/test/ast/TestAstChecks.kt`:
+  - A union with no fields produces the "union must have at least one field" error.
 
 ### Execution tests
 
@@ -192,6 +232,7 @@ File: `codeGenM68k/src/prog8/codegen/m68k/AsmGen.kt` (lines 1039, 1393)
 - Any union initializer with values is rejected, even a single value.
 - Named-field initialization on a union is rejected.
 - Accessing an unknown field on a union still produces the normal "no such field" error.
+- A union with no fields is rejected (see `TestAstChecks.kt` above).
 
 ## Risks and open questions
 
@@ -208,7 +249,15 @@ File: `codeGenM68k/src/prog8/codegen/m68k/AsmGen.kt` (lines 1039, 1393)
 4. **Assembly references to union fields.**
    - `#p8t_MyUnion.p8v_field` resolves to the field offset (0) inside the union definition. Using `.union` in 64tass makes this correct.
 
-5. **Initialization policy.**
+5. **M68K union type definitions (known omission, out of scope for this feature).**
+   - The m68k backend does not emit struct/union type definitions today, and field offsets
+     are hardcoded into generated code by the compiler, so union behavior in high-level code
+     is unaffected. The only impact: `#p8t_MyUnion.p8v_field` / `size(p8t_MyUnion)` in inline
+     assembly will not resolve on `amiga500`/`qemu68k` - exactly the pre-existing behavior for
+     structs. Tracked separately: emit VASM `equ` symbols in `codeGenM68k/AsmGen.kt`
+     (`p8b_main_p8t_MyUnion_size equ 2`, `p8b_main_p8t_MyUnion_p8v_field equ 0`) as a follow-up.
+
+6. **Initialization policy.**
    - This plan disables all static initialization of unions. If desired later, C-style first-member or named-member initialization can be added as a separate feature.
 
 ## Roll-out checklist
@@ -221,5 +270,9 @@ File: `codeGenM68k/src/prog8/codegen/m68k/AsmGen.kt` (lines 1039, 1393)
 6. 6502 old backend `.union`/`.endunion` type-definition emission.
 7. new6502 / M68K union instance emission.
 8. Tests: unit, execution, IR round-trip, error cases.
-9. Update `docs/source/structpointers.rst` and `docs/source/libraries.rst`.
+9. Documentation: add a section on union types to `docs/source/structpointers.rst`
+   (next to the struct documentation, covering: syntax, the "every field at offset 0"
+   layout, `sizeof`/`offsetof` behavior, and the no-static-initialization rule).
+   Reference it from the type-declaration discussion in `docs/source/programming.rst`.
+   `docs/source/libraries.rst` only needs updating if a union is added to the standard library.
 10. Update `docs/source/history.rst` and `docs/source/todo.rst` if needed.

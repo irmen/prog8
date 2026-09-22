@@ -4,7 +4,7 @@
 trackdisk {
     %option no_symbol_prefixing, ignore_unused
 
-    sub opendevice(long unit) -> bool {
+    sub opendevice(ubyte unit) -> bool {
         ; open a trackdisk unit (0-3 = DF0:-DF3:) in a kickstart 1.3 compatible fashion
         ^^exec.MsgPort tdPort = exec.AllocMem(sizeof(exec.MsgPort), exec.MEMF_PUBLIC | exec.MEMF_CLEAR)
         if tdPort == 0 return false

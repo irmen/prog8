@@ -257,7 +257,7 @@ audio {
         ctrl.Command = exec.CMD_STOP
         ctrl.Unit = mask
         ctrl.Flags = 0
-        exec.DoIO(ctrl)
+        void exec.DoIO(ctrl)
         ctrl.Unit = 1        ; restore the default channel-0 binding
     }
 
@@ -269,7 +269,7 @@ audio {
         ctrl.Command = exec.CMD_START
         ctrl.Unit = mask
         ctrl.Flags = 0
-        exec.DoIO(ctrl)
+        void exec.DoIO(ctrl)
         ctrl.Unit = 1        ; restore the default channel-0 binding
     }
 
