@@ -401,6 +401,7 @@ internal class ProgramAndVarsGen(
                 asmgen.out("${structtype.scopedNameString}    .union\n")
                 emitStructDefFields(structtype) { "?" }
                 asmgen.out("    .endunion\n")
+                asmgen.out("${structtype.scopedNameString}_size=${structtype.size}\n")
             } else {
                 val paramFields = structtype.fields.filter { !it.isArray }
                 val structargs = paramFields.indices.joinToString(",") { "f$it" }
@@ -408,6 +409,7 @@ internal class ProgramAndVarsGen(
                 var paramIdx = 0
                 emitStructDefFields(structtype) { "\\f${paramIdx++}" }
                 asmgen.out("    .endstruct\n")
+                asmgen.out("${structtype.scopedNameString}_size=${structtype.size}\n")
             }
         }
 

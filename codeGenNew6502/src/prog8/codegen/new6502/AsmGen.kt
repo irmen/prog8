@@ -960,6 +960,7 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
                 emitRaw("${fixNameSymbols(sd.name)}  .union")
                 emitStructDefFields(sd) { "?" }
                 emitRaw("    .endunion")
+                emitRaw("${fixNameSymbols(sd.name)}_size=${sd.size}")
             } else {
                 val paramFields = sd.fields.filter { it.arraySize == null }
                 val structargs = paramFields.indices.joinToString(",") { "f$it" }
@@ -967,6 +968,7 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
                 var paramIdx = 0
                 emitStructDefFields(sd) { "\\f${paramIdx++}" }
                 emitRaw("    .endstruct")
+                emitRaw("${fixNameSymbols(sd.name)}_size=${sd.size}")
             }
             emitRaw("")
         }
