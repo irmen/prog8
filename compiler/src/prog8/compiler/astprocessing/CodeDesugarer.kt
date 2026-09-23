@@ -708,7 +708,7 @@ _after:
                     val fieldDt = struct?.getFieldType(fieldName)
                     if(struct!=null && fieldDt!=null) {
                         // (ptr).field  -->  peekXXX(ptr as uword/long + offsetof(Struct.field))
-                        val offset = struct.offsetof(fieldName, program.target)!!.toInt()
+                        val offset = struct.offsetof(fieldName, program.target)!!
                         // cast to an integer type of the target's pointer size: keeps the '+' unscaled
                         // if ptr is already a typecast (e.g. t.port as ^^Thing), unwrap to avoid
                         // a WORD->POINTER->LONG chain that confuses the IR register allocator on 32-bit targets
@@ -1201,8 +1201,8 @@ _after:
             return null
         }
         var fieldAddr: Expression = structBase
-        if(offset>0u)
-            fieldAddr = BinaryExpression(fieldAddr, "+", NumericLiteral.optimalInteger(offset.toInt(), deref.position), deref.position)
+        if(offset>0)
+            fieldAddr = BinaryExpression(fieldAddr, "+", NumericLiteral.optimalInteger(offset, deref.position), deref.position)
         return when {
             fieldDt.isPointer -> {
                 // the field is itself a pointer: load it, then index into what it points to
@@ -1383,7 +1383,7 @@ _after:
                     val ptrVar = deref.definingScope.lookup(ptrName) as? VarDecl
                     if(ptrVar!=null && (ptrVar.datatype.isPointer || ptrVar.datatype.isPointerArray)) {
                         val struct = ptrVar.datatype.subType!! as StructDecl
-                        val offsetNumber = NumericLiteral.optimalInteger(struct.offsetof(field.first, program.target)!!.toInt(), deref.position)
+                        val offsetNumber = NumericLiteral.optimalInteger(struct.offsetof(field.first, program.target)!!, deref.position)
                         val pointerIdentifier = IdentifierReference(ptrName, deref.position)
                         val addrType = target.pointerType
                         val address: Expression
@@ -1614,7 +1614,7 @@ _after:
                 errors.err("no such field '$fieldName' in struct '${currentStruct.name}'", field.position)
                 return noModifications
             }
-            val offset = currentStruct.offsetof(fieldName, program.target)!!.toInt()
+            val offset = currentStruct.offsetof(fieldName, program.target)!!
             if(offset>0)
                 address = BinaryExpression(address, "+", NumericLiteral.optimalInteger(offset, field.position), field.position)
             if(index < fields.size-1) {

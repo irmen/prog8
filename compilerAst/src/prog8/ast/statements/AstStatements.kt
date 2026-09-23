@@ -591,13 +591,13 @@ class StructDecl(override val name: String, val fields: Array<StructField>, val 
     fun getField(name: String): StructField? = fields.firstOrNull { it.name==name }
     override val scopedNameString by lazy { scopedName.joinToString(".") }
 
-    fun offsetof(fieldname: String, sizer: IMemSizer): UByte? {
+    fun offsetof(fieldname: String, sizer: IMemSizer): Int? {
         if(isUnion) {
-            return if(fields.any { it.name == fieldname }) 0.toUByte() else null
+            return if(fields.any { it.name == fieldname }) 0 else null
         }
         fields.fold(0) { offset, field ->
             if (field.name == fieldname)
-                return offset.toUByte()
+                return offset
             val numElements = if(field.isArray) field.constSize() ?: 1 else 1
             offset + sizer.memorySize(field.type, numElements)
         }

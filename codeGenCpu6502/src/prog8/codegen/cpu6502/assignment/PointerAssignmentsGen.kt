@@ -290,7 +290,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                         return "P8ZP_SCRATCH_PTR" to 0u
                     }
                     else
-                        return pointer.startpointer.name to field.second
+                        return pointer.startpointer.name to field.second.toUByte()
                 }
                 else {
                     // have to copy it to temp zp var
@@ -300,7 +300,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                         return "P8ZP_SCRATCH_PTR" to 0u
                     }
                     else
-                        return "P8ZP_SCRATCH_PTR" to field.second
+                        return "P8ZP_SCRATCH_PTR" to field.second.toUByte()
                 }
             }
         }
@@ -333,7 +333,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                     updateScratchPointer()
                 return "P8ZP_SCRATCH_PTR" to 0u
             } else
-                return "P8ZP_SCRATCH_PTR" to fieldinfo.second
+                return "P8ZP_SCRATCH_PTR" to fieldinfo.second.toUByte()
         }
     }
 
@@ -958,7 +958,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
         val right = binExpr.right as? PtIdentifier
         require(binExpr.operator=="." && left!=null && right!=null) {"invalid dereference expression ${binExpr.position}"}
 
-        val field: Pair<DataType, UByte>
+        val field: Pair<DataType, Int>
         var extraFieldOffset = 0
 
         if(left.type.isStructInstance) {
@@ -989,7 +989,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
             field = struct.getField(right.name, asmgen.program.memsizer)
         }
 
-        val offset = extraFieldOffset + field.second.toInt()
+        val offset = extraFieldOffset + field.second
         // TODO avoid always using a zp scratch reg below if the only thing we dereferenced above is a pointer variable that is already in zeropage itself
         if(offset>=256) {
             // add field offset to pointer if it doesn't fit in the index register

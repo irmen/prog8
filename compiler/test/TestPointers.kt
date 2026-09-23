@@ -248,6 +248,39 @@ main {
         (consts[2].value as NumericLiteral).number shouldBe 0.0
     }
 
+    test("struct field offsets above 255 are supported") {
+        // Regression test: on targets that allow structs larger than 256 bytes
+        // (m68k: ARRAY_SIZE_LIMIT 32768, VM: 65535) a field offset can exceed 255.
+        // This used to crash with 'Failed requirement' in StStruct.getField.
+        val src = $$"""
+%zeropage basicsafe
+main {
+    struct Big {
+        ubyte[300] pad
+        uword val
+    }
+
+    sub start() {
+        const uword fieldoff = offsetof(Big.val)
+        ^^Big b = memory("big", 302, 0)
+        b.pad[0] = 1
+        b.val = $1234
+
+        if fieldoff != 300 { sys.exit(7) }
+        if b.val != $1234 { sys.exit(8) }
+
+        ; success marker (exit status is not observable through VmRunner)
+        pokew($4400, $c0ba)
+        sys.exit(0)
+    }
+}"""
+        val result = compileText(VMTarget(), false, src, outputDir)!!
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
+        VmRunner().runAndTestProgram(virtfile.readText(), true) { vm ->
+            vm.memory.getUW(0x4400u).toInt() shouldBe 0xc0ba      // all in-program checks passed
+        }
+    }
+
     test("float fields in struct and union type definitions get correct 5 byte size in assembly") {
         val src = """
 %zeropage basicsafe

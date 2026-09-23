@@ -271,19 +271,18 @@ class StStruct(
     val isUnion: Boolean = false
 ) : StNode(name, StNodeType.STRUCT, astNode), ISubType {
 
-    fun getField(name: String, sizer: IMemSizer): Pair<DataType, UByte> {
+    fun getField(name: String, sizer: IMemSizer): Pair<DataType, Int> {
         // returns type and byte offset of the given field
         if(isUnion) {
             val field = fields.firstOrNull { it.name == name }
             if(field!=null)
-                return field.type to 0u
+                return field.type to 0
             throw NoSuchElementException("field $name not found in struct ${this.name}")
         }
         var offset = 0
         for(field in fields) {
             if(name==field.name) {
-                require(offset<=255)
-                return field.type to offset.toUByte()
+                return field.type to offset
             }
             val numElements = if(field.isArray) field.arraySize!! else 1
             offset += sizer.memorySize(field.type, numElements)

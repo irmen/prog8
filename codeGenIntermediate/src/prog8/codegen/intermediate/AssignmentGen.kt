@@ -362,20 +362,20 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
     private fun loadfield(
         inplaceInstrs: MutableList<IRCodeChunkBase>,
         addressReg: Int,
-        fieldOffset: UByte,
+        fieldOffset: Int,
         targetDt: IRDataType,
         oldvalueReg: Int
     ) {
         if (targetDt == IRDataType.FLOAT) {
             addInstr(
                 inplaceInstrs,
-                IRInstructions.loadMemory(Opcode.LOADI, targetDt, oldvalueReg, IRMemory.indirect(addressReg, fieldOffset.toInt())),
+                IRInstructions.loadMemory(Opcode.LOADI, targetDt, oldvalueReg, IRMemory.indirect(addressReg, fieldOffset)),
                 null
             )
         } else {
             addInstr(
                 inplaceInstrs,
-                IRInstructions.loadMemory(Opcode.LOADI, targetDt, oldvalueReg, IRMemory.indirect(addressReg, fieldOffset.toInt())),
+                IRInstructions.loadMemory(Opcode.LOADI, targetDt, oldvalueReg, IRMemory.indirect(addressReg, fieldOffset)),
                 null
             )
         }
@@ -807,7 +807,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                     result += codeGen.multiplyByConst(DataType.UWORD, indexReg, eltSize)
                 addInstr(result, IRInstructions.binary(Opcode.ADDR, IRDataType.POINTER, pointerReg, indexReg), null)
             }
-            codeGen.storeValueAtPointersLocation(result, pointerReg, 0u, targetIdent.type.dereference(), true, -1)
+            codeGen.storeValueAtPointersLocation(result, pointerReg, 0, targetIdent.type.dereference(), true, -1)
         } else {
             if(constIndex!=null) {
                 val offset = eltSize * constIndex
@@ -820,7 +820,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                 addInstr(result, IRInstructions.binary(Opcode.ADDR, IRDataType.POINTER, pointerReg, indexReg), null)
             }
             val realValueReg = if(targetDt == IRDataType.FLOAT) valueFpRegister else valueRegister
-            codeGen.storeValueAtPointersLocation(result, pointerReg, 0u, targetIdent.type.dereference(), false, realValueReg)
+            codeGen.storeValueAtPointersLocation(result, pointerReg, 0, targetIdent.type.dereference(), false, realValueReg)
         }
     }
 

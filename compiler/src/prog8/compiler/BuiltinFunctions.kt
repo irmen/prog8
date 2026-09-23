@@ -19,7 +19,7 @@ internal val constEvaluatorsForBuiltinFuncs: Map<String, (args: List<Expression>
     "abs__word" to { a, p, prg -> listOf(oneIntArgOutputInt(a, p, prg, true) { abs(it).toDouble() }) },
     "abs__long" to { a, p, prg -> listOf(oneIntArgOutputInt(a, p, prg, true) { abs(it).toDouble() }) },
     "abs__float" to { a, p, prg -> listOf(oneFloatArgOutputFloat(a, p, prg) { abs(it) }) },
-    "len" to { a, p, prg -> listOf(builtinLen(a, p, prg)) },
+    "len" to { a, p, prg -> listOf(builtinLen(a, p)) },
     "sizeof" to { a, p, prg -> listOf(builtinSizeof(a, p, prg)) },
     "offsetof" to { a, p, prg -> listOf(builtinOffsetof(a, p, prg)) },
     "sgn" to { a, p, prg -> listOf(builtinSgn(a, p, prg)) },
@@ -124,7 +124,7 @@ private fun builtinOffsetof(args: List<Expression>, position: Position, program:
     val fieldname = identifier.last()
     val struct = args[0].definingScope.lookup(structname) as? StructDecl ?: throw SyntaxError("cannot find struct '$structname'", args[0].position)
     val offset = struct.offsetof(fieldname, program.target) ?: throw SyntaxError("no such field '${identifier.joinToString(".")}'", args[0].position)
-    return NumericLiteral.optimalInteger(offset.toInt(), position)
+    return NumericLiteral.optimalInteger(offset, position)
 }
 
 private fun builtinSizeof(args: List<Expression>, position: Position, program: Program): NumericLiteral {
@@ -184,7 +184,7 @@ private fun builtinSizeof(args: List<Expression>, position: Position, program: P
     }
 }
 
-private fun builtinLen(args: List<Expression>, position: Position, program: Program): NumericLiteral {
+private fun builtinLen(args: List<Expression>, position: Position): NumericLiteral {
     // note: in some cases the length is > 255, and then we have to return a UWORD type instead of a UBYTE.
     if(args.size!=1)
         throw SyntaxError("len requires one argument", position)

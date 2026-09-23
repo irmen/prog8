@@ -423,6 +423,33 @@ main {
         lines.any { it == "mymod.Point.p8v_y equ 1" } shouldBe true
     }
 
+    test("struct field offsets above 255 are emitted correctly on m68k") {
+        // Regression test: m68k allows structs up to ARRAY_SIZE_LIMIT (32768) bytes, so
+        // field offsets can exceed 255. This used to crash in StStruct.getField.
+        val src = """
+main {
+    struct Big {
+        ubyte[300] pad
+        uword val
+    }
+
+    sub start() {
+        ^^Big b = 4000
+        b.val = 1
+    }
+}
+"""
+        for (target in listOf(Amiga500Target(), Qemu68kTarget())) {
+            val result = compileText(target, optimize = false, src, outputDir, writeAssembly = true, assemble = false)
+            result shouldNotBe null
+            val asm = result!!.compilationOptions.outputDir.resolve("${result.compilerAst.name}.asm").toFile().readText()
+            val lines = asm.lines().map { it.trim() }
+            lines.any { it == "p8b_main.p8t_Big_size equ 302" } shouldBe true
+            lines.any { it == "p8b_main.p8t_Big.p8v_pad equ 0" } shouldBe true
+            lines.any { it == "p8b_main.p8t_Big.p8v_val equ 300" } shouldBe true
+        }
+    }
+
     test("struct type symbols are emitted in the header before program start") {
         val src = """
 main {

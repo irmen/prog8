@@ -2181,7 +2181,7 @@ class IRCodeGen(
         return chunk
     }
 
-    internal fun evaluatePointerAddressIntoReg(result: MutableList<IRCodeChunkBase>, deref: PtPointerDeref): Pair<Int, UByte> {
+    internal fun evaluatePointerAddressIntoReg(result: MutableList<IRCodeChunkBase>, deref: PtPointerDeref): Pair<Int, Int> {
         // calculates the pointer address and returns the register it's in + remaining offset into the struct  (so that LOADI/STOREFIELD instructions can be used)
         val pointerTr = expressionEval.translateExpression(deref.startpointer)
         result += pointerTr.chunks
@@ -2190,8 +2190,8 @@ class IRCodeGen(
         return pointerTr.resultReg to offset
     }
 
-    internal fun storeValueAtPointersLocation(result: MutableList<IRCodeChunkBase>, addressReg: Int, offset: UByte, type: DataType, valueIsZero: Boolean, existingValueRegister: Int) {
-        if(offset<=0u) {
+    internal fun storeValueAtPointersLocation(result: MutableList<IRCodeChunkBase>, addressReg: Int, offset: Int, type: DataType, valueIsZero: Boolean, existingValueRegister: Int) {
+        if(offset<=0) {
             val irdt = irType(type)
             val instr = if(type.isFloat) {
                 if (valueIsZero) IRInstructions.storeZero(Opcode.STOREZI, IRDataType.FLOAT, IRMemory.indirect(addressReg, 0))
@@ -2208,12 +2208,12 @@ class IRCodeGen(
         val valueRegister = existingValueRegister
         val irdt = irType(type)
         if(valueIsZero && valueRegister<0) {
-            addInstr(result, IRInstructions.storeZero(Opcode.STOREZI, irdt, IRMemory.indirect(addressReg, offset.toInt())), null)
+            addInstr(result, IRInstructions.storeZero(Opcode.STOREZI, irdt, IRMemory.indirect(addressReg, offset)), null)
         } else {
             val instr = if (type.isFloat)
-                IRInstructions.storeMemory(Opcode.STOREI, IRDataType.FLOAT, valueRegister, IRMemory.indirect(addressReg, offset.toInt()))
+                IRInstructions.storeMemory(Opcode.STOREI, IRDataType.FLOAT, valueRegister, IRMemory.indirect(addressReg, offset))
             else
-                IRInstructions.storeMemory(Opcode.STOREI, irdt, valueRegister, IRMemory.indirect(addressReg, offset.toInt()))
+                IRInstructions.storeMemory(Opcode.STOREI, irdt, valueRegister, IRMemory.indirect(addressReg, offset))
             addInstr(result, instr, null)
         }
     }

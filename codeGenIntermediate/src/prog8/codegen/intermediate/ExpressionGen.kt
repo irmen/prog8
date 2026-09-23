@@ -186,7 +186,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             }
 
             result += IRCodeChunk(null, null).also {
-                it += IRInstructions.binaryImmediate(Opcode.ADD, IRDataType.POINTER, pointerReg, firstField.second.toInt())
+                it += IRInstructions.binaryImmediate(Opcode.ADD, IRDataType.POINTER, pointerReg, firstField.second)
                 if (firstField.first.isPointer) {
                     // get the address stored in the pointer and use that for the rest of the chain
                     // LOADI has an exception to allo reg1 and reg2 to be the same, so we can avoid using extra temporary registers and LOADs
@@ -214,19 +214,19 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
 
         // For inline array fields (not pointer fields), return the address (ptr+offset) instead of loading from it
         if(deref.type.isArray && !deref.derefLast) {
-            if(offset > 0u)
-                addInstr(result, IRInstructions.binaryImmediate(Opcode.ADD, IRDataType.POINTER, pointerReg, offset.toInt()), null)
+            if(offset > 0)
+                addInstr(result, IRInstructions.binaryImmediate(Opcode.ADD, IRDataType.POINTER, pointerReg, offset), null)
             return ExpressionCodeResult(result, IRDataType.POINTER, pointerReg, -1)
         }
 
         return if(deref.type.isFloat) {
             val resultReg = codeGen.registers.next(IRDataType.FLOAT)
-            addInstr(result, IRInstructions.loadMemory(Opcode.LOADI, IRDataType.FLOAT, resultReg, IRMemory.indirect(pointerReg, offset.toInt())), null)
+            addInstr(result, IRInstructions.loadMemory(Opcode.LOADI, IRDataType.FLOAT, resultReg, IRMemory.indirect(pointerReg, offset)), null)
             ExpressionCodeResult(result, IRDataType.FLOAT, -1, resultReg)
         } else {
             val irdt = codeGen.irType(deref.type)
             val resultReg = codeGen.registers.next(irdt)
-            addInstr(result, IRInstructions.loadMemory(Opcode.LOADI, irdt, resultReg, IRMemory.indirect(pointerReg, offset.toInt())), null)
+            addInstr(result, IRInstructions.loadMemory(Opcode.LOADI, irdt, resultReg, IRMemory.indirect(pointerReg, offset)), null)
             ExpressionCodeResult(result, irdt, resultReg, -1)
         }
     }
@@ -1876,7 +1876,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         val right = binExpr.right as? PtIdentifier
         require(binExpr.operator=="." && left!=null && right!=null) {"invalid dereference expression ${binExpr.position}"}
         val result = mutableListOf<IRCodeChunkBase>()
-        val field: Pair<DataType, UByte>
+        val field: Pair<DataType, Int>
         val pointerReg: Int
         var extraFieldOffset = 0
 
@@ -1886,7 +1886,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             val struct = left.type.subType!! as StStruct
             field = struct.getField(right.name, codeGen.program.memsizer)
             val fieldVmDt = codeGen.irType(field.first)
-            val fieldOffset = field.second.toInt()
+            val fieldOffset = field.second
             if(left.variable!=null) {
                 val constindex = left.index as? PtNumber
                 if(constindex!=null) {
@@ -1940,7 +1940,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
 
         // add field offset to pointer and load the value into the result register
         val fieldVmDt = codeGen.irType(field.first)
-        val fieldOffset = field.second.toInt() + extraFieldOffset
+        val fieldOffset = field.second + extraFieldOffset
         var resultFpReg = -1
         var resultReg = -1
         if (fieldVmDt == IRDataType.FLOAT)
@@ -1955,14 +1955,14 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         return ExpressionCodeResult(result, fieldVmDt, resultReg, resultFpReg)
     }
 
-    internal fun traverseRestOfDerefChainToCalculateFinalAddress(targetPointerDeref: PtPointerDeref, pointerReg: Int): Pair<IRCodeChunks, UByte> {
+    internal fun traverseRestOfDerefChainToCalculateFinalAddress(targetPointerDeref: PtPointerDeref, pointerReg: Int): Pair<IRCodeChunks, Int> {
         // returns instructions to calculate the pointer address, and the offset into the struct it points to
         // so that LOADI and STOREFIELD opcodes can be used instead of having an explicit extra ADD
 
         val result = mutableListOf<IRCodeChunkBase>()
 
         if(targetPointerDeref.chain.isEmpty())
-            return result to 0u   // nothing to do; there's no deref chain
+            return result to 0   // nothing to do; there's no deref chain
 
         var struct: StStruct? = null
         if(targetPointerDeref.startpointer.type.subType!=null)
@@ -1978,11 +1978,11 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
 
         val field = targetPointerDeref.chain.last()
         val fieldinfo = struct!!.getField(field, codeGen.program.memsizer)
-        if(fieldinfo.second>0u) {
+        if(fieldinfo.second>0) {
             if(targetPointerDeref.derefLast) {
                 require(fieldinfo.first.isPointer)
                 result += updatePointerFromField(fieldinfo, pointerReg)
-                return result to 0u
+                return result to 0
             } else {
                 return result to fieldinfo.second
             }
@@ -1992,13 +1992,13 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             // LOADI has an exception to allow reg1 and reg2 to be the same, so we can avoid using extra temporary registers and LOADs
             addInstr(result, IRInstructions.loadMemory(Opcode.LOADI, IRDataType.POINTER, pointerReg, IRMemory.indirect(pointerReg, 0)), null)
         }
-        return result to 0u
+        return result to 0
     }
 
-    private fun updatePointerFromField(fieldinfo: Pair<DataType, UByte>, pointerReg: Int): IRCodeChunk {
+    private fun updatePointerFromField(fieldinfo: Pair<DataType, Int>, pointerReg: Int): IRCodeChunk {
         return IRCodeChunk(null, null).also {
             // LOADI has an exception to allow reg1 and reg2 to be the same, so we can avoid using extra temporary registers and LOADs
-            it += IRInstructions.loadMemory(Opcode.LOADI, IRDataType.POINTER, pointerReg, IRMemory.indirect(pointerReg, fieldinfo.second.toInt()))
+            it += IRInstructions.loadMemory(Opcode.LOADI, IRDataType.POINTER, pointerReg, IRMemory.indirect(pointerReg, fieldinfo.second))
         }
     }
 

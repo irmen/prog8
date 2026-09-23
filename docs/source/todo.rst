@@ -14,6 +14,7 @@ Future Things and Ideas
 - support typed pointer arrays as struct fields, curretly requires untyped pointers arrays.
 - allow aliasing a whole enum (``alias myEnum = MyEnum``) so that ``myEnum::Member`` works just like ``MyEnum::Member``; currently only aliasing individual enum members is supported. See ideas/alias-enums.md for the plan.
 - evaluate the feature suggestions in ideas/c16-banked-data.md (cx16 banked data library).
+- Status flag extraction clobbers a register return value: in a multi-assign where one call returns both a status flag and a regular register value (e.g. ``-> bool @Pc, ubyte @A`` on new6502, or ``-> bool @Pc, ubyte @D0`` on m68k), the status flag extraction destroys the register return before it is read. The extraction uses a scratch hardware register (``A`` on 6502, ``D0`` on m68k) that can be the same register holding the return value. The old 6502 codegen avoids this with ``pha``/``pla``. See ideas/status-flag-register-clobber.md for the design (reorder the register returns before the flag extraction, protected by register-neutral ``PUSHST``/``POPST``).
 
 Won't do's or deferred
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -53,14 +54,6 @@ Symbol naming in new codegen backends (not a VM issue)
 
 Source line tracking in new codegen backends
 - Improve source line tracking across the IR into the generated assembly code in the new codegen backends (new6502, m68k). Currently, the IR preserves some source position information, but this is not consistently propagated through to the final assembly output. Better tracking would improve debugging experience (e.g., in monitor/debugger tools) and make it easier to correlate generated assembly back to the original Prog8 source code. Consider adding source location metadata to IR instructions and ensuring code generators emit appropriate ``.line`` directives or comments in the assembly output.
-
-Status flag extraction clobbers a register return value
-- In a multi-assign where one call returns both a status flag and a regular register value (e.g. ``-> bool @Pc, ubyte @A`` on new6502, or ``-> bool @Pc, ubyte @D0`` on m68k), the status flag extraction destroys the register return before it is read. The extraction uses a scratch hardware register (``A`` on 6502, ``D0`` on m68k) that can be the same register holding the return value. The old 6502 codegen avoids this with ``pha``/``pla``. See ideas/status-flag-register-clobber.md for the design (reorder the register returns before the flag extraction, protected by register-neutral ``PUSHST``/``POPST``).
-
-
-Struct field offsets are limited to 255 on targets that allow larger structs
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-- ``ARRAY_SIZE_LIMIT`` caps struct size at 256 bytes on the 6502 targets, but at 32768 bytes on the m68k targets and 65535 on the VM target. The struct-member offset is however carried as a ``UByte``: ``StStruct.getField()`` (simpleAst/src/prog8/code/SymbolTable.kt) has ``require(offset<=255)``, so accessing a field at offset 256 or more on m68k/VM crashes the compiler with ``IllegalArgumentException: Failed requirement`` (the struct declaration itself is accepted, only the member access fails). ``StructDecl.offsetof()`` (compilerAst/src/prog8/ast/statements/AstStatements.kt) has the same 255 limit and silently truncates, but that path is only used by the old 6502 codegen, where the 256-byte cap makes it unreachable. Fix: widen the offset to ``Int``/``UInt`` end-to-end (including the IR instruction operand types).
 
 
 Libraries
