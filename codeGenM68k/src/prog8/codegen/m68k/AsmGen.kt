@@ -638,6 +638,9 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         // emit all Prog8 constants as vasm symbols for inline asm use
         emitConstants()
 
+        // emit struct/union type sizes and member offsets as vasm symbols for inline asm use
+        emitStructDefs()
+
         // Set up stack pointer and jump to program start
         emitLabel("prog8_program_start")
         
@@ -1333,6 +1336,28 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
 
         if (emitted.size > 0 || memvars.count() > 0)
             emitRaw("")
+    }
+
+    // Emit the size and member offsets of all struct/union types as vasm 'equ' symbols,
+    // so inline asm can reference them by name (parity with the 64tass-based backends).
+    // Offsets use the same packed layout (no alignment padding) that the compiler's own
+    // member-access codegen uses: a plain fold over the target's memory sizes.
+    private fun emitStructDefs() {
+        val structs = program.st.allStructDefs().toList()
+        if (structs.isEmpty()) return
+        emitRaw("; struct type definitions")
+        for (sd in structs) {
+            val base = fixNameSymbols(sd.name)
+            emitRaw("${base}_size equ ${sd.size}")
+            var offset = 0
+            for (field in sd.fields) {
+                emitRaw("${base}.p8v_${field.name} equ $offset")
+                if (!sd.isUnion)
+                    offset += target.memorySize(field.type, field.arraySize ?: 1)
+            }
+            emitRaw("")
+        }
+        emitRaw("")
     }
 
 

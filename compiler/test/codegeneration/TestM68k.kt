@@ -2,6 +2,7 @@ package prog8tests.codegeneration
 
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.engine.spec.tempdir
+import io.kotest.matchers.ints.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import prog8.code.target.Amiga500Target
@@ -336,5 +337,113 @@ main {
         // cx16 must still compile (fallback lowers loadp_inc to $22 indirect + inc)
         val resCx16 = compileText(prog8.code.target.Cx16Target(), optimize = true, src, outputDir, writeAssembly = true, assemble = false)
         resCx16 shouldNotBe null
+    }
+
+    test("struct and union type symbols are emitted for inline asm on m68k") {
+        // The m68k codegen must emit vasm 'equ' symbols for struct/union sizes and member
+        // offsets, using the same dotted scoped names as the 64tass-based backends, so that
+        // inline asm can reference them. Offsets use the packed layout (no alignment padding).
+        val src = """
+main {
+    struct Sprite {
+        ubyte flags
+        uword xpos
+        ubyte[8] name
+    }
+    union Fill {
+        uword combined
+        ubyte[2] bytes
+    }
+
+    sub start() {
+        ^^Sprite sp = 4
+        sp.flags = 1
+        sp.xpos = 2
+        ^^Fill ff = 6
+        ff.combined = 3
+    }
+}
+"""
+        for (target in listOf(Amiga500Target(), Qemu68kTarget())) {
+            for (opt in listOf(false, true)) {
+                val result = compileText(target, optimize = opt, src, outputDir, writeAssembly = true, assemble = false)
+                result shouldNotBe null
+                val asm = result!!.compilationOptions.outputDir.resolve("${result.compilerAst.name}.asm").toFile().readText()
+                val lines = asm.lines().map { it.trim() }
+                lines.any { it == "p8b_main.p8t_Sprite_size equ 11" } shouldBe true
+                lines.any { it == "p8b_main.p8t_Sprite.p8v_flags equ 0" } shouldBe true
+                lines.any { it == "p8b_main.p8t_Sprite.p8v_xpos equ 1" } shouldBe true
+                lines.any { it == "p8b_main.p8t_Sprite.p8v_name equ 3" } shouldBe true
+                lines.any { it == "p8b_main.p8t_Fill_size equ 2" } shouldBe true
+                lines.any { it == "p8b_main.p8t_Fill.p8v_combined equ 0" } shouldBe true
+                lines.any { it == "p8b_main.p8t_Fill.p8v_bytes equ 0" } shouldBe true
+            }
+        }
+    }
+
+    test("no struct type symbols are emitted when there are no struct definitions") {
+        val src = """
+main {
+    sub start() {
+    }
+}
+"""
+        val result = compileText(Qemu68kTarget(), optimize = false, src, outputDir, writeAssembly = true, assemble = false)
+        result shouldNotBe null
+        val asm = result!!.compilationOptions.outputDir.resolve("${result.compilerAst.name}.asm").toFile().readText()
+        val lines = asm.lines().map { it.trim() }
+        lines.count { it.contains("_size equ") } shouldBe 0
+    }
+
+    test("struct type symbols use unprefixed names in no_symbol_prefixing blocks") {
+        val src = """
+mymod {
+    %option no_symbol_prefixing
+    struct Point {
+        ubyte x
+        ubyte y
+    }
+    ^^Point @shared p
+    sub use() {
+        p.x = 1
+    }
+}
+main {
+    sub start() {
+        mymod.use()
+    }
+}
+"""
+        val result = compileText(Qemu68kTarget(), optimize = false, src, outputDir, writeAssembly = true, assemble = false)
+        result shouldNotBe null
+        val asm = result!!.compilationOptions.outputDir.resolve("${result.compilerAst.name}.asm").toFile().readText()
+        val lines = asm.lines().map { it.trim() }
+        lines.any { it == "mymod.Point_size equ 2" } shouldBe true
+        lines.any { it == "mymod.Point.p8v_x equ 0" } shouldBe true
+        lines.any { it == "mymod.Point.p8v_y equ 1" } shouldBe true
+    }
+
+    test("struct type symbols are emitted in the header before program start") {
+        val src = """
+main {
+    struct Point {
+        ubyte x
+        ubyte y
+    }
+    ^^Point @shared p
+    sub start() {
+        p.x = 1
+    }
+}
+"""
+        val result = compileText(Qemu68kTarget(), optimize = false, src, outputDir, writeAssembly = true, assemble = false)
+        result shouldNotBe null
+        val asm = result!!.compilationOptions.outputDir.resolve("${result.compilerAst.name}.asm").toFile().readText()
+        val lines = asm.lines().map { it.trim() }
+        val sizeIdx = lines.indexOfFirst { it == "p8b_main.p8t_Point_size equ 2" }
+        val startIdx = lines.indexOfFirst { it == "prog8_program_start:" }
+        sizeIdx shouldBeGreaterThan -1
+        startIdx shouldBeGreaterThan -1
+        (sizeIdx < startIdx) shouldBe true
     }
 })
