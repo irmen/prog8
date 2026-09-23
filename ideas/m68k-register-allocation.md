@@ -1,6 +1,6 @@
 # M68k Register Allocation and Calling Convention Design
 
-**Status: design in progress — convention decided, allocator internals not yet fully decided.** Listed as "Deferred" in `docs/source/todo.rst`. The calling convention (§2), register classes (§4), spilling strategy (§5), prologue/epilogue (§6), and the Stage 0/1/3 execution work (§7) are decided and delegable. The Stage-2 allocator internals are **not yet fully decided** — see §7.1 Open Decision Points.
+**Status: reconciled - the seven correctness issues from `m68k-reg-problems.md` are resolved and folded into this design.** Listed as "Deferred" in `docs/source/todo.rst`. The calling convention (§2), register classes (§4), spilling strategy (§5), prologue/epilogue (§6), and the Stage 0/1/3 execution work (§7) are decided and delegable. Still open before Stage 2 is delegable: the §7.1 items 1-4 (width semantics, class-constraint mechanism, spill-slot policy mechanics, call-site metadata representation).
 
 Related design: `m68k-stack-memory-model.md` (stack frames for locals; reserves
 A5 as the future frame pointer and A6 for AmigaOS library bases — both are
@@ -149,8 +149,10 @@ results return in D0, matching the backend's current default
 (`translateReturnValue`); explicit A-register return slots remain possible for
 asmsub via slot annotations.
 
-The asmsub argument/return slots (D0–D2, FP0–FP1) are deliberately in the
-**caller-saved** set, matching their volatile nature.
+The asmsub argument/return slots (D0–D2, FP0–FP1) are mostly in the
+**caller-saved** set, matching their volatile nature - with one deliberate
+exception: D2 is callee-saved in the split yet still an asmsub slot, which
+§2.6 resolves via per-call-site metadata rather than by reclassifying D2.
 
 **This split is the industry-standard M68k convention, not a Prog8
 invention.** The System V ABI and GCC/LLVM use exactly this division:
@@ -162,52 +164,42 @@ split as-is; do not make the caller-saved registers callee-saved and do not
 abolish their scratch role — both would diverge from SVR4/GCC and add
 complexity for no conformance benefit.
 
-**D0, D1, A0, A1 are scratch for the translators, but the allocator MAY use
-them for call-free vregs.** These four registers combine two roles: (a)
-transient scratch *within* a single IR opcode's expansion (accumulator, index,
-pointer, second operand), and (b) the CALL/return boundary (§2.7). Both roles
-mean "never holds a value live across a `CALL`". That is the only hard
-constraint. Within it, the allocator may *also* allocate a vreg to a
-caller-saved register when that vreg's **entire live range contains no
-`CALL`** — such a vreg never needs the callee to preserve the register, so it
-enjoys the caller-saved "free to use, nobody saves it" property. This is
-standard practice (GCC/LLVM allocate caller-saved registers to short-lived,
-call-free values) and it widens the effective pool for the common case at no
-convention cost. A vreg whose live range *does* cross a `CALL` is placed in a
-callee-saved register (D2–D6, A2–A4, FP2–FP7) or spilled, per §2.4.
+**D0, D1, A0, A1 and FP0/FP1 are permanently reserved as translator scratch
+(decision taken; resolves m68k-reg-problems.md §1).** These six registers
+combine two roles: (a) transient scratch *within* a single IR opcode's
+expansion (accumulator, index, pointer, second operand), and (b) the
+CALL/return boundary (§2.7). The translators use them unconditionally while
+expanding individual IR instructions, so a vreg live in one of them when the
+*next* IR instruction expands would be silently destroyed; CALL liveness does
+not protect against that, because a scratch temporary confined to one opcode
+still overlaps a vreg's live range across that instruction boundary. The two
+roles (allocator-managed value vs unconditional scratch) are incompatible.
+Making scratch allocator-aware (model 2 in m68k-reg-problems.md §1) is exactly
+the complexity that made the first attempt (§1.1) fail, so the simpler model
+is taken: the scratch registers never hold allocated vregs. The Stage-1 debug
+assertion (§7) enforces this for the full set D0/D1/A0/A1 **and FP0/FP1**
+(the earlier draft omitted the FP pair, though the backend defines them as
+its FPU scratch registers).
 
-Keeping these registers scratch for the *translators* (independent of whether
-the allocator uses them for call-free vregs) is a deliberate simplification,
-not a limitation discovered later:
+Keeping these registers scratch for the *translators* is a deliberate
+simplification, not a limitation discovered later:
 
 - It formalizes existing reality — the translators already grab d0/d1/a0
   blindly (`loadRegOrZeroExtendToD0`, `loadPointerToA0`, `loadIndexToD0`), and
-  returns already go through d0. A scratch register used within one opcode
-  never crosses a `CALL`, so it cannot conflict with an allocated vreg that
-  also never crosses a `CALL`.
+  returns already go through d0.
 - It removes the need for any allocator-aware scratch reservation protocol: a
-  translator may always *use* d0/d1/a0/a1 freely for a within-opcode temporary,
-  because such a temporary never overlaps a call-crossing live range.
+  translator may always *use* d0/d1/a0/a1 (and fp0/fp1) freely for a
+  within-opcode temporary, because no allocated value ever resides there.
   Multi-scratch expansions (e.g. STOREX needing index+base+value
   simultaneously) are automatically safe.
 - It gives class-mismatched indexed/indirect operands a uniform fallback: move
   the value to a0/a1 (pointer) or d0/d1 (index/accumulator) first.
 
-The one correctness rule the allocator must enforce: **a vreg allocated to a
-caller-saved register must be spilled or moved to a callee-saved register
-before any `CALL` it is live across.** The allocator already models "CALL
-kills caller-saved" (§2.4), so this is a placement constraint, not new
-machinery.
-
 The allocatable pool is therefore: 5 callee-saved data (D2–D6), 3 callee-saved
-address (A2–A4), 6 callee-saved FP (FP2–FP7) — plus the caller-saved D0/D1/
-A0/A1/FP0/FP1 usable only for call-free live ranges. Whether this is enough is
-exactly the register-pressure question the Stage-2 success metrics must
-measure on real programs. (Open contradiction: `m68k-reg-problems.md` §1 shows
-translator scratch use of D0/D1/A0/A1/FP0/FP1 conflicts with allocating
-call-free vregs there — Stage 2 must not size pools or pressure estimates on
-the above until that choice, reserve scratch vs allocator-aware scratch, is
-settled.)
+address (A2–A4), 6 callee-saved FP (FP2–FP7) — and nothing else. Whether this
+is enough is exactly the register-pressure question the Stage-2 success
+metrics must measure on real programs, from actual IR liveness including
+pointer temporaries (§4.0, §7.1 #6).
 
 ### 2.4 What a CALL means for liveness
 
@@ -225,7 +217,10 @@ a single rule regardless of the target subroutine:
 This uniform rule is what makes the rest of the design work: allocation is
 purely subroutine-by-subroutine, with no call graph, no call-tree propagation,
 and no cross-subroutine coordination. Indirect calls (`CALLI`) and recursion
-are handled by the same rule.
+are handled by the same rule. This applies to ordinary Prog8 subroutine calls;
+asmsub/extsub boundaries with fixed-register slots are not uniform - they
+carry per-call-site metadata instead (§2.6), and calls marshalling into
+reserved slots (§2.5) get save/restore wrappers around the marshalling.
 
 ### 2.5 Reserved registers (D7, A5, A6)
 
@@ -253,9 +248,21 @@ Note this deliberately deviates from SVR4, which uses A6 as the frame pointer;
 Prog8's m68k targets use A5 for that role instead, because A6 is spoken for by
 the AmigaOS ABI.
 
+**Marshalling into reserved slots destroys them before the call** (resolves
+m68k-reg-problems.md §3). The §2.6 clobber policy only discusses registers
+modified inside a called routine, but loading an argument into a fixed
+hardware slot already overwrites that register before the `jsr`/`bsr`. This is
+critical for A5 (once it is the frame pointer, marshalling an `@A5` argument
+destroys access to the caller's frame) and D7 (the active physical `repeat`
+counter, so marshalling an `@D7` argument can destroy the surrounding loop
+state). Calls using reserved argument or result slots therefore get a
+generated save-marshal-call-restore sequence at the call site; the saved value
+is restored only after all return values and status flags that depend on the
+call have been captured.
+
 Net allocatable set for vregs: 5 data registers (D2–D6), 3 address registers
-(A2–A4), 8 FPU registers (FP0–FP7) — since D0/D1/A0/A1 are pure scratch (§2.3)
-and D7/A5/A6 are reserved (above).
+(A2–A4), 6 FPU registers (FP2–FP7) — since D0/D1/A0/A1/FP0/FP1 are pure
+translator scratch (§2.3) and D7/A5/A6 are reserved (above).
 
 ### 2.6 asmsub/extsub clobber policy
 
@@ -263,14 +270,25 @@ and D7/A5/A6 are reserved (above).
 `extsub` can declare (or worse, fail to declare) clobbering a callee-saved or
 reserved register. That would break the uniform CALL rule of §2.4.
 
-Policy:
+Policy (decision taken; resolves m68k-reg-problems.md §2): **asmsub/extsub
+boundaries are not uniform CALLs - they carry per-call-site metadata.** The
+uniform CALL rule of §2.4 stays valid for ordinary Prog8 subroutines only. The
+metadata for each fixed-register call contains: the physical registers *read*
+as arguments, the physical registers *defined* as results, and the additional
+physical registers *destroyed* by the call; the allocator creates interference
+edges or preservation moves for those registers at that call site. This is
+required because the old "reject callee-saved clobbers" idea breaks existing
+code: standard-library asmsubs declare D2-D6/A2 in `clobbers`, Amiga library
+calls take arguments in D2-D7 and A2-A5, `Supervisor` and `Alert` use A5/D7 as
+argument slots, and multi-value returns use D0-D3 - all outside the
+caller-saved set, and external routines cannot be changed to preserve Prog8's
+internal convention.
 
-- **`clobbers(...)` may only name caller-saved registers** (D0, D1, A0, A1,
-  FP0, FP1). Declaring a callee-saved or reserved register is a compile error;
-  hand-written assembly that needs D2–D6/A2–A4/FP2–FP7 must save and restore
-  them itself. (A looser variant — honoring the declared clobber set as extra
-  interference at that call site — is possible but abandons the "every CALL is
-  identical" simplification; only add it if a real use case demands it.)
+- For *new* asmsubs, restricting `clobbers(...)` to caller-saved registers
+  (D0, D1, A0, A1, FP0, FP1) is the recommended style; hand-written assembly
+  that needs D2–D6/A2–A4/FP2–FP7 should save and restore it itself. Declaring
+  more is not a compile error: the declared set simply becomes part of the
+  call-site metadata.
 - **Inline asmsubs** are pasted directly into the instruction stream, so the
   same rule applies to their bodies: no writes to callee-saved or reserved
   registers without restoring them.
@@ -292,8 +310,10 @@ the callee allocated to its result vreg, so the boundary is pinned:
 - **Single float result:** same, through FP0.
 - **Multi-value returns:** unchanged from today (memory slots / LOADHR).
   Register-based multi-return is a later optimization.
-- **asmsub/extsub:** unchanged — explicit slot annotations, restricted by §2.6
-  to the caller-saved set.
+- **asmsub/extsub:** unchanged - explicit slot annotations. Slot annotations
+  outside the caller-saved set (such as `@A5`/`@D7` arguments) remain
+  representable: they become part of the §2.6 call-site metadata, with the
+  §2.5 save/restore wrappers around the marshalling.
 
 ### 2.8 The role of LOADHR / STOREHR under allocation
 
@@ -403,39 +423,43 @@ The allocator is class-aware because the m68k has distinct register files:
 - **FPU registers (FPn):** `float` values (32-bit 68881 singles).
 
 Each class has its own interference graph (or a class-tagged unified graph),
-sized by the available callee-saved registers in that class after removing the
-reserved registers of §2.5: 5 D (D2–D6), 3 A (A2–A4), 6 FP (FP2–FP7). The
-caller-saved D0/D1/A0/A1 and FP0/FP1 are additionally allocatable, but only for
-vregs whose live range crosses no `CALL` (§2.3).
+sized by the available registers in that class after removing the reserved
+registers of §2.5 and the translator-scratch registers: 5 D (D2–D6), 3 A
+(A2–A4), 6 FP (FP2–FP7). The scratch registers D0/D1/A0/A1/FP0/FP1 are never
+allocated (§2.3).
 
 ### 4.0 Expected demand per class (where the pressure actually is)
 
 The three classes are not under equal pressure, and this shapes both the pool
-sizing and what the empirical gate (§7.1 #6) must measure.
+sizing and what the empirical gate (§7.1 #6) must measure. These are
+*hypotheses* to be measured from actual IR liveness, not source-usage
+assumptions: a pointer produced by one IR instruction and consumed by a later
+instruction must persist between them - in an allocated address register, a
+spill slot, or a deliberately precoloured and protected live range. Merely
+copying it through a0 during its eventual use does not store the value
+between its definition and its use (m68k-reg-problems.md §7).
 
 - **Data (D2–D6) is the bottleneck.** Every integer intermediate, array index,
-  loop variable, and general arithmetic value competes for these 5 callee-saved
-  registers (plus caller-saved D0/D1 for call-free ranges, §2.3). If any pool
-  is too small, it is this one.
-- **Address (A2–A4) is rarely pressured.** Two different "pointer" populations
-  must not be conflated:
-  - *Short-lived pointer temporaries* (very common): the POINTER-typed IR
-    values produced by array indexing, struct field access, and `&var`
-    (`ADDR .p`, `ADD .p +offset`, `LOADI .p`). These are computed, used once
-    for a `(a0)` / `(a0,d0.w)` access, then dead. Per §2.3 they flow through
-    the pure-scratch A0/A1 and never enter the allocatable A2–A4 pool, so their
-    frequency is irrelevant to ADDRESS-pool sizing.
+  loop variable, and general arithmetic value competes for these 5 registers.
+  If any pool is too small, it is this one.
+- **Address (A2–A4) is probably the least pressured, but pointer temporaries
+  must be counted from liveness.** Two different "pointer" populations:
   - *Long-lived pointer variables* (uncommon in typical Prog8 code): a
     user-declared `^^type`/`pointer` value kept and dereferenced repeatedly is
-    the only real candidate for an A2–A4 allocation (so `(a2)`/`(a2,d3.w)`
-    works in place, §4.1). Most subroutines have zero or one of these, so 3
-    address registers is comfortable headroom.
-- **FPU (FP0–FP7) is likely over-provisioned.** Float usage in typical Prog8
-  programs is rarer still than pointer usage, so 8 FPU registers will almost
+    the clear A2–A4 candidate (so `(a2)`/`(a2,d3.w)` works in place, §4.1).
+  - *Short-lived pointer temporaries* (very common): the POINTER-typed IR
+    values produced by array indexing, struct field access, and `&var`
+    (`ADDR .p`, `ADD .p +offset`, `LOADI .p`). They are used once for a
+    `(a0)`/`(a0,d0.w)` access and then dead, but they still live between their
+    definition and that use, so they consume address registers or spill slots
+    until then. Their demand must be measured, not assumed away.
+- **FPU (FP2–FP7) is likely over-provisioned.** Float usage in typical Prog8
+  programs is rarer still than pointer usage, so 6 FPU registers will almost
   never be a constraint.
 
 Consequence: the empirical gate (§7.1 #6) should focus its measurement on the
-data pool, not the address or FP pools. See §7.1 #6.
+data pool first, then validate the address-pool estimate from real liveness.
+See §7.1 #6.
 
 ### 4.1 Class requirements flow from translator to allocator
 
@@ -486,12 +510,19 @@ When register pressure exceeds the physical registers available in a class, the
 allocator spills vregs to memory, inserting stores/loads at definition/use
 points. Three possible spill targets, with different soundness properties:
 
-- **Hardware stack (preferred):** push/pop around the live range. Per-invocation
-  storage, so recursion-safe with no cross-subroutine coordination.
+- **SP-reserved spill area (preferred until frames land):** the subroutine
+  prologue reserves a fixed-size spill area once and keeps SP stable
+  throughout the body; each spill is addressed through a fixed SP
+  displacement. Per-invocation storage, so recursion-safe for the register
+  state. Naive push/pop around a live range is *not* a sound general
+  strategy: general live ranges are not necessarily nested in LIFO order
+  (they cross branches, loops, calls, and multiple uses), so push/pop
+  insertion can produce different stack depths at CFG joins or pop a
+  different value from the one expected (resolves m68k-reg-problems.md §4).
 - **Frame slots:** once the A5 frame model (`m68k-stack-memory-model.md`) lands,
   spills become frame-resident; its frame layout already budgets "compiler
-  spill slots". Same soundness as stack spills, with cheaper addressing
-  (`move.l -8(a5),d0` instead of push/pop pairs).
+  spill slots". Same soundness as SP-reserved spills, with cheaper addressing
+  (`move.l -8(a5),d0`).
 - **BSS regfile:** the existing `p8_regfile` block, demoted to a spill area.
   Static storage, so **not reentrant** (sound today only because Prog8 has no
   recursion) and **shared by every subroutine**: a caller spilling its r5 to
@@ -516,9 +547,15 @@ subroutine by `AsmGen`, not as a shared helper routine you `bsr` to.
 The callee-saved prologue save/restore (§6) is the spill mechanism for values
 that must survive a call; it is *not* a `CALL`-time save/restore.
 
-Recursion soundness has two halves: callee-saved prologue saves are already
-per-invocation, but spills must be stack/frame-based too before recursion is
-fully sound.
+**Recursion stays unsupported until the stack memory model lands** (resolves
+m68k-reg-problems.md §5). Stack-based register saves and spills are
+per-invocation, but ordinary Prog8 parameters and locals remain statically
+allocated, so a recursive call would still overwrite the caller's parameter
+and local storage. Register allocation alone therefore does not make normal
+subroutines recursive or reentrant; the §8 recursion test is limited to
+register-state preservation in synthetic routines without static
+per-invocation state, and stack spills are no longer claimed to make
+recursion fully sound on their own.
 
 Per-subroutine vreg-number reuse (resetting `RegisterPool` per subroutine) is a
 safe optional extra *because* no value is live in a shared hardware register
@@ -558,18 +595,24 @@ Each is small, contained, and verifiable on its own.
 1. **Catalog every `bsr`/`jsr` the backend emits and flag those with no IR
    call edge.** *Goal:* produce the definitive list of hidden call boundaries
    (the longmath helpers, `math._sqrt_*`, `prog8_lib.strcmp`, startup routines)
-   that the allocator must treat as killing caller-saved registers (§5). Pure
-   survey work; turns a class of "allocator silently corrupts a live value"
-   bugs into a known, enumerated set.
+   that the allocator must treat as killing caller-saved registers (§5), and
+   in the same survey collect the fixed-register asmsub/extsub boundaries
+   (stdlib clobber sets, Amiga library calls, `@A5`/`@D7` argument slots)
+   that need §2.6 call-site metadata. Pure survey work; turns a class of
+   "allocator silently corrupts a live value" bugs into a known, enumerated
+   set.
 2. **Build the byte-identical-output test harness.** *Goal:* a corpus of
    `.p8ir` → asm where any diff fails the test. This is the Stage-1 gate; having
    it ready first means Stage 1 (the large, mechanical refactor) is reviewable
    the moment it lands, rather than trusting it blindly.
-3. **Introduce the scratch-register reservation API on `AsmGen`** and migrate
-   the scattered ad hoc d0/d1/a0 `emitLine` references to it, keeping output
-   byte-identical. *Goal:* remove the single biggest source of
-   allocator-vs-handwritten-code register conflicts *before* the allocator is
-   added, so Stage 2 doesn't have to chase clobbers through the translators.
+3. **Route all scratch-register references through named constants** on
+   `AsmGen` (`SCRATCH_D0`, `SCRATCH_D1`, `SCRATCH_A0`, `SCRATCH_A1`,
+   `SCRATCH_FP0`, `SCRATCH_FP1`), migrating the scattered ad hoc d0/d1/a0
+   `emitLine` references, keeping output byte-identical. No acquire/release
+   protocol is needed - scratch is permanently reserved (§2.3), so a single
+   owner of the scratch set plus a debug assertion suffices. *Goal:* make the
+   scratch set explicit and auditable before the allocator is added, so
+   Stage 2 doesn't have to chase clobbers through the translators.
 4. **Make the helper call sites convention-clean.** *Goal:* give each runtime
    helper a declared, caller-saved-only clobber set per §2.6 (and stop the
    ad hoc d7 clobbering noted in §2.5). Contained change that removes the
@@ -637,17 +680,18 @@ Treat them as a distinct work item with their own tests; do not assume the
 blanket `operand()` refactor covers them.
 
 **Scratch registers need only enforcement, not a reservation protocol.**
-Because D0/D1/A0/A1 are decided to be pure scratch that never holds an
-allocated vreg (§2.3), Stage 1 does *not* need an allocator-aware
-acquire/release system. The work is reduced to: (a) route the existing helpers
-(`loadRegOrZeroExtendToD0`, `loadPointerToA0`, `loadIndexToD0`) and the
-scattered `emitLine` references to d0/d1/a0/a1 through named constants
-(`SCRATCH_D0`, etc.) so there is a single place that owns the scratch set; and
-(b) add a debug-time assertion that the allocator never assigns a vreg to any
-of D0/D1/A0/A1/D7/A5/A6. This keeps the byte-identical checkpoint easily
-attainable and removes what would otherwise be the largest hidden design item
-in Stage 1. The one thing translators must *not* do is introduce a new
-hardcoded scratch register outside the D0/D1/A0/A1 set.
+Because D0/D1/A0/A1/FP0/FP1 are decided to be permanently reserved pure
+scratch that never holds an allocated vreg (§2.3), Stage 1 does *not* need an
+allocator-aware acquire/release system. The work is reduced to: (a) route the
+existing helpers (`loadRegOrZeroExtendToD0`, `loadPointerToA0`,
+`loadIndexToD0`) and the scattered `emitLine` references to d0/d1/a0/a1/fp0/
+fp1 through named constants (`SCRATCH_D0`, etc.) so there is a single place
+that owns the scratch set; and (b) add a debug-time assertion that the
+allocator never assigns a vreg to any of D0/D1/A0/A1/FP0/FP1 (translator
+scratch) or D7/A5/A6 (reserved). This keeps the byte-identical checkpoint
+easily attainable and removes what would otherwise be the largest hidden
+design item in Stage 1. The one thing translators must *not* do is introduce
+a new hardcoded scratch register outside the D0/D1/A0/A1/FP0/FP1 set.
 
 - **Checkpoint before starting Stage 2:** with an empty allocation map, the
   generated assembly must be byte-identical to the pre-change output for a
@@ -672,10 +716,10 @@ hardcoded scratch register outside the D0/D1/A0/A1 set.
    Stage 1.
 5. **Emit prologue/epilogue** `movem` saves for the callee-saved registers the
    subroutine uses (§6).
-6. **Spill under pressure**, preferably to the hardware stack (§5).
+6. **Spill under pressure** to the SP-reserved spill area (§5).
 7. **Pin the return-value boundary (§2.7):** callee moves results to D0/FP0
    before `rts`; the caller consumes them from there.
-8. **Enforce the asmsub/extsub clobber policy (§2.6).**
+8. **Model fixed-register asmsub/extsub boundaries with per-call-site metadata (§2.6).**
  9. **Restrict `ImmediateCallOptimization` to spilled operands** (`AsmGen.kt`).
     This pass does cross-instruction immediate forwarding into calls by
     reasoning about which regfile slots are dead — a second, overlapping
@@ -715,11 +759,14 @@ delegable:
    slots are assigned per subroutine, whether spill code is inserted during
    coloring (rewriting the IR) or emitted at use points, and the push/pop vs
    frame-slot *mechanism* given the A5 frame model does not yet exist.
-4. **How liveness models CALL interference and the scratch registers
-   concretely.** "CALL kills D0/D1/A0/A1/FP0/FP1" must be realized as kill
-   edges at call points; and since D0/D1/A0/A1 are never vreg-allocated
-   (§2.3), decide whether they appear in the interference graph at all or are
-   handled purely by CALL-boundary marshalling.
+ 4. **Call-site metadata representation (mechanism).** The liveness side is
+    decided: "CALL kills D0/D1/A0/A1/FP0/FP1" is realized as kill edges at
+    call points, and the translator-scratch plus reserved registers never
+    appear in the interference graph at all (they are never vreg-allocated,
+    §2.3). Ordinary Prog8 subroutines are uniform; asmsub/extsub boundaries
+    carry per-call-site metadata (§2.6). Still open: how that metadata is
+    represented (IR-level annotation vs backend table) and how preservation
+    moves are emitted.
  5. **Fate of `ImmediateCallOptimization` (Stage 2 step 9) — DECIDED.**
     Restrict it to spilled operands for allocator bring-up; delete it and fold
     immediate-forwarding into call-boundary marshalling when the
@@ -728,14 +775,14 @@ delegable:
      "Are the per-class pools big enough?" (§2.3 cost) and "does liveness
      survive programs with complex control flow?" (§3.1) are hypotheses to
      *measure*, not tasks. Per the demand analysis (§4.0) the measurement
-     should focus on the **data pool (D2–D6)** — the address pool (A2–A4) and
-     FP pool (FP0–FP7) are expected to have ample headroom because long-lived
-     pointer and float variables are uncommon in typical Prog8 code. An agent
+     should focus on the **data pool (D2–D6)** - it is the expected
+     bottleneck. The address pool (A2–A4) estimate ("rarely pressured") is a
+     hypothesis that must be validated from real IR liveness, because
+     short-lived pointer temporaries are live between their definition and
+     use (m68k-reg-problems.md §7); the FP pool (FP2–FP7) is expected to have
+     ample headroom. An agent
      can run the measurement, but a human judges the result and decides whether
-     the pool is adequate. Note the caller-saved D0/D1/A0/A1 are already
-     allocatable for call-free live ranges (§2.3), which relieves data-register
-     pressure for the common case; the measurement determines whether that
-     suffices or whether the convention itself needs revisiting.
+     a pool is adequate or the convention itself needs revisiting.
 
 ### Stage 3 — teardown of the old mitigation layer
 
@@ -782,9 +829,15 @@ structure) covering:
 - Cross-chunk liveness (vreg live across multiple code chunks).
 - Nested loops and conditionals (layout-order vs execution-order intervals).
 - Early returns / multiple exit points (prologue/epilogue symmetry).
-- Value live across a `CALL` kept in a callee-saved register or spilled.
-- Caller-saved register correctly spilled around a call.
-- Recursion (stack frame saves handle it).
+- Value live across a `CALL` kept in a callee-saved register or spilled for
+  its whole live range (no live-range splitting initially, §7.1 #6).
+- Call-site metadata: a fixed-register call (stdlib asmsub clobber set, Amiga
+  library call) yields correct preservation moves/interference (§2.6).
+- Marshalling an `@A5`/`@D7` argument saves the reserved register and restores
+  it only after all return values and status flags are captured (§2.5).
+- Recursion: register-state preservation only, in synthetic routines without
+  static per-invocation state (full recursion stays unsupported until the
+  stack memory model lands, §5).
 - Indirect calls (`CALLI`) handled by the uniform convention.
 - asmsub/extsub argument slots (D0–D2, FP0–FP1) and return values.
 - Float values routed through FP registers.
@@ -793,8 +846,9 @@ structure) covering:
   pressure.
 - Values live in callee-saved registers across a `repeat` loop survive the
   loop's use of d7.
-- An asmsub declaring a callee-saved or reserved register in `clobbers(...)`
-  is rejected at compile time.
+- An asmsub declaring callee-saved or reserved registers in `clobbers(...)`
+  is accepted and its set is honored as call-site metadata (§2.6); the stdlib
+  asmsubs that do this keep working.
 - Return value marshalled through D0/FP0 across a call, including when the
   caller's destination vreg is allocated to a different physical register.
 - Caller and callee both spilling in a call chain: stack/frame spills do not
