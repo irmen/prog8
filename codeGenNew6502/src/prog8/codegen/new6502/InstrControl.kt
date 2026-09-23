@@ -554,8 +554,8 @@ private fun AsmGen.translateCall(fnLabel: String, site: CallSite) {
     // the IR generates LOADHR for them.
     // In single-return expression context, process slot returns normally
     // (the IR doesn't generate LOADHR for single-return calls).
-    // LIMITATION: multiple status flag returns in one multi-assign (e.g. -> bool @Pz, bool @Pc)
-    // are not supported - codegen limitation: the first flag's extraction clobbers the state for subsequent flags.
+    // Multiple status flag returns in one multi-assign are protected by the IR:
+    // it wraps each flag's extraction in PUSHST/POPST (php/plp) so they don't clobber each other.
     val isMultiReturn = site.results.size > 1
     for (ret in site.results) {
         if (ret.location is CallLocation.StatusFlag)

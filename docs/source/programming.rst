@@ -1754,12 +1754,15 @@ So in the case above that could be::
         something()
 
 .. note::
-   Multiple status flag returns in a single multi-assign are not supported on the (experimental) m68k and new6502 codegens
-   (the regular 6502 codegen handles this case correctly).
-   For example, ``asmsub example() -> bool @Pz, bool @Pc`` followed by ``flag1, flag2 = example()`` will not
-   work correctly. The extraction of the first flag clobbers the CPU status register before the
-   second flag can be read. If you need multiple boolean returns, use regular register returns
-   (e.g. ``-> bool @D0, bool @D1`` on m68k, or ``-> bool @A, bool @X`` on 6502) instead of status flags.
+   Multiple status flag returns in a single multi-assign are supported on all codegens.
+   For example, ``asmsub example() -> bool @Pz, bool @Pc`` followed by ``flag1, flag2 = example()``
+   works correctly: the code generator saves and restores the processor status around the extraction
+   of each flag, so the extraction of the first flag doesn't clobber the status register before the
+   second flag can be read. The only exception is the m68k ``amiga500`` target (68000 cpu), which
+   cannot save/restore the status register with a nonprivileged instruction and therefore fails to
+   compile such code; compile for 68010 or higher (e.g. ``qemu68k``) instead. If you need multiple
+   boolean returns, regular register returns (e.g. ``-> bool @D0, bool @D1`` on m68k, or
+   ``-> bool @A, bool @X`` on 6502) also work.
 
 Notice that a call to a subroutine that returns multiple values cannot be used inside an expression,
 because expression terms always need to be a single value. You'll have to use a separate multi-assignment

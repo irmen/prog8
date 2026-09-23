@@ -99,8 +99,10 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
                 // In multi-assign context (returns.size > 1), also skip slot-based returns:
                 // the IR generates LOADHR for them.
                 // In single-return context, process slot returns normally.
-                // LIMITATION: multiple status flag returns in one multi-assign are not supported
-                // (codegen limitation: first flag extraction clobbers flags before second can be read).
+                // Multiple status flag returns in one multi-assign are protected by the IR:
+                // it wraps each flag's extraction in PUSHST/POPST so they don't clobber each other.
+                // On the 68000 cpu this fails, because it cannot save/restore the CCR with a
+                // nonprivileged instruction (compile for 68010 or higher to use this).
                 val isMultiReturn = callSite.results.size > 1
                 for(ret in callSite.results) {
                     if (ret.location is CallLocation.StatusFlag)
@@ -662,8 +664,10 @@ private fun AsmGen.translateCall(fnLabel: String, callSite: CallSite, forwardedI
     // before the branch pattern can read them.
     // In single-return expression context, process all slot returns normally
     // (the IR doesn't generate LOADHR for single-return calls).
-    // LIMITATION: multiple status flag returns in one multi-assign (e.g. -> bool @Pz, bool @Pc)
-    // are not supported - codegen limitation: the first flag's extraction clobbers the state for subsequent flags.
+    // Multiple status flag returns in one multi-assign are protected by the IR:
+    // it wraps each flag's extraction in PUSHST/POPST so they don't clobber each other.
+    // On the 68000 cpu this fails, because it cannot save/restore the CCR with a
+    // nonprivileged instruction (compile for 68010 or higher to use this).
     val isMultiReturn = callSite.results.size > 1
     for (ret in callSite.results) {
         if (ret.location is CallLocation.StatusFlag)

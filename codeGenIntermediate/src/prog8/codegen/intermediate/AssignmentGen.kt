@@ -59,7 +59,23 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                         }
                     }
 
-                    flagPairs.forEach(::processPair)
+                    fun isVoidTarget(pair: Pair<Pair<StExtSubParameter, PtNode>, Int>) =
+                        (pair.first.second as PtAssignTarget).void
+
+                    // When multiple status flags are returned in one call, the branch-based
+                    // extraction of one flag clobbers the CPU status bits that a subsequent
+                    // flag still needs to read. Wrap every flag pair's handling in
+                    // PUSHST/POPST so each one sees the original status right after the call.
+                    val wrapStatusFlags = flagPairs.count { !isVoidTarget(it) } > 1
+                    flagPairs.forEach { pair ->
+                        if (wrapStatusFlags && !isVoidTarget(pair)) {
+                            result += IRCodeChunk(null, null).also { it += IRInstructions.simple(Opcode.PUSHST) }
+                            processPair(pair)
+                            result += IRCodeChunk(null, null).also { it += IRInstructions.simple(Opcode.POPST) }
+                        } else {
+                            processPair(pair)
+                        }
+                    }
                     otherPairs.forEach(::processPair)
                 } else {
                     throw AssemblyError("number of values and targets don't match")

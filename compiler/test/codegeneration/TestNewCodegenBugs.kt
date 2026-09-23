@@ -115,4 +115,76 @@ class TestNewCodegenBugs : FunSpec({
         lines.any { it.contains(".byte") && it.contains("[$81, $40, $00, $00, $00]") } shouldBe true
         lines.any { it.contains(".dint") && it.contains("123456") } shouldBe true
     }
+
+    test("multiple status flag returns in one call don't clobber each other") {
+        val src = $$"""
+            %option no_sysinit
+            %launcher none
+            main {
+                inline asmsub flaga(ubyte arg @A) -> bool @Pc, bool @Pz, bool @Pn {
+                    %asm {{
+                        cmp #0
+                    }}
+                }
+                inline asmsub flagb(ubyte arg @A) -> bool @Pc, bool @Pz, bool @Pn {
+                    %asm {{
+                        cmp #1
+                    }}
+                }
+
+                &ubyte r1 = $0340
+                &ubyte r2 = $0341
+                &ubyte r3 = $0342
+                &ubyte r4 = $0343
+
+                sub start() {
+                    bool c
+                    bool z
+                    bool n
+
+                    c, z, n = flaga(0)      ; C=1 Z=1 N=0
+                    r1 = 0
+                    if c r1 += 1
+                    if z r1 += 2
+                    if n r1 += 4
+
+                    c, z, n = flaga($80)    ; C=1 Z=0 N=1
+                    r2 = 0
+                    if c r2 += 1
+                    if z r2 += 2
+                    if n r2 += 4
+
+                    c, z, n = flagb(0)      ; C=0 Z=0 N=1
+                    r3 = 0
+                    if c r3 += 1
+                    if z r3 += 2
+                    if n r3 += 4
+
+                    c, z, n = flagb(1)      ; C=1 Z=1 N=0
+                    r4 = 0
+                    if c r4 += 1
+                    if z r4 += 2
+                    if n r4 += 4
+                }
+            }
+        """.trimIndent()
+        // the status extraction of one flag must not affect the other flags
+        val expected = listOf(3, 5, 4, 3)
+        for (optimize in listOf(false, true)) {
+            val newResult = compileText(C64Target(), optimize, src, outputDir, newCodegen = true, writeAssembly = true)!!
+            val newMachine = newResult.simulate()
+            newMachine.assertMemory(0x340, expected[0])
+            newMachine.assertMemory(0x341, expected[1])
+            newMachine.assertMemory(0x342, expected[2])
+            newMachine.assertMemory(0x343, expected[3])
+
+            // the legacy codegen is the reference implementation and must produce the same values
+            val legacyResult = compileText(C64Target(), optimize, src, outputDir, newCodegen = false, writeAssembly = false)!!
+            val legacyMachine = legacyResult.simulate()
+            legacyMachine.assertMemory(0x340, expected[0])
+            legacyMachine.assertMemory(0x341, expected[1])
+            legacyMachine.assertMemory(0x342, expected[2])
+            legacyMachine.assertMemory(0x343, expected[3])
+        }
+    }
 })

@@ -54,8 +54,8 @@ IR/VM
 **Source line tracking in new codegen backends**
 - Improve source line tracking across the IR into the generated assembly code in the new codegen backends (new6502, m68k). Currently, the IR preserves some source position information, but this is not consistently propagated through to the final assembly output. Better tracking would improve debugging experience (e.g., in monitor/debugger tools) and make it easier to correlate generated assembly back to the original Prog8 source code. Consider adding source location metadata to IR instructions and ensuring code generators emit appropriate ``.line`` directives or comments in the assembly output.
 
-**Multiple status flag returns in new codegens**
-- The new6502 and m68k codegens do not support multiple status flag returns in a single multi-assign (e.g. ``-> bool @Pz, bool @Pc``). The first flag's extraction clobbers the CPU status register before the second flag can be read. This is a codegen limitation, not a fundamental IR issue. The old 6502 codegen handles this correctly by using ``php``/``plp`` to save/restore the processor status around each flag extraction (see ``AssignmentAsmGen.kt:60-84``). The new codegens could be improved similarly by detecting multiple status flag returns and emitting appropriate save/restore instructions around the IR's branch patterns.
+**Status flag extraction clobbers a register return value**
+- In a multi-assign where one call returns both a status flag and a regular register value (e.g. ``-> bool @Pc, ubyte @A`` on new6502, or ``-> bool @Pc, ubyte @D0`` on m68k), the status flag extraction destroys the register return before it is read. The extraction uses a scratch hardware register (``A`` on 6502, ``D0`` on m68k) that can be the same register holding the return value. The old 6502 codegen avoids this with ``pha``/``pla``. See ideas/status-flag-register-clobber.md for the design (reorder the register returns before the flag extraction, protected by register-neutral ``PUSHST``/``POPST``).
 
 
 Libraries

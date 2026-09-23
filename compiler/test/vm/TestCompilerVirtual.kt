@@ -1753,6 +1753,42 @@ main {
         irContent shouldContain "bstvc"
     }
 
+    test("asmsub multi-assign with multiple status flags in one call saves the status around each flag") {
+        val src = """
+%option no_sysinit
+main {
+    sub start() {
+        ubyte v
+        bool c
+        bool z
+        bool n
+        v, c, z, n = testFlags()
+        main.r1 = v
+        main.b1 = c
+        main.b2 = z
+        main.b3 = n
+    }
+    asmsub testFlags() -> ubyte @A, bool @Pc, bool @Pz, bool @Pn {
+        %asm {{
+            lda #42
+            cmp #42
+            rts
+        }}
+    }
+    ubyte @shared r1
+    bool @shared b1
+    bool @shared b2
+    bool @shared b3
+}"""
+        val result = compileText(VMTarget(), optimize=false, src, outputDir, writeAssembly = true)!!
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
+        val irContent = virtfile.readText()
+        // each of the three status flags needs its own PUSHST/POPST pair, because the
+        // branch-based extraction of one flag clobbers the status for the following flags
+        irContent.lines().count { it.trim() == "pushst" } shouldBe 3
+        irContent.lines().count { it.trim() == "popst" } shouldBe 3
+    }
+
     test("union zero-init via memory, write byte and read overlapping word") {
         val src = """
 main {
