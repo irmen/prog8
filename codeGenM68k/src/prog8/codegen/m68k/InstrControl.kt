@@ -180,21 +180,18 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
         // === Status flag stack ops via Scc ===
 
         Opcode.PUSHST -> {
-            // Move CCR to D0 (low byte), then push as byte.
+            // Save CCR to the stack. The 68010+ memory form keeps the CCR save
+            // register-neutral (no data register is clobbered) and word-aligned.
             if(program.options.compTarget.cpu == CpuType.M68000)
                 error("the 68000 cpu cannot save/restore the status bits using a nonprivileged instruction. This is required to implement the 'PUSHST/POPST' IR opcodes. Compile for 68010 or higher cpu or change the code such that PUSHST/POPST are no longer used (sometimes complicated rol/ror operations need it)")
-            invalidateD0Cache()
-            emitLine("move  ccr, d0")
-            emitLine("move.b  d0, -(sp)")
+            emitLine("move  ccr, -(sp)")
         }
 
         Opcode.POPST -> {
-            // Pop byte into D0, then restore CCR
+            // Restore CCR from the stack (register-neutral on 68010+).
             if(program.options.compTarget.cpu == CpuType.M68000)
                 error("the 68000 cpu cannot save/restore the status bits using a nonprivileged instruction. This is required to implement the 'PUSHST/POPST' IR opcodes. Compile for 68010 or higher cpu or change the code such that PUSHST/POPST are no longer used (sometimes complicated rol/ror operations need it)")
-            invalidateD0Cache()
-            emitLine("move.b  (sp)+, d0")
-            emitLine("move  d0, ccr")
+            emitLine("move  (sp)+, ccr")
         }
 
         // === Flag manipulation ===

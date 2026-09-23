@@ -33,9 +33,10 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                 if (extsub.returns.size == assignmentTargets.size) {
                     // Targets and values match. Assign all the things. Skip 'void' targets.
                     // We need to handle both FP registers (FAC1/FAC2) and regular CPU registers
-                    // Status flag returns MUST be processed first, because their branch-based
-                    // code needs to read CPU flags immediately after the call, before any
-                    // LOADHR/STOREM instructions clobber them.
+                    // Status flag returns must be read before anything that clobbers the CPU status
+                    // bits. When the call also has non-flag register returns, those are processed
+                    // first (they may clobber the scratch register used by the flag extraction),
+                    // protected by an outer PUSHST/POPST so the flags stay intact for the extraction.
                     val fpRegs = funcCall.multipleResultFpRegs.toMutableList()
                     val cpuRegs = funcCall.multipleResultRegs.toMutableList()
 
@@ -67,16 +68,32 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                     // flag still needs to read. Wrap every flag pair's handling in
                     // PUSHST/POPST so each one sees the original status right after the call.
                     val wrapStatusFlags = flagPairs.count { !isVoidTarget(it) } > 1
-                    flagPairs.forEach { pair ->
-                        if (wrapStatusFlags && !isVoidTarget(pair)) {
-                            result += IRCodeChunk(null, null).also { it += IRInstructions.simple(Opcode.PUSHST) }
-                            processPair(pair)
-                            result += IRCodeChunk(null, null).also { it += IRInstructions.simple(Opcode.POPST) }
-                        } else {
-                            processPair(pair)
+                    fun processFlagPairs() {
+                        flagPairs.forEach { pair ->
+                            if (wrapStatusFlags && !isVoidTarget(pair)) {
+                                result += IRCodeChunk(null, null).also { it += IRInstructions.simple(Opcode.PUSHST) }
+                                processPair(pair)
+                                result += IRCodeChunk(null, null).also { it += IRInstructions.simple(Opcode.POPST) }
+                            } else {
+                                processPair(pair)
+                            }
                         }
                     }
-                    otherPairs.forEach(::processPair)
+
+                    val hasStatusFlags = flagPairs.any { !isVoidTarget(it) }
+                    val hasOtherResults = otherPairs.any { !isVoidTarget(it) }
+                    if (hasStatusFlags && hasOtherResults) {
+                        // The non-flag register returns are read before the flag extraction,
+                        // so the extraction's scratch register cannot clobber them. The flag
+                        // bits are preserved across the register loads/stores with PUSHST/POPST.
+                        result += IRCodeChunk(null, null).also { it += IRInstructions.simple(Opcode.PUSHST) }
+                        otherPairs.forEach(::processPair)
+                        result += IRCodeChunk(null, null).also { it += IRInstructions.simple(Opcode.POPST) }
+                        processFlagPairs()
+                    } else {
+                        processFlagPairs()
+                        otherPairs.forEach(::processPair)
+                    }
                 } else {
                     throw AssemblyError("number of values and targets don't match")
                 }

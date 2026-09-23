@@ -14,7 +14,6 @@ Future Things and Ideas
 - support typed pointer arrays as struct fields, curretly requires untyped pointers arrays.
 - allow aliasing a whole enum (``alias myEnum = MyEnum``) so that ``myEnum::Member`` works just like ``MyEnum::Member``; currently only aliasing individual enum members is supported. See ideas/alias-enums.md for the plan.
 - evaluate the feature suggestions in ideas/c16-banked-data.md (cx16 banked data library).
-- Status flag extraction clobbers a register return value: in a multi-assign where one call returns both a status flag and a regular register value (e.g. ``-> bool @Pc, ubyte @A`` on new6502, or ``-> bool @Pc, ubyte @D0`` on m68k), the status flag extraction destroys the register return before it is read. The extraction uses a scratch hardware register (``A`` on 6502, ``D0`` on m68k) that can be the same register holding the return value. The old 6502 codegen avoids this with ``pha``/``pla``. See ideas/status-flag-register-clobber.md for the design (reorder the register returns before the flag extraction, protected by register-neutral ``PUSHST``/``POPST``).
 
 Won't do's or deferred
 ^^^^^^^^^^^^^^^^^^^^^^

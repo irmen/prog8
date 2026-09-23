@@ -450,6 +450,52 @@ main {
         }
     }
 
+    test("status flag return is saved and register return read first on m68k") {
+        // Regression test: a multi-assign returning both a status flag and a register value
+        // used to let the flag extraction (which uses D0 as scratch for ROXL) clobber the
+        // register return. The register return is now read first, protected by a
+        // register-neutral PUSHST/POPST (the 68010+ 'move ccr,-(sp)' form).
+        val src = """
+main {
+    inline asmsub f(ubyte arg @D0) -> bool @Pc, ubyte @D0 {
+        %asm {{
+            moveq #42, d0
+            cmp.b #42, d0
+        }}
+    }
+
+    sub start() {
+        bool c
+        ubyte v
+        c, v = f(42)
+    }
+}
+"""
+        val result = compileText(Qemu68kTarget(), optimize = false, src, outputDir, writeAssembly = true, assemble = false)
+        result shouldNotBe null
+        val asm = result!!.compilationOptions.outputDir.resolve("${result.compilerAst.name}.asm").toFile().readText()
+        // scope to the start subroutine region
+        val start = asm.indexOf("; ---- Subroutine: p8b_main.p8s_start")
+        val end = asm.indexOf("; ---- Subroutine:", start + 1).let { if (it < 0) asm.length else it }
+        val lines = asm.substring(start, end).lines().map { it.trim() }
+        // register-neutral PUSHST/POPST form, no d0 round-trip
+        lines.count { it == "move  ccr,-(sp)" } shouldBe 1
+        lines.count { it == "move  (sp)+,ccr" } shouldBe 1
+        lines.count { it == "move  ccr, d0" } shouldBe 0
+        lines.count { it == "move.b  d0, -(sp)" } shouldBe 0
+        // the @D0 return is read (loadhr) before the flag extraction's scratch use (roxl)
+        val loadhrIdx = lines.indexOfFirst { it.startsWith("; loadhr.b") }
+        val roxlIdx = lines.indexOfFirst { it.contains("roxl") }
+        loadhrIdx shouldBeGreaterThan -1
+        roxlIdx shouldBeGreaterThan -1
+        (loadhrIdx < roxlIdx) shouldBe true
+        // the loadhr sits inside the PUSHST/POPST sandwich
+        val pushIdx = lines.indexOfFirst { it == "move  ccr,-(sp)" }
+        val popIdx = lines.indexOfFirst { it == "move  (sp)+,ccr" }
+        (pushIdx < loadhrIdx) shouldBe true
+        (loadhrIdx < popIdx) shouldBe true
+    }
+
     test("struct type symbols are emitted in the header before program start") {
         val src = """
 main {

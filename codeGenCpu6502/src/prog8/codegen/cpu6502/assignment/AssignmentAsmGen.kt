@@ -68,10 +68,15 @@ internal class AssignmentAsmGen(
 
                 // Check if we need to save A register before extracting status flags
                 // (flag extraction functions like assignCarryFlagResult overwrite A)
-                val hasByteInA = registersResults.any { (ret, _) ->
+                // A holds the low byte of a byte/bool return in @A, and of a word return in @AX/@AY
+                val byteInA = registersResults.any { (ret, _) ->
                     ret.type.isByteOrBool && ret.register.registerOrPair == RegisterOrPair.A
                 }
-                if(hasByteInA && statusFlagResults.isNotEmpty()) {
+                val wordLowByteInA = registersResults.any { (ret, _) ->
+                    ret.type.isWord && ret.register.registerOrPair in setOf(RegisterOrPair.AX, RegisterOrPair.AY)
+                }
+                val hasAInResult = byteInA || wordLowByteInA
+                if(hasAInResult && statusFlagResults.isNotEmpty()) {
                     asmgen.out("  pha")  // Save A (contains return value) before flag extraction
                 }
 
@@ -101,7 +106,7 @@ internal class AssignmentAsmGen(
                 }
 
                 // Restore A if we saved it for flag extraction
-                if(hasByteInA && statusFlagResults.isNotEmpty()) {
+                if(hasAInResult && statusFlagResults.isNotEmpty()) {
                     asmgen.out("  pla")
                 }
 

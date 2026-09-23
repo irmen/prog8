@@ -1753,6 +1753,43 @@ main {
         irContent shouldContain "bstvc"
     }
 
+    test("asmsub multi-assign with a status flag and a register return orders the register read first") {
+        // The register return must be read before the flag extraction (which uses a
+        // scratch hardware register), protected by an outer PUSHST/POPST.
+        val src = """
+%option no_sysinit
+main {
+    sub start() {
+        ubyte v
+        bool c
+        v, c = test()
+        main.r1 = v
+        main.b1 = c
+    }
+    asmsub test() -> ubyte @A, bool @Pc {
+        %asm {{
+            lda #42
+            cmp #42
+            rts
+        }}
+    }
+    ubyte @shared r1
+    bool @shared b1
+}"""
+        val result = compileText(VMTarget(), optimize=false, src, outputDir, writeAssembly = true)!!
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
+        val lines = virtfile.readText().lines().map { it.trim() }
+        // one outer PUSHST/POPST pair (only one flag, so no per-flag wrapping)
+        lines.count { it == "pushst" } shouldBe 1
+        lines.count { it == "popst" } shouldBe 1
+        // the register read (loadhr) must come before the flag extraction (roxl)
+        val loadhrIdx = lines.indexOfFirst { it.startsWith("loadhr") }
+        val roxlIdx = lines.indexOfFirst { it.startsWith("roxl") }
+        loadhrIdx shouldBeGreaterThan -1
+        roxlIdx shouldBeGreaterThan -1
+        (loadhrIdx < roxlIdx) shouldBe true
+    }
+
     test("asmsub multi-assign with multiple status flags in one call saves the status around each flag") {
         val src = """
 %option no_sysinit
@@ -1783,10 +1820,11 @@ main {
         val result = compileText(VMTarget(), optimize=false, src, outputDir, writeAssembly = true)!!
         val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         val irContent = virtfile.readText()
-        // each of the three status flags needs its own PUSHST/POPST pair, because the
+        // 1 outer PUSHST/POPST pair protects the register return read plus the flags across it,
+        // and each of the three status flags needs its own PUSHST/POPST pair, because the
         // branch-based extraction of one flag clobbers the status for the following flags
-        irContent.lines().count { it.trim() == "pushst" } shouldBe 3
-        irContent.lines().count { it.trim() == "popst" } shouldBe 3
+        irContent.lines().count { it.trim() == "pushst" } shouldBe 4
+        irContent.lines().count { it.trim() == "popst" } shouldBe 4
     }
 
     test("union zero-init via memory, write byte and read overlapping word") {
