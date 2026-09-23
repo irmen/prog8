@@ -2065,6 +2065,154 @@ import prog8.codegen.cpu6502.assignment.*
         }
     }
 
+    private fun funcClampWordConst(minExpr: PtExpression, maxExpr: PtExpression, minOp: Pair<String, String>, maxOp: Pair<String, String>, signed: Boolean) {
+        // value is already in AY on entry, result in AY
+        val minVal = (asmgen.unwrapCasts(minExpr) as? PtNumber)?.number?.toInt()
+        val maxVal = (asmgen.unwrapCasts(maxExpr) as? PtNumber)?.number?.toInt()
+        val typeMin = if (signed) -32768 else 0
+        val typeMax = if (signed) 32767 else 65535
+        val oneSided = minVal != null && minVal == typeMin || maxVal != null && maxVal == typeMax
+        val fullRange = minVal != null && maxVal != null && minVal == typeMin && maxVal == typeMax
+        when {
+            fullRange -> {
+                // no-op: the value in AY is already the clamped result
+            }
+            signed && minVal == typeMin -> {
+                // upper clamp only
+                emitSignedWordClampProlog()
+                emitSignedWordUpperCompare(maxOp)
+                emitWordLoadValueFromW1()
+            }
+            signed && maxVal == typeMax -> {
+                // lower clamp only
+                emitSignedWordClampProlog()
+                emitSignedWordLowerCompare(minOp)
+            }
+            signed -> {
+                emitSignedWordClampProlog()
+                emitSignedWordUpperCompare(maxOp)
+                emitSignedWordLowerCompare(minOp)
+            }
+            !oneSided -> {
+                // uword, two-sided clamp
+                emitWordUpperClamp(maxOp)
+                emitWordLowerClamp(minOp)
+            }
+            minVal == typeMin -> {
+                // uword, upper clamp only
+                emitWordUpperClamp(maxOp)
+            }
+            else -> {
+                // uword, lower clamp only
+                emitWordLowerClamp(minOp)
+            }
+        }
+    }
+
+    private fun emitSignedWordClampProlog() {
+        asmgen.out(listOf(
+            "            sta  P8ZP_SCRATCH_W1",
+            "            sty  P8ZP_SCRATCH_W1+1"
+        ).joinToString("\n"))
+    }
+
+    private fun emitWordLoadValueFromW1() {
+        asmgen.out(listOf(
+            "            lda  P8ZP_SCRATCH_W1",
+            "            ldy  P8ZP_SCRATCH_W1+1"
+        ).joinToString("\n"))
+    }
+
+    // signed compare of max/min (16-bit immediates) against the running value in P8ZP_SCRATCH_W1.
+    // The result of the two-sided compare is the high byte of (bound - value), with the
+    // overflow-compensated sign bit set, mirroring the func_clamp_word sequence.
+
+    private fun emitSignedWordUpperCompare(maxOp: Pair<String, String>) {
+        // if value > max: running value becomes max
+        val keep = asmgen.makeLabel("clampkeep")
+        val done = asmgen.makeLabel("clampdone")
+        asmgen.out(listOf(
+            "            ldy  ${maxOp.second}",
+            "            lda  ${maxOp.first}",
+            "            cmp  P8ZP_SCRATCH_W1",
+            "            tya",
+            "            sbc  P8ZP_SCRATCH_W1+1",
+            "            bvc  $keep",
+            "            eor  #\$80",
+            keep,
+            "            bpl  $done",
+            "            lda  ${maxOp.first}",
+            "            ldy  ${maxOp.second}",
+            "            sta  P8ZP_SCRATCH_W1",
+            "            sty  P8ZP_SCRATCH_W1+1",
+            done
+        ).joinToString("\n"))
+    }
+
+    private fun emitSignedWordLowerCompare(minOp: Pair<String, String>) {
+        // if value < min: result becomes min, otherwise the running value (in W1)
+        val keep = asmgen.makeLabel("clampkeep")
+        val set = asmgen.makeLabel("clampset")
+        val done = asmgen.makeLabel("clampdone")
+        asmgen.out(listOf(
+            "            ldy  ${minOp.second}",
+            "            lda  ${minOp.first}",
+            "            cmp  P8ZP_SCRATCH_W1",
+            "            tya",
+            "            sbc  P8ZP_SCRATCH_W1+1",
+            "            bvc  $keep",
+            "            eor  #\$80",
+            keep,
+            "            bpl  $set",
+            "            lda  P8ZP_SCRATCH_W1",
+            "            ldy  P8ZP_SCRATCH_W1+1",
+            "            jmp  $done",
+            set,
+            "            lda  ${minOp.first}",
+            "            ldy  ${minOp.second}",
+            done
+        ).joinToString("\n"))
+    }
+
+    private fun emitWordUpperClamp(maxOp: Pair<String, String>) {
+        // uword: clamp the value in AY down to maxOp (result = min(value, max))
+        val keep = asmgen.makeLabel("clampkeep")
+        val set = asmgen.makeLabel("clampset")
+        asmgen.out(listOf(
+            "            cpy  ${maxOp.second}",
+            "            bcc  $keep",
+            "            bne  $set",
+            "            cmp  ${maxOp.first}",
+            "            bcc  $keep",
+            "            beq  $keep",
+            set,
+            "            lda  ${maxOp.first}",
+            "            ldy  ${maxOp.second}",
+            keep
+        ).joinToString("\n"))
+    }
+
+    private fun emitWordLowerClamp(minOp: Pair<String, String>) {
+        // uword: clamp the value in AY up to minOp (result = max(value, min))
+        val keep = asmgen.makeLabel("clampkeep")
+        val set = asmgen.makeLabel("clampset")
+        val done = asmgen.makeLabel("clampdone")
+        asmgen.out(listOf(
+            "            cpy  ${minOp.second}",
+            "            bcc  $set",
+            "            bne  $keep",
+            "            cmp  ${minOp.first}",
+            "            bcc  $set",
+            "            beq  $keep",
+            keep,
+            "            jmp  $done",
+            set,
+            "            lda  ${minOp.first}",
+            "            ldy  ${minOp.second}",
+            done
+        ).joinToString("\n"))
+    }
+
     private fun funcClamp(fcall: PtFunctionCall): Array<RegisterOrPair> {
         val signed = fcall.type.isSigned
         val zpCheck = { name: String -> asmgen.isZpVar(name) }
@@ -2099,6 +2247,17 @@ import prog8.codegen.cpu6502.assignment.*
                 return arrayOf(RegisterOrPair.A)
             }
             fcall.type.isWord -> {
+                val minOp = asmgen.getStaticAddressLowHigh(fcall.args[1])
+                val maxOp = asmgen.getStaticAddressLowHigh(fcall.args[2])
+                val minIsConst = asmgen.unwrapCasts(fcall.args[1]) !is PtIdentifier
+                val maxIsConst = asmgen.unwrapCasts(fcall.args[2]) !is PtIdentifier
+                if (minOp != null && maxOp != null && minIsConst && maxIsConst) {
+                    // both bounds are compile-time constants (numeric literals or fixed label addresses):
+                    // emit a small inline clamp instead of evaluating bounds into scratch + jsr func_clamp_word/uword
+                    assignAsmGen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.AY, signed)    // value
+                    funcClampWordConst(fcall.args[1], fcall.args[2], minOp, maxOp, signed)
+                    return arrayOf(RegisterOrPair.AY)
+                }
                 if (fcall.args[0].isSimple(zpCheck) && fcall.args[1].isSimple(zpCheck) && fcall.args[2].isSimple(zpCheck)) {
                     assignAsmGen.assignExpressionToVariable(fcall.args[1], "P8ZP_SCRATCH_W1", fcall.args[1].type)  // minimum
                     assignAsmGen.assignExpressionToVariable(fcall.args[2], "P8ZP_SCRATCH_W2", fcall.args[2].type)  // maximum

@@ -210,7 +210,7 @@ class TestCompilerOnExamplesCx16: FunSpec({
             ExampleSizes("fileselector/standalone", cx16SizeOptimized=4135, cx16SizeUnoptimized=6070),
             ExampleSizes("fileselector/main", cx16SizeOptimized=480, cx16SizeUnoptimized=2314),
             // fileselector/fselector and fileselector/namesorting don't compile (empty source files)
-            ExampleSizes("pointers/fountain-cx16", cx16SizeOptimized=1253, cx16SizeUnoptimized=1596),
+            ExampleSizes("pointers/fountain-cx16", cx16SizeOptimized=1239, cx16SizeUnoptimized=1582),
             ExampleSizes("amiga", cx16SizeOptimized=7603, cx16SizeUnoptimized=11610),
             ExampleSizes("audioroutines", cx16SizeOptimized=948, cx16SizeUnoptimized=1244),
             ExampleSizes("automatons", cx16SizeOptimized=1037, cx16SizeUnoptimized=1342),

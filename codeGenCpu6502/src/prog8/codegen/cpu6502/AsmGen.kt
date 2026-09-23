@@ -287,12 +287,12 @@ class AsmGen6502Internal (
                 return Pair("#<$label", "#>$label")
             } else if (e.value != null) {
                 val value = e.value!!.toInt()
-                return Pair("#<${(value and 0xff).toHex()}", "#>${((value shr 8) and 0xff).toHex()}")
+                return Pair("#<${value.toHex()}", "#>${value.toHex()}")
             }
         }
         if (e is PtNumber) {
             val value = e.number.toInt()
-            return Pair("#<${(value and 0xff).toHex()}", "#>${((value shr 8) and 0xff).toHex()}")
+            return Pair("#<${value.toHex()}", "#>${value.toHex()}")
         }
         if (e is PtAddressOf && e.identifier != null && !e.isFromArrayElement && e.dereference == null) {
             var symbol = asmVariableName(e.identifier!!)
