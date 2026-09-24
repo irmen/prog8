@@ -61,6 +61,7 @@ class Amiga500Target: ICompilationTarget,
             36 to "BattMem",
             // from here, non-standard libraries are listed
             100 to "AsyncIO",
+            101 to "AHI",        // ahi.device base (amiga1200 target only, 68020+, used by the low-level ahi.* LVOs)
         )
     }
 

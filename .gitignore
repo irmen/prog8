@@ -47,3 +47,4 @@ sd*.img
 *.d64
 AsyncIO/
 AsyncIO.info
+m68k-amigaos-ahi/

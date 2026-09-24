@@ -17,7 +17,11 @@
 - Identify changes from the plan that can be implemented in parallel, and use sub-agents to implement the features efficiently
 - When using sub-agents to implement features, act as a coordinator only
 - Use the best model for the task - premium models for complex tasks (like coding) and mid-tier models for simpler tasks, like documentation
-- After completing features (large or small), always run commands like lint, type check and next build to check code quality
+- After completing features (large or small), run the relevant quality commands (lint, type check, build) to check code quality.
+  Only compiler/standard-library changes require a build: that means Kotlin sources (`.kt`), the grammar (`.g4`), or embedded
+  standard library files (`compiler/res/prog8lib/**/*.p8` and `**/*.asm`). For changes limited to `examples/**`, `docs/**`, or
+  other non-compiler files, verify with the target compiler directly instead (for example `prog8c -target <target> <file>`), and
+  skip the build entirely
   (exception: if the change is only whitespace or code comments, a build or test run is not necessary)
 - `gradle build` already runs the full test suite; don't run a separate full `gradle test` before it, to avoid lengthy double test runs (targeted `--tests` filters to find failing tests are fine)
 
@@ -200,10 +204,12 @@ When the task involves writing or understanding `.p8` (Prog8 source) or `.p8ir` 
 - This compiles AND installs, but still skips running tests (faster than `gradle build`)
 
 ### When to run full build with tests
-- **Before final verification**: Always run `gradle build` to ensure all tests pass
+- **Before final verification**: Run `gradle build` to ensure all tests pass - but only if the change actually touched the
+  compiler or standard library (`.kt`, `.g4`, or `compiler/res/prog8lib/**`). For `examples/**` or `docs/**`-only changes,
+  verify with `prog8c` directly instead and skip the build
 - **After major refactoring**: Run `gradle build` to catch regressions
 - **When debugging test failures**: Use `gradle test --tests "*TestName*"` for specific tests
-- **When working on a standalone code gen module** (one that reads `.p8ir` files): Run `gradle :<module>:test --console=plain` instead of full `gradle build`. Compiler unit tests are irrelevant for IR-level changes. Do run full `gradle build` before final verification.
+- **When working on a standalone code gen module** (one that reads `.p8ir` files): Run `gradle :<module>:test --console=plain` instead of full `gradle build`. Compiler unit tests are irrelevant for IR-level changes. Do run full `gradle build` before final verification if the change touched compiler sources.
 
 ### Build command summary
 
