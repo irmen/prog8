@@ -7,8 +7,9 @@ package prog8.intermediate
 /**
  * The version of the .p8ir file format. Format 2 uses structured instruction operands and is
  * intentionally incompatible with the older positional format. Format 3 adds union struct definitions.
+ * Format 4 replaces the ARRAY_POINTER base type with ARRAY+POINTER+pointeeSub.
  */
-const val IR_FORMAT_VERSION = 3
+const val IR_FORMAT_VERSION = 4
 
 object IRFormat {
     // Regex patterns for parsing IR text lines

@@ -1295,7 +1295,7 @@ class ArrayLiteral(val type: InferredTypes.InferredType,     // inferred because
                 val dt = unique.single()
                 if(dt.subType!=null) {
                     val parentDecl = parent as? VarDecl
-                    if(parentDecl!=null && parentDecl.datatype.base==BaseDataType.ARRAY_POINTER)
+                    if(parentDecl!=null && parentDecl.datatype.isPointerArray)
                         return InferredTypes.knownFor(DataType.arrayOfPointersTo(dt.subType!!))
                     return InferredTypes.knownFor(DataType.arrayOfStructs(dt.subType!!))
                 } else
@@ -2146,14 +2146,11 @@ class ArrayIndexedPtrDereference(
             val symbol = definingScope.lookup(arrayIdentifier) as? VarDecl
             if(symbol!=null) {
                 if(symbol.datatype.isArray) {
-                    if(symbol.datatype.sub!=null)
-                        return InferredTypes.knownFor(symbol.datatype.sub!!)
-                    else if(symbol.datatype.subType!=null) {
-                        val structType = DataType.structInstance(symbol.datatype.subType!!)
-                        return InferredTypes.knownFor(structType)
-                    }
+                    val elementDt = symbol.datatype.elementType()
+                    return if(derefLast && elementDt.isPointer)
+                        InferredTypes.knownFor(elementDt.dereference())
                     else
-                        return InferredTypes.unknown()
+                        InferredTypes.knownFor(elementDt)
                 }
                 else if(symbol.datatype.isPointer)
                     return InferredTypes.knownFor(symbol.datatype.dereference())

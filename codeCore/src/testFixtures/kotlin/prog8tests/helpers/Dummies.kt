@@ -21,6 +21,8 @@ object DummyMemsizer : IMemSizer {
                 BaseDataType.UWORD, BaseDataType.WORD -> numElements * 2
                 BaseDataType.LONG -> numElements * 4
                 BaseDataType.FLOAT -> numElements * 5
+                BaseDataType.POINTER -> numElements * 2
+                BaseDataType.STRUCT_INSTANCE -> numElements * (dt.subType?.memsize(this) ?: throw IllegalArgumentException("struct instance array has unresolved subtype"))
                 else -> throw IllegalArgumentException("invalid sub type")
             }
         }

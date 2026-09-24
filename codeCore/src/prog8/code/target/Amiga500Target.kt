@@ -116,7 +116,7 @@ class Amiga500Target: ICompilationTarget,
         val pb = ProcessBuilder(cmd).inheritIO()
         try {
             pb.start().waitFor()
-        } catch(e: Exception) {
+        } catch(_: Exception) {
             System.err.println("Cannot find 'vamos' (Amitools's Amiga emulator). Install it from: https://github.com/cnvogelg/amitools")
         }
     }

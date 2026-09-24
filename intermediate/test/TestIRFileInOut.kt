@@ -2,22 +2,24 @@ import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.ints.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 import prog8.code.core.*
 import prog8.code.target.Amiga500Target
 import prog8.code.target.Cx16Target
+import prog8.code.target.VMTarget
 import prog8.intermediate.*
 import kotlin.io.path.Path
 import kotlin.io.path.deleteExisting
 import kotlin.io.path.readLines
 
 class TestIRFileInOut: FunSpec({
-    test("IR reader requires format 3") {
+    test("IR reader requires format 4") {
         shouldThrow<IRParseException> {
             IRFileReader().read("""<?xml version="1.0"?><PROGRAM NAME="test" COMPILERVERSION="99.99"/>""")
         }.message shouldBe "missing IRFORMAT"
         shouldThrow<IRParseException> {
-            IRFileReader().read("""<?xml version="1.0"?><PROGRAM NAME="test" COMPILERVERSION="99.99" IRFORMAT="1"/>""")
-        }.message shouldBe "unsupported IR format: 1"
+            IRFileReader().read("""<?xml version="1.0"?><PROGRAM NAME="test" COMPILERVERSION="99.99" IRFORMAT="3"/>""")
+        }.message shouldBe "unsupported IR format: 3"
     }
 
     test("test IR writer") {
@@ -36,15 +38,64 @@ class TestIRFileInOut: FunSpec({
         val generatedFile = writer.write()
         val lines = generatedFile.readLines()
         lines[0] shouldBe "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
-        lines[1] shouldBe "<PROGRAM NAME=\"unittest-irwriter\" COMPILERVERSION=\"99.99\" IRFORMAT=\"3\">"
+        lines[1] shouldBe "<PROGRAM NAME=\"unittest-irwriter\" COMPILERVERSION=\"99.99\" IRFORMAT=\"4\">"
         lines.last() shouldBe "</PROGRAM>"
         generatedFile.deleteExisting()
         lines.size shouldBeGreaterThan 20
     }
 
+    test("IR pointer arrays round-trip") {
+        val target = VMTarget()
+        val options = CompilationOptions.builder(target)
+            .output(OutputType.RAW)
+            .zeropage(ZeropageType.DONTUSE)
+            .noSysInit(true)
+            .compilerVersion("99.99")
+            .loadAddress(target.PROGRAM_LOAD_ADDRESS)
+            .memtopAddress(0xffffu)
+            .outputDir(Path(""))
+            .build()
+        val program = IRProgram("unittest-pointer-arrays", IRSymbolTable(), options, target)
+        program.st.add(IRStStaticVariable(
+            "main.primitive",
+            DataType.arrayOfPointersTo(BaseDataType.UBYTE),
+            null,
+            3u,
+            ZeropageWish.DONTCARE,
+            0u,
+            false
+        ))
+        program.st.add(IRStStaticVariable(
+            "main.struct",
+            DataType.arrayOfPointersTo(IRSubtypePlaceholder("test.Entry")),
+            null,
+            2u,
+            ZeropageWish.DONTCARE,
+            0u,
+            false
+        ))
+        val generatedFile = IRFileWriter(program, Path("intermediate-pointer-arrays-test-output.p8ir")).write()
+        try {
+            val lines = generatedFile.readLines()
+            lines.any { it.startsWith("^^ubyte[3] main.primitive") } shouldBe true
+            lines.any { it.startsWith("^^test.Entry[2] main.struct") } shouldBe true
+            val readProgram = IRFileReader().read(generatedFile)
+            val primitive = readProgram.st.lookup("main.primitive") as IRStStaticVariable
+            primitive.dt.base shouldBe BaseDataType.ARRAY
+            primitive.dt.sub shouldBe BaseDataType.POINTER
+            primitive.dt.pointeeSub shouldBe BaseDataType.UBYTE
+            val struct = readProgram.st.lookup("main.struct") as IRStStaticVariable
+            struct.dt.base shouldBe BaseDataType.ARRAY
+            struct.dt.sub shouldBe BaseDataType.POINTER
+            struct.dt.subType?.scopedNameString shouldBe "test.Entry"
+        } finally {
+            generatedFile.deleteExisting()
+        }
+    }
+
     test("test IR reader") {
         val source="""<?xml version="1.0" encoding="utf-8"?>
-<PROGRAM NAME="test-ir-reader" COMPILERVERSION="99.99" IRFORMAT="3">
+<PROGRAM NAME="test-ir-reader" COMPILERVERSION="99.99" IRFORMAT="4">
 <OPTIONS>
 compTarget=virtual
 output=PRG
@@ -131,7 +182,7 @@ return
 
     test("test IR reader with struct containing pointer fields") {
         val source="""<?xml version="1.0" encoding="utf-8"?>
-<PROGRAM NAME="test-struct-pointer" COMPILERVERSION="99.99" IRFORMAT="3">
+<PROGRAM NAME="test-struct-pointer" COMPILERVERSION="99.99" IRFORMAT="4">
 <OPTIONS>
 compTarget=virtual
 output=PRG
@@ -240,7 +291,7 @@ load.b r1.b,#0.b
 
     test("test IR reader parses loadhr/storehr sN immediate encoding") {
         val source="""<?xml version="1.0" encoding="utf-8"?>
-<PROGRAM NAME="test-sn-immediate" COMPILERVERSION="99.99" IRFORMAT="3">
+<PROGRAM NAME="test-sn-immediate" COMPILERVERSION="99.99" IRFORMAT="4">
 <OPTIONS>
 compTarget=virtual
 output=PRG
@@ -391,7 +442,7 @@ storehr.b r1.b,s2.b
 
     test("test IR reader parses block-level CHUNK (label and align)") {
         val source="""<?xml version="1.0" encoding="utf-8"?>
-<PROGRAM NAME="test-block-level-chunk" COMPILERVERSION="99.99" IRFORMAT="3">
+<PROGRAM NAME="test-block-level-chunk" COMPILERVERSION="99.99" IRFORMAT="4">
 <OPTIONS>
 compTarget=virtual
 output=PRG
@@ -483,5 +534,67 @@ return
         def.fields.size shouldBe 2
         val instance = program2.st.lookup("main.myUnion") as IRStStructInstance
         instance.size shouldBe 2u
+    }
+
+    test("test IR pointer array round-trip preserves ARRAY+POINTER+pointeeSub") {
+        val target = Amiga500Target()
+        val options = CompilationOptions.builder(target)
+            .zeropage(ZeropageType.DONTUSE)
+            .noSysInit(true)
+            .compilerVersion("99.99")
+            .loadAddress(target.PROGRAM_LOAD_ADDRESS)
+            .memtopAddress(target.PROGRAM_MEMTOP_ADDRESS)
+            .outputDir(Path(""))
+            .quiet(true)
+            .build()
+        val program = IRProgram("unittest-pointer-array-roundtrip", IRSymbolTable(), options, target)
+        val structDef = IRStStructDef(
+            "re.State",
+            listOf(IRStStructField(DataType.forDt(BaseDataType.UWORD), "value")),
+            2u
+        )
+        program.st.add(structDef)
+        program.st.add(IRStStaticVariable(
+            "main.primptrs",
+            DataType.arrayOfPointersTo(BaseDataType.UBYTE),
+            null,
+            4u,
+            ZeropageWish.DONTCARE,
+            0u,
+            false
+        ))
+        program.st.add(IRStStaticVariable(
+            "main.stateptrs",
+            DataType.arrayOfPointersTo(IRStructSubtype(structDef)),
+            null,
+            2u,
+            ZeropageWish.DONTCARE,
+            0u,
+            false
+        ))
+
+        val generatedFile = IRFileWriter(program, Path("intermediate-pointer-array-roundtrip-test-output.p8ir")).write()
+        val lines = generatedFile.readLines()
+        val readProgram = IRFileReader().read(generatedFile)
+        generatedFile.deleteExisting()
+
+        lines.any { "^^ubyte[4]" in it } shouldBe true
+        lines.any { "^^re.State[2]" in it } shouldBe true
+
+        val prim = readProgram.st.lookup("main.primptrs") as IRStStaticVariable
+        prim.dt.isPointerArray shouldBe true
+        prim.dt.base shouldBe BaseDataType.ARRAY
+        prim.dt.sub shouldBe BaseDataType.POINTER
+        prim.dt.pointeeSub shouldBe BaseDataType.UBYTE
+        prim.length shouldBe 4u
+
+        val state = readProgram.st.lookup("main.stateptrs") as IRStStaticVariable
+        state.dt.isPointerArray shouldBe true
+        state.dt.base shouldBe BaseDataType.ARRAY
+        state.dt.sub shouldBe BaseDataType.POINTER
+        state.dt.pointeeSub shouldBe BaseDataType.STRUCT_INSTANCE
+        state.dt.subType shouldNotBe null
+        (state.dt.subType as IRStructSubtype).def.name shouldBe "re.State"
+        state.length shouldBe 2u
     }
 })

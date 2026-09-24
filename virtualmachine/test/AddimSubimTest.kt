@@ -9,7 +9,7 @@ class AddimSubimTest : FunSpec({
     fun runProgram(): VirtualMachine {
         val source = $$"""
 <?xml version="1.0" encoding="utf-8"?>
-<PROGRAM NAME="addim_subim_test" COMPILERVERSION="12.3-SNAPSHOT" IRFORMAT="3">
+<PROGRAM NAME="addim_subim_test" COMPILERVERSION="12.3-SNAPSHOT" IRFORMAT="4">
 <OPTIONS>
 compTarget=virtual
 output=PRG

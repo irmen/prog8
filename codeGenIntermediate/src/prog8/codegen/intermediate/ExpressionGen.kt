@@ -436,7 +436,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             result += pointerTr.chunks
             val (instructions, offset) = traverseRestOfDerefChainToCalculateFinalAddress(expr.dereference!!, pointerTr.resultReg)
             result += instructions
-            addInstr(result, IRInstructions.binaryImmediate(Opcode.ADD, IRDataType.POINTER, pointerTr.resultReg, offset.toInt()), null)
+            addInstr(result, IRInstructions.binaryImmediate(Opcode.ADD, IRDataType.POINTER, pointerTr.resultReg, offset), null)
             return ExpressionCodeResult(result, vmDt, pointerTr.resultReg, -1)
         }
     }
@@ -930,9 +930,6 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                         // no further conversion required, pointers are all just uwords or longs
                     }
                 }
-            }
-            BaseDataType.ARRAY_POINTER -> {
-                TODO("typecast to array of pointers $valueDt -> ${cast.type}  ${cast.position}")
             }
             else -> throw AssemblyError("weird cast value type ${cast.position}")
         }

@@ -1110,7 +1110,7 @@ internal class AstChecker(private val program: Program,
                     throw InternalCompilerException("range expressions in vardecls should have been converted into array values during constFolding  $decl")
             }
 
-            if(decl.datatype.isPointerArray && decl.datatype.sub==BaseDataType.STR)
+            if(decl.datatype.isPointerArray && decl.datatype.pointeeSub==BaseDataType.STR)
                 err("^^str is not a valid pointer type, use ^^ubyte?")
         }
 

@@ -693,8 +693,9 @@ class IRFileReader {
 
     private fun parseDatatype(type: String, isArray: Boolean): DataType {
         if(isArray) {
-            if(type[0]=='^') {
-                return when(type.drop(1)) {
+            if(type.startsWith("^^")) {
+                val pointee = type.drop(2)
+                return when(pointee) {
                     "bool" -> DataType.arrayOfPointersTo(BaseDataType.BOOL)
                     "byte" -> DataType.arrayOfPointersTo(BaseDataType.BYTE)
                     "ubyte", "str" -> DataType.arrayOfPointersTo(BaseDataType.UBYTE)
@@ -702,7 +703,7 @@ class IRFileReader {
                     "uword" -> DataType.arrayOfPointersTo(BaseDataType.UWORD)
                     "float" -> DataType.arrayOfPointersTo(BaseDataType.FLOAT)
                     "long" -> DataType.arrayOfPointersTo(BaseDataType.LONG)
-                    else -> DataType.arrayOfPointersTo(IRSubtypePlaceholder(type.drop(1)))
+                    else -> DataType.arrayOfPointersTo(IRSubtypePlaceholder(pointee))
                 }
             }
             return when(type) {

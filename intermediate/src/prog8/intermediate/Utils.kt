@@ -15,11 +15,6 @@ fun DataType.irTypeString(length: UInt?): String {
         BaseDataType.FLOAT -> "float"
         BaseDataType.STR -> "ubyte[$lengthStr]"             // here string doesn't exist as a separate datatype anymore
         BaseDataType.POINTER -> "pointer"
-        BaseDataType.ARRAY_POINTER -> {
-            val subTypeName = sub?.name?.lowercase() ?: subType?.scopedNameString
-                ?: throw IllegalArgumentException("ARRAY_POINTER missing subtype")
-            "^^$subTypeName[$lengthStr]"
-        }
         BaseDataType.STRUCT_INSTANCE -> {
             if(sub!=null)
                 sub!!.name.lowercase()
@@ -35,6 +30,13 @@ fun DataType.irTypeString(length: UInt?): String {
                 BaseDataType.LONG -> "long[$lengthStr]"
                 BaseDataType.BOOL -> "bool[$lengthStr]"
                 BaseDataType.FLOAT -> "float[$lengthStr]"
+                BaseDataType.POINTER -> {
+                    val pointee = subType?.scopedNameString
+                        ?: subTypeFromAntlr?.let { "$it" }
+                        ?: pointeeSub?.name?.lowercase()
+                        ?: throw IllegalArgumentException("pointer array missing pointee type")
+                    "^^$pointee[$lengthStr]"
+                }
                 BaseDataType.STRUCT_INSTANCE -> if(subType!=null) "${subType!!.scopedNameString}[$lengthStr]" else "$subTypeFromAntlr[$lengthStr]"
                 else -> throw IllegalArgumentException("invalid sub type")
             }

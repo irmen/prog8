@@ -202,7 +202,7 @@ Package `prog8.intermediate.*`.
 | `CallingConventionSlot` | class | Slot-based calling convention (registers/stack) |
 | `IMSyscall` | enum | IR-level syscall identifiers |
 | `IRFormat` | class | Serialization format constants |
-| `IRFileReader`, `IRFileWriter` | classes | `.p8ir` file read/write; emit/read `IRFORMAT=2` |
+| `IRFileReader`, `IRFileWriter` | classes | `.p8ir` file read/write; emit/read `IRFORMAT=4` |
 | `VariableDump`, `Utils` | helpers | Variable dumping, utilities |
 
 `IRInstruction` deliberately uses structured operands rather than positional nullable
@@ -214,7 +214,7 @@ values carry their own nested register accesses, so `IRInstruction.uses` and
 The IR-consuming backends (`codeGenNew6502`, `codeGenM68k`, and the VM) consume these
 typed uses/definitions together with structured memory and call operands, rather than
 reconstructing semantics from positional fields. The `.p8ir` reader accepts only
-`IRFORMAT=2`; this format is intentionally incompatible with the older positional format,
+`IRFORMAT=4`; this format is intentionally incompatible with older formats,
 not a backward-compatible extension.
 
 ### 4.7 `codeGenIntermediate` (IR code generator - incl. virtual backend)

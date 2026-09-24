@@ -92,7 +92,7 @@ class TestVm: FunSpec( {
     test("vmrunner") {
         val runner = VmRunner()
         val irSource="""<?xml version="1.0" encoding="utf-8"?>
-<PROGRAM NAME="test" COMPILERVERSION="99.99" IRFORMAT="3">
+<PROGRAM NAME="test" COMPILERVERSION="99.99" IRFORMAT="4">
 <OPTIONS>
 </OPTIONS>
 

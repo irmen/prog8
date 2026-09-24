@@ -30,6 +30,8 @@ class TestDataType: FunSpec({
                     BaseDataType.UWORD, BaseDataType.WORD -> numElements * 2
                     BaseDataType.LONG -> numElements * 4
                     BaseDataType.FLOAT -> numElements * 5
+                    BaseDataType.POINTER -> numElements * 2
+                    BaseDataType.STRUCT_INSTANCE -> numElements * (dt.subType?.memsize(this) ?: throw IllegalArgumentException("struct instance array has unresolved subtype"))
                     else -> throw IllegalArgumentException("invalid sub type")
                 }
             }
@@ -93,8 +95,13 @@ class TestDataType: FunSpec({
     test("isArray extension") {
         BaseDataType.ARRAY.isArray shouldBe true
         BaseDataType.ARRAY_SPLITW.isArray shouldBe true
-        BaseDataType.ARRAY_POINTER.isArray shouldBe true
         BaseDataType.UBYTE.isArray shouldBe false
+    }
+
+    test("isPointerArray property") {
+        DataType.arrayOfPointersTo(BaseDataType.UBYTE).isPointerArray shouldBe true
+        DataType.arrayOfPointersTo(BaseDataType.WORD).isPointerArray shouldBe true
+        DataType.arrayFor(BaseDataType.UBYTE, tgt).isPointerArray shouldBe false
     }
 
     test("isPointer extension") {
