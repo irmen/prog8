@@ -323,7 +323,7 @@ which is the PETSCII value for that character. You can prefix it with the desire
 .. _endianness:
 
 *Endianness:* on the 6502-family targets all integers are stored in *little endian* byte order: the Least Significant Byte first and the Most Significant Byte last.
-The m68k targets (amiga500, qemu68k) are the exception: the 68000 CPU is *big endian*, so there integers
+The m68k targets (amiga500, amiga1200, qemu68k) are the exception: the 68000/68020 CPUs are *big endian*, so there integers
 (and pointers, which are wider on those targets - see :ref:`pointer_size`) are stored Most Significant Byte first.
 
 **bytes versus words versus longs:**
@@ -443,10 +443,10 @@ or when adding more stuff to the array later. Here are some examples of arrays::
     string, because of the terminating null byte), word arrays to 256 elements as well (if split, which is the
     default; when not split the maximum length is 128; see below for details about this distinction), and
     float arrays to 51 elements.
-    On the m68k targets (amiga500, qemu68k) the array and string size limit is **32768 bytes**. There the
-    byte/string array limit is 32768 elements (32767 characters for a string), the split word array limit is
-    32768 elements (16384 if not split), the long array limit is 8192 elements, and the float array limit is
-    8192 elements.
+    On the m68k targets (amiga500, amiga1200, qemu68k) the total array size limit is **32768 bytes**. There the
+    byte/bool array limit is 32768 elements, the word array limit is 16384 elements, and the long, float and
+    string array limits are 8192 elements each (a ``str`` array holds 4-byte pointers on these targets).
+    Split word arrays are not supported on the m68k targets.
 
 Arrays can be initialized with a range expression or an array literal value.
 You can write out such an initializer value over several lines if you want to improve readability.
@@ -510,9 +510,10 @@ The combined array size is subject to the same limits as regular 1D arrays:
 - The ``@split`` tag works normally with 2D syntax.
 - The ``@nosplit`` tag can also be used on 2D word arrays if sequential storage is needed.
 
-These limits apply to the 6502-family targets. On the m68k targets (amiga500, qemu68k) the maximum total
-element count is 32768 bytes: byte/bool arrays up to 32768 elements, split word/str arrays up to 32768 elements,
-sequential word arrays up to 16384, long arrays up to 8192, and float arrays up to 8192 elements.
+These limits apply to the 6502-family targets. On the m68k targets (amiga500, amiga1200, qemu68k) the maximum total
+element count is 32768 bytes: byte/bool arrays up to 32768 elements, sequential word arrays up to 16384, and
+long, float and str arrays up to 8192 elements (str arrays hold 4-byte pointers there). Split word arrays are
+not supported on the m68k targets.
 
 **Not supported:**
 
@@ -550,8 +551,9 @@ See also :ref:`pointervars` and the chapter about it :ref:`pointers`.
 
 As an optimization, (u)word arrays, pointer arrays, and str arrays are split by the compiler in memory as two separate arrays,
 one with the LSBs and one with the MSBs of the word values. This is more efficient to access by the 6502 cpu.
-It also allows a maximum length of 256 for word arrays, where normally it would have been 128
-(on the m68k targets this split-word limit is 32768 instead).
+It also allows a maximum length of 256 for word arrays, where normally it would have been 128.
+This is a 6502-only optimization: the m68k targets never split arrays, and a ``@nosplit`` tag on an m68k target
+is redundant.
 
 For normal prog8 array indexing, the compiler takes care of the distinction for you under water.
 *But for assembly code, or code that otherwise accesses the array elements directly, you have to be aware of the distinction from 'normal' arrays.*
@@ -587,10 +589,8 @@ Strings
 ^^^^^^^
 .. index:: pair: Data Types; Strings
 
-Strings are a sequence of characters enclosed in double quotes. The length is limited to 255 characters
-on the 6502-family targets (the 256-byte array/string size limit minus the terminating null byte);
-on the m68k targets (amiga500, qemu68k) this limit is 32767 characters, matching those targets' 32768-byte
-array/string size limit.
+Strings are a sequence of characters enclosed in double quotes. The length of a string *literal* is limited to
+255 characters on all targets, including the m68k targets (amiga500, amiga1200, qemu68k).
 They're stored and treated much the same as a byte array,
 but they have some special properties because they are considered to be *text*.
 Strings (without encoding prefix) will be encoded (translated from ASCII/UTF-8) into bytes via the

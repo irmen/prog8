@@ -134,7 +134,7 @@ Jump table
 
 .. note::
     The ``%jmptable`` directive described below is currently only supported on 6502 targets (c64, cx16, c128, pet32).
-    It is not available on M68K targets (amiga500, qemu68k) because loadable library support
+    It is not available on M68K targets (amiga500, amiga1200, qemu68k) because loadable library support
     has not been implemented for those platforms yet.
 
 For ease of use, libraries should probably have a fixed "jump table" where the offsets of the

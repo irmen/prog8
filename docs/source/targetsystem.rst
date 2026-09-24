@@ -301,7 +301,7 @@ IRQ Handling (general)
 .. index:: single: Targets; IRQ Handling
 
 The IRQ facilities described here apply to the CBM 6502-based targets (c64, c128, pet32, cx16) only.
-The m68k targets do not provide them: the amiga500 has none of these routines (interrupt handling
+The m68k targets do not provide them: the amiga500 and amiga1200 have none of these routines (interrupt handling
 there is done via the AmigaOS, which is out of scope for these convenience routines) and the qemu68k
 simulator only offers the interrupt disable/enable helpers.
 

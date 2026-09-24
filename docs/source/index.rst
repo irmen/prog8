@@ -14,7 +14,7 @@ It aims to provide many conveniences over raw assembly code (even when using a m
 while still being low level enough to create high performance programs.
 
 Supported target systems are Commodores (C64, C128, PET), Commander X16,
-the Commodore Amiga (32-bit 68000, via the amiga500 target), the Qemu M68k simulator (qemu68k), and others.
+the Commodore Amiga (32-bit m68k, via the amiga500 and amiga1200 targets), the Qemu M68k simulator (qemu68k), and others.
 
 Get the compiler here :ref:`downloading`.
 

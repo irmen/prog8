@@ -257,7 +257,7 @@ Directives
 	Global setting, set the program's start memory address. It's usually fixed at ``$0801`` because the
 	default launcher type is a CBM-BASIC program. But you have to specify this address yourself when
 	you don't use a CBM-BASIC launcher.
-	Not available on the m68k targets (amiga500, qemu68k) - there it is an error.
+	Not available on the m68k targets (amiga500, amiga1200, qemu68k) - there it is an error.
 
 .. index:: pair: Directives; %varsaddress
 .. data:: %varsaddress <address>
@@ -270,7 +270,7 @@ Directives
 	in golden/high RAM.
 	Mutually exclusive with the CLI options ``-varsgolden``, ``-varshigh`` and ``-varsaddress`` - use either the directive
 	(raw address) or the CLI shorthand (target-aware or raw), not both.
-	Not available on m68k targets (amiga500, qemu68k) - there it is an error.
+	Not available on m68k targets (amiga500, amiga1200, qemu68k) - there it is an error.
 	The custom compilation target configuration file can provide a default for this via the ``vars_address`` property,
 	just like ``load_address`` provides the default for ``%address``.
 
@@ -449,7 +449,7 @@ Directives
     without existing callers noticing anything.
 
     *Note:* this directive is currently only supported on 6502 targets (c64, cx16, c128, pet32).
-    It is not available on M68K targets (amiga500, qemu68k) because loadable library support
+    It is not available on M68K targets (amiga500, amiga1200, qemu68k) because loadable library support
     has not been implemented for those platforms yet.
 
     This is usually put at the top of the main block so that it ends up at the beginning
@@ -472,7 +472,7 @@ Directives
 	Global setting, selects the program launcher stub to use.
 	Only relevant when using the ``prg`` output type. The default is ``basic``,
 	or whatever the compilation target's configuration specifies (custom targets can set a different default via the ``launcher`` property).
-	Not available on the m68k targets (amiga500, qemu68k) - there it is an error.
+	Not available on the m68k targets (amiga500, amiga1200, qemu68k) - there it is an error.
 
 	- type ``basic`` : add a tiny C64 BASIC program, with a SYS statement calling into the machine code
 	- type ``none`` : no launcher logic is added at all
@@ -488,7 +488,7 @@ Directives
 	This memtop value is used for a check instruction for the assembler to see if the resulting program size
 	exceeds the given memtop address. This value is exclusive, so $a000 means that $a000 is the first address
 	that program can no longer use. Everything up to and including $9fff is still usable.
-	Not available on the m68k targets (amiga500, qemu68k) - there it is an error.
+	Not available on the m68k targets (amiga500, amiga1200, qemu68k) - there it is an error.
 
 
 .. index:: pair: Directives; %option
@@ -518,7 +518,7 @@ Directives
     - ``ignore_unused`` (block or module) suppress warnings about unused variables and subroutines. Instead, these will be silently stripped.
       This option is useful in library modules that contain many more routines beside the ones that you actually use.
     - ``verafxmuls`` (block, cx16 target only) uses Vera FX hardware word multiplication on the CommanderX16 for all word multiplications in this block. Warning: this may interfere with IRQs and other Vera operations, so use this only when you know what you're doing. It's safer to explicitly use ``verafx.muls()``.
-    - ``amiga_chipram`` (block, amiga500 target only) places the block's code in the ``code_c`` section, and its variables (initialized data and BSS, including memory slabs and struct instances) in the ``data_c`` and ``bss_c`` sections. These are Amiga CHIP RAM hunks, so they will be loaded in CHIP ram by the OS.
+    - ``amiga_chipram`` (block, amiga500/amiga1200 target only) places the block's code in the ``code_c`` section, and its variables (initialized data and BSS, including memory slabs and struct instances) in the ``data_c`` and ``bss_c`` sections. These are Amiga CHIP RAM hunks, so they will be loaded in CHIP ram by the OS.
     - ``romable`` (module) *WORK-IN-PROGRESS/EXPERIMENTAL* make sure that the generated code is suitable for running in ROM (so no self-modifying code and such, which is normally used to generate smaller/more optimized code)
       See :ref:`romable` for more details.
     - ``private_symbols`` (module or block) makes all symbols private by default within the module or block where this option is set.
@@ -538,7 +538,8 @@ Directives
 	- type ``library`` : loadable library file. See :ref:`loadable_library`. Only available on the 6502 targets.
 	- type ``elf`` : Linux/BSD program (used by select targets to run in a simulator like QEMU)
 
-	On the m68k targets only ``raw`` and ``elf`` are available.
+	On the m68k targets each one only allows its own default output type: ``amigahunk`` for ``amiga500`` and
+	``amiga1200``, and ``elf`` for ``qemu68k``.
 
 
 .. index:: pair: Directives; %zeropage
@@ -785,7 +786,7 @@ For example::
 
 Use ``step -1`` to visit the nodes from the tail towards the head. The list
 must be initialized and linked correctly before iteration. On the ``amiga500``
-target, the ``exec`` module's ``List`` and ``Node`` structures and list
+and ``amiga1200`` targets, the ``exec`` module's ``List`` and ``Node`` structures and list
 routines use this same convention, so lists managed through ``exec.library``
 can be traversed directly with ``for`` loops.
 

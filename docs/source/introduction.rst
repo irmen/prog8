@@ -16,7 +16,7 @@ such as the `Commodore 64 <https://en.wikipedia.org/wiki/Commodore_64>`_.
 
 In addition, Prog8 supports the **32-bit** `Motorola 68000 <https://en.wikipedia.org/wiki/Motorola_68000>`_ CPU
 via its m68k code generator backend. The intended machine for this backend is the
-`Commodore Amiga <https://en.wikipedia.org/wiki/Amiga>`_ (the amiga500 target),
+`Commodore Amiga <https://en.wikipedia.org/wiki/Amiga>`_ (the amiga500 and amiga1200 targets),
 which can take full advantage of the 68000's 32-bit registers and 16 MB address space.
 
 You can compile programs for various machines that are built into the compiler:

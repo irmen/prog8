@@ -808,8 +808,9 @@ floats
     Floating point support is available on most cbm-compatible targets (except the C128 for now), and the virtual target.
     On the X16, make sure rom bank 4 is still active before doing floating point operations (it's the bank that contains the fp routines).
     On the C64, you have to make sure the Basic ROM is still banked in (same reason).
-    On the ``qemu68k`` and ``amiga500`` targets, floating point support requires a 68020 or better CPU with an 68881/68882 FPU.
-    For ``amiga500`` programs that use floats, the compiler automatically assembles with ``-m68020 -m68881``.
+    On the ``qemu68k``, ``amiga500`` and ``amiga1200`` targets, floating point support requires a 68020 or better CPU with an 68881/68882 FPU.
+    For ``amiga500`` programs that use floats, the compiler automatically assembles with ``-m68020 -m68881``; the ``amiga1200`` target is
+    already 68020 and is always assembled with ``-m68881``.
     Such programs will not run on an Amiga 500/600 or 1200 without an FP coprocessor or a suitable upgraded/emulated CPU configuration.
 
 Provides definitions for the ROM/Kernal subroutines and utility routines dealing with floating point variables.
@@ -986,7 +987,7 @@ lists
 .. index:: pair: Libraries; lists
 
 Portable doubly linked lists modeled after Amiga Exec lists (``MinList``/``MinNode``).
-Available on all targets; on ``amiga500`` the types and routines simply forward to ``exec.library``.
+Available on all targets; on ``amiga500`` and ``amiga1200`` the types and routines simply forward to ``exec.library``.
 
 Three struct types are provided:
 
@@ -994,7 +995,7 @@ Three struct types are provided:
 - ``lists.List`` - list header with ``Head``, ``Tail`` and ``TailPred`` pointers
 - ``lists.FullNode`` - extended node with ``Type``, ``Pri`` and ``Name`` fields for priority/name operations
 
-On ``amiga500`` these are aliases: ``Node = exec.MinNode``, ``List = exec.MinList``, ``FullNode = exec.Node``.
+On ``amiga500`` and ``amiga1200`` these are aliases: ``Node = exec.MinNode``, ``List = exec.MinList``, ``FullNode = exec.Node``.
 
 A list header must be initialized once with ``init(listptr)`` (sets ``Head = &Tail``, ``Tail = 0``, ``TailPred = &Head``).
 The list can then be manipulated with:
@@ -1038,7 +1039,7 @@ Example::
         }
     }
 
-On ``amiga500`` the same holds. Define the list header with your node type so
+On ``amiga500`` and ``amiga1200`` the same holds. Define the list header with your node type so
 ``for``-iteration infers the correct type, and include ``Type``/``Pri``/``Name``
 if you need the full ``exec.Node`` layout. The header can still be
 initialized with ``exec.NewList``::
@@ -1069,7 +1070,7 @@ Allocator agnostic: the routines never allocate or free memory themselves,
 they only link the ``pointer`` values you pass in. Nodes and headers can
 come from static ``[]`` variables as above, from ``memory()`` slabs, or
 from any arena/bump allocator - e.g. ``arena.alloc(sizeof(MyNode)) as ^^MyNode``
-or ``exec.AllocMem`` on ``amiga500``. Just ensure the allocation is
+or ``exec.AllocMem`` on ``amiga500`` or ``amiga1200``. Just ensure the allocation is
 suitably aligned (even address on 6502, long-aligned on m68k).
 
 Read the :source:`lists source code <compiler/res/prog8lib/lists.p8>` and
@@ -1818,12 +1819,12 @@ miscellaneous
 ``memsetw (address, numwords, wordvalue)``
     Efficiently set a part of memory to the given (u)word value.
     But the most efficient will always be to write a specialized fill routine in assembly yourself!
-    Note: on m68k targets (amiga500, qemu68k), the address must be word-aligned (even).
+    Note: on m68k targets (amiga500, amiga1200, qemu68k), the address must be word-aligned (even).
 
 ``memsetl (address, numlongs, longvalue)``  (available on 32 bits targets only)
     Efficiently set a part of memory to the given (u)long value.
     But the most efficient will always be to write a specialized fill routine in assembly yourself!
-    Note: on m68k targets (amiga500, qemu68k), the address must be longword-aligned (divisible by 4).
+    Note: on m68k targets (amiga500, amiga1200, qemu68k), the address must be longword-aligned (divisible by 4).
 
 ``memcmp (address1, address2, size)``
     Compares two blocks of memory of up to 65535 bytes in size.
