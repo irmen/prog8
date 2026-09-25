@@ -2,10 +2,7 @@ import io.kotest.assertions.throwables.shouldThrowWithMessage
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.shouldBe
-import prog8.code.core.CompilationOptions
-import prog8.code.core.OutputType
-import prog8.code.core.Position
-import prog8.code.core.ZeropageType
+import prog8.code.core.*
 import prog8.code.target.C64Target
 import prog8.code.target.Cx16Target
 import prog8.code.target.VMTarget
@@ -68,6 +65,39 @@ class TestVm: FunSpec( {
         vm.valueStack.shouldBeEmpty()
         vm.pcIndex shouldBe code.instructions.size-1
         vm.stepCount shouldBe code.instructions.size
+    }
+
+    test("vm loads label-valued array and struct initializers") {
+        val target = VMTarget()
+        val program = IRProgram("test", IRSymbolTable(), getTestOptions(), target)
+        val block = IRBlock("main", false, IRBlock.Options(), Position.DUMMY)
+        val targetChunk = IRCodeChunk("main.target", null)
+        targetChunk += IRInstructions.returnVoid()
+        block += targetChunk
+        program.addBlock(block)
+
+        val arrayType = DataType.arrayFor(BaseDataType.LONG, target)
+        program.st.add(IRStStaticVariable(
+            "main.array",
+            arrayType,
+            IRVariableInitializer.Array(listOf(IRStSymbolicReference.Symbol("main.target"))),
+            1u,
+            ZeropageWish.DONTCARE,
+            0u,
+            false
+        ))
+        program.st.add(IRStStructInstance(
+            "main.instance",
+            "main.State",
+            listOf(IRStructInitValue(BaseDataType.POINTER, IRStSymbolicReference.Symbol("main.target"))),
+            4u
+        ))
+
+        val vm = VirtualMachine(program)
+        vm.memory.getUB(0u) shouldBe 0u
+        vm.memory.getSL(0u) shouldBe 0x1000000
+        vm.memory.getUL(4u) shouldBe 0x1000000u
+        vm.artificialLabelAddresses.keys shouldBe setOf(0x1000000u)
     }
 
     test("asmsub not supported in vm even with IR") {

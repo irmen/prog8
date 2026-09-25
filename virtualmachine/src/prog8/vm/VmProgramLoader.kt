@@ -21,11 +21,13 @@ class VmProgramLoader {
         irProgram.st.stripAllPrefixes()
         placeholders.clear()
         subroutines.clear()
+        artificialLabelAddresses.clear()
         val allocations = VmVariableAllocator(irProgram.st, irProgram.encoding, irProgram.options.compTarget)
         val variableAddresses = allocations.allocations.toMutableMap()
         val programChunks = mutableListOf<IRCodeChunk>()
 
-        varsToMemory(irProgram, allocations, variableAddresses, memory)
+        assignArtificialLabelAddresses(irProgram)
+        varsToMemory(irProgram, allocations, artificialLabelAddresses + variableAddresses, memory)
 
         // Resolve constants with memory() slab references to their actual addresses
         irProgram.st.allConstants().forEach { constant ->
@@ -328,6 +330,18 @@ class VmProgramLoader {
         }
     }
 
+    private fun assignArtificialLabelAddresses(program: IRProgram) {
+        program.forEachChunk { chunk ->
+            if(chunk !is IRCodeChunk && chunk !is IRLoopChunk)
+                return@forEachChunk
+            val label = chunk.label ?: return@forEachChunk
+            val stripped = SymbolNames.stripPrefixes(label)
+            artificialLabelAddresses.getOrPut(stripped) {
+                0x1000000u + artificialLabelAddresses.size.toUInt()
+            }
+        }
+    }
+
     private fun pass2replaceLabelsByProgIndex(
         chunks: List<IRCodeChunk>,
         variableAddresses: MutableMap<String, UInt>,
@@ -388,7 +402,7 @@ class VmProgramLoader {
     private fun varsToMemory(
         program: IRProgram,
         allocations: VmVariableAllocator,
-        symbolAddresses: MutableMap<String, UInt>,
+        symbolAddresses: Map<String, UInt>,
         memory: Memory
     ) {
         program.st.allVariables().forEach { variable ->
@@ -530,7 +544,7 @@ class VmProgramLoader {
         variable: IRStStaticVariable,
         iElts: IRStArray,
         startAddress: UInt,
-        symbolAddresses: MutableMap<String, UInt>,
+        symbolAddresses: Map<String, UInt>,
         memory: Memory,
         program: IRProgram
     ) {
@@ -654,7 +668,7 @@ class VmProgramLoader {
         }
     }
 
-    private fun getInitializerValue(arrayDt: DataType, elt: IRStSymbolicReference, symbolAddresses: MutableMap<String, UInt>): InitializerValue {
+    private fun getInitializerValue(arrayDt: DataType, elt: IRStSymbolicReference, symbolAddresses: Map<String, UInt>): InitializerValue {
         return when(elt) {
             is IRStSymbolicReference.Symbol -> {
                 when {
