@@ -196,7 +196,7 @@ fun prefixSymbols(program: PtProgram, options: CompilationOptions, st: SymbolTab
 }
 
 
-internal fun prefixScopedName(name: String, type: Char): String {
+internal fun prefixScopedName(name: String, type: Char, st: SymbolTable? = null): String {
     if('.' !in name) {
         if(name.startsWith(GENERATED_LABEL_PREFIX))
             return name
@@ -206,7 +206,11 @@ internal fun prefixScopedName(name: String, type: Char): String {
     val firstPrefixed = "p8b_${parts[0]}"
     val lastPart = parts.last()
     val lastPrefixed = if(lastPart.startsWith(GENERATED_LABEL_PREFIX)) lastPart else  "p8${type}_$lastPart"
-    val inbetweenPrefixed = parts.drop(1).dropLast(1).map{ "p8s_$it" }
+    val inbetweenPrefixed = parts.drop(1).dropLast(1).mapIndexed { index, part ->
+        val scopedName = parts.take(index + 2).joinToString(".")
+        val middleType = st?.lookup(scopedName)?.type ?: StNodeType.SUBROUTINE
+        "p8${typePrefixChar(middleType)}_$part"
+    }
     val prefixed = listOf(firstPrefixed) + inbetweenPrefixed + listOf(lastPrefixed)
     return prefixed.joinToString(".")
 }
@@ -229,7 +233,7 @@ internal fun typePrefixChar(targetNt: StNodeType): Char {
 
 
 private fun PtVariable.prefixVariableOrThis(parent: PtNode, st: SymbolTable): PtVariable {
-    name = prefixScopedName(name, 'v')
+    name = prefixScopedName(name, 'v', st)
     if(value==null)
         return this
 
@@ -290,7 +294,7 @@ private fun PtIdentifier.prefixIdentifierOrThis(parent: PtNode, st: SymbolTable)
     }
 
     val prefixType = typePrefixChar(targetNt)
-    val newName = prefixScopedName(name, prefixType)
+    val newName = prefixScopedName(name, prefixType, st)
     val node = PtIdentifier(newName, type, position)
     node.parent = parent
     return node

@@ -34,6 +34,17 @@ class TestSymbolPrefixer : FunSpec({
         prefixScopedName("lib.module.func", 's') shouldBe "p8b_lib.p8s_module.p8s_func"
     }
 
+    test("prefixScopedName uses the symbol type for middle components") {
+        val program = PtProgram("test", VMTarget())
+        val block = PtBlock("main", false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
+        val struct = PtStructDecl("Point", listOf(PtStructField(DataType.UBYTE, "x", null)), Position.DUMMY)
+        block.add(struct)
+        program.add(block)
+        val st = SymbolTableMaker(program, basicTestOptions()).make()
+
+        prefixScopedName("main.Point.field", 'v', st) shouldBe "p8b_main.p8t_Point.p8v_field"
+    }
+
     test("prefixScopedName generated label is not prefixed") {
         val genLabel = "p8_label_gen_42"
         prefixScopedName(genLabel, 's') shouldBe genLabel
