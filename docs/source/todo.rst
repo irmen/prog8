@@ -35,10 +35,9 @@ Romable (%option romable)
   - ``forOverBytesRangeStepGreaterOne`` (byte, abs(step)>=2)
   - ``forOverWordsRangeStepGreaterOne`` (word, step>=2)
   - ``forOverWordsRangeStepGreaterOneDescending`` (word, step<=-2)
-  The new variable-step byte/word paths are already ROM-safe because they use temporary variables rather than self-modifying code. Add more ROMable tests for both behaviors as needed.
+  The new variable-step byte/word paths are already ROM-safe because they use temporary variables rather than self-modifying code.
 - BuiltinFunctionsAsmGen: ``callfar`` / ``callfar2`` with non-const bank/addr. Uses self-modifying ``sta +0`` / ``sty +1`` to patch JSRFAR operands. Needs a RAM trampoline approach (copy stub with variable args into RAM, JSR to that).
-- FunctionCallAsmGen: ``extsub`` with variable bank. Same JSRFAR operand patching issue. Needs RAM trampoline.
-- Add more test coverage for the romable option.
+- FunctionCallAsmGen: subroutine with a variable bank (``@bank``). Same JSRFAR operand patching issue. In romable mode this is already rejected up front by ``AstChecker`` ("variable bank extsub has no romable code-generation for the required jsrfar call"), so the codegen ``TODO`` is only a safety net; what's actually missing to make the feature work is the RAM trampoline.
 
 
 IR/VM

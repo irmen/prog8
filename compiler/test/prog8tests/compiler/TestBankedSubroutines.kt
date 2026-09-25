@@ -179,6 +179,57 @@ class TestBankedSubroutines : FunSpec({
         errors.errors.any { it.contains("variable bank extsub has no romable code-generation") } shouldBe true
     }
 
+    test("callfar with non-constant bank or address is rejected in romable mode") {
+        val text = $$"""
+            %option romable
+            main {
+                ubyte @shared bank
+                uword @shared addr
+                sub start() {
+                    bank = 1
+                    addr = $ffd2
+                    uword r = callfar(bank, addr, 0)
+                }
+            }
+        """.trimIndent()
+        val errors = ErrorReporterForTests()
+        compileText(Cx16Target(), false, text, outputDir, errors = errors, writeAssembly = false, varshigh = 1) shouldBe null
+        errors.errors.any { it.contains("callfar with a non-constant bank or address has no ROMable code generation") } shouldBe true
+    }
+
+    test("callfar2 with non-constant bank or address is rejected in romable mode") {
+        val text = $$"""
+            %option romable
+            main {
+                ubyte @shared bank
+                uword @shared addr
+                sub start() {
+                    bank = 1
+                    addr = $ffd2
+                    uword r = callfar2(bank, addr, 1, 2, 3, true)
+                }
+            }
+        """.trimIndent()
+        val errors = ErrorReporterForTests()
+        compileText(Cx16Target(), false, text, outputDir, errors = errors, writeAssembly = false, varshigh = 1) shouldBe null
+        errors.errors.any { it.contains("callfar2 with a non-constant bank or address has no ROMable code generation") } shouldBe true
+    }
+
+    test("callfar with constant bank and address is allowed in romable mode") {
+        val text = $$"""
+            %option romable
+            main {
+                sub start() {
+                    uword r = callfar(1, $ffd2, 0)
+                    uword s = callfar2(1, $ffd2, 1, 2, 3, true)
+                }
+            }
+        """.trimIndent()
+        val errors = ErrorReporterForTests(throwExceptionAtReportIfErrors = false, keepMessagesAfterReporting = true)
+        compileText(Cx16Target(), false, text, outputDir, errors = errors, writeAssembly = false, varshigh = 1).shouldNotBeNull()
+        errors.errors shouldBe emptyList()
+    }
+
     test(".bankedcalls file creation and content (6502)") {
         val text = $$"""
             main {

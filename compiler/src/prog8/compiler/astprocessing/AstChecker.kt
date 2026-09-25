@@ -2204,6 +2204,11 @@ internal class AstChecker(private val program: Program,
             if(target.name=="callfar" || target.name=="callfar2") {
                 if(!options.compTarget.supportsBankedCalls) {
                     errors.err("banked subroutine call is not supported on the selected compilation target", position)
+                } else if(options.romable && options.compTarget.cpu.is6502 &&
+                    (args[0].constValue(program)==null || args[1].constValue(program)==null)) {
+                    // the 6502 codegen patches the jsrfar bank/address operands with self-modifying
+                    // code unless both are compile-time constants, which is incompatible with romable mode
+                    errors.err("${target.name} with a non-constant bank or address has no ROMable code generation", position)
                 }
             }
         }

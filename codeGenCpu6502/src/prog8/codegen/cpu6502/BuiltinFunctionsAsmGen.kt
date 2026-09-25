@@ -426,7 +426,7 @@ import prog8.codegen.cpu6502.assignment.*
                 .byte  $constBank""")
         } else {
             if(asmgen.options.romable)
-                TODO("non-const callfar (jsrfar) yet that's usable in ROM  ${fcall.position}")
+                asmgen.errors.err("non-const callfar (jsrfar) has no ROMable code generation", fcall.position)
             // self-modifying code: set jsrfar arguments
             asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.A)      // bank
             asmgen.out("  sta  (++)+0")
@@ -483,7 +483,7 @@ import prog8.codegen.cpu6502.assignment.*
                 .byte  $constBank""")
         } else {
             if(asmgen.options.romable)
-                TODO("non-const callfar2 (jsrfar) yet that's usable in ROM  ${fcall.position}")
+                asmgen.errors.err("non-const callfar2 (jsrfar) has no ROMable code generation", fcall.position)
             // self-modifying code: set jsrfar arguments
             asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.A)      // bank
             asmgen.out("  sta  (++)+0")

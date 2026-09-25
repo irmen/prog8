@@ -13,6 +13,7 @@ import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldNotContain
 import prog8.ast.expressions.MemorySlabRef
 import prog8.ast.statements.Assignment
+import prog8.code.SymbolNames
 import prog8.code.target.C64Target
 import prog8.code.target.Cx16Target
 import prog8.code.target.VMTarget
@@ -375,7 +376,7 @@ main {
         VmRunner().runProgram(irSrc, false)
     }
 
-    test("addresses from labels/subroutines not yet supported in VM") {
+    test("addresses from labels/subroutines are loaded as artificial label addresses") {
         val src = """
 main {
     sub start() {
@@ -393,10 +394,28 @@ mylabel:
 """
         val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = true)!!
         val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
-        val exc = shouldThrow<Exception> {
-            VmRunner().runProgram(virtfile.readText(), false)
+        val irSrc = virtfile.readText()
+        val irProgram = IRFileReader().read(irSrc)
+        irProgram.st.stripAllPrefixes()
+        val allocations = VmVariableAllocator(irProgram.st, irProgram.encoding, irProgram.options.compTarget).allocations
+        VmRunner().runAndTestProgram(irSrc) { vm ->
+            val startAddr = vm.artificialLabelAddresses.entries.single { SymbolNames.stripPrefixes(it.value.label ?: "") == "main.start" }.key
+            val mylabelAddr = vm.artificialLabelAddresses.entries.single { SymbolNames.stripPrefixes(it.value.label ?: "") == "main.start.mylabel" }.key
+            startAddr shouldNotBe 0u
+            mylabelAddr shouldNotBe 0u
+            mylabelAddr shouldNotBe startAddr
+            val varAddr = allocations["main.start.variable"]!!
+            vm.memory.getUL(allocations["main.start.pointer1"]!!) shouldBe startAddr
+            vm.memory.getUL(allocations["main.start.pointer2"]!!) shouldBe startAddr
+            vm.memory.getUL(allocations["main.start.pointer3"]!!) shouldBe mylabelAddr
+            vm.memory.getUL(allocations["main.start.pointer4"]!!) shouldBe mylabelAddr
+            val ptrsAddr = allocations["main.start.ptrs"]!!
+            vm.memory.getUL(ptrsAddr) shouldBe varAddr
+            vm.memory.getUL(ptrsAddr + 4u) shouldBe startAddr
+            vm.memory.getUL(ptrsAddr + 8u) shouldBe startAddr
+            vm.memory.getUL(ptrsAddr + 12u) shouldBe mylabelAddr
+            vm.memory.getUL(ptrsAddr + 16u) shouldBe mylabelAddr
         }
-        exc.message shouldContain("cannot yet load a label address as a value")
     }
 
     test("address of a block produces LOAD with block label in IR") {

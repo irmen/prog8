@@ -4,6 +4,7 @@ import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.engine.spec.tempdir
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
 import prog8.code.core.AssemblyError
 import prog8.code.target.Cx16Target
@@ -43,6 +44,116 @@ class TestVariableStepForLoops6502: FunSpec({
             }
         """)
         machine.assertMemory(0x0200, 18)
+    }
+
+    test("romable variable-step byte loop") {
+        val errors = ErrorReporterForTests(throwExceptionAtReportIfErrors = false, keepMessagesAfterReporting = true)
+        val result = compileText(Cx16Target(), false, $$"""
+            %option no_sysinit
+            %option romable
+            %launcher none
+            %address $1000
+
+            main {
+                sub start() {
+                    ubyte @shared step = 3
+                    ubyte i
+                    ubyte sum
+                    for i in 0 to 10 step step {
+                        sum += i
+                    }
+                }
+            }
+        """, outputDir, errors = errors, varsAddress = 0x8000u, assemble = true)
+        errors.errors shouldBe emptyList()
+        errors.printedErrors shouldBe emptyList()
+        errors.warnings.none { it.contains("forloop") } shouldBe true
+        result shouldNotBe null
+    }
+
+    test("romable variable-step word loop") {
+        val errors = ErrorReporterForTests(throwExceptionAtReportIfErrors = false, keepMessagesAfterReporting = true)
+        val result = compileText(Cx16Target(), false, $$"""
+            %option no_sysinit
+            %option romable
+            %launcher none
+            %address $1000
+
+            main {
+                sub start() {
+                    uword @shared step = 100
+                    uword i
+                    uword sum
+                    for i in 0 to 500 step step {
+                        sum += i
+                    }
+                }
+            }
+        """, outputDir, errors = errors, varsAddress = 0x8000u, assemble = true)
+        errors.errors shouldBe emptyList()
+        errors.printedErrors shouldBe emptyList()
+        errors.warnings.none { it.contains("forloop") } shouldBe true
+        result shouldNotBe null
+    }
+
+    test("romable constant-step byte loop is rejected") {
+        val source = $$"""
+            %option no_sysinit
+            %option romable
+            %launcher none
+            %address $1000
+
+            main {
+                sub start() {
+                    ubyte @shared from
+                    ubyte @shared upper
+                    from = 0
+                    upper = 10
+                    ubyte i
+                    ubyte sum
+                    for i in from to upper step 3 {
+                        sum += i
+                    }
+                }
+            }
+        """.trimIndent()
+
+        val errors = ErrorReporterForTests(throwExceptionAtReportIfErrors = false, keepMessagesAfterReporting = true)
+        val result = compileText(Cx16Target(), false, source, outputDir, errors = errors, varsAddress = 0x8000u, assemble = true)
+        errors.errors shouldBe emptyList()
+        errors.printedErrors shouldBe emptyList()
+        errors.warnings.joinToString("\n") shouldContain "self-modifying code (forloop over bytes range)"
+        result shouldBe null
+    }
+
+    test("romable constant-step word loop is rejected") {
+        val source = $$"""
+            %option no_sysinit
+            %option romable
+            %launcher none
+            %address $1000
+
+            main {
+                sub start() {
+                    uword @shared from
+                    uword @shared upper
+                    from = 0
+                    upper = 500
+                    uword i
+                    uword sum
+                    for i in from to upper step 100 {
+                        sum += i
+                    }
+                }
+            }
+        """.trimIndent()
+
+        val errors = ErrorReporterForTests(throwExceptionAtReportIfErrors = false, keepMessagesAfterReporting = true)
+        val result = compileText(Cx16Target(), false, source, outputDir, errors = errors, varsAddress = 0x8000u, assemble = true)
+        errors.errors shouldBe emptyList()
+        errors.printedErrors shouldBe emptyList()
+        errors.warnings.joinToString("\n") shouldContain "self-modifying code (forloop over word range)"
+        result shouldBe null
     }
 
     test("signed negative step with unsigned byte descending") {
