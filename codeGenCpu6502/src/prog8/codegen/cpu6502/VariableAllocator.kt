@@ -136,6 +136,12 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
 
     private fun computeUsageScores(vars: Collection<StStaticVariable>): Map<String, Int> {
         val scores = mutableMapOf<String, Int>()
+        // Note: by the time codegen runs, the simple-AST identifier names are already fully scoped
+        // AND symbol-prefixed ("p8b_maze.p8s_solve.p8v_cx"), so a plain lookup by PtIdentifier.name
+        // correctly matches the scopedNameString keys used here. This looks like a name/scope
+        // mismatch bug but is not: resolving identifiers to their enclosing scope instead (or
+        // keying this map by the bare variable name) silently makes every score zero, which
+        // degenerates the sort in allocateZeropageVariables() into a stable no-op.
         val varInfo = vars.associateBy { it.scopedNameString }
         var loopDepth = 0
 
