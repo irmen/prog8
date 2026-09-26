@@ -6,6 +6,8 @@ import prog8.code.assembly.AssemblyProgram6502
 import prog8.code.assembly.IAssemblyProgram
 import prog8.code.ast.*
 import prog8.code.core.*
+import prog8.code.cpu6502.byteShiftAddExpansion
+import prog8.code.cpu6502.wordShiftAddExpansion
 import prog8.code.source.ImportFileSystem
 import prog8.code.source.SourceCode
 import prog8.code.target.Cx16Target
@@ -45,55 +47,36 @@ class AsmGen6502Internal (
     preassignedCallSiteIds: Map<PtAsmSub, UByte> = emptyMap()
 ) {
 
-    internal val optimizedByteMultiplications = setOf(3,5,6,7,9,10,11,12,13,14,15,20,25,40,50,80,100)
-    internal val optimizedWordMultiplications = setOf(3,5,6,7,9,10,12,15,20,25,40,50,80,100,320,640)
+    // 40, 50, 80 and 100 are deliberately absent: prog8_math's mul_byte_40/50/80/100 are wrong.
+    // They mask the multiplicand with `and #7` or `and #3` and index a small table, which only
+    // works if x*k mod 256 has that period. The true period is 256/gcd(k,256), i.e. 32, 128, 16
+    // and 64 entries respectively, so the tables are far too small (e.g. mul_byte_100 returns
+    // (x&3)*100, giving 0 for x=4 where the answer is 144). The generic expansion below computes
+    // them correctly in 8-11 instructions.
+    internal val optimizedByteMultiplications = setOf(3,5,6,7,9,10,11,12,13,14,15,20,25)
+    // 320 and 640 are deliberately absent: mul_word_320/640 compute (low byte of x)*320/*640 and
+    // ignore the multiplicand's high byte, so they are wrong for any x >= 256 (the comment
+    // "msb in Y doesn't matter" is false). The generic expansion handles them in 27-29 instructions.
+    internal val optimizedWordMultiplications = setOf(3,5,6,7,9,10,12,15,20,25,40,50,80,100)
 
-    // Instruction budget for the inline word shift-add expansion. The call sequence it replaces is
-    // 6 instructions, so this is a deliberate space-for-time trade: it bounds how much a program can
-    // grow per multiplication site, at the cost of some code size. Raise it to favour speed.
-    private val wordShiftAddInstructionBudget = 32
-
-    // A word multiply by a small compile-time constant is expanded inline as a Horner chain
-    // (r = x, then r = r*2 + bit*x for each bit below the leading 1) instead of calling the generic
-    // 16x16->32 routine, whose cost does not depend on the constant. The gate is on generated size
-    // rather than on the constant's magnitude: the expansion needs
-    // 4 + 2*(bitlen-1) + 7*(popcount-1) instructions, and the caller's cost is fixed at ~442 cycles,
-    // so a bounded expansion wins for any constant that passes the budget.
-    internal fun wordShiftAddIsCheaper(value: Int): Boolean {
-        if(value < 3)
-            return false
-        val bitlen = 31 - Integer.numberOfLeadingZeros(value)
-        val popcount = Integer.bitCount(value)
-        return 4 + 2*(bitlen-1) + 7*(popcount-1) <= wordShiftAddInstructionBudget
-    }
-
-    // Emits the Horner expansion for `value`, assuming the multiplicand is in A/Y and leaving the
-    // product in A/Y. Works on the raw 16-bit bit pattern, exactly like the hand-written
-    // mul_word_N routines (see mul_word_3: "AY = AY*2 + AY"), so signed and unsigned agree because
-    // both truncate mod 2^16 and no sign extension is applied afterwards.
-    internal fun emitWordShiftAdd(value: Int) {
-        out("  sta  P8ZP_SCRATCH_W2 |  sty  P8ZP_SCRATCH_W2+1")   // keep x for the conditional adds
+    // Thin wrappers over the shared expansion in codeCore, so this backend and codeGenNew6502 emit
+    // an identical sequence. Works on the raw bit pattern, exactly like the hand-written
+    // prog8_math.mul_word_N / mul_byte_N routines, so signed and unsigned agree because both
+    // truncate mod 2^n and no sign extension is applied afterwards.
+    internal fun emitWordShiftAdd(value: Int): Boolean {
+        val expansion = wordShiftAddExpansion(value) ?: return false
+        out("  sta  P8ZP_SCRATCH_W2 |  sty  P8ZP_SCRATCH_W2+1")   // x
         out("  sta  P8ZP_SCRATCH_W1 |  sty  P8ZP_SCRATCH_W1+1")   // r = x
-        for(bit in (31 - Integer.numberOfLeadingZeros(value) - 1) downTo 0) {
-            out("  asl  a |  rol  P8ZP_SCRATCH_W1+1")             // r = r*2
-            if(value and (1 shl bit) != 0) {                      // r += x
-                out("""
-                      clc
-                      adc  P8ZP_SCRATCH_W2
-                      sta  P8ZP_SCRATCH_W1
-                      lda  P8ZP_SCRATCH_W1+1
-                      adc  P8ZP_SCRATCH_W2+1
-                      sta  P8ZP_SCRATCH_W1+1
-                      tay
-                      lda  P8ZP_SCRATCH_W1""")
-            }
-        }
-        // Y is only read for the final result, so it only needs fixing up when the last step was a
-        // bare doubling: that updates A and W1+1 but leaves Y holding the previous high byte.  An
-        // 'asl a' cannot refresh Y because at that point A holds the low byte, not the high one.
-        if(value and 1 == 0)
-            out("  ldy  P8ZP_SCRATCH_W1+1")
+        expansion.forEach { out("  $it") }
+        return true
     }
+
+    internal fun emitByteShiftAdd(value: Int): Boolean {
+        val expansion = byteShiftAddExpansion(value) ?: return false
+        expansion.forEach { out("  $it") }
+        return true
+    }
+
     internal val loopEndLabels = ArrayDeque<String>()
     private val zeropage = options.compTarget.zeropage
     private val allocator = VariableAllocator(symbolTable, options, errors, program)

@@ -914,14 +914,6 @@ mul_word_25	.proc
 		rts
 		.pend
 
-mul_byte_40	.proc
-		and  #7
-		tay
-		lda  _forties,y
-		rts
-_forties	.byte  0*40, 1*40, 2*40, 3*40, 4*40, 5*40, 6*40, 7*40 & 255
-		.pend
-
 mul_word_40	.proc
 		; AY = (AY*4 + AY)*8
 		sta  P8ZP_SCRATCH_W1
@@ -948,14 +940,6 @@ mul_word_40	.proc
 		rts
 		.pend
 
-mul_byte_50	.proc
-		and  #7
-		tay
-		lda  _fifties, y
-		rts
-_fifties	.byte  0*50, 1*50, 2*50, 3*50, 4*50, 5*50, 6*50 & 255, 7*50 & 255
-		.pend
-
 mul_word_50	.proc
 		; AY = AY * 25 * 2
 		jsr  mul_word_25
@@ -964,14 +948,6 @@ mul_word_50	.proc
 		rol  P8ZP_SCRATCH_REG
 		ldy  P8ZP_SCRATCH_REG
 		rts
-		.pend
-
-mul_byte_80	.proc
-		and  #3
-		tay
-		lda  _eighties, y
-		rts
-_eighties	.byte  0*80, 1*80, 2*80, 3*80
 		.pend
 
 mul_word_80	.proc
@@ -984,14 +960,6 @@ mul_word_80	.proc
 		rts
 		.pend
 
-mul_byte_100	.proc
-		and  #3
-		tay
-		lda  _hundreds, y
-		rts
-_hundreds	.byte  0*100, 1*100, 2*100, 3*100 & 255
-		.pend
-
 mul_word_100	.proc
 		; AY = AY * 25 * 4
 		jsr  mul_word_25
@@ -1002,38 +970,6 @@ mul_word_100	.proc
 		rol  P8ZP_SCRATCH_REG
 		ldy  P8ZP_SCRATCH_REG
 		rts
-		.pend
-
-mul_word_320	.proc
-		; AY = A * 256 + A * 64	 (msb in Y doesn't matter)
-		sta  P8ZP_SCRATCH_B1
-		ldy  #0
-		sty  P8ZP_SCRATCH_REG
-		asl  a
-		rol  P8ZP_SCRATCH_REG
-		asl  a
-		rol  P8ZP_SCRATCH_REG
-		asl  a
-		rol  P8ZP_SCRATCH_REG
-		asl  a
-		rol  P8ZP_SCRATCH_REG
-		asl  a
-		rol  P8ZP_SCRATCH_REG
-		asl  a
-		rol  P8ZP_SCRATCH_REG
-		pha
-		clc
-		lda  P8ZP_SCRATCH_B1
-		adc  P8ZP_SCRATCH_REG
-		tay
-		pla
-		rts
-		.pend
-
-mul_word_640	.proc
-		; AY = (A * 2 * 320) (msb in Y doesn't matter)
-		asl  a
-		jmp  mul_word_320
 		.pend
 
 

@@ -778,7 +778,7 @@ branches in `BinaryOpAssignmentsGen.kt:444-450` and `:462-478` only ever fire
 under `-noopt`. It does mean any new shift-add path must be added to the in-place
 `*=` handlers too, or those will silently keep falling back to `mul_word_N`.
 
-**Change (12a: DONE, word only)**
+**Change (12a: DONE, word + byte)**
 
 Prefer a generic shift-add decomposition over adding more hand-written `mul_word_N`
 procs (the codebase deliberately abandoned that direction for 11/13/14). The
@@ -788,77 +788,125 @@ the existing hand-written routines already are (`mul_word_3` is `; AY = AY*2 + A
 one Horner step for `11`; `mul_word_5` is two steps for `101`). So this generalises
 the hand-unrolled set rather than inventing a new technique.
 
-Implemented as `AsmGen.wordShiftAddIsCheaper(value)` plus
-`AsmGen.emitWordShiftAdd(value)`, called from the word branch of
-`optimizedMultiplyExpr` and mirrored in
-`inplacemodificationSomeWordWithLiteralval` (`:2556`) for `*=`. Three ordering
-constraints, all load-bearing:
+The sequences live in **`codeCore/src/prog8/code/cpu6502/ConstMultiply.kt`** and are
+shared by both 6502 backends, because the register bookkeeping is easy to get subtly
+wrong and the two backends must not drift apart. Call sites:
+
+- `codeGenCpu6502`: word branch of `optimizedMultiplyExpr` + the in-place `*=` at
+  `:2578`, and the byte branch at `:451` + in-place byte `*=` at `:2248`. Values live in
+  A/Y, so the prologue just stores them.
+- `codeGenNew6502` (`-newcodegen`): `mulImmediate` in `InstrArithmetic.kt:729`/`:739`.
+  This backend had **no** constant handling at all - every multiply went to
+  `multiply_words`/`multiply_bytes` - so it gets the full win. Its values live in virtual
+  register slots, so it needs a longer prologue to satisfy the shared contract.
+
+Three ordering constraints, all load-bearing:
 
 - It must come **after** the `veraFxMuls` check (`:481`), not before it. There is no
   `verafx.muls8`, so this only constrains the word path, but a 25-instruction
   software expansion must not outrank a hardware peripheral multiply.
-- It must come **after** `optimizedWordMultiplications` and `powersOfTwoInt`, so the
-  hand-tuned routines still win for their constants.
-- The gate is on **generated size**, not constant magnitude. The expansion costs
-  `4 + 2*(bitlen-1) + 7*(popcount-1)` instructions; the call sequence it replaces is
-  6. The caller's cost is fixed at ~442 cycles regardless of the constant, so cycles
-  alone would argue for expanding almost every word multiply and bloating every
-  program. `wordShiftAddInstructionBudget = 32` bounds the growth per site instead.
-  Raise it to favour speed.
+- It must come **after** `optimizedWordMultiplications` / `optimizedByteMultiplications`
+  and `powersOfTwoInt`, so the hand-tuned routines still win for their constants.
+- The gate is on **generated size**, not constant magnitude. The caller's cost is fixed
+  at ~442 cycles (word) / ~130 (byte) regardless of the constant, so cycles alone would
+  argue for expanding nearly every multiply and bloating every program. Budgets are 32
+  (word) and 24 (byte) instructions; the byte one admits the whole ubyte domain because a
+  byte doubling is a single `asl a`.
 
-Two bugs found while verifying this, both invisible in the shapes the hand-written
-routines use (they are all "doublings first, adds last", so neither can occur):
+Two bugs found while verifying the word version, both invisible in the shapes the
+hand-written routines use (they are all "doublings first, adds last", so neither can
+occur):
 
 - The add step wrote the low result with `sta P8ZP_SCRATCH_W1` and the high result
   with `tay`, but never updated `P8ZP_SCRATCH_W1+1`. The *next* step's
   `rol P8ZP_SCRATCH_W1+1` therefore doubled a **stale** high byte. Fixed by adding
   `sta P8ZP_SCRATCH_W1+1` to the add step so W1 always holds the live accumulator.
-- A **trailing bare doubling** (any even constant) updates `A` and `W1+1` but not
-  `Y`, so the final `sty` stored the previous high byte. `tay` is not the fix - after
+- A **trailing bare doubling** (any even constant) updates `A` and `W1+1` but not `Y`,
+  so the final `sty` stored the previous high byte. `tay` is not the fix - after
   `asl a`, `A` holds the *low* byte. Y is only read for the final result, so a single
   `ldy P8ZP_SCRATCH_W1+1` is emitted when the constant is even.
 
-**Measured (benchmark baseline 7585 -> 9193, +21.2%)**
+The byte expansion needs neither fixup: only `A` and one scratch byte are live.
+
+**Six pre-existing library bugs found and fixed**
+
+While validating, the hand-written set was swept against repeated addition. Six
+routines are wrong and have been **removed from `math.asm`**, with their constants
+dropped from the two sets so the generic expansion (which is correct) takes over:
+
+| routine | bug | wrong for |
+|---|---|---|
+| `mul_byte_40` | `and #7` + 8-entry table | 192/256 inputs |
+| `mul_byte_50` | `and #7` + 8-entry table | 240/256 inputs |
+| `mul_byte_80` | `and #3` + 4-entry table | 192/256 inputs |
+| `mul_byte_100` | `and #3` + 4-entry table | 240/256 inputs |
+| `mul_word_320` | uses only `A`, ignores multiplicand's high byte | any x >= 256 |
+| `mul_word_640` | same (chains to `mul_word_320`) | any x >= 256 |
+
+The byte four share one mistaken premise: masking the multiplicand and indexing a
+small table only works if `x*k mod 256` has that period, but the period is
+`256/gcd(k,256)` - 32, 128, 16 and 64 entries respectively, not 8, 8, 4 and 4. So
+`mul_byte_100` returns `(x&3)*100`, giving 0 for x=4 where the answer is 144. The word
+two are annotated `; msb in Y doesn't matter`, which is false. Sweep: 873 bad of 4544
+before, 0 after - and 864+9 accounts for the total exactly, so no other routine is
+affected. Nothing referenced the six except the constant sets.
+
+**Measured**
+
+Stock benchmark, baseline 7585 -> **9193 (+21.2%)**; unchanged by the byte work:
 
 | benchmark | before | after |
 |---|---|---|
 | maze | 1458 | 3063 (+110%) |
+| btree | 743 | 740 |
 | adpcm | 376 | 381 |
 | sprites | 318 | 319 |
-| btree | 743 | 740 |
 | all others | - | unchanged |
 
-`multiply_words` call sites in the benchmark fell 28 -> 27. The predicted +26% to
-+47% was optimistic; the maze prediction (3x) came in at 2.1x. Correctness was
-verified against repeated addition over 600 expression-form checks and 240 in-place
-checks, all passing. Four golden program-size assertions in
-`compiler/test/TestCompilerOnExamples.kt` needed updating - all four got
-**smaller** (e.g. stream-wav 10249 -> 10129), because expanding a multiply inline can
-drop `multiply_words` from the link entirely.
+`multiply_words` call sites in the benchmark fell 28 -> 27. The predicted +26% to +47%
+was optimistic; the maze prediction (3x) came in at 2.1x.
 
-**Still open (12b and the rest)**
+The stock suite does not exercise `ubyte * <const>` at all (its one `multiply_bytes`
+call site is a *variable* by *variable* product), so a separate benchmark was written:
+`/tmp/opencode/bytemul.p8`, four constants (31, 19, 37, 26) all outside the hand-written
+set, **646 -> 2080 passes (3.22x)**. Its single-pass result is checked against an
+independent Python simulation of the Prog8 semantics (224) so the score cannot be
+confused by pass count.
 
-A separate, more invasive option: add a `multiply_ubyte_word` routine to
-`math.asm` and gate on `expr.left.type.isByte || expr.right.type.isByte` in the
-word branch. Note the semantic hazard - `uword * ubyte` currently goes through a
-16x16->32 routine whose 32-bit result is truncated back to 16 bits, so a narrower
-routine is only valid if that truncation is reproduced exactly with an *unsigned*
-multiplicand.
+Correctness: 600 word expression-form + 240 word in-place + 920 byte + 4544 hand-written
+routine checks, all passing, on the classic backend; a 5-case spot check
+(including the previously-broken `*40` and `*320`) on `codeGenNew6502`. Eleven golden
+program-size assertions in `compiler/test/TestCompilerOnExamples.kt` needed updating -
+ten shrank (e.g. swirl cx16 1220 -> 1154, because expanding a multiply inline can drop
+`multiply_words` from the link entirely), one grew (`showbmx` 5093 -> 5106, the
+expansion replacing a compact call - the expected space-for-time cost).
 
-The same Horner mechanism should be extended to the other two widths, which the
-benchmark cannot motivate because it does not exercise them (the sole
-`multiply_bytes` call site is a *variable* by *variable* product, and
-`multiply_longs` has zero call sites):
+**Not applicable to m68k**
 
-- **byte** (`:440-455`) already inlines powers of two via `repeat(shifts) { "asl a" }`
-  but has no generic form, so `ubyte * 19` is still a call. The expansion is ~1 byte
-  per shift, so byte can afford a far wider budget than word.
-- **long** (`:496-506`) has **no** special-casing whatsoever - not even for powers of
-  two - so `long * 2` compiles to a full 32x32->64 routine. This is the largest gap of
-  the three, and `AstChecker.kt:308` already warns "for loop using a long counter
-  could be very slow" about code the compiler could simply make fast. Note the path
-  writes `cx16.r14`/`r15` (`:499-502`) and appears effectively cx16-only; that was not
-  verified.
+`codeGenM68k` emits native `muls.w`/`mulu.w`/`mulu.l` (`InstrArithmetic.kt:303`, `:343`)
+and never calls the `prog8_math.mul_*` routines, so the six bugs never reach it. Expanding
+there would be strictly worse: `muls.w #19,d0` is 1 instruction / 4-6 bytes / ~10-20
+cycles against 6 instructions / ~18 bytes / ~20-30 cycles for the chain. The whole premise
+- the call costs the same whatever the constant - is an artifact of having no multiplier
+instruction. Note also that m68k has no `.b` multiply and the backend already
+zero-extends to word (`InstrArithmetic.kt:158`, `:306`), so item 12b below is moot there.
+
+**Still open (12b and long)**
+
+- **12b**: add a `multiply_ubyte_word` routine to `math.asm` and gate on
+  `expr.left.type.isByte || expr.right.type.isByte` in the word branch. Note the semantic
+  hazard - `uword * ubyte` currently goes through a 16x16->32 routine whose 32-bit result
+  is truncated back to 16 bits, so a narrower routine is only valid if that truncation is
+  reproduced exactly with an *unsigned* multiplicand.
+- **long** (`:501`) has **no** special-casing whatsoever - not even for powers of two - so
+  `long * 2` compiles to a full 32x32->64 routine, and `long * 19` likewise. This is the
+  largest remaining gap of the three widths, and `AstChecker.kt:308` already warns "for
+  loop using a long counter could be very slow" about code the compiler could make fast.
+  The benchmark cannot motivate it (`multiply_longs` has zero call sites). The path writes
+  `cx16.r14`/`r15` (`:504-505`) and appears effectively cx16-only; that was not verified.
+  A Horner chain needs 4 bytes of scratch here, and each doubling is 4 instructions, so
+  the budget would have to be much tighter than for word.
+
 
 
 ---

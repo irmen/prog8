@@ -2,6 +2,8 @@ package prog8.codegen.cpu6502.assignment
 
 import prog8.code.ast.*
 import prog8.code.core.*
+import prog8.code.cpu6502.byteShiftAddExpansion
+import prog8.code.cpu6502.wordShiftAddExpansion
 import prog8.codegen.cpu6502.AsmGen6502Internal
 import prog8.codegen.cpu6502.VariableAllocator
 import prog8.codegen.cpu6502.toLongHex
@@ -2245,6 +2247,11 @@ $shortcutLabel:""")
             "*" -> {
                 if(value in asmgen.optimizedByteMultiplications)
                     asmgen.out("  lda  $name |  jsr  prog8_math.mul_byte_$value |  sta  $name")
+                else if(byteShiftAddExpansion(value)!=null) {
+                    asmgen.out("  lda  $name")
+                    asmgen.emitByteShiftAdd(value)
+                    asmgen.out("  sta  $name")
+                }
                 else
                     asmgen.out("  lda  $name |  ldy  #$value |  jsr  prog8_math.multiply_bytes |  sta  $name")
             }
@@ -2556,8 +2563,7 @@ $shortcutLabel:""")
                 if(value in asmgen.optimizedWordMultiplications) {
                     asmgen.out("  lda  $lsb |  ldy  $msb |  jsr  prog8_math.mul_word_$value |  sta  $lsb |  sty  $msb")
                 } else {
-                    if(block?.options?.veraFxMuls==true) {
-                        // cx16 verafx hardware mul
+                    if(block?.options?.veraFxMuls==true) {                        // cx16 verafx hardware mul
                         asmgen.out("""
                             lda  $lsb
                             ldy  $msb
@@ -2571,7 +2577,7 @@ $shortcutLabel:""")
                             sta  $lsb
                             sty  $msb""")
                     }
-                    else if(asmgen.wordShiftAddIsCheaper(value)) {
+                    else if(wordShiftAddExpansion(value)!=null) {
                         asmgen.out("  lda  $lsb |  ldy  $msb")
                         asmgen.emitWordShiftAdd(value)
                         asmgen.out("  sta  $lsb |  sty  $msb")

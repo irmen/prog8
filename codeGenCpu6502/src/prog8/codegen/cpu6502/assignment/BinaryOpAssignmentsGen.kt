@@ -3,6 +3,8 @@ package prog8.codegen.cpu6502.assignment
 import prog8.code.StExtSub
 import prog8.code.ast.*
 import prog8.code.core.*
+import prog8.code.cpu6502.byteShiftAddExpansion
+import prog8.code.cpu6502.wordShiftAddExpansion
 import prog8.codegen.cpu6502.AsmGen6502Internal
 import prog8.codegen.cpu6502.toLongHex
 import kotlin.math.log2
@@ -449,6 +451,8 @@ internal class BinaryOpAssignmentsGen(
                             repeat(shifts) { asmgen.out("  asl  a") }
                         }
                     }
+                    else if(byteShiftAddExpansion(value)!=null)
+                        asmgen.emitByteShiftAdd(value)
                     else
                         asmgen.out("  ldy  #$value |  jsr  prog8_math.multiply_bytes")
                     assignmentAsmGen.assignRegisterByte(target, CpuRegister.A, false, true)
@@ -485,7 +489,7 @@ internal class BinaryOpAssignmentsGen(
                                 sta  cx16.r0
                                 sty  cx16.r0+1
                                 jsr  verafx.muls16""")
-                        } else if(asmgen.wordShiftAddIsCheaper(value)) {
+                        } else if(wordShiftAddExpansion(value)!=null) {
                             assignmentAsmGen.assignExpressionToRegister(expr.left, RegisterOrPair.AY, expr.type.isSigned)
                             asmgen.emitWordShiftAdd(value)
                         } else {

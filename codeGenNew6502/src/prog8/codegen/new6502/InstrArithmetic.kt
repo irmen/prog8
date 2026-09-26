@@ -21,6 +21,8 @@
 package prog8.codegen.new6502
 
 import prog8.code.core.AssemblyError
+import prog8.code.cpu6502.byteShiftAddExpansion
+import prog8.code.cpu6502.wordShiftAddExpansion
 import prog8.intermediate.*
 
 internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
@@ -722,20 +724,42 @@ internal fun AsmGen.mulImmediate(dstReg: Int, value: Int, type: IRDataType) {
     when (type) {
         IRDataType.BYTE -> {
             emitLine("lda  ${regAddrLo(dstReg)}")
-            emitLine("ldy  #${value and 0xff}")
-            emitLine("jsr  prog8_math.multiply_bytes")
+            // small constant: expand inline as a Horner shift-add instead of calling the ~130
+            // cycle multiply_bytes. Shared sequence with the classic 6502 backend.
+            val expansion = byteShiftAddExpansion(value)
+            if (expansion != null) {
+                expansion.forEach { emitLine(it) }
+            } else {
+                emitLine("ldy  #${value and 0xff}")
+                emitLine("jsr  prog8_math.multiply_bytes")
+            }
             emitLine("sta  ${regAddrLo(dstReg)}")
         }
         IRDataType.WORD -> {
-            emitLine("lda  #<${value and 0xffff}")
-            emitLine("sta  prog8_math.multiply_words.multiplier")
-            emitLine("lda  #>${value and 0xffff}")
-            emitLine("sta  prog8_math.multiply_words.multiplier+1")
-            emitLine("lda  ${regAddrLo(dstReg)}")
-            emitLine("ldy  ${regAddrHi(dstReg)}")
-            emitLine("jsr  prog8_math.multiply_words")
-            emitLine("sta  ${regAddrLo(dstReg)}")
-            emitLine("sty  ${regAddrHi(dstReg)}")
+            val expansion = wordShiftAddExpansion(value)
+            if (expansion != null) {
+                // set up the shared sequence's contract: A = r.lo, W1 = r, W2 = x
+                emitLine("lda  ${regAddrLo(dstReg)}")
+                emitLine("sta  P8ZP_SCRATCH_W2")
+                emitLine("sta  P8ZP_SCRATCH_W1")
+                emitLine("lda  ${regAddrHi(dstReg)}")
+                emitLine("sta  P8ZP_SCRATCH_W2+1")
+                emitLine("sta  P8ZP_SCRATCH_W1+1")
+                emitLine("lda  P8ZP_SCRATCH_W1")
+                expansion.forEach { emitLine(it) }
+                emitLine("sta  ${regAddrLo(dstReg)}")
+                emitLine("sty  ${regAddrHi(dstReg)}")
+            } else {
+                emitLine("lda  #<${value and 0xffff}")
+                emitLine("sta  prog8_math.multiply_words.multiplier")
+                emitLine("lda  #>${value and 0xffff}")
+                emitLine("sta  prog8_math.multiply_words.multiplier+1")
+                emitLine("lda  ${regAddrLo(dstReg)}")
+                emitLine("ldy  ${regAddrHi(dstReg)}")
+                emitLine("jsr  prog8_math.multiply_words")
+                emitLine("sta  ${regAddrLo(dstReg)}")
+                emitLine("sty  ${regAddrHi(dstReg)}")
+            }
         }
         IRDataType.LONG -> {
             // multiplicand (dstReg) -> cx16.r12/r13,  immediate multiplier -> cx16.r14/r15
