@@ -1,8 +1,7 @@
 # 6502 Code Generator Performance Findings
 
-**Status: analysis complete, nothing implemented yet.** Derived from auditing the
-generated 6502 assembly of `benchmark-program/benchmark.asm` (target `cx16`, so
-`w65c02` / 65C02 instruction set) against the source in
+Derived from auditing the generated 6502 assembly of `benchmark-program/benchmark.asm`
+(target `cx16`, so `w65c02` / 65C02 instruction set) against the source in
 `benchmark-program/*.p8`, then tracing every suspect pattern back into
 `codeGenCpu6502/src/prog8/codegen/cpu6502/**`.
 
@@ -12,7 +11,16 @@ actioned here. A section of **retracted** claims is included so the same ground
 does not get re-investigated.
 
 All asm line numbers refer to `benchmark-program/benchmark.asm` as generated on
-2026-09-25 (21207 lines).
+2026-09-25 (21207 lines), i.e. **before** any of the changes recorded here, so they
+locate the original problem rather than the current code. The `.kt` line references
+may likewise have drifted; the function names are the reliable anchor.
+
+**Status: analysis complete. Everything below is still open** - items that have since
+been implemented are removed rather than marked done, so if you are looking for the
+constant-multiply shift-add work, the `uword * ubyte` narrowing, the six broken
+`mul_byte_*`/`mul_word_*` library routines, the long constant-shift fix, or the `x * x`
+range bug, those are in the git history rather than here. Benchmark version 14.0,
+weighted total **9199** (see [Measuring](#measuring)).
 
 ---
 
@@ -30,6 +38,29 @@ draft put item 11 first on the assumption that it was a scoring bug. It is not
 6. **Item 4** - `uword >` operand asymmetry
 7. **Items 8, 9, 10, 12** - float and multiply/shift special cases
 8. **Item 11** - optional `VariableAllocator` weighting refinement only; measure first
+
+| Item | State |
+|---|---|
+| 1-10, 12 | open |
+| 11 | refuted, see Retracted claims; two unmeasured refinements remain in its section |
+
+## Measuring
+
+All benchmark figures below are on benchmark **version 12.1**, which summed the raw
+iteration counts of all ten sub-benchmarks. That made the two heaviest - maze solver
+(~3064) and text-elite (~2240) - 57% of the total while game of life was 2%, so a
+regression in a small benchmark barely registered.
+
+The benchmark is now **version 14.0**: maze and text-elite are weighted 64 instead of
+256, the other eight are unweighted, and the printed table shows the weighted scores so
+the rows add up to the total. Raw per-benchmark counts are unchanged and are what the
+tables in this document quote; totals are not comparable across the two versions. The
+weighted total is 9199, essentially unchanged from the 9193 measured under 12.1, since
+the two down-weighted benchmarks are exactly the ones that gained most from the
+constant-multiply work that has since been implemented and removed from this document.
+
+Run-to-run jitter on the raw counts is about +/-2 on the total, so only larger movements
+are signal.
 
 ---
 
@@ -734,180 +765,37 @@ Two **optional** refinements remain worth considering, both minor:
 
 ---
 
-## 12. `multiply_words` has no narrow path, and small constants have no generic form
+## 12. `long * <const>` always calls `multiply_longs`, the most expensive routine in the area
 
-`BinaryOpAssignmentsGen.kt:457-492` selects the multiply routine from
-`expr.type` **only**. There is no consultation of `expr.left.type` or
-`expr.right.type` to narrow the width.
+`multiply_longs` (`compiler/res/prog8lib/math.asm:189`) is a fixed 32-iteration
+signed 32x32 shift-add with sign branches and up to two `_neg_*` calls. Costed
+instruction by instruction it is ~52 cycles per iteration when the multiplier bit is
+clear and ~91 when it is set, so `long * 19` is ~1900 cycles and `long * 1000` ~2050.
+A 32-bit Horner chain would be ~220 and ~434, i.e. **5-9x**.
 
-Verified empirically: `uword * ubyte` still emits
+**Not recommended** - the blocker is size, not speed. A Horner chain needs no extra
+scratch (the existing convention already holds the multiplicand in `cx16.r12`/`r13` and
+the result in `r14`/`r15`, which is exactly the 8 bytes `r` and `x` need, and it works
+on all 6502 targets - on c64 those symbols map to `$cff8`-`$cffe` rather than zeropage).
+But a 19-expansion is ~144 bytes against a ~27-byte call site, and the `multiply_longs`
+cluster including its two `_neg_*` helpers (used by nothing else) is only ~214 bytes, so
+an expansion is a net size *win* only for a program with exactly one such site
+(break-even ~1.8 sites) and no other long routine linked. With realistic long code -
+which also divides or shifts - it is pure growth. `long` barely appears in the 6502
+examples at all.
 
-```
-sta  prog8_math.multiply_words.multiplier
-sty  prog8_math.multiply_words.multiplier+1
-ldy  #0
-lda  <the ubyte>
-jmp  prog8_math.multiply_words
-```
+**Recommended instead**: an early exit in `multiply_longs` when the multiplier shifts
+down to zero. That is ~5 bytes inside the routine once, it helps *every* long multiply
+including the variable-by-variable paths no constant expansion can touch, and it skips
+the ~27 dead iterations a small multiplier leaves behind (~40% of the cost).
 
-The compiler emits `ldy #0` itself, so it *knows* the high byte is zero, and then
-discards that knowledge.
+Two further notes: `AstChecker.kt:308` already warns "for loop using a long counter could
+be very slow" about code the compiler could make fast, and the long path writes
+`cx16.r14`/`r15`.
 
-**The hardcoded constant sets** are `AsmGen.kt:48-49`:
-
-```kotlin
-internal val optimizedByteMultiplications = setOf(3,5,6,7,9,10,11,12,13,14,15,20,25,40,50,80,100)
-internal val optimizedWordMultiplications = setOf(3,5,6,7,9,10,12,15,20,25,40,50,80,100,320,640)
-```
-
-These mirror hand-written routines in `compiler/res/prog8lib/math.asm` exactly
-(`mul_word_3` at `:554` through `mul_word_640` at `:1033`). The library explicitly
-skips some - `; mul_word_11 is skipped (too much code)` at `math.asm:749`, same
-for 13 (`:798`) and 14 (`:812`). `19` is in neither set and has no routine, so
-`b_maze.p8:306` `cells+(numCellsHoriz as uword)*cy+cx` falls through to the
-16x16->32-bit `multiply_words` (benchmark.asm 15622-15627), which dominates the
-whole maze benchmark.
-
-**Also inconsistent, but mostly harmless**: the two in-place `*=` paths
-(`AugmentableAssignmentAsmGen.kt:2246` for byte, `:2556` for word) have no
-power-of-two branch at all - only the set-membership test. For **integers** this
-does not matter, because the simple-AST optimizer already rewrites
-`x * 2^n` to `x << n` before codegen ever runs
-(`ExpressionOptimizers.kt:124-134`), which also means the `powersOfTwoInt`
-branches in `BinaryOpAssignmentsGen.kt:444-450` and `:462-478` only ever fire
-under `-noopt`. It does mean any new shift-add path must be added to the in-place
-`*=` handlers too, or those will silently keep falling back to `mul_word_N`.
-
-**Change (12a: DONE, word + byte)**
-
-Prefer a generic shift-add decomposition over adding more hand-written `mul_word_N`
-procs (the codebase deliberately abandoned that direction for 11/13/14). The
-expansion is a Horner chain over the bits of the constant, seeded with `r = x` and
-then `r = r*2 + bit*x` for each bit below the leading 1 - which is literally what
-the existing hand-written routines already are (`mul_word_3` is `; AY = AY*2 + AY`,
-one Horner step for `11`; `mul_word_5` is two steps for `101`). So this generalises
-the hand-unrolled set rather than inventing a new technique.
-
-The sequences live in **`codeCore/src/prog8/code/cpu6502/ConstMultiply.kt`** and are
-shared by both 6502 backends, because the register bookkeeping is easy to get subtly
-wrong and the two backends must not drift apart. Call sites:
-
-- `codeGenCpu6502`: word branch of `optimizedMultiplyExpr` + the in-place `*=` at
-  `:2578`, and the byte branch at `:451` + in-place byte `*=` at `:2248`. Values live in
-  A/Y, so the prologue just stores them.
-- `codeGenNew6502` (`-newcodegen`): `mulImmediate` in `InstrArithmetic.kt:729`/`:739`.
-  This backend had **no** constant handling at all - every multiply went to
-  `multiply_words`/`multiply_bytes` - so it gets the full win. Its values live in virtual
-  register slots, so it needs a longer prologue to satisfy the shared contract.
-
-Three ordering constraints, all load-bearing:
-
-- It must come **after** the `veraFxMuls` check (`:481`), not before it. There is no
-  `verafx.muls8`, so this only constrains the word path, but a 25-instruction
-  software expansion must not outrank a hardware peripheral multiply.
-- It must come **after** `optimizedWordMultiplications` / `optimizedByteMultiplications`
-  and `powersOfTwoInt`, so the hand-tuned routines still win for their constants.
-- The gate is on **generated size**, not constant magnitude. The caller's cost is fixed
-  at ~442 cycles (word) / ~130 (byte) regardless of the constant, so cycles alone would
-  argue for expanding nearly every multiply and bloating every program. Budgets are 32
-  (word) and 24 (byte) instructions; the byte one admits the whole ubyte domain because a
-  byte doubling is a single `asl a`.
-
-Two bugs found while verifying the word version, both invisible in the shapes the
-hand-written routines use (they are all "doublings first, adds last", so neither can
-occur):
-
-- The add step wrote the low result with `sta P8ZP_SCRATCH_W1` and the high result
-  with `tay`, but never updated `P8ZP_SCRATCH_W1+1`. The *next* step's
-  `rol P8ZP_SCRATCH_W1+1` therefore doubled a **stale** high byte. Fixed by adding
-  `sta P8ZP_SCRATCH_W1+1` to the add step so W1 always holds the live accumulator.
-- A **trailing bare doubling** (any even constant) updates `A` and `W1+1` but not `Y`,
-  so the final `sty` stored the previous high byte. `tay` is not the fix - after
-  `asl a`, `A` holds the *low* byte. Y is only read for the final result, so a single
-  `ldy P8ZP_SCRATCH_W1+1` is emitted when the constant is even.
-
-The byte expansion needs neither fixup: only `A` and one scratch byte are live.
-
-**Six pre-existing library bugs found and fixed**
-
-While validating, the hand-written set was swept against repeated addition. Six
-routines are wrong and have been **removed from `math.asm`**, with their constants
-dropped from the two sets so the generic expansion (which is correct) takes over:
-
-| routine | bug | wrong for |
-|---|---|---|
-| `mul_byte_40` | `and #7` + 8-entry table | 192/256 inputs |
-| `mul_byte_50` | `and #7` + 8-entry table | 240/256 inputs |
-| `mul_byte_80` | `and #3` + 4-entry table | 192/256 inputs |
-| `mul_byte_100` | `and #3` + 4-entry table | 240/256 inputs |
-| `mul_word_320` | uses only `A`, ignores multiplicand's high byte | any x >= 256 |
-| `mul_word_640` | same (chains to `mul_word_320`) | any x >= 256 |
-
-The byte four share one mistaken premise: masking the multiplicand and indexing a
-small table only works if `x*k mod 256` has that period, but the period is
-`256/gcd(k,256)` - 32, 128, 16 and 64 entries respectively, not 8, 8, 4 and 4. So
-`mul_byte_100` returns `(x&3)*100`, giving 0 for x=4 where the answer is 144. The word
-two are annotated `; msb in Y doesn't matter`, which is false. Sweep: 873 bad of 4544
-before, 0 after - and 864+9 accounts for the total exactly, so no other routine is
-affected. Nothing referenced the six except the constant sets.
-
-**Measured**
-
-Stock benchmark, baseline 7585 -> **9193 (+21.2%)**; unchanged by the byte work:
-
-| benchmark | before | after |
-|---|---|---|
-| maze | 1458 | 3063 (+110%) |
-| btree | 743 | 740 |
-| adpcm | 376 | 381 |
-| sprites | 318 | 319 |
-| all others | - | unchanged |
-
-`multiply_words` call sites in the benchmark fell 28 -> 27. The predicted +26% to +47%
-was optimistic; the maze prediction (3x) came in at 2.1x.
-
-The stock suite does not exercise `ubyte * <const>` at all (its one `multiply_bytes`
-call site is a *variable* by *variable* product), so a separate benchmark was written:
-`/tmp/opencode/bytemul.p8`, four constants (31, 19, 37, 26) all outside the hand-written
-set, **646 -> 2080 passes (3.22x)**. Its single-pass result is checked against an
-independent Python simulation of the Prog8 semantics (224) so the score cannot be
-confused by pass count.
-
-Correctness: 600 word expression-form + 240 word in-place + 920 byte + 4544 hand-written
-routine checks, all passing, on the classic backend; a 5-case spot check
-(including the previously-broken `*40` and `*320`) on `codeGenNew6502`. Eleven golden
-program-size assertions in `compiler/test/TestCompilerOnExamples.kt` needed updating -
-ten shrank (e.g. swirl cx16 1220 -> 1154, because expanding a multiply inline can drop
-`multiply_words` from the link entirely), one grew (`showbmx` 5093 -> 5106, the
-expansion replacing a compact call - the expected space-for-time cost).
-
-**Not applicable to m68k**
-
-`codeGenM68k` emits native `muls.w`/`mulu.w`/`mulu.l` (`InstrArithmetic.kt:303`, `:343`)
-and never calls the `prog8_math.mul_*` routines, so the six bugs never reach it. Expanding
-there would be strictly worse: `muls.w #19,d0` is 1 instruction / 4-6 bytes / ~10-20
-cycles against 6 instructions / ~18 bytes / ~20-30 cycles for the chain. The whole premise
-- the call costs the same whatever the constant - is an artifact of having no multiplier
-instruction. Note also that m68k has no `.b` multiply and the backend already
-zero-extends to word (`InstrArithmetic.kt:158`, `:306`), so item 12b below is moot there.
-
-**Still open (12b and long)**
-
-- **12b**: add a `multiply_ubyte_word` routine to `math.asm` and gate on
-  `expr.left.type.isByte || expr.right.type.isByte` in the word branch. Note the semantic
-  hazard - `uword * ubyte` currently goes through a 16x16->32 routine whose 32-bit result
-  is truncated back to 16 bits, so a narrower routine is only valid if that truncation is
-  reproduced exactly with an *unsigned* multiplicand.
-- **long** (`:501`) has **no** special-casing whatsoever - not even for powers of two - so
-  `long * 2` compiles to a full 32x32->64 routine, and `long * 19` likewise. This is the
-  largest remaining gap of the three widths, and `AstChecker.kt:308` already warns "for
-  loop using a long counter could be very slow" about code the compiler could make fast.
-  The benchmark cannot motivate it (`multiply_longs` has zero call sites). The path writes
-  `cx16.r14`/`r15` (`:504-505`) and appears effectively cx16-only; that was not verified.
-  A Horner chain needs 4 bytes of scratch here, and each doubling is 4 instructions, so
-  the budget would have to be much tighter than for word.
-
-
+`codeGenM68k` emits native `muls.l` and never calls `prog8_math`, so none of this
+applies there - and on that target a Horner chain would be strictly worse anyway, since
+`muls.l #19,d0` is a single instruction.
 
 ---
 
@@ -918,13 +806,13 @@ Listed so the same ground is not re-covered.
 
 | Pattern | Why it is not a backend bug |
 |---|---|
-| maze `19 * cy` misses a fast path because `BinaryOpAssignmentsGen.kt:385` only tests `expr.right.asConstInteger()` | The premise is true - line 385 is the only constness test in the function, and `expr.left.asConstInteger()` appears nowhere in the module - but the conclusion is false. `optimizeOperandOrder` (`simpleAst/.../ExpressionOptimizers.kt:532-565`, running in the fixpoint loop at `Optimizer.kt:120`) normalises operand order *before* codegen, swapping so the simplest term is on the right (`complexity()` at `:498-508` rates a const as 0 and an identifier as 1; `maySwapOperandOrder()` at `AstExpressions.kt:279` permits `*`). A minimal repro dumps the Simple AST with `$13` on the right and produces byte-identical assembly for both `19*x` and `x*19`. The real cause is item 12: 19 is in neither constant set. Position-dependence only appears under `-noopt`, which returns early at `Optimizer.kt:82-83`. |
+| maze `19 * cy` misses a fast path because `BinaryOpAssignmentsGen.kt:385` only tests `expr.right.asConstInteger()` | The premise is true - line 385 is the only constness test in the function, and `expr.left.asConstInteger()` appears nowhere in the module - but the conclusion is false. `optimizeOperandOrder` (`simpleAst/.../ExpressionOptimizers.kt:532-565`, running in the fixpoint loop at `Optimizer.kt:120`) normalises operand order *before* codegen, swapping so the simplest term is on the right (`complexity()` at `:498-508` rates a const as 0 and an identifier as 1; `maySwapOperandOrder()` at `AstExpressions.kt:279` permits `*`). A minimal repro dumps the Simple AST with `$13` on the right and produces byte-identical assembly for both `19*x` and `x*19`. The real cause was that 19 was in neither hand-written constant set and there was no generic shift-add form to fall back on - both since fixed, so this pattern no longer occurs. Position-dependence only appears under `-noopt`, which returns early at `Optimizer.kt:82-83`. |
 | **~~`VariableAllocator.computeUsageScores` never matches, so the hotness ranking is inert~~** | **REFUTED by direct instrumentation.** The claim was that `varInfo` is keyed by `scopedNameString` (`:139`) but queried with the *bare* `PtIdentifier.name` (`:147`), so every lookup misses. In fact, at codegen time the Simple AST identifiers are **already** fully scoped and symbol-prefixed: a sample dump of `PtIdentifier.name` values is `p8b_main.p8s_start.p8v_benchmark_number`, `p8b_adpcm.p8s_decode_benchmark.p8v_nibble`, `txt.color2.bgcol` - and `StStaticVariable.scopedNameString` for the same variables is character-for-character identical. The original `varInfo[node.name]` lookup, the `scores[node.name]` key, and the `usageScores[it.scopedNameString]` read at `:99` are all consistent. Dumping the score map confirms it is well populated and sensibly ranked (1941 identifiers, 672 variables, top score 54 for `life.next_gen.ptr`). The *apparent* arbitrary placement (e.g. `maze.solve.cx`/`cy` in BSS while `maze.generate.cx`/`cy` get zeropage) is a **capacity** limit - 94 zeropage bytes on CX16 BASICSAFE versus 672 static variables - not a scoring defect. An attempted "fix" that resolved identifiers by walking up to the nearest `PtNamedNode` and appending the bare name made the score map **empty** and dropped zeropage occupancy from 54 to a differently-ordered 62, which is how the error was caught. **Do not "fix" this.** |
 | textelite `population * 8` uses a full `multiply_words` | Misread of benchmark.asm 12648-12658. The three `asl a` **are** the intended strength reduction, produced by the simple-AST rewrite `x * 2^n -> x << n` at `ExpressionOptimizers.kt:124-134`. The following `multiply_words` is `productivity * (...)` - a genuine 16x16 operation (`b_textelite.p8:801-802` declares `ubyte population` and `uword productivity`). No ubyte multiplicand is being widened here. Note this same rewrite is gated on `!node.right.type.isFloat` (`ExpressionOptimizers.kt:125`), which is why the float case in item 8 is a genuine miss rather than another misreading. |
 | queens reloads `board[i]` three times (asm 10107, 10117, 10136) | Three independent AST evaluations of `board[i]` in three different sub-expressions of `b_queens.p8:17` (`board[i]`, `board[i]-i`, `board[i]+i`). Each operand genuinely needs the value; the 6502 backend has no CSE and is not expected to. The item 1 boolean materialization *does* destroy A and thereby block the existing `optimizeStoreLoadSame` reload elision, which is a real but second-order effect of item 1, not a separate bug. |
 | `or` chains do not short-circuit | They do. `BinaryOpAssignmentsGen.kt:1715` emits `bne $shortcutLabel`, gated at `:1695` by `!expr.right.isSimple() && expr.operator != "xor"`. Both `and` (`:1699-1709`) and `or` (`:1710-1720`) are symmetric. What is materialized is each *operand comparison*, per item 1. |
 | `var_fac1_less_f` returning a 0/1 byte instead of branching (asm 9321-9330) is a library problem | Reached only because of item 1: the caller wants a branch and the routine returns a boolean. Fixing item 1 removes the need to call it at all. |
-| `maze`/`life` hot variables in BSS, and inconsistent placement of identical variables across sibling procs | Real and measurable, but the cause is item 11 - the usage scoring is inert, so placement is arbitrary. Fix item 11 first. |
+| `maze`/`life` hot variables in BSS, and inconsistent placement of identical variables across sibling procs | Real and measurable, but the cause is **capacity**, not scoring - 94 zeropage bytes on CX16 BASICSAFE against 672 static variables. Item 11 (the scoring) was refuted, so there is nothing to fix first; the ranking demonstrably works. See item 11. |
 | 6502 codegen for `b_textelite`'s string routines, the arena `defer` frame, `multiply_words`'s BSS accumulator, `lsr_word_AY` not specialising on a constant count | `multiply_words`'s accumulator being in BSS despite the routine's own comment ("routine could be faster if this were in Zeropage") is in `compiler/res/prog8lib/math.asm`, not the 6502 backend. The arena `defer` frame and `divmod_uw_asm`'s `_divisor` placement are likewise library-side. The `lsr_word_AY` non-specialisation is item 10. |
 
 ---

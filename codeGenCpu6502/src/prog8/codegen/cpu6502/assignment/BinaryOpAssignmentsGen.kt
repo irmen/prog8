@@ -414,6 +414,26 @@ internal class BinaryOpAssignmentsGen(
                         asmgen.out("  jsr  verafx.muls16")
                         assignmentAsmGen.assignRegisterpairWord(target, RegisterOrPair.AY)
                         return true
+                    } else if (asmgen.unwrapCasts(expr.left).type.isUnsignedByte || asmgen.unwrapCasts(expr.right).type.isUnsignedByte) {
+                        // One operand is an unsigned byte (possibly under an implicit widening cast,
+                        // hence unwrapCasts).  The general path would zero-extend it into a full word
+                        // and run 16 shift-add iterations even though only 8 bits are significant, so
+                        // use the 16x8 routine instead.  isUnsignedByte matters: a signed byte is
+                        // sign-extended into A/Y and multiply_ubyte_word deliberately ignores the high
+                        // byte, so it would compute the unsigned product instead.
+                        //
+                        // multiply_ubyte_word wants the 8-bit value in A and the word in the variable.
+                        // assignWordOperandsToAYAndVar(left, right, var) puts `left` in AY and `right`
+                        // in the variable, so the byte has to be passed as the `left` argument.  Only
+                        // the low 16 bits of the product are wanted and that is commutative mod 2^16,
+                        // so swapping the operands is safe.  (Prog8 rejects mixed signedness, so the
+                        // other operand here is always an unsigned word.)
+                        if (asmgen.unwrapCasts(expr.left).type.isUnsignedByte)
+                            asmgen.assignWordOperandsToAYAndVar(expr.left, expr.right, "prog8_math.multiply_ubyte_word.multiplier")
+                        else
+                            asmgen.assignWordOperandsToAYAndVar(expr.right, expr.left, "prog8_math.multiply_ubyte_word.multiplier")
+                        asmgen.out("  jsr  prog8_math.multiply_ubyte_word")
+                        assignmentAsmGen.assignRegisterpairWord(target, RegisterOrPair.AY)
                     } else {
                         asmgen.assignWordOperandsToAYAndVar(expr.right, expr.left, "prog8_math.multiply_words.multiplier")
                         asmgen.out("  jsr  prog8_math.multiply_words")
@@ -708,13 +728,13 @@ internal class BinaryOpAssignmentsGen(
                 if(target.kind==TargetStorageKind.VARIABLE) {
                     asmgen.assignExpressionTo(expr.left, target)
                     require(expr.right.type.isByte)
-                    asmgen.out("  lda  #<${target.asmVarname} |  ldy  #>${target.asmVarname}")
-                    asmgen.out("  ldx  #$shifts")
-                    if (expr.operator == "<<") {
-                        asmgen.out("  jsr  prog8_lib.long_shiftleftX_inplace")
-                    } else {
-                        asmgen.out("  jsr  prog8_lib.long_shiftrightX_inplace")
-                    }
+                    // The shift count is a compile-time constant here and the value is already in the
+                    // target variable, so shift it in place directly.  prog8_lib's long_shift*X_inplace
+                    // takes a pointer and shifts through (zp),y inside a loop, which costs ~67 cycles
+                    // per bit; inplacemodificationLongWithLiteralval already unrolls the small counts
+                    // with plain asl/rol on the 4 bytes, and its '>>' keeps the same arithmetic
+                    // (sign-preserving) semantics as the library routine.
+                    assignmentAsmGen.augmentableAsmGen.inplacemodificationLongWithLiteralval(target.asmVarname, expr.operator, shifts)
                     return true
                 }
 

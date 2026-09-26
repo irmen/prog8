@@ -186,6 +186,51 @@ result		.byte  ?,?,?,?       ; routine could be faster if this were in Zeropage.
 		.pend
 
 
+multiply_ubyte_word	.proc
+	; -- multiply a 16-bit word by an UNSIGNED 8-bit value, giving the low 16 bits
+	;      input: A = the 8-bit value (the high byte of A/Y is ignored, so this may be
+	;             a zero-extended ubyte), multiply_ubyte_word.multiplier = the 16-bit word
+	;      output: low 16 bits of the product in A/Y
+	;
+	; Same calling convention as multiply_words, but only the 8 bits in A are significant, so the
+	; shift-add runs 8 times instead of 16.  The 16-bit accumulator discards the carries out of the
+	; top, which is exactly the mod-2^16 truncation Prog8's word semantics require (the true
+	; product of a byte and a word can need 24 bits).
+	;
+	; The byte operand must be UNSIGNED: a signed byte is sign-extended into A/Y by the caller and
+	; this routine deliberately ignores the high byte, so it would compute the unsigned product.
+	; The compiler only emits a call here when the operand is isUnsignedByte.
+
+multiplier	= P8ZP_SCRATCH_W1     ; 2 bytes, the word, shifted left in place
+_result		= P8ZP_SCRATCH_W2     ; 2 bytes
+_multiplicand	= P8ZP_SCRATCH_B1     ; 1 byte, the 8-bit value
+
+	sta  _multiplicand
+	lda  #0
+	sta  _result
+	sta  _result+1
+	ldx  #8
+-
+	lsr  _multiplicand                ; next bit of the 8-bit value, LSB first
+	bcc  +
+	clc
+	lda  _result
+	adc  multiplier
+	sta  _result
+	lda  _result+1
+	adc  multiplier+1
+	sta  _result+1
++
+	asl  multiplier                   ; word <<= 1
+	rol  multiplier+1
+	dex
+	bne  -
+	lda  _result
+	ldy  _result+1
+	rts
+		.pend
+
+
 multiply_longs  .proc
             ; 32-bit SIGNED multiplication.
             ; long1 in cx16.r12/r13, long2 in cx16.r14/r15, result in cx16.r14/r15

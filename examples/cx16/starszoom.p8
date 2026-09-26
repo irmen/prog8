@@ -48,7 +48,7 @@ main {
 
                 ; use scaling / 128 so that msb(radius) is approximately the pixel radius
                 ; added a rotation and radius-based angle offset for a tunnel/spiral effect
-                ubyte a = (star * CIRCLE_SKIP) + rotation + (msb(radius[star]) / 2)
+                ubyte a = (star * CIRCLE_SKIP) + rotation + (msb(radius[star]) / 4)
                 word r_px = msb(radius[star])
 
                 ; instead of (slow) /128, we simply shift 7 bits (and take the roundoff error)

@@ -247,12 +247,69 @@ import prog8.codegen.cpu6502.assignment.*
             }
             BaseDataType.UWORD -> {
                 asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.AY)
-                asmgen.out("  jsr  prog8_math.square")     // result is in AY
+                // prog8_math.square is only valid for -255..255 and does no range checking of its
+                // own, so decide at runtime instead of giving the fast path up for every value we
+                // cannot prove small.  The high byte alone settles it: $00 is 0..255 (always in
+                // range), $FF is -256..-1 (in range except -256 itself), anything else is out.
+                val fast = asmgen.makeLabel("squarefast")
+                val slow = asmgen.makeLabel("squareslow")
+                val done = asmgen.makeLabel("squareend")
+                asmgen.out(listOf(
+                    "            cpy  #0",
+                    "            beq  $fast",
+                    "            cpy  #\$FF",
+                    "            bne  $slow",
+                    "            cmp  #0",
+                    "            bne  $fast",
+                    "$slow       sta  prog8_math.multiply_words.multiplier",
+                    "            sty  prog8_math.multiply_words.multiplier+1",
+                    "            jsr  prog8_math.multiply_words",
+                    "            jmp  $done",
+                    "$fast      jsr  prog8_math.square",
+                    done
+                ).joinToString("\n"))
                 return arrayOf(RegisterOrPair.AY)
             }
             BaseDataType.LONG -> {
                 asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.R14R15, true)
-                asmgen.out("  jsr  prog8_math.square_long")     // result is in R14:R15
+                // square_long only squares the low word (it takes the absolute value itself), so it
+                // is only valid when the long actually fits in a signed 16-bit word - the high word
+                // must be the sign extension of the low word's sign bit.  Note that a high word of
+                // $0000 alone is NOT sufficient: 40000 as a signed word is -25536, and squaring
+                // that low word would be wrong.
+                val fast = asmgen.makeLabel("squarelongfast")
+                val slow = asmgen.makeLabel("squareslowlong")
+                val nonneg = asmgen.makeLabel("squarelongnonneg")
+                val done = asmgen.makeLabel("squarelongend")
+                asmgen.out(listOf(
+                    "            lda  cx16.r14+1",
+                    "            and  #128",
+                    "            beq  $nonneg",
+                    "            lda  cx16.r15",
+                    "            cmp  #\$FF",
+                    "            bne  $slow",
+                    "            lda  cx16.r15+1",
+                    "            cmp  #\$FF",
+                    "            bne  $slow",
+                    "            jmp  $fast",
+                    "$nonneg    lda  cx16.r15",
+                    "            ora  cx16.r15+1",
+                    "            bne  $slow",
+                    "            jmp  $fast",
+                    // r12:r13 is a 32-bit pair, so copy all four bytes, not just the low word
+                    "$slow       lda  cx16.r14",
+                    "            sta  cx16.r12",
+                    "            lda  cx16.r14+1",
+                    "            sta  cx16.r12+1",
+                    "            lda  cx16.r15",
+                    "            sta  cx16.r13",
+                    "            lda  cx16.r15+1",
+                    "            sta  cx16.r13+1",
+                    "            jsr  prog8_math.multiply_longs",
+                    "            jmp  $done",
+                    "$fast      jsr  prog8_math.square_long",
+                    done
+                ).joinToString("\n"))
                 return arrayOf(RegisterOrPair.R14R15)
             }
             else -> {
