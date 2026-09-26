@@ -619,7 +619,11 @@ _after:
         }
 
         if(expr.operator=="*" && expr.inferType(program).isInteger && expr.left isSameAs expr.right) {
-            // replace squaring with call to builtin function to do this in a more optimized way
+            // Replace squaring with a call to the builtin function to do this in a more optimized way.
+            // The word and long routines are only valid for small inputs and do not range-check, so
+            // the 6502 backend emits a runtime range test that falls back to the general multiply
+            // (see funcSquare in BuiltinFunctionsAsmGen).  Squaring a byte always goes through
+            // multiply_bytes, which is correct for every byte value.
             val leftDt = expr.left.inferType(program)
             val function = if(leftDt.isBytes) "prog8_lib_square_byte" else if(leftDt.isWords) "prog8_lib_square_word" else "prog8_lib_square_long"
             val squareCall = FunctionCallExpression(
