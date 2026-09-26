@@ -4,6 +4,12 @@
 ;
 ;  As the X16 computer is a more or less fixed system, it's not very useful
 ;  to benchmark the computer itself with.
+;
+;  The individual scores are iteration counts, and they differ by more than an
+;  order of magnitude between benchmarks (maze does ~3000, game of life ~180).
+;  Summing the raw counts therefore let one or two benchmarks dominate the total
+;  and hide regressions in all the others, so the total is a weighted sum - see
+;  benchmark_weight below.
 
 
 %import textio
@@ -26,7 +32,15 @@ main {
 
     str[20] benchmark_names
     uword[20] benchmark_score
-    str version = "12.1"
+    ;  Weight per benchmark, in the same order as the benchmarks are run below. The total is the
+    ;  weighted sum of the raw iteration counts.
+    ;  The raw counts differ by more than an order of magnitude (maze ~3064, game of life ~180), so
+    ;  in an unweighted sum the two heaviest - maze solver and text-elite - were 57% of the total
+    ;  while game of life was 2%. A regression in a small benchmark was therefore nearly invisible.
+    ;  Their weights are scaled down so that every benchmark contributes roughly comparably; the
+    ;  other eight are left at 256 (i.e. unweighted).
+    uword[10] benchmark_weight = [ 64, 256, 256, 256, 256, 256, 256, 64, 256, 256 ]
+    str version = "14.0"
 
 
     sub start() {
@@ -96,11 +110,14 @@ main {
         txt.print(")\n\n")
 
         do {
+            ;  Weighted contribution. Done in long arithmetic on purpose: score*weight overflows a
+            ;  uword (3064*256 is 784384, which wraps to 63488 and would corrupt the total).
+            uword weighted = ((benchmark_score[benchmark_number] as long) * benchmark_weight[benchmark_number] / 256) as uword
             txt.spc()
-            txt.print_uw(benchmark_score[benchmark_number])
+            txt.print_uw(weighted)
             txt.column(6)
             txt.print(benchmark_names[benchmark_number])
-            total_score += benchmark_score[benchmark_number]
+            total_score += weighted
             txt.nl()
             benchmark_number++
         } until benchmark_names[benchmark_number]==0
