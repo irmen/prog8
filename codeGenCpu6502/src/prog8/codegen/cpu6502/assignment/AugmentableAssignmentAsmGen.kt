@@ -2571,6 +2571,11 @@ $shortcutLabel:""")
                             sta  $lsb
                             sty  $msb""")
                     }
+                    else if(asmgen.wordShiftAddIsCheaper(value)) {
+                        asmgen.out("  lda  $lsb |  ldy  $msb")
+                        asmgen.emitWordShiftAdd(value)
+                        asmgen.out("  sta  $lsb |  sty  $msb")
+                    }
                     else
                         asmgen.out("""
                             lda  $lsb

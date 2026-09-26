@@ -47,6 +47,53 @@ class AsmGen6502Internal (
 
     internal val optimizedByteMultiplications = setOf(3,5,6,7,9,10,11,12,13,14,15,20,25,40,50,80,100)
     internal val optimizedWordMultiplications = setOf(3,5,6,7,9,10,12,15,20,25,40,50,80,100,320,640)
+
+    // Instruction budget for the inline word shift-add expansion. The call sequence it replaces is
+    // 6 instructions, so this is a deliberate space-for-time trade: it bounds how much a program can
+    // grow per multiplication site, at the cost of some code size. Raise it to favour speed.
+    private val wordShiftAddInstructionBudget = 32
+
+    // A word multiply by a small compile-time constant is expanded inline as a Horner chain
+    // (r = x, then r = r*2 + bit*x for each bit below the leading 1) instead of calling the generic
+    // 16x16->32 routine, whose cost does not depend on the constant. The gate is on generated size
+    // rather than on the constant's magnitude: the expansion needs
+    // 4 + 2*(bitlen-1) + 7*(popcount-1) instructions, and the caller's cost is fixed at ~442 cycles,
+    // so a bounded expansion wins for any constant that passes the budget.
+    internal fun wordShiftAddIsCheaper(value: Int): Boolean {
+        if(value < 3)
+            return false
+        val bitlen = 31 - Integer.numberOfLeadingZeros(value)
+        val popcount = Integer.bitCount(value)
+        return 4 + 2*(bitlen-1) + 7*(popcount-1) <= wordShiftAddInstructionBudget
+    }
+
+    // Emits the Horner expansion for `value`, assuming the multiplicand is in A/Y and leaving the
+    // product in A/Y. Works on the raw 16-bit bit pattern, exactly like the hand-written
+    // mul_word_N routines (see mul_word_3: "AY = AY*2 + AY"), so signed and unsigned agree because
+    // both truncate mod 2^16 and no sign extension is applied afterwards.
+    internal fun emitWordShiftAdd(value: Int) {
+        out("  sta  P8ZP_SCRATCH_W2 |  sty  P8ZP_SCRATCH_W2+1")   // keep x for the conditional adds
+        out("  sta  P8ZP_SCRATCH_W1 |  sty  P8ZP_SCRATCH_W1+1")   // r = x
+        for(bit in (31 - Integer.numberOfLeadingZeros(value) - 1) downTo 0) {
+            out("  asl  a |  rol  P8ZP_SCRATCH_W1+1")             // r = r*2
+            if(value and (1 shl bit) != 0) {                      // r += x
+                out("""
+                      clc
+                      adc  P8ZP_SCRATCH_W2
+                      sta  P8ZP_SCRATCH_W1
+                      lda  P8ZP_SCRATCH_W1+1
+                      adc  P8ZP_SCRATCH_W2+1
+                      sta  P8ZP_SCRATCH_W1+1
+                      tay
+                      lda  P8ZP_SCRATCH_W1""")
+            }
+        }
+        // Y is only read for the final result, so it only needs fixing up when the last step was a
+        // bare doubling: that updates A and W1+1 but leaves Y holding the previous high byte.  An
+        // 'asl a' cannot refresh Y because at that point A holds the low byte, not the high one.
+        if(value and 1 == 0)
+            out("  ldy  P8ZP_SCRATCH_W1+1")
+    }
     internal val loopEndLabels = ArrayDeque<String>()
     private val zeropage = options.compTarget.zeropage
     private val allocator = VariableAllocator(symbolTable, options, errors, program)

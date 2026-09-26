@@ -778,17 +778,65 @@ branches in `BinaryOpAssignmentsGen.kt:444-450` and `:462-478` only ever fire
 under `-noopt`. It does mean any new shift-add path must be added to the in-place
 `*=` handlers too, or those will silently keep falling back to `mul_word_N`.
 
-**Change**
+**Change (12a: DONE, word only)**
 
 Prefer a generic shift-add decomposition over adding more hand-written `mul_word_N`
-procs (the codebase deliberately abandoned that direction for 11/13/14). In
-`optimizedMultiplyExpr`, after the `optimizedWordMultiplications` check and
-around the `powersOfTwoInt` branch (`:462`), add: for a const not in the set and
-not a power of two, if it decomposes into <= 3 powers of two (19 = 16+2+1), emit
-`x<<4 + x<<1 + x` using the existing unrolled `asl a | rol <zp>` idiom plus a
-zp-word accumulator. Gate on `value in 1..64` to bound code size. The same
-addition belongs in `inplacemodificationSomeWordWithLiteralval` at `:2554` for
-`*=`.
+procs (the codebase deliberately abandoned that direction for 11/13/14). The
+expansion is a Horner chain over the bits of the constant, seeded with `r = x` and
+then `r = r*2 + bit*x` for each bit below the leading 1 - which is literally what
+the existing hand-written routines already are (`mul_word_3` is `; AY = AY*2 + AY`,
+one Horner step for `11`; `mul_word_5` is two steps for `101`). So this generalises
+the hand-unrolled set rather than inventing a new technique.
+
+Implemented as `AsmGen.wordShiftAddIsCheaper(value)` plus
+`AsmGen.emitWordShiftAdd(value)`, called from the word branch of
+`optimizedMultiplyExpr` and mirrored in
+`inplacemodificationSomeWordWithLiteralval` (`:2556`) for `*=`. Three ordering
+constraints, all load-bearing:
+
+- It must come **after** the `veraFxMuls` check (`:481`), not before it. There is no
+  `verafx.muls8`, so this only constrains the word path, but a 25-instruction
+  software expansion must not outrank a hardware peripheral multiply.
+- It must come **after** `optimizedWordMultiplications` and `powersOfTwoInt`, so the
+  hand-tuned routines still win for their constants.
+- The gate is on **generated size**, not constant magnitude. The expansion costs
+  `4 + 2*(bitlen-1) + 7*(popcount-1)` instructions; the call sequence it replaces is
+  6. The caller's cost is fixed at ~442 cycles regardless of the constant, so cycles
+  alone would argue for expanding almost every word multiply and bloating every
+  program. `wordShiftAddInstructionBudget = 32` bounds the growth per site instead.
+  Raise it to favour speed.
+
+Two bugs found while verifying this, both invisible in the shapes the hand-written
+routines use (they are all "doublings first, adds last", so neither can occur):
+
+- The add step wrote the low result with `sta P8ZP_SCRATCH_W1` and the high result
+  with `tay`, but never updated `P8ZP_SCRATCH_W1+1`. The *next* step's
+  `rol P8ZP_SCRATCH_W1+1` therefore doubled a **stale** high byte. Fixed by adding
+  `sta P8ZP_SCRATCH_W1+1` to the add step so W1 always holds the live accumulator.
+- A **trailing bare doubling** (any even constant) updates `A` and `W1+1` but not
+  `Y`, so the final `sty` stored the previous high byte. `tay` is not the fix - after
+  `asl a`, `A` holds the *low* byte. Y is only read for the final result, so a single
+  `ldy P8ZP_SCRATCH_W1+1` is emitted when the constant is even.
+
+**Measured (benchmark baseline 7585 -> 9193, +21.2%)**
+
+| benchmark | before | after |
+|---|---|---|
+| maze | 1458 | 3063 (+110%) |
+| adpcm | 376 | 381 |
+| sprites | 318 | 319 |
+| btree | 743 | 740 |
+| all others | - | unchanged |
+
+`multiply_words` call sites in the benchmark fell 28 -> 27. The predicted +26% to
++47% was optimistic; the maze prediction (3x) came in at 2.1x. Correctness was
+verified against repeated addition over 600 expression-form checks and 240 in-place
+checks, all passing. Four golden program-size assertions in
+`compiler/test/TestCompilerOnExamples.kt` needed updating - all four got
+**smaller** (e.g. stream-wav 10249 -> 10129), because expanding a multiply inline can
+drop `multiply_words` from the link entirely.
+
+**Still open (12b and the rest)**
 
 A separate, more invasive option: add a `multiply_ubyte_word` routine to
 `math.asm` and gate on `expr.left.type.isByte || expr.right.type.isByte` in the
@@ -796,6 +844,22 @@ word branch. Note the semantic hazard - `uword * ubyte` currently goes through a
 16x16->32 routine whose 32-bit result is truncated back to 16 bits, so a narrower
 routine is only valid if that truncation is reproduced exactly with an *unsigned*
 multiplicand.
+
+The same Horner mechanism should be extended to the other two widths, which the
+benchmark cannot motivate because it does not exercise them (the sole
+`multiply_bytes` call site is a *variable* by *variable* product, and
+`multiply_longs` has zero call sites):
+
+- **byte** (`:440-455`) already inlines powers of two via `repeat(shifts) { "asl a" }`
+  but has no generic form, so `ubyte * 19` is still a call. The expansion is ~1 byte
+  per shift, so byte can afford a far wider budget than word.
+- **long** (`:496-506`) has **no** special-casing whatsoever - not even for powers of
+  two - so `long * 2` compiles to a full 32x32->64 routine. This is the largest gap of
+  the three, and `AstChecker.kt:308` already warns "for loop using a long counter
+  could be very slow" about code the compiler could simply make fast. Note the path
+  writes `cx16.r14`/`r15` (`:499-502`) and appears effectively cx16-only; that was not
+  verified.
+
 
 ---
 

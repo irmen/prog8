@@ -485,6 +485,9 @@ internal class BinaryOpAssignmentsGen(
                                 sta  cx16.r0
                                 sty  cx16.r0+1
                                 jsr  verafx.muls16""")
+                        } else if(asmgen.wordShiftAddIsCheaper(value)) {
+                            assignmentAsmGen.assignExpressionToRegister(expr.left, RegisterOrPair.AY, expr.type.isSigned)
+                            asmgen.emitWordShiftAdd(value)
                         } else {
                             asmgen.assignWordOperandsToAYAndVar(expr.right, expr.left, "prog8_math.multiply_words.multiplier")
                             asmgen.out("  jsr  prog8_math.multiply_words")
