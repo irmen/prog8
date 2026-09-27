@@ -127,14 +127,17 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
             return noModifications
         val rightNum = expr.right.constValue(program)
         if(rightNum!=null && rightNum.type.isInteger && rightNum.number!=0.0) {
+            // the largest value that is still representable in the literal's own type: N+1 has to fit
+            val maximum = when(rightNum.type) {
+                BaseDataType.UBYTE -> 255
+                BaseDataType.BYTE -> 127
+                BaseDataType.UWORD -> 65535
+                BaseDataType.WORD -> 32767
+                else -> 0x7fffffff
+            }
             when(expr.operator) {
                 ">" -> {
                     // X>N  ->  X>=N+1,   easier to do in 6502 when N is const number
-                    val maximum = when {
-                        rightNum.type.isByte -> 255
-                        rightNum.type.isWord -> 65535
-                        else -> 0x7fffffff
-                    }
                     if(rightNum.number<maximum) {
                         val numPlusOne = rightNum.number.toInt()+1
                         val newExpr = BinaryExpression(expr.left, ">=", NumericLiteral(rightNum.type, numPlusOne.toDouble(), rightNum.position), expr.position)
@@ -143,11 +146,6 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
                 }
                 "<=" -> {
                     // X<=N ->  X<N+1,    easier to do in 6502 when N is const number
-                    val maximum = when {
-                        rightNum.type.isByte -> 255
-                        rightNum.type.isWord -> 65535
-                        else -> 0x7fffffff
-                    }
                     if(rightNum.number<maximum) {
                         val numPlusOne = rightNum.number.toInt()+1
                         val newExpr = BinaryExpression(expr.left, "<", NumericLiteral(rightNum.type, numPlusOne.toDouble(), rightNum.position), expr.position)

@@ -304,9 +304,17 @@ _shift
             ror  P8ZP_SCRATCH_W1+1
             ror  P8ZP_SCRATCH_W1
 
+            ; Early exit once the multiplier is exhausted: the remaining iterations
+            ; would only add zero, so skip them. Branch to the sign fixup and not to
+            ; _done, or a negative product would never be negated.
+            lda  P8ZP_SCRATCH_W1
+            ora  P8ZP_SCRATCH_W2
+            beq  _signfix
+
             dex
             bne  _loop
 
+_signfix
             ; Apply sign if needed
             lda  P8ZP_SCRATCH_B1
             bpl  _done

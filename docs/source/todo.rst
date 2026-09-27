@@ -56,7 +56,6 @@ Libraries
 
 Optimizations
 ^^^^^^^^^^^^^
-- 6502 optimization opportunites in ideas/codegen6502.md  (created based on the benchmark-program)
 - new6502 codegen: use virtual-register liveness or write tracking to remove the retained register-file store when an immediate value is forwarded directly into all arguments of a call. (m68k codegen already implements this optimization.)
 - Port more benchmarks from https://thred.github.io/c-bench-64/  to prog8 and see how it stacks up. (see benchmark-c/ directory)
 - Compilation speed: try to join multiple modifications in 1 result in the AST processors instead of returning it straight away every time
