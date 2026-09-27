@@ -262,6 +262,106 @@ class TestAsmOptimizer: FunSpec({
             "  nop", "  nop", "  nop", "  nop", "  nop", "  nop", "  nop", "  nop")
     }
 
+    // --- optimizeSamePointerIndexing: guards on the index reload ---
+
+    fun padded(vararg body: String): MutableList<String> =
+        (body.toList() + List(14 - body.size) { "  nop" }).toMutableList()
+
+    /** Same, but one line shorter, for cases where the optimizer is expected to drop a line. */
+    fun paddedAfterDrop(vararg body: String): MutableList<String> =
+        (body.toList() + List(13 - body.size) { "  nop" }).toMutableList()
+
+    test("samePointerIndexing: KEEPS reload when the index variable is written in between") {
+        val lines = padded("  ldy  i", "  lda  arr,y", "  inc  i", "  ldy  i", "  sta  arr,y", "  rts")
+        optimize(lines)
+        lines shouldBe padded("  ldy  i", "  lda  arr,y", "  inc  i", "  ldy  i", "  sta  arr,y", "  rts")
+    }
+
+    test("samePointerIndexing: KEEPS reload when the index variable is decremented in between") {
+        val lines = padded("  ldy  i", "  lda  arr,y", "  dec  i", "  ldy  i", "  sta  arr,y", "  rts")
+        optimize(lines)
+        lines shouldBe padded("  ldy  i", "  lda  arr,y", "  dec  i", "  ldy  i", "  sta  arr,y", "  rts")
+    }
+
+    test("samePointerIndexing: KEEPS reload across a jsr") {
+        val lines = padded("  ldy  #0", "  lda  (ptr),y", "  jsr  someSub", "  ldy  #0", "  sta  (ptr),y", "  rts")
+        optimize(lines)
+        lines shouldBe padded("  ldy  #0", "  lda  (ptr),y", "  jsr  someSub", "  ldy  #0", "  sta  (ptr),y", "  rts")
+    }
+
+    test("samePointerIndexing: KEEPS reload across a label") {
+        val lines = padded("  ldy  #0", "  lda  (ptr),y", "someLabel:", "  ldy  #0", "  sta  (ptr),y", "  rts")
+        optimize(lines)
+        lines shouldBe padded("  ldy  #0", "  lda  (ptr),y", "someLabel:", "  ldy  #0", "  sta  (ptr),y", "  rts")
+    }
+
+    test("samePointerIndexing: KEEPS reload when an indirect store may alias the index") {
+        val lines = padded("  ldy  i", "  lda  arr,y", "  sta  (vptr),y", "  ldy  i", "  lda  arr2,y")
+        optimize(lines)
+        lines shouldBe padded("  ldy  i", "  lda  arr,y", "  sta  (vptr),y", "  ldy  i", "  lda  arr2,y")
+    }
+
+    test("samePointerIndexing: KEEPS reload when an intervening instruction modifies Y") {
+        val lines = padded("  ldy  #0", "  lda  (ptr),y", "  tay", "  ldy  #0", "  sta  (ptr),y", "  rts")
+        optimize(lines)
+        lines shouldBe padded("  ldy  #0", "  lda  (ptr),y", "  tay", "  ldy  #0", "  sta  (ptr),y", "  rts")
+    }
+
+    test("samePointerIndexing: KEEPS reload for an IO index operand") {
+        val lines = padded($$"  ldy  c64.$d020", "  lda  arr,y", "  lda  arr2,y", $$"  ldy  c64.$d020", "  lda  arr3,y")
+        optimize(lines)
+        lines shouldBe padded($$"  ldy  c64.$d020", "  lda  arr,y", "  lda  arr2,y", $$"  ldy  c64.$d020", "  lda  arr3,y")
+    }
+
+    test("samePointerIndexing: still drops reload when a store to an unrelated var intervenes") {
+        val lines = padded("  ldy  i", "  lda  arr,y", "  sta  other", "  ldy  i", "  sta  arr,y", "  rts")
+        optimize(lines)
+        lines shouldBe paddedAfterDrop("  ldy  i", "  lda  arr,y", "  sta  other", "  sta  arr,y", "  rts")
+    }
+
+    test("samePointerIndexing: KEEPS reload when the two ldy load DIFFERENT immediates") {
+        // regression: seed[1] then seed[0] - the reload selects a different element
+        val lines = padded("  ldy  #1", "  lda  seed_msb,y", "  sta  x", "  ldy  #0", "  lda  seed_msb,y", "  sta  y", "  rts")
+        optimize(lines)
+        lines shouldBe padded("  ldy  #1", "  lda  seed_msb,y", "  sta  x", "  ldy  #0", "  lda  seed_msb,y", "  sta  y", "  rts")
+    }
+
+    test("samePointerIndexing: KEEPS reload when the two ldy load different variables") {
+        val lines = padded("  ldy  i", "  lda  arr,y", "  sta  x", "  ldy  j", "  lda  arr,y", "  sta  y", "  rts")
+        optimize(lines)
+        lines shouldBe padded("  ldy  i", "  lda  arr,y", "  sta  x", "  ldy  j", "  lda  arr,y", "  sta  y", "  rts")
+    }
+
+    test("samePointerIndexing: KEEPS reload when the two ldy differ by an offset") {
+        val lines = padded("  ldy  w+0", "  lda  arr,y", "  sta  x", "  ldy  w+1", "  lda  arr,y", "  sta  y", "  rts")
+        optimize(lines)
+        lines shouldBe padded("  ldy  w+0", "  lda  arr,y", "  sta  x", "  ldy  w+1", "  lda  arr,y", "  sta  y", "  rts")
+    }
+
+    test("samePointerIndexing: matched load/store arm also requires the same index") {
+        val lines = padded("  ldy  i", "  lda  arr,y", "  clc", "  ldy  j", "  sta  arr,y", "  rts")
+        optimize(lines)
+        lines shouldBe padded("  ldy  i", "  lda  arr,y", "  clc", "  ldy  j", "  sta  arr,y", "  rts")
+    }
+
+    test("samePointerIndexing: relaxed arm drops reload for two indexed loads") {
+        val lines = padded("  ldy  sp", "  lda  cx,y", "  sta  cxv", "  ldy  sp", "  lda  cy,y", "  sta  cyv", "  rts")
+        optimize(lines)
+        lines shouldBe paddedAfterDrop("  ldy  sp", "  lda  cx,y", "  sta  cxv", "  lda  cy,y", "  sta  cyv", "  rts")
+    }
+
+    test("samePointerIndexing: relaxed arm does not fire when Y is modified") {
+        val lines = padded("  ldy  sp", "  lda  cx,y", "  dey", "  ldy  sp", "  lda  cy,y", "  rts")
+        optimize(lines)
+        lines shouldBe padded("  ldy  sp", "  lda  cx,y", "  dey", "  ldy  sp", "  lda  cy,y", "  rts")
+    }
+
+    test("samePointerIndexing: relaxed arm keeps reload when index is written in between") {
+        val lines = padded("  ldy  i", "  lda  arr,y", "  inc  i", "  ldy  i", "  lda  arr2,y", "  rts")
+        optimize(lines)
+        lines shouldBe padded("  ldy  i", "  lda  arr,y", "  inc  i", "  ldy  i", "  lda  arr2,y", "  rts")
+    }
+
     // --- optimizeAddWordToSameVariableOrExtraRegisterLoadInWordStore ---
 
     test("optimizeAddWordToSameVariable: optimizes P8ZP_SCRATCH_PTR += AY") {

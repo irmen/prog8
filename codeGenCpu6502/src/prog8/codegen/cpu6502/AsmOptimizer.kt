@@ -49,7 +49,7 @@ internal fun optimizeAssembly(lines: MutableList<String>, machine: ICompilationT
 
         var linesByFourteen = getLinesBy(pretrimmed, lines, 14)
         linesByFourteen = runPass(optimizeSameAssignments(linesByFourteen, machine, symbolTable), 14, linesByFourteen)
-        linesByFourteen = runPass(optimizeSamePointerIndexingAndUselessBeq(linesByFourteen), 14, linesByFourteen)
+        linesByFourteen = runPass(optimizeSamePointerIndexingAndUselessBeq(linesByFourteen, machine, symbolTable), 14, linesByFourteen)
         linesByFourteen = runPass(optimizeAddWordToSameVariableOrExtraRegisterLoadInWordStore(linesByFourteen), 14, linesByFourteen)
 
         if(!modified)
@@ -412,7 +412,96 @@ private fun optimizeSameAssignments(
     return mods
 }
 
-private fun optimizeSamePointerIndexingAndUselessBeq(linesByFourteen: Sequence<List<TrimmedLine>>): List<Modification> {
+private const val NO_MEMORY_WRITE = ""
+private const val UNKNOWN_WRITE_TARGET = "\u0000"
+
+/** Mnemonics that can change memory (direct stores plus read-modify-write). */
+private val memoryWritingMnemonics = setOf(
+    "sta", "stx", "sty", "stz", "inc", "dec", "asl", "lsr", "rol", "ror",
+    "and", "ora", "eor", "adc", "sbc", "bit"
+)
+
+/** Control transfers that can reach the code after them with a different Y, or change it. */
+private val flowMnemonics = setOf(
+    "jsr", "rts", "rti", "jmp", "bra", "brk",
+    "bcc", "bcs", "beq", "bmi", "bne", "bpl", "bvc", "bvs", "bbs", "bbr"
+)
+
+private fun TrimmedLine.mnemonic(): String =
+    instruction.trimStart().takeWhile { !it.isWhitespace() }.lowercase()
+
+/** True if the line carries a label, with or without an instruction following it. */
+private fun TrimmedLine.hasLabel(): Boolean {
+    if (haslabelPretrimmed(trimmed)) return true
+    return trimmed.isNotEmpty() && (trimmed[0] == '+' || trimmed[0] == '-')
+}
+
+/** The memory operand this instruction writes, with any +offset and ,index suffix stripped.
+ *  Returns [NO_MEMORY_WRITE] for immediate and implied forms, and [UNKNOWN_WRITE_TARGET] for
+ *  indirect forms, where the destination cannot be determined statically. */
+private fun TrimmedLine.memoryWriteBase(): String {
+    val op = instruction.extractOperandTrimmed()
+    if (op.isEmpty() || op.startsWith("#") || op == "a") return NO_MEMORY_WRITE
+    if (op.startsWith("(")) return UNKNOWN_WRITE_TARGET
+    return op.removeSuffix(",y").removeSuffix(",x").substringBefore('+')
+}
+
+/** True if this line may write to [base]. Conservative: an indirect store is assumed to. */
+private fun TrimmedLine.mayWriteBase(base: String): Boolean {
+    if (mnemonic() !in memoryWritingMnemonics) return false
+    val target = memoryWriteBase()
+    if (target == NO_MEMORY_WRITE) return false
+    if (target == UNKNOWN_WRITE_TARGET) return true
+    return target.equals(base, ignoreCase = true)
+}
+
+/** True if [operand] is safe to read more than once: an immediate, or memory that is not an
+ *  IO location (an IO read can return a different value without the CPU having written it). */
+private fun isNonVolatileIndexOperand(indexLine: TrimmedLine, machine: ICompilationTarget, symbolTable: SymbolTable): Boolean {
+    val operand = indexLine.instruction.extractOperandTrimmed()
+    if (operand.isEmpty() || operand.startsWith("#")) return true
+    val addr = getAddressArg(indexLine.instruction, symbolTable)
+    return if (addr == null) !looksLikeIOAddress(operand, machine)
+           else !machine.isIOAddress(addr)
+}
+
+/** Decides whether the index reload at [reloadIdx] inside [window] can be deleted.
+ *
+ *  The reload is redundant only if Y still holds the value it would have loaded. That requires
+ *  the reload to load the very same operand as the original index load, and none of the
+ *  following in between:
+ *  - modifies Y
+ *  - writes the index operand itself (so `ldy i / lda arr,y / inc i / ldy i / sta arr,y` keeps
+ *    its reload: without it the store lands one element earlier)
+ *  - is a call or control transfer, since a callee can clobber Y and another path can arrive
+ *    with a different Y
+ *  - carries a label, for the same reason
+ *  The index operand must also not be a volatile IO location.
+ */
+private fun canDropIndexReload(
+    window: List<TrimmedLine>,
+    reloadIdx: Int,
+    indexLine: TrimmedLine,
+    machine: ICompilationTarget,
+    symbolTable: SymbolTable
+): Boolean {
+    if (reloadIdx <= 1) return false
+    val operand = indexLine.instruction.extractOperandTrimmed()
+    // the reload has to load the same index, or Y holds a different one and is not redundant
+    if (window[reloadIdx].instruction.extractOperandTrimmed() != operand) return false
+    val base = if (operand.startsWith("#") || operand.isEmpty()) NO_MEMORY_WRITE
+               else operand.removeSuffix(",y").removeSuffix(",x").substringBefore('+')
+    for (idx in 1 until reloadIdx) {
+        val line = window[idx]
+        if (line.instruction.modifiesYRegister()) return false
+        if (line.mnemonic() in flowMnemonics) return false
+        if (line.hasLabel()) return false
+        if (base != NO_MEMORY_WRITE && line.mayWriteBase(base)) return false
+    }
+    return isNonVolatileIndexOperand(indexLine, machine, symbolTable)
+}
+
+private fun optimizeSamePointerIndexingAndUselessBeq(linesByFourteen: Sequence<List<TrimmedLine>>, machine: ICompilationTarget, symbolTable: SymbolTable): List<Modification> {
 
     // Optimize same pointer indexing where for instance we load and store to the same ptr index in Y
     // if Y isn't modified in between we can omit the second LDY:
@@ -436,18 +525,36 @@ private fun optimizeSamePointerIndexingAndUselessBeq(linesByFourteen: Sequence<L
             val secondvalue = f2.extractOperandTrimmed()
             val fourthvalue = f4.extractOperandTrimmed()
             val fifthvalue = f5.extractOperandTrimmed()
-            if(!f3.modifiesYRegister() && firstvalue==fourthvalue && secondvalue==fifthvalue && secondvalue.endsWith(",y") && fifthvalue.endsWith(",y")) {
+            if(secondvalue==fifthvalue && secondvalue.endsWith(",y") && fifthvalue.endsWith(",y") &&
+                    canDropIndexReload(lines, 3, lines[0], machine, symbolTable)) {
                 mods.add(Modification(lines[3].index, true, null))
             }
         }
         if(f1.startsWith("ldy ") && f2.startsWith("lda ") && f5.startsWith("ldy ") && f6.startsWith("sta ")) {
-            val firstvalue = f1.extractOperandTrimmed()
             val secondvalue = f2.extractOperandTrimmed()
-            val fifthvalue = f5.extractOperandTrimmed()
             val sixthvalue = f6.extractOperandTrimmed()
-            if(!f3.modifiesYRegister() && !f4.modifiesYRegister() && firstvalue==fifthvalue && secondvalue==sixthvalue && secondvalue.endsWith(",y") && sixthvalue.endsWith(",y")) {
+            if(secondvalue==sixthvalue && secondvalue.endsWith(",y") && sixthvalue.endsWith(",y") &&
+                    canDropIndexReload(lines, 4, lines[0], machine, symbolTable)) {
                 mods.add(Modification(lines[4].index, true, null))
             }
+        }
+
+        // Relaxed variant: two consecutive indexed accesses, not necessarily a matched load/store
+        // pair. Only the index reload has to be the same, and nothing in between may disturb it.
+        //    ldy  V
+        //    lda  A,y
+        //    ...            <-- does not modify Y, does not write V, no call or label
+        //    ldy  V        <-- can be removed
+        //    lda  B,y
+        if(f1.startsWith("ldy ") && f2.startsWith("lda ") && f4.startsWith("ldy ") && f5.startsWith("lda ") &&
+                f2.endsWith(",y") && f5.endsWith(",y") &&
+                canDropIndexReload(lines, 3, lines[0], machine, symbolTable)) {
+            mods.add(Modification(lines[3].index, true, null))
+        }
+        if(f1.startsWith("ldy ") && f2.startsWith("lda ") && f5.startsWith("ldy ") && f6.startsWith("lda ") &&
+                f2.endsWith(",y") && f6.endsWith(",y") &&
+                canDropIndexReload(lines, 4, lines[0], machine, symbolTable)) {
+            mods.add(Modification(lines[4].index, true, null))
         }
 
 

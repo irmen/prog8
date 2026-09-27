@@ -84,20 +84,21 @@ The order below is roughly by payoff-per-risk, not by dependency - the earlier
 draft put item 11 first on the assumption that it was a scoring bug. It is not
 (see Retracted claims), so nothing is unblocked by doing it first.
 
-1. **Item 6** - relaxed index-reload rule
-2. **Item 5** - dead `phy` / `ply` around an indexed RMW
-3. **Item 4** - `uword >` operand asymmetry
-4. **Items 9, 10** - float non-T entries, and signed word shifts
-5. **Item 12** - `multiply_longs` early exit (the Horner chain is now marginal)
-6. **Item 8** - float power-of-two, delicate, cycles only
-7. **Item 1** - comparison operands of `and`/`or`; **blocked** on a codegen change, see below
-8. **Item 7** - **blocked**; needs a calling-convention invariant, not a peephole
-9. **Item 11** - optional `VariableAllocator` weighting refinement only; measure first
+1. **Item 5** - dead `phy` / `ply` around an indexed RMW
+2. **Item 4** - `uword >` operand asymmetry
+3. **Items 9, 10** - float non-T entries, and signed word shifts
+4. **Item 12** - `multiply_longs` early exit (the Horner chain is now marginal)
+5. **Item 8** - float power-of-two, delicate, cycles only
+6. **Item 1** - comparison operands of `and`/`or`; **blocked** on a codegen change, see below
+7. **Item 7** - **blocked**; needs a calling-convention invariant, not a peephole
+8. **Item 11** - optional `VariableAllocator` weighting refinement only; measure first
 
-**Items 2 and 3 are no longer on the list.** Neither reported defect exists. Item 2's
-`stx <zp>` / `ldy <zp>` pair is the cheapest correct encoding, because A is live carrying
-the low byte of the same word and the 6502 has no `X -> Y` move. Item 3's `inc` / `lda`
-is required, not redundant, because `INC <memory>` does not write A.
+**Items 2, 3 and 6 are no longer on the list.** Items 2 and 3 never described a real
+defect. Item 2's `stx <zp>` / `ldy <zp>` pair is the cheapest correct encoding, because
+A is live carrying the low byte of the same word and the 6502 has no `X -> Y` move.
+Item 3's `inc` / `lda` is required, not redundant, because `INC <memory>` does not write
+A. Item 6 was implemented and measured at 8 bytes over 3 sites; its section has been
+removed per this document's convention for finished work.
 
 **The common cause.** Items 1, 2 and 7 all propose replacing a materialization with a
 branch, on the reasoning that the value is redundant at that point. In all three it is
@@ -105,9 +106,40 @@ not: A is live across the label or instruction the rewrite branches to. Any futu
 in this area should be checked against that first, and note that `optimizeStoreLoadSame`
 having no cross-register arm is load-bearing, not an oversight.
 
+**A second trap, this one verified against shipped code.** The windowing in `getLinesBy`
+(`AsmOptimizer.kt:83-88`) filters only blank lines and `;` comments, so a window runs
+straight through calls and labels. A rule that deletes an instruction on the reasoning
+"the value is unchanged here" therefore has to *establish* that, rather than assume it,
+and the conditions are: the source operand was not written in between, no call or control
+transfer intervenes (a callee can clobber the register), and no label intervenes (another
+path may arrive with a different value). A shipped 14-line rule checked none of the three
+and dropped a load-bearing `ldy` in exactly those three shapes - it is fixed now, but the
+siblings have not been looked at: `optimizeSameAssignments` (`:249-264` and `:386-402`)
+and the other 14-line rules in the same file. **Audit them before trusting them.**
+
+Two further hazards in the same area, both learned the hard way:
+
+- The **operand equality check is load-bearing**, and is easy to conflate with the
+  neighbouring *shape* check. In the rule above, `firstvalue == fourthvalue` (the two
+  `ldy` load the same operand) is what makes the reload redundant; `secondvalue ==
+  fifthvalue` (the `lda` and `sta` touch the same address) is only a shape restriction,
+  and is the one that may be relaxed. Dropping both at once miscompiled consecutive
+  statements that index *different* elements - `msb(seed[1])` then `msb(seed[0])` in
+  `b_textelite.p8` - and the unit tests missed it because none of them used two
+  different indices. Test the distinct-index case explicitly.
+- **Unit tests alone will not catch a wrong-index store.** The miscompile above was found
+  by diffing the generated `.asm` for an example before and after the change, not by the
+  optimizer tests. When a peephole changes what is emitted, diff the output as well.
+
+For contrast, the m68k backend's analogous rule, `optimizeRedundantReload`
+(`codeGenM68k/src/prog8/codegen/m68k/AsmOptimizer.kt:163`), is sound: it explicitly
+guards the label case (`hasLabel` on the second line), its window is only 2 lines so
+there is no room for the other two hazards, and it pins both endpoints to `d0`. A tighter
+pattern sidesteps the problem rather than checking for it.
+
 | Item | State |
 |---|---|
-| 4, 5, 6, 9, 10, 12 | open, fix identified |
+| 4, 5, 9, 10, 12 | open, fix identified |
 | 1 | **blocked** - the diagnosis holds but every proposed fix is unsound as written; A is live across the shortcut label |
 | 2 | **closed** - not a defect; the encoding is already optimal and the proposed rewrite clobbers A |
 | 3 | **closed** - the reported defect does not exist |
@@ -246,7 +278,7 @@ Cheap mitigation (peephole only, recovers bytes but not liveness): two rules in
    compiler-generated label.
 2. `<branch> Lelse / lda #1 / bra Lafter / Lelse: lda #0 / Lafter: <branch2>`
    -> `<inverted branch> Lafter / Lafter: <branch2>`. The existing
-   `beq+jmp+label -> bne` rule at `AsmOptimizer.kt:761-777` does not match
+   `beq+jmp+label -> bne` rule at `AsmOptimizer.kt:779-800` does not match
    because it requires a `jmp` (not `bra`) at position 1 and a branch at
    position 0.
 
@@ -371,8 +403,8 @@ reached that path. That is the one part of this item with a real (unexercised) p
 
 **Why no peephole fires**
 
-`optimizeStoreLoadSame` (`AsmOptimizer.kt:487`, rule registered at `:35`)
-enumerates **only same-register** pairs at `:503-508`:
+`optimizeStoreLoadSame` (`AsmOptimizer.kt:594`, rule registered at `:35`)
+enumerates **only same-register** pairs at `:608-618`:
 
 ```kotlin
 if ((first.startsWith("sta ") && second.startsWith("lda ")) ||
@@ -392,7 +424,7 @@ instruction. Our shape is `stx`, and the next line is `jsr`/`ora`/
 this generator.
 
 **Note**: the compiler already knows the idiom. `optimizeUselessPushPopStack`
-(`AsmOptimizer.kt:542-550`) converts `pha`+`ply` -> `tay` and `phy`+`pla` ->
+(`AsmOptimizer.kt:889-900`) converts `pha`+`ply` -> `tay` and `phy`+`pla` ->
 `tya`. It simply has no store/load arm.
 
 **No change. The two branches are already optimal, and the peephole idea is unsafe.**
@@ -435,8 +467,8 @@ in the tree plus the standard library sources finds 0 occurrences of
 `stx P8ZP_SCRATCH_REG` / `ldy P8ZP_SCRATCH_REG` / `tax`. All 9 live sites are `:1386`.
 
 **Why no peephole fires, and why adding one would be a bug.** `optimizeStoreLoadSame`
-(`AsmOptimizer.kt:487`, registered at `:35`) enumerates only same-register pairs at
-`:503-508` (`sta`/`lda`, `stx`/`ldx`, `sty`/`ldy`). That omission is load-bearing here:
+(`AsmOptimizer.kt:594`, registered at `:35`) enumerates only same-register pairs at
+`:608-618` (`sta`/`lda`, `stx`/`ldx`, `sty`/`ldy`). That omission is load-bearing here:
 any cross-register arm it grew would match these 9 sites and clobber the low byte,
 producing wrong results rather than faster ones. The same is true of the store/load rule
 inside `optimizeSameAssignments` (`:386-402`), which emits `ta$reg2` but is hardcoded to
@@ -445,7 +477,7 @@ that `optimizeUselessPushPopStack` (`:542-550`) already rewrites `pha`+`ply` -> 
 and `phy`+`pla` -> `tya`, which is safe precisely because a push/pop pair carries one
 value and consumes nothing - the distinction this whole item turns on.
 
-`getAddressArg()` (`AsmOptimizer.kt:593`) already resolves `P8ZP_*` symbols, which are
+`getAddressArg()` (`AsmOptimizer.kt:700`) already resolves `P8ZP_*` symbols, which are
 emitted as plain zeropage constants at `ProgramAndVarsGen.kt:71`.
 
 ---
@@ -548,7 +580,7 @@ genuinely feeds an `adc` that precedes the `inc`/`dec` (`:609-613`, `:655-659`),
 does not involve `inc`/`dec` at all (`:706-713` is `lda V` / `clc` / `adc #step` /
 `sta V`).
 
-`optimizeIncDec` (`AsmOptimizer.kt:647-670`) only cancels counterproductive pairs
+`optimizeIncDec` (`AsmOptimizer.kt:754-780`) only cancels counterproductive pairs
 (`iny`/`dey`, `inx`/`dex`, `ina`/`dea`, ...), and nothing in the module inspects
 `inc`/`dec <mem>`. That is consistent with there being nothing to eliminate: the `lda`
 is the only correct way to get the post-increment value into A.
@@ -677,7 +709,7 @@ asmgen.out("  sta  ${targetArrayVar.name},y")
 
 **Why the existing rule cannot fire**
 
-`optimizeUselessPushPopStack` (`AsmOptimizer.kt:782-851`), inner helper
+`optimizeUselessPushPopStack` (`AsmOptimizer.kt:889-940`), inner helper
 `optimize(register, lines)` at `:785`:
 
 ```kotlin
@@ -697,7 +729,7 @@ Two independent blockers:
 That is the whole list. An earlier draft added a third blocker - that the
 `register !in second` guard is a blunt substring test which would reject
 `lda p8v_cargohold,y` for containing the character `y`. That is **not** a blocker:
-the guard is `lines[1].instruction.take(6).lowercase()` (`AsmOptimizer.kt:788`), so
+the guard is `lines[1].instruction.take(6).lowercase()` (`AsmOptimizer.kt:895`), so
 for this instruction it tests `"lda  p"`, which contains no `y` at all, and the
 guard passes. The truncation is over-conservative in the opposite direction - it
 rejects short operands that genuinely start with the register letter, e.g.
@@ -721,60 +753,6 @@ internal fun String.modifiesYRegister(): Boolean { ... }
 label lines stay in the window; an intervening label is a potential branch target, so
 control could enter the middle of the sequence and a surviving `ply` would pop
 garbage. Section 6's proposal does say "or a label" - this one should too.
-
----
-
-## 6. Redundant index reload between two consecutive indexed accesses
-
-```asm
-ldy  p8b_maze.p8v_stackptr
-lda  p8b_maze.p8v_cx_stack,y
-sta  p8v_cx
-ldy  p8b_maze.p8v_stackptr      ; <-- Y is untouched by the sta above
-lda  p8b_maze.p8v_cy_stack,y
-```
-(benchmark.asm 14801-14806; the store-side twin is 14811-14817)
-
-**The existing rule, and its actual limitation**
-
-`optimizeSamePointerIndexingAndUselessBeq` (`AsmOptimizer.kt:415-485`). Its
-header comment states the intent exactly (`:417-423`):
-
-```kotlin
-// Optimize same pointer indexing where for instance we load and store to the same ptr index in Y
-// if Y isn't modified in between we can omit the second LDY:
-//    ldy  #0
-//    lda  (ptr),y
-//    ora  #3       ; <-- instruction(s) that don't modify Y
-//    ldy  #0       ; <-- can be removed
-//    sta  (ptr),y
-```
-
-The two index rules are at `:434-442` and `:443-451`. It is **not** hardcoded to
-`ldy #0` or to `lda (ptr),y` - it is agnostic to the operand form. It *is*
-hardcoded to:
-
-1. `f1` must be `ldy` - everything is wired to a Y-indexed load/store pair.
-2. `f2` must be `lda` (a load) and `f5`/`f6` must be `sta` (a store).
-3. `secondvalue == fifthvalue` (`:439`) / `secondvalue == sixthvalue` (`:448`) -
-   **the same array address** must appear in both the load and the store.
-4. `.endsWith(",y")` on the memory operand.
-
-So it will never match two consecutive indexed accesses to *different* arrays
-(`cx_stack` vs `cy_stack`), and the read-side shape additionally fails the
-offset requirement: the second `ldy` sits at window index 3, while the rules test
-`f4` (index 4) and `f5` (index 5).
-
-**Change**
-
-Add a relaxed variant next to the existing pair: `ldy V` / `ld? ...,y` /
-[0..2 non-Y-modifying instructions] / `ldy V` -> drop the second `ldy V`. It needs
-**no** requirement that the `,y` operands be equal - only that nothing in between
-modifies Y, and that the window does not cross a `jsr` or a label. Note that
-dropping the second `ldy V` is safe even when `V` is an IO address, because `V` here
-is the *index*, not the access target; the sibling `optimizeSameAssignments` rule at
-`:255-260` does guard IO addresses, so say so explicitly rather than leaving it
-implicit.
 
 ---
 
