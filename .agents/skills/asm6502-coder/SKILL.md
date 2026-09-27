@@ -125,6 +125,55 @@ Avoid self-modifying code unless it is explicitly required. It cannot run
 from ROM and complicates debugging and tooling. Prefer lookup tables, RAM
 vectors, or alternative algorithms.
 
+## Reference
+
+### Primary: 6502 Family CPU Reference
+
+<https://www.pagetable.com/c64ref/6502/?cpu=65c02&tab=2> is the reference to reach for.
+It covers the whole 6502 family and lets you **select the CPU variant**, which matters
+because the parts genuinely differ. The variants are `6502`, `6502rorbug`, `65dtv02`,
+`65c02`, `r65c02` (Rockwell), `65c02s`, `65ce02` and `65c816`. Change the `cpu=` query
+parameter to switch; for Prog8, use `cpu=65c02` when working on cx16 and `cpu=6502` for
+c64, c128 and pet32.
+
+Per instruction it gives the operation, the opcodes, the byte length, the cycle count
+and which status flags are affected, with tabs for opcodes, instructions, addressing
+modes and a full opcode table (switchable between 4-4 and 3-3-2 layout). It can also
+show the NMOS undocumented opcodes, and each part lists what it is based on, so a
+variant's inherited instructions are visible.
+
+Cycle counts use a compact notation worth knowing: a trailing `t` means +1 if a branch
+is taken, `p` means +1 if a page is crossed, and `d` means +1 when the D (decimal) flag
+is set. So `d0  2+t+p` for `bne` is 2 cycles, 3 if taken, 4 if taken across a page.
+
+Consult it whenever an exact figure is needed rather than recalled: the byte length or
+cycle cost of an instruction, which flags it clobbers, whether an addressing mode exists
+on the target CPU, or whether an instruction belongs to a different part at all. Typical
+reasons are costing a peephole or code-size tradeoff, checking a hand-written routine,
+and confirming a mnemonic is valid before using it.
+
+Do not assume a timing from memory or from another part. Cycle counts are exactly the
+kind of detail that is misremembered, and the difference matters when it is the basis of
+an optimization claim. Read the number off the reference for the specific CPU being
+targeted.
+
+### Secondary: WDC 65C02 reference
+
+<https://cx16.dk/65c02/reference.html> is a 65C02-only reference. It is worth having
+because it states each instruction's effect in a single formula (for example
+`ADC:  A,Z,C,N = A+M+C`), which makes the flag behaviour quick to check, and it lists
+every status bit per instruction including the ones not affected. Use it for flag
+semantics; use the primary reference for timings and for anything CPU-specific, since
+it covers the 65C02 only and will not answer a question about the NMOS 6502.
+
+### Neither reference covers the assembler
+
+Both document the CPU, not 64tass. For whether 64tass accepts a mnemonic or a given
+syntax, assemble it: an instruction outside the selected CPU set fails with
+`error: general syntax` rather than being silently ignored. Note also that 64tass has
+no `w65c02s`; its CPU selection is `--m65xx` (default), `--m65c02` and `--m65ce02`, and
+Prog8 emits `.cpu 'w65c02'`.
+
 ## Tools
 
 Prog8 invokes 64tass with `--ascii --case-sensitive --long-branch -Wall` plus
@@ -137,3 +186,15 @@ the target output option such as `--cbm-prg`. For manual assembly:
 
 For debugging, add `--vice-labels --labels=labels.txt` and/or
 `--list=listing.txt`.
+
+To check an instruction's encoding or size, assemble it in isolation and read the
+output bytes. The 2-byte load address comes first, so `stx $7b` / `ldy $7b` below
+shows as `86 7b a4 7b` - two instructions, four bytes:
+
+```bash
+printf '.cpu  %s\n* = $0801\nlbl\tstx\t$7b\n\tldy\t$7b\n' "'w65c02'" > sz.asm
+64tass --ascii --case-sensitive --cbm-prg -o sz.prg sz.asm && xxd sz.prg
+```
+
+Note that a 64tass label takes no trailing colon; `lbl:` is a syntax error reported as
+`error: label required`.

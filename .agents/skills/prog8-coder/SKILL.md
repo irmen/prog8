@@ -128,6 +128,12 @@ Use `if_cs`, `if_cc`, `if_z`, and `if_nz` for direct CPU-flag branches.
 
 ## Verification
 
+- A full `gradle build` is CPU- and IO-heavy so lower its priority on Unix like systems. Prefix
+  it with `nice`, e.g. `nice gradle build --console=plain`, and use `nice -n 19` for
+  maximum politeness. Targeted runs (`gradle :compiler:test --tests "..."`) are
+  cheaper but still worth lowering the priority of.
+- Always pass `--console=plain`; the fancy console output interferes with agent
+  output parsing.
 - Use the `virtual` target for behavioral tests when possible:
   `prog8c -target virtual -emu program.p8`.
 - Use `-check` for syntax and semantic checks without output generation.
@@ -135,6 +141,16 @@ Use `if_cs`, `if_cc`, `if_z`, and `if_nz` for direct CPU-flag branches.
 - For IR execution, use `-vmtrace` when control flow needs inspection.
 - Do not modify a correct test program to work around a compiler crash. Reduce
   the case and fix the compiler instead.
+- `gradle build` already runs the full test suite; do not run a separate
+  `gradle test` before it, to avoid a lengthy double run.
+- `TestCompilerOnExamples` asserts exact output sizes per example. Any change to
+  the code generator shifts them, so expect a handful of
+  `expected:<N> but was:<M>` failures with no stack trace pointing at the cause.
+  Attribute each one before editing: rebuild with the change reverted and compare
+  the two generated `.asm` files, so the size delta is demonstrably yours and not a
+  side effect. Then update the expected size. A delta of a few bytes from removed
+  `ldy`/`lda` instructions is normal; a large or erratic delta means something else
+  changed and needs investigating.
 - When running `gradle` tests, grep for `SUCCESSFUL` to check if all tests
   passed, and `FAILED` to check for failures. Gradle does not print individual
   `PASSED` lines by default.
