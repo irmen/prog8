@@ -1105,7 +1105,36 @@ square_long     .proc
 ; Input:  cx16.R14:R15 = 32-bit value to square (R14=low word, R15=high word)
 ; Output: cx16.R14:R15 = 32-bit square result (R14=low word, R15=high word)
 ; Clobbers: A, X, Y
+;
+; The square below only squares the low word, so it is only valid when the long actually
+; fits in a signed 16-bit word (the high word is the sign extension of the low word's
+; sign bit).  The range test at the top of the routine handles that: values outside it
+; tail-call the general multiply_longs instead.  Note a high word of $0000 alone is not
+; sufficient: 40000 as a signed word is -25536, and squaring that low word would be
+; wrong.  Doing the test here rather than inline at every sqr() call site costs the code
+; size only once.
 
+        ; Range check: is the long representable as a signed 16-bit word?
+        lda  cx16.r14+1
+        and  #128
+        beq  _nonneg
+        ; negative low word: the high word must be the sign extension ($FF,$FF)
+        lda  cx16.r15
+        cmp  #$FF
+        bne  _out_of_range
+        lda  cx16.r15+1
+        cmp  #$FF
+        bne  _out_of_range
+        jmp  _square
+
+_nonneg
+        ; non-negative low word: the high word must be zero
+        lda  cx16.r15
+        ora  cx16.r15+1
+        bne  _out_of_range
+        ; fall through into the fast path
+
+_square
         lda  cx16.r14
         ldy  cx16.r14+1
         ldx  cx16.r15+1
@@ -1127,20 +1156,31 @@ square_long     .proc
         sta  cx16.r15+1
 
         rts
+
+_out_of_range
+        ; r12:r13 is a 32-bit pair, so copy all four bytes, not just the low word
+        lda  cx16.r14
+        sta  cx16.r12
+        lda  cx16.r14+1
+        sta  cx16.r12+1
+        lda  cx16.r15
+        sta  cx16.r13
+        lda  cx16.r15+1
+        sta  cx16.r13+1
+        jmp  multiply_longs
 		.pend
 
 
 square          .proc
-; -- calculate square of signed word (actually -255..255) in AY, result in AY
+; -- calculate square of signed word in AY, result in AY
 ; routine by Lee Davison, source: http://6502.org/source/integers/square.htm
 ; using this routine is a lot faster as doing a regular multiplication (for words)
 ;
-; Calculates the 16 bit unsigned integer square of the signed 16 bit integer in
-; Numberl/Numberh.  The result is always in the range 0 to 65025 and is held in
-; Squarel/Squareh
-;
-; The maximum input range is only +/-255 and no checking is done to ensure that
-; this is so.
+; The fast path below (by Lee Davison) only computes (abs(x) and 255) squared, so it is
+; only valid for the input range -255..255.  The range test at the top of the routine
+; handles that: values outside it tail-call the general multiply_words instead, which
+; yields the correct mod-2^16 result that Prog8's word semantics require.  Doing the
+; test here rather than inline at every sqr() call site costs the code size only once.
 ;
 ; This routine is useful if you are trying to draw circles as for any circle
 ; x^2+y^2=r^2 where x and y are the co-ordinates of any point on the circle and
@@ -1152,6 +1192,21 @@ squarel = P8ZP_SCRATCH_W2       ; square low byte
 squareh = P8ZP_SCRATCH_W2+1     ; square high byte
 tempsq = P8ZP_SCRATCH_B1        ; temp byte for intermediate result
 
+        ; Range check: the fast path is only valid for -255..255.  The high byte alone
+        ; settles it: $00 is 0..255 (always in range), $FF is -256..-1 (in range except
+        ; -256 itself, whose square is $10000 and so also needs the general path).
+        cpy  #0
+        beq  _in_range
+        cpy  #$FF
+        bne  _out_of_range
+        cmp  #0
+        bne  _in_range
+_out_of_range
+        sta  multiply_words.multiplier
+        sty  multiply_words.multiplier+1
+        jmp  multiply_words
+
+_in_range
 	sta  numberl
 	sty  numberh
 
