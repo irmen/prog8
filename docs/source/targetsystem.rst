@@ -79,6 +79,98 @@ and ``none`` (no launcher). If omitted, the default is ``basic``.
 The optional ``pointer_size`` property sets the size of pointers in bytes. It defaults to ``2`` for compatibility
 with existing configuration files. The supported values are ``2`` and ``4``.
 
+.. _custom_target_m68k:
+
+Custom targets for the 68000 CPU
+--------------------------------
+
+.. index:: single: Custom Targets; 68000
+
+The compiler can also generate m68k code for a custom target machine, not just for the built-in
+``amiga500``, ``amiga1200`` and ``qemu68k`` targets. The code generator is selected from the ``cpu``
+property rather than from the target name, so declaring an m68k CPU is all that is needed to
+route a custom target to the m68k backend.
+
+Set the ``cpu`` property to the name of the CpuType enum value, ``M68000`` or ``M68020``::
+
+    cpu = M68020
+
+The exact spelling matters, because the value is the name of the enum value: write ``M68020`` and
+not ``68020``. The 6502 CPUs are spelled ``6502``, ``65C02`` and ``virtual``, and those are tried
+both with and without a ``CPU`` prefix, so ``6502`` and ``CPU6502`` both work.
+
+An m68k target needs a much smaller configuration file than a 6502 one, because the m68k has no
+zero page and uses real CPU registers instead of the compiler's virtual registers. This means the
+zeropage related properties are not applicable, and you can simply leave them out of the file:
+
+* ``zp_scratch_ptr``, ``zp_scratch_b1``, ``zp_scratch_reg``, ``zp_scratch_w1``, ``zp_scratch_w2``
+* ``zp_fullsafe``, ``zp_kernalsafe``, ``zp_basicsafe``
+* ``virtual_registers``
+
+They are only ignored for an m68k CPU; a 6502 target still requires them, and a typo there is still
+reported as a missing property. Set ``pointer_size = 4``, since m68k pointers are 32 bit.
+
+Use ``output_type = ELF``. This is the only output type that links, and therefore the only one a
+custom m68k target can use; the ``AMIGAHUNK`` output type assembles straight to an Amiga hunk
+executable and is only available for the built-in Amiga targets. Two other things are worth knowing
+when targeting bare metal: the FPU is enabled for the assembler regardless of the target, and the
+assembler CPU is only upgraded to 68020 for ``amiga500`` with floating point enabled.
+
+.. _custom_target_m68k_linker:
+
+The linker script
+^^^^^^^^^^^^^^^^^
+
+An ``ELF`` output is produced in two steps: the compiler assembles to an object file, and then
+links it into an ELF executable. The layout of that executable comes from a linker script, which
+the compiler looks up in this order:
+
+#. ``link.ld`` in the target's library directory (the directory named by the ``library`` property).
+   This is how a custom target, which lives outside of the compiler, supplies its own memory layout.
+#. ``/prog8lib/<targetname>/link.ld``, for targets that are built into the compiler.
+#. ``/prog8lib/qemu68k/link.ld`` as a fallback, so a target without a script of its own still links.
+
+A minimal script for a custom target looks like this::
+
+    ENTRY(prog8_program_start)
+    SECTIONS
+    {
+      . = 0x40000;
+      .text : { *(.text) }
+      .data : {
+        . = ALIGN(4);
+        *(.data)
+        . = ALIGN(4);
+        prog8_bss_section_start = .;
+        *(.bss)
+        *(COMMON)
+        . = ALIGN(2);
+        prog8_program_end = .;
+      }
+    }
+
+``ENTRY`` should point at ``prog8_program_start``, the label the compiler emits for the start of
+the program. The ``.data`` and ``.bss`` sections are deliberately merged into a single output
+section so that the linker places them in one load segment: if ``.bss`` were its own output section,
+the linker would compute that segment's address as "end of the previous segment + alignment" instead
+of honouring the address in the script, and ``prog8_program_end`` would no longer point at the true
+end of the loaded image. For the same reason ``prog8_program_end`` is defined by the linker script
+rather than by the generated assembly. Startup code that needs to clear the bss, such as the
+``qemu68k`` bootinfo support, references that symbol, so leave it in.
+
+The complete script used by the ``qemu68k`` target, together with a description of the linking
+steps, is in :source:`the m68k linking documentation <codeGenM68k/docs/linking.md>`.
+
+Source level restrictions
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The m68k code generator rejects a number of directives and options that only make sense for a
+6502 target: the ``%launcher``, ``%address``, ``%memtop`` and ``%varsaddress`` directives, register
+annotations on ordinary subroutine parameters (they are only used in ``asmsub``), split word arrays
+written as ``&>``, and specific block addresses. The ``-varsgolden``, ``-varshigh`` and
+``-varsaddress`` command line options are rejected as well, so where the variables are placed is
+decided by the linker script instead.
+
 
 Memory Model
 ============

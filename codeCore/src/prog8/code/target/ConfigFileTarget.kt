@@ -4,6 +4,7 @@ import prog8.code.core.*
 import prog8.code.source.ImportFileSystem.expandTilde
 import prog8.code.target.encodings.Encoder
 import prog8.code.target.zp.ConfigurableZeropage
+import prog8.code.target.zp.M68kZeropage
 import java.io.IOException
 import java.nio.file.Path
 import java.util.*
@@ -109,9 +110,12 @@ class ConfigFileTarget(
                 CpuType.valueOf("CPU$cpuString")
             }
             val ioAddresses = parseAddressRanges("io_regions", props)
-            val zpFullsafe = parseAddressRanges("zp_fullsafe", props)
-            val zpKernalsafe = parseAddressRanges("zp_kernalsafe", props)
-            val zpBasicsafe = parseAddressRanges("zp_basicsafe", props)
+            // The m68k has no zero page, so the zeropage settings below don't apply to an m68k
+            // target and are not required in its config file.
+            fun zpSetting(name: String) = if(cpuType.is68k) 0u else props.getInteger(name)
+            val zpFullsafe = if(cpuType.is68k) emptyList() else parseAddressRanges("zp_fullsafe", props)
+            val zpKernalsafe = if(cpuType.is68k) emptyList() else parseAddressRanges("zp_kernalsafe", props)
+            val zpBasicsafe = if(cpuType.is68k) emptyList() else parseAddressRanges("zp_basicsafe", props)
 
             val libraryPath = expandTilde(Path(props.getString("library")))
             if(!libraryPath.isDirectory())
@@ -153,12 +157,12 @@ class ConfigFileTarget(
                 if(assemblerOptionsStr=="") emptyList() else assemblerOptionsStr.split(" "),
                 varsAddress,
                 ioAddresses,
-                props.getInteger("zp_scratch_b1"),
-                props.getInteger("zp_scratch_reg"),
-                props.getInteger("zp_scratch_w1"),
-                props.getInteger("zp_scratch_w2"),
-                props.getInteger("zp_scratch_ptr"),
-                props.getInteger("virtual_registers"),
+                zpSetting("zp_scratch_b1"),
+                zpSetting("zp_scratch_reg"),
+                zpSetting("zp_scratch_w1"),
+                zpSetting("zp_scratch_w2"),
+                zpSetting("zp_scratch_ptr"),
+                zpSetting("virtual_registers"),
                 zpFullsafe,
                 zpKernalsafe,
                 zpBasicsafe,
@@ -185,7 +189,8 @@ class ConfigFileTarget(
     override fun isIOAddress(address: UInt): Boolean = ioAddresses.any { address in it }
 
     override fun initializeMemoryAreas(compilerOptions: CompilationOptions) {
-        zeropage = ConfigurableZeropage(
+        // the m68k has no zero page, so the zp scratch addresses in the config file don't apply there
+        zeropage = if(cpu.is68k) M68kZeropage(compilerOptions) else ConfigurableZeropage(
             zpScratchB1, zpScratchReg, zpScratchW1, zpScratchW2, zpScratchPtr,
             virtualregistersStart,
             zpBasicsafe,

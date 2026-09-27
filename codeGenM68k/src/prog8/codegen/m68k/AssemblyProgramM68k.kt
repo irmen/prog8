@@ -1,14 +1,13 @@
 package prog8.codegen.m68k
 
 import prog8.code.assembly.IAssemblyProgram
-import prog8.code.core.CompilationOptions
-import prog8.code.core.CpuType
-import prog8.code.core.IErrorReporter
-import prog8.code.core.OutputType
+import prog8.code.core.*
 import prog8.code.target.Amiga1200Target
 import prog8.code.target.Amiga500Target
+import prog8.code.target.Qemu68kTarget
 import java.nio.file.Files
 import java.nio.file.Path
+import kotlin.io.path.readText
 
 class AssemblyProgramM68k(override val name: String, private val outputDir: Path) : IAssemblyProgram {
 
@@ -19,6 +18,20 @@ class AssemblyProgramM68k(override val name: String, private val outputDir: Path
     private val assemblyFile = outputDir.resolve("$name.asm")
 
     fun elfFile(): Path = outputDir.resolve("$name.elf")
+
+    /**
+     * A target supplies its own memory layout as a "link.ld" file.  A target defined by a
+     * config file (i.e. living outside of the compiler) keeps it in its library directory, so
+     * that is looked at first.  Targets built into the compiler are looked up as a
+     * /prog8lib/<targetname>/link.ld resource.  Anything else falls back to the qemu68k layout.
+     */
+    private fun resolveLinkerScript(target: ICompilationTarget): String {
+        target.libraryPath?.resolve("link.ld")?.takeIf { Files.isReadable(it) }?.let { return it.readText() }
+        val targetResource = "/prog8lib/${target.name}/link.ld"
+        AssemblyProgramM68k::class.java.getResource(targetResource)?.let { return it.readText() }
+        return AssemblyProgramM68k::class.java.getResource("/prog8lib/${Qemu68kTarget.NAME}/link.ld")?.readText()
+            ?: error("cannot find $targetResource resource, and no qemu68k fallback either")
+    }
 
     private fun runProcess(command: List<String>, quiet: Boolean, tool: String? = null): Boolean {
         val proc = ProcessBuilder(command).redirectErrorStream(true)
@@ -85,9 +98,7 @@ class AssemblyProgramM68k(override val name: String, private val outputDir: Path
                 // Step 2: write linker script and link to ELF executable
                 val linkScript = outputDir.resolve("$name.link.ld")
                 val elfFile = elfFile()
-                val resourceUrl = AssemblyProgramM68k::class.java.getResource("/prog8lib/qemu68k/link.ld")
-                    ?: error("cannot find /prog8lib/qemu68k/link.ld resource")
-                Files.writeString(linkScript, resourceUrl.readText())
+                Files.writeString(linkScript, resolveLinkerScript(options.compTarget))
 
                 val linkCmd = listOf(
                     "vlink",

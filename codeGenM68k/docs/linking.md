@@ -53,6 +53,16 @@ Passes the linker script (see below).
 
 ## The linker script (`link.ld`)
 
+The compiler resolves the linker script for a target in this order:
+
+1. `link.ld` in the target's library directory (the `library` setting). This is how a custom
+   target, defined outside of the compiler, supplies its own memory layout.
+2. `/prog8lib/<targetname>/link.ld`, for targets built into the compiler.
+3. `/prog8lib/qemu68k/link.ld` as the fallback, which is the script shown below.
+
+Only the `ELF` output type links at all. The `AMIGAHUNK` output type (used by the built-in
+Amiga targets) assembles straight to a hunk executable and ignores the linker script.
+
 ```
 ENTRY(_start)
 SECTIONS

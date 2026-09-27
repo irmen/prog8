@@ -2,6 +2,7 @@ package prog8.code.target
 
 import prog8.code.core.*
 import prog8.code.target.encodings.Encoder
+import prog8.code.target.zp.M68kZeropage
 import java.nio.file.Path
 
 
@@ -128,20 +129,6 @@ class Amiga500Target: ICompilationTarget,
         address in 0xe80000u..0xefffffu                // Zorro II autoconfig space
 
     override fun initializeMemoryAreas(compilerOptions: CompilationOptions) {
-        zeropage = AmigaZeropage(compilerOptions)
+        zeropage = M68kZeropage(compilerOptions)
     }
-}
-
-
-private class AmigaZeropage(options: CompilationOptions): Zeropage(options) {
-    override val SCRATCH_B1: UInt
-        get() = throw IllegalStateException("m68k shouldn't use this zeropage variable")
-    override val SCRATCH_REG: UInt
-        get() = throw IllegalStateException("m68k shouldn't use this zeropage variable")
-    override val SCRATCH_W1: UInt
-        get() = throw IllegalStateException("m68k shouldn't use this zeropage variable")
-    override val SCRATCH_W2: UInt
-        get() = throw IllegalStateException("m68k shouldn't use this zeropage variable")
-    override val SCRATCH_PTR: UInt
-        get() = throw IllegalStateException("m68k shouldn't use this zeropage variable")
 }

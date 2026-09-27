@@ -13,10 +13,12 @@ import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.choice
 import com.github.ajalt.clikt.parameters.types.int
 import prog8.ast.AstException
-import prog8.code.core.toHex
 import prog8.code.source.ImportFileSystem
 import prog8.code.source.ImportFileSystem.expandTilde
-import prog8.code.target.*
+import prog8.code.target.CompilationTargets
+import prog8.code.target.Cx16Target
+import prog8.code.target.VMTarget
+import prog8.code.target.getCompilationTargetByName
 import prog8.compiler.*
 import prog8.intermediate.IRFileReader
 import java.io.*
@@ -202,11 +204,6 @@ private fun compileMain(args: Array<String>): Boolean {
         presenter.printErrorLine("Invalid -varsaddress value: $varsAddressStr")
         return false
     }
-    val maxCliAddress = if(compilationTarget in setOf(Amiga500Target.NAME, Amiga1200Target.NAME, Qemu68kTarget.NAME, VMTarget.NAME)) 0xFFFFFFFFu else 0xFFFFu
-    if(varsAddress!=null && varsAddress > maxCliAddress) {
-        presenter.printErrorLine("vars address must be valid integer 0..${maxCliAddress.toHex()}")
-        return false
-    }
 
     if(varsGolden==true && varsHighBank!=null) {
         presenter.printErrorLine("Either use -varsgolden or -varshigh, not both.")
@@ -217,12 +214,9 @@ private fun compileMain(args: Array<String>): Boolean {
         return false
     }
 
-    if(compilationTarget in setOf(Amiga500Target.NAME, Amiga1200Target.NAME, Qemu68kTarget.NAME)) {
-        if(varsGolden || varsHighBank!=null || varsAddress!=null) {
-            presenter.printErrorLine("The -varsgolden/-varshigh/-varsaddress options are not available on the m68k target")
-            return false
-        }
-    }
+    // NOTE: whether the target supports these options, and the valid address range, are both
+    // checked in the compiler where the compilation target is resolved: it knows the actual
+    // CpuType and pointer size, which also covers custom targets defined by a config file.
 
     if(startVm==true) {
         runVm(moduleFiles.first(), quietAll==true, vmTrace==true)
