@@ -61,7 +61,90 @@ internal fun optimizeAssembly(lines: MutableList<String>) {
     if (fuseMods.isNotEmpty()) {
         applyModifications(fuseMods, lines, pretrimmed)
     }
+    // M5: drop a `lea base,a0` when a0 already holds that same base.
+    // NOT REGFILE-DEPENDENT: a0 is a real CPU register, so this pass is independent of the
+    // p8_regfile layout and of the planned register allocator.
+    val leaMods = optimizeRedundantLea(pretrimmed)
+    if (leaMods.isNotEmpty()) {
+        applyModifications(leaMods, lines, pretrimmed)
+    }
 }
+
+/**
+ * M5: remove `lea base,a0` instructions that recompute a base a0 is already known to hold.
+ *
+ * Indexed array access is emitted as `lea base,a0` followed by `(a0,d0.w*2)`. The lea itself is
+ * required - absolute-indexed addressing (`base(a0,d0.w*2)`) does not exist on the m68k - but in
+ * a sequence of accesses to the same array the base is reloaded several times over.
+ *
+ * A tracked value is dropped (a0 treated as unknown) whenever the scan sees:
+ *  - a label: incoming control flow may not be the fallthrough path
+ *  - any control transfer: a branch may reach elsewhere, and a call clobbers a0 (it is a
+ *    scratch register in the m68k calling convention)
+ *  - any instruction that names a0 outside a parenthesised address, i.e. writes it
+ *
+ * Anything else - including pure reads such as `move.w (a0,d0.w),d1` - leaves it untouched.
+ */
+private fun optimizeRedundantLea(allPretrimmed: List<String>): List<Modification> {
+    // Unconditional control flow, calls and returns end the tracked value: control leaves via a
+    // path where a0's contents are unknown (and a call clobbers a0, a scratch register in the
+    // m68k calling convention). The whole DBcc family is included as loop control.
+    // Plain condition-code branches (bne, bge, ...) are deliberately NOT in this set: they do not
+    // modify a0, and their target is always a label, which resets the tracked value below. So the
+    // fallthrough keeps the tracked value and the branch target is re-entered conservatively.
+    val controlTransfers = setOf(
+        "bra", "bsr", "jmp", "jsr", "rts", "rtr", "rte", "trap",
+        "dbcc", "dbcs", "dbhi", "dbhs", "dblo", "dbls", "dbne", "dbnz", "dbeq", "dbz",
+        "dbmi", "dbpl", "dbge", "dblt", "dbgt", "dble", "dbvc", "dbvs", "dbtst", "dbset",
+        "dbclr", "dbchg", "dbf", "dbra"
+    )
+    // A lea whose destination is a0, and the value it leaves there.
+    fun leaBase(instr: String): String? {
+        if (!instr.startsWith("lea ") && !instr.startsWith("lea\t"))
+            return null
+        val operands = instr.substringAfter(' ').substringBefore(';')
+        val parts = operands.split(',', limit = 2)
+        if (parts.size != 2 || parts[1].trim() != "a0")
+            return null
+        return parts[0].trim()
+    }
+
+    val filtered = allPretrimmed.withIndex()
+        .filter { it.value.isNotBlank() && !it.value.trimStart().startsWith(';') }
+        .map { TrimmedLine(it.value.trimStart(), it.value.trimStart(), it.index) }
+
+    val mods = mutableListOf<Modification>()
+    var a0Base: String? = null
+    for (line in filtered) {
+        val instr = line.instruction
+        if (hasLabel(line.value)) {
+            // fallthrough into a label is fine, but the label may also be entered from
+            // elsewhere, so the tracked value is no longer known to hold
+            a0Base = null
+            continue
+        }
+        val mnemonic = instr.substringBefore(' ').substringBefore('\t').lowercase()
+        if (mnemonic in controlTransfers) {
+            a0Base = null
+            continue
+        }
+        val base = leaBase(instr.lowercase())
+        if (base != null) {
+            if (base == a0Base)
+                mods.add(Modification(line.index, remove = true, replacement = null))
+            else
+                a0Base = base
+            continue
+        }
+        // Any non-parenthesised mention of a0 means it is written
+        if (instr.replace(parenthesised, "").contains("a0", ignoreCase = true))
+            a0Base = null
+    }
+    return mods
+}
+
+/** Matches a parenthesised group, for stripping addressing modes. */
+private val parenthesised = Regex("""\([^)]*\)""")
 
 /** A single edit to apply: either remove a line (keeping its label if present) or replace it. */
 private class Modification(val lineIndex: Int, val remove: Boolean, val replacement: String?)

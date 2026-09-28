@@ -1279,4 +1279,80 @@ class TestInstructionSelectionOptimizations : FunSpec({
         lines.count { it == "ext.w  d0" } shouldBe 1
         lines.count { it == "ext.l  d0" } shouldBe 1
     }
+
+    test("M5 drops a lea when a0 already holds the same base") {
+        val lines = mutableListOf(
+            "    lea  arr,a0",
+            "    move.w  d1,(a0,d0.w)",
+            "    lea  arr,a0",
+            "    clr.w  (a0,d0.w)"
+        )
+        optimizeAssembly(lines)
+        lines.count { it.trimStart().startsWith("lea  arr,a0") } shouldBe 1
+        lines.any { it.trimStart().startsWith("clr.w") } shouldBe true
+    }
+
+    test("M5 keeps a lea when a different base was loaded into a0") {
+        val lines = mutableListOf(
+            "    lea  arr,a0",
+            "    move.w  d1,(a0,d0.w)",
+            "    lea  other,a0",
+            "    lea  arr,a0",
+            "    clr.w  (a0,d0.w)"
+        )
+        optimizeAssembly(lines)
+        lines.count { it.trimStart().startsWith("lea  arr,a0") } shouldBe 2
+        lines.count { it.trimStart().startsWith("lea  other,a0") } shouldBe 1
+    }
+
+    test("M5 keeps a lea when a0 is written in between") {
+        val lines = mutableListOf(
+            "    lea  arr,a0",
+            "    movea.l  other,a0",
+            "    lea  arr,a0",
+            "    clr.w  (a0,d0.w)"
+        )
+        optimizeAssembly(lines)
+        lines.count { it.trimStart().startsWith("lea  arr,a0") } shouldBe 2
+    }
+
+    test("M5 keeps a lea when a call intervenes") {
+        val lines = mutableListOf(
+            "    lea  arr,a0",
+            "    bsr  some.sub",
+            "    lea  arr,a0",
+            "    clr.w  (a0,d0.w)"
+        )
+        optimizeAssembly(lines)
+        lines.count { it.trimStart().startsWith("lea  arr,a0") } shouldBe 2
+        lines.any { it.trimStart().startsWith("bsr") } shouldBe true
+    }
+
+    test("M5 forgets a0 across a label") {
+        val lines = mutableListOf(
+            "    lea  arr,a0",
+            "somewhere:",
+            "    lea  arr,a0",
+            "    clr.w  (a0,d0.w)"
+        )
+        optimizeAssembly(lines)
+        lines.count { it.trimStart().startsWith("lea  arr,a0") } shouldBe 2
+        lines.any { it.trimStart().startsWith("somewhere:") } shouldBe true
+    }
+
+    test("M5 drops a lea across a conditional branch to a label") {
+        // A conditional branch does not modify a0, and its target is a label where the tracked
+        // value is dropped, so the fallthrough still knows a0 holds the base.
+        val lines = mutableListOf(
+            "    lea  arr,a0",
+            "    move.w  (a0,d0.w),d0",
+            "    bge  clamp.done",
+            "    lea  arr,a0",
+            "    clr.w  (a0,d0.w)",
+            "clamp.done:"
+        )
+        optimizeAssembly(lines)
+        lines.count { it.trimStart().startsWith("lea  arr,a0") } shouldBe 1
+        lines.any { it.trimStart().startsWith("clr.w") } shouldBe true
+    }
 })
