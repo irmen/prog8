@@ -1013,11 +1013,12 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                 }
                 in powersOfTwoFloat -> {
                     val numshifts = powersOfTwoFloat.indexOf(cv)
-                    if (leftDt.isInteger) {
-                        // division by a power of two => logical shift right
-                        // NOTE: technically this optimization is only 100% accurate on unsigned integers
-                        //       whereas shifthing signed integers can result in an off-by-1 rounding difference
-                        // (If you change the guard to only trigger this for unsigned integers the codegen will fall back to using division, which is slow but 100% accurate)                        
+                    if (leftDt.isUnsignedInteger) {
+                        // unsigned division by a power of two => logical shift right (exact)
+                        // Signed integers must NOT be folded here: the shift floors toward -inf, while
+                        // Prog8's signed '/' truncates toward zero, so x / 2^n would be off by one for
+                        // every negative dividend that is not an exact multiple. Leaving the division in
+                        // place lets the codegen emit a correct (slower) signed DIVS instead.
                         return BinaryExpression(expr.left, ">>", NumericLiteral.optimalInteger(numshifts, expr.position), expr.position)
                     }
                 }

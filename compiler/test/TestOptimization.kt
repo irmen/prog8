@@ -24,6 +24,7 @@ import prog8tests.helpers.DummyFunctions
 import prog8tests.helpers.DummyMemsizer
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
+import kotlin.io.path.readText
 
 
 class TestOptimization: FunSpec({
@@ -1210,6 +1211,91 @@ main {
         val funcarg3 = funcarg3tc.expression as FunctionCallExpression
         funcarg3.target.nameInSource shouldBe listOf("msb")
         funcarg3.args.single() shouldBe instanceOf<BinaryExpression>()
+    }
+
+    test("division by power of two is only folded to a shift for unsigned types") {
+        // Prog8's signed '/' truncates toward zero, but an arithmetic shift right floors
+        // toward negative infinity. The two only agree for unsigned values, for exact
+        // multiples, and for non-negative dividends. Folding x / 2^n into x >> n therefore
+        // gives an off-by-one for every negative dividend that is not an exact multiple,
+        // so the strength reduction must stay restricted to unsigned types.
+        val src="""
+main {
+    sub start() {
+        word @shared sw = 1
+        byte @shared sb = 1
+        long @shared sl = 1
+        uword @shared uw = 1
+        ubyte @shared ub = 1
+
+        word @shared res_w = sw / 8
+        byte @shared res_b = sb / 8
+        long @shared res_l = sl / 8
+        uword @shared res_uw = uw / 8
+        ubyte @shared res_ub = ub / 8
+    }
+}"""
+
+        val result = compileText(Cx16Target(), true, src, outputDir, writeAssembly = false)!!
+        val assignments = result.compilerAst.entrypoint.statements
+            .filterIsInstance<Assignment>()
+            .associateBy { it.target.identifier!!.nameInSource.last() }
+
+        // signed: the division has to survive, so the backend can emit a correct signed DIVS
+        for (name in listOf("res_w", "res_b", "res_l")) {
+            val value = withClue("value of $name should not be constant-folded") {
+                assignments.getValue(name).value
+            }
+            withClue("$name must keep the division, not a shift") {
+                (value as BinaryExpression).operator shouldBe "/"
+            }
+        }
+
+        // unsigned: the shift is exact and must still happen
+        for (name in listOf("res_uw", "res_ub")) {
+            val value = assignments.getValue(name).value
+            withClue("$name should be folded into a shift") {
+                (value as BinaryExpression).operator shouldBe ">>"
+            }
+        }
+    }
+
+    test("signed division by a power of two is not lowered to a shift") {
+        // Follows up on the AST level test: verify the code that actually reaches the
+        // backend. Signed power-of-two division must become a real signed DIVS, never an
+        // arithmetic shift, while the unsigned case still becomes a logical shift.
+        val src="""
+main {
+    sub start() {
+        word @shared sw = 1
+        byte @shared sb = 1
+        long @shared sl = 1
+        uword @shared uw = 1
+        ubyte @shared ub = 1
+
+        word @shared res_w = sw / 8
+        byte @shared res_b = sb / 8
+        long @shared res_l = sl / 8
+        uword @shared res_uw = uw / 8
+        ubyte @shared res_ub = ub / 8
+    }
+}"""
+
+        val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = true)!!
+        val irFile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
+        val ir = irFile.readText()
+
+        withClue("signed word/byte/long division by 8 must use a real division:\n$ir") {
+            ir.contains("divs.w r") shouldBe true
+            ir.contains("divs.b r") shouldBe true
+            ir.contains("divs.l r") shouldBe true
+        }
+        withClue("no signed power-of-two division may become an arithmetic shift:\n$ir") {
+            ir.contains("asr") shouldBe false
+        }
+        withClue("unsigned power-of-two division should still fold to a logical shift:\n$ir") {
+            ir.contains("lsr") shouldBe true
+        }
     }
 
     test("no operand swap on logical expressions with shortcircuit evaluation") {
