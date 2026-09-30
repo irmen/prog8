@@ -62,8 +62,8 @@ sys {
         }}
     }
 
-    asmsub wait(long jiffies @D1) {
-        ; --- wait approximately the given number of jiffies (1/60th seconds)
+    asmsub wait(long ticks @D1) {
+        ; --- wait approximately the given number of ticks (1/50th seconds, i.e. 20ms each)
         %asm {{
             move.l  sys.DOSBase,a6
             jmp     -198(a6)        ; Delay

@@ -888,7 +888,9 @@ main {
 
     // The four cases below each cover one of the four "split into assign + compare" rewrite
     // sites in StatementOptimizer (min/max x either operand order). All of them assign to the
-    // target before the comparison, so the compared operand must be a real constant.
+    // target before the comparison, so the compared operand must be a real constant, otherwise
+    // the comparison reads the already overwritten value and the min/max silently degenerates
+    // into plain "x = expr". See github issue #247.
     fun assertNotReducedToOneOperand(source: String, expectedFuncPrefix: String) {
         val result = compileText(Cx16Target(), optimize = true, source, outputDir, writeAssembly = false)!!
         val stmts = result.compilerAst.entrypoint.statements
@@ -901,24 +903,6 @@ main {
         withClue("expected a ${expectedFuncPrefix}__* builtin call") {
             call!!.target.nameInSource.single() shouldStartWith expectedFuncPrefix
         }
-    }
-
-    test("min/max assignment where the target aliases an operand keeps the comparison") {
-        // The rewrite of "x = min(expr, c)" into "x = expr; if x > c then x = c" assigns to x
-        // before doing the comparison, so it is only valid when the compared operand is a real
-        // constant. When it is a variable that aliases x, the comparison reads the already
-        // overwritten value and the min/max silently degenerates into plain "x = expr".
-        // See github issue #247.
-        assertNotReducedToOneOperand("""
-        main {
-            word @shared err
-            word @shared speed
-            sub start() {
-                err = 80
-                speed = 1
-                speed = min(err / 8, speed)
-            }
-        }""", "min")
     }
 
     test("min/max split into assign+compare is still applied for constant operands") {
