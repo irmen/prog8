@@ -880,6 +880,107 @@ main {
         ifStmt.condition shouldBe instanceOf<BinaryExpression>()
     }
 
+    // The four cases below each cover one of the four "split into assign + compare" rewrite
+    // sites in StatementOptimizer (min/max x either operand order). All of them assign to the
+    // target before the comparison, so the compared operand must be a real constant.
+    fun assertNotReducedToOneOperand(source: String, expectedFuncPrefix: String) {
+        val result = compileText(Cx16Target(), optimize = true, source, outputDir, writeAssembly = false)!!
+        val stmts = result.compilerAst.entrypoint.statements
+        // the assignment under test is the last one before the implicit return
+        val assignment = stmts.filterIsInstance<Assignment>().last()
+        val call = assignment.value as? FunctionCallExpression
+        withClue("expected the ${expectedFuncPrefix}() call to survive, got: ${assignment.value}") {
+            call shouldNotBe null
+        }
+        withClue("expected a ${expectedFuncPrefix}__* builtin call") {
+            call!!.target.nameInSource.single() shouldStartWith expectedFuncPrefix
+        }
+    }
+
+    test("min/max assignment where the target aliases an operand keeps the comparison") {
+        // The rewrite of "x = min(expr, c)" into "x = expr; if x > c then x = c" assigns to x
+        // before doing the comparison, so it is only valid when the compared operand is a real
+        // constant. When it is a variable that aliases x, the comparison reads the already
+        // overwritten value and the min/max silently degenerates into plain "x = expr".
+        // See github issue #247.
+        assertNotReducedToOneOperand("""
+        main {
+            word @shared err
+            word @shared speed
+            sub start() {
+                err = 80
+                speed = 1
+                speed = min(err / 8, speed)
+            }
+        }""", "min")
+    }
+
+    test("min/max split into assign+compare is still applied for constant operands") {
+        val src = """
+        main {
+            word @shared x
+            sub start() {
+                x = 5
+                x = min(x, 100)
+            }
+        }"""
+        val result = compileText(Cx16Target(), optimize = true, src, outputDir, writeAssembly = false)!!
+        val stmts = result.compilerAst.entrypoint.statements
+        stmts.any { it is IfElse } shouldBe true
+    }
+
+    test("min/max keeps comparison when target aliases the second operand") {
+        assertNotReducedToOneOperand("""
+        main {
+            word @shared err
+            word @shared speed
+            sub start() {
+                err = 80
+                speed = 1
+                speed = min(err / 8, speed)
+            }
+        }""", "min")
+    }
+
+    test("min/max keeps comparison when target aliases the first operand") {
+        assertNotReducedToOneOperand("""
+        main {
+            word @shared err
+            word @shared speed
+            sub start() {
+                err = 80
+                speed = 1
+                speed = min(speed, err / 8)
+            }
+        }""", "min")
+    }
+
+    test("max keeps comparison when target aliases the second operand") {
+        assertNotReducedToOneOperand("""
+        main {
+            word @shared err
+            word @shared speed
+            sub start() {
+                err = -80
+                speed = -1
+                speed = max(err / 8, speed)
+            }
+        }""", "max")
+    }
+
+    test("max keeps comparison when target aliases the first operand") {
+        assertNotReducedToOneOperand("""
+        main {
+            word @shared err
+            word @shared speed
+            sub start() {
+                err = -80
+                speed = -1
+                speed = max(speed, err / 8)
+            }
+        }""", "max")
+    }
+
     test("pointer indexing inside other expression ok") {
         val src="""
             main{
