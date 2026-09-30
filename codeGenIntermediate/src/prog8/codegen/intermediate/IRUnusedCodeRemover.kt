@@ -8,6 +8,18 @@ class IRUnusedCodeRemover(
     private val irprog: IRProgram,
     private val errors: IErrorReporter
 ) {
+    /**
+     * The symbols that struct instance initializers take the address of. These are plain data
+     * references: nothing ever calls them, so without this the code they point at is considered
+     * unused and removed, leaving a dangling reference in the instance initializer.
+     * The same reasoning applies to the array initializers of variables, which are handled
+     * separately at each of the use sites below.
+     */
+    private fun structInstanceInitRefs(): Sequence<IRStSymbolicReference.Symbol> =
+        irprog.st.allStructInstances()
+            .flatMap { instance -> instance.values.asSequence().map { it.value } }
+            .filterIsInstance<IRStSymbolicReference.Symbol>()
+
     fun optimize(): Int {
         var numRemoved = removeUnusedSubroutines() + removeUnusedAsmSubroutines()
 
@@ -51,6 +63,14 @@ class IRUnusedCodeRemover(
                     })
                         return   // symbol occurs in an initializer value (address-of this symbol)_
                 }
+            }
+
+            irprog.st.allStructInstances().forEach { instance ->
+                if(instance.values.any { fieldValue ->
+                        val ref = fieldValue.value
+                        ref is IRStSymbolicReference.Symbol && ref.name.startsWith(blockLabel)
+                    })
+                    return   // symbol occurs in a struct instance initializer value
             }
         }
 
@@ -221,6 +241,11 @@ class IRUnusedCodeRemover(
                 }
             }
 
+        // ... and likewise the ones referenced in struct instance initializers:
+        structInstanceInitRefs()
+            .filter { irprog.st.lookup(it.name) == null }
+            .forEach { ref -> irprog.getChunkWithLabel(ref.name).let { reachable += it } }
+
         fun grow() {
             val new = mutableSetOf<IRCodeChunkBase>()
             reachable.forEach {
@@ -276,6 +301,11 @@ class IRUnusedCodeRemover(
                     }
                 }
             }
+
+        // ... and likewise the chunks referenced in struct instance initializers:
+        structInstanceInitRefs()
+            .filter { irprog.st.lookup(it.name) == null }
+            .forEach { ref -> allLabeledChunks[ref.name]?.let { linkedChunks += it } }
 
         irprog.foreachCodeChunk { chunk ->
             chunk.next?.let { next -> linkedChunks += next }

@@ -362,4 +362,22 @@ class TestArraysOfStructs: FunSpec({
             }
         }
     }
+
+    test("routine referenced only from a struct instance initializer is not removed as unused") {
+        val src = """
+            main {
+                sub handler() -> ubyte { return 42 }
+                struct Function { pointer addr }
+                ^^Function[] a = [ ^^Function:[&handler] ]
+                sub start() {
+                    pointer p = a[0].addr
+                    call(p)
+                }
+            }"""
+        val out = tempdir().toPath()
+        compileText(C64Target(), true, src, out, writeAssembly = true, assemble = false, newCodegen = true)!!
+        val asmFile = out.toFile().listFiles()!!.single { it.name.endsWith(".asm") }
+        val lines = asmFile.readText().lines().map { it.trim().replace(Regex("\\s+"), " ") }
+        lines.any { it == "p8b_main.p8s_handler .proc" } shouldBe true
+    }
 })
