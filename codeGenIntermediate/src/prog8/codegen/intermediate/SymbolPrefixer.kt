@@ -260,8 +260,20 @@ private fun PtVariable.prefixVariableOrThis(parent: PtNode, st: SymbolTable): Pt
                 is PtFunctionCall if elt.builtin -> {
                     if (elt.name != "prog8_lib_structalloc")
                         throw AssemblyError("weird array value element $elt")
-                    else
+                    else {
+                        // The struct initializer's arguments are not reachable via children, so
+                        // collectRefs never visits them; prefix the address-of ones here.
+                        elt.children.forEachIndexed { idx, arg ->
+                            if (arg is PtAddressOf && arg.definingBlock()?.options?.noSymbolPrefixing != true) {
+                                val newAddr = PtAddressOf(arg.type, false, arg.position)
+                                newAddr.add(arg.identifier!!.prefixIdentifierOrThis(newAddr, st))
+                                if (arg.arrayIndexExpr != null)
+                                    newAddr.add(arg.arrayIndexExpr!!)
+                                elt.setChild(idx, newAddr)
+                            }
+                        }
                         newValue.add(elt)
+                    }
                 }
                 else -> throw AssemblyError("weird array value element $elt")
             }

@@ -1,5 +1,6 @@
 package prog8tests.compiler
 
+import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.engine.spec.tempdir
 import io.kotest.matchers.shouldBe
@@ -333,5 +334,32 @@ class TestArraysOfStructs: FunSpec({
         // check assembly was generated without needing vasm (assemble=false)
         val asmFiles = out.toFile().listFiles()!!.filter { it.name.endsWith(".asm") }
         (asmFiles.isNotEmpty() || result.codegenAst != null) shouldBe true
+    }
+
+    // A struct instance's initializer arguments are held in a property rather than in the AST
+    // children, so the symbol prefixer never walks into them and has to prefix the address-of
+    // arguments itself. Both code generators run their own copy of the prefixer, hence both are
+    // checked here. See github issue #246.
+    test("array of struct instances: address-of initializer is symbol prefixed") {
+        val src = """
+            main {
+                uword target
+                struct Function { pointer addr }
+                ^^Function[] a = [ ^^Function:[&target] ]
+                sub start() {
+                    pointer p = a[0].addr
+                    target = 4242
+                }
+            }"""
+        listOf(false, true).forEach { newCodegen ->
+            withClue("newCodegen=$newCodegen") {
+                val out = tempdir().toPath()
+                compileText(C64Target(), true, src, out, writeAssembly = true, assemble = false, newCodegen = newCodegen)!!
+                val asmFile = out.toFile().listFiles()!!.single { it.name.endsWith(".asm") }
+                val lines = asmFile.readText().lines().map { it.trim().replace(Regex("\\s+"), " ") }
+                lines.any { it.contains("p8b_main.p8v_target") && (it.contains(".dstruct") || it.startsWith(".word ")) } shouldBe true
+                lines.any { it.contains("main.target") } shouldBe false
+            }
+        }
     }
 })
