@@ -486,15 +486,19 @@ class StatementOptimizer(private val program: Program,
                     return listOf(AstReplaceNode(assignment, ifstmt, parent))
                 }
 
-                if(v2 is NumericLiteral || v2 is IdentifierReference) {
+                if(v2 is NumericLiteral) {
                     // x = min(expression, 100)  ->  x=expression,  if x>100  x=100
+                    // Only safe with a real constant: the assignment to x happens before the
+                    // comparison, so comparing against anything that x could alias (such as a
+                    // variable that happens to be the assignment target) would read the already
+                    // overwritten value.
                     val assign = Assignment(assignment.target.copy(), v1, AssignmentOrigin.OPTIMIZER, assignment.position)
                     val ifstmt = makeMinMaxCheckAndAssignRight(assign.target.toExpression(), ">", v2, assignment.target, assignment.position)
                     return listOf(
                         AstInsert.after(assignment, ifstmt, parent as IStatementContainer),
                         AstReplaceNode(assignment, assign, parent)
                     )
-                } else if(v1 is NumericLiteral || v1 is IdentifierReference) {
+                } else if(v1 is NumericLiteral) {
                     // x = min(100, expression)  ->  x=expression,  if x>100  x=100
                     val assign = Assignment(assignment.target.copy(), v2, AssignmentOrigin.OPTIMIZER, assignment.position)
                     val ifstmt = makeMinMaxCheckAndAssignRight(assign.target.toExpression(), ">", v1, assignment.target, assignment.position)
@@ -519,15 +523,17 @@ class StatementOptimizer(private val program: Program,
                     return listOf(AstReplaceNode(assignment, ifstmt, parent))
                 }
 
-                if(v2 is NumericLiteral || v2 is IdentifierReference) {
+                if(v2 is NumericLiteral) {
                     // x = max(expression, 100)  ->  x=expression,  if x<100  x=100
+                    // See the note in the min__ case above: the compared operand must be a
+                    // real constant, never a variable that the assignment could have aliased.
                     val assign = Assignment(assignment.target.copy(), v1, AssignmentOrigin.OPTIMIZER, assignment.position)
                     val ifstmt = makeMinMaxCheckAndAssignRight(assign.target.toExpression(), "<", v2, assignment.target, assignment.position)
                     return listOf(
                         AstInsert.after(assignment, ifstmt, parent as IStatementContainer),
                         AstReplaceNode(assignment, assign, parent)
                     )
-                } else if(v1 is NumericLiteral || v1 is IdentifierReference) {
+                } else if(v1 is NumericLiteral) {
                     // x = max(100, expression)  ->  x=expression,  if x<100  x=100
                     val assign = Assignment(assignment.target.copy(), v2, AssignmentOrigin.OPTIMIZER, assignment.position)
                     val ifstmt = makeMinMaxCheckAndAssignRight(assign.target.toExpression(), "<", v1, assignment.target, assignment.position)
