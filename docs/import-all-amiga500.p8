@@ -27,6 +27,7 @@
 %import graphics
 %import intuition
 %import utility
+%import lowlevel
 %import timer
 %import audio
 %import ptplayer

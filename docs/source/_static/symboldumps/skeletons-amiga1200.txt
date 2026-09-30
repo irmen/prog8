@@ -4515,6 +4515,160 @@ lists  {
 }
 
 
+LIBRARY MODULE NAME: lowlevel
+-----------------------------
+
+lowlevel  {
+    struct KeyQuery
+    const ubyte  CDReboot_Default
+    const ubyte  CDReboot_Off
+    const ubyte  CDReboot_On
+    const ubyte  JPB_BUTTON_BLUE
+    const ubyte  JPB_BUTTON_FORWARD
+    const ubyte  JPB_BUTTON_GREEN
+    const ubyte  JPB_BUTTON_PLAY
+    const ubyte  JPB_BUTTON_RED
+    const ubyte  JPB_BUTTON_REVERSE
+    const ubyte  JPB_BUTTON_YELLOW
+    const ubyte  JPB_JOY_DOWN
+    const ubyte  JPB_JOY_LEFT
+    const ubyte  JPB_JOY_RIGHT
+    const ubyte  JPB_JOY_UP
+    const long  JPF_BUTTON_BLUE
+    const long  JPF_BUTTON_FORWARD
+    const long  JPF_BUTTON_GREEN
+    const long  JPF_BUTTON_PLAY
+    const long  JPF_BUTTON_RED
+    const long  JPF_BUTTON_REVERSE
+    const long  JPF_BUTTON_YELLOW
+    const ubyte  JPF_JOY_DOWN
+    const ubyte  JPF_JOY_LEFT
+    const ubyte  JPF_JOY_RIGHT
+    const ubyte  JPF_JOY_UP
+    const long  JP_BUTTON_MASK
+    const ubyte  JP_DIRECTION_MASK
+    const ubyte  JP_MHORZ_MASK
+    const uword  JP_MOUSE_MASK
+    const uword  JP_MVERT_MASK
+    const long  JP_TYPE_GAMECTLR
+    const long  JP_TYPE_JOYSTK
+    const long  JP_TYPE_MASK
+    const long  JP_TYPE_MOUSE
+    const ubyte  JP_TYPE_NOTAVAIL
+    const long  JP_TYPE_UNKNOWN
+    const ubyte  LANG_AMERICAN
+    const ubyte  LANG_ARABIC
+    const ubyte  LANG_CHINESE
+    const ubyte  LANG_DANISH
+    const ubyte  LANG_DUTCH
+    const ubyte  LANG_ENGLISH
+    const ubyte  LANG_FINNISH
+    const ubyte  LANG_FRENCH
+    const ubyte  LANG_GERMAN
+    const ubyte  LANG_GREEK
+    const ubyte  LANG_HEBREW
+    const ubyte  LANG_ITALIAN
+    const ubyte  LANG_JAPANESE
+    const ubyte  LANG_KOREAN
+    const ubyte  LANG_NORWEGIAN
+    const ubyte  LANG_PORTUGUESE
+    const ubyte  LANG_SPANISH
+    const ubyte  LANG_SWEDISH
+    const ubyte  LANG_UNKNOWN
+    const ubyte  LLKB_CAPSLOCK
+    const ubyte  LLKB_CONTROL
+    const ubyte  LLKB_LALT
+    const ubyte  LLKB_LAMIGA
+    const ubyte  LLKB_LSHIFT
+    const ubyte  LLKB_RALT
+    const ubyte  LLKB_RAMIGA
+    const ubyte  LLKB_RSHIFT
+    const long  LLKF_CAPSLOCK
+    const long  LLKF_CONTROL
+    const long  LLKF_LALT
+    const long  LLKF_LAMIGA
+    const long  LLKF_LSHIFT
+    const long  LLKF_RALT
+    const long  LLKF_RAMIGA
+    const long  LLKF_RSHIFT
+    const ubyte  RAWKEY_PORT0_BUTTON_BLUE
+    const ubyte  RAWKEY_PORT0_BUTTON_FORWARD
+    const ubyte  RAWKEY_PORT0_BUTTON_GREEN
+    const ubyte  RAWKEY_PORT0_BUTTON_PLAY
+    const ubyte  RAWKEY_PORT0_BUTTON_RED
+    const ubyte  RAWKEY_PORT0_BUTTON_REVERSE
+    const ubyte  RAWKEY_PORT0_BUTTON_YELLOW
+    const ubyte  RAWKEY_PORT0_JOY_DOWN
+    const ubyte  RAWKEY_PORT0_JOY_LEFT
+    const ubyte  RAWKEY_PORT0_JOY_RIGHT
+    const ubyte  RAWKEY_PORT0_JOY_UP
+    const uword  RAWKEY_PORT1_BUTTON_BLUE
+    const uword  RAWKEY_PORT1_BUTTON_FORWARD
+    const uword  RAWKEY_PORT1_BUTTON_GREEN
+    const uword  RAWKEY_PORT1_BUTTON_PLAY
+    const uword  RAWKEY_PORT1_BUTTON_RED
+    const uword  RAWKEY_PORT1_BUTTON_REVERSE
+    const uword  RAWKEY_PORT1_BUTTON_YELLOW
+    const uword  RAWKEY_PORT1_JOY_DOWN
+    const uword  RAWKEY_PORT1_JOY_LEFT
+    const uword  RAWKEY_PORT1_JOY_RIGHT
+    const uword  RAWKEY_PORT1_JOY_UP
+    const uword  RAWKEY_PORT2_BUTTON_BLUE
+    const uword  RAWKEY_PORT2_BUTTON_FORWARD
+    const uword  RAWKEY_PORT2_BUTTON_GREEN
+    const uword  RAWKEY_PORT2_BUTTON_PLAY
+    const uword  RAWKEY_PORT2_BUTTON_RED
+    const uword  RAWKEY_PORT2_BUTTON_REVERSE
+    const uword  RAWKEY_PORT2_BUTTON_YELLOW
+    const uword  RAWKEY_PORT2_JOY_DOWN
+    const uword  RAWKEY_PORT2_JOY_LEFT
+    const uword  RAWKEY_PORT2_JOY_RIGHT
+    const uword  RAWKEY_PORT2_JOY_UP
+    const uword  RAWKEY_PORT3_BUTTON_BLUE
+    const uword  RAWKEY_PORT3_BUTTON_FORWARD
+    const uword  RAWKEY_PORT3_BUTTON_GREEN
+    const uword  RAWKEY_PORT3_BUTTON_PLAY
+    const uword  RAWKEY_PORT3_BUTTON_RED
+    const uword  RAWKEY_PORT3_BUTTON_REVERSE
+    const uword  RAWKEY_PORT3_BUTTON_YELLOW
+    const uword  RAWKEY_PORT3_JOY_DOWN
+    const uword  RAWKEY_PORT3_JOY_LEFT
+    const uword  RAWKEY_PORT3_JOY_RIGHT
+    const uword  RAWKEY_PORT3_JOY_UP
+    const long  SCON_AddCreateKeys
+    const long  SCON_CDReboot
+    const long  SCON_Dummy
+    const long  SCON_KillReq
+    const long  SCON_RemCreateKeys
+    const long  SCON_StopInput
+    const long  SCON_TakeOverSys
+    const long  SJA_Dummy
+    const long  SJA_Reinitialize
+    const ubyte  SJA_TYPE_AUTOSENSE
+    const ubyte  SJA_TYPE_GAMECTLR
+    const ubyte  SJA_TYPE_JOYSTK
+    const ubyte  SJA_TYPE_MOUSE
+    const long  SJA_Type
+    AddKBInt  (long intRoutine @A0, long intData @A1) -> long @D0@bank 19 = -$3c
+    AddTimerInt  (long intRoutine @A0, long intData @A1) -> long @D0@bank 19 = -$4e
+    AddVBlankInt  (long intRoutine @A0, long intData @A1) -> long @D0@bank 19 = -$6c
+    ElapsedTime  (long context @A0) -> long @D0@bank 19 = -$66
+    GetKey  () -> long @D0@bank 19 = -$30
+    GetLanguageSelection  () -> ubyte @D0@bank 19 = -$24
+    QueryKeys  (^^lowlevel.KeyQuery queryArray @A0, long arraySize @D1)@bank 19 = -$36
+    ReadJoyPort  (long port @D0) -> long @D0@bank 19 = -$1e
+    RemKBInt  (long intHandle @A1)@bank 19 = -$42
+    RemTimerInt  (long intHandle @A1)@bank 19 = -$54
+    RemVBlankInt  (long intHandle @A1)@bank 19 = -$72
+    SetJoyPortAttrsA  (long portNumber @D0, long tagList @A1) -> bool @D0@bank 19 = -$84
+    StartTimerInt  (long intHandle @A1, long timeInterval @D0, bool continuous @D1)@bank 19 = -$60
+    StopTimerInt  (long intHandle @A1)@bank 19 = -$5a
+    SystemControlA  (long tagList @A1) -> long @D0@bank 19 = -$48
+    closelib  ()
+    openlib  () -> bool
+}
+
+
 LIBRARY MODULE NAME: math
 -------------------------
 

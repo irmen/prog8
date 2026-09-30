@@ -3,9 +3,13 @@
 Convert Amiga NDK LVO, SFD, and .i files to Prog8 definitions.
 
 Usage:
-  python amigalibs2prog8.py <ndk_path> <output_dir>
+  python amigalibs2prog8.py <ndk_path> <output_dir> [--shared-prefix]
 
   e.g. python scripts/amigalibs2prog8.py /path/to/AmigaNDK_headers compiler/res/prog8lib/amiga500
+
+  With --shared-prefix the files are written as shared_amiga_<library>.p8 with
+  %option merge, for regenerating the shared include modules in
+  compiler/res/prog8lib that the per-target <library>.p8 wrappers import.
 
 Self-contained single file, clearly separated into 6 sections:
   0. CONFIG      - AMIGA_LIBS, TYPE_MAP, STRUCT_NAME_MAP, LIB_STRUCT_TAGS, bank map
@@ -120,6 +124,8 @@ STRUCT_NAME_MAP = {
     'ContextNode':    ('ContextNode',      'cn_'),
     'StoredProperty': ('StoredProperty',   'sp_'),
     'CollectionItem': ('CollectionItem',   'ci_'),
+    # lowlevel
+    'KeyQuery':       ('KeyQuery',         'kq_'),
     # workbench
     'DiskObject':     ('DiskObject',       'do_'),
 }
@@ -1043,7 +1049,7 @@ LIBRARY_BANK_MAP = {
 # 0. CONFIG - Amiga libraries to generate
 # ---------------------------------------------------------------------------
 
-AMIGA_LIBS = ["exec", "dos", "graphics", "intuition", "utility", "iffparse", "arexx", "icon"]
+AMIGA_LIBS = ["exec", "dos", "graphics", "intuition", "utility", "iffparse", "arexx", "icon", "lowlevel"]
 
 # ---------------------------------------------------------------------------
 # Library-specific helper routines (not from NDK, hand-maintained)
@@ -1086,6 +1092,21 @@ LIBRARY_HELPERS = {
         if sys.IFFParseBase!=0 {
             exec.CloseLibrary(sys.IFFParseBase)
             sys.IFFParseBase = 0
+        }
+    }
+''',
+    'lowlevel': '''
+    sub openlib() -> bool {
+        ; not opened at startup: lowlevel.library only exists on kickstart 2.0+,
+        ; so it must be opened on demand and may legitimately fail
+        sys.LowLevelBase = exec.OpenLibrary("lowlevel.library", 0)
+        return sys.LowLevelBase!=0
+    }
+
+    sub closelib() {
+        if sys.LowLevelBase!=0 {
+            exec.CloseLibrary(sys.LowLevelBase)
+            sys.LowLevelBase = 0
         }
     }
 ''',
@@ -1745,6 +1766,7 @@ LIB_HEADERS = {
     'utility': ['utility/tagitem.h', 'utility/hooks.h', 'utility/date.h'],
     'arexx': ['rexx/storage.h', 'rexx/rexxio.h', 'dos/dos.h'],
     'iffparse': ['libraries/iffparse.h'],
+    'lowlevel': ['libraries/lowlevel.h', 'devices/timer.h', 'utility/tagitem.h'],
 }
 
 # Which struct tags belong to which library (to avoid cross-library duplication)
@@ -1762,8 +1784,26 @@ LIB_STRUCT_TAGS = {
     'arexx': {'RexxMsg'},
     'iffparse': {'IFFHandle', 'IFFStreamCmd', 'ContextNode',
                  'StoredProperty', 'CollectionItem'},
+    'lowlevel': {'KeyQuery'},
     'icon': {'DiskObject'},
 }
+
+# Additional .i files holding a library's structs/consts that live outside its
+# own Include_I/<lib> directory: lib -> (subdir, filename)
+LIB_EXTRA_I_FILES = {
+    'iffparse': ('libraries', 'iffparse.i'),
+    'icon':     ('workbench', 'workbench.i'),
+    'lowlevel': ('libraries', 'lowlevel.i'),
+}
+
+
+def _lib_extra_i_files(ndk: str, lib: str) -> list:
+    """Absolute paths of the extra .i files to scan for a library."""
+    entry = LIB_EXTRA_I_FILES.get(lib)
+    if not entry:
+        return []
+    path = os.path.join(ndk, 'Include_I', entry[0], entry[1])
+    return [path] if os.path.isfile(path) else []
 
 
 def _library_struct_tags(lib_name: str) -> set:
@@ -1995,15 +2035,7 @@ def _collect_raw_for_lib(ndk: str, lib: str) -> dict:
     arexx_alias = (lib == 'arexx')
     inc = os.path.join(ndk, 'Include_I', 'rexx' if arexx_alias else lib)
     exec_inc = os.path.join(ndk, 'Include_I', 'exec')
-    lib_i_files = []
-    if lib == 'iffparse':
-        iff_file = os.path.join(ndk, 'Include_I', 'libraries', 'iffparse.i')
-        if os.path.isfile(iff_file):
-            lib_i_files.append(iff_file)
-    if lib == 'icon':
-        wb_file = os.path.join(ndk, 'Include_I', 'workbench', 'workbench.i')
-        if os.path.isfile(wb_file):
-            lib_i_files.append(wb_file)
+    lib_i_files = _lib_extra_i_files(ndk, lib)
     clang_structs = parse_structs_from_clang(ndk, lib)
     if clang_structs is not None:
         return clang_structs
@@ -2037,11 +2069,14 @@ def main():
     ap = argparse.ArgumentParser(description="Convert Amiga NDK LVO, SFD, .i files to Prog8. Generates typed pointers cross-library.")
     ap.add_argument('ndk_path', help="Path to AmigaNDK_headers directory")
     ap.add_argument('output_dir', help="Path to amiga500 library output directory (e.g. compiler/res/prog8lib/amiga500)")
+    ap.add_argument('--shared-prefix', action='store_true',
+                    help="prefix the output filenames with 'shared_amiga_' instead of naming them after the library")
     args = ap.parse_args()
 
     ndk = args.ndk_path.rstrip('/')
     out_dir = args.output_dir.rstrip('/')
     os.makedirs(out_dir, exist_ok=True)
+    name_prefix = 'shared_amiga_' if args.shared_prefix else ''
 
     # Phase 1: Scan all libs for raw structs to build global registry
     print(f"Scanning NDK at {ndk} for {len(AMIGA_LIBS)} libs...", file=sys.stderr)
@@ -2158,12 +2193,14 @@ def main():
                     if imp != lib:
                         needed_imports.add(imp)
 
-        # Also check helper imports (e.g. intuition helpers need graphics)
+        # Also check what the hand-written helpers reference (e.g. the
+        # openlib/closelib helpers call exec.OpenLibrary/CloseLibrary,
+        # the intuition helpers return ^^graphics. structs)
         helper = LIBRARY_HELPERS.get(lib, '')
-        if helper and '^^graphics.' in helper:
-            needed_imports.add('graphics')
-        if helper and '^^exec.' in helper:
+        if helper and 'exec.' in helper:
             needed_imports.add('exec')
+        if helper and 'graphics.' in helper:
+            needed_imports.add('graphics')
 
         # Build output string
         out_lines = []
@@ -2182,7 +2219,13 @@ def main():
             out_lines.append("")
 
         out_lines.append(f"{lib} {{")
-        out_lines.append(f"    %option no_symbol_prefixing")
+        # The shared_amiga_*.p8 files are included by a thin <lib>.p8 wrapper
+        # that re-declares the same block, so they must merge instead of
+        # redefining it.
+        if name_prefix:
+            out_lines.append(f"    %option merge, no_symbol_prefixing")
+        else:
+            out_lines.append(f"    %option no_symbol_prefixing")
         if helper:
             out_lines.append(helper)
 
@@ -2226,15 +2269,7 @@ def main():
 
         # constants
         inc = os.path.join(ndk, 'Include_I', 'rexx' if arexx_alias else lib)
-        lib_i_files = []
-        if lib == 'iffparse':
-            iff_file = os.path.join(ndk, 'Include_I', 'libraries', 'iffparse.i')
-            if os.path.isfile(iff_file):
-                lib_i_files.append(iff_file)
-        if lib == 'icon':
-            wb_file = os.path.join(ndk, 'Include_I', 'workbench', 'workbench.i')
-            if os.path.isfile(wb_file):
-                lib_i_files.append(wb_file)
+        lib_i_files = _lib_extra_i_files(ndk, lib)
         consts = []
         extra_files = []
         if lib == 'intuition':
@@ -2254,7 +2289,7 @@ def main():
         content = "\n".join(out_lines) + "\n"
 
         # Write transactionally only if changed
-        out_path = os.path.join(out_dir, f"{lib}.p8")
+        out_path = os.path.join(out_dir, f"{name_prefix}{lib}.p8")
         existing = None
         if os.path.exists(out_path):
             with open(out_path, 'r', encoding='utf-8') as f:
