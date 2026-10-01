@@ -20,6 +20,25 @@ import prog8.codegen.cpu6502.assignment.*
         translateFunctioncall(fcall, null, discardResult = true)
     }
 
+    /**
+     * Several builtins can only produce their result in a CPU register, and which one that is
+     * depends on the width of the result: the byte-returning ones (lsb/msb) take a single register,
+     * the word-returning ones (lsw/msw) and popw take a register pair, and the builtin picks the
+     * specific register. [hardwareReg] is the register to fall back on when the caller has no
+     * preference, or when it asked for something the builtin cannot deliver to directly.
+     *
+     * The caller's requested register is honoured when it is a real CPU register. A CX16 virtual
+     * register (for example an asmsub parameter declared as @R0) is not: those are memory locations,
+     * so the builtin produces its result in [hardwareReg] and the caller's assignment then stores it
+     * into the virtual register. Passing the virtual register through would make the builtin reject
+     * it as an invalid result register.
+     *
+     * (funcPeekW and funcMkword already handle virtual registers themselves.)
+     */
+    private fun withResultRegister(requested: RegisterOrPair?, hardwareReg: RegisterOrPair, compute: (RegisterOrPair) -> Array<RegisterOrPair>): Array<RegisterOrPair> =
+        if (requested != null && requested !in Cx16VirtualRegisters) compute(requested)
+        else compute(hardwareReg)
+
     private fun translateFunctioncall(fcall: PtFunctionCall, firstReturnRegister: RegisterOrPair?, discardResult: Boolean): Array<RegisterOrPair> {
         
         // Note: returns the actual register(s) that the return value is in, so the caller should still make sure to place it into the actual correct destination.
@@ -31,12 +50,12 @@ import prog8.codegen.cpu6502.assignment.*
         val sscope = fcall.definingISub()
 
         return when (fcall.name) {
-            "msw" -> funcMsw(fcall, firstReturnRegister ?: RegisterOrPair.AY)
-            "lsw" -> funcLsw(fcall, firstReturnRegister ?: RegisterOrPair.AY)
-            "msb" -> funcMsb(fcall, false, firstReturnRegister ?: RegisterOrPair.A)
-            "msb__long" -> funcMsb(fcall, true, firstReturnRegister ?: RegisterOrPair.A)
-            "lsb" -> funcLsb(fcall, false, firstReturnRegister ?: RegisterOrPair.A)
-            "lsb__long" -> funcLsb(fcall,true, firstReturnRegister ?: RegisterOrPair.A)
+            "msw" -> withResultRegister(firstReturnRegister, RegisterOrPair.AY) { funcMsw(fcall, it) }
+            "lsw" -> withResultRegister(firstReturnRegister, RegisterOrPair.AY) { funcLsw(fcall, it) }
+            "msb" -> withResultRegister(firstReturnRegister, RegisterOrPair.A) { funcMsb(fcall, false, it) }
+            "msb__long" -> withResultRegister(firstReturnRegister, RegisterOrPair.A) { funcMsb(fcall, true, it) }
+            "lsb" -> withResultRegister(firstReturnRegister, RegisterOrPair.A) { funcLsb(fcall, false, it) }
+            "lsb__long" -> withResultRegister(firstReturnRegister, RegisterOrPair.A) { funcLsb(fcall, true, it) }
             "mkword" -> funcMkword(fcall, firstReturnRegister ?: RegisterOrPair.AY)
             "mklong", "mklong2" -> funcMklong(fcall, firstReturnRegister ?: RegisterOrPair.R14R15)
             "clamp__byte", "clamp__ubyte" -> funcClamp(fcall)
@@ -98,8 +117,8 @@ import prog8.codegen.cpu6502.assignment.*
             "pushw" -> funcPushW(fcall)
             "pushl" -> funcPushL(fcall)
             "pushf" -> funcPushF(fcall)
-            "pop" -> funcPop(firstReturnRegister ?: RegisterOrPair.A)
-            "popw" -> funcPopW(firstReturnRegister ?: RegisterOrPair.AY)
+            "pop" -> withResultRegister(firstReturnRegister, RegisterOrPair.A) { funcPop(it) }
+            "popw" -> withResultRegister(firstReturnRegister, RegisterOrPair.AY) { funcPopW(it) }
             "popl" -> funcPopL()
             "popf" -> funcPopF()
             else -> throw AssemblyError("sizeof must have been replaced with a constant  ${fcall.position}")

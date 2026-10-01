@@ -990,4 +990,69 @@ class TestExecution6502 : FunSpec({
         machine.assertMemory(0x04, 0x77)
         machine.assertMemory(0x05, 0x00)
     }
+
+    test("lsb/msb/lsw/msw result delivered to a cx16 virtual register parameter") {
+        val src = $$"""
+            %option no_sysinit
+            %launcher none
+            %address $1000
+
+            main {
+                &ubyte poweroff = $f203
+
+                ; each routine copies the value it received in the @R0 virtual register to a probe address
+                asmsub recordLsb(ubyte c @R0) {
+                    %asm {{
+                        lda  cx16.r0L
+                        sta  $3000
+                        rts
+                    }}
+                }
+                asmsub recordMsb(ubyte c @R0) {
+                    %asm {{
+                        lda  cx16.r0L
+                        sta  $3001
+                        rts
+                    }}
+                }
+                asmsub recordLsw(uword c @R0) {
+                    %asm {{
+                        lda  cx16.r0
+                        sta  $3002
+                        lda  cx16.r0+1
+                        sta  $3003
+                        rts
+                    }}
+                }
+                asmsub recordMsw(uword c @R0) {
+                    %asm {{
+                        lda  cx16.r0
+                        sta  $3004
+                        lda  cx16.r0+1
+                        sta  $3005
+                        rts
+                    }}
+                }
+
+                sub start() {
+                    uword @shared l
+                    l = $1234
+                    recordLsb(lsb(l))
+                    recordMsb(msb(l))
+                    recordLsw(lsw(l))
+                    recordMsw(msw(l))
+                    poweroff = 1
+                }
+            }
+        """.trimIndent()
+
+        val compileResult = compileText(Cx16Target(), false, src, outputDir)
+        val machine = compileResult!!.simulate()
+        machine.assertMemory(0x3000, 0x34)      // lsb($1234)
+        machine.assertMemory(0x3001, 0x12)      // msb($1234)
+        machine.assertMemory(0x3002, 0x34)      // lsw($1234) low
+        machine.assertMemory(0x3003, 0x12)      // lsw($1234) high
+        machine.assertMemory(0x3004, 0x00)      // msw($1234) low
+        machine.assertMemory(0x3005, 0x00)      // msw($1234) high
+    }
 })
