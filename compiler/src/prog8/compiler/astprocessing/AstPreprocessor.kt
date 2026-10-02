@@ -426,7 +426,7 @@ class AstPreprocessor(val program: Program,
             if(alias.alias == alias.target.nameInSource.first()) {
                 errors.err("alias loop", alias.position)
             } else if(tgt is Enumeration) {
-                errors.err("cannot alias an enum '${alias.target.nameInSource.joinToString(".")}', alias individual members instead (e.g. ${alias.target.nameInSource.joinToString(".")}::Member)", alias.position)
+                return splitEnumAliasIntoMemberAliases(alias, tgt, alias.target.nameInSource, parent)
             } else if(tgt is Alias) {
                 var chainedAlias = alias
                 var chainedTargetName = alias.target
@@ -439,6 +439,9 @@ class AstPreprocessor(val program: Program,
                     }
                     else {
                         val tgt2 = chainedTargetName.targetStatement(program.builtinFunctions) as? INamedStatement
+                        if(tgt2 is Enumeration) {
+                            return splitEnumAliasIntoMemberAliases(alias, tgt2, chainedTargetName.nameInSource, parent)
+                        }
                         val replacement = if(tgt2!=null) {
                             if(tgt2 is BuiltinFunctionPlaceholder) {
                                 val unscopedTarget = IdentifierReference(listOf(tgt2.name), alias.position)
@@ -464,6 +467,19 @@ class AstPreprocessor(val program: Program,
         }
 
         return noModifications
+    }
+
+    private fun splitEnumAliasIntoMemberAliases(alias: Alias, enumDecl: Enumeration, enumTargetPath: List<String>, parent: Node): Iterable<AstModification> {
+        // Expand `alias myEnum = Priority` into per-member aliases (`myEnum::LOW` -> `Priority::LOW`, ...),
+        // reusing the already working member-alias pipeline. The original alias node is removed, so a bare
+        // `myEnum` (without `::Member`) keeps failing with "undefined symbol" as intended.
+        val container = parent as IStatementContainer
+        val prefix = enumTargetPath.dropLast(1)
+        val inserts = enumDecl.members.map { (member, _) ->
+            val memberTarget = IdentifierReference(prefix + "${enumDecl.name}::$member", alias.position)
+            AstInsert.before(alias, Alias("${alias.alias}::$member", memberTarget, alias.visibility, alias.position), container)
+        }
+        return inserts + AstRemove(alias, container)
     }
 
     private fun refersToNotYetDesugaredEnumMember(alias: Alias): Boolean {

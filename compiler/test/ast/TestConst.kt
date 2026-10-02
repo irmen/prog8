@@ -714,19 +714,91 @@ main {
         value3 shouldBe 1.0
     }
 
-    test("alias to whole enum gives error") {
+    test("alias to whole enum works") {
         val src = """
 main {
     enum Priority { LOW, NORMAL, HIGH, EXTREME }
     alias myEnum = Priority
 
     sub start() {
+        ubyte @shared value1 = myEnum::NORMAL
+        ubyte @shared value2 = myEnum::EXTREME
+    }
+}"""
+        val result = compileText(Cx16Target(), false, src, outputDir, writeAssembly = false)!!
+        val start = result.compilerAst.allBlocks.first { it.name == "main" }.statements.filterIsInstance<prog8.ast.statements.Subroutine>().first { it.name == "start" }
+        val assignments = start.statements.filterIsInstance<Assignment>()
+        (assignments[0].value as? NumericLiteral)?.number shouldBe 1.0
+        (assignments[1].value as? NumericLiteral)?.number shouldBe 3.0
+    }
+
+    test("alias to whole enum with mixed explicit values works") {
+        val src = """
+main {
+    enum Mixed { A=5, B, C=10, D }
+    alias m = Mixed
+
+    sub start() {
+        ubyte @shared value1 = m::B
+        ubyte @shared value2 = m::D
+    }
+}"""
+        val result = compileText(Cx16Target(), false, src, outputDir, writeAssembly = false)!!
+        val start = result.compilerAst.allBlocks.first { it.name == "main" }.statements.filterIsInstance<prog8.ast.statements.Subroutine>().first { it.name == "start" }
+        val assignments = start.statements.filterIsInstance<Assignment>()
+        (assignments[0].value as? NumericLiteral)?.number shouldBe 6.0
+        (assignments[1].value as? NumericLiteral)?.number shouldBe 11.0
+    }
+
+    test("chained alias to whole enum works") {
+        val src = """
+main {
+    enum Priority { LOW, NORMAL, HIGH, EXTREME }
+    alias a = b
+    alias b = Priority
+
+    sub start() {
+        ubyte @shared value = a::HIGH
+    }
+}"""
+        val result = compileText(Cx16Target(), false, src, outputDir, writeAssembly = false)!!
+        val start = result.compilerAst.allBlocks.first { it.name == "main" }.statements.filterIsInstance<prog8.ast.statements.Subroutine>().first { it.name == "start" }
+        val assignments = start.statements.filterIsInstance<Assignment>()
+        (assignments[0].value as? NumericLiteral)?.number shouldBe 2.0
+    }
+
+    test("alias to whole enum in another block works") {
+        val src = """
+main {
+    alias x = other.Priority
+
+    sub start() {
+        ubyte @shared value = x::LOW
+    }
+}
+other {
+    enum Priority { LOW=7, HIGH }
+}"""
+        val result = compileText(Cx16Target(), false, src, outputDir, writeAssembly = false)!!
+        val start = result.compilerAst.allBlocks.first { it.name == "main" }.statements.filterIsInstance<prog8.ast.statements.Subroutine>().first { it.name == "start" }
+        val assignments = start.statements.filterIsInstance<Assignment>()
+        (assignments[0].value as? NumericLiteral)?.number shouldBe 7.0
+    }
+
+    test("bare whole-enum alias without member is undefined") {
+        val src = """
+main {
+    enum Priority { LOW, NORMAL, HIGH, EXTREME }
+    alias myEnum = Priority
+
+    sub start() {
+        ubyte @shared value = myEnum
     }
 }"""
         val errors = ErrorReporterForTests()
         compileText(Cx16Target(), false, src, outputDir, writeAssembly = false, errors = errors) shouldBe null
-        errors.errors.size shouldBe 1
-        errors.errors[0] shouldContain "cannot alias an enum"
+        errors.errors.size shouldBe 2
+        errors.errors.any { it.contains("undefined symbol") } shouldBe true
     }
 
     test("alias to nonexistent enum member gives undefined error") {
