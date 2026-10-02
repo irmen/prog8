@@ -381,6 +381,9 @@ Grouped per compilation target.
 * `cx16 <_static/symboldumps/skeletons-cx16.txt>`_
 * `pet32 <_static/symboldumps/skeletons-pet32.txt>`_
 * `virtual <_static/symboldumps/skeletons-virtual.txt>`_
+* `amiga500 <_static/symboldumps/skeletons-amiga500.txt>`_
+* `amiga1200 <_static/symboldumps/skeletons-amiga1200.txt>`_
+* `qemu68k <_static/symboldumps/skeletons-qemu68k.txt>`_
 
 
 Library modules
@@ -431,6 +434,99 @@ caller-provided memory buffer instead:
 If you just want to decode the data in memory you can use a few low-level routines directly to decode single nibbles etc.
 Look at the :source:`adpcm source code <compiler/res/prog8lib/cx16/adpcm.p8>` (cx16)
 or :source:`m68k adpcm source code <compiler/res/prog8lib/shared_m68k_adpcm.p8>` to find out what other routines are available.
+
+
+amigaos libraries  (amiga500, amiga1200)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. index:: pair: Libraries; amigaos libraries
+.. index:: single: Targets; AmigaOS library modules
+
+The Amiga targets bind a number of AmigaOS libraries and device drivers as Prog8 library
+modules. Import them the same way as any other library::
+
+    %import graphics
+    %import intuition
+
+.. note::
+    The bindings are generated from the Amiga NDK include files and are therefore
+    complete for those libraries. Many AmigaOS library calls take structures that Prog8
+    does not have a type for; those appear as ``pointer``. See the
+    :source:`library source code <compiler/res/prog8lib>` for the exact signatures.
+
+**AmigaOS libraries**
+
+.. note::
+    The startup code of the amiga500 and amiga1200 targets already opens ``dos``,
+    ``graphics``, ``intuition``, ``icon`` and ``utility`` for you, so their modules are
+    ready to use without doing anything. (``exec`` needs no opening at all: ExecBase always
+    lives at 4.w and is available as ``sys.SysBase``.) The remaining libraries below -
+    ``iffparse``, ``lowlevel``, ``arexx`` and ``asyncio`` - must be opened on demand by
+    calling their ``openlib()`` subroutine, and closed again with ``closelib()``.
+
+``exec`` (``exec.library``)
+    Memory allocation, message ports, interrupts, device and resource management. Also the
+    base for everything else: ``exec.OpenLibrary()`` is what opens the optional libraries.
+    The ``exec`` module is always available, ``sys.SysBase`` is the ExecBase at 4.w.
+
+``dos`` (``dos.library``)
+    File and directory handling, locking, IOStreams, requesters and the DOS error codes.
+    Text output goes through the ``textio`` module, which is built on top of ``dos``.
+
+``graphics`` (``graphics.library``)
+    Bitmaps, rastports, fonts, regions, sprites and the ``Blt*`` blitter calls.
+
+``intuition`` (``intuition.library``)
+    Screens, windows, gadgets and menus. Requires ``graphics``.
+
+``utility`` (``utility.library``)
+    Tag item handling (tags, tag lists) and the other small helpers from the utility library.
+
+``icon`` (``icon.library``)
+    Disk objects, free lists and tooltypes. 
+
+``iffparse`` (``iffparse.library``)
+    Parsing IFF files. Requires Kickstart 2.0 or newer.
+
+``lowlevel`` (``lowlevel.library``)
+    Cache control, interrupt and timer related calls. Requires Kickstart 2.0 or newer.
+
+``arexx`` (``rexxsyslib.library``)
+    ARexx scripting support. Requires Kickstart 2.0 or newer.
+
+``asyncio`` (``asyncio.library``)
+    Asynchronous file IO.
+
+**Devices and hardware**
+
+``trackdisk`` (``trackdisk.device``)
+    Raw floppy disk access: motor control, seeking, raw read and write, and drive geometry.
+    Also exposes the ``TD_*`` driver command codes for anything the module doesn't wrap.
+
+``audio`` (``audio.device``)
+    Playback of 8 bit signed samples, per channel, in the background or synchronous.
+    Exposes the ``ADCMD_*`` IO commands.
+
+``timer`` (``timer.device``)
+    Timing via IO requests: microhertz, vblank and eclock units, plus the
+    ``TR_ADDREQUEST`` based wait-until. Exposes the ``TR_*`` driver command codes.
+
+``ahi`` (``ahi.device``, **amiga1200 only**)
+    Higher quality multi-channel sample playback. AHI v4 compatible, so only 8 and 16 bit
+    sample types are available. Open a unit with ``ahi.open()`` (pass 0 for the system
+    default output) and close it with ``ahi.close()``. Requires a system with ahi.device
+    installed (real hardware or full emulation), so it does not work under vamos.
+
+``custom``
+    Direct access to the custom chipset, with no library involved. Contains
+    ``grab_system()``/``restore_system()`` to take over the whole system and interrupt
+    handlers for hardware banging programs (games, demos), ``waitvsync()``, AGA colour
+    register writes, and the CIA mouse buttons.
+
+``blitter``
+    Blitter operations and the ``MINTERM`` logic modes.
+
+``copper``
+    Copper list builder and manager.
 
 
 arena

@@ -48,3 +48,4 @@ sd*.img
 AsyncIO/
 AsyncIO.info
 m68k-amigaos-ahi/
+Libs/

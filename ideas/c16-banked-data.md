@@ -21,13 +21,10 @@ Items already implemented or already tracked elsewhere in `todo.rst` /
 
 ## 1. Bank-transparent data access (cx16)
 
-> **Reviewed 2026-09-26. The conclusion changed: this is mostly already
-> solvable with existing features, and the kernal primitives are not as safe
-> as first assumed. Recommendation: documentation first, then small
-> `syslib.p8` wrappers, and only then a module. See "Recommendation" at the
-> end.** The earlier version of this item claimed that `memory()` slabs can
-> never live in a bank and that `fetch`/`stash` never touch a bank register.
-> Both claims were wrong; see "Corrections" below.
+> **Reviewed 2026-09-26. Most use cases are already solvable with existing
+> features, and the kernal primitives `fetch`/`stash` have important safety
+> constraints. Recommendation: documentation first, then small `syslib.p8`
+> wrappers, and only then a module. See "Recommendation" at the end.**
 
 ### What already exists
 
@@ -119,9 +116,9 @@ Their real interface, from the kernal source
 
 Three claims in the previous draft were wrong, and the first one was dangerous.
 
-**1. "These accesses change no bank register."** False. Both routines write
-`$00` and `$01`. `fetch` wraps the access in `php` / `sei` / `jsr fetch2` /
-`plp`, but restores the RAM bank *after* re-enabling interrupts:
+**1. Bank register behavior.** Both routines write `$00` (ram_bank) and `$01`
+(rom_bank). `fetch` protects the access with `php` / `sei` / `plp`, but the
+RAM bank is restored *after* interrupts are re-enabled:
 
 ```asm
 fetch:  lda ram_bank / pha / lda rom_bank / pha
@@ -132,31 +129,35 @@ fetch:  lda ram_bank / pha / lda rom_bank / pha
         plx / stx ram_bank          ; <-- $00 restored only now
 ```
 
-`stash` is worse: it changes `ram_bank`/`rom_bank` and never disables
-interrupts at all. So the practical guidance is the opposite of what the
-earlier draft said:
+`stash` changes `ram_bank`/`rom_bank` and does not disable interrupts. Key
+constraints:
 
-- `fetch` is *mostly* protected, but has a genuine IRQ window between `plp`
-  and `stx ram_bank`.
-- `stash` is **not** IRQ-safe. Calling it with interrupts enabled can hand the
-  IRQ handler a window mapped to the wrong bank.
-- Both are also **not reentrant**: `fetvec` and `stash0` are self-modifying
-  operands inside the kernal's RAM code, and `stavec` / `imparm` are shared
-  globals. A `fetch` interrupted by an IRQ handler that itself calls `fetch`
-  will corrupt the outer call.
+- `fetch` has an IRQ window between `plp` and `stx ram_bank`.
+- `stash` is **not IRQ-safe** when called with interrupts enabled.
+- Both are **not reentrant**: `fetvec`, `stash0`, and the globals `stavec`/`imparm`
+  are shared state. If an IRQ calls `fetch`/`stash` while another is in progress,
+  it will corrupt the outer call.
+- The base pointer for `stash` is read from the fixed `$03B2` (`stavec`) - there
+  is no parameter to specify it.
+- The bank argument in `.X` is a combined RAM/ROM configuration byte (not a plain
+  RAM bank number). Addresses at `$C000+` may select ROM/expansion space.
+- Only an 8-bit index in `.Y` is available; crossing a 256-byte boundary requires
+  updating the base pointer.
+- The zeropage pointer must live in `$00-$FF` due to `stz imparm+1` in `stash`.
 
-Any wrapper must therefore document these constraints rather than imply the
-primitives are transparent. A wrapper that wants to be safe around the bank
-switch has to do the `sei` / restore-`$00` / `cli` itself, and must own its ZP
-pointer and its `stavec` save/restore.
+Any wrapper must document these constraints explicitly. To be safer around bank
+switching, it must own its ZP pointer and `stavec`, and may need to bracket with
+`sei`/`cli` as appropriate.
 
-**2. "`memory()` slabs are always in main memory so a buffer cannot be declared
-to live in a bank."** Wrong - see `-varshigh` above. This was the load-bearing
-premise for the whole feature, and it removes most of the motivation.
+**2. Data placement.** `-varshigh <rambank>` (or `%varsaddress`) places uninitialized
+non-ZP variables and `memory()` slabs in the `$A000-$BFFF` window of the chosen
+HIRAM bank. They are zero-initialized during startup with that bank selected.
+Direct window access via `cx16.rambank()` is efficient and avoids the overhead
+and safety issues of `fetch`/`stash`.
 
-**3. "Banked code (`callfar`) is wired in."** Understated (there is the whole
-`@bank` / selector-subroutine / call-site-ID machinery) and, for
-variable bank/address arguments, still open as a `%option romable` matter.
+**3. Banked code.** `extsub @bank <n>` (with constant/variable/selector forms) and
+`callfar`/`callfar2` already cover banked calls. Variable-bank `extsub` is not
+romable due to self-modifying code generation for `JSRFAR` (see `todo.rst`).
 
 ### Cost
 
@@ -184,23 +185,22 @@ language-level version of this, and is a much larger change than a library.
 
 ### Recommendation
 
-1. **Fix the document first** - done in this revision. Anyone implementing the
-   earlier text would have shipped an IRQ-unsafe library on the strength of a
-   claim that turned out to be inverted.
-2. **Document the existing recipe** in `docs/source/`: `-varshigh <bank>` (or
+1. **Document the existing recipe** in `docs/source/`: `-varshigh <bank>` (or
    `%varsaddress`) to place variables and slabs in a HIRAM bank, combined with
    `cx16.rambank()` / `push_rambank()` / `pop_rambank()` to access them. This
    covers most of the motivation at zero code cost, and the `-varshigh` docs
    deserve a cross-reference from the banking section of `technical.rst`.
-3. **If code is wanted, add small `asmsub` convenience wrappers to
+2. **If code is wanted, add small `asmsub` convenience wrappers to
    `syslib.p8` first**, rather than a new module - the same idiom already used
    for `set_screen_mode()` wrapping `screen_mode()` (`syslib.p8:660`). A
    `stash_ptr(ptr_zpaddr, bank, index, value)` that stores to `stavec` and
    tail-jumps to `stash` removes the ugliest part of the interface; word and
    word-pair variants follow. Roughly 30 lines, no new module, no new naming to
    bikeshed.
-4. **Only then consider a `banked` module**, and when doing so it must document
-   the non-reentrancy, the `stash` IRQ exposure, the `plp`-before-`stx ram_bank`
-   window in `fetch`, the ZP-residency requirement for the base pointer, and
-   the combined RAM/ROM meaning of the bank argument.
-5. Leave the far-pointer type out of scope.
+3. **Only then consider a `banked` module**, and when doing so it must document
+   the non-reentrancy, `stash` IRQ exposure, the `plp`-before-`stx ram_bank`
+   window in `fetch`, the ZP-residency requirement for the base pointer, the
+   need to manage `stavec` for `stash`, and the combined RAM/ROM meaning of the
+   bank argument. It should also state the 8-bit index limit (256-byte reach per
+   base pointer update) and that multi-byte access requires multiple calls.
+4. Leave the far-pointer type out of scope.
