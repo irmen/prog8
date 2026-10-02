@@ -106,7 +106,8 @@ class ModuleImporter(private val program: Program,
     private fun executeImportDirective(import: Directive, importingModule: Module?): Module? {
         if(import.directive!="%import" || import.args.size!=1)
             throw SyntaxError("invalid import directive", import.position)
-        val moduleName = import.args[0].string!!
+        val moduleName = import.args[0].string
+            ?: throw SyntaxError("invalid import directive, expected a module name", import.position)
         if("$moduleName.p8" == import.position.file)
             throw SyntaxError("cannot import self", import.position)
 

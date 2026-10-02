@@ -5,11 +5,13 @@ import com.github.michaelbull.result.getOrElse
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.engine.spec.tempdir
 import io.kotest.matchers.collections.shouldBeIn
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldStartWith
 import prog8.ast.Program
+import prog8.ast.SyntaxError
 import prog8.code.INTERNED_STRINGS_MODULENAME
 import prog8.code.PROG8_CONTAINER_MODULES
 import prog8.code.core.IErrorReporter
@@ -171,10 +173,10 @@ class TestModuleImporter: FunSpec({
 
                     repeat(repetitions) { n -> withClue(count[n] + " call") {
                         shouldThrow<MultipleParseErrors> { act() }.let { e ->
-                            e.errors.first().position.file shouldBe SourceCode.relative(imported).toString()
-                            withClue("line; should be 1-based") { e.errors.first().position.line shouldBe 2 }
-                            withClue("startCol; should be 1-based") { e.errors.first().position.startCol shouldBe 5 }
-                            withClue("endCol; should be 1-based") { e.errors.first().position.endCol shouldBe 7 }
+                                e.errors.first().position.file shouldBe SourceCode.relative(imported).toString()
+                                withClue("line; should be 1-based") { e.errors.first().position.line shouldBe 2 }
+                                withClue("startCol; should be 1-based") { e.errors.first().position.startCol shouldBe 5 }
+                                withClue("endCol; should be 1-based") { e.errors.first().position.endCol shouldBe 7 }
                             }
                         }
                         withClue("imported module with error in it should not be present") { program.modules.size shouldBe PROG8_CONTAINER_MODULES.size }
@@ -189,6 +191,24 @@ class TestModuleImporter: FunSpec({
 
                 test("testImportingFileWithSyntaxError_twice") {
                     doTestImportingFileWithSyntaxError(2)
+                }
+            }
+
+            context("WithBadImportArgument") {
+                test("import directive with expression argument gives SyntaxError instead of crashing") {
+                    val dir = tempdir().toPath()
+                    val srcPath = dir.resolve("badimport.p8")
+                    srcPath.toFile().writeText("""
+                        %import "textio" as t
+                        main {
+                            sub start() {
+                            }
+                        }
+                    """.trimIndent())
+                    val importer = makeImporter(null, dir.invariantSeparatorsPathString)
+                    shouldThrow<SyntaxError> { importer.importMainModule(srcPath) }
+                        .message shouldContain "invalid import directive"
+                    program.modules.size shouldBe PROG8_CONTAINER_MODULES.size
                 }
             }
         }
