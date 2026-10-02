@@ -119,10 +119,11 @@ class TestOutputFileName : FunSpec({
         val builder = { ir: Path ->
             CompilationOptions.builder(VMTarget()).outputDir(tmp).outputFile(ir).build()
         }
-        // the VM identifies the IR by its extension, so an extension-less -o must get one appended
+        // the VM identifies the IR by its extension, so an extension-less -o must get one appended;
+        // only the exact lowercase ".p8ir" is recognized as already being an IR file
         builder(tmp.resolve("game")).programFile("prog") shouldBe tmp.resolve("game.p8ir")
         builder(tmp.resolve("game.p8ir")).programFile("prog") shouldBe tmp.resolve("game.p8ir")
-        builder(tmp.resolve("game.P8IR")).programFile("prog") shouldBe tmp.resolve("game.P8IR")
+        builder(tmp.resolve("game.P8IR")).programFile("prog") shouldBe tmp.resolve("game.P8IR.p8ir")
         builder(tmp.resolve("sub/game")).programFile("prog") shouldBe tmp.resolve("sub/game.p8ir")
 
         // ... and the stem must follow the resolved name, so the aux files stay consistent with the artifact
@@ -274,15 +275,5 @@ class TestOutputFileName : FunSpec({
         result shouldNotBe null
         outputDir.resolve("ir.p8ir").exists() shouldBe true
         outputDir.resolve("ir").exists() shouldBe false
-    }
-
-    test("virtual target -o preserves an uppercase .P8IR extension") {
-        val outputDir = tempdir().toPath()
-        val outputFile = outputDir.resolve("game.P8IR")
-        val filepath = writeSourceTo(outputDir, minimalProgram)
-        val result = compileWithOutputFile(filepath, VMTarget(), outputDir, outputFile, assemble = true)
-        result shouldNotBe null
-        outputFile.exists() shouldBe true
-        outputDir.resolve("game.p8ir").exists() shouldBe false
     }
 })

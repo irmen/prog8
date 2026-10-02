@@ -30,9 +30,10 @@ fun outputStemOf(name: Path): String {
 fun CompilationOptions.programFile(defaultName: String): Path {
     // VMTarget's defaultOutputType = PRG is misleading: its artifact is the .p8ir file, never PRG.
     // The VM identifies the IR by its extension, so -o is not verbatim here: ".p8ir" is enforced.
+    // Only the exact lowercase extension is recognized (same rule as -vm in CompilerMain).
     if(compTarget is VMTarget) {
         val ir = outputFile ?: return outputDir.resolve("$defaultName.p8ir")
-        return if (ir.extension.lowercase()=="p8ir") ir else ir.resolveSibling("${ir.name}.p8ir")
+        return if (ir.extension=="p8ir") ir else ir.resolveSibling("${ir.name}.p8ir")
     }
     outputFile?.let { return it }
     val filename = when(output) {
