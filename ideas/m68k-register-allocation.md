@@ -1,6 +1,6 @@
 # M68k Register Allocation and Calling Convention Design
 
-**Status: reconciled - the seven correctness issues from `m68k-reg-problems.md` are resolved and folded into this design.** Listed as "Deferred" in `docs/source/todo.rst`. The calling convention (§2), register classes (§4), spilling strategy (§5), prologue/epilogue (§6), and the Stage 0/1/3 execution work (§7) are decided and delegable. Still open before Stage 2 is delegable: the §7.1 items 1-4 (width semantics, class-constraint mechanism, spill-slot policy mechanics, call-site metadata representation).
+**Status: reconciled - the seven correctness issues from `m68k-reg-problems.md` are resolved and folded into this design** (that file was removed from `ideas/` after folding; the `m68k-reg-problems.md §N` references below are historical provenance only). Listed as "Deferred" in `docs/source/todo.rst`. The calling convention (§2), register classes (§4), spilling strategy (§5), prologue/epilogue (§6), and the Stage 0/1/3 execution work (§7) are decided and delegable. Still open before Stage 2 is delegable: the §7.1 items 1-4 (width semantics, class-constraint mechanism, spill-slot policy mechanics, call-site metadata representation).
 
 Related design: `m68k-stack-memory-model.md` (stack frames for locals; reserves
 A5 as the future frame pointer and A6 for AmigaOS library bases — both are

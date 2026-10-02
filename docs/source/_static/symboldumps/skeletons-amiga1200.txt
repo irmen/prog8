@@ -1,6 +1,6 @@
 
 Prog8 compiler v14.0-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit 6de6a81d in branch master
+Prerelease version from git commit 09d46971 in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-amiga1200.p8
@@ -16,7 +16,7 @@ callfar2  (ubyte bank, pointer address, ubyte argA, ubyte argX, ubyte argY, bool
 clamp  (byte value, byte minimum, byte maximum) -> undefined
 cmp  (ubyte|byte|uword|word|long value1, ubyte|byte|uword|word|long|float value2)
 divmod  (ubyte|uword dividend, ubyte|uword divisor) -> undefined, undefined
-len  (str|array|array_splitw|array_pointer values) -> uword
+len  (str|array|array_splitw values) -> uword
 lmh  (long value) -> ubyte, ubyte, ubyte
 lsb  (uword|word|long value) -> ubyte
 lsw  (uword|word|long value) -> uword
@@ -62,7 +62,7 @@ rsave  ()
 setlsb  (word|uword|long variable, byte|ubyte value)
 setmsb  (word|uword|long variable, byte|ubyte value)
 sgn  (ubyte|byte|uword|word|long|float value) -> byte
-sizeof  (ubyte|byte|uword|word|long|float|bool|str|array|array_splitw|pointer|array_pointer|undefined object) -> ubyte
+sizeof  (ubyte|byte|uword|word|long|float|bool|str|array|array_splitw|pointer|undefined object) -> ubyte
 sqrt  (ubyte|byte|uword|word|long|float value) -> undefined
 
 
@@ -332,8 +332,10 @@ audio  {
     play_queued  (ubyte channel, ^^byte samples, long num_samples, uword sample_rate, ubyte volume, uword cycles)
     sample_rate  (uword per) -> uword
     set_freqvol  (ubyte channel, uword samplerate, ubyte volume)
+    start_channels  (ubyte mask)
     stop  (ubyte channel)
     stop_all  ()
+    stop_channels  (ubyte mask)
     wait_all  ()
     wait_channel  (ubyte channel)
     wait_queued  (ubyte channel)
@@ -4733,12 +4735,14 @@ LIBRARY MODULE NAME: syslib
 ---------------------------
 
 sys  {
+    long @shared  AHIBase
     long @shared  AsyncIOBase
     long @shared  DOSBase
     long @shared  GfxBase
     long @shared  IFFParseBase
     long @shared  IconBase
     long @shared  IntuitionBase
+    long @shared  LowLevelBase
     const byte  MAX_BYTE
     const long  MAX_LONG
     const ubyte  MAX_UBYTE
@@ -4775,7 +4779,7 @@ sys  {
     progstart  () -> long @A0
     reset_system  ()
     set_carry  ()
-    wait  (long jiffies @D1)
+    wait  (long ticks @D1)
     waitvsync  ()
 }
 
@@ -4908,7 +4912,7 @@ trackdisk  {
     getgeometry  (^^trackdisk.DriveGeometry geom) -> byte
     getnumtracks  () -> ubyte
     motor  (bool on) -> byte
-    opendevice  (long unit) -> bool
+    opendevice  (ubyte unit) -> bool
     protstatus  () -> bool
     read  (long buffer, long length, long offset) -> byte
     seek  (long offset) -> byte
