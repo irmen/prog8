@@ -150,6 +150,7 @@ class IRFileReader {
         var romable = false
         var noSysInit = false
         var outputDir = Path("")
+        var outputFile: Path? = null
 
         if(text.isNotBlank()) {
             text.lineSequence().forEach { line ->
@@ -170,6 +171,7 @@ class IRFileReader {
                         zpAllowed.add(UIntRange(zpstart.toUInt(), zpend.toUInt()))
                     }
                     "outputDir" -> outputDir = Path(value)
+                    "outputFile" -> outputFile = Path(value)
                     "optimize" -> optimize = value.toBoolean()
                     "romable" -> romable = value.toBoolean()
                     "noSysInit" -> noSysInit = value.toBoolean()
@@ -189,6 +191,7 @@ class IRFileReader {
             .loadAddress(loadAddress)
             .memtopAddress(memtop)
             .outputDir(outputDir)
+            .outputFile(outputFile)
             .optimize(optimize)
             .noSysInit(noSysInit)
             .build()

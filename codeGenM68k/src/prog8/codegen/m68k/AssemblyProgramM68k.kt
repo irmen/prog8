@@ -9,15 +9,13 @@ import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.readText
 
-class AssemblyProgramM68k(override val name: String, private val outputDir: Path) : IAssemblyProgram {
+class AssemblyProgramM68k(override val name: String) : IAssemblyProgram {
 
     override val irInstructionCount: Int = 0
     override val irChunkCount: Int = 0
     override val irRegisterCount: Int = 0
 
-    private val assemblyFile = outputDir.resolve("$name.asm")
-
-    fun elfFile(): Path = outputDir.resolve("$name.elf")
+    private fun elfFile(outs: OutputFiles): Path = outs.programFile
 
     /**
      * A target supplies its own memory layout as a "link.ld" file.  A target defined by a
@@ -68,12 +66,13 @@ class AssemblyProgramM68k(override val name: String, private val outputDir: Path
             else -> error("invalid cpu type for m68k codegen ${options.compTarget.cpu}")
         }
         val assemblerCpu = if(options.compTarget.name == "amiga500" && options.floats) "68020" else cpu
+        val outs = OutputFiles.of(options, name)
 
         when(options.output) {
             OutputType.ELF -> {
                 // Step 1: assemble to ELF object file
-                val objFile = outputDir.resolve("$name.o")
-                val listFile = outputDir.resolve("$name.list")
+                val objFile = outs.obj()
+                val listFile = outs.list()
                 val assembleCmd = mutableListOf(
                     "vasmm68k_mot",
                     "-m$assemblerCpu",
@@ -84,7 +83,7 @@ class AssemblyProgramM68k(override val name: String, private val outputDir: Path
                     "-ldots",
                     "-spaces",
                     "-o", objFile.toString(),
-                    assemblyFile.toString()
+                    outs.asm().toString()
                 )
                 if (options.asmListfile)
                     assembleCmd.addAll(listOf("-L", listFile.toString()))
@@ -93,11 +92,11 @@ class AssemblyProgramM68k(override val name: String, private val outputDir: Path
                 if (!runProcess(assembleCmd, options.quiet, "vasm"))
                     return false
                 // clean up any leftover ELF/obj files from previous builds
-                Files.deleteIfExists(outputDir.resolve("$name.bin"))
+                Files.deleteIfExists(outs.binFile())
 
                 // Step 2: write linker script and link to ELF executable
-                val linkScript = outputDir.resolve("$name.link.ld")
-                val elfFile = elfFile()
+                val linkScript = outs.linkScript()
+                val elfFile = elfFile(outs)
                 Files.writeString(linkScript, resolveLinkerScript(options.compTarget))
 
                 val linkCmd = listOf(
@@ -116,8 +115,8 @@ class AssemblyProgramM68k(override val name: String, private val outputDir: Path
             }
             OutputType.AMIGAHUNK -> {
                 // Step 1: assemble directly to AmigaHunk executable file
-                val exefile = outputDir.resolve(name)
-                val listfile = outputDir.resolve("$name.list")
+                val exefile = outs.programFile
+                val listfile = outs.list()
                 val assembleCmd = when(options.compTarget) {
                     is Amiga500Target -> {
                         // amiga 500 with kickstart 1.3
@@ -133,7 +132,7 @@ class AssemblyProgramM68k(override val name: String, private val outputDir: Path
                             "-spaces",
                             "-nosym",       // no debug symbols
                             "-o", exefile.toString(),
-                            assemblyFile.toString()
+                            outs.asm().toString()
                         ).also { cmd ->
                             if (options.asmListfile) {
                                 cmd.add("-L")
@@ -157,7 +156,7 @@ class AssemblyProgramM68k(override val name: String, private val outputDir: Path
                             "-spaces",
                             "-nosym",       // no debug symbols
                             "-o", exefile.toString(),
-                            assemblyFile.toString()
+                            outs.asm().toString()
                         ).also { cmd ->
                             if (options.asmListfile) {
                                 cmd.add("-L")

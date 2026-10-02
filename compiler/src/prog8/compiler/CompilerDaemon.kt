@@ -2,8 +2,8 @@ package prog8.compiler
 
 import prog8.buildversion.BUILD_UNIX_TIME
 import prog8.code.core.IErrorReporter
+import prog8.code.core.OutputFiles
 import prog8.code.source.ImportFileSystem
-import prog8.code.target.VMTarget
 import java.io.*
 import java.net.StandardProtocolFamily
 import java.net.UnixDomainSocketAddress
@@ -144,19 +144,21 @@ internal class CompilerDaemon(private val socketPath: Path) {
                 System.setErr(oldErr)
             }
 
-            val outputFiles = if (result != null)
+            // list produced output files, program artifact first; the client uses the first entry to feed an emulator
+            val outputFiles = if (result != null && request.writeAssembly) {
+                val outs = OutputFiles.of(result.compilationOptions, result.compilerAst.name)
                 listOfNotNull(
-                    request.outputDir.let { d ->
-                        val name = Path.of(request.filepath).fileName.toString().substringBeforeLast('.')
-                        val dir = if (d == ".") "" else "$d/"
-                        listOf(
-                            "${dir}${name}.prg".takeIf { request.writeAssembly && request.compilationTarget != VMTarget.NAME },
-                            "${dir}${name}.asm".takeIf { request.writeAssembly && request.compilationTarget != VMTarget.NAME },
-                            "${dir}${name}.p8ir".takeIf { !request.writeAssembly || request.compilationTarget == VMTarget.NAME }
-                        ).filterNotNull()
-                    }
-                ).flatten()
-            else
+                    outs.programFile.takeIf { Files.isRegularFile(it) }?.toString(),
+                    outs.asm().takeIf { Files.isRegularFile(it) }?.toString(),
+                    outs.list().takeIf { Files.isRegularFile(it) }?.toString(),
+                    outs.viceMonList().takeIf { Files.isRegularFile(it) }?.toString(),
+                    outs.binFile().takeIf { Files.isRegularFile(it) }?.toString(),
+                    outs.ir().takeIf { Files.isRegularFile(it) }?.toString(),
+                    outs.bankedCalls().takeIf { Files.isRegularFile(it) }?.toString(),
+                    outs.obj().takeIf { Files.isRegularFile(it) }?.toString(),
+                    outs.linkScript().takeIf { Files.isRegularFile(it) }?.toString()
+                ).distinct()
+            } else
                 emptyList()
 
             val importedFiles = result?.importedFiles?.map { it.toString() } ?: emptyList()
@@ -192,6 +194,10 @@ internal class CompilerDaemon(private val socketPath: Path) {
         } else {
             clientCwd.resolve(outputDir)
         }
+        val resolvedOutputFile = outputFile?.let {
+            val p = Path.of(it)
+            if (p.isAbsolute) p else clientCwd.resolve(p)
+        }
         return CompilerArguments(
             filepath = Path.of(filepath),
             optimize = optimize,
@@ -220,6 +226,7 @@ internal class CompilerDaemon(private val socketPath: Path) {
             symbolDefs = symbolDefs,
             sourceDirs = sourceDirs,
             outputDir = resolvedOutputDir,
+            outputFile = resolvedOutputFile,
             cwd = clientCwd,
             errors = errors,
             generateDocumentation = generateDocumentation

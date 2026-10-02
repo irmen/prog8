@@ -3,9 +3,7 @@ package prog8.code.target
 import prog8.code.core.*
 import prog8.code.target.encodings.Encoder
 import java.nio.file.Path
-import kotlin.io.path.extension
 import kotlin.io.path.isReadable
-import kotlin.io.path.name
 import kotlin.io.path.readText
 
 class VMTarget: ICompilationTarget,
@@ -71,21 +69,24 @@ class VMTarget: ICompilationTarget,
         return Double.fromBits(b0 or b1 or b2 or b3 or b4 or b5 or b6 or b7)
     }
 
-    override fun launchEmulator(selectedEmulator: Int, programNameWithPath: Path, quiet: Boolean) {
-        launchEmulatorWithTrace(programNameWithPath, quiet, traceEnabled = false)
+    override fun launchEmulator(selectedEmulator: Int, programFile: Path, quiet: Boolean) {
+        launchEmulatorWithTrace(programFile, quiet, traceEnabled = false)
     }
 
-    fun launchEmulatorWithTrace(programNameWithPath: Path, quiet: Boolean, traceEnabled: Boolean) {
+    /**
+     * Runs the given .p8ir file in the embedded virtual machine.
+     * The caller must pass the exact path; no fallback probing happens here, the -vm CLI flow resolves a bare name itself.
+     */
+    fun launchEmulatorWithTrace(programFile: Path, quiet: Boolean, traceEnabled: Boolean) {
         if(!quiet)
             println("\nStarting Virtual Machine...")
 
         // to not have external module dependencies in our own module, we launch the virtual machine via reflection
         val vm = Class.forName("prog8.vm.VmRunner").getDeclaredConstructor().newInstance() as IVirtualMachineRunner
-        val withExt = if(programNameWithPath.extension=="p8ir") programNameWithPath else programNameWithPath.resolveSibling("${programNameWithPath.name}.p8ir")
-        if(withExt.isReadable())
-            vm.runProgram(withExt.readText(), quiet, traceEnabled)
+        if(programFile.isReadable())
+            vm.runProgram(programFile.readText(), quiet, traceEnabled)
         else
-            throw java.nio.file.NoSuchFileException(withExt.name, null, "not a .p8ir file")
+            throw java.nio.file.NoSuchFileException(programFile.toString(), null, "not a .p8ir file")
     }
 
     override fun isIOAddress(address: UInt): Boolean = false

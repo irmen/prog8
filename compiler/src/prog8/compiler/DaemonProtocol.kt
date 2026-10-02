@@ -30,6 +30,7 @@ internal data class DaemonRequest(
     val symbolDefs: Map<String, String>,
     val sourceDirs: List<String>,
     val outputDir: String,
+    val outputFile: String? = null,
     val cwd: String,
     val generateDocumentation: Boolean = false
 )
@@ -78,6 +79,7 @@ internal object DaemonProtocol {
         append(prop("symbolDefs", req.symbolDefs))
         append(prop("sourceDirs", req.sourceDirs))
         append(prop("outputDir", req.outputDir))
+        append(propOpt("outputFile", req.outputFile))
         append(prop("cwd", req.cwd))
         append(prop("generateDocumentation", req.generateDocumentation))
         append("null")  // placeholder, gets overwritten by trimEnd
@@ -145,6 +147,7 @@ internal object DaemonProtocol {
             symbolDefs = (map["symbolDefs"] as? Map<*, *>)?.mapKeys { it.key as String }?.mapValues { it.value as String } ?: emptyMap(),
             sourceDirs = (map["sourceDirs"] as? List<*>)?.map { it as String } ?: emptyList(),
             outputDir = map["outputDir"] as String,
+            outputFile = map["outputFile"] as? String,
             cwd = map["cwd"] as String,
             generateDocumentation = map["generateDocumentation"] as? Boolean ?: false
         )

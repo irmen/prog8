@@ -34,6 +34,9 @@ repeating them here:
 - Use `%zeropage basicsafe` in test programs when a clean return is needed.
 - Find library routines with `prog8c -libsearch <regex>` or extract them with
   `prog8c -libdump <dir>`.
+- Options accept single-dash or double-dash (`-target` == `--target`). Use
+  `-out <dir>` to place output in a directory, or `-o <file>` to name the exact
+  final program artifact (all other output files then land beside it).
 
 For CX16 emulator programs, use `%encoding iso`, call `txt.iso()` in `start`,
 and finish with `sys.poweroff_system()`. CBM targets use PETSCII by default;

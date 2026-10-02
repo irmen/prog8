@@ -113,7 +113,7 @@ CompilerMain.compileMain()
               m68k       -> M68kCodeGenerator
               vm         -> VmCodeGen
             backend.generate(program, symbolTable, options, errors) -> IAssemblyProgram
-            assembly.assemble()                     output .prg/.asm/.p8ir
+            assembly.assemble()                     output .prg/.asm/.p8ir; program artifact name/path overridable with -o
 ```
 
 **Target selection:** `compiler/src/prog8/CodeCore .../Compiler.kt:769-780`. The target CPU determines the backend. The custom target config file path is resolved in `codeCore` targets (`ConfigFileTarget.fromConfigFile`).

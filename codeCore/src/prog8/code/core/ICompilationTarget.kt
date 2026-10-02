@@ -93,7 +93,12 @@ interface ICompilationTarget: IStringEncoding, IMemSizer {
     fun convertFloatToBytes(num: Double): List<UByte>
     fun convertBytesToFloat(bytes: List<UByte>): Double
 
-    fun launchEmulator(selectedEmulator: Int, programNameWithPath: Path, quiet: Boolean)
+    /**
+     * Launches an emulator to run the compiled program artifact.
+     * [programFile] is the exact artifact path including its extension; launchers must use it
+     * verbatim, without stripping or appending one.
+     */
+    fun launchEmulator(selectedEmulator: Int, programFile: Path, quiet: Boolean)
     fun isIOAddress(address: UInt): Boolean
 
     override fun encodeString(str: String, encoding: Encoding): List<UByte>

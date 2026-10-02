@@ -577,7 +577,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         }
 
         val options = program.options
-        val asmFile = options.outputDir.resolve("${program.name}.asm")
+        val asmFile = OutputFiles.of(options, program.name).asm()
         try {
             if (options.optimize) {
                 val asmLines = output.toString().lines().toMutableList()

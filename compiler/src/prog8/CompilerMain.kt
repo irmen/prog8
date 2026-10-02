@@ -6,13 +6,11 @@ import com.github.ajalt.clikt.core.context
 import com.github.ajalt.clikt.core.parse
 import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.arguments.multiple
-import com.github.ajalt.clikt.parameters.options.default
-import com.github.ajalt.clikt.parameters.options.flag
-import com.github.ajalt.clikt.parameters.options.multiple
-import com.github.ajalt.clikt.parameters.options.option
+import com.github.ajalt.clikt.parameters.options.*
 import com.github.ajalt.clikt.parameters.types.choice
 import com.github.ajalt.clikt.parameters.types.int
 import prog8.ast.AstException
+import prog8.code.core.OutputFiles
 import prog8.code.source.ImportFileSystem
 import prog8.code.source.ImportFileSystem.expandTilde
 import prog8.code.target.CompilationTargets
@@ -88,7 +86,9 @@ private class CompilerCli : CliktCommand(name = "prog8c") {
     val profilingInstrumentation by option("-profiling", "--profiling", help = "add subroutine profiling instrumentation (cx16 only)").flag()
     val dontWriteAssembly by option("-noasm", "--noasm", help = "don't create assembly code").flag()
     val dontOptimize by option("-noopt", "--noopt", help = "don't perform code optimizations").flag()
-    val outputDir by option("-out", "--out", help = "directory for output files instead of current directory").default(".")
+    val outputFile by option("-o", "--output", help = "name of the output program file (and directory for the other output files)")
+    val outputDir by option("-out", "--out", help = "directory for output files instead of current directory")
+        .transformAll(defaultForHelp = ".") { ValueWithDefault(it.lastOrNull(), ".") }
     val plainText by option("-plaintext", "--plaintext", help = "output only plain text, no colors or fancy symbols").flag()
     val printAst1 by option("-printast1", "--printast1", help = "print out the internal compiler AST").flag()
     val printAst2 by option("-printast2", "--printast2", help = "print out the simplified AST that is used for code generation").flag()
@@ -148,8 +148,19 @@ private fun compileMain(args: Array<String>): Boolean {
         return true
     }
 
-    val outputPath = pathFrom(outputDir)
-    outputPath.createDirectories()
+    if(outputFile!=null && outputDir.explicit!=null) {
+        presenter.printErrorLine("Use either -o (output file) or -out (output directory), not both.")
+        return false
+    }
+    if(outputFile!=null && moduleFiles.size>1) {
+        presenter.printErrorLine("The -o option can only be used with a single module file.")
+        return false
+    }
+    val outputFilePath = outputFile?.let { pathFrom(it) }
+    if(outputFilePath!=null && outputFilePath.isDirectory()) {
+        presenter.printErrorLine("The -o option must name a file, not a directory: $outputFile")
+        return false
+    }
 
     if(profilingInstrumentation==true && compilationTarget!=Cx16Target.NAME) {
         presenter.printErrorLine("Profiling instrumentation is only available on the cx16 target.")
@@ -219,11 +230,14 @@ private fun compileMain(args: Array<String>): Boolean {
     // CpuType and pointer size, which also covers custom targets defined by a config file.
 
     if(startVm==true) {
-        runVm(moduleFiles.first(), quietAll==true, vmTrace==true)
-        return true
+        return runVm(moduleFiles.first(), quietAll==true, vmTrace==true, presenter)
     }
 
     val processedSymbols = processSymbolDefs(symbolDefs, presenter) ?: return false
+
+    val outputPath = pathFrom(outputDir.value)
+    outputFile?.let { pathFrom(it).parent?.createDirectories() }
+    outputPath.createDirectories()
 
     if(watchMode==true) {
         val watchservice = FileSystems.getDefault().newWatchService()
@@ -264,6 +278,7 @@ private fun compileMain(args: Array<String>): Boolean {
                     processedSymbols,
                     srcdirs,
                     outputPath,
+                    outputFile = outputFile?.let { pathFrom(it) },
                     errors = ErrorReporter(txtcolors),
                     assemble = true,
                     generateDocumentation = generateDocumentation == true
@@ -352,6 +367,7 @@ private fun compileMain(args: Array<String>): Boolean {
                 processedSymbols,
                 absoluteSrcDirs,
                 outputPath,
+                outputFile = outputFile?.let { pathFrom(it) },
                 cwd = Path.of(System.getProperty("user.dir")),
                 errors = ErrorReporter(txtcolors),
                 assemble = true,
@@ -365,18 +381,17 @@ private fun compileMain(args: Array<String>): Boolean {
                 if (response.outputFiles.isEmpty()) {
                     println("\nCan't start emulator because no program was assembled.")
                 } else {
-                    val programPathRaw = response.outputFiles.first()
-                    val programPath = Path.of(programPathRaw.removeSuffix(".prg"))
-                    
+                    val programFile = Path.of(response.outputFiles.first())
+
                     val target = getCompilationTargetByName(compilationTarget!!)
                     if (startEmulator1 == true) {
                         if (target is VMTarget) {
-                            target.launchEmulatorWithTrace(programPath, quietAll==true, vmTrace==true)
+                            target.launchEmulatorWithTrace(programFile, quietAll==true, vmTrace==true)
                         } else {
-                            target.launchEmulator(1, programPath, quietAll==true)
+                            target.launchEmulator(1, programFile, quietAll==true)
                         }
                     } else {
-                        target.launchEmulator(2, programPath, quietAll==true)
+                        target.launchEmulator(2, programFile, quietAll==true)
                     }
                 }
             }
@@ -420,6 +435,7 @@ private fun compileMain(args: Array<String>): Boolean {
                     processedSymbols,
                     srcdirs,
                     outputPath,
+                    outputFile = outputFile?.let { pathFrom(it) },
                     errors = ErrorReporter(txtcolors),
                     assemble = true,
                     generateDocumentation = generateDocumentation == true
@@ -444,22 +460,21 @@ private fun compileMain(args: Array<String>): Boolean {
                 }
             }
 
-            val programNameInPath = outputPath.resolve(compilationResult.compilerAst.name)
-            val programPath = Path.of(programNameInPath.toString().removeSuffix(".prg"))
+            val outs = OutputFiles.of(compilationResult.compilationOptions, compilationResult.compilerAst.name)
 
             if (compareIR != null) {
-                compareIrFiles(outputPath.resolve("${compilationResult.compilerAst.name}.p8ir"), Path(compareIR!!), presenter)
+                compareIrFiles(outs.ir(), Path(compareIR!!), presenter)
             }
 
             if (startEmulator1 == true) {
                 if (compilationResult.compilationOptions.compTarget is VMTarget) {
                     (compilationResult.compilationOptions.compTarget as VMTarget).launchEmulatorWithTrace(
-                        programPath, quietAll==true, vmTrace==true)
+                        outs.programFile, quietAll==true, vmTrace==true)
                 } else {
-                    compilationResult.compilationOptions.compTarget.launchEmulator(1, programPath, quietAll==true)
+                    compilationResult.compilationOptions.compTarget.launchEmulator(1, outs.programFile, quietAll==true)
                 }
             } else if (startEmulator2 == true)
-                compilationResult.compilationOptions.compTarget.launchEmulator(2, programPath, quietAll==true)
+                compilationResult.compilationOptions.compTarget.launchEmulator(2, outs.programFile, quietAll==true)
         }
     }
 
@@ -507,10 +522,18 @@ private fun processSymbolDefs(symbolDefs: List<String>, presenter: Presenter): M
     return result
 }
 
-fun runVm(irFilename: String, quiet: Boolean, traceEnabled: Boolean = false) {
+private fun runVm(irFilename: String, quiet: Boolean, traceEnabled: Boolean, presenter: Presenter): Boolean {
     val irFile = Path(irFilename)
+    // -vm accepts a bare module name, so append the .p8ir extension here; this fallback must not
+    // live in launchEmulatorWithTrace, where an extension-less -o would otherwise be mangled
+    val p8irFile = if(irFile.extension=="p8ir") irFile else irFile.resolveSibling("${irFile.name}.p8ir")
+    if(!p8irFile.isReadable()) {
+        presenter.printErrorLine("Can't run the virtual machine: no such file: $p8irFile")
+        return false
+    }
     val vmdef = VMTarget()
-    vmdef.launchEmulatorWithTrace(irFile, quiet, traceEnabled)
+    vmdef.launchEmulatorWithTrace(p8irFile, quiet, traceEnabled)
+    return true
 }
 
 private fun compareIrFiles(newFile: Path, baselineFile: Path, presenter: Presenter) {
@@ -865,6 +888,7 @@ private fun communicateWithDaemon(channel: SocketChannel, compilerArgs: Compiler
             symbolDefs = compilerArgs.symbolDefs,
             sourceDirs = compilerArgs.sourceDirs,
             outputDir = compilerArgs.outputDir.toString(),
+            outputFile = compilerArgs.outputFile?.toString(),
             cwd = compilerArgs.cwd.toString(),
             generateDocumentation = compilerArgs.generateDocumentation
         )

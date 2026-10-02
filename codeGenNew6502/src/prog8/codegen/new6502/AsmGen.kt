@@ -117,7 +117,7 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
         emitBssSection()
 
         val options = program.options
-        val asmFile = options.outputDir.resolve("${program.name}.asm")
+        val asmFile = OutputFiles.of(options, program.name).asm()
         try {
             asmFile.toFile().writeText(output.toString())
         } catch (e: Exception) {

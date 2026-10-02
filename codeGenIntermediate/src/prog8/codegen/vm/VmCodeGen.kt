@@ -6,12 +6,9 @@ import prog8.code.assembly.IAssemblyProgram
 import prog8.code.ast.PtProgram
 import prog8.code.core.CompilationOptions
 import prog8.code.core.IErrorReporter
+import prog8.code.core.OutputFiles
 import prog8.codegen.intermediate.IRCodeGen
-import prog8.intermediate.IRDataType
-import prog8.intermediate.IRFileWriter
-import prog8.intermediate.IRProgram
-import prog8.intermediate.VirtualRegister
-import prog8.intermediate.dumpVariables
+import prog8.intermediate.*
 
 class VmCodeGen(val retainSSA: Boolean,
                 private val preassignedCallSiteIds: Map<String, UByte> = emptyMap()
@@ -54,8 +51,9 @@ internal class VmAssemblyProgram(
         get() = irProgram.countUsedRegisters()
 
     override fun assemble(options: CompilationOptions, errors: IErrorReporter): Boolean {
-        // the VM reads the IR file from disk.
-        IRFileWriter(irProgram, null).write()
+        // the VM reads the IR file from disk; for the virtual target the IR file is the program artifact.
+        val programFile = OutputFiles.of(options, irProgram.name).programFile
+        IRFileWriter(irProgram, programFile).write()
         return true
     }
 }

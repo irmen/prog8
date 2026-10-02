@@ -56,42 +56,27 @@ class Qemu68kTarget: ICompilationTarget,
         TODO("convert bytes to float")
     }
 
-    override fun launchEmulator(selectedEmulator: Int, programNameWithPath: Path, quiet: Boolean) {
+    override fun launchEmulator(selectedEmulator: Int, programFile: Path, quiet: Boolean) {
         if(selectedEmulator!=1) {
             System.err.println("The qemu68k target only supports the main emulator (Qemu).")
             return
         }
-        val elfFile = programNameWithPath.resolveSibling("${programNameWithPath.fileName}.elf")
-        val binFile = programNameWithPath.resolveSibling("${programNameWithPath.fileName}.bin")
-        val isElf = elfFile.toFile().exists()
-        val cpuStr = this.cpu.toString().lowercase()
-
-        val cmd = if (isElf) {
-            listOf(
-                "qemu-system-m68k",
-                "-M", "virt",
-                "-cpu", cpuStr,
-                "-m", "1M",
-                "-kernel", elfFile.toString(),
-                "-nographic"
-            )
-        } else if (binFile.toFile().exists()) {
-            val loadAddr = PROGRAM_LOAD_ADDRESS.toInt()
-            listOf(
-                "qemu-system-m68k",
-                "-M", "virt",
-                "-cpu", cpuStr,
-                "-m", "1M",
-                "-device", "loader,file=${binFile},addr=0x${loadAddr.toString(16)},cpu-num=0",
-                "-nographic"
-            )
-        } else {
-            System.err.println("No .elf or .bin file found for ${programNameWithPath.fileName}")
+        if(!programFile.toFile().exists()) {
+            System.err.println("No program file found: $programFile")
             return
         }
+        val cpuStr = this.cpu.toString().lowercase()
+
+        val cmd = listOf(
+            "qemu-system-m68k",
+            "-M", "virt",
+            "-cpu", cpuStr,
+            "-m", "1M",
+            "-kernel", programFile.toString(),
+            "-nographic"
+        )
         if(!quiet) {
-            val launchMsg = if (isElf) "ELF" else "raw binary"
-            println("Launching QEMU (press Ctrl-A X to exit)... (from $launchMsg)")
+            println("Launching QEMU (press Ctrl-A X to exit)...")
         }
         val pb = ProcessBuilder(cmd).inheritIO()
         try {

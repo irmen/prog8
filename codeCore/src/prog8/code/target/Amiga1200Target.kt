@@ -55,7 +55,7 @@ class Amiga1200Target: ICompilationTarget,
         TODO("convert bytes to float")
     }
 
-    override fun launchEmulator(selectedEmulator: Int, programNameWithPath: Path, quiet: Boolean) {
+    override fun launchEmulator(selectedEmulator: Int, programFile: Path, quiet: Boolean) {
         if(selectedEmulator!=1) {
             System.err.println("The amiga1200 target only supports the main emulator (Amitools's vamos).")
             return
@@ -65,12 +65,11 @@ class Amiga1200Target: ICompilationTarget,
             CpuType.M68020 -> "68020"
             else -> error("invalid cpu type")
         }
-        val exeFile = programNameWithPath.resolveSibling("${programNameWithPath.fileName}")
         val cmd =
             listOf(
                 "vamos",
                 "--cpu", cpuStr,
-                exeFile.toString(),
+                programFile.toString(),
             )
         if(!quiet)
             println("Launching Amitools's Vamos...")

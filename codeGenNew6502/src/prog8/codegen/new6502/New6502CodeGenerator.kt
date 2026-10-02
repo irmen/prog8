@@ -41,6 +41,6 @@ class New6502CodeGenerator(val retainSSA: Boolean,
         if(!success)
             return null
 
-        return AssemblyProgram6502(irProgram.name, irProgram.options.outputDir, irProgram.options.compTarget)
+        return AssemblyProgram6502(irProgram.name, irProgram.options, irProgram.options.compTarget)
     }
 }

@@ -1,10 +1,7 @@
 package prog8.code.assembly
 
 import prog8.code.GENERATED_LABEL_PREFIX
-import prog8.code.core.CompilationOptions
-import prog8.code.core.ICompilationTarget
-import prog8.code.core.IErrorReporter
-import prog8.code.core.OutputType
+import prog8.code.core.*
 import prog8.code.target.C128Target
 import prog8.code.target.C64Target
 import prog8.code.target.PETTarget
@@ -13,25 +10,20 @@ import java.nio.file.Path
 
 class AssemblyProgram6502(
     override val name: String,
-    outputDir: Path,
+    private val options: CompilationOptions,
     private val compTarget: ICompilationTarget) : IAssemblyProgram {
 
     override val irInstructionCount: Int = 0
     override val irChunkCount: Int = 0
     override val irRegisterCount: Int = 0
 
-    private val assemblyFile = outputDir.resolve("$name.asm")
-    private val prgFile = outputDir.resolve("$name.prg")        // CBM prg executable program
-    private val xexFile = outputDir.resolve("$name.xex")        // Atari xex executable program
-    private val binFile = outputDir.resolve("$name.bin")
-    private val viceMonListFile = outputDir.resolve(C64Target.viceMonListName(name))
-    private val listFile = outputDir.resolve("$name.list")
-
     override fun assemble(options: CompilationOptions, errors: IErrorReporter): Boolean {
 
         val assemblerCommand: List<String>
+        val outs = OutputFiles.of(options, name)
 
         fun addRemainingOptions(command: MutableList<String>, program: Path, assembly: Path): List<String> {
+            // keep additionalAssemblerOptions BEFORE --output: a target config may contain its own --output
             if(options.compTarget.additionalAssemblerOptions.isNotEmpty())
                 command.addAll(options.compTarget.additionalAssemblerOptions)
 
@@ -44,7 +36,7 @@ class AssemblyProgram6502(
                 // CBM machines .prg generation.
 
                 val command = mutableListOf("64tass", "--cbm-prg", "--ascii", "--case-sensitive", "--long-branch",
-                    "-Wall", "-Wno-implied-reg", "--no-monitor", "--dump-labels", "--vice-labels", "--labels=$viceMonListFile")
+                    "-Wall", "-Wno-implied-reg", "--no-monitor", "--dump-labels", "--vice-labels", "--labels=${outs.viceMonList()}")
 
                 if(options.warnSymbolShadowing)
                     command.add("-Wshadow")
@@ -55,10 +47,10 @@ class AssemblyProgram6502(
                     command.add("--quiet")
 
                 if(options.asmListfile) {
-                    command.add("--list=$listFile")
+                    command.add("--list=${outs.list()}")
                 }
 
-                assemblerCommand = addRemainingOptions(command, prgFile, assemblyFile)
+                assemblerCommand = addRemainingOptions(command, outs.programFile, outs.asm())
                 if(!options.quiet)
                     println("\nCreating prg for target ${compTarget.name}.")
             }
@@ -66,7 +58,7 @@ class AssemblyProgram6502(
                 // Atari800XL .xex generation.
 
                 val command = mutableListOf("64tass", "--atari-xex", "--case-sensitive", "--long-branch",
-                    "-Wall", "-Wno-implied-reg", "--no-monitor", "--dump-labels", "--vice-labels", "--labels=$viceMonListFile")
+                    "-Wall", "-Wno-implied-reg", "--no-monitor", "--dump-labels", "--vice-labels", "--labels=${outs.viceMonList()}")
 
                 if(options.warnSymbolShadowing)
                     command.add("-Wshadow")
@@ -77,16 +69,16 @@ class AssemblyProgram6502(
                     command.add("--quiet")
 
                 if(options.asmListfile)
-                    command.add("--list=$listFile")
+                    command.add("--list=${outs.list()}")
 
-                assemblerCommand = addRemainingOptions(command,xexFile, assemblyFile)
+                assemblerCommand = addRemainingOptions(command, outs.programFile, outs.asm())
                 if(!options.quiet)
                     println("\nCreating xex for target ${compTarget.name}.")
             }
             OutputType.RAW -> {
                 // Neo6502/headerless raw program generation.
                 val command = mutableListOf("64tass", "--nostart", "--case-sensitive", "--long-branch",
-                    "-Wall", "-Wno-implied-reg", "--no-monitor", "--dump-labels", "--vice-labels", "--labels=$viceMonListFile")
+                    "-Wall", "-Wno-implied-reg", "--no-monitor", "--dump-labels", "--vice-labels", "--labels=${outs.viceMonList()}")
 
                 if(options.warnSymbolShadowing)
                     command.add("-Wshadow")
@@ -97,9 +89,9 @@ class AssemblyProgram6502(
                     command.add("--quiet")
 
                 if(options.asmListfile)
-                    command.add("--list=$listFile")
+                    command.add("--list=${outs.list()}")
 
-                assemblerCommand = addRemainingOptions(command, binFile, assemblyFile)
+                assemblerCommand = addRemainingOptions(command, outs.programFile, outs.asm())
                 if(!options.quiet)
                     println("\nCreating raw binary for target ${compTarget.name}.")
             }
@@ -107,7 +99,7 @@ class AssemblyProgram6502(
                 // CBM machines library (.bin) generation (with or without 2 byte load address header depending on the compilation target machine)
 
                 val command = mutableListOf("64tass", "--ascii", "--case-sensitive", "--long-branch",
-                    "-Wall", "-Wno-implied-reg", "--no-monitor", "--dump-labels", "--vice-labels", "--labels=$viceMonListFile")
+                    "-Wall", "-Wno-implied-reg", "--no-monitor", "--dump-labels", "--vice-labels", "--labels=${outs.viceMonList()}")
 
                 if(options.warnSymbolShadowing)
                     command.add("-Wshadow")
@@ -118,7 +110,7 @@ class AssemblyProgram6502(
                     command.add("--quiet")
 
                 if(options.asmListfile)
-                    command.add("--list=$listFile")
+                    command.add("--list=${outs.list()}")
 
                 if(compTarget.name in listOf(C64Target.NAME, C128Target.NAME, PETTarget.NAME)) {
                     if(!options.quiet)
@@ -130,7 +122,7 @@ class AssemblyProgram6502(
                     command.add("--nostart")       // should be headerless bin, because basic has problems doing a normal LOAD"lib",8,1 - need to use BLOAD
                 }
 
-                assemblerCommand = addRemainingOptions(command, binFile, assemblyFile)
+                assemblerCommand = addRemainingOptions(command, outs.programFile, outs.asm())
             }
             else -> error("Unsupported output type: ${compTarget.defaultOutputType}")
         }
@@ -159,16 +151,16 @@ class AssemblyProgram6502(
 
         val result = process.waitFor()
         if (result == 0) {
-            removeGeneratedLabelsFromMonlist()
-            generateBreakpointList()
+            removeGeneratedLabelsFromMonlist(outs)
+            generateBreakpointList(outs)
         }
         return result==0
     }
 
-    private fun removeGeneratedLabelsFromMonlist() {
+    private fun removeGeneratedLabelsFromMonlist(outs: OutputFiles) {
         val pattern = Regex("""al (\w+) \S+$GENERATED_LABEL_PREFIX.+?""")
-        val lines = viceMonListFile.toFile().readLines()
-        viceMonListFile.toFile().outputStream().bufferedWriter().use {
+        val lines = outs.viceMonList().toFile().readLines()
+        outs.viceMonList().toFile().outputStream().bufferedWriter().use {
             for (line in lines) {
                 if(pattern.matchEntire(line)==null)
                     it.write(line+"\n")
@@ -176,11 +168,11 @@ class AssemblyProgram6502(
         }
     }
 
-    private fun generateBreakpointList() {
+    private fun generateBreakpointList(outs: OutputFiles) {
         // builds list of breakpoints, appends to monitor list file
         val breakpoints = mutableListOf<String>()
         val pattern = Regex("""al (\w+) \S+_prog8_breakpoint_\d+.?""")      // gather breakpoints by the source label that's generated for them
-        for (line in viceMonListFile.toFile().readLines()) {
+        for (line in outs.viceMonList().toFile().readLines()) {
             val match = pattern.matchEntire(line)
             if (match != null)
                 breakpoints.add("break $" + match.groupValues[1])
@@ -189,7 +181,7 @@ class AssemblyProgram6502(
         breakpoints.add(0, "; breakpoint list now follows")
         breakpoints.add(1, "; $num breakpoints have been defined")
         breakpoints.add(2, "del")
-        viceMonListFile.toFile().appendText(breakpoints.joinToString("\n") + "\n")
+        outs.viceMonList().toFile().appendText(breakpoints.joinToString("\n") + "\n")
     }
 }
 

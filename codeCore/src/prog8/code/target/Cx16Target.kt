@@ -28,7 +28,7 @@ class Cx16Target: ICompilationTarget,
 
     override val FLOAT_MAX_POSITIVE = Mflpt5.FLOAT_MAX_POSITIVE
     override val FLOAT_MAX_NEGATIVE = Mflpt5.FLOAT_MAX_NEGATIVE
-    override val FLOAT_MEM_SIZE = Mflpt5.FLOAT_MEM_SIZE.toUInt()
+    override val FLOAT_MEM_SIZE = Mflpt5.FLOAT_MEM_SIZE
     override val POINTER_MEM_SIZE = 2u
     override val ARRAY_SIZE_LIMIT = 256u
     override val PROGRAM_LOAD_ADDRESS = 0x0801u
@@ -54,7 +54,7 @@ class Cx16Target: ICompilationTarget,
         return m5.toDouble()
     }
 
-    override fun launchEmulator(selectedEmulator: Int, programNameWithPath: Path, quiet: Boolean) {
+    override fun launchEmulator(selectedEmulator: Int, programFile: Path, quiet: Boolean) {
         val emulator: String
         val extraArgs: List<String>
 
@@ -65,7 +65,7 @@ class Cx16Target: ICompilationTarget,
             }
             2 -> {
                 emulator = "box16"
-                extraArgs = listOf("-sym", C64Target.viceMonListName(programNameWithPath.toString()))
+                extraArgs = listOf("-sym", programFile.resolveSibling(viceMonListName(outputStemOf(programFile))).toString())
             }
             else -> {
                 System.err.println("Cx16 target only supports x16emu and box16 emulators.")
@@ -76,7 +76,7 @@ class Cx16Target: ICompilationTarget,
         if(!quiet)
             println("\nStarting Commander X16 emulator $emulator...")
 
-        val cmdline = listOf(emulator, "-scale", "2", "-rtc", "-run", "-prg", "${programNameWithPath}.prg") + extraArgs
+        val cmdline = listOf(emulator, "-scale", "2", "-rtc", "-run", "-prg", programFile.toString()) + extraArgs
         val processb = ProcessBuilder(cmdline)
         if(!quiet)
             processb.inheritIO()

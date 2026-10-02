@@ -36,7 +36,8 @@ class CompilationOptions(val output: OutputType,
                          var quiet: Boolean = false,
                          var profilingInstrumentation: Boolean = false,
                          var symbolDefs: Map<String, String> = emptyMap(),
-                         var privateSymbols: Boolean = false
+                         var privateSymbols: Boolean = false,
+                         var outputFile: Path? = null
 ) {
     init {
         compTarget.initializeMemoryAreas(this)
@@ -77,6 +78,7 @@ class CompilationOptions(val output: OutputType,
             private var profilingInstrumentation: Boolean = false
             private var newCodegen: Boolean = false
             private var symbolDefs: Map<String, String> = emptyMap()
+            private var outputFile: Path? = null
 
             fun output(output: OutputType) = apply { this.output = output }
             fun launcher(launcher: CbmPrgLauncherType) = apply { this.launcher = launcher }
@@ -107,6 +109,7 @@ class CompilationOptions(val output: OutputType,
             fun profilingInstrumentation(profilingInstrumentation: Boolean) = apply { this.profilingInstrumentation = profilingInstrumentation }
             fun symbolDefs(symbolDefs: Map<String, String>) = apply { this.symbolDefs = symbolDefs }
             fun newCodegen(newCodegen: Boolean) = apply { this.newCodegen = newCodegen }
+            fun outputFile(outputFile: Path?) = apply { this.outputFile = outputFile }
 
             fun build(): CompilationOptions {
                 return CompilationOptions(
@@ -115,7 +118,7 @@ class CompilationOptions(val output: OutputType,
                     includeSourcelines, dumpVariables, dumpSymbols, newCodegen, varsHighBank, varsGolden,
                     breakpointCpuInstruction, ignoreFootguns, outputDir, quiet,
                     profilingInstrumentation, symbolDefs
-                )
+                ).apply { this.outputFile = this@Builder.outputFile }
             }
         }
     }

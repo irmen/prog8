@@ -7,7 +7,6 @@ import javax.xml.stream.XMLOutputFactory
 import javax.xml.stream.XMLStreamWriter
 import kotlin.io.path.absolute
 import kotlin.io.path.bufferedWriter
-import kotlin.io.path.div
 
 private const val StMemorySlabBlockName = "prog8_slabs"
 
@@ -43,7 +42,7 @@ private object IRStSymbolicReferenceXml {
 
 
 class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
-    private val outfile = outfileOverride ?: (irProgram.options.outputDir / ("${irProgram.name}.p8ir"))
+    private val outfile = outfileOverride ?: OutputFiles.of(irProgram.options, irProgram.name).ir()
     private val out = outfile.bufferedWriter(charset=Charsets.UTF_8)
     private val xml = XMLOutputFactory.newInstance().createXMLStreamWriter(out)
     private var numChunks = 0
@@ -295,6 +294,9 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
         emitLine("romable=${irProgram.options.romable}")
         emitLine("noSysInit=${irProgram.options.noSysInit}")
         emitLine("outputDir=${irProgram.options.outputDir.absolute()}")
+        // emit only when set (older readers throw on unknown OPTION keys) and it must be absolute:
+        // standalone codegen tools resolve the recorded path against their own cwd
+        irProgram.options.outputFile?.let { emitLine("outputFile=${it.absolute()}") }
         xml.writeEndElement()
         xml.writeCharacters("\n\n")
     }

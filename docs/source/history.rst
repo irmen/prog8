@@ -275,6 +275,9 @@ Major breaking changes that require code modifications when upgrading:
     - **``defer`` is now program-wide** — deferred blocks are also unwound when the program exits, or when ``return``/``exit()`` is used from the ``start()`` subroutine. Very useful to let programs cleanly return to the OS without forgetting to free resources.
     - **Union types** — ``union Name { ... }`` declarations where every field shares offset 0 and storage size equals the largest field; only zero-initialization (``[]``) is allowed, values must be written at runtime through typed pointers.
     - added ``arena`` memory allocation library
+    - **``-o`` / ``--output`` compiler option** - choose the exact file name and path of the output program file;
+      all auxiliary output files (assembly, listing, monitor list, IR) are placed alongside it.
+      Mutually exclusive with ``-out``.
 
 
 *This document summarizes major and minor releases. Bugfix releases (e.g., v12.0.1, v12.1.1) are omitted for brevity.*

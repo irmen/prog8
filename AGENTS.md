@@ -226,13 +226,15 @@ When the task involves writing or understanding `.p8` (Prog8 source) or `.p8ir` 
 - the prog8c compiler executable can be found in the compiler/build/install/prog8c/bin folder (this is already added to the shell's path)
 - **the `-check` switch performs a quick syntax/semantic check only; it will NOT produce any output files (no .prg, .asm, etc.)**. Use it only for fast error checking during development.
 - **the `-noopt` switch DISABLES all optimizations** - useful for debugging to determine if a problem is caused by the optimizer. **Optimizations are ENABLED by default** (no flag needed).
-- **prog8c uses single-dash command line options** (e.g., `-target`, `-noopt`, `-check`), NOT double-dash (`--target` is invalid).
+- **prog8c options accept single-dash or double-dash** (e.g., `-target` and `--target` are equivalent).
 - **the `-printast1` switch prints out the internal Compiler AST** after parsing and semantic analysis.
 - **the `-printast2` switch prints out the optimized Simple AST** just before it goes to the code generator. This is useful for debugging optimizer issues.
-- **the `-out outdir` switch sets an alternative output directory** for compiled files (.prg, .asm, .list, etc.). **By default, output files are written to the same directory as the source file**.
+- **the `-out outdir` switch sets an alternative output directory** for compiled files (.prg, .asm, .list, etc.). **By default, output files are written to the current working directory**.
+- **the `-o <file>` switch names the exact final program artifact** (also spelled `--output`); all other output files go in the same directory with the same stem. Cannot be combined with `-out` or with multiple source files.
 - **Other useful flags**: `-quiet` (suppress messages), `-warnimplicitcasts` (warn on implicit type widening), `-daemon` (keep a background compiler process alive — must be passed on every invocation)
 
 ### Compilation Output Files
+Names follow the source file name, or the stem of the `-o` file when that option is used.
 - `*.prg` - The final compiled program file for the target system (e.g., Commander X16)
 - `*.asm` - Generated assembly code from the Prog8 source
 - `*.list` - Generated full assembly listing file from the Prog8 source

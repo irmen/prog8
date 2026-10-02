@@ -70,7 +70,8 @@ source code such as %launcher, %zeropage and so on. But there is a single direct
 (and makes sure there won't be any initialization code left at all): ``%output library``
 
 Together with ``%address`` and possibly ``%memtop`` -to tell the compiler what the load address of the library should be-
-it will create a "library.bin" file that fulfills the requirements of a loadable binary library program as listed above.
+it will create a binary output file named after the program (``<programname>.bin``) that fulfills the requirements of a loadable binary library program as listed above.
+(The exact file name and location can be overridden with the ``-o`` command line option.)
 
 For older CBM targets (C64, C128 and PET) the library file *will* have a load address header,
 because these targets require a header to easily load files. For the other targets such as the Commander X16,

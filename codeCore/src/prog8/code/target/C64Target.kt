@@ -22,8 +22,6 @@ class C64Target: ICompilationTarget,
 
     companion object {
         const val NAME = "c64"
-
-        fun viceMonListName(baseFilename: String) = "$baseFilename.vice-mon-list"
     }
 
 
@@ -58,7 +56,7 @@ class C64Target: ICompilationTarget,
         return m5.toDouble()
     }
 
-    override fun launchEmulator(selectedEmulator: Int, programNameWithPath: Path, quiet: Boolean) {
+    override fun launchEmulator(selectedEmulator: Int, programFile: Path, quiet: Boolean) {
         if(selectedEmulator!=1) {
             System.err.println("The c64 target only supports the main emulator (Vice).")
             return
@@ -68,9 +66,9 @@ class C64Target: ICompilationTarget,
             if(!quiet)
                 println("\nStarting C-64 emulator $emulator...")
 
-            val viceMonlist = viceMonListName(programNameWithPath.toString())
-            val cmdline = listOf(emulator, "-silent", "-moncommands", viceMonlist,
-                "-autostartprgmode", "1", "-autostart-warp", "-autostart", "${programNameWithPath}.prg")
+            val viceMonlist = programFile.resolveSibling(viceMonListName(outputStemOf(programFile)))
+            val cmdline = listOf(emulator, "-silent", "-moncommands", viceMonlist.toString(),
+                "-autostartprgmode", "1", "-autostart-warp", "-autostart", programFile.toString())
             val processb = ProcessBuilder(cmdline)
             if(!quiet)
                 processb.inheritIO()

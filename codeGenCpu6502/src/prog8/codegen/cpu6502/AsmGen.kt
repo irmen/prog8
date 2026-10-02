@@ -110,7 +110,7 @@ class AsmGen6502Internal (
         programGen.generate()
 
         if(errors.noErrors()) {
-            val output = options.outputDir.resolve("${program.name}.asm")
+            val output = OutputFiles.of(options, program.name).asm()
             val asmLines = assembly.toMutableList()
             if(options.compTarget.name==Cx16Target.NAME) {
                 scanInvalid65816instructions(asmLines)
@@ -130,7 +130,7 @@ class AsmGen6502Internal (
             if(options.dumpVariables)
                 dumpVariables()
 
-            return AssemblyProgram6502(program.name, options.outputDir, options.compTarget)
+            return AssemblyProgram6502(program.name, options, options.compTarget)
         } else {
             errors.report()
             return null
@@ -2088,11 +2088,17 @@ $repeatLabel""")
             throw AssemblyError("%asmbinary inside non-library/non-filesystem module not yet supported")
         val sourcePath = Path(incbin.definingBlock()!!.source.origin)
         val includedPath = sourcePath.resolveSibling(incbin.file)
-        val pathForAssembler = options.outputDir // #54: 64tass needs the path *relative to the .asm file*
-            .sanitize()
-            .relativize(includedPath.sanitize())
-            .normalize() // avoid assembler warnings (-Wportable; only some, not all)
-            .toString().replace('\\', '/')
+        val pathForAssembler = try {
+            options.outputDir // #54: 64tass needs the path *relative to the .asm file*
+                .sanitize()
+                .relativize(includedPath.sanitize())
+                .normalize() // avoid assembler warnings (-Wportable; only some, not all)
+                .toString().replace('\\', '/')
+        } catch (_: IllegalArgumentException) {
+            // Path.relativize throws when the two paths have different roots (different drive/volume)
+            errors.err("cannot determine relative path for %asmbinary file '${incbin.file}' (at ${includedPath}): it must be on the same drive/volume as the generated assembly in ${options.outputDir}", incbin.position)
+            return
+        }
         out("  .binary \"$pathForAssembler\" $offset $length")
     }
 

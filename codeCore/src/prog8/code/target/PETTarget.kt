@@ -27,7 +27,7 @@ class PETTarget: ICompilationTarget,
 
     override val FLOAT_MAX_POSITIVE = Mflpt5.FLOAT_MAX_POSITIVE
     override val FLOAT_MAX_NEGATIVE = Mflpt5.FLOAT_MAX_NEGATIVE
-    override val FLOAT_MEM_SIZE = Mflpt5.FLOAT_MEM_SIZE.toUInt()
+    override val FLOAT_MEM_SIZE = Mflpt5.FLOAT_MEM_SIZE
     override val POINTER_MEM_SIZE = 2u
     override val ARRAY_SIZE_LIMIT = 256u
     override val PROGRAM_LOAD_ADDRESS = 0x0401u
@@ -53,7 +53,7 @@ class PETTarget: ICompilationTarget,
         return m5.toDouble()
     }
 
-    override fun launchEmulator(selectedEmulator: Int, programNameWithPath: Path, quiet: Boolean) {
+    override fun launchEmulator(selectedEmulator: Int, programFile: Path, quiet: Boolean) {
         if(selectedEmulator!=1) {
             System.err.println("The pet target only supports the main emulator (Vice).")
             return
@@ -62,9 +62,9 @@ class PETTarget: ICompilationTarget,
         if(!quiet)
             println("\nStarting PET emulator...")
 
-        val viceMonlist = C64Target.viceMonListName(programNameWithPath.toString())
-        val cmdline = listOf("xpet", "-model", "4032", "-ramsize", "32", "-videosize", "40", "-silent", "-moncommands", viceMonlist,
-            "-autostartprgmode", "1", "-autostart-warp", "-autostart", "${programNameWithPath}.prg")
+        val viceMonlist = programFile.resolveSibling(viceMonListName(outputStemOf(programFile)))
+        val cmdline = listOf("xpet", "-model", "4032", "-ramsize", "32", "-videosize", "40", "-silent", "-moncommands", viceMonlist.toString(),
+            "-autostartprgmode", "1", "-autostart-warp", "-autostart", programFile.toString())
         val processb = ProcessBuilder(cmdline)
         if(!quiet)
             processb.inheritIO()

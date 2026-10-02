@@ -68,6 +68,7 @@ class CompilerArguments(val filepath: Path,
                         val symbolDefs: Map<String, String>,
                         val sourceDirs: List<String> = emptyList(),
                         val outputDir: Path = Path(""),
+                        val outputFile: Path? = null,
                         val cwd: Path = Path("").absolute(),
                         val errors: IErrorReporter = ErrorReporter(ErrorReporter.AnsiColors),
                         val assemble: Boolean = true,
@@ -144,7 +145,9 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                 varsGolden = args.varsGolden
                 if(args.varsAddress!=null)
                     varsAddress = args.varsAddress
-                outputDir = args.outputDir.normalize()
+                outputDir = args.outputFile?.parent ?: args.outputDir.normalize()
+                // the .asm and outputDir must move together: 64tass resolves .binary relative to the .asm
+                outputFile = args.outputFile
                 symbolDefs = args.symbolDefs
             }
             // apply custom target default for vars address now so it participates in the ROMable check

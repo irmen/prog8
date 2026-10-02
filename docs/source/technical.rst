@@ -108,7 +108,8 @@ result in the *same* ID being passed to the banking routine, as the ID is unique
 
 Viewing assigned IDs
     During compilation, the compiler outputs a list of all assigned call-site IDs
-    into a file named ``<programname>.bankedcalls`` in the output directory.
+    into a file named ``<stem>.bankedcalls`` in the output directory
+    (the stem is the name of the program, or of the file given with the ``-o`` option).
     This information is useful for synchronizing your overlay manager with the 
     subroutines it needs to handle.
 

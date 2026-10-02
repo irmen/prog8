@@ -150,9 +150,11 @@ For normal use the compiler can be invoked with the command:
     tell it to compile a program for the Commander X16)
 
 
-By default, assembly code is generated and written to ``sourcefile.asm``.
+By default, assembly code is generated and written as ``sourcefile.asm`` in the current working directory
+(the default output directory; the ``-out`` option selects a different location).
 It is then (automatically) fed to the `64tass <https://sourceforge.net/projects/tass64/>`_ assembler tool
 that creates the final runnable program.
+For the ``virtual`` target no assembly code is generated: instead an IR program file named ``sourcefile.p8ir`` is written.
 
 
 Command line options
@@ -161,7 +163,8 @@ Command line options
 .. index:: pair: Usage; Command line options
 
 Options accept either a single dash or a double dash. For example, ``-target c64``
-and ``--target c64`` are equivalent.
+and ``--target c64`` are equivalent. Some options have both a short and a long form
+(such as ``-o`` and ``--output``); either spelling can be used.
 
 One or more .p8 module files
     Specify the main module file(s) to compile.
@@ -251,8 +254,24 @@ One or more .p8 module files
     Don't perform any code optimizations.
     Useful for debugging or faster compilation cycles.
 
+``-o <file>``
+    Use the exact given file name and path for the final program artifact.
+    The name is used verbatim: the compiler does not add or check an extension,
+    and ``%output`` (or the compilation target's output type) still decides the content format of the file.
+    All other output files (assembly, listing, vice monitor list, IR, etc.) are written in the same
+    directory and use the stem of this file name: for example ``-o build/game.pgz`` also produces
+    ``build/game.asm`` and, with ``-asmlist``, ``build/game.list``.
+    A file name without an extension is allowed as well.
+    On the ``virtual`` target the program artifact is the IR file, so ``.p8ir`` is always enforced there:
+    ``-o build/game`` writes ``build/game.p8ir``.
+    This option cannot be combined with ``-out``, and it only works when a single source file is compiled.
+    It is silently ignored when no program artifact is produced anyway: with ``-noasm``, ``-check``,
+    ``-dumpsymbols`` or ``-gendoc``.
+    Without this option, output file naming and placement are unchanged.
+
 ``-out <directory>``
     Sets directory location for output files instead of current directory. Creates it if it doesn't exist yet.
+    Cannot be combined with ``-o``.
 
 ``-plaintext``
     Prints output messages in plain text: no colors or fancy symbols.
@@ -433,13 +452,15 @@ The ``%breakpoint`` directive (see :ref:`directives`) in the source code instruc
 a *breakpoint* at that position. Some systems use a BRK instruction for this, but
 this will usually halt the machine altogether instead of just suspending execution.
 Prog8 issues a NOP instruction instead and creates a 'virtual' breakpoint at this position.
-All breakpoints are then written to a file called "programname.vice-mon-list",
+All breakpoints are then written to a file called ``<stem>.vice-mon-list``,
 which is meant to be used by the VICE and Box16 emulators.
+The stem is the name of the output program file (without extension); the ``-o`` option changes it
+to the stem of the given file name.
 It contains a series of commands for VICE's monitor, including source labels and the breakpoint settings.
 If you use the emulator autostart feature of the compiler, it will take care of this for you.
 If you launch VICE manually, you'll have to use a command line option to load this file:
 
-	``$ x64 -moncommands programname.vice-mon-list``
+	``$ x64 -moncommands <stem>.vice-mon-list``
 
 VICE will then use the label names in memory disassembly, and will activate any breakpoints as well.
 If your running program hits one of the breakpoints, VICE will halt execution and drop you into the monitor.

@@ -4,6 +4,7 @@ import prog8.code.StNodeType
 import prog8.code.SymbolTable
 import prog8.code.core.CompilationOptions
 import prog8.code.core.IErrorReporter
+import prog8.code.core.OutputFiles
 import prog8.code.core.Position
 
 
@@ -30,7 +31,7 @@ fun writeBankedCallsFile(program: PtProgram, symbolTable: SymbolTable, options: 
     if (eligible.isEmpty())
         return
 
-    val file = options.outputDir.resolve("${program.name}.bankedcalls")
+    val file = OutputFiles.of(options, program.name).bankedCalls()
 
     // check existing file for ID changes that might break overlay managers
     val existingFile = file.toFile()

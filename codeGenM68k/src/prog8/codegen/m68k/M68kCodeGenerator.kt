@@ -37,6 +37,6 @@ class M68kCodeGenerator(val retainSSA: Boolean): ICodeGeneratorBackend {
         if (!gen.generate())
             throw RuntimeException("M68k assembly generation failed")
 
-        return AssemblyProgramM68k(irProgram.name, irProgram.options.outputDir)
+        return AssemblyProgramM68k(irProgram.name)
     }
 }

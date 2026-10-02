@@ -6,6 +6,7 @@ import io.kotest.engine.spec.tempdir
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import prog8.code.core.ICompilationTarget
+import prog8.code.core.OutputFiles
 import prog8.code.target.*
 import prog8.compiler.CompilationResult
 import prog8.compiler.CompilerArguments
@@ -107,10 +108,7 @@ private fun prepareTestFiles(source: String, optimize: Boolean, target: ICompila
  * A small tolerance of ±5 bytes is allowed for minor non-deterministic variations.
  */
 private fun verifyOutputFileSize(result: CompilationResult, expectedSize: Int) {
-    val outputFile = when (result.compilationOptions.compTarget) {
-        is VMTarget -> result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
-        else -> result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".prg")
-    }
+    val outputFile = OutputFiles.of(result.compilationOptions, result.compilerAst.name).programFile
     val actualSize = Files.size(outputFile).toInt()
     val tolerance = 5  // Allow ±5 bytes for minor non-deterministic variations
     if (actualSize < expectedSize - tolerance || actualSize > expectedSize + tolerance) {

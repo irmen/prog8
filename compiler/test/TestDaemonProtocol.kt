@@ -38,6 +38,7 @@ class TestDaemonProtocol : FunSpec({
             symbolDefs = mapOf("FOO" to "123", "BAR" to "456"),
             sourceDirs = listOf("/src1", "/src2"),
             outputDir = "/out",
+            outputFile = "/out/custom.pgz",
             cwd = "/home/user/project"
         )
 
@@ -71,6 +72,7 @@ class TestDaemonProtocol : FunSpec({
         decoded.symbolDefs shouldBe request.symbolDefs
         decoded.sourceDirs shouldBe request.sourceDirs
         decoded.outputDir shouldBe request.outputDir
+        decoded.outputFile shouldBe request.outputFile
         decoded.cwd shouldBe request.cwd
     }
 
@@ -114,6 +116,7 @@ class TestDaemonProtocol : FunSpec({
         decoded.varsAddress shouldBe null
         decoded.breakpointCpuInstruction shouldBe null
         decoded.newCodegen shouldBe false
+        decoded.outputFile shouldBe null
     }
 
     test("Decode fails gracefully with missing field") {
