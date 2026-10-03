@@ -284,12 +284,14 @@ adpcm {
         decode_block_stereo_loop(nibblesptr, outptr)
     }
 
-    private asmsub decode_block_stereo_loop(pointer nibblesptr @A0, pointer outptr @A1) clobbers (D0, D1, D2, D3, D4, D5, D6, D7, A0, A1, A2, A3, A4, A5) {
+    private asmsub decode_block_stereo_loop(pointer nibblesptr @A0, pointer outptr @A1) clobbers (D0, D1, D2, D3, D4, D5, D6, D7, A0, A1, A2, A3, A4) {
         ; Decode 248 nibbles in 31 outer iterations, each processing 4 left bytes
         ; then 4 right bytes.  D7/D6 = left predict/(rowindex+1)*32, D5/D3 = right,
         ; D4 = loaded longword, D2 = temp word, A5 = outer loop counter.
         ; Left samples go to (a1)/4(a1) and right samples to 2(a1)/6(a1) via a4,
         ; producing interleaved L,R output directly with no separate interleave pass.
+        ; A5 is used as scratch here, but it is the caller's frame pointer register, so it is
+        ; saved and restored around the loop.
         %asm {{
         lea     p8b_adpcm.p8v_deltas_table-32,a2
         lea     p8b_adpcm.p8v_next_state_table,a3
@@ -303,6 +305,7 @@ adpcm {
         addq.w  #1,d6
         lsl.w   #5,d6          ; S_left = (rowindex + 1) * 32
         move.w  p8b_adpcm.p8v_predict,d7
+        move.l  a5,-(sp)        ; preserve the caller's frame pointer register
         suba.l  a5,a5
         move.w  #31,a5
 .loop:
@@ -508,6 +511,7 @@ adpcm {
         lsr.w   #5,d1
         subq.w  #1,d1
         move.b  d1,p8b_adpcm.p8v_rowindex_2
+        move.l  (sp)+,a5        ; restore the caller's frame pointer register
         rts
         }}
     }

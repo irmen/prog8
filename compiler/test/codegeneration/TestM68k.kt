@@ -519,4 +519,125 @@ main {
         startIdx shouldBeGreaterThan -1
         (sizeIdx < startIdx) shouldBe true
     }
+
+    test("subroutine calling assembly that overwrites a5 keeps the static convention") {
+        // A5 is the frame pointer of a framed subroutine. An asmsub that clobbers it without
+        // preserving it would silently invalidate the caller's frame slots (and its `unlk a5`),
+        // so such a caller must not be given a stack frame at all.
+        val src = """
+main {
+    inline asmsub clobberframepointer() {
+        %asm {{
+            moveq #1, d0
+            lea.l some_label(PC),a5
+some_label:
+            rts
+        }}
+    }
+
+    sub start() {
+        ubyte localvar
+        clobberframepointer()
+        localvar = 1
+    }
+}
+"""
+        val result = compileText(Amiga500Target(), optimize = false, src, outputDir, writeAssembly = true, assemble = false)
+        result shouldNotBe null
+        val asm = result!!.compilationOptions.outputDir.resolve("${result.compilerAst.name}.asm").toFile().readText()
+        val start = asm.indexOf("; ---- Subroutine: p8b_main.p8s_start")
+        val end = asm.indexOf("; End of subroutine: p8b_main.p8s_start")
+        val lines = asm.substring(start, end).lines().map { it.trim() }
+        lines.none { it.startsWith("link  a5") } shouldBe true
+        lines.none { it.startsWith("unlk") } shouldBe true
+        // the local keeps its static cell, so no frame-relative access at all
+        lines.any { it.contains("p8b_main.p8s_start.p8v_localvar") } shouldBe true
+    }
+
+    test("subroutine calling assembly that preserves a5 gets a stack frame") {
+        // the same program, but the asmsub saves and restores a5, so the frame stays valid
+        val src = """
+main {
+    inline asmsub preserveframepointer() {
+        %asm {{
+            move.l a5,-(sp)
+            moveq #1, d0
+            lea.l some_label(PC),a5
+some_label:
+            move.l (sp)+,a5
+            rts
+        }}
+    }
+
+    sub start() {
+        ubyte localvar
+        preserveframepointer()
+        localvar = 1
+    }
+}
+"""
+        val result = compileText(Amiga500Target(), optimize = false, src, outputDir, writeAssembly = true, assemble = false)
+        result shouldNotBe null
+        val asm = result!!.compilationOptions.outputDir.resolve("${result.compilerAst.name}.asm").toFile().readText()
+        val start = asm.indexOf("; ---- Subroutine: p8b_main.p8s_start")
+        val end = asm.indexOf("; End of subroutine: p8b_main.p8s_start")
+        val lines = asm.substring(start, end).lines().map { it.trim() }
+        lines.count { it.startsWith("link  a5") } shouldBe 1
+        lines.count { it.startsWith("unlk") } shouldBe 1
+        lines.any { it.contains("-1(a5)") } shouldBe true
+    }
+
+    test("custom.grab_system preserves the frame pointer register a5") {
+        // grab_system needs a5 to pass the VBR-reading helper to exec.Supervisor(), and A5 is now
+        // the frame pointer of the calling subroutine, so it must be saved and restored.
+        val src = """
+%import custom
+
+main {
+    sub start() {
+        custom.grab_system()
+        custom.restore_system()
+    }
+}
+"""
+        val result = compileText(Amiga500Target(), optimize = false, src, outputDir, writeAssembly = true, assemble = false)
+        result shouldNotBe null
+        val asm = result!!.compilationOptions.outputDir.resolve("${result.compilerAst.name}.asm").toFile().readText()
+        val grab = asm.substring(asm.indexOf("custom.grab_system:"), asm.indexOf("; End of subroutine: custom.grab_system"))
+        grab.lines().map { it.substringBefore(';').trim() }.let { lines ->
+            lines.count { it == "move.l  a5,-(sp)" } shouldBe 1
+            lines.count { it == ".skip:      move.l  (sp)+,a5" } shouldBe 1
+        }
+    }
+
+    test("adpcm stereo block decoder preserves the frame pointer register a5") {
+        // the stereo loop kernel uses A5 as its outer loop counter, but A5 is now the frame pointer
+        // of every framed Prog8 subroutine, so it must save and restore it around the loop.
+        val src = """
+%import adpcm
+
+main {
+    pointer inbuf = memory("inbuf", 256, 0)
+    pointer outbuf = memory("outbuf", 1024, 0)
+
+    sub start() {
+        adpcm.decode_block_stereo(inbuf, outbuf)
+    }
+}
+"""
+        val result = compileText(Amiga500Target(), optimize = false, src, outputDir, writeAssembly = true, assemble = false)
+        result shouldNotBe null
+        val asm = result!!.compilationOptions.outputDir.resolve("${result.compilerAst.name}.asm").toFile().readText()
+        val kernel = asm.substring(
+            asm.indexOf("p8b_adpcm.p8s_decode_block_stereo_loop:"),
+            asm.indexOf("; End of subroutine: p8b_adpcm.p8s_decode_block_stereo_loop")
+        )
+        kernel.lines().map { it.substringBefore(';').trim() }.let { lines ->
+            lines.count { it == "move.l  a5,-(sp)" } shouldBe 1
+            lines.count { it == "move.l  (sp)+,a5" } shouldBe 1
+        }
+        // its Prog8 caller and everything above it keep their stack frames
+        asm.contains("; ---- Subroutine: p8b_adpcm.p8s_decode_block_stereo ----") shouldBe true
+        asm.contains("link  a5,#") shouldBe true
+    }
 })

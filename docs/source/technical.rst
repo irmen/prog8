@@ -280,6 +280,11 @@ assembly that calls a normal Prog8 subroutine must follow the stack convention a
    ``on..goto`` and ``on..call`` jump tables remain static because their symbolic initializers
    cannot currently be placed in a frame.
 
+   Assembly code that writes to ``A5`` without preserving the caller's frame pointer would
+   invalidate every frame slot of its caller, so a subroutine that (directly or indirectly) calls
+   such assembly is not given a stack frame and keeps the static convention instead. The usual
+   ``move.l a5,-(sp)`` ... ``move.l (sp)+,a5`` prologue and epilogue is recognised as balanced.
+
    A single local frame is limited to 16 KiB. The compiler reports oversized frames, but does
    not detect exhaustion caused by a deep call chain or recursion. Frame-slot reuse is also
    conservative in routines containing loops, so such routines may use more stack space than

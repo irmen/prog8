@@ -20,6 +20,8 @@ import prog8.intermediate.*
  *  - it contains no inline assembly chunk,
  *  - it makes no indirect calls and its address is never taken (subptr dispatch tables, interrupt
  *    handler registration, ...): an unknown caller cannot push arguments into a frame,
+ *  - it cannot reach a subroutine whose assembly code writes to A5: such a call would overwrite
+ *    the frame pointer while this subroutine's frame slots are still live,
  *  - all its parameters are frameable (a parameter that cannot move forces the whole
  *    subroutine to keep the static convention, since the caller must then write static cells),
  *  - every local it moves is plain data (byte/word/long/pointer scalar or numeric/bool array)
@@ -80,11 +82,13 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
         val dispatchTargets = collectDispatchTargets(subLabels, addressTaken)
         val indirectCallers = allSubs.filter { sub -> containsIndirectCall(sub) }.map { it.label }.toSet()
         val reentrant = subsWithMultipleLiveActivations(callSites, indirectCallers, dispatchTargets)
+        val framePointerClobberers = framePointerClobberingSubs()
+        val reachesFramePointerClobber = subsReachingFramePointerClobber(framePointerClobberers)
 
         val framedSubs = mutableMapOf<String, FrameLayoutResult>()
         val notFramedReasons = mutableMapOf<String, String>()
         for (sub in allSubs) {
-            val outcome = frameableSubroutine(sub, referencedIn, addressTaken, asmTexts, callSites, dispatchTargets, indirectCallers, reentrant)
+            val outcome = frameableSubroutine(sub, referencedIn, addressTaken, asmTexts, callSites, dispatchTargets, indirectCallers, reentrant, reachesFramePointerClobber)
             when (outcome) {
                 is Frameability.Frameable -> framedSubs[sub.label] = outcome.layout
                 is Frameability.NotFrameable -> notFramedReasons[sub.label] = outcome.reason
@@ -146,6 +150,125 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
                 found = true
         }
         return found
+    }
+
+    /**
+     * Labels of subroutines whose code writes to A5, the frame pointer register of a framed
+     * subroutine. Assembly subroutines are matched on their assembly text, ordinary subroutines on
+     * the text of their inline assembly chunks (a subroutine without assembly cannot write A5).
+     *
+     * Such a subroutine invalidates the frame of its caller: every frame-slot reference in the
+     * caller then uses a different base register, and the caller's `unlk a5` restores a frame
+     * pointer that was never saved.
+     */
+    private fun framePointerClobberingSubs(): Set<String> {
+        val result = mutableSetOf<String>()
+        program.allAsmSubs().forEach { asmSub ->
+            if (writesFramePointerRegister(asmSub.asmChunk.assembly))
+                result += asmSub.label
+        }
+        for (sub in program.allSubs()) {
+            sub.forEachChunk { chunk ->
+                if (chunk is IRInlineAsmChunk && writesFramePointerRegister(chunk.assembly))
+                    result += sub.label
+            }
+        }
+        return result
+    }
+
+    /**
+     * Subroutine label -> label of the frame-pointer-clobbering subroutine it can reach, for every
+     * subroutine that can (directly or indirectly) call one. An indirect call may dispatch to any
+     * subroutine, so a subroutine containing one is assumed to reach all of them.
+     */
+    private fun subsReachingFramePointerClobber(clobberers: Set<String>): Map<String, String> {
+        if (clobberers.isEmpty())
+            return emptyMap()
+        val callTargets = mutableMapOf<String, MutableSet<String>>()
+        for (sub in program.allSubs()) {
+            val targets = callTargets.getOrPut(sub.label) { mutableSetOf() }
+            sub.forEachChunk { chunk ->
+                chunk.instructions.forEach { instr ->
+                    when (val ref = instr.callSite?.codeReference) {
+                        is CodeReference.Label -> targets += ref.name
+                        is CodeReference.Indirect -> targets += clobberers
+                        else -> {}
+                    }
+                }
+            }
+        }
+        val reaching = mutableMapOf<String, String>()
+        var changed = true
+        while (changed) {
+            changed = false
+            for ((label, targets) in callTargets) {
+                if (label in reaching)
+                    continue
+                val hit = targets.firstOrNull { it in clobberers || it in reaching } ?: continue
+                reaching[label] = if (hit in clobberers) hit else reaching.getValue(hit)
+                changed = true
+            }
+        }
+        return reaching
+    }
+
+    /**
+     * True when the assembly text writes to A5 without protecting the caller's frame pointer, in a
+     * form this textual check recognises: as the destination operand of an instruction, as the frame
+     * register of a `link`, or anywhere in a `movem` register list (whose mask syntax is not parsed
+     * here). The usual `move.l a5,-(sp)` ... `move.l (sp)+,a5` prologue/epilogue pair is recognised
+     * as balanced and does not count; a write in between does.
+     *
+     * The scan is linear and ignores branches, so a subroutine that saves A5 on one path and
+     * overwrites it on another is reported conservatively as a clobber. Being over-cautious only
+     * costs the calling subroutine its stack frame (it keeps the static convention instead).
+     */
+    private fun writesFramePointerRegister(asm: String): Boolean {
+        var saved = false
+        for (rawLine in asm.lines()) {
+            // drop comments and a leading label, so a labelled instruction is still examined
+            val line = rawLine.substringBefore(';')
+                .replace(Regex("^[.0-9A-Za-z_$]+:"), "")
+                .trim().replace(Regex("[ \t]+"), " ")
+            if (line.isEmpty() || line.startsWith('.'))    // equates and directives
+                continue
+            val words = line.split(' ')
+            val mnemonic = words[0].lowercase()
+            val operands = words.drop(1).joinToString(",").split(',')
+            if (operands.any { it.isEmpty() })
+                continue
+            if (mnemonic.startsWith("movem")) {
+                val pushes = operands.last().lowercase() == "-(sp)"
+                val mentionsA5 = operands.any { it.lowercase().contains("a5") }
+                if (pushes && mentionsA5) {
+                    saved = true
+                    continue
+                }
+                if (!pushes && operands.first().lowercase() == "(sp)+" && mentionsA5) {
+                    saved = false
+                    continue
+                }
+                if (mentionsA5 && !saved)
+                    return true
+                continue
+            }
+            if (mnemonic == "link" && operands[0].lowercase().removePrefix("-") == "a5")
+                return true
+            val source = operands.first().lowercase()
+            val destination = operands.last().lowercase()
+            val writesA5 = destination == "a5" || destination == "-a5"
+            if (destination == "-(sp)" && source == "a5") {
+                saved = true
+                continue
+            }
+            if (source == "(sp)+" && writesA5 && operands.size == 2) {
+                saved = false
+                continue
+            }
+            if (writesA5 && !saved)
+                return true
+        }
+        return false
     }
 
     /**
@@ -256,10 +379,14 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
         callSites: Map<String, List<CallSiteRef>>,
         dispatchTargets: Set<String>,
         indirectCallers: Set<String>,
-        reentrant: Set<String>
+        reentrant: Set<String>,
+        reachesFramePointerClobber: Map<String, String>
     ): Frameability {
         val static = { reason: String -> Frameability.NotFrameable(reason) }
         if (sub.hasFrame) return static("it already has a stack frame")
+        reachesFramePointerClobber[sub.label]?.let {
+            return static("it calls '$it', whose assembly code overwrites the frame pointer register A5")
+        }
         var hasInlineAsm = false
         sub.forEachChunk { chunk -> if (chunk is IRInlineAsmChunk) hasInlineAsm = true }
         if (hasInlineAsm) return static("it contains inline assembly")

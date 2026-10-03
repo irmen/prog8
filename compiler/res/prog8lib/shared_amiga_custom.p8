@@ -24,6 +24,7 @@ IRQ5 = $74
 IRQ6 = $78
 IRQ7 = $7C
 
+            move.l  a5,-(sp)        ; a5 is the frame pointer register, but it is needed below for Supervisor()
             move.l  4.w,a6
             jsr     exec.Forbid(a6)        ; Do not run other tasks
             btst.b  #0,exec_AttnFlags+1(a6)    ; Check if > 68000 processor
@@ -65,7 +66,8 @@ IRQ7 = $7C
 .getvbr:    dc.l    $4E7A0801            ; MOVEC VBR,d0  - privileged instruction
             rte
 
-.skip:      rts
+.skip:      move.l  (sp)+,a5        ; restore the caller's frame pointer
+            rts
 
         }}
     }
