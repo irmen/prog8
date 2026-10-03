@@ -21,15 +21,19 @@ import prog8.intermediate.*
  *
  * Everything else keeps the existing static path verbatim. A subroutine is frameable when ALL of:
  *  - it contains no inline assembly chunk,
- *  - it is not on a call-graph cycle and makes no indirect calls: until call-live virtual
- *    registers move into frames (design-doc slice 3), a re-entrant activation would share the
- *    flat program-static p8_regfile slots,
- *  - its address is never taken (subptr dispatch tables, interrupt handler registration, ...),
+ *  - it makes no indirect calls and its address is never taken (subptr dispatch tables, interrupt
+ *    handler registration, ...): an unknown caller cannot push arguments into a frame,
  *  - all its parameters are frameable (a parameter that cannot move forces the whole
  *    subroutine to keep the static convention, since the caller must then write static cells),
  *  - every local it moves is plain data (byte/word/long/pointer scalar or numeric/bool array)
  *    that is not address-taken, inline-asm referenced, static-initialized or explicitly aligned.
  *    Locals that fail this test simply stay static; they do not disqualify the subroutine.
+ *
+ * A subroutine that can have two live activations (it lies on a cycle of the call graph, with
+ * indirect calls conservatively assumed to reach every dispatch target) must additionally move
+ * *everything* into its frame: its virtual registers become frame slots and each remaining
+ * static variable is a compile error, since two activations would share that storage.
+ * Such a subroutine with nothing left to share is fine on the static path.
  */
 class StackFrameLayout(private val program: IRProgram, private val errors: IErrorReporter) {
 
@@ -38,6 +42,9 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
 
         /** bytes reserved per incoming parameter (padded longword slot, §6.1) */
         const val PARAM_SLOT_SIZE = 4
+
+        /** virtual register numbers from here on are reserved for the runtime and cannot be relocated */
+        const val RESERVED_VREG_RANGE_START = 99000
 
         /** frame-pointer offset of the last-pushed (rightmost) argument slot: above saved a5 + return address */
         const val INCOMING_BASE = 8
@@ -75,17 +82,23 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
         val callSites = collectCallSites(subLabels)
         val dispatchTargets = collectDispatchTargets(subLabels, addressTaken)
         val indirectCallers = allSubs.filter { sub -> containsIndirectCall(sub) }.map { it.label }.toSet()
-        val onCycle = subsOnCallCycles(callSites)
+        val reentrant = subsWithMultipleLiveActivations(callSites, indirectCallers, dispatchTargets)
 
         val framedSubs = mutableMapOf<String, FrameLayoutResult>()
+        val notFramedReasons = mutableMapOf<String, String>()
         for (sub in allSubs) {
-            val result = frameableSubroutine(sub, referencedIn, addressTaken, asmTexts, callSites, dispatchTargets, indirectCallers, onCycle)
-            if (result != null)
-                framedSubs[sub.label] = result
+            val outcome = frameableSubroutine(sub, referencedIn, addressTaken, asmTexts, callSites, dispatchTargets, indirectCallers, reentrant)
+            when (outcome) {
+                is Frameability.Frameable -> framedSubs[sub.label] = outcome.layout
+                is Frameability.NotFrameable -> notFramedReasons[sub.label] = outcome.reason
+            }
         }
 
         if (framedSubs.isNotEmpty())
             rewriteCallArgumentLocations(framedSubs)
+
+        reportUnsoundStaticState(framedSubs, notFramedReasons, reentrant, referencedIn, addressTaken, asmTexts)
+        rewriteOutgoingJumps(framedSubs.keys)
     }
 
     private class CallSiteRef(val chunk: IRCodeChunkBase, val index: Int, val caller: String, val site: CallSite)
@@ -139,11 +152,15 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
     }
 
     /**
-     * Labels of subroutines that lie on a cycle of direct calls (direct recursion or mutual
-     * recursion), using an iterative Tarjan SCC pass. Those subroutines can have two live
-     * activations at once, which the flat program-static regfile cannot support yet (slice 3).
+     * Labels of subroutines that can have two live activations at the same time: they lie on a
+     * cycle of direct calls (direct recursion or mutual recursion), or on a cycle that only closes
+     * through an indirect call. Uses an iterative Tarjan SCC pass over the call graph.
      */
-    private fun subsOnCallCycles(callSites: Map<String, List<CallSiteRef>>): Set<String> {
+    private fun subsWithMultipleLiveActivations(
+        callSites: Map<String, List<CallSiteRef>>,
+        indirectCallers: Set<String>,
+        dispatchTargets: Set<String>
+    ): Set<String> {
         val edges = mutableMapOf<String, MutableSet<String>>()
         for (sub in program.allSubs())
             edges.getOrPut(sub.label) { mutableSetOf() }
@@ -154,13 +171,19 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
                     edges.getOrPut(callee) { mutableSetOf() }
             }
         }
+        // an indirect call could dispatch to any subroutine whose address is taken
+        for (caller in indirectCallers) {
+            val outs = edges.getOrPut(caller) { mutableSetOf() }
+            for (target in dispatchTargets)
+                outs.add(target)
+        }
 
         val index = mutableMapOf<String, Int>()
         val lowLink = mutableMapOf<String, Int>()
         val onStack = mutableSetOf<String>()
         val sccStack = ArrayDeque<String>()
         var counter = 0
-        val onCycle = mutableSetOf<String>()
+        val reentrant = mutableSetOf<String>()
 
         for (root in edges.keys) {
             if (root in index) continue
@@ -199,7 +222,7 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
                             if (w == node) break
                         }
                         val cyclic = members.size > 1 || node in edges.getValue(node)
-                        if (cyclic) onCycle += members
+                        if (cyclic) reentrant += members
                     }
                     if (work.isNotEmpty()) {
                         val parent = work.last().first
@@ -208,7 +231,7 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
                 }
             }
         }
-        return onCycle
+        return reentrant
     }
 
     private class FrameLayoutResult(
@@ -220,6 +243,12 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
         val paramDisplacements: Map<String, Int>
     )
 
+    /** outcome of the frameability decision for one subroutine */
+    private sealed interface Frameability {
+        class Frameable(val layout: FrameLayoutResult) : Frameability
+        class NotFrameable(val reason: String) : Frameability
+    }
+
     private fun frameableSubroutine(
         sub: IRSubroutine,
         referencedIn: Map<String, Set<String>>,
@@ -228,14 +257,16 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
         callSites: Map<String, List<CallSiteRef>>,
         dispatchTargets: Set<String>,
         indirectCallers: Set<String>,
-        onCycle: Set<String>
-    ): FrameLayoutResult? {
-        if (sub.hasFrame) return null
+        reentrant: Set<String>
+    ): Frameability {
+        val static = { reason: String -> Frameability.NotFrameable(reason) }
+        if (sub.hasFrame) return static("it already has a stack frame")
         var hasInlineAsm = false
         sub.forEachChunk { chunk -> if (chunk is IRInlineAsmChunk) hasInlineAsm = true }
-        if (hasInlineAsm) return null
-        if (sub.label in onCycle || sub.label in indirectCallers || sub.label in dispatchTargets) return null
-        if (isLabelReferencedInAsm(sub.label, asmTexts)) return null
+        if (hasInlineAsm) return static("it contains inline assembly")
+        if (sub.label in indirectCallers) return static("it makes an indirect call")
+        if (sub.label in dispatchTargets) return static("its address is taken")
+        if (isLabelReferencedInAsm(sub.label, asmTexts)) return static("it is referenced from inline assembly")
 
         // every parameter must be able to move: otherwise the caller keeps writing static cells
         // IRParam.name is the scoped variable name; call sites refer to the same parameter by its
@@ -250,10 +281,10 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
             // a parameter referenced from outside the subroutine (defer handler, external code)
             // cannot become per-activation storage: the whole subroutine keeps the static convention
             val refs = referencedIn[name]
-            if (refs != null && refs != setOf(sub.label)) return null
-            val v = program.st.lookup(name) as? IRStStaticVariable ?: return null
-            val elemDt = isFrameableVariable(v, name, addressTaken, asmTexts) ?: return null
-            if (v.length != null) return null                     // array parameters don't exist in the language, but be safe
+            if (refs != null && refs != setOf(sub.label)) return static("parameter '$name' is also referenced from outside the subroutine")
+            val v = program.st.lookup(name) as? IRStStaticVariable ?: return static("parameter '$name' has no static variable")
+            val elemDt = isFrameableVariable(v, name, addressTaken, asmTexts) ?: return static("parameter '$name' cannot be moved into a frame")
+            if (v.length != null) return static("parameter '$name' is an array")
             // first parameter ends up at the highest offset, last one just above the return address
             val offset = INCOMING_BASE + PARAM_SLOT_SIZE * (sub.parameters.size - 1 - index)
             paramSlots[name] = offset
@@ -268,17 +299,17 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
         // all call sites must use the plain parameter-memory convention of this convention
         val sites = callSites[sub.label].orEmpty()
         if (paramSlots.isNotEmpty()) {
-            if (sites.isEmpty()) return null                      // no caller found: keep the static convention
+            if (sites.isEmpty()) return static("no direct call site to pass its arguments was found")
             for (siteRef in sites) {
                 val args = siteRef.site.arguments
-                if (args.size != sub.parameters.size) return null
+                if (args.size != sub.parameters.size) return static("a call site passes a different number of arguments")
                 for ((argIndex, arg) in args.withIndex()) {
                     val loc = arg.location
-                    if (loc !is CallLocation.ParameterMemory) return null
-                    if (loc.address != null) return null
+                    if (loc !is CallLocation.ParameterMemory) return static("a call site passes an argument in another way")
+                    if (loc.address != null) return static("a call site passes an argument by absolute address")
                     val scoped = scopedParamNames[argIndex]
                     if (loc.name.isNotBlank() && loc.name != scoped && loc.name != scoped.substringAfterLast('.'))
-                        return null
+                        return static("a call site passes an unexpected argument")
                 }
             }
         }
@@ -288,7 +319,9 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
         val candidates = referencedIn.keys.filter { name ->
             name.startsWith(prefix) && referencedIn.getValue(name) == setOf(sub.label) && name !in paramSlots
         }.sorted()
-        if (candidates.isEmpty() && paramSlots.isEmpty()) return null
+        // a re-entrant subroutine can still qualify with nothing but its virtual registers
+        if (candidates.isEmpty() && paramSlots.isEmpty() && sub.label !in reentrant)
+            return static("it has no local variables or parameters")
 
         val frameVars = mutableListOf<FrameVar>()
         var cursor = 0
@@ -307,13 +340,33 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
             cursor -= size
             frameVars += FrameVar(name, cursor, elemDt, count, v.dirty)
         }
-        if (frameVars.isEmpty() && paramSlots.isEmpty()) return null
+        // a subroutine that can be re-entered needs its virtual registers per-activation as well:
+        // the flat program-static register file is shared by all activations of the same subroutine
+        val vregSlots = mutableMapOf<Int, Int>()
+        if (sub.label in reentrant) {
+            val vregs = vregsUsedIn(sub)
+            if (vregs.keys.any { it >= RESERVED_VREG_RANGE_START })
+                return static("it uses a reserved virtual register number")
+            for ((regNum, irType) in vregs.entries.sortedBy { it.key }) {
+                val size = slotSizeFor(irType)
+                val alignment = when {
+                    size >= 4 -> 4
+                    size >= 2 -> 2
+                    else -> 1
+                }
+                cursor = cursor.floorDiv(alignment) * alignment
+                cursor -= size
+                vregSlots[regNum] = cursor
+            }
+        }
+        if (frameVars.isEmpty() && paramSlots.isEmpty() && vregSlots.isEmpty())
+            return static("it has no frameable local variables or parameters")
 
         val frameSize = (-cursor + 1) / 2 * 2
         if (frameSize > MAX_FRAME_SIZE) {
-            errors.err("frame size $frameSize of subroutine ${sub.label} exceeds the $MAX_FRAME_SIZE byte limit; " +
+            errors.err("frame size $frameSize of subroutine ${userName(sub)} exceeds the $MAX_FRAME_SIZE byte limit; " +
                     "reduce local variable usage", sub.position)
-            return null
+            return static("its frame size exceeds the limit")
         }
 
         // every static (base slot + displacement) access combination must stay in the 16-bit displacement range
@@ -331,10 +384,13 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
                 else -> null
             }
             if (disp != null && (disp < -32768 || disp > 32767)) outOfRange = true
+            // a relocated virtual register must stay in 16-bit displacement range as well
+            val regOffset = (instr.registerAccesses.firstOrNull()?.register)?.let { vregSlots[it.num] }
+            if (regOffset != null && (regOffset < -32768 || regOffset > 32767)) outOfRange = true
         }
         if (outOfRange) {
-            errors.err("frame-relative displacement out of 16-bit range in subroutine ${sub.label}", sub.position)
-            return null
+            errors.err("frame-relative displacement out of 16-bit range in subroutine ${userName(sub)}", sub.position)
+            return static("a frame-relative displacement is out of range")
         }
 
         // rewrite references: Symbol base -> FrameSlot base (parameters additionally get the
@@ -379,7 +435,120 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
         }
         sub.frameSize = frameSize
         sub.incomingSize = paramSlots.size * PARAM_SLOT_SIZE
-        return FrameLayoutResult(frameSize, sub.incomingSize, paramSlots, paramDisplacements)
+        sub.frameVregSlots = vregSlots
+        return Frameability.Frameable(FrameLayoutResult(frameSize, sub.incomingSize, paramSlots, paramDisplacements))
+    }
+
+    /** the virtual registers used by the instructions of a subroutine, by register number */
+    private fun vregsUsedIn(sub: IRSubroutine): Map<Int, IRDataType> {
+        val result = mutableMapOf<Int, IRDataType>()
+        sub.forEachChunk { chunk ->
+            // a loop chunk aggregates its own body, which forEachChunk visits separately anyway
+            if (chunk is IRLoopChunk) return@forEachChunk
+            val used = chunk.usedRegisters()
+            for ((reg, type) in used.regsTypes)
+                result[reg.num] = type
+            // float registers are not typed in regsTypes; all of them are floats
+            for (reg in used.readRegs.keys + used.writeRegs.keys)
+                result.getOrPut(reg.num) { IRDataType.FLOAT }
+        }
+        return result
+    }
+
+    private fun slotSizeFor(irType: IRDataType): Int = when (irType) {
+        IRDataType.BYTE -> 1
+        IRDataType.WORD -> 2
+        IRDataType.FLOAT -> target.FLOAT_MEM_SIZE.toInt()
+        else -> target.POINTER_MEM_SIZE.toInt()
+    }
+
+    /**
+     * A re-entrant subroutine that keeps part of its state in program-static storage shares that
+     * storage between its live activations, which silently corrupts data. There is no sound way to
+     * compile that, so reject it: every variable it touches and every virtual register it uses must
+     * live in its stack frame.
+     *
+     * Only variables that the subroutine body itself uses are reported. A variable that is merely
+     * read by a defer handler holds no per-activation data; the compiler rejects defer in a
+     * recursive subroutine separately (m68k-stack-memory-model.md §11).
+     */
+    private fun reportUnsoundStaticState(
+        framedSubs: Map<String, FrameLayoutResult>,
+        notFramedReasons: Map<String, String>,
+        reentrant: Set<String>,
+        referencedIn: Map<String, Set<String>>,
+        addressTaken: Set<String>,
+        asmTexts: List<String>
+    ) {
+        for (sub in program.allSubs()) {
+            if (sub.label !in reentrant) continue
+            val framed = sub.label in framedSubs
+            val sharedVars = staticVarsOwnedBy(sub).filter { referencedIn[it]?.contains(sub.label) == true }
+            // an unframed subroutine also shares its virtual registers; a framed one relocated them all
+            val sharedVregs = if (framed) emptyList() else vregsUsedIn(sub).keys.toList()
+            if (sharedVars.isEmpty() && sharedVregs.isEmpty()) continue
+            val reason = if (framed)
+                "some of the values it uses cannot be moved into a stack frame"
+            else
+                notFramedReasons[sub.label] ?: "it could not be given a stack frame"
+            val details = mutableListOf<String>()
+            for (varName in sharedVars) {
+                val v = program.st.lookup(varName) as? IRStStaticVariable
+                val why = v?.let { frameableVariableProblem(it, varName, addressTaken, asmTexts) } ?: "it is shared with other code"
+                details += "variable '${varName.substringAfterLast('.').removePrefix("p8v_")}' ($why)"
+            }
+            if (sharedVregs.isNotEmpty())
+                details += "${sharedVregs.size} intermediate value(s)"
+            errors.err("recursive subroutine '${userName(sub)}' cannot be compiled: $reason, because " +
+                    "two live activations of it would share the same static storage: ${details.joinToString(", ")}. " +
+                    "Restructure the subroutine so that all of its state can live in a stack frame",
+                sub.position)
+        }
+    }
+
+    /** the scoped IR label without its internal scope markers, for use in user-facing messages */
+    private fun userName(sub: IRSubroutine): String =
+        sub.label.split('.').joinToString(".") { it.removePrefix("p8b_").removePrefix("p8s_") }
+
+    /** the static variables that belong to this subroutine (the longest matching label prefix owns the name) */
+    private fun staticVarsOwnedBy(sub: IRSubroutine): List<String> {
+        val subLabels = program.allSubs().map { it.label }
+        fun ownerOf(varName: String): String? =
+            subLabels.filter { varName.startsWith("$it.") }.maxByOrNull { it.length }
+        return program.st.allVariables().map { it.name }.filter { ownerOf(it) == sub.label }.toList()
+    }
+
+    /**
+     * A framed subroutine cannot branch out to another subroutine: its `link` has already adjusted
+     * the stack pointer, so the other subroutine's `rts` would return into the middle of the local
+     * area. Turn such a tail jump into a call followed by the normal return of this subroutine.
+     */
+    private fun rewriteOutgoingJumps(framedSubLabels: Set<String>) {
+        val subLabels = program.allSubs().map { it.label }.toSet()
+        for (sub in program.allSubs()) {
+            if (sub.label !in framedSubLabels) continue
+            sub.forEachChunk { chunk ->
+                val instrs = chunk.instructions
+                var i = 0
+                while (i < instrs.size) {
+                    val instr = instrs[i]
+                    val target = instr.takeIf { it.opcode == Opcode.JUMP }?.target as? CodeReference.Label
+                    if (target != null && target.name != sub.label && target.name in subLabels) {
+                        instrs[i] = IRInstructions.call(CallSite(
+                            target = CallTarget.Direct(target),
+                            arguments = emptyList()
+                        ))
+                        instrs.add(i + 1, IRInstructions.returnVoid())
+                        // the RETURN is now the terminator; anything that followed the
+                        // original JUMP in this chunk is unreachable dead code
+                        while (instrs.size > i + 2)
+                            instrs.removeAt(instrs.size - 1)
+                        i++
+                    }
+                    i++
+                }
+            }
+        }
     }
 
     private fun slotOf(symbol: String?, slotBySymbol: Map<String, Int>, paramSlots: Map<String, Int>): Int? {
@@ -430,19 +599,29 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
 
     /** returns the element data type when the variable is frameable, null otherwise */
     private fun isFrameableVariable(v: IRStStaticVariable, name: String, addressTaken: Set<String>, asmTexts: List<String>): DataType? {
-        if (name in addressTaken) return null
-        if (isLabelReferencedInAsm(name, asmTexts)) return null
-        if (v.initializationValue != null) return null            // static-initialized: must keep static storage
-        if (v.align > 0u) return null                             // explicit alignment request: keep static
-        if (v.zpwish == ZeropageWish.REQUIRE_ZEROPAGE || v.zpwish == ZeropageWish.PREFER_ZEROPAGE) return null
+        if (frameableVariableProblem(v, name, addressTaken, asmTexts) != null)
+            return null
+        // an array is described by its element data type, a scalar by its own
+        return if (v.dt.isArray) baseToScalar(v.dt.sub!!) else v.dt
+    }
+
+    /** returns why the variable cannot be moved into a frame, or null when it can */
+    private fun frameableVariableProblem(v: IRStStaticVariable, name: String, addressTaken: Set<String>, asmTexts: List<String>): String? {
+        if (name in addressTaken) return "its address is taken"
+        if (isLabelReferencedInAsm(name, asmTexts)) return "inline assembly refers to it"
+        if (v.initializationValue != null) return "it has a static initializer"
+        if (v.align > 0u) return "it requests an explicit alignment"
+        if (v.zpwish == ZeropageWish.REQUIRE_ZEROPAGE || v.zpwish == ZeropageWish.PREFER_ZEROPAGE) return "it wants to be in the zeropage"
         return when {
-            v.dt.isPointer -> v.dt                      // pointer storage is always just an address
-            v.dt.isBasic && v.dt.isNumericOrBool -> v.dt
+            v.dt.isPointer -> null                  // pointer storage is always just an address
+            v.dt.isBasic && v.dt.isNumericOrBool -> null
             v.dt.isArray && v.dt.sub != null && v.dt.sub != BaseDataType.POINTER -> {
-                val subDt = baseToScalar(v.dt.sub!!) ?: return null
-                if (subDt.isFloat || subDt.isStructInstance || subDt.isString || subDt.isPointer) null else subDt
+                val subDt = baseToScalar(v.dt.sub!!)
+                if (subDt == null) "it is not a plain numeric or boolean array"
+                else if (subDt.isFloat || subDt.isStructInstance || subDt.isString || subDt.isPointer) "it is not plain data"
+                else null
             }
-            else -> null
+            else -> "it is not plain data"
         }
     }
 

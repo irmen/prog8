@@ -9,10 +9,11 @@ package prog8.intermediate
  * intentionally incompatible with the older positional format. Format 3 adds union struct definitions.
  * Format 4 replaces the ARRAY_POINTER base type with ARRAY+POINTER+pointeeSub.
  * Format 5 adds the frame:<offset> memory address base (stack frame slots) and the SUB FRAMESIZE attribute.
+ * Format 6 adds the SUB VREGSLOTS attribute (per-activation virtual register slots).
  */
-const val IR_FORMAT_VERSION = 5
+const val IR_FORMAT_VERSION = 6
 
-/** lowest .p8ir format version this reader accepts; version 5 only adds syntax that v4 files never use */
+/** lowest .p8ir format version this reader accepts; formats 5 and 6 only add syntax that older files never use */
 const val IR_FORMAT_MIN_SUPPORTED = 4
 
 object IRFormat {

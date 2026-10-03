@@ -2,9 +2,9 @@ package prog8.compiler
 
 import com.github.michaelbull.result.onErr
 import prog8.ast.*
-import prog8.ast.expressions.Expression
-import prog8.ast.expressions.NumericLiteral
-import prog8.ast.statements.Directive
+import prog8.ast.expressions.*
+import prog8.ast.statements.*
+import prog8.ast.walk.IAstVisitor
 import prog8.buildversion.VERSION
 import prog8.code.SymbolTable
 import prog8.code.SymbolTableMaker
@@ -718,6 +718,8 @@ private fun postprocessAst(program: Program, errors: IErrorReporter, compilerOpt
     program.variousCleanups(errors, compilerOptions)
     val callGraph = CallGraph(program)
     callGraph.checkRecursiveCalls(errors)
+    if(compilerOptions.compTarget.cpu.is68k)
+        checkDeferInReentrantSubroutines(program, callGraph, errors)
     program.verifyFunctionArgTypes(errors, compilerOptions)
     errors.report()
 
@@ -747,6 +749,138 @@ private fun postprocessAst(program: Program, errors: IErrorReporter, compilerOpt
         if(numCycles==2000)
             throw InternalCompilerException("BeforeAsmTypecastCleaner() is looping endlessly")
     }
+}
+
+// m68k stack-frame rule (see ideas/m68k-stack-memory-model.md section 11): defer-referenced
+// subroutine locals and parameters stay in program-static storage, so two live activations
+// of a re-entrant deferring subroutine would silently share that storage. Reject the
+// unsound case at compile time on the m68k targets only.
+private fun checkDeferInReentrantSubroutines(program: Program, callGraph: CallGraph, errors: IErrorReporter) {
+    val checker = DeferInReentrantSubroutineChecker(program, callGraph, errors)
+    checker.visit(program)
+    checker.checkCollectedDefers()
+}
+
+private class DeferInReentrantSubroutineChecker(
+    private val program: Program,
+    private val callGraph: CallGraph,
+    private val errors: IErrorReporter
+) : IAstVisitor {
+    private var currentSubroutine: Subroutine? = null
+    private val addressTakenSubroutines = mutableSetOf<Subroutine>()
+    private val collectedDefers = mutableListOf<Pair<Subroutine, Defer>>()
+
+    override fun visit(subroutine: Subroutine) {
+        val previous = currentSubroutine
+        currentSubroutine = subroutine
+        subroutine.asmAddress?.varbank?.accept(this)
+        subroutine.statements.forEach { it.accept(this) }
+        currentSubroutine = previous
+    }
+
+    override fun visit(addressOf: AddressOf) {
+        addressOf.identifier?.targetSubroutine()?.let { addressTakenSubroutines.add(it) }
+        super.visit(addressOf)
+    }
+
+    override fun visit(defer: Defer) {
+        currentSubroutine?.let { collectedDefers.add(it to defer) }
+        defer.scope.accept(this)     // nested defers inside this defer body also belong to this subroutine
+    }
+
+    // the defer bodies are only judged after the whole program was walked: whether a subroutine can
+    // be re-entered depends on address-taking that may appear anywhere (also after the defer itself)
+    fun checkCollectedDefers() {
+        for ((subroutine, defer) in collectedDefers) {
+            if (!isPotentiallyReentrant(subroutine))
+                continue
+            val localStateChecker = DeferLocalStateChecker(program, subroutine)
+            defer.scope.accept(localStateChecker)
+            if (localStateChecker.referencesLocalState)
+                errors.err("defer in a recursive subroutine is not yet supported (deferred code references subroutine-local state)", defer.position)
+        }
+    }
+
+    // conservative re-entrancy estimate: on a call-graph cycle, or referenced in a way that
+    // could allow a second live activation (address taken, indirect dispatch such as on..call)
+    private fun isPotentiallyReentrant(subroutine: Subroutine): Boolean =
+        callGraph.hasRecursionCycle(subroutine) ||
+            subroutine in addressTakenSubroutines ||
+            (subroutine in callGraph.notCalledButReferenced && subroutine !in callGraph.calledBy)
+}
+
+private class DeferLocalStateChecker(
+    private val program: Program,
+    private val subroutine: Subroutine
+) : IAstVisitor {
+    var referencesLocalState = false
+        private set
+
+    override fun visit(subroutine: Subroutine) {
+        // don't descend into subroutines declared inside a defer body
+    }
+
+    override fun visit(inlineAssembly: InlineAssembly) {
+        // inline assembly can reference locals by name; treat it as local state (conservative)
+        referencesLocalState = true
+    }
+
+    override fun visit(identifier: IdentifierReference) {
+        if(referencesSubroutineLocalState(identifier))
+            referencesLocalState = true
+    }
+
+    override fun visit(deref: PtrDereference) {
+        if(referencesSubroutineLocalState(deref))
+            referencesLocalState = true
+        super.visit(deref)
+    }
+
+    override fun visit(deref: ArrayIndexedPtrDereference) {
+        if(referencesSubroutineLocalState(deref))
+            referencesLocalState = true
+        super.visit(deref)
+    }
+
+    private fun referencesSubroutineLocalState(identifier: IdentifierReference): Boolean {
+        val target = identifier.targetStatement(program.builtinFunctions) ?: return false
+        if(target is StructFieldRef) {
+            // struct field access through a variable; the base variable decides whether it is subroutine-local
+            val baseName = target.pointer.nameInSource.first()
+            val base = target.pointer.definingScope.lookup(listOf(baseName))
+            return isSubroutineLocalVar(resolveToVarDecl(base))
+        }
+        return isSubroutineLocalVar(resolveToVarDecl(target))
+    }
+
+    private fun referencesSubroutineLocalState(deref: PtrDereference): Boolean {
+        val chain = deref.chain.toMutableList()
+        while(chain.isNotEmpty()) {
+            if(isSubroutineLocalVar(resolveToVarDecl(deref.definingScope.lookup(chain))))
+                return true
+            chain.removeLastOrNull()
+        }
+        return false
+    }
+
+    private fun referencesSubroutineLocalState(deref: ArrayIndexedPtrDereference): Boolean {
+        val chain = deref.chain.map { it.first }.toMutableList()
+        while(chain.isNotEmpty()) {
+            if(isSubroutineLocalVar(resolveToVarDecl(deref.definingScope.lookup(chain))))
+                return true
+            chain.removeLastOrNull()
+        }
+        return false
+    }
+
+    private fun resolveToVarDecl(stmt: Statement?): VarDecl? = when(stmt) {
+        is VarDecl -> stmt
+        is Alias -> stmt.target.targetVarDecl()
+        else -> null
+    }
+
+    private fun isSubroutineLocalVar(decl: VarDecl?): Boolean =
+        decl!=null && decl.type != VarDeclType.CONST && decl.definingSubroutine === subroutine
 }
 
 private fun createAssemblyAndAssemble(program: PtProgram,

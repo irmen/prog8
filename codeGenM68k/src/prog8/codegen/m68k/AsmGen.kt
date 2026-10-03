@@ -286,6 +286,13 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
     // area); the return translation emits `unlk a5` before each rts when this is set.
     internal var frameActive = false
 
+    // Virtual registers of the subroutine being emitted, by register number -> frame offset.
+    // A re-entrant subroutine (one that can have two live activations) keeps them per-activation in
+    // its stack frame; every other subroutine uses the flat program-static register file.
+    private var frameVregSlots: Map<Int, Int> = emptyMap()
+
+    private fun frameVregAddr(reg: Int): String? = frameVregSlots[reg]?.let { "$it(a5)" }
+
     /** emits the frame teardown for the subroutine currently being translated, if it has a frame */
     internal fun emitFrameUnlk() {
         if (frameActive)
@@ -339,6 +346,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
     }
 
     fun regAddr(reg: Int): String {
+        frameVregAddr(reg)?.let { return it }
         val offset = regFileLayout.offsets[reg] ?: error("register r$reg has no layout info")
         return "$REGFILE_LABEL+$offset"
     }
@@ -346,9 +354,11 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
     private fun regNumForOffset(offset: Int): Int? =
         regFileLayout.offsets.entries.find { it.value == offset }?.key
 
-    // Resolve a register-file address string ("p8_regfile" or "p8_regfile+N")
-    // back to a virtual register number, or null if it is not a regfile slot.
+    // Resolve a register-file address string ("p8_regfile" or "p8_regfile+N", or a frame slot
+    // like "-8(a5)" for a per-activation virtual register) back to a virtual register number,
+    // or null if it is not a register-file slot.
     fun regNumForAddress(address: String): Int? {
+        frameVregSlots.entries.firstOrNull { "$it.value(a5)" == address }?.let { return it.key }
         if (!address.startsWith(REGFILE_LABEL))
             return null
         val suffix = address.removePrefix(REGFILE_LABEL)
@@ -361,6 +371,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
     }
 
     fun regAddrByte(reg: Int, byteOffset: Int): String {
+        frameVregSlots[reg]?.let { return "${it + byteOffset}(a5)" }
         val offset = regFileLayout.offsets[reg] ?: error("register r$reg has no layout info")
         return "$REGFILE_LABEL+${offset + byteOffset}"
     }
@@ -391,6 +402,10 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
 
     fun loadPointerToA0(reg: Int) {
         // load a 32-bit pointer from the register file into a0
+        frameVregAddr(reg)?.let {
+            emitLine("movea.l  $it, a0")
+            return
+        }
         val offset = regFileLayout.offsets[reg] ?: error("register r$reg has no layout info")
         val addr = if (offset == 0) REGFILE_LABEL else "$REGFILE_LABEL+$offset"
         emitLine("movea.l  $addr, a0")
@@ -552,6 +567,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
     // === FPU helpers (M680x0 with 68881/68882) ===
 
     fun floatRegFileAddr(reg: RegisterNum): String {
+        frameVregAddr(reg.value)?.let { return it }
         val offset = floatRegFileLayout.offsets[reg.value] ?: error("float register fr${reg.value} has no layout info")
         return "$FLOAT_REGFILE_LABEL+$offset"
     }
@@ -746,6 +762,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         if(sub.label in entrypointNames)
             emitLine("bsr  run_global_inits")
         frameActive = sub.hasFrame
+        frameVregSlots = sub.frameVregSlots
         if (sub.hasFrame)
             emitLine(if (sub.frameSize > 0) "link  a5,#-${sub.frameSize}" else "link  a5,#0")
         val livenessInstructions = sub.chunks.filterIsInstance<IRCodeChunk>().flatMap { it.instructions }
@@ -780,6 +797,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         emitRaw("; End of subroutine: $subLabel")
         emitRaw("")
         frameActive = false
+        frameVregSlots = emptyMap()
     }
 
     private fun emitAsmSubroutine(sub: IRAsmSubroutine) {

@@ -587,7 +587,8 @@ class IRFileReader {
             if(returns=="") emptyList() else returns.split(',').map { parseDatatype(it, false) },
             parsePosition(attrs.getValue("POS")),
             attrs["FRAMESIZE"]?.toIntOrNull() ?: 0,
-            attrs["INCOMING"]?.toIntOrNull() ?: 0)
+            attrs["INCOMING"]?.toIntOrNull() ?: 0,
+            attrs["VREGSLOTS"]?.let { parseFrameVregSlots(it) } ?: emptyMap())
 
         skipText(reader)
         while(reader.peek().isStartElement) {
@@ -756,6 +757,24 @@ class IRFileReader {
                 }
             }
         }
+    }
+
+    /** parse the SUB VREGSLOTS attribute: a comma separated list of "register:offset" pairs, e.g. "5:-8,7:-12" */
+    private fun parseFrameVregSlots(str: String): Map<Int, Int> {
+        if (str.isBlank())
+            return emptyMap()
+        val result = mutableMapOf<Int, Int>()
+        for (pair in str.split(',')) {
+            val regOffset = pair.split(':')
+            if (regOffset.size != 2)
+                throw IRParseException("invalid VREGSLOTS entry: $pair")
+            val reg = regOffset[0].trim().toIntOrNull()
+            val offset = regOffset[1].trim().toIntOrNull()
+            if (reg == null || offset == null)
+                throw IRParseException("invalid VREGSLOTS entry: $pair")
+            result[reg] = offset
+        }
+        return result
     }
 
     private fun parsePosition(strpos: String): Position {

@@ -3,9 +3,12 @@ package prog8tests.compiler
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.engine.spec.tempdir
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
+import io.kotest.matchers.string.shouldContain
 import prog8.code.target.C64Target
 import prog8.code.target.Qemu68kTarget
 import prog8.intermediate.IRFileReader
+import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
 
 // Vertical Slice Prototype end-to-end tests (m68k-stack-memory-model.md §17):
@@ -18,6 +21,15 @@ class TestStackFrameLocals : FunSpec({
         val asmFile = outputDir.toFile().listFiles()!!.single { it.name.endsWith(".asm") }
         val irFile = outputDir.toFile().listFiles()!!.singleOrNull { it.name.endsWith(".p8ir") }
         return asmFile.readText().lines().map { it.trim() } to (irFile?.readText() ?: "")
+    }
+
+    // the assembly lines of a single subroutine, using the subroutine boundary markers the
+    // asm peephole optimizer relies on
+    fun subAssembly(lines: List<String>, subLabel: String): List<String> {
+        val start = lines.indexOfFirst { it.startsWith("; ---- Subroutine:") && it.contains(subLabel) }
+        require(start >= 0) { "no assembly found for subroutine $subLabel" }
+        val end = lines.indexOfFirst { it.startsWith("; End of subroutine:") && it.contains(subLabel) }
+        return lines.subList(start, end)
     }
 
     test("frameable leaf subroutine gets an a5 frame") {
@@ -136,9 +148,9 @@ main {
         ir.contains("FRAMESIZE=\"2\"") shouldBe true
     }
 
-    test("recursive subroutine keeps the static path") {
-        // call-live virtual registers still live in the flat program-static regfile (design-doc
-        // slice 3), so a subroutine on a call-graph cycle must not be framed yet
+    test("recursive subroutine gets a frame with per-activation virtual registers") {
+        // slice 3: a subroutine on a call-graph cycle moves its virtual registers into the frame,
+        // so two live activations no longer share the flat program-static regfile
         val src = """
 main {
     sub rec(ubyte n) -> long {
@@ -152,12 +164,18 @@ main {
     }
 }
 """
-        val (lines, _) = compile(src)
-        lines.any { it.startsWith("link ") } shouldBe false
-        lines.any { "p8s_rec.p8v_n:" in it } shouldBe true
+        val (lines, ir) = compile(src)
+        val rec = subAssembly(lines, "p8b_main.p8s_rec")
+        rec.any { it.startsWith("link ") } shouldBe true
+        rec.any { it == "unlk  a5" } shouldBe true
+        // its parameter arrives in the incoming argument area, its temporary value in the frame
+        ir.contains("VREGSLOTS=") shouldBe true
+        rec.any { it.contains("(a5)") && it.startsWith("move") } shouldBe true
+        // the recursive subroutine's own body never touches the static register file
+        rec.any { it.contains("p8_regfile") } shouldBe false
     }
 
-    test("mutually recursive subroutines keep the static path") {
+    test("mutually recursive subroutines both get frames") {
         val src = """
 main {
     sub ping(ubyte n) -> long {
@@ -177,7 +195,13 @@ main {
 }
 """
         val (lines, _) = compile(src)
-        lines.any { it.startsWith("link ") } shouldBe false
+        val ping = subAssembly(lines, "p8b_main.p8s_ping")
+        val pong = subAssembly(lines, "p8b_main.p8s_pong")
+        ping.any { it.startsWith("link ") } shouldBe true
+        pong.any { it.startsWith("link ") } shouldBe true
+        // both keep their state per-activation, so neither uses the static register file
+        ping.any { it.contains("p8_regfile") } shouldBe false
+        pong.any { it.contains("p8_regfile") } shouldBe false
     }
 
     test("indirectly called subroutine keeps the static path") {
@@ -279,6 +303,147 @@ main {
         val (lines, _) = compile(src)
         lines.any { it == "link  a5,#-2" } shouldBe true   // only `small` is framed
         lines.any { "p8v_big" in it } shouldBe true        // big array remains static
+    }
+
+    test("slice 3: tail call out of a framed subroutine becomes a call and a return") {
+        // a framed subroutine cannot branch out to another subroutine: its `link` moved the stack
+        // pointer, so the other subroutine's `rts` would return into the local area
+        val src = """
+main {
+    sub target(ubyte n) -> ubyte {
+        return n + 1
+    }
+    sub caller(ubyte n) -> ubyte {
+        ubyte local = n
+        if local == 0 {
+            return 0
+        }
+        return target(local)
+    }
+    sub start() {
+        g = caller(3)
+    }
+    ubyte @shared g
+}
+"""
+        val (lines, ir) = compile(src)
+        val callerAsm = subAssembly(lines, "p8b_main.p8s_caller")
+        callerAsm.any { it.startsWith("link ") } shouldBe true
+        // no outgoing branch to another subroutine is left inside the frame
+        callerAsm.any { it.startsWith("bra") } shouldBe false
+        callerAsm.any { it.startsWith("bsr") } shouldBe true
+        ir.contains("call p8b_main.p8s_target") shouldBe true
+    }
+
+    test("slice 3: recursive subroutine with an address-taken local is rejected") {
+        val src = """
+main {
+    sub rec(ubyte n) -> ubyte {
+        ubyte buf = 1
+        pointer p = &buf
+        if n == 0 {
+            return 1
+        }
+        if p != 0 {
+            return rec(n-1)
+        }
+        return rec(n-1)
+    }
+    sub start() {
+        g = rec(3)
+    }
+    ubyte @shared g
+}
+"""
+        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        compileText(Qemu68kTarget(), optimize = false, src, tempdir().toPath(),
+            writeAssembly = true, assemble = false, errors = errors) shouldBe null
+        errors.errors.size shouldBe 1
+        errors.errors[0] shouldContain "recursive subroutine"
+        errors.errors[0] shouldContain "address is taken"
+    }
+
+    test("slice 3: recursive subroutine that keeps static storage is rejected, other targets are not") {
+        val src = """
+main {
+    sub rec(ubyte n) -> ubyte {
+        ubyte[4] buf = [1, 2, 3, 4]
+        buf[0] = n
+        if n == 0 {
+            return buf[0]
+        }
+        return rec(n-1) + buf[0]
+    }
+    sub start() {
+        g = rec(3)
+    }
+    ubyte @shared g
+}
+"""
+        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        compileText(Qemu68kTarget(), optimize = false, src, tempdir().toPath(),
+            writeAssembly = true, assemble = false, errors = errors) shouldBe null
+        errors.errors.size shouldBe 1
+        errors.errors[0] shouldContain "recursive subroutine"
+        errors.errors[0] shouldContain "static initializer"
+
+        // the same program compiles unchanged for a target without stack frames
+        val otherErrors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        compileText(C64Target(), optimize = false, src, tempdir().toPath(),
+            writeAssembly = false, assemble = false, errors = otherErrors) shouldNotBe null
+        otherErrors.errors.size shouldBe 0
+    }
+
+    test("slice 3: defer in a recursive subroutine is rejected on m68k only") {
+        val src = """
+main {
+    sub rec(ubyte n) -> ubyte {
+        ubyte hits = 0
+        defer hits = hits + 1
+        if n == 0 {
+            return hits
+        }
+        return rec(n-1)
+    }
+    sub start() {
+        g = rec(3)
+    }
+    ubyte @shared g
+}
+"""
+        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        compileText(Qemu68kTarget(), optimize = false, src, tempdir().toPath(),
+            writeAssembly = false, assemble = false, errors = errors) shouldBe null
+        errors.errors.size shouldBe 1
+        errors.errors[0] shouldContain "defer in a recursive subroutine"
+
+        val otherErrors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        compileText(C64Target(), optimize = false, src, tempdir().toPath(),
+            writeAssembly = false, assemble = false, errors = otherErrors) shouldNotBe null
+        otherErrors.errors.size shouldBe 0
+    }
+
+    test("slice 3: recursive subroutine using only its own state is accepted") {
+        val src = """
+main {
+    sub rec(ubyte n) -> ubyte {
+        ubyte local = n + 1
+        if n == 0 {
+            return local
+        }
+        return rec(n-1) + local
+    }
+    sub start() {
+        g = rec(3)
+    }
+    ubyte @shared g
+}
+"""
+        val (lines, ir) = compile(src)
+        ir.contains("VREGSLOTS=") shouldBe true
+        val rec = subAssembly(lines, "p8b_main.p8s_rec")
+        rec.any { it.startsWith("link ") } shouldBe true
+        rec.any { it.contains("p8_regfile") } shouldBe false
     }
 
     test("other targets are unaffected") {

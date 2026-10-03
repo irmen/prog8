@@ -149,6 +149,8 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
                             xml.writeAttribute("FRAMESIZE", child.frameSize.toString())
                         if (child.incomingSize != 0)
                             xml.writeAttribute("INCOMING", child.incomingSize.toString())
+                        if (child.frameVregSlots.isNotEmpty())
+                            xml.writeAttribute("VREGSLOTS", child.frameVregSlots.entries.joinToString(",") { "${it.key}:${it.value}" })
                         xml.writeCharacters("\n")
                         xml.writeStartElement("PARAMS")
                         xml.writeCharacters("\n")

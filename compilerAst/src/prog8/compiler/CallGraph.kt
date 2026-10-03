@@ -222,7 +222,7 @@ class CallGraph(private val program: Program) : IAstVisitor {
         return cycles
     }
 
-    private fun hasRecursionCycle(sub: Subroutine): Boolean {
+    fun hasRecursionCycle(sub: Subroutine): Boolean {
         val callCloud = calls.getValue(sub).toMutableSet()
         var previousCloudSize = -1
         while(callCloud.size > previousCloudSize && sub !in callCloud) {

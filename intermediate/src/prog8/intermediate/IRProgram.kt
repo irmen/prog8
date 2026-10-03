@@ -581,7 +581,11 @@ class IRSubroutine(
     var frameSize: Int = 0,
     /** size in bytes of the caller-pushed incoming argument area at positive frame-pointer offsets;
      *  0 means the subroutine uses the legacy convention with statically allocated parameter variables */
-    var incomingSize: Int = 0): IIRBlockElement {
+    var incomingSize: Int = 0,
+    /** virtual register number -> negative frame offset, for a re-entrant subroutine (one that can
+     *  have two live activations): its virtual registers are per-activation instead of living in the
+     *  flat program-static register file. Empty for every other subroutine. */
+    var frameVregSlots: Map<Int, Int> = emptyMap()): IIRBlockElement {
 
     class IRParam(val name: String, val dt: DataType)
 
@@ -601,6 +605,12 @@ class IRSubroutine(
         require(incomingSize >= 0 && incomingSize % 4 == 0) {"incoming argument area size must be a non-negative multiple of 4: $incomingSize"}
         require(incomingSize == 0 || incomingSize == parameters.size * 4) {
             "incoming argument area size must be 4 bytes per parameter: $incomingSize for ${parameters.size} parameters"
+        }
+        require(frameSize > 0 || frameVregSlots.isEmpty()) {
+            "virtual registers can only live in a frame that has a local area: $frameSize for $label"
+        }
+        require(frameVregSlots.values.all { it < 0 }) {
+            "virtual register frame slots must have negative offsets: $frameVregSlots"
         }
     }
 

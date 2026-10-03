@@ -1,6 +1,6 @@
 # M68K Stack Memory Model
 
-**Status: slices 1-2 implemented (Vertical Slice Prototype §17 + parameters-on-the-stack §17.6); slices 3-5 and the register allocator are not yet implemented.** Listed as "Deferred" in `docs/source/todo.rst`.
+**Status: slices 1-3 implemented (Vertical Slice Prototype §17, parameters-on-the-stack §17.6, re-entrant subroutines §17.7); slices 4-5 and the register allocator are not yet implemented.** Listed as "Deferred" in `docs/source/todo.rst`.
 
 Design decisions taken (Oct 2026): the normal-prog8-subroutine calling
 convention is a single uniform **all-stack** convention with caller cleanup
@@ -91,6 +91,9 @@ across a call. If vreg storage stays program-static, recursion silently
 corrupts live virtual registers *even before* the register allocator exists;
 making that storage per-activation (frame-resident, or spilled to frame slots
 around calls) is part of this design's scope, not the allocator's.
+Implemented in §17.7: a re-entrant subroutine gets a frame slot for every
+virtual register it uses, while subroutines that cannot be re-entered keep the
+static register file.
 
 The local-area size (the `link` immediate, stored as `frameSize`) is rounded
 up to an even number; the incoming-parameter area is sized separately from the
@@ -416,6 +419,13 @@ Minimal proposal for the structured IR:
   area, 0 meaning "legacy static parameter convention". `hasFrame` is then
   `frameSize > 0 || incomingSize > 0`. Serialized as the optional `INCOMING`
   SUB attribute (absence = 0), same convention as `FRAMESIZE`.
+- Slice-3 addition: `IRSubroutine.frameVregSlots` (virtual register number ->
+  negative frame offset) records that this subroutine keeps its virtual
+  registers per-activation, which is what makes it re-entrant (§17.7). It is
+  empty for every other subroutine, and requires a local area when it is not.
+  Serialized as the optional `VREGSLOTS` SUB attribute (for example
+  `VREGSLOTS="5:-8,7:-12"`), which bumped the `.p8ir` format version to 6;
+  the reader still accepts version 4 and 5 files.
 - `OpcodeSchema` validation: memory-slot schemas keep accepting `Symbol`
   and `Absolute` unchanged, and additionally accept a `FrameSlot` base for
   `Direct` access. The `displacement >= 0` rule stays for symbol/absolute
@@ -661,6 +671,9 @@ lower without seeing frame storage.
    `p8_regfile` slice into the frame, per the §3 note); non-cycle subroutines
    may keep static vreg storage, since program-wide unique vreg numbering
    makes caller/callee regfile collisions impossible.
+   *Implemented as slices 2 and 3 (§17.6, §17.7); note that the implementation
+   gives every virtual register of a re-entrant subroutine a slot rather than
+   only the call-live ones.*
 4. Add selective frame initialization.
 5. Add VM activation records and recursion tests.
 6. Add address-escape diagnostics and inline-assembly validation.
@@ -772,10 +785,13 @@ without corrupting anything.
 1. Vertical Slice Prototype (this section) - **done**.
 2. Parameters + the §6.1 all-stack convention flip (the big one) - **done**
    (see §17.6).
-3. Call-graph cycles: call-live vreg relocation, §11 defer rejection rule.
-4. VM activation records + recursion tests through the VM.
+3. Call-graph cycles: call-live vreg relocation, §11 defer rejection rule -
+   **done** (see §17.7).
+4. VM activation records + recursion tests through the VM. Planned in detail,
+   deliberately not implemented yet: `ideas/m68k-vm-frames-plan.md`.
 5. Diagnostics and polish: escape warnings (§10), frame-size reporting,
-   liveness-based slot reuse, §4 auto-temporaries, §6.1 copy-in for
+   liveness-based slot reuse (currently *every* vreg of a re-entrant
+   subroutine gets its own slot), §4 auto-temporaries, §6.1 copy-in for
    constrained parameters (inline-asm / defer referenced), float and
    static-initialized locals via per-slot init metadata.
 
@@ -905,3 +921,94 @@ ladder):
 - No copy-in yet for inline-asm/defer referenced parameters (slice 5), and
   float/static-initialized locals still keep static storage (slice 5).
 - The VM still rejects frame-based IR (slice 4).
+
+### 17.7 Slice 3: re-entrant subroutines (implemented)
+
+Status: implemented, runtime-verified, and full test suite green. Ordinary
+recursion, mutual recursion and tail recursion now compute correct results on
+qemu-system-m68k (recursive and mutual-recursive fibonacci, 200-level deep
+recursion, three-way mutual recursion, real tail recursion, float parameters
+and float locals, byte/word/long/pointer parameter mixes), with identical
+results with and without optimizations.
+
+#### What the implementation does
+
+- **Re-entrancy analysis.** `StackFrameLayout` computes, with an iterative
+  Tarjan SCC pass, the subroutines that can have two live activations: those on
+  a cycle of direct calls, plus cycles that only close through an indirect
+  call (an indirect call is conservatively assumed to be able to reach every
+  dispatch target). For every such subroutine:
+  - **every virtual register it uses gets a frame slot**, not just the
+    call-live ones. Liveness analysis across calls does not exist in the
+    production code path (`RegisterPacker`'s is unsound and disabled), and
+    allocating all of them keeps the pass simple and obviously correct. The
+    mapping is `IRSubroutine.frameVregSlots` (register number -> negative frame
+    offset), serialized as the optional `VREGSLOTS` SUB attribute, so the
+    `.p8ir` file stays a faithful description.
+  - the backend addresses those registers as `-N(a5)` instead of
+    `p8_regfile+N` (`AsmGen.regAddr` and friends, including the float register
+    file and the reverse lookup used by the D0 cache and dead-store
+    suppression). Subroutines without a frame keep the flat register file, and
+    program-global-init code is always emitted outside a frame, so it keeps
+    using the static register file.
+  - Virtual register numbers are program-wide unique and, in practice, never
+    shared between subroutines, which is what makes a per-subroutine mapping
+    well defined. Reserved numbers (>= 99000) cannot be relocated; a re-entrant
+    subroutine using one is rejected.
+
+- **Tail calls out of a frame (bug found and fixed during slice 3).** A framed
+  subroutine that branches to another subroutine's entry (`return other()` is
+  rewritten to a jump by `StatementReorderer`) corrupted the stack: its `link`
+  had already adjusted `sp`, so the callee's `rts` returned into the middle of
+  the local area. This was already broken by slice 2 for any framed
+  subroutine, and was reproduced under QEMU before the fix. Such a jump is now
+  rewritten into a call plus the normal return of the jumping subroutine, which
+  is semantically identical (a tail call is still a tail call, just not a
+  jump).
+
+- **Rejections instead of silent corruption.** A re-entrant subroutine that
+  would keep any per-activation state in program-static storage is rejected
+  with a compile error naming the offending variable and the reason: its
+  address is taken, inline assembly refers to it, it has a static initializer,
+  it requests an explicit alignment or the zeropage, it is not plain data, or
+  the whole subroutine could not be framed at all (for example because its
+  address is taken for a dispatch table, it contains inline assembly, or its
+  arguments cannot be pushed by an unknown caller). Only variables the
+  subroutine body itself uses are reported; a variable that is merely written by
+  a `defer` handler holds no per-activation data.
+
+- **The §11 defer rule** (see §11) is implemented in the compiler module's
+  `postprocessAst`, because that is where `Defer` nodes and resolved variable
+  definitions are still intact and where `CallGraph` is available (`compilerAst`
+  is not visible from the IR-level code generators). A subroutine with a
+  `defer` whose body references its own locals or parameters is rejected when
+  it is on a call-graph cycle, when its address is taken, or when it can only
+  be reached dynamically. Non-m68k targets are unaffected, and the check also
+  runs under `-check`.
+
+#### Rules that were needed to keep this sound
+
+| Situation in a re-entrant subroutine | Handling |
+|---|---|
+| ordinary locals and parameters | moved into the frame (slices 1-2) |
+| virtual registers | moved into the frame (this slice) |
+| static-initialized / aligned / zeropage local, non-plain-data local | compile error |
+| address-taken or inline-asm local or parameter | compile error |
+| a `defer` body reading sub-local state | compile error (§11) |
+| subroutine contains inline assembly | compile error (its raw text cannot be rewritten) |
+| address taken (dispatch target, handler registration) | compile error, since an unknown caller cannot push arguments into a frame |
+| indirect call inside it | the indirect call itself is fine; only a cycle through it matters |
+| nothing but globals/`@shared` touched | fully supported, including recursion |
+
+#### Known remaining gaps
+
+- Frames are still rejected by the VM (slice 4), so recursion cannot be tested
+  through the VM yet.
+- Every virtual register of a re-entrant subroutine gets a slot, so its frame is
+  larger than strictly necessary; liveness-based reuse is slice-5 work.
+- The two rejections above are reported by the frame-layout pass, which only
+  runs when assembly is generated: `-check` reports the `defer` rule (compiler
+  phase) but not the frame-layout rejections.
+- Dynamic dispatch remains conservative: a subroutine whose address is taken
+  cannot be framed at all, so a callback cycle through a dispatch table is
+  rejected rather than compiled.

@@ -21,7 +21,8 @@ class TestStackFrameEmission : FunSpec({
         frameSize: Int,
         instructions: List<IRInstruction>,
         incomingSize: Int = 0,
-        subLabel: String = "test.start"
+        subLabel: String = "test.start",
+        frameVregSlots: Map<Int, Int> = emptyMap()
     ): List<String> {
         val options = CompilationOptions.builder(Qemu68kTarget())
             .output(OutputType.RAW)
@@ -33,12 +34,12 @@ class TestStackFrameEmission : FunSpec({
             .build()
         val program = IRProgram("test", IRSymbolTable(), options, DummyStringEncoder)
         program.options.outputDir = tempRoot
-        val chunk = IRCodeChunk(null, null)
+        val chunk = IRCodeChunk(subLabel, null)
         chunk.instructions.addAll(instructions)
         val params = if (incomingSize > 0)
             List(incomingSize / 4) { IRSubroutine.IRParam("p8v_p$it", DataType.UBYTE) }
         else emptyList()
-        val sub = IRSubroutine(subLabel, params, emptyList(), Position.DUMMY, frameSize, incomingSize)
+        val sub = IRSubroutine(subLabel, params, emptyList(), Position.DUMMY, frameSize, incomingSize, frameVregSlots)
         sub.chunks.add(chunk)
         val block = IRBlock("test", false, IRBlock.Options(), Position.DUMMY)
         block.children.add(sub)
@@ -174,4 +175,44 @@ class TestStackFrameEmission : FunSpec({
         lines.any { it.startsWith("fmove.s  p8_fregfile+0,fp0") } shouldBe true
         lines.any { it == "fmove.s  fp0,(sp)" } shouldBe true
     }
+    test("per-activation virtual registers are addressed through the frame") {
+        // a re-entrant subroutine keeps its virtual registers in its own frame (slice 3), so they
+        // are addressed relative to a5 instead of the flat program-static register file
+        val lines = generateAsmWithIncoming(8, listOf(
+            IRInstructions.loadMemory(Opcode.LOADM, IRDataType.WORD, 5, IRMemory.direct("main.var")),
+            IRInstructions.returnRegister(IRDataType.WORD, 5)
+        ), frameVregSlots = mapOf(5 to -2, 6 to -4))
+        lines.any { it.startsWith("link ") } shouldBe true
+        lines.any { it.startsWith("move") && it.contains("-2(a5)") } shouldBe true
+        lines.none { it.startsWith("move") && it.contains("p8_regfile") } shouldBe true
+    }
+
+    test("virtual registers without a frame slot keep using the static register file") {
+        val lines = generateAsmWithIncoming(8, listOf(
+            IRInstructions.loadMemory(Opcode.LOADM, IRDataType.WORD, 5, IRMemory.direct("main.var")),
+            IRInstructions.returnRegister(IRDataType.WORD, 5)
+        ), frameVregSlots = mapOf(6 to -4))
+        // register 5 has no frame slot, so it stays in the static register file
+        lines.any { it.startsWith("move") && it.contains("p8_regfile") } shouldBe true
+        lines.any { it.startsWith("move") && it.contains("(a5)") && it.contains("p8_regfile") } shouldBe false
+    }
+
+    test("a byte-sized frame-resident register is addressed with its byte offset") {
+        val lines = generateAsmWithIncoming(4, listOf(
+            IRInstructions.loadMemory(Opcode.LOADM, IRDataType.BYTE, 5, IRMemory.direct("main.var")),
+            IRInstructions.returnRegister(IRDataType.BYTE, 5)
+        ), frameVregSlots = mapOf(5 to -4))
+        lines.any { it.startsWith("move.b") && it.contains("-4(a5)") } shouldBe true
+    }
+
+    test("sub-byte extraction of a frame-resident register uses a valid a5 displacement") {
+        // MSIGB on a long goes through regAddrByte, which must not emit "$(-4)(a5)"
+        val lines = generateAsmWithIncoming(4, listOf(
+            IRInstructions.binary(Opcode.MSIGB, IRDataType.LONG, 6, 5),
+            IRInstructions.returnRegister(IRDataType.BYTE, 6)
+        ), frameVregSlots = mapOf(5 to -4))
+        lines.any { it.startsWith("move.b") && it.contains("-4(a5)") } shouldBe true
+        lines.none { it.contains("\$(-4)(a5)") } shouldBe true
+    }
+
 })

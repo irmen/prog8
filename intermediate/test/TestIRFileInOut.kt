@@ -11,6 +11,7 @@ import prog8.intermediate.*
 import kotlin.io.path.Path
 import kotlin.io.path.deleteExisting
 import kotlin.io.path.readLines
+import kotlin.io.path.readText
 
 class TestIRFileInOut: FunSpec({
     test("IR reader requires format 4") {
@@ -38,10 +39,47 @@ class TestIRFileInOut: FunSpec({
         val generatedFile = writer.write()
         val lines = generatedFile.readLines()
         lines[0] shouldBe "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
-        lines[1] shouldBe "<PROGRAM NAME=\"unittest-irwriter\" COMPILERVERSION=\"99.99\" IRFORMAT=\"5\">"
+        lines[1] shouldBe "<PROGRAM NAME=\"unittest-irwriter\" COMPILERVERSION=\"99.99\" IRFORMAT=\"6\">"
         lines.last() shouldBe "</PROGRAM>"
         generatedFile.deleteExisting()
         lines.size shouldBeGreaterThan 20
+    }
+
+    test("subroutine frame attributes round-trip") {
+        val target = Cx16Target()
+        val options = CompilationOptions.builder(target)
+            .output(OutputType.RAW)
+            .zeropage(ZeropageType.DONTUSE)
+            .noSysInit(true)
+            .compilerVersion("99.99")
+            .loadAddress(target.PROGRAM_LOAD_ADDRESS)
+            .memtopAddress(0xffffu)
+            .outputDir(Path(""))
+            .build()
+        val program = IRProgram("unittest-frames", IRSymbolTable(), options, target)
+        val chunk = IRCodeChunk("test.framed", null)
+        chunk += IRInstructions.returnVoid()
+        val block = IRBlock("test", false, IRBlock.Options(), Position.DUMMY)
+        val sub = IRSubroutine("test.framed", listOf(IRSubroutine.IRParam("p8v_p", DataType.UWORD)),
+            emptyList(), Position.DUMMY, frameSize = 12, incomingSize = 4,
+            frameVregSlots = mapOf(5 to -2, 7 to -4, 9 to -8))
+        sub += chunk
+        block.children += sub
+        program.blocks += block
+
+        val generatedFile = IRFileWriter(program, Path("intermediate-frames-test-output.p8ir")).write()
+        val text = generatedFile.readText()
+        text.contains("FRAMESIZE=\"12\"") shouldBe true
+        text.contains("INCOMING=\"4\"") shouldBe true
+        text.contains("VREGSLOTS=\"5:-2,7:-4,9:-8\"") shouldBe true
+        generatedFile.deleteExisting()
+
+        val readBack = IRFileReader().read(IRFileWriter(program, Path("intermediate-frames-test-output.p8ir")).write())
+        val readSub = readBack.blocks.first().children.filterIsInstance<IRSubroutine>().first()
+        readSub.frameSize shouldBe 12
+        readSub.incomingSize shouldBe 4
+        readSub.frameVregSlots shouldBe mapOf(5 to -2, 7 to -4, 9 to -8)
+        readSub.hasFrame shouldBe true
     }
 
     test("IR pointer arrays round-trip") {
