@@ -38,7 +38,7 @@ class TestIRFileInOut: FunSpec({
         val generatedFile = writer.write()
         val lines = generatedFile.readLines()
         lines[0] shouldBe "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
-        lines[1] shouldBe "<PROGRAM NAME=\"unittest-irwriter\" COMPILERVERSION=\"99.99\" IRFORMAT=\"4\">"
+        lines[1] shouldBe "<PROGRAM NAME=\"unittest-irwriter\" COMPILERVERSION=\"99.99\" IRFORMAT=\"5\">"
         lines.last() shouldBe "</PROGRAM>"
         generatedFile.deleteExisting()
         lines.size shouldBeGreaterThan 20

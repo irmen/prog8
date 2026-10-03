@@ -145,6 +145,8 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
                         xml.writeAttribute("NAME", child.label)
                         xml.writeAttribute("RETURNS", child.returns.joinToString(",") { it.irTypeString(null).lowercase() })
                         xml.writeAttribute("POS", child.position.toString())
+                        if (child.frameSize != 0)
+                            xml.writeAttribute("FRAMESIZE", child.frameSize.toString())
                         xml.writeCharacters("\n")
                         xml.writeStartElement("PARAMS")
                         xml.writeCharacters("\n")

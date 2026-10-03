@@ -112,7 +112,7 @@ val ImmediateOperand.integerValue: Int?
 data class HardwareSlotOperand(val slot: CallingConventionSlot, val type: IRDataType)
 
 
-/** base address of a memory reference: a symbol, or a fixed numeric address */
+/** base address of a memory reference: a symbol, a fixed numeric address, or a stack frame slot */
 sealed interface AddressBase {
     data class Symbol(val name: String) : AddressBase {
         init {
@@ -121,6 +121,20 @@ sealed interface AddressBase {
     }
 
     data class Absolute(val address: MemoryAddress) : AddressBase
+
+    /**
+     * A location in the current subroutine's stack frame, addressed relative to the
+     * frame pointer. [offset] is the signed, frame-relative byte offset assigned by
+     * the frame-layout pass (negative for locals, positive for incoming parameters);
+     * it is never 0. The displacement of the enclosing MemoryReference is added on
+     * top of this offset (so it stays >= 0, addressing into the slot).
+     */
+    data class FrameSlot(val offset: Int) : AddressBase {
+        init {
+            require(offset != 0) { "frame slot offset cannot be 0" }
+            require(offset in -32768..32767) { "frame slot offset out of 16-bit range: $offset" }
+        }
+    }
 }
 
 

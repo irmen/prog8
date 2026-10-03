@@ -131,6 +131,7 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
 
         Opcode.RETURN -> {
             invalidateD0Cache()
+            emitFrameUnlk()
             emitLine("rts")
         }
 
@@ -144,6 +145,7 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
                 val reg = insn.requireIntSourceA().intNumber
                 emitLoadD0(reg, type)
             }
+            emitFrameUnlk()
             emitLine("rts")
         }
 
@@ -156,6 +158,7 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
                 emitLine("moveq  #$value, d0")
             else
                 emitLine("move$s  #$value, d0")
+            emitFrameUnlk()
             emitLine("rts")
         }
 

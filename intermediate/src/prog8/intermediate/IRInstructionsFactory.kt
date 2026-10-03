@@ -21,6 +21,19 @@ object IRMemory {
     fun direct(address: UInt, displacement: Int = 0): MemoryReference =
         MemoryReference.Direct(AddressBase.Absolute(MemoryAddress(address)), displacement)
 
+    fun frame(offset: Int): AddressBase = AddressBase.FrameSlot(offset)
+
+    fun frameDirect(offset: Int, displacement: Int = 0): MemoryReference =
+        MemoryReference.Direct(AddressBase.FrameSlot(offset), displacement)
+
+    fun frameIndexed(
+        offset: Int,
+        indexRegister: Int,
+        indexType: IRDataType,
+        scale: Int = 1,
+        displacement: Int = 0
+    ): MemoryReference = indexed(AddressBase.FrameSlot(offset), indexRegister, indexType, scale, displacement)
+
     fun indexed(
         base: AddressBase,
         indexRegister: Int,

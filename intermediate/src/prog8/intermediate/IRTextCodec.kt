@@ -102,6 +102,7 @@ object IRTextCodec {
     private fun printAddressBase(base: AddressBase): String = when (base) {
         is AddressBase.Symbol -> base.name
         is AddressBase.Absolute -> base.address.toHex()
+        is AddressBase.FrameSlot -> "frame:${base.offset}"
     }
 
     fun printHardwareSlot(operand: HardwareSlotOperand): String =
@@ -396,7 +397,12 @@ object IRTextCodec {
             return reference
         }
 
-        val base: AddressBase = if (parts[0].first().isLetter())
+        val base: AddressBase = if (parts[0].startsWith("frame:")) {
+            // frame:<signed offset>; ':' is not a legal character in a symbol name, so this never collides
+            val off = parts[0].removePrefix("frame:").toIntOrNull()
+                ?: throw IRParseException("${schema.opcode}: invalid frame slot offset in $token")
+            AddressBase.FrameSlot(off)
+        } else if (parts[0].first().isLetter())
             AddressBase.Symbol(parts[0])
         else
             AddressBase.Absolute(parseAddress(parts[0], "${schema.opcode}: invalid memory address"))

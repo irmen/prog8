@@ -18,6 +18,7 @@ class VmProgramLoader {
 
     fun load(irProgram: IRProgram, memory: Memory): Pair<List<IRCodeChunk>, Map<String, UInt>> {
         irProgram.validate()
+        rejectFrameBasedIr(irProgram)
         irProgram.st.stripAllPrefixes()
         placeholders.clear()
         subroutines.clear()
@@ -327,6 +328,24 @@ class VmProgramLoader {
                     placeholders[Pair(chunk, index)] = SymbolNames.stripPrefixes(label)
                 }
             }
+        }
+    }
+
+    /**
+     * Frame-based IR (stack frame slot memory model) is only supported by the m68k
+     * backend for now; the VM's activation-record support is a follow-up
+     * (m68k-stack-memory-model.md §9). Reject explicitly instead of silently
+     * mis-resolving frame references as static storage.
+     */
+    private fun rejectFrameBasedIr(program: IRProgram) {
+        program.allSubs().forEach { sub ->
+            if (sub.frameSize != 0)
+                throw IRParseException("frame-based IR (subroutine ${sub.label} has frame size ${sub.frameSize}) is not (yet) supported on the virtual machine")
+        }
+        program.forEachInstruction { instr ->
+            val base = (instr.memory as? MemoryReference.Direct)?.base ?: (instr.memory as? MemoryReference.Indexed)?.base
+            if (base is AddressBase.FrameSlot)
+                throw IRParseException("frame-based IR (${instr.opcode} references frame slot ${base.offset}) is not (yet) supported on the virtual machine")
         }
     }
 

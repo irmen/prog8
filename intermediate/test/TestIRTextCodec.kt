@@ -38,6 +38,22 @@ class TestIRTextCodec: FunSpec({
         roundtrip("addim.b #3.b,[main.var]")
     }
 
+    test("frame slot memory references") {
+        roundtrip("loadm.w r0.w,[frame:-8]")
+        roundtrip("storem.b r0.b,[frame:-1]")
+        roundtrip("storezm.w [frame:-4]")
+        roundtrip("storezx.b [frame:-16+r3.w*4]")
+        roundtrip("loadx.l r1.l,[frame:12+r2.w]")
+        roundtrip("addm.b r5.b,[frame:-8+4]")
+        roundtrip("storeim.b #\$2a.b,[frame:-2]")
+        roundtrip("incm.w [frame:-10]")
+        IRTextCodec.print(IRTextCodec.parse("loadm.w r0.w,[frame:-8]")) shouldBe "loadm.w r0.w,[frame:-8]"
+        // frame:0 is illegal (a slot offset of 0 is never valid)
+        shouldThrow<Exception> { IRTextCodec.parse("loadm.w r0.w,[frame:0]") }
+        // negative displacement on the reference itself stays illegal
+        shouldThrow<Exception> { IRTextCodec.parse("loadm.w r0.w,[main.var+-3]") }
+    }
+
     test("hardware slots") {
         roundtrip("loadhr.w r1.w,s10.w")
         roundtrip("storehr.b r1.b,s0.b")

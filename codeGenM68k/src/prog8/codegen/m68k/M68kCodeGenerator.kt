@@ -7,6 +7,7 @@ import prog8.code.ast.PtProgram
 import prog8.code.core.CompilationOptions
 import prog8.code.core.IErrorReporter
 import prog8.codegen.intermediate.IRCodeGen
+import prog8.codegen.intermediate.StackFrameLayout
 import prog8.intermediate.IRDataType
 import prog8.intermediate.IRFileWriter
 import prog8.intermediate.VirtualRegister
@@ -27,6 +28,9 @@ class M68kCodeGenerator(val retainSSA: Boolean): ICodeGeneratorBackend {
             register to type
         }
         irProgram.verifyRegisterTypes(virtualRegisterTypes)
+
+        // Vertical Slice Prototype: stack-frame locals for frameable leaf subroutines
+        StackFrameLayout(irProgram, errors).apply()
 
         if (options.dumpVariables)
             dumpVariables(irProgram)

@@ -281,6 +281,17 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         output.appendLine(code)
     }
 
+    // === stack frame context (Vertical Slice Prototype: frame residents' locals) ===
+    // non-zero while emitting a subroutine that has a frame; the return translation
+    // emits `unlk a5` before each rts when this is set.
+    internal var currentFrameSize = 0
+
+    /** emits the frame teardown for the subroutine currently being translated, if it has a frame */
+    internal fun emitFrameUnlk() {
+        if (currentFrameSize > 0)
+            emitLine("unlk  a5")
+    }
+
     // === virtual register file layout (1, 2 or 4 bytes per slot depending on type, word-aligned) ===
     private data class RegFileLayout(val offsets: Map<Int, Int>, val totalSize: Int)
 
@@ -454,6 +465,12 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
 
     private fun resolveMemoryBase(base: AddressBase, displacement: Int): String {
         val resolved = when (base) {
+            // combine slot offset and reference displacement into a single a5-relative displacement
+            is AddressBase.FrameSlot -> {
+                val total = base.offset + displacement
+                if (total !in -32768..32767) error("frame displacement $total out of 16-bit range")
+                return "$total(a5)"
+            }
             is AddressBase.Symbol -> resolveSymbolRef(base.name)
             is AddressBase.Absolute -> base.address.value.toHex()
         }
@@ -728,6 +745,9 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         val entrypointNames = setOf("p8b_main.p8s_start", "main.start")
         if(sub.label in entrypointNames)
             emitLine("bsr  run_global_inits")
+        currentFrameSize = sub.frameSize
+        if (sub.frameSize > 0)
+            emitLine("link  a5,#-${sub.frameSize}")
         val livenessInstructions = sub.chunks.filterIsInstance<IRCodeChunk>().flatMap { it.instructions }
         val deadStoreSuppressionAllowed = canSuppressDeadStores(sub)
         var instructionOffset = 0
@@ -759,6 +779,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         }
         emitRaw("; End of subroutine: $subLabel")
         emitRaw("")
+        currentFrameSize = 0
     }
 
     private fun emitAsmSubroutine(sub: IRAsmSubroutine) {

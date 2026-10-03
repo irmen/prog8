@@ -576,7 +576,9 @@ class IRSubroutine(
     override val label: String,
     val parameters: List<IRParam>,
     val returns: List<DataType>,
-    val position: Position): IIRBlockElement {
+    val position: Position,
+    /** size in bytes of the local area of this subroutine's stack frame; 0 means no frame */
+    var frameSize: Int = 0): IIRBlockElement {
 
     class IRParam(val name: String, val dt: DataType)
 
@@ -589,6 +591,7 @@ class IRSubroutine(
         // params and return value should not be str
         require(parameters.all{ it.dt.isNumericOrBool || it.dt.isPointer }) {"parameter is not a bool, number or pointer"}
         require(returns.all { it.isNumericOrBool || it.isPointer}) {"returntype is not a bool, number or pointer"}
+        require(frameSize >= 0 && frameSize % 2 == 0) {"frame size must be a non-negative even number: $frameSize"}
     }
 
     operator fun plusAssign(chunk: IRCodeChunkBase) {

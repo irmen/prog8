@@ -1,3 +1,4 @@
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.assertions.throwables.shouldThrowWithMessage
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldBeEmpty
@@ -36,6 +37,33 @@ class TestVm: FunSpec( {
         vm.valueStack.shouldBeEmpty()
         vm.pcIndex shouldBe 0
         vm.stepCount shouldBe 0
+    }
+
+    test("vm rejects frame-based IR (frameSize set)") {
+        val program = IRProgram("test", IRSymbolTable(), getTestOptions(), VMTarget())
+        val block = IRBlock("testmain", false, IRBlock.Options(), Position.DUMMY)
+        val startSub = IRSubroutine("testmain.testsub", emptyList(), emptyList(), Position.DUMMY, frameSize = 8)
+        val code = IRCodeChunk(startSub.label, null)
+        code += IRInstructions.returnVoid()
+        startSub += code
+        block += startSub
+        program.addBlock(block)
+        shouldThrow<IRParseException> { VirtualMachine(program) }
+            .message!!.contains("not (yet) supported on the virtual machine") shouldBe true
+    }
+
+    test("vm rejects frame-based IR (FrameSlot memory reference)") {
+        val program = IRProgram("test", IRSymbolTable(), getTestOptions(), VMTarget())
+        val block = IRBlock("testmain", false, IRBlock.Options(), Position.DUMMY)
+        val startSub = IRSubroutine("testmain.testsub", emptyList(), emptyList(), Position.DUMMY)
+        val code = IRCodeChunk(startSub.label, null)
+        code += IRInstructions.storeZero(Opcode.STOREZM, IRDataType.BYTE, IRMemory.frameDirect(-1))
+        code += IRInstructions.returnVoid()
+        startSub += code
+        block += startSub
+        program.addBlock(block)
+        shouldThrow<IRParseException> { VirtualMachine(program) }
+            .message!!.contains("not (yet) supported on the virtual machine") shouldBe true
     }
 
     test("vm execution: modify memory") {

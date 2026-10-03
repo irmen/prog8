@@ -81,7 +81,7 @@ class IRFileReader {
         val compilerVersion = start.attributes.asSequence().single { it.name.localPart == "COMPILERVERSION" }.value
         val irFormat = start.attributes.asSequence().singleOrNull { it.name.localPart == "IRFORMAT" }?.value
             ?: throw IRParseException("missing IRFORMAT")
-        if(irFormat != IR_FORMAT_VERSION.toString())
+        if(irFormat.toIntOrNull() == null || irFormat.toInt() !in IR_FORMAT_MIN_SUPPORTED..IR_FORMAT_VERSION)
             throw IRParseException("unsupported IR format: $irFormat")
         options = parseOptions(reader, compilerVersion)
         val asmsymbols = parseAsmSymbols(reader)
@@ -585,7 +585,8 @@ class IRFileReader {
         val sub = IRSubroutine(attrs.getValue("NAME"),
             parseParameters(reader),
             if(returns=="") emptyList() else returns.split(',').map { parseDatatype(it, false) },
-            parsePosition(attrs.getValue("POS")))
+            parsePosition(attrs.getValue("POS")),
+            attrs["FRAMESIZE"]?.toIntOrNull() ?: 0)
 
         skipText(reader)
         while(reader.peek().isStartElement) {
