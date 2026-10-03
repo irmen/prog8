@@ -1,6 +1,6 @@
 # M68K Stack Memory Model
 
-**Status: slices 1-3 implemented (Vertical Slice Prototype §17, parameters-on-the-stack §17.6, re-entrant subroutines §17.7); slices 4-5 and the register allocator are not yet implemented.** Listed as "Deferred" in `docs/source/todo.rst`.
+**Status: slices 1-3 and 5 implemented (Vertical Slice Prototype §17, parameters-on-the-stack §17.6, re-entrant subroutines §17.7, diagnostics and polish §17.8); slice 4 and the register allocator are not implemented.** Listed as "Deferred" in `docs/source/todo.rst`.
 
 Design decisions taken (Oct 2026): the normal-prog8-subroutine calling
 convention is a single uniform **all-stack** convention with caller cleanup
@@ -789,11 +789,11 @@ without corrupting anything.
    **done** (see §17.7).
 4. VM activation records + recursion tests through the VM. Planned in detail,
    deliberately not implemented yet: `ideas/m68k-vm-frames-plan.md`.
-5. Diagnostics and polish: escape warnings (§10), frame-size reporting,
-   liveness-based slot reuse (currently *every* vreg of a re-entrant
-   subroutine gets its own slot), §4 auto-temporaries, §6.1 copy-in for
+5. Diagnostics and polish - **done**, see §17.8: escape warnings (§10),
+   frame-size reporting, liveness-based slot reuse, §6.1 copy-in for
    constrained parameters (inline-asm / defer referenced), float and
-   static-initialized locals via per-slot init metadata.
+   static-initialized locals in frames, and the resolution of §4
+   auto-temporaries. Remaining items are optimizations only (§17.8).
 
 ### 17.5 Findings (prototype / slice 1)
 
@@ -918,8 +918,9 @@ ladder):
 
 - Ordinary recursion is still broken (verified empirically: a recursive
   subroutine overwrites its static parameter storage). Slice 3 fixes it.
-- No copy-in yet for inline-asm/defer referenced parameters (slice 5), and
-  float/static-initialized locals still keep static storage (slice 5).
+- ~~No copy-in yet for inline-asm/defer referenced parameters~~ - implemented
+  in §17.8, with a compile error when the subroutine is also re-entrant.
+  Float arrays and numerically initialized locals can now live in frames too.
 - The VM still rejects frame-based IR (slice 4).
 
 ### 17.7 Slice 3: re-entrant subroutines (implemented)
@@ -1004,11 +1005,139 @@ results with and without optimizations.
 
 - Frames are still rejected by the VM (slice 4), so recursion cannot be tested
   through the VM yet.
-- Every virtual register of a re-entrant subroutine gets a slot, so its frame is
-  larger than strictly necessary; liveness-based reuse is slice-5 work.
+- ~~Every virtual register of a re-entrant subroutine gets a slot~~ - resolved
+  in §17.8: slots are now shared between registers with non-overlapping live
+  ranges (with a conservative fallback for subroutines containing loops).
 - The two rejections above are reported by the frame-layout pass, which only
   runs when assembly is generated: `-check` reports the `defer` rule (compiler
   phase) but not the frame-layout rejections.
 - Dynamic dispatch remains conservative: a subroutine whose address is taken
   cannot be framed at all, so a callback cycle through a dispatch table is
   rejected rather than compiled.
+
+### 17.8 Slice 5: diagnostics and polish (implemented)
+
+Status: implemented, runtime-verified on qemu-system-m68k, full test suite
+green.
+
+#### Liveness-based frame-slot reuse
+
+A re-entrant subroutine used to get one dedicated frame slot per virtual
+register. Two registers whose live ranges never overlap can share a slot, which
+matters because the frame is paid on every recursive call. The allocator now:
+
+- flattens the subroutine into a linear instruction order (loop bodies inline)
+  and records where each labeled chunk starts;
+- computes a `[firstUse, lastUse]` interval per register from its register
+  accesses;
+- allocates greedily in instruction order: a register takes a slot whose previous
+  occupant stopped being used before this register starts, otherwise a new slot
+  is taken below the locals;
+- **falls back to one slot per register whenever the subroutine contains a back
+  edge** (an `IRLoopChunk`, a branch to a label at or before its own position, or
+  a jump into another subroutine), because a value can then be live across a
+  jump backwards and plain last-use intervals stop being sound. This is the
+  deliberate seam for a future loop-aware dataflow analysis.
+
+Sharing is safe by construction: any execution path is a subsequence of the
+flattened order, so simultaneously live registers always have overlapping
+intervals and can never be aliased. Allocation is deterministic.
+
+Measured effect on a recursive subroutine with twelve virtual registers, three of
+which are helper-call results consumed immediately: `FRAMESIZE` 32 -> 12, twelve
+slots -> two. A recursive subroutine containing a `while` loop keeps all seven of
+its dedicated slots, as intended.
+
+#### Entry-time copy-in for constrained parameters (§6.1)
+
+A parameter that inline assembly or a defer handler refers to by name needs a
+permanent address, because those refer to it from outside the activation. Such a
+parameter no longer disqualifies the whole subroutine from having a frame:
+
+- it keeps its positive incoming slot as its storage, exactly like any other
+  parameter (internal references are unchanged);
+- it keeps its static cell in the BSS symbol table, and the prologue copies the
+  incoming value into that cell before anything else runs;
+- a parameter whose address is merely *taken* inside the callee keeps the older
+  behavior (no frame at all), since §6.1 treats `&param` as ordinary
+  local-pointer semantics and that case is not resolved yet;
+- if such a parameter occurs in a re-entrant subroutine it is a compile error,
+  because one static cell shared by nested activations would be wrong. The
+  defer case is caught earlier by the §11 rule; the inline-asm case by the
+  frame-layout pass.
+
+#### Locals with an initializer, and float locals, in frames
+
+- A local carrying a numeric initializer is now framed and initialized in the
+  prologue instead of keeping static storage. Note that plain numeric
+  initializers were already lowered to a body-level `storeim` before this
+  change, so in practice this affects the shapes that still carried an
+  initializer on the symbol-table entry.
+- Float array locals are frameable and zero-filled element by element in the
+  prologue; float scalars are now zero-cleared as well (previously they were
+  framed but silently left uninitialized).
+- Initializers that cannot be expressed as a single store (`Str`, `Array`
+  initializers) still keep the variable static, and a re-entrant subroutine that
+  needs one is still rejected.
+
+#### Escape diagnostics (§10)
+
+Warnings only, never errors, m68k targets only, implemented in the compiler
+module next to the §11 defer check:
+
+- the address of a subroutine local or parameter is stored outside that
+  subroutine, passed in a call, returned, or named in inline assembly. The
+  message names the variable, the subroutine, and the escape form. This is
+  best-effort by design: flow through an intermediate local is not tracked, and
+  address-of nodes that the optimizer folded away before the check runs are not
+  seen.
+- raw inline assembly mentions `p8_regfile`/`p8_fregfile` while the program
+  contains recursive subroutines, whose registers now live in frames and would
+  therefore not be where the assembly expects them.
+
+Known noise: amiga500's `textio.print_*` routines pass `&param` to `dos.VPrintf`
+and now warn. Those are true positives, but a follow-up should decide whether to
+exempt the standard library or narrow the diagnostic.
+
+#### Frame-size reporting
+
+- every framed subroutine gets a listing comment above its prologue:
+  `; stack frame: 24 bytes of locals, 8 bytes of arguments`;
+- a frame above 512 bytes also produces an INFO message naming the subroutine and
+  its size, because deep recursion multiplies it per call;
+- the pre-existing hard rejection of frames over `MAX_FRAME_SIZE` is unchanged.
+
+#### Compiler auto-temporaries (§4): resolved, nothing to do
+
+§4 predates the frame-layout pass and assumed auto-temporaries needed their own
+marking. They do not: `auto_heap_value_N` are ordinary `VarDecl`s, and the pass
+frames any plain subroutine-scoped local, so the scalar ones (the `on..goto`
+index variable, the pointer dot-chain address temp, hoisted array literals) are
+framed today without extra work.
+
+The exception is the `on..goto`/`on..call` jump table, which stays static on
+purpose. It carries a static initializer (symbolic addresses), so it cannot be
+framed without array/symbolic initializer support in frames, and framing a
+read-only jump table would be the wrong trade anyway: it would add an
+initialization store on every call to save a few bytes of BSS. A test pins this
+behavior. Should a future slice add initializer support for frame slots, revisit
+this decision then.
+
+#### Still open (optimizations, not correctness)
+
+- **Zeroing coalescing.** The prologue still emits one store per element. A
+  prototype of range merging worked and was measured: contiguous clean locals
+  are merged and cleared with the widest stores the alignment allows, turning a
+  17-byte clear into 5 stores (4 long stores plus 1 byte store), with the array
+  and its neighbouring byte sharing the merged range. It was reverted rather
+  than kept, because the invariant it depends on is subtle and only worth its
+  code size: only *clean, non-initialized* locals may contribute a range, ranges
+  must never be merged across a dirty or initialized neighbour, and float
+  elements cannot be folded into integer stores. Worth doing only together with
+  the range/offset bookkeeping becoming explicit (for example a per-slot
+  "size, alignment, initialization" list, which §7 already anticipates).
+- **Loop-aware liveness**, so that recursive subroutines containing loops can
+  share slots too. This needs a real backward dataflow analysis, not interval
+  extension; see the note in §17.7 about the current conservative fallback.
+- **§4 compiler auto-temporaries**: resolved as described above; only the jump
+  table case is open, and it is a deliberate non-goal.

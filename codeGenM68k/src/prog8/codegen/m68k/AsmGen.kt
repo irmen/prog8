@@ -103,7 +103,7 @@ internal fun nativeFloatConst(value: Double): String? = when (value) {
  * instead. Return values are passed via virtual registers mapped back to the caller's result register.
  */
 
-internal class AsmGen(val program: IRProgram, internal val target: ICompilationTarget) {
+internal class AsmGen(val program: IRProgram, internal val target: ICompilationTarget, internal val errors: IErrorReporter? = null) {
     private val output = StringBuilder()
     private val regsUsed by lazy { program.registersUsed() }
     internal val cpu get() = target.cpu
@@ -111,6 +111,8 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
     companion object {
         const val REGFILE_LABEL = "p8_regfile"
         const val FLOAT_REGFILE_LABEL = "p8_fregfile"
+        // frames larger than this are reported with an INFO message; deep recursion multiplies the frame per call
+        const val LARGE_FRAME_SIZE = 512
     }
 
     init {
@@ -763,8 +765,11 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
             emitLine("bsr  run_global_inits")
         frameActive = sub.hasFrame
         frameVregSlots = sub.frameVregSlots
-        if (sub.hasFrame)
+        if (sub.hasFrame) {
+            emitRaw("; stack frame: ${sub.frameSize} bytes of locals, ${sub.incomingSize} bytes of arguments")
             emitLine(if (sub.frameSize > 0) "link  a5,#-${sub.frameSize}" else "link  a5,#0")
+            reportFrameSize(sub)
+        }
         val livenessInstructions = sub.chunks.filterIsInstance<IRCodeChunk>().flatMap { it.instructions }
         val deadStoreSuppressionAllowed = canSuppressDeadStores(sub)
         var instructionOffset = 0
@@ -816,6 +821,16 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
 
     private fun unscopedName(scopedName: String): String =
         scopedName.substringAfterLast('.')
+
+    /** emits an informational message for unusually large frames; deep recursion multiplies the frame per call */
+    private fun reportFrameSize(sub: IRSubroutine) {
+        if (sub.frameSize > LARGE_FRAME_SIZE)
+            errors?.info("subroutine '${userFacingName(sub.label)}' uses a ${sub.frameSize} byte stack frame; deep recursion multiplies this per call", sub.position)
+    }
+
+    /** the scoped IR label without its internal scope markers, for use in user-facing messages */
+    private fun userFacingName(scopedName: String): String =
+        scopedName.split('.').joinToString(".") { it.removePrefix("p8b_").removePrefix("p8s_") }
 
     // Dead-store suppression checks whether a register is read anywhere else in the
     // subroutine (see isRegisterReadElsewhere), which is independent of control

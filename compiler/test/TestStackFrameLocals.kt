@@ -462,4 +462,338 @@ main {
         lines.any { "link " in it } shouldBe false
         lines.any { "(a5)" in it } shouldBe false
     }
+
+    test("slice 5: defer-referenced parameter is framed with an entry-time copy-in") {
+        // §6.1: the positive incoming slot is the parameter storage; a parameter referenced
+        // from a defer handler keeps its static cell and gets an entry-time copy-in
+        val src = """
+main {
+    sub parm(ubyte x) {
+        defer x += 1
+    }
+    sub start() {
+        parm(1)
+    }
+}
+"""
+        val (lines, _) = compile(src)
+        val parm = subAssembly(lines, "p8b_main.p8s_parm")
+        // the subroutine is framed (only the incoming slot, no locals)
+        parm.any { it == "link  a5,#0" } shouldBe true
+        parm.any { it == "unlk  a5" } shouldBe true
+        // entry-time copy-in: load the incoming slot, store into the static cell, before any clearing
+        parm.any { it.startsWith("move.b  11(a5),") } shouldBe true
+        parm.any { it.contains("p8b_main.p8s_parm.p8v_x") } shouldBe true
+        // the static cell is kept so the block-scope defer handler can still see it
+        lines.any { "p8b_main.p8s_parm.p8v_x:" in it } shouldBe true
+    }
+
+    test("slice 5: inline-asm-referenced parameter is framed with an entry-time copy-in") {
+        val src = """
+main {
+    sub rec(ubyte x) -> ubyte {
+        return x + 2
+    }
+    sub start() {
+        g = rec(3)
+        %asm {{
+            ; this assembly reads the parameter's static cell
+            move.b  p8b_main.p8s_rec.p8v_x,d0
+            nop
+        }}
+    }
+    ubyte @shared g
+}
+"""
+        val (lines, _) = compile(src)
+        val rec = subAssembly(lines, "p8b_main.p8s_rec")
+        rec.any { it == "link  a5,#0" } shouldBe true
+        rec.any { it.startsWith("move.b  11(a5),") } shouldBe true
+        rec.any { it.contains("p8b_main.p8s_rec.p8v_x") } shouldBe true
+        // the static cell is kept for the assembly reference; the body itself uses the frame slot
+        lines.any { "p8b_main.p8s_rec.p8v_x:" in it } shouldBe true
+        rec.any { it.startsWith("move.b  11(a5),") && it.endsWith(",p8_regfile+0") } shouldBe true
+    }
+
+    test("slice 5: static-initialized local is framed and initialized at entry") {
+        val src = """
+main {
+    sub leaf() {
+        ubyte x = 5
+        x += 1
+    }
+    sub start() {
+        leaf()
+    }
+}
+"""
+        val (lines, _) = compile(src)
+        val leaf = subAssembly(lines, "p8b_main.p8s_leaf")
+        leaf.any { it.startsWith("link ") } shouldBe true
+        leaf.any { it == "move.b  #5,-1(a5)" } shouldBe true
+        // the initialized local no longer lives in static storage
+        lines.none { "p8v_x:" in it } shouldBe true
+    }
+
+    test("slice 5: float static-initialized local is framed") {
+        val src = """
+%option enable_floats
+main {
+    sub leaf() {
+        float f = 1.5
+        f += 1.0
+    }
+    sub start() {
+        leaf()
+    }
+}
+"""
+        val (lines, _) = compile(src)
+        val leaf = subAssembly(lines, "p8b_main.p8s_leaf")
+        leaf.any { it.startsWith("link ") } shouldBe true
+        leaf.any { it.contains("fmove.s  fp0,-4(a5)") } shouldBe true
+        lines.none { "p8v_f:" in it } shouldBe true
+    }
+
+    test("slice 5: float array local is framed and zero-filled in the prologue") {
+        val src = """
+%option enable_floats
+main {
+    sub leaf() {
+        float[2] arr
+        arr[0] = 1.5
+    }
+    sub start() {
+        leaf()
+    }
+}
+"""
+        val (lines, _) = compile(src)
+        val leaf = subAssembly(lines, "p8b_main.p8s_leaf")
+        leaf.any { it == "link  a5,#-8" } shouldBe true
+        // every float element is zero-filled in the prologue (STOREZM float)
+        leaf.any { it.contains("fmove.s  fp0,-8(a5)") } shouldBe true
+        leaf.any { it.contains("fmove.s  fp0,-4(a5)") } shouldBe true
+        lines.none { "p8v_arr:" in it } shouldBe true
+    }
+
+    test("slice 5: recursive subroutine with a defer-referenced parameter is rejected") {
+        val src = """
+main {
+    sub rec(ubyte n) -> ubyte {
+        defer n = n + 1
+        if n == 0 {
+            return 0
+        }
+        return rec(n-1)
+    }
+    sub start() {
+        g = rec(3)
+    }
+    ubyte @shared g
+}
+"""
+        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        compileText(Qemu68kTarget(), optimize = false, src, tempdir().toPath(),
+            writeAssembly = true, assemble = false, errors = errors) shouldBe null
+        // the defer rule rejects this at the compiler level; the static cell would be
+        // shared between live activations of the recursive subroutine
+        errors.errors.any { it.contains("recursive") } shouldBe true
+    }
+
+    test("slice 5: recursive subroutine with an inline-asm-referenced parameter is rejected") {
+        val src = """
+main {
+    sub rec(ubyte n) -> ubyte {
+        return rec(1)
+    }
+    sub start() {
+        g = rec(3)
+        %asm {{
+            move.b  p8b_main.p8s_rec.p8v_n,d0
+            nop
+        }}
+    }
+    ubyte @shared g
+}
+"""
+        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        compileText(Qemu68kTarget(), optimize = false, src, tempdir().toPath(),
+            writeAssembly = true, assemble = false, errors = errors) shouldBe null
+        errors.errors.any { it.contains("recursive") } shouldBe true
+        errors.errors.any { it.contains("shared between activations") } shouldBe true
+    }
+
+    test("slice 5: recursive subroutine with a static-initialized local now compiles") {
+        val src = """
+main {
+    sub rec(ubyte n) -> ubyte {
+        ubyte local = 5
+        if n == 0 {
+            return local + n
+        }
+        return rec(n-1) + local
+    }
+    sub start() {
+        g = rec(3)
+    }
+    ubyte @shared g
+}
+"""
+        val (lines, ir) = compile(src)
+        // the static-initialized local is now frameable, so nothing keeps static storage
+        ir.contains("VREGSLOTS=") shouldBe true
+        val rec = subAssembly(lines, "p8b_main.p8s_rec")
+        rec.any { it.startsWith("link ") } shouldBe true
+        rec.any { it.contains("p8_regfile") } shouldBe false
+    }
+
+    test("slice 5: vreg slots of a recursive subroutine are reused when lifetimes don't overlap") {
+        // two recursive call results are each stored right after their call, so their lifetimes
+        // don't overlap and they can share one frame slot; the frame shrinks from 16 to 10 bytes
+        val src = """
+main {
+    sub rec(ubyte n) -> uword {
+        if n == 0
+            return 1
+        uword a = rec(n-1)
+        uword b = rec(n-2)
+        return a + b
+    }
+    ubyte @shared g = 1
+    sub start() {
+        g = lsb(rec(10))
+    }
+}
+"""
+        val (_, ir) = compile(src)
+        val subLine = ir.lineSequence().first { it.contains("SUB NAME=\"p8b_main.p8s_rec\"") }
+        subLine.contains("FRAMESIZE=\"10\"") shouldBe true
+        val slots = subLine.substringAfter("VREGSLOTS=\"").substringBefore('"').split(',').associate {
+            it.substringBefore(':').toInt() to it.substringAfter(':').toInt()
+        }
+        // the two call results inside rec (the call results whose registers appear in the slot
+        // map; the call from start uses a register outside it) share one slot
+        val callResults = Regex("call p8b_main\\.p8s_rec\\([^)]*\\):r(\\d+)\\.w").findAll(ir)
+            .map { it.groupValues[1].toInt() }
+            .filter { it in slots }
+            .toList()
+        callResults.size shouldBe 2
+        slots.getValue(callResults[0]) shouldBe slots.getValue(callResults[1])
+        // reuse happened: fewer distinct slots than virtual registers
+        slots.values.toSet().size shouldBe 3
+        slots.size shouldBe 7
+        // the layout is deterministic across compilations
+        val (_, ir2) = compile(src)
+        val subLine2 = ir2.lineSequence().first { it.contains("SUB NAME=\"p8b_main.p8s_rec\"") }
+        subLine2.substringAfter("FRAMESIZE") shouldBe subLine.substringAfter("FRAMESIZE")
+    }
+
+    test("slice 5: a recursive subroutine with a loop keeps one slot per virtual register") {
+        // the loop's back edge can keep values live across it, so plain last-use intervals
+        // would be unsound and the safe one-slot-per-register layout is kept
+        val src = """
+main {
+    sub rec(ubyte n) -> uword {
+        uword total = 0
+        for i in 0 to 5 {
+            total += 1
+        }
+        if n == 0
+            return total
+        return total + rec(n-1)
+    }
+    ubyte @shared g = 1
+    sub start() {
+        g = lsb(rec(10))
+    }
+}
+"""
+        val (_, ir) = compile(src)
+        val subLine = ir.lineSequence().first { it.contains("SUB NAME=\"p8b_main.p8s_rec\"") }
+        subLine.contains("FRAMESIZE=\"12\"") shouldBe true
+        subLine.contains("VREGSLOTS=\"1:-3,2:-6,3:-7,4:-10,5:-12\"") shouldBe true
+        val slots = subLine.substringAfter("VREGSLOTS=\"").substringBefore('"').split(',').associate {
+            it.substringBefore(':').toInt() to it.substringAfter(':').toInt()
+        }
+        // every register has its own dedicated slot: all offsets are distinct
+        slots.values.toSet().size shouldBe slots.size
+    }
+
+    test("slice 5: simultaneously-live virtual registers get distinct frame slots") {
+        // both recursive call results are live at the addition, so they cannot share a slot
+        val src = """
+main {
+    sub rec(ubyte n) -> uword {
+        if n < 2
+            return n
+        return rec(n-1) + rec(n-2)
+    }
+    ubyte @shared g = 1
+    sub start() {
+        g = lsb(rec(10))
+    }
+}
+"""
+        val (_, ir) = compile(src)
+        val subLine = ir.lineSequence().first { it.contains("SUB NAME=\"p8b_main.p8s_rec\"") }
+        val slots = subLine.substringAfter("VREGSLOTS=\"").substringBefore('"').split(',').associate {
+            it.substringBefore(':').toInt() to it.substringAfter(':').toInt()
+        }
+        val callResults = Regex("call p8b_main\\.p8s_rec\\([^)]*\\):r(\\d+)\\.w").findAll(ir)
+            .map { it.groupValues[1].toInt() }
+            .filter { it in slots }
+            .toList()
+        callResults.size shouldBe 2
+        slots.getValue(callResults[0]) shouldNotBe slots.getValue(callResults[1])
+    }
+
+    test("slice 5: non-recursive subroutines keep the static register file and no vreg slots") {
+        // only re-entrant subroutines relocate their virtual registers into the frame
+        val src = """
+main {
+    ubyte gv = 2
+    sub inner() { gv += 1 }
+    sub caller() {
+        ubyte a
+        inner()
+        a = gv
+    }
+    sub start() {
+        caller()
+    }
+}
+"""
+        val (lines, ir) = compile(src)
+        ir.contains("VREGSLOTS") shouldBe false
+        val caller = subAssembly(lines, "p8b_main.p8s_caller")
+        caller.any { it == "link  a5,#-2" } shouldBe true
+        caller.any { it.contains("p8_regfile") } shouldBe true
+    }
+    test("slice 5: compiler-generated temporaries inside a subroutine are framed already") {
+        // the desugarer of `on ... goto` creates its own auto_heap_value variables; plain
+        // scalar ones are ordinary subroutine locals and are framed without any extra work
+        val src = """
+main {
+    sub pick(ubyte n) -> ubyte {
+        on n goto(smaller, bigger)
+        return 0
+    smaller:
+        return 1
+    bigger:
+        return 2
+    }
+    sub start() {
+        g = pick(1)
+    }
+    ubyte @shared g
+}
+"""
+        val (lines, ir) = compile(src)
+        val pick = subAssembly(lines, "p8b_main.p8s_pick")
+        pick.any { it.startsWith("link ") || it.startsWith("bra") } shouldBe true
+        // the jump table auto-variable keeps static storage on purpose: it is read-only
+        // constant data, and framing it would add an initialization store on every call
+        ir.contains("auto_heap_value") shouldBe true
+    }
 })

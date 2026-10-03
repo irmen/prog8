@@ -240,7 +240,9 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
         /** parameter variable name -> frame offset of its incoming slot */
         val paramSlots: Map<String, Int>,
         /** parameter variable name -> right-justification displacement within its slot */
-        val paramDisplacements: Map<String, Int>
+        val paramDisplacements: Map<String, Int>,
+        /** parameter variable names that keep a static cell and get an entry-time copy-in (§6.1) */
+        val copyInParams: Set<String>
     )
 
     /** outcome of the frameability decision for one subroutine */
@@ -276,15 +278,18 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
         }
         val paramSlots = mutableMapOf<String, Int>()
         val paramDisplacements = mutableMapOf<String, Int>()
+        val copyInParams = mutableSetOf<String>()
         for ((index, _) in sub.parameters.withIndex()) {
             val name = scopedParamNames[index]
-            // a parameter referenced from outside the subroutine (defer handler, external code)
-            // cannot become per-activation storage: the whole subroutine keeps the static convention
-            val refs = referencedIn[name]
-            if (refs != null && refs != setOf(sub.label)) return static("parameter '$name' is also referenced from outside the subroutine")
             val v = program.st.lookup(name) as? IRStStaticVariable ?: return static("parameter '$name' has no static variable")
-            val elemDt = isFrameableVariable(v, name, addressTaken, asmTexts) ?: return static("parameter '$name' cannot be moved into a frame")
+            val elemDt = isFrameableParameter(v, name, addressTaken, asmTexts) ?: return static("parameter '$name' cannot be moved into a frame")
             if (v.length != null) return static("parameter '$name' is an array")
+            // a parameter referenced from outside the subroutine (defer handler, inline assembly)
+            // keeps its static cell for those external references and gets an entry-time copy-in
+            // from its incoming slot (§6.1); its address may not be taken (that stays a hard error)
+            val refs = referencedIn[name]
+            if ((refs != null && refs.any { it != sub.label }) || isLabelReferencedInAsm(name, asmTexts))
+                copyInParams += name
             // first parameter ends up at the highest offset, last one just above the return address
             val offset = INCOMING_BASE + PARAM_SLOT_SIZE * (sub.parameters.size - 1 - index)
             paramSlots[name] = offset
@@ -347,17 +352,9 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
             val vregs = vregsUsedIn(sub)
             if (vregs.keys.any { it >= RESERVED_VREG_RANGE_START })
                 return static("it uses a reserved virtual register number")
-            for ((regNum, irType) in vregs.entries.sortedBy { it.key }) {
-                val size = slotSizeFor(irType)
-                val alignment = when {
-                    size >= 4 -> 4
-                    size >= 2 -> 2
-                    else -> 1
-                }
-                cursor = cursor.floorDiv(alignment) * alignment
-                cursor -= size
-                vregSlots[regNum] = cursor
-            }
+            val (newCursor, slots) = allocateVregSlots(sub, vregs, cursor)
+            cursor = newCursor
+            vregSlots.putAll(slots)
         }
         if (frameVars.isEmpty() && paramSlots.isEmpty() && vregSlots.isEmpty())
             return static("it has no frameable local variables or parameters")
@@ -384,9 +381,11 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
                 else -> null
             }
             if (disp != null && (disp < -32768 || disp > 32767)) outOfRange = true
-            // a relocated virtual register must stay in 16-bit displacement range as well
-            val regOffset = (instr.registerAccesses.firstOrNull()?.register)?.let { vregSlots[it.num] }
-            if (regOffset != null && (regOffset < -32768 || regOffset > 32767)) outOfRange = true
+            // relocated virtual registers must stay in 16-bit displacement range as well
+            for (access in instr.registerAccesses) {
+                val regOffset = vregSlots[access.register.num]
+                if (regOffset != null && (regOffset < -32768 || regOffset > 32767)) outOfRange = true
+            }
         }
         if (outOfRange) {
             errors.err("frame-relative displacement out of 16-bit range in subroutine ${userName(sub)}", sub.position)
@@ -413,30 +412,63 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
             }
         }
 
-        // prologue zeroing for clean (non-dirty) locals; incoming parameters are written by the caller
-        val clearInstrs = mutableListOf<IRInstruction>()
+        // prologue: entry-time copy-in for externally referenced parameters (§6.1), then the
+        // numeric initializers of static-initialized locals, then zeroing for clean (non-dirty)
+        // locals; incoming parameters are written by the caller
+        val prologueInstrs = mutableListOf<IRInstruction>()
+        if (copyInParams.isNotEmpty()) {
+            val used = program.registersUsed()
+            var nextIntScratch = (used.intRegsTypes.keys.maxOfOrNull { it.value } ?: 0) + 1
+            var nextFloatScratch = ((used.floatRegsRead.keys + used.floatRegsWritten.keys).maxOfOrNull { it.value } ?: 0) + 1
+            require(nextIntScratch < RESERVED_VREG_RANGE_START) { "copy-in integer scratch register would collide with reserved vreg range" }
+            require(nextFloatScratch < RESERVED_VREG_RANGE_START) { "copy-in float scratch register would collide with reserved vreg range" }
+            for (name in copyInParams.sorted()) {
+                val v = program.st.lookup(name) as? IRStStaticVariable ?: continue
+                val elemDt = if (v.dt.isArray) baseToScalar(v.dt.sub!!) else v.dt
+                val irType = elemDt?.let { irTypeFor(it) } ?: continue
+                val offset = paramSlots[name] ?: continue
+                val displacement = paramDisplacements[name] ?: 0
+                val scratch = if (irType == IRDataType.FLOAT) nextFloatScratch++ else nextIntScratch++
+                prologueInstrs += IRInstructions.loadMemory(Opcode.LOADM, irType, scratch, IRMemory.frameDirect(offset, displacement))
+                prologueInstrs += IRInstructions.storeMemory(Opcode.STOREM, irType, scratch, IRMemory.direct(name))
+            }
+        }
         for (fv in frameVars) {
+            val init = (program.st.lookup(fv.name) as? IRStStaticVariable)?.initializationValue as? IRVariableInitializer.Numeric
+            if (init != null) {
+                // a static-initialized local gets its initializer stored into the frame slot;
+                // this replaces the zero-clear for it
+                val irType = irTypeFor(fv.elemDt) ?: continue
+                if (irType == IRDataType.FLOAT)
+                    prologueInstrs += IRInstructions.storeImmediateFloat(init.value, IRMemory.frameDirect(fv.slot))
+                else
+                    prologueInstrs += IRInstructions.storeImmediate(irType, init.value.toInt(), IRMemory.frameDirect(fv.slot))
+                continue
+            }
             if (fv.dirty) continue
             val irType = irTypeFor(fv.elemDt) ?: continue
             val elemSize = target.memorySize(fv.elemDt, null)
+            // float scalars and float array elements are zero-filled with STOREZM float stores
+            // (the m68k backend supports them); the VM does not run this pass
             for (element in 0 until fv.count) {
-                clearInstrs += IRInstructions.storeZero(Opcode.STOREZM, irType, IRMemory.frameDirect(fv.slot, element * elemSize))
+                prologueInstrs += IRInstructions.storeZero(Opcode.STOREZM, irType, IRMemory.frameDirect(fv.slot, element * elemSize))
             }
         }
 
-        // the moved variables now live per-activation; remove them from the static (BSS) symbol table
-        (slotBySymbol.keys + paramSlots.keys).forEach { program.st.removeIfExists(it) }
+        // the moved variables now live per-activation; remove them from the static (BSS) symbol table.
+        // copy-in parameters keep their static cell for the external reference (§6.1)
+        (slotBySymbol.keys + paramSlots.keys.filter { it !in copyInParams }).forEach { program.st.removeIfExists(it) }
 
-        if (clearInstrs.isNotEmpty()) {
+        if (prologueInstrs.isNotEmpty()) {
             // prepend into the existing first chunk (it carries the sub label; the chunk list
             // structure and its label invariant must not change)
             val firstChunk = sub.chunks.first() as IRCodeChunk
-            firstChunk.instructions.addAll(0, clearInstrs)
+            firstChunk.instructions.addAll(0, prologueInstrs)
         }
         sub.frameSize = frameSize
         sub.incomingSize = paramSlots.size * PARAM_SLOT_SIZE
         sub.frameVregSlots = vregSlots
-        return Frameability.Frameable(FrameLayoutResult(frameSize, sub.incomingSize, paramSlots, paramDisplacements))
+        return Frameability.Frameable(FrameLayoutResult(frameSize, sub.incomingSize, paramSlots, paramDisplacements, copyInParams))
     }
 
     /** the virtual registers used by the instructions of a subroutine, by register number */
@@ -453,6 +485,117 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
                 result.getOrPut(reg.num) { IRDataType.FLOAT }
         }
         return result
+    }
+
+    private class VregSlot(val offset: Int, val size: Int, var occupant: Int)
+
+    /**
+     * Frame slots for the virtual registers of a re-entrant subroutine. Unless the subroutine
+     * has a backward branch, register lifetimes are intervals over the flattened instruction
+     * order and a slot whose previous occupant is already dead is reused by a later register.
+     * A back edge (any loop chunk, or a branch/jump to a label at or before its own position,
+     * including a jump into another subroutine) can keep a value live across the jump, which
+     * plain last-use intervals would get wrong, so such a subroutine keeps one dedicated slot
+     * per register.
+     */
+    private fun allocateVregSlots(sub: IRSubroutine, vregs: Map<Int, IRDataType>, cursor: Int): Pair<Int, Map<Int, Int>> {
+        if (vregs.isEmpty())
+            return cursor to emptyMap()
+
+        // flatten the non-loop chunks into a linear instruction list; loop chunks force the
+        // conservative one-slot-per-register fallback and are skipped here
+        val instrList = mutableListOf<IRInstruction>()
+        val chunkFirstIndex = mutableMapOf<String, Int>()
+        var containsLoop = false
+        sub.forEachChunk { chunk ->
+            if (chunk is IRLoopChunk) {
+                containsLoop = true
+                return@forEachChunk
+            }
+            val label = chunk.label
+            if (label != null)
+                chunkFirstIndex[label] = instrList.size
+            chunk.instructions.forEach { instrList.add(it) }
+        }
+
+        if (containsLoop || branchesBackwards(sub, instrList, chunkFirstIndex))
+            return oneSlotPerRegister(vregs, cursor)
+
+        val firstUse = mutableMapOf<Int, Int>()
+        val lastUse = mutableMapOf<Int, Int>()
+        instrList.forEachIndexed { index, instr ->
+            for (access in instr.registerAccesses) {
+                val num = access.register.num
+                firstUse[num] = minOf(firstUse[num] ?: index, index)
+                lastUse[num] = maxOf(lastUse[num] ?: index, index)
+            }
+        }
+
+        // greedy linear scan: a register takes the first free slot it fits in, otherwise a
+        // fresh slot below the locals; registers live at the same time can never share
+        val slots = mutableListOf<VregSlot>()
+        var c = cursor
+        val vregSlots = mutableMapOf<Int, Int>()
+        instrList.forEachIndexed { index, instr ->
+            for (regNum in instr.registerAccesses.map { it.register.num }.distinct().sorted()) {
+                if (firstUse[regNum] != index) continue
+                val size = slotSizeFor(vregs[regNum] ?: continue)
+                val alignment = when {
+                    size >= 4 -> 4
+                    size >= 2 -> 2
+                    else -> 1
+                }
+                val slot = slots.firstOrNull { s ->
+                    (s.occupant < 0 || lastUse[s.occupant]!! < index) && s.offset % alignment == 0 && s.size >= size
+                }
+                if (slot != null) {
+                    slot.occupant = regNum
+                    vregSlots[regNum] = slot.offset
+                } else {
+                    c = c.floorDiv(alignment) * alignment
+                    c -= size
+                    vregSlots[regNum] = c
+                    slots += VregSlot(c, size, regNum)
+                }
+            }
+        }
+        return c to vregSlots
+    }
+
+    /** true when any branch/jump instruction targets a label at or before its own position,
+     *  a label outside this subroutine, an unresolvable label, or an indirect target */
+    private fun branchesBackwards(sub: IRSubroutine, instrList: List<IRInstruction>, chunkFirstIndex: Map<String, Int>): Boolean {
+        val subChunks = mutableSetOf<IRCodeChunkBase>()
+        sub.forEachChunk { subChunks.add(it) }
+        for ((index, instr) in instrList.withIndex()) {
+            // an indirect jump can target arbitrary code, including a backward edge;
+            // be conservative and treat it like a backward branch
+            if (instr.opcode == Opcode.JUMPI)
+                return true
+            val target = instr.target as? CodeReference.Label ?: continue
+            val targetChunk = program.resolveCodeTarget(target) ?: return true
+            if (targetChunk !in subChunks) return true
+            val targetIndex = chunkFirstIndex[target.name] ?: return true
+            if (targetIndex <= index) return true
+        }
+        return false
+    }
+
+    private fun oneSlotPerRegister(vregs: Map<Int, IRDataType>, cursor: Int): Pair<Int, Map<Int, Int>> {
+        var c = cursor
+        val vregSlots = mutableMapOf<Int, Int>()
+        for ((regNum, irType) in vregs.entries.sortedBy { it.key }) {
+            val size = slotSizeFor(irType)
+            val alignment = when {
+                size >= 4 -> 4
+                size >= 2 -> 2
+                else -> 1
+            }
+            c = c.floorDiv(alignment) * alignment
+            c -= size
+            vregSlots[regNum] = c
+        }
+        return c to vregSlots
     }
 
     private fun slotSizeFor(irType: IRDataType): Int = when (irType) {
@@ -484,18 +627,25 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
             if (sub.label !in reentrant) continue
             val framed = sub.label in framedSubs
             val sharedVars = staticVarsOwnedBy(sub).filter { referencedIn[it]?.contains(sub.label) == true }
+            // a copy-in parameter keeps a static cell for its external references (§6.1); two live
+            // activations of a re-entrant subroutine would share that cell
+            val sharedCopyIns = (framedSubs[sub.label]?.copyInParams ?: emptySet()).filter { it !in sharedVars }
             // an unframed subroutine also shares its virtual registers; a framed one relocated them all
             val sharedVregs = if (framed) emptyList() else vregsUsedIn(sub).keys.toList()
-            if (sharedVars.isEmpty() && sharedVregs.isEmpty()) continue
-            val reason = if (framed)
-                "some of the values it uses cannot be moved into a stack frame"
-            else
-                notFramedReasons[sub.label] ?: "it could not be given a stack frame"
+            if (sharedVars.isEmpty() && sharedVregs.isEmpty() && sharedCopyIns.isEmpty()) continue
+            val reason = when {
+                !framed -> notFramedReasons[sub.label] ?: "it could not be given a stack frame"
+                sharedCopyIns.isNotEmpty() -> "some parameters must be copied into a static cell for external references"
+                else -> "some of the values it uses cannot be moved into a stack frame"
+            }
             val details = mutableListOf<String>()
             for (varName in sharedVars) {
                 val v = program.st.lookup(varName) as? IRStStaticVariable
                 val why = v?.let { frameableVariableProblem(it, varName, addressTaken, asmTexts) } ?: "it is shared with other code"
                 details += "variable '${varName.substringAfterLast('.').removePrefix("p8v_")}' ($why)"
+            }
+            for (paramName in sharedCopyIns) {
+                details += "parameter '${paramName.substringAfterLast('.').removePrefix("p8v_")}' (its static cell for external references is shared between activations)"
             }
             if (sharedVregs.isNotEmpty())
                 details += "${sharedVregs.size} intermediate value(s)"
@@ -605,11 +755,20 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
         return if (v.dt.isArray) baseToScalar(v.dt.sub!!) else v.dt
     }
 
+    /** like [isFrameableVariable], but an inline-assembly reference is acceptable: the parameter
+     *  keeps its static cell and gets an entry-time copy-in from its incoming slot (§6.1) */
+    private fun isFrameableParameter(v: IRStStaticVariable, name: String, addressTaken: Set<String>, asmTexts: List<String>): DataType? {
+        if (frameableVariableProblem(v, name, addressTaken, asmTexts, asmAllowed = true) != null)
+            return null
+        // an array is described by its element data type, a scalar by its own
+        return if (v.dt.isArray) baseToScalar(v.dt.sub!!) else v.dt
+    }
+
     /** returns why the variable cannot be moved into a frame, or null when it can */
-    private fun frameableVariableProblem(v: IRStStaticVariable, name: String, addressTaken: Set<String>, asmTexts: List<String>): String? {
+    private fun frameableVariableProblem(v: IRStStaticVariable, name: String, addressTaken: Set<String>, asmTexts: List<String>, asmAllowed: Boolean = false): String? {
         if (name in addressTaken) return "its address is taken"
-        if (isLabelReferencedInAsm(name, asmTexts)) return "inline assembly refers to it"
-        if (v.initializationValue != null) return "it has a static initializer"
+        if (!asmAllowed && isLabelReferencedInAsm(name, asmTexts)) return "inline assembly refers to it"
+        if (v.initializationValue != null && v.initializationValue !is IRVariableInitializer.Numeric) return "it has a static initializer"
         if (v.align > 0u) return "it requests an explicit alignment"
         if (v.zpwish == ZeropageWish.REQUIRE_ZEROPAGE || v.zpwish == ZeropageWish.PREFER_ZEROPAGE) return "it wants to be in the zeropage"
         return when {
@@ -618,7 +777,7 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
             v.dt.isArray && v.dt.sub != null && v.dt.sub != BaseDataType.POINTER -> {
                 val subDt = baseToScalar(v.dt.sub!!)
                 if (subDt == null) "it is not a plain numeric or boolean array"
-                else if (subDt.isFloat || subDt.isStructInstance || subDt.isString || subDt.isPointer) "it is not plain data"
+                else if (subDt.isStructInstance || subDt.isString || subDt.isPointer) "it is not plain data"
                 else null
             }
             else -> "it is not plain data"
@@ -641,6 +800,7 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
         BaseDataType.UWORD -> DataType.UWORD
         BaseDataType.WORD -> DataType.WORD
         BaseDataType.LONG -> DataType.LONG
+        BaseDataType.FLOAT -> DataType.FLOAT
         else -> null
     }
 
@@ -648,6 +808,7 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
         dt.isByteOrBool -> IRDataType.BYTE
         dt.isWord -> IRDataType.WORD
         dt.isLong || dt.isPointer -> IRDataType.LONG
+        dt.isFloat -> IRDataType.FLOAT
         else -> null
     }
 }

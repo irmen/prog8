@@ -5,8 +5,8 @@ the VM keeps rejecting frame-based IR for now. This document records the design 
 the exact steps so the slice can be picked up later without re-deriving it.
 
 Context: `ideas/m68k-stack-memory-model.md` (§9 "VM Changes", §17.4 item 4 "VM
-activation records + recursion tests through the VM"). Slices 1-3 of that document
-are implemented; the m68k backend produces frame-based IR, the VM refuses it.
+activation records + recursion tests through the VM"). The m68k backend produces
+frame-based IR; the VM refuses it.
 
 ---
 

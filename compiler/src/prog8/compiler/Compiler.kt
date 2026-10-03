@@ -718,8 +718,11 @@ private fun postprocessAst(program: Program, errors: IErrorReporter, compilerOpt
     program.variousCleanups(errors, compilerOptions)
     val callGraph = CallGraph(program)
     callGraph.checkRecursiveCalls(errors)
-    if(compilerOptions.compTarget.cpu.is68k)
+    if(compilerOptions.compTarget.cpu.is68k) {
         checkDeferInReentrantSubroutines(program, callGraph, errors)
+        checkFrameAddressEscapes(program, errors)
+        checkRegfileAsmInRecursivePrograms(program, callGraph, errors)
+    }
     program.verifyFunctionArgTypes(errors, compilerOptions)
     errors.report()
 

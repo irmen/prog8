@@ -37,7 +37,7 @@ class M68kCodeGenerator(val retainSSA: Boolean): ICodeGeneratorBackend {
 
         IRFileWriter(irProgram, null).write()
 
-        val gen = AsmGen(irProgram, irProgram.options.compTarget)
+        val gen = AsmGen(irProgram, irProgram.options.compTarget, errors)
         if (!gen.generate())
             throw RuntimeException("M68k assembly generation failed")
 

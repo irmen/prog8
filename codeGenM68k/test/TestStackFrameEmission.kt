@@ -8,6 +8,7 @@ import prog8.code.target.Qemu68kTarget
 import prog8.codegen.m68k.AsmGen
 import prog8.intermediate.*
 import prog8tests.helpers.DummyStringEncoder
+import prog8tests.helpers.ErrorReporterForTests
 import kotlin.io.path.exists
 import kotlin.io.path.readText
 
@@ -22,7 +23,8 @@ class TestStackFrameEmission : FunSpec({
         instructions: List<IRInstruction>,
         incomingSize: Int = 0,
         subLabel: String = "test.start",
-        frameVregSlots: Map<Int, Int> = emptyMap()
+        frameVregSlots: Map<Int, Int> = emptyMap(),
+        errors: ErrorReporterForTests? = null
     ): List<String> {
         val options = CompilationOptions.builder(Qemu68kTarget())
             .output(OutputType.RAW)
@@ -47,7 +49,7 @@ class TestStackFrameEmission : FunSpec({
 
         tempRoot.toFile().deleteRecursively()
         tempRoot.toFile().mkdirs()
-        AsmGen(program, Qemu68kTarget()).generate()
+        AsmGen(program, Qemu68kTarget(), errors).generate()
         val asmFile = tempRoot.resolve("test.asm")
         check(asmFile.exists()) { "Assembly file not written: $asmFile" }
         return asmFile.readText().lines().map { it.trim() }
@@ -213,6 +215,54 @@ class TestStackFrameEmission : FunSpec({
         ), frameVregSlots = mapOf(5 to -4))
         lines.any { it.startsWith("move.b") && it.contains("-4(a5)") } shouldBe true
         lines.none { it.contains("\$(-4)(a5)") } shouldBe true
+    }
+
+    test("framed subroutine emits a stack frame listing comment") {
+        val lines = generateAsmWithIncoming(24, listOf(
+            IRInstructions.storeZero(Opcode.STOREZM, IRDataType.BYTE, IRMemory.frameDirect(-1)),
+            IRInstructions.simple(Opcode.RETURN)
+        ), incomingSize = 8)
+        lines.any { it == "; stack frame: 24 bytes of locals, 8 bytes of arguments" } shouldBe true
+    }
+
+    test("incoming-only frame emits a stack frame listing comment with zero locals") {
+        val lines = generateAsmWithIncoming(0, listOf(IRInstructions.simple(Opcode.RETURN)), incomingSize = 8)
+        lines.any { it == "; stack frame: 0 bytes of locals, 8 bytes of arguments" } shouldBe true
+    }
+
+    test("frameless subroutine emits no stack frame listing comment") {
+        val lines = generateAsm(0, listOf(
+            IRInstructions.loadMemory(Opcode.LOADM, IRDataType.BYTE, 1, IRMemory.direct("some.var")),
+            IRInstructions.simple(Opcode.RETURN)
+        ))
+        lines.none { it.startsWith("; stack frame:") } shouldBe true
+    }
+
+    test("subroutine boundary markers are emitted exactly once per subroutine") {
+        val lines = generateAsm(16, listOf(
+            IRInstructions.storeZero(Opcode.STOREZM, IRDataType.BYTE, IRMemory.frameDirect(-1)),
+            IRInstructions.simple(Opcode.RETURN)
+        ))
+        lines.count { it == "; ---- Subroutine: test.start ----" } shouldBe 1
+        lines.count { it == "; End of subroutine: test.start" } shouldBe 1
+    }
+
+    test("large frames report an informational message") {
+        val errors = ErrorReporterForTests()
+        generateAsmWithIncoming(900, listOf(
+            IRInstructions.storeZero(Opcode.STOREZM, IRDataType.BYTE, IRMemory.frameDirect(-1)),
+            IRInstructions.simple(Opcode.RETURN)
+        ), subLabel = "p8b_main.p8s_worker", errors = errors)
+        errors.infos.any { it.contains("subroutine 'main.worker' uses a 900 byte stack frame; deep recursion multiplies this per call") } shouldBe true
+    }
+
+    test("small frames produce no informational message") {
+        val errors = ErrorReporterForTests()
+        generateAsmWithIncoming(24, listOf(
+            IRInstructions.storeZero(Opcode.STOREZM, IRDataType.BYTE, IRMemory.frameDirect(-1)),
+            IRInstructions.simple(Opcode.RETURN)
+        ), incomingSize = 8, errors = errors)
+        errors.infos shouldBe emptyList()
     }
 
 })
