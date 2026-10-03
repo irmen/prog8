@@ -1,9 +1,6 @@
 package prog8.codegen.intermediate
 
-import prog8.code.core.BaseDataType
-import prog8.code.core.DataType
-import prog8.code.core.IErrorReporter
-import prog8.code.core.ZeropageWish
+import prog8.code.core.*
 import prog8.intermediate.*
 
 /**
@@ -285,8 +282,9 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
             val elemDt = isFrameableParameter(v, name, addressTaken, asmTexts) ?: return static("parameter '$name' cannot be moved into a frame")
             if (v.length != null) return static("parameter '$name' is an array")
             // a parameter referenced from outside the subroutine (defer handler, inline assembly)
-            // keeps its static cell for those external references and gets an entry-time copy-in
-            // from its incoming slot (§6.1); its address may not be taken (that stays a hard error)
+            // keeps its static cell for ALL references (including the body's own uses) and gets
+            // an entry-time copy-in from its incoming slot (§6.1); its address may not be taken
+            // (that stays a hard error)
             val refs = referencedIn[name]
             if ((refs != null && refs.any { it != sub.label }) || isLabelReferencedInAsm(name, asmTexts))
                 copyInParams += name
@@ -393,13 +391,18 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
         }
 
         // rewrite references: Symbol base -> FrameSlot base (parameters additionally get the
-        // right-justification displacement of their padded slot)
+        // right-justification displacement of their padded slot).
+        // Copy-in parameters keep their static cell for ALL references (§6.1): the entry-time
+        // copy-in loads the incoming value into that cell, and the body reads and writes it
+        // there - this also keeps the externally referencing code (defer handler, inline
+        // assembly) observing the body's current value instead of a stale one.
         sub.forEachChunk { chunk ->
             val instrs = chunk.instructions
             for (i in instrs.indices) {
                 val instr = instrs[i]
                 val mem = instr.memory ?: continue
                 val sym = mem.symbolName ?: continue
+                if (sym in copyInParams) continue
                 val slot = slotOf(sym, slotBySymbol, paramSlots) ?: continue
                 val newMem = when (mem) {
                     is MemoryReference.Direct ->
@@ -672,32 +675,111 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
      * A framed subroutine cannot branch out to another subroutine: its `link` has already adjusted
      * the stack pointer, so the other subroutine's `rts` would return into the middle of the local
      * area. Turn such a tail jump into a call followed by the normal return of this subroutine.
+     * A conditional branch out (`if cc goto <sub>`) becomes an inverted branch over the tail call:
+     * when the condition holds the call is executed, otherwise the skip label resumes the
+     * not-taken path with the frame still live.
      */
     private fun rewriteOutgoingJumps(framedSubLabels: Set<String>) {
         val subLabels = program.allSubs().map { it.label }.toSet()
         for (sub in program.allSubs()) {
             if (sub.label !in framedSubLabels) continue
+            // collect first: rewriting below inserts chunks into the chunk lists of this sub
+            val rewrites = mutableListOf<OutgoingJump>()
             sub.forEachChunk { chunk ->
-                val instrs = chunk.instructions
-                var i = 0
-                while (i < instrs.size) {
-                    val instr = instrs[i]
-                    val target = instr.takeIf { it.opcode == Opcode.JUMP }?.target as? CodeReference.Label
-                    if (target != null && target.name != sub.label && target.name in subLabels) {
-                        instrs[i] = IRInstructions.call(CallSite(
-                            target = CallTarget.Direct(target),
-                            arguments = emptyList()
-                        ))
-                        instrs.add(i + 1, IRInstructions.returnVoid())
-                        // the RETURN is now the terminator; anything that followed the
-                        // original JUMP in this chunk is unreachable dead code
-                        while (instrs.size > i + 2)
-                            instrs.removeAt(instrs.size - 1)
-                        i++
+                chunk.instructions.forEachIndexed { i, instr ->
+                    val target = instr.target as? CodeReference.Label ?: return@forEachIndexed
+                    if (target.name == sub.label || target.name !in subLabels) return@forEachIndexed
+                    when {
+                        instr.opcode == Opcode.JUMP -> rewrites += OutgoingJump(chunk, i, target)
+                        instr.opcode in InvertedBranchOpcodes -> rewrites += OutgoingJump(chunk, i, target)
                     }
-                    i++
                 }
             }
+            if (rewrites.isEmpty()) continue
+
+            val parentLists = mutableListOf<MutableList<IRCodeChunkBase>>()
+            fun collectLists(chunks: MutableList<IRCodeChunkBase>) {
+                parentLists += chunks
+                chunks.filterIsInstance<IRLoopChunk>().forEach { collectLists(it.body) }
+            }
+            collectLists(sub.chunks)
+
+            for (rew in rewrites) {
+                val instrs = rew.chunk.instructions
+                if (instrs[rew.index].opcode == Opcode.JUMP) {
+                    instrs[rew.index] = IRInstructions.call(CallSite(
+                        target = CallTarget.Direct(rew.target),
+                        arguments = emptyList()
+                    ))
+                    instrs.add(rew.index + 1, IRInstructions.returnVoid())
+                    // the RETURN is now the terminator; anything that followed the
+                    // original JUMP in this chunk is unreachable dead code
+                    while (instrs.size > rew.index + 2)
+                        instrs.removeAt(instrs.size - 1)
+                } else {
+                    val skipLabel = nextGeneratedLabel(sub)
+                    // the not-taken path continues in a fresh chunk right after this one
+                    val tail = IRCodeChunk(skipLabel, rew.chunk.next)
+                    tail.instructions.addAll(instrs.subList(rew.index + 1, instrs.size))
+                    val original = instrs[rew.index]
+                    while (instrs.size > rew.index + 1)
+                        instrs.removeAt(instrs.size - 1)
+                    instrs[rew.index] = invertedBranch(original, skipLabel)
+                    instrs += IRInstructions.call(CallSite(
+                        target = CallTarget.Direct(rew.target),
+                        arguments = emptyList()
+                    ))
+                    instrs += IRInstructions.returnVoid()
+                    rew.chunk.next = null        // the chunk now ends with RETURN
+                    val parent = parentLists.first { rew.chunk in it }
+                    parent.add(parent.indexOf(rew.chunk) + 1, tail)
+                }
+            }
+        }
+    }
+
+    private class OutgoingJump(val chunk: IRCodeChunkBase, val index: Int, val target: CodeReference.Label)
+
+    private var generatedLabelCounter = 0
+
+    /** unique label scoped under the subroutine, for compiler-generated control flow */
+    private fun nextGeneratedLabel(sub: IRSubroutine): String =
+        "${sub.label}.p8_tailskip${generatedLabelCounter++}"
+
+    private val InvertedStatusBranch = mapOf(
+        Opcode.BSTCC to Opcode.BSTCS, Opcode.BSTCS to Opcode.BSTCC,
+        Opcode.BSTEQ to Opcode.BSTNE, Opcode.BSTNE to Opcode.BSTEQ,
+        Opcode.BSTNEG to Opcode.BSTPOS, Opcode.BSTPOS to Opcode.BSTNEG,
+        Opcode.BSTVC to Opcode.BSTVS, Opcode.BSTVS to Opcode.BSTVC)
+
+    // immediate-form comparison branches keep their (register, immediate) operands
+    private val InvertedImmediateBranch = mapOf(
+        Opcode.BGT to Opcode.BLE, Opcode.BLE to Opcode.BGT,
+        Opcode.BLT to Opcode.BGE, Opcode.BGE to Opcode.BLT,
+        Opcode.BGTS to Opcode.BLES, Opcode.BLES to Opcode.BGTS,
+        Opcode.BLTS to Opcode.BGES, Opcode.BGES to Opcode.BLTS)
+
+    // register-form comparison branches swap both operands: bgtr a,b inverts to bger b,a
+    // (not(a>b) <=> b>=a); the m68k backend supports all of these opcodes directly
+    private val InvertedRegisterBranch = mapOf(
+        Opcode.BGTR to Opcode.BGER, Opcode.BGER to Opcode.BGTR,
+        Opcode.BGTSR to Opcode.BGESR, Opcode.BGESR to Opcode.BGTSR)
+
+    private val InvertedBranchOpcodes: Set<Opcode> =
+        InvertedStatusBranch.keys + InvertedImmediateBranch.keys + InvertedRegisterBranch.keys
+
+    /** the same conditional branch with the inverted condition, retargeted to [skipLabel] */
+    private fun invertedBranch(instr: IRInstruction, skipLabel: String): IRInstruction {
+        val skip = codeLabel(skipLabel)
+        return when (val opcode = instr.opcode) {
+            in InvertedStatusBranch -> instr.copy(opcode = InvertedStatusBranch.getValue(opcode), target = skip)
+            in InvertedImmediateBranch -> instr.copy(opcode = InvertedImmediateBranch.getValue(opcode), target = skip)
+            in InvertedRegisterBranch -> instr.copy(
+                opcode = InvertedRegisterBranch.getValue(opcode),
+                srcA = instr.srcB?.copy(role = OperandRole.LEFT),
+                srcB = instr.srcA?.copy(role = OperandRole.RIGHT),
+                target = skip)
+            else -> throw AssemblyError("cannot invert conditional branch ${instr.opcode}")
         }
     }
 

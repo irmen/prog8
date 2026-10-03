@@ -335,6 +335,142 @@ main {
         ir.contains("call p8b_main.p8s_target") shouldBe true
     }
 
+    test("conditional goto to a subroutine out of a framed subroutine becomes an inverted branch over a tail call") {
+        // the not-taken path must skip the tail call and keep using the frame: the branch
+        // is inverted over a call + return, and the fall-through code moves into a skip chunk
+        val src = """
+main {
+    ubyte @shared result
+    sub t1() {
+        result += 10
+    }
+    sub jumper(ubyte n) {
+        ubyte local
+        local = n
+        if local != 0 {
+            goto t1
+        }
+        result += 1
+    }
+    sub start() {
+        result = 0
+        jumper(1)
+        jumper(0)
+    }
+}
+"""
+        val (lines, ir) = compile(src)
+        val jumperAsm = subAssembly(lines, "p8b_main.p8s_jumper")
+        jumperAsm.any { it.startsWith("link ") } shouldBe true
+        // no conditional branch directly targeting the other subroutine remains in the frame
+        // (matching the entry label means the callee's rts would corrupt the machine stack)
+        jumperAsm.filter { Regex("b(?!sr)\\w+\\s+p8b_main\\.p8s_t1$").containsMatchIn(it) } shouldBe emptyList()
+        // inverted branch over the tail call: bstne t1 became bsteq <skip>, followed by bsr + rts
+        val tailSkipLabel = jumperAsm.first { Regex("b\\w+\\s+\\S*tailskip").containsMatchIn(it) }
+        tailSkipLabel.isEmpty() shouldBe false
+        jumperAsm.any { it == "bsr  p8b_main.p8s_t1" } shouldBe true
+        ir.contains("call p8b_main.p8s_t1") shouldBe true
+        // the not-taken path resumes after the tail call, still inside the frame
+        val skipIdx = jumperAsm.indexOfFirst { Regex("\\S*tailskip\\d+:").matches(it) }
+        (skipIdx > jumperAsm.indexOf("bsr  p8b_main.p8s_t1")) shouldBe true
+    }
+
+    test("conditional goto inside a repeat loop gets the skip chunk inside the loop body") {
+        val src = """
+main {
+    ubyte @shared result
+    sub t1() {
+        result += 10
+    }
+    sub jumper(ubyte n) {
+        ubyte local
+        local = n
+        repeat 2 {
+            if local != 0 {
+                goto t1
+            }
+        }
+        result += 1
+    }
+    sub start() {
+        result = 0
+        jumper(1)
+        jumper(0)
+    }
+}
+"""
+        val (lines, ir) = compile(src)
+        val jumperAsm = subAssembly(lines, "p8b_main.p8s_jumper")
+        jumperAsm.any { it.startsWith("link ") } shouldBe true
+        jumperAsm.filter { Regex("b(?!sr)\\w+\\s+p8b_main\\.p8s_t1$").containsMatchIn(it) } shouldBe emptyList()
+        jumperAsm.any { it.startsWith("dbra  d7,") } shouldBe true
+        jumperAsm.any { it == "bsr  p8b_main.p8s_t1" } shouldBe true
+        ir.contains("call p8b_main.p8s_t1") shouldBe true
+    }
+
+    test("register-form conditional goto out of a framed subroutine inverts with swapped operands") {
+        val src = """
+main {
+    ubyte @shared result
+    ubyte @shared limit
+    sub t1() {
+        result += 10
+    }
+    sub jumper(ubyte n) {
+        ubyte local
+        local = n
+        if local > limit {
+            goto t1
+        }
+        result += 1
+    }
+    sub start() {
+        result = 0
+        limit = 5
+        jumper(9)   ; taken: result=10
+        jumper(2)   ; not taken: result=11
+    }
+}
+"""
+        val (lines, ir) = compile(src)
+        val jumperAsm = subAssembly(lines, "p8b_main.p8s_jumper")
+        jumperAsm.any { it.startsWith("link ") } shouldBe true
+        // bgtr t1 became bger(swap) -> the inverted condition branches over the tail call
+        jumperAsm.filter { Regex("b(?!sr)\\w+\\s+p8b_main\\.p8s_t1$").containsMatchIn(it) } shouldBe emptyList()
+        jumperAsm.count { it.startsWith("bhs") && Regex("\\S*tailskip").containsMatchIn(it) } shouldBe 1
+        jumperAsm.any { it == "bsr  p8b_main.p8s_t1" } shouldBe true
+        ir.contains("call p8b_main.p8s_t1") shouldBe true
+    }
+
+    test("copy-in parameter that the body writes keeps its static cell as the live value") {
+        // §6.1: the entry-time copy-in turns the static cell into the parameter's live storage;
+        // the body's writes must land there so external references observe the current value
+        val src = """
+main {
+    ubyte @shared out
+    sub parm(ubyte x) {
+        x = 99
+        defer out = x
+    }
+    sub start() {
+        parm(1)
+    }
+}
+"""
+        val (lines, _) = compile(src)
+        val parm = subAssembly(lines, "p8b_main.p8s_parm")
+        parm.any { it == "link  a5,#0" } shouldBe true
+        // the entry-time copy-in is still performed
+        parm.any { it.startsWith("move.b  11(a5),") } shouldBe true
+        // the body's write goes to the static cell, not to the incoming frame slot
+        parm.any { it.contains("move.b") && it.contains("p8b_main.p8s_parm.p8v_x") && it.contains("#99") } shouldBe true
+        // the defer handler reads the static cell, so it observes the body's written value
+        val defers = subAssembly(lines, "p8s_prog8_invoke_defers")
+        defers.any { it.contains("move.b") && it.contains("p8b_main.p8s_parm.p8v_x") } shouldBe true
+        // the static cell is kept in BSS
+        lines.any { "p8b_main.p8s_parm.p8v_x:" in it } shouldBe true
+    }
+
     test("slice 3: recursive subroutine with an address-taken local is rejected") {
         val src = """
 main {
@@ -510,9 +646,10 @@ main {
         rec.any { it == "link  a5,#0" } shouldBe true
         rec.any { it.startsWith("move.b  11(a5),") } shouldBe true
         rec.any { it.contains("p8b_main.p8s_rec.p8v_x") } shouldBe true
-        // the static cell is kept for the assembly reference; the body itself uses the frame slot
+        // the static cell is kept for the assembly reference; the body itself also uses the
+        // static cell (the entry-time copy-in made it the current value)
         lines.any { "p8b_main.p8s_rec.p8v_x:" in it } shouldBe true
-        rec.any { it.startsWith("move.b  11(a5),") && it.endsWith(",p8_regfile+0") } shouldBe true
+        rec.any { it.startsWith("move.b  p8b_main.p8s_rec.p8v_x,") } shouldBe true
     }
 
     test("slice 5: static-initialized local is framed and initialized at entry") {
