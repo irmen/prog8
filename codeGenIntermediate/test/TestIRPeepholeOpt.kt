@@ -514,6 +514,51 @@ class TestIRPeepholeOpt: FunSpec({
         instr[2].requireImmediateInt() shouldBe 42
     }
 
+    test("collapse lsigb.w + ext.b into loadr.w + and.w") {
+        val irProg = makeIRProgram(listOf(
+            IRInstructions.loadMemory(Opcode.LOADM, IRDataType.WORD, 7, IRMemory.direct("src")),
+            IRInstructions.binary(Opcode.LSIGB, IRDataType.WORD, 8, 7),
+            IRInstructions.binary(Opcode.EXT, IRDataType.BYTE, 9, 8),
+            IRInstructions.binary(Opcode.ADDR, IRDataType.WORD, 2, 9),
+            IRInstructions.returnVoid()
+        ))
+        val opt = IRPeepholeOptimizer(irProg, false)
+        opt.optimize(true, ErrorReporterForTests())
+        val instr = irProg.chunks().single().instructions
+        instr.any { it.opcode == Opcode.LSIGB } shouldBe false
+        instr.any { it.opcode == Opcode.EXT && it.requireDest().register == VirtualRegister.int(9) } shouldBe false
+        instr.any {
+            it.opcode == Opcode.LOADR &&
+                    it.type == IRDataType.WORD &&
+                    it.requireDest().register == VirtualRegister.int(9) &&
+                    it.requireSrcA().register == VirtualRegister.int(7)
+        } shouldBe true
+        instr.any {
+            it.opcode == Opcode.AND &&
+                    it.type == IRDataType.WORD &&
+                    it.requireDest().register == VirtualRegister.int(9) &&
+                    it.requireImmediateInt() == 0xff
+        } shouldBe true
+    }
+
+    test("do not collapse lsigb.l + ext.b when source and dest types differ") {
+        // lsigb.l produces a byte from a long; ext.b widens it to word. Rewriting this as
+        // loadr + and would require accessing the long source as word, which conflicts with
+        // the register type system. The optimizer must leave the original sequence intact.
+        val irProg = makeIRProgram(listOf(
+            IRInstructions.loadMemory(Opcode.LOADM, IRDataType.LONG, 7, IRMemory.direct("src")),
+            IRInstructions.binary(Opcode.LSIGB, IRDataType.LONG, 8, 7),
+            IRInstructions.binary(Opcode.EXT, IRDataType.BYTE, 9, 8),
+            IRInstructions.binary(Opcode.ADDR, IRDataType.WORD, 2, 9),
+            IRInstructions.returnVoid()
+        ))
+        val opt = IRPeepholeOptimizer(irProg, false)
+        opt.optimize(true, ErrorReporterForTests())
+        val instr = irProg.chunks().single().instructions
+        instr.any { it.opcode == Opcode.LSIGB } shouldBe true
+        instr.any { it.opcode == Opcode.EXT && it.requireDest().register == VirtualRegister.int(9) } shouldBe true
+    }
+
     test("coalesce redundant LOADX/STOREX to same index is removed") {
         val irProg = makeIRProgram(listOf(
             IRInstructions.loadMemory(Opcode.LOADX, IRDataType.BYTE, 1, IRMemory.indexed("myArray", 10, indexRegType)),

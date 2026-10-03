@@ -1158,13 +1158,18 @@ jump p8_label_gen_2
                     mods.add(Mod(i+1, IRInstructions.binaryImmediate(Opcode.AND, IRDataType.LONG, outer.requireDest().registerNumber, 0xffff)))
                     mods.add(Mod(i, IRInstructions.move(IRDataType.LONG, outer.requireDest().registerNumber, inner.requireSrcA().registerNumber)))
                 }
-                // truncate-long/word-to-byte followed by zero-extend byte-to-word == mask with $ff
+                // truncate-long/word-to-byte followed by zero-extend byte-to-word == mask with $ff.
+                // This is only valid when the source and destination have the same type, because
+                // the rewritten loadr would otherwise access the source register with a different
+                // type than its definition (e.g. long source to word dest).
                 inner.opcode==Opcode.LSIGB && inner.type in setOf(IRDataType.WORD, IRDataType.LONG)
                         && outer.opcode==Opcode.EXT && outer.type==IRDataType.BYTE
                         && mid!=null && mid==outer.srcA?.register && inner.srcA!=null && outer.dest!=null
-                        && readCounts.getValue(mid)==1 -> {
-                    mods.add(Mod(i+1, IRInstructions.binaryImmediate(Opcode.AND, inner.type!!, outer.requireDest().registerNumber, 0xff)))
-                    mods.add(Mod(i, IRInstructions.move(inner.type!!, outer.requireDest().registerNumber, inner.requireSrcA().registerNumber)))
+                        && readCounts.getValue(mid)==1
+                        && inner.type == outer.requireDest().type -> {
+                    val resultType = outer.requireDest().type
+                    mods.add(Mod(i+1, IRInstructions.binaryImmediate(Opcode.AND, resultType, outer.requireDest().registerNumber, 0xff)))
+                    mods.add(Mod(i, IRInstructions.move(resultType, outer.requireDest().registerNumber, inner.requireSrcA().registerNumber)))
                 }
                 else -> continue
             }
