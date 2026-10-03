@@ -29,8 +29,8 @@ class M68kCodeGenerator(val retainSSA: Boolean): ICodeGeneratorBackend {
         }
         irProgram.verifyRegisterTypes(virtualRegisterTypes)
 
-        // Vertical Slice Prototype: stack-frame locals for frameable leaf subroutines
-        StackFrameLayout(irProgram, errors).apply()
+        if (options.compTarget.supportsStackFrames)
+            StackFrameLayout(irProgram, errors).apply()
 
         if (options.dumpVariables)
             dumpVariables(irProgram)

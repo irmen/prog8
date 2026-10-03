@@ -717,7 +717,10 @@ private fun postprocessAst(program: Program, errors: IErrorReporter, compilerOpt
     errors.report()
     program.variousCleanups(errors, compilerOptions)
     val callGraph = CallGraph(program)
-    callGraph.checkRecursiveCalls(errors)
+    // on a stack-frame target a recursive subroutine either gets per-activation storage or is
+    // rejected by StackFrameLayout, so there is nothing left to warn about here
+    if(!compilerOptions.compTarget.supportsStackFrames)
+        callGraph.checkRecursiveCalls(errors)
     if(compilerOptions.compTarget.cpu.is68k) {
         checkDeferInReentrantSubroutines(program, callGraph, errors)
         checkFrameAddressEscapes(program, errors)

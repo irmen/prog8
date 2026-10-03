@@ -16,6 +16,7 @@ class Qemu68kTarget: ICompilationTarget,
 
     override val name = NAME
     override val supportsBankedCalls = false
+    override val supportsStackFrames = true
     override val defaultEncoding = Encoding.ISO
     override val libraryPath = null
     override val customLauncher = emptyList<String>()

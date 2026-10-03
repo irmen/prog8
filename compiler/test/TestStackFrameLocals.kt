@@ -530,6 +530,34 @@ main {
         otherErrors.errors.size shouldBe 0
     }
 
+    test("recursion warning is only emitted for targets without stack frames") {
+        val src = """
+main {
+    sub rec(ubyte n) -> ubyte {
+        if n == 0 {
+            return 0
+        }
+        return rec(n-1) + 1
+    }
+    sub start() {
+        g = rec(3)
+    }
+    ubyte @shared g
+}
+"""
+        val m68kErrors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        compileText(Qemu68kTarget(), optimize = false, src, tempdir().toPath(),
+            writeAssembly = false, assemble = false, errors = m68kErrors) shouldNotBe null
+        m68kErrors.errors.size shouldBe 0
+        m68kErrors.warnings.any { it.contains("recursive subroutine") } shouldBe false
+
+        val otherErrors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        compileText(C64Target(), optimize = false, src, tempdir().toPath(),
+            writeAssembly = false, assemble = false, errors = otherErrors) shouldNotBe null
+        otherErrors.errors.size shouldBe 0
+        otherErrors.warnings.any { it.contains("recursive subroutine") } shouldBe true
+    }
+
     test("slice 3: defer in a recursive subroutine is rejected on m68k only") {
         val src = """
 main {

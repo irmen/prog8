@@ -12,6 +12,7 @@ class C128Target: ICompilationTarget,
 
     override val name = NAME
     override val supportsBankedCalls = true
+    override val supportsStackFrames = false
     override val defaultEncoding = Encoding.PETSCII
     override val libraryPath = null
     override val customLauncher = emptyList<String>()

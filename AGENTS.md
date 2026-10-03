@@ -133,7 +133,19 @@ Steps when encountering a compiler crash:
 - **NO EMOJI in user documentation**. Do not use emoji or decorative unicode symbols in documentation files. Functional unicode symbols are acceptable when they serve a clear purpose (e.g., → for arrows, ± for plus-minus, × for multiplication, ° for degrees). Avoid decorative emoji like ❌ ✅ ⚠️ 🎉 etc.
 
 ### Code Style Guidelines
-**Minimal comments when making changes**: When modifying existing code, add only essential comments that explain *why* a change was made or document non-obvious behavior. **Do not add verbose comments** that restate what the code does; let the code speak for itself. Existing extensive comments should be preserved, but new changes should have minimal commentary.
+**Code comments**: Comments are the exception, not the norm. A comment earns its place only by recording
+something the code itself cannot say: the reason for a non-obvious choice, or a constraint that
+a well-meaning future edit would otherwise violate.
+
+- Inline comment inside a function body: 1 line, never more.
+- KDoc on a declaration: 3 lines, unless a genuine non-obvious contract cannot be stated shorter.
+- Never restate the identifier, the type, or what the following line does.
+- Prefer a good name or a well-named function over a comment that explains it.
+
+Before keeping any comment, delete it mentally and ask what the reader loses. If nothing, it goes.
+
+Keep existing comments as they are; do not expand, reword, or reformat them while editing
+nearby lines - unless that would cause inconsistency. 
 
 **Kotlin string `$` handling**: The `$` character is special in Kotlin string literals (string interpolation). If you need a literal `$` character, use Kotlin's `$$"..."` interpolation prefix instead of backslash escaping (`\$`) or `${'$'}`. The `$$"..."` syntax is a fairly recent Kotlin feature that avoids nasty escaping. For example:
 ```kotlin

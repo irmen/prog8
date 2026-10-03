@@ -87,6 +87,13 @@ interface ICompilationTarget: IStringEncoding, IMemSizer {
     val defaultLauncherType: CbmPrgLauncherType
     val supportsBankedCalls: Boolean
 
+    /**
+     * True when the code generator allocates subroutine locals and per-activation intermediate values
+     * in a stack frame instead of static memory, so a subroutine on a call-graph cycle can have more
+     * than one live activation. False means two live activations would share the same storage.
+     */
+    val supportsStackFrames: Boolean
+
     fun initializeMemoryAreas(compilerOptions: CompilationOptions)
     fun getFloatAsmBytes(num: Number): String
 

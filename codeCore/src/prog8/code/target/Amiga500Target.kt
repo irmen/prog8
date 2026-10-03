@@ -12,6 +12,7 @@ class Amiga500Target: ICompilationTarget,
 
     override val name = NAME
     override val supportsBankedCalls = true
+    override val supportsStackFrames = true
     override val defaultEncoding = Encoding.ISO
     override val libraryPath = null
     override val customLauncher = emptyList<String>()
