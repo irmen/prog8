@@ -281,14 +281,14 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         output.appendLine(code)
     }
 
-    // === stack frame context (Vertical Slice Prototype: frame residents' locals) ===
-    // non-zero while emitting a subroutine that has a frame; the return translation
-    // emits `unlk a5` before each rts when this is set.
-    internal var currentFrameSize = 0
+    // === stack frame context (m68k-stack-memory-model §3/§17) ===
+    // true while emitting a subroutine that has a frame (local area and/or incoming argument
+    // area); the return translation emits `unlk a5` before each rts when this is set.
+    internal var frameActive = false
 
     /** emits the frame teardown for the subroutine currently being translated, if it has a frame */
     internal fun emitFrameUnlk() {
-        if (currentFrameSize > 0)
+        if (frameActive)
             emitLine("unlk  a5")
     }
 
@@ -745,9 +745,9 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         val entrypointNames = setOf("p8b_main.p8s_start", "main.start")
         if(sub.label in entrypointNames)
             emitLine("bsr  run_global_inits")
-        currentFrameSize = sub.frameSize
-        if (sub.frameSize > 0)
-            emitLine("link  a5,#-${sub.frameSize}")
+        frameActive = sub.hasFrame
+        if (sub.hasFrame)
+            emitLine(if (sub.frameSize > 0) "link  a5,#-${sub.frameSize}" else "link  a5,#0")
         val livenessInstructions = sub.chunks.filterIsInstance<IRCodeChunk>().flatMap { it.instructions }
         val deadStoreSuppressionAllowed = canSuppressDeadStores(sub)
         var instructionOffset = 0
@@ -779,7 +779,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         }
         emitRaw("; End of subroutine: $subLabel")
         emitRaw("")
-        currentFrameSize = 0
+        frameActive = false
     }
 
     private fun emitAsmSubroutine(sub: IRAsmSubroutine) {

@@ -55,6 +55,20 @@ sealed interface CallLocation {
         }
     }
 
+    /**
+     * the value is passed in a slot of the callee's incoming argument area on the machine stack
+     * (the uniform all-stack calling convention, m68k-stack-memory-model.md §6.1).
+     * [offset] is the positive, frame-pointer-relative byte offset of the slot: the caller pushes
+     * every argument left-to-right into padded longword slots, so the first argument ends up at the
+     * highest offset (4*N+4) and the last one at 8.
+     */
+    data class FrameSlot(val offset: Int) : CallLocation {
+        init {
+            require(offset >= 8) { "incoming argument slot offset must be >= 8: $offset" }
+            require(offset <= 32767) { "incoming argument slot offset out of range: $offset" }
+        }
+    }
+
     /** the value is passed in a cpu hardware register (abstract calling convention slot) */
     data class HardwareRegister(val slot: CallingConventionSlot) : CallLocation
 

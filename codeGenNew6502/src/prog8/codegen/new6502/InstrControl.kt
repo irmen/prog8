@@ -670,6 +670,8 @@ private fun AsmGen.translateArgument(arg: CallArgument, argIndex: Int = -1, fnLa
                     // Syscall argument - value is already in the register file,
                     // the syscall handler reads it from there.
                 }
+                is CallLocation.FrameSlot ->
+                    error("stack frame argument slots are only supported on m68k targets: $location")
                 is CallLocation.HardwareRegister -> throw IllegalStateException("slot already handled")
             }
         }

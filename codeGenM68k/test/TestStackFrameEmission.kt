@@ -3,10 +3,7 @@ package prog8tests.codegen.m68k
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.engine.spec.tempdir
 import io.kotest.matchers.shouldBe
-import prog8.code.core.CompilationOptions
-import prog8.code.core.OutputType
-import prog8.code.core.Position
-import prog8.code.core.ZeropageType
+import prog8.code.core.*
 import prog8.code.target.Qemu68kTarget
 import prog8.codegen.m68k.AsmGen
 import prog8.intermediate.*
@@ -20,7 +17,12 @@ class TestStackFrameEmission : FunSpec({
 
     val tempRoot = tempdir().toPath()
 
-    fun generateAsm(frameSize: Int, instructions: List<IRInstruction>): List<String> {
+    fun generateAsmWithIncoming(
+        frameSize: Int,
+        instructions: List<IRInstruction>,
+        incomingSize: Int = 0,
+        subLabel: String = "test.start"
+    ): List<String> {
         val options = CompilationOptions.builder(Qemu68kTarget())
             .output(OutputType.RAW)
             .zeropage(ZeropageType.DONTUSE)
@@ -33,7 +35,10 @@ class TestStackFrameEmission : FunSpec({
         program.options.outputDir = tempRoot
         val chunk = IRCodeChunk(null, null)
         chunk.instructions.addAll(instructions)
-        val sub = IRSubroutine("test.start", emptyList(), emptyList(), Position.DUMMY, frameSize)
+        val params = if (incomingSize > 0)
+            List(incomingSize / 4) { IRSubroutine.IRParam("p8v_p$it", DataType.UBYTE) }
+        else emptyList()
+        val sub = IRSubroutine(subLabel, params, emptyList(), Position.DUMMY, frameSize, incomingSize)
         sub.chunks.add(chunk)
         val block = IRBlock("test", false, IRBlock.Options(), Position.DUMMY)
         block.children.add(sub)
@@ -46,6 +51,9 @@ class TestStackFrameEmission : FunSpec({
         check(asmFile.exists()) { "Assembly file not written: $asmFile" }
         return asmFile.readText().lines().map { it.trim() }
     }
+
+    fun generateAsm(frameSize: Int, instructions: List<IRInstruction>): List<String> =
+        generateAsmWithIncoming(frameSize, instructions, 0, "test.start")
 
     test("frameless subroutine emits no frame setup") {
         val lines = generateAsm(0, listOf(
@@ -98,5 +106,72 @@ class TestStackFrameEmission : FunSpec({
         // -8 slot + 4 displacement = -4(a5), a single combined displacement
         lines.any { it.contains("-4(a5)") } shouldBe true
         lines.any { it.contains("-8(a5)+4") } shouldBe false
+    }
+
+    test("incoming-only frame still emits link and unlk") {
+        val lines = generateAsmWithIncoming(0, listOf(IRInstructions.simple(Opcode.RETURN)), incomingSize = 12)
+        lines.any { it == "link  a5,#0" } shouldBe true
+        lines.any { it == "unlk  a5" } shouldBe true
+    }
+
+    test("stack arguments are pushed right-justified and popped by the caller") {
+        val calls = listOf(
+            IRInstructions.call(CallSite(
+                target = CallTarget.Direct(CodeReference.Label("test.sub")),
+                arguments = listOf(
+                    Calls.argument(1, IRDataType.BYTE, CallLocation.FrameSlot(16)),
+                    Calls.argument(2, IRDataType.WORD, CallLocation.FrameSlot(12)),
+                    Calls.argument(3, IRDataType.LONG, CallLocation.FrameSlot(8))
+                )
+            )),
+            IRInstructions.simple(Opcode.RETURN)
+        )
+        val lines = generateAsmWithIncoming(0, calls, incomingSize = 12, subLabel = "test.caller")
+        lines.count { it == "subq.l  #4,sp" } shouldBe 3
+        lines.count { it.startsWith("move.b ") && it.endsWith(",3(sp)") } shouldBe 1
+        lines.count { it.startsWith("move.w ") && it.endsWith(",2(sp)") } shouldBe 1
+        lines.count { it.startsWith("move.l ") && it.endsWith(",(sp)") } shouldBe 1
+        lines.any { it.startsWith("bsr") } shouldBe true
+        lines.any { it == "lea  12(sp),sp" } shouldBe true
+        // small argument areas use the short addq form
+        val smallCalls = listOf(
+            IRInstructions.call(CallSite(
+                target = CallTarget.Direct(CodeReference.Label("test.sub")),
+                arguments = listOf(Calls.argument(1, IRDataType.BYTE, CallLocation.FrameSlot(8)))
+            )),
+            IRInstructions.simple(Opcode.RETURN)
+        )
+        val smallLines = generateAsmWithIncoming(0, smallCalls, incomingSize = 4, subLabel = "test.caller")
+        smallLines.any { it == "addq.l  #4,sp" } shouldBe true
+    }
+
+    test("status-flag results use CCR-preserving cleanup") {
+        val calls = listOf(
+            IRInstructions.call(CallSite(
+                target = CallTarget.Direct(CodeReference.Label("test.sub")),
+                arguments = listOf(Calls.argument(1, IRDataType.BYTE, CallLocation.FrameSlot(8))),
+                results = listOf(CallResult(null, CallLocation.StatusFlag(Statusflag.Pz)))
+            )),
+            IRInstructions.simple(Opcode.RETURN)
+        )
+        val lines = generateAsmWithIncoming(0, calls, incomingSize = 4, subLabel = "test.caller")
+        // a single byte argument would normally use addq.l #4,sp, but that clobbers CCR,
+        // so status-flag returns must use lea instead.
+        lines.any { it == "lea  4(sp),sp" } shouldBe true
+        lines.none { it == "addq.l  #4,sp" } shouldBe true
+    }
+
+    test("float stack arguments travel through the FPU accumulator") {
+        val calls = listOf(
+            IRInstructions.call(CallSite(
+                target = CallTarget.Direct(CodeReference.Label("test.sub")),
+                arguments = listOf(Calls.argument(1, IRDataType.FLOAT, CallLocation.FrameSlot(8)))
+            )),
+            IRInstructions.simple(Opcode.RETURN)
+        )
+        val lines = generateAsmWithIncoming(0, calls, incomingSize = 4, subLabel = "test.caller")
+        // the 68881 has no absolute-long addressing mode: the value must pass through fp0
+        lines.any { it.startsWith("fmove.s  p8_fregfile+0,fp0") } shouldBe true
+        lines.any { it == "fmove.s  fp0,(sp)" } shouldBe true
     }
 })

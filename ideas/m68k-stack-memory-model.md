@@ -1,6 +1,6 @@
 # M68K Stack Memory Model
 
-**Status: Vertical Slice Prototype (§17) implemented; the full model is not yet implemented.** Listed as "Deferred" in `docs/source/todo.rst`.
+**Status: slices 1-2 implemented (Vertical Slice Prototype §17 + parameters-on-the-stack §17.6); slices 3-5 and the register allocator are not yet implemented.** Listed as "Deferred" in `docs/source/todo.rst`.
 
 Design decisions taken (Oct 2026): the normal-prog8-subroutine calling
 convention is a single uniform **all-stack** convention with caller cleanup
@@ -195,13 +195,20 @@ cleanup.** No baseline exceptions, no per-signature register assignment.
 
 Mechanics:
 
-- The caller pushes every argument with `move.w/l` (or `fmove.x`) to `-(sp)`
+- The caller pushes every argument with `move.w/l` (or `fmove.s`) to `-(sp)`
   in left-to-right source order; each argument occupies a padded longword
   slot (68000 alignment rules apply: words and longs are never accessed at
   odd addresses). Narrow values are right-justified in their slot: reserve
   4 bytes (`subq.l #4,sp`), then `move.b d0,3(sp)` / `move.w d0,2(sp)` /
-  `move.l d0,(sp)`. Callee-side offsets are the constant `8 + N*4` above the
-  frame pointer.
+  `move.l d0,(sp)`. Float arguments go through the FPU accumulator first,
+  because the 68881 has no absolute-long addressing mode (a direct
+  `fmove.s <absolute>,(sp)` does not assemble). After `link a5,#-N` the
+  saved A5 sits at `0(a5)` and the return address at `4(a5)`, so the
+  **rightmost argument is at `8(a5)`** and each argument to its left sits
+  4 bytes higher: parameter *i* (1-based, leftmost first) is at
+  `8 + 4*(N-i)`, i.e. the leftmost argument is at `4*N+4`. (Verified by
+  the slice-2 implementation; an earlier draft of this document had an
+  off-by-4 `8 + N*4` here.)
 - This deliberately follows the strict System V m68k scheme (uniform 4-byte
   slots) rather than the Linux/GCC m68k scheme (16-bit stack alignment,
   arguments at natural size, word-aligned). Both are legal on the 68000.
@@ -340,9 +347,10 @@ follow-ups; each needs its own design review and test pass:
    alignment, arguments at their natural size (byte/bool = 2 bytes including
    pad, word = 2, long/float/pointer = 4, still even-aligned). Saves stack
    space and bus traffic per narrow argument. Impact: frame-layout pass must
-   sum per-argument rounded sizes instead of using the constant `8 + N*4`
-   stride; §6.3's documented asmsub push rules change. Introduce as a
-   convention variant/flag, not by breaking the v1 layout.
+   sum per-argument rounded sizes instead of the fixed 4-byte-per-parameter
+   stride of §6.1 (rightmost argument still at `8(a5)`); §6.3's documented
+   asmsub push rules change. Introduce as a convention variant/flag, not by
+   breaking the v1 layout.
 2. **Register argument passing** as a *paired caller/callee specialization*
    derived at codegen over the fixed stack convention (model: classic SysV
    m68k / Mac C: first scalar in D0, first pointer in A0, rest on stack),
@@ -395,9 +403,19 @@ Minimal proposal for the structured IR:
   separate `CallLocation.FrameSlot` variant), otherwise callers keep
   assuming statically addressable parameter variables. Under the all-stack
   convention (§6.1) the callee-side parameter slots are positive-offset frame
-  slots; the caller-side push sequence and the cleanup `addq` size are derived
-  from the parameter list (types/padding), so `IRSubroutine` needs no separate
-  outgoing-size field beyond `parameters` and the locals `frameSize`.
+  slots; the caller-side push sequence and the cleanup size are derived from
+  the parameter list (types/padding).
+  *Implemented (slice 2):* a separate `CallLocation.FrameSlot(offset)` variant
+  (`offset >= 8`), printed as `frame:16=` in the argument position of a call.
+- Slice-2 correction to the paragraph above: `IRSubroutine` does need one
+  small extra field after all. `frameSize` alone cannot express "this
+  subroutine has a frame that consists only of incoming arguments"
+  (`link a5,#0` is still required, and `unlk a5` on every return path), and
+  framed-ness is not derivable from the parameter list alone. Hence
+  `IRSubroutine.incomingSize`: the byte size of the caller-pushed argument
+  area, 0 meaning "legacy static parameter convention". `hasFrame` is then
+  `frameSize > 0 || incomingSize > 0`. Serialized as the optional `INCOMING`
+  SUB attribute (absence = 0), same convention as `FRAMESIZE`.
 - `OpcodeSchema` validation: memory-slot schemas keep accepting `Symbol`
   and `Absolute` unchanged, and additionally accept a `FrameSlot` base for
   `Direct` access. The `displacement >= 0` rule stays for symbol/absolute
@@ -751,14 +769,17 @@ without corrupting anything.
 
 ### 17.4 Slice ladder (post-prototype)
 
-1. Vertical Slice Prototype (this section).
-2. Parameters + the §6.1 all-stack convention flip (the big one).
+1. Vertical Slice Prototype (this section) - **done**.
+2. Parameters + the §6.1 all-stack convention flip (the big one) - **done**
+   (see §17.6).
 3. Call-graph cycles: call-live vreg relocation, §11 defer rejection rule.
 4. VM activation records + recursion tests through the VM.
 5. Diagnostics and polish: escape warnings (§10), frame-size reporting,
-   liveness-based slot reuse, §4 auto-temporaries.
+   liveness-based slot reuse, §4 auto-temporaries, §6.1 copy-in for
+   constrained parameters (inline-asm / defer referenced), float and
+   static-initialized locals via per-slot init metadata.
 
-### 17.5 Findings
+### 17.5 Findings (prototype / slice 1)
 
 The prototype was built and verified (unit + e2e tests, and runtime
 verification of a framed program on qemu-system-m68k: repeated calls to a
@@ -824,3 +845,63 @@ What it taught us:
 Verdict: the design held up end to end with no architectural rework; the
 format changes (§7), backend lowering list (§8), and implementation order
 (§15) can be built as specified.
+
+### 17.6 Slice 2: parameters on the stack (implemented)
+
+Status: implemented and runtime-verified (e2e tests plus a
+qemu-system-m68k run with byte/word/long/pointer/float parameter mixes,
+nested framed caller -> framed callee, and the static fallbacks for
+recursive, mutually recursive and indirectly dispatched subroutines).
+
+What the implementation does:
+
+- Parameters are laid out in the caller-pushed incoming area (§6.1): 4 bytes
+  per parameter, rightmost at `8(a5)`, leftmost at `4*N+4`, narrow values
+  right-justified. Their static variables are removed from the BSS and all
+  callee-side reads become `Direct(FrameSlot(offset))` with the
+  right-justification displacement folded in.
+- Every call site to a framed subroutine is rewritten from
+  `CallLocation.ParameterMemory(name)` to `CallLocation.FrameSlot(offset)`;
+  the m68k backend then pushes each argument into its own slot
+  (`subq.l #4,sp` + right-justified `move`) and pops the whole area after the
+  return (`addq.l` up to 8 bytes, `lea -N(sp),sp` beyond).
+- Float arguments are staged through the FPU accumulator (`$FP_ACC`), since
+  the 68881 has no absolute-long addressing mode and the direct
+  `fmove.s <absolute>,(sp)` encoding does not exist.
+- `IRSubroutine.incomingSize` records the size of the argument area so the
+  backend can emit `link a5,#0` / `unlk a5` for an incoming-only frame
+  (see the §7 correction note).
+
+Frameability rules that the implementation added on top of the prototype's
+(the prototype simply refused any subroutine with parameters or calls):
+
+- **No call-graph cycles.** Subroutines on a direct-call cycle (self or
+  mutual recursion) stay on the static convention: until slice 3 moves
+  call-live virtual registers into frames, two live activations would share
+  the flat program-static `p8_regfile` slots. Detected with an iterative
+  Tarjan SCC pass over the IR call graph.
+- **No indirect calls inside, no address-taken subroutine.** A subroutine
+  whose address appears in a dispatch table (`on .. call` table initializer),
+  in a `SymbolAddress` immediate, or in inline assembly keeps the static
+  convention, because such a subroutine can be re-entered through dispatch.
+  (Interrupt handlers registered by address fall in this class.)
+- **All parameters must be movable.** If any parameter is address-taken,
+  inline-asm referenced, defer referenced, static-initialized or otherwise
+  not frameable, the *whole* subroutine stays static, because the caller must
+  then keep writing static cells. This is why §6.1's entry-time copy-in for
+  such parameters is still listed as slice-5 work: until it exists, the
+  conservative rule is used instead.
+- A parameter referenced from *outside* its own subroutine (notably from a
+  block-scope `defer` handler) likewise keeps the whole subroutine static.
+  This one is subtle and was found by the assembler during bring-up: the
+  defer body reads the parent variable from a handler that lives outside the
+  subroutine, so removing the variable from BSS broke the link.
+
+Known remaining gaps (unchanged from before slice 2, all covered by the
+ladder):
+
+- Ordinary recursion is still broken (verified empirically: a recursive
+  subroutine overwrites its static parameter storage). Slice 3 fixes it.
+- No copy-in yet for inline-asm/defer referenced parameters (slice 5), and
+  float/static-initialized locals still keep static storage (slice 5).
+- The VM still rejects frame-based IR (slice 4).

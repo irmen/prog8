@@ -577,12 +577,18 @@ class IRSubroutine(
     val parameters: List<IRParam>,
     val returns: List<DataType>,
     val position: Position,
-    /** size in bytes of the local area of this subroutine's stack frame; 0 means no frame */
-    var frameSize: Int = 0): IIRBlockElement {
+    /** size in bytes of the local area of this subroutine's stack frame; 0 means no local frame area */
+    var frameSize: Int = 0,
+    /** size in bytes of the caller-pushed incoming argument area at positive frame-pointer offsets;
+     *  0 means the subroutine uses the legacy convention with statically allocated parameter variables */
+    var incomingSize: Int = 0): IIRBlockElement {
 
     class IRParam(val name: String, val dt: DataType)
 
     val chunks = mutableListOf<IRCodeChunkBase>()
+
+    /** does this subroutine have a stack frame at all (local area and/or incoming argument area)? */
+    val hasFrame: Boolean get() = frameSize > 0 || incomingSize > 0
 
     init {
         require('.' in label) {"subroutine name is not scoped: $label"}
@@ -592,6 +598,10 @@ class IRSubroutine(
         require(parameters.all{ it.dt.isNumericOrBool || it.dt.isPointer }) {"parameter is not a bool, number or pointer"}
         require(returns.all { it.isNumericOrBool || it.isPointer}) {"returntype is not a bool, number or pointer"}
         require(frameSize >= 0 && frameSize % 2 == 0) {"frame size must be a non-negative even number: $frameSize"}
+        require(incomingSize >= 0 && incomingSize % 4 == 0) {"incoming argument area size must be a non-negative multiple of 4: $incomingSize"}
+        require(incomingSize == 0 || incomingSize == parameters.size * 4) {
+            "incoming argument area size must be 4 bytes per parameter: $incomingSize for ${parameters.size} parameters"
+        }
     }
 
     operator fun plusAssign(chunk: IRCodeChunkBase) {

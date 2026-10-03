@@ -341,11 +341,17 @@ class VmProgramLoader {
         program.allSubs().forEach { sub ->
             if (sub.frameSize != 0)
                 throw IRParseException("frame-based IR (subroutine ${sub.label} has frame size ${sub.frameSize}) is not (yet) supported on the virtual machine")
+            if (sub.incomingSize != 0)
+                throw IRParseException("frame-based IR (subroutine ${sub.label} has incoming size ${sub.incomingSize}) is not (yet) supported on the virtual machine")
         }
         program.forEachInstruction { instr ->
             val base = (instr.memory as? MemoryReference.Direct)?.base ?: (instr.memory as? MemoryReference.Indexed)?.base
             if (base is AddressBase.FrameSlot)
                 throw IRParseException("frame-based IR (${instr.opcode} references frame slot ${base.offset}) is not (yet) supported on the virtual machine")
+            instr.callSite?.arguments?.forEach { arg ->
+                if (arg.location is CallLocation.FrameSlot)
+                    throw IRParseException("frame-based IR (${instr.opcode} passes argument in frame slot ${(arg.location as CallLocation.FrameSlot).offset}) is not (yet) supported on the virtual machine")
+            }
         }
     }
 

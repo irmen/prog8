@@ -586,7 +586,8 @@ class IRFileReader {
             parseParameters(reader),
             if(returns=="") emptyList() else returns.split(',').map { parseDatatype(it, false) },
             parsePosition(attrs.getValue("POS")),
-            attrs["FRAMESIZE"]?.toIntOrNull() ?: 0)
+            attrs["FRAMESIZE"]?.toIntOrNull() ?: 0,
+            attrs["INCOMING"]?.toIntOrNull() ?: 0)
 
         skipText(reader)
         while(reader.peek().isStartElement) {

@@ -657,6 +657,20 @@ private fun AsmGen.translateCall(fnLabel: String, callSite: CallSite, forwardedI
         emitLine("bsr  $fnLabel")
     }
 
+    // caller cleanup of the all-stack argument area (m68k-stack-memory-model §6.1):
+    // each argument was pushed into its own padded longword slot
+    val pushedSlots = callSite.arguments.count { it.location is CallLocation.FrameSlot }
+    if (pushedSlots > 0) {
+        val totalSize = pushedSlots * 4
+        val needsCcr = callSite.results.any { it.location is CallLocation.StatusFlag }
+        when {
+            // addq is compact but updates CCR; lea preserves CCR so status-flag returns
+            // remain visible to the IR's branch pattern.
+            totalSize in 1..8 && !needsCcr -> emitLine("addq.l  #$totalSize,sp")
+            else -> emitLine("lea  $totalSize(sp),sp")
+        }
+    }
+
     // Move return values back to virtual registers.
     // Skip status flag returns: always handled by IR's bsteq/bstneg/bstvs branch pattern.
     // In multi-assign context (results.size > 1), also skip slot-based returns:
@@ -811,6 +825,25 @@ private fun AsmGen.translateArgument(
             }
         }
     } else {
+        // Stack argument: push into a padded longword slot, right-justified (m68k-stack-memory-model §6.1).
+        // The caller pops the whole argument area after the return, so the callee never needs to
+        // know the argument count.
+        if (arg.location is CallLocation.FrameSlot) {
+            emitLine("subq.l  #4,sp")
+            if (argReg.isFloat) {
+                // the FPU has no absolute-long addressing mode, so the value has to travel
+                // through an FPU register first (fp0 is translator scratch, never holds a live vreg)
+                emitLine("fmove.s  ${floatRegFileAddr(argReg.floatNumber)},$FP_ACC")
+                emitLine("fmove.s  $FP_ACC,(sp)")
+            } else {
+                when (argReg.type) {
+                    IRDataType.BYTE -> emitLine("move.b  ${regAddr(argReg.intNumber)},3(sp)")
+                    IRDataType.WORD -> emitLine("move.w  ${regAddr(argReg.intNumber)},2(sp)")
+                    else -> emitLine("move.l  ${regAddr(argReg.intNumber)},(sp)")
+                }
+            }
+            return
+        }
         // Store to the callee's parameter variable (if this is a named param)
         val paramName = (arg.location as? CallLocation.ParameterMemory)?.name.orEmpty()
         if (paramName.isNotEmpty() && fnLabel != null) {

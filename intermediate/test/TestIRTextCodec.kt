@@ -54,6 +54,15 @@ class TestIRTextCodec: FunSpec({
         shouldThrow<Exception> { IRTextCodec.parse("loadm.w r0.w,[main.var+-3]") }
     }
 
+    test("calls with incoming stack argument slots") {
+        roundtrip("call main.sub(frame:16=r5.b,frame:12=r6.w,frame:8=r7.l):r8.l")
+        roundtrip("call main.sub(frame:8=r5.b):r6.w")
+        roundtrip("call main.noparam()")
+        roundtrip("call main.sub(frame:8=fr5.f):fr6.f")
+        // incoming argument slots always sit above the return address
+        shouldThrow<Exception> { IRTextCodec.parse("call main.sub(frame:4=r5.b)") }
+    }
+
     test("hardware slots") {
         roundtrip("loadhr.w r1.w,s10.w")
         roundtrip("storehr.b r1.b,s0.b")

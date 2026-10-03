@@ -157,6 +157,7 @@ object IRTextCodec {
         is CallLocation.ParameterMemory ->
             if (location.name.isNotBlank()) "${location.name}="
             else location.address?.let { "${it.toHex()}=" } ?: ""
+        is CallLocation.FrameSlot -> "frame:${location.offset}="
         else -> ""
     }
 
@@ -644,6 +645,9 @@ object IRTextCodec {
             val locationText = remainder.substring(0, equals)
             remainder = remainder.substring(equals + 1)
             parameterLocation = if (locationText.isEmpty()) null
+            else if (locationText.startsWith("frame:"))
+                CallLocation.FrameSlot(locationText.removePrefix("frame:").toIntOrNull()
+                    ?: throw IRParseException("$opcode: invalid frame slot offset in $text"))
             else if (locationText[0].isLetter()) CallLocation.ParameterMemory(locationText)
             else CallLocation.ParameterMemory("", parseAddress(locationText, "$opcode: invalid parameter address"))
         }
