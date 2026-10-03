@@ -57,7 +57,7 @@ sealed interface CallLocation {
 
     /**
      * the value is passed in a slot of the callee's incoming argument area on the machine stack
-     * (the uniform all-stack calling convention, m68k-stack-memory-model.md §6.1).
+     * (the uniform all-stack M68K calling convention).
      * [offset] is the positive, frame-pointer-relative byte offset of the slot: the caller pushes
      * every argument left-to-right into padded longword slots, so the first argument ends up at the
      * highest offset (4*N+4) and the last one at 8.

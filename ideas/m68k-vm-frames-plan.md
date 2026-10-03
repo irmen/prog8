@@ -4,8 +4,8 @@
 the VM keeps rejecting frame-based IR for now. This document records the design and
 the exact steps so the slice can be picked up later without re-deriving it.
 
-Context: `ideas/m68k-stack-memory-model.md` (§9 "VM Changes", §17.4 item 4 "VM
-activation records + recursion tests through the VM"). The m68k backend produces
+Context: the M68K user documentation (`docs/source/technical.rst`) and this VM
+activation-record follow-up. The m68k backend produces
 frame-based IR; the VM refuses it.
 
 ---
@@ -80,7 +80,7 @@ Because the VM keeps every virtual register in one flat array shared by all
 activations, a recursive subroutine that keeps an intermediate value in a vreg
 would corrupt it exactly like the m68k backend did before slice 3. Frames on the
 m68k side fix that by relocating those vregs into the frame
-(`IRSubroutine.frameVregSlots`, see m68k-stack-memory-model.md §17.7).
+(`IRSubroutine.frameVregSlots`, produced by the M68K frame-layout implementation).
 
 So the VM must honor `frameVregSlots` too:
 
@@ -210,8 +210,8 @@ is reclaimed on the next `reset()`.
 4. Machine: `FrameSlot` argument delivery in `InsCALL`; frame teardown plus
    register restore in `InsRETURN`/`InsRETURNI`/`InsRETURNR`.
 5. Machine: narrow (or remove) the loader rejection once 1-4 are in.
-6. Tests (§7), then docs (`ideas/m68k-stack-memory-model.md`: §9, §17.4 item 4,
-   §17.7 "known remaining gaps", and the status line at the top).
+6. Tests (§7), then update the user-facing M68K documentation in
+   `docs/source/technical.rst`.
 
 Modules touched: `virtualmachine` only, plus optionally `codeGenIntermediate` for
 open decision §6.1. Per the project rules, `intermediate` needs no change: the IR

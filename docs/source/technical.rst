@@ -2,10 +2,12 @@
 Technical details
 *****************
 
-All variables are static in memory
-----------------------------------
+Variable storage
+----------------
 
-All variables are allocated statically, there is no concept of dynamic heap or stack frames.
+On 6502-based targets, all variables are allocated statically and there is no concept of dynamic
+heap or stack frames. The virtual target uses the same static-memory model. M68K targets use
+stack frames for ordinary subroutine locals and parameters; see :ref:`m68k_memory_model` below.
 Essentially all variables are global (but scoped) and can be accessed and modified anywhere,
 but care should be taken of course to avoid unexpected side effects.
 
@@ -222,14 +224,74 @@ Calling a subroutine requires three steps:
 #. calling the subroutine
 #. preparing the return value (if any) and returning that from the call.
 
-*There is no stack handling involved: Prog8 doesn't have call stack frames.*
+The exact convention depends on the compilation target. The static-memory convention is
+described below for 6502-based targets and the virtual target. M68K targets use the frame-based
+convention described in :ref:`m68k_memory_model`.
+
+.. _m68k_memory_model:
+
+M68K memory model and calling convention
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. index:: pair: M68K; Memory model
+.. index:: pair: M68K; Calling convention
+
+On the ``amiga500``, ``amiga1200`` and ``qemu68k`` targets, ordinary subroutine locals and
+parameters are stored in an activation record on the CPU stack. Each invocation gets its own
+frame, so ordinary subroutines can be recursive and re-entrant. Block-level variables, globals,
+``@shared`` variables, memory slabs, and objects that must have a permanent externally visible
+address remain statically allocated.
+
+The frame pointer is register ``A5``. ``A6`` remains available for AmigaOS library bases.
+Locals are addressed at negative offsets from ``A5``. Parameters are in the incoming argument
+area at positive offsets. The compiler establishes and removes a frame with ``link a5,#-N``
+and ``unlk a5``.
+
+Normal Prog8 subroutines use one uniform all-stack argument convention:
+
+* The caller evaluates arguments and pushes them from left to right.
+* Every argument occupies a padded four-byte slot. Byte and word values are right-justified in
+  that slot; pointers, longs and floats occupy the full slot.
+* After ``link a5,#-N``, the rightmost argument is at ``8(a5)``. For ``N`` parameters, parameter
+  ``i`` (counting from the left, starting at 1) is at ``8 + 4*(N-i)(a5)``.
+* The caller removes the complete argument area after the call. The callee's epilogue does not
+  depend on the number of arguments.
+* Scalar and pointer results remain register-based, normally in ``D0``. Float results use the
+  floating-point accumulator.
+
+``asmsub`` and ``extsub`` keep their explicit register-based, annotation-driven convention.
+AmigaOS library calls continue to use ``A6`` for the selected library base. Hand-written M68K
+assembly that calls a normal Prog8 subroutine must follow the stack convention and preserve
+``A5``.
+
+.. note::
+   The built-in virtual machine does not currently execute frame-based IR. It rejects M68K
+   frame-based programs instead of treating frame slots as static memory. Run M68K programs
+   with the M68K backend and an appropriate emulator.
+
+.. caution::
+   A frame address is valid only until its subroutine returns. The compiler emits best-effort
+   warnings for addresses that escape, but does not catch every indirect escape. Taking the
+   address of a parameter, complex string or array initializers, and some externally visible
+   or dynamically dispatched subroutines can prevent frame allocation. Such cases remain
+   static or are rejected when framing them would be unsafe.
+
+   A ``defer`` body that accesses a subroutine's locals or parameters is not supported when
+   that subroutine can be recursive or dynamically re-entered. The compiler rejects that case.
+   ``on..goto`` and ``on..call`` jump tables remain static because their symbolic initializers
+   cannot currently be placed in a frame.
+
+   A single local frame is limited to 16 KiB. The compiler reports oversized frames, but does
+   not detect exhaustion caused by a deep call chain or recursion. Frame-slot reuse is also
+   conservative in routines containing loops, so such routines may use more stack space than
+   necessary.
 
 
-Regular subroutines
-^^^^^^^^^^^^^^^^^^^
+6502-based and virtual static-memory subroutines
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. index:: single: Subroutines; Regular
 
-- Each subroutine parameter is represented as a variable scoped to the subroutine. Prog8 doesn't have a call stack.
+- Each subroutine parameter is represented as a variable scoped to the subroutine. These
+  targets do not have call stack frames.
 - The arguments passed in a subroutine call are evaluated by the caller, and then put into those variables by the caller.
   The order of evaluation of subroutine call arguments *is unspecified* and should not be relied upon.
 - The subroutine is invoked.

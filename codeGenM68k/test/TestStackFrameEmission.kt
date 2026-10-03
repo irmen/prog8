@@ -13,7 +13,7 @@ import kotlin.io.path.exists
 import kotlin.io.path.readText
 
 // Vertical Slice Prototype: m68k backend lowering of FrameSlot memory references
-// and the link/unlk frame prologue/epilogue (m68k-stack-memory-model.md §17).
+// and the link/unlk frame prologue/epilogue.
 class TestStackFrameEmission : FunSpec({
 
     val tempRoot = tempdir().toPath()

@@ -754,7 +754,7 @@ private fun postprocessAst(program: Program, errors: IErrorReporter, compilerOpt
     }
 }
 
-// m68k stack-frame rule (see ideas/m68k-stack-memory-model.md section 11): defer-referenced
+// m68k stack-frame rule: defer-referenced
 // subroutine locals and parameters stay in program-static storage, so two live activations
 // of a re-entrant deferring subroutine would silently share that storage. Reject the
 // unsound case at compile time on the m68k targets only.

@@ -10,7 +10,7 @@ import prog8.code.core.IErrorReporter
 import prog8.compiler.CallGraph
 
 
-// m68k stack-frame rule (see ideas/m68k-stack-memory-model.md section 10): the address of a
+// m68k stack-frame rule: the address of a
 // subroutine-local variable points into the current activation's frame and dangles once the
 // subroutine returns. v1 only warns, best-effort: a frame address that is stored to memory
 // outside the subroutine, passed to a call, returned from the subroutine, or mentioned in inline
@@ -157,7 +157,7 @@ private class FrameAddressEscapeChecker(private val errors: IErrorReporter) : IA
 private data class StoreTarget(val escaping: Boolean, val name: String?)
 
 
-// m68k stack-frame rule (see ideas/m68k-stack-memory-model.md sections 3 and 17.7): the virtual
+// m68k stack-frame rule: the virtual
 // registers of re-entrant subroutines live in stack frames, so raw inline assembly that pokes the
 // program-static p8_regfile / p8_fregfile blocks would read or write the wrong storage.
 internal fun checkRegfileAsmInRecursivePrograms(program: Program, callGraph: CallGraph, errors: IErrorReporter) {

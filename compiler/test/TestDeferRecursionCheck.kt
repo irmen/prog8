@@ -13,7 +13,7 @@ import prog8tests.helpers.compileText
 class TestDeferRecursionCheck : FunSpec({
     val outputDir = tempdir().toPath()
 
-    // m68k stack frames make defer-referenced locals static (ideas/m68k-stack-memory-model.md section 11),
+    // m68k stack frames make defer-referenced locals static,
     // so a deferring subroutine that can have two live activations must be rejected.
     // The check only runs on m68k targets and only when a defer body touches subroutine-local state.
 

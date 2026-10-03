@@ -283,7 +283,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         output.appendLine(code)
     }
 
-    // === stack frame context (m68k-stack-memory-model §3/§17) ===
+    // === stack frame context ===
     // true while emitting a subroutine that has a frame (local area and/or incoming argument
     // area); the return translation emits `unlk a5` before each rts when this is set.
     internal var frameActive = false

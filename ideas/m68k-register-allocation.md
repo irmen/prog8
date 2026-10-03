@@ -2,7 +2,7 @@
 
 **Status: reconciled - the seven correctness issues from `m68k-reg-problems.md` are resolved and folded into this design** (that file was removed from `ideas/` after folding; the `m68k-reg-problems.md §N` references below are historical provenance only). Listed as "Deferred" in `docs/source/todo.rst`. The calling convention (§2), register classes (§4), spilling strategy (§5), prologue/epilogue (§6), and the Stage 0/1/3 execution work (§7) are decided and delegable. Still open before Stage 2 is delegable: the §7.1 items 1-4 (width semantics, class-constraint mechanism, spill-slot policy mechanics, call-site metadata representation).
 
-Related design: `m68k-stack-memory-model.md` (stack frames for locals; reserves
+Related implementation: `../docs/source/technical.rst` (M68K stack frames for locals; reserves
 A5 as the future frame pointer and A6 for AmigaOS library bases — both are
 reflected in the register split below). **Sequencing decision (Oct 2026): the
 stack model is implemented *first*** (see its §16) - the allocator is then
@@ -106,10 +106,10 @@ on the convention decisions in §2, not on the allocator existing.
 
 ### 2.1 Parameters: caller-pushed stack slots (all-stack convention)
 
-Per the sequencing decision (stack doc §16), `m68k-stack-memory-model.md`
+Per the sequencing decision, the stack-frame implementation
 lands *before* this allocator, so the convention this allocator is built
-against is already the final one - the uniform all-stack convention of that
-doc's §6.1:
+against is already the final one - the uniform all-stack convention documented
+for M68K targets:
 
 - **Normal subs:** the caller pushes every argument to a longword slot
   left-to-right (`-(sp)`), `jsr`s, and pops the area after the return
@@ -118,7 +118,7 @@ doc's §6.1:
 - **asmsub/extsub:** arguments continue to go into fixed hardware slots via
   `CallingConventionSlot`: slots 10..17 → D0..D7, 18..24 → A0..A6,
   25..32 → FP0..FP7. In practice asmsub args/returns use D0–D2 and FP0–FP1
-  (the stack doc's §6.3 keeps this lane unchanged).
+  (the M68K stack-frame implementation keeps this lane unchanged).
 
 Consequences for the allocator:
 
@@ -131,8 +131,8 @@ Consequences for the allocator:
   value (in whatever register its vreg is allocated) is stored to `-(sp)`
   like any memory move; the `addq` cleanup between pushes and the call
   disturbs nothing held in registers (SP itself is never allocated).
-- Register argument *passing* is a separate later optimization (stack doc
-  §6.4 item 2), layered on top of this convention once the allocator works.
+- Register argument *passing* is a separate later optimization, layered on top
+  of this convention once the allocator works.
   When it lands, call-boundary marshalling becomes vreg→argument-register
   assignments that the allocator models directly.
 
@@ -246,7 +246,7 @@ targets:
   clobbers, so D7 stays reserved until the loop-counter mechanism is reworked
   to request a register from the allocator.
 - **A5 — future frame pointer.** Reserved for the stack-frame memory model in
-  `m68k-stack-memory-model.md` (`link a5,#-N` / `unlk a5`). Reserving it from
+  the M68K stack-frame implementation (`link a5,#-N` / `unlk a5`). Reserving it from
   the start avoids a flag day when frames land.
 - **A6 — AmigaOS library-base register.** On amiga500 the backend loads a
   library base into A6 around every OS call (`move.l 4.w,a6` or
@@ -523,14 +523,14 @@ When register pressure exceeds the physical registers available in a class, the
 allocator spills vregs to memory, inserting stores/loads at definition/use
 points. Three possible spill targets, with different soundness properties:
 
-- **Frame slots (primary, per the stack doc §16 sequencing):** with the A5
-  frame model (`m68k-stack-memory-model.md`) landed first, spills become
+- **Frame slots (primary):** with the A5
+  frame model landed first, spills become
   frame-resident; its frame layout already budgets "compiler spill slots".
   Per-invocation, recursion-safe, and cheaper addressing
   (`move.l -8(a5),d0`).
 - **SP-reserved spill area (fallback for frameless subroutines):** for
   subroutines the frame-layout pass leaves frameless (`frameSize == 0` fast
-  path, stack doc §7: no locals, no incoming args, no call-live vregs), the
+  path: no locals, no incoming args, no call-live vregs), the
   prologue reserves a fixed-size spill area once with a single `subq` and
   keeps SP stable throughout the body; each spill is addressed through a
   fixed SP displacement. Per-invocation storage, so recursion-safe for the
@@ -570,11 +570,11 @@ m68k-reg-problems.md §5). Register allocation alone never made subroutines
 recursive: when this concern was raised, per-invocation storage for ordinary
 parameters and locals did not exist, so a recursive call overwrote the
 caller's variable storage regardless of where registers spilled. With the
-stack doc §16 sequencing, the frame model lands *first*, so parameters,
+  frame model landing *first*, parameters,
 locals and call-live vregs are already per-activation when Stage 2 starts.
 The §8 recursion test therefore stays scoped to register-state preservation
 (callee-saved and spill areas must not collide across a recursive call chain);
-variable-storage recursion is covered by the stack doc's own §15 step 5 tests.
+  variable-storage recursion is covered by the existing M68K stack-frame tests.
 
 Per-subroutine vreg-number reuse (resetting `RegisterPool` per subroutine) is a
 safe optional extra *because* no value is live in a shared hardware register
@@ -751,7 +751,7 @@ a new hardcoded scratch register outside the D0/D1/A0/A1/FP0/FP1 set.
     marshalling instead. This keeps the pass (and the inline-memcopy path that
     depends on it) working during allocator bring-up with minimal change. The
      eventual goal is to delete it entirely: when the register argument
-     passing optimization lands (stack doc §6.4 item 2, layered on this
+      passing optimization lands, layered on this
      allocator), fold immediate-forwarding into the call-boundary marshalling
      on allocator liveness (Stage 3 teardown).
  10. **Optionally reset `RegisterPool` per subroutine** to allow vreg reuse
@@ -862,7 +862,7 @@ structure) covering:
 - Marshalling an `@A5`/`@D7` argument saves the reserved register and restores
   it only after all return values and status flags are captured (§2.5).
 - Recursion: register-state preservation only (full recursion soundness comes
-  from the stack memory model, which per §16 sequencing lands before the
+  from the stack-frame implementation, which lands before the
   allocator; see §5).
 - Indirect calls (`CALLI`) handled by the uniform convention.
 - asmsub/extsub argument slots (D0–D2, FP0–FP1) and return values.

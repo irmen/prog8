@@ -12,7 +12,7 @@ import prog8tests.helpers.compileText
 class TestFrameAddressEscape : FunSpec({
     val outputDir = tempdir().toPath()
 
-    // m68k stack frames make subroutine locals per-activation (ideas/m68k-stack-memory-model.md section 10),
+    // m68k stack frames make subroutine locals per-activation,
     // so a pointer to a local dangles after the subroutine returns. The compiler only warns, best-effort,
     // on the m68k targets, and only when the frame address actually escapes the subroutine.
 

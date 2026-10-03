@@ -657,7 +657,7 @@ private fun AsmGen.translateCall(fnLabel: String, callSite: CallSite, forwardedI
         emitLine("bsr  $fnLabel")
     }
 
-    // caller cleanup of the all-stack argument area (m68k-stack-memory-model §6.1):
+    // caller cleanup of the all-stack argument area:
     // each argument was pushed into its own padded longword slot
     val pushedSlots = callSite.arguments.count { it.location is CallLocation.FrameSlot }
     if (pushedSlots > 0) {
@@ -825,7 +825,7 @@ private fun AsmGen.translateArgument(
             }
         }
     } else {
-        // Stack argument: push into a padded longword slot, right-justified (m68k-stack-memory-model §6.1).
+        // Stack argument: push into a padded longword slot, right-justified.
         // The caller pops the whole argument area after the return, so the callee never needs to
         // know the argument count.
         if (arg.location is CallLocation.FrameSlot) {

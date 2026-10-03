@@ -11,7 +11,7 @@ import prog8.intermediate.IRFileReader
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
 
-// Vertical Slice Prototype end-to-end tests (m68k-stack-memory-model.md §17):
+// M68K stack-frame end-to-end tests:
 // stack-frame locals for frameable leaf subroutines on m68k targets.
 class TestStackFrameLocals : FunSpec({
 

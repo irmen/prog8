@@ -7,7 +7,7 @@ import prog8.code.core.ZeropageWish
 import prog8.intermediate.*
 
 /**
- * Stack frame layout for m68k targets (m68k-stack-memory-model.md §3/§6.1/§7/§17).
+ * Stack frame layout for m68k targets.
  *
  * Classifies subroutines as "frameable" and, for those:
  *  - moves their plain-data locals into A5-relative frame slots (negative offsets),
@@ -613,7 +613,7 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
      *
      * Only variables that the subroutine body itself uses are reported. A variable that is merely
      * read by a defer handler holds no per-activation data; the compiler rejects defer in a
-     * recursive subroutine separately (m68k-stack-memory-model.md §11).
+     * recursive subroutine separately.
      */
     private fun reportUnsoundStaticState(
         framedSubs: Map<String, FrameLayoutResult>,

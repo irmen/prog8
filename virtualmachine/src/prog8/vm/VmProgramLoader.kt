@@ -334,7 +334,7 @@ class VmProgramLoader {
     /**
      * Frame-based IR (stack frame slot memory model) is only supported by the m68k
      * backend for now; the VM's activation-record support is a follow-up
-     * (m68k-stack-memory-model.md §9). Reject explicitly instead of silently
+     * (the M68K stack-frame model). Reject explicitly instead of silently
      * mis-resolving frame references as static storage.
      */
     private fun rejectFrameBasedIr(program: IRProgram) {
