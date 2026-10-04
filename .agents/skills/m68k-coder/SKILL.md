@@ -63,6 +63,17 @@ when both operands are registers.
   is at offset `+3`.
 - Word and long accesses must be even-aligned on 68000. 68020 permits
   misalignment but it is slower.
+- **Byte `A7` auto-update steps by 2, not 1.** If A7 (== SP, the stack pointer) is the address
+  register and the operand length for post-increment or post-decrement is one byte, A7 is
+  decremented/incremented by 2 instead of 1, to maintain a word-aligned stack. This is the
+  specified behaviour of all the 680x0, not a 68000 quirk, so it is identical everywhere and
+  safe to rely on. Word and long operands step by 2 and 4.
+  ```asm
+        move.b  d0,-(sp)          ; A7 steps by 2, so SP stays word-aligned
+        ...
+        addq.l  #2, sp            ; and the matching pop is #2, not #1
+  ```
+  Do not "fix" this to an explicit `subq.l #1,sp`: that leaves SP odd and cause crash.
 - The 68000 (`amiga500`) has only word multiply/divide and no scaled indexing,
   bit-field, or 32-bit multiply/divide instructions. The 68020 (`qemu68k`)
   adds those features and `extb.l`.
