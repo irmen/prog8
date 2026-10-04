@@ -258,10 +258,28 @@ Normal Prog8 subroutines use one uniform all-stack argument convention:
 * Scalar and pointer results remain register-based, normally in ``D0``. Float results use the
   floating-point accumulator.
 
+The uniform four-byte slot is a deliberate first version: it keeps every parameter offset
+independent of the other arguments' types and keeps the caller rules trivial. A future
+version may switch to word-packed slots (narrow arguments at their natural size) to save
+stack space and bus traffic.
+
 ``asmsub`` and ``extsub`` keep their explicit register-based, annotation-driven convention.
 AmigaOS library calls continue to use ``A6`` for the selected library base. Hand-written M68K
 assembly that calls a normal Prog8 subroutine must follow the stack convention and preserve
-``A5``.
+``A5``. For example, calling ``sub add2(ubyte a, uword b) -> uword``::
+
+    ; call add2($12, $3456); each argument gets one padded 4-byte slot
+    subq.l  #4,sp
+    move.b  #$12,3(sp)      ; byte: right-justified in its slot
+    subq.l  #4,sp
+    move.w  #$3456,2(sp)    ; word: right-justified in its slot
+    jsr     p8b_main.p8s_add2
+    lea     8(sp),sp        ; caller pops the 2 slots (lea preserves CCR)
+    ; result is now in d0
+
+Long, pointer and float arguments fill the whole slot, so they push in one step
+(``move.l x,-(sp)`` or ``fmove.s fp0,-(sp)``). Only use longword pushes: a byte
+push on ``sp`` steps by 2 to keep the stack word-aligned and would break the slot layout.
 
 .. note::
    The built-in virtual machine does not currently execute frame-based IR. It rejects M68K

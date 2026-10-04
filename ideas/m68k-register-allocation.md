@@ -2,14 +2,16 @@
 
 **Status: reconciled - the seven correctness issues from `m68k-reg-problems.md` are resolved and folded into this design** (that file was removed from `ideas/` after folding; the `m68k-reg-problems.md §N` references below are historical provenance only). Listed as "Deferred" in `docs/source/todo.rst`. The calling convention (§2), register classes (§4), spilling strategy (§5), prologue/epilogue (§6), and the Stage 0/1/3 execution work (§7) are decided and delegable. Still open before Stage 2 is delegable: the §7.1 items 1-4 (width semantics, class-constraint mechanism, spill-slot policy mechanics, call-site metadata representation).
 
-Related implementation: `../docs/source/technical.rst` (M68K stack frames for locals; reserves
-A5 as the future frame pointer and A6 for AmigaOS library bases — both are
-reflected in the register split below). **Sequencing decision (Oct 2026): the
-stack model is implemented *first*** (see its §16) - the allocator is then
-built against the final all-stack calling convention and the frame-slot spill
-substrate. The convention-agnostic prep (Stage 0/1/3: translator restructure,
-vreg bookkeeping, slot machinery) may proceed in parallel; spill-slot policy,
-prologue/epilogue emission, and call-site marshalling must wait for frames.
+Related implementation: `../docs/source/technical.rst` (M68K stack frames for locals; A5
+is the frame pointer and A6 is reserved for AmigaOS library bases — both are
+reflected in the register split below). **Sequencing (Oct 2026, done): the
+stack model is implemented** (`StackFrameLayout`, `technical.rst` "M68K memory
+model and calling convention") - the allocator is then built against the final
+all-stack calling convention and the frame-slot spill substrate. The
+convention-agnostic prep (Stage 0/1/3: translator restructure, vreg
+bookkeeping, slot machinery) may proceed in parallel; spill-slot policy,
+prologue/epilogue emission, and call-site marshalling build on the implemented
+frames.
 
 This document describes the design for a **true register allocator** for the
 m68k code generation backend (`codeGenM68k`).
@@ -17,10 +19,10 @@ m68k code generation backend (`codeGenM68k`).
 ## 0. Goals (in priority order)
 
 1. **Values live in CPU registers.** Virtual-register values must reside in the
-   m68k's actual hardware registers (D0–D6, A0–A4, FP0–FP7) for as long as they
-   are live. The in-memory `p8_regfile` block is demoted to a spill-only area
-   (and shrinks accordingly). Memory residence is the exception, not the
-   default. This is the whole point of targeting a register-rich 32-bit CPU.
+   m68k's allocatable hardware registers (D2–D6, A2–A4, FP2–FP7, see §2.3) for
+   as long as they are live. The in-memory `p8_regfile` block is demoted to a
+   spill-only area (and shrinks accordingly). Memory residence is the exception,
+   not the default. This is the whole point of targeting a register-rich 32-bit CPU.
 2. **Dramatically smaller and better assembly, as a *consequence* of goal 1.**
    When operands are already in registers, the load/compute/store round-trips
    disappear and register-to-register instructions (`add.l d1, d0`) fall out
@@ -40,8 +42,9 @@ convention, §2.1, not the C ABI), squeezing the last cycle out of hot loops
 
 ## 1. Current State (background)
 
-The m68k backend today (`AsmGen.kt`) spills **every** virtual register to a
-single flat BSS memory block:
+The m68k backend today (`AsmGen.kt`) spills virtual registers to memory — the
+flat BSS `p8_regfile` block, except for the per-activation vregs of re-entrant
+subroutines, which already resolve to A5-relative frame slots (`frameVregSlots`):
 
 - `regFileLayout` lays out **all** registers returned by
   `program.registersUsed().regsTypes` — program-wide — into one block labelled
@@ -72,7 +75,8 @@ IR instruction translator (`InstrArithmetic`, `InstrBitwise`, `InstrControl`,
 `dest`/`srcA`/`memory`/`target`/`callSite` operands and memory lowering is
 centralized in `AsmGen.resolveMemory()` — that part of Stage 1 is done. What
 remains is the vreg side, still lowered via `regAddr()`/`floatRegFileAddr()`
-to the `p8_regfile` spill area:)
+to the `p8_regfile` spill area (or to an A5-relative frame slot for a
+re-entrant subroutine's relocated vregs):
 
 ```
 INC   ->  addq.b #1, p8_regfile+N
@@ -150,7 +154,7 @@ The `CALL` instruction itself does **no** register save/restore. It is a bare
 | FP0, FP1             | caller-saved       | caller   | float scratch / return |
 | FP2–FP7              | callee-saved       | callee   | float values that survive calls |
 | D7                   | reserved (not allocatable) | —  | physical `repeat` loop counter (§2.5) |
-| A5                   | reserved (not allocatable) | —  | future frame pointer (§2.5) |
+| A5                   | reserved (not allocatable) | —  | frame pointer (§2.5) |
 | A6                   | reserved (not allocatable) | —  | AmigaOS library-base register (§2.5) |
 | A7                   | stack pointer      | —        | hardware stack |
 
@@ -245,9 +249,9 @@ targets:
   `IRProgram.kt` near `usedRegisters`). The allocator cannot model these
   clobbers, so D7 stays reserved until the loop-counter mechanism is reworked
   to request a register from the allocator.
-- **A5 — future frame pointer.** Reserved for the stack-frame memory model in
-  the M68K stack-frame implementation (`link a5,#-N` / `unlk a5`). Reserving it from
-  the start avoids a flag day when frames land.
+- **A5 — frame pointer.** Used by the implemented M68K stack-frame model
+  (`link a5,#-N` / `unlk a5`; locals at negative offsets, incoming arguments at
+  positive offsets). Never allocated, so frame access stays valid.
 - **A6 — AmigaOS library-base register.** On amiga500 the backend loads a
   library base into A6 around every OS call (`move.l 4.w,a6` or
   `move.l sys.xxxBase,a6`, then `jsr Symbol(a6)`; see CALLFAR in
@@ -319,7 +323,7 @@ the callee allocated to its result vreg, so the boundary is pinned:
   the caller's allocator treats D0 as defined by the CALL and consumes or moves
   it from there. This matches the current backend default
   (`translateReturnValue`: non-float returns go through d0).
-- **Single float result:** same, through FP0.
+- **Single float result:** same, through FP0 (the `FP_ACC` floating-point accumulator).
 - **Multi-value returns:** unchanged from today (memory slots / LOADHR).
   Register-based multi-return is a later optimization.
 - **asmsub/extsub:** unchanged - explicit slot annotations. Slot annotations
@@ -523,18 +527,20 @@ When register pressure exceeds the physical registers available in a class, the
 allocator spills vregs to memory, inserting stores/loads at definition/use
 points. Three possible spill targets, with different soundness properties:
 
-- **Frame slots (primary):** with the A5
-  frame model landed first, spills become
-  frame-resident; its frame layout already budgets "compiler spill slots".
-  Per-invocation, recursion-safe, and cheaper addressing
-  (`move.l -8(a5),d0`).
-- **SP-reserved spill area (fallback for frameless subroutines):** for
-  subroutines the frame-layout pass leaves frameless (`frameSize == 0` fast
-  path: no locals, no incoming args, no call-live vregs), the
-  prologue reserves a fixed-size spill area once with a single `subq` and
-  keeps SP stable throughout the body; each spill is addressed through a
-  fixed SP displacement. Per-invocation storage, so recursion-safe for the
-  register state. Naive push/pop around a live range is *not* a sound general
+- **Frame slots (primary, intended):** with the A5 frame model implemented,
+  spills become frame-resident: per-invocation, recursion-safe, and cheaper
+  addressing (`move.l -8(a5),d0`). The frame layout pass does not yet budget
+  generic "compiler spill slots" for the allocator — it currently lays out
+  locals, the incoming argument area, and `frameVregSlots` for re-entrant
+  subroutines only — so the slot-allocation policy is Stage-2 work (§7.1 #3).
+- **SP-reserved spill area (proposed fallback for frameless subroutines):** for
+  subroutines the frame-layout pass leaves frameless (`hasFrame == false`,
+  i.e. `frameSize == 0 && incomingSize == 0`; today such subroutines just use
+  the static regfile), the prologue would reserve a fixed-size spill area once
+  with a single `subq` and keep SP stable throughout the body; each spill would
+  be addressed through a fixed SP displacement. Per-invocation storage, so
+  recursion-safe for the register state. Naive push/pop around a live range is
+  *not* a sound general
   strategy: general live ranges are not necessarily nested in LIFO order
   (they cross branches, loops, calls, and multiple uses), so push/pop
   insertion can produce different stack depths at CFG joins or pop a
@@ -570,11 +576,13 @@ m68k-reg-problems.md §5). Register allocation alone never made subroutines
 recursive: when this concern was raised, per-invocation storage for ordinary
 parameters and locals did not exist, so a recursive call overwrote the
 caller's variable storage regardless of where registers spilled. With the
-  frame model landing *first*, parameters,
-locals and call-live vregs are already per-activation when Stage 2 starts.
+frame model implemented, parameters and locals of framed subroutines are
+per-activation when Stage 2 starts; virtual registers are per-activation only
+for re-entrant subroutines (via `frameVregSlots`) and stay in the static
+regfile otherwise.
 The §8 recursion test therefore stays scoped to register-state preservation
 (callee-saved and spill areas must not collide across a recursive call chain);
-  variable-storage recursion is covered by the existing M68K stack-frame tests.
+variable-storage recursion is covered by the existing M68K stack-frame tests.
 
 Per-subroutine vreg-number reuse (resetting `RegisterPool` per subroutine) is a
 safe optional extra *because* no value is live in a shared hardware register
@@ -590,6 +598,10 @@ For each subroutine, the codegen emits:
 - At entry: save the callee-saved registers the subroutine actually uses
   (e.g. `movem.l d2-d6/a2-a4, -(sp)`), determined intraprocedurally.
 - At every exit (`rts`): restore them (`movem.l (sp)+, d2-d6/a2-a4`).
+
+On framed subroutines this nests inside the existing frame setup: `link
+a5,#-N` stays the first instruction and `unlk a5` the last before each `rts`,
+so the `movem` save/restore happens with the frame active.
 
 Only registers that are used are saved, keeping the cost minimal. The reserved
 registers (D7, A5, A6) never appear in the save mask by construction — the
@@ -776,15 +788,16 @@ delegable:
    the constraint to the allocator: a per-vreg constraint recorded in a
    pre-pass, a hint at allocation-call time, or an IR-level annotation. The
    constraint-propagation plumbing is undesigned.
- 3. **Spill-slot allocation policy (§5 lists targets, not policy).** How spill
-    slots are assigned per subroutine (slot count, alignment, interplay with
-    the frame-layout pass's "compiler spill slots" budget; worst-case sizing
-    from live-range pressure vs iterative re-layout) and whether spill code is
-    inserted during coloring (rewriting the IR) or emitted at use points. The
-    *targets* are decided: frame slots, SP-reserved fallback for frameless
-    subroutines (§5); the push/pop variant stays rejected as a general
+3. **Spill-slot allocation policy (§5 lists targets, not policy).** How spill
+     slots are assigned per subroutine (slot count, alignment, interplay with
+     the frame-layout pass — which currently budgets locals, incoming args, and
+     `frameVregSlots` only, with no generic spill budget yet; worst-case sizing
+     from live-range pressure vs iterative re-layout) and whether spill code is
+     inserted during coloring (rewriting the IR) or emitted at use points. The
+     *targets* are decided: frame slots, SP-reserved fallback for frameless
+     subroutines (§5); the push/pop variant stays rejected as a general
     mechanism.
- 4. **Call-site metadata representation (mechanism).** The liveness side is
+4. **Call-site metadata representation (mechanism).** The liveness side is
     decided: "CALL kills D0/D1/A0/A1/FP0/FP1" is realized as kill edges at
     call points, and the translator-scratch plus reserved registers never
     appear in the interference graph at all (they are never vreg-allocated,

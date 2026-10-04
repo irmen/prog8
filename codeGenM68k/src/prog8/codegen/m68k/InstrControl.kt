@@ -826,20 +826,27 @@ private fun AsmGen.translateArgument(
         }
     } else {
         // Stack argument: push into a padded longword slot, right-justified.
-        // The caller pops the whole argument area after the return, so the callee never needs to
-        // know the argument count.
+        // The caller pops the whole argument area after the return, so the callee never needs to know the argument count.
+        // Optimizing this to use word-padding instead of long padding could be done in a future version
         if (arg.location is CallLocation.FrameSlot) {
-            emitLine("subq.l  #4,sp")
             if (argReg.isFloat) {
                 // the FPU has no absolute-long addressing mode, so the value has to travel
-                // through an FPU register first (fp0 is translator scratch, never holds a live vreg)
+                // through an FPU register first (fp0 is translator scratch, never holds a live vreg).
+                // The store itself reserves the slot via predecrement, so no separate subq is needed.
                 emitLine("fmove.s  ${floatRegFileAddr(argReg.floatNumber)},$FP_ACC")
-                emitLine("fmove.s  $FP_ACC,(sp)")
+                emitLine("fmove.s  $FP_ACC,-(sp)")
             } else {
                 when (argReg.type) {
-                    IRDataType.BYTE -> emitLine("move.b  ${regAddr(argReg.intNumber)},3(sp)")
-                    IRDataType.WORD -> emitLine("move.w  ${regAddr(argReg.intNumber)},2(sp)")
-                    else -> emitLine("move.l  ${regAddr(argReg.intNumber)},(sp)")
+                    IRDataType.BYTE -> {
+                        emitLine("subq.l  #4,sp")
+                        emitLine("move.b  ${regAddr(argReg.intNumber)},3(sp)")
+                    }
+                    IRDataType.WORD -> {
+                        emitLine("subq.l  #4,sp")
+                        emitLine("move.w  ${regAddr(argReg.intNumber)},2(sp)")
+                    }
+                    // longs and pointers fill the whole slot, so reserve and store in one push
+                    else -> emitLine("move.l  ${regAddr(argReg.intNumber)},-(sp)")
                 }
             }
             return

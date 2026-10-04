@@ -130,10 +130,10 @@ class TestStackFrameEmission : FunSpec({
             IRInstructions.simple(Opcode.RETURN)
         )
         val lines = generateAsmWithIncoming(0, calls, incomingSize = 12, subLabel = "test.caller")
-        lines.count { it == "subq.l  #4,sp" } shouldBe 3
+        lines.count { it == "subq.l  #4,sp" } shouldBe 2
         lines.count { it.startsWith("move.b ") && it.endsWith(",3(sp)") } shouldBe 1
         lines.count { it.startsWith("move.w ") && it.endsWith(",2(sp)") } shouldBe 1
-        lines.count { it.startsWith("move.l ") && it.endsWith(",(sp)") } shouldBe 1
+        lines.count { it.startsWith("move.l ") && it.endsWith(",-(sp)") } shouldBe 1
         lines.any { it.startsWith("bsr") } shouldBe true
         lines.any { it == "lea  12(sp),sp" } shouldBe true
         // small argument areas use the short addq form
@@ -173,9 +173,11 @@ class TestStackFrameEmission : FunSpec({
             IRInstructions.simple(Opcode.RETURN)
         )
         val lines = generateAsmWithIncoming(0, calls, incomingSize = 4, subLabel = "test.caller")
-        // the 68881 has no absolute-long addressing mode: the value must pass through fp0
+        // the 68881 has no absolute-long addressing mode: the value must pass through fp0,
+        // and the store itself reserves the slot via predecrement
         lines.any { it.startsWith("fmove.s  p8_fregfile+0,fp0") } shouldBe true
-        lines.any { it == "fmove.s  fp0,(sp)" } shouldBe true
+        lines.any { it == "fmove.s  fp0,-(sp)" } shouldBe true
+        lines.none { it == "subq.l  #4,sp" } shouldBe true
     }
     test("per-activation virtual registers are addressed through the frame") {
         // a re-entrant subroutine keeps its virtual registers in its own frame (slice 3), so they
