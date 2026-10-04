@@ -128,7 +128,7 @@ private fun builtinOffsetof(args: List<Expression>, position: Position, program:
 }
 
 private fun builtinSizeof(args: List<Expression>, position: Position, program: Program): NumericLiteral {
-    // 1 arg, type = anything, result type = ubyte or uword
+    // 1 arg, type = anything, result type = optimal integer type fitting the size (can be > 255 on some targets)
     if(args.size!=1)
         throw SyntaxError("sizeof requires one argument", position)
     if(args[0] !is IdentifierReference && args[0] !is NumericLiteral && args[0] !is AddressOf && args[0] !is MemorySlabRef)
@@ -151,7 +151,7 @@ private fun builtinSizeof(args: List<Expression>, position: Position, program: P
             dt.isString -> {
                 if(target is VarDecl) {
                     val length = (target.value as StringLiteral).value.length + 1       // add the closing 0-byte
-                    NumericLiteral(BaseDataType.UBYTE, length.toDouble(), position)
+                    NumericLiteral.optimalInteger(length, position)
                 }
                 else
                     throw SyntaxError("sizeof(str) is undefined here. Perhaps use len, or strings.length?", position)
@@ -177,7 +177,7 @@ private fun builtinSizeof(args: List<Expression>, position: Position, program: P
         val struct = (args[0] as? IdentifierReference)?.targetStructDecl()
         if(struct!=null) {
             val size = struct.memsize(program.target)
-            return NumericLiteral(BaseDataType.UBYTE, size.toDouble(), position)
+            return NumericLiteral.optimalInteger(size, position)
         }
 
         throw SyntaxError("sizeof argument should be an identifier, number, or type name", position)

@@ -95,6 +95,25 @@ main {
         (a5.args[0] as NumericLiteral).number shouldBe 6.0
     }
 
+    test("sizeof of big struct that does not fit in ubyte") {
+        // regression: struct size was hard-coded to a ubyte literal, crashing for sizes > 255
+        val src="""
+main {
+    struct Big {
+        ubyte[300] data
+    }
+    sub start() {
+        uword @shared s
+        s = sizeof(Big)
+    }
+}"""
+        val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = false)
+        val statements = result!!.compilerAst.entrypoint.statements
+        val a1 = statements.filterIsInstance<Assignment>().first()
+        (a1.value as NumericLiteral).number shouldBe 300.0
+        (a1.value as NumericLiteral).type shouldBe BaseDataType.UWORD
+    }
+
     test("warning for return value discarding of pure functions") {
         val src="""
 main {
