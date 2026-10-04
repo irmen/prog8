@@ -469,6 +469,10 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
             cursor = cursor.floorDiv(alignment) * alignment      // align down (cursor grows negative)
             cursor -= size
             frameVars += FrameVar(name, cursor, elemDt, count, v.dirty)
+            if (v.length != null && size > 8 && !v.dirty && v.initializationValue == null) {
+                val shortName = name.substringAfterLast('.').removePrefix("p8v_")
+                errors.warn("local array '$shortName' ($size bytes) in subroutine '${userName(sub)}' is zero-initialized on every call which can be costly; consider @dirty if you assign it before use", sub.position)
+            }
         }
         // a subroutine that can be re-entered needs its virtual registers per-activation as well:
         // the flat program-static register file is shared by all activations of the same subroutine

@@ -246,6 +246,12 @@ Locals are addressed at negative offsets from ``A5``. Parameters are in the inco
 area at positive offsets. The compiler establishes and removes a frame with ``link a5,#-N``
 and ``unlk a5``.
 
+Clean (non-``@dirty``) locals are zero-initialized on every call with a ``clr`` prologue, one
+store per element. This includes arrays, which on other targets are only cleared once at startup.
+A large clean local array is therefore costly; the compiler warns about framed arrays larger
+than 8 bytes. Add ``@dirty`` when you assign the array before use. A framed ``@dirty`` local
+has no static storage and is not zeroed at startup either, so its initial value is stack garbage.
+
 Normal Prog8 subroutines use one uniform all-stack argument convention:
 
 * The caller evaluates arguments and pushes them from left to right.

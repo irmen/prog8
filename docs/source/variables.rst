@@ -173,6 +173,13 @@ In any case, you can use the ``@dirty`` tag on the variable declaration to make 
 when entering the subroutine (it will still be set to 0 once at program startup).
 This means you usually have to make sure to assign a value yourself, before using the variable. 🦶🔫 Footgun warning.
 
+Note that arrays are an exception to the per-entry reinitialization above: on the 6502-based and
+virtual targets, arrays are only cleared to zero once at program startup (as part of the BSS clear),
+not on every subroutine entry. On the M68K targets this is different: locals that live in a stack
+frame (see :ref:`m68k_memory_model`) are zero-initialized on every call, and this includes arrays.
+Cleaning large arrays is costly on every call, and the compiler warns you for this.
+You might consider adding ``@dirty`` on such arrays but you must make sure you assign to the array first
+otherwise your program will read garbage values from it. 
 
 **memory alignment:**
 A string or array variable can be aligned to a couple of possible interval sizes in memory.
