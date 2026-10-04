@@ -65,7 +65,9 @@ main {
     sub convert(pointer file, pointer outfile) -> bool {
         ; read enough data into memory to cover the complete header structure
         long header_bytes = dos.Read(file, &wav_buffer, HEADERSIZE)
-        if header_bytes==0 or header_bytes<0 {
+        if header_bytes < 44 {
+            ; 44 bytes is the minimum for a valid RIFF/WAVE/fmt/data header;
+            ; a short read here means a truncated or unreadable file
             txt.print("cannot read the file\n")
             return false
         }

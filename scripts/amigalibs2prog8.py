@@ -1056,6 +1056,56 @@ AMIGA_LIBS = ["exec", "dos", "graphics", "intuition", "utility", "iffparse", "ar
 # ---------------------------------------------------------------------------
 
 LIBRARY_HELPERS = {
+    'dos': '''
+    sub read_file(str filename, bool chip_ram) -> pointer, long {
+        ; Loads an entire file into freshly allocated memory.
+        ; Returns a pointer to the data and the size, or 0,0 on error.
+        ; You should call exec.FreeMem() on the pointer when done.
+        pointer lock = dos.Lock(filename, dos.ACCESS_READ)
+        if lock == 0 return 0, 0
+        defer void dos.UnLock(lock)
+
+        ; the FileInfoBlock must be longword aligned; AllocMem guarantees that
+        ; (also makes this routine reentrant unlike a static struct instance)
+        long fibSize = sizeof(dos.FileInfoBlock)
+        ^^dos.FileInfoBlock fib = exec.AllocMem(fibSize, exec.MEMF_PUBLIC | exec.MEMF_CLEAR) as^^ dos.FileInfoBlock
+        if fib == 0
+            return 0, 0
+        defer exec.FreeMem(fib as pointer, fibSize)
+        if dos.Examine(lock, fib) == 0
+            return 0, 0
+        if fib.DirEntryType > 0
+            return 0, 0           ; a directory is not a file
+        long size = fib.Size
+        if size <= 0
+            return 0, 0                      ; zero-size files are an error
+
+        pointer fh = dos.Open(filename, dos.MODE_OLDFILE)
+        if fh == 0
+            return 0, 0
+        defer void dos.Close(fh)
+
+        long memflags = exec.MEMF_PUBLIC
+        if chip_ram
+            memflags |= exec.MEMF_CHIP
+        pointer data = exec.AllocMem(size, memflags)
+        if data == 0
+            return 0, 0
+
+        ; dos.Read may return short counts; loop until the full file is in
+        ; memory. n <= 0 means error or premature end of file.
+        long done = 0
+        while done < size {
+            long n = dos.Read(fh, data + done, size - done)
+            if n <= 0 {
+                exec.FreeMem(data, size)
+                return 0, 0
+            }
+            done += n
+        }
+        return data, size
+    }
+''',
     'exec': '''
     asmsub NewList(^^List list @A0) {
         ; manually added utility routine to initialize new exec linked lists

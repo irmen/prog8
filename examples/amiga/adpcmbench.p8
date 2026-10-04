@@ -5,9 +5,11 @@
 %import adpcm
 
 main {
-    ; Large in-memory buffer to hold the entire source WAV file.
-    const long WAV_BUFFER_SIZE = 65536
-    pointer wav_buffer = memory("wavdata", WAV_BUFFER_SIZE, 0)
+    ; In-memory buffer to hold the entire source WAV file.
+    ; dos.read_file() loads the file into a freshly allocated buffer of the
+    ; exact size and wav_buffer is pointed at it.
+    const long WAV_BUFFER_SIZE = 65536      ; upper bound accepted by the benchmark
+    pointer wav_buffer
 
     ; The ADPCM decoder operates on fixed 256-byte input blocks.
     const uword ADPCM_BLOCK_SIZE = 256
@@ -37,13 +39,8 @@ main {
         txt.print("\n")
 
         long load_s, load_us = timer.getsystime()
-        pointer file = dos.Open(filename, dos.MODE_OLDFILE)
-        if file==0 {
-            txt.print("cannot open the input file\n")
-            return
-        }
-        long file_size = dos.Read(file, wav_buffer, WAV_BUFFER_SIZE)
-        void dos.Close(file)
+        long file_size
+        wav_buffer, file_size = dos.read_file(filename, false)
         long load_end_s, load_end_us = timer.getsystime()
 
         txt.print("loaded ")
@@ -55,9 +52,10 @@ main {
             return
         }
         if file_size >= WAV_BUFFER_SIZE {
-            txt.print("error: wav file is too large for the buffer\n")
+            txt.print("error: wav file is too large for the benchmark\n")
             return
         }
+        defer exec.FreeMem(wav_buffer, file_size)
 
         long decode_s, decode_us = timer.getsystime()
         bool decode_ok = benchmark(file_size)

@@ -11,51 +11,37 @@ main {
             txt.print("name of mod file to load: ")
             void txt.input_chars(modname)
 
-            pointer fh = dos.Open(modname, dos.MODE_OLDFILE)
-            if fh==0 {
+            pointer mod
+            long modSize
+            mod, modSize = dos.read_file(modname, true)
+            if mod==0 {
                 txt.print("load error\n")
             } else {
-                defer void dos.Close(fh)
+                defer exec.FreeMem(mod, modSize)
+                txt.print("loading...\n")
+                ptplayer.init(mod)
 
-                ; get filesize
-                void dos.Seek(fh, 0, dos.OFFSET_END)
-                long modSize = dos.Seek(fh, 0, dos.OFFSET_CURRENT)
-                void dos.Seek(fh, 0, dos.OFFSET_BEGINNING)
+                txt.print("\nsong name: ")
+                txt.print(ptplayer.songname())
+                txt.print("\nnumber of patterns: ")
+                txt.print_ub(ptplayer.numpatterns())
+                txt.nl()
+                txt.nl()
 
-                pointer mod = exec.AllocMem(modSize, exec.MEMF_CHIP | exec.MEMF_PUBLIC)
-                if mod==0 {
-                    txt.print("load error\n")
-                } else {
-                    defer exec.FreeMem(mod, modSize)
-                    txt.print("loading...\n")
-                    if dos.Read(fh, mod, modSize)!=modSize {
-                        txt.print("load error\n")
-                    } else {
-                        ptplayer.init(mod)
+                txt.print("playing... (press CTRL+C to stop)\n")
+                txt.cursor_off()
 
-                        txt.print("\nsong name: ")
-                        txt.print(ptplayer.songname())
-                        txt.print("\nnumber of patterns: ")
-                        txt.print_ub(ptplayer.numpatterns())
-                        txt.nl()
-                        txt.nl()
+                ptplayer.enable()
+                do {
+                    print_song_vars()
+                    dos.Delay(1)
+                } until dos.CheckSignal(dos.SIGBREAKF_CTRL_C)!=0
+                ptplayer.disable()
 
-                        txt.print("playing... (press CTRL+C to stop)\n")
-                        txt.cursor_off()
+                txt.cursor_on()
+                txt.nl()
 
-                        ptplayer.enable()
-                        do {
-                            print_song_vars()
-                            dos.Delay(1)
-                        } until dos.CheckSignal(dos.SIGBREAKF_CTRL_C)!=0
-                        ptplayer.disable()
-
-                        txt.cursor_on()
-                        txt.nl()
-
-                        ptplayer.end()
-                    }
-                }
+                ptplayer.end()
             }
 
             ptplayer.remove()
