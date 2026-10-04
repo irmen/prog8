@@ -2056,14 +2056,19 @@ $repeatLabel""")
                 val tgt = AsmAssignTarget(TargetStorageKind.REGISTER, this, targetDt, null, it.first.position, register = it.second.first.registerOrPair!!)
                 assignExpressionTo(it.first as PtExpression, tgt)
             }
+            // if the float is not the first value, assign it now: the float load (MOVFM) clobbers A/Y,
+            // and the first non-float value is passed in AY, so it must be loaded after the float
+            if(floatIdx > 0 && floatAssign != null) {
+                assignExpressionToRegister(floatAssign.first as PtExpression, floatAssign.second.first.registerOrPair!!, false)
+            }
             if(nonFloatAssigns.isNotEmpty()) {
                 nonFloatAssigns.first().also {
                     assignExpressionToRegister(it.first as PtExpression, it.second.first.registerOrPair!!, (it.first as PtExpression).type.isSigned)
                 }
             }
-            
+
             // Assign float return LAST (so FAC1 has the correct value when we RTS)
-            if(floatAssign != null) {
+            if(floatIdx == 0 && floatAssign != null) {
                 assignExpressionToRegister(floatAssign.first as PtExpression, floatAssign.second.first.registerOrPair!!, false)
             }
         }

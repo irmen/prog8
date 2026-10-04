@@ -2,6 +2,8 @@ package prog8tests.compiler
 
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.engine.spec.tempdir
+import io.kotest.matchers.ints.shouldBeGreaterThan
+import io.kotest.matchers.ints.shouldBeLessThan
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
@@ -15,6 +17,7 @@ import prog8.intermediate.IRFileReader
 import prog8.vm.VmRunner
 import prog8.vm.VmVariableAllocator
 import prog8tests.helpers.compileText
+import prog8tests.helpers.simulate
 import kotlin.io.path.readText
 
 class TestDefers : FunSpec({
@@ -166,6 +169,111 @@ main {
             // if only local unwind, result would be 21 (only helper) or 99 (if start continued)
             vm.memory.getUW(allocations["main.result"]!!) shouldBe 2143u
         }
+    }
+
+    test("defer with multi-value return of non-simple expressions") {
+        val src = """
+main {
+    uword @shared ra = 0
+    uword @shared rb = 0
+    uword @shared rc = 0
+    uword @shared x = 11
+    uword @shared y = 22
+    uword @shared z = 33
+
+    sub triple() -> uword, uword, uword {
+        defer x += 1
+        return x, y, z
+    }
+
+    sub start() {
+        uword a, b, c
+        a, b, c = triple()
+        ra = a
+        rb = b
+        rc = c
+    }
+}"""
+        val result = compileText(VMTarget(), optimize = false, src, outputDir, writeAssembly = true)!!
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
+        val irSrc = virtfile.readText()
+        // variable identifiers in the return are non-simple: return values are stack-saved across defers
+        irSrc shouldContain "push"
+        val irProgram = IRFileReader().read(irSrc)
+        irProgram.st.stripAllPrefixes()
+        val allocations = VmVariableAllocator(irProgram.st, irProgram.encoding, irProgram.options.compTarget).allocations
+        VmRunner().runAndTestProgram(irSrc) { vm ->
+            // regression: the stack order for saved return values used to be reversed, swapping the first
+            // value with the others (e.g. dos.read_file() returned the data pointer as second value)
+            vm.memory.getUW(allocations["main.ra"]!!) shouldBe 11u
+            vm.memory.getUW(allocations["main.rb"]!!) shouldBe 22u
+            vm.memory.getUW(allocations["main.rc"]!!) shouldBe 33u
+        }
+    }
+
+    test("defer with multi-value return executed on 6502") {
+        val machine = compileText(Cx16Target(), false, $$"""
+%option no_sysinit
+%launcher none
+%address $2000
+main {
+    &ubyte poweroff = $f203
+    &uword res_a = $0200
+    &uword res_b = $0202
+    &uword res_c = $0204
+    uword @shared x = 11
+    uword @shared y = 22
+    uword @shared z = 33
+    sub triple() -> uword, uword, uword {
+        defer x += 1
+        return x, y, z
+    }
+    sub start() {
+        uword a, b, c
+        a, b, c = triple()
+        res_a = a
+        res_b = b
+        res_c = c
+        poweroff = 1
+    }
+}""".trimIndent(), outputDir)!!.simulate()
+        machine.assertMemory(0x0200, 11)
+        machine.assertMemory(0x0202, 22)
+        machine.assertMemory(0x0204, 33)
+    }
+
+    test("defer with multi-value float return assembly order on 6502") {
+        // Runtime simulation of cx16 float code is not possible with ksim65 because the
+        // floats helpers (MOVFM/MOVMF) are extsubs to KERNAL ROM routines ($fe5c/$fe66).
+        // Instead, verify the generated assembly order: the float must be loaded/restored
+        // before the uword value, because MOVFM/popFAC clobber A/Y.
+        val src = """
+%import floats
+main {
+    uword @shared x = 11
+    float @shared f = 1.5
+    sub pairf() -> uword, float {
+        defer x += 1
+        return x, f
+    }
+    sub start() {
+        uword a
+        float b
+        a, b = pairf()
+    }
+}"""
+        val result = compileText(Cx16Target(), optimize = false, src, outputDir, writeAssembly = true)!!
+        val asmFile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".asm")
+        val asm = asmFile.readText().lines().map { it.trim() }
+        val pairfStart = asm.indexOfFirst { it == "p8s_pairf\t.proc" }
+        val pairfEnd = asm.drop(pairfStart).indexOfFirst { it == "rts" } + pairfStart
+        val pairfBody = asm.subList(pairfStart, pairfEnd + 1)
+        // find the relative order of float pop and uword pop in the defer path
+        val popFacIdx = pairfBody.indexOfFirst { it.contains("jsr") && it.contains("popFAC") }
+        val plyIdx = pairfBody.indexOfFirst { it == "ply" }
+        popFacIdx shouldBeGreaterThan -1
+        plyIdx shouldBeGreaterThan -1
+        popFacIdx shouldBeLessThan plyIdx   // float restored before uword, so AY isn't clobbered
     }
 
     test("defer program-wide no overhead when unused") {

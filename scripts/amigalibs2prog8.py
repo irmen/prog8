@@ -1067,11 +1067,10 @@ LIBRARY_HELPERS = {
 
         ; the FileInfoBlock must be longword aligned; AllocMem guarantees that
         ; (also makes this routine reentrant unlike a static struct instance)
-        long fibSize = sizeof(dos.FileInfoBlock)
-        ^^dos.FileInfoBlock fib = exec.AllocMem(fibSize, exec.MEMF_PUBLIC | exec.MEMF_CLEAR) as^^ dos.FileInfoBlock
+        ^^dos.FileInfoBlock fib = exec.AllocMem(sizeof(dos.FileInfoBlock) as long, exec.MEMF_PUBLIC | exec.MEMF_CLEAR) as^^ dos.FileInfoBlock
         if fib == 0
             return 0, 0
-        defer exec.FreeMem(fib as pointer, fibSize)
+        defer exec.FreeMem(fib as pointer, sizeof(dos.FileInfoBlock) as long)
         if dos.Examine(lock, fib) == 0
             return 0, 0
         if fib.DirEntryType > 0

@@ -44,7 +44,7 @@ main {
     sub play_sample(str samplefile) {
         ; -- Play the named raw sample file. The file argument comes from the
         ;    command line (null when the program was started without one).
-        if samplefile==0 {
+        if samplefile==0 or ""==samplefile {
             txt.print("usage: ahiplay <sample.raw>\n")
             return
         }

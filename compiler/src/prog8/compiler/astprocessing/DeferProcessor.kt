@@ -35,7 +35,7 @@ internal object DeferProcessor {
     /**
      * Process all defer statements in the program.
      */
-    fun process(program: PtProgram, st: SymbolTable, target: ICompilationTarget, errors: IErrorReporter) {
+    fun process(program: PtProgram, st: SymbolTable, target: ICompilationTarget, newCodegen: Boolean, errors: IErrorReporter) {
         val maskType = if (target.cpu == CpuType.M68000 || target.cpu == CpuType.M68020) DataType.UWORD else DataType.UBYTE
         val defers = setDeferMasks(program, maskType, errors)
         if(!errors.noErrors())
@@ -45,10 +45,10 @@ internal object DeferProcessor {
         // setDeferMasks already created mask variables and replaced defer statements with |=
         // Now build global stack and program-wide integration
         val handlerIds = assignHandlerIds(defers)
-        createGlobalDeferState(program, handlerIds, maskType, target, errors)
+        createGlobalDeferState(program, handlerIds, target, errors)
         if(!errors.noErrors())
             return
-        integrateDefersProgramWide(defers, program, st, maskType, handlerIds, target)
+        integrateDefersProgramWide(defers, program, st, maskType, handlerIds, target, newCodegen)
     }
 
     private fun assignHandlerIds(defers: Map<PtSub, List<PtDefer>>): Map<PtSub, Int> {
@@ -61,7 +61,7 @@ internal object DeferProcessor {
         return map
     }
 
-    private fun createGlobalDeferState(program: PtProgram, handlerIds: Map<PtSub, Int>, maskType: DataType, target: ICompilationTarget, errors: IErrorReporter) {
+    private fun createGlobalDeferState(program: PtProgram, handlerIds: Map<PtSub, Int>, target: ICompilationTarget, errors: IErrorReporter) {
         val pos = Position.DUMMY
         val deferBlock = PtBlock(deferBlockName, false, SourceCode.Generated(deferBlockName), PtBlock.Options(), pos)
         program.add(deferBlock)
@@ -260,7 +260,7 @@ internal object DeferProcessor {
      * Program-wide version: pushes handler ID on entry, pops before local unwind,
      * and routes sys.exit through global unwind.
      */
-    private fun integrateDefersProgramWide(subdefers: Map<PtSub, List<PtDefer>>, program: PtProgram, st: SymbolTable, maskType: DataType, handlerIds: Map<PtSub, Int>, target: ICompilationTarget) {
+    private fun integrateDefersProgramWide(subdefers: Map<PtSub, List<PtDefer>>, program: PtProgram, st: SymbolTable, maskType: DataType, handlerIds: Map<PtSub, Int>, target: ICompilationTarget, newCodegen: Boolean) {
         val deferBlockNameScoped = deferBlockName
         val spName = "$deferBlockNameScoped.$deferSpName"
         val stackName = "$deferBlockNameScoped.$deferHandlerStackName"
@@ -361,7 +361,7 @@ internal object DeferProcessor {
         for(ret in returnsToAugment) {
             val sub = ret.definingSub()!!
             if(ret.children.isEmpty() || ret.children.all { isSimple(it as PtExpression) }) {
-                insertPopAndHandlerBefore(ret, sub, spName, unwindName, handlerIds, spType, spBase)
+                insertPopAndHandlerBefore(ret, sub, spName, spType, spBase)
                 if(sub.scopedName=="main.start") {
                     val idx = ret.parent.children.indexOf(ret)
                     val unwindCall = PtFunctionCall(unwindName, false, false, emptyArray(), ret.position)
@@ -377,7 +377,29 @@ internal object DeferProcessor {
                 else
                     makePushPopFunctionCalls(expr, target)
             }
-            val pushCalls = pushAndPopCalls.map { it.first }.reversed()
+            val pushes = pushAndPopCalls.map { it.first }
+            // The backends assign return values to their return registers in a specific order;
+            // when return expressions are stack-saved across defers, the pops run in that same
+            // order, so the pushes must be done bottom-up in reverse of it:
+            // - IR-based generators (virtual, m68k, new 6502): children [1, 2, ..., N-1, 0]
+            //   (first value assigned last to avoid clobbering)
+            // - legacy 6502 AsmGen: same, but a float return is assigned just before the first
+            //   value (the float load clobbers AY) if it is not the first value, or LAST if it is
+            //   the first value. Keep this in sync with the multi-value return logic in AsmGen.
+            val nvalues = ret.children.size
+            val evalOrder: List<Int> =
+                if (target.cpu in arrayOf(CpuType.CPU6502, CpuType.CPU65C02) && !newCodegen) {
+                    val floatIdx = sub.returnsWhatWhere(target).map { it.second }.take(nvalues).indexOfFirst { it.isFloat }
+                    val nonFloat = (0 until nvalues).filter { it != floatIdx }
+                    val order = nonFloat.drop(1).toMutableList()
+                    if (floatIdx > 0) order.add(floatIdx)
+                    if (nonFloat.isNotEmpty()) order.add(nonFloat.first())
+                    if (floatIdx == 0) order.add(0)
+                    order
+                } else {
+                    (1 until nvalues) + listOf(0)
+                }
+            val pushCalls = evalOrder.reversed().map { pushes[it] }
             val popCalls = pushAndPopCalls.mapNotNull { it.second }
             val newRet = PtReturn(ret.position)
             val group = PtNodeGroup()
@@ -399,7 +421,7 @@ internal object DeferProcessor {
         // jumps out
         for(jmp in jumpsToAugment) {
             val sub = jmp.definingSub()!!
-            insertPopAndHandlerBefore(jmp, sub, spName, unwindName, handlerIds, spType, spBase)
+            insertPopAndHandlerBefore(jmp, sub, spName, spType, spBase)
         }
 
         // sub ends
@@ -464,7 +486,7 @@ internal object DeferProcessor {
         return decSp
     }
 
-    private fun insertPopAndHandlerBefore(node: PtNode, sub: PtSub, spName: String, unwindName: String, handlerIds: Map<PtSub, Int>, spType: DataType, spBase: BaseDataType) {
+    private fun insertPopAndHandlerBefore(node: PtNode, sub: PtSub, spName: String, spType: DataType, spBase: BaseDataType) {
         val idx = node.parent.children.indexOf(node)
         val handlerCall = PtFunctionCall(sub.scopedName+"."+invokeDefersRoutineName, false, false,emptyArray(), node.position)
         node.parent.add(idx, handlerCall)
