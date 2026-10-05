@@ -636,16 +636,19 @@ private fun AsmGen.translateCall(fnLabel: String, callSite: CallSite, forwardedI
     // Emit non-constant arguments first (from regfile), then constant immediates
     // just before the BSR/JSR to avoid clobbering the constant registers while
     // evaluating non-const arguments (e.g. address calculations that may use D0/A0 as scratch).
-    val (forwarded, nonForwarded) = if (forwardedImmediateCall != null) {
-        callSite.arguments.partition { it.source.register in forwardedImmediateCall.loads }
-    } else {
-        emptyList<CallArgument>() to callSite.arguments
+    // Parameter names are resolved by argument index so each stack push can be
+    // annotated with the parameter it fills; unknown callees get no annotation.
+    val paramNames = program.allSubs().find { it.label == fnLabel }?.parameters?.map { it.name } ?: emptyList()
+    fun paramNameFor(index: Int): String? =
+        paramNames.getOrNull(index)?.substringAfterLast('.')?.removePrefix("p8v_")
+    val forwardedRegs = forwardedImmediateCall?.loads?.keys ?: emptySet()
+    for ((index, arg) in callSite.arguments.withIndex()) {
+        if (arg.source.register in forwardedRegs) continue
+        translateArgument(arg, fnLabel, forwardedImmediateCall, paramNameFor(index))
     }
-    for (arg in nonForwarded) {
-        translateArgument(arg, fnLabel, forwardedImmediateCall)
-    }
-    for (arg in forwarded) {
-        translateArgument(arg, fnLabel, forwardedImmediateCall)
+    for ((index, arg) in callSite.arguments.withIndex()) {
+        if (arg.source.register !in forwardedRegs) continue
+        translateArgument(arg, fnLabel, forwardedImmediateCall, paramNameFor(index))
     }
 
     // Check if this call targets an inline asmsub — emit its body directly instead of jsr
@@ -775,7 +778,8 @@ private fun AsmGen.emitInlineCopyLoop(iterations: Int, size: Int) {
 private fun AsmGen.translateArgument(
     arg: CallArgument,
     fnLabel: String? = null,
-    forwardedImmediateCall: ImmediateCallOptimization? = null
+    forwardedImmediateCall: ImmediateCallOptimization? = null,
+    paramName: String? = null
 ) {
     val argReg = arg.source
     val forwarded = forwardedImmediateCall?.loads?.get(argReg.register)
@@ -834,19 +838,19 @@ private fun AsmGen.translateArgument(
                 // through an FPU register first (fp0 is translator scratch, never holds a live vreg).
                 // The store itself reserves the slot via predecrement, so no separate subq is needed.
                 emitLine("fmove.s  ${floatRegFileAddr(argReg.floatNumber)},$FP_ACC")
-                emitLine("fmove.s  $FP_ACC,-(sp)")
+                emitLine("fmove.s  $FP_ACC,-(sp)", paramName.orEmpty())
             } else {
                 when (argReg.type) {
                     IRDataType.BYTE -> {
                         emitLine("subq.l  #4,sp")
-                        emitLine("move.b  ${regAddr(argReg.intNumber)},3(sp)")
+                        emitLine("move.b  ${regAddr(argReg.intNumber)},3(sp)", paramName.orEmpty())
                     }
                     IRDataType.WORD -> {
                         emitLine("subq.l  #4,sp")
-                        emitLine("move.w  ${regAddr(argReg.intNumber)},2(sp)")
+                        emitLine("move.w  ${regAddr(argReg.intNumber)},2(sp)", paramName.orEmpty())
                     }
                     // longs and pointers fill the whole slot, so reserve and store in one push
-                    else -> emitLine("move.l  ${regAddr(argReg.intNumber)},-(sp)")
+                    else -> emitLine("move.l  ${regAddr(argReg.intNumber)},-(sp)", paramName.orEmpty())
                 }
             }
             return

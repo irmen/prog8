@@ -1079,7 +1079,10 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         forwardedImmediateCall: ImmediateCallOptimization? = null,
         suppressRegfileStore: Boolean = false
     ) {
-        emitRaw("        ; $insn")
+        // No IR echo for zero-clear stores: prologue clear runs would drown in
+        // "; storezm" noise while the lowered clr lines are self-explanatory.
+        if (insn.opcode != Opcode.STOREZM)
+            emitRaw("        ; $insn")
         when (insn.opcode) {
             Opcode.NOP -> {}
             Opcode.BREAKPOINT -> emitLine("illegal")

@@ -93,11 +93,11 @@ main {
         lines.none { "p8v_a:" in it || "p8v_b:" in it || "p8v_c:" in it } shouldBe true
         // the caller pushes every argument into its own slot, then pops the whole area
         lines.count { it == "subq.l  #4,sp" } shouldBe 2
-        lines.count { it.startsWith("move.b ") && it.endsWith(",3(sp)") } shouldBe 1
-        lines.count { it.startsWith("move.w ") && it.endsWith(",2(sp)") } shouldBe 1
+        lines.count { it.startsWith("move.b ") && it.contains(",3(sp)") } shouldBe 1
+        lines.count { it.startsWith("move.w ") && it.contains(",2(sp)") } shouldBe 1
         // long/pointer slots push with a single move.l ...,-(sp), same shape as PUSH ops elsewhere,
         // so only require at least the one argument push (exact isolation is covered in TestStackFrameEmission)
-        lines.count { it.startsWith("move.l ") && it.endsWith(",-(sp)") } shouldBeGreaterThanOrEqual 1
+        lines.count { it.startsWith("move.l ") && it.contains(",-(sp)") } shouldBeGreaterThanOrEqual 1
         lines.any { it == "lea  12(sp),sp" } shouldBe true
         // IR carries the incoming area size and the frame-slot argument locations
         ir.contains("INCOMING=\"12\"") shouldBe true
@@ -1165,5 +1165,27 @@ main {
         check.any { it == "move.l  d0,(a0)+" } shouldBe true
         check.count { it.startsWith("dbra  d1,zeroloop_") } shouldBe 1
         check.none { it.startsWith("clr.") } shouldBe true
+    }
+
+    test("stack argument pushes carry the parameter name as a comment") {
+        val src = """
+main {
+    sub withp(ubyte first, word second, long third) -> long {
+        return second + third + first
+    }
+    sub start() {
+        g = lsb(withp(1, 2, 3))
+    }
+    ubyte g
+}
+"""
+        val (lines, _) = compile(src)
+        val start = subAssembly(lines, "p8b_main.p8s_start")
+        // each push store is annotated with the short parameter name it fills;
+        // the slot-reserving subq lines stay bare
+        start.any { it.contains(",3(sp)") && it.endsWith("; first") } shouldBe true
+        start.any { it.contains(",2(sp)") && it.endsWith("; second") } shouldBe true
+        start.any { it.contains(",-(sp)") && it.endsWith("; third") } shouldBe true
+        start.count { it == "subq.l  #4,sp" } shouldBe 2
     }
 })

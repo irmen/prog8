@@ -131,9 +131,9 @@ class TestStackFrameEmission : FunSpec({
         )
         val lines = generateAsmWithIncoming(0, calls, incomingSize = 12, subLabel = "test.caller")
         lines.count { it == "subq.l  #4,sp" } shouldBe 2
-        lines.count { it.startsWith("move.b ") && it.endsWith(",3(sp)") } shouldBe 1
-        lines.count { it.startsWith("move.w ") && it.endsWith(",2(sp)") } shouldBe 1
-        lines.count { it.startsWith("move.l ") && it.endsWith(",-(sp)") } shouldBe 1
+        lines.count { it.startsWith("move.b ") && it.contains(",3(sp)") } shouldBe 1
+        lines.count { it.startsWith("move.w ") && it.contains(",2(sp)") } shouldBe 1
+        lines.count { it.startsWith("move.l ") && it.contains(",-(sp)") } shouldBe 1
         lines.any { it.startsWith("bsr") } shouldBe true
         lines.any { it == "lea  12(sp),sp" } shouldBe true
         // small argument areas use the short addq form
