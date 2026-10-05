@@ -13,8 +13,8 @@ import prog8.vm.VirtualMachine
 /**
  * Every VM instruction handler must read exactly the operands that the OpcodeSchema declares for
  * that (opcode, type) combination. This test builds a canonical instruction for every combination
- * straight from the schema and executes it, so a handler that reaches for an operand slot the
- * instruction doesn't have (or casts a memory reference to the wrong kind) fails here.
+ * straight from the schema and executes it. A handler that reaches for an operand slot the
+ * instruction doesn't have, or casts a memory reference to the wrong kind, fails here.
  */
 class TestVmOperandSchema: FunSpec({
 
@@ -167,7 +167,7 @@ class TestVmOperandSchema: FunSpec({
                 val instruction = buildInstruction(opcode, type)
                 try {
                     runSingle(instruction)
-                } catch (ex: ProgramExitException) {
+                } catch (_: ProgramExitException) {
                     // fine: return/exit style instruction ran to completion
                 } catch (ex: NullPointerException) {
                     operandProblems += "$instruction -> NPE (operand assumed present): ${ex.message}"

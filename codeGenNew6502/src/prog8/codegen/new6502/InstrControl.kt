@@ -494,7 +494,7 @@ internal val CallResult.hardwareSlot: CallingConventionSlot?
 /**
  * The slot-based arguments, in the order they must be loaded to avoid register clobbering.
  * Order matches the old 6502 codegen: paired regs first (AX/AY/XY), then single regs (Y, X, A),
- * then float regs, then status flags. This ensures that loading a paired register
+ * then float regs, then status flags. That way, loading a paired register
  * (which clobbers two hardware regs) doesn't overwrite a value needed for a later argument.
  * Within each group the original argument order is kept.
  */

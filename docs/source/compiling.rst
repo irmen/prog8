@@ -53,7 +53,8 @@ Mac OS (and Linux, and WSL2 on Windows):
 
 The Gradle build system is used to build the compiler. You will also need at least Java version 17 or higher to build it.
 The most interesting gradle commands to run are probably the ones listed below.
-(Note: if you have a recent gradle installed on your system already, you can probably replace the ``./gradlew`` wrapper commands with just the regular ``gradle`` command.)
+If you have a recent Gradle installation already, you can probably replace the ``./gradlew`` wrapper commands
+with the regular ``gradle`` command.
 
     ``./gradlew build``
         Builds the compiler code and runs all available checks and unit-tests.
@@ -93,7 +94,7 @@ For normal use, the ``installDist`` task should suffice and after successful com
     3. rebuild the full project.
 
     Alternatively you can also use the Makefile in the antlr directory to generate the parser, but for development the
-    Antlr4 plugin provides several extremely handy features so you'll probably want to have it installed anyway.
+    Antlr4 plugin provides several useful features so you'll probably want to have it installed anyway.
 
     .. image:: _static/antlrparser.png
        :alt: Generating the Antlr4 parser files
@@ -371,10 +372,10 @@ One or more .p8 module files
     Tells the assembler to issue warning messages about symbol shadowing.
     These *can* be problematic, but usually aren't because prog8 has different scoping rules
     than the assembler has.
-    You may want to watch out for shadowing of builtin names though. Especially 'a', 'x' and 'y'
-    as those are the cpu register names and if you shadow those, the assembler might
-    interpret certain instructions differently and produce unexpected opcodes (like LDA X getting
-    turned into TXA, or not, depending on the symbol 'x' being defined in your own assembly code or not)
+    You may want to watch out for shadowing of builtin names though. Especially 'a', 'x' and 'y',
+    as those are the cpu register names. If you shadow those, the assembler might interpret certain
+    instructions differently and produce unexpected opcodes, like LDA X getting turned into TXA.
+    Whether that actually happens depends on whether the symbol 'x' is defined in your own assembly code.
 
 ``-watch``
     Enables continuous compilation mode (watches for file changes).
@@ -382,7 +383,7 @@ One or more .p8 module files
     almost instant compilation times (less than a second) can be achieved in this mode.
     The compiler will compile your program and then instead of exiting, it waits for any changes in the module source files.
     As soon as a change happens, the program gets compiled again.
-    Note that it is possible to use the watch mode with multiple modules as well, but it will
+    It is possible to use the watch mode with multiple modules as well, but it will
     recompile everything in that list even if only one of the files got updated.
     *Combined with the Emulator's Host-FS or real hardware Calypso's network drive:* this enables you to
     edit prog8 source files with an editor on the X16 itself (such as XVI, XEdit). When saving the source file,

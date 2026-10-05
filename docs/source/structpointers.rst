@@ -94,7 +94,7 @@ So the syntax for declaring typed pointers looks like this:
 
 ``^^type[size]``: array with size size containing pointers to a type.
     So for example; ``^^word[100] values`` declares values to be an array of 100 pointers to words.
-    Note that an array of pointers (regardless of the type they point to) is always a split word array.
+    An array of pointers (regardless of the type they point to) is always a split word array.
     (this is the most efficient way to access the pointers, and they need to be copied to zeropage first to
     be able to use them anyway. It also allows for arrays of up to 256 pointers instead of 128.)
 
@@ -129,11 +129,13 @@ For example, to advance a pointer to the next value, you can use ``pointer++``.
 To make it point to the preceding value, you can use ``pointer--``.
 **Adding or subtracting X to a pointer will change the pointer by X times the size of the value it points at (the same as the C language does it),
 instead of simply adding or subtracting the value from the pointer address value.**
-(that is what Prog8 still does for untyped uword pointers, or pointers to a type that just takes up a single byte of memory).
+That is what Prog8 still does for untyped uword pointers, or pointers to a type that just takes up
+a single byte of memory.
 
 That special pointer arithmetic is also performed for pointers to struct types:
 the compiler knows the memory storage size of the whole struct type and advances or rewinds
-the pointer value (memory address) by the appropriate number of bytes (X times the size of the struct). More info about structs can be found below.
+the pointer value (memory address) by the appropriate number of bytes (X times the size of the struct).
+More info about structs can be found below.
 
 You can subtract two pointers of the **same** type from each other. The result is the number of elements between them (C-style),
 using the same scaling rules as adding or subtracting an integer. The result has the target's address type (``uword`` on 16-bit targets, ``long`` on 32-bit targets).
@@ -318,7 +320,7 @@ Typical uses:
 - **Hardware or memory-mapped registers:** one location that the hardware interprets as a byte or a word depending on how it is accessed.
 - **Overlays:** reinterpret a buffer, such as the raw bytes of a ``float``, for debugging or serialization, or reuse the same scratch space between different phases of a program.
 
-Note that unions do not (yet) help save space inside structs, because nesting a union (or struct) as a field is not allowed; see above.
+Unions do not (yet) help save space inside structs, because nesting a union (or struct) as a field is not allowed; see above.
 
 Because all fields overlap, static initialization with values is not allowed.
 The only valid initializer is the empty form ``[]``, which places a zero-initialized union instance in BSS::
@@ -380,9 +382,12 @@ Initializing byte-array fields with a string
 
 For a sized ``ubyte`` (or ``byte``) array field, a string literal may be used in place of an explicit
 byte array. The string is encoded using the current ``%encoding`` and then filled into the array using
-C-style semantics: if the encoded string is shorter than the array, the remaining bytes are filled with
-zero (the first zero acts as the implicit C string terminator); if it is exactly the array length, no
-extra terminator is added; and if it is longer than the array, a compilation error is reported.
+C-style semantics:
+
+- if the encoded string is shorter than the array, the remaining bytes are filled with zero
+  (the first zero acts as the implicit C string terminator)
+- if it is exactly the array length, no extra terminator is added
+- if it is longer than the array, a compilation error is reported
 
 For example, given ``ubyte[4] name``, the initializers ``"abcd"``, ``"abc"`` and ``"a"`` are all
 accepted and produce ``[a,b,c,d]``, ``[a,b,c,0]`` and ``[a,0,0,0]`` respectively, while ``"abcde"``

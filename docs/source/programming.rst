@@ -96,7 +96,7 @@ Identifiers
 
 Naming things in Prog8 is done via valid *identifiers*. They start with a letter,
 and after that, a combination of letters, numbers, or underscores.
-Note that any Unicode Letter symbol is accepted as a letter!
+Any Unicode Letter symbol is accepted as a letter!
 Examples of valid identifiers::
 
 	a
@@ -114,7 +114,7 @@ Examples of valid identifiers::
 .. index:: pair: Identifiers; Scoped names
 
 Sometimes called "qualified names" or "dotted names", a scoped name is a sequence of identifiers separated by a dot.
-They are used to reference symbols in other scopes. Note that unlike many other programming languages,
+They are used to reference symbols in other scopes. Unlike many other programming languages,
 scoped names always need to be fully scoped (because they always start in the global scope). Also see :ref:`blocks`::
 
     main.start              ; the entrypoint subroutine
@@ -179,7 +179,7 @@ the enclosing scope is searched for it, and so on, up to the top level block, un
 If the symbol was not found the compiler will issue an error message.
 
 **:index:`Subroutines`** create a new scope. All variables inside a subroutine are hoisted up to the
-scope of the subroutine they are declared in. Note that you can define **nested subroutines** in Prog8,
+scope of the subroutine they are declared in. You can define **nested subroutines** in Prog8,
 and such a nested subroutine has its own scope!  This also means that you have to use a fully qualified name
 to access a variable from a nested subroutine::
 
@@ -281,7 +281,7 @@ Directives
     Level: not at module scope.
     Tells the assembler to continue assembling on the given alignment interval. For example, ``%align $100``
     will insert an assembler command to align on the next page boundary.
-    Note that this has no impact on variables following this directive! Prog8 reallocates all variables
+    This has no impact on variables following this directive! Prog8 reallocates all variables
     using different rules. If you want to align a specific variable (array or string), you should use
     one of the alignment tags for variable declarations instead.
     Valid intervals are from 2 to 65536.
@@ -295,7 +295,7 @@ Directives
     Level: not at module scope.
     Declares that a piece of *assembly code* is inside the curly braces.
     This code will be copied as-is into the generated output assembly source file.
-    Note that the start and end markers are both *double curly braces* to minimize the chance
+    The start and end markers are both *double curly braces* to minimize the chance
     that the assembly code itself contains either of those. If it does contain a ``}}``,
     it will confuse the parser.
 
@@ -308,7 +308,7 @@ Directives
 
     .. caution::
         Avoid using single-letter symbols in included assembly code, as they could be confused with CPU registers.
-        Also, note that all prog8 symbols are prefixed in assembly code, see :ref:`symbol-prefixing`.
+        Also, all prog8 symbols are prefixed in assembly code, see :ref:`symbol-prefixing`.
 
 
 .. index:: pair: Directives; %asmbinary
@@ -318,7 +318,7 @@ Directives
     This directive can only be used inside a block.
     The assembler itself will include the file as binary bytes at this point, prog8 will not process this at all.
     This means that the filename must be spelled exactly as it appears on your computer's file system.
-    Note that this filename may differ in case compared to when you chose to load the file from disk from within the
+    This filename may differ in case compared to when you chose to load the file from disk from within the
     program code itself (for example on the C64 and X16 there's the PETSCII encoding difference).
     The file is located relative to the current working directory!
     The optional offset and length can be used to select a particular piece of the file.
@@ -344,7 +344,7 @@ Directives
 
     .. caution::
         Avoid using single-letter symbols in included assembly code, as they could be confused with CPU registers.
-        Also, note that all prog8 symbols are prefixed in assembly code, see :ref:`symbol-prefixing`.
+        Also, all prog8 symbols are prefixed in assembly code, see :ref:`symbol-prefixing`.
 
     Here is a small example program to show how to use labels to reference the included contents from prog8 code::
 
@@ -665,7 +665,8 @@ value.  Range expressions used outside a direct ``for`` loop still require a con
 .. attention::
     The value of the loop variable after executing the loop *is undefined* - you cannot rely
     on it to be the last value in the range for instance! The value of the variable should only be used inside the for loop body.
-    (this is an optimization issue to avoid having to deal with mostly useless post-loop logic to adjust the loop variable's value)
+    This is an optimization issue, to avoid having to deal with mostly useless post-loop logic to adjust
+    the loop variable's value.
     Do not modify the loop variable inside the loop body. The compiler assumes exclusive
     control over the loop variable; changing it can cause incorrect iteration counts or
     infinite loops. If you need to alter the iteration, use a ``while`` loop instead.
@@ -968,7 +969,7 @@ on .. goto / on .. call statement (jump table)
 .. index:: single: Conditionals; on goto/call statement
 
 The ``on goto / call`` statement is suitable to create a fast call of a subroutine from a list based on an index value.
-it selects a function to jump to in O(1) whereas a similar when-statement, runs in O(n) because that one checks each index value.
+It selects a function to jump to in O(1), whereas a similar when-statement runs in O(n) because that one checks each index value.
 The ``on goto / call`` instead simply gets the correct entry from an array of function pointers and jumps to it directly.
 The index value that is used is 0-based; 0 will jump to the first entry in the list, 1 to the second, and so on.
 If the value is too large (i.e. outside the list of functions), no call is performed, and execution continues.
@@ -1008,7 +1009,7 @@ compile-time constant integers (bytes or words). They also have to be the same
 datatype as the when-value, otherwise no efficient comparison can be done.
 You can explicitly put a list of numbers that all should result in the same case,
 or even use any *range expression* as long as it denotes a constant list of numbers.
-Be aware that every number is compared individually so using long lists of numbers and/or
+Be careful: every number is compared individually so using long lists of numbers and/or
 many choice cases will result in poor performance. If you need to call a certain function
 based on some sequential index number, look at the ``on .. goto / call`` statement instead.
 
@@ -1173,7 +1174,7 @@ The ``swap`` keyword swaps the values in two variables without the need of a tem
 
     swap(var1, var2)
 
-Supports booleans and all other numeric datatypes including pointers. Note that complicated expressions
+Supports booleans and all other numeric datatypes including pointers. Complicated expressions
 that you want to swap may not be implemented yet. To avoid such errors you'll have to swap them
 in the old fashioned way (using a temporary variable), until an optimized code path gets implemented
 in a future Prog8 version.
@@ -1260,17 +1261,17 @@ arithmetic: ``+``  ``-``  ``*``  ``/``  ``%``
     ``/`` is division (will result in integer division when using on integer operands, and a floating point division when at least one of the operands is a float)
     ``%`` is the remainder operator: ``25 % 7`` is 4.  Be careful: without a space after the %, it will be parsed as a binary number.
     So ``25 %10`` will be parsed as the number 25 followed by the binary number 2, which is a syntax error.
-    Note that remainder is only supported on integer operands (not floats).
+    Remainder is only supported on integer operands (not floats).
 
 bitwise arithmetic: ``&``  ``|``  ``^``  ``~``  ``<<``  ``>>``
     ``&`` is bitwise and, ``|`` is bitwise or, ``^`` is bitwise xor, ``~`` is bitwise invert (this one is an unary operator)
     ``<<`` is bitwise left shift and ``>>`` is bitwise right shift (both will not change the datatype of the value)
-    While the operands can be signed integers (the expression will just consider the underlying bit patterns),
-    the result value of a bitwise expression is always unsigned.
+    The operands can be signed integers; the expression just considers the underlying bit patterns.
+    The result value of a bitwise expression is always unsigned.
 
 assignment: ``=``
     Sets the target on the LHS (left hand side) of the operator to the value of the expression on the RHS (right hand side).
-    Note that an assignment sometimes is not possible or supported.
+    An assignment is sometimes not possible or supported.
     It's possible to chain assignments like ``x = y = z = 42`` as a shorthand for the three assignments with the same value.
 
 augmented assignment: ``+=``  ``-=``  ``*=``  ``/=``  ``&=``  ``|=``  ``^=``  ``<<=``  ``>>=``
@@ -1331,7 +1332,7 @@ address of:  ``&``,   ``&<``,   ``&>``,   ``&&``
     in the :ref:`variables` chapter.
 
     ``&<`` and ``&>`` are for use on split word arrays, they give you the address of the LSB byte array
-    and MSB byte array separately, respectively.   Note that ``&<`` is just the same as ``&`` in this case.
+    and MSB byte array separately, respectively.   ``&<`` is the same as ``&`` in this case.
     For more details on split word arrays, see :ref:`arrayvars`.
     Split word arrays (and with them the ``&>`` operator) don't exist on the m68k targets; there ``&>``
     is an error.
@@ -1345,7 +1346,7 @@ address of:  ``&``,   ``&<``,   ``&>``,   ``&&``
 
 type cast:  ``as``
     Explicitly convert an expression to another data type.
-    Note that ``as`` has very low precedence, lower than most other operators.
+    ``as`` has very low precedence, lower than most other operators.
     This means that ``a + b as long`` is parsed as ``(a + b) as long``.
     If you want to cast an operand before an operation, use parentheses: ``(a as long) * b``.
 
@@ -1584,7 +1585,7 @@ flag such as Carry (Pc).
 
 .. note::
     Asmsubs can also be tagged as ``inline asmsub`` to make trivial pieces of assembly inserted
-    directly instead of a call to them. Note that it is literal copy-paste of code that is done,
+    directly instead of a call to them. It is literal copy-paste of code that is done,
     so make sure the assembly is actually written to behave like such - which probably means you
     don't want a ``rts`` or ``jmp`` or ``bra`` in it!
     Inlining may increase code size significantly and can only be used in limited scenarios
@@ -1593,8 +1594,9 @@ flag such as Carry (Pc).
     The **sixteen 'virtual' 16-bit registers** from the Commander X16 can also be specified as ``R0`` .. ``R15`` .
     This means you don't have to set them up manually before calling a subroutine that takes
     one or more parameters in those 'registers'. You can just list the arguments directly.
-    *This also works on the other compilation targets!*  (however they might not be as efficient there as on the X16,
-    because on most other targets such as the C64, these registers are not placed in zeropage due to lack of space)
+    *This also works on the other compilation targets!*  However, they might not be as efficient there as on
+    the X16, because on most other targets such as the C64, these registers are not placed in zeropage due
+    to lack of space.
     In both regular **prog8** *and* **assembly** code these 'registers' are directly accessible too via:
 
     - ``cx16.r0`` - ``cx16.r15``    (memory-mapped **uword** values, most often these are used)
@@ -1652,7 +1654,7 @@ and returning stuff in several registers as well. The ``clobbers`` clause is use
 are clobbered by the call instead of being unchanged or returning a meaningful result value.
 This register clobber information currently is only for documentation purposes.
 
-Note that the address ($ffd5 in the example above) can actually be an expression as long as it is a compile time constant. This can
+The address ($ffd5 in the example above) can actually be an expression as long as it is a compile time constant. This can
 make it easier to define jump tables for example, like this::
 
     const uword APIBASE = $8000
@@ -1692,7 +1694,7 @@ Otherwise the compiler will warn you about discarding the result of the call.
     There is no guarantee of a left-to-right or right-to-left evaluation of the call arguments.
 
 .. caution::
-    Note that due to the way parameters are processed by the compiler,
+    Due to the way parameters are processed by the compiler,
     subroutines are *non-reentrant*. This means you cannot create *recursive calls* (routines calling themselves)
     without doing some manual work to save and restore the variables that need to retain their value between calls.
     If you really need a recursive algorithm, there are a few options:
@@ -1775,11 +1777,11 @@ Deferred ("cleanup") code
 .. index:: pair: Subroutines; Deferred code
 
 Usually when a subroutine exits, it has to clean up things that it worked on. For example, it has to close
-a file that it opened before to read data from, or it has to free a piece of memory that it allocated via
-a dynamic memory allocation library, etc.
-Every spot where the subroutine exits (return statement, jump, or the end of the routine) you have to take care
-of doing the cleanups required.  This can get tedious, and the cleanup code is separated from the place where
-the resource allocation was done at the start.
+a file it opened earlier to read data from, or free a piece of memory it allocated via a dynamic memory
+allocation library.
+Every exit of the subroutine (a return statement, a jump, or the end of the routine) needs the required
+cleanups. This can get tedious, and the cleanup code is separated from the place where the resource
+allocation was done at the start.
 
 The ``defer`` keyword can be used to schedule a statement (or block of statements) to be executed
 just before exiting of the current subroutine. That can be via a return statement or a jump to somewhere else,

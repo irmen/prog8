@@ -188,9 +188,8 @@ Miscellaneous
 
     .. note::
         The arguments are in 'natural' left to right reading order that is first the msb then the lsb.
-        Don't get confused by how the system actually stores this 16-bit word value in memory (which is
-        in little-endian format, so lsb first then msb, on the 6502 targets; the m68k targets store it
-        big-endian, msb first)
+        The system stores this 16-bit word value in memory in little-endian format on the 6502 targets
+        (lsb first, then msb); the m68k targets store it big-endian (msb first).
 
 :index:`mklong` (msb, b2, b1, lsb)
     Efficiently create a long value from four bytes (the msb, second, first and finally the lsb). Avoids multiplication and shifting.
@@ -198,9 +197,8 @@ Miscellaneous
 
     .. note::
         The arguments are in 'natural' left to right reading order that is first the msb then the lsb.
-        Don't get confused by how the system actually stores this 32-bit word value in memory (which is
-        in little-endian format, so lsb first then b1, b2 and finally the msb, on the 6502 targets;
-        the m68k targets store it big-endian, msb first)
+        The system stores this 32-bit word value in memory in little-endian format on the 6502 targets
+        (lsb first, then b1, b2 and finally the msb); the m68k targets store it big-endian (msb first).
 
 :index:`mklong2` (msw, lsw)
     Efficiently create a long value from two words (the msw, and the lsw). Avoids multiplication and shifting.
@@ -274,9 +272,9 @@ Miscellaneous
     Rotate the bits in x (byte or word) one position to the left.
     This uses the CPU's rotate semantics: bit 0 will be set to the current value of the Carry flag,
     while the highest bit will become the new Carry flag value.
-    (essentially, it is a 9-bit or 17-bit rotation)
-    On M68k targets, the extend (X) bit substitutes the carry flag for rotates
-    (because M68k has separate C and X flags; ``set_carry`` and ``clear_carry`` manage both).
+    Essentially, it is a 9-bit or 17-bit rotation.
+    On M68k targets, the extend (X) bit substitutes the carry flag for rotates, because M68k has
+    separate C and X flags; ``set_carry`` and ``clear_carry`` manage both.
     Modifies in-place, doesn't return a value (so can't be used in an expression).
     You can rol a memory location directly by using the direct memory access syntax, so like ``rol(@($5000))``
     You can use ``if_cc`` or ``if_cs`` after a rol to act on the new carry bit, if required.
@@ -291,9 +289,9 @@ Miscellaneous
     Rotate the bits in x (byte or word) one position to the right.
     This uses the CPU's rotate semantics: the highest bit will be set to the current value of the Carry flag,
     while bit 0 will become the new Carry flag value.
-    (essentially, it is a 9-bit or 17-bit rotation)
-    On M68k targets, the extend (X) bit substitutes the carry flag for rotates
-    (because M68k has separate C and X flags; ``set_carry`` and ``clear_carry`` manage both).
+    Essentially, it is a 9-bit or 17-bit rotation.
+    On M68k targets, the extend (X) bit substitutes the carry flag for rotates, because M68k has
+    separate C and X flags; ``set_carry`` and ``clear_carry`` manage both.
     Modifies in-place, doesn't return a value (so can't be used in an expression).
     You can ror a memory location directly by using the direct memory access syntax, so like ``ror(@($5000))``
     You can use ``if_cc`` or ``if_cs`` after a ror to act on the new carry bit, if required.
@@ -1443,7 +1441,7 @@ For non-blocking sequenced playback (driven by an IRQ handler):
 
 ``sub set_gap(ubyte ticks)``
     Set the number of silence ticks between notes (default 1).
-    ``0`` means no silence gap at all — notes flow into each other seamlessly.
+    ``0`` means no silence gap at all — notes flow into each other without a break.
     The note-on time is automatically adjusted: ``note = duration - gap``,
     minimum 1 tick. This means changing the gap does **not** affect the
     overall tempo. Call this before ``song()``.

@@ -103,7 +103,7 @@ What they are intended for
     Without these IDs, the bank selector would only know that *some* routine is being called, 
     but it wouldn't know which one unless you had a separate manager routine for every single banked subroutine.
 
-Note that the same banked subroutine called from multiple different places in your code will currently
+The same banked subroutine called from multiple different places in your code will currently
 result in the *same* ID being passed to the banking routine, as the ID is unique per ``extsub`` declaration.
 
 Viewing assigned IDs
@@ -167,7 +167,7 @@ The bank number is not translated into assembly (only as a comment)::
     On the C128, it means programs can use ~41 Kb of contiguous RAM at $1c00 to $c000 (exclusive).
     However, if your program uses floats, Prog8 *does* need the Basic ROM for the floating point routines,
     and it won't be banked out. Such programs are limited to the regular size of about 38 Kb on the C64, and less on the C128.
-    Be aware that the bank setting is only done if you are *not* using ``%option no_sysinit`` because the
+    Be aware: the bank setting is only done if you are *not* using ``%option no_sysinit`` because the
     program's bootstrap code is what initializes the memory bank configuration.
 
 
@@ -245,7 +245,7 @@ Regular subroutines
 For *single* byte, word, and pointer arguments (not long or float), the values are simply loaded in cpu registers by the caller before calling the subroutine.
 *The subroutine itself will take care of putting the values into the parameter variables.* This saves on code size because
 otherwise all callers would have to store the values in those variables themselves.
-Note that this convention is also still used for subroutines that specify parameters to be put into
+This convention is also still used for subroutines that specify parameters to be put into
 one of the *virtual registers* R0-R15, as those are in the end just variables too (see :ref:`reusevirtualregs_params`)
 The rules are as follows:
 
@@ -295,7 +295,7 @@ In case of *multiple* return values:
 
 These are kernal (ROM) routines or low-level assembly routines, that get their arguments via specific registers.
 Sometimes even via a processor status flag such as the Carry flag.
-Note that word values can be put in a "CPU register pair" such as AY (meaning A+Y registers) but also
+Word values can be put in a "CPU register pair" such as AY (meaning A+Y registers) but also
 in one of the 16 'virtual' 16 bit registers introduced by the Commander X16, R0-R15.
 Float values can be put in the FAC1 or FAC2 floating point 'registers'.
 The return values also get returned via designated registers, or via processor status flags again.
@@ -336,7 +336,7 @@ Some notes and references into the compiler's source code modules:
    is more or less a machine code language for a virtual machine - and indeed this is what the built-in
    prog8 VM will execute if you use the 'virtual' compilation target and use ``-emu`` to launch the VM.
    (``intermediate`` and ``codeGenIntermediate`` modules, and ``virtualmachine`` module for the VM related stuff)
-   Note that this IR is still *targeted to one specific compilation target only*; various properties and all library
+   This IR is still *targeted to one specific compilation target only*; various properties and all library
    code for the selected target machine is encoded into the IR. It is *not possible* to eventually create a C64 program
    from an IR file created for the CommanderX16 target.
 

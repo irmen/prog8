@@ -103,9 +103,9 @@ Language :index:`Features`
 - ``when`` statement to avoid if-else chains
 - ``on .. goto`` statement for fast jump tables
 - ``in`` expression for concise and efficient multi-value/containment test
-- ``defer`` statement with program-wide unwinding to help write concise and robust resource cleanup logic
+- ``defer`` statement with program-wide unwinding to help write reliable resource cleanup code
 - Several specialized built-in functions, such as ``lsb``, ``msb``, ``min``, ``max``, ``rol``, ``ror``
-- Various powerful built-in libraries to do I/O, number conversions, graphics and more
+- Built-in libraries for I/O, number conversions, graphics and more
 - Floating point math is supported on most cbm-compatible compiler targets.
 - Provides access to most Kernal ROM routines as external subroutine definitions you can call normally.
 - Strings can contain escaped characters but also many symbols directly if they have a PETSCII equivalent, such as "♠♥♣♦π▚●○╳". Characters like ^, _, \\, {, } and | are also accepted and converted to the closest PETSCII equivalents.

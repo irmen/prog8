@@ -1255,7 +1255,7 @@ class TestInstructionSelectionOptimizations : FunSpec({
         lines.any { it == "move.w  #1234,var" } shouldBe true
     }
 
-    // === extb.l gate robustification ===
+    // === extb.l gate hardening ===
 
     test("M68020 sign-extends byte to long with extb.l") {
         val lines = generateAsm(

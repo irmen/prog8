@@ -56,7 +56,7 @@ If it matches one of the existing built-in compilation targets, the internal lib
 if the user supplied library location doesn't contain a replacement library file for anything that might get imported.
 The path you need to provide for the ``library`` variable can be relative (to the current working directory where you launch the compiler from)
 and you can use a tilde ``~`` in it like in a shell path, to refer to a user's home directory.
-Note that library modules not unique to a specific compilation target (for example, `buffers`, `sorting` or `strings`) will
+Library modules not unique to a specific compilation target (for example, `buffers`, `sorting` or `strings`) will
 be picked up from the internal library files just fine as was always the case. You can still provide custom versions of them
 in your own library folder of course, like you already could with using the ``-srcdirs`` compiler flag.
 
@@ -151,9 +151,9 @@ A minimal script for a custom target looks like this::
 
 ``ENTRY`` should point at ``prog8_program_start``, the label the compiler emits for the start of
 the program. The ``.data`` and ``.bss`` sections are deliberately merged into a single output
-section so that the linker places them in one load segment: if ``.bss`` were its own output section,
+section so that the linker places them in one load segment. If ``.bss`` were its own output section,
 the linker would compute that segment's address as "end of the previous segment + alignment" instead
-of honouring the address in the script, and ``prog8_program_end`` would no longer point at the true
+of honouring the address in the script. Then ``prog8_program_end`` would no longer point at the true
 end of the loaded image. For the same reason ``prog8_program_end`` is defined by the linker script
 rather than by the generated assembly. Startup code that needs to clear the bss, such as the
 ``qemu68k`` bootinfo support, references that symbol, so leave it in.
@@ -165,9 +165,9 @@ Source level restrictions
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The m68k code generator rejects a number of directives and options that only make sense for a
-6502 target: the ``%launcher``, ``%address``, ``%memtop`` and ``%varsaddress`` directives, register
-annotations on ordinary subroutine parameters (they are only used in ``asmsub``), split word arrays
-written as ``&>``, and specific block addresses. The ``-varsgolden``, ``-varshigh`` and
+6502 target: the ``%launcher``, ``%address``, ``%memtop`` and ``%varsaddress`` directives, split word arrays
+written as ``&>``, and specific block addresses. Register annotations on ordinary subroutine parameters
+are rejected as well; those are only used in ``asmsub``. The ``-varsgolden``, ``-varshigh`` and
 ``-varsaddress`` command line options are rejected as well, so where the variables are placed is
 decided by the linker script instead.
 
@@ -470,17 +470,16 @@ Other targets may use a different vector or may not support bare handlers at all
 
 .. caution::
     It is advised to **not use floating point calculations** inside IRQ handler routines.
-    Beside them being very slow, there are intricate requirements such as having the
-    correct ROM bank enabled to be able to successfully call them (and making sure the correct
-    ROM bank is reset at the end of the handler), and the possibility
-    of corrupting variables and floating point calculations that are being executed
-    in the interrupted main program. These memory locations should be backed up
-    and restored at the end of the handler, further increasing its execution time...
+    They are very slow, and the correct ROM bank must be enabled to call them. Make sure the correct
+    ROM bank is reset at the end of the handler as well.
+    There is also the possibility of corrupting variables and floating point calculations
+    that are being executed in the interrupted main program. These memory locations should be
+    backed up and restored at the end of the handler, further increasing its execution time...
 
 .. caution::
     The Commander X16's sixteen 'virtual registers' R0-R15 *are not preserved* in the IRQ handler! (On any system!)
     So you should make sure that the handler routine does NOT use these registers, or do some sort of saving/restoring yourself
-    of the ones that you do need in the IRQ handler.  Note that Prog8 itself may also use these registers, so be very careful.
+    of the ones that you do need in the IRQ handler.  Prog8 itself may also use these registers, so be very careful.
     This is not a X16 specific thing; these registers also exist on the other compiler targets, and the same
     issue holds there.
 
@@ -495,7 +494,7 @@ Commander X16 specific IRQ handling
 ===================================
 .. index:: single: Targets; Commander X16 IRQ Handling
 
-Note that for the CommanderX16 the set_rasterirq() will disable VSYNC irqs and never call the system IRQ handler regardless
+Be careful: for the CommanderX16, set_rasterirq() will disable VSYNC irqs and never call the system IRQ handler regardless
 of the return value of the user handler routine. This also means the default sys.wait() routine won't work anymore,
 when using this handler.
 
@@ -529,7 +528,7 @@ Look at the examples/cx16/multi-irq-new.p8 example to see how these routines can
 Here they are, all available in ``cx16``:
 
 ``disable_irqs ()``
-    Disables all Vera IRQ sources. Note that the CPU irq disable flag is not changed by this routine.
+    Disables all Vera IRQ sources. The CPU irq disable flag is not changed by this routine;
     you can manipulate that via ``sys.set_irqd()`` and ``sys.clear_irqd()`` as usual.
 
 ``enable_irq_handlers (bool disable_all_irq_sources)``
@@ -569,4 +568,4 @@ And a utility method to set the VIA1 timer1 to trigger IRQs at regular intervals
     Set VIA1 timer1 to trigger after the given delay (cycles).
     Enables VIA timer1 irqs if delay>0, otherwise disables it.
     If keeprunning then the timer keeps triggering, otherwise it stops after a single trigger.
-    Note that the speed of the timer depends on the clock speed of the X16 (controlled by a jumper on the motherboard, usually 8 MHz).
+    The speed of the timer depends on the clock speed of the X16 (controlled by a jumper on the motherboard, usually 8 MHz).

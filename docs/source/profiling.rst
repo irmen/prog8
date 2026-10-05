@@ -21,7 +21,7 @@ or :source:`online here <scripts/profiler.py>`).
 This script cross-references the memory stats file with an assembly listing of the program, produced by the Prog8 compiler with the ``-asmlist`` option.
 It then prints the top N lines in your (assembly) program source that perform the most reads and writes,
 which you can use to identify possible hot spots/bottlenecks/variables that should be better placed in zeropage etc.
-Note that the profiler simply works with the total number of accesses to memory locations.
+The profiler works with the total number of accesses to memory locations.
 This is *not* the same as the most run-time (cpu instructions cycle times aren't taken into account at all)!
 Here is an example of the output it generates:
 

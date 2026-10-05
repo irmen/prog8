@@ -19,7 +19,7 @@ import prog8.code.target.zp.PETZeropage
 
 
 /**
- * Comprehensive tests for Zeropage free list configurations across all targets.
+ * Tests for Zeropage free list configurations across all targets.
  * 
  * Tests verify that for each target and ZeropageType combination:
  * - The exact list of free locations is correct

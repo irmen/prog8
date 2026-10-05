@@ -38,13 +38,13 @@ internal fun IRInstruction.forwardableImmediateFor(register: VirtualRegister, ty
  * It may contain registers that are NOT call arguments.
  * For every call argument register, the loaded immediate value is forwarded
  * directly into the argument's hardware register instead of going through the
- * register file (move #imm,dX instead of move p8_regfile+N,dX, and
- * fmovecr or a const-pool load into fpX instead of moving through p8_fregfile).
+ * register file. That is move #imm,dX instead of move p8_regfile+N,dX, and
+ * fmovecr or a const-pool load into fpX instead of moving through p8_fregfile.
  *
  * [deadRegisters] are the registers from [loads] that are not read anywhere
- * else in the subroutine (their only use is the forwarded call argument);
- * their register-file stores are omitted entirely. Note that this can also
- * remove stores for registers that are not call arguments at all.
+ * else in the subroutine; their only use is the forwarded call argument, so
+ * their register-file stores are omitted entirely. This can also remove
+ * stores for registers that are not call arguments at all.
  *
  * The read check covers the subroutine's whole flattened instruction list
  * rather than only the part after the call (see `isRegisterReadElsewhere`),

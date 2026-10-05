@@ -43,7 +43,7 @@ sealed interface CallTarget {
 
 /** where an argument comes from, or where a result is delivered */
 sealed interface CallLocation {
-    /** no explicit location: value simply lives in the given virtual register */
+    /** no explicit location: value lives in the given virtual register */
     data object Default : CallLocation
 
     /** the value is passed via the memory location of a subroutine parameter variable */

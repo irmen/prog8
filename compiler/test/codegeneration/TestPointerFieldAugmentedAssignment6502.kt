@@ -9,9 +9,9 @@ import java.nio.file.Files
 /**
  * These tests execute compiled 6502 code in the ksim65 simulator to verify that
  * in-place modifications (augmented assignments) on struct fields reached via
- * a pointer are correct, especially when the pointer variable is *not* located
- * in the zeropage (so its effective address must live in the shared scratch
- * pointer that evaluation of the source expression may clobber).
+ * a pointer are correct. This is especially tricky when the pointer variable is
+ * *not* located in the zeropage: its effective address must live in the shared
+ * scratch pointer, which evaluation of the source expression may clobber.
  */
 class TestPointerFieldAugmentedAssignment6502 : FunSpec({
     val outputDir = Files.createTempDirectory("prog8test")

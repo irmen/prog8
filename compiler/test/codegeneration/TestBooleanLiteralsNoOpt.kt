@@ -10,7 +10,7 @@ import prog8tests.helpers.compileText
 /**
  * Tests for bugs that only occurred when compiling with -noopt (optimizations disabled).
  *
- * These tests ensure that boolean literals in logical expressions are handled correctly
+ * These tests verify that boolean literals in logical expressions are handled correctly
  * when the optimizer doesn't remove them.
  */
 class TestBooleanLiteralsNoOpt: FunSpec({

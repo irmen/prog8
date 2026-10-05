@@ -223,7 +223,7 @@ by the compiler everywhere you refer to the constant (and no memory is allocated
 for the constant itself). Only the simple numeric types (byte, word, long, float) and pointer types can be defined as a constant.
 If something is defined as a constant, very efficient code can usually be generated from it.
 Variables on the other hand can't be optimized as much, need memory, and more code to manipulate them.
-Note that a subset of the library routines in the ``math``, ``strings`` and ``floats`` modules are recognised in
+A subset of the library routines in the ``math``, ``strings`` and ``floats`` modules are recognised in
 compile time expressions. For example, the compiler knows what ``math.sin8u(12)`` is and replaces it with the computed result.
 
 The type of a constant can be omitted. When omitted, the type is inferred from the initializer expression:
@@ -310,7 +310,7 @@ Integers (bytes, words, longs)
 
 Integers are 8, 16 or 32 bit numbers and can be written in normal decimal notation,
 in hexadecimal and in binary notation. There is no octal notation. Hexadecimal has the '$' prefix,
-binary has the '%' prefix. Note that ``%`` is also the remainder operator so be careful: if you want to take the remainder
+binary has the '%' prefix. ``%`` is also the remainder operator so be careful: if you want to take the remainder
 of something with an operand starting with 1 or 0, you'll have to add a space in between, otherwise
 the parser thinks you've typed an invalid binary number.
 
@@ -390,8 +390,8 @@ Floating point support is available on the c64 and cx16 (and virtual) compiler t
 On the cbm-compatible systems, the rom routines are used for floating point operations,
 so on both systems the correct rom banks have to be banked in to make this work.
 Although the C128 shares the same floating point format, Prog8 currently doesn't support
-using floating point on that system (because the c128 fp routines require the fp variables
-to be in another ram bank than the program, which Prog8 doesn't support yet).
+using floating point on that system. The c128 fp routines require the fp variables to be in
+another ram bank than the program, which Prog8 doesn't support yet.
 
 Also your code needs to import the ``floats`` library to enable floating point support
 in the compiler, and to gain access to the floating point routines.
@@ -415,9 +415,10 @@ Arrays
 ^^^^^^
 .. index:: pair: Data Types; Arrays
 
-Arrays can be created from a list of booleans, bytes, words, floats, addresses of other variables
-(such as explicit address-of expressions, strings, or other array variables), pointers, struct initializers,
+Arrays can be created from a list of booleans, bytes, words, floats, pointers, struct initializers,
 or ``memory()`` calls (either directly or via ``const`` variables holding ``memory()`` results).
+Addresses of other variables are also accepted, such as explicit address-of expressions, strings,
+or other array variables.
 The values in an array literal always have to be constants.
 A trailing comma is allowed, sometimes this is easier when copying values
 or when adding more stuff to the array later. Here are some examples of arrays::
@@ -439,10 +440,14 @@ or when adding more stuff to the array later. Here are some examples of arrays::
 
 .. note::
     On the 6502-family targets (c64, c128, cx16, pet32, virtual) the 8-bit index register limits an array to be
-    indexable by a single byte. This means byte/string arrays are limited to 256 elements (255 characters for a
-    string, because of the terminating null byte), word arrays to 256 elements as well (if split, which is the
-    default; when not split the maximum length is 128; see below for details about this distinction), and
-    float arrays to 51 elements.
+    indexable by a single byte. This means:
+
+    - byte/string arrays are limited to 256 elements (255 characters for a string, because of the
+      terminating null byte)
+    - word arrays to 256 elements as well, if split (which is the default); when not split the maximum
+      length is 128. See below for details about this distinction.
+    - float arrays to 51 elements
+
     On the m68k targets (amiga500, amiga1200, qemu68k) the total array size limit is **32768 bytes**. There the
     byte/bool array limit is 32768 elements, the word array limit is 16384 elements, and the long, float and
     string array limits are 8192 elements each (a ``str`` array holds 4-byte pointers on these targets).
@@ -460,7 +465,7 @@ need this you have to write it out depending on the use case: you can copy the m
 ``sys.memcopy(sourcearray, targetarray, sizeof(targetarray))``. Or perhaps use ``sys.memset`` instead to
 set it all to the same value, or maybe even simply assign the individual elements.
 
-Note that the various keywords for the data type and variable type (``byte``, ``word``, ``const``, etc.)
+The various keywords for the data type and variable type (``byte``, ``word``, ``const``, etc.)
 can't be used as *identifiers* elsewhere. You can't make a variable, block or subroutine with the name ``byte``
 for instance. The same applies to the names of the builtin functions (such as ``memory``, ``mkword``,
 ``peek`` and ``poke``): they cannot be redefined as a variable, block, subroutine, struct or label.
@@ -575,12 +580,12 @@ code that expects the words to be sequentially in memory (such as the cx16.FB_se
     you have to create a normal array variable first and then pass that to the subroutine.
 
 .. caution::
-    Be aware that the default is to split word arrays. Normal array access is taken care of by Prog8, so you won't
+    The default is to split word arrays. Normal array access is taken care of by Prog8, so you won't
     notice this optimization. However if you are accessing the array's values using other ways (for example via a pointer,
     and then using ``peekw`` to get the value) you have to be aware of this. In that ``peekw`` example you have
-    to make sure to use ``@nosplit`` on the word array so that the words stay sequentially in memory which is what ``peekw`` needs.
-    Also be careful when passing arrays to library routines (this is via a pointer!): you have to make sure
-    the library routine can deal with the split array otherwise you have to use ``@nosplit`` as well.
+    to use ``@nosplit`` on the word array so that the words stay sequentially in memory which is what ``peekw`` needs.
+    Also be careful when passing arrays to library routines (this is via a pointer!): the library routine
+    has to be able to deal with the split array, otherwise you have to use ``@nosplit`` as well.
 
 
 .. _encodings:
@@ -648,9 +653,9 @@ There are several escape sequences available to put special characters into your
   Characters like ^, _, \\, {, } and | (that have no direct PETSCII counterpart) are still accepted and converted to the closest PETSCII equivalents. (Make sure you save the source file in UTF-8 encoding if you use this.)
 
 Using the ``in`` operator you can easily check if a character is present in a string,
-example: ``if '@' in email_address {....}`` (however this gives no clue about the location
-in the string where the character is present, if you need that, use the ``strings.find()``
-library function instead)
+example: ``if '@' in email_address {....}``. However this gives no clue about the location
+in the string where the character is present; if you need that, use the ``strings.find()``
+library function instead.
 **Caution:**
 This checks *all* elements in the string with the length as it was initially declared.
 Even when a string was changed and is terminated early with a 0-byte early,
@@ -774,7 +779,7 @@ without defining a memory-mapped location, you can do so by enclosing the addres
     @(vic+$20) = 6    ; you can also use expressions to 'calculate' the address
 
 You can actually also use the array indexing notation for this. It will be silently converted into
-the direct memory access expression as explained above. Note that unlike regular arrays,
+the direct memory access expression as explained above. Unlike regular arrays,
 the index is not limited to an ubyte value. You can use a larger integer type to index a pointer variable like this::
 
     pointervar[999] = 0     ; set memory byte to zero at location pointervar + 999.
