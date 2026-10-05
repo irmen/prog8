@@ -267,4 +267,44 @@ class TestStackFrameEmission : FunSpec({
         errors.infos shouldBe emptyList()
     }
 
+    test("a long run of longword zero-clears lowers to a dbra loop") {
+        val stores = (0 until 17).map { i ->
+            IRInstructions.storeZero(Opcode.STOREZM, IRDataType.LONG, IRMemory.frameDirect(-68 + i * 4))
+        }
+        val lines = generateAsm(68, stores + IRInstructions.simple(Opcode.RETURN))
+        lines.any { it == "moveq  #0,d0" } shouldBe true
+        lines.any { it == "lea  -68(a5),a0" } shouldBe true
+        lines.any { it == "moveq  #16,d1" } shouldBe true
+        lines.any { it == "move.l  d0,(a0)+" } shouldBe true
+        lines.count { it.startsWith("dbra  d1,zeroloop_") } shouldBe 1
+        lines.none { it.startsWith("clr.l") } shouldBe true
+    }
+
+    test("a short run of longword zero-clears keeps straight stores") {
+        val stores = (0 until 15).map { i ->
+            IRInstructions.storeZero(Opcode.STOREZM, IRDataType.LONG, IRMemory.frameDirect(-60 + i * 4))
+        }
+        val lines = generateAsm(60, stores + IRInstructions.simple(Opcode.RETURN))
+        lines.count { it.startsWith("clr.l") } shouldBe 15
+        lines.none { it.startsWith("dbra") } shouldBe true
+    }
+
+    test("an interleaved store splits the zero-clear run") {
+        val first = (0 until 8).map { i ->
+            IRInstructions.storeZero(Opcode.STOREZM, IRDataType.LONG, IRMemory.frameDirect(-68 + i * 4))
+        }
+        val second = (0 until 8).map { i ->
+            IRInstructions.storeZero(Opcode.STOREZM, IRDataType.LONG, IRMemory.frameDirect(-32 + i * 4))
+        }
+        val instructions = first +
+            IRInstructions.storeImmediate(IRDataType.BYTE, 0, IRMemory.frameDirect(-36)) +
+            second +
+            IRInstructions.simple(Opcode.RETURN)
+        val lines = generateAsm(68, instructions)
+        // two runs of 8 stay below the loop threshold
+        lines.none { it.startsWith("dbra") } shouldBe true
+        lines.count { it.startsWith("clr.l") } shouldBe 16
+        lines.any { it == "clr.b  -36(a5)" } shouldBe true
+    }
+
 })

@@ -13,7 +13,7 @@ import prog8.intermediate.*
  *  - rewrites every memory reference to AddressBase.FrameSlot and every call site's argument
  *    locations to CallLocation.FrameSlot,
  *  - removes the moved variables from the static (BSS) symbol table,
- *  - emits prologue zero-clears for clean locals (parameters are written by the caller),
+ *  - emits coalesced prologue zero-clears for clean locals (parameters are written by the caller),
  *  - stamps frameSize / incomingSize on the IRSubroutine.
  *
  * Everything else keeps the existing static path verbatim. A subroutine is frameable when ALL of:
@@ -453,8 +453,21 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
         if (candidates.isEmpty() && paramSlots.isEmpty() && sub.label !in reentrant)
             return static("it has no local variables or parameters")
 
-        val frameVars = mutableListOf<FrameVar>()
-        var cursor = 0
+        // Collect layout info first, then place clean (zero-clear) locals together so they
+        // form one contiguous region that emitZeroRegions and the m68k backend can clear
+        // efficiently.  Non-clean locals (dirty, initialized, float) are placed afterwards.
+        data class LocalLayout(
+            val name: String,
+            val elemDt: DataType,
+            val count: Int,
+            val size: Int,
+            val alignment: Int,
+            val dirty: Boolean,
+            val initialized: Boolean,
+            val isFloat: Boolean
+        )
+
+        val locals = mutableListOf<LocalLayout>()
         for (name in candidates) {
             val v = program.st.lookup(name) as? IRStStaticVariable ?: continue
             val elemDt = isFrameableVariable(v, name, addressTaken, asmTexts) ?: continue
@@ -466,13 +479,32 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
                 size >= 2 -> 2
                 else -> 1
             }
-            cursor = cursor.floorDiv(alignment) * alignment      // align down (cursor grows negative)
-            cursor -= size
-            frameVars += FrameVar(name, cursor, elemDt, count, v.dirty)
+            val initialized = v.initializationValue != null
+            val isFloat = irTypeFor(elemDt) == IRDataType.FLOAT
+            locals += LocalLayout(name, elemDt, count, size, alignment, v.dirty, initialized, isFloat)
             if (v.length != null && size > 8 && !v.dirty && v.initializationValue == null) {
                 val shortName = name.substringAfterLast('.').removePrefix("p8v_")
                 errors.warn("local array '$shortName' ($size bytes) in subroutine '${userName(sub)}' is zero-initialized on every call which can be costly; consider @dirty if you assign it before use", sub.position)
             }
+        }
+
+        val sortedLocals = locals.sortedWith(
+            compareBy<LocalLayout> { when {
+                it.dirty || it.initialized || it.isFloat -> 1
+                else -> 0
+            } }
+                .thenByDescending { it.alignment }
+                .thenBy { if (it.size % it.alignment == 0) 0 else 1 }  // size-aligned locals leave no gap
+                .thenByDescending { it.size }
+                .thenBy { it.name }
+        )
+
+        val frameVars = mutableListOf<FrameVar>()
+        var cursor = 0
+        for (local in sortedLocals) {
+            cursor = cursor.floorDiv(local.alignment) * local.alignment
+            cursor -= local.size
+            frameVars += FrameVar(local.name, cursor, local.elemDt, local.count, local.dirty)
         }
         // a subroutine that can be re-entered needs its virtual registers per-activation as well:
         // the flat program-static register file is shared by all activations of the same subroutine
@@ -567,6 +599,10 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
                 prologueInstrs += IRInstructions.storeMemory(Opcode.STOREM, irType, scratch, IRMemory.direct(name))
             }
         }
+        // Zero regions: byte ranges [start, end) of clean (non-dirty, non-initialized)
+        // non-float locals. Regions are merged across variables wherever exactly
+        // contiguous, then emitted as aligned stores below.
+        val zeroRegions = mutableListOf<Pair<Int, Int>>()
         for (fv in frameVars) {
             val init = (program.st.lookup(fv.name) as? IRStStaticVariable)?.initializationValue as? IRVariableInitializer.Numeric
             if (init != null) {
@@ -582,12 +618,18 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
             if (fv.dirty) continue
             val irType = irTypeFor(fv.elemDt) ?: continue
             val elemSize = target.memorySize(fv.elemDt, null)
-            // float scalars and float array elements are zero-filled with STOREZM float stores
-            // (the m68k backend supports them); the VM does not run this pass
-            for (element in 0 until fv.count) {
-                prologueInstrs += IRInstructions.storeZero(Opcode.STOREZM, irType, IRMemory.frameDirect(fv.slot, element * elemSize))
+            if (irType == IRDataType.FLOAT) {
+                // float scalars and float array elements are zero-filled with STOREZM float stores
+                // (the m68k backend supports them); the VM does not run this pass.
+                // Floats never join zero regions, so they also break adjacency between them.
+                for (element in 0 until fv.count) {
+                    prologueInstrs += IRInstructions.storeZero(Opcode.STOREZM, irType, IRMemory.frameDirect(fv.slot, element * elemSize))
+                }
+                continue
             }
+            zeroRegions += fv.slot to fv.slot + fv.count * elemSize
         }
+        emitZeroRegions(prologueInstrs, zeroRegions)
 
         // the moved variables now live per-activation; remove them from the static (BSS) symbol table.
         // copy-in parameters keep their static cell for the external reference (§6.1)
@@ -603,6 +645,43 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
         sub.incomingSize = paramSlots.size * PARAM_SLOT_SIZE
         sub.frameVregSlots = vregSlots
         return Frameability.Frameable(FrameLayoutResult(frameSize, sub.incomingSize, paramSlots, paramDisplacements, copyInParams))
+    }
+
+    /**
+     * Emits the merged zero-clear stores for [regions]. Exactly-contiguous ranges merge
+     * regardless of owning variable; the frameVars walk above is name-ordered rather than
+     * address-ordered, so regions are sorted first. Each merged run becomes one contiguous,
+     * address-ascending STOREZM block: the m68k backend's clear-loop detection relies on
+     * that shape, so nothing may be interleaved inside a run.
+     */
+    private fun emitZeroRegions(prologueInstrs: MutableList<IRInstruction>, regions: List<Pair<Int, Int>>) {
+        val merged = mutableListOf<Pair<Int, Int>>()
+        for ((start, end) in regions.sortedBy { it.first }) {
+            val last = merged.lastOrNull()
+            if (last != null && last.second == start)
+                merged[merged.lastIndex] = last.first to end
+            else
+                merged += start to end
+        }
+        for ((lo, hi) in merged) {
+            var offset = lo
+            // a5-relative word/longword access requires an even address; a run starting
+            // odd clears its first byte separately, which restores evenness
+            if (offset % 2 != 0) {
+                prologueInstrs += IRInstructions.storeZero(Opcode.STOREZM, IRDataType.BYTE, IRMemory.frameDirect(offset))
+                offset++
+            }
+            while (hi - offset >= 4) {
+                prologueInstrs += IRInstructions.storeZero(Opcode.STOREZM, IRDataType.LONG, IRMemory.frameDirect(offset))
+                offset += 4
+            }
+            if (hi - offset >= 2) {
+                prologueInstrs += IRInstructions.storeZero(Opcode.STOREZM, IRDataType.WORD, IRMemory.frameDirect(offset))
+                offset += 2
+            }
+            if (hi - offset == 1)
+                prologueInstrs += IRInstructions.storeZero(Opcode.STOREZM, IRDataType.BYTE, IRMemory.frameDirect(offset))
+        }
     }
 
     /** the virtual registers used by the instructions of a subroutine, by register number */

@@ -113,6 +113,8 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         const val FLOAT_REGFILE_LABEL = "p8_fregfile"
         // frames larger than this are reported with an INFO message; deep recursion multiplies the frame per call
         const val LARGE_FRAME_SIZE = 512
+        // consecutive STOREZM LONG frame stores from which a dbra clear loop is smaller than straight clr.l
+        const val ZERO_CLEAR_LOOP_THRESHOLD = 16
     }
 
     init {
@@ -933,8 +935,18 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
                 }
             }
         }
-        for (index in chunk.instructions.indices) {
+        var index = 0
+        while (index < chunk.instructions.size) {
             val insn = chunk.instructions[index]
+            // Long ascending STOREZM LONG runs lower to a dbra loop; short runs keep clr.l.
+            val zeroRun = frameZeroRunLength(chunk.instructions, index)
+            if (zeroRun >= ZERO_CLEAR_LOOP_THRESHOLD) {
+                val mem = insn.memory as MemoryReference.Direct
+                val slot = mem.base as AddressBase.FrameSlot
+                emitFrameZeroLoop(slot.offset + mem.displacement, zeroRun)
+                index += zeroRun
+                continue
+            }
             val clobbersLoopCounter = preserveLoopCounter && mayClobberLoopCounter(insn)
             if (clobbersLoopCounter)
                 emitLine("move.w  d7,-(sp)", "save loop counter around call")
@@ -945,7 +957,55 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
             )
             if (clobbersLoopCounter)
                 emitLine("move.w  (sp)+,d7", "restore loop counter after call")
+            index++
         }
+    }
+
+    /**
+     * Counts consecutive STOREZM LONG instructions on ascending frame-slot displacements
+     * starting at [instructions[from]], stepping by one longword with nothing interleaved.
+     * Returns 0 when [instructions[from]] is not such a store.
+     */
+    private fun frameZeroRunLength(instructions: List<IRInstruction>, from: Int): Int {
+        val first = instructions[from]
+        if (first.opcode != Opcode.STOREZM || first.type != IRDataType.LONG) return 0
+        val firstMem = first.memory as? MemoryReference.Direct ?: return 0
+        if (firstMem.base !is AddressBase.FrameSlot) return 0
+        var expected = (firstMem.base as AddressBase.FrameSlot).offset + firstMem.displacement
+        var count = 0
+        var index = from
+        while (index < instructions.size) {
+            val insn = instructions[index]
+            if (insn.opcode != Opcode.STOREZM || insn.type != IRDataType.LONG) break
+            val mem = insn.memory as? MemoryReference.Direct ?: break
+            val slot = mem.base as? AddressBase.FrameSlot ?: break
+            if (slot.offset + mem.displacement != expected) break
+            count++
+            expected += 4
+            index++
+        }
+        return count
+    }
+
+    /**
+     * Lowers [longwords] consecutive longword zero-clears at [startDisp](a5)
+     * to a dbra loop using scratch d0/d1/a0 while preserving d7.
+     * Assumes scratch registers are free at chunk boundaries (true at prologues).
+     */
+    private fun emitFrameZeroLoop(startDisp: Int, longwords: Int) {
+        invalidateD0Cache()     // moveq clobbers d0
+        emitLine("moveq  #0, d0")
+        emitLine("lea  $startDisp(a5), a0")
+        val iterations = longwords - 1
+        if (iterations in 0..127)
+            emitLine("moveq  #$iterations, d1")
+        else
+            emitLine("move.w  #$iterations, d1")
+        val loopLabel = makeLabel("zeroloop")
+        emitLabel(loopLabel)
+        emitLine("move.l  d0,(a0)+")
+        emitLine("dbra  d1,$loopLabel")
+        invalidateD0Cache()
     }
 
     private fun mayClobberLoopCounter(insn: IRInstruction): Boolean {

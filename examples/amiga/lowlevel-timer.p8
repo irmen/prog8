@@ -73,11 +73,11 @@ main {
 
     sub start() {
         if not timer.opendevice() {
-            txt.print("cannot open timer.device\n")
+            txt.print("can't open timer.device\n")
             return
         }
         if not lowlevel.openlib() {
-            txt.print("openlib FAILED: needs Kickstart 2.0+\n")
+            txt.print("can't open lowlevel.library\n")
             timer.closedevice()
             sys.exit(101)
         }

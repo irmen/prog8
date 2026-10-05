@@ -51,22 +51,22 @@ main {
 }
 """
         val (lines, ir) = compile(src)
-        // locals laid out below a5: a at -1, arr at -8..-5, b at -10..-9 -> frame size 10
-        lines.any { it == "link  a5,#-10" } shouldBe true
+        // clean locals grouped first: arr at -4..-1, b at -6..-5, a at -7 -> frame size 8
+        lines.any { it == "link  a5,#-8" } shouldBe true
         lines.count { it == "unlk  a5" } shouldBe 1
         val unlkIdx = lines.indexOf("unlk  a5")
         lines[unlkIdx + 1] shouldBe "rts"
         // accesses lowered to a5 displacements
-        lines.any { "-1(a5)" in it } shouldBe true
-        lines.any { "-10(a5)" in it } shouldBe true
-        lines.any { "-5(a5)" in it } shouldBe true   // arr[3]
+        lines.any { "-7(a5)" in it } shouldBe true
+        lines.any { "-6(a5)" in it } shouldBe true
+        lines.any { "-1(a5)" in it } shouldBe true   // arr[3]
         // locals are no longer static storage
         lines.none { "p8v_a:" in it || "p8v_arr:" in it || "p8v_b:" in it } shouldBe true
         // IR carries the new syntax and frame size, and is reloadable
-        ir.contains("frame:-1") shouldBe true
-        ir.contains("FRAMESIZE=\"10\"") shouldBe true
+        ir.contains("frame:-7") shouldBe true
+        ir.contains("FRAMESIZE=\"8\"") shouldBe true
         val reloaded = IRFileReader().read(ir)
-        reloaded.allSubs().first { it.label.endsWith("p8s_leaf") }.frameSize shouldBe 10
+        reloaded.allSubs().first { it.label.endsWith("p8s_leaf") }.frameSize shouldBe 8
     }
 
     test("subroutine with parameters passes them on the stack") {
@@ -963,5 +963,207 @@ main {
         // the jump table auto-variable keeps static storage on purpose: it is read-only
         // constant data, and framing it would add an initialization store on every call
         ir.contains("auto_heap_value") shouldBe true
+    }
+
+    test("zero-clear coalescing: byte[17] prologue clears with five stores") {
+        val src = """
+main {
+    sub check() {
+        ubyte[17] a
+        a[0] = a[16]
+    }
+    sub start() {
+        check()
+    }
+}
+"""
+        val (lines, _) = compile(src)
+        val check = subAssembly(lines, "p8b_main.p8s_check")
+        // slot -17, run [-17, 0): one odd head byte, then four longwords
+        check.any { it == "link  a5,#-18" } shouldBe true
+        check.any { it == "clr.b  -17(a5)" } shouldBe true
+        check.count { it.startsWith("clr.l") } shouldBe 4
+        check.any { it == "clr.l  -16(a5)" } shouldBe true
+        check.any { it == "clr.l  -4(a5)" } shouldBe true
+        check.count { it.startsWith("clr.") } shouldBe 5
+    }
+
+    test("zero-clear coalescing: uword[8] prologue clears with four longword stores") {
+        val src = """
+main {
+    sub check() {
+        uword[8] b
+        b[0] = b[7]
+    }
+    sub start() {
+        check()
+    }
+}
+"""
+        val (lines, _) = compile(src)
+        val check = subAssembly(lines, "p8b_main.p8s_check")
+        // slot -16, run [-16, 0): four longwords, no word stores left
+        check.any { it == "link  a5,#-16" } shouldBe true
+        check.count { it.startsWith("clr.l") } shouldBe 4
+        check.none { it.startsWith("clr.w") } shouldBe true
+        check.none { it.startsWith("clr.b") } shouldBe true
+    }
+
+    test("zero-clear coalescing: adjacent byte locals coalesce across variables") {
+        val src = """
+main {
+    ubyte @shared g
+    sub check() {
+        ubyte a
+        ubyte b
+        a = 1
+        b = 2
+        g = a + b
+    }
+    sub start() {
+        check()
+    }
+}
+"""
+        val (lines, _) = compile(src)
+        val check = subAssembly(lines, "p8b_main.p8s_check")
+        // a at -1, b at -2: merged run [-2, 0) clears with a single word store
+        check.count { it == "clr.w  -2(a5)" } shouldBe 1
+        check.count { it.startsWith("clr.") } shouldBe 1
+    }
+
+    test("zero-clear coalescing: clean locals are grouped to avoid alignment gaps") {
+        val src = """
+main {
+    sub check() {
+        ubyte a
+        uword w
+        a = 1
+        w = 2
+    }
+    sub start() {
+        check()
+    }
+}
+"""
+        val (lines, _) = compile(src)
+        val check = subAssembly(lines, "p8b_main.p8s_check")
+        // w placed before a so the clean region is contiguous: a at -3, w at -2..-1
+        check.count { it == "clr.b  -3(a5)" } shouldBe 1
+        check.count { it == "clr.w  -2(a5)" } shouldBe 1
+        check.none { it.startsWith("clr.l") } shouldBe true
+    }
+
+    test("zero-clear coalescing: @dirty locals are not cleared") {
+        val src = """
+main {
+    ubyte @shared g
+    sub check() {
+        ubyte @dirty d
+        ubyte c
+        c = g
+        d = g
+        g = c + d
+    }
+    sub start() {
+        check()
+    }
+}
+"""
+        val (lines, _) = compile(src)
+        val check = subAssembly(lines, "p8b_main.p8s_check")
+        check.count { it == "clr.b  -1(a5)" } shouldBe 1
+        check.none { it.startsWith("clr.") && "-2(a5)" in it } shouldBe true
+    }
+
+    test("zero-clear coalescing: initialized locals keep their init store") {
+        val src = """
+main {
+    ubyte @shared g
+    sub check() {
+        ubyte a
+        ubyte x = 42
+        a = g
+        x += 1
+        g = a + x
+    }
+    sub start() {
+        check()
+    }
+}
+"""
+        val (lines, _) = compile(src)
+        val check = subAssembly(lines, "p8b_main.p8s_check")
+        // x at -2 keeps its init store; a's [-1, 0) run merges with x's byte (zeroed
+        // first, then set by the init store: declaration initializers lower to a body
+        // store, so the slot counts as clean)
+        check.any { it == "move.b  #42,-2(a5)" } shouldBe true
+        check.count { it == "clr.w  -2(a5)" } shouldBe 1
+        check.count { it.startsWith("clr.") } shouldBe 1
+        check.none { it.startsWith("clr.l") } shouldBe true
+    }
+
+    test("zero-clear coalescing: float arrays keep per-element FPU clears") {
+        val src = """
+%option enable_floats
+main {
+    sub check() {
+        float[3] f
+        f[0] = 1.5
+    }
+    sub start() {
+        check()
+    }
+}
+"""
+        val (lines, _) = compile(src)
+        val check = subAssembly(lines, "p8b_main.p8s_check")
+        // three prologue clears plus the body store to f[0], all FPU, no integer clears
+        check.any { it == "fmove.s  fp0,-12(a5)" } shouldBe true
+        check.any { it == "fmove.s  fp0,-8(a5)" } shouldBe true
+        check.any { it == "fmove.s  fp0,-4(a5)" } shouldBe true
+        check.none { it.startsWith("clr.") } shouldBe true
+    }
+
+    test("zero-clear coalescing: dirty neighbour splits a run") {
+        val src = """
+main {
+    sub check() {
+        ubyte[4] c
+        ubyte[4] @dirty d
+        c[0] = 1
+        d[0] = 2
+    }
+    sub start() {
+        check()
+    }
+}
+"""
+        val (lines, _) = compile(src)
+        val check = subAssembly(lines, "p8b_main.p8s_check")
+        check.count { it == "clr.l  -4(a5)" } shouldBe 1
+        check.count { it.startsWith("clr.") } shouldBe 1
+    }
+
+    test("zero-clear loop: ubyte[128] prologue clears with a dbra loop") {
+        val src = """
+main {
+    sub check() {
+        ubyte[128] big
+        big[0] = big[127]
+    }
+    sub start() {
+        check()
+    }
+}
+"""
+        val (lines, _) = compile(src)
+        val check = subAssembly(lines, "p8b_main.p8s_check")
+        // 32 longwords hit the loop threshold: no straight clears remain
+        check.any { it == "lea  -128(a5),a0" } shouldBe true
+        check.any { it == "moveq  #31,d1" } shouldBe true
+        check.any { it == "move.l  d0,(a0)+" } shouldBe true
+        check.count { it.startsWith("dbra  d1,zeroloop_") } shouldBe 1
+        check.none { it.startsWith("clr.") } shouldBe true
     }
 })

@@ -58,10 +58,10 @@ Also needs VM activation records in linear memory so saved frame bases are addre
 
 ### 5. Prologue zero-store coalescing
 
-Merge per-element zeroing of clean locals into widest aligned stores (prototype: 17-byte
-range in 5 stores instead of 17). Only clean non-initialized locals may merge; never
-across dirty/initialized neighbours; floats excluded. Needs explicit per-slot
-size/alignment/init bookkeeping in the layout pass.
+**Status: implemented.** Clean frame locals are grouped and merged into widest aligned
+stores; long runs lower to a `dbra` loop in the m68k backend. Floats and
+dirty/initialized locals remain boundaries. Details were in
+`ideas/m68k-prologue-zero-coalescing.md` (removed now that the work is done).
 
 ### 6. Loop-aware liveness for frame slot reuse
 
