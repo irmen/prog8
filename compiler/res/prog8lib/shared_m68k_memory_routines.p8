@@ -35,7 +35,8 @@ sys {
             or.l     d0,d3
 
             ; longword fill (4 bytes per iteration)
-            move.l   d1,d0
+            moveq    #0,d0
+            move.w   d1,d0           ; d0 = numbytes (zero-extended)
             lsr.l    #2,d0
             beq      .bytes
             subq.w   #1,d0
@@ -87,6 +88,7 @@ sys {
             move.l   d1,d3
             lsl.l    #5,d3
             adda.l   d3,a0           ; a0 = end address
+            movea.l  a0,a4           ; a4 = end address; the movem loop leaves a0 back at the start
 
             ; zero all data registers except d7 (d7 will be the loop counter, not in movem)
             move.l   d1,d7           ; d7 = block count (save before zeroing)
@@ -107,6 +109,7 @@ sys {
             dbra     d7,.loop_m
 
 .tail:
+            movea.l  a4,a0           ; a0 = end of the bulk region, where the tail bytes belong
             movea.l  a2,a3
             move.l   a3,d0           ; copy to data reg for shift/btst
             beq      .done
