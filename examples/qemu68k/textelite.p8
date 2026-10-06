@@ -4,8 +4,10 @@
 
 ; Prog8 adaptation of the Text-Elite galaxy system trading simulation engine.
 ; Original C-version obtained from: http://www.elitehomepage.org/text/index.htm
-; This is the version for the m68k target (lacks disk I/O at this time)
-; Works on Amiga with kickstart 2.0+ (600, 1200 etc), and qemu68k
+; This is the version for the m68k target.
+; Uses native recursion in recursive_soup() which works because of m68ks stack memory model.
+; Works on Amiga with kickstart 2.0+ (600, 1200 etc), and qemu68k.
+; It currently lacks load/save state support - but that would tie it to one specific target.
 
 main {
 
@@ -805,17 +807,15 @@ planet {
 
     sub soup() -> str {
         str planet_result = " " * 160
-        pointer[6] source_stack
-        ubyte stack_ptr = 0
         str start_source = "\x8F is \x97."
-        pointer source_ptr = &start_source
+        pointer start_ptr = &start_source
         pointer result_ptr = &planet_result
 
         reset_rnd()
-        recursive_soup()
+        recursive_soup(start_ptr)
         return planet_result
 
-        sub recursive_soup() {
+        sub recursive_soup(pointer source_ptr) {
             repeat {
                 ubyte c = @(source_ptr)
                 source_ptr++
@@ -831,12 +831,7 @@ planet {
                     if c <= $a4 {
                         ubyte rnr = goatsoup_rnd_number()
                         ubyte wordNr = ((rnr >= $33) as ubyte) + ((rnr >= $66) as ubyte) + ((rnr >= $99) as ubyte) + ((rnr >= $CC) as ubyte)
-                        source_stack[stack_ptr] = source_ptr
-                        stack_ptr++
-                        source_ptr = getword(c, wordNr)
-                        recursive_soup()    ; RECURSIVE CALL - ignore the warning message from the compiler; we don't use local variables or parameters so we're safe in this case
-                        stack_ptr--
-                        source_ptr = source_stack[stack_ptr]
+                        recursive_soup(getword(c, wordNr))
                     } else {
                         if c == $b0 {
                             @(result_ptr) = strings.upperchar(name[0])
