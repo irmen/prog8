@@ -93,6 +93,12 @@ when both operands are registers.
   pointer.
 - `D0-D1` and `A0-A1` are scratch registers. Preserve registers required by
   the surrounding calling convention, especially `D2-D7` and `A2-A6`.
+- Never clobber `A5`: on every M68K target it is the Prog8 stack frame pointer
+  (locals at negative offsets, parameters at positive offsets). Overwriting it
+  corrupts the frame of the running subroutine and breaks unwinding.
+- Never clobber `A6` on the Amiga targets (`amiga500`, `amiga1200`): it holds
+  the AmigaOS library base pointer that library calls depend on. Prog8 itself
+  leaves `A6` free for that reason.
 - `move.l d0,-(sp)` pushes and `move.l (sp)+,d0` pops.
 
 ## Prog8 Integration

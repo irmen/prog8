@@ -60,9 +60,19 @@ libraries.
 - M68000 targets are big-endian and use 32-bit pointers. Load the `m68k-coder`
   skill for assembly details.
 - `float` requires `%import floats`.
-- Variables are statically allocated and zero-initialized. There is no normal
-  call stack for locals, so recursion overwrites locals unless an explicit
-  hardware or software stack is used. Iterative rewrites are preferred.
+- On 6502 and virtual targets, variables are statically allocated and
+  zero-initialized. There is no normal call stack for locals, so recursion
+  overwrites locals unless an explicit hardware or software stack is used.
+  Iterative rewrites are preferred. Arrays are cleared once at startup here,
+  not on every subroutine entry.
+- On the M68000 targets (`amiga500`, `amiga1200`, `qemu68k`) ordinary subroutine
+  locals and parameters live in an activation record on the CPU stack, so true
+  recursion and re-entrancy work. `link a5,#-N` / `unlk a5`, frame pointer `A5`,
+  locals at negative offsets, parameters at positive offsets. Block-level
+  variables, globals, `@shared`, memory slabs, and objects needing a permanent
+  external address stay static. Clean locals are zeroed on every call
+  including arrays, so the compiler warns for framed arrays over 8 bytes; use
+  `@dirty` when you assign first, otherwise you read stack garbage.
 - `memory(name, size)` reserves static memory and returns a `pointer`.
 - `str` and arrays have compile-time byte budgets. On 6502 targets the usual
   limit is 256 bytes; M68000 targets allow up to 32768 bytes. Use `memory()`
@@ -113,6 +123,8 @@ Use `if_cs`, `if_cc`, `if_z`, and `if_nz` for direct CPU-flag branches.
 - `asmsub` bodies contain only one `%asm {{ ... }}` node. Parameters are type
   checked and documented, but assembly must use the mapped registers. Declare
   every modified hardware register in `clobbers`.
+- On M68K targets never clobber `A5`, the stack frame pointer. On the Amiga
+  targets never clobber `A6` either, it holds the AmigaOS library base.
 - `extsub` maps a signature to a fixed external address and has no body. Use
   it for ROM, kernel, drivers, or binary-library routines.
 - For inline assembly, load `asm6502-coder` for 64tass syntax, target-specific
