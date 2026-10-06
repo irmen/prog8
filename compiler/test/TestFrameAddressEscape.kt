@@ -13,10 +13,12 @@ class TestFrameAddressEscape : FunSpec({
     val outputDir = tempdir().toPath()
 
     // m68k stack frames make subroutine locals per-activation,
-    // so a pointer to a local dangles after the subroutine returns. The compiler only warns, best-effort,
-    // on the m68k targets, and only when the frame address actually escapes the subroutine.
+    // so a pointer to a local dangles after the subroutine returns. The compiler warns, best-effort,
+    // on the m68k targets when a frame address is passed to a call or mentioned in inline assembly -
+    // but a returned address, or one stored where it outlives the activation, is always wrong
+    // and is a compile error instead.
 
-    test("storing the address of a local into a shared variable warns on qemu68k") {
+    test("storing the address of a local into a shared variable is an error on qemu68k") {
         val src = """
 main {
     ^^ubyte @shared shared_ptr
@@ -28,13 +30,12 @@ main {
 }
 """
         val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
-        compileText(Qemu68kTarget(), optimize = false, src, outputDir, writeAssembly = false, errors = errors) shouldNotBe null
-        errors.errors.size shouldBe 0
-        errors.warnings.any { "the address of local 'buf' in subroutine 'start' is stored in 'shared_ptr'" in it } shouldBe true
-        errors.warnings.any { "a stack frame address is only valid while the subroutine is running" in it } shouldBe true
+        compileText(Qemu68kTarget(), optimize = false, src, outputDir, writeAssembly = false, errors = errors) shouldBe null
+        errors.errors.any { "the address of local 'buf' in subroutine 'start' is stored in 'shared_ptr'" in it } shouldBe true
+        errors.errors.any { "a stack frame address is only valid while the subroutine is running" in it } shouldBe true
     }
 
-    test("returning the address of a local warns on qemu68k") {
+    test("returning the address of a local is an error on qemu68k") {
         val src = """
 main {
     sub start() {
@@ -48,9 +49,8 @@ main {
 }
 """
         val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
-        compileText(Qemu68kTarget(), optimize = false, src, outputDir, writeAssembly = false, errors = errors) shouldNotBe null
-        errors.errors.size shouldBe 0
-        errors.warnings.any { "the address of local 'buf' in subroutine 'getbuf' escapes the subroutine (returned)" in it } shouldBe true
+        compileText(Qemu68kTarget(), optimize = false, src, outputDir, writeAssembly = false, errors = errors) shouldBe null
+        errors.errors.any { "the address of local 'buf' in subroutine 'getbuf' escapes the subroutine (returned)" in it } shouldBe true
     }
 
     test("passing the address of a local to a subroutine call warns on qemu68k") {
@@ -74,7 +74,7 @@ main {
         errors.warnings.any { "the address of local 'buf' in subroutine 'start' escapes the subroutine (passed to a call)" in it } shouldBe true
     }
 
-    test("warning fires only once per escaping variable even with multiple uses") {
+    test("error fires only once per escaping variable even with multiple uses") {
         val src = """
 main {
     ^^ubyte @shared shared_ptr
@@ -87,8 +87,8 @@ main {
 }
 """
         val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
-        compileText(Qemu68kTarget(), optimize = false, src, outputDir, writeAssembly = false, errors = errors) shouldNotBe null
-        errors.warnings.count { "the address of local 'buf' in subroutine 'start'" in it } shouldBe 1
+        compileText(Qemu68kTarget(), optimize = false, src, outputDir, writeAssembly = false, errors = errors) shouldBe null
+        errors.errors.count { "the address of local 'buf' in subroutine 'start'" in it } shouldBe 1
     }
 
     test("no warning when the pointer stays inside the same subroutine") {

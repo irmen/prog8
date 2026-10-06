@@ -12,12 +12,13 @@ import prog8.compiler.CallGraph
 
 // m68k stack-frame rule: the address of a
 // subroutine-local variable points into the current activation's frame and dangles once the
-// subroutine returns. v1 only warns, best-effort: a frame address that is stored to memory
-// outside the subroutine, passed to a call, returned from the subroutine, or mentioned in inline
-// assembly is flagged. The check is deliberately conservative: it does not track pointer values
-// flowing through intermediate locals (so transitive escapes are missed), and it can warn for
-// cases that are safe today, because address-taken locals currently keep static storage due to
-// the conservative frame-layout classifier.
+// subroutine returns. Returning such an address, or storing it where it outlives the
+// activation, is always wrong, so both are outright errors. Passing one to a call only
+// warns, best-effort: synchronous use during the activation is safe, the risk is only
+// that the callee stashes it, which this check cannot see. Inline-assembly mentions warn
+// as well. The check is deliberately conservative: it does not track pointer values flowing through intermediate locals (so transitive escapes
+// are missed), and it can warn for cases that are safe today, because address-taken locals
+// currently keep static storage due to the conservative frame-layout classifier.
 internal fun checkFrameAddressEscapes(program: Program, errors: IErrorReporter) {
     val checker = FrameAddressEscapeChecker(errors)
     checker.visit(program)
@@ -56,7 +57,7 @@ private class FrameAddressEscapeChecker(private val errors: IErrorReporter) : IA
                 is StoreEscape -> {
                     warnedLocals.add(decl)
                     val storage = escape.storageName?.let { " in '$it'" } ?: " in a location outside the subroutine"
-                    errors.warn("the address of local '${decl.name}' in subroutine '${declaringSub.name}' is stored$storage; a stack frame address is only valid while the subroutine is running", addressOf.position)
+                    errors.err("the address of local '${decl.name}' in subroutine '${declaringSub.name}' is stored$storage; a stack frame address is only valid while the subroutine is running", addressOf.position)
                 }
                 is CallEscape -> {
                     warnedLocals.add(decl)
@@ -64,7 +65,7 @@ private class FrameAddressEscapeChecker(private val errors: IErrorReporter) : IA
                 }
                 is ReturnEscape -> {
                     warnedLocals.add(decl)
-                    errors.warn("the address of local '${decl.name}' in subroutine '${declaringSub.name}' escapes the subroutine (returned); a stack frame address is only valid while the subroutine is running", addressOf.position)
+                    errors.err("the address of local '${decl.name}' in subroutine '${declaringSub.name}' escapes the subroutine (returned); a stack frame address is only valid while the subroutine is running", addressOf.position)
                 }
             }
         }
