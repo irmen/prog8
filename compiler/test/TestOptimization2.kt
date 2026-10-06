@@ -15,6 +15,7 @@ import prog8.ast.walk.IAstVisitor
 import prog8.code.ast.*
 import prog8.code.target.C64Target
 import prog8.code.target.Cx16Target
+import prog8.code.target.Qemu68kTarget
 import prog8.code.target.VMTarget
 import prog8.intermediate.IRFileReader
 import prog8.vm.VmRunner
@@ -515,6 +516,97 @@ main {
                 stmt.void
         }
         hasVoidCall shouldBe false
+    }
+
+    test("inline two-param single-return is inlined on m68k") {
+        val src = """
+main {
+    uword @shared result
+    sub start() {
+        result = cellidx(10, 20)
+    }
+    inline sub cellidx(ubyte cx, ubyte cy) -> uword {
+        return cx + 60*cy
+    }
+}"""
+        val result = compileText(Qemu68kTarget(), true, src, outputDir, writeAssembly = false)!!
+        val startSub = result.compilerAst.entrypoint
+
+        val hasCall = startSub.statements.any { stmt ->
+            (stmt as? Assignment)?.value.let { it is FunctionCallExpression && it.target.nameInSource.last() == "cellidx" }
+        }
+        hasCall shouldBe false
+        val assigns = startSub.statements.filterIsInstance<Assignment>()
+            .filter { it.target.identifier?.nameInSource?.lastOrNull() == "result" }
+        assigns.size shouldBe 1
+        // Inlined 10 + 60*20 is constant-folded to 1210; either shape proves the call is gone.
+        val folded = (assigns[0].value as? NumericLiteral)?.number == 1210.0
+        (assigns[0].value is BinaryExpression || folded) shouldBe true
+    }
+
+    test("inline two-param single-return is NOT inlined on 6502") {
+        val src = """
+main {
+    uword @shared result
+    sub start() {
+        result = cellidx(10, 20)
+    }
+    inline sub cellidx(ubyte cx, ubyte cy) -> uword {
+        return cx + 60*cy
+    }
+}"""
+        val result = compileText(Cx16Target(), true, src, outputDir, writeAssembly = false)!!
+        val startSub = result.compilerAst.entrypoint
+
+        val hasCall = startSub.statements.any { stmt ->
+            (stmt as? Assignment)?.value.let { it is FunctionCallExpression && it.target.nameInSource.last() == "cellidx" }
+        }
+        hasCall shouldBe true
+    }
+
+    test("inline two-param call with complex arg is NOT inlined on m68k") {
+        val src = """
+main {
+    uword @shared result
+    ubyte @shared a
+    ubyte @shared b
+    sub start() {
+        result = cellidx(a+b, 20)
+    }
+    inline sub cellidx(ubyte cx, ubyte cy) -> uword {
+        return cx + 60*cy
+    }
+}"""
+        val result = compileText(Qemu68kTarget(), true, src, outputDir, writeAssembly = false)!!
+        val startSub = result.compilerAst.entrypoint
+
+        val hasCall = startSub.statements.any { stmt ->
+            (stmt as? Assignment)?.value.let { it is FunctionCallExpression && it.target.nameInSource.last() == "cellidx" }
+        }
+        hasCall shouldBe true
+    }
+
+    test("inline two-param call with too-complex body is NOT inlined on m68k") {
+        val src = """
+main {
+    uword @shared result
+    sub start() {
+        result = cellidx(10, 20)
+    }
+    sub helper(ubyte v) -> uword {
+        return v
+    }
+    inline sub cellidx(ubyte cx, ubyte cy) -> uword {
+        return helper(cx) + cy
+    }
+}"""
+        val result = compileText(Qemu68kTarget(), true, src, outputDir, writeAssembly = false)!!
+        val startSub = result.compilerAst.entrypoint
+
+        val hasCall = startSub.statements.any { stmt ->
+            (stmt as? Assignment)?.value.let { it is FunctionCallExpression && it.target.nameInSource.last() == "cellidx" }
+        }
+        hasCall shouldBe true
     }
 
     test("parameterized subroutine with 'inline' is inlined (1 parameter)") {

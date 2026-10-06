@@ -678,7 +678,7 @@ private fun optimizeAst(program: Program, compilerOptions: CompilationOptions, e
         val optsDone1 = program.simplifyExpressions(errors, compilerOptions)
         val optsDone2 = program.optimizeStatements(errors, functions, compilerOptions)
         program.constantFold(errors, compilerOptions) // because simplified statements and expressions can result in more constants that can be folded away
-        val optsDone3 = program.inlineSubroutines(compilerOptions)  // inlining can expose new calls to inline
+        val optsDone3 = program.inlineSubroutines(errors, compilerOptions)  // inlining can expose new calls to inline
         if(!errors.noErrors()) {
             errors.report()
             break

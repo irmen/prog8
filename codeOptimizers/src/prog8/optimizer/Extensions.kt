@@ -57,11 +57,11 @@ fun Program.optimizeStatements(errors: IErrorReporter,
     return optimizationCount
 }
 
-fun Program.inlineSubroutines(options: CompilationOptions): Int {
+fun Program.inlineSubroutines(errors: IErrorReporter, options: CompilationOptions): Int {
     // Skip inlining when optimizations are disabled (-noopt flag)
     if (!options.optimize) return 0
 
-    val inliner = Inliner(this, options)
+    val inliner = Inliner(this, options, errors)
     inliner.visit(this)
     val mods = inliner.applyModifications()
     inliner.linkAffectedParents(namespace)

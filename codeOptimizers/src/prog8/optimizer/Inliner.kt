@@ -5,6 +5,7 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.*
 import prog8.code.core.CompilationOptions
+import prog8.code.core.IErrorReporter
 import prog8.code.core.InternalCompilerException
 
 
@@ -27,11 +28,13 @@ private class CannotInlineException : Exception()
  * - Subroutines must have a single functional statement in their body to be auto-inlined.
  * - Multi-return value subroutines are not yet supported for auto-inlining.
  */
-class Inliner(private val program: Program, private val options: CompilationOptions): AstWalker() {
+class Inliner(private val program: Program, private val options: CompilationOptions, private val errors: IErrorReporter): AstWalker() {
+
+    private val suggestInlineReported = mutableSetOf<Subroutine>()
 
     inner class DetermineInlineSubs(val program: Program): IAstVisitor {
         private val modifications = mutableListOf<AstModification>()
-        private val visitedSubroutines = java.util.Collections.newSetFromMap(java.util.IdentityHashMap<Subroutine, Boolean>())
+        private val visitedSubroutines = mutableSetOf<Subroutine>()
 
         init {
             visit(program)
@@ -238,8 +241,11 @@ class Inliner(private val program: Program, private val options: CompilationOpti
     override fun after(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<AstModification>  {
         val sub = functionCallStatement.target.targetStatement(program.builtinFunctions) as? Subroutine
         if (sub == null) return noModifications
-        
-        if (!sub.inline) return noModifications
+
+        if (!sub.inline) {
+            maybeSuggestInlineKeyword(sub)
+            return noModifications
+        }
         
         val (canInline, _) = canInlineAtCallSiteWithReason(sub, functionCallStatement)
         if (!canInline) {
@@ -258,15 +264,43 @@ class Inliner(private val program: Program, private val options: CompilationOpti
             return false to "asmsub with parameters cannot be inlined"
         }
 
-        if (sub.parameters.size > 1) {
-            return false to "subroutines with more than 1 parameter cannot be inlined in this compiler version"
-        }
-
         if (sub.parameters.any { it.registerOrPair != null }) {
             return false to "subroutines with register-mapped parameters cannot be inlined"
         }
 
-        if (sub.parameters.size == 1) {
+        if (sub.parameters.size > 1) {
+            // Multi-parameter inlining is only supported on m68k targets (stack-based
+            // calling convention makes the call overhead worthwhile), and only for the
+            // single-return-value expression case with a tiny body and simple args.
+            if (!options.compTarget.cpu.is68k) {
+                return false to "subroutines with more than 1 parameter cannot be inlined in this compiler version"
+            }
+            if (fcall.args.size != sub.parameters.size) {
+                return false to "argument count does not match parameter count"
+            }
+            if (!fcall.args.all { it.isSimple }) {
+                return false to "argument is too complex to inline (might have side effects)"
+            }
+            // Refuse to inline a sub that assigns directly to any of its parameters.
+            // Substituting the argument into the target would crash for a literal
+            // argument, or wrongly modify the caller's variable for a variable argument
+            // (parameters are passed by value, so the sub only modifies its local copy).
+            val paramNames = sub.parameters.map { it.name }.toSet()
+            val bodyStmt = sub.statements.firstOrNull { it !is VarDecl || it.origin != VarDeclOrigin.SUBROUTINEPARAM }
+            if ((bodyStmt as? Assignment)?.target?.identifier?.nameInSource?.lastOrNull() in paramNames)
+                return false to "cannot inline subroutine that assigns to its parameter"
+            // v1 only supports the single-return-value expression case on this path.
+            // Void and multi-value statement call sites keep the previous restriction.
+            val returnStmt = bodyStmt as? Return
+                ?: return false to "multi-parameter inlining requires a single return statement"
+            if (returnStmt.values.size != 1) {
+                return false to "multi-parameter inlining requires a single return value"
+            }
+            if (!isFairlySimpleReturnExpression(returnStmt.values[0], paramNames)) {
+                return false to "multi-parameter inline body is too complex"
+            }
+            // fall through to the 6502-independent checks below (none apply to m68k)
+        } else if (sub.parameters.size == 1) {
             val arg = fcall.args.first()
             if (!arg.isSimple) {
                 return false to "argument is too complex to inline (might have side effects)"
@@ -298,10 +332,52 @@ class Inliner(private val program: Program, private val options: CompilationOpti
         return canInlineAtCallSiteWithReason(sub, fcall).first
     }
 
+    private fun fitsM68kMultiParamInline(sub: Subroutine): Boolean {
+        if (!options.compTarget.cpu.is68k)
+            return false
+        if (sub.inline)
+            return false
+        if (sub.isAsmSubroutine && sub.parameters.isNotEmpty())
+            return false
+        if (sub.parameters.size <= 1)
+            return false
+        if (sub.parameters.any { it.registerOrPair != null })
+            return false
+        if (sub === program.entrypoint)
+            return false
+        if (sub.statements.any { it is Subroutine || (it is VarDecl && it.origin != VarDeclOrigin.SUBROUTINEPARAM) })
+            return false
+        val functionalCount = sub.statements.count { it !is VarDecl || it.origin != VarDeclOrigin.SUBROUTINEPARAM }
+        if (functionalCount != 1 && functionalCount != 2)
+            return false
+        val bodyStmt = sub.statements.firstOrNull { it !is VarDecl || it.origin != VarDeclOrigin.SUBROUTINEPARAM }
+        val returnStmt = bodyStmt as? Return ?: return false
+        if (returnStmt.values.size != 1)
+            return false
+        if (functionalCount == 2 && sub.statements.lastOrNull()?.let(::isEmptyReturn) != true)
+            return false
+        val paramNames = sub.parameters.map { it.name }.toSet()
+        if (!isFairlySimpleReturnExpression(returnStmt.values[0], paramNames))
+            return false
+        return true
+    }
+
+    private fun maybeSuggestInlineKeyword(sub: Subroutine) {
+        if (sub in suggestInlineReported)
+            return
+        if (!fitsM68kMultiParamInline(sub))
+            return
+        suggestInlineReported.add(sub)
+        errors.info("subroutine '${sub.name}' would likely benefit from 'inline'", sub.position)
+    }
+
     override fun before(functionCallExpr: FunctionCallExpression, parent: Node): Iterable<AstModification> {
         val sub = functionCallExpr.target.targetStatement(program.builtinFunctions) as? Subroutine
         if (sub == null) return noModifications
-        if (!sub.inline) return noModifications
+        if (!sub.inline) {
+            maybeSuggestInlineKeyword(sub)
+            return noModifications
+        }
         
         val (canInline, _) = canInlineAtCallSiteWithReason(sub, functionCallExpr)
         if (!canInline) {
@@ -423,6 +499,78 @@ class Inliner(private val program: Program, private val options: CompilationOpti
     }
 
     /**
+     * m68k-only predicate for multi-parameter inlining (v1: expression case only).
+     * Allows any number of parameters but bounds the duplicated work instead:
+     * single return expression, expression-tree depth <= MAX_DEPTH, total nodes
+     * <= MAX_NODES, and total parameter occurrences <= MAX_PARAM_USES.
+     * Numeric literals and constant identifiers count as free (cost 0).
+     */
+    private fun isFairlySimpleReturnExpression(expr: Expression, paramNames: Set<String>): Boolean {
+        val maxDepth = 3
+        val maxNodes = 12
+        val maxParamUses = 6
+
+        var nodes = 0
+        var paramUses = 0
+        var ok = true
+
+        fun isFreeLeaf(ident: IdentifierReference): Boolean {
+            // Constants count as free (usually already constant-folded to literals).
+            if (ident.constValue(program) != null)
+                return true
+            val target = try {
+                ident.targetStatement()
+            } catch (_: Exception) {
+                null
+            }
+            return target is VarDecl && target.type == VarDeclType.CONST
+        }
+
+        fun visit(e: Expression, depth: Int) {
+            if (!ok)
+                return
+            if (depth > maxDepth) {
+                ok = false
+                return
+            }
+            when (e) {
+                is NumericLiteral -> {
+                    // free, costs no node budget
+                }
+                is IdentifierReference -> {
+                    if (!isFreeLeaf(e)) {
+                        nodes++
+                        if (nodes > maxNodes) {
+                            ok = false
+                            return
+                        }
+                        if (e.nameInSource.lastOrNull() in paramNames) {
+                            paramUses++
+                            if (paramUses > maxParamUses)
+                                ok = false
+                        }
+                    }
+                }
+                is PrefixExpression -> visit(e.expression, depth + 1)
+                is BinaryExpression -> {
+                    nodes++
+                    if (nodes > maxNodes) {
+                        ok = false
+                        return
+                    }
+                    visit(e.left, depth + 1)
+                    visit(e.right, depth + 1)
+                }
+                is TypecastExpression -> visit(e.expression, depth + 1)
+                else -> ok = false
+            }
+        }
+
+        visit(expr, 0)
+        return ok
+    }
+
+    /**
      * Substitutes parameter references in a statement with argument values.
      */
     override fun after(assignment: Assignment, parent: Node): Iterable<AstModification> {
@@ -434,7 +582,11 @@ class Inliner(private val program: Program, private val options: CompilationOpti
             ?: return noModifications
 
         // Only handle inlining if sub is marked as such and call site is okay
-        if (!sub.inline || !canInlineAtCallSite(sub, fcall))
+        if (!sub.inline) {
+            maybeSuggestInlineKeyword(sub)
+            return noModifications
+        }
+        if (!canInlineAtCallSite(sub, fcall))
             return noModifications
 
         val toInline = sub.statements.firstOrNull { it !is VarDecl || it.origin != VarDeclOrigin.SUBROUTINEPARAM } as? Return ?: return noModifications
@@ -477,6 +629,8 @@ class Inliner(private val program: Program, private val options: CompilationOpti
     }
 
     private fun substituteParameters(sub: Subroutine, fcall: IFunctionCall, node: Node): Node? {
+        if (fcall.args.size != sub.parameters.size)
+            return null
         val paramVarDecls = sub.parameters.map { param ->
             sub.statements.filterIsInstance<VarDecl>().find { it.origin == VarDeclOrigin.SUBROUTINEPARAM && it.name == param.name }
                 ?: throw FatalAstException("parameter ${param.name} not found in subroutine ${sub.name}")
