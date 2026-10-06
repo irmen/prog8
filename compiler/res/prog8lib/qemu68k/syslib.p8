@@ -465,4 +465,14 @@ sys {
             lea  prog8_program_end,a0
         }}
     }
+
+    asmsub stack_size() -> long @D0 {
+        ; -- Return the amount of stack space still available, in bytes.
+        %asm {{
+            move.l  sp,d0
+            lea     prog8_program_end,a0
+            sub.l   a0,d0
+            rts
+        }}
+    }
 }

@@ -1,6 +1,6 @@
 
 Prog8 compiler v14.0-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit 09d46971 in branch master
+Prerelease version from git commit b1642f4f in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-amiga1200.p8
@@ -1558,6 +1558,7 @@ dos  {
     WaitPkt  () -> ^^dos.DosPacket @D0@bank 2 = -$fc
     Write  (long file @D1, long buffer @D2, long length @D3) -> long @D0@bank 2 = -$30
     WriteChars  (str buf @D1, long buflen @D2) -> long @D0@bank 2 = -$03ae
+    read_file  (str filename, bool chip_ram) -> long, long
 }
 
 
@@ -4779,6 +4780,7 @@ sys  {
     progstart  () -> long @A0
     reset_system  ()
     set_carry  ()
+    stack_size  () -> long @D0
     wait  (long ticks @D1)
     waitvsync  ()
 }

@@ -128,6 +128,17 @@ sys {
         }}
     }
 
+    asmsub stack_size() -> long @D0 {
+        ; -- Return the amount of stack space still available, in bytes.
+        %asm {{
+            move.l  4.w,a6          ; ExecBase
+            move.l  $114(a6),a0     ; ThisTask
+            move.l  sp,d0
+            sub.l   $3a(a0),d0      ; minus tc_SPLower
+            rts
+        }}
+    }
+
     asmsub cpuAtLeast68020() clobbers (A6, D0) -> bool @Pz {
         %asm {{
             move.l  4.w,a6
