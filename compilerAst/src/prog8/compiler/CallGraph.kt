@@ -62,7 +62,8 @@ class CallGraph(private val program: Program) : IAstVisitor {
         }
         else if (directive.directive == "%jmptable") {
             for(arg in directive.args) {
-                val scopedName = arg.string!!.split('.')
+                val name = arg.name ?: continue       // not an identifier; AstChecker reports an error for it later
+                val scopedName = name.split('.')
                 val target = directive.definingScope.lookup(scopedName)
                 if(target is Subroutine) {
                     val identifier = IdentifierReference(scopedName, arg.position)

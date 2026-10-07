@@ -359,4 +359,59 @@ main {
         result shouldNotBe null
         errors.warnings.any { it.contains("recursive subroutine") } shouldBe false
     }
+
+    test("jmptable entry with scoped name written without parentheses doesn't crash the callgraph") {
+        val sourcecode = """
+            main {
+                %jmptable other.some
+                sub start() {
+                }
+            }
+            other {
+                sub some() {
+                }
+            }
+        """
+        val result = compileText(C64Target(), false, sourcecode, outputDir)!!
+        val graph = CallGraph(result.compilerAst)
+        val otherBlock = result.compilerAst.toplevelModule.statements.filterIsInstance<Block>().single { it.name == "other" }
+        val someSub = otherBlock.statements.filterIsInstance<Subroutine>().single { it.name == "some" }
+        withClue("jmptable entry must count as a reference so it isn't removed as unused") {
+            graph.unused(someSub) shouldBe false
+        }
+    }
+
+    test("jmptable entry that isn't a subroutine name reports an error instead of crashing") {
+        val sourcecode = """
+            main {
+                %jmptable 42
+                sub start() {
+                }
+            }
+        """
+        val errors = ErrorReporterForTests()
+        compileText(C64Target(), false, sourcecode, outputDir, errors=errors, writeAssembly = false) shouldBe null
+        errors.errors.size shouldBe 1
+        errors.errors[0] shouldContain "jmptable entry must be a subroutine name"
+    }
+
+    test("jmptable entries with unqualified names resolve to the correct prefixed labels") {
+        val sourcecode = """
+            main {
+                %jmptable task1,task2
+                sub start() {
+                }
+                sub task1() {
+                }
+                sub task2() {
+                }
+            }
+        """
+        compileText(C64Target(), true, sourcecode, outputDir) shouldNotBe null
+        val asm = outputDir.resolve("on_the_fly_test_${sourcecode.hashCode().toUInt().toString(16)}.asm").readText()
+        withClue("jumptable must reference the fully qualified, prefixed subroutine labels") {
+            asm.lines().any { it.trim() == "jmp  p8b_main.p8s_task1" } shouldBe true
+            asm.lines().any { it.trim() == "jmp  p8b_main.p8s_task2" } shouldBe true
+        }
+    }
 })

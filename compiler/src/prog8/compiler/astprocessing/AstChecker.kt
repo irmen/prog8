@@ -1551,11 +1551,16 @@ internal class AstChecker(private val program: Program,
                 if(directive.parent !is Block)
                     err("this directive may only occur in a block")
                 for(arg in directive.args) {
-                    val target = directive.definingScope.lookup(arg.string!!.split('.'))
+                    val name = arg.name
+                    if(name==null) {
+                        errors.err("jmptable entry must be a subroutine name", arg.position)
+                        continue
+                    }
+                    val target = directive.definingScope.lookup(name.split('.'))
                     if(target==null)
-                        errors.undefined(listOf(arg.string!!), position = arg.position)
+                        errors.undefined(listOf(name), position = arg.position)
                     else if (target !is Subroutine)
-                        errors.err("jmptable entry can only be a subroutine: ${arg.string}", arg.position)
+                        errors.err("jmptable entry can only be a subroutine: $name", arg.position)
                 }
             }
             else -> throw SyntaxError("invalid directive ${directive.directive}", directive.position)

@@ -388,7 +388,12 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
         for(directive in directives.filter { it.directive == "%jmptable" }) {
             val table = PtJmpTable(directive.position)
             directive.args.forEach {
-                table.add(PtIdentifier(it.string!!, DataType.UNDEFINED, it.position))
+                val name = it.name       // invalid entries are already rejected by the AstChecker
+                if(name!=null) {
+                    val target = directive.definingScope.lookup(name.split('.')) as? Subroutine
+                    if(target!=null)
+                        table.add(PtIdentifier(target.scopedName.joinToString("."), DataType.UNDEFINED, it.position))
+                }
             }
             block.add(table)
         }

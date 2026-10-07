@@ -149,6 +149,11 @@ class DirectiveArg(val string: String?, val int: UInt?, override val position: P
     var expr: Expression? = expr
         private set
 
+    // the argument as a source name: either the plain string argument, or the identifier (possibly scoped) expression.
+    // null if the argument is something else entirely (a number, literal, computed expression, ...).
+    val name: String?
+        get() = string ?: (expr as? IdentifierReference)?.nameInSource?.joinToString(".")
+
     override fun linkParents(parent: Node) {
         this.parent = parent
         expr?.linkParents(this)
