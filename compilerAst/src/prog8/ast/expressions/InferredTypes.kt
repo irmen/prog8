@@ -3,7 +3,8 @@ package prog8.ast.expressions
 import prog8.code.core.BaseDataType
 import prog8.code.core.DataType
 import prog8.code.core.ICompilationTarget
-import java.util.*
+import java.util.Objects
+
 
 
 object InferredTypes {

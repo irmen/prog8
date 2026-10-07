@@ -1,7 +1,9 @@
 package prog8.code.ast
 
 import prog8.code.core.*
-import java.util.*
+
+import java.util.Objects
+
 import kotlin.math.abs
 import kotlin.math.truncate
 

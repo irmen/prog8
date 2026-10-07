@@ -8,7 +8,8 @@ import prog8.code.INTERNED_STRINGS_MODULENAME
 import prog8.code.core.*
 import prog8.code.target.encodings.JapaneseCharacterConverter
 import java.io.CharConversionException
-import java.util.*
+import java.util.Objects
+
 import kotlin.math.abs
 import kotlin.math.floor
 import kotlin.math.truncate

@@ -5,14 +5,14 @@ import prog8.ast.expressions.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstVisitor
 import prog8.code.core.*
-import java.util.*
+import java.util.Objects
 
 
 interface INamedStatement {
     val name: String
 
     companion object {
-        private val scopedNameCache = HashMap<INamedStatement, List<String>>()
+        private val scopedNameCache = mutableMapOf<INamedStatement, List<String>>()
     }
 
     val scopedName: List<String>
