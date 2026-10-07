@@ -998,8 +998,9 @@ util {
     }
 
     sub print_10s(uword value) {
-        txt.print_uw(value/10)
+        uword quotient, remainder = divmod(value, 10 as uword)
+        txt.print_uw(quotient)
         txt.chrout('.')
-        txt.print_uw(value % 10)
+        txt.print_uw(remainder)
     }
 }
