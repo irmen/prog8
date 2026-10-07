@@ -6,6 +6,7 @@ import io.kotest.matchers.ints.shouldBeGreaterThanOrEqual
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
+import io.kotest.matchers.string.shouldNotContain
 import prog8.code.target.C64Target
 import prog8.code.target.Qemu68kTarget
 import prog8.intermediate.IRFileReader
@@ -1187,5 +1188,38 @@ main {
         start.any { it.contains(",2(sp)") && it.endsWith("; second") } shouldBe true
         start.any { it.contains(",-(sp)") && it.endsWith("; third") } shouldBe true
         start.count { it == "subq.l  #4,sp" } shouldBe 2
+    }
+
+    test("re-entrant dispatch subroutines explain why they cannot be framed") {
+        val src = """
+main {
+    sub start() {
+        spawn(&task1)
+    }
+    sub spawn(pointer task) {
+        ubyte x = 1
+        x++
+        dispatch(task)
+    }
+    sub dispatch(pointer task) {
+        call(task)
+    }
+    sub task1() {
+        ubyte counter = 0
+        counter++
+        spawn(&task1)
+    }
+}
+"""
+        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        compileText(Qemu68kTarget(), optimize = false, src, tempdir().toPath(),
+            writeAssembly = true, assemble = false, errors = errors) shouldBe null
+        errors.errors.size shouldBe 3
+        val all = errors.errors.joinToString("\n")
+        all shouldContain "recursive subroutine"
+        all shouldContain "cannot be given a stack frame (its address is taken)"
+        all shouldContain "cannot be given a stack frame (it makes an indirect call)"
+        all shouldContain "conservatively assumed to reach any subroutine"
+        all shouldNotContain "it calls '"
     }
 })

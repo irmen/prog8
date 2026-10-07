@@ -1561,6 +1561,8 @@ internal class AstChecker(private val program: Program,
                         errors.undefined(listOf(name), position = arg.position)
                     else if (target !is Subroutine)
                         errors.err("jmptable entry can only be a subroutine: $name", arg.position)
+                    else if (target.parameters.isNotEmpty())
+                        errors.err("can't dispatch to a subroutine that takes parameters: ${target.name}", arg.position)
                 }
             }
             else -> throw SyntaxError("invalid directive ${directive.directive}", directive.position)

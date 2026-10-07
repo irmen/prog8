@@ -26,7 +26,13 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
         Opcode.JUMP -> {
             invalidateD0Cache()
             when (val t = insn.requireTarget()) {
-                is CodeReference.Label -> emitLine("bra  ${fixNameSymbols(t.name)}")     // PC-relative branch; vasm picks the optimal size and falls back to jmp if out of range
+                is CodeReference.Label -> {
+                    // a jump to a label in another subroutine ends this activation, so our frame has to be gone
+                    // before we leave: whatever runs next returns to our caller, not to us
+                    if (frameActive && labelIsOutsideCurrentSub(t.name))
+                        emitFrameUnlk()
+                    emitLine("bra  ${fixNameSymbols(t.name)}")     // PC-relative branch; vasm picks the optimal size and falls back to jmp if out of range
+                }
                 is CodeReference.Absolute -> emitLine("jmp  ${t.address.value.toHex()}")
                 is CodeReference.Indirect -> error("JUMP needs target")
             }
@@ -36,6 +42,8 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
             val ref = insn.requireTarget() as? CodeReference.Indirect ?: error("JUMPI needs an indirect target register")
             val reg = ref.pointer.intNumber
             invalidateD0Cache()
+            // a dispatch jump leaves this subroutine for good: the target's rts must find our caller's return address, so our frame has to be gone first
+            emitFrameUnlk()
             if(program.options.compTarget.cpu >= CpuType.M68020) {
                 // 68020+ supports memory-indirect addressing: fetch the target address from memory directly.
                 emitLine("jmp  ([${regAddr(reg)}])")

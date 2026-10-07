@@ -83,7 +83,7 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
         val indirectCallers = allSubs.filter { sub -> containsIndirectCall(sub) }.map { it.label }.toSet()
         val reentrant = subsWithMultipleLiveActivations(callSites, indirectCallers, dispatchTargets)
         val framePointerClobberers = framePointerClobberingSubs()
-        val reachesFramePointerClobber = subsReachingFramePointerClobber(framePointerClobberers)
+        val reachesFramePointerClobber = subsReachingFramePointerClobber(framePointerClobberers, indirectCallers)
 
         val framedSubs = mutableMapOf<String, FrameLayoutResult>()
         val notFramedReasons = mutableMapOf<String, String>()
@@ -102,7 +102,7 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
         rewriteOutgoingJumps(framedSubs.keys)
     }
 
-    private class CallSiteRef(val chunk: IRCodeChunkBase, val index: Int, val caller: String, val site: CallSite)
+    private class CallSiteRef(val caller: String, val site: CallSite)
 
     /** all direct calls between normal subroutines, grouped by callee label */
     private fun collectCallSites(subLabels: Set<String>): Map<String, List<CallSiteRef>> {
@@ -114,7 +114,7 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
                     val site = instrs[i].callSite ?: continue
                     val ref = site.codeReference
                     if (ref is CodeReference.Label && ref.name in subLabels) {
-                        result.getOrPut(ref.name) { mutableListOf() } += CallSiteRef(chunk, i, sub.label, site)
+                        result.getOrPut(ref.name) { mutableListOf() } += CallSiteRef(sub.label, site)
                     }
                 }
             }
@@ -176,12 +176,16 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
         return result
     }
 
+    /** a frame-pointer-clobbering subroutine reached from another subroutine, and how it was reached */
+    private class ClobberReach(val clobberer: String, val viaIndirect: Boolean)
+
     /**
-     * Subroutine label -> label of the frame-pointer-clobbering subroutine it can reach, for every
-     * subroutine that can (directly or indirectly) call one. An indirect call may dispatch to any
-     * subroutine, so a subroutine containing one is assumed to reach all of them.
+     * Subroutine label -> the frame-pointer-clobbering subroutine it can reach, for every
+     * subroutine that can reach one. Only real call edges are followed; a subroutine is only
+     * credited with reaching a clobberer through an indirect call (viaIndirect=true) when it
+     * can reach a subroutine that makes one, because such a call may dispatch to anything.
      */
-    private fun subsReachingFramePointerClobber(clobberers: Set<String>): Map<String, String> {
+    private fun subsReachingFramePointerClobber(clobberers: Set<String>, indirectCallers: Set<String>): Map<String, ClobberReach> {
         if (clobberers.isEmpty())
             return emptyMap()
         val callTargets = mutableMapOf<String, MutableSet<String>>()
@@ -191,13 +195,12 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
                 chunk.instructions.forEach { instr ->
                     when (val ref = instr.callSite?.codeReference) {
                         is CodeReference.Label -> targets += ref.name
-                        is CodeReference.Indirect -> targets += clobberers
                         else -> {}
                     }
                 }
             }
         }
-        val reaching = mutableMapOf<String, String>()
+        val reaching = mutableMapOf<String, ClobberReach>()
         var changed = true
         while (changed) {
             changed = false
@@ -205,9 +208,28 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
                 if (label in reaching)
                     continue
                 val hit = targets.firstOrNull { it in clobberers || it in reaching } ?: continue
-                reaching[label] = if (hit in clobberers) hit else reaching.getValue(hit)
+                reaching[label] = if (hit in clobberers) ClobberReach(hit, false) else reaching.getValue(hit)
                 changed = true
             }
+        }
+        // no real call chain reaches a clobberer: if an indirect call is reachable (here or
+        // downstream), it may dispatch to any address-taken subroutine including a clobberer
+        val reachesIndirect = mutableSetOf<String>()
+        changed = true
+        while (changed) {
+            changed = false
+            for ((label, targets) in callTargets) {
+                if (label in reachesIndirect)
+                    continue
+                if (label in indirectCallers || targets.any { it in reachesIndirect }) {
+                    reachesIndirect += label
+                    changed = true
+                }
+            }
+        }
+        for (label in callTargets.keys) {
+            if (label !in reaching && label in reachesIndirect)
+                reaching[label] = ClobberReach(clobberers.first(), true)
         }
         return reaching
     }
@@ -355,13 +377,9 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
     }
 
     private class FrameLayoutResult(
-        val frameSize: Int,
-        val incomingSize: Int,
-        /** parameter variable name -> frame offset of its incoming slot */
+        //. parameter variable name -> frame offset of its incoming slot
         val paramSlots: Map<String, Int>,
-        /** parameter variable name -> right-justification displacement within its slot */
-        val paramDisplacements: Map<String, Int>,
-        /** parameter variable names that keep a static cell and get an entry-time copy-in (§6.1) */
+        // parameter variable names that keep a static cell and get an entry-time copy-in (§6.1)
         val copyInParams: Set<String>
     )
 
@@ -380,19 +398,23 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
         dispatchTargets: Set<String>,
         indirectCallers: Set<String>,
         reentrant: Set<String>,
-        reachesFramePointerClobber: Map<String, String>
+        reachesFramePointerClobber: Map<String, ClobberReach>
     ): Frameability {
         val static = { reason: String -> Frameability.NotFrameable(reason) }
         if (sub.hasFrame) return static("it already has a stack frame")
-        reachesFramePointerClobber[sub.label]?.let {
-            return static("it calls '$it', whose assembly code overwrites the frame pointer register A5")
-        }
         var hasInlineAsm = false
         sub.forEachChunk { chunk -> if (chunk is IRInlineAsmChunk) hasInlineAsm = true }
         if (hasInlineAsm) return static("it contains inline assembly")
         if (sub.label in indirectCallers) return static("it makes an indirect call")
         if (sub.label in dispatchTargets) return static("its address is taken")
         if (isLabelReferencedInAsm(sub.label, asmTexts)) return static("it is referenced from inline assembly")
+        reachesFramePointerClobber[sub.label]?.let {
+            val how = if (it.viaIndirect)
+                "an indirect call in its call tree is conservatively assumed to reach any subroutine, including '${it.clobberer}'"
+            else
+                "it can reach '${it.clobberer}' through calls"
+            return static("$how, whose assembly code overwrites the frame pointer register A5")
+        }
 
         // every parameter must be able to move: otherwise the caller keeps writing static cells
         // IRParam.name is the scoped variable name; call sites refer to the same parameter by its
@@ -644,7 +666,7 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
         sub.frameSize = frameSize
         sub.incomingSize = paramSlots.size * PARAM_SLOT_SIZE
         sub.frameVregSlots = vregSlots
-        return Frameability.Frameable(FrameLayoutResult(frameSize, sub.incomingSize, paramSlots, paramDisplacements, copyInParams))
+        return Frameability.Frameable(FrameLayoutResult(paramSlots, copyInParams))
     }
 
     /**
@@ -847,14 +869,15 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
             val sharedVregs = if (framed) emptyList() else vregsUsedIn(sub).keys.toList()
             if (sharedVars.isEmpty() && sharedVregs.isEmpty() && sharedCopyIns.isEmpty()) continue
             val reason = when {
-                !framed -> notFramedReasons[sub.label] ?: "it could not be given a stack frame"
+                !framed -> "it cannot be given a stack frame (${notFramedReasons[sub.label] ?: "unknown reason"})"
                 sharedCopyIns.isNotEmpty() -> "some parameters must be copied into a static cell for external references"
                 else -> "some of the values it uses cannot be moved into a stack frame"
             }
             val details = mutableListOf<String>()
             for (varName in sharedVars) {
                 val v = program.st.lookup(varName) as? IRStStaticVariable
-                val why = v?.let { frameableVariableProblem(it, varName, addressTaken, asmTexts) } ?: "it is shared with other code"
+                val why = v?.let { frameableVariableProblem(it, varName, addressTaken, asmTexts) }
+                    ?: if (framed) "it is shared with other code" else "the subroutine has no stack frame to hold it"
                 details += "variable '${varName.substringAfterLast('.').removePrefix("p8v_")}' ($why)"
             }
             for (paramName in sharedCopyIns) {
@@ -864,7 +887,7 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
                 details += "${sharedVregs.size} intermediate value(s)"
             errors.err("recursive subroutine '${userName(sub)}' cannot be compiled: $reason, because " +
                     "two live activations of it would share the same static storage: ${details.joinToString(", ")}. " +
-                    "Restructure the subroutine so that all of its state can live in a stack frame",
+                    "Restructure the subroutine so it can be given a stack frame holding all of its state",
                 sub.position)
         }
     }
@@ -1006,7 +1029,7 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
             for ((callee, layout) in framedSubs) {
                 val params = calleeParameters(callee) ?: continue
                 if (params.isEmpty()) continue
-                offsetsByCallee[callee] = params.mapIndexed { index, param ->
+                offsetsByCallee[callee] = params.mapIndexed { _, param ->
                     val scoped = if (param.startsWith("$callee.")) param else "$callee.$param"
                     layout.paramSlots[scoped] ?: 0
                 }

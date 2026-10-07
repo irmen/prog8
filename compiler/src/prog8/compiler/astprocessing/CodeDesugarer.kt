@@ -888,6 +888,13 @@ _after:
         if(!indexDt.isUnsignedByte)
             return noModifications
 
+        // a dispatch table has no call site, so nothing would ever pass the target's arguments
+        ongoto.labels.forEach { labelRef ->
+            val dispatchTarget = labelRef.targetStatement(program.builtinFunctions)
+            if(dispatchTarget is Subroutine && dispatchTarget.parameters.isNotEmpty())
+                errors.err("can't dispatch to a subroutine that takes parameters: ${dispatchTarget.name}", labelRef.position)
+        }
+
         val numlabels = ongoto.labels.size
         val elementDt = program.target.pointerBaseType
         val arrayDt = DataType.arrayFor(elementDt, program.target)

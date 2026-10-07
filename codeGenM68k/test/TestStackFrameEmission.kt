@@ -58,6 +58,37 @@ class TestStackFrameEmission : FunSpec({
     fun generateAsm(frameSize: Int, instructions: List<IRInstruction>): List<String> =
         generateAsmWithIncoming(frameSize, instructions, 0, "test.start")
 
+    // builds a subroutine with a chunk per extra chunk label, for jump-target scope tests
+    fun sub(label: String, frameSize: Int, instructions: List<IRInstruction>, extraChunks: List<IRCodeChunkBase> = emptyList()): IRSubroutine {
+        val first = IRCodeChunk(label, null)
+        first.instructions.addAll(instructions)
+        val sub = IRSubroutine(label, emptyList(), emptyList(), Position.DUMMY, frameSize, 0, emptyMap())
+        sub.chunks.add(first)
+        sub.chunks.addAll(extraChunks)
+        return sub
+    }
+
+    fun generateAsmForSubs(vararg subs: IRSubroutine): List<String> {
+        val options = CompilationOptions.builder(Qemu68kTarget())
+            .output(OutputType.RAW)
+            .zeropage(ZeropageType.DONTUSE)
+            .floats(false)
+            .compilerVersion("test")
+            .memtopAddress(0xffffu)
+            .optimize(true)
+            .build()
+        val program = IRProgram("test", IRSymbolTable(), options, DummyStringEncoder)
+        program.options.outputDir = tempRoot
+        val block = IRBlock("test", false, IRBlock.Options(), Position.DUMMY)
+        block.children.addAll(subs)
+        program.blocks.add(block)
+        program.linkChunks()
+        tempRoot.toFile().deleteRecursively()
+        tempRoot.toFile().mkdirs()
+        AsmGen(program, Qemu68kTarget(), null).generate()
+        return tempRoot.resolve("test.asm").readText().lines().map { it.trim() }
+    }
+
     test("frameless subroutine emits no frame setup") {
         val lines = generateAsm(0, listOf(
             IRInstructions.loadMemory(Opcode.LOADM, IRDataType.BYTE, 1, IRMemory.direct("some.var")),
@@ -305,6 +336,67 @@ class TestStackFrameEmission : FunSpec({
         lines.none { it.startsWith("dbra") } shouldBe true
         lines.count { it.startsWith("clr.l") } shouldBe 16
         lines.any { it == "clr.b  -36(a5)" } shouldBe true
+    }
+
+    test("dispatch jump in a framed subroutine pops the frame before jumping") {
+        // an on..goto leaves the subroutine for good, so the target's rts must find our caller's
+        // return address: leaving our frame behind would make it pop garbage
+        val lines = generateAsm(16, listOf(
+            IRInstructions.jumpIndirect(5),
+            IRInstructions.simple(Opcode.RETURN)
+        ))
+        val unlkIdx = lines.indexOf("unlk  a5")
+        unlkIdx shouldBe lines.indexOfFirst { it.startsWith("jmp") } - 1
+    }
+
+    test("dispatch jump in a frameless subroutine emits no frame teardown") {
+        val lines = generateAsm(0, listOf(
+            IRInstructions.jumpIndirect(5),
+            IRInstructions.simple(Opcode.RETURN)
+        ))
+        lines.none { it.startsWith("unlk") } shouldBe true
+    }
+
+    test("jump to a label in another subroutine pops the frame before jumping") {
+        // jumping out of the subroutine is a documented way to end it, so our frame must not be
+        // left behind for whatever runs next (and its eventual rts) to trip over
+        val lines = generateAsmForSubs(
+            sub("test.start", frameSize = 16, instructions = listOf(
+                IRInstructions.jump(CodeReference.Label("test.outside")),
+                IRInstructions.simple(Opcode.RETURN)
+            )),
+            sub("test.outside", frameSize = 0, instructions = listOf(IRInstructions.simple(Opcode.RETURN)))
+        )
+        val braIdx = lines.indexOfFirst { it.startsWith("bra") && "test.outside" in it }
+        (braIdx > 0) shouldBe true
+        lines[braIdx - 1] shouldBe "unlk  a5"
+    }
+
+    test("jump to a label in a chunk of the same subroutine keeps the frame") {
+        val lines = generateAsmForSubs(
+            sub("test.start", frameSize = 16, instructions = listOf(
+                IRInstructions.jump(CodeReference.Label("test.start.second")),
+                IRInstructions.simple(Opcode.RETURN)
+            ), extraChunks = listOf(
+                IRCodeChunk("test.start.second", null).also {
+                    it.instructions.add(IRInstructions.storeImmediate(IRDataType.BYTE, 0, IRMemory.direct("test.var")))
+                }
+            ))
+        )
+        lines.count { it == "unlk  a5" } shouldBe 1     // only the return epilogue
+        lines[lines.indexOf("unlk  a5") + 1] shouldBe "rts"
+        lines.any { it.startsWith("bra") && "test.start.second" in it } shouldBe true
+    }
+
+    test("jump to a label inside a loop body of the same subroutine keeps the frame") {
+        val loopBodyChunk = IRCodeChunk("test.start.loopbody", null)
+        loopBodyChunk.instructions.add(IRInstructions.jump(CodeReference.Label("test.start.loopbody")))
+        val lines = generateAsmForSubs(
+            sub("test.start", frameSize = 16, instructions = listOf(
+                IRInstructions.simple(Opcode.RETURN)
+            ), extraChunks = listOf(IRLoopChunk("test.start.loop", 3, mutableListOf(loopBodyChunk))))
+        )
+        lines.count { it == "unlk  a5" } shouldBe 1     // the jump to the loop body label must not tear the frame down
     }
 
 })

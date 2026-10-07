@@ -456,4 +456,79 @@ main {
 }"""
         compileText(VMTarget(), false, src, outputDir, writeAssembly = false).shouldNotBeNull()
     }
+    test("on..goto to a subroutine with parameters is an error") {
+        val text = """
+            main {
+                ubyte @shared index = 1
+                sub start() {
+                    on index goto (task1, task2)
+                }
+                sub task1() {
+                }
+                sub task2(ubyte param) {
+                }
+            }"""
+        val errors = ErrorReporterForTests()
+        compileText(C64Target(), false, text, outputDir, errors=errors, writeAssembly = false) shouldBe null
+        errors.errors.size shouldBe 1
+        errors.errors[0] shouldContain "can't dispatch to a subroutine that takes parameters: task2"
+    }
+
+    test("on..call to a subroutine with parameters is an error") {
+        val text = """
+            main {
+                ubyte @shared index = 1
+                sub start() {
+                    on index call (task1, task2)
+                }
+                sub task1() {
+                }
+                sub task2(uword param) {
+                }
+            }"""
+        val errors = ErrorReporterForTests()
+        compileText(C64Target(), false, text, outputDir, errors=errors, writeAssembly = false) shouldBe null
+        errors.errors.size shouldBe 1
+        errors.errors[0] shouldContain "can't dispatch to a subroutine that takes parameters: task2"
+    }
+
+    test("jmptable entry with parameters is an error") {
+        val text = """
+            main {
+                %jmptable (task1, task2)
+                sub start() {
+                }
+                sub task1() {
+                }
+                sub task2(ubyte param) {
+                }
+            }"""
+        val errors = ErrorReporterForTests()
+        compileText(C64Target(), false, text, outputDir, errors=errors, writeAssembly = false) shouldBe null
+        errors.errors.size shouldBe 1
+        errors.errors[0] shouldContain "can't dispatch to a subroutine that takes parameters: task2"
+    }
+
+    test("dispatch to subroutines without parameters is allowed") {
+        val text = """
+            main {
+                ubyte @shared index = 1
+                sub start() {
+                    on index goto (task1, task2)
+                    on index call (task3, task4)
+                }
+                sub task1() -> bool {
+                    return true
+                }
+                sub task2() {
+                }
+                sub task3() {
+                }
+                sub task4() {
+                }
+            }"""
+        val errors = ErrorReporterForTests()
+        compileText(C64Target(), false, text, outputDir, errors=errors, writeAssembly = false).shouldNotBeNull()
+        errors.errors shouldBe emptyList()
+    }
 })

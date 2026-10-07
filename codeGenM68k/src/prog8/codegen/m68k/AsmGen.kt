@@ -290,6 +290,10 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
     // area); the return translation emits `unlk a5` before each rts when this is set.
     internal var frameActive = false
 
+    // the code chunks of the subroutine currently being emitted, to tell a jump that stays
+    // inside it apart from one that leaves it
+    private var currentSubChunks: Set<IRCodeChunkBase> = emptySet()
+
     // Virtual registers of the subroutine being emitted, by register number -> frame offset.
     // A re-entrant subroutine (one that can have two live activations) keeps them per-activation in
     // its stack frame; every other subroutine uses the flat program-static register file.
@@ -301,6 +305,16 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
     internal fun emitFrameUnlk() {
         if (frameActive)
             emitLine("unlk  a5")
+    }
+
+    /**
+     * true when a jump to this label lands outside the subroutine currently being emitted.
+     * An unresolvable label counts as inside: without the chunk map we cannot tell, and guessing
+     * 'outside' would tear down frames of jumps that stay in the subroutine.
+     */
+    internal fun labelIsOutsideCurrentSub(labelName: String): Boolean {
+        val target = program.resolveCodeTarget(CodeReference.Label(labelName)) ?: return false
+        return target !in currentSubChunks
     }
 
     // === virtual register file layout (1, 2 or 4 bytes per slot depending on type, word-aligned) ===
@@ -767,6 +781,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
             emitLine("bsr  run_global_inits")
         frameActive = sub.hasFrame
         frameVregSlots = sub.frameVregSlots
+        currentSubChunks = mutableSetOf<IRCodeChunkBase>().also { set -> sub.forEachChunk { set.add(it) } }
         if (sub.hasFrame) {
             emitRaw("; stack frame: ${sub.frameSize} bytes of locals, ${sub.incomingSize} bytes of arguments")
             emitLine(if (sub.frameSize > 0) "link  a5,#-${sub.frameSize}" else "link  a5,#0")
@@ -805,6 +820,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         emitRaw("")
         frameActive = false
         frameVregSlots = emptyMap()
+        currentSubChunks = emptySet()
     }
 
     private fun emitAsmSubroutine(sub: IRAsmSubroutine) {
