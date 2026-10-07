@@ -588,7 +588,8 @@ class IRFileReader {
             parsePosition(attrs.getValue("POS")),
             attrs["FRAMESIZE"]?.toIntOrNull() ?: 0,
             attrs["INCOMING"]?.toIntOrNull() ?: 0,
-            attrs["VREGSLOTS"]?.let { parseFrameVregSlots(it) } ?: emptyMap())
+            attrs["VREGSLOTS"]?.let { parseFrameVregSlots(it) } ?: emptyMap(),
+            attrs.getOrDefault("NOFRAME", "false").toBoolean())
 
         skipText(reader)
         while(reader.peek().isStartElement) {

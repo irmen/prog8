@@ -1949,7 +1949,7 @@ class IRCodeGen(
                     irBlock += chunk
                 }
                 is PtSub -> {
-                    val sub = IRSubroutine(child.name, translateParameters(child.signature.children), child.signature.returns, child.position)
+                    val sub = IRSubroutine(child.name, translateParameters(child.signature.children), child.signature.returns, child.position, noframe = child.noframe)
                     for (subchild in child.children) {
                         translateNode(subchild).forEach { sub += it }
                     }

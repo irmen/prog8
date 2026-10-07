@@ -151,6 +151,8 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
                             xml.writeAttribute("INCOMING", child.incomingSize.toString())
                         if (child.frameVregSlots.isNotEmpty())
                             xml.writeAttribute("VREGSLOTS", child.frameVregSlots.entries.joinToString(",") { "${it.key}:${it.value}" })
+                        if (child.noframe)
+                            xml.writeAttribute("NOFRAME", "true")
                         xml.writeCharacters("\n")
                         xml.writeStartElement("PARAMS")
                         xml.writeCharacters("\n")

@@ -494,7 +494,7 @@ Directives
 .. index:: pair: Directives; %option
 .. data:: %option <option> [, <option> ...]
 
-	Level: module, block.
+	Level: module, block, subroutine.
 	Sets special compiler options.
 
     - ``enable_floats`` (module level) tells the compiler
@@ -524,6 +524,13 @@ Directives
     - ``private_symbols`` (module or block) makes all symbols private by default within the module or block where this option is set.
       This means symbols can only be accessed from within the same block, unless they are explicitly marked with the ``public`` keyword.
       This is useful for enforcing encapsulation in larger programs or library modules. See :ref:`private-symbols` for more details.
+    - ``noframe`` (subroutine) forbids the subroutine from getting a stack frame: it always uses the
+      legacy static calling convention. This is required for subroutines that manipulate the machine
+      stack themselves, such as the task switcher in the ``coroutines`` library on m68k targets.
+      A marked subroutine is also exempt from the re-entrancy check that would otherwise reject
+      state shared between its overlapping runs. Only use this if you know what you're doing: the
+      programmer is responsible for guaranteeing that no two live runs observe each other's data,
+      and that the caller's frame pointer is intact when the subroutine returns.
 
 
 .. index:: pair: Directives; %output

@@ -57,15 +57,15 @@ private class FrameAddressEscapeChecker(private val errors: IErrorReporter) : IA
                 is StoreEscape -> {
                     warnedLocals.add(decl)
                     val storage = escape.storageName?.let { " in '$it'" } ?: " in a location outside the subroutine"
-                    errors.err("the address of local '${decl.name}' in subroutine '${declaringSub.name}' is stored$storage; a stack frame address is only valid while the subroutine is running", addressOf.position)
+                    errors.err("the address of local '${decl.name}' in subroutine '${declaringSub.name}' is stored$storage; a stack frame address is only valid while the subroutine is running; declare the variable @shared to keep its address valid", addressOf.position)
                 }
                 is CallEscape -> {
                     warnedLocals.add(decl)
-                    errors.warn("the address of local '${decl.name}' in subroutine '${declaringSub.name}' escapes the subroutine (passed to a call); a stack frame address is only valid while the subroutine is running", addressOf.position)
+                    errors.warn("the address of local '${decl.name}' in subroutine '${declaringSub.name}' escapes the subroutine (passed to a call); a stack frame address is only valid while the subroutine is running; declare the variable @shared to keep its address valid", addressOf.position)
                 }
                 is ReturnEscape -> {
                     warnedLocals.add(decl)
-                    errors.err("the address of local '${decl.name}' in subroutine '${declaringSub.name}' escapes the subroutine (returned); a stack frame address is only valid while the subroutine is running", addressOf.position)
+                    errors.err("the address of local '${decl.name}' in subroutine '${declaringSub.name}' escapes the subroutine (returned); a stack frame address is only valid while the subroutine is running; declare the variable @shared to keep its address valid", addressOf.position)
                 }
             }
         }
@@ -89,7 +89,7 @@ private class FrameAddressEscapeChecker(private val errors: IErrorReporter) : IA
                 val shortName = "p8v_${decl.name}"
                 if (decl.name in asmNames || asmNames.any { it == shortName || it.endsWith(".$shortName") }) {
                     warnedLocals.add(decl)
-                    errors.warn("the address of local '${decl.name}' in subroutine '${subroutine.name}' is referenced from inline assembly; a stack frame address is only valid while the subroutine is running", decl.position)
+                    errors.warn("the address of local '${decl.name}' in subroutine '${subroutine.name}' is referenced from inline assembly; a stack frame address is only valid while the subroutine is running; declare the variable @shared to keep its address valid", decl.position)
                 }
             }
         }

@@ -585,7 +585,11 @@ class IRSubroutine(
     /** virtual register number -> negative frame offset, for a re-entrant subroutine (one that can
      *  have two live activations): its virtual registers are per-activation instead of living in the
      *  flat program-static register file. Empty for every other subroutine. */
-    var frameVregSlots: Map<Int, Int> = emptyMap()): IIRBlockElement {
+    var frameVregSlots: Map<Int, Int> = emptyMap(),
+    /** set when the subroutine is marked %option noframe: it always uses the legacy static
+     *  convention (typically because it manipulates the machine stack itself) and is exempt
+     *  from the re-entrancy check */
+    val noframe: Boolean = false): IIRBlockElement {
 
     class IRParam(val name: String, val dt: DataType)
 

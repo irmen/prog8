@@ -86,19 +86,16 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
         val reachesFramePointerClobber = subsReachingFramePointerClobber(framePointerClobberers, indirectCallers)
 
         val framedSubs = mutableMapOf<String, FrameLayoutResult>()
-        val notFramedReasons = mutableMapOf<String, String>()
         for (sub in allSubs) {
             val outcome = frameableSubroutine(sub, referencedIn, addressTaken, asmTexts, callSites, dispatchTargets, indirectCallers, reentrant, reachesFramePointerClobber)
-            when (outcome) {
-                is Frameability.Frameable -> framedSubs[sub.label] = outcome.layout
-                is Frameability.NotFrameable -> notFramedReasons[sub.label] = outcome.reason
-            }
+            if (outcome is Frameability.Frameable)
+                framedSubs[sub.label] = outcome.layout
         }
 
         if (framedSubs.isNotEmpty())
             rewriteCallArgumentLocations(framedSubs)
 
-        reportUnsoundStaticState(framedSubs, notFramedReasons, reentrant, referencedIn, addressTaken, asmTexts)
+        reportUnsoundStaticState(framedSubs, reentrant, referencedIn, addressTaken, asmTexts)
         rewriteOutgoingJumps(framedSubs.keys)
     }
 
@@ -188,6 +185,12 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
     private fun subsReachingFramePointerClobber(clobberers: Set<String>, indirectCallers: Set<String>): Map<String, ClobberReach> {
         if (clobberers.isEmpty())
             return emptyMap()
+        // Calls into %option noframe subroutines are a barrier for both propagations below:
+        // the mark asserts a save/restore discipline that leaves the caller's A5 intact when
+        // the call returns (or abandons the caller, as when switching away), so clobber reach
+        // through such a call is a false positive. The marked subroutines themselves stay
+        // classified by their own assembly.
+        val noframeSubs = program.allSubs().filter { it.noframe }.map { it.label }.toSet()
         val callTargets = mutableMapOf<String, MutableSet<String>>()
         for (sub in program.allSubs()) {
             val targets = callTargets.getOrPut(sub.label) { mutableSetOf() }
@@ -207,7 +210,7 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
             for ((label, targets) in callTargets) {
                 if (label in reaching)
                     continue
-                val hit = targets.firstOrNull { it in clobberers || it in reaching } ?: continue
+                val hit = targets.filter { it !in noframeSubs }.firstOrNull { it in clobberers || it in reaching } ?: continue
                 reaching[label] = if (hit in clobberers) ClobberReach(hit, false) else reaching.getValue(hit)
                 changed = true
             }
@@ -221,7 +224,7 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
             for ((label, targets) in callTargets) {
                 if (label in reachesIndirect)
                     continue
-                if (label in indirectCallers || targets.any { it in reachesIndirect }) {
+                if (label in indirectCallers || targets.filter { it !in noframeSubs }.any { it in reachesIndirect }) {
                     reachesIndirect += label
                     changed = true
                 }
@@ -401,12 +404,19 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
         reachesFramePointerClobber: Map<String, ClobberReach>
     ): Frameability {
         val static = { reason: String -> Frameability.NotFrameable(reason) }
+        // a %option noframe subroutine requires the legacy static convention (it manipulates
+        // the machine stack itself), so it never gets a frame
+        if (sub.noframe) return static("it is marked %option noframe")
         if (sub.hasFrame) return static("it already has a stack frame")
         var hasInlineAsm = false
         sub.forEachChunk { chunk -> if (chunk is IRInlineAsmChunk) hasInlineAsm = true }
         if (hasInlineAsm) return static("it contains inline assembly")
         if (sub.label in indirectCallers) return static("it makes an indirect call")
-        if (sub.label in dispatchTargets) return static("its address is taken")
+        // An address-taken subroutine with parameters must stay static: an indirect call site
+        // cannot know which convention to pass arguments in. Without parameters there is nothing
+        // to pass (indirect calls never carry arguments), so framing is transparent to every
+        // entry path and only the re-entrancy check below still applies.
+        if (sub.label in dispatchTargets && sub.parameters.isNotEmpty()) return static("its address is taken")
         if (isLabelReferencedInAsm(sub.label, asmTexts)) return static("it is referenced from inline assembly")
         reachesFramePointerClobber[sub.label]?.let {
             val how = if (it.viaIndirect)
@@ -852,7 +862,6 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
      */
     private fun reportUnsoundStaticState(
         framedSubs: Map<String, FrameLayoutResult>,
-        notFramedReasons: Map<String, String>,
         reentrant: Set<String>,
         referencedIn: Map<String, Set<String>>,
         addressTaken: Set<String>,
@@ -860,34 +869,34 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
     ) {
         for (sub in program.allSubs()) {
             if (sub.label !in reentrant) continue
+            // a %option noframe subroutine manages its own stack discipline by design;
+            // the programmer accepts that its overlapping runs share data
+            if (sub.noframe) continue
             val framed = sub.label in framedSubs
             val sharedVars = staticVarsOwnedBy(sub).filter { referencedIn[it]?.contains(sub.label) == true }
-            // a copy-in parameter keeps a static cell for its external references (§6.1); two live
-            // activations of a re-entrant subroutine would share that cell
+            // a copy-in parameter keeps a static cell for its external references (§6.1),
+            // shared between overlapping runs of a re-entrant subroutine
             val sharedCopyIns = (framedSubs[sub.label]?.copyInParams ?: emptySet()).filter { it !in sharedVars }
             // an unframed subroutine also shares its virtual registers; a framed one relocated them all
             val sharedVregs = if (framed) emptyList() else vregsUsedIn(sub).keys.toList()
             if (sharedVars.isEmpty() && sharedVregs.isEmpty() && sharedCopyIns.isEmpty()) continue
-            val reason = when {
-                !framed -> "it cannot be given a stack frame (${notFramedReasons[sub.label] ?: "unknown reason"})"
-                sharedCopyIns.isNotEmpty() -> "some parameters must be copied into a static cell for external references"
-                else -> "some of the values it uses cannot be moved into a stack frame"
-            }
             val details = mutableListOf<String>()
             for (varName in sharedVars) {
                 val v = program.st.lookup(varName) as? IRStStaticVariable
                 val why = v?.let { frameableVariableProblem(it, varName, addressTaken, asmTexts) }
-                    ?: if (framed) "it is shared with other code" else "the subroutine has no stack frame to hold it"
-                details += "variable '${varName.substringAfterLast('.').removePrefix("p8v_")}' ($why)"
+                    ?: if (framed) "it is shared with other code" else null
+                val name = "variable '${varName.substringAfterLast('.').removePrefix("p8v_")}'"
+                details += if (why == null) name else "$name ($why)"
             }
             for (paramName in sharedCopyIns) {
-                details += "parameter '${paramName.substringAfterLast('.').removePrefix("p8v_")}' (its static cell for external references is shared between activations)"
+                details += "parameter '${paramName.substringAfterLast('.').removePrefix("p8v_")}' (shared with other code)"
             }
             if (sharedVregs.isNotEmpty())
-                details += "${sharedVregs.size} intermediate value(s)"
-            errors.err("recursive subroutine '${userName(sub)}' cannot be compiled: $reason, because " +
-                    "two live activations of it would share the same static storage: ${details.joinToString(", ")}. " +
-                    "Restructure the subroutine so it can be given a stack frame holding all of its state",
+                details += if (sharedVregs.size == 1) "1 temporary value" else "${sharedVregs.size} temporary values"
+            errors.err("subroutine '${userName(sub)}' cannot be compiled: it may be running twice at the same time, " +
+                    "while sharing data between those runs: ${details.joinToString(", ")}. " +
+                    "Restructure it so that each run has its own private data, " +
+                    "or mark it %option noframe if the sharing is intentional",
                 sub.position)
         }
     }

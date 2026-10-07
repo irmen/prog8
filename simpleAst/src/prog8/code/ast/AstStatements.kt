@@ -79,8 +79,10 @@ class PtSub(name: String, position: Position) : PtNamedNode(name, position), IPt
 
     val signature: PtSubSignature
         get() = children[0] as PtSubSignature
-    
-    override fun copy(): PtNode = PtSub(name, position)
+
+    var noframe: Boolean = false
+
+    override fun copy(): PtNode = PtSub(name, position).also { it.noframe = noframe }
 
     companion object {
         fun builder(name: String, position: Position) = Builder(name, position)

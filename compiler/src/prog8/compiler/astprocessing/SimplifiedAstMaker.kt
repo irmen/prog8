@@ -767,6 +767,11 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
         }
         // do not bother about the 'inline' hint of the source subroutine.
         val sub = PtSub(srcSub.name,srcSub.position)
+        sub.noframe = srcSub.statements
+            .filterIsInstance<Directive>()
+            .filter { it.directive == "%option" }
+            .flatMap { it.args }
+            .any { it.string == "noframe" }
         val signature = PtSubSignature( returnTypes, srcSub.position)
         srcSub.parameters.forEach { signature.add(PtSubroutineParameter(it.name, it.type, it.registerOrPair, it.position)) }
         sub.add(signature)

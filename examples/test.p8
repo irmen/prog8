@@ -1,29 +1,49 @@
 %import textio
+%import coroutines
+%zeropage basicsafe
 
 main {
     sub start() {
-        ubyte @shared i = 1
+        void coroutines.add(task1, 0)
+        void coroutines.add(task2, 0)
+        void coroutines.add(task3, 0)
+        txt.print("starting 3 tasks...\n")
+        coroutines.run(supervisor)
+        txt.print("\ndone.\n")
+    }
 
-        on  i goto (task1,task2,task3)
+    ubyte @shared count
+
+    sub supervisor() -> bool {
+        count++
+        if count==200 {
+            coroutines.killall()
+            return false
+        }
+        return true
     }
 
     sub task1() {
-        long @shared z1 = 11111
-        txt.print("one ")
-        txt.print_l(z1)
-        txt.nl()
+        ;%option noframe
+        repeat {
+            txt.chrout('a')
+            void coroutines.yield()
+        }
     }
+
     sub task2() {
-        long @shared z2 = 22222
-        txt.print("two ")
-        txt.print_l(z2)
-        txt.nl()
+        %option noframe
+        repeat {
+            txt.chrout('b')
+            void coroutines.yield()
+        }
     }
-    sub task3() -> bool {
-        long @shared z3 = 33333
-        txt.print("three ")
-        txt.print_l(z3)
-        txt.nl()
-        return false
+
+    sub task3() {
+        %option noframe
+        repeat {
+            txt.chrout('c')
+            void coroutines.yield()
+        }
     }
 }

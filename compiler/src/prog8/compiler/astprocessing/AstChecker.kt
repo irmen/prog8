@@ -1519,15 +1519,19 @@ internal class AstChecker(private val program: Program,
                 else checkFileExists(directive, directive.args[0].string!!)
             }
             "%option" -> {
-                if(directive.parent !is Block && directive.parent !is Module)
-                    err("this directive may only occur in a block or at module level")
+                if(directive.parent !is Block && directive.parent !is Module && directive.parent !is Subroutine)
+                    err("this directive may only occur in a block, a subroutine, or at module level")
                 if(directive.args.isEmpty())
                     err("missing option directive argument(s)")
-                else if(directive.args.map{it.string in setOf("enable_floats", "force_output", "no_sysinit", "merge", "verafxmuls", "no_symbol_prefixing", "ignore_unused", "romable", "amiga_chipram", "private_symbols")}.any { !it })
+                else if(directive.args.map{it.string in setOf("enable_floats", "force_output", "no_sysinit", "merge", "verafxmuls", "no_symbol_prefixing", "ignore_unused", "romable", "amiga_chipram", "private_symbols", "noframe")}.any { !it })
                     err("invalid option directive argument(s)")
                 if(directive.parent is Block) {
                     if(directive.args.any {it.string !in setOf("force_output", "merge", "verafxmuls", "no_symbol_prefixing", "ignore_unused", "amiga_chipram", "private_symbols")})
                         err("using an option that is not valid for blocks")
+                }
+                if(directive.parent is Subroutine) {
+                    if(directive.args.any {it.string != "noframe"})
+                        err("using an option that is not valid for subroutines")
                 }
                 if(directive.parent is Module) {
                     if(directive.args.any {it.string !in setOf("enable_floats", "no_sysinit", "no_symbol_prefixing", "ignore_unused", "romable", "private_symbols")})

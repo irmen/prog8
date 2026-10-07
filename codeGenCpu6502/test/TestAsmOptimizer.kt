@@ -9,7 +9,15 @@ import prog8.code.core.BaseDataType
 import prog8.code.core.DataType
 import prog8.code.target.C64Target
 import prog8.code.target.VMTarget
-import prog8.codegen.cpu6502.*
+import prog8.codegen.cpu6502.hasInstr
+import prog8.codegen.cpu6502.haslabel
+import prog8.codegen.cpu6502.isBranch
+import prog8.codegen.cpu6502.isLoadReg
+import prog8.codegen.cpu6502.isStoreReg
+import prog8.codegen.cpu6502.isStoreRegOrZero
+import prog8.codegen.cpu6502.keeplabel
+import prog8.codegen.cpu6502.modifiesYRegister
+import prog8.codegen.cpu6502.optimizeAssembly
 
 
 class TestAsmOptimizer: FunSpec({

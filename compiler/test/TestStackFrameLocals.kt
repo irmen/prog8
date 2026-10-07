@@ -499,7 +499,7 @@ main {
         compileText(Qemu68kTarget(), optimize = false, src, tempdir().toPath(),
             writeAssembly = true, assemble = false, errors = errors) shouldBe null
         errors.errors.size shouldBe 1
-        errors.errors[0] shouldContain "recursive subroutine"
+        errors.errors[0] shouldContain "may be running twice at the same time"
         errors.errors[0] shouldContain "address is taken"
     }
 
@@ -524,7 +524,7 @@ main {
         compileText(Qemu68kTarget(), optimize = false, src, tempdir().toPath(),
             writeAssembly = true, assemble = false, errors = errors) shouldBe null
         errors.errors.size shouldBe 1
-        errors.errors[0] shouldContain "recursive subroutine"
+        errors.errors[0] shouldContain "may be running twice at the same time"
         errors.errors[0] shouldContain "static initializer"
 
         // the same program compiles unchanged for a target without stack frames
@@ -789,8 +789,8 @@ main {
         val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
         compileText(Qemu68kTarget(), optimize = false, src, tempdir().toPath(),
             writeAssembly = true, assemble = false, errors = errors) shouldBe null
-        errors.errors.any { it.contains("recursive") } shouldBe true
-        errors.errors.any { it.contains("shared between activations") } shouldBe true
+        errors.errors.any { it.contains("may be running twice") } shouldBe true
+        errors.errors.any { it.contains("shared with other code") } shouldBe true
     }
 
     test("slice 5: recursive subroutine with a static-initialized local now compiles") {
@@ -1190,7 +1190,7 @@ main {
         start.count { it == "subq.l  #4,sp" } shouldBe 2
     }
 
-    test("re-entrant dispatch subroutines explain why they cannot be framed") {
+    test("re-entrant subroutines that share data are rejected in plain language") {
         val src = """
 main {
     sub start() {
@@ -1216,10 +1216,104 @@ main {
             writeAssembly = true, assemble = false, errors = errors) shouldBe null
         errors.errors.size shouldBe 3
         val all = errors.errors.joinToString("\n")
-        all shouldContain "recursive subroutine"
-        all shouldContain "cannot be given a stack frame (its address is taken)"
-        all shouldContain "cannot be given a stack frame (it makes an indirect call)"
-        all shouldContain "conservatively assumed to reach any subroutine"
-        all shouldNotContain "it calls '"
+        all shouldContain "cannot be compiled"
+        all shouldContain "may be running twice at the same time"
+        all shouldContain "its own private data"
+        all shouldContain "%option noframe"
+        all shouldContain "variable 'x'"
+        all shouldContain "variable 'counter'"
+        all shouldContain "temporary value"
+        all shouldNotContain "recursive"
+        all shouldNotContain "stack frame"
+    }
+
+    test("%option noframe on a subroutine exempts it from the reentrancy static-state error") {
+        val src = """
+main {
+    sub start() {
+        spawn(&task1)
+    }
+    sub spawn(pointer task) {
+        %option noframe
+        dispatch(task)
+    }
+    sub dispatch(pointer task) {
+        %option noframe
+        call(task)
+    }
+    sub task1() {
+        %option noframe
+        ubyte counter = 0
+        counter++
+        spawn(&task1)
+    }
+}
+"""
+        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        val outputDir = tempdir().toPath()
+        compileText(Qemu68kTarget(), optimize = false, src, outputDir,
+            writeAssembly = true, assemble = false, errors = errors) shouldNotBe null
+        errors.errors shouldBe emptyList()
+        // spawn takes a parameter so it would normally get a frame; the noframe mark forces static convention
+        val (lines, _) = compile(src, Qemu68kTarget())
+        for (sub in listOf("p8b_main.p8s_spawn", "p8b_main.p8s_dispatch", "p8b_main.p8s_task1")) {
+            subAssembly(lines, sub).none { it.startsWith("link") } shouldBe true
+        }
+    }
+
+    test("coroutine tasks with frame-private state need no mark and get stack frames") {
+        val src = """
+%import coroutines
+
+main {
+    sub start() {
+        void coroutines.add(task1, 0)
+        void coroutines.add(task2, 0)
+        coroutines.run(0)
+    }
+    sub task1() {
+        ubyte count = 0
+        repeat 3 {
+            count += helper(count)
+            void coroutines.yield()
+        }
+    }
+    sub helper(ubyte v) -> ubyte {
+        return v + 1
+    }
+    sub task2() {
+        ubyte n = 0
+        repeat 2 {
+            n += 10
+            void coroutines.yield()
+        }
+    }
+}
+"""
+        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        val outputDir = tempdir().toPath()
+        compileText(Qemu68kTarget(), optimize = false, src, outputDir,
+            writeAssembly = true, assemble = false, errors = errors) shouldNotBe null
+        errors.errors shouldBe emptyList()
+        // each task runs on its own private stack, so locals live in frames: no marks needed
+        val (lines, _) = compile(src, Qemu68kTarget())
+        for (sub in listOf("p8b_main.p8s_task1", "p8b_main.p8s_task2", "p8b_main.p8s_helper")) {
+            subAssembly(lines, sub).any { it.startsWith("link") } shouldBe true
+        }
+    }
+
+    test("%option with a non-noframe argument is rejected in a subroutine") {
+        val src = """
+main {
+    sub start() {
+        %option force_output
+    }
+}
+"""
+        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        compileText(Qemu68kTarget(), optimize = false, src, tempdir().toPath(),
+            writeAssembly = false, assemble = false, errors = errors) shouldBe null
+        errors.errors.size shouldBe 1
+        errors.errors[0] shouldContain "not valid for subroutines"
     }
 })
