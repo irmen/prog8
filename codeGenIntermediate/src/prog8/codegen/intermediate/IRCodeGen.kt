@@ -168,7 +168,7 @@ class IRCodeGen(
                         replacements += IRStStaticVariable(
                             variable.name, variable.dt, null, variable.length,
                             variable.zpwish, variable.align, variable.dirty,
-                            variable.inBss, variable.readonly
+                            variable.inBss, variable.readonly, variable.shared
                         )
                     }
                     is IRVariableInitializer.Str, is IRVariableInitializer.Array -> {
@@ -274,7 +274,8 @@ class IRCodeGen(
                 variable.align,
                 variable.dirty,
                 variable.inBss,
-                variable.readonly
+                variable.readonly,
+                variable.shared
             )
             irProg.st.add(clearedVar)
 
@@ -2218,7 +2219,7 @@ class IRCodeGen(
         }
     }
 
-    internal fun loadIndexReg(index: PtExpression, itemsize: Int, wordIndex: Boolean, arrayIsSplitWords: Boolean): Pair<IRCodeChunks, Int> {
+    internal fun loadIndexReg(index: PtExpression, wordIndex: Boolean): Pair<IRCodeChunks, Int> {
         // returns the code to load the Index into the register, which is also returned.
         // The returned register is always canonicalized to the expected index width
         // (WORD on 32-bit targets, BYTE on 8-bit) so that LOADX/STOREX/STOREZX never

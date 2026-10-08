@@ -226,6 +226,7 @@ class IRFileReader {
         val name = match.groups["name"]!!.value
         val zpwish = match.groups["zp"]!!.value
         val alignment = match.groups["align"]?.value ?: ""
+        val sharedStr = match.groups["shared"]?.value ?: ""
         val readonlyStr = match.groups["readonly"]?.value ?: ""
 
         if('.' !in name)
@@ -236,8 +237,9 @@ class IRFileReader {
         val zp = if(zpwish.isBlank()) ZeropageWish.DONTCARE else ZeropageWish.valueOf(zpwish)
         val align = if(alignment.isBlank()) 0u else alignment.toUInt()
         val inBss = true  // NOINIT vars are always in BSS by definition
+        val shared = sharedStr == "true"
         val readonly = readonlyStr == "true"
-        return IRStStaticVariable(name, dt, null, arraysize, zp, align, dirty, inBss, readonly)
+        return IRStStaticVariable(name, dt, null, arraysize, zp, align, dirty, inBss, readonly, shared)
     }
 
     private fun parseConstants(reader: XMLEventReader): List<IRStConstant> =
@@ -278,6 +280,7 @@ class IRFileReader {
         val zpwish = match.groups["zp"]!!.value
         val alignment = match.groups["align"]?.value ?: ""
         val inBssStr = match.groups["inBss"]?.value ?: ""
+        val sharedStr = match.groups["shared"]?.value ?: ""
         val readonlyStr = match.groups["readonly"]?.value ?: ""
         
         if('.' !in name)
@@ -288,10 +291,11 @@ class IRFileReader {
         val zp = if(zpwish.isBlank()) ZeropageWish.DONTCARE else ZeropageWish.valueOf(zpwish)
         val align = if(alignment.isBlank()) 0u else alignment.toUInt()
         val inBss = inBssStr == "true"
+        val shared = sharedStr == "true"
         val readonly = readonlyStr == "true"
         val dirty = false
         val initValue = parseInitValue(dt, value, arraysize)
-        return IRStStaticVariable(name, dt, initValue, arraysize, zp, align, dirty, inBss, readonly)
+        return IRStStaticVariable(name, dt, initValue, arraysize, zp, align, dirty, inBss, readonly, shared)
     }
 
     private fun parseInitValue(dt: DataType, value: String, arraysize: UInt?): IRVariableInitializer? {

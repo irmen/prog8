@@ -206,7 +206,8 @@ class StStaticVariable(name: String,
                        val zpwish: ZeropageWish,    // used in the variable allocator
                        val align: UInt,
                        val dirty: Boolean,
-                       astNode: PtNode?) : StNode(name, StNodeType.STATICVAR, astNode) {
+                       astNode: PtNode?,
+                       val shared: Boolean = false) : StNode(name, StNodeType.STATICVAR, astNode) {
 
     var initializationNumericValue: Double? = null
         private set

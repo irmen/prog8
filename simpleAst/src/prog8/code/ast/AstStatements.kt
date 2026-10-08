@@ -390,7 +390,8 @@ class PtVariable(
     val dirty: Boolean,
     val value: PtExpression?,
     val arraySize: UInt?,
-    position: Position
+    position: Position,
+    val shared: Boolean = false         // the @shared tag: pin the variable to program-static storage
 ) : PtNamedNode(name, position), IPtVariable {
     init {
 

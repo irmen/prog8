@@ -389,7 +389,7 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
     /** outcome of the frameability decision for one subroutine */
     private sealed interface Frameability {
         class Frameable(val layout: FrameLayoutResult) : Frameability
-        class NotFrameable(val reason: String) : Frameability
+        class NotFrameable() : Frameability
     }
 
     private fun frameableSubroutine(
@@ -403,7 +403,7 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
         reentrant: Set<String>,
         reachesFramePointerClobber: Map<String, ClobberReach>
     ): Frameability {
-        val static = { reason: String -> Frameability.NotFrameable(reason) }
+        val static = { reason: String -> Frameability.NotFrameable() }
         // a %option noframe subroutine requires the legacy static convention (it manipulates
         // the machine stack itself), so it never gets a frame
         if (sub.noframe) return static("it is marked %option noframe")
@@ -1090,6 +1090,7 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
 
     /** returns why the variable cannot be moved into a frame, or null when it can */
     private fun frameableVariableProblem(v: IRStStaticVariable, name: String, addressTaken: Set<String>, asmTexts: List<String>, asmAllowed: Boolean = false): String? {
+        if (v.shared) return "it is marked @shared"    // @shared guarantees a stable, externally visible address
         if (name in addressTaken) return "its address is taken"
         if (!asmAllowed && isLabelReferencedInAsm(name, asmTexts)) return "inline assembly refers to it"
         if (v.initializationValue != null && v.initializationValue !is IRVariableInitializer.Numeric) return "it has a static initializer"

@@ -78,7 +78,7 @@ private class StToIrConverter(val romable: Boolean) {
         val hasInit = initValue != null
         val inBss = !hasInit || romable
         val readonly = romable && hasInit
-        return IRStStaticVariable(name, variable.dt, initValue, variable.length, variable.zpwish, variable.align, variable.dirty, inBss, readonly)
+        return IRStStaticVariable(name, variable.dt, initValue, variable.length, variable.zpwish, variable.align, variable.dirty, inBss, readonly, variable.shared)
     }
 
     fun convert(variable: StMemVar): IRStMemVar {

@@ -74,7 +74,7 @@ Tag         Effect
 @zp         prioritize the variable for putting it into Zero page. No guarantees; if ZP is full the variable will be placed in another memory location.
 @requirezp  force the variable into Zero page. If ZP is full, compilation will fail.
 @nozp       force the variable to normal system ram, never place it into zeropage.
-@shared     means the variable is shared with some assembly code and that it cannot be optimized away if not used elsewhere.
+@shared     means the variable is shared with some assembly code and that it cannot be optimized away if not used elsewhere. It also guarantees that the variable keeps program-static storage with a stable, externally visible address.
 @nosplit    (only valid on (u)word arrays) Store the array as a single linear array instead of a separate array for lsb and msb values
 @alignword  aligns string or array variable on an even memory address
 @align64    aligns string or array variable on a 64 byte address interval (example: for C64 sprite data)
@@ -155,6 +155,12 @@ refer to the variable even if it's otherwise not used in prog8 code itself.
 when assembling the rest of the code). Example::
 
     byte  @shared  assemblyVariable = 42
+
+``@shared`` additionally guarantees that the variable stays in program-static storage with a
+stable, externally visible address. This is exactly what escaping addresses (or pointers to the
+variable) and inline-assembly references require, and it applies even when the variable is
+declared inside a subroutine that would otherwise move it into a stack frame on targets that
+have a stack-based memory model (m68k).
 
 
 .. index:: pair: Variables; uninitialized

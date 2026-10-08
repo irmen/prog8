@@ -818,7 +818,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                 val offset = eltSize * constIndex
                 addInstr(result, IRInstructions.binaryImmediate(Opcode.ADD, IRDataType.POINTER, pointerReg, offset), null)
             } else {
-                val (code, indexReg) = codeGen.loadIndexReg(targetArray.index, eltSize, true, targetArray.splitWords)
+                val (code, indexReg) = codeGen.loadIndexReg(targetArray.index, true)
                 result += code
                 if(eltSize!=1)
                     result += codeGen.multiplyByConst(DataType.UWORD, indexReg, eltSize)
@@ -830,7 +830,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                 val offset = eltSize * constIndex
                 addInstr(result, IRInstructions.binaryImmediate(Opcode.ADD, IRDataType.POINTER, pointerReg, offset), null)
             } else {
-                val (code, indexReg) = codeGen.loadIndexReg(targetArray.index, eltSize, true, targetArray.splitWords)
+                val (code, indexReg) = codeGen.loadIndexReg(targetArray.index, true)
                 result += code
                 if(eltSize!=1)
                     result += codeGen.multiplyByConst(DataType.UWORD, indexReg, eltSize)
@@ -864,7 +864,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                 }
                 result += chunk
             } else {
-                val (code, indexReg) = codeGen.loadIndexReg(targetArray.index, eltSize, codeGen.wordArrayIndex, targetArray.splitWords)
+                val (code, indexReg) = codeGen.loadIndexReg(targetArray.index, codeGen.wordArrayIndex)
                 result += code
                 val scaleZX = if(targetArray.splitWords) 1 else eltSize
                 result += IRCodeChunk(null, null).also {
@@ -885,7 +885,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                     }
                     result += chunk
                 } else {
-                    val (code, indexReg) = codeGen.loadIndexReg(targetArray.index, eltSize, codeGen.wordArrayIndex, targetArray.splitWords)
+                    val (code, indexReg) = codeGen.loadIndexReg(targetArray.index, codeGen.wordArrayIndex)
                     result += code
                     result += IRCodeChunk(null, null).also {
                         it += IRInstructions.storeMemory(Opcode.STOREX, targetDt, valueFpRegister, IRMemory.indexed(variable, indexReg, codeGen.options.compTarget.indexRegType, scale=eltSize))
@@ -906,7 +906,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                     }
                     result += chunk
                 } else {
-                    val (code, indexReg) = codeGen.loadIndexReg(targetArray.index, eltSize, codeGen.wordArrayIndex, targetArray.splitWords)
+                    val (code, indexReg) = codeGen.loadIndexReg(targetArray.index, codeGen.wordArrayIndex)
                     result += code
                     result += IRCodeChunk(null, null).also {
                         if(targetArray.splitWords) {
@@ -954,7 +954,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
             }
         } else {
             // index is an expression
-            val (code, indexReg) = codeGen.loadIndexReg(targetArray.index, eltSize, true, targetArray.splitWords)
+            val (code, indexReg) = codeGen.loadIndexReg(targetArray.index, true)
             result += code
             if(eltSize!=1)
                 result += codeGen.multiplyByConst(DataType.UWORD, indexReg, eltSize)
@@ -3062,7 +3062,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
 
     private fun tryFoldStructArrayDirectWrite(addressExpr: PtExpression, zero: Boolean, valueReg: Int, targetDt: IRDataType, result: MutableList<IRCodeChunkBase>): Boolean {
         val info = extractStructArrayIndexInfo(addressExpr, codeGen) ?: return false
-        val (idxCode, indexReg) = codeGen.loadIndexReg(info.idxExpr, info.structSize, codeGen.wordArrayIndex, false)
+        val (idxCode, indexReg) = codeGen.loadIndexReg(info.idxExpr, codeGen.wordArrayIndex)
         result += idxCode
         if(zero) {
             result += IRCodeChunk(null, null).also {

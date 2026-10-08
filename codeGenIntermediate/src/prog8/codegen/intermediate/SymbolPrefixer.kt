@@ -278,7 +278,7 @@ private fun PtVariable.prefixVariableOrThis(parent: PtNode, st: SymbolTable): Pt
                 else -> throw AssemblyError("weird array value element $elt")
             }
         }
-        val result = PtVariable(name, type, isSplitWordArray, zeropage, align, dirty, newValue, arraySize, position)
+        val result = PtVariable(name, type, isSplitWordArray, zeropage, align, dirty, newValue, arraySize, position, shared)
         result.parent = parent
         result
     }

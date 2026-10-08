@@ -645,7 +645,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         }
 
         fun indexByExpression() {
-            val (code, indexReg) = codeGen.loadIndexReg(arrayIx.index, eltSize, codeGen.wordArrayIndex, arrayIx.splitWords)
+            val (code, indexReg) = codeGen.loadIndexReg(arrayIx.index, codeGen.wordArrayIndex)
             result += code
             val scale = if(arrayIx.splitWords) 1 else eltSize
             if(vmDt==IRDataType.FLOAT) {
@@ -681,7 +681,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 addInstr(result, IRInstructions.binaryImmediate(Opcode.ADD, IRDataType.POINTER, pointerReg, memOffset), null)
         }
         else {
-            val (code, indexWordReg) = codeGen.loadIndexReg(index, eltSize, true, false)
+            val (code, indexWordReg) = codeGen.loadIndexReg(index, true)
             result += code
             if(eltSize!=1)
                 result += codeGen.multiplyByConst(DataType.UWORD, indexWordReg, eltSize)
@@ -1895,7 +1895,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 } else if(left.variable!!.type.isArray) {
                     // variable index: fold to single LOADX with scale=structSize, disp=fieldOffset
                     // only for known array symbols (not generic pointer derefs)
-                    val (chunks, indexReg) = codeGen.loadIndexReg(left.index, struct.size.toInt(), codeGen.wordArrayIndex, false)
+                    val (chunks, indexReg) = codeGen.loadIndexReg(left.index, codeGen.wordArrayIndex)
                     result += chunks
                     if (fieldVmDt == IRDataType.FLOAT) {
                         val fpReg = codeGen.registers.next(IRDataType.FLOAT)
@@ -1911,7 +1911,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     val pointerTr = translateExpression(left.variable!!)
                     result += pointerTr.chunks
                     pointerReg = pointerTr.resultReg
-                    val (chunks, indexReg) = codeGen.loadIndexReg(left.index, struct.size.toInt(), true, false)
+                    val (chunks, indexReg) = codeGen.loadIndexReg(left.index, true)
                     result += chunks
                     if(struct.size.toInt()!=1)
                         result += codeGen.multiplyByConst(DataType.UWORD, indexReg, struct.size.toInt())

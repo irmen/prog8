@@ -876,7 +876,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                         if(offset > 0)
                             addInstr(result, IRInstructions.binaryImmediate(Opcode.ADD, IRDataType.POINTER, pointerTr.resultReg, offset), null)
                     } else {
-                        val (code, indexWordReg) = codeGen.loadIndexReg(target.index, eltSize, true, false)
+                        val (code, indexWordReg) = codeGen.loadIndexReg(target.index, true)
                         result += code
                         if(eltSize!=1)
                             result += codeGen.multiplyByConst(DataType.UWORD, indexWordReg, eltSize)
@@ -946,7 +946,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                                 it += IRInstructions.storeZero(Opcode.STOREZX, IRDataType.BYTE, IRMemory.indexed(targetVariable.name, offsetReg, codeGen.options.compTarget.indexRegType))
                             }
                         } else {
-                            val (code, indexReg) = codeGen.loadIndexReg(target.index, eltSize, codeGen.wordArrayIndex, false)
+                            val (code, indexReg) = codeGen.loadIndexReg(target.index, codeGen.wordArrayIndex)
                             result += code
                             result += IRCodeChunk(null, null).also {
                                 val offset = byteOffset(eltSize)
@@ -964,7 +964,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                                 it += IRInstructions.storeMemory(Opcode.STOREX, IRDataType.BYTE, valueTr.resultReg, IRMemory.indexed(targetVariable.name, offsetReg, codeGen.options.compTarget.indexRegType))
                             }
                         } else {
-                            val (code, indexReg) = codeGen.loadIndexReg(target.index, eltSize, codeGen.wordArrayIndex, false)
+                            val (code, indexReg) = codeGen.loadIndexReg(target.index, codeGen.wordArrayIndex)
                             result += code
                             result += IRCodeChunk(null, null).also {
                                 val offset = byteOffset(eltSize)
@@ -985,7 +985,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         val info = extractStructArrayIndexInfo(call.args[0], codeGen) ?: return null
         val isZero = codeGen.isZero(call.args[1])
         val result = mutableListOf<IRCodeChunkBase>()
-        val (idxCode, indexReg) = codeGen.loadIndexReg(info.idxExpr, info.structSize, codeGen.wordArrayIndex, false)
+        val (idxCode, indexReg) = codeGen.loadIndexReg(info.idxExpr, codeGen.wordArrayIndex)
         result += idxCode
         return if(isZero) {
             result += IRCodeChunk(null, null).also {

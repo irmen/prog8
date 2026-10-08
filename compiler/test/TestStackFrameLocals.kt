@@ -10,6 +10,7 @@ import io.kotest.matchers.string.shouldNotContain
 import prog8.code.target.C64Target
 import prog8.code.target.Qemu68kTarget
 import prog8.intermediate.IRFileReader
+import prog8.intermediate.IRStStaticVariable
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
 
@@ -270,6 +271,34 @@ main {
         lines.any { "p8v_x:" in it } shouldBe true
         lines.any { it == "link  a5,#-4" } shouldBe true
         lines.any { "-4(a5)" in it } shouldBe true
+    }
+
+    test("@shared local keeps static storage even without an escaping address") {
+        val src = """
+main {
+    sub leaf() {
+        ubyte @shared sharedx
+        ubyte normal
+        sharedx = 1
+        normal = sharedx
+    }
+    sub start() {
+        leaf()
+    }
+}
+"""
+        val (lines, ir) = compile(src)
+        // sharedx is not address-taken and no inline assembly mentions it, yet the @shared
+        // tag pins it to program-static storage; normal is still framed
+        lines.any { "p8v_sharedx:" in it } shouldBe true
+        lines.none { "p8v_normal:" in it } shouldBe true
+        lines.any { it == "link  a5,#-2" } shouldBe true
+        lines.any { "-1(a5)" in it } shouldBe true
+        ir.contains("shared=true") shouldBe true
+        val reloaded = IRFileReader().read(ir)
+        val sharedVar = reloaded.st.lookup("p8b_main.p8s_leaf.p8v_sharedx") as IRStStaticVariable
+        sharedVar.shared shouldBe true
+        reloaded.st.lookup("p8b_main.p8s_leaf.p8v_normal") shouldBe null
     }
 
     test("defer-referenced subroutine is not framed") {

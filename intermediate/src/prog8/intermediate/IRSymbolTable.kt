@@ -131,7 +131,8 @@ class IRStStaticVariable(name: String,
                        val align: UInt,
                        val dirty: Boolean,
                        val inBss: Boolean = false,   // variable should be placed in BSS (RAM), not inline with code
-                       val readonly: Boolean = false // variable should be treated as read-only
+                       val readonly: Boolean = false, // variable should be treated as read-only
+                       val shared: Boolean = false    // the @shared tag: keep the variable in program-static storage
 ) : IRStNode(name, IRStNodeType.STATICVAR) {
     init {
         if(align > 0u) {

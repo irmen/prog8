@@ -810,7 +810,8 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
                     srcVar.dirty,
                     value,
                     srcVar.arraysize?.constIndex()?.toUInt(),
-                    srcVar.position
+                    srcVar.position,
+                    srcVar.sharedWithAsm
                 )
             }
             VarDeclType.CONST -> {

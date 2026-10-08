@@ -39,7 +39,7 @@ class TestIRFileInOut: FunSpec({
         val generatedFile = writer.write()
         val lines = generatedFile.readLines()
         lines[0] shouldBe "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
-        lines[1] shouldBe "<PROGRAM NAME=\"unittest-irwriter\" COMPILERVERSION=\"99.99\" IRFORMAT=\"6\">"
+        lines[1] shouldBe "<PROGRAM NAME=\"unittest-irwriter\" COMPILERVERSION=\"99.99\" IRFORMAT=\"7\">"
         lines.last() shouldBe "</PROGRAM>"
         generatedFile.deleteExisting()
         lines.size shouldBeGreaterThan 20
@@ -634,5 +634,61 @@ return
         state.dt.subType shouldNotBe null
         (state.dt.subType as IRStructSubtype).def.name shouldBe "re.State"
         state.length shouldBe 2u
+    }
+
+    test("shared static variable attribute round-trips both ways") {
+        val target = VMTarget()
+        val options = CompilationOptions.builder(target)
+            .output(OutputType.RAW)
+            .zeropage(ZeropageType.DONTUSE)
+            .noSysInit(true)
+            .compilerVersion("99.99")
+            .loadAddress(target.PROGRAM_LOAD_ADDRESS)
+            .memtopAddress(0xffffu)
+            .outputDir(Path(""))
+            .build()
+        val program = IRProgram("unittest-shared-var", IRSymbolTable(), options, target)
+        program.st.add(IRStStaticVariable(
+            "main.shared_noinit",
+            DataType.UWORD,
+            null,
+            null,
+            ZeropageWish.DONTCARE,
+            0u,
+            false,
+            shared = true
+        ))
+        program.st.add(IRStStaticVariable(
+            "main.shared_init",
+            DataType.UBYTE,
+            IRVariableInitializer.Numeric(42.0),
+            null,
+            ZeropageWish.DONTCARE,
+            0u,
+            false,
+            shared = true
+        ))
+        program.st.add(IRStStaticVariable(
+            "main.plain",
+            DataType.UBYTE,
+            null,
+            null,
+            ZeropageWish.DONTCARE,
+            0u,
+            false
+        ))
+        val file = IRFileWriter(program, Path("intermediate-shared-var-test-output.p8ir")).write()
+        try {
+            val text = file.readText()
+            text.contains("main.shared_noinit zp=DONTCARE shared=true") shouldBe true
+            text.contains("main.shared_init=$2a zp=DONTCARE shared=true") shouldBe true
+            text.contains("main.plain zp=DONTCARE") shouldBe true
+            val readBack = IRFileReader().read(file)
+            (readBack.st.lookup("main.shared_noinit") as IRStStaticVariable).shared shouldBe true
+            (readBack.st.lookup("main.shared_init") as IRStStaticVariable).shared shouldBe true
+            (readBack.st.lookup("main.plain") as IRStStaticVariable).shared shouldBe false
+        } finally {
+            file.deleteExisting()
+        }
     }
 })
