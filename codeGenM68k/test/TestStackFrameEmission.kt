@@ -357,6 +357,26 @@ class TestStackFrameEmission : FunSpec({
         lines.none { it.startsWith("unlk") } shouldBe true
     }
 
+    test("jump to an absolute address pops the frame before jumping") {
+        // a fixed address can't be resolved to a chunk of this subroutine, so it must be assumed
+        // to leave for good and the frame must be gone before the target's eventual rts
+        val lines = generateAsm(16, listOf(
+            IRInstructions.jump(codeAddress(0x1234u)),
+            IRInstructions.simple(Opcode.RETURN)
+        ))
+        val jmpIdx = lines.indexOfFirst { it.startsWith("jmp") }
+        (jmpIdx > 0) shouldBe true
+        lines[jmpIdx - 1] shouldBe "unlk  a5"
+    }
+
+    test("jump to an absolute address in a frameless subroutine emits no frame teardown") {
+        val lines = generateAsm(0, listOf(
+            IRInstructions.jump(codeAddress(0x1234u)),
+            IRInstructions.simple(Opcode.RETURN)
+        ))
+        lines.none { it.startsWith("unlk") } shouldBe true
+    }
+
     test("jump to a label in another subroutine pops the frame before jumping") {
         // jumping out of the subroutine is a documented way to end it, so our frame must not be
         // left behind for whatever runs next (and its eventual rts) to trip over

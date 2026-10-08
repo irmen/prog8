@@ -33,7 +33,12 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
                         emitFrameUnlk()
                     emitLine("bra  ${fixNameSymbols(t.name)}")     // PC-relative branch; vasm picks the optimal size and falls back to jmp if out of range
                 }
-                is CodeReference.Absolute -> emitLine("jmp  ${t.address.value.toHex()}")
+                is CodeReference.Absolute -> {
+                    // a fixed address can't be resolved to a chunk of this subroutine, so assume it
+                    // leaves for good: whatever runs there returns to our caller, not to us
+                    emitFrameUnlk()
+                    emitLine("jmp  ${t.address.value.toHex()}")
+                }
                 is CodeReference.Indirect -> error("JUMP needs target")
             }
         }
