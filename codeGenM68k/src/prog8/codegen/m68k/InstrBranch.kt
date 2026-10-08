@@ -28,40 +28,46 @@ import prog8.intermediate.requireSrcB
 import prog8.intermediate.requireTarget
 
 internal fun AsmGen.translateBranch(insn: IRInstruction) {
-    val label: String = when (val target = insn.requireTarget()) {
+    val target = insn.requireTarget()
+    val label: String = when (target) {
         is CodeReference.Label -> fixNameSymbols(target.name)
         is CodeReference.Absolute -> target.address.toHex()
         is CodeReference.Indirect -> error("branch needs a static target")
     }
+    val leavesSubroutine = when (target) {
+        is CodeReference.Label -> labelIsOutsideCurrentSub(target.name)
+        is CodeReference.Absolute -> true
+        is CodeReference.Indirect -> false
+    }
 
     when (insn.opcode) {
-        Opcode.BSTCC -> emitBranch("bcc", label)
-        Opcode.BSTCS -> emitBranch("bcs", label)
-        Opcode.BSTEQ -> emitBranch("beq", label)
-        Opcode.BSTNE -> emitBranch("bne", label)
-        Opcode.BSTNEG -> emitBranch("bmi", label)
-        Opcode.BSTPOS -> emitBranch("bpl", label)
-        Opcode.BSTVC -> emitBranch("bvc", label)
-        Opcode.BSTVS -> emitBranch("bvs", label)
+        Opcode.BSTCC -> emitBranch("bcc", label, leavesSubroutine)
+        Opcode.BSTCS -> emitBranch("bcs", label, leavesSubroutine)
+        Opcode.BSTEQ -> emitBranch("beq", label, leavesSubroutine)
+        Opcode.BSTNE -> emitBranch("bne", label, leavesSubroutine)
+        Opcode.BSTNEG -> emitBranch("bmi", label, leavesSubroutine)
+        Opcode.BSTPOS -> emitBranch("bpl", label, leavesSubroutine)
+        Opcode.BSTVC -> emitBranch("bvc", label, leavesSubroutine)
+        Opcode.BSTVS -> emitBranch("bvs", label, leavesSubroutine)
 
         // Unsigned integer comparison branches
-        Opcode.BGT -> cmpBranchUnsignedImm(insn, label, "bhi")
-        Opcode.BGE -> cmpBranchUnsignedImm(insn, label, "bhs")
-        Opcode.BLT -> cmpBranchUnsignedImm(insn, label, "blo")
-        Opcode.BLE -> cmpBranchUnsignedImm(insn, label, "bls")
+        Opcode.BGT -> cmpBranchUnsignedImm(insn, label, "bhi", leavesSubroutine)
+        Opcode.BGE -> cmpBranchUnsignedImm(insn, label, "bhs", leavesSubroutine)
+        Opcode.BLT -> cmpBranchUnsignedImm(insn, label, "blo", leavesSubroutine)
+        Opcode.BLE -> cmpBranchUnsignedImm(insn, label, "bls", leavesSubroutine)
 
-        Opcode.BGTR -> cmpBranchUnsignedReg(insn, label, "bhi")
-        Opcode.BGER -> cmpBranchUnsignedReg(insn, label, "bhs")
+        Opcode.BGTR -> cmpBranchUnsignedReg(insn, label, "bhi", leavesSubroutine)
+        Opcode.BGER -> cmpBranchUnsignedReg(insn, label, "bhs", leavesSubroutine)
         // BLTR doesn't exist in IR — uses BGTR with swapped operands
 
         // Signed integer comparison branches
-        Opcode.BGTS -> cmpBranchSignedImm(insn, label, "bgt")
-        Opcode.BGES -> cmpBranchSignedImm(insn, label, "bge")
-        Opcode.BLTS -> cmpBranchSignedImm(insn, label, "blt")
-        Opcode.BLES -> cmpBranchSignedImm(insn, label, "ble")
+        Opcode.BGTS -> cmpBranchSignedImm(insn, label, "bgt", leavesSubroutine)
+        Opcode.BGES -> cmpBranchSignedImm(insn, label, "bge", leavesSubroutine)
+        Opcode.BLTS -> cmpBranchSignedImm(insn, label, "blt", leavesSubroutine)
+        Opcode.BLES -> cmpBranchSignedImm(insn, label, "ble", leavesSubroutine)
 
-        Opcode.BGTSR -> cmpBranchSignedReg(insn, label, "bgt")
-        Opcode.BGESR -> cmpBranchSignedReg(insn, label, "bge")
+        Opcode.BGTSR -> cmpBranchSignedReg(insn, label, "bgt", leavesSubroutine)
+        Opcode.BGESR -> cmpBranchSignedReg(insn, label, "bge", leavesSubroutine)
         // BLTSR doesn't exist in IR — uses BGTSR with swapped operands
 
         else -> error("Unknown branch opcode: ${insn.opcode}")
@@ -70,7 +76,7 @@ internal fun AsmGen.translateBranch(insn: IRInstruction) {
 
 // === Unsigned comparisons: register vs immediate ===
 
-private fun AsmGen.cmpBranchUnsignedImm(insn: IRInstruction, label: String, branchOp: String) {
+private fun AsmGen.cmpBranchUnsignedImm(insn: IRInstruction, label: String, branchOp: String, leavesSubroutine: Boolean) {
     val type = insn.type ?: IRDataType.BYTE
     val reg = insn.requireSrcA().intNumber
     val imm = insn.requireImmediateInt()
@@ -81,24 +87,24 @@ private fun AsmGen.cmpBranchUnsignedImm(insn: IRInstruction, label: String, bran
         emitLine("tst$s  ${regAddr(reg)}")
     else
         emitLine("cmpi$s  #$imm, ${regAddr(reg)}")
-    emitBranch(branchOp, label)
+    emitBranch(branchOp, label, leavesSubroutine)
 }
 
 // === Unsigned comparisons: register vs register ===
 
-private fun AsmGen.cmpBranchUnsignedReg(insn: IRInstruction, label: String, branchOp: String) {
+private fun AsmGen.cmpBranchUnsignedReg(insn: IRInstruction, label: String, branchOp: String, leavesSubroutine: Boolean) {
     val type = insn.type ?: IRDataType.BYTE
     val left = insn.requireSrcA().intNumber
     val right = insn.requireSrcB().intNumber
     val s = dtSuffix(type)
     emitLoadD0(left, type)
     emitLine("cmp$s  ${regAddr(right)}, d0")
-    emitBranch(branchOp, label)
+    emitBranch(branchOp, label, leavesSubroutine)
 }
 
 // === Signed comparisons: register vs immediate ===
 
-private fun AsmGen.cmpBranchSignedImm(insn: IRInstruction, label: String, branchOp: String) {
+private fun AsmGen.cmpBranchSignedImm(insn: IRInstruction, label: String, branchOp: String, leavesSubroutine: Boolean) {
     val type = insn.type ?: IRDataType.BYTE
     val reg = insn.requireSrcA().intNumber
     val imm = insn.requireImmediateInt()
@@ -109,22 +115,41 @@ private fun AsmGen.cmpBranchSignedImm(insn: IRInstruction, label: String, branch
         emitLine("tst$s  ${regAddr(reg)}")
     else
         emitLine("cmpi$s  #$imm, ${regAddr(reg)}")
-    emitBranch(branchOp, label)
+    emitBranch(branchOp, label, leavesSubroutine)
 }
 
 // === Signed comparisons: register vs register ===
 
-private fun AsmGen.cmpBranchSignedReg(insn: IRInstruction, label: String, branchOp: String) {
+private fun AsmGen.cmpBranchSignedReg(insn: IRInstruction, label: String, branchOp: String, leavesSubroutine: Boolean) {
     val type = insn.type ?: IRDataType.BYTE
     val left = insn.requireSrcA().intNumber
     val right = insn.requireSrcB().intNumber
     val s = dtSuffix(type)
     emitLoadD0(left, type)
     emitLine("cmp$s  ${regAddr(right)}, d0")
-    emitBranch(branchOp, label)
+    emitBranch(branchOp, label, leavesSubroutine)
 }
 
-private fun AsmGen.emitBranch(branchOp: String, label: String) {
+private val inverseBranchOps = mapOf(
+    "bcc" to "bcs", "bcs" to "bcc",
+    "beq" to "bne", "bne" to "beq",
+    "bmi" to "bpl", "bpl" to "bmi",
+    "bvc" to "bvs", "bvs" to "bvc",
+    "bhi" to "bls", "bls" to "bhi",
+    "bhs" to "blo", "blo" to "bhs",
+    "bgt" to "ble", "ble" to "bgt",
+    "bge" to "blt", "blt" to "bge")
+
+private fun AsmGen.emitBranch(branchOp: String, label: String, leavesSubroutine: Boolean) {
     invalidateD0Cache()
-    emitLine("$branchOp  $label")
+    if (!leavesSubroutine || !frameActive) {
+        emitLine("$branchOp  $label")
+        return
+    }
+
+    val skipLabel = makeLabel("branch_keep_frame")
+    emitLine("${inverseBranchOps.getValue(branchOp)}  $skipLabel")
+    emitFrameUnlk()
+    emitLine("jmp  $label")
+    emitLabel(skipLabel)
 }

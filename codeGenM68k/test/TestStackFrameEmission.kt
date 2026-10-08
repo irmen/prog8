@@ -377,6 +377,51 @@ class TestStackFrameEmission : FunSpec({
         lines.none { it.startsWith("unlk") } shouldBe true
     }
 
+    test("conditional branch to an absolute address tears down only the taken path") {
+        val lines = generateAsm(16, listOf(
+            IRInstructions.branch(Opcode.BSTEQ, codeAddress(0x1234u)),
+            IRInstructions.simple(Opcode.RETURN)
+        ))
+        val branchIdx = lines.indexOfFirst { it.startsWith("bne") }
+        val jmpIdx = lines.indexOfFirst { it.startsWith("jmp") && "$1234" in it }
+        (branchIdx >= 0) shouldBe true
+        (jmpIdx > branchIdx) shouldBe true
+        lines[jmpIdx - 1] shouldBe "unlk  a5"
+        lines.count { it == "unlk  a5" } shouldBe 2
+    }
+
+    test("conditional branch to an external non-entry label tears down only the taken path") {
+        val outsideInner = IRCodeChunk("test.outside.inner", null).also {
+            it.instructions.add(IRInstructions.simple(Opcode.RETURN))
+        }
+        val lines = generateAsmForSubs(
+            sub("test.start", frameSize = 16, instructions = listOf(
+                IRInstructions.branch(Opcode.BSTEQ, CodeReference.Label("test.outside.inner")),
+                IRInstructions.simple(Opcode.RETURN)
+            )),
+            sub("test.outside", frameSize = 0, instructions = listOf(IRInstructions.simple(Opcode.RETURN)),
+                extraChunks = listOf(outsideInner))
+        )
+        val jmpIdx = lines.indexOfFirst { it.startsWith("jmp") && "outside.inner" in it }
+        (jmpIdx > 0) shouldBe true
+        lines[jmpIdx - 1] shouldBe "unlk  a5"
+        lines.any { it.startsWith("bne") } shouldBe true
+    }
+
+    test("signed comparison branch to an absolute address tears down only the taken path") {
+        val lines = generateAsm(16, listOf(
+            IRInstructions.branchImmediate(Opcode.BGTS, IRDataType.WORD, 1, 1, codeAddress(0x1234u)),
+            IRInstructions.simple(Opcode.RETURN)
+        ))
+        lines.any { it.startsWith("cmpi.w") } shouldBe true
+        val branchIdx = lines.indexOfFirst { it.startsWith("ble") }
+        val jmpIdx = lines.indexOfFirst { it.startsWith("jmp") && "$1234" in it }
+        (branchIdx >= 0) shouldBe true
+        (jmpIdx > branchIdx) shouldBe true
+        lines[jmpIdx - 1] shouldBe "unlk  a5"
+        lines.count { it == "unlk  a5" } shouldBe 2
+    }
+
     test("jump to a label in another subroutine pops the frame before jumping") {
         // jumping out of the subroutine is a documented way to end it, so our frame must not be
         // left behind for whatever runs next (and its eventual rts) to trip over
