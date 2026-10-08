@@ -164,7 +164,7 @@ class VmProgramLoader {
                         when (asmText) {
                             "clc" -> out.lastOrNull()?.instructions?.add(IRInstructions.simple(Opcode.CLC))
                             "sec" -> out.lastOrNull()?.instructions?.add(IRInstructions.simple(Opcode.SEC))
-                            else -> throw IRParseException("encountered unconverted inline assembly chunk in loop")
+                            else -> throw IRParseException("the virtual machine cannot execute native assembly code in a loop; use %ir instead of %asm for code that must run on the virtual target")
                         }
                     }
                     is IRInlineBinaryChunk -> throw IRParseException("inline binary data not yet supported in the VM")
@@ -194,7 +194,7 @@ class VmProgramLoader {
                         when (asmText) {
                             "clc" -> programChunks.lastOrNull()?.instructions?.add(IRInstructions.simple(Opcode.CLC))
                             "sec" -> programChunks.lastOrNull()?.instructions?.add(IRInstructions.simple(Opcode.SEC))
-                            else -> throw IRParseException("encountered unconverted inline assembly chunk")
+                            else -> throw IRParseException("the virtual machine cannot execute native assembly code; use %ir instead of %asm for code that must run on the virtual target")
                         }
                     }
                     is IRInlineBinaryChunk -> throw IRParseException("inline binary data not yet supported in the VM")
@@ -207,7 +207,7 @@ class VmProgramLoader {
                                     when (asmText) {
                                         "clc" -> programChunks.lastOrNull()?.instructions?.add(IRInstructions.simple(Opcode.CLC))
                                         "sec" -> programChunks.lastOrNull()?.instructions?.add(IRInstructions.simple(Opcode.SEC))
-                                        else -> throw IRParseException("encountered unconverted inline assembly chunk")
+                                        else -> throw IRParseException("the virtual machine cannot execute native assembly code; use %ir instead of %asm for code that must run on the virtual target")
                                     }
                                 }
                                 is IRInlineBinaryChunk -> throw IRParseException("inline binary data not yet supported in the VM")

@@ -19,6 +19,7 @@ import prog8.code.target.VMTarget
 import prog8.code.target.getCompilationTargetByName
 import prog8.compiler.*
 import prog8.intermediate.IRFileReader
+import prog8.intermediate.IRParseException
 import java.io.*
 import java.net.ConnectException
 import java.net.StandardProtocolFamily
@@ -386,7 +387,8 @@ private fun compileMain(args: Array<String>): Boolean {
                     val target = getCompilationTargetByName(compilationTarget!!)
                     if (startEmulator1 == true) {
                         if (target is VMTarget) {
-                            target.launchEmulatorWithTrace(programFile, quietAll==true, vmTrace==true)
+                            if(!launchVirtualMachine(target, programFile, quietAll==true, vmTrace==true, presenter))
+                                return false
                         } else {
                             target.launchEmulator(1, programFile, quietAll==true)
                         }
@@ -468,8 +470,9 @@ private fun compileMain(args: Array<String>): Boolean {
 
             if (startEmulator1 == true) {
                 if (compilationResult.compilationOptions.compTarget is VMTarget) {
-                    (compilationResult.compilationOptions.compTarget as VMTarget).launchEmulatorWithTrace(
-                        outs.programFile, quietAll==true, vmTrace==true)
+                    if(!launchVirtualMachine(compilationResult.compilationOptions.compTarget as VMTarget,
+                            outs.programFile, quietAll==true, vmTrace==true, presenter))
+                        return false
                 } else {
                     compilationResult.compilationOptions.compTarget.launchEmulator(1, outs.programFile, quietAll==true)
                 }
@@ -532,8 +535,17 @@ private fun runVm(irFilename: String, quiet: Boolean, traceEnabled: Boolean, pre
         return false
     }
     val vmdef = VMTarget()
-    vmdef.launchEmulatorWithTrace(p8irFile, quiet, traceEnabled)
-    return true
+    return launchVirtualMachine(vmdef, p8irFile, quiet, traceEnabled, presenter)
+}
+
+private fun launchVirtualMachine(target: VMTarget, programFile: Path, quiet: Boolean, traceEnabled: Boolean, presenter: Presenter): Boolean {
+    return try {
+        target.launchEmulatorWithTrace(programFile, quiet, traceEnabled)
+        true
+    } catch (e: IRParseException) {
+        presenter.printErrorLine("Can't run this program in the virtual machine: ${e.message}")
+        false
+    }
 }
 
 private fun compareIrFiles(newFile: Path, baselineFile: Path, presenter: Presenter) {

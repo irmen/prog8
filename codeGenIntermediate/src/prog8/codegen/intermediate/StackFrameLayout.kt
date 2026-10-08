@@ -403,28 +403,22 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
         reentrant: Set<String>,
         reachesFramePointerClobber: Map<String, ClobberReach>
     ): Frameability {
-        val static = { reason: String -> Frameability.NotFrameable() }
+        val static = { Frameability.NotFrameable() }
         // a %option noframe subroutine requires the legacy static convention (it manipulates
         // the machine stack itself), so it never gets a frame
-        if (sub.noframe) return static("it is marked %option noframe")
-        if (sub.hasFrame) return static("it already has a stack frame")
+        if (sub.noframe) return static()
+        if (sub.hasFrame) return static()
         var hasInlineAsm = false
         sub.forEachChunk { chunk -> if (chunk is IRInlineAsmChunk) hasInlineAsm = true }
-        if (hasInlineAsm) return static("it contains inline assembly")
-        if (sub.label in indirectCallers) return static("it makes an indirect call")
+        if (hasInlineAsm) return static()
+        if (sub.label in indirectCallers) return static()
         // An address-taken subroutine with parameters must stay static: an indirect call site
         // cannot know which convention to pass arguments in. Without parameters there is nothing
         // to pass (indirect calls never carry arguments), so framing is transparent to every
         // entry path and only the re-entrancy check below still applies.
-        if (sub.label in dispatchTargets && sub.parameters.isNotEmpty()) return static("its address is taken")
-        if (isLabelReferencedInAsm(sub.label, asmTexts)) return static("it is referenced from inline assembly")
-        reachesFramePointerClobber[sub.label]?.let {
-            val how = if (it.viaIndirect)
-                "an indirect call in its call tree is conservatively assumed to reach any subroutine, including '${it.clobberer}'"
-            else
-                "it can reach '${it.clobberer}' through calls"
-            return static("$how, whose assembly code overwrites the frame pointer register A5")
-        }
+        if (sub.label in dispatchTargets && sub.parameters.isNotEmpty()) return static()
+        if (isLabelReferencedInAsm(sub.label, asmTexts)) return static()
+        if (sub.label in reachesFramePointerClobber) return static()
 
         // every parameter must be able to move: otherwise the caller keeps writing static cells
         // IRParam.name is the scoped variable name; call sites refer to the same parameter by its
@@ -437,9 +431,9 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
         val copyInParams = mutableSetOf<String>()
         for ((index, _) in sub.parameters.withIndex()) {
             val name = scopedParamNames[index]
-            val v = program.st.lookup(name) as? IRStStaticVariable ?: return static("parameter '$name' has no static variable")
-            val elemDt = isFrameableParameter(v, name, addressTaken, asmTexts) ?: return static("parameter '$name' cannot be moved into a frame")
-            if (v.length != null) return static("parameter '$name' is an array")
+            val v = program.st.lookup(name) as? IRStStaticVariable ?: return static()
+            val elemDt = isFrameableParameter(v, name, addressTaken, asmTexts) ?: return static()
+            if (v.length != null) return static()
             // a parameter referenced from outside the subroutine (defer handler, inline assembly)
             // keeps its static cell for ALL references (including the body's own uses) and gets
             // an entry-time copy-in from its incoming slot (§6.1); its address may not be taken
@@ -461,17 +455,17 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
         // all call sites must use the plain parameter-memory convention of this convention
         val sites = callSites[sub.label].orEmpty()
         if (paramSlots.isNotEmpty()) {
-            if (sites.isEmpty()) return static("no direct call site to pass its arguments was found")
+            if (sites.isEmpty()) return static()
             for (siteRef in sites) {
                 val args = siteRef.site.arguments
-                if (args.size != sub.parameters.size) return static("a call site passes a different number of arguments")
+                if (args.size != sub.parameters.size) return static()
                 for ((argIndex, arg) in args.withIndex()) {
                     val loc = arg.location
-                    if (loc !is CallLocation.ParameterMemory) return static("a call site passes an argument in another way")
-                    if (loc.address != null) return static("a call site passes an argument by absolute address")
+                    if (loc !is CallLocation.ParameterMemory) return static()
+                    if (loc.address != null) return static()
                     val scoped = scopedParamNames[argIndex]
                     if (loc.name.isNotBlank() && loc.name != scoped && loc.name != scoped.substringAfterLast('.'))
-                        return static("a call site passes an unexpected argument")
+                        return static()
                 }
             }
         }
@@ -483,7 +477,7 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
         }.sorted()
         // a re-entrant subroutine can still qualify with nothing but its virtual registers
         if (candidates.isEmpty() && paramSlots.isEmpty() && sub.label !in reentrant)
-            return static("it has no local variables or parameters")
+            return static()
 
         // Collect layout info first, then place clean (zero-clear) locals together so they
         // form one contiguous region that emitZeroRegions and the m68k backend can clear
@@ -544,19 +538,19 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
         if (sub.label in reentrant) {
             val vregs = vregsUsedIn(sub)
             if (vregs.keys.any { it >= RESERVED_VREG_RANGE_START })
-                return static("it uses a reserved virtual register number")
+                return static()
             val (newCursor, slots) = allocateVregSlots(sub, vregs, cursor)
             cursor = newCursor
             vregSlots.putAll(slots)
         }
         if (frameVars.isEmpty() && paramSlots.isEmpty() && vregSlots.isEmpty())
-            return static("it has no frameable local variables or parameters")
+            return static()
 
         val frameSize = (-cursor + 1) / 2 * 2
         if (frameSize > MAX_FRAME_SIZE) {
             errors.err("frame size $frameSize of subroutine ${userName(sub)} exceeds the $MAX_FRAME_SIZE byte limit; " +
                     "reduce local variable usage", sub.position)
-            return static("its frame size exceeds the limit")
+            return static()
         }
 
         // every static (base slot + displacement) access combination must stay in the 16-bit displacement range
@@ -582,7 +576,7 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
         }
         if (outOfRange) {
             errors.err("frame-relative displacement out of 16-bit range in subroutine ${userName(sub)}", sub.position)
-            return static("a frame-relative displacement is out of range")
+            return static()
         }
 
         // rewrite references: Symbol base -> FrameSlot base (parameters additionally get the

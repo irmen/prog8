@@ -354,7 +354,7 @@ main {
         val exc = shouldThrow<Exception> {
             VmRunner().runProgram(virtfile.readText(), false)
         }
-        exc.message shouldContain("encountered unconverted inline assembly chunk")
+        exc.message shouldContain("cannot execute native assembly code")
     }
 
     test("inline asm for virtual target with IR is accepted and converted to regular instructions") {
