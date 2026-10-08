@@ -23,6 +23,7 @@ internal fun checkFrameAddressEscapes(program: Program, errors: IErrorReporter) 
     val checker = FrameAddressEscapeChecker(errors)
     checker.visit(program)
     checker.checkInlineAssemblyMentions()
+    checker.suggestSharedForAsmMentioned()
 }
 
 private sealed interface EscapeContext
@@ -91,6 +92,32 @@ private class FrameAddressEscapeChecker(private val errors: IErrorReporter) : IA
                     warnedLocals.add(decl)
                     errors.warn("the address of local '${decl.name}' in subroutine '${subroutine.name}' is referenced from inline assembly; a stack frame address is only valid while the subroutine is running; declare the variable @shared to keep its address valid", decl.position)
                 }
+            }
+        }
+    }
+
+    // Suggest @shared for subroutine-local variables and parameters that inline assembly
+    // refers to by name: the reference keeps them in static storage implicitly, but marking
+    // them @shared pins it by construction and documents the sharing. Declarations that
+    // already got an error or warning (which mentions @shared) and library code (which the
+    // user cannot change) are skipped.
+    fun suggestSharedForAsmMentioned() {
+        for ((subroutine, asmNames) in asmMentionedNames) {
+            if (asmNames.isEmpty())
+                continue
+            for (decl in subroutine.statements.filterIsInstance<VarDecl>()) {
+                if (decl in warnedLocals)
+                    continue
+                if (!isSubroutineLocal(decl, subroutine))
+                    continue
+                if (decl.definingModule.isLibrary)
+                    continue
+                val shortName = "p8v_${decl.name}"
+                if (decl.name !in asmNames && asmNames.none { it == shortName || it.endsWith(".$shortName") })
+                    continue
+                val kind = if (decl.origin == VarDeclOrigin.SUBROUTINEPARAM) "parameter '${decl.name}' of subroutine '${subroutine.name}'"
+                else "local '${decl.name}' in subroutine '${subroutine.name}'"
+                errors.info("$kind is referenced from inline assembly; consider declaring it @shared", decl.position)
             }
         }
     }

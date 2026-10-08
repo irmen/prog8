@@ -193,4 +193,64 @@ main {
         errors.errors.size shouldBe 0
         errors.warnings.none { "p8_regfile" in it } shouldBe true
     }
+
+    test("parameter referenced from inline assembly suggests @shared on qemu68k") {
+        val src = """
+main {
+    sub start() {
+        test(42)
+    }
+    sub test(ubyte param) {
+        %asm {{
+            tst.b p8b_main.p8s_test.p8v_param
+        }}
+        param++
+    }
+}
+"""
+        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        compileText(Qemu68kTarget(), optimize = false, src, outputDir, writeAssembly = false, errors = errors) shouldNotBe null
+        errors.errors.size shouldBe 0
+        errors.infos.any { "parameter 'param' of subroutine 'test' is referenced from inline assembly" in it } shouldBe true
+        errors.infos.any { "consider declaring it @shared" in it } shouldBe true
+    }
+
+    test("parameter referenced from inline assembly stays silent when it is @shared") {
+        val src = """
+main {
+    sub start() {
+        test(42)
+    }
+    sub test(ubyte @shared param) {
+        %asm {{
+            tst.b p8b_main.p8s_test.p8v_param
+        }}
+        param++
+    }
+}
+"""
+        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        compileText(Qemu68kTarget(), optimize = false, src, outputDir, writeAssembly = false, errors = errors) shouldNotBe null
+        errors.errors.size shouldBe 0
+        errors.infos.none { "consider declaring it @shared" in it } shouldBe true
+    }
+
+    test("local referenced from inline assembly suggests @shared on qemu68k") {
+        val src = """
+main {
+    sub start() {
+        ubyte xx = 1
+        %asm {{
+            tst.b p8b_main.p8s_start.p8v_xx
+        }}
+        xx++
+    }
+}
+"""
+        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        compileText(Qemu68kTarget(), optimize = false, src, outputDir, writeAssembly = false, errors = errors) shouldNotBe null
+        errors.errors.size shouldBe 0
+        errors.infos.any { "local 'xx' in subroutine 'start' is referenced from inline assembly" in it } shouldBe true
+        errors.infos.any { "consider declaring it @shared" in it } shouldBe true
+    }
 })

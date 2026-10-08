@@ -412,6 +412,7 @@ class VarDecl(
                 .type(decltype)
                 .value(value)
                 .zeropage(param.zp)
+                .sharedWithAsm(param.shared)
                 .build()
         }
 
@@ -1366,7 +1367,8 @@ open class SubroutineParameter(val name: String,
                                val type: DataType,
                                val zp: ZeropageWish,
                                val registerOrPair: RegisterOrPair?,
-                               final override val position: Position) : Node {
+                               final override val position: Position,
+                               val shared: Boolean = false) : Node {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -1377,7 +1379,7 @@ open class SubroutineParameter(val name: String,
         throw FatalAstException("can't replace anything in a subroutineparameter node")
     }
 
-    override fun copy() = SubroutineParameter(name, type, zp, registerOrPair, position)
+    override fun copy() = SubroutineParameter(name, type, zp, registerOrPair, position, shared)
     override fun toString() = "Param($type:$name)"
     override fun referencesIdentifier(nameInSource: List<String>): Boolean = nameInSource.size==1 && name==nameInSource[0]
 

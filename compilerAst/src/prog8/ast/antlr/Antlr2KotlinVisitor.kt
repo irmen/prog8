@@ -675,7 +675,7 @@ class Antlr2KotlinVisitor(val source: SourceCode, private val target: ICompilati
         if(statusregister!=null) {
             throw SyntaxError("can't use status register as param for normal subroutines", Position(pctx.toPosition().file, pctx.register.line, pctx.register.charPositionInLine+1, pctx.register.charPositionInLine+1))
         }
-        return SubroutineParameter(identifiername, datatype, zp, registerorpair, pctx.toPosition())
+        return SubroutineParameter(identifiername, datatype, zp, registerorpair, pctx.toPosition(), "@shared" in tags)
     }
 
     override fun visitAsmsubroutine(ctx: AsmsubroutineContext): Subroutine {
