@@ -97,6 +97,7 @@ lineclip {
             ; (int16_t)((int32_t)dist * num / den)
             ; Uses mulu.w (16x16→32) + divu.w (32/16→16) — works on all 68000-family CPUs
             sub frac(word dist, word num, word den) -> word {
+                %option noframe
                 uword adist = abs(dist) as uword
                 uword anum = abs(num) as uword
                 uword aden = abs(den) as uword

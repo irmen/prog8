@@ -173,6 +173,7 @@ math {
     ubyte b1 = $37
 
     sub rndw() -> uword {
+        %option noframe
         %asm {{
             addq.b  #1,math.x1
             move.b  math.x1,d0
@@ -203,6 +204,7 @@ math {
     }
 
     sub rndseed(uword seed1, uword seed2) {
+        %option noframe
         %asm {{
             move.b  math.rndseed.seed1+1,math.x1
             move.b  math.rndseed.seed1,math.c1
@@ -217,6 +219,7 @@ math {
     }
 
     sub randrangew(uword n) -> uword {
+        %option noframe
         %asm {{
             addq.b  #1,math.x1
             move.b  math.x1,d0

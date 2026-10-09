@@ -310,6 +310,7 @@ sys {
 
 
     sub  reset_system()  {
+        %option noframe
         %asm {{
             movea.l  #qemu.CTRL_REG_CMD,a1
             move.l   #qemu.CTRL_CMD_RESET,(a1)
@@ -318,6 +319,7 @@ sys {
     }
 
     sub poweroff_system() {
+        %option noframe
         %asm {{
             movea.l  #qemu.CTRL_REG_CMD,a1
             move.l   #qemu.CTRL_CMD_HALT,(a1)
@@ -325,7 +327,8 @@ sys {
         }}
     }
 
-    sub die(ubyte code, str message) {
+    sub die(uword code, str message) {
+        %option noframe
         ; -- kill the program: print death message to goldfish TTY, then exit.
         str @shared warning = iso:"\n\nPROGRAM DIED: "
         %asm {{
@@ -346,7 +349,7 @@ sys {
             moveq  #10,d0
             move.l  d0,qemu.TTY_PUT_CHAR
         }}
-        exit(code)
+        exit(code as word)
     }
 
     sub wait(uword jiffies) {
@@ -355,16 +358,19 @@ sys {
     }
 
 
-    sub exit(ubyte returnvalue) {
+    asmsub exit(word returnvalue @D0) {
         ; -- exit the program with a return code in D0. When invoked from Prog8 via sys.exit(), all active defers in the call chain are unwound program-wide (LIFO) before system cleanup. sys.reset_system()/poweroff_system() do not run defers.
         %asm {{
-            moveq.l  #0,d0
-            move.b   sys.exit.returnvalue,d0
+            and.l    #$ffff,d0
+            movea.l  #qemu.CTRL_REG_CMD,a1
+            move.l   #qemu.CTRL_CMD_HALT,(a1)
+            stop #0
+            ; !notreached!
         }}
-        poweroff_system()
     }
 
     sub set_carry() {
+        %option noframe
         %asm {{
             ; set both C (comparison carry) and X (rotate carry) bits
             moveq  #$11,d0
@@ -373,6 +379,7 @@ sys {
     }
 
     sub clear_carry() {
+        %option noframe
         %asm {{
             moveq  #0,d0
             move.w  d0,ccr
@@ -387,12 +394,14 @@ sys {
     }
 
     sub clear_irqd() {
+        %option noframe
         %asm {{
             andi.w  #$f8ff,sr       ; privileged !
         }}
     }
 
     sub set_irqd() {
+        %option noframe
         %asm {{
             ori.w  #$0700,sr        ; privileged !
         }}
@@ -472,6 +481,13 @@ sys {
             move.l  sp,d0
             lea     prog8_program_end,a0
             sub.l   a0,d0
+            rts
+        }}
+    }
+
+    asmsub cpuAtLeast68020() -> bool @Pz {
+        %asm {{
+            moveq   #0,d0       ; qemu68k always targets a 68020 or newer
             rts
         }}
     }

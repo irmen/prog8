@@ -29,6 +29,7 @@ p8_sys_startup {
     ; }
 
     sub init_system() {
+        %option noframe
         %asm {{
             ; save CLI arguments
             move.l  d0,-(sp)
@@ -89,6 +90,7 @@ proc_CLI = 172
     }
 
     sub init_system_phase2() {
+        %option noframe
         %asm {{
             moveq   #0,d0
             moveq   #0,d1
@@ -110,6 +112,7 @@ proc_CLI = 172
     }
 
     sub cleanup_at_exit() {
+        %option noframe
         %asm {{
             movem.l d0,-(sp)       ; keep return code
 

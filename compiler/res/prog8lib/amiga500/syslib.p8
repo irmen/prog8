@@ -46,6 +46,7 @@ sys {
     ^^ubyte @shared arguments       ; CLI argument string (null-terminated), or NULL if Workbench launch
 
     sub  reset_system()  {
+        %option noframe
         %asm {{
             move.l  4.w,a6
             move.w  20(a6),d0       ; ExecBase version
@@ -80,17 +81,17 @@ sys {
         }}
     }
 
-    sub exit(ubyte returnvalue) {
+    asmsub exit(word returnvalue @D0) {
         ; -- exit the program with a return code in D0. When invoked from Prog8 via sys.exit(), all active defers in the call chain are unwound program-wide (LIFO) before system cleanup. sys.reset_system() does not run defers.
         %asm {{
-            moveq.l  #0,d0
-            move.b   sys.exit.returnvalue,d0
+            and.l    #$ffff,d0
             move.l   p8_sys_startup.orig_stackpointer,sp
             jmp  p8_sys_startup.cleanup_at_exit
         }}
     }
 
     sub set_carry() {
+        %option noframe
         %asm {{
             ; set both C (comparison carry) and X (rotate carry) bits
             moveq  #$11,d0
@@ -99,6 +100,7 @@ sys {
     }
 
     sub clear_carry() {
+        %option noframe
         %asm {{
             ; clear C and X bits
             moveq  #0,d0
@@ -153,7 +155,80 @@ sys {
             move.l  4.w,a6
             move.w  296(a6),d0
             andi.w  #$008e,d0
+            seq     d0
+            tst.b   d0
             rts
+        }}
+    }
+
+    sub die(uword code, str message) {
+        %asm {{
+            moveq   #0,d0
+            move.w  14(a5),d0
+            lea      .alert(pc),a1
+            lea      .alert_limit(pc),a3
+            move.w   #20,(a1)+
+            move.b   #16,(a1)+
+            lea      .prefix(pc),a2
+.copy_prefix:
+            move.b   (a2)+,d1
+            beq.s    .copy_code
+            move.b   d1,(a1)+
+            bra.s    .copy_prefix
+.copy_code:
+            move.w  14(a5),d2
+            moveq    #3,d4
+.copy_code_digit:
+            move.w   d2,d3
+            lsr.w    #8,d3
+            lsr.w    #4,d3
+            andi.w   #$000f,d3
+            cmpi.w   #10,d3
+            bcs.s    .copy_code_number
+            addi.w   #'A'-10,d3
+            bra.s    .copy_code_store
+.copy_code_number:
+            addi.w   #'0',d3
+.copy_code_store:
+            move.b   d3,(a1)+
+            lsl.w    #4,d2
+            dbra     d4,.copy_code_digit
+            clr.b    (a1)+
+            move.b   #1,(a1)+
+            move.w   #20,(a1)+
+            move.b   #32,(a1)+
+.copy_message:
+            move.l   8(a5),a0
+.copy_message_loop:
+            cmpa.l   a3,a1
+            bhi.s    .message_full
+            move.b   (a0)+,d1
+            move.b   d1,(a1)+
+            bne.s    .copy_message_loop
+            clr.b    (a1)
+            bra.s    .display
+.message_full:
+            subq.l   #1,a1
+            clr.b    (a1)
+            clr.b    1(a1)
+.display:
+            moveq   #48,d1
+            movea.l  sys.IntuitionBase,a6
+            lea      .alert(pc),a0
+            jsr      -90(a6)
+            moveq   #0,d0
+            move.w  14(a5),d0
+            jmp      sys.exit
+
+            even
+.alert:
+            ds.b     158
+.alert_limit:
+            ds.b     2
+.alert_end:
+.prefix:
+            dc.b     "PROGRAM DIED code $",0
+            ; !notreached!
         }}
     }
 }

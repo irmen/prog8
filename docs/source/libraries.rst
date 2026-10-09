@@ -1881,12 +1881,26 @@ miscellaneous
     Returns true if the CPU in the computer is a 65816, false otherwise (6502 cpu).
     Note that Prog8 itself has no support yet for this CPU other than detecting its presence.
 
+``cpuAtLeast68020()``   (m68k targets)
+    Returns true if the machine's 680x0 CPU is a 68020 or newer (68020/68030/68040/68060),
+    false if it is a plain 68000.
+
 ``disable_caseswitch()`` and ``enable_caseswitch()``
     Disable or enable the ability to switch character set case using a keyboard combination.
 
+``exec_version ()``   (m68k targets)
+    Returns the version number of ``exec.library`` as a uword, which on the Amiga targets is the
+    Kickstart/ROM version (for example 34 = Kickstart 1.3, 39 = Kickstart 3.0, 40 = Kickstart 3.1).
+
 ``exit (returncode)``
     Immediately stops the program and exits it, with the returncode in the A register.
+    Any active ``defer`` handlers are unwound first on all compiler targets.
+    On the m68k targets (amiga500, amiga1200, qemu68k) the statuscode is a word passed in the D0 register.
     Note: custom interrupt handlers remain active unless manually cleared first!
+
+``die (code, message)``
+    On m68k targets, displays an Intuition alert containing the code (uword) and message string, then
+    terminates the program. On 6502 targets, breaks into the debugger or monitor with the code in A and the message pointer in X/Y.
 
 ``exit2 (resultA, resultX, resultY)``
     Immediately stops the program and exits it, with the result values in the A, X and Y registers.
@@ -2027,6 +2041,10 @@ There is a very specialized function in the sys module here as well:
     pushes a 16 bit memory address on the CPU hardware stack in the same byte order as a JSR instruction would,
     which means the next RTS instruction will jump to that address instead.
     You cannot use pushw() for this because the bytes pushed by JSR are different
+
+``stack_size ()``   (m68k targets: amiga500, amiga1200, qemu68k)
+    Returns the amount of CPU stack space still available, in bytes.
+    Useful to check how much headroom remains before deep recursion or a large local frame could overflow the stack.
 
 
 

@@ -713,6 +713,49 @@ main {
         rec.any { it.startsWith("move.b  p8b_main.p8s_rec.p8v_x,") } shouldBe true
     }
 
+    test("inline assembly does not prevent framing: asm subroutine is framed by default") {
+        val src = """
+main {
+    sub leaf(ubyte a) -> ubyte {
+        %asm {{
+            nop
+        }}
+        return a + 1
+    }
+    sub start() {
+        g = leaf(3)
+    }
+    ubyte @shared g
+}
+"""
+        val (lines, _) = compile(src)
+        val leaf = subAssembly(lines, "p8b_main.p8s_leaf")
+        leaf.any { it.startsWith("link") } shouldBe true
+        leaf.any { it.contains("(a5)") } shouldBe true
+    }
+
+    test("inline assembly subroutine with %option noframe keeps the static convention") {
+        val src = """
+main {
+    sub leaf(ubyte a) -> ubyte {
+        %option noframe
+        %asm {{
+            nop
+        }}
+        return a + 1
+    }
+    sub start() {
+        g = leaf(3)
+    }
+    ubyte @shared g
+}
+"""
+        val (lines, _) = compile(src)
+        val leaf = subAssembly(lines, "p8b_main.p8s_leaf")
+        leaf.any { it.startsWith("link") } shouldBe false
+        leaf.any { it.contains("p8b_main.p8s_leaf.p8v_a") } shouldBe true
+    }
+
     test("slice 5: static-initialized local is framed and initialized at entry") {
         val src = """
 main {

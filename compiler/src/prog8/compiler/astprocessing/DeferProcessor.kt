@@ -288,7 +288,7 @@ internal object DeferProcessor {
             overflowIf.add(overflowCond)
             val overflowTrue = PtNodeGroup()
             val overflowExit = PtFunctionCall("sys.exit", false, false, emptyArray(), sub.position)
-            overflowExit.add(PtNumber(BaseDataType.UBYTE, 1.0, sub.position))
+            overflowExit.add(PtNumber(spBase, 1.0, sub.position))
             overflowTrue.add(overflowExit)
             overflowIf.add(overflowTrue)
             overflowIf.add(PtNodeGroup())

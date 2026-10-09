@@ -27,6 +27,7 @@ p8_sys_startup {
     }
 
     sub init_system_phase2() {
+        %option noframe
         %asm {{
             moveq   #0,d0
             moveq   #0,d1
@@ -48,6 +49,7 @@ p8_sys_startup {
     }
 
     sub cleanup_at_exit() {
+        %option noframe
         %asm {{
             movea.l  #qemu.CTRL_REG_CMD,a1
             move.l   #qemu.CTRL_CMD_HALT,(a1)

@@ -17,7 +17,8 @@ import prog8.intermediate.*
  *  - stamps frameSize / incomingSize on the IRSubroutine.
  *
  * Everything else keeps the existing static path verbatim. A subroutine is frameable when ALL of:
- *  - it contains no inline assembly chunk,
+ *  - it is not marked %option noframe; inline assembly is allowed and does not by itself prevent
+ *    framing, so asm that manipulates the machine stack or A5 must opt out explicitly,
  *  - it makes no indirect calls and its address is never taken (subptr dispatch tables, interrupt
  *    handler registration, ...): an unknown caller cannot push arguments into a frame,
  *  - it cannot reach a subroutine whose assembly code writes to A5: such a call would overwrite
@@ -87,7 +88,7 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
 
         val framedSubs = mutableMapOf<String, FrameLayoutResult>()
         for (sub in allSubs) {
-            val outcome = frameableSubroutine(sub, referencedIn, addressTaken, asmTexts, callSites, dispatchTargets, indirectCallers, reentrant, reachesFramePointerClobber)
+            val outcome = frameableSubroutine(sub, referencedIn, addressTaken, asmTexts, callSites, dispatchTargets, indirectCallers, reentrant, reachesFramePointerClobber, framePointerClobberers)
             if (outcome is Frameability.Frameable)
                 framedSubs[sub.label] = outcome.layout
         }
@@ -173,18 +174,15 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
         return result
     }
 
-    /** a frame-pointer-clobbering subroutine reached from another subroutine, and how it was reached */
-    private class ClobberReach(val clobberer: String, val viaIndirect: Boolean)
-
     /**
-     * Subroutine label -> the frame-pointer-clobbering subroutine it can reach, for every
-     * subroutine that can reach one. Only real call edges are followed; a subroutine is only
-     * credited with reaching a clobberer through an indirect call (viaIndirect=true) when it
-     * can reach a subroutine that makes one, because such a call may dispatch to anything.
+     * Subroutine labels that can reach a frame-pointer-clobbering subroutine through a real
+     * call chain, or that can reach an indirect call (which may dispatch to any address-taken
+     * subroutine including a clobberer). Calls into %option noframe subroutines are a barrier:
+     * the mark asserts a save/restore discipline that leaves the caller's A5 intact.
      */
-    private fun subsReachingFramePointerClobber(clobberers: Set<String>, indirectCallers: Set<String>): Map<String, ClobberReach> {
+    private fun subsReachingFramePointerClobber(clobberers: Set<String>, indirectCallers: Set<String>): Set<String> {
         if (clobberers.isEmpty())
-            return emptyMap()
+            return emptySet()
         // Calls into %option noframe subroutines are a barrier for both propagations below:
         // the mark asserts a save/restore discipline that leaves the caller's A5 intact when
         // the call returns (or abandons the caller, as when switching away), so clobber reach
@@ -203,16 +201,17 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
                 }
             }
         }
-        val reaching = mutableMapOf<String, ClobberReach>()
+        val reaching = mutableSetOf<String>()
         var changed = true
         while (changed) {
             changed = false
             for ((label, targets) in callTargets) {
                 if (label in reaching)
                     continue
-                val hit = targets.filter { it !in noframeSubs }.firstOrNull { it in clobberers || it in reaching } ?: continue
-                reaching[label] = if (hit in clobberers) ClobberReach(hit, false) else reaching.getValue(hit)
-                changed = true
+                if (targets.filter { it !in noframeSubs }.any { it in clobberers || it in reaching }) {
+                    reaching += label
+                    changed = true
+                }
             }
         }
         // no real call chain reaches a clobberer: if an indirect call is reachable (here or
@@ -232,7 +231,7 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
         }
         for (label in callTargets.keys) {
             if (label !in reaching && label in reachesIndirect)
-                reaching[label] = ClobberReach(clobberers.first(), true)
+                reaching += label
         }
         return reaching
     }
@@ -401,16 +400,14 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
         dispatchTargets: Set<String>,
         indirectCallers: Set<String>,
         reentrant: Set<String>,
-        reachesFramePointerClobber: Map<String, ClobberReach>
+        reachesFramePointerClobber: Set<String>,
+        framePointerClobberers: Set<String>
     ): Frameability {
         val static = { Frameability.NotFrameable() }
         // a %option noframe subroutine requires the legacy static convention (it manipulates
         // the machine stack itself), so it never gets a frame
         if (sub.noframe) return static()
         if (sub.hasFrame) return static()
-        var hasInlineAsm = false
-        sub.forEachChunk { chunk -> if (chunk is IRInlineAsmChunk) hasInlineAsm = true }
-        if (hasInlineAsm) return static()
         if (sub.label in indirectCallers) return static()
         // An address-taken subroutine with parameters must stay static: an indirect call site
         // cannot know which convention to pass arguments in. Without parameters there is nothing
@@ -419,6 +416,7 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
         if (sub.label in dispatchTargets && sub.parameters.isNotEmpty()) return static()
         if (isLabelReferencedInAsm(sub.label, asmTexts)) return static()
         if (sub.label in reachesFramePointerClobber) return static()
+        if (sub.label in framePointerClobberers) return static()
 
         // every parameter must be able to move: otherwise the caller keeps writing static cells
         // IRParam.name is the scoped variable name; call sites refer to the same parameter by its

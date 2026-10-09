@@ -531,6 +531,8 @@ Directives
       state shared between its overlapping runs. Only use this if you know what you're doing: the
       programmer is responsible for guaranteeing that no two live runs observe each other's data,
       and that the caller's frame pointer is intact when the subroutine returns.
+      A subroutine that contains inline assembly is framed like any other; if that assembly
+      manipulates the machine stack or the frame pointer itself, mark the subroutine ``noframe``.
 
 
 .. index:: pair: Directives; %output

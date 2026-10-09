@@ -52,50 +52,85 @@ txt {
     private long @shared fmt_value_l
     private uword @shared fmt_value_w
 
+    private asmsub vprintf(str format @D1, pointer argarray @D2) {
+        %asm {{
+            move.l  4.w,a6
+            cmp.w   #36,20(a6)      ; KS 2.0 = V36
+            bcs.s   .no_ks20
+            move.l  sys.DOSBase,a6
+            jmp  dos.VPrintf(a6)
+
+.no_ks20:
+            jmp  p8b_txt.p8s_no_ks20_alert
+        }}
+    }
+
+    private asmsub no_ks20_alert() {
+        ; VPrintf number formatting is unavailable before kickstart 2.0
+        %asm {{
+            move.l  #$00070001,d0
+            lea     _msg(pc),a0
+            moveq   #40,d1
+            move.l  sys.IntuitionBase,a6
+            jsr     -90(a6)                 ; DisplayAlert
+            moveq   #1,d0
+            jmp     sys.exit
+
+            even
+_msg:
+            dc.w    20
+            dc.b    16
+            dc.b    "textio/conv number format routines require Kickstart 2.0+",0
+            dc.b    0
+            ; !notreached!
+        }}
+    }
+
+
     sub print_ub(ubyte value) {
         fmt_value_w = value as uword
-        void dos.VPrintf("%d", &fmt_value_w)
+        vprintf("%d", &fmt_value_w)
     }
 
     sub print_ub0(ubyte value) {
         fmt_value_w = value as uword
-        void dos.VPrintf("%03d", &fmt_value_w)
+        vprintf("%03d", &fmt_value_w)
     }
 
     sub print_b(byte value) {
         fmt_value_w = value as uword
-        void dos.VPrintf("%d", &fmt_value_w)
+        vprintf("%d", &fmt_value_w)
     }
 
     sub print_uw(uword value) {
         fmt_value_l = value as long
-        void dos.VPrintf("%lu", &fmt_value_l)
+        vprintf("%lu", &fmt_value_l)
     }
 
     sub print_uw0(uword value) {
         fmt_value_l = value as long
-        void dos.VPrintf("%05lu", &fmt_value_l)
+        vprintf("%05lu", &fmt_value_l)
     }
 
     sub print_w(word value) {
-        void dos.VPrintf("%d", &value)
+        vprintf("%d", &value)
     }
 
     sub print_l(long value) {
-        void dos.VPrintf("%ld", &value)
+        vprintf("%ld", &value)
     }
 
     sub print_ulhex(long value, bool prefix) {
-        void dos.VPrintf(if prefix then "$%08lx" else "%08lx", &value)
+        vprintf(if prefix then "$%08lx" else "%08lx", &value)
     }
 
     sub print_uwhex(uword value, bool prefix) {
-        void dos.VPrintf(if prefix then "$%04x" else "%04x", &value)
+        vprintf(if prefix then "$%04x" else "%04x", &value)
     }
 
     sub print_ubhex(ubyte value, bool prefix) {
         fmt_value_w = value as uword
-        void dos.VPrintf(if prefix then "$%02x" else "%02x", &fmt_value_w)
+        vprintf(if prefix then "$%02x" else "%02x", &fmt_value_w)
     }
 
     sub print_ubbin(ubyte value, bool prefix) {

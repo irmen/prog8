@@ -65,6 +65,7 @@ coroutines {
     pointer tmp_term
 
     sub add(pointer taskaddress, pointer userdata) -> ubyte {
+        %option noframe
         ; find the next empty slot in the tasklist and stick it there
         ; returns the task id of the new task, or 255 if there was no space for more tasks. 0 is a valid task id!
         ; also returns the success in the Carry flag (carry set=success, carry clear = task was not added)
