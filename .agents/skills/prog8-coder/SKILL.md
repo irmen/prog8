@@ -71,8 +71,13 @@ libraries.
   locals at negative offsets, parameters at positive offsets. Block-level
   variables, globals, `@shared`, memory slabs, and objects needing a permanent
   external address stay static. Clean locals are zeroed on every call
-  including arrays, so the compiler warns for framed arrays over 8 bytes; use
-  `@dirty` when you assign first, otherwise you read stack garbage.
+ including arrays, so the compiler warns for framed arrays over 8 bytes; use
+ `@dirty` when you assign first, otherwise you read stack garbage.
+- Normal M68K calls use uniform 4-byte, right-justified argument slots. The caller
+  pushes arguments left-to-right and removes the complete argument area after the
+  call. Framed parameters start at positive `A5` offsets, with the first parameter
+  at `8 + 4 * (parameter_count - 1)`; locals use negative offsets. See
+  `docs/source/technical.rst` for the full convention and static fallback rules.
 - `memory(name, size)` reserves static memory and returns a `pointer`.
 - `str` and arrays have compile-time byte budgets. On 6502 targets the usual
   limit is 256 bytes; M68000 targets allow up to 32768 bytes. Use `memory()`
@@ -119,6 +124,10 @@ Use `if_cs`, `if_cc`, `if_z`, and `if_nz` for direct CPU-flag branches.
 
 - Subroutines can return zero, one, or multiple values:
   `a, b = routine()` or `void routine()`.
+- On M68K, ordinary calls preserve the caller's active frame. A `goto` or branch
+  that leaves the current subroutine must tear that frame down before transferring
+  control. The built-in `call(address)` is a zero-argument indirect call; it does
+  not marshal stack arguments.
 - Avoid `private` unless requested. Prog8 symbols are public by default.
 - `asmsub` bodies contain only one `%asm {{ ... }}` node. Parameters are type
   checked and documented, but assembly must use the mapped registers. Declare

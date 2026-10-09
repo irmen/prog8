@@ -101,6 +101,23 @@ when both operands are registers.
   leaves `A6` free for that reason.
 - `move.l d0,-(sp)` pushes and `move.l (sp)+,d0` pops.
 
+### Prog8 M68K stack ABI
+
+- Normal framed subroutines use `link a5,#-N` and `unlk a5`; locals are at
+  negative `A5` offsets and incoming parameters are at positive offsets.
+- Arguments use one padded 4-byte slot each. The caller pushes arguments
+  left-to-right, right-justifies byte and word values in their slots, and
+  removes the complete argument area after the call. Parameter `i` of `N`
+  arguments is at `8 + 4 * (N - 1 - i)` from the callee's `A5` when `i` is zero-based.
+- A normal call preserves the caller's frame. A `goto` or conditional branch
+  leaving the current subroutine must execute `unlk a5` on the taken path before
+  transferring control.
+- The built-in Prog8 `call(address)` is a zero-argument indirect call. It does
+  not marshal stack arguments. `asmsub` and `extsub` keep their explicit
+  register-annotated ABI, separate from normal framed calls.
+- Do not push byte arguments directly with `move.b ..., -(sp)`: reserve a full
+  4-byte slot and store the byte at offset `3(sp)`.
+
 ## Prog8 Integration
 
 Assembly can appear in `%asm {{ }}` blocks or `asmsub` routines. `asmsub`

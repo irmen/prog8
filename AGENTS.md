@@ -29,7 +29,7 @@
 - This project is a compiler for the Prog8 programming language.
 - Prog8 is a programming language primarily targeting 8-bit retro systems with the 6502 CPU, such as the Commodore 64, Commodore 128, and Commander X16.
 - The compiler has a 6502 code generator backend, and an IR code generator.
-- The IR code is meant to be used in a new machine specific code generator backend (primarily 6502 but maybe 68000 as well later)
+- The IR code is used by machine-specific code generator backends, including 6502 and M68K.
 - The compiler includes a simple 'virtual machine' that can execute the IR code directly via interpretation.
 - Prog8 source files have .p8 extension – these are *not* LUA or PICO-8 source files in this case!
 - Prog8 source files are a "module" that can contain one or more "blocks". They can also import other modules, from internal library files or from source files on the filesystem.
@@ -61,7 +61,8 @@ Source → parseMainModule() → processAst() → optimizeAst() → postprocessA
 ### Target Differences
 - **CPU instruction set differences**: Only the CommanderX16 target (cx16) can use 65C02 instructions such as STZ. The other targets (C64, C128, PET32) can only use original 6502 instructions.
 - When writing or understanding 6502/65C02 assembly code, load the `asm6502-coder` skill for 64tass syntax and conventions.
-- When writing or understanding M68K assembly code (amiga500, qemu68k targets), load the `m68k-coder` skill for vasm mot syntax and conventions.
+- When writing or understanding M68K assembly code (amiga500, amiga1200, qemu68k targets), load the `m68k-coder` skill for vasm mot syntax and conventions.
+- M68K ordinary subroutine locals and parameters use `A5`-based stack frames. Normal calls pass padded 4-byte argument slots on the stack, and the caller cleans up; see `docs/source/technical.rst` for the complete convention and frame eligibility rules.
 
 
 ## DEBUGGING TIP: Use `-noopt` to isolate problems

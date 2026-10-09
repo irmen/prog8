@@ -42,30 +42,32 @@ in D0, first pointer in A0, rest on stack), applied only where it measurably win
 scalar signatures). Requires the register allocator (`ideas/m68k-register-allocation.md`)
 first.
 
-### 3. Reserved outgoing-argument area
-
-Allocate the max call-site arg size once in the caller's `link` frame, write args via
-negative A5 offsets, drop per-call `addq/lea` cleanup. Best for calls in loops; cleaner
-for the allocator (no sp churn between spills). Caller frames grow; frame-size limits
-must count the area.
-
-### 4. Recursion-sound defers via framebase-as-parameter
+### 3. Recursion-sound defers via framebase-as-parameter
 
 Push (id, framebase) pairs on the defer handler stack, pass the parent's bottom-of-frame
 address as a hidden trailing parameter, lower parent-local accesses to indirect
 framebase-relative accesses. Lifts the current rejection of recursive deferring subs.
 Also needs VM activation records in linear memory so saved frame bases are addresses.
 
-### 5. Prologue zero-store coalescing
+### 4. Loop-aware liveness for frame slot reuse
+
+**Priority: low, frame-size-driven.**
+Today vreg frame slots are shared only when live ranges provably don't overlap, and any
+back edge (loop, backward branch, cross-sub jump) falls back to one slot per register.
+Lifting needs real backward live-in/live-out dataflow over the CFG; interval extension
+alone is unsound.
+
+### 5. Reserved outgoing-argument area
+
+**Priority: low, benchmark-driven.** Allocate the max call-site arg size once in the
+caller's `link` frame, write args via negative A5 offsets, and drop per-call `addq/lea`
+cleanup. This may help tight loops with repeated multi-argument calls, but gains are
+likely marginal: direct frame stores can be larger, frameless callers would gain a
+frame, and every caller's frame would grow. Frame-size limits must count the area.
+
+### 6. Prologue zero-store coalescing
 
 **Status: implemented.** Clean frame locals are grouped and merged into widest aligned
 stores; long runs lower to a `dbra` loop in the m68k backend. Floats and
 dirty/initialized locals remain boundaries. Details were in
 `ideas/m68k-prologue-zero-coalescing.md` (removed now that the work is done).
-
-### 6. Loop-aware liveness for frame slot reuse
-
-Today vreg frame slots are shared only when live ranges provably don't overlap, and any
-back edge (loop, backward branch, cross-sub jump) falls back to one slot per register.
-Lifting needs real backward live-in/live-out dataflow over the CFG; interval extension
-alone is unsound.
