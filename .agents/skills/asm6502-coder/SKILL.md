@@ -9,6 +9,10 @@ Use 64tass syntax, not ca65 or another assembler. Keep answers concise and
 practical. This applies to standalone `.asm` files and Prog8 `%asm {{ }}` or
 `asmsub` blocks.
 
+Reference documentation for the assembler is available locally in
+`~/Documents/prog8-dev-resources` (the 64tass manual, `64tass.md`). Search this
+folder first before looking online.
+
 ## Syntax
 
 - Labels begin in column 1. Instructions are indented at least four spaces.

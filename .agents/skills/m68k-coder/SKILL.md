@@ -8,6 +8,10 @@ description: Writing or understanding Motorola 68000/68020 assembly in vasm mot 
 Use Motorola syntax for `vasm`, not Devpac or other assemblers. Keep answers
 concise and practical.
 
+Reference documentation for the assembler and linker is available locally in
+`~/Documents/prog8-dev-resources` (the vasm and vlink manuals). Search this
+folder first before looking online.
+
 ## Syntax
 
 - Labels begin in column 1. Instructions are indented at least four spaces.

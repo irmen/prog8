@@ -277,6 +277,9 @@ Always use the `--console=plain` flag with these commands to avoid messing up th
 
 Note: By default, Gradle only shows failed tests. Passed and skipped tests are silent.
 
+A full `gradle build` is CPU- and IO-heavy; on Unix-like systems prefix it with `nice`
+(e.g. `nice gradle build --console=plain`) to lower its priority.
+
 **⚠️ CRITICAL: Test Filtering Patterns - Read This First!**
 
 Gradle's `--tests` filter has **strict rules** that are easy to get wrong:
@@ -310,6 +313,14 @@ gradle :compiler:compileTestKotlin --info 2>&1 | grep "^e:"
 - **When writing test programs**, add at the top: `%zeropage basicsafe` and `%option no_sysinit` - the latter ONLY when NOT writing for the amiga500 or qemu68k targets
 - When a test fails, the output shows "There were failing tests. See the report at:" - **read that HTML report**
 
+### TestCompilerOnExamples expected sizes
+`TestCompilerOnExamples` asserts exact output sizes per example. A code-generator change shifts them,
+so expect a handful of `expected:<N> but was:<M>` failures with no stack trace pointing at the cause.
+Attribute each one before editing: rebuild with the change reverted and compare the two generated
+`.asm` files, so the size delta is demonstrably yours and not a side effect. Then update the expected
+size. A delta of a few bytes from removed `ldy`/`lda` instructions is normal; a large or erratic delta
+means something else changed and needs investigating.
+
 ### Compiler Unit Test Snippets
 Prog8 code snippets embedded in the compiler's own Kotlin unit tests (e.g., in `TestAstChecks.kt`, `TestOptimization.kt`) follow different rules from standalone programs:
 - **Keep self-contained** — avoid `%import` directives (test setup may not have library search path configured)
@@ -317,6 +328,11 @@ Prog8 code snippets embedded in the compiler's own Kotlin unit tests (e.g., in `
 - **Set `writeAssembly=false`** if the test only checks generated AST (much faster)
 - **Set `optimize=false`** by default for these snippets
 - **Do NOT use** the `%encoding iso` / `txt.iso()` / `sys.poweroff_system()` pattern — that's only for real CX16 emulator runs
+- **Do NOT** write compiler tests that depend on the `vasm` assembler: it is not always installed
+  (CI only installs `64tass`). For m68k codegen tests (`amiga500`, `qemu68k` targets) pass
+  `writeAssembly = true, assemble = false` to the `compileText`/`compileFile` helpers. This still
+  generates the codegen AST to assert on but skips assembling, so no vasm is needed. If a test's
+  assertions cannot be made from the AST alone, drop the test.
 
 ### Testing Assembly Output
 When testing generated assembly in Kotlin tests:

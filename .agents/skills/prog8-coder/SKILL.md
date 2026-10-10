@@ -9,18 +9,14 @@ You are an expert Prog8 assistant. Keep answers concise and practical. This
 skill covers `.p8` source and `.p8ir` intermediate representation for the
 6502, M68000, and virtual targets.
 
-For full language reference, link users to these project documents rather than
-repeating them here:
+Various reference documentation is available locally in
+`~/Documents/prog8-dev-resources`: 
 
-- Program structure and syntax: `docs/source/programming.rst`
-- Variables, datatypes, arrays, and tags: `docs/source/variables.rst`
-- Structs and pointers: `docs/source/structpointers.rst`
-- Compilation and compiler options: `docs/source/compiling.rst`
-- Standard library: `docs/source/libraries.rst`
-- Binary libraries and `extsub`: `docs/source/binlibrary.rst`
-- Target differences: `docs/source/targetsystem.rst`
-- Known limitations: `docs/source/todo.rst`
-- Target API signatures: `docs/source/_static/symboldumps/skeletons-<target>.txt`
+Prog8 reference documentation, emulator manuals such as VICE and the X16
+emulator, the 64tass/vasm/vlink assembler and linker docs, X16 hardware and register specs,
+the Amiga NDK (docs and includes), and other resources. 
+Search in this folder first before looking online!
+
 
 ## Essentials
 
@@ -43,7 +39,7 @@ and finish with `sys.poweroff_system()`. CBM targets use PETSCII by default;
 avoid uppercase in test output unless intentional graphics. The virtual target
 uses ISO when configured with `%encoding iso` and `txt.iso()`.
 
-Do not use `%option no_sysinit` on `amiga500` or `qemu68k` targets when the goal
+Do not use `%option no_sysinit` on `amiga500`, `amiga1200`, or `qemu68k` targets when the goal
 is to create normal runnable programs. It skips critical startup logic including
 library initialization (DOS, graphics, intuition, timer) and CLI argument
 handling, causing programs to crash on start. It is appropriate for library
@@ -71,8 +67,8 @@ libraries.
   locals at negative offsets, parameters at positive offsets. Block-level
   variables, globals, `@shared`, memory slabs, and objects needing a permanent
   external address stay static. Clean locals are zeroed on every call
- including arrays, so the compiler warns for framed arrays over 8 bytes; use
- `@dirty` when you assign first, otherwise you read stack garbage.
+  including arrays, so the compiler warns for framed arrays over 8 bytes; use
+  `@dirty` when you assign first, otherwise you read stack garbage.
 - Normal M68K calls use uniform 4-byte, right-justified argument slots. The caller
   pushes arguments left-to-right and removes the complete argument area after the
   call. Framed parameters start at positive `A5` offsets, with the first parameter
@@ -152,35 +148,8 @@ Use `if_cs`, `if_cc`, `if_z`, and `if_nz` for direct CPU-flag branches.
 
 ## Verification
 
-- A full `gradle build` is CPU- and IO-heavy so lower its priority on Unix like systems. Prefix
-  it with `nice`, e.g. `nice gradle build --console=plain`, and use `nice -n 19` for
-  maximum politeness. Targeted runs (`gradle :compiler:test --tests "..."`) are
-  cheaper but still worth lowering the priority of.
-- Always pass `--console=plain`; the fancy console output interferes with agent
-  output parsing.
 - Use the `virtual` target for behavioral tests when possible:
   `prog8c -target virtual -emu program.p8`.
 - Use `-check` for syntax and semantic checks without output generation.
 - Use `-noopt` to determine whether a failure is optimizer-related.
 - For IR execution, use `-vmtrace` when control flow needs inspection.
-- Do not modify a correct test program to work around a compiler crash. Reduce
-  the case and fix the compiler instead.
-- `gradle build` already runs the full test suite; do not run a separate
-  `gradle test` before it, to avoid a lengthy double run.
-- `TestCompilerOnExamples` asserts exact output sizes per example. Any change to
-  the code generator shifts them, so expect a handful of
-  `expected:<N> but was:<M>` failures with no stack trace pointing at the cause.
-  Attribute each one before editing: rebuild with the change reverted and compare
-  the two generated `.asm` files, so the size delta is demonstrably yours and not a
-  side effect. Then update the expected size. A delta of a few bytes from removed
-  `ldy`/`lda` instructions is normal; a large or erratic delta means something else
-  changed and needs investigating.
-- When running `gradle` tests, grep for `SUCCESSFUL` to check if all tests
-  passed, and `FAILED` to check for failures. Gradle does not print individual
-  `PASSED` lines by default.
-- Do not write compiler unit tests that depend on the `vasm` assembler: it is
-  not always installed (CI only installs `64tass`). For m68k codegen tests
-  (`amiga500`, `qemu68k` targets) pass `writeAssembly = true, assemble = false`
-  to the `compileText`/`compileFile` helpers. This still generates the codegen
-  AST to assert on, but skips assembling, so no vasm is needed. If a test's
-  assertions cannot be made from the AST alone, drop the test.
