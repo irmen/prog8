@@ -1,8 +1,12 @@
 TODO
 ====
 
+amiga_gfx:  make scroll work, fix draw/mouseclick offsets for windowed mode and fullscreen-with-title mode
+
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
+- BUG: the ``in`` (contains) operator on arrays silently scans only ``length AND 255`` elements: the IR materializes the haystack length as a ``BYTE`` register (``ExpressionGen.kt``) and all backends (6502, m68k, VM) loop on a single byte counter. Arrays can legally exceed 255 elements on m68k (``ARRAY_SIZE_LIMIT`` 32768) and VM (65535) targets, producing false negatives with no diagnostic. Fixing it means widening the length operand to ``WORD`` in the IR and using 16-bit loop counters in every backend.
+  possible problems also in translateSyscallArrayContains in m68k InstrSyscall.kt
 - extend the ``-gendoc`` command to generate user reference documentation from Markdown docstrings; see ``ideas/markdown-docstrings-and-reference-docs.md`` for the plan.
 - add documentation for more library modules instead of just linking to the source code
 - add float support to the configurable compiler targets. Restrictions: just have "cbm-style floats" as an option (to that it can slot into the current float codegen), where "all" you have to specify is the addresses of AYINT and GIVAYF and FADDT and all their friends.

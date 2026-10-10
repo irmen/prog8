@@ -526,6 +526,20 @@ modules. Import them the same way as any other library::
 ``copper``
     Copper list builder and manager.
 
+``amiga_gfx``
+    Friendly OS graphics wrapper in the style of the ``gfx_*`` pixel modules:
+    per-call pen, client-relative coordinates, no structs or tag lists to manage.
+    ``fullscreen()`` opens a custom screen with a backdrop window (an empty title
+    hides the screen bar, otherwise it stays), ``windowed()`` opens a fixed-size
+    window on the Workbench screen, ``close()`` tears it all down again.
+    Use ``fullscreen()`` when you need your own resolution, depth or palette;
+    ``windowed()`` inherits all three from the Workbench.
+    Primitives (``clear/plot/line/rect/fillrect/circle/oval/disc/filled_oval/text``),
+    ``scroll/readpixel/textwidth``, ``palette/setcolor``, ``drawmode`` and bucket
+    or boundary ``fill/fillto`` are all plain ``graphics.library`` calls, so they
+    clip to the window. The ``rastport`` and ``window`` variables expose the handles
+    for direct library calls and IDCMP message handling. Kickstart 1.3 compatible.
+
 
 arena
 ^^^^^

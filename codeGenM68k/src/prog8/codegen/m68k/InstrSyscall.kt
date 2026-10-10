@@ -19,6 +19,7 @@ import prog8.intermediate.intNumber
 internal fun AsmGen.translateSyscall(num: Int, site: CallSite) {
     when (num) {
         IMSyscall.WORDARRAY_CONTAINS.number -> translateSyscallWordarrayContains(site)
+        IMSyscall.LONGARRAY_CONTAINS.number -> translateSyscallLongarrayContains(site)
         IMSyscall.COMPARE_STRINGS.number -> translateSyscallStringCompare(site)
         IMSyscall.CLAMP_BYTE.number -> translateSyscallClamp(site, IRDataType.BYTE, true)
         IMSyscall.CLAMP_UBYTE.number -> translateSyscallClamp(site, IRDataType.BYTE, false)
@@ -59,24 +60,29 @@ private fun AsmGen.loadStringArg(reg: Int, dt: IRDataType, dreg: String) {
     }
 }
 
-private fun AsmGen.translateSyscallWordarrayContains(site: CallSite) {
+private fun AsmGen.translateSyscallArrayContains(site: CallSite, dt: IRDataType) {
     val regElem = site.argument(0).intNumber
     val regArr = site.argument(1).intNumber
     val regLen = site.argument(2).intNumber
     val resultReg = site.resultRegister(0).intNumber
 
-    val labelLoop = makeLabel(".wac_loop")
-    val labelFound = makeLabel(".wac_found")
-    val labelDone = makeLabel(".wac_done")
+    val labelLoop = makeLabel(".ac_loop")
+    val labelFound = makeLabel(".ac_found")
+    val labelDone = makeLabel(".ac_done")
 
-    emitLoadD0(regElem, IRDataType.WORD)
+    emitLoadD0(regElem, dt)
     emitLine("move.l  ${regAddr(regArr)}, a0")
     emitLine("moveq.l  #0, d1")
     emitLine("move.b  ${regAddrByte(regLen, 0)}, d1")
     emitLine("subq.w  #1, d1")
     emitLine("bmi  $labelDone       ; length was 0 -> not found")
     emitRaw("$labelLoop:")
-    emitLine("cmp.w  (a0)+, d0")
+    val cmpInstr = when (dt) {
+        IRDataType.WORD -> "cmp.w"
+        IRDataType.LONG -> "cmp.l"
+        else -> error("array contains: unsupported element type $dt")
+    }
+    emitLine("$cmpInstr  (a0)+, d0")
     emitLine("beq  $labelFound")
     emitLine("dbra  d1, $labelLoop")
     emitLine("move.b  #0, ${regAddrByte(resultReg, 0)}")
@@ -84,6 +90,14 @@ private fun AsmGen.translateSyscallWordarrayContains(site: CallSite) {
     emitRaw("$labelFound:")
     emitLine("move.b  #1, ${regAddrByte(resultReg, 0)}")
     emitRaw("$labelDone:")
+}
+
+private fun AsmGen.translateSyscallWordarrayContains(site: CallSite) {
+    translateSyscallArrayContains(site, IRDataType.WORD)
+}
+
+private fun AsmGen.translateSyscallLongarrayContains(site: CallSite) {
+    translateSyscallArrayContains(site, IRDataType.LONG)
 }
 
 private fun AsmGen.translateSyscallClamp(site: CallSite, dt: IRDataType, signed: Boolean) {
