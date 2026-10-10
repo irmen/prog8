@@ -1,1 +1,1 @@
-; no support for BCD
+%import shared_amiga_bcd

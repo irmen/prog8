@@ -577,23 +577,28 @@ bcd
 ^^^
 .. index:: pair: Libraries; bcd
 
-Decimal addition and subtraction routines, so for example $0987 + $1111 =  $2098 (rather than the usual hex outcome $1a98)
-Utilizes the BCD mode of the CPU (note: not all 6502 variants support this mode).
-This mode is useful for example for counting decimal score in a game, to avoid costly conversion to a decimal display string:
-just print the hexadecimal score representation. (This gets especially noticeable with long integers)
-Available routines:
+Decimal addition and subtraction routines using packed BCD values. For example,
+``$0987 + $1111`` produces ``$2098`` rather than the usual binary result
+``$1a98``. A BCD value can be printed directly as hexadecimal because each
+hexadecimal digit represents one decimal digit.
+
+The library uses the CPU's BCD instructions. It is not available on the ``virtual`` target.
+
+Available value-returning routines:
 
 - ``sub addb(byte a, byte b) -> byte``
 - ``sub addub(ubyte a, ubyte b) -> ubyte``
 - ``sub addw(word a, word b) -> word``
 - ``sub adduw(uword a, uword b) -> uword``
 - ``sub addl(long a, long b) -> long``
-- ``sub addtol(^^long a, long b)``    (adds b in-place to a, saves copying values)
+- ``sub addtol(^^long a, long b)``    (adds ``b`` in-place to ``a``)
 - ``sub subb(byte a, byte b) -> byte``
 - ``sub subub(ubyte a, ubyte b) -> ubyte``
 - ``sub subuw(uword a, uword b) -> uword``
 - ``sub subl(long a, long b) -> long``
-- ``sub subfroml(^^long a, long b)``   (subtracts b in-place from a, saves copying values)
+- ``sub subfroml(^^long a, long b)``   (subtracts ``b`` in-place from ``a``)
+
+The in-place long routines try to avoid copying values.
 
 
 bmx  (cx16 only)
