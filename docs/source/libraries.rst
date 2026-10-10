@@ -960,6 +960,9 @@ Provides definitions for the ROM/Kernal subroutines and utility routines dealing
 ``log2 (x)``
     Base 2 logarithm.
 
+``log2l (x)``
+    Base 2 logarithm for long values.
+
 ``minf (x, y)``
     returns the smallest of x and y.
 
@@ -1269,6 +1272,9 @@ miscellaneous
     (This routine is more efficient than doing a compare and a subtract separately, or using abs)
     **Clobbers:** ``cx16.r0``
 
+``diffl (long l1, long l2) -> long``
+    Returns the absolute difference, or distance, between the two long values.
+
 
 random numbers
 ''''''''''''''
@@ -1321,6 +1327,9 @@ random numbers
 ``log2w (uword v)``
     Returns the 2-Log of the word value v.
     **Clobbers:** ``cx16.r0``
+
+``log2l (long v)``
+    Returns the 2-Log of the long value v.
 
 trigonometry
 ''''''''''''

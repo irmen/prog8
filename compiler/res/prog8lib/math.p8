@@ -205,6 +205,15 @@ _sinecosR8	.char  trunc(127.0 * sin(range(180+45) * rad(360.0/180.0)))
         }}
     }
 
+    sub log2l(long value) -> ubyte {
+        ; returns the integer base-2 logarithm of the signed long value (position of the highest set bit)
+        ; returns 0 for value = 0
+        uword hi = (value >> 16) as uword
+        if hi != 0
+            return 16 + log2w(hi)
+        return log2w(value as uword)
+    }
+
     asmsub mul16_last_upper() -> uword @AY {
         ; This routine peeks into the internal 32 bits multiplication result buffer of the
         ; 16*16 bits multiplication routine, to fetch the upper 16 bits of the last calculation.
@@ -557,6 +566,13 @@ log2_tab
             ldy  cx16.r0H
             rts
         }}
+    }
+
+    sub diffl(long v1, long v2) -> long {
+        ; -- returns the (absolute) difference, or distance, between the two longs
+        if v1>v2
+            return v1-v2
+        return v2-v1
     }
 
     sub crc16(^^ubyte data, uword length, uword initvalue, uword xorout) -> uword {

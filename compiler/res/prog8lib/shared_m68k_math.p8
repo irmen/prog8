@@ -253,44 +253,91 @@ math {
         }}
     }
 
-    sub log2(ubyte value) -> ubyte {
-        ubyte result = 7
-        ubyte compare = $80
-        repeat {
-            if (value & compare)!=0
-                return result
-            result--
-            if result==0
-                return 0
-            compare >>= 1
-        }
+    asmsub log2(ubyte value @D0) -> ubyte @D0 {
+        ; returns the integer base-2 logarithm of the unsigned byte value (position of the highest set bit)
+        ; returns 0 for value = 0
+        %asm {{
+            move.b  d0,d1
+            moveq   #7,d2
+        .loop:
+            btst    d2,d1
+            bne     .found
+            subq.b  #1,d2
+            bcc     .loop
+            moveq   #0,d0
+            rts
+        .found:
+            move.b  d2,d0
+            rts
+        }}
     }
 
-    sub log2w(uword value) -> ubyte {
-        ubyte result = 15
-        uword compare = $8000
-        repeat {
-            if (value & compare)!=0
-                return result
-            result--
-            if result==0
-                return 0
-            compare >>= 1
-        }
+    asmsub log2w(uword value @D0) -> ubyte @D0 {
+        ; returns the integer base-2 logarithm of the unsigned word value (position of the highest set bit)
+        ; returns 0 for value = 0
+        %asm {{
+            move.w  d0,d1
+            moveq   #15,d2
+        .loop:
+            btst    d2,d1
+            bne     .found
+            subq.b  #1,d2
+            bcc     .loop
+            moveq   #0,d0
+            rts
+        .found:
+            move.b  d2,d0
+            rts
+        }}
     }
 
-    sub diff(ubyte v1, ubyte v2) -> ubyte {
+    asmsub log2l(long value @D0) -> ubyte @D0 {
+        ; returns the integer base-2 logarithm of the signed long value (position of the highest set bit)
+        ; returns 0 for value = 0
+        %asm {{
+            move.l  d0,d1
+            moveq   #31,d2
+        .loop:
+            btst    d2,d1
+            bne     .found
+            subq.b  #1,d2
+            bcc     .loop
+            moveq   #0,d0
+            rts
+        .found:
+            move.b  d2,d0
+            rts
+        }}
+    }
+
+    inline asmsub diff(ubyte v1 @D0, ubyte v2 @D1) -> ubyte @D0 {
         ; -- returns the (absolute) difference, or distance, between the two bytes
-        if v1>v2
-            return v1-v2
-        return v2-v1
+        %asm {{
+            sub.b   d1,d0
+            bcc     .done
+            neg.b   d0
+.done:      local
+        }}
     }
 
-    sub diffw(uword w1, uword w2) -> uword {
+    inline asmsub diffw(uword w1 @D0, uword w2 @D1) -> uword @D0 {
         ; -- returns the (absolute) difference, or distance, between the two words
-        if w1>w2
-            return w1-w2
-        return w2-w1
+        %asm {{
+            sub.w   d1,d0
+            bcc     .done
+            neg.w   d0
+.done:      local
+        }}
+    }
+
+    inline asmsub diffl(long l1 @D0, long l2 @D1) -> long @D0 {
+        ; -- returns the (absolute) difference, or distance, between the two longs
+        %asm {{
+            sub.l   d1,d0
+            bcc     .done
+            neg.l   d0
+.done:      local
+        }}
     }
 
     asmsub lerp(ubyte v0 @D0, ubyte v1 @D1, ubyte t @D2) -> ubyte @D0 {
@@ -399,34 +446,63 @@ math {
         }}
     }
 
-    sub gcd(uword a, uword b) -> uword {
+    asmsub gcd(uword a @D0, uword b @D1) -> uword @D0 {
         ; Calculate the Greatest Common Divisor of two 16-bit unsigned integers using the Binary GCD algorithm (Stein's algorithm).
-        uword aa = a
-        uword bb = b
+        %asm {{
+            tst.w   d0
+            beq     .done_b
+            tst.w   d1
+            beq     .done_a
 
-        if aa==0  return bb
-        if bb==0  return aa
+            moveq   #0,d2           ; shift = 0
 
-        ubyte shift = 0
+.shift_loop
+            move.w  d0,d3
+            or.w    d1,d3
+            btst    #0,d3
+            bne     .shift_done
+            lsr.w   #1,d0
+            lsr.w   #1,d1
+            addq.w  #1,d2
+            bra     .shift_loop
 
-        while ((aa | bb) & 1)==0 {
-            aa >>= 1
-            bb >>= 1
-            shift++
-        }
+.shift_done
+            ; remove remaining factors of 2 from a
+.a_loop
+            btst    #0,d0
+            bne     .a_done
+            lsr.w   #1,d0
+            bra     .a_loop
 
-        while (aa & 1)==0
-            aa >>= 1
+.a_done
+            ; loop while b != 0
+.b_outer
+            tst.w   d1
+            beq     .finish
 
-        while bb!=0 {
-            while (bb & 1)==0
-                bb >>= 1
-            if aa>bb
-                swap(aa, bb)
-            bb -= aa
-        }
+.b_inner
+            btst    #0,d1
+            bne     .b_done
+            lsr.w   #1,d1
+            bra     .b_inner
 
-        return aa << shift
+.b_done
+            cmp.w   d1,d0
+            bls     .no_swap        ; if a <= b, no swap
+            exg     d0,d1           ; swap a and b
+.no_swap
+            sub.w   d0,d1           ; b = b - a
+            bra     .b_outer
+
+.finish
+            lsl.w   d2,d0           ; a << shift
+.done_a
+            rts
+
+.done_b
+            move.w  d1,d0
+            rts
+        }}
     }
 
     %asm {{

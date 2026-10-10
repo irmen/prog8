@@ -208,29 +208,35 @@ math {
     alias randrangew_rom = math.randrangew
 
     sub log2(ubyte value) -> ubyte {
-        ubyte result = 7
-        ubyte compare = $80
-        repeat {
-            if value&compare!=0
-                return result
-            result--
-            if_z
-                return 0
-            compare >>= 1
+        ubyte result = 0
+        repeat 7 {
+            value >>= 1
+            if value != 0
+                result++
         }
+        return result
     }
 
     sub log2w(uword value) -> ubyte {
-        ubyte result = 15
-        uword compare = $8000
-        repeat {
-            if value&compare!=0
-                return result
-            result--
-            if_z
-                return 0
-            compare >>= 1
+        ubyte result = 0
+        repeat 15 {
+            value >>= 1
+            if value != 0
+                result++
         }
+        return result
+    }
+
+    sub log2l(long value) -> ubyte {
+        ; returns the integer base-2 logarithm of the signed long value (position of the highest set bit)
+        ; returns 0 for value = 0
+        ubyte result = 0
+        repeat 31 {
+            value >>= 1
+            if value != 0
+                result++
+        }
+        return result
     }
 
     sub direction(ubyte x1, ubyte y1, ubyte x2, ubyte y2) -> ubyte {
@@ -320,6 +326,13 @@ math {
         if w1>w2
             return w1-w2
         return w2-w1
+    }
+
+    sub diffl(long v1, long v2) -> long {
+        ; -- returns the (absolute) difference, or distance, between the two longs
+        if v1>v2
+            return v1-v2
+        return v2-v1
     }
 
     sub crc16(^^ubyte data, uword length, uword initvalue, uword xorout) -> uword {
