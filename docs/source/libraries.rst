@@ -954,17 +954,6 @@ Provides definitions for the ROM/Kernal subroutines and utility routines dealing
 ``floor (x)``
     Rounds the floating point down to an integer towards minus infinity.
 
-``interpolate(v, inputMin, inputMax, outputMin, outputMax)``
-    Interpolate a value v in interval [inputMin, inputMax] to output interval [outputMin, outputMax]
-
-``lerp(v0, v1, t)``
-    Linear interpolation (LERP). Precise method, which guarantees v = v1 when t = 1.
-    Returns an interpolation between two inputs (v0, v1) for a parameter t in the closed unit interval [0.0, 1.0]
-
-``lerp_fast(v0, v1, t)``
-    Linear interpolation (LERP). Imprecise (but faster) method, which does not guarantee v = v1 when t = 1
-    Returns an interpolation between two inputs (v0, v1) for a parameter t in the closed unit interval [0.0, 1.0]
-
 ``ln (x)``
     Natural logarithm (base e).
 
@@ -1218,6 +1207,10 @@ interpolation
     Returns an interpolation between two inputs (v0, v1) for a parameter t in the interval [0, 255]
     Guarantees v = v1 when t = 255. Also works if v0 > v1.
 
+``lerp_fast(v0, v1, t)``
+    Linear interpolation routine for unsigned byte values.
+    Faster but less precise than ``lerp``; does not guarantee v = v1 when t = 255.
+
 ``lerpw(v0, v1, t)``
     Linear interpolation routine for unsigned word values.
     Returns an interpolation between two inputs (v0, v1) for a parameter t in the interval [0, 65535]
@@ -1227,7 +1220,10 @@ interpolation
 ``interpolate(v, inputMin, inputMax, outputMin, outputMax)``
     Interpolate a value v in interval [inputMin, inputMax] to output interval [outputMin, outputMax]
     All values are unsigned bytes.   Clobbers R15
-    (there is no version for word values because of lack of precision in the fixed point calculation there).
+
+``interpolatew(v, inputMin, inputMax, outputMin, outputMax)``
+    Interpolate a value v in interval [inputMin, inputMax] to output interval [outputMin, outputMax]
+    All values are unsigned words.   Clobbers R15
 
 large multiplications
 '''''''''''''''''''''

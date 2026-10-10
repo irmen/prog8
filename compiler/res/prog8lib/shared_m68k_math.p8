@@ -293,54 +293,110 @@ math {
         return w2-w1
     }
 
-    sub lerp(ubyte v0, ubyte v1, ubyte t) -> ubyte {
+    asmsub lerp(ubyte v0 @D0, ubyte v1 @D1, ubyte t @D2) -> ubyte @D0 {
         ; Linear interpolation (LERP)
         ; returns an interpolation between two inputs (v0, v1) for a parameter t in the interval [0, 255]
         ; guarantees v = v1 when t = 255
-        if v1<v0
-            return v0 - msb(t as uword * (v0 - v1) + 255)
-        else
-            return v0 + msb(t as uword * (v1 - v0) + 255)
-    }
-
-    private asmsub lerpw_mulu(uword t @D0, uword delta @D1) -> long @D0 {
-        ; 16x16 -> 32 bit unsigned multiply, compatible with the 68000.
         %asm {{
-            mulu.w  d1,d0
+            move.b  d0,d3           ; save v0
+            cmp.b   d1,d0
+            bcc     .descending
+            ; ascending: v1 > v0
+            sub.b   d0,d1           ; d1 = delta = v1 - v0
+            move.b  d2,d0           ; d0 = t
+            and.w   #$ff,d0
+            and.w   #$ff,d1
+            mulu.w  d1,d0           ; d0 = t * delta
+            add.w   #255,d0         ; round up
+            lsr.w   #8,d0           ; d0 = upper byte
+            add.b   d3,d0           ; result = v0 + upper
+            rts
+        .descending:
+            sub.b   d1,d0           ; d0 = delta = v0 - v1
+            move.b  d2,d1           ; d1 = t
+            and.w   #$ff,d0
+            and.w   #$ff,d1
+            mulu.w  d0,d1           ; d1 = t * delta
+            add.w   #255,d1         ; round up
+            lsr.w   #8,d1           ; d1 = upper byte
+            move.b  d3,d0           ; d0 = v0
+            sub.b   d1,d0           ; result = v0 - upper
             rts
         }}
     }
 
-    sub lerpw(uword v0, uword v1, uword t) -> uword {
+    asmsub lerpw(uword v0 @D0, uword v1 @D1, uword t @D2) -> uword @D0 {
         ; Linear interpolation (LERP) on word values
         ; returns an interpolation between two inputs (v0, v1) for a parameter t in the interval [0, 65535]
         ; guarantees v = v1 when t = 65535
         ; the 6502 version uses mul16_last_upper() for the high half of t*delta; here the
         ; full 32-bit unsigned product is computed instead, giving the same ceil(product/65536) result.
-        uword delta
-        bool descending
-        if v1<v0 {
-            delta = v0 - v1
-            descending = true
-        } else {
-            delta = v1 - v0
-            descending = false
-        }
-        long product = lerpw_mulu(t, delta)
-        uword upper = (product >> 16) as uword
-        if (product & $ffff)!=0
-            upper++
-        if descending
-            return v0 - upper
-        return v0 + upper
+        %asm {{
+            move.w  d0,d3           ; save v0
+            cmp.w   d1,d0
+            bcc     .descending
+            ; ascending: v1 > v0
+            sub.w   d0,d1           ; d1 = delta = v1 - v0
+            move.w  d2,d0           ; d0 = t
+            mulu.w  d1,d0           ; d0 = t * delta (32-bit)
+            move.w  d0,d1           ; d1 = low word
+            clr.w   d0              ; d0 = high word << 16
+            swap    d0              ; d0 = high word
+            tst.w   d1
+            beq     .done_asc
+            addq.w  #1,d0           ; ceil(product / 65536)
+        .done_asc:
+            add.w   d3,d0           ; result = v0 + upper
+            rts
+        .descending:
+            sub.w   d1,d0           ; d0 = delta = v0 - v1
+            move.w  d2,d1           ; d1 = t
+            mulu.w  d0,d1           ; d1 = t * delta (32-bit)
+            move.w  d1,d0           ; d0 = low word
+            clr.w   d1              ; d1 = high word << 16
+            swap    d1              ; d1 = high word
+            tst.w   d0
+            beq     .done_desc
+            addq.w  #1,d1           ; ceil(product / 65536)
+        .done_desc:
+            move.w  d3,d0           ; d0 = v0
+            sub.w   d1,d0           ; result = v0 - upper
+            rts
+        }}
     }
 
-    sub interpolate(ubyte v, ubyte inputMin, ubyte inputMax, ubyte outputMin, ubyte outputMax) -> ubyte {
+    asmsub interpolate(ubyte v @D0, ubyte inputMin @D1, ubyte inputMax @D2, ubyte outputMin @D3, ubyte outputMax @D4) -> ubyte @D0 {
         ; Interpolate a value v in interval [inputMin, inputMax] to output interval [outputMin, outputMax]
-        ; (There is no version for words because of lack of precision in the fixed point calculation there)
-        uword tmp = ((v - inputMin) * 256 + inputMax) / (inputMax - inputMin)
-        tmp *= outputMax - outputMin
-        return msb(tmp) + outputMin
+        %asm {{
+            sub.b   d3,d4           ; d4 = delta_out = outputMax - outputMin (byte)
+            sub.b   d1,d0           ; d0 = diff_in = v - inputMin
+            and.w   #$ff,d0
+            lsl.w   #8,d0           ; d0 = diff_in * 256
+            add.b   d2,d0           ; d0 = diff_in * 256 + inputMax (numerator)
+            sub.b   d1,d2           ; d2 = denom = inputMax - inputMin
+            and.w   #$ff,d2
+            and.l   #$ffff,d0       ; clear high word for divu
+            divu.w  d2,d0           ; d0 = [remainder:quotient]
+            and.w   #$ff,d4
+            mulu.w  d4,d0           ; d0 = tmp * delta_out (32-bit)
+            lsr.l   #8,d0           ; d0 = high byte of product
+            add.b   d3,d0           ; result = msb + outputMin
+            rts
+        }}
+    }
+
+    asmsub interpolatew(uword v @D0, uword inputMin @D1, uword inputMax @D2, uword outputMin @D3, uword outputMax @D4) -> uword @D0 {
+        ; Interpolate a value v in interval [inputMin, inputMax] to output interval [outputMin, outputMax]
+        ; Uses a 32-bit intermediate product, so it works best when v is within the input range.
+        %asm {{
+            sub.w   d3,d4           ; d4 = delta_out = outputMax - outputMin
+            sub.w   d1,d0           ; d0 = diff_in = v - inputMin
+            mulu.w  d4,d0           ; d0 = diff_in * delta_out (32-bit)
+            sub.w   d1,d2           ; d2 = denom = inputMax - inputMin
+            divu.w  d2,d0           ; d0 = [remainder:quotient]
+            add.w   d3,d0           ; result = outputMin + quotient
+            rts
+        }}
     }
 
     sub gcd(uword a, uword b) -> uword {

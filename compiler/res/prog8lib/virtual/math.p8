@@ -435,10 +435,14 @@ math {
     sub interpolate(ubyte v, ubyte inputMin, ubyte inputMax, ubyte outputMin, ubyte outputMax) -> ubyte {
         ; Interpolate a value v in interval [inputMin, inputMax] to output interval [outputMin, outputMax]
         ; Clobbers R15.
-        ; (There is no version for words because of lack of precision in the fixed point calculation there)
         cx16.r15 = ((v-inputMin)*256+inputMax) / (inputMax-inputMin)
         cx16.r15 *= (outputMax-outputMin)
         return cx16.r15H + outputMin
+    }
+
+    sub interpolatew(uword v, uword inputMin, uword inputMax, uword outputMin, uword outputMax) -> uword {
+        ; Interpolate a value v in interval [inputMin, inputMax] to output interval [outputMin, outputMax]
+        return outputMin + ((v - inputMin) as long * (outputMax - outputMin) as long / (inputMax - inputMin) as long) as uword
     }
 
     sub gcd(uword aa, uword bb) -> uword {
