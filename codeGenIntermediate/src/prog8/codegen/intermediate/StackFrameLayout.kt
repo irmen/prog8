@@ -866,6 +866,16 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
             if (sub.noframe) continue
             val framed = sub.label in framedSubs
             val sharedVars = staticVarsOwnedBy(sub).filter { referencedIn[it]?.contains(sub.label) == true }
+            // A recursive subroutine with a defer is a special, common case: the defer mask
+            // is per-subroutine static state, but recursion creates multiple live activations
+            // that would share the same mask. Give a clear, specific error instead of the
+            // generic shared-variable diagnostic.
+            if (sharedVars.any { it.endsWith(".p8v_prog8_defers_mask") || it == "p8v_prog8_defers_mask" }) {
+                errors.err("subroutine '${userName(sub)}' is recursive (or mutually recursive) and contains a `defer` statement; " +
+                        "this is not supported on stack-memory-model targets because each activation would share the same defer mask",
+                    sub.position)
+                continue
+            }
             // a copy-in parameter keeps a static cell for its external references (§6.1),
             // shared between overlapping runs of a re-entrant subroutine
             val sharedCopyIns = (framedSubs[sub.label]?.copyInParams ?: emptySet()).filter { it !in sharedVars }
@@ -885,10 +895,9 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
             }
             if (sharedVregs.isNotEmpty())
                 details += if (sharedVregs.size == 1) "1 temporary value" else "${sharedVregs.size} temporary values"
-            errors.err("subroutine '${userName(sub)}' cannot be compiled: it may be running twice at the same time, " +
-                    "while sharing data between those runs: ${details.joinToString(", ")}. " +
-                    "Restructure it so that each run has its own private data, " +
-                    "or mark it %option noframe if the sharing is intentional",
+            errors.err("subroutine '${userName(sub)}' is recursive (or mutually recursive) but shares data between activations: " +
+                    "${details.joinToString(", ")}. " +
+                    "Make the data private to each activation, or mark the subroutine %option noframe if sharing is intentional",
                 sub.position)
         }
     }

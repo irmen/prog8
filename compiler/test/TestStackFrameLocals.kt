@@ -528,7 +528,7 @@ main {
         compileText(Qemu68kTarget(), optimize = false, src, tempdir().toPath(),
             writeAssembly = true, assemble = false, errors = errors) shouldBe null
         errors.errors.size shouldBe 1
-        errors.errors[0] shouldContain "may be running twice at the same time"
+        errors.errors[0] shouldContain "shares data between activations"
         errors.errors[0] shouldContain "address is taken"
     }
 
@@ -553,7 +553,7 @@ main {
         compileText(Qemu68kTarget(), optimize = false, src, tempdir().toPath(),
             writeAssembly = true, assemble = false, errors = errors) shouldBe null
         errors.errors.size shouldBe 1
-        errors.errors[0] shouldContain "may be running twice at the same time"
+        errors.errors[0] shouldContain "shares data between activations"
         errors.errors[0] shouldContain "static initializer"
 
         // the same program compiles unchanged for a target without stack frames
@@ -861,7 +861,7 @@ main {
         val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
         compileText(Qemu68kTarget(), optimize = false, src, tempdir().toPath(),
             writeAssembly = true, assemble = false, errors = errors) shouldBe null
-        errors.errors.any { it.contains("may be running twice") } shouldBe true
+        errors.errors.any { it.contains("shares data between activations") } shouldBe true
         errors.errors.any { it.contains("shared with other code") } shouldBe true
     }
 
@@ -1288,15 +1288,13 @@ main {
             writeAssembly = true, assemble = false, errors = errors) shouldBe null
         errors.errors.size shouldBe 3
         val all = errors.errors.joinToString("\n")
-        all shouldContain "cannot be compiled"
-        all shouldContain "may be running twice at the same time"
-        all shouldContain "its own private data"
+        all shouldContain "recursive (or mutually recursive)"
+        all shouldContain "shares data between activations"
+        all shouldContain "Make the data private"
         all shouldContain "%option noframe"
         all shouldContain "variable 'x'"
         all shouldContain "variable 'counter'"
         all shouldContain "temporary value"
-        all shouldNotContain "recursive"
-        all shouldNotContain "stack frame"
     }
 
     test("%option noframe on a subroutine exempts it from the reentrancy static-state error") {
