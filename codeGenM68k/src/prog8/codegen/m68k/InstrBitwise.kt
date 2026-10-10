@@ -195,15 +195,22 @@ private fun AsmGen.shiftOpcode(isLeft: Boolean, isArithmetic: Boolean, isRotate:
 // === Shifts by 1 (constant count 1) ===
 
 // Emit a .w count=1 memory-form shift/rotate. The absolute form (`op.w addr`)
-// is one instruction and optimal, but the QEMU 68020 emulation has a bug where
-// `asr.w` with absolute addressing zero-extends the 16-bit operand before the
-// shift instead of sign-extending it, producing a logical shift result for
-// negative values. The 68000 (vamos) and the `(a0)` / register forms are
-// unaffected. Workaround for the qemu68k target only: load the address into
-// a0 and use `(a0)` addressing. A0 is a scratch address register in the m68k
-// codegen, so this is safe.
+// is one instruction and optimal, but QEMU's 68020 emulation is broken for
+// word-sized memory *right* shifts in both addressing forms:
+//   `asr.w addr`  -> sign-extends the 16-bit operand instead of zero-extending
+//                    it, producing a logical shift result for negative values
+//   `lsr.w (a0)`  -> sign-extends, producing an arithmetic shift result
+// The register form (`move.w addr,d0` / `op.w #1,d0` / `move.w d0,addr`) is
+// correct in QEMU, and both the absolute and `(a0)` forms are correct on a real
+// 68000 (vamos). Left shifts and rotates are unaffected, so they keep the
+// compact memory form. d0 is scratch for the shift, matching the callers which
+// already invalidate their d0 cache.
 private fun AsmGen.emitMemoryWordShiftOrRotate(op: String, address: String) {
-    if (target.name == Qemu68kTarget.NAME) {
+    if (target.name == Qemu68kTarget.NAME && (op == "asr" || op == "lsr")) {
+        emitLine("move.w  $address, d0")
+        emitLine("$op.w  #1, d0")
+        emitLine("move.w  d0, $address")
+    } else if (target.name == Qemu68kTarget.NAME) {
         emitLine("lea  $address, a0")
         emitLine("$op.w  (a0)")
     } else {

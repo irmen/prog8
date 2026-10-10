@@ -1355,4 +1355,42 @@ class TestInstructionSelectionOptimizations : FunSpec({
         lines.count { it.trimStart().startsWith("lea  arr,a0") } shouldBe 1
         lines.any { it.trimStart().startsWith("clr.w") } shouldBe true
     }
+
+    test("qemu68k word right shifts avoid the memory forms its 68020 model mis-emulates") {
+        // QEMU's 68020 sign-extends the operand for both `asr.w <abs>` and
+        // `lsr.w (a0)`, so both memory forms give the wrong result. The
+        // register form round-trips through d0 and is correct.
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-qemu-word-rshift"),
+            listOf(
+                IRInstructions.memoryOp(Opcode.ASRM, IRDataType.WORD, IRMemory.direct("p8b_test.p8v_value")),
+                IRInstructions.memoryOp(Opcode.LSRM, IRDataType.WORD, IRMemory.direct("p8b_test.p8v_other"))
+            ),
+            Qemu68kTarget()
+        )
+
+        lines.count { it.startsWith("asr.w") } shouldBe 1
+        lines.count { it.startsWith("lsr.w") } shouldBe 1
+        lines.count { it == "asr.w  #1,d0" } shouldBe 1
+        lines.count { it == "lsr.w  #1,d0" } shouldBe 1
+        lines.count { it == "move.w  p8b_test.p8v_value,d0" } shouldBe 1
+        lines.count { it == "move.w  d0,p8b_test.p8v_value" } shouldBe 1
+        lines.count { it.startsWith("lea") } shouldBe 0
+    }
+
+    test("amiga500 keeps the compact word right shift memory form") {
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-amiga-word-rshift"),
+            listOf(
+                IRInstructions.memoryOp(Opcode.ASRM, IRDataType.WORD, IRMemory.direct("p8b_test.p8v_value")),
+                IRInstructions.memoryOp(Opcode.LSRM, IRDataType.WORD, IRMemory.direct("p8b_test.p8v_other"))
+            ),
+            Amiga500Target()
+        )
+
+        lines.count { it.startsWith("asr.w  p8b_test.p8v_value") } shouldBe 1
+        lines.count { it.startsWith("lsr.w  p8b_test.p8v_other") } shouldBe 1
+        lines.count { it == "asr.w  #1,d0" } shouldBe 0
+        lines.count { it == "lsr.w  #1,d0" } shouldBe 0
+    }
 })

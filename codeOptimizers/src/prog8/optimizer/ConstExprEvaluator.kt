@@ -319,12 +319,16 @@ class ConstExprEvaluator {
                 NumericLiteral(BaseDataType.BYTE, value, func.position)
             }
             "log2" -> {
-                val value = truncate(log2(args.single().number))
-                NumericLiteral(BaseDataType.UBYTE, value, func.position)
+                val arg = args.single().number
+                if (arg <= 0.0)
+                    throw ExpressionError("log2 of a non-positive value is not defined", func.position)
+                NumericLiteral(BaseDataType.UBYTE, truncate(log2(arg)), func.position)
             }
             "log2w" -> {
-                val value = truncate(log2(args.single().number))
-                NumericLiteral(BaseDataType.UWORD, value, func.position)
+                val arg = args.single().number
+                if (arg <= 0.0)
+                    throw ExpressionError("log2 of a non-positive value is not defined", func.position)
+                NumericLiteral(BaseDataType.UBYTE, truncate(log2(arg)), func.position)
             }
             "atan2" -> {
                 val x1f = args[0].number
@@ -334,7 +338,12 @@ class ConstExprEvaluator {
                 var radians = atan2(y2f-y1f, x2f-x1f)
                 if(radians<0)
                     radians+=2*PI
-                NumericLiteral(BaseDataType.UWORD, floor(radians/2.0/PI*256.0), func.position)
+                val value = floor(radians/2.0/PI*256.0)
+                // the routine returns a ubyte, and a near-zero negative angle can round
+                // up to exactly 2*PI, which lands on 256
+                if(value<0.0 || value>255.0)
+                    throw ExpressionError("atan2 result $value is out of range for a byte value", func.position)
+                NumericLiteral(BaseDataType.UBYTE, value, func.position)
             }
             "diff" -> {
                 val n1 = args[0].number

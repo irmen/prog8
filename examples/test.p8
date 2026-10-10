@@ -33,7 +33,7 @@ main {
         txt.print("\nbcd long in-place subtraction\n")
         check_long_sub_in_place($98765432, $12345678, $86419754)
 
-        ;sys.poweroff_system()
+        sys.poweroff_system()
     }
 
     sub check_byte_add(ubyte a, ubyte b, ubyte expected) {

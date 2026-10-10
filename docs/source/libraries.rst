@@ -1182,6 +1182,7 @@ math
 Low-level integer math routines (which you usually don't have to bother with directly, but they are used by the compiler internally).
 Pseudo-Random number generators (byte and word).
 Various 8-bit integer trig functions that use lookup tables to quickly calculate sine and cosines.
+Not all routines are available on all targets.
 
 
 checksumming

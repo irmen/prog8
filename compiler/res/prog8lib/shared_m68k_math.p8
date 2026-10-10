@@ -167,10 +167,14 @@ math {
     ; State: 4 bytes (x1,c1,a1,b1). Default seed: $00c2, $1137.
     ; Very fast on 68000: only byte ops, no shifts > 1, no 32-bit multiply.
 
-    ubyte x1 = $00
-    ubyte c1 = $c2
-    ubyte a1 = $11
-    ubyte b1 = $37
+    private ubyte x1 = $00
+    private ubyte c1 = $c2
+    private ubyte a1 = $11
+    private ubyte b1 = $37
+
+    ; streaming CRC state (m68k has no cx16.rN scratch registers)
+    private uword crc16_state = $0000
+    private long crc32_state = $00000000
 
     sub rndw() -> uword {
         %option noframe
@@ -247,5 +251,344 @@ math {
             swap    d0
             rts
         }}
+    }
+
+    sub log2(ubyte value) -> ubyte {
+        ubyte result = 7
+        ubyte compare = $80
+        repeat {
+            if (value & compare)!=0
+                return result
+            result--
+            if result==0
+                return 0
+            compare >>= 1
+        }
+    }
+
+    sub log2w(uword value) -> ubyte {
+        ubyte result = 15
+        uword compare = $8000
+        repeat {
+            if (value & compare)!=0
+                return result
+            result--
+            if result==0
+                return 0
+            compare >>= 1
+        }
+    }
+
+    sub diff(ubyte v1, ubyte v2) -> ubyte {
+        ; -- returns the (absolute) difference, or distance, between the two bytes
+        if v1>v2
+            return v1-v2
+        return v2-v1
+    }
+
+    sub diffw(uword w1, uword w2) -> uword {
+        ; -- returns the (absolute) difference, or distance, between the two words
+        if w1>w2
+            return w1-w2
+        return w2-w1
+    }
+
+    sub lerp(ubyte v0, ubyte v1, ubyte t) -> ubyte {
+        ; Linear interpolation (LERP)
+        ; returns an interpolation between two inputs (v0, v1) for a parameter t in the interval [0, 255]
+        ; guarantees v = v1 when t = 255
+        if v1<v0
+            return v0 - msb(t as uword * (v0 - v1) + 255)
+        else
+            return v0 + msb(t as uword * (v1 - v0) + 255)
+    }
+
+    private asmsub lerpw_mulu(uword t @D0, uword delta @D1) -> long @D0 {
+        ; 16x16 -> 32 bit unsigned multiply, compatible with the 68000.
+        %asm {{
+            mulu.w  d1,d0
+            rts
+        }}
+    }
+
+    sub lerpw(uword v0, uword v1, uword t) -> uword {
+        ; Linear interpolation (LERP) on word values
+        ; returns an interpolation between two inputs (v0, v1) for a parameter t in the interval [0, 65535]
+        ; guarantees v = v1 when t = 65535
+        ; the 6502 version uses mul16_last_upper() for the high half of t*delta; here the
+        ; full 32-bit unsigned product is computed instead, giving the same ceil(product/65536) result.
+        uword delta
+        bool descending
+        if v1<v0 {
+            delta = v0 - v1
+            descending = true
+        } else {
+            delta = v1 - v0
+            descending = false
+        }
+        long product = lerpw_mulu(t, delta)
+        uword upper = (product >> 16) as uword
+        if (product & $ffff)!=0
+            upper++
+        if descending
+            return v0 - upper
+        return v0 + upper
+    }
+
+    sub interpolate(ubyte v, ubyte inputMin, ubyte inputMax, ubyte outputMin, ubyte outputMax) -> ubyte {
+        ; Interpolate a value v in interval [inputMin, inputMax] to output interval [outputMin, outputMax]
+        ; (There is no version for words because of lack of precision in the fixed point calculation there)
+        uword tmp = ((v - inputMin) * 256 + inputMax) / (inputMax - inputMin)
+        tmp *= outputMax - outputMin
+        return msb(tmp) + outputMin
+    }
+
+    sub gcd(uword a, uword b) -> uword {
+        ; Calculate the Greatest Common Divisor of two 16-bit unsigned integers using the Binary GCD algorithm (Stein's algorithm).
+        uword aa = a
+        uword bb = b
+
+        if aa==0  return bb
+        if bb==0  return aa
+
+        ubyte shift = 0
+
+        while ((aa | bb) & 1)==0 {
+            aa >>= 1
+            bb >>= 1
+            shift++
+        }
+
+        while (aa & 1)==0
+            aa >>= 1
+
+        while bb!=0 {
+            while (bb & 1)==0
+                bb >>= 1
+            if aa>bb
+                swap(aa, bb)
+            bb -= aa
+        }
+
+        return aa << shift
+    }
+
+    %asm {{
+        SECTION .text,code
+        ALIGN 2
+math.crc16_table:
+        dc.w    $0000, $1021, $2042, $3063, $4084, $50A5, $60C6, $70E7
+        dc.w    $8108, $9129, $A14A, $B16B, $C18C, $D1AD, $E1CE, $F1EF
+        dc.w    $1231, $0210, $3273, $2252, $52B5, $4294, $72F7, $62D6
+        dc.w    $9339, $8318, $B37B, $A35A, $D3BD, $C39C, $F3FF, $E3DE
+        dc.w    $2462, $3443, $0420, $1401, $64E6, $74C7, $44A4, $5485
+        dc.w    $A56A, $B54B, $8528, $9509, $E5EE, $F5CF, $C5AC, $D58D
+        dc.w    $3653, $2672, $1611, $0630, $76D7, $66F6, $5695, $46B4
+        dc.w    $B75B, $A77A, $9719, $8738, $F7DF, $E7FE, $D79D, $C7BC
+        dc.w    $48C4, $58E5, $6886, $78A7, $0840, $1861, $2802, $3823
+        dc.w    $C9CC, $D9ED, $E98E, $F9AF, $8948, $9969, $A90A, $B92B
+        dc.w    $5AF5, $4AD4, $7AB7, $6A96, $1A71, $0A50, $3A33, $2A12
+        dc.w    $DBFD, $CBDC, $FBBF, $EB9E, $9B79, $8B58, $BB3B, $AB1A
+        dc.w    $6CA6, $7C87, $4CE4, $5CC5, $2C22, $3C03, $0C60, $1C41
+        dc.w    $EDAE, $FD8F, $CDEC, $DDCD, $AD2A, $BD0B, $8D68, $9D49
+        dc.w    $7E97, $6EB6, $5ED5, $4EF4, $3E13, $2E32, $1E51, $0E70
+        dc.w    $FF9F, $EFBE, $DFDD, $CFFC, $BF1B, $AF3A, $9F59, $8F78
+        dc.w    $9188, $81A9, $B1CA, $A1EB, $D10C, $C12D, $F14E, $E16F
+        dc.w    $1080, $00A1, $30C2, $20E3, $5004, $4025, $7046, $6067
+        dc.w    $83B9, $9398, $A3FB, $B3DA, $C33D, $D31C, $E37F, $F35E
+        dc.w    $02B1, $1290, $22F3, $32D2, $4235, $5214, $6277, $7256
+        dc.w    $B5EA, $A5CB, $95A8, $8589, $F56E, $E54F, $D52C, $C50D
+        dc.w    $34E2, $24C3, $14A0, $0481, $7466, $6447, $5424, $4405
+        dc.w    $A7DB, $B7FA, $8799, $97B8, $E75F, $F77E, $C71D, $D73C
+        dc.w    $26D3, $36F2, $0691, $16B0, $6657, $7676, $4615, $5634
+        dc.w    $D94C, $C96D, $F90E, $E92F, $99C8, $89E9, $B98A, $A9AB
+        dc.w    $5844, $4865, $7806, $6827, $18C0, $08E1, $3882, $28A3
+        dc.w    $CB7D, $DB5C, $EB3F, $FB1E, $8BF9, $9BD8, $ABBB, $BB9A
+        dc.w    $4A75, $5A54, $6A37, $7A16, $0AF1, $1AD0, $2AB3, $3A92
+        dc.w    $FD2E, $ED0F, $DD6C, $CD4D, $BDAA, $AD8B, $9DE8, $8DC9
+        dc.w    $7C26, $6C07, $5C64, $4C45, $3CA2, $2C83, $1CE0, $0CC1
+        dc.w    $EF1F, $FF3E, $CF5D, $DF7C, $AF9B, $BFBA, $8FD9, $9FF8
+        dc.w    $6E17, $7E36, $4E55, $5E74, $2E93, $3EB2, $0ED1, $1EF0
+
+        ALIGN 2
+math.crc32_table:
+        dc.l    $00000000, $77073096, $EE0E612C, $990951BA
+        dc.l    $076DC419, $706AF48F, $E963A535, $9E6495A3
+        dc.l    $0EDB8832, $79DCB8A4, $E0D5E91E, $97D2D988
+        dc.l    $09B64C2B, $7EB17CBD, $E7B82D07, $90BF1D91
+        dc.l    $1DB71064, $6AB020F2, $F3B97148, $84BE41DE
+        dc.l    $1ADAD47D, $6DDDE4EB, $F4D4B551, $83D385C7
+        dc.l    $136C9856, $646BA8C0, $FD62F97A, $8A65C9EC
+        dc.l    $14015C4F, $63066CD9, $FA0F3D63, $8D080DF5
+        dc.l    $3B6E20C8, $4C69105E, $D56041E4, $A2677172
+        dc.l    $3C03E4D1, $4B04D447, $D20D85FD, $A50AB56B
+        dc.l    $35B5A8FA, $42B2986C, $DBBBC9D6, $ACBCF940
+        dc.l    $32D86CE3, $45DF5C75, $DCD60DCF, $ABD13D59
+        dc.l    $26D930AC, $51DE003A, $C8D75180, $BFD06116
+        dc.l    $21B4F4B5, $56B3C423, $CFBA9599, $B8BDA50F
+        dc.l    $2802B89E, $5F058808, $C60CD9B2, $B10BE924
+        dc.l    $2F6F7C87, $58684C11, $C1611DAB, $B6662D3D
+        dc.l    $76DC4190, $01DB7106, $98D220BC, $EFD5102A
+        dc.l    $71B18589, $06B6B51F, $9FBFE4A5, $E8B8D433
+        dc.l    $7807C9A2, $0F00F934, $9609A88E, $E10E9818
+        dc.l    $7F6A0DBB, $086D3D2D, $91646C97, $E6635C01
+        dc.l    $6B6B51F4, $1C6C6162, $856530D8, $F262004E
+        dc.l    $6C0695ED, $1B01A57B, $8208F4C1, $F50FC457
+        dc.l    $65B0D9C6, $12B7E950, $8BBEB8EA, $FCB9887C
+        dc.l    $62DD1DDF, $15DA2D49, $8CD37CF3, $FBD44C65
+        dc.l    $4DB26158, $3AB551CE, $A3BC0074, $D4BB30E2
+        dc.l    $4ADFA541, $3DD895D7, $A4D1C46D, $D3D6F4FB
+        dc.l    $4369E96A, $346ED9FC, $AD678846, $DA60B8D0
+        dc.l    $44042D73, $33031DE5, $AA0A4C5F, $DD0D7CC9
+        dc.l    $5005713C, $270241AA, $BE0B1010, $C90C2086
+        dc.l    $5768B525, $206F85B3, $B966D409, $CE61E49F
+        dc.l    $5EDEF90E, $29D9C998, $B0D09822, $C7D7A8B4
+        dc.l    $59B33D17, $2EB40D81, $B7BD5C3B, $C0BA6CAD
+        dc.l    $EDB88320, $9ABFB3B6, $03B6E20C, $74B1D29A
+        dc.l    $EAD54739, $9DD277AF, $04DB2615, $73DC1683
+        dc.l    $E3630B12, $94643B84, $0D6D6A3E, $7A6A5AA8
+        dc.l    $E40ECF0B, $9309FF9D, $0A00AE27, $7D079EB1
+        dc.l    $F00F9344, $8708A3D2, $1E01F268, $6906C2FE
+        dc.l    $F762575D, $806567CB, $196C3671, $6E6B06E7
+        dc.l    $FED41B76, $89D32BE0, $10DA7A5A, $67DD4ACC
+        dc.l    $F9B9DF6F, $8EBEEFF9, $17B7BE43, $60B08ED5
+        dc.l    $D6D6A3E8, $A1D1937E, $38D8C2C4, $4FDFF252
+        dc.l    $D1BB67F1, $A6BC5767, $3FB506DD, $48B2364B
+        dc.l    $D80D2BDA, $AF0A1B4C, $36034AF6, $41047A60
+        dc.l    $DF60EFC3, $A867DF55, $316E8EEF, $4669BE79
+        dc.l    $CB61B38C, $BC66831A, $256FD2A0, $5268E236
+        dc.l    $CC0C7795, $BB0B4703, $220216B9, $5505262F
+        dc.l    $C5BA3BBE, $B2BD0B28, $2BB45A92, $5CB36A04
+        dc.l    $C2D7FFA7, $B5D0CF31, $2CD99E8B, $5BDEAE1D
+        dc.l    $9B64C2B0, $EC63F226, $756AA39C, $026D930A
+        dc.l    $9C0906A9, $EB0E363F, $72076785, $05005713
+        dc.l    $95BF4A82, $E2B87A14, $7BB12BAE, $0CB61B38
+        dc.l    $92D28E9B, $E5D5BE0D, $7CDCEFB7, $0BDBDF21
+        dc.l    $86D3D2D4, $F1D4E242, $68DDB3F8, $1FDA836E
+        dc.l    $81BE16CD, $F6B9265B, $6FB077E1, $18B74777
+        dc.l    $88085AE6, $FF0F6A70, $66063BCA, $11010B5C
+        dc.l    $8F659EFF, $F862AE69, $616BFFD3, $166CCF45
+        dc.l    $A00AE278, $D70DD2EE, $4E048354, $3903B3C2
+        dc.l    $A7672661, $D06016F7, $4969474D, $3E6E77DB
+        dc.l    $AED16A4A, $D9D65ADC, $40DF0B66, $37D83BF0
+        dc.l    $A9BCAE53, $DEBB9EC5, $47B2CF7F, $30B5FFE9
+        dc.l    $BDBDF21C, $CABAC28A, $53B39330, $24B4A3A6
+        dc.l    $BAD03605, $CDD70693, $54DE5729, $23D967BF
+        dc.l    $B3667A2E, $C4614AB8, $5D681B02, $2A6F2B94
+        dc.l    $B40BBE37, $C30C8EA1, $5A05DF1B, $2D02EF8D
+    }}
+
+    asmsub crc16(^^ubyte data @A0, uword length @D0, uword initvalue @D1, uword xorout @D2) -> uword @D0 {
+        ; Calculates the CRC16 checksum of the buffer using a byte lookup table.
+        ; For XMODEM type checksum, use initvalue=0 and xorout=0.
+        ; For IBM-3740 type checksum, use initvalue=$ffff and xorout=0.
+        %asm {{
+            move.w  d3,-(sp)
+            move.w  d4,-(sp)
+            lea     math.crc16_table,a1
+            move.w  d1,d3           ; running crc = initvalue
+.loop:
+            subq.w  #1,d0
+            bcs     .done
+            move.w  d3,d1           ; copy crc
+            lsr.w   #8,d1           ; index high byte
+            move.b  (a0)+,d4        ; next data byte
+            eor.b   d4,d1           ; table index
+            lsl.w   #8,d3           ; crc <<= 8
+            and.w   #$ff,d1
+            add.w   d1,d1           ; word index
+            move.w  (a1,d1.w),d1
+            eor.w   d1,d3           ; update crc
+            bra     .loop
+.done:
+            move.w  d3,d0
+            eor.w   d2,d0           ; apply xorout
+            move.w  (sp)+,d4
+            move.w  (sp)+,d3
+            rts
+        }}
+    }
+
+    sub crc16_start(uword initvalue) {
+        ; start the "streaming" crc16
+        ; note: tracks the crc16 checksum in the module-internal crc16_state variable
+        crc16_state = initvalue
+    }
+
+    asmsub crc16_update(ubyte value @D0) {
+        ; update the "streaming" crc16 with next byte value
+        ; note: tracks the crc16 checksum in the module-internal crc16_state variable
+        %asm {{
+            lea     math.crc16_table,a0
+            move.w  math.crc16_state,d1
+            lsr.w   #8,d1           ; high byte of crc
+            eor.b   d0,d1           ; table index
+            move.w  math.crc16_state,d0
+            lsl.w   #8,d0           ; crc <<= 8
+            and.w   #$ff,d1
+            add.w   d1,d1           ; word index
+            move.w  (a0,d1.w),d1
+            eor.w   d1,d0           ; new crc
+            move.w  d0,math.crc16_state
+            rts
+        }}
+    }
+
+    sub crc16_end(uword xorout) -> uword {
+        ; finalize the "streaming" crc16, returns resulting crc16 value
+        return crc16_state ^ xorout
+    }
+
+    asmsub crc32(^^ubyte data @A0, uword length @D0) -> long @D0 {
+        ; Calculates the CRC-32 (ISO-HDLC/PKZIP) checksum of the buffer using a byte lookup table.
+        %asm {{
+            move.l  d2,-(sp)
+            lea     math.crc32_table,a1
+            move.l  #$ffffffff,d1   ; running crc
+.loop:
+            subq.w  #1,d0
+            bcs     .done
+            move.b  (a0)+,d2        ; next data byte
+            eor.b   d1,d2           ; table index = (crc ^ byte) & $ff
+            lsr.l   #8,d1           ; crc >>= 8
+            and.l   #$ff,d2
+            lsl.l   #2,d2           ; long index
+            move.l  (a1,d2.l),d2
+            eor.l   d2,d1           ; update crc
+            bra     .loop
+.done:
+            move.l  d1,d0
+            eor.l   #$ffffffff,d0   ; final xor
+            move.l  (sp)+,d2
+            rts
+        }}
+    }
+
+    sub crc32_start() {
+        ; start the "streaming" crc32
+        ; note: tracks the crc32 checksum in the module-internal crc32_state variable
+        crc32_state = $ffffffff
+    }
+
+    asmsub crc32_update(ubyte value @D0) {
+        ; update the "streaming" crc32 with next byte value
+        ; note: tracks the crc32 checksum in the module-internal crc32_state variable
+        %asm {{
+            lea     math.crc32_table,a0
+            move.l  math.crc32_state,d1
+            eor.b   d1,d0           ; table index = (crc ^ byte) & $ff
+            lsr.l   #8,d1           ; crc >>= 8
+            and.l   #$ff,d0
+            lsl.l   #2,d0           ; long index
+            move.l  (a0,d0.l),d0
+            eor.l   d0,d1           ; new crc
+            move.l  d1,math.crc32_state
+            rts
+        }}
+    }
+
+    sub crc32_end() -> long {
+        ; finalize the "streaming" crc32 and return the result
+        return crc32_state ^ $ffffffff
     }
 }
