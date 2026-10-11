@@ -1105,6 +1105,15 @@ LIBRARY_HELPERS = {
         return data, size
     }
 ''',
+    'graphics': '''
+    ; Friendly aliases for the ViewPort.Modes bits from view.h.
+    ; The NDK .i files only provide the V_-prefixed EQU variants
+    ; (V_HIRES, V_LACE); these match the names used in C examples.
+    const uword HIRES = $8000
+    const uword LORES = 0
+    const ubyte LACE = $0004
+    const ubyte SUPERHIRES = $20
+''',
     'exec': '''
     asmsub NewList(^^List list @A0) {
         ; manually added utility routine to initialize new exec linked lists

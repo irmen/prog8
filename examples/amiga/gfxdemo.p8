@@ -11,7 +11,7 @@ main {
     uword[8] palette = [$0112, $0f00, $00f0, $000f, $0ff0, $0f0f, $00ff, $0fff]
 
     sub start() {
-        if amiga_gfx.fullscreen(320, 256, 3, 0, "") {
+        if amiga_gfx.fullscreen(320, 256, 3, 0, "amiga_gfx Demo") {
             defer amiga_gfx.close()
             draw_all()
             interact()
@@ -53,10 +53,11 @@ main {
                 when msg.Class {
                     intuition.IDCMP_CLOSEWINDOW -> done = true
                     intuition.IDCMP_MOUSEBUTTONS -> {
+                        word mx, my = amiga_gfx.mouse_xy(msg)
                         if msg.Code == intuition.SELECTDOWN
-                            amiga_gfx.circle(msg.MouseX, msg.MouseY, 8, 6)
+                            amiga_gfx.circle(mx, my, 8, 6)
                         if msg.Code == intuition.MENUDOWN
-                            amiga_gfx.fillrect(msg.MouseX-10, msg.MouseY-6, 20, 12, 2)
+                            amiga_gfx.fillrect(mx-10, my-6, 20, 12, 2)
                     }
                     intuition.IDCMP_VANILLAKEY -> if msg.Code == 27 { done = true }   ;  ESC pressed?
                 }

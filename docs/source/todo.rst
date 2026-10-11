@@ -1,8 +1,6 @@
 TODO
 ====
 
-amiga_gfx:  make scroll work, fix draw/mouseclick offsets for windowed mode and fullscreen-with-title mode
-
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 - extend the ``-gendoc`` command to generate user reference documentation from Markdown docstrings; see ``ideas/markdown-docstrings-and-reference-docs.md`` for the plan.

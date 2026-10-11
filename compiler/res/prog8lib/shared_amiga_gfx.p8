@@ -27,6 +27,7 @@ amiga_gfx {
     private word origin_x       ; window border offset added to all coordinates
     private word origin_y
     private bool is_custom      ; true when we opened our own screen
+    private ubyte aspect  ; x-radius scale for non-square pixels: 0=halve, 1=as-is, 2=double, 4=quadruple
 
     ; chip-ram scratch for Flood()/AreaEnd(); the control structs may live anywhere
     private graphics.TmpRas[1] tmpras_store
@@ -154,6 +155,7 @@ amiga_gfx {
         is_custom = false
         width = 0
         height = 0
+        aspect = 1
         if tmpras_buf != 0 {
             exec.FreeMem(tmpras_buf, tmpras_size)
             tmpras_buf = 0
@@ -210,14 +212,14 @@ amiga_gfx {
         if radius < 0
             return
         graphics.SetAPen(rastport, pen)
-        graphics.DrawEllipse(rastport, origin_x+cx, origin_y+cy, radius, radius)
+        graphics.DrawEllipse(rastport, origin_x+cx, origin_y+cy, aspect_rx(radius), radius)
     }
 
     sub oval(word cx, word cy, word rx, word ry, ubyte pen) {
         if rx <= 0 or ry <= 0
             return
         graphics.SetAPen(rastport, pen)
-        graphics.DrawEllipse(rastport, origin_x+cx, origin_y+cy, rx, ry)
+        graphics.DrawEllipse(rastport, origin_x+cx, origin_y+cy, aspect_rx(rx), ry)
     }
 
     sub disc(word cx, word cy, word radius, ubyte pen) {
@@ -229,7 +231,7 @@ amiga_gfx {
         if radius < 0
             return
         graphics.SetAPen(rastport, pen)
-        void do_area_ellipse(cx, cy, radius, radius)
+        void do_area_ellipse(cx, cy, aspect_rx(radius), radius)
     }
 
     sub filled_oval(word cx, word cy, word rx, word ry, ubyte pen) {
@@ -237,7 +239,7 @@ amiga_gfx {
         if rx <= 0 or ry <= 0
             return
         graphics.SetAPen(rastport, pen)
-        void do_area_ellipse(cx, cy, rx, ry)
+        void do_area_ellipse(cx, cy, aspect_rx(rx), ry)
     }
 
     sub text(word x, word y, str s, ubyte pen) {
@@ -285,6 +287,13 @@ amiga_gfx {
         return graphics.TextLength(amiga_gfx.rastport, s, strings.length(s))
     }
 
+    sub mouse_xy(^^intuition.IntuiMessage msg) -> word, word {
+        ; IDCMP cursor as client-relative coords (msg.MouseX/Y include the window borders)
+        if msg == 0
+            return -1, -1
+        return msg.MouseX - origin_x, msg.MouseY - origin_y
+    }
+
     sub fill(word x, word y, ubyte pen) {
         ; bucket fill: recolor the connected region holding (x,y)
         void do_flood(x, y, pen, 1)
@@ -294,6 +303,16 @@ amiga_gfx {
         ; boundary fill: fill until the outline-colored border
         void graphics.SetOutlinePen(rastport, outline as long)
         void do_flood(x, y, pen, 0)
+    }
+
+    private sub aspect_rx(word rx) -> word {
+        ; x-radius corrected for non-square pixels so circles stay round
+        when aspect {
+            2 -> return rx*2
+            4 -> return rx*4
+            0 -> return rx/2
+            else -> return rx
+        }
     }
 
     private sub viewport() -> pointer {
@@ -326,6 +345,22 @@ amiga_gfx {
         word bottom = window.BorderBottom as word
         width = (window.Width - origin_x - right) as uword
         height = (window.Height - origin_y - bottom) as uword
+        ; pixel shape from the screen's ViewPort.Modes (big-endian word at offset 32)
+        aspect = 1
+        pointer vp = viewport()
+        if vp != 0 {
+            uword modes = (@(vp+32) as uword) << 8 | (@(vp+33) as uword)
+            if (modes & (graphics.SUPERHIRES as uword)) != 0 {
+                aspect = 4
+                if (modes & (graphics.INTERLACE as uword)) != 0
+                    aspect = 2
+            } else {
+                if (modes & graphics.V_HIRES) != 0 and (modes & (graphics.INTERLACE as uword)) == 0
+                    aspect = 2
+                if (modes & (graphics.INTERLACE as uword)) != 0 and (modes & graphics.V_HIRES) == 0
+                    aspect = 0
+            }
+        }
         is_custom = custom
         ; bar rows the window didn't move past (backdrop positioning
         ; isn't always honored) still count as client offset

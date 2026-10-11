@@ -8,6 +8,14 @@
 
 graphics {
     %option merge, no_symbol_prefixing
+
+    ; Friendly aliases for the ViewPort.Modes bits from view.h.
+    ; The NDK .i files only provide the V_-prefixed EQU variants
+    ; (V_HIRES, V_LACE); these match the names used in C examples.
+    const uword HIRES = $8000
+    const uword LORES = 0
+    const ubyte LACE = $0004
+    const ubyte SUPERHIRES = $20
     extsub @bank 3   -30 = BltBitMap(^^BitMap srcBitMap @A0, word xSrc @D0, word ySrc @D1, ^^BitMap destBitMap @A1, word xDest @D2, word yDest @D3, word xSize @D4, word ySize @D5, ubyte minterm @D6, ubyte mask @D7, pointer tempA @A2) -> long @D0
     extsub @bank 3   -36 = BltTemplate(long source @A0, word xSrc @D0, word srcMod @D1, ^^RastPort destRP @A1, word xDest @D2, word yDest @D3, word xSize @D4, word ySize @D5)
     extsub @bank 3   -42 = ClearEOL(^^RastPort rp @A1)
