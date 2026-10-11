@@ -398,7 +398,7 @@ object SysCalls {
             }
             Syscall.BYTEARRAY_CONTAINS -> {
                 val (value, arrayV, lengthV) = getArgValues(callspec.arguments, vm)
-                var length = lengthV as UByte
+                var length = lengthV as UShort
                 var array = (arrayV as Int).toUInt()
                 while(length>0u) {
                     if(vm.memory.getUB(array)==value)
@@ -410,7 +410,7 @@ object SysCalls {
             }
             Syscall.WORDARRAY_CONTAINS -> {
                 val (value, arrayV, lengthV) = getArgValues(callspec.arguments, vm)
-                var length = lengthV as UByte
+                var length = lengthV as UShort
                 var array = (arrayV as Int).toUInt()
                 while(length>0u) {
                     if(vm.memory.getUW(array)==value)
@@ -422,7 +422,7 @@ object SysCalls {
             }
             Syscall.SPLIT_WORDARRAY_CONTAINS -> {
                 val (value, arrayV, lengthV) = getArgValues(callspec.arguments, vm)
-                var length = lengthV as UByte
+                var length = lengthV as UShort
                 val array = (arrayV as Int).toUInt()
                 val msbOffset = length.toUInt()
                 while(length > 0u) {
@@ -437,7 +437,7 @@ object SysCalls {
             }
             Syscall.LONGARRAY_CONTAINS -> {
                 val (value, arrayV, lengthV) = getArgValues(callspec.arguments, vm)
-                var length = lengthV as UByte
+                var length = lengthV as UShort
                 val array = (arrayV as Int).toUInt()
                 while(length > 0u) {
                     length--
@@ -449,7 +449,7 @@ object SysCalls {
             }
             Syscall.FLOATARRAY_CONTAINS -> {
                 val (value, arrayV, lengthV) = getArgValues(callspec.arguments, vm)
-                var length = lengthV as UByte
+                var length = lengthV as UShort
                 var array = (arrayV as Int).toUInt()
                 while(length>0u) {
                     if(vm.memory.getFloat(array)==value)

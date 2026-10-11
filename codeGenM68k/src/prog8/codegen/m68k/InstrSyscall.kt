@@ -11,6 +11,7 @@ import prog8.intermediate.CallSite
 import prog8.intermediate.IMSyscall
 import prog8.intermediate.IRDataType
 import prog8.intermediate.RegisterOperand
+import prog8.intermediate.floatNumber
 import prog8.intermediate.intNumber
 
 
@@ -18,8 +19,12 @@ import prog8.intermediate.intNumber
 
 internal fun AsmGen.translateSyscall(num: Int, site: CallSite) {
     when (num) {
+        IMSyscall.STRING_CONTAINS.number -> translateSyscallStringContains(site)
+        IMSyscall.BYTEARRAY_CONTAINS.number -> translateSyscallBytearrayContains(site)
         IMSyscall.WORDARRAY_CONTAINS.number -> translateSyscallWordarrayContains(site)
+        IMSyscall.SPLIT_WORDARRAY_CONTAINS.number -> translateSyscallSplitWordarrayContains(site)
         IMSyscall.LONGARRAY_CONTAINS.number -> translateSyscallLongarrayContains(site)
+        IMSyscall.FLOATARRAY_CONTAINS.number -> translateSyscallFloatarrayContains(site)
         IMSyscall.COMPARE_STRINGS.number -> translateSyscallStringCompare(site)
         IMSyscall.CLAMP_BYTE.number -> translateSyscallClamp(site, IRDataType.BYTE, true)
         IMSyscall.CLAMP_UBYTE.number -> translateSyscallClamp(site, IRDataType.BYTE, false)
@@ -60,6 +65,9 @@ private fun AsmGen.loadStringArg(reg: Int, dt: IRDataType, dreg: String) {
     }
 }
 
+// Shared helper for array contains syscalls that scan a contiguous array.
+// The length argument is a word, so arrays up to the target's ARRAY_SIZE_LIMIT
+// are scanned correctly (m68k: 32768 elements, VM: 65535 elements).
 private fun AsmGen.translateSyscallArrayContains(site: CallSite, dt: IRDataType) {
     val regElem = site.argument(0).intNumber
     val regArr = site.argument(1).intNumber
@@ -72,12 +80,12 @@ private fun AsmGen.translateSyscallArrayContains(site: CallSite, dt: IRDataType)
 
     emitLoadD0(regElem, dt)
     emitLine("move.l  ${regAddr(regArr)}, a0")
-    emitLine("moveq.l  #0, d1")
-    emitLine("move.b  ${regAddrByte(regLen, 0)}, d1")
+    emitLine("move.w  ${regAddr(regLen)}, d1")
     emitLine("subq.w  #1, d1")
     emitLine("bmi  $labelDone       ; length was 0 -> not found")
     emitRaw("$labelLoop:")
     val cmpInstr = when (dt) {
+        IRDataType.BYTE -> "cmp.b"
         IRDataType.WORD -> "cmp.w"
         IRDataType.LONG -> "cmp.l"
         else -> error("array contains: unsupported element type $dt")
@@ -92,12 +100,98 @@ private fun AsmGen.translateSyscallArrayContains(site: CallSite, dt: IRDataType)
     emitRaw("$labelDone:")
 }
 
+private fun AsmGen.translateSyscallBytearrayContains(site: CallSite) {
+    translateSyscallArrayContains(site, IRDataType.BYTE)
+}
+
 private fun AsmGen.translateSyscallWordarrayContains(site: CallSite) {
     translateSyscallArrayContains(site, IRDataType.WORD)
 }
 
 private fun AsmGen.translateSyscallLongarrayContains(site: CallSite) {
     translateSyscallArrayContains(site, IRDataType.LONG)
+}
+
+private fun AsmGen.translateSyscallSplitWordarrayContains(site: CallSite) {
+    val regElem = site.argument(0).intNumber
+    val regArr = site.argument(1).intNumber
+    val regLen = site.argument(2).intNumber
+    val resultReg = site.resultRegister(0).intNumber
+
+    val labelLoop = makeLabel(".swc_loop")
+    val labelFound = makeLabel(".swc_found")
+    val labelDone = makeLabel(".swc_done")
+
+    emitLoadD0(regElem, IRDataType.WORD)
+    emitLine("move.l  ${regAddr(regArr)}, a0")     // a0 = lsb array start
+    emitLine("move.w  ${regAddr(regLen)}, d1")     // d1 = element count
+    emitLine("move.w  d1, d2")
+    emitLine("add.l  a0, d2")                      // d2 = msb array start (lsb + length)
+    emitLine("subq.w  #1, d1")
+    emitLine("bmi  $labelDone       ; length was 0 -> not found")
+    emitRaw("$labelLoop:")
+    emitLine("move.b  (a0,d1.w), d3")              // d3 = lsb of element at index d1
+    emitLine("move.b  (d2,d1.w), d4")              // d4 = msb of element at index d1
+    emitLine("lsl.w  #8, d4")
+    emitLine("or.w  d3, d4")                       // d4 = reconstructed word
+    emitLine("cmp.w  d0, d4")
+    emitLine("beq  $labelFound")
+    emitLine("dbra  d1, $labelLoop")
+    emitLine("move.b  #0, ${regAddrByte(resultReg, 0)}")
+    emitLine("bra  $labelDone")
+    emitRaw("$labelFound:")
+    emitLine("move.b  #1, ${regAddrByte(resultReg, 0)}")
+    emitRaw("$labelDone:")
+}
+
+private fun AsmGen.translateSyscallFloatarrayContains(site: CallSite) {
+    val regNeedle = site.argument(0).floatNumber
+    val regArr = site.argument(1).intNumber
+    val regLen = site.argument(2).intNumber
+    val resultReg = site.resultRegister(0).intNumber
+
+    val labelLoop = makeLabel(".fac_loop")
+    val labelFound = makeLabel(".fac_found")
+    val labelDone = makeLabel(".fac_done")
+
+    emitLine("fmove.s  ${floatRegFileAddr(regNeedle)}, fp0")
+    emitLine("move.l  ${regAddr(regArr)}, a0")
+    emitLine("move.w  ${regAddr(regLen)}, d1")
+    emitLine("subq.w  #1, d1")
+    emitLine("bmi  $labelDone       ; length was 0 -> not found")
+    emitRaw("$labelLoop:")
+    emitLine("fcmp.s  (a0)+, fp0")
+    emitLine("fbeq  $labelFound")
+    emitLine("dbra  d1, $labelLoop")
+    emitLine("move.b  #0, ${regAddrByte(resultReg, 0)}")
+    emitLine("bra  $labelDone")
+    emitRaw("$labelFound:")
+    emitLine("move.b  #1, ${regAddrByte(resultReg, 0)}")
+    emitRaw("$labelDone:")
+}
+
+private fun AsmGen.translateSyscallStringContains(site: CallSite) {
+    val regChar = site.argument(0).intNumber
+    val regStr = site.argument(1).intNumber
+    val resultReg = site.resultRegister(0).intNumber
+
+    val labelLoop = makeLabel(".sc_loop")
+    val labelFound = makeLabel(".sc_found")
+    val labelDone = makeLabel(".sc_done")
+
+    emitLine("move.b  ${regAddrByte(regChar, 0)}, d0")
+    emitLine("move.l  ${regAddr(regStr)}, a0")
+    emitRaw("$labelLoop:")
+    emitLine("move.b  (a0)+, d1")
+    emitLine("beq  $labelDone       ; reached null terminator -> not found")
+    emitLine("cmp.b  d0, d1")
+    emitLine("beq  $labelFound")
+    emitLine("bra  $labelLoop")
+    emitRaw("$labelFound:")
+    emitLine("move.b  #1, ${regAddrByte(resultReg, 0)}")
+    emitLine("bra  $labelDone")
+    emitRaw("$labelDone:")
+    emitLine("move.b  #0, ${regAddrByte(resultReg, 0)}")
 }
 
 private fun AsmGen.translateSyscallClamp(site: CallSite, dt: IRDataType, signed: Boolean) {

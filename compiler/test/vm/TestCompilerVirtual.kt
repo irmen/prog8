@@ -1917,5 +1917,39 @@ main {
         }
     }
 
+    test("containment check scans arrays larger than 255 elements") {
+        // Regression test: the IR used a byte-length register for array contains syscalls,
+        // which crashed for lengths > 255 and produced false negatives on VM/m68k targets.
+        val src = """
+main {
+    bool @shared bfound
+    bool @shared bnotfound
+    bool @shared wfound
+    bool @shared wnotfound
+
+    sub start() {
+        ubyte[300] @shared barr
+        barr[260] = 42
+        bfound = 42 in barr
+        bnotfound = 99 in barr
+
+        word[300] @shared warr
+        warr[280] = 3000
+        wfound = 3000 in warr
+        wnotfound = 9999 in warr
+    }
+}"""
+        val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = true)!!
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
+        val irProgram = IRFileReader().read(virtfile)
+        val allocations = VmVariableAllocator(irProgram.st, irProgram.encoding, irProgram.options.compTarget).allocations
+        VmRunner().runAndTestProgram(virtfile.readText(), false) { vm ->
+            vm.memory.getUB(allocations["main.bfound"]!!) shouldBe 1u
+            vm.memory.getUB(allocations["main.bnotfound"]!!) shouldBe 0u
+            vm.memory.getUB(allocations["main.wfound"]!!) shouldBe 1u
+            vm.memory.getUB(allocations["main.wnotfound"]!!) shouldBe 0u
+        }
+    }
+
 
 })

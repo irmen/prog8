@@ -640,4 +640,33 @@ main {
         asm.contains("; ---- Subroutine: p8b_adpcm.p8s_decode_block_stereo ----") shouldBe true
         asm.contains("link  a5,#") shouldBe true
     }
+
+    test("containment check on arrays larger than 255 elements uses word-length counter") {
+        // Regression test: the IR used a byte-length register for array contains syscalls,
+        // which crashed for lengths > 255 and produced false negatives on VM/m68k targets.
+        val src = """
+main {
+    bool @shared bfound
+    bool @shared wfound
+
+    sub start() {
+        ubyte[300] @shared barr
+        barr[260] = 42
+        bfound = 42 in barr
+
+        word[300] @shared warr
+        warr[280] = 3000
+        wfound = 3000 in warr
+    }
+}
+"""
+        val result = compileText(Qemu68kTarget(), optimize = false, src, outputDir, writeAssembly = true, assemble = false)
+        result shouldNotBe null
+        val asm = result!!.compilationOptions.outputDir.resolve("${result.compilerAst.name}.asm").toFile().readText()
+        val lines = asm.lines().map { it.substringBefore(';').trim() }
+        // The m68k backend must load the length as a word and use dbra (word counter),
+        // not a single-byte loop counter.
+        lines.any { it.startsWith("move.w") && it.endsWith(",d1") } shouldBe true
+        lines.count { it.startsWith("dbra  d1,.ac_loop_") } shouldBe 2
+    }
 })
