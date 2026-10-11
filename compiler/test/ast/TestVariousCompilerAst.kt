@@ -1773,4 +1773,37 @@ main {
         errors.errors[0] shouldContain "can only multiply string by integer constant"
         errors.errors[1] shouldContain "can only multiply array by integer constant"
     }
+
+    test("undefined symbol in if condition reports undefined symbol, not boolean condition error") {
+        val src="""
+main {
+    ubyte @shared x
+    sub start() {
+        if check(1, nosuch) {
+            x++
+        }
+    }
+    sub check(ubyte a, uword b) -> bool {
+        return true
+    }
+}"""
+        val errors = ErrorReporterForTests()
+        compileText(VMTarget(), optimize=false, src, outputDir, errors=errors) shouldBe null
+        errors.errors.any { it.contains("undefined symbol: nosuch") } shouldBe true
+        errors.errors.none { it.contains("condition should be a boolean") } shouldBe true
+    }
+
+    test("undefined symbol in empty if condition is not silently removed") {
+        val src="""
+main {
+    sub start() {
+        if nosuch {
+        }
+    }
+}"""
+        val errors = ErrorReporterForTests()
+        compileText(VMTarget(), optimize=false, src, outputDir, errors=errors) shouldBe null
+        errors.errors.size shouldBe 1
+        errors.errors[0] shouldContain "undefined symbol: nosuch"
+    }
 })

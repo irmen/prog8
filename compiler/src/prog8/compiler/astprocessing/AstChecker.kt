@@ -1027,7 +1027,11 @@ internal class AstChecker(private val program: Program,
     }
 
     private fun checkCondition(condition: Expression) {
-        if(!condition.inferType(program).isBool)
+        val inferred = condition.inferType(program)
+        if(inferred.isUnknown)
+            return      // type cannot be determined (yet), e.g. referencing an undefined symbol;
+                        // the proper error is reported by the identifier check
+        if(!inferred.isBool)
             errors.err("condition should be a boolean", condition.position)
         val cast = condition as? TypecastExpression
         if(cast!=null && cast.type.isBool) {

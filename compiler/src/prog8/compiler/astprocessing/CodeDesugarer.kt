@@ -137,7 +137,11 @@ if not CONDITION
     }
 
     private fun checkCondition(condition: Expression): String? {
-        if(!condition.inferType(program).isBool)
+        val inferred = condition.inferType(program)
+        if(inferred.isUnknown)
+            return null     // type cannot be determined (yet), e.g. referencing an undefined symbol;
+                            // the proper error is reported by the identifier check later
+        if(!inferred.isBool)
             return "condition should be a boolean"
         val cast = condition as? TypecastExpression
         if(cast!=null && cast.type.isBool) {

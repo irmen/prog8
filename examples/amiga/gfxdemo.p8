@@ -11,7 +11,7 @@ main {
     uword[8] palette = [$0112, $0f00, $00f0, $000f, $0ff0, $0f0f, $00ff, $0fff]
 
     sub start() {
-        if amiga_gfx.fullscreen(320, 256, 3, 0, "amiga_gfx Demo") {
+        if amiga_gfx.fullscreen(320, 256, 3, graphics.LORES, "amiga_gfx Demo") {
             defer amiga_gfx.close()
             draw_all()
             interact()

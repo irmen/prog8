@@ -506,6 +506,8 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
 
     override fun after(ifElse: IfElse, parent: Node): Iterable<AstModification> {
         if(ifElse.truepart.isEmpty() && ifElse.elsepart.isEmpty()) {
+            if(ifElse.condition.inferType(program).isUnknown)
+                return noModifications   // keep it so the identifier check can report the unresolved symbol
             errors.info("removing empty if-else statement", ifElse.position)
             return listOf(AstRemove(ifElse, parent as IStatementContainer))
         }
