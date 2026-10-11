@@ -1049,6 +1049,9 @@ LIBRARY_BANK_MAP = {
 # 0. CONFIG - Amiga libraries to generate
 # ---------------------------------------------------------------------------
 
+# NOTE: diskfont is intentionally NOT auto-generated: shared_amiga_diskfont.p8 is
+# hand-maintained, trimmed to pre-2.0 content (the SFD contains post-2.0
+# outline-engine, diskfont-control and tagged-font APIs).
 AMIGA_LIBS = ["exec", "dos", "graphics", "intuition", "utility", "iffparse", "arexx", "icon", "lowlevel"]
 
 # ---------------------------------------------------------------------------

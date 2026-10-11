@@ -41,6 +41,7 @@ sys {
     pointer @shared IFFParseBase    ; loaded from disk on demand
     pointer @shared AsyncIOBase     ; loaded from disk on demand
     pointer @shared LowLevelBase    ; kickstart 2.0+, loaded from disk on demand
+    pointer @shared DiskfontBase    ; loaded from disk on demand
     pointer @shared TimerBase       ; opened on demand
     pointer @shared AHIBase         ; ahi.device base, opened on demand by ahi.open(); for the low-level ahi.* LVO calls
 

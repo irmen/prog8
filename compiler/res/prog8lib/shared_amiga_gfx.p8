@@ -3,11 +3,12 @@
 ; Hides NewScreen/NewWindow boilerplate behind a gfx_lores-style API:
 ; per-call pen, client-relative word coordinates, explicit open/close.
 ; Kickstart 1.3 compatible: uses only OpenScreen/OpenWindow (no taglists,
-; no AllocBitMap, no DisplayID). All rasterization is done by
+; no AllocBitMap, no DisplayID), except fillto() which needs SetOutlinePen (3.0+).
+; All rasterization is done by
 ; graphics.library; filled ellipses and flood fills use AreaEllipse/Flood
 ; with a chip-ram TmpRas scratch buffer allocated when the window opens.
 ; No double buffering (use two screens/windows or raw calls for that).
-; Read rastport for direct graphics.library calls, window to pump IDCMP.
+; Use rastport for direct graphics.library calls, window to pump IDCMP.
 
 %import intuition
 %import graphics
@@ -33,13 +34,13 @@ amiga_gfx {
     private graphics.TmpRas[1] tmpras_store
     private graphics.AreaInfo[1] area_store
     private graphics.TextAttr[1] font_store
-    private ubyte[20] area_vectors    ; 5 bytes per vector, AreaEllipse needs 2
+    private ubyte[20] area_vectors    ; 5 bytes per vector, room for 4
     private pointer tmpras_buf
     private long tmpras_size
 
     sub fullscreen(uword w, uword h, ubyte ndepth, uword viewmodes, str title) -> bool {
         ; fullscreen custom screen + backdrop borderless window.
-        ; viewmodes: 0 = lores, graphics.HIRES for 640px, + graphics.INTERLACE for halfbrite-height.
+        ; viewmodes: 0 = lores, graphics.HIRES for 640px, + graphics.INTERLACE for interlaced (doubled height).
         if w == 0 or h == 0
             return false
         if rastport != 0
@@ -48,13 +49,13 @@ amiga_gfx {
         if not untitled
             untitled = title[0] == 0
         ; NOTE: struct literals must be constant, so allocate zeroed and patch fields.
-        ^^intuition.NewScreen ns = [0, 0, 0, 0, 0, 0 as ubyte, 0 as ubyte, 0, 0, 0, 0, 0, 0]
+        ^^intuition.NewScreen ns = [0, 0, 0, 0, 0,                     ; edges, size, depth
+                                    0, 1, 0, intuition.CUSTOMSCREEN,   ; pens, modes, type
+                                    0, 0, 0, 0]                        ; font, title, gadgets, bitmap
         ns.Width = w as word
         ns.Height = h as word
-        ns.Depth = ndepth as word
-        ns.BlockPen = 1
+        ns.Depth = ndepth
         ns.ViewModes = viewmodes
-        ns.Type = intuition.CUSTOMSCREEN
         if not untitled
             ns.DefaultTitle = title
         ; explicit Topaz 8 screen font (ROM-resident, no diskfont needed)
@@ -72,25 +73,27 @@ amiga_gfx {
         ; null and "" both count as titleless.
         word bar = 0
         if not untitled {
-            bar = screen.WBorTop as word
-            if h as word - bar <= 0 {
+            bar = screen.WBorTop
+            if h - bar <= 0 {
                 void intuition.CloseScreen(screen)
                 screen = 0
                 return false
             }
         }
-        const long idcmp = intuition.IDCMP_MOUSEBUTTONS | intuition.IDCMP_RAWKEY | intuition.IDCMP_VANILLAKEY
-        const long flags = intuition.WFLG_BACKDROP | intuition.WFLG_BORDERLESS | intuition.WFLG_ACTIVATE | intuition.WFLG_RMBTRAP | intuition.WFLG_NOCAREREFRESH
-        ^^intuition.NewWindow nw = [0, 0, 0, 0, 0 as ubyte, 0 as ubyte, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        ^^intuition.NewWindow nw = [0, 0, 0, 0,             ; edges, size
+                                    0, 1,                   ; pens
+                                    ; RAWKEY only, never add VANILLAKEY here: with both flags set Intuition
+                                    ; diverts mappable keys to the vanilla channel and starves the raw one,
+                                    ; so cursor keys (and on Kickstart 1.3, all keys) stop arriving as rawkey.
+                                    ; Map raw codes yourself instead; ESC is $45, cursor keys are $4c-$4f.
+                                    intuition.IDCMP_MOUSEBUTTONS | intuition.IDCMP_RAWKEY,
+                                    intuition.WFLG_BACKDROP | intuition.WFLG_BORDERLESS | intuition.WFLG_ACTIVATE | intuition.WFLG_RMBTRAP | intuition.WFLG_NOCAREREFRESH,
+                                    0, 0, 0, 0,             ; no gadgets, default checkmark, title, screen
+                                    0, 0, 0, 0, 0, intuition.CUSTOMSCREEN]   ; bitmap, limits, type
         nw.TopEdge = bar
         nw.Width = w as word
-        nw.Height = h as word - bar
-        nw.BlockPen = 1
-        nw.IDCMPFlags = idcmp
-        nw.Flags = flags
-        nw.Title = 0       ; backdrop window itself stays titleless and undecorated
+        nw.Height = h - bar
         nw.Screen = screen
-        nw.Type = intuition.CUSTOMSCREEN
         window = intuition.OpenWindow(nw)
         if window == 0 {
             void intuition.CloseScreen(screen)
@@ -98,9 +101,10 @@ amiga_gfx {
             return false
         }
         depth = ndepth
+        intuition.ActivateWindow(window)
         finish_open(true, bar)
         width = w
-        height = (h as word - bar) as uword
+        height = (h - bar) as uword
         graphics.SetDrMd(rastport, graphics.RP_JAM1)
         if untitled {
             ; ShowTitle(FALSE) renders the bar behind all windows; do it with
@@ -111,31 +115,31 @@ amiga_gfx {
         return true
     }
 
-    sub windowed(uword w, uword h, str title) -> bool {
-        ; fixed-size window on the Workbench screen. Works everywhere,
+    sub windowed(uword x, uword y, uword w, uword h, str title) -> bool {
+        ; fixed-size window on the Workbench screen at position (x,y). Works everywhere,
         ; but depth/palette are the Workbench's: use palette() sparingly.
         if w == 0 or h == 0
             return false
         if rastport != 0
             close()
         screen = 0
-        const long idcmp = intuition.IDCMP_CLOSEWINDOW | intuition.IDCMP_REFRESHWINDOW | intuition.IDCMP_VANILLAKEY | intuition.IDCMP_MOUSEBUTTONS
-        const long flags = intuition.WFLG_CLOSEGADGET | intuition.WFLG_DRAGBAR | intuition.WFLG_DEPTHGADGET | intuition.WFLG_ACTIVATE
-        ^^intuition.NewWindow nw = [0, 0, 0, 0, 0 as ubyte, 0 as ubyte, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-        nw.LeftEdge = 10
-        nw.TopEdge = 20
+        ^^intuition.NewWindow nw = [0, 0, 0, 0,               ; edges, size
+                                    255, 255,                 ; pens
+                                    ; RAWKEY only, see fullscreen() for why.
+                                    intuition.IDCMP_CLOSEWINDOW | intuition.IDCMP_REFRESHWINDOW | intuition.IDCMP_MOUSEBUTTONS | intuition.IDCMP_RAWKEY,
+                                    intuition.WFLG_CLOSEGADGET | intuition.WFLG_DRAGBAR | intuition.WFLG_DEPTHGADGET | intuition.WFLG_ACTIVATE,
+                                    0, 0, 0, 0,               ; no gadgets, default checkmark, title, screen
+                                    0, 0, 0, 0, 0, intuition.WBENCHSCREEN]   ; bitmap, limits, type
+        nw.LeftEdge = x as word
+        nw.TopEdge = y as word
         nw.Width = w as word
         nw.Height = h as word
-        nw.DetailPen = 255
-        nw.BlockPen = 255
-        nw.IDCMPFlags = idcmp
-        nw.Flags = flags
         nw.Title = title
-        nw.Type = intuition.WBENCHSCREEN
         window = intuition.OpenWindow(nw)
         if window == 0
             return false
         depth = 0
+        intuition.ActivateWindow(window)
         finish_open(false, 0)
         graphics.SetDrMd(rastport, graphics.RP_JAM1)
         return true
@@ -168,7 +172,7 @@ amiga_gfx {
         if width == 0 or height == 0
             return
         graphics.SetAPen(rastport, pen)
-        graphics.RectFill(rastport, origin_x, origin_y, (origin_x + width) as word - 1, (origin_y + height) as word - 1)
+        graphics.RectFill(rastport, origin_x, origin_y, (origin_x + width) - 1, (origin_y + height) - 1)
     }
 
     sub plot(word x, word y, ubyte pen) {
@@ -231,7 +235,7 @@ amiga_gfx {
         if radius < 0
             return
         graphics.SetAPen(rastport, pen)
-        void do_area_ellipse(cx, cy, aspect_rx(radius), radius)
+        do_area_ellipse(cx, cy, aspect_rx(radius), radius)
     }
 
     sub filled_oval(word cx, word cy, word rx, word ry, ubyte pen) {
@@ -239,7 +243,7 @@ amiga_gfx {
         if rx <= 0 or ry <= 0
             return
         graphics.SetAPen(rastport, pen)
-        void do_area_ellipse(cx, cy, aspect_rx(rx), ry)
+        do_area_ellipse(cx, cy, aspect_rx(rx), ry)
     }
 
     sub text(word x, word y, str s, ubyte pen) {
@@ -265,16 +269,15 @@ amiga_gfx {
         ; tweak a single colormap pen (4-bit nibbles)
         pointer vp = viewport()
         if vp != 0
-            graphics.SetRGB4(vp, index as word, red, green, blue)
+            graphics.SetRGB4(vp, index, red, green, blue)
     }
 
-    sub scroll(word dx, word dy) {
-        ; shift the client area; the exposed strip is cleared
-        word xa = origin_x
-        word ya = origin_y
-        word x2 = (origin_x + width) as word - 1
-        word y2 = (origin_y + height) as word - 1
-        graphics.ScrollRaster(rastport, dx, dy, xa, ya, x2, y2)
+    sub scrollrect(word dx, word dy, word x, word y, word w, word h) {
+        ; scroll a client-relative rectangle
+        ; the rectangle should lie inside the client area.
+        if w <= 0 or h <= 0
+            return
+        graphics.ScrollRaster(rastport, dx, dy, origin_x+x, origin_y+y, origin_x+x+w-1, origin_y+y+h-1)
     }
 
     inline sub readpixel(word x, word y) -> long {
@@ -294,15 +297,28 @@ amiga_gfx {
         return msg.MouseX - origin_x, msg.MouseY - origin_y
     }
 
+    sub imsg_wait() -> ^^intuition.IntuiMessage {
+        ; block until the next IDCMP message arrives on our window
+        void exec.WaitPort(window.UserPort)
+        return exec.GetMsg(window.UserPort) as ^^intuition.IntuiMessage
+    }
+
+    sub imsg_reply(^^intuition.IntuiMessage msg) -> ^^intuition.IntuiMessage {
+        ; reply the message and fetch the next one (0 when drained)
+        exec.ReplyMsg(msg as ^^exec.Message)
+        return exec.GetMsg(window.UserPort) as ^^intuition.IntuiMessage
+    }
+
+
     sub fill(word x, word y, ubyte pen) {
         ; bucket fill: recolor the connected region holding (x,y)
-        void do_flood(x, y, pen, 1)
+        do_flood(x, y, pen, 1)
     }
 
     sub fillto(word x, word y, ubyte pen, ubyte outline) {
         ; boundary fill: fill until the outline-colored border
-        void graphics.SetOutlinePen(rastport, outline as long)
-        void do_flood(x, y, pen, 0)
+        void graphics.SetOutlinePen(rastport, outline)
+        do_flood(x, y, pen, 0)
     }
 
     private sub aspect_rx(word rx) -> word {
@@ -324,40 +340,37 @@ amiga_gfx {
         return intuition.GetScreenViewPort(s)
     }
 
-    private sub do_flood(word x, word y, ubyte pen, long mode) -> bool {
+    private sub do_flood(word x, word y, ubyte pen, long mode) {
         if rastport == 0 or tmpras_buf == 0
-            return false
+            return
         graphics.SetAPen(rastport, pen)
         ^^graphics.TmpRas saved = rastport.TmpRas
         ^^graphics.TmpRas tp = &tmpras_store[0]
         void graphics.InitTmpRas(tp, tmpras_buf, tmpras_size)
         rastport.TmpRas = tp
-        bool ok = graphics.Flood(rastport, mode, origin_x+x, origin_y+y)
+        void graphics.Flood(rastport, mode, origin_x+x, origin_y+y)
         rastport.TmpRas = saved
-        return ok
     }
 
     private sub finish_open(bool custom, word bar) {
         rastport = window.RPort
-        origin_x = window.BorderLeft as word
-        origin_y = window.BorderTop as word
-        word right = window.BorderRight as word
-        word bottom = window.BorderBottom as word
-        width = (window.Width - origin_x - right) as uword
-        height = (window.Height - origin_y - bottom) as uword
+        origin_x = window.BorderLeft
+        origin_y = window.BorderTop
+        width = (window.Width - origin_x - window.BorderRight) as uword
+        height = (window.Height - origin_y - window.BorderBottom) as uword
         ; pixel shape from the screen's ViewPort.Modes (big-endian word at offset 32)
         aspect = 1
         pointer vp = viewport()
         if vp != 0 {
-            uword modes = (@(vp+32) as uword) << 8 | (@(vp+33) as uword)
-            if (modes & (graphics.SUPERHIRES as uword)) != 0 {
+            uword modes = (@(vp+32) as uword) << 8 | @(vp+33)
+            if (modes & graphics.SUPERHIRES) != 0 {
                 aspect = 4
-                if (modes & (graphics.INTERLACE as uword)) != 0
+                if (modes & graphics.INTERLACE) != 0
                     aspect = 2
             } else {
-                if (modes & graphics.V_HIRES) != 0 and (modes & (graphics.INTERLACE as uword)) == 0
+                if (modes & graphics.V_HIRES) != 0 and (modes & graphics.INTERLACE) == 0
                     aspect = 2
-                if (modes & (graphics.INTERLACE as uword)) != 0 and (modes & graphics.V_HIRES) == 0
+                if (modes & graphics.INTERLACE) != 0 and (modes & graphics.V_HIRES) == 0
                     aspect = 0
             }
         }
@@ -370,14 +383,14 @@ amiga_gfx {
         ; one-plane Flood scratch sized to the rastport's bitmap
         ; (Flood requires the TmpRas to cover the whole bitmap, not just the client area)
         if rastport.BitMap != 0 {
-            tmpras_size = rastport.BitMap.BytesPerRow as long * rastport.BitMap.Rows as long
+            tmpras_size = rastport.BitMap.BytesPerRow * rastport.BitMap.Rows
             tmpras_buf = exec.AllocMem(tmpras_size, exec.MEMF_CHIP)
         }
     }
 
-    private sub do_area_ellipse(word cx, word cy, word rx, word ry) -> bool {
+    private sub do_area_ellipse(word cx, word cy, word rx, word ry) {
         if rastport == 0 or tmpras_buf == 0
-            return false
+            return
         ^^graphics.TmpRas saved_tr = rastport.TmpRas
         ^^graphics.AreaInfo saved_ai = rastport.AreaInfo
         ^^graphics.TmpRas tp = &tmpras_store[0]
@@ -386,11 +399,9 @@ amiga_gfx {
         rastport.TmpRas = tp
         graphics.InitArea(ai, area_vectors, 4)
         rastport.AreaInfo = ai
-        long err = graphics.AreaEllipse(rastport, origin_x+cx, origin_y+cy, rx, ry)
-        if err == 0
-            err = graphics.AreaEnd(rastport)
+        if graphics.AreaEllipse(rastport, origin_x+cx, origin_y+cy, rx, ry) == 0
+            void graphics.AreaEnd(rastport)
         rastport.TmpRas = saved_tr
         rastport.AreaInfo = saved_ai
-        return err == 0
     }
 }
