@@ -1,8 +1,8 @@
-; tic tac toe via the amiga_gfx library: click squares to play X and O.
+; tic tac toe via the easygfx library: click squares to play X and O.
 ; Left click places a mark, R restarts, ESC quits.
 ; Runs on Kickstart 1.3 and up, on amiga500 and amiga1200.
 
-%import amiga_gfx
+%import easygfx
 %import diskfont
 %import graphics
 %import intuition
@@ -31,8 +31,8 @@ main {
     }
 
     sub start() {
-        if amiga_gfx.fullscreen(320, 256, 2, graphics.LORES, "Tic Tac Toe") {
-            defer amiga_gfx.close()
+        if easygfx.fullscreen(320, 256, 2, graphics.LORES, "Tic Tac Toe") {
+            defer easygfx.close()
             ; try to set custom font, silently keeps Topaz 8 when unavailable
             ^^graphics.TextFont font = 0
             if diskfont.openlib() {
@@ -40,7 +40,7 @@ main {
                 diskfont.closelib()
             }
             if font != 0 {
-                ^^graphics.RastPort rp = amiga_gfx.rastport
+                ^^graphics.RastPort rp = easygfx.rastport
                 void graphics.SetFont(rp, font)
             }
             new_game()
@@ -55,7 +55,7 @@ main {
         obits = 0
         turn = Player::X
         over = false
-        amiga_gfx.clear(0)
+        easygfx.clear(0)
         draw_grid()
         status("X to move - click a square")
     }
@@ -63,8 +63,8 @@ main {
     sub draw_grid() {
         ubyte i
         for i in 1 to 2 {
-            amiga_gfx.line(BX + i*CELL, BY, BX + i*CELL, BY + 3*CELL, 1)
-            amiga_gfx.line(BX, BY + i*CELL, BX + 3*CELL, BY + i*CELL, 1)
+            easygfx.line(BX + i*CELL, BY, BX + i*CELL, BY + 3*CELL, 1)
+            easygfx.line(BX, BY + i*CELL, BX + 3*CELL, BY + i*CELL, 1)
         }
     }
 
@@ -72,13 +72,13 @@ main {
         word cx = BX + (col as word) * CELL
         word cy = BY + (row as word) * CELL
         if player == Player::X {
-            amiga_gfx.line(cx+10, cy+10, cx+CELL-10, cy+CELL-10, 2)
-            amiga_gfx.line(cx+CELL-10, cy+10, cx+10, cy+CELL-10, 2)
-            amiga_gfx.line(cx+11, cy+10, cx+CELL-9, cy+CELL-10, 2)
-            amiga_gfx.line(cx+CELL-9, cy+10, cx+11, cy+CELL-10, 2)
+            easygfx.line(cx+10, cy+10, cx+CELL-10, cy+CELL-10, 2)
+            easygfx.line(cx+CELL-10, cy+10, cx+10, cy+CELL-10, 2)
+            easygfx.line(cx+11, cy+10, cx+CELL-9, cy+CELL-10, 2)
+            easygfx.line(cx+CELL-9, cy+10, cx+11, cy+CELL-10, 2)
         } else {
-            amiga_gfx.circle(cx+CELL/2, cy+CELL/2, CELL/2-10, 3)
-            amiga_gfx.circle(cx+CELL/2, cy+CELL/2, CELL/2-11, 3)
+            easygfx.circle(cx+CELL/2, cy+CELL/2, CELL/2-10, 3)
+            easygfx.circle(cx+CELL/2, cy+CELL/2, CELL/2-11, 3)
         }
     }
 
@@ -126,27 +126,27 @@ main {
     sub status(str msg) {
         ; JAM2 so the text background overwrites the previous line;
         ; with the default JAM1 black pixels are transparent and text ghosts.
-        ; amiga_gfx.fillrect(0, BY + 3*CELL + 16, 320, 12, 3)
-        ^^graphics.RastPort rp = amiga_gfx.rastport
+        ; easygfx.fillrect(0, BY + 3*CELL + 16, 320, 12, 3)
+        ^^graphics.RastPort rp = easygfx.rastport
         graphics.SetBPen(rp, 3)
-        amiga_gfx.drawmode(graphics.RP_JAM2)
-        word tw = amiga_gfx.textwidth(msg)
-        amiga_gfx.text(160 - tw/2, BY + 3*CELL + 16, msg, 1)
-        amiga_gfx.drawmode(graphics.RP_JAM1)
+        easygfx.drawmode(graphics.RP_JAM2)
+        word tw = easygfx.textwidth(msg)
+        easygfx.text(160 - tw/2, BY + 3*CELL + 16, msg, 1)
+        easygfx.drawmode(graphics.RP_JAM1)
     }
 
     sub interact() {
         ^^intuition.IntuiMessage msg
         bool done = false
         while not done {
-            msg = amiga_gfx.imsg_wait()
+            msg = easygfx.imsg_wait()
             while msg != 0 {
                 when msg.Class {
                     intuition.IDCMP_CLOSEWINDOW -> done = true
                     intuition.IDCMP_MOUSEBUTTONS -> handle_click()
                     intuition.IDCMP_RAWKEY -> handle_key()
                 }
-                msg = amiga_gfx.imsg_reply(msg)
+                msg = easygfx.imsg_reply(msg)
             }
         }
 
@@ -192,7 +192,7 @@ main {
                 new_game()
                 return
             }
-            word mx, my = amiga_gfx.mouse_xy(msg)
+            word mx, my = easygfx.mouse_xy(msg)
             byte col, row = cell_at(mx, my)
             if col >= 0
                 play_at(col as ubyte, row as ubyte)

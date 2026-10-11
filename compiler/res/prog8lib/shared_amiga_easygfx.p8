@@ -1,4 +1,4 @@
-; amiga_gfx - friendly OS graphics wrapper, shared by the amiga500 and amiga1200 targets.
+; easygfx - friendly OS graphics wrapper, shared by the amiga500 and amiga1200 targets.
 ;
 ; Hides NewScreen/NewWindow boilerplate behind a gfx_lores-style API:
 ; per-call pen, client-relative word coordinates, explicit open/close.
@@ -15,7 +15,7 @@
 %import strings
 %import exec
 
-amiga_gfx {
+easygfx {
     %option merge, ignore_unused
 
     uword width                 ; drawable client size, set by fullscreen()/windowed()
@@ -255,7 +255,7 @@ amiga_gfx {
 
     inline sub drawmode(ubyte mode) {
         ; graphics.RP_JAM1, RP_JAM2, RP_COMPLEMENT, RP_INVERSVID
-        graphics.SetDrMd(amiga_gfx.rastport, mode)
+        graphics.SetDrMd(easygfx.rastport, mode)
     }
 
     sub palette(pointer colors, uword count) {
@@ -282,12 +282,12 @@ amiga_gfx {
 
     inline sub readpixel(word x, word y) -> long {
         ; pen number at the pixel, or -1 when outside
-        return graphics.ReadPixel(amiga_gfx.rastport, amiga_gfx.origin_x+x, amiga_gfx.origin_y+y)
+        return graphics.ReadPixel(easygfx.rastport, easygfx.origin_x+x, easygfx.origin_y+y)
     }
 
     inline sub textwidth(str s) -> word {
         ; raster width of the string in the current font, e.g. to center text
-        return graphics.TextLength(amiga_gfx.rastport, s, strings.length(s))
+        return graphics.TextLength(easygfx.rastport, s, strings.length(s))
     }
 
     sub mouse_xy(^^intuition.IntuiMessage msg) -> word, word {

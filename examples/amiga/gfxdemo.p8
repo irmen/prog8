@@ -1,8 +1,8 @@
-; amiga_gfx interactive demo: fullscreen drawing with the mouse.
+; gfx interactive demo: fullscreen drawing with the mouse.
 ; Left click draws a small circle, right click a small rectangle, ESC quits.
 ; Runs on Kickstart 1.3 and up, on amiga500 and amiga1200.
 
-%import amiga_gfx
+%import easygfx
 %import graphics
 %import intuition
 
@@ -10,34 +10,34 @@ main {
     uword[8] palette = [$0112, $0f00, $00f0, $000f, $0ff0, $0f0f, $00ff, $0fff]
 
     sub start() {
-        if amiga_gfx.fullscreen(320, 256, 3, graphics.LORES, "amiga_gfx Demo") {
-            defer amiga_gfx.close()
+        if easygfx.fullscreen(320, 256, 3, graphics.LORES, "amiga_gfx Demo") {
+            defer easygfx.close()
             draw_all()
             interact()
         }
     }
 
     sub draw_all() {
-        amiga_gfx.palette(palette, len(palette))
-        amiga_gfx.clear(0)
-        amiga_gfx.rect(5, 5, 310, 246, 1)
-        amiga_gfx.fillrect(10, 10, 60, 40, 2)
-        amiga_gfx.line(0, 0, 319, 255, 3)
-        amiga_gfx.circle(160, 128, 60, 4)
-        amiga_gfx.line(160, 68, 160, 188, 4)
-        amiga_gfx.fill(190, 128, 5)
-        amiga_gfx.disc(80, 200, 30, 5)
-        amiga_gfx.oval(240, 200, 50, 20, 6)
-        amiga_gfx.filled_oval(40, 60, 30, 12, 5)
-        amiga_gfx.plot(160, 128, 7)
-        amiga_gfx.text(160, 30, "amiga_gfx demo", 5)
-        word tw = amiga_gfx.textwidth("click to draw, arrows scroll")
-        amiga_gfx.text(160 - tw/2, 60, "click to draw, arrows scroll", 6)
-        tw = amiga_gfx.textwidth("ESC=quit")
-        amiga_gfx.text(160 - tw/2, 70, "ESC=quit", 7)
-        amiga_gfx.setcolor(7, $f, $f, $f)
+        easygfx.palette(palette, len(palette))
+        easygfx.clear(0)
+        easygfx.rect(5, 5, 310, 246, 1)
+        easygfx.fillrect(10, 10, 60, 40, 2)
+        easygfx.line(0, 0, 319, 255, 3)
+        easygfx.circle(160, 128, 60, 4)
+        easygfx.line(160, 68, 160, 188, 4)
+        easygfx.fill(190, 128, 5)
+        easygfx.disc(80, 200, 30, 5)
+        easygfx.oval(240, 200, 50, 20, 6)
+        easygfx.filled_oval(40, 60, 30, 12, 5)
+        easygfx.plot(160, 128, 7)
+        easygfx.text(160, 30, "amiga_gfx demo", 5)
+        word tw = easygfx.textwidth("click to draw, arrows scroll")
+        easygfx.text(160 - tw/2, 60, "click to draw, arrows scroll", 6)
+        tw = easygfx.textwidth("ESC=quit")
+        easygfx.text(160 - tw/2, 70, "ESC=quit", 7)
+        easygfx.setcolor(7, $f, $f, $f)
         ; direct library escape hatch via the exposed RastPort:
-        ^^graphics.RastPort rp = amiga_gfx.rastport
+        ^^graphics.RastPort rp = easygfx.rastport
         graphics.SetAPen(rp, 3)
         graphics.Move(rp, 10, 240)
         graphics.Draw(rp, 310, 240)
@@ -46,16 +46,16 @@ main {
     sub interact() {
         bool done = false
         while not done {
-            ^^intuition.IntuiMessage msg = amiga_gfx.imsg_wait()
+            ^^intuition.IntuiMessage msg = easygfx.imsg_wait()
             while msg != 0 {
                 when msg.Class {
                     intuition.IDCMP_CLOSEWINDOW -> done = true
                     intuition.IDCMP_MOUSEBUTTONS -> {
-                        word mx, my = amiga_gfx.mouse_xy(msg)
+                        word mx, my = easygfx.mouse_xy(msg)
                         if msg.Code == intuition.SELECTDOWN
-                            amiga_gfx.circle(mx, my, 8, 6)
+                            easygfx.circle(mx, my, 8, 6)
                         if msg.Code == intuition.MENUDOWN
-                            amiga_gfx.fillrect(mx-10, my-6, 20, 12, 2)
+                            easygfx.fillrect(mx-10, my-6, 20, 12, 2)
                     }
                     intuition.IDCMP_RAWKEY -> {
                         ; keyboard arrives as rawkey only: cursor keys scroll (key repeat
@@ -74,15 +74,15 @@ main {
                             when (msg.Code & $7f) {
                                 ; note: ScrollRaster moves bits towards (0,0), so the signs are flipped
                                 $45 -> done = true   ; ESC
-                                $4c -> amiga_gfx.scrollrect(0, 8, 80, 88, 160, 120)    ; up
-                                $4d -> amiga_gfx.scrollrect(0, -8, 80, 88, 160, 120)   ; down
-                                $4e -> amiga_gfx.scrollrect(-8, 0, 80, 88, 160, 120)   ; right
-                                $4f -> amiga_gfx.scrollrect(8, 0, 80, 88, 160, 120)    ; left
+                                $4c -> easygfx.scrollrect(0, 8, 80, 88, 160, 120)    ; up
+                                $4d -> easygfx.scrollrect(0, -8, 80, 88, 160, 120)   ; down
+                                $4e -> easygfx.scrollrect(-8, 0, 80, 88, 160, 120)   ; right
+                                $4f -> easygfx.scrollrect(8, 0, 80, 88, 160, 120)    ; left
                             }
                         }
                     }
                 }
-                msg = amiga_gfx.imsg_reply(msg)
+                msg = easygfx.imsg_reply(msg)
             }
         }
     }
