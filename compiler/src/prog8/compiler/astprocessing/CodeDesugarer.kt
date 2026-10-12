@@ -1222,7 +1222,7 @@ _after:
             fieldDt.isPointer -> {
                 // the field is itself a pointer: load it, then index into what it points to
                 val elemDt = fieldDt.dereference()
-                if(!elemDt.isNumericOrBool) {
+                if(!elemDt.isNumericOrBool && !elemDt.isPointer) {
                     errors.err("cannot index into field '${field.first}' of struct '${struct.name}' here", deref.position)
                     return null
                 }
@@ -1235,7 +1235,7 @@ _after:
             }
             fieldDt.isArray -> {
                 val elemDt = fieldDt.elementType()
-                if(!elemDt.isNumericOrBool) {
+                if(!elemDt.isNumericOrBool && !elemDt.isPointer) {
                     errors.err("cannot index into field '${field.first}' of struct '${struct.name}' here", deref.position)
                     return null
                 }
@@ -1332,7 +1332,8 @@ _after:
                 dt.isSignedWord -> "pokew" to DataType.UWORD
                 dt.isLong -> "pokel" to null
                 dt.isFloat -> "pokef" to null
-                else -> throw FatalAstException("can only deref a numeric or boolean pointer here")
+                dt.isPointer -> "pokep" to null
+                else -> throw FatalAstException("cannot poke into a value of type $dt")
             }
         }
 
@@ -1441,7 +1442,8 @@ _after:
                 elemDt.isSignedWord -> "peekw" to DataType.WORD
                 elemDt.isLong -> "peekl" to null
                 elemDt.isFloat -> "peekf" to null
-                else -> return noModifications  // guarded in helper; unreachable
+                elemDt.isPointer -> "peekp" to null
+                else -> return noModifications
             }
             val peekCall = FunctionCallExpression(IdentifierReference(listOf(peekFunc), deref.position), mutableListOf(address), deref.position)
             val replacement: Expression = if(cast==null) peekCall else TypecastExpression(peekCall, cast, true, deref.position)

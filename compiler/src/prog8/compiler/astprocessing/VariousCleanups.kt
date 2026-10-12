@@ -608,7 +608,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
     }
 
     override fun after(deref: PtrDereference, parent: Node): Iterable<AstModification> {
-        fun peekFunc(dt: BaseDataType): Pair<String, DataType?> {
+        fun peekFunc(dt: BaseDataType): Pair<String, DataType?>? {
             return when {
                 dt.isBool -> "peekbool" to null
                 dt.isUnsignedByte -> "peek" to null
@@ -617,7 +617,8 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                 dt.isSignedWord -> "peekw" to DataType.WORD
                 dt.isLong -> "peekl" to null
                 dt.isFloat -> "peekf" to null
-                else -> throw FatalAstException("unexpected peek type $dt")
+                dt.isPointer -> "peekp" to null
+                else -> null
             }
         }
 
@@ -632,7 +633,8 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                 // ptr1.field[0]  -->  peek(ptr.field)
                 val dt=deref.inferType(program).getOrUndef()
                 if(dt.sub!=null) {
-                    val (peek, valueCast) = peekFunc(dt.sub!!)
+                    // other pointee types (such as ^^str) are left alone for later validation
+                    val (peek, valueCast) = peekFunc(dt.sub!!) ?: return noModifications
                     val peekF = FunctionCallExpression(IdentifierReference(listOf(peek), deref.position), mutableListOf(replaceDerefWithIdentifier(deref)), deref.position)
                     val typedPeek = if(valueCast==null) peekF else TypecastExpression(peekF, valueCast, true, deref.position)
                     return listOf(AstReplaceNode(parent, typedPeek, parent.parent))
@@ -641,7 +643,8 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                 // ptr1.field[index]  -->  peek(ptr.field + index)    (making sure the index is uword typed)
                 val dt=deref.inferType(program).getOrUndef()
                 if(dt.sub!=null) {
-                    val (peek, valueCast) = peekFunc(dt.sub!!)
+                    // other pointee types (such as ^^str) are left alone for later validation
+                    val (peek, valueCast) = peekFunc(dt.sub!!) ?: return noModifications
                     val indexer = if(constIndex==null) {
                         if(parent.indexer.indexExpr.inferType(program).isUnsignedWord)
                             parent.indexer.indexExpr
@@ -660,7 +663,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
             // ptr1.field^^  -->  peek(ptr1.field)
             val dt=deref.inferType(program).getOrUndef()
             if(!dt.isUndefined && dt.base.isNumericOrBool) {
-                val (peek, valueCast) = peekFunc(dt.base)
+                val (peek, valueCast) = peekFunc(dt.base) ?: return noModifications
                 val peekF = FunctionCallExpression(IdentifierReference(listOf(peek), deref.position), mutableListOf(replaceDerefWithIdentifier(deref)), deref.position)
                 val typedPeek = if(valueCast==null) peekF else TypecastExpression(peekF, valueCast, true, deref.position)
                 return listOf(AstReplaceNode(deref, typedPeek, parent))

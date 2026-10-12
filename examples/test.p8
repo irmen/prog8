@@ -3,20 +3,12 @@
 
 main {
     sub start() {
-        pointer()
-        ;uword()
-        mkword()
-    }
+        struct Selector {
+            ubyte index     ; selected value (what is visible)
+            ^^pointer choices   ; ideally both
+        }
 
-    sub pointer() {
-        txt.print("blimey")
-    }
-
-;    sub uword() {
-;        txt.print("blimey")
-;    }
-
-    sub mkword() {
-        txt.print("szdfszdf")
+        ^^Selector item = []
+        txt.print(item.choices[item.index])
     }
 }

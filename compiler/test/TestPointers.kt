@@ -558,6 +558,72 @@ thing {
         compileText(Cx16Target(), false, src, outputDir) shouldNotBe null
     }
 
+    test("indexing a pointer-to-pointer struct field reads via peekp") {
+        val src="""
+main {
+    struct Selector {
+        ubyte index
+        ^^pointer choices
+    }
+
+    sub start() {
+        ^^Selector item = []
+        item.index = 1
+        pointer p = item.choices[item.index]
+        pointer q = item.choices[0]
+        if p==q {
+            cx16.r0++
+        }
+    }
+}"""
+
+        val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = false)!!
+        val start = result.compilerAst.allBlocks.first { it.name=="main" }
+            .statements.filterIsInstance<Subroutine>().first { it.name=="start" }
+        // NB: CodeDesugarer rewrites peekp into peekl/peekw depending on the target's pointer size
+        fun peekCalls(sub: Subroutine, name: String): List<FunctionCallExpression> =
+            sub.statements.filterIsInstance<Assignment>()
+                .mapNotNull { it.value as? FunctionCallExpression }
+                .filter { it.target.nameInSource == listOf(name) }
+        peekCalls(start, "peekl").size shouldBe 2
+
+        val resultCx16 = compileText(Cx16Target(), false, src, outputDir, writeAssembly = false)!!
+        val startCx16 = resultCx16.compilerAst.allBlocks.first { it.name=="main" }
+            .statements.filterIsInstance<Subroutine>().first { it.name=="start" }
+        peekCalls(startCx16, "peekw").size shouldBe 2
+
+        compileText(C64Target(), false, src, outputDir) shouldNotBe null
+    }
+
+    test("writing through pointer-to-pointer struct fields") {
+        val src = $$"""
+            %option no_sysinit
+            %launcher none
+            main {
+                struct Selector {
+                    ubyte index
+                    ^^pointer choices
+                }
+                pointer[2] @shared @nosplit paddrs
+                uword @shared v0 = $aaaa
+                uword @shared v1 = $bbbb
+                &ubyte probe = $02
+                sub start() {
+                    ^^Selector pp = []
+                    ^^Selector item = []
+                    pp^^.choices = &paddrs
+                    item.choices = &paddrs
+                    pp^^.choices[0] = &v0
+                    item.choices[1] = &v1
+                    if paddrs[0]==&v0 and paddrs[1]==&v1
+                        probe = 1
+                }
+            }""".trimIndent()
+        val result = compileText(Cx16Target(), true, src, outputDir)!!
+        val machine = result.simulate()
+        machine.assertMemory(0x02, 0x01)
+    }
+
     test("string comparisons still calling string compare routine")  {
         val src="""
 main {
@@ -3114,8 +3180,6 @@ main {
         val a3 = st[3] as Assignment
         val a4 = st[4] as Assignment
         val a5 = st[5] as Assignment
-        val a6 = st[7] as Assignment
-        val a7 = st[9] as Assignment
 
         a1.target.arrayIndexedDereference shouldBe null
         a1.target.pointerDereference!!.chain shouldBe listOf("sprptr", "y")

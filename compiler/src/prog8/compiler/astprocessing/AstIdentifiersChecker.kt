@@ -101,6 +101,8 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
         struct.fields.forEach { field ->
             if(field.type.isArray && field.type.sub==BaseDataType.STRUCT_INSTANCE)
                 errors.err("arrays of struct instances are currently not supported as struct fields at '${field.name}'", struct.position)
+            else if(field.name == "pointer")
+                errors.err("struct field name cannot be a keyword", struct.position)
         }
         super.visit(struct)
     }

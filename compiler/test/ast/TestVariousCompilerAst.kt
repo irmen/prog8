@@ -1774,6 +1774,22 @@ main {
         errors.errors.joinToString() shouldContain "label name cannot be a keyword"
     }
 
+    test("struct field names cannot be pointer") {
+        val src="""
+main {
+    sub start() {
+        struct S {
+            uword pointer
+        }
+    }
+}
+"""
+        val errors = ErrorReporterForTests()
+        compileText(VMTarget(), optimize=false, src, outputDir, errors=errors) shouldBe null
+        errors.errors.size shouldBe 1
+        errors.errors[0] shouldContain "struct field name cannot be a keyword"
+    }
+
     test("alias names cannot be pointer or builtin functions") {
         val src="""
 main {
