@@ -227,7 +227,9 @@ basedatatype:  'ubyte' | 'byte' | 'uword' | 'word' | 'long' | 'float' | 'str' | 
 
 datatype: pointertype | basedatatype | structtype=scoped_identifier;
 
-pointertype: POINTER (scoped_identifier | basedatatype);
+// basedatatype first: 'pointer' is both a keyword and a legal identifier, so putting scoped_identifier
+// first makes ANTLR resolve the ambiguity towards a struct type named 'pointer'.
+pointertype: POINTER (basedatatype | scoped_identifier);
 
 arrayindex:
     '[' expression ']' #ArrayIndexNormal

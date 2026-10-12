@@ -1316,4 +1316,40 @@ main {
         ex.errors[0].message shouldContain "Expected union name after 'union'"
     }
 
+    test("'pointer' as pointee type is not mistaken for a struct named pointer") {
+        // 'pointer' is both a keyword and a legal identifier, so '^^pointer' is grammatically
+        // ambiguous: it must resolve to a pointer-to-untyped-pointer, not a pointer to a struct.
+        val src = SourceCode.Text("""
+            main {
+                struct Selector {
+                    ubyte index
+                    ^^pointer choices
+                }
+            }
+        """.trimIndent())
+        val module = parseModule(src, c64Target)
+        val selector = module.statements.filterIsInstance<Block>().single()
+            .statements.filterIsInstance<StructDecl>().single()
+        val choices = selector.fields.single { it.name == "choices" }
+        choices.type.base shouldBe BaseDataType.POINTER
+        choices.type.sub shouldBe BaseDataType.POINTER
+        choices.type.subType shouldBe null
+    }
+
+    test("'^^pointer' also works for variable declarations and sizeof()") {
+        val result = compileText(VMTarget(), false, """
+            main {
+                ubyte[10] @shared data
+                ^^pointer p
+
+                sub start() {
+                    p = &data[0]
+                    p = sizeof(pointer)
+                    p = sizeof(^^pointer)
+                }
+            }
+        """.trimIndent(), outputDir, writeAssembly = false)!!
+        result.compilerAst.entrypoint.statements.filterIsInstance<Assignment>().size shouldBe 3
+    }
+
 })
