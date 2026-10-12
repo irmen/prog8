@@ -34,19 +34,10 @@ class ImplicitForIteratorDecls(
         if (!inferredIterableType.isKnown)
             return emptyList()
         val iterableType = inferredIterableType.getOrUndef()
-        val isList = isListIterable(iterableType)
-        if (!iterableType.isIterable && forLoop.iterable !is RangeExpression && !isList)
+        if (!iterableType.isIterable && forLoop.iterable !is RangeExpression)
             return emptyList()
 
-        val elementType = if(isList) {
-            val listDecl = structDeclFor(iterableType) ?: return emptyList()
-            val nodeType = listDecl.fields[0].type
-            // Head field is ^^Node, use that as element type
-            // Resolve it in the list declaration's own scope: the field type may not
-            // have been processed yet if its module hasn't been visited (and the name
-            // may not even be visible from the scope using the list).
-            resolveDt(nodeType, listDecl.definingScope, forLoop.position)
-        } else iterableType.elementType()
+        val elementType = iterableType.elementType()
         val scope = forLoop.definingScope
         val existing = scope.lookup(names)
 
@@ -120,8 +111,6 @@ class ImplicitForIteratorDecls(
         return listOf(AstInsert.before(forLoop, declaration, container))
     }
 
-    private fun isListIterable(dt: DataType): Boolean = ListIterationHelper.isListIterable(dt, program)
-    private fun structDeclFor(dt: DataType): prog8.ast.statements.StructDecl? = ListIterationHelper.structDeclFor(dt, program)
     private fun resolveDt(dt: DataType, scope: INameScope, position: Position): DataType {
         val antlrName = dt.subTypeFromAntlr ?: return dt
         val resolved = StructTypeResolver.resolve(scope, program, antlrName, position, errors) ?: return dt

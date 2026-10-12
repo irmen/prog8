@@ -1111,13 +1111,9 @@ The list can then be manipulated with:
 - ``enqueue(listptr, node)`` - priority-sorted insertion by ``Pri`` (requires ``FullNode`` layout, FIFO for equal priorities)
 - ``find_name(listptr, name) -> pointer`` - linear search by ``Name`` (requires ``FullNode`` layout)
 
-Lists are directly iterable with ``for`` loops: ``for node in mylist`` iterates forward via ``Succ``,
-``for node in mylist step -1`` iterates backward via ``Pred``. The loop variable type (``^^Node`` or ``^^FullNode``) can be inferred.
-
-Custom node types are supported by making sure the link pointers are the first fields at offset 0.
-For the minimal list operations (``add_head``, ``add_tail``, ``insert``, ``remove``) only ``Succ``/``Pred`` are required;
-``enqueue`` and ``find_name`` require the full ``Type``/``Pri``/``Name`` layout of ``FullNode``.
-Example::
+To visit every node, walk the links with a ``while`` loop. Start at ``Head`` and follow
+``Succ`` until you reach ``&Tail``; or start at ``TailPred`` and follow ``Pred`` back
+to the header:
 
     main {
         struct MyNode {
@@ -1135,47 +1131,28 @@ Example::
             ^^MyList mylist = []                ; zero-initialized header
             ^^MyNode n1 = [0, 0, 42]            ; Succ, Pred, value
             ^^MyNode n2 = [0, 0, 99]
+            ^^MyNode n3 = [0, 0, 123]
             lists.init(mylist)
             lists.add_tail(mylist, n1)
             lists.add_tail(mylist, n2)
-            for n in mylist {
-                txt.print_ub(n.value)
+            lists.add_tail(mylist, n3)
+            ^^MyNode cursor = mylist.Head
+            while cursor != &mylist.Tail {
+                txt.print_ub(cursor.value)
+                txt.nl()
+                cursor = cursor.Succ
             }
         }
     }
 
-On ``amiga500`` and ``amiga1200`` the same holds. Define the list header with your node type so
-``for``-iteration infers the correct type, and include ``Type``/``Pri``/``Name``
-if you need the full ``exec.Node`` layout. The header can still be
-initialized with ``exec.NewList``::
-
-    main {
-        struct MyNode {
-            ^^MyNode Succ       ; offset 0
-            ^^MyNode Pred       ; offset 4
-            ubyte    Type       ; include for FullNode compatibility if needed
-            byte     Pri
-            str      Name
-            ubyte    value
-        }
-        struct MyList {
-            ^^MyNode Head
-            pointer  Tail
-            ^^MyNode TailPred
-        }
-        sub start() {
-            ^^MyList mylist = []
-            ^^MyNode n1 = [0, 0, 0, 0, 0, 11]
-            exec.NewList(mylist as ^^exec.List)
-            lists.add_tail(mylist as pointer, n1 as pointer)
-        }
-    }
+Custom nodes work the same way as long as the link pointers are the first fields at
+offset 0; add ``Type``/``Pri``/``Name`` after them if you need ``enqueue`` or
+``find_name`` (the ``exec.Node``/``FullNode`` layout).
 
 Allocator agnostic: the routines never allocate or free memory themselves,
 they only link the ``pointer`` values you pass in. Nodes and headers can
 come from static ``[]`` variables as above, from ``memory()`` slabs, or
-from any arena/bump allocator - e.g. ``arena.alloc(sizeof(MyNode)) as ^^MyNode``
-or ``exec.AllocMem`` on ``amiga500`` or ``amiga1200``. Just ensure the allocation is
+from any arena/bump allocator. Just ensure the allocation is
 suitably aligned (even address on 6502, long-aligned on m68k).
 
 Read the :source:`lists source code <compiler/res/prog8lib/lists.p8>` and

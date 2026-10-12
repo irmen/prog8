@@ -281,7 +281,7 @@ Package `prog8.compiler.*` (entry `prog8/CompilerMain.kt`).
 | `ErrorReporter` | Error/warning output with colors |
 | `ModuleImporter` | Module/import resolution + stdlib import |
 | `BuiltinFunctions` | Builtin function signature table + const evaluators |
-| `astprocessing/*` | All the `processAst`/`postprocessAst` transforms (AstPreprocessor, AstChecker, AstIdentifiersChecker, CodeDesugarer, DeferProcessor, SimplifiedAstMaker, SimplifiedAstPostprocess, TypecastsAdder, VariousCleanups, StatementReorderer, StructTypeResolver, SubtypeResolver, NotExpressionAndIfComparisonExprChanger, ListIterationHelper, ImplicitForIteratorDecls, ReflectionAstWalker, VerifyFunctionArgTypes, ... and more) |
+| `astprocessing/*` | All the `processAst`/`postprocessAst` transforms (AstPreprocessor, AstChecker, AstIdentifiersChecker, CodeDesugarer, DeferProcessor, SimplifiedAstMaker, SimplifiedAstPostprocess, TypecastsAdder, VariousCleanups, StatementReorderer, StructTypeResolver, SubtypeResolver, NotExpressionAndIfComparisonExprChanger, ImplicitForIteratorDecls, ReflectionAstWalker, VerifyFunctionArgTypes, ... and more) |
 | `simpleastprocessing/Instrumentation` | Profiling instrumentation (cx16 only) |
 
 ### 4.13 `languageServer` (LSP)

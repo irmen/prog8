@@ -58,7 +58,7 @@
 ;; as `^^MyNode`. Just ensure the allocation is suitably aligned.
 ;;
 ;; Custom nodes: you can define your own node struct for use with these
-;; routines and with `for node in mylist` loops. The only requirement
+;; routines. The only requirement
 ;; is that the link pointers are the first fields at offset 0. The
 ;; minimal operations (add_head/add_tail/insert/remove) only need
 ;; Succ/Pred; enqueue() and find_name() require the full Type/Pri/Name

@@ -66,13 +66,11 @@
 ;; allocation is suitably aligned (long-aligned on m68k).
 ;;
 ;; Custom nodes: you can define your own node struct for use with the
-;; exec/lists routines and with `for node in mylist` loops. The only
+;; exec/lists routines. The only
 ;; requirement is that the link pointers are the first fields at offset
 ;; 0 (Succ at 0, Pred at 4 on 32-bit amiga). Minimal operations only
 ;; need Succ/Pred; enqueue() and find_name() require the full
-;; Type/Pri/Name layout of exec.Node / lists.FullNode. Define the list
-;; header with your node type so `for`-iteration infers the correct
-;; type. Example:
+;; Type/Pri/Name layout of exec.Node / lists.FullNode. Example:
 ;;
 ;;   main {
 ;;       struct MyNode {

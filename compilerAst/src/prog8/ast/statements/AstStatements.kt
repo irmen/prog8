@@ -610,36 +610,6 @@ class StructDecl(override val name: String, val fields: Array<StructField>, val 
         return null
     }
 
-    fun isNodeStruct(): Boolean {
-        if(isUnion || fields.size < 2) return false
-        val f0 = fields[0]
-        val f1 = fields[1]
-        val namesOk = (f0.name=="Succ" && f1.name=="Pred") || (f0.name=="Next" && f1.name=="Prev")
-        if(!namesOk) return false
-        if(!f0.type.isPointer || !f1.type.isPointer) return false
-        val t0Name = (f0.type.subType as? StructDecl)?.name ?: f0.type.subTypeFromAntlr?.lastOrNull()
-        val t1Name = (f1.type.subType as? StructDecl)?.name ?: f1.type.subTypeFromAntlr?.lastOrNull()
-        return t0Name==name && t1Name==name
-    }
-
-    fun isListStruct(): Boolean {
-        if(isUnion || fields.size < 3) return false
-        val h = fields[0]
-        val t = fields[1]
-        val tp = fields[2]
-        if(h.name!="Head" || t.name!="Tail" || tp.name!="TailPred") return false
-        if(!h.type.isPointer || !tp.type.isPointer) return false
-        if(h.type.subType==null && h.type.subTypeFromAntlr==null) return false
-        if(tp.type.subType==null && tp.type.subTypeFromAntlr==null) return false
-        val headNodeName = (h.type.subType as? StructDecl)?.name ?: h.type.subTypeFromAntlr?.lastOrNull() ?: return false
-        val tailPredNodeName = (tp.type.subType as? StructDecl)?.name ?: tp.type.subTypeFromAntlr?.lastOrNull() ?: return false
-        if(headNodeName!=tailPredNodeName) return false
-        // if node type is resolved, validate it is a node struct; otherwise rely on name match
-        val nodeDecl = h.type.subType as? StructDecl
-        if(nodeDecl!=null) return nodeDecl.isNodeStruct()
-        // unresolved - assume ok if names match (will be validated later when resolved)
-        return true
-    }
 }
 
 
