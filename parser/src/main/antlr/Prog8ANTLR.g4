@@ -227,8 +227,8 @@ basedatatype:  'ubyte' | 'byte' | 'uword' | 'word' | 'long' | 'float' | 'str' | 
 
 datatype: pointertype | basedatatype | structtype=scoped_identifier;
 
-// basedatatype first: 'pointer' is both a keyword and a legal identifier, so putting scoped_identifier
-// first makes ANTLR resolve the ambiguity towards a struct type named 'pointer'.
+// basedatatype first: 'pointer' is a reserved datatype name that no struct can use,
+// so '^^pointer' must parse as pointer-to-pointer, not as pointer to a struct.
 pointertype: POINTER (basedatatype | scoped_identifier);
 
 arrayindex:

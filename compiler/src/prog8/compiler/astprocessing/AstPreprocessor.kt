@@ -544,6 +544,14 @@ class AstPreprocessor(val program: Program,
     }
 
     override fun after(enum: Enumeration, parent: Node): Iterable<AstModification> {
+        if(enum.name in BuiltinFunctions) {
+            errors.err("builtin function cannot be redefined", enum.position)
+            return noModifications
+        }
+        if(enum.name == "pointer") {
+            errors.err("enum name cannot be a keyword", enum.position)
+            return noModifications
+        }
         if (enum.members.isEmpty()) {
             errors.err("enumeration must contain at least one member", enum.position)
         }

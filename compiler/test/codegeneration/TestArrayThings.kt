@@ -254,7 +254,7 @@ main {
         val src="""
 main {
     sub start() {
-        pointer @shared pointer
+        pointer @shared ptr
         ubyte[10] array
         str name = "hello"
         
@@ -264,8 +264,8 @@ main {
         cx16.r0L = array[sindex]
         name[sindex] = 0
         cx16.r0L = name[sindex]
-        pointer[sindex] = 10
-        cx16.r0L=pointer[sindex]
+        ptr[sindex] = 10
+        cx16.r0L=ptr[sindex]
     }
 }"""
         val errors = ErrorReporterForTests()

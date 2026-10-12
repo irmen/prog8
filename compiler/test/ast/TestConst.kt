@@ -226,9 +226,9 @@ class TestConst: FunSpec({
         val src = """
 main {
     sub start() {
-        const uword pointer=$1000
-        cx16.r0L = pointer[2]
-        pointer[2] = cx16.r0L
+        const uword ptr=$1000
+        cx16.r0L = ptr[2]
+        ptr[2] = cx16.r0L
     }
 }
 """

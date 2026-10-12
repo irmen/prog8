@@ -245,54 +245,54 @@ test7:
 
         sub single_goto_indirect() {
             success=0
-            uword pointer
+            uword ptr
             txt.print("bool single_goto_indirect: ")
 test1:
             var1 = false
             var2 = true
 
-            pointer = &lbl1
+            ptr = &lbl1
             if var1
-                goto pointer
+                goto ptr
             success++
             goto test2
 lbl1:
             fail(10)
 
 test2:
-            pointer = &lbl2
+            ptr = &lbl2
             if var2
-                goto pointer
+                goto ptr
             fail(11)
             goto test3
 lbl2:       success++
 
 test3:
-            pointer = &lbl3
+            ptr = &lbl3
             if var1 xor var2
-                goto pointer
+                goto ptr
             fail(12)
             goto test4
 lbl3:       success++
 
 test4:
-            pointer = &lbl4
+            ptr = &lbl4
             if barray[1]
-                goto pointer
+                goto ptr
             fail(13)
             goto test5
 lbl4:       success++
 
 test5:
-            pointer = &test6
+            ptr = &test6
             if barray[0] and var1
-                goto pointer
+                goto ptr
             success++
 
 test6:
-            pointer = &lbl6
+            ptr = &lbl6
             if barray[1] and var2
-                goto pointer
+                goto ptr
             fail(14)
             goto test7
 lbl6:       success++
@@ -461,70 +461,70 @@ test9:
 
         sub single_goto_indirect() {
             success = 0
-            uword pointer
+            uword ptr
             txt.print("float single_goto_indirect: ")
 
             var1 = 11.11
             var2 = 11.11
 test1:
-            pointer = &lbl1
+            ptr = &lbl1
             if var1==0
-                goto pointer
+                goto ptr
             success++
             goto test2
 lbl1:
             fail(51)
 
 test2:
-            pointer = &lbl2
+            ptr = &lbl2
             if var1==11.11
-                goto pointer
+                goto ptr
             fail(52)
             goto test3
 lbl2:       success++
 
 test3:
-            pointer = &lbl3
+            ptr = &lbl3
             if var1!=0
-                goto pointer
+                goto ptr
             fail(53)
             goto test4
 lbl3:       success++
 
 test4:
-            pointer = &lbl4
+            ptr = &lbl4
             if var1!=99.99
-                goto pointer
+                goto ptr
             fail(54)
             goto test5
 lbl4:       success++
 
 test5:
-            pointer = &lbl5
+            ptr = &lbl5
             if var1 + var2 > 10
-                goto pointer
+                goto ptr
             fail(55)
             goto test6
 lbl5:       success++
 
 test6:
-            pointer = &lbl6
+            ptr = &lbl6
             if array[1]!=0
-                goto pointer
+                goto ptr
             fail(56)
             goto test7
 lbl6:       success++
 
 test7:
-            pointer = &test8
+            ptr = &test8
             if array[0] + var1 < 0
-                goto pointer
+                goto ptr
             success++
 
 test8:
-            pointer = &test9
+            ptr = &test9
             if array[2] + var2 != 44.44
-                goto pointer
+                goto ptr
             success++
 
 test9:
@@ -712,70 +712,70 @@ test9:
 
         sub single_goto_indirect() {
             success = 0
-            uword pointer
+            uword ptr
             txt.print("byte single_goto_indirect: ")
 
             var1 = 11
             var2 = 11
 test1:
-            pointer = &lbl1
+            ptr = &lbl1
             if var1==0
-                goto pointer
+                goto ptr
             success++
             goto test2
 lbl1:
             fail(91)
 
 test2:
-            pointer = &lbl2
+            ptr = &lbl2
             if var1==11
-                goto pointer
+                goto ptr
             fail(92)
             goto test3
 lbl2:       success++
 
 test3:
-            pointer = &lbl3
+            ptr = &lbl3
             if var1!=0
-                goto pointer
+                goto ptr
             fail(93)
             goto test4
 lbl3:       success++
 
 test4:
-            pointer = &lbl4
+            ptr = &lbl4
             if var1!=99
-                goto pointer
+                goto ptr
             fail(94)
             goto test5
 lbl4:       success++
 
 test5:
-            pointer = &lbl5
+            ptr = &lbl5
             if var1 + var2 > 10
-                goto pointer
+                goto ptr
             fail(95)
             goto test6
 lbl5:       success++
 
 test6:
-            pointer = &lbl6
+            ptr = &lbl6
             if array[1]!=0
-                goto pointer
+                goto ptr
             fail(96)
             goto test7
 lbl6:       success++
 
 test7:
-            pointer = &test8
+            ptr = &test8
             if array[0] + var1 < 0
-                goto pointer
+                goto ptr
             success++
 
 test8:
-            pointer = &test9
+            ptr = &test9
             if array[2] + var2 != -22
-                goto pointer
+                goto ptr
             success++
 
 test9:
@@ -963,70 +963,70 @@ test9:
 
         sub single_goto_indirect() {
             success = 0
-            uword pointer
+            uword ptr
             txt.print("ubyte single_goto_indirect: ")
 
             var1 = 11
             var2 = 11
 test1:
-            pointer = &lbl1
+            ptr = &lbl1
             if var1==0
-                goto pointer
+                goto ptr
             success++
             goto test2
 lbl1:
             fail(131)
 
 test2:
-            pointer = &lbl2
+            ptr = &lbl2
             if var1==11
-                goto pointer
+                goto ptr
             fail(132)
             goto test3
 lbl2:       success++
 
 test3:
-            pointer = &lbl3
+            ptr = &lbl3
             if var1!=0
-                goto pointer
+                goto ptr
             fail(133)
             goto test4
 lbl3:       success++
 
 test4:
-            pointer = &lbl4
+            ptr = &lbl4
             if var1!=99
-                goto pointer
+                goto ptr
             fail(134)
             goto test5
 lbl4:       success++
 
 test5:
-            pointer = &lbl5
+            ptr = &lbl5
             if var1 + var2 > 10
-                goto pointer
+                goto ptr
             fail(135)
             goto test6
 lbl5:       success++
 
 test6:
-            pointer = &lbl6
+            ptr = &lbl6
             if array[1]!=0
-                goto pointer
+                goto ptr
             fail(136)
             goto test7
 lbl6:       success++
 
 test7:
-            pointer = &test8
+            ptr = &test8
             if array[0] + var1 < 10
-                goto pointer
+                goto ptr
             success++
 
 test8:
-            pointer = &test9
+            ptr = &test9
             if array[2] + var2 != 44
-                goto pointer
+                goto ptr
             success++
 
 test9:
@@ -1214,70 +1214,70 @@ test9:
 
         sub single_goto_indirect() {
             success = 0
-            uword pointer
+            uword ptr
             txt.print("word single_goto_indirect: ")
 
             var1 = 1111
             var2 = 1111
 test1:
-            pointer = &lbl1
+            ptr = &lbl1
             if var1==0
-                goto pointer
+                goto ptr
             success++
             goto test2
 lbl1:
             fail(171)
 
 test2:
-            pointer = &lbl2
+            ptr = &lbl2
             if var1==1111
-                goto pointer
+                goto ptr
             fail(172)
             goto test3
 lbl2:       success++
 
 test3:
-            pointer = &lbl3
+            ptr = &lbl3
             if var1!=0
-                goto pointer
+                goto ptr
             fail(173)
             goto test4
 lbl3:       success++
 
 test4:
-            pointer = &lbl4
+            ptr = &lbl4
             if var1!=9999
-                goto pointer
+                goto ptr
             fail(174)
             goto test5
 lbl4:       success++
 
 test5:
-            pointer = &lbl5
+            ptr = &lbl5
             if var1 + var2 > 1000
-                goto pointer
+                goto ptr
             fail(175)
             goto test6
 lbl5:       success++
 
 test6:
-            pointer = &lbl6
+            ptr = &lbl6
             if array[1]!=0
-                goto pointer
+                goto ptr
             fail(176)
             goto test7
 lbl6:       success++
 
 test7:
-            pointer = &test8
+            ptr = &test8
             if array[0] + var1 < 0
-                goto pointer
+                goto ptr
             success++
 
 test8:
-            pointer = &test9
+            ptr = &test9
             if array[2] + var2 != -2222
-                goto pointer
+                goto ptr
             success++
 
 test9:
@@ -1465,72 +1465,72 @@ test9:
 
         sub single_goto_indirect() {
             success = 0
-            uword pointer
+            uword ptr
             txt.print("uword single_goto_indirect: ")
 
             var1 = 1111
             var2 = 1111
 test1:
-            pointer = &lbl1
+            ptr = &lbl1
             if var1==0
-                goto pointer
+                goto ptr
             success++
             goto test2
 lbl1:
             fail(211)
 
 test2:
-            pointer = &lbl2
+            ptr = &lbl2
             if var1==1111
-                goto pointer
+                goto ptr
             fail(212)
             goto test3
 lbl2:       success++
 
 test3:
-            pointer = &lbl3
+            ptr = &lbl3
             if var1!=0
-                goto pointer
+                goto ptr
             fail(213)
             goto test4
 lbl3:       success++
 
 test4:
-            pointer = &lbl4
+            ptr = &lbl4
             if var1!=9999
-                goto pointer
+                goto ptr
             fail(214)
             goto test5
 lbl4:       success++
 
 test5:
-            pointer = &lbl5
+            ptr = &lbl5
             if var1 + var2 > 1000
-                goto pointer
+                goto ptr
             fail(215)
             goto test6
 lbl5:       success++
 
 test6:
-            pointer = &lbl6
+            ptr = &lbl6
             if array[1]!=0
-                goto pointer
+                goto ptr
             fail(216)
             goto test7
 lbl6:       success++
 
 test7:
-            pointer = &lbl7
+            ptr = &lbl7
             if array[0] + var1 < 1000
-                goto pointer
+                goto ptr
             success++
             goto test8
 lbl7:       fail(217)
 
 test8:
-            pointer = &lbl8
+            ptr = &lbl8
             if array[2] + var2 != 4444
-                goto pointer
+                goto ptr
             success++
             goto test9
 lbl8:       fail(218)

@@ -508,8 +508,8 @@ thing {
 
     sub new() -> ^^Node {
         cx16.r0++
-        ^^Node pointer = 2000
-        return pointer
+        ^^Node ptr = 2000
+        return ptr
     }
 }"""
 
@@ -526,9 +526,9 @@ main {
         ^^MNode next
     }
 
-    sub func(^^MNode pointer) -> ^^MNode {
+    sub func(^^MNode ptr) -> ^^MNode {
         cx16.r0++
-        return pointer.next
+        return ptr.next
     }
 
     sub start() {
@@ -546,9 +546,9 @@ thing {
         ^^Node next
     }
 
-    sub func(^^Node pointer) -> ^^Node {
+    sub func(^^Node ptr) -> ^^Node {
         cx16.r0++
-        return pointer.next
+        return ptr.next
     }
 
 }"""

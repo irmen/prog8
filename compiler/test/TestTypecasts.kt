@@ -683,7 +683,7 @@ main {
         val src = """
 main {
     sub start() {
-        ^^word @shared pointer
+        ^^word @shared ptr
         bool @shared bb = func(true)
         void func(true)
         void func(0)
@@ -692,7 +692,7 @@ main {
         void func(65535)
         void func(655.444)
         void func(cx16.r0)
-        void func(pointer)
+        void func(ptr)
         cx16.r0L = func(true)
     }
 

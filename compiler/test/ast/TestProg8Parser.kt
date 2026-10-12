@@ -1317,8 +1317,8 @@ main {
     }
 
     test("'pointer' as pointee type is not mistaken for a struct named pointer") {
-        // 'pointer' is both a keyword and a legal identifier, so '^^pointer' is grammatically
-        // ambiguous: it must resolve to a pointer-to-untyped-pointer, not a pointer to a struct.
+        // 'pointer' is reserved and cannot name a struct, so '^^pointer' is unambiguous:
+        // it must resolve to a pointer-to-untyped-pointer, not a pointer to a struct.
         val src = SourceCode.Text("""
             main {
                 struct Selector {

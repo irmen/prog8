@@ -1559,7 +1559,7 @@ to the parameter. This can only be done for booleans, byte, and word types.
 Note: the R0-R15 *virtual registers* are described in more detail below for the Assembly subroutines.
 Here's an example that reuses the R0 and the R1L (lower byte of R1) virtual registers for the parameters::
 
-    sub  get_indexed_byte(uword pointer @R0, ubyte index @R1) -> ubyte {
+    sub  get_indexed_byte(uword address @R0, ubyte index @R1) -> ubyte {
         return @(cx16.r0 + cx16.r1L)
     }
 

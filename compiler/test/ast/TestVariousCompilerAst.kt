@@ -1000,14 +1000,14 @@ main {
         val src= $$"""
 main {
     sub start() {
-        uword pointer = $2000
-        @(pointer+$1000) = 123
-        ubyte @shared ub = @(pointer+$1000)
-        pointer[$1000] = 99
-        ub = pointer[$1000]
+        uword ptr = $2000
+        @(ptr+$1000) = 123
+        ubyte @shared ub = @(ptr+$1000)
+        ptr[$1000] = 99
+        ub = ptr[$1000]
         uword index = $1000
-        pointer[index] = 55
-        ub = pointer[index]
+        ptr[index] = 55
+        ub = ptr[index]
     }
 }"""
         compileText(C64Target(), optimize=false, src, outputDir, writeAssembly=false) shouldNotBe null
@@ -1749,6 +1749,76 @@ mkword {
         errors.errors[0] shouldContain "name cannot be a keyword"
         errors.errors[1] shouldContain "builtin function cannot be redefined"
         errors.errors[2] shouldContain "builtin function cannot be redefined"
+    }
+
+    test("subroutine, variable and label names cannot be pointer") {
+        val src="""
+main {
+    sub start() {
+        uword pointer = $2000
+    }
+
+    sub pointer() {
+    }
+
+    sub withlabel() {
+    pointer:
+    }
+}
+"""
+        val errors = ErrorReporterForTests()
+        compileText(VMTarget(), optimize=false, src, outputDir, errors=errors) shouldBe null
+        errors.errors.size shouldBe 3
+        errors.errors.joinToString() shouldContain "subroutine name cannot be a keyword"
+        errors.errors.joinToString() shouldContain "variable name cannot be a keyword"
+        errors.errors.joinToString() shouldContain "label name cannot be a keyword"
+    }
+
+    test("alias names cannot be pointer or builtin functions") {
+        val src="""
+main {
+    alias pointer = start
+    alias memory = start
+
+    sub start() {
+    }
+}
+"""
+        val errors = ErrorReporterForTests()
+        compileText(VMTarget(), optimize=false, src, outputDir, errors=errors) shouldBe null
+        errors.errors.size shouldBe 2
+        errors.errors.joinToString() shouldContain "alias name cannot be a keyword"
+        errors.errors.joinToString() shouldContain "builtin function cannot be redefined"
+    }
+
+    test("enum names cannot be pointer or builtin functions") {
+        val src="""
+main {
+    sub start() {
+        enum pointer { A, B }
+        enum memory { C, D }
+    }
+}
+"""
+        val errors = ErrorReporterForTests()
+        compileText(VMTarget(), optimize=false, src, outputDir, errors=errors) shouldBe null
+        errors.errors.size shouldBe 2
+        errors.errors.joinToString() shouldContain "enum name cannot be a keyword"
+        errors.errors.joinToString() shouldContain "builtin function cannot be redefined"
+    }
+
+    test("non-datatype keywords are still allowed as subroutine names") {
+        val src="""
+main {
+    sub start() {
+        on()
+    }
+
+    sub on() {
+    }
+}
+"""
+        compileText(VMTarget(), optimize=false, src, outputDir, writeAssembly=false) shouldNotBe null
     }
 
     test("string and array multiplication require integer multiplicand") {
