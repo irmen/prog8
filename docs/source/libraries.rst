@@ -465,6 +465,10 @@ modules. Import them the same way as any other library::
     Memory allocation, message ports, interrupts, device and resource management. Also the
     base for everything else: ``exec.OpenLibrary()`` is what opens the optional libraries.
     The ``exec`` module is always available, ``sys.SysBase`` is the ExecBase at 4.w.
+    In addition to the library bindings it provides ``exec.NewList(list)`` to initialize
+    a new Exec list header in place: it sets ``Head = &Tail``, ``Tail = 0`` and
+    ``TailPred = &Head``. The portable ``lists`` module's ``init()`` calls this on the
+    Amiga targets.
 
 ``dos`` (``dos.library``)
     File and directory handling, locking, IOStreams, requesters and the DOS error codes.
@@ -475,6 +479,10 @@ modules. Import them the same way as any other library::
 
 ``intuition`` (``intuition.library``)
     Screens, windows, gadgets and menus. Requires ``graphics``.
+    Next to the library bindings it provides three inline helper routines that read the
+    standard structures embedded in a ``Screen``: ``GetScreenViewPort(screen) -> pointer``,
+    ``GetScreenRastPort(screen) -> ^^graphics.RastPort`` and
+    ``GetScreenBitMap(screen) -> ^^graphics.BitMap``.
 
 ``utility`` (``utility.library``)
     Tag item handling (tags, tag lists) and the other small helpers from the utility library.
