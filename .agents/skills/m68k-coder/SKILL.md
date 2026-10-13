@@ -109,18 +109,27 @@ when both operands are registers.
 
 - Normal framed subroutines use `link a5,#-N` and `unlk a5`; locals are at
   negative `A5` offsets and incoming parameters are at positive offsets.
-- Arguments use one padded 4-byte slot each. The caller pushes arguments
-  left-to-right, right-justifies byte and word values in their slots, and
-  removes the complete argument area after the call. Parameter `i` of `N`
-  arguments is at `8 + 4 * (N - 1 - i)` from the callee's `A5` when `i` is zero-based.
+- Arguments use word-packed slots of natural width: byte, bool, word and uword
+  arguments take a 2-byte slot; long, pointer and float arguments take a 4-byte
+  slot. The caller pushes arguments left-to-right (a byte sits at the base byte
+  of its 2-byte slot, the second byte is garbage; word values fill their slot)
+  and removes the complete argument area after the call. The area
+  size is always even, so the stack stays word-aligned; slot bases accumulate from
+  the rightmost argument at `8(a5)` according to each argument's width.
 - A normal call preserves the caller's frame. A `goto` or conditional branch
   leaving the current subroutine must execute `unlk a5` on the taken path before
   transferring control.
 - The built-in Prog8 `call(address)` is a zero-argument indirect call. It does
   not marshal stack arguments. `asmsub` and `extsub` keep their explicit
   register-annotated ABI, separate from normal framed calls.
-- Do not push byte arguments directly with `move.b ..., -(sp)`: reserve a full
-  4-byte slot and store the byte at offset `3(sp)`.
+- Push narrow arguments into their own 2-byte slots, each with one instruction: a
+  byte uses `move.b ..., -(sp)` (A7 byte predecrement steps by 2, reserving the
+  slot; the byte lands at the slot's base byte), a word uses a plain
+  `move.w ..., -(sp)`. Never push a narrow value where the callee expects a
+  wide (4-byte) argument: the slot sizes must line up exactly.
+  Wide arguments (`move.l ..., -(sp)` / `fmove.s fp0,-(sp)`) push in one step.
+  Use `lea N(sp),sp` for the cleanup when the call returns a status flag
+  (`addq` clobbers CCR).
 
 ## Prog8 Integration
 

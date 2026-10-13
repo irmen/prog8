@@ -57,10 +57,11 @@ sealed interface CallLocation {
 
     /**
      * the value is passed in a slot of the callee's incoming argument area on the machine stack
-     * (the uniform all-stack M68K calling convention).
-     * [offset] is the positive, frame-pointer-relative byte offset of the slot: the caller pushes
-     * every argument left-to-right into padded longword slots, so the first argument ends up at the
-     * highest offset (4*N+4) and the last one at 8.
+     * (the all-stack M68K calling convention with word-packed slots).
+     * [offset] is the positive, frame-pointer-relative byte offset of the slot base: the caller
+     * pushes every argument left-to-right into natural-width slots (2 bytes for byte/word
+     * arguments, 4 bytes for wide arguments), so the first argument ends up at the highest
+     * offset and the last one at 8.
      */
     data class FrameSlot(val offset: Int) : CallLocation {
         init {

@@ -24,7 +24,8 @@ class TestStackFrameEmission : FunSpec({
         incomingSize: Int = 0,
         subLabel: String = "test.start",
         frameVregSlots: Map<Int, Int> = emptyMap(),
-        errors: ErrorReporterForTests? = null
+        errors: ErrorReporterForTests? = null,
+        params: List<IRSubroutine.IRParam>? = null
     ): List<String> {
         val options = CompilationOptions.builder(Qemu68kTarget())
             .output(OutputType.RAW)
@@ -38,10 +39,13 @@ class TestStackFrameEmission : FunSpec({
         program.options.outputDir = tempRoot
         val chunk = IRCodeChunk(subLabel, null)
         chunk.instructions.addAll(instructions)
-        val params = if (incomingSize > 0)
-            List(incomingSize / 4) { IRSubroutine.IRParam("p8v_p$it", DataType.UBYTE) }
-        else emptyList()
-        val sub = IRSubroutine(subLabel, params, emptyList(), Position.DUMMY, frameSize, incomingSize, frameVregSlots)
+        // word-packed slots: give callers a way to declare each parameter's real type,
+        // since the default derivation from the incoming area size assumes uniform slots
+        val paramList = params
+            ?: if (incomingSize > 0)
+                List(incomingSize / 2) { IRSubroutine.IRParam("p8v_p$it", DataType.UBYTE) }
+            else emptyList()
+        val sub = IRSubroutine(subLabel, paramList, emptyList(), Position.DUMMY, frameSize, incomingSize, frameVregSlots)
         sub.chunks.add(chunk)
         val block = IRBlock("test", false, IRBlock.Options(), Position.DUMMY)
         block.children.add(sub)
@@ -148,7 +152,7 @@ class TestStackFrameEmission : FunSpec({
         lines.any { it == "unlk  a5" } shouldBe true
     }
 
-    test("stack arguments are pushed right-justified and popped by the caller") {
+    test("stack arguments are pushed word-aligned into their slots and popped by the caller") {
         val calls = listOf(
             IRInstructions.call(CallSite(
                 target = CallTarget.Direct(CodeReference.Label("test.sub")),
@@ -161,12 +165,14 @@ class TestStackFrameEmission : FunSpec({
             IRInstructions.simple(Opcode.RETURN)
         )
         val lines = generateAsmWithIncoming(0, calls, incomingSize = 12, subLabel = "test.caller")
-        lines.count { it == "subq.l  #4,sp" } shouldBe 2
-        lines.count { it.startsWith("move.b ") && it.contains(",3(sp)") } shouldBe 1
-        lines.count { it.startsWith("move.w ") && it.contains(",2(sp)") } shouldBe 1
+        // word-packed pushes: byte arguments use the single move.b predecrement instruction
+        // (the byte lands at the slot's base byte), word and long push as themselves
+        lines.count { it.startsWith("move.b ") && it.contains(",-(sp)") && it.contains("pushed as a word") } shouldBe 1
+        lines.count { it.startsWith("move.w ") && it.contains(",-(sp)") } shouldBe 1
         lines.count { it.startsWith("move.l ") && it.contains(",-(sp)") } shouldBe 1
+        lines.none { it == "subq.l  #2,sp" } shouldBe true
         lines.any { it.startsWith("bsr") } shouldBe true
-        lines.any { it == "lea  12(sp),sp" } shouldBe true
+        lines.any { it == "addq.l  #8,sp" } shouldBe true   // 2+2+4 bytes
         // small argument areas use the short addq form
         val smallCalls = listOf(
             IRInstructions.call(CallSite(
@@ -176,7 +182,7 @@ class TestStackFrameEmission : FunSpec({
             IRInstructions.simple(Opcode.RETURN)
         )
         val smallLines = generateAsmWithIncoming(0, smallCalls, incomingSize = 4, subLabel = "test.caller")
-        smallLines.any { it == "addq.l  #4,sp" } shouldBe true
+        smallLines.any { it == "addq.l  #2,sp" } shouldBe true
     }
 
     test("status-flag results use CCR-preserving cleanup") {
@@ -189,10 +195,10 @@ class TestStackFrameEmission : FunSpec({
             IRInstructions.simple(Opcode.RETURN)
         )
         val lines = generateAsmWithIncoming(0, calls, incomingSize = 4, subLabel = "test.caller")
-        // a single byte argument would normally use addq.l #4,sp, but that clobbers CCR,
-        // so status-flag returns must use lea instead.
-        lines.any { it == "lea  4(sp),sp" } shouldBe true
-        lines.none { it == "addq.l  #4,sp" } shouldBe true
+        // a single byte argument (2-byte slot) would normally use addq.l #2,sp, but that
+        // clobbers CCR, so status-flag returns must use lea instead.
+        lines.any { it == "lea  2(sp),sp" } shouldBe true
+        lines.none { it == "addq.l  #2,sp" } shouldBe true
     }
 
     test("float stack arguments travel through the FPU accumulator") {

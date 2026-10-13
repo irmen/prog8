@@ -252,40 +252,52 @@ A large clean local array is therefore costly; the compiler warns about framed a
 than 8 bytes. Add ``@dirty`` when you assign the array before use. A framed ``@dirty`` local
 has no static storage and is not zeroed at startup either, so its initial value is stack garbage.
 
-Normal Prog8 subroutines use one uniform all-stack argument convention:
+Normal Prog8 subroutines use one all-stack argument convention with word-packed slots:
 
 * The caller evaluates arguments and pushes them from left to right.
-* Every argument occupies a padded four-byte slot. Byte and word values are right-justified in
-  that slot; pointers, longs and floats occupy the full slot.
-* After ``link a5,#-N``, the rightmost argument is at ``8(a5)``. For ``N`` parameters, parameter
-  ``i`` (counting from the left, starting at 1) is at ``8 + 4*(N-i)(a5)``.
-* The caller removes the complete argument area after the call. The callee's epilogue does not
-  depend on the number of arguments.
+* Every argument occupies a slot of its natural width: byte, ubyte, word and uword arguments
+  take a two-byte slot; long, pointer and float arguments take a four-byte slot. Byte values
+  sit at the slot's base byte (they occupy the slot's first byte; the second byte is garbage),
+  word values occupy the whole two-byte slot, and wide values fill the four-byte
+  slot.
+* After ``link a5,#-N``, the rightmost argument is at ``8(a5)``. The offsets accumulate from
+  the rightmost argument according to each argument's slot width, so parameter ``i``'s slot
+  base depends on the widths of the parameters to its right.
+* The caller removes the complete argument area after the call. The area size is always even,
+  so the machine stack stays word-aligned. The callee's epilogue does not depend on the
+  number of arguments.
 * Scalar and pointer results remain register-based, normally in ``D0``. Float results use the
   floating-point accumulator.
 
-The uniform four-byte slot is a deliberate first version: it keeps every parameter offset
-independent of the other arguments' types and keeps the caller rules trivial. A future
-version may switch to word-packed slots (narrow arguments at their natural size) to save
-stack space and bus traffic.
+The other byte of a two-byte slot holding a byte argument is undefined: read byte arguments
+byte-size-only. Because all slot sizes are even, slot bases stay word-aligned; a byte value
+lands on an even address, which is fine on the 68000 as a byte access.
 
 ``asmsub`` and ``extsub`` keep their explicit register-based, annotation-driven convention.
 AmigaOS library calls continue to use ``A6`` for the selected library base. Hand-written M68K
 assembly that calls a normal Prog8 subroutine must follow the stack convention and preserve
 ``A5``. For example, calling ``sub add2(ubyte a, uword b) -> uword``::
 
-    ; call add2($12, $3456); each argument gets one padded 4-byte slot
-    subq.l  #4,sp
-    move.b  #$12,3(sp)      ; byte: right-justified in its slot
-    subq.l  #4,sp
-    move.w  #$3456,2(sp)    ; word: right-justified in its slot
+    ; call add2($12, $3456); word-packed slots
+    move.b  #$12,-(sp)      ; byte: A7 steps by 2, so this reserves the 2-byte slot
+                            ; and the byte lands at the slot's base byte
+    move.w  #$3456,-(sp)    ; word: 2-byte predecrement push
     jsr     p8b_main.p8s_add2
-    lea     8(sp),sp        ; caller pops the 2 slots (lea preserves CCR)
+    addq.l  #4,sp           ; caller pops the 4-byte argument area
     ; result is now in d0
 
 Long, pointer and float arguments fill the whole slot, so they push in one step
-(``move.l x,-(sp)`` or ``fmove.s fp0,-(sp)``). Only use longword pushes: a byte
-push on ``sp`` steps by 2 to keep the stack word-aligned and would break the slot layout.
+(``move.l x,-(sp)`` or ``fmove.s fp0,-(sp)``). Byte and word pushes always reserve their
+2-byte slot - do not push them where the callee expects a wide argument, because that
+desynchronizes the slot layout. Use ``lea N(sp),sp`` instead of ``addq`` for the cleanup
+when the call returns a status flag: ``addq`` sets condition codes and would clobber the
+returned flags.
+
+.. note::
+   The calling convention of normal subroutines changed with IR format 8 from one padded
+   4-byte slot per argument to the word-packed layout above. Hand-written assembly written
+   against the old convention must be updated; older ``.p8ir`` files are rejected because
+   of this change.
 
 .. note::
    The built-in virtual machine does not currently execute frame-based IR. It rejects M68K

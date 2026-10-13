@@ -20,6 +20,7 @@ import prog8.code.core.CpuType
 import prog8.code.core.toHex
 import prog8.code.target.Amiga500Target
 import prog8.intermediate.*
+import prog8.intermediate.incomingSlotSize
 
 internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall: ImmediateCallOptimization? = null) {
     when (insn.opcode) {
@@ -674,10 +675,13 @@ private fun AsmGen.translateCall(fnLabel: String, callSite: CallSite, forwardedI
     }
 
     // caller cleanup of the all-stack argument area:
-    // each argument was pushed into its own padded longword slot
+    // each argument was pushed into its own word-packed slot (2-byte slots for byte/word args,
+    // 4-byte slots for wide args); the total area size is always even
     val pushedSlots = callSite.arguments.count { it.location is CallLocation.FrameSlot }
     if (pushedSlots > 0) {
-        val totalSize = pushedSlots * 4
+        val totalSize = callSite.arguments
+            .filter { it.location is CallLocation.FrameSlot }
+            .sumOf { incomingSlotSize(it.source.type, target) }
         val needsCcr = callSite.results.any { it.location is CallLocation.StatusFlag }
         when {
             // addq is compact but updates CCR; lea preserves CCR so status-flag returns
@@ -842,9 +846,9 @@ private fun AsmGen.translateArgument(
             }
         }
     } else {
-        // Stack argument: push into a padded longword slot, right-justified.
+        // Stack argument: push into the parameter's word-packed slot, landing at the slot
+        // base byte (2-byte slots for byte/word args, 4-byte slots for wide args).
         // The caller pops the whole argument area after the return, so the callee never needs to know the argument count.
-        // Optimizing this to use word-padding instead of long padding could be done in a future version
         if (arg.location is CallLocation.FrameSlot) {
             if (argReg.isFloat) {
                 // the FPU has no absolute-long addressing mode, so the value has to travel
@@ -854,14 +858,16 @@ private fun AsmGen.translateArgument(
                 emitLine("fmove.s  $FP_ACC,-(sp)", paramName.orEmpty())
             } else {
                 when (argReg.type) {
-                    IRDataType.BYTE -> {
-                        emitLine("subq.l  #4,sp")
-                        emitLine("move.b  ${regAddr(argReg.intNumber)},3(sp)", paramName.orEmpty())
-                    }
-                    IRDataType.WORD -> {
-                        emitLine("subq.l  #4,sp")
-                        emitLine("move.w  ${regAddr(argReg.intNumber)},2(sp)", paramName.orEmpty())
-                    }
+                    IRDataType.BYTE ->
+                        // one-instruction push: on the stack pointer a byte predecrement
+                        // steps by 2 (not 1), so this reserves the 2-byte slot in one go;
+                        // the byte lands at the slot's base byte, matching the zero
+                        // within-slot displacement that byte parameters use
+                        emitLine("move.b  ${regAddr(argReg.intNumber)},-(sp)",
+                            (if (paramName != null) "$paramName " else "") + "(note: pushed as a word)")
+                    // a 2-byte predecrement push reserves and stores the word slot in one instruction
+                    IRDataType.WORD ->
+                        emitLine("move.w  ${regAddr(argReg.intNumber)},-(sp)", paramName.orEmpty())
                     // longs and pointers fill the whole slot, so reserve and store in one push
                     else -> emitLine("move.l  ${regAddr(argReg.intNumber)},-(sp)", paramName.orEmpty())
                 }

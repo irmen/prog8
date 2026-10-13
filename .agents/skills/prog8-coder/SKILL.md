@@ -69,11 +69,13 @@ libraries.
   external address stay static. Clean locals are zeroed on every call
   including arrays, so the compiler warns for framed arrays over 8 bytes; use
   `@dirty` when you assign first, otherwise you read stack garbage.
-- Normal M68K calls use uniform 4-byte, right-justified argument slots. The caller
-  pushes arguments left-to-right and removes the complete argument area after the
-  call. Framed parameters start at positive `A5` offsets, with the first parameter
-  at `8 + 4 * (parameter_count - 1)`; locals use negative offsets. See
-  `docs/source/technical.rst` for the full convention and static fallback rules.
+- Normal M68K calls use word-packed argument slots: byte/bool/word/uword arguments
+  take a 2-byte slot, long/pointer/float take 4 bytes. The caller pushes arguments
+  left-to-right and removes the complete argument area after the call. Slot bases
+  accumulate right-to-left starting at positive `A5` offset 8, so a parameter's
+  offset depends on the widths of the parameters to its right; locals use negative
+  offsets. See `docs/source/technical.rst` for the full convention and static
+  fallback rules.
 - `memory(name, size)` reserves static memory and returns a `pointer`.
 - `str` and arrays have compile-time byte budgets. On 6502 targets the usual
   limit is 256 bytes; M68000 targets allow up to 32768 bytes. Use `memory()`

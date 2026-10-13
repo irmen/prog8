@@ -87,27 +87,28 @@ main {
         // incoming-only frame: no locals, but the parameters need a frame pointer
         lines.any { it == "link  a5,#0" } shouldBe true
         lines.any { it == "unlk  a5" } shouldBe true
-        // narrow parameters are right-justified inside their longword slot (offsets 8/12/16)
-        lines.any { it.contains("19(a5)") } shouldBe true     // ubyte at slot 16 + 3
-        lines.any { it.contains("14(a5)") } shouldBe true     // word at slot 12 + 2
+        // word-packed slots: long at 8, word slot at 12, byte slot at 14 with the byte at 14
+        lines.any { it.contains("14(a5)") } shouldBe true     // ubyte at slot 14 base byte
+        lines.any { it.contains("12(a5)") } shouldBe true     // word at slot 12
         lines.any { it.contains("8(a5)") } shouldBe true      // long at slot 8
         // parameters are no longer static storage
         lines.none { "p8v_a:" in it || "p8v_b:" in it || "p8v_c:" in it } shouldBe true
-        // the caller pushes every argument into its own slot, then pops the whole area
-        lines.count { it == "subq.l  #4,sp" } shouldBe 2
-        lines.count { it.startsWith("move.b ") && it.contains(",3(sp)") } shouldBe 1
-        lines.count { it.startsWith("move.w ") && it.contains(",2(sp)") } shouldBe 1
+        // the caller pushes every argument into its own slot (byte: single one-instruction
+        // push carrying a "pushed as a word" note), then pops the whole area
+        lines.count { it.startsWith("move.b ") && it.contains(",-(sp)") && it.contains("pushed as a word") } shouldBe 1
+        lines.count { it.startsWith("move.w ") && it.contains(",-(sp)") } shouldBe 1
+        lines.count { it == "subq.l  #2,sp" } shouldBe 0
         // long/pointer slots push with a single move.l ...,-(sp), same shape as PUSH ops elsewhere,
         // so only require at least the one argument push (exact isolation is covered in TestStackFrameEmission)
         lines.count { it.startsWith("move.l ") && it.contains(",-(sp)") } shouldBeGreaterThanOrEqual 1
-        lines.any { it == "lea  12(sp),sp" } shouldBe true
+        lines.any { it == "addq.l  #8,sp" } shouldBe true
         // IR carries the incoming area size and the frame-slot argument locations
-        ir.contains("INCOMING=\"12\"") shouldBe true
-        ir.contains("frame:16=") shouldBe true
+        ir.contains("INCOMING=\"8\"") shouldBe true
+        ir.contains("frame:14") shouldBe true
         val reloaded = IRFileReader().read(ir)
         val sub = reloaded.allSubs().first { it.label.endsWith("p8s_withp") }
         sub.frameSize shouldBe 0
-        sub.incomingSize shouldBe 12
+        sub.incomingSize shouldBe 8
     }
 
     test("many parameters use one cleanup for the whole argument area") {
@@ -123,13 +124,15 @@ main {
 }
 """
         val (lines, ir) = compile(src)
-        lines.count { it == "subq.l  #4,sp" } shouldBe 4
-        lines.any { it == "lea  20(sp),sp" } shouldBe true     // 20 bytes: the addq form maxes out at 8
-        // 5 parameters: slots at 24/20/16/12/8, narrow values right-justified inside their slot
-        lines.any { it.contains("27(a5)") } shouldBe true       // ubyte at slot 24 + 3
-        lines.any { it.contains("22(a5)") } shouldBe true       // uword at slot 20 + 2
-        lines.any { it.contains("16(a5)") } shouldBe true       // long at slot 16
-        ir.contains("INCOMING=\"20\"") shouldBe true
+        // no byte slot reservations; byte pushes use a single move.b predecrement
+        lines.count { it == "subq.l  #2,sp" } shouldBe 0
+        lines.any { it == "lea  12(sp),sp" } shouldBe true     // 12 bytes: the addq form maxes out at 8
+        // 5 parameters, word-packed slots, accumulated right-to-left: byte slot at 18,
+        // word slot at 16, long slot at 12, byte slot at 10, word slot at 8
+        lines.any { it.contains("18(a5)") } shouldBe true       // ubyte at slot 18 base byte
+        lines.any { it.contains("16(a5)") } shouldBe true       // uword at slot 16
+        lines.any { it.contains("12(a5)") } shouldBe true       // long at slot 12
+        ir.contains("INCOMING=\"12\"") shouldBe true
     }
 
     test("subroutine that calls another is framed when it is not recursive") {
@@ -494,7 +497,7 @@ main {
         val parm = subAssembly(lines, "p8b_main.p8s_parm")
         parm.any { it == "link  a5,#0" } shouldBe true
         // the entry-time copy-in is still performed
-        parm.any { it.startsWith("move.b  11(a5),") } shouldBe true
+        parm.any { it.startsWith("move.b  8(a5),") } shouldBe true
         // the body's write goes to the static cell, not to the incoming frame slot
         parm.any { it.contains("move.b") && it.contains("p8b_main.p8s_parm.p8v_x") && it.contains("#99") } shouldBe true
         // the defer handler reads the static cell, so it observes the body's written value
@@ -679,7 +682,7 @@ main {
         parm.any { it == "link  a5,#0" } shouldBe true
         parm.any { it == "unlk  a5" } shouldBe true
         // entry-time copy-in: load the incoming slot, store into the static cell, before any clearing
-        parm.any { it.startsWith("move.b  11(a5),") } shouldBe true
+        parm.any { it.startsWith("move.b  8(a5),") } shouldBe true
         parm.any { it.contains("p8b_main.p8s_parm.p8v_x") } shouldBe true
         // the static cell is kept so the block-scope defer handler can still see it
         lines.any { "p8b_main.p8s_parm.p8v_x:" in it } shouldBe true
@@ -705,7 +708,7 @@ main {
         val (lines, _) = compile(src)
         val rec = subAssembly(lines, "p8b_main.p8s_rec")
         rec.any { it == "link  a5,#0" } shouldBe true
-        rec.any { it.startsWith("move.b  11(a5),") } shouldBe true
+        rec.any { it.startsWith("move.b  8(a5),") } shouldBe true
         rec.any { it.contains("p8b_main.p8s_rec.p8v_x") } shouldBe true
         // the static cell is kept for the assembly reference; the body itself also uses the
         // static cell (the entry-time copy-in made it the current value)
@@ -1255,11 +1258,11 @@ main {
         val (lines, _) = compile(src)
         val start = subAssembly(lines, "p8b_main.p8s_start")
         // each push store is annotated with the short parameter name it fills;
-        // the slot-reserving subq lines stay bare
-        start.any { it.contains(",3(sp)") && it.endsWith("; first") } shouldBe true
-        start.any { it.contains(",2(sp)") && it.endsWith("; second") } shouldBe true
-        start.any { it.contains(",-(sp)") && it.endsWith("; third") } shouldBe true
-        start.count { it == "subq.l  #4,sp" } shouldBe 2
+        // the byte slot-reserving subq lines stay absent (byte pushes are single moves)
+        start.any { it.startsWith("move.b ") && it.contains(",-(sp)") && it.contains("; first") && it.contains("pushed as a word") } shouldBe true
+        start.any { it.startsWith("move.w ") && it.contains(",-(sp)") && it.endsWith("; second") } shouldBe true
+        start.any { it.startsWith("move.l ") && it.contains(",-(sp)") && it.endsWith("; third") } shouldBe true
+        start.count { it == "subq.l  #2,sp" } shouldBe 0
     }
 
     test("re-entrant subroutines that share data are rejected in plain language") {

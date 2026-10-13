@@ -9,7 +9,8 @@ import prog8.intermediate.*
  * Classifies subroutines as "frameable" and, for those:
  *  - moves their plain-data locals into A5-relative frame slots (negative offsets),
  *  - moves their parameters into the caller-pushed incoming argument area (positive offsets,
- *    4 bytes per parameter, first parameter at the highest offset),
+ *    word-packed: 2-byte slots for byte/word parameters, 4-byte slots for wide parameters,
+ *    first parameter at the highest offset),
  *  - rewrites every memory reference to AddressBase.FrameSlot and every call site's argument
  *    locations to CallLocation.FrameSlot,
  *  - removes the moved variables from the static (BSS) symbol table,
@@ -39,9 +40,6 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
 
     companion object {
         const val MAX_FRAME_SIZE = 16384      // §3: per-frame limit, far below the 16-bit displacement range
-
-        /** bytes reserved per incoming parameter (padded longword slot, §6.1) */
-        const val PARAM_SLOT_SIZE = 4
 
         /** virtual register numbers from here on are reserved for the runtime and cannot be relocated */
         const val RESERVED_VREG_RANGE_START = 99000
@@ -382,7 +380,9 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
         //. parameter variable name -> frame offset of its incoming slot
         val paramSlots: Map<String, Int>,
         // parameter variable names that keep a static cell and get an entry-time copy-in (§6.1)
-        val copyInParams: Set<String>
+        val copyInParams: Set<String>,
+        // total byte size of the incoming argument area (even; 2/4 bytes per parameter)
+        val incomingSize: Int
     )
 
     /** outcome of the frameability decision for one subroutine */
@@ -427,6 +427,8 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
         val paramSlots = mutableMapOf<String, Int>()
         val paramDisplacements = mutableMapOf<String, Int>()
         val copyInParams = mutableSetOf<String>()
+        val slotSizes = mutableMapOf<String, Int>()
+        val slotIrTypes = mutableMapOf<String, IRDataType>()
         for ((index, _) in sub.parameters.withIndex()) {
             val name = scopedParamNames[index]
             val v = program.st.lookup(name) as? IRStStaticVariable ?: return static()
@@ -439,15 +441,22 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
             val refs = referencedIn[name]
             if ((refs != null && refs.any { it != sub.label }) || isLabelReferencedInAsm(name, asmTexts))
                 copyInParams += name
-            // first parameter ends up at the highest offset, last one just above the return address
-            val offset = INCOMING_BASE + PARAM_SLOT_SIZE * (sub.parameters.size - 1 - index)
-            paramSlots[name] = offset
-            // narrow values are right-justified in their longword slot
-            paramDisplacements[name] = when (irTypeFor(elemDt)) {
-                IRDataType.BYTE -> 3
-                IRDataType.WORD -> 2
-                else -> 0
-            }
+            val irType = irTypeFor(elemDt) ?: error("frameable parameter $name has no IR data type")
+            slotIrTypes[name] = irType
+            slotSizes[name] = incomingSlotSize(irType, target)
+        }
+
+        // first parameter ends up at the highest offset, last one just above the return address;
+        // each slot takes its own width (2 or 4 bytes), accumulated from the last parameter backwards
+        var incomingSize = 0
+        for (name in scopedParamNames.reversed()) {
+            val irType = slotIrTypes.getValue(name)
+            val slotSize = slotSizes.getValue(name)
+            paramSlots[name] = INCOMING_BASE + incomingSize
+            // single-instruction byte pushes land at the slot base, so all parameters
+            // read from their slot base without a within-slot displacement
+            paramDisplacements[name] = 0
+            incomingSize += slotSize
         }
 
         // all call sites must use the plain parameter-memory convention of this convention
@@ -558,7 +567,7 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
             val mem = instr.memory
             val sym = mem?.symbolName
             val slot = if (sym != null) slotOf(sym, slotBySymbol, paramSlots) else null
-            // parameters are right-justified in their padded longword slot, so include that displacement
+            // all parameters are read from their slot base, so no extra displacement is included
             val extra = paramDisplacements[sym] ?: 0
             val disp = when (mem) {
                 is MemoryReference.Direct -> slot?.plus(mem.displacement)?.plus(extra)
@@ -577,8 +586,8 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
             return static()
         }
 
-        // rewrite references: Symbol base -> FrameSlot base (parameters additionally get the
-        // right-justification displacement of their padded slot).
+        // rewrite references: Symbol base -> FrameSlot base (values are read from the slot
+        // base itself, so no within-slot displacement applies).
         // Copy-in parameters keep their static cell for ALL references (§6.1): the entry-time
         // copy-in loads the incoming value into that cell, and the body reads and writes it
         // there - this also keeps the externally referencing code (defer handler, inline
@@ -666,9 +675,9 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
             firstChunk.instructions.addAll(0, prologueInstrs)
         }
         sub.frameSize = frameSize
-        sub.incomingSize = paramSlots.size * PARAM_SLOT_SIZE
+        sub.incomingSize = incomingSize
         sub.frameVregSlots = vregSlots
-        return Frameability.Frameable(FrameLayoutResult(paramSlots, copyInParams))
+        return Frameability.Frameable(FrameLayoutResult(paramSlots, copyInParams, incomingSize))
     }
 
     /**
@@ -1036,6 +1045,7 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
         if (framedSubs.isEmpty()) return
         for (sub in program.allSubs()) {
             val offsetsByCallee = mutableMapOf<String, List<Int>>()
+            val incomingSizeByCallee = mutableMapOf<String, Int>()
             for ((callee, layout) in framedSubs) {
                 val params = calleeParameters(callee) ?: continue
                 if (params.isEmpty()) continue
@@ -1043,6 +1053,7 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
                     val scoped = if (param.startsWith("$callee.")) param else "$callee.$param"
                     layout.paramSlots[scoped] ?: 0
                 }
+                incomingSizeByCallee[callee] = layout.incomingSize
             }
             if (offsetsByCallee.isEmpty()) continue
             sub.forEachChunk { chunk ->
@@ -1064,6 +1075,13 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
                     }
                     if (changed)
                         instrs[i] = instr.copy(callSite = site.copy(arguments = rewritten))
+                    // caller/callee agreement guard: the slots the caller pushes must add up
+                    // to exactly the callee's incoming argument area
+                    val pushedSize = site.arguments.sumOf { incomingSlotSize(it.source.type, target) }
+                    require(pushedSize == incomingSizeByCallee[callee]) {
+                        "argument slot sizes of the call to '$callee' add up to $pushedSize bytes, " +
+                                "but the callee's incoming argument area is ${incomingSizeByCallee[callee]} bytes"
+                    }
                 }
             }
         }

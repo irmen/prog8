@@ -23,17 +23,20 @@ of v1, never second conventions.
   and mandatory copy-ins, doubling marshalling paths and tests).
 - `asmsub`/`extsub` keep their explicit register-annotation ABI as a separate lane; normal
   subs calling them (or vice versa) follow §6.3 push rules. A Linux/GCC-style word-packed
-  scheme (natural sizes, 16-bit alignment) is legal on 68000 but was deferred to keep v1
-  offsets type-independent and hand-written caller rules trivial.
+  scheme (natural sizes, 16-bit alignment) is legal on 68000; **it has since been implemented
+  as the default convention** (IR format 8), so the sections about the uniform 4-byte layout
+  in this and older documents no longer describe the current behavior.
 
 ## Follow-ups (each needs its own design review + test pass)
 
 ### 1. Word-packed argument slots
 
-Linux/GCC scheme: byte/bool = 2 bytes incl. pad, word = 2, long/float/pointer = 4,
-still even-aligned. Saves stack space and bus traffic per narrow arg. Cost: frame layout
-sums per-arg rounded sizes instead of constant stride; documented `asmsub` push rules change.
-Introduce as a convention variant/flag, never by silently breaking v1 layout.
+**Done**: implemented as the default convention (IR format 8, see
+`ideas/m68k-word-packed-args.md`). Linux/GCC scheme: byte/bool = 2 bytes incl. pad,
+word = 2, long/float/pointer = 4, still even-aligned. Saves stack space and bus traffic
+per narrow arg. Cost: frame layout sums per-arg rounded sizes instead of constant
+stride; documented `asmsub` push rules change; hand-written asm (e.g. the stdlib
+`die()` subs) and `.p8ir` consumers were updated accordingly.
 
 ### 2. Register argument passing
 

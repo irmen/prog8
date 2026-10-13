@@ -157,7 +157,7 @@ sys {
     sub die(uword code, str message) {
         %asm {{
             moveq   #0,d0
-            move.w  14(a5),d0
+            move.w  12(a5),d0
             lea      .alert(pc),a1
             lea      .alert_limit(pc),a3
             move.w   #20,(a1)+
@@ -169,7 +169,7 @@ sys {
             move.b   d1,(a1)+
             bra.s    .copy_prefix
 .copy_code:
-            move.w   14(a5),d2
+            move.w   12(a5),d2
             moveq    #3,d4
 .copy_code_digit:
             move.w   d2,d3
@@ -210,7 +210,7 @@ sys {
             lea      .alert(pc),a0
             jsr      -90(a6)
             moveq   #0,d0
-            move.w  14(a5),d0
+            move.w  12(a5),d0
             jmp      sys.exit
 
             even

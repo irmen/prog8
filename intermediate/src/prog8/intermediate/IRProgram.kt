@@ -8,6 +8,24 @@ val IMemSizer.pointerIRType: IRDataType
 val IMemSizer.indexRegType: IRDataType
     get() = if(POINTER_MEM_SIZE > 2u) IRDataType.WORD else IRDataType.BYTE
 
+/**
+ * Slot geometry of the M68K incoming-argument area, shared by the IR frame layout pass
+ * and the m68k backend so they can never disagree (technical.rst §6.1).
+ *
+ * Every parameter occupies a slot of its natural size, 2-byte aligned:
+ * byte/word parameters a 2-byte slot, wide parameters a 4-byte slot. Byte and word
+ * arguments push with a single predecrement instruction; on the stack pointer a byte
+ * predecrement steps by 2 (not 1), so it reserves the slot in one go and the byte
+ * lands at the slot's base byte. No within-slot displacement is needed for any
+ * parameter; the other byte of a byte slot is garbage.
+ */
+fun incomingSlotSize(irType: IRDataType, target: ICompilationTarget): Int =
+    when (irType) {
+        IRDataType.BYTE, IRDataType.WORD -> 2
+        IRDataType.FLOAT -> target.FLOAT_MEM_SIZE.toInt()
+        IRDataType.LONG, IRDataType.POINTER -> target.POINTER_MEM_SIZE.toInt()
+    }
+
 /*
 
 Intermediate Represenation of the compiled program.
@@ -606,10 +624,7 @@ class IRSubroutine(
         require(parameters.all{ it.dt.isNumericOrBool || it.dt.isPointer }) {"parameter is not a bool, number or pointer"}
         require(returns.all { it.isNumericOrBool || it.isPointer}) {"returntype is not a bool, number or pointer"}
         require(frameSize >= 0 && frameSize % 2 == 0) {"frame size must be a non-negative even number: $frameSize"}
-        require(incomingSize >= 0 && incomingSize % 4 == 0) {"incoming argument area size must be a non-negative multiple of 4: $incomingSize"}
-        require(incomingSize == 0 || incomingSize == parameters.size * 4) {
-            "incoming argument area size must be 4 bytes per parameter: $incomingSize for ${parameters.size} parameters"
-        }
+        require(incomingSize >= 0 && incomingSize % 2 == 0) {"incoming argument area size must be a non-negative even number: $incomingSize"}
         require(frameSize > 0 || frameVregSlots.isEmpty()) {
             "virtual registers can only live in a frame that has a local area: $frameSize for $label"
         }

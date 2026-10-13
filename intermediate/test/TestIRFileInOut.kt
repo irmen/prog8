@@ -14,13 +14,18 @@ import kotlin.io.path.readLines
 import kotlin.io.path.readText
 
 class TestIRFileInOut: FunSpec({
-    test("IR reader requires format 4") {
+    test("IR reader requires format 8") {
         shouldThrow<IRParseException> {
             IRFileReader().read("""<?xml version="1.0"?><PROGRAM NAME="test" COMPILERVERSION="99.99"/>""")
         }.message shouldBe "missing IRFORMAT"
         shouldThrow<IRParseException> {
             IRFileReader().read("""<?xml version="1.0"?><PROGRAM NAME="test" COMPILERVERSION="99.99" IRFORMAT="3"/>""")
         }.message shouldBe "unsupported IR format: 3"
+        // format 7 and older use the one-padded-slot-per-parameter convention, which is
+        // incompatible with the word-packed layout; old files must fail loudly
+        shouldThrow<IRParseException> {
+            IRFileReader().read("""<?xml version="1.0"?><PROGRAM NAME="test" COMPILERVERSION="99.99" IRFORMAT="7"/>""")
+        }.message shouldBe "unsupported IR format: 7"
     }
 
     test("test IR writer") {
@@ -39,7 +44,7 @@ class TestIRFileInOut: FunSpec({
         val generatedFile = writer.write()
         val lines = generatedFile.readLines()
         lines[0] shouldBe "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
-        lines[1] shouldBe "<PROGRAM NAME=\"unittest-irwriter\" COMPILERVERSION=\"99.99\" IRFORMAT=\"7\">"
+        lines[1] shouldBe "<PROGRAM NAME=\"unittest-irwriter\" COMPILERVERSION=\"99.99\" IRFORMAT=\"8\">"
         lines.last() shouldBe "</PROGRAM>"
         generatedFile.deleteExisting()
         lines.size shouldBeGreaterThan 20
@@ -80,6 +85,47 @@ class TestIRFileInOut: FunSpec({
         readSub.incomingSize shouldBe 4
         readSub.frameVregSlots shouldBe mapOf(5 to -2, 7 to -4, 9 to -8)
         readSub.hasFrame shouldBe true
+    }
+
+    test("word-packed incoming area sizes round-trip and odd sizes are rejected") {
+        val target = VMTarget()
+        val options = CompilationOptions.builder(target)
+            .output(OutputType.RAW)
+            .zeropage(ZeropageType.DONTUSE)
+            .noSysInit(true)
+            .compilerVersion("99.99")
+            .loadAddress(target.PROGRAM_LOAD_ADDRESS)
+            .memtopAddress(0xffffu)
+            .outputDir(Path(""))
+            .build()
+        val program = IRProgram("unittest-wordpacked", IRSymbolTable(), options, target)
+        val chunk = IRCodeChunk("test.framed", null)
+        chunk += IRInstructions.returnVoid()
+        val block = IRBlock("test", false, IRBlock.Options(), Position.DUMMY)
+        // mixed-width word-packed layout: 2-byte + 2-byte + 4-byte slots = 8 bytes
+        val sub = IRSubroutine("test.framed", listOf(
+            IRSubroutine.IRParam("p8v_a", DataType.UBYTE),
+            IRSubroutine.IRParam("p8v_b", DataType.UWORD),
+            IRSubroutine.IRParam("p8v_c", DataType.LONG)),
+            emptyList(), Position.DUMMY, frameSize = 0, incomingSize = 8)
+        sub += chunk
+        block.children += sub
+        program.blocks += block
+
+        val generatedFile = IRFileWriter(program, Path("intermediate-wordpacked-test-output.p8ir")).write()
+        generatedFile.readText().contains("INCOMING=\"8\"") shouldBe true
+        generatedFile.deleteExisting()
+
+        val readBack = IRFileReader().read(IRFileWriter(program, Path("intermediate-wordpacked-test-output.p8ir")).write())
+        val readSub = readBack.blocks.first().children.filterIsInstance<IRSubroutine>().first()
+        readSub.incomingSize shouldBe 8
+        readSub.hasFrame shouldBe true
+
+        // odd argument area sizes (uneven slots) cannot happen; reject even at construction
+        shouldThrow<IllegalArgumentException> {
+            IRSubroutine("test.odd", listOf(IRSubroutine.IRParam("p8v_p", DataType.UBYTE)),
+                emptyList(), Position.DUMMY, frameSize = 0, incomingSize = 7)
+        }
     }
 
     test("IR pointer arrays round-trip") {
@@ -133,7 +179,7 @@ class TestIRFileInOut: FunSpec({
 
     test("test IR reader") {
         val source="""<?xml version="1.0" encoding="utf-8"?>
-<PROGRAM NAME="test-ir-reader" COMPILERVERSION="99.99" IRFORMAT="4">
+<PROGRAM NAME="test-ir-reader" COMPILERVERSION="99.99" IRFORMAT="8">
 <OPTIONS>
 compTarget=virtual
 output=PRG
@@ -220,7 +266,7 @@ return
 
     test("test IR reader with struct containing pointer fields") {
         val source="""<?xml version="1.0" encoding="utf-8"?>
-<PROGRAM NAME="test-struct-pointer" COMPILERVERSION="99.99" IRFORMAT="4">
+<PROGRAM NAME="test-struct-pointer" COMPILERVERSION="99.99" IRFORMAT="8">
 <OPTIONS>
 compTarget=virtual
 output=PRG
@@ -329,7 +375,7 @@ load.b r1.b,#0.b
 
     test("test IR reader parses loadhr/storehr sN immediate encoding") {
         val source="""<?xml version="1.0" encoding="utf-8"?>
-<PROGRAM NAME="test-sn-immediate" COMPILERVERSION="99.99" IRFORMAT="4">
+<PROGRAM NAME="test-sn-immediate" COMPILERVERSION="99.99" IRFORMAT="8">
 <OPTIONS>
 compTarget=virtual
 output=PRG
@@ -480,7 +526,7 @@ storehr.b r1.b,s2.b
 
     test("test IR reader parses block-level CHUNK (label and align)") {
         val source="""<?xml version="1.0" encoding="utf-8"?>
-<PROGRAM NAME="test-block-level-chunk" COMPILERVERSION="99.99" IRFORMAT="4">
+<PROGRAM NAME="test-block-level-chunk" COMPILERVERSION="99.99" IRFORMAT="8">
 <OPTIONS>
 compTarget=virtual
 output=PRG
