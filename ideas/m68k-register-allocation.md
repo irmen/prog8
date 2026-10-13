@@ -112,13 +112,15 @@ on the convention decisions in §2, not on the allocator existing.
 
 Per the sequencing decision, the stack-frame implementation
 lands *before* this allocator, so the convention this allocator is built
-against is already the final one - the uniform all-stack convention documented
-for M68K targets:
+against is already the final one - the word-packed all-stack convention documented
+for M68K targets (IR format 8):
 
-- **Normal subs:** the caller pushes every argument to a longword slot
-  left-to-right (`-(sp)`), `jsr`s, and pops the area after the return
+- **Normal subs:** the caller pushes every argument left-to-right into a
+  word-packed slot (byte/bool/word = 2 bytes, long/float/pointer = 4),
+  `jsr`s, and pops the whole area after the return
   (caller cleanup). The callee reads arguments from positive A5 offsets as
-  incoming frame slots.
+  incoming frame slots, accumulating from the rightmost argument at `8(a5)`
+  by per-argument slot width.
 - **asmsub/extsub:** arguments continue to go into fixed hardware slots via
   `CallingConventionSlot`: slots 10..17 → D0..D7, 18..24 → A0..A6,
   25..32 → FP0..FP7. In practice asmsub args/returns use D0–D2 and FP0–FP1
@@ -131,9 +133,16 @@ Consequences for the allocator:
   callee-side parameters need no special allocator treatment while they stay
   memory-resident. Once the callee loads a parameter into a vreg to compute
   with it, that vreg is allocated like any other.
+- Word-packed slot widths constrain callee-side reads: a byte/bool parameter
+  occupies a 2-byte slot whose second byte is garbage, so it must be read
+  byte-size-only (`move.b`), never as a word load of the slot. Word params
+  fill their 2-byte slot and wide params their 4-byte slot, so those read at
+  full width. This feeds the §7.1 #1 width semantics: loading an incoming
+  parameter at the wrong width reads garbage.
 - Caller-side pushes are convention traffic, not allocation: the argument
-  value (in whatever register its vreg is allocated) is stored to `-(sp)`
-  like any memory move; the `addq` cleanup between pushes and the call
+  value (in whatever register its vreg is allocated) is stored to its slot
+  (`move.b` / `move.w` / `move.l x,-(sp)`) like any memory move; the
+  caller-side cleanup after the call
   disturbs nothing held in registers (SP itself is never allocated).
 - Register argument *passing* is a separate later optimization, layered on top
   of this convention once the allocator works.
@@ -531,7 +540,8 @@ points. Three possible spill targets, with different soundness properties:
   spills become frame-resident: per-invocation, recursion-safe, and cheaper
   addressing (`move.l -8(a5),d0`). The frame layout pass does not yet budget
   generic "compiler spill slots" for the allocator — it currently lays out
-  locals, the incoming argument area, and `frameVregSlots` for re-entrant
+  locals, the incoming argument area (sized by summed rounded slot widths,
+  always even), and `frameVregSlots` for re-entrant
   subroutines only — so the slot-allocation policy is Stage-2 work (§7.1 #3).
 - **SP-reserved spill area (proposed fallback for frameless subroutines):** for
   subroutines the frame-layout pass leaves frameless (`hasFrame == false`,
@@ -893,3 +903,13 @@ structure) covering:
 - Caller and callee both spilling in a call chain: stack/frame spills do not
   collide; BSS spill slots are program-wide unique.
 - Interrupt handlers save/restore every register they touch.
+
+---
+
+## 9. Future: register argument passing
+
+Paired caller/callee specialization over the fixed stack convention (e.g. first scalar
+in D0, first pointer in A0, rest on stack), applied only where it measurably wins (small
+scalar signatures). Builds on the allocator in this document (§2.1, §2.6); when it lands,
+fold immediate-forwarding into the call-boundary marshalling on allocator liveness and
+delete `ImmediateCallOptimization` (Stage 2 step 9).
