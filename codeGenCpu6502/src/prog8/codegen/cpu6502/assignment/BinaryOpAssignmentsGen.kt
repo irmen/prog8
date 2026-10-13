@@ -30,10 +30,7 @@ internal class BinaryOpAssignmentsGen(
             else -> false
         }
 
-        return if(translatedOk)
-            true
-        else
-            anyExprGen.assignAnyExpressionUsingStack(expr, assign)
+        return translatedOk || anyExprGen.assignAnyExpressionUsingStack(expr, assign)
     }
 
 
@@ -1236,8 +1233,7 @@ internal class BinaryOpAssignmentsGen(
             return true
         }
         val left = expr.left
-        val right = expr.right
-        when(right) {
+        when(val right = expr.right) {
             is PtNumber -> {
                 asmgen.assignExpressionTo(left, target)
                 val hex = right.number.toLongHex()
@@ -1318,78 +1314,87 @@ internal class BinaryOpAssignmentsGen(
                 }
             }
             is PtIdentifier -> {
-                if(target.kind == TargetStorageKind.VARIABLE) {
-                    asmgen.assignExpressionTo(left, target)
-                    val rightsym = asmgen.asmVariableName(right)
-                    asmgen.out("""
-                        lda  #<$rightsym
-                        ldy  #>$rightsym
-                        sta  P8ZP_SCRATCH_W1
-                        sty  P8ZP_SCRATCH_W1+1
-                        lda  #<${target.asmVarname}
-                        ldy  #>${target.asmVarname}""")
-                    if (expr.operator == "+") {
-                        asmgen.out("  jsr  prog8_lib.long_add_inplace")
-                    } else {
-                        asmgen.out("  jsr  prog8_lib.long_sub_inplace")
-                    }
-                    return true
-                } else if(target.kind == TargetStorageKind.REGISTER) {
-                    val startreg = target.register!!.startregname()
-                    asmgen.assignExpressionTo(left, target)
-                    val rightsym = asmgen.asmVariableName(right)
-                    asmgen.out(
-                        """
-                        lda  #<$rightsym
-                        ldy  #>$rightsym
-                        sta  P8ZP_SCRATCH_W1
-                        sty  P8ZP_SCRATCH_W1+1
-                        lda  #<cx16.$startreg
-                        ldy  #>cx16.$startreg"""
-                    )
-                    if (expr.operator == "+") {
-                        asmgen.out("  jsr  prog8_lib.long_add_inplace")
-                    } else {
-                        asmgen.out("  jsr  prog8_lib.long_sub_inplace")
-                    }
-                    return true
-                } else {
-                    // isn't an expression, so no need to preserve R12-R15
-                    asmgen.assignExpressionToRegister(expr.left, RegisterOrPair.R12R13, left.type.isSigned)
-                    asmgen.assignExpressionToRegister(expr.right, RegisterOrPair.R14R15, left.type.isSigned)
-                    if(expr.operator=="+") {
+                when (target.kind) {
+                    TargetStorageKind.VARIABLE -> {
+                        asmgen.assignExpressionTo(left, target)
+                        val rightsym = asmgen.asmVariableName(right)
                         asmgen.out("""
-                            clc
-                            lda  cx16.r12
-                            adc  cx16.r14
-                            sta  cx16.r12
-                            lda  cx16.r12+1
-                            adc  cx16.r14+1
-                            sta  cx16.r12+1
-                            lda  cx16.r12+2
-                            adc  cx16.r14+2
-                            sta  cx16.r12+2
-                            lda  cx16.r12+3
-                            adc  cx16.r14+3
-                            sta  cx16.r12+3""")
-                    } else {
-                        asmgen.out("""
-                            sec
-                            lda  cx16.r12
-                            sbc  cx16.r14
-                            sta  cx16.r12
-                            lda  cx16.r12+1
-                            sbc  cx16.r14+1
-                            sta  cx16.r12+1
-                            lda  cx16.r12+2
-                            sbc  cx16.r14+2
-                            sta  cx16.r12+2
-                            lda  cx16.r12+3
-                            sbc  cx16.r14+3
-                            sta  cx16.r12+3""")
+                            lda  #<$rightsym
+                            ldy  #>$rightsym
+                            sta  P8ZP_SCRATCH_W1
+                            sty  P8ZP_SCRATCH_W1+1
+                            lda  #<${target.asmVarname}
+                            ldy  #>${target.asmVarname}"""
+                        )
+                        if (expr.operator == "+") {
+                            asmgen.out("  jsr  prog8_lib.long_add_inplace")
+                        } else {
+                            asmgen.out("  jsr  prog8_lib.long_sub_inplace")
+                        }
+                        return true
                     }
-                    asmgen.assignRegister(RegisterOrPair.R12R13, target)
-                    return true
+                    TargetStorageKind.REGISTER -> {
+                        val startreg = target.register!!.startregname()
+                        asmgen.assignExpressionTo(left, target)
+                        val rightsym = asmgen.asmVariableName(right)
+                        asmgen.out(
+                            """
+                                    lda  #<$rightsym
+                                    ldy  #>$rightsym
+                                    sta  P8ZP_SCRATCH_W1
+                                    sty  P8ZP_SCRATCH_W1+1
+                                    lda  #<cx16.$startreg
+                                    ldy  #>cx16.$startreg"""
+                        )
+                        if (expr.operator == "+") {
+                            asmgen.out("  jsr  prog8_lib.long_add_inplace")
+                        } else {
+                            asmgen.out("  jsr  prog8_lib.long_sub_inplace")
+                        }
+                        return true
+                    }
+                    else -> {
+                        // isn't an expression, so no need to preserve R12-R15
+                        asmgen.assignExpressionToRegister(expr.left, RegisterOrPair.R12R13, left.type.isSigned)
+                        asmgen.assignExpressionToRegister(expr.right, RegisterOrPair.R14R15, left.type.isSigned)
+                        if (expr.operator == "+") {
+                            asmgen.out(
+                                """
+                                        clc
+                                        lda  cx16.r12
+                                        adc  cx16.r14
+                                        sta  cx16.r12
+                                        lda  cx16.r12+1
+                                        adc  cx16.r14+1
+                                        sta  cx16.r12+1
+                                        lda  cx16.r12+2
+                                        adc  cx16.r14+2
+                                        sta  cx16.r12+2
+                                        lda  cx16.r12+3
+                                        adc  cx16.r14+3
+                                        sta  cx16.r12+3"""
+                            )
+                        } else {
+                            asmgen.out(
+                                """
+                                        sec
+                                        lda  cx16.r12
+                                        sbc  cx16.r14
+                                        sta  cx16.r12
+                                        lda  cx16.r12+1
+                                        sbc  cx16.r14+1
+                                        sta  cx16.r12+1
+                                        lda  cx16.r12+2
+                                        sbc  cx16.r14+2
+                                        sta  cx16.r12+2
+                                        lda  cx16.r12+3
+                                        sbc  cx16.r14+3
+                                        sta  cx16.r12+3"""
+                            )
+                        }
+                        asmgen.assignRegister(RegisterOrPair.R12R13, target)
+                        return true
+                    }
                 }
             }
             else -> {
@@ -1609,10 +1614,7 @@ internal class BinaryOpAssignmentsGen(
     internal fun optimizedLogicalExpr(expr: PtBinaryExpression, target: AsmAssignTarget): Boolean {
 
         fun swapOperands(): Boolean =
-            if(expr.right is PtIdentifier || expr.right is PtMemoryByte)
-                false
-            else
-                expr.left is PtIdentifier || expr.left is PtMemoryByte
+            !(expr.right is PtIdentifier || expr.right is PtMemoryByte) && (expr.left is PtIdentifier || expr.left is PtMemoryByte)
 
         fun assignResultIntoA(left: PtExpression, operator: String, right: PtExpression) {
             // non short-circuit evaluation it is *likely* shorter and faster because of the simple operands.
@@ -1638,26 +1640,26 @@ internal class BinaryOpAssignmentsGen(
             when(right) {
                 is PtBool -> {
                     // Handle boolean literals that weren't optimized away (e.g., with -noopt)
-                    when {
-                        operator == "and" && right.value -> {
+                    when (operator) {
+                        "and" if right.value -> {
                             // left AND true = left (already in A, do nothing)
                         }
-                        operator == "and" && !right.value -> {
+                        "and" if !right.value -> {
                             // left AND false = false
                             asmgen.out("  lda  #0")
                         }
-                        operator == "or" && right.value -> {
+                        "or" if right.value -> {
                             // left OR true = true
                             asmgen.out("  lda  #1")
                         }
-                        operator == "or" && !right.value -> {
+                        "or" if !right.value -> {
                             // left OR false = left (already in A, do nothing)
                         }
-                        operator == "xor" && right.value -> {
+                        "xor" if right.value -> {
                             // left XOR true = NOT left (invert low bit)
                             asmgen.out("  eor  #1")
                         }
-                        operator == "xor" && !right.value -> {
+                        "xor" if !right.value -> {
                             // left XOR false = left (already in A, do nothing)
                         }
                     }

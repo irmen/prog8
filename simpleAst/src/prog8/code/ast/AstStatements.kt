@@ -9,24 +9,16 @@ sealed interface IPtSubroutine {
     val scopedName: String
 
     fun returnsWhatWhere(target: ICompilationTarget): List<Pair<RegisterOrStatusflag, DataType>> {
-        when(this) {
-            is PtAsmSub -> {
-                return returns
-            }
-            is PtSub -> {
-                return this.signature.returnsWhatWhere(target)
-            }
+        return when(this) {
+            is PtAsmSub -> returns
+            is PtSub -> this.signature.returnsWhatWhere(target)
         }
     }
 
     fun returnsWhatWhere(): List<Pair<RegisterOrStatusflag, DataType>> {
-        when(this) {
-            is PtAsmSub -> {
-                return returns
-            }
-            is PtSub -> {
-                return this.signature.returnsWhatWhere6502()
-            }
+        return when(this) {
+            is PtAsmSub -> returns
+            is PtSub -> this.signature.returnsWhatWhere6502()
         }
     }
 }

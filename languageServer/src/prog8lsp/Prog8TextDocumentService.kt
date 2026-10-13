@@ -147,7 +147,7 @@ class Prog8TextDocumentService: TextDocumentService {
                 // Extract symbols from AST
                 cache.module?.let { module ->
                     val symbols = symbolExtractor.extract(module)
-                    result.addAll(symbols.map { sym -> Either.forRight<SymbolInformation, DocumentSymbol>(sym) })
+                    result.addAll(symbols.map { sym -> Either.forRight(sym) })
                 }
             }
         }
@@ -404,7 +404,7 @@ class Prog8TextDocumentService: TextDocumentService {
             }
         }
 
-        Either.forLeft(mutableListOf<Location>())
+        Either.forLeft(mutableListOf())
     }
 
     override fun references(params: ReferenceParams): CompletableFuture<MutableList<out Location>> = async.compute {
@@ -606,10 +606,7 @@ class Prog8TextDocumentService: TextDocumentService {
                         // Parse the signature to extract parameters
                         val sigMatch = Regex("sub ([^(]+)\\(([^)]*)\\)(?: -> (.+))?").find(subroutine.signature ?: "")
                         if (sigMatch != null) {
-                            val sigName = sigMatch.groupValues[1]
                             val paramsStr = sigMatch.groupValues[2]
-                            val returnType = sigMatch.groupValues[3]
-                            
                             val sigInfo = SignatureInformation()
                             sigInfo.label = subroutine.signature ?: ""
                             
@@ -617,7 +614,7 @@ class Prog8TextDocumentService: TextDocumentService {
                             val paramInfos = mutableListOf<ParameterInformation>()
                             if (paramsStr.isNotBlank()) {
                                 val paramParts = paramsStr.split(",").map { it.trim() }
-                                for ((i, param) in paramParts.withIndex()) {
+                                for ((_, param) in paramParts.withIndex()) {
                                     val paramInfo = ParameterInformation()
                                     paramInfo.label = Either.forLeft(param)
                                     paramInfos.add(paramInfo)
@@ -659,7 +656,7 @@ class Prog8TextDocumentService: TextDocumentService {
             return@compute edits
         }
         
-        mutableListOf<TextEdit>()
+        mutableListOf()
     }
 
     override fun rangeFormatting(params: DocumentRangeFormattingParams): CompletableFuture<MutableList<out TextEdit>> = async.compute {
@@ -680,7 +677,7 @@ class Prog8TextDocumentService: TextDocumentService {
             return@compute edits
         }
         
-        mutableListOf<TextEdit>()
+        mutableListOf()
     }
 
     override fun rename(params: RenameParams): CompletableFuture<WorkspaceEdit> = async.compute {

@@ -63,18 +63,18 @@ internal object VariableOptimizers {
     fun optimizeRedundantVarInits(program: PtProgram): Int {
         fun statementsFromVarInitToFirstAssignment(varInit: PtAssignment, variable: PtIdentifier, parent: PtNode): Pair<Int, Int> {
             val varInitIndex = parent.children.indexOf(varInit)
-            for (stmt in parent.children.asSequence().withIndex().drop(varInitIndex)) {
-                (stmt.value as? PtAssignment)?.let { assignment ->
+            for ((index, value) in parent.children.asSequence().withIndex().drop(varInitIndex)) {
+                (value as? PtAssignment)?.let { assignment ->
                     if(!assignment.isVarInitializer) {
                         if (assignment.multiTarget) {
                             assignment.children.dropLast(1).forEach { target ->
                                 target as PtAssignTarget
                                 if(!target.void && variable.same(target.identifier))
-                                    return varInitIndex to stmt.index
+                                    return varInitIndex to index
                             }
                         } else {
                             if (!assignment.target.void && variable.same(assignment.target.identifier))
-                                return varInitIndex to stmt.index
+                                return varInitIndex to index
                         }
                     }
                 }

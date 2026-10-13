@@ -582,9 +582,7 @@ class StructDecl(override val name: String, val fields: Array<StructField>, val 
             sizer.memorySize(field.type, 1)
     }
     override fun sameas(other: ISubType): Boolean {
-        if(other !is StructDecl || other.name!=name || other.fields.size!=fields.size || other.isUnion!=isUnion)
-            return false
-        return fields.zip(other.fields).all { (a, b) ->
+        return !(other !is StructDecl || other.name!=name || other.fields.size!=fields.size || other.isUnion!=isUnion) && fields.zip(other.fields).all { (a, b) ->
             a.name==b.name && a.type==b.type && when {
                 a.arraySize==null && b.arraySize==null -> true
                 a.arraySize!=null && b.arraySize!=null -> a.arraySize!! isSameAs b.arraySize!!
@@ -940,10 +938,7 @@ data class AssignTarget(
         if (void) return false
         if (identifier != null) {
             val symbol = definingScope.lookup(identifier!!.nameInSource)
-            if (symbol is VarDecl && symbol.type == VarDeclType.MEMORY && symbol.value is NumericLiteral) {
-                return target.isIOAddress((symbol.value as NumericLiteral).number.toUInt())
-            }
-            return false
+            return symbol is VarDecl && symbol.type == VarDeclType.MEMORY && symbol.value is NumericLiteral && target.isIOAddress((symbol.value as NumericLiteral).number.toUInt())
         }
         return true // memoryAddress, arrayindexed, pointerDereference, arrayIndexedDereference
     }
@@ -1011,14 +1006,10 @@ data class AssignTarget(
             arrayindexed != null -> value is ArrayIndexedExpression && arrayindexed!!.isSameArrayIndexedAs(value)
             multi != null -> false
             pointerDereference != null -> {
-                if (value is PtrDereference) {
-                    pointerDereference!!.chain==value.chain
-                } else false
+                value is PtrDereference && pointerDereference!!.chain==value.chain
             }
             arrayIndexedDereference != null -> {
-                if (value is ArrayIndexedPtrDereference) {
-                    arrayIndexedDereference!!.chain==value.chain && arrayIndexedDereference!!.derefLast==value.derefLast
-                } else false
+                value is ArrayIndexedPtrDereference && arrayIndexedDereference!!.chain==value.chain && arrayIndexedDereference!!.derefLast==value.derefLast
             }
             else -> false
         }
@@ -1071,10 +1062,7 @@ data class AssignTarget(
                 return when (memAddr.addressExpression) {
                     is IdentifierReference -> {
                         val decl = (memAddr.addressExpression as IdentifierReference).targetVarDecl()
-                        val result = if ((decl?.type == VarDeclType.MEMORY || decl?.type == VarDeclType.CONST) && decl.value is NumericLiteral)
-                            target.isIOAddress((decl.value as NumericLiteral).number.toUInt())
-                        else
-                            false
+                        val result = (decl?.type == VarDeclType.MEMORY || decl?.type == VarDeclType.CONST) && decl.value is NumericLiteral && target.isIOAddress((decl.value as NumericLiteral).number.toUInt())
                         result
                     }
                     else -> false
@@ -1085,10 +1073,7 @@ data class AssignTarget(
                     val targetStmt = arrayIdx.plainarrayvar!!.targetVarDecl()
                     return if (targetStmt?.type == VarDeclType.MEMORY) {
                         val addr = targetStmt.value as? NumericLiteral
-                        if (addr != null)
-                            target.isIOAddress(addr.number.toUInt())
-                        else
-                            false
+                        addr != null && target.isIOAddress(addr.number.toUInt())
                     } else false
                 }
                 // can't really tell for the other types... assume false.
@@ -1096,10 +1081,7 @@ data class AssignTarget(
             }
             ident != null -> {
                 val decl = ident.targetVarDecl() ?: throw FatalAstException("invalid identifier ${ident.nameInSource}")
-                return if (decl.type == VarDeclType.MEMORY && decl.value is NumericLiteral)
-                    target.isIOAddress((decl.value as NumericLiteral).number.toUInt())
-                else
-                    false
+                return decl.type == VarDeclType.MEMORY && decl.value is NumericLiteral && target.isIOAddress((decl.value as NumericLiteral).number.toUInt())
             }
             multi != null -> {
                 return multi.any { it.isIOAddress(target) }

@@ -341,7 +341,7 @@ class ConstExprEvaluator {
                 val value = floor(radians/2.0/PI*256.0)
                 // the routine returns a ubyte, and a near-zero negative angle can round
                 // up to exactly 2*PI, which lands on 256
-                if(value<0.0 || value>255.0)
+                if(value !in 0.0..255.0)
                     throw ExpressionError("atan2 result $value is out of range for a byte value", func.position)
                 NumericLiteral(BaseDataType.UBYTE, value, func.position)
             }

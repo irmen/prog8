@@ -1280,7 +1280,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
     private fun transform(srcCast: TypecastExpression): PtTypeCast {
         val inner = transformExpression(srcCast.expression)
         require(inner !is PtNumber) {
-            "numeric literal typecast should have been resolved at the compiler Ast level, not at simplified Ast: ${srcCast}"
+            "numeric literal typecast should have been resolved at the compiler Ast level, not at simplified Ast: $srcCast"
         }
         val cast = PtTypeCast(srcCast.type, srcCast.implicit, srcCast.position)
         cast.add(inner)

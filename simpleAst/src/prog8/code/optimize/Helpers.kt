@@ -45,10 +45,7 @@ internal object Helpers {
      * Check if expr2 is the negation of expr1 (i.e., expr2 == not(expr1))
      */
     fun isNegationOf(expr1: PtExpression, expr2: PtExpression): Boolean {
-        if (expr2 is PtPrefix && expr2.operator == "not" && expr2.type.isBool) {
-            return expr1 isSameAs expr2.value
-        }
-        return false
+        return expr2 is PtPrefix && expr2.operator == "not" && expr2.type.isBool && expr1 isSameAs expr2.value
     }
 
     /**
@@ -70,10 +67,7 @@ internal object Helpers {
      * Check if expr2 is the bitwise negation of expr1 (i.e., expr2 == ~expr1)
      */
     fun isBitwiseNegationOf(expr1: PtExpression, expr2: PtExpression): Boolean {
-        if (expr2 is PtPrefix && expr2.operator == "~" && expr2.type.isInteger) {
-            return expr1 isSameAs expr2.value
-        }
-        return false
+        return expr2 is PtPrefix && expr2.operator == "~" && expr2.type.isInteger && expr1 isSameAs expr2.value
     }
 
     /**

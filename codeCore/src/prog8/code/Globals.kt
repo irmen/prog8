@@ -40,12 +40,10 @@ object SymbolNames {
      * See https://github.com/irmen/prog8/issues/198
      */
     fun stripPrefixes(scopedName: String): String {
-        return scopedName.split('.')
-            .map { part ->
-                if(part.length > 4 && part.startsWith("p8") && part[2].isLetter() && part[3] == '_')
-                    part.drop(4)
-                else part
-            }
-            .joinToString(".")
+        return scopedName.split('.').joinToString(".") { part ->
+            if (part.length > 4 && part.startsWith("p8") && part[2].isLetter() && part[3] == '_')
+                part.drop(4)
+            else part
+        }
     }
 }

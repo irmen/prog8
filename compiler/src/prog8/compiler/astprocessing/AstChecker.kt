@@ -2333,8 +2333,7 @@ internal class AstChecker(private val program: Program,
             val constIdx = arrayIndexedExpression.indexer.constIndex()
             if(constIdx!=null) {
                 val deref = arrayIndexedExpression.pointerderef!!
-                val target = deref.definingScope.lookup(deref.chain)
-                val arraysize: Int? = when(target) {
+                val arraysize: Int? = when(val target = deref.definingScope.lookup(deref.chain)) {
                     is StructFieldRef -> target.field.constSize()
                     is VarDecl -> target.arraysize?.constIndex()
                     else -> null
@@ -2598,24 +2597,22 @@ internal class AstChecker(private val program: Program,
     }
 
     private fun checkValueTypeAndRangeString(targetDt: DataType, value: StringLiteral) : Boolean {
-        return if (targetDt.isString) {
-            when {
-                value.value.length > 255 -> {
-                    errors.err("string length must be 0-255", value.position)
-                    false
-                }
-                value.value.isEmpty() -> {
-                    val decl = value.parent as? VarDecl
-                    if(decl!=null && (decl.zeropage==ZeropageWish.REQUIRE_ZEROPAGE || decl.zeropage==ZeropageWish.PREFER_ZEROPAGE)) {
-                        errors.err("string in Zeropage must be non-empty", value.position)
-                        false
-                    }
-                    else true
-                }
-                else -> true
+        return targetDt.isString && when {
+            value.value.length > 255 -> {
+                errors.err("string length must be 0-255", value.position)
+                false
             }
+
+            value.value.isEmpty() -> {
+                val decl = value.parent as? VarDecl
+                if(decl!=null && (decl.zeropage==ZeropageWish.REQUIRE_ZEROPAGE || decl.zeropage==ZeropageWish.PREFER_ZEROPAGE)) {
+                    errors.err("string in Zeropage must be non-empty", value.position)
+                    false
+                } else true
+            }
+
+            else -> true
         }
-        else false
     }
 
     private fun checkValueTypeAndRangeArray(targetDt: DataType, arrayspec: ArrayIndex, value: ArrayLiteral) : Boolean {
@@ -2641,9 +2638,7 @@ internal class AstChecker(private val program: Program,
                         if(arraySpecSize>byteLimit)
                             return err("boolean array length must be 1-$byteLimit")
                         val expectedSize = arrayspec.constIndex() ?: return err("array size specifier must be constant integer value")
-                        if (arraySize != expectedSize)
-                            return err("array size mismatch (expecting $expectedSize, got $arraySize)")
-                        return true
+                        return arraySize == expectedSize || err("array size mismatch (expecting $expectedSize, got $arraySize)")
                     }
                     return err("invalid boolean array size, must be 1-$byteLimit")
                 }
@@ -2660,9 +2655,7 @@ internal class AstChecker(private val program: Program,
                         if(arraySpecSize>byteLimit)
                             return err("byte array length must be 1-$byteLimit")
                         val expectedSize = arrayspec.constIndex() ?: return err("array size specifier must be constant integer value")
-                        if (arraySize != expectedSize)
-                            return err("array size mismatch (expecting $expectedSize, got $arraySize)")
-                        return true
+                        return arraySize == expectedSize || err("array size mismatch (expecting $expectedSize, got $arraySize)")
                     }
                     return err("invalid byte array size, must be 1-$byteLimit")
                 }
@@ -2680,9 +2673,7 @@ internal class AstChecker(private val program: Program,
                         if(arraySpecSize>maxLength)
                             return err("array length must be 1-$maxLength")
                         val expectedSize = arrayspec.constIndex() ?: return err("array size specifier must be constant integer value")
-                        if (arraySize != expectedSize)
-                            return err("array size mismatch (expecting $expectedSize, got $arraySize)")
-                        return true
+                        return arraySize == expectedSize || err("array size mismatch (expecting $expectedSize, got $arraySize)")
                     }
                     return err("invalid array size, must be 1-$maxLength")
                 }
@@ -2696,9 +2687,7 @@ internal class AstChecker(private val program: Program,
                     if(arraySpecSize>maxLength)
                         return err("array length must be 1-$maxLength")
                     val expectedSize = arrayspec.constIndex() ?: return err("array size specifier must be constant integer value")
-                    if (arraySize != expectedSize)
-                        return err("array size mismatch (expecting $expectedSize, got $arraySize)")
-                    return true
+                    return arraySize == expectedSize || err("array size mismatch (expecting $expectedSize, got $arraySize)")
                 }
                 return err("invalid array size, must be 1-$maxLength")
             }
@@ -2721,9 +2710,7 @@ internal class AstChecker(private val program: Program,
 
                     // check if the floating point values are all within range
                     val doubles = value.value.map { it.constValue(program)?.number!! }.toDoubleArray()
-                    if(doubles.any { it < options.compTarget.FLOAT_MAX_NEGATIVE || it > options.compTarget.FLOAT_MAX_POSITIVE })
-                        return err("floating point value overflow")
-                    return true
+                    return !doubles.any { it < options.compTarget.FLOAT_MAX_NEGATIVE || it > options.compTarget.FLOAT_MAX_POSITIVE } || err("floating point value overflow")
                 }
                 return err("invalid float array initialization value ${value.type}, expected $targetDt")
             }

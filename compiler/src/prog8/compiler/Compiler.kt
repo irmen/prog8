@@ -151,7 +151,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                 symbolDefs = args.symbolDefs
             }
             // apply custom target default for vars address now so it participates in the ROMable check
-            if(compilationOptions.varsAddress==null && compilationOptions.varsGolden==false && compilationOptions.varsHighBank==null) {
+            if(compilationOptions.varsAddress==null && !compilationOptions.varsGolden && compilationOptions.varsHighBank==null) {
                 (compilationOptions.compTarget as? ConfigFileTarget)?.varsAddress?.let {
                     compilationOptions.varsAddress = it
                 }
@@ -603,7 +603,7 @@ internal fun determineCompilationOptions(program: Program, compTarget: ICompilat
         .launcher(launcherType)
         .zeropage(zpType)
         .zpReserved(zpReserved)
-        .zpAllowed(if (zpAllowed.isEmpty()) CompilationOptions.AllZeropageAllowed else zpAllowed)
+        .zpAllowed(zpAllowed.ifEmpty { CompilationOptions.AllZeropageAllowed })
         .floats(floatsEnabled)
         .noSysInit(noSysInit)
         .romable(romable)
@@ -932,10 +932,6 @@ private fun createAssemblyAndAssemble(program: PtProgram,
     val chunkCount = assembly?.irChunkCount ?: 0
     val registerCount = assembly?.irRegisterCount ?: 0
 
-    val success = if(assembly!=null && errors.noErrors()) {
-        if(assemble) assembly.assemble(compilerOptions, errors) else true
-    } else {
-        false
-    }
+    val success = assembly!=null && errors.noErrors() && (!assemble || assembly.assemble(compilerOptions, errors))
     return AssemblyResult(success, instructionCount, chunkCount, registerCount)
 }

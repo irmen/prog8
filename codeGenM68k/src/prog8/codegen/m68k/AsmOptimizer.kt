@@ -168,7 +168,7 @@ private fun applyModifications(modifications: List<Modification>, lines: Mutable
             val pretrim = pretrimmed.getOrNull(idx)
             // If the line carries a label we must keep it (other code may jump to it);
             // otherwise the line is dropped entirely.
-            if (pretrim == null || pretrim.isBlank() || pretrim.startsWith(';')) {
+            if (pretrim.isNullOrBlank() || pretrim.startsWith(';')) {
                 lines.removeAt(idx)
             } else if (hasLabel(pretrim)) {
                 val label = keepLabel(pretrim)

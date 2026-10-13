@@ -66,12 +66,9 @@ abstract class Zeropage(options: CompilationOptions): MemoryAllocator(options) {
     }
 
     fun availableBytes() = if(options.zeropage== ZeropageType.DONTUSE) 0 else free.size
-    fun hasByteAvailable() = if(options.zeropage== ZeropageType.DONTUSE) false else free.isNotEmpty()
+    fun hasByteAvailable() = options.zeropage != ZeropageType.DONTUSE && free.isNotEmpty()
     fun hasWordAvailable(): Boolean {
-        if(options.zeropage== ZeropageType.DONTUSE)
-            return false
-
-        return free.windowed(2).any { it[0] == it[1] - 1u }
+        return options.zeropage != ZeropageType.DONTUSE && free.windowed(2).any { it[0] == it[1] - 1u }
     }
 
     override fun allocate(name: String,

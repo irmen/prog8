@@ -33,45 +33,51 @@ sealed class Expression: Node {
     infix fun isSameAs(assigntarget: AssignTarget) = assigntarget.isSameAs(this)
 
     infix fun isSameAs(other: Expression): Boolean {
-        if(this===other)
-            return true
-        return when(this) {
+        return this===other || when(this) {
             is IdentifierReference ->
                 (other is IdentifierReference && other.nameInSource==nameInSource)
+
             is PrefixExpression ->
                 (other is PrefixExpression && other.operator==operator && other.expression isSameAs expression)
+
             is BinaryExpression -> {
-                if(other !is BinaryExpression || other.operator!=operator)
-                    false
-                else if(operator in CommutativeOperators)
+                !(other !is BinaryExpression || other.operator!=operator) && if(operator in CommutativeOperators)
                     (other.left isSameAs left && other.right isSameAs right) || (other.left isSameAs right && other.right isSameAs left)
                 else
                     other.left isSameAs left && other.right isSameAs right
             }
+
             is ArrayIndexedExpression -> isSameArrayIndexedAs(other)
             is DirectMemoryRead -> {
                 (other is DirectMemoryRead && other.addressExpression isSameAs addressExpression)
             }
+
             is TypecastExpression -> {
                 (other is TypecastExpression && other.implicit==implicit && other.type==type && other.expression isSameAs expression)
             }
+
             is AddressOf -> {
                 (other is AddressOf && other.identifier?.nameInSource == identifier?.nameInSource && other.arrayIndex==arrayIndex && other.dereference==dereference)
             }
+
             is RangeExpression -> {
                 (other is RangeExpression && other.from==from && other.to==to && other.step==step)
             }
+
             is FunctionCallExpression -> {
                 (other is FunctionCallExpression && other.target.nameInSource == target.nameInSource
-                        && other.args.size == args.size
-                        && other.args.zip(args).all { it.first isSameAs it.second } )
+                    && other.args.size == args.size
+                    && other.args.zip(args).all { it.first isSameAs it.second } )
             }
+
             is PtrDereference -> {
                 (other is PtrDereference && other.derefLast == derefLast && other.chain == chain)
             }
+
             is ArrayIndexedPtrDereference -> {
                 (other is ArrayIndexedPtrDereference && other.derefLast == derefLast && other.chain == chain)
             }
+
             else -> other==this
         }
     }
@@ -647,16 +653,24 @@ data class AddressOf(var identifier: IdentifierReference?, var arrayIndex: Array
                 arrayIndex = replacement
             }
             node===dereference -> {
-                if(replacement is IdentifierReference) {
-                    identifier = replacement
-                    dereference = null
-                } else if(replacement is ArrayIndex) {
-                    arrayIndex = replacement
-                    dereference = null
-                } else if(replacement is PtrDereference) {
-                    dereference = replacement
-                } else {
-                    throw FatalAstException("invalid replace $node")
+                when (replacement) {
+                    is IdentifierReference -> {
+                        identifier = replacement
+                        dereference = null
+                    }
+
+                    is ArrayIndex -> {
+                        arrayIndex = replacement
+                        dereference = null
+                    }
+
+                    is PtrDereference -> {
+                        dereference = replacement
+                    }
+
+                    else -> {
+                        throw FatalAstException("invalid replace $node")
+                    }
                 }
             }
             else -> {
@@ -754,10 +768,7 @@ class DirectMemoryRead(var addressExpression: Expression, override val position:
     override fun inferType(program: Program) = InferredTypes.knownFor(BaseDataType.UBYTE)
     override fun constValue(program: Program): NumericLiteral? = null
     override fun isIORead(target: ICompilationTarget): Boolean {
-        if (addressExpression is NumericLiteral) {
-            return target.isIOAddress((addressExpression as NumericLiteral).number.toUInt())
-        }
-        return true // assume worst case if address is not constant
+        return addressExpression !is NumericLiteral || target.isIOAddress((addressExpression as NumericLiteral).number.toUInt()) // assume worst case if address is not constant
     }
     override fun toString(): String {
         return "DirectMemoryRead($addressExpression)"
@@ -897,9 +908,7 @@ class NumericLiteral(val type: BaseDataType,    // only numerical types allowed 
     override fun hashCode(): Int = Objects.hash(type, number)
 
     override fun equals(other: Any?): Boolean {
-        return if(other==null || other !is NumericLiteral)
-            false
-        else if(type!=BaseDataType.BOOL && other.type!=BaseDataType.BOOL)
+        return !(other==null || other !is NumericLiteral) && if(type!=BaseDataType.BOOL && other.type!=BaseDataType.BOOL)
             number==other.number
         else
             type==other.type && number==other.number
@@ -1180,9 +1189,7 @@ class CharLiteral private constructor(val value: Char,
     operator fun compareTo(other: CharLiteral): Int = value.compareTo(other.value)
     override fun hashCode(): Int = Objects.hash(value, encoding)
     override fun equals(other: Any?): Boolean {
-        if (other == null || other !is CharLiteral)
-            return false
-        return value == other.value && encoding == other.encoding
+        return !(other == null || other !is CharLiteral) && value == other.value && encoding == other.encoding
     }
 }
 
@@ -1225,9 +1232,7 @@ class StringLiteral private constructor(val value: String,
     operator fun compareTo(other: StringLiteral): Int = value.compareTo(other.value)
     override fun hashCode(): Int = Objects.hash(value, encoding)
     override fun equals(other: Any?): Boolean {
-        if(other==null || other !is StringLiteral)
-            return false
-        return value==other.value && encoding == other.encoding
+        return !(other==null || other !is StringLiteral) && value==other.value && encoding == other.encoding
     }
 }
 
@@ -1265,9 +1270,7 @@ class ArrayLiteral(val type: InferredTypes.InferredType,     // inferred because
     operator fun compareTo(other: ArrayLiteral): Int = throw ExpressionError("cannot order compare arrays", position)
     override fun hashCode(): Int = Objects.hash(value, type)
     override fun equals(other: Any?): Boolean {
-        if(other==null || other !is ArrayLiteral)
-            return false
-        return type==other.type && value.contentEquals(other.value)
+        return !(other==null || other !is ArrayLiteral) && type==other.type && value.contentEquals(other.value)
     }
 
     fun guessDatatype(program: Program): InferredTypes.InferredType {
@@ -1501,10 +1504,7 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
     override fun isIORead(target: ICompilationTarget): Boolean {
         return try {
             val decl = targetVarDecl() ?: return false
-            if (decl.type == VarDeclType.MEMORY && decl.value is NumericLiteral)
-                target.isIOAddress((decl.value as NumericLiteral).number.toUInt())
-            else
-                false
+            decl.type == VarDeclType.MEMORY && decl.value is NumericLiteral && target.isIOAddress((decl.value as NumericLiteral).number.toUInt())
         } catch (_: FatalAstException) {
             false
         }
@@ -1711,7 +1711,7 @@ class FunctionCallExpression(override var target: IdentifierReference,
 
     override fun copy() = FunctionCallExpression(target.copy(), args.map { it.copy() }.toMutableList(), position)
     override fun hasSideEffects(target: ICompilationTarget): Boolean = true
-    override val isSimple = if (target.nameInSource.singleOrNull() in SimpleBuiltinFunctions) this.args.all { it.isSimple } else false
+    override val isSimple = target.nameInSource.singleOrNull() in SimpleBuiltinFunctions && this.args.all { it.isSimple }
     override fun replaceChildNode(node: Node, replacement: Node) {
         if(node===target)
             target=replacement as IdentifierReference
@@ -2059,9 +2059,7 @@ class PtrDereference(
         throw FatalAstException("can't replace here")
     override fun referencesIdentifier(nameInSource: List<String>) = chain.size==1 && chain==nameInSource
     fun isSamePointerDeref(other: Expression?): Boolean {
-        return if(other==null || other !is PtrDereference)
-            false
-        else if(derefLast != other.derefLast)
+        return !(other==null || other !is PtrDereference) && if(derefLast != other.derefLast)
             false
         else if(chain != other.chain)
             false
@@ -2077,7 +2075,7 @@ class PtrDereference(
      * Returns the chain as a list of PtrDerefElement objects.
      * For PtrDereference, all elements have null arrayIndex.
      */
-    fun toElements(): List<PtrDerefElement> = chain.map { PtrDerefElement(it, null) }
+    fun toElements(): List<PtrDerefElement> = chain.map { PtrDerefElement(it) }
 
     /**
      * Returns true if this is a simple field access with no array indexing.

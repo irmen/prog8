@@ -261,31 +261,39 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         // Route to the return value locations expected by the caller (via returnsWhatWhere).
         if(codeGen.options.compTarget.cpu.usesM68kConvention) {
             // m68k: first return value in D0 (slot 10), second in D1 (slot 11)
-            if(type==IRDataType.BYTE) {
-                result += IRCodeChunk(null, null).also {
-                    it += IRInstructions.hardwareStore(IRDataType.BYTE, remainderReg, CallingConventionSlot(11))
-                    it += IRInstructions.hardwareStore(IRDataType.BYTE, divisionReg, CallingConventionSlot(10))
+            when (type) {
+                IRDataType.BYTE -> {
+                    result += IRCodeChunk(null, null).also {
+                        it += IRInstructions.hardwareStore(IRDataType.BYTE, remainderReg, CallingConventionSlot(11))
+                        it += IRInstructions.hardwareStore(IRDataType.BYTE, divisionReg, CallingConventionSlot(10))
+                    }
                 }
-            } else if(type==IRDataType.WORD) {
-                result += IRCodeChunk(null, null).also {
-                    it += IRInstructions.hardwareStore(IRDataType.WORD, remainderReg, CallingConventionSlot(11))
-                    it += IRInstructions.hardwareStore(IRDataType.WORD, divisionReg, CallingConventionSlot(10))
+                IRDataType.WORD -> {
+                    result += IRCodeChunk(null, null).also {
+                        it += IRInstructions.hardwareStore(IRDataType.WORD, remainderReg, CallingConventionSlot(11))
+                        it += IRInstructions.hardwareStore(IRDataType.WORD, divisionReg, CallingConventionSlot(10))
+                    }
                 }
-            } else throw AssemblyError("invalid type for DIVMOD")
+                else -> throw AssemblyError("invalid type for DIVMOD")
+            }
         } else {
             // 6502/cx16: quotient to A (slot 0) or AY (slot 4), remainder to cx16.r15
             // Note: STOREM must come before STOREHR, otherwise STOREM clobbers A before LOADHR reads it.
-            if(type==IRDataType.BYTE) {
-                result += IRCodeChunk(null, null).also {
-                    it += IRInstructions.storeMemory(Opcode.STOREM, IRDataType.BYTE, remainderReg, IRMemory.direct("cx16.r15"))
-                    it += IRInstructions.hardwareStore(IRDataType.BYTE, divisionReg, CallingConventionSlot(0))
+            when (type) {
+                IRDataType.BYTE -> {
+                    result += IRCodeChunk(null, null).also {
+                        it += IRInstructions.storeMemory(Opcode.STOREM, IRDataType.BYTE, remainderReg, IRMemory.direct("cx16.r15"))
+                        it += IRInstructions.hardwareStore(IRDataType.BYTE, divisionReg, CallingConventionSlot(0))
+                    }
                 }
-            } else if(type==IRDataType.WORD) {
-                result += IRCodeChunk(null, null).also {
-                    it += IRInstructions.storeMemory(Opcode.STOREM, IRDataType.WORD, remainderReg, IRMemory.direct("cx16.r15"))
-                    it += IRInstructions.hardwareStore(IRDataType.WORD, divisionReg, CallingConventionSlot(4))
+                IRDataType.WORD -> {
+                    result += IRCodeChunk(null, null).also {
+                        it += IRInstructions.storeMemory(Opcode.STOREM, IRDataType.WORD, remainderReg, IRMemory.direct("cx16.r15"))
+                        it += IRInstructions.hardwareStore(IRDataType.WORD, divisionReg, CallingConventionSlot(4))
+                    }
                 }
-            } else throw AssemblyError("invalid type for DIVMOD")
+                else -> throw AssemblyError("invalid type for DIVMOD")
+            }
         }
         return ExpressionCodeResult(result, type, -1, -1)
     }
@@ -996,10 +1004,10 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             val valueTr = exprGen.translateExpression(call.args[1])
             addToResult(result, valueTr, valueTr.resultReg, valueTr.resultFpReg)
             result += IRCodeChunk(null, null).also {
-                if(dt==IRDataType.FLOAT) {
-                    it += IRInstructions.storeMemory(Opcode.STOREX, dt, valueTr.resultFpReg, IRMemory.indexed(info.arrayName, indexReg, codeGen.options.compTarget.indexRegType, scale=info.structSize, displacement=info.fieldOffset))
+                it += if(dt==IRDataType.FLOAT) {
+                    IRInstructions.storeMemory(Opcode.STOREX, dt, valueTr.resultFpReg, IRMemory.indexed(info.arrayName, indexReg, codeGen.options.compTarget.indexRegType, scale=info.structSize, displacement=info.fieldOffset))
                 } else {
-                    it += IRInstructions.storeMemory(Opcode.STOREX, dt, valueTr.resultReg, IRMemory.indexed(info.arrayName, indexReg, codeGen.options.compTarget.indexRegType, scale=info.structSize, displacement=info.fieldOffset))
+                    IRInstructions.storeMemory(Opcode.STOREX, dt, valueTr.resultReg, IRMemory.indexed(info.arrayName, indexReg, codeGen.options.compTarget.indexRegType, scale=info.structSize, displacement=info.fieldOffset))
                 }
             }
             ExpressionCodeResult(result, IRDataType.BYTE, -1, -1)

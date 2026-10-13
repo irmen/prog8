@@ -18,12 +18,11 @@ object InferredTypes {
         fun getOrUndef() = if(isUnknown || isVoid) DataType.UNDEFINED else datatype!!
         fun getOrElse(transform: (InferredType) -> DataType): DataType =
             if(isUnknown || isVoid) transform(this) else datatype!!
-        infix fun istype(type: DataType): Boolean = if(isUnknown || isVoid) false else this.datatype==type     // strict equality if known
-        infix fun issimpletype(type: BaseDataType): Boolean = if (isUnknown || isVoid)
-                false
-            else if(type==BaseDataType.STR && this.datatype?.base==BaseDataType.STR)
-                true
-            else (this.datatype?.base == type && this.datatype.isBasic)     // strict equality if known
+        infix fun istype(type: DataType): Boolean =
+            !(isUnknown || isVoid) && this.datatype==type     // strict equality if known
+        infix fun issimpletype(type: BaseDataType): Boolean = !(isUnknown || isVoid) && if(type==BaseDataType.STR && this.datatype?.base==BaseDataType.STR)
+            true
+        else (this.datatype?.base == type && this.datatype.isBasic)     // strict equality if known
 
         companion object {
             fun unknown() = InferredType(isUnknown = true, isVoid = false, datatype = null)
@@ -33,9 +32,7 @@ object InferredTypes {
         }
 
         override fun equals(other: Any?): Boolean {
-            if(other !is InferredType)
-                return false
-            return isVoid==other.isVoid && datatype==other.datatype
+            return other is InferredType && isVoid==other.isVoid && datatype==other.datatype
         }
 
         override fun toString(): String {
@@ -108,9 +105,6 @@ object InferredTypes {
     fun knownFor(baseDt: BaseDataType): InferredType = instancesBaseDt.getValue(baseDt)
     fun knownFor(type: DataType): InferredType {
         val instance = instancesDt[type]
-        if(instance!=null)
-            return instance
-        else
-            return InferredType.known(type)
+        return instance ?: InferredType.known(type)
     }
 }

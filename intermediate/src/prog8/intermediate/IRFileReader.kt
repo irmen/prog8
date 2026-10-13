@@ -490,8 +490,7 @@ class IRFileReader {
         if(text.isNotBlank()) {
             text.lineSequence().forEach { line ->
                 if (line.isNotBlank() && !line.startsWith(';')) {
-                    val result = parseIRCodeLine(line)
-                    when (result) {
+                    when (val result = parseIRCodeLine(line)) {
                         is ParsedIRLine.Instruction -> chunk += result.value
                         is ParsedIRLine.Label -> throw IRParseException("code chunk should not contain a separate label line anymore, this should be the proper label of a new separate chunk")
                     }
@@ -521,7 +520,7 @@ class IRFileReader {
         val attrs = start.attributes.asSequence().associate { it.name.localPart to it.value }
         val block = IRBlock(
             attrs.getValue("NAME"),
-            if(attrs.getValue("LIBRARY")=="") false else attrs.getValue("LIBRARY").toBoolean(),
+            attrs.getValue("LIBRARY") != "" && attrs.getValue("LIBRARY").toBoolean(),
             IRBlock.Options(
                 if(attrs.getOrDefault("ADDRESS", "")=="") null else parseIRValue(attrs.getValue("ADDRESS")).toUInt(),
                 attrs.getOrDefault("FORCEOUTPUT", "false").toBoolean(),
@@ -705,8 +704,7 @@ class IRFileReader {
     private fun parseDatatype(type: String, isArray: Boolean): DataType {
         if(isArray) {
             if(type.startsWith("^^")) {
-                val pointee = type.drop(2)
-                return when(pointee) {
+                return when(val pointee = type.drop(2)) {
                     "bool" -> DataType.arrayOfPointersTo(BaseDataType.BOOL)
                     "byte" -> DataType.arrayOfPointersTo(BaseDataType.BYTE)
                     "ubyte", "str" -> DataType.arrayOfPointersTo(BaseDataType.UBYTE)

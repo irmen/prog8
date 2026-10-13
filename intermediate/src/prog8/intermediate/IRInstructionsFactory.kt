@@ -190,13 +190,11 @@ object IRInstructions {
     /** an operation with a destination register and a source register: ADDR, SUBR, EXT, SGN, FTOUB, ... */
     fun binary(opcode: Opcode, destination: RegisterOperand, source: RegisterOperand): IRInstruction {
         val type = OpcodeSchemas.typesFor(opcode)
-            .filterNotNull()
-            .filter { candidate ->
+            .filterNotNull().singleOrNull { candidate ->
                 val schema = OpcodeSchemas.get(opcode, candidate)
                 schema.matches(InstructionSlot.DEST, destination) &&
-                        schema.matches(InstructionSlot.SRC_A, source)
+                    schema.matches(InstructionSlot.SRC_A, source)
             }
-            .singleOrNull()
             ?: throw IllegalArgumentException("$opcode: cannot infer instruction type from $destination and $source")
         return IRInstruction(opcode, type, dest = destination, srcA = source)
     }
@@ -376,9 +374,7 @@ object IRInstructions {
 
 private fun OpcodeSchema.matches(slot: InstructionSlot, operand: RegisterOperand): Boolean {
     val slotSchema = registerSlot(slot) ?: return false
-    if ((slotSchema.registerFile == RegisterFile.FLOAT) != operand.isFloat)
-        return false
-    return when (val rule = slotSchema.typeRule) {
+    return (slotSchema.registerFile == RegisterFile.FLOAT) == operand.isFloat && when (val rule = slotSchema.typeRule) {
         TypeRule.InstructionType -> operand.type == type
         TypeRule.IndexType, TypeRule.PointerType -> operand.type != IRDataType.FLOAT
         is TypeRule.Fixed -> operand.type == rule.type

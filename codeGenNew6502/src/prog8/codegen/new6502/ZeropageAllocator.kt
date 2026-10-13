@@ -69,7 +69,7 @@ class ZeropageAllocator(
         if (name in zeropage.allocatedVariables)
             return true
         val v = program.st.lookup(name)
-        return if (v is IRStMemVar) v.address <= 255u else false
+        return v is IRStMemVar && v.address <= 255u
     }
 
     /**
@@ -100,9 +100,9 @@ class ZeropageAllocator(
                 ?: (insn.immediate as? ImmediateOperand.SymbolAddress)?.symbol
                 ?: return
             if (label !in varNames) return
-            val weight = when {
-                insn.type == IRDataType.WORD -> 2
-                insn.type == IRDataType.LONG -> 3
+            val weight = when (insn.type) {
+                IRDataType.WORD -> 2
+                IRDataType.LONG -> 3
                 else -> 1
             }
             scores[label] = (scores[label] ?: 0) + weight

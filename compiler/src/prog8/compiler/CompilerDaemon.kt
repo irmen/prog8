@@ -49,7 +49,7 @@ internal class CompilerDaemon(private val socketPath: Path) {
         System.err.println(buildString {
             append("prog8c daemon")
             if (pid != null) append(" (pid $pid)")
-            append(" running at ${socketPath}")
+            append(" running at $socketPath")
         })
 
         var lastRequestTime = System.currentTimeMillis()

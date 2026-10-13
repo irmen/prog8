@@ -103,7 +103,7 @@ internal object DaemonProtocol {
 
     fun decodeResponse(json: String): DaemonResponse {
         val map = parseJsonObject(json)
-        val outputFiles = (map["outputFiles"] as? List<*>)?.map { it as String } ?: emptyList<String>()
+        val outputFiles = (map["outputFiles"] as? List<*>)?.map { it as String } ?: emptyList()
         val importedFiles = (map["importedFiles"] as? List<*>)?.map { it as String } ?: emptyList()
         return DaemonResponse(
             ok = map["ok"] as Boolean,

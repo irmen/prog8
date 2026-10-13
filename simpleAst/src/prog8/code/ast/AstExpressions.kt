@@ -24,9 +24,7 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
         // TOOD replace this by == operator?
         return when(this) {
             is PtAddressOf -> {
-                if(other !is PtAddressOf)
-                    false
-                else if (other.type!==type)
+                other is PtAddressOf && if (other.type!==type)
                     false
                 else if(other.identifier==null && identifier!=null)
                     false
@@ -48,9 +46,7 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
                     arrayIndexExpr!! isSameAs other.arrayIndexExpr!!
             }
             is PtArrayIndexer -> {
-                if(!(other is PtArrayIndexer && other.type==type && other.index isSameAs index && other.splitWords==splitWords))
-                    false
-                else if(other.variable==null && variable!=null || other.variable!=null && variable==null)
+                other is PtArrayIndexer && other.type==type && other.index isSameAs index && other.splitWords==splitWords && if(other.variable==null && variable!=null || other.variable!=null && variable==null)
                     false
                 else if(other.variable==null && variable!=null)
                     true
@@ -58,24 +54,18 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
                     other.variable!! isSameAs variable!!
             }
             is PtBinaryExpression -> {
-                if(other !is PtBinaryExpression || other.operator!=operator)
-                    false
-                else if(operator in CommutativeOperators)
+                !(other !is PtBinaryExpression || other.operator!=operator) && if(operator in CommutativeOperators)
                     (other.left isSameAs left && other.right isSameAs right) || (other.left isSameAs right && other.right isSameAs left)
                 else
                     other.left isSameAs left && other.right isSameAs right
             }
             is PtContainmentCheck -> {
-                if(other !is PtContainmentCheck || other.type != type || !(other.needle isSameAs needle))
+                !(other !is PtContainmentCheck || other.type != type || !(other.needle isSameAs needle)) && if(haystackHeapVar!=null)
+                    other.haystackHeapVar!=null && other.haystackHeapVar!! isSameAs haystackHeapVar!!
+                else if(haystackValues!=null)
+                    other.haystackValues!=null && other.haystackValues!! isSameAs haystackValues!!
+                else
                     false
-                else {
-                    if(haystackHeapVar!=null)
-                        other.haystackHeapVar!=null && other.haystackHeapVar!! isSameAs haystackHeapVar!!
-                    else if(haystackValues!=null)
-                        other.haystackValues!=null && other.haystackValues!! isSameAs haystackValues!!
-                    else
-                        false
-                }
             }
             is PtIdentifier -> other is PtIdentifier && other.type==type && other.name==name
             is PtIrRegister -> other is PtIrRegister && other.type==type && other.register==register
@@ -170,7 +160,7 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
             is PtArrayIndexer -> index is PtNumber || index is PtIdentifier
             is PtBinaryExpression -> false
             is PtContainmentCheck -> false
-            is PtFunctionCall -> if (this.builtin && name in SimpleBuiltinFunctions) args.all { it.isSimple(zeroPageVarCheck) } else false
+            is PtFunctionCall -> this.builtin && name in SimpleBuiltinFunctions && args.all { it.isSimple(zeroPageVarCheck) }
             is PtIdentifier -> true
             is PtIrRegister -> true
             is PtMemoryByte -> address is PtNumber
@@ -180,11 +170,8 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
             is PtRange -> from.isSimple() && to.isSimple() && step.isSimple()
             is PtString -> true
             is PtPointerDeref ->
-                if(zeroPageVarCheck==null || type.isFloat || !zeroPageVarCheck(startpointer.name))
-                    false
-                else
-                    chain.isEmpty()               // *pp : lda (pp),y   (chain is never empty with derefLast=false)
-                            || (chain.size==1 && !derefLast)      // pp.field : lda (pp+offset),y
+                !(zeroPageVarCheck==null || type.isFloat || !zeroPageVarCheck(startpointer.name)) && (chain.isEmpty()               // *pp : lda (pp),y   (chain is never empty with derefLast=false)
+                    || (chain.size==1 && !derefLast))               // *pp : lda (pp),y   (chain is never empty with derefLast=false)      // pp.field : lda (pp+offset),y
             is PtTypeCast -> value.isSimple(zeroPageVarCheck)
             is PtIfExpression -> condition.isSimple(zeroPageVarCheck) && truevalue.isSimple(zeroPageVarCheck) && falsevalue.isSimple(zeroPageVarCheck)
             is PtBranchCondExpression -> truevalue.isSimple(zeroPageVarCheck) && falsevalue.isSimple(zeroPageVarCheck)
@@ -255,9 +242,7 @@ class PtArray(type: DataType, position: Position): PtExpression(type, position) 
     // children are always one of 3 types: PtBool, PtNumber or PtAddressOf.
     override fun hashCode(): Int = Objects.hash(children, type)
     override fun equals(other: Any?): Boolean {
-        if(other==null || other !is PtArray)
-            return false
-        return type==other.type && children == other.children
+        return !(other==null || other !is PtArray) && type==other.type && children == other.children
     }
 
     val size: Int
@@ -376,9 +361,7 @@ class PtBool(val value: Boolean, position: Position) : PtExpression(DataType.BOO
     override fun hashCode(): Int = Objects.hash(type, value)
 
     override fun equals(other: Any?): Boolean {
-        if(other==null || other !is PtBool)
-            return false
-        return value==other.value
+        return !(other==null || other !is PtBool) && value==other.value
     }
 
     override fun toString() = "PtBool:$value"
@@ -417,9 +400,7 @@ class PtNumber(type: BaseDataType, val number: Double, position: Position) : PtE
     override fun hashCode(): Int = Objects.hash(type, number)
 
     override fun equals(other: Any?): Boolean {
-        return if(other==null || other !is PtNumber)
-            false
-        else if(!type.isBool && !other.type.isBool)
+        return !(other==null || other !is PtNumber) && if(!type.isBool && !other.type.isBool)
             number==other.number
         else
             type==other.type && number==other.number
@@ -490,9 +471,7 @@ class PtString(val value: String, val encoding: Encoding, position: Position) : 
     // See SymbolTableMaker.kt:99-143 and ProgramAndVarsGen.kt:968-975.
     override fun hashCode(): Int = Objects.hash(value, encoding)
     override fun equals(other: Any?): Boolean {
-        if(other==null || other !is PtString)
-            return false
-        return value==other.value && encoding == other.encoding
+        return !(other==null || other !is PtString) && value==other.value && encoding == other.encoding
     }
     
     override fun copy() = PtString(value, encoding, position)

@@ -228,8 +228,7 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
             name.startsWith('>') -> ">" to name.drop(1)
             else -> "" to name
         }
-        val node = program.st.lookup(rest)
-        return when (node) {
+        return when (val node = program.st.lookup(rest)) {
             is IRStStructInstance -> "$prefix${structInstanceRef(node, rest)}"
             else -> "$prefix${fixNameSymbols(rest)}"
         }
@@ -250,8 +249,7 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
     }
 
     fun resolveSymbolRef(name: String): String {
-        val node = program.st.lookup(name)
-        return when (node) {
+        return when (val node = program.st.lookup(name)) {
             is IRStConstant -> constLabel(name)
             is IRStStaticVariable, is IRStMemVar,
             is IRStMemorySlab -> fixNameSymbols(name)

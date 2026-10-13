@@ -21,10 +21,8 @@ internal class NamedStructInitializerFlattener(private val errors: IErrorReporte
             return noModifications
 
         val struct = initializer.structname.targetStructDecl()
-        if(struct==null) {
-            // Struct name not resolvable yet; leave named args for later error reporting.
+            ?: // Struct name not resolvable yet; leave named args for later error reporting.
             return noModifications
-        }
 
         // Unions do not support named-field initialization; the checker rejects those.
         if(struct.isUnion)

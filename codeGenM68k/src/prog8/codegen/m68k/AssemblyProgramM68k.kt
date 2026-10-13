@@ -38,11 +38,11 @@ class AssemblyProgramM68k(override val name: String) : IAssemblyProgram {
         val process = try {
             proc.start()
         } catch (e: Exception) {
-            when {
-                tool=="vasm" -> {
+            when (tool) {
+                "vasm" -> {
                     System.err.println("Cannot find '${command[0]}' (vasm assembler for m68k). Install it via your package manager if it's on there, or build it from source: http://sun.hasenbraten.de/vasm/")
                 }
-                tool=="vlink" -> {
+                "vlink" -> {
                     System.err.println("Cannot find 'vlink' (linker). Install it via your package manager if it's on there, or build it from source: http://sun.hasenbraten.de/vlink/")
                 }
                 else -> {

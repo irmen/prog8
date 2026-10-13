@@ -1,9 +1,5 @@
 package prog8.intermediate
 
-import prog8.code.core.AssemblyError
-import prog8.code.core.Statusflag
-import prog8.code.core.toHex
-
 /**
  * Inline value class representing a memory address (up to 32-bit).
  */

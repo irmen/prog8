@@ -1066,7 +1066,7 @@ _after:
             val idxDec = Assignment(AssignTarget(IdentifierReference(listOf(idxName), pos), null, null, null, false, position=pos), BinaryExpression(IdentifierReference(listOf(idxName), pos), "-", NumericLiteral.optimalInteger(1, pos), pos), AssignmentOrigin.OPTIMIZER, pos)
             val whileBody = AnonymousScope(mutableListOf<Statement>(elementAssign).apply { addAll(forLoop.body.statements) }.apply { add(idxDec) }, pos)
             val whileLoop = WhileLoop(condition, whileBody, pos)
-            val replacement = AnonymousScope(mutableListOf<Statement>(wordIdxVar, wordIdxInit, whileLoop), pos)
+            val replacement = AnonymousScope(mutableListOf(wordIdxVar, wordIdxInit, whileLoop), pos)
             replacement.linkParents(parent)
             return listOf(AstReplaceNode(forLoop, replacement, parent))
         } else if(iterableDt.isString) {
@@ -1080,7 +1080,7 @@ _after:
             val lenInit = Assignment(AssignTarget(IdentifierReference(listOf(lenName), pos), null, null, null, false, position=pos), NumericLiteral.optimalInteger(0, pos), AssignmentOrigin.OPTIMIZER, pos)
             val lenCond = BinaryExpression(ArrayIndexedExpression(iterableRef.copy(), null, null, ArrayIndex(IdentifierReference(listOf(lenName), pos), pos), pos), "!=", NumericLiteral.optimalInteger(0, pos), pos)
             val lenInc = Assignment(AssignTarget(IdentifierReference(listOf(lenName), pos), null, null, null, false, position=pos), BinaryExpression(IdentifierReference(listOf(lenName), pos), "+", NumericLiteral.optimalInteger(1, pos), pos), AssignmentOrigin.OPTIMIZER, pos)
-            val lenLoop = WhileLoop(lenCond, AnonymousScope(mutableListOf<Statement>(lenInc), pos), pos)
+            val lenLoop = WhileLoop(lenCond, AnonymousScope(mutableListOf(lenInc), pos), pos)
             val idxInit = Assignment(AssignTarget(IdentifierReference(listOf(idxName), pos), null, null, null, false, position=pos), BinaryExpression(IdentifierReference(listOf(lenName), pos), "-", NumericLiteral.optimalInteger(1, pos), pos), AssignmentOrigin.OPTIMIZER, pos)
             // unsigned wrap condition: idx < len (start len-1, wraps to 65535 after 0 and exits)
             val cond = BinaryExpression(IdentifierReference(listOf(idxName), pos), "<", IdentifierReference(listOf(lenName), pos), pos)
@@ -1192,9 +1192,8 @@ _after:
         fun buildChainFromDotExpression(expr: BinaryExpression): List<Pair<String, ArrayIndex?>>? {
             if(expr.operator!=".") return null
             val right = expr.right as? IdentifierReference ?: return null
-            val left = expr.left
             // left could be ArrayIndexedExpression (for ptr[idx]) or IdentifierReference (for ptr)
-            return when(left) {
+            return when(val left = expr.left) {
                 is ArrayIndexedExpression -> {
                     val ptrName = left.plainarrayvar?.nameInSource ?: return null
                     listOf(Pair(ptrName[0], left.indexer), Pair(right.nameInSource[0], null))
@@ -1224,7 +1223,7 @@ _after:
             // Handle "ptr[idx].field" represented as BinaryExpression with "." operator
             if(value is BinaryExpression && value.operator==".") {
                 val chain = buildChainFromDotExpression(value)
-                if(chain != null && chain == origDeref.chain && origDeref.derefLast == false) {
+                if(chain != null && chain == origDeref.chain && !origDeref.derefLast) {
                     return DirectMemoryRead(address.copy(), value.position)
                 }
             }

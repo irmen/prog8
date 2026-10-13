@@ -432,8 +432,7 @@ import prog8.codegen.cpu6502.assignment.*
     }
 
     private fun funcCallFar(fcall: PtFunctionCall): Array<RegisterOrPair> {
-        val targetName = asmgen.options.compTarget.name
-        val jsrfar = when(targetName) {
+        val jsrfar = when(val targetName = asmgen.options.compTarget.name) {
             "cx16" -> "cx16.JSRFAR"
             "c64" -> "c64.x16jsrfar"
             "c128" -> "c128.x16jsrfar"
@@ -2161,7 +2160,7 @@ import prog8.codegen.cpu6502.assignment.*
             "            tya",
             "            sbc  P8ZP_SCRATCH_W1+1",
             "            bvc  $keep",
-            "            eor  #\$80",
+            "            eor  #$80",
             keep,
             "            bpl  $done",
             "            lda  ${maxOp.first}",
@@ -2184,7 +2183,7 @@ import prog8.codegen.cpu6502.assignment.*
             "            tya",
             "            sbc  P8ZP_SCRATCH_W1+1",
             "            bvc  $keep",
-            "            eor  #\$80",
+            "            eor  #$80",
             keep,
             "            bpl  $set",
             "            lda  P8ZP_SCRATCH_W1",
@@ -2575,9 +2574,7 @@ import prog8.codegen.cpu6502.assignment.*
 
     internal fun funcMklong(fcall: PtFunctionCall, resultReg: RegisterOrPair, targetVarName: String? = null): Array<RegisterOrPair> {
         fun isArgRegister(expression: PtExpression, reg: RegisterOrPair): Boolean {
-            if(expression !is PtIdentifier)
-                return false
-            return expression.name.startsWith("cx16.${reg.name.lowercase()}")
+            return expression is PtIdentifier && expression.name.startsWith("cx16.${reg.name.lowercase()}")
         }
 
         val (r1, r2) = when(resultReg) {

@@ -23,7 +23,7 @@ private const val BYTE_BUDGET = 24
 // high byte stale in Y).
 
 fun byteShiftAddExpansion(value: Int): List<String>? {
-    if (value < 3 || value > 255)
+    if (value !in 3..255)
         return null
     val bitlen = 31 - Integer.numberOfLeadingZeros(value)
     val popcount = Integer.bitCount(value)

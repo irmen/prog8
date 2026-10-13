@@ -249,10 +249,7 @@ internal fun Program.variousCleanups(errors: IErrorReporter, options: Compilatio
 
 internal fun IdentifierReference.isSubroutineParameter(): Boolean {
     val vardecl = this.targetVarDecl()
-    if(vardecl!=null && vardecl.origin==VarDeclOrigin.SUBROUTINEPARAM) {
-        return vardecl.definingSubroutine?.parameters?.any { it.name==vardecl.name } == true
-    }
-    return false
+    return vardecl!=null && vardecl.origin==VarDeclOrigin.SUBROUTINEPARAM && vardecl.definingSubroutine?.parameters?.any { it.name==vardecl.name } == true
 }
 
 internal fun Subroutine.hasRtsInAsm(checkOnlyLastInstruction: Boolean): Boolean {
@@ -274,9 +271,7 @@ internal fun Subroutine.hasRtsInAsm(checkOnlyLastInstruction: Boolean): Boolean 
         val lastLine = lastAsm.assembly.lineSequence().map { it.trim() }.last {
             it.isNotBlank() && (!it.startsWith(';') || it.contains("!notreached!"))
         }
-        if(lastLine.contains("!notreached!"))
-            return true
-        return allAsms.any { it.hasReturnOrRts() }
+        return lastLine.contains("!notreached!") || allAsms.any { it.hasReturnOrRts() }
     }
 }
 

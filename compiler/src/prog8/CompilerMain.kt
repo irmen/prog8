@@ -130,22 +130,22 @@ private fun compileMain(args: Array<String>): Boolean {
     // Single presenter for all user-facing output in this invocation.
     // It only wraps a real Mordant Terminal on an interactive console;
     // everywhere else it is plain println output with no native code involved.
-    val presenter = createPresenter(plainText==true)
-    if(version==true) {
+    val presenter = createPresenter(plainText)
+    if(version) {
         banner(presenter)
         return true
     }
 
-    if(quietAll!=true)
+    if(!quietAll)
         banner(presenter)
 
     if(libDump!=null) {
-        scanLibraryFiles(libDump, null, plainText==true)
+        scanLibraryFiles(libDump, null, plainText)
         return true
     }
 
     if(libSearch!=null) {
-        scanLibraryFiles(null, libSearch, plainText==true)
+        scanLibraryFiles(null, libSearch, plainText)
         return true
     }
 
@@ -163,7 +163,7 @@ private fun compileMain(args: Array<String>): Boolean {
         return false
     }
 
-    if(profilingInstrumentation==true && compilationTarget!=Cx16Target.NAME) {
+    if(profilingInstrumentation && compilationTarget!=Cx16Target.NAME) {
         presenter.printErrorLine("Profiling instrumentation is only available on the cx16 target.")
         return false
     }
@@ -217,11 +217,11 @@ private fun compileMain(args: Array<String>): Boolean {
         return false
     }
 
-    if(varsGolden==true && varsHighBank!=null) {
+    if(varsGolden && varsHighBank!=null) {
         presenter.printErrorLine("Either use -varsgolden or -varshigh, not both.")
         return false
     }
-    if(varsAddress!=null && (varsGolden==true || varsHighBank!=null)) {
+    if(varsAddress!=null && (varsGolden || varsHighBank!=null)) {
         presenter.printErrorLine("Either use -varsaddress or -varsgolden/-varshigh, not both.")
         return false
     }
@@ -230,8 +230,8 @@ private fun compileMain(args: Array<String>): Boolean {
     // checked in the compiler where the compilation target is resolved: it knows the actual
     // CpuType and pointer size, which also covers custom targets defined by a config file.
 
-    if(startVm==true) {
-        return runVm(moduleFiles.first(), quietAll==true, vmTrace==true, presenter)
+    if(startVm) {
+        return runVm(moduleFiles.first(), quietAll, vmTrace, presenter)
     }
 
     val processedSymbols = processSymbolDefs(symbolDefs, presenter) ?: return false
@@ -240,7 +240,7 @@ private fun compileMain(args: Array<String>): Boolean {
     outputFile?.let { pathFrom(it).parent?.createDirectories() }
     outputPath.createDirectories()
 
-    if(watchMode==true) {
+    if(watchMode) {
         val watchservice = FileSystems.getDefault().newWatchService()
         val allImportedFiles = mutableSetOf<Path>()
         val results = mutableListOf<CompilationResult>()
@@ -250,43 +250,43 @@ private fun compileMain(args: Array<String>): Boolean {
             results.clear()
             for(filepathRaw in moduleFiles) {
                 val filepath = pathFrom(filepathRaw).normalize()
-                val txtcolors = if(plainText==true) ErrorReporter.PlainText else ErrorReporter.AnsiColors
+                val txtcolors = if(plainText) ErrorReporter.PlainText else ErrorReporter.AnsiColors
                 val compilerArgs = CompilerArguments(
                     filepath,
-                    if(checkSource==true) false else dontOptimize != true,
-                    if(checkSource==true) false else dontWriteAssembly != true,
-                    warnSymbolShadowing == true,
-                    warnImplicitTypeCasts == true,
-                    quietAll == true,
-                    quietAll == true || quietAssembler == true,
-                    showTimings == true,
-                    asmListfile == true,
-                    dontIncludeSourcelines != true,
-                    newCodegen == true,
-                    dumpVariables == true,
-                    dumpSymbols == true,
+                    !checkSource && !dontOptimize,
+                    !checkSource && !dontWriteAssembly,
+                    warnSymbolShadowing,
+                    warnImplicitTypeCasts,
+                    quietAll,
+                    quietAll || quietAssembler,
+                    showTimings,
+                    asmListfile,
+                    !dontIncludeSourcelines,
+                    newCodegen,
+                    dumpVariables,
+                    dumpSymbols,
                     varsHighBank,
-                    varsGolden == true,
+                    varsGolden,
                     varsAddress,
                     compilationTarget!!,
                     breakpointCpuInstruction,
-                    printAst1 == true,
-                    printAst2 == true,
+                    printAst1,
+                    printAst2,
                     printCompileInfo = true,
-                    ignoreFootguns == true,
-                    profilingInstrumentation == true,
-                    traceImports == true,
+                    ignoreFootguns,
+                    profilingInstrumentation,
+                    traceImports,
                     processedSymbols,
                     srcdirs,
                     outputPath,
                     outputFile = outputFile?.let { pathFrom(it) },
                     errors = ErrorReporter(txtcolors),
                     assemble = true,
-                    generateDocumentation = generateDocumentation == true
+                    generateDocumentation = generateDocumentation
                 )
                 val compilationResult = compileProgram(compilerArgs)
 
-                if(checkSource==true)
+                if(checkSource)
                     println("No output produced.")
 
                 if(compilationResult!=null)
@@ -331,40 +331,40 @@ private fun compileMain(args: Array<String>): Boolean {
             presenter.clearScreen()
         }
 
-    } else if (daemonMode == true) {
-        if((startEmulator1==true || startEmulator2==true) && moduleFiles.size>1) {
+    } else if (daemonMode) {
+        if((startEmulator1 || startEmulator2) && moduleFiles.size>1) {
             System.err.println("can't start emulator when multiple module files are specified")
             return false
         }
         for(filepathRaw in moduleFiles) {
             val filepath = pathFrom(filepathRaw).normalize().toAbsolutePath()
-            val txtcolors = if(plainText==true) ErrorReporter.PlainText else ErrorReporter.AnsiColors
+            val txtcolors = if(plainText) ErrorReporter.PlainText else ErrorReporter.AnsiColors
             val absoluteSrcDirs = srcdirs.map { Path.of(it).toAbsolutePath().toString() }
             val compilerArgs = CompilerArguments(
                 filepath,
-                if(checkSource==true) false else dontOptimize != true,
-                if(checkSource==true) false else dontWriteAssembly != true,
-                warnSymbolShadowing == true,
-                warnImplicitTypeCasts == true,
-                quietAll == true,
-                quietAll == true || quietAssembler == true,
-                showTimings == true,
-                asmListfile == true,
-                dontIncludeSourcelines != true,
-                newCodegen == true,
-                dumpVariables == true,
-                dumpSymbols == true,
+                !checkSource && !dontOptimize,
+                !checkSource && !dontWriteAssembly,
+                warnSymbolShadowing,
+                warnImplicitTypeCasts,
+                quietAll,
+                quietAll || quietAssembler,
+                showTimings,
+                asmListfile,
+                !dontIncludeSourcelines,
+                newCodegen,
+                dumpVariables,
+                dumpSymbols,
                 varsHighBank,
-                varsGolden == true,
+                varsGolden,
                 varsAddress,
                 compilationTarget!!,
                 breakpointCpuInstruction,
-                printAst1 == true,
-                printAst2 == true,
+                printAst1,
+                printAst2,
                 true,
-                ignoreFootguns == true,
-                profilingInstrumentation == true,
-                traceImports == true,
+                ignoreFootguns,
+                profilingInstrumentation,
+                traceImports,
                 processedSymbols,
                 absoluteSrcDirs,
                 outputPath,
@@ -372,35 +372,35 @@ private fun compileMain(args: Array<String>): Boolean {
                 cwd = Path.of(System.getProperty("user.dir")),
                 errors = ErrorReporter(txtcolors),
                 assemble = true,
-                generateDocumentation = generateDocumentation == true
+                generateDocumentation = generateDocumentation
             )
-            val response = compileViaDaemon(compilerArgs, plainText == true)
+            val response = compileViaDaemon(compilerArgs, plainText)
             if (response == null || !response.ok)
                 return false
             
-            if (startEmulator1 == true || startEmulator2 == true) {
+            if (startEmulator1 || startEmulator2) {
                 if (response.outputFiles.isEmpty()) {
                     println("\nCan't start emulator because no program was assembled.")
                 } else {
                     val programFile = Path.of(response.outputFiles.first())
 
                     val target = getCompilationTargetByName(compilationTarget!!)
-                    if (startEmulator1 == true) {
+                    if (startEmulator1) {
                         if (target is VMTarget) {
-                            if(!launchVirtualMachine(target, programFile, quietAll==true, vmTrace==true, presenter))
+                            if(!launchVirtualMachine(target, programFile, quietAll, vmTrace, presenter))
                                 return false
                         } else {
-                            target.launchEmulator(1, programFile, quietAll==true)
+                            target.launchEmulator(1, programFile, quietAll)
                         }
                     } else {
-                        target.launchEmulator(2, programFile, quietAll==true)
+                        target.launchEmulator(2, programFile, quietAll)
                     }
                 }
             }
         }
         return true
     } else {
-        if((startEmulator1==true || startEmulator2==true) && moduleFiles.size>1) {
+        if((startEmulator1 || startEmulator2) && moduleFiles.size>1) {
             System.err.println("can't start emulator when multiple module files are specified")
             return false
         }
@@ -408,43 +408,43 @@ private fun compileMain(args: Array<String>): Boolean {
             val filepath = pathFrom(filepathRaw).normalize()
             val compilationResult: CompilationResult
             try {
-                val txtcolors = if(plainText==true) ErrorReporter.PlainText else ErrorReporter.AnsiColors
+                val txtcolors = if(plainText) ErrorReporter.PlainText else ErrorReporter.AnsiColors
                 val compilerArgs = CompilerArguments(
                     filepath,
-                    if(checkSource==true) false else dontOptimize != true,
-                    if(checkSource==true) false else dontWriteAssembly != true,
-                    warnSymbolShadowing == true,
-                    warnImplicitTypeCasts == true,
-                    quietAll == true,
-                    quietAll == true || quietAssembler == true,
-                    showTimings == true,
-                    asmListfile == true,
-                    dontIncludeSourcelines != true,
-                    newCodegen == true,
-                    dumpVariables == true,
-                    dumpSymbols==true,
+                    !checkSource && !dontOptimize,
+                    !checkSource && !dontWriteAssembly,
+                    warnSymbolShadowing,
+                    warnImplicitTypeCasts,
+                    quietAll,
+                    quietAll || quietAssembler,
+                    showTimings,
+                    asmListfile,
+                    !dontIncludeSourcelines,
+                    newCodegen,
+                    dumpVariables,
+                    dumpSymbols,
                     varsHighBank,
-                    varsGolden == true,
+                    varsGolden,
                     varsAddress,
                     compilationTarget!!,
                     breakpointCpuInstruction,
-                    printAst1 == true,
-                    printAst2 == true,
+                    printAst1,
+                    printAst2,
                     true,
-                    ignoreFootguns == true,
-                    profilingInstrumentation == true,
-                    traceImports == true,
+                    ignoreFootguns,
+                    profilingInstrumentation,
+                    traceImports,
                     processedSymbols,
                     srcdirs,
                     outputPath,
                     outputFile = outputFile?.let { pathFrom(it) },
                     errors = ErrorReporter(txtcolors),
                     assemble = true,
-                    generateDocumentation = generateDocumentation == true
+                    generateDocumentation = generateDocumentation
                 )
                 val result = compileProgram(compilerArgs)
 
-                if(checkSource==true)
+                if(checkSource)
                     println("No output produced.")
 
                 if(result==null)
@@ -455,7 +455,7 @@ private fun compileMain(args: Array<String>): Boolean {
                 return false
             }
 
-            if(startEmulator1==true || startEmulator2==true) {
+            if(startEmulator1 || startEmulator2) {
                 if (compilationResult.compilerAst.name.isEmpty()) {
                     println("\nCan't start emulator because no program was assembled.")
                     return true
@@ -468,16 +468,16 @@ private fun compileMain(args: Array<String>): Boolean {
                 compareIrFiles(outs.ir(), Path(compareIR!!), presenter)
             }
 
-            if (startEmulator1 == true) {
+            if (startEmulator1) {
                 if (compilationResult.compilationOptions.compTarget is VMTarget) {
                     if(!launchVirtualMachine(compilationResult.compilationOptions.compTarget as VMTarget,
-                            outs.programFile, quietAll==true, vmTrace==true, presenter))
+                            outs.programFile, quietAll, vmTrace, presenter))
                         return false
                 } else {
-                    compilationResult.compilationOptions.compTarget.launchEmulator(1, outs.programFile, quietAll==true)
+                    compilationResult.compilationOptions.compTarget.launchEmulator(1, outs.programFile, quietAll)
                 }
-            } else if (startEmulator2 == true)
-                compilationResult.compilationOptions.compTarget.launchEmulator(2, outs.programFile, quietAll==true)
+            } else if (startEmulator2)
+                compilationResult.compilationOptions.compTarget.launchEmulator(2, outs.programFile, quietAll)
         }
     }
 
@@ -928,7 +928,7 @@ private fun communicateWithDaemon(channel: SocketChannel, compilerArgs: Compiler
             return response
         }
 
-        System.out.print(response.stdout)
+        print(response.stdout)
         System.out.flush()
         System.err.print(response.stderr)
         System.err.flush()

@@ -313,9 +313,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
 
         val left = condition.left
         val right = condition.right
-        val operator = condition.operator
-
-        when (operator) {
+        when (val operator = condition.operator) {
             "==" -> {
                 // if X==value
                 asmgen.assignExpressionToRegister(left, RegisterOrPair.A, signed)
@@ -595,9 +593,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
 
         val left = condition.left
         val right = condition.right
-        val operator = condition.operator
-
-        return when (operator) {
+        return when (val operator = condition.operator) {
             "==" -> longEqualsValue(left, right, false, jumpAfterIf, stmt)
             "!=" -> longEqualsValue(left, right, true, jumpAfterIf, stmt)
             "<", "<=", ">", ">=" -> compareLongValues(left, operator, right, jumpAfterIf, stmt)
@@ -932,8 +928,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
             asmgen.out("  lda  $varname+$offset")
             return
         }
-        val e = asmgen.unwrapCasts(expr)
-        when (e) {
+        when (val e = asmgen.unwrapCasts(expr)) {
             is PtArrayIndexer -> {
                 if (e.variable == null)
                     throw AssemblyError("support for ptr indexing ${e.position}")
@@ -1830,24 +1825,30 @@ internal class IfElseAsmGen(private val program: PtProgram,
             block("#<${constValue}", "#>${constValue}")
         } else {
             val e = asmgen.unwrapCasts(expr)
-            if (e is PtIdentifier) {
-                val varname = asmgen.asmVariableName(e)
-                block(varname, "$varname+1")
-            } else if (e is PtAddressOf && !e.isFromArrayElement && e.identifier != null) {
-                val identifier = e.identifier!!
-                val varname = if (identifier.type.isSplitWordArray(asmgen.options.compTarget)) {
-                    if (e.isMsbForSplitArray) identifier.name + "_msb" else identifier.name + "_lsb"
-                } else {
-                    identifier.name
+            when (e) {
+                is PtIdentifier -> {
+                    val varname = asmgen.asmVariableName(e)
+                    block(varname, "$varname+1")
                 }
-                block("#<$varname", "#>$varname")
-            } else {
-                asmgen.saveRegisterStack(CpuRegister.A, false)
-                asmgen.saveRegisterStack(CpuRegister.Y, false)
-                asmgen.assignExpressionToVariable(expr, "P8ZP_SCRATCH_W1", expr.type)
-                asmgen.restoreRegisterStack(CpuRegister.Y, false)
-                asmgen.restoreRegisterStack(CpuRegister.A, false)
-                block("P8ZP_SCRATCH_W1", "P8ZP_SCRATCH_W1+1")
+
+                is PtAddressOf if !e.isFromArrayElement && e.identifier != null -> {
+                    val identifier = e.identifier!!
+                    val varname = if (identifier.type.isSplitWordArray(asmgen.options.compTarget)) {
+                        if (e.isMsbForSplitArray) identifier.name + "_msb" else identifier.name + "_lsb"
+                    } else {
+                        identifier.name
+                    }
+                    block("#<$varname", "#>$varname")
+                }
+
+                else -> {
+                    asmgen.saveRegisterStack(CpuRegister.A, false)
+                    asmgen.saveRegisterStack(CpuRegister.Y, false)
+                    asmgen.assignExpressionToVariable(expr, "P8ZP_SCRATCH_W1", expr.type)
+                    asmgen.restoreRegisterStack(CpuRegister.Y, false)
+                    asmgen.restoreRegisterStack(CpuRegister.A, false)
+                    block("P8ZP_SCRATCH_W1", "P8ZP_SCRATCH_W1+1")
+                }
             }
         }
     }

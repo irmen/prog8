@@ -452,8 +452,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
 
     
     fun resolveSymbolRef(name: String): String {
-        val node = program.st.lookup(name)
-        return when (node) {
+        return when (val node = program.st.lookup(name)) {
             is IRStMemVar -> {
                 val addr = node.address.toInt()
                 $$"$${addr.toUInt().toString(16).padStart(8, '0')}"
@@ -1467,7 +1466,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
             emitRaw("${fixNameSymbols(mv.name)} = $${mv.address.toString(16)}")
         }
 
-        if (emitted.size > 0 || memvars.count() > 0)
+        if (emitted.isNotEmpty() || memvars.count() > 0)
             emitRaw("")
     }
 

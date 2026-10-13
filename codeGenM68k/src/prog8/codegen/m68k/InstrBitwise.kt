@@ -206,15 +206,19 @@ private fun AsmGen.shiftOpcode(isLeft: Boolean, isArithmetic: Boolean, isRotate:
 // compact memory form. d0 is scratch for the shift, matching the callers which
 // already invalidate their d0 cache.
 private fun AsmGen.emitMemoryWordShiftOrRotate(op: String, address: String) {
-    if (target.name == Qemu68kTarget.NAME && (op == "asr" || op == "lsr")) {
-        emitLine("move.w  $address, d0")
-        emitLine("$op.w  #1, d0")
-        emitLine("move.w  d0, $address")
-    } else if (target.name == Qemu68kTarget.NAME) {
-        emitLine("lea  $address, a0")
-        emitLine("$op.w  (a0)")
-    } else {
-        emitLine("$op.w  $address")
+    when (target.name) {
+        Qemu68kTarget.NAME if (op == "asr" || op == "lsr") -> {
+            emitLine("move.w  $address, d0")
+            emitLine("$op.w  #1, d0")
+            emitLine("move.w  d0, $address")
+        }
+        Qemu68kTarget.NAME -> {
+            emitLine("lea  $address, a0")
+            emitLine("$op.w  (a0)")
+        }
+        else -> {
+            emitLine("$op.w  $address")
+        }
     }
 }
 

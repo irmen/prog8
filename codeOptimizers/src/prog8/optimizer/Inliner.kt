@@ -62,10 +62,7 @@ class Inliner(private val program: Program, private val options: CompilationOpti
             if (!visitedSubroutines.add(subroutine)) return
 
             fun isBodyInlineable(stmt: Return): Boolean {
-                if (stmt.values.isEmpty())
-                    return true
-
-                return stmt.values.all { value ->
+                return stmt.values.isEmpty() || stmt.values.all { value ->
                     if (isSimpleReturnExpression(value)) {
                         val walker = object : AstWalker() {
                             override fun after(identifier: IdentifierReference, parent: Node): Iterable<AstModification> {
@@ -96,9 +93,7 @@ class Inliner(private val program: Program, private val options: CompilationOpti
                 // crash (literal argument has no identifier to assign to) or change semantics
                 // (assigning to the caller's variable instead of the local parameter copy).
                 val targetName = stmt.target.identifier?.nameInSource?.lastOrNull()
-                if (targetName != null && subroutine.parameters.any { it.name == targetName })
-                    return false
-                return if (stmt.value.isSimple) {
+                return !(targetName != null && subroutine.parameters.any { it.name == targetName }) && if (stmt.value.isSimple) {
                     val targetInline =
                         if (stmt.target.identifier != null) {
                             makeFullyScoped(stmt.target.identifier!!)
@@ -159,9 +154,8 @@ class Inliner(private val program: Program, private val options: CompilationOpti
 
                     if (hasOnlyBodyStatements) {
                         if (subroutine !== program.entrypoint) {
-                            val bodyStmt = functionalStatements.firstOrNull()
                             val isAutoInlineable =
-                                when (bodyStmt) {
+                                when (val bodyStmt = functionalStatements.firstOrNull()) {
                                     is Return -> isBodyInlineable(bodyStmt)
                                     is Assignment -> isBodyInlineable(bodyStmt)
                                     is FunctionCallStatement -> isBodyInlineable(bodyStmt)
@@ -240,7 +234,7 @@ class Inliner(private val program: Program, private val options: CompilationOpti
 
     override fun after(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<AstModification>  {
         val sub = functionCallStatement.target.targetStatement(program.builtinFunctions) as? Subroutine
-        if (sub == null) return noModifications
+            ?: return noModifications
 
         if (!sub.inline) {
             maybeSuggestInlineKeyword(sub)
@@ -357,9 +351,7 @@ class Inliner(private val program: Program, private val options: CompilationOpti
         if (functionalCount == 2 && sub.statements.lastOrNull()?.let(::isEmptyReturn) != true)
             return false
         val paramNames = sub.parameters.map { it.name }.toSet()
-        if (!isFairlySimpleReturnExpression(returnStmt.values[0], paramNames))
-            return false
-        return true
+        return isFairlySimpleReturnExpression(returnStmt.values[0], paramNames)
     }
 
     private fun maybeSuggestInlineKeyword(sub: Subroutine) {
@@ -372,8 +364,7 @@ class Inliner(private val program: Program, private val options: CompilationOpti
     }
 
     override fun before(functionCallExpr: FunctionCallExpression, parent: Node): Iterable<AstModification> {
-        val sub = functionCallExpr.target.targetStatement(program.builtinFunctions) as? Subroutine
-        if (sub == null) return noModifications
+        val sub = functionCallExpr.target.targetStatement(program.builtinFunctions) as? Subroutine ?: return noModifications
         if (!sub.inline) {
             maybeSuggestInlineKeyword(sub)
             return noModifications

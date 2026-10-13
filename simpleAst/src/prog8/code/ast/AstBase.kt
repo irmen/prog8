@@ -12,8 +12,9 @@ import java.nio.file.Path
 
 sealed class PtNode(val position: Position) {
 
-    private val _children = mutableListOf<PtNode>()
-    val children: List<PtNode> get() = _children  // Read-only view
+    // Read-only view
+    val children: List<PtNode>
+        field = mutableListOf<PtNode>()
     lateinit var parent: PtNode
 
     fun parentHasBeenSet() = ::parent.isInitialized
@@ -21,12 +22,12 @@ sealed class PtNode(val position: Position) {
     override fun toString(): String = "${super.toString()} at $position"
 
     fun add(child: PtNode) {
-        _children.add(child)
+        children.add(child)
         child.parent = this
     }
 
     fun add(index: Int, child: PtNode) {
-        _children.add(index, child)
+        children.add(index, child)
         child.parent = this
     }
 
@@ -35,7 +36,7 @@ sealed class PtNode(val position: Position) {
      * Updates the new child's parent pointer.
      */
     fun setChild(index: Int, child: PtNode) {
-        _children[index] = child
+        children[index] = child
         child.parent = this
     }
 
@@ -44,7 +45,7 @@ sealed class PtNode(val position: Position) {
      * Does NOT clear the removed child's parent pointer (caller should do that if needed).
      */
     fun removeChild(child: PtNode): Boolean {
-        return _children.remove(child)
+        return children.remove(child)
     }
 
     /**
@@ -52,7 +53,7 @@ sealed class PtNode(val position: Position) {
      * Does NOT clear the removed child's parent pointer (caller should do that if needed).
      */
     fun removeChildAt(index: Int): PtNode {
-        return _children.removeAt(index)
+        return children.removeAt(index)
     }
 
     /**
@@ -67,7 +68,7 @@ sealed class PtNode(val position: Position) {
      * Does NOT clear the removed children's parent pointers (caller should do that if needed).
      */
     fun clearChildren() {
-        _children.clear()
+        children.clear()
     }
 
     /**

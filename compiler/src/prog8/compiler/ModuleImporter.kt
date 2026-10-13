@@ -202,9 +202,9 @@ class ModuleImporter(private val program: Program,
                 val file = it.resolve(fileName)
                 val isLib = file.parent in libraryPathsSet   // a file may be found here before reaching the libraryPaths loop, but still resides in a library dir (customtargets)
                 val source = ImportFileSystem.getFile(file, isLib)
-                val origin = when {
-                    it == Path("").absolute() -> "CWD"
-                    it in sourcePaths -> "srcdirs"
+                val origin = when (it) {
+                    Path("").absolute() -> "CWD"
+                    in sourcePaths -> "srcdirs"
                     else -> "neighboring directory"
                 }
                 trace("Importing module '$name' from file: $file (found in $origin) - imported by '$requestedBy'")

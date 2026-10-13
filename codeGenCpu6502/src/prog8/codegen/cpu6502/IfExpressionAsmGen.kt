@@ -104,8 +104,7 @@ internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, privat
     }
 
     private fun evalIfExpressionConditonAndBranchWhenFalse(stmtCondition: PtExpression, falseLabel: String) {
-        val condition = asmgen.unwrapCasts(stmtCondition)
-        when (condition) {
+        when (val condition = asmgen.unwrapCasts(stmtCondition)) {
             is PtBinaryExpression -> {
                 val rightDt = condition.right.type
                 return when {
@@ -802,8 +801,7 @@ internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, privat
             translateWordExprIsZero(expr, falseLabel)
             return
         }
-        val e = asmgen.unwrapCasts(expr)
-        when (e) {
+        when (val e = asmgen.unwrapCasts(expr)) {
             is PtIdentifier -> {
                 val varname = asmgen.asmVariableName(e)
                 asmgen.out("""
@@ -853,8 +851,7 @@ internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, privat
             translateWordExprIsNotZero(expr, falseLabel)
             return
         }
-        val e = asmgen.unwrapCasts(expr)
-        when (e) {
+        when (val e = asmgen.unwrapCasts(expr)) {
             is PtIdentifier -> {
                 val varname = asmgen.asmVariableName(e)
                 asmgen.out("""
@@ -1092,8 +1089,7 @@ internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, privat
             asmgen.out("  lda  $varname+$offset")
             return
         }
-        val e = asmgen.unwrapCasts(expr)
-        when (e) {
+        when (val e = asmgen.unwrapCasts(expr)) {
             is PtArrayIndexer -> {
                 if (e.variable == null)
                     throw AssemblyError("support for ptr indexing ${e.position}")
@@ -1149,23 +1145,29 @@ internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, privat
             block("#<${constValue}", "#>${constValue}")
         } else {
             val e = asmgen.unwrapCasts(expr)
-            if (e is PtIdentifier) {
-                val varname = asmgen.asmVariableName(e)
-                block(varname, "$varname+1")
-            } else if (e is PtAddressOf && !e.isFromArrayElement) {
-                val identifier = e.identifier!!
-                var varname = asmgen.asmVariableName(identifier)
-                if (identifier.type.isSplitWordArray(asmgen.options.compTarget)) {
-                    varname += if (e.isMsbForSplitArray) "_msb" else "_lsb"
+            when (e) {
+                is PtIdentifier -> {
+                    val varname = asmgen.asmVariableName(e)
+                    block(varname, "$varname+1")
                 }
-                block("#<$varname", "#>$varname")
-            } else {
-                asmgen.saveRegisterStack(CpuRegister.A, false)
-                asmgen.saveRegisterStack(CpuRegister.Y, false)
-                asmgen.assignExpressionToVariable(expr, "P8ZP_SCRATCH_W1", expr.type)
-                asmgen.restoreRegisterStack(CpuRegister.Y, false)
-                asmgen.restoreRegisterStack(CpuRegister.A, false)
-                block("P8ZP_SCRATCH_W1", "P8ZP_SCRATCH_W1+1")
+
+                is PtAddressOf if !e.isFromArrayElement -> {
+                    val identifier = e.identifier!!
+                    var varname = asmgen.asmVariableName(identifier)
+                    if (identifier.type.isSplitWordArray(asmgen.options.compTarget)) {
+                        varname += if (e.isMsbForSplitArray) "_msb" else "_lsb"
+                    }
+                    block("#<$varname", "#>$varname")
+                }
+
+                else -> {
+                    asmgen.saveRegisterStack(CpuRegister.A, false)
+                    asmgen.saveRegisterStack(CpuRegister.Y, false)
+                    asmgen.assignExpressionToVariable(expr, "P8ZP_SCRATCH_W1", expr.type)
+                    asmgen.restoreRegisterStack(CpuRegister.Y, false)
+                    asmgen.restoreRegisterStack(CpuRegister.A, false)
+                    block("P8ZP_SCRATCH_W1", "P8ZP_SCRATCH_W1+1")
+                }
             }
         }
     }

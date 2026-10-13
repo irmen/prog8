@@ -51,7 +51,7 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
     }
 
     override fun visit(decl: VarDecl) {
-        val names = if(decl.names.isEmpty()) listOf(decl.name) else decl.names
+        val names = decl.names.ifEmpty { listOf(decl.name) }
         if(names.any { it in BuiltinFunctions })
             errors.err("builtin function cannot be redefined", decl.position)
         else if(names.any { it == "pointer" })

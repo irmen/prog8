@@ -391,12 +391,10 @@ class UnusedCodeRemover(private val program: Program,
                 if (definingSub == null) false // global: unsafe
                 else {
                     val target = stmt.target.targetStatement(program.builtinFunctions)
-                    if (target is Subroutine) {
-                        !isNestedWithin(target, definingSub)
-                    } else if (target is BuiltinFunctionPlaceholder) {
-                        target.name !in setOf("call", "callfar", "callfar2")
-                    } else {
-                        true
+                    when (target) {
+                        is Subroutine -> !isNestedWithin(target, definingSub)
+                        is BuiltinFunctionPlaceholder -> target.name !in setOf("call", "callfar", "callfar2")
+                        else -> true
                     }
                 }
             }

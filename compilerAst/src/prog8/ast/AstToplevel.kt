@@ -205,7 +205,7 @@ interface INameScope: IStatementContainer, INamedStatement {
     }
 
     private fun lookupQualified(scopedName: List<String>): Statement? {
-        return lookupQualified(scopedName, mutableSetOf<String>())
+        return lookupQualified(scopedName, mutableSetOf())
     }
 
     private fun lookupQualified(scopedName: List<String>, visitedAliases: MutableSet<String>): Statement? {

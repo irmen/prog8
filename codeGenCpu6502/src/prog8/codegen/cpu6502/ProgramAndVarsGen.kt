@@ -1012,14 +1012,14 @@ internal class ProgramAndVarsGen(
         consts.sortedBy { it.name }.forEach {
             val nameWithoutColons = it.name.replace("::", "_")
             if(it.dt.isFloat)
-                asmgen.out("  ${nameWithoutColons} = ${it.value}")
+                asmgen.out("  $nameWithoutColons = ${it.value}")
             else {
                 if(it.value!=null)
-                    asmgen.out("  ${nameWithoutColons} = ${it.value!!.toHex()}")
+                    asmgen.out("  $nameWithoutColons = ${it.value!!.toHex()}")
                 else if(it.memorySlab!=null)
-                    asmgen.out("  ${nameWithoutColons} = ${StMemorySlabBlockName}.${it.memorySlab!!.name}")
+                    asmgen.out("  $nameWithoutColons = ${StMemorySlabBlockName}.${it.memorySlab!!.name}")
                 else
-                    TODO("asm gen for ${nameWithoutColons} = memory alloc?")
+                    TODO("asm gen for $nameWithoutColons = memory alloc?")
             }
         }
     }

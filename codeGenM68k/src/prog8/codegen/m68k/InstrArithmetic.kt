@@ -227,7 +227,7 @@ internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
             when (type) {
                 IRDataType.BYTE -> {
                     emitLoadD0(srcReg, IRDataType.BYTE)
-                    emitLine($$"and.l  #\$ff, d0", "zero extend")
+                    emitLine($$"and.l  #$ff, d0", "zero extend")
                     invalidateD0Cache()
                     emitLine("mulu.w  d0, d0")
                     invalidateD0Cache()

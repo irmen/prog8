@@ -119,10 +119,9 @@ class VirtualMachine(private val irProgram: IRProgram) {
         var a = rnd_x1.toInt() xor rnd_c1.toInt() xor rnd_a1.toInt()
         rnd_a1 = a.toUByte()
         var sum = a + rnd_b1.toInt() // clc
-        var carry: Int
         a = sum and 0xFF
         rnd_b1 = a.toUByte()
-        carry = a and 1 // lsr carry
+        val carry: Int = a and 1 // lsr carry
         a = (a ushr 1) and 0xFF
         a = a xor rnd_a1.toInt()
         sum = a + rnd_c1.toInt() + carry

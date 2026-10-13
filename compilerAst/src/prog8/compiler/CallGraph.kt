@@ -246,10 +246,7 @@ class CallGraph(private val program: Program) : IAstVisitor {
         val allUnused = asms.all { asm->
             // check that the asm block that calls us, is inside a subroutine that is unused or not
             val containingSub = asm.definingSubroutine
-            if(containingSub != null && containingSub !== sub)
-                unused(containingSub)
-            else
-                false
+            containingSub != null && containingSub !== sub && unused(containingSub)
         }
         return allUnused
     }

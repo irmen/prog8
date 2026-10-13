@@ -323,7 +323,7 @@ class DataType private constructor(
     }
 
     fun dereference(): DataType {
-        require(isPointer || isUnsignedWord) { "cannot dereference non-pointer type ${this}"}
+        require(isPointer || isUnsignedWord) { "cannot dereference non-pointer type $this"}
         return when {
             isUnsignedWord -> forDt(BaseDataType.UBYTE)
             sub!=null -> forDt(sub)
@@ -439,8 +439,7 @@ class DataType private constructor(
             BaseDataType.STR -> targetType.base in setOf(BaseDataType.STR, BaseDataType.UWORD, BaseDataType.LONG) || (targetType.isPointer && targetType.sub==BaseDataType.UBYTE)
             BaseDataType.ARRAY, BaseDataType.ARRAY_SPLITW -> {
                 if (isPointerArray) {
-                    if (!targetType.isPointerArray) false
-                    else if (subType != null && targetType.subType != null) subType!!.sameas(targetType.subType!!)
+                    targetType.isPointerArray && if (subType != null && targetType.subType != null) subType!!.sameas(targetType.subType!!)
                     else if (subType == null && targetType.subType == null) pointeeSub == targetType.pointeeSub
                     else false
                 } else {
@@ -521,11 +520,11 @@ class DataType private constructor(
         (memsizer.POINTER_MEM_SIZE > 2u && base == BaseDataType.LONG) ||
         (base == BaseDataType.ARRAY && (sub == BaseDataType.UBYTE || sub == BaseDataType.BYTE))
     fun isSplitWordArray(memsizer: IMemSizer): Boolean  {
-        return if(base== BaseDataType.ARRAY_SPLITW)
-            true
-        else if(base==BaseDataType.ARRAY && sub==BaseDataType.POINTER)
-            memsizer.POINTER_MEM_SIZE<=2u
-        else false
+        return when (base) {
+            BaseDataType.ARRAY_SPLITW -> true
+            BaseDataType.ARRAY if sub == BaseDataType.POINTER -> memsizer.POINTER_MEM_SIZE <= 2u
+            else -> false
+        }
     }
     val isSplitUnsignedWordArray = base == BaseDataType.ARRAY_SPLITW && sub == BaseDataType.UWORD
     val isSplitSignedWordArray = base == BaseDataType.ARRAY_SPLITW && sub == BaseDataType.WORD

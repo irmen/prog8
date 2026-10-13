@@ -123,15 +123,11 @@ internal fun VirtualMachine.write_file_byte(byte: UByte): Boolean {
 }
 
 internal fun VirtualMachine.seek_file(position: Int): Boolean {
-    return if (fileInputStream == null)
+    return fileInputStream != null && try {
+        fileInputStream!!.seek(position.toLong())
+        true
+    } catch (_: IOException) {
         false
-    else {
-        try {
-            fileInputStream!!.seek(position.toLong())
-            true
-        } catch (_: IOException) {
-            false
-        }
     }
 }
 

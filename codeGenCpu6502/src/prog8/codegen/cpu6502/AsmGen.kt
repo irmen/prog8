@@ -737,7 +737,7 @@ class AsmGen6502Internal (
                         Statusflag.Pc -> out("  lda  #0 |  rol  a |  sta  $tempReg")
                         else -> throw AssemblyError("unsupported statusflag ${fromReg.statusflag}")
                     }
-                    else -> throw AssemblyError("weird CPU register ${fromReg}")
+                    else -> throw AssemblyError("weird CPU register $fromReg")
                 }
                 
                 // Store from temp to destination register
@@ -750,7 +750,7 @@ class AsmGen6502Internal (
                         Statusflag.Pc -> out("  lda  $tempReg |  asl  a")
                         else -> throw AssemblyError("unsupported statusflag ${toReg.statusflag}")
                     }
-                    else -> throw AssemblyError("weird CPU register ${toReg}")
+                    else -> throw AssemblyError("weird CPU register $toReg")
                 }
             }
         }
@@ -1439,23 +1439,35 @@ $repeatLabel""")
                         pla
                         sta  ($var2ZpPtrVar),y""")
                 } else {
-                    if (v1.address is PtNumber) {
-                        out("  lda  ${v1.address.asConstInteger()!!.toHex()} |  pha")
-                    } else if (v1.address is PtIdentifier) {
-                        var1ZpPtrVar = loadByteFromPointerIntoA(v1.address as PtIdentifier)
-                        out("  pha")
-                    } else {
-                        TODO("swap bytes not supported for this expression. Use a simpler expression, or even just a temporary variable and assignments for now. ${v1.position}")
+                    when (v1.address) {
+                        is PtNumber -> {
+                            out("  lda  ${v1.address.asConstInteger()!!.toHex()} |  pha")
+                        }
+
+                        is PtIdentifier -> {
+                            var1ZpPtrVar = loadByteFromPointerIntoA(v1.address as PtIdentifier)
+                            out("  pha")
+                        }
+
+                        else -> {
+                            TODO("swap bytes not supported for this expression. Use a simpler expression, or even just a temporary variable and assignments for now. ${v1.position}")
+                        }
                     }
-                    if (v2.address is PtNumber) {
-                        out("  lda  ${v2.address.asConstInteger()!!.toHex()}")
-                    } else if (v2.address is PtIdentifier) {
-                        var2ZpPtrVar = loadByteFromPointerIntoA(
-                            v2.address as PtIdentifier,
-                            tempZpPtrVar = "P8ZP_SCRATCH_W1"
-                        )
-                    } else {
-                        TODO("swap bytes not supported for this expression. Use a simpler expression, or even just a temporary variable and assignments for now. ${v2.position}")
+                    when (v2.address) {
+                        is PtNumber -> {
+                            out("  lda  ${v2.address.asConstInteger()!!.toHex()}")
+                        }
+
+                        is PtIdentifier -> {
+                            var2ZpPtrVar = loadByteFromPointerIntoA(
+                                v2.address as PtIdentifier,
+                                tempZpPtrVar = "P8ZP_SCRATCH_W1"
+                            )
+                        }
+
+                        else -> {
+                            TODO("swap bytes not supported for this expression. Use a simpler expression, or even just a temporary variable and assignments for now. ${v2.position}")
+                        }
                     }
 
                     if (v1.address is PtNumber) {
@@ -1984,8 +1996,7 @@ $repeatLabel""")
                     ?: throw AssemblyError("expected function call for multi-value return ${ret.position}")
                 
                 // Get the return register specs for the called function
-                val calledSub = symbolTable.lookup(fcall.name)
-                val calledReturnRegs = when(calledSub) {
+                val calledReturnRegs = when(val calledSub = symbolTable.lookup(fcall.name)) {
                     is StSub -> (calledSub.astNode!! as IPtSubroutine).returnsWhatWhere(options.compTarget)
                     is StExtSub -> calledSub.returns.map { it.register to it.type }
                     else -> throw AssemblyError("unexpected subroutine type for multi-value return ${ret.position}")
@@ -2280,9 +2291,7 @@ $repeatLabel""")
         // optimize pointer,indexregister if possible
 
         fun evalBytevalueWillClobberA(expr: PtExpression): Boolean {
-            if(!expr.type.isByte)
-                return true
-            return when(expr) {
+            return !expr.type.isByte || when(expr) {
                 is PtIdentifier -> false
                 is PtNumber -> false
                 is PtBool -> false
@@ -2691,8 +2700,7 @@ $repeatLabel""")
             out("  $compare  P8ZP_SCRATCH_REG")
         }
 
-        val e = unwrapCasts(value)
-        when(e) {
+        when(val e = unwrapCasts(value)) {
             is PtArrayIndexer -> {
                 val constIndex = e.index.asConstInteger()
                 if(constIndex!=null) {

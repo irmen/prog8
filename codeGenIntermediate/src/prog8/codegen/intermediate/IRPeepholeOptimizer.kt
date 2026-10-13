@@ -481,8 +481,7 @@ jump p8_label_gen_2
                     val delta = arithmeticDelta(ins)
                     val nextDelta = arithmeticDelta(nextInstr)
                     if(delta != null && nextDelta != null) {
-                        val newDelta = delta + nextDelta
-                        when(newDelta) {
+                        when(val newDelta = delta + nextDelta) {
                             0 -> {
                                 chunk.instructions[idx] = IRInstructions.simple(Opcode.NOP)
                                 chunk.instructions[idx+1] = IRInstructions.simple(Opcode.NOP)
@@ -624,8 +623,7 @@ jump p8_label_gen_2
                     }
                 }
                 Opcode.OR -> {
-                    val imm = ins.immediate?.integerValue
-                    if (imm == null) return@forEach
+                    val imm = ins.immediate?.integerValue ?: return@forEach
                     if (imm == 0) {
                         chunk.instructions.removeAt(idx)
                         changed = true
@@ -643,8 +641,7 @@ jump p8_label_gen_2
                     }
                 }
                 Opcode.XOR -> {
-                    val imm = ins.immediate?.integerValue
-                    if (imm == null) return@forEach
+                    val imm = ins.immediate?.integerValue ?: return@forEach
                     if (imm == 0) {
                         chunk.instructions.removeAt(idx)
                         changed = true
@@ -866,7 +863,7 @@ jump p8_label_gen_2
                 var foundIdx: Int? = null
                 var foundIns: IRInstruction? = null
                 for((midIdx, midIns) in indexedInstructions) {
-                    if(midIdx <= loadmIdx || midIdx >= incIdx) continue
+                    if(midIdx !in (loadmIdx + 1)..<incIdx) continue
                     if(midIdx in toRemove || midIdx in toReplace) continue
                     if(midIns.type == IRDataType.FLOAT) continue
                     val indirect = midIns.memory as? MemoryReference.Indirect ?: continue
@@ -1220,8 +1217,7 @@ jump p8_label_gen_2
         }
 
         fun writesMem(ins: IRInstruction, key: MemKey): Boolean {
-            if(memKey(ins) != key) return false
-            return ins.memoryEffect == MemoryEffect.WRITE || ins.memoryEffect == MemoryEffect.READ_WRITE
+            return memKey(ins) == key && (ins.memoryEffect == MemoryEffect.WRITE || ins.memoryEffect == MemoryEffect.READ_WRITE)
         }
 
         val groups = mutableListOf<AddrGroup>()
@@ -1372,7 +1368,6 @@ jump p8_label_gen_2
             if (stInstr.opcode != Opcode.STOREM || stInstr.srcA == null) { idx++; continue }
             val loopvarSymbol = stInstr.memory?.symbolName
             if (loopvarSymbol == null) { idx++; continue }
-            val loopvar = loopvarSymbol
             val loopReg = stInstr.requireSrcA().register
             val loopType = stInstr.type ?: IRDataType.WORD
             // next chunk should be the loop body start with a label
@@ -1388,7 +1383,7 @@ jump p8_label_gen_2
             for (k in idx + 1 until sub.chunks.size) {
                 val c = sub.chunks[k]
                 if (c !is IRCodeChunk) continue
-                val hasIncDec = c.instructions.any { it.opcode in setOf(Opcode.INCM, Opcode.DECM) && it.memory?.symbolName == loopvar }
+                val hasIncDec = c.instructions.any { it.opcode in setOf(Opcode.INCM, Opcode.DECM) && it.memory?.symbolName == loopvarSymbol }
                 if (!hasIncDec) continue
 
                 // old shape: INCM then (same chunk or next chunk) JUMP loopLabel
@@ -1408,7 +1403,7 @@ jump p8_label_gen_2
                         val i1 = nxt.instructions[0]
                         val i2 = nxt.instructions[1]
                         val i3 = nxt.instructions[2]
-                        if (i1.opcode == Opcode.LOADM && i1.memory?.symbolName == loopvar && i1.dest != null &&
+                        if (i1.opcode == Opcode.LOADM && i1.memory?.symbolName == loopvarSymbol && i1.dest != null &&
                             i2.opcode == Opcode.CMP && (i2.srcA?.register == i1.dest?.register || i2.srcB?.register == i1.dest?.register) &&
                             i3.opcode == Opcode.BSTNE && i3.labelTarget == loopLabel) {
                             tail = Tail(k, k + 1, false)
@@ -1429,7 +1424,7 @@ jump p8_label_gen_2
                 if (ch !is IRCodeChunk) continue
                 for (ins in ch.instructions) {
                     // any store/inc/dec that writes to loopvar memory
-                    if (ins.memory?.symbolName == loopvar && ins.opcode in setOf(Opcode.STOREM, Opcode.STOREIM, Opcode.STOREZM, Opcode.STOREX, Opcode.STOREZX, Opcode.INCM, Opcode.DECM, Opcode.ADDIM, Opcode.SUBIM)) {
+                    if (ins.memory?.symbolName == loopvarSymbol && ins.opcode in setOf(Opcode.STOREM, Opcode.STOREIM, Opcode.STOREZM, Opcode.STOREX, Opcode.STOREZX, Opcode.INCM, Opcode.DECM, Opcode.ADDIM, Opcode.SUBIM)) {
                         // exclude the initial STOREM itself (not in body) and the inc chunk (not in body)
                         bodyWrites = true; break
                     }
@@ -1449,7 +1444,7 @@ jump p8_label_gen_2
             for (k in tailEnd + 1 until sub.chunks.size) {
                 val ch = sub.chunks[k] as? IRCodeChunk ?: continue
                 for (ins in ch.instructions) {
-                    if (ins.opcode == Opcode.LOADM && ins.memory?.symbolName == loopvar) { liveOut = true; break }
+                    if (ins.opcode == Opcode.LOADM && ins.memory?.symbolName == loopvarSymbol) { liveOut = true; break }
                 }
                 if (liveOut) break
             }
@@ -1466,7 +1461,7 @@ jump p8_label_gen_2
                 val ch = sub.chunks[b] as? IRCodeChunk ?: continue
                 for (i in ch.instructions.indices) {
                     val ins = ch.instructions[i]
-                    if (ins.opcode == Opcode.LOADM && ins.memory?.symbolName == loopvar) {
+                    if (ins.opcode == Opcode.LOADM && ins.memory?.symbolName == loopvarSymbol) {
                         val dest = ins.requireDest().register
                         if (dest == loopReg) {
                             // Already holds the correct value; remove the reload
@@ -1482,7 +1477,7 @@ jump p8_label_gen_2
             val incChunk = sub.chunks[incIdx] as IRCodeChunk
             for (i in incChunk.instructions.indices) {
                 val ins = incChunk.instructions[i]
-                if (ins.memory?.symbolName == loopvar && ins.opcode in setOf(Opcode.INCM, Opcode.DECM)) {
+                if (ins.memory?.symbolName == loopvarSymbol && ins.opcode in setOf(Opcode.INCM, Opcode.DECM)) {
                     val newOpcode = if (ins.opcode == Opcode.INCM) Opcode.INC else Opcode.DEC
                     incChunk.instructions[i] = IRInstructions.unary(newOpcode, loopType, loopReg.num)
                     break
@@ -1493,7 +1488,7 @@ jump p8_label_gen_2
                 val cmpChunk = sub.chunks[newCmpIdx] as IRCodeChunk
                 for (i in cmpChunk.instructions.indices) {
                     val ins = cmpChunk.instructions[i]
-                    if (ins.opcode == Opcode.LOADM && ins.memory?.symbolName == loopvar) {
+                    if (ins.opcode == Opcode.LOADM && ins.memory?.symbolName == loopvarSymbol) {
                         val dest = ins.requireDest().register
                         if (dest == loopReg) {
                             cmpChunk.instructions[i] = IRInstructions.simple(Opcode.NOP)

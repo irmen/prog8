@@ -94,7 +94,7 @@ private fun apply(modifications: List<Modification>, lines: MutableList<String>,
                 lines.removeAt(modification.lineIndex)
             else {
                 val pretrim = pretrimmed.getOrNull(modification.lineIndex)
-                if (pretrim == null || pretrim.isBlank() || pretrim[0] == ';')
+                if (pretrim.isNullOrBlank() || pretrim[0] == ';')
                     lines.removeAt(modification.lineIndex)
                 else if (haslabelPretrimmed(pretrim)) {
                     val label = keeplabelPretrimmed(pretrim)
@@ -432,8 +432,7 @@ private fun TrimmedLine.mnemonic(): String =
 
 /** True if the line carries a label, with or without an instruction following it. */
 private fun TrimmedLine.hasLabel(): Boolean {
-    if (haslabelPretrimmed(trimmed)) return true
-    return trimmed.isNotEmpty() && (trimmed[0] == '+' || trimmed[0] == '-')
+    return haslabelPretrimmed(trimmed) || trimmed.isNotEmpty() && (trimmed[0] == '+' || trimmed[0] == '-')
 }
 
 /** The memory operand this instruction writes, with any +offset and ,index suffix stripped.
@@ -455,7 +454,7 @@ private fun TrimmedLine.mayWriteBase(base: String): Boolean {
     return target.equals(base, ignoreCase = true)
 }
 
-/** True if [operand] is safe to read more than once: an immediate, or memory that is not an
+/** True if operand is safe to read more than once: an immediate, or memory that is not an
  *  IO location (an IO read can return a different value without the CPU having written it). */
 private fun isNonVolatileIndexOperand(indexLine: TrimmedLine, machine: ICompilationTarget, symbolTable: SymbolTable): Boolean {
     val operand = indexLine.instruction.extractOperandTrimmed()
@@ -515,15 +514,15 @@ private fun optimizeSamePointerIndexingAndUselessBeq(linesByFourteen: Sequence<L
     for (lines in linesByFourteen) {
         val f1 = lines[0].instruction
         val f2 = lines[1].instruction
-        val f3 = lines[2].instruction
+        //val f3 = lines[2].instruction
         val f4 = lines[3].instruction
         val f5 = lines[4].instruction
         val f6 = lines[5].instruction
 
         if(f1.startsWith("ldy ") && f2.startsWith("lda ") && f4.startsWith("ldy ") && f5.startsWith("sta ")) {
-            val firstvalue = f1.extractOperandTrimmed()
+            //val firstvalue = f1.extractOperandTrimmed()
             val secondvalue = f2.extractOperandTrimmed()
-            val fourthvalue = f4.extractOperandTrimmed()
+            //val fourthvalue = f4.extractOperandTrimmed()
             val fifthvalue = f5.extractOperandTrimmed()
             if(secondvalue==fifthvalue && secondvalue.endsWith(",y") && fifthvalue.endsWith(",y") &&
                     canDropIndexReload(lines, 3, lines[0], machine, symbolTable)) {
@@ -744,11 +743,9 @@ private fun looksLikeIOAddress(operand: String, machine: ICompilationTarget): Bo
     }
     // Try to parse decimal address (e.g. "53280" = $d000) and delegate to machine
     val decVal = operand.toUIntOrNull()
-    if(decVal != null)
-        return machine.isIOAddress(decVal)
     // For unresolved symbolic names we can't determine - assume NOT IO
     // (the symbol table lookup already failed, so we have no better info)
-    return false
+    return decVal != null && machine.isIOAddress(decVal)
 }
 
 private fun optimizeIncDec(linesByFour: Sequence<List<TrimmedLine>>): List<Modification> {
@@ -1020,8 +1017,7 @@ private fun scaleConstant(constStr: String, scale: Int): String {
 }
 
 private fun isArrayByteSizedAndSmall(name: String, symbolTable: SymbolTable): Boolean {
-    val symbol = symbolTable.flat[name]
-    return when (symbol) {
+    return when (val symbol = symbolTable.flat[name]) {
         is StStaticVariable -> {
             val len = symbol.length
             (symbol.dt.isByteArray || symbol.dt.isString) && len != null && len <= 256u
@@ -1035,8 +1031,7 @@ private fun isArrayByteSizedAndSmall(name: String, symbolTable: SymbolTable): Bo
 }
 
 private fun isArrayWordSizedAndSmall(name: String, symbolTable: SymbolTable): Boolean {
-    val symbol = symbolTable.flat[name]
-    return when (symbol) {
+    return when (val symbol = symbolTable.flat[name]) {
         is StStaticVariable -> {
             val len = symbol.length
             symbol.dt.isWordArray && len != null && len <= 256u

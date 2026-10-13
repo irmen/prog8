@@ -20,7 +20,7 @@ fun main(args: Array<String>) {
     val reader = IRFileReader()
     val source = Path(inputFile).readText()
     val program = reader.read(source)
-    if(asmListfile == true)
+    if(asmListfile)
         program.options.asmListfile = true
     val target = program.options.compTarget
 

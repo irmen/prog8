@@ -298,7 +298,7 @@ abstract class AstWalker {
         val nodeToModifications = mutableMapOf<Node, MutableList<AstModification>>()
         modifications.forEach { (mod: AstModification, _, _) ->
             mod.affectedNodes.forEach { node: Node ->
-                val list = nodeToModifications.getOrPut(node) { mutableListOf<AstModification>() }
+                val list = nodeToModifications.getOrPut(node) { mutableListOf() }
                 list.add(mod)
             }
         }

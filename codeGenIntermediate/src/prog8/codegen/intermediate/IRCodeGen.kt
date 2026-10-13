@@ -958,9 +958,9 @@ class IRCodeGen(
         addToResult(result, toTr, toTr.resultReg, -1)
         val stepTr = expressionEval.translateExpression(iterable.step)
         addToResult(result, stepTr, stepTr.resultReg, -1)
-        val stepReg = when {
-            stepTr.dt == loopvarDtIr -> stepTr.resultReg
-            stepTr.dt == IRDataType.WORD && loopvarDtIr == IRDataType.LONG && !iterable.step.type.isSigned -> {
+        val stepReg = when (stepTr.dt) {
+            loopvarDtIr -> stepTr.resultReg
+            IRDataType.WORD if loopvarDtIr == IRDataType.LONG && !iterable.step.type.isSigned -> {
                 val widenedReg = registers.next(IRDataType.LONG)
                 addInstr(result, IRInstructions.binary(Opcode.EXT, IRDataType.WORD, widenedReg, stepTr.resultReg), null)
                 widenedReg
@@ -1194,11 +1194,10 @@ class IRCodeGen(
                         code += IRInstructions.memoryOp(Opcode.SUBM, dt, mem(), valueReg)
                     }
                 } else {
-                    if(value>0) {
-                        code += IRInstructions.memoryOpImmediate(Opcode.ADDIM, dt, mem(), value)
-                    } else {
-                        code += IRInstructions.memoryOpImmediate(Opcode.SUBIM, dt, mem(), -value)
-                    }
+                    code += if(value>0)
+                        IRInstructions.memoryOpImmediate(Opcode.ADDIM, dt, mem(), value)
+                    else
+                        IRInstructions.memoryOpImmediate(Opcode.SUBIM, dt, mem(), -value)
                 }
             }
         }
@@ -1237,15 +1236,14 @@ class IRCodeGen(
         if(factor==1)
             return code
         val pow2 = powersOfTwoInt.indexOf(factor)
-        if(pow2==1) {
+        code += if(pow2==1) {
             // just shift 1 bit
-            code += IRInstructions.unary(Opcode.LSL, irdt, reg)
-        }
-        else if(pow2>=1) {
+            IRInstructions.unary(Opcode.LSL, irdt, reg)
+        } else if(pow2>=1) {
             // just shift multiple bits
-            code += IRInstructions.binaryImmediate(Opcode.LSLI, irdt, reg, pow2)
+            IRInstructions.binaryImmediate(Opcode.LSLI, irdt, reg, pow2)
         } else {
-            code += if (factor == 0) {
+            if (factor == 0) {
                 IRInstructions.load(irdt, reg, 0)
             } else {
                 val opcode = if(dt.isSigned) Opcode.MULS else Opcode.MUL
@@ -1318,13 +1316,13 @@ class IRCodeGen(
         val pow2 = powersOfTwoInt.indexOf(factor)
         if(pow2>=0 && !signed) {
             // unsigned division by a power of two: logical shift right (correct)
-            if(pow2==1) {
-                code += IRInstructions.unary(Opcode.LSR, dt, reg)
+            code += if(pow2==1) {
+                IRInstructions.unary(Opcode.LSR, dt, reg)
             } else if(dt == IRDataType.LONG && pow2 == 16) {
                 // x / 65536 for unsigned long == x >> 16 == MSIGW(x)
-                code += IRInstructions.binary(Opcode.MSIGW, dt, reg, reg)
+                IRInstructions.binary(Opcode.MSIGW, dt, reg, reg)
             } else {
-                code += IRInstructions.binaryImmediate(Opcode.LSRI, dt, reg, pow2)
+                IRInstructions.binaryImmediate(Opcode.LSRI, dt, reg, pow2)
             }
             return code
         }
@@ -1829,8 +1827,7 @@ class IRCodeGen(
                 result += callResult.chunks
                 
                 // Get the return register specs for the called function
-                val calledSub = symbolTable.lookup(fcall.name)
-                val calledReturnRegs = when(calledSub) {
+                val calledReturnRegs = when(val calledSub = symbolTable.lookup(fcall.name)) {
                     is StSub -> (calledSub.astNode!! as IPtSubroutine).returnsWhatWhere(options.compTarget)
                     is StExtSub -> calledSub.returns.map { it.register to it.type }
                     else -> throw AssemblyError("unexpected subroutine type for multi-value return ${ret.position}")
@@ -1848,12 +1845,12 @@ class IRCodeGen(
                         when(fromReg.registerOrPair) {
                             RegisterOrPair.FAC1 -> addInstr(result, IRInstructions.unary(Opcode.LOADHFACZERO, IRDataType.FLOAT, tempFpReg), null)
                             RegisterOrPair.FAC2 -> addInstr(result, IRInstructions.unary(Opcode.LOADHFACONE, IRDataType.FLOAT, tempFpReg), null)
-                            else -> throw AssemblyError("unexpected FP return register ${fromReg}")
+                            else -> throw AssemblyError("unexpected FP return register $fromReg")
                         }
                         when(toReg.registerOrPair) {
                             RegisterOrPair.FAC1 -> addInstr(result, storeHwFac(Opcode.STOREHFACZERO, tempFpReg), null)
                             RegisterOrPair.FAC2 -> addInstr(result, storeHwFac(Opcode.STOREHFACONE, tempFpReg), null)
-                            else -> throw AssemblyError("unexpected FP return register ${toReg}")
+                            else -> throw AssemblyError("unexpected FP return register $toReg")
                         }
                     } else {
                         // For non-float returns, load from source to temp IR register, then store to destination
@@ -2177,7 +2174,7 @@ class IRCodeGen(
                 }
                 else -> throw AssemblyError("unsupported statusflag ${registerOrFlag.statusflag}")
             }
-            else -> throw AssemblyError("weird CPU register ${registerOrFlag}")
+            else -> throw AssemblyError("weird CPU register $registerOrFlag")
         }
         return chunk
     }
@@ -2258,15 +2255,19 @@ class IRCodeGen(
         val indexDt = byteIndexTr.dt
         if(indexDt != indexRegType) {
             val newReg = registers.next(indexRegType)
-            when {
-                indexRegType == IRDataType.WORD && indexDt == IRDataType.BYTE ->
+            when (indexRegType) {
+                IRDataType.WORD if indexDt == IRDataType.BYTE ->
                     addInstr(result, IRInstructions.binary(Opcode.EXT, IRDataType.BYTE, newReg, byteIndexTr.resultReg), null)
-                indexRegType == IRDataType.WORD && indexDt == IRDataType.LONG ->
+
+                IRDataType.WORD if indexDt == IRDataType.LONG ->
                     addInstr(result, IRInstructions.binary(Opcode.LSIGW, IRDataType.LONG, newReg, byteIndexTr.resultReg), null)
-                indexRegType == IRDataType.BYTE && indexDt == IRDataType.WORD ->
+
+                IRDataType.BYTE if indexDt == IRDataType.WORD ->
                     addInstr(result, IRInstructions.binary(Opcode.LSIGB, IRDataType.WORD, newReg, byteIndexTr.resultReg), null)
-                indexRegType == IRDataType.BYTE && indexDt == IRDataType.LONG ->
+
+                IRDataType.BYTE if indexDt == IRDataType.LONG ->
                     addInstr(result, IRInstructions.binary(Opcode.LSIGB, IRDataType.LONG, newReg, byteIndexTr.resultReg), null)
+
                 else -> throw IllegalArgumentException("unexpected index conversion $indexDt -> $indexRegType")
             }
             indexReg = newReg
@@ -2284,24 +2285,30 @@ class IRCodeGen(
         if(effectiveDt == indexRegType)
             return indexTr.resultReg
         val newReg = registers.next(indexRegType)
-        when {
-            indexRegType==IRDataType.WORD && indexTr.dt==IRDataType.BYTE ->
+        when (indexRegType) {
+            IRDataType.WORD if indexTr.dt==IRDataType.BYTE ->
                 addInstr(result, IRInstructions.binary(Opcode.EXT, IRDataType.BYTE, newReg, indexTr.resultReg), null)
-            indexRegType==IRDataType.WORD && indexTr.dt==IRDataType.LONG ->
+
+            IRDataType.WORD if indexTr.dt==IRDataType.LONG ->
                 addInstr(result, IRInstructions.binary(Opcode.LSIGW, IRDataType.LONG, newReg, indexTr.resultReg), null)
-            indexRegType==IRDataType.WORD && indexTr.dt==IRDataType.POINTER ->
+
+            IRDataType.WORD if indexTr.dt==IRDataType.POINTER ->
                 addInstr(result, IRInstructions.binary(Opcode.LSIGW, IRDataType.LONG, newReg, indexTr.resultReg), null)
-            indexRegType==IRDataType.BYTE && indexTr.dt==IRDataType.WORD ->
+
+            IRDataType.BYTE if indexTr.dt==IRDataType.WORD ->
                 addInstr(result, IRInstructions.binary(Opcode.LSIGB, IRDataType.WORD, newReg, indexTr.resultReg), null)
-            indexRegType==IRDataType.BYTE && indexTr.dt==IRDataType.LONG ->
+
+            IRDataType.BYTE if indexTr.dt==IRDataType.LONG ->
                 addInstr(result, IRInstructions.binary(Opcode.LSIGB, IRDataType.LONG, newReg, indexTr.resultReg), null)
-            indexRegType==IRDataType.BYTE && indexTr.dt==IRDataType.POINTER -> {
+
+            IRDataType.BYTE if indexTr.dt==IRDataType.POINTER -> {
                 val ptrType = options.compTarget.pointerIRType
                 if(ptrType==IRDataType.WORD)
                     addInstr(result, IRInstructions.binary(Opcode.LSIGB, IRDataType.WORD, newReg, indexTr.resultReg), null)
                 else
                     addInstr(result, IRInstructions.binary(Opcode.LSIGB, IRDataType.LONG, newReg, indexTr.resultReg), null)
             }
+
             else -> throw IllegalArgumentException("unexpected index conversion ${indexTr.dt} -> $indexRegType")
         }
         return newReg

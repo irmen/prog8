@@ -25,9 +25,9 @@ class SymbolTable(
         fun buildFlatMap(): Map<String, StNode> {
             val result = mutableMapOf<String, StNode>()
             fun collect(node: StNode) {
-                for(child in node.children) {
-                    result[child.value.scopedNameString] = child.value
-                    collect(child.value)
+                for((_, value) in node.children) {
+                    result[value.scopedNameString] = value
+                    collect(value)
                 }
             }
             collect(this)
@@ -68,9 +68,9 @@ class SymbolTable(
     private fun <T : StNode> collectAll(node: StNode, clazz: Class<T>): List<T> {
         val result = mutableListOf<T>()
         fun collect(n: StNode) {
-            for(child in n.children) {
-                if(clazz.isInstance(child.value)) result.add(clazz.cast(child.value))
-                else collect(child.value)
+            for((_, value) in n.children) {
+                if(clazz.isInstance(value)) result.add(clazz.cast(value))
+                else collect(value)
             }
         }
         collect(node)

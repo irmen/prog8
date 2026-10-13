@@ -29,7 +29,7 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
             return true
 
         val v = symboltable.lookup(scopedName)
-        return if(v is StMemVar) v.address <= 255u else false
+        return v is StMemVar && v.address <= 255u
     }
 
     internal fun getFloatAsmConst(number: Double): String {
@@ -123,11 +123,11 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
     private fun collectAllVariables(st: SymbolTable): Collection<StStaticVariable> {
         val vars = mutableListOf<StStaticVariable>()
         fun collect(node: StNode) {
-            for(child in node.children) {
-                if(child.value.type == StNodeType.STATICVAR)
-                    vars.add(child.value as StStaticVariable)
+            for((_, value) in node.children) {
+                if(value.type == StNodeType.STATICVAR)
+                    vars.add(value as StStaticVariable)
                 else
-                    collect(child.value)
+                    collect(value)
             }
         }
         collect(st)

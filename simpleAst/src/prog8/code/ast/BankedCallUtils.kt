@@ -49,7 +49,7 @@ fun writeBankedCallsFile(program: PtProgram, symbolTable: SymbolTable, options: 
         val changes = eligible.mapIndexedNotNull { index, node ->
             val oldId = oldIds[node.scopedName]
             if (oldId != null && oldId != index)
-                "${node.scopedName}: was ID ${oldId}, now ${index}"
+                "${node.scopedName}: was ID ${oldId}, now $index"
             else
                 null
         }

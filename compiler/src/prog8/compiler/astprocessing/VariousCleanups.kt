@@ -66,10 +66,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                             return listOf(AstReplaceNode(decl, vardecl, parent))
                         }
                         if(valueDt.largerSizeThan(decl.datatype)) {
-                            val constValue = decl.value!!.constValue(program)
-                            if(constValue==null) {
-                                return noModifications
-                            }
+                            val constValue = decl.value!!.constValue(program) ?: return noModifications
                             errors.err("value '${constValue.number}' out of range for ${decl.datatype}", constValue.position)
                         } else if(decl.datatype.largerSizeThan(valueDt)) {
                             // don't make it signed if it was unsigned and vice versa, except when it is a long const declaration
@@ -684,8 +681,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
 
     private fun replaceDerefWithIdentifier(deref: PtrDereference): IdentifierReference {
         val ident = IdentifierReference(deref.chain, deref.position)
-        val target = deref.definingScope.lookup(ident.nameInSource)
-        when (target) {
+        when (val target = deref.definingScope.lookup(ident.nameInSource)) {
             is VarDecl -> require(target.datatype.isPointer || target.datatype == options.compTarget.pointerType)
             is StructFieldRef -> require(target.type.isPointer || target.type == options.compTarget.pointerType)
             else -> throw FatalAstException("requires pointer or uword dereference target at ${deref.position}")

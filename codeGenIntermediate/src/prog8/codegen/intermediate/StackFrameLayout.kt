@@ -340,8 +340,8 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
                 val (node, children) = work.last()
                 if (children.hasNext()) {
                     val next = children.next()
-                    when {
-                        next !in index -> {
+                    when (next) {
+                        !in index -> {
                             index[next] = counter
                             lowLink[next] = counter
                             counter++
@@ -349,7 +349,7 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
                             onStack += next
                             work.addLast(next to edges.getValue(next).iterator())
                         }
-                        next in onStack -> {
+                        in onStack -> {
                             lowLink[node] = minOf(lowLink.getValue(node), index.getValue(next))
                         }
                     }
@@ -388,7 +388,7 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
     /** outcome of the frameability decision for one subroutine */
     private sealed interface Frameability {
         class Frameable(val layout: FrameLayoutResult) : Frameability
-        class NotFrameable() : Frameability
+        data object NotFrameable : Frameability
     }
 
     private fun frameableSubroutine(
@@ -403,7 +403,7 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
         reachesFramePointerClobber: Set<String>,
         framePointerClobberers: Set<String>
     ): Frameability {
-        val static = { Frameability.NotFrameable() }
+        val static = { Frameability.NotFrameable }
         // a %option noframe subroutine requires the legacy static convention (it manipulates
         // the machine stack itself), so it never gets a frame
         if (sub.noframe) return static()
@@ -450,7 +450,6 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
         // each slot takes its own width (2 or 4 bytes), accumulated from the last parameter backwards
         var incomingSize = 0
         for (name in scopedParamNames.reversed()) {
-            val irType = slotIrTypes.getValue(name)
             val slotSize = slotSizes.getValue(name)
             paramSlots[name] = INCOMING_BASE + incomingSize
             // single-instruction byte pushes land at the slot base, so all parameters
@@ -506,7 +505,7 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
             val elemDt = isFrameableVariable(v, name, addressTaken, asmTexts) ?: continue
             val count = v.length?.toInt() ?: 1
             val size = target.memorySize(v.dt, v.length?.toInt())
-            if (size <= 0 || size >= MAX_FRAME_SIZE) continue
+            if (size !in 1..<MAX_FRAME_SIZE) continue
             val alignment = when {
                 size >= 4 -> 4
                 size >= 2 -> 2
@@ -642,10 +641,10 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
                 // a static-initialized local gets its initializer stored into the frame slot;
                 // this replaces the zero-clear for it
                 val irType = irTypeFor(fv.elemDt) ?: continue
-                if (irType == IRDataType.FLOAT)
-                    prologueInstrs += IRInstructions.storeImmediateFloat(init.value, IRMemory.frameDirect(fv.slot))
+                prologueInstrs += if (irType == IRDataType.FLOAT)
+                    IRInstructions.storeImmediateFloat(init.value, IRMemory.frameDirect(fv.slot))
                 else
-                    prologueInstrs += IRInstructions.storeImmediate(irType, init.value.toInt(), IRMemory.frameDirect(fv.slot))
+                    IRInstructions.storeImmediate(irType, init.value.toInt(), IRMemory.frameDirect(fv.slot))
                 continue
             }
             if (fv.dirty) continue

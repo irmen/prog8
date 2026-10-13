@@ -400,8 +400,7 @@ class IRProgram(val name: String,
             val chunks = mutableListOf<IRCodeChunkBase>()
             var chunk = IRCodeChunk(asmChunk.label, null)
             asmChunk.assembly.lineSequence().filter{it.isNotBlank()}.forEach {
-                val parsed = parseIRCodeLine(it.trim())
-                when (parsed) {
+                when (val parsed = parseIRCodeLine(it.trim())) {
                     is ParsedIRLine.Instruction -> chunk += parsed.value
                     is ParsedIRLine.Label -> {
                         val lastChunk = chunk
@@ -681,7 +680,7 @@ class IRAsmSubroutine(
     private val registersUsed by lazy { registersUsedInAssembly(asmChunk.isIR, asmChunk.assembly) }
 
     fun usedRegisters() = registersUsed
-    override fun isEmpty(): Boolean = if(address==null) asmChunk.isEmpty() else false
+    override fun isEmpty(): Boolean = address==null && asmChunk.isEmpty()
     override fun isNotEmpty(): Boolean = !isEmpty()
 }
 

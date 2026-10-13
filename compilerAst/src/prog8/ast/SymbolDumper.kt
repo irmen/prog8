@@ -190,15 +190,15 @@ private class SymbolDumper(val skipLibraries: Boolean): IAstVisitor {
 
         if(subroutine.isAsmSubroutine) {
             output("${subroutine.name}  (")
-            for(param in subroutine.parameters.zip(subroutine.asmParameterRegisters)) {
+            for((first, second) in subroutine.parameters.zip(subroutine.asmParameterRegisters)) {
                 val reg =
                         when {
-                            param.second.registerOrPair!=null -> param.second.registerOrPair.toString()
-                            param.second.statusflag!=null -> param.second.statusflag.toString()
+                            second.registerOrPair!=null -> second.registerOrPair.toString()
+                            second.statusflag!=null -> second.statusflag.toString()
                             else -> "?????"
                         }
-                output("${param.first.type.sourceString()} ${param.first.name} @$reg")
-                if(param.first!==subroutine.parameters.last())
+                output("${first.type.sourceString()} ${first.name} @$reg")
+                if(first !==subroutine.parameters.last())
                     output(", ")
             }
         }

@@ -55,10 +55,10 @@ class Prog8WorkspaceService: WorkspaceService {
             is prog8.ast.statements.Block -> {
                 // Add block as a symbol
                 if (query.isBlank() || stmt.name.contains(query, ignoreCase = true)) {
-                    val location = org.eclipse.lsp4j.Location(uri, Range(Position(0, 0), Position(0, 0)))
+                    val location = Location(uri, Range(Position(0, 0), Position(0, 0)))
                     symbols.add(WorkspaceSymbol(
                         stmt.name,
-                        org.eclipse.lsp4j.SymbolKind.Module,
+                        SymbolKind.Module,
                         Either.forLeft(location),
                         ""  // Container name
                     ))
@@ -71,10 +71,10 @@ class Prog8WorkspaceService: WorkspaceService {
             is prog8.ast.statements.Subroutine -> {
                 // Add subroutine as a symbol
                 if (query.isBlank() || stmt.name.contains(query, ignoreCase = true)) {
-                    val location = org.eclipse.lsp4j.Location(uri, Range(Position(0, 0), Position(0, 0)))
+                    val location = Location(uri, Range(Position(0, 0), Position(0, 0)))
                     symbols.add(WorkspaceSymbol(
                         stmt.name,
-                        org.eclipse.lsp4j.SymbolKind.Function,
+                        SymbolKind.Function,
                         Either.forLeft(location),
                         ""  // Container name
                     ))

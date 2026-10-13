@@ -62,19 +62,19 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     val vmDt = codeGen.irType(expr.type)
                     if(vmDt==IRDataType.FLOAT) {
                         val resultFpRegister = codeGen.registers.next(IRDataType.FLOAT)
-                        if (isConstant) {
-                            code += IRInstructions.loadAddress(IRDataType.FLOAT, resultFpRegister, expr.name)
+                        code += if (isConstant) {
+                            IRInstructions.loadAddress(IRDataType.FLOAT, resultFpRegister, expr.name)
                         } else {
-                            code += IRInstructions.loadMemory(Opcode.LOADM, IRDataType.FLOAT, resultFpRegister, IRMemory.direct(expr.name))
+                            IRInstructions.loadMemory(Opcode.LOADM, IRDataType.FLOAT, resultFpRegister, IRMemory.direct(expr.name))
                         }
                         ExpressionCodeResult(code, vmDt, -1, resultFpRegister)
                     }
                     else {
                         val resultRegister = codeGen.registers.next(vmDt)
-                        if (isConstant) {
-                            code += IRInstructions.loadAddress(vmDt, resultRegister, expr.name)
+                        code += if (isConstant) {
+                            IRInstructions.loadAddress(vmDt, resultRegister, expr.name)
                         } else {
-                            code += IRInstructions.loadMemory(Opcode.LOADM, vmDt, resultRegister, IRMemory.direct(expr.name))
+                            IRInstructions.loadMemory(Opcode.LOADM, vmDt, resultRegister, IRMemory.direct(expr.name))
                         }
                         ExpressionCodeResult(code, vmDt, resultRegister, -1)
                     }
@@ -395,7 +395,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                         if(ptr.value != null)
                             IRInstructions.load(vmDt, resultRegister, ptr.value!!.toInt())
                         else
-                            TODO("LOAD memory() address? ${ptr}")
+                            TODO("LOAD memory() address? $ptr")
                     }
                     else
                         IRInstructions.loadMemory(Opcode.LOADM, vmDt, resultRegister, IRMemory.direct(identifier.name))
