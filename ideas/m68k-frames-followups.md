@@ -29,15 +29,6 @@ of v1, never second conventions.
 
 ## Follow-ups (each needs its own design review + test pass)
 
-### 1. Word-packed argument slots
-
-**Done**: implemented as the default convention (IR format 8, see
-`ideas/m68k-word-packed-args.md`). Linux/GCC scheme: byte/bool = 2 bytes incl. pad,
-word = 2, long/float/pointer = 4, still even-aligned. Saves stack space and bus traffic
-per narrow arg. Cost: frame layout sums per-arg rounded sizes instead of constant
-stride; documented `asmsub` push rules change; hand-written asm (e.g. the stdlib
-`die()` subs) and `.p8ir` consumers were updated accordingly.
-
 ### 2. Register argument passing
 
 Paired caller/callee specialization over the fixed stack convention (e.g. first scalar
@@ -68,9 +59,18 @@ cleanup. This may help tight loops with repeated multi-argument calls, but gains
 likely marginal: direct frame stores can be larger, frameless callers would gain a
 frame, and every caller's frame would grow. Frame-size limits must count the area.
 
-### 6. Prologue zero-store coalescing
+### 6. Prologue zero-store coalescing (done)
 
 **Status: implemented.** Clean frame locals are grouped and merged into widest aligned
 stores; long runs lower to a `dbra` loop in the m68k backend. Floats and
 dirty/initialized locals remain boundaries. Details were in
 `ideas/m68k-prologue-zero-coalescing.md` (removed now that the work is done).
+
+### 7. Word-packed argument slots (done)
+
+**Status: implemented.**: implemented as the default convention (IR format 8, documented in
+`docs/source/technical.rst`). Linux/GCC scheme: byte/bool = 2 bytes incl. pad,
+word = 2, long/float/pointer = 4, still even-aligned. Saves stack space and bus traffic
+per narrow arg. Cost: frame layout sums per-arg rounded sizes instead of constant
+stride; documented `asmsub` push rules change; hand-written asm (e.g. the stdlib
+`die()` subs) and `.p8ir` consumers were updated accordingly.
