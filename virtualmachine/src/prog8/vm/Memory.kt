@@ -1,13 +1,39 @@
 package prog8.vm
 
 import prog8.code.target.VMTarget
-import kotlin.random.Random
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 
 /**
- * 16 MB of random access memory. Initialized to random values.
+ * 16 MB of random access memory. Initialized to a repeating nonzero debug pattern.
  */
 class Memory {
-    private val mem = ByteArray(VMTarget.RAM_SIZE).also { Random.nextBytes(it) }
+    private val mem = ByteArray(VMTarget.RAM_SIZE).also { fillPattern(it) }
+
+    // bulk-copy a repeating pattern of recognizable debug marker words; a large repeated
+    // block keeps the number of IntBuffer.put calls low, and the marker words make reads
+    // of uninitialized memory stand out.
+    // The words are written in BIG_ENDIAN order (the VM itself is little-endian) so that a
+    // linear memory dump shows the marker literally, e.g. 0xC0DEDBAD as C0 DE DB AD.
+    private fun fillPattern(bytes: ByteArray) {
+        val words = ByteBuffer.wrap(bytes).order(ByteOrder.BIG_ENDIAN).asIntBuffer()
+        val block = IntArray(BLOCK_WORDS) { DEBUG_PATTERN[it % DEBUG_PATTERN.size] }
+        while(words.hasRemaining()) {
+            val chunk = if(words.remaining() >= block.size) block else block.copyOf(words.remaining())
+            words.put(chunk)
+        }
+    }
+
+    private companion object {
+        // must be a multiple of DEBUG_PATTERN.size to keep the pattern continuous
+        const val BLOCK_WORDS = 256
+        val DEBUG_PATTERN = intArrayOf(
+            0xC0DEDBAD.toInt(),
+            0xDEADBEEF.toInt(),
+            0xBAADF00D.toInt(),
+            0xFEEDFACE.toInt()
+        )
+    }
 
     fun reset() {
         mem.fill(0)
