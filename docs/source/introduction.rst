@@ -230,10 +230,26 @@ Look in the :source:`syntax-files <syntax-files>` directory in the github reposi
 
 **Language Server Protocol (LSP):** Prog8 has a dedicated language server that provides IDE-like features
 for editors that support LSP (such as Kate, Vim, VS Code, and many others).
-The language server currently supports a few limited things such as document symbol overview and go to definition.
-Other features will be added in the future.
 The language server is located in the :source:`languageServer <languageServer>` directory.
 To use it, configure your editor to launch ``prog8-language-server`` as the LSP server for ``.p8`` files.
+
+The server is built on the same parser and AST as the compiler itself, so it always understands
+the current language syntax. It currently supports:
+
+* diagnostics (parse errors)
+* completion suggestions
+* hover information
+* go to definition, find references, and document highlighting
+* document symbols (outline) and workspace symbol search
+* signature help
+* clickable document links for ``%import`` statements
+* rename refactoring
+* code actions (quick fixes)
+* document and range formatting
+
+Be aware that the server only parses the source; it does not run the compiler's semantic analysis,
+type checking or code generation. Features that rely on that deeper information, such as
+semantically accurate diagnostics, are not available yet and will be improved over time.
 
 .. index:: pair: Tools; CTags
 

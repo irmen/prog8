@@ -7,6 +7,7 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldNotContain
+import org.eclipse.lsp4j.SymbolKind
 
 /**
  * Tests for the Prog8 Language Server features.
@@ -47,6 +48,114 @@ data {
         
         val dataBlock = symbols.find { it.name == "data" }
         dataBlock shouldNotBe null
+    }
+
+    test("document symbols - should extract enum members") {
+        val code = """
+main {
+    enum Color {
+        RED,
+        GREEN,
+        BLUE
+    }
+}
+"""
+        harness.openDocument(testUri, code)
+        val symbols = harness.documentSymbols(testUri)
+
+        val mainBlock = symbols.find { it.name == "main" }
+        mainBlock shouldNotBe null
+
+        val enumSymbol = mainBlock!!.children.find { it.name == "Color" }
+        enumSymbol shouldNotBe null
+        enumSymbol!!.kind shouldBe SymbolKind.Enum
+        enumSymbol.children.map { it.name } shouldBe listOf("RED", "GREEN", "BLUE")
+        enumSymbol.children.all { it.kind == SymbolKind.EnumMember } shouldBe true
+    }
+
+    test("document symbols - should extract struct fields") {
+        val code = """
+main {
+    struct Point {
+        ubyte x, y
+        uword offset
+    }
+}
+"""
+        harness.openDocument(testUri, code)
+        val symbols = harness.documentSymbols(testUri)
+
+        val mainBlock = symbols.find { it.name == "main" }
+        mainBlock shouldNotBe null
+
+        val structSymbol = mainBlock!!.children.find { it.name == "Point" }
+        structSymbol shouldNotBe null
+        structSymbol!!.kind shouldBe SymbolKind.Struct
+        structSymbol.children.map { it.name } shouldBe listOf("x", "y", "offset")
+        structSymbol.children.all { it.kind == SymbolKind.Field } shouldBe true
+    }
+
+    test("document symbols - should extract labels inside subroutines") {
+        val code = """
+main {
+    sub start() {
+        loop:
+        goto loop
+    }
+}
+"""
+        harness.openDocument(testUri, code)
+        val symbols = harness.documentSymbols(testUri)
+
+        val mainBlock = symbols.find { it.name == "main" }
+        mainBlock shouldNotBe null
+
+        val startSub = mainBlock!!.children.find { it.name == "start" }
+        startSub shouldNotBe null
+
+        val label = startSub!!.children.find { it.name == "loop" }
+        label shouldNotBe null
+        label!!.kind shouldBe SymbolKind.Key
+    }
+
+    test("document symbols - should extract aliases") {
+        val code = """
+main {
+    alias myalias = some.thing
+}
+"""
+        harness.openDocument(testUri, code)
+        val symbols = harness.documentSymbols(testUri)
+
+        val mainBlock = symbols.find { it.name == "main" }
+        mainBlock shouldNotBe null
+
+        val aliasSymbol = mainBlock!!.children.find { it.name == "myalias" }
+        aliasSymbol shouldNotBe null
+        aliasSymbol!!.kind shouldBe SymbolKind.Interface
+    }
+
+    test("document symbols - should extract subroutine parameters and locals") {
+        val code = """
+main {
+    sub add(ubyte a, ubyte b) -> ubyte {
+        ubyte result = a
+        return result
+    }
+}
+"""
+        harness.openDocument(testUri, code)
+        val symbols = harness.documentSymbols(testUri)
+
+        val mainBlock = symbols.find { it.name == "main" }
+        mainBlock shouldNotBe null
+
+        val addSub = mainBlock!!.children.find { it.name == "add" }
+        addSub shouldNotBe null
+
+        val childNames = addSub!!.children.map { it.name }
+        childNames shouldBe listOf("a", "b", "result")
+        addSub.children.all { it.kind == SymbolKind.Variable } shouldBe true
     }
 
     test("go to definition - should find variable declaration from use site") {
