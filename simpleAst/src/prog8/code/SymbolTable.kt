@@ -103,7 +103,13 @@ class SymbolTable(
         fun labelnameForStructInstance(call: PtFunctionCall): String {
             require(call.name == "prog8_lib_structalloc")
             val structname = SymbolNames.stripPrefixes(call.type.subType!!.scopedNameString)
-            val scopehash = call.parent.hashCode().toUInt().toString(16)
+            // The scope hash must be identical across compilations, so derive it from
+            // content (the parent's source location and the call's child slot); a
+            // JVM identity hash of the AST node varies on every run.
+            val parent = call.parent
+            val childSlot = parent.children.indexOf(call)
+            val scopehash = "${parent.position.file}-${parent.position.line}-${parent.position.startCol}-$childSlot"
+                .hashCode().toUInt().toString(16)
             val pos = "${call.position.line}_${call.position.startCol}"
             val hash = call.position.file.hashCode().toUInt().toString(16)
             return "${structname.replace('.', '_')}_${hash}_${scopehash}_${pos}"
