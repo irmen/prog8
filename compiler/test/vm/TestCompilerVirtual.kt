@@ -2075,6 +2075,114 @@ main {
         }
     }
 
+    test("when with assignment and call choice bodies uses a jump table") {
+        val src = """
+main {
+    ubyte @shared counter
+    sub bump() {
+        counter++
+    }
+    sub dispatch(ubyte s) {
+        when s {
+            0 -> counter++
+            1 -> bump()
+            2 -> counter = counter + 2
+            3 -> bump()
+            4 -> counter++
+            5 -> bump()
+        }
+    }
+    sub start() {
+        for sel in 0 to 5 {
+            dispatch(sel)
+        }
+    }
+}"""
+        val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = true)!!
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
+        val irContent = virtfile.readText()
+        irContent.contains("jumpi") shouldBe true
+        val irProgram = IRFileReader().read(irContent)
+        irProgram.st.stripAllPrefixes()
+        val allocations = VmVariableAllocator(irProgram.st, irProgram.encoding, irProgram.options.compTarget).allocations
+        VmRunner().runAndTestProgram(irContent) { vm ->
+            vm.memory.getUB(allocations["main.counter"]!!) shouldBe 7u
+        }
+    }
+
+    test("when with function call choice bodies uses a jump table") {
+        val src = """
+main {
+    ubyte @shared counter
+    sub bump() {
+        counter++
+    }
+    sub dispatch(ubyte s) {
+        when s {
+            0 -> bump()
+            1 -> bump()
+            2 -> bump()
+            3 -> bump()
+            4 -> bump()
+            5 -> bump()
+        }
+    }
+    sub start() {
+        for sel in 0 to 5 {
+            dispatch(sel)
+        }
+    }
+}"""
+        val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = true)!!
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
+        val irContent = virtfile.readText()
+        irContent.contains("jumpi") shouldBe true
+        val irProgram = IRFileReader().read(irContent)
+        irProgram.st.stripAllPrefixes()
+        val allocations = VmVariableAllocator(irProgram.st, irProgram.encoding, irProgram.options.compTarget).allocations
+        VmRunner().runAndTestProgram(irContent) { vm ->
+            vm.memory.getUB(allocations["main.counter"]!!) shouldBe 6u
+        }
+    }
+
+    test("when without else with call choice bodies ignores out-of-bounds dispatch") {
+        val src = """
+main {
+    ubyte @shared counter
+    sub bump() {
+        counter++
+    }
+    sub dispatch(ubyte s) {
+        when s {
+            0 -> bump()
+            1 -> bump()
+            2 -> bump()
+            3 -> bump()
+            4 -> bump()
+            5 -> bump()
+        }
+    }
+    sub start() {
+        dispatch(0)
+        dispatch(1)
+        dispatch(4)
+        dispatch(7)
+        dispatch(254)
+        dispatch(255)
+    }
+}"""
+        val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = true)!!
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
+        val irContent = virtfile.readText()
+        irContent.contains("jumpi") shouldBe true
+        val irProgram = IRFileReader().read(irContent)
+        irProgram.st.stripAllPrefixes()
+        val allocations = VmVariableAllocator(irProgram.st, irProgram.encoding, irProgram.options.compTarget).allocations
+        VmRunner().runAndTestProgram(irContent) { vm ->
+            vm.memory.getUB(allocations["main.counter"]!!) shouldBe 3u
+        }
+    }
+
     test("gapped when with a goto-to-label else body fills the gap slots with the else target") {
         val src = """
 main {

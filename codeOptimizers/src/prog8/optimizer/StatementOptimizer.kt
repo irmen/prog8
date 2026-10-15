@@ -596,48 +596,84 @@ class StatementOptimizer(private val program: Program,
             // rewrite when into a on..goto , which is faster and also smaller for ~5+ cases
             var elseScope: AnonymousScope? = null
             var elseJump: Jump? = null
-            val jumps = mutableListOf<Pair<Int, Jump>>()
+            val jumps = mutableListOf<Pair<Int, IdentifierReference>>()
+            val choiceLabels = mutableMapOf<WhenChoice, String>()
             whenStmt.choices.forEach { choice ->
                 if(choice.values==null) {
                     elseScope = choice.statements
                     elseJump = choice.statements.statements.singleOrNull() as? Jump
                 } else {
+                    val simpleJump = choice.statements.statements.singleOrNull() as? Jump
+                    val simpleTarget = simpleJump?.target as? IdentifierReference
+                    val generatedLabel = if(simpleTarget==null) {
+                        program.makeLabel("whencase").also { choiceLabels[choice] = it }
+                    } else null
+                    val label = simpleTarget?.copy()
+                        ?: IdentifierReference(listOf(requireNotNull(generatedLabel)), choice.position)
                     choice.values!!.forEach { value ->
-                        jumps.add(value.constValue(program)!!.number.toInt() to choice.statements.statements.single() as Jump)
+                        jumps.add(value.constValue(program)!!.number.toInt() to label)
                     }
                 }
             }
+            if(choiceLabels.isNotEmpty() && parent !is Subroutine && parent !is Block)
+                return noModifications
 
-            val labelsByValue = jumps.associate { it.first to (it.second.target as IdentifierReference).copy() }
+            val labelsByValue = jumps.associate { it.first to it.second.copy() }
             val span = jumps.maxOf { it.first } - indexOffset + 1
             val gapTarget = (elseJump?.target as? IdentifierReference)?.copy()
-            val gapLabel = if(span > jumps.size && gapTarget==null)
+            val elseIsEmpty = elseScope?.statements?.isEmpty() ?: true
+            val needsEndLabel = choiceLabels.isNotEmpty() || (span > jumps.size && elseIsEmpty && gapTarget==null)
+            val endLabel = if(needsEndLabel) program.makeLabel("whenend", whenStmt.position) else null
+            val gapLabel = if(span > jumps.size && gapTarget==null && !elseIsEmpty)
                 program.makeLabel("ongotogap", whenStmt.position)
             else null
             val effectiveGapTarget = gapTarget
                 ?: gapLabel?.let { IdentifierReference(listOf(it.name), it.position) }
+                ?: endLabel?.let { IdentifierReference(listOf(it.name), it.position) }
             // the table spans the whole value range; a value that isn't a choice jumps to the else target.
             // every slot needs its own node instance, since a choice can cover several values
-            val jumpLabels = (indexOffset..jumps.maxOf { it.first }).map { labelsByValue[it] ?: requireNotNull(effectiveGapTarget).copy() }
+            val jumpLabels = (indexOffset..jumps.maxOf { it.first }).map {
+                labelsByValue[it]?.copy() ?: requireNotNull(effectiveGapTarget).copy()
+            }
 
             // the jump table is indexed from the lowest choice value upwards, and unsigned arithmetic
             // wraps so values below it simply fall out of the table's bounds check
             val indexExpr: Expression = if(indexOffset==0) whenStmt.condition
                 else BinaryExpression(whenStmt.condition.copy(), "-", NumericLiteral.optimalInteger(indexOffset, whenStmt.position), whenStmt.position)
 
-            // Put the gap target in the else body when one exists; otherwise it falls through
-            // to the statement after the rewritten on..goto.
-            val elsePart = elseScope?.let {
-                val statements = if(gapLabel==null)
-                    it.statements
+            // Put the gap target in the else body when one exists. When there is no else part
+            // (or an empty one), generated case bodies follow the on..goto in place of it, so an
+            // out-of-bounds value must jump to the end label instead of falling through to them.
+            val elsePart = if(elseIsEmpty) {
+                if(choiceLabels.isNotEmpty())
+                    AnonymousScope(mutableListOf<Statement>(program.jumpLabel(requireNotNull(endLabel))), whenStmt.position)
                 else
-                    (listOf<Statement>(gapLabel) + it.statements).toMutableList()
-                AnonymousScope(statements, it.position)
+                    null
+            } else {
+                val s = requireNotNull(elseScope)
+                val statements = if(gapLabel==null)
+                    s.statements
+                else
+                    (listOf<Statement>(gapLabel) + s.statements).toMutableList()
+                AnonymousScope(statements, s.position)
             }
             val onGoto = OnGoto(false, indexExpr, jumpLabels, elsePart, whenStmt.position)
             val modifications = mutableListOf<AstModification>()
-            if(gapLabel!=null && elseScope==null)
-                modifications += AstInsert.after(whenStmt, gapLabel, parent as IStatementContainer)
+            var anchor: Statement = whenStmt
+            choiceLabels.forEach { (choice, labelName) ->
+                val label = Label(labelName, choice.position)
+                modifications += AstInsert.after(anchor, label, parent as IStatementContainer)
+                anchor = label
+                choice.statements.statements.forEach { statement ->
+                    modifications += AstInsert.after(anchor, statement, parent as IStatementContainer)
+                    anchor = statement
+                }
+                val endJump = program.jumpLabel(requireNotNull(endLabel))
+                modifications += AstInsert.after(anchor, endJump, parent as IStatementContainer)
+                anchor = endJump
+            }
+            if(endLabel!=null)
+                modifications += AstInsert.after(anchor, endLabel, parent as IStatementContainer)
             modifications += AstReplaceNode(whenStmt, onGoto, parent)
             return modifications
         }

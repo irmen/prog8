@@ -1622,24 +1622,34 @@ class When(var condition: Expression,
         if(choices.size >= sizeLimit) {
             if (condition.inferType(program).isUnsignedByte) {
                 // the else part becomes the on..goto's else part verbatim, so it can be any body;
-                // the value choices have to be goto's since they become entries in the jump table
+                // value choice bodies are moved behind the dispatch and receive generated labels
                 val valueChoices = choices.filter { it.values!=null }
-                if (valueChoices.all { (it.statements.statements.singleOrNull() as? Jump)?.target is IdentifierReference }) {
-                    val values = valueChoices.flatMap {
-                        it.values ?: mutableListOf()
-                    }.map {
-                        it.constValue(program)?.number?.toInt()
+                val hasNestedDeclaration = valueChoices.any { choice ->
+                    var found = false
+                    val visitor = object : IAstVisitor {
+                        override fun visit(decl: VarDecl) {
+                            found = true
+                        }
                     }
-                    if(null !in values) {
-                        val sortedValues = values.filterNotNull().sorted()
-                        val lowest = sortedValues.first()
-                        val span = sortedValues.last() - lowest + 1
-                        // cap the table so that a sparse set of values can't blow the table up out of all
-                        // proportion to the number of choices; within the cap the O(1) dispatch wins even
-                        // when the table itself is a bit bigger than the compare chain it replaces
-                        if(span <= sortedValues.size * 2)
-                            return lowest
-                    }
+                    visitor.visit(choice.statements)
+                    found
+                }
+                if(hasNestedDeclaration)
+                    return null
+                val values = valueChoices.flatMap {
+                    it.values ?: mutableListOf()
+                }.map {
+                    it.constValue(program)?.number?.toInt()
+                }
+                if(null !in values) {
+                    val sortedValues = values.filterNotNull().sorted()
+                    val lowest = sortedValues.first()
+                    val span = sortedValues.last() - lowest + 1
+                    // cap the table so that a sparse set of values can't blow the table up out of all
+                    // proportion to the number of choices; within the cap the O(1) dispatch wins even
+                    // when the table itself is a bit bigger than the compare chain it replaces
+                    if(span <= sortedValues.size * 2)
+                        return lowest
                 }
             }
         }

@@ -209,7 +209,7 @@ class TestCompilerOnExamplesCx16: FunSpec({
             ExampleSizes("fileselector/main", cx16SizeOptimized=480, cx16SizeUnoptimized=2314),
             // fileselector/fselector and fileselector/namesorting don't compile (empty source files)
             ExampleSizes("pointers/fountain-cx16", cx16SizeOptimized=1239, cx16SizeUnoptimized=3326),
-            ExampleSizes("amiga", cx16SizeOptimized=7603, cx16SizeUnoptimized=11610),
+            ExampleSizes("amiga", cx16SizeOptimized=7619, cx16SizeUnoptimized=11610),
             ExampleSizes("audioroutines", cx16SizeOptimized=948, cx16SizeUnoptimized=1244),
             ExampleSizes("automatons", cx16SizeOptimized=1037, cx16SizeUnoptimized=3094),
             ExampleSizes("balloonflight", cx16SizeOptimized=3178, cx16SizeUnoptimized=5958),
@@ -242,7 +242,7 @@ class TestCompilerOnExamplesCx16: FunSpec({
             ExampleSizes("sortingbench", cx16SizeOptimized=2928, cx16SizeUnoptimized=5601),
             ExampleSizes("spotlight", cx16SizeOptimized=908, cx16SizeUnoptimized=3116),
             ExampleSizes("starszoom", cx16SizeOptimized=2498, cx16SizeUnoptimized=6061),
-            ExampleSizes("test_gfx_hires", cx16SizeOptimized=4999, cx16SizeUnoptimized=8875),
+            ExampleSizes("test_gfx_hires", cx16SizeOptimized=5017, cx16SizeUnoptimized=8875),
             ExampleSizes("test_gfx_lores", cx16SizeOptimized=6077, cx16SizeUnoptimized=8552),
             ExampleSizes("testmonogfx", cx16SizeOptimized=10330, cx16SizeUnoptimized=12805),
             ExampleSizes("textspotlight", cx16SizeOptimized=3431, cx16SizeUnoptimized=3788),
