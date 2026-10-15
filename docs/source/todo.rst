@@ -62,7 +62,6 @@ Optimizations
 - Port more benchmarks from https://thred.github.io/c-bench-64/  to prog8 and see how it stacks up. (see benchmark-c/ directory)
 - Compilation speed: try to join multiple modifications in 1 result in the AST processors instead of returning it straight away every time
 - various optimizers skip stuff if compTarget.name==VMTarget.NAME.  Once new 6502 codegen is done from IR code, those 6502 only optimizations should probably be removed
-- M68K: replace prog8 routines in math library by optimized 68000 assembly versions.
 - M68K stack/frame follow-ups: the stack-based memory model for locals and parameters is implemented, including frame slots for locals, parameters in the caller-pushed incoming area (word-packed argument slots are now the default convention), per-activation virtual registers for re-entrant subroutines, prologue zero-store coalescing, and diagnostics/polish items. Remaining low-pri optimization work: reserved outgoing-argument area (allocate the max call-site arg size once in the caller's ``link`` frame; benchmark-driven, likely marginal) and loop-aware liveness for frame slot reuse (needs real backward live-in/live-out dataflow over the CFG; frame-size-driven). Register argument passing lives in ``ideas/m68k-register-allocation.md`` §9; recursion-sound defers is an IR/VM item above. See the user-facing description in ``technical.rst``.
 
 
@@ -73,3 +72,24 @@ Dead Code Elimination bug in 64tass, for nested subroutines
 - Workaround: move nested subroutines to be top-level (block-level) subroutines instead.
 - Example: in gfx_lores.p8, the nested ``plot()`` inside ``line()`` caused unused ``line()`` to be included in programs
   that only used other gfx_lores functions (like ``circle()``). Fixed by moving it to a separate ``internal_line_plot()``.
+
+
+6502 codegen bug: subtraction with a register-clobbering right operand
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+- A byte subtraction ``x - <expr>`` produces a wrong result (typically 0) when evaluating ``<expr>`` clobbers the
+  accumulator before the final ``sbc``, because the left operand ``x`` is not reloaded afterwards. This happens when the
+  right operand contains a multiplication builtin, whose codegen calls ``prog8_math.multiply_ubyte_word`` /
+  ``prog8_math.multiply_words``: the generated code loads ``x`` into A first, then the multiply setup and the call
+  overwrite A, and the final ``sbc`` ends up subtracting the right operand's own value from itself (``msb - msb == 0``).
+- Minimal repro (cx16): with ``ubyte @shared a=200``, ``ubyte @shared t=250``, ``ubyte @shared b=3``, the expression
+  ``ubyte r = a - msb(t as uword * b)`` yields ``r == 0`` instead of 198. ``a - lsb(t as uword * b)`` fails the same
+  way, while ``a - msb(<plain variable>)`` and ``a - useroutine()`` are both correct, so it is specifically the multiply
+  builtin's register clobbering that the subtraction codegen does not account for.
+- Scope: only the *classic* 6502 code generator (``codeGenCpu6502``) is affected, i.e. every target that uses it:
+  c64, c128, pet32 (6502) and cx16 (65C02). Verified that it reproduces on both cx16 and c64. Not affected: the virtual
+  target, the m68k targets, and the experimental IR-based 6502 codegen (``-newcodegen``), which all compute the correct
+  result (checked by running the repro).
+- This is what made the Prog8 ``math.lerp`` always return 0 for the descending case (``v1<v0``), since it computed
+  ``v0 - msb(t as uword * (v0 - v1) + 255)``. ``math.lerp`` now avoids the bug because it was rewritten as 6502 assembly.
+- Fix likely belongs in the classic 6502 binary-operation codegen: reload (or preserve in a temporary) the left operand
+  after evaluating a right operand that clobbers A (the IR-based codegen gets this right).

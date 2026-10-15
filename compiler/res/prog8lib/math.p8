@@ -803,45 +803,243 @@ crchi   = cx16.r15H
     }
 
 
-    sub lerp(ubyte v0, ubyte v1, ubyte t) -> ubyte {
+    asmsub lerp(ubyte v0 @A, ubyte v1 @X, ubyte t @Y) clobbers(X, Y) -> ubyte @A {
         ; Linear interpolation (LERP)
         ; returns an interpolation between two inputs (v0, v1) for a parameter t in the interval [0, 255]
         ; guarantees v = v1 when t = 255
-        if v1<v0
-            return v0 - msb(t as uword * (v0 - v1) + 255)
-        else
-            return v0 + msb(t as uword * (v1 - v0) + 255)
+        ; original Prog8 implementation:
+        ;   if v1<v0
+        ;       return v0 - msb(t as uword * (v0 - v1) + 255)
+        ;   else
+        ;       return v0 + msb(t as uword * (v1 - v0) + 255)
+        %asm {{
+            sta  P8ZP_SCRATCH_B1       ; v0
+            sty  P8ZP_SCRATCH_W1       ; multiplier = t
+            txa
+            sec
+            sbc  P8ZP_SCRATCH_B1       ; v1 - v0
+            bcs  _asc
+            eor  #$ff
+            clc
+            adc  #1                    ; descending: delta = v0 - v1
+            ldy  #1
+            sty  P8ZP_SCRATCH_PTR
+            jmp  _have_delta
+_asc:
+            ldy  #0
+            sty  P8ZP_SCRATCH_PTR
+_have_delta:
+            sta  P8ZP_SCRATCH_REG      ; multiplicand = delta
+            lda  #0
+            sta  P8ZP_SCRATCH_W2       ; product low byte
+            ldx  #8
+_ml:
+            lsr  P8ZP_SCRATCH_W1
+            bcc  _noadd
+            clc
+            adc  P8ZP_SCRATCH_REG
+_noadd:
+            ror  a
+            ror  P8ZP_SCRATCH_W2
+            dex
+            bne  _ml
+            ldx  P8ZP_SCRATCH_W2
+            beq  _noround
+            clc
+            adc  #1                    ; round up: +1 if low byte nonzero
+_noround:
+            ldx  P8ZP_SCRATCH_PTR
+            bne  _desc
+            clc
+            adc  P8ZP_SCRATCH_B1       ; v0 + inc
+            rts
+_desc:
+            sta  P8ZP_SCRATCH_REG
+            lda  P8ZP_SCRATCH_B1
+            sec
+            sbc  P8ZP_SCRATCH_REG      ; v0 - inc
+            rts
+        }}
     }
 
-    sub lerpw(uword v0, uword v1, uword t) -> uword {
+    asmsub lerpw(uword v0 @R0, uword v1 @R1, uword t @R2) clobbers(A, X, Y) -> uword @R0 {
         ; Linear interpolation (LERP) on word values
         ; returns an interpolation between two inputs (v0, v1) for a parameter t in the interval [0, 65535]
-        ; guarantees v = v1 when t = 65535.  Clobbers R15.
-        if v1<v0 {
-            t *= v0-v1
-            cx16.r15 = math.mul16_last_upper()
-            if t!=0
-                cx16.r15++
-            return v0 - cx16.r15
-        }
-        t *= v1-v0
-        cx16.r15 = math.mul16_last_upper()
-        if t!=0
-            cx16.r15++
-        return v0 + cx16.r15
+        ; guarantees v = v1 when t = 65535
+        ; original Prog8 implementation:
+        ;   if v1<v0 {
+        ;       t *= v0-v1
+        ;       cx16.r15 = math.mul16_last_upper()
+        ;       if t!=0
+        ;           cx16.r15++
+        ;       return v0 - cx16.r15
+        ;   }
+        ;   t *= v1-v0
+        ;   cx16.r15 = math.mul16_last_upper()
+        ;   if t!=0
+        ;       cx16.r15++
+        ;   return v0 + cx16.r15
+        %asm {{
+            lda  cx16.r1
+            cmp  cx16.r0
+            lda  cx16.r1+1
+            sbc  cx16.r0+1
+            bcs  _asc
+            lda  #1
+            sta  P8ZP_SCRATCH_B1       ; direction = descending
+            lda  cx16.r0
+            sec
+            sbc  cx16.r1
+            sta  prog8_math.multiply_words.multiplier
+            lda  cx16.r0+1
+            sbc  cx16.r1+1
+            sta  prog8_math.multiply_words.multiplier+1
+            jmp  _have_delta
+_asc:
+            lda  #0
+            sta  P8ZP_SCRATCH_B1       ; direction = ascending
+            lda  cx16.r1
+            sec
+            sbc  cx16.r0
+            sta  prog8_math.multiply_words.multiplier
+            lda  cx16.r1+1
+            sbc  cx16.r0+1
+            sta  prog8_math.multiply_words.multiplier+1
+_have_delta:
+            lda  cx16.r2               ; multiplicand = t
+            ldy  cx16.r2+1
+            jsr  prog8_math.multiply_words
+            lda  prog8_math.multiply_words.result
+            ora  prog8_math.multiply_words.result+1
+            beq  _noround
+            inc  prog8_math.multiply_words.result+2
+            bne  _noround
+            inc  prog8_math.multiply_words.result+3
+_noround:
+            lda  P8ZP_SCRATCH_B1
+            bne  _desc
+            clc
+            lda  cx16.r0               ; ascending: v0 + upper word
+            adc  prog8_math.multiply_words.result+2
+            sta  cx16.r0
+            lda  cx16.r0+1
+            adc  prog8_math.multiply_words.result+3
+            sta  cx16.r0+1
+            rts
+_desc:
+            lda  cx16.r0               ; descending: v0 - upper word
+            sec
+            sbc  prog8_math.multiply_words.result+2
+            sta  cx16.r0
+            lda  cx16.r0+1
+            sbc  prog8_math.multiply_words.result+3
+            sta  cx16.r0+1
+            rts
+        }}
     }
 
-    sub interpolate(ubyte v, ubyte inputMin, ubyte inputMax, ubyte outputMin, ubyte outputMax) -> ubyte {
+    asmsub interpolate(ubyte v @R0, ubyte inputMin @R1, ubyte inputMax @R2, ubyte outputMin @R3, ubyte outputMax @R4) clobbers(X, Y) -> ubyte @A {
         ; Interpolate a value v in interval [inputMin, inputMax] to output interval [outputMin, outputMax]
-        ; Clobbers R15.
-        cx16.r15 = ((v-inputMin)*256+inputMax) / (inputMax-inputMin)
-        cx16.r15 *= (outputMax-outputMin)
-        return cx16.r15H + outputMin
+        ; original Prog8 implementation:
+        ;   cx16.r15 = ((v-inputMin)*256+inputMax) / (inputMax-inputMin)
+        ;   cx16.r15 *= (outputMax-outputMin)
+        ;   return cx16.r15H + outputMin
+        %asm {{
+            lda  cx16.r0L
+            sec
+            sbc  cx16.r1L
+            sta  P8ZP_SCRATCH_REG      ; numerator high byte = v - inputMin
+            lda  cx16.r2L
+            sec
+            sbc  cx16.r1L
+            sta  P8ZP_SCRATCH_W1       ; divisor = inputMax - inputMin
+            lda  cx16.r2L
+            sta  P8ZP_SCRATCH_W2       ; numerator low byte = inputMax
+            lda  #0
+            sta  P8ZP_SCRATCH_PTR      ; remainder
+            ldx  #16
+_div:
+            asl  P8ZP_SCRATCH_W2
+            rol  P8ZP_SCRATCH_REG
+            rol  P8ZP_SCRATCH_PTR
+            bcs  _sub
+            lda  P8ZP_SCRATCH_PTR
+            cmp  P8ZP_SCRATCH_W1
+            bcc  _no
+_sub:
+            lda  P8ZP_SCRATCH_PTR
+            sec
+            sbc  P8ZP_SCRATCH_W1
+            sta  P8ZP_SCRATCH_PTR
+            inc  P8ZP_SCRATCH_W2
+_no:
+            dex
+            bne  _div
+            lda  P8ZP_SCRATCH_W2       ; quotient -> multiply_ubyte_word multiplier
+            sta  P8ZP_SCRATCH_W1
+            lda  P8ZP_SCRATCH_REG
+            sta  P8ZP_SCRATCH_W1+1
+            lda  cx16.r4L
+            sec
+            sbc  cx16.r3L              ; A = outputMax - outputMin
+            jsr  prog8_math.multiply_ubyte_word
+            tya                        ; high byte of product
+            clc
+            adc  cx16.r3L              ; + outputMin
+            rts
+        }}
     }
 
-    sub interpolatew(uword v, uword inputMin, uword inputMax, uword outputMin, uword outputMax) -> uword {
+    asmsub interpolatew(uword v @R0, uword inputMin @R1, uword inputMax @R2, uword outputMin @R3, uword outputMax @R4) clobbers(A, X, Y) -> uword @R0 {
         ; Interpolate a value v in interval [inputMin, inputMax] to output interval [outputMin, outputMax]
-        return outputMin + ((v - inputMin) as long * (outputMax - outputMin) as long / (inputMax - inputMin) as long) as uword
+        ; clobbers cx16.r12-cx16.r15 (multiply/division working registers) and cx16.r1, cx16.r2 (destroyed by the division helper)
+        ; original Prog8 implementation:
+        ;   return outputMin + ((v - inputMin) as long * (outputMax - outputMin) as long / (inputMax - inputMin) as long) as uword
+        %asm {{
+            lda  cx16.r4               ; outputMax - outputMin = multiplier
+            sec
+            sbc  cx16.r3
+            sta  prog8_math.multiply_words.multiplier
+            lda  cx16.r4+1
+            sbc  cx16.r3+1
+            sta  prog8_math.multiply_words.multiplier+1
+            lda  cx16.r0               ; v - inputMin = multiplicand (in AY)
+            sec
+            sbc  cx16.r1
+            sta  P8ZP_SCRATCH_B1
+            lda  cx16.r0+1
+            sbc  cx16.r1+1
+            tay
+            lda  P8ZP_SCRATCH_B1
+            jsr  prog8_math.multiply_words
+            lda  prog8_math.multiply_words.result      ; product -> r12/r13 (dividend)
+            sta  cx16.r12
+            lda  prog8_math.multiply_words.result+1
+            sta  cx16.r12+1
+            lda  prog8_math.multiply_words.result+2
+            sta  cx16.r13
+            lda  prog8_math.multiply_words.result+3
+            sta  cx16.r13+1
+            lda  cx16.r2               ; inputMax - inputMin = divisor
+            sec
+            sbc  cx16.r1
+            sta  cx16.r14
+            lda  cx16.r2+1
+            sbc  cx16.r1+1
+            sta  cx16.r14+1
+            lda  #0
+            sta  cx16.r15
+            sta  cx16.r15+1
+            jsr  prog8_math.div_longs
+            lda  cx16.r14              ; + outputMin, keep low word
+            clc
+            adc  cx16.r3
+            sta  cx16.r0
+            lda  cx16.r14+1
+            adc  cx16.r3+1
+            sta  cx16.r0+1
+            rts
+        }}
     }
 
     sub gcd(uword @nozp a, uword @nozp b) -> uword {

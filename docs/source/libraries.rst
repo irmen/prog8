@@ -1208,6 +1208,7 @@ interpolation
     Linear interpolation routine for unsigned byte values.
     Returns an interpolation between two inputs (v0, v1) for a parameter t in the interval [0, 255]
     Guarantees v = v1 when t = 255. Also works if v0 > v1.
+    **Clobbers:** X and Y (the result is returned in A).
 
 ``lerp_fast(v0, v1, t)``
     Linear interpolation routine for unsigned byte values.
@@ -1217,15 +1218,17 @@ interpolation
     Linear interpolation routine for unsigned word values.
     Returns an interpolation between two inputs (v0, v1) for a parameter t in the interval [0, 65535]
     Guarantees v = v1 when t = 65535.  Also works if v0 > v1.
-    Clobbers R15.
+    **Clobbers:** A, X and Y (the result is returned in R0).
 
 ``interpolate(v, inputMin, inputMax, outputMin, outputMax)``
     Interpolate a value v in interval [inputMin, inputMax] to output interval [outputMin, outputMax]
-    All values are unsigned bytes.   Clobbers R15
+    All values are unsigned bytes.   **Clobbers:** X and Y (the result is returned in A).
 
 ``interpolatew(v, inputMin, inputMax, outputMin, outputMax)``
     Interpolate a value v in interval [inputMin, inputMax] to output interval [outputMin, outputMax]
-    All values are unsigned words.   Clobbers R15
+    All values are unsigned words.
+    **Clobbers:** A, X and Y (the result is returned in R0).
+    Also destroys cx16.r12 through cx16.r15 (used as multiply/division working registers), and cx16.r1, cx16.r2.
 
 large multiplications
 '''''''''''''''''''''

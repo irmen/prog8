@@ -336,6 +336,11 @@ math {
         ; Linear interpolation (LERP)
         ; returns an interpolation between two inputs (v0, v1) for a parameter t in the interval [0, 255]
         ; guarantees v = v1 when t = 255
+        ; original Prog8 implementation:
+        ;   if v1<v0
+        ;       return v0 - msb(t as uword * (v0 - v1) + 255)
+        ;   else
+        ;       return v0 + msb(t as uword * (v1 - v0) + 255)
         %asm {{
             move.b  d0,d3           ; save v0
             cmp.b   d1,d0
@@ -370,6 +375,23 @@ math {
         ; guarantees v = v1 when t = 65535
         ; the 6502 version uses mul16_last_upper() for the high half of t*delta; here the
         ; full 32-bit unsigned product is computed instead, giving the same ceil(product/65536) result.
+        ; original Prog8 implementation:
+        ;   uword delta
+        ;   bool descending
+        ;   if v1<v0 {
+        ;       delta = v0 - v1
+        ;       descending = true
+        ;   } else {
+        ;       delta = v1 - v0
+        ;       descending = false
+        ;   }
+        ;   long product = lerpw_mulu(t, delta)
+        ;   uword upper = (product >> 16) as uword
+        ;   if (product & $ffff)!=0
+        ;       upper++
+        ;   if descending
+        ;       return v0 - upper
+        ;   return v0 + upper
         %asm {{
             move.w  d0,d3           ; save v0
             cmp.w   d1,d0
@@ -406,6 +428,10 @@ math {
 
     asmsub interpolate(ubyte v @D0, ubyte inputMin @D1, ubyte inputMax @D2, ubyte outputMin @D3, ubyte outputMax @D4) -> ubyte @D0 {
         ; Interpolate a value v in interval [inputMin, inputMax] to output interval [outputMin, outputMax]
+        ; original Prog8 implementation:
+        ;   uword tmp = ((v - inputMin) * 256 + inputMax) / (inputMax - inputMin)
+        ;   tmp *= outputMax - outputMin
+        ;   return msb(tmp) + outputMin
         %asm {{
             sub.b   d3,d4           ; d4 = delta_out = outputMax - outputMin (byte)
             sub.b   d1,d0           ; d0 = diff_in = v - inputMin
@@ -427,6 +453,8 @@ math {
     asmsub interpolatew(uword v @D0, uword inputMin @D1, uword inputMax @D2, uword outputMin @D3, uword outputMax @D4) -> uword @D0 {
         ; Interpolate a value v in interval [inputMin, inputMax] to output interval [outputMin, outputMax]
         ; Uses a 32-bit intermediate product, so it works best when v is within the input range.
+        ; equivalent Prog8 implementation (there was no m68k Prog8 version; this is the shared math library one):
+        ;   return outputMin + ((v - inputMin) as long * (outputMax - outputMin) as long / (inputMax - inputMin) as long) as uword
         %asm {{
             sub.w   d3,d4           ; d4 = delta_out = outputMax - outputMin
             sub.w   d1,d0           ; d0 = diff_in = v - inputMin
