@@ -271,14 +271,16 @@ Names follow the source file name, or the stem of the `-o` file when that option
 
 ### Automated Tests (gradle)
 Always use the `--console=plain` flag with these commands to avoid messing up the agent's text interface.
-- `gradle build --console=plain` - Full build including all tests (about 50s)
-- `gradle :compiler:test --console=plain` - Run only compiler tests (faster)
-- `gradle :compiler:test --tests "prog8tests.compiler.TestOptimization" --console=plain` - Run specific test class
+- `nice gradle build --console=plain` - Full build including all tests (about 50s)
+- `nice gradle :compiler:test --console=plain` - Run only compiler tests (faster)
+- `nice gradle :compiler:test --tests "prog8tests.compiler.TestOptimization" --console=plain` - Run specific test class
 
 Note: By default, Gradle only shows failed tests. Passed and skipped tests are silent.
 
-A full `gradle build` is CPU- and IO-heavy; on Unix-like systems prefix it with `nice`
-(e.g. `nice gradle build --console=plain`) to lower its priority.
+On Unix-like systems, prefix **every** gradle invocation with `nice` to lower its priority, because
+gradle is CPU- and IO-heavy. This applies to all gradle commands (build, compile, test, install), not
+just `gradle build`. Use the same `nice` prefix for the quick compile checks and install commands in
+"Building and Installing the Compiler" above.
 
 **⚠️ CRITICAL: Test Filtering Patterns - Read This First!**
 

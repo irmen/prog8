@@ -591,7 +591,8 @@ class StatementOptimizer(private val program: Program,
             }
         }
 
-        if(whenStmt.betterAsOnGoto(program, options)) {
+        val indexOffset = whenStmt.onGotoIndexOffset(program, options)
+        if(indexOffset!=null) {
             // rewrite when into a on..goto , which is faster and also smaller for ~5+ cases
             var elseJump: Jump? = null
             val jumps = mutableListOf<Pair<Int, Jump>>()
@@ -605,10 +606,19 @@ class StatementOptimizer(private val program: Program,
                 }
             }
 
-            val jumpLabels = jumps.sortedBy { it.first }.map { it.second.target as IdentifierReference }
+            val labelsByValue = jumps.associate { it.first to (it.second.target as IdentifierReference).copy() }
+            val gapTarget = (elseJump?.target as? IdentifierReference)?.copy()
+            // the table spans the whole value range; a value that isn't a choice jumps to the else target.
+            // every slot needs its own node instance, since a choice can cover several values
+            val jumpLabels = (indexOffset..jumps.maxOf { it.first }).map { labelsByValue[it] ?: requireNotNull(gapTarget).copy() }
+
+            // the jump table is indexed from the lowest choice value upwards, and unsigned arithmetic
+            // wraps so values below it simply fall out of the table's bounds check
+            val indexExpr: Expression = if(indexOffset==0) whenStmt.condition
+                else BinaryExpression(whenStmt.condition.copy(), "-", NumericLiteral.optimalInteger(indexOffset, whenStmt.position), whenStmt.position)
 
             val elsePart = if(elseJump==null) null else AnonymousScope(mutableListOf(elseJump), elseJump.position)
-            val onGoto = OnGoto(false, whenStmt.condition, jumpLabels, elsePart, whenStmt.position)
+            val onGoto = OnGoto(false, indexExpr, jumpLabels, elsePart, whenStmt.position)
             return listOf(AstReplaceNode(whenStmt, onGoto, parent))
         }
 

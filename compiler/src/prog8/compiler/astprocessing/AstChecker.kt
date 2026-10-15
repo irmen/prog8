@@ -222,7 +222,42 @@ internal class AstChecker(private val program: Program,
             errors.warn("condition is always ${constvalue.asBooleanValue}", ifElse.condition.position)
         }
 
+        checkIfElseChainAsWhen(ifElse)
         super.visit(ifElse)
+    }
+
+    private fun checkIfElseChainAsWhen(ifElse: IfElse) {
+        // only consider the outermost link of a chain, otherwise a single long chain reports repeatedly
+        val scope = ifElse.parent
+        if(scope is AnonymousScope && scope.parent is IfElse && (scope.parent as IfElse).elsepart===scope)
+            return
+
+        // walk down the `else if` chain, gathering the constants that are compared against one and the same value
+        val testedValues = mutableSetOf<Double>()
+        var tested: Expression? = null
+        var node: IfElse? = ifElse
+        var choices = 0
+        while(node!=null) {
+            val binExpr = node.condition as? BinaryExpression ?: return
+            val rightConst = binExpr.right as? NumericLiteral ?: return
+            if(binExpr.operator!="==")
+                return
+            // a side-effecting expression is re-evaluated by every link in the chain, but only once by a when
+            if(binExpr.left.hasSideEffects(options.compTarget))
+                return
+            if(tested==null)
+                tested = binExpr.left
+            else if(!(binExpr.left isSameAs tested))
+                return
+            // a repeated constant isn't expressible as a when choice (it would be a compile error)
+            if(!testedValues.add(rightConst.number))
+                return
+            choices++
+            node = node.elsepart.statements.singleOrNull() as? IfElse
+        }
+
+        if(choices>=3)
+            errors.info("chain of if-else on the same value is better written as a when statement", ifElse.position)
     }
 
     override fun visit(forLoop: ForLoop) {
@@ -2407,7 +2442,7 @@ internal class AstChecker(private val program: Program,
         if(whenStmt.condition.constValue(program)!=null)
             errors.warn("when-value is a constant and will always result in the same choice", whenStmt.condition.position)
 
-        if(whenStmt.betterAsOnGoto(program, options))
+        if(whenStmt.onGotoIndexOffset(program, options)!=null)
             errors.info("when statement can be replaced with on..goto", whenStmt.position)
 
         super.visit(whenStmt)

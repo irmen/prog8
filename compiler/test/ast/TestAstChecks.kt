@@ -901,4 +901,77 @@ main {
         compileText(VMTarget(), false, src, outputDir, errors, false) shouldNotBe null
         errors.errors.size shouldBe 0
     }
+
+    test("if-else chain on the same value is reported as better written as when") {
+        val src = """
+            main {
+                ubyte sel
+                sub start() {
+                    if sel==1 {
+                        cx16.r0++
+                    } else if sel==2 {
+                        cx16.r0++
+                    } else if sel==3 {
+                        cx16.r0++
+                    } else {
+                        cx16.r0++
+                    }
+                }
+            }
+        """.trimIndent()
+        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        compileText(VMTarget(), false, src, outputDir, errors, false) shouldNotBe null
+        errors.errors.size shouldBe 0
+        // a long chain must be reported exactly once, not once per nested else-if
+        errors.infos.size shouldBe 1
+        errors.infos[0] shouldContain "better written as a when statement"
+    }
+
+    test("if-else chain variants that should not be reported as when") {
+        val src = """
+            main {
+                ubyte sel
+                uword w
+                sub onlytwo() {
+                    if sel==1 {
+                        cx16.r0++
+                    } else if sel==2 {
+                        cx16.r0++
+                    }
+                }
+                sub differentvalues() {
+                    if sel==1 {
+                        cx16.r0++
+                    } else if w==2 {
+                        cx16.r0++
+                    } else if sel==3 {
+                        cx16.r0++
+                    }
+                }
+                sub duplicatevalue() {
+                    if sel==1 {
+                        cx16.r0++
+                    } else if sel==2 {
+                        cx16.r0++
+                    } else if sel==2 {
+                        cx16.r0++
+                    }
+                }
+                sub sideeffecting() {
+                    if cx16.r0==1 {
+                        cx16.r0++
+                    } else if cx16.r1==2 {
+                        cx16.r0++
+                    } else if cx16.r2==3 {
+                        cx16.r0++
+                    }
+                }
+                sub start() { }
+            }
+        """.trimIndent()
+        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        compileText(VMTarget(), false, src, outputDir, errors, false) shouldNotBe null
+        errors.errors.size shouldBe 0
+        errors.infos.none { "when statement" in it } shouldBe true
+    }
 })

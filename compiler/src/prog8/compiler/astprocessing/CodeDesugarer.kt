@@ -909,8 +909,9 @@ _after:
         val conditionVar: VarDecl?
         val assignIndex: Assignment?
 
-        // put condition in temp var, if it is not simple; to avoid evaluating expression multiple times
-        if (ongoto.index.isSimple) {
+        // put condition in temp var, unless it is just a plain variable or constant,
+        // to avoid evaluating a more complex expression multiple times
+        if (ongoto.index is IdentifierReference || ongoto.index is NumericLiteral) {
             indexValue = ongoto.index
             assignIndex = null
             conditionVar = null

@@ -5,7 +5,7 @@ import prog8.ast.expressions.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstVisitor
 import prog8.code.core.*
-import java.util.Objects
+import java.util.*
 
 
 interface INamedStatement {
@@ -1608,15 +1608,19 @@ class When(var condition: Expression,
     override fun referencesIdentifier(nameInSource: List<String>): Boolean =
         condition.referencesIdentifier(nameInSource) || choices.any { it.referencesIdentifier(nameInSource) }
 
-    fun betterAsOnGoto(program: Program, compilerOptions: CompilationOptions): Boolean {
-        // a when that has only goto's and the values 0,1,2,3,4... is better written as a on..goto
+    /**
+     * A when with only goto's and near-contiguous choice values is better written as an on..goto.
+     * Returns the value to subtract from the condition to get the jump table index, or null when
+     * a jump table isn't possible or not worthwhile here.
+     */
+    fun onGotoIndexOffset(program: Program, compilerOptions: CompilationOptions): Int? {
         val sizeLimit = when {
             compilerOptions.compTarget.cpu == CpuType.CPU65C02 -> 4
             compilerOptions.compTarget.cpu.is68k -> 5
             else -> 6
         }
         if(choices.size >= sizeLimit) {
-            if (condition.inferType(program).isBytes) {
+            if (condition.inferType(program).isUnsignedByte) {
                 if (choices.all { (it.statements.statements.singleOrNull() as? Jump)?.target is IdentifierReference }) {
                     val values = choices.flatMap {
                         it.values ?: mutableListOf()
@@ -1625,15 +1629,19 @@ class When(var condition: Expression,
                     }
                     if(null !in values) {
                         val sortedValues = values.filterNotNull().sorted()
-                        val range = IntRange(sortedValues.first(), sortedValues.last())
-                        if(range.toList() == sortedValues) {
-                            return true
-                        }
+                        val lowest = sortedValues.first()
+                        val span = sortedValues.last() - lowest + 1
+                        // cap the table so that a sparse set of values can't blow the table up out of all
+                        // proportion to the number of choices; within the cap the O(1) dispatch wins even
+                        // when the table itself is a bit bigger than the compare chain it replaces
+                        // gap slots can only be filled with the else target, so an else is required when there are gaps
+                        if(span <= sortedValues.size * 2 && (span==sortedValues.size || choices.any { it.values==null }))
+                            return lowest
                     }
                 }
             }
         }
-        return false
+        return null
     }
 }
 
