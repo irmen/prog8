@@ -594,11 +594,13 @@ class StatementOptimizer(private val program: Program,
         val indexOffset = whenStmt.onGotoIndexOffset(program, options)
         if(indexOffset!=null) {
             // rewrite when into a on..goto , which is faster and also smaller for ~5+ cases
+            var elseScope: AnonymousScope? = null
             var elseJump: Jump? = null
             val jumps = mutableListOf<Pair<Int, Jump>>()
             whenStmt.choices.forEach { choice ->
                 if(choice.values==null) {
-                    elseJump = choice.statements.statements.single() as Jump
+                    elseScope = choice.statements
+                    elseJump = choice.statements.statements.singleOrNull() as? Jump
                 } else {
                     choice.values!!.forEach { value ->
                         jumps.add(value.constValue(program)!!.number.toInt() to choice.statements.statements.single() as Jump)
@@ -617,7 +619,8 @@ class StatementOptimizer(private val program: Program,
             val indexExpr: Expression = if(indexOffset==0) whenStmt.condition
                 else BinaryExpression(whenStmt.condition.copy(), "-", NumericLiteral.optimalInteger(indexOffset, whenStmt.position), whenStmt.position)
 
-            val elsePart = if(elseJump==null) null else AnonymousScope(mutableListOf(elseJump), elseJump.position)
+            // the else body is taken over as-is; only the value choices had to be goto's
+            val elsePart = elseScope?.let { AnonymousScope(it.statements, it.position) }
             val onGoto = OnGoto(false, indexExpr, jumpLabels, elsePart, whenStmt.position)
             return listOf(AstReplaceNode(whenStmt, onGoto, parent))
         }

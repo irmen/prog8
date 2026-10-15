@@ -271,16 +271,20 @@ Names follow the source file name, or the stem of the `-o` file when that option
 
 ### Automated Tests (gradle)
 Always use the `--console=plain` flag with these commands to avoid messing up the agent's text interface.
-- `nice gradle build --console=plain` - Full build including all tests (about 50s)
-- `nice gradle :compiler:test --console=plain` - Run only compiler tests (faster)
-- `nice gradle :compiler:test --tests "prog8tests.compiler.TestOptimization" --console=plain` - Run specific test class
+- `ionice -c 3 nice gradle build --console=plain` - Full build including all tests (about 50s)
+- `ionice -c 3 nice gradle :compiler:test --console=plain` - Run only compiler tests (faster)
+- `ionice -c 3 nice gradle :compiler:test --tests "prog8tests.compiler.TestOptimization" --console=plain` - Run specific test class
 
 Note: By default, Gradle only shows failed tests. Passed and skipped tests are silent.
 
-On Unix-like systems, prefix **every** gradle invocation with `nice` to lower its priority, because
-gradle is CPU- and IO-heavy. This applies to all gradle commands (build, compile, test, install), not
-just `gradle build`. Use the same `nice` prefix for the quick compile checks and install commands in
+On Unix-like systems, prefix **every** gradle invocation with `nice` to lower its CPU priority,
+because gradle is CPU-heavy. This applies to all gradle commands (build, compile, test, install), not
+just `gradle build`. Use the same prefix for the quick compile checks and install commands in
 "Building and Installing the Compiler" above.
+
+On **Linux** additionally put `ionice -c 3` in front (idle-class I/O scheduling), so the build doesn't
+compete for disk with whatever else is running: `ionice -c 3 nice gradle ...`. `ionice` is
+Linux-only (util-linux); on macOS/BSD just use `nice`.
 
 **⚠️ CRITICAL: Test Filtering Patterns - Read This First!**
 
