@@ -47,7 +47,8 @@ Missing VM Implementations (VirtualMachine.kt)
 Source line tracking in new codegen backends
 - Improve source line tracking across the IR into the generated assembly code in the new codegen backends (new6502, m68k). Currently, the IR preserves some source position information, but this is not consistently propagated through to the final assembly output. Better tracking would improve debugging experience (e.g., in monitor/debugger tools) and make it easier to correlate generated assembly back to the original Prog8 source code. Consider adding source location metadata to IR instructions and ensuring code generators emit appropriate ``.line`` directives or comments in the assembly output.
 Recursion-sound defers via framebase-as-parameter
-- Push ``(id, framebase)`` pairs on the defer handler stack, pass the parent's bottom-of-frame address as a hidden trailing parameter, lower parent-local accesses to indirect framebase-relative accesses. Lifts the current rejection of recursive deferring subs on m68k targets. VM parity only (not needed for m68k): running such IR on the VM would also need VM activation records in linear memory so saved frame bases are addresses (currently won't-do, see "Won't do: VM stack frames" above).
+- Problem: ``defer`` compiles to a single static per-subroutine mask variable plus one handler routine, so with a recursive (or mutually recursive) subroutine on m68k targets the activations share that mask: an inner activation's registration collides with the outer one's and its exit clears the bit so the outer activations' pending defers never fire (leaked resources, missed unlocks), and a defer block that reads parent locals acts on the innermost activation's frame instead of the one that registered it. The compiler therefore rejects defer in recursive subroutines.
+  Fix for this: push ``(id, framebase)`` pairs on the defer handler stack, pass the parent's bottom-of-frame address as a hidden trailing parameter, lower parent-local accesses to indirect framebase-relative accesses. Lifts the current rejection of recursive deferring subs on m68k targets. VM parity only (not needed for m68k): running such IR on the VM would also need VM activation records in linear memory so saved frame bases are addresses (currently won't-do, see "Won't do: VM stack frames" above).
 
 
 Libraries
@@ -72,24 +73,3 @@ Dead Code Elimination bug in 64tass, for nested subroutines
 - Workaround: move nested subroutines to be top-level (block-level) subroutines instead.
 - Example: in gfx_lores.p8, the nested ``plot()`` inside ``line()`` caused unused ``line()`` to be included in programs
   that only used other gfx_lores functions (like ``circle()``). Fixed by moving it to a separate ``internal_line_plot()``.
-
-
-6502 codegen bug: subtraction with a register-clobbering right operand
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-- A byte subtraction ``x - <expr>`` produces a wrong result (typically 0) when evaluating ``<expr>`` clobbers the
-  accumulator before the final ``sbc``, because the left operand ``x`` is not reloaded afterwards. This happens when the
-  right operand contains a multiplication builtin, whose codegen calls ``prog8_math.multiply_ubyte_word`` /
-  ``prog8_math.multiply_words``: the generated code loads ``x`` into A first, then the multiply setup and the call
-  overwrite A, and the final ``sbc`` ends up subtracting the right operand's own value from itself (``msb - msb == 0``).
-- Minimal repro (cx16): with ``ubyte @shared a=200``, ``ubyte @shared t=250``, ``ubyte @shared b=3``, the expression
-  ``ubyte r = a - msb(t as uword * b)`` yields ``r == 0`` instead of 198. ``a - lsb(t as uword * b)`` fails the same
-  way, while ``a - msb(<plain variable>)`` and ``a - useroutine()`` are both correct, so it is specifically the multiply
-  builtin's register clobbering that the subtraction codegen does not account for.
-- Scope: only the *classic* 6502 code generator (``codeGenCpu6502``) is affected, i.e. every target that uses it:
-  c64, c128, pet32 (6502) and cx16 (65C02). Verified that it reproduces on both cx16 and c64. Not affected: the virtual
-  target, the m68k targets, and the experimental IR-based 6502 codegen (``-newcodegen``), which all compute the correct
-  result (checked by running the repro).
-- This is what made the Prog8 ``math.lerp`` always return 0 for the descending case (``v1<v0``), since it computed
-  ``v0 - msb(t as uword * (v0 - v1) + 255)``. ``math.lerp`` now avoids the bug because it was rewritten as 6502 assembly.
-- Fix likely belongs in the classic 6502 binary-operation codegen: reload (or preserve in a temporary) the left operand
-  after evaluating a right operand that clobbers A (the IR-based codegen gets this right).

@@ -54,6 +54,46 @@ main {
         compileText(Cx16Target(), true, text, outputDir, writeAssembly = true) shouldNotBe null
     }
 
+    test("byte binary op with msb/lsb of a multiply right operand preserves the left operand") {
+        // Regression test: msb()/lsb() of a complex argument are evaluated via A, clobbering the
+        // left operand that the binary-op codegen had left in A. The direct-into-Y shortcut must
+        // only apply when the msb/lsb argument is a plain identifier (which loads straight into Y).
+        for (target in listOf(Cx16Target(), C64Target())) {
+            val text = """
+                %zeropage basicsafe
+                %option no_sysinit
+                %launcher none
+                main {
+                    &ubyte r_sub = $0300
+                    &ubyte r_add = $0301
+                    &ubyte r_mul = $0302
+                    &ubyte r_div = $0303
+                    &ubyte r_rem = $0304
+
+                    sub start() {
+                        ubyte @shared a = 200
+                        ubyte @shared t = 250
+                        ubyte @shared b = 3
+                        ubyte @shared u = 130
+                        ubyte @shared d = 3
+                        r_sub = a - msb(t as uword * b)
+                        r_add = a + msb(t as uword * b)
+                        r_mul = a * lsb(u as uword * d)
+                        r_div = a / lsb(u as uword * d)
+                        r_rem = a % lsb(u as uword * d)
+                    }
+                }
+            """.trimIndent()
+            val result = compileText(target, false, text, outputDir, writeAssembly = true)!!
+            val machine = result.simulate(maxCycles = 1_000_000)
+            machine.assertMemory(0x0300, 198)   // 200 - msb(250*3)=200-2
+            machine.assertMemory(0x0301, 202)   // 200 + 2
+            machine.assertMemory(0x0302, 176)   // 200 * lsb(130*3)=200*134 & 255
+            machine.assertMemory(0x0303, 1)     // 200 / 134
+            machine.assertMemory(0x0304, 66)    // 200 % 134
+        }
+    }
+
     test("nested scoping") {
         val text="""
 main {

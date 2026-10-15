@@ -271,7 +271,10 @@ internal class BinaryOpAssignmentsGen(
             is PtIdentifier -> true
             is PtIrRegister -> true
             is PtNumber -> true
-            is PtFunctionCall -> expr.builtin && expr.name in arrayOf("lsb", "msb")
+            // msb/lsb only load straight into Y without touching A for a plain identifier argument;
+            // any other argument is evaluated via A first, which would clobber A (the left operand).
+            is PtFunctionCall -> expr.builtin && expr.name in arrayOf("lsb", "msb") &&
+                    expr.args.singleOrNull() is PtIdentifier
             else -> false
         }
     }
