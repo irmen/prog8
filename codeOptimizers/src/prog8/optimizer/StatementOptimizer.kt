@@ -609,20 +609,37 @@ class StatementOptimizer(private val program: Program,
             }
 
             val labelsByValue = jumps.associate { it.first to (it.second.target as IdentifierReference).copy() }
+            val span = jumps.maxOf { it.first } - indexOffset + 1
             val gapTarget = (elseJump?.target as? IdentifierReference)?.copy()
+            val gapLabel = if(span > jumps.size && gapTarget==null)
+                program.makeLabel("ongotogap", whenStmt.position)
+            else null
+            val effectiveGapTarget = gapTarget
+                ?: gapLabel?.let { IdentifierReference(listOf(it.name), it.position) }
             // the table spans the whole value range; a value that isn't a choice jumps to the else target.
             // every slot needs its own node instance, since a choice can cover several values
-            val jumpLabels = (indexOffset..jumps.maxOf { it.first }).map { labelsByValue[it] ?: requireNotNull(gapTarget).copy() }
+            val jumpLabels = (indexOffset..jumps.maxOf { it.first }).map { labelsByValue[it] ?: requireNotNull(effectiveGapTarget).copy() }
 
             // the jump table is indexed from the lowest choice value upwards, and unsigned arithmetic
             // wraps so values below it simply fall out of the table's bounds check
             val indexExpr: Expression = if(indexOffset==0) whenStmt.condition
                 else BinaryExpression(whenStmt.condition.copy(), "-", NumericLiteral.optimalInteger(indexOffset, whenStmt.position), whenStmt.position)
 
-            // the else body is taken over as-is; only the value choices had to be goto's
-            val elsePart = elseScope?.let { AnonymousScope(it.statements, it.position) }
+            // Put the gap target in the else body when one exists; otherwise it falls through
+            // to the statement after the rewritten on..goto.
+            val elsePart = elseScope?.let {
+                val statements = if(gapLabel==null)
+                    it.statements
+                else
+                    (listOf<Statement>(gapLabel) + it.statements).toMutableList()
+                AnonymousScope(statements, it.position)
+            }
             val onGoto = OnGoto(false, indexExpr, jumpLabels, elsePart, whenStmt.position)
-            return listOf(AstReplaceNode(whenStmt, onGoto, parent))
+            val modifications = mutableListOf<AstModification>()
+            if(gapLabel!=null && elseScope==null)
+                modifications += AstInsert.after(whenStmt, gapLabel, parent as IStatementContainer)
+            modifications += AstReplaceNode(whenStmt, onGoto, parent)
+            return modifications
         }
 
         return noModifications

@@ -1989,9 +1989,7 @@ main {
         VmRunner().runProgram(virtfile.readText(), true)
     }
 
-    test("gapped when with a non-goto else body falls back to the compare chain") {
-        // a gap slot in the jump table has no choice to point at, so it can only reuse the else target,
-        // which is only possible when the else body is a single goto
+    test("gapped when with a non-goto else body uses a synthesized gap label") {
         val src = """
 main {
     ubyte sel
@@ -2024,9 +2022,57 @@ main {
         val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = true)!!
         val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         val ir = virtfile.readText()
-        ir.contains("jumpi") shouldBe false
-        ir.contains("bsteq") shouldBe true
+        ir.contains("jumpi") shouldBe true
         VmRunner().runProgram(virtfile.readText(), true)
+    }
+
+    test("gapped when without an else falls through inside a nested scope") {
+        val src = """
+main {
+    ubyte @shared counter
+    sub dispatch(ubyte s) {
+        if s < 8 {
+            when s {
+                0 -> goto c0
+                1 -> goto c1
+                2 -> goto c2
+                3 -> goto c3
+                6 -> goto c4
+                7 -> goto c5
+            }
+            counter++
+            return
+        }
+        return
+    c0: counter++
+        return
+    c1: counter++
+        return
+    c2: counter++
+        return
+    c3: counter++
+        return
+    c4: counter++
+        return
+    c5: counter++
+        return
+    }
+    sub start() {
+        for sel in 0 to 7 {
+            dispatch(sel)
+        }
+    }
+}"""
+        val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = true)!!
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
+        val irContent = virtfile.readText()
+        irContent.contains("jumpi") shouldBe true
+        val irProgram = IRFileReader().read(irContent)
+        irProgram.st.stripAllPrefixes()
+        val allocations = VmVariableAllocator(irProgram.st, irProgram.encoding, irProgram.options.compTarget).allocations
+        VmRunner().runAndTestProgram(irContent) { vm ->
+            vm.memory.getUB(allocations["main.counter"]!!) shouldBe 8u
+        }
     }
 
     test("gapped when with a goto-to-label else body fills the gap slots with the else target") {
@@ -2078,9 +2124,7 @@ main {
         }
     }
 
-    test("gapped when with a goto to a non-label address as else body falls back to the compare chain") {
-        // a gap slot needs the else goto target to be a label identifier; anything else must
-        // disqualify the rewrite instead of crashing on the missing gap target
+    test("gapped when with a goto to a non-label address as else body uses a synthesized gap label") {
         val src = $$"""
 %zeropage basicsafe
 %option no_sysinit
@@ -2120,8 +2164,7 @@ main {
         val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = true)!!
         val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         val ir = virtfile.readText()
-        ir.contains("jumpi") shouldBe false
-        ir.contains("bsteq") shouldBe true
+        ir.contains("jumpi") shouldBe true
         val irProgram = IRFileReader().read(ir)
         irProgram.st.stripAllPrefixes()
         val allocations = VmVariableAllocator(irProgram.st, irProgram.encoding, irProgram.options.compTarget).allocations

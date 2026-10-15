@@ -1637,12 +1637,7 @@ class When(var condition: Expression,
                         // cap the table so that a sparse set of values can't blow the table up out of all
                         // proportion to the number of choices; within the cap the O(1) dispatch wins even
                         // when the table itself is a bit bigger than the compare chain it replaces
-                        val hasGaps = span > sortedValues.size
-                        // a gap slot has no choice to point at, so it can only reuse the else
-                        // goto target, which has to be a label identifier for that to work
-                        val elseIsJump = choices.any { it.values==null &&
-                                (it.statements.statements.singleOrNull() as? Jump)?.target is IdentifierReference }
-                        if(span <= sortedValues.size * 2 && (!hasGaps || elseIsJump))
+                        if(span <= sortedValues.size * 2)
                             return lowest
                     }
                 }
