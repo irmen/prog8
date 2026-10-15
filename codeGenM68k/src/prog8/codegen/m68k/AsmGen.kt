@@ -293,6 +293,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
     // the code chunks of the subroutine currently being emitted, to tell a jump that stays
     // inside it apart from one that leaves it
     private var currentSubChunks: Set<IRCodeChunkBase> = emptySet()
+    private var previousInsn: IRInstruction? = null
 
     // Virtual registers of the subroutine being emitted, by register number -> frame offset.
     // A re-entrant subroutine (one that can have two live activations) keeps them per-activation in
@@ -315,6 +316,21 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
     internal fun labelIsOutsideCurrentSub(labelName: String): Boolean {
         val target = program.resolveCodeTarget(CodeReference.Label(labelName)) ?: return false
         return target !in currentSubChunks
+    }
+
+    internal fun jumpTableStaysInCurrentSub(pointer: VirtualRegister): Boolean {
+        val load = previousInsn ?: return false
+        if (load.opcode != Opcode.LOADX) return false
+        if (load.dest?.register != pointer) return false
+        val indexed = load.memory as? MemoryReference.Indexed ?: return false
+        val symbol = indexed.base as? AddressBase.Symbol ?: return false
+        val variable = program.st.lookup(symbol.name) as? IRStStaticVariable ?: return false
+        val initializer = variable.initializationValue as? IRVariableInitializer.Array ?: return false
+        if (initializer.elements.isEmpty()) return false
+        return initializer.elements.all { element ->
+            val label = (element as? IRStSymbolicReference.Symbol)?.name ?: return@all false
+            !labelIsOutsideCurrentSub(label)
+        }
     }
 
     // === virtual register file layout (1, 2 or 4 bytes per slot depending on type, word-aligned) ===
@@ -915,6 +931,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         deadStoreSuppressionAllowed: Boolean = true,
         preserveLoopCounter: Boolean = false
     ) {
+        previousInsn = null
         invalidateD0Cache()                 // new basic block / branch target
         emitSourceComment(chunk.sourceLinesPositions)
         val callOptimizations = mutableMapOf<Int, ImmediateCallOptimization>()
@@ -959,6 +976,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
                 val mem = insn.memory as MemoryReference.Direct
                 val slot = mem.base as AddressBase.FrameSlot
                 emitFrameZeroLoop(slot.offset + mem.displacement, zeroRun)
+                previousInsn = null
                 index += zeroRun
                 continue
             }
@@ -970,6 +988,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
                 callOptimizations[index],
                 index in deadLoadIndices
             )
+            previousInsn = insn
             if (clobbersLoopCounter)
                 emitLine("move.w  (sp)+,d7", "restore loop counter after call")
             index++

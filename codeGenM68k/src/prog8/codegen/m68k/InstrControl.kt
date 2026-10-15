@@ -20,7 +20,6 @@ import prog8.code.core.CpuType
 import prog8.code.core.toHex
 import prog8.code.target.Amiga500Target
 import prog8.intermediate.*
-import prog8.intermediate.incomingSlotSize
 
 internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall: ImmediateCallOptimization? = null) {
     when (insn.opcode) {
@@ -48,8 +47,9 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
             val ref = insn.requireTarget() as? CodeReference.Indirect ?: error("JUMPI needs an indirect target register")
             val reg = ref.pointer.intNumber
             invalidateD0Cache()
-            // a dispatch jump leaves this subroutine for good: the target's rts must find our caller's return address, so our frame has to be gone first
-            emitFrameUnlk()
+            // Keep the frame for a table whose targets all belong to this subroutine.
+            if (!jumpTableStaysInCurrentSub(ref.pointer.register))
+                emitFrameUnlk()
             if(program.options.compTarget.cpu >= CpuType.M68020) {
                 // 68020+ supports memory-indirect addressing: fetch the target address from memory directly.
                 emitLine("jmp  ([${regAddr(reg)}])")

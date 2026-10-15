@@ -1208,6 +1208,41 @@ class TestInstructionSelectionOptimizations : FunSpec({
         lines.count { it.contains("(a0,d0.w*") } shouldBe 0
     }
 
+    test("loadx+jumpi fusion removes the regfile roundtrip and keeps the scaled index operand") {
+        // a pointer-array dispatch (on..goto / rewritten when) emits the scale in the addressing mode
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-fuse-loadx-jumpi-scaled"),
+            listOf(
+                IRInstructions.loadMemory(Opcode.LOADX, IRDataType.POINTER, 6, IRMemory.indexed("table", 3, IRDataType.WORD, 4)),
+                IRInstructions.jumpIndirect(6)
+            )
+        )
+
+        lines.any { it == "move.l  (a0,d0.w*4), a0" } shouldBe true
+        lines.any { it == "jmp  (a0)" } shouldBe true
+        // the spill and the reload it feeds are gone
+        lines.count { it.startsWith("move.l  d0,p8_regfile") } shouldBe 0
+        lines.count { it.startsWith("movea.l") } shouldBe 0
+        lines.any { it.startsWith("jmp  ([p8_regfile") } shouldBe false
+    }
+
+    test("loadx+jumpi fusion keeps the unscaled index operand on 68000") {
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-fuse-loadx-jumpi-unscaled"),
+            listOf(
+                IRInstructions.loadMemory(Opcode.LOADX, IRDataType.POINTER, 6, IRMemory.indexed("table", 3, IRDataType.WORD, 4)),
+                IRInstructions.jumpIndirect(6)
+            ),
+            target = Amiga500Target()
+        )
+
+        // on 68000 the scale is applied to d0 by hand, so the addressing mode stays unscaled
+        lines.any { it == "lsl.w  #2,d0" } shouldBe true
+        lines.any { it == "move.l  (a0,d0.w), a0" } shouldBe true
+        lines.any { it == "jmp  (a0)" } shouldBe true
+        lines.count { it.startsWith("move.l  d0,p8_regfile") } shouldBe 0
+    }
+
     test("indirect memory lowering picks displacement addressing or explicit pointer adjustment") {
         val lines = generateAsm(
             tempRoot.resolve("test-m68k-indirect-displacement"),

@@ -145,6 +145,7 @@ private fun optimizeRedundantLea(allPretrimmed: List<String>): List<Modification
 
 /** Matches a parenthesised group, for stripping addressing modes. */
 private val parenthesised = Regex("""\([^)]*\)""")
+private val d0IndexOperand = Regex("""\(\s*a0\s*,\s*d0\.w(?:\*\d+)?\s*\)""")
 
 /** A single edit to apply: either remove a line (keeping its label if present) or replace it. */
 private class Modification(val lineIndex: Int, val remove: Boolean, val replacement: String?)
@@ -671,11 +672,19 @@ private fun isSlotReferencedInLine(slot: String, line: String): Boolean {
  * or for 68020+ JUMPI/CALLI:
  *   jmp/jsr ([p8_regfile+M])     ; memory-indirect
  *
- * Fused (preserves current unscaled semantics; no *4 scaling):
+ * The same sequence with the scale folded into the addressing mode instead of
+ * into d0 (68020+; this is what a pointer-array dispatch such as on..goto emits):
+ *   lea     table_label, a0
+ *   move.l  (a0,d0.w*4), d0
+ *   move.l  d0, p8_regfile+M
+ *   movea.l p8_regfile+M, a0
+ *   jmp/jsr (a0)
+ *
+ * Fused, keeping whichever index operand was matched so the scale is preserved:
  *   moveq   #0, d0
  *   move.b  p8_regfile+N, d0
  *   lea     table_label, a0
- *   move.l  (a0,d0.w), a0
+ *   move.l  (a0,d0.w), a0        ; or (a0,d0.w*4), a0 on 68020+
  *   jmp/jsr (a0)
  */
 private fun optimizeFuseLoadxJumpi(allPretrimmed: List<String>, lines: MutableList<String>): List<Modification> {
@@ -686,11 +695,13 @@ private fun optimizeFuseLoadxJumpi(allPretrimmed: List<String>, lines: MutableLi
     val mods = mutableListOf<Modification>()
     val alreadyModified = mutableSetOf<Int>()
 
-    fun isLoadIndexed(instr: String): Boolean {
-        // matches "move.l  (a0,d0.w), d0" with flexible spacing
-        if (!instr.startsWith("move.l")) return false
-        if ("(a0,d0.w)" !in instr) return false
-        return instr.trim().endsWith(", d0") || instr.trim().endsWith(",d0")
+    fun loadIndexedOperand(instr: String): String? {
+        // matches "move.l  (a0,d0.w), d0" (68000, index pre-scaled into d0) and the scaled
+        // "move.l  (a0,d0.w*4), d0" forms (68020+, scale folded into the addressing mode).
+        // The matched operand is returned so the fused instruction keeps the same scale.
+        if (!instr.startsWith("move.l")) return null
+        if (!(instr.trim().endsWith(", d0") || instr.trim().endsWith(",d0"))) return null
+        return d0IndexOperand.find(instr)?.value
     }
 
     fun isSpill(instr: String): String? {
@@ -719,7 +730,7 @@ private fun optimizeFuseLoadxJumpi(allPretrimmed: List<String>, lines: MutableLi
         val loadIdx = leaIdx + 1
         val spillIdx = leaIdx + 2
         if (filtered[loadIdx].index in alreadyModified || filtered[spillIdx].index in alreadyModified) continue
-        if (!isLoadIndexed(filtered[loadIdx].instruction)) continue
+        val loadOperand = loadIndexedOperand(filtered[loadIdx].instruction) ?: continue
         val slotM = isSpill(filtered[spillIdx].instruction) ?: continue
 
         // Check jump/call variant: 68000 uses movea reload + jmp/jsr (a0),
@@ -746,7 +757,7 @@ private fun optimizeFuseLoadxJumpi(allPretrimmed: List<String>, lines: MutableLi
             if (hasLabel(filtered[spillIdx].trimmed) || hasLabel(filtered[nextIdx].trimmed) || hasLabel(filtered[jmpIdx].trimmed)) continue
 
             val loadIndent = lines[filtered[loadIdx].index].takeWhile { it.isWhitespace() }
-            mods.add(Modification(filtered[loadIdx].index, false, "${loadIndent}move.l  (a0,d0.w), a0"))
+            mods.add(Modification(filtered[loadIdx].index, false, "${loadIndent}move.l  $loadOperand, a0"))
             mods.add(Modification(filtered[spillIdx].index, true, null))
             mods.add(Modification(filtered[nextIdx].index, true, null))
             alreadyModified.add(filtered[loadIdx].index)
@@ -759,7 +770,7 @@ private fun optimizeFuseLoadxJumpi(allPretrimmed: List<String>, lines: MutableLi
             val loadIndent = lines[filtered[loadIdx].index].takeWhile { it.isWhitespace() }
             val jmpIndent = lines[filtered[nextIdx].index].takeWhile { it.isWhitespace() }
             val mnemonic = if (is68020MemIndirectJsr) "jsr" else "jmp"
-            mods.add(Modification(filtered[loadIdx].index, false, "${loadIndent}move.l  (a0,d0.w), a0"))
+            mods.add(Modification(filtered[loadIdx].index, false, "${loadIndent}move.l  $loadOperand, a0"))
             mods.add(Modification(filtered[spillIdx].index, true, null))
             mods.add(Modification(filtered[nextIdx].index, false, "${jmpIndent}$mnemonic  (a0)"))
             alreadyModified.add(filtered[loadIdx].index)
