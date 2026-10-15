@@ -1614,10 +1614,15 @@ class When(var condition: Expression,
      * a jump table isn't possible or not worthwhile here.
      */
     fun onGotoIndexOffset(program: Program, compilerOptions: CompilationOptions): Int? {
-        val sizeLimit = when {
-            compilerOptions.compTarget.cpu == CpuType.CPU65C02 -> 4
-            compilerOptions.compTarget.cpu.is68k -> 5
-            else -> 6
+        // Jump-table cutoff per CPU family, picked by the resource that family is short of:
+        // 6502 by size (11; on plain 6502 the table is not even faster below ~15, since its
+        // dispatch lacks jmp (abs,x)), m68k/virtual by speed (6/4, well under the m68k size
+        // break-even), 65C02 keeps 4 (cheap jmp (abs,x); short hot dispatches like gfx_hires).
+        val (sizeLimit, spanFactor) = when {
+            compilerOptions.compTarget.cpu == CpuType.CPU65C02 -> 4 to 2
+            compilerOptions.compTarget.cpu == CpuType.CPU6502 -> 11 to 2
+            compilerOptions.compTarget.cpu.is68k -> 6 to 4
+            else -> 4 to 4
         }
         if(choices.size >= sizeLimit) {
             if (condition.inferType(program).isUnsignedByte) {
@@ -1647,8 +1652,9 @@ class When(var condition: Expression,
                     val span = sortedValues.last() - lowest + 1
                     // cap the table so that a sparse set of values can't blow the table up out of all
                     // proportion to the number of choices; within the cap the O(1) dispatch wins even
-                    // when the table itself is a bit bigger than the compare chain it replaces
-                    if(span <= sortedValues.size * 2)
+                    // when the table itself is a bit bigger than the compare chain it replaces.
+                    // the cap is looser on m68k/virtual where a bigger table costs no scarce memory
+                    if(span <= sortedValues.size * spanFactor)
                         return lowest
                 }
             }

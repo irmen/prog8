@@ -2442,9 +2442,6 @@ internal class AstChecker(private val program: Program,
         if(whenStmt.condition.constValue(program)!=null)
             errors.warn("when-value is a constant and will always result in the same choice", whenStmt.condition.position)
 
-        if(whenStmt.onGotoIndexOffset(program, options)!=null)
-            errors.info("when statement can be replaced with on..goto", whenStmt.position)
-
         super.visit(whenStmt)
     }
 
