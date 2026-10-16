@@ -30,10 +30,10 @@ open class AstModification {
 
     /**
      * The node in which a child is modified by [perform], if there is one.
-     * Modifications that target a node which is no longer part of the tree are skipped by
-     * [AstWalker.applyModifications]: they would only change a subtree that has been detached
-     * by another modification, and re-linking the parents of nodes that are still in use
-     * elsewhere corrupts the tree.
+     * Modifications whose target parent node (or a node higher up in its parent chain) is no
+     * longer part of the tree are skipped by [AstWalker.applyModifications]: they would only
+     * change a subtree that has been detached by another modification, and re-linking the
+     * parents of nodes that are still in use elsewhere corrupts the tree.
      */
     open val targetParent: Node? = null
 
@@ -52,6 +52,7 @@ open class AstRemove(val node: Node, val parent: IStatementContainer) : AstModif
     }
 
     override val affectedNodes = listOf(node)
+    override val targetParent: Node get() = parent as Node
 
     override fun perform() {
         if (!parent.statements.remove(node)) {
@@ -89,6 +90,7 @@ open class AstInsert private constructor(
     private val position: InsertPosition
 ) : AstModification() {
     override val affectedNodes = listOf(stmt)
+    override val targetParent: Node get() = parent as Node
 
     override fun perform() {
         val idx = when (position) {
@@ -312,6 +314,11 @@ abstract class AstWalker {
         }
     }
 
+    /**
+     * Applies all queued modifications, skipping modifications that would operate on a node
+     * or subtree that is no longer part of the tree (because an earlier modification of the
+     * same batch detached it). Returns the number of modifications that were performed.
+     */
     fun applyModifications(): Int {
         // Build conflict map for debugging - detect nodes affected by multiple modifications
         val nodeToModifications = mutableMapOf<Node, MutableList<AstModification>>()
@@ -338,10 +345,11 @@ abstract class AstWalker {
         var amount = 0
         modifications.forEach {
             val mod = it.first
-            if (mod.targetParent in detachedNodes) {
-                // another modification of this batch already detached the node that this modification
-                // would change, so applying it has no effect on the tree; skip it to avoid corrupting
-                // the parent links of nodes that are still in use by the replacement.
+            if (mod.operatesInDetachedSubtree()) {
+                // another modification of this batch already detached the subtree that this
+                // modification would operate in, so applying it has no effect on the tree -
+                // and if it reuses nodes that are still in use elsewhere, re-linking their
+                // parents corrupts the tree. Skip it.
                 return@forEach
             }
             mod.perform()
@@ -354,6 +362,32 @@ abstract class AstWalker {
         }
         modifications.clear()
         return amount
+    }
+
+    /** True if [node] is itself detached, or lies inside a subtree that was detached by a modification that was applied earlier in this batch. */
+    private fun isDetached(node: Node?): Boolean {
+        if (node == null || detachedNodes.isEmpty()) return false
+        if (node in detachedNodes) return true
+        var candidate = node.parent
+        while (candidate !is ParentSentinel) {
+            if (candidate in detachedNodes) return true
+            candidate = candidate.parent
+        }
+        return false
+    }
+
+    /**
+     * True if this modification would operate on a node or subtree that is no longer part of
+     * the tree: performing it would have no effect on the live tree, or could corrupt the
+     * parent links of nodes that are still in use by a replacement.
+     */
+    private fun AstModification.operatesInDetachedSubtree(): Boolean {
+        if (isDetached(targetParent)) return true
+        return when (this) {
+            is AstReplaceNode -> isDetached(node)
+            is AstRemove -> isDetached(node)
+            else -> false
+        }
     }
 
     fun linkAffectedParents(namespace: Node) {
