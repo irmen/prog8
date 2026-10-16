@@ -1339,17 +1339,8 @@ class IRCodeGen(
         // Fallback: materialize expression and branch on result
         val tr = expressionEval.translateExpression(condition)
         result += tr.chunks
-        // Only skip the CMPI #0 if BOTH:
-        //   1) The previous instruction is documented to set status bits (Z/N), AND
-        //   2) The target CPU honors the "multi-byte ops set Z based on full value" contract
-        //      (see CpuType.statusBitsOnMultiByteOps). For 8-bit targets this contract
-        //      is false: e.g. a 16-bit DEC only sets Z from the low byte's dec, not the
-        //      full 16-bit value, so we MUST emit an explicit CMPI here.
         val lastInstr = tr.chunks.lastOrNull()?.instructions?.lastOrNull()
-        val targetHonorsContract = options.compTarget.cpu.statusBitsOnMultiByteOps
-        val skipCmpi = targetHonorsContract
-                && lastInstr != null
-                && lastInstr.opcode in OpcodesThatSetStatusbits
+        val skipCmpi = options.compTarget.cpu.canSkipExplicitCmpi(lastInstr)
         if (!skipCmpi) {
             addInstr(result, IRInstruction(Opcode.CMPI, tr.dt, reg1 = tr.resultReg, immediate = 0), null)
         }
@@ -1392,15 +1383,8 @@ class IRCodeGen(
         if (number != null) {
             val isComparingWithZero = number == 0
             val lastInstr = leftTr.chunks.lastOrNull()?.instructions?.lastOrNull()
-            // Skip the CMPI only if the target honors the "multi-byte ops set Z correctly"
-            // contract. On 8-bit targets a 16/32-bit op like DEC only sets Z from the last
-            // byte, so we cannot rely on the previous instruction's status bits - the
-            // CMPI is required to test the full multi-byte value.
-            // See CpuType.statusBitsOnMultiByteOps for details.
             val canSkipCmpi = isComparingWithZero
-                    && options.compTarget.cpu.statusBitsOnMultiByteOps
-                    && lastInstr != null
-                    && lastInstr.opcode in OpcodesThatSetStatusbits
+                    && options.compTarget.cpu.canSkipExplicitCmpi(lastInstr)
 
             if ((onTrueLabel != null || onTrueAddress != null) && (onFalseLabel == null && onFalseAddress == null)) {
                 var (opcode, useCmpi) = getIntegerComparisonBranch(condition.operator, false, signed)
