@@ -486,6 +486,104 @@ main {
         cmpiInstr shouldBe null
     }
 
+    test("short-circuit boolean and/or always emits explicit CMPI before the branch (strict status-bits contract)") {
+        val src = """
+main {
+    uword aa
+    uword bb
+    sub start() {
+        aa = 5
+        bb = 9
+        bool @shared res = aa == bb or aa < bb
+        bool @shared res2 = aa == bb and aa < bb
+    }
+}"""
+        val result = compileText(VMTarget(), optimize=false, src, outputDir, writeAssembly=true)!!
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
+        val irProgram = IRFileReader().read(virtfile)
+        val start = irProgram.blocks[0].children[0] as IRSubroutine
+        val instructions = start.chunks.flatMap { c->c.instructions }
+
+        // Both short-circuit operators must test the left operand with an explicit CMPI #0 before
+        // branching; without it the branch reads the status bits of whatever instruction ran before,
+        // which gave wrong results. A BST that directly follows a CMP is the comparison itself
+        // materialising its result, that one is fine.
+        // See CpuType.statusBitsOnMultiByteOps for the rationale.
+        val branches = instructions.withIndex().filter { it.value.opcode == Opcode.BSTEQ || it.value.opcode == Opcode.BSTNE }
+        withClue("branch instructions found") {
+            branches.size shouldBeGreaterThan 0
+        }
+        branches.forEach { (idx, branch) ->
+            val before = instructions[idx - 1]
+            withClue("instruction before $branch") {
+                val testedByCmp = before.opcode == Opcode.CMP
+                val testedByCmpi = before.opcode == Opcode.CMPI && before.immediate == 0
+                testedByCmp || testedByCmpi shouldBe true
+            }
+        }
+    }
+
+    test("short-circuit boolean and/or compute the correct value in the vm") {
+        val src = """
+main {
+    uword a
+    uword b
+    bool p
+    sub start() {
+        ; every case adds its own bit to cx16.r0 when the expression is true,
+        ; so a wrong result shows up as a difference in the bit pattern
+        cx16.r0 = 0
+        a = 5
+        b = 5
+        bool t = a == b or a < b           ; true
+        if t
+            cx16.r0 += 1
+        a = 5
+        b = 9
+        t = a == b or a < b                 ; true
+        if t
+            cx16.r0 += 2
+        a = 9
+        b = 5
+        t = a == b or a < b                 ; false
+        if t
+            cx16.r0 += 4
+        a = 1
+        b = 5
+        t = a == b and a < b                ; false
+        if t
+            cx16.r0 += 8
+        a = 9
+        b = 5
+        t = a == b and a < b                ; false
+        if t
+            cx16.r0 += 16
+        ; a bool variable as left operand: no comparison runs before the branch
+        p = false
+        a = 5
+        b = 9
+        t = p or a < b                      ; true
+        if t
+            cx16.r0 += 32
+        p = true
+        t = p and a < b                     ; true
+        if t
+            cx16.r0 += 64
+        a = 9
+        b = 5
+        t = p and a < b                     ; false
+        if t
+            cx16.r0 += 128
+    }
+}"""
+        val result = compileText(VMTarget(), optimize=true, src, outputDir, writeAssembly=true)!!
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
+        VmRunner().runAndTestProgram(virtfile.readText()) { vm ->
+            // bits 1, 2, 32 and 64 must be set: 1 + 2 + 32 + 64
+            vm.memory.getUW(0xff02u) shouldBe 99u
+        }
+    }
+
     test("repeat counts (const)") {
         val src="""
 main {
