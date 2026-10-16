@@ -1,6 +1,9 @@
 TODO
 ====
 
+There is a massieve memory hog or maybe even leak when running the test suite
+
+
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 - extend the ``-gendoc`` command to generate user reference documentation from Markdown docstrings; see ``ideas/markdown-docstrings-and-reference-docs.md`` for the plan.
