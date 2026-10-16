@@ -4,6 +4,8 @@ import prog8.ast.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.code.core.CommutativeOperators
+import java.util.Collections
+import java.util.IdentityHashMap
 
 
 /**
@@ -25,6 +27,15 @@ sealed interface InsertPosition {
 open class AstModification {
     /** Nodes that will be affected when [perform] is called. */
     open val affectedNodes: List<Node> = emptyList()
+
+    /**
+     * The node in which a child is modified by [perform], if there is one.
+     * Modifications that target a node which is no longer part of the tree are skipped by
+     * [AstWalker.applyModifications]: they would only change a subtree that has been detached
+     * by another modification, and re-linking the parents of nodes that are still in use
+     * elsewhere corrupts the tree.
+     */
+    open val targetParent: Node? = null
 
     /** Apply the modification to the AST. */
     open fun perform() {}
@@ -60,6 +71,7 @@ open class AstSetExpression(
     private val parent: Node
 ) : AstModification() {
     override val affectedNodes = listOf(newExpr)
+    override val targetParent: Node get() = parent
 
     override fun perform() {
         setter(newExpr)
@@ -113,6 +125,7 @@ open class AstReplaceNode(
     private val parent: Node
 ) : AstModification() {
     override val affectedNodes = listOf(node, replacement)
+    override val targetParent: Node get() = parent
 
     override fun perform() {
         parent.replaceChildNode(node, replacement)
@@ -273,6 +286,12 @@ abstract class AstWalker {
     protected val modifications = mutableListOf<Triple<AstModification, Node, Node>>()
     protected val affectedModules = mutableSetOf<Module>()
 
+    /**
+     * The nodes that have been replaced or removed by a modification that was applied already,
+     * and thus are no longer part of the tree.
+     */
+    private val detachedNodes = Collections.newSetFromMap(IdentityHashMap<Node, Boolean>())
+
     private fun track(mods: Iterable<AstModification>, node: Node, parent: Node) {
         if (mods.any()) {
             try {
@@ -315,10 +334,24 @@ abstract class AstWalker {
             }
         }
 
+        detachedNodes.clear()
+        var amount = 0
         modifications.forEach {
-            it.first.perform()
+            val mod = it.first
+            if (mod.targetParent in detachedNodes) {
+                // another modification of this batch already detached the node that this modification
+                // would change, so applying it has no effect on the tree; skip it to avoid corrupting
+                // the parent links of nodes that are still in use by the replacement.
+                return@forEach
+            }
+            mod.perform()
+            when (mod) {
+                is AstReplaceNode -> detachedNodes += mod.node
+                is AstRemove -> detachedNodes += mod.node
+                else -> { }
+            }
+            amount++
         }
-        val amount = modifications.size
         modifications.clear()
         return amount
     }
