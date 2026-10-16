@@ -1,5 +1,6 @@
 package prog8tests.ast
 
+import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.engine.spec.tempdir
 import io.kotest.matchers.nulls.shouldNotBeNull
@@ -973,5 +974,35 @@ main {
         compileText(VMTarget(), false, src, outputDir, errors, false) shouldNotBe null
         errors.errors.size shouldBe 0
         errors.infos.none { "when statement" in it } shouldBe true
+    }
+
+    test("boolean expressions mixing not with or/and compile") {
+        // the 'not' simplification and the De Morgan rewrite of the same subtree used to both queue an
+        // ast modification, which corrupted the parent links of the nodes they shared (compiler crash)
+        val conditions = listOf(
+            "a == b or not (a >= b)",
+            "not (a >= b) or not (c >= b)",
+            "not (a >= b) or c == b",
+            "not (a == 0) and b == 0",
+            "a == b and not (a >= b)",
+            "(a == b) == 0 or not (c >= d)"
+        )
+        conditions.forEach { condition ->
+            val src = """
+                main {
+                    sub start() {
+                        uword a,b,c,d
+                        if $condition {
+                            a++
+                        }
+                    }
+                }
+            """.trimIndent()
+            val errors = ErrorReporterForTests()
+            compileText(Cx16Target(), true, src, outputDir, errors, false) shouldNotBe null
+            withClue(condition) {
+                errors.errors.size shouldBe 0
+            }
+        }
     }
 })
