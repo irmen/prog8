@@ -5,9 +5,11 @@ import prog8.code.core.*
 import prog8.code.target.Amiga1200Target
 import prog8.code.target.Amiga500Target
 import prog8.code.target.Qemu68kTarget
-import java.nio.file.Files
 import java.nio.file.Path
+import kotlin.io.path.deleteIfExists
+import kotlin.io.path.exists
 import kotlin.io.path.readText
+import kotlin.io.path.writeText
 
 class AssemblyProgramM68k(override val name: String) : IAssemblyProgram {
 
@@ -24,7 +26,7 @@ class AssemblyProgramM68k(override val name: String) : IAssemblyProgram {
      * /prog8lib/<targetname>/link.ld resource.  Anything else falls back to the qemu68k layout.
      */
     private fun resolveLinkerScript(target: ICompilationTarget): String {
-        target.libraryPath?.resolve("link.ld")?.takeIf { Files.isReadable(it) }?.let { return it.readText() }
+        target.libraryPath?.resolve("link.ld")?.takeIf { it.exists() }?.let { return it.readText() }
         val targetResource = "/prog8lib/${target.name}/link.ld"
         AssemblyProgramM68k::class.java.getResource(targetResource)?.let { return it.readText() }
         return AssemblyProgramM68k::class.java.getResource("/prog8lib/${Qemu68kTarget.NAME}/link.ld")?.readText()
@@ -92,12 +94,12 @@ class AssemblyProgramM68k(override val name: String) : IAssemblyProgram {
                 if (!runProcess(assembleCmd, options.quiet, "vasm"))
                     return false
                 // clean up any leftover ELF/obj files from previous builds
-                Files.deleteIfExists(outs.binFile())
+                outs.binFile().deleteIfExists()
 
                 // Step 2: write linker script and link to ELF executable
                 val linkScript = outs.linkScript()
                 val elfFile = elfFile(outs)
-                Files.writeString(linkScript, resolveLinkerScript(options.compTarget))
+                linkScript.writeText(resolveLinkerScript(options.compTarget))
 
                 val linkCmd = listOf(
                     "vlink",
@@ -108,7 +110,7 @@ class AssemblyProgramM68k(override val name: String) : IAssemblyProgram {
                     objFile.toString()
                 )
                 val linkOk = runProcess(linkCmd, options.quiet, "vlink")
-                Files.deleteIfExists(linkScript)
+                linkScript.deleteIfExists()
                 if(linkOk && !options.quiet)
                     println("Executable written to '$elfFile'")
                 return linkOk

@@ -97,29 +97,21 @@ class Amiga500Target: ICompilationTarget,
     }
 
     override fun launchEmulator(selectedEmulator: Int, programFile: Path, quiet: Boolean) {
-        if(selectedEmulator!=1) {
-            System.err.println("The amiga500 target only supports the main emulator (Amitools's vamos).")
+        if (selectedEmulator == 1) {
+            CopperlineEmulator.launch(programFile, quiet, "A500", "68000", listOf("--slow", "512K"))
             return
         }
-        val cpuStr = when(this.cpu) {
+        if (selectedEmulator != 2) {
+            System.err.println("The amiga500 target supports FS-UAE (-emu) and Amitools's vamos (-emu2).")
+            return
+        }
+        val cpuStr = when (this.cpu) {
             CpuType.M68000 -> "68000"
             CpuType.M68020 -> "68020"
             else -> error("invalid cpu type")
         }
-        val cmd = 
-            listOf(
-                "vamos",
-                "--cpu", cpuStr,
-                programFile.toString(),
-            )
-        if(!quiet)
-            println("Launching Amitools's Vamos...")
-        val pb = ProcessBuilder(cmd).inheritIO()
-        try {
-            pb.start().waitFor()
-        } catch(_: Exception) {
-            System.err.println("Cannot find 'vamos' (Amitools's Amiga emulator). Install it from: https://github.com/cnvogelg/amitools")
-        }
+        VamosEmulator.launch(programFile, quiet, cpuStr)
+        return
     }
 
     override fun isIOAddress(address: UInt): Boolean =

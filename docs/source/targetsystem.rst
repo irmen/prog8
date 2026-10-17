@@ -287,7 +287,14 @@ Unlike the 6502 targets, the 68000/68020 CPU is **big endian**: multi-byte value
 pointers) are stored Most Significant Byte first in memory. See :ref:`pointer_size` and
 :ref:`the endianness notes <endianness>` in the variables chapter.
 
-The ``-emu`` flag uses **Vamos** from the `Amitools <https://github.com/cnvogelg/amitools>`_ package
+The ``-emu`` flag launches **Copperline** (https://copperline.dev/), running the compiled program
+directly via its ``--run`` option with warp boot. Copperline bundles an AROS Kickstart replacement, so
+no ROM or Workbench installation is required by default. If a suitable Kickstart ROM is found in
+``Documents/FS-UAE/Kickstarts`` (v1.3 for amiga500, v3.1 for amiga1200), it is used instead.
+The staging directory (``<tmp>/prog8-copperline-<model>``) is populated from
+``Documents/FS-UAE/Hard Drives/Harddisk500`` or ``Harddisk1200`` (system libraries mostly).
+
+The ``-emu2`` flag uses **Vamos** from the `Amitools <https://github.com/cnvogelg/amitools>`_ package
 to run the compiled program. Vamos is a very limited Amiga runtime that runs on the host operating system
 directly - it is **not** a full Amiga emulator. Many AmigaOS library calls and features are not supported
 or behave differently. For best results, copy the generated executable to a proper Amiga emulator such as
