@@ -120,21 +120,21 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         val result = mutableListOf<IRCodeChunkBase>()
         val resultRegister = codeGen.registers.next(IRDataType.WORD)
         addInstr(result, IRInstructions.pop(IRDataType.WORD, resultRegister), null)
-        return ExpressionCodeResult(result, IRDataType.BYTE, resultRegister, -1)
+        return ExpressionCodeResult(result, IRDataType.WORD, resultRegister, -1)
     }
 
     private fun funcPopL(): ExpressionCodeResult {
         val result = mutableListOf<IRCodeChunkBase>()
         val resultRegister = codeGen.registers.next(IRDataType.LONG)
         addInstr(result, IRInstructions.pop(IRDataType.LONG, resultRegister), null)
-        return ExpressionCodeResult(result, IRDataType.BYTE, resultRegister, -1)
+        return ExpressionCodeResult(result, IRDataType.LONG, resultRegister, -1)
     }
 
     private fun funcPopF(): ExpressionCodeResult {
         val result = mutableListOf<IRCodeChunkBase>()
         val resultRegister = codeGen.registers.next(IRDataType.FLOAT)
         addInstr(result, IRInstructions.pop(IRDataType.FLOAT, resultRegister), null)
-        return ExpressionCodeResult(result, IRDataType.BYTE, -1, resultRegister)
+        return ExpressionCodeResult(result, IRDataType.FLOAT, -1, resultRegister)
     }
 
     private fun funcCopyFromPointer1ToPointer2(call: PtFunctionCall, type: IRDataType): ExpressionCodeResult {
