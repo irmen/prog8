@@ -37,8 +37,8 @@ object CopperlineEmulator {
         if (sysCfgSrc.exists()) sysCfgSrc.toPath().copyTo(tempDir.resolve("system-configuration"), overwrite = true)
 
         val ksDirs = listOf(
-            java.io.File("${System.getProperty("user.home")}/Documents/FS-UAE/Kickstarts"),
-            java.io.File("${System.getProperty("user.home")}/Documents/Kickstarts")
+            File("${System.getProperty("user.home")}/Documents/FS-UAE/Kickstarts"),
+            File("${System.getProperty("user.home")}/Documents/Kickstarts")
         )
         val ksDir = ksDirs.firstOrNull { it.isDirectory } ?: ksDirs.first()
         val candidates = ksDirs.filter { it.isDirectory }.flatMap { d -> d.listFiles()?.filter { it.name.endsWith(".rom", ignoreCase = true) && it.name.contains(model, ignoreCase = true) } ?: emptyList() }

@@ -39,6 +39,13 @@ and finish with `sys.poweroff_system()`. CBM targets use PETSCII by default;
 avoid uppercase in test output unless intentional graphics. The virtual target
 uses ISO when configured with `%encoding iso` and `txt.iso()`.
 
+On any CBM machine with PETSCII (this includes the Commander X16), files
+on disk must only consist of 'safe' characters (`a-z`, `0-9`, `.-+!%`).
+Do NOT mix casing in filenames; in Prog8 source code, filenames should
+usually be written in *lowercase* letters. Other characters (such as
+`_` or uppercase mixed with lowercase) can make kernal file operations
+fail, depending on the drive/host layer.
+
 Do not use `%option no_sysinit` on `amiga500`, `amiga1200`, or `qemu68k` targets when the goal
 is to create normal runnable programs. It skips critical startup logic including
 library initialization (DOS, graphics, intuition, timer) and CLI argument
@@ -119,6 +126,7 @@ Prog8 supports `if`/`else`, `when`, `for`, `while`, `do`/`until`, `repeat`,
 `unroll`, `break`, `continue`, `goto`, and labels. `unroll` duplicates a
 constant-count body at compile time and does not support `break` or `continue`.
 `repeat` is usually more efficient than `for` when no loop variable is needed.
+Replace a `for` loop with a `repeat` loop when the loop variable is not used in the loop body.
 Use `if_cs`, `if_cc`, `if_z`, and `if_nz` for direct CPU-flag branches.
 
 ## Subroutines and Assembly
