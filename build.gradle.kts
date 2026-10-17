@@ -72,8 +72,10 @@ subprojects {
         // Enable JUnit 5 (required for Kotest)
         useJUnitPlatform()
 
-        val testConcurrency = project.findProperty("testConcurrency")?.toString()?.toIntOrNull()
-            ?: (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1)
+        // Forked test JVMs each reserve up to -PtestMaxHeap, so keep the fork count
+        // bounded even on many-core machines to avoid swapping during parallel builds.
+        val testConcurrency = (project.findProperty("testConcurrency")?.toString()?.toIntOrNull()
+            ?: (Runtime.getRuntime().availableProcessors() / 2)).coerceIn(1, 4)
         project.findProperty("testMaxHeap")?.toString()?.let { maxHeapSize = it }
 
         // Enable concurrent test execution for Kotest
