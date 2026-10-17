@@ -66,7 +66,7 @@ main {
     }
 
     test("taking address of split arrays works") {
-        val src="""
+        val src = """
 main {
     sub start() {
         cx16.r0L=0
@@ -743,6 +743,19 @@ main {
         instructions[8].type shouldBe IRDataType.WORD
         instructions[10].opcode shouldBe Opcode.POP
         instructions[10].type shouldBe IRDataType.WORD
+    }
+
+    test("word pop comparison uses the word result type") {
+        val src=$$"""
+main {
+    sub start() {
+        ubyte a
+        if popw() != $abcd {
+            a++
+        }
+    }
+}"""
+        compileText(VMTarget(), false, src, outputDir, writeAssembly = true) shouldNotBe null
     }
 
     test("typed address-of a const pointer with non-const array indexing") {
