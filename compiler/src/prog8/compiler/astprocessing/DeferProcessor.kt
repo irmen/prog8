@@ -22,6 +22,11 @@ import prog8.code.source.SourceCode
  * Limitations:
  * - Maximum 8 defers per subroutine on 6502/virtual, 16 on m68k (due to UBYTE/UWORD mask)
  * - Only simple return values can be deferred (complex expressions need push/pop)
+ * - Recursive or mutually recursive subroutines that contain `defer` are rejected on stack-frame
+ *   targets (amiga500, amiga1200, qemu68k). The pending-defer mask is a single static variable per
+ *   subroutine; multiple live activations would share it, so an inner activation's registration or
+ *   handler could clobber/clear the outer activation's pending defers. A per-activation mask would
+ *   cost extra RAM and code on every target for a rare case, so the compiler rejects it instead.
  */
 internal object DeferProcessor {
 
@@ -215,6 +220,10 @@ internal object DeferProcessor {
                 return emptyMap()
             }
 
+            // Define one pending-defer mask variable per subroutine. This is intentionally simple
+            // and compact, but it cannot distinguish multiple live activations of the same sub;
+            // recursive or mutually recursive deferring subs are therefore rejected on stack-frame
+            // targets (see StackFrameLayout.reportUnsoundStaticState).
             // define the bitmask variable and set it to zero
             val deferVariable = PtVariable(
                 maskVarName,
@@ -450,29 +459,29 @@ internal object DeferProcessor {
             exitCall.parent.add(idx, unwindCall)
         }
 
-        // generate per-sub handlers (same as before)
+        // generate per-sub handlers. Test each defer's bit directly with `mask & bit != 0`
+        // instead of shifting and branching on carry: on m68k the `>>=` store uses MOVE,
+        // which clears the carry bit before any conditional branch can observe it.
         for( (sub, defers) in subdefers) {
             val defersRoutine = PtSub(invokeDefersRoutineName, emptyList(), emptyList(), sub.position)
             defersRoutine.parent=sub
-            for((idx, defer) in defers.reversed().withIndex()) {
-                val shift = PtAugmentedAssign(">>=", defer.position)
-                shift.add(PtAssignTarget(false, defer.position).also {
-                    it.add(PtIdentifier(sub.scopedName+"."+maskVarName, maskType, defer.position))
-                })
-                val baseType = if (maskType == DataType.UWORD) BaseDataType.UWORD else BaseDataType.UBYTE
-                shift.add(PtNumber(baseType, 1.0, defer.position))
-                defersRoutine.add(shift)
-                val skiplabel = "prog8_defer_skip_${idx+1}"
-                val branchcc = PtConditionalBranch(BranchCondition.CC, defer.position)
-                branchcc.add(PtNodeGroup().also {
-                    val jump = PtJump(defer.position)
-                    jump.add(PtIdentifier(defersRoutine.scopedName+"."+skiplabel, DataType.UBYTE, defer.position))
-                    it.add(jump)
-                })
-                branchcc.add(PtNodeGroup())
-                defersRoutine.add(branchcc)
-                transferChildren(defer, defersRoutine, true)
-                defersRoutine.add(PtLabel(skiplabel, defer.position))
+            val baseType = if (maskType == DataType.UWORD) BaseDataType.UWORD else BaseDataType.UBYTE
+            for(deferIndex in defers.indices.reversed()) {
+                val defer = defers[deferIndex]
+                // if mask & bit != 0 { <defer body> }
+                val bitTest = PtBinaryExpression("&", maskType, defer.position)
+                bitTest.add(PtIdentifier(sub.scopedName+".${maskVarName}", maskType, defer.position))
+                bitTest.add(PtNumber(baseType, (1 shl (defers.size-1 - deferIndex)).toDouble(), defer.position))
+                val cond = PtBinaryExpression("!=", DataType.BOOL, defer.position)
+                cond.add(bitTest)
+                cond.add(PtNumber(baseType, 0.0, defer.position))
+                val ifNode = PtIfElse(defer.position)
+                ifNode.add(cond)
+                val trueScope = PtNodeGroup()
+                transferChildren(defer, trueScope, true)
+                ifNode.add(trueScope)
+                ifNode.add(PtNodeGroup())
+                defersRoutine.add(ifNode)
             }
             defersRoutine.add(PtReturn(sub.position))
             sub.add(defersRoutine)

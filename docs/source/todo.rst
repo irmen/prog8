@@ -1,9 +1,6 @@
 TODO
 ====
 
-There is a massive memory hog or maybe even leak when running the test suite
-
-
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 - extend the ``-gendoc`` command to generate user reference documentation from Markdown docstrings; see ``ideas/markdown-docstrings-and-reference-docs.md`` for the plan.
@@ -49,10 +46,6 @@ Missing VM Implementations (VirtualMachine.kt)
 - ``IRInlineAsmChunk`` with ``isIR=true`` (IR-form inline asm) is not executable: ``VmProgramLoader.kt`` only converts the trivial ``"clc"``/``"sec"`` chunks and throws on everything else. This is the designed-for home of IR-form asm, since ``AstChecker`` restricts ``asm { %ir }`` to the virtual target only; the VM should parse and run the IR instruction lines contained in such chunks. Raw (non-IR) inline asm and ``IRAsmSubroutine`` should NOT be made executable (the VM has no 6502/68k CPU): instead, reject non-IR ``asm`` blocks and ``asmsub`` with a frontend error on the virtual target (currently they pass ``AstChecker`` and only crash at VM load). ``IRInlineBinaryChunk`` (``%binary`` include) stays deferred: the program is not loaded as data, so an embedded blob has no place.
 Source line tracking in new codegen backends
 - Improve source line tracking across the IR into the generated assembly code in the new codegen backends (new6502, m68k). Currently, the IR preserves some source position information, but this is not consistently propagated through to the final assembly output. Better tracking would improve debugging experience (e.g., in monitor/debugger tools) and make it easier to correlate generated assembly back to the original Prog8 source code. Consider adding source location metadata to IR instructions and ensuring code generators emit appropriate ``.line`` directives or comments in the assembly output.
-Recursion-sound defers via framebase-as-parameter
-- Problem: ``defer`` compiles to a single static per-subroutine mask variable plus one handler routine, so with a recursive (or mutually recursive) subroutine on m68k targets the activations share that mask: an inner activation's registration collides with the outer one's and its exit clears the bit so the outer activations' pending defers never fire (leaked resources, missed unlocks), and a defer block that reads parent locals acts on the innermost activation's frame instead of the one that registered it. The compiler therefore rejects defer in recursive subroutines.
-  Fix for this: push ``(id, framebase)`` pairs on the defer handler stack, pass the parent's bottom-of-frame address as a hidden trailing parameter, lower parent-local accesses to indirect framebase-relative accesses. Lifts the current rejection of recursive deferring subs on m68k targets. VM parity only (not needed for m68k): running such IR on the VM would also need VM activation records in linear memory so saved frame bases are addresses (currently won't-do, see "Won't do: VM stack frames" above).
-
 
 Libraries
 ^^^^^^^^^
@@ -66,7 +59,7 @@ Optimizations
 - Port more benchmarks from https://thred.github.io/c-bench-64/  to prog8 and see how it stacks up. (see benchmark-c/ directory)
 - Compilation speed: try to join multiple modifications in 1 result in the AST processors instead of returning it straight away every time
 - various optimizers skip stuff if compTarget.name==VMTarget.NAME.  Once new 6502 codegen is done from IR code, those 6502 only optimizations should probably be removed
-- M68K stack/frame follow-ups: the stack-based memory model for locals and parameters is implemented, including frame slots for locals, parameters in the caller-pushed incoming area (word-packed argument slots are now the default convention), per-activation virtual registers for re-entrant subroutines, prologue zero-store coalescing, and diagnostics/polish items. Remaining low-pri optimization work: reserved outgoing-argument area (allocate the max call-site arg size once in the caller's ``link`` frame; benchmark-driven, likely marginal) and loop-aware liveness for frame slot reuse (needs real backward live-in/live-out dataflow over the CFG; frame-size-driven). Register argument passing lives in ``ideas/m68k-register-allocation.md`` §9; recursion-sound defers is an IR/VM item above. See the user-facing description in ``technical.rst``.
+- M68K stack/frame follow-ups: the stack-based memory model for locals and parameters is implemented, including frame slots for locals, parameters in the caller-pushed incoming area (word-packed argument slots are now the default convention), per-activation virtual registers for re-entrant subroutines, prologue zero-store coalescing, and diagnostics/polish items. Remaining low-pri optimization work: reserved outgoing-argument area (allocate the max call-site arg size once in the caller's ``link`` frame; benchmark-driven, likely marginal) and loop-aware liveness for frame slot reuse (needs real backward live-in/live-out dataflow over the CFG; frame-size-driven). Register argument passing lives in ``ideas/m68k-register-allocation.md`` §9. See the user-facing description in ``technical.rst``.
 
 
 Dead Code Elimination bug in 64tass, for nested subroutines

@@ -1793,6 +1793,10 @@ and the logic is declared very close to the spot where the allocation of the res
 
 It's possible to write a defer for a block of statements, but the advice is to keep such cleanup code as simple and short as possible.
 
+Defers are not supported in recursive or mutually recursive subroutines on the stack-frame targets
+(amiga500, amiga1200, qemu68k). On the 6502 and virtual targets recursion itself is not supported,
+so this limitation does not change their behavior.
+
 .. caution::
     Defers only work for subroutines that are written in regular Prog8 code.
     If a piece of inlined assembly somehow causes the routine to exit, the compiler cannot detect this,
