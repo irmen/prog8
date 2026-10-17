@@ -210,12 +210,19 @@ _after:
     private fun before(functionCall: IFunctionCall, parent: Node, position: Position): Iterable<AstModification> {
         val outerFunc = functionCall.target.nameInSource
 
-        if(outerFunc==listOf("peek")) {
+        // A desugar replacement that produces an Expression can only be applied to a
+        // FunctionCallExpression, and one that produces a Statement (Assignment or
+        // FunctionCallStatement) only to a FunctionCallStatement. Applying the wrong kind
+        // would make the parent's replaceChildNode reject it (FatalAstException). Leaving
+        // the node un-desugared in the wrong context lets the regular type checks produce
+        // a proper error message instead.
+
+        if(outerFunc==listOf("peek") && functionCall is FunctionCallExpression) {
             // peek(a) is synonymous with @(a)
             val memread = DirectMemoryRead(functionCall.args.single(), position)
             return listOf(AstReplaceNode(functionCall as Node, memread, parent))
         }
-        if(outerFunc==listOf("poke") && parent !is Assignment) {
+        if(outerFunc==listOf("poke") && functionCall is FunctionCallStatement && parent !is Assignment) {
             // poke(a, v) is synonymous with @(a) = v
             val tgt = AssignTarget(
                 null,
@@ -229,7 +236,7 @@ _after:
             return listOf(AstReplaceNode(functionCall as Node, assign, parent))
         }
 
-        if(outerFunc==listOf("pokew") || outerFunc==listOf("pokel") || outerFunc==listOf("pokef")) {
+        if((outerFunc==listOf("pokew") || outerFunc==listOf("pokel") || outerFunc==listOf("pokef")) && functionCall is FunctionCallStatement) {
             val innercall = functionCall.args[1] as? IFunctionCall
             val innerFunc = innercall?.target?.nameInSource
             val peekname = "peek" + outerFunc[0].substring(4)
@@ -258,7 +265,7 @@ _after:
             }
         }
 
-        if(outerFunc==listOf("pushp")) {
+        if(outerFunc==listOf("pushp") && functionCall is FunctionCallStatement) {
             // pushp adapts to pointer size: pushw on 16-bit targets, pushl on 32-bit
             val pushName = if(target.POINTER_MEM_SIZE > 2u) "pushl" else "pushw"
             val newCall = FunctionCallStatement(
@@ -269,13 +276,19 @@ _after:
         }
         if(outerFunc==listOf("popp")) {
             val popName = if(target.POINTER_MEM_SIZE > 2u) "popl" else "popw"
+            val innerTarget = IdentifierReference(listOf(popName), position)
+            if(functionCall is FunctionCallStatement) {
+                // popp() used as a statement only discards its result, so it has to desugar
+                // into a call statement again - not into an expression
+                return listOf(AstReplaceNode(functionCall, FunctionCallStatement(innerTarget, mutableListOf(), false, position), parent))
+            }
             val newCall = FunctionCallExpression(
-                IdentifierReference(listOf(popName), position),
+                innerTarget,
                 mutableListOf(), position
             )
             return listOf(AstReplaceNode(functionCall as Node, newCall, parent))
         }
-        if(outerFunc==listOf("pokep")) {
+        if(outerFunc==listOf("pokep") && functionCall is FunctionCallStatement) {
             val pokeName = if(target.POINTER_MEM_SIZE > 2u) "pokel" else "pokew"
             val newCall = FunctionCallStatement(
                 IdentifierReference(listOf(pokeName), position),

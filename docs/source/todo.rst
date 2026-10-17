@@ -1,7 +1,7 @@
 TODO
 ====
 
-There is a massieve memory hog or maybe even leak when running the test suite
+There is a massive memory hog or maybe even leak when running the test suite
 
 
 Future Things and Ideas
